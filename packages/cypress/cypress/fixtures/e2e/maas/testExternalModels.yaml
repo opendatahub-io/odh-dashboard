@@ -1,4 +1,32 @@
 # testExternalModels.cy.ts Test Data #
 projectResourceName: 'test-external-models'
-emptyProjectResourceName: 'test-external-models-empty'
-resourceName: 'e2e-openai'
+
+#External Provider Data
+externalProviderName: 'e2e-external-provider'
+providerDescription: 'e2e-external-provider-description'
+providerType: 'openai'
+providerEndpoint: '3-147-232-199.sslip.io'
+providerAuthType: 'apikey'
+existingSecretName: 'e2e-external-exisiting-secret'
+createSecretName: 'e2e-external-create-secret'
+providerPhase: 'Ready'
+providerConfigPair:
+  key: 'key'
+  value: 'value'
+
+#External Model Data
+externalModelName: 'e2e-external-model'
+externalModelDescription: 'e2e-external-model-description'
+providerReferenceName: 'e2e-external-provider-reference'
+targetModel: 'my-openai-provider'
+weight: 1
+weightPercentage: 100
+providerRef:
+  displayName: 'e2e-provider-ref'
+  providerType: 'openai'
+  endpoint: '3-147-232-199.sslip.io'
+  newSecret:
+    name: 'new-secret-name'
+    apiKey: 'new-secret-value'
+
+pathPlaceholderKey: 'project'

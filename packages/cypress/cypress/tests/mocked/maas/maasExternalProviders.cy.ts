@@ -422,6 +422,15 @@ describe('External providers', () => {
 
     it('shows validation errors for an invalid new secret name and endpoint', () => {
       externalProvidersPage.findCreateExternalProviderButton().click();
+      createExternalProviderModal.fillRequiredFields({
+        displayName: 'OpenAI Production',
+        providerType: 'openai',
+        endpoint: 'api.openai.com',
+        newSecret: { name: 'openai-prod-key', apiKey: 'sk-test-key' },
+      });
+      createExternalProviderModal.findSubmitButton().should('be.enabled');
+
+      // Invalid Secret Name
       createExternalProviderModal.selectCreateNewSecret();
       createExternalProviderModal.findSecretNameInput().type('Invalid Secret Name');
       createExternalProviderModal
@@ -429,13 +438,37 @@ describe('External providers', () => {
         .contains('Secret name must be a valid Kubernetes resource name')
         .should('exist');
       createExternalProviderModal.findSubmitButton().should('be.disabled');
+      // Clear Secret Name
+      createExternalProviderModal.findSecretNameInput().clear();
+      createExternalProviderModal.findSecretNameInput().blur();
+      createExternalProviderModal
+        .find()
+        .contains('Credential secret is required: error status;')
+        .should('exist');
+      createExternalProviderModal.findSubmitButton().should('be.disabled');
+      createExternalProviderModal.findSecretNameInput().type('Secret-Name');
+      // Clear Secret Value
+      createExternalProviderModal.findSecretValueInput().type('API-Key');
+      createExternalProviderModal.findSecretValueInput().clear();
+      createExternalProviderModal.findSecretValueInput().blur();
+      createExternalProviderModal
+        .find()
+        .contains('Secret value is required: error status;')
+        .should('exist');
+      createExternalProviderModal.findSubmitButton().should('be.disabled');
+      createExternalProviderModal.findSecretValueInput().type('API-Key');
+      createExternalProviderModal.findSubmitButton().should('be.enabled');
 
-      createExternalProviderModal.findEndpointInput().type('https://api.openai.com');
+      createExternalProviderModal.findEndpointInput().clear().type('https://api.openai.com');
       createExternalProviderModal.findEndpointInput().blur();
       createExternalProviderModal
         .find()
         .contains('Endpoint must be an FQDN with no scheme or path')
         .should('exist');
+      createExternalProviderModal.findSubmitButton().should('be.disabled');
+      createExternalProviderModal.findEndpointInput().clear();
+      createExternalProviderModal.findEndpointInput().blur();
+      createExternalProviderModal.findEndpointError().should('exist');
       createExternalProviderModal.findSubmitButton().should('be.disabled');
     });
 

@@ -1,71 +1,60 @@
 import { getClusterAppsDomain } from './baseCommands';
 import type { CommandLineResult } from '../../types';
+import { Path } from '../../types';
 import { replacePlaceholdersInYaml } from '../../utils/yaml_files';
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const gatewayExternalName = 'gateway-external';
 export const modelsAsAServiceNamespace = 'models-as-a-service';
+
+/** OpenShift Route that exposes the shared MaaS API gateway. */
+const maasGatewayRouteName = 'maas-gateway-route';
+const maasGatewayRouteNamespace = 'openshift-ingress';
 
 /** LLM completions can exceed Cypress's default 30s `cy.request` timeout (especially with high `max_tokens`). */
 const completionsRequestTimeoutMs = 180000;
 
 /**
- * Base URL for MaaS completions calls.
+ * Resolves the MaaS API gateway hostname from the cluster Route
+ * (`maas-gateway-route` in `openshift-ingress`).
  *
- * Prefer `status.url` (single canonical URL chosen by the controller) when present.
- * Otherwise, fall back to `status.addresses` entries named `gateway-external`.
- *
- * Some clusters publish multiple `gateway-external` URLs (e.g. both:
- * - `/publishers/<ns>/models/<model>`
- * - `/<ns>/<model>`
- * )
- * so we prefer the non-`/publishers/` form when both exist.
+ * @returns Hostname only (e.g. `maas.apps.my-cluster.example.com`), no scheme.
  */
-const getGatewayExternalUrlFromLlmInferenceService = (doc: unknown): string => {
-  if (!isRecord(doc)) {
-    throw new Error('Invalid LLMInferenceService JSON');
-  }
-  const { status } = doc;
-  if (!isRecord(status)) {
-    throw new Error('LLMInferenceService status missing');
-  }
-  const canonicalUrl = status.url;
-  if (typeof canonicalUrl === 'string' && canonicalUrl.length > 0) {
-    return canonicalUrl;
-  }
-  const { addresses } = status;
-  if (!Array.isArray(addresses)) {
-    throw new Error('LLMInferenceService status.addresses missing or not an array');
-  }
-
-  const candidates: string[] = [];
-  for (const entry of addresses) {
-    if (!isRecord(entry)) {
-      continue;
+export const getGatewayHostForMaaS = (): Cypress.Chainable<string> => {
+  const ocCommand = `oc get route ${maasGatewayRouteName} -n ${maasGatewayRouteNamespace} -o jsonpath='{.spec.host}'`;
+  cy.log(`Resolving MaaS gateway host: ${ocCommand}`);
+  return cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result: CommandLineResult) => {
+    const host = result.stdout.trim().replace(/^'|'$/g, '');
+    if (!host) {
+      throw new Error(
+        `MaaS gateway Route ${maasGatewayRouteNamespace}/${maasGatewayRouteName} has an empty .spec.host`,
+      );
     }
-    const { name, url } = entry;
-    if (name !== gatewayExternalName) {
-      continue;
-    }
-    if (typeof url === 'string' && url.length > 0) {
-      candidates.push(url);
-    }
-  }
+    cy.log(`✅ MaaS gateway host: ${host}`);
+    return cy.wrap(host);
+  });
+};
 
-  if (candidates.length === 0) {
-    throw new Error(`No ${gatewayExternalName} URL found in LLMInferenceService status.addresses`);
-  }
-
-  // Prefer non-publishers form when available.
-  const nonPublishersUrl = candidates.find((u) => !u.includes('/publishers/'));
-  if (nonPublishersUrl) {
-    return nonPublishersUrl;
-  }
-
-  const httpsUrl = candidates.find((u) => u.startsWith('https://'));
-  return httpsUrl ?? candidates[0];
+/**
+ * Builds the tenant-scoped MaaS inference URL for a model
+ * (LLMInferenceService or ExternalModel).
+ *
+ * Host + tenant prefix stay the same; only `apiPath` changes by format:
+ * - OpenAI Chat → `/v1/chat/completions` (default)
+ * - Anthropic Messages → `/v1/messages`
+ *
+ * Example:
+ * `https://maas.apps…/test-external-models-115451/e2e-external-model-115451/v1/chat/completions`
+ */
+export const buildMaaSInferenceUrl = (
+  gatewayHost: string,
+  namespace: string,
+  modelName: string,
+  apiPath: string = Path.OPENAI_CHAT,
+): string => {
+  const host = gatewayHost.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  const ns = namespace.replace(/^\/+|\/+$/g, '');
+  const model = modelName.replace(/^\/+|\/+$/g, '');
+  const path = apiPath.startsWith('/') ? apiPath : `/${apiPath}`;
+  return `https://${host}/${ns}/${model}${path}`;
 };
 
 const ocGetIndicatesResourceNotFound = (result: Cypress.Exec): boolean => {
@@ -387,6 +376,238 @@ export const createExternalProviderSecret = (
 ): Cypress.Chainable<CommandLineResult> =>
   applyExternalModelsFixture('Secret', projectName, resourceName, fixturePath);
 
+export function checkSecretExists(
+  projectName: string,
+  resourceName: string,
+): Cypress.Chainable<CommandLineResult> {
+  return cy
+    .exec(`oc get secret ${resourceName} -n ${projectName}`, { failOnNonZeroExit: false })
+    .then((result: CommandLineResult) => {
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `Secret ${resourceName} does not exist in namespace ${projectName}: ${
+            result.stderr || result.stdout
+          }`,
+        );
+      }
+      return result;
+    });
+}
+
+type ExternalProviderDoc = {
+  status?: {
+    phase?: string;
+  };
+};
+
+/**
+ * Verifies an ExternalProvider exists and reaches the expected status phase (default: Ready).
+ * Polls until the phase is met or throws when the resource is missing, Failed, or times out.
+ */
+export const checkExternalProviderExists = (
+  projectName: string,
+  resourceName: string,
+  options: {
+    phase?: string;
+    maxAttempts?: number;
+    retryIntervalMs?: number;
+  } = {},
+): Cypress.Chainable<CommandLineResult> => {
+  const expectedPhase = options.phase ?? 'Ready';
+  const maxAttempts = options.maxAttempts ?? MAAS_STATE_DEFAULT_MAX_ATTEMPTS;
+  const retryIntervalMs = options.retryIntervalMs ?? MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS;
+  const ocCommand = `oc get externalprovider ${resourceName} -n ${projectName} -o json`;
+  let attempts = 0;
+
+  const checkState = (): Cypress.Chainable<CommandLineResult> =>
+    cy
+      .exec(ocCommand, { failOnNonZeroExit: false })
+      .then((result: CommandLineResult): Cypress.Chainable<CommandLineResult> => {
+        attempts++;
+
+        if (result.exitCode !== 0) {
+          if (attempts < maxAttempts) {
+            cy.log(
+              `ExternalProvider ${resourceName} not found yet (attempt ${attempts}/${maxAttempts})`,
+            );
+            // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
+            return cy.wait(retryIntervalMs).then(() => checkState());
+          }
+          throw new Error(
+            `ExternalProvider ${resourceName} does not exist in namespace ${projectName}: ${
+              result.stderr || result.stdout
+            }`,
+          );
+        }
+
+        let doc: ExternalProviderDoc;
+        try {
+          doc = JSON.parse(result.stdout) as ExternalProviderDoc;
+        } catch {
+          throw new Error(`Failed to parse ExternalProvider JSON for ${resourceName}`);
+        }
+
+        const phase = doc.status?.phase;
+        if (phase === expectedPhase) {
+          cy.log(`✅ ExternalProvider ${resourceName} exists with phase ${expectedPhase}`);
+          return cy.wrap(result);
+        }
+
+        if (phase === 'Failed') {
+          throw new Error(
+            `ExternalProvider ${resourceName} is in Failed phase in namespace ${projectName}`,
+          );
+        }
+
+        if (attempts < maxAttempts) {
+          cy.log(
+            `ExternalProvider ${resourceName} phase is ${
+              phase ?? 'Unknown'
+            }, expected ${expectedPhase} (attempt ${attempts}/${maxAttempts})`,
+          );
+          // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
+          return cy.wait(retryIntervalMs).then(() => checkState());
+        }
+
+        throw new Error(
+          `ExternalProvider ${resourceName} did not reach phase ${expectedPhase} in namespace ${projectName}. Current phase: ${
+            phase ?? 'Unknown'
+          }`,
+        );
+      });
+
+  return checkState();
+};
+
+type ExternalModelDoc = {
+  status?: {
+    phase?: string;
+  };
+};
+
+/**
+ * Verifies an ExternalModel exists and reaches the expected status phase (default: Ready).
+ * Polls until the phase is met or throws when the resource is missing, Failed, or times out.
+ */
+export const checkExternalModelExists = (
+  projectName: string,
+  resourceName: string,
+  options: {
+    phase?: string;
+    maxAttempts?: number;
+    retryIntervalMs?: number;
+  } = {},
+): Cypress.Chainable<CommandLineResult> => {
+  const expectedPhase = options.phase ?? 'Ready';
+  const maxAttempts = options.maxAttempts ?? MAAS_STATE_DEFAULT_MAX_ATTEMPTS;
+  const retryIntervalMs = options.retryIntervalMs ?? MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS;
+  const ocCommand = `oc get externalmodel ${resourceName} -n ${projectName} -o json`;
+  let attempts = 0;
+
+  const checkState = (): Cypress.Chainable<CommandLineResult> =>
+    cy
+      .exec(ocCommand, { failOnNonZeroExit: false })
+      .then((result: CommandLineResult): Cypress.Chainable<CommandLineResult> => {
+        attempts++;
+
+        if (result.exitCode !== 0) {
+          if (attempts < maxAttempts) {
+            cy.log(
+              `ExternalModel ${resourceName} not found yet (attempt ${attempts}/${maxAttempts})`,
+            );
+            // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
+            return cy.wait(retryIntervalMs).then(() => checkState());
+          }
+          throw new Error(
+            `ExternalModel ${resourceName} does not exist in namespace ${projectName}: ${
+              result.stderr || result.stdout
+            }`,
+          );
+        }
+
+        let doc: ExternalModelDoc;
+        try {
+          doc = JSON.parse(result.stdout) as ExternalModelDoc;
+        } catch {
+          throw new Error(`Failed to parse ExternalModel JSON for ${resourceName}`);
+        }
+
+        const phase = doc.status?.phase;
+        if (phase === expectedPhase) {
+          cy.log(`✅ ExternalModel ${resourceName} exists with phase ${expectedPhase}`);
+          return cy.wrap(result);
+        }
+
+        if (phase === 'Failed') {
+          throw new Error(
+            `ExternalModel ${resourceName} is in Failed phase in namespace ${projectName}`,
+          );
+        }
+
+        if (attempts < maxAttempts) {
+          cy.log(
+            `ExternalModel ${resourceName} phase is ${
+              phase ?? 'Unknown'
+            }, expected ${expectedPhase} (attempt ${attempts}/${maxAttempts})`,
+          );
+          // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
+          return cy.wait(retryIntervalMs).then(() => checkState());
+        }
+
+        throw new Error(
+          `ExternalModel ${resourceName} did not reach phase ${expectedPhase} in namespace ${projectName}. Current phase: ${
+            phase ?? 'Unknown'
+          }`,
+        );
+      });
+
+  return checkState();
+};
+
+/**
+ * Verifies a MaaSModelRef exists.
+ * Polls until the resource is found or times out.
+ */
+export const checkMaaSModelRefExists = (
+  projectName: string,
+  resourceName: string,
+  options: {
+    maxAttempts?: number;
+    retryIntervalMs?: number;
+  } = {},
+): Cypress.Chainable<CommandLineResult> => {
+  const maxAttempts = options.maxAttempts ?? MAAS_STATE_DEFAULT_MAX_ATTEMPTS;
+  const retryIntervalMs = options.retryIntervalMs ?? MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS;
+  const ocCommand = `oc get MaaSModelRef ${resourceName} -n ${projectName}`;
+  let attempts = 0;
+
+  const checkState = (): Cypress.Chainable<CommandLineResult> =>
+    cy
+      .exec(ocCommand, { failOnNonZeroExit: false })
+      .then((result: CommandLineResult): Cypress.Chainable<CommandLineResult> => {
+        attempts++;
+
+        if (result.exitCode === 0) {
+          cy.log(`✅ MaaSModelRef ${resourceName} exists in namespace ${projectName}`);
+          return cy.wrap(result);
+        }
+
+        if (attempts < maxAttempts) {
+          cy.log(`MaaSModelRef ${resourceName} not found yet (attempt ${attempts}/${maxAttempts})`);
+          // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
+          return cy.wait(retryIntervalMs).then(() => checkState());
+        }
+
+        throw new Error(
+          `MaaSModelRef ${resourceName} does not exist in namespace ${projectName}: ${
+            result.stderr || result.stdout
+          }`,
+        );
+      });
+
+  return checkState();
+};
+
 export const createExternalProvider = (
   projectName: string,
   resourceName: string,
@@ -408,34 +629,54 @@ export const createMaaSModelRefForExternalModel = (
 ): Cypress.Chainable<CommandLineResult> =>
   applyExternalModelsFixture('MaaSModelRef', projectName, resourceName, fixturePath, false);
 
-/**
- * Deletes ExternalModel-related resources created by Cypress e2e setup.
- * Order: MaaSModelRef → ExternalModel → ExternalProvider → Secret.
- */
-export const cleanupExternalModelsResources = (
-  projectName: string,
+export const cleanupMaaSModelRef = (
   resourceName: string,
+  projectName: string,
+): Cypress.Chainable<CommandLineResult> => {
+  const ocCommand = `oc delete MaaSModelRef ${resourceName} -n ${projectName} --ignore-not-found`;
+  cy.log(`Executing delete MaaSModelRef command: ${ocCommand}`);
+  return cy.exec(ocCommand, { failOnNonZeroExit: false });
+};
+
+export const cleanupExternalModel = (
+  resourceName: string,
+  projectName: string,
+): Cypress.Chainable<CommandLineResult> => {
+  const ocCommand = `oc delete ExternalModel ${resourceName} -n ${projectName} --ignore-not-found`;
+  cy.log(`Executing delete ExternalModel command: ${ocCommand}`);
+  return cy.exec(ocCommand, { failOnNonZeroExit: false });
+};
+
+/**
+ * Deletes ExternalModel and its companion MaaSModelRef (same resource name).
+ * Order: MaaSModelRef → ExternalModel.
+ */
+export const cleanupExternalModelResources = (
+  resourceName: string,
+  projectName: string,
 ): Cypress.Chainable<CommandLineResult> => {
   cy.log(`Cleaning up external model resources "${resourceName}" in namespace "${projectName}"`);
-  return cy
-    .exec(`oc delete MaaSModelRef ${resourceName} -n ${projectName} --ignore-not-found`, {
-      failOnNonZeroExit: false,
-    })
-    .then(() =>
-      cy.exec(`oc delete ExternalModel ${resourceName} -n ${projectName} --ignore-not-found`, {
-        failOnNonZeroExit: false,
-      }),
-    )
-    .then(() =>
-      cy.exec(`oc delete ExternalProvider ${resourceName} -n ${projectName} --ignore-not-found`, {
-        failOnNonZeroExit: false,
-      }),
-    )
-    .then(() =>
-      cy.exec(`oc delete Secret ${resourceName} -n ${projectName} --ignore-not-found`, {
-        failOnNonZeroExit: false,
-      }),
-    );
+  return cleanupMaaSModelRef(resourceName, projectName).then(() =>
+    cleanupExternalModel(resourceName, projectName),
+  );
+};
+
+export const cleanupExternalProvider = (
+  resourceName: string,
+  projectName: string,
+): Cypress.Chainable<CommandLineResult> => {
+  const ocCommand = `oc delete ExternalProvider ${resourceName} -n ${projectName} --ignore-not-found`;
+  cy.log(`Executing delete ExternalProvider command: ${ocCommand}`);
+  return cy.exec(ocCommand, { failOnNonZeroExit: false });
+};
+
+export const cleanupExternalProviderSecret = (
+  resourceName: string,
+  projectName: string,
+): Cypress.Chainable<CommandLineResult> => {
+  const ocCommand = `oc delete Secret ${resourceName} -n ${projectName} --ignore-not-found`;
+  cy.log(`Executing delete Secret command: ${ocCommand}`);
+  return cy.exec(ocCommand, { failOnNonZeroExit: false });
 };
 
 type MaaSModelRefCondition = {
@@ -790,64 +1031,60 @@ const MAAS_COMPLETIONS_DEFAULT_RETRY_INTERVAL_MS = 5000;
 export type VerifyMaaSModelInferencingOptions = {
   maxAttempts?: number;
   retryIntervalMs?: number;
+  /**
+   * API path after `/{namespace}/{model}`.
+   * Defaults to {@link Path.OPENAI_CHAT} (`/v1/chat/completions`).
+   * Use {@link Path.MESSAGES} (`/v1/messages`) for Anthropic Messages format.
+   */
+  apiPath?: string;
 };
 
 /**
- * Verify the model is accessible with a token via the MaaS completions API (same shape as):
- * `curl -k {gateway-external-base}/v1/completions -H "Content-Type: application/json"
- *   -H "Authorization: Bearer …" -d '{"model":"<name>","prompt":"Today is","max_tokens":512,"temperature":1}'`
+ * Verify the model is accessible with a token via the MaaS gateway:
+ * `curl -k https://{gateway-host}/{namespace}/{model}{apiPath} ...`
  *
- * Resolves `{gateway-external-base}` from `LLMInferenceService.status.addresses`, then POSTs to `{base}/v1/completions`.
+ * Resolves the gateway host from {@link getGatewayHostForMaaS} (Route `maas-gateway-route`).
+ * Works for both LLMInferenceService and ExternalModel tenants.
+ *
+ * Default `apiPath` is OpenAI Chat (`/v1/chat/completions`). Pass
+ * `apiPath: Path.MESSAGES` for Anthropic Messages (`/v1/messages`).
+ *
  * Uses `strictSSL: false` on the request so self-signed cluster ingress TLS matches `curl -k`.
  * Uses an extended `cy.request` timeout because completions can run longer than the default 30s.
  *
  * Retries the POST when the gateway returns transient statuses (like 400/429/502/503/504), up to `maxAttempts`,
  * with `retryIntervalMs` between attempts (same polling pattern as other `maxAttempts` utilities in `oc_commands`).
  *
- * @param llmInferenceServiceName `metadata.name` of the LLMInferenceService (JSON `model` field, same as curl).
- * @param namespace Namespace of the LLMInferenceService.
+ * @param modelName Model name used in the path and JSON `model` field (LLMInferenceService or ExternalModel name).
+ * @param namespace Project / tenant namespace for the path prefix.
  * @param apiKey The API key to use for the request.
- * @param options Optional retry budget; defaults are {@link MAAS_COMPLETIONS_DEFAULT_MAX_ATTEMPTS} attempts and 5000ms between attempts.
- * @returns Cypress.Chainable whose `url` is the full completions URL used for the POST.
+ * @param options Optional retry budget and `apiPath`; defaults are {@link MAAS_COMPLETIONS_DEFAULT_MAX_ATTEMPTS} attempts and OpenAI Chat path.
+ * @returns Cypress.Chainable whose `url` is the full inference URL used for the POST.
  */
 export const verifyMaaSModelInferencing = (
-  llmInferenceServiceName: string,
+  modelName: string,
   namespace: string,
   apiKey: string,
   options: VerifyMaaSModelInferencingOptions = {},
 ): Cypress.Chainable<{ url: string; response: Cypress.Response<unknown> }> => {
   const maxAttempts = options.maxAttempts ?? MAAS_COMPLETIONS_DEFAULT_MAX_ATTEMPTS;
   const retryIntervalMs = options.retryIntervalMs ?? MAAS_COMPLETIONS_DEFAULT_RETRY_INTERVAL_MS;
+  const apiPath = options.apiPath ?? Path.OPENAI_CHAT;
   const approximateRetryWindowSec = (maxAttempts * retryIntervalMs) / 1000;
 
-  const sanitizedName = llmInferenceServiceName.replace(/[^a-zA-Z0-9_-]/g, '');
-  const sanitizedNamespace = namespace.replace(/[^a-zA-Z0-9_-]/g, '');
-  const ocCommand = `oc get LLMInferenceService ${sanitizedName} -n ${sanitizedNamespace} -o json`;
-
-  return cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
-    let doc: unknown;
-    try {
-      doc = JSON.parse(result.stdout);
-    } catch {
-      throw new Error(
-        `Failed to parse LLMInferenceService JSON for ${llmInferenceServiceName}: ${result.stdout}`,
-      );
-    }
-
-    const baseUrl = getGatewayExternalUrlFromLlmInferenceService(doc).replace(/\/$/, '');
-    const url = `${baseUrl}/v1/completions`;
+  return getGatewayHostForMaaS().then((gatewayHost) => {
+    const url = buildMaaSInferenceUrl(gatewayHost, namespace, modelName, apiPath);
 
     cy.step(
-      `MaaS completions POST with retries (max ${maxAttempts} attempts, ~${approximateRetryWindowSec}s backoff window)`,
+      `MaaS inference POST (${apiPath}) with retries (max ${maxAttempts} attempts, ~${approximateRetryWindowSec}s backoff window)`,
     );
 
-    const maxTokensField = 'max_tokens';
-    const requestBody: Record<string, string | number> = {
-      model: llmInferenceServiceName,
-      prompt: 'Today is',
+    const requestBody = {
+      model: modelName,
+      messages: [{ role: 'user', content: 'Today is' }],
+      max_tokens: 256,
       temperature: 1,
     };
-    requestBody[maxTokensField] = 256;
 
     const makeRequest = (
       attemptNumber: number,
@@ -888,7 +1125,7 @@ export const verifyMaaSModelInferencing = (
           attemptNumber < maxAttempts
         ) {
           cy.log(
-            `Transient completions response (${response.status}), retrying in ${
+            `Transient inference response (${response.status}), retrying in ${
               retryIntervalMs / 1000
             } seconds...`,
           );

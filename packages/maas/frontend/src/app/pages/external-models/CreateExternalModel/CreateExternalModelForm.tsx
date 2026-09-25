@@ -374,7 +374,9 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
               <StackItem>
                 <FormHelperText>
                   <HelperText>
-                    <HelperTextItem variant="error">{providerRefsValidationError}</HelperTextItem>
+                    <HelperTextItem variant="error" data-testid="provider-refs-required-info">
+                      {providerRefsValidationError}
+                    </HelperTextItem>
                   </HelperText>
                 </FormHelperText>
               </StackItem>

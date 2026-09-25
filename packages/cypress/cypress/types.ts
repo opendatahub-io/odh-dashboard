@@ -907,6 +907,38 @@ export type ModelAsAServiceTestData = {
   kind: string;
 };
 
+export type ExternalModelTestData = {
+  projectResourceName: string;
+  existingSecretName: string;
+  createSecretName: string;
+  externalProviderName: string;
+  providerDescription: string;
+  providerReferenceName: string;
+  externalModelName: string;
+  externalModelDescription: string;
+  providerType: string;
+  providerEndpoint: string;
+  providerAuthType: string;
+  providerPhase: string;
+  providerConfigPair: {
+    key: string;
+    value: string;
+  };
+  targetModel: string;
+  weight: number;
+  weightPercentage: number;
+  providerRef: {
+    displayName: string;
+    providerType: string;
+    endpoint: string;
+    newSecret: {
+      name: string;
+      apiKey: string;
+    };
+  };
+  pathPlaceholderKey: string;
+};
+
 export enum ApiKeyStatus {
   active = 'Active',
   expired = 'Expired',
@@ -923,6 +955,16 @@ export enum PhaseStatus {
   UNAVAILABLE = 'Unavailable',
   UNHEALTHY = 'Unhealthy',
   UNKNOWN = 'Unknown',
+}
+
+export enum APIFormat {
+  OPENAI_CHAT = 'OpenAI Chat',
+  MESSAGES = 'Anthropic Messsages',
+}
+
+export enum Path {
+  OPENAI_CHAT = '/v1/chat/completions',
+  MESSAGES = '/v1/messages',
 }
 
 export type TrainJobTestData = {

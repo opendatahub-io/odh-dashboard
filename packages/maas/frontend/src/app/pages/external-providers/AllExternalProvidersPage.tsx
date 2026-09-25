@@ -116,7 +116,12 @@ const AllExternalProvidersPage: React.FC = () => {
   const breadcrumb = (
     <Breadcrumb>
       <BreadcrumbItem>
-        <Link to={deploymentsExternalPath(resolvedNamespace || '')}>External models</Link>
+        <Link
+          to={deploymentsExternalPath(resolvedNamespace || '')}
+          data-testid="breadcrumb-external-models-link"
+        >
+          External models
+        </Link>
       </BreadcrumbItem>
       <BreadcrumbItem isActive>External providers</BreadcrumbItem>
     </Breadcrumb>

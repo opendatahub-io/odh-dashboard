@@ -185,7 +185,11 @@ export const ProviderReferencePathField: React.FC<ProviderReferencePathFieldProp
       />
       <FormHelperText>
         <HelperText>
-          {pathError && <HelperTextItem variant="error">{pathError}</HelperTextItem>}
+          {pathError && (
+            <HelperTextItem variant="error" data-testid="provider-ref-path-error">
+              {pathError}
+            </HelperTextItem>
+          )}
         </HelperText>
       </FormHelperText>
       {showResetButton && apiFormatConfig && (form.path ?? '') !== apiFormatConfig.defaultPath && (
