@@ -144,7 +144,7 @@ export const mockNotebookK8sResource = ({
                   initialDelaySeconds: 10,
                   periodSeconds: 5,
                   successThreshold: 1,
-                  timeoutSeconds: 1,
+                  timeoutSeconds: 5,
                 },
                 name,
                 ports: [
@@ -164,7 +164,7 @@ export const mockNotebookK8sResource = ({
                   initialDelaySeconds: 10,
                   periodSeconds: 5,
                   successThreshold: 1,
-                  timeoutSeconds: 1,
+                  timeoutSeconds: 5,
                 },
                 resources,
                 volumeMounts: [
@@ -203,7 +203,7 @@ export const mockNotebookK8sResource = ({
                   initialDelaySeconds: 30,
                   periodSeconds: 5,
                   successThreshold: 1,
-                  timeoutSeconds: 1,
+                  timeoutSeconds: 5,
                 },
                 name: 'kube-rbac-proxy',
                 ports: [
@@ -223,7 +223,7 @@ export const mockNotebookK8sResource = ({
                   initialDelaySeconds: 5,
                   periodSeconds: 5,
                   successThreshold: 1,
-                  timeoutSeconds: 1,
+                  timeoutSeconds: 5,
                 },
                 resources: {
                   limits: {

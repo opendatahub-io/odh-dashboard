@@ -31,6 +31,7 @@ export const assembleNotebook = (
   data: StartNotebookData,
   username: string,
   canEnablePipelines?: boolean,
+  probeTimeoutSeconds?: number,
 ): NotebookKind => {
   const {
     projectName,
@@ -84,6 +85,8 @@ export const assembleNotebook = (
   const connectionsAnnotation = connections
     ?.map((connection) => `${connection.metadata.namespace}/${connection.metadata.name}`)
     .join(',');
+
+  const resolvedProbeTimeout = probeTimeoutSeconds ?? 5;
 
   const baseResource: NotebookKind = {
     apiVersion: 'kubeflow.org/v1',
@@ -148,7 +151,7 @@ export const assembleNotebook = (
               livenessProbe: {
                 initialDelaySeconds: 10,
                 periodSeconds: 5,
-                timeoutSeconds: 1,
+                timeoutSeconds: resolvedProbeTimeout,
                 successThreshold: 1,
                 failureThreshold: 3,
                 httpGet: {
@@ -160,7 +163,7 @@ export const assembleNotebook = (
               readinessProbe: {
                 initialDelaySeconds: 10,
                 periodSeconds: 5,
-                timeoutSeconds: 1,
+                timeoutSeconds: resolvedProbeTimeout,
                 successThreshold: 1,
                 failureThreshold: 3,
                 httpGet: {

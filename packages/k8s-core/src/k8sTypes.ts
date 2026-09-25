@@ -336,6 +336,7 @@ export type DashboardConfigKind = K8sResourceCommon & {
       enabled: boolean;
       pvcSize?: string;
       storageClassName?: string;
+      probeTimeoutSeconds?: number;
     };
     templateOrder?: string[];
     templateDisablement?: string[];
