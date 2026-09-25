@@ -47,7 +47,7 @@ describe('shared package subpath runtime identity', () => {
     fs.rmSync(root, { recursive: true, force: true });
   });
 
-  it('should share one context across host root, host subpath, and remote root consumers', async () => {
+  it('should share one context across host root, host subpath, and remote subpath consumers', async () => {
     const hostRoot = path.join(root, 'host');
     const remoteRoot = path.join(root, 'remote');
     for (const packageRoot of [hostRoot, remoteRoot]) {
@@ -81,7 +81,7 @@ describe('shared package subpath runtime identity', () => {
     writeFile(
       remoteRoot,
       'src/consumer.js',
-      "module.exports = { context: require('@test/contexts').context };",
+      "module.exports = { context: require('@test/contexts/host-api').context };",
     );
     const remoteOutputPath = path.join(remoteRoot, 'dist');
     await compile({
