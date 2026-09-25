@@ -2,19 +2,72 @@ import { playgroundPage } from '~/__tests__/cypress/cypress/pages/playgroundPage
 import { aiAssetsPage } from '~/__tests__/cypress/cypress/pages/aiAssetsPage';
 import {
   loadMCPTestConfig,
+  clearMCPRegistryServersFlag,
+  visitWithMCPRegistryServersFlag,
   initAutoConnectIntercepts,
   navigateFromAIAssetsToPlayground,
+  initRegistryIntercepts,
   type MCPTestConfig,
 } from '~/__tests__/cypress/cypress/support/helpers/mcpServers/mcpServersTestHelpers';
 
 describe('AI Assets - MCP Servers', () => {
   let config: MCPTestConfig;
 
+  afterEach(() => {
+    clearMCPRegistryServersFlag();
+  });
+
   before(() => {
     loadMCPTestConfig().then((data) => {
       config = data;
     });
   });
+
+  it(
+    'should show registered and manual servers when the flag is enabled',
+    { tags: ['@GenAI', '@MCPServers', '@AIAssets', '@Registry', '@FeatureFlag'] },
+    () => {
+      const namespace = config.defaultNamespace;
+
+      initRegistryIntercepts({
+        config,
+        namespace,
+        registryServers: [{ name: 'Registry-Server-1', url: 'http://registry-server-1.local/mcp' }],
+        configmapServers: [
+          { name: 'ConfigMap-Server-1', url: 'http://configmap-server-1.local/mcp' },
+        ],
+      });
+      visitWithMCPRegistryServersFlag(true);
+      aiAssetsPage.visit(namespace);
+      aiAssetsPage.switchToMCPServersTab();
+
+      aiAssetsPage.findMCPServerRow('Registry-Server-1').should('be.visible');
+      aiAssetsPage.findMCPServerRow('ConfigMap-Server-1').should('be.visible');
+    },
+  );
+
+  it(
+    'should hide registered servers and keep manual servers when the flag is disabled',
+    { tags: ['@GenAI', '@MCPServers', '@AIAssets', '@Registry', '@FeatureFlag'] },
+    () => {
+      const namespace = config.defaultNamespace;
+
+      initRegistryIntercepts({
+        config,
+        namespace,
+        registryServers: [{ name: 'Registry-Server-1', url: 'http://registry-server-1.local/mcp' }],
+        configmapServers: [
+          { name: 'ConfigMap-Server-1', url: 'http://configmap-server-1.local/mcp' },
+        ],
+      });
+      visitWithMCPRegistryServersFlag(false);
+      aiAssetsPage.visit(namespace);
+      aiAssetsPage.switchToMCPServersTab();
+
+      aiAssetsPage.findMCPServersTable().should('not.contain.text', 'Registry-Server-1');
+      aiAssetsPage.findMCPServerRow('ConfigMap-Server-1').should('be.visible');
+    },
+  );
 
   it(
     'should silently auto-unlock server when navigating from AI Assets to Playground',

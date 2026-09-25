@@ -2,9 +2,9 @@
  * Discover and serve Cypress mock module-federation remotes from prebuilt public-cypress dirs.
  *
  * Cypress mock tests proxy /_mf/{name}/* to http://localhost:{port}/* (see packages/cypress/cypress/support/e2e.ts).
- * CI pre-builds each federated package's public-cypress artifact; this module starts static `serve` processes
- * on the ports declared in each package's module-federation metadata without using turbo cypress:server:wait
- * (which blocks on BFF /healthcheck endpoints that static serve does not expose).
+ * The same workspace capabilities and federation metadata select build, dev, and static servers.
+ * CI pre-builds each federated package's public-cypress artifact; static servers do not use
+ * turbo cypress:server:wait (which blocks on BFF /healthcheck endpoints).
  */
 const fs = require('fs');
 const path = require('path');
@@ -100,72 +100,104 @@ const findPublicCypressDir = (workspacePath, root) => {
  * @property {string} packageName npm package name
  * @property {string} moduleName module-federation remote name
  * @property {number} port localhost port for static serve
- * @property {string} publicCypressDir absolute path to serve root
- * @property {string} waitPath URL path segment to wait on (remoteEntry or /)
+ * @property {string} workspacePath repo-relative workspace directory
+ * @property {string} waitPath URL path segment to wait on
  */
 
 /**
+ * Select only dashboard mock federation participants, never standalone nested frontends.
+ * This phase must work before any builds exist (for Turbo build/dev selection).
  * @param {string} root absolute repo root
  * @returns {MockFederationServer[]}
  */
-const listMockFederationServers = (root) => {
+const listMockFederationTargets = (root) => {
   const packages = listWorkspacePackagesFromManifest(root);
-  const hostPublicCypressDir = findPublicCypressDir('frontend', root);
-  if (!hostPublicCypressDir) {
-    throw new Error('Missing public-cypress for odh-dashboard-frontend (frontend)');
+  const host = packages.find((pkg) => pkg.path === 'frontend');
+  if (host?.name !== 'odh-dashboard-frontend') {
+    throw new Error('Missing dashboard host workspace (frontend)');
+  }
+  for (const script of ['cypress:mock:build', 'cypress:mock:build:coverage', 'cypress:mock:dev']) {
+    if (!host.scripts?.[script]) {
+      throw new Error(`Dashboard host is missing ${script}`);
+    }
   }
 
   /** @type {MockFederationServer[]} */
-  const servers = [
+  const targets = [
     {
-      packageName: 'odh-dashboard-frontend',
+      packageName: host.name,
+      workspacePath: host.path,
       moduleName: 'host',
       port: HOST_PORT,
-      publicCypressDir: hostPublicCypressDir,
       waitPath: '/index.html',
     },
   ];
-
-  const seenPorts = new Set([HOST_PORT]);
-  /** @type {string[]} */
-  const missingBuilds = [];
+  const ports = new Map([[HOST_PORT, host.name]]);
+  const names = new Map([['host', host.name]]);
 
   for (const pkg of packages) {
-    const mfRaw = pkg['module-federation'];
-    if (!mfRaw || !pkg.scripts?.['cypress:server:build:coverage']) {
+    if (pkg.path === 'frontend' || !pkg.scripts?.['cypress:mock:build']) {
       continue;
     }
+    if (!pkg['module-federation']) {
+      throw new Error(`${pkg.name} has cypress:mock:build but no module-federation config`);
+    }
+    for (const script of ['cypress:mock:build:coverage', 'cypress:mock:dev']) {
+      if (!pkg.scripts[script]) {
+        throw new Error(`${pkg.name} is missing ${script}`);
+      }
+    }
 
-    const mf = normalizeModuleFederationConfig(mfRaw);
+    const mf = normalizeModuleFederationConfig(pkg['module-federation']);
     const port = mf.backend?.localService?.port;
     const remoteEntry = mf.backend?.remoteEntry;
-
-    if (port == null || seenPorts.has(port)) {
-      continue;
+    if (!mf.name || !Number.isInteger(port) || port < 1 || port > 65535 || !remoteEntry) {
+      throw new Error(`${pkg.name} needs a federation name, local port, and remoteEntry`);
     }
-
-    const publicCypressDir = findPublicCypressDir(pkg.path, root);
-    if (!publicCypressDir) {
-      missingBuilds.push(`${pkg.name} (${pkg.path})`);
-      continue;
+    if (ports.has(port)) {
+      throw new Error(`Cypress mock port ${port} is shared by ${ports.get(port)} and ${pkg.name}`);
     }
-
-    seenPorts.add(port);
-    servers.push({
+    if (names.has(mf.name)) {
+      throw new Error(
+        `Cypress mock remote ${mf.name} is shared by ${names.get(mf.name)} and ${pkg.name}`,
+      );
+    }
+    ports.set(port, pkg.name);
+    names.set(mf.name, pkg.name);
+    targets.push({
       packageName: pkg.name,
+      workspacePath: pkg.path,
       moduleName: mf.name,
       port,
-      publicCypressDir,
-      waitPath: remoteEntry || '/',
+      waitPath: remoteEntry,
     });
   }
 
+  return targets;
+};
+
+/**
+ * Resolve built assets only when serving or waiting; build/dev must not require them.
+ * @param {string} root absolute repo root
+ * @returns {(MockFederationServer & {publicCypressDir: string})[]}
+ */
+const listMockFederationServers = (root) => {
+  const targets = listMockFederationTargets(root);
+  const missingBuilds = [];
+  const servers = [];
+  for (const target of targets) {
+    const publicCypressDir = findPublicCypressDir(target.workspacePath, root);
+    if (!publicCypressDir) {
+      missingBuilds.push(`${target.packageName} (${target.workspacePath})`);
+    } else {
+      servers.push({ ...target, publicCypressDir });
+    }
+  }
   if (missingBuilds.length > 0) {
     throw new Error(
       `Missing public-cypress for Cypress federation packages: ${missingBuilds.join(', ')}`,
     );
   }
-
   return servers;
 };
 
@@ -230,5 +262,6 @@ module.exports = {
   getWaitTargetRelativePath,
   getWaitUrls,
   listMockFederationServers,
+  listMockFederationTargets,
   normalizeModuleFederationConfig,
 };

@@ -12,6 +12,10 @@ import {
 } from '@odh-dashboard/model-serving/shared';
 import {
   filterRuntimeArgsForContainer,
+  mapEnvironmentVariablesToK8sEnv,
+  mapK8sEnvToEnvironmentVariable,
+  type EnvironmentVariable,
+  type K8sEnvironmentVariable,
   type ModelTypeFieldData,
 } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import {
@@ -126,9 +130,9 @@ export const applyModelEnvVarsAndArgs = (
     delete mainContainer.env;
     return result;
   }
-  const envHolder: { name: string; value: string }[] = [];
+  const envHolder: K8sEnvironmentVariable[] = [];
   if (modelEnvVars?.enabled) {
-    envHolder.push(...modelEnvVars.variables);
+    envHolder.push(...mapEnvironmentVariablesToK8sEnv(modelEnvVars.variables));
   }
   if (modelArgs?.enabled) {
     const containerArgs = filterRuntimeArgsForContainer(modelArgs.args);
@@ -156,7 +160,7 @@ export const extractRuntimeArgs = (
 
 export const extractEnvironmentVariables = (
   llmdDeployment: LLMdDeployment,
-): { enabled: boolean; variables: { name: string; value: string }[] } | null => {
+): { enabled: boolean; variables: EnvironmentVariable[] } | null => {
   const envVars =
     llmdDeployment.model.spec.template?.containers
       ?.find((container) => container.name === 'main')
@@ -165,10 +169,7 @@ export const extractEnvironmentVariables = (
       ) || [];
   return {
     enabled: envVars.length > 0,
-    variables: envVars.map((envVar) => ({
-      name: envVar.name,
-      value: String(envVar.value || ''),
-    })),
+    variables: envVars.map(mapK8sEnvToEnvironmentVariable),
   };
 };
 
