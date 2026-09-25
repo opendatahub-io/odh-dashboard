@@ -6,7 +6,7 @@ import {
 } from '@patternfly/react-tokens';
 import { Edge, GraphElement, observer, isEdge, Node } from '@patternfly/react-topology';
 import { isBranchCorridorNodeId } from './stageMapStepMetadata';
-import { buildTreeEdgePath } from './treeEdgePath';
+import { buildTreeEdgePath, fanOutLabelClearX } from './treeEdgePath';
 import { isTreeNodeData } from './treeStepState';
 
 type TreeEdgeProps = {
@@ -51,20 +51,33 @@ const getEdgeStrokeWidth = (sourceNode: Node, targetNode: Node): number => {
     const sourceId = sourceNode.getId();
     const targetId = targetNode.getId();
     if (isBranchCorridorNodeId(sourceId) || isBranchCorridorNodeId(targetId)) {
-      return 2.5;
+      return 3;
     }
   }
 
   return 1.5;
 };
 
+type TreeEdgeData = {
+  clearLabelLane?: boolean;
+};
+
+const isTreeEdgeData = (data: unknown): data is TreeEdgeData =>
+  typeof data === 'object' && data !== null;
+
 const TreeEdgeInner: React.FC<{ edge: Edge }> = observer(({ edge }) => {
   const sourceNode = edge.getSource();
   const targetNode = edge.getTarget();
+  const targetBounds = targetNode.getBounds();
+  const edgeData = edge.getData();
+  const clearX =
+    isTreeEdgeData(edgeData) && edgeData.clearLabelLane
+      ? fanOutLabelClearX(targetBounds.x)
+      : undefined;
 
   return (
     <path
-      d={buildTreeEdgePath(sourceNode.getBounds(), targetNode.getBounds())}
+      d={buildTreeEdgePath(sourceNode.getBounds(), targetBounds, { clearX })}
       fill="none"
       stroke={getEdgeColor(sourceNode, targetNode)}
       strokeWidth={getEdgeStrokeWidth(sourceNode, targetNode)}

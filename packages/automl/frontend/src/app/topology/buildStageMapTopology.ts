@@ -3,7 +3,7 @@ import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
 import { resolveModelDisplayName } from '~/app/utilities/utils';
-import { resolveStageLabel, resolveStepLabel } from './stageMapLabels';
+import { getModelRowLabel, resolveStageLabel, resolveStepLabel } from './stageMapLabels';
 import {
   BRANCHING_STAGE_ID,
   getSelectedModels,
@@ -163,9 +163,8 @@ export const buildStageMapTopology = (
     // terminus nodes use the stage sync decorator (no center pulse glyph).
     for (let modelIdx = 0; modelIdx < models.length; modelIdx++) {
       const modelId = models[modelIdx];
-      const modelLabel = isPlaceholder
-        ? `Model ${modelIdx + 1}`
-        : (resolveModelDisplayName(modelRecords ?? {}, modelId) ?? modelId);
+      const resolvedName = resolveModelDisplayName(modelRecords ?? {}, modelId) ?? modelId;
+      const modelLabel = isPlaceholder ? getModelRowLabel(modelIdx) : resolvedName;
       const branchKey = `branch-${modelIdx}`;
 
       // Emit step nodes first in each branch (e.g. feature_engineering → model_training → …)
@@ -200,6 +199,7 @@ export const buildStageMapTopology = (
           id: modelNodeId,
           label: modelLabel,
           pipelineTask: { type: 'task', name: modelLabel },
+          modelKey: modelId,
           runAfterTasks: [branchPreviousNodeId],
           runStatus: branchStatus,
         }),

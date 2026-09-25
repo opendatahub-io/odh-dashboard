@@ -66,6 +66,7 @@ describe('transformPipelineData', () => {
       winnerResolved: false,
       winnerModelLabel: undefined,
       winnerModelKey: undefined,
+      modelRanks: undefined,
     });
   });
 
@@ -87,6 +88,7 @@ describe('transformPipelineData', () => {
       winnerResolved: true,
       winnerModelLabel: 'XGBoost',
       winnerModelKey: 'xgboost',
+      modelRanks: undefined,
     });
   });
 

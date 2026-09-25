@@ -12,7 +12,10 @@ import {
 import React from 'react';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
-import { canShowPatternsExpandToggle } from '~/app/topology/tree-view/branchExpand';
+import {
+  canShowPatternsExpandToggle,
+  countPatternBranches,
+} from '~/app/topology/tree-view/branchExpand';
 import { PatternsExpandProvider } from '~/app/topology/tree-view/PatternsExpandContext';
 import TreeTopology from '~/app/topology/tree-view/TreeTopology';
 import {
@@ -67,6 +70,10 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
     () => canShowPatternsExpandToggle(treeViewData.stageMapNodes),
     [treeViewData.stageMapNodes],
   );
+  const patternCount = React.useMemo(
+    () => countPatternBranches(treeViewData.stageMapNodes),
+    [treeViewData.stageMapNodes],
+  );
 
   const winnerResolved = statusFilter === 'completed' && !!treeViewData.selectedPattern;
 
@@ -85,9 +92,10 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
     () => ({
       patternsExpanded,
       showToggle: showPatternsToggle,
+      patternCount,
       onToggle: () => setPatternsExpanded((prev) => !prev),
     }),
-    [patternsExpanded, showPatternsToggle],
+    [patternsExpanded, showPatternsToggle, patternCount],
   );
 
   const showTreeLoadingState = treeLoadingMode != null;

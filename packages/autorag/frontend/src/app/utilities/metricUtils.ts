@@ -11,7 +11,7 @@ export type MetricKey = string;
 
 const normalize = (value: string): string => value.trim().toLowerCase();
 
-type ObjectiveReference = MetricReference | string;
+export type ObjectiveReference = MetricReference | string;
 
 /** Normalize the parts of a metric identity without crossing the string-key boundary. */
 export function normalizeMetricReference(reference: MetricReference): NormalizedMetricReference {

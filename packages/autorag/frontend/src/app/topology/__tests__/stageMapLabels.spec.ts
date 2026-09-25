@@ -1,10 +1,14 @@
-import { resolveStageLabel, resolveStepLabel } from '~/app/topology/stageMapLabels';
+import {
+  getPatternRowLabel,
+  resolveStageLabel,
+  resolveStepLabel,
+} from '~/app/topology/stageMapLabels';
 
 describe('resolveStageLabel', () => {
   it('returns mapped display names for known stage IDs', () => {
     expect(resolveStageLabel('optimize_templates')).toBe('Optimize templates');
     expect(resolveStageLabel('prepare_data')).toBe('Prepare data');
-    expect(resolveStageLabel('build_leaderboard')).toBe('Select best pattern');
+    expect(resolveStageLabel('build_leaderboard')).toBe('Build leaderboard');
     expect(resolveStageLabel('load_benchmark')).toBe('Load benchmark');
     expect(resolveStageLabel('discover_documents')).toBe('Discover documents');
   });
@@ -25,7 +29,7 @@ describe('resolveStepLabel', () => {
     expect(resolveStepLabel('embedding')).toBe('Generate embeddings');
     expect(resolveStepLabel('retrieval')).toBe('Retrieve documents');
     expect(resolveStepLabel('generation')).toBe('Generate responses');
-    expect(resolveStepLabel('evaluation')).toBe('Evaluate results');
+    expect(resolveStepLabel('evaluation')).toBe('Score pattern');
   });
 
   it('falls back for unknown step IDs', () => {
@@ -35,5 +39,13 @@ describe('resolveStepLabel', () => {
   it('ignores inherited prototype keys and falls back', () => {
     expect(resolveStepLabel('toString')).toBe('ToString');
     expect(resolveStepLabel('constructor')).toBe('Constructor');
+  });
+});
+
+describe('getPatternRowLabel', () => {
+  it('should number branches from Pattern 1', () => {
+    expect(getPatternRowLabel(0)).toBe('Pattern 1');
+    expect(getPatternRowLabel(8)).toBe('Pattern 9');
+    expect(getPatternRowLabel(25)).toBe('Pattern 26');
   });
 });

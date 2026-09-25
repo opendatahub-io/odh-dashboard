@@ -4,9 +4,13 @@ import * as React from 'react';
 export const getCaptionHeightBounds = (
   showExpandToggle: boolean,
   hasSubtitle: boolean,
+  isColumnHeader = false,
 ): { min: number; max: number } => {
   if (showExpandToggle) {
-    return { min: 80, max: 120 };
+    return { min: 40, max: 64 };
+  }
+  if (isColumnHeader) {
+    return { min: 44, max: 72 };
   }
   if (hasSubtitle) {
     return { min: 52, max: 80 };
@@ -20,6 +24,7 @@ type UseBoundedCaptionHeightOptions = {
   label: string | undefined;
   labelWidth: number;
   expandToggleExpanded?: boolean;
+  isColumnHeader?: boolean;
 };
 
 /**
@@ -29,9 +34,16 @@ type UseBoundedCaptionHeightOptions = {
 export const useBoundedCaptionHeight = (
   options: UseBoundedCaptionHeightOptions,
 ): [number, React.RefObject<HTMLDivElement>] => {
-  const { showExpandToggle, labelSubtitle, label, labelWidth, expandToggleExpanded } = options;
+  const {
+    showExpandToggle,
+    labelSubtitle,
+    label,
+    labelWidth,
+    expandToggleExpanded,
+    isColumnHeader,
+  } = options;
   const hasSubtitle = Boolean(labelSubtitle);
-  const { min, max } = getCaptionHeightBounds(showExpandToggle, hasSubtitle);
+  const { min, max } = getCaptionHeightBounds(showExpandToggle, hasSubtitle, isColumnHeader);
   const captionRef = React.useRef<HTMLDivElement>(null);
   const [captionHeight, setCaptionHeight] = React.useState(min);
 
@@ -43,7 +55,16 @@ export const useBoundedCaptionHeight = (
     }
     const measured = Math.ceil(el.scrollHeight);
     setCaptionHeight(Math.min(max, Math.max(min, measured)));
-  }, [min, max, label, labelSubtitle, showExpandToggle, labelWidth, expandToggleExpanded]);
+  }, [
+    min,
+    max,
+    label,
+    labelSubtitle,
+    showExpandToggle,
+    labelWidth,
+    expandToggleExpanded,
+    isColumnHeader,
+  ]);
 
   return [captionHeight, captionRef];
 };

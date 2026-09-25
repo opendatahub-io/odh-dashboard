@@ -3,6 +3,7 @@ jest.mock('@patternfly/react-topology', () => ({
   DEFAULT_SPACER_NODE_TYPE: 'DEFAULT_SPACER_NODE',
   NodeShape: {
     circle: 'circle',
+    rect: 'rect',
   },
   NodeStatus: {
     default: 'default',
@@ -28,12 +29,14 @@ jest.mock('~/app/topology/utils', () => ({
     pipelineTask,
     runAfterTasks,
     runStatus,
+    patternKey,
   }: {
     id: string;
     label: string;
     pipelineTask: unknown;
     runAfterTasks?: string[];
     runStatus?: string;
+    patternKey?: string;
   }) => ({
     id,
     label,
@@ -41,7 +44,7 @@ jest.mock('~/app/topology/utils', () => ({
     width: 100,
     height: 30,
     runAfterTasks,
-    data: { pipelineTask, runStatus },
+    data: { pipelineTask, runStatus, patternKey },
   }),
 }));
 
@@ -133,7 +136,7 @@ describe('transformStageMapNodesToTree', () => {
     expect(optimizeTemplates?.data.stepState).toBe('active');
     expect(optimizeTemplates?.shape).toBe('circle');
     expect(optimizeTemplates?.status).toBe('info');
-    expect(optimizeTemplates?.width).toBe(48);
+    expect(optimizeTemplates?.width).toBe(40);
 
     const validateInputs = nodes.find((node) => node.id === 'rag_optimization__validate_inputs');
     expect(validateInputs?.data.stepState).toBe('completed');
@@ -308,13 +311,30 @@ describe('transformStageMapNodesToTree', () => {
 
     const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
     expect(patternNodes).toHaveLength(1);
-    expect(patternNodes[0].data.label).toBe('PatternGraphRAG');
+    expect(patternNodes[0].data.label).toBe('Pattern 1');
     expect(patternNodes[0].data.labelSubtitle).toBe('winner');
     expect(patternNodes[0].data.showWinnerStar).toBe(true);
     expect(
+      nodes.find((node) => node.id === 'autorag-patterns-toggle')?.data.showPatternsToggle,
+    ).toBe(true);
+    expect(
       nodes.find((node) => node.id === 'rag_optimization__optimize_templates')?.data
         .showPatternsToggle,
-    ).toBe(true);
+    ).toBeUndefined();
+    const optimize = nodes.find((node) => node.id === 'rag_optimization__optimize_templates');
+    const firstBranch = nodes.find(
+      (node) => node.id.includes('__step__') && node.id.includes('__branch-'),
+    );
+    if (!optimize || !firstBranch) {
+      throw new Error('expected optimize templates and a collapsed branch node');
+    }
+    expect(optimize.width).toBe(40);
+    expect(patternNodes[0].width).toBe(40);
+    expect(nodes.find((node) => node.id === 'rag_optimization__build_leaderboard')?.width).toBe(40);
+    expect(firstBranch.width).toBe(20);
+    expect(firstBranch.x - optimize.x).toBeLessThanOrEqual(130);
+    const toggle = nodes.find((node) => node.id === 'autorag-patterns-toggle');
+    expect((toggle?.y ?? 0) - (optimize.y ?? 0)).toBe(120);
   });
 
   it('labels the collapsed terminus as Pattern winner when the winner is unresolved', () => {
@@ -326,7 +346,7 @@ describe('transformStageMapNodesToTree', () => {
 
     const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
     expect(patternNodes).toHaveLength(1);
-    expect(patternNodes[0].data.label).toBe('Pattern');
+    expect(patternNodes[0].data.label).toBe('Pattern 1');
     expect(patternNodes[0].data.labelSubtitle).toBe('winner');
     expect(patternNodes[0].data.showWinnerStar).toBe(false);
   });
@@ -342,23 +362,139 @@ describe('transformStageMapNodesToTree', () => {
 
     const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
     expect(patternNodes).toHaveLength(1);
-    expect(patternNodes[0].data.label).toBe('Best Pattern Display Name');
+    expect(patternNodes[0].data.label).toBe('Pattern 1');
     expect(patternNodes[0].data.labelSubtitle).toBe('winner');
     expect(patternNodes[0].data.showWinnerStar).toBe(true);
   });
 
   it('expands all pattern branches when patternsExpanded is true', () => {
     const topologyNodes = buildStageMapTopology(makeStageMap([ragOptimization]));
-    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+    const { nodes, edges } = transformStageMapNodesToTree(topologyNodes, {
       patternsExpanded: true,
       winnerResolved: true,
       winnerPatternLabel: 'PatternHyDE',
+      winnerPatternKey: 'PatternHyDE',
+      patternRanks: { PatternGraphRAG: 1, PatternHyDE: 2 },
     });
 
     const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
     expect(patternNodes).toHaveLength(2);
-    const winner = patternNodes.find((node) => node.data.label === 'PatternHyDE');
+    const winner = patternNodes.find((node) => node.data.isResolvedWinner);
+    expect(winner?.data.hideLabel).toBe(true);
     expect(winner?.data.labelSubtitle).toBe('winner');
-    expect(winner?.data.showWinnerStar).toBe(true);
+    expect(winner?.data.winnerRank).toBe(2);
+    expect(winner?.data.showWinnerStar).toBe(false);
+    const rankOneNonWinner = patternNodes.find((node) => node.data.winnerRank === 1);
+    expect(rankOneNonWinner?.data.isResolvedWinner).toBe(false);
+    expect(rankOneNonWinner?.data.showWinnerStar).toBe(false);
+    expect(nodes.some((node) => node.data.nodeRole === 'column-header')).toBe(true);
+    expect(nodes.some((node) => node.data.nodeRole === 'column-rule')).toBe(true);
+    const rowLabels = nodes.filter((node) => node.data.nodeRole === 'row-label');
+    expect(rowLabels.map((node) => node.data.label)).toEqual(['Pattern 1', 'Pattern 2']);
+    const rowLabelXs = [...new Set(rowLabels.map((node) => node.x))];
+    expect(rowLabelXs).toHaveLength(1);
+    expect(rowLabels.every((node) => node.width === 68)).toBe(true);
+    expect(rowLabels.every((node) => node.height === 32)).toBe(true);
+    const firstBranchNodes = nodes.filter(
+      (node) => node.id.includes('__step__') && node.id.includes('__branch-'),
+    );
+    const firstBranchX = Math.min(...firstBranchNodes.map((node) => node.x));
+    expect(
+      rowLabels.every((label) => {
+        const labelCenterY = (label.y ?? 0) + (label.height ?? 0) / 2;
+        return firstBranchNodes.some((node) => {
+          const nodeCenterY = (node.y ?? 0) + (node.height ?? 0) / 2;
+          return node.x === firstBranchX && nodeCenterY === labelCenterY;
+        });
+      }),
+    ).toBe(true);
+    const rowLabelRight = (rowLabels[0]?.x ?? 0) + (rowLabels[0]?.width ?? 0);
+    expect(rowLabelRight).toBeLessThan(firstBranchX);
+    expect(firstBranchX - rowLabelRight).toBe(24);
+    const lastLinear = nodes.find((node) => node.id === 'rag_optimization__optimize_templates');
+    expect(lastLinear).toBeDefined();
+    expect(rowLabels[0]?.x ?? 0).toBeGreaterThan(
+      (lastLinear?.x ?? 0) + (lastLinear?.width ?? 0) + 100,
+    );
+    expect(
+      edges
+        .filter((edge) => edge.id.startsWith('e-pre-to-branch-'))
+        .every((edge) => edge.data?.clearLabelLane === true),
+    ).toBe(true);
+    const headers = nodes.filter((node) => node.data.nodeRole === 'column-header');
+    expect(headers.length).toBeGreaterThan(0);
+    expect(headers.every((node) => node.width === 120)).toBe(true);
+    const firstColNode = firstBranchNodes.find((node) => node.x === firstBranchX);
+    const firstHeader = headers[0];
+    if (!firstColNode) {
+      throw new Error('expected a first-column branch node');
+    }
+    expect(firstHeader.x + firstHeader.width / 2).toBe(firstColNode.x + firstColNode.width / 2);
+    expect(
+      nodes.find((node) => node.data.nodeRole === 'patterns-toggle')?.data.showPatternsToggle,
+    ).toBe(true);
+    const lastRow = firstBranchNodes.reduce((lowest, node) => (node.y > lowest.y ? node : lowest));
+    const expandedToggle = nodes.find((node) => node.data.nodeRole === 'patterns-toggle');
+    expect((expandedToggle?.y ?? 0) - lastRow.y).toBe(50);
+  });
+
+  it('preserves pattern ranks without applying winner chrome when unresolved', () => {
+    const completedOptimization = makeComponent('rag_optimization', [
+      makeStage('validate_inputs', { status: 'completed' }),
+      makeStage('optimize_templates', {
+        status: 'completed',
+        selected_patterns: ['PatternGraphRAG', 'PatternHyDE'],
+        steps: ['chunking'],
+      }),
+      makeStage('run_optimization', { status: 'completed' }),
+      makeStage('write_patterns', { status: 'completed' }),
+      makeStage('build_leaderboard', { status: 'completed' }),
+    ]);
+    const topologyNodes = buildStageMapTopology(makeStageMap([completedOptimization]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      patternsExpanded: true,
+      winnerResolved: false,
+      patternRanks: { PatternGraphRAG: 1, PatternHyDE: 2 },
+    });
+
+    const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
+    expect(patternNodes.map((node) => node.data.stepState)).toEqual(['completed', 'completed']);
+    expect(patternNodes.map((node) => node.data.winnerRank)).toEqual([1, 2]);
+    expect(patternNodes.every((node) => node.data.isResolvedWinner === false)).toBe(true);
+    expect(patternNodes.every((node) => node.data.showWinnerStar === false)).toBe(true);
+  });
+
+  it('should mark later pending stages unreached after an earlier failure', () => {
+    const failedMap = makeStageMap([
+      makeComponent('rag_optimization', [
+        makeStage('validate_inputs', { status: 'failed' }),
+        makeStage('optimize_templates', { status: 'skipped' }),
+        makeStage('build_leaderboard'),
+      ]),
+    ]);
+    const topologyNodes = buildStageMapTopology(failedMap);
+    const { nodes } = transformStageMapNodesToTree(topologyNodes);
+
+    expect(
+      nodes.find((node) => node.id === 'rag_optimization__validate_inputs')?.data.stepState,
+    ).toBe('failed');
+    expect(
+      nodes.find((node) => node.id === 'rag_optimization__optimize_templates')?.data.stepState,
+    ).toBe('unreached');
+  });
+
+  it('should keep a skipped stage pending when no earlier stage failed', () => {
+    const stageMap = makeStageMap([
+      makeComponent('rag_optimization', [
+        makeStage('validate_inputs', { status: 'completed' }),
+        makeStage('optimize_templates', { status: 'skipped' }),
+      ]),
+    ]);
+    const topologyNodes = buildStageMapTopology(stageMap);
+    const { nodes } = transformStageMapNodesToTree(topologyNodes);
+
+    expect(
+      nodes.find((node) => node.id === 'rag_optimization__optimize_templates')?.data.stepState,
+    ).toBe('pending');
   });
 });

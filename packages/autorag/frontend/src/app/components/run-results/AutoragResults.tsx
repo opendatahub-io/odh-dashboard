@@ -132,7 +132,13 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
     return transformResult.status === 'ok' ? stageMapNodes : fallbackNodes;
   }, [useStageMap, stageMapNodes, fallbackNodes]);
 
-  const treeViewData = useTreeViewData(patterns, treeSourceNodes, bestPatternKey);
+  const treeViewData = useTreeViewData(
+    patterns,
+    treeSourceNodes,
+    bestPatternKey,
+    undefined,
+    optimizationMetric,
+  );
 
   const runIsTerminal = isRunInTerminalState(runState);
   const stageMapPublished = isTaskSucceeded(pipelineRun);

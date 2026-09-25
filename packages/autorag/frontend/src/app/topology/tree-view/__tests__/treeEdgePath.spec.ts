@@ -1,4 +1,4 @@
-import { buildTreeEdgePath } from '~/app/topology/tree-view/treeEdgePath';
+import { buildTreeEdgePath, fanOutLabelClearX } from '~/app/topology/tree-view/treeEdgePath';
 
 describe('buildTreeEdgePath', () => {
   it('draws a horizontal line between side-centers of aligned nodes', () => {
@@ -9,12 +9,29 @@ describe('buildTreeEdgePath', () => {
     expect(path).toBe('M 48 24 L 120 24');
   });
 
-  it('uses vertical side-centers so distant branches do not drift with angle anchors', () => {
+  it('skips the row-label column on horizontal edges', () => {
+    const path = buildTreeEdgePath(
+      { x: 0, y: 0, width: 48, height: 48 },
+      { x: 240, y: 0, width: 48, height: 48 },
+      { clearX: { start: 100, end: 160 } },
+    );
+    expect(path).toBe('M 48 24 L 100 24 M 160 24 L 240 24');
+  });
+
+  it('flattens a fan into a horizontal run before the target', () => {
     const path = buildTreeEdgePath(
       { x: 0, y: 176, width: 48, height: 48 },
       { x: 144, y: 286, width: 28, height: 28 },
     );
-    expect(path).toBe('M 48 200 C 96 200, 96 300, 144 300');
+    expect(path).toBe('M 48 200 C 72 200, 72 300, 96 300 L 144 300');
+  });
+
+  it('skips the row-label column on fan-out into the pattern table', () => {
+    const target = { x: 300, y: 286, width: 28, height: 28 };
+    const path = buildTreeEdgePath({ x: 0, y: 176, width: 48, height: 48 }, target, {
+      clearX: fanOutLabelClearX(target.x),
+    });
+    expect(path).toBe('M 48 200 C 128 200, 128 300, 208 300 M 276 300 L 300 300');
   });
 
   it('returns an empty path when nodes occupy the same point', () => {

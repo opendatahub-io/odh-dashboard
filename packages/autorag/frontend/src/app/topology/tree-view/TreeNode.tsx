@@ -1,20 +1,20 @@
 import * as React from 'react';
 import cx from 'classnames';
-import { Button, Label } from '@patternfly/react-core';
+import { Button } from '@patternfly/react-core';
 import {
   t_global_icon_color_status_success_default as iconColorStatusSuccess,
-  t_global_icon_color_status_danger_default as iconColorStatusDanger,
-  t_global_icon_color_brand_default as iconColorBrand,
   t_global_icon_color_subtle as iconColorSubtle,
   t_global_color_status_success_default as colorStatusSuccess,
   t_global_color_status_danger_default as colorStatusDanger,
+  t_global_color_status_info_default as colorStatusInfo,
+  t_global_color_nonstatus_orange_300 as colorNonstatusOrange,
+  t_global_color_status_warning_200 as colorStatusWarningGold,
+  t_global_icon_color_inverse as iconColorInverse,
+  t_global_icon_color_disabled as iconColorDisabled,
   t_global_border_color_status_success_default as borderColorStatusSuccess,
   t_global_border_color_status_danger_default as borderColorStatusDanger,
-  t_global_border_color_100 as borderColorLight,
   t_global_background_color_primary_default as backgroundColorPrimary,
   t_global_icon_color_status_on_success_default as iconColorOnSuccess,
-  t_global_icon_color_status_on_danger_default as iconColorOnDanger,
-  t_global_icon_color_disabled as iconColorDisabled,
 } from '@patternfly/react-tokens';
 import { CheckIcon, ExclamationIcon, StarIcon, SyncAltIcon } from '@patternfly/react-icons';
 import {
@@ -25,6 +25,7 @@ import {
   getDefaultShapeDecoratorCenter,
   isNode,
   Node,
+  NodeStatus,
   observer,
   TopologyQuadrant,
   WithSelectionProps,
@@ -32,9 +33,13 @@ import {
 import { isBranchStepNodeId } from './stageMapStepMetadata';
 import { usePatternsExpand } from './PatternsExpandContext';
 import { isTreeNodeData, treeStepStateToNodeStatus } from './treeStepState';
-import PendingHourglassGlyph from './icons/PendingHourglassGlyph';
 import { resolveTaskIconForNodeId } from './stageTaskIcons';
 import { useBoundedCaptionHeight } from './treeCaptionHeight';
+import {
+  resolveTreeNodeVisualState,
+  useJustCompleted,
+  type WinnerRank,
+} from './treeNodeVisualState';
 import './TreeNode.scss';
 
 export type TreeNodeData = {
@@ -43,9 +48,17 @@ export type TreeNodeData = {
   labelSubtitle?: string;
   stepState: 'completed' | 'active' | 'pending' | 'failed' | 'unreached';
   activeIconVariant?: 'sync' | 'pulse';
-  /** Blue star decorator (upper-right) for the winning pattern terminus. */
+  /** Pattern is the resolved winner for this run, independent of its leaderboard rank. */
+  isResolvedWinner?: boolean;
+  /** Star decorator (upper-right) for the rank-1 winning pattern terminus. */
   showWinnerStar?: boolean;
-  /** Pill toggle under Optimize templates (Show all / Hide patterns). */
+  /** Rank 1–3 badges on pattern result nodes (expanded table). */
+  winnerRank?: WinnerRank;
+  hideLabel?: boolean;
+  nodeRole?: 'task' | 'column-header' | 'column-rule' | 'row-label' | 'patterns-toggle';
+  /** Width of the shared header underline, set on the first column-header. */
+  columnRuleWidth?: number;
+  /** Pill toggle under the branch corridor (Show all N / Collapse patterns). */
   showPatternsToggle?: boolean;
 };
 
@@ -53,13 +66,29 @@ type TreeNodeProps = {
   element: GraphElement;
 } & WithSelectionProps;
 
-/** Task glyph colors — completed matches design (green icon + green ring). */
-const TASK_ICON_COLORS: Record<TreeNodeData['stepState'], string> = {
-  completed: iconColorStatusSuccess.var,
-  failed: iconColorStatusDanger.var,
-  active: iconColorBrand.var,
+const DANGER_RED = colorStatusDanger.var;
+const INFO_BLUE = colorStatusInfo.var;
+/** Rank 2: PF v6 orange-300 is too bright vs design; orange-400 is too dark. */
+const WINNER_RANK_2_ORANGE = '#c4610e';
+
+/** Task glyph colors — completed uses status success so dark theme stays in token. */
+const TASK_ICON_COLORS: Record<ReturnType<typeof resolveTreeNodeVisualState>, string> = {
+  success: iconColorStatusSuccess.var,
+  'just-completed': iconColorStatusSuccess.var,
+  failed: DANGER_RED,
+  active: INFO_BLUE,
   pending: iconColorSubtle.var,
-  unreached: iconColorSubtle.var,
+  winner: WINNER_RANK_2_ORANGE,
+};
+
+const rankTaskIconColor = (rank: WinnerRank): string => {
+  if (rank === 1) {
+    return colorStatusWarningGold.var;
+  }
+  if (rank === 3) {
+    return colorNonstatusOrange.var;
+  }
+  return WINNER_RANK_2_ORANGE;
 };
 
 const STATUS_BADGE_ARIA_LABELS: Record<TreeNodeData['stepState'], string> = {
@@ -72,6 +101,16 @@ const STATUS_BADGE_ARIA_LABELS: Record<TreeNodeData['stepState'], string> = {
 
 /** Branch corridor steps always use spine status glyphs (design). */
 const DECORATOR_STATUS_BADGE_SIZE = (DEFAULT_DECORATOR_RADIUS - 4) * 2;
+const WINNER_BADGE_RADIUS = 9;
+const FAILED_BADGE_RADIUS = 8;
+const FAILED_BADGE_STROKE = 3;
+/** Filled disc radius; 2px white stroke → ~20px outer diameter. */
+const ACTIVE_BADGE_RADIUS = 8;
+const ACTIVE_BADGE_STROKE = 2;
+const PENDING_RING_STROKE = iconColorDisabled.var;
+const PENDING_RING_FILL = backgroundColorPrimary.var;
+const PENDING_RING_WIDTH = 2;
+const PENDING_RING_DASH = '4 4';
 
 const SPINE_STROKE_WIDTH_MIN = 1.5;
 const SPINE_STROKE_WIDTH_RATIO = 0.065;
@@ -180,44 +219,48 @@ const StatusOnlyCompletedBadge: React.FC<{ size: number }> = React.memo(({ size 
 });
 StatusOnlyCompletedBadge.displayName = 'StatusOnlyCompletedBadge';
 
-/** Pending / unreached stage badge: light gray ring + hourglass on white. */
-const StatusOnlyPendingBadge: React.FC<{ size: number }> = React.memo(({ size }) => {
+/** Pending / unreached branch corridor: smooth dashed circle (not the PF ellipse). */
+const StatusOnlyPendingDot: React.FC<{ size: number }> = React.memo(({ size }) => {
   const center = size / 2;
-  const strokeWidth = Math.max(1.25, size * 0.055);
-  const outerR = center - strokeWidth / 2;
-  const innerDiameter = 2 * (outerR - strokeWidth);
-  const iconSize = innerDiameter * 0.84;
-  const white = backgroundColorPrimary.var;
-  const ring = borderColorLight.var;
   return (
-    <g className="autorag-tree-node__status-badge autorag-tree-node__status-badge--pending">
-      <circle cx={center} cy={center} r={center - 0.25} style={{ fill: white }} />
+    <g className="autorag-tree-node__status-badge autorag-tree-node__status-badge--pending-dot">
+      <circle
+        className="autorag-tree-node__pending-ring"
+        cx={center}
+        cy={center}
+        r={Math.max(0, center - PENDING_RING_WIDTH / 2)}
+        fill={PENDING_RING_FILL}
+        stroke={PENDING_RING_STROKE}
+        strokeWidth={PENDING_RING_WIDTH}
+        strokeDasharray={PENDING_RING_DASH}
+      />
+    </g>
+  );
+});
+StatusOnlyPendingDot.displayName = 'StatusOnlyPendingDot';
+
+/** Resting success branch corridor: thin ring, white gap, small filled core. */
+const StatusOnlySuccessDot: React.FC<{ size: number }> = React.memo(({ size }) => {
+  const center = size / 2;
+  const ringWidth = 1;
+  const outerR = Math.max(0, center - ringWidth / 2);
+  const innerR = Math.max(2, size * 0.3);
+  const white = backgroundColorPrimary.var;
+  return (
+    <g className="autorag-tree-node__status-badge autorag-tree-node__status-badge--success-dot">
+      <circle cx={center} cy={center} r={center} style={{ fill: white }} />
       <circle
         cx={center}
         cy={center}
         r={outerR}
         fill="none"
-        style={{ stroke: ring, strokeWidth }}
+        style={{ stroke: borderColorStatusSuccess.var, strokeWidth: ringWidth }}
       />
-      <g transform={`translate(${(size - iconSize) / 2}, ${(size - iconSize) / 2})`}>
-        <PendingHourglassGlyph size={iconSize} color={iconColorDisabled.var} />
-      </g>
+      <circle cx={center} cy={center} r={innerR} style={{ fill: colorStatusSuccess.var }} />
     </g>
   );
 });
-StatusOnlyPendingBadge.displayName = 'StatusOnlyPendingBadge';
-
-/** Pending branch corridor dot (design): outer gray ring, white gap, solid gray core on the spine. */
-const StatusOnlyPendingDot: React.FC<{ size: number }> = React.memo(({ size }) => (
-  <SpineDot
-    size={size}
-    className="autorag-tree-node__status-badge autorag-tree-node__status-badge--pending-dot"
-    ringColor={borderColorLight.var}
-    coreColor={iconColorDisabled.var}
-    showConnectors
-  />
-));
-StatusOnlyPendingDot.displayName = 'StatusOnlyPendingDot';
+StatusOnlySuccessDot.displayName = 'StatusOnlySuccessDot';
 
 /** Completed branch corridor dot (design): green check badge on the spine. */
 const StatusOnlyCompletedDot: React.FC<{ size: number }> = React.memo(({ size }) => {
@@ -245,54 +288,56 @@ const StatusOnlyCompletedDot: React.FC<{ size: number }> = React.memo(({ size })
 });
 StatusOnlyCompletedDot.displayName = 'StatusOnlyCompletedDot';
 
-/** Active branch corridor dot (design): blue pulse on the spine while the section runs. */
+/** Active branch corridor: dark ring, white gap, inner dot that pulses dark ↔ light. */
 const StatusOnlyActiveDot: React.FC<{
   size: number;
   activeIconVariant?: TreeNodeData['activeIconVariant'];
 }> = React.memo(({ size, activeIconVariant = 'pulse' }) => {
-  const { center } = getSpineGeometry(size);
-  const pulseInnerRadius = Math.max(2.5, size * 0.2);
-  const pulseOuterRadius = Math.max(pulseInnerRadius + 1.25, size * 0.28);
-  const syncSize = size * 0.84;
-  const isPulse = activeIconVariant === 'pulse';
+  const center = size / 2;
+  const strokeWidth = Math.max(3.25, size * 0.14);
+  const ringR = Math.max(0, center - strokeWidth / 2);
+  const coreR = Math.max(2.5, size * 0.28);
+  const syncSize = size * 0.5;
+  const isPulse = activeIconVariant !== 'sync';
   return (
-    <SpineDot
-      size={size}
-      className="autorag-tree-node__status-badge autorag-tree-node__status-badge--active-dot"
-      ringColor={borderColorLight.var}
-      showConnectors
-      innerIcon={
-        isPulse ? (
-          <g className="autorag-tree-node__status-pulse">
-            <circle
-              cx={center}
-              cy={center}
-              r={pulseInnerRadius}
-              style={{ fill: iconColorBrand.var }}
-            />
-            <circle
-              className="autorag-tree-node__status-pulse-ring"
-              cx={center}
-              cy={center}
-              r={pulseOuterRadius}
-              fill="none"
-              style={{ stroke: iconColorBrand.var, strokeWidth: 1.4 }}
+    <g className="autorag-tree-node__status-badge autorag-tree-node__status-badge--active-dot">
+      <circle
+        cx={center}
+        cy={center}
+        r={center}
+        fill={backgroundColorPrimary.var}
+        style={{ fill: backgroundColorPrimary.var }}
+      />
+      {isPulse ? (
+        <circle
+          className="autorag-tree-node__active-corridor-core"
+          cx={center}
+          cy={center}
+          r={coreR}
+        />
+      ) : (
+        <g transform={`translate(${(size - syncSize) / 2}, ${(size - syncSize) / 2})`}>
+          <g className="autorag-tree-node__status-spinner">
+            <SyncAltIcon
+              width={syncSize}
+              height={syncSize}
+              color={iconColorInverse.var}
+              style={{ color: iconColorInverse.var, fill: iconColorInverse.var }}
             />
           </g>
-        ) : (
-          <g transform={`translate(${(size - syncSize) / 2}, ${(size - syncSize) / 2})`}>
-            <g className="autorag-tree-node__status-spinner">
-              <SyncAltIcon
-                width={syncSize}
-                height={syncSize}
-                color={iconColorBrand.var}
-                style={{ color: iconColorBrand.var, fill: iconColorBrand.var }}
-              />
-            </g>
-          </g>
-        )
-      }
-    />
+        </g>
+      )}
+      <circle
+        className="autorag-tree-node__active-corridor-ring"
+        cx={center}
+        cy={center}
+        r={ringR}
+        fill="none"
+        stroke={INFO_BLUE}
+        strokeWidth={strokeWidth}
+        style={{ fill: 'none', stroke: INFO_BLUE }}
+      />
+    </g>
   );
 });
 StatusOnlyActiveDot.displayName = 'StatusOnlyActiveDot';
@@ -309,61 +354,13 @@ const StatusOnlyFailedSectionDot: React.FC<{ size: number }> = React.memo(({ siz
 ));
 StatusOnlyFailedSectionDot.displayName = 'StatusOnlyFailedSectionDot';
 
-/** Failed branch-step badge: red ring + filled disk + white exclamation (matches completed). */
-const StatusOnlyFailedBadge: React.FC<{ size: number }> = React.memo(({ size }) => {
-  const { innerR } = getSpineGeometry(size);
-  const iconSize = innerR * 1.2;
-  return (
-    <SpineDot
-      size={size}
-      className="autorag-tree-node__status-badge autorag-tree-node__status-badge--failed"
-      ringColor={borderColorStatusDanger.var}
-      coreColor={colorStatusDanger.var}
-      innerIcon={
-        <g transform={`translate(${(size - iconSize) / 2}, ${(size - iconSize) / 2})`}>
-          <ExclamationIcon
-            width={iconSize}
-            height={iconSize}
-            color={iconColorOnDanger.var}
-            style={{ color: iconColorOnDanger.var, fill: iconColorOnDanger.var }}
-          />
-        </g>
-      }
-    />
-  );
-});
-StatusOnlyFailedBadge.displayName = 'StatusOnlyFailedBadge';
-
 const StatusBadgeDecorator: React.FC<{
   element: Node;
-  stepState: TreeNodeData['stepState'];
-}> = React.memo(({ element, stepState }) => {
-  const { x: decoratorX, y: decoratorY } = getDefaultShapeDecoratorCenter(
-    TopologyQuadrant.upperLeft,
-    element,
-  );
-  const x = stepState === 'active' ? decoratorX - 3 : decoratorX;
-  const y = stepState === 'active' ? decoratorY - 3 : decoratorY;
+  visualState: ReturnType<typeof resolveTreeNodeVisualState>;
+}> = React.memo(({ element, visualState }) => {
+  const { x, y } = getDefaultShapeDecoratorCenter(TopologyQuadrant.upperLeft, element);
 
-  if (stepState === 'active') {
-    return (
-      <Decorator
-        x={x}
-        y={y}
-        radius={DEFAULT_DECORATOR_RADIUS - 2}
-        showBackground
-        className="autorag-tree-node__status-decorator-active"
-        icon={
-          <g className="pf-topology__node__decorator__status autorag-tree-node__status-spinner autorag-tree-node__status-decorator-active-icon">
-            <SyncAltIcon />
-          </g>
-        }
-        ariaLabel={STATUS_BADGE_ARIA_LABELS[stepState]}
-      />
-    );
-  }
-
-  if (stepState === 'completed') {
+  if (visualState === 'just-completed') {
     return (
       <Decorator
         x={x}
@@ -371,56 +368,142 @@ const StatusBadgeDecorator: React.FC<{
         radius={DEFAULT_DECORATOR_RADIUS}
         showBackground={false}
         icon={<StatusOnlyCompletedBadge size={DECORATOR_STATUS_BADGE_SIZE} />}
-        ariaLabel={STATUS_BADGE_ARIA_LABELS[stepState]}
+        ariaLabel={STATUS_BADGE_ARIA_LABELS.completed}
       />
     );
   }
 
-  if (stepState === 'failed') {
-    return (
-      <Decorator
-        x={x}
-        y={y}
-        radius={DEFAULT_DECORATOR_RADIUS}
-        showBackground={false}
-        icon={<StatusOnlyFailedBadge size={DECORATOR_STATUS_BADGE_SIZE} />}
-        ariaLabel={STATUS_BADGE_ARIA_LABELS[stepState]}
-      />
-    );
-  }
-
-  return (
-    <Decorator
-      x={x}
-      y={y}
-      radius={DEFAULT_DECORATOR_RADIUS}
-      showBackground={false}
-      icon={<StatusOnlyPendingBadge size={DECORATOR_STATUS_BADGE_SIZE} />}
-      ariaLabel={STATUS_BADGE_ARIA_LABELS[stepState]}
-    />
-  );
+  return null;
 });
 StatusBadgeDecorator.displayName = 'StatusBadgeDecorator';
 
-const WinnerStarDecorator: React.FC<{ element: Node }> = React.memo(({ element }) => {
-  const { x, y } = getDefaultShapeDecoratorCenter(TopologyQuadrant.upperRight, element);
+/** Filled info-blue disc, white sync icon, white stroke that cuts the node ring. */
+const ActiveNodeBadge: React.FC<{ node: Node }> = React.memo(({ node }) => {
+  const { width, height } = node.getDimensions();
+  const { x, y } = getDefaultShapeDecoratorCenter(TopologyQuadrant.upperLeft, node);
+  const iconSize = ACTIVE_BADGE_RADIUS * 1.1;
+  // PF upper-left is 45° on the ring; shift right onto the node shoulder.
+  const posX = x + Math.min(width, height) * 0.12;
+  const posY = y;
   return (
-    <Decorator
-      x={x}
-      y={y}
-      radius={DEFAULT_DECORATOR_RADIUS - 4}
-      showBackground
-      className="autorag-tree-node__winner-star"
-      icon={
-        <g className="autorag-tree-node__winner-star-icon">
-          <StarIcon />
+    <g
+      className="autorag-tree-node__active-badge"
+      transform={`translate(${posX}, ${posY})`}
+      data-testid="active-node-badge"
+      role="img"
+      aria-label={STATUS_BADGE_ARIA_LABELS.active}
+    >
+      <circle
+        className="autorag-tree-node__active-badge-mask"
+        r={ACTIVE_BADGE_RADIUS + 1}
+        fill={backgroundColorPrimary.var}
+        style={{ fill: backgroundColorPrimary.var }}
+      />
+      <circle
+        className="autorag-tree-node__active-badge-disc"
+        r={ACTIVE_BADGE_RADIUS}
+        fill={INFO_BLUE}
+        stroke={backgroundColorPrimary.var}
+        strokeWidth={ACTIVE_BADGE_STROKE}
+        style={{ fill: INFO_BLUE, stroke: backgroundColorPrimary.var }}
+      />
+      <g transform={`translate(${-iconSize / 2}, ${-iconSize / 2})`}>
+        <g className="autorag-tree-node__status-spinner">
+          <SyncAltIcon
+            className="autorag-tree-node__active-badge-icon"
+            width={iconSize}
+            height={iconSize}
+            color={iconColorInverse.var}
+            style={{ color: iconColorInverse.var, fill: iconColorInverse.var }}
+          />
         </g>
-      }
-      ariaLabel="Pattern winner"
-    />
+      </g>
+    </g>
   );
 });
-WinnerStarDecorator.displayName = 'WinnerStarDecorator';
+ActiveNodeBadge.displayName = 'ActiveNodeBadge';
+
+/** White disc, thick red ring, red "!" — sits on the top-left of the node stroke. */
+const FailedNodeBadge: React.FC<{ size: number }> = React.memo(({ size }) => {
+  const iconSize = FAILED_BADGE_RADIUS * 0.95;
+  const pos = (size / 2) * (1 - Math.SQRT1_2);
+  return (
+    <g
+      className="autorag-tree-node__failed-badge"
+      transform={`translate(${pos}, ${pos})`}
+      data-testid="failed-node-badge"
+      role="img"
+      aria-label={STATUS_BADGE_ARIA_LABELS.failed}
+    >
+      <circle
+        className="autorag-tree-node__failed-badge-disc"
+        r={FAILED_BADGE_RADIUS}
+        fill={backgroundColorPrimary.var}
+        stroke={DANGER_RED}
+        strokeWidth={FAILED_BADGE_STROKE}
+        style={{ fill: backgroundColorPrimary.var, stroke: DANGER_RED }}
+      />
+      <g transform={`translate(${-iconSize / 2}, ${-iconSize / 2})`}>
+        <ExclamationIcon
+          className="autorag-tree-node__failed-badge-icon"
+          width={iconSize}
+          height={iconSize}
+          color={DANGER_RED}
+          style={{ color: DANGER_RED, fill: DANGER_RED }}
+        />
+      </g>
+    </g>
+  );
+});
+FailedNodeBadge.displayName = 'FailedNodeBadge';
+
+/** Rank badge at the top-left: gold star for the resolved rank-1 winner, rank otherwise. */
+const WinnerRankBadge: React.FC<{
+  rank: WinnerRank;
+  isResolvedWinner: boolean;
+  size: number;
+}> = React.memo(({ rank, isResolvedWinner, size }) => {
+  const isStar = rank === 1 && isResolvedWinner;
+  const iconSize = WINNER_BADGE_RADIUS * 1.35;
+  // Center on the upper-left stroke (same 45° point as the failed badge).
+  const pos = (size / 2) * (1 - Math.SQRT1_2);
+  return (
+    <g
+      className={cx(
+        'autorag-tree-node__winner-badge',
+        isStar
+          ? 'autorag-tree-node__winner-badge--star'
+          : `autorag-tree-node__winner-badge--rank-${rank}`,
+      )}
+      transform={`translate(${pos}, ${pos})`}
+      data-testid={`winner-rank-badge-${rank}`}
+      role="img"
+      aria-label={isStar ? 'Pattern winner' : `Pattern rank ${rank}`}
+    >
+      <circle className="autorag-tree-node__winner-badge-disc" r={WINNER_BADGE_RADIUS} />
+      {isStar ? (
+        <g transform={`translate(${-iconSize / 2}, ${-iconSize / 2})`}>
+          <StarIcon
+            className="autorag-tree-node__winner-badge-icon"
+            width={iconSize}
+            height={iconSize}
+            color={iconColorInverse.var}
+            style={{ color: iconColorInverse.var, fill: iconColorInverse.var }}
+          />
+        </g>
+      ) : (
+        <text
+          className="autorag-tree-node__winner-badge-text"
+          textAnchor="middle"
+          dominantBaseline="central"
+        >
+          {rank}
+        </text>
+      )}
+    </g>
+  );
+});
+WinnerRankBadge.displayName = 'WinnerRankBadge';
 
 const TreeNodeInner: React.FC<{
   node: Node;
@@ -431,29 +514,62 @@ const TreeNodeInner: React.FC<{
   const rawData = node.getData();
   const data = isTreeNodeData(rawData) ? rawData : undefined;
   const stepState = data?.stepState ?? 'pending';
+  const justCompleted = useJustCompleted(stepState);
+  const winnerRank = data?.winnerRank;
+  const isResolvedWinner = data?.isResolvedWinner === true;
+  const visualState = resolveTreeNodeVisualState({ stepState, justCompleted, isResolvedWinner });
   const activeIconVariant = data?.activeIconVariant;
-  const label = data?.label ?? node.getLabel();
-  const labelSubtitle = data?.labelSubtitle;
-  const showWinnerStar = data?.showWinnerStar === true;
-  const nodeStatus = treeStepStateToNodeStatus(stepState);
-  const branchStep = isBranchStepNodeId(node.getId());
-  const showsTaskIcon = !branchStep;
+  const hideLabel = data?.hideLabel === true;
+  const nodeRole = data?.nodeRole ?? 'task';
+  const isAnnotation = nodeRole !== 'task';
+  const annotationLabel =
+    nodeRole === 'column-header' || nodeRole === 'row-label' ? data?.label : undefined;
+  const taskLabel = hideLabel || isAnnotation ? annotationLabel : (data?.label ?? node.getLabel());
+  const labelSubtitle = hideLabel || isAnnotation ? undefined : data?.labelSubtitle;
+  const showWinnerStar =
+    visualState === 'winner' &&
+    isResolvedWinner &&
+    (data.showWinnerStar === true || winnerRank === 1);
+  const nodeStatus =
+    visualState === 'winner'
+      ? undefined
+      : visualState === 'success' || visualState === 'just-completed'
+        ? NodeStatus.success
+        : visualState === 'failed'
+          ? NodeStatus.danger
+          : visualState === 'active'
+            ? undefined
+            : treeStepStateToNodeStatus(stepState);
+  const branchStep = !isAnnotation && isBranchStepNodeId(node.getId());
+  const showsTaskIcon = !branchStep && !isAnnotation;
   const TaskIcon = resolveTaskIconForNodeId(node.getId());
   const { width, height } = node.getDimensions();
-  const iconSize = Math.min(width, height) * (branchStep ? 0.92 : 0.4);
-  const iconColor = TASK_ICON_COLORS[stepState];
+  const iconSize =
+    branchStep && visualState === 'active'
+      ? Math.min(width, height)
+      : Math.min(width, height) * (branchStep ? 0.92 : 0.4);
+  // Rank colors identify completed candidates; winner chrome still requires a resolved winner.
+  const iconColor =
+    stepState === 'completed' && winnerRank !== undefined
+      ? rankTaskIconColor(winnerRank)
+      : TASK_ICON_COLORS[visualState];
   const showPatternsToggle =
-    data?.showPatternsToggle === true && patternsExpand?.showToggle === true;
-  const labelWidth = showPatternsToggle ? 140 : 96;
-  // Branch corridor nodes are smaller; pad label so it lines up with stage-node labels.
-  const labelY = height + 4 + (branchStep ? (48 - height) / 2 : 0);
+    (data?.showPatternsToggle === true || nodeRole === 'patterns-toggle') &&
+    patternsExpand?.showToggle === true;
+  const isColumnHeader = nodeRole === 'column-header';
+  const isRowLabel = nodeRole === 'row-label';
+  const isColumnRule = nodeRole === 'column-rule';
+  const labelWidth = showPatternsToggle ? 180 : isColumnHeader || isRowLabel ? width : 96;
   const [captionHeight, captionRef] = useBoundedCaptionHeight({
     showExpandToggle: showPatternsToggle,
     labelSubtitle,
-    label,
+    label: taskLabel,
     labelWidth,
     expandToggleExpanded: patternsExpand?.patternsExpanded,
+    isColumnHeader,
   });
+  const labelY = showPatternsToggle ? 0 : height + 4 + (branchStep ? (40 - height) / 2 : 0);
+  const isRankedOutline = stepState === 'completed' && (winnerRank === 2 || winnerRank === 3);
 
   const attachments = React.useMemo(() => {
     if (!showsTaskIcon) {
@@ -461,95 +577,199 @@ const TreeNodeInner: React.FC<{
     }
     return (
       <>
-        <StatusBadgeDecorator element={node} stepState={stepState} />
-        {showWinnerStar ? <WinnerStarDecorator element={node} /> : null}
+        <StatusBadgeDecorator element={node} visualState={visualState} />
       </>
     );
-  }, [node, showsTaskIcon, stepState, showWinnerStar]);
+  }, [node, showsTaskIcon, visualState]);
+
+  const displayLabel = taskLabel;
+
+  if (isColumnRule) {
+    return (
+      <g className="autorag-tree-node-layer">
+        <line
+          className="autorag-tree-node__column-rule"
+          x1={0}
+          y1={0}
+          x2={width}
+          y2={0}
+          vectorEffect="non-scaling-stroke"
+        />
+      </g>
+    );
+  }
+
+  if (isColumnHeader || isRowLabel) {
+    return (
+      <g className="autorag-tree-node-layer">
+        <foreignObject x={0} y={0} width={width} height={height} style={{ overflow: 'visible' }}>
+          <div
+            ref={captionRef}
+            className={cx(
+              'autorag-tree-node__caption',
+              isColumnHeader && 'autorag-tree-node__caption--column-header',
+              isRowLabel && 'autorag-tree-node__caption--row-label',
+            )}
+          >
+            {displayLabel ? (
+              <div
+                className={cx(
+                  'autorag-tree-node__label',
+                  isColumnHeader && 'autorag-tree-node__label--column-header',
+                  isRowLabel && 'autorag-tree-node__label--row-label',
+                )}
+              >
+                {isColumnHeader
+                  ? displayLabel.split(/\s+/).map((word) => <div key={word}>{word}</div>)
+                  : displayLabel}
+              </div>
+            ) : null}
+          </div>
+        </foreignObject>
+      </g>
+    );
+  }
 
   return (
-    <DefaultNode
-      className={cx('autorag-tree-node', branchStep && 'autorag-tree-node--status-only')}
-      element={node}
-      // Status-only dots own their chrome; branch task icons use decorator + ring stroke.
-      nodeStatus={showsTaskIcon ? nodeStatus : undefined}
-      showLabel={false}
-      showStatusDecorator={false}
-      onSelect={onSelect}
-      selected={selected}
-      attachments={attachments}
-      showStatusBackground={false}
-    >
-      <g
-        data-testid={`tree-node-${node.getId()}`}
-        data-step-state={stepState}
-        data-branch-step={branchStep ? 'true' : 'false'}
-        data-status-only={branchStep ? 'true' : 'false'}
-        data-winner-star={showWinnerStar ? 'true' : 'false'}
+    <g className="autorag-tree-node-layer">
+      <DefaultNode
+        className={cx(
+          'autorag-tree-node',
+          branchStep && 'autorag-tree-node--status-only',
+          isAnnotation && 'autorag-tree-node--annotation',
+          !isAnnotation && !branchStep && visualState === 'pending' && 'autorag-tree-node--pending',
+          visualState === 'active' && 'autorag-tree-node--active',
+          visualState === 'just-completed' && 'autorag-tree-node--just-completed',
+          visualState === 'success' && 'autorag-tree-node--success',
+          visualState === 'failed' && 'autorag-tree-node--failed',
+          visualState === 'winner' && 'autorag-tree-node--winner',
+          isRankedOutline && 'autorag-tree-node--ranked',
+          visualState === 'winner' && winnerRank === 1 && 'autorag-tree-node--winner-1',
+          isRankedOutline && winnerRank === 2 && 'autorag-tree-node--winner-2',
+          isRankedOutline && winnerRank === 3 && 'autorag-tree-node--winner-3',
+        )}
+        element={node}
+        nodeStatus={showsTaskIcon ? nodeStatus : undefined}
+        showLabel={false}
+        showStatusDecorator={false}
+        onSelect={isAnnotation ? undefined : onSelect}
+        selected={isAnnotation ? false : selected}
+        attachments={attachments}
+        showStatusBackground={false}
       >
         <g
-          className={showsTaskIcon ? 'autorag-tree-node__task-icon' : undefined}
-          style={showsTaskIcon ? { color: iconColor } : undefined}
-          transform={`translate(${(width - iconSize) / 2}, ${(height - iconSize) / 2})`}
+          data-testid={`tree-node-${node.getId()}`}
+          data-step-state={stepState}
+          data-visual-state={visualState}
+          data-branch-step={branchStep ? 'true' : 'false'}
+          data-status-only={branchStep ? 'true' : 'false'}
+          data-winner-star={showWinnerStar ? 'true' : 'false'}
+          data-winner-rank={
+            stepState === 'completed' && winnerRank ? String(winnerRank) : undefined
+          }
+          data-node-role={nodeRole}
         >
-          {branchStep ? (
-            stepState === 'failed' ? (
-              <StatusOnlyFailedSectionDot size={iconSize} />
-            ) : stepState === 'completed' ? (
-              <StatusOnlyCompletedDot size={iconSize} />
-            ) : stepState === 'active' ? (
-              <StatusOnlyActiveDot size={iconSize} activeIconVariant={activeIconVariant} />
-            ) : (
-              <StatusOnlyPendingDot size={iconSize} />
-            )
-          ) : (
-            <TaskIcon width={iconSize} height={iconSize} />
-          )}
-        </g>
-        {label || showPatternsToggle ? (
-          <foreignObject
-            x={(width - labelWidth) / 2}
-            y={labelY}
-            width={labelWidth}
-            height={captionHeight}
-            style={{ overflow: 'visible' }}
-          >
-            <div ref={captionRef} className="autorag-tree-node__caption">
-              {label ? (
-                <div
-                  className={cx(
-                    'autorag-tree-node__label',
-                    selected && 'autorag-tree-node__label--selected',
-                  )}
-                >
-                  <div>{label}</div>
-                  {labelSubtitle ? (
-                    <Label color="grey" isCompact className="autorag-tree-node__winner-label">
-                      {labelSubtitle}
-                    </Label>
-                  ) : null}
-                </div>
-              ) : null}
-              {showPatternsToggle ? (
-                <div className="autorag-tree-node__patterns-toggle">
-                  <Button
-                    variant="secondary"
-                    aria-expanded={patternsExpand.patternsExpanded}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      patternsExpand.onToggle();
-                    }}
-                    data-testid="patterns-expand-toggle"
+          {visualState === 'pending' && showsTaskIcon ? (
+            <circle
+              className="autorag-tree-node__pending-ring"
+              cx={width / 2}
+              cy={height / 2}
+              r={Math.max(0, width / 2 - PENDING_RING_WIDTH / 2)}
+              fill={PENDING_RING_FILL}
+              stroke={PENDING_RING_STROKE}
+              strokeWidth={PENDING_RING_WIDTH}
+              strokeDasharray={PENDING_RING_DASH}
+            />
+          ) : null}
+          {visualState === 'pending' && branchStep ? (
+            <StatusOnlyPendingDot size={Math.min(width, height)} />
+          ) : null}
+          {showsTaskIcon || (branchStep && visualState !== 'pending') ? (
+            <g
+              className={cx(
+                showsTaskIcon && 'autorag-tree-node__task-icon',
+                showsTaskIcon &&
+                  visualState === 'pending' &&
+                  'autorag-tree-node__task-icon--pending',
+                showsTaskIcon && visualState === 'active' && 'autorag-tree-node__task-icon--active',
+              )}
+              style={showsTaskIcon ? { color: iconColor } : undefined}
+              transform={`translate(${width / 2}, ${
+                height / 2 + (showsTaskIcon && visualState === 'active' ? 1.5 : 0)
+              })`}
+            >
+              <g transform={`translate(${-iconSize / 2}, ${-iconSize / 2})`}>
+                {branchStep ? (
+                  visualState === 'failed' ? (
+                    <StatusOnlyFailedSectionDot size={iconSize} />
+                  ) : visualState === 'just-completed' ? (
+                    <StatusOnlyCompletedDot size={iconSize} />
+                  ) : visualState === 'success' ? (
+                    <StatusOnlySuccessDot size={iconSize} />
+                  ) : visualState === 'active' ? (
+                    <StatusOnlyActiveDot size={iconSize} activeIconVariant={activeIconVariant} />
+                  ) : null
+                ) : (
+                  <TaskIcon width={iconSize} height={iconSize} />
+                )}
+              </g>
+            </g>
+          ) : null}
+          {displayLabel || showPatternsToggle ? (
+            <foreignObject
+              x={(width - labelWidth) / 2}
+              y={labelY}
+              width={labelWidth}
+              height={captionHeight}
+              style={{ overflow: 'visible' }}
+            >
+              <div ref={captionRef} className="autorag-tree-node__caption">
+                {displayLabel ? (
+                  <div
+                    className={cx(
+                      'autorag-tree-node__label',
+                      selected && 'autorag-tree-node__label--selected',
+                      labelSubtitle && 'autorag-tree-node__label--with-subtitle',
+                    )}
                   >
-                    {patternsExpand.patternsExpanded ? 'Hide patterns' : 'Show all patterns'}
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-          </foreignObject>
-        ) : null}
-      </g>
-    </DefaultNode>
+                    <div>{displayLabel}</div>
+                    {labelSubtitle ? (
+                      <div className="autorag-tree-node__winner-subtitle">{labelSubtitle}</div>
+                    ) : null}
+                  </div>
+                ) : null}
+                {showPatternsToggle ? (
+                  <div className="autorag-tree-node__patterns-toggle">
+                    <Button
+                      variant="secondary"
+                      aria-expanded={patternsExpand.patternsExpanded}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        patternsExpand.onToggle();
+                      }}
+                      data-testid="patterns-expand-toggle"
+                    >
+                      {patternsExpand.patternsExpanded
+                        ? 'Collapse patterns'
+                        : patternsExpand.patternCount > 0
+                          ? `Show all ${patternsExpand.patternCount} patterns`
+                          : 'Show all patterns'}
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+            </foreignObject>
+          ) : null}
+        </g>
+      </DefaultNode>
+      {visualState === 'active' && showsTaskIcon ? <ActiveNodeBadge node={node} /> : null}
+      {visualState === 'failed' && showsTaskIcon ? <FailedNodeBadge size={width} /> : null}
+      {stepState === 'completed' && winnerRank ? (
+        <WinnerRankBadge rank={winnerRank} isResolvedWinner={isResolvedWinner} size={width} />
+      ) : showWinnerStar ? (
+        <WinnerRankBadge rank={1} isResolvedWinner={isResolvedWinner} size={width} />
+      ) : null}
+    </g>
   );
 });
 TreeNodeInner.displayName = 'TreeNodeInner';
