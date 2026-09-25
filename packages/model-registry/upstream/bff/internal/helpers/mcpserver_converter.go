@@ -2,6 +2,7 @@ package helper
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/kubeflow/hub/ui/bff/internal/models"
@@ -127,12 +128,59 @@ func ConvertToMCPServer(metadata *models.McpRuntimeMetadata, opts ConversionOpti
 		prereqComments = processPrerequisites(cr, metadata.Prerequisites)
 	}
 
+	// Explicit storage overrides prerequisite mounts at the same path.
+	if metadata != nil {
+		for _, m := range metadata.Storage {
+			mount := models.MCPStorageMount{
+				Path:        m.Path,
+				Permissions: m.Permissions,
+				Source: models.MCPStorageSource{
+					Type:      m.Source.Type,
+					EmptyDir:  m.Source.EmptyDir,
+					ConfigMap: m.Source.ConfigMap,
+					Secret:    m.Source.Secret,
+				},
+			}
+			if i := slices.IndexFunc(cr.Spec.Config.Storage, func(existing models.MCPStorageMount) bool {
+				return existing.Path == mount.Path
+			}); i >= 0 {
+				cr.Spec.Config.Storage[i] = mount
+			} else {
+				cr.Spec.Config.Storage = append(cr.Spec.Config.Storage, mount)
+			}
+		}
+	}
+
+	// Default to writable /tmp unless a mount is already configured there.
+	// Other writable paths must be declared in runtimeMetadata.storage.
+	if metadata != nil && metadata.Capabilities != nil &&
+		metadata.Capabilities.RequiresFileSystem != nil && *metadata.Capabilities.RequiresFileSystem &&
+		!hasStorageMountAtPath(cr.Spec.Config.Storage, "/tmp") {
+		cr.Spec.Config.Storage = append(cr.Spec.Config.Storage, models.MCPStorageMount{
+			Path:        "/tmp",
+			Permissions: "ReadWrite",
+			Source: models.MCPStorageSource{
+				Type:     "EmptyDir",
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		})
+	}
+
 	return &models.MCPServerConversionResult{
 		MCPServer:       cr,
 		EnvComments:     envComments,
 		OptionalEnvVars: optionalEnvVars,
 		PrereqComments:  prereqComments,
 	}
+}
+
+func hasStorageMountAtPath(mounts []models.MCPStorageMount, path string) bool {
+	for _, m := range mounts {
+		if m.Path == path {
+			return true
+		}
+	}
+	return false
 }
 
 // ExtractContainerImage finds the first OCI artifact URI and strips the oci:// prefix.
