@@ -592,19 +592,24 @@ func TestRBACAuth_EnableRBACAuth(t *testing.T) {
 		assert.Equal(t, "roles", config.Server.Auth.ProviderConfig.ClaimsMapping["username"])
 
 		// Verify access policy
-		require.Len(t, config.Server.Auth.AccessPolicy, 2)
+		require.Len(t, config.Server.Auth.AccessPolicy, 3)
 
-		// Admin rule
-		adminRule := config.Server.Auth.AccessPolicy[0]
-		require.NotNil(t, adminRule.Permit)
-		assert.ElementsMatch(t, []string{"create", "read", "delete"}, adminRule.Permit.Actions)
-		assert.Equal(t, "user with admin in roles", adminRule.When)
+		// Owner rule
+		ownerRule := config.Server.Auth.AccessPolicy[0]
+		require.NotNil(t, ownerRule.Permit)
+		assert.ElementsMatch(t, []string{"create", "read", "update", "delete"}, ownerRule.Permit.Actions)
+		assert.Equal(t, "user is owner", ownerRule.When)
 
-		// System:authenticated rule
-		authRule := config.Server.Auth.AccessPolicy[1]
-		require.NotNil(t, authRule.Permit)
-		assert.ElementsMatch(t, []string{"read"}, authRule.Permit.Actions)
-		assert.Equal(t, "user with system:authenticated in roles", authRule.When)
+		// Create rule
+		createRule := config.Server.Auth.AccessPolicy[1]
+		require.NotNil(t, createRule.Permit)
+		assert.ElementsMatch(t, []string{"create"}, createRule.Permit.Actions)
+
+		// Unowned read rule
+		unownedRule := config.Server.Auth.AccessPolicy[2]
+		require.NotNil(t, unownedRule.Permit)
+		assert.ElementsMatch(t, []string{"read"}, unownedRule.Permit.Actions)
+		assert.Equal(t, "resource is unowned", unownedRule.When)
 	})
 
 	t.Run("should enable RBAC auth with custom API server URL", func(t *testing.T) {
@@ -715,24 +720,28 @@ func TestRBACAuth_SetRoutePolicy(t *testing.T) {
 		require.Len(t, config.Server.Auth.RoutePolicy, 1)
 
 		// Verify access policy is still intact
-		require.Len(t, config.Server.Auth.AccessPolicy, 2)
+		require.Len(t, config.Server.Auth.AccessPolicy, 3)
 	})
 }
 
 func TestRBACAuth_NewDefaultAccessPolicy(t *testing.T) {
 	policy := NewDefaultAccessPolicy()
 
-	require.Len(t, policy, 2)
+	require.Len(t, policy, 3)
 
-	// Admin rule
+	// Owner rule
 	assert.NotNil(t, policy[0].Permit)
-	assert.ElementsMatch(t, []string{"create", "read", "delete"}, policy[0].Permit.Actions)
-	assert.Equal(t, "user with admin in roles", policy[0].When)
+	assert.ElementsMatch(t, []string{"create", "read", "update", "delete"}, policy[0].Permit.Actions)
+	assert.Equal(t, "user is owner", policy[0].When)
 
-	// System:authenticated rule
+	// Create rule
 	assert.NotNil(t, policy[1].Permit)
-	assert.ElementsMatch(t, []string{"read"}, policy[1].Permit.Actions)
-	assert.Equal(t, "user with system:authenticated in roles", policy[1].When)
+	assert.ElementsMatch(t, []string{"create"}, policy[1].Permit.Actions)
+
+	// Unowned read rule
+	assert.NotNil(t, policy[2].Permit)
+	assert.ElementsMatch(t, []string{"read"}, policy[2].Permit.Actions)
+	assert.Equal(t, "resource is unowned", policy[2].When)
 }
 
 func TestRBACAuth_NewAccessRule(t *testing.T) {
@@ -789,8 +798,8 @@ func TestRBACAuth_Serialization(t *testing.T) {
 		assert.Contains(t, yamlStr, "api_server_url:")
 		assert.Contains(t, yamlStr, "claims_mapping:")
 		assert.Contains(t, yamlStr, "access_policy:")
-		assert.Contains(t, yamlStr, "user with admin in roles")
-		assert.Contains(t, yamlStr, "user with system:authenticated in roles")
+		assert.Contains(t, yamlStr, "user is owner")
+		assert.Contains(t, yamlStr, "resource is unowned")
 	})
 
 	t.Run("should serialize and deserialize auth config", func(t *testing.T) {
@@ -811,7 +820,7 @@ func TestRBACAuth_Serialization(t *testing.T) {
 		assert.Equal(t, "kubernetes", parsedConfig.Server.Auth.ProviderConfig.Type)
 		assert.Equal(t, "https://api.cluster.example.com:6443", parsedConfig.Server.Auth.ProviderConfig.APIServerURL)
 		assert.Equal(t, "/custom/ca.crt", parsedConfig.Server.Auth.ProviderConfig.TLSCAFile)
-		assert.Len(t, parsedConfig.Server.Auth.AccessPolicy, 2)
+		assert.Len(t, parsedConfig.Server.Auth.AccessPolicy, 3)
 	})
 
 	t.Run("should serialize config without auth when not enabled", func(t *testing.T) {
@@ -886,8 +895,8 @@ func TestRBACAuth_GeneratedConfigIncludesAuth(t *testing.T) {
 		assert.Contains(t, yamlStr, "groups: roles")
 		assert.Contains(t, yamlStr, "username: roles")
 		assert.Contains(t, yamlStr, "access_policy:")
-		assert.Contains(t, yamlStr, "user with admin in roles")
-		assert.Contains(t, yamlStr, "user with system:authenticated in roles")
+		assert.Contains(t, yamlStr, "user is owner")
+		assert.Contains(t, yamlStr, "resource is unowned")
 
 		// Verify the rest of the config is still intact
 		assert.Contains(t, yamlStr, "version:")
@@ -915,19 +924,24 @@ func TestRBACAuth_GeneratedConfigIncludesAuth(t *testing.T) {
 		assert.True(t, parsedConfig.Server.Auth.ProviderConfig.VerifyTLS)
 
 		// Access policies must be preserved
-		require.Len(t, parsedConfig.Server.Auth.AccessPolicy, 2)
+		require.Len(t, parsedConfig.Server.Auth.AccessPolicy, 3)
 
-		// Admin rule: create, read, delete
-		adminRule := parsedConfig.Server.Auth.AccessPolicy[0]
-		require.NotNil(t, adminRule.Permit)
-		assert.ElementsMatch(t, []string{"create", "read", "delete"}, adminRule.Permit.Actions)
-		assert.Equal(t, "user with admin in roles", adminRule.When)
+		// Owner rule: full CRUD
+		ownerRule := parsedConfig.Server.Auth.AccessPolicy[0]
+		require.NotNil(t, ownerRule.Permit)
+		assert.ElementsMatch(t, []string{"create", "read", "update", "delete"}, ownerRule.Permit.Actions)
+		assert.Equal(t, "user is owner", ownerRule.When)
 
-		// Authenticated rule: read-only
-		authRule := parsedConfig.Server.Auth.AccessPolicy[1]
-		require.NotNil(t, authRule.Permit)
-		assert.ElementsMatch(t, []string{"read"}, authRule.Permit.Actions)
-		assert.Equal(t, "user with system:authenticated in roles", authRule.When)
+		// Create rule
+		createRule := parsedConfig.Server.Auth.AccessPolicy[1]
+		require.NotNil(t, createRule.Permit)
+		assert.ElementsMatch(t, []string{"create"}, createRule.Permit.Actions)
+
+		// Unowned read rule
+		unownedRule := parsedConfig.Server.Auth.AccessPolicy[2]
+		require.NotNil(t, unownedRule.Permit)
+		assert.ElementsMatch(t, []string{"read"}, unownedRule.Permit.Actions)
+		assert.Equal(t, "resource is unowned", unownedRule.When)
 
 		// Server port and other fields must remain intact
 		assert.Equal(t, 8321, parsedConfig.Server.Port)
