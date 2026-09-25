@@ -1,6 +1,9 @@
 package api
 
-import "testing"
+import (
+	"net/http/httptest"
+	"testing"
+)
 
 func TestIsHashedAsset(t *testing.T) {
 	tests := []struct {
@@ -60,6 +63,79 @@ func TestIsStaticAsset(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := isStaticAsset(tt.path); got != tt.expected {
 				t.Errorf("isStaticAsset(%q) = %v, want %v", tt.path, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestBFFSpanName(t *testing.T) {
+	tests := []struct {
+		name     string
+		method   string
+		path     string
+		expected string
+	}{
+		{
+			name:     "root fallback",
+			method:   "GET",
+			path:     "/",
+			expected: "gen-ai-bff",
+		},
+		{
+			name:     "responses endpoint",
+			method:   "POST",
+			path:     "/gen-ai/api/v1/lsd/responses",
+			expected: "gen-ai-bff POST /gen-ai/api/v1/lsd/responses",
+		},
+		{
+			name:     "proxy endpoint includes namespace",
+			method:   "POST",
+			path:     "/api/v1/genai-proxy/ns/tracing/v1/chat/completions",
+			expected: "gen-ai-bff POST /api/v1/genai-proxy/ns/tracing/v1/chat/completions",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(tt.method, tt.path, nil)
+			if got := bffSpanName("", req); got != tt.expected {
+				t.Errorf("bffSpanName() = %q, want %q", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestShouldTraceRequest(t *testing.T) {
+	tests := []struct {
+		name     string
+		headers  map[string]string
+		expected bool
+	}{
+		{
+			name:     "skips untraced ancillary request",
+			headers:  nil,
+			expected: false,
+		},
+		{
+			name:     "traces playground request with session header",
+			headers:  map[string]string{"X-Session-ID": "session-123"},
+			expected: true,
+		},
+		{
+			name:     "traces propagated child request",
+			headers:  map[string]string{"traceparent": "00-0102030405060708090a0b0c0d0e0f10-0102030405060708-01"},
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest("GET", "/test", nil)
+			for k, v := range tt.headers {
+				req.Header.Set(k, v)
+			}
+			if got := shouldTraceRequest(req); got != tt.expected {
+				t.Errorf("shouldTraceRequest() = %v, want %v", got, tt.expected)
 			}
 		})
 	}
