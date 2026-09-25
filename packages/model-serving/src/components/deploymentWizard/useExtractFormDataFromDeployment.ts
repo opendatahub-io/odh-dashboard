@@ -90,17 +90,22 @@ export const useExtractFormDataFromDeployment = (
     if (!deployment) {
       throw new NotReadyError('No deployment');
     }
+    if (!formDataExtensionLoaded) {
+      throw new NotReadyError('Form data extension not resolved');
+    }
     if (typeof extractHuggingFaceApiKeyFn !== 'function') {
       return null;
     }
     return Promise.resolve(extractHuggingFaceApiKeyFn(deployment));
-  }, [deployment, extractHuggingFaceApiKeyFn]);
+  }, [deployment, formDataExtensionLoaded, extractHuggingFaceApiKeyFn]);
 
   const {
     data: huggingFaceApiKey,
     loaded: huggingFaceApiKeyLoaded,
     error: huggingFaceApiKeyError,
-  } = useFetch<HuggingFaceApiKeyFieldData | null>(extractHuggingFaceApiKeyCallback, null);
+  } = useFetch<HuggingFaceApiKeyFieldData | null>(extractHuggingFaceApiKeyCallback, null, {
+    initialPromisePurity: true,
+  });
 
   const loaded =
     !deployment ||

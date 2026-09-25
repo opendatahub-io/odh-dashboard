@@ -79,13 +79,56 @@ describe('hfTokenSecret', () => {
     expect(mockGetHfTokenSecretNameFromServiceAccount).not.toHaveBeenCalled();
   });
 
-  it('should return null when ServiceAccount has no dashboard-managed HF Secret', async () => {
+  it('should return an empty token config when ServiceAccount has no dashboard-managed HF Secret', async () => {
     const deployment = mockInferenceServiceK8sResource({});
     deployment.metadata.name = 'test-model';
     deployment.metadata.namespace = 'test-project';
     deployment.spec.predictor.serviceAccountName = 'test-model-hf-sa';
     mockGetHfTokenSecretNameFromServiceAccount.mockResolvedValue(undefined);
 
-    await expect(extractHuggingFaceApiKey(deployment)).resolves.toBeNull();
+    await expect(extractHuggingFaceApiKey(deployment)).resolves.toEqual({
+      token: '',
+      configuredSecretName: undefined,
+    });
+  });
+
+  it('should return an empty token config when the ServiceAccount is missing (404)', async () => {
+    const deployment = mockInferenceServiceK8sResource({});
+    deployment.metadata.name = 'test-model';
+    deployment.metadata.namespace = 'test-project';
+    deployment.spec.predictor.serviceAccountName = 'test-model-hf-sa';
+    const { K8sStatusError } = jest.requireActual('@odh-dashboard/k8s-core');
+    mockGetHfTokenSecretNameFromServiceAccount.mockRejectedValue(
+      new K8sStatusError({
+        apiVersion: 'v1',
+        kind: 'Status',
+        status: 'Failure',
+        reason: 'NotFound',
+        code: 404,
+      }),
+    );
+
+    await expect(extractHuggingFaceApiKey(deployment)).resolves.toEqual({ token: '' });
+  });
+
+  it('should propagate non-404 API failures from ServiceAccount lookup', async () => {
+    const deployment = mockInferenceServiceK8sResource({});
+    deployment.metadata.name = 'test-model';
+    deployment.metadata.namespace = 'test-project';
+    deployment.spec.predictor.serviceAccountName = 'test-model-hf-sa';
+    const { K8sStatusError } = jest.requireActual('@odh-dashboard/k8s-core');
+    mockGetHfTokenSecretNameFromServiceAccount.mockRejectedValue(
+      new K8sStatusError({
+        apiVersion: 'v1',
+        kind: 'Status',
+        status: 'Failure',
+        reason: 'Forbidden',
+        code: 403,
+      }),
+    );
+
+    await expect(extractHuggingFaceApiKey(deployment)).rejects.toMatchObject({
+      statusObject: expect.objectContaining({ code: 403 }),
+    });
   });
 });
