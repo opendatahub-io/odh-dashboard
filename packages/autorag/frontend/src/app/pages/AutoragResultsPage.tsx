@@ -34,7 +34,7 @@ import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/ut
 import { isRunTerminatable, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
 import { getObjectiveMetric, metricLabel } from '~/app/utilities/metricUtils';
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
-import type { ResponsesTemplate } from '~/app/types/autoragPattern';
+import type { AutoragPattern, ResponsesTemplate } from '~/app/types/autoragPattern';
 import {
   fireAutoragCodeSnippetsExported,
   fireAutoragPlaygroundOpened,
@@ -50,6 +50,80 @@ type DrawerContentType =
       responsesTemplate: ResponsesTemplate;
       patternInfo: PlaygroundPatternInfo;
     };
+
+// ai4rag >= 0.18.0 renamed the pattern payload's `vector_store_binding` settings
+// field to `store_binding` (backend-agnostic naming). It isn't declared on
+// AutoragPatternSettings — zod's `.passthrough()` still preserves it on the raw
+// object — so read it defensively here until pattern parsing itself is updated
+// to normalize both names.
+type PatternSettingsWithStoreBindingFallback = {
+  store_binding?: { provider_type?: string; collection_name?: string };
+};
+
+const hasStoreBindingFallback = (
+  settings: unknown,
+): settings is PatternSettingsWithStoreBindingFallback =>
+  typeof settings === 'object' && settings !== null && 'store_binding' in settings;
+
+const buildResponsesTemplate = (
+  pattern: AutoragPattern,
+  runId: string | undefined,
+): ResponsesTemplate => {
+  const { generation, retrieval, vector_store_binding: vectorStoreBinding } = pattern.settings;
+  const { settings } = pattern;
+  const storeBindingFallback = hasStoreBindingFallback(settings)
+    ? settings.store_binding
+    : undefined;
+  const collectionName =
+    vectorStoreBinding?.collection_name ?? storeBindingFallback?.collection_name;
+  const searchMode =
+    retrieval.search_mode === 'hybrid' ||
+    retrieval.search_mode === 'keyword' ||
+    retrieval.search_mode === 'semantic'
+      ? retrieval.search_mode
+      : 'semantic';
+  const rankerStrategy =
+    retrieval.ranker_strategy === 'rrf' ||
+    retrieval.ranker_strategy === 'linear' ||
+    retrieval.ranker_strategy === 'cross_encoder'
+      ? retrieval.ranker_strategy
+      : 'rrf';
+
+  return {
+    /* eslint-disable camelcase */
+    model: generation.model_id,
+    stream: true,
+    store: false,
+    input: [
+      {
+        type: 'message',
+        role: 'user',
+        content: [{ type: 'input_text', text: '<user_query_placeholder>' }],
+      },
+    ],
+    metadata: {
+      autorag_run_id: runId ?? '',
+      rag_pattern_name: pattern.name,
+    },
+    instructions: '',
+    tools: [
+      {
+        type: 'file_search',
+        vector_store_ids: collectionName ? [collectionName] : [],
+        max_num_results: retrieval.number_of_chunks,
+        ranking_options: {
+          search_mode: searchMode,
+          ranker_strategy: rankerStrategy,
+          ranker_k: 60,
+          ranker_alpha: retrieval.ranker_alpha ?? 0.5,
+        },
+      },
+    ],
+    tool_choice: { type: 'file_search' },
+    include: ['file_search_call.results'],
+    /* eslint-enable camelcase */
+  };
+};
 
 function AutoragResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
@@ -264,10 +338,9 @@ function AutoragResultsPage(): React.JSX.Element {
       if (!pattern) {
         return false;
       }
-      const responsesTemplate = pattern.inference?.responses_template;
-      if (!responsesTemplate) {
-        return false;
-      }
+      const responsesTemplate =
+        pattern.inference?.responses_template ??
+        buildResponsesTemplate(pattern, pipelineRun?.run_id);
 
       const metricMean = getObjectiveMetric(pattern, contextValue.optimizationMetric)?.scores.mean;
       setDrawerContent({
@@ -284,7 +357,7 @@ function AutoragResultsPage(): React.JSX.Element {
       });
       return true;
     },
-    [contextValue.optimizationMetric, patterns],
+    [contextValue.optimizationMetric, patterns, pipelineRun?.run_id],
   );
   /* eslint-enable @typescript-eslint/no-unnecessary-condition */
 

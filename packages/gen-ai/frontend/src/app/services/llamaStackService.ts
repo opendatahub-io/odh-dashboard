@@ -762,12 +762,18 @@ export const createPassthroughResponse = (
   body: Record<string, unknown>,
   onStreamData: (chunk: string, clearPrevious?: boolean) => void,
   abortSignal?: AbortSignal,
+  responsesEndpointUrl?: string,
 ): Promise<SimplifiedResponseData> => {
-  const trimmed = bffBasePath.replace(/\/+$/, '');
-  const base = trimmed.endsWith('/api/v1') ? trimmed : `${trimmed}/api/v1`;
-  const url = `${base}/lsd/responses/passthrough?namespace=${encodeURIComponent(
-    namespace,
-  )}&secretName=${encodeURIComponent(secretName)}`;
+  let url: string;
+  if (responsesEndpointUrl) {
+    url = responsesEndpointUrl;
+  } else {
+    const trimmed = bffBasePath.replace(/\/+$/, '');
+    const base = trimmed.endsWith('/api/v1') ? trimmed : `${trimmed}/api/v1`;
+    url = `${base}/lsd/responses/passthrough?namespace=${encodeURIComponent(
+      namespace,
+    )}&secretName=${encodeURIComponent(secretName)}`;
+  }
 
   return new Promise((resolve, reject) => {
     fetch(url, {
@@ -837,8 +843,11 @@ export const createPassthroughResponse = (
                     const data = JSON.parse(line.slice(6));
 
                     if (data.error) {
-                      await reader.cancel('Streaming error');
                       reject(new ApiErrorClass(data.error, data.trace_id));
+                      return;
+                    }
+                    if (data.type === 'error' && typeof data.message === 'string') {
+                      reject(new Error(data.message));
                       return;
                     }
 
@@ -886,6 +895,10 @@ export const createPassthroughResponse = (
 
                   if (data.error) {
                     reject(new ApiErrorClass(data.error, data.trace_id));
+                    return;
+                  }
+                  if (data.type === 'error' && typeof data.message === 'string') {
+                    reject(new Error(data.message));
                     return;
                   }
 

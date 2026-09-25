@@ -419,8 +419,8 @@ type AutoragLeaderboardProps = {
   onRunIndexingPipeline?: (patternName: string) => void;
 };
 
-// Keep the OGX callbacks wired for the upcoming Results reintroduction without exposing actions.
-const OGX_ACTIONS_ENABLED = false;
+// Code snippets remain unavailable while the Responses API's chat workflow is rolled out.
+const VIEW_CODE_ACTION_ENABLED = false;
 
 function AutoragLeaderboard({
   onViewDetails,
@@ -1219,9 +1219,7 @@ function AutoragLeaderboard({
                     <ActionsColumn
                       items={[
                         /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-                        ...(OGX_ACTIONS_ENABLED &&
-                        patterns[entry.patternKey].inference?.responses_template &&
-                        onTryPattern
+                        ...(onTryPattern
                           ? [
                               {
                                 title: 'Try this pattern',
@@ -1235,7 +1233,7 @@ function AutoragLeaderboard({
                           onClick: () => handleViewDetails(entry.patternKey),
                         },
                         /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-                        ...(OGX_ACTIONS_ENABLED &&
+                        ...(VIEW_CODE_ACTION_ENABLED &&
                         patterns[entry.patternKey].inference?.responses_template &&
                         onViewCode
                           ? [

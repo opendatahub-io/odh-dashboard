@@ -11,8 +11,12 @@ import {
 } from '~/app/context/AutoragResultsContext';
 
 jest.mock('~/app/components/EmbeddedPlayground', () => {
-  const MockPlayground: React.FC = () => (
-    <div data-testid="mock-embedded-playground">Playground</div>
+  const MockPlayground: React.FC<{ responsesEndpointUrl?: string }> = ({
+    responsesEndpointUrl,
+  }) => (
+    <div data-endpoint={responsesEndpointUrl} data-testid="mock-embedded-playground">
+      Playground
+    </div>
   );
   return { __esModule: true, default: MockPlayground };
 });
@@ -55,6 +59,13 @@ const mockPatternInfo: PlaygroundPatternInfo = {
   chunkMethod: 'semantic',
 };
 
+const mockPatternSettings: AutoragPattern['settings'] = {
+  chunking: { method: 'semantic', chunk_size: 512, chunk_overlap: 0 },
+  embedding: { model_id: 'embedding-model', embedding_params: { embedding_dimension: 384 } },
+  retrieval: { method: 'similarity', number_of_chunks: 5 },
+  generation: { model_id: 'test-model' },
+};
+
 const mockPatterns: Record<string, AutoragPattern> = {
   pattern_a: {
     name: 'pattern_a',
@@ -62,7 +73,7 @@ const mockPatterns: Record<string, AutoragPattern> = {
     max_combinations: 1,
     duration_seconds: 0,
     inference: { responses_template: mockTemplate },
-    settings: {} as AutoragPattern['settings'],
+    settings: mockPatternSettings,
     evaluation: { metrics: [] },
   } as AutoragPattern,
   pattern_b: {
@@ -71,7 +82,7 @@ const mockPatterns: Record<string, AutoragPattern> = {
     max_combinations: 1,
     duration_seconds: 0,
     inference: { responses_template: mockTemplate },
-    settings: {} as AutoragPattern['settings'],
+    settings: mockPatternSettings,
     evaluation: { metrics: [] },
   } as AutoragPattern,
   pattern_no_template: {
@@ -79,14 +90,14 @@ const mockPatterns: Record<string, AutoragPattern> = {
     iteration: 0,
     max_combinations: 1,
     duration_seconds: 0,
-    settings: {} as AutoragPattern['settings'],
+    settings: mockPatternSettings,
     evaluation: { metrics: [] },
   } as AutoragPattern,
 };
 
 const mockContextValue: AutoragResultsContextProps = {
   patterns: mockPatterns,
-  parameters: { ogx_secret_name: 'test-secret' },
+  parameters: { maas_secret_name: 'test-secret', vector_db_secret_name: 'milvus' },
   optimizationMetric: { name: 'faithfulness' },
 };
 
@@ -123,6 +134,15 @@ describe('PlaygroundDrawerPanel', () => {
     expect(screen.getByTestId('playground-drawer-panel')).toBeInTheDocument();
   });
 
+  it('should send chat requests to the AutoRAG BFF endpoint for current run parameters', () => {
+    renderInDrawer();
+
+    expect(screen.getByTestId('mock-embedded-playground')).toHaveAttribute(
+      'data-endpoint',
+      '/autorag/api/v1/responses?namespace=test-ns&vectorDbSecretName=milvus&maasSecretName=test-secret',
+    );
+  });
+
   it('should call onClose when close button is clicked', () => {
     renderInDrawer();
 
@@ -141,6 +161,14 @@ describe('PlaygroundDrawerPanel', () => {
     renderInDrawer();
 
     expect(screen.getByTestId('playground-pattern-select')).toBeInTheDocument();
+  });
+
+  it('should include patterns without a responses template in the pattern selector', () => {
+    renderInDrawer();
+
+    fireEvent.click(screen.getByTestId('playground-pattern-select'));
+
+    expect(screen.getByRole('option', { name: 'pattern_no_template' })).toBeInTheDocument();
   });
 
   it('should format numeric metric values to 2 decimal places', () => {

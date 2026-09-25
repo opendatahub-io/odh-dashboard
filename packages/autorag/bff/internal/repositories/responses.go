@@ -1,0 +1,348 @@
+package repositories
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"regexp"
+	"strconv"
+	"strings"
+
+	"github.com/openai/openai-go"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/maas"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/vectordb"
+	"github.com/opendatahub-io/autorag-library/bff/internal/models"
+	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+)
+
+// maxTopK bounds max_num_results so a caller-controlled value can't drive an
+// unbounded LIMIT/allocation in the vector DB search.
+const maxTopK = 100
+
+// validVectorStoreID matches a vector store ID that is already a safe Milvus
+// collection / pgvector table identifier, so distinct IDs never silently
+// collide onto the same target after sanitizeCollection normalizes them.
+var validVectorStoreID = regexp.MustCompile(`^[A-Za-z0-9_]+$`)
+
+// ResponsesParams holds the per-request parameters for the responses endpoint.
+type ResponsesParams struct {
+	Namespace          string
+	VectorDbSecretName string
+	MaasSecretName     string
+}
+
+// ResponsesRepository handles RAG query execution for the responses endpoint.
+type ResponsesRepository struct {
+	logger     *slog.Logger
+	k8sService kubernetes.Service
+}
+
+func NewResponsesRepository(logger *slog.Logger, k8sService kubernetes.Service) *ResponsesRepository {
+	return &ResponsesRepository{
+		logger:     logger,
+		k8sService: k8sService,
+	}
+}
+
+// resolveMaasClient fetches MaaS credentials from K8s and returns a configured client.
+func (r *ResponsesRepository) resolveMaasClient(ctx context.Context, namespace, secretName string) (*maas.Client, error) {
+	secret, err := r.k8sService.GetSecret(ctx, namespace, secretName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get MaaS secret %q: %w", secretName, err)
+	}
+	baseURL := strings.TrimSpace(string(secret.Data["MAAS_BASE_URL"]))
+	apiKey := strings.TrimSpace(string(secret.Data["MAAS_API_KEY"]))
+	if baseURL == "" {
+		return nil, fmt.Errorf("MaaS secret %q missing MAAS_BASE_URL", secretName)
+	}
+	client, err := maas.NewClient(baseURL, apiKey)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+// resolveVectorDB fetches vector DB credentials from K8s and returns the VectorDB.
+// DB type is auto-detected from secret key prefixes (MILVUS_URI → Milvus, PGVECTOR_HOST → pgvector).
+func (r *ResponsesRepository) resolveVectorDB(ctx context.Context, namespace, secretName string) (vectordb.VectorDB, error) {
+	secret, err := r.k8sService.GetSecret(ctx, namespace, secretName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get vector DB secret %q: %w", secretName, err)
+	}
+	db, err := vectordb.NewFromSecretData(ctx, secret.Data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to vector DB from secret %q: %w", secretName, err)
+	}
+	return db, nil
+}
+
+// sanitizeCollection normalises a vector store ID for use as a Milvus collection or pgvector table name.
+func sanitizeCollection(id string) string {
+	return strings.NewReplacer("-", "_", ".", "_").Replace(id)
+}
+
+// ragSearch embeds the query and searches the vector DB, returning source chunks.
+func (r *ResponsesRepository) ragSearch(
+	ctx context.Context,
+	maasClient *maas.Client,
+	db vectordb.VectorDB,
+	embeddingModel, query, collection string,
+	topK int,
+	alpha float32,
+	hybrid bool,
+) ([]models.SourceChunk, error) {
+	vec, err := maasClient.Embed(ctx, embeddingModel, query)
+	if err != nil {
+		return nil, fmt.Errorf("embedding failed: %w", err)
+	}
+
+	results, err := db.Search(ctx, sanitizeCollection(collection), vec, query, topK, alpha, hybrid)
+	if err != nil {
+		return nil, fmt.Errorf("vector search failed: %w", err)
+	}
+
+	chunks := make([]models.SourceChunk, 0, len(results))
+	for _, res := range results {
+		chunks = append(chunks, models.SourceChunk{Text: res.Text, Score: res.Score})
+	}
+	return chunks, nil
+}
+
+// buildMessages assembles Chat Completions messages:
+//  1. system message (from input, if present)
+//  2. conversation history (all prior turns except the last user turn)
+//  3. user message = context chunks (formatted via contextTemplate) concatenated with the question,
+//     optionally wrapped by userTemplate ({reference_documents} and {question} placeholders)
+func buildMessages(
+	systemPrompt, contextTemplate, userTemplate string,
+	history []openai.ChatCompletionMessageParamUnion,
+	question string,
+	sources []models.SourceChunk,
+) []openai.ChatCompletionMessageParamUnion {
+	var contextParts []string
+	for i, s := range sources {
+		if contextTemplate != "" {
+			part := strings.NewReplacer(
+				"{document}", s.Text,
+				"{doc_number}", strconv.Itoa(i+1),
+			).Replace(contextTemplate)
+			contextParts = append(contextParts, part)
+		} else {
+			contextParts = append(contextParts, fmt.Sprintf("Document %d:\n%s", i+1, s.Text))
+		}
+	}
+	context := strings.Join(contextParts, "\n")
+
+	var userContent string
+	if userTemplate != "" {
+		userContent = strings.NewReplacer(
+			"{reference_documents}", context,
+			"{question}", question,
+		).Replace(userTemplate)
+	} else if context != "" {
+		userContent = context + "\n" + question
+	} else {
+		userContent = question
+	}
+
+	msgs := make([]openai.ChatCompletionMessageParamUnion, 0, len(history)+2)
+
+	if systemPrompt != "" {
+		msgs = append(msgs, openai.SystemMessage(systemPrompt))
+	}
+
+	msgs = append(msgs, history...)
+
+	msgs = append(msgs, openai.UserMessage(userContent))
+
+	return msgs
+}
+
+// extractHistoryAndQuestion converts the Responses API input into system prompt, history, and last user question.
+// System messages are extracted separately so they are not duplicated in history.
+// The last user turn is removed from history — buildMessages re-adds it with context injected.
+//
+// maxHistoryUserMessages caps how many past user turns are kept; the system prompt is
+// tracked separately from history so capping never drops it.
+const maxHistoryUserMessages = 10
+
+func extractHistoryAndQuestion(
+	input []models.InputMessage,
+) (systemPrompt string, history []openai.ChatCompletionMessageParamUnion, question string) {
+	for _, msg := range input {
+		text := ""
+		for _, c := range msg.Content {
+			if c.Type == "input_text" {
+				text += c.Text
+			}
+		}
+		switch msg.Role {
+		case "system":
+			systemPrompt = text
+		case "user":
+			question = text
+			history = append(history, openai.UserMessage(text))
+		case "assistant":
+			history = append(history, openai.AssistantMessage(text))
+		}
+	}
+	if len(history) > 0 && history[len(history)-1].OfUser != nil {
+		history = history[:len(history)-1]
+	}
+	history = capHistory(history, maxHistoryUserMessages)
+	return systemPrompt, history, question
+}
+
+// capHistory keeps only the most recent maxUserMessages user turns (and any
+// assistant replies interleaved with them), dropping older turns from the front.
+// A "turn" spans from one user message up to (but not including) the next.
+func capHistory(history []openai.ChatCompletionMessageParamUnion, maxUserMessages int) []openai.ChatCompletionMessageParamUnion {
+	var userIdx []int
+	for i, m := range history {
+		if m.OfUser != nil {
+			userIdx = append(userIdx, i)
+		}
+	}
+	if len(userIdx) <= maxUserMessages {
+		return history
+	}
+	toDrop := len(userIdx) - maxUserMessages
+	return history[userIdx[toDrop]:]
+}
+
+type ragContext struct {
+	maasClient *maas.Client
+	sources    []models.SourceChunk
+	msgs       []openai.ChatCompletionMessageParamUnion
+	chatReq    maas.ChatRequest
+}
+
+// parseFileSearchTool extracts and validates the file_search tool's vector store
+// target and search parameters from the request. It fails fast on a malformed
+// request before any credential resolution or vector DB connection is attempted.
+func parseFileSearchTool(req *models.ResponsesRequest) (collection string, topK int, alpha float32, hybrid bool, err error) {
+	topK = 5
+	alpha = 0.5
+	for _, tool := range req.Tools {
+		if tool.Type != "file_search" || len(tool.VectorStoreIDs) == 0 {
+			continue
+		}
+		collection = tool.VectorStoreIDs[0]
+		if tool.MaxNumResults > 0 {
+			if tool.MaxNumResults > maxTopK {
+				return "", 0, 0, false, fmt.Errorf("max_num_results %d exceeds maximum of %d", tool.MaxNumResults, maxTopK)
+			}
+			topK = tool.MaxNumResults
+		}
+		if tool.RankingOptions.Ranker != "" {
+			hybrid = true
+			if tool.RankingOptions.Alpha > 0 {
+				if tool.RankingOptions.Alpha > 1 {
+					return "", 0, 0, false, fmt.Errorf("ranking_options.alpha %v must be between 0 and 1", tool.RankingOptions.Alpha)
+				}
+				alpha = float32(tool.RankingOptions.Alpha)
+			}
+		}
+		break
+	}
+	if collection == "" {
+		return "", 0, 0, false, fmt.Errorf("no file_search tool with vector_store_ids found in request")
+	}
+	if !validVectorStoreID.MatchString(collection) {
+		return "", 0, 0, false, fmt.Errorf("invalid vector_store_ids value %q: must match %s", collection, validVectorStoreID.String())
+	}
+	return collection, topK, alpha, hybrid, nil
+}
+
+// prepareRAGContext resolves credentials, does vector search, and assembles the chat messages.
+func (r *ResponsesRepository) prepareRAGContext(ctx context.Context, params ResponsesParams, req *models.ResponsesRequest) (*ragContext, error) {
+	embeddingModel := req.Metadata["embedding_model"]
+	if embeddingModel == "" {
+		return nil, fmt.Errorf("metadata.embedding_model is required")
+	}
+
+	collection, topK, alpha, hybrid, err := parseFileSearchTool(req)
+	if err != nil {
+		return nil, err
+	}
+
+	systemPrompt, history, question := extractHistoryAndQuestion(req.Input)
+	if question == "" {
+		return nil, fmt.Errorf("no user message found in input")
+	}
+
+	maasClient, err := r.resolveMaasClient(ctx, params.Namespace, params.MaasSecretName)
+	if err != nil {
+		return nil, err
+	}
+
+	db, err := r.resolveVectorDB(ctx, params.Namespace, params.VectorDbSecretName)
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+
+	sources, err := r.ragSearch(ctx, maasClient, db, embeddingModel, question, collection, topK, alpha, hybrid)
+	if err != nil {
+		return nil, err
+	}
+
+	msgs := buildMessages(
+		systemPrompt,
+		req.Metadata["context_template_text"],
+		req.Metadata["user_message_text"],
+		history,
+		question,
+		sources,
+	)
+
+	maxTokens := req.MaxOutputTokens
+	if maxTokens == 0 {
+		maxTokens = 2048
+	}
+
+	return &ragContext{
+		maasClient: maasClient,
+		sources:    sources,
+		msgs:       msgs,
+		chatReq: maas.ChatRequest{
+			Model:       req.Model,
+			Messages:    msgs,
+			Temperature: float32(req.Temperature),
+			MaxTokens:   maxTokens,
+		},
+	}, nil
+}
+
+// HandleResponses processes a non-streaming RAG request.
+func (r *ResponsesRepository) HandleResponses(ctx context.Context, params ResponsesParams, req *models.ResponsesRequest) (*models.RAGResponse, error) {
+	rc, err := r.prepareRAGContext(ctx, params, req)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := rc.maasClient.ChatComplete(ctx, rc.chatReq)
+	if err != nil {
+		return nil, fmt.Errorf("MaaS chat completion failed: %w", err)
+	}
+	return &models.RAGResponse{Answer: resp.Answer, Sources: rc.sources}, nil
+}
+
+// HandleResponsesStream processes a streaming RAG request, calling onDelta for each text token.
+func (r *ResponsesRepository) HandleResponsesStream(ctx context.Context, params ResponsesParams, req *models.ResponsesRequest, onDelta func(string)) (*models.RAGStreamResult, error) {
+	rc, err := r.prepareRAGContext(ctx, params, req)
+	if err != nil {
+		return nil, err
+	}
+	sr, err := rc.maasClient.ChatCompleteStreamWithCallback(ctx, rc.chatReq, onDelta)
+	if err != nil {
+		return nil, fmt.Errorf("MaaS streaming failed: %w", err)
+	}
+	return &models.RAGStreamResult{
+		Answer:       sr.FullAnswer,
+		Sources:      rc.sources,
+		InputTokens:  sr.InputTokens,
+		OutputTokens: sr.OutputTokens,
+		LatencyMs:    sr.TotalMs,
+		FirstTokenMs: sr.FirstTokenMs,
+	}, nil
+}
