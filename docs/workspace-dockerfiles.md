@@ -69,6 +69,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/plugin-core/ ./packages/plugin-core/
 # ... other shared workspace packages ...
 COPY ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
+COPY scripts/get-pnpm-version.js ./scripts/get-pnpm-version.js
 
 RUN npm install -g pnpm@$(node scripts/get-pnpm-version.js)
 RUN pnpm install --frozen-lockfile
@@ -92,6 +93,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/plugin-core/ ./packages/plugin-core/
 # ... other shared workspace packages ...
 COPY ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}   # includes upstream package-lock.json
+COPY scripts/get-pnpm-version.js ./scripts/get-pnpm-version.js
 
 RUN npm install -g pnpm@$(node scripts/get-pnpm-version.js)
 RUN pnpm install --frozen-lockfile            # @odh-dashboard/* workspace packages
