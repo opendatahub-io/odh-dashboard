@@ -32,7 +32,7 @@ describe('resolveTreeNodeVisualState', () => {
       resolveTreeNodeVisualState({
         stepState: 'unreached',
         justCompleted: false,
-        winnerRank: 1,
+        isResolvedWinner: true,
       }),
     ).toBe('pending');
   });
