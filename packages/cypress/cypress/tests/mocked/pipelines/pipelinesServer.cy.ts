@@ -533,7 +533,7 @@ describe('Pipeline Server', () => {
         (patch: { path: string }) => patch.path === '/spec/apiServer/managedPipelines',
       );
       expect(managedPipelinesPatch?.op).to.equal('add');
-      expect(managedPipelinesPatch?.value).to.deep.equal({});
+      expect(managedPipelinesPatch?.value).to.deep.equal({ pipelines: [] });
     });
 
     toastNotifications.findToastNotification(0).should('contain.text', 'Success alert');
@@ -635,11 +635,11 @@ describe('Pipeline Server', () => {
       );
       expect(cachePatch.value).to.equal(false);
 
-      // Verify managedPipelines is empty object
+      // Verify managedPipelines has explicit empty pipelines array
       const managedPipelinesPatch = interception.request.body.find(
         (patch: { path: string }) => patch.path === '/spec/apiServer/managedPipelines',
       );
-      expect(managedPipelinesPatch.value).to.deep.equal({});
+      expect(managedPipelinesPatch.value).to.deep.equal({ pipelines: [] });
     });
 
     toastNotifications.findToastNotification(0).should('contain.text', 'Success alert');
