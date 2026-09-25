@@ -16,7 +16,7 @@ export const useTreeViewData = (
   evalMetric?: string,
 ): PipelineVisualizationData =>
   React.useMemo(() => {
-    const safeModels = models ?? {};
+    const safeModels: Record<string, AutomlModel | null | undefined> = models ?? {};
     const selectedModel =
       bestModelKey && Object.hasOwn(safeModels, bestModelKey)
         ? bestModelKey
@@ -31,6 +31,9 @@ export const useTreeViewData = (
         : undefined;
     const modelRanks = computeRankMap(safeModels, taskType ?? '', evalMetric, selectedModel);
     for (const [modelKey, model] of Object.entries(safeModels)) {
+      if (model == null) {
+        continue;
+      }
       const modelName = model.name;
       if (
         typeof modelName === 'string' &&

@@ -124,4 +124,15 @@ describe('useTreeViewData', () => {
 
     expect(result.current.modelRanks).toEqual({ model_a: 1, model_b: 2 });
   });
+
+  it('should skip null models when adding name aliases and preserve their key ranks', () => {
+    const models = {
+      model_a: null,
+      model_b: createModel('Model B'),
+    } as unknown as Record<string, AutomlModel>;
+
+    const { result } = renderHook(() => useTreeViewData(models));
+
+    expect(result.current.modelRanks).toEqual({ model_a: 1, model_b: 2, 'Model B': 2 });
+  });
 });
