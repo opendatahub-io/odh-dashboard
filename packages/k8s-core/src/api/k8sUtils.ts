@@ -5,6 +5,12 @@ import type {
   Patch,
 } from '@openshift/dynamic-plugin-sdk-utils';
 
+/**
+ * Builds the group, version, and kind identifier used by Kubernetes API operations.
+ *
+ * @param model - Kubernetes model that supplies the API group, version, and kind.
+ * @returns The Kubernetes group-version-kind identifier for the model.
+ */
 export const groupVersionKind = (model: K8sModelCommon): K8sGroupVersionKind => ({
   group: model.apiGroup,
   version: model.apiVersion,
@@ -47,6 +53,9 @@ export const addOwnerReference = <R extends K8sResourceCommon>(
  * This is useful for creating targeted k8s resource patches instead of full updates.
  *
  * Automatically filters out Kubernetes managed fields like status, resourceVersion, etc.
+ * Inputs are expected to be acyclic, JSON-serializable Kubernetes resource data.
+ * Arrays are treated as atomic values and replaced as a whole when their contents change.
+ * The generated patch does not include optimistic-concurrency preconditions.
  *
  * @param oldObj - The original object (current state)
  * @param newObj - The desired object (target state)
