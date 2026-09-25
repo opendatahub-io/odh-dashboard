@@ -9,4 +9,6 @@ ollama==0.6.1
 pypdf==6.9.0
 regex>=2024.11.6
 rich>=13
+# tiktoken imports requests at runtime; reject TestPyPI's Python 3.12-incompatible release.
+requests>=2.32,<3
 setuptools>=75,<81
