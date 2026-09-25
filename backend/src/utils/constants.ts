@@ -97,6 +97,7 @@ export const blankDashboardCR: DashboardConfig = {
       workbenchesV2: false,
       mcpCatalog: false,
       mcpRegistry: false,
+      genAiMcpRegistryServers: false,
       agentOps: false,
       agentsCatalog: false,
       toolCalling: false,

@@ -5,6 +5,13 @@ import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 /**
+ * Normalize the legacy empty catalog representation before parsing.
+ * Some older test runs appended block entries after `catalogs: []`, which is invalid YAML.
+ */
+const normalizeCatalogSourcesYaml = (yamlContent: string): string =>
+  yamlContent.replace(/^(\s*catalogs:\s*)\[\]\s*$/m, '$1');
+
+/**
  * Helper to parse YAML using awk — no yq, jq, or Python required.
  * Returns a command that reads YAML from stdin and reports the enabled state for a catalog ID.
  * The command prints `default` when the source exists without an explicit enabled field, and
@@ -51,6 +58,7 @@ const getYamlUpdateCommand = (sourceId: string): string => {
   return `awk -v target="${sourceId}" '
 /^[[:space:]]*-[[:space:]]/{flush_buf();buflen=0;delete buf;in_entry=1;entry_id=""}
 in_entry{buflen++;buf[buflen]=$0;if(/id:/){tmp=$0;sub(/.*id:[[:space:]]*/,"",tmp);entry_id=tmp}next}
+/^[[:space:]]*catalogs:[[:space:]]*/ && index($0, "[]") > 0 {sub(/[][[:space:]]*$/, "")}
 {flush_buf();print}
 END{flush_buf();if(!found){print "  - id: " target;print "    enabled: true"}}
 function flush_buf(  i,line,is_target,has_enabled){
@@ -421,7 +429,8 @@ export const deleteHuggingFaceCatalogSource = (sourceId: string): Cypress.Chaina
         return;
       }
 
-      const parsed = yaml.load(getResult.stdout) as {
+      const normalizedYaml = normalizeCatalogSourcesYaml(getResult.stdout);
+      const parsed = yaml.load(normalizedYaml) as {
         catalogs?: Array<{ id?: string }>;
       };
       if (!parsed.catalogs) {
@@ -598,10 +607,11 @@ export const hasOtherEnabledCatalogSources = (
   const namespace = getModelRegistryNamespace();
 
   const parseAndCount = (yamlContent: string): boolean => {
-    const parsed = yaml.load(yamlContent) as {
-      catalogs: Array<{ id: string; enabled?: boolean }>;
+    const normalizedYaml = normalizeCatalogSourcesYaml(yamlContent);
+    const parsed = yaml.load(normalizedYaml) as {
+      catalogs?: Array<{ id: string; enabled?: boolean }> | null;
     };
-    const otherEnabled = parsed.catalogs.filter(
+    const otherEnabled = (parsed.catalogs ?? []).filter(
       (c) => c.enabled !== false && !excludeSourceIds.includes(c.id),
     );
     cy.log(`Other enabled sources found: ${otherEnabled.length}`);

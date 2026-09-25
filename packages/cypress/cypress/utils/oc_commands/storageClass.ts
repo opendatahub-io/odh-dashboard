@@ -256,10 +256,14 @@ export const ensureOpenshiftDefaultStorageClass = (): Cypress.Chainable<string> 
   });
 
 /**
- * Disables all storage classes except for the default one
+ * Disables all platform storage classes except for the default one.
+ * Skips SCs created by other test specs (names ending in a 6-digit UUID
+ * from generateTestUUID) to prevent cross-set contamination in parallel CI.
+ *
  * @returns A Cypress.Chainable that resolves when all updates are complete
  */
 export const disableNonDefaultStorageClasses = (): Cypress.Chainable<void> => {
+  const testScPattern = /-\d{6}$/;
   let defaultSCName: string;
 
   return cy
@@ -271,7 +275,7 @@ export const disableNonDefaultStorageClasses = (): Cypress.Chainable<void> => {
     })
     .then((scNames: string[]) => {
       const updatePromises = scNames.map((scName) => {
-        if (scName !== defaultSCName) {
+        if (scName !== defaultSCName && !testScPattern.test(scName)) {
           const scReplacements: SCReplacements = {
             SC_NAME: scName,
             SC_IS_DEFAULT: 'false',

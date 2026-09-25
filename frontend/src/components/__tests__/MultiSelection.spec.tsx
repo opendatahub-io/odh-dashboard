@@ -61,7 +61,7 @@ describe('MultiSelection', () => {
     expect(document.getElementById('test-select-listbox')).toBeInTheDocument();
   });
 
-  it('should clear keyboard focus when a selection clears the filter input', async () => {
+  it('should keep keyboard focus on the option after selecting it', async () => {
     render(
       <MultiSelection
         id="test-select"
@@ -74,7 +74,9 @@ describe('MultiSelection', () => {
     const combobox = screen.getByRole('combobox', { name: 'Connections' });
 
     await act(async () => {
-      fireEvent.change(combobox, { target: { value: 'Connection 2' } });
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+    await act(async () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
 
@@ -84,8 +86,14 @@ describe('MultiSelection', () => {
       fireEvent.keyDown(combobox, { key: 'Enter' });
     });
 
-    expect(combobox).not.toHaveAttribute('aria-activedescendant');
     expect(combobox).toHaveValue('');
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-2');
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-3');
   });
 
   it('should call setValue when Enter selects a focused option', async () => {
@@ -542,5 +550,112 @@ describe('MultiSelection', () => {
 
     expect(first).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByRole('button', { name: 'Remove Connection 1' })).toBeInTheDocument();
+  });
+
+  it('should add a creatable option when Enter is pressed after typing a new value', async () => {
+    const setValue = jest.fn();
+    render(
+      <MultiSelection
+        id="test-select"
+        ariaLabel="Groups"
+        value={defaultOptions}
+        setValue={setValue}
+        isCreatable
+        createOptionMessage={(value) => `Add group "${value}"`}
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Groups' });
+
+    await act(async () => {
+      fireEvent.change(combobox, { target: { value: 'new-group' } });
+      fireEvent.keyDown(combobox, { key: 'Enter' });
+    });
+
+    expect(setValue).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'new-group', name: 'new-group', selected: true }),
+      ]),
+    );
+  });
+
+  it('should add a creatable option when Tab is pressed after typing a new value', async () => {
+    const setValue = jest.fn();
+    render(
+      <MultiSelection
+        id="test-select"
+        ariaLabel="Groups"
+        value={defaultOptions}
+        setValue={setValue}
+        isCreatable
+        createOptionMessage={(value) => `Add group "${value}"`}
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Groups' });
+
+    await act(async () => {
+      fireEvent.change(combobox, { target: { value: 'tab-group' } });
+      fireEvent.keyDown(combobox, { key: 'Tab' });
+    });
+
+    expect(setValue).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'tab-group', name: 'tab-group', selected: true }),
+      ]),
+    );
+  });
+
+  it('should select the first visible option when Enter is pressed with no focused item', async () => {
+    const setValue = jest.fn();
+    render(
+      <MultiSelection
+        id="test-select"
+        ariaLabel="Groups"
+        value={defaultOptions}
+        setValue={setValue}
+        isCreatable
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Groups' });
+
+    // Typing clears focus; matching text yields existing options (no create option for exact id/name).
+    await act(async () => {
+      fireEvent.change(combobox, { target: { value: 'Connection 2' } });
+      fireEvent.keyDown(combobox, { key: 'Enter' });
+    });
+
+    expect(setValue).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'connection-2', name: 'Connection 2', selected: true }),
+      ]),
+    );
+  });
+
+  it('should select the first visible option when Tab is pressed with no focused item', async () => {
+    const setValue = jest.fn();
+    render(
+      <MultiSelection
+        id="test-select"
+        ariaLabel="Groups"
+        value={defaultOptions}
+        setValue={setValue}
+        isCreatable
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Groups' });
+
+    await act(async () => {
+      fireEvent.change(combobox, { target: { value: 'Connection 2' } });
+      fireEvent.keyDown(combobox, { key: 'Tab' });
+    });
+
+    expect(setValue).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'connection-2', name: 'Connection 2', selected: true }),
+      ]),
+    );
   });
 });
