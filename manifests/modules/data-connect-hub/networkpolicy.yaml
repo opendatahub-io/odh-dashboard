@@ -20,6 +20,13 @@ spec:
         - namespaceSelector:
             matchLabels:
               network.openshift.io/policy-group: ingress
+        - podSelector:
+            matchExpressions:
+              - key: deployment
+                operator: In
+                values:
+                  - odh-dashboard
+                  - rhods-dashboard
   egress:
     - to:
         - namespaceSelector:
