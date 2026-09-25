@@ -245,7 +245,8 @@ jobs:
       issues: write
       packages: read
       pull-requests: write
-    uses: fullsend-ai/fullsend/.github/workflows/reusable-dispatch.yml@d5f36921ac754705619f38c637ef692873809fbc # v0.43.0
+    # Post-v0.43.0 revision that accepts the optional OpenAI API-key secret.
+    uses: fullsend-ai/fullsend/.github/workflows/reusable-dispatch.yml@4edccc7c43e9d1a319e45f9737c9daea5fed737b
     with:
       event_action: ${{ github.event.action }}
       install_mode: per-repo
@@ -257,6 +258,7 @@ jobs:
     secrets:
       FULLSEND_GCP_WIF_PROVIDER: ${{ secrets.FULLSEND_GCP_WIF_PROVIDER }}
       FULLSEND_GCP_PROJECT_ID: ${{ secrets.FULLSEND_GCP_PROJECT_ID }}
+      FULLSEND_OPENAI_API_KEY: ${{ secrets.FULLSEND_OPENAI_API_KEY }}
       OTEL_EXPORTER_OTLP_TRACES_HEADERS: ${{ secrets.OTEL_EXPORTER_OTLP_TRACES_HEADERS }}
       OTEL_EXPORTER_OTLP_HEADERS: ${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }}
       JIRA_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
