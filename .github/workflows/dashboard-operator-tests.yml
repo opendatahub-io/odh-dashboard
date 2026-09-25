@@ -10,41 +10,78 @@ on:
       - "!**.md"
 
   pull_request:
-    paths:
-      - "dashboard-operator/**"
-      - "manifests/**"
-      - ".github/workflows/dashboard-operator-tests.yml"
-      - "!LICENSE*"
-      - "!DOCKERFILE*"
-      - "!**.gitignore"
-      - "!**.md"
 
 jobs:
   test:
     name: Dashboard Operator Tests
     permissions:
       contents: read
+      pull-requests: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.1
+      - name: Detect operator-related changes
+        if: github.event_name == 'pull_request'
+        id: changes
+        uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
+        with:
+          predicate-quantifier: every
+          filters: |
+            dashboard_operator:
+              - 'dashboard-operator/**'
+              - '!**/.gitignore'
+              - '!**/*.md'
+            manifests:
+              - 'manifests/**'
+              - '!**/.gitignore'
+              - '!**/*.md'
+            workflow:
+              - '.github/workflows/dashboard-operator-tests.yml'
+
+      - name: Determine test execution
+        id: execution
+        env:
+          DASHBOARD_OPERATOR_CHANGED: ${{ steps.changes.outputs.dashboard_operator }}
+          MANIFESTS_CHANGED: ${{ steps.changes.outputs.manifests }}
+          WORKFLOW_CHANGED: ${{ steps.changes.outputs.workflow }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "push" ||
+                "$DASHBOARD_OPERATOR_CHANGED" == "true" ||
+                "$MANIFESTS_CHANGED" == "true" ||
+                "$WORKFLOW_CHANGED" == "true" ]]; then
+            echo "run-suite=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run-suite=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: No operator changes detected
+        if: steps.execution.outputs.run-suite != 'true'
+        run: echo "No dashboard operator, manifest, or operator workflow changes detected; reporting a successful no-op."
+
+      - if: steps.execution.outputs.run-suite == 'true'
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Setup Go
+        if: steps.execution.outputs.run-suite == 'true'
         uses: actions/setup-go@v6
         with:
           go-version-file: dashboard-operator/go.mod
 
       - name: Install Helm
+        if: steps.execution.outputs.run-suite == 'true'
         uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4
 
       - name: Lint
+        if: steps.execution.outputs.run-suite == 'true'
         working-directory: dashboard-operator
         run: make lint
 
       - name: Build
+        if: steps.execution.outputs.run-suite == 'true'
         working-directory: dashboard-operator
         run: make build
 
       - name: Test
+        if: steps.execution.outputs.run-suite == 'true'
         working-directory: dashboard-operator
         run: make test
 
@@ -53,6 +90,7 @@ jobs:
       # is the slow part of the integration step; the tests themselves run in seconds.
       # Keyed on the Makefile so a change to the pinned envtest/K8s version busts the cache.
       - name: Cache envtest binaries
+        if: steps.execution.outputs.run-suite == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: dashboard-operator/bin/k8s
@@ -61,14 +99,17 @@ jobs:
             envtest-${{ runner.os }}-
 
       - name: Integration tests (envtest)
+        if: steps.execution.outputs.run-suite == 'true'
         working-directory: dashboard-operator
         run: make test-integration
 
       - name: Validate Helm chart
+        if: steps.execution.outputs.run-suite == 'true'
         working-directory: dashboard-operator
         run: make chart-validate
 
       - name: Check if there are uncommitted file changes
+        if: steps.execution.outputs.run-suite == 'true'
         working-directory: dashboard-operator
         run: |
           clean=$(git status --porcelain)

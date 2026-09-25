@@ -182,7 +182,9 @@ Container images are resolved from environment variables following the `RELATED_
 
 ## CI/CD
 
-CI workflow at `.github/workflows/dashboard-operator-tests.yml` triggers on changes to `dashboard-operator/**` or `manifests/**`:
+The `.github/workflows/dashboard-operator-tests.yml` workflow reports a `Dashboard Operator Tests` check on every pull request. It runs the full suite for changes to `dashboard-operator/**`, `manifests/**`, or the workflow itself, and reports a successful no-op for unrelated changes. Push events remain path-filtered.
+
+The full suite runs:
 
 1. Setup Go (version from `go.mod`)
 2. `make lint`
