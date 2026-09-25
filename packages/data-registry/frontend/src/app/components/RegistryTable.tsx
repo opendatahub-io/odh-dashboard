@@ -59,6 +59,35 @@ type RegistryTableProps = {
 
 type FilterCategory = 'labels' | 'assetType' | 'format';
 
+const getSearchableValues = (value: unknown): string[] => {
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return [String(value)];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap(getSearchableValues);
+  }
+  if (value && typeof value === 'object') {
+    return Object.values(value).flatMap(getSearchableValues);
+  }
+  return [];
+};
+
+const getSearchableAssetText = (asset: RegistryAsset): string =>
+  [
+    asset.name,
+    asset.description,
+    asset.format,
+    asset.assetType,
+    asset.location,
+    asset.connectionRef,
+    asset.collection,
+    ...asset.labels,
+    ...Object.entries(asset.properties).flatMap(([key, value]) => [key, value]),
+    ...(asset.rawAsset ? getSearchableValues(asset.rawAsset) : []),
+  ]
+    .join(' ')
+    .toLowerCase();
+
 const CATEGORY_LABELS: Record<FilterCategory, string> = {
   labels: 'Labels',
   assetType: 'Asset type',
@@ -109,12 +138,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
     let result = assets;
     if (searchText) {
       const lower = searchText.toLowerCase();
-      result = result.filter(
-        (a) =>
-          a.name.toLowerCase().includes(lower) ||
-          a.description.toLowerCase().includes(lower) ||
-          a.labels.some((label) => label.toLowerCase().includes(lower)),
-      );
+      result = result.filter((a) => getSearchableAssetText(a).includes(lower));
     }
     if (selectedLabels.length > 0) {
       result = result.filter((a) => selectedLabels.every((l) => a.labels.includes(l)));
@@ -391,7 +415,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
             {/* Search */}
             <ToolbarItem style={{ marginRight: 'var(--pf-t--global--spacer--md)' }}>
               <SearchInput
-                placeholder="Filter by name, description or keywords"
+                placeholder="Filter by name, description, properties or labels"
                 value={searchText}
                 onChange={(_event, value) => {
                   setSearchText(value);

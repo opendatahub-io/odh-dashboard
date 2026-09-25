@@ -25,6 +25,7 @@ const mockAssetsResponse = {
       location: 's3://bucket/claims',
       description: 'Claims processing data',
       labels: ['production', 'claims'],
+      properties: { 'data-domain': 'claims' },
       collection: 'analytics',
       connection_ref: null,
       owner: 'user1',
@@ -38,6 +39,7 @@ const mockAssetsResponse = {
       location: 'milvus://embeddings',
       description: 'Vector embeddings',
       labels: ['embeddings', 'production'],
+      properties: { 'data-domain': 'vector-search' },
       collection: 'analytics',
       connection_ref: null,
       owner: 'user1',
@@ -60,7 +62,7 @@ const mockVolumesResponse = {
       'created-at': '2026-01-01',
       'updated-at': null,
       labels: ['source-docs'],
-      properties: { description: 'PDF documents' },
+      properties: { description: 'PDF documents', 'retention-class': 'long-term' },
       config: {},
     },
   ],
@@ -81,8 +83,8 @@ const initIntercepts = (options = {}) => {
   });
   cy.intercept('GET', `${MAIN_API}/namespaces`, {
     body: mockModArchResponse([
-      mockNamespace({ name: 'test-project' }),
       mockNamespace({ name: 'other-project' }),
+      mockNamespace({ name: 'test-project' }),
     ]),
   });
 
@@ -126,9 +128,26 @@ describe('Registry Table', () => {
     cy.contains('raw-docs').should('exist');
   });
 
-  it('should show empty state when no project selected', () => {
+  it('should select the persisted project when no project is provided in the URL', () => {
+    cy.visit('/ai-hub/data/browse', {
+      onBeforeLoad: (window) => {
+        window.localStorage.setItem('mod-arch.namespace.lastUsed', JSON.stringify('test-project'));
+      },
+    });
+    cy.url().should('include', '/ai-hub/data/browse?project=test-project');
+    cy.findByTestId('registry-table', { timeout: 15000 }).should('exist');
+  });
+
+  it('should show the no-projects state when no projects are available', () => {
+    cy.intercept('GET', `${MAIN_API}/namespaces`, {
+      body: mockModArchResponse([]),
+    });
+
     cy.visit('/ai-hub/data/browse');
-    cy.contains('Select a project').should('exist');
+    cy.findByTestId('no-projects-empty-state').should('exist');
+    cy.findByRole('img', { name: 'No projects' }).should('be.visible');
+    cy.findByRole('heading', { name: 'No projects' }).should('exist');
+    cy.findByRole('button', { name: 'Create project' }).should('exist');
   });
 
   it('should filter assets by search text', () => {
@@ -138,6 +157,13 @@ describe('Registry Table', () => {
     cy.findByTestId('asset-search').find('input').type('claims');
     cy.contains('claims-data').should('exist');
     cy.contains('embeddings').should('not.exist');
+  });
+
+  it('should filter assets by property key and value', () => {
+    visitWithData();
+    cy.findByTestId('asset-search').find('input').type('retention-class');
+    cy.contains('raw-docs').should('exist');
+    cy.contains('claims-data').should('not.exist');
   });
 
   it('should open manage collections modal', () => {
