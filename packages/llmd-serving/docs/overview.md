@@ -12,12 +12,18 @@
 - **No Module Federation remote**: Dashboard loads via monorepo exports (e.g. `./extensions`, `./types`, test helpers under `./__tests__/utils`).
 - **API**: Group `serving.kserve.io`, resource `llminferenceservices`, version `v1alpha2`; shapes in `src/types.ts` as `LLMInferenceServiceKind`.
 
-## Standalone Composition
+## Modular Dependency Boundaries
 
-- [Standalone dependency contract](standalone-dependency-contract.md) defines the approved target
-  graph for composing this spoke with the model-serving hub in RHOAI and RHAII.
-- The current `@odh-dashboard/internal` imports and KServe-area activation are transitional. Follow
-  the contract's import mapping and migration order; do not introduce new uses of either boundary.
+- Follow the repository [package topology](../../../docs/package-topology.md): `llmd-serving` is a
+  spoke of the `model-serving` hub, and feature packages may depend on core shared libraries.
+- The remaining `@odh-dashboard/internal` imports and KServe-area activation are transitional; do
+  not introduce new uses of either boundary.
+
+| Legacy import                                               | Modular import                                         | Symbols                                     |
+| ----------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------- |
+| `@odh-dashboard/internal/api/k8sUtils`                      | `@odh-dashboard/k8s-core/api/k8sUtils`                 | `createPatchesFromDiff`, `groupVersionKind` |
+| `@odh-dashboard/internal/api/models`                        | `@odh-dashboard/k8s-core/api/models`                   | `PodModel`                                  |
+| `@odh-dashboard/internal/utilities/useK8sWatchResourceList` | `@odh-dashboard/ui-core/hooks/useK8sWatchResourceList` | `useK8sWatchResourceList`                   |
 
 ## Key Concepts
 
@@ -39,7 +45,7 @@
 | ------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------ |
 | `@odh-dashboard/model-serving` | Package                    | Extension-point interfaces this package implements                                               |
 | `@odh-dashboard/kserve`        | Transitional package edge  | No production import; declared dependency and frontend-area activation are scheduled for removal |
-| `@odh-dashboard/internal`      | Transitional monolith edge | Current legacy imports have approved modular destinations in the standalone dependency contract  |
+| `@odh-dashboard/internal`      | Transitional monolith edge | Use the modular destinations listed in Modular Dependency Boundaries; do not add new imports     |
 | `LLMInferenceService` CRD      | Kubernetes API             | Group `serving.kserve.io`, `v1alpha2`                                                            |
 | Main ODH Dashboard             | Host application           | Loads extensions; model-serving wizard and table                                                 |
 

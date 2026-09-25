@@ -8,6 +8,16 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { isK8sStatus, K8sStatusError, type K8sWatchResult } from '@odh-dashboard/k8s-core';
 
+/**
+ * Watches a Kubernetes resource list while normalizing list and error semantics for consumers.
+ * The hook always sets `isList: true`, preserves native errors, converts Kubernetes status
+ * responses to `K8sStatusError`, and returns a memoized empty list while the SDK has no data.
+ *
+ * @param initResource - Resource watch configuration, or `null` to disable the watch.
+ * @param initModel - Optional Kubernetes model used by the SDK watch.
+ * @param options - Optional WebSocket and request options passed to the SDK watch.
+ * @returns Watched list data, its loaded state, and any normalized load error.
+ */
 const useK8sWatchResourceList = <T extends K8sResourceCommon[]>(
   initResource: WatchK8sResource | null,
   initModel?: K8sModelCommon,

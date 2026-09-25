@@ -70,4 +70,11 @@ describe('useK8sWatchResourceList', () => {
 
     expect(renderResult.result.current[2]).toStrictEqual(new Error('Unknown error occured'));
   });
+  it('should return undefined when error is an empty string', () => {
+    useK8sWatchResourceMock.mockReturnValue([[], false, '']);
+
+    const renderResult = testHook(useK8sWatchResourceList)(resource);
+
+    expect(renderResult.result.current).toStrictEqual([[], false, undefined]);
+  });
 });
