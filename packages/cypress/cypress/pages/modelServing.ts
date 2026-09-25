@@ -1213,6 +1213,18 @@ class ModelServingWizard extends Wizard {
     return this.findCustomModelLocationSelect().findSelectOption(name);
   }
 
+  /**
+   * Asserts a custom S3 connection type is absent when the custom-type dropdown is present.
+   * The dropdown is omitted when only one S3-compatible type remains.
+   */
+  shouldNotHaveCustomModelLocationOptionIfSelectExists(name: string) {
+    cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="custom-type-select"]').length > 0) {
+        this.findCustomModelLocationSelectOption(name).should('not.exist');
+      }
+    });
+  }
+
   findLocationPathInput() {
     return cy.findByTestId('folder-path');
   }
