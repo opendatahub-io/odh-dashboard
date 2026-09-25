@@ -112,7 +112,6 @@ export const blankDashboardCR: DashboardConfig = {
       promptManagement: false,
       globalProjectPrompts: false,
       gpuaas: true,
-      connectionTest: false,
       modelCapabilities: false,
       runtimeCatalog: false,
       observabilityDashboard: true,

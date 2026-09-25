@@ -27,7 +27,6 @@ export const techPreviewFlags = {
   promptManagement: false,
   globalProjectPrompts: false,
   agentOps: false,
-  connectionTest: false,
   dataRegistry: false,
   dataConnectHub: false,
 } satisfies Partial<DashboardCommonConfig>;
@@ -292,9 +291,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.GPUAAS_INFRASTRUCTURE]: {
     featureFlags: ['gpuaas'],
     requiredComponents: [DataScienceStackComponent.KUEUE],
-  },
-  [SupportedArea.CONNECTION_TEST]: {
-    featureFlags: ['connectionTest'],
   },
   [SupportedArea.MODEL_CAPABILITIES]: {
     featureFlags: ['modelCapabilities'],

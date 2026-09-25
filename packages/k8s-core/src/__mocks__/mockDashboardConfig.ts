@@ -70,7 +70,6 @@ export type MockDashboardConfigType = {
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
-  connectionTest?: boolean;
   modelCapabilities?: boolean;
   runtimeCatalog?: boolean;
   globalMLflowNamespaces?: string[];
@@ -144,7 +143,6 @@ export const mockDashboardConfig = ({
   agentsCatalog = false,
   roleManagement = true,
   gpuaas = true,
-  connectionTest = false,
   modelCapabilities = false,
   runtimeCatalog = false,
   hardwareProfileOrder = ['test-hardware-profile'],
@@ -341,7 +339,6 @@ export const mockDashboardConfig = ({
       agentsCatalog,
       roleManagement,
       gpuaas,
-      connectionTest,
       modelCapabilities,
       runtimeCatalog,
     },

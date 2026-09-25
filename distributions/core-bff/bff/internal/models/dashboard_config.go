@@ -94,7 +94,6 @@ type DashboardFeatureFlags struct {
 	LlmGatewayField              bool `json:"llmGatewayField"`
 	PromptManagement             bool `json:"promptManagement"`
 	MySubscriptions              bool `json:"mySubscriptions"`
-	ConnectionTest               bool `json:"connectionTest"`
 	ModelCapabilities            bool `json:"modelCapabilities"`
 	RuntimeCatalog               bool `json:"runtimeCatalog"`
 }
@@ -190,7 +189,6 @@ var BlankDashboardCR = DashboardConfig{
 			LlmGatewayField:              false,
 			PromptManagement:             false,
 			MySubscriptions:              false,
-			ConnectionTest:               false,
 			ModelCapabilities:            false,
 			RuntimeCatalog:               false,
 		},
