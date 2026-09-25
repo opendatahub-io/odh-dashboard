@@ -1,4 +1,20 @@
-import { formatApiKeyError } from '~/app/pages/keys-and-subs/utils';
+import {
+  DATE_PICKER_MAX_DAYS,
+  formatApiKeyError,
+  formatDatePickerValue,
+  formatExpirationLabel,
+  getAfterDaysValidationMessage,
+  getCalendarDaysBetween,
+  getDefaultAfterDays,
+  getDefaultExpirationDate,
+  getExpirationModeLabel,
+  getExpiresInFromDays,
+  getMaxSelectableExpirationDate,
+  getMinSelectableExpirationDate,
+  startOfLocalDay,
+  validateAfterDays,
+  validateExpirationDate,
+} from '~/app/pages/keys-and-subs/utils';
 import { deriveModelGroups } from '~/app/pages/keys-and-subs/mySubscriptions/SubscriptionsTab';
 
 describe('formatApiKeyError', () => {
@@ -42,6 +58,49 @@ describe('formatApiKeyError', () => {
     it('should capitalize a single character string', () => {
       expect(formatApiKeyError('x')).toBe('X');
     });
+  });
+});
+
+describe('expiration helpers', () => {
+  const from = new Date(2026, 0, 15); // Jan 15, 2026 local
+
+  it('should label expiration modes', () => {
+    expect(getExpirationModeLabel('max', 90)).toBe('Use max value of 90 days');
+    expect(getExpirationModeLabel('onDate', 90)).toBe('On date');
+    expect(getExpirationModeLabel('after', 90)).toBe('After');
+  });
+
+  it('should default after-days to min(30, max)', () => {
+    expect(getDefaultAfterDays(90)).toBe(30);
+    expect(getDefaultAfterDays(10)).toBe(10);
+  });
+
+  it('should default the on-date value from after-days', () => {
+    expect(formatDatePickerValue(getDefaultExpirationDate(90, from))).toBe('2026-02-14');
+    expect(formatDatePickerValue(getDefaultExpirationDate(10, from))).toBe('2026-01-25');
+  });
+
+  it('should compute min and max selectable dates', () => {
+    expect(formatDatePickerValue(getMinSelectableExpirationDate(from))).toBe('2026-01-16');
+    expect(formatDatePickerValue(getMaxSelectableExpirationDate(90, from))).toBe('2026-04-15');
+  });
+
+  it('should cap the calendar max at DATE_PICKER_MAX_DAYS', () => {
+    const maxDate = getMaxSelectableExpirationDate(Number.MAX_SAFE_INTEGER, from);
+    expect(getCalendarDaysBetween(startOfLocalDay(from), maxDate)).toBe(DATE_PICKER_MAX_DAYS);
+  });
+
+  it('should validate on-date and after-days values', () => {
+    expect(validateExpirationDate('2026-02-14', 90, from)).toBe('');
+    expect(validateExpirationDate('2026-12-01', 90, from)).toContain('Select a date');
+    expect(validateAfterDays('45', 90)).toBe('');
+    expect(validateAfterDays('91', 90)).toBe(getAfterDaysValidationMessage(90));
+  });
+
+  it('should format expiresIn and success labels', () => {
+    expect(getExpiresInFromDays(45)).toBe('45d');
+    expect(formatExpirationLabel(90, 'max')).toBe('90 days (maximum)');
+    expect(formatExpirationLabel(45, 'after')).toBe('45 days');
   });
 });
 

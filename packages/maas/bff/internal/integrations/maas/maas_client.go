@@ -104,6 +104,21 @@ func (c *MaasClient) endpoint(parts ...string) (*url.URL, error) {
 	return c.prefix.JoinPath(parts...), nil
 }
 
+func (c *MaasClient) GetAPIKeyConfig(ctx context.Context) (*models.APIKeyConfig, error) {
+	endpoint, err := c.endpoint("api-keys", "config")
+	if err != nil {
+		return nil, err
+	}
+
+	var apiResponse models.APIKeyConfig
+	err = c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return &apiResponse, nil
+}
+
 func (c *MaasClient) CreateAPIKey(ctx context.Context, request models.APIKeyCreateRequest) (*models.APIKeyCreateResponse, error) {
 	jsonRequest, err := json.Marshal(request)
 	if err != nil {

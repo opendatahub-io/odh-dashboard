@@ -54,6 +54,15 @@ describe('API keys - Subscription Tab', () => {
       data: mockSubscriptionListItems(),
     }).as('getSubscriptions');
 
+    cy.interceptOdh('GET /maas/api/v1/api-keys-config', {
+      data: {
+        // eslint-disable-next-line camelcase
+        max_expiration_days: 365,
+        // eslint-disable-next-line camelcase
+        ephemeral_max_expiration: '1h',
+      },
+    }).as('getApiKeyConfig');
+
     cy.intercept('GET', '/maas/api/v1/subscriptions/*', (req) => {
       const id = req.url.split('/').pop();
       const sub = mockSubscriptionListItems().find((s) => s.subscription_id_header === id);

@@ -8,6 +8,9 @@ import { UserSubscription } from '~/app/types/subscriptions';
 
 export type UseApiKeysPageLoadReturn = UseApiKeysTableStateReturn & {
   isMaasAdmin: boolean;
+  isMaasAdminLoaded: boolean;
+  maxExpirationDays: number;
+  apiKeyConfigLoaded: boolean;
   loadError: Error | undefined;
   loaded: boolean;
   hasAnyApiKeys: boolean;
@@ -23,14 +26,22 @@ export const useApiKeysPageLoad = (): UseApiKeysPageLoadReturn => {
     hasAnyApiKeys,
     hasAnyApiKeysLoaded,
     hasAnyApiKeysError,
+    maxExpirationDays,
+    apiKeyConfigLoaded,
+    apiKeyConfigError,
     refresh,
     subscriptions,
   } = useKeysAndSubsContext();
   const tableState = useApiKeysTableState();
 
-  const loadError = hasAnyApiKeysError ?? isMaasAdminError ?? tableState.error;
+  const loadError = hasAnyApiKeysError ?? isMaasAdminError ?? tableState.error ?? apiKeyConfigError;
 
-  const loaded = hasAnyApiKeysLoaded && isMaasAdminLoaded && tableState.loaded && !loadError;
+  const loaded =
+    hasAnyApiKeysLoaded &&
+    isMaasAdminLoaded &&
+    tableState.loaded &&
+    apiKeyConfigLoaded &&
+    !loadError;
 
   const refreshAll = React.useCallback(() => {
     tableState.refresh();
@@ -40,6 +51,9 @@ export const useApiKeysPageLoad = (): UseApiKeysPageLoadReturn => {
   return {
     ...tableState,
     isMaasAdmin,
+    isMaasAdminLoaded,
+    maxExpirationDays,
+    apiKeyConfigLoaded,
     loadError,
     loaded,
     hasAnyApiKeys,

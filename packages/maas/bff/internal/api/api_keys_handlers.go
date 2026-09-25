@@ -18,6 +18,7 @@ func attachAPIKeyHandlers(apiRouter *httprouter.Router, app *App) {
 	apiRouter.POST(constants.APIKeyCreatePath, handlerWithMaasApi(app, CreateAPIKeyHandler))
 	apiRouter.POST(constants.APIKeySearchPath, handlerWithMaasApi(app, SearchAPIKeysHandler))
 	apiRouter.POST(constants.APIKeyBulkRevokePath, handlerWithMaasApi(app, BulkRevokeAPIKeysHandler))
+	apiRouter.GET(constants.APIKeyConfigPath, handlerWithMaasApi(app, GetAPIKeyConfigHandler))
 	apiRouter.GET(constants.APIKeyByIDPath, handlerWithMaasApi(app, GetAPIKeyHandler))
 	apiRouter.DELETE(constants.APIKeyByIDPath, handlerWithMaasApi(app, RevokeAPIKeyHandler))
 	apiRouter.GET(constants.SubscriptionsPassthroughPath, handlerWithMaasApi(app, ListSubscriptionsPassthroughHandler))
@@ -91,6 +92,24 @@ func GetSubscriptionPassthroughHandler(app *App, w http.ResponseWriter, r *http.
 
 	response := Envelope[*models.SubscriptionListItem, None]{
 		Data: item,
+	}
+
+	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// GetAPIKeyConfigHandler handles GET /api/v1/api-keys-config
+// Proxies to maas-api GET /v1/api-keys/config so clients can read max expiration without Tenant CR access.
+func GetAPIKeyConfigHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	config, err := app.repositories.APIKeys.GetAPIKeyConfig(r.Context())
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	response := Envelope[*models.APIKeyConfig, None]{
+		Data: config,
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
