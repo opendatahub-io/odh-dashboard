@@ -1802,6 +1802,27 @@ describe('llamaStackService', () => {
       ).rejects.toThrow('tool_choice requires --tool-call-parser');
     });
 
+    it('should reject on an OpenAI-style error event', async () => {
+      const mockReader = {
+        read: jest.fn().mockResolvedValueOnce({
+          done: false,
+          value: new TextEncoder().encode(
+            'data: {"type": "error", "message": "embedding failed: path_not_found"}\n',
+          ),
+        }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn().mockResolvedValue(undefined),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      await expect(
+        createPassthroughResponse('/gen-ai/api/v1', 'ns', 'secret', mockBody, jest.fn()),
+      ).rejects.toThrow('embedding failed: path_not_found');
+    });
+
     it('should reject with "Response stopped by user" on AbortError', async () => {
       const abortError = new Error('The user aborted a request.');
       abortError.name = 'AbortError';

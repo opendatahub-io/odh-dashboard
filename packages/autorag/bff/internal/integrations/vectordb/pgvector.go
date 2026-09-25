@@ -2,11 +2,13 @@ package vectordb
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/certificates"
 	pgvector "github.com/pgvector/pgvector-go"
 	pgxvec "github.com/pgvector/pgvector-go/pgx"
 )
@@ -21,6 +23,7 @@ func newPgvectorFromSecret(ctx context.Context, data map[string][]byte) (VectorD
 	db := strings.TrimSpace(string(data["PGVECTOR_DB"]))
 	user := strings.TrimSpace(string(data["PGVECTOR_USER"]))
 	password := strings.TrimSpace(string(data["PGVECTOR_PASSWORD"]))
+	certPEM := data["PGVECTOR_SERVER_CERT"]
 
 	if host == "" || db == "" || user == "" {
 		return nil, fmt.Errorf("pgvector secret missing required fields (PGVECTOR_HOST, PGVECTOR_DB, PGVECTOR_USER)")
@@ -37,12 +40,39 @@ func newPgvectorFromSecret(ctx context.Context, data map[string][]byte) (VectorD
 
 	sslMode := strings.TrimSpace(string(data["PGVECTOR_SSLMODE"]))
 	if sslMode == "" {
-		sslMode = "disable"
+		if len(certPEM) > 0 {
+			// A CA was supplied — default to full verification instead of the
+			// no-TLS default, mirroring MILVUS_SERVER_CERT's implicit behavior.
+			sslMode = "verify-full"
+		} else {
+			sslMode = "disable"
+		}
+	}
+	if sslMode == "disable" && !isLocalNetworkHost(host) {
+		return nil, fmt.Errorf(
+			"pgvector: sslmode=disable is only allowed for localhost or *.cluster.local hosts, got %q — set PGVECTOR_SSLMODE or provide PGVECTOR_SERVER_CERT", host)
 	}
 	dsn := fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s sslmode=%s",
 		host, port, db, user, password, sslMode)
 
-	conn, err := pgx.Connect(ctx, dsn)
+	connConfig, err := pgx.ParseConfig(dsn)
+	if err != nil {
+		return nil, fmt.Errorf("pgvector parse config: %w", err)
+	}
+
+	if len(certPEM) > 0 {
+		pool, err := certificates.SystemCertPoolWithPEM(certPEM, "PGVECTOR_SERVER_CERT")
+		if err != nil {
+			return nil, fmt.Errorf("pgvector: %w", err)
+		}
+		connConfig.TLSConfig = &tls.Config{
+			RootCAs:    pool,
+			ServerName: host,
+			MinVersion: tls.VersionTLS12,
+		}
+	}
+
+	conn, err := pgx.ConnectConfig(ctx, connConfig)
 	if err != nil {
 		return nil, fmt.Errorf("pgvector connect: %w", err)
 	}

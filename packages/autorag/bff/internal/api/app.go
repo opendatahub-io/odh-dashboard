@@ -317,7 +317,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(ManagedPipelinesPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.EnableManagedPipelinesHandler)))
 
 	// RAG responses — vector search + MaaS generation
-	apiRouter.POST(ApiPathPrefix+"/responses", app.mw.AttachNamespace(app.responses.HandleResponsesEndpoint))
+	apiRouter.POST(ApiPathPrefix+"/responses", app.mw.AttachNamespace(app.mw.RequireAccessToService(app.responses.HandleResponsesEndpoint)))
 
 	// App Router
 	appMux := http.NewServeMux()

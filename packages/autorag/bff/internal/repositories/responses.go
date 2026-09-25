@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/openai/openai-go"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/maas"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/vectordb"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
-	openai "github.com/sashabaranov/go-openai"
 )
 
 // ResponsesParams holds the per-request parameters for the responses endpoint.
@@ -45,7 +45,11 @@ func (r *ResponsesRepository) resolveMaasClient(ctx context.Context, namespace, 
 	if baseURL == "" {
 		return nil, fmt.Errorf("MaaS secret %q missing MAAS_BASE_URL", secretName)
 	}
-	return maas.NewClient(baseURL, apiKey), nil
+	client, err := maas.NewClient(baseURL, apiKey)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
 }
 
 // resolveVectorDB fetches vector DB credentials from K8s and returns the VectorDB.
@@ -101,10 +105,10 @@ func (r *ResponsesRepository) ragSearch(
 //     optionally wrapped by userTemplate ({reference_documents} and {question} placeholders)
 func buildMessages(
 	systemPrompt, contextTemplate, userTemplate string,
-	history []openai.ChatCompletionMessage,
+	history []openai.ChatCompletionMessageParamUnion,
 	question string,
 	sources []models.SourceChunk,
-) []openai.ChatCompletionMessage {
+) []openai.ChatCompletionMessageParamUnion {
 	var contextParts []string
 	for i, s := range sources {
 		if contextTemplate != "" {
@@ -131,21 +135,15 @@ func buildMessages(
 		userContent = question
 	}
 
-	msgs := make([]openai.ChatCompletionMessage, 0, len(history)+2)
+	msgs := make([]openai.ChatCompletionMessageParamUnion, 0, len(history)+2)
 
 	if systemPrompt != "" {
-		msgs = append(msgs, openai.ChatCompletionMessage{
-			Role:    openai.ChatMessageRoleSystem,
-			Content: systemPrompt,
-		})
+		msgs = append(msgs, openai.SystemMessage(systemPrompt))
 	}
 
 	msgs = append(msgs, history...)
 
-	msgs = append(msgs, openai.ChatCompletionMessage{
-		Role:    openai.ChatMessageRoleUser,
-		Content: userContent,
-	})
+	msgs = append(msgs, openai.UserMessage(userContent))
 
 	return msgs
 }
@@ -153,12 +151,19 @@ func buildMessages(
 // extractHistoryAndQuestion converts the Responses API input into system prompt, history, and last user question.
 // System messages are extracted separately so they are not duplicated in history.
 // The last user turn is removed from history — buildMessages re-adds it with context injected.
-func extractHistoryAndQuestion(input []models.InputMessage) (systemPrompt string, history []openai.ChatCompletionMessage, question string) {
+//
+// maxHistoryUserMessages caps how many past user turns are kept; the system prompt is
+// tracked separately from history so capping never drops it.
+const maxHistoryUserMessages = 10
+
+func extractHistoryAndQuestion(
+	input []models.InputMessage,
+) (systemPrompt string, history []openai.ChatCompletionMessageParamUnion, question string) {
 	for _, msg := range input {
 		text := ""
 		for _, c := range msg.Content {
 			if c.Type == "input_text" {
-				text = c.Text
+				text += c.Text
 			}
 		}
 		switch msg.Role {
@@ -166,21 +171,39 @@ func extractHistoryAndQuestion(input []models.InputMessage) (systemPrompt string
 			systemPrompt = text
 		case "user":
 			question = text
-			history = append(history, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleUser, Content: text})
+			history = append(history, openai.UserMessage(text))
 		case "assistant":
-			history = append(history, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleAssistant, Content: text})
+			history = append(history, openai.AssistantMessage(text))
 		}
 	}
-	if len(history) > 0 && history[len(history)-1].Role == openai.ChatMessageRoleUser {
+	if len(history) > 0 && history[len(history)-1].OfUser != nil {
 		history = history[:len(history)-1]
 	}
+	history = capHistory(history, maxHistoryUserMessages)
 	return systemPrompt, history, question
+}
+
+// capHistory keeps only the most recent maxUserMessages user turns (and any
+// assistant replies interleaved with them), dropping older turns from the front.
+// A "turn" spans from one user message up to (but not including) the next.
+func capHistory(history []openai.ChatCompletionMessageParamUnion, maxUserMessages int) []openai.ChatCompletionMessageParamUnion {
+	var userIdx []int
+	for i, m := range history {
+		if m.OfUser != nil {
+			userIdx = append(userIdx, i)
+		}
+	}
+	if len(userIdx) <= maxUserMessages {
+		return history
+	}
+	toDrop := len(userIdx) - maxUserMessages
+	return history[userIdx[toDrop]:]
 }
 
 type ragContext struct {
 	maasClient *maas.Client
 	sources    []models.SourceChunk
-	msgs       []openai.ChatCompletionMessage
+	msgs       []openai.ChatCompletionMessageParamUnion
 	chatReq    maas.ChatRequest
 }
 
@@ -203,7 +226,7 @@ func (r *ResponsesRepository) prepareRAGContext(ctx context.Context, params Resp
 	defer db.Close()
 
 	var collection string
-	var topK int = 5
+	var topK = 5
 	var alpha float32 = 0.5
 	var hybrid bool
 	for _, tool := range req.Tools {

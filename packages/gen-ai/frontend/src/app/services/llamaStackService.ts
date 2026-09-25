@@ -843,8 +843,11 @@ export const createPassthroughResponse = (
                     const data = JSON.parse(line.slice(6));
 
                     if (data.error) {
-                      await reader.cancel('Streaming error');
                       reject(new ApiErrorClass(data.error, data.trace_id));
+                      return;
+                    }
+                    if (data.type === 'error' && typeof data.message === 'string') {
+                      reject(new Error(data.message));
                       return;
                     }
 
@@ -892,6 +895,10 @@ export const createPassthroughResponse = (
 
                   if (data.error) {
                     reject(new ApiErrorClass(data.error, data.trace_id));
+                    return;
+                  }
+                  if (data.type === 'error' && typeof data.message === 'string') {
+                    reject(new Error(data.message));
                     return;
                   }
 

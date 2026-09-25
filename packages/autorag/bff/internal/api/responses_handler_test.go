@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -265,7 +266,7 @@ func TestHandleResponsesEndpoint_Streaming(t *testing.T) {
 		assert.Contains(t, body, "response.metrics")
 		assert.Contains(t, body, "[DONE]")
 
-		// Sequence numbers must be monotonically increasing
+		// Every event except [DONE] has a monotonically increasing sequence number.
 		scanner := bufio.NewScanner(strings.NewReader(body))
 		lastSeq := -1
 		for scanner.Scan() {
@@ -273,14 +274,18 @@ func TestHandleResponsesEndpoint_Streaming(t *testing.T) {
 			if !strings.HasPrefix(line, "data: ") {
 				continue
 			}
-			var seq int
-			if n, _ := fmt.Sscanf(line, `data: {"`, new(string)); n == 0 {
+			data := strings.TrimPrefix(line, "data: ")
+			if data == "[DONE]" {
 				continue
 			}
-			if strings.Contains(line, `"sequence_number":`) {
-				fmt.Sscanf(strings.SplitAfter(line, `"sequence_number":`)[1], "%d", &seq)
-				assert.Greater(t, seq, lastSeq, "sequence numbers must increase")
-				lastSeq = seq
+			var event struct {
+				SequenceNumber *int `json:"sequence_number"`
+			}
+			if assert.NoError(t, json.Unmarshal([]byte(data), &event)) {
+				if assert.NotNil(t, event.SequenceNumber, "event must include sequence_number") {
+					assert.Greater(t, *event.SequenceNumber, lastSeq, "sequence numbers must increase")
+					lastSeq = *event.SequenceNumber
+				}
 			}
 		}
 		repo.AssertExpectations(t)

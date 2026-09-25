@@ -213,7 +213,7 @@ The `response.completed` event includes a `file_search_call` output item with th
 
 ```shell
 curl -N -X POST \
-  "http://localhost:4001/api/v1/responses?namespace=my-namespace&vectorDbSecretName=milvus-secret&maasSecretName=maas-secret" \
+  "http://localhost:4000/api/v1/responses?namespace=my-namespace&vectorDbSecretName=milvus-secret&maasSecretName=maas-secret" \
   -H "Authorization: Bearer $(oc whoami -t)" \
   -H "Content-Type: application/json" \
   -d '{
