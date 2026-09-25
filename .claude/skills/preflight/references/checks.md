@@ -104,7 +104,7 @@ Checks that the work is tracked in Jira.
 | PR (any) | Extract key from PR title/body: `grep -oE '[A-Z][A-Z0-9]+-[0-9]+'` |
 | No PR | Extract from branch name or recent commits |
 
-If key found: ✅. If Jira MCP or JIRA_TOKEN available, verify issue exists and is active. If can't verify: ⚠️ "found key, couldn't verify." No key: ❌.
+If key found: ✅. If Jira MCP or JIRA_TOKEN available, verify issue exists and is active. If can't verify: ❌ "found key, couldn't verify." No key: ⚠️ "no Jira key".
 
 ## Test Impact
 

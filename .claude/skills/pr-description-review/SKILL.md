@@ -48,7 +48,7 @@ The overall status is the worst aspect status: any ❌ makes the review failed, 
 | ✅ passed | All three aspects present with substantive content |
 | ⚠️ warning | All aspects present but at least one is thin or vague, or UI evidence is missing for visual changes |
 | ❌ failed | At least one aspect is absent or placeholder-only |
-| ➖ not applicable | No PR body is available, or a non-code change where a structured description is not expected |
+| ➖ not applicable | No PR body is available |
 
 ## Report
 
