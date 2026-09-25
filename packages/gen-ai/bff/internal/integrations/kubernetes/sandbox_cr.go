@@ -123,7 +123,7 @@ func (kc *TokenKubernetesClient) CreateSandboxCR(
 		pgvectorSecret = pgvector.CredentialsSecretName
 	}
 
-	envVars := buildSandboxEnvVars(opts, pgvectorHost, pgvectorSecret)
+	envVars := buildSandboxEnvVars(opts, namespace, pgvectorHost, pgvectorSecret)
 
 	cr := &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -217,7 +217,7 @@ func (kc *TokenKubernetesClient) CreateSandboxCR(
 	return cr.GetName(), nil
 }
 
-func buildSandboxEnvVars(opts SandboxCROptions, pgvectorHost, pgvectorSecret string) []interface{} {
+func buildSandboxEnvVars(opts SandboxCROptions, namespace, pgvectorHost, pgvectorSecret string) []interface{} {
 	vars := []interface{}{
 		sandboxEnvVar("OGX_CONFIG", "/etc/ogx/config.yaml"),
 		sandboxEnvVar("OGX_CONFIG_DIR", "/opt/app-root/src/.ogx/distributions/rh/"),
@@ -226,6 +226,8 @@ func buildSandboxEnvVars(opts SandboxCROptions, pgvectorHost, pgvectorSecret str
 		sandboxEnvVar("MAAS_GATEWAY_URL", opts.MaaSGatewayURL),
 		sandboxEnvVar("MAAS_SUBSCRIPTION", opts.MaaSSubscription),
 		sandboxEnvVar("AGENT_CONFIG_JSON", opts.AgentConfigJSON),
+		sandboxEnvVar("AGENT_NAMESPACE", namespace),
+		sandboxEnvVar("AGENT_SANDBOX_NAME", opts.Name),
 		sandboxEnvVar("AGENT_OGX_MODEL_ID", opts.OGXModelID),
 		sandboxEnvVar("AGENT_MODEL_SOURCE_TYPE", opts.ModelSourceType),
 		sandboxEnvVar("AGENT_SYSTEM_PROMPT", opts.SystemPrompt),

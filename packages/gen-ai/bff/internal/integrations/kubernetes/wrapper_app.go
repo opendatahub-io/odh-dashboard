@@ -19,6 +19,8 @@ from ogx.core.server.server import create_app
 MAAS_GATEWAY_URL = os.environ["MAAS_GATEWAY_URL"]
 MAAS_SUBSCRIPTION = os.environ["MAAS_SUBSCRIPTION"]
 AGENT_CONFIG_JSON = os.environ["AGENT_CONFIG_JSON"]
+AGENT_NAMESPACE = os.environ["AGENT_NAMESPACE"]
+AGENT_SANDBOX_NAME = os.environ["AGENT_SANDBOX_NAME"]
 AGENT_OGX_MODEL_ID = os.environ["AGENT_OGX_MODEL_ID"]
 AGENT_MODEL_SOURCE_TYPE = os.environ.get("AGENT_MODEL_SOURCE_TYPE", "")
 AGENT_SYSTEM_PROMPT = os.environ.get("AGENT_SYSTEM_PROMPT", "")
@@ -32,6 +34,16 @@ _token_cache = {}
 _token_locks = {}
 MAX_TOKEN_CACHE_ENTRIES = 1024
 MAAS_HTTP_CLIENT = httpx.AsyncClient()
+KUBERNETES_SERVICE_PORT = (
+    os.environ.get("KUBERNETES_SERVICE_PORT_HTTPS")
+    or os.environ["KUBERNETES_SERVICE_PORT"]
+)
+KUBERNETES_API_URL = "https://{}:{}".format(
+    os.environ["KUBERNETES_SERVICE_HOST"],
+    KUBERNETES_SERVICE_PORT,
+)
+KUBERNETES_CA_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+KUBERNETES_HTTP_CLIENT = httpx.AsyncClient(verify=KUBERNETES_CA_PATH)
 
 
 def _get_cached_maas_api_key(user_token: str, now: float) -> str | None:
@@ -105,6 +117,62 @@ async def _get_maas_api_key(user_token: str) -> str:
             del _token_locks[user_token]
 
 
+async def _is_sandbox_access_allowed(user_token: str) -> bool:
+    resp = await KUBERNETES_HTTP_CLIENT.post(
+        f"{KUBERNETES_API_URL}/apis/authorization.k8s.io/v1/selfsubjectaccessreviews",
+        headers={"Authorization": f"Bearer {user_token}"},
+        json={
+            "apiVersion": "authorization.k8s.io/v1",
+            "kind": "SelfSubjectAccessReview",
+            "spec": {
+                "resourceAttributes": {
+                    "namespace": AGENT_NAMESPACE,
+                    "group": "agents.x-k8s.io",
+                    "resource": "sandboxes",
+                    "name": AGENT_SANDBOX_NAME,
+                    "verb": "get",
+                },
+            },
+        },
+        timeout=10,
+    )
+    resp.raise_for_status()
+    return bool(resp.json().get("status", {}).get("allowed", False))
+
+
+class SandboxAuthorizationMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            auth = dict(scope["headers"]).get(b"authorization", b"").decode()
+            if not auth.startswith("Bearer ") or not (user_token := auth.removeprefix("Bearer ").strip()):
+                await _send_json(send, 401, {"detail": "Unauthorized"})
+                return
+            try:
+                allowed = await _is_sandbox_access_allowed(user_token)
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 401:
+                    await _send_json(send, 401, {"detail": "Unauthorized"})
+                elif e.response.status_code == 403:
+                    await _send_json(send, 403, {"detail": "Forbidden"})
+                else:
+                    print(f"[SandboxAuthorizationMiddleware] authorization check failed: {e}")
+                    await _send_json(send, 503, {"detail": "Authorization service unavailable"})
+                return
+            except httpx.HTTPError as e:
+                print(f"[SandboxAuthorizationMiddleware] authorization check failed: {e}")
+                await _send_json(send, 503, {"detail": "Authorization service unavailable"})
+                return
+
+            if not allowed:
+                await _send_json(send, 403, {"detail": "Forbidden"})
+                return
+
+        await self.app(scope, receive, send)
+
+
 class MaaSTokenMiddleware:
     def __init__(self, app):
         self.app = app
@@ -157,13 +225,6 @@ class AgentConfigMiddleware:
             if not auth.startswith("Bearer ") or not auth.removeprefix("Bearer ").strip():
                 await _send_json(send, 401, {"detail": "Unauthorized"})
                 return
-            try:
-                await _get_maas_api_key(auth.removeprefix("Bearer ").strip())
-            except Exception as e:
-                print(f"[AgentConfigMiddleware] token validation failed: {e}")
-                await _send_json(send, 401, {"detail": "Unauthorized"})
-                return
-
             await _send_json(send, 200, json.loads(AGENT_CONFIG_JSON))
             return
 
@@ -252,7 +313,7 @@ for d in ["/opt/app-root/.llama/providers.d", "/opt/app-root/src/.llama/distribu
 os.environ.setdefault("OGX_CONFIG", "/etc/ogx/config.yaml")
 
 ogx_app = create_app()
-app = AgentConfigMiddleware(MaaSTokenMiddleware(MCPServerMiddleware(ogx_app)))
+app = SandboxAuthorizationMiddleware(AgentConfigMiddleware(MaaSTokenMiddleware(MCPServerMiddleware(ogx_app))))
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8321)

@@ -9,7 +9,7 @@ import (
 func TestBuildSandboxEnvVarsIncludesAgentConfigSnapshot(t *testing.T) {
 	const agentConfig = `{"apiVersion":"gen-ai.opendatahub.io/v1","kind":"AgentProfile"}`
 
-	vars := buildSandboxEnvVars(SandboxCROptions{AgentConfigJSON: agentConfig}, "pgvector", "pgvector-secret")
+	vars := buildSandboxEnvVars(SandboxCROptions{AgentConfigJSON: agentConfig}, "test-namespace", "pgvector", "pgvector-secret")
 
 	for _, raw := range vars {
 		variable := raw.(map[string]interface{})
@@ -24,7 +24,7 @@ func TestBuildSandboxEnvVarsIncludesAgentConfigSnapshot(t *testing.T) {
 func TestBuildSandboxEnvVarsIncludesResolvedSystemPrompt(t *testing.T) {
 	const systemPrompt = "You are a concise assistant."
 
-	vars := buildSandboxEnvVars(SandboxCROptions{SystemPrompt: systemPrompt}, "pgvector", "pgvector-secret")
+	vars := buildSandboxEnvVars(SandboxCROptions{SystemPrompt: systemPrompt}, "test-namespace", "pgvector", "pgvector-secret")
 
 	for _, raw := range vars {
 		variable := raw.(map[string]interface{})
@@ -39,7 +39,7 @@ func TestBuildSandboxEnvVarsIncludesResolvedSystemPrompt(t *testing.T) {
 func TestBuildSandboxEnvVarsIncludesOGXModelID(t *testing.T) {
 	const modelID = "passthrough-llm/openai-gpt-4o-mini"
 
-	vars := buildSandboxEnvVars(SandboxCROptions{OGXModelID: modelID}, "pgvector", "pgvector-secret")
+	vars := buildSandboxEnvVars(SandboxCROptions{OGXModelID: modelID}, "test-namespace", "pgvector", "pgvector-secret")
 
 	for _, raw := range vars {
 		variable := raw.(map[string]interface{})
@@ -54,7 +54,7 @@ func TestBuildSandboxEnvVarsIncludesOGXModelID(t *testing.T) {
 func TestBuildSandboxEnvVarsIncludesModelSourceType(t *testing.T) {
 	const sourceType = "maas"
 
-	vars := buildSandboxEnvVars(SandboxCROptions{ModelSourceType: sourceType}, "pgvector", "pgvector-secret")
+	vars := buildSandboxEnvVars(SandboxCROptions{ModelSourceType: sourceType}, "test-namespace", "pgvector", "pgvector-secret")
 
 	for _, raw := range vars {
 		variable := raw.(map[string]interface{})
@@ -69,7 +69,7 @@ func TestBuildSandboxEnvVarsIncludesModelSourceType(t *testing.T) {
 func TestBuildSandboxEnvVarsIncludesCustomModelCredential(t *testing.T) {
 	vars := buildSandboxEnvVars(SandboxCROptions{
 		ModelAuthSecret: &SandboxSecretEnvVar{Name: "AGENT_MODEL_API_KEY", SecretName: "agent-model-auth-1234"},
-	}, "pgvector", "pgvector-secret")
+	}, "test-namespace", "pgvector", "pgvector-secret")
 
 	for _, raw := range vars {
 		variable := raw.(map[string]interface{})
@@ -87,7 +87,7 @@ func TestBuildSandboxEnvVarsIncludesMCPServerConfiguration(t *testing.T) {
 	vars := buildSandboxEnvVars(SandboxCROptions{
 		MCPServersJSON: `[{"server_label":"github","server_url":"https://example.com/mcp","authorization_env_var":"MCP_AUTH_1"}]`,
 		MCPAuthSecrets: []SandboxSecretEnvVar{{Name: "MCP_AUTH_1", SecretName: "agent-mcp-auth-1234"}},
-	}, "pgvector", "pgvector-secret")
+	}, "test-namespace", "pgvector", "pgvector-secret")
 
 	values := make(map[string]map[string]interface{})
 	for _, raw := range vars {
@@ -101,7 +101,7 @@ func TestBuildSandboxEnvVarsIncludesMCPServerConfiguration(t *testing.T) {
 func TestBuildSandboxEnvVarsIncludesVectorStoreIDs(t *testing.T) {
 	const vectorStoreIDs = `["vs-a","vs-b"]`
 
-	vars := buildSandboxEnvVars(SandboxCROptions{VectorStoreIDsJSON: vectorStoreIDs}, "pgvector", "pgvector-secret")
+	vars := buildSandboxEnvVars(SandboxCROptions{VectorStoreIDsJSON: vectorStoreIDs}, "test-namespace", "pgvector", "pgvector-secret")
 
 	for _, raw := range vars {
 		variable := raw.(map[string]interface{})
@@ -111,4 +111,24 @@ func TestBuildSandboxEnvVarsIncludesVectorStoreIDs(t *testing.T) {
 		}
 	}
 	t.Fatal("AGENT_VECTOR_STORE_IDS_JSON not found")
+}
+
+func TestBuildSandboxEnvVarsIncludesSandboxAuthorizationTarget(t *testing.T) {
+	vars := buildSandboxEnvVars(
+		SandboxCROptions{Name: "test-agent"},
+		"test-namespace",
+		"pgvector",
+		"pgvector-secret",
+	)
+
+	values := make(map[string]string)
+	for _, raw := range vars {
+		variable := raw.(map[string]interface{})
+		if value, ok := variable["value"].(string); ok {
+			values[variable["name"].(string)] = value
+		}
+	}
+
+	assert.Equal(t, "test-namespace", values["AGENT_NAMESPACE"])
+	assert.Equal(t, "test-agent", values["AGENT_SANDBOX_NAME"])
 }

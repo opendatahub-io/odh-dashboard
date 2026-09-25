@@ -47,12 +47,24 @@ func TestGenerateWrapperAppScript_ContainsRequiredElements(t *testing.T) {
 	assert.Contains(t, script, `AGENT_MODEL_API_KEY`)
 	assert.Contains(t, script, `sanitized_headers`)
 
-	// Agent config snapshot endpoint is authenticated before it returns data.
+	// Every HTTP endpoint is authorized against the caller's access to this exact Sandbox
+	// before model credentials, MCP credentials, or the profile snapshot are made available.
+	assert.Contains(t, script, `SandboxAuthorizationMiddleware`)
+	assert.Contains(t, script, `selfsubjectaccessreviews`)
+	assert.Contains(t, script, `KUBERNETES_CA_PATH`)
+	assert.Contains(t, script, `KUBERNETES_SERVICE_PORT_HTTPS`)
+	assert.Contains(t, script, `AGENT_NAMESPACE`)
+	assert.Contains(t, script, `AGENT_SANDBOX_NAME`)
+	assert.Contains(t, script, `"group": "agents.x-k8s.io"`)
+	assert.Contains(t, script, `"resource": "sandboxes"`)
+	assert.Contains(t, script, `"verb": "get"`)
+	assert.Contains(t, script, `e.response.status_code == 403`)
+
+	// Agent config snapshot endpoint is protected by the outer authorization middleware.
 	assert.Contains(t, script, `AGENT_CONFIG_JSON`)
 	assert.Contains(t, script, `AgentConfigMiddleware`)
 	assert.Contains(t, script, `"/internal/agent_config"`)
 	assert.Contains(t, script, `auth.startswith("Bearer ")`)
-	assert.Contains(t, script, `token validation failed`)
 	assert.Contains(t, script, `"application/json"`)
 
 	// Selected MCP servers are injected into every OGX Responses API request.
@@ -81,7 +93,7 @@ func TestGenerateWrapperAppScript_ContainsRequiredElements(t *testing.T) {
 
 	// create_app synchronous + uvicorn on port 8321
 	assert.Contains(t, script, `create_app()`)
-	assert.Contains(t, script, `AgentConfigMiddleware(MaaSTokenMiddleware(MCPServerMiddleware(ogx_app)))`)
+	assert.Contains(t, script, `SandboxAuthorizationMiddleware(AgentConfigMiddleware(MaaSTokenMiddleware(MCPServerMiddleware(ogx_app))))`)
 	assert.Contains(t, script, `uvicorn`)
 	assert.Contains(t, script, `8321`)
 }
