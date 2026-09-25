@@ -10,6 +10,7 @@ import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun } from '~/app/types';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { AUTOML_EVENTS } from '~/app/utilities/tracking';
+import { downloadBlob } from '~/app/utilities/utils';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
@@ -17,6 +18,7 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 }));
 
 const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
+const downloadBlobMock = jest.mocked(downloadBlob);
 
 // ============================================================================
 // Mocks
@@ -56,9 +58,18 @@ jest.mock('mod-arch-core', () => ({
 
 const mockUsePipelineRunQuery = jest.fn();
 const mockUseAutomlResults = jest.fn();
+const mockUseS3ListFilesQuery = jest.fn();
+const mockFetchS3File = jest.fn();
 
 jest.mock('~/app/hooks/queries', () => ({
   usePipelineRunQuery: (...args: unknown[]) => mockUsePipelineRunQuery(...args),
+  useS3ListFilesQuery: (...args: unknown[]) => mockUseS3ListFilesQuery(...args),
+  fetchS3File: (...args: unknown[]) => mockFetchS3File(...args),
+}));
+
+jest.mock('~/app/utilities/utils', () => ({
+  ...jest.requireActual('~/app/utilities/utils'),
+  downloadBlob: jest.fn(),
 }));
 
 jest.mock('~/app/hooks/useAutomlResults', () => ({
@@ -274,6 +285,12 @@ describe('AutomlResultsPage', () => {
       error: undefined,
       refetch: jest.fn(),
     });
+    mockUseS3ListFilesQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+    });
+    mockFetchS3File.mockReset();
 
     mockUseComponentStageMap.mockReturnValue({
       componentStageMap: undefined,
@@ -1249,6 +1266,190 @@ describe('AutomlResultsPage', () => {
 
       expect(screen.getByTestId('retry-run-button')).toBeInTheDocument();
       expect(screen.getByTestId('reconfigure-run-button')).toBeInTheDocument();
+    });
+  });
+
+  describe('run notebook download', () => {
+    const tabularRun = () =>
+      createMockPipelineRun(undefined, { task_type: 'binary' } as Partial<ConfigureSchema>);
+
+    const renderWithRun = (run: PipelineRun) => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: run,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+      renderPage();
+    };
+
+    it.each(['PENDING', 'RUNNING', 'CANCELING', 'PAUSED', undefined])(
+      'should disable the action before successful completion for state %s',
+      (state) => {
+        renderWithRun(createMockPipelineRun({ state: state as PipelineRun['state'] }));
+
+        expect(screen.getByTestId('run-notebook-download-button')).toHaveAttribute(
+          'aria-disabled',
+          'true',
+        );
+      },
+    );
+
+    it.each(['FAILED', 'CANCELED', 'SKIPPED', 'CACHED'])(
+      'should disable the action after unsuccessful completion for state %s',
+      (state) => {
+        renderWithRun(createMockPipelineRun({ state: state as PipelineRun['state'] }));
+
+        expect(screen.getByTestId('run-notebook-download-button')).toHaveAttribute(
+          'aria-disabled',
+          'true',
+        );
+      },
+    );
+
+    it('should remain disabled while successful-run artifact discovery is pending', () => {
+      mockUseS3ListFilesQuery.mockReturnValue({ data: undefined, isLoading: true, isError: false });
+      renderWithRun(tabularRun());
+
+      expect(screen.getByTestId('run-notebook-download-button')).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+    });
+
+    it('should show the approved tooltip for an incomplete run', async () => {
+      const user = userEvent.setup();
+      renderWithRun(createMockPipelineRun({ state: 'RUNNING' }));
+
+      await user.hover(screen.getByTestId('run-notebook-download-button'));
+
+      expect(
+        await screen.findByText('Available after the run completes successfully'),
+      ).toBeInTheDocument();
+    });
+
+    it('should show the approved tooltip for an unsuccessful run', async () => {
+      const user = userEvent.setup();
+      renderWithRun(createMockPipelineRun({ state: 'FAILED' }));
+
+      await user.hover(screen.getByTestId('run-notebook-download-button'));
+
+      expect(
+        await screen.findByText('Unavailable because the run did not complete successfully'),
+      ).toBeInTheDocument();
+    });
+
+    it('should remain disabled when the exact artifact is absent or listing fails', () => {
+      mockUseS3ListFilesQuery.mockReturnValue({
+        data: { contents: [], common_prefixes: [] },
+        isLoading: false,
+        isError: false,
+      });
+      renderWithRun(tabularRun());
+
+      expect(screen.getByTestId('run-notebook-download-button')).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+
+      mockUseS3ListFilesQuery.mockReturnValue({ data: undefined, isLoading: false, isError: true });
+      expect(screen.getByTestId('run-notebook-download-button')).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+    });
+
+    it('should show Artifact unavailable when a successful run has no exact artifact', async () => {
+      const user = userEvent.setup();
+      mockUseS3ListFilesQuery.mockReturnValue({
+        data: { contents: [], common_prefixes: [] },
+        isLoading: false,
+        isError: false,
+      });
+      renderWithRun(tabularRun());
+
+      await user.hover(screen.getByTestId('run-notebook-download-button'));
+
+      expect(await screen.findByText('Artifact unavailable')).toBeInTheDocument();
+    });
+
+    it('should hide the artifact behind the unavailable state when listing fails', () => {
+      mockUseS3ListFilesQuery.mockReturnValue({ data: undefined, isLoading: false, isError: true });
+      renderWithRun(tabularRun());
+
+      expect(screen.getByTestId('run-notebook-download-button')).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+    });
+
+    it('should download the exact run notebook and track only after success', async () => {
+      const run = tabularRun();
+      const key = 'autogluon-tabular-training-pipeline/run-123/automl_experiment_notebook.ipynb';
+      const blob = new Blob(['notebook']);
+      mockUseS3ListFilesQuery.mockReturnValue({
+        data: { contents: [{ key, size: blob.size }], common_prefixes: [] },
+        isLoading: false,
+        isError: false,
+      });
+      mockFetchS3File.mockResolvedValue(blob);
+      renderWithRun(run);
+
+      await userEvent.click(screen.getByTestId('run-notebook-download-button'));
+
+      await waitFor(() => {
+        expect(mockFetchS3File).toHaveBeenCalledWith('test-ns', key);
+        expect(downloadBlobMock).toHaveBeenCalledWith(blob, 'automl_experiment_notebook.ipynb');
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+          AUTOML_EVENTS.RUN_NOTEBOOK_DOWNLOADED,
+          { downloadType: 'runNotebook' },
+        );
+      });
+    });
+
+    it('should discover and download the time-series run notebook from its root', async () => {
+      const key = 'autogluon-timeseries-training-pipeline/run-123/automl_experiment_notebook.ipynb';
+      const blob = new Blob(['notebook']);
+      const timeSeriesRun = createMockPipelineRun(undefined, {
+        task_type: 'timeseries',
+      } as Partial<ConfigureSchema>);
+      mockUseS3ListFilesQuery.mockReturnValue({
+        data: { contents: [{ key, size: blob.size }], common_prefixes: [] },
+        isLoading: false,
+        isError: false,
+      });
+      mockFetchS3File.mockResolvedValue(blob);
+      renderWithRun(timeSeriesRun);
+
+      const button = screen.getByTestId('run-notebook-download-button');
+      expect(button).not.toHaveAttribute('aria-disabled', 'true');
+      await userEvent.click(button);
+
+      await waitFor(() => {
+        expect(mockFetchS3File).toHaveBeenCalledWith('test-ns', key);
+        expect(downloadBlobMock).toHaveBeenCalledWith(blob, 'automl_experiment_notebook.ipynb');
+      });
+    });
+
+    it('should show the existing danger alert and not track a failed download', async () => {
+      const run = tabularRun();
+      const key = 'autogluon-tabular-training-pipeline/run-123/automl_experiment_notebook.ipynb';
+      mockUseS3ListFilesQuery.mockReturnValue({
+        data: { contents: [{ key, size: 1 }], common_prefixes: [] },
+        isLoading: false,
+        isError: false,
+      });
+      mockFetchS3File.mockRejectedValue(new Error('S3 connection failed'));
+      renderWithRun(run);
+
+      await userEvent.click(screen.getByTestId('run-notebook-download-button'));
+
+      expect(await screen.findByText('Run notebook download failed')).toBeInTheDocument();
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTOML_EVENTS.RUN_NOTEBOOK_DOWNLOADED,
+        expect.anything(),
+      );
     });
   });
 

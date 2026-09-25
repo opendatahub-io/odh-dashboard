@@ -1,4 +1,6 @@
 import {
+  Alert,
+  AlertActionCloseButton,
   BreadcrumbItem,
   Button,
   Drawer,
@@ -8,8 +10,15 @@ import {
   Split,
   SplitItem,
   Truncate,
+  Tooltip,
 } from '@patternfly/react-core';
-import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
+import {
+  CogIcon,
+  DownloadIcon,
+  OpenDrawerRightIcon,
+  RedoIcon,
+  StopCircleIcon,
+} from '@patternfly/react-icons';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';
@@ -23,14 +32,32 @@ import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { AutomlResultsContext, getAutomlContext } from '~/app/context/AutomlResultsContext';
 import { useAutomlRunActions } from '~/app/hooks/useAutomlRunActions';
 import { useNotification } from '~/app/hooks/useNotification';
-import { usePipelineRunQuery } from '~/app/hooks/queries';
+import { fetchS3File, usePipelineRunQuery, useS3ListFilesQuery } from '~/app/hooks/queries';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
+import { useAutomlOutputDir } from '~/app/hooks/useAutomlOutputDir';
 import { useAutomlResults } from '~/app/hooks/useAutomlResults';
 import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import { useComponentStatuses } from '~/app/hooks/useComponentStatuses';
 import { automlExperimentsPathname, automlReconfigurePathname } from '~/app/utilities/routes';
-import { isRunTerminatable, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
-import { fireAutomlResultsViewed, isAutomlResultsNavigationState } from '~/app/utilities/tracking';
+import {
+  downloadBlob,
+  isRunCompleted,
+  isRunInTerminalState,
+  isRunRetryable,
+  isRunTerminatable,
+  parseErrorStatus,
+} from '~/app/utilities/utils';
+import {
+  fireAutomlResultsViewed,
+  fireAutomlRunNotebookDownloaded,
+  isAutomlResultsNavigationState,
+} from '~/app/utilities/tracking';
+
+const RUN_NOTEBOOK_FILENAME = 'automl_experiment_notebook.ipynb';
+const ARTIFACT_AVAILABLE_TOOLTIP = 'Available after the run completes successfully';
+const ARTIFACT_UNSUCCESSFUL_TOOLTIP = 'Unavailable because the run did not complete successfully';
+const ARTIFACT_UNAVAILABLE_TOOLTIP = 'Artifact unavailable';
+const ARTIFACT_DOWNLOADING_TOOLTIP = 'Downloading...';
 
 function AutomlResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
@@ -41,6 +68,8 @@ function AutomlResultsPage(): React.JSX.Element {
   const handleDrawerClose = React.useCallback(() => setIsDrawerOpen(false), []);
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
   const [stopInitiated, setStopInitiated] = React.useState(false);
+  const [runNotebookDownloadError, setRunNotebookDownloadError] = React.useState<string>();
+  const [isDownloadingRunNotebook, setIsDownloadingRunNotebook] = React.useState(false);
   const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutomlRunActions(
     namespace ?? '',
     runId ?? '',
@@ -67,6 +96,63 @@ function AutomlResultsPage(): React.JSX.Element {
     error: pipelineRunLoadError,
     dataUpdatedAt: pipelineRunUpdatedAt,
   } = usePipelineRunQuery(runId, namespace);
+
+  const { rootDir } = useAutomlOutputDir(pipelineRun);
+  const runArtifactRoot =
+    isRunCompleted(pipelineRun?.state) && runId ? `${rootDir}/${runId}` : undefined;
+  const runNotebookKey = runArtifactRoot
+    ? `${runArtifactRoot}/${RUN_NOTEBOOK_FILENAME}`
+    : undefined;
+  const {
+    data: runArtifactFiles,
+    isLoading: runArtifactLoading,
+    isError: runArtifactListError,
+  } = useS3ListFilesQuery(namespace, runArtifactRoot);
+  const hasRunNotebook = Boolean(
+    runNotebookKey && runArtifactFiles?.contents.some((object) => object.key === runNotebookKey),
+  );
+
+  const runNotebookTooltip = React.useMemo(() => {
+    if (isDownloadingRunNotebook) {
+      return ARTIFACT_DOWNLOADING_TOOLTIP;
+    }
+    if (!isRunCompleted(pipelineRun?.state)) {
+      return isRunInTerminalState(pipelineRun?.state)
+        ? ARTIFACT_UNSUCCESSFUL_TOOLTIP
+        : ARTIFACT_AVAILABLE_TOOLTIP;
+    }
+    if (runArtifactLoading) {
+      return ARTIFACT_AVAILABLE_TOOLTIP;
+    }
+    return hasRunNotebook && !runArtifactListError ? undefined : ARTIFACT_UNAVAILABLE_TOOLTIP;
+  }, [
+    hasRunNotebook,
+    isDownloadingRunNotebook,
+    pipelineRun?.state,
+    runArtifactListError,
+    runArtifactLoading,
+  ]);
+  const runNotebookDisabled = Boolean(runNotebookTooltip);
+
+  const handleDownloadRunNotebook = React.useCallback(async () => {
+    if (runNotebookDisabled || !namespace || !runNotebookKey) {
+      return;
+    }
+
+    setRunNotebookDownloadError(undefined);
+    setIsDownloadingRunNotebook(true);
+    try {
+      const notebook = await fetchS3File(namespace, runNotebookKey);
+      downloadBlob(notebook, RUN_NOTEBOOK_FILENAME);
+      fireAutomlRunNotebookDownloaded();
+    } catch (error) {
+      setRunNotebookDownloadError(
+        error instanceof Error ? error.message : 'An unknown error occurred',
+      );
+    } finally {
+      setIsDownloadingRunNotebook(false);
+    }
+  }, [namespace, runNotebookDisabled, runNotebookKey]);
 
   // Two-tier error strategy: polling errors (data already loaded) show a non-blocking
   // notification with stale data, while initial load errors (no data yet) show a full error page.
@@ -257,6 +343,21 @@ function AutomlResultsPage(): React.JSX.Element {
                     )}
                   </SplitItem>
                   <SplitItem>
+                    <Tooltip content={runNotebookTooltip}>
+                      <Button
+                        variant="secondary"
+                        icon={<DownloadIcon />}
+                        onClick={() => void handleDownloadRunNotebook()}
+                        isAriaDisabled={runNotebookDisabled}
+                        isLoading={isDownloadingRunNotebook}
+                        spinnerAriaValueText="Downloading run notebook"
+                        data-testid="run-notebook-download-button"
+                      >
+                        Download run notebook
+                      </Button>
+                    </Tooltip>
+                  </SplitItem>
+                  <SplitItem>
                     <Button
                       variant="secondary"
                       icon={<CogIcon />}
@@ -312,6 +413,19 @@ function AutomlResultsPage(): React.JSX.Element {
               }
               loaded={namespacesLoaded && !pipelineRunPending}
             >
+              {runNotebookDownloadError && (
+                <Alert
+                  variant="danger"
+                  title="Run notebook download failed"
+                  actionClose={
+                    <AlertActionCloseButton
+                      onClose={() => setRunNotebookDownloadError(undefined)}
+                    />
+                  }
+                >
+                  {runNotebookDownloadError}
+                </Alert>
+              )}
               <AutomlResults />
             </ApplicationsPage>
           </DrawerContentBody>

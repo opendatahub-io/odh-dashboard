@@ -1,4 +1,6 @@
 import {
+  Alert,
+  AlertActionCloseButton,
   BreadcrumbItem,
   Button,
   Drawer,
@@ -8,8 +10,15 @@ import {
   Split,
   SplitItem,
   Truncate,
+  Tooltip,
 } from '@patternfly/react-core';
-import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
+import {
+  CogIcon,
+  DownloadIcon,
+  OpenDrawerRightIcon,
+  RedoIcon,
+  StopCircleIcon,
+} from '@patternfly/react-icons';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';
@@ -26,17 +35,31 @@ import { AutoragResultsContext, getAutoragContext } from '~/app/context/AutoragR
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
 import { useNotification } from '~/app/hooks/useNotification';
-import { usePipelineRunQuery, useSecretCredentialsQuery } from '~/app/hooks/queries';
+import {
+  fetchS3File,
+  usePipelineRunQuery,
+  useS3ListFilesQuery,
+  useSecretCredentialsQuery,
+} from '~/app/hooks/queries';
+import { useAutoragOutputDir } from '~/app/hooks/useAutoragOutputDir';
 import { useAutoragResults } from '~/app/hooks/useAutoragResults';
 import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import { useComponentStatuses } from '~/app/hooks/useComponentStatuses';
 import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/utilities/routes';
-import { isRunTerminatable, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
+import {
+  downloadBlob,
+  isRunCompleted,
+  isRunInTerminalState,
+  isRunRetryable,
+  isRunTerminatable,
+  parseErrorStatus,
+} from '~/app/utilities/utils';
 import { getObjectiveMetric, metricLabel } from '~/app/utilities/metricUtils';
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 import {
   fireAutoragCodeSnippetsExported,
+  fireAutoragStarterKitDownloaded,
   fireAutoragPlaygroundOpened,
   fireAutoragResultsViewed,
   isAutoragResultsNavigationState,
@@ -50,6 +73,12 @@ type DrawerContentType =
       responsesTemplate: ResponsesTemplate;
       patternInfo: PlaygroundPatternInfo;
     };
+
+const STARTER_KIT_FILENAME = 'starter_kit.zip';
+const ARTIFACT_AVAILABLE_TOOLTIP = 'Available after the run completes successfully';
+const ARTIFACT_UNSUCCESSFUL_TOOLTIP = 'Unavailable because the run did not complete successfully';
+const ARTIFACT_UNAVAILABLE_TOOLTIP = 'Artifact unavailable';
+const ARTIFACT_DOWNLOADING_TOOLTIP = 'Downloading...';
 
 function AutoragResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
@@ -66,6 +95,8 @@ function AutoragResultsPage(): React.JSX.Element {
     setDrawerContent(null);
   }, [locationKey]);
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
+  const [starterKitDownloadError, setStarterKitDownloadError] = React.useState<string>();
+  const [isDownloadingStarterKit, setIsDownloadingStarterKit] = React.useState(false);
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =
@@ -87,6 +118,61 @@ function AutoragResultsPage(): React.JSX.Element {
     error: pipelineRunLoadError,
     dataUpdatedAt: pipelineRunUpdatedAt,
   } = usePipelineRunQuery(runId, namespace);
+
+  const { rootDir } = useAutoragOutputDir(pipelineRun);
+  const runArtifactRoot =
+    isRunCompleted(pipelineRun?.state) && runId ? `${rootDir}/${runId}` : undefined;
+  const starterKitKey = runArtifactRoot ? `${runArtifactRoot}/${STARTER_KIT_FILENAME}` : undefined;
+  const {
+    data: runArtifactFiles,
+    isLoading: runArtifactLoading,
+    isError: runArtifactListError,
+  } = useS3ListFilesQuery(namespace, runArtifactRoot);
+  const hasStarterKit = Boolean(
+    starterKitKey && runArtifactFiles?.contents.some((object) => object.key === starterKitKey),
+  );
+
+  const starterKitTooltip = React.useMemo(() => {
+    if (isDownloadingStarterKit) {
+      return ARTIFACT_DOWNLOADING_TOOLTIP;
+    }
+    if (!isRunCompleted(pipelineRun?.state)) {
+      return isRunInTerminalState(pipelineRun?.state)
+        ? ARTIFACT_UNSUCCESSFUL_TOOLTIP
+        : ARTIFACT_AVAILABLE_TOOLTIP;
+    }
+    if (runArtifactLoading) {
+      return ARTIFACT_AVAILABLE_TOOLTIP;
+    }
+    return hasStarterKit && !runArtifactListError ? undefined : ARTIFACT_UNAVAILABLE_TOOLTIP;
+  }, [
+    hasStarterKit,
+    isDownloadingStarterKit,
+    pipelineRun?.state,
+    runArtifactListError,
+    runArtifactLoading,
+  ]);
+  const starterKitDisabled = Boolean(starterKitTooltip);
+
+  const handleDownloadStarterKit = React.useCallback(async () => {
+    if (starterKitDisabled || !namespace || !starterKitKey) {
+      return;
+    }
+
+    setStarterKitDownloadError(undefined);
+    setIsDownloadingStarterKit(true);
+    try {
+      const starterKit = await fetchS3File(namespace, starterKitKey);
+      downloadBlob(starterKit, STARTER_KIT_FILENAME);
+      fireAutoragStarterKitDownloaded();
+    } catch (error) {
+      setStarterKitDownloadError(
+        error instanceof Error ? error.message : 'An unknown error occurred',
+      );
+    } finally {
+      setIsDownloadingStarterKit(false);
+    }
+  }, [namespace, starterKitDisabled, starterKitKey]);
 
   const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutoragRunActions(
     namespace ?? '',
@@ -384,6 +470,21 @@ function AutoragResultsPage(): React.JSX.Element {
                     )}
                   </SplitItem>
                   <SplitItem>
+                    <Tooltip content={starterKitTooltip}>
+                      <Button
+                        variant="secondary"
+                        icon={<DownloadIcon />}
+                        onClick={() => void handleDownloadStarterKit()}
+                        isAriaDisabled={starterKitDisabled}
+                        isLoading={isDownloadingStarterKit}
+                        spinnerAriaValueText="Downloading starter kit"
+                        data-testid="starter-kit-download-button"
+                      >
+                        Download starter kit
+                      </Button>
+                    </Tooltip>
+                  </SplitItem>
+                  <SplitItem>
                     <Button
                       variant="secondary"
                       icon={<CogIcon />}
@@ -443,6 +544,17 @@ function AutoragResultsPage(): React.JSX.Element {
               }
               loaded={namespacesLoaded && !pipelineRunPending}
             >
+              {starterKitDownloadError && (
+                <Alert
+                  variant="danger"
+                  title="Starter kit download failed"
+                  actionClose={
+                    <AlertActionCloseButton onClose={() => setStarterKitDownloadError(undefined)} />
+                  }
+                >
+                  {starterKitDownloadError}
+                </Alert>
+              )}
               <AutoragResults onTryPattern={handleTryPattern} onViewCode={handleViewCode} />
             </ApplicationsPage>
           </DrawerContentBody>

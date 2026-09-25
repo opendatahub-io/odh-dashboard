@@ -29,6 +29,7 @@ import {
   fireAutoragRunStopped,
   fireAutoragRunTriggered,
   fireAutoragS3ConnectionCreated,
+  fireAutoragStarterKitDownloaded,
   fireAutoragVectorStoreConfigured,
   getVectorStoreProviderTypeFromSecretData,
   isAutoragResultsNavigationState,
@@ -770,6 +771,16 @@ describe('fireAutoragNotebookDownloaded', () => {
       });
     },
   );
+});
+
+describe('fireAutoragStarterKitDownloaded', () => {
+  it('should fire AutoRAG Starter Kit Downloaded with the starter kit type', () => {
+    fireAutoragStarterKitDownloaded();
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.STARTER_KIT_DOWNLOADED, {
+      downloadType: 'starterKit',
+    });
+  });
 });
 
 describe('fireAutoragResultsColumnToggled', () => {
