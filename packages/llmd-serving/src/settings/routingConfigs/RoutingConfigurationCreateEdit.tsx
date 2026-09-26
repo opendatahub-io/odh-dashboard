@@ -59,9 +59,6 @@ import {
   fireRoutingConfigUpdated,
 } from '../../tracking/llmdTrackingConstants';
 
-const SAMPLE_DISPLAY_NAME_ANNOTATION = 'openshift.io/display-name';
-const SAMPLE_DESCRIPTION_ANNOTATION = 'description';
-
 const resolveTopologyFromConfig = (
   config: LLMInferenceServiceConfigKind,
 ): TopologyType | undefined => {
@@ -156,23 +153,6 @@ const RoutingConfigurationCreateEditInner: React.FC<{
         })
         .then((yaml) => {
           setYamlCode(yaml);
-          try {
-            const parsed: unknown = YAML.parse(yaml);
-            if (isConfigObject(parsed)) {
-              const annotations = parsed.metadata.annotations ?? {};
-              const sampleName =
-                annotations[SAMPLE_DISPLAY_NAME_ANNOTATION] ?? parsed.metadata.name;
-              const sampleDesc = annotations[SAMPLE_DESCRIPTION_ANNOTATION] ?? '';
-              if (sampleName) {
-                k8sNameDesc.onDataChange('name', String(sampleName));
-              }
-              if (sampleDesc) {
-                k8sNameDesc.onDataChange('description', String(sampleDesc));
-              }
-            }
-          } catch {
-            // sample parsing for form fields is best-effort
-          }
         })
         .catch(() => {
           setTemplateError(true);

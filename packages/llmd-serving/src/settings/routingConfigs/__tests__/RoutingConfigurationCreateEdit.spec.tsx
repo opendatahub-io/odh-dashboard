@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
@@ -86,6 +86,50 @@ describe('RoutingConfigurationCreateEdit', () => {
 
       const topologySelect = screen.getByTestId('topology-type-select');
       expect(topologySelect).not.toBeDisabled();
+    });
+
+    it('should populate YAML from a sample without overwriting Name or Description', async () => {
+      const sampleYaml = `apiVersion: serving.kserve.io/v1alpha2
+kind: LLMInferenceServiceConfig
+metadata:
+  name: default-scheduling-policy
+  annotations:
+    openshift.io/display-name: default-scheduling-policy
+    description: Sample routing description
+spec: {}
+`;
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: true,
+          text: () => Promise.resolve(sampleYaml),
+        } as Response),
+      ) as jest.Mock;
+
+      renderAtRoute([], '/routing-configs/add', '/routing-configs/add');
+
+      fireEvent.change(screen.getByTestId('routing-config-name'), {
+        target: { value: 'My Custom Router' },
+      });
+      fireEvent.change(screen.getByTestId('routing-config-description'), {
+        target: { value: 'My custom description' },
+      });
+
+      fireEvent.click(screen.getByTestId('topology-type-select'));
+      fireEvent.click(screen.getByTestId(TopologyType.SINGLE_NODE));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('config-source-select')).not.toBeDisabled();
+      });
+
+      fireEvent.click(screen.getByTestId('config-source-select'));
+      fireEvent.click(screen.getByTestId('template'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('yaml-editor-mock')).toHaveValue(sampleYaml);
+      });
+
+      expect(screen.getByTestId('routing-config-name')).toHaveValue('My Custom Router');
+      expect(screen.getByTestId('routing-config-description')).toHaveValue('My custom description');
     });
   });
 
