@@ -81,7 +81,7 @@ const TASK_ICON_COLORS: Record<ReturnType<typeof resolveTreeNodeVisualState>, st
   winner: WINNER_RANK_2_ORANGE,
 };
 
-const rankTaskIconColor = (rank: WinnerRank): string => {
+const winnerTaskIconColor = (rank?: WinnerRank): string => {
   if (rank === 1) {
     return colorStatusWarningGold.var;
   }
@@ -548,11 +548,8 @@ const TreeNodeInner: React.FC<{
     branchStep && visualState === 'active'
       ? Math.min(width, height)
       : Math.min(width, height) * (branchStep ? 0.92 : 0.4);
-  // Rank colors identify completed candidates; winner chrome still requires a resolved winner.
   const iconColor =
-    stepState === 'completed' && winnerRank !== undefined
-      ? rankTaskIconColor(winnerRank)
-      : TASK_ICON_COLORS[visualState];
+    visualState === 'winner' ? winnerTaskIconColor(winnerRank) : TASK_ICON_COLORS[visualState];
   const showPatternsToggle =
     (data?.showPatternsToggle === true || nodeRole === 'patterns-toggle') &&
     patternsExpand?.showToggle === true;
@@ -569,8 +566,6 @@ const TreeNodeInner: React.FC<{
     isColumnHeader,
   });
   const labelY = showPatternsToggle ? 0 : height + 4 + (branchStep ? (40 - height) / 2 : 0);
-  const isRankedOutline = stepState === 'completed' && (winnerRank === 2 || winnerRank === 3);
-
   const attachments = React.useMemo(() => {
     if (!showsTaskIcon) {
       return undefined;
@@ -643,10 +638,9 @@ const TreeNodeInner: React.FC<{
           visualState === 'success' && 'autorag-tree-node--success',
           visualState === 'failed' && 'autorag-tree-node--failed',
           visualState === 'winner' && 'autorag-tree-node--winner',
-          isRankedOutline && 'autorag-tree-node--ranked',
           visualState === 'winner' && winnerRank === 1 && 'autorag-tree-node--winner-1',
-          isRankedOutline && winnerRank === 2 && 'autorag-tree-node--winner-2',
-          isRankedOutline && winnerRank === 3 && 'autorag-tree-node--winner-3',
+          visualState === 'winner' && winnerRank === 2 && 'autorag-tree-node--winner-2',
+          visualState === 'winner' && winnerRank === 3 && 'autorag-tree-node--winner-3',
         )}
         element={node}
         nodeStatus={showsTaskIcon ? nodeStatus : undefined}

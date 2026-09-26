@@ -313,7 +313,8 @@ describe('transformStageMapNodesToTree', () => {
     expect(patternNodes).toHaveLength(1);
     expect(patternNodes[0].data.label).toBe('Pattern 1');
     expect(patternNodes[0].data.labelSubtitle).toBe('winner');
-    expect(patternNodes[0].data.showWinnerStar).toBe(true);
+    expect(patternNodes[0].data.showWinnerStar).toBe(false);
+    expect(patternNodes[0].data.winnerRank).toBeUndefined();
     expect(
       nodes.find((node) => node.id === 'autorag-patterns-toggle')?.data.showPatternsToggle,
     ).toBe(true);
@@ -332,7 +333,7 @@ describe('transformStageMapNodesToTree', () => {
     expect(patternNodes[0].width).toBe(40);
     expect(nodes.find((node) => node.id === 'rag_optimization__build_leaderboard')?.width).toBe(40);
     expect(firstBranch.width).toBe(20);
-    expect(firstBranch.x - optimize.x).toBeLessThanOrEqual(130);
+    expect((firstBranch.x ?? 0) - (optimize.x ?? 0)).toBeLessThanOrEqual(130);
     const toggle = nodes.find((node) => node.id === 'autorag-patterns-toggle');
     expect((toggle?.y ?? 0) - (optimize.y ?? 0)).toBe(120);
   });
@@ -364,7 +365,23 @@ describe('transformStageMapNodesToTree', () => {
     expect(patternNodes).toHaveLength(1);
     expect(patternNodes[0].data.label).toBe('Pattern 1');
     expect(patternNodes[0].data.labelSubtitle).toBe('winner');
-    expect(patternNodes[0].data.showWinnerStar).toBe(true);
+    expect(patternNodes[0].data.showWinnerStar).toBe(false);
+    expect(patternNodes[0].data.winnerRank).toBeUndefined();
+  });
+
+  it('keeps the resolved winner label without a rank indicator when ranks are unavailable', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([ragOptimization]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      patternsExpanded: true,
+      winnerResolved: true,
+      winnerPatternLabel: 'PatternGraphRAG',
+      winnerPatternKey: 'PatternGraphRAG',
+    });
+
+    const winner = nodes.find((node) => node.data.isResolvedWinner);
+    expect(winner?.data.labelSubtitle).toBe('winner');
+    expect(winner?.data.winnerRank).toBeUndefined();
+    expect(winner?.data.showWinnerStar).toBe(false);
   });
 
   it('expands all pattern branches when patternsExpanded is true', () => {
@@ -391,20 +408,20 @@ describe('transformStageMapNodesToTree', () => {
     expect(nodes.some((node) => node.data.nodeRole === 'column-rule')).toBe(true);
     const rowLabels = nodes.filter((node) => node.data.nodeRole === 'row-label');
     expect(rowLabels.map((node) => node.data.label)).toEqual(['Pattern 1', 'Pattern 2']);
-    const rowLabelXs = [...new Set(rowLabels.map((node) => node.x))];
+    const rowLabelXs = [...new Set(rowLabels.map((node) => node.x ?? 0))];
     expect(rowLabelXs).toHaveLength(1);
     expect(rowLabels.every((node) => node.width === 68)).toBe(true);
     expect(rowLabels.every((node) => node.height === 32)).toBe(true);
     const firstBranchNodes = nodes.filter(
       (node) => node.id.includes('__step__') && node.id.includes('__branch-'),
     );
-    const firstBranchX = Math.min(...firstBranchNodes.map((node) => node.x));
+    const firstBranchX = Math.min(...firstBranchNodes.map((node) => node.x ?? 0));
     expect(
       rowLabels.every((label) => {
         const labelCenterY = (label.y ?? 0) + (label.height ?? 0) / 2;
         return firstBranchNodes.some((node) => {
           const nodeCenterY = (node.y ?? 0) + (node.height ?? 0) / 2;
-          return node.x === firstBranchX && nodeCenterY === labelCenterY;
+          return (node.x ?? 0) === firstBranchX && nodeCenterY === labelCenterY;
         });
       }),
     ).toBe(true);
@@ -424,18 +441,22 @@ describe('transformStageMapNodesToTree', () => {
     const headers = nodes.filter((node) => node.data.nodeRole === 'column-header');
     expect(headers.length).toBeGreaterThan(0);
     expect(headers.every((node) => node.width === 120)).toBe(true);
-    const firstColNode = firstBranchNodes.find((node) => node.x === firstBranchX);
+    const firstColNode = firstBranchNodes.find((node) => (node.x ?? 0) === firstBranchX);
     const firstHeader = headers[0];
     if (!firstColNode) {
       throw new Error('expected a first-column branch node');
     }
-    expect(firstHeader.x + firstHeader.width / 2).toBe(firstColNode.x + firstColNode.width / 2);
+    expect((firstHeader.x ?? 0) + (firstHeader.width ?? 0) / 2).toBe(
+      (firstColNode.x ?? 0) + (firstColNode.width ?? 0) / 2,
+    );
     expect(
       nodes.find((node) => node.data.nodeRole === 'patterns-toggle')?.data.showPatternsToggle,
     ).toBe(true);
-    const lastRow = firstBranchNodes.reduce((lowest, node) => (node.y > lowest.y ? node : lowest));
+    const lastRow = firstBranchNodes.reduce((lowest, node) =>
+      (node.y ?? 0) > (lowest.y ?? 0) ? node : lowest,
+    );
     const expandedToggle = nodes.find((node) => node.data.nodeRole === 'patterns-toggle');
-    expect((expandedToggle?.y ?? 0) - lastRow.y).toBe(50);
+    expect((expandedToggle?.y ?? 0) - (lastRow.y ?? 0)).toBe(50);
   });
 
   it('preserves pattern ranks without applying winner chrome when unresolved', () => {

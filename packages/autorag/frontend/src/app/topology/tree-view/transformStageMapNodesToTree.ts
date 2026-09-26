@@ -242,7 +242,7 @@ const patternTerminusExtras = (
   const isWinner = matchesWinnerPattern(topologyNode, options);
   const isResolvedWinner = options.winnerResolved && isWinner;
   extras.isResolvedWinner = isResolvedWinner;
-  extras.showWinnerStar = isResolvedWinner && (winnerRank === undefined || winnerRank === 1);
+  extras.showWinnerStar = isResolvedWinner && winnerRank === 1;
   if (winnerRank) {
     extras.winnerRank = winnerRank;
   }
@@ -261,7 +261,6 @@ const patternTerminusExtras = (
         ...extras,
         label: collapsedRowLabel,
         labelSubtitle: 'winner',
-        winnerRank: extras.winnerRank ?? 1,
       };
     }
     return {
@@ -279,7 +278,6 @@ const patternTerminusExtras = (
       ...extras,
       label: options.winnerPatternLabel ?? topologyNode.label,
       labelSubtitle: 'winner',
-      winnerRank: extras.winnerRank ?? 1,
     };
   }
 
