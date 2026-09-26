@@ -81,7 +81,7 @@ const TASK_ICON_COLORS: Record<ReturnType<typeof resolveTreeNodeVisualState>, st
   winner: WINNER_RANK_2_ORANGE,
 };
 
-const winnerTaskIconColor = (rank?: WinnerRank): string => {
+const rankedTaskIconColor = (rank?: WinnerRank): string => {
   if (rank === 1) {
     return colorStatusWarningGold.var;
   }
@@ -518,6 +518,8 @@ const TreeNodeInner: React.FC<{
   const winnerRank = data?.winnerRank;
   const isResolvedWinner = data?.isResolvedWinner === true;
   const visualState = resolveTreeNodeVisualState({ stepState, justCompleted, isResolvedWinner });
+  const isRankedCandidate =
+    stepState === 'completed' && !isResolvedWinner && (winnerRank === 2 || winnerRank === 3);
   const activeIconVariant = data?.activeIconVariant;
   const hideLabel = data?.hideLabel === true;
   const nodeRole = data?.nodeRole ?? 'task';
@@ -548,8 +550,11 @@ const TreeNodeInner: React.FC<{
     branchStep && visualState === 'active'
       ? Math.min(width, height)
       : Math.min(width, height) * (branchStep ? 0.92 : 0.4);
+  // Rank colors identify completed candidates; winner chrome still requires a resolved winner.
   const iconColor =
-    visualState === 'winner' ? winnerTaskIconColor(winnerRank) : TASK_ICON_COLORS[visualState];
+    stepState === 'completed' && winnerRank !== undefined
+      ? rankedTaskIconColor(winnerRank)
+      : TASK_ICON_COLORS[visualState];
   const showPatternsToggle =
     (data?.showPatternsToggle === true || nodeRole === 'patterns-toggle') &&
     patternsExpand?.showToggle === true;
@@ -638,6 +643,8 @@ const TreeNodeInner: React.FC<{
           visualState === 'success' && 'autorag-tree-node--success',
           visualState === 'failed' && 'autorag-tree-node--failed',
           visualState === 'winner' && 'autorag-tree-node--winner',
+          isRankedCandidate && winnerRank === 2 && 'autorag-tree-node--ranked-candidate-2',
+          isRankedCandidate && winnerRank === 3 && 'autorag-tree-node--ranked-candidate-3',
           visualState === 'winner' && winnerRank === 1 && 'autorag-tree-node--winner-1',
           visualState === 'winner' && winnerRank === 2 && 'autorag-tree-node--winner-2',
           visualState === 'winner' && winnerRank === 3 && 'autorag-tree-node--winner-3',

@@ -331,6 +331,15 @@
     }
   }
 
+  /* Candidate rank outlines are separate from the resolved-winner chrome. */
+  &--ranked-candidate-2 .pf-topology__node__background {
+    stroke: #c4610e;
+  }
+
+  &--ranked-candidate-3 .pf-topology__node__background {
+    stroke: var(--pf-t--global--color--nonstatus--orange--300);
+  }
+
   &--active.pf-m-info,
   &--active {
     --pf-topology__node--Color: var(--pf-t--global--icon--color--status--info--default);
