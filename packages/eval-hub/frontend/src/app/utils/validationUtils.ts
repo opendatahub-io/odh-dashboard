@@ -22,6 +22,13 @@ export const getUrlValidationError = (url: string): string | undefined => {
   return undefined;
 };
 
+export const RECOGNIZED_CONNECTION_ERROR_CODES = new Set([
+  'CONNECTION_FAILED',
+  'TIMEOUT',
+  'UNAUTHORIZED',
+  'FORBIDDEN',
+]);
+
 export const getUserFriendlyConnectionError = (
   errorCode: string | undefined,
   sourceMode: SourceMode,
