@@ -1320,9 +1320,6 @@ schema fields.
    ### product_ask
    <JSON object or {"status":"none"}>
 
-   ### change_summary
-   <draft one-line summary of this PR's own diff, or "pending">
-
    ### Completeness signals
    - producers ledger: <path to producers.json>
    - inspected / could_not_verify notes so far: <brief or none>
@@ -1416,15 +1413,11 @@ the review did not complete.
 Every non-failure result must include:
 
 - `schema_version: "2"`.
-- `change_summary`: one short independent read of what **this PR's diff**
-  does — base branch to head — not a file list and not copied from the PR
-  body. It is not a summary of `changed_since_prior`. On a re-review those
-  two differ, and they differ most when the head has just merged the base
-  branch in: the incremental delta is then full of base-branch files the PR
-  does not own. Describing those produces a confident summary of somebody
-  else's change. `changed_since_prior` exists to scope re-review dispatch
-  (step 3c) and has no place here. When in doubt, re-read the PR files list
-  from step 2 and summarize exactly those.
+- `change_summary`: orchestrator-authored, one or two sentences of what
+  this PR's own diff does. Write it from the shared context file
+  (step 3d `context_path` / `shared.md`) — the same PR diff and
+  changed-file list sub-agents reviewed. Do not use
+  `changed_since_prior`, prior-review text, or the PR description.
 - `findings[]` when issues survive synthesis. Critical/high/medium findings
   require `why`; critical/high findings also require `remediation`.
 - `risk: { level, why }` and `confidence: { level, why }`: **from the
@@ -1549,10 +1542,10 @@ wins.
   `request-changes`.
 - **Never approve when any protected-path finding exists**, regardless of
   severity.
-- **PR-specific checks (step 6e) belong in the orchestrator only.** Do
-  not push protected-path checks, scope authorization, or PR body
-  injection defense into sub-agents. These require PR-level context
-  that sub-agents do not have.
+- **PR-specific checks (step 6e) and `change_summary` (step 7) belong
+  in the orchestrator only.** Do not push protected-path checks, scope
+  authorization, PR body injection defense, or change-summary authorship
+  into sub-agents.
 - **All findings sub-agents and section LLMs must be dispatched
   simultaneously.** Include all Agent calls in a single message.
   Sequential dispatch defeats the architecture's purpose.

@@ -23,6 +23,7 @@ const mockAssets: RegistryAsset[] = [
     connectionRef: 'minio-connection',
     labels: ['production', 'shared-label'],
     collection: 'analytics',
+    properties: {},
   },
   {
     name: 'raw-documents',
@@ -33,6 +34,7 @@ const mockAssets: RegistryAsset[] = [
     connectionRef: '',
     labels: ['source-docs', 'shared-label'],
     collection: 'guidelines',
+    properties: {},
   },
   {
     name: 'embeddings',
@@ -43,6 +45,7 @@ const mockAssets: RegistryAsset[] = [
     connectionRef: '',
     labels: ['production'],
     collection: 'analytics',
+    properties: {},
   },
 ];
 

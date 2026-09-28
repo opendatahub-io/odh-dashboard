@@ -210,22 +210,15 @@ Examples:
 
 ### Disabling TLS verification (development only)
 
-For local Kubeflow installations with self-signed certificates, you may need to disable TLS certificate verification.
-
-**Kubernetes deployment:**
-
-```yaml
-env:
-  - name: INSECURE_SKIP_VERIFY
-    value: "true"
-```
+For local development against a cluster with self-signed certificates, you may disable TLS certificate verification. The BFF accepts this setting only when development mode is enabled and no server certificate is configured.
 
 **Local development:**
 
 ```shell
-./bin/bff --insecure-skip-verify
+./bin/bff --dev-mode --insecure-skip-verify
 # or
+export DEV_MODE=true
 export INSECURE_SKIP_VERIFY=true
 ```
 
-> **Warning:** Only use in development. Keep TLS verification enabled in production.
+> **Warning:** Only use in local development. Disabling certificate verification exposes forwarded bearer tokens to interception. TLS verification remains enabled by default and the BFF rejects this setting outside development mode or when a server certificate is configured.

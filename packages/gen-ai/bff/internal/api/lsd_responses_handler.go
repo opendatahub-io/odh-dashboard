@@ -24,6 +24,7 @@ import (
 	nemo "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -916,7 +917,23 @@ func (app *App) getProviderData(ctx context.Context, subscription, modelSourceTy
 		providerData["maas_subscription"] = subscription
 	}
 
+	injectTraceContextProviderData(ctx, providerData)
+
 	return providerData, nil
+}
+
+func injectTraceContextProviderData(ctx context.Context, providerData map[string]interface{}) {
+	traceHeaders := map[string]string{}
+	propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
+		propagation.Baggage{},
+	).Inject(ctx, propagation.MapCarrier(traceHeaders))
+
+	for _, header := range []string{constants.TraceParentHeader, constants.TraceStateHeader, constants.BaggageHeader} {
+		if value := traceHeaders[header]; value != "" {
+			providerData[header] = value
+		}
+	}
 }
 
 // getMaaSTokenForModel retrieves a MaaS token from cache or generates a new one.

@@ -61,8 +61,22 @@ const connections = [
 ];
 
 const connectionTypes = [
-  { metadata: { id: 'postgresql' }, resource: { name: 'PostgreSQL', provider: 'postgresql' } },
-  { metadata: { id: 's3' }, resource: { name: 'S3', provider: 's3' } },
+  {
+    metadata: {
+      id: 'postgresql',
+      created_at: '2026-09-08T16:00:00Z',
+      updated_at: '2026-09-08T16:00:00Z',
+    },
+    resource: { name: 'PostgreSQL', provider: 'postgresql', credentials_fields: [] },
+  },
+  {
+    metadata: {
+      id: 's3',
+      created_at: '2026-09-08T16:00:00Z',
+      updated_at: '2026-09-08T16:00:00Z',
+    },
+    resource: { name: 'S3', provider: 's3', credentials_fields: [] },
+  },
 ];
 
 const newConnection = {
@@ -72,8 +86,12 @@ const newConnection = {
 };
 
 const newConnectionType = {
-  metadata: { id: 'snowflake' },
-  resource: { name: 'Snowflake', provider: 'snowflake' },
+  metadata: {
+    id: 'snowflake',
+    created_at: '2026-09-08T16:00:00Z',
+    updated_at: '2026-09-08T16:00:00Z',
+  },
+  resource: { name: 'Snowflake', provider: 'snowflake', credentials_fields: [] },
 };
 
 describe('ConnectionsTab', () => {
