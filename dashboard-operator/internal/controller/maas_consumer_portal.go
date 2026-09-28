@@ -34,10 +34,11 @@ import (
 const conditionMaaSConsumerPortalAvailable = "MaaSConsumerPortalAvailable"
 
 const (
-	maasConsumerPortalDeploymentName = "maas-consumer-portal"
-	maasConsumerPortalPartOf         = maasConsumerPortalDeploymentName
-	maasConsumerPortalGatewayName    = "data-science-gateway"
-	maasConsumerPortalBasePath       = "/maas-consumer-portal/"
+	maasConsumerPortalDeploymentName      = "maas-consumer-portal"
+	maasConsumerPortalParamsConfigMapName = "maas-consumer-portal-params"
+	maasConsumerPortalPartOf              = maasConsumerPortalDeploymentName
+	maasConsumerPortalGatewayName         = "data-science-gateway"
+	maasConsumerPortalBasePath            = "/maas-consumer-portal/"
 )
 
 var ErrMaaSConsumerPortalUnsupportedPlatform = errors.New("maas consumer portal is supported only on RHOAI")
