@@ -4,24 +4,30 @@ import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardMod
 import { Alert, Form, Modal, ModalBody, ModalFooter, ModalHeader } from '@patternfly/react-core';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AssetResponse, ConnectionRef, VolumeInfo } from '~/app/types';
+import {
+  AssetResponse,
+  ConnectionModel,
+  ConnectionRef,
+  StructuredFormat,
+  UnstructuredFormat,
+} from '~/app/types';
 import {
   isConflictError,
   createLabel,
   updateGenericTable,
   updateVolume,
 } from '~/app/api/dataRegistry';
+import { useConnections } from '~/app/hooks/useConnections';
 import { editAssetSchema, EditAssetFormData } from '~/app/schemas/editAsset.schema';
-import { getRawUnstructuredFormat, normalizeUnstructuredFormat } from '~/app/utilities/formatUtils';
 import AssetDetailsSection from './register-data/AssetDetailsSection';
 import DataLocationSection from './register-data/DataLocationSection';
 import PropertiesSection from './register-data/PropertiesSection';
 import CustomPropertiesSection from './register-data/CustomPropertiesSection';
 import SchemaSection from './register-data/SchemaSection';
 
-type EditTableModalProps = {
+type EditAssetModalProps = {
   asset: AssetResponse;
-  assetKind: 'table';
+  assetKind: 'table' | 'volume';
   project: string;
   collection: string;
   name: string;
@@ -29,112 +35,113 @@ type EditTableModalProps = {
   onSaved: () => void;
 };
 
-type EditVolumeModalProps = {
-  asset: VolumeInfo;
-  assetKind: 'volume';
-  project: string;
-  collection: string;
-  name: string;
-  onClose: () => void;
-  onSaved: () => void;
-};
+const WELL_KNOWN_PROPERTIES = new Set(['purpose', 'license', 'maturity', 'domain', 'pii']);
 
-type EditAssetModalProps = EditTableModalProps | EditVolumeModalProps;
+const STRUCTURED_FORMATS: StructuredFormat[] = [
+  'iceberg',
+  'parquet',
+  'csv',
+  'delta',
+  'postgresql',
+  'milvus',
+  'other',
+];
 
-const WELL_KNOWN_PROPERTIES = new Set([
-  'purpose',
-  'license',
-  'maturity',
-  'pii_status',
-  'volume_purpose', // Backend storage format for volumes
-  'volume_license',
-  'volume_maturity',
-  'description',
-  'content-type',
-  'connection-ref',
-  'location',
-  'registered_by',
-  'updated_by',
-]);
+const UNSTRUCTURED_FORMATS: UnstructuredFormat[] = [
+  'documents',
+  'images',
+  'audio',
+  'video',
+  'binary',
+  'other',
+];
 
-const getConnectionDisplayValue = (connectionRef?: ConnectionRef | string | null): string => {
+const isStructuredFormat = (format: string): format is StructuredFormat =>
+  STRUCTURED_FORMATS.some((value) => value === format);
+
+const isUnstructuredFormat = (format: string): format is UnstructuredFormat =>
+  UNSTRUCTURED_FORMATS.some((value) => value === format);
+
+const getConnectionDisplayValue = (connectionRef?: ConnectionRef | null): string => {
   if (!connectionRef) {
-    return 'None';
+    return '';
   }
-  if (typeof connectionRef === 'string') {
-    return connectionRef;
-  }
-  if (connectionRef.type === 'rhai') {
-    return connectionRef.secret_name || 'None';
-  }
-  return connectionRef.id || 'None';
+  return connectionRef.type === 'rhai' ? connectionRef.secret_name : connectionRef.id;
 };
 
-const getOriginalUnstructuredFormat = (props: EditAssetModalProps): string | undefined =>
-  props.assetKind === 'volume'
-    ? getRawUnstructuredFormat(props.asset.properties?.['content-type'], props.asset['volume-type'])
-    : undefined;
+const getConnectionRef = (
+  connection: string,
+  connections: ConnectionModel[],
+): ConnectionRef | null => {
+  if (!connection) {
+    return null;
+  }
+  const selectedConnection = connections.find((item) => item.name === connection);
+  return selectedConnection?.connectionType?.toLowerCase() === 'dch'
+    ? { type: 'dch', id: connection }
+    : { type: 'rhai', secret_name: connection };
+};
 
 const buildFormDefaults = (props: EditAssetModalProps, idStart: number): EditAssetFormData => {
   const { asset, assetKind, collection } = props;
-  const isTable = assetKind === 'table';
   const properties = asset.properties ?? {};
-
   const customProperties = Object.entries(properties)
     .filter(([key]) => !WELL_KNOWN_PROPERTIES.has(key))
     .map(([key, value], index) => ({ id: idStart + index + 1, key, value }));
 
   return {
-    assetType: isTable ? 'structured' : 'unstructured',
+    assetType: assetKind === 'table' ? 'structured' : 'unstructured',
     name: asset.name,
-    description: isTable
-      ? (asset.description ?? '')
-      : asset.comment || properties.description || '',
-    format: isTable
-      ? asset.format || 'other'
-      : normalizeUnstructuredFormat(
-          getRawUnstructuredFormat(properties['content-type'], asset['volume-type']),
-        ),
+    description: asset.description ?? '',
+    format: asset.format,
     collection,
     labels: asset.labels ?? [],
-    connection: isTable
-      ? getConnectionDisplayValue(asset.connection_ref)
-      : asset.properties?.['connection-ref'] || '',
-    path: isTable ? (asset.location ?? '') : asset['storage-location'],
-    purpose: isTable ? properties.purpose || '' : properties.volume_purpose || '',
-    license: isTable ? properties.license || '' : properties.volume_license || '',
-    maturity: isTable ? properties.maturity || '' : properties.volume_maturity || '',
-    piiStatus: properties.pii_status || '',
+    connection: getConnectionDisplayValue(asset.connection_ref),
+    path: asset.storage_location ?? '',
+    purpose: properties.purpose || '',
+    license: properties.license || '',
+    maturity: properties.maturity || '',
+    domain: properties.domain || '',
+    piiStatus: properties.pii || '',
     customProperties,
-    schemaFields: isTable
-      ? (asset.columns ?? []).map((col, index) => ({
-          id: idStart + customProperties.length + index + 1,
-          name: col.name,
-          type: col.type,
-          description: col.description ?? '',
-          nullable: col.nullable ?? false,
-        }))
-      : [],
+    schemaFields:
+      assetKind === 'table'
+        ? (asset.columns ?? []).map((column, index) => ({
+            id: idStart + customProperties.length + index + 1,
+            name: column.name,
+            type: column.type,
+            description: column.description ?? '',
+            nullable: column.nullable ?? false,
+          }))
+        : [],
   };
 };
 
-const EditAssetModal: React.FC<EditAssetModalProps> = (props) => {
-  const { asset, assetKind, project, collection, name, onClose, onSaved } = props;
+const EditAssetModal: React.FC<EditAssetModalProps> = ({
+  asset,
+  assetKind,
+  project,
+  collection,
+  name,
+  onClose,
+  onSaved,
+}) => {
   const isTable = assetKind === 'table';
-
+  const [connections, connectionsLoaded, connectionsError] = useConnections(project);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
   const idRef = React.useRef(0);
 
   const defaults = React.useMemo(() => {
-    const result = buildFormDefaults(props, idRef.current);
+    const result = buildFormDefaults(
+      { asset, assetKind, project, collection, name, onClose, onSaved },
+      idRef.current,
+    );
     idRef.current += result.customProperties.length + result.schemaFields.length;
     return result;
-    // buildFormDefaults only reads these stable asset inputs from props.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [asset, assetKind, collection]);
-  const originalLabels = React.useMemo(() => asset.labels ?? [], [asset]);
-  const originalUnstructuredFormat = getOriginalUnstructuredFormat(props);
+  }, [asset, assetKind, collection, name, onClose, onSaved, project]);
+
+  const originalLabels = React.useMemo(() => asset.labels ?? [], [asset.labels]);
 
   const form = useForm<EditAssetFormData>({
     resolver: zodResolver(editAssetSchema),
@@ -151,15 +158,29 @@ const EditAssetModal: React.FC<EditAssetModalProps> = (props) => {
       setIsSubmitting(true);
       setError('');
 
-      const addLabels = data.labels.filter((l) => !originalLabels.includes(l));
-      const removeLabels = originalLabels.filter((l) => !data.labels.includes(l));
-
-      const customProps: Record<string, string> = {};
-      data.customProperties.forEach((prop) => {
-        if (prop.key && prop.value) {
-          customProps[prop.key] = prop.value;
+      const addLabels = data.labels.filter((label) => !originalLabels.includes(label));
+      const removeLabels = originalLabels.filter((label) => !data.labels.includes(label));
+      const customProperties: Record<string, string> = {};
+      data.customProperties.forEach((property) => {
+        if (property.key && property.value) {
+          customProperties[property.key] = property.value;
         }
       });
+
+      const commonUpdate = {
+        description: data.description,
+        format: data.format,
+        storage_location: data.path || null,
+        connection_ref: getConnectionRef(data.connection, connections),
+        purpose: data.purpose,
+        license: data.license,
+        maturity: data.maturity,
+        domain: data.domain,
+        pii: data.piiStatus,
+        ...(addLabels.length > 0 ? { add_labels: addLabels } : {}),
+        ...(removeLabels.length > 0 ? { remove_labels: removeLabels } : {}),
+        properties: customProperties,
+      };
 
       try {
         if (addLabels.length > 0) {
@@ -174,52 +195,22 @@ const EditAssetModal: React.FC<EditAssetModalProps> = (props) => {
             ),
           );
         }
+
         if (isTable) {
           await updateGenericTable(project, collection, name, {
-            description: data.description,
-            format: data.format,
-            location: data.path,
-            purpose: data.purpose,
-            license: data.license,
-            maturity: data.maturity,
-            pii: data.piiStatus,
-            ...(addLabels.length > 0 ? { add_labels: addLabels } : {}),
-            ...(removeLabels.length > 0 ? { remove_labels: removeLabels } : {}),
-            properties: customProps,
-            schema_fields: data.schemaFields.map((col) => ({
-              name: col.name,
-              type: col.type,
-              description: col.description || undefined,
-              nullable: col.nullable,
+            ...commonUpdate,
+            format: isStructuredFormat(data.format) ? data.format : 'other',
+            schema_fields: data.schemaFields.map((column) => ({
+              name: column.name,
+              type: column.type,
+              description: column.description || undefined,
+              nullable: column.nullable,
             })),
           });
         } else {
-          const persistedFormat =
-            data.format === normalizeUnstructuredFormat(originalUnstructuredFormat)
-              ? originalUnstructuredFormat
-              : data.format;
-          const allProperties: Record<string, string> = {
-            ...customProps,
-            ...(persistedFormat ? { 'content-type': persistedFormat } : {}),
-          };
-          // Always set volume_purpose to allow clearing it (empty string)
-          allProperties.volume_purpose = data.purpose;
-          if (data.license) {
-            allProperties.volume_license = data.license;
-          }
-          if (data.maturity) {
-            allProperties.volume_maturity = data.maturity;
-          }
-          if (data.piiStatus) {
-            allProperties.pii_status = data.piiStatus;
-          }
-
           await updateVolume(project, collection, name, {
-            comment: data.description,
-            storage_location: data.path,
-            ...(addLabels.length > 0 ? { add_labels: addLabels } : {}),
-            ...(removeLabels.length > 0 ? { remove_labels: removeLabels } : {}),
-            properties: allProperties,
+            ...commonUpdate,
+            format: isUnstructuredFormat(data.format) ? data.format : 'other',
           });
         }
         onSaved();
@@ -229,7 +220,7 @@ const EditAssetModal: React.FC<EditAssetModalProps> = (props) => {
         setIsSubmitting(false);
       }
     },
-    [isTable, project, collection, name, originalLabels, originalUnstructuredFormat, onSaved],
+    [collection, connections, isTable, name, onSaved, originalLabels, project],
   );
 
   return (
@@ -255,9 +246,11 @@ const EditAssetModal: React.FC<EditAssetModalProps> = (props) => {
           <Form>
             <AssetDetailsSection isEditMode />
             <DataLocationSection
-              pathLabel={isTable ? 'Path' : 'Storage location'}
+              pathLabel="Storage location"
               showConnection
-              isConnectionReadOnly
+              connections={connections}
+              connectionsLoaded={connectionsLoaded}
+              connectionsError={connectionsError}
             />
             <PropertiesSection />
             <CustomPropertiesSection />

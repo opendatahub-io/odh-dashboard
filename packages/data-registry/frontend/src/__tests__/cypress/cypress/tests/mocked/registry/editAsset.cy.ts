@@ -16,6 +16,11 @@ const initIntercepts = () => {
   cy.intercept('GET', `${MAIN_API}/namespaces`, {
     body: mockModArchResponse([mockNamespace({ name: 'test-project' })]),
   });
+  cy.intercept('GET', `${MAIN_API}/connections/test-project`, {
+    body: mockModArchResponse([
+      { name: 'my-s3-connection', displayName: 'My S3 Connection', connectionType: 's3' },
+    ]),
+  });
 };
 
 describe('Edit Table Asset', () => {
@@ -23,7 +28,7 @@ describe('Edit Table Asset', () => {
     name: 'claims-data',
     description: 'Claims processing data',
     format: 'parquet',
-    location: 's3://bucket/claims',
+    storage_location: 's3://bucket/claims',
     collection: 'analytics',
     connection_ref: { type: 'rhai', secret_name: 'my-s3-connection' },
     labels: ['production', 'claims'],
@@ -31,7 +36,7 @@ describe('Edit Table Asset', () => {
       purpose: 'fraud detection',
       license: 'internal-use',
       maturity: 'production',
-      pii_status: 'contains-pii',
+      pii: 'contains-pii',
       'custom-key': 'custom-value',
     },
     columns: [
@@ -68,7 +73,7 @@ describe('Edit Table Asset', () => {
     editAssetModal.findAssetTypeInput().should('have.value', 'Structured');
     editAssetModal.findFormatToggle().should('contain.text', 'Parquet');
     editAssetModal.findCollectionInput().should('have.value', 'analytics');
-    editAssetModal.findConnectionToggle().should('contain.text', 'my-s3-connection');
+    editAssetModal.findConnectionToggle().should('contain.text', 'My S3 Connection');
     editAssetModal.findLocationInput().should('have.value', 's3://bucket/claims');
     editAssetModal.findPurposeInput().should('have.value', 'fraud detection');
   });
@@ -277,13 +282,12 @@ describe('Edit Table Asset', () => {
 describe('Edit Volume Asset', () => {
   const volumeResponse = mockVolumeInfo({
     name: 'training-docs',
-    comment: undefined,
-    'storage-location': 's3://bucket/docs/training',
+    storage_location: 's3://bucket/docs/training',
+    description: 'Training document storage',
     labels: ['source-docs'],
     properties: {
-      description: 'Training document storage',
       'content-type': 'application/pdf',
-      volume_purpose: 'training',
+      purpose: 'training',
     },
   });
 
@@ -314,7 +318,7 @@ describe('Edit Volume Asset', () => {
     cy.visit('/ai-hub/data/browse/assets/volume/test-project/default/training-docs');
     cy.wait('@getVolume');
 
-    cy.intercept('PUT', `${REGISTRY_API}/test-project/namespaces/default/volumes/training-docs`, {
+    cy.intercept('PATCH', `${REGISTRY_API}/test-project/namespaces/default/volumes/training-docs`, {
       body: volumeResponse,
     }).as('updateVolume');
 
@@ -329,8 +333,11 @@ describe('Edit Volume Asset', () => {
     editAssetModal.findSaveButton().click();
 
     cy.wait('@updateVolume').then((interception) => {
-      expect(interception.request.body).to.have.property('comment', 'Updated volume description');
-      expect(interception.request.body.properties).to.have.property('content-type', 'images');
+      expect(interception.request.body).to.have.property(
+        'description',
+        'Updated volume description',
+      );
+      expect(interception.request.body).to.have.property('format', 'images');
     });
   });
 
@@ -338,7 +345,7 @@ describe('Edit Volume Asset', () => {
     cy.visit('/ai-hub/data/browse/assets/volume/test-project/default/training-docs');
     cy.wait('@getVolume');
 
-    cy.intercept('PUT', `${REGISTRY_API}/test-project/namespaces/default/volumes/training-docs`, {
+    cy.intercept('PATCH', `${REGISTRY_API}/test-project/namespaces/default/volumes/training-docs`, {
       body: volumeResponse,
     }).as('updateVolume');
 
@@ -360,7 +367,7 @@ describe('Edit Volume Asset', () => {
     cy.visit('/ai-hub/data/browse/assets/volume/test-project/default/training-docs');
     cy.wait('@getVolume');
 
-    cy.intercept('PUT', `${REGISTRY_API}/test-project/namespaces/default/volumes/training-docs`, {
+    cy.intercept('PATCH', `${REGISTRY_API}/test-project/namespaces/default/volumes/training-docs`, {
       body: volumeResponse,
     }).as('updateVolume');
 
@@ -370,7 +377,7 @@ describe('Edit Volume Asset', () => {
     editAssetModal.findSaveButton().click();
 
     cy.wait('@updateVolume').then((interception) => {
-      expect(interception.request.body.properties).to.have.property('volume_purpose', '');
+      expect(interception.request.body).to.have.property('purpose', '');
     });
   });
 });

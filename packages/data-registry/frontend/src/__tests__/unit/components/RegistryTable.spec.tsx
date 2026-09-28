@@ -19,7 +19,7 @@ const mockAssets: RegistryAsset[] = [
   {
     name: 'raw-documents',
     description: 'PDF documents',
-    format: 'application/pdf',
+    format: 'documents',
     assetType: 'volume',
     location: 's3://bucket/docs',
     connectionRef: '',
@@ -58,8 +58,8 @@ describe('RegistryTable', () => {
 
   it('should render format badges', () => {
     renderTable();
-    expect(screen.getByText('parquet')).toBeTruthy();
-    expect(screen.getByText('application/pdf')).toBeTruthy();
+    expect(screen.getByText('Apache Parquet')).toBeTruthy();
+    expect(screen.getByText('Documents')).toBeTruthy();
   });
 
   it('should render labels', () => {
