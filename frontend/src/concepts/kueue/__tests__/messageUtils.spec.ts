@@ -286,7 +286,7 @@ describe('getRequeuedMessage', () => {
       queueName: 'test-queue',
       message: 'insufficient unused quota',
     });
-    expect(result).toContain('attempt 3');
+    expect(result).toContain('Attempt 3');
     expect(result).toContain('test-queue');
   });
 
@@ -296,8 +296,7 @@ describe('getRequeuedMessage', () => {
       requeueInfo: { count: 3, requeueAt: '2026-07-23T05:00:00.000Z' },
       queueName: 'test-queue',
     });
-    expect(result).toContain('attempt 3');
-    expect(result).toContain('next retry at');
+    expect(result).toMatch(/\(Attempt 3, next retry at \d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}\)/);
   });
 
   it('should include only next retry time when count is zero', () => {
@@ -306,8 +305,7 @@ describe('getRequeuedMessage', () => {
       requeueInfo: { count: 0, requeueAt: '2026-07-23T05:00:00.000Z' },
       queueName: 'test-queue',
     });
-    expect(result).not.toContain('attempt');
-    expect(result).toContain('next retry at');
+    expect(result).toMatch(/\(Next retry at \d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}\)/);
   });
 
   it('should return base queue message when no requeueInfo', () => {
@@ -322,7 +320,7 @@ describe('getRequeuedMessage', () => {
       status: KueueWorkloadStatus.Requeued,
       requeueInfo: { count: 5 },
     });
-    expect(result).toBe('Waiting for quota in the queue (attempt 5)');
+    expect(result).toBe('Waiting for quota in the queue (Attempt 5)');
   });
 });
 
@@ -512,7 +510,7 @@ describe('getKueueSubStepInfo', () => {
   });
 
   describe('queue position', () => {
-    it('appends ordinal position to label when Queued and position is provided', () => {
+    it('shows only ordinal position when Queued and position is provided', () => {
       const result = getKueueSubStepInfo(
         KueueWorkloadStatus.Queued,
         undefined,
@@ -520,10 +518,10 @@ describe('getKueueSubStepInfo', () => {
         false,
         3,
       );
-      expect(result.label).toContain('3rd in my-queue');
+      expect(result.label).toBe('3rd in my-queue');
     });
 
-    it('does not append position for non-Queued statuses', () => {
+    it('shows only ordinal position for Inadmissible when position is provided', () => {
       const result = getKueueSubStepInfo(
         KueueWorkloadStatus.Inadmissible,
         'LocalQueue does not exist',
@@ -531,7 +529,7 @@ describe('getKueueSubStepInfo', () => {
         false,
         3,
       );
-      expect(result.label).not.toContain('in queue');
+      expect(result.label).toBe('3rd in my-queue');
     });
   });
 });
@@ -561,7 +559,7 @@ describe('getDeploymentKueueSubStepMessage', () => {
     });
     expect(result).toMatch(/^Requeued: /);
     expect(result).not.toMatch(/^Queued: /);
-    expect(result).toContain('attempt 2');
+    expect(result).toContain('Attempt 2');
     expect(result).toContain('test-queue');
   });
 

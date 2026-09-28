@@ -207,7 +207,54 @@ describe('Start Notebook modal', () => {
     );
 
     const statusLabel = screen.getByTestId('notebook-latest-status');
-    expect(statusLabel).toHaveTextContent('attempt 2');
+    expect(statusLabel).toHaveTextContent('Attempt 2');
+  });
+
+  it('should show only queue position in modal header when queue position is available', () => {
+    const mockData = mockInitialStates;
+    render(
+      <StartNotebookModal
+        notebook={mockData.notebookState.notebook}
+        notebookStatus={mockData.notebookStatus}
+        isStarting={false}
+        isStopping={false}
+        isRunning
+        events={[]}
+        kueueStatus={{
+          status: KueueWorkloadStatus.Queued,
+          message: 'insufficient unused quota',
+          queueName: 'test-queue',
+          queuePosition: 1,
+        }}
+        buttons={null}
+      />,
+    );
+
+    expect(screen.getByTestId('notebook-latest-status')).toHaveTextContent('1st in test-queue');
+    expect(screen.getByTestId('notebook-latest-status')).not.toHaveTextContent('Waiting for quota');
+  });
+
+  it('should keep quota message in modal header when queue position is unavailable', () => {
+    const mockData = mockInitialStates;
+    render(
+      <StartNotebookModal
+        notebook={mockData.notebookState.notebook}
+        notebookStatus={mockData.notebookStatus}
+        isStarting={false}
+        isStopping={false}
+        isRunning
+        events={[]}
+        kueueStatus={{
+          status: KueueWorkloadStatus.Queued,
+          queueName: 'test-queue',
+        }}
+        buttons={null}
+      />,
+    );
+
+    expect(screen.getByTestId('notebook-latest-status')).toHaveTextContent(
+      'Waiting for quota in test-queue',
+    );
   });
 
   it.each([

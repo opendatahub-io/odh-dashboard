@@ -98,10 +98,7 @@ export const getStatusSubtitle = ({
       (kueueStatus.status === KueueWorkloadStatus.Queued ||
         kueueStatus.status === KueueWorkloadStatus.Inadmissible)
     ) {
-      return `${message} (${formatQueuePosition(
-        kueueStatus.queuePosition,
-        kueueStatus.queueName,
-      )})`;
+      return formatQueuePosition(kueueStatus.queuePosition, kueueStatus.queueName);
     }
     return message;
   }
