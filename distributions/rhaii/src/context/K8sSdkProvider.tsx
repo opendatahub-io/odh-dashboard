@@ -4,7 +4,7 @@ import { applyMiddleware, combineReducers, createStore, compose } from 'redux';
 import reduxThunk from 'redux-thunk';
 import type { PluginStore } from '@odh-dashboard/plugin-core';
 import { SDKReducers } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sSdkProvider as BaseK8sSdkProvider } from '../../../base/src/lib';
+import { K8sSdkProvider as BaseK8sSdkProvider } from '@odh-dashboard/base-distribution';
 
 const optionalMissingResources = [
   '/apis/template.openshift.io/v1/namespaces/',
