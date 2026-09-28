@@ -47,6 +47,29 @@ describe('AI Playground - Chatbot Interactions (Mocked)', () => {
     });
 
     it(
+      'shows the vision capability message in the audio mock namespace',
+      { tags: ['@GenAI', '@Chatbot', '@UI'] },
+      () => {
+        chatbotPage.visit('mock-audio-namespace');
+        cy.findByTestId('settings-model-selector-toggle').should(
+          'contain.text',
+          'Llama 3.1 8B Instruct',
+        );
+
+        cy.intercept('POST', '**/api/v1/lsd/files/media?namespace=mock-audio-namespace').as(
+          'uploadImage',
+        );
+        cy.findByTestId('vision-file-input').selectFile('../../favicon.png', { force: true });
+        cy.wait('@uploadImage').its('response.statusCode').should('eq', 200);
+
+        cy.findByTestId('vision-file-preview').should('exist');
+        cy.findByTestId('image-capability-alert')
+          .should('contain.text', 'Vision capability not tagged')
+          .and('contain.text', "This model isn't tagged for vision capabilities");
+      },
+    );
+
+    it(
       'should send message and receive bot response',
       { tags: ['@GenAI', '@Chatbot', '@Interaction'] },
       () => {
