@@ -10,6 +10,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -798,7 +799,7 @@ func (c *LlamaStackClient) ProcessFile(ctx context.Context, fileID string) (*Pro
 		}
 
 		request, err := http.NewRequestWithContext(ctx, http.MethodGet,
-			strings.TrimRight(c.baseURL, "/")+"/v1alpha/file-processors/jobs/"+payload.JobID, nil)
+			strings.TrimRight(c.baseURL, "/")+"/v1alpha/file-processors/jobs/"+url.PathEscape(payload.JobID), nil)
 		if err != nil {
 			return nil, fmt.Errorf("create file processor status request: %w", err)
 		}

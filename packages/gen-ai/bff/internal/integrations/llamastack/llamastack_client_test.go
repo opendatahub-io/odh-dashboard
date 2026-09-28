@@ -155,6 +155,32 @@ func TestProcessFile(t *testing.T) {
 		assert.Equal(t, "First page\nSecond page", document.Text)
 	})
 
+	t.Run("escapes the processor job ID in the polling URL", func(t *testing.T) {
+		var requests int
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			requests++
+			switch requests {
+			case 1:
+				_, err := w.Write([]byte(`{"job_id":"job/123?secret#fragment","status":"in_progress"}`))
+				require.NoError(t, err)
+			case 2:
+				assert.Equal(t, "/v1alpha/file-processors/jobs/job%2F123%3Fsecret%23fragment", r.URL.EscapedPath())
+				assert.Empty(t, r.URL.RawQuery)
+				_, err := w.Write([]byte(`{"job_id":"job/123?secret#fragment","status":"completed","result":{"chunks":[{"content":"Processed"}]}}`))
+				require.NoError(t, err)
+			default:
+				t.Fatalf("unexpected request %d", requests)
+			}
+		}))
+		defer server.Close()
+
+		client := NewLlamaStackClient(server.URL, "user-token", false, nil, "/v1")
+		document, err := client.ProcessFile(context.Background(), "file-123")
+
+		require.NoError(t, err)
+		assert.Equal(t, "Processed", document.Text)
+	})
+
 	t.Run("attributes processor failures to OGX", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			http.Error(w, "processor unavailable", http.StatusServiceUnavailable)

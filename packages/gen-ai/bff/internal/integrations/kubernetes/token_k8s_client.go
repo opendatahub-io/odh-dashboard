@@ -94,14 +94,16 @@ const (
 	ogxRouterCABundleName    = "ogx-router-ca-bundle"
 
 	officeMIMETypesConfigMapContents = `import mimetypes
+import os
 
 # Preserve OGX's optional OpenTelemetry auto-instrumentation hook when it is
 # available in the image. Python imports this module after the standard site
 # initialization, so importing the original hook here keeps both customizations.
-try:
-    from opentelemetry.instrumentation.auto_instrumentation import sitecustomize as _otel_sitecustomize
-except ImportError:
-    pass
+if os.environ.get("ODH_ENABLE_TRACING", "").lower() == "true":
+    try:
+        from opentelemetry.instrumentation.auto_instrumentation import sitecustomize as _otel_sitecustomize
+    except ImportError:
+        pass
 
 mimetypes.add_type("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx")
 mimetypes.add_type("application/vnd.openxmlformats-officedocument.presentationml.presentation", ".pptx")
@@ -109,6 +111,7 @@ mimetypes.add_type("application/vnd.openxmlformats-officedocument.presentationml
 )
 
 func newOfficeMIMETypesConfigMap(namespace string) *corev1.ConfigMap {
+	immutable := true
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.OfficeMIMETypesConfigMapName,
@@ -122,13 +125,17 @@ func newOfficeMIMETypesConfigMap(namespace string) *corev1.ConfigMap {
 		Data: map[string]string{
 			constants.OfficeMIMETypesConfigMapKey: officeMIMETypesConfigMapContents,
 		},
+		Immutable: &immutable,
 	}
 }
 
-func officeMIMETypesWorkloadOverrides() ([]corev1.EnvVar, []corev1.Volume, []corev1.VolumeMount) {
+func officeMIMETypesWorkloadOverrides(enableTracing bool) ([]corev1.EnvVar, []corev1.Volume, []corev1.VolumeMount) {
 	return []corev1.EnvVar{{
 			Name:  "PYTHONPATH",
 			Value: constants.OfficeMIMETypesMountPath,
+		}, {
+			Name:  "ODH_ENABLE_TRACING",
+			Value: strconv.FormatBool(enableTracing),
 		}}, []corev1.Volume{{
 			Name: constants.OfficeMIMETypesConfigMapName,
 			VolumeSource: corev1.VolumeSource{
@@ -145,6 +152,14 @@ func officeMIMETypesWorkloadOverrides() ([]corev1.EnvVar, []corev1.Volume, []cor
 			MountPath: constants.OfficeMIMETypesMountPath,
 			ReadOnly:  true,
 		}}
+}
+
+func isTrustedOfficeMIMETypesConfigMap(configMap *corev1.ConfigMap) bool {
+	if configMap == nil || len(configMap.Data) != 1 || len(configMap.BinaryData) != 0 {
+		return false
+	}
+
+	return configMap.Data[constants.OfficeMIMETypesConfigMapKey] == officeMIMETypesConfigMapContents
 }
 
 type modelDetailsResult struct {
@@ -1895,6 +1910,22 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 				}
 				return nil, rollbackPgvector(fmt.Errorf("failed to retrieve existing Office MIME types ConfigMap: %w", getErr))
 			}
+			if !isTrustedOfficeMIMETypesConfigMap(officeMIMETypesConfigMap) {
+				if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
+					kc.Logger.Warn("failed to clean up Llama Stack ConfigMap after rejecting an untrusted MIME ConfigMap", "error", deleteErr, "namespace", namespace)
+				}
+				return nil, rollbackPgvector(fmt.Errorf("existing Office MIME types ConfigMap has unexpected content"))
+			}
+			if officeMIMETypesConfigMap.Immutable == nil || !*officeMIMETypesConfigMap.Immutable {
+				immutable := true
+				officeMIMETypesConfigMap.Immutable = &immutable
+				if updateErr := kc.Client.Update(ctx, officeMIMETypesConfigMap); updateErr != nil {
+					if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
+						kc.Logger.Warn("failed to clean up Llama Stack ConfigMap after MIME ConfigMap immutability update failure", "error", deleteErr, "namespace", namespace)
+					}
+					return nil, rollbackPgvector(fmt.Errorf("failed to make existing Office MIME types ConfigMap immutable: %w", updateErr))
+				}
+			}
 		} else {
 			if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
 				kc.Logger.Warn("failed to clean up Llama Stack ConfigMap after MIME ConfigMap creation failure", "error", deleteErr, "namespace", namespace)
@@ -1987,7 +2018,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			corev1.ResourceMemory: resource.MustParse("12Gi"),
 		},
 	}
-	officeMIMEEnv, officeMIMEVolumes, officeMIMEVolumeMounts := officeMIMETypesWorkloadOverrides()
+	officeMIMEEnv, officeMIMEVolumes, officeMIMEVolumeMounts := officeMIMETypesWorkloadOverrides(enableTracing)
 	ogxServer := &ogxapi.OGXServer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      lsdName,
