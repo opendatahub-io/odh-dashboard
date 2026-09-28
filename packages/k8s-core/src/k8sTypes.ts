@@ -299,6 +299,7 @@ export type DashboardCommonConfig = {
   aiAssetCustomEndpoints?: boolean;
   mcpCatalog?: boolean;
   mcpRegistry?: boolean;
+  genAiMcpRegistryServers?: boolean;
   toolCalling?: boolean;
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;

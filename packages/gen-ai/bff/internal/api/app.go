@@ -52,6 +52,22 @@ func isStaticAsset(filePath string) bool {
 	return staticAssetPattern.MatchString(filePath)
 }
 
+func shouldTraceRequest(r *http.Request) bool {
+	return r.Header.Get("X-Session-ID") != "" || r.Header.Get(constants.TraceParentHeader) != ""
+}
+
+func bffSpanName(_ string, r *http.Request) string {
+	if r == nil {
+		return "gen-ai-bff"
+	}
+
+	spanPath := r.URL.Path
+	if spanPath == "" || spanPath == "/" {
+		return "gen-ai-bff"
+	}
+	return "gen-ai-bff " + r.Method + " " + spanPath
+}
+
 func cacheControlForStaticFile(filePath string) string {
 	if isHashedAsset(filePath) {
 		return "public, max-age=31536000, immutable"
@@ -633,9 +649,8 @@ func (app *App) Routes() http.Handler {
 	combinedMux.Handle("/", otelhttp.NewHandler(
 		app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))),
 		"gen-ai-bff",
-		otelhttp.WithSpanNameFormatter(func(_ string, _ *http.Request) string {
-			return "gen-ai-bff"
-		}),
+		otelhttp.WithFilter(shouldTraceRequest),
+		otelhttp.WithSpanNameFormatter(bffSpanName),
 	))
 
 	return combinedMux

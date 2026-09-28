@@ -1,4 +1,5 @@
 IMG ?= quay.io/opendatahub/odh-dashboard-operator:latest
+LOCALBIN ?= $(shell pwd)/bin
 
 .PHONY: all
 all: build
@@ -40,6 +41,16 @@ test-e2e: ## Run real-cluster E2E tests (requires KUBECONFIG, TEST_NAMESPACE, an
 	@test -n "$$TEST_GATEWAY_DOMAIN" || (echo "TEST_GATEWAY_DOMAIN must name the externally reachable Dashboard gateway host." && exit 1)
 	@test -f "$$KUBECONFIG" || (echo "KUBECONFIG must point to a regular file." && exit 1)
 	go test -v -count=1 -tags=e2e -timeout=30m $(E2E_TEST_ARGS) ./test/e2e/...
+
+.PHONY: test-e2e-chaos
+test-e2e-chaos: chaos-validate ## Run destructive operator-chaos E2E scenarios serially.
+	@test "$$TEST_ENABLE_CHAOS" = "true" || (echo "TEST_ENABLE_CHAOS=true is required." && exit 1)
+	@test -n "$$KUBECONFIG" || (echo "KUBECONFIG must point to a kubeconfig file." && exit 1)
+	@test -n "$$TEST_NAMESPACE" || (echo "TEST_NAMESPACE must name an existing namespace." && exit 1)
+	@test -n "$$TEST_GATEWAY_DOMAIN" || (echo "TEST_GATEWAY_DOMAIN must name the externally reachable Dashboard gateway host." && exit 1)
+	@test -n "$$TEST_OPERATOR_NAMESPACE" || (echo "TEST_OPERATOR_NAMESPACE must name the namespace containing dashboard-operator." && exit 1)
+	@test -f "$$KUBECONFIG" || (echo "KUBECONFIG must point to a regular file." && exit 1)
+	go test -v -count=1 -tags=e2e -timeout=45m -parallel=1 -run '^TestE2EOperatorChaos$$' ./test/e2e/...
 
 ##@ Build
 
@@ -145,7 +156,6 @@ chaos-validate: operator-chaos ## Validate chaos knowledge model and experiments
 
 ##@ Dependencies
 
-LOCALBIN ?= $(shell pwd)/bin
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
 

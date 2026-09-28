@@ -10,7 +10,7 @@ const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_GUARDRAILS_FLAG =
 const GEN_AI_ALL_FLAGS =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,agentConfigManagement=true,modelAsService=false';
 const GEN_AI_MCP_REGISTRY_FLAG =
-  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,mcpRegistry=true,modelAsService=false';
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,mcpRegistry=true,genAiMcpRegistryServers=true,modelAsService=false';
 
 class GenAiPlayground {
   navigate(projectName: string) {
