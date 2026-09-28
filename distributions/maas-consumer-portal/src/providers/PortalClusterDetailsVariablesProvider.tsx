@@ -17,7 +17,7 @@ const PortalClusterDetailsVariablesProvider: React.FC = () => {
     ]);
     return { ...details, channel: subscriptionStatus?.channel ?? 'Unknown' };
   }, []);
-  const { data: details } = useFetch(
+  const { data: details, loaded } = useFetch(
     fetchDetails,
     {
       apiServer: 'Unknown',
@@ -28,7 +28,7 @@ const PortalClusterDetailsVariablesProvider: React.FC = () => {
     { initialPromisePurity: true },
   );
 
-  return <ClusterDetailsVariablesProvider details={details} />;
+  return loaded ? <ClusterDetailsVariablesProvider details={details} /> : null;
 };
 
 export default PortalClusterDetailsVariablesProvider;
