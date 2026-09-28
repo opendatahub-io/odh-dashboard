@@ -1,4 +1,4 @@
-import { FormGroup, MenuItem } from '@patternfly/react-core';
+import { Divider, FormGroup, MenuItem } from '@patternfly/react-core';
 import * as React from 'react';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
@@ -12,7 +12,6 @@ import ProjectScopedToggleContent from '@odh-dashboard/ui-core/components/search
 import { BuildStatus } from '#~/pages/projects/screens/spawner/types';
 import {
   checkImageStreamAvailability,
-  compareImageStreamOrder,
   getImageStreamDisplayName,
   getRelatedVersionDescription,
   isCompatibleWithIdentifier,
@@ -20,6 +19,7 @@ import {
 import { ImageStreamKind } from '#~/k8sTypes';
 import { ImageStreamDropdownLabel } from '#~/pages/projects/screens/spawner/imageSelector/ImageStreamDropdownLabel';
 import { ScopedType } from '#~/pages/modelServing/screens/const.ts';
+import { compareImageStreamTier, getImageStreamTier } from './imageTierUtils';
 
 type ImageStreamSelectorProps = {
   currentProjectStreams?: ImageStreamKind[];
@@ -45,66 +45,81 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
 
   const filteredCurrentImageStreams =
     currentProjectStreams
-      ?.toSorted(compareImageStreamOrder)
+      ?.toSorted(compareImageStreamTier)
       .filter((imageStream) =>
         imageStream.metadata.name.toLowerCase().includes(searchImageStreamName.toLowerCase()),
       ) || [];
-  const filteredImageStreams = imageStreams
-    .toSorted(compareImageStreamOrder)
-    .filter((imageStream) =>
-      imageStream.metadata.name.toLowerCase().includes(searchImageStreamName.toLowerCase()),
-    );
+  const sortedImageStreams = imageStreams.toSorted(compareImageStreamTier);
+  const filteredImageStreams = sortedImageStreams.filter((imageStream) =>
+    imageStream.metadata.name.toLowerCase().includes(searchImageStreamName.toLowerCase()),
+  );
 
   const renderMenuItem = (
     imageStream: ImageStreamKind,
     index: number,
     scope: 'project' | 'global',
-  ) => (
-    <MenuItem
-      key={`${index}-${scope}-imageStream-${imageStream.metadata.name}`}
-      isSelected={
-        selectedImageStream &&
-        getImageStreamDisplayName(selectedImageStream) === getImageStreamDisplayName(imageStream) &&
-        selectedImageStream.metadata.namespace === imageStream.metadata.namespace
-      }
-      onClick={() => onImageStreamSelect(imageStream)}
-      icon={<ProjectScopedIcon isProject={scope === 'project'} alt="" />}
-      description={getRelatedVersionDescription(imageStream)}
-    >
-      <ImageStreamDropdownLabel
-        displayName={getImageStreamDisplayName(imageStream)}
-        compatible={
-          !!compatibleIdentifiers?.some((identifier) =>
-            isCompatibleWithIdentifier(identifier, imageStream),
-          )
-        }
-        content="hardware profile"
-      />
-    </MenuItem>
-  );
+  ) => {
+    const streams = scope === 'project' ? filteredCurrentImageStreams : filteredImageStreams;
+    const tier = getImageStreamTier(imageStream);
+    const startsNewTier = index > 0 && getImageStreamTier(streams[index - 1]) !== tier;
 
-  const options = imageStreams
-    .toSorted(compareImageStreamOrder)
-    .map((imageStream): SimpleSelectOption => {
-      const description = getRelatedVersionDescription(imageStream);
-      const displayName = getImageStreamDisplayName(imageStream);
-      const compatible = !!compatibleIdentifiers?.some((identifier) =>
-        isCompatibleWithIdentifier(identifier, imageStream),
-      );
-      return {
-        key: imageStream.metadata.name,
-        label: displayName,
-        description,
-        isDisabled: !checkImageStreamAvailability(imageStream, buildStatuses),
-        dropdownLabel: (
+    return (
+      <React.Fragment key={`${scope}-imageStream-${imageStream.metadata.name}`}>
+        {startsNewTier ? <Divider component="li" /> : null}
+        <MenuItem
+          isSelected={
+            selectedImageStream &&
+            getImageStreamDisplayName(selectedImageStream) ===
+              getImageStreamDisplayName(imageStream) &&
+            selectedImageStream.metadata.namespace === imageStream.metadata.namespace
+          }
+          onClick={() => onImageStreamSelect(imageStream)}
+          icon={<ProjectScopedIcon isProject={scope === 'project'} alt="" />}
+          description={getRelatedVersionDescription(imageStream)}
+        >
           <ImageStreamDropdownLabel
-            displayName={displayName}
-            compatible={compatible}
+            displayName={getImageStreamDisplayName(imageStream)}
+            tier={tier}
+            compatible={
+              !!compatibleIdentifiers?.some((identifier) =>
+                isCompatibleWithIdentifier(identifier, imageStream),
+              )
+            }
             content="hardware profile"
           />
-        ),
-      };
-    });
+        </MenuItem>
+      </React.Fragment>
+    );
+  };
+
+  const tiers = Array.from(new Set(sortedImageStreams.map(getImageStreamTier)));
+  const groupedOptions = tiers.map((tier) => ({
+    key: tier,
+    label: tier,
+    options: sortedImageStreams
+      .filter((imageStream) => getImageStreamTier(imageStream) === tier)
+      .map((imageStream): SimpleSelectOption => {
+        const description = getRelatedVersionDescription(imageStream);
+        const displayName = getImageStreamDisplayName(imageStream);
+        const compatible = !!compatibleIdentifiers?.some((identifier) =>
+          isCompatibleWithIdentifier(identifier, imageStream),
+        );
+        return {
+          key: imageStream.metadata.name,
+          label: displayName,
+          description,
+          isDisabled: !checkImageStreamAvailability(imageStream, buildStatuses),
+          dropdownLabel: (
+            <ImageStreamDropdownLabel
+              displayName={displayName}
+              tier={tier}
+              compatible={compatible}
+              content="hardware profile"
+            />
+          ),
+        };
+      }),
+  }));
 
   return (
     <FormGroup
@@ -160,7 +175,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
           id="workbench-image-stream-selection"
           dataTestId="workbench-image-stream-selection"
           aria-label="Select an image"
-          options={options}
+          groupedOptions={groupedOptions}
           placeholder="Select one"
           value={
             selectedImageStream?.metadata.namespace !== currentProject

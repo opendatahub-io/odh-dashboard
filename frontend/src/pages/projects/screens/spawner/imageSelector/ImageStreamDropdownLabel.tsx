@@ -1,20 +1,33 @@
 import * as React from 'react';
-import { Split, SplitItem, Label } from '@patternfly/react-core';
+import { Split, SplitItem, Label, Flex, FlexItem } from '@patternfly/react-core';
 
 export type ImageStreamDropdownLabelProps = {
   displayName: string;
   compatible: boolean;
+  tier: string;
   content?: React.ReactNode | string;
 };
 
 export const ImageStreamDropdownLabel: React.FC<ImageStreamDropdownLabelProps> = ({
   displayName,
   compatible,
+  tier,
   content,
 }) => (
-  <Split>
+  <Split hasGutter>
     <SplitItem>{displayName}</SplitItem>
     <SplitItem isFilled />
-    <SplitItem>{compatible && <Label color="blue">{content}</Label>}</SplitItem>
+    <SplitItem>
+      <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+        <FlexItem>
+          <Label>{tier}</Label>
+        </FlexItem>
+        {compatible ? (
+          <FlexItem>
+            <Label color="blue">{content}</Label>
+          </FlexItem>
+        ) : null}
+      </Flex>
+    </SplitItem>
   </Split>
 );
