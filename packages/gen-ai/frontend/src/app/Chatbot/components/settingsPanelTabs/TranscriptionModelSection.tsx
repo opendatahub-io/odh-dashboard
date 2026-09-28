@@ -8,6 +8,8 @@ import {
   EmptyState,
   EmptyStateBody,
   EmptyStateFooter,
+  Flex,
+  FlexItem,
   FormGroup,
   HelperText,
   HelperTextItem,
@@ -23,7 +25,7 @@ import {
   Spinner,
   Title,
 } from '@patternfly/react-core';
-import { PlusCircleIcon } from '@patternfly/react-icons';
+import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
@@ -239,58 +241,64 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
 
   return (
     <FormGroup fieldId="asr-model-selector" className="pf-v6-u-mt-md">
-      <Title headingLevel="h3" size="lg" className="pf-v6-u-mb-sm">
+      <Title headingLevel="h3" size="lg" className="pf-v6-u-mb-md">
         Transcription model
       </Title>
-      <Dropdown
-        isOpen={isDropdownOpen}
-        onSelect={(_, value) => {
-          if (typeof value === 'string') {
-            updateAsrModelEnabled(configId, true);
-            handleSelect(value);
-          }
-        }}
-        onOpenChange={setIsDropdownOpen}
-        toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-          <MenuToggle
-            ref={toggleRef}
-            id="asr-model-selector"
-            aria-label="Transcription model"
-            isDisabled={asrModels.length === 0}
-            isExpanded={isDropdownOpen}
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            data-testid="transcription-model-selector"
+      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+        <FlexItem flex={{ default: 'flex_1' }}>
+          <Dropdown
+            className="pf-v6-u-w-100"
+            isOpen={isDropdownOpen}
+            onSelect={(_, value) => {
+              if (typeof value === 'string') {
+                updateAsrModelEnabled(configId, true);
+                handleSelect(value);
+              }
+            }}
+            onOpenChange={setIsDropdownOpen}
+            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+              <MenuToggle
+                ref={toggleRef}
+                id="asr-model-selector"
+                aria-label="Transcription model"
+                isDisabled={asrModels.length === 0}
+                isExpanded={isDropdownOpen}
+                isFullWidth
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                data-testid="transcription-model-selector"
+              >
+                {toggleLabel}
+              </MenuToggle>
+            )}
+            shouldFocusToggleOnSelect
           >
-            {toggleLabel}
-          </MenuToggle>
-        )}
-        shouldFocusToggleOnSelect
-      >
-        <DropdownList>
-          {asrModels.map((model) => (
-            <DropdownItem key={model.model_id} value={model.model_id}>
-              {model.display_name || model.model_id}
-            </DropdownItem>
-          ))}
-        </DropdownList>
-      </Dropdown>
-      <div>
-        <Button variant="link" className="pf-v6-u-pl-0" onClick={() => setIsAllModelsOpen(true)}>
-          View all models
-        </Button>
-        {selectedAsrModel && (
-          <Button
-            variant="link"
-            onClick={handleRemove}
-            data-testid="remove-transcription-model-btn"
-          >
-            Remove
+            <DropdownList>
+              {asrModels.map((model) => (
+                <DropdownItem key={model.model_id} value={model.model_id}>
+                  {model.display_name || model.model_id}
+                </DropdownItem>
+              ))}
+            </DropdownList>
+          </Dropdown>
+        </FlexItem>
+        <FlexItem>
+          <Button variant="link" onClick={() => setIsAllModelsOpen(true)}>
+            View all models
           </Button>
-        )}
-      </div>
+        </FlexItem>
+      </Flex>
       <div aria-live="polite" aria-atomic="true">
         {helperContent && <HelperText className="pf-v6-u-mt-xs">{helperContent}</HelperText>}
       </div>
+      <Button
+        variant="link"
+        icon={<MinusCircleIcon />}
+        className="pf-v6-u-pl-0 pf-v6-u-mt-md"
+        onClick={handleRemove}
+        data-testid="remove-transcription-model-btn"
+      >
+        Remove
+      </Button>
       {allModels.find((m) => m.model_id === selectedAsrModel)?.model_source_type === 'maas' && (
         <SubscriptionDropdown
           selectedModel={selectedAsrModel}

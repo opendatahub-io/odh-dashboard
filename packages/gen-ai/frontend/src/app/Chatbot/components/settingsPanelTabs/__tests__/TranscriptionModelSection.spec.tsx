@@ -265,15 +265,25 @@ describe('TranscriptionModelSection', () => {
 
       const state = useChatbotConfigStore.getState();
       expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedAsrModel).toBe('whisper-large-v3');
-      expect(screen.getByRole('heading', { name: 'Transcription model' })).toHaveClass('pf-m-lg');
+      expect(screen.getByRole('heading', { name: 'Transcription model' })).toHaveClass(
+        'pf-v6-u-mb-md',
+      );
       expect(screen.getByTestId('transcription-model-selector')).toHaveTextContent(
         'Whisper Large V3',
       );
       expect(screen.getByTestId('transcription-model-selector')).toHaveAccessibleName(
         'Transcription model',
       );
-      expect(screen.getByRole('button', { name: 'View all models' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument();
+      const selectionRow = screen
+        .getByTestId('transcription-model-selector')
+        .closest('.pf-v6-l-flex');
+      expect(selectionRow).toContainElement(
+        screen.getByRole('button', { name: 'View all models' }),
+      );
+      expect(screen.getByTestId('transcription-model-selector')).toHaveClass('pf-m-full-width');
+      expect(
+        screen.getByRole('button', { name: 'Remove' }).querySelector('svg'),
+      ).toBeInTheDocument();
       expect(mockFireMisc).toHaveBeenCalledWith(PLAYGROUND_MULTIMODAL_EVENTS.ASR_MODEL_SELECTED, {
         modelName: 'Whisper Large V3',
         isDefaultModel: false,
@@ -289,9 +299,13 @@ describe('TranscriptionModelSection', () => {
       });
 
       renderWithContext();
-      expect(
-        screen.getByText('Audio is transcribed to text, then sent to Llama 3 8B.'),
-      ).toBeInTheDocument();
+      const explanation = screen.getByText(
+        'Audio is transcribed to text, then sent to Llama 3 8B.',
+      );
+      const remove = screen.getByRole('button', { name: 'Remove' });
+      expect(explanation.compareDocumentPosition(remove) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      );
     });
 
     it('opens all models while a model is selected', async () => {
