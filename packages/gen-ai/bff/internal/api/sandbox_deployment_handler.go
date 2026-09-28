@@ -335,17 +335,20 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		LlamaStackConfigMapName: lsCM.Name,
 		WrapperAppConfigMapName: waCM.Name,
 		Image:                   ogxImage,
-		MaaSGatewayURL:          app.config.MaaSURL,
-		AgentConfigJSON:         string(agentConfigJSON),
-		OGXModelID:              kubernetes.SandboxOGXModelID(profile.Spec.Model.ID),
-		ModelSourceType:         profile.Spec.Model.SourceType,
-		SystemPrompt:            systemPrompt,
-		MCPServersJSON:          string(mcpServersJSON),
-		VectorStoreIDsJSON:      string(vectorStoreIDsJSON),
-		MCPAuthSecrets:          mcpAuthSecrets,
-		ModelAuthSecret:         modelAuthSecret,
-		PgvectorHost:            app.config.PgvectorHost,
-		PgvectorSecretName:      app.config.PgvectorPasswordSecretName,
+		// Use the configured MaaS URL when present, otherwise derive the current
+		// cluster's MaaS gateway URL. This keeps deployed Sandboxes usable when
+		// MAAS_URL is not injected into the Gen AI BFF deployment.
+		MaaSGatewayURL:     app.resolveMaaSBaseURL(),
+		AgentConfigJSON:    string(agentConfigJSON),
+		OGXModelID:         kubernetes.SandboxOGXModelID(profile.Spec.Model.ID),
+		ModelSourceType:    profile.Spec.Model.SourceType,
+		SystemPrompt:       systemPrompt,
+		MCPServersJSON:     string(mcpServersJSON),
+		VectorStoreIDsJSON: string(vectorStoreIDsJSON),
+		MCPAuthSecrets:     mcpAuthSecrets,
+		ModelAuthSecret:    modelAuthSecret,
+		PgvectorHost:       app.config.PgvectorHost,
+		PgvectorSecretName: app.config.PgvectorPasswordSecretName,
 	}
 	if profile.Spec.Model.Authorization != nil {
 		sandboxOpts.MaaSSubscription = profile.Spec.Model.Authorization.MaaSSubscription
