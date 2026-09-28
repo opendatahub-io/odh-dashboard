@@ -238,7 +238,7 @@ export const waitForEvaluationRunComplete = (
       {
         method: 'GET',
         url: '/eval-hub/api/v1/evaluations/jobs',
-        qs: { namespace, limit: 100, offset: 0 },
+        qs: { namespace, limit: 100, offset: 0, name: runName },
       },
       `Check EvalHub evaluation ${runName}`,
     ).then((response) => {
