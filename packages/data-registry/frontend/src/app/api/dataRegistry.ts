@@ -65,7 +65,7 @@ const structuredAssetResponseSchema = z
     ...assetResponseBaseSchema,
     // eslint-disable-next-line camelcase
     asset_type: z.literal('table'),
-    format: z.enum(['iceberg', 'parquet', 'csv', 'delta', 'postgresql', 'milvus', 'other']),
+    format: z.string(),
   })
   .passthrough();
 
@@ -74,7 +74,7 @@ const unstructuredAssetResponseSchema = z
     ...assetResponseBaseSchema,
     // eslint-disable-next-line camelcase
     asset_type: z.literal('volume'),
-    format: z.enum(['documents', 'images', 'audio', 'video', 'binary', 'other']),
+    format: z.string(),
   })
   .passthrough();
 

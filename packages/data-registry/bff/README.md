@@ -157,8 +157,8 @@ authorization, data persistence, or business logic of its own. See
   `/api` segment is stripped before forwarding upstream, so `/api/v1/{project}/namespaces/{collection}/...`
   becomes upstream `/v1/{project}/namespaces/{collection}/...`, matching the vendored OpenAPI
   contract's own `/v1` root exactly. `project` is the RHOAI project (K8s namespace, used by the
-  upstream server for SAR) and `collection` is the Iceberg namespace within that project. The two
-  non-project-scoped routes (`/api/v1/config`) need no special-casing — they're
+  upstream server for SAR) and `collection` is the Iceberg namespace within that project. The
+  non-project-scoped route (`/api/v1/config`) needs no special-casing — it's
   just more paths under the same catchall.
 - **Auth**: the caller's bearer token (extracted by `InjectRequestIdentity` from the configured
   token header) is forwarded upstream as `Authorization: Bearer <token>` — rebuilt fresh from

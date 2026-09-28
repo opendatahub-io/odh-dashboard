@@ -32,9 +32,35 @@ describe('fetchGenericTable', () => {
       columns: null,
     });
   });
+
+  it('should preserve unknown format values in table responses', async () => {
+    mockRestGET.mockResolvedValue({
+      ...mockAssetResponse({ name: 'external-table' }),
+      format: 'external',
+    });
+
+    await expect(
+      fetchGenericTable('test-project', 'default', 'external-table'),
+    ).resolves.toMatchObject({
+      name: 'external-table',
+      format: 'external',
+    });
+  });
 });
 
 describe('fetchVolume', () => {
+  it('should preserve unknown format values in volume responses', async () => {
+    mockRestGET.mockResolvedValue({
+      ...mockVolumeInfo({ name: 'pdf-volume' }),
+      format: 'pdf',
+    });
+
+    await expect(fetchVolume('test-project', 'default', 'pdf-volume')).resolves.toMatchObject({
+      name: 'pdf-volume',
+      format: 'pdf',
+    });
+  });
+
   it('should reject non-string volume properties', async () => {
     mockRestGET.mockResolvedValue({
       ...mockVolumeInfo({ name: 'invalid-volume', storage_location: 's3://bucket/documents' }),

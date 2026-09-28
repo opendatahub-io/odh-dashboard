@@ -167,11 +167,17 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
         }
       });
 
+      const originalConnection = getConnectionDisplayValue(asset.connection_ref);
+      const connectionUpdate =
+        data.connection !== originalConnection
+          ? { connection_ref: getConnectionRef(data.connection, connections) }
+          : {};
+
       const commonUpdate = {
         description: data.description,
         format: data.format,
         storage_location: data.path || null,
-        connection_ref: getConnectionRef(data.connection, connections),
+        ...connectionUpdate,
         purpose: data.purpose,
         license: data.license,
         maturity: data.maturity,
@@ -220,7 +226,16 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
         setIsSubmitting(false);
       }
     },
-    [collection, connections, isTable, name, onSaved, originalLabels, project],
+    [
+      asset.connection_ref,
+      collection,
+      connections,
+      isTable,
+      name,
+      onSaved,
+      originalLabels,
+      project,
+    ],
   );
 
   return (
@@ -253,7 +268,7 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
               connectionsError={connectionsError}
             />
             <PropertiesSection />
-            <CustomPropertiesSection />
+            <CustomPropertiesSection isEditMode />
             {isTable ? <SchemaSection /> : null}
           </Form>
         </FormProvider>

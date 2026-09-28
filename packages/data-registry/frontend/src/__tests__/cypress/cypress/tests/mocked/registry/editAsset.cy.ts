@@ -78,6 +78,34 @@ describe('Edit Table Asset', () => {
     editAssetModal.findPurposeInput().should('have.value', 'fraud detection');
   });
 
+  it('should preserve an unchanged DCH connection reference', () => {
+    const dchTableResponse = mockAssetResponse({
+      name: 'dch-table',
+      connection_ref: { type: 'dch', id: 'dch-connection' },
+    });
+    cy.intercept(
+      'GET',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/dch-table`,
+      { body: dchTableResponse },
+    ).as('getDchTable');
+    cy.intercept(
+      'PATCH',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/dch-table`,
+      { body: dchTableResponse },
+    ).as('updateDchTable');
+
+    cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/dch-table');
+    cy.wait('@getDchTable');
+
+    cy.findByTestId('asset-actions-toggle').click();
+    cy.findByTestId('asset-action-edit').click();
+    editAssetModal.findSaveButton().click();
+
+    cy.wait('@updateDchTable').then((interception) => {
+      expect(interception.request.body).not.to.have.property('connection_ref');
+    });
+  });
+
   it('should edit description and save table', () => {
     cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
@@ -185,7 +213,7 @@ describe('Edit Table Asset', () => {
     });
   });
 
-  it('should add and remove custom properties', () => {
+  it('should add custom properties and preserve existing properties', () => {
     cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
@@ -206,14 +234,12 @@ describe('Edit Table Asset', () => {
     editAssetModal.findCustomPropertyKey(1).type('new-key');
     editAssetModal.findCustomPropertyValue(1).type('new-value');
 
-    editAssetModal.findCustomPropertyRemove(0).click();
-
     editAssetModal.findSaveButton().click();
 
     cy.wait('@updateTable').then((interception) => {
       expect(interception.request.body).to.have.property('properties');
+      expect(interception.request.body.properties).to.have.property('custom-key', 'custom-value');
       expect(interception.request.body.properties).to.have.property('new-key', 'new-value');
-      expect(interception.request.body.properties).to.not.have.property('custom-key');
     });
   });
 
@@ -247,23 +273,13 @@ describe('Edit Table Asset', () => {
     });
   });
 
-  it('should clear the final custom property', () => {
+  it('should disable custom property removal in edit mode', () => {
     cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
-    cy.intercept(
-      'PATCH',
-      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/claims-data`,
-      { body: tableResponse },
-    ).as('updateTable');
 
     cy.findByTestId('asset-actions-toggle').click();
     cy.findByTestId('asset-action-edit').click();
-    editAssetModal.findCustomPropertyRemove(0).click();
-    editAssetModal.findSaveButton().click();
-
-    cy.wait('@updateTable').then((interception) => {
-      expect(interception.request.body).to.have.property('properties').that.deep.equals({});
-    });
+    editAssetModal.findCustomPropertyRemove(0).should('be.disabled');
   });
 
   it('should close modal on cancel', () => {
