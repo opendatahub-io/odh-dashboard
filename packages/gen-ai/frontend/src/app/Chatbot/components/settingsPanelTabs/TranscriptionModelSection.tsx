@@ -5,6 +5,9 @@ import {
   Dropdown,
   DropdownItem,
   DropdownList,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateFooter,
   FormGroup,
   HelperText,
   HelperTextItem,
@@ -20,6 +23,7 @@ import {
   Spinner,
   Title,
 } from '@patternfly/react-core';
+import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
@@ -65,6 +69,7 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
   const [isAllModelsOpen, setIsAllModelsOpen] = React.useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const [staleWarning, setStaleWarning] = React.useState(false);
+  const addButtonRef = React.useRef<HTMLButtonElement>(null);
 
   const modelsLoaded = aiModelsLoaded && maasModelsLoaded;
 
@@ -92,7 +97,7 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
     updateSelectedAsrModel(configId, '');
     setStaleWarning(false);
     requestAnimationFrame(() => {
-      document.getElementById('asr-model-selector')?.focus();
+      addButtonRef.current?.focus();
     });
   }, [configId, updateAsrModelEnabled, updateSelectedAsrModel]);
 
@@ -124,11 +129,7 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
     );
   }
 
-  const toggleLabel = selectedAsrModel
-    ? getSelectedDisplayName(allModels, selectedAsrModel)
-    : asrModels.length > 0
-      ? 'Select a transcription model'
-      : 'No models tagged for audio transcription';
+  const toggleLabel = getSelectedDisplayName(allModels, selectedAsrModel);
 
   const mainModelDisplayName = selectedMainModel
     ? getLlamaModelDisplayName(selectedMainModel, aiModels)
@@ -189,6 +190,53 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
     </Modal>
   );
 
+  if (!isAsrModelEnabled || !selectedAsrModel) {
+    return (
+      <>
+        <Title headingLevel="h3" size="lg" className="pf-v6-u-mt-md pf-v6-u-mb-sm">
+          Transcription model
+        </Title>
+        <div
+          className="pf-v6-u-p-md"
+          style={{
+            border: '1px dashed var(--pf-t--global--border--color--default)',
+            borderRadius: 'var(--pf-t--global--border--radius--small)',
+            textAlign: 'center',
+          }}
+          data-testid="transcription-model-add-section"
+        >
+          {asrModels.length > 0 ? (
+            <Button
+              ref={addButtonRef}
+              variant="link"
+              icon={<PlusCircleIcon />}
+              onClick={() => setIsAllModelsOpen(true)}
+              data-testid="add-transcription-model-btn"
+            >
+              Add audio transcription model
+            </Button>
+          ) : (
+            <EmptyState headingLevel="h4" titleText="No models tagged for audio transcription">
+              <EmptyStateBody>
+                To enable audio transcription, tag a model with the audio capability in{' '}
+                <Link to="/ai-hub/models/registry">Model registry</Link>.
+              </EmptyStateBody>
+              <EmptyStateFooter>
+                <Button variant="link" onClick={() => setIsAllModelsOpen(true)}>
+                  View all models to select one manually
+                </Button>
+              </EmptyStateFooter>
+            </EmptyState>
+          )}
+          <div aria-live="polite" aria-atomic="true">
+            {helperContent && <HelperText className="pf-v6-u-mt-xs">{helperContent}</HelperText>}
+          </div>
+        </div>
+        {allModelsModal}
+      </>
+    );
+  }
+
   return (
     <FormGroup fieldId="asr-model-selector" className="pf-v6-u-mt-md">
       <Title headingLevel="h3" size="lg" className="pf-v6-u-mb-sm">
@@ -240,14 +288,6 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
           </Button>
         )}
       </div>
-      {asrModels.length === 0 && !selectedAsrModel && (
-        <HelperText>
-          <HelperTextItem>
-            To enable audio transcription, tag a model with the audio capability in{' '}
-            <Link to="/ai-hub/models/registry">Model registry</Link>.
-          </HelperTextItem>
-        </HelperText>
-      )}
       <div aria-live="polite" aria-atomic="true">
         {helperContent && <HelperText className="pf-v6-u-mt-xs">{helperContent}</HelperText>}
       </div>
