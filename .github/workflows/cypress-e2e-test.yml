@@ -1289,7 +1289,7 @@ jobs:
           setup-envtest use 1.29.3 --bin-dir /tmp/envtest-bins
 
           # Pre-populate each BFF's local bin so `make run` skips the download.
-          for bff_dir in packages/*/bff; do
+          for bff_dir in packages/*/bff distributions/*/bff; do
             [ -f "$bff_dir/Makefile" ] || continue
             mkdir -p "$bff_dir/bin"
             # Link the setup-envtest binary with the versioned name each Makefile expects
@@ -1297,8 +1297,24 @@ jobs:
               target="$bff_dir/bin/setup-envtest-${version}"
               [ -f "$target" ] || cp "$(which setup-envtest)" "$target"
             done
+            # Pre-run setup-envtest into this BFF's bin dir so $(shell ...) in Makefile finds binaries
+            "$bff_dir/bin/setup-envtest-release-0.19" use 1.29.3 --bin-dir "$bff_dir/bin" 2>/dev/null || true
           done
           echo "✅ setup-envtest and K8s 1.29.3 binaries ready"
+
+          # Pre-download Go toolchain if BFF Makefiles request a different version
+          # Makefiles set GOTOOLCHAIN=go<version-from-go.mod>; pre-fetch so make run doesn't stall
+          GO_MOD_VERSION=$(sed -n 's/^go //p' packages/gen-ai/bff/go.mod | head -1)
+          INSTALLED_VERSION=$(go env GOVERSION | sed 's/^go//')
+          if [ "$GO_MOD_VERSION" != "$INSTALLED_VERSION" ]; then
+            echo "⚠️ go.mod wants $GO_MOD_VERSION but installed is $INSTALLED_VERSION"
+            echo "Pre-fetching toolchain go${GO_MOD_VERSION}..."
+            GOTOOLCHAIN="go${GO_MOD_VERSION}" go version 2>&1 || echo "⚠️ Toolchain fetch failed — BFFs may fall back to $INSTALLED_VERSION"
+          fi
+
+          # Warm up Go module cache for one BFF so shared deps are cached for all
+          echo "📦 Warming Go module cache..."
+          (cd packages/gen-ai/bff && go mod download 2>&1) || echo "⚠️ go mod download had errors"
 
           # Set MAAS_API_URL from cluster domain so maas BFF skips oc auto-detection
           CLUSTER_DOMAIN=$(oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}' 2>/dev/null || true)
@@ -1308,6 +1324,25 @@ jobs:
           else
             echo "⚠️ Could not detect cluster domain — maas BFF will attempt auto-detection"
           fi
+
+      - name: Smoke-test BFF startup
+        run: |
+          echo "=== Smoke-testing gen-ai BFF prerequisites ==="
+          cd packages/gen-ai/bff
+          echo "--- Go version: $(go version) ---"
+          echo "--- GOTOOLCHAIN from env: $GOTOOLCHAIN ---"
+          echo "--- GOTOOLCHAIN Makefile will set: go$(sed -n 's/^go //p' go.mod) ---"
+          echo "--- go fmt ---"
+          make fmt 2>&1 || echo "❌ FAILED: go fmt"
+          echo "--- go vet ---"
+          make vet 2>&1 || echo "❌ FAILED: go vet"
+          echo "--- envtest ---"
+          make envtest 2>&1 || echo "❌ FAILED: envtest"
+          echo "--- uv ---"
+          make uv 2>&1 || echo "❌ FAILED: uv"
+          echo "--- Starting server (15s timeout) ---"
+          timeout 15 make run PORT=9199 LOG_LEVEL=debug MOCK_K8S_CLIENT=true MOCK_LS_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true MOCK_NEMO_CLIENT=true 2>&1 || echo "Server exited (code $?) — expected after timeout"
+          echo "=== Smoke test complete ==="
 
       - name: Run E2E Tests
         env:
@@ -1356,7 +1391,11 @@ jobs:
             echo "Running in non-admin mode - admin setup hooks will be skipped"
           fi
 
-          pnpm run test:cypress:e2e
+          # Run concurrently directly (without --hide 0) to expose server startup errors
+          npx concurrently -P -k -s first \
+            "pnpm cypress:server:e2e" \
+            "pnpm cypress:server:e2e:wait && cross-env CYPRESS_E2E_PROXY=true pnpm --filter odh-dashboard-frontend cypress:run:chrome" \
+            --
 
       - name: Upload test results
         if: always()
