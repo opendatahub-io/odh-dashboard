@@ -1,23 +1,22 @@
 /**
  * @jest-environment node
  */
-import {
-  apiClient,
-  unauthenticatedClient,
-  apiSchema,
-  expectError,
-  expectSuccess,
-} from '../helpers';
+import { apiClient, unauthenticatedClient, apiSchema, expectError } from '../helpers';
 
 describe('Core BFF Operator Subscription Status - OpenShift Platform', () => {
-  it('should return the operator channel', async () => {
+  it('should return 404 when the selected operator subscription is missing', async () => {
     const result = await apiClient.get('/api/operator-subscription-status');
-    expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/OperatorSubscriptionStatusResponse/content/application/json/schema',
-      status: 200,
+    const error = expectError(result, 404);
+    expect({ status: error.status, data: error.data, headers: error.headers }).toMatchContract(
+      apiSchema,
+      {
+        ref: '#/components/schemas/ErrorResponse',
+        status: 404,
+      },
+    );
+    expect(error.data).toMatchObject({
+      error: { code: 'NOT_FOUND' },
     });
-    const { response } = expectSuccess(result);
-    expect(response.data).toHaveProperty('channel');
   });
 
   it('should return 401 when no auth token is provided', async () => {
