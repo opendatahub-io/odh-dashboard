@@ -60,8 +60,8 @@ class NotebookRow extends TableRow {
   }
 
   findKueueAnomalyTooltip() {
-    this.findKueueAnomalyIndicator().should('exist').trigger('mouseenter');
-    return cy.findByRole('tooltip');
+    this.findKueueAnomalyIndicator().should('exist').click();
+    return cy.findByRole('dialog');
   }
 }
 
