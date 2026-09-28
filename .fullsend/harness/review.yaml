@@ -2,6 +2,14 @@ base: https://raw.githubusercontent.com/fullsend-ai/agents/91f61f3441baedf3f912c
 
 agent: agents/review.md
 
+# The inherited ODH review base pins an older fullsend-code image without Pi.
+image: ghcr.io/fullsend-ai/fullsend-sandbox@sha256:89fab08dd05f064b00fed382ea9082966ed1dbdb754043d1b2e3e02d19e16fa5
+
+# Enables the runner's run-scoped OpenAI provider; the inherited harness
+# already authorizes the Vertex-backed providers used by the subagents above.
+providers:
+  - openai
+
 skills:
   # This local skill replaces Fullsend's inherited pr-review with the
   # registry-driven dimensions orchestrator. ODH-owned reviewer skills are
