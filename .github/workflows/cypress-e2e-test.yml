@@ -1396,6 +1396,12 @@ jobs:
             echo "Running in non-admin mode - admin setup hooks will be skipped"
           fi
 
+          # Final port cleanup right before server start (minimizes race window with concurrent jobs)
+          for port in 4040 4000 9100 9102 9104 9106 9107 9108 9109 9110 9111 9112 9113; do
+            fuser -k $port/tcp 2>/dev/null || true
+          done
+          sleep 0.5
+
           # Run concurrently directly (without --hide 0) to expose server startup errors
           npx concurrently -P -k -s first \
             "pnpm cypress:server:e2e" \
