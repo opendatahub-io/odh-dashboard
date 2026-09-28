@@ -7,6 +7,7 @@ import { sortBenchmarksByName } from '~/app/utilities/benchmarkListFilters';
 import {
   getThresholdInputValue,
   getThresholdRequestValue,
+  isPercentageMetric,
   normalizeThreshold,
 } from '~/app/utilities/evaluationUtils';
 import { weightsToPercentages } from '~/app/utilities/weightDistributionUtils';
@@ -609,14 +610,21 @@ export function useCopySuiteForm({
 
           const updatedBenchmark = { ...b, [field]: value };
           if (field === 'primaryMetric' && typeof value === 'string' && value !== b.primaryMetric) {
-            updatedBenchmark.threshold = DEFAULT_SUITE_THRESHOLD;
+            const providerBenchmark = providers
+              .find((provider) => provider.resource.id === b.providerId)
+              ?.benchmarks?.find((benchmark) => benchmark.id === b.id);
+            updatedBenchmark.threshold = providerBenchmark?.pass_criteria
+              ? getThresholdInputValue(providerBenchmark.pass_criteria.threshold, value)
+              : isPercentageMetric(value)
+                ? DEFAULT_SUITE_THRESHOLD
+                : 0;
           }
           return updatedBenchmark;
         }),
         { shouldValidate: true },
       );
     },
-    [form],
+    [form, providers],
   );
 
   const applyBenchmarkSelection = React.useCallback(

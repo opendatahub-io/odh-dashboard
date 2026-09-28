@@ -974,7 +974,7 @@ describe('useCopySuiteForm', () => {
     );
   });
 
-  it('should reset a benchmark threshold when its primary metric changes', async () => {
+  it('should use the provider threshold converted for the selected metric', async () => {
     const rawSourceCollection: Collection = {
       ...sourceCollection,
       benchmarks: [
@@ -996,12 +996,85 @@ describe('useCopySuiteForm', () => {
 
     act(() => result.result.current.updateBenchmark(0, 'primaryMetric', 'mean_ttft_ms'));
     expect(result.result.current.benchmarks[0]).toEqual(
-      expect.objectContaining({ primaryMetric: 'mean_ttft_ms', threshold: 70 }),
+      expect.objectContaining({ primaryMetric: 'mean_ttft_ms', threshold: 250 }),
     );
 
     act(() => result.result.current.updateBenchmark(0, 'threshold', 12));
     act(() => result.result.current.updateBenchmark(0, 'primaryMetric', 'mean_ttft_ms'));
     expect(result.result.current.benchmarks[0].threshold).toBe(12);
+  });
+
+  it('should convert a provider threshold to the percentage scale for the selected metric', async () => {
+    const percentageProvider: Provider = {
+      resource: { id: 'provider-percentage' },
+      name: 'Percentage Provider',
+      benchmarks: [
+        {
+          id: 'benchmark-percentage',
+          name: 'Benchmark Percentage',
+          metrics: ['output_tokens_per_second', 'accuracy'],
+          primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+          pass_criteria: { threshold: 0.65 },
+        },
+      ],
+    };
+    const rawSourceCollection: Collection = {
+      ...sourceCollection,
+      benchmarks: [
+        {
+          id: 'benchmark-percentage',
+          provider_id: 'provider-percentage',
+          weight: 1,
+          primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+          pass_criteria: { threshold: 250 },
+        },
+      ],
+    };
+    const result = renderForm({
+      sourceCollection: rawSourceCollection,
+      providers: [percentageProvider],
+    });
+
+    await waitFor(() => expect(result.result.current.benchmarks).toHaveLength(1));
+
+    act(() => result.result.current.updateBenchmark(0, 'primaryMetric', 'accuracy'));
+    expect(result.result.current.benchmarks[0].threshold).toBe(65);
+  });
+
+  it('should use metric-specific fallback thresholds when the provider has no pass criterion', async () => {
+    const providerWithoutPassCriteria: Provider = {
+      ...rawMetricProvider,
+      benchmarks: [
+        {
+          ...rawMetricProvider.benchmarks![0],
+          metrics: ['output_tokens_per_second', 'mean_ttft_ms', 'accuracy'],
+          pass_criteria: undefined,
+        },
+      ],
+    };
+    const rawSourceCollection: Collection = {
+      ...sourceCollection,
+      benchmarks: [
+        {
+          id: 'benchmark-throughput',
+          provider_id: 'provider-raw',
+          weight: 1,
+          primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+        },
+      ],
+    };
+    const result = renderForm({
+      sourceCollection: rawSourceCollection,
+      providers: [providerWithoutPassCriteria],
+    });
+
+    await waitFor(() => expect(result.result.current.benchmarks).toHaveLength(1));
+
+    act(() => result.result.current.updateBenchmark(0, 'primaryMetric', 'mean_ttft_ms'));
+    expect(result.result.current.benchmarks[0].threshold).toBe(0);
+
+    act(() => result.result.current.updateBenchmark(0, 'primaryMetric', 'accuracy'));
+    expect(result.result.current.benchmarks[0].threshold).toBe(70);
   });
 
   it('should apply benchmark selection in alphabetical order regardless of key order', async () => {
