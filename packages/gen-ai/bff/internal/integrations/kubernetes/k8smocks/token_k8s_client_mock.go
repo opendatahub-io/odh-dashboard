@@ -900,10 +900,6 @@ func (m *TokenKubernetesClientMock) SetSandboxMCPAuthSecretsOwner(ctx context.Co
 	return m.TokenKubernetesClient.SetSandboxMCPAuthSecretsOwner(ctx, namespace, sandboxName, secretNames...)
 }
 
-func (m *TokenKubernetesClientMock) CreateMLflowRoleBinding(ctx context.Context, namespace string, sandboxName string) error {
-	return m.TokenKubernetesClient.CreateMLflowRoleBinding(ctx, namespace, sandboxName)
-}
-
 func (m *TokenKubernetesClientMock) RollbackSandboxDeployment(ctx context.Context, namespace string, resources k8s.SandboxDeploymentResources) {
 	m.TokenKubernetesClient.RollbackSandboxDeployment(ctx, namespace, resources)
 }

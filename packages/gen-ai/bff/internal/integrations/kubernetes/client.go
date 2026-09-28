@@ -84,7 +84,6 @@ type KubernetesClientInterface interface {
 	CreateSandboxMCPAuthSecret(ctx context.Context, namespace, serverID, authorization string) (*corev1.Secret, error)
 	CreateSandboxModelAuthSecret(ctx context.Context, namespace, apiKey string) (*corev1.Secret, error)
 	SetSandboxMCPAuthSecretsOwner(ctx context.Context, namespace, sandboxName string, secretNames ...string) error
-	CreateMLflowRoleBinding(ctx context.Context, namespace string, sandboxName string) error
 	RollbackSandboxDeployment(ctx context.Context, namespace string, resources SandboxDeploymentResources)
 
 	// Agent Deployment networking

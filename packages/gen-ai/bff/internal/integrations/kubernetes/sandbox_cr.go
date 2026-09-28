@@ -60,10 +60,6 @@ type SandboxCROptions struct {
 	PgvectorHost string
 	// PgvectorSecretName defaults to pgvector.CredentialsSecretName when empty.
 	PgvectorSecretName string
-	// MLflow — empty strings suppress the corresponding env var.
-	MLflowTrackingURI   string
-	MLflowPromptName    string
-	MLflowPromptVersion string
 }
 
 // SandboxSecretEnvVar maps a deployment-created Secret to a container environment variable.
@@ -248,16 +244,6 @@ func buildSandboxEnvVars(opts SandboxCROptions, namespace, pgvectorHost, pgvecto
 	}
 	if opts.ModelAuthSecret != nil {
 		vars = append(vars, sandboxEnvVarFromSecret(opts.ModelAuthSecret.Name, opts.ModelAuthSecret.SecretName, sandboxMCPAuthSecretKey))
-	}
-
-	if opts.MLflowTrackingURI != "" {
-		vars = append(vars, sandboxEnvVar("MLFLOW_TRACKING_URI", opts.MLflowTrackingURI))
-	}
-	if opts.MLflowPromptName != "" {
-		vars = append(vars, sandboxEnvVar("MLFLOW_PROMPT_NAME", opts.MLflowPromptName))
-	}
-	if opts.MLflowPromptVersion != "" {
-		vars = append(vars, sandboxEnvVar("MLFLOW_PROMPT_VERSION", opts.MLflowPromptVersion))
 	}
 
 	return vars

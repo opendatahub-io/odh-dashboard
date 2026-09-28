@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -20,7 +19,6 @@ type SandboxDeploymentResources struct {
 	WrapperAppConfigMapName string
 	MCPAuthSecretNames      []string
 	SandboxName             string
-	MLflowRoleBindingName   string
 	ServiceName             string
 	RouteName               string
 }
@@ -79,7 +77,6 @@ func (kc *TokenKubernetesClient) RollbackSandboxDeployment(
 	}{
 		{resources.RouteName, "Route", sandboxRoute(namespace, resources.RouteName)},
 		{resources.ServiceName, "Service", &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: resources.ServiceName, Namespace: namespace}}},
-		{resources.MLflowRoleBindingName, "RoleBinding", &rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: resources.MLflowRoleBindingName, Namespace: namespace}}},
 		{resources.SandboxName, "Sandbox", sandboxCR(namespace, resources.SandboxName)},
 		{resources.WrapperAppConfigMapName, "ConfigMap", &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: resources.WrapperAppConfigMapName, Namespace: namespace}}},
 		{resources.LlamaStackConfigMapName, "ConfigMap", &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: resources.LlamaStackConfigMapName, Namespace: namespace}}},

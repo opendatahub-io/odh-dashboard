@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,7 +25,6 @@ func newSandboxLifecycleClient(t *testing.T, objects ...client.Object) (*TokenKu
 	t.Helper()
 	scheme := runtime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))
-	require.NoError(t, rbacv1.AddToScheme(scheme))
 
 	restMapper := apimeta.NewDefaultRESTMapper(nil)
 	restMapper.Add(schema.GroupVersionKind{Group: sandboxGroup, Version: sandboxVersion, Kind: sandboxKind}, apimeta.RESTScopeNamespace)
@@ -52,7 +50,6 @@ func TestSandboxDeploymentDependentsHaveSandboxOwner(t *testing.T) {
 
 	require.NoError(t, kc.SetSandboxConfigMapsOwner(context.Background(), namespace, sandboxName, llamaConfig.Name, wrapperConfig.Name))
 	require.NoError(t, kc.SetSandboxMCPAuthSecretsOwner(context.Background(), namespace, sandboxName, mcpAuthSecret.Name))
-	require.NoError(t, kc.CreateMLflowRoleBinding(context.Background(), namespace, sandboxName))
 	require.NoError(t, kc.CreateSandboxService(context.Background(), namespace, sandboxName, map[string]string{"sandbox": sandboxName}))
 	_, err := kc.CreateSandboxRoute(context.Background(), namespace, sandboxName)
 	require.NoError(t, err)
@@ -76,10 +73,6 @@ func TestSandboxDeploymentDependentsHaveSandboxOwner(t *testing.T) {
 	require.NoError(t, fakeClient.Get(context.Background(), client.ObjectKey{Namespace: namespace, Name: mcpAuthSecret.Name}, secret))
 	assertSandboxOwner(t, secret.OwnerReferences)
 
-	rb := &rbacv1.RoleBinding{}
-	require.NoError(t, fakeClient.Get(context.Background(), client.ObjectKey{Namespace: namespace, Name: "mlflow-" + sandboxName}, rb))
-	assertSandboxOwner(t, rb.OwnerReferences)
-
 	svc := &corev1.Service{}
 	require.NoError(t, fakeClient.Get(context.Background(), client.ObjectKey{Namespace: namespace, Name: sandboxName + "-ext"}, svc))
 	assertSandboxOwner(t, svc.OwnerReferences)
@@ -97,7 +90,6 @@ func TestRollbackSandboxDeploymentDeletesCreatedResources(t *testing.T) {
 		WrapperAppConfigMapName: "wrapper-config",
 		MCPAuthSecretNames:      []string{"agent-mcp-auth-1234"},
 		SandboxName:             sandboxName,
-		MLflowRoleBindingName:   "mlflow-" + sandboxName,
 		ServiceName:             sandboxName + "-ext",
 		RouteName:               sandboxName,
 	}
@@ -107,7 +99,6 @@ func TestRollbackSandboxDeploymentDeletesCreatedResources(t *testing.T) {
 		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: resources.LlamaStackConfigMapName, Namespace: namespace}},
 		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: resources.WrapperAppConfigMapName, Namespace: namespace}},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: resources.MCPAuthSecretNames[0], Namespace: namespace}},
-		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: resources.MLflowRoleBindingName, Namespace: namespace}},
 		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: resources.ServiceName, Namespace: namespace}},
 		route,
 	)
@@ -118,7 +109,6 @@ func TestRollbackSandboxDeploymentDeletesCreatedResources(t *testing.T) {
 		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: resources.LlamaStackConfigMapName, Namespace: namespace}},
 		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: resources.WrapperAppConfigMapName, Namespace: namespace}},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: resources.MCPAuthSecretNames[0], Namespace: namespace}},
-		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: resources.MLflowRoleBindingName, Namespace: namespace}},
 		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: resources.ServiceName, Namespace: namespace}},
 		sandboxCR(namespace, resources.SandboxName),
 		sandboxRoute(namespace, resources.RouteName),

@@ -365,12 +365,6 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 	if profile.Spec.Model.Authorization != nil {
 		sandboxOpts.MaaSSubscription = profile.Spec.Model.Authorization.MaaSSubscription
 	}
-	if profile.Spec.Prompt != nil && profile.Spec.Prompt.Source == "mlflow" {
-		sandboxOpts.MLflowTrackingURI = app.mlflowExternalURL
-		sandboxOpts.MLflowPromptName = profile.Spec.Prompt.Name
-		sandboxOpts.MLflowPromptVersion = profile.Spec.Prompt.Version
-	}
-
 	// Create the Sandbox CR.
 	sandboxName, err = k8sClient.CreateSandboxCR(ctx, namespace, sandboxOpts)
 	if err != nil {
@@ -406,20 +400,6 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		rollback()
 		app.serverErrorResponse(w, r, err)
 		return
-	}
-
-	// Create the MLflow RoleBinding when the profile references an MLflow prompt.
-	if sandboxOpts.MLflowTrackingURI != "" {
-		if rbErr := k8sClient.CreateMLflowRoleBinding(ctx, namespace, sandboxName); rbErr != nil {
-			rollback()
-			if httpErr, ok := rbErr.(*integrations.HTTPError); ok && httpErr.StatusCode == 403 {
-				app.forbiddenResponse(w, r, httpErr.Message)
-				return
-			}
-			app.serverErrorResponse(w, r, rbErr)
-			return
-		}
-		resources.MLflowRoleBindingName = "mlflow-" + sandboxName
 	}
 
 	// Wait for the Sandbox controller to populate status.selector (required to target the pod
