@@ -18,17 +18,6 @@ const extensions: Extension[] = [
   } satisfies RouteExtension,
 
   {
-    type: 'app.navigation/href',
-    flags: { required: ['observabilityDashboard'] },
-    properties: {
-      id: 'portal-observability-dashboard',
-      title: 'Observability dashboard',
-      href: '/observe-and-monitor/dashboard',
-      path: '/observe-and-monitor/dashboard/*',
-      group: '4_dashboard',
-    },
-  },
-  {
     type: 'app.route',
     flags: { required: ['observabilityDashboard'] },
     properties: {
@@ -101,11 +90,22 @@ const extensions: Extension[] = [
     },
   } satisfies PatchExtension<NavPatch>,
   {
+    type: 'app.navigation/href',
+    flags: { required: ['observabilityDashboard'] },
+    properties: {
+      id: 'portal-observability-dashboard',
+      title: 'Observability dashboard',
+      href: '/observe-and-monitor/dashboard',
+      path: '/observe-and-monitor/dashboard/*',
+      group: '4_dashboard',
+    },
+  },
+  {
     type: 'app.patch',
     properties: {
       targetType: 'app.navigation/href',
       targetId: 'maas-governance-view',
-      patch: { section: null, group: '4_maas_governance' },
+      patch: { section: null, group: '5_maas_governance' },
     },
   } satisfies PatchExtension<NavPatch>,
 ];

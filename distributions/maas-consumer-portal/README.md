@@ -33,7 +33,7 @@ OC_PROJECT= ODH_APP= ODH_DASHBOARD_HOST= MOCK_USER=user@example.com MAAS_BFF_TAR
 
 `MOCK_USER` sets the identity header the mock BFF expects (`kubeflow-userid`). Use `user@example.com` — that is the mock user’s identity with RBAC bindings in the maas mock client.
 
-For certificate-verified cluster proxying, set `ODH_DASHBOARD_CA_FILE` to the PEM file for the CA that issued the Dashboard certificate. Without it, external-cluster mode does not verify the cluster certificate and withholds bearer-token headers. To explicitly allow token forwarding without TLS verification, set `ODH_ALLOW_INSECURE_TOKEN_FORWARDING=true`; the dev server prints a warning.
+For certificate-verified cluster proxying, set `ODH_DASHBOARD_CA_FILE` to the PEM file for the CA that issued the Dashboard certificate. By default, external-cluster mode follows the main frontend dev proxy and does not verify the cluster certificate.
 
 ### Mode B: External-cluster development (no port-forwards)
 
@@ -44,7 +44,7 @@ cd distributions/maas-consumer-portal
 OC_PROJECT=redhat-ods-applications ODH_APP=rhods-dashboard pnpm run start:dev:ext
 ```
 
-For ODH, use `OC_PROJECT=opendatahub ODH_APP=odh-dashboard`. `EXT_CLUSTER=true` defaults to those ODH values when `OC_PROJECT` and `ODH_APP` are omitted. Set `ODH_DASHBOARD_HOST` only if automatic Gateway/Route discovery does not find the Dashboard host. Set `ODH_DASHBOARD_CA_FILE` to enable certificate verification with your cluster CA; otherwise bearer-token headers are withheld unless `ODH_ALLOW_INSECURE_TOKEN_FORWARDING=true` is set.
+For ODH, use `OC_PROJECT=opendatahub ODH_APP=odh-dashboard`. `EXT_CLUSTER=true` defaults to those ODH values when `OC_PROJECT` and `ODH_APP` are omitted. Set `ODH_DASHBOARD_HOST` only if automatic Gateway/Route discovery does not find the Dashboard host. This mode follows the main frontend dev proxy's TLS behavior; set `ODH_DASHBOARD_CA_FILE` to enable certificate verification with your cluster CA.
 
 ### Mode C: Real cluster data via port-forwards
 

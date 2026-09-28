@@ -26,7 +26,7 @@ describe('checkAccess', () => {
 
     expect(checkResourceAccessMock).toHaveBeenCalledWith(
       expect.objectContaining({ namespace: 'my-project' }),
-      expect.any(Object),
+      expect.objectContaining({ onError: expect.any(Function) }),
     );
   });
 

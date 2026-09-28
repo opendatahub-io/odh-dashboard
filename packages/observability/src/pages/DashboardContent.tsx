@@ -12,6 +12,7 @@ import PersesVariables from '../perses/embeddable/PersesVariables';
 import useRelativeLinkHandler from '../hooks/useRelativeLinkHandler';
 import {
   buildDashboardUrl,
+  BASE_PATH,
   getDashboardDisplayName,
   hasClusterDetailsVariables,
   DASHBOARD_URL_PARAM,
@@ -36,7 +37,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
   dashboards,
   projectNames,
   persesProxyBasePath,
-  routeBasePath = '/observe-and-monitor/dashboard',
+  routeBasePath = BASE_PATH,
   browserBasePath = '',
   ClusterDetailsAdapter,
 }) => {

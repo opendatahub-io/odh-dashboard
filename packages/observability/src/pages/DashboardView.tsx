@@ -23,6 +23,7 @@ export type DashboardViewProps = {
   projects: NamespaceOption[];
   projectsLoaded: boolean;
   projectsLoadError?: Error;
+  projectsLoadErrorPage?: React.ReactNode;
   projectsForbiddenErrorPage?: React.ReactNode;
   persesProxyBasePath?: string;
   routeBasePath?: string;
@@ -41,6 +42,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   projects,
   projectsLoaded,
   projectsLoadError,
+  projectsLoadErrorPage,
   projectsForbiddenErrorPage,
   persesProxyBasePath,
   routeBasePath,
@@ -68,6 +70,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({
         : dashboardsLoadErrorPage;
     } else if (isForbiddenError(projectsLoadError)) {
       loadErrorPage = projectsForbiddenErrorPage;
+    } else {
+      loadErrorPage = projectsLoadErrorPage;
     }
 
     return (

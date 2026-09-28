@@ -81,6 +81,7 @@ const ObservabilityDashboard: React.FC = () => {
           administrator to request access.
         </AccessDenied>
       }
+      projectsLoadErrorPage={<ObservabilityUnavailable />}
       persesProxyBasePath={PERSES_PROXY_BASE_PATH}
       routeBasePath={DASHBOARD_ROUTE}
       browserBasePath={PORTAL_BASE_PATH}
