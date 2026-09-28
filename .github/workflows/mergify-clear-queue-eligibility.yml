@@ -1,0 +1,23 @@
+name: Clear Mergify queue eligibility on author push
+
+on:
+  pull_request_target:
+    types: [synchronize]
+
+jobs:
+  clear-mergify-lgtm:
+    permissions:
+      pull-requests: write
+    if: >
+      github.event.pull_request.base.ref == 'main' &&
+      contains(github.event.pull_request.labels.*.name, 'mergify-lgtm') &&
+      github.event.sender.login != 'mergify[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Remove mergify-lgtm after author push
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          gh pr edit "$PR_URL" --remove-label "mergify-lgtm"

@@ -118,7 +118,7 @@ export function runContractTests(options: ContractTestRunnerOptions = {}): Promi
         jestArgs.push('--reporters', 'default', 'jest-html-reporters');
       }
 
-      const testResult = spawnSync('npx', ['jest', ...jestArgs], {
+      const testResult = spawnSync('pnpm', ['exec', 'jest', ...jestArgs], {
         cwd: consumerDir,
         stdio: 'inherit',
         shell: true,

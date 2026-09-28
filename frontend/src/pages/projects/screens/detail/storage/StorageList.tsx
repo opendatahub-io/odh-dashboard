@@ -9,6 +9,7 @@ import DetailsSection from '#~/pages/projects/screens/detail/DetailsSection';
 import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
 import StorageTable from './StorageTable';
 import ClusterStorageModal from './ClusterStorageModal';
+import { useStorageContextType } from './useStorageContextType';
 
 const StorageList: React.FC = () => {
   const [isOpen, setOpen] = React.useState(false);
@@ -17,6 +18,8 @@ const StorageList: React.FC = () => {
     pvcs: { data: pvcs, loaded: pvcsLoaded, error: pvcsError, refresh: refreshPvcs },
   } = React.useContext(ProjectDetailsContext);
   const isPvcsEmpty = pvcs.length === 0;
+
+  const [storageContextTypes, storageContextTypesLoaded] = useStorageContextType();
 
   const refresh = () => {
     refreshPvcs();
@@ -72,7 +75,13 @@ const StorageList: React.FC = () => {
         }
       >
         {!isPvcsEmpty ? (
-          <StorageTable pvcs={pvcs} refresh={refresh} onAddPVC={() => setOpen(true)} />
+          <StorageTable
+            pvcs={pvcs}
+            refresh={refresh}
+            onAddPVC={() => setOpen(true)}
+            storageContextTypes={storageContextTypes}
+            storageContextTypesLoaded={storageContextTypesLoaded}
+          />
         ) : null}
       </DetailsSection>
       {isOpen ? (
@@ -83,6 +92,8 @@ const StorageList: React.FC = () => {
               refresh();
             }
           }}
+          storageContextTypes={storageContextTypes}
+          storageContextTypesLoaded={storageContextTypesLoaded}
         />
       ) : null}
     </>

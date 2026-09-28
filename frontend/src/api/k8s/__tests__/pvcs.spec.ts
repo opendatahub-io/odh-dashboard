@@ -249,6 +249,60 @@ describe('updatePvc', () => {
     });
   });
 
+  it('should update pvc and remove empty context type annotations', async () => {
+    const existingPvc = mockPVCK8sResource({
+      name: 'pvc',
+      namespace: 'namespace',
+      storage: '5Gi',
+      storageClassName: 'standard-csi',
+      displayName: 'Old Storage',
+      annotations: {
+        'dashboard.opendatahub.io/nim-subpath': 'models/foo',
+      },
+    });
+    const storageData: StorageData = {
+      name: 'pvc',
+      size: '5Gi',
+      contextTypeAnnotations: {
+        'dashboard.opendatahub.io/nim-subpath': '',
+      },
+    };
+
+    k8sUpdateResourceMock.mockResolvedValue(existingPvc);
+
+    await updatePvc(storageData, existingPvc, 'namespace');
+
+    const expectedPvc = {
+      ...existingPvc,
+      metadata: {
+        ...existingPvc.metadata,
+        annotations: {
+          'openshift.io/description': '',
+          'openshift.io/display-name': 'pvc',
+        },
+      },
+      spec: {
+        ...existingPvc.spec,
+        resources: {
+          requests: {
+            storage: '5Gi',
+          },
+        },
+      },
+      status: {
+        ...existingPvc.status,
+        phase: 'Pending',
+      },
+    };
+
+    expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
+      model: PVCModel,
+      fetchOptions: { requestInit: {} },
+      queryOptions: { queryParams: {} },
+      resource: expectedPvc,
+    });
+  });
+
   it('should update pvc and add model annotations', async () => {
     const existingPvc = mockPVCK8sResource({
       name: 'pvc',
@@ -360,8 +414,9 @@ describe('deletePvc', () => {
     k8sDeleteResourceMock.mockResolvedValue(mockK8sStatus);
     const result = await deletePvc('pvcName', 'namespace');
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: PVCModel,
-      queryOptions: { name: 'pvcName', ns: 'namespace' },
+      queryOptions: { name: 'pvcName', ns: 'namespace', queryParams: {} },
     });
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(result).toStrictEqual(mockK8sStatus);
@@ -372,8 +427,9 @@ describe('deletePvc', () => {
     k8sDeleteResourceMock.mockResolvedValue(mockK8sStatus);
     const result = await deletePvc('pvcName', 'namespace');
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: PVCModel,
-      queryOptions: { name: 'pvcName', ns: 'namespace' },
+      queryOptions: { name: 'pvcName', ns: 'namespace', queryParams: {} },
     });
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(result).toStrictEqual(mockK8sStatus);
@@ -384,8 +440,9 @@ describe('deletePvc', () => {
     await expect(deletePvc('pvcName', 'namespace')).rejects.toThrow('error1');
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: PVCModel,
-      queryOptions: { name: 'pvcName', ns: 'namespace' },
+      queryOptions: { name: 'pvcName', ns: 'namespace', queryParams: {} },
     });
   });
 });

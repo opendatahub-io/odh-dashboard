@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ActionGroup,
   Alert,
@@ -26,7 +26,12 @@ import AddModelsModal from '~/app/shared/AddModelsModal';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import { createAuthPolicy, updateAuthPolicy } from '~/app/api/auth-policies';
 import type { CreatePolicyRequest, UpdatePolicyRequest } from '~/app/types/auth-policies';
-import { MaaSAuthPolicy, MaaSModelRefSummary, MaaSSubscription } from '~/app/types/subscriptions';
+import {
+  MaaSAuthPolicy,
+  MaaSModelRefSummary,
+  MaaSSubscription,
+  SYSTEM_AUTHENTICATED_GROUP,
+} from '~/app/types/subscriptions';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import {
@@ -41,6 +46,7 @@ import {
   MaaSEvents,
 } from '~/app/types/event-tracking';
 import { getSectionUrl } from '~/app/utilities/maasGovernanceNavigation';
+import SystemAuthenticatedWarning from '~/app/shared/SystemAuthenticatedWarning';
 
 const policyFormSchema = z.object({
   groups: z.array(z.string()).min(1, 'One or more groups must be selected'),
@@ -244,6 +250,9 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
             createOptionMessage={(value) => `Add group "${value}"`}
             placeholder="Select groups or type to add a new group"
           />
+          {selectedGroupNames.includes(SYSTEM_AUTHENTICATED_GROUP) && (
+            <SystemAuthenticatedWarning />
+          )}
           {groupsValidationError && (
             <FormHelperText>
               <HelperText>
@@ -260,8 +269,9 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
             title="No models available"
             data-testid="policy-no-models-warning"
           >
-            There are no model endpoints available on the cluster. Deploy a model and create a
-            MaaSModelRef before creating an authorization policy.
+            There are no model endpoints available on the cluster. To create an authorization
+            policy, first deploy a model from the{' '}
+            <Link to="/ai-hub/models/deployments">Deployments page</Link> and create a MaaSModelRef.
           </Alert>
         ) : (
           <>

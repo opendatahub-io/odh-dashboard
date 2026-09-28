@@ -51,19 +51,22 @@
     ],
     "./k8sTypes": [
       "./src/k8sTypes.ts"
+    ],
+    "./utils/featureStoreObjects": [
+      "./src/utils/featureStoreObjects.tsx"
     ]
   },
   "dependencies": {
-    "@odh-dashboard/internal": "*",
-    "@odh-dashboard/k8s-core": "*",
-    "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/ui-core": "*",
+    "@odh-dashboard/internal": "workspace:*",
+    "@odh-dashboard/k8s-core": "workspace:*",
+    "@odh-dashboard/plugin-core": "workspace:*",
+    "@odh-dashboard/ui-core": "workspace:*",
     "yaml": "^2.9.0"
   },
   "devDependencies": {
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/jest-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
+    "@odh-dashboard/tsconfig": "workspace:*"
   },
   "peerDependencies": {
     "@patternfly/react-core": "^6",
@@ -75,6 +78,6 @@
     "react": "^18",
     "react-dom": "^18",
     "react-router": "^7",
-    "react-router-dom": "^7"
+    "react-router-dom": "^7.18.3"
   }
 }

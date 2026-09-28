@@ -1,3 +1,51 @@
+class RedirectConfirmModal {
+  find() {
+    return cy.findByTestId('redirect-confirm-modal');
+  }
+
+  assertModalVisible() {
+    return this.find().should('be.visible');
+  }
+
+  assertModalNotExists() {
+    cy.findByTestId('redirect-confirm-modal').should('not.exist');
+  }
+
+  findApplyRedirectButton() {
+    return this.find().findByTestId('apply-redirect-button');
+  }
+
+  clickApplyRedirect() {
+    return this.findApplyRedirectButton().click();
+  }
+
+  assertApplyRedirectButtonExists() {
+    return this.findApplyRedirectButton().should('exist');
+  }
+
+  assertApplyRedirectButtonNotExists() {
+    return this.find().findByTestId('apply-redirect-button').should('not.exist');
+  }
+
+  findContinueButton() {
+    return this.find().findByTestId('continue-button');
+  }
+
+  clickContinue() {
+    return this.findContinueButton().click();
+  }
+
+  findCancelButton() {
+    return this.find().findByTestId('cancel-button');
+  }
+
+  clickCancel() {
+    return this.findCancelButton().click();
+  }
+}
+
+const redirectConfirmModal = new RedirectConfirmModal();
+
 /**
  * Base class for workspace form page objects (create and edit).
  * Contains shared methods for interacting with the WorkspaceForm component.
@@ -73,6 +121,14 @@ class WorkspaceForm {
 
   assertWorkspaceName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findWorkspaceNameInput().should('have.value', name);
+  }
+
+  assertWorkspaceNameInputInvalid(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findWorkspaceNameInput().should('have.attr', 'aria-invalid', 'true');
+  }
+
+  assertWorkspaceNameInputValid(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findWorkspaceNameInput().should('not.have.attr', 'aria-invalid', 'true');
   }
 
   findNextButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -234,6 +290,24 @@ class WorkspaceForm {
     return this.findExtraFilter(filterKey).find('input[type="checkbox"]').should('not.be.checked');
   }
 
+  assertLabelFilterDisabled(
+    labelKey: string,
+    labelValue: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy
+      .findByTestId(`label-filter-${labelKey}-${labelValue}`)
+      .should('have.attr', 'aria-disabled', 'true');
+  }
+
+  assertLabelFilterEnabled(
+    labelKey: string,
+    labelValue: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy
+      .findByTestId(`label-filter-${labelKey}-${labelValue}`)
+      .should('have.attr', 'aria-disabled', 'false');
+  }
+
   assertLabelCategoryExists(labelKey: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findLabelCategory(labelKey).should('exist');
   }
@@ -280,6 +354,15 @@ class WorkspaceForm {
 
   findSummaryDiffNew(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('summary-diff-new');
+  }
+
+  /**
+   * Clicks Next and dismisses the redirect confirm modal by clicking "Keep Selection" (Continue).
+   * Use when navigating past a step that has a redirected or hidden option selected.
+   */
+  advancePastRedirectModal(): void {
+    this.clickNext();
+    redirectConfirmModal.clickContinue();
   }
 
   findRedirectSummaryIcon(step: number, suffix: string): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -442,4 +525,5 @@ class SecretsCreateModal {
 }
 
 export { WorkspaceForm };
+export { redirectConfirmModal };
 export const secretsCreateModal = new SecretsCreateModal();

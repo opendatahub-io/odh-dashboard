@@ -16,7 +16,7 @@ import {
 } from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
-import type { OgxCredentials } from '~/app/types';
+import type { LegacyRunCredentials } from '~/app/types';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -35,7 +35,7 @@ type ViewCodeModalProps = {
   onClose: () => void;
   patternName: string;
   responsesTemplate: ResponsesTemplate;
-  ogxCredentials?: OgxCredentials;
+  ogxCredentials?: LegacyRunCredentials;
 };
 
 const snippetTabs: {
@@ -65,7 +65,7 @@ const snippetTabs: {
   },
 ];
 
-const decodeCredentials = (ogxCredentials: OgxCredentials): SnippetCredentials => {
+const decodeCredentials = (ogxCredentials: LegacyRunCredentials): SnippetCredentials => {
   const decodedBaseUrl = atob(ogxCredentials.baseUrl);
   return {
     hostname: decodedBaseUrl.replace(/^https?:\/\//i, '').replace(/\/$/, ''),
@@ -82,7 +82,8 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
 }) => {
   const { namespace } = useParams();
   const { parameters } = useAutoragResultsContext();
-  const secretName = parameters?.ogx_secret_name ?? '';
+  const secretName =
+    typeof parameters?.ogx_secret_name === 'string' ? parameters.ogx_secret_name : '';
 
   const snippetParams: SnippetParams = React.useMemo(
     () => ({ template: responsesTemplate, secretName, namespace: namespace ?? '' }),

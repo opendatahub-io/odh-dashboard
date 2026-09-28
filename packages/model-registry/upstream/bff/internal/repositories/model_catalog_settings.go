@@ -31,6 +31,7 @@ var (
 	ErrCannotChangeDefaultSource = errors.New("cannot change the default source")
 	ErrCannotDeleteDefaultSource = errors.New("cannot delete the default source")
 	ErrCatalogIDTooLong          = errors.New("catalog source ID exceeds maximum length for secret name")
+	ErrCatalogIdInvalid          = errors.New("catalog source ID must contain at least one letter or digit")
 	ErrCannotChangeType          = errors.New("cannot change catalog source type")
 	ErrValidationFailed          = errors.New("validation failed")
 	ErrCatalogSourceConflict     = errors.New("catalog source was modified by another request")
@@ -82,6 +83,7 @@ func (r *ModelCatalogSettingsRepository) GetAllCatalogSourceConfigs(ctx context.
 	}
 
 	for _, c := range catalogMap {
+		stripHuggingFaceApiKeyForAPI(&c)
 		catalogSources.Catalogs = append(catalogSources.Catalogs, c)
 	}
 
@@ -139,6 +141,7 @@ func (r *ModelCatalogSettingsRepository) GetCatalogSourceConfig(ctx context.Cont
 		}
 	}
 
+	stripHuggingFaceApiKeyForAPI(result)
 	return result, nil
 }
 
@@ -174,9 +177,8 @@ func (r *ModelCatalogSettingsRepository) CreateCatalogSourceConfig(
 		yamlFileName = fmt.Sprintf("%s.yaml", payload.Id)
 		yamlContent[yamlFileName] = *payload.Yaml
 	case CatalogTypeHuggingFace:
-		// Only create secret if apiKey is provided
 		if payload.ApiKey != nil && *payload.ApiKey != "" {
-			secretName, err = createSecretForHuggingFace(ctx, client, namespace, payload.Id, *payload.ApiKey)
+			secretName, err = persistHuggingFaceApiKeyFromPayload(ctx, client, namespace, payload.Id, *payload.ApiKey)
 			if err != nil {
 				return nil, fmt.Errorf("failed to create secret for huggingface source: %w", err)
 			}
@@ -283,6 +285,7 @@ func (r *ModelCatalogSettingsRepository) UpdateCatalogSourceConfig(
 		userCM.Data = make(map[string]string)
 	}
 
+	clearApiKey := false
 	if !isOverridingDefault || existingUserSource != nil {
 		switch catalogType {
 		case CatalogTypeYaml:
@@ -294,25 +297,20 @@ func (r *ModelCatalogSettingsRepository) UpdateCatalogSourceConfig(
 			}
 
 		case CatalogTypeHuggingFace:
-			if payload.ApiKey != nil && *payload.ApiKey != "" {
-				if secretName != "" {
-					err := client.PatchSecret(ctx, namespace, secretName, map[string]string{
-						ApiKey: *payload.ApiKey,
-					})
-					if err != nil {
-						if apierrors.IsNotFound(err) {
-							secretName, err = createSecretForHuggingFace(ctx, client, namespace, sourceId, *payload.ApiKey)
-							if err != nil {
-								return nil, fmt.Errorf("failed to create replacement secret: %w", err)
-							}
-						} else {
-							return nil, fmt.Errorf("failed to patch secret '%s': %w", secretName, err)
-						}
+			if payload.ApiKey != nil {
+				if *payload.ApiKey == "" {
+					if err := r.ClearHuggingFaceCatalogSourceCredentials(ctx, client, namespace, sourceId); err != nil {
+						return nil, fmt.Errorf("failed to clear huggingface credentials: %w", err)
 					}
-				} else {
-					secretName, err = createSecretForHuggingFace(ctx, client, namespace, sourceId, *payload.ApiKey)
+					defaultCM, userCM, err = client.GetAllCatalogSourceConfigs(ctx, namespace)
 					if err != nil {
-						return nil, fmt.Errorf("failed to create secret: %w", err)
+						return nil, fmt.Errorf("failed to refetch catalog source configmaps: %w", err)
+					}
+					secretName = ""
+				} else {
+					secretName, err = persistHuggingFaceApiKeyFromPayload(ctx, client, namespace, sourceId, *payload.ApiKey)
+					if err != nil {
+						return nil, fmt.Errorf("failed to upsert huggingface api key secret: %w", err)
 					}
 				}
 			}
@@ -326,6 +324,7 @@ func (r *ModelCatalogSettingsRepository) UpdateCatalogSourceConfig(
 			payload,
 			secretName,
 			yamlFilePath,
+			clearApiKey,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to update catalog in yaml: %w", err)
@@ -409,6 +408,72 @@ func (r *ModelCatalogSettingsRepository) DeleteCatalogSourceConfig(
 	return catalogSourceToDelete, nil
 }
 
+func (r *ModelCatalogSettingsRepository) ClearHuggingFaceCatalogSourceCredentials(
+	ctx context.Context,
+	client k8s.KubernetesClientInterface,
+	namespace string,
+	catalogSourceId string,
+) error {
+	if err := validateCatalogId(catalogSourceId); err != nil {
+		return err
+	}
+
+	existingCatalog, err := r.GetCatalogSourceConfig(ctx, client, namespace, catalogSourceId)
+	if err != nil {
+		return err
+	}
+	if existingCatalog.Type != CatalogTypeHuggingFace {
+		return fmt.Errorf("%w: credentials can only be cleared for huggingface sources", ErrValidationFailed)
+	}
+
+	if err := deleteHuggingFaceApiKeySecret(ctx, client, namespace, catalogSourceId); err != nil {
+		return fmt.Errorf("failed to delete huggingface api key secret: %w", err)
+	}
+
+	_, userCM, err := client.GetAllCatalogSourceConfigs(ctx, namespace)
+	if err != nil {
+		return fmt.Errorf("failed to fetch catalog source configmaps: %w", err)
+	}
+
+	existingUserSource := FindCatalogSourceById(userCM.Data[k8s.CatalogSourceKey], catalogSourceId, false)
+	if existingUserSource == nil {
+		return nil
+	}
+
+	if userCM.Data == nil {
+		userCM.Data = make(map[string]string)
+	}
+
+	_, yamlFilePath := FindCatalogSourceProperties(userCM.Data[k8s.CatalogSourceKey], catalogSourceId)
+	payload := models.CatalogSourceConfigPayload{}
+	if existingCatalog.AllowedOrganization != nil {
+		payload.AllowedOrganization = existingCatalog.AllowedOrganization
+	}
+
+	updatedYAML, err := UpdateCatalogSourceInYAML(
+		userCM.Data[k8s.CatalogSourceKey],
+		catalogSourceId,
+		payload,
+		"",
+		yamlFilePath,
+		true,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to remove api key from catalog yaml: %w", err)
+	}
+	userCM.Data[k8s.CatalogSourceKey] = updatedYAML
+
+	err = client.UpdateCatalogSourceConfig(ctx, namespace, &userCM)
+	if err != nil {
+		if apierrors.IsConflict(err) {
+			return fmt.Errorf("%w: %v", ErrCatalogSourceConflict, err)
+		}
+		return fmt.Errorf("failed to update user configmap: %w", err)
+	}
+
+	return nil
+}
+
 func mergeCatalogSourceConfigs(defaultCatalog models.CatalogSourceConfig, userCatalog models.CatalogSourceConfig) models.CatalogSourceConfig {
 	mergedSource := defaultCatalog
 
@@ -480,13 +545,216 @@ func validateCatalogSourceConfigPayload(payload models.CatalogSourceConfigPayloa
 	return nil
 }
 
+func huggingFaceSecretNameForCatalogId(catalogId string) string {
+	modifiedSecretName := strings.ReplaceAll(catalogId, "_", "-")
+	return fmt.Sprintf("catalog-%s-apikey", modifiedSecretName)
+}
+
+func isHuggingFaceApiKeySecretName(value string) bool {
+	return strings.HasPrefix(value, "catalog-") && strings.HasSuffix(value, "-apikey")
+}
+
+func isRawHuggingFaceApiKey(value string) bool {
+	return strings.HasPrefix(value, "hf_")
+}
+
+func stripHuggingFaceApiKeyForAPI(config *models.CatalogSourceConfig) {
+	if config == nil || config.Type != CatalogTypeHuggingFace {
+		return
+	}
+	config.ApiKey = nil
+}
+
+func persistHuggingFaceApiKeyFromPayload(
+	ctx context.Context,
+	client k8s.KubernetesClientInterface,
+	namespace string,
+	catalogId string,
+	apiKeyValue string,
+) (string, error) {
+	rawToken, secretRef := classifyHuggingFaceApiKeyValue(apiKeyValue)
+	if rawToken != "" {
+		return upsertHuggingFaceApiKeySecret(ctx, client, namespace, catalogId, rawToken)
+	}
+	return secretRef, nil
+}
+
+func classifyHuggingFaceApiKeyValue(value string) (rawToken string, secretName string) {
+	if value == "" {
+		return "", ""
+	}
+	if isRawHuggingFaceApiKey(value) {
+		return value, ""
+	}
+	return "", value
+}
+
+func (r *ModelCatalogSettingsRepository) PrepareCatalogSourcePreviewRequest(
+	ctx context.Context,
+	client k8s.KubernetesClientInterface,
+	namespace string,
+	request *models.CatalogSourcePreviewRequest,
+) error {
+	if request.Type != CatalogTypeHuggingFace {
+		return nil
+	}
+
+	if request.Properties == nil {
+		request.Properties = make(map[string]interface{})
+	}
+
+	apiKey := ""
+	if apiKeyVal, ok := request.Properties[ApiKey]; ok {
+		if typed, ok := apiKeyVal.(string); ok {
+			apiKey = typed
+		}
+	}
+
+	// Caller-provided apiKey is forwarded as-is; catalog validates format and credentials.
+	if apiKey != "" {
+		return nil
+	}
+
+	if request.Id == "" {
+		return nil
+	}
+
+	secretName, err := resolveHuggingFaceApiKeySecretNameForSource(ctx, client, namespace, request.Id)
+	if err != nil {
+		return err
+	}
+	if secretName == "" {
+		return nil
+	}
+
+	return setPreviewHuggingFaceApiKeyFromSecret(ctx, client, namespace, request, secretName)
+}
+
+func setPreviewHuggingFaceApiKeyFromSecret(
+	ctx context.Context,
+	client k8s.KubernetesClientInterface,
+	namespace string,
+	request *models.CatalogSourcePreviewRequest,
+	secretName string,
+) error {
+	rawToken, err := readHuggingFaceApiKeyFromSecretByName(ctx, client, namespace, secretName)
+	if err != nil {
+		return fmt.Errorf("failed to read huggingface api key for preview: %w", err)
+	}
+	if rawToken == "" {
+		delete(request.Properties, ApiKey)
+		return nil
+	}
+	request.Properties[ApiKey] = rawToken
+	return nil
+}
+
+func readHuggingFaceApiKeyFromSecretByName(
+	ctx context.Context,
+	client k8s.KubernetesClientInterface,
+	namespace string,
+	secretName string,
+) (string, error) {
+	secret, err := client.GetSecret(ctx, namespace, secretName)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", nil
+		}
+		return "", fmt.Errorf("failed to look up secret '%s': %w", secretName, err)
+	}
+	return huggingFaceApiKeyFromSecret(secret), nil
+}
+
+func huggingFaceApiKeyFromSecret(secret *corev1.Secret) string {
+	if secret == nil {
+		return ""
+	}
+	if value, ok := secret.StringData[ApiKey]; ok && value != "" {
+		return value
+	}
+	if raw, ok := secret.Data[ApiKey]; ok && len(raw) > 0 {
+		return string(raw)
+	}
+	return ""
+}
+
+func resolveHuggingFaceApiKeySecretNameForSource(
+	ctx context.Context,
+	client k8s.KubernetesClientInterface,
+	namespace string,
+	catalogId string,
+) (string, error) {
+	defaultCM, userCM, err := client.GetAllCatalogSourceConfigs(ctx, namespace)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch catalog source configmaps: %w", err)
+	}
+
+	if secretName, _ := FindCatalogSourceProperties(userCM.Data[k8s.CatalogSourceKey], catalogId); secretName != "" {
+		return secretName, nil
+	}
+	if secretName, _ := FindCatalogSourceProperties(defaultCM.Data[k8s.CatalogSourceKey], catalogId); secretName != "" {
+		return secretName, nil
+	}
+
+	conventionalName := huggingFaceSecretNameForCatalogId(catalogId)
+	_, err = client.GetSecret(ctx, namespace, conventionalName)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", nil
+		}
+		return "", fmt.Errorf("failed to look up secret '%s': %w", conventionalName, err)
+	}
+	return conventionalName, nil
+}
+
+func upsertHuggingFaceApiKeySecret(
+	ctx context.Context,
+	client k8s.KubernetesClientInterface,
+	namespace string,
+	catalogId string,
+	apiKey string,
+) (string, error) {
+	if err := validateCatalogId(catalogId); err != nil {
+		return "", err
+	}
+
+	secretName := huggingFaceSecretNameForCatalogId(catalogId)
+	if len(secretName) > 253 {
+		return "", fmt.Errorf("%w: '%s' (max 238 characters for ID)", ErrCatalogIDTooLong, catalogId)
+	}
+
+	err := client.PatchSecret(ctx, namespace, secretName, map[string]string{
+		ApiKey: apiKey,
+	})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return createSecretForHuggingFace(ctx, client, namespace, catalogId, apiKey)
+		}
+		return "", fmt.Errorf("failed to patch secret '%s': %w", secretName, err)
+	}
+	return secretName, nil
+}
+
+func deleteHuggingFaceApiKeySecret(
+	ctx context.Context,
+	client k8s.KubernetesClientInterface,
+	namespace string,
+	catalogId string,
+) error {
+	secretName := huggingFaceSecretNameForCatalogId(catalogId)
+	err := client.DeleteSecret(ctx, namespace, secretName)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("failed to delete secret '%s': %w", secretName, err)
+	}
+	return nil
+}
+
 func createSecretForHuggingFace(ctx context.Context,
 	client k8s.KubernetesClientInterface,
 	namespace string,
 	catalogId string,
 	apiKey string) (string, error) {
-	modifiedSecretName := strings.ReplaceAll(catalogId, "_", "-")
-	secretName := fmt.Sprintf("catalog-%s-apikey", modifiedSecretName)
+	secretName := huggingFaceSecretNameForCatalogId(catalogId)
 
 	// limit for secretName is 253. so catalogId length should not exceed 238
 	if len(secretName) > 253 {
@@ -499,6 +767,7 @@ func createSecretForHuggingFace(ctx context.Context,
 			Namespace: namespace,
 			Labels: map[string]string{
 				"app.kubernetes.io/component": "model-catalog",
+				"hub.kubeflow.org/hf-source":  hfSourceLabelValue(catalogId),
 			},
 		},
 		Type: corev1.SecretTypeOpaque,
@@ -529,6 +798,51 @@ func deleteSecretForHuggingFace(ctx context.Context,
 	}
 }
 
+// hfSourceLabelValueMaxLen bounds hfSourceLabelValue's output to 63 characters,
+// the Kubernetes limit on label values.
+const hfSourceLabelValueMaxLen = 63
+
+// hfSourceLabelValue converts a catalog source ID into a value usable both as
+// the "hub.kubeflow.org/hf-source" label on the HuggingFace API key secret and
+// as the suffix of the HF_API_KEY_<SUFFIX> environment variable the catalog
+// service resolves the key from (see envVarSuffix in
+// catalog/internal/catalog/modelcatalog/hf_catalog.go). The two must stay in
+// sync: whatever normalization changes here should be mirrored there, and
+// vice versa.
+//
+// It uppercases the ID, replaces every character that is not A-Z, 0-9, or '_'
+// with '_', trims leading/trailing '_' (a Kubernetes label value must begin
+// and end with an alphanumeric), and truncates to hfSourceLabelValueMaxLen
+// characters (re-trimming any trailing '_' left by the truncation).
+// validateCatalogId already restricts source IDs to [a-z0-9_]+, so the only
+// normalization this performs in practice is uppercasing, trimming leading or
+// trailing underscores, and truncating IDs longer than 63 characters.
+func hfSourceLabelValue(id string) string {
+	var b strings.Builder
+	b.Grow(len(id))
+	for _, r := range strings.ToUpper(id) {
+		switch {
+		case r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '_':
+			b.WriteRune(r)
+		default:
+			b.WriteRune('_')
+		}
+	}
+	raw := b.String()
+
+	trimmed := strings.Trim(raw, "_")
+	if len(trimmed) > hfSourceLabelValueMaxLen {
+		trimmed = strings.TrimRight(trimmed[:hfSourceLabelValueMaxLen], "_")
+	}
+
+	// Degenerate case: the ID normalized to all underscores (e.g. "___").
+	// Fall back to the untrimmed form rather than returning "".
+	if trimmed == "" {
+		return raw
+	}
+	return trimmed
+}
+
 var validCatalogIdRegex = regexp.MustCompile(`^[a-z0-9_]+$`)
 
 func validateCatalogId(id string) error {
@@ -538,6 +852,10 @@ func validateCatalogId(id string) error {
 
 	if !validCatalogIdRegex.MatchString(id) {
 		return fmt.Errorf("invalid catalog ID: must contain only lowercase letters, numbers, and underscores")
+	}
+
+	if strings.Trim(id, "_") == "" {
+		return ErrCatalogIdInvalid
 	}
 
 	if len(id) > 238 {

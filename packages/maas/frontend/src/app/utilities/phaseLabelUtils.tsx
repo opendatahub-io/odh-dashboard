@@ -52,6 +52,8 @@ export const convertStringToPhaseStatus = (status: string | undefined): PhaseSta
       return PhaseStatus.UNAVAILABLE;
     case PhaseStatus.ACTIVE:
       return PhaseStatus.READY;
+    case PhaseStatus.READY:
+      return PhaseStatus.READY;
     case PhaseStatus.PENDING:
       return PhaseStatus.PENDING;
     case PhaseStatus.FAILED:

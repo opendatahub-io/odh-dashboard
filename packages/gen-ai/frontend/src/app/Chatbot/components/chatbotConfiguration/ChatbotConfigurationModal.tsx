@@ -34,7 +34,6 @@ import {
 import {
   computeEmbeddingModelStatus,
   isASROnlyModel,
-  isPlaygroundModelMatchForAIModel,
   splitLlamaModelId,
 } from '~/app/utilities/utils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
@@ -64,8 +63,6 @@ type ChatbotConfigurationModalProps = {
   /** Models that are already available in the playground,
    * passing this means that the modal will be in update mode */
   existingModels?: LlamaModel[];
-  /** Models that we want to be selected in the table besides the existing models */
-  extraSelectedModels?: AIModel[];
   /** Whether show the button in the modal to redirect to the playground after configuration */
   redirectToPlayground?: boolean;
   /** All available external vector store collections */
@@ -88,7 +85,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   lsdStatus,
   aiModels,
   existingModels = [],
-  extraSelectedModels,
   redirectToPlayground,
   allCollections,
   collectionsLoaded,
@@ -108,37 +104,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     [aiModels],
   );
 
-  const preSelectedModels = React.useMemo(() => {
-    if (existingModels.length > 0) {
-      const existingAIModels = allModels.filter((model) =>
-        existingModels.some((m) => isPlaygroundModelMatchForAIModel(m, model)),
-      );
-
-      if (extraSelectedModels && extraSelectedModels.length > 0) {
-        const filteredExtra = extraSelectedModels.filter((model) => !isASROnlyModel(model));
-        const extraSelectedModelsSet = new Set(filteredExtra.map((model) => model.model_name));
-        const merged = [
-          ...filteredExtra,
-          ...existingAIModels.filter((model) => !extraSelectedModelsSet.has(model.model_name)),
-        ];
-        return merged;
-      }
-      return existingAIModels;
-    }
-    return extraSelectedModels?.filter((model) => !isASROnlyModel(model)) ?? allModels;
-  }, [existingModels, extraSelectedModels, allModels]);
-
-  const availableModels = React.useMemo(
-    () =>
-      preSelectedModels.filter(
-        (model) => model.status === 'Running' || model.model_source_type === 'custom_endpoint',
-      ),
-    [preSelectedModels],
-  );
-
-  const [maxTokensMap, setMaxTokensMap] = React.useState<Map<string, number | undefined>>(
-    new Map(),
-  );
   const [embeddingDimensionMap, setEmbeddingDimensionMap] = React.useState<
     Map<string, number | undefined>
   >(new Map());
@@ -169,10 +134,10 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   }, [existingCollections, availableCollections, extraSelectedCollections]);
 
   const [selectedModels, setSelectedModels] = React.useState<AIModel[]>(() => {
-    // Start from available models (preserve duplicates) and add any embedding models
-    // required by pre-selected collections that are not already present.
-    const result = [...availableModels];
-    const existingNames = new Set(availableModels.map((m) => m.model_name));
+    // All non-embedding models are auto-selected (they're locked and auto-available
+    // via passthrough). Embedding models are added when a vector store requires them.
+    const result = allModels.filter((m) => m.model_type !== 'embedding');
+    const existingNames = new Set(result.map((m) => m.model_name));
     preSelectedCollections.forEach((c) => {
       const { id: normEmbedId } = splitLlamaModelId(c.embedding_model);
       const found = allModels.find((m) => {
@@ -206,20 +171,22 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const [selectedCollections, setSelectedCollections] =
     React.useState<ExternalVectorStoreSummary[]>(preSelectedCollections);
 
+  const isUpdate = !!lsdStatus;
+  const hasBffPassthroughProvider =
+    lsdStatus?.distributionConfig.providers.some((p) =>
+      p.provider_id?.startsWith('genai-bff-proxy'),
+    ) ?? false;
+
   const lockedModelNames = React.useMemo(() => {
+    // All models are locked — inference models are auto-available via passthrough
+    // and embedding models are managed implicitly by vector store selection.
+    // The user's only actionable choice is which vector stores to enable.
     const names = new Set<string>();
-    selectedCollections.forEach((c) => {
-      const { id: normEmbedId } = splitLlamaModelId(c.embedding_model);
-      const found = allModels.find((m) => {
-        const { id: normModelId } = splitLlamaModelId(m.model_id);
-        return m.model_id === c.embedding_model || normModelId === normEmbedId;
-      });
-      if (found) {
-        names.add(found.model_name);
-      }
+    allModels.forEach((m) => {
+      names.add(m.model_name);
     });
     return names;
-  }, [selectedCollections, allModels]);
+  }, [allModels]);
 
   const handleSetSelectedCollections = React.useCallback<
     React.Dispatch<React.SetStateAction<ExternalVectorStoreSummary[]>>
@@ -285,17 +252,10 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const [configuringPlayground, setConfiguringPlayground] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const [alertTitle, setAlertTitle] = React.useState<string>();
-  const [enableTracing, setEnableTracing] = React.useState(false);
+  const [enableTracing, setEnableTracing] = React.useState(
+    () => lsdStatus?.tracingEnabled ?? false,
+  );
 
-  const isUpdate = !!lsdStatus;
-
-  /**
-   * Handles changes to the max_tokens value for a specific model.
-   * Updates the maxTokensMap state with the new value, or removes the entry if undefined.
-   *
-   * @param modelName - The name of the model whose max_tokens value is being changed
-   * @param value - The new max_tokens value, or undefined to remove the limit
-   */
   const handleModelTypeChange = React.useCallback((modelName: string, value: string) => {
     setModelTypeMap((prev) => new Map(prev).set(modelName, value));
   }, []);
@@ -303,21 +263,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const handleEmbeddingDimensionChange = React.useCallback(
     (modelName: string, value: number | undefined) => {
       setEmbeddingDimensionMap((prev) => {
-        const newMap = new Map(prev);
-        if (value === undefined) {
-          newMap.delete(modelName);
-        } else {
-          newMap.set(modelName, value);
-        }
-        return newMap;
-      });
-    },
-    [],
-  );
-
-  const handleMaxTokensChange = React.useCallback(
-    (modelName: string, value: number | undefined) => {
-      setMaxTokensMap((prev) => {
         const newMap = new Map(prev);
         if (value === undefined) {
           newMap.delete(modelName);
@@ -342,8 +287,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
             setSelectedModels={setSelectedModels}
             modelTypeMap={modelTypeMap}
             onModelTypeChange={handleModelTypeChange}
-            maxTokensMap={maxTokensMap}
-            onMaxTokensChange={handleMaxTokensChange}
             embeddingDimensionMap={embeddingDimensionMap}
             onEmbeddingDimensionChange={handleEmbeddingDimensionChange}
             lockedModelNames={lockedModelNames}
@@ -371,8 +314,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
       selectedModels,
       modelTypeMap,
       handleModelTypeChange,
-      maxTokensMap,
-      handleMaxTokensChange,
       embeddingDimensionMap,
       handleEmbeddingDimensionChange,
       vectorStoresEnabled,
@@ -390,6 +331,31 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const isLastStep = currentStepIndex === activeSteps.length - 1;
   // True while we don't yet know if the collections step will be present
   const isStepsLoading = vectorStoresEnabled && !collectionsLoaded;
+  const existingTracingEnabled = lsdStatus?.tracingEnabled ?? false;
+
+  // When updating a playground that has the BFF passthrough provider, only
+  // vector store changes require an OGX restart (embedding models are implicitly
+  // managed by vector store selection). All other models are resolved per-request.
+  const hasChangesRequiringOgxRestart = React.useMemo(() => {
+    if (!isUpdate || !hasBffPassthroughProvider) {
+      return true;
+    }
+    const existingCollectionIds = new Set(existingCollections.map((vs) => vs.id));
+    const selectedCollectionIds = new Set(selectedCollections.map((c) => c.vector_store_id));
+    return (
+      (tracingEnabled && enableTracing !== existingTracingEnabled) ||
+      existingCollectionIds.size !== selectedCollectionIds.size ||
+      [...existingCollectionIds].some((id) => !selectedCollectionIds.has(id))
+    );
+  }, [
+    isUpdate,
+    hasBffPassthroughProvider,
+    existingCollections,
+    selectedCollections,
+    tracingEnabled,
+    enableTracing,
+    existingTracingEnabled,
+  ]);
 
   const goNext = () => setCurrentStepIndex((i) => Math.min(i + 1, activeSteps.length - 1));
   const goBack = () => setCurrentStepIndex((i) => Math.max(i - 1, 0));
@@ -410,6 +376,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     if (submitting) {
       return;
     }
+
     if (selectedModels.length === 0) {
       setAlertTitle('Select at least one model');
       const e = new Error(
@@ -444,13 +411,11 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
               : resolvedType === 'Transcription'
                 ? 'transcription'
                 : 'llm';
-          const maxTokens = maxTokensMap.get(model.model_name);
           const embeddingDimension = embeddingDimensionMap.get(model.model_name);
           return {
             model_name: isMaaS ? model.model_id : model.model_name,
             model_source_type: model.model_source_type,
             model_type: apiModelType,
-            ...(apiModelType === 'llm' && maxTokens !== undefined && { max_tokens: maxTokens }),
             ...(apiModelType === 'embedding' &&
               embeddingDimension !== undefined && { embedding_dimension: embeddingDimension }),
           };
@@ -536,7 +501,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     setError(undefined);
     setAlertTitle(undefined);
     setModelTypeMap(new Map());
-    setMaxTokensMap(new Map());
     setEmbeddingDimensionMap(new Map());
     fireFormTrackingEvent(isUpdate ? UPDATE_PLAYGROUND_EVENT_NAME : SETUP_PLAYGROUND_EVENT_NAME, {
       outcome: TrackingOutcome.cancel,
@@ -626,7 +590,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
             <Button
               variant="primary"
               onClick={onSubmit}
-              isDisabled={submitting}
+              isDisabled={submitting || !hasChangesRequiringOgxRestart}
               data-testid="modal-submit-button"
             >
               {isUpdate ? 'Configure' : 'Create'}

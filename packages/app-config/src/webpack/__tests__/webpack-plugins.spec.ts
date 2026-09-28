@@ -321,4 +321,95 @@ describe('OdhFederationPlugin share policy', () => {
       requiredVersion: '^1.0.0',
     });
   });
+
+  // RHOAIENG-83821: workspace images must compile with DEPLOYMENT_MODE=federated so remotes
+  // consume host-provided singletons (import: false) instead of bundling their own copies.
+  // moduleFederation.js maps `DEPLOYMENT_MODE === 'standalone'` -> isHost, so `federated` and
+  // `kubeflow` both produce a remote build (isHost: false). These tests lock that contract in
+  // for the full must-share module set, beyond the single `react` case above.
+  describe('federated remote must-share contract (RHOAIENG-83821)', () => {
+    // Every framework module the plugin must force to come from the host (allowFallback: false).
+    const MUST_COME_FROM_HOST = [
+      'react',
+      'react-dom',
+      'react-router',
+      'react-router-dom',
+      '@openshift/dynamic-plugin-sdk',
+      '@openshift/dynamic-plugin-sdk-utils',
+      '@patternfly/react-core',
+      '@patternfly/react-styles',
+    ];
+
+    beforeEach(() => {
+      // Re-seed the context package.json with the full must-share dependency set plus a
+      // fallback-allowed PatternFly module, so the plugin emits a share entry for each.
+      fs.writeFileSync(
+        path.join(root, 'package.json'),
+        JSON.stringify({
+          dependencies: {
+            react: '^18.3.1',
+            'react-dom': '^18.3.1',
+            'react-router': '^6.30.0',
+            'react-router-dom': '^6.30.0',
+            '@openshift/dynamic-plugin-sdk': '^5.0.1',
+            '@openshift/dynamic-plugin-sdk-utils': '^5.0.1',
+            '@patternfly/react-core': '~6.5.1',
+            '@patternfly/react-styles': '~6.5.1',
+            '@patternfly/react-table': '~6.5.1',
+          },
+        }),
+      );
+    });
+
+    it('forces every must-come-from-host module to import: false and not eager on a remote', () => {
+      new CapturePlugin({
+        name: 'maas',
+        isHost: false,
+        exposes: { './extensions': './src/odh/extensions' },
+      }).apply({ options: { context: root } });
+
+      expect(lastConfig).toBeDefined();
+      MUST_COME_FROM_HOST.forEach((moduleName) => {
+        expect(lastConfig?.shared[moduleName]).toEqual(
+          expect.objectContaining({ singleton: true, import: false }),
+        );
+        expect(lastConfig?.shared[moduleName].eager).toBeUndefined();
+      });
+      // Fallback-allowed PatternFly modules stay importable (remote can bundle its own copy).
+      expect(lastConfig?.shared['@patternfly/react-table'].import).toBeUndefined();
+    });
+
+    it('eager-bundles every must-come-from-host module and never sets import: false on the host', () => {
+      new CapturePlugin({ name: 'host', isHost: true }).apply({ options: { context: root } });
+
+      expect(lastConfig).toBeDefined();
+      MUST_COME_FROM_HOST.forEach((moduleName) => {
+        expect(lastConfig?.shared[moduleName]).toEqual(
+          expect.objectContaining({ singleton: true, eager: true }),
+        );
+        expect(lastConfig?.shared[moduleName].import).toBeUndefined();
+      });
+      // Fallback-allowed modules are not eager on the host.
+      expect(lastConfig?.shared['@patternfly/react-table'].eager).toBeUndefined();
+    });
+
+    it('sets import: false only on host-provided ODH packages, not federated-only ones', () => {
+      new CapturePlugin({
+        name: 'maas',
+        isHost: false,
+        exposes: { './extensions': './src/odh/extensions' },
+      }).apply({ options: { context: root } });
+
+      expect(lastConfig).toBeDefined();
+      // Host-provided ODH packages: remote must consume the host copy.
+      expect(lastConfig?.shared['@odh-dashboard/internal']).toEqual(
+        expect.objectContaining({ singleton: true, import: false }),
+      );
+      expect(lastConfig?.shared['@odh-dashboard/plugin-core'].import).toBe(false);
+      // Federated-only ODH packages keep their fallback (host does not own them).
+      expect(lastConfig?.shared['@odh-dashboard/maas']).toBeDefined();
+      expect(lastConfig?.shared['@odh-dashboard/maas'].import).toBeUndefined();
+      expect(lastConfig?.shared['@odh-dashboard/gen-ai'].import).toBeUndefined();
+    });
+  });
 });

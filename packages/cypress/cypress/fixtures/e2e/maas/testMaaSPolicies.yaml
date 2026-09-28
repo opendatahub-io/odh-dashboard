@@ -3,7 +3,6 @@ projectResourceName: 'test-maas-policies-deployment'
 singleModelName: 'test-maas-policies-model'
 singleModelDescription: 'Model for testing MaaS'
 connectionNameSuffix: '-connection'
-modelLocationURI: 'hf://facebook/opt-125m'
 policiesName: 'test-authorization-policy'
 policiesDescription: 'Test MaaS Authorization policies'
 policiesGroups: ['rhods-admins','rhods-users']

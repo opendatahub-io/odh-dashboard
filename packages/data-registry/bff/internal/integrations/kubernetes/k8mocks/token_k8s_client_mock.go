@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	k8s "github.com/opendatahub-io/data-registry/bff/internal/integrations/kubernetes"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -16,13 +17,18 @@ type TokenKubernetesClientMock struct {
 	*k8s.TokenKubernetesClient
 }
 
-func newMockedTokenKubernetesClientFromClientset(clientset kubernetes.Interface, logger *slog.Logger) k8s.KubernetesClientInterface {
+func newMockedTokenKubernetesClientFromClientset(
+	clientset kubernetes.Interface,
+	dynamicClient dynamic.Interface,
+	logger *slog.Logger,
+) k8s.KubernetesClientInterface {
 	return &TokenKubernetesClientMock{
 		TokenKubernetesClient: &k8s.TokenKubernetesClient{
 			SharedClientLogic: k8s.SharedClientLogic{
-				Client: clientset,
-				Logger: logger,
-				Token:  k8s.NewBearerToken(""), // Unused because impersonation is already handled in the client config
+				Client:        clientset,
+				DynamicClient: dynamicClient,
+				Logger:        logger,
+				Token:         k8s.NewBearerToken(""), // The envtest transport is configured by the token factory.
 			},
 		},
 	}

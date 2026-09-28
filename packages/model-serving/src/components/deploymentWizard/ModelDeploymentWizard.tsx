@@ -97,7 +97,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     error: yamlError,
   } = useFormYamlResources(formResources, isAutoFallback ? existingDeployment?.model : undefined);
 
-  const { onSave, onOverwrite, isLoading, submitError, clearSubmitError } =
+  const { onSave, onOverwrite, isLoading, formDataExtensionLoaded, submitError, clearSubmitError } =
     useModelDeploymentSubmit(
       wizardFormData.state,
       finalResources,
@@ -119,7 +119,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         error={submitError}
         clearError={clearSubmitError}
         isLoading={isLoading}
-        isSubmitDisabled={!externalDataReady}
+        isSubmitDisabled={!externalDataReady || !formDataExtensionLoaded}
         submitButtonText={primaryButtonText}
         onOverwrite={onOverwrite}
         onRefresh={onRefresh}
@@ -131,6 +131,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       clearSubmitError,
       isLoading,
       externalDataReady,
+      formDataExtensionLoaded,
       primaryButtonText,
       onRefresh,
       onOverwrite,
@@ -186,7 +187,9 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
             <PageSection hasBodyWrapper={false} isFilled={false} style={{ paddingTop: 0 }}>
               <ModelDeploymentFooter
                 isSubmitDisabled={
-                  !externalDataReady || (viewMode === 'yaml-edit' ? !yaml : !validation.isAllValid)
+                  !externalDataReady ||
+                  !formDataExtensionLoaded ||
+                  (viewMode === 'yaml-edit' ? !yaml : !validation.isAllValid)
                 }
                 onSave={onSave}
                 onCancel={openExitModal}

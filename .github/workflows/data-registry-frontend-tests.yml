@@ -1,0 +1,78 @@
+name: Test / Data Registry Frontend Tests
+on:
+  push:
+    paths:
+      - 'packages/data-registry/**'
+      - 'packages/cypress/**'
+      - '.github/workflows/data-registry-frontend-tests.yml'
+      - '.github/actions/pnpm-setup/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+
+  pull_request:
+    paths:
+      - 'packages/data-registry/**'
+      - 'packages/cypress/**'
+      - '.github/workflows/data-registry-frontend-tests.yml'
+      - '.github/actions/pnpm-setup/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+
+env:
+  NODE_VERSION: 22
+
+jobs:
+  test:
+    name: Data Registry Frontend Tests
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Lint
+        working-directory: packages/data-registry/frontend
+        run: pnpm run test:lint
+
+      - name: Type check
+        working-directory: packages/data-registry/frontend
+        run: pnpm run test:type-check
+
+      - name: Unit tests (Jest)
+        working-directory: packages/data-registry/frontend
+        run: pnpm run test:unit
+
+      - name: Cypress mock tests
+        working-directory: packages/data-registry/frontend
+        run: pnpm run test:cypress-ci
+
+      - name: Run clean
+        working-directory: packages/data-registry/frontend
+        run: pnpm run build:clean
+
+      - name: Run build
+        working-directory: packages/data-registry/frontend
+        run: pnpm run build
+
+      - name: Check if there are uncommitted file changes
+        working-directory: packages/data-registry/frontend
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi

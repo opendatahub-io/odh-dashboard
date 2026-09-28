@@ -1,9 +1,24 @@
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { ClusterQueueKind } from '@odh-dashboard/k8s-core';
+import usePrometheusQueryRange from '@odh-dashboard/internal/api/prometheus/usePrometheusQueryRange';
+import {
+  findCurrentBorrowingSinceMs,
+  formatBorrowingSinceDate,
+  mapPrometheusValuesToBorrowingPoints,
+} from '../../utils/borrowingLending';
 import {
   buildSeries,
   getGpuNominalQuota,
   KueueUsageMetricResult,
+  default as useBorrowingLendingMetrics,
 } from '../useBorrowingLendingMetrics';
+
+jest.mock('@odh-dashboard/internal/api/prometheus/usePrometheusQueryRange', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+const usePrometheusQueryRangeMock = jest.mocked(usePrometheusQueryRange);
 
 const makeClusterQueue = (name: string, gpuQuota: number): ClusterQueueKind => ({
   apiVersion: 'kueue.x-k8s.io/v1beta2',
@@ -35,6 +50,28 @@ const makeResult = (cqName: string, values: [number, string][]): KueueUsageMetri
 
 const makeCQInfoMap = (entries: [string, { nominalQuota: number; cohortName: string }][]) =>
   new Map(entries);
+
+describe('useBorrowingLendingMetrics', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('should issue a new query when manually refreshed', async () => {
+    jest.spyOn(Date, 'now').mockReturnValueOnce(1_000).mockReturnValue(2_000);
+    const endTimes: number[] = [];
+    usePrometheusQueryRangeMock.mockImplementation((_active, _path, _query, _span, endInMs) => {
+      endTimes.push(endInMs);
+      return [[], true, undefined, jest.fn(), false];
+    });
+
+    const renderResult = testHook(useBorrowingLendingMetrics)([]);
+    const refreshPromise = renderResult.result.current.refresh();
+    await renderResult.waitForNextUpdate();
+    await refreshPromise;
+
+    expect(endTimes).toEqual([1_000, 2_000]);
+  });
+});
 
 describe('getGpuNominalQuota', () => {
   it('sums nvidia.com/* resources across all flavors and resource groups', () => {
@@ -137,5 +174,63 @@ describe('buildSeries', () => {
       makeCQInfoMap([['cq-a', { nominalQuota: 4, cohortName: 'cohort-1' }]]),
     );
     expect(series[0].data).toHaveLength(0);
+  });
+});
+
+describe('mapPrometheusValuesToBorrowingPoints', () => {
+  it('should compute borrowed amount from usage above nominal quota', () => {
+    expect(mapPrometheusValuesToBorrowingPoints([[1_700_000_000, '14']], 12)).toEqual([
+      {
+        timestampMs: 1_700_000_000_000,
+        gpuUsage: 14,
+        borrowedAmount: 2,
+      },
+    ]);
+  });
+});
+
+describe('findCurrentBorrowingSinceMs', () => {
+  it('should return undefined when the latest point is not borrowing', () => {
+    const since = findCurrentBorrowingSinceMs([
+      { timestampMs: 1, gpuUsage: 14, borrowedAmount: 2 },
+      { timestampMs: 2, gpuUsage: 10, borrowedAmount: 0 },
+    ]);
+
+    expect(since).toBeUndefined();
+  });
+
+  it('should return the start of the current borrowing episode', () => {
+    const since = findCurrentBorrowingSinceMs([
+      { timestampMs: 1_000, gpuUsage: 10, borrowedAmount: 0 },
+      { timestampMs: 2_000, gpuUsage: 10, borrowedAmount: 0 },
+      { timestampMs: 3_000, gpuUsage: 14, borrowedAmount: 2 },
+      { timestampMs: 4_000, gpuUsage: 14, borrowedAmount: 2 },
+    ]);
+
+    expect(since).toBe(3_000);
+  });
+
+  it('should ignore an earlier borrowing episode that already ended', () => {
+    const since = findCurrentBorrowingSinceMs([
+      { timestampMs: 1_000, gpuUsage: 14, borrowedAmount: 2 },
+      { timestampMs: 2_000, gpuUsage: 10, borrowedAmount: 0 },
+      { timestampMs: 3_000, gpuUsage: 14, borrowedAmount: 2 },
+      { timestampMs: 4_000, gpuUsage: 14, borrowedAmount: 2 },
+    ]);
+
+    expect(since).toBe(3_000);
+  });
+});
+
+describe('formatBorrowingSinceDate', () => {
+  it('should format a valid timestamp for display', () => {
+    const formatted = formatBorrowingSinceDate(Date.UTC(2020, 8, 17, 19, 0, 0));
+
+    expect(formatted).toContain('September');
+    expect(formatted).toContain('2020');
+  });
+
+  it('should return a dash for invalid timestamps', () => {
+    expect(formatBorrowingSinceDate(Number.NaN)).toBe('-');
   });
 });

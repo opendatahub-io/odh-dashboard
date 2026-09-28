@@ -124,6 +124,28 @@ export const mockMCPStatusAutoConnect = (serverUrl: string): Cypress.Chainable<n
 };
 
 /**
+ * Mock MCP Registry status checks, which identify the server by name rather than URL.
+ *
+ * @param serverName - Registry server name sent in the status query parameter
+ * @param serverUrl - Registry server URL included in the mock response
+ * @returns Cypress chainable for the intercept
+ */
+export const mockMCPRegistryStatusAutoConnect = (
+  serverName: string,
+  serverUrl: string,
+): Cypress.Chainable<null> => {
+  const encodedServerName = encodeURIComponent(serverName);
+
+  return cy
+    .intercept('GET', `**/mcp/status*server_name=${encodedServerName}*`, (req) => {
+      const response = JSON.parse(JSON.stringify(mcpStatusKubernetesConnected));
+      response.data.server_url = serverUrl;
+      req.reply({ statusCode: 200, body: response });
+    })
+    .as('registryStatusCheckAutoConnect');
+};
+
+/**
  * Mock MCP tools endpoint for auto-connectable servers
  * Returns tools list without requiring authentication
  *

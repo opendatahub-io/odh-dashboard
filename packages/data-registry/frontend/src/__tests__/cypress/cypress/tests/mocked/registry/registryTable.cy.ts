@@ -1,9 +1,10 @@
 /* eslint-disable camelcase */
+import { mockModArchResponse } from 'mod-arch-core';
 import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
-import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 
 const REGISTRY_API = '/data-registry/api/v1';
+const MAIN_API = '/data-registry/api/v1';
 
 const mockConnectionsResponse = [
   { name: 'my-s3-connection', displayName: 'My S3 Connection', connectionType: 's3' },
@@ -24,6 +25,7 @@ const mockAssetsResponse = {
       location: 's3://bucket/claims',
       description: 'Claims processing data',
       labels: ['production', 'claims'],
+      properties: { 'data-domain': 'claims' },
       collection: 'analytics',
       connection_ref: null,
       owner: 'user1',
@@ -37,6 +39,7 @@ const mockAssetsResponse = {
       location: 'milvus://embeddings',
       description: 'Vector embeddings',
       labels: ['embeddings', 'production'],
+      properties: { 'data-domain': 'vector-search' },
       collection: 'analytics',
       connection_ref: null,
       owner: 'user1',
@@ -59,7 +62,7 @@ const mockVolumesResponse = {
       'created-at': '2026-01-01',
       'updated-at': null,
       labels: ['source-docs'],
-      properties: { description: 'PDF documents' },
+      properties: { description: 'PDF documents', 'retention-class': 'long-term' },
       config: {},
     },
   ],
@@ -74,16 +77,16 @@ const mockLabelsResponse = {
   labels: ['production', 'claims', 'embeddings', 'source-docs'],
 };
 
-const initIntercepts = () => {
-  cy.interceptApi(
-    'GET /api/:apiVersion/user',
-    { path: { apiVersion: CLIENT_API_VERSION } },
-    mockUserSettings({ userId: 'test-user' }),
-  );
-  cy.interceptApi('GET /api/:apiVersion/namespaces', { path: { apiVersion: CLIENT_API_VERSION } }, [
-    mockNamespace({ name: 'test-project' }),
-    mockNamespace({ name: 'other-project' }),
-  ]);
+const initIntercepts = (options = {}) => {
+  cy.intercept('GET', `${MAIN_API}/user`, {
+    body: mockModArchResponse(mockUserSettings({ userId: 'test-user', ...options })),
+  });
+  cy.intercept('GET', `${MAIN_API}/namespaces`, {
+    body: mockModArchResponse([
+      mockNamespace({ name: 'other-project' }),
+      mockNamespace({ name: 'test-project' }),
+    ]),
+  });
 
   cy.intercept('GET', `${REGISTRY_API}/test-project/namespaces`, {
     body: mockCollectionsResponse,
@@ -103,15 +106,13 @@ const initIntercepts = () => {
   cy.intercept('GET', `${REGISTRY_API}/test-project/labels`, {
     body: mockLabelsResponse,
   }).as('getLabels');
-  cy.interceptApi(
-    'GET /api/:apiVersion/connections/:namespace',
-    { path: { apiVersion: CLIENT_API_VERSION, namespace: 'test-project' } },
-    mockConnectionsResponse,
-  ).as('getConnections');
+  cy.intercept('GET', `${MAIN_API}/connections/test-project`, {
+    body: mockModArchResponse(mockConnectionsResponse),
+  }).as('getConnections');
 };
 
 const visitWithData = () => {
-  cy.visit('/main-view?project=test-project');
+  cy.visit('/ai-hub/data/browse?project=test-project');
   cy.findByTestId('registry-table', { timeout: 15000 }).should('exist');
 };
 
@@ -127,9 +128,26 @@ describe('Registry Table', () => {
     cy.contains('raw-docs').should('exist');
   });
 
-  it('should show empty state when no project selected', () => {
-    cy.visit('/main-view');
-    cy.contains('Select a project').should('exist');
+  it('should select the persisted project when no project is provided in the URL', () => {
+    cy.visit('/ai-hub/data/browse', {
+      onBeforeLoad: (window) => {
+        window.localStorage.setItem('mod-arch.namespace.lastUsed', JSON.stringify('test-project'));
+      },
+    });
+    cy.url().should('include', '/ai-hub/data/browse?project=test-project');
+    cy.findByTestId('registry-table', { timeout: 15000 }).should('exist');
+  });
+
+  it('should show the no-projects state when no projects are available', () => {
+    cy.intercept('GET', `${MAIN_API}/namespaces`, {
+      body: mockModArchResponse([]),
+    });
+
+    cy.visit('/ai-hub/data/browse');
+    cy.findByTestId('no-projects-empty-state').should('exist');
+    cy.findByRole('img', { name: 'No projects' }).should('be.visible');
+    cy.findByRole('heading', { name: 'No projects' }).should('exist');
+    cy.findByRole('button', { name: 'Create project' }).should('exist');
   });
 
   it('should filter assets by search text', () => {
@@ -139,6 +157,13 @@ describe('Registry Table', () => {
     cy.findByTestId('asset-search').find('input').type('claims');
     cy.contains('claims-data').should('exist');
     cy.contains('embeddings').should('not.exist');
+  });
+
+  it('should filter assets by property key and value', () => {
+    visitWithData();
+    cy.findByTestId('asset-search').find('input').type('retention-class');
+    cy.contains('raw-docs').should('exist');
+    cy.contains('claims-data').should('not.exist');
   });
 
   it('should open manage collections modal', () => {
@@ -159,6 +184,102 @@ describe('Registry Table', () => {
     visitWithData();
     cy.contains('production').should('exist');
     cy.contains('claims').should('exist');
+  });
+
+  it('should delete a table from the browse view', () => {
+    cy.intercept(
+      'DELETE',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/claims-data`,
+      { statusCode: 204 },
+    ).as('deleteTable');
+
+    visitWithData();
+    cy.findByTestId('asset-actions-table-analytics-claims-data').click();
+    cy.findByTestId('asset-delete-table-analytics-claims-data').click();
+    cy.findByTestId('delete-asset-confirmation').type('claims-data');
+    cy.findByTestId('delete-asset-confirm').click();
+    cy.wait('@deleteTable');
+    cy.findByTestId('delete-asset-modal').should('not.exist');
+  });
+
+  it('should navigate to the asset detail view to edit a table', () => {
+    cy.intercept(
+      'GET',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/claims-data`,
+      { body: mockAssetsResponse.assets[0] },
+    ).as('getTable');
+
+    visitWithData();
+    cy.findByTestId('asset-actions-table-analytics-claims-data').click();
+    cy.findByTestId('asset-edit-table-analytics-claims-data').click();
+    cy.url().should(
+      'include',
+      '/ai-hub/data/browse/assets/table/test-project/analytics/claims-data?edit=true',
+    );
+    cy.wait('@getTable');
+    cy.findByTestId('edit-asset-modal').should('exist');
+  });
+
+  it('should delete a volume from the browse view', () => {
+    cy.intercept('DELETE', `${REGISTRY_API}/test-project/namespaces/analytics/volumes/raw-docs`, {
+      statusCode: 204,
+    }).as('deleteVolume');
+
+    visitWithData();
+    cy.findByTestId('asset-actions-volume-analytics-raw-docs').click();
+    cy.findByTestId('asset-delete-volume-analytics-raw-docs').click();
+    cy.findByTestId('delete-asset-confirmation').type('raw-docs');
+    cy.findByTestId('delete-asset-confirm').click();
+    cy.wait('@deleteVolume');
+    cy.findByTestId('delete-asset-modal').should('not.exist');
+  });
+
+  it('should clamp pagination after deleting the only asset on the last page', () => {
+    const lastPageAssetName = 'last-page-asset';
+    let analyticsAssets = [
+      ...mockAssetsResponse.assets,
+      ...Array.from({ length: 9 }, (_, index) => ({
+        ...mockAssetsResponse.assets[0],
+        name: index === 8 ? lastPageAssetName : `extra-asset-${index}`,
+      })),
+    ];
+
+    cy.intercept('GET', `${REGISTRY_API}/test-project/namespaces`, {
+      body: { namespaces: [['analytics']] },
+    });
+    cy.intercept(
+      'GET',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables`,
+      (request) => request.reply({ body: { assets: analyticsAssets } }),
+    ).as('getAnalyticsAssets');
+    cy.intercept('GET', `${REGISTRY_API}/test-project/namespaces/analytics/volumes`, {
+      body: { volumes: [] },
+    });
+    cy.intercept(
+      'DELETE',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/${lastPageAssetName}`,
+      (request) => {
+        analyticsAssets = analyticsAssets.filter((asset) => asset.name !== lastPageAssetName);
+        request.reply({ statusCode: 204 });
+      },
+    ).as('deleteLastPageAsset');
+
+    visitWithData();
+    cy.wait('@getAnalyticsAssets');
+
+    const pagination = () => cy.findByTestId('registry-pagination');
+    pagination().find('[data-action=next]').click();
+    cy.findByText(lastPageAssetName).should('exist');
+
+    cy.findByTestId(`asset-actions-table-analytics-${lastPageAssetName}`).click();
+    cy.findByTestId(`asset-delete-table-analytics-${lastPageAssetName}`).click();
+    cy.findByTestId('delete-asset-confirmation').type(lastPageAssetName);
+    cy.findByTestId('delete-asset-confirm').click();
+
+    cy.wait('@deleteLastPageAsset');
+    cy.wait('@getAnalyticsAssets');
+    pagination().findByRole('spinbutton', { name: 'Current page' }).should('have.value', '1');
+    cy.findByText('claims-data').should('exist');
   });
 
   it('should create a new collection', () => {
@@ -192,8 +313,7 @@ describe('Registry Table', () => {
     visitWithData();
     cy.findByTestId('registry-kebab').click();
     cy.findByTestId('manage-collections-action').click();
-    cy.findByTestId('collection-kebab-analytics').click();
-    cy.contains('Delete').click();
+    cy.findByTestId('collection-delete-analytics').click();
     cy.findByTestId('delete-collection-modal').should('exist');
     cy.contains('Collection is not empty').should('exist');
     cy.findByTestId('confirm-delete-button').should('be.disabled');
@@ -219,8 +339,7 @@ describe('Registry Table', () => {
     visitWithData();
     cy.findByTestId('registry-kebab').click();
     cy.findByTestId('manage-collections-action').click();
-    cy.findByTestId('collection-kebab-empty-collection').click();
-    cy.contains('Delete').click();
+    cy.findByTestId('collection-delete-empty-collection').click();
     cy.findByTestId('delete-collection-modal').should('exist');
     cy.contains('Collection is not empty').should('not.exist');
     cy.findByTestId('confirm-delete-input').type('empty-collection');
@@ -311,9 +430,9 @@ describe('Register Volume', () => {
         location: '/data/docs',
       });
       expect(interception.request.body.properties).to.deep.include({
-        purpose: 'ML training',
-        license: 'apache-2.0',
-        maturity: 'production',
+        volume_purpose: 'ML training',
+        volume_license: 'apache-2.0',
+        volume_maturity: 'production',
         pii_status: 'none',
       });
     });
@@ -720,11 +839,9 @@ describe('Connection Selector', () => {
   });
 
   it('should show no connections available when empty', () => {
-    cy.interceptApi(
-      'GET /api/:apiVersion/connections/:namespace',
-      { path: { apiVersion: CLIENT_API_VERSION, namespace: 'test-project' } },
-      [],
-    ).as('getEmptyConnections');
+    cy.intercept('GET', `${MAIN_API}/connections/test-project`, {
+      body: mockModArchResponse([]),
+    }).as('getEmptyConnections');
 
     visitWithData();
     cy.findByTestId('register-data-button').click();
@@ -763,7 +880,10 @@ describe('Connection Selector', () => {
       expect(interception.request.body).to.deep.include({
         name: 'connected-volume',
         content_type: 'other',
-        connection_ref: 'my-s3-connection',
+        connection_ref: {
+          type: 'rhai',
+          secret_name: 'my-s3-connection',
+        },
       });
     });
   });
@@ -800,7 +920,181 @@ describe('Connection Selector', () => {
       expect(interception.request.body).to.deep.include({
         name: 'connected-table',
         format: 'iceberg',
-        connection_ref: 'my-uri-connection',
+        connection_ref: {
+          type: 'rhai',
+          secret_name: 'my-uri-connection',
+        },
+      });
+    });
+  });
+
+  it('should include owner field when creating volume', () => {
+    cy.intercept('POST', `${REGISTRY_API}/test-project/namespaces/analytics/volumes`, {
+      statusCode: 200,
+      body: {
+        name: 'test-volume',
+        'catalog-name': 'test-project',
+        'schema-name': 'analytics',
+        'volume-type': 'other',
+        'storage-location': '',
+      },
+    }).as('createVolume');
+
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+
+    cy.findByTestId('data-name-input').type('test-volume');
+
+    cy.findByTestId('data-collection-toggle').click();
+    cy.contains('analytics').click();
+
+    cy.findByTestId('register-data-submit').click();
+
+    cy.wait('@createVolume').then((interception) => {
+      expect(interception.request.body).to.deep.include({
+        name: 'test-volume',
+        content_type: 'other',
+        owner: 'test-user',
+      });
+    });
+  });
+
+  it('should include owner field when creating table', () => {
+    cy.intercept('POST', `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables`, {
+      statusCode: 200,
+      body: {
+        name: 'test-table',
+        asset_type: 'table',
+        format: 'iceberg',
+      },
+    }).as('createTable');
+
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+
+    cy.findByTestId('asset-type-toggle').click();
+    cy.findByTestId('asset-type-structured').click();
+
+    cy.findByTestId('data-name-input').type('test-table');
+
+    cy.findByTestId('data-collection-toggle').click();
+    cy.contains('analytics').click();
+
+    cy.findByTestId('register-data-submit').click();
+
+    cy.wait('@createTable').then((interception) => {
+      expect(interception.request.body).to.deep.include({
+        name: 'test-table',
+        format: 'iceberg',
+        owner: 'test-user',
+      });
+    });
+  });
+
+  it('should allow selecting Unassigned as owner', () => {
+    cy.intercept('POST', `${REGISTRY_API}/test-project/namespaces/analytics/volumes`, {
+      statusCode: 200,
+      body: {
+        name: 'unassigned-volume',
+        'catalog-name': 'test-project',
+        'schema-name': 'analytics',
+        'volume-type': 'other',
+        'storage-location': '',
+      },
+    }).as('createVolume');
+
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+
+    cy.findByTestId('data-name-input').type('unassigned-volume');
+
+    cy.findByTestId('data-collection-toggle').click();
+    cy.contains('analytics').click();
+
+    // Scroll up to see owner field (it's above collection)
+    cy.findByTestId('data-name-input').scrollIntoView();
+
+    cy.findByPlaceholderText('Select or type owner', { timeout: 10000 }).should('be.visible');
+    cy.findByPlaceholderText('Select or type owner').clear();
+    cy.findByPlaceholderText('Select or type owner').type('Unas');
+    cy.contains('li', 'Unassigned').click();
+
+    cy.findByTestId('register-data-submit').click();
+
+    cy.wait('@createVolume').then((interception) => {
+      expect(interception.request.body).to.deep.include({
+        name: 'unassigned-volume',
+        owner: 'Unassigned',
+      });
+    });
+  });
+});
+
+describe('Create Collection with Owner', () => {
+  beforeEach(() => {
+    initIntercepts();
+  });
+
+  it('should include owner field when creating collection', () => {
+    cy.intercept('POST', `${REGISTRY_API}/test-project/namespaces`, {
+      statusCode: 200,
+      body: {
+        namespace: ['new-collection'],
+        properties: {},
+      },
+    }).as('createCollection');
+
+    visitWithData();
+    cy.findByTestId('registry-kebab').click();
+    cy.findByTestId('manage-collections-action').click();
+    cy.findByTestId('create-collection-button').click();
+
+    cy.findByTestId('collection-name-input').type('new-collection');
+
+    cy.findByTestId('create-collection-submit').click();
+
+    cy.wait('@createCollection').then((interception) => {
+      expect(interception.request.body).to.deep.include({
+        namespace: ['new-collection'],
+      });
+      expect(interception.request.body.properties).to.include({
+        owner: 'test-user',
+      });
+    });
+  });
+
+  it('should allow selecting Unassigned as collection owner', () => {
+    cy.intercept('POST', `${REGISTRY_API}/test-project/namespaces`, {
+      statusCode: 200,
+      body: {
+        namespace: ['unassigned-collection'],
+        properties: {},
+      },
+    }).as('createCollection');
+
+    visitWithData();
+    cy.findByTestId('registry-kebab').click();
+    cy.findByTestId('manage-collections-action').click();
+    cy.findByTestId('create-collection-button').click();
+
+    cy.findByTestId('collection-name-input').type('unassigned-collection');
+
+    // Ensure form is ready and owner field is visible
+    cy.findByTestId('collection-name-input').scrollIntoView();
+
+    cy.findByPlaceholderText('Select or type owner', { timeout: 10000 }).should('be.visible');
+    cy.findByPlaceholderText('Select or type owner').clear();
+    cy.findByPlaceholderText('Select or type owner').type('Unas');
+    cy.contains('li', 'Unassigned').click();
+
+    cy.findByTestId('create-collection-submit').click();
+
+    cy.wait('@createCollection').then((interception) => {
+      expect(interception.request.body).to.deep.include({
+        namespace: ['unassigned-collection'],
+      });
+      expect(interception.request.body.properties).to.include({
+        owner: 'Unassigned',
       });
     });
   });

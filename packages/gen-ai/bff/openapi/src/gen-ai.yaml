@@ -4556,15 +4556,6 @@ components:
             - embedding: Embedding model
             - transcription: Speech-to-text model (bypasses OGX/LlamaStack)
           example: 'llm'
-        max_tokens:
-          type: integer
-          description: |
-            Optional maximum token limit for this model's context window.
-            Must be between 128 and 128,000 tokens. If not specified, a default value will be used.
-            Only applicable when model_type is llm.
-          minimum: 128
-          maximum: 128000
-          example: 8192
         embedding_dimension:
           type: integer
           default: 128

@@ -4,7 +4,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 const mockCreateProject = jest.fn();
 const mockTrackEvent = jest.fn();
 
-jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+jest.mock('@odh-dashboard/plugin-core', () => ({
   useHostApi: jest.fn(() => ({
     createProject: mockCreateProject,
   })),

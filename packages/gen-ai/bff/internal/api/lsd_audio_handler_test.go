@@ -103,6 +103,9 @@ func (m *mockLSClientForASR) GetFileContent(_ context.Context, _ string) (io.Rea
 func (m *mockLSClientForASR) ListModels(_ context.Context) ([]openai.Model, error) {
 	return nil, nil
 }
+func (m *mockLSClientForASR) ListModelsWithProviderData(_ context.Context, _ map[string]interface{}) ([]openai.Model, error) {
+	return nil, nil
+}
 func (m *mockLSClientForASR) ListVectorStores(_ context.Context, _ llamastack.ListVectorStoresParams) ([]openai.VectorStore, error) {
 	return nil, nil
 }

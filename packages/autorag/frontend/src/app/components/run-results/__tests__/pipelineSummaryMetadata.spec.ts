@@ -265,10 +265,49 @@ describe('getPipelineSummaryDetails', () => {
       runtime_config: { parameters: { optimization_metric: 'answer_correctness' } },
     };
 
-    const details = getPipelineSummaryDetails(pipelineRunWithMetric, mockStageMap, patterns);
+    const details = getPipelineSummaryDetails(
+      pipelineRunWithMetric,
+      mockStageMap,
+      patterns,
+      undefined,
+      {
+        name: 'answer_correctness',
+      },
+    );
 
     expect(details.find((detail) => detail.label === 'Evaluation metric')?.value).toBe(
       'Answer correctness',
+    );
+  });
+
+  it('includes the evaluator for the optimization metric when pattern metadata provides it', () => {
+    const details = getPipelineSummaryDetails(
+      {
+        ...mockPipelineRun,
+        runtime_config: { parameters: { optimization_metric: 'faithfulness' } },
+      },
+      mockStageMap,
+      {
+        Pattern1: {
+          ...mockPattern('Pattern1'),
+          evaluation: {
+            metrics: [
+              {
+                name: 'faithfulness',
+                evaluator: 'ragas',
+                optimization_metric: true,
+                scores: { mean: 0.77, ci_low: 0.6, ci_high: 0.9 },
+              },
+            ],
+          },
+        },
+      },
+      undefined,
+      { name: 'faithfulness', evaluator: 'ragas' },
+    );
+
+    expect(details.find((detail) => detail.label === 'Evaluation metric')?.value).toBe(
+      'Answer faithfulness (ragas)',
     );
   });
 });

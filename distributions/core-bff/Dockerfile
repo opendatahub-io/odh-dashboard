@@ -19,10 +19,10 @@ WORKDIR /usr/src/app
 # Copy the source code to the container
 COPY ${UI_SOURCE_CODE} /usr/src/app
 
-# Install the dependencies and build
-RUN npm cache clean --force
-RUN npm ci
-RUN npm run build:prod
+# Install pnpm, dependencies, and build
+RUN npm install -g pnpm@11.22.0
+RUN pnpm install --frozen-lockfile
+RUN pnpm run build:prod
 
 # BFF build stage
 FROM ${GOLANG_BASE_IMAGE} AS bff-builder
@@ -36,11 +36,13 @@ WORKDIR /usr/src/app
 
 # Copy the Go Modules manifests
 COPY ${BFF_SOURCE_CODE}/go.mod ${BFF_SOURCE_CODE}/go.sum ./
+COPY pkg/tls/go.mod pkg/tls/go.sum /pkg/tls/
 
 # Download dependencies
 RUN go mod download
 
 # Copy the go source files
+COPY pkg/tls/ /pkg/tls/
 COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
 COPY ${BFF_SOURCE_CODE}/internal/ internal/
 COPY ${BFF_SOURCE_CODE}/openapi/ openapi/

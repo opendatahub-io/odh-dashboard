@@ -16,6 +16,16 @@ import {
 import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
 import { mockNotebookState } from '#~/__mocks__/mockNotebookState';
 
+jest.mock('#~/utilities/useNotification', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+    info: jest.fn(),
+  })),
+}));
+
 jest.mock('#~/concepts/hardwareProfiles/kueueUtils', () => ({
   ...jest.requireActual('#~/concepts/hardwareProfiles/kueueUtils'),
   useKueueConfiguration: jest.fn(),

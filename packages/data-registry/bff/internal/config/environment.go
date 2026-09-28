@@ -7,13 +7,7 @@ import (
 )
 
 const (
-	// AuthMethodInternal uses the credentials of the running backend.
-	// If running inside the cluster, it uses the pod's service account.
-	// If running locally (e.g. for development), it uses the current user's kubeconfig context.
-	// This is the default authentication method.
-	AuthMethodInternal = "internal"
-
-	// AuthMethodUser uses a user-provided Bearer token for authentication.
+	// AuthMethodUser uses the authenticated user's OpenShift bearer token for authentication.
 	AuthMethodUser = "user_token"
 
 	// DefaultAuthTokenHeader is the standard header for Bearer token auth.
@@ -88,7 +82,7 @@ type EnvConfig struct {
 
 	// ─── AUTH ───────────────────────────────────────────────────
 	// Specifies the authentication method used by the server.
-	// Valid values: "internal" or "user_token"
+	// The only supported value is "user_token".
 	AuthMethod string
 
 	// Header used to extract the authentication token.

@@ -447,6 +447,7 @@ func (r *DashboardReconciler) reconcileDeployment(
 	}
 
 	remapRayDashboardGatewayRBAC(allResources)
+	remapDataConnectHubGatewayRBAC(allResources, r.ApplicationsNamespace)
 
 	if err := sanitizeDeploymentProbes(ctx, r.Client, allResources); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
@@ -479,6 +480,13 @@ func (r *DashboardReconciler) reconcileDeployment(
 			conditions.WithReason("DeployFailed"),
 			conditions.WithError(err))
 		return ctrl.Result{}, fmt.Errorf("failed to deploy resources: %w", err)
+	}
+
+	if err := r.reconcileRHOAIDashboardConfigDefaults(ctx); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("DashboardConfigDefaultFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to reconcile dashboard config defaults: %w", err)
 	}
 
 	nextStatuses, err := r.reconcileModuleDemand(ctx, dashboard)
@@ -910,12 +918,8 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 
 	// ConsoleLinks are cluster-scoped and have no Go type, so they are listed
 	// as unstructured. Only the core dashboard link (rhodslink/odhlink) carries
-	// part-of=dashboard and is matched here. The MaaS Consumer Portal ConsoleLink is
-	// an independent operand labeled part-of=maas-consumer-portal, so it is not
-	// selected by this teardown — it is managed solely by
-	// reconcileMaaSConsumerPortal, independent of the core dashboard's
-	// managementState. Guard against clusters where the ConsoleLink CRD is not
-	// installed (non-OpenShift).
+	// part-of=dashboard and is matched here. Guard against clusters where the
+	// ConsoleLink CRD is not installed (non-OpenShift).
 	consoleLinks := &unstructured.UnstructuredList{}
 	consoleLinks.SetGroupVersionKind(consoleLinkListGVK)
 	if err := r.List(ctx, consoleLinks, matchLabels); err != nil {
@@ -1049,8 +1053,12 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 	if err := addOptionalOwnedResourceWatches(mgr.GetRESTMapper(), controllerBuilder); err != nil {
 		return err
 	}
+	dashboardController, err := controllerBuilder.Build(r)
+	if err != nil {
+		return err
+	}
 
-	return controllerBuilder.Complete(r)
+	return addOdhDashboardConfigWatch(mgr, dashboardController, r)
 }
 
 // addOptionalOwnedResourceWatches adds watches for APIs used only by the MaaS

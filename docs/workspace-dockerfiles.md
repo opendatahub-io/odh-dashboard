@@ -28,46 +28,81 @@ Module not found: Error: Can't resolve '@openshift/dynamic-plugin-sdk'
 Workspace-aware Dockerfiles solve this problem by:
 
 1. **Building from the repository root** - Provides access to all workspace packages (root, frontend, backend, and module packages)
-2. **Installing workspace dependencies first** - Creates the workspace node_modules with all packages
+2. **Installing workspace dependencies first** - `pnpm install` at the repo root resolves `@odh-dashboard/*` workspace packages
 3. **Copying shared packages** - Ensures workspace packages are available during build
-4. **Installing federated dependencies** - Adds required Module Federation packages to the build context
+4. **Installing module frontend dependencies** - First-party modules use pnpm; upstream subtrees use npm (see below)
+
+## First-Party vs Upstream Module Frontends
+
+Modules fall into two categories after the pnpm migration:
+
+| Category | Examples | Frontend path | Package manager in Docker |
+|----------|----------|---------------|---------------------------|
+| **First-party** | gen-ai, automl, autorag, maas | `packages/<module>/frontend` | pnpm only (`pnpm run build:prod`) |
+| **Upstream subtree** | model-registry, notebooks | `packages/<module>/upstream/.../frontend` | **Hybrid**: pnpm at root + npm in upstream |
+
+Upstream frontends are synced from external repositories via git subtree. They keep their own
+`package-lock.json` and are **not** members of `pnpm-workspace.yaml`. Do not migrate them to
+pnpm in odh-dashboard — changes would be overwritten on the next subtree sync.
+
+The hybrid Docker pattern:
+
+1. `pnpm install --frozen-lockfile` at repo root → `@odh-dashboard/plugin-core`, `@odh-dashboard/internal`, etc.
+2. `npm ci --omit=optional` in the upstream frontend directory → webpack, loaders, upstream-only deps
+3. `npm run build:prod` in the upstream frontend directory
 
 ## Dockerfile Structure
 
-The workspace Dockerfile follows this pattern:
+### First-party module (pnpm only)
 
 ```dockerfile
-# Multi-stage workspace-aware Dockerfile for Module Federation packages
-# Build from repository root: docker build --file ./packages/<module>/Dockerfile.workspace .
+# Build from repository root:
+# docker build --file ./packages/<module>/Dockerfile.workspace .
 
-# Source code arguments - can be overridden for different modules
-ARG MODULE_NAME=your-module
-ARG UI_SOURCE_CODE=./packages/${MODULE_NAME}/upstream/frontend
-ARG BFF_SOURCE_CODE=./packages/${MODULE_NAME}/upstream/bff
+ARG MODULE_NAME=gen-ai
+ARG UI_SOURCE_CODE=./packages/${MODULE_NAME}/frontend
 
-# UI build stage
 FROM node-base AS ui-builder
 WORKDIR /usr/src/workspace
 
-# Copy workspace configuration and shared packages
-COPY package.json package-lock.json* ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/plugin-core/ ./packages/plugin-core/
-COPY packages/tsconfig/ ./packages/tsconfig/
-COPY src/ ./src/
-
-# Copy the specific module source code
+# ... other shared workspace packages ...
 COPY ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
 
-# Install workspace dependencies (creates workspace node_modules)
-RUN npm ci
+RUN npm install -g pnpm@11.22.0
+RUN pnpm install --frozen-lockfile
 
-# Set up the specific module
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
-
-# Install module dependencies and build
-RUN npm ci
-RUN npm run build:prod
+RUN pnpm run build:prod
 ```
+
+### Upstream subtree module (hybrid pnpm + npm)
+
+Used by `model-registry` and `notebooks`:
+
+```dockerfile
+ARG MODULE_NAME=model-registry
+ARG UI_SOURCE_CODE=./packages/${MODULE_NAME}/upstream/frontend
+
+FROM node-base AS ui-builder
+WORKDIR /usr/src/workspace
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/plugin-core/ ./packages/plugin-core/
+# ... other shared workspace packages ...
+COPY ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}   # includes upstream package-lock.json
+
+RUN npm install -g pnpm@11.22.0
+RUN pnpm install --frozen-lockfile            # @odh-dashboard/* workspace packages
+
+WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
+RUN npm ci --omit=optional                    # upstream webpack toolchain
+RUN npm run build:prod                        # upstream is an npm island
+```
+
+For notebooks, the default `UI_SOURCE_CODE` is
+`./packages/notebooks/upstream/workspaces/frontend`.
 
 ## Build Arguments
 
@@ -186,20 +221,42 @@ ARG UI_SOURCE_CODE=./packages/${MODULE_NAME}/upstream/frontend
 COPY ./packages/model-registry/upstream/frontend ./ui-source
 ```
 
-### 3. Install Workspace Dependencies First
+### 3. Install Dependencies in the Correct Order
+
+**First-party modules** (`packages/<module>/frontend`):
 
 ```dockerfile
-# ✅ Install workspace deps first, then module deps
-RUN npm ci # at workspace level
+RUN pnpm install --frozen-lockfile   # at repo root
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
-RUN npm ci # at module level
-
-# ❌ Skip workspace dependency installation
-WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
-RUN npm ci # missing workspace context
+RUN pnpm run build:prod
 ```
 
+**Upstream subtree modules** (`packages/<module>/upstream/.../frontend`):
+
+```dockerfile
+RUN pnpm install --frozen-lockfile   # at repo root — @odh-dashboard/* only
+WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
+RUN npm ci --omit=optional           # upstream npm island (package-lock.json)
+RUN npm run build:prod
+```
+
+Do not run `pnpm run build:prod` inside upstream subtrees — they are not pnpm workspace members
+and will fail with missing webpack plugins (e.g. `mini-css-extract-plugin`).
+
 ## Troubleshooting
+
+### Missing Webpack Plugins in Upstream Builds
+
+```text
+Cannot find module 'mini-css-extract-plugin'
+```
+
+**Cause:** `pnpm run build:prod` was used inside an upstream subtree frontend. Upstream directories
+are npm islands and are not in `pnpm-workspace.yaml`.
+
+**Solution:** Use the hybrid pattern — `pnpm install` at root, then `npm ci` + `npm run build:prod`
+in the upstream frontend directory. See `packages/model-registry/Dockerfile.workspace` and
+`packages/notebooks/Dockerfile.workspace`.
 
 ### Module Not Found Errors
 
@@ -245,6 +302,24 @@ Error: COPY failed: file not found in build context
 
 ## Examples in the Codebase
 
-- `packages/model-registry/Dockerfile.workspace` - Production workspace Dockerfile for Model Registry
+- `packages/model-registry/Dockerfile.workspace` - Hybrid pnpm + npm build for upstream subtree UI
+- `packages/notebooks/Dockerfile.workspace` - Hybrid pnpm + npm build for upstream subtree UI
+- `packages/gen-ai/Dockerfile.workspace` - First-party pnpm-only workspace Dockerfile
 - `packages/plugin-template/Dockerfile.workspace` - Template for creating new workspace Dockerfiles
 - `frontend/.dockerignore` - Optimized dockerignore for legacy frontend builds (module builds now use root context)
+
+## Local Development (Upstream Modules)
+
+Upstream module frontends require both package managers locally:
+
+```bash
+# From repo root — workspace packages
+pnpm install
+
+# Upstream webpack toolchain (repeat after subtree sync)
+(cd packages/model-registry/upstream/frontend && npm ci)
+(cd packages/notebooks/upstream/workspaces/frontend && npm ci)
+```
+
+CI for model-registry (`model-registry-frontend-tests.yml`) follows the same pattern:
+`pnpm-setup` at root, then `npm ci` in `upstream/frontend`.

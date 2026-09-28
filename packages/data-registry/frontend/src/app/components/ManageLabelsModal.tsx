@@ -17,7 +17,7 @@ import {
 } from '@patternfly/react-core';
 import { CheckIcon, TimesIcon, TrashIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
-import { createLabel, deleteLabel, ApiError } from '~/app/api/dataRegistry';
+import { createLabel, deleteLabel, isConflictError } from '~/app/api/dataRegistry';
 import { RegistryAsset } from '~/app/hooks/useAssets';
 
 type ManageLabelsModalProps = {
@@ -79,7 +79,7 @@ const ManageLabelsModal: React.FC<ManageLabelsModalProps> = ({
       setIsCreating(false);
       onRefresh();
     } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
+      if (isConflictError(err)) {
         setActionError(`Label "${trimmed}" already exists.`);
       } else {
         setActionError(err instanceof Error ? err.message : 'Failed to create label');
@@ -176,7 +176,7 @@ const ManageLabelsModal: React.FC<ManageLabelsModalProps> = ({
                     alignItems={{ default: 'alignItemsCenter' }}
                     flexWrap={{ default: 'nowrap' }}
                   >
-                    <FlexItem style={{ maxWidth: '200px' }}>
+                    <FlexItem style={{ maxWidth: 'var(--pf-t--global--spacer--6xl)' }}>
                       <TextInput
                         value={newLabelName}
                         onChange={(_event, value) => setNewLabelName(value)}

@@ -23,7 +23,6 @@ import type {
   ConnectionTypeConfigMapObj,
   PersistentVolumeClaimKind,
 } from '@odh-dashboard/k8s-core';
-import { useWatchConnectionTypes } from '@odh-dashboard/plugin-core/host-api';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { hasOnlyExtensionFields, ModelLocationInputFields } from './ModelLocationInputFields';
 import { NIMModelLocationOption } from './modelLocationFields/NIMModelLocation';
@@ -52,6 +51,7 @@ type ModelLocationSelectFieldProps = {
   setSelectedConnection: (connection: Connection | undefined) => void;
   selectedConnection: Connection | undefined;
   pvcs: PersistentVolumeClaimKind[];
+  connectionTypes: ConnectionTypeConfigMapObj[];
 };
 export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> = ({
   wizardState,
@@ -65,6 +65,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
   setSelectedConnection,
   selectedConnection,
   pvcs,
+  connectionTypes,
 }) => {
   const isEditing = wizardState.initialData?.isEditing ?? false;
   const isNimWizardEnabled = useIsAreaAvailable(SupportedArea.NIM_WIZARD).status;
@@ -99,10 +100,9 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     modelLocationData?.disableInputFields || !!editingLocationOverride;
   const locationDisabledTooltip = editingLocationOverride?.disabledTooltip;
 
-  const [modelServingConnectionTypes] = useWatchConnectionTypes(true);
   // Filtered types for the dropdown so only enabled types are shown
   const { s3ConnectionTypes, ociConnectionTypes, uriConnectionTypes } =
-    useEnabledModelServingConnectionTypes(modelServingConnectionTypes);
+    useEnabledModelServingConnectionTypes(connectionTypes);
 
   // Compute selectedKey from connectionTypeObject when available (for prefilled data)
   const computeSelectedOption = React.useMemo<{ key: string; label: string } | undefined>(() => {
@@ -308,7 +308,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                 wizardState={wizardState}
                 modelLocation={modelLocation}
                 connections={connections}
-                connectionTypes={modelServingConnectionTypes}
+                connectionTypes={connectionTypes}
                 selectedConnection={selectedConnection}
                 setSelectedConnection={setSelectedConnection}
                 setModelLocationData={setModelLocationData}

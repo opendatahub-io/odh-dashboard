@@ -9,7 +9,6 @@ import {
 } from '~/app/context/AutoragResultsContext';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineRun } from '~/app/types';
-import { DEFAULT_OPTIMIZATION_METRIC } from '~/app/utilities/const';
 
 // ============================================================================
 // Mock Data
@@ -22,9 +21,8 @@ const createMockPattern = (name: string, metrics: Record<string, number>): Autor
   duration_seconds: 120,
   settings: {
     vector_store_binding: {
-      provider_id: 'milvus',
-      provider_type: 'remote::milvus',
-      vector_store_id: 'vs_collection0',
+      provider_type: 'milvus',
+      collection_name: 'vs_collection0',
     },
     chunking: {
       method: 'sequential',
@@ -102,31 +100,18 @@ describe('getAutoragContext', () => {
         patternsLoading: false,
       });
 
-      expect(context).toEqual({
-        pipelineRun,
-        pipelineRunLoading: true,
-        patterns,
-        patternsLoading: false,
-        parameters: {
-          display_name: '',
-          description: '',
-          input_data_secret_name: '',
-          input_data_bucket_name: '',
-          input_data_key: '',
-          test_data_secret_name: '',
-          test_data_bucket_name: '',
-          test_data_key: '',
-          ogx_secret_name: '',
-          vector_io_provider_id: '',
-          generation_models: [],
-          embedding_models: [],
-          optimization_metric: 'faithfulness',
-          optimization_max_rag_patterns: 8,
-          preset: 'speed',
-        },
-        ragPatternsBasePath: undefined,
-        bestPatternKey: 'pattern-1',
-      });
+      expect(context).toEqual(
+        expect.objectContaining({
+          pipelineRun,
+          pipelineRunLoading: true,
+          patterns,
+          patternsLoading: false,
+          parameters: { optimization_metric: 'faithfulness' },
+          ragPatternsBasePath: undefined,
+          bestPatternKey: 'pattern-1',
+          optimizationMetric: { name: 'faithfulness', evaluator: 'unitxt' },
+        }),
+      );
     });
 
     it('should handle undefined pipelineRun', () => {
@@ -135,31 +120,18 @@ describe('getAutoragContext', () => {
         patterns: mockPatterns,
       });
 
-      expect(context).toEqual({
-        pipelineRun: undefined,
-        pipelineRunLoading: undefined,
-        patterns: mockPatterns,
-        patternsLoading: undefined,
-        parameters: {
-          display_name: '',
-          description: '',
-          input_data_secret_name: '',
-          input_data_bucket_name: '',
-          input_data_key: '',
-          test_data_secret_name: '',
-          test_data_bucket_name: '',
-          test_data_key: '',
-          ogx_secret_name: '',
-          vector_io_provider_id: '',
-          generation_models: [],
-          embedding_models: [],
-          optimization_metric: DEFAULT_OPTIMIZATION_METRIC,
-          optimization_max_rag_patterns: 8,
-          preset: 'speed',
-        },
-        ragPatternsBasePath: undefined,
-        bestPatternKey: 'pattern-1',
-      });
+      expect(context).toEqual(
+        expect.objectContaining({
+          pipelineRun: undefined,
+          pipelineRunLoading: undefined,
+          patterns: mockPatterns,
+          patternsLoading: undefined,
+          parameters: undefined,
+          ragPatternsBasePath: undefined,
+          bestPatternKey: 'pattern-1',
+          optimizationMetric: { name: 'overall_score', evaluator: 'custom' },
+        }),
+      );
     });
 
     it('should handle empty patterns object', () => {
@@ -199,16 +171,34 @@ describe('getAutoragContext', () => {
         generation_models: ['llama-3', 'gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness',
-        optimization_max_rag_patterns: 12,
+        optimization_max_rag_patterns: 9,
       });
 
       const context = getAutoragContext({
         pipelineRun,
       });
 
-      expect(context.parameters).toEqual({
-        display_name: 'My RAG Run',
-        description: 'Test description',
+      expect(context.parameters).toEqual(pipelineRun.runtime_config?.parameters);
+    });
+
+    it('should preserve historical and canonical runtime fields without schema filtering', () => {
+      const parameters = {
+        input_data_key: 'legacy/input.pdf',
+        ogx_secret_name: 'legacy-ogx',
+        vector_io_provider_id: 'milvus',
+        input_data_keys: ['current/input.pdf'],
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
+      };
+
+      const context = getAutoragContext({ pipelineRun: createMockPipelineRun(parameters) });
+
+      expect(context.parameters).toEqual(parameters);
+    });
+
+    it('should still parse a legacy run whose optimization_max_rag_patterns exceeds the current maximum', () => {
+      const pipelineRun = createMockPipelineRun({
+        display_name: 'Legacy Run',
         input_data_secret_name: 'my-secret',
         input_data_bucket_name: 'my-bucket',
         input_data_key: 'input.csv',
@@ -216,13 +206,16 @@ describe('getAutoragContext', () => {
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test.csv',
         ogx_secret_name: 'ogx-secret',
-        vector_io_provider_id: '',
-        generation_models: ['llama-3', 'gpt-4'],
-        embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness',
-        optimization_max_rag_patterns: 12,
-        preset: 'speed',
+        // Created before MAX_RAG_PATTERNS was lowered from 20 to 10.
+        optimization_max_rag_patterns: 20,
       });
+
+      const context = getAutoragContext({
+        pipelineRun,
+      });
+
+      expect(context.parameters?.optimization_max_rag_patterns).toBe(20);
     });
 
     it('should extract detected language metadata from runtime_config parameters', () => {
@@ -251,23 +244,7 @@ describe('getAutoragContext', () => {
         pipelineRun,
       });
 
-      expect(context.parameters).toEqual({
-        display_name: '',
-        description: '',
-        input_data_secret_name: '',
-        input_data_bucket_name: '',
-        input_data_key: '',
-        test_data_secret_name: '',
-        test_data_bucket_name: '',
-        test_data_key: '',
-        ogx_secret_name: '',
-        vector_io_provider_id: '',
-        generation_models: [],
-        embedding_models: [],
-        optimization_metric: DEFAULT_OPTIMIZATION_METRIC,
-        optimization_max_rag_patterns: 8,
-        preset: 'speed',
-      });
+      expect(context.parameters).toBeUndefined();
     });
 
     it('should handle pipeline run with empty parameters', () => {
@@ -277,23 +254,7 @@ describe('getAutoragContext', () => {
         pipelineRun,
       });
 
-      expect(context.parameters).toEqual({
-        display_name: '',
-        description: '',
-        input_data_secret_name: '',
-        input_data_bucket_name: '',
-        input_data_key: '',
-        test_data_secret_name: '',
-        test_data_bucket_name: '',
-        test_data_key: '',
-        ogx_secret_name: '',
-        vector_io_provider_id: '',
-        generation_models: [],
-        embedding_models: [],
-        optimization_metric: DEFAULT_OPTIMIZATION_METRIC,
-        optimization_max_rag_patterns: 8,
-        preset: 'speed',
-      });
+      expect(context.parameters).toEqual({});
     });
   });
 
@@ -309,13 +270,13 @@ describe('getAutoragContext', () => {
       });
     });
 
-    it('should apply default optimization_metric when not provided', () => {
+    it('should leave optimization_metric undefined when not provided', () => {
       const pipelineRun = createMockPipelineRun({
         generation_models: ['llama-3'],
       });
       const context = getAutoragContext({ pipelineRun });
 
-      expect(context.parameters?.optimization_metric).toBe(DEFAULT_OPTIMIZATION_METRIC);
+      expect(context.parameters?.optimization_metric).toBeUndefined();
     });
   });
 
@@ -457,7 +418,11 @@ describe('AutoragResultsContext and useAutoragResultsContext', () => {
             <div data-testid="patterns-count">{Object.keys(context.patterns).length}</div>
             <div data-testid="pipeline-loading">{String(context.pipelineRunLoading)}</div>
             <div data-testid="patterns-loading">{String(context.patternsLoading)}</div>
-            <div data-testid="optimization-metric">{context.parameters?.optimization_metric}</div>
+            <div data-testid="optimization-metric">
+              {typeof context.parameters?.optimization_metric === 'string'
+                ? context.parameters.optimization_metric
+                : ''}
+            </div>
           </div>
         );
       };
@@ -514,7 +479,11 @@ describe('AutoragResultsContext and useAutoragResultsContext', () => {
       const TestComponent = () => {
         const context = useAutoragResultsContext();
         return (
-          <div data-testid="optimization-metric">{context.parameters?.optimization_metric}</div>
+          <div data-testid="optimization-metric">
+            {typeof context.parameters?.optimization_metric === 'string'
+              ? context.parameters.optimization_metric
+              : ''}
+          </div>
         );
       };
 
@@ -639,7 +608,9 @@ describe('AutoragResultsContext and useAutoragResultsContext', () => {
         const context = useAutoragResultsContext();
         return (
           <div data-testid="deep-optimization-metric">
-            {context.parameters?.optimization_metric}
+            {typeof context.parameters?.optimization_metric === 'string'
+              ? context.parameters.optimization_metric
+              : ''}
           </div>
         );
       };

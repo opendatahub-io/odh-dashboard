@@ -98,6 +98,9 @@ func (r *MockExternalProvidersRepository) UpdateExternalProvider(_ context.Conte
 			if request.CredentialSecretRef != "" {
 				updated.CredentialSecretRef = normalizeSecretRefName(request.CredentialSecretRef)
 			}
+			if request.Provider != "" {
+				updated.Provider = request.Provider
+			}
 			if request.Config != nil {
 				updated.Config = request.Config
 			}
@@ -123,6 +126,9 @@ func (r *MockExternalProvidersRepository) UpdateExternalProvider(_ context.Conte
 			}
 			if request.CredentialSecretRef != "" {
 				updated.CredentialSecretRef = normalizeSecretRefName(request.CredentialSecretRef)
+			}
+			if request.Provider != "" {
+				updated.Provider = request.Provider
 			}
 			if request.Config != nil {
 				updated.Config = request.Config

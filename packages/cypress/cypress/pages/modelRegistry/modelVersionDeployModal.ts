@@ -11,7 +11,7 @@ class ModelVersionDeployModal extends Modal {
 
   selectProjectByName(name: string) {
     this.findProjectSelector().click();
-    cy.findByTestId('deploy-model-project-selector-search').fill(name);
+    cy.findByTestId('deploy-model-project-selector-search').find('input').fill(name);
     cy.findByTestId('deploy-model-project-selector-menuList')
       .contains('button', name)
       .should('be.visible')

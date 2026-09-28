@@ -1,0 +1,169 @@
+import React from 'react';
+import {
+  Form,
+  FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
+  TextInput,
+} from '@patternfly/react-core';
+import PasswordInput from '@odh-dashboard/internal/components/PasswordInput';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
+import { createSecret } from '@odh-dashboard/k8s-core/api/secrets';
+import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
+
+type Props = {
+  namespace: string;
+  onClose: () => void;
+  onSubmit: (secretName: string) => void | Promise<void>;
+};
+
+const isValidUrl = (url: string): boolean => {
+  try {
+    const parsed = new URL(url.trim());
+    if (parsed.protocol === 'https:') {
+      return true;
+    }
+    return (
+      parsed.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname)
+    );
+  } catch {
+    return false;
+  }
+};
+
+const MaaSConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) => {
+  const { data: nameDescData, onDataChange: setNameDescData } = useK8sNameDescriptionFieldData();
+  const [baseUrl, setBaseUrl] = React.useState('');
+  const [apiKey, setApiKey] = React.useState('');
+  const [submitError, setSubmitError] = React.useState<Error>();
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [baseUrlTouched, setBaseUrlTouched] = React.useState(false);
+  const createdSecretRef = React.useRef<SecretKind>();
+
+  const baseUrlValid = React.useMemo(() => isValidUrl(baseUrl), [baseUrl]);
+  const showBaseUrlError = baseUrlTouched && baseUrl.trim() !== '' && !baseUrlValid;
+  const isFormValid =
+    isK8sNameDescriptionDataValid(nameDescData) && baseUrlValid && apiKey.trim() !== '';
+
+  const handleSubmit = async () => {
+    setIsSaving(true);
+    setSubmitError(undefined);
+
+    const k8sName = nameDescData.k8sName.value;
+
+    const secret: SecretKind = {
+      apiVersion: 'v1',
+      kind: 'Secret',
+      metadata: {
+        name: k8sName,
+        namespace,
+        annotations: {
+          'openshift.io/display-name': nameDescData.name.trim(),
+        },
+      },
+      stringData: {
+        MAAS_BASE_URL: baseUrl.trim(),
+        MAAS_API_KEY: apiKey.trim(),
+      },
+    };
+
+    try {
+      if (!createdSecretRef.current) {
+        await createSecret(secret);
+        createdSecretRef.current = secret;
+      }
+
+      await onSubmit(createdSecretRef.current.metadata.name);
+      onClose();
+    } catch (e) {
+      setSubmitError(
+        createdSecretRef.current
+          ? new Error(
+              'The connection was created, but AutoRAG could not select it. Retry saving it.',
+            )
+          : e instanceof Error
+            ? e
+            : new Error(String(e)),
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <Modal isOpen onClose={isSaving ? undefined : onClose} variant="medium">
+      <ModalHeader
+        title="Add MaaS connection"
+        description="Provide credentials for accessing an external Models as a Service (MaaS) server. The generation and embedding models registered in the MaaS server will be considered when generating RAG patterns."
+      />
+      <ModalBody>
+        <Form>
+          <K8sNameDescriptionField
+            dataTestId="maas-connection"
+            data={nameDescData}
+            onDataChange={setNameDescData}
+            nameLabel="Connection name"
+            hideDescription
+          />
+          <FormGroup fieldId="maas-connection-base-url" label="Base URL" isRequired>
+            <TextInput
+              id="maas-connection-base-url"
+              data-testid="maas-connection-base-url"
+              value={baseUrl}
+              onChange={(_e, val) => setBaseUrl(val)}
+              onBlur={() => {
+                setBaseUrlTouched(true);
+                setBaseUrl((prev) => prev.trim());
+              }}
+              maxLength={2048}
+              validated={showBaseUrlError ? 'error' : 'default'}
+              isRequired
+            />
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem variant={showBaseUrlError ? 'error' : 'default'}>
+                  {showBaseUrlError
+                    ? 'Enter a valid HTTPS URL or a local HTTP URL (for example, https://example.com or http://localhost:8080).'
+                    : 'The base URL of the MaaS connection.'}
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          </FormGroup>
+          <FormGroup fieldId="maas-connection-api-key" label="API key" isRequired>
+            <PasswordInput
+              id="maas-connection-api-key"
+              data-testid="maas-connection-api-key"
+              value={apiKey}
+              onChange={(_e, val) => setApiKey(val)}
+              ariaLabelShow="Show API key"
+              ariaLabelHide="Hide API key"
+            />
+          </FormGroup>
+        </Form>
+      </ModalBody>
+      <ModalFooter>
+        <DashboardModalFooter
+          submitLabel="Add connection"
+          onCancel={onClose}
+          onSubmit={handleSubmit}
+          error={submitError}
+          isSubmitDisabled={!isFormValid || isSaving}
+          isCancelDisabled={isSaving}
+          isSubmitLoading={isSaving}
+          alertTitle="Failed to create connection"
+        />
+      </ModalFooter>
+    </Modal>
+  );
+};
+
+export default MaaSConnectionModal;

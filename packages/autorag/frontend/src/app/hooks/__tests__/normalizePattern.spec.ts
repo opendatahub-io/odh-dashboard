@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import { normalizePattern } from '~/app/hooks/useAutoragResults';
-import type { AutoragRawPatternV1, AutoragRawPatternV2 } from '~/app/hooks/patternSchema';
+import type { CanonicalRawPattern } from '~/app/hooks/patternSchema';
+import type { LegacyRawPattern } from '~/app/hooks/legacyPattern';
 
 const baseSettings = {
   chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 128 },
@@ -21,7 +22,7 @@ const baseFields = {
 
 describe('normalizePattern', () => {
   describe('V1 patterns', () => {
-    const v1: AutoragRawPatternV1 = {
+    const v1: LegacyRawPattern = {
       ...baseFields,
       settings: {
         ...baseSettings,
@@ -59,22 +60,24 @@ describe('normalizePattern', () => {
       expect(overallScore?.optimization_metric).toBe(true);
     });
 
-    it('should synthesize vector_store_binding from vector_store', () => {
+    it('should normalize vector_store into the canonical binding shape', () => {
       const result = normalizePattern(v1, 'my-provider');
       expect(result.settings.vector_store_binding).toEqual({
-        provider_id: 'my-provider',
         provider_type: 'milvus',
-        vector_store_id: 'col0',
+        collection_name: 'col0',
       });
     });
 
-    it('should use empty provider_id when vectorIoProviderId is not given', () => {
+    it('should normalize a legacy vector store without a provider id', () => {
       const result = normalizePattern(v1);
-      expect(result.settings.vector_store_binding?.provider_id).toBe('');
+      expect(result.settings.vector_store_binding).toEqual({
+        provider_type: 'milvus',
+        collection_name: 'col0',
+      });
     });
 
     it('should prefer existing vector_store_binding over vector_store', () => {
-      const v1WithBinding: AutoragRawPatternV1 = {
+      const v1WithBinding: LegacyRawPattern = {
         ...v1,
         settings: {
           ...v1.settings,
@@ -87,14 +90,13 @@ describe('normalizePattern', () => {
       };
       const result = normalizePattern(v1WithBinding);
       expect(result.settings.vector_store_binding).toEqual({
-        provider_id: 'existing',
         provider_type: 'pgvector',
-        vector_store_id: 'vs-1',
+        collection_name: 'vs-1',
       });
     });
 
     it('should move responses_template to inference block', () => {
-      const v1WithTemplate: AutoragRawPatternV1 = {
+      const v1WithTemplate: LegacyRawPattern = {
         ...v1,
         settings: { ...v1.settings, responses_template: { model: 'test' } },
       };
@@ -108,7 +110,7 @@ describe('normalizePattern', () => {
     });
 
     it('should replace existing overall_score in scores rather than duplicate', () => {
-      const v1WithOverallScore: AutoragRawPatternV1 = {
+      const v1WithOverallScore: LegacyRawPattern = {
         ...v1,
         scores: {
           ...v1.scores,
@@ -125,14 +127,13 @@ describe('normalizePattern', () => {
   });
 
   describe('V2 patterns', () => {
-    const v2: AutoragRawPatternV2 = {
+    const v2: CanonicalRawPattern = {
       ...baseFields,
       settings: {
         ...baseSettings,
         vector_store_binding: {
-          provider_id: 'prov-1',
           provider_type: 'milvus',
-          vector_store_id: 'col0',
+          collection_name: 'col0',
         },
       },
       evaluation: {
@@ -169,7 +170,7 @@ describe('normalizePattern', () => {
     });
 
     it('should preserve null metric means through normalization', () => {
-      const v2WithNullMean: AutoragRawPatternV2 = {
+      const v2WithNullMean: CanonicalRawPattern = {
         ...v2,
         evaluation: {
           metrics: [

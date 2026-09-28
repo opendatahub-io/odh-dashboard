@@ -44,7 +44,6 @@ export type MockDashboardConfigType = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
-  externalModels?: boolean;
   externalVectorStores?: boolean;
   agentConfigManagement?: boolean;
   aiAssetCustomEndpoints?: boolean;
@@ -55,6 +54,7 @@ export type MockDashboardConfigType = {
   workbenchesV2?: boolean;
   mcpCatalog?: boolean;
   mcpRegistry?: boolean;
+  genAiMcpRegistryServers?: boolean;
   toolCalling?: boolean;
   projectRBAC?: boolean;
   disableLLMd?: boolean;
@@ -73,6 +73,7 @@ export type MockDashboardConfigType = {
   gpuaas?: boolean;
   connectionTest?: boolean;
   modelCapabilities?: boolean;
+  runtimeCatalog?: boolean;
   globalMLflowNamespaces?: string[];
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
@@ -96,7 +97,6 @@ export const mockDashboardConfig = ({
   automl = false,
   autorag = false,
   modelAsService = true,
-  externalModels = true,
   aiAssetCustomEndpoints = true,
   disableAppLauncher = false,
   disableUserManagement = false,
@@ -116,6 +116,7 @@ export const mockDashboardConfig = ({
   disableModelCatalog = false,
   mcpCatalog = false,
   mcpRegistry = false,
+  genAiMcpRegistryServers = false,
   toolCalling = false,
   disableModelRegistry = false,
   disableModelRegistrySecureDB = false,
@@ -138,7 +139,7 @@ export const mockDashboardConfig = ({
   llmGatewayField = false,
   promptManagement = false,
   globalProjectPrompts = false,
-  nimWizard = false,
+  nimWizard = true,
   nimServiceOperator = false,
   agentOps = false,
   agentOpsDeploy = false,
@@ -147,6 +148,7 @@ export const mockDashboardConfig = ({
   gpuaas = true,
   connectionTest = false,
   modelCapabilities = false,
+  runtimeCatalog = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   globalMLflowNamespaces = [],
   genAiStudioConfig = {
@@ -304,7 +306,6 @@ export const mockDashboardConfig = ({
       autorag,
       modelAsService,
       aiAssetCustomEndpoints,
-      externalModels,
       disableKServeAuth,
       disableKServeMetrics,
       disableKServeRaw,
@@ -312,6 +313,7 @@ export const mockDashboardConfig = ({
       disableModelCatalog,
       mcpCatalog,
       mcpRegistry,
+      genAiMcpRegistryServers,
       toolCalling,
       disableModelRegistry,
       disableModelRegistrySecureDB,
@@ -344,6 +346,7 @@ export const mockDashboardConfig = ({
       gpuaas,
       connectionTest,
       modelCapabilities,
+      runtimeCatalog,
     },
     notebookController: {
       enabled: !disableNotebookController,

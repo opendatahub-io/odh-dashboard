@@ -554,7 +554,7 @@ describe('SecretSelector', () => {
       rerender(
         <SecretSelector
           namespace={defaultNamespace}
-          type="ogx"
+          type="maas"
           value={undefined}
           onChange={mockOnChange}
           dataTestId="test-selector"
@@ -571,6 +571,60 @@ describe('SecretSelector', () => {
   });
 
   describe('edge cases', () => {
+    it('should clear a non-existent valueName after a successful load', () => {
+      const mockSecrets: SecretListItem[] = [mockStorageSecret({ uuid: '1', name: 'secret-1' })];
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          valueName="deleted-secret"
+          onChange={mockOnChange}
+          dataTestId="test-selector"
+        />,
+      );
+
+      expect(mockOnChange).toHaveBeenCalledWith(undefined);
+    });
+
+    it('should preserve a valueName that resolves to a loaded secret', () => {
+      const mockSecrets: SecretListItem[] = [mockStorageSecret({ uuid: '1', name: 'secret-1' })];
+      mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          valueName="secret-1"
+          onChange={mockOnChange}
+          dataTestId="test-selector"
+        />,
+      );
+
+      expect(mockOnChange).not.toHaveBeenCalled();
+      expect(screen.getByTestId('test-selector')).toHaveTextContent('secret-1');
+    });
+
+    it('should not clear valueName while loading or when loading fails', () => {
+      const mockSecrets: SecretListItem[] = [mockStorageSecret({ uuid: '1', name: 'secret-1' })];
+      mockUseFetchState.mockReturnValue([
+        mockSecrets,
+        false,
+        new Error('fetch failed'),
+        mockRefresh,
+      ]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          valueName="deleted-secret"
+          onChange={mockOnChange}
+          dataTestId="test-selector"
+        />,
+      );
+
+      expect(mockOnChange).not.toHaveBeenCalled();
+    });
+
     it('should handle undefined value gracefully', () => {
       const mockSecrets: SecretListItem[] = [mockStorageSecret()];
       mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);

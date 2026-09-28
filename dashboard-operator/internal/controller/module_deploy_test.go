@@ -94,6 +94,29 @@ func TestReconcileModuleDemand_WhenNeitherOperandRequiresModules(t *testing.T) {
 	}
 }
 
+func TestReconcileModuleDemand_MissingAgentOpsManifestsIsGraceful(t *testing.T) {
+	scheme := testScheme(t)
+	reconciler := &ctrlpkg.DashboardReconciler{
+		Client:                fake.NewClientBuilder().WithScheme(scheme).Build(),
+		Scheme:                scheme,
+		ManifestsBasePath:     t.TempDir(),
+		Platform:              cluster.OpenDataHub,
+		ApplicationsNamespace: testNamespace,
+	}
+	overrides := make(map[string]v1alpha1.ModuleOverride)
+	for _, module := range ctrlpkg.ModuleNames() {
+		if module != "agentOps" {
+			overrides[module] = v1alpha1.ModuleOverride{State: v1alpha1.ModuleDisabled}
+		}
+	}
+	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{Modules: overrides}}
+
+	statuses, err := reconciler.ReconcileModuleDemand(context.Background(), dashboard)
+	require.NoError(t, err)
+	require.Equal(t, v1alpha1.ModulePhaseNotDeployed, statuses["agentOps"].Phase)
+	require.Equal(t, "DeploymentNotFound", statuses["agentOps"].Reason)
+}
+
 func TestReconcileModuleDemand_ExplicitDisableRemovesExistingResources(t *testing.T) {
 	scheme := testScheme(t)
 	resourceLabels := map[string]string{labels.PlatformPartOf: "dashboard", "app.kubernetes.io/component": "maas"}

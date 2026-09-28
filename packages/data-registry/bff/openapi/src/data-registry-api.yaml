@@ -5,7 +5,7 @@
 openapi: 3.1.0
 info:
   title: RHOAI Data Registry API
-  version: 0.7.4
+  version: 0.7.6
   description: |
     The RHOAI Data Registry exposes an **Iceberg REST Catalog-compatible API** for
     registering, discovering, and managing data assets across OpenShift AI projects.
@@ -1312,6 +1312,11 @@ components:
         updated-at:
           type: ['string', 'null']
           description: Last update timestamp in ISO 8601 format
+        labels:
+          type: ['array', 'null']
+          items:
+            type: string
+          description: Labels assigned to this volume for grouping and filtering
         properties:
           type: object
           additionalProperties:
@@ -1363,6 +1368,16 @@ components:
           type: string
         storage_location:
           type: string
+        add_labels:
+          type: array
+          items:
+            type: string
+          description: Labels to add to this volume. Existing labels are preserved.
+        remove_labels:
+          type: array
+          items:
+            type: string
+          description: Remove these labels from the volume. Other labels are preserved.
         properties:
           type: object
           additionalProperties:

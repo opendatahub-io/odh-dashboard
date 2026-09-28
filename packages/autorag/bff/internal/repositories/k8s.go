@@ -24,6 +24,24 @@ var ogxTypeRequiredKeys = map[string][]string{
 	},
 }
 
+var maasTypeRequiredKeys = map[string][]string{
+	"maas": {
+		"MAAS_BASE_URL",
+		"MAAS_API_KEY",
+	},
+}
+
+var vectorDBTypeRequiredKeys = map[string][]string{
+	"milvus": {"MILVUS_URI"},
+	"pgvector": {
+		"PGVECTOR_HOST",
+		"PGVECTOR_PORT",
+		"PGVECTOR_DB",
+		"PGVECTOR_USER",
+		"PGVECTOR_PASSWORD",
+	},
+}
+
 var allowedSecretKeys = map[string]bool{
 	"AWS_S3_BUCKET": true,
 }
@@ -39,6 +57,8 @@ func NewK8sRepository() *K8sRepository {
 //   - "" (empty): return all secrets
 //   - "storage": filter for secrets matching storage type requirements (e.g., S3)
 //   - "ogx": filter for secrets matching OGX (Open GenAI Stack) requirements
+//   - "maas": filter for secrets containing both MaaS credential keys
+//   - "vector-db": filter for the union of Milvus and PGVector credential schemas
 func (r *K8sRepository) GetFilteredSecrets(
 	k8sService kubernetes.Service,
 	ctx context.Context,
@@ -58,6 +78,10 @@ func (r *K8sRepository) GetFilteredSecrets(
 		filtered = kubernetes.FilterSecretInfos(secretInfos, storageTypeRequiredKeys)
 	case "ogx":
 		filtered = kubernetes.FilterSecretInfos(secretInfos, ogxTypeRequiredKeys)
+	case "maas":
+		filtered = kubernetes.FilterSecretInfos(secretInfos, maasTypeRequiredKeys)
+	case "vector-db":
+		filtered = kubernetes.FilterSecretInfos(secretInfos, vectorDBTypeRequiredKeys)
 	default:
 		return nil, fmt.Errorf("invalid secret type: %s", secretType)
 	}
@@ -104,15 +128,15 @@ func (r *K8sRepository) GetSecretCredentials(
 	return data, nil
 }
 
-// detectType determines the type for a secret, checking annotation first,
-// then falling back to key-based detection with LLS prioritized over storage.
+// detectType determines the type for a secret, checking annotation first and
+// then falling back to key-based detection.
 func detectType(secret kubernetes.SecretInfo, secretType string) string {
 	if secret.Type != "" {
 		return secret.Type
 	}
 	switch secretType {
-	case "ogx":
-		return "ogx"
+	case "ogx", "maas", "vector-db":
+		return secretType
 	case "storage":
 		return kubernetes.DetectSecretType(secret, storageTypeRequiredKeys)
 	default:

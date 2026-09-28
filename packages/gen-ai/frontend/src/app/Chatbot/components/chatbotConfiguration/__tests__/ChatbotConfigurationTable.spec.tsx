@@ -71,8 +71,6 @@ describe('ChatbotConfigurationTable', () => {
     setSelectedModels: jest.fn(),
     modelTypeMap: new Map<string, string>(),
     onModelTypeChange: jest.fn(),
-    maxTokensMap: new Map<string, number | undefined>(),
-    onMaxTokensChange: jest.fn(),
     embeddingDimensionMap: new Map<string, number | undefined>(),
     onEmbeddingDimensionChange: jest.fn(),
     lockedModelNames: new Set<string>(),

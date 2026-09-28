@@ -17,11 +17,17 @@ const ProjectsContextProvider = require('../ProjectsContextProvider').default as
 beforeEach(() => {
   jest.useFakeTimers();
   mockFetchNamespaces.mockResolvedValue([]);
+  globalThis.fetch = jest.fn().mockResolvedValue({
+    ok: false,
+    json: async () => undefined,
+  });
 });
 
 afterEach(() => {
   jest.useRealTimers();
   jest.restoreAllMocks();
+  // jsdom's test environment does not provide fetch by default.
+  delete (globalThis as { fetch?: typeof fetch }).fetch;
 });
 
 describe('ProjectsContextProvider — waitForProject settlement', () => {

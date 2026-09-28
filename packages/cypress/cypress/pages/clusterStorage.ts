@@ -233,6 +233,10 @@ class ClusterStorageModal extends Modal {
     return this.find().findByTestId('model-path-input');
   }
 
+  findNimSubpathInput() {
+    return this.find().findByTestId('nim-subpath-input');
+  }
+
   findGeneralPurposeRadio() {
     return this.find().findByTestId('general-purpose-radio');
   }

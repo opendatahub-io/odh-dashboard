@@ -27,9 +27,8 @@ const mockPattern: AutoragPattern = {
   duration_seconds: 120,
   settings: {
     vector_store_binding: {
-      provider_id: 'milvus',
-      provider_type: 'remote::milvus',
-      vector_store_id: 'vs_collection0',
+      provider_type: 'milvus',
+      collection_name: 'vs_collection0',
     },
     chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 128 },
     embedding: {
@@ -85,7 +84,7 @@ const mockEvaluationResults: AutoRAGEvaluationResult[] = [
     correct_answers: ['Model A is available.', 'Model B is also available.'],
     question_id: 'q0',
     answer: 'Several models are available.',
-    answer_contexts: [{ text: 'Models include A and B.', document_id: 'doc0' }],
+    answer_contexts: [{ text: 'Models include A and B.', document_key: 'doc0' }],
     metrics: [
       { name: 'answer_correctness', evaluator: 'unitxt', score: 0.75 },
       { name: 'faithfulness', evaluator: 'unitxt', score: 0.5 },
@@ -99,7 +98,7 @@ const mockEvaluationResults: AutoRAGEvaluationResult[] = [
     correct_answers: ['RAG retrieves documents and generates answers.'],
     question_id: 'q1',
     answer: 'RAG uses retrieval and generation.',
-    answer_contexts: [{ text: 'RAG is a pattern.', document_id: 'doc1' }],
+    answer_contexts: [{ text: 'RAG is a pattern.', document_key: 'doc1' }],
     metrics: [
       { name: 'answer_correctness', evaluator: 'unitxt', score: 0.6 },
       { name: 'faithfulness', evaluator: 'unitxt', score: 0.8 },
@@ -146,9 +145,53 @@ describe('PatternDetailsModal', () => {
     expect(screen.getByTestId('pattern-rank')).toHaveTextContent('3');
   });
 
+  it('should display an invalid objective pattern as unranked while keeping details available', () => {
+    const invalidPattern = {
+      ...mockPattern,
+      evaluation: {
+        metrics: mockPattern.evaluation.metrics.filter((metric) => metric.name !== 'overall_score'),
+      },
+    };
+
+    render(
+      <PatternDetailsModal
+        {...defaultProps}
+        patterns={[invalidPattern]}
+        rank={undefined}
+        optimizationMetric={{ name: 'overall_score' }}
+      />,
+    );
+
+    expect(screen.getByTestId('pattern-details-modal')).toBeInTheDocument();
+    expect(screen.getByTestId('pattern-rank')).toHaveTextContent('Unranked');
+    expect(screen.getByTestId('pattern-details-content')).toBeInTheDocument();
+  });
+
   it('should display final score in the header', () => {
     render(<PatternDetailsModal {...defaultProps} />);
     expect(screen.getByTestId('pattern-final-score')).toHaveTextContent('0.660');
+  });
+
+  it('should display the run objective for a non-winning canonical pattern without an optimization flag', () => {
+    const nonWinningCanonicalPattern = {
+      ...mockPattern,
+      evaluation: {
+        metrics: mockPattern.evaluation.metrics.map((metric) =>
+          metric.name === 'overall_score' ? { ...metric, optimization_metric: false } : metric,
+        ),
+      },
+    };
+
+    render(
+      <PatternDetailsModal
+        {...defaultProps}
+        patterns={[nonWinningCanonicalPattern]}
+        optimizationMetric={{ name: 'faithfulness' }}
+        rank={2}
+      />,
+    );
+
+    expect(screen.getByTestId('pattern-final-score')).toHaveTextContent('0.420');
   });
 
   it('should show plain text when only one pattern exists', () => {
@@ -210,9 +253,9 @@ describe('PatternDetailsModal', () => {
     it('should render a track for each score metric', () => {
       render(<PatternDetailsModal {...defaultProps} />);
 
-      expect(screen.getByTestId('ci-track-answer_correctness')).toBeInTheDocument();
-      expect(screen.getByTestId('ci-track-faithfulness')).toBeInTheDocument();
-      expect(screen.getByTestId('ci-track-context_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-track-answer_correctness-unitxt')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-track-faithfulness-unitxt')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-track-context_correctness-unitxt')).toBeInTheDocument();
     });
 
     it('should render x-axis labels', () => {
@@ -258,10 +301,10 @@ describe('PatternDetailsModal', () => {
 
       await user.click(screen.getByTestId('tab-vector_store_binding'));
 
-      expect(screen.getByText('Provider ID')).toBeInTheDocument();
-      expect(screen.getByText('milvus')).toBeInTheDocument();
       expect(screen.getByText('Provider Type')).toBeInTheDocument();
-      expect(screen.getByText('remote::milvus')).toBeInTheDocument();
+      expect(screen.getByText('milvus')).toBeInTheDocument();
+      expect(screen.getByText('Collection Name')).toBeInTheDocument();
+      expect(screen.getByText('vs_collection0')).toBeInTheDocument();
     });
 
     it('should show generation settings when Generation tab is clicked', async () => {
@@ -525,7 +568,9 @@ describe('PatternDetailsModal', () => {
       const user = userEvent.setup();
       const printSpy = jest.spyOn(window, 'print').mockImplementation(jest.fn());
       try {
-        render(<PatternDetailsModal {...defaultProps} />);
+        render(
+          <PatternDetailsModal {...defaultProps} optimizationMetric={{ name: 'faithfulness' }} />,
+        );
         await user.click(screen.getByTestId('pattern-details-download'));
 
         // Print container should be portalled to document.body
@@ -535,6 +580,14 @@ describe('PatternDetailsModal', () => {
         expect(printContainer).toHaveTextContent('Pattern information');
         expect(printContainer).toHaveTextContent('Chunking');
         expect(printContainer).toHaveTextContent('Embedding');
+        expect(within(printContainer).getByText('0.42', { exact: true })).toBeInTheDocument();
+
+        const ciPage = Array.from(printContainer.querySelectorAll('.autorag-print-page')).find(
+          (page) => page.querySelector('[data-testid="ci-scores-chart"]'),
+        );
+        const ciHeader = ciPage?.querySelector('.autorag-print-header');
+        expect(ciHeader).not.toBeNull();
+        expect(ciHeader).toHaveTextContent('pattern 0');
       } finally {
         printSpy.mockRestore();
       }
@@ -550,6 +603,32 @@ describe('PatternDetailsModal', () => {
       render(<PatternDetailsModal {...defaultProps} patterns={[patternNoScores]} />);
 
       expect(screen.queryByTestId('ci-scores-chart')).not.toBeInTheDocument();
+    });
+
+    it('should omit the confidence interval print page when all scores are unavailable', async () => {
+      const user = userEvent.setup();
+      const printSpy = jest.spyOn(window, 'print').mockImplementation(jest.fn());
+      const patternWithoutChartData: AutoragPattern = {
+        ...mockPattern,
+        evaluation: {
+          ...mockPattern.evaluation,
+          metrics: mockPattern.evaluation.metrics.map((metric) => ({
+            ...metric,
+            scores: { mean: null, ci_low: null, ci_high: null },
+          })),
+        },
+      };
+
+      try {
+        render(<PatternDetailsModal {...defaultProps} patterns={[patternWithoutChartData]} />);
+        await user.click(screen.getByTestId('pattern-details-download'));
+
+        expect(
+          within(screen.getByTestId('print-container')).queryByTestId('ci-scores-chart'),
+        ).not.toBeInTheDocument();
+      } finally {
+        printSpy.mockRestore();
+      }
     });
 
     it('should not show Sample Q&A tab when evaluationResults is empty', () => {
@@ -782,6 +861,25 @@ describe('PatternDetailsModal', () => {
       expect(screen.getByTestId('comparison-column-header-comparison')).toBeInTheDocument();
     });
 
+    it('should display an unranked comparison pattern as Unranked', async () => {
+      const user = userEvent.setup();
+      const invalidComparisonPattern = {
+        ...comparisonPattern,
+        evaluation: { metrics: [] },
+      };
+
+      render(
+        <PatternDetailsModal
+          {...defaultProps}
+          patterns={[mockPattern, invalidComparisonPattern]}
+        />,
+      );
+
+      await user.click(screen.getByTestId('compare-patterns-toggle'));
+
+      expect(screen.getByTestId('comparison-pattern-rank-1')).toHaveTextContent('Unranked');
+    });
+
     it('should disable confirm button when the already-compared pattern is still selected', async () => {
       const user = userEvent.setup();
       const thirdPattern: AutoragPattern = {
@@ -917,6 +1015,58 @@ describe('PatternDetailsModal', () => {
         });
       });
 
+      it('should not fire when the comparison pattern is unranked', async () => {
+        const user = userEvent.setup();
+        const unrankedPattern = {
+          ...comparisonPattern,
+          evaluation: { metrics: [] },
+        };
+        render(
+          <PatternDetailsModal
+            {...defaultProps}
+            patterns={[mockPattern, unrankedPattern]}
+            optimizationMetric={{ name: 'overall_score' }}
+          />,
+        );
+        fireMiscTrackingEventMock.mockClear();
+
+        await user.click(screen.getByTestId('compare-patterns-toggle'));
+        await user.click(screen.getByTestId('comparison-pattern-row-1'));
+        await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+          AUTORAG_EVENTS.PATTERNS_COMPARED,
+          expect.anything(),
+        );
+      });
+
+      it('should not fire when the primary pattern is unranked', async () => {
+        const user = userEvent.setup();
+        const unrankedPattern = {
+          ...mockPattern,
+          evaluation: { metrics: [] },
+        };
+        render(
+          <PatternDetailsModal
+            {...defaultProps}
+            patterns={[unrankedPattern, comparisonPattern]}
+            selectedIndex={0}
+            rank={undefined}
+            optimizationMetric={{ name: 'overall_score' }}
+          />,
+        );
+        fireMiscTrackingEventMock.mockClear();
+
+        await user.click(screen.getByTestId('compare-patterns-toggle'));
+        await user.click(screen.getByTestId('comparison-pattern-row-1'));
+        await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+          AUTORAG_EVENTS.PATTERNS_COMPARED,
+          expect.anything(),
+        );
+      });
+
       it('should not fire when the comparison select modal is cancelled', async () => {
         const user = userEvent.setup();
         render(<PatternDetailsModal {...twoPatternProps} />);
@@ -1004,131 +1154,12 @@ describe('PatternDetailsModal', () => {
       expect(onSaveNotebook).toHaveBeenCalledWith('pattern0', 'inference');
     });
 
-    it('should show "Try this pattern" when pattern has responses_template and onTryPattern is provided', async () => {
+    it('should not show OGX actions', async () => {
       const user = userEvent.setup();
-      const patternWithTemplate: AutoragPattern = {
-        ...mockPattern,
-        inference: {
-          responses_template: {
-            model: 'test-model',
-            stream: false,
-            store: true,
-            input: [
-              {
-                type: 'message' as const,
-                role: 'user' as const,
-                content: [{ type: 'input_text' as const, text: '<user_query_placeholder>' }],
-              },
-            ],
-            metadata: { autorag_run_id: '123', rag_pattern_name: 'pattern0' },
-            instructions: 'Answer from file_search results.',
-            tools: [
-              {
-                type: 'file_search' as const,
-                vector_store_ids: ['vs-1'],
-                max_num_results: 5,
-                ranking_options: {
-                  search_mode: 'hybrid',
-                  ranker_strategy: 'rrf',
-                  ranker_k: 60,
-                  ranker_alpha: 0.5,
-                },
-              },
-            ],
-            tool_choice: { type: 'file_search' },
-            include: ['file_search_call.results'],
-          },
-        },
-      };
-
-      const onTryPattern = jest.fn();
-      const onClose = jest.fn();
-      render(
-        <PatternDetailsModal
-          {...defaultProps}
-          patterns={[patternWithTemplate]}
-          onTryPattern={onTryPattern}
-          onClose={onClose}
-        />,
-      );
-
-      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
-      expect(screen.getByText('Try this pattern')).toBeInTheDocument();
-
-      await user.click(screen.getByText('Try this pattern'));
-      expect(onClose).toHaveBeenCalled();
-      expect(onTryPattern).toHaveBeenCalledWith('pattern0');
-    });
-
-    it('should not show "Try this pattern" when pattern lacks responses_template', async () => {
-      const user = userEvent.setup();
-      render(<PatternDetailsModal {...defaultProps} onTryPattern={jest.fn()} />);
+      render(<PatternDetailsModal {...defaultProps} />);
 
       await user.click(screen.getByTestId('pattern-details-actions-toggle'));
       expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
-    });
-
-    it('should show "View code" when pattern has responses_template and onViewCode is provided', async () => {
-      const user = userEvent.setup();
-      const patternWithTemplate: AutoragPattern = {
-        ...mockPattern,
-        inference: {
-          responses_template: {
-            model: 'test-model',
-            stream: false,
-            store: true,
-            input: [
-              {
-                type: 'message' as const,
-                role: 'user' as const,
-                content: [{ type: 'input_text' as const, text: '<user_query_placeholder>' }],
-              },
-            ],
-            metadata: { autorag_run_id: '123', rag_pattern_name: 'pattern0' },
-            instructions: 'Answer from file_search results.',
-            tools: [
-              {
-                type: 'file_search' as const,
-                vector_store_ids: ['vs-1'],
-                max_num_results: 5,
-                ranking_options: {
-                  search_mode: 'hybrid',
-                  ranker_strategy: 'rrf',
-                  ranker_k: 60,
-                  ranker_alpha: 0.5,
-                },
-              },
-            ],
-            tool_choice: { type: 'file_search' },
-            include: ['file_search_call.results'],
-          },
-        },
-      };
-
-      const onViewCode = jest.fn();
-      const onClose = jest.fn();
-      render(
-        <PatternDetailsModal
-          {...defaultProps}
-          patterns={[patternWithTemplate]}
-          onViewCode={onViewCode}
-          onClose={onClose}
-        />,
-      );
-
-      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
-      expect(screen.getByText('View code')).toBeInTheDocument();
-
-      await user.click(screen.getByText('View code'));
-      expect(onClose).toHaveBeenCalled();
-      expect(onViewCode).toHaveBeenCalledWith('pattern0');
-    });
-
-    it('should not show "View code" when pattern lacks responses_template', async () => {
-      const user = userEvent.setup();
-      render(<PatternDetailsModal {...defaultProps} onViewCode={jest.fn()} />);
-
-      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
       expect(screen.queryByText('View code')).not.toBeInTheDocument();
     });
   });

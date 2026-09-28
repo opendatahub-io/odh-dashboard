@@ -1,4 +1,6 @@
 const path = require('path');
+const fs = require('fs');
+const https = require('https');
 const { execSync } = require('child_process');
 const { merge } = require('rspack-merge');
 const { TsCheckerRspackPlugin } = require('ts-checker-rspack-plugin');
@@ -7,6 +9,12 @@ const rspackCommon = require('./rspack.common.js');
 const RELATIVE_DIRNAME = path.resolve(__dirname, '..');
 const DIST_DIR = path.resolve(RELATIVE_DIRNAME, 'public');
 const PORT = process.env.SHELL_PORT || 4020;
+const BASE_PATH = '/maas-consumer-portal';
+
+const clusterCAFile = process.env.ODH_DASHBOARD_CA_FILE;
+const clusterProxyAgent = clusterCAFile
+  ? new https.Agent({ ca: fs.readFileSync(clusterCAFile) })
+  : undefined;
 
 // Derived from frontend/config/rspack.dev.js — token acquisition, route
 // discovery, and proxy setup are duplicated across 7+ bundler configs in the
@@ -125,11 +133,18 @@ const buildProxyConfig = () => {
 
     if (dashboardHost) {
       console.info('Dashboard host:', dashboardHost);
+      if (!clusterCAFile) {
+        console.info(
+          'Cluster proxy TLS verification is enabled. Set ODH_DASHBOARD_CA_FILE to trust an internally signed dashboard certificate.',
+        );
+      }
       return [
         {
-          context: ['/maas/api', '/gen-ai/api'],
+          context: [`${BASE_PATH}/maas/api`, `${BASE_PATH}/gen-ai/api`],
           target: `https://${dashboardHost}`,
-          secure: false,
+          pathRewrite: { [`^${BASE_PATH}`]: '' },
+          secure: true,
+          ...(clusterProxyAgent ? { agent: clusterProxyAgent } : {}),
           changeOrigin: true,
           on,
         },
@@ -145,17 +160,17 @@ const buildProxyConfig = () => {
 
   return [
     {
-      context: ['/maas/api'],
+      context: [`${BASE_PATH}/maas/api`],
       target: MAAS_BFF_TARGET,
-      pathRewrite: { '^/maas/api': '/api' },
+      pathRewrite: { [`^${BASE_PATH}/maas/api`]: '/api' },
       secure: false,
       changeOrigin: true,
       on,
     },
     {
-      context: ['/gen-ai/api'],
+      context: [`${BASE_PATH}/gen-ai/api`],
       target: GENAI_BFF_TARGET,
-      pathRewrite: { '^/gen-ai/api': '/api' },
+      pathRewrite: { [`^${BASE_PATH}/gen-ai/api`]: '/api' },
       secure: false,
       changeOrigin: true,
       on,
@@ -173,7 +188,7 @@ module.exports = merge(rspackCommon(), {
     host: 'localhost',
     port: PORT,
     compress: true,
-    historyApiFallback: true,
+    historyApiFallback: { index: `${BASE_PATH}/` },
     hot: true,
     proxy: buildProxyConfig(),
     client: {
@@ -188,7 +203,7 @@ module.exports = merge(rspackCommon(), {
         const green = '\x1b[32m';
         const underline = '\x1b[4m';
         const reset = '\x1b[0m';
-        const url = `http://localhost:${addr.port}`;
+        const url = `http://localhost:${addr.port}${BASE_PATH}/`;
         console.log(`${green}✓ MaaS Consumer Portal available at: ${underline}${url}${reset}`);
       } else {
         console.warn('MaaS Portal dev server started but could not determine address');

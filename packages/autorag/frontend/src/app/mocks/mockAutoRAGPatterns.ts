@@ -87,9 +87,8 @@ const basePattern = {
   duration_seconds: 0,
   settings: {
     vector_store_binding: {
-      provider_id: 'milvus-provider',
       provider_type: 'milvus',
-      vector_store_id: 'collection0',
+      collection_name: 'collection0',
     },
     chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 128 },
     embedding: {

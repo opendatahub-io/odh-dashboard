@@ -1,9 +1,8 @@
 import React from 'react';
-import { ApplicationsPage, ProjectObjectType } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, ProjectObjectType, ProjectsContext } from '@odh-dashboard/ui-core';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { byName, type ProjectKind } from '@odh-dashboard/k8s-core';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { Alert, List, ListItem } from '@patternfly/react-core';
 import { GlobalNoModelsView } from './GlobalNoModelsView';

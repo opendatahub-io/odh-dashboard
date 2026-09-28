@@ -15,6 +15,7 @@ import {
 } from '@patternfly/react-core';
 import { Controller, useFormContext } from 'react-hook-form';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
+import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
 
 const LICENSE_OPTIONS = [
   { key: 'internal-use', label: 'Internal use' },
@@ -55,7 +56,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
   options,
   placeholder,
 }) => {
-  const { control } = useFormContext<RegisterDataFormData>();
+  const { control } = useFormContext<RegisterDataFormData | EditAssetFormData>();
   const [isOpen, setIsOpen] = React.useState(false);
 
   return (
@@ -102,7 +103,7 @@ const PropertiesSection: React.FC = () => {
   const {
     control,
     formState: { errors },
-  } = useFormContext<RegisterDataFormData>();
+  } = useFormContext<RegisterDataFormData | EditAssetFormData>();
 
   return (
     <FormSection title="Properties" titleElement="h2">

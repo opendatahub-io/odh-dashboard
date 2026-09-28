@@ -10,9 +10,8 @@ const createPattern = (lang?: { code: string; name: string }): AutoragPattern =>
     duration_seconds: 10,
     settings: {
       vector_store_binding: {
-        provider_id: 'milvus',
-        provider_type: 'remote::milvus',
-        vector_store_id: 'vs_c1',
+        provider_type: 'milvus',
+        collection_name: 'vs_c1',
       },
       chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 32 },
       embedding: {

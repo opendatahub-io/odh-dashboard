@@ -5,12 +5,13 @@ import type {
 import { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import { setUpTokenAuth } from '@odh-dashboard/model-serving/concepts/auth';
 import { KServeDeployment } from './types';
-import { assembleServingRuntime, createServingRuntime } from './deployServer';
+import { assembleServingRuntime, createServingRuntime, updateServingRuntime } from './deployServer';
 import {
   assembleInferenceService,
   deployInferenceService,
   type CreatingInferenceServiceObject,
 } from './deployModel';
+import { resolveHfTokenSecretName } from './hfTokenSecret';
 import { KSERVE_ID } from '../extensions';
 
 export const deployKServeDeployment = async (
@@ -26,7 +27,14 @@ export const deployKServeDeployment = async (
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,
   applyFieldData?: DeploymentAssemblyFn<KServeDeployment>,
+  updateExistingServingRuntime?: boolean,
 ): Promise<KServeDeployment> => {
+  const hfTokenSecretName = await resolveHfTokenSecretName(
+    projectName,
+    wizardData.huggingFaceApiKey.data,
+    { dryRun },
+  );
+
   const inferenceServiceData: CreatingInferenceServiceObject = {
     project: projectName,
     name: wizardData.k8sNameDesc.data.name,
@@ -43,7 +51,8 @@ export const deployKServeDeployment = async (
     runtimeArgs: wizardData.runtimeArgs.data,
     environmentVariables: wizardData.environmentVariables.data,
     modelAvailability: wizardData.modelAvailability.data,
-    deploymentStrategy: wizardData.deploymentStrategy.data,
+    deploymentStrategy: wizardData.deploymentStrategy,
+    hfTokenSecretName,
   };
 
   const servingRuntime = existingDeployment?.server ?? serverResource;
@@ -61,7 +70,9 @@ export const deployKServeDeployment = async (
           name: wizardData.k8sNameDesc.data.k8sName.value,
           servingRuntime,
           scope: wizardData.modelServer?.data?.selection?.scope,
-          templateName: serverResourceTemplateName,
+          templateName:
+            serverResourceTemplateName ||
+            existingDeployment?.server?.metadata.annotations?.['opendatahub.io/template-name'],
         })
       : undefined,
   };
@@ -70,11 +81,11 @@ export const deployKServeDeployment = async (
     assembledDeployment = applyFieldData(assembledDeployment);
   }
 
-  // Only newly assembled servers are created; editing leaves the existing runtime alone and
-  // updates the inference service only.
   let servingRuntimeResult = existingDeployment?.server;
   if (!servingRuntimeResult && assembledDeployment.server) {
     servingRuntimeResult = await createServingRuntime(assembledDeployment.server, { dryRun });
+  } else if (updateExistingServingRuntime && assembledDeployment.server) {
+    servingRuntimeResult = await updateServingRuntime(assembledDeployment.server, { dryRun });
   }
 
   const inferenceServiceResult = await deployInferenceService(

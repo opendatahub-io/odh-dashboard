@@ -14,7 +14,7 @@ paths:
 
 ## Monorepo Structure
 
-ODH Dashboard is a monorepo managed with npm workspaces and Turbo. It provides the web UI for Red Hat OpenShift AI (RHOAI) and Open Data Hub (ODH).
+ODH Dashboard is a monorepo managed with pnpm workspaces and Turbo. It provides the web UI for Red Hat OpenShift AI (RHOAI) and Open Data Hub (ODH).
 
 ### Main Applications
 
@@ -37,6 +37,7 @@ These packages have a `module-federation` config in `package.json`, their own rs
 - `mlflow` — MLflow integration (has Go BFF)
 - `mlflow-embedded` — Embedded MLflow integration
 - `model-registry` — Model Registry UI (has Go BFF)
+- `model-serving` — Model Serving UI (MF remote; hybrid with bundled `src/` until host cutover)
 - `notebooks` — Notebooks management
 - `observability` — Observability features
 
@@ -47,7 +48,6 @@ These packages export extensions but have **no** `module-federation` config. The
 - `feature-store` — Feature Store (read-only Feast UI; no BFF, proxies through main dashboard backend)
 - `kserve` — KServe integration
 - `llmd-serving` — LLM serving
-- `model-serving` — Model Serving UI
 - `model-training` — Model training UI
 - `nim-serving` — NIM serving
 
@@ -80,17 +80,17 @@ These packages export extensions but have **no** `module-federation` config. The
 
 A standalone Kubernetes operator that manages the full lifecycle of the Dashboard application. Co-located in the monorepo (not a separate repository) because the controller is tightly coupled to Dashboard frontend/backend versions and manifest layouts.
 
-- **Language**: Go 1.25+ with controller-runtime v0.23
+- **Language**: Go 1.26+ with controller-runtime v0.23
 - **CRD**: `Dashboard` (cluster-scoped, singleton `default-dashboard`) in group `dashboard.opendatahub.io`
 - **Key dependencies**: `odh-platform-utilities` (Tier 1 packages for manifest rendering, SSA deployment, platform detection, status conditions)
 - **CI**: `.github/workflows/dashboard-operator-tests.yml` — lint, build, test on `dashboard-operator/**` changes
 - **Container**: `quay.io/opendatahub/dashboard-operator:latest` built from `dashboard-operator/Dockerfile`
 
-The controller is **not** part of the npm workspace or Turbo pipeline. It has its own `go.mod`, `Makefile`, and CI workflow. See `dashboard-operator/AGENTS.md` and `.claude/rules/operator-controller.md` for detailed conventions.
+The controller is **not** part of the pnpm workspace or Turbo pipeline. It has its own `go.mod`, `Makefile`, and CI workflow. See `dashboard-operator/AGENTS.md` and `.claude/rules/operator-controller.md` for detailed conventions.
 
 ## Distributions (`distributions/`)
 
-Dashboard variants — three independently-deployable distributions plus a shared app-shell library (`base/`). All four are **npm workspace members** and participate in the **Turbo pipeline** — Turbo-based root commands (`lint`, `type-check`, `test:contract`) run on distributions that define matching scripts. Some root convenience scripts (`build`, `test`, `dev`) are hardcoded to `frontend/` and `backend/` and do not cover distributions.
+Dashboard variants — three independently-deployable distributions plus a shared app-shell library (`base/`). All four are **pnpm workspace members** and participate in the **Turbo pipeline** — Turbo-based root commands (`lint`, `type-check`, `test:contract`) run on distributions that define matching scripts. Some root convenience scripts (`build`, `test`, `dev`) are hardcoded to `frontend/` and `backend/` and do not cover distributions.
 
 | Directory | Description | Has BFF? | Build System |
 |-----------|-------------|----------|--------------|

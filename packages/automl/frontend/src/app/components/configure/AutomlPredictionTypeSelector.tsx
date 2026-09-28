@@ -1,6 +1,7 @@
 import * as React from 'react';
 import classNames from 'classnames';
 import {
+  Alert,
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -21,6 +22,7 @@ import {
 import { WarningTriangleIcon } from '@patternfly/react-icons';
 import type { ColumnSchema } from '~/app/hooks/queries';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+import { findTimestampColumn } from '~/app/utilities/columnUtils';
 import { TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
 import {
   assessPredictionTypes,
@@ -38,6 +40,7 @@ type AutomlPredictionTypeSelectorProps = {
   onClearTimeseriesTimestamp: () => void;
   selectedColumn?: ColumnSchema;
   columns: { name: string; type: string }[];
+  columnCount: number;
   isDisabled?: boolean;
 };
 
@@ -135,6 +138,7 @@ const AutomlPredictionTypeSelector: React.FC<AutomlPredictionTypeSelectorProps> 
   onClearTimeseriesTimestamp,
   selectedColumn,
   columns,
+  columnCount,
   isDisabled = false,
 }) => {
   const [showOtherTypes, setShowOtherTypes] = React.useState(false);
@@ -149,6 +153,8 @@ const AutomlPredictionTypeSelector: React.FC<AutomlPredictionTypeSelectorProps> 
     () => getInferredPredictionType(selectedColumn, columns),
     [selectedColumn, columns],
   );
+  const timestampColumn = findTimestampColumn(columns);
+  const isTimeSeriesRecommended = inferredTaskType === TASK_TYPE_TIMESERIES;
   const { recommended, notRecommended } = React.useMemo(() => {
     const partitioned = partitionPredictionTypeAssessments(assessments);
     return {
@@ -189,6 +195,35 @@ const AutomlPredictionTypeSelector: React.FC<AutomlPredictionTypeSelectorProps> 
 
   return (
     <Stack hasGutter className="pf-v6-u-w-100">
+      {selectedColumn && (isTimeSeriesRecommended || value === TASK_TYPE_TIMESERIES) && (
+        <StackItem>
+          <Alert
+            isInline
+            variant="info"
+            title={
+              isTimeSeriesRecommended ? 'Time series recommended' : 'Time series dataset format'
+            }
+          >
+            {isTimeSeriesRecommended ? (
+              <>
+                Time series is recommended because your target column{' '}
+                <code className="automl-prediction-type-column-name">{selectedColumn.name}</code>{' '}
+                contains numbers, and your dataset also has a timestamp column,{' '}
+                <code className="automl-prediction-type-column-name">{timestampColumn}</code>.
+                {columnCount === 2 &&
+                  ' Your dataset does not contain an ID column. An ID column will be automatically generated during training.'}
+              </>
+            ) : (
+              <>
+                Use a timestamp column and a numeric target column. The timestamp records when each
+                value was measured, and the target contains the numbers you want to predict. Use
+                dates such as 2026-01-15 or 2026-01-15T10:30:00Z. Dates stored as Unix epoch numbers
+                are not detected automatically; you can select time series manually.
+              </>
+            )}
+          </Alert>
+        </StackItem>
+      )}
       {recommended.map((assessment) => (
         <StackItem key={assessment.value}>
           <PredictionTypeCard

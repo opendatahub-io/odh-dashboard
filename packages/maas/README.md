@@ -13,7 +13,7 @@ You can check the [contributing guidelines] for more information on how to contr
 Bootstrap a fresh copy of this starter without cloning the repo by using the published CLI:
 
 ```bash
-npx mod-arch-installer my-module --flavor kubeflow
+pnpm dlx mod-arch-installer my-module --flavor kubeflow
 ```
 
 See [`docs/install.md`](./docs/install.md) for all CLI options and details about the PatternFly-first default flavor.
@@ -108,7 +108,7 @@ CONTAINER_TOOL=docker
 IMG_UI=quay.io/<personal-registry>/mod-arch-ui:latest
 IMG_UI_STANDALONE=quay.io/<personal-registry>/mod-arch-ui-standalone:latest
 PLATFORM=linux/amd64
-MAAS_API_URL=http://maas.apps.my-cluster.example.com/maas-api
+MAAS_API_URL=https://maas.apps.my-cluster.example.com/maas-api
 ```
 
 ## Build and Push Commands

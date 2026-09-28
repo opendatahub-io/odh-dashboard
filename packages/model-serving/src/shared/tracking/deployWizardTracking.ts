@@ -55,7 +55,6 @@ export type ModelDeployedTrackingProperties = {
   entryPoint: DeployWizardEntryPoint;
   outcome: 'submit' | 'cancel';
   success?: boolean;
-  error?: string;
   hasInjectedValidatedArgs: boolean;
 } & Record<string, string | number | boolean | string[] | undefined>;
 
@@ -127,7 +126,6 @@ export const getModelDeployedTrackingProperties = ({
   runtimeArgs,
   outcome,
   success,
-  error,
   additionalProperties,
 }: {
   navState: DeployWizardNavState;
@@ -136,7 +134,6 @@ export const getModelDeployedTrackingProperties = ({
   runtimeArgs?: string[];
   outcome: 'submit' | 'cancel';
   success?: boolean;
-  error?: string;
   additionalProperties?: Record<string, string | number | boolean | string[] | undefined>;
 }): ModelDeployedTrackingProperties => {
   const selectedOptions = getSelectedValidatedOptions(
@@ -161,7 +158,6 @@ export const getModelDeployedTrackingProperties = ({
     entryPoint: getDeployWizardEntryPoint(navState),
     outcome,
     success,
-    error,
     hasInjectedValidatedArgs,
   };
 };

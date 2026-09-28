@@ -17,6 +17,32 @@ const (
 	maasConsumerPortalCoreBFFImage = "registry.example.com/odh-core-bff@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 )
 
+func TestRenderCoreDashboardRouteHasNoHostnames(t *testing.T) {
+	source := filepath.Join("..", "..", "..", "manifests", "rhoai")
+	engine := kustomize.NewEngine()
+	rendered, err := engine.Render(source, kustomize.WithNamespace("dashboard-test"))
+	require.NoError(t, err)
+
+	for i := range rendered {
+		resource := &rendered[i]
+		if resource.GetKind() != "HTTPRoute" || resource.GetName() != "rhods-dashboard" {
+			continue
+		}
+
+		_, found, err := unstructured.NestedStringSlice(resource.Object, "spec", "hostnames")
+		require.NoError(t, err)
+		assert.False(t, found, "the core dashboard catch-all route must not set hostnames")
+		parentRefs, found, err := unstructured.NestedSlice(resource.Object, "spec", "parentRefs")
+		require.NoError(t, err)
+		require.True(t, found)
+		require.Len(t, parentRefs, 1)
+		assert.Equal(t, "data-science-gateway", parentRefs[0].(map[string]interface{})["name"])
+		return
+	}
+
+	require.Fail(t, "core dashboard HTTPRoute was not rendered")
+}
+
 func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	// Render a copy of the checked-in bundle: reconciliation writes params.env at
 	// runtime, so rendering the source directory directly would mutate the worktree.
@@ -28,16 +54,13 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	params["core-bff-image"] = maasConsumerPortalCoreBFFImage
 	params["dashboard-namespace"] = "portal-test"
 	params["gateway-name"] = "portal-gateway"
-	params["maas-consumer-portal-url"] = "https://portal.apps.example.com/"
 	params["maas-consumer-portal-federation-config"] = "maas-consumer-portal-federation-test"
-	params["maas-consumer-portal-hostname"] = "portal.apps.example.com"
-	params["section-title"] = "OpenShift Self Managed Services"
 	require.NoError(t, writeParamsEnv(dir, params))
 
 	engine := kustomize.NewEngine()
 	rendered, err := engine.Render(dir, kustomize.WithNamespace("portal-test"))
 	require.NoError(t, err)
-	require.Len(t, rendered, 9, "bundle must render its eight operand resources and params ConfigMap")
+	require.Len(t, rendered, 8, "bundle must render its seven operand resources and params ConfigMap")
 
 	resources := make(map[string]*unstructured.Unstructured, len(rendered))
 	for i := range rendered {
@@ -136,23 +159,40 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 
 	route := resources["HTTPRoute/"+maasConsumerPortalName]
 	require.NotNil(t, route)
-	hostnames, found, err := unstructured.NestedStringSlice(route.Object, "spec", "hostnames")
+	_, found, err = unstructured.NestedStringSlice(route.Object, "spec", "hostnames")
+	require.NoError(t, err)
+	assert.False(t, found, "path-partitioned routes must not set hostnames")
+	rules, found, err := unstructured.NestedSlice(route.Object, "spec", "rules")
 	require.NoError(t, err)
 	require.True(t, found)
-	assert.Equal(t, []string{"portal.apps.example.com"}, hostnames)
+	require.Len(t, rules, 2)
+	redirect := rules[0].(map[string]interface{})
+	assert.Equal(t, "Exact", redirect["matches"].([]interface{})[0].(map[string]interface{})["path"].(map[string]interface{})["type"])
+	assert.Equal(t, "/maas-consumer-portal", redirect["matches"].([]interface{})[0].(map[string]interface{})["path"].(map[string]interface{})["value"])
+	redirectFilter := redirect["filters"].([]interface{})[0].(map[string]interface{})
+	assert.Equal(t, "RequestRedirect", redirectFilter["type"])
+	redirectPath := redirectFilter["requestRedirect"].(map[string]interface{})["path"].(map[string]interface{})
+	assert.Equal(t, "ReplaceFullPath", redirectPath["type"])
+	assert.Equal(t, "/maas-consumer-portal/", redirectPath["replaceFullPath"])
+	assert.Equal(t, int64(302), redirectFilter["requestRedirect"].(map[string]interface{})["statusCode"])
+	proxy := rules[1].(map[string]interface{})
+	assert.Equal(t, "PathPrefix", proxy["matches"].([]interface{})[0].(map[string]interface{})["path"].(map[string]interface{})["type"])
+	assert.Equal(t, "/maas-consumer-portal", proxy["matches"].([]interface{})[0].(map[string]interface{})["path"].(map[string]interface{})["value"])
+	proxyFilter := proxy["filters"].([]interface{})[0].(map[string]interface{})
+	assert.Equal(t, "URLRewrite", proxyFilter["type"])
+	proxyPath := proxyFilter["urlRewrite"].(map[string]interface{})["path"].(map[string]interface{})
+	assert.Equal(t, "ReplacePrefixMatch", proxyPath["type"])
+	assert.Equal(t, "/", proxyPath["replacePrefixMatch"])
+	backendRefs := proxy["backendRefs"].([]interface{})
+	require.Len(t, backendRefs, 1)
+	assert.Equal(t, maasConsumerPortalName, backendRefs[0].(map[string]interface{})["name"])
+	assert.Equal(t, int64(8443), backendRefs[0].(map[string]interface{})["port"])
 	parentRefs, found, err := unstructured.NestedSlice(route.Object, "spec", "parentRefs")
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Len(t, parentRefs, 1)
 	gatewayName := parentRefs[0].(map[string]interface{})["name"]
 	assert.Equal(t, "portal-gateway", gatewayName)
-
-	consoleLink := resources["ConsoleLink/"+maasConsumerPortalName+"-link"]
-	require.NotNil(t, consoleLink)
-	href, found, err := unstructured.NestedString(consoleLink.Object, "spec", "href")
-	require.NoError(t, err)
-	require.True(t, found)
-	assert.Equal(t, "https://portal.apps.example.com/", href)
 
 	roleBinding := resources["ClusterRoleBinding/"+maasConsumerPortalName]
 	require.NotNil(t, roleBinding)
@@ -164,7 +204,7 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	assert.Equal(t, "portal-test", subjectNamespace)
 	role := resources["ClusterRole/"+maasConsumerPortalName]
 	require.NotNil(t, role)
-	rules, found, err := unstructured.NestedSlice(role.Object, "rules")
+	rules, found, err = unstructured.NestedSlice(role.Object, "rules")
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Len(t, rules, 2, "portal RBAC is limited to DSC and ingress discovery")

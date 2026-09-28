@@ -31,15 +31,15 @@ Browser
 
 Registers under **Develop & Train > Feature Store** in the sidebar:
 
-| Page | Path |
-|------|------|
-| Overview | `/develop-train/feature-store/overview` |
-| Entities | `/develop-train/feature-store/entities` |
-| Features | `/develop-train/feature-store/features` |
-| Feature Views | `/develop-train/feature-store/feature-views` |
+| Page             | Path                                            |
+| ---------------- | ----------------------------------------------- |
+| Overview         | `/develop-train/feature-store/overview`         |
+| Entities         | `/develop-train/feature-store/entities`         |
+| Features         | `/develop-train/feature-store/features`         |
+| Feature Views    | `/develop-train/feature-store/feature-views`    |
 | Feature Services | `/develop-train/feature-store/feature-services` |
-| Data Sources | `/develop-train/feature-store/data-sources` |
-| Datasets | `/develop-train/feature-store/datasets` |
+| Data Sources     | `/develop-train/feature-store/data-sources`     |
+| Datasets         | `/develop-train/feature-store/datasets`         |
 
 ## Development
 
@@ -47,14 +47,15 @@ No separate dev server is needed. Feature Store code is compiled into the host d
 
 ### Prerequisites
 
-- Node.js >= 22, npm >= 10
+- Node.js >= 22.18.0
+- pnpm 11.22.0
 - A cluster with a Feast service deployed (`FeatureStore` CR with label `feature-store-ui=enabled`)
 
 ### Running locally
 
 ```bash
 # From repo root -- starts both backend and frontend
-npm run dev
+pnpm run dev
 ```
 
 For local development, the backend needs to reach the Feast service. Since Feast runs inside the cluster, use the port-forward script to discover and wire up all active Feature Stores automatically:
@@ -77,33 +78,33 @@ See [`scripts/feast-dev-portforward.md`](scripts/feast-dev-portforward.md) for f
 ### Scripts
 
 ```bash
-npm run lint          # Lint
-npm run lint:fix      # Lint and auto-fix
-npm run test-unit     # Run unit tests
-npm run type-check    # TypeScript type checking
+pnpm run lint          # Lint
+pnpm run lint:fix      # Lint and auto-fix
+pnpm run test-unit     # Run unit tests
+pnpm run type-check    # TypeScript type checking
 ```
 
 ## Package Exports
 
-| Export | Path |
-|--------|------|
-| `./extensions` | `extensions.ts` |
-| `./routes` | `src/routes.ts` |
-| `./types/*` | `src/types/` |
-| `./components/*` | `src/components/` |
+| Export                   | Path                      |
+| ------------------------ | ------------------------- |
+| `./extensions`           | `extensions.ts`           |
+| `./routes`               | `src/routes.ts`           |
+| `./types/*`              | `src/types/`              |
+| `./components/*`         | `src/components/`         |
 | `./screens/components/*` | `src/screens/components/` |
-| `./screens/lineage/*` | `src/screens/lineage/` |
+| `./screens/lineage/*`    | `src/screens/lineage/`    |
 | `./icons/header-icons/*` | `src/icons/header-icons/` |
-| `./mocks/*` | `src/__mocks__/` |
+| `./mocks/*`              | `src/__mocks__/`          |
 
 ## Related Code
 
-| Area | Location |
-|------|----------|
-| Detailed architecture docs | [`docs/overview.md`](docs/overview.md) |
-| Backend proxy routes | [`backend/src/routes/api/featurestores/`](../../backend/src/routes/api/featurestores/) |
-| Workbench integration | [`frontend/src/pages/projects/screens/spawner/featureStore/`](../../frontend/src/pages/projects/screens/spawner/featureStore/) |
-| Workbench API | [`frontend/src/api/featureStore/`](../../frontend/src/api/featureStore/) |
+| Area                       | Location                                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Detailed architecture docs | [`docs/overview.md`](docs/overview.md)                                                                                         |
+| Backend proxy routes       | [`backend/src/routes/api/featurestores/`](../../backend/src/routes/api/featurestores/)                                         |
+| Workbench integration      | [`frontend/src/pages/projects/screens/spawner/featureStore/`](../../frontend/src/pages/projects/screens/spawner/featureStore/) |
+| Workbench API              | [`frontend/src/api/featureStore/`](../../frontend/src/api/featureStore/)                                                       |
 
 ## Dependencies
 

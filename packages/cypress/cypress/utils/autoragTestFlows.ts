@@ -1,6 +1,7 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from './e2eUsers';
-import { waitForDspaReady } from './oc_commands/dspa';
+import { waitForAutoXDspaReady } from './oc_commands/autoX';
 import { waitForManagedPipelines } from './autoXPipelines';
+import { getVectorDatabaseConnection, resetAutoragConnections } from './oc_commands/autoragInfra';
 import { autoragExperimentsPage } from '../pages/autorag/experimentsPage';
 import { autoragConfigurePage } from '../pages/autorag/configurePage';
 import { autoragResultsPage } from '../pages/autorag/resultsPage';
@@ -8,13 +9,261 @@ import type { AutoragTestData } from '../types';
 
 const RESOURCES_PATH = 'resources/autorag';
 
+type MaaSModel = { id?: unknown; ready?: unknown };
+
+type MaaSConfig = {
+  MAAS_URL?: unknown;
+  MAAS_API_KEY?: unknown;
+  MAAS_GENERATION_MODEL_ID?: unknown;
+  MAAS_EMBEDDING_MODEL_ID?: unknown;
+};
+
+export type AutoragMaaSFixture =
+  | {
+      mode: 'external';
+      maasUrl: string;
+      apiKey: string;
+      generationModelId: string;
+      embeddingModelId: string;
+      ownership: 'external-readonly';
+      supportsCompletionResults: boolean;
+    }
+  | {
+      mode: 'simulator';
+      maasUrl: string;
+      apiKey: string;
+      generationModelId: string;
+      embeddingModelId: string;
+      ownership: 'dummy-lifecycle-only';
+      supportsCompletionResults: false;
+    };
+
+export type AutoragConnectionOwnership = {
+  maasSecretCreated: boolean;
+  vectorDbSecretCreated: boolean;
+};
+
+const MAAS_CONFIG_KEYS = [
+  'MAAS_URL',
+  'MAAS_API_KEY',
+  'MAAS_GENERATION_MODEL_ID',
+  'MAAS_EMBEDDING_MODEL_ID',
+] as const;
+
+const SIMULATOR_MAAS_FIXTURE: Omit<Extract<AutoragMaaSFixture, { mode: 'simulator' }>, 'mode'> = {
+  maasUrl: 'https://autorag-maas.invalid',
+  apiKey: 'autorag-cypress-dummy-api-key',
+  generationModelId: 'autorag-cypress-generation-dummy',
+  embeddingModelId: 'autorag-cypress-embedding-dummy',
+  ownership: 'dummy-lifecycle-only',
+  supportsCompletionResults: false,
+};
+
+const readMaaSConfig = (): MaaSConfig => ({
+  MAAS_URL: Cypress.env('MAAS_URL'),
+  MAAS_API_KEY: Cypress.env('MAAS_API_KEY'),
+  MAAS_GENERATION_MODEL_ID: Cypress.env('MAAS_GENERATION_MODEL_ID'),
+  MAAS_EMBEDDING_MODEL_ID: Cypress.env('MAAS_EMBEDDING_MODEL_ID'),
+});
+
+/**
+ * Resolve the AutoRAG MaaS dependency without creating or changing any MaaS resources.
+ * External mode is selected only when all four MaaS configuration values are non-empty.
+ */
+export const resolveAutoragMaaSFixture = (
+  config: MaaSConfig = readMaaSConfig(),
+): AutoragMaaSFixture => {
+  const values = MAAS_CONFIG_KEYS.map((key) => {
+    const value = config[key];
+    return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+  });
+
+  if (values.some((value): value is undefined => value === undefined)) {
+    return {
+      mode: 'simulator',
+      ...SIMULATOR_MAAS_FIXTURE,
+    };
+  }
+
+  const [maasUrl, apiKey, generationModelId, embeddingModelId] = values as [
+    string,
+    string,
+    string,
+    string,
+  ];
+  return {
+    mode: 'external',
+    maasUrl,
+    apiKey,
+    generationModelId,
+    embeddingModelId,
+    ownership: 'external-readonly',
+    supportsCompletionResults: false,
+  };
+};
+
+const getMaaSServiceRoot = (configuredUrl: string): string => {
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(configuredUrl);
+  } catch {
+    throw new Error('MaaS readiness check requires MAAS_URL to be an HTTPS service root.');
+  }
+
+  if (
+    parsedUrl.protocol !== 'https:' ||
+    !parsedUrl.hostname ||
+    parsedUrl.username ||
+    parsedUrl.password ||
+    parsedUrl.search ||
+    parsedUrl.hash
+  ) {
+    throw new Error('MaaS readiness check requires MAAS_URL to be an HTTPS service root.');
+  }
+
+  return `${parsedUrl.origin}${parsedUrl.pathname.replace(/\/+$/, '')}`;
+};
+
+const isMaaSModel = (value: unknown): value is MaaSModel =>
+  typeof value === 'object' && value !== null;
+
+/**
+ * Verify the hosted MaaS models before provisioning AutoRAG resources.
+ * Response details and credentials are intentionally never logged or included in failures.
+ */
+export const checkAutoragMaaSReadiness = (): Cypress.Chainable<AutoragMaaSFixture> => {
+  const fixture = resolveAutoragMaaSFixture();
+  if (fixture.mode === 'simulator') {
+    return cy.wrap<AutoragMaaSFixture>(fixture);
+  }
+
+  const serviceRoot = getMaaSServiceRoot(fixture.maasUrl);
+
+  return cy
+    .request({
+      method: 'GET',
+      url: `${serviceRoot}/v1/models`,
+      headers: { Authorization: `Bearer ${fixture.apiKey}` },
+      failOnStatusCode: false,
+      log: false,
+    })
+    .then((response): AutoragMaaSFixture => {
+      if (response.status !== 200) {
+        throw new Error(`MaaS readiness check returned HTTP ${response.status}.`);
+      }
+
+      const payload: unknown = response.body;
+      if (typeof payload !== 'object' || payload === null || !('data' in payload)) {
+        throw new Error('MaaS readiness check returned invalid model data.');
+      }
+
+      const models = Array.isArray(payload.data) ? payload.data.filter(isMaaSModel) : [];
+      for (const modelId of [fixture.generationModelId, fixture.embeddingModelId]) {
+        const model = models.find((candidate) => candidate.id === modelId);
+        if (!model || model.ready !== true) {
+          throw new Error('A configured MaaS model is missing or not ready.');
+        }
+      }
+      return fixture;
+    });
+};
+
+const interceptSimulatorMaaSModels = (
+  projectName: string,
+  testData: AutoragTestData,
+  maasFixture: AutoragMaaSFixture,
+): void => {
+  if (maasFixture.mode !== 'simulator') {
+    return;
+  }
+
+  cy.intercept(
+    {
+      method: 'GET',
+      pathname: '/autorag/api/v1/maas/models',
+      query: { namespace: projectName, secretName: testData.maasSecretName },
+    },
+    {
+      statusCode: 200,
+      body: {
+        data: {
+          models: [
+            { id: maasFixture.generationModelId, ready: true },
+            { id: maasFixture.embeddingModelId, ready: true },
+          ],
+        },
+      },
+    },
+  );
+};
+
+const createMaaSConnection = (testData: AutoragTestData, maasFixture: AutoragMaaSFixture): void => {
+  autoragConfigurePage.findAddMaasConnectionButton().click();
+  autoragConfigurePage.findMaasConnectionNameInput().clear().type(testData.maasSecretName);
+  autoragConfigurePage.findMaasConnectionBaseUrlInput().type(maasFixture.maasUrl);
+  autoragConfigurePage.findMaasConnectionApiKeyInput().type(maasFixture.apiKey, { log: false });
+  autoragConfigurePage.findMaasConnectionSubmitButton().click();
+};
+
+const createVectorDbConnection = (testData: AutoragTestData): void => {
+  autoragConfigurePage.findAddVectorDbDropdownToggle().click();
+  autoragConfigurePage.findAddPgvectorConnectionOption().click();
+  const connection = getVectorDatabaseConnection();
+  autoragConfigurePage.findPgvectorConnectionNameInput().clear().type(testData.vectorDbSecretName);
+  autoragConfigurePage.findPgvectorInput('host').type(connection.host);
+  autoragConfigurePage.findPgvectorInput('port').type(connection.port);
+  autoragConfigurePage.findPgvectorInput('db').type(connection.db);
+  autoragConfigurePage.findPgvectorInput('user').type(connection.user);
+  autoragConfigurePage.findPgvectorInput('password').type(connection.password, { log: false });
+  autoragConfigurePage.findPgvectorConnectionSubmitButton().click();
+};
+
+/** Create and select project-scoped connections without probing existing secrets. */
+export const createAutoragConnections = (
+  testData: AutoragTestData,
+  projectName: string,
+  maasFixture: AutoragMaaSFixture,
+  ownership: AutoragConnectionOwnership,
+): void => {
+  const connectionOwnership = ownership;
+  cy.step('Open AutoRAG run configuration');
+  interceptSimulatorMaaSModels(projectName, testData, maasFixture);
+  cy.visitWithLogin(autoragExperimentsPage.pathWithDevFlags(), HTPASSWD_CLUSTER_ADMIN_USER);
+  waitForAutoXDspaReady(projectName);
+  waitForManagedPipelines(projectName);
+  autoragExperimentsPage.visit(projectName);
+  autoragExperimentsPage.findAnyCreateRunButton({ timeout: 120000 }).click();
+  autoragConfigurePage.findNameInput({ timeout: 30000 }).type(testData.runName);
+  autoragConfigurePage.findDescriptionInput().type(testData.runDescription);
+
+  cy.step('Create MaaS connection through the dashboard');
+  resetAutoragConnections(projectName, testData.maasSecretName, testData.vectorDbSecretName);
+  createMaaSConnection(testData, maasFixture);
+  connectionOwnership.maasSecretCreated = true;
+  autoragConfigurePage.findMaasSecretSelector({ timeout: 60000 }).should('not.be.disabled');
+  autoragConfigurePage
+    .findMaasSecretSelector()
+    .find('input')
+    .should('have.value', testData.maasSecretName);
+
+  cy.step('Create PGVector connection through the dashboard');
+  autoragConfigurePage.findNextButton().click();
+  autoragConfigurePage.findVectorStoreSelector({ timeout: 60000 }).should('not.be.disabled');
+  createVectorDbConnection(testData);
+  connectionOwnership.vectorDbSecretCreated = true;
+  autoragConfigurePage
+    .findVectorStoreSelector()
+    .find('input')
+    .should('have.value', testData.vectorDbSecretName);
+};
+
 /**
  * Full configure flow for an AutoRAG run.
  *
  * Handles: login, wait for DSPA, navigate to experiments, create run,
- * fill name/description, select OGX secret, select S3 connection,
+ * fill name/description, select MaaS secret, select S3 connection,
  * upload document, browse and select it, upload evaluation dataset,
- * and select first available vector store.
+ * and select the vector database secret.
  *
  * After this, optionally configure metric/patterns, then call `submitAutoragRun()`.
  */
@@ -22,10 +271,17 @@ export const configureAutoragRun = (
   testData: AutoragTestData,
   projectName: string,
   uuid: string,
+  maasFixture: AutoragMaaSFixture,
+  options: {
+    createConnections?: boolean;
+    connectionOwnership?: AutoragConnectionOwnership;
+  } = {},
 ): void => {
+  const { connectionOwnership } = options;
   cy.step('Login and wait for pipeline server');
-  cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-  waitForDspaReady(projectName);
+  interceptSimulatorMaaSModels(projectName, testData, maasFixture);
+  cy.visitWithLogin(autoragExperimentsPage.pathWithDevFlags(), HTPASSWD_CLUSTER_ADMIN_USER);
+  waitForAutoXDspaReady(projectName);
   waitForManagedPipelines(projectName);
 
   cy.step('Navigate to AutoRAG experiments page');
@@ -38,11 +294,32 @@ export const configureAutoragRun = (
   autoragConfigurePage.findNameInput({ timeout: 30000 }).type(testData.runName);
   autoragConfigurePage.findDescriptionInput().type(testData.runDescription);
 
-  cy.step('Select OGX secret');
-  autoragConfigurePage.findOgxSecretSelector().click();
-  autoragConfigurePage.findOgxSecretSelector().type(testData.ogxSecretName);
-  autoragConfigurePage.findSelectOption(new RegExp(testData.ogxSecretName, 'i')).click();
+  if (options.createConnections) {
+    resetAutoragConnections(projectName, testData.maasSecretName, testData.vectorDbSecretName);
+    cy.step('Create MaaS connection through the dashboard');
+    createMaaSConnection(testData, maasFixture);
+    if (connectionOwnership) {
+      connectionOwnership.maasSecretCreated = true;
+    }
+  }
 
+  cy.step('Select MaaS secret');
+  // SecretSelector renders a skeleton until type=maas secrets load.
+  autoragConfigurePage.findMaasSecretSelector({ timeout: 60000 }).should('not.be.disabled');
+  if (options.createConnections) {
+    autoragConfigurePage
+      .findMaasSecretSelector()
+      .find('input')
+      .should('have.value', testData.maasSecretName);
+  } else {
+    autoragConfigurePage.findMaasSecretSelector().click();
+    autoragConfigurePage
+      .findMaasSecretSelector()
+      .find('input')
+      .clear()
+      .type(testData.maasSecretName);
+    autoragConfigurePage.findSelectOption(testData.maasSecretName).click();
+  }
   cy.step('Click Next to go to Configure step');
   autoragConfigurePage.findNextButton().click();
 
@@ -52,7 +329,7 @@ export const configureAutoragRun = (
   cy.step('Select S3 connection');
   autoragConfigurePage.findSecretSelector().click();
   autoragConfigurePage.findSecretSelector().type(testData.s3SecretName);
-  autoragConfigurePage.findSelectOption(new RegExp(testData.s3SecretName, 'i')).click();
+  autoragConfigurePage.findSelectOption(testData.s3SecretName).click();
 
   cy.step('Upload document file');
   const uploadFileName = `${testData.documentFile.replace('.txt', '')}-${uuid}.txt`;
@@ -111,27 +388,140 @@ export const configureAutoragRun = (
   cy.step('Wait for evaluation file upload to complete');
   autoragConfigurePage.findEvaluationFileValue().invoke('val').should('not.be.empty');
 
-  cy.step('Select first available vector store');
-  autoragConfigurePage.findVectorStoreSelector().should('not.be.disabled').click();
-  autoragConfigurePage.findFirstVectorStoreOption().should('be.visible').click();
-  autoragConfigurePage
-    .findVectorStoreSelector()
-    .should('not.contain.text', 'Select vector I/O provider');
+  cy.step('Select vector database secret');
+  if (options.createConnections) {
+    cy.step('Create PGVector connection through the dashboard');
+    createVectorDbConnection(testData);
+    if (connectionOwnership) {
+      connectionOwnership.vectorDbSecretCreated = true;
+    }
+  }
+  autoragConfigurePage.findVectorStoreSelector({ timeout: 60000 }).should('not.be.disabled');
+  if (options.createConnections) {
+    autoragConfigurePage
+      .findVectorStoreSelector()
+      .find('input')
+      .should('have.value', testData.vectorDbSecretName);
+  } else {
+    autoragConfigurePage.findVectorStoreSelector().click();
+    autoragConfigurePage
+      .findVectorStoreSelector()
+      .find('input')
+      .clear()
+      .type(testData.vectorDbSecretName);
+    autoragConfigurePage.findSelectOption(testData.vectorDbSecretName).click();
+  }
+  cy.step('Select the configured hosted generation and embedding models');
+  autoragConfigurePage.findSelectModelsButton().click();
+  autoragConfigurePage.findExperimentSettingsModal().should('be.visible');
+  autoragConfigurePage.findFoundationModelsTab().click();
+  const selectModel = (
+    modelType: 'llm' | 'embedding',
+    modelId: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> =>
+    autoragConfigurePage.findModelRowOnCurrentPage(modelType, modelId).then(($row) => {
+      if ($row.length > 0) {
+        return autoragConfigurePage
+          .findModelCheckboxOnCurrentPage(modelType, modelId)
+          .should('not.be.disabled')
+          .check();
+      }
+
+      return autoragConfigurePage.findNextModelPageButton(modelType).then(($nextButton) => {
+        if ($nextButton.is(':disabled')) {
+          throw new Error(`Configured MaaS model ${modelId} was not found.`);
+        }
+        cy.wrap($nextButton).click();
+        return selectModel(modelType, modelId);
+      });
+    });
+
+  selectModel('llm', maasFixture.generationModelId).then(() => {
+    autoragConfigurePage.findEmbeddingModelsTab().click();
+    return selectModel('embedding', maasFixture.embeddingModelId);
+  });
+  autoragConfigurePage.findExperimentSettingsSaveButton().click();
 };
 
 /**
  * Submit the AutoRAG run and verify redirect to results page.
  * Call after `configureAutoragRun()` and any custom configuration.
  */
-export const submitAutoragRun = (): void => {
+export const submitAutoragRun = (
+  testData: AutoragTestData,
+  projectName: string,
+  inputDataKey: string,
+  maasFixture: AutoragMaaSFixture,
+): Cypress.Chainable<string> => {
+  cy.intercept('POST', '**/autorag/api/v1/pipeline-runs*').as('autoragCreateRun');
   cy.step('Submit the form');
-  autoragConfigurePage.findCreateRunButton().click();
 
-  cy.step('Verify redirect to results page');
-  cy.url().should('include', '/gen-ai-studio/autorag/results/');
+  autoragConfigurePage.findCreateRunButton({ timeout: 120000 }).should('be.enabled').click();
 
-  cy.step('Verify the run is in progress');
-  autoragResultsPage.findRunInProgressMessage().should('be.visible');
+  return cy
+    .wait('@autoragCreateRun')
+    .then(({ request, response }) => {
+      const body = request.body as Record<string, unknown>;
+      expect(body.input_data_keys).to.deep.equal([inputDataKey]);
+      expect(body.maas_secret_name).to.equal(testData.maasSecretName);
+      expect(body.vector_db_secret_name).to.equal(testData.vectorDbSecretName);
+      expect(body.generation_models).to.deep.equal([maasFixture.generationModelId]);
+      expect(body.embedding_models).to.deep.equal([maasFixture.embeddingModelId]);
+      expect(body.optimization_metric).to.equal(testData.optimizationMetric ?? 'overall_score');
+      expect(body.preset).to.equal('speed');
+      expect(body.optimization_max_rag_patterns).to.equal(testData.maxRagPatterns);
+
+      const runId = response?.body?.data?.run_id;
+      if (typeof runId !== 'string' || !runId) {
+        throw new Error('AutoRAG create response did not include the submitted run ID.');
+      }
+      return runId;
+    })
+    .then((runId) => {
+      cy.step('Verify redirect to results page');
+      return cy
+        .location('pathname')
+        .should(
+          'eq',
+          `/gen-ai-studio/autorag/results/${encodeURIComponent(projectName)}/${encodeURIComponent(
+            runId,
+          )}`,
+        )
+        .then(() => {
+          cy.step('Verify the run is in progress');
+          return autoragResultsPage
+            .findRunInProgressMessage()
+            .should('be.visible')
+            .then(() => runId);
+        });
+    });
+};
+
+export const getAutoragInputDataKey = (testData: AutoragTestData, uuid: string): string =>
+  `${testData.documentFile.replace('.txt', '')}-${uuid}.txt`;
+
+export const verifyAutoragRunTerminated = (projectName: string, runId: string): void => {
+  cy.location('pathname').should(
+    'eq',
+    `/gen-ai-studio/autorag/results/${encodeURIComponent(projectName)}/${encodeURIComponent(
+      runId,
+    )}`,
+  );
+
+  // The timeout must be on `.invoke` for the `.should` to get the 80s timeout.
+  // Putting it on `.findRunStatusLabel` will not work as that will only give 80s
+  // to find the initial label and not to match for the cancelled state.
+  autoragResultsPage
+    .findRunStatusLabel()
+    .invoke({ timeout: 80000 }, 'text')
+    .should('match', /CANCELED|CANCELLED|FAILED/i);
+};
+
+export const verifyAutoragRunListed = (projectName: string, runName: string): void => {
+  cy.step('Verify the submitted run appears in the experiments list');
+  autoragExperimentsPage.visit(projectName);
+  autoragResultsPage.findRunsTable().should('be.visible');
+  autoragResultsPage.findRunsTable().contains(runName).should('be.visible');
 };
 
 /**
@@ -159,6 +549,14 @@ export const waitForAutoragRunCompletion = (timeoutMs = 2700000): void => {
 export const verifyAutoragResultsInteraction = (): void => {
   cy.step('Verify leaderboard has at least one pattern row');
   autoragResultsPage.findLeaderboardRow(1).should('exist');
+
+  cy.step('Verify any available invalid objective pattern remains visible as unranked');
+  autoragResultsPage.findUnrankedLeaderboardRows().then(($rows) => {
+    if ($rows.length > 0) {
+      autoragResultsPage.findFirstUnrankedLeaderboardRow().should('be.visible');
+      autoragResultsPage.findFirstUnrankedLeaderboardRankCell().should('contain.text', 'Unranked');
+    }
+  });
 
   cy.step('Open and close run details drawer');
   autoragResultsPage.findRunDetailsButton().click();
@@ -217,121 +615,4 @@ export const verifyAutoragResultsInteraction = (): void => {
   cy.window().its('print').should('have.been.calledOnce');
   autoragResultsPage.findPatternDetailsModalCloseButton().click();
   autoragResultsPage.findPatternDetailsModal().should('not.exist');
-};
-
-/**
- * Verify "Try this pattern" playground drawer interaction:
- * - Open from pattern details modal actions dropdown
- * - Verify playground drawer panel elements
- * - Submit a query and verify a bot response is received
- * - Close and reopen from leaderboard row actions
- */
-export const verifyTryThisPatternInteraction = (): void => {
-  cy.step('Open pattern details modal for top-ranked pattern');
-  autoragResultsPage.findPatternLink(1).click();
-  autoragResultsPage.findPatternDetailsModal().should('be.visible');
-
-  cy.step('Open Actions dropdown and click "Try this pattern"');
-  autoragResultsPage.findPatternDetailsActionsToggle().click();
-  autoragResultsPage.findTryPatternAction().should('be.visible').click();
-
-  cy.step('Verify pattern details modal closes and playground drawer opens');
-  autoragResultsPage.findPatternDetailsModal().should('not.exist');
-  autoragResultsPage.findPlaygroundDrawerPanel().should('be.visible');
-
-  cy.step('Verify playground drawer panel elements');
-  autoragResultsPage.findPlaygroundPatternSelect().should('be.visible');
-  autoragResultsPage.findPlaygroundViewCodeButton().should('be.visible');
-
-  cy.step('Type a query into the chatbot message bar');
-  autoragResultsPage
-    .findPlaygroundDrawerPanel()
-    .find('textarea')
-    .should('be.visible')
-    .type('What is this document about?');
-
-  cy.step('Send the query');
-  autoragResultsPage.findPlaygroundDrawerPanel().findByTestId('chatbot-send-button').click();
-
-  cy.step('Verify user message appears');
-  autoragResultsPage
-    .findPlaygroundDrawerPanel()
-    .findByTestId('chatbot-message-user')
-    .should('exist');
-
-  cy.step('Wait for bot response to complete');
-  autoragResultsPage
-    .findPlaygroundDrawerPanel()
-    .findByTestId('chatbot-message-bot', { timeout: 120000 })
-    .should('exist')
-    .find('.pf-chatbot__message-loading')
-    .should('not.exist');
-
-  cy.step('Switch pattern via the pattern selector dropdown (if multiple patterns exist)');
-  autoragResultsPage.findPlaygroundPatternSelect().then(($toggle) => {
-    const currentPattern = $toggle.text().trim();
-    $toggle.trigger('click');
-    cy.get('[role="option"]').then(($options) => {
-      const otherOptions = $options.filter((_i, el) => !el.textContent.includes(currentPattern));
-      if (otherOptions.length === 0) {
-        cy.log('Only one pattern available — skipping pattern switch test');
-        cy.get('body').type('{esc}');
-        return;
-      }
-      cy.wrap(otherOptions.first()).click();
-
-      cy.step('Verify chat messages are cleared after pattern switch');
-      autoragResultsPage
-        .findPlaygroundDrawerPanel()
-        .findByTestId('chatbot-message-user')
-        .should('not.exist');
-      autoragResultsPage
-        .findPlaygroundDrawerPanel()
-        .findByTestId('chatbot-message-bot')
-        .should('not.exist');
-    });
-  });
-
-  cy.step('Close playground drawer');
-  autoragResultsPage.findPlaygroundDrawerClose().click();
-  autoragResultsPage.findPlaygroundDrawerPanel().should('not.exist');
-
-  cy.step('Open "Try this pattern" from leaderboard row actions');
-  autoragResultsPage.findLeaderboardActions(1).find('button').click();
-  cy.findByRole('menuitem', { name: 'Try this pattern' }).click();
-
-  cy.step('Verify playground drawer opens again from leaderboard');
-  autoragResultsPage.findPlaygroundDrawerPanel().should('be.visible');
-  autoragResultsPage.findPlaygroundPatternSelect().should('be.visible');
-
-  cy.step('Close playground drawer');
-  autoragResultsPage.findPlaygroundDrawerClose().click();
-  autoragResultsPage.findPlaygroundDrawerPanel().should('not.exist');
-};
-
-/**
- * Verify that the AutoRAG run was submitted by checking that the results page
- * loaded and the run appears in the experiments list.
- * AutoRAG runs are managed by the KFP pipeline server (not direct K8s PipelineRun CRs),
- * so we validate via the UI that the run was created and is in progress.
- */
-export const verifyAutoragRunSubmitted = (projectName: string, runName: string): void => {
-  cy.step('Verify run appears in experiments list');
-  autoragExperimentsPage.visit(projectName);
-  autoragResultsPage.findRunsTable().should('be.visible');
-  autoragResultsPage.findRunsTable().should('contain.text', runName);
-};
-
-/**
- * Verify that the pipeline run has been stopped by checking the DSPA
- * for any pipeline runs with a cancelling/cancelled state.
- */
-export const verifyAutoragRunStopped = (projectName: string): void => {
-  cy.step('Verify run is stopped in backend via DSPA');
-  cy.exec(
-    `oc get dspa -n ${projectName} -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}'`,
-    { failOnNonZeroExit: false },
-  )
-    .its('stdout')
-    .should('contain', 'True');
 };

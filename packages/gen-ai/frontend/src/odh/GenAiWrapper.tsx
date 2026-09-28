@@ -8,7 +8,7 @@ import {
   NotificationContextProvider,
 } from 'mod-arch-core';
 import { AppRoutes } from '~/app/AppRoutes';
-import { URL_PREFIX } from '~/app/utilities/const';
+import { API_URL_PREFIX } from '~/app/utilities/const';
 import { UserContextProvider } from '~/app/context/UserContext';
 import { useNotificationListener } from '~/odh/hooks/useNotificationListener';
 import { registerMlflowEmbeddedRemote } from './registerMlflowEmbeddedRemote';
@@ -27,7 +27,7 @@ const queryClient = new QueryClient({
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Federated,
-  URL_PREFIX,
+  URL_PREFIX: API_URL_PREFIX,
   BFF_API_VERSION: 'v1',
 };
 

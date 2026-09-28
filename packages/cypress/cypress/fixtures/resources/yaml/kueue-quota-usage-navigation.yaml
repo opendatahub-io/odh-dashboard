@@ -1,0 +1,77 @@
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ResourceFlavor
+metadata:
+  name: ${resourceFlavorName}
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: Cohort
+metadata:
+  name: ${emptyCohortName}
+spec: {}
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: Cohort
+metadata:
+  name: ${parentCohortName}
+spec: {}
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: Cohort
+metadata:
+  name: ${cohortName}
+spec:
+  parentName: ${parentCohortName}
+  resourceGroups:
+    - coveredResources:
+        - ${acceleratorResourceName}
+      flavors:
+        - name: ${resourceFlavorName}
+          resources:
+            - name: ${acceleratorResourceName}
+              nominalQuota: '${acceleratorQuota}'
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ClusterQueue
+metadata:
+  name: ${cohortClusterQueueName}
+spec:
+  cohortName: ${cohortName}
+  namespaceSelector:
+    matchLabels:
+      kueue.openshift.io/managed: 'true'
+  queueingStrategy: BestEffortFIFO
+  resourceGroups:
+    - coveredResources:
+        - ${acceleratorResourceName}
+      flavors:
+        - name: ${resourceFlavorName}
+          resources:
+            - name: ${acceleratorResourceName}
+              nominalQuota: '${acceleratorQuota}'
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ClusterQueue
+metadata:
+  name: ${standaloneClusterQueueName}
+spec:
+  namespaceSelector:
+    matchLabels:
+      kueue.openshift.io/managed: 'true'
+  queueingStrategy: BestEffortFIFO
+  resourceGroups:
+    - coveredResources:
+        - ${acceleratorResourceName}
+      flavors:
+        - name: ${resourceFlavorName}
+          resources:
+            - name: ${acceleratorResourceName}
+              nominalQuota: '${acceleratorQuota}'
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: LocalQueue
+metadata:
+  name: ${localQueueName}
+  namespace: ${managedProjectName}
+spec:
+  clusterQueue: ${cohortClusterQueueName}
+  stopPolicy: None

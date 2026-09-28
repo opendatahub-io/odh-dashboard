@@ -23,18 +23,13 @@ API_TOKEN_DURATION ?= 4h
 TILT_PORT ?= 10351
 
 .PHONY: tilt-up
-tilt-up: check-tilt setup-kind ## Start Tilt — builds, deploys, and port-forwards automatically
+tilt-up: check-tilt setup-kserve ## Start the full RHAII stack, including model serving
 	@echo "Starting Tilt..."
 	@tilt up --port "$(TILT_PORT)"
 
 .PHONY: setup-kserve
-setup-kserve: ## Install KServe + cert-manager into the Kind cluster (idempotent)
+setup-kserve: setup-kind ## Install KServe + cert-manager into the Kind cluster (idempotent)
 	@bash scripts/setup-kserve.sh
-
-.PHONY: tilt-up-model-serving
-tilt-up-model-serving: check-tilt setup-kind setup-kserve ## Start Tilt with model-serving enabled (experimental)
-	@echo "Starting Tilt with model-serving package..."
-	@ENABLE_MODEL_SERVING=true tilt up --port "$(TILT_PORT)"
 
 .PHONY: tilt-down
 tilt-down: check-tilt ## Stop Tilt

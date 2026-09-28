@@ -542,6 +542,40 @@ export const createModelRegistryViaYAML = (
 };
 
 /**
+ * Create a model registry backed by PostgreSQL using YAML fixtures
+ * @param registryName Name of the model registry to create
+ * @param databaseName Name of the PostgreSQL database to connect to
+ * @returns Cypress.Chainable<CommandLineResult>
+ */
+export const createPostgresModelRegistryViaYAML = (
+  registryName: string,
+  databaseName: string,
+): Cypress.Chainable<CommandLineResult> => {
+  const targetNamespace = getModelRegistryNamespace();
+
+  const registryReplacements = {
+    REGISTRY_NAME: registryName,
+    NAMESPACE: targetNamespace,
+    DATABASE_NAME: databaseName,
+  };
+
+  cy.log(
+    `Creating PostgreSQL-backed model registry ${registryName} in namespace ${targetNamespace} using database '${databaseName}'`,
+  );
+
+  return cy
+    .fixture('resources/yaml/model_registry_postgres.yaml')
+    .then((registryYamlContent) => {
+      const modifiedRegistryYaml = replacePlaceholdersInYaml(
+        registryYamlContent,
+        registryReplacements,
+      );
+      return applyOpenShiftYaml(modifiedRegistryYaml);
+    })
+    .then((result: CommandLineResult) => result);
+};
+
+/**
  * Create a model registry and verify it's ready for use
  * @param registryName Name of the model registry to create
  * @param databaseName Name of the database to connect to (defaults to 'model-registry-db' for backwards compatibility)
@@ -667,6 +701,46 @@ export const deleteModelRegistry = (registryName: string): Cypress.Chainable<Com
 };
 
 /**
+ * Force-delete a model registry by stripping finalizers first. Handles CRs stuck
+ * in Terminating state where the operator hasn't processed the finalizer yet.
+ * @param registryName Name of the model registry to delete
+ * @returns Cypress.Chainable<boolean> true when the CR no longer exists
+ */
+export const forceDeleteModelRegistry = (registryName: string): Cypress.Chainable<boolean> => {
+  const targetNamespace = getModelRegistryNamespace();
+  const resource = `modelregistry.modelregistry.opendatahub.io/${registryName}`;
+
+  return cy
+    .exec(`oc get ${resource} -n ${targetNamespace} -o name`, {
+      failOnNonZeroExit: false,
+    })
+    .then((result: CommandLineResult) => {
+      if (result.exitCode !== 0) {
+        return cy.wrap(true);
+      }
+
+      cy.log(`Force-deleting ${registryName}: stripping finalizers`);
+      return cy
+        .exec(
+          `oc patch ${resource} -n ${targetNamespace} --type=merge -p '{"metadata":{"finalizers":null}}'`,
+          { failOnNonZeroExit: false },
+        )
+        .then(() =>
+          cy.exec(
+            `oc delete ${resource} -n ${targetNamespace} --ignore-not-found=true --timeout=60s`,
+            { failOnNonZeroExit: false, timeout: 120000 },
+          ),
+        )
+        .then((deleteResult: CommandLineResult) => {
+          cy.log(
+            `${registryName} ${deleteResult.exitCode === 0 ? 'fully removed' : 'delete failed'}`,
+          );
+          return cy.wrap(deleteResult.exitCode === 0);
+        });
+    });
+};
+
+/**
  * Clean up registered models from the database
  * @param modelNames Array of model names to delete from the database
  * @param databaseName Name of the database deployment (defaults to 'model-registry-db' for backwards compatibility)
@@ -715,6 +789,59 @@ export const cleanupRegisteredModelsFromDatabase = (
             cy.log('Database cleanup completed successfully');
           } else {
             cy.log(`Database cleanup failed: ${cleanupResult.stderr}`);
+          }
+        });
+    });
+};
+
+/**
+ * Clean up registered models from a PostgreSQL database
+ * @param modelNames Array of model names to delete from the database
+ * @param databaseName Name of the PostgreSQL database deployment
+ * @returns Cypress.Chainable
+ */
+export const cleanupRegisteredModelsFromPostgresDatabase = (
+  modelNames: string[],
+  databaseName: string,
+): Cypress.Chainable => {
+  const targetNamespace = getModelRegistryNamespace();
+
+  const findPodCommand = `oc get pods -n ${targetNamespace} -o name | grep ${databaseName} | head -1 | cut -d'/' -f2`;
+
+  return cy
+    .exec(findPodCommand, { failOnNonZeroExit: false })
+    .then((podResult: CommandLineResult) => {
+      if (podResult.exitCode !== 0 || !podResult.stdout.trim()) {
+        cy.log(`No PostgreSQL pod found for database '${databaseName}', skipping database cleanup`);
+        return;
+      }
+
+      const podName = podResult.stdout.trim();
+
+      const escapeSql = (name: string) => name.replace(/'/g, "''");
+      const modelNamesStr = modelNames.map((name) => `'${escapeSql(name)}'`).join(', ');
+      const sqlCommands = [
+        `DELETE FROM contextproperty WHERE context_id IN (SELECT id FROM context WHERE name IN (${modelNamesStr}));`,
+        `DELETE FROM parentcontext WHERE context_id IN (SELECT id FROM context WHERE name IN (${modelNamesStr})) OR parent_context_id IN (SELECT id FROM context WHERE name IN (${modelNamesStr}));`,
+        `DELETE FROM association WHERE context_id IN (SELECT id FROM context WHERE name IN (${modelNamesStr}));`,
+        `DELETE FROM attribution WHERE context_id IN (SELECT id FROM context WHERE name IN (${modelNamesStr}));`,
+        `DELETE FROM context WHERE name IN (${modelNamesStr});`,
+      ].join(' ');
+
+      const escapeShellDoubleQuotes = (s: string) => s.replace(/["$`\\]/g, '\\$&');
+      const cleanupCommand = `oc exec ${podName} -n ${targetNamespace} -- env PGPASSWORD=TheBlurstOfTimes psql -U modelregistryuser -d model-registry -c "${escapeShellDoubleQuotes(
+        sqlCommands,
+      )}"`;
+
+      cy.log(`Cleaning up registered models from PostgreSQL: ${modelNames.join(', ')}`);
+
+      return cy
+        .exec(cleanupCommand, { failOnNonZeroExit: false, timeout: 120000 })
+        .then((cleanupResult: CommandLineResult) => {
+          if (cleanupResult.exitCode === 0) {
+            cy.log('PostgreSQL database cleanup completed successfully');
+          } else {
+            cy.log(`PostgreSQL database cleanup failed: ${cleanupResult.stderr}`);
           }
         });
     });

@@ -1,13 +1,25 @@
 import React from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { Breadcrumb, BreadcrumbItem, Stack, StackItem } from '@patternfly/react-core';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import { useExternalModelsNamespace } from '~/app/hooks/useExternalModelsNamespace';
 import NoProjectsPage from '~/app/pages/external-models/NoProjectsPage';
 import { deploymentsExternalPath } from '~/app/pages/external-models/const';
 import { ExternalProvider } from '~/app/types/external-models';
 import MaaSExternalResourcesProjectSelector from '~/app/pages/external-models/MaaSExternalResourcesProjectSelector';
+import {
+  ExternalProviderDeletedProperties,
+  ExternalProviderDeletedSource,
+  MaaSEvents,
+  convertStringToExternalModelProviderType,
+  ExternalProvidersAddClickedProperties,
+  ExternalProvidersAddSource,
+} from '~/app/types/event-tracking';
 import {
   externalProvidersManagementPath,
   ExternalProvidersFilterDataType,
@@ -17,6 +29,8 @@ import {
 } from './const';
 import EmptyExternalProvidersPage from './EmptyExternalProvidersPage';
 import DeleteExternalProviderModal from './DeleteExternalProviderModal';
+import CreateExternalProviderModal from './createProvider/CreateExternalProviderModal';
+import EditExternalProviderModal from './editProvider/EditExternalProviderModal';
 import { ExternalProvidersTable } from './ExternalProvidersTable';
 import ExternalProvidersToolBar from './ExternalProvidersToolbar';
 import { filterExternalProviders, hasActiveExternalProvidersFilters } from './utils';
@@ -32,6 +46,10 @@ const AllExternalProvidersPage: React.FC = () => {
   const [deleteExternalProvider, setDeleteExternalProvider] = React.useState<
     ExternalProvider | undefined
   >(undefined);
+  const [editExternalProvider, setEditExternalProvider] = React.useState<
+    ExternalProvider | undefined
+  >(undefined);
+  const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
 
   const [filterData, setFilterData] = React.useState<ExternalProvidersFilterDataType>(
     initialExternalProvidersFilterData,
@@ -88,12 +106,9 @@ const AllExternalProvidersPage: React.FC = () => {
   const pageDescription = (
     <>
       <p>
-        An external provider defines the connection details (endpoint, credentials, and
-        authentication) for an external LLM service.
-      </p>
-      <p>
-        Manage providers here or create them inline when adding an external model. External models
-        reference a provider to route inference requests to the correct endpoint.
+        View and manage external model providers for the selected project. Providers store
+        connection details for external model services. External models reference providers to route
+        requests.
       </p>
     </>
   );
@@ -119,12 +134,11 @@ const AllExternalProvidersPage: React.FC = () => {
         errorMessage="Error loading external providers"
         empty={noProjects}
         emptyStatePage={<NoProjectsPage />}
-        data-testid="all-external-providers-page"
         breadcrumb={breadcrumb}
         provideChildrenPadding
         removeChildrenTopPadding
       >
-        <Stack hasGutter>
+        <Stack hasGutter data-testid="all-external-providers-page">
           <StackItem>
             <MaaSExternalResourcesProjectSelector
               namespace={resolvedNamespace || ''}
@@ -137,21 +151,34 @@ const AllExternalProvidersPage: React.FC = () => {
               externalProvidersLoaded &&
               !externalProvidersError &&
               (externalProviders.length === 0 && !hasActiveFilters ? (
-                <EmptyExternalProvidersPage />
+                <EmptyExternalProvidersPage
+                  onCreateExternalProvider={() => {
+                    setIsCreateModalOpen(true);
+                    fireMiscTrackingEvent(MaaSEvents.EXTERNAL_PROVIDERS_ADD_CLICKED, {
+                      source: ExternalProvidersAddSource.EMPTY_STATE,
+                    } satisfies ExternalProvidersAddClickedProperties);
+                  }}
+                />
               ) : (
                 <ExternalProvidersTable
                   externalProviders={filteredExternalProviders}
                   onClearFilters={onClearFilters}
                   toolbarContent={
                     <ExternalProvidersToolBar
-                      namespace={resolvedNamespace}
                       filterData={filterData}
                       onNameChange={onNameChange}
                       onMultiSelectToggle={onMultiSelectToggle}
                       onMultiSelectClear={onMultiSelectClear}
+                      onAddExternalProvider={() => {
+                        setIsCreateModalOpen(true);
+                        fireMiscTrackingEvent(MaaSEvents.EXTERNAL_PROVIDERS_ADD_CLICKED, {
+                          source: ExternalProvidersAddSource.TOOLBAR,
+                        } satisfies ExternalProvidersAddClickedProperties);
+                      }}
                     />
                   }
                   emptyTableView={hasActiveFilters ? undefined : <></>}
+                  setEditExternalProvider={setEditExternalProvider}
                   setDeleteExternalProvider={setDeleteExternalProvider}
                 />
               ))}
@@ -163,6 +190,47 @@ const AllExternalProvidersPage: React.FC = () => {
             onClose={(deleted) => {
               setDeleteExternalProvider(undefined);
               if (deleted) {
+                refreshExternalProviders();
+                fireFormTrackingEvent(MaaSEvents.EXTERNAL_PROVIDER_DELETED, {
+                  outcome: TrackingOutcome.submit,
+                  success: true,
+                  source: ExternalProviderDeletedSource.PROVIDERS_TABLE,
+                  providerType: convertStringToExternalModelProviderType(
+                    deleteExternalProvider.provider,
+                  ),
+                  authMechanism: deleteExternalProvider.authMechanism,
+                } satisfies ExternalProviderDeletedProperties);
+              } else {
+                fireFormTrackingEvent(MaaSEvents.EXTERNAL_PROVIDER_DELETED, {
+                  outcome: TrackingOutcome.cancel,
+                  success: false,
+                  source: ExternalProviderDeletedSource.PROVIDERS_TABLE,
+                  providerType: convertStringToExternalModelProviderType(
+                    deleteExternalProvider.provider,
+                  ),
+                  authMechanism: deleteExternalProvider.authMechanism,
+                } satisfies ExternalProviderDeletedProperties);
+              }
+            }}
+          />
+        )}
+        {editExternalProvider && (
+          <EditExternalProviderModal
+            externalProvider={editExternalProvider}
+            onClose={(updated) => {
+              setEditExternalProvider(undefined);
+              if (updated) {
+                refreshExternalProviders();
+              }
+            }}
+          />
+        )}
+        {isCreateModalOpen && resolvedNamespace && (
+          <CreateExternalProviderModal
+            namespace={resolvedNamespace}
+            onClose={(created) => {
+              setIsCreateModalOpen(false);
+              if (created) {
                 refreshExternalProviders();
               }
             }}

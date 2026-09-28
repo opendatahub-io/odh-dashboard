@@ -31,9 +31,9 @@ The review `body` field contains the full preflight report. Format:
 | Lint | ⏭️ | Covered by CI |
 | Type Check | ⏭️ | Covered by CI |
 | Unit Tests | ⏭️ | Covered by CI |
-| Jira | ❌ | No Jira key found |
+| Jira | ⚠️ | No Jira key found |
 | Test Coverage | ⚠️ | No test files added |
-| PR Body | ⚠️ | Minimal — missing template sections |
+| PR Body | ⚠️ | Minimal — missing substance |
 | Review | 🟡 3 minor · 🧹 2 nits | See inline comments + nits below |
 
 </details>
@@ -125,7 +125,7 @@ If the review produced a concrete suggested fix, include it:
 | `Claude review` | Found by `/review` |
 | `Style review` | Found by `/style-review` |
 | `RBAC review` | Found by `/rbac-review` |
-| `Jira Eval review` | Found by `/jira-eval-review` |
+| `Jira PR review` | Found by `/jira-pr-review` |
 | `CodeRabbit` | Found by CodeRabbit (PR or CLI) |
 | `Claude review, Style review` | Found by multiple reviewers |
 

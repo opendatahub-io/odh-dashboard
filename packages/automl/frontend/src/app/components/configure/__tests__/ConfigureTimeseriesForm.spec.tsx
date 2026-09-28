@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { FormProvider, useForm } from 'react-hook-form';
 import ConfigureTimeseriesForm from '~/app/components/configure/ConfigureTimeseriesForm';
 
@@ -28,6 +28,35 @@ describe('ConfigureTimeseriesForm', () => {
     { name: 'temperature', type: 'double' },
     { name: 'humidity', type: 'double' },
   ];
+
+  it.each([2, 3, 4])('should show the ID dropdown state for %s columns', (columnCount) => {
+    render(
+      <TestWrapper>
+        <ConfigureTimeseriesForm
+          columns={mockColumns.slice(0, columnCount)}
+          isLoadingColumns={false}
+          isFetchingColumns={false}
+          columnsError={null}
+          isFileSelected
+          formIsSubmitting={false}
+        />
+      </TestWrapper>,
+    );
+    expect(screen.queryByText('ID column (optional)')).not.toBeInTheDocument();
+    const toggle = screen.getByTestId('id_column-select');
+    if (columnCount === 2) {
+      expect(toggle).toBeDisabled();
+      expect(toggle).toHaveTextContent('Auto-generated ID column');
+      fireEvent.click(toggle);
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    } else {
+      expect(toggle).toBeEnabled();
+      expect(toggle).toHaveTextContent('Select a column');
+      fireEvent.click(toggle);
+      fireEvent.click(screen.getByRole('option', { name: /product_id/ }));
+      expect(toggle).toHaveTextContent('product_id');
+    }
+  });
 
   describe('loading state', () => {
     it('should show skeleton loaders for all select fields when isLoadingColumns is true', () => {

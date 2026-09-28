@@ -10,6 +10,7 @@ const getRsdoctorPlugin = () => {
   }
   // Lazy-require: @rsdoctor/rspack-plugin depends on @rspack/resolver, which has no
   // native bindings for s390x/ppc64le. Container builds must not load it.
+  // eslint-disable-next-line import/no-extraneous-dependencies -- optional dev-only analyzer; lazy-loaded when RSDOCTOR=true
   const { RsdoctorRspackPlugin } = require('@rsdoctor/rspack-plugin');
   return [new RsdoctorRspackPlugin()];
 };

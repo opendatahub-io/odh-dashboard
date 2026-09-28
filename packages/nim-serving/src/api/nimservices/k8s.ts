@@ -10,7 +10,10 @@ import type {
   EnvironmentVariablesFieldData,
   RuntimeArgsFieldData,
 } from '@odh-dashboard/model-serving/shared/types/form-data';
-import { filterRuntimeArgsForContainer } from '@odh-dashboard/model-serving/shared/wizard-fields';
+import {
+  filterRuntimeArgsForContainer,
+  mapEnvironmentVariablesToK8sEnv,
+} from '@odh-dashboard/model-serving/shared/wizard-fields';
 import type { HardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import { applyHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import {
@@ -178,10 +181,7 @@ export const assembleNIMService = (
   nimService.spec.annotations[KSERVE_AUTH_ANNOTATION] = tokenAuth ? 'true' : 'false';
 
   if (environmentVariables?.enabled) {
-    nimService.spec.env = environmentVariables.variables.map((v) => ({
-      name: v.name,
-      value: v.value,
-    }));
+    nimService.spec.env = mapEnvironmentVariablesToK8sEnv(environmentVariables.variables);
   } else {
     delete nimService.spec.env;
   }

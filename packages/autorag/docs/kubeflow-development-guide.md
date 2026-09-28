@@ -33,7 +33,7 @@ module.exports = {
 2. Run the centraldashboard:
 
 ```shell
-npm run dev
+pnpm run dev
 ```
 
 ### AutoRAG repo

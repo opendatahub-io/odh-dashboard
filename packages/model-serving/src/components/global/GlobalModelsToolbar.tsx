@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
-import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { ProjectsContext } from '@odh-dashboard/ui-core';
 import { byName } from '@odh-dashboard/k8s-core';
 import { useParams } from 'react-router';
 import {

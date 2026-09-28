@@ -5,8 +5,8 @@ import React from 'react';
 import { Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
 import AutoragInputParametersPanel from '~/app/components/run-results/AutoragInputParametersPanel';
 import { AutoragResultsContext, getAutoragContext } from '~/app/context/AutoragResultsContext';
-import type { ConfigureSchema } from '~/app/schemas/configure.schema';
-import type { PipelineRun } from '~/app/types';
+import type { AutoragRuntimeParameters, PipelineRun } from '~/app/types';
+import type { AutoragPattern } from '~/app/types/autoragPattern';
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -36,7 +36,7 @@ jest.mock('mod-arch-shared', () => ({
   }) => <button {...props}>{icon}</button>,
 }));
 
-const defaultParameters: Partial<ConfigureSchema> = {
+const defaultParameters: AutoragRuntimeParameters = {
   display_name: 'My Run',
   input_data_secret_name: 's3-connection',
   input_data_bucket_name: 'my-bucket',
@@ -65,8 +65,13 @@ const renderPanel = (
   contextOverrides: Partial<Parameters<typeof getAutoragContext>[0]> = {},
 ) => {
   const onClose = jest.fn();
+  const panelParameters = props.parameters ?? defaultParameters;
   const contextValue = getAutoragContext({
-    pipelineRun: createMockPipelineRun(),
+    pipelineRun:
+      contextOverrides.pipelineRun ??
+      createMockPipelineRun({
+        runtime_config: { parameters: panelParameters },
+      }),
     patterns: {},
     patternsLoading: false,
     ...contextOverrides,
@@ -120,6 +125,23 @@ describe('AutoragInputParametersPanel', () => {
     expect(screen.getByText('Maximum RAG patterns')).toBeInTheDocument();
   });
 
+  it('should render labels and values for canonical runtime fields', () => {
+    renderPanel({
+      parameters: {
+        input_data_keys: ['documents/a.pdf'],
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
+      },
+    });
+
+    expect(screen.getByText('Selected files and folders')).toBeInTheDocument();
+    expect(screen.getByText('MaaS connection')).toBeInTheDocument();
+    expect(screen.getByText('Vector database connection')).toBeInTheDocument();
+    expect(screen.getByText('documents/a.pdf')).toBeInTheDocument();
+    expect(screen.getByText('maas-secret')).toBeInTheDocument();
+    expect(screen.getByText('vector-db-secret')).toBeInTheDocument();
+  });
+
   it('should render detected languages with formatted confidence', () => {
     renderPanel({
       parameters: {
@@ -166,9 +188,8 @@ describe('AutoragInputParametersPanel', () => {
             duration_seconds: 10,
             settings: {
               vector_store_binding: {
-                provider_id: 'milvus-provider',
                 provider_type: 'milvus',
-                vector_store_id: 'vs-1',
+                collection_name: 'vs-1',
               },
               chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 32 },
               embedding: {
@@ -256,7 +277,7 @@ describe('AutoragInputParametersPanel', () => {
       parameters: {
         ...defaultParameters,
         preset: 'unknown_preset',
-      } as unknown as Partial<ConfigureSchema>,
+      } as AutoragRuntimeParameters,
     });
     expect(screen.getByText('unknown_preset')).toBeInTheDocument();
   });
@@ -274,6 +295,31 @@ describe('AutoragInputParametersPanel', () => {
       },
     });
     expect(screen.getByText('Context correctness')).toBeInTheDocument();
+  });
+
+  it('should include the evaluator when pattern metadata identifies the optimization metric', () => {
+    renderPanel(
+      {},
+      {
+        patterns: {
+          pattern1: {
+            settings: { generation: {} } as AutoragPattern['settings'],
+            evaluation: {
+              metrics: [
+                {
+                  name: 'faithfulness',
+                  evaluator: 'ragas',
+                  optimization_metric: true,
+                  scores: { mean: 0.77, ci_low: 0.6, ci_high: 0.9 },
+                },
+              ],
+            },
+          } as AutoragPattern,
+        },
+      },
+    );
+
+    expect(screen.getByText('Answer faithfulness (ragas)')).toBeInTheDocument();
   });
 
   it('should render model configuration with counts', () => {
@@ -309,7 +355,7 @@ describe('AutoragInputParametersPanel', () => {
       parameters: {
         ...defaultParameters,
         some_new_param: 'new-value',
-      } as Partial<ConfigureSchema>,
+      } as AutoragRuntimeParameters,
     });
     expect(screen.getByText('Some new param')).toBeInTheDocument();
     expect(screen.getByText('new-value')).toBeInTheDocument();
@@ -329,7 +375,7 @@ describe('AutoragInputParametersPanel', () => {
         input_data_secret_name: 's3-connection',
         ogx_secret_name: 'ls-secret',
         description: 'A test run',
-      } as Partial<ConfigureSchema>,
+      } as AutoragRuntimeParameters,
     });
     const terms = screen.getAllByRole('term');
     // Filter out pipeline-level terms (Pipeline run ID, Pipeline Server output directory)
@@ -373,7 +419,7 @@ describe('AutoragInputParametersPanel', () => {
       parameters: {
         ...defaultParameters,
         some_flag: true,
-      } as Partial<ConfigureSchema>,
+      } as AutoragRuntimeParameters,
     });
     expect(screen.getByText('true')).toBeInTheDocument();
   });
@@ -382,7 +428,7 @@ describe('AutoragInputParametersPanel', () => {
     renderPanel({
       parameters: {
         some_list: ['alpha', 'beta', 'gamma'],
-      } as Partial<ConfigureSchema>,
+      } as AutoragRuntimeParameters,
     });
     expect(screen.getByText('alpha, beta, gamma')).toBeInTheDocument();
   });

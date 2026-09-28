@@ -25,7 +25,7 @@ This package uses the MF name `mlflowEmbedded`. The external MLflow frontend mus
 This package has no build step of its own -- its TSX files are compiled by the host dashboard's rspack. To develop:
 
 1. Start the external MLflow frontend (dev server on `localhost:9300`)
-2. Start the dashboard: `npm run dev` (from repo root)
+2. Start the dashboard: `pnpm run dev` (from repo root)
 3. Navigate to **Develop and Train > Experiments** in the dashboard
 
 ## Feature Flags

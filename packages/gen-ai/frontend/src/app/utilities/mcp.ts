@@ -36,9 +36,22 @@ export const transformMCPServerData = (apiServer: MCPServerFromAPI): MCPServer =
   status: 'active', // Will be updated with real status
   endpoint: 'View', // Simple endpoint display text
   connectionUrl: apiServer.url, // Full URL for popover
-  tools: 0, // Not used in table, keeping for type compatibility
-  version: 'Unknown', // Not used in table, keeping for type compatibility
+  tools: apiServer.tool_count,
+  version: apiServer.version || '-',
+  source: apiServer.source,
+  logo: apiServer.logo,
+  toolsList: apiServer.tools,
 });
+
+/**
+ * A server that cannot be reached by the Dashboard cannot be used in the Playground, regardless
+ * of whether it was discovered from the Registry or configured through a ConfigMap.
+ */
+export const filterUnavailableMCPServers = (
+  servers: MCPServerFromAPI[],
+  serverStatuses: Map<string, ServerStatusInfo>,
+): MCPServerFromAPI[] =>
+  servers.filter((server) => serverStatuses.get(server.url)?.status !== 'unreachable');
 
 /**
  * Get user-friendly error message from MCP connection status

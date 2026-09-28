@@ -213,6 +213,7 @@ describe('deployNIMKServeDeployment', () => {
     );
 
     expect(getDeployedRuntime()).toBe(existingServer);
+    expect(mockDeployKServeDeployment.mock.calls[0][12]).toBe(true);
     expect(mockGetNIMAccount).not.toHaveBeenCalled();
   });
 

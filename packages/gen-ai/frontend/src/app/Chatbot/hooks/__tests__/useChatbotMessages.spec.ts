@@ -50,6 +50,7 @@ const mockCreateResponse = jest.fn<
     CreateResponseRequest,
     {
       onStreamData?: (chunk: string) => void;
+      onToolCall?: (event: import('~/app/types').ToolCallStreamEvent) => void;
       abortSignal?: AbortSignal;
       headers?: Record<string, string>;
     }?,
@@ -119,6 +120,124 @@ describe('useChatbotMessages', () => {
   });
 
   describe('handleMessageSend', () => {
+    it('should use file search queries as tool call arguments', async () => {
+      mockCreateResponse.mockImplementation((_request, opts) => {
+        opts?.onToolCall?.({
+          type: 'response.output_item.added',
+          item: {
+            id: 'file-search-1',
+            type: 'file_search_call',
+            status: 'in_progress',
+            queries: ['{"query":"example"}'],
+          },
+        });
+        return Promise.resolve(mockSuccessResponse);
+      });
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Search for example');
+      });
+
+      expect(result.current.messages[1].toolCalls).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            category: 'RAG',
+            arguments: '{"query":"example"}',
+          }),
+        ]),
+      );
+    });
+
+    it('should retain MCP tool calls with nullable initial response fields', async () => {
+      mockCreateResponse.mockImplementation((_request, opts) => {
+        opts?.onToolCall?.({
+          type: 'response.output_item.added',
+          item: {
+            id: 'mcp-call-1',
+            type: 'mcp_call',
+            arguments: '',
+            name: 'list_branches',
+            server_label: 'GitHub-MCP-Server',
+            error: null,
+            output: null,
+          },
+        });
+        opts?.onToolCall?.({
+          type: 'response.mcp_call.arguments.done',
+          item_id: 'mcp-call-1',
+          arguments: '{"owner":"octocat"}',
+        });
+        opts?.onToolCall?.({
+          type: 'response.output_item.done',
+          item: {
+            id: 'mcp-call-1',
+            type: 'mcp_call',
+            arguments: '{"owner":"octocat"}',
+            name: 'list_branches',
+            server_label: 'GitHub-MCP-Server',
+            error: null,
+            output: '[]',
+          },
+        });
+        return Promise.resolve(mockSuccessResponse);
+      });
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('List branches');
+      });
+
+      expect(result.current.messages[1].toolCalls).toEqual([
+        expect.objectContaining({
+          id: 'mcp-call-1',
+          category: 'MCP',
+          status: 'completed',
+          name: 'list_branches',
+          serverLabel: 'GitHub-MCP-Server',
+          arguments: '{"owner":"octocat"}',
+          output: '[]',
+        }),
+      ]);
+    });
+
+    it('should retain a failed tool call status when no error is provided', async () => {
+      mockCreateResponse.mockImplementation((_request, opts) => {
+        opts?.onToolCall?.({
+          type: 'response.output_item.done',
+          item: {
+            id: 'mcp-call-1',
+            type: 'mcp_call',
+            status: 'failed',
+            arguments: '{"owner":"octocat"}',
+            name: 'list_branches',
+            server_label: 'GitHub-MCP-Server',
+            error: null,
+            output: null,
+          },
+        });
+        return Promise.resolve(mockSuccessResponse);
+      });
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('List branches');
+      });
+
+      expect(result.current.messages[1].toolCalls).toEqual([
+        expect.objectContaining({ id: 'mcp-call-1', status: 'failed', error: undefined }),
+      ]);
+    });
+
     it('should successfully send a message and receive a bot response', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
@@ -569,8 +688,8 @@ describe('useChatbotMessages', () => {
     });
   });
 
-  describe('tool response handling', () => {
-    it('should create tool response with isDefaultExpanded set to false', async () => {
+  describe('legacy tool response handling', () => {
+    it('should not create a legacy tool response for a non-streaming response', async () => {
       const mockResponseWithToolData: SimplifiedResponseData = {
         ...mockSuccessResponse,
         toolCallData: {
@@ -591,11 +710,10 @@ describe('useChatbotMessages', () => {
 
       const botMessage = result.current.messages[1];
 
-      // Verify isDefaultExpanded is set to false (key change)
-      expect(botMessage.toolResponse?.isDefaultExpanded).toBe(false);
+      expect(botMessage.toolResponse).toBeUndefined();
     });
 
-    it('should create tool response with isDefaultExpanded false in streaming mode', async () => {
+    it('should not create a legacy tool response for a streaming response', async () => {
       const mockStreamingResponseWithToolData: SimplifiedResponseData = {
         ...mockSuccessResponse,
         toolCallData: {
@@ -625,8 +743,7 @@ describe('useChatbotMessages', () => {
 
       const botMessage = result.current.messages[1];
 
-      // Verify isDefaultExpanded is false in streaming mode too
-      expect(botMessage.toolResponse?.isDefaultExpanded).toBe(false);
+      expect(botMessage.toolResponse).toBeUndefined();
     });
   });
 
@@ -1168,8 +1285,7 @@ describe('useChatbotMessages', () => {
       });
 
       const firstCallHeaders = mockCreateResponse.mock.calls[0][1]?.headers as
-        | Record<string, string>
-        | undefined;
+        Record<string, string> | undefined;
       const firstSessionId = firstCallHeaders?.['X-Session-ID'];
 
       await act(async () => {
@@ -1177,8 +1293,7 @@ describe('useChatbotMessages', () => {
       });
 
       const secondCallHeaders = mockCreateResponse.mock.calls[1][1]?.headers as
-        | Record<string, string>
-        | undefined;
+        Record<string, string> | undefined;
       const secondSessionId = secondCallHeaders?.['X-Session-ID'];
 
       expect(firstSessionId).toBeDefined();

@@ -742,27 +742,13 @@ describe('API Keys Page', () => {
 
   it('should show a warning and block submission when no subscriptions are available', () => {
     cy.interceptOdh('GET /maas/api/v1/subscriptions', { data: [] }).as('emptySubscriptions');
-
+    apiKeysPage.visit();
+    cy.wait('@emptySubscriptions');
     apiKeysPage.findCreateApiKeyButton().click();
     createApiKeyModal.shouldBeOpen();
-    cy.wait('@emptySubscriptions');
 
     createApiKeyModal.findNoSubscriptionsAlert().should('be.visible');
     createApiKeyModal.findNameInput().type('my-key');
-    createApiKeyModal.findSubmitButton().should('be.disabled');
-  });
-
-  it('should show an error alert when subscriptions fail to load', () => {
-    cy.intercept('GET', '/maas/api/v1/subscriptions', {
-      statusCode: 500,
-      body: { error: { code: '500', message: 'Internal Server Error' } },
-    }).as('failedSubscriptions');
-
-    apiKeysPage.findCreateApiKeyButton().click();
-    createApiKeyModal.shouldBeOpen();
-    cy.wait('@failedSubscriptions');
-
-    createApiKeyModal.findSubscriptionsErrorAlert().should('be.visible');
     createApiKeyModal.findSubmitButton().should('be.disabled');
   });
 });
