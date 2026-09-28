@@ -51,6 +51,9 @@ export const useKueueWorkloadStatuses = (
   const kueueWorkloadStatusesQuery = useQuery<KueueWorkloadStatus[], Error>({
     queryKey: ['kueueWorkloadStatuses', namespace, evaluationIDsKey],
     enabled: shouldQuery,
+    // Keep the current namespace's statuses visible while a changed evaluation-ID set is fetched.
+    placeholderData: (previousData, previousQuery) =>
+      namespace && previousQuery?.queryKey[1] === namespace ? previousData : undefined,
     queryFn: ({ signal }) => {
       if (!namespace) {
         throw new Error('Namespace is required to load Kueue Workload statuses');

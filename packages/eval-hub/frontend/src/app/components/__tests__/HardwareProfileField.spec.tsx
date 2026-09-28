@@ -42,6 +42,8 @@ describe('HardwareProfileField', () => {
     );
 
     expect(screen.getByText('Hardware profile')).toBeInTheDocument();
+    expect(screen.getByTestId('hardware-profile-toggle')).toHaveAttribute('id', 'hardware-profile');
+    expect(document.querySelector('label[for="hardware-profile"]')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('hardware-profile-toggle'));
     fireEvent.click(within(screen.getByRole('listbox')).getByText('GPU Small'));
 

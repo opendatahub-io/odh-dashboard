@@ -1,6 +1,6 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act } from '@testing-library/react';
+import { act, waitFor } from '@testing-library/react';
 import { getKueueWorkloadStatuses } from '~/app/api/k8s';
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import {
@@ -15,9 +15,12 @@ jest.mock('~/app/api/k8s', () => ({
 
 const mockGetKueueWorkloadStatuses = jest.mocked(getKueueWorkloadStatuses);
 
-const makeStatus = (state: KueueWorkloadState): KueueWorkloadStatus => ({
+const makeStatus = (
+  state: KueueWorkloadState,
+  evaluationId = 'evaluation-1',
+): KueueWorkloadStatus => ({
   // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
-  evaluation_id: 'evaluation-1',
+  evaluation_id: evaluationId,
   // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
   queue_name: 'default',
   state,
@@ -74,6 +77,52 @@ describe('useKueueWorkloadStatuses', () => {
       await jest.advanceTimersByTimeAsync(1);
     });
     expect(result.result.current.statusesByEvaluationId.get('evaluation-1')?.state).toBe('queued');
+
+    result.unmount();
+    queryClient.clear();
+  });
+
+  it('keeps the previous statuses visible while fetching a changed evaluation-ID set', async () => {
+    let resolveUpdatedStatuses: (statuses: KueueWorkloadStatus[]) => void = () => undefined;
+    const updatedStatuses = new Promise<KueueWorkloadStatus[]>((resolve) => {
+      resolveUpdatedStatuses = resolve;
+    });
+    const getStatuses = jest
+      .fn()
+      .mockResolvedValueOnce([makeStatus('queued')])
+      .mockReturnValueOnce(updatedStatuses);
+    mockGetKueueWorkloadStatuses.mockReturnValue(getStatuses);
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
+      React.createElement(QueryClientProvider, { client: queryClient }, children);
+
+    const result = renderHook(
+      ({ evaluationIDs }: { evaluationIDs: string[] }) =>
+        useKueueWorkloadStatuses('test-ns', evaluationIDs, true, false, false),
+      { initialProps: { evaluationIDs: ['evaluation-1'] }, wrapper: Wrapper },
+    );
+
+    await waitFor(() =>
+      expect(result.result.current.statusesByEvaluationId.get('evaluation-1')?.state).toBe(
+        'queued',
+      ),
+    );
+
+    result.rerender({ evaluationIDs: ['evaluation-1', 'evaluation-2'] });
+
+    await waitFor(() => expect(getStatuses).toHaveBeenCalledTimes(2));
+    expect(result.result.current.statusesByEvaluationId.get('evaluation-1')?.state).toBe('queued');
+    expect(result.result.current.isLoading).toBe(false);
+
+    await act(async () => {
+      resolveUpdatedStatuses([makeStatus('queued'), makeStatus('admitted', 'evaluation-2')]);
+    });
+
+    await waitFor(() =>
+      expect(result.result.current.statusesByEvaluationId.get('evaluation-2')?.state).toBe(
+        'admitted',
+      ),
+    );
 
     result.unmount();
     queryClient.clear();

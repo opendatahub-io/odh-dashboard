@@ -245,6 +245,7 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
         onOpenChange={setIsOpen}
         toggle={(toggleRef) => (
           <MenuToggle
+            id="hardware-profile"
             ref={toggleRef}
             isFullWidth
             isExpanded={isOpen}
