@@ -338,6 +338,9 @@ importers:
       '@odh-dashboard/eslint-config':
         specifier: workspace:*
         version: link:../../packages/eslint-config
+      '@odh-dashboard/jest-config':
+        specifier: workspace:*
+        version: link:../../packages/jest-config
       '@odh-dashboard/tsconfig':
         specifier: workspace:*
         version: link:../../packages/tsconfig

@@ -4,6 +4,24 @@ import { AppInitSDK, isUtilsConfigSet } from '@openshift/dynamic-plugin-sdk-util
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import type { PluginStore } from '@odh-dashboard/plugin-core';
 
+type SDKConfigurations = React.ComponentProps<typeof AppInitSDK>['configurations'];
+
+const apiDiscovery: NonNullable<SDKConfigurations['apiDiscovery']> = () => null;
+
+const wsAppSettings: SDKConfigurations['wsAppSettings'] = () =>
+  Promise.resolve({
+    host: `${window.location.protocol.replace(/^http/i, 'ws')}//${window.location.host}/wss/k8s`,
+    urlAugment: (url: string) => {
+      const [path, query] = url.split('?');
+      const queryParams = new URLSearchParams(query);
+      if (!queryParams.has('watch')) {
+        queryParams.set('watch', 'true');
+      }
+      return `${path}?${queryParams.toString()}`;
+    },
+    subProtocols: [],
+  });
+
 type K8sSdkProviderProps = {
   store: PluginStore;
   appFetch: (url: string, options?: RequestInit) => Promise<Response>;
@@ -34,23 +52,9 @@ export const K8sSdkProvider: React.FC<K8sSdkProviderProps> = ({ store, appFetch,
     <AppInitSDK
       configurations={{
         appFetch,
-        apiDiscovery: () => null,
+        apiDiscovery,
         pluginStore: sdkPluginStore,
-        wsAppSettings: () =>
-          Promise.resolve({
-            host: `${window.location.protocol.replace(/^http/i, 'ws')}//${
-              window.location.host
-            }/wss/k8s`,
-            urlAugment: (url) => {
-              const [path, query] = url.split('?');
-              const queryParams = new URLSearchParams(query);
-              if (!queryParams.has('watch')) {
-                queryParams.set('watch', 'true');
-              }
-              return `${path}?${queryParams.toString()}`;
-            },
-            subProtocols: [],
-          }),
+        wsAppSettings,
       }}
     >
       <PluginStoreProvider store={store}>
