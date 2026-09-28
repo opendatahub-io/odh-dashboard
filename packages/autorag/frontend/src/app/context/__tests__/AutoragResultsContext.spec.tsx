@@ -20,7 +20,7 @@ const createMockPattern = (name: string, metrics: Record<string, number>): Autor
   max_combinations: 10,
   duration_seconds: 120,
   settings: {
-    vector_store_binding: {
+    store_binding: {
       provider_type: 'milvus',
       collection_name: 'vs_collection0',
     },
@@ -188,7 +188,7 @@ describe('getAutoragContext', () => {
         vector_io_provider_id: 'milvus',
         input_data_keys: ['current/input.pdf'],
         maas_secret_name: 'maas-secret',
-        vector_db_secret_name: 'vector-db-secret',
+        db_secret_name: 'vector-db-secret',
       };
 
       const context = getAutoragContext({ pipelineRun: createMockPipelineRun(parameters) });

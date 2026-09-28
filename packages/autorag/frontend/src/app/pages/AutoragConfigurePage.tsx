@@ -69,7 +69,7 @@ type AutoragConfigurePageProps = {
   /** Pre-resolved S3 connection secret for reconfigure flows. */
   initialInputDataSecret?: SecretSelection;
   initialMaaSSecret?: SecretSelection;
-  initialVectorDbSecret?: SecretSelection;
+  initialDatabaseSecret?: SecretSelection;
   /** When reconfiguring, the run ID of the source run (used for cancel navigation). */
   sourceRunId?: string;
   /** When reconfiguring, the display name of the source run (used in the page title and breadcrumb). */
@@ -80,7 +80,7 @@ function AutoragConfigurePage({
   initialValues,
   initialInputDataSecret,
   initialMaaSSecret,
-  initialVectorDbSecret,
+  initialDatabaseSecret,
   sourceRunId,
   sourceRunName,
 }: AutoragConfigurePageProps): React.JSX.Element {
@@ -565,7 +565,7 @@ function AutoragConfigurePage({
                   <AutoragConfigure
                     initialValues={initialValues}
                     initialInputDataSecret={initialInputDataSecret}
-                    initialVectorDbSecret={initialVectorDbSecret}
+                    initialDatabaseSecret={initialDatabaseSecret}
                     isReconfigure={!!sourceRunId}
                     onMaaSModelsReady={setMaaSModelsReady}
                   />

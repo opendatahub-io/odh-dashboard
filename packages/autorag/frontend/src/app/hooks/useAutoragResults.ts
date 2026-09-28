@@ -25,7 +25,10 @@ export function normalizePattern(
     iteration: raw.iteration,
     max_combinations: raw.max_combinations,
     duration_seconds: raw.duration_seconds,
-    settings: raw.settings,
+    settings: {
+      ...raw.settings,
+      store_binding: raw.settings.store_binding ?? raw.settings.vector_store_binding,
+    },
     evaluation: raw.evaluation,
     inference: raw.inference,
     indexing: raw.indexing,

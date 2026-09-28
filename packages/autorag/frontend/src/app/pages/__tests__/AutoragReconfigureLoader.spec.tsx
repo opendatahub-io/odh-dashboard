@@ -123,7 +123,7 @@ describe('AutoragReconfigureLoader', () => {
     expect(capturedProps.initialValues).toMatchObject({
       input_data_keys: ['legacy.pdf'],
       maas_secret_name: '',
-      vector_db_secret_name: '',
+      db_secret_name: '',
       generation_models: [],
       embedding_models: [],
     });
@@ -181,12 +181,12 @@ describe('AutoragReconfigureLoader', () => {
     expect(capturedProps.initialValues).toMatchObject({
       input_data_keys: ['documents/a.pdf', 'documents/b.pdf'],
       maas_secret_name: 'maas',
-      vector_db_secret_name: 'vector-db',
+      db_secret_name: 'vector-db',
       generation_models: ['model-a'],
       embedding_models: ['model-b'],
     });
     expect(capturedProps.initialMaaSSecret).toMatchObject({ name: 'maas' });
-    expect(capturedProps.initialVectorDbSecret).toMatchObject({ name: 'vector-db' });
+    expect(capturedProps.initialDatabaseSecret).toMatchObject({ name: 'vector-db' });
   });
 
   it('should resolve restored model overlap in favor of generation models without warning', async () => {
@@ -302,12 +302,12 @@ describe('AutoragReconfigureLoader', () => {
     expect(capturedProps.initialValues).toMatchObject({
       input_data_keys: ['documents/input.pdf'],
       maas_secret_name: 'maas',
-      vector_db_secret_name: 'vector-db',
+      db_secret_name: 'vector-db',
       generation_models: ['model-a'],
       embedding_models: ['model-b'],
     });
     expect(capturedProps.initialMaaSSecret).toMatchObject({ name: 'maas' });
-    expect(capturedProps.initialVectorDbSecret).toMatchObject({ name: 'vector-db' });
+    expect(capturedProps.initialDatabaseSecret).toMatchObject({ name: 'vector-db' });
   });
 
   it('should prefer complete canonical values when legacy runtime keys are also present', async () => {
@@ -346,7 +346,7 @@ describe('AutoragReconfigureLoader', () => {
     expect(capturedProps.initialValues).toMatchObject({
       input_data_keys: ['documents/input.pdf'],
       maas_secret_name: 'maas',
-      vector_db_secret_name: 'vector-db',
+      db_secret_name: 'vector-db',
       generation_models: ['model-a'],
       embedding_models: ['model-b'],
     });
@@ -379,7 +379,7 @@ describe('AutoragReconfigureLoader', () => {
       generation_models: [],
       embedding_models: ['model-b'],
       maas_secret_name: 'maas',
-      vector_db_secret_name: 'vector-db',
+      db_secret_name: 'vector-db',
     });
   });
 
@@ -407,7 +407,7 @@ describe('AutoragReconfigureLoader', () => {
     );
     expect(mockWarning).toHaveBeenCalledWith(
       'Connection secret not found',
-      'The previously used vector database connection "missing-vector-db" could not be found. Please select a new connection.',
+      'The previously used database connection "missing-vector-db" could not be found. Please select a new connection.',
     );
     expect(mockWarning).not.toHaveBeenCalledWith(
       'Some previously selected models are unavailable',

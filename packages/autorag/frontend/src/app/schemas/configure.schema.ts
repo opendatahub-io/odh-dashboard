@@ -14,7 +14,7 @@ import {
 } from '~/app/utilities/const';
 import { createSchema } from '~/app/utilities/schema';
 
-export const SUPPORTED_VECTOR_STORE_PROVIDER_TYPES = ['remote::milvus', 'remote::pgvector'];
+export const SUPPORTED_VECTOR_STORE_PROVIDER_TYPES = ['milvus', 'pgvector', 'neo4j'] as const;
 export const RAG_OPTIMIZATION_METRICS = z.enum([
   RAG_METRIC_FAITHFULNESS,
   RAG_METRIC_ANSWER_CORRECTNESS,
@@ -59,7 +59,7 @@ function createConfigureSchema() {
 
       preset: z.enum(PRESETS).default(PRESET_FASTER),
       maas_secret_name: z.string().min(1).default(''),
-      vector_db_secret_name: z.string().min(1).default(''),
+      db_secret_name: z.string().min(1).default(''),
 
       generation_models: z.array(z.string().trim().min(1)).min(1).default([]),
       embedding_models: z.array(z.string().trim().min(1)).min(1).default([]),

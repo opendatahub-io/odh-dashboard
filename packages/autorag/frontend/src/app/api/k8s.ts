@@ -44,11 +44,18 @@ export const getNamespaces =
 
 export const getSecrets =
   (hostPath: string) =>
-  (namespace: string, type?: 'storage' | 'maas' | 'vector-db') =>
+  (
+    namespace: string,
+    type?: 'storage' | 'maas' | 'vector-db' | 'database',
+    provider?: 'milvus' | 'pgvector' | 'neo4j',
+  ) =>
   (opts: APIOptions): Promise<SecretListItem[]> => {
     const queryParams: Record<string, string> = { namespace };
     if (type) {
       queryParams.type = type;
+    }
+    if (provider) {
+      queryParams.provider = provider;
     }
     return handleRestFailures(
       restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/secrets`, queryParams, opts),

@@ -146,7 +146,7 @@ export const fireAutoragModelsSelected = (properties: ModelsSelectedProperties):
 };
 
 /** Categorized vector I/O provider type, derived from the `SUPPORTED_VECTOR_STORE_PROVIDER_TYPES` allowlist. */
-export type VectorStoreProviderType = 'milvus' | 'pgvector';
+export type VectorStoreProviderType = 'milvus' | 'pgvector' | 'neo4j';
 
 /**
  * Maps a raw vector store provider type (e.g. `"remote::milvus"`) to the categorized
@@ -160,10 +160,14 @@ export const toVectorStoreProviderType = (
   providerType: string,
 ): VectorStoreProviderType | undefined => {
   switch (providerType) {
+    case 'milvus':
     case 'remote::milvus':
       return 'milvus';
+    case 'pgvector':
     case 'remote::pgvector':
       return 'pgvector';
+    case 'neo4j':
+      return 'neo4j';
     default:
       return undefined;
   }
@@ -190,6 +194,11 @@ export const getVectorStoreProviderTypeFromSecretData = (
     'PGVECTOR_USER',
     'PGVECTOR_PASSWORD',
   ].every((key) => keys.has(key));
+  const hasNeo4j = keys.has('NEO4J_URI');
+
+  if (hasNeo4j) {
+    return 'neo4j';
+  }
 
   if (hasMilvus === hasPgvector) {
     return undefined;

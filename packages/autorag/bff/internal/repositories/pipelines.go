@@ -402,8 +402,8 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 	if req.MaaSSecretName == "" {
 		missing = append(missing, "maas_secret_name")
 	}
-	if req.VectorDBSecretName == "" {
-		missing = append(missing, "vector_db_secret_name")
+	if req.DBSecretName == "" {
+		missing = append(missing, "db_secret_name")
 	}
 	if len(req.EmbeddingsModels) == 0 {
 		missing = append(missing, "embedding_models")
@@ -499,7 +499,7 @@ func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipel
 		"input_data_bucket_name": req.InputDataBucketName,
 		"input_data_keys":        req.InputDataKeys,
 		"maas_secret_name":       req.MaaSSecretName,
-		"vector_db_secret_name":  req.VectorDBSecretName,
+		"db_secret_name":         req.DBSecretName,
 	}
 
 	preset := constants.DefaultPreset

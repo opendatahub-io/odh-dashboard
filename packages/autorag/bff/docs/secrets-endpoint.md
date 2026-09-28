@@ -13,7 +13,8 @@ This document describes the GET endpoint for listing and filtering Kubernetes se
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `namespace` | string | **Yes** | The namespace name to query secrets from |
-| `type` | string | No | Secret type filter: `storage`, `ogx`, `maas`, or `vector-db`; omit for all secrets |
+| `type` | string | No | Secret type filter: `storage`, `ogx`, `maas`, `vector-db`, or `database`; omit for all secrets |
+| `provider` | string | No | Database provider filter for `type=database`: `milvus`, `pgvector`, or `neo4j` |
 
 ## Functionality
 
@@ -24,7 +25,8 @@ The endpoint:
     - **`type=storage`**: Filters for storage secrets matching any configured storage type (currently supports S3)
     - **`type=ogx`**: Filters for OGX (Open GenAI Stack) secrets containing required OGX keys
     - **`type=maas`**: Filters for secrets containing `MAAS_BASE_URL` and `MAAS_API_KEY`
-    - **`type=vector-db`**: Filters for the union of Milvus and PGVector credential key sets
+     - **`type=vector-db`**: Filters for the union of Milvus and PGVector credential key sets
+     - **`type=database`**: Filters for Milvus, PGVector, or Neo4j credentials; `provider` narrows the result
 3. Returns the Kubernetes UID, name, and type of each matching secret
    - The `type` field is determined by:
       1. The filter uses case-sensitive key-presence matching.
@@ -64,8 +66,11 @@ Secrets are filtered using configurable dictionaries of secret types and their r
 |-----------------|---------------|
 | **Milvus** | `MILVUS_URI` |
 | **PGVector** | `PGVECTOR_HOST`, `PGVECTOR_PORT`, `PGVECTOR_DB`, `PGVECTOR_USER`, `PGVECTOR_PASSWORD` |
+| **Neo4j** | `NEO4J_URI` (optional: `NEO4J_USERNAME`, `NEO4J_PASSWORD`, `NEO4J_DATABASE`) |
 
 The `vector-db` result is the deduplicated union of these two key sets. Filtering is based on key presence only: empty values, extra keys, mixed database families, OGX keys, and graph-related keys are not excluded.
+
+The `database` result uses the same key-presence matching for all three providers. `provider=neo4j` requires `NEO4J_URI` and returns only Neo4j connections.
 
 ## Response Format
 

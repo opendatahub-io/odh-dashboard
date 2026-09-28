@@ -275,12 +275,13 @@ export function useSecretCredentialsQuery(
 
 export function useSecretsQuery(
   namespace: string,
-  type?: 'storage' | 'maas' | 'vector-db',
+  type?: 'storage' | 'maas' | 'vector-db' | 'database',
+  provider?: 'milvus' | 'pgvector' | 'neo4j',
 ): UseQueryResult<SecretListItem[], Error> {
   return useQuery({
     enabled: !!namespace,
-    queryKey: ['autorag', 'secrets', namespace, type],
-    queryFn: ({ signal }) => getSecrets('')(namespace, type)({ signal }),
+    queryKey: ['autorag', 'secrets', namespace, type, provider],
+    queryFn: ({ signal }) => getSecrets('')(namespace, type, provider)({ signal }),
   });
 }
 

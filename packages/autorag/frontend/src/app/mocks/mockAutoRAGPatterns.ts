@@ -9,7 +9,7 @@ const basePatternV1 = {
   max_combinations: 20,
   duration_seconds: 0,
   settings: {
-    vector_store_binding: {
+    store_binding: {
       provider_id: 'milvus',
       provider_type: 'remote::milvus',
       vector_store_id: 'vs_collection0',

@@ -155,7 +155,7 @@ const getSelectedInputDataFile = (inputDataKey: string): ExplorerFile => {
 type AutoragConfigureProps = {
   initialValues?: Partial<ConfigureSchema> & Record<string, unknown>;
   initialInputDataSecret?: SecretSelection;
-  initialVectorDbSecret?: SecretSelection;
+  initialDatabaseSecret?: SecretSelection;
   isReconfigure?: boolean;
   onMaaSModelsReady?: (ready: boolean) => void;
 };
@@ -169,7 +169,7 @@ const MODEL_RESTORE_WARNING_MESSAGE =
 function AutoragConfigure({
   initialValues,
   initialInputDataSecret,
-  initialVectorDbSecret,
+  initialDatabaseSecret,
   isReconfigure = false,
   onMaaSModelsReady,
 }: AutoragConfigureProps): React.JSX.Element {
@@ -859,11 +859,11 @@ function AutoragConfigure({
                   <Flex direction={{ default: 'column' }} gap={{ default: 'gapXl' }}>
                     <FlexItem>
                       <ConfigureFormGroup
-                        label="Vector database connection"
-                        description="Provide connection details for a vector database."
+                        label="Database connection"
+                        description="Provide connection details for the selected RAG template."
                         isRequired
                       >
-                        <AutoragVectorStoreSelector initialSecret={initialVectorDbSecret} />
+                        <AutoragVectorStoreSelector initialSecret={initialDatabaseSecret} />
                       </ConfigureFormGroup>
                     </FlexItem>
 

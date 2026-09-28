@@ -496,7 +496,7 @@ func TestCreatePipelineRunHandlerReturnsModelOverlapValidationError(t *testing.T
 	repo.On("CreateRun", mock.Anything, "test-ns", mock.AnythingOfType("models.CreateAutoRAGRunRequest")).
 		Return(nil, repositories.NewValidationError(`model "shared-model" cannot be selected in both embedding_models and generation_models`))
 
-	body := `{"display_name":"overlapping-model-run","test_data_secret_name":"secret","test_data_bucket_name":"bucket","test_data_key":"eval.json","input_data_secret_name":"secret","input_data_bucket_name":"bucket","input_data_keys":["docs"],"maas_secret_name":"maas","vector_db_secret_name":"vector-db","embedding_models":["shared-model"],"generation_models":["shared-model"]}`
+	body := `{"display_name":"overlapping-model-run","test_data_secret_name":"secret","test_data_bucket_name":"bucket","test_data_key":"eval.json","input_data_secret_name":"secret","input_data_bucket_name":"bucket","input_data_keys":["docs"],"maas_secret_name":"maas","db_secret_name":"vector-db","embedding_models":["shared-model"],"generation_models":["shared-model"]}`
 	req := pipelineRequestWithNamespace(http.MethodPost, "/api/v1/pipeline-runs", "test-ns", body)
 	rr := httptest.NewRecorder()
 
@@ -830,7 +830,7 @@ func TestEnableManagedPipelinesHandler(t *testing.T) {
 func TestCreateIndexingPipelineRunHandler(t *testing.T) {
 	ns := "test-ns"
 
-	validBody := `{"display_name":"index-run","parameters":{"embedding_model_id":"embed","input_data_secret_name":"sec","input_data_bucket_name":"bucket","maas_secret_name":"maas","vector_db_secret_name":"vector-db"}}`
+	validBody := `{"display_name":"index-run","parameters":{"embedding_model_id":"embed","input_data_secret_name":"sec","input_data_bucket_name":"bucket","maas_secret_name":"maas","db_secret_name":"vector-db"}}`
 
 	tests := []struct {
 		name           string

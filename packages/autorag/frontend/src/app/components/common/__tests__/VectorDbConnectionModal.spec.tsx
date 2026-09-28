@@ -186,4 +186,43 @@ describe('VectorDbConnectionModal', () => {
     fireEvent.change(screen.getByTestId('pgvector-port-input'), { target: { value: '5432' } });
     expect(screen.getByRole('button', { name: 'Add connection' })).toBeEnabled();
   });
+
+  it('should create a generic Neo4j database Secret with optional fields', async () => {
+    render(
+      <VectorDbConnectionModal
+        namespace="test-namespace"
+        initialProvider="neo4j"
+        onClose={onClose}
+        onSubmit={onSubmit}
+      />,
+    );
+    fillName();
+    fireEvent.change(screen.getByTestId('neo4j-uri-input'), {
+      target: { value: 'neo4j://neo4j.example.com:7687' },
+    });
+    fireEvent.change(screen.getByTestId('neo4j-username-input'), { target: { value: 'neo4j' } });
+    fireEvent.change(screen.getByTestId('neo4j-password-input'), { target: { value: 'secret' } });
+    fireEvent.change(screen.getByTestId('neo4j-database-input'), { target: { value: 'graph' } });
+
+    await act(async () => {
+      screen.getByRole('button', { name: 'Add connection' }).click();
+    });
+
+    expect(createSecretMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          annotations: expect.objectContaining({
+            'opendatahub.io/connection-type': 'database',
+            'opendatahub.io/database-provider': 'neo4j',
+          }),
+        }),
+        stringData: {
+          NEO4J_URI: 'neo4j://neo4j.example.com:7687',
+          NEO4J_USERNAME: 'neo4j',
+          NEO4J_PASSWORD: 'secret',
+          NEO4J_DATABASE: 'graph',
+        },
+      }),
+    );
+  });
 });

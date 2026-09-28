@@ -979,19 +979,15 @@ describe('AutoragConfigure', () => {
       ).not.toBeInTheDocument();
 
       // Configure details fields should be visible
-      expect(screen.getByText('Vector database connection')).toBeInTheDocument();
+      expect(screen.getByText('Database connection')).toBeInTheDocument();
       expect(
-        screen.getByText('Provide connection details for a vector database.'),
+        screen.getByText('Provide connection details for the selected RAG template.'),
       ).toBeInTheDocument();
       expect(screen.getByText('Evaluation dataset')).toBeInTheDocument();
       expect(screen.getByText('Model configuration')).toBeInTheDocument();
       expect(screen.getByText('Optimization metric')).toBeInTheDocument();
       expect(screen.getByText('Maximum RAG patterns')).toBeInTheDocument();
-      for (const label of [
-        'vector-database-connection',
-        'evaluation-dataset',
-        'model-configuration',
-      ]) {
+      for (const label of ['database-connection', 'evaluation-dataset', 'model-configuration']) {
         expect(
           screen
             .getByTestId(`configure-form-group-label-${label}`)
@@ -1631,7 +1627,7 @@ describe('AutoragConfigure', () => {
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
           maas_secret_name: 'maas-secret',
-          vector_db_secret_name: 'vector-db-secret',
+          db_secret_name: 'vector-db-secret',
           generation_models: ['model-a'],
           embedding_models: ['model-b'],
           optimization_metric: 'faithfulness',
@@ -1645,7 +1641,7 @@ describe('AutoragConfigure', () => {
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
           maas_secret_name: 'maas-secret',
-          vector_db_secret_name: 'vector-db-secret',
+          db_secret_name: 'vector-db-secret',
           generation_models: ['model-a'],
           embedding_models: ['model-b'],
         },

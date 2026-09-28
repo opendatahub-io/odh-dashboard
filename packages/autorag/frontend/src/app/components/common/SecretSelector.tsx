@@ -32,7 +32,9 @@ type SecretSelectorProps = Omit<
   'selectOptions' | 'selected' | 'onSelect' | 'onChange'
 > & {
   namespace: string;
-  type?: 'storage' | 'maas' | 'vector-db';
+  type?: 'storage' | 'maas' | 'vector-db' | 'database';
+  provider?: 'milvus' | 'pgvector' | 'neo4j';
+  allowedProviders?: readonly ('milvus' | 'pgvector' | 'neo4j')[];
   value?: string; // The UUID of the selected secret
   valueName?: string; // The current form value, used to derive the selected UUID
   onChange: (selection: SecretSelection | undefined) => void;
@@ -59,6 +61,8 @@ type SecretSelectorProps = Omit<
 const SecretSelector: React.FC<SecretSelectorProps> = ({
   namespace,
   type,
+  provider,
+  allowedProviders,
   value,
   valueName,
   onChange,
@@ -78,8 +82,8 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   const [validationError, setValidationError] = React.useState<string>('');
 
   const callback = React.useCallback<FetchStateCallbackPromise<SecretListItem[]>>(
-    (opts: APIOptions) => getSecrets('')(namespace, type)(opts),
-    [namespace, type],
+    (opts: APIOptions) => getSecrets('')(namespace, type, provider)(opts),
+    [namespace, provider, type],
   );
 
   const [secrets, loaded, error, refresh] = useFetchState<SecretListItem[]>(callback, []);
@@ -89,7 +93,31 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   }, [refresh, onRefreshReady]);
 
   // Memoize to prevent new array reference on every render and to ensure secrets is always an array
-  const secretsList = React.useMemo(() => (Array.isArray(secrets) ? secrets : []), [secrets]);
+  const secretsList = React.useMemo(() => {
+    if (!Array.isArray(secrets)) {
+      return [];
+    }
+    if (!allowedProviders || type !== 'database') {
+      return secrets;
+    }
+    return secrets.filter((secret) => {
+      const keys = new Set(Object.keys(secret.data ?? {}));
+      const detectedProvider = keys.has('NEO4J_URI')
+        ? 'neo4j'
+        : keys.has('MILVUS_URI')
+          ? 'milvus'
+          : [
+                'PGVECTOR_HOST',
+                'PGVECTOR_PORT',
+                'PGVECTOR_DB',
+                'PGVECTOR_USER',
+                'PGVECTOR_PASSWORD',
+              ].every((key) => keys.has(key))
+            ? 'pgvector'
+            : undefined;
+      return detectedProvider !== undefined && allowedProviders.includes(detectedProvider);
+    });
+  }, [allowedProviders, secrets, type]);
   const hasSecrets = secretsList.length > 0;
   const hasError = !!error;
   const isLoading = !loaded;

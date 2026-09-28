@@ -62,7 +62,7 @@ describe('normalizePattern', () => {
 
     it('should normalize vector_store into the canonical binding shape', () => {
       const result = normalizePattern(v1, 'my-provider');
-      expect(result.settings.vector_store_binding).toEqual({
+      expect(result.settings.store_binding).toEqual({
         provider_type: 'milvus',
         collection_name: 'col0',
       });
@@ -70,7 +70,7 @@ describe('normalizePattern', () => {
 
     it('should normalize a legacy vector store without a provider id', () => {
       const result = normalizePattern(v1);
-      expect(result.settings.vector_store_binding).toEqual({
+      expect(result.settings.store_binding).toEqual({
         provider_type: 'milvus',
         collection_name: 'col0',
       });
@@ -89,10 +89,37 @@ describe('normalizePattern', () => {
         },
       };
       const result = normalizePattern(v1WithBinding);
-      expect(result.settings.vector_store_binding).toEqual({
+      expect(result.settings.store_binding).toEqual({
         provider_type: 'pgvector',
         collection_name: 'vs-1',
       });
+    });
+
+    it('should normalize legacy provider aliases and preserve safe binding extras', () => {
+      const v1WithBinding: LegacyRawPattern = {
+        ...v1,
+        settings: {
+          ...v1.settings,
+          vector_store_binding: {
+            provider_id: 'existing',
+            provider_type: 'remote::milvus',
+            vector_store_id: 'vs-1',
+            namespace: 'tenant-a',
+            index_type: 'hnsw',
+          },
+        },
+      };
+
+      const result = normalizePattern(v1WithBinding);
+
+      expect(result.settings.store_binding).toEqual({
+        provider_type: 'milvus',
+        collection_name: 'vs-1',
+        namespace: 'tenant-a',
+        index_type: 'hnsw',
+      });
+      expect(result.settings.store_binding).not.toHaveProperty('provider_id');
+      expect(result.settings.store_binding).not.toHaveProperty('vector_store_id');
     });
 
     it('should move responses_template to inference block', () => {
@@ -131,7 +158,7 @@ describe('normalizePattern', () => {
       ...baseFields,
       settings: {
         ...baseSettings,
-        vector_store_binding: {
+        store_binding: {
           provider_type: 'milvus',
           collection_name: 'col0',
         },

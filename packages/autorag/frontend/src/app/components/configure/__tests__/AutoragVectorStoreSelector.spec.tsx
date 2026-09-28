@@ -29,11 +29,13 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
     onChange,
     dataTestId,
     type,
+    provider,
     onRefreshReady,
   }: {
     onChange: (value: unknown) => void;
     dataTestId: string;
     type: string;
+    provider?: string;
     onRefreshReady?: (refresh: () => Promise<SecretListItem[] | undefined>) => void;
   }) => {
     onRefreshReady?.(mockVectorRefresh);
@@ -41,6 +43,7 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
       <button
         data-testid={dataTestId}
         data-secret-type={type}
+        data-secret-provider={provider}
         onClick={() => onChange({ uuid: 'vector-db-1', name: 'vector-db-secret', invalid: false })}
       >
         Select vector database secret
@@ -75,16 +78,19 @@ describe('AutoragVectorStoreSelector', () => {
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
   });
 
-  it('should query the strict vector-db Secret filter', () => {
+  it('should query the existing vector-db Secret filter for Simple RAG', () => {
     render(
       <FormWrapper>
         <AutoragVectorStoreSelector />
       </FormWrapper>,
     );
 
-    expect(screen.getByTestId('vector-db-secret-selector')).toHaveAttribute(
+    expect(screen.getByTestId('database-secret-selector')).toHaveAttribute(
       'data-secret-type',
       'vector-db',
+    );
+    expect(screen.getByTestId('database-secret-selector')).not.toHaveAttribute(
+      'data-secret-provider',
     );
   });
 
@@ -95,14 +101,12 @@ describe('AutoragVectorStoreSelector', () => {
       </FormWrapper>,
     );
 
-    expect(screen.getByTestId('add-vector-db-connection-button')).toHaveTextContent(
+    expect(screen.getByTestId('add-database-connection-button')).toHaveTextContent(
       'Add new connection',
     );
-    expect(screen.getByTestId('add-vector-db-connection-button')).toHaveClass(
-      'pf-v6-u-text-nowrap',
-    );
+    expect(screen.getByTestId('add-database-connection-button')).toHaveClass('pf-v6-u-text-nowrap');
     expect(
-      screen.getByTestId('add-vector-db-dropdown-toggle').closest('.pf-v6-c-menu-toggle'),
+      screen.getByTestId('add-database-dropdown-toggle').closest('.pf-v6-c-menu-toggle'),
     ).toHaveClass('pf-m-secondary');
   });
 
@@ -114,7 +118,7 @@ describe('AutoragVectorStoreSelector', () => {
     );
 
     await act(async () => {
-      fireEvent.click(screen.getByTestId('add-vector-db-dropdown-toggle'));
+      fireEvent.click(screen.getByTestId('add-database-dropdown-toggle'));
     });
     expect(screen.getByTestId('add-milvus-connection-option')).toHaveTextContent(
       'Add Milvus connection',
@@ -122,6 +126,44 @@ describe('AutoragVectorStoreSelector', () => {
     expect(screen.getByTestId('add-pgvector-connection-option')).toHaveTextContent(
       'Add PGVector connection',
     );
+  });
+
+  it('should switch to Graph RAG and offer only Neo4j connections', async () => {
+    render(
+      <FormWrapper>
+        <AutoragVectorStoreSelector />
+      </FormWrapper>,
+    );
+
+    fireEvent.click(screen.getByTestId('autorag-rag-mode-graph'));
+    expect(screen.getByTestId('database-secret-selector')).toHaveAttribute(
+      'data-secret-type',
+      'database',
+    );
+    expect(screen.getByTestId('database-secret-selector')).toHaveAttribute(
+      'data-secret-provider',
+      'neo4j',
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-database-dropdown-toggle'));
+    });
+    expect(screen.getByTestId('add-neo4j-connection-option')).toBeInTheDocument();
+    expect(screen.queryByTestId('add-milvus-connection-option')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('add-pgvector-connection-option')).not.toBeInTheDocument();
+  });
+
+  it('should clear the database selection when changing RAG mode', () => {
+    let values: typeof schema.defaults | undefined;
+    render(
+      <FormWrapper onChange={(nextValues) => (values = nextValues)}>
+        <AutoragVectorStoreSelector />
+      </FormWrapper>,
+    );
+
+    fireEvent.click(screen.getByTestId('database-secret-selector'));
+    expect(values?.db_secret_name).toBe('vector-db-secret');
+    fireEvent.click(screen.getByTestId('autorag-rag-mode-graph'));
+    expect(values?.db_secret_name).toBe('');
   });
 
   it('should store the selected vector database Secret name', () => {
@@ -133,8 +175,8 @@ describe('AutoragVectorStoreSelector', () => {
       </FormWrapper>,
     );
 
-    fireEvent.click(screen.getByTestId('vector-db-secret-selector'));
-    expect(values?.vector_db_secret_name).toBe('vector-db-secret');
+    fireEvent.click(screen.getByTestId('database-secret-selector'));
+    expect(values?.db_secret_name).toBe('vector-db-secret');
   });
 
   it('should reject creation when the new vector database Secret is missing after refresh', async () => {
@@ -144,7 +186,7 @@ describe('AutoragVectorStoreSelector', () => {
         <AutoragVectorStoreSelector />
       </FormWrapper>,
     );
-    fireEvent.click(screen.getByTestId('add-vector-db-connection-button'));
+    fireEvent.click(screen.getByTestId('add-database-connection-button'));
     await expect(mockVectorModalOnSubmit?.('new-vector-db-secret')).rejects.toThrow(
       'not found after refreshing',
     );

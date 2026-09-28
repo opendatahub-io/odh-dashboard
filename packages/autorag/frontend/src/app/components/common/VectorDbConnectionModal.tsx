@@ -29,12 +29,21 @@ type Props = {
   onSubmit: (secretName: string) => void | Promise<void>;
 };
 
-type Provider = 'milvus' | 'pgvector';
+type Provider = 'milvus' | 'pgvector' | 'neo4j';
 
 const isValidUri = (value: string): boolean => {
   try {
     const parsed = new URL(value.trim());
     return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+const isValidNeo4jUri = (value: string): boolean => {
+  try {
+    const parsed = new URL(value.trim());
+    return parsed.protocol === 'neo4j:' || parsed.protocol === 'bolt:';
   } catch {
     return false;
   }
@@ -47,6 +56,16 @@ const isValidPgVectorPort = (value: string): boolean => {
   const port = Number(value);
   return Number.isInteger(port) && port >= 1 && port <= 65535;
 };
+
+const NEO4J_OPTIONAL_FIELDS: ReadonlyArray<{
+  key: 'NEO4J_USERNAME' | 'NEO4J_PASSWORD' | 'NEO4J_DATABASE';
+  label: string;
+  type: 'text' | 'password';
+}> = [
+  { key: 'NEO4J_USERNAME', label: 'Username', type: 'text' },
+  { key: 'NEO4J_PASSWORD', label: 'Password', type: 'password' },
+  { key: 'NEO4J_DATABASE', label: 'Database', type: 'text' },
+];
 
 const VectorDbConnectionModal: React.FC<Props> = ({
   namespace,
@@ -63,21 +82,23 @@ const VectorDbConnectionModal: React.FC<Props> = ({
   const createdSecretRef = React.useRef<SecretKind>();
 
   const getField = (key: string): string => fields[key] ?? '';
-  const uri = getField('MILVUS_URI');
-  const uriValid = isValidUri(uri);
+  const uri = getField(provider === 'neo4j' ? 'NEO4J_URI' : 'MILVUS_URI');
+  const uriValid = provider === 'neo4j' ? isValidNeo4jUri(uri) : isValidUri(uri);
   const showUriError = uriTouched && uri.trim() !== '' && !uriValid;
   const pgVectorPortValid = isValidPgVectorPort(getField('PGVECTOR_PORT'));
   const isFormValid = Boolean(
     isK8sNameDescriptionDataValid(nameDescData) &&
     (provider === 'milvus'
       ? uriValid
-      : [
-          'PGVECTOR_HOST',
-          'PGVECTOR_PORT',
-          'PGVECTOR_DB',
-          'PGVECTOR_USER',
-          'PGVECTOR_PASSWORD',
-        ].every((key) => getField(key).trim() !== '') && pgVectorPortValid),
+      : provider === 'neo4j'
+        ? uriValid
+        : [
+            'PGVECTOR_HOST',
+            'PGVECTOR_PORT',
+            'PGVECTOR_DB',
+            'PGVECTOR_USER',
+            'PGVECTOR_PASSWORD',
+          ].every((key) => getField(key).trim() !== '') && pgVectorPortValid),
   );
 
   const setField = (key: string, value: string) => {
@@ -97,19 +118,28 @@ const VectorDbConnectionModal: React.FC<Props> = ({
     const stringData: Record<string, string> =
       provider === 'milvus'
         ? { MILVUS_URI: getField('MILVUS_URI').trim() }
-        : {
-            PGVECTOR_HOST: getField('PGVECTOR_HOST').trim(),
-            PGVECTOR_PORT: getField('PGVECTOR_PORT').trim(),
-            PGVECTOR_DB: getField('PGVECTOR_DB').trim(),
-            PGVECTOR_USER: getField('PGVECTOR_USER').trim(),
-            PGVECTOR_PASSWORD: getField('PGVECTOR_PASSWORD').trim(),
-          };
+        : provider === 'neo4j'
+          ? { NEO4J_URI: getField('NEO4J_URI').trim() }
+          : {
+              PGVECTOR_HOST: getField('PGVECTOR_HOST').trim(),
+              PGVECTOR_PORT: getField('PGVECTOR_PORT').trim(),
+              PGVECTOR_DB: getField('PGVECTOR_DB').trim(),
+              PGVECTOR_USER: getField('PGVECTOR_USER').trim(),
+              PGVECTOR_PASSWORD: getField('PGVECTOR_PASSWORD').trim(),
+            };
     if (provider === 'milvus') {
       if (getField('MILVUS_TOKEN').trim()) {
         stringData.MILVUS_TOKEN = getField('MILVUS_TOKEN').trim();
       }
       if (getField('MILVUS_SERVER_CERT').trim()) {
         stringData.MILVUS_SERVER_CERT = getField('MILVUS_SERVER_CERT').trim();
+      }
+    }
+    if (provider === 'neo4j') {
+      for (const key of ['NEO4J_USERNAME', 'NEO4J_PASSWORD', 'NEO4J_DATABASE']) {
+        if (getField(key).trim()) {
+          stringData[key] = getField(key).trim();
+        }
       }
     }
 
@@ -121,8 +151,10 @@ const VectorDbConnectionModal: React.FC<Props> = ({
         namespace,
         annotations: {
           'openshift.io/display-name': nameDescData.name.trim(),
-          'opendatahub.io/connection-type': 'vector-db',
-          'opendatahub.io/vector-db-provider': provider,
+          'opendatahub.io/connection-type': provider === 'neo4j' ? 'database' : 'vector-db',
+          ...(provider === 'neo4j'
+            ? { 'opendatahub.io/database-provider': provider }
+            : { 'opendatahub.io/vector-db-provider': provider }),
         },
       },
       stringData,
@@ -153,8 +185,12 @@ const VectorDbConnectionModal: React.FC<Props> = ({
   return (
     <Modal isOpen onClose={isSaving ? undefined : onClose} variant="medium">
       <ModalHeader
-        title={`Add ${provider === 'milvus' ? 'Milvus' : 'PGVector'} connection`}
-        description="Provide connection details for a vector database."
+        title={`Add ${
+          provider === 'milvus' ? 'Milvus' : provider === 'pgvector' ? 'PGVector' : 'Neo4j'
+        } connection`}
+        description={`Provide connection details for ${
+          provider === 'neo4j' ? 'a Graph RAG database.' : 'a vector database.'
+        }`}
       />
       <ModalBody>
         <Form>
@@ -166,6 +202,14 @@ const VectorDbConnectionModal: React.FC<Props> = ({
               label="Milvus"
               isChecked={provider === 'milvus'}
               onChange={() => handleProviderChange('milvus')}
+            />
+            <Radio
+              id="vector-db-provider-neo4j"
+              data-testid="vector-db-provider-neo4j"
+              name="vector-db-provider"
+              label="Neo4j"
+              isChecked={provider === 'neo4j'}
+              onChange={() => handleProviderChange('neo4j')}
             />
             <Radio
               id="vector-db-provider-pgvector"
@@ -270,6 +314,43 @@ const VectorDbConnectionModal: React.FC<Props> = ({
                 </FormGroup>
               );
             })}
+          {provider === 'neo4j' && (
+            <>
+              <FormGroup fieldId="neo4j-uri" label="URI" isRequired>
+                <TextInput
+                  id="neo4j-uri"
+                  data-testid="neo4j-uri-input"
+                  value={uri}
+                  onChange={(_event, value) => setField('NEO4J_URI', value)}
+                  onBlur={() => {
+                    setUriTouched(true);
+                    setField('NEO4J_URI', uri.trim());
+                  }}
+                  validated={showUriError ? 'error' : 'default'}
+                />
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem variant={showUriError ? 'error' : 'default'}>
+                      {showUriError
+                        ? 'Enter a valid neo4j:// or bolt:// URI.'
+                        : 'The Neo4j service URI.'}
+                    </HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              </FormGroup>
+              {NEO4J_OPTIONAL_FIELDS.map(({ key, label, type }) => (
+                <FormGroup key={key} fieldId={key.toLowerCase()} label={label}>
+                  <TextInput
+                    id={key.toLowerCase()}
+                    data-testid={`neo4j-${key.replace('NEO4J_', '').toLowerCase()}-input`}
+                    type={type}
+                    value={getField(key)}
+                    onChange={(_event, value) => setField(key, value)}
+                  />
+                </FormGroup>
+              ))}
+            </>
+          )}
         </Form>
       </ModalBody>
       <ModalFooter>
@@ -281,7 +362,7 @@ const VectorDbConnectionModal: React.FC<Props> = ({
           isSubmitDisabled={!isFormValid || isSaving}
           isCancelDisabled={isSaving}
           isSubmitLoading={isSaving}
-          alertTitle="Failed to create vector database connection"
+          alertTitle="Failed to create database connection"
         />
       </ModalFooter>
     </Modal>

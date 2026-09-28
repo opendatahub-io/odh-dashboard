@@ -4,7 +4,8 @@ import * as z from 'zod';
 import type {
   AutoragEvaluationMetric,
   AutoragPattern,
-  AutoragVectorStoreBinding,
+  AutoragStoreBinding,
+  AutoragProviderType,
 } from '~/app/types/autoragPattern';
 
 const ScoreMetricSchema = z
@@ -86,6 +87,21 @@ export const LegacyPatternSchema = z
 
 export type LegacyRawPattern = z.infer<typeof LegacyPatternSchema>;
 
+const normalizeProviderType = (providerType: string): AutoragProviderType => {
+  switch (providerType) {
+    case 'milvus':
+    case 'remote::milvus':
+      return 'milvus';
+    case 'pgvector':
+    case 'remote::pgvector':
+      return 'pgvector';
+    case 'neo4j':
+      return 'neo4j';
+    default:
+      throw new Error(`Unsupported AutoRAG store binding provider: ${providerType}`);
+  }
+};
+
 export function normalizeLegacyPattern(
   raw: LegacyRawPattern,
   vectorIoProviderId?: string,
@@ -117,11 +133,25 @@ export function normalizeLegacyPattern(
       : undefined);
   const { detected_language: detectedLanguage, ...generationRest } = raw.settings.generation;
 
-  const vectorStoreBinding: AutoragVectorStoreBinding | undefined = legacyVectorStoreBinding
-    ? {
-        provider_type: legacyVectorStoreBinding.provider_type,
-        collection_name: legacyVectorStoreBinding.vector_store_id ?? '',
-      }
+  const storeBinding: AutoragStoreBinding | undefined = legacyVectorStoreBinding
+    ? (() => {
+        const bindingExtras: Record<string, unknown> = { ...legacyVectorStoreBinding };
+        const vectorStoreId = bindingExtras.vector_store_id;
+        const providerType = String(bindingExtras.provider_type);
+        const legacyCollectionName = typeof vectorStoreId === 'string' ? vectorStoreId : undefined;
+        delete bindingExtras.provider_id;
+        delete bindingExtras.vector_store_id;
+        delete bindingExtras.provider_type;
+        return {
+          ...bindingExtras,
+          provider_type: normalizeProviderType(providerType),
+          collection_name:
+            legacyCollectionName ??
+            (typeof bindingExtras.collection_name === 'string'
+              ? bindingExtras.collection_name
+              : ''),
+        };
+      })()
     : undefined;
 
   return {
@@ -130,7 +160,7 @@ export function normalizeLegacyPattern(
     max_combinations: raw.max_combinations,
     duration_seconds: raw.duration_seconds,
     settings: {
-      vector_store_binding: vectorStoreBinding,
+      store_binding: storeBinding,
       chunking: raw.settings.chunking,
       embedding: raw.settings.embedding,
       retrieval: raw.settings.retrieval,
