@@ -18,8 +18,8 @@ const mockPipelinesApi: PipelinesApi = {
   deletePipelineRun: jest.fn(),
 };
 
-jest.mock('../../../api', () => ({
-  ...jest.requireActual('../../../api'),
+jest.mock('../../../api/pipelines/pipelines', () => ({
+  ...jest.requireActual('../../../api/pipelines/pipelines'),
   createPipelinesApi: jest.fn(() => mockPipelinesApi),
 }));
 
