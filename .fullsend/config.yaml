@@ -8,12 +8,32 @@ runtime: claude
 # Replace sticky comment bodies in-place (no collapsed "Previous run" history).
 # https://github.com/fullsend-ai/fullsend/pull/6930
 keep_history: false
+models:
+    # Pi includes configured aliases in the trusted subagent model set. Keep
+    # both GPT-6 models available so review personas can use the appropriate
+    # quality/cost tier within one OpenAI-backed run.
+    aliases:
+        opus: openai/gpt-6-sol
+        sonnet: openai/gpt-6-luna
 roles:
     - review
 agents:
     # Dashboard overlay; the base harness still supplies Fullsend's review skills.
     - name: review
       source: harness/review.yaml
+      # Keep non-review roles on the production default while using Pi's
+      # per-persona model routing for reviews.
+      runtime: pi
+      model: openai/gpt-6-luna
+      subagents:
+          challenger: openai/gpt-6-sol
+          correctness: openai/gpt-6-sol
+          cross-repo-contracts: openai/gpt-6-sol
+          docs-currency: openai/gpt-6-luna
+          intent-coherence: openai/gpt-6-sol
+          security: openai/gpt-6-sol
+          security-triage: openai/gpt-6-luna
+          style-conventions: openai/gpt-6-luna
 allowed_remote_resources:
     - https://raw.githubusercontent.com/fullsend-ai/fullsend/
     - https://raw.githubusercontent.com/fullsend-ai/agents/

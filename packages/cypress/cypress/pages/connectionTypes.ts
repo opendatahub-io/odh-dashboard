@@ -274,8 +274,12 @@ class ConnectionTypesPage {
   }
 
   getConnectionTypeRow(name: string) {
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     return new ConnectionTypeRow(() =>
-      this.findTable().findAllByTestId(`table-row-title`).contains(name).parents('tr'),
+      this.findTable()
+        .findAllByTestId(`table-row-title`)
+        .contains(new RegExp(`^${escaped}$`))
+        .parents('tr'),
     );
   }
 
