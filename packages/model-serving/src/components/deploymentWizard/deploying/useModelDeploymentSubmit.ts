@@ -73,17 +73,10 @@ export const useModelDeploymentSubmit = (
         : undefined),
     [existingDeployment, deployMethod, resources.model, resources.server],
   );
-  const [formDataExtension, formDataExtensionLoaded] = useResolvedDeploymentExtension(
+  const [, formDataExtensionLoaded] = useResolvedDeploymentExtension(
     isModelServingDeploymentFormDataExtension,
     deploymentForExtension,
   );
-  const extractHuggingFaceApiKey = React.useMemo(() => {
-    const extractFn = formDataExtension?.properties.extractHuggingFaceApiKey;
-    if (typeof extractFn !== 'function') {
-      return undefined;
-    }
-    return (deployment: Deployment) => extractFn(deployment);
-  }, [formDataExtension]);
 
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -151,7 +144,6 @@ export const useModelDeploymentSubmit = (
           applyAllFieldDataFn,
           runPreDeploy,
           runPostDeploy,
-          extractHuggingFaceApiKey,
         );
 
         try {
@@ -192,7 +184,6 @@ export const useModelDeploymentSubmit = (
       applyAllFieldDataFn,
       runPreDeploy,
       runPostDeploy,
-      extractHuggingFaceApiKey,
       exitWizardOnSubmit,
       yamlError,
       fireModelDeployedTracking,

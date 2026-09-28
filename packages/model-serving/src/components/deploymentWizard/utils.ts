@@ -31,11 +31,11 @@ import {
   handleSecretOwnerReferencePatch,
 } from '../../concepts/connectionUtils';
 import { getHfTokenServiceAccountName } from '../../shared/hfTokenConstants';
+import { getHfTokenSecretNameFromServiceAccount } from '../../shared/hfTokenSecret';
 import {
   patchHfTokenSecretOwnerReference,
   patchHfTokenServiceAccountOwnerReference,
 } from '../../concepts/hfTokenSecretUtils';
-import type { HuggingFaceApiKeyFieldData } from '../../shared/wizard-fields';
 import type {
   Deployment,
   DeploymentEndpoint,
@@ -43,6 +43,45 @@ import type {
 } from '../../../extension-points';
 import { DeploymentAssemblyFn } from '../../../extension-points/deployment-wizard';
 import { isDeploymentAuthEnabled } from '../../concepts/auth';
+
+/** Resolves the dashboard HF ServiceAccount name from an ISVC or LLMISVC model. */
+const getHfServiceAccountNameFromModel = (model: Deployment['model']): string | undefined => {
+  const deploymentName = model.metadata.name;
+  if (!deploymentName) {
+    return undefined;
+  }
+  const expected = getHfTokenServiceAccountName(deploymentName);
+  const { spec } = model;
+  if (!spec || typeof spec !== 'object') {
+    return undefined;
+  }
+
+  if ('predictor' in spec) {
+    const { predictor } = spec;
+    if (
+      predictor &&
+      typeof predictor === 'object' &&
+      'serviceAccountName' in predictor &&
+      predictor.serviceAccountName === expected
+    ) {
+      return expected;
+    }
+  }
+
+  if ('template' in spec) {
+    const { template } = spec;
+    if (
+      template &&
+      typeof template === 'object' &&
+      'serviceAccountName' in template &&
+      template.serviceAccountName === expected
+    ) {
+      return expected;
+    }
+  }
+
+  return undefined;
+};
 
 export const getDeploymentWizardRoute = (): string => {
   return '/ai-hub/models/deployments/deploy';
@@ -103,9 +142,6 @@ export const deployModel = async (
   applyAllFieldDataFn?: DeploymentAssemblyFn,
   runPreDeploy?: RunPreDeployFns,
   runPostDeploy?: RunPostDeployFns,
-  extractHuggingFaceApiKey?: (
-    deployment: Deployment,
-  ) => HuggingFaceApiKeyFieldData | null | Promise<HuggingFaceApiKeyFieldData | null>,
 ): Promise<Deployment> => {
   const projectName = wizardState.project.projectName || modelResource?.metadata.namespace;
   if (!projectName) {
@@ -235,15 +271,18 @@ export const deployModel = async (
       false,
     );
   }
-  const hfApiKey = extractHuggingFaceApiKey
-    ? await Promise.resolve(extractHuggingFaceApiKey(deploymentResult))
-    : null;
-  const hfSecretName = hfApiKey?.configuredSecretName;
+  const hfServiceAccountName = getHfServiceAccountNameFromModel(deploymentResult.model);
   const deploymentUid = deploymentResult.model.metadata.uid ?? '';
-  const hfServiceAccountName =
-    hfSecretName && deploymentResult.model.metadata.name
-      ? getHfTokenServiceAccountName(deploymentResult.model.metadata.name)
-      : undefined;
+  // Resolve the Secret from the SA directly — do not depend on form-data extract, which can
+  // miss right after create and silently skip ownerRefs (Emily's finding).
+  const hfSecretName = hfServiceAccountName
+    ? await getHfTokenSecretNameFromServiceAccount(hfServiceAccountName, projectName).catch(
+        (err) => {
+          console.warn('Skipping HF token owner reference patch; could not resolve Secret', err);
+          return undefined;
+        },
+      )
+    : undefined;
   await patchHfTokenSecretOwnerReference(
     secretOps,
     projectName,
