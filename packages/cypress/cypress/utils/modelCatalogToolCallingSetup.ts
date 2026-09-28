@@ -51,7 +51,7 @@ export const setupToolCallingWizardTestData = (
       verifyModelCatalogBackend();
 
       cy.step('Ensure the Red Hat AI validated catalog source is enabled');
-      return ensureModelCatalogSourceEnabled(sourceData.redhatAiSourceId2).then(() => ({
+      return ensureModelCatalogSourceEnabled(sourceData.validatedSourceId).then(() => ({
         sourceData,
         validatedConfigurationOptionId,
       }));

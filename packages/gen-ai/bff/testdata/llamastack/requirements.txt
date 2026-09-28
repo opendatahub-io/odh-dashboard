@@ -9,4 +9,6 @@ ollama==0.6.1
 pypdf==6.9.0
 regex>=2024.11.6
 rich>=13
+# tiktoken imports requests at runtime; require a Python 3.12-compatible, security-patched release.
+requests>=2.33,<3
 setuptools>=75,<81

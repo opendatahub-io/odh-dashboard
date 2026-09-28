@@ -1,6 +1,15 @@
 class EvaluationsPage {
-  visit(namespace: string) {
-    cy.visit(`/evaluation/${namespace}`);
+  visit(namespace: string, tab?: 'evaluate' | 'runs') {
+    cy.visit(`/evaluation/${namespace}${tab ? `?tab=${tab}` : ''}`);
+    this.waitForLoad();
+  }
+
+  visitRuns(namespace: string) {
+    this.visit(namespace, 'runs');
+  }
+
+  visitBenchmarkSuites(namespace: string) {
+    cy.visit(`/evaluation/${namespace}/collections`);
     this.waitForLoad();
   }
 
@@ -25,6 +34,106 @@ class EvaluationsPage {
 
   findTitle() {
     return cy.findByTestId('app-page-title');
+  }
+
+  findPageDescription() {
+    return cy.findByTestId('app-page-description');
+  }
+
+  findEvaluateTab() {
+    return cy.findByTestId('evaluate-tab');
+  }
+
+  findRunsTab() {
+    return cy.findByTestId('runs-tab');
+  }
+
+  findEvaluateContent() {
+    return cy.findByTestId('evaluate-tab-content');
+  }
+
+  findRunsContent() {
+    return cy.findByTestId('runs-tab-content');
+  }
+
+  findRunsDescription() {
+    return cy.findByTestId('runs-tab-description');
+  }
+
+  findCreateSuiteCard() {
+    return cy.findByTestId('create-suite-card');
+  }
+
+  findCreateSuiteButton() {
+    return cy.findByTestId('create-suite-button');
+  }
+
+  findBrowseAllBenchmarksExploreButton() {
+    return cy.findByTestId('browse-all-benchmarks-explore');
+  }
+
+  findBenchmarkSuiteCard(collectionId: string) {
+    return cy.findByTestId(`benchmark-suite-card-${collectionId}`);
+  }
+
+  findBenchmarkSuiteName(collectionId: string) {
+    return cy.findByTestId(`benchmark-suite-card-name-${collectionId}`);
+  }
+
+  findCollectionDrawerPanel() {
+    return cy.findByTestId('collection-drawer-panel');
+  }
+
+  findBenchmarkSuiteMenu(collectionId: string) {
+    return cy.findByTestId(`benchmark-suite-card-menu-${collectionId}`);
+  }
+
+  findBenchmarkSuiteAction(action: string, collectionId: string) {
+    return cy.findByTestId(`benchmark-suite-card-action-${action}-${collectionId}`).find('button');
+  }
+
+  findBenchmarkSuiteDeleteModal() {
+    return cy.findByTestId('benchmark-suite-delete-modal');
+  }
+
+  findBenchmarkSuiteDeleteCancel() {
+    return cy.findByTestId('benchmark-suite-delete-cancel');
+  }
+
+  findBenchmarkSuitePrimaryAction(collectionId: string) {
+    return cy.findByTestId(`benchmark-suite-card-primary-action-${collectionId}`);
+  }
+
+  findBenchmarkSuitesNameFilter() {
+    return cy.findByTestId('benchmark-suites-name-filter');
+  }
+
+  findBenchmarkSuitesCategoryFilter() {
+    return cy.findByTestId('benchmark-suites-category-filter');
+  }
+
+  findBenchmarkSuitesEvaluatesFilter() {
+    return cy.findByTestId('benchmark-suites-evaluates-filter');
+  }
+
+  findBenchmarkSuitesIndustryFilter() {
+    return cy.findByTestId('benchmark-suites-industry-filter');
+  }
+
+  findBenchmarkSuitesFilterOption(filter: 'category' | 'evaluates' | 'industry', value: string) {
+    return cy.findByTestId(`benchmark-suites-${filter}-filter-option-${value}`);
+  }
+
+  findBenchmarkSuitesSummary() {
+    return cy.findByTestId('benchmark-suites-summary');
+  }
+
+  findCuratedSuiteCategories() {
+    return cy.findByTestId('curated-suite-categories');
+  }
+
+  findCuratedSuiteCategoryCard(categoryId: string) {
+    return cy.findByTestId(`curated-suite-category-card-${categoryId}`);
   }
 
   findEmptyState() {

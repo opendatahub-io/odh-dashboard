@@ -59,6 +59,15 @@ export const deployGenAiModel = (projectName: string, testData: GenAiTestData): 
   checkInferenceServiceState(inferenceServiceName, projectName, { checkReady: true });
 };
 
+export const getExternalProviders = (): Cypress.Chainable<boolean> => {
+  const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
+  return cy
+    .exec(
+      `oc get OdhDashboardConfig odh-dashboard-config -n ${namespace} -o json | jq -r '.spec.genAiStudioConfig.aiAssetCustomEndpoints.externalProviders // false'`,
+    )
+    .then((result) => result.stdout.trim() === 'true');
+};
+
 /**
  * Enable externalProviders in OdhDashboardConfig so that non-cluster-local
  * endpoint URLs are accepted by the custom endpoints form.
@@ -98,19 +107,19 @@ export const forceDashboardConfigRefresh = (): void => {
 };
 
 /**
- * Disable externalProviders in OdhDashboardConfig (revert to default).
+ * Restore externalProviders in OdhDashboardConfig.
  * Polls until the change is confirmed so later specs don't race on the stale flag.
  */
-export const disableExternalProviders = (): void => {
+export const disableExternalProviders = (externalProviders = false): void => {
   const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
   const patchContent = JSON.stringify({
-    spec: { genAiStudioConfig: { aiAssetCustomEndpoints: { externalProviders: false } } },
+    spec: { genAiStudioConfig: { aiAssetCustomEndpoints: { externalProviders } } },
   });
   patchOpenShiftResource('OdhDashboardConfig', 'odh-dashboard-config', patchContent, namespace);
 
   pollUntilSuccess(
-    `oc get OdhDashboardConfig odh-dashboard-config -n ${namespace} -o json | jq -e '.spec.genAiStudioConfig.aiAssetCustomEndpoints.externalProviders == false'`,
-    'externalProviders to be false',
+    `oc get OdhDashboardConfig odh-dashboard-config -n ${namespace} -o json | jq -e '.spec.genAiStudioConfig.aiAssetCustomEndpoints.externalProviders == ${externalProviders}'`,
+    `externalProviders to be ${externalProviders}`,
     { maxAttempts: 15, pollIntervalMs: 2000 },
   );
 };
@@ -436,6 +445,7 @@ export const waitForGlobalPromptsInBFF = (
  * @param endpointUrl - Base URL of the external model provider.
  * @param apiKey      - API key / token for the provider.
  * @param modelType   - Model type: 'llm' | 'embedding' | 'transcription'. Defaults to 'llm'.
+ * @param capabilities - Model capabilities exposed to the playground.
  */
 export const createExternalModelViaAPI = (
   namespace: string,
@@ -444,11 +454,13 @@ export const createExternalModelViaAPI = (
   endpointUrl: string,
   apiKey: string,
   modelType = 'llm',
+  capabilities?: string[],
 ): Cypress.Chainable<Cypress.Response<unknown>> =>
   cy.request({
     method: 'POST',
     url: `/gen-ai/api/v1/models/external?namespace=${encodeURIComponent(namespace)}`,
     log: false,
+    failOnStatusCode: false,
     body: {
       /* eslint-disable camelcase */
       model_id: modelId,
@@ -456,6 +468,7 @@ export const createExternalModelViaAPI = (
       base_url: endpointUrl,
       secret_value: apiKey,
       model_type: modelType,
+      capabilities,
       /* eslint-enable camelcase */
     },
   });

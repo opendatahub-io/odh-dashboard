@@ -12,6 +12,9 @@ export type RegistryAsset = {
   connectionRef: string;
   labels: string[];
   collection: string;
+  properties: Record<string, string>;
+  /** The original BFF response, including asset-type-specific fields. */
+  rawAsset?: AssetResponse | VolumeInfo;
 };
 
 const mapTableAsset = (asset: AssetResponse, collection: string): RegistryAsset => {
@@ -31,6 +34,8 @@ const mapTableAsset = (asset: AssetResponse, collection: string): RegistryAsset 
     connectionRef,
     labels: asset.labels || [],
     collection,
+    properties: asset.properties || {},
+    rawAsset: asset,
   };
 };
 
@@ -51,6 +56,8 @@ const mapVolumeAsset = (volume: VolumeInfo, collection: string): RegistryAsset =
     connectionRef,
     labels: volume.labels || [],
     collection,
+    properties: volume.properties || {},
+    rawAsset: volume,
   };
 };
 

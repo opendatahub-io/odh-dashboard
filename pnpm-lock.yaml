@@ -149,7 +149,7 @@ importers:
     dependencies:
       '@fastify/accepts':
         specifier: ^5.0.4
-        version: 5.0.5
+        version: 5.0.6
       '@fastify/http-proxy':
         specifier: ^11.6.0
         version: 11.6.2
@@ -182,7 +182,7 @@ importers:
         version: 3.1.10
       fastify:
         specifier: ^5.11.2
-        version: 5.12.3
+        version: 5.12.4
       fastify-plugin:
         specifier: ^5.1.0
         version: 5.1.0
@@ -273,7 +273,7 @@ importers:
         version: 2.8.8
       ts-jest:
         specifier: ^29.4.11
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.25.12)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.25.12)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)))(typescript@5.9.3)
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)
@@ -340,7 +340,7 @@ importers:
         version: 6.2.0(webpack@5.104.1)
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+        version: 29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
       js-yaml:
         specifier: 4.3.2
         version: 4.3.2
@@ -352,10 +352,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.100.0
-        version: 1.104.0
+        version: 1.104.1
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.1)(webpack@5.104.1)
       style-loader:
         specifier: ^2.0.0
         version: 2.0.0(webpack@5.104.1)
@@ -459,7 +459,7 @@ importers:
         version: link:../../../packages/jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
@@ -558,10 +558,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.100.0
-        version: 1.104.0
+        version: 1.104.1
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.1)(webpack@5.104.1)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.104.1)
@@ -724,7 +724,7 @@ importers:
         version: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       yaml:
         specifier: ^2.9.0
-        version: 2.9.0
+        version: 2.9.1
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -761,10 +761,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.100.0
-        version: 1.104.0
+        version: 1.104.1
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.1)(webpack@5.104.1)
       style-loader:
         specifier: ^2.0.0
         version: 2.0.0(webpack@5.104.1)
@@ -845,7 +845,7 @@ importers:
         version: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       yaml:
         specifier: ^2.9.0
-        version: 2.9.0
+        version: 2.9.1
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -891,10 +891,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.100.0
-        version: 1.104.0
+        version: 1.104.1
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.1)(webpack@5.104.1)
       style-loader:
         specifier: ^2.0.0
         version: 2.0.0(webpack@5.104.1)
@@ -1077,7 +1077,7 @@ importers:
         version: 37.3.6(react@18.3.1)
       yaml:
         specifier: ^2.9.0
-        version: 2.9.0
+        version: 2.9.1
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -1105,7 +1105,7 @@ importers:
         version: 0.5.17(react-refresh@0.14.2)(type-fest@4.41.0)(webpack-dev-server@5.2.6)(webpack@5.104.1)
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(selfsigned@5.5.0))
@@ -1189,10 +1189,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.100.0
-        version: 1.104.0
+        version: 1.104.1
       sass-loader:
         specifier: ^16.0.8
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(sass@1.104.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(sass@1.104.1)(webpack@5.104.1)
       style-loader:
         specifier: ^2.0.0
         version: 2.0.0(webpack@5.104.1)
@@ -1331,7 +1331,7 @@ importers:
         version: 2.0.0
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+        version: 29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
       jest-environment-jsdom:
         specifier: ^29.7.0
         version: 29.7.0(supports-color@8.1.1)
@@ -1352,7 +1352,7 @@ importers:
         version: 0.2.7
       ts-jest:
         specifier: ^29.4.11
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.25.12)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.25.12)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1))(typescript@5.9.3)
 
   frontend/src:
     dependencies:
@@ -1496,7 +1496,7 @@ importers:
         version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
@@ -1562,7 +1562,7 @@ importers:
         version: 7.0.1
       jest:
         specifier: ^30.4.2
-        version: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.4.1
         version: 30.4.1(supports-color@8.1.1)
@@ -1592,10 +1592,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.87.0
-        version: 1.104.0
+        version: 1.104.1
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.1)(webpack@5.104.1)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.104.1)
@@ -1695,7 +1695,7 @@ importers:
         version: 14.2.6(supports-color@8.1.1)
       ts-jest:
         specifier: ^29.4.5
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)))(typescript@5.9.3)
 
   packages/analytics:
     dependencies:
@@ -1784,7 +1784,7 @@ importers:
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@hookform/resolvers':
         specifier: ^5.2.2
-        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.85.0(react@18.3.1))(zod@4.4.3)
+        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
       '@openshift/dynamic-plugin-sdk':
         specifier: ^5.0.1
         version: 5.0.1(react@18.3.1)
@@ -1853,7 +1853,7 @@ importers:
         version: 18.3.1(react@18.3.1)
       react-hook-form:
         specifier: ^7.71.1
-        version: 7.85.0(react@18.3.1)
+        version: 7.88.0(react@18.3.1)
       react-router:
         specifier: ^7.18.3
         version: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1868,7 +1868,7 @@ importers:
         version: 4.4.3
       zustand:
         specifier: ^5.0.10
-        version: 5.0.15(@types/react@18.3.31)(immer@11.1.17)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
+        version: 5.0.15(@types/react@18.3.31)(immer@11.1.18)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
     devDependencies:
       '@module-federation/enhanced':
         specifier: ^0.24.1
@@ -1890,7 +1890,7 @@ importers:
         version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
@@ -1962,7 +1962,7 @@ importers:
         version: 9.0.1
       jest:
         specifier: ^30.4.2
-        version: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.4.1
         version: 30.4.1(supports-color@8.1.1)
@@ -1992,10 +1992,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.87.0
-        version: 1.104.0
+        version: 1.104.1
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.1)(webpack@5.104.1)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.104.1)
@@ -2119,7 +2119,7 @@ importers:
         version: 14.2.6(supports-color@8.1.1)
       ts-jest:
         specifier: ^29.4.5
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)))(typescript@5.9.3)
 
   packages/autorag:
     dependencies:
@@ -2162,7 +2162,7 @@ importers:
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@hookform/resolvers':
         specifier: ^5.2.2
-        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.85.0(react@18.3.1))(zod@4.4.3)
+        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
       '@openshift/dynamic-plugin-sdk':
         specifier: ^5.0.1
         version: 5.0.1(react@18.3.1)
@@ -2231,7 +2231,7 @@ importers:
         version: 18.3.1(react@18.3.1)
       react-hook-form:
         specifier: ^7.71.1
-        version: 7.85.0(react@18.3.1)
+        version: 7.88.0(react@18.3.1)
       react-router:
         specifier: ^7.18.3
         version: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -2246,7 +2246,7 @@ importers:
         version: 4.4.3
       zustand:
         specifier: ^5.0.10
-        version: 5.0.15(@types/react@18.3.31)(immer@11.1.17)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
+        version: 5.0.15(@types/react@18.3.31)(immer@11.1.18)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
     devDependencies:
       '@module-federation/enhanced':
         specifier: ^0.24.1
@@ -2271,7 +2271,7 @@ importers:
         version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
@@ -2340,7 +2340,7 @@ importers:
         version: 9.0.1
       jest:
         specifier: ^30.4.2
-        version: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.4.1
         version: 30.4.1(supports-color@8.1.1)
@@ -2370,10 +2370,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.87.0
-        version: 1.104.0
+        version: 1.104.1
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.1)(webpack@5.104.1)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.104.1)
@@ -2497,7 +2497,7 @@ importers:
         version: 14.2.6(supports-color@8.1.1)
       ts-jest:
         specifier: ^29.4.5
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)))(typescript@5.9.3)
 
   packages/autox-core:
     dependencies:
@@ -2519,7 +2519,7 @@ importers:
     dependencies:
       '@hookform/resolvers':
         specifier: ^5.2.2
-        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.85.0(react@18.3.1))(zod@4.4.3)
+        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
       '@patternfly/patternfly':
         specifier: ~6.5.1
         version: 6.5.2
@@ -2564,7 +2564,7 @@ importers:
         version: 18.3.1(react@18.3.1)
       react-hook-form:
         specifier: ^7.71.1
-        version: 7.85.0(react@18.3.1)
+        version: 7.88.0(react@18.3.1)
       react-router:
         specifier: ^7.18.3
         version: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -2601,7 +2601,7 @@ importers:
         version: 30.4.1
       jest:
         specifier: ^30.2.0
-        version: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.2.0
         version: 30.4.1(supports-color@8.1.1)
@@ -2653,7 +2653,7 @@ importers:
         version: 1.20.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+        version: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
       jest-html-reporters:
         specifier: ^3.1.7
         version: 3.1.7
@@ -2896,7 +2896,7 @@ importers:
         version: link:../../app-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
@@ -2965,7 +2965,7 @@ importers:
         version: 9.0.1
       jest:
         specifier: ^30.2.0
-        version: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.2.0
         version: 30.4.1(supports-color@8.1.1)
@@ -2998,10 +2998,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.87.0
-        version: 1.104.0
+        version: 1.104.1
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.1)(webpack@5.104.1)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.104.1)
@@ -3101,7 +3101,7 @@ importers:
         version: 14.2.6(supports-color@8.1.1)
       ts-jest:
         specifier: ^29.4.5
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)))(typescript@5.9.3)
 
   packages/data-registry:
     dependencies:
@@ -3132,7 +3132,7 @@ importers:
     dependencies:
       '@hookform/resolvers':
         specifier: ^5.9.1
-        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.86.0(react@18.3.1))(zod@4.4.3)
+        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
       '@patternfly/patternfly':
         specifier: ~6.5.1
         version: 6.5.2
@@ -3165,7 +3165,7 @@ importers:
         version: 18.3.1(react@18.3.1)
       react-hook-form:
         specifier: ^7.86.0
-        version: 7.86.0(react@18.3.1)
+        version: 7.88.0(react@18.3.1)
       react-router:
         specifier: ^7.18.3
         version: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -3187,7 +3187,7 @@ importers:
         version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
@@ -3250,7 +3250,7 @@ importers:
         version: 9.0.1
       jest:
         specifier: ^30.2.0
-        version: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.2.0
         version: 30.4.1(supports-color@8.1.1)
@@ -3280,10 +3280,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.87.0
-        version: 1.104.0
+        version: 1.104.1
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.1)(webpack@5.104.1)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.104.1)
@@ -3392,7 +3392,7 @@ importers:
         version: 14.2.6(supports-color@8.1.1)
       ts-jest:
         specifier: ^29.4.5
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)))(typescript@5.9.3)
 
   packages/eslint-config:
     dependencies:
@@ -3516,6 +3516,9 @@ importers:
       '@emotion/styled':
         specifier: ^11.14.0
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
+      '@hookform/resolvers':
+        specifier: ^5.9.1
+        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.88.0(react@18.3.1))(zod@4.6.5)
       '@module-federation/runtime':
         specifier: ^0.21.4
         version: 0.21.6
@@ -3558,6 +3561,9 @@ importers:
       react-dom:
         specifier: ^18
         version: 18.3.1(react@18.3.1)
+      react-hook-form:
+        specifier: ^7.87.0
+        version: 7.88.0(react@18.3.1)
       react-router:
         specifier: ^7.18.3
         version: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -3567,6 +3573,9 @@ importers:
       showdown:
         specifier: ^2.1.0
         version: 2.1.0
+      zod:
+        specifier: ^4.5.4
+        version: 4.6.5
     devDependencies:
       '@module-federation/enhanced':
         specifier: ^0.24.1
@@ -3588,7 +3597,7 @@ importers:
         version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
@@ -3657,7 +3666,7 @@ importers:
         version: 9.0.1
       jest:
         specifier: ^30.4.2
-        version: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.4.1
         version: 30.4.1(supports-color@8.1.1)
@@ -3687,10 +3696,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.87.0
-        version: 1.104.0
+        version: 1.104.1
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.1)(webpack@5.104.1)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.104.1)
@@ -3802,7 +3811,7 @@ importers:
         version: 14.2.6(supports-color@8.1.1)
       ts-jest:
         specifier: ^29.4.5
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)))(typescript@5.9.3)
 
   packages/feature-store:
     dependencies:
@@ -3850,7 +3859,7 @@ importers:
         version: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       yaml:
         specifier: ^2.9.0
-        version: 2.9.0
+        version: 2.9.1
     devDependencies:
       '@odh-dashboard/eslint-config':
         specifier: workspace:*
@@ -3936,7 +3945,7 @@ importers:
         version: 5.101.4(react@18.3.1)
       immer:
         specifier: ^11.1.3
-        version: 11.1.17
+        version: 11.1.18
       mod-arch-core:
         specifier: ^1.15.4
         version: 1.21.0(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
@@ -3957,7 +3966,7 @@ importers:
         version: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       zustand:
         specifier: ^5.0.10
-        version: 5.0.15(@types/react@18.3.31)(immer@11.1.17)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
+        version: 5.0.15(@types/react@18.3.31)(immer@11.1.18)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
     devDependencies:
       '@module-federation/enhanced':
         specifier: ^0.24.1
@@ -3970,7 +3979,7 @@ importers:
         version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
@@ -4018,7 +4027,7 @@ importers:
         version: 9.0.1
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+        version: 29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
       jest-environment-jsdom:
         specifier: ^29.7.0
         version: 29.7.0(supports-color@8.1.1)
@@ -4060,10 +4069,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.87.0
-        version: 1.104.0
+        version: 1.104.1
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.1)(webpack@5.104.1)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.104.1)
@@ -4181,7 +4190,7 @@ importers:
         version: 14.2.6(supports-color@8.1.1)
       ts-jest:
         specifier: ^29.2.5
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1))(typescript@5.9.3)
 
   packages/gpuaas:
     dependencies:
@@ -4321,7 +4330,7 @@ importers:
         version: 29.7.0
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+        version: 29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
       jest-environment-jsdom:
         specifier: ^29.7.0
         version: 29.7.0(supports-color@8.1.1)
@@ -4636,7 +4645,7 @@ importers:
         version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
@@ -4705,7 +4714,7 @@ importers:
         version: 9.0.1
       jest:
         specifier: ^30.4.2
-        version: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.4.1
         version: 30.4.1(supports-color@8.1.1)
@@ -4738,10 +4747,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.87.0
-        version: 1.104.0
+        version: 1.104.1
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.1)(webpack@5.104.1)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.104.1)
@@ -4853,7 +4862,7 @@ importers:
         version: 14.2.6(supports-color@8.1.1)
       ts-jest:
         specifier: ^29.4.5
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)))(typescript@5.9.3)
 
   packages/mlflow:
     dependencies:
@@ -5015,7 +5024,7 @@ importers:
         version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
@@ -5084,7 +5093,7 @@ importers:
         version: 9.0.1
       jest:
         specifier: ^30.4.2
-        version: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.4.1
         version: 30.4.1(supports-color@8.1.1)
@@ -5114,10 +5123,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.87.0
-        version: 1.104.0
+        version: 1.104.1
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.1)(webpack@5.104.1)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.104.1)
@@ -5229,7 +5238,7 @@ importers:
         version: 14.2.6(supports-color@8.1.1)
       ts-jest:
         specifier: ^29.4.5
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)))(typescript@5.9.3)
 
   packages/model-registry:
     dependencies:
@@ -5338,7 +5347,7 @@ importers:
         version: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       yaml:
         specifier: ^2.9.0
-        version: 2.9.0
+        version: 2.9.1
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -5434,7 +5443,7 @@ importers:
         version: link:../../app-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
@@ -5497,7 +5506,7 @@ importers:
         version: 9.0.1
       jest:
         specifier: ^30.2.0
-        version: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.2.0
         version: 30.4.1(supports-color@8.1.1)
@@ -5527,10 +5536,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.87.0
-        version: 1.104.0
+        version: 1.104.1
       sass-loader:
         specifier: ^16.0.0
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.1)(webpack@5.104.1)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.104.1)
@@ -5633,7 +5642,7 @@ importers:
         version: 14.2.6(supports-color@8.1.1)
       ts-jest:
         specifier: ^29.4.5
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)))(typescript@5.9.3)
 
   packages/model-training:
     dependencies:
@@ -5776,7 +5785,7 @@ importers:
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@hookform/resolvers':
         specifier: ^3.9.1
-        version: 3.10.0(react-hook-form@7.86.0(react@18.3.1))
+        version: 3.10.0(react-hook-form@7.88.0(react@18.3.1))
       '@mui/material':
         specifier: ^6.5.0
         version: 6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -5809,25 +5818,25 @@ importers:
         version: 0.54.0
       '@perses-dev/dashboards':
         specifier: ^0.54.0-beta.10
-        version: 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
+        version: 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       '@perses-dev/explore':
         specifier: ^0.54.0-beta.10
-        version: 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
+        version: 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       '@perses-dev/loki-plugin':
         specifier: v0.6.0-rc.2
-        version: 0.6.0-rc.2(868b97823211e3075bef08965bf8b980)
+        version: 0.6.0-rc.2(1c36e1576871dad28a3941bec5337d34)
       '@perses-dev/plugin-system':
         specifier: ^0.54.0-beta.10
-        version: 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
+        version: 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       '@perses-dev/prometheus-plugin':
         specifier: v0.58.0-beta.3
-        version: 0.58.0-beta.3(c0a0e75dba4f5d04eaf48d91acff428c)
+        version: 0.58.0-beta.3(f0d8e50953735a7ba416d12010f7a6ac)
       '@perses-dev/stat-chart-plugin':
         specifier: v0.13.0-rc.1
-        version: 0.13.0-rc.1(6618929f2c52190ddc187cf3bac46e68)
+        version: 0.13.0-rc.1(39b42c2fa7ba6005cbf9fcd99bd2547e)
       '@perses-dev/table-plugin':
         specifier: v0.13.0-rc.1
-        version: 0.13.0-rc.1(1ac34e031cf649acc2c199d219422529)
+        version: 0.13.0-rc.1(710bb49623d50ad8e1f3edc9cafb55e3)
       '@tanstack/react-query':
         specifier: ^4.44.0
         version: 4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -7259,8 +7268,8 @@ packages:
   '@fastify/accept-negotiator@2.1.0':
     resolution: {integrity: sha512-F3EVbzWt+xcnVaOHmWyIlpuFtbxOln7HDZQsh09MtMmMm/CipMayNt8hnIL8VQi54u2ZociDbf+iluGYkf7B1A==}
 
-  '@fastify/accepts@5.0.5':
-    resolution: {integrity: sha512-7cxrq+OuSmp0qNAZfOIbOGk9y5K8xFtHT8+D5y2p/6u09EUXV+dOYbv2rMIJ1yYQDXUmUC9m0E5B88HzEys/aw==}
+  '@fastify/accepts@5.0.6':
+    resolution: {integrity: sha512-2u3Eo4Fph3jW3oM3cDBFfcGTO/q/xqlzgYD1TPgspjQq9Brpng1LDIq1hrek4N/ATpRH0xh1qZAUAucQ+11Vfg==}
 
   '@fastify/ajv-compiler@4.0.6':
     resolution: {integrity: sha512-NtuzM0SfaMJbGlnjr9LWQUN5LzgSrbB8tf/wRZNas+4E1O/Nmzl53e7ruT61HDZyRCJGC6FxIogmNZO1c5ETBA==}
@@ -8206,6 +8215,13 @@ packages:
       '@emnapi/core': ^1.7.1 || ^2.0.0-alpha.4
       '@emnapi/runtime': ^1.7.1 || ^2.0.0-alpha.4
 
+  '@napi-rs/wasm-runtime@1.2.4':
+    resolution: {integrity: sha512-AJxoUD2/15ESHbvpcyjU274nsAPLuOtPHCk0vKJM5pj//Fg/B1FXNWjPnXTT9PymCYYiHo4zPj0ZomXBKhoy7g==}
+    engines: {node: ^20.19.0 || ^22.13.0 || >=23.5.0}
+    peerDependencies:
+      '@emnapi/core': ^1.7.1 || ^2.0.0-alpha.4
+      '@emnapi/runtime': ^1.7.1 || ^2.0.0-alpha.4
+
   '@nexucis/fuzzy@0.5.1':
     resolution: {integrity: sha512-+swL9itqBe1rx5Pr8ihaIS7STOeFI90HpOFF8y/3wo3ryTxKs0Hf4xc+wiA4yi9nrY4wo3VC8HJOxNiekSBE4w==}
 
@@ -8794,28 +8810,28 @@ packages:
       '@rsbuild/core':
         optional: true
 
-  '@rsdoctor/client@1.6.3':
-    resolution: {integrity: sha512-Vj1YCR8/amxlgjXn1rHOG56c6BBjEwiVM+qiQDRUBmn26oDxBsPwE0iCdn05ROyspepUXhuyE/4wBdYY7UtbUA==}
+  '@rsdoctor/client@1.6.4':
+    resolution: {integrity: sha512-11GvDTusVzlqlyTVoeI0kw1n5TH9MTrzOJxL5L/Qgyzmf5SSl+iw3NrEPRqyi2pgzQsOumad6FSq2n0LdBKzrg==}
 
-  '@rsdoctor/core@1.6.3':
-    resolution: {integrity: sha512-P96dNevDmlMbHBZ+G9c3G3D2kC/Bx6bHgkTz0DIJcsA/6QKQCwHO5bGlBqVndOlIzNV2b8nONQdaMLUujq5iaw==}
+  '@rsdoctor/core@1.6.4':
+    resolution: {integrity: sha512-Z504K+VjKpbqYnRG6ORr0BNidObjTZSb6Z6nXpZDkBSIdmA4fZcKz8U0iRLsZuy8kq7PN+Xm7ym0fTTGh8xeVQ==}
 
-  '@rsdoctor/graph@1.6.3':
-    resolution: {integrity: sha512-lsW+DGiwSjeBt3sQh9eU9/kd1LjizjE+esrW7nud0cmRTzneHZ9TYM+v/WAaWlk2o7kvS7NEN7NLC/qqwKDZEQ==}
+  '@rsdoctor/graph@1.6.4':
+    resolution: {integrity: sha512-UnCRJ9uhH0+z5OX8UfLdVnDnxr21PuMa6wMt9+cD0NsJZTdd+6gts4RcEp3BFbzs0g/BQoNCciQzRBULZr+OUA==}
 
-  '@rsdoctor/rspack-plugin@1.6.3':
-    resolution: {integrity: sha512-pM80ts4BRN+iXSXA0YNXK5G6PvkiH0hytC91Ww8bcoDrdl3gIrx1inhFNmbwArDVNaRRFDFJDr/zyfatTMDr4Q==}
+  '@rsdoctor/rspack-plugin@1.6.4':
+    resolution: {integrity: sha512-hHCRsHV0Qy0zPuDpNQq72dgnhevGxUFcPAL/JJPDzH3idI+IxMb08vCohWJWYvQVliNTACiS9kCMKUGZjIAzCQ==}
     peerDependencies:
       '@rspack/core': 2.2.4
     peerDependenciesMeta:
       '@rspack/core':
         optional: true
 
-  '@rsdoctor/sdk@1.6.3':
-    resolution: {integrity: sha512-UX+j+Tapz4VxT7DV2YLKP8eFXjmxHDxBSMH+WJLu0GaZv/ljHTjk+h/aJF1kOlA3gdXmbvas2vBQzTuEI9rKww==}
+  '@rsdoctor/sdk@1.6.4':
+    resolution: {integrity: sha512-oLCUCqVlzbcVIoPoDLycqAqgUYxWcCZEK21cGu4ZDVVo+H8pmA2iEvi7T9KnE0sgkNm5U2bt6SkyNx/Tt1eTkA==}
 
-  '@rsdoctor/types@1.6.3':
-    resolution: {integrity: sha512-iCivPceJuCkUtxMswrUsIbKdARGyCnw3e1QEf8nTNWygWmud1nM8kr1Y8ZaqJGbe/g7c1KZebWpN5/hzUbBHPw==}
+  '@rsdoctor/types@1.6.4':
+    resolution: {integrity: sha512-+nE5MoP7smDrJt5LkeoY6cj8P/ZJBF7lNvvJ658+sV8cde6agu2bEreSUjR5zcAldUs1j4oSgLY5x6TukeseEQ==}
     peerDependencies:
       '@rspack/core': 2.2.4
       webpack: 5.104.1
@@ -8825,8 +8841,8 @@ packages:
       webpack:
         optional: true
 
-  '@rsdoctor/utils@1.6.3':
-    resolution: {integrity: sha512-xuZalAwSE8r/8Ro+N9RxyA+0OXvaSGXOaggmbmF89YGrYhQ4R3h05XvgZKQLtd//w8DxR6znUqb1xKp8a4NYDw==}
+  '@rsdoctor/utils@1.6.4':
+    resolution: {integrity: sha512-7oliDqtaLVtmVFkfSN3AKWoMQb8kuZA9AURCgb26cUW7+ZD3qgADg9uyD+WevpA6IOeF6gqo3hezTZKlwFR2Sg==}
 
   '@rspack/binding-darwin-arm64@2.2.4':
     resolution: {integrity: sha512-PmwL+7nlD58tvGi2tUct2D6HzPsCeICvNpfgznzFjvrGlmPOm7pn5ahaevEf0C5QRHldf97qShekits4bzArsQ==}
@@ -9356,6 +9372,9 @@ packages:
   '@tybys/wasm-util@0.10.3':
     resolution: {integrity: sha512-F3fo1MYrRJYL3zER0OUOmkutjr1Vp23m7OsSgp7nq4SP6OqX6C/56XFIPAl5bt3zaBRjmW7SGz3u/6LwFpYcOg==}
 
+  '@tybys/wasm-util@0.10.4':
+    resolution: {integrity: sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A==}
+
   '@types/aria-query@5.0.4':
     resolution: {integrity: sha512-rfT93uj5s0PRL7EzccGMs3brplhcrghnDoV26NqKhCAS1hVo+WdNsPvE/yb6ilfr5hi2MEk6d5EWJTKdxg8jVw==}
 
@@ -9624,6 +9643,9 @@ packages:
 
   '@types/node@22.20.1':
     resolution: {integrity: sha512-EANqOCF9QFyra+4pfxUcX9STKJpCLjMbObVzljIJomAWSnuSIEAvyzEU53GaajbXJEgdh0iEcPL+DGvpUd4k1Q==}
+
+  '@types/node@22.20.2':
+    resolution: {integrity: sha512-xlvWf4Vs9n1PEVYwP1n4vvG07M6y8WgvJ2t0vbrWTmijsIHp1cS+uJ2kMIRdY3nHZK0nCYKrPeD171+SzF4/zw==}
 
   '@types/parse-json@4.0.2':
     resolution: {integrity: sha512-dISoDXWWQwUquiKsyZ4Ng+HX2KsPL7LyHKHQwgGFEA3IaKac4Obd+h2a/a6waisAoepJlBcx9paWqjA8/HVjCw==}
@@ -12288,11 +12310,14 @@ packages:
   fastify-plugin@6.0.0:
     resolution: {integrity: sha512-fZOty7z3O7vOliF6d8bHE3wiEh1KcNnKEQensSgTk9C1DvN6nRLS++XVd86v33Hw/8u9Un8A1zDrQ8ujcQDHEg==}
 
-  fastify@5.12.3:
-    resolution: {integrity: sha512-reZ8wce5VNCcufIt9AVtzZa3L4u1j8esikn7OEgHWLVpRpL5R7Y2+Xzj70OUkv5zDfzUAxXZT6cu4Rt0zr3EKA==}
+  fastify@5.12.4:
+    resolution: {integrity: sha512-zATD676fP6tBMsn+jQ7Q5/cO/Qo+149TXH0dUqUKel+1/hcZxwIbnflqtPa9EjlrvpY8eCZcL3M1UYrMc31Y7g==}
 
   fastq@1.20.1:
     resolution: {integrity: sha512-GGToxJ/w1x32s/D2EKND7kTil4n8OVk/9mycTc4VDza13lOvpUZTGX3mFSCtV9ksdGBVzvsyAVLM6mHFThxXxw==}
+
+  fastq@1.20.3:
+    resolution: {integrity: sha512-XKv5nnLs6nLF71NgiKJLIZFLkPyIEuOselLG7ujZnGrRfQK8HpvY+WqKhAJUAdLomwVHErVS4LfxFlPq0/FTAw==}
 
   fault@2.0.1:
     resolution: {integrity: sha512-WtySTkS4OKev5JtpHXnib4Gxiurzh5NCGvWrFaZ34m6JehfTUhKZvn9njTfw48t6JumVQOmrKqpmGcdwxnhqBQ==}
@@ -12974,8 +12999,8 @@ packages:
   immer@10.2.0:
     resolution: {integrity: sha512-d/+XTN3zfODyjr89gM3mPq1WNX2B8pYsu7eORitdwyA2sBubnTl3laYlBk4sXY5FUa5qTZGBDPJICVbvqzjlbw==}
 
-  immer@11.1.17:
-    resolution: {integrity: sha512-8Vu44Y0MuMBlTQz/jQ8HEMYNq/bBqk87MnBwYR5mC8AthfhEXidZ5aT/oA/CUqboa8THKltnD9L3xyqhU/Sy1Q==}
+  immer@11.1.18:
+    resolution: {integrity: sha512-EQyQtLiYW029lyoczMl/Hh4Xu7cDecSc58JRYpHyL4tIAu3eqd1yJzQX04d2BZHDkzFFvm6qJEJWOtfDSWAXbQ==}
 
   immutable@3.8.4:
     resolution: {integrity: sha512-ZQv17KolYrYmsDoDB8N67zhIKsNi9mGYlk96y/yuxyAqJB2hLzSGSM7k/sB0/ZvO4kx27U9+fBeD/XlLGh/uXQ==}
@@ -15128,10 +15153,6 @@ packages:
     peerDependencies:
       postcss: '>=8.5.23 <9.0.0'
 
-  postcss-selector-parser@7.1.5:
-    resolution: {integrity: sha512-KvvtD7SrlBP7dlgkBghEE3r84CABm5SmV2aNcG4oCA+qDnJ/tvKonFVvwWAyyWUEwxuNawdfEAZKP9zM3oZ2Uw==}
-    engines: {node: '>=4'}
-
   postcss-selector-parser@7.1.6:
     resolution: {integrity: sha512-7qASPzhKF2l2KLboRZux8CCTRMdGiV08vWmyKzPz22qZ7ZjQBOeY7rNzNoCLSUiftJ7HUq0GERHmxw/t0dCdMw==}
     engines: {node: '>=4'}
@@ -15387,14 +15408,8 @@ packages:
       react: '>= 16.3.0'
       react-dom: '>= 16.3.0'
 
-  react-hook-form@7.85.0:
-    resolution: {integrity: sha512-U2MTriFXnclmV4rOE20p2DcRFv5WEg3FIcBFOKcOLFHDVvGIMPvLTkTWefUsonmlaVy23khVDxDWym6uJVGOzw==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      react: ^16.8.0 || ^17 || ^18 || ^19
-
-  react-hook-form@7.86.0:
-    resolution: {integrity: sha512-4kbWJrh5jPZt1+YqVcXcGKffGcXV/XVbozknLh0Yjh0KhpoAkus21TAQhzRYqNwFkkObmnSvRlZZ3GT+ehoIrA==}
+  react-hook-form@7.88.0:
+    resolution: {integrity: sha512-QRaLOWhX93YCnMiRfnOFRSwWXZNt8qhm2JTZwypoDvKpSffTJHmpzMXt8U6PV5UThvL3IiiLDUWe2nHMtz6Mmw==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       react: ^16.8.0 || ^17 || ^18 || ^19
@@ -15815,8 +15830,8 @@ packages:
       webpack:
         optional: true
 
-  sass@1.104.0:
-    resolution: {integrity: sha512-btHMApW2bgolvClhRW8AlQJzgI9lUB3pPSofBQQT+E46GWvf9o0TVQ13SYv5riWZVFyPN+JNz3TKW9XhBlc10w==}
+  sass@1.104.1:
+    resolution: {integrity: sha512-yDA+1aIG3EHgN4V/BvuhCvu61FF6hEd4e+9DxikUm9U0CAGuvdIZ/UYy7qbOxjhbbWQraoyLlMuzdRGOSV5Bmw==}
     engines: {node: '>=20.19.0'}
     hasBin: true
 
@@ -17364,6 +17379,11 @@ packages:
     engines: {node: '>= 14.6'}
     hasBin: true
 
+  yaml@2.9.1:
+    resolution: {integrity: sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==}
+    engines: {node: '>= 14.6'}
+    hasBin: true
+
   yargs-parser@18.1.3:
     resolution: {integrity: sha512-o50j0JeToy/4K6OZcaQmW6lyXXKhq7csREXcDwk2omFPJEwUNOVtJKvmDr9EI1fAJZUyZcRF7kxGBWmRXudrCQ==}
     engines: {node: '>=6'}
@@ -17417,6 +17437,9 @@ packages:
 
   zod@4.4.3:
     resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
+
+  zod@4.6.5:
+    resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
 
   zrender@5.5.0:
     resolution: {integrity: sha512-O3MilSi/9mwoovx77m6ROZM7sXShR/O/JIanvzTwjN3FORfLSr81PsUGd7jlaYOeds9d8tw82oP44+3YucVo+w==}
@@ -18924,7 +18947,7 @@ snapshots:
 
   '@fastify/accept-negotiator@2.1.0': {}
 
-  '@fastify/accepts@5.0.5':
+  '@fastify/accepts@5.0.6':
     dependencies:
       accepts: 1.3.8
       fastify-plugin: 6.0.0
@@ -19026,14 +19049,14 @@ snapshots:
     dependencies:
       '@hapi/hoek': 9.3.0
 
-  '@hookform/resolvers@3.10.0(react-hook-form@7.86.0(react@18.3.1))':
+  '@hookform/resolvers@3.10.0(react-hook-form@7.88.0(react@18.3.1))':
     dependencies:
-      react-hook-form: 7.86.0(react@18.3.1)
+      react-hook-form: 7.88.0(react@18.3.1)
 
-  '@hookform/resolvers@5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.85.0(react@18.3.1))(zod@4.4.3)':
+  '@hookform/resolvers@5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)':
     dependencies:
       '@standard-schema/utils': 0.3.0
-      react-hook-form: 7.85.0(react@18.3.1)
+      react-hook-form: 7.88.0(react@18.3.1)
     optionalDependencies:
       '@sinclair/typebox': 0.34.52
       ajv: 8.20.0
@@ -19041,16 +19064,16 @@ snapshots:
       joi: 17.13.4
       zod: 4.4.3
 
-  '@hookform/resolvers@5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.86.0(react@18.3.1))(zod@4.4.3)':
+  '@hookform/resolvers@5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.88.0(react@18.3.1))(zod@4.6.5)':
     dependencies:
       '@standard-schema/utils': 0.3.0
-      react-hook-form: 7.86.0(react@18.3.1)
+      react-hook-form: 7.88.0(react@18.3.1)
     optionalDependencies:
       '@sinclair/typebox': 0.34.52
       ajv: 8.20.0
       ajv-formats: 2.1.1(ajv@8.20.0)
       joi: 17.13.4
-      zod: 4.4.3
+      zod: 4.6.5
 
   '@humanfs/core@0.19.2':
     dependencies:
@@ -19119,6 +19142,41 @@ snapshots:
       jest-util: 30.4.1
       slash: 3.0.0
 
+  '@jest/core@29.7.0(babel-plugin-macros@3.1.0)(supports-color@8.1.1)':
+    dependencies:
+      '@jest/console': 29.7.0
+      '@jest/reporters': 29.7.0(supports-color@8.1.1)
+      '@jest/test-result': 29.7.0
+      '@jest/transform': 29.7.0(supports-color@8.1.1)
+      '@jest/types': 29.6.3
+      '@types/node': 22.20.1
+      ansi-escapes: 4.3.2
+      chalk: 4.1.2
+      ci-info: 3.9.0
+      exit: 0.1.2
+      graceful-fs: 4.2.11
+      jest-changed-files: 29.7.0
+      jest-config: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      jest-haste-map: 29.7.0
+      jest-message-util: 29.7.0
+      jest-regex-util: 29.6.3
+      jest-resolve: 29.7.0
+      jest-resolve-dependencies: 29.7.0(supports-color@8.1.1)
+      jest-runner: 29.7.0(supports-color@8.1.1)
+      jest-runtime: 29.7.0(supports-color@8.1.1)
+      jest-snapshot: 29.7.0(supports-color@8.1.1)
+      jest-util: 29.7.0
+      jest-validate: 29.7.0
+      jest-watcher: 29.7.0
+      micromatch: 4.0.8
+      pretty-format: 29.7.0
+      slash: 3.0.0
+      strip-ansi: 6.0.1
+    transitivePeerDependencies:
+      - babel-plugin-macros
+      - supports-color
+      - ts-node
+
   '@jest/core@29.7.0(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))':
     dependencies:
       '@jest/console': 29.7.0
@@ -19171,6 +19229,42 @@ snapshots:
       graceful-fs: 4.2.11
       jest-changed-files: 30.4.1
       jest-config: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+      jest-haste-map: 30.4.1
+      jest-message-util: 30.4.1
+      jest-regex-util: 30.4.0
+      jest-resolve: 30.4.1
+      jest-resolve-dependencies: 30.4.2(supports-color@8.1.1)
+      jest-runner: 30.4.2(supports-color@8.1.1)
+      jest-runtime: 30.4.2(supports-color@8.1.1)
+      jest-snapshot: 30.4.1(supports-color@8.1.1)
+      jest-util: 30.4.1
+      jest-validate: 30.4.1
+      jest-watcher: 30.4.1
+      pretty-format: 30.4.1
+      slash: 3.0.0
+    transitivePeerDependencies:
+      - babel-plugin-macros
+      - esbuild-register
+      - supports-color
+      - ts-node
+
+  '@jest/core@30.4.2(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))':
+    dependencies:
+      '@jest/console': 30.4.1
+      '@jest/pattern': 30.4.0
+      '@jest/reporters': 30.4.1(supports-color@8.1.1)
+      '@jest/test-result': 30.4.1
+      '@jest/transform': 30.4.1(supports-color@8.1.1)
+      '@jest/types': 30.4.1
+      '@types/node': 22.20.1
+      ansi-escapes: 4.3.2
+      chalk: 4.1.2
+      ci-info: 4.4.0
+      exit-x: 0.2.2
+      fast-json-stable-stringify: 2.1.0
+      graceful-fs: 4.2.11
+      jest-changed-files: 30.4.1
+      jest-config: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
       jest-haste-map: 30.4.1
       jest-message-util: 30.4.1
       jest-regex-util: 30.4.0
@@ -20241,11 +20335,11 @@ snapshots:
       '@tybys/wasm-util': 0.10.3
     optional: true
 
-  '@napi-rs/wasm-runtime@1.2.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)':
+  '@napi-rs/wasm-runtime@1.2.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)':
     dependencies:
       '@emnapi/core': 1.11.3
       '@emnapi/runtime': 1.11.3
-      '@tybys/wasm-util': 0.10.3
+      '@tybys/wasm-util': 0.10.4
     optional: true
 
   '@nexucis/fuzzy@0.5.1': {}
@@ -20718,12 +20812,12 @@ snapshots:
       numbro: 2.5.0
       zod: 3.25.76
 
-  '@perses-dev/dashboards@0.54.0(70f7ae79a407e6101a4e501fb2727dcc)':
+  '@perses-dev/dashboards@0.54.0(0e86414737cfda25bfb0e330a279ff18)':
     dependencies:
       '@mui/material': 6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@perses-dev/client': 0.54.0
       '@perses-dev/components': 0.54.0(b91eebfe7fcdaeb9c33f3c676f726676)
-      '@perses-dev/plugin-system': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
+      '@perses-dev/plugin-system': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       '@perses-dev/spec': 0.2.0
       '@tanstack/hotkeys': 0.8.0
       '@tanstack/react-hotkeys': 0.9.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -20733,7 +20827,7 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       react-grid-layout: 1.5.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react-hook-form: 7.85.0(react@18.3.1)
+      react-hook-form: 7.88.0(react@18.3.1)
       react-intersection-observer: 9.16.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       use-immer: 0.11.0(immer@10.2.0)(react@18.3.1)
       use-query-params: 2.2.2(react-dom@18.3.1(react@18.3.1))(react-router-dom@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
@@ -20771,13 +20865,13 @@ snapshots:
       - vue-tsc
       - webpack
 
-  '@perses-dev/explore@0.54.0(70f7ae79a407e6101a4e501fb2727dcc)':
+  '@perses-dev/explore@0.54.0(0e86414737cfda25bfb0e330a279ff18)':
     dependencies:
       '@mui/material': 6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@nexucis/fuzzy': 0.5.1
       '@perses-dev/components': 0.54.0(b91eebfe7fcdaeb9c33f3c676f726676)
-      '@perses-dev/dashboards': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
-      '@perses-dev/plugin-system': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
+      '@perses-dev/dashboards': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
+      '@perses-dev/plugin-system': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       '@tanstack/react-query': 4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       mdi-material-ui: 7.9.4(@mui/material@6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       qs: 6.15.3
@@ -20817,17 +20911,17 @@ snapshots:
       - vue-tsc
       - webpack
 
-  '@perses-dev/loki-plugin@0.6.0-rc.2(868b97823211e3075bef08965bf8b980)':
+  '@perses-dev/loki-plugin@0.6.0-rc.2(1c36e1576871dad28a3941bec5337d34)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@grafana/lezer-logql': 0.2.9(@lezer/lr@1.4.10)
-      '@hookform/resolvers': 3.10.0(react-hook-form@7.86.0(react@18.3.1))
+      '@hookform/resolvers': 3.10.0(react-hook-form@7.88.0(react@18.3.1))
       '@mui/material': 6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@perses-dev/components': 0.54.0(b91eebfe7fcdaeb9c33f3c676f726676)
-      '@perses-dev/dashboards': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
-      '@perses-dev/explore': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
-      '@perses-dev/plugin-system': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
+      '@perses-dev/dashboards': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
+      '@perses-dev/explore': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
+      '@perses-dev/plugin-system': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       '@perses-dev/spec': 0.2.0
       '@tanstack/react-query': 4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       date-fns: 4.4.0
@@ -20837,16 +20931,16 @@ snapshots:
       lodash: 4.18.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      react-hook-form: 7.86.0(react@18.3.1)
+      react-hook-form: 7.88.0(react@18.3.1)
       use-resize-observer: 9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     transitivePeerDependencies:
       - '@lezer/lr'
 
-  '@perses-dev/plugin-system@0.54.0(70f7ae79a407e6101a4e501fb2727dcc)':
+  '@perses-dev/plugin-system@0.54.0(0e86414737cfda25bfb0e330a279ff18)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
-      '@hookform/resolvers': 3.10.0(react-hook-form@7.86.0(react@18.3.1))
+      '@hookform/resolvers': 3.10.0(react-hook-form@7.88.0(react@18.3.1))
       '@module-federation/enhanced': 2.8.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(typescript@5.9.3)(webpack@5.104.1)
       '@mui/material': 6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@perses-dev/client': 0.54.0
@@ -20859,7 +20953,7 @@ snapshots:
       immer: 10.2.0
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      react-hook-form: 7.85.0(react@18.3.1)
+      react-hook-form: 7.88.0(react@18.3.1)
       semver: 7.8.5
       use-query-params: 2.2.2(react-dom@18.3.1(react@18.3.1))(react-router-dom@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       zod: 3.25.76
@@ -20891,18 +20985,18 @@ snapshots:
       - vue-tsc
       - webpack
 
-  '@perses-dev/prometheus-plugin@0.58.0-beta.3(c0a0e75dba4f5d04eaf48d91acff428c)':
+  '@perses-dev/prometheus-plugin@0.58.0-beta.3(f0d8e50953735a7ba416d12010f7a6ac)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
-      '@hookform/resolvers': 3.10.0(react-hook-form@7.86.0(react@18.3.1))
+      '@hookform/resolvers': 3.10.0(react-hook-form@7.88.0(react@18.3.1))
       '@mui/material': 6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@nexucis/fuzzy': 0.5.1
       '@perses-dev/client': 0.54.0
       '@perses-dev/components': 0.54.0(b91eebfe7fcdaeb9c33f3c676f726676)
-      '@perses-dev/dashboards': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
-      '@perses-dev/explore': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
-      '@perses-dev/plugin-system': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
+      '@perses-dev/dashboards': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
+      '@perses-dev/explore': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
+      '@perses-dev/plugin-system': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       '@perses-dev/spec': 0.2.0
       '@prometheus-io/codemirror-promql': 0.311.3(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.4)(@codemirror/lint@6.9.7)(@codemirror/state@6.7.1)(@codemirror/view@6.43.9)(@lezer/common@1.5.2)(@lezer/highlight@1.2.3)(@lezer/lr@1.4.10)
       '@tanstack/react-query': 4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -20915,7 +21009,7 @@ snapshots:
       qs: 6.15.3
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      react-hook-form: 7.86.0(react@18.3.1)
+      react-hook-form: 7.88.0(react@18.3.1)
       react-router-dom: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-virtuoso: 4.18.12(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       use-resize-observer: 9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -20935,14 +21029,14 @@ snapshots:
       mathjs: 15.2.0
       zod: 3.25.76
 
-  '@perses-dev/stat-chart-plugin@0.13.0-rc.1(6618929f2c52190ddc187cf3bac46e68)':
+  '@perses-dev/stat-chart-plugin@0.13.0-rc.1(39b42c2fa7ba6005cbf9fcd99bd2547e)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
-      '@hookform/resolvers': 3.10.0(react-hook-form@7.86.0(react@18.3.1))
+      '@hookform/resolvers': 3.10.0(react-hook-form@7.88.0(react@18.3.1))
       '@mui/material': 6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@perses-dev/components': 0.54.0(b91eebfe7fcdaeb9c33f3c676f726676)
-      '@perses-dev/plugin-system': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
+      '@perses-dev/plugin-system': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       '@perses-dev/spec': 0.2.0
       chroma-js: 3.2.0
       date-fns: 4.4.0
@@ -20954,15 +21048,15 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
       use-resize-observer: 9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
-  '@perses-dev/table-plugin@0.13.0-rc.1(1ac34e031cf649acc2c199d219422529)':
+  '@perses-dev/table-plugin@0.13.0-rc.1(710bb49623d50ad8e1f3edc9cafb55e3)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
-      '@hookform/resolvers': 3.10.0(react-hook-form@7.86.0(react@18.3.1))
+      '@hookform/resolvers': 3.10.0(react-hook-form@7.88.0(react@18.3.1))
       '@mui/material': 6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@perses-dev/components': 0.54.0(b91eebfe7fcdaeb9c33f3c676f726676)
-      '@perses-dev/dashboards': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
-      '@perses-dev/plugin-system': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
+      '@perses-dev/dashboards': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
+      '@perses-dev/plugin-system': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       '@perses-dev/spec': 0.2.0
       '@tanstack/react-table': 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       date-fns: 4.4.0
@@ -21059,15 +21153,15 @@ snapshots:
       picocolors: 1.1.1
       source-map: 0.7.6
 
-  '@rsdoctor/client@1.6.3': {}
+  '@rsdoctor/client@1.6.4': {}
 
-  '@rsdoctor/core@1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)':
+  '@rsdoctor/core@1.6.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)':
     dependencies:
       '@rsbuild/plugin-check-syntax': 1.6.1
-      '@rsdoctor/graph': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
-      '@rsdoctor/sdk': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)
-      '@rsdoctor/types': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
-      '@rsdoctor/utils': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/graph': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/sdk': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)
+      '@rsdoctor/types': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/utils': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
       '@rspack/resolver': 0.2.8(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
       browserslist-load-config: 1.0.3
       es-toolkit: 1.52.0
@@ -21085,13 +21179,13 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/core@1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)':
+  '@rsdoctor/core@1.6.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)':
     dependencies:
       '@rsbuild/plugin-check-syntax': 1.6.1
-      '@rsdoctor/graph': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
-      '@rsdoctor/sdk': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
-      '@rsdoctor/types': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
-      '@rsdoctor/utils': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/graph': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/sdk': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+      '@rsdoctor/types': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/utils': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
       '@rspack/resolver': 0.2.8(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
       browserslist-load-config: 1.0.3
       es-toolkit: 1.52.0
@@ -21109,10 +21203,10 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/graph@1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)':
+  '@rsdoctor/graph@1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)':
     dependencies:
-      '@rsdoctor/types': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
-      '@rsdoctor/utils': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/types': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/utils': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
       es-toolkit: 1.52.0
       path-browserify: 1.0.1
       source-map: 0.7.6
@@ -21120,10 +21214,10 @@ snapshots:
       - '@rspack/core'
       - webpack
 
-  '@rsdoctor/graph@1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)':
+  '@rsdoctor/graph@1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)':
     dependencies:
-      '@rsdoctor/types': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
-      '@rsdoctor/utils': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/types': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/utils': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
       es-toolkit: 1.52.0
       path-browserify: 1.0.1
       source-map: 0.7.6
@@ -21131,13 +21225,13 @@ snapshots:
       - '@rspack/core'
       - webpack
 
-  '@rsdoctor/rspack-plugin@1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)':
+  '@rsdoctor/rspack-plugin@1.6.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)':
     dependencies:
-      '@rsdoctor/core': 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)
-      '@rsdoctor/graph': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
-      '@rsdoctor/sdk': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)
-      '@rsdoctor/types': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
-      '@rsdoctor/utils': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/core': 1.6.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)
+      '@rsdoctor/graph': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/sdk': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)
+      '@rsdoctor/types': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/utils': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
     optionalDependencies:
       '@rspack/core': 2.2.4(@module-federation/runtime-tools@0.24.1)
     transitivePeerDependencies:
@@ -21149,13 +21243,13 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/rspack-plugin@1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)':
+  '@rsdoctor/rspack-plugin@1.6.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)':
     dependencies:
-      '@rsdoctor/core': 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
-      '@rsdoctor/graph': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
-      '@rsdoctor/sdk': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
-      '@rsdoctor/types': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
-      '@rsdoctor/utils': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/core': 1.6.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+      '@rsdoctor/graph': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/sdk': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+      '@rsdoctor/types': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/utils': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
     optionalDependencies:
       '@rspack/core': 2.2.4(@module-federation/runtime-tools@2.8.2)
     transitivePeerDependencies:
@@ -21167,12 +21261,12 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/sdk@1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)':
+  '@rsdoctor/sdk@1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)':
     dependencies:
-      '@rsdoctor/client': 1.6.3
-      '@rsdoctor/graph': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
-      '@rsdoctor/types': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
-      '@rsdoctor/utils': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/client': 1.6.4
+      '@rsdoctor/graph': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/types': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/utils': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
       launch-editor: 2.14.1
       safer-buffer: 2.1.2
       socket.io: 4.8.1(supports-color@8.1.1)
@@ -21184,12 +21278,12 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/sdk@1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)':
+  '@rsdoctor/sdk@1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)':
     dependencies:
-      '@rsdoctor/client': 1.6.3
-      '@rsdoctor/graph': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
-      '@rsdoctor/types': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
-      '@rsdoctor/utils': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/client': 1.6.4
+      '@rsdoctor/graph': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/types': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/utils': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
       launch-editor: 2.14.1
       safer-buffer: 2.1.2
       socket.io: 4.8.1(supports-color@8.1.1)
@@ -21201,7 +21295,7 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/types@1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)':
+  '@rsdoctor/types@1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)':
     dependencies:
       '@types/connect': 3.4.38
       '@types/estree': 1.0.5
@@ -21211,7 +21305,7 @@ snapshots:
       '@rspack/core': 2.2.4(@module-federation/runtime-tools@0.24.1)
       webpack: 5.104.1(@swc/core@1.16.0)(clean-css@5.3.3)(cssnano@7.1.9(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(postcss@8.5.28)(uglify-js@3.19.3)(webpack-cli@6.0.1)
 
-  '@rsdoctor/types@1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)':
+  '@rsdoctor/types@1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)':
     dependencies:
       '@types/connect': 3.4.38
       '@types/estree': 1.0.5
@@ -21221,10 +21315,10 @@ snapshots:
       '@rspack/core': 2.2.4(@module-federation/runtime-tools@2.8.2)
       webpack: 5.104.1(@swc/core@1.16.0)(clean-css@5.3.3)(cssnano@7.1.9(postcss@8.5.26))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(postcss@8.5.26)(uglify-js@3.19.3)(webpack-cli@6.0.1)
 
-  '@rsdoctor/utils@1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)':
+  '@rsdoctor/utils@1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)':
     dependencies:
       '@babel/code-frame': 7.26.2
-      '@rsdoctor/types': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/types': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
       '@types/estree': 1.0.5
       acorn: 8.18.0
       acorn-import-attributes: 1.9.5(acorn@8.18.0)
@@ -21242,10 +21336,10 @@ snapshots:
       - '@rspack/core'
       - webpack
 
-  '@rsdoctor/utils@1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)':
+  '@rsdoctor/utils@1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)':
     dependencies:
       '@babel/code-frame': 7.26.2
-      '@rsdoctor/types': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/types': 1.6.4(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
       '@types/estree': 1.0.5
       acorn: 8.18.0
       acorn-import-attributes: 1.9.5(acorn@8.18.0)
@@ -21406,7 +21500,7 @@ snapshots:
 
   '@rspack/resolver-binding-wasm32-wasi@0.2.8(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)':
     dependencies:
-      '@napi-rs/wasm-runtime': 1.2.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
+      '@napi-rs/wasm-runtime': 1.2.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
     transitivePeerDependencies:
       - '@emnapi/core'
       - '@emnapi/runtime'
@@ -21761,6 +21855,11 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
+  '@tybys/wasm-util@0.10.4':
+    dependencies:
+      tslib: 2.8.1
+    optional: true
+
   '@types/aria-query@5.0.4': {}
 
   '@types/babel__core@7.20.5':
@@ -21817,11 +21916,11 @@ snapshots:
 
   '@types/connect@3.4.38':
     dependencies:
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
 
   '@types/cors@2.8.19':
     dependencies:
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
 
   '@types/d3-array@3.2.2': {}
 
@@ -22085,6 +22184,10 @@ snapshots:
   '@types/node@10.17.60': {}
 
   '@types/node@22.20.1':
+    dependencies:
+      undici-types: 6.21.0
+
+  '@types/node@22.20.2':
     dependencies:
       undici-types: 6.21.0
 
@@ -22895,7 +22998,7 @@ snapshots:
   avvio@9.3.0:
     dependencies:
       '@fastify/error': 4.2.0
-      fastq: 1.20.1
+      fastq: 1.20.3
 
   aws-sign2@0.7.0: {}
 
@@ -23607,6 +23710,21 @@ snapshots:
       path-type: 4.0.0
       yaml: 1.10.3
 
+  create-jest@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1):
+    dependencies:
+      '@jest/types': 29.6.3
+      chalk: 4.1.2
+      exit: 0.1.2
+      graceful-fs: 4.2.11
+      jest-config: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      jest-util: 29.7.0
+      prompts: 2.4.2
+    transitivePeerDependencies:
+      - '@types/node'
+      - babel-plugin-macros
+      - supports-color
+      - ts-node
+
   create-jest@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)):
     dependencies:
       '@jest/types': 29.6.3
@@ -23614,6 +23732,21 @@ snapshots:
       exit: 0.1.2
       graceful-fs: 4.2.11
       jest-config: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+      jest-util: 29.7.0
+      prompts: 2.4.2
+    transitivePeerDependencies:
+      - '@types/node'
+      - babel-plugin-macros
+      - supports-color
+      - ts-node
+
+  create-jest@29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1):
+    dependencies:
+      '@jest/types': 29.6.3
+      chalk: 4.1.2
+      exit: 0.1.2
+      graceful-fs: 4.2.11
+      jest-config: 29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
       jest-util: 29.7.0
       prompts: 2.4.2
     transitivePeerDependencies:
@@ -24505,7 +24638,7 @@ snapshots:
   engine.io@6.6.10(supports-color@8.1.1):
     dependencies:
       '@types/cors': 2.8.19
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       '@types/ws': 8.18.1
       accepts: 1.3.8
       cookie: 0.7.2
@@ -25580,7 +25713,7 @@ snapshots:
 
   fastify-plugin@6.0.0: {}
 
-  fastify@5.12.3:
+  fastify@5.12.4:
     dependencies:
       '@fastify/ajv-compiler': 4.0.6
       '@fastify/error': 4.2.0
@@ -25599,6 +25732,10 @@ snapshots:
       toad-cache: 3.7.4
 
   fastq@1.20.1:
+    dependencies:
+      reusify: 1.1.0
+
+  fastq@1.20.3:
     dependencies:
       reusify: 1.1.0
 
@@ -26442,7 +26579,7 @@ snapshots:
 
   immer@10.2.0: {}
 
-  immer@11.1.17: {}
+  immer@11.1.18: {}
 
   immutable@3.8.4: {}
 
@@ -26919,6 +27056,25 @@ snapshots:
       - babel-plugin-macros
       - supports-color
 
+  jest-cli@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1):
+    dependencies:
+      '@jest/core': 29.7.0(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      '@jest/test-result': 29.7.0
+      '@jest/types': 29.6.3
+      chalk: 4.1.2
+      create-jest: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      exit: 0.1.2
+      import-local: 3.2.0
+      jest-config: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      jest-util: 29.7.0
+      jest-validate: 29.7.0
+      yargs: 17.7.3
+    transitivePeerDependencies:
+      - '@types/node'
+      - babel-plugin-macros
+      - supports-color
+      - ts-node
+
   jest-cli@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)):
     dependencies:
       '@jest/core': 29.7.0(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
@@ -26929,6 +27085,25 @@ snapshots:
       exit: 0.1.2
       import-local: 3.2.0
       jest-config: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+      jest-util: 29.7.0
+      jest-validate: 29.7.0
+      yargs: 17.7.3
+    transitivePeerDependencies:
+      - '@types/node'
+      - babel-plugin-macros
+      - supports-color
+      - ts-node
+
+  jest-cli@29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1):
+    dependencies:
+      '@jest/core': 29.7.0(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      '@jest/test-result': 29.7.0
+      '@jest/types': 29.6.3
+      chalk: 4.1.2
+      create-jest: 29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      exit: 0.1.2
+      import-local: 3.2.0
+      jest-config: 29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
       jest-util: 29.7.0
       jest-validate: 29.7.0
       yargs: 17.7.3
@@ -26956,6 +27131,55 @@ snapshots:
       - esbuild-register
       - supports-color
       - ts-node
+
+  jest-cli@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)):
+    dependencies:
+      '@jest/core': 30.4.2(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
+      '@jest/test-result': 30.4.1
+      '@jest/types': 30.4.1
+      chalk: 4.1.2
+      exit-x: 0.2.2
+      import-local: 3.2.0
+      jest-config: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
+      jest-util: 30.4.1
+      jest-validate: 30.4.1
+      yargs: 17.7.3
+    transitivePeerDependencies:
+      - '@types/node'
+      - babel-plugin-macros
+      - esbuild-register
+      - supports-color
+      - ts-node
+
+  jest-config@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1):
+    dependencies:
+      '@babel/core': 7.29.7(supports-color@8.1.1)
+      '@jest/test-sequencer': 29.7.0
+      '@jest/types': 29.6.3
+      babel-jest: 29.7.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1)
+      chalk: 4.1.2
+      ci-info: 3.9.0
+      deepmerge: 4.3.1
+      glob: 7.2.3
+      graceful-fs: 4.2.11
+      jest-circus: 29.7.0(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      jest-environment-node: 29.7.0
+      jest-get-type: 29.6.3
+      jest-regex-util: 29.6.3
+      jest-resolve: 29.7.0
+      jest-runner: 29.7.0(supports-color@8.1.1)
+      jest-util: 29.7.0
+      jest-validate: 29.7.0
+      micromatch: 4.0.8
+      parse-json: 5.2.0
+      pretty-format: 29.7.0
+      slash: 3.0.0
+      strip-json-comments: 3.1.1
+    optionalDependencies:
+      '@types/node': 22.20.1
+    transitivePeerDependencies:
+      - babel-plugin-macros
+      - supports-color
 
   jest-config@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)):
     dependencies:
@@ -26988,6 +27212,36 @@ snapshots:
       - babel-plugin-macros
       - supports-color
 
+  jest-config@29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1):
+    dependencies:
+      '@babel/core': 7.29.7(supports-color@8.1.1)
+      '@jest/test-sequencer': 29.7.0
+      '@jest/types': 29.6.3
+      babel-jest: 29.7.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1)
+      chalk: 4.1.2
+      ci-info: 3.9.0
+      deepmerge: 4.3.1
+      glob: 7.2.3
+      graceful-fs: 4.2.11
+      jest-circus: 29.7.0(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      jest-environment-node: 29.7.0
+      jest-get-type: 29.6.3
+      jest-regex-util: 29.6.3
+      jest-resolve: 29.7.0
+      jest-runner: 29.7.0(supports-color@8.1.1)
+      jest-util: 29.7.0
+      jest-validate: 29.7.0
+      micromatch: 4.0.8
+      parse-json: 5.2.0
+      pretty-format: 29.7.0
+      slash: 3.0.0
+      strip-json-comments: 3.1.1
+    optionalDependencies:
+      '@types/node': 22.20.2
+    transitivePeerDependencies:
+      - babel-plugin-macros
+      - supports-color
+
   jest-config@30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)):
     dependencies:
       '@babel/core': 7.29.7(supports-color@8.1.1)
@@ -27016,6 +27270,70 @@ snapshots:
     optionalDependencies:
       '@types/node': 22.20.1
       ts-node: 10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)
+    transitivePeerDependencies:
+      - babel-plugin-macros
+      - supports-color
+
+  jest-config@30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)):
+    dependencies:
+      '@babel/core': 7.29.7(supports-color@8.1.1)
+      '@jest/get-type': 30.1.0
+      '@jest/pattern': 30.4.0
+      '@jest/test-sequencer': 30.4.1
+      '@jest/types': 30.4.1
+      babel-jest: 30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1)
+      chalk: 4.1.2
+      ci-info: 4.4.0
+      deepmerge: 4.3.1
+      glob: 10.5.0
+      graceful-fs: 4.2.11
+      jest-circus: 30.4.2(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      jest-docblock: 30.4.0
+      jest-environment-node: 30.4.1
+      jest-regex-util: 30.4.0
+      jest-resolve: 30.4.1
+      jest-runner: 30.4.2(supports-color@8.1.1)
+      jest-util: 30.4.1
+      jest-validate: 30.4.1
+      parse-json: 5.2.0
+      pretty-format: 30.4.1
+      slash: 3.0.0
+      strip-json-comments: 3.1.1
+    optionalDependencies:
+      '@types/node': 22.20.1
+      ts-node: 10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)
+    transitivePeerDependencies:
+      - babel-plugin-macros
+      - supports-color
+
+  jest-config@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)):
+    dependencies:
+      '@babel/core': 7.29.7(supports-color@8.1.1)
+      '@jest/get-type': 30.1.0
+      '@jest/pattern': 30.4.0
+      '@jest/test-sequencer': 30.4.1
+      '@jest/types': 30.4.1
+      babel-jest: 30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1)
+      chalk: 4.1.2
+      ci-info: 4.4.0
+      deepmerge: 4.3.1
+      glob: 10.5.0
+      graceful-fs: 4.2.11
+      jest-circus: 30.4.2(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      jest-docblock: 30.4.0
+      jest-environment-node: 30.4.1
+      jest-regex-util: 30.4.0
+      jest-resolve: 30.4.1
+      jest-runner: 30.4.2(supports-color@8.1.1)
+      jest-util: 30.4.1
+      jest-validate: 30.4.1
+      parse-json: 5.2.0
+      pretty-format: 30.4.1
+      slash: 3.0.0
+      strip-json-comments: 3.1.1
+    optionalDependencies:
+      '@types/node': 22.20.2
+      ts-node: 10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
@@ -27491,6 +27809,18 @@ snapshots:
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
+  jest@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1):
+    dependencies:
+      '@jest/core': 29.7.0(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      '@jest/types': 29.6.3
+      import-local: 3.2.0
+      jest-cli: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+    transitivePeerDependencies:
+      - '@types/node'
+      - babel-plugin-macros
+      - supports-color
+      - ts-node
+
   jest@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)):
     dependencies:
       '@jest/core': 29.7.0(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
@@ -27503,12 +27833,37 @@ snapshots:
       - supports-color
       - ts-node
 
+  jest@29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1):
+    dependencies:
+      '@jest/core': 29.7.0(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      '@jest/types': 29.6.3
+      import-local: 3.2.0
+      jest-cli: 29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+    transitivePeerDependencies:
+      - '@types/node'
+      - babel-plugin-macros
+      - supports-color
+      - ts-node
+
   jest@30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)):
     dependencies:
       '@jest/core': 30.4.2(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
       '@jest/types': 30.4.1
       import-local: 3.2.0
       jest-cli: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+    transitivePeerDependencies:
+      - '@types/node'
+      - babel-plugin-macros
+      - esbuild-register
+      - supports-color
+      - ts-node
+
+  jest@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)):
+    dependencies:
+      '@jest/core': 30.4.2(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
+      '@jest/types': 30.4.1
+      import-local: 3.2.0
+      jest-cli: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
     transitivePeerDependencies:
       - '@types/node'
       - babel-plugin-macros
@@ -29299,13 +29654,13 @@ snapshots:
   postcss-calc@10.1.1(postcss@8.5.26):
     dependencies:
       postcss: 8.5.26
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
       postcss-value-parser: 4.2.0
 
   postcss-calc@10.1.1(postcss@8.5.28):
     dependencies:
       postcss: 8.5.28
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
       postcss-value-parser: 4.2.0
     optional: true
 
@@ -29342,12 +29697,12 @@ snapshots:
   postcss-discard-comments@7.0.8(postcss@8.5.26):
     dependencies:
       postcss: 8.5.26
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
 
   postcss-discard-comments@7.0.8(postcss@8.5.28):
     dependencies:
       postcss: 8.5.28
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
     optional: true
 
   postcss-discard-duplicates@7.0.4(postcss@8.5.26):
@@ -29396,7 +29751,7 @@ snapshots:
       caniuse-api: 3.0.0
       cssnano-utils: 5.0.3(postcss@8.5.26)
       postcss: 8.5.26
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
 
   postcss-merge-rules@7.0.11(postcss@8.5.28):
     dependencies:
@@ -29404,7 +29759,7 @@ snapshots:
       caniuse-api: 3.0.0
       cssnano-utils: 5.0.3(postcss@8.5.28)
       postcss: 8.5.28
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
     optional: true
 
   postcss-minify-font-values@7.0.3(postcss@8.5.26):
@@ -29454,7 +29809,7 @@ snapshots:
       caniuse-api: 3.0.0
       cssesc: 3.0.0
       postcss: 8.5.26
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
 
   postcss-minify-selectors@7.1.2(postcss@8.5.28):
     dependencies:
@@ -29462,7 +29817,7 @@ snapshots:
       caniuse-api: 3.0.0
       cssesc: 3.0.0
       postcss: 8.5.28
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
     optional: true
 
   postcss-modules-extract-imports@3.1.0(postcss@8.5.28):
@@ -29622,11 +29977,6 @@ snapshots:
       postcss-value-parser: 4.2.0
     optional: true
 
-  postcss-selector-parser@7.1.5:
-    dependencies:
-      cssesc: 3.0.0
-      util-deprecate: 1.0.2
-
   postcss-selector-parser@7.1.6:
     dependencies:
       cssesc: 3.0.0
@@ -29648,12 +29998,12 @@ snapshots:
   postcss-unique-selectors@7.0.7(postcss@8.5.26):
     dependencies:
       postcss: 8.5.26
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
 
   postcss-unique-selectors@7.0.7(postcss@8.5.28):
     dependencies:
       postcss: 8.5.28
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
     optional: true
 
   postcss-value-parser@4.2.0: {}
@@ -29904,11 +30254,7 @@ snapshots:
       react-resizable: 3.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       resize-observer-polyfill: 1.5.1
 
-  react-hook-form@7.85.0(react@18.3.1):
-    dependencies:
-      react: 18.3.1
-
-  react-hook-form@7.86.0(react@18.3.1):
+  react-hook-form@7.88.0(react@18.3.1):
     dependencies:
       react: 18.3.1
 
@@ -30396,23 +30742,23 @@ snapshots:
 
   safer-buffer@2.1.2: {}
 
-  sass-loader@16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(sass@1.104.0)(webpack@5.104.1):
+  sass-loader@16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(sass@1.104.1)(webpack@5.104.1):
     dependencies:
       neo-async: 2.6.2
     optionalDependencies:
       '@rspack/core': 2.2.4(@module-federation/runtime-tools@0.24.1)
-      sass: 1.104.0
+      sass: 1.104.1
       webpack: 5.104.1(@swc/core@1.16.0)(clean-css@5.3.3)(cssnano@7.1.9(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(postcss@8.5.28)(uglify-js@3.19.3)(webpack-cli@6.0.1)
 
-  sass-loader@16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1):
+  sass-loader@16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.1)(webpack@5.104.1):
     dependencies:
       neo-async: 2.6.2
     optionalDependencies:
       '@rspack/core': 2.2.4(@module-federation/runtime-tools@2.8.2)
-      sass: 1.104.0
+      sass: 1.104.1
       webpack: 5.104.1(@swc/core@1.16.0)(clean-css@5.3.3)(cssnano@7.1.9(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(postcss@8.5.28)(uglify-js@3.19.3)(webpack-cli@6.0.1)
 
-  sass@1.104.0:
+  sass@1.104.1:
     dependencies:
       chokidar: 5.0.0
       immutable: 5.1.9
@@ -31005,13 +31351,13 @@ snapshots:
     dependencies:
       browserslist: 4.28.9
       postcss: 8.5.26
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
 
   stylehacks@7.0.11(postcss@8.5.28):
     dependencies:
       browserslist: 4.28.9
       postcss: 8.5.28
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
     optional: true
 
   stylis@4.2.0: {}
@@ -31281,7 +31627,7 @@ snapshots:
       picomatch: 4.0.5
       typescript: 5.9.3
 
-  ts-jest@29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.25.12)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1))(typescript@5.9.3):
+  ts-jest@29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.25.12)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)))(typescript@5.9.3):
     dependencies:
       bs-logger: 0.2.6
       fast-json-stable-stringify: 2.1.0
@@ -31302,12 +31648,55 @@ snapshots:
       esbuild: 0.25.12
       jest-util: 30.4.1
 
-  ts-jest@29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1))(typescript@5.9.3):
+  ts-jest@29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.25.12)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1))(typescript@5.9.3):
     dependencies:
       bs-logger: 0.2.6
       fast-json-stable-stringify: 2.1.0
       handlebars: 4.7.9
-      jest: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+      jest: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      json5: 2.2.3
+      lodash.memoize: 4.1.2
+      make-error: 1.3.6
+      semver: 7.8.5
+      type-fest: 4.41.0
+      typescript: 5.9.3
+      yargs-parser: 21.1.1
+    optionalDependencies:
+      '@babel/core': 7.29.7(supports-color@8.1.1)
+      '@jest/transform': 30.4.1(supports-color@8.1.1)
+      '@jest/types': 30.4.1
+      babel-jest: 30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1)
+      esbuild: 0.25.12
+      jest-util: 30.4.1
+
+  ts-jest@29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.25.12)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1))(typescript@5.9.3):
+    dependencies:
+      bs-logger: 0.2.6
+      fast-json-stable-stringify: 2.1.0
+      handlebars: 4.7.9
+      jest: 29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      json5: 2.2.3
+      lodash.memoize: 4.1.2
+      make-error: 1.3.6
+      semver: 7.8.5
+      type-fest: 4.41.0
+      typescript: 5.9.3
+      yargs-parser: 21.1.1
+    optionalDependencies:
+      '@babel/core': 7.29.7(supports-color@8.1.1)
+      '@jest/transform': 30.4.1(supports-color@8.1.1)
+      '@jest/types': 30.4.1
+      babel-jest: 30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1)
+      esbuild: 0.25.12
+      jest-util: 30.4.1
+    optional: true
+
+  ts-jest@29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1))(typescript@5.9.3):
+    dependencies:
+      bs-logger: 0.2.6
+      fast-json-stable-stringify: 2.1.0
+      handlebars: 4.7.9
+      jest: 29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
       json5: 2.2.3
       lodash.memoize: 4.1.2
       make-error: 1.3.6
@@ -31330,6 +31719,28 @@ snapshots:
       fast-json-stable-stringify: 2.1.0
       handlebars: 4.7.9
       jest: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+      json5: 2.2.3
+      lodash.memoize: 4.1.2
+      make-error: 1.3.6
+      semver: 7.8.5
+      type-fest: 4.41.0
+      typescript: 5.9.3
+      yargs-parser: 21.1.1
+    optionalDependencies:
+      '@babel/core': 7.29.7(supports-color@8.1.1)
+      '@jest/transform': 30.4.1(supports-color@8.1.1)
+      '@jest/types': 30.4.1
+      babel-jest: 30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1)
+      esbuild: 0.28.2
+      jest-util: 30.4.1
+    optional: true
+
+  ts-jest@29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)))(typescript@5.9.3):
+    dependencies:
+      bs-logger: 0.2.6
+      fast-json-stable-stringify: 2.1.0
+      handlebars: 4.7.9
+      jest: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
       json5: 2.2.3
       lodash.memoize: 4.1.2
       make-error: 1.3.6
@@ -31375,6 +31786,27 @@ snapshots:
       yn: 3.1.1
     optionalDependencies:
       '@swc/core': 1.16.0
+
+  ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3):
+    dependencies:
+      '@cspotcode/source-map-support': 0.8.1
+      '@tsconfig/node10': 1.0.13
+      '@tsconfig/node12': 1.0.11
+      '@tsconfig/node14': 1.0.3
+      '@tsconfig/node16': 1.0.4
+      '@types/node': 22.20.2
+      acorn: 8.18.0
+      acorn-walk: 8.3.5
+      arg: 4.1.3
+      create-require: 1.1.1
+      diff: 4.0.4
+      make-error: 1.3.6
+      typescript: 5.9.3
+      v8-compile-cache-lib: 3.0.1
+      yn: 3.1.1
+    optionalDependencies:
+      '@swc/core': 1.16.0
+    optional: true
 
   tsconfig-paths-webpack-plugin@4.2.0:
     dependencies:
@@ -32406,11 +32838,13 @@ snapshots:
   yaml-eslint-parser@1.3.2:
     dependencies:
       eslint-visitor-keys: 3.4.3
-      yaml: 2.9.0
+      yaml: 2.9.1
 
   yaml@1.10.3: {}
 
   yaml@2.9.0: {}
+
+  yaml@2.9.1: {}
 
   yargs-parser@18.1.3:
     dependencies:
@@ -32494,6 +32928,8 @@ snapshots:
 
   zod@4.4.3: {}
 
+  zod@4.6.5: {}
+
   zrender@5.5.0:
     dependencies:
       tslib: 2.3.0
@@ -32510,10 +32946,10 @@ snapshots:
       immer: 10.2.0
       react: 18.3.1
 
-  zustand@5.0.15(@types/react@18.3.31)(immer@11.1.17)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1)):
+  zustand@5.0.15(@types/react@18.3.31)(immer@11.1.18)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1)):
     optionalDependencies:
       '@types/react': 18.3.31
-      immer: 11.1.17
+      immer: 11.1.18
       react: 18.3.1
       use-sync-external-store: 1.6.0(react@18.3.1)
 

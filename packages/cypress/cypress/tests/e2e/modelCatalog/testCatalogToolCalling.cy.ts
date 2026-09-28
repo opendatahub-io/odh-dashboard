@@ -23,7 +23,7 @@ describe('Verify tool calling configuration in Model Catalog', () => {
         verifyModelCatalogBackend();
 
         cy.step('Ensure the Red Hat AI validated catalog source is enabled');
-        return ensureModelCatalogSourceEnabled(testData.redhatAiSourceId2);
+        return ensureModelCatalogSourceEnabled(testData.validatedSourceId);
       });
   });
 

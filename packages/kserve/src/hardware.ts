@@ -1,6 +1,10 @@
 import type { useHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared/useHardwareProfileConfig';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import {
+  mapK8sEnvToEnvironmentVariable,
+  type EnvironmentVariable,
+} from '@odh-dashboard/model-serving/shared/wizard-fields';
+import {
   getExistingHardwareProfileData,
   getExistingResources,
   MODEL_SERVING_VISIBILITY,
@@ -51,17 +55,14 @@ export const extractRuntimeArgs = (
 
 export const extractEnvironmentVariables = (
   kserveDeployment: KServeDeployment,
-): { enabled: boolean; variables: { name: string; value: string }[] } => {
+): { enabled: boolean; variables: EnvironmentVariable[] } => {
   const envVars =
     kserveDeployment.model.spec.predictor.model?.env?.filter(
       (envVar) => !isDashboardManagedHfTokenEnvVar(envVar),
     ) ?? [];
   return {
     enabled: envVars.length > 0,
-    variables: envVars.map((envVar) => ({
-      name: envVar.name,
-      value: envVar.value ?? '',
-    })),
+    variables: envVars.map(mapK8sEnvToEnvironmentVariable),
   };
 };
 
