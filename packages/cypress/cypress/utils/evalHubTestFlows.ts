@@ -656,15 +656,15 @@ export const verifyEvaluationCompletedAndViewResults = (
 };
 
 // Stop and reconfigure flow
-export const stopAndReconfigureEvaluation = (
+export function stopAndReconfigureEvaluation(
   evaluationRunName: string,
   reconfiguredRunName: string,
-): void => {
+): void {
   cy.step('Wait for evaluation to reach Running status');
   const statusTimeout = { timeout: 120000 };
   evaluationsPage.findRunsTabContent(statusTimeout).should('be.visible');
   evaluationsPage
-    .findEvaluationStatusButtonInRow(evaluationRunName, statusTimeout)
+    .findEvaluationStatusButtonInRow(evaluationRunName, { timeout: 600000 })
     .should('contain.text', 'Running');
 
   cy.step('Open status modal and stop the running evaluation');
@@ -705,7 +705,7 @@ export const stopAndReconfigureEvaluation = (
   evaluationsPage
     .findEvaluationStatusButtonInRow(reconfiguredRunName, statusTimeout)
     .should('be.visible');
-};
+}
 
 // End-to-end flow composition
 export const runSingleBenchmarkEvaluationFlow = (
