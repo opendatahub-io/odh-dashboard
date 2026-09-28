@@ -261,7 +261,6 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
                 ref={toggleRef}
                 id="asr-model-selector"
                 aria-label="Transcription model"
-                isDisabled={asrModels.length === 0}
                 isExpanded={isDropdownOpen}
                 isFullWidth
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -273,6 +272,9 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
             shouldFocusToggleOnSelect
           >
             <DropdownList>
+              {asrModels.length === 0 && (
+                <DropdownItem isDisabled>No models tagged for audio transcription</DropdownItem>
+              )}
               {asrModels.map((model) => (
                 <DropdownItem key={model.model_id} value={model.model_id}>
                   {model.display_name || model.model_id}

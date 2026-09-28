@@ -357,6 +357,15 @@ describe('TranscriptionModelSection', () => {
       );
       await user.click(screen.getByTestId('all-model-option-llama-3-8b'));
       expect(screen.getByTestId('transcription-model-selector')).toHaveTextContent('Llama 3 8B');
+      expect(screen.getByTestId('transcription-model-selector')).toBeEnabled();
+      await user.click(screen.getByTestId('transcription-model-selector'));
+      expect(
+        screen.getByRole('menuitem', { name: 'No models tagged for audio transcription' }),
+      ).toBeDisabled();
+      expect(screen.getAllByRole('menuitem')).toHaveLength(1);
+      expect(
+        useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID]?.selectedAsrModel,
+      ).toBe('llama-3-8b');
     });
 
     it('shows the original missing-model guidance before selection', () => {
