@@ -137,6 +137,30 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		app.badRequestResponse(w, r, err)
 		return
 	}
+
+	// Custom endpoint credentials belong to the dashboard-managed provider record.
+	// Resolve that record before building the OGX configuration so the credential can
+	// only ever be sent to the provider URL it was configured for, never a URI from
+	// the user-controlled AgentProfile.
+	var customEndpointProvider *models.InferenceProvider
+	if profile.Spec.Model.SourceType == string(models.ModelSourceTypeCustomEndpoint) {
+		externalModelsConfig, configErr := k8sClient.GetExternalModelsConfig(ctx, namespace)
+		if configErr != nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to read custom endpoint configuration: %w", configErr))
+			return
+		}
+		_, provider, resolveErr := kubernetes.ResolveCustomEndpointModelProvider(externalModelsConfig, profile.Spec.Model.ID)
+		if resolveErr != nil {
+			app.badRequestResponse(w, r, resolveErr)
+			return
+		}
+		if provider.Config.BaseURL == "" {
+			app.serverErrorResponse(w, r, fmt.Errorf("custom endpoint provider %q has no base URL", provider.ProviderID))
+			return
+		}
+		customEndpointProvider = provider
+		profile = profileWithCustomEndpointProviderURL(profile, provider.Config.BaseURL)
+	}
 	systemPrompt, err := app.resolveSandboxSystemPrompt(ctx, namespace, profile.Spec.Prompt)
 	if err != nil {
 		var bffErr *bffclient.BFFClientError
@@ -283,20 +307,8 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	var modelAuthSecret *kubernetes.SandboxSecretEnvVar
-	if profile.Spec.Model.SourceType == string(models.ModelSourceTypeCustomEndpoint) {
-		externalModelsConfig, configErr := k8sClient.GetExternalModelsConfig(ctx, namespace)
-		if configErr != nil {
-			rollback()
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to read custom endpoint configuration: %w", configErr))
-			return
-		}
-		_, provider, resolveErr := kubernetes.ResolveCustomEndpointModelProvider(externalModelsConfig, profile.Spec.Model.ID)
-		if resolveErr != nil {
-			rollback()
-			app.badRequestResponse(w, r, resolveErr)
-			return
-		}
-		secretRef := provider.Config.CustomGenAI.APIKey.SecretRef
+	if customEndpointProvider != nil {
+		secretRef := customEndpointProvider.Config.CustomGenAI.APIKey.SecretRef
 		if secretRef.Name != "" && secretRef.Key == "" {
 			rollback()
 			app.badRequestResponse(w, r, fmt.Errorf("custom endpoint model %q has a Secret name but no key", profile.Spec.Model.ID))
@@ -488,6 +500,17 @@ func validateSandboxModelSourceType(sourceType string) error {
 	default:
 		return fmt.Errorf("agent profile model sourceType %q is unsupported", sourceType)
 	}
+}
+
+// profileWithCustomEndpointProviderURL creates the profile snapshot used for a
+// deployment. Custom endpoint URLs are controlled by the dashboard ConfigMap,
+// alongside their credentials, rather than by the AgentProfile request.
+func profileWithCustomEndpointProviderURL(profile *models.AgentProfile, providerURL string) *models.AgentProfile {
+	deploymentProfile := *profile
+	deploymentProfile.Spec = profile.Spec
+	deploymentProfile.Spec.Model = profile.Spec.Model
+	deploymentProfile.Spec.Model.URI = providerURL
+	return &deploymentProfile
 }
 
 // normalizeMCPServerAuth accepts either a raw OAuth token or an Authorization header value.

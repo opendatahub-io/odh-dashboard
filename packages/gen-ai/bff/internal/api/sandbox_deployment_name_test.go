@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -56,4 +57,19 @@ func TestValidateSandboxModelSourceType(t *testing.T) {
 			assert.ErrorContains(t, err, tt.wantErr)
 		})
 	}
+}
+
+func TestProfileWithCustomEndpointProviderURL(t *testing.T) {
+	profile := &models.AgentProfile{Spec: models.AgentProfileSpec{
+		Model: models.ModelReference{
+			ID:  "configured-model",
+			URI: "https://attacker.invalid/v1",
+		},
+	}}
+
+	deploymentProfile := profileWithCustomEndpointProviderURL(profile, "https://configured.example.com/v1")
+
+	assert.Equal(t, "https://configured.example.com/v1", deploymentProfile.Spec.Model.URI)
+	assert.Equal(t, "https://attacker.invalid/v1", profile.Spec.Model.URI)
+	assert.Equal(t, profile.Spec.Model.ID, deploymentProfile.Spec.Model.ID)
 }
