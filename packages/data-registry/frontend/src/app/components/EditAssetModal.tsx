@@ -175,7 +175,6 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
 
       const commonUpdate = {
         description: data.description,
-        format: data.format,
         storage_location: data.path || null,
         ...connectionUpdate,
         purpose: data.purpose,
@@ -205,7 +204,7 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
         if (isTable) {
           await updateGenericTable(project, collection, name, {
             ...commonUpdate,
-            format: isStructuredFormat(data.format) ? data.format : 'other',
+            ...(isStructuredFormat(data.format) ? { format: data.format } : {}),
             schema_fields: data.schemaFields.map((column) => ({
               name: column.name,
               type: column.type,
@@ -216,7 +215,7 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
         } else {
           await updateVolume(project, collection, name, {
             ...commonUpdate,
-            format: isUnstructuredFormat(data.format) ? data.format : 'other',
+            ...(isUnstructuredFormat(data.format) ? { format: data.format } : {}),
           });
         }
         onSaved();

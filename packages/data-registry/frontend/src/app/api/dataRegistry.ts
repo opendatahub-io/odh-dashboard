@@ -60,12 +60,31 @@ const assetResponseBaseSchema = {
   connection_ref: connectionRefSchema.nullable().optional(),
 };
 
+const structuredFormatSchema = z.enum([
+  'iceberg',
+  'parquet',
+  'csv',
+  'delta',
+  'postgresql',
+  'milvus',
+  'other',
+]);
+
+const unstructuredFormatSchema = z.enum([
+  'documents',
+  'images',
+  'audio',
+  'video',
+  'binary',
+  'other',
+]);
+
 const structuredAssetResponseSchema = z
   .object({
     ...assetResponseBaseSchema,
     // eslint-disable-next-line camelcase
     asset_type: z.literal('table'),
-    format: z.string(),
+    format: structuredFormatSchema,
   })
   .passthrough();
 
@@ -74,7 +93,7 @@ const unstructuredAssetResponseSchema = z
     ...assetResponseBaseSchema,
     // eslint-disable-next-line camelcase
     asset_type: z.literal('volume'),
-    format: z.string(),
+    format: unstructuredFormatSchema,
   })
   .passthrough();
 

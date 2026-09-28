@@ -2,6 +2,7 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
+import { createCollectionModal } from '~/__tests__/cypress/cypress/pages/createCollectionModal';
 
 const REGISTRY_API = '/data-registry/api/v1';
 const MAIN_API = '/data-registry/api/v1';
@@ -1025,9 +1026,8 @@ describe('Create Collection with Owner', () => {
     cy.findByTestId('collection-name-input').scrollIntoView();
 
     cy.findByPlaceholderText('Select or type owner', { timeout: 10000 }).should('be.visible');
-    cy.findByPlaceholderText('Select or type owner').clear();
-    cy.findByPlaceholderText('Select or type owner').type('Unas');
-    cy.contains('li', 'Unassigned').click();
+    createCollectionModal.findOwnerToggle().click();
+    createCollectionModal.findOwnerOption('Unassigned').click();
 
     cy.findByTestId('create-collection-submit').click();
 

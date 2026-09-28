@@ -33,32 +33,24 @@ describe('fetchGenericTable', () => {
     });
   });
 
-  it('should preserve unknown format values in table responses', async () => {
+  it('should reject unsupported format values in table responses', async () => {
     mockRestGET.mockResolvedValue({
       ...mockAssetResponse({ name: 'external-table' }),
       format: 'external',
-    });
+    } as never);
 
-    await expect(
-      fetchGenericTable('test-project', 'default', 'external-table'),
-    ).resolves.toMatchObject({
-      name: 'external-table',
-      format: 'external',
-    });
+    await expect(fetchGenericTable('test-project', 'default', 'external-table')).rejects.toThrow();
   });
 });
 
 describe('fetchVolume', () => {
-  it('should preserve unknown format values in volume responses', async () => {
+  it('should reject unsupported format values in volume responses', async () => {
     mockRestGET.mockResolvedValue({
       ...mockVolumeInfo({ name: 'pdf-volume' }),
       format: 'pdf',
-    });
+    } as never);
 
-    await expect(fetchVolume('test-project', 'default', 'pdf-volume')).resolves.toMatchObject({
-      name: 'pdf-volume',
-      format: 'pdf',
-    });
+    await expect(fetchVolume('test-project', 'default', 'pdf-volume')).rejects.toThrow();
   });
 
   it('should reject non-string volume properties', async () => {

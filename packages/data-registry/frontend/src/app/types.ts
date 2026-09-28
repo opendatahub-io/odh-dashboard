@@ -75,12 +75,12 @@ export type AssetResponseBase = {
 
 export type StructuredAssetResponse = AssetResponseBase & {
   asset_type: 'table';
-  format: string;
+  format: StructuredFormat;
 };
 
 export type UnstructuredAssetResponse = AssetResponseBase & {
   asset_type: 'volume';
-  format: string;
+  format: UnstructuredFormat;
 };
 
 export type AssetResponse = StructuredAssetResponse | UnstructuredAssetResponse;

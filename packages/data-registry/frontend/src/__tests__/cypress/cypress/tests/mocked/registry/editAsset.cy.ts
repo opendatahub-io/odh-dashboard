@@ -4,6 +4,7 @@ import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
 import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
+import { assetDetailPage } from '~/__tests__/cypress/cypress/pages/assetDetailPage';
 import { editAssetModal } from '~/__tests__/cypress/cypress/pages/editAssetModal';
 
 const REGISTRY_API = '/data-registry/api/v1';
@@ -64,8 +65,8 @@ describe('Edit Table Asset', () => {
     cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
-    cy.findByTestId('asset-actions-toggle').click();
-    cy.findByTestId('asset-action-edit').click();
+    assetDetailPage.findActionsToggle().click();
+    assetDetailPage.findEditAction().click();
 
     editAssetModal.shouldBeOpen();
     editAssetModal.findNameInput().should('have.value', 'claims-data');
@@ -97,8 +98,8 @@ describe('Edit Table Asset', () => {
     cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/dch-table');
     cy.wait('@getDchTable');
 
-    cy.findByTestId('asset-actions-toggle').click();
-    cy.findByTestId('asset-action-edit').click();
+    assetDetailPage.findActionsToggle().click();
+    assetDetailPage.findEditAction().click();
     editAssetModal.findSaveButton().click();
 
     cy.wait('@updateDchTable').then((interception) => {
@@ -117,8 +118,8 @@ describe('Edit Table Asset', () => {
     ).as('updateTable');
     cy.intercept('POST', `${REGISTRY_API}/test-project/labels`, { body: { name: 'new-label' } });
 
-    cy.findByTestId('asset-actions-toggle').click();
-    cy.findByTestId('asset-action-edit').click();
+    assetDetailPage.findActionsToggle().click();
+    assetDetailPage.findEditAction().click();
     editAssetModal.shouldBeOpen();
 
     editAssetModal.findDescriptionInput().clear();
@@ -140,8 +141,8 @@ describe('Edit Table Asset', () => {
       { body: tableResponse },
     ).as('updateTable');
 
-    cy.findByTestId('asset-actions-toggle').click();
-    cy.findByTestId('asset-action-edit').click();
+    assetDetailPage.findActionsToggle().click();
+    assetDetailPage.findEditAction().click();
     editAssetModal.findPurposeInput().clear();
     editAssetModal.findSaveButton().click();
 
@@ -165,8 +166,8 @@ describe('Edit Table Asset', () => {
       { body: tableWithoutOptionalMetadataResponse },
     ).as('updateTableWithoutOptionalMetadata');
 
-    cy.findByTestId('asset-actions-toggle').click();
-    cy.findByTestId('asset-action-edit').click();
+    assetDetailPage.findActionsToggle().click();
+    assetDetailPage.findEditAction().click();
     editAssetModal.findSaveButton().click();
 
     cy.wait('@updateTableWithoutOptionalMetadata').then((interception) => {
@@ -191,8 +192,8 @@ describe('Edit Table Asset', () => {
       body: { name: 'new-label' },
     }).as('createLabel');
 
-    cy.findByTestId('asset-actions-toggle').click();
-    cy.findByTestId('asset-action-edit').click();
+    assetDetailPage.findActionsToggle().click();
+    assetDetailPage.findEditAction().click();
     editAssetModal.shouldBeOpen();
 
     editAssetModal.findLabel('production').should('exist');
@@ -223,8 +224,8 @@ describe('Edit Table Asset', () => {
       { body: tableResponse },
     ).as('updateTable');
 
-    cy.findByTestId('asset-actions-toggle').click();
-    cy.findByTestId('asset-action-edit').click();
+    assetDetailPage.findActionsToggle().click();
+    assetDetailPage.findEditAction().click();
     editAssetModal.shouldBeOpen();
 
     editAssetModal.findCustomPropertyKey(0).should('have.value', 'custom-key');
@@ -253,8 +254,8 @@ describe('Edit Table Asset', () => {
       { body: tableResponse },
     ).as('updateTable');
 
-    cy.findByTestId('asset-actions-toggle').click();
-    cy.findByTestId('asset-action-edit').click();
+    assetDetailPage.findActionsToggle().click();
+    assetDetailPage.findEditAction().click();
     editAssetModal.shouldBeOpen();
 
     editAssetModal.findSchemaColumnName(0).should('have.value', 'id');
@@ -277,8 +278,8 @@ describe('Edit Table Asset', () => {
     cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
-    cy.findByTestId('asset-actions-toggle').click();
-    cy.findByTestId('asset-action-edit').click();
+    assetDetailPage.findActionsToggle().click();
+    assetDetailPage.findEditAction().click();
     editAssetModal.findCustomPropertyRemove(0).should('be.disabled');
   });
 
@@ -286,8 +287,8 @@ describe('Edit Table Asset', () => {
     cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
-    cy.findByTestId('asset-actions-toggle').click();
-    cy.findByTestId('asset-action-edit').click();
+    assetDetailPage.findActionsToggle().click();
+    assetDetailPage.findEditAction().click();
     editAssetModal.shouldBeOpen();
 
     editAssetModal.findCancelButton().click();
@@ -318,8 +319,8 @@ describe('Edit Volume Asset', () => {
     cy.visit('/ai-hub/data/browse/assets/volume/test-project/default/training-docs');
     cy.wait('@getVolume');
 
-    cy.findByTestId('asset-actions-toggle').click();
-    cy.findByTestId('asset-action-edit').click();
+    assetDetailPage.findActionsToggle().click();
+    assetDetailPage.findEditAction().click();
 
     editAssetModal.shouldBeOpen();
     editAssetModal.findNameInput().should('have.value', 'training-docs');
@@ -338,14 +339,14 @@ describe('Edit Volume Asset', () => {
       body: volumeResponse,
     }).as('updateVolume');
 
-    cy.findByTestId('asset-actions-toggle').click();
-    cy.findByTestId('asset-action-edit').click();
+    assetDetailPage.findActionsToggle().click();
+    assetDetailPage.findEditAction().click();
     editAssetModal.shouldBeOpen();
 
     editAssetModal.findDescriptionInput().clear();
     editAssetModal.findDescriptionInput().type('Updated volume description');
     editAssetModal.findFormatToggle().click();
-    cy.findByTestId('data-format-option-images').click();
+    editAssetModal.findFormatOption('images').click();
     editAssetModal.findSaveButton().click();
 
     cy.wait('@updateVolume').then((interception) => {
@@ -365,8 +366,8 @@ describe('Edit Volume Asset', () => {
       body: volumeResponse,
     }).as('updateVolume');
 
-    cy.findByTestId('asset-actions-toggle').click();
-    cy.findByTestId('asset-action-edit').click();
+    assetDetailPage.findActionsToggle().click();
+    assetDetailPage.findEditAction().click();
     editAssetModal.findDescriptionInput().clear();
     editAssetModal.findDescriptionInput().type('Updated volume description');
     editAssetModal.findSaveButton().click();
@@ -387,8 +388,8 @@ describe('Edit Volume Asset', () => {
       body: volumeResponse,
     }).as('updateVolume');
 
-    cy.findByTestId('asset-actions-toggle').click();
-    cy.findByTestId('asset-action-edit').click();
+    assetDetailPage.findActionsToggle().click();
+    assetDetailPage.findEditAction().click();
     editAssetModal.findPurposeInput().clear();
     editAssetModal.findSaveButton().click();
 
