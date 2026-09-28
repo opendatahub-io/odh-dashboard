@@ -13,6 +13,7 @@ import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimoda
 
 export type AudioTranscriptionPhase =
   | 'idle'
+  // Keep the file pending while the user chooses a transcription model.
   | 'waiting-for-model'
   | 'uploading'
   | 'transcribing'
