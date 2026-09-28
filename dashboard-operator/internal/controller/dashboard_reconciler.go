@@ -1052,6 +1052,10 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 			&corev1.ConfigMap{},
 			handler.EnqueueRequestsFromMapFunc(r.mapConfigMapToDashboard),
 			builder.WithPredicates(r.configMapPredicate()),
+		).
+		Watches(
+			&corev1.Namespace{},
+			handler.EnqueueRequestsFromMapFunc(r.mapMaaSConsumerPortalOperatorNamespaceToDashboard),
 		)
 
 	if err := addOptionalOwnedResourceWatches(mgr.GetRESTMapper(), controllerBuilder); err != nil {

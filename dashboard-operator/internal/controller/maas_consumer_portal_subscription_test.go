@@ -66,6 +66,23 @@ func TestExistingMaaSConsumerPortalOperatorNamespaces(t *testing.T) {
 	}
 }
 
+func TestMapMaaSConsumerPortalOperatorNamespaceToDashboard(t *testing.T) {
+	r := &DashboardReconciler{}
+	for _, namespace := range maasConsumerPortalOperatorNamespaces {
+		t.Run(namespace, func(t *testing.T) {
+			watched := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
+			requests := r.mapMaaSConsumerPortalOperatorNamespaceToDashboard(context.Background(), watched)
+			require.Len(t, requests, 1)
+			assert.Equal(t, v1alpha1.DashboardInstanceName, requests[0].Name)
+			assert.Empty(t, requests[0].Namespace, "Dashboard is cluster-scoped, request should carry no namespace")
+		})
+	}
+
+	unrelated := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "unrelated"}}
+	assert.Empty(t, r.mapMaaSConsumerPortalOperatorNamespaceToDashboard(context.Background(), unrelated))
+	assert.Empty(t, r.mapMaaSConsumerPortalOperatorNamespaceToDashboard(context.Background(), nil))
+}
+
 func TestExistingMaaSConsumerPortalOperatorNamespaces_PropagatesGetError(t *testing.T) {
 	injectedErr := errors.New("namespace lookup failed")
 	cli := fake.NewClientBuilder().
