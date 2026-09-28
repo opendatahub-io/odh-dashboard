@@ -644,7 +644,6 @@ def render_product_ask_section(pa):
         lines += ["Aligned:"] + [f"- {clean(item)}" for item in pa["aligned"]] + [""]
     if pa.get("mismatched"):
         lines += ["Mismatched:"] + [f"- {clean(item)}" for item in pa["mismatched"]] + [""]
-    lines.append("The PR description is the source of truth. This section evaluates whether the PR's stated work fulfills the current Jira product ask — not the diff against acceptance criteria.")
     return lines
 
 def render_body(result, previous_md, action):

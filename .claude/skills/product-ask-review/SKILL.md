@@ -40,25 +40,27 @@ Do not guess or infer the product ask from the PR body alone.
 
 ## Determining the current normative ask
 
-The normative ask is what the ticket **currently** requires — the active
-intent derived from its summary, description, and any comments that
-refine or replace earlier requirements.
+The normative ask is what the ticket requires, taken from the trusted
+issue snapshot's **summary** and **description** only. Treat that
+description as current and authoritative — do not fetch, read, or infer
+requirements from Jira comments. Comment threads are out of scope for
+this section; if the description is stale, that is a process problem
+outside this review.
 
-Content that is clearly **not** part of the current ask:
+Content that is clearly **not** part of the current ask (even when it
+appears in the description):
 
 - Historical notes that record a replaced or abandoned approach
   (e.g. a "Why we moved away from X" section, or an "Original ask"
-  that was explicitly superseded by later requirements).
+  that was explicitly superseded by later requirements in the same
+  description).
 - Background context that explains motivation without prescribing
   behavior.
-- Discussion or rationale that was overridden by a subsequent decision
-  in comments.
 
 Do not require specific heading names or formatting conventions to
-identify superseded content. Read the ticket chronologically: a later
-requirement that explicitly changes or drops an earlier one makes the
-earlier one stale. Retain the current normative requirement, not the
-full document history.
+identify superseded content. Prefer the requirement language that the
+description presents as current over archival or "original ask" prose
+in the same document.
 
 When the boundary between current ask and historical context is
 genuinely ambiguous, note the ambiguity in the `mismatched` or
