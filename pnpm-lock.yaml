@@ -1868,7 +1868,7 @@ importers:
         version: 4.4.3
       zustand:
         specifier: ^5.0.10
-        version: 5.0.15(@types/react@18.3.31)(immer@11.1.17)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
+        version: 5.0.15(@types/react@18.3.31)(immer@11.1.18)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
     devDependencies:
       '@module-federation/enhanced':
         specifier: ^0.24.1
@@ -2246,7 +2246,7 @@ importers:
         version: 4.4.3
       zustand:
         specifier: ^5.0.10
-        version: 5.0.15(@types/react@18.3.31)(immer@11.1.17)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
+        version: 5.0.15(@types/react@18.3.31)(immer@11.1.18)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
     devDependencies:
       '@module-federation/enhanced':
         specifier: ^0.24.1
@@ -3945,7 +3945,7 @@ importers:
         version: 5.101.4(react@18.3.1)
       immer:
         specifier: ^11.1.3
-        version: 11.1.17
+        version: 11.1.18
       mod-arch-core:
         specifier: ^1.15.4
         version: 1.21.0(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
@@ -3966,7 +3966,7 @@ importers:
         version: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       zustand:
         specifier: ^5.0.10
-        version: 5.0.15(@types/react@18.3.31)(immer@11.1.17)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
+        version: 5.0.15(@types/react@18.3.31)(immer@11.1.18)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
     devDependencies:
       '@module-federation/enhanced':
         specifier: ^0.24.1
@@ -12999,8 +12999,8 @@ packages:
   immer@10.2.0:
     resolution: {integrity: sha512-d/+XTN3zfODyjr89gM3mPq1WNX2B8pYsu7eORitdwyA2sBubnTl3laYlBk4sXY5FUa5qTZGBDPJICVbvqzjlbw==}
 
-  immer@11.1.17:
-    resolution: {integrity: sha512-8Vu44Y0MuMBlTQz/jQ8HEMYNq/bBqk87MnBwYR5mC8AthfhEXidZ5aT/oA/CUqboa8THKltnD9L3xyqhU/Sy1Q==}
+  immer@11.1.18:
+    resolution: {integrity: sha512-EQyQtLiYW029lyoczMl/Hh4Xu7cDecSc58JRYpHyL4tIAu3eqd1yJzQX04d2BZHDkzFFvm6qJEJWOtfDSWAXbQ==}
 
   immutable@3.8.4:
     resolution: {integrity: sha512-ZQv17KolYrYmsDoDB8N67zhIKsNi9mGYlk96y/yuxyAqJB2hLzSGSM7k/sB0/ZvO4kx27U9+fBeD/XlLGh/uXQ==}
@@ -26602,7 +26602,7 @@ snapshots:
 
   immer@10.2.0: {}
 
-  immer@11.1.17: {}
+  immer@11.1.18: {}
 
   immutable@3.8.4: {}
 
@@ -32977,10 +32977,10 @@ snapshots:
       immer: 10.2.0
       react: 18.3.1
 
-  zustand@5.0.15(@types/react@18.3.31)(immer@11.1.17)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1)):
+  zustand@5.0.15(@types/react@18.3.31)(immer@11.1.18)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1)):
     optionalDependencies:
       '@types/react': 18.3.31
-      immer: 11.1.17
+      immer: 11.1.18
       react: 18.3.1
       use-sync-external-store: 1.6.0(react@18.3.1)
 
