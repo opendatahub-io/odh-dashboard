@@ -77,7 +77,6 @@ func BuildSandboxLlamaStackConfig(
 ) (*LlamaStackConfig, error) {
 	cfg := NewDefaultLlamaStackConfig()
 
-	// TODO: switch back to remote::passthrough once provider issues are resolved.
 	cfg.AddInferenceProvider(NewProvider(sandboxPassthroughProviderID, "remote::openai", map[string]interface{}{
 		"base_url": EnsureV1Suffix(profile.Spec.Model.URI),
 	}))
