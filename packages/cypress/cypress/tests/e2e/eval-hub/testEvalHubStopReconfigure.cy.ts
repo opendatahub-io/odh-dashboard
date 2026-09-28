@@ -154,7 +154,7 @@ describe('Eval Hub E2E — Stop and Reconfigure', () => {
         mlflowExperimentName,
         additionalBenchmarkParams,
       });
-      stopAndReconfigureEvaluation(evaluationRunName, reconfiguredRunName);
+      stopAndReconfigureEvaluation(evaluationRunName, reconfiguredRunName, evaluationTenantProject);
     },
   );
 });

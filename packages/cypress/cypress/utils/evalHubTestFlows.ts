@@ -10,6 +10,7 @@ import { removeEvalHubTenantLabel } from './oc_commands/evalHubModelDeploy';
 import { cleanupEvalHubHardwareProfile } from './oc_commands/evalHubHardwareProfile';
 import {
   assertEvalHubOfflineDataRequest,
+  interceptEvalHubOfflineDataReadForReconfigure,
   interceptEvalHubOfflineDataRequest,
 } from './oc_commands/evalHubOfflineData';
 import { evaluationsPage } from '../pages/evalHub/evaluationsPage';
@@ -670,6 +671,7 @@ export const verifyEvaluationCompletedAndViewResults = (
 export function stopAndReconfigureEvaluation(
   evaluationRunName: string,
   reconfiguredRunName: string,
+  tenantNamespace: string,
 ): void {
   cy.step('Wait for evaluation to reach Running status');
   const statusTimeout = { timeout: 120000 };
@@ -701,6 +703,7 @@ export function stopAndReconfigureEvaluation(
     .should('contain.text', 'Canceled');
 
   cy.step('Open status modal and click Reconfigure');
+  interceptEvalHubOfflineDataReadForReconfigure(tenantNamespace);
   evaluationsPage.findEvaluationStatusButtonInRow(evaluationRunName, statusTimeout).click();
   evaluationsPage.findStatusModal(statusTimeout).should('be.visible');
   evaluationsPage.findStatusModalReconfigureButton(statusTimeout).should('be.visible').click();
