@@ -1,5 +1,6 @@
 import * as yaml from 'js-yaml';
 import {
+  clearEvalHubEvaluationJobs,
   cleanupEvalHubTestResources,
   navigateToEvaluationsPage,
   submitSingleBenchmarkEvaluation,
@@ -105,6 +106,12 @@ describe('Eval Hub E2E', () => {
         cy.log(`MLflow experiment: ${mlflowExperimentName}`);
       });
     });
+
+    cy.then(() => {
+      cy.step('[Setup] Open EvalHub and remove stale evaluation runs');
+      navigateToEvaluationsPage(evaluationTenantProject);
+      clearEvalHubEvaluationJobs(evaluationTenantProject);
+    });
   });
 
   after(() => {
@@ -127,7 +134,6 @@ describe('Eval Hub E2E', () => {
         '',
       )}`;
 
-      navigateToEvaluationsPage(evaluationTenantProject);
       submitSingleBenchmarkEvaluation({
         benchmarkCardTitle,
         evaluationRunName,

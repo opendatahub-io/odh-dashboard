@@ -81,6 +81,36 @@ describe('SampleQAEntry', () => {
 
     expect(screen.getByTestId('qa-metric-scores-q0')).toHaveTextContent('N/A');
     expect(screen.getByTestId('qa-metric-scores-q0')).not.toHaveTextContent(': 0');
+    expect(screen.getByTestId('qa-metric-group-unitxt')).toBeInTheDocument();
+    expect(screen.getByText('Unitxt')).toBeInTheDocument();
+  });
+
+  it('should group Sample Q&A metrics by evaluator', () => {
+    render(
+      <SampleQAEntry
+        result={{
+          ...result([]),
+          metrics: [
+            { name: 'faithfulness', evaluator: 'unitxt', score: 0.8 },
+            { name: 'answer_relevancy', evaluator: 'ragas', score: 0.7 },
+            { name: 'overall_score', evaluator: 'custom', score: 0.75 },
+          ],
+        }}
+        questionNumber={1}
+        allMetricNames={[
+          { name: 'faithfulness', evaluator: 'unitxt' },
+          { name: 'answer_relevancy', evaluator: 'ragas' },
+          { name: 'overall_score', evaluator: 'custom' },
+        ]}
+      />,
+    );
+
+    expect(screen.getByTestId('qa-metric-group-unitxt')).toHaveTextContent('Answer faithfulness');
+    expect(screen.getByTestId('qa-metric-group-ragas')).toHaveTextContent('Answer relevancy');
+    expect(screen.getByTestId('qa-metric-group-custom')).toHaveTextContent('Overall score');
+    expect(screen.getByText('Ragas')).toBeInTheDocument();
+    expect(screen.getByText('Custom')).toBeInTheDocument();
+    expect(screen.getByTestId('qa-metric-scores-q0')).toHaveClass('pf-v6-l-grid');
   });
 
   it('should include the evaluator in metric score labels', () => {
@@ -95,8 +125,9 @@ describe('SampleQAEntry', () => {
       />,
     );
 
+    expect(screen.getByTestId('qa-metric-group-ragas')).toBeInTheDocument();
     expect(screen.getByTestId('qa-metric-scores-q0')).toHaveTextContent(
-      'Answer faithfulness (ragas): 0.770',
+      'Answer faithfulness: 0.770',
     );
   });
 
@@ -112,10 +143,8 @@ describe('SampleQAEntry', () => {
     );
 
     expect(screen.getByTestId('duplicate-metric-scores')).toHaveTextContent(
-      'Answer faithfulness (unitxt): N/A',
+      'Answer faithfulness: N/A',
     );
-    expect(screen.getByTestId('duplicate-metric-scores').querySelectorAll('strong')).toHaveLength(
-      1,
-    );
+    expect(screen.getByTestId('qa-metric-group-unitxt').querySelectorAll('strong')).toHaveLength(2);
   });
 });

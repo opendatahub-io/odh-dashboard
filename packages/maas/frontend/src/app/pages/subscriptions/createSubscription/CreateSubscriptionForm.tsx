@@ -37,6 +37,7 @@ import {
   SubscriptionModelEntry,
   CreateSubscriptionRequest,
   UpdateSubscriptionRequest,
+  SYSTEM_AUTHENTICATED_GROUP,
 } from '~/app/types/subscriptions';
 import AddModelsModal from '~/app/shared/AddModelsModal';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
@@ -51,6 +52,7 @@ import {
   SubscriptionUpdatedErrorProperties,
   SubscriptionUpdatedSuccessProperties,
 } from '~/app/types/event-tracking';
+import SystemAuthenticatedWarning from '~/app/shared/SystemAuthenticatedWarning';
 import EditRateLimitsModal from './EditRateLimitsModal';
 
 type CreateSubscriptionFormProps = {
@@ -403,6 +405,9 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             createOptionMessage={(value) => `Add group "${value}"`}
             placeholder="Select groups"
           />
+          {selectedGroupNames.includes(SYSTEM_AUTHENTICATED_GROUP) && (
+            <SystemAuthenticatedWarning />
+          )}
           {groupsTouched && getFieldValidation(['groups'], true).length > 0 && (
             <FormHelperText>
               <HelperText>

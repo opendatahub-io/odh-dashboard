@@ -24,6 +24,7 @@ type BenchmarkThresholdFieldProps = {
   helpText?: string;
   fieldId?: string;
   metric?: string;
+  isDisabled?: boolean;
 };
 
 const BenchmarkThresholdField: React.FC<BenchmarkThresholdFieldProps> = ({
@@ -34,6 +35,7 @@ const BenchmarkThresholdField: React.FC<BenchmarkThresholdFieldProps> = ({
   description = 'Set the minimum passing score for this evaluation. Results below this threshold will be marked as failing.',
   fieldId = 'benchmark-threshold',
   metric,
+  isDisabled = false,
 }) => {
   const isPercentage = isPercentageMetric(metric);
   const isWholeNumber = isWholeNumberThresholdMetric(metric);
@@ -101,6 +103,7 @@ const BenchmarkThresholdField: React.FC<BenchmarkThresholdFieldProps> = ({
           step={isWholeNumber ? 1 : 'any'}
           value={rawInputValue}
           aria-label={label}
+          isDisabled={isDisabled}
           onChange={(_event, newValue) => setRawInputValue(newValue)}
           onBlur={handleRawInputBlur}
         />
@@ -135,6 +138,7 @@ const BenchmarkThresholdField: React.FC<BenchmarkThresholdFieldProps> = ({
           value={sliderValue}
           inputValue={inputValue}
           onChange={handleChange}
+          isDisabled={isDisabled}
           isInputVisible
           showBoundaries
           inputAriaLabel={label}

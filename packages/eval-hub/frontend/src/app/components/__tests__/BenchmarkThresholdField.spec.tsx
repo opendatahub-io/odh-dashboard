@@ -80,6 +80,30 @@ describe('BenchmarkThresholdField', () => {
     expect(screen.queryByText('custom_metric')).not.toBeInTheDocument();
   });
 
+  it('should disable both the slider and numeric input when requested', () => {
+    render(<BenchmarkThresholdField value={25} onChange={jest.fn()} isDisabled />);
+
+    expect(screen.getByRole('slider', { hidden: true })).toHaveAttribute('aria-disabled', 'true');
+    expect(
+      screen
+        .getByTestId('benchmark-threshold')
+        .querySelector<HTMLInputElement>('input[type="number"]'),
+    ).toBeDisabled();
+  });
+
+  it('should disable raw metric inputs when requested', () => {
+    render(
+      <BenchmarkThresholdField
+        value={10}
+        metric="output_tokens_per_second"
+        onChange={jest.fn()}
+        isDisabled
+      />,
+    );
+
+    expect(screen.getByRole('spinbutton', { name: 'Benchmark threshold' })).toBeDisabled();
+  });
+
   it('should display 0 and 100 boundary labels', () => {
     render(<BenchmarkThresholdField value={50} onChange={jest.fn()} />);
 

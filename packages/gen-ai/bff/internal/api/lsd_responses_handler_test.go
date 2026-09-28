@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -35,7 +36,49 @@ import (
 	gentypes "github.com/opendatahub-io/gen-ai/internal/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
+
+type countingLlamaStackClient struct {
+	*lsmocks.MockLlamaStackClient
+	createResponseCalls int
+}
+
+func (c *countingLlamaStackClient) CreateResponse(ctx context.Context, params llamastack.CreateResponseParams) (*responses.Response, error) {
+	c.createResponseCalls++
+	return c.MockLlamaStackClient.CreateResponse(ctx, params)
+}
+
+type nemoDiscoveryTestFactory struct {
+	client         k8s.KubernetesClientInterface
+	getClientErr   error
+	getClientCalls int
+}
+
+func (f *nemoDiscoveryTestFactory) GetClient(context.Context) (k8s.KubernetesClientInterface, error) {
+	f.getClientCalls++
+	return f.client, f.getClientErr
+}
+
+func (f *nemoDiscoveryTestFactory) ExtractRequestIdentity(http.Header) (*integrations.RequestIdentity, error) {
+	return &integrations.RequestIdentity{Token: "test-token"}, nil
+}
+
+func (f *nemoDiscoveryTestFactory) ValidateRequestIdentity(*integrations.RequestIdentity) error {
+	return nil
+}
+
+type nemoDiscoveryTestClient struct {
+	k8s.KubernetesClientInterface
+	serviceURL     string
+	err            error
+	discoveryCalls int
+}
+
+func (c *nemoDiscoveryTestClient) GetNemoGuardrailsServiceURL(context.Context, *integrations.RequestIdentity, string) (string, error) {
+	c.discoveryCalls++
+	return c.serviceURL, c.err
+}
 
 var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	var app App
@@ -109,6 +152,67 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		assert.Equal(t, "assistant", messageItem["role"])
 		assert.Contains(t, messageItem, "content")
 	})
+
+	It("should not resolve NeMo for ordinary responses", func() {
+		t := GinkgoT()
+		factory := &nemoDiscoveryTestFactory{getClientErr: errors.New("NeMo discovery should not run")}
+		app.kubernetesClientFactory = factory
+		llamaStackClient := &countingLlamaStackClient{MockLlamaStackClient: lsmocks.NewMockLlamaStackClient()}
+
+		payload := CreateResponseRequest{
+			Input: llamastack.InputUnion{Text: "Hello"},
+			Model: testutil.GetTestLlamaStackModel(),
+		}
+		req, err := createJSONRequest(payload)
+		require.NoError(t, err)
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusCreated, rr.Code)
+		assert.Zero(t, factory.getClientCalls)
+		assert.Equal(t, 1, llamaStackClient.createResponseCalls)
+	})
+
+	DescribeTable("should reject inline guardrails when NeMo is unavailable",
+		func(factory *nemoDiscoveryTestFactory) {
+			t := GinkgoT()
+			app.kubernetesClientFactory = factory
+			llamaStackClient := &countingLlamaStackClient{MockLlamaStackClient: lsmocks.NewMockLlamaStackClient()}
+
+			payload := CreateResponseRequest{
+				Input: llamastack.InputUnion{Text: "Hello"},
+				Model: testutil.GetTestLlamaStackModel(),
+				GuardrailConfig: &models.GuardrailInlineConfig{
+					GuardrailModel: "guardrail-model",
+				},
+			}
+			req, err := createJSONRequest(payload)
+			require.NoError(t, err)
+			ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+			ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "test-token"})
+			req = req.WithContext(ctx)
+
+			rr := httptest.NewRecorder()
+			app.LlamaStackCreateResponseHandler(rr, req, nil)
+
+			assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+			var response integrations.FrontendErrorResponse
+			require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+			require.NotNil(t, response.Error)
+			assert.Equal(t, constants.GuardrailServiceUnavailableCode, response.Error.Code)
+			assert.Equal(t, constants.GuardrailServiceUnavailableMessage, response.Error.Message)
+			assert.Equal(t, 1, factory.getClientCalls)
+			if client, ok := factory.client.(*nemoDiscoveryTestClient); ok {
+				assert.Equal(t, 1, client.discoveryCalls)
+			}
+			assert.Zero(t, llamaStackClient.createResponseCalls)
+		},
+		Entry("when NeMo discovery fails", &nemoDiscoveryTestFactory{getClientErr: errors.New("discovery failed")}),
+		Entry("when no NeMo service exists", &nemoDiscoveryTestFactory{client: &nemoDiscoveryTestClient{}}),
+	)
 
 	It("should create response with all optional parameters", func() {
 		t := GinkgoT()
@@ -1147,14 +1251,11 @@ var _ = Describe("StreamingResponseMetrics", func() {
 	It("should stream response with vector store IDs for RAG file_search", func() {
 		t := GinkgoT()
 
-		vsID := testCtx.llamaStackState.Seed.VectorStoreID
-		require.NotEmpty(t, vsID, "SeedResult.VectorStoreID must be set by SeedData")
-
 		payload := CreateResponseRequest{
 			Input:          llamastack.InputUnion{Text: "What is machine learning?"},
-			Model:          testutil.GetTestLlamaStackModel(),
+			Model:          "mock-model",
 			Stream:         true,
-			VectorStoreIDs: []string{vsID},
+			VectorStoreIDs: []string{"vs_mock"},
 		}
 
 		jsonData, err := json.Marshal(payload)
@@ -1164,8 +1265,10 @@ var _ = Describe("StreamingResponseMetrics", func() {
 		require.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		// Use the in-memory mock directly so this unit-level streaming test is
+		// deterministic.
+		mockClient := lsmocks.NewMockLlamaStackClient()
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, mockClient)
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -1188,15 +1291,30 @@ var _ = Describe("StreamingResponseMetrics", func() {
 		events := parseSSEEvents(body)
 		require.Greater(t, len(events), 0, "Should have received SSE events from RAG stream")
 
-		// Verify at least one text delta event was emitted
+		// Verify text deltas were streamed and the completed response preserves the
+		// file_search_call output created when vector_store_ids are provided.
 		hasTextDelta := false
+		hasFileSearchCall := false
 		for _, event := range events {
-			if eventType, ok := event["type"].(string); ok && eventType == "response.output_text.delta" {
+			eventType, _ := event["type"].(string)
+			if eventType == "response.output_text.delta" {
 				hasTextDelta = true
-				break
+			}
+			if eventType != "response.completed" {
+				continue
+			}
+			response, _ := event["response"].(map[string]interface{})
+			output, _ := response["output"].([]interface{})
+			for _, item := range output {
+				outputItem, _ := item.(map[string]interface{})
+				if outputItem["type"] == "file_search_call" {
+					hasFileSearchCall = true
+					break
+				}
 			}
 		}
 		assert.True(t, hasTextDelta, "expected at least one response.output_text.delta event in RAG stream")
+		assert.True(t, hasFileSearchCall, "expected response.completed to include file_search_call output")
 	})
 })
 
@@ -1357,6 +1475,25 @@ func TestGetProviderDataRouting(t *testing.T) {
 			"maas_subscription":           "my-subscription",
 			"inference_model_source_type": string(models.ModelSourceTypeMaaS),
 		}, providerData)
+	})
+
+	t.Run("includes W3C trace context when request context has a sampled span", func(t *testing.T) {
+		traceID := oteltrace.TraceID{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+		spanID := oteltrace.SpanID{1, 2, 3, 4, 5, 6, 7, 8}
+		spanContext := oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
+			TraceID:    traceID,
+			SpanID:     spanID,
+			TraceFlags: oteltrace.FlagsSampled,
+		})
+		ctx := oteltrace.ContextWithSpanContext(context.Background(), spanContext)
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "test-token",
+		})
+
+		providerData, err := app.getProviderData(ctx, "", "")
+		require.NoError(t, err)
+		assert.Equal(t, "test-token", providerData["passthrough_api_key"])
+		assert.Equal(t, "00-0102030405060708090a0b0c0d0e0f10-0102030405060708-01", providerData[constants.TraceParentHeader])
 	})
 
 	t.Run("returns nil when identity is missing", func(t *testing.T) {
