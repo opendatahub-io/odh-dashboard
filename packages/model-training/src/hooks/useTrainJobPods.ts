@@ -1,8 +1,8 @@
 import * as React from 'react';
 import type { PodKind } from '@odh-dashboard/k8s-core';
-import { PodModel } from '@odh-dashboard/internal/api/models/k8s';
-import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
-import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
+import { PodModel } from '@odh-dashboard/k8s-core/api/models';
+import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
+import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
 import { TrainJobKind } from '../k8sTypes';
 
 type UseTrainJobPodsResult = {
