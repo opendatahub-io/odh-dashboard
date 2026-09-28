@@ -219,7 +219,7 @@
       "failure_severity": "info",
       "budget_priority": 4,
       "re_review": "full",
-      "notes": "Checks the pull request template and description readiness independently of code findings."
+      "notes": "Scores the PR body for substance independently of code findings."
     }
   ]
 }
