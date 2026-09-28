@@ -1280,6 +1280,35 @@ jobs:
       - name: Prepare E2E dependencies
         run: pnpm run prepare:e2e
 
+      - name: Pre-install Go BFF tooling
+        run: |
+          echo "📦 Pre-installing setup-envtest and downloading K8s API binaries..."
+          # All Go BFFs download setup-envtest + K8s binaries on first start.
+          # Do it once here so `cypress:server:e2e` starts don't race/timeout.
+          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@v0.24.1
+          setup-envtest use 1.29.3 --bin-dir /tmp/envtest-bins
+
+          # Pre-populate each BFF's local bin so `make run` skips the download.
+          for bff_dir in packages/*/bff; do
+            [ -f "$bff_dir/Makefile" ] || continue
+            mkdir -p "$bff_dir/bin"
+            # Link the setup-envtest binary with the versioned name each Makefile expects
+            for version in release-0.19 v0.24.1; do
+              target="$bff_dir/bin/setup-envtest-${version}"
+              [ -f "$target" ] || cp "$(which setup-envtest)" "$target"
+            done
+          done
+          echo "✅ setup-envtest and K8s 1.29.3 binaries ready"
+
+          # Set MAAS_API_URL from cluster domain so maas BFF skips oc auto-detection
+          CLUSTER_DOMAIN=$(oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}' 2>/dev/null || true)
+          if [ -n "$CLUSTER_DOMAIN" ]; then
+            echo "MAAS_API_URL=https://maas.${CLUSTER_DOMAIN}/maas-api" >> $GITHUB_ENV
+            echo "✅ MAAS_API_URL set from cluster domain: $CLUSTER_DOMAIN"
+          else
+            echo "⚠️ Could not detect cluster domain — maas BFF will attempt auto-detection"
+          fi
+
       - name: Run E2E Tests
         env:
           OC_SERVER_PRIMARY: ${{ secrets.OC_SERVER_PRIMARY }}
