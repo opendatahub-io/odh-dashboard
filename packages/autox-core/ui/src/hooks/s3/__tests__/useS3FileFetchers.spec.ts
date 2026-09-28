@@ -79,6 +79,82 @@ describe('useS3FileFetchers', () => {
     expect(fetchS3File).toHaveBeenCalledTimes(1);
   });
 
+  it('should refetch fresh JSON while keeping immutable JSON reads cached', async () => {
+    fetchS3File
+      .mockResolvedValueOnce({
+        text: () => Promise.resolve(JSON.stringify({ version: 1 })),
+      } as Blob)
+      .mockResolvedValueOnce({
+        text: () => Promise.resolve(JSON.stringify({ version: 2 })),
+      } as Blob)
+      .mockResolvedValueOnce({
+        text: () => Promise.resolve(JSON.stringify({ version: 3 })),
+      } as Blob);
+    const { Wrapper } = createWrapper();
+    const { result } = renderHook(() => useS3FileFetchers(), { wrapper: Wrapper });
+
+    await expect(result.current.fetchS3Json('namespace', 'mutable.json')).resolves.toEqual({
+      version: 1,
+    });
+    await expect(result.current.fetchS3Json('namespace', 'mutable.json')).resolves.toEqual({
+      version: 1,
+    });
+    await expect(
+      result.current.fetchS3Json('namespace', 'mutable.json', { fresh: true }),
+    ).resolves.toEqual({ version: 2 });
+    await expect(
+      result.current.fetchS3Json('namespace', 'mutable.json', { fresh: true }),
+    ).resolves.toEqual({ version: 3 });
+
+    expect(fetchS3File).toHaveBeenCalledTimes(3);
+  });
+
+  it('should abort the S3 request when the caller signal aborts', async () => {
+    let requestSignal: AbortSignal | undefined;
+    fetchS3File.mockImplementation((_namespace, _key, options) => {
+      requestSignal = options?.signal;
+      return new Promise<Blob>((_resolve, reject) => {
+        options?.signal?.addEventListener('abort', () =>
+          reject(new DOMException('Aborted', 'AbortError')),
+        );
+      });
+    });
+    const controller = new AbortController();
+    const { Wrapper } = createWrapper();
+    const { result } = renderHook(() => useS3FileFetchers(), { wrapper: Wrapper });
+    const request = result.current.fetchS3Json('namespace', 'live.json', {
+      signal: controller.signal,
+      maxBytes: 1024,
+    });
+
+    await waitFor(() => expect(requestSignal).toBeDefined());
+    controller.abort();
+
+    await expect(request).rejects.toThrow();
+    expect(requestSignal?.aborted).toBe(true);
+  });
+
+  it('should abort the S3 request when the React Query signal is cancelled', async () => {
+    let requestSignal: AbortSignal | undefined;
+    fetchS3File.mockImplementation((_namespace, _key, options) => {
+      requestSignal = options?.signal;
+      return new Promise<Blob>((_resolve, reject) => {
+        options?.signal?.addEventListener('abort', () =>
+          reject(new DOMException('Aborted', 'AbortError')),
+        );
+      });
+    });
+    const { Wrapper, queryClient } = createWrapper();
+    const { result } = renderHook(() => useS3FileFetchers(), { wrapper: Wrapper });
+    const request = result.current.fetchS3Json('namespace', 'live.json');
+
+    await waitFor(() => expect(requestSignal).toBeDefined());
+    await queryClient.cancelQueries({ queryKey: ['s3Json', 'namespace', 'live.json'] });
+
+    await expect(request).rejects.toThrow();
+    expect(requestSignal?.aborted).toBe(true);
+  });
+
   it('should forward an imperative download signal and cache the result', async () => {
     const blob = new Blob(['content']);
     fetchS3File.mockResolvedValue(blob);

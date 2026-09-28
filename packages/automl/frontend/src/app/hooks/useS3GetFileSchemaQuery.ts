@@ -57,6 +57,7 @@ export function useS3GetFileSchemaQuery(
         secretName,
         bucket,
         view: 'schema',
+        fresh: true,
       });
       const columns = result.data?.columns;
 

@@ -203,62 +203,71 @@ export function createS3Api(urlPrefix: string, bffApiVersion: string): S3Api {
       ...(view && { view }),
     });
     const abortController = maxBytes != null ? new AbortController() : undefined;
-    const combinedSignal = abortController
-      ? AbortSignal.any([abortController.signal, ...(signal ? [signal] : [])])
-      : signal;
-    const response = await fetch(
-      `${urlPrefix}/api/${bffApiVersion}/s3/files/${encodeURIComponent(key)}?${params.toString()}`,
-      { signal: combinedSignal },
+    const { signal: combinedSignal, cleanup } = combineAbortSignals(
+      signal,
+      abortController?.signal,
     );
+    try {
+      const response = await fetch(
+        `${urlPrefix}/api/${bffApiVersion}/s3/files/${encodeURIComponent(
+          key,
+        )}?${params.toString()}`,
+        { signal: combinedSignal },
+      );
 
-    if (!response.ok) {
-      let errorMessage = response.statusText;
-      try {
-        const errorData = await response.json();
-        if (errorData?.error?.message) {
-          errorMessage = errorData.error.message;
+      if (!response.ok) {
+        let errorMessage = response.statusText;
+        try {
+          const errorData = await response.json();
+          if (errorData?.error?.message) {
+            errorMessage = errorData.error.message;
+          }
+        } catch {
+          // If parsing fails, fall back to statusText
         }
-      } catch {
-        // If parsing fails, fall back to statusText
+        throw new Error(`Failed to fetch file: ${errorMessage}`);
       }
-      throw new Error(`Failed to fetch file: ${errorMessage}`);
-    }
 
-    if (maxBytes != null) {
-      const contentLength = response.headers.get('Content-Length');
-      if (contentLength != null && parseInt(contentLength, 10) > maxBytes) {
-        abortController?.abort();
-        throw new Error(
-          `S3 file too large: ${contentLength} bytes exceeds limit of ${maxBytes} bytes`,
-        );
-      }
-      const reader = response.body?.getReader();
-      if (!reader) {
-        return response.blob();
-      }
-      const chunks: Uint8Array[] = [];
-      let received = 0;
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) {
-          break;
-        }
-        received += value.byteLength;
-        if (received > maxBytes) {
+      if (maxBytes != null) {
+        const contentLength = response.headers.get('Content-Length');
+        if (contentLength != null && parseInt(contentLength, 10) > maxBytes) {
           abortController?.abort();
-          throw new Error(`S3 file too large: exceeded limit of ${maxBytes} bytes during download`);
+          throw new Error(
+            `S3 file too large: ${contentLength} bytes exceeds limit of ${maxBytes} bytes`,
+          );
         }
-        chunks.push(value);
+        const reader = response.body?.getReader();
+        if (!reader) {
+          return await response.blob();
+        }
+        const chunks: Uint8Array[] = [];
+        let received = 0;
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) {
+            break;
+          }
+          received += value.byteLength;
+          if (received > maxBytes) {
+            abortController?.abort();
+            throw new Error(
+              `S3 file too large: exceeded limit of ${maxBytes} bytes during download`,
+            );
+          }
+          chunks.push(value);
+        }
+        const combined = new Uint8Array(received);
+        let offset = 0;
+        for (const chunk of chunks) {
+          combined.set(chunk, offset);
+          offset += chunk.byteLength;
+        }
+        return new Blob([combined]);
       }
-      const combined = new Uint8Array(received);
-      let offset = 0;
-      for (const chunk of chunks) {
-        combined.set(chunk, offset);
-        offset += chunk.byteLength;
-      }
-      return new Blob([combined]);
+      return await response.blob();
+    } finally {
+      cleanup();
     }
-    return response.blob();
   }
 
   async function fetchS3Json<T>(
@@ -313,4 +322,36 @@ function isS3UploadSuccessPayload(data: unknown): data is UploadFileToS3Response
     typeof data.key === 'string' &&
     data.key.trim() !== ''
   );
+}
+
+export function combineAbortSignals(...signals: (AbortSignal | undefined)[]): {
+  signal?: AbortSignal;
+  cleanup: () => void;
+} {
+  const definedSignals = signals.filter((signal): signal is AbortSignal => signal !== undefined);
+  if (definedSignals.length === 0) {
+    return { cleanup: () => undefined };
+  }
+  if (definedSignals.length === 1) {
+    return { signal: definedSignals[0], cleanup: () => undefined };
+  }
+
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  for (const signal of definedSignals) {
+    if (signal.aborted) {
+      controller.abort();
+      break;
+    }
+    signal.addEventListener('abort', abort, { once: true });
+  }
+
+  return {
+    signal: controller.signal,
+    cleanup: () => {
+      for (const signal of definedSignals) {
+        signal.removeEventListener('abort', abort);
+      }
+    },
+  };
 }

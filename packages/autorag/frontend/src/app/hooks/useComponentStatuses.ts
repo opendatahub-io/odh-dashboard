@@ -382,7 +382,9 @@ async function fetchComponentStatus(
     return undefined;
   }
 
-  return fetchers.fetchS3Json(namespace, jsonPath, { signal }).then(parseComponentStatusArtifact);
+  return fetchers
+    .fetchS3Json(namespace, jsonPath, { signal, fresh: true })
+    .then(parseComponentStatusArtifact);
 }
 
 export async function fetchComponentStatusForComponent(

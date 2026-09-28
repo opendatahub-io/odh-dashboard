@@ -1,13 +1,18 @@
 import { useQueryClient } from '@tanstack/react-query';
 import * as z from 'zod';
 import { useCallback, useMemo } from 'react';
+import { combineAbortSignals } from '../../api/s3/s3';
 import type { FetchS3FileOptions, FetchS3JsonOptions } from '../../api/s3/s3';
 import type { S3ListObjectsResponse } from '../../api/s3/types';
 import { useAutoXApi } from '../../context/AutoXApiContext';
 
 export type S3FileFetchers = {
   fetchS3File: (namespace: string, key: string, options?: FetchS3FileOptions) => Promise<Blob>;
-  fetchS3Json: <T>(namespace: string, key: string, options?: FetchS3JsonOptions<T>) => Promise<T>;
+  fetchS3Json: <T>(
+    namespace: string,
+    key: string,
+    options?: FetchS3JsonOptions<T> & { fresh?: boolean },
+  ) => Promise<T>;
 };
 
 type S3JsonQueryKeyOptions = Pick<
@@ -47,28 +52,41 @@ export function useS3FileFetchers(): S3FileFetchers {
           options?.view,
           options?.maxBytes,
         ],
-        queryFn: ({ signal }) => s3Api.fetchS3File(namespace, key, { ...options, signal }),
+        queryFn: ({ signal }) => {
+          const combined = combineAbortSignals(options?.signal, signal);
+          return s3Api
+            .fetchS3File(namespace, key, { ...options, signal: combined.signal })
+            .finally(combined.cleanup);
+        },
         staleTime: 5 * 60 * 1000,
       }),
     [queryClient, s3Api],
   );
 
   const fetchS3Json = useCallback(
-    async <T>(namespace: string, key: string, options?: FetchS3JsonOptions<T>): Promise<T> => {
+    async <T>(
+      namespace: string,
+      key: string,
+      options?: FetchS3JsonOptions<T> & { fresh?: boolean },
+    ): Promise<T> => {
       const maxBytes = options?.maxBytes ?? 50 * 1024 * 1024;
+      const { fresh, signal: callerSignal, schema, ...s3Options } = options ?? {};
       const text = await queryClient.fetchQuery({
         queryKey: getS3JsonQueryKey(namespace, key, { ...options, maxBytes }),
-        queryFn: ({ signal }) =>
-          s3Api
-            .fetchS3File(namespace, key, { ...options, maxBytes, signal })
-            .then((blob) => blob.text()),
-        staleTime: 5 * 60 * 1000,
+        queryFn: ({ signal }) => {
+          const combined = combineAbortSignals(callerSignal, signal);
+          return s3Api
+            .fetchS3File(namespace, key, { ...s3Options, maxBytes, signal: combined.signal })
+            .then((blob) => blob.text())
+            .finally(combined.cleanup);
+        },
+        staleTime: fresh ? 0 : 5 * 60 * 1000,
       });
 
       try {
         const parsed: unknown = JSON.parse(text);
-        if (options?.schema) {
-          return options.schema.parse(parsed);
+        if (schema) {
+          return schema.parse(parsed);
         }
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- no schema provided, caller accepts risk
         return parsed as T;

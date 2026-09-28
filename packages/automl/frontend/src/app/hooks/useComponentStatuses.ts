@@ -377,7 +377,11 @@ async function fetchComponentStatus(
     return undefined;
   }
 
-  return fetchers.fetchS3Json(namespace, jsonPath, { signal, schema: ComponentStatusFileSchema });
+  return fetchers.fetchS3Json(namespace, jsonPath, {
+    signal,
+    schema: ComponentStatusFileSchema,
+    fresh: true,
+  });
 }
 
 export async function fetchComponentStatusForComponent(

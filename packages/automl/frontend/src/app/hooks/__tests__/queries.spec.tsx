@@ -194,6 +194,37 @@ describe('useS3GetFileSchemaQuery', () => {
     });
   });
 
+  it('should refetch changed schema content for the same file key', async () => {
+    /* eslint-disable camelcase -- matches API response field name */
+    const firstColumns = [{ name: 'old_id', type: 'integer', task_type: 'binary' as const }];
+    const secondColumns = [{ name: 'new_id', type: 'string', task_type: 'multiclass' as const }];
+    /* eslint-enable camelcase */
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => null },
+        blob: async () => new Blob([JSON.stringify({ data: { columns: firstColumns } })]),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => null },
+        blob: async () => new Blob([JSON.stringify({ data: { columns: secondColumns } })]),
+      });
+
+    const { result } = renderHook(
+      () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
+      { wrapper: createWrapper().Wrapper },
+    );
+
+    await waitFor(() => expect(result.current.data).toEqual(firstColumns));
+    await act(async () => {
+      await result.current.refetch();
+    });
+
+    expect(result.current.data).toEqual(secondColumns);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
   it('should return empty array when response data is missing', async () => {
     const mockResponse = {
       data: {},

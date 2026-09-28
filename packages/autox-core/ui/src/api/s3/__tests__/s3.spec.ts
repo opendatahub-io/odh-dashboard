@@ -1,7 +1,7 @@
 /* eslint-disable camelcase -- BFF API uses snake_case for S3 object fields */
 import { isModArchResponse, restCREATE, restGET } from 'mod-arch-core';
 import { handleRestWithUIErrors } from '../../../components/primitive';
-import { createS3Api } from '../s3';
+import { combineAbortSignals, createS3Api } from '../s3';
 
 jest.mock('mod-arch-core', () => ({
   isModArchResponse: jest.fn(),
@@ -18,11 +18,12 @@ const mockRestGET = jest.mocked(restGET);
 const mockIsModArchResponse = jest.mocked(isModArchResponse);
 const mockHandleRestWithUIErrors = jest.mocked(handleRestWithUIErrors);
 
-const { uploadFileToS3, getFiles } = createS3Api('/test-product', 'v1');
+const { uploadFileToS3, getFiles, fetchS3File } = createS3Api('/test-product', 'v1');
 
 describe('createS3Api', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    global.fetch = jest.fn();
   });
 
   describe('uploadFileToS3', () => {
@@ -200,6 +201,77 @@ describe('createS3Api', () => {
 
       await expect(getFiles('', {}, { namespace: 'ns' })).rejects.toThrow('boom');
       expect(mockHandleRestWithUIErrors).toHaveBeenCalled();
+    });
+  });
+
+  describe('fetchS3File', () => {
+    it('should pass an already-aborted caller signal to the fetch request', async () => {
+      const callerController = new AbortController();
+      callerController.abort();
+      const fetchMock = jest.mocked(global.fetch);
+      fetchMock.mockImplementation((_input, init) => {
+        expect(init?.signal?.aborted).toBe(true);
+        return Promise.resolve({
+          ok: true,
+          headers: new Headers(),
+          blob: async () => new Blob(['content']),
+        } as Response);
+      });
+
+      await fetchS3File('ns', 'file.json', { signal: callerController.signal });
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should abort the composed request when maxBytes is exceeded', async () => {
+      const callerController = new AbortController();
+      let requestSignal: AbortSignal | undefined;
+      const fetchMock = jest.mocked(global.fetch);
+      fetchMock.mockImplementation((_input, init) => {
+        requestSignal = init?.signal ?? undefined;
+        return Promise.resolve({
+          ok: true,
+          headers: new Headers({ 'Content-Length': '5' }),
+          blob: async () => new Blob(['12345']),
+        } as Response);
+      });
+
+      await expect(
+        fetchS3File('ns', 'file.json', { signal: callerController.signal, maxBytes: 4 }),
+      ).rejects.toThrow('S3 file too large: 5 bytes exceeds limit of 4 bytes');
+
+      expect(requestSignal?.aborted).toBe(true);
+      expect(callerController.signal.aborted).toBe(false);
+    });
+  });
+
+  describe('combineAbortSignals', () => {
+    it('should remove listeners after the composed request completes', () => {
+      const callerController = new AbortController();
+      const queryController = new AbortController();
+      const callerRemoveSpy = jest.spyOn(callerController.signal, 'removeEventListener');
+      const queryRemoveSpy = jest.spyOn(queryController.signal, 'removeEventListener');
+
+      const combined = combineAbortSignals(callerController.signal, queryController.signal);
+      combined.cleanup();
+
+      expect(callerRemoveSpy).toHaveBeenCalledWith('abort', expect.any(Function));
+      expect(queryRemoveSpy).toHaveBeenCalledWith('abort', expect.any(Function));
+    });
+
+    it('should remove listeners after a composed request aborts', () => {
+      const callerController = new AbortController();
+      const queryController = new AbortController();
+      const callerRemoveSpy = jest.spyOn(callerController.signal, 'removeEventListener');
+      const queryRemoveSpy = jest.spyOn(queryController.signal, 'removeEventListener');
+
+      const combined = combineAbortSignals(callerController.signal, queryController.signal);
+      callerController.abort();
+      combined.cleanup();
+
+      expect(combined.signal?.aborted).toBe(true);
+      expect(callerRemoveSpy).toHaveBeenCalledWith('abort', expect.any(Function));
+      expect(queryRemoveSpy).toHaveBeenCalledWith('abort', expect.any(Function));
     });
   });
 });

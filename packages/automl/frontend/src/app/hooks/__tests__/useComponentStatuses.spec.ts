@@ -15,6 +15,7 @@ import {
   resolveActiveRunLevelPrefix,
   resolveComponentTaskS3Prefix,
   ComponentStatusFileSchema,
+  fetchComponentStatusForComponent,
   useComponentStatuses,
 } from '~/app/hooks/useComponentStatuses';
 import type { ComponentStatusFile } from '~/app/hooks/useComponentStatuses';
@@ -124,6 +125,8 @@ const createMockPipelineRun = (
   state: string,
   taskDetails: { task_id: string; display_name?: string; state?: string }[] = [],
 ): PipelineRun =>
+  /* eslint-disable prettier/prettier -- preserve the established fixture assertion formatting */
+  // prettier-ignore -- preserve the established fixture assertion formatting
   ({
     run_id: 'run-123',
     display_name: 'Test Run',
@@ -140,7 +143,8 @@ const createMockPipelineRun = (
         state: td.state,
       })),
     },
-  }) as PipelineRun;
+  } as PipelineRun);
+/* eslint-enable prettier/prettier */
 
 // -- Tests --
 
@@ -911,6 +915,83 @@ describe('useComponentStatuses', () => {
       expect(result.current.isLoading).toBe(false);
     });
     expect(result.current.mergedStageMap).toEqual(mockComponentStageMap);
+  });
+
+  it('should request fresh component status JSON', async () => {
+    getFilesMock.mockResolvedValue({
+      contents: [],
+      common_prefixes: [{ prefix: 'root/run-123/autogluon-models-training/' }],
+      is_truncated: false,
+      key_count: 1,
+      max_keys: 1000,
+    });
+    mockS3FileFetchers.fetchS3Json.mockResolvedValue({
+      component_id: 'autogluon_models_training',
+      stages: [],
+    });
+
+    await fetchComponentStatusForComponent(
+      'test-namespace',
+      'root',
+      'run-123',
+      'autogluon_models_training',
+      undefined,
+      new AbortController().signal,
+      mockS3FileFetchers,
+      mockS3FileOperations.listS3Files,
+    );
+
+    expect(mockS3FileFetchers.fetchS3Json).toHaveBeenCalledWith(
+      'test-namespace',
+      'root/run-123/autogluon-models-training/component_status/component_status.json',
+      expect.objectContaining({ fresh: true }),
+    );
+  });
+
+  it('should return updated component status after the outer status query reruns', async () => {
+    const pipelineRun = createMockPipelineRun('RUNNING', [
+      { task_id: 'autogluon-models-training-2', state: 'RUNNING' },
+    ]);
+    mockS3FileFetchers.fetchS3Json
+      .mockResolvedValueOnce({
+        component_id: 'autogluon_models_training',
+        stages: [{ id: 'load_data', status: 'started' }],
+      })
+      .mockResolvedValueOnce({
+        component_id: 'autogluon_models_training',
+        stages: [{ id: 'load_data', status: 'completed' }],
+      });
+
+    const { result, rerender } = renderHook(
+      ({ updatedAt }) =>
+        useComponentStatuses(
+          'run-123',
+          'test-namespace',
+          pipelineRun,
+          mockComponentStageMap,
+          updatedAt,
+        ),
+      { initialProps: { updatedAt: dataUpdatedAt } },
+    );
+
+    await waitFor(() => {
+      expect(
+        result.current.mergedStageMap?.components.find(
+          (component) => component.id === 'autogluon_models_training',
+        )?.stages[0].status,
+      ).toBe('started');
+    });
+
+    rerender({ updatedAt: dataUpdatedAt + 1 });
+
+    await waitFor(() => {
+      expect(
+        result.current.mergedStageMap?.components.find(
+          (component) => component.id === 'autogluon_models_training',
+        )?.stages[0].status,
+      ).toBe('completed');
+    });
+    expect(mockS3FileFetchers.fetchS3Json).toHaveBeenCalledTimes(2);
   });
 
   it('should clear stale errors when a later fetch returns missing status', async () => {
