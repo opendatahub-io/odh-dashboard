@@ -2415,12 +2415,10 @@ func requiresPassthroughProvider(model models.InstallModel) bool {
 	}
 }
 
-// GetExternalModelsConfig retrieves and parses the gen-ai-aa-custom-model-endpoints ConfigMap
+// GetExternalModelsConfig retrieves and parses the user-managed
+// gen-ai-aa-custom-model-endpoints ConfigMap using the request-scoped client.
 func (kc *TokenKubernetesClient) GetExternalModelsConfig(ctx context.Context, namespace string) (*models.ExternalModelsConfig, error) {
-	// Custom endpoint configuration is dashboard-managed. Read it with the
-	// dashboard service account so an authorized deployment caller does not
-	// also need direct ConfigMap access.
-	configMap, err := kc.GetDashboardConfigMap(ctx, namespace, constants.ExternalModelsConfigMapName)
+	configMap, err := kc.GetConfigMap(ctx, nil, namespace, constants.ExternalModelsConfigMapName)
 	if err != nil {
 		return nil, err
 	}

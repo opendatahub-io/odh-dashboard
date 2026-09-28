@@ -41,10 +41,10 @@ type noMatchListClient struct {
 	client.Client
 }
 
-func TestGetExternalModelsConfigUsesDashboardClient(t *testing.T) {
+func TestGetExternalModelsConfigUsesRequestClient(t *testing.T) {
 	const namespace = "test-namespace"
 
-	dashboardClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
+	requestClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.ExternalModelsConfigMapName,
 			Namespace: namespace,
@@ -68,8 +68,8 @@ registered_resources:
 		},
 	}).Build()
 	kc := &TokenKubernetesClient{
-		Client:   fake.NewClientBuilder().Build(),
-		SAClient: dashboardClient,
+		Client:   requestClient,
+		SAClient: fake.NewClientBuilder().Build(),
 		Logger:   slog.Default(),
 	}
 
