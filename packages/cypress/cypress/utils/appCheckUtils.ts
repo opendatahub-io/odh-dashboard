@@ -1,3 +1,19 @@
+import {
+  DataScienceStackComponent,
+  type DashboardConfigKind,
+  type DataScienceClusterKindStatus,
+} from '@odh-dashboard/k8s-core';
+
+const NVIDIA_NIM_APPLICATION = 'nvidia-nim';
+
+const getEffectiveDashboardConfig = (): Cypress.Chainable<DashboardConfigKind> =>
+  cy
+    .request<DashboardConfigKind>({
+      url: '/api/config',
+      headers: { 'Cache-Control': 'no-cache' },
+    })
+    .its('body');
+
 /**
  * Filters out applications that have spec.hidden === true in their OdhApplication CR.
  * Queries the cluster for all OdhApplication CRs and excludes any with hidden set.
@@ -69,18 +85,39 @@ export function isFeatureFlagEnabled(flagPath: string): Cypress.Chainable<boolea
  */
 export function filterFeatureFlaggedApps(apps: string[]): Cypress.Chainable<string[]> {
   return cy.exec('oc get DataScienceCluster -A -o json').then((dscResult) => {
-    const dscComponents = JSON.parse(dscResult.stdout).items?.[0]?.status?.components || {};
+    const dscResponse = JSON.parse(dscResult.stdout) as {
+      items?: Array<{ status?: DataScienceClusterKindStatus }>;
+    };
+    const dscComponents = dscResponse.items?.[0]?.status?.components ?? {};
+    const componentsByName = dscComponents as unknown as Record<
+      string,
+      { managementState?: string } | undefined
+    >;
 
-    return cy.getDashboardConfig().then((config) => {
-      const dashboardConfig = (config as Record<string, unknown>).dashboardConfig as
-        | Record<string, unknown>
-        | undefined;
+    return getEffectiveDashboardConfig().then((config) => {
+      const { dashboardConfig } = config.spec;
+      const featureFlags = dashboardConfig as unknown as Record<string, unknown>;
+      const kserveManagementState =
+        componentsByName[DataScienceStackComponent.K_SERVE]?.managementState;
+      const isKServeAvailable =
+        dashboardConfig.disableModelServing === false &&
+        dashboardConfig.disableKServe === false &&
+        (kserveManagementState === 'Managed' || kserveManagementState === 'Unmanaged');
+      const isNimWizardAvailable =
+        dashboardConfig.nimWizard === true &&
+        dashboardConfig.disableNIMModelServing === false &&
+        isKServeAvailable;
 
       const filteredApps = apps.filter((appName) => {
+        if (appName === NVIDIA_NIM_APPLICATION && isNimWizardAvailable) {
+          cy.log(`Filtering out ${appName} (NIM Wizard is available)`);
+          return false;
+        }
+
         // Check if this app has a corresponding operator component in DSC
         // Map app names to their DSC component names (e.g., mlflow -> mlflowoperator)
         const componentName = `${appName}operator`;
-        const component = dscComponents[componentName];
+        const component = componentsByName[componentName];
 
         // Frontend logic: component is available if managementState is 'Managed' OR 'Unmanaged'
         // Only 'Removed' (or missing) makes it unavailable
@@ -90,7 +127,7 @@ export function filterFeatureFlaggedApps(apps: string[]): Cypress.Chainable<stri
         }
 
         // Check feature flag if no component requirement
-        const featureFlagValue = dashboardConfig?.[appName];
+        const featureFlagValue = featureFlags[appName];
 
         // If no feature flag, include the app
         if (featureFlagValue === undefined) {

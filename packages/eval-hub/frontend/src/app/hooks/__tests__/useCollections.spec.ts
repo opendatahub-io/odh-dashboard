@@ -177,6 +177,46 @@ describe('useCollections', () => {
     expect(renderResult.result.current.totalCount).toBe(2);
   });
 
+  it('should prefer category and fall back to domains when filtering collections', () => {
+    const collections: Collection[] = [
+      {
+        resource: { id: 'category-collection' },
+        name: 'Category Collection',
+        category: 'primary',
+        domains: ['domain_fallback'],
+      },
+      {
+        resource: { id: 'domain-collection' },
+        name: 'Domain Collection',
+        domains: ['domain_fallback'],
+      },
+    ];
+    mockUseCollectionsContext.mockReturnValue({
+      response: { items: collections },
+      loaded: true,
+      loadError: undefined,
+      refresh: mockRefresh,
+    });
+
+    const renderResult = testHook(useCollections)('test-namespace');
+
+    expect(renderResult.result.current.availableCategories).toEqual(['domain_fallback', 'primary']);
+
+    act(() => {
+      renderResult.result.current.setCategoryFilter(['primary']);
+    });
+    expect(renderResult.result.current.collections.map((c) => c.resource.id)).toEqual([
+      'category-collection',
+    ]);
+
+    act(() => {
+      renderResult.result.current.setCategoryFilter(['domain_fallback']);
+    });
+    expect(renderResult.result.current.collections.map((c) => c.resource.id)).toEqual([
+      'domain-collection',
+    ]);
+  });
+
   it('should derive availableCategories from the full unfiltered list', () => {
     const collections: Collection[] = [
       { resource: { id: 'col-1' }, name: 'A', category: 'coding' },

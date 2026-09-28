@@ -70,6 +70,10 @@ const (
 	// Gen-ai playground LLS distribution name
 	lsdName = "lsd-genai-playground"
 
+	// Suppresses noisy OGX Python auto-instrumentors that otherwise emit internal
+	// database and HTTP client spans as standalone request=null MLflow traces.
+	ogxDisabledInstrumentations = "sqlite3,sqlalchemy,asyncpg,requests,urllib,urllib3,httpx,httpx2"
+
 	// Label for dashboard-managed OGXServer identification
 	OpenDataHubDashboardLabelKey = "opendatahub.io/dashboard"
 
@@ -599,6 +603,10 @@ func (kc *TokenKubernetesClient) GetNemoGuardrailsServiceURL(ctx context.Context
 	})
 
 	if err := kc.Client.List(ctx, list, client.InNamespace(namespace)); err != nil {
+		if apierrors.IsNotFound(err) || apimeta.IsNoMatchError(err) {
+			kc.Logger.Debug("NemoGuardrails CRD is unavailable", "namespace", namespace)
+			return "", nil
+		}
 		kc.Logger.Error("failed to list NemoGuardrails CRs", "error", err, "namespace", namespace)
 		return "", fmt.Errorf("failed to list NemoGuardrails CRs: %w", err)
 	}
@@ -1521,7 +1529,7 @@ func ogxCommand(enableTracing bool) []string {
 	if enableTracing {
 		return []string{"/bin/sh", "-c", strings.Join([]string{
 			"cp /opt/app-root/lib/python*/site-packages/opentelemetry/instrumentation/auto_instrumentation/sitecustomize.py /opt/app-root/lib/python*/site-packages/ 2>/dev/null || true",
-			"opentelemetry-instrument --traces_exporter=otlp_proto_http --metrics_exporter=none --logs_exporter=none ogx run /etc/ogx/config.yaml --insecure",
+			fmt.Sprintf("opentelemetry-instrument --traces_exporter=otlp_proto_http --metrics_exporter=none --logs_exporter=none --disabled_instrumentations=%s ogx run /etc/ogx/config.yaml --insecure", ogxDisabledInstrumentations),
 		}, " && ")}
 	}
 	return []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml --insecure"}
@@ -1545,9 +1553,11 @@ func ogxEnvVars(base []corev1.EnvVar, enableTracing bool, namespace string, coll
 			corev1.EnvVar{Name: "OTEL_RESOURCE_ATTRIBUTES", Value: fmt.Sprintf("k8s.namespace.name=%s", namespace)},
 			corev1.EnvVar{Name: "OTEL_SEMCONV_STABILITY_OPT_IN", Value: "http"},
 			corev1.EnvVar{Name: "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT", Value: "true"},
-			// Suppress noisy spans from internal endpoints and low-level instrumentors
-			corev1.EnvVar{Name: "OTEL_PYTHON_FASTAPI_EXCLUDED_URLS", Value: "health,version,metadata"},
-			corev1.EnvVar{Name: "OTEL_PYTHON_DISABLED_INSTRUMENTATIONS", Value: "sqlite3"},
+			// Suppress noisy spans from internal endpoints and low-level database/HTTP
+			// instrumentors. Otherwise OGX discovery, provider health, pgvector, and
+			// persistence calls are exported as separate request=null root traces.
+			corev1.EnvVar{Name: "OTEL_PYTHON_FASTAPI_EXCLUDED_URLS", Value: "health,version,metadata,models,vector_stores,providers,files"},
+			corev1.EnvVar{Name: "OTEL_PYTHON_DISABLED_INSTRUMENTATIONS", Value: ogxDisabledInstrumentations},
 		)
 	}
 
@@ -1612,19 +1622,6 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			Name:  "HF_DATASETS_OFFLINE",
 			Value: "1",
 		},
-	}
-
-	// Add per-model max_tokens environment variables
-	for i, model := range installModels {
-		maxTokensEnvName := fmt.Sprintf("VLLM_MAX_TOKENS_%d", i+1)
-		maxTokensValue := "4096"
-		if model.MaxTokens != nil {
-			maxTokensValue = strconv.Itoa(*model.MaxTokens)
-		}
-		envVars = append(envVars, corev1.EnvVar{
-			Name:  maxTokensEnvName,
-			Value: maxTokensValue,
-		})
 	}
 
 	// Step 2: Validate vector stores and inject credential env vars for providers that need them.
@@ -2233,7 +2230,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 				return "", fmt.Errorf("cannot find external model '%s': %w", model.ModelName, err)
 			}
 			if model.ModelType == string(models.ModelTypeEmbedding) {
-				config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, string(models.ModelTypeEmbedding), extDetails.providerType, extDetails.metadata, model.MaxTokens, model.EmbeddingDimension, model.IsClusterLocal)
+				config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, string(models.ModelTypeEmbedding), extDetails.providerType, extDetails.metadata, model.EmbeddingDimension, model.IsClusterLocal)
 				kc.Logger.Info("Registered embedding model (custom endpoint)", "model", extDetails.modelID, "providerID", extDetails.providerID)
 			} else {
 				kc.Logger.Info("Validated external model", "model", extDetails.modelID, "providerID", extDetails.providerID)
@@ -2245,7 +2242,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			}
 			if model.ModelType == string(models.ModelTypeEmbedding) {
 				providerID := fmt.Sprintf("vllm-inference-%d", i+1)
-				config.AddVLLMProviderAndModel(providerID, details.endpointURL, i, details.modelID, string(models.ModelTypeEmbedding), details.metadata, model.MaxTokens, model.EmbeddingDimension, false)
+				config.AddVLLMProviderAndModel(providerID, details.endpointURL, i, details.modelID, string(models.ModelTypeEmbedding), details.metadata, model.EmbeddingDimension)
 				kc.Logger.Info("Registered embedding model (cluster)", "model", details.modelID, "providerID", providerID)
 			} else {
 				kc.Logger.Info("Validated cluster model", "model", details.modelID, "endpoint", details.endpointURL)

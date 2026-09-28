@@ -55,6 +55,9 @@ export const RAG_METRIC_ANSWER_CORRECTNESS = 'answer_correctness';
 export const RAG_METRIC_CONTEXT_CORRECTNESS = 'context_correctness';
 export const RAG_METRIC_OVERALL_SCORE = 'overall_score';
 export const RAG_METRIC_ANSWER_RELEVANCE = 'answer_relevance';
+export const RAG_METRIC_ANSWER_RELEVANCY = 'answer_relevancy';
+export const RAG_METRIC_CONTEXT_PRECISION = 'context_precision';
+export const RAG_METRIC_CONTEXT_RECALL = 'context_recall';
 
 export const DEFAULT_OPTIMIZATION_METRIC = RAG_METRIC_OVERALL_SCORE;
 
@@ -78,7 +81,23 @@ export const METRIC_DESCRIPTIONS: Record<string, string> = {
     'A composite score that combines the other metrics to provide an overall assessment of the RAG system’s performance. A high overall score indicates that the system is performing well across all evaluated aspects.',
   [RAG_METRIC_ANSWER_RELEVANCE]:
     'Measures how relevant the generated answer is to the user’s question. A high answer relevance score means the answer directly addresses the question and provides useful information.',
+  [RAG_METRIC_ANSWER_RELEVANCY]:
+    'Measures how relevant the generated answer is to the user’s question. A high answer relevancy score means the answer directly addresses the question and provides useful information.',
+  [RAG_METRIC_CONTEXT_PRECISION]:
+    'Measures how precise the retrieved documents are for the question. A high context precision score means a larger share of the retrieved context is relevant.',
+  [RAG_METRIC_CONTEXT_RECALL]:
+    'Measures how completely the retrieved documents cover the information needed to answer the question. A high context recall score means the retrieval step finds the necessary supporting context.',
 };
+
+export const CI_SCORE_HELP =
+  'Confidence interval scores show the statistical range of each evaluation metric. The CI low and CI high markers represent the 95% confidence interval bounds around the mean score.';
+export const CI_LOW_HELP =
+  'The lower bound of the 95% confidence interval for this metric’s mean score.';
+export const CI_HIGH_HELP =
+  'The upper bound of the 95% confidence interval for this metric’s mean score.';
+export const CI_MEAN_HELP = 'The mean score across evaluation samples for this metric.';
+export const CI_INTERVAL_HELP =
+  'A 95% confidence interval is the range expected to contain the true mean score for 95% of similar evaluations.';
 
 export const REQUIRED_CONNECTION_SECRET_KEYS: Readonly<Partial<Record<string, readonly string[]>>> =
   {

@@ -20,6 +20,9 @@
 #
 # Concurrency: per-role cancel-in-progress groups live in reusable-dispatch.yml
 # stage jobs with -agent- suffix. Roles operate independently (#2452).
+# Do not add workflow-level cancel-in-progress here: job `if` runs after the
+# concurrency group is assigned, so label/review/comment noise would still
+# queue a run, cancel an in-flight review, then skip every job.
 name: fullsend
 
 on:
@@ -64,6 +67,7 @@ jobs:
       pull-requests: read
     outputs:
       matrix: ${{ steps.adapters.outputs.matrix }}
+      run_adapters: ${{ steps.gate.outputs.run_adapters }}
     steps:
       - name: Checkout trusted review integration
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -73,6 +77,17 @@ jobs:
           # was last advanced (see RHOAIENG-82125 CI failure on PR #9090).
           ref: ${{ github.sha }}
           persist-credentials: false
+
+      # The review's pre-script skips closed PRs, but it runs inside dispatch,
+      # after the adapters have already bought a CodeRabbit review. Apply the
+      # same state check here first.
+      - name: Check review readiness
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+          REPO_FULL_NAME: ${{ github.repository }}
+        run: bash .fullsend/scripts/pre-review.sh --adapter-gate
 
       - name: Build adapter matrix from registry
         id: adapters
@@ -106,6 +121,7 @@ jobs:
   adapter-context:
     name: Prepare ${{ matrix.id }} context
     needs: adapter-plan
+    if: needs.adapter-plan.outputs.run_adapters == 'true'
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -197,13 +213,26 @@ jobs:
 
   dispatch:
     needs: [adapter-plan, adapter-context]
+    # Same event filter as adapter-plan so unrelated labels (e.g. approved) or
+    # bot reviews do not burn a Route/dispatch when nothing will act on them.
+    # always()+!cancelled() still lets Route run when adapters were skipped
+    # or failed (or when this run was cancelled).
     if: >-
       always()
+      && !cancelled()
       && (github.event_name != 'pull_request_target' && github.event_name != 'pull_request_review'
        || github.event.pull_request.head.ref != 'fullsend/scaffold-install')
       && (
-        ((github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review')
-         && contains(github.event.pull_request.labels.*.name, 'fullsend'))
+        (github.event_name == 'pull_request_target'
+         && contains(github.event.pull_request.labels.*.name, 'fullsend')
+         && (github.event.action == 'opened'
+          || github.event.action == 'synchronize'
+          || github.event.action == 'ready_for_review'
+          || (github.event.action == 'labeled'
+           && github.event.label.name == 'ready-for-review')))
+        || (github.event_name == 'pull_request_review'
+         && contains(github.event.pull_request.labels.*.name, 'fullsend')
+         && github.event.review.state == 'changes_requested')
         || (github.event_name == 'issue_comment'
          && github.event.issue.pull_request
          && github.event.comment.user.type != 'Bot'

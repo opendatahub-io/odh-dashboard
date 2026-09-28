@@ -345,21 +345,67 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     }
   };
 
+  const getKeyboardItemToSelect = (
+    focusedItem: SelectionOptions | null,
+  ): SelectionOptions | undefined => {
+    if (focusedItem && !focusedItem.isAriaDisabled && !focusedItem.isDisabled) {
+      return focusedItem;
+    }
+
+    const inputValueTrim = inputValue.trim();
+    if (!inputValueTrim) {
+      return undefined;
+    }
+
+    // Prefer create when it is available (no complete match). Partial matches stay visible
+    // but Enter/Tab still creates the typed value.
+    if (createOption) {
+      return createOption;
+    }
+
+    // Complete match hides create — select the exact option over other partial matches.
+    const exactMatch = visibleOptions.find(
+      (option) =>
+        !option.isAriaDisabled &&
+        !option.isDisabled &&
+        (String(option.name).toLowerCase() === inputValueTrim.toLowerCase() ||
+          String(option.id).toLowerCase() === inputValueTrim.toLowerCase()),
+    );
+    if (exactMatch) {
+      return exactMatch;
+    }
+
+    return visibleOptions.find((option) => !option.isAriaDisabled && !option.isDisabled);
+  };
+
   const onInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     const focusedItem = focusedItemIndex !== null ? visibleOptions[focusedItemIndex] : null;
     switch (event.key) {
-      case 'Enter':
+      case 'Enter': {
         event.preventDefault();
-        if (isOpen && focusedItem && !focusedItem.isAriaDisabled && !focusedItem.isDisabled) {
-          onSelect(focusedItem);
-        }
         if (!isOpen) {
           openMenu(true);
+          break;
+        }
+        const itemToSelect = getKeyboardItemToSelect(focusedItem);
+
+        if (itemToSelect) {
+          onSelect(itemToSelect);
         }
         break;
-      case 'Tab':
+      }
+      case 'Tab': {
+        if (!isOpen) {
+          break;
+        }
+        const itemToSelect = getKeyboardItemToSelect(focusedItem);
+        if (itemToSelect) {
+          // Do not refocus so default Tab can move to the next field.
+          onSelect(itemToSelect, false);
+        }
         closeMenu();
         break;
+      }
       case 'Escape':
         if (isOpen) {
           event.preventDefault();
@@ -410,7 +456,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     );
   };
 
-  const onSelect = (menuItem?: SelectionOptions) => {
+  const onSelect = (menuItem?: SelectionOptions, refocusInput = true) => {
     if (menuItem?.isAriaDisabled || menuItem?.isDisabled) {
       return;
     }
@@ -425,9 +471,10 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         ),
       );
       setInputValue('');
-      resetActiveAndFocusedItem();
     }
-    textInputRef.current?.focus();
+    if (refocusInput) {
+      textInputRef.current?.focus();
+    }
   };
 
   const showSelectionError = selectionRequired && !hasSelections;

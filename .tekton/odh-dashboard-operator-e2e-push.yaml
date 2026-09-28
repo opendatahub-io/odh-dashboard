@@ -1,0 +1,62 @@
+# RHOAIENG-87692: builds and publishes the containerized dashboard-operator E2E
+# test image (Dockerfile.e2e) on pushes to main, providing the stable-tagged
+# image used by the early-gate "shiftleft" runner.
+#
+# HANDOFF: requires the Konflux Component `odh-dashboard-operator-e2e-ci` (and its
+# `build-pipeline-odh-dashboard-operator-e2e-ci` ServiceAccount) to be registered
+# in the open-data-hub-tenant. Inert scaffolding until DevOps registers it.
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  annotations:
+    build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/odh-dashboard?rev={{revision}}
+    build.appstudio.redhat.com/commit_sha: '{{revision}}'
+    build.appstudio.redhat.com/target_branch: '{{target_branch}}'
+    pipelinesascode.tekton.dev/cancel-in-progress: "false"
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "push"
+      && target_branch == "main"
+      && ( "dashboard-operator/test/e2e/**".pathChanged()
+            || "dashboard-operator/api/**".pathChanged()
+            || "dashboard-operator/config/crd/bases/**".pathChanged()
+            || "dashboard-operator/go.mod".pathChanged()
+            || "dashboard-operator/go.sum".pathChanged()
+            || "dashboard-operator/Dockerfile.e2e".pathChanged()
+            || "dashboard-operator/Dockerfile.e2e.dockerignore".pathChanged()
+            || ".tekton/odh-dashboard-operator-e2e-push.yaml".pathChanged() )
+  creationTimestamp: null
+  labels:
+    appstudio.openshift.io/application: opendatahub-builds
+    appstudio.openshift.io/component: odh-dashboard-operator-e2e-ci
+    pipelines.appstudio.openshift.io/type: build
+  name: odh-dashboard-operator-e2e-on-push
+  namespace: open-data-hub-tenant
+spec:
+  params:
+  - name: git-url
+    value: '{{source_url}}'
+  - name: revision
+    value: '{{revision}}'
+  - name: output-image
+    value: quay.io/opendatahub/odh-dashboard-operator-e2e:odh-stable
+  - name: dockerfile
+    value: ./dashboard-operator/Dockerfile.e2e
+  - name: path-context
+    value: .
+  pipelineRef:
+    resolver: git
+    params:
+    - name: url
+      value: https://github.com/opendatahub-io/odh-konflux-central.git
+    - name: revision
+      value: main
+    - name: pathInRepo
+      value: pipeline/multi-arch-container-build.yaml
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-odh-dashboard-operator-e2e-ci
+  workspaces:
+  - name: git-auth
+    secret:
+      secretName: '{{ git_auth_secret }}'
+status: {}

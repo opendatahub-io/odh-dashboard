@@ -61,6 +61,7 @@ export type DashboardConfig = K8sResourceCommon & {
       workbenchesV2: boolean;
       mcpCatalog: boolean;
       mcpRegistry: boolean;
+      genAiMcpRegistryServers: boolean;
       agentOps: boolean;
       agentsCatalog: boolean;
       toolCalling: boolean;
@@ -78,6 +79,7 @@ export type DashboardConfig = K8sResourceCommon & {
       gpuaas: boolean;
       connectionTest: boolean;
       modelCapabilities: boolean;
+      runtimeCatalog: boolean;
       observabilityDashboard: boolean;
       nimWizard: boolean;
     };

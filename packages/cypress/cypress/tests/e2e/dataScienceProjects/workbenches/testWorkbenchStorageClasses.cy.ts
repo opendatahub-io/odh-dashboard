@@ -123,7 +123,7 @@ describe('Workbench Storage Classes Tests', () => {
   it(
     'Create workbench with RWO storage and verify storage attachment',
     {
-      tags: ['@Smoke', '@SmokeSet1', '@Storage', '@ODS-1931', '@Dashboard', '@Workbenches'],
+      tags: ['@Smoke', '@SmokeSet2', '@Storage', '@ODS-1931', '@Dashboard', '@Workbenches'],
     },
     () => {
       let selectedImageStream: string;
@@ -177,7 +177,7 @@ describe('Workbench Storage Classes Tests', () => {
   it(
     'Display access mode information when selecting storage to attach to workbench',
     {
-      tags: ['@Smoke', '@SmokeSet1', '@Storage', '@Dashboard', '@Workbenches', '@NonConcurrent'],
+      tags: ['@Smoke', '@SmokeSet2', '@Storage', '@Dashboard', '@Workbenches', '@NonConcurrent'],
     },
     () => {
       cy.step('Create storages with different access modes');
@@ -262,7 +262,7 @@ describe('Workbench Storage Classes Tests', () => {
   it(
     'Create new storage with different access modes during workbench creation',
     {
-      tags: ['@Smoke', '@SmokeSet1', '@Storage', '@Dashboard', '@Workbenches', '@NonConcurrent'],
+      tags: ['@Smoke', '@SmokeSet2', '@Storage', '@Dashboard', '@Workbenches', '@NonConcurrent'],
     },
     () => {
       cy.step('Open workbench creation form');

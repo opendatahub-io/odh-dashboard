@@ -52,6 +52,22 @@ func isStaticAsset(filePath string) bool {
 	return staticAssetPattern.MatchString(filePath)
 }
 
+func shouldTraceRequest(r *http.Request) bool {
+	return r.Header.Get("X-Session-ID") != "" || r.Header.Get(constants.TraceParentHeader) != ""
+}
+
+func bffSpanName(_ string, r *http.Request) string {
+	if r == nil {
+		return "gen-ai-bff"
+	}
+
+	spanPath := r.URL.Path
+	if spanPath == "" || spanPath == "/" {
+		return "gen-ai-bff"
+	}
+	return "gen-ai-bff " + r.Method + " " + spanPath
+}
+
 func cacheControlForStaticFile(filePath string) string {
 	if isHashedAsset(filePath) {
 		return "public, max-age=31536000, immutable"
@@ -463,8 +479,9 @@ func (app *App) Routes() http.Handler {
 	// Models (LlamaStack)
 	apiRouter.GET(constants.ModelsListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackModelsHandler))))
 
-	// Responses (LlamaStack) — NeMo client is attached for guardrails moderation
-	apiRouter.POST(constants.ResponsesPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.AttachNemoClient(app.AttachOGXClient(app.LlamaStackCreateResponseHandler))))))
+	// Responses (LlamaStack). NeMo is resolved lazily by the handler only when
+	// the request explicitly includes a guardrail configuration.
+	apiRouter.POST(constants.ResponsesPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.AttachOGXClient(app.LlamaStackCreateResponseHandler)))))
 
 	// Responses passthrough — forwards pre-built OGX API request bodies as-is.
 	// Uses secret-based OGX client (falls back to CR-based discovery when no secretName provided).
@@ -632,9 +649,8 @@ func (app *App) Routes() http.Handler {
 	combinedMux.Handle("/", otelhttp.NewHandler(
 		app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))),
 		"gen-ai-bff",
-		otelhttp.WithSpanNameFormatter(func(_ string, _ *http.Request) string {
-			return "gen-ai-bff"
-		}),
+		otelhttp.WithFilter(shouldTraceRequest),
+		otelhttp.WithSpanNameFormatter(bffSpanName),
 	))
 
 	return combinedMux

@@ -26,11 +26,24 @@ import useKueueProjectsForClusterQueue from '../hooks/useKueueProjectsForCluster
 export type KueueProjectsModalProps = {
   clusterQueueName: string;
   onClose: () => void;
+  onProjectsLoaded?: (projectCount: number) => void;
 };
 
-const KueueProjectsModal: React.FC<KueueProjectsModalProps> = ({ clusterQueueName, onClose }) => {
+const KueueProjectsModal: React.FC<KueueProjectsModalProps> = ({
+  clusterQueueName,
+  onClose,
+  onProjectsLoaded,
+}) => {
   const [filterText, setFilterText] = React.useState('');
   const { data: projects, loaded, error } = useKueueProjectsForClusterQueue(clusterQueueName);
+  const trackedClusterQueueRef = React.useRef<string>();
+
+  React.useEffect(() => {
+    if (loaded && !error && trackedClusterQueueRef.current !== clusterQueueName) {
+      trackedClusterQueueRef.current = clusterQueueName;
+      onProjectsLoaded?.(projects.length);
+    }
+  }, [clusterQueueName, error, loaded, onProjectsLoaded, projects.length]);
 
   const filteredProjects = React.useMemo(() => {
     const normalized = filterText.trim().toLowerCase();

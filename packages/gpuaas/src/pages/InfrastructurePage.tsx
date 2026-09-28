@@ -30,17 +30,51 @@ import {
   type InfrastructureTabId,
 } from '../const';
 import InfrastructureKueueHelpLink from '../components/InfrastructureKueueHelpLink';
-import { GPUAAS_EVENTS, type PageViewedProperties } from '../tracking/gpuaasTrackingConstants';
+import {
+  GPUAAS_EVENTS,
+  QUOTA_USAGE_INTERACTION_TYPES,
+  type PageViewedProperties,
+  type QuotaUsageTabViewedProperties,
+} from '../tracking/gpuaasTrackingConstants';
 import ClusterSummaryCards from '../components/ClusterSummaryCards';
 import HardwareUsageSection from '../components/HardwareUsageSection';
 import BorrowingLendingSection from '../components/BorrowingLendingSection';
 import QuotaUsageSection from '../components/QuotaUsageSection';
 import useInfrastructureMetrics from '../hooks/useInfrastructureMetrics';
 import useQuotaHierarchy from '../hooks/useQuotaHierarchy';
+import type { QuotaTreeNode } from '../types';
 import './InfrastructurePage.scss';
 
 type SectionId = (typeof INFRASTRUCTURE_SECTIONS)[number]['id'];
 type InfrastructureSection = (typeof INFRASTRUCTURE_SECTIONS)[number];
+
+type QuotaUsageTreeCounts = Pick<
+  QuotaUsageTabViewedProperties,
+  'cohortCount' | 'clusterQueueCount' | 'hasUnassignedBucket'
+>;
+
+const getQuotaUsageTreeCounts = (tree: QuotaTreeNode[]): QuotaUsageTreeCounts => {
+  const counts = tree.reduce(
+    (result, node) => {
+      const childCounts = getQuotaUsageTreeCounts(node.children);
+      return {
+        cohortCount:
+          result.cohortCount + childCounts.cohortCount + (node.type === 'cohort' ? 1 : 0),
+        clusterQueueCount:
+          result.clusterQueueCount +
+          childCounts.clusterQueueCount +
+          (node.type === 'clusterQueue' ? 1 : 0),
+        hasUnassignedBucket:
+          result.hasUnassignedBucket ||
+          childCounts.hasUnassignedBucket ||
+          node.type === 'unassigned',
+      };
+    },
+    { cohortCount: 0, clusterQueueCount: 0, hasUnassignedBucket: false },
+  );
+
+  return counts;
+};
 
 const getTabPanelId = (tabId: InfrastructureTabId): string => `infrastructure-tab-panel-${tabId}`;
 
@@ -104,6 +138,8 @@ const InfrastructurePage: React.FC = () => {
   const detailRefreshRef = React.useRef<() => Promise<unknown[]>>(() => Promise.resolve([]));
   const isKueueAvailable = useIsAreaAvailable(SupportedArea.KUEUE).status;
   const hasTrackedPageView = React.useRef(false);
+  const hasTrackedQuotaUsageView = React.useRef(false);
+  const quotaUsageTabLoadedAt = React.useRef(Date.now());
   const [activeTabKey, setActiveTabKey] = React.useState<InfrastructureTabId>(
     INFRASTRUCTURE_TABS[0].id,
   );
@@ -149,20 +185,64 @@ const InfrastructurePage: React.FC = () => {
     isKueueAvailable,
   ]);
 
+  React.useEffect(() => {
+    if (activeTabKey !== 'quota-usage') {
+      hasTrackedQuotaUsageView.current = false;
+      return;
+    }
+
+    if (!quotaHierarchy.loaded || hasTrackedQuotaUsageView.current) {
+      return;
+    }
+
+    const counts = getQuotaUsageTreeCounts(quotaHierarchy.data.tree);
+
+    hasTrackedQuotaUsageView.current = true;
+    const props: QuotaUsageTabViewedProperties = {
+      path: '/observe-and-monitor/infrastructure',
+      tabName: 'quota-usage',
+      cohortCount: counts.cohortCount,
+      clusterQueueCount: counts.clusterQueueCount,
+      hasUnassignedBucket: counts.hasUnassignedBucket,
+      hasKueueEnabled: isKueueAvailable,
+    };
+    fireMiscTrackingEvent(GPUAAS_EVENTS.QUOTA_USAGE_TAB_VIEWED, props);
+  }, [activeTabKey, isKueueAvailable, quotaHierarchy]);
+
   const handleRefresh = React.useCallback(() => {
     const secondsSinceLastUpdate = metrics.lastRefreshed
       ? Math.round((Date.now() - metrics.lastRefreshed.getTime()) / 1000)
       : undefined;
     refreshMetrics();
     borrowingLendingRefreshRef.current?.();
-    fireMiscTrackingEvent(GPUAAS_EVENTS.DATA_REFRESHED, { secondsSinceLastUpdate });
+    fireMiscTrackingEvent(GPUAAS_EVENTS.DATA_REFRESHED, {
+      refreshSource: 'utilization',
+      outcome: 'click',
+      secondsSinceLastUpdate,
+    });
   }, [metrics.lastRefreshed, refreshMetrics]);
 
-  const handleQuotaRefresh = React.useCallback(async () => {
+  const refreshQuotaData = React.useCallback(async () => {
     await refreshQuotaHierarchy();
     await detailRefreshRef.current();
     await quotaWorkloadRefreshRef.current?.();
   }, [refreshQuotaHierarchy]);
+
+  const handleQuotaRefresh = React.useCallback(async () => {
+    const secondsSinceLastUpdate = quotaHierarchy.lastRefreshed
+      ? Math.round((Date.now() - quotaHierarchy.lastRefreshed.getTime()) / 1000)
+      : undefined;
+    await refreshQuotaData();
+    fireMiscTrackingEvent(GPUAAS_EVENTS.DATA_REFRESHED, {
+      refreshSource: 'quota-usage',
+      outcome: 'click',
+      secondsSinceLastUpdate,
+    });
+    fireMiscTrackingEvent(GPUAAS_EVENTS.QUOTA_USAGE_TAB_INTERACTED, {
+      interactionType: QUOTA_USAGE_INTERACTION_TYPES.refresh,
+      secondsSinceTabLoad: Math.round((Date.now() - quotaUsageTabLoadedAt.current) / 1000),
+    });
+  }, [quotaHierarchy.lastRefreshed, refreshQuotaData]);
 
   React.useEffect(() => {
     if (tabRefreshKey === 0) {
@@ -173,9 +253,9 @@ const InfrastructurePage: React.FC = () => {
       refreshMetrics();
       borrowingLendingRefreshRef.current?.();
     } else {
-      void handleQuotaRefresh();
+      void refreshQuotaData();
     }
-  }, [activeTabKey, handleQuotaRefresh, refreshMetrics, tabRefreshKey]);
+  }, [activeTabKey, refreshMetrics, refreshQuotaData, tabRefreshKey]);
 
   const registerDetailRefresh = React.useCallback((refresh: () => Promise<unknown[]>) => {
     detailRefreshRef.current = refresh;
@@ -192,6 +272,9 @@ const InfrastructurePage: React.FC = () => {
     ) => {
       const tab = INFRASTRUCTURE_TABS.find((tabInfo) => tabInfo.id === eventKey);
       if (tab && tab.id !== activeTabKey) {
+        if (tab.id === 'quota-usage') {
+          quotaUsageTabLoadedAt.current = Date.now();
+        }
         setActiveTabKey(tab.id);
         setTabRefreshKey((key) => key + 1);
       }

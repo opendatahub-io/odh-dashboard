@@ -34,7 +34,7 @@ describe('Verify a model can be deployed from model catalog', () => {
       .fixture('e2e/modelCatalog/testSourceEnableDisable.yaml', 'utf8')
       .then((yamlContent: string) => {
         sourceData = yaml.load(yamlContent) as ModelCatalogSourceTestData;
-        return ensureModelCatalogSourceEnabled(sourceData.redhatAiSourceId);
+        return ensureModelCatalogSourceEnabled(sourceData.validatedSourceId);
       })
       .then(() => {
         // Setup: Load test data and ensure clean state

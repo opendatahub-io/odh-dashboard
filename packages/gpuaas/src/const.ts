@@ -48,6 +48,7 @@ export const clusterQueueWorkloadsFilterPlaceholders: Record<
 };
 
 export const INFRASTRUCTURE_REFRESH_INTERVAL = 30_000;
+export const QUOTA_USAGE_SEARCH_TELEMETRY_DEBOUNCE = 300;
 
 /** Pass to useFetch refreshRate to disable polling; initial load + manual refresh only. */
 export const INFRASTRUCTURE_MANUAL_REFRESH_ONLY = -1;
