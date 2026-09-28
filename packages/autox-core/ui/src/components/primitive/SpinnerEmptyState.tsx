@@ -27,7 +27,8 @@ const SpinnerEmptyState: React.FC<SpinnerEmptyStateProps> = ({
       direction={{ default: 'column' }}
       gap={{ default: 'gapMd' }}
       alignItems={{ default: 'alignItemsCenter' }}
-      style={{ maxWidth: 'var(--pf-t--global--breakpoint--md)', textAlign: 'center' }}
+      className="pf-v6-u-text-align-center"
+      style={{ maxWidth: 'var(--pf-t--global--breakpoint--md)' }}
     >
       <FlexItem>
         <Spinner diameter={spinnerDiameter} />

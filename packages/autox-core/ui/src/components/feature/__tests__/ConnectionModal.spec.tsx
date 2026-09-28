@@ -8,6 +8,11 @@ import * as secretsApi from '@odh-dashboard/k8s-core/api/secrets';
 import ConnectionModal from '../ConnectionModal';
 
 jest.mock('@odh-dashboard/k8s-core/api/secrets', () => ({ createSecret: jest.fn() }));
+jest.mock('../../../hooks', () => ({
+  useCreateSecretMutation: jest.fn(() => ({
+    mutateAsync: jest.requireMock('@odh-dashboard/k8s-core/api/secrets').createSecret,
+  })),
+}));
 
 const createSecretMock = jest.mocked(secretsApi.createSecret);
 const connectionTypes = [mockConnectionTypeConfigMapObj({ name: 'the only type', fields: [] })];
