@@ -20,7 +20,7 @@ const ExternalLink: React.FC<ExternalLinkProps> = ({ text, to, testId }) => (
     target="_blank"
     rel="noopener noreferrer"
     onClick={() => {
-      if (isValidHttpUrl(to)) {
+      if (to && isValidHttpUrl(to)) {
         fireLinkTrackingEvent('ExternalLink Clicked', { href: to, from: window.location.pathname });
       }
     }}
