@@ -19,6 +19,10 @@ const liftErrorCode = (code: number) => {
 };
 
 const closeWebSocket = (socket: WebSocket, code: number, reason: string | Buffer) => {
+  if (socket.readyState === WebSocket.CONNECTING) {
+    socket.terminate();
+    return;
+  }
   if (socket.readyState === WebSocket.OPEN) {
     // This usage of toString is fine for string | Buffer conversion
     // eslint-disable-next-line no-restricted-properties
@@ -39,7 +43,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
     '/*',
     { websocket: true },
     (
-      connection,
+      connection: WebSocket,
       req: OauthFastifyRequest<{
         Querystring: Record<string, string>;
         Params: { '*': string; [key: string]: string };
@@ -47,7 +51,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       }>,
     ) =>
       getDirectCallOptions(fastify, req, '').then((requestOptions) => {
-        const source = connection.socket;
+        const source = connection;
         const kubeUri = req.params['*'];
 
         const url = `${
