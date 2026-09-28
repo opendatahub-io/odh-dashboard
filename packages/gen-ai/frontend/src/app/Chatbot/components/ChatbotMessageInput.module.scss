@@ -5,7 +5,7 @@
   &::before {
     border-top: 1px solid var(--pf-t--global--border--color--default);
     content: '';
-    inline-size: calc(100% + var(--pf-t--global--spacer--2xl));
+    inline-size: 100%;
     inset-block-start: 0;
     inset-inline-start: 0;
     position: absolute;
@@ -17,6 +17,7 @@
   --pf-v6-c-label--BorderColor: var(--pf-t--global--border--color--default);
   --pf-v6-c-label--BorderRadius: var(--pf-t--global--border--radius--small);
   --pf-v6-c-label--Gap: var(--pf-t--global--spacer--lg);
+  --pf-v6-c-label__content--Gap: var(--pf-t--global--spacer--sm);
   --pf-v6-c-label--PaddingBlockEnd: var(--pf-t--global--spacer--sm);
   --pf-v6-c-label--PaddingBlockStart: var(--pf-t--global--spacer--sm);
   --pf-v6-c-label--PaddingInlineEnd: var(--pf-t--global--spacer--md);
