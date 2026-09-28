@@ -18,7 +18,7 @@ declare global {
 const configurePluginAssetPath = (basePath: string): void => {
   if (typeof window !== 'undefined') {
     window.PERSES_PLUGIN_ASSETS_PATH = basePath;
-    window.PERSES_APP_CONFIG = { api_prefix: basePath };
+    window.PERSES_APP_CONFIG = { ...window.PERSES_APP_CONFIG, api_prefix: basePath };
   }
 };
 
@@ -95,7 +95,6 @@ export const resetBundledOverridesForTests = (
  * Perses libs, etc.) — see monitoring-plugin's PersesWrapper.tsx.
  */
 export const createPluginLoader = (basePath: string = PERSES_PROXY_BASE_PATH): PluginLoader => {
-  configurePluginAssetPath(basePath);
   const remoteLoader = remotePluginLoader({ apiPrefix: basePath, baseURL: basePath });
 
   return {
@@ -131,6 +130,7 @@ export const createPluginLoader = (basePath: string = PERSES_PROXY_BASE_PATH): P
       // FIXME: This can be removed once the backend supports versioned plugin paths (perses/shared#128).
       // Strip version/registry so PluginRuntime builds name-only URLs, then re-key.
       const { version, registry } = resource.metadata;
+      configurePluginAssetPath(basePath);
       const loaded = await remoteLoader.importPluginModule({
         ...resource,
         metadata: { ...resource.metadata, version: '', registry: '' },

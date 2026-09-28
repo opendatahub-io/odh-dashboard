@@ -68,6 +68,47 @@ func TestMaaSConsumerPortalAvailabilityHelpers(t *testing.T) {
 	}
 }
 
+func TestMaaSConsumerPortalPersesNamespace(t *testing.T) {
+	tests := []struct {
+		name                  string
+		platform              cluster.Platform
+		applicationsNamespace string
+		observability         *v1alpha1.ObservabilitySpec
+		want                  string
+	}{
+		{
+			name:                  "uses the configured Perses service namespace",
+			platform:              cluster.SelfManagedRhoai,
+			applicationsNamespace: "redhat-ods-applications",
+			observability: &v1alpha1.ObservabilitySpec{
+				Enabled:       true,
+				PersesService: &v1alpha1.ServiceTarget{Namespace: "custom-monitoring"},
+			},
+			want: "custom-monitoring",
+		},
+		{
+			name:                  "uses RHOAI monitoring namespace when not configured",
+			platform:              cluster.SelfManagedRhoai,
+			applicationsNamespace: "redhat-ods-applications",
+			want:                  "redhat-ods-monitoring",
+		},
+		{
+			name:                  "uses ODH applications namespace when not configured",
+			platform:              cluster.OpenDataHub,
+			applicationsNamespace: "opendatahub",
+			want:                  "opendatahub",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &DashboardReconciler{Platform: tt.platform, ApplicationsNamespace: tt.applicationsNamespace}
+			dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{Observability: tt.observability}}
+			assert.Equal(t, tt.want, r.maasConsumerPortalPersesNamespace(dashboard))
+		})
+	}
+}
+
 func portalTestRoute(generation int64, conditions ...metav1.Condition) gatewayv1.HTTPRoute {
 	return portalTestRouteWithParents(generation, conditions)
 }

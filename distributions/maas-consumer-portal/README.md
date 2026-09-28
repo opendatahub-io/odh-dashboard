@@ -120,7 +120,7 @@ PERSES_TARGET=http://127.0.0.1:9005 \
 pnpm run dev
 ```
 
-The local Rspack dev proxy sends portal Perses API requests directly to `PERSES_TARGET`; the Core BFF target does not provide Perses. If you run the BFFs locally instead of port-forwarding them, point their respective target variables at the local endpoints. Without `PERSES_TARGET` and a reachable Perses service, MaaS and GenAI remain usable, but the observability dashboard cannot load. This setup uses cluster Perses and its configured Prometheus/Thanos datasources; it does not require a local Perses or Prometheus container. See the [connected-cluster readiness notes](../../observability-cluster-readiness.md) for the current cluster state and known collector issue.
+The local Rspack dev proxy sends portal Perses API requests directly to `PERSES_TARGET`; the Core BFF target does not provide Perses. If you run the BFFs locally instead of port-forwarding them, point their respective target variables at the local endpoints. Without `PERSES_TARGET` and a reachable Perses service, MaaS and GenAI remain usable, but the observability dashboard cannot load. This setup uses cluster Perses and its configured Prometheus/Thanos datasources; it does not require a local Perses or Prometheus container.
 
 ## Key files
 
