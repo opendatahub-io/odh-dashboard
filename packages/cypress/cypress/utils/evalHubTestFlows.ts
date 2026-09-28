@@ -21,6 +21,17 @@ const EVAL_HUB_API_MAX_ATTEMPTS = 6;
 const EVAL_HUB_API_RETRY_INTERVAL_MS = 5000;
 const EVAL_HUB_TRANSIENT_STATUSES = new Set([502, 503, 504]);
 
+/**
+ * Use a fresh suffix for each local EvalHub setup while preserving deterministic CI names.
+ * Generating it in the test flow gives repeated Cypress open-mode runs a new experiment name.
+ */
+export const getEvalHubExperimentSuffix = (defaultSuffix: string): Cypress.Chainable<string> =>
+  cy.then(() =>
+    Cypress.env('BUILD_NUMBER') || Cypress.env('GITHUB_RUN_ID')
+      ? defaultSuffix
+      : String(Date.now()),
+  );
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 

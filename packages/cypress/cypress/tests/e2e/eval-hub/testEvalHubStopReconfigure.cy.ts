@@ -2,6 +2,7 @@ import * as yaml from 'js-yaml';
 import {
   clearEvalHubEvaluationJobs,
   cleanupEvalHubTestResources,
+  getEvalHubExperimentSuffix,
   navigateToEvaluationsPage,
   submitSingleBenchmarkEvaluation,
   stopAndReconfigureEvaluation,
@@ -106,14 +107,16 @@ describe('Eval Hub E2E — Stop and Reconfigure', () => {
 
     cy.then(() => {
       cy.step('[Setup] Select an available MLflow experiment name');
-      return findAvailableExperimentSuffix(
-        evaluationTenantProject,
-        [testData.mlflowExperimentName],
-        uuid,
-      ).then((suffix) => {
-        mlflowExperimentName = `${testData.mlflowExperimentName}-${suffix}`;
-        cy.log(`MLflow experiment: ${mlflowExperimentName}`);
-      });
+      return getEvalHubExperimentSuffix(uuid).then((experimentSuffix) =>
+        findAvailableExperimentSuffix(
+          evaluationTenantProject,
+          [testData.mlflowExperimentName],
+          experimentSuffix,
+        ).then((suffix) => {
+          mlflowExperimentName = `${testData.mlflowExperimentName}-${suffix}`;
+          cy.log(`MLflow experiment: ${mlflowExperimentName}`);
+        }),
+      );
     });
 
     cy.then(() => {

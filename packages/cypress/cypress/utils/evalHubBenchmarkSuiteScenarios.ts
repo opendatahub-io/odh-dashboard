@@ -7,6 +7,7 @@ import {
   deleteEvalHubTenantCollections,
   findAvailableBenchmarkSuiteExperimentSuffix,
   findEvalHubCollectionIdByName,
+  getEvalHubExperimentSuffix,
   navigateToEvaluationsPage,
   submitBenchmarkSuiteEvaluation,
   submitCreatedBenchmarkSuiteEvaluation,
@@ -124,15 +125,17 @@ export const createEvalHubBenchmarkSuiteScenario = (
 
     cy.then(() => {
       cy.step('[Setup] Select an available MLflow experiment name');
-      return findAvailableBenchmarkSuiteExperimentSuffix(
-        evaluationTenantProject,
-        testData.mlflowExperimentName,
-        scenarioUuid,
-        [key],
-      ).then((suffix) => {
-        experimentName = `${testData.mlflowExperimentName}-${suffix}-${key}`;
-        cy.log(`MLflow experiment: ${experimentName}`);
-      });
+      return getEvalHubExperimentSuffix(scenarioUuid).then((experimentSuffix) =>
+        findAvailableBenchmarkSuiteExperimentSuffix(
+          evaluationTenantProject,
+          testData.mlflowExperimentName,
+          experimentSuffix,
+          [key],
+        ).then((suffix) => {
+          experimentName = `${testData.mlflowExperimentName}-${suffix}-${key}`;
+          cy.log(`MLflow experiment: ${experimentName}`);
+        }),
+      );
     });
 
     cy.then(() => {
