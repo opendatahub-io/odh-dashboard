@@ -828,6 +828,29 @@ describe('ChatbotPlayground — audio transcription', () => {
     expect(screen.queryByTestId('audio-model-needed-alert')).not.toBeInTheDocument();
   });
 
+  it('does not upload canceled audio after a transcription model is selected', async () => {
+    const { uploadMediaFile } = require('~/app/services/llamaStackService');
+    renderPlayground();
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('audio-file-input'), {
+        target: { files: [new File(['audio-data'], 'test.wav', { type: 'audio/wav' })] },
+      });
+    });
+    expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('chip-close'));
+    });
+    expect(screen.queryByTestId('audio-file-chip')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('audio-model-needed-alert')).not.toBeInTheDocument();
+
+    act(() => {
+      useChatbotConfigStore.getState().updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-model');
+    });
+    expect(uploadMediaFile).not.toHaveBeenCalled();
+  });
+
   it('audio upload triggers uploadMediaFile with audio type', async () => {
     const { uploadMediaFile } = require('~/app/services/llamaStackService');
     uploadMediaFile.mockReturnValue({

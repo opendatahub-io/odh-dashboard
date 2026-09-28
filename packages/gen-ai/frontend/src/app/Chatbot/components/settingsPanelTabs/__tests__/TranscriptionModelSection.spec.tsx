@@ -323,6 +323,47 @@ describe('TranscriptionModelSection', () => {
       expect(screen.getByTestId('transcription-model-selector')).toHaveTextContent('Whisper Small');
     });
 
+    it('switches a selected model through the tagged-model dropdown', async () => {
+      const user = userEvent.setup();
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-large-v3');
+      });
+      renderWithContext();
+
+      await user.click(screen.getByTestId('transcription-model-selector'));
+      await user.click(screen.getByRole('menuitem', { name: 'Whisper Small' }));
+
+      expect(screen.getByTestId('transcription-model-selector')).toHaveTextContent('Whisper Small');
+      expect(
+        useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID]?.selectedAsrModel,
+      ).toBe('whisper-small');
+      expect(mockFireMisc).toHaveBeenCalledWith(PLAYGROUND_MULTIMODAL_EVENTS.ASR_MODEL_SELECTED, {
+        modelName: 'Whisper Small',
+        isDefaultModel: false,
+      });
+    });
+
+    it('selects an untagged model from the modal when tagged models exist', async () => {
+      const user = userEvent.setup();
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-large-v3');
+      });
+      renderWithContext();
+
+      await user.click(screen.getByRole('button', { name: 'View all models' }));
+      await user.click(screen.getByTestId('all-model-option-llama-3-8b'));
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.getByTestId('transcription-model-selector')).toHaveTextContent('Llama 3 8B');
+      await user.click(screen.getByTestId('transcription-model-selector'));
+      expect(screen.getByRole('menuitem', { name: 'Whisper Large V3' })).toBeInTheDocument();
+      expect(screen.queryByRole('menuitem', { name: 'Llama 3 8B' })).not.toBeInTheDocument();
+    });
+
     it('removes the section and clears selection', async () => {
       const user = userEvent.setup();
       act(() => {
@@ -536,6 +577,25 @@ describe('TranscriptionModelSection', () => {
       const state = useChatbotConfigStore.getState();
       expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedAsrSubscription).toBe(
         'whisper-sub-1',
+      );
+    });
+
+    it('uses the subscription selected for a MaaS transcription model', async () => {
+      const user = userEvent.setup();
+      act(() => {
+        useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
+        useChatbotConfigStore.getState().updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-maas');
+      });
+      renderWithContext({ aiModels: [mockChatModel], maasModels: [mockMaaSAsrModel] });
+
+      await user.click(screen.getByTestId('subscription-selector-toggle'));
+      await user.click(screen.getByRole('option', { name: 'Whisper Subscription 2' }));
+
+      expect(
+        useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID]?.selectedAsrSubscription,
+      ).toBe('whisper-sub-2');
+      expect(screen.getByTestId('subscription-selector-toggle')).toHaveTextContent(
+        'Whisper Subscription 2',
       );
     });
 
