@@ -10,6 +10,9 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
 const (
@@ -29,6 +32,27 @@ var maasConsumerPortalOperatorSubscriptionNamespaces = map[string]string{
 var maasConsumerPortalOperatorNamespaces = []string{
 	maasConsumerPortalRhodsOperatorNamespace,
 	maasConsumerPortalOpenDataHubOperatorNamespace,
+}
+
+func (r *DashboardReconciler) isMaaSConsumerPortalOperatorNamespace(obj client.Object) bool {
+	if obj == nil {
+		return false
+	}
+
+	switch obj.GetName() {
+	case maasConsumerPortalRhodsOperatorNamespace, maasConsumerPortalOpenDataHubOperatorNamespace:
+		return true
+	default:
+		return false
+	}
+}
+
+func (r *DashboardReconciler) mapMaaSConsumerPortalOperatorNamespaceToDashboard(_ context.Context, obj client.Object) []reconcile.Request {
+	if !r.isMaaSConsumerPortalOperatorNamespace(obj) {
+		return nil
+	}
+
+	return []reconcile.Request{{NamespacedName: client.ObjectKey{Name: v1alpha1.DashboardInstanceName}}}
 }
 
 func (r *DashboardReconciler) existingMaaSConsumerPortalOperatorNamespaces(ctx context.Context) (map[string]struct{}, error) {
