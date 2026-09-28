@@ -1194,6 +1194,50 @@ describe('ChatbotPlayground — compare mode attachments', () => {
     expect(screen.getByTestId('image-capability-alert')).toBeInTheDocument();
   });
 
+  it.each([
+    ['model metadata is loading', false, []],
+    ['the selected model has no matching capability record', true, [{ id: 'other-model' }]],
+  ])('shows the vision notice when %s', async (_scenario, aiModelsLoaded, aiModels) => {
+    mockIsPlaygroundModelMatch.mockReturnValue(false);
+    render(
+      <MemoryRouter initialEntries={['/gen-ai-studio/playground/test-ns']}>
+        <ChatbotContext.Provider
+          value={
+            {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              ...(ChatbotContext as any)._currentValue,
+              aiModels,
+              aiModelsLoaded,
+            } as React.ContextType<typeof ChatbotContext>
+          }
+        >
+          <ChatbotPlayground
+            isViewCodeModalOpen={false}
+            setIsViewCodeModalOpen={jest.fn()}
+            isNewChatModalOpen={false}
+            setIsNewChatModalOpen={jest.fn()}
+          />
+        </ChatbotContext.Provider>
+      </MemoryRouter>,
+    );
+
+    const { uploadMediaFile } = require('~/app/services/llamaStackService');
+    uploadMediaFile.mockReturnValue({
+      promise: Promise.resolve({ data: { id: 'image-file' } }),
+      xhr: { abort: jest.fn() },
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('vision-file-input'), {
+        target: {
+          files: createFileList([new File(['pixels'], 'photo.png', { type: 'image/png' })]),
+        },
+      });
+    });
+
+    expect(screen.getByTestId('vision-file-preview')).toBeInTheDocument();
+    expect(screen.getByTestId('image-capability-alert')).toBeInTheDocument();
+  });
+
   it('audio file input is rendered in compare mode', () => {
     renderPlayground();
     expect(screen.getByTestId('audio-file-input')).toBeInTheDocument();

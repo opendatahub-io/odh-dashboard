@@ -204,6 +204,35 @@ describe('ChatbotMessageInput', () => {
     expect(window.localStorage.getItem('playground-image-capability-alert-dismissed')).toBe('true');
   });
 
+  it('shows no vision notice without an image or when the selected model is vision-tagged', () => {
+    const { rerender } = render(<ChatbotMessageInput {...defaultProps} showImageCapabilityAlert />);
+    expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+
+    rerender(
+      <ChatbotMessageInput
+        {...defaultProps}
+        imageUploadState={{ ...defaultImageUploadState, fileName: 'photo.png' }}
+        showImageCapabilityAlert={false}
+      />,
+    );
+    expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+  });
+
+  it('keeps the vision notice dismissed when the playground is reopened', () => {
+    window.localStorage.setItem('playground-image-capability-alert-dismissed', 'true');
+    const props = {
+      ...defaultProps,
+      imageUploadState: { ...defaultImageUploadState, fileName: 'photo.png' },
+      showImageCapabilityAlert: true,
+    };
+    const { unmount } = render(<ChatbotMessageInput {...props} />);
+    expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+
+    unmount();
+    render(<ChatbotMessageInput {...props} />);
+    expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+  });
+
   it('renders the message bar', () => {
     render(<ChatbotMessageInput {...defaultProps} />);
     expect(screen.getByTestId('chatbot-message-bar')).toBeInTheDocument();
