@@ -53,6 +53,7 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	params := readExistingParams(filepath.Join(dir, "params.env"))
 	params["core-bff-image"] = maasConsumerPortalCoreBFFImage
 	params["dashboard-namespace"] = "portal-test"
+	params["perses-namespace"] = "custom-perses"
 	params["gateway-name"] = "portal-gateway"
 	params["maas-consumer-portal-federation-config"] = "maas-consumer-portal-federation-test"
 	require.NoError(t, writeParamsEnv(dir, params))
@@ -241,7 +242,7 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	}}, egress[3].(map[string]interface{})["to"])
 	assert.Equal(t, []interface{}{map[string]interface{}{"protocol": "TCP", "port": int64(8143)}}, egress[3].(map[string]interface{})["ports"])
 	assert.Equal(t, []interface{}{map[string]interface{}{
-		"namespaceSelector": map[string]interface{}{},
+		"namespaceSelector": map[string]interface{}{"matchLabels": map[string]interface{}{"kubernetes.io/metadata.name": "custom-perses"}},
 		"podSelector":       map[string]interface{}{"matchLabels": map[string]interface{}{"app.kubernetes.io/managed-by": "perses-operator"}},
 	}}, egress[4].(map[string]interface{})["to"])
 	assert.Equal(t, []interface{}{map[string]interface{}{"protocol": "TCP", "port": int64(8080)}}, egress[4].(map[string]interface{})["ports"])

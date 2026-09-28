@@ -11,7 +11,10 @@ const isOperatorSubscriptionStatus = (value: unknown): value is OperatorSubscrip
   typeof value === 'object' &&
   value !== null &&
   'channel' in value &&
-  typeof value.channel === 'string';
+  typeof value.channel === 'string' &&
+  (!('installedCSV' in value) || typeof value.installedCSV === 'string') &&
+  (!('installPlanRefNamespace' in value) || typeof value.installPlanRefNamespace === 'string') &&
+  (!('lastUpdated' in value) || typeof value.lastUpdated === 'string');
 
 /** Fetches the installed data science operator subscription status from a Core BFF. */
 export const fetchOperatorSubscriptionStatus = async (

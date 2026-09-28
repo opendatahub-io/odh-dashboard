@@ -93,6 +93,16 @@ replacements:
   - source:
       kind: ConfigMap
       name: maas-consumer-portal-params
+      fieldPath: data.perses-namespace
+    targets:
+      - select:
+          kind: NetworkPolicy
+          name: maas-consumer-portal
+        fieldPaths:
+          - spec.egress.4.to.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
+  - source:
+      kind: ConfigMap
+      name: maas-consumer-portal-params
       fieldPath: data.maas-consumer-portal-federation-config
     targets:
       - select:

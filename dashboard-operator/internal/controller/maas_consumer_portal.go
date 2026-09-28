@@ -205,6 +205,7 @@ func (r *DashboardReconciler) deployMaaSConsumerPortalBundle(ctx context.Context
 	params := readExistingParams(filepath.Join(m.String(), "params.env"))
 	maps.Copy(params, resolveImageParams())
 	params["dashboard-namespace"] = r.ApplicationsNamespace
+	params["perses-namespace"] = r.maasConsumerPortalPersesNamespace(dashboard)
 	params["gateway-name"] = maasConsumerPortalGatewayName
 	params["maas-consumer-portal-federation-config"] = maasConsumerPortalFederationConfigMapName
 	if err := writeParamsEnv(m.String(), params); err != nil {
@@ -236,6 +237,15 @@ func (r *DashboardReconciler) deployMaaSConsumerPortalBundle(ctx context.Context
 		return err
 	}
 	return nil
+}
+
+func (r *DashboardReconciler) maasConsumerPortalPersesNamespace(dashboard *v1alpha1.Dashboard) string {
+	if dashboard.Spec.Observability != nil && dashboard.Spec.Observability.PersesService != nil &&
+		dashboard.Spec.Observability.PersesService.Namespace != "" {
+		return dashboard.Spec.Observability.PersesService.Namespace
+	}
+
+	return r.monitoringNamespace()
 }
 
 func (r *DashboardReconciler) deleteMaaSConsumerPortalResources(ctx context.Context) error {

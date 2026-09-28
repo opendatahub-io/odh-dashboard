@@ -1,6 +1,7 @@
 import type { PluginModuleResource } from '@perses-dev/plugin-system';
 import { getPluginModuleCompoundKey, remotePluginLoader } from '@perses-dev/plugin-system';
 import {
+  createPluginLoader,
   loadBundledOverride,
   pluginLoader,
   resetBundledOverridesForTests,
@@ -146,6 +147,39 @@ describe('loadBundledOverride', () => {
     await expect(loadBundledOverride('Table')).rejects.toThrow('invalid module metadata');
     await expect(loadBundledOverride('Table')).resolves.toBeDefined();
     expect(loader).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('createPluginLoader', () => {
+  it('should configure each plugin path only when importing a plugin', async () => {
+    const originalAssetsPath = window.PERSES_PLUGIN_ASSETS_PATH;
+    const originalAppConfig = window.PERSES_APP_CONFIG;
+    const basePaths = ['/first/perses/api', '/second/perses/api'];
+    window.PERSES_PLUGIN_ASSETS_PATH = '/existing/plugins';
+    window.PERSES_APP_CONFIG = { api_prefix: '/existing/api' };
+
+    try {
+      jest.isolateModules(() => {
+        jest.requireActual('../persesPluginsLoader');
+      });
+      jest.clearAllMocks();
+      const loaders = basePaths.map((basePath) => createPluginLoader(basePath));
+      const remoteLoaders = jest
+        .mocked(remotePluginLoader)
+        .mock.results.map(({ value }) => value as typeof remoteLoader);
+
+      expect(window.PERSES_PLUGIN_ASSETS_PATH).toBe('/existing/plugins');
+      expect(window.PERSES_APP_CONFIG).toEqual({ api_prefix: '/existing/api' });
+      for (const [index, loader] of loaders.entries()) {
+        remoteLoaders[index].importPluginModule.mockResolvedValue({});
+        await loader.importPluginModule(createRemoteResource(`Plugin${index}`));
+        expect(window.PERSES_PLUGIN_ASSETS_PATH).toBe(basePaths[index]);
+      }
+      expect(window.PERSES_APP_CONFIG).toEqual({ api_prefix: basePaths[1] });
+    } finally {
+      window.PERSES_PLUGIN_ASSETS_PATH = originalAssetsPath;
+      window.PERSES_APP_CONFIG = originalAppConfig;
+    }
   });
 });
 
