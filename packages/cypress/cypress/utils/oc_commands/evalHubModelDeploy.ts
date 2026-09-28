@@ -286,6 +286,9 @@ const waitForEvalHubTenantResources = (
   // The operator shortens long Job ServiceAccount and Role names with a stable hash. Select by
   // the operator-owned labels instead of duplicating that private naming algorithm in Cypress.
   const jobResourceSelector = getEvalHubTenantResourceSelector(serviceIdentity);
+  // For an existing service CA ConfigMap, the operator ensures the injection annotation but
+  // does not backfill the job-resource labels. Query this well-known name instead.
+  const serviceCAConfigMapName = `${serviceIdentity.serviceName}-service-ca`;
   const instanceDescription = `${serviceIdentity.serviceNamespace}/${serviceIdentity.serviceName}`;
 
   return pollUntilSuccess(
@@ -296,10 +299,8 @@ const waitForEvalHubTenantResources = (
   )
     .then(() =>
       pollUntilSuccess(
-        `oc -n ${tenantNamespace} get configmaps -l '${jobResourceSelector}' -o json | ` +
-          "jq -e '[.items[]? | " +
-          'select(.metadata.annotations["service.beta.openshift.io/inject-cabundle"] == "true")] ' +
-          "| length > 0'",
+        `oc -n ${tenantNamespace} get configmap ${serviceCAConfigMapName} -o json | ` +
+          'jq -e \'.metadata.annotations["service.beta.openshift.io/inject-cabundle"] == "true"\'',
         `operator-provisioned service CA ConfigMap for EvalHub ${instanceDescription}`,
         { maxAttempts: 30, pollIntervalMs: 2000 },
       ),
