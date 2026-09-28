@@ -1069,7 +1069,14 @@ jobs:
 
           # Fix read-only envtest binaries and directories from previous BFF runs
           # (setup-envtest downloads k8s binaries with 0555 permissions, which blocks actions/checkout cleanup)
-          chmod -R u+w ${{ github.workspace }}/packages/*/bff/bin ${{ github.workspace }}/packages/*/upstream/bff/bin 2>/dev/null || true
+          chmod -R u+w ${{ github.workspace }}/packages/*/bff/bin ${{ github.workspace }}/packages/*/upstream/bff/bin ${{ github.workspace }}/distributions/*/bff/bin 2>/dev/null || true
+
+          # Ensure .git exists — checkout action fails at "Removing auth" if a
+          # previous run deleted the directory contents (self-hosted runner issue)
+          if [ ! -d "${{ github.workspace }}/.git" ]; then
+            echo "⚠️ .git directory missing — re-initializing for checkout"
+            git init "${{ github.workspace }}"
+          fi
 
           echo "✅ Cleanup complete (non-critical, continued on any errors)"
 
