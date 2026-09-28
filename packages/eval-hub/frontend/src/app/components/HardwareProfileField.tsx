@@ -44,7 +44,6 @@ type HardwareProfileFieldProps = {
   className?: string;
 };
 
-const NO_HARDWARE_PROFILE_VALUE = '__no_hardware_profile__';
 const KUEUE_PROFILE_FILTER_INFO =
   'Only hardware profiles configured with a local queue are shown because this project uses Kueue for workload scheduling.';
 
@@ -238,14 +237,9 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
         id="hardware-profile-select"
         data-testid="hardware-profile-select"
         isOpen={isOpen && !profileSelectionDisabled}
-        selected={selectedProfile ?? NO_HARDWARE_PROFILE_VALUE}
+        selected={selectedProfile}
         onSelect={(_event, value) => {
-          const selectedValue = String(value);
-          onSelect(
-            selectedValue === NO_HARDWARE_PROFILE_VALUE
-              ? undefined
-              : schedulableProfiles.find((profile) => profile.name === selectedValue),
-          );
+          onSelect(schedulableProfiles.find((profile) => profile.name === String(value)));
           setIsOpen(false);
         }}
         onOpenChange={setIsOpen}
@@ -263,13 +257,6 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
         )}
       >
         <SelectList>
-          <SelectOption
-            value={NO_HARDWARE_PROFILE_VALUE}
-            isSelected={!selectedProfile}
-            data-testid="hardware-profile-no-selection-option"
-          >
-            No hardware profile
-          </SelectOption>
           {schedulableProfiles.map((profile) => (
             <SelectOption
               key={profile.name}

@@ -215,24 +215,6 @@ describe('HardwareProfileField', () => {
     expect(details).toHaveTextContent('Cluster queuegpu-cluster');
   });
 
-  it('allows the selected HardwareProfile to be cleared', () => {
-    const onSelect = jest.fn();
-    render(
-      <HardwareProfileField
-        availability={availability}
-        profiles={[profile]}
-        loaded
-        selectedProfile={profile.name}
-        onSelect={onSelect}
-      />,
-    );
-
-    fireEvent.click(screen.getByTestId('hardware-profile-toggle'));
-    fireEvent.click(within(screen.getByRole('listbox')).getByText('No hardware profile'));
-
-    expect(onSelect).toHaveBeenCalledWith(undefined);
-  });
-
   it('stays hidden when Kueue is unavailable', () => {
     render(
       <HardwareProfileField
