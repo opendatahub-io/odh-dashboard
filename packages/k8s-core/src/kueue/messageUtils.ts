@@ -60,7 +60,7 @@ export const getHumanReadableKueueMessage = (
 
 /**
  * Returns a human-readable message for Requeued status including attempt count and next retry time.
- * e.g. "Waiting for quota in my-queue (attempt 3, next retry at 10:20:43)"
+ * e.g. "Waiting for quota in my-queue (Attempt 3, next retry at 07/28/2026, 22:44)"
  */
 export const getRequeuedMessage = (info: KueueWorkloadStatusWithMessage): string => {
   const count = info.requeueInfo?.count ?? 0;
@@ -71,13 +71,20 @@ export const getRequeuedMessage = (info: KueueWorkloadStatusWithMessage): string
   if (requeueAt) {
     const date = new Date(requeueAt);
     if (!Number.isNaN(date.getTime())) {
-      const formatted = date.toLocaleString();
+      const formatted = date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
       return count > 0
-        ? `${base} (attempt ${count}, next retry at ${formatted})`
-        : `${base} (next retry at ${formatted})`;
+        ? `${base} (Attempt ${count}, next retry at ${formatted})`
+        : `${base} (Next retry at ${formatted})`;
     }
   }
-  return count > 0 ? `${base} (attempt ${count})` : base;
+  return count > 0 ? `${base} (Attempt ${count})` : base;
 };
 
 const getQueuedMessage = (rawMessage: string | undefined, queue: string): string => {
@@ -382,8 +389,8 @@ export const getKueueSubStepInfo = (
     isRecovery && status === KueueWorkloadStatus.Queued ? `Re-queued: ${raw}` : raw;
 
   const label =
-    status === KueueWorkloadStatus.Queued && queuePosition != null && queueName
-      ? `${withRecovery} (${formatQueuePosition(queuePosition, queueName)})`
+    PENDING_QUEUE_POSITION_STATUSES.includes(status) && queuePosition != null && queueName
+      ? `${isRecovery ? 'Re-queued: ' : ''}${formatQueuePosition(queuePosition, queueName)}`
       : withRecovery;
 
   return { label };
