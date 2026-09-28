@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -130,25 +130,26 @@ describe('TranscriptionModelSection', () => {
   });
 
   describe('State 1: No model selected', () => {
-    it('shows the heading and add action when tagged models exist', () => {
+    it('shows the tagged model dropdown and all-models action', async () => {
+      const user = userEvent.setup();
       renderWithContext();
       expect(screen.getByRole('heading', { name: 'Transcription model' })).toHaveClass('pf-m-lg');
-      expect(screen.getByTestId('transcription-model-add-section')).not.toContainElement(
-        screen.getByRole('heading', { name: 'Transcription model' }),
+      expect(screen.getByRole('button', { name: 'Transcription model' })).toHaveTextContent(
+        'Select a transcription model',
       );
-      expect(screen.getByTestId('add-transcription-model-btn')).toBeInTheDocument();
-      expect(
-        screen.queryByRole('heading', { name: 'No models tagged for audio transcription' }),
-      ).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'View all models' })).toBeInTheDocument();
+      await user.click(screen.getByTestId('transcription-model-selector'));
+      expect(screen.getByRole('menuitem', { name: 'Whisper Large V3' })).toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: 'Whisper Small' })).toBeInTheDocument();
+      expect(screen.queryByRole('menuitem', { name: 'Llama 3 8B' })).not.toBeInTheDocument();
     });
 
-    it('opens the model picker and enables transcription after selection', async () => {
+    it('enables transcription after selecting a tagged model from the dropdown', async () => {
       const user = userEvent.setup();
       renderWithContext();
 
-      await user.click(screen.getByTestId('add-transcription-model-btn'));
-      expect(screen.getByRole('dialog')).toBeInTheDocument();
-      await user.click(screen.getByTestId('all-model-option-whisper-large-v3'));
+      await user.click(screen.getByTestId('transcription-model-selector'));
+      await user.click(screen.getByRole('menuitem', { name: 'Whisper Large V3' }));
 
       const state = useChatbotConfigStore.getState();
       expect(state.configurations[DEFAULT_CONFIG_ID]?.isAsrModelEnabled).toBe(true);
@@ -159,9 +160,10 @@ describe('TranscriptionModelSection', () => {
       const user = userEvent.setup();
       renderWithContext({ aiModels: [mockChatModel] });
       expect(screen.getByRole('heading', { name: 'Transcription model' })).toBeInTheDocument();
-      expect(
-        screen.getByRole('heading', { name: 'No models tagged for audio transcription' }),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId('transcription-model-selector')).toHaveTextContent(
+        'No models tagged for audio transcription',
+      );
+      expect(screen.getByTestId('transcription-model-selector')).toBeDisabled();
       expect(
         screen.getByText(/To enable audio transcription, tag a model with the audio capability in/),
       ).toBeInTheDocument();
@@ -169,16 +171,28 @@ describe('TranscriptionModelSection', () => {
         'href',
         '/ai-hub/models/registry',
       );
-      await user.click(
-        screen.getByRole('button', { name: 'View all models to select one manually' }),
-      );
+      await user.click(screen.getByRole('button', { name: 'View all models' }));
       expect(screen.getByRole('dialog')).toBeInTheDocument();
       await user.click(screen.getByTestId('all-model-option-llama-3-8b'));
       expect(
         useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID]?.selectedAsrModel,
       ).toBe('llama-3-8b');
-      expect(screen.getByTestId('selected-transcription-model')).toHaveValue('Llama 3 8B');
-      expect(screen.getByRole('button', { name: 'Edit transcription model' })).toBeInTheDocument();
+      expect(screen.getByTestId('transcription-model-selector')).toHaveTextContent('Llama 3 8B');
+      expect(screen.getByRole('button', { name: 'View all models' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument();
+    });
+
+    it('returns to the no-tagged-models prompt after removing an untagged selection', async () => {
+      const user = userEvent.setup();
+      renderWithContext({ aiModels: [mockChatModel] });
+      await user.click(screen.getByRole('button', { name: 'View all models' }));
+      await user.click(screen.getByTestId('all-model-option-llama-3-8b'));
+      await user.click(screen.getByRole('button', { name: 'Remove' }));
+
+      expect(screen.getByTestId('transcription-model-selector')).toHaveTextContent(
+        'No models tagged for audio transcription',
+      );
+      expect(screen.queryByRole('button', { name: 'Remove' })).not.toBeInTheDocument();
     });
   });
 
@@ -189,10 +203,12 @@ describe('TranscriptionModelSection', () => {
       });
     });
 
-    it('shows the add action while no model is selected', () => {
+    it('shows the selector while no model is selected', () => {
       renderWithContext();
       expect(screen.getByRole('heading', { name: 'Transcription model' })).toBeInTheDocument();
-      expect(screen.getByTestId('add-transcription-model-btn')).toBeInTheDocument();
+      expect(screen.getByTestId('transcription-model-selector')).toHaveTextContent(
+        'Select a transcription model',
+      );
       expect(screen.queryByRole('button', { name: 'More info' })).not.toBeInTheDocument();
     });
 
@@ -204,7 +220,7 @@ describe('TranscriptionModelSection', () => {
     it('recommends tagged models first in the all-models modal', async () => {
       const user = userEvent.setup();
       renderWithContext();
-      await user.click(screen.getByTestId('add-transcription-model-btn'));
+      await user.click(screen.getByRole('button', { name: 'View all models' }));
       const options = screen.getAllByTestId(/all-model-option-/);
       expect(options.map((option) => option.getAttribute('data-testid'))).toEqual([
         'all-model-option-whisper-large-v3',
@@ -218,7 +234,7 @@ describe('TranscriptionModelSection', () => {
       const user = userEvent.setup();
       renderWithContext();
 
-      await user.click(screen.getByTestId('add-transcription-model-btn'));
+      await user.click(screen.getByRole('button', { name: 'View all models' }));
       expect(
         screen.getByRole('heading', { name: 'Select audio transcription model' }),
       ).toBeInTheDocument();
@@ -241,23 +257,20 @@ describe('TranscriptionModelSection', () => {
       const user = userEvent.setup();
       renderWithContext();
 
-      await user.click(screen.getByTestId('add-transcription-model-btn'));
+      await user.click(screen.getByRole('button', { name: 'View all models' }));
       await user.click(screen.getByTestId('all-model-option-whisper-large-v3'));
 
       const state = useChatbotConfigStore.getState();
       expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedAsrModel).toBe('whisper-large-v3');
       expect(screen.getByRole('heading', { name: 'Transcription model' })).toHaveClass('pf-m-lg');
-      expect(screen.getByTestId('selected-transcription-model')).toHaveValue('Whisper Large V3');
-      expect(screen.getByTestId('selected-transcription-model')).toHaveAccessibleName(
+      expect(screen.getByTestId('transcription-model-selector')).toHaveTextContent(
+        'Whisper Large V3',
+      );
+      expect(screen.getByTestId('transcription-model-selector')).toHaveAccessibleName(
         'Transcription model',
       );
-      expect(screen.getByTestId('selected-transcription-model')).toHaveAttribute('readonly');
-      expect(
-        screen
-          .getAllByRole('button', { name: /(Edit|Remove) transcription model/ })
-          .map((button) => button.getAttribute('aria-label')),
-      ).toEqual(['Edit transcription model', 'Remove transcription model']);
-      expect(screen.queryByTestId('add-transcription-model-btn')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'View all models' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument();
       expect(mockFireMisc).toHaveBeenCalledWith(PLAYGROUND_MULTIMODAL_EVENTS.ASR_MODEL_SELECTED, {
         modelName: 'Whisper Large V3',
         isDefaultModel: false,
@@ -278,7 +291,7 @@ describe('TranscriptionModelSection', () => {
       ).toBeInTheDocument();
     });
 
-    it('opens model selection from the edit control', async () => {
+    it('opens all models while a model is selected', async () => {
       const user = userEvent.setup();
       act(() => {
         useChatbotConfigStore
@@ -287,10 +300,10 @@ describe('TranscriptionModelSection', () => {
       });
       renderWithContext();
 
-      await user.click(screen.getByRole('button', { name: 'Edit transcription model' }));
+      await user.click(screen.getByRole('button', { name: 'View all models' }));
       expect(screen.getByRole('dialog')).toBeInTheDocument();
       await user.click(screen.getByTestId('all-model-option-whisper-small'));
-      expect(screen.getByTestId('selected-transcription-model')).toHaveValue('Whisper Small');
+      expect(screen.getByTestId('transcription-model-selector')).toHaveTextContent('Whisper Small');
     });
 
     it('removes the section and clears selection', async () => {
@@ -307,7 +320,10 @@ describe('TranscriptionModelSection', () => {
       const state = useChatbotConfigStore.getState();
       expect(state.configurations[DEFAULT_CONFIG_ID]?.isAsrModelEnabled).toBe(false);
       expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedAsrModel).toBe('');
-      expect(screen.queryByTestId('selected-transcription-model')).not.toBeInTheDocument();
+      expect(screen.getByTestId('transcription-model-selector')).toHaveTextContent(
+        'Select a transcription model',
+      );
+      await waitFor(() => expect(screen.getByTestId('transcription-model-selector')).toHaveFocus());
     });
   });
 
@@ -321,19 +337,17 @@ describe('TranscriptionModelSection', () => {
     it('allows selecting an untagged model when no ASR models exist', async () => {
       const user = userEvent.setup();
       renderWithContext({ aiModels: [mockChatModel] });
-      await user.click(
-        screen.getByRole('button', { name: 'View all models to select one manually' }),
-      );
+      await user.click(screen.getByRole('button', { name: 'View all models' }));
       await user.click(screen.getByTestId('all-model-option-llama-3-8b'));
-      expect(screen.getByTestId('selected-transcription-model')).toHaveValue('Llama 3 8B');
+      expect(screen.getByTestId('transcription-model-selector')).toHaveTextContent('Llama 3 8B');
     });
 
-    it('shows missing-model guidance instead of the add action', () => {
+    it('shows missing-model guidance with the same selector layout', () => {
       renderWithContext({ aiModels: [mockChatModel] });
-      expect(
-        screen.getByRole('heading', { name: 'No models tagged for audio transcription' }),
-      ).toBeInTheDocument();
-      expect(screen.queryByTestId('add-transcription-model-btn')).not.toBeInTheDocument();
+      expect(screen.getByTestId('transcription-model-selector')).toHaveTextContent(
+        'No models tagged for audio transcription',
+      );
+      expect(screen.getByRole('button', { name: 'View all models' })).toBeInTheDocument();
     });
   });
 
@@ -387,6 +401,20 @@ describe('TranscriptionModelSection', () => {
       expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedAsrModel).toBe('llama-3-8b');
     });
 
+    it('shows an untagged selection while keeping the dropdown limited to tagged models', async () => {
+      const user = userEvent.setup();
+      act(() => {
+        useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
+        useChatbotConfigStore.getState().updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'llama-3-8b');
+      });
+
+      renderWithContext();
+      expect(screen.getByTestId('transcription-model-selector')).toHaveTextContent('Llama 3 8B');
+      await user.click(screen.getByTestId('transcription-model-selector'));
+      expect(screen.getByRole('menuitem', { name: 'Whisper Large V3' })).toBeInTheDocument();
+      expect(screen.queryByRole('menuitem', { name: 'Llama 3 8B' })).not.toBeInTheDocument();
+    });
+
     it('shows stale warning until a new model is selected', () => {
       act(() => {
         useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
@@ -416,10 +444,9 @@ describe('TranscriptionModelSection', () => {
   });
 
   describe('MaaS ASR models', () => {
-    it('enables add button when only a MaaS ASR model exists (no namespace ASR)', () => {
+    it('enables the selector when only a MaaS ASR model exists (no namespace ASR)', () => {
       renderWithContext({ aiModels: [mockChatModel], maasModels: [mockMaaSAsrModel] });
-      const btn = screen.getByTestId('add-transcription-model-btn');
-      expect(btn).not.toHaveAttribute('aria-disabled', 'true');
+      expect(screen.getByTestId('transcription-model-selector')).toBeEnabled();
     });
 
     it('shows MaaS ASR model in the picker when enabled', async () => {
@@ -430,7 +457,7 @@ describe('TranscriptionModelSection', () => {
 
       renderWithContext({ aiModels: [mockChatModel], maasModels: [mockMaaSAsrModel] });
 
-      await user.click(screen.getByTestId('add-transcription-model-btn'));
+      await user.click(screen.getByRole('button', { name: 'View all models' }));
       expect(screen.getByTestId('all-model-option-whisper-maas')).toBeInTheDocument();
     });
 
