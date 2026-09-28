@@ -17,6 +17,8 @@ import {
   computeRankMap,
   findEquivalentMetric,
   findTrainingTaskPrefix,
+  resolveTrainingTaskPrefix,
+  resolveUniqueUuidPrefix,
   generateReconfigureName,
   getBestModelFromStageMap,
   orderModelsByLeaderboardRank,
@@ -1272,5 +1274,80 @@ describe('findTrainingTaskPrefix', () => {
   it('should reject non-numeric sibling directory names', () => {
     const prefixes = [{ prefix: 'pipeline/run-id/autogluon-models-training-backup/' }];
     expect(findTrainingTaskPrefix(prefixes, 'autogluon-models-training')).toBeUndefined();
+  });
+});
+
+describe('resolveTrainingTaskPrefix', () => {
+  const allowedTaskNames = ['autogluon-models-training', 'autogluon-models-training-2'];
+
+  it('should resolve the only allowed training task directory', () => {
+    expect(
+      resolveTrainingTaskPrefix(
+        [
+          { prefix: 'pipeline/run-1/automl-data-loader/' },
+          { prefix: 'pipeline/run-1/autogluon-models-training-2/' },
+        ],
+        allowedTaskNames,
+      ),
+    ).toBe('pipeline/run-1/autogluon-models-training-2');
+  });
+
+  it('should return undefined when allowed task directories are ambiguous', () => {
+    expect(
+      resolveTrainingTaskPrefix(
+        [
+          { prefix: 'pipeline/run-1/autogluon-models-training/' },
+          { prefix: 'pipeline/run-1/autogluon-models-training-2/' },
+        ],
+        allowedTaskNames,
+      ),
+    ).toBeUndefined();
+  });
+
+  it('should reject invalid task suffixes', () => {
+    expect(
+      resolveTrainingTaskPrefix(
+        [{ prefix: 'pipeline/run-1/autogluon-models-training-3/' }],
+        allowedTaskNames,
+      ),
+    ).toBeUndefined();
+  });
+
+  it('should return undefined when no allowed task directory exists', () => {
+    expect(
+      resolveTrainingTaskPrefix(
+        [{ prefix: 'pipeline/run-1/autogluon-models-training-backup/' }],
+        allowedTaskNames,
+      ),
+    ).toBeUndefined();
+  });
+});
+
+describe('resolveUniqueUuidPrefix', () => {
+  const basePath = 'pipeline/run-1/autogluon-models-training-2';
+
+  it('should resolve the only UUID child directory', () => {
+    expect(
+      resolveUniqueUuidPrefix(
+        [
+          { prefix: `${basePath}/11111111-1111-1111-1111-111111111111/` },
+          { prefix: 'pipeline/run-1/other-task/22222222-2222-2222-2222-222222222222/' },
+        ],
+        basePath,
+      ),
+    ).toBe(`${basePath}/11111111-1111-1111-1111-111111111111`);
+  });
+
+  it('should return undefined when the UUID child directory is missing or ambiguous', () => {
+    expect(resolveUniqueUuidPrefix([], basePath)).toBeUndefined();
+    expect(
+      resolveUniqueUuidPrefix(
+        [
+          { prefix: `${basePath}/11111111-1111-1111-1111-111111111111/` },
+          { prefix: `${basePath}/22222222-2222-2222-2222-222222222222/` },
+        ],
+        basePath,
+      ),
+    ).toBeUndefined();
   });
 });

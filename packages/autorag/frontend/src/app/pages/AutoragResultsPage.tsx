@@ -42,7 +42,7 @@ import {
   useSecretCredentialsQuery,
 } from '~/app/hooks/queries';
 import { useAutoragOutputDir } from '~/app/hooks/useAutoragOutputDir';
-import { useAutoragResults } from '~/app/hooks/useAutoragResults';
+import { resolveArtifactDirectory, useAutoragResults } from '~/app/hooks/useAutoragResults';
 import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import { useComponentStatuses } from '~/app/hooks/useComponentStatuses';
 import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/utilities/routes';
@@ -119,18 +119,38 @@ function AutoragResultsPage(): React.JSX.Element {
     dataUpdatedAt: pipelineRunUpdatedAt,
   } = usePipelineRunQuery(runId, namespace);
 
-  const { rootDir } = useAutoragOutputDir(pipelineRun);
-  const runArtifactRoot =
+  const { rootDir, patternGenerationDir } = useAutoragOutputDir(pipelineRun);
+  const templatesOptimizationPath =
     isRunCompleted(pipelineRun?.state) && runId ? `${rootDir}/${runId}` : undefined;
-  const starterKitKey = runArtifactRoot ? `${runArtifactRoot}/${STARTER_KIT_FILENAME}` : undefined;
+  const artifactDiscoveryPath = templatesOptimizationPath
+    ? `${templatesOptimizationPath}/${patternGenerationDir}`
+    : undefined;
   const {
-    data: runArtifactFiles,
-    isLoading: runArtifactLoading,
-    isError: runArtifactListError,
-  } = useS3ListFilesQuery(namespace, runArtifactRoot);
+    data: artifactDiscoveryFiles,
+    isLoading: artifactDiscoveryLoading,
+    isError: artifactDiscoveryError,
+  } = useS3ListFilesQuery(namespace, artifactDiscoveryPath);
+  const artifactUuid = React.useMemo(() => {
+    if (!artifactDiscoveryFiles || !artifactDiscoveryPath) {
+      return undefined;
+    }
+    return resolveArtifactDirectory(artifactDiscoveryFiles.common_prefixes, artifactDiscoveryPath)
+      .id;
+  }, [artifactDiscoveryFiles, artifactDiscoveryPath]);
+  const artifactDirectory = artifactUuid ? `${artifactDiscoveryPath}/${artifactUuid}` : undefined;
+  const {
+    data: artifactFiles,
+    isLoading: artifactLoading,
+    isError: artifactError,
+  } = useS3ListFilesQuery(namespace, artifactDirectory);
+  const starterKitKey = artifactDirectory
+    ? `${artifactDirectory}/${STARTER_KIT_FILENAME}`
+    : undefined;
   const hasStarterKit = Boolean(
-    starterKitKey && runArtifactFiles?.contents.some((object) => object.key === starterKitKey),
+    starterKitKey && artifactFiles?.contents.some((object) => object.key === starterKitKey),
   );
+  const runArtifactLoading = artifactDiscoveryLoading || artifactLoading;
+  const runArtifactListError = artifactDiscoveryError || artifactError;
 
   const starterKitTooltip = React.useMemo(() => {
     if (isDownloadingStarterKit) {

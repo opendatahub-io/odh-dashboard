@@ -1284,6 +1284,65 @@ describe('AutomlResultsPage', () => {
       renderPage();
     };
 
+    const mockNestedArtifactLists = (
+      run: PipelineRun,
+      options: {
+        runLevelPrefixes?: { prefix: string }[];
+        taskPrefixes?: { prefix: string }[];
+        notebookContents?: { key: string; size: number }[];
+        errorPath?: string;
+        loadingPath?: string;
+      } = {},
+    ): string => {
+      const isTimeseries = run.runtime_config?.parameters?.task_type === 'timeseries';
+      const rootDir = isTimeseries
+        ? 'autogluon-timeseries-training-pipeline'
+        : 'autogluon-tabular-training-pipeline';
+      const taskName = isTimeseries
+        ? 'autogluon-timeseries-models-training-2'
+        : 'autogluon-models-training-2';
+      const taskPath = `${rootDir}/run-123/${taskName}`;
+      const executionPath = `${taskPath}/11111111-1111-1111-1111-111111111111`;
+      const notebookPath = `${executionPath}/experiment_notebook`;
+      const key = `${notebookPath}/automl_experiment_notebook.ipynb`;
+
+      mockUseS3ListFilesQuery.mockImplementation((_namespace: string, path?: string) => {
+        if (path === `${rootDir}/run-123`) {
+          return {
+            data: {
+              contents: [],
+              common_prefixes: options.runLevelPrefixes ?? [{ prefix: `${taskPath}/` }],
+            },
+            isLoading: options.loadingPath === path,
+            isError: options.errorPath === path,
+          };
+        }
+        if (path === taskPath) {
+          return {
+            data: {
+              contents: [],
+              common_prefixes: options.taskPrefixes ?? [{ prefix: `${executionPath}/` }],
+            },
+            isLoading: options.loadingPath === path,
+            isError: options.errorPath === path,
+          };
+        }
+        if (path === notebookPath) {
+          return {
+            data: {
+              contents: options.notebookContents ?? [{ key, size: 1 }],
+              common_prefixes: [],
+            },
+            isLoading: options.loadingPath === path,
+            isError: options.errorPath === path,
+          };
+        }
+        return { data: undefined, isLoading: false, isError: false };
+      });
+
+      return key;
+    };
+
     it.each(['PENDING', 'RUNNING', 'CANCELING', 'PAUSED', undefined])(
       'should disable the action before successful completion for state %s',
       (state) => {
@@ -1318,6 +1377,56 @@ describe('AutomlResultsPage', () => {
       );
     });
 
+    it.each([
+      ['missing task', []],
+      [
+        'invalid task suffix',
+        [{ prefix: 'autogluon-tabular-training-pipeline/run-123/autogluon-models-training-3/' }],
+      ],
+      [
+        'duplicate allowed tasks',
+        [
+          { prefix: 'autogluon-tabular-training-pipeline/run-123/autogluon-models-training/' },
+          { prefix: 'autogluon-tabular-training-pipeline/run-123/autogluon-models-training-2/' },
+        ],
+      ],
+    ])('should disable the action for %s', (_caseName, runLevelPrefixes) => {
+      const run = tabularRun();
+      mockNestedArtifactLists(run, { runLevelPrefixes });
+      renderWithRun(run);
+
+      expect(screen.getByTestId('run-notebook-download-button')).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+    });
+
+    it.each([
+      ['missing execution UUID', []],
+      [
+        'duplicate execution UUIDs',
+        [
+          {
+            prefix:
+              'autogluon-tabular-training-pipeline/run-123/autogluon-models-training-2/11111111-1111-1111-1111-111111111111/',
+          },
+          {
+            prefix:
+              'autogluon-tabular-training-pipeline/run-123/autogluon-models-training-2/22222222-2222-2222-2222-222222222222/',
+          },
+        ],
+      ],
+    ])('should disable the action for %s', (_caseName, taskPrefixes) => {
+      const run = tabularRun();
+      mockNestedArtifactLists(run, { taskPrefixes });
+      renderWithRun(run);
+
+      expect(screen.getByTestId('run-notebook-download-button')).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+    });
+
     it('should show the approved tooltip for an incomplete run', async () => {
       const user = userEvent.setup();
       renderWithRun(createMockPipelineRun({ state: 'RUNNING' }));
@@ -1341,19 +1450,16 @@ describe('AutomlResultsPage', () => {
     });
 
     it('should remain disabled when the exact artifact is absent or listing fails', () => {
-      mockUseS3ListFilesQuery.mockReturnValue({
-        data: { contents: [], common_prefixes: [] },
-        isLoading: false,
-        isError: false,
-      });
-      renderWithRun(tabularRun());
+      const run = tabularRun();
+      mockNestedArtifactLists(run, { notebookContents: [] });
+      renderWithRun(run);
 
       expect(screen.getByTestId('run-notebook-download-button')).toHaveAttribute(
         'aria-disabled',
         'true',
       );
 
-      mockUseS3ListFilesQuery.mockReturnValue({ data: undefined, isLoading: false, isError: true });
+      mockNestedArtifactLists(run, { errorPath: 'autogluon-tabular-training-pipeline/run-123' });
       expect(screen.getByTestId('run-notebook-download-button')).toHaveAttribute(
         'aria-disabled',
         'true',
@@ -1362,12 +1468,9 @@ describe('AutomlResultsPage', () => {
 
     it('should show Artifact unavailable when a successful run has no exact artifact', async () => {
       const user = userEvent.setup();
-      mockUseS3ListFilesQuery.mockReturnValue({
-        data: { contents: [], common_prefixes: [] },
-        isLoading: false,
-        isError: false,
-      });
-      renderWithRun(tabularRun());
+      const run = tabularRun();
+      mockNestedArtifactLists(run, { notebookContents: [] });
+      renderWithRun(run);
 
       await user.hover(screen.getByTestId('run-notebook-download-button'));
 
@@ -1375,8 +1478,9 @@ describe('AutomlResultsPage', () => {
     });
 
     it('should hide the artifact behind the unavailable state when listing fails', () => {
-      mockUseS3ListFilesQuery.mockReturnValue({ data: undefined, isLoading: false, isError: true });
-      renderWithRun(tabularRun());
+      const run = tabularRun();
+      mockNestedArtifactLists(run, { errorPath: 'autogluon-tabular-training-pipeline/run-123' });
+      renderWithRun(run);
 
       expect(screen.getByTestId('run-notebook-download-button')).toHaveAttribute(
         'aria-disabled',
@@ -1386,13 +1490,8 @@ describe('AutomlResultsPage', () => {
 
     it('should download the exact run notebook and track only after success', async () => {
       const run = tabularRun();
-      const key = 'autogluon-tabular-training-pipeline/run-123/automl_experiment_notebook.ipynb';
       const blob = new Blob(['notebook']);
-      mockUseS3ListFilesQuery.mockReturnValue({
-        data: { contents: [{ key, size: blob.size }], common_prefixes: [] },
-        isLoading: false,
-        isError: false,
-      });
+      const key = mockNestedArtifactLists(run);
       mockFetchS3File.mockResolvedValue(blob);
       renderWithRun(run);
 
@@ -1409,16 +1508,11 @@ describe('AutomlResultsPage', () => {
     });
 
     it('should discover and download the time-series run notebook from its root', async () => {
-      const key = 'autogluon-timeseries-training-pipeline/run-123/automl_experiment_notebook.ipynb';
       const blob = new Blob(['notebook']);
       const timeSeriesRun = createMockPipelineRun(undefined, {
         task_type: 'timeseries',
       } as Partial<ConfigureSchema>);
-      mockUseS3ListFilesQuery.mockReturnValue({
-        data: { contents: [{ key, size: blob.size }], common_prefixes: [] },
-        isLoading: false,
-        isError: false,
-      });
+      const key = mockNestedArtifactLists(timeSeriesRun);
       mockFetchS3File.mockResolvedValue(blob);
       renderWithRun(timeSeriesRun);
 
@@ -1434,12 +1528,7 @@ describe('AutomlResultsPage', () => {
 
     it('should show the existing danger alert and not track a failed download', async () => {
       const run = tabularRun();
-      const key = 'autogluon-tabular-training-pipeline/run-123/automl_experiment_notebook.ipynb';
-      mockUseS3ListFilesQuery.mockReturnValue({
-        data: { contents: [{ key, size: 1 }], common_prefixes: [] },
-        isLoading: false,
-        isError: false,
-      });
+      mockNestedArtifactLists(run);
       mockFetchS3File.mockRejectedValue(new Error('S3 connection failed'));
       renderWithRun(run);
 

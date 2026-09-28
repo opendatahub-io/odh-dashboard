@@ -46,6 +46,8 @@ import {
   isRunRetryable,
   isRunTerminatable,
   parseErrorStatus,
+  resolveTrainingTaskPrefix,
+  resolveUniqueUuidPrefix,
 } from '~/app/utilities/utils';
 import {
   fireAutomlResultsViewed,
@@ -97,20 +99,48 @@ function AutomlResultsPage(): React.JSX.Element {
     dataUpdatedAt: pipelineRunUpdatedAt,
   } = usePipelineRunQuery(runId, namespace);
 
-  const { rootDir } = useAutomlOutputDir(pipelineRun);
+  const { rootDir, modelGenerationDir } = useAutomlOutputDir(pipelineRun);
   const runArtifactRoot =
     isRunCompleted(pipelineRun?.state) && runId ? `${rootDir}/${runId}` : undefined;
-  const runNotebookKey = runArtifactRoot
-    ? `${runArtifactRoot}/${RUN_NOTEBOOK_FILENAME}`
+  const {
+    data: runLevelFiles,
+    isLoading: runLevelLoading,
+    isError: runLevelError,
+  } = useS3ListFilesQuery(namespace, runArtifactRoot);
+  const trainingTaskPrefix = React.useMemo(() => {
+    const allowedTaskNames = [modelGenerationDir, `${modelGenerationDir}-2`];
+    return runLevelFiles
+      ? resolveTrainingTaskPrefix(runLevelFiles.common_prefixes, allowedTaskNames)
+      : undefined;
+  }, [modelGenerationDir, runLevelFiles]);
+  const {
+    data: trainingTaskFiles,
+    isLoading: trainingTaskLoading,
+    isError: trainingTaskError,
+  } = useS3ListFilesQuery(namespace, trainingTaskPrefix);
+  const taskExecutionPrefix = React.useMemo(
+    () =>
+      trainingTaskFiles
+        ? resolveUniqueUuidPrefix(trainingTaskFiles.common_prefixes, trainingTaskPrefix ?? '')
+        : undefined,
+    [trainingTaskFiles, trainingTaskPrefix],
+  );
+  const notebookDirectory = taskExecutionPrefix
+    ? `${taskExecutionPrefix}/experiment_notebook`
     : undefined;
   const {
-    data: runArtifactFiles,
-    isLoading: runArtifactLoading,
-    isError: runArtifactListError,
-  } = useS3ListFilesQuery(namespace, runArtifactRoot);
+    data: notebookFiles,
+    isLoading: notebookLoading,
+    isError: notebookError,
+  } = useS3ListFilesQuery(namespace, notebookDirectory);
+  const runNotebookKey = notebookDirectory
+    ? `${notebookDirectory}/${RUN_NOTEBOOK_FILENAME}`
+    : undefined;
   const hasRunNotebook = Boolean(
-    runNotebookKey && runArtifactFiles?.contents.some((object) => object.key === runNotebookKey),
+    runNotebookKey && notebookFiles?.contents.some((object) => object.key === runNotebookKey),
   );
+  const runArtifactLoading = runLevelLoading || trainingTaskLoading || notebookLoading;
+  const runArtifactListError = runLevelError || trainingTaskError || notebookError;
 
   const runNotebookTooltip = React.useMemo(() => {
     if (isDownloadingRunNotebook) {
