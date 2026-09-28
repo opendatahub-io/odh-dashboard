@@ -2,7 +2,6 @@ import * as React from 'react';
 import { FormGroup, HelperText, HelperTextItem, TextInput } from '@patternfly/react-core';
 import { ProjectsContext, ProjectSelector } from '@odh-dashboard/ui-core';
 import { byName } from '@odh-dashboard/k8s-core';
-import { ODH_PRODUCT_NAME } from '@odh-dashboard/ui-core/utilities';
 
 export type ProjectSectionType = {
   initialProjectName?: string;
@@ -37,7 +36,7 @@ const ProjectSection: React.FC<ProjectSectionType> = ({
   projectName,
   setProjectName,
 }) => {
-  const projectLabel = `This is the ${ODH_PRODUCT_NAME} project where the model will be deployed.`;
+  const projectLabel = `This is the project where the model will be deployed.`;
   if (!initialProjectName) {
     return (
       <FormGroup label="Project" isRequired>

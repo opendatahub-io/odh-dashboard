@@ -25,12 +25,21 @@ delete that singleton resource.
 - A configured Gateway whose externally reachable hostname is known.
 - An admitted `model-catalog` HTTPRoute in the applications namespace, backed
   by an enabled Model Catalog operand, for gateway sub-path conformance checks.
+- RHOAI runs need the MaaS and GenAI modules and enough cluster capacity to
+  deploy the MaaS Consumer Portal for shared-Gateway routing conformance checks.
 - RBAC to get the test Namespace and Dashboard CRD; get, create, patch, and
   delete Dashboards; list, get, patch, and delete Deployments and Pods; get and
   list Services, PodDisruptionBudgets, HTTPRoutes, and Endpoints; get
   ServiceAccounts and NetworkPolicies; create, get, and delete ConfigMaps; get
   the `openshift-service-ca.crt` ConfigMap; create the `pods/portforward`
   subresource in the test namespace; and list ValidatingWebhookConfigurations.
+
+The operator-chaos scenarios additionally require RBAC to get, list, and delete
+controller Pods; get the controller Deployment; create, get, and delete
+NetworkPolicies; create, get, update, and delete PodDisruptionBudgets in the
+operator namespace; create the `pods/eviction` subresource; and patch operand
+Deployments in the test namespace. The cluster CNI must enforce Kubernetes
+NetworkPolicy.
 
 Set the required environment variables:
 
@@ -79,6 +88,7 @@ test run:
 
 ```bash
 make test-e2e E2E_TEST_ARGS='-run TestE2E_BFFHealthchecks'
+make test-e2e E2E_TEST_ARGS='-run ^TestE2E_MaaSConsumerPortalRoutingConformance$'
 ```
 
 Run the RHOAIENG-83658 cases, or one ticket story, with:
@@ -105,6 +115,53 @@ The equivalent direct command is:
 
 ```bash
 go test -v -count=1 -tags=e2e -timeout=30m -run TestE2E_BFFHealthchecks ./test/e2e/...
+```
+
+## Operator Chaos Scenarios
+
+The destructive chaos suite executes the `pod-kill`, `network-partition`, and
+`pdb-block` experiments from `chaos/experiments` against the deployed
+dashboard-operator controller. It uses operator-chaos injectors inside this E2E
+framework so each test can prove that its fault occurred, explicitly revert it,
+and only then verify recovery. The scenarios run serially and must use an
+isolated early-gate cluster.
+
+Set an explicit safety opt-in and run the selective target:
+
+```bash
+export TEST_ENABLE_CHAOS=true
+export TEST_OPERATOR_NAMESPACE=<namespace-containing-dashboard-operator>
+# Optional when the installed controller uses a different name:
+export TEST_OPERATOR_DEPLOYMENT=dashboard-operator
+
+make test-e2e-chaos
+```
+
+When the compiled test binary does not run from a repository checkout, mount
+the experiment directory and set `TEST_CHAOS_EXPERIMENT_DIR` to that absolute
+path. CI should run the test through its Go-to-JUnit wrapper and retain the
+captured pod UIDs, injected resource names, eviction result, and recovery logs.
+
+The suite validates:
+
+- controller pod replacement after a forced kill while operands remain healthy;
+- managed-resource drift remaining unreconciled after the singleton controller
+  is restarted under an active NetworkPolicy, followed by informer reconnection
+  and drift repair after policy removal; and
+- a real `policy/v1` eviction denied with HTTP 429 while the injected
+  `maxUnavailable: 0` PDB is active.
+
+Every reversible fault registers cleanup immediately. Cleanup uses a fresh
+timeout context, calls both the injector cleanup and stateless revert paths, and
+verifies that the injected NetworkPolicy or PDB is absent before proceeding.
+The NetworkPolicy injector also stamps its resource with the experiment TTL.
+If the test process is forcibly terminated, remove any NetworkPolicy or PDB
+leftovers before retrying:
+
+```bash
+oc delete networkpolicy,poddisruptionbudget \
+  -n "$TEST_OPERATOR_NAMESPACE" \
+  -l app.kubernetes.io/managed-by=operator-chaos
 ```
 
 ## Compile and Run in a Container
@@ -227,7 +284,9 @@ externally reachable, each standalone BFF returns HTTP 200 from `/healthcheck`,
 the `/catalog/` sibling HTTPRoute wins over the Dashboard catch-all and returns
 a successful Model Catalog JSON response or a validated Model Catalog JSON
 `401` response rather than Dashboard SPA HTML, redirects, or unrelated statuses,
-and the core PodDisruptionBudget selects ready Dashboard pods.
+the RHOAI MaaS Consumer Portal shares the hostname-less Gateway routing scope
+without breaking the Dashboard root or Model Catalog path, and the core
+PodDisruptionBudget selects ready Dashboard pods.
 
 The BFF checks use the HTTPS Service ports declared by the current module
 registry (`8043`, `8143`, `8243`, `8343`, `8543`, `8643`, `8743`, and `8843`).

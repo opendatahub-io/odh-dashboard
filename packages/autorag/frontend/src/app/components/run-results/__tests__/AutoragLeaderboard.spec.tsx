@@ -1033,6 +1033,18 @@ describe('AutoragLeaderboard component', () => {
       expect(screen.getByTestId('metric-faithfulness-unranked-ambiguous')).toHaveTextContent('N/A');
     });
 
+    it('should provide definition hover help for metric headers including Answer correctness', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+      showAllColumns();
+
+      const header = screen.getByTestId('metric-header-answer_correctness-unitxt');
+      fireEvent.click(within(header).getByRole('button', { name: /more info/i }));
+      expect(screen.getByText(/matches the expected ground-truth answers/i)).toBeInTheDocument();
+    });
+
     it('should display all metrics for each pattern', () => {
       renderWithContext({
         patterns: mockPatternsWithExtraMetrics,

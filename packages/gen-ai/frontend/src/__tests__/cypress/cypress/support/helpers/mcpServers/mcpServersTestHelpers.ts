@@ -131,6 +131,18 @@ export const loadMCPTestConfig = (): Cypress.Chainable<MCPTestConfig> => {
   });
 };
 
+export const clearMCPRegistryServersFlag = (): void => {
+  Cypress.env('_featureFlagParams', '');
+};
+
+export const visitWithMCPRegistryServersFlag = (enabled: boolean): void => {
+  const flagParams = `genAiMcpRegistryServers=${enabled}`;
+  Cypress.env('_featureFlagParams', flagParams);
+  cy.visit(`/?${flagParams}`);
+  cy.document().should('exist');
+  cy.get('body', { timeout: 15000 }).should('be.visible');
+};
+
 type MCPServerStatus = 'healthy' | 'error' | 'unknown';
 
 type InitInterceptsOptions = {
@@ -188,9 +200,16 @@ export const initIntercepts = ({
   }
 };
 
-export const navigateToPlayground = (namespace: string): void => {
+export const navigateToPlayground = (
+  namespace: string,
+  mcpRegistryServersEnabled?: boolean,
+): void => {
   cy.step('Navigate to Playground');
-  appChrome.visit();
+  if (mcpRegistryServersEnabled === undefined) {
+    appChrome.visit();
+  } else {
+    visitWithMCPRegistryServersFlag(mcpRegistryServersEnabled);
+  }
   playgroundPage.visit(namespace);
   playgroundPage.verifyOnPlaygroundPage(namespace);
   playgroundPage.mcpTab.openMCPTab();

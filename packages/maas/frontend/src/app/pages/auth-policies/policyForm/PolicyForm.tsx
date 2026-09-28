@@ -26,7 +26,12 @@ import AddModelsModal from '~/app/shared/AddModelsModal';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import { createAuthPolicy, updateAuthPolicy } from '~/app/api/auth-policies';
 import type { CreatePolicyRequest, UpdatePolicyRequest } from '~/app/types/auth-policies';
-import { MaaSAuthPolicy, MaaSModelRefSummary, MaaSSubscription } from '~/app/types/subscriptions';
+import {
+  MaaSAuthPolicy,
+  MaaSModelRefSummary,
+  MaaSSubscription,
+  SYSTEM_AUTHENTICATED_GROUP,
+} from '~/app/types/subscriptions';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import {
@@ -41,6 +46,7 @@ import {
   MaaSEvents,
 } from '~/app/types/event-tracking';
 import { getSectionUrl } from '~/app/utilities/maasGovernanceNavigation';
+import SystemAuthenticatedWarning from '~/app/shared/SystemAuthenticatedWarning';
 
 const policyFormSchema = z.object({
   groups: z.array(z.string()).min(1, 'One or more groups must be selected'),
@@ -244,6 +250,9 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
             createOptionMessage={(value) => `Add group "${value}"`}
             placeholder="Select groups or type to add a new group"
           />
+          {selectedGroupNames.includes(SYSTEM_AUTHENTICATED_GROUP) && (
+            <SystemAuthenticatedWarning />
+          )}
           {groupsValidationError && (
             <FormHelperText>
               <HelperText>
