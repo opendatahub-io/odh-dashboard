@@ -168,10 +168,21 @@ const buildProxyConfig = () => {
         shouldForwardAccessToken = process.env.DEV_LEGACY === 'true';
       }
 
-      const headers = { Authorization: `Bearer ${token}` };
-      if (shouldForwardAccessToken) {
-        console.info('Supplying x-forwarded-access-token header');
-        headers['x-forwarded-access-token'] = token;
+      const secure = Boolean(clusterCAFile);
+      const allowInsecureTokenForwarding =
+        process.env.ODH_ALLOW_INSECURE_TOKEN_FORWARDING === 'true';
+      const headers = {};
+      if (secure || allowInsecureTokenForwarding) {
+        if (!secure) {
+          console.warn(
+            'WARNING: forwarding the oc bearer token without TLS verification because ODH_ALLOW_INSECURE_TOKEN_FORWARDING=true.',
+          );
+        }
+        headers.Authorization = `Bearer ${token}`;
+        if (shouldForwardAccessToken) {
+          console.info('Supplying x-forwarded-access-token header');
+          headers['x-forwarded-access-token'] = token;
+        }
       }
 
       return [
@@ -179,7 +190,7 @@ const buildProxyConfig = () => {
           context: portalApiContexts,
           target: `https://${dashboardHost}`,
           pathRewrite: { [`^${BASE_PATH}`]: '' },
-          secure: Boolean(clusterCAFile),
+          secure,
           ...(clusterProxyAgent ? { agent: clusterProxyAgent } : {}),
           changeOrigin: true,
           headers,

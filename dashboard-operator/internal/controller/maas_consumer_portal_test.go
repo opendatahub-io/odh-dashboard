@@ -321,6 +321,10 @@ func TestReconcileDeletion_CleansMaaSConsumerPortalResources(t *testing.T) {
 		DeletionTimestamp: &metav1.Time{Time: time.Now()},
 	}}
 	portalServiceAccount := &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalDeploymentName, Namespace: maasConsumerPortalTestNamespace, Labels: portalLabels}}
+	operatorNamespaces := []client.Object{
+		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "redhat-ods-operator"}},
+		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "opendatahub-operator"}},
+	}
 	objects := []client.Object{
 		dashboard,
 		&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalDeploymentName, Namespace: maasConsumerPortalTestNamespace, Labels: portalLabels}},
@@ -331,10 +335,14 @@ func TestReconcileDeletion_CleansMaaSConsumerPortalResources(t *testing.T) {
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalDeploymentName + "-tls", Namespace: maasConsumerPortalTestNamespace}},
 		&rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalDeploymentName, Labels: portalLabels}},
 		&rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalDeploymentName, Labels: portalLabels}},
+		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: "maas-consumer-portal-rhods-operator-subscription", Namespace: "redhat-ods-operator", Labels: portalLabels}},
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "maas-consumer-portal-rhods-operator-subscription", Namespace: "redhat-ods-operator", Labels: portalLabels}},
+		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: "maas-consumer-portal-opendatahub-operator-subscription", Namespace: "opendatahub-operator", Labels: portalLabels}},
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "maas-consumer-portal-opendatahub-operator-subscription", Namespace: "opendatahub-operator", Labels: portalLabels}},
 		&gatewayv1.HTTPRoute{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalDeploymentName, Namespace: maasConsumerPortalTestNamespace, Labels: portalLabels}},
 	}
 	serviceAccountDeleteAttempted := false
-	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(objects...).WithInterceptorFuncs(interceptor.Funcs{
+	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(append(objects, operatorNamespaces...)...).WithInterceptorFuncs(interceptor.Funcs{
 		Delete: func(ctx context.Context, delegate client.WithWatch, obj client.Object, options ...client.DeleteOption) error {
 			if _, isServiceAccount := obj.(*corev1.ServiceAccount); isServiceAccount {
 				serviceAccountDeleteAttempted = true
@@ -355,6 +363,13 @@ func TestReconcileDeletion_CleansMaaSConsumerPortalResources(t *testing.T) {
 	}
 	assert.False(t, serviceAccountDeleteAttempted, "portal ServiceAccount must be retained for platforms that protect ServiceAccounts")
 	assert.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(portalServiceAccount), &corev1.ServiceAccount{}))
+}
+
+func TestDeleteLabeledMaaSConsumerPortalRBACResources_IgnoresAbsentOperatorNamespaces(t *testing.T) {
+	s := maasConsumerPortalScheme(t)
+	r := &DashboardReconciler{Client: fake.NewClientBuilder().WithScheme(s).Build()}
+
+	require.NoError(t, r.deleteLabeledMaaSConsumerPortalRBACResources(context.Background()))
 }
 
 // maasConsumerPortalTestManager builds a conditions.Manager whose Error-severity dependents

@@ -214,12 +214,12 @@ func (r *DashboardReconciler) deployMaaSConsumerPortalBundle(ctx context.Context
 	if err != nil {
 		return fmt.Errorf("rendering MaaS Consumer Portal bundle: %w", err)
 	}
-	resources := make([]unstructured.Unstructured, 0, len(rendered))
-	for i := range rendered {
-		if rendered[i].GetKind() != "ConfigMap" || rendered[i].GetName() != "maas-consumer-portal-params" {
-			resources = append(resources, rendered[i])
-		}
+	operatorNamespaces, err := r.existingMaaSConsumerPortalOperatorNamespaces(ctx)
+	if err != nil {
+		return fmt.Errorf("getting operator namespaces: %w", err)
 	}
+	setMaaSConsumerPortalOperatorSubscriptionNamespaces(rendered)
+	resources := filterMaaSConsumerPortalResources(rendered, operatorNamespaces)
 	if err := deploy.NewDeployer(deploy.WithFieldOwner("dashboard-operator"), deploy.WithLabel(labels.PlatformPartOf, maasConsumerPortalPartOf), deploy.WithApplyOrder()).Deploy(ctx, deploy.DeployInput{Client: r.Client, Owner: dashboard, Release: deploy.ReleaseInfo{Type: string(r.Platform)}, Resources: resources}); err != nil {
 		return fmt.Errorf("deploying MaaS Consumer Portal bundle: %w", err)
 	}
@@ -264,6 +264,7 @@ func (r *DashboardReconciler) deleteLabeledMaaSConsumerPortalRBACResources(ctx c
 	return errors.Join(
 		r.deleteLabeledMaaSConsumerPortalResourceList(ctx, &rbacv1.ClusterRoleList{}),
 		r.deleteLabeledMaaSConsumerPortalResourceList(ctx, &rbacv1.ClusterRoleBindingList{}),
+		r.deleteLabeledMaaSConsumerPortalOperatorSubscriptionRBACResources(ctx),
 	)
 }
 

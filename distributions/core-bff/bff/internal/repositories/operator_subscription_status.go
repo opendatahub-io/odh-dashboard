@@ -46,7 +46,10 @@ func (r *OperatorSubscriptionStatusRepository) GetOperatorSubscriptionStatus(ctx
 			return nil, fmt.Errorf("getting subscription %s/%s: %w", subscription.namespace, subscription.name, err)
 		}
 		if channel := subscriptionChannel(resource); channel != "" {
-			return &models.OperatorSubscriptionStatus{Channel: channel}, nil
+			return &models.OperatorSubscriptionStatus{
+				Channel:     channel,
+				LastUpdated: subscriptionLastUpdated(resource),
+			}, nil
 		}
 	}
 
@@ -56,4 +59,9 @@ func (r *OperatorSubscriptionStatusRepository) GetOperatorSubscriptionStatus(ctx
 func subscriptionChannel(subscription *unstructured.Unstructured) string {
 	channel, _, _ := unstructured.NestedString(subscription.Object, "spec", "channel")
 	return channel
+}
+
+func subscriptionLastUpdated(subscription *unstructured.Unstructured) string {
+	lastUpdated, _, _ := unstructured.NestedString(subscription.Object, "status", "lastUpdated")
+	return lastUpdated
 }
