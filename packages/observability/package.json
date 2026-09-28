@@ -45,7 +45,7 @@
     "@odh-dashboard/k8s-core": "workspace:*",
     "@odh-dashboard/plugin-core": "workspace:*",
     "@odh-dashboard/ui-core": "workspace:*",
-    "@perses-dev/components": "^0.54.0-beta.10",
+    "@perses-dev/components": "^0.55.0-beta.3",
     "@perses-dev/core": "^0.54.0-beta.2",
     "@perses-dev/dashboards": "^0.54.0-beta.10",
     "@perses-dev/explore": "^0.54.0-beta.10",
