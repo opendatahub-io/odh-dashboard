@@ -1,5 +1,6 @@
 import https from 'https';
 import http from 'http';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import { getDirectCallOptions } from './directCallUtils';
 import { KubeFastifyInstance, OauthFastifyRequest } from '../types';
 import { DEV_MODE } from './constants';
@@ -37,6 +38,22 @@ type ProxyData = {
 export type ProxyCallStatus = {
   message?: string;
   code?: number;
+};
+
+const getProxyAgent = (targetUrl: string): HttpsProxyAgent<string> | undefined => {
+  if (!targetUrl.startsWith('https:')) {
+    return undefined;
+  }
+  const proxyUrl = process.env.HTTPS_PROXY || process.env.https_proxy;
+  if (!proxyUrl) {
+    return undefined;
+  }
+  const noProxy = process.env.NO_PROXY || process.env.no_proxy || '';
+  const targetHost = new URL(targetUrl).hostname;
+  if (noProxy.split(',').some((h) => h.trim() === targetHost)) {
+    return undefined;
+  }
+  return new HttpsProxyAgent(proxyUrl, { rejectUnauthorized: false });
 };
 
 /** Make a very basic pass-on / proxy call to another endpoint */
@@ -89,8 +106,14 @@ export const proxyCall = (
           return https;
         };
 
+        const agent = getProxyAgent(url);
+        const reqOpts: Record<string, unknown> = { method, ...requestOptions };
+        if (agent) {
+          reqOpts.agent = agent;
+        }
+
         const httpsRequest = web(url)
-          .request(url, { method, ...requestOptions }, (res) => {
+          .request(url, reqOpts, (res) => {
             const status: ProxyCallStatus = {
               message: res.statusMessage,
               code: res.statusCode,
