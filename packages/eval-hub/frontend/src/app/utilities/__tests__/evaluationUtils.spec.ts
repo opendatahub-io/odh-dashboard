@@ -301,6 +301,10 @@ describe('formatMetricValue', () => {
     expect(formatMetricValue(0.85, 'acc')).toBe('85%');
   });
 
+  it('should preserve percentage metrics that are already on a 0-100 scale', () => {
+    expect(formatMetricValue(90, 'acc')).toBe('90%');
+  });
+
   it('should format Inspect accuracy metrics as percentages', () => {
     expect(formatMetricValue(0.85, 'Accuracy/accuracy')).toBe('85%');
     expect(formatMetricValue(0.85, 'accuracy/accuracy')).toBe('85%');

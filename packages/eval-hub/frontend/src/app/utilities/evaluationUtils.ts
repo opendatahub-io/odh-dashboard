@@ -75,9 +75,8 @@ export const formatAsPercentage = (value: number): string =>
   Number.isFinite(value) ? `${Math.round(value * 100)}%` : '-';
 
 // EvalHub currently provides the metric name but not its display format. Keep the
-// known percentage metrics here until the API exposes unit metadata. New metrics
-// should only be added when the provider contract confirms that the value is a
-// percentage represented as a 0–1 ratio.
+// known percentage metrics here until the API exposes unit metadata. Percentage
+// values may arrive as either 0–1 ratios or an already normalized 0–100 value.
 /* eslint-disable camelcase */
 const PERCENTAGE_METRICS: ReadonlySet<string> = new Set([
   'acc',
@@ -149,12 +148,17 @@ export const isWholeNumberThresholdMetric = (metric?: string): boolean =>
 const formatMetricNumber = (value: number): string =>
   Number.isFinite(value) ? Number(value.toFixed(2)).toString() : '-';
 
+// Different benchmark providers use different scoring scales — most use 0–1 decimal fractions,
+// but some use a 0–100 percentage scale. Normalize both representations for display and requests.
+export const normalizeThreshold = (threshold: number): number =>
+  threshold <= 1 ? Math.round(threshold * 100) : Math.round(threshold);
+
 export const formatMetricValue = (value: number, metric?: string, includeUnit = true): string => {
-  if (isPercentageMetric(metric)) {
-    return formatAsPercentage(value);
-  }
   if (!Number.isFinite(value)) {
     return '-';
+  }
+  if (isPercentageMetric(metric)) {
+    return `${normalizeThreshold(value)}%`;
   }
 
   const unit = getMetricUnit(metric);
@@ -365,12 +369,6 @@ export const isEvaluationJobComparable = (job: EvaluationJob): boolean =>
 
 export const getFailedBenchmarkCount = (benchmarks: Array<{ status: string }>): number =>
   benchmarks.filter((bm) => bm.status === 'failed').length;
-
-// Different benchmark providers use different scoring scales — most use 0–1 decimal fractions,
-// but some (e.g. Open LLM Leaderboard v2) use a 0–100 percentage scale. Thresholds > 1 are
-// already in percentage form; thresholds ≤ 1 are multiplied by 100 to match the slider range.
-export const normalizeThreshold = (threshold: number): number =>
-  threshold <= 1 ? Math.round(threshold * 100) : Math.round(threshold);
 
 export const getThresholdInputValue = (threshold: number, metric?: string): number =>
   isPercentageMetric(metric)

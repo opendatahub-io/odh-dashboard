@@ -4,7 +4,11 @@ import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { sortBenchmarksByName } from '~/app/utilities/benchmarkListFilters';
-import { normalizeThreshold } from '~/app/utilities/evaluationUtils';
+import {
+  getThresholdInputValue,
+  getThresholdRequestValue,
+  normalizeThreshold,
+} from '~/app/utilities/evaluationUtils';
 import { weightsToPercentages } from '~/app/utilities/weightDistributionUtils';
 import { evaluationBenchmarkSuitesRoute, evaluationsBaseRoute } from '~/app/routes';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -231,7 +235,7 @@ export const buildPendingCollection = ({
       primary_score: b.primaryMetric
         ? { metric: b.primaryMetric, lower_is_better: b.lowerIsBetter ?? false }
         : undefined,
-      pass_criteria: { threshold: b.threshold / 100 },
+      pass_criteria: { threshold: getThresholdRequestValue(b.threshold, b.primaryMetric) },
       parameters: Object.keys(parameters).length > 0 ? parameters : undefined,
     };
   });
@@ -390,7 +394,10 @@ const buildBenchmarkFromProvider = (
     parameters: parameterState.parameters,
     additionalParameters: parameterState.additionalParameters,
     threshold: providerBenchmark.pass_criteria
-      ? normalizeThreshold(providerBenchmark.pass_criteria.threshold)
+      ? getThresholdInputValue(
+          providerBenchmark.pass_criteria.threshold,
+          providerBenchmark.primary_score?.metric ?? providerBenchmark.metrics?.[0],
+        )
       : DEFAULT_SUITE_THRESHOLD,
     availableMetrics: providerBenchmark.metrics ?? [],
   };
@@ -439,7 +446,7 @@ const buildInitialBenchmarks = (
         parameters: parameterState.parameters,
         additionalParameters: parameterState.additionalParameters,
         threshold: cb.pass_criteria
-          ? normalizeThreshold(cb.pass_criteria.threshold)
+          ? getThresholdInputValue(cb.pass_criteria.threshold, primaryScore?.metric)
           : DEFAULT_SUITE_THRESHOLD,
         availableMetrics: pb?.metrics ?? [],
       };
@@ -595,7 +602,17 @@ export function useCopySuiteForm({
       const currentBenchmarks = form.getValues('benchmarks');
       form.setValue(
         'benchmarks',
-        currentBenchmarks.map((b, i) => (i === index ? { ...b, [field]: value } : b)),
+        currentBenchmarks.map((b, i) => {
+          if (i !== index) {
+            return b;
+          }
+
+          const updatedBenchmark = { ...b, [field]: value };
+          if (field === 'primaryMetric' && typeof value === 'string' && value !== b.primaryMetric) {
+            updatedBenchmark.threshold = DEFAULT_SUITE_THRESHOLD;
+          }
+          return updatedBenchmark;
+        }),
         { shouldValidate: true },
       );
     },
@@ -678,7 +695,7 @@ export function useCopySuiteForm({
         primary_score: b.primaryMetric
           ? { metric: b.primaryMetric, lower_is_better: b.lowerIsBetter ?? false }
           : undefined,
-        pass_criteria: { threshold: b.threshold / 100 },
+        pass_criteria: { threshold: getThresholdRequestValue(b.threshold, b.primaryMetric) },
         parameters: Object.keys(parameters).length > 0 ? parameters : undefined,
       };
     });
