@@ -108,7 +108,7 @@ func TestFilterMaaSConsumerPortalResourcesByNamespaceCases(t *testing.T) {
 		{Object: map[string]interface{}{"kind": "Role", "metadata": map[string]interface{}{"name": maasConsumerPortalOpenDataHubOperatorSubscriptionResourceName}}},
 		{Object: map[string]interface{}{"kind": "RoleBinding", "metadata": map[string]interface{}{"name": maasConsumerPortalOpenDataHubOperatorSubscriptionResourceName}}},
 		{Object: map[string]interface{}{"kind": "Deployment", "metadata": map[string]interface{}{"name": maasConsumerPortalDeploymentName}}},
-		{Object: map[string]interface{}{"kind": "ConfigMap", "metadata": map[string]interface{}{"name": "maas-consumer-portal-params"}}},
+		{Object: map[string]interface{}{"kind": "ConfigMap", "metadata": map[string]interface{}{"name": maasConsumerPortalParamsConfigMapName}}},
 	}
 	tests := []struct {
 		name               string

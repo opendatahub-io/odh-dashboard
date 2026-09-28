@@ -91,7 +91,7 @@ func filterMaaSConsumerPortalResources(resources []unstructured.Unstructured, op
 	filtered := make([]unstructured.Unstructured, 0, len(resources))
 	for i := range resources {
 		resource := resources[i]
-		if resource.GetKind() == "ConfigMap" && resource.GetName() == "maas-consumer-portal-params" {
+		if resource.GetKind() == "ConfigMap" && resource.GetName() == maasConsumerPortalParamsConfigMapName {
 			continue
 		}
 		if namespace, isOperatorSubscriptionRBAC := maasConsumerPortalOperatorSubscriptionNamespaces[resource.GetKind()+"/"+resource.GetName()]; isOperatorSubscriptionRBAC {
