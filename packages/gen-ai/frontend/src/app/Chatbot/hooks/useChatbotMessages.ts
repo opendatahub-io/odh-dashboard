@@ -537,16 +537,20 @@ const useChatbotMessages = ({
               ?.map((attachment) => attachment.text)
               .filter(Boolean)
               .join('\n\n');
+            const contentWithAttachmentText = attachmentText
+              ? Array.isArray(content)
+                ? [...content, { type: 'input_text' as const, text: attachmentText }]
+                : typeof content === 'string'
+                  ? [content, attachmentText].filter(Boolean).join('\n\n')
+                  : content
+              : content;
 
             return {
               role:
                 msg.role === ChatMessageRole.USER
                   ? ChatMessageRole.USER
                   : ChatMessageRole.ASSISTANT,
-              content:
-                typeof content === 'string' && attachmentText
-                  ? [content, attachmentText].filter(Boolean).join('\n\n')
-                  : content,
+              content: contentWithAttachmentText,
             };
           })
           .filter((msg) => msg.content),

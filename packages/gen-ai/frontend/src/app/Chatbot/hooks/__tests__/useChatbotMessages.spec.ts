@@ -973,11 +973,22 @@ describe('useChatbotMessages', () => {
       const mockGetId = jest.requireMock('~/app/utilities/utils').getId as jest.Mock;
       let idCounter = 0;
       mockGetId.mockImplementation(() => `msg-${idCounter++}`);
+      const attachments: DocumentAttachment[] = [
+        {
+          file_id: 'file-document-789',
+          filename: 'notes.txt',
+          text: 'The project owner is Ada.',
+          content_type: 'text/plain',
+          size: 42,
+        },
+      ];
 
       try {
         mockCreateResponse.mockResolvedValue(mockSuccessResponse);
 
-        const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+        const { result } = renderHook(() =>
+          useChatbotMessages(createDefaultHookProps({ documentAttachments: attachments })),
+        );
 
         // First turn: multimodal message with image
         await act(async () => {
@@ -1000,6 +1011,7 @@ describe('useChatbotMessages', () => {
           content: [
             { type: 'input_text', text: 'What is in this image?' },
             { type: 'input_image', file_id: 'file-img-789' },
+            { type: 'input_text', text: 'The project owner is Ada.' },
           ],
         });
         expect(secondPayload.chat_context![1]).toMatchObject({
