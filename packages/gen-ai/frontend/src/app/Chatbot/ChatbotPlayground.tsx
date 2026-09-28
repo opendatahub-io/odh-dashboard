@@ -69,6 +69,7 @@ import {
   selectSelectedModel,
   selectSelectedAsrModel,
   selectSelectedAsrSubscription,
+  selectIsAsrModelEnabled,
   selectConfigIds,
   DEFAULT_CONFIG_ID,
   getConfigDisplayLabel,
@@ -199,6 +200,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
   const primarySelectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
   const primarySelectedAsrModel = useChatbotConfigStore(selectSelectedAsrModel(primaryConfigId));
+  const primaryIsAsrModelEnabled = useChatbotConfigStore(selectIsAsrModelEnabled(primaryConfigId));
   const primarySelectedAsrSubscription = useChatbotConfigStore(
     selectSelectedAsrSubscription(primaryConfigId),
   );
@@ -660,7 +662,11 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   );
 
   React.useEffect(() => {
-    if (audioTranscription.state.phase === 'waiting-for-model' && primarySelectedAsrModel) {
+    if (
+      audioTranscription.state.phase === 'waiting-for-model' &&
+      primaryIsAsrModelEnabled &&
+      primarySelectedAsrModel
+    ) {
       audioTranscription.resumeUpload(
         primarySelectedAsrModel,
         namespace?.name || '',
@@ -670,6 +676,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     }
   }, [
     audioTranscription,
+    primaryIsAsrModelEnabled,
     primarySelectedAsrModel,
     primarySelectedAsrSubscription,
     namespace?.name,

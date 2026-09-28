@@ -91,9 +91,13 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
 }) => {
   const [isAttachMenuOpen, setIsAttachMenuOpen] = React.useState(false);
   const [validationError, setValidationError] = React.useState<string | null>(null);
-  const [hideImageCapabilityAlert, setHideImageCapabilityAlert] = React.useState(
-    () => window.localStorage.getItem(IMAGE_CAPABILITY_ALERT_DISMISSED_KEY) === 'true',
-  );
+  const [hideImageCapabilityAlert, setHideImageCapabilityAlert] = React.useState(() => {
+    try {
+      return window.localStorage.getItem(IMAGE_CAPABILITY_ALERT_DISMISSED_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
   const imageInputRef = React.useRef<HTMLInputElement>(null);
   const audioInputRef = React.useRef<HTMLInputElement>(null);
   const documentInputRef = React.useRef<HTMLInputElement>(null);
@@ -418,8 +422,12 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
               variant="link"
               isInline
               onClick={() => {
-                window.localStorage.setItem(IMAGE_CAPABILITY_ALERT_DISMISSED_KEY, 'true');
                 setHideImageCapabilityAlert(true);
+                try {
+                  window.localStorage.setItem(IMAGE_CAPABILITY_ALERT_DISMISSED_KEY, 'true');
+                } catch {
+                  // Keep the notice dismissed in this session when storage is unavailable.
+                }
               }}
             >
               Don&apos;t show this again

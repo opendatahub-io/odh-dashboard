@@ -878,6 +878,12 @@ describe('ChatbotPlayground — audio transcription', () => {
     act(() => {
       useChatbotConfigStore.getState().updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'untagged-model');
     });
+    expect(uploadMediaFile).not.toHaveBeenCalled();
+    expect(screen.getByTestId('audio-model-needed-alert')).toBeInTheDocument();
+
+    act(() => {
+      useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
+    });
     await waitFor(() => expect(uploadMediaFile).toHaveBeenCalledTimes(1));
     expect(screen.queryByTestId('audio-model-needed-alert')).not.toBeInTheDocument();
   });

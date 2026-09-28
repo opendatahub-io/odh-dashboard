@@ -233,6 +233,44 @@ describe('ChatbotMessageInput', () => {
     expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
   });
 
+  it('shows the vision notice when the dismissal preference cannot be read', () => {
+    const getItem = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('Storage unavailable');
+    });
+    try {
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          imageUploadState={{ ...defaultImageUploadState, fileName: 'photo.png' }}
+          showImageCapabilityAlert
+        />,
+      );
+      expect(screen.getByTestId('image-capability-alert')).toBeInTheDocument();
+    } finally {
+      getItem.mockRestore();
+    }
+  });
+
+  it('dismisses the vision notice when the preference cannot be saved', async () => {
+    const user = userEvent.setup();
+    render(
+      <ChatbotMessageInput
+        {...defaultProps}
+        imageUploadState={{ ...defaultImageUploadState, fileName: 'photo.png' }}
+        showImageCapabilityAlert
+      />,
+    );
+    const setItem = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('Storage unavailable');
+    });
+    try {
+      await user.click(screen.getByRole('button', { name: "Don't show this again" }));
+      expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+    } finally {
+      setItem.mockRestore();
+    }
+  });
+
   it('renders the message bar', () => {
     render(<ChatbotMessageInput {...defaultProps} />);
     expect(screen.getByTestId('chatbot-message-bar')).toBeInTheDocument();
