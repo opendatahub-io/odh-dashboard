@@ -390,8 +390,8 @@ paths:
       tags:
         - Status
       operationId: getOperatorSubscriptionStatus
-      summary: Get the installed data science operator channel
-      description: Returns the channel of the installed OpenShift AI or Open Data Hub operator subscription.
+      summary: Get the installed data science operator subscription status
+      description: Returns the channel and last-updated timestamp of the installed OpenShift AI or Open Data Hub operator subscription.
       responses:
         '200':
           $ref: '#/components/responses/OperatorSubscriptionStatusResponse'
@@ -1421,6 +1421,9 @@ components:
       properties:
         channel:
           type: string
+        lastUpdated:
+          type: string
+          format: date-time
 
     StatusEnvelope:
       type: object

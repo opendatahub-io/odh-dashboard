@@ -19,10 +19,20 @@ export type ObservabilityDashboardData = Pick<
   | 'projectsLoadError'
 >;
 
+const isNamespaceList = (value: unknown): value is NamespaceKind[] =>
+  Array.isArray(value) &&
+  value.every(
+    (namespace): namespace is NamespaceKind =>
+      typeof namespace === 'object' &&
+      namespace !== null &&
+      typeof namespace.name === 'string' &&
+      (namespace.displayName === undefined || typeof namespace.displayName === 'string'),
+  );
+
 export const useObservabilityDashboardData = (): ObservabilityDashboardData => {
   const fetchProjects = React.useCallback(
     (options: K8sAPIOptions) =>
-      getAPIResource<NamespaceKind[]>(PORTAL_BASE_PATH, MAAS_NAMESPACES_PATH, {
+      getAPIResource<NamespaceKind[]>(PORTAL_BASE_PATH, MAAS_NAMESPACES_PATH, isNamespaceList, {
         signal: options.signal,
       }),
     [],
@@ -42,10 +52,14 @@ export const useObservabilityDashboardData = (): ObservabilityDashboardData => {
     error: projectsLoadError,
   } = useFetch(fetchProjects, [], { initialPromisePurity: true });
 
-  const projects = namespaces.map(({ name, displayName }) => ({
-    name,
-    label: displayName || name,
-  }));
+  const projects = React.useMemo(
+    () =>
+      namespaces.map(({ name, displayName }) => ({
+        name,
+        label: displayName || name,
+      })),
+    [namespaces],
+  );
 
   return {
     dashboards,

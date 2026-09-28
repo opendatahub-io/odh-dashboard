@@ -4,6 +4,10 @@ resources:
   - service-account.yaml
   - cluster-role.yaml
   - cluster-role-binding.yaml
+  - rhods-operator-subscription-role.yaml
+  - rhods-operator-subscription-role-binding.yaml
+  - opendatahub-operator-subscription-role.yaml
+  - opendatahub-operator-subscription-role-binding.yaml
   - deployment.yaml
   - service.yaml
   - networkpolicy.yaml
@@ -53,6 +57,20 @@ replacements:
           version: v1
           kind: ClusterRoleBinding
           name: maas-consumer-portal
+        fieldPaths:
+          - subjects.0.namespace
+      - select:
+          group: rbac.authorization.k8s.io
+          version: v1
+          kind: RoleBinding
+          name: maas-consumer-portal-rhods-operator-subscription
+        fieldPaths:
+          - subjects.0.namespace
+      - select:
+          group: rbac.authorization.k8s.io
+          version: v1
+          kind: RoleBinding
+          name: maas-consumer-portal-opendatahub-operator-subscription
         fieldPaths:
           - subjects.0.namespace
       - select:
