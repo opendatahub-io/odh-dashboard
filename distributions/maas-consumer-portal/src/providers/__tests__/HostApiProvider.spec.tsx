@@ -39,16 +39,13 @@ describe('HostApiProvider', () => {
     );
 
     await waitFor(() => expect(screen.getByTestId('access-result').textContent).toBe('true'));
-    expect(checkAccessMock).toHaveBeenCalledWith(
-      {
-        group: 'monitoring.rhobs.com',
-        resource: 'metrics',
-        subresource: '',
-        verb: 'get',
-        name: '',
-        namespace: '',
-      },
-      { defaultAllowed: false },
-    );
+    expect(checkAccessMock).toHaveBeenCalledWith({
+      group: 'monitoring.rhobs.com',
+      resource: 'metrics',
+      subresource: '',
+      verb: 'get',
+      name: '',
+      namespace: '',
+    });
   });
 });

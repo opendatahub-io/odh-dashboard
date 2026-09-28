@@ -37,21 +37,20 @@ describe('checkAccess', () => {
     );
   });
 
-  it('should use the configured default when the review is inconclusive', async () => {
+  it('should deny access by default when the review is inconclusive', async () => {
     k8sCreateResourceMock.mockResolvedValue({});
 
-    await expect(checkAccess({ verb: 'get' })).resolves.toBe(true);
+    await expect(checkAccess({ verb: 'get' })).resolves.toBe(false);
+    await expect(checkAccess({ verb: 'get' }, { defaultAllowed: true })).resolves.toBe(true);
     await expect(checkAccess({ verb: 'get' }, { defaultAllowed: false })).resolves.toBe(false);
   });
 
-  it('should use the configured default and report failures', async () => {
+  it('should deny access by default and report failures', async () => {
     const error = new Error('network unavailable');
     const onError = jest.fn();
     k8sCreateResourceMock.mockRejectedValue(error);
 
-    await expect(checkAccess({ verb: 'get' }, { defaultAllowed: false, onError })).resolves.toBe(
-      false,
-    );
+    await expect(checkAccess({ verb: 'get' }, { onError })).resolves.toBe(false);
     expect(onError).toHaveBeenCalledWith(error);
   });
 });

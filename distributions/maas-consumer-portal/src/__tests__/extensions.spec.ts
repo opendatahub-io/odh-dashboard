@@ -270,7 +270,7 @@ describe('MaaS Consumer Portal extensions', () => {
       .find((e) => e.type === 'app.route' && e.properties.path === '/maas/maas-governance/*');
 
     expect(governanceNavigation?.properties.section).toBeUndefined();
-    expect(governanceNavigation?.properties.group).toBe('4_maas_governance');
+    expect(governanceNavigation?.properties.group).toBe('5_maas_governance');
     expect(governanceRoute).toBeDefined();
   });
 

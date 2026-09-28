@@ -15,7 +15,7 @@ export type CheckAccessOptions = K8sAPIOptions & {
 
 export const checkAccess = async (
   resourceAttributes: AccessReviewResourceAttributes,
-  { defaultAllowed = true, onError, ...apiOptions }: CheckAccessOptions = {},
+  { defaultAllowed = false, onError, ...apiOptions }: CheckAccessOptions = {},
 ): Promise<boolean> => {
   const review: SelfSubjectAccessReview = {
     apiVersion: 'authorization.k8s.io/v1',
