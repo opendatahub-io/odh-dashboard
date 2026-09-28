@@ -245,8 +245,9 @@ jobs:
       issues: write
       packages: read
       pull-requests: write
-    # Post-v0.43.0 revision that accepts the optional OpenAI API-key secret.
-    uses: fullsend-ai/fullsend/.github/workflows/reusable-dispatch.yml@4edccc7c43e9d1a319e45f9737c9daea5fed737b
+    # Post-v0.43.0 revision with Pi 0.87.1 and GPT-6 model support. Return to
+    # a release tag once v0.44.0 is published.
+    uses: fullsend-ai/fullsend/.github/workflows/reusable-dispatch.yml@b246a295afd885b3080389e6da0160e3a8ab5bc1
     with:
       event_action: ${{ github.event.action }}
       install_mode: per-repo
