@@ -26,7 +26,7 @@ var MainDashboardDeploymentName = mainDashboardDeploymentName
 const FederationHashAnnotation = federationHashAnnotation
 
 func BuildFederationConfigMap(r *DashboardReconciler, statuses map[string]v1alpha1.ModuleStatus, dashboard *v1alpha1.Dashboard) (*corev1.ConfigMap, error) {
-	return r.buildFederationConfigMap(statuses, dashboard)
+	return r.buildFederationConfigMap(context.Background(), statuses, dashboard)
 }
 
 func (r *DashboardReconciler) PatchDeploymentFederationHash(ctx context.Context, configData string) error {
