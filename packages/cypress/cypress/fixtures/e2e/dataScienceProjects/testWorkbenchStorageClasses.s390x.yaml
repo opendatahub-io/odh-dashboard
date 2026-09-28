@@ -11,3 +11,4 @@ mountPathB: "mnt/path-b"
 mountPathC: "mnt/path-c"
 notebookImage: "code-server-notebook"
 isS390x: true
+hardwareProfileName: "default-profile"

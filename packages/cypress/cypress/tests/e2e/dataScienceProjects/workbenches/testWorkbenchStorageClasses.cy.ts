@@ -67,8 +67,12 @@ describe('Workbench Storage Classes Tests', () => {
     return loadWBStorageClassesFixture('e2e/dataScienceProjects/testWorkbenchStorageClasses.yaml')
       .then((fixtureData: WBStorageClassesTestData) => {
         cy.log('Loaded test data from fixtures');
+        isS390x = !!fixtureData.isS390x;
         projectName = `${fixtureData.projectName}-${uuid}`;
-        storageClassRWO = `${fixtureData.storageClassRWO}-${uuid}`;
+        // Pre-existing on s390x — use verbatim; provisioned elsewhere so needs UUID.
+        storageClassRWO = isS390x
+          ? fixtureData.storageClassRWO
+          : `${fixtureData.storageClassRWO}-${uuid}`;
         storageClassMultiAccess = `${fixtureData.storageClassMultiAccess}-${uuid}`;
         workbenchNameRWO = fixtureData.workbenchRWO;
         workbenchNameMultiA = fixtureData.workbenchMultiAccessA;
@@ -84,7 +88,6 @@ describe('Workbench Storage Classes Tests', () => {
         mountPathB = fixtureData.mountPathB;
         mountPathC = fixtureData.mountPathC;
         notebookImage = fixtureData.notebookImage;
-        isS390x = !!fixtureData.isS390x;
         hardwareProfileName = fixtureData.hardwareProfileName;
       })
       .then(() => {
