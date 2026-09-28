@@ -33,6 +33,7 @@
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
     "@odh-dashboard/tsconfig": "workspace:*",
     "@tanstack/react-query": "5.101.4",
     "@testing-library/jest-dom": "^6.6.2",
