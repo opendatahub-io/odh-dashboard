@@ -7,28 +7,31 @@ export type OperatorSubscriptionStatus = {
 
 const OPERATOR_SUBSCRIPTION_STATUS_PATH = '/api/operator-subscription-status';
 
-const isOperatorSubscriptionStatus = (value: unknown): value is OperatorSubscriptionStatus =>
-  typeof value === 'object' &&
-  value !== null &&
-  'channel' in value &&
-  typeof value.channel === 'string' &&
-  (!('installedCSV' in value) || typeof value.installedCSV === 'string') &&
-  (!('installPlanRefNamespace' in value) || typeof value.installPlanRefNamespace === 'string') &&
-  (!('lastUpdated' in value) || typeof value.lastUpdated === 'string');
-
-/** Fetches the installed data science operator subscription status from a Core BFF. */
+/** Fetches the installed data science operator subscription status from the dashboard API. */
 export const fetchOperatorSubscriptionStatus = async (
   hostPath = '',
   options?: RequestInit,
 ): Promise<OperatorSubscriptionStatus> => {
   const response = await fetch(`${hostPath}${OPERATOR_SUBSCRIPTION_STATUS_PATH}`, options);
   if (!response.ok) {
-    throw new Error(`Unable to load operator subscription status (${response.status})`);
+    let message: string | undefined;
+    try {
+      const body: unknown = await response.json();
+      if (
+        typeof body === 'object' &&
+        body !== null &&
+        'message' in body &&
+        typeof body.message === 'string' &&
+        body.message.trim()
+      ) {
+        message = body.message;
+      }
+    } catch {
+      // Fall back to the status message when the error body is not JSON.
+    }
+    throw new Error(message ?? `Unable to load operator subscription status (${response.status})`);
   }
 
-  const body: unknown = await response.json();
-  if (!isOperatorSubscriptionStatus(body)) {
-    throw new Error('Invalid operator subscription status response');
-  }
+  const body: OperatorSubscriptionStatus = await response.json();
   return body;
 };

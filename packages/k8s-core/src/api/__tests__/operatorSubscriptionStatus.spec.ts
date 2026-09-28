@@ -11,7 +11,7 @@ describe('fetchOperatorSubscriptionStatus', () => {
     global.fetch = originalFetch;
   });
 
-  it('fetches the Core BFF endpoint from the supplied host path', async () => {
+  it('fetches the endpoint from the supplied host path', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: () =>
@@ -37,29 +37,59 @@ describe('fetchOperatorSubscriptionStatus', () => {
     );
   });
 
-  it('rejects an invalid response', async () => {
+  it('accepts a response without a channel', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(null),
+      json: () => Promise.resolve({ installedCSV: 'rhods-operator.v3.0.0' }),
+    } as Response);
+
+    await expect(fetchOperatorSubscriptionStatus()).resolves.toEqual({
+      installedCSV: 'rhods-operator.v3.0.0',
+    });
+  });
+
+  it('accepts an empty channel', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ channel: '' }),
+    } as Response);
+
+    await expect(fetchOperatorSubscriptionStatus()).resolves.toEqual({ channel: '' });
+  });
+
+  it('uses the Fastify error message when the request fails', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: () => Promise.resolve({ message: 'Unable to get subscription information' }),
     } as Response);
 
     await expect(fetchOperatorSubscriptionStatus()).rejects.toThrow(
-      'Invalid operator subscription status response',
+      'Unable to get subscription information',
     );
   });
 
-  it.each([
-    ['installedCSV', null],
-    ['installPlanRefNamespace', 42],
-    ['lastUpdated', false],
-  ])('rejects an invalid optional %s value', async (field, invalidValue) => {
+  it('falls back to the status message when the error response has no message', async () => {
     global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ channel: 'stable', [field]: invalidValue }),
+      ok: false,
+      status: 502,
+      json: () => Promise.resolve({ error: 'Bad Gateway' }),
     } as Response);
 
     await expect(fetchOperatorSubscriptionStatus()).rejects.toThrow(
-      'Invalid operator subscription status response',
+      'Unable to load operator subscription status (502)',
+    );
+  });
+
+  it('falls back to the status message when the error response is not JSON', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: () => Promise.reject(new SyntaxError('Unexpected token')),
+    } as Response);
+
+    await expect(fetchOperatorSubscriptionStatus()).rejects.toThrow(
+      'Unable to load operator subscription status (503)',
     );
   });
 });
