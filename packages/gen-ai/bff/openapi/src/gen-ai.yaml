@@ -2210,6 +2210,51 @@ paths:
   # =============================================================================
 
   /gen-ai/api/v1/agent-deployments:
+    get:
+      tags:
+        - AgentDeployments
+      operationId: listAgentDeployments
+      summary: List agent Sandbox deployments in a namespace
+      description: >-
+        Lists dashboard-created Sandbox deployments in the requested namespace only.
+        Agent deployments created before the agent profile label was introduced are
+        included with an empty agentProfileId.
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+        - name: agentProfileId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Filter deployments using the AgentProfile ID label.
+      responses:
+        '200':
+          description: Agent deployments in the namespace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentDeploymentListResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Insufficient permissions to list deployments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Agent Sandbox CRD is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
     post:
       tags:
         - AgentDeployments
@@ -5331,6 +5376,54 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/AgentDeploymentCreateResponse'
+
+    AgentDeploymentSummary:
+      type: object
+      required:
+        - name
+        - namespace
+        - agentProfileId
+        - state
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        agentProfileId:
+          type: string
+          description: >-
+            AgentProfile ID from the Sandbox label. Empty for legacy Sandboxes
+            that do not have the label.
+        routeUrl:
+          type: string
+          format: uri
+          description: Public Route URL when the Route has been created.
+        state:
+          type: string
+          enum: [ready, creating, failed]
+          description: State derived from the deployment pod and Route.
+
+    AgentDeploymentListResponse:
+      type: object
+      required:
+        - deployments
+        - totalCount
+      properties:
+        deployments:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentDeploymentSummary'
+        totalCount:
+          type: integer
+          minimum: 0
+
+    AgentDeploymentListResponseEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/AgentDeploymentListResponse'
 
     AgentProfileCreateRequest:
       type: object

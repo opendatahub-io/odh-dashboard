@@ -77,6 +77,7 @@ type KubernetesClientInterface interface {
 	DeleteAgentProfile(ctx context.Context, namespace string, profileID string) error
 
 	// Agent Deployment operations
+	ListAgentDeployments(ctx context.Context, namespace, agentProfileID string) (*models.AgentDeploymentListResponse, error)
 	CreateSandboxConfigMap(ctx context.Context, namespace string, profileID string, configYAML string) (*corev1.ConfigMap, error)
 	CreateWrapperAppConfigMap(ctx context.Context, namespace string, profileID string, appPy string) (*corev1.ConfigMap, error)
 	CreateSandboxCR(ctx context.Context, namespace string, opts SandboxCROptions) (string, error)

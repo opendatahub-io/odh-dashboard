@@ -110,6 +110,14 @@ describe('Gen AI API Contract Tests', () => {
   });
 
   describe('Agent Deployments Endpoint', () => {
+    it('should list agent deployments', async () => {
+      const result = await apiClient.get('/gen-ai/api/v1/agent-deployments?namespace=llama-stack');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1gen-ai~1api~1v1~1agent-deployments/get/responses/200/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
     it('should create a stateful mock agent deployment', async () => {
       const result = await apiClient.post('/gen-ai/api/v1/agent-deployments?namespace=llama-stack', {
         name: 'mock-agent',
