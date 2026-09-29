@@ -40,6 +40,7 @@ describe('useAudioTranscription', () => {
     const { result } = renderHook(() => useAudioTranscription());
 
     expect(result.current.state.phase).toBe('idle');
+    expect(result.current.state.file).toBeNull();
     expect(result.current.state.fileName).toBe('');
     expect(result.current.state.error).toBeNull();
     expect(result.current.state.transcribedText).toBe('');
@@ -62,6 +63,7 @@ describe('useAudioTranscription', () => {
     });
 
     expect(result.current.state.phase).toBe('uploading');
+    expect(result.current.state.file).toBeNull();
     expect(result.current.state.fileName).toBe('test.wav');
     expect(mockUploadMediaFile).toHaveBeenCalledWith(
       expect.stringContaining('namespace=test-ns'),
@@ -160,6 +162,7 @@ describe('useAudioTranscription', () => {
     });
 
     expect(result.current.state.transcribedText).toBe('Hello world');
+    expect(result.current.state.file).toBe(file);
     expect(mockFireForm).toHaveBeenCalledWith(
       PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_COMPLETED,
       expect.objectContaining({ success: true, modelName: 'whisper-model' }),
@@ -185,6 +188,7 @@ describe('useAudioTranscription', () => {
     });
 
     expect(result.current.state.error).not.toBeNull();
+    expect(result.current.state.file).toBeNull();
     expect(result.current.state.error?.title).toBe('Audio transcription failed');
     expect(result.current.state.error?.description).toBe('Network error during upload');
     expect(result.current.state.error?.variant).toBe('danger');
@@ -366,6 +370,7 @@ describe('useAudioTranscription', () => {
     });
 
     expect(result.current.state.phase).toBe('idle');
+    expect(result.current.state.file).toBeNull();
     expect(xhrMock.abort).toHaveBeenCalled();
   });
 
@@ -393,6 +398,7 @@ describe('useAudioTranscription', () => {
     });
 
     expect(result.current.state.phase).toBe('idle');
+    expect(result.current.state.file).toBeNull();
     expect(result.current.state.transcribedText).toBe('');
   });
 
@@ -420,6 +426,7 @@ describe('useAudioTranscription', () => {
     });
 
     expect(result.current.state.phase).toBe('idle');
+    expect(result.current.state.file).toBeNull();
     expect(result.current.state.transcribedText).toBe('');
   });
 

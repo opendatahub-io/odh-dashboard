@@ -71,6 +71,7 @@ export interface UseChatbotMessagesReturn {
     compareID?: string,
     fileId?: string,
     imagePreview?: { previewUrl: string; fileName: string },
+    audioFile?: File,
   ) => Promise<void>;
   handleStopStreaming: () => void;
   clearConversation: () => void;
@@ -170,6 +171,7 @@ const useChatbotMessages = ({
         compareID?: string,
         fileId?: string,
         imagePreview?: { previewUrl: string; fileName: string },
+        audioFile?: File,
       ) => Promise<void>)
     | null
   >(null);
@@ -177,6 +179,7 @@ const useChatbotMessages = ({
   const imagePreviewRef = React.useRef<Map<string, { previewUrl: string; fileName: string }>>(
     new Map(),
   );
+  const audioPreviewRef = React.useRef<Map<string, string>>(new Map());
   const sessionIdRef = React.useRef<string>(getId());
   const { api, apiAvailable } = useGenAiAPI();
   const { aiModels } = React.useContext(ChatbotContext);
@@ -391,6 +394,8 @@ const useChatbotMessages = ({
     multimodalContentRef.current.clear();
     imagePreviewRef.current.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
     imagePreviewRef.current.clear();
+    audioPreviewRef.current.forEach((previewUrl) => URL.revokeObjectURL(previewUrl));
+    audioPreviewRef.current.clear();
 
     // Reset clearing flag after state updates complete
     // Use setTimeout to ensure this runs after React finishes all state updates
@@ -404,6 +409,7 @@ const useChatbotMessages = ({
     compareID?: string,
     fileId?: string,
     imagePreview?: { previewUrl: string; fileName: string },
+    audioFile?: File,
   ) => {
     // Reset streaming content tracker for new message
     streamingReceivedRef.current = false;
@@ -426,6 +432,15 @@ const useChatbotMessages = ({
         },
       });
     }
+    const audioPreviewUrl = audioFile ? URL.createObjectURL(audioFile) : null;
+    if (audioFile && audioPreviewUrl) {
+      extraContent.afterMainContent = React.createElement('audio', {
+        src: audioPreviewUrl,
+        controls: true,
+        preload: 'metadata',
+        'aria-label': `Play ${audioFile.name}`,
+      });
+    }
     const userMessage: MessageProps = {
       id: getId(),
       role: 'user',
@@ -434,11 +449,15 @@ const useChatbotMessages = ({
       avatar: userAvatar,
       timestamp: new Date().toLocaleString(),
       ...(Object.keys(extraContent).length > 0 && { extraContent }),
+      ...(audioFile && { attachments: [{ name: audioFile.name }] }),
     };
 
     // Track blob URL for cleanup on unmount/clearConversation
     if (imagePreview) {
       imagePreviewRef.current.set(userMessage.id!, imagePreview);
+    }
+    if (audioPreviewUrl) {
+      audioPreviewRef.current.set(userMessage.id!, audioPreviewUrl);
     }
 
     // Build multimodal input when a vision file_id is provided
@@ -958,7 +977,7 @@ const useChatbotMessages = ({
 
         setTimeout(() => {
           if (!isClearingRef.current && handleMessageSendRef.current) {
-            handleMessageSendRef.current(message, compareID, fileId, imagePreview);
+            handleMessageSendRef.current(message, compareID, fileId, imagePreview, audioFile);
           }
         }, 0);
       };
@@ -1033,6 +1052,7 @@ const useChatbotMessages = ({
           // URL.revokeObjectURL may be unavailable in test environments
         }
       });
+      audioPreviewRef.current.forEach((previewUrl) => URL.revokeObjectURL(previewUrl));
     },
     [],
   );

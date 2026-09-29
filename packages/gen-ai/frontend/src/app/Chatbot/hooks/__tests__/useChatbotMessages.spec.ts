@@ -1026,6 +1026,94 @@ describe('useChatbotMessages', () => {
     });
   });
 
+  describe('inline audio playback', () => {
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+    const createObjectURL = jest.fn(() => 'blob:audio-preview');
+    const revokeObjectURL = jest.fn();
+
+    beforeEach(() => {
+      URL.createObjectURL = createObjectURL;
+      URL.revokeObjectURL = revokeObjectURL;
+    });
+
+    afterEach(() => {
+      URL.createObjectURL = originalCreateObjectURL;
+      URL.revokeObjectURL = originalRevokeObjectURL;
+    });
+
+    it('should show a playable audio attachment while sending only the transcription', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
+
+      await act(async () => {
+        await result.current.handleMessageSend(
+          'Transcribed speech',
+          undefined,
+          undefined,
+          undefined,
+          file,
+        );
+      });
+
+      const userMessage = result.current.messages[0];
+      const player = userMessage.extraContent?.afterMainContent as React.ReactElement<{
+        src: string;
+        controls: boolean;
+        'aria-label': string;
+      }>;
+      expect(userMessage.attachments).toEqual([{ name: 'recording.wav' }]);
+      expect(player.type).toBe('audio');
+      expect(player.props).toEqual(
+        expect.objectContaining({
+          src: 'blob:audio-preview',
+          controls: true,
+          'aria-label': 'Play recording.wav',
+        }),
+      );
+      expect(createObjectURL).toHaveBeenCalledWith(file);
+      expect(mockCreateResponse.mock.calls[0][0].input).toBe('Transcribed speech');
+
+      act(() => result.current.clearConversation());
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:audio-preview');
+    });
+
+    it('should keep each pane audio URL until that pane unmounts', async () => {
+      createObjectURL
+        .mockReturnValueOnce('blob:first-pane')
+        .mockReturnValueOnce('blob:second-pane');
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+      const firstPane = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const secondPane = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const file = new File(['audio-data'], 'recording.mp3', { type: 'audio/mpeg' });
+
+      await act(async () => {
+        await firstPane.result.current.handleMessageSend(
+          'Speech',
+          undefined,
+          undefined,
+          undefined,
+          file,
+        );
+        await secondPane.result.current.handleMessageSend(
+          'Speech',
+          undefined,
+          undefined,
+          undefined,
+          file,
+        );
+      });
+
+      firstPane.unmount();
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:first-pane');
+      expect(revokeObjectURL).not.toHaveBeenCalledWith('blob:second-pane');
+
+      secondPane.unmount();
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:second-pane');
+    });
+  });
+
   describe('thinking collapsible (non-streaming)', () => {
     it('should set extraContent.beforeMainContent on bot message when reasoningContent exists', async () => {
       const responseWithReasoning: SimplifiedResponseData = {

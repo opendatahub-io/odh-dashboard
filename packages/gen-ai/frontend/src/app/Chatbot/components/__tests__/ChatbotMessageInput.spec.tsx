@@ -698,6 +698,7 @@ describe('ChatbotMessageInput', () => {
   describe('audio upload', () => {
     const defaultAudioState: AudioTranscriptionState = {
       phase: 'idle',
+      file: null,
       fileName: '',
       uploadProgress: 0,
       error: null,

@@ -933,9 +933,33 @@ describe('ChatbotPlayground — audio transcription', () => {
     });
 
     // Send the message
+    await waitFor(() => {
+      expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
+    });
+    const configInstanceProps = mockChatbotConfigInstanceProps.mock.calls.at(-1)?.[0] as {
+      onMessagesHookReady: (hook: {
+        handleMessageSend: typeof mockHandleMessageSend;
+        isLoading: boolean;
+        isMessageSendButtonDisabled: boolean;
+      }) => void;
+    };
+    act(() => {
+      configInstanceProps.onMessagesHookReady({
+        handleMessageSend: mockHandleMessageSend,
+        isLoading: false,
+        isMessageSendButtonDisabled: false,
+      });
+    });
     await act(async () => {
       fireEvent.click(screen.getByTestId('send-button'));
     });
+    expect(mockHandleMessageSend).toHaveBeenCalledWith(
+      expect.stringContaining('Hello world'),
+      '',
+      undefined,
+      undefined,
+      file,
+    );
 
     // Now a new audio upload should work (no per-message modal)
     const file2 = new File(['audio-data'], 'second.wav', { type: 'audio/wav' });
