@@ -6,21 +6,14 @@ import {
   MAX_RAG_PATTERNS,
   PRESETS,
   PRESET_FASTER,
-  RAG_METRIC_FAITHFULNESS,
-  RAG_METRIC_ANSWER_CORRECTNESS,
-  RAG_METRIC_CONTEXT_CORRECTNESS,
-  RAG_METRIC_OVERALL_SCORE,
+  OPTIMIZATION_METRICS,
   DEFAULT_OPTIMIZATION_METRIC,
+  getOptimizationMetricsForPreset,
 } from '~/app/utilities/const';
 import { createSchema } from '~/app/utilities/schema';
 
 export const SUPPORTED_VECTOR_STORE_PROVIDER_TYPES = ['remote::milvus', 'remote::pgvector'];
-export const RAG_OPTIMIZATION_METRICS = z.enum([
-  RAG_METRIC_FAITHFULNESS,
-  RAG_METRIC_ANSWER_CORRECTNESS,
-  RAG_METRIC_CONTEXT_CORRECTNESS,
-  RAG_METRIC_OVERALL_SCORE,
-]);
+export const RAG_OPTIMIZATION_METRICS = z.enum([...OPTIMIZATION_METRICS]);
 
 export const EXPERIMENT_SETTINGS_FIELDS = ['embedding_models', 'generation_models'] as const;
 
@@ -112,6 +105,17 @@ function createConfigureSchema() {
               },
             ]
           : [],
+      (data) =>
+        getOptimizationMetricsForPreset(data.preset).includes(data.optimization_metric)
+          ? []
+          : [
+              {
+                code: 'custom' as const,
+                message: `Optimization metric "${data.optimization_metric}" is not available for preset "${data.preset}"`,
+                path: ['optimization_metric'],
+                input: data.optimization_metric,
+              },
+            ],
     ],
     /* eslint-disable no-param-reassign */
     transformers: [
