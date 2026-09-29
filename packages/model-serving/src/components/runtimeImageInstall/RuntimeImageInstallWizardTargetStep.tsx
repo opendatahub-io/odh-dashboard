@@ -30,15 +30,18 @@ const RuntimeImageInstallWizardTargetStep: React.FC<RuntimeImageInstallWizardTar
             name="install-target"
             label={label}
             description={description}
+            body={
+              selected === id ? (
+                <p>
+                  Appears under <strong>{selectedState.listName}</strong>{' '}
+                  {selectedState.description}
+                </p>
+              ) : undefined
+            }
             isChecked={selected === id}
             onChange={() => onSelect(id)}
             data-testid={`install-target-${id}`}
           />
-          {selected === id ? (
-            <p className="pf-v6-u-mt-sm">
-              Appears under <strong>{selectedState.listName}</strong> {selectedState.description}
-            </p>
-          ) : null}
         </StackItem>
       );
     })}
