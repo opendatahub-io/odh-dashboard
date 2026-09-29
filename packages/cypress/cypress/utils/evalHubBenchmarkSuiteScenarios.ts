@@ -163,6 +163,7 @@ export const createEvalHubBenchmarkSuiteScenario = (
 
     createBenchmarkSuite({
       suiteName: createdSuiteName,
+      suiteDomains: testData.suiteDomains,
       benchmarkProviderId: testData.benchmarkProviderId,
       benchmarks: testData.benchmarks,
       additionalBenchmarkParams: testData.additionalBenchmarkParams,

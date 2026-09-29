@@ -3,6 +3,7 @@ import {
   clearEvalHubEvaluationJobs,
   createBenchmarkSuite,
   createEvalHubCleanupSteps,
+  getEvalHubExperimentSuffix,
   navigateToEvaluationsPage,
   runEvalHubCleanup,
   submitSingleBenchmarkEvaluation,
@@ -23,6 +24,7 @@ import {
   isEvalHubKueueAvailable,
   waitForEvalHubKueueWorkload,
 } from '../../../utils/oc_commands/evalHubInstance';
+import type { EvalHubInstance } from '../../../utils/oc_commands/evalHubInstance';
 import {
   ensureMlflowCrReady,
   findAvailableExperimentSuffix,
@@ -67,6 +69,7 @@ describe('Eval Hub E2E — Kueue hardware profile', () => {
   let modelHardwareProfileName = '';
   let mlflowExperimentName = '';
   let mlflowSuiteExperimentName = '';
+  let evalHubInstance: EvalHubInstance | undefined;
   let kueueAvailable = false;
 
   const requireKueueConfig = (): KueueWorkbenchConfig => {
@@ -123,7 +126,11 @@ describe('Eval Hub E2E — Kueue hardware profile', () => {
     cy.then(() => {
       cy.step('[Setup] Provision MLflow and EvalHub');
       return ensureMlflowCrReady(testData.mlflowInstanceResourceYamlPath).then(() =>
-        ensureEvalHubCrReady(testData.evalHubCrName, testData.evalHubInstanceResourceYamlPath),
+        ensureEvalHubCrReady(testData.evalHubCrName, testData.evalHubInstanceResourceYamlPath).then(
+          (instance) => {
+            evalHubInstance = instance;
+          },
+        ),
       );
     });
 
@@ -136,8 +143,16 @@ describe('Eval Hub E2E — Kueue hardware profile', () => {
 
     cy.then(() => {
       cy.step('[Setup] Deploy model before enabling Kueue on the tenant');
+      if (!evalHubInstance) {
+        throw new Error('EvalHub instance was not resolved during setup.');
+      }
       addUserToProject(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME, 'admin');
-      setupTenantAndDeployModel(evaluationTenantProject, testData, modelHardwareProfileName);
+      setupTenantAndDeployModel(
+        evaluationTenantProject,
+        testData,
+        modelHardwareProfileName,
+        evalHubInstance,
+      );
       grantEvalHubTenantAccess(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME);
     });
 
@@ -150,16 +165,20 @@ describe('Eval Hub E2E — Kueue hardware profile', () => {
       );
     });
 
-    cy.then(() =>
-      findAvailableExperimentSuffix(
-        evaluationTenantProject,
-        [testData.mlflowExperimentName, `${testData.mlflowExperimentName}-suite`],
-        uuid,
-      ).then((suffix) => {
-        mlflowExperimentName = `${testData.mlflowExperimentName}-${suffix}`;
-        mlflowSuiteExperimentName = `${testData.mlflowExperimentName}-suite-${suffix}`;
-      }),
-    );
+    cy.then(() => {
+      cy.step('[Setup] Select available MLflow experiment names');
+      return getEvalHubExperimentSuffix(uuid).then((experimentSuffix) =>
+        findAvailableExperimentSuffix(
+          evaluationTenantProject,
+          [testData.mlflowExperimentName, `${testData.mlflowExperimentName}-suite`],
+          experimentSuffix,
+        ).then((suffix) => {
+          mlflowExperimentName = `${testData.mlflowExperimentName}-${suffix}`;
+          mlflowSuiteExperimentName = `${testData.mlflowExperimentName}-suite-${suffix}`;
+          cy.log(`MLflow experiments: ${mlflowExperimentName}, ${mlflowSuiteExperimentName}`);
+        }),
+      );
+    });
 
     cy.then(() => {
       navigateToEvaluationsPage(evaluationTenantProject);
@@ -242,6 +261,7 @@ describe('Eval Hub E2E — Kueue hardware profile', () => {
       navigateToEvaluationsPage(evaluationTenantProject);
       createBenchmarkSuite({
         suiteName,
+        suiteDomains: suiteTestData.suiteDomains,
         benchmarkProviderId: suiteTestData.benchmarkProviderId,
         benchmarks,
         additionalBenchmarkParams: suiteTestData.additionalBenchmarkParams,

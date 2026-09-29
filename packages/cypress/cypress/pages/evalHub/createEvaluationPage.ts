@@ -15,8 +15,30 @@ class CreateEvaluationPage {
     return cy.findByTestId('suite-evaluates-toggle');
   }
 
+  findSuiteEvaluatesInput() {
+    return cy.findByTestId('suite-evaluates-input');
+  }
+
   findSuiteEvaluatesOption(evaluatesType: string) {
     return cy.findByTestId(`suite-evaluates-option-${evaluatesType}`);
+  }
+
+  closeSuiteEvaluatesMenu() {
+    this.findSuiteEvaluatesInput().type('{esc}').should('have.attr', 'aria-expanded', 'false');
+  }
+
+  findSuiteCategoryInput() {
+    return cy.findByTestId('suite-domains-input');
+  }
+
+  findSuiteCategoryOption(category: string) {
+    return cy.findByTestId(`suite-domains-option-${category}`);
+  }
+
+  selectSuiteCategory(category: string) {
+    this.findSuiteCategoryInput().click();
+    this.findSuiteCategoryOption(category).findByRole('checkbox').click();
+    this.findSuiteCategoryInput().type('{esc}');
   }
 
   findCopySuiteNextButton() {

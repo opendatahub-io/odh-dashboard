@@ -360,6 +360,7 @@ export type BenchmarkSuiteEvaluationOptions = {
 
 export type BenchmarkSuiteCreationOptions = {
   suiteName: string;
+  suiteDomains: string[];
   benchmarkProviderId: string;
   benchmarks: {
     id: string;
@@ -567,6 +568,7 @@ export const submitSingleBenchmarkEvaluation = (opts: SingleBenchmarkEvaluationO
 export const createBenchmarkSuite = (opts: BenchmarkSuiteCreationOptions): void => {
   const {
     suiteName,
+    suiteDomains,
     benchmarkProviderId,
     benchmarks,
     additionalBenchmarkParams,
@@ -587,7 +589,9 @@ export const createBenchmarkSuite = (opts: BenchmarkSuiteCreationOptions): void 
   createEvaluationPage.findSuiteDescriptionInput().type('Created by the EvalHub Cypress E2E flow.');
   createEvaluationPage.findSuiteEvaluatesToggle().click();
   createEvaluationPage.findSuiteEvaluatesOption('model').click();
-  createEvaluationPage.findCopySuiteNextButton().click();
+  createEvaluationPage.closeSuiteEvaluatesMenu();
+  suiteDomains.forEach((category) => createEvaluationPage.selectSuiteCategory(category));
+  createEvaluationPage.findCopySuiteNextButton().should('be.enabled').click();
 
   benchmarks.forEach(({ id, name }) => {
     cy.step(`Add benchmark to suite: ${name} (${id})`);
