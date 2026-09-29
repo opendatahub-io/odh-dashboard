@@ -1422,8 +1422,8 @@ jobs:
           done
           sleep 0.5
 
-          # Run concurrently directly (without --hide 0) to expose server startup errors
-          npx concurrently -P -k -s first \
+          # Keep backend request logs out of the Actions output; Cypress remains visible as process 1.
+          npx concurrently -P -k -s first --hide 0 \
             "pnpm cypress:server:e2e" \
             "pnpm cypress:server:e2e:wait && cross-env CYPRESS_E2E_PROXY=true pnpm --filter odh-dashboard-frontend cypress:run:chrome" \
             --
