@@ -153,6 +153,10 @@ class ModelServingGlobal {
     }
     return cy.findAllByTestId('token-secret').eq(index).findAllByRole('button').eq(0);
   }
+
+  findMaaSPublishedPostDeployAlert() {
+    return cy.findByTestId('maas-published-post-deploy-alert');
+  }
 }
 
 class ServingRuntimeGroup extends Contextual<HTMLElement> {}

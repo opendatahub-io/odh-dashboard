@@ -30,6 +30,7 @@ import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { enqueuePostDeployAlert } from '@odh-dashboard/model-serving/concepts/postDeployAlertStore';
 import { createExternalModel, updateExternalModel } from '~/app/api/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import {
@@ -38,6 +39,7 @@ import {
   ProviderRef,
   UpdateExternalModelRequest,
 } from '~/app/types/external-models';
+import { MAAS_PUBLISHED_EXTERNAL_ALERT_ID } from '~/odh/modelServingExtensions/MaaSPublishedPostDeployAlert';
 import {
   DISTRIBUTE_EQUALLY_POPOVER_CONTENT,
   EXTERNAL_MODEL_FIELD_MAX_LENGTH,
@@ -176,6 +178,8 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
           hasDescription: nameDescData.description.trim() !== '',
           success: true,
         } satisfies ExternalModelAddedProperties);
+
+        enqueuePostDeployAlert(MAAS_PUBLISHED_EXTERNAL_ALERT_ID);
       }
 
       refreshExternalModels();
