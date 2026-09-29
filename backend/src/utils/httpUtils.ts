@@ -1,6 +1,7 @@
 import https from 'https';
 import http from 'http';
 import { HttpsProxyAgent } from 'https-proxy-agent';
+import { getProxyForUrl } from 'proxy-from-env';
 import { getDirectCallOptions } from './directCallUtils';
 import { KubeFastifyInstance, OauthFastifyRequest } from '../types';
 import { DEV_MODE } from './constants';
@@ -44,16 +45,9 @@ const getProxyAgent = (targetUrl: string): HttpsProxyAgent<string> | undefined =
   if (!targetUrl.startsWith('https:')) {
     return undefined;
   }
-  const proxyUrl = process.env.HTTPS_PROXY || process.env.https_proxy;
-  if (!proxyUrl) {
-    return undefined;
-  }
-  const noProxy = process.env.NO_PROXY || process.env.no_proxy || '';
-  const targetHost = new URL(targetUrl).hostname;
-  if (noProxy.split(',').some((h) => h.trim() === targetHost)) {
-    return undefined;
-  }
-  return new HttpsProxyAgent(proxyUrl, { rejectUnauthorized: false });
+
+  const proxyUrl = getProxyForUrl(targetUrl);
+  return proxyUrl ? new HttpsProxyAgent(proxyUrl) : undefined;
 };
 
 /** Make a very basic pass-on / proxy call to another endpoint */

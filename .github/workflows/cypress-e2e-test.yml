@@ -110,12 +110,14 @@ jobs:
       (github.event.workflow_run.event == 'pull_request' && 
        github.event.workflow_run.conclusion == 'success')
     runs-on: [self-hosted, itup]
-    env:
-      # Register the service proxy URL with the Actions secret masker before job setup logs.
-      RUNNER_PROXY_MASK: ${{ secrets.ITUP_PROXY_URL }}
     outputs:
       cluster_name: ${{ steps.select.outputs.cluster_name }}
     steps:
+      - name: Register runner proxy URL for log redaction
+        env:
+          RUNNER_PROXY_MASK: ${{ secrets.ITUP_PROXY_URL }}
+        run: test -n "$RUNNER_PROXY_MASK"
+
       - name: Download test credentials
         run: |
           echo "🔧 Downloading test credentials for cluster health check..."
@@ -238,8 +240,12 @@ jobs:
     continue-on-error: true  # Don't fail the entire workflow if cleanup fails
     env:
       CLUSTER_NAME: ${{ needs.select-cluster.outputs.cluster_name }}
-      RUNNER_PROXY_MASK: ${{ secrets.ITUP_PROXY_URL }}
     steps:
+      - name: Register runner proxy URL for log redaction
+        env:
+          RUNNER_PROXY_MASK: ${{ secrets.ITUP_PROXY_URL }}
+        run: test -n "$RUNNER_PROXY_MASK"
+
       - name: Download test credentials
         run: |
           echo "🔧 Downloading test credentials for cleanup..."
@@ -804,8 +810,12 @@ jobs:
     env:
       CLUSTER_NAME: ${{ needs.select-cluster.outputs.cluster_name }}
       MATRIX_TAG: ${{ matrix.tag }}
-      RUNNER_PROXY_MASK: ${{ secrets.ITUP_PROXY_URL }}
     steps:
+      - name: Register runner proxy URL for log redaction
+        env:
+          RUNNER_PROXY_MASK: ${{ secrets.ITUP_PROXY_URL }}
+        run: test -n "$RUNNER_PROXY_MASK"
+
       - name: Validate tag format
         run: |
           if [[ -z "$MATRIX_TAG" ]]; then
@@ -1496,10 +1506,13 @@ jobs:
   cleanup:
     needs: [e2e-tests]
     runs-on: [self-hosted, itup]
-    env:
-      RUNNER_PROXY_MASK: ${{ secrets.ITUP_PROXY_URL }}
     if: ${{ always() && (github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success')) }}
     steps:
+      - name: Register runner proxy URL for log redaction
+        env:
+          RUNNER_PROXY_MASK: ${{ secrets.ITUP_PROXY_URL }}
+        run: test -n "$RUNNER_PROXY_MASK"
+
       - name: Fix envtest binary permissions
         run: |
           chmod -R u+w ${{ github.workspace }}/packages/*/bff/bin ${{ github.workspace }}/packages/*/upstream/bff/bin 2>/dev/null || true
