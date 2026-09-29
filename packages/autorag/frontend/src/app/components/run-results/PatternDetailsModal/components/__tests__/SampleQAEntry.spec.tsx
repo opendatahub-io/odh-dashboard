@@ -105,7 +105,7 @@ describe('SampleQAEntry', () => {
       />,
     );
 
-    expect(screen.getByTestId('qa-metric-group-unitxt')).toHaveTextContent('Answer faithfulness');
+    expect(screen.getByTestId('qa-metric-group-unitxt')).toHaveTextContent('Faithfulness (Unitxt)');
     expect(screen.getByTestId('qa-metric-group-ragas')).toHaveTextContent('Answer relevancy');
     expect(screen.getByTestId('qa-metric-group-custom')).toHaveTextContent('Overall score');
     expect(screen.getByText('Ragas')).toBeInTheDocument();
