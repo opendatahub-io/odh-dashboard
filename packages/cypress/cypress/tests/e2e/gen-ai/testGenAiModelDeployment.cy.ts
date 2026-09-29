@@ -130,6 +130,13 @@ describe('Verify vLLM model deployment - Playground Integration', { testIsolatio
         portForwardHandle = handle;
       });
 
+      cy.step('Start port-forward for tracing service');
+      startPortForward('redhat-ods-monitoring', 'gen-ai-trace-collector-collector', 4318).then(
+        (handle) => {
+          portForwardHandle = handle;
+        },
+      );
+
       cy.step('Navigate to playground');
       genAiPlayground.navigateAndWaitForModelSelector(projectName);
 

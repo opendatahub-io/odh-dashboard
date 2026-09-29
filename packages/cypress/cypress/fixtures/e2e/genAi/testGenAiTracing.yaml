@@ -1,0 +1,14 @@
+modelId: 'gemini-2.5-flash'
+modelType: 'llm'
+displayName: 'E2E Tracing Endpoint Test'
+endpointUrl: 'https://generativelanguage.googleapis.com/v1beta/openai'
+lsdServiceName: 'lsd-genai-playground-service'
+lsdPodPrefix: 'lsd-genai-playground'
+lsdPodReadyTimeout: '120s'
+tracing:
+  testPrompt: 'Reply with one short sentence.'
+  mlflowTraceDetailExpectedSpans:
+    - 'POST /v1/responses'
+    - 'chat gemini-2.5-flash'
+  openTelemetryCondition: 'OpenTelemetryCollectorAvailable'
+  tempoCondition: 'TempoAvailable'

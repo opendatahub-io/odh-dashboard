@@ -771,6 +771,22 @@ export type GenAiTestData = {
   servingRuntimesPath: string;
 };
 
+export type GenAiTracingTestData = {
+  modelId: string;
+  modelType: string;
+  displayName: string;
+  endpointUrl: string;
+  lsdServiceName: string;
+  lsdPodPrefix: string;
+  lsdPodReadyTimeout: string;
+  tracing: {
+    testPrompt: string;
+    mlflowTraceDetailExpectedSpans: string[];
+    openTelemetryCondition: string;
+    tempoCondition: string;
+  };
+};
+
 export type CustomEndpointTestData = {
   modelId: string;
   modelType: string;

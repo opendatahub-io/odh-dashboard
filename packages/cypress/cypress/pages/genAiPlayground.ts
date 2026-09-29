@@ -11,6 +11,8 @@ const GEN_AI_ALL_FLAGS =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,agentConfigManagement=true,modelAsService=false';
 const GEN_AI_MCP_REGISTRY_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,mcpRegistry=true,modelAsService=false';
+const GEN_AI_TRACING_FLAG =
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,genAiTracing=true,modelAsService=false';
 
 class GenAiPlayground {
   navigate(projectName: string) {
@@ -30,6 +32,11 @@ class GenAiPlayground {
 
   navigateToAssetsWithCustomEndpoints(projectName: string) {
     cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_FLAG}`);
+    cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
+  }
+
+  navigateToAssetsWithTracing(projectName: string) {
+    cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_TRACING_FLAG}`);
     cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
   }
 
@@ -73,6 +80,12 @@ class GenAiPlayground {
     cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
   }
 
+  navigateToPlaygroundWithTracing(projectName: string) {
+    const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_TRACING_FLAG}`;
+    cy.visit(playgroundUrl);
+    cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
+  }
+
   findEmptyState() {
     return cy.findByTestId('empty-state');
   }
@@ -91,6 +104,21 @@ class GenAiPlayground {
 
   findCreateButtonInDialog() {
     return cy.findByTestId('modal-submit-button');
+  }
+
+  findEnableTracingSwitch(options?: { timeout?: number }) {
+    return this.findConfigurePlaygroundModal()
+      .find('[data-testid="enable-tracing-switch"]', options)
+      .then(($switch) => {
+        if ($switch.is('input')) {
+          return cy.wrap($switch);
+        }
+        return cy.wrap($switch).find('input[type="checkbox"]');
+      });
+  }
+
+  findConfigurePlaygroundModal() {
+    return cy.findByTestId('configure-playground-modal');
   }
 
   findModelToggleButton(options?: { timeout?: number }) {
@@ -224,6 +252,14 @@ class GenAiPlayground {
   // Settings panel methods
   findSettingsButton() {
     return cy.findByTestId('settings-button');
+  }
+
+  findHeaderKebabMenuToggle() {
+    return cy.findByTestId('header-kebab-menu-toggle');
+  }
+
+  findConfigurePlaygroundMenuItem() {
+    return cy.findByTestId('configure-playground-menu-item');
   }
 
   findSettingsPanelHeader(options?: { timeout?: number }) {
@@ -636,6 +672,35 @@ class GenAiPlayground {
     this.sendMessage(question);
     this.waitForStreamingComplete({ timeout: 120000 });
     this.findAssistantMessage({ timeout: 30000 }).should('exist').and('not.be.empty');
+  }
+
+  // Tracing methods
+  findViewTraceLink(options?: { timeout?: number }) {
+    return cy.findByTestId('view-trace-link', options);
+  }
+
+  findTracePanel(options?: { timeout?: number }) {
+    return cy.get('[data-testid="trace-panel"]', options);
+  }
+
+  findMlflowTraceDetail(options?: { timeout?: number }) {
+    return cy.findByTestId('mlflow-trace-detail', options);
+  }
+
+  findMlflowTraceDetailLoading(options?: { timeout?: number }) {
+    return cy.get('[data-testid="mlflow-trace-detail-loading"]', options);
+  }
+
+  findTracePanelTitle() {
+    return cy.findByTestId('trace-panel-title');
+  }
+
+  findTracePanelCloseButton() {
+    return cy.findByTestId('trace-panel-close-button');
+  }
+
+  findMlflowTraceUnavailable(options?: { timeout?: number }) {
+    return cy.get('[data-testid="mlflow-trace-unavailable"]', options);
   }
 }
 
