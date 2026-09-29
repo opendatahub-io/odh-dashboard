@@ -21,7 +21,7 @@ const MainDashboardClusterDetailsVariablesProvider: React.FC = () => {
   const [subStatus] = useWatchOperatorSubscriptionStatus();
 
   // Get OpenShift version and infrastructure provider
-  const { data: clusterDetails, loaded: clusterDetailsLoaded } = useClusterDetails();
+  const { data: clusterDetails, loaded: clusterMetadataLoaded } = useClusterDetails();
 
   const details = React.useMemo(
     () => ({
@@ -33,7 +33,12 @@ const MainDashboardClusterDetailsVariablesProvider: React.FC = () => {
     [clusterDetails, serverURL, subStatus],
   );
 
-  return <ClusterDetailsVariablesProvider details={details} detailsLoaded={clusterDetailsLoaded} />;
+  return (
+    <ClusterDetailsVariablesProvider
+      details={details}
+      clusterMetadataLoaded={clusterMetadataLoaded}
+    />
+  );
 };
 
 const DashboardPage: React.FC = () => {

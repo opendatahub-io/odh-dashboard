@@ -11,7 +11,7 @@ export type ClusterDetailsVariables = {
 
 type ClusterDetailsVariablesProviderProps = {
   details: ClusterDetailsVariables;
-  detailsLoaded?: boolean;
+  clusterMetadataLoaded?: boolean;
 };
 
 /**
@@ -26,30 +26,35 @@ type ClusterDetailsVariablesProviderProps = {
  */
 export const ClusterDetailsVariablesProvider: React.FC<ClusterDetailsVariablesProviderProps> = ({
   details,
-  detailsLoaded = true,
+  clusterMetadataLoaded = true,
 }) => {
   const { setVariableValue } = useVariableDefinitionActions();
+  const { apiServer, channel, openshiftVersion, infrastructureProvider } = details;
 
   // Set all variables in a single effect when data is available
   React.useEffect(() => {
     // Set API server URL
-    setVariableValue(CLUSTER_DETAILS_VARIABLES.API_SERVER, details.apiServer ?? 'Unknown');
+    setVariableValue(CLUSTER_DETAILS_VARIABLES.API_SERVER, apiServer ?? 'Unknown');
 
     // Set channel from operator subscription status (same source as AboutDialog)
-    setVariableValue(CLUSTER_DETAILS_VARIABLES.CHANNEL, details.channel ?? 'Unknown');
+    setVariableValue(CLUSTER_DETAILS_VARIABLES.CHANNEL, channel ?? 'Unknown');
 
     // Set OpenShift version and infrastructure provider (only when loaded)
-    if (detailsLoaded) {
-      setVariableValue(
-        CLUSTER_DETAILS_VARIABLES.OPENSHIFT_VERSION,
-        details.openshiftVersion ?? 'Unknown',
-      );
+    if (clusterMetadataLoaded) {
+      setVariableValue(CLUSTER_DETAILS_VARIABLES.OPENSHIFT_VERSION, openshiftVersion ?? 'Unknown');
       setVariableValue(
         CLUSTER_DETAILS_VARIABLES.INFRASTRUCTURE_PROVIDER,
-        details.infrastructureProvider ?? 'Unknown',
+        infrastructureProvider ?? 'Unknown',
       );
     }
-  }, [details, detailsLoaded, setVariableValue]);
+  }, [
+    apiServer,
+    channel,
+    infrastructureProvider,
+    openshiftVersion,
+    setVariableValue,
+    clusterMetadataLoaded,
+  ]);
 
   return null;
 };
