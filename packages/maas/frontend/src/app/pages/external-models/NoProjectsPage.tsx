@@ -15,6 +15,7 @@ const NoProjectsPage: React.FC = () => (
     <EmptyStateFooter>
       <NewProjectButton
         closeOnCreate
+        waitForProjectOnClose={false}
         onProjectCreated={(projectName) => {
           window.location.assign(deploymentsExternalPath(projectName));
         }}

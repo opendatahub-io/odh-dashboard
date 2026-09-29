@@ -5,9 +5,14 @@ import ManageProjectModal from './ManageProjectModal';
 type NewProjectButtonProps = {
   closeOnCreate?: boolean;
   onProjectCreated?: (projectName: string) => void;
+  waitForProjectOnClose?: boolean;
 };
 
-const NewProjectButton: React.FC<NewProjectButtonProps> = ({ closeOnCreate, onProjectCreated }) => {
+const NewProjectButton: React.FC<NewProjectButtonProps> = ({
+  closeOnCreate,
+  onProjectCreated,
+  waitForProjectOnClose,
+}) => {
   const [open, setOpen] = React.useState(false);
 
   return (
@@ -17,6 +22,7 @@ const NewProjectButton: React.FC<NewProjectButtonProps> = ({ closeOnCreate, onPr
       </Button>
       {open && (
         <ManageProjectModal
+          waitForProjectOnClose={waitForProjectOnClose}
           onClose={(newProjectName) => {
             if (newProjectName) {
               onProjectCreated?.(newProjectName);
