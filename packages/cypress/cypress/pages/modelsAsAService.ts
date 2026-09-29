@@ -2399,6 +2399,10 @@ class ExternalModelTableRow extends TableRow {
   findEditButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findKebabAction('Edit');
   }
+
+  findDeleteButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findKebabAction('Delete');
+  }
 }
 
 class DeleteExternalModelModal extends DeleteModal {

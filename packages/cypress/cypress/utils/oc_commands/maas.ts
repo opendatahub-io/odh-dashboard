@@ -401,18 +401,21 @@ type ExternalProviderDoc = {
 };
 
 /**
- * Verifies an ExternalProvider exists and reaches the expected status phase (default: Ready).
- * Polls until the phase is met or throws when the resource is missing, Failed, or times out.
+ * Verifies an ExternalProvider exists and reaches the expected status phase (default: Ready),
+ * or is absent when `expectDeleted` is true.
+ * Polls until the condition is met or throws on Failed / timeout.
  */
 export const checkExternalProviderExists = (
   projectName: string,
   resourceName: string,
   options: {
+    expectDeleted?: boolean;
     phase?: string;
     maxAttempts?: number;
     retryIntervalMs?: number;
   } = {},
 ): Cypress.Chainable<CommandLineResult> => {
+  const expectDeleted = options.expectDeleted === true;
   const expectedPhase = options.phase ?? 'Ready';
   const maxAttempts = options.maxAttempts ?? MAAS_STATE_DEFAULT_MAX_ATTEMPTS;
   const retryIntervalMs = options.retryIntervalMs ?? MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS;
@@ -424,6 +427,35 @@ export const checkExternalProviderExists = (
       .exec(ocCommand, { failOnNonZeroExit: false })
       .then((result: CommandLineResult): Cypress.Chainable<CommandLineResult> => {
         attempts++;
+
+        if (expectDeleted) {
+          if (result.exitCode !== 0 && ocGetIndicatesResourceNotFound(result)) {
+            cy.log(
+              `✅ ExternalProvider ${resourceName} does not exist in namespace ${projectName}`,
+            );
+            return cy.wrap(result);
+          }
+
+          if (result.exitCode === 0 && attempts < maxAttempts) {
+            cy.log(
+              `ExternalProvider ${resourceName} still exists, waiting for deletion (attempt ${attempts}/${maxAttempts})`,
+            );
+            // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
+            return cy.wait(retryIntervalMs).then(() => checkState());
+          }
+
+          if (result.exitCode === 0) {
+            throw new Error(
+              `ExternalProvider ${resourceName} still exists in namespace ${projectName} after ${maxAttempts} attempts`,
+            );
+          }
+
+          throw new Error(
+            `Unexpected oc error while verifying ExternalProvider deletion: ${
+              result.stderr || result.stdout
+            }`,
+          );
+        }
 
         if (result.exitCode !== 0) {
           if (attempts < maxAttempts) {
@@ -486,18 +518,21 @@ type ExternalModelDoc = {
 };
 
 /**
- * Verifies an ExternalModel exists and reaches the expected status phase (default: Ready).
- * Polls until the phase is met or throws when the resource is missing, Failed, or times out.
+ * Verifies an ExternalModel exists and reaches the expected status phase (default: Ready),
+ * or is absent when `expectDeleted` is true.
+ * Polls until the condition is met or throws on Failed / timeout.
  */
 export const checkExternalModelExists = (
   projectName: string,
   resourceName: string,
   options: {
+    expectDeleted?: boolean;
     phase?: string;
     maxAttempts?: number;
     retryIntervalMs?: number;
   } = {},
 ): Cypress.Chainable<CommandLineResult> => {
+  const expectDeleted = options.expectDeleted === true;
   const expectedPhase = options.phase ?? 'Ready';
   const maxAttempts = options.maxAttempts ?? MAAS_STATE_DEFAULT_MAX_ATTEMPTS;
   const retryIntervalMs = options.retryIntervalMs ?? MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS;
@@ -509,6 +544,33 @@ export const checkExternalModelExists = (
       .exec(ocCommand, { failOnNonZeroExit: false })
       .then((result: CommandLineResult): Cypress.Chainable<CommandLineResult> => {
         attempts++;
+
+        if (expectDeleted) {
+          if (result.exitCode !== 0 && ocGetIndicatesResourceNotFound(result)) {
+            cy.log(`✅ ExternalModel ${resourceName} does not exist in namespace ${projectName}`);
+            return cy.wrap(result);
+          }
+
+          if (result.exitCode === 0 && attempts < maxAttempts) {
+            cy.log(
+              `ExternalModel ${resourceName} still exists, waiting for deletion (attempt ${attempts}/${maxAttempts})`,
+            );
+            // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
+            return cy.wait(retryIntervalMs).then(() => checkState());
+          }
+
+          if (result.exitCode === 0) {
+            throw new Error(
+              `ExternalModel ${resourceName} still exists in namespace ${projectName} after ${maxAttempts} attempts`,
+            );
+          }
+
+          throw new Error(
+            `Unexpected oc error while verifying ExternalModel deletion: ${
+              result.stderr || result.stdout
+            }`,
+          );
+        }
 
         if (result.exitCode !== 0) {
           if (attempts < maxAttempts) {
@@ -1082,6 +1144,7 @@ export const verifyMaaSModelInferencing = (
     const requestBody = {
       model: modelName,
       messages: [{ role: 'user', content: 'Today is' }],
+      // eslint-disable-next-line camelcase
       max_tokens: 256,
       temperature: 1,
     };

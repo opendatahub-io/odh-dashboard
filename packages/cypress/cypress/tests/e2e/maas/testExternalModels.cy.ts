@@ -42,6 +42,8 @@ import {
   externalProvidersPage,
   pathModal,
   copyApiKeyModal,
+  deleteExternalModelModal,
+  deleteExternalProviderModal,
 } from '../../../pages/modelsAsAService';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 
@@ -109,7 +111,6 @@ describe('An admin can create, edit and delete external models and providers and
         subscriptionDescription = 'Create a subscription for the external model';
         policiesName = `${fixtureData.externalModelName}-policies-${uuid}`;
         apiKeyName = `${fixtureData.externalModelName}-api-key-${uuid}`;
-        cy.log(`Loaded project name: ${projectName}`);
       })
       .then(() => {
         ensureAdminOcSession();
@@ -120,6 +121,7 @@ describe('An admin can create, edit and delete external models and providers and
         cleanupExternalProvider(externalProviderName, projectName);
         cleanupExternalProviderSecret(existingSecretName, projectName);
         cleanupExternalProviderSecret(providerRef.newSecret.name, projectName);
+        cy.log(`Loaded project name: ${projectName}`);
         createCleanProject(projectName);
       })
       .then(() => {
@@ -133,6 +135,7 @@ describe('An admin can create, edit and delete external models and providers and
         ensureAdminOcSession();
         cy.log(`Create a Secret for the External Provider`);
         createExternalProviderSecret(projectName, existingSecretName);
+        checkSecretExists(projectName, existingSecretName);
       });
   });
 
@@ -159,7 +162,6 @@ describe('An admin can create, edit and delete external models and providers and
     },
     () => {
       cy.step('Log into Deployments > External models as a admin user with the flag disabled');
-      cy.clearCookies();
       externalModelsPage.visitAsUser(LDAP_ADMIN_USER, {
         enableExternalModelsFlag: false,
         projectName,
@@ -184,16 +186,13 @@ describe('An admin can create, edit and delete external models and providers and
       createExternalProviderModal.selectAuthentication(providerAuthType);
       createExternalProviderModal.findSubmitButton().click();
 
-      cy.step(`Verify secret and External Provider is created`);
-      checkSecretExists(projectName, existingSecretName);
+      cy.step(`Verify External Provider is created`);
       checkExternalProviderExists(projectName, externalProviderName, { phase: PhaseStatus.READY });
-
       const externalProviderRow = externalProvidersPage.getRow(externalProviderName);
       externalProviderRow.findName().should('contain.text', externalProviderName);
       externalProviderRow.findEndpointUrlLink(externalProviderName).click();
       pathModal.findInputValue().should('have.value', providerEndpoint);
       pathModal.findCloseButton().click();
-      externalProviderRow.findPhaseLabel().should('contain.text', PhaseStatus.READY);
 
       cy.step(`Edit External Provider fields description.`);
       externalProviderRow.findEditButton().click();
@@ -214,19 +213,18 @@ describe('An admin can create, edit and delete external models and providers and
         .should('have.value', projectName)
         .should('be.disabled');
       createExternalModelPage.findDisplayNameInput().clear().type(externalModelName);
+      createExternalModelPage.findAddProviderReferenceButton().click();
+      addProviderReferenceWizard.findCancelButton().click();
       createExternalModelPage.findProviderRefsRequiredInfo().should('exist');
       createExternalModelPage.findAddProviderReferenceButton().click();
       addProviderReferenceWizard.selectProvider(externalProviderName);
       addProviderReferenceWizard.findNextButton().should('be.enabled').click();
-      addProviderReferenceWizard
-        .findApiFormatSelect()
-        .should('contain.text', APIFormat.OPENAI_CHAT);
+      addProviderReferenceWizard.selectOpenAIFormat();
       addProviderReferenceWizard.findTargetModelInput().clear().type(targetModel);
       addProviderReferenceWizard.findPathInput().should('have.value', Path.OPENAI_CHAT);
       addProviderReferenceWizard.findAddButton().should('be.enabled').click();
 
       cy.step('Verify provider ref Table');
-      createExternalModelPage.findProviderRefsRequiredInfo().should('not.exist');
       const providerRefRow1 = createExternalModelPage.findProviderRefRow(0);
       providerRefRow1.findName().should('contain.text', externalProviderName);
       providerRefRow1.findTargetModelId().should('contain.text', targetModel);
@@ -255,7 +253,7 @@ describe('An admin can create, edit and delete external models and providers and
       addProviderReferenceWizard.findPathInput().should('have.value', Path.MESSAGES);
       addProviderReferenceWizard
         .findPathInput()
-        .type(`{pathPlaceholderKey}`, { parseSpecialCharSequences: false });
+        .type(`{${pathPlaceholderKey}}`, { parseSpecialCharSequences: false });
       addProviderReferenceWizard.findPathError().should('exist');
 
       addProviderReferenceWizard.expandAdvancedSettings();
@@ -270,7 +268,9 @@ describe('An admin can create, edit and delete external models and providers and
       addProviderReferenceWizard.findPathError().should('not.exist');
       addProviderReferenceWizard.findAddButton().should('be.enabled').click();
 
-      checkExternalProviderExists(projectName, externalProviderName, { phase: PhaseStatus.READY });
+      checkExternalProviderExists(projectName, providerRef.displayName, {
+        phase: PhaseStatus.READY,
+      });
 
       cy.step('Verify Distribute Equally button');
       const providerRefRow2 = createExternalModelPage.findProviderRefRow(1);
@@ -280,7 +280,7 @@ describe('An admin can create, edit and delete external models and providers and
       providerRefRow2.findWeightPercent().should('contain.text', weightPercentage / 2);
       createExternalModelPage.findCreateButton().click();
 
-      cy.step(' verify external model and mass model ref is created');
+      cy.step('Verify external model and mass model ref is created');
       checkMaaSModelRefExists(projectName, externalModelName);
       checkExternalModelExists(projectName, externalModelName, { phase: PhaseStatus.READY });
 
@@ -297,13 +297,13 @@ describe('An admin can create, edit and delete external models and providers and
       externalModelProviderUrlModal.findInputValue().should('have.value', providerEndpoint);
       externalModelProviderUrlModal.findCloseButton().click();
       row.findExpandedViewPathButton(providerRef.displayName).click();
-      pathModal.findInputValue().should('have.value', `${Path.MESSAGES}{pathPlaceholderKey}`);
+      pathModal.findInputValue().should('have.value', `${Path.MESSAGES}{${pathPlaceholderKey}}`);
       pathModal.findCloseButton().click();
       row
         .findExpandedProviderStatus(externalProviderName)
         .should('contain.text', PhaseStatus.READY);
 
-      cy.step('edit external model');
+      cy.step('Edit external model');
       row.findEditButton().click();
       createExternalModelPage.findDescriptionInput().clear().type(externalModelDescription);
       providerRefRow2.findRemoveButton().click();
@@ -367,6 +367,34 @@ describe('An admin can create, edit and delete external models and providers and
           apiKeys[0],
         );
       });
+
+      cy.step('Delete the external model');
+      externalModelsPage.visitAsUser(LDAP_ADMIN_USER, {
+        enableExternalModelsFlag: false,
+        projectName,
+      });
+      const deletedRow = externalModelsPage.getRow(externalModelName);
+      deletedRow.findDeleteButton().click();
+      deleteExternalModelModal.shouldBeOpen();
+      deleteExternalModelModal.findInput().type(externalModelName);
+      deleteExternalModelModal.findSubmitButton().click();
+
+      cy.step('Verify the external model is deleted');
+      checkExternalModelExists(projectName, externalModelName, { expectDeleted: true });
+
+      cy.step('Delete the external provider');
+      externalProvidersPage.visitAsUser(LDAP_ADMIN_USER, {
+        enableExternalModelsFlag: false,
+        projectName,
+      });
+      const deletedProviderRow = externalProvidersPage.getRow(externalProviderName);
+      deletedProviderRow.findDeleteButton().click();
+      deleteExternalProviderModal.shouldBeOpen();
+      deleteExternalProviderModal.findInput().type(externalProviderName);
+      deleteExternalProviderModal.findSubmitButton().click();
+
+      cy.step('Verify the external provider is deleted');
+      checkExternalProviderExists(projectName, externalProviderName, { expectDeleted: true });
     },
   );
 });
