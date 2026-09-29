@@ -151,10 +151,10 @@ describe('loadBundledOverride', () => {
 });
 
 describe('createPluginLoader', () => {
-  it('should configure each plugin path only when importing a plugin', async () => {
+  it('should configure the proxy path on import and reject a different path', async () => {
     const originalAssetsPath = window.PERSES_PLUGIN_ASSETS_PATH;
     const originalAppConfig = window.PERSES_APP_CONFIG;
-    const basePaths = ['/first/perses/api', '/second/perses/api'];
+    const basePaths = ['/perses/api', '/second/perses/api'];
     window.PERSES_PLUGIN_ASSETS_PATH = '/existing/plugins';
     window.PERSES_APP_CONFIG = { api_prefix: '/existing/api' };
 
@@ -172,10 +172,17 @@ describe('createPluginLoader', () => {
       expect(window.PERSES_APP_CONFIG).toEqual({ api_prefix: '/existing/api' });
       for (const [index, loader] of loaders.entries()) {
         remoteLoaders[index].importPluginModule.mockResolvedValue({});
-        await loader.importPluginModule(createRemoteResource(`Plugin${index}`));
-        expect(window.PERSES_PLUGIN_ASSETS_PATH).toBe(basePaths[index]);
+        if (index === 0) {
+          await loader.importPluginModule(createRemoteResource(`Plugin${index}`));
+          expect(window.PERSES_PLUGIN_ASSETS_PATH).toBe(basePaths[index]);
+        } else {
+          await expect(
+            loader.importPluginModule(createRemoteResource(`Plugin${index}`)),
+          ).rejects.toThrow('Perses remote plugins use one proxy path per page');
+          expect(remoteLoaders[index].importPluginModule).not.toHaveBeenCalled();
+        }
       }
-      expect(window.PERSES_APP_CONFIG).toEqual({ api_prefix: basePaths[1] });
+      expect(window.PERSES_APP_CONFIG).toEqual({ api_prefix: basePaths[0] });
     } finally {
       window.PERSES_PLUGIN_ASSETS_PATH = originalAssetsPath;
       window.PERSES_APP_CONFIG = originalAppConfig;
