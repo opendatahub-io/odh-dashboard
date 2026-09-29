@@ -412,6 +412,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
           variant="info"
           isInline
           title="Vision capability not tagged"
+          className="pf-v6-u-mb-sm"
           data-testid="image-capability-alert"
         >
           This model isn&apos;t tagged for vision capabilities, which can lead to unexpected output.
@@ -440,6 +441,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
           variant="info"
           isInline
           title="Audio files require a transcription model. Select one under the Model tab in Settings."
+          className="pf-v6-u-mb-sm"
           data-testid="audio-model-needed-alert"
         />
       )}
