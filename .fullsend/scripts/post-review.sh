@@ -153,7 +153,7 @@ def approve_refuse_reason(result):
 # says that dimension never ran, the row cannot honestly report pass/fail.
 LEDGER_ROW_DIMENSION = {
     "security": "security",
-    "product-ask": "jira-pr-review",
+    "product-ask": "product-ask-review",
     "evidence": "test-impact-review",
 }
 
@@ -644,7 +644,6 @@ def render_product_ask_section(pa):
         lines += ["Aligned:"] + [f"- {clean(item)}" for item in pa["aligned"]] + [""]
     if pa.get("mismatched"):
         lines += ["Mismatched:"] + [f"- {clean(item)}" for item in pa["mismatched"]] + [""]
-    lines.append("The PR description is the source of truth. This section compares description vs linked Jira text — not the diff against acceptance criteria.")
     return lines
 
 def render_body(result, previous_md, action):

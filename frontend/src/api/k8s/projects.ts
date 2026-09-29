@@ -8,6 +8,8 @@ import {
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { translateDisplayNameForK8s, applyK8sAPIOptions } from '@odh-dashboard/k8s-core';
 import axios from '@odh-dashboard/ui-core/utilities/axios';
+import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
+import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
 import { CustomWatchK8sResult } from '#~/types';
 import { K8sAPIOptions } from '#~/k8sTypes';
 import { ProjectModel, ProjectRequestModel } from '#~/api/models';
@@ -15,8 +17,6 @@ import { throwErrorFromAxios } from '#~/api/errorUtils';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '#~/const';
 import { NamespaceApplicationCase } from '#~/pages/projects/types';
-import { groupVersionKind } from '#~/api/k8sUtils';
-import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 
 export const useProjects = (): CustomWatchK8sResult<ProjectKind[]> =>
   useK8sWatchResourceList(

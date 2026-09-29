@@ -32,6 +32,12 @@ export const ServiceAccountModel: K8sModelCommon = {
   plural: 'serviceaccounts',
 };
 
+export const PodModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  kind: 'Pod',
+  plural: 'pods',
+};
+
 export const ClusterQueueModel: K8sModelCommon = {
   apiVersion: 'v1beta2',
   apiGroup: 'kueue.x-k8s.io',

@@ -12,11 +12,19 @@ type EvalHubRequestBenchmark = {
 };
 
 type EvalHubEvaluationRequest = {
-  benchmarks?: EvalHubRequestBenchmark[];
-  collection?: {
-    benchmarks?: EvalHubRequestBenchmark[];
-    [key: string]: unknown;
+  model?: {
+    url?: string;
   };
+  benchmarks?: EvalHubRequestBenchmark[] | null;
+  collection?: {
+    benchmarks?: EvalHubRequestBenchmark[] | null;
+    [key: string]: unknown;
+  } | null;
+  [key: string]: unknown;
+};
+
+type EvalHubEvaluationJobResponse = {
+  data?: EvalHubEvaluationRequest;
   [key: string]: unknown;
 };
 
@@ -120,6 +128,27 @@ const withOfflineDataReferences = (
 const getRequestBenchmarks = (request: EvalHubEvaluationRequest): EvalHubRequestBenchmark[] =>
   request.collection?.benchmarks ?? request.benchmarks ?? [];
 
+const withoutOfflineDataReferences = (job: EvalHubEvaluationRequest): EvalHubEvaluationRequest => {
+  const stripBenchmarkDataRef = (benchmark: EvalHubRequestBenchmark) => {
+    const cleanBenchmark = { ...benchmark };
+    delete cleanBenchmark.test_data_ref;
+    return cleanBenchmark;
+  };
+
+  return {
+    ...job,
+    ...(job.benchmarks ? { benchmarks: job.benchmarks.map(stripBenchmarkDataRef) } : {}),
+    ...(job.collection?.benchmarks
+      ? {
+          collection: {
+            ...job.collection,
+            benchmarks: job.collection.benchmarks.map(stripBenchmarkDataRef),
+          },
+        }
+      : {}),
+  };
+};
+
 /**
  * Creates the project-local credentials used by EvalHub Jobs to read the staged offline bundle.
  * This is a no-op unless the explicit offline-data configuration is enabled.
@@ -178,6 +207,39 @@ export const interceptEvalHubOfflineDataRequest = (): boolean => {
   return true;
 };
 
+/**
+ * Hides the offline-only data refs from the reconfigure loader. The UI uses test_data_ref to
+ * identify prerecorded-response jobs, but Cypress adds this ref only to stage offline benchmark
+ * inputs. The submission interceptor adds the refs back to the reconfigure POST.
+ */
+export const interceptEvalHubOfflineDataReadForReconfigure = (tenantNamespace: string): boolean => {
+  if (!getOfflineDataConfig()) {
+    return false;
+  }
+
+  cy.intercept(
+    {
+      method: 'GET',
+      url: '**/eval-hub/api/v1/evaluations/jobs/*',
+      query: { namespace: tenantNamespace },
+    },
+    (request) => {
+      request.continue((response) => {
+        const responseBody = response.body as EvalHubEvaluationJobResponse;
+        if (!responseBody.data) {
+          return;
+        }
+        response.send({
+          ...responseBody,
+          data: withoutOfflineDataReferences(responseBody.data),
+        });
+      });
+    },
+  ).as('evalHubOfflineDataReconfigureJob');
+
+  return true;
+};
+
 /** Verifies the submitted request has offline data for every selected benchmark. */
 export const assertEvalHubOfflineDataRequest = (): void => {
   const config = getOfflineDataConfig();
@@ -186,7 +248,12 @@ export const assertEvalHubOfflineDataRequest = (): void => {
   }
 
   cy.wait(`@${EVAL_HUB_OFFLINE_DATA_INTERCEPT_ALIAS}`).then(({ request }) => {
-    const benchmarks = getRequestBenchmarks(request.body as EvalHubEvaluationRequest);
+    const evaluationRequest = request.body as EvalHubEvaluationRequest;
+    expect(evaluationRequest.model?.url, 'model endpoint URL')
+      .to.be.a('string')
+      .and.to.have.length.greaterThan(0);
+
+    const benchmarks = getRequestBenchmarks(evaluationRequest);
     expect(benchmarks, 'offline EvalHub request benchmarks').to.have.length.greaterThan(0);
     benchmarks.forEach((benchmark) => {
       expect(benchmark.parameters?.tokenizer).to.equal(config.TOKENIZER_PATH);

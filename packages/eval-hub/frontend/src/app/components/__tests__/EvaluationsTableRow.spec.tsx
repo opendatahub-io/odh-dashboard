@@ -26,7 +26,11 @@ const mockOnSelectionChange = jest.fn();
 
 const renderRow = (jobOverrides = {}, rowIndex = 0) => {
   const job = mockEvaluationJob(jobOverrides);
-  return render(
+  return renderJobRow(job, rowIndex);
+};
+
+const renderJobRow = (job: ReturnType<typeof mockEvaluationJob>, rowIndex = 0) =>
+  render(
     <MemoryRouter>
       <Table aria-label="test">
         <Tbody>
@@ -44,7 +48,6 @@ const renderRow = (jobOverrides = {}, rowIndex = 0) => {
       </Table>
     </MemoryRouter>,
   );
-};
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -80,7 +83,13 @@ describe('EvaluationsTableRow', () => {
   });
 
   it('should enable the compare checkbox when evaluation is completed', () => {
-    renderRow({ state: 'completed' });
+    /* eslint-disable camelcase */
+    const job = mockEvaluationJob({ state: 'completed' });
+    job.resource.mlflow_experiment_id = 'experiment-1';
+    job.results.benchmarks = [{ id: 'default-benchmark', mlflow_run_id: 'run-1' }];
+    /* eslint-enable camelcase */
+
+    renderJobRow(job);
     expect(screen.getByTestId('evaluation-select-checkbox-0')).toBeEnabled();
   });
 
