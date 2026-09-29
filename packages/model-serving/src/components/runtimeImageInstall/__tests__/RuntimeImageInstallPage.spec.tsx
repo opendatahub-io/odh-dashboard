@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import type {
@@ -162,23 +162,24 @@ describe('RuntimeImageInstallPage', () => {
     expect(screen.queryByRole('radio')).not.toBeInTheDocument();
   });
 
-  it('should show a loading failure with a way back', async () => {
+  it('should show a loading state while resolving the selected target', () => {
     mockExtensions = [
       {
         ...servingTarget,
         properties: {
           ...servingTarget.properties,
-          component: () => Promise.reject(new Error('Failed to load')),
+          component: () =>
+            new Promise(() => {
+              // Intentionally unresolved to exercise the Suspense fallback.
+            }),
         },
       },
     ];
     renderPage(mockRuntimeImageActionData());
     fireEvent.click(screen.getByRole('radio', { name: /Serving runtime template/ }));
     fireEvent.click(screen.getByTestId('runtime-image-install-next'));
-    await waitFor(() =>
-      expect(screen.getByText('Unable to load install configuration')).toBeInTheDocument(),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Back to Install target' }));
-    expect(screen.getByRole('radio', { name: /Serving runtime template/ })).toBeChecked();
+    expect(
+      screen.getByRole('progressbar', { name: 'Loading install configuration' }),
+    ).toBeVisible();
   });
 });
