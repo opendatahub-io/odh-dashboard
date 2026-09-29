@@ -104,10 +104,9 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
         const extraContent: PFMessageProps['extraContent'] = { ...messageExtraContent };
 
         if (message.role === 'user' && (documentAttachments?.length || attachmentWarning)) {
-          if (documentAttachments?.length) {
-            extraContent.beforeMainContent = (
-              <>
-                {extraContent.beforeMainContent}
+          extraContent.endContent = (
+            <>
+              {documentAttachments && (
                 <Flex flexWrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
                   {documentAttachments.map((attachment) => (
                     <Label
@@ -131,20 +130,14 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
                     </Label>
                   ))}
                 </Flex>
-              </>
-            );
-          }
-
-          if (attachmentWarning) {
-            extraContent.endContent = (
-              <>
-                {extraContent.endContent}
+              )}
+              {attachmentWarning && (
                 <Alert variant="danger" isInline isPlain title="Model context window exceeded">
                   Model’s context window exceeded. Instead upload files to Settings → RAG.
                 </Alert>
-              </>
-            );
-          }
+              )}
+            </>
+          );
         }
 
         const isGuardrailViolation =
