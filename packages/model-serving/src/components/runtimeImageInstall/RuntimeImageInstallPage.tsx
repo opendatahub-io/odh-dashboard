@@ -7,7 +7,6 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Button,
-  PageSection,
   Wizard,
   WizardFooterWrapper,
   WizardStep,
@@ -93,10 +92,7 @@ const InstallWizard: React.FC<{
     <ApplicationsPage
       title={`Install ${data.runtimeImageName}`}
       description="Choose how this runtime image should be installed, then review and edit the configuration before creating it on this cluster."
-      loaded
-      empty={false}
-    >
-      <PageSection hasBodyWrapper={false}>
+      breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem
             render={() => <Link to={GENERAL_SETTINGS_PATH}>Model deployment settings</Link>}
@@ -108,34 +104,35 @@ const InstallWizard: React.FC<{
           />
           <BreadcrumbItem isActive>Install</BreadcrumbItem>
         </Breadcrumb>
-      </PageSection>
-      <PageSection isFilled hasBodyWrapper={false}>
-        <Wizard
-          onClose={() => navigate(cancelReturnRoute)}
-          footer={
-            <InstallWizardFooter selected={selected} canInstall={selectedTarget !== undefined} />
-          }
+      }
+      loaded
+      empty={false}
+    >
+      <Wizard
+        onClose={() => navigate(cancelReturnRoute)}
+        footer={
+          <InstallWizardFooter selected={selected} canInstall={selectedTarget !== undefined} />
+        }
+      >
+        <WizardStep name="Install target" id="install-target">
+          <RuntimeImageInstallWizardTargetStep
+            installTargets={installTargets}
+            selected={selected}
+            onSelect={setSelected}
+          />
+        </WizardStep>
+        <WizardStep
+          name={selectedTarget?.properties.configureStepLabel ?? 'Configure'}
+          id="configure-install"
+          isDisabled={!selectedTarget}
         >
-          <WizardStep name="Install target" id="install-target">
-            <RuntimeImageInstallWizardTargetStep
-              installTargets={installTargets}
-              selected={selected}
-              onSelect={setSelected}
-            />
-          </WizardStep>
-          <WizardStep
-            name={selectedTarget?.properties.configureStepLabel ?? 'Configure'}
-            id="configure-install"
-            isDisabled={!selectedTarget}
-          >
-            <RuntimeImageInstallWizardConfigureStep
-              selectedTarget={selectedTarget}
-              targetData={targetData}
-              cancelReturnRoute={cancelReturnRoute}
-            />
-          </WizardStep>
-        </Wizard>
-      </PageSection>
+          <RuntimeImageInstallWizardConfigureStep
+            selectedTarget={selectedTarget}
+            targetData={targetData}
+            cancelReturnRoute={cancelReturnRoute}
+          />
+        </WizardStep>
+      </Wizard>
     </ApplicationsPage>
   );
 };
