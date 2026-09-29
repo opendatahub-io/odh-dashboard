@@ -3,237 +3,125 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import * as React from 'react';
-import { FormProvider, useForm, type UseFormReturn } from 'react-hook-form';
+import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplorer/types';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
+import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
 import { useMaaSModelsQuery } from '~/app/hooks/queries';
-import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/configure.schema';
-import {
-  AUTORAG_UPLOAD_MAX_BYTES,
-  AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
-} from '~/app/utilities/dropzoneFileUpload';
-import { INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION } from '~/app/utilities/autoragInputDataFile';
-import { RunTriggeredTrackingContext } from '~/app/context/RunTriggeredTrackingContext';
-import { DEFAULT_OPTIMIZATION_METRIC, OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
-import {
-  AUTORAG_EVENTS,
-  AUTORAG_FAILURE_CATEGORY,
-  TrackingOutcome,
-} from '~/app/utilities/tracking';
+import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import { AUTORAG_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
 }));
 
-const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
+const mockUpload = jest.fn().mockResolvedValue({ key: 'uploaded.txt' });
 
-const mockNotificationError = jest.fn();
-const mockNotificationWarning = jest.fn();
-
-const mockS3MutateAsync = jest.fn().mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
-
-jest.mock('~/app/hooks/mutations', () => ({
-  __esModule: true,
-  useS3FileUploadMutation: jest.fn(() => ({
-    mutateAsync: mockS3MutateAsync,
-    isPending: false,
-    reset: jest.fn(),
-    variables: undefined,
-  })),
-  useUploadToStorageMutation: jest.fn(() => ({
-    mutateAsync: jest.fn().mockResolvedValue({ uploaded: true, key: 'eval-data.json' }),
-    mutate: jest.fn(),
-    isPending: false,
-    isIdle: true,
-    isSuccess: false,
-    isError: false,
-    reset: jest.fn(),
-    data: undefined,
-    error: null,
-    variables: undefined,
-    status: 'idle',
-  })),
-  useCreatePipelineRunMutation: jest.fn(() => ({
-    mutateAsync: jest.fn(),
-  })),
-}));
-
-function getMockS3MutateAsync(): jest.Mock {
-  return mockS3MutateAsync;
-}
-
-// Mock React Router hooks
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useNavigate: jest.fn(),
   useParams: jest.fn(),
 }));
-
-// Mock mod-arch-core
-jest.mock('mod-arch-core', () => ({
-  useNamespaceSelector: jest.fn().mockReturnValue({
-    namespaces: [{ name: 'test-namespace' }],
-    updatePreferredNamespace: jest.fn(),
-    namespacesLoaded: true,
-  }),
-  asEnumMember: jest.fn((val: unknown) => val),
-  DeploymentMode: { Federated: 'federated', Standalone: 'standalone', Kubeflow: 'kubeflow' },
-}));
-
-// Mock mod-arch-shared (used by ConfigureFormGroup)
-jest.mock('mod-arch-shared', () => ({
-  DashboardPopupIconButton: ({
-    icon,
-    ...props
-  }: {
-    icon: React.ReactNode;
-    [key: string]: unknown;
-  }) => <button {...props}>{icon}</button>,
-}));
-
-// Mock useWatchConnectionTypes (used for connection types list)
-jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
-  useWatchConnectionTypes: jest.fn(() => [[]]),
-}));
-
-// Mock useNotification (used by AutoragVectorStoreSelector and upload validation)
-jest.mock('~/app/hooks/useNotification', () => ({
-  useNotification: jest.fn(() => ({
-    success: jest.fn(),
-    error: mockNotificationError,
-    info: jest.fn(),
-    warning: mockNotificationWarning,
-    remove: jest.fn(),
-  })),
-}));
-
-// Mock queries hooks used by child components (e.g., AutoragVectorStoreSelector)
 jest.mock('~/app/hooks/queries', () => ({
   ...jest.requireActual('~/app/hooks/queries'),
-  useMaaSModelsQuery: jest.fn().mockReturnValue({
-    data: {
-      models: [
-        { id: 'llama-3-8b', ready: true },
-        { id: 'text-embedding-ada-002', ready: true },
-      ],
-    },
-    isLoading: false,
-    isError: false,
-    isSuccess: true,
-  }),
-  useSecretsQuery: jest.fn().mockReturnValue({
-    data: [],
-    isLoading: false,
+  useMaaSModelsQuery: jest.fn(),
+  useSecretsQuery: jest.fn().mockReturnValue({ data: [], isLoading: false }),
+}));
+jest.mock('~/app/hooks/mutations', () => ({
+  ...jest.requireActual('~/app/hooks/mutations'),
+  useS3FileUploadMutation: jest.fn(() => ({ mutateAsync: mockUpload })),
+}));
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: () => ({
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+    info: jest.fn(),
+    remove: jest.fn(),
   }),
 }));
+jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
+  useWatchConnectionTypes: () => [[]],
+}));
+jest.mock('mod-arch-core', () => ({
+  useNamespaceSelector: () => ({
+    namespaces: [{ name: 'test-namespace' }],
+    namespacesLoaded: true,
+  }),
+  asEnumMember: (value: unknown) => value,
+  DeploymentMode: { Federated: 'federated', Standalone: 'standalone', Kubeflow: 'kubeflow' },
+}));
+jest.mock('mod-arch-shared', () => ({
+  DashboardPopupIconButton: ({ icon, ...props }: { icon: React.ReactNode }) => (
+    <button type="button" {...props}>
+      {icon}
+    </button>
+  ),
+}));
 
-// Mock SecretSelector — simplified stand-in for TypeaheadSelect secret picks (see component tests for SecretSelector).
-// Renders the current selection with the same label the real selector shows (`displayName || name` in options).
-jest.mock('~/app/components/common/SecretSelector', () => {
-  const MOCK_UUID_TO_DISPLAY_LABEL: Record<string, string> = {
-    'secret-1': 'Test Secret 1',
-    'secret-2': 'Test Secret 2',
-    'secret-3': 'Invalid Secret',
-  };
+jest.mock('~/app/components/common/SecretSelector', () => ({
+  __esModule: true,
+  default: ({
+    onChange,
+    value,
+    dataTestId,
+  }: {
+    onChange: (value: unknown) => void;
+    value?: string;
+    dataTestId: string;
+  }) => (
+    <div data-testid={dataTestId}>
+      <button
+        data-testid={`${dataTestId}-select-secret-1`}
+        onClick={() =>
+          onChange({
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          })
+        }
+      >
+        Select Secret 1
+      </button>
+      <button
+        data-testid={`${dataTestId}-select-invalid-secret`}
+        onClick={() => onChange({ uuid: 'bad', name: 'Invalid Secret', data: {}, invalid: true })}
+      >
+        Select Invalid Secret
+      </button>
+      {value && (
+        <span data-testid={`${dataTestId}-value`}>
+          {value === 'secret-1' ? 'Test Secret 1' : value}
+        </span>
+      )}
+    </div>
+  ),
+}));
 
-  return {
-    __esModule: true,
-    default: ({
-      onChange,
-      value,
-      dataTestId,
-    }: {
-      onChange: (
-        secret:
-          | {
-              uuid: string;
-              name: string;
-              data: Record<string, string>;
-              type?: string;
-              invalid?: boolean;
-            }
-          | undefined,
-      ) => void;
-      value?: string;
-      dataTestId?: string;
-    }) => (
-      <div data-testid={dataTestId}>
-        <button
-          data-testid={`${dataTestId}-select-secret-1`}
-          onClick={() =>
-            onChange({
-              uuid: 'secret-1',
-              name: 'Test Secret 1',
-              data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
-              type: 's3',
-              invalid: false,
-            })
-          }
-        >
-          Select Secret 1
-        </button>
-        <button
-          data-testid={`${dataTestId}-select-secret-2`}
-          onClick={() =>
-            onChange({
-              uuid: 'secret-2',
-              name: 'Test Secret 2',
-              data: { AWS_S3_BUCKET: 'test-bucket-2', AWS_DEFAULT_REGION: 'us-east-1' },
-              type: 's3',
-              invalid: false,
-            })
-          }
-        >
-          Select Secret 2
-        </button>
-        <button
-          data-testid={`${dataTestId}-select-invalid-secret`}
-          onClick={() =>
-            onChange({
-              uuid: 'secret-3',
-              name: 'Invalid Secret',
-              data: {},
-              type: 's3',
-              invalid: true,
-            })
-          }
-        >
-          Select Invalid Secret
-        </button>
-        {value && (
-          <div data-testid={`${dataTestId}-value`}>
-            {MOCK_UUID_TO_DISPLAY_LABEL[value] ?? value}
-          </div>
-        )}
-      </div>
-    ),
-  };
-});
-
-// Mock S3FileExplorer component
 jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer', () => ({
   __esModule: true,
   default: ({
     isOpen,
     onSelectFiles,
     onClose,
+    uploadFiles,
   }: {
     isOpen: boolean;
     onSelectFiles: (files: ExplorerFiles) => void;
     onClose: () => void;
+    uploadFiles?: (files: File[], folder: string) => Promise<{ key: string }[]>;
   }) =>
     isOpen ? (
       <div data-testid="file-explorer-modal">
         <button
           data-testid="file-explorer-select-file"
           onClick={() => {
-            onSelectFiles([{ path: '/test-file.txt', name: 'test-file.txt', type: 'txt' }]);
+            onSelectFiles([{ path: '/docs/test.txt', name: 'test.txt', type: 'txt' }]);
             onClose();
           }}
         >
@@ -249,1892 +137,142 @@ jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileEx
             onClose();
           }}
         >
-          Select Folder (2 files)
+          Select Folder
         </button>
-        <button data-testid="file-explorer-cancel" onClick={() => onClose()}>
+        <button data-testid="file-explorer-cancel" onClick={onClose}>
           Cancel
+        </button>
+        <button
+          data-testid="file-explorer-upload-file"
+          onClick={() => void uploadFiles?.([new File(['a'], 'uploaded.txt')], '/docs')}
+        >
+          Upload File
         </button>
       </div>
     ) : null,
 }));
 
-const mockUseNavigate = jest.mocked(useNavigate);
-const mockUseParams = jest.mocked(useParams);
-const mockUseMaaSModelsQuery = jest.mocked(useMaaSModelsQuery);
-
-const configureSchema = createConfigureSchema();
-type TestConfigureValues = Partial<typeof configureSchema.defaults> & Record<string, unknown>;
-
-// Captures the live react-hook-form instance so tests can assert on exact
-// form state (e.g. which model IDs are selected) instead of only on rendered
-// text, which can't distinguish "same count, different models" regressions.
-let latestForm: UseFormReturn<ConfigureSchema> | undefined;
-
-const getLatestFormValues = (): ConfigureSchema => {
-  if (!latestForm) {
-    throw new Error('Form has not been rendered yet');
-  }
-  return latestForm.getValues();
-};
+const mockParams = jest.mocked(useParams);
+const mockNavigate = jest.mocked(useNavigate);
+const mockModels = jest.mocked(useMaaSModelsQuery);
+const trackingMock = jest.mocked(fireFormTrackingEvent);
+const schema = createConfigureSchema();
 
 const FormWrapper: React.FC<{
   children: React.ReactNode;
-  defaultValues?: TestConfigureValues;
-}> = ({ children, defaultValues }) => {
+  defaults?: Partial<typeof schema.defaults>;
+}> = ({ children, defaults }) => {
   const form = useForm({
     mode: 'onChange',
-    resolver: zodResolver(configureSchema.full),
-    defaultValues: { ...configureSchema.defaults, ...defaultValues },
+    resolver: zodResolver(schema.full),
+    defaultValues: { ...schema.defaults, ...defaults },
   });
-  latestForm = form as unknown as UseFormReturn<ConfigureSchema>;
   return <FormProvider {...form}>{children}</FormProvider>;
 };
 
-// Create a QueryClient for tests
-const createTestQueryClient = () =>
-  new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-    },
-  });
-
-// Wrapper component that provides QueryClient and Form context
-const renderWithQueryClient = (
-  component: React.ReactElement,
-  defaultValues?: TestConfigureValues,
-  options?: {
-    onKnowledgeSourceConfigured?: (sourceType: string) => void;
-  },
-) => {
-  const queryClient = createTestQueryClient();
-  const tree = (
-    <QueryClientProvider client={queryClient}>
-      {/* UIError behavior is tested in UIErrorHandler's own spec */}
+const renderComponent = (defaults?: Partial<typeof schema.defaults>) =>
+  render(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
       <UIErrorHandler id="test-uierror" uiErrorMappings={{}}>
-        <FormWrapper defaultValues={defaultValues}>{component}</FormWrapper>
+        <FormWrapper defaults={defaults}>
+          <AutoragConfigure />
+        </FormWrapper>
       </UIErrorHandler>
-    </QueryClientProvider>
+    </QueryClientProvider>,
   );
-  return render(
-    options?.onKnowledgeSourceConfigured ? (
-      <RunTriggeredTrackingContext.Provider
-        value={{
-          onKnowledgeSourceConfigured: options.onKnowledgeSourceConfigured,
-          onEvaluationSourceConfigured: jest.fn(),
-          onVectorStoreConfigured: jest.fn(),
-          onModelsConfigured: jest.fn(),
-        }}
-      >
-        {tree}
-      </RunTriggeredTrackingContext.Provider>
-    ) : (
-      tree
-    ),
-  );
+
+const openExplorer = () => {
+  fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+  fireEvent.click(screen.getByRole('button', { name: 'Add files' }));
 };
-
-const renderComponent = (
-  defaultValues?: TestConfigureValues,
-  options?: {
-    onKnowledgeSourceConfigured?: (sourceType: string) => void;
-    onMaaSModelsReady?: (ready: boolean) => void;
-  },
-) =>
-  renderWithQueryClient(
-    <AutoragConfigure onMaaSModelsReady={options?.onMaaSModelsReady} />,
-    defaultValues,
-    options,
-  );
-
-const renderWithInitialValues = (
-  initialValues: Parameters<typeof AutoragConfigure>[0]['initialValues'] & {
-    initialInputDataSecret?: Parameters<typeof AutoragConfigure>[0]['initialInputDataSecret'];
-  },
-  defaultValues?: TestConfigureValues,
-  isReconfigure = false,
-  options?: { onMaaSModelsReady?: (ready: boolean) => void },
-) => {
-  const { initialInputDataSecret, ...schemaValues } = initialValues;
-  return renderWithQueryClient(
-    <AutoragConfigure
-      initialValues={schemaValues}
-      initialInputDataSecret={initialInputDataSecret}
-      isReconfigure={isReconfigure}
-      onMaaSModelsReady={options?.onMaaSModelsReady}
-    />,
-    {
-      ...defaultValues,
-      ...schemaValues,
-    },
-  );
-};
-
-/**
- * Minimal FileList for jsdom. Supports indexed access, `item`, and `for...of`; not every browser FileList edge case.
- */
-function createFileList(fileArr: File[]): FileList {
-  const arr = [...fileArr];
-  const list = Object.assign(arr, {
-    length: arr.length,
-    item(index: number): File | null {
-      return arr[index] ?? null;
-    },
-    *[Symbol.iterator]() {
-      for (let i = 0; i < arr.length; i++) {
-        yield arr[i];
-      }
-    },
-  });
-  return list as unknown as FileList;
-}
-
-/** Partial `DataTransfer` for tests — jsdom has no real API; react-dropzone reads `types`/`files` on drop. */
-function mockDataTransferForDrop(files: File[]) {
-  return {
-    files: createFileList(files),
-    types: ['Files'],
-    dropEffect: 'copy',
-    effectAllowed: 'all',
-  };
-}
-
-/**
- * Simulates drag-and-drop onto PatternFly `MultipleFileUpload` (react-dropzone root).
- * Requires upload mode to be open so the knowledge upload zone is mounted.
- *
- * Uses `dataTransfer.files` without `items` so file-selector reads via `dt.files` (see file-selector `getDataTransferFiles`).
- */
-function dropFilesOnKnowledgeUploadZone(files: File[]): void {
-  fireEvent.drop(screen.getByTestId('knowledge-upload-zone'), {
-    dataTransfer: mockDataTransferForDrop(files),
-  });
-}
 
 describe('AutoragConfigure', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockNotificationError.mockClear();
-    mockNotificationWarning.mockClear();
-    mockUseNavigate.mockReturnValue(jest.fn());
-    mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
-    mockUseMaaSModelsQuery.mockReturnValue({
-      data: {
-        models: [
-          { id: 'llama-3-8b', ready: true },
-          { id: 'text-embedding-ada-002', ready: true },
-        ],
-      },
-      isLoading: false,
-      isError: false,
-      isSuccess: true,
-    } as unknown as ReturnType<typeof useMaaSModelsQuery>);
-    // Reset the S3 upload mock to default resolved value
-    mockS3MutateAsync.mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
+    mockParams.mockReturnValue({ namespace: 'test-namespace' });
+    mockNavigate.mockReturnValue(jest.fn());
+    mockModels.mockReturnValue({ data: { models: [] }, isLoading: false, isError: false } as never);
+    mockUpload.mockResolvedValue({ key: 'uploaded.txt' });
   });
 
-  describe('restored MaaS model reconciliation', () => {
-    const restoredValues = {
-      maas_secret_name: 'maas-secret',
-      generation_models: ['available-generation', 'removed-generation'],
-      embedding_models: ['available-embedding', 'removed-embedding'],
-    };
+  it('should not render product source toggles or Add files without a connection', () => {
+    renderComponent();
+    expect(
+      screen.queryByRole('group', { name: 'Choose how to add documents' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add files' })).not.toBeInTheDocument();
+  });
 
-    beforeEach(() => {
-      mockUseMaaSModelsQuery.mockReturnValue({
-        data: {
-          models: [
-            { id: 'available-generation', ready: true },
-            { id: 'available-embedding', ready: true },
-          ],
-        },
-        isLoading: false,
-        isError: false,
-        isSuccess: true,
-      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
-    });
+  it('should show the unified knowledge action without a page upload zone', () => {
+    renderComponent();
+    fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
 
-    it('should remove unavailable IDs while preserving each category membership', async () => {
-      renderWithInitialValues(restoredValues, undefined, true);
+    expect(screen.getByRole('heading', { name: 'Knowledge documents' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add files' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Browse bucket' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Upload file' })).not.toBeInTheDocument();
+  });
 
-      await waitFor(() => {
-        expect(getLatestFormValues()).toEqual(
-          expect.objectContaining({
-            generation_models: ['available-generation'],
-            embedding_models: ['available-embedding'],
-          }),
-        );
-      });
-      expect(mockNotificationWarning).toHaveBeenCalledWith(
-        'Some previously selected models are unavailable',
-        'One or more previously selected foundation or embedding models are no longer available and have been removed from your selection.',
-      );
-    });
+  it('should commit a selected file and track the S3 source', () => {
+    renderComponent();
+    openExplorer();
+    fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
-    it('should remove unready restored IDs and show the restore warning', async () => {
-      mockUseMaaSModelsQuery.mockReturnValue({
-        data: {
-          models: [
-            { id: 'unready-generation', ready: false },
-            { id: 'available-embedding', ready: true },
-          ],
-        },
-        isLoading: false,
-        isError: false,
-        isSuccess: true,
-      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
-
-      renderWithInitialValues(
-        {
-          ...restoredValues,
-          generation_models: ['unready-generation'],
-          embedding_models: ['available-embedding'],
-        },
-        undefined,
-        true,
-      );
-
-      await waitFor(() => expect(getLatestFormValues().generation_models).toEqual([]));
-      expect(getLatestFormValues().embedding_models).toEqual(['available-embedding']);
-      expect(mockNotificationWarning).toHaveBeenCalledWith(
-        'Some previously selected models are unavailable',
-        'One or more previously selected foundation or embedding models are no longer available and have been removed from your selection.',
-      );
-    });
-
-    it('should report the model configuration as not ready when only unready models exist', async () => {
-      const onMaaSModelsReady = jest.fn();
-      mockUseMaaSModelsQuery.mockReturnValue({
-        data: {
-          models: [
-            { id: 'unready-generation', ready: false },
-            { id: 'unready-embedding', ready: false },
-          ],
-        },
-        isLoading: false,
-        isError: false,
-        isSuccess: true,
-      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
-
-      renderWithInitialValues(
-        {
-          ...restoredValues,
-          generation_models: ['unready-generation'],
-          embedding_models: ['unready-embedding'],
-        },
-        undefined,
-        false,
-        { onMaaSModelsReady },
-      );
-
-      await waitFor(() => expect(onMaaSModelsReady).toHaveBeenLastCalledWith(false));
-    });
-
-    it('should leave an empty category invalid when all its restored IDs are unavailable', async () => {
-      renderWithInitialValues(
-        {
-          ...restoredValues,
-          generation_models: ['removed-generation'],
-        },
-        undefined,
-        true,
-      );
-
-      await waitFor(() => {
-        expect(getLatestFormValues().generation_models).toEqual([]);
-      });
-      expect(getLatestFormValues().embedding_models).toEqual(['available-embedding']);
-    });
-
-    it('should remove unavailable selections for a new run without a restore warning', async () => {
-      renderComponent({
-        maas_secret_name: 'maas-secret',
-        generation_models: ['removed-generation'],
-        embedding_models: ['removed-embedding'],
-      });
-
-      await waitFor(() => expect(getLatestFormValues().generation_models).toEqual([]));
-      expect(getLatestFormValues().embedding_models).toEqual([]);
-      expect(mockNotificationWarning).not.toHaveBeenCalled();
-    });
-
-    it('should preserve fully available restored selections without warning', async () => {
-      renderWithInitialValues(
-        {
-          maas_secret_name: 'maas-secret',
-          generation_models: ['available-generation'],
-          embedding_models: ['available-embedding'],
-        },
-        undefined,
-        true,
-      );
-
-      await waitFor(() =>
-        expect(getLatestFormValues().generation_models).toEqual(['available-generation']),
-      );
-      expect(getLatestFormValues().embedding_models).toEqual(['available-embedding']);
-      expect(mockNotificationWarning).not.toHaveBeenCalled();
-    });
-
-    it('should warn only once when reconciliation causes rerenders for the same MaaS result', async () => {
-      renderWithInitialValues(restoredValues, undefined, true);
-
-      await waitFor(() =>
-        expect(getLatestFormValues().generation_models).toEqual(['available-generation']),
-      );
-      expect(mockNotificationWarning).toHaveBeenCalledTimes(1);
-    });
-
-    it('should not emit the unavailable-model warning for an initial query failure', async () => {
-      mockUseMaaSModelsQuery.mockReturnValue({
-        data: undefined,
-        isLoading: false,
-        isError: true,
-        isSuccess: false,
-        error: new Error('MaaS models unavailable'),
-      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
-      renderWithInitialValues(restoredValues, undefined, true);
-
-      await waitFor(() =>
-        expect(getLatestFormValues().generation_models).toEqual(restoredValues.generation_models),
-      );
-      expect(mockNotificationWarning).not.toHaveBeenCalled();
-    });
-
-    it('should not emit the unavailable-model warning for an empty response', async () => {
-      mockUseMaaSModelsQuery.mockReturnValue({
-        data: { models: [] },
-        isLoading: false,
-        isError: false,
-        isSuccess: true,
-      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
-      renderWithInitialValues(restoredValues, undefined, true);
-
-      await waitFor(() => expect(getLatestFormValues().generation_models).toEqual([]));
-      expect(getLatestFormValues().embedding_models).toEqual([]);
-      expect(mockNotificationWarning).toHaveBeenCalledWith(
-        'Some previously selected models are unavailable',
-        'One or more previously selected foundation or embedding models are no longer available and have been removed from your selection.',
-      );
+    expect(screen.getByRole('button', { name: 'Replace files' })).toBeInTheDocument();
+    expect(screen.getByText('test.txt')).toBeInTheDocument();
+    expect(trackingMock).toHaveBeenCalledWith(AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED, {
+      knowledgeSourceType: 's3',
+      countOfDocuments: 1,
+      outcome: TrackingOutcome.submit,
+      success: true,
     });
   });
 
-  describe('initial state - no secret selected', () => {
-    it('should display an empty state when no secret is selected', () => {
-      renderComponent();
+  it('should preserve an existing selection when the explorer is cancelled', () => {
+    renderComponent();
+    openExplorer();
+    fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+    fireEvent.click(screen.getByRole('button', { name: 'Replace files' }));
+    fireEvent.click(screen.getByTestId('file-explorer-cancel'));
 
-      expect(
-        screen.getByText('Select a file from your S3 connection or upload a file to get started'),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          'In order to configure details and run an experiment, select a file or upload one in the Knowledge setup panel.',
-        ),
-      ).toBeInTheDocument();
-    });
-
-    it('should NOT show document input toggle when no secret is selected', () => {
-      renderComponent();
-
-      expect(
-        screen.queryByRole('group', { name: 'Choose how to add documents' }),
-      ).not.toBeInTheDocument();
-    });
-
-    it('should NOT display the select-file section heading when no secret is selected', () => {
-      renderComponent();
-
-      expect(
-        screen.queryByRole('heading', { name: 'Select file or folder' }),
-      ).not.toBeInTheDocument();
-    });
-
-    it('should NOT display the "Browse bucket" button when no secret is selected', () => {
-      renderComponent();
-
-      expect(screen.queryByRole('button', { name: 'Browse bucket' })).not.toBeInTheDocument();
-    });
+    expect(screen.getByText('test.txt')).toBeInTheDocument();
+    expect(trackingMock).toHaveBeenCalledWith(
+      AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
+      expect.objectContaining({ outcome: TrackingOutcome.cancel, success: false }),
+    );
   });
 
-  describe('secret selection', () => {
-    it('should show document input toggle when a secret is selected', () => {
-      renderComponent();
-
-      // Select a secret
-      const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
-      fireEvent.click(selectButton);
-
-      // Verify the document input toggle is displayed
-      expect(
-        screen.getByRole('group', { name: 'Choose how to add documents' }),
-      ).toBeInTheDocument();
-    });
-
-    it('should show the selected secret name in the selector (matches real displayName || name)', () => {
-      renderComponent();
-
-      // Select a secret
-      const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
-      fireEvent.click(selectButton);
-
-      // Verify the secret name is displayed
-      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 1');
-    });
-
-    it('should display the select-file section when a secret is selected', () => {
-      renderComponent();
-
-      // Select a secret
-      const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
-      fireEvent.click(selectButton);
-
-      // Verify the "Select file or folder" section is displayed
-      expect(screen.getByRole('heading', { name: 'Select file or folder' })).toBeInTheDocument();
-    });
-
-    it('should display the "Browse bucket" button when a secret is selected', () => {
-      renderComponent();
-
-      // Select a secret
-      const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
-      fireEvent.click(selectButton);
-
-      // Verify the "Browse bucket" button is displayed
-      expect(screen.getByRole('button', { name: 'Browse bucket' })).toBeInTheDocument();
-    });
-
-    it('should show selected-files UI when "Select file or folder" is selected (default)', () => {
-      renderComponent();
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-
-      expect(screen.getByRole('heading', { name: 'Select file or folder' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Browse bucket' })).toBeInTheDocument();
-      expect(
-        screen.queryByText(/Drop a file here or browse to select a file/),
-      ).not.toBeInTheDocument();
-    });
-
-    it('should show upload dropzone when "Upload file" is selected', () => {
-      renderComponent();
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
-
-      expect(
-        screen.queryByRole('heading', { name: 'Select file or folder' }),
-      ).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Browse bucket' })).not.toBeInTheDocument();
-      expect(screen.getByText(/Drop a file here or browse to select a file/)).toBeInTheDocument();
-    });
-
-    it('should not upload an oversized file and should show a notification', () => {
-      renderComponent();
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
-
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
-
-      const largeFile = new File(['x'], 'big.pdf', { type: 'application/pdf' });
-      Object.defineProperty(largeFile, 'size', { value: AUTORAG_UPLOAD_MAX_BYTES + 1 });
-
-      getMockS3MutateAsync().mockClear();
-      fireEvent.change(fileInput!, { target: { files: [largeFile] } });
-
-      expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
-      expect(mockNotificationError).toHaveBeenCalledWith(
-        'File too large',
-        'File size must be 32 MiB or less.',
-      );
-    });
-
-    it('should not upload a disallowed file type and should show a notification', () => {
-      renderComponent();
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
-
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
-
-      const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
-      getMockS3MutateAsync().mockClear();
-      fireEvent.change(fileInput!, { target: { files: [badFile] } });
-
-      expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
-      expect(mockNotificationError).toHaveBeenCalledWith(
-        'Invalid file type',
-        INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION,
-      );
-    });
-
-    describe('MultipleFileUpload drag-and-drop', () => {
-      it('should show a notification when a disallowed file type is dropped', async () => {
-        renderComponent();
-        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
-
-        const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
-        getMockS3MutateAsync().mockClear();
-        dropFilesOnKnowledgeUploadZone([badFile]);
-
-        expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
-        await waitFor(() => {
-          expect(mockNotificationError).toHaveBeenCalledWith(
-            'Invalid file type',
-            INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION,
-          );
-        });
-      });
-
-      it('should show a notification when an oversized file is dropped', async () => {
-        renderComponent();
-        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
-
-        const largeFile = new File(['x'], 'big.pdf', { type: 'application/pdf' });
-        Object.defineProperty(largeFile, 'size', { value: AUTORAG_UPLOAD_MAX_BYTES + 1 });
-        getMockS3MutateAsync().mockClear();
-        dropFilesOnKnowledgeUploadZone([largeFile]);
-
-        expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
-        await waitFor(() => {
-          expect(mockNotificationError).toHaveBeenCalledWith(
-            'File too large',
-            'File size must be 32 MiB or less.',
-          );
-        });
-      });
-
-      it('should show a notification when more than one file is dropped', async () => {
-        renderComponent();
-        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
-
-        const fileA = new File(['a'], 'a.txt', { type: 'text/plain' });
-        const fileB = new File(['b'], 'b.txt', { type: 'text/plain' });
-        getMockS3MutateAsync().mockClear();
-        dropFilesOnKnowledgeUploadZone([fileA, fileB]);
-
-        expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
-        await waitFor(() => {
-          expect(mockNotificationError).toHaveBeenCalledWith(
-            'Too many files',
-            AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
-          );
-        });
-      });
-
-      it('should upload an allowed file dropped on the zone', async () => {
-        renderComponent();
-        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
-
-        const goodFile = new File(['hello'], 'notes.txt', { type: 'text/plain' });
-        getMockS3MutateAsync().mockClear();
-        dropFilesOnKnowledgeUploadZone([goodFile]);
-
-        await waitFor(() => {
-          expect(getMockS3MutateAsync()).toHaveBeenCalledWith(
-            expect.objectContaining({
-              namespace: 'test-namespace',
-              secretName: 'Test Secret 1',
-              bucket: 'test-bucket-1',
-              key: 'notes.txt',
-              file: goodFile,
-            }),
-          );
-        });
-        expect(mockNotificationError).not.toHaveBeenCalled();
-      });
-
-      it('should not upload a valid file when dropped together with an invalid file', async () => {
-        renderComponent();
-        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
-
-        const goodFile = new File(['hello'], 'notes.txt', { type: 'text/plain' });
-        const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
-        getMockS3MutateAsync().mockClear();
-        dropFilesOnKnowledgeUploadZone([goodFile, badFile]);
-
-        expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
-        await waitFor(() => {
-          expect(mockNotificationError).toHaveBeenCalledWith(
-            'File not accepted',
-            `${AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL} ${INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION}`,
-          );
-        });
-      });
-    });
-
-    it('should upload an allowed file from the native file input', async () => {
-      renderComponent();
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
-
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
-
-      const goodFile = new File(['hello'], 'notes.txt', { type: 'text/plain' });
-      getMockS3MutateAsync().mockClear();
-      fireEvent.change(fileInput!, { target: { files: [goodFile] } });
-
-      await waitFor(() => {
-        expect(getMockS3MutateAsync()).toHaveBeenCalledWith(
-          expect.objectContaining({
-            namespace: 'test-namespace',
-            secretName: 'Test Secret 1',
-            bucket: 'test-bucket-1',
-            key: 'notes.txt',
-            file: goodFile,
-          }),
-        );
-      });
-      expect(mockNotificationError).not.toHaveBeenCalled();
-    });
-
-    it('should show human-readable error for max collision attempts (409)', async () => {
-      renderComponent();
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
-
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
-
-      const file = new File(['hello'], 'collision.txt', { type: 'text/plain' });
-      getMockS3MutateAsync().mockClear();
-      getMockS3MutateAsync().mockRejectedValue(
-        new Error('unable to find unique filename after 10 attempts'),
-      );
-
-      fireEvent.change(fileInput!, { target: { files: [file] } });
-
-      await waitFor(() => {
-        expect(mockNotificationError).toHaveBeenCalledWith(
-          'Failed to upload file',
-          'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.',
-        );
-      });
-    });
-
-    it('should show the newly selected secret name when switching secrets', () => {
-      renderComponent();
-
-      // Select first secret
-      const selectButton1 = screen.getByTestId('aws-secret-selector-select-secret-1');
-      fireEvent.click(selectButton1);
-      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 1');
-
-      // Select second secret
-      const selectButton2 = screen.getByTestId('aws-secret-selector-select-secret-2');
-      fireEvent.click(selectButton2);
-      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 2');
-    });
-
-    it('should extract bucket name from secret data when a secret is selected', () => {
-      renderComponent();
-
-      // Select first secret with bucket data
-      const selectButton1 = screen.getByTestId('aws-secret-selector-select-secret-1');
-      fireEvent.click(selectButton1);
-
-      // The bucket extraction logic should have run (AutoragConfigure.tsx:176-182)
-      // This is verified indirectly by the component functioning correctly
-      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 1');
-      expect(screen.getByRole('button', { name: 'Browse bucket' })).toBeInTheDocument();
-
-      // Select second secret with different bucket data
-      const selectButton2 = screen.getByTestId('aws-secret-selector-select-secret-2');
-      fireEvent.click(selectButton2);
-
-      // The bucket should be updated for the new secret
-      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 2');
-      expect(screen.getByRole('button', { name: 'Browse bucket' })).toBeInTheDocument();
-    });
-
-    it('should display the "Configure details" fields when a file is selected', () => {
-      renderComponent();
-
-      // Initially should show empty state
-      expect(
-        screen.getByText('Select a file from your S3 connection or upload a file to get started'),
-      ).toBeInTheDocument();
-
-      // Select a secret
-      const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
-      fireEvent.click(selectButton);
-
-      // Empty state should still be shown (no file selected yet)
-      expect(
-        screen.getByText('Select a file from your S3 connection or upload a file to get started'),
-      ).toBeInTheDocument();
-
-      // Select a file via the file explorer
-      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
-      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
-
-      // Empty state should be hidden
-      expect(
-        screen.queryByText('Select a file from your S3 connection or upload a file to get started'),
-      ).not.toBeInTheDocument();
-
-      // Configure details fields should be visible
-      expect(screen.getByText('Vector database connection')).toBeInTheDocument();
-      expect(
-        screen.getByText('Provide connection details for a vector database.'),
-      ).toBeInTheDocument();
-      expect(screen.getByText('Evaluation dataset')).toBeInTheDocument();
-      expect(screen.getByText('Model configuration')).toBeInTheDocument();
-      expect(screen.getByText('Optimization metric')).toBeInTheDocument();
-      expect(screen.getByText('Maximum RAG patterns')).toBeInTheDocument();
-      for (const label of [
-        'vector-database-connection',
-        'evaluation-dataset',
-        'model-configuration',
-      ]) {
-        expect(
-          screen
-            .getByTestId(`configure-form-group-label-${label}`)
-            .querySelector('.pf-v6-c-form__label-required'),
-        ).toBeInTheDocument();
-      }
-      expect(screen.getByTestId('selected-models-warning')).toBeInTheDocument();
-      expect(screen.getByTestId('selected-models-warning')).toHaveClass('pf-v6-c-alert');
-      expect(screen.queryByRole('heading', { name: 'Selected models' })).not.toBeInTheDocument();
-      expect(screen.getByText('Selected models')).toHaveClass('pf-v6-c-alert__title');
-      expect(
-        screen.getByText(
-          'No models selected. Select chat and embedding models to run the experiment.',
-        ),
-      ).toBeInTheDocument();
-      expect(screen.queryByText('No foundation models selected')).not.toBeInTheDocument();
-      expect(screen.queryByText('No embedding models selected')).not.toBeInTheDocument();
-
-      fireEvent.click(screen.getByTestId('select-models-button'));
-      expect(screen.getByTestId('experiment-settings-modal')).toBeInTheDocument();
-      fireEvent.click(screen.getByTestId('experiment-settings-cancel'));
-      expect(screen.getByTestId('selected-models-warning')).toBeInTheDocument();
-    });
+  it('should return all selected folder files to the product selection handler', () => {
+    renderComponent();
+    openExplorer();
+    fireEvent.click(screen.getByTestId('file-explorer-select-folder'));
+
+    expect(screen.getByText('a.txt')).toBeInTheDocument();
+    expect(screen.queryByText('b.txt')).not.toBeInTheDocument();
+    expect(trackingMock).toHaveBeenCalledWith(
+      AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
+      expect.objectContaining({ countOfDocuments: 1 }),
+    );
   });
 
-  describe('AutoRAG Knowledge Source Configured tracking', () => {
-    it('should fire with knowledgeSourceType: s3 and countOfDocuments: 1 when a single file is selected', () => {
-      renderComponent();
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
-      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+  it('should upload through the explorer without selecting the uploaded file', async () => {
+    renderComponent();
+    openExplorer();
+    fireEvent.click(screen.getByTestId('file-explorer-upload-file'));
 
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-        AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
-        {
-          knowledgeSourceType: 's3',
-          countOfDocuments: 1,
-          outcome: TrackingOutcome.submit,
-          success: true,
-        },
-      );
-    });
-
-    it('should fire with countOfDocuments: 1 even when the picker returns multiple files (only the first is committed)', () => {
-      renderComponent();
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
-      fireEvent.click(screen.getByTestId('file-explorer-select-folder'));
-
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-        AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
-        {
-          knowledgeSourceType: 's3',
-          countOfDocuments: 1,
-          outcome: TrackingOutcome.submit,
-          success: true,
-        },
-      );
-    });
-
-    it('should fire with outcome: cancel and success: false when the S3 file browser is dismissed without a selection', () => {
-      renderComponent();
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
-      fireEvent.click(screen.getByTestId('file-explorer-cancel'));
-
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-        AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
-        {
-          knowledgeSourceType: 's3',
-          countOfDocuments: 0,
-          outcome: TrackingOutcome.cancel,
-          success: false,
-        },
-      );
-    });
-
-    it('should not fire a cancel event when the browser is closed immediately after a successful selection', () => {
-      renderComponent();
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
-      fireFormTrackingEventMock.mockClear();
-      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
-
-      expect(fireFormTrackingEventMock).toHaveBeenCalledTimes(1);
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-        AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
-        expect.objectContaining({ outcome: TrackingOutcome.submit }),
-      );
-    });
-
-    it('should fire with knowledgeSourceType: upload and success: true on a successful upload', async () => {
-      renderComponent();
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
-
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
-
-      const goodFile = new File(['hello'], 'notes.txt', { type: 'text/plain' });
-      fireFormTrackingEventMock.mockClear();
-      fireEvent.change(fileInput!, { target: { files: [goodFile] } });
-
-      await waitFor(() => {
-        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-          AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
-          {
-            knowledgeSourceType: 'upload',
-            countOfDocuments: 1,
-            outcome: TrackingOutcome.submit,
-            success: true,
-          },
-        );
-      });
-    });
-
-    it('should fire with success: false and an allowlisted failure category (not the raw error message) on a failed upload', async () => {
-      renderComponent();
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
-
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
-
-      const file = new File(['hello'], 'notes.txt', { type: 'text/plain' });
-      getMockS3MutateAsync().mockClear();
-      getMockS3MutateAsync().mockRejectedValueOnce(
-        new Error('upload exploded: s3://acme-secret-bucket'),
-      );
-      fireFormTrackingEventMock.mockClear();
-      fireEvent.change(fileInput!, { target: { files: [file] } });
-
-      await waitFor(() => {
-        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-          AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
-          {
-            knowledgeSourceType: 'upload',
-            countOfDocuments: 0,
-            outcome: TrackingOutcome.submit,
-            success: false,
-            error: AUTORAG_FAILURE_CATEGORY,
-          },
-        );
-      });
-
-      const allTrackingCalls = JSON.stringify(fireFormTrackingEventMock.mock.calls);
-      expect(allTrackingCalls).not.toContain('acme-secret-bucket');
-    });
-
-    it('should report a successful s3 selection to RunTriggeredTrackingContext for use by AutoRAG Run Triggered', () => {
-      const onKnowledgeSourceConfigured = jest.fn();
-      renderComponent(undefined, { onKnowledgeSourceConfigured });
-
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
-      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
-
-      expect(onKnowledgeSourceConfigured).toHaveBeenCalledWith('s3');
-    });
-
-    it('should not report a cancelled s3 selection to RunTriggeredTrackingContext', () => {
-      const onKnowledgeSourceConfigured = jest.fn();
-      renderComponent(undefined, { onKnowledgeSourceConfigured });
-
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
-      fireEvent.click(screen.getByTestId('file-explorer-cancel'));
-
-      expect(onKnowledgeSourceConfigured).not.toHaveBeenCalled();
-    });
-
-    it('should report a successful upload to RunTriggeredTrackingContext for use by AutoRAG Run Triggered', async () => {
-      const onKnowledgeSourceConfigured = jest.fn();
-      renderComponent(undefined, { onKnowledgeSourceConfigured });
-
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
-
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
-      const goodFile = new File(['hello'], 'notes.txt', { type: 'text/plain' });
-      fireEvent.change(fileInput!, { target: { files: [goodFile] } });
-
-      await waitFor(() => {
-        expect(onKnowledgeSourceConfigured).toHaveBeenCalledWith('upload');
-      });
-    });
+    await waitFor(() =>
+      expect(mockUpload).toHaveBeenCalledWith(
+        expect.objectContaining({ key: 'docs/uploaded.txt' }),
+      ),
+    );
+    expect(screen.queryByText('uploaded.txt')).not.toBeInTheDocument();
   });
 
-  describe('Run preset', () => {
-    const selectSecretAndFile = () => {
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
-      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
-    };
-
-    it('should render preset radio buttons with Faster selected by default', () => {
-      renderComponent();
-      selectSecretAndFile();
-
-      const fasterRadio = screen.getByTestId('preset-radio-speed');
-      const betterQualityRadio = screen.getByTestId('preset-radio-balanced');
-      expect(fasterRadio).toBeInTheDocument();
-      expect(betterQualityRadio).toBeInTheDocument();
-      expect(fasterRadio).toBeChecked();
-      expect(betterQualityRadio).not.toBeChecked();
-    });
-
-    it('should display human-readable labels for presets', () => {
-      renderComponent();
-      selectSecretAndFile();
-
-      expect(screen.getByText('Faster')).toBeInTheDocument();
-      expect(screen.getByText('Better quality')).toBeInTheDocument();
-    });
-
-    it('should switch preset when clicking the other radio', () => {
-      renderComponent();
-      selectSecretAndFile();
-
-      const betterQualityRadio = screen.getByTestId('preset-radio-balanced');
-      fireEvent.click(betterQualityRadio);
-
-      expect(betterQualityRadio).toBeChecked();
-      expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
-    });
-
-    it('should render with balanced preset when configured', () => {
-      renderComponent({ preset: 'balanced' });
-      selectSecretAndFile();
-
-      expect(screen.getByTestId('preset-radio-balanced')).toBeChecked();
-      expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
-    });
-  });
-
-  describe('Optimization metric', () => {
-    const selectSecretAndFile = () => {
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
-      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
-    };
-
-    it('should render the optimization metric dropdown with default value', () => {
-      renderComponent();
-      selectSecretAndFile();
-
-      expect(screen.getByTestId('optimization-metric-select')).toBeInTheDocument();
-      expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
-        OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC],
-      );
-    });
-
-    it('should only offer overall_score, faithfulness, and answer_correctness as selectable metrics', async () => {
-      const user = userEvent.setup();
-      renderComponent();
-      selectSecretAndFile();
-
-      await user.click(screen.getByTestId('optimization-metric-select'));
-
-      await waitFor(() => {
-        expect(screen.getByTestId('metric-option-overall_score')).toBeInTheDocument();
-        expect(screen.getByTestId('metric-option-faithfulness')).toBeInTheDocument();
-        expect(screen.getByTestId('metric-option-answer_correctness')).toBeInTheDocument();
-      });
-      expect(screen.queryByTestId('metric-option-context_correctness')).not.toBeInTheDocument();
-    });
-
-    it('should offer exactly three optimization metrics', async () => {
-      const user = userEvent.setup();
-      renderComponent();
-      selectSecretAndFile();
-
-      await user.click(screen.getByTestId('optimization-metric-select'));
-
-      await waitFor(() => {
-        expect(screen.getByTestId('metric-option-faithfulness')).toBeInTheDocument();
-      });
-
-      const selectList = screen.getByTestId('optimization-metric-select-list');
-      const options = selectList.querySelectorAll('[data-testid^="metric-option-"]');
-      expect(options).toHaveLength(3);
-    });
-
-    it('should render with a non-default metric when configured', () => {
-      renderComponent({
-        // eslint-disable-next-line camelcase
-        optimization_metric: 'answer_correctness',
-      });
-      selectSecretAndFile();
-
-      expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
-        'Answer correctness',
-      );
-    });
-  });
-
-  describe('Maximum RAG patterns', () => {
-    const selectSecretAndFile = () => {
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
-      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
-    };
-
-    it('should render the max RAG patterns input with default value 5', () => {
-      renderComponent();
-      selectSecretAndFile();
-
-      const input = screen.getByTestId('max-rag-patterns-input').querySelector('input');
-      expect(input).toHaveValue(5);
-    });
-
-    it('should increment value when plus button is clicked', () => {
-      renderComponent();
-      selectSecretAndFile();
-
-      const container = screen.getByTestId('max-rag-patterns-input');
-      const plusButton = container.querySelector('button[aria-label="Plus"]')!;
-      fireEvent.click(plusButton);
-
-      const input = container.querySelector('input');
-      expect(input).toHaveValue(6);
-    });
-
-    it('should decrement value when minus button is clicked', () => {
-      renderComponent();
-      selectSecretAndFile();
-
-      const container = screen.getByTestId('max-rag-patterns-input');
-      const minusButton = container.querySelector('button[aria-label="Minus"]')!;
-      fireEvent.click(minusButton);
-
-      const input = container.querySelector('input');
-      expect(input).toHaveValue(4);
-    });
-
-    it('should show error when value exceeds maximum', async () => {
-      renderComponent();
-      selectSecretAndFile();
-
-      const input = screen.getByTestId('max-rag-patterns-input').querySelector('input')!;
-      fireEvent.change(input, { target: { value: '11' } });
-
-      await waitFor(() => {
-        expect(screen.getByText('Maximum number of RAG patterns is 10')).toBeInTheDocument();
-      });
-    });
-
-    it('should show error when value is below minimum', async () => {
-      renderComponent();
-      selectSecretAndFile();
-
-      const input = screen.getByTestId('max-rag-patterns-input').querySelector('input')!;
-      fireEvent.change(input, { target: { value: '3' } });
-
-      await waitFor(() => {
-        expect(screen.getByText('Minimum number of RAG patterns is 4')).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Model initialization from query data', () => {
-    it('should populate generation and embedding models when query returns data', () => {
-      mockUseMaaSModelsQuery.mockReturnValue({
-        data: {
-          models: [
-            // eslint-disable-next-line camelcase
-            {
-              id: 'llm-model-1',
-              type: 'llm',
-              provider: 'ollama',
-              resource_path: 'ollama://llm-1',
-              ready: true,
-            },
-            {
-              id: 'embed-model-1',
-              type: 'embedding',
-              provider: 'ollama',
-              resource_path: 'ollama://embed-1', // eslint-disable-line camelcase
-              ready: true,
-            },
-          ],
-        },
-        isLoading: false,
-      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
-
-      renderComponent();
-
-      // Select a secret and file to show configure details
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
-      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
-
-      // Model selection is shown after entering Edit mode.
-      expect(screen.queryByTestId('llm-selected-count')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('embedding-selected-count')).not.toBeInTheDocument();
-    });
-  });
-
-  describe('Model error handling', () => {
-    it('should show error notification when model loading fails', async () => {
-      mockUseMaaSModelsQuery.mockReturnValue({
-        data: undefined,
-        isLoading: false,
-        isError: true,
-        error: new Error('MaaS request failed'),
-      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
-
-      renderWithInitialValues({
-        initialInputDataSecret: {
-          uuid: 'secret-1',
-          name: 'Test Secret 1',
-          data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
-          type: 's3',
-          invalid: false,
-        },
-        maas_secret_name: 'maas-secret',
-        input_data_secret_name: 'Test Secret 1',
-        input_data_bucket_name: 'test-bucket-1',
-        input_data_keys: ['input.txt'],
-        test_data_secret_name: 'Test Secret 1',
-        test_data_bucket_name: 'test-bucket-1',
-        test_data_key: 'eval.json',
-      });
-
-      await waitFor(() => {
-        expect(screen.getByTestId('maas-models-error')).toHaveTextContent(
-          'Failed to load MaaS models',
-        );
-      });
-      expect(mockNotificationError).toHaveBeenCalledWith(
-        'Failed to load MaaS models',
-        'Check that the selected MaaS connection is valid and try again.',
-      );
-      expect(mockNotificationError).toHaveBeenCalledTimes(1);
-    });
-
-    it('should keep retained model data usable during a background refetch error', async () => {
-      const onMaaSModelsReady = jest.fn();
-      const models = {
-        models: [
-          { id: 'generation-model', ready: true },
-          { id: 'embedding-model', ready: true },
-        ],
-      };
-      mockUseMaaSModelsQuery.mockReturnValue({
-        data: models,
-        isLoading: false,
-        isFetching: false,
-        isError: false,
-        isSuccess: true,
-      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
-
-      renderWithInitialValues(
-        {
-          initialInputDataSecret: {
-            uuid: 'secret-1',
-            name: 'Test Secret 1',
-            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
-            type: 's3',
-            invalid: false,
-          },
-          maas_secret_name: 'maas-secret',
-          input_data_secret_name: 'Test Secret 1',
-          input_data_bucket_name: 'test-bucket-1',
-          input_data_keys: ['input.txt'],
-          test_data_secret_name: 'Test Secret 1',
-          test_data_bucket_name: 'test-bucket-1',
-          test_data_key: 'eval.json',
-          generation_models: ['generation-model'],
-          embedding_models: ['embedding-model'],
-        },
-        undefined,
-        false,
-        { onMaaSModelsReady },
-      );
-
-      expect(screen.getByText('1 foundation models')).toBeInTheDocument();
-      expect(screen.getByText('1 embedding models')).toBeInTheDocument();
-
-      mockUseMaaSModelsQuery.mockReturnValue({
-        data: models,
-        isLoading: false,
-        isFetching: true,
-        isError: true,
-        isSuccess: false,
-        error: new Error('background refetch failed'),
-      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
-      fireEvent.click(screen.getByTestId('preset-radio-balanced'));
-
-      await waitFor(() => {
-        expect(screen.getByText('1 foundation models')).toBeInTheDocument();
-      });
-      expect(screen.queryByTestId('maas-models-error')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('selected-models-warning')).not.toBeInTheDocument();
-      expect(mockNotificationError).not.toHaveBeenCalled();
-      expect(onMaaSModelsReady).toHaveBeenLastCalledWith(true);
-
-      fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
-      const generationRows = screen.getAllByTestId('model-row-generation-model');
-      expect(generationRows).toHaveLength(2);
-      expect(generationRows[0].querySelector('input')).toBeEnabled();
-    });
-
-    it('should show the page-level error and disable model selection when no models are returned', () => {
-      mockUseMaaSModelsQuery.mockReturnValue({
-        data: { models: [] },
-        isLoading: false,
-        isSuccess: true,
-        isError: false,
-      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
-
-      renderWithInitialValues({
-        maas_secret_name: 'maas-secret',
-        input_data_secret_name: 'Test Secret 1',
-        input_data_bucket_name: 'test-bucket-1',
-        input_data_keys: ['input.txt'],
-        test_data_secret_name: 'Test Secret 1',
-        test_data_bucket_name: 'test-bucket-1',
-        test_data_key: 'eval.json',
-      });
-
-      expect(screen.getByTestId('maas-models-error')).toHaveTextContent(
-        'Failed to load MaaS models',
-      );
-      expect(screen.getByTestId('maas-models-error')).toHaveTextContent(
-        'Check that the selected MaaS connection is valid and try again.',
-      );
-      expect(screen.getByTestId('select-models-button')).toBeDisabled();
-    });
-  });
-
-  describe('selected input data file table', () => {
-    it('should NOT display the selected file table when no file is selected', () => {
-      renderComponent();
-
-      // Select a secret so the "Browse bucket" button appears
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-
-      expect(
-        screen.queryByRole('grid', { name: 'Selected input data file' }),
-      ).not.toBeInTheDocument();
-    });
-
-    it('should display the selected file table after selecting a file', () => {
-      renderComponent();
-
-      // Select a secret
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-
-      // Open file explorer and select a file
-      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
-      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
-
-      // Verify the table appears with correct content
-      const table = screen.getByRole('grid', { name: 'Selected input data file' });
-      expect(table).toBeInTheDocument();
-      expect(screen.getByText('test-file.txt')).toBeInTheDocument();
-      expect(screen.getByText('txt')).toBeInTheDocument();
-    });
-
-    it('should remove the selected file when the remove button is clicked', () => {
-      renderComponent();
-
-      // Select a secret and a file
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
-      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
-
-      // Verify the table is shown
-      expect(screen.getByRole('grid', { name: 'Selected input data file' })).toBeInTheDocument();
-
-      // Click the remove button
-      fireEvent.click(screen.getByRole('button', { name: 'Remove selection' }));
-
-      // Table should be removed
-      expect(
-        screen.queryByRole('grid', { name: 'Selected input data file' }),
-      ).not.toBeInTheDocument();
-    });
-
-    it('after S3 select then switch to upload, should only show the upload table (not both tables)', async () => {
-      renderComponent();
-      getMockS3MutateAsync().mockClear();
-
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
-      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
-
-      expect(screen.getByRole('grid', { name: 'Selected input data file' })).toBeInTheDocument();
-      expect(
-        screen.queryByRole('grid', { name: 'Knowledge document upload' }),
-      ).not.toBeInTheDocument();
-
-      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
-
-      expect(
-        screen.queryByRole('grid', { name: 'Selected input data file' }),
-      ).not.toBeInTheDocument();
-
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
-      const goodFile = new File(['hello'], 'notes.txt', { type: 'text/plain' });
-      fireEvent.change(fileInput!, { target: { files: [goodFile] } });
-
-      await waitFor(() => {
-        expect(getMockS3MutateAsync()).toHaveBeenCalled();
-      });
-
-      await waitFor(() => {
-        expect(
-          screen.queryByRole('grid', { name: 'Selected input data file' }),
-        ).not.toBeInTheDocument();
-        expect(screen.getByRole('grid', { name: 'Knowledge document upload' })).toBeInTheDocument();
-      });
-
-      expect(screen.getByText('uploaded-key.txt')).toBeInTheDocument();
-      expect(screen.queryByText('test-file.txt')).not.toBeInTheDocument();
-    });
-  });
-
-  describe('reconfigure with initialValues', () => {
-    it('should render the first canonical input_data_keys location', () => {
-      renderWithInitialValues(
-        {
-          initialInputDataSecret: {
-            uuid: 'secret-1',
-            name: 'Test Secret 1',
-            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
-            type: 's3',
-            invalid: false,
-          },
-          input_data_secret_name: 'Test Secret 1',
-          input_data_bucket_name: 'test-bucket-1',
-          input_data_keys: ['my-data/input.pdf', 'my-data/second.pdf'],
-          test_data_secret_name: 'Test Secret 1',
-          test_data_bucket_name: 'test-bucket-1',
-          test_data_key: 'eval.json',
-          maas_secret_name: 'maas-secret',
-          vector_db_secret_name: 'vector-db-secret',
-          generation_models: ['model-a'],
-          embedding_models: ['model-b'],
-          optimization_metric: 'faithfulness',
-          optimization_max_rag_patterns: 8,
-        },
-        {
-          input_data_secret_name: 'Test Secret 1',
-          input_data_bucket_name: 'test-bucket-1',
-          input_data_keys: ['my-data/input.pdf', 'my-data/second.pdf'],
-          test_data_secret_name: 'Test Secret 1',
-          test_data_bucket_name: 'test-bucket-1',
-          test_data_key: 'eval.json',
-          maas_secret_name: 'maas-secret',
-          vector_db_secret_name: 'vector-db-secret',
-          generation_models: ['model-a'],
-          embedding_models: ['model-b'],
-        },
-      );
-
-      expect(screen.getByRole('grid', { name: 'Selected input data file' })).toBeInTheDocument();
-      expect(screen.getByText('input.pdf')).toBeInTheDocument();
-      expect(screen.queryByText('second.pdf')).not.toBeInTheDocument();
-    });
-
-    it('should show the selected secret value when initialInputDataSecret is provided', () => {
-      renderWithInitialValues(
-        {
-          initialInputDataSecret: {
-            uuid: 'secret-1',
-            name: 'Test Secret 1',
-            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
-            type: 's3',
-            invalid: false,
-          },
-          input_data_secret_name: 'Test Secret 1',
-          input_data_bucket_name: 'test-bucket-1',
-          input_data_keys: ['input.pdf'],
-          test_data_secret_name: 'Test Secret 1',
-          test_data_bucket_name: 'test-bucket-1',
-          test_data_key: 'eval.json',
-          optimization_metric: 'faithfulness',
-          optimization_max_rag_patterns: 8,
-        },
-        {
-          input_data_secret_name: 'Test Secret 1',
-          input_data_bucket_name: 'test-bucket-1',
-          input_data_keys: ['input.pdf'],
-          test_data_secret_name: 'Test Secret 1',
-          test_data_bucket_name: 'test-bucket-1',
-          test_data_key: 'eval.json',
-          optimization_metric: 'faithfulness',
-          optimization_max_rag_patterns: 8,
-        },
-      );
-
-      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 1');
-    });
-
-    it('should show the selected input data file when input_data_key is provided', () => {
-      renderWithInitialValues(
-        {
-          initialInputDataSecret: {
-            uuid: 'secret-1',
-            name: 'Test Secret 1',
-            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
-            type: 's3',
-            invalid: false,
-          },
-          input_data_secret_name: 'Test Secret 1',
-          input_data_bucket_name: 'test-bucket-1',
-          input_data_keys: ['my-data/input.pdf'],
-          test_data_secret_name: 'Test Secret 1',
-          test_data_bucket_name: 'test-bucket-1',
-          test_data_key: 'eval.json',
-          optimization_metric: 'faithfulness',
-          optimization_max_rag_patterns: 8,
-        },
-        {
-          input_data_secret_name: 'Test Secret 1',
-          input_data_bucket_name: 'test-bucket-1',
-          input_data_keys: ['my-data/input.pdf'],
-          test_data_secret_name: 'Test Secret 1',
-          test_data_bucket_name: 'test-bucket-1',
-          test_data_key: 'eval.json',
-          optimization_metric: 'faithfulness',
-          optimization_max_rag_patterns: 8,
-        },
-      );
-
-      // The file table should show the file name extracted from the key
-      const table = screen.getByRole('grid', { name: 'Selected input data file' });
-      expect(table).toBeInTheDocument();
-      expect(screen.getByText('input.pdf')).toBeInTheDocument();
-    });
-
-    it('should show the optimization metric from initialValues', () => {
-      renderWithInitialValues(
-        {
-          initialInputDataSecret: {
-            uuid: 'secret-1',
-            name: 'Test Secret 1',
-            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
-            type: 's3',
-            invalid: false,
-          },
-          input_data_secret_name: 'Test Secret 1',
-          input_data_bucket_name: 'test-bucket-1',
-          input_data_keys: ['data.pdf'],
-          test_data_secret_name: 'Test Secret 1',
-          test_data_bucket_name: 'test-bucket-1',
-          test_data_key: 'eval.json',
-          optimization_metric: 'answer_correctness',
-          optimization_max_rag_patterns: 8,
-        },
-        {
-          input_data_secret_name: 'Test Secret 1',
-          input_data_bucket_name: 'test-bucket-1',
-          input_data_keys: ['data.pdf'],
-          test_data_secret_name: 'Test Secret 1',
-          test_data_bucket_name: 'test-bucket-1',
-          test_data_key: 'eval.json',
-          optimization_metric: 'answer_correctness',
-          optimization_max_rag_patterns: 8,
-        },
-      );
-
-      expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
-        'Answer correctness',
-      );
-    });
-
-    it('should show the max RAG patterns value from initialValues', () => {
-      renderWithInitialValues(
-        {
-          initialInputDataSecret: {
-            uuid: 'secret-1',
-            name: 'Test Secret 1',
-            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
-            type: 's3',
-            invalid: false,
-          },
-          input_data_secret_name: 'Test Secret 1',
-          input_data_bucket_name: 'test-bucket-1',
-          input_data_keys: ['data.pdf'],
-          test_data_secret_name: 'Test Secret 1',
-          test_data_bucket_name: 'test-bucket-1',
-          test_data_key: 'eval.json',
-          optimization_metric: 'faithfulness',
-          optimization_max_rag_patterns: 9,
-        },
-        {
-          input_data_secret_name: 'Test Secret 1',
-          input_data_bucket_name: 'test-bucket-1',
-          input_data_keys: ['data.pdf'],
-          test_data_secret_name: 'Test Secret 1',
-          test_data_bucket_name: 'test-bucket-1',
-          test_data_key: 'eval.json',
-          optimization_metric: 'faithfulness',
-          optimization_max_rag_patterns: 9,
-        },
-      );
-
-      const input = screen.getByTestId('max-rag-patterns-input').querySelector('input');
-      expect(input).toHaveValue(9);
-    });
-
-    it('should retain the previously selected foundation/embedding models instead of resetting to all models', () => {
-      // Query returns more models than were previously selected, so a reset-to-all
-      // regression is distinguishable from correctly retaining the prior selection.
-      mockUseMaaSModelsQuery.mockReturnValue({
-        data: {
-          models: [
-            // eslint-disable-next-line camelcase
-            {
-              id: 'llm-model-1',
-              type: 'llm',
-              provider: 'ollama',
-              resource_path: 'ollama://llm-1',
-              ready: true,
-            },
-            // eslint-disable-next-line camelcase
-            {
-              id: 'llm-model-2',
-              type: 'llm',
-              provider: 'ollama',
-              resource_path: 'ollama://llm-2',
-              ready: true,
-            },
-            {
-              id: 'embed-model-1',
-              type: 'embedding',
-              provider: 'ollama',
-              resource_path: 'ollama://embed-1', // eslint-disable-line camelcase
-              ready: true,
-            },
-            {
-              id: 'embed-model-2',
-              type: 'embedding',
-              provider: 'ollama',
-              resource_path: 'ollama://embed-2', // eslint-disable-line camelcase
-              ready: true,
-            },
-          ],
-        },
-        isLoading: false,
-        isError: false,
-      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
-
-      renderWithInitialValues(
-        {
-          initialInputDataSecret: {
-            uuid: 'secret-1',
-            name: 'Test Secret 1',
-            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
-            type: 's3',
-            invalid: false,
-          },
-          maas_secret_name: 'maas-secret',
-          input_data_secret_name: 'Test Secret 1',
-          input_data_bucket_name: 'test-bucket-1',
-          input_data_keys: ['data.pdf'],
-          test_data_secret_name: 'Test Secret 1',
-          test_data_bucket_name: 'test-bucket-1',
-          test_data_key: 'eval.json',
-          generation_models: ['llm-model-1'],
-          embedding_models: ['embed-model-1'],
-        },
-        {
-          maas_secret_name: 'maas-secret',
-          input_data_secret_name: 'Test Secret 1',
-          input_data_bucket_name: 'test-bucket-1',
-          input_data_keys: ['data.pdf'],
-          test_data_secret_name: 'Test Secret 1',
-          test_data_bucket_name: 'test-bucket-1',
-          test_data_key: 'eval.json',
-          generation_models: ['llm-model-1'],
-          embedding_models: ['embed-model-1'],
-        },
-      );
-
-      // Assert the exact retained model IDs (not just counts) so a regression that
-      // swaps the selection for a same-sized set of different models (e.g.
-      // llm-model-1 -> llm-model-2) is caught rather than passing on count alone.
-      expect(screen.getByText(/1 foundation models/)).toBeInTheDocument();
-      expect(screen.getByText(/1 embedding models/)).toBeInTheDocument();
-      expect(screen.queryByTestId('selected-models-warning')).not.toBeInTheDocument();
-      expect(getLatestFormValues().generation_models).toEqual(['llm-model-1']);
-      expect(getLatestFormValues().embedding_models).toEqual(['embed-model-1']);
-    });
-
-    it('should drop restored model selections that are no longer available and fall back to all models', () => {
-      // The restored selection references a model that is no longer returned by
-      // the current secret/provider (e.g. removed/deprecated upstream).
-      mockUseMaaSModelsQuery.mockReturnValue({
-        data: {
-          models: [
-            // eslint-disable-next-line camelcase
-            {
-              id: 'llm-model-1',
-              type: 'llm',
-              provider: 'ollama',
-              resource_path: 'ollama://llm-1',
-              ready: true,
-            },
-            // eslint-disable-next-line camelcase
-            {
-              id: 'llm-model-2',
-              type: 'llm',
-              provider: 'ollama',
-              resource_path: 'ollama://llm-2',
-              ready: true,
-            },
-            {
-              id: 'embed-model-1',
-              type: 'embedding',
-              provider: 'ollama',
-              resource_path: 'ollama://embed-1', // eslint-disable-line camelcase
-              ready: true,
-            },
-          ],
-        },
-        isLoading: false,
-        isError: false,
-      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
-
-      renderWithInitialValues(
-        {
-          initialInputDataSecret: {
-            uuid: 'secret-1',
-            name: 'Test Secret 1',
-            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
-            type: 's3',
-            invalid: false,
-          },
-          maas_secret_name: 'maas-secret',
-          input_data_secret_name: 'Test Secret 1',
-          input_data_bucket_name: 'test-bucket-1',
-          input_data_keys: ['data.pdf'],
-          test_data_secret_name: 'Test Secret 1',
-          test_data_bucket_name: 'test-bucket-1',
-          test_data_key: 'eval.json',
-          // "removed-llm-model" no longer exists in the current models response.
-          generation_models: ['removed-llm-model'],
-          embedding_models: ['removed-embed-model'],
-        },
-        {
-          maas_secret_name: 'maas-secret',
-          input_data_secret_name: 'Test Secret 1',
-          input_data_bucket_name: 'test-bucket-1',
-          input_data_keys: ['data.pdf'],
-          test_data_secret_name: 'Test Secret 1',
-          test_data_bucket_name: 'test-bucket-1',
-          test_data_key: 'eval.json',
-          generation_models: ['removed-llm-model'],
-          embedding_models: ['removed-embed-model'],
-        },
-      );
-
-      // Removed restored IDs are cleared rather than silently replaced.
-      expect(getLatestFormValues().generation_models).toEqual([]);
-      expect(getLatestFormValues().embedding_models).toEqual([]);
-    });
-
-    it('should keep only the still-available restored models when some restored selections are stale', () => {
-      mockUseMaaSModelsQuery.mockReturnValue({
-        data: {
-          models: [
-            // eslint-disable-next-line camelcase
-            {
-              id: 'llm-model-1',
-              type: 'llm',
-              provider: 'ollama',
-              resource_path: 'ollama://llm-1',
-              ready: true,
-            },
-            // eslint-disable-next-line camelcase
-            {
-              id: 'llm-model-2',
-              type: 'llm',
-              provider: 'ollama',
-              resource_path: 'ollama://llm-2',
-              ready: true,
-            },
-          ],
-        },
-        isLoading: false,
-        isError: false,
-      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
-
-      renderWithInitialValues(
-        {
-          initialInputDataSecret: {
-            uuid: 'secret-1',
-            name: 'Test Secret 1',
-            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
-            type: 's3',
-            invalid: false,
-          },
-          maas_secret_name: 'maas-secret',
-          input_data_secret_name: 'Test Secret 1',
-          input_data_bucket_name: 'test-bucket-1',
-          input_data_keys: ['data.pdf'],
-          test_data_secret_name: 'Test Secret 1',
-          test_data_bucket_name: 'test-bucket-1',
-          test_data_key: 'eval.json',
-          // "llm-model-1" is still available, "removed-llm-model" is not.
-          generation_models: ['llm-model-1', 'removed-llm-model'],
-          embedding_models: ['embed-model-1'],
-        },
-        {
-          maas_secret_name: 'maas-secret',
-          input_data_secret_name: 'Test Secret 1',
-          input_data_bucket_name: 'test-bucket-1',
-          input_data_keys: ['data.pdf'],
-          test_data_secret_name: 'Test Secret 1',
-          test_data_bucket_name: 'test-bucket-1',
-          test_data_key: 'eval.json',
-          generation_models: ['llm-model-1', 'removed-llm-model'],
-          embedding_models: ['embed-model-1'],
-        },
-      );
-
-      // Only the still-valid restored selection is kept; since at least one valid
-      // restored ID remains, it does NOT fall back to all available models.
-      expect(getLatestFormValues().generation_models).toEqual(['llm-model-1']);
-    });
-  });
-
-  describe('invalid secret selection', () => {
-    it('should disable "Browse bucket" button when selected secret is invalid', () => {
-      renderComponent();
-
-      // Select an invalid secret
-      const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
-      fireEvent.click(selectInvalidButton);
-
-      // Verify the "Browse bucket" button does not exist
-      const browseButton = screen.queryByRole('button', { name: 'Browse bucket' });
-      expect(browseButton).not.toBeInTheDocument();
-    });
-
-    it('should display an empty state when an invalid secret is selected', () => {
-      renderComponent();
-
-      const selectInvalidButton = screen.getByTestId('aws-secret-selector-select-invalid-secret');
-      fireEvent.click(selectInvalidButton);
-
-      expect(
-        screen.getByText('Select a file from your S3 connection or upload a file to get started'),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          'In order to configure details and run an experiment, select a file or upload one in the Knowledge setup panel.',
-        ),
-      ).toBeInTheDocument();
-    });
-
-    it('should enable "Browse bucket" button when selected secret is valid', () => {
-      renderComponent();
-
-      // Select a valid secret
-      const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
-      fireEvent.click(selectButton);
-
-      // Verify the "Browse bucket" button is enabled
-      const browseButton = screen.getByRole('button', { name: 'Browse bucket' });
-      expect(browseButton).toBeEnabled();
-    });
-
-    it('should disable the model selection action when model loading fails', async () => {
-      mockUseMaaSModelsQuery.mockReturnValue({
-        data: undefined,
-        isLoading: false,
-        isError: true,
-        error: new Error('MaaS request failed'),
-      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
-
-      renderWithInitialValues({
-        initialInputDataSecret: {
-          uuid: 'secret-1',
-          name: 'Test Secret 1',
-          data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
-          type: 's3',
-          invalid: false,
-        },
-        maas_secret_name: 'maas-secret',
-        input_data_secret_name: 'Test Secret 1',
-        input_data_bucket_name: 'test-bucket-1',
-        input_data_keys: ['input.txt'],
-        test_data_secret_name: 'Test Secret 1',
-        test_data_bucket_name: 'test-bucket-1',
-        test_data_key: 'eval.json',
-      });
-
-      await waitFor(() => {
-        expect(screen.getByTestId('maas-models-error')).toBeInTheDocument();
-        expect(screen.getByTestId('select-models-button')).toBeDisabled();
-      });
-    });
-
-    it('should keep the model selection CTA visible when a file/folder is selected', () => {
-      mockUseMaaSModelsQuery.mockReturnValue({
-        data: {
-          models: [
-            // eslint-disable-next-line camelcase
-            {
-              id: 'llm-model',
-              type: 'llm',
-              provider: 'ollama',
-              resource_path: 'ollama://llm',
-              ready: true,
-            },
-          ],
-        },
-        isLoading: false,
-        isError: false,
-      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
-
-      renderComponent();
-
-      // Select a valid secret
-      const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
-      fireEvent.click(selectButton);
-
-      // Before file selection, the configure details panel shows the empty state
-      expect(
-        screen.getByText('Select a file from your S3 connection or upload a file to get started'),
-      ).toBeInTheDocument();
-      expect(screen.queryByTestId('select-models-button')).not.toBeInTheDocument();
-
-      // Click "Browse bucket" button to open FileExplorer
-      const browseButton = screen.getByRole('button', { name: 'Browse bucket' });
-      fireEvent.click(browseButton);
-
-      // FileExplorer should now be visible
-      expect(screen.getByTestId('file-explorer-modal')).toBeInTheDocument();
-
-      // Select a file in the FileExplorer (this sets input_data_bucket_name and input_data_key)
-      const fileSelectButton = screen.getByTestId('file-explorer-select-file');
-      fireEvent.click(fileSelectButton);
-
-      // Model selection remains empty until the user chooses models.
-      expect(screen.getByTestId('select-models-button')).toBeEnabled();
-    });
+  it('should keep Add files disabled for an invalid connection', () => {
+    renderComponent();
+    fireEvent.click(screen.getByTestId('aws-secret-selector-select-invalid-secret'));
+    expect(screen.queryByRole('button', { name: 'Add files' })).not.toBeInTheDocument();
   });
 });

@@ -48,10 +48,10 @@ import {
   EmptyStateFooter,
   Flex,
   FlexItem,
-  Grid,
-  GridItem,
   Label,
   LabelGroup,
+  List,
+  ListItem,
   MenuToggle,
   Modal, // eslint-disable-line @odh-dashboard/no-restricted-imports
   ModalBody, // eslint-disable-line @odh-dashboard/no-restricted-imports
@@ -59,10 +59,13 @@ import {
   ModalHeader, // eslint-disable-line @odh-dashboard/no-restricted-imports
   Pagination,
   type PaginationProps,
+  Progress,
   SearchInput,
   Skeleton,
   Tooltip,
   Truncate,
+  HelperText,
+  HelperTextItem,
 } from '@patternfly/react-core';
 import {
   OuterScrollContainer,
@@ -84,6 +87,7 @@ import {
   TimesIcon,
   TrashIcon,
   RhUiInformationFillIcon,
+  FileUploadIcon,
 } from '@patternfly/react-icons';
 import React, { type ReactNode, useCallback, useEffect, useId, useRef, useState } from 'react';
 import type {
@@ -94,6 +98,8 @@ import type {
   RenderableDetailValue,
   Sources,
   Source,
+  FileExplorerUploadProps,
+  FileExplorerUploadResult,
 } from '#~/concepts/fileExplorer/types';
 
 // TODO [ Gustavo ] This file is ~1,130 lines containing 6+ components, helpers, and globals.
@@ -214,13 +220,6 @@ const defaults = {
 const BREADCRUMB_COLLAPSE_THRESHOLD = 6;
 const BREADCRUMB_LEADING_VISIBLE = 2;
 const BREADCRUMB_TRAILING_VISIBLE = 2;
-
-const ROW_HEIGHT = 46; // Height of each row FileExplorer renders (approximate).
-const HEADER_HEIGHT = 38; // Height of headers FileExplorer renders.
-const NUMBER_OF_ROWS_TO_SHOW = 10;
-/* PF does not have a concept of providing a number of rows to their sticky table.
- * We get-by by providing a reasonable height to the table to get 10 rows in the modal */
-const STICKY_TABLE_HEIGHT = ROW_HEIGHT * NUMBER_OF_ROWS_TO_SHOW + HEADER_HEIGHT;
 
 export const sanitizeId = (value: string): string => value.replace(/[^a-zA-Z0-9-_]/g, '-');
 
@@ -348,8 +347,8 @@ const FilesTable: React.FC<FilesTableProps> = ({
   const isEmpty = isEmptyProp === true || (!loading && visibleFiles.length === 0);
 
   return (
-    <OuterScrollContainer>
-      <InnerScrollContainer>
+    <OuterScrollContainer className="pf-v6-u-h-100">
+      <InnerScrollContainer className="pf-v6-u-h-100">
         <Table
           aria-label={defaults.labels.tableAriaLabel}
           data-testid="file-explorer-table"
@@ -834,6 +833,7 @@ const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
 interface DetailsPanelProps {
   selectedFiles?: ExplorerFiles;
   filesToView?: ExplorerFiles;
+  hideDetails?: boolean;
   onViewDetails: (file: ExplorerFile) => void;
   onRemoveSelection: (file: ExplorerFile) => void;
   onClearAllSelections: () => void;
@@ -842,6 +842,7 @@ interface DetailsPanelProps {
 const DetailsPanel: React.FC<DetailsPanelProps> = ({
   selectedFiles,
   filesToView,
+  hideDetails = false,
   onViewDetails,
   onRemoveSelection,
   onClearAllSelections,
@@ -865,7 +866,11 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
       >
         <CardTitle>{defaults.labels.detailsPanelTitle}</CardTitle>
       </CardHeader>
-      <CardBody className="pf-v6-u-pt-sm" isFilled={false}>
+      <CardBody
+        className="pf-v6-u-pt-sm"
+        isFilled={false}
+        style={{ minHeight: 0, overflowY: 'auto' }}
+      >
         <DescriptionList>
           {Array.isArray(filesToView) &&
             filesToView.length > 0 &&
@@ -900,7 +905,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
       >
         <CardTitle>{defaults.labels.detailsPanelTitleFiles}</CardTitle>
       </CardHeader>
-      <CardBody className="pf-v6-u-pt-sm">
+      <CardBody className="pf-v6-u-pt-sm" style={{ minHeight: 0, overflowY: 'auto' }}>
         {Array.isArray(selectedFiles) && selectedFiles.length > 0 && (
           <SelectedFilesDataList
             selectedFiles={selectedFiles}
@@ -917,8 +922,8 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
 
   return (
     <Card isFullHeight isCompact data-testid="file-explorer-details-panel">
-      {shouldRender.details && detailsSubCard}
-      {shouldRender.details && shouldRender.selected && <Divider />}
+      {shouldRender.details && !hideDetails ? detailsSubCard : null}
+      {shouldRender.details && !hideDetails && shouldRender.selected ? <Divider /> : null}
       {shouldRender.selected && selectedFilesSubCard}
     </Card>
   );
@@ -1012,7 +1017,19 @@ interface FileExplorerProps {
 
   /** A label displayed below the search input describing the allowed characters (e.g., "Only alphanumeric characters and hyphens are allowed"). */
   allowedSearchCharactersLabel?: string;
+
+  /** Optional storage-agnostic upload support supplied by a wrapper. */
+  upload?: FileExplorerUploadProps;
 }
+
+type UploadStatus = {
+  id: string;
+  originalFileName: string;
+  resolvedKey?: string;
+  progress: number;
+  variant?: 'danger' | 'success' | 'warning';
+  helperText?: ReactNode;
+};
 const FileExplorer: React.FC<FileExplorerProps> = ({
   id,
   isOpen,
@@ -1043,11 +1060,21 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   searchPlaceholder: searchPlaceholderProp,
   allowedSearchCharacters,
   allowedSearchCharactersLabel,
+  upload,
 }) => {
   const generatedId = useId();
   const rootId = id ?? generatedId;
   const [selectedFiles, setSelectedFiles] = useState<ExplorerFiles>([]);
   const [filesToView, setFilesToView] = useState<ExplorerFiles>([]);
+  const [isProgressPanelOpen, setIsProgressPanelOpen] = useState(false);
+  const [uploadStatuses, setUploadStatuses] = useState<UploadStatus[]>([]);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+  const uploadSequenceRef = useRef(0);
+
+  const clearUploadHistory = useCallback(() => {
+    setIsProgressPanelOpen(false);
+    setUploadStatuses([]);
+  }, []);
 
   // Consider introducing a FileExplorerContext if prop drilling deepens.
   // Revisit when: a child component needs to pass props through to its own children,
@@ -1057,11 +1084,95 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   const charWarningTimerRef = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => () => clearTimeout(charWarningTimerRef.current), []);
 
-  const resetState = () => {
+  const resetState = useCallback(() => {
     setSelectedFiles([]);
     setFilesToView([]);
     setSearchQuery('');
-  };
+    clearUploadHistory();
+  }, [clearUploadHistory]);
+
+  const previousIsOpenRef = useRef(isOpen);
+  useEffect(() => {
+    if (previousIsOpenRef.current && !isOpen) {
+      resetState();
+    }
+    previousIsOpenRef.current = isOpen;
+  }, [isOpen, resetState]);
+
+  const handleUploadFiles = useCallback(
+    (uploadFiles: File[]) => {
+      if (!upload) {
+        return;
+      }
+      setIsProgressPanelOpen(true);
+      const ids = uploadFiles.map(() => `upload-${++uploadSequenceRef.current}`);
+      const maxFiles = upload.picker?.maxFiles;
+      const tooManyFiles = maxFiles !== undefined && uploadFiles.length > maxFiles;
+      const statuses = uploadFiles.map((file, index) => {
+        let validationError = tooManyFiles ? 'Too many files selected.' : undefined;
+        if (
+          !validationError &&
+          upload.picker?.maxSize !== undefined &&
+          file.size > upload.picker.maxSize
+        ) {
+          validationError = 'File is too large.';
+        }
+        if (!validationError) {
+          validationError = upload.picker?.validateFile?.(file);
+        }
+        return {
+          id: ids[index],
+          originalFileName: file.name,
+          progress: validationError ? 100 : 0,
+          variant: validationError ? ('danger' as const) : undefined,
+          helperText: validationError,
+        };
+      });
+      setUploadStatuses((previous) => [...previous, ...statuses]);
+      uploadFiles.forEach((file, index) => {
+        const statusRecord = statuses[index];
+        if (statusRecord.variant) {
+          return;
+        }
+        const statusId = statusRecord.id;
+        void upload
+          .uploadFiles([file], '')
+          .then((results) => {
+            const result: FileExplorerUploadResult = results[0];
+            if (!result.key) {
+              throw new Error('Upload completed without a server-resolved key');
+            }
+            setUploadStatuses((previous) =>
+              previous.map((currentStatus) =>
+                currentStatus.id === statusId
+                  ? {
+                      ...currentStatus,
+                      resolvedKey: result.key,
+                      progress: 100,
+                      variant: 'success',
+                    }
+                  : currentStatus,
+              ),
+            );
+          })
+          .catch(() => {
+            setUploadStatuses((previous) =>
+              previous.map((currentStatus) =>
+                currentStatus.id === statusId
+                  ? {
+                      ...currentStatus,
+                      progress: 100,
+                      variant: 'danger',
+                      helperText: 'Unable to upload file.',
+                    }
+                  : currentStatus,
+              ),
+            );
+          });
+      });
+    },
+    [upload],
+  );
 
   const isIndeterminate = itemCount === undefined;
   const fileCount = Array.isArray(files) ? files.filter((f) => !f.hidden).length : 0;
@@ -1170,6 +1281,33 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   );
 
   const shouldRenderDetails = shouldDetailsPanelRender({ filesToView, selectedFiles });
+  const shouldRenderProgressPanel = Boolean(upload && isProgressPanelOpen && uploadStatuses.length);
+  const shouldRenderSidePanel = shouldRenderProgressPanel || shouldRenderDetails.panel;
+  const isUploading = uploadStatuses.some((status) => status.variant === undefined);
+  const isUploadReady = Boolean(upload && !loading && !isEmpty && (!sources || source));
+
+  const gridTemplateAreas = shouldRenderDetails.panel
+    ? shouldRenderProgressPanel
+      ? '"file-table file-details" "file-table upload-progress"'
+      : '"file-table file-details" "file-table file-details"'
+    : shouldRenderProgressPanel
+    ? '"file-table upload-progress" "file-table upload-progress"'
+    : '"file-table"';
+  const gridTemplateColumns = shouldRenderSidePanel
+    ? 'minmax(0, 2fr) minmax(0, 1fr)'
+    : 'minmax(0, 1fr)';
+  const gridTemplateRows = shouldRenderSidePanel ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)';
+
+  const handleClose = useCallback(
+    (event?: KeyboardEvent | React.MouseEvent) => {
+      if (isUploading) {
+        return;
+      }
+      onClose(event);
+      resetState();
+    },
+    [isUploading, onClose, resetState],
+  );
 
   const shouldRenderSelectionPill =
     Array.isArray(selectedFiles) &&
@@ -1193,21 +1331,35 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       elementToFocus={`#${CSS.escape(`${rootId}-FileExplorer-search-input`)}`}
       id={id}
       isOpen={isOpen}
-      onClose={(e) => {
-        onClose(e);
-        resetState();
-      }}
+      onClose={handleClose}
       variant="large"
       aria-labelledby={`${rootId}-FileExplorer-modal-title`}
       aria-describedby={`${rootId}-FileExplorer-modal-body`}
+      style={{ height: 'var(--pf-v6-c-modal-box--MaxHeight)' }}
     >
       <ModalHeader
         title={defaults.labels.modalTitle}
         description={defaults.labels.modalDescription(selection)}
         labelId={`${rootId}-FileExplorer-modal-title`}
       />
-      <ModalBody id={`${rootId}-FileExplorer-modal-body`}>
-        <Flex direction={{ default: 'column' }}>
+      <ModalBody
+        className="pf-v6-u-h-100"
+        id={`${rootId}-FileExplorer-modal-body`}
+        style={{ overflow: 'hidden' }}
+      >
+        <Flex
+          className="pf-v6-u-h-100"
+          direction={{ default: 'column' }}
+          flexWrap={{ default: 'nowrap' }}
+          style={{ minHeight: 0 }}
+        >
+          {isUploading && (
+            <FlexItem>
+              <span className="pf-v6-screen-reader" data-testid="file-explorer-upload-helper">
+                Wait for uploads to finish before closing.
+              </span>
+            </FlexItem>
+          )}
           {typeof onSelectSource === 'function' && (
             <FlexItem>
               <SourceSelector source={source} sources={sources} onSelectSource={onSelectSource} />
@@ -1227,8 +1379,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               loading={loading}
             />
           </FlexItem>
-          {/* Inline-Style antipattern: A strange bug in the Flex rendering of SearchInput + Tooltip(allowed chars) + Pagination causes extra height to be added to this flex item. Forcing the height to 37 (height of all items) fixes the issue for now. */}
-          <FlexItem style={{ height: '37px' }}>
+          <FlexItem>
             <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'nowrap' }}>
               <FlexItem className="pf-v6-u-w-50">
                 <SearchInput
@@ -1260,6 +1411,36 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   >
                     <InfoCircleIcon />
                   </Tooltip>
+                </FlexItem>
+              )}
+              {upload && (
+                <FlexItem>
+                  <Button
+                    variant="secondary"
+                    icon={<FileUploadIcon />}
+                    aria-label="Add files to this folder"
+                    data-testid="file-explorer-upload-button"
+                    isDisabled={!isUploadReady || isUploading}
+                    onClick={() => uploadInputRef.current?.click()}
+                  >
+                    Add files to this folder
+                  </Button>
+                  <input
+                    ref={uploadInputRef}
+                    type="file"
+                    hidden
+                    multiple={upload.picker?.multiple ?? true}
+                    accept={upload.picker?.accept}
+                    data-testid="file-explorer-upload-input"
+                    onChange={(event) => {
+                      const input = event.currentTarget;
+                      const selectedUploadFiles = Array.from(input.files ?? []);
+                      input.value = '';
+                      if (selectedUploadFiles.length > 0) {
+                        handleUploadFiles(selectedUploadFiles);
+                      }
+                    }}
+                  />
                 </FlexItem>
               )}
               <FlexItem align={{ default: 'alignRight' }}>
@@ -1299,11 +1480,26 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               </LabelGroup>
             </FlexItem>
           )}
-          <FlexItem grow={{ default: 'grow' }}>
-            <Grid hasGutter>
-              <GridItem
-                span={shouldRenderDetails.panel ? 8 : 12}
-                style={{ height: `${STICKY_TABLE_HEIGHT}px` }}
+          <FlexItem
+            className="pf-v6-u-min-height"
+            grow={{ default: 'grow' }}
+            style={{ minHeight: 0 }}
+          >
+            <div
+              data-testid="file-explorer-layout"
+              style={{
+                display: 'grid',
+                height: '100%',
+                minHeight: 0,
+                minWidth: 0,
+                gridTemplateAreas,
+                gridTemplateColumns,
+                gridTemplateRows,
+                gap: 'var(--pf-t--global--spacer--md)',
+              }}
+            >
+              <div
+                style={{ gridArea: 'file-table', minHeight: 0, minWidth: 0, overflow: 'hidden' }}
               >
                 <FilesTable
                   files={files}
@@ -1321,20 +1517,102 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   loading={loading}
                   perPage={currentPerPage}
                 />
-              </GridItem>
+              </div>
               {shouldRenderDetails.panel && (
-                <GridItem span={4}>
+                <div
+                  style={{
+                    gridArea: 'file-details',
+                    minHeight: 0,
+                    minWidth: 0,
+                    overflow: 'hidden',
+                  }}
+                >
                   <DetailsPanel
                     selectedFiles={selectedFiles}
                     filesToView={filesToView}
+                    hideDetails={shouldRenderProgressPanel}
                     onViewDetails={handleViewDetails}
                     onRemoveSelection={handleRemoveSelection}
                     onClearAllSelections={handleClearAllSelections}
                     onClearDetails={handleClearDetails}
                   />
-                </GridItem>
+                </div>
               )}
-            </Grid>
+              {shouldRenderProgressPanel && (
+                <div
+                  data-testid="file-explorer-upload-panel"
+                  style={{
+                    gridArea: 'upload-progress',
+                    minHeight: 0,
+                    minWidth: 0,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Card isFullHeight isCompact>
+                    <CardHeader
+                      actions={{
+                        actions: (
+                          <Button
+                            variant="plain"
+                            icon={<TimesIcon />}
+                            aria-label="Close upload progress"
+                            data-testid="file-explorer-close-upload-progress-btn"
+                            isDisabled={isUploading}
+                            onClick={clearUploadHistory}
+                          />
+                        ),
+                      }}
+                    >
+                      <CardTitle>Upload progress</CardTitle>
+                    </CardHeader>
+                    <CardBody className="pf-v6-u-pt-sm" style={{ minHeight: 0, overflowY: 'auto' }}>
+                      <List isPlain isBordered>
+                        {uploadStatuses.toReversed().map((status) => {
+                          const helperTextId = `${status.id}-helper-text`;
+                          const hasError = status.variant === 'danger' && !!status.helperText;
+
+                          return (
+                            <ListItem key={status.id}>
+                              <Progress
+                                id={status.id}
+                                title={
+                                  <Truncate content={status.originalFileName} position="middle" />
+                                }
+                                value={status.progress}
+                                variant={status.variant}
+                                aria-describedby={
+                                  hasError || status.variant === 'success'
+                                    ? helperTextId
+                                    : undefined
+                                }
+                                helperText={
+                                  status.variant === 'success' && status.resolvedKey ? (
+                                    <HelperText id={helperTextId}>
+                                      <HelperTextItem>
+                                        <Truncate
+                                          content={`S3 key: ${status.resolvedKey}`}
+                                          position="middle"
+                                        />
+                                      </HelperTextItem>
+                                    </HelperText>
+                                  ) : hasError ? (
+                                    <HelperText id={helperTextId}>
+                                      <HelperTextItem variant="error">
+                                        {status.helperText}
+                                      </HelperTextItem>
+                                    </HelperText>
+                                  ) : undefined
+                                }
+                              />
+                            </ListItem>
+                          );
+                        })}
+                      </List>
+                    </CardBody>
+                  </Card>
+                </div>
+              )}
+            </div>
           </FlexItem>
         </Flex>
       </ModalBody>
@@ -1343,11 +1621,10 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
           key="select-files"
           data-testid="file-explorer-select-btn"
           variant="primary"
-          isDisabled={loading || isEmpty || !selectedFiles.length}
+          isDisabled={loading || isEmpty || !selectedFiles.length || isUploading}
           onClick={(_event) => {
             onPrimary(selectedFiles);
-            onClose(_event);
-            resetState();
+            handleClose(_event);
           }}
         >
           {defaults.labels.modalPrimaryCTA}
@@ -1356,10 +1633,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
           key="cancel"
           data-testid="file-explorer-cancel-btn"
           variant="link"
-          onClick={(e) => {
-            onClose(e);
-            resetState();
-          }}
+          onClick={handleClose}
         >
           {defaults.labels.modalSecondaryCTA}
         </Button>
