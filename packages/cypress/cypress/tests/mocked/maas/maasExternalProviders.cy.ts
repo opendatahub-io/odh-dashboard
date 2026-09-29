@@ -469,6 +469,10 @@ describe('External providers', () => {
       createExternalProviderModal.findEndpointInput().clear();
       createExternalProviderModal.findEndpointInput().blur();
       createExternalProviderModal.findEndpointError().should('exist');
+      createExternalProviderModal
+        .findEndpointError()
+        .should('contain', 'Endpoint is required')
+        .and('contain', 'Endpoint must be an FQDN with no scheme or path');
       createExternalProviderModal.findSubmitButton().should('be.disabled');
     });
 
