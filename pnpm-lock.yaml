@@ -2697,6 +2697,9 @@ importers:
       '@odh-dashboard/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
+      '@odh-dashboard/jest-config':
+        specifier: workspace:*
+        version: link:../jest-config
       '@odh-dashboard/feature-store':
         specifier: workspace:*
         version: link:../feature-store

@@ -110,6 +110,9 @@ jobs:
       (github.event.workflow_run.event == 'pull_request' && 
        github.event.workflow_run.conclusion == 'success')
     runs-on: [self-hosted, itup]
+    env:
+      # Register the service proxy URL with the Actions secret masker before job setup logs.
+      RUNNER_PROXY_MASK: ${{ secrets.ITUP_PROXY_URL }}
     outputs:
       cluster_name: ${{ steps.select.outputs.cluster_name }}
     steps:
@@ -235,6 +238,7 @@ jobs:
     continue-on-error: true  # Don't fail the entire workflow if cleanup fails
     env:
       CLUSTER_NAME: ${{ needs.select-cluster.outputs.cluster_name }}
+      RUNNER_PROXY_MASK: ${{ secrets.ITUP_PROXY_URL }}
     steps:
       - name: Download test credentials
         run: |
@@ -800,6 +804,7 @@ jobs:
     env:
       CLUSTER_NAME: ${{ needs.select-cluster.outputs.cluster_name }}
       MATRIX_TAG: ${{ matrix.tag }}
+      RUNNER_PROXY_MASK: ${{ secrets.ITUP_PROXY_URL }}
     steps:
       - name: Validate tag format
         run: |
@@ -1280,7 +1285,8 @@ jobs:
           github-token: ${{ github.token }}
 
       - name: Setup Go
-        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        # v6 uses the Node 24 action runtime, which is unsupported by runner 2.319.1.
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: '1.26.x'
 
@@ -1346,6 +1352,10 @@ jobs:
           # Also kill any orphaned envtest processes (kube-apiserver, etcd)
           pkill -9 -f "kube-apiserver.*--etcd-servers" 2>/dev/null || true
           pkill -9 -f "etcd.*--listen-client" 2>/dev/null || true
+          # Headless Chrome can survive a failed Cypress run without holding an E2E port.
+          # Clear only this runner user's Cypress-managed browser processes.
+          pkill -9 -u "$(id -u)" -f '/\.config/Cypress/.*/browsers/' 2>/dev/null || true
+          pkill -9 -u "$(id -u)" -f '/Cypress/Cypress' 2>/dev/null || true
           sleep 1
           echo "✅ Port cleanup complete"
 
@@ -1486,6 +1496,8 @@ jobs:
   cleanup:
     needs: [e2e-tests]
     runs-on: [self-hosted, itup]
+    env:
+      RUNNER_PROXY_MASK: ${{ secrets.ITUP_PROXY_URL }}
     if: ${{ always() && (github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success')) }}
     steps:
       - name: Fix envtest binary permissions
