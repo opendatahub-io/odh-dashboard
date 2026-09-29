@@ -14,13 +14,12 @@ export const checkAccess = ({
   // even though it's a cluster-scoped resource.
   const reviewNamespace =
     group === ProjectModel.apiGroup && resource === ProjectModel.plural ? name : namespace;
-  return checkResourceAccess(
-    { group, resource, subresource, verb, name, namespace: reviewNamespace },
-    {
-      onError: (error) => {
-        // eslint-disable-next-line no-console
-        console.warn('SelfSubjectAccessReview failed', error);
-      },
-    },
-  );
+  return checkResourceAccess({
+    group,
+    resource,
+    subresource,
+    verb,
+    name,
+    namespace: reviewNamespace,
+  });
 };
