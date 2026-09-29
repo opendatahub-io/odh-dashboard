@@ -167,7 +167,7 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
         />
         <List isPlain>
           {[...asrModels, ...allModels.filter((m) => !asrModels.includes(m))].map((model) => (
-            <ListItem key={model.model_id}>
+            <ListItem key={model.model_id} className="pf-v6-u-mt-0 pf-v6-u-mb-md">
               <Button
                 variant="link"
                 onClick={() => {
@@ -179,7 +179,9 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
                 {model.display_name || model.model_id}
               </Button>{' '}
               {asrModels.includes(model) && <Label color="blue">Recommended</Label>}
-              {model.description && <div className="pf-v6-u-pl-sm">{model.description}</div>}
+              {model.description && (
+                <div className="pf-v6-u-mt-sm pf-v6-u-pl-sm">{model.description}</div>
+              )}
             </ListItem>
           ))}
         </List>
