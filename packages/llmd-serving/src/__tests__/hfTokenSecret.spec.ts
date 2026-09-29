@@ -1,29 +1,40 @@
 import { HF_TOKEN_ENV_NAME } from '@odh-dashboard/model-serving/shared/hfTokenConstants';
+import { getHfTokenSecretNameFromServiceAccount } from '@odh-dashboard/model-serving/shared/hfTokenSecret';
 import { mockLLMInferenceServiceK8sResource } from '../__mocks__/mockLLMInferenceServiceK8sResource';
-import { applyHfTokenEnvVar, extractHuggingFaceApiKeyFromEnv } from '../hfTokenSecret';
+import { applyHfTokenServiceAccount, extractHuggingFaceApiKey } from '../hfTokenSecret';
+
+jest.mock('@odh-dashboard/model-serving/shared/hfTokenSecret', () => {
+  const actual = jest.requireActual('@odh-dashboard/model-serving/shared/hfTokenSecret');
+  return {
+    ...actual,
+    getHfTokenSecretNameFromServiceAccount: jest.fn(),
+  };
+});
+
+const mockGetHfTokenSecretNameFromServiceAccount = jest.mocked(
+  getHfTokenSecretNameFromServiceAccount,
+);
 
 describe('llmd hfTokenSecret', () => {
-  it('should apply HF_TOKEN secretKeyRef on the main container env', () => {
-    const deployment = mockLLMInferenceServiceK8sResource({});
-
-    const result = applyHfTokenEnvVar(deployment, 'hf-secret');
-
-    expect(result.spec.template?.containers?.[0]?.env).toEqual(
-      expect.arrayContaining([
-        {
-          name: HF_TOKEN_ENV_NAME,
-          valueFrom: {
-            secretKeyRef: {
-              name: 'hf-secret',
-              key: HF_TOKEN_ENV_NAME,
-            },
-          },
-        },
-      ]),
-    );
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  it('should replace an existing HF_TOKEN env var', () => {
+  it('should apply template.serviceAccountName without a secret annotation', () => {
+    const deployment = mockLLMInferenceServiceK8sResource({});
+
+    const result = applyHfTokenServiceAccount(deployment, 'hf-secret', 'test-model-hf-sa');
+
+    expect(result.spec.template?.serviceAccountName).toBe('test-model-hf-sa');
+    expect(result.metadata.annotations?.['opendatahub.io/hf-token-secret']).toBeUndefined();
+    expect(
+      result.spec.template?.containers
+        ?.find((container) => container.name === 'main')
+        ?.env?.find((env) => env.name === HF_TOKEN_ENV_NAME),
+    ).toBeUndefined();
+  });
+
+  it('should strip a leftover HF_TOKEN env var when applying the ServiceAccount', () => {
     const deployment = mockLLMInferenceServiceK8sResource({});
     deployment.spec.template = {
       containers: [
@@ -39,70 +50,46 @@ describe('llmd hfTokenSecret', () => {
                 },
               },
             },
+            { name: 'OTHER', value: 'value' },
           ],
         },
       ],
     };
 
-    const result = applyHfTokenEnvVar(deployment, 'new-secret');
-    const hfEnv = result.spec.template?.containers?.[0]?.env?.find(
-      (envVar) => envVar.name === HF_TOKEN_ENV_NAME,
-    );
+    const result = applyHfTokenServiceAccount(deployment, 'new-secret', 'test-model-hf-sa');
+    const mainEnv = result.spec.template?.containers?.find(
+      (container) => container.name === 'main',
+    )?.env;
 
-    expect(hfEnv?.valueFrom?.secretKeyRef).toEqual({
-      name: 'new-secret',
-      key: HF_TOKEN_ENV_NAME,
-    });
+    expect(result.spec.template?.serviceAccountName).toBe('test-model-hf-sa');
+    expect(mainEnv).toEqual([{ name: 'OTHER', value: 'value' }]);
   });
 
-  it('should extract configured HF token secret name from main container env', () => {
+  it('should extract configured HF token from the ServiceAccount Secret refs', async () => {
     const deployment = mockLLMInferenceServiceK8sResource({});
+    deployment.metadata.name = 'test-model';
+    deployment.metadata.namespace = 'test-project';
     deployment.spec.template = {
-      containers: [
-        {
-          name: 'main',
-          env: [
-            {
-              name: HF_TOKEN_ENV_NAME,
-              valueFrom: {
-                secretKeyRef: {
-                  name: 'hf-secret',
-                  key: HF_TOKEN_ENV_NAME,
-                },
-              },
-            },
-          ],
-        },
-      ],
+      ...deployment.spec.template,
+      serviceAccountName: 'test-model-hf-sa',
     };
+    mockGetHfTokenSecretNameFromServiceAccount.mockResolvedValue('hf-secret');
 
-    expect(extractHuggingFaceApiKeyFromEnv(deployment)).toEqual({
+    await expect(extractHuggingFaceApiKey(deployment)).resolves.toEqual({
       token: '',
       configuredSecretName: 'hf-secret',
     });
   });
 
-  it('should ignore HF_TOKEN env vars with mismatched secretKeyRef key', () => {
+  it('should return null when ServiceAccount name does not match the HF SA pattern', async () => {
     const deployment = mockLLMInferenceServiceK8sResource({});
+    deployment.metadata.name = 'test-model';
     deployment.spec.template = {
-      containers: [
-        {
-          name: 'main',
-          env: [
-            {
-              name: HF_TOKEN_ENV_NAME,
-              valueFrom: {
-                secretKeyRef: {
-                  name: 'hf-secret',
-                  key: 'token',
-                },
-              },
-            },
-          ],
-        },
-      ],
+      ...deployment.spec.template,
+      serviceAccountName: 'other-sa',
     };
 
-    expect(extractHuggingFaceApiKeyFromEnv(deployment)).toBeNull();
+    await expect(extractHuggingFaceApiKey(deployment)).resolves.toBeNull();
+    expect(mockGetHfTokenSecretNameFromServiceAccount).not.toHaveBeenCalled();
   });
 });

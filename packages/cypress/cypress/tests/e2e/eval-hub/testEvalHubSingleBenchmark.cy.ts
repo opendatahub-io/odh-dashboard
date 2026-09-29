@@ -2,6 +2,7 @@ import * as yaml from 'js-yaml';
 import {
   clearEvalHubEvaluationJobs,
   cleanupEvalHubTestResources,
+  getEvalHubExperimentSuffix,
   navigateToEvaluationsPage,
   submitSingleBenchmarkEvaluation,
   verifyEvaluationProgressModal,
@@ -16,6 +17,7 @@ import type { EvalHubTestData } from '../../../types';
 import { createCleanProject } from '../../../utils/projectChecker';
 import {
   ensureEvalHubCrReady,
+  type EvalHubInstance,
   waitForEvaluationJobComplete,
 } from '../../../utils/oc_commands/evalHubInstance';
 import {
@@ -35,8 +37,8 @@ import { provisionEvalHubOfflineDataSecret } from '../../../utils/oc_commands/ev
  * inference evaluation and verify it completes.
  *
  * EvalHub and MLflow CRs are never deleted by this suite — they are treated as shared cluster
- * infrastructure. ensureEvalHubCrReady / ensureMlflowCrReady create them on first run if
- * absent and are no-ops on subsequent runs, making concurrent execution safe.
+ * infrastructure. On clusters that allow provisioning, ensureEvalHubCrReady creates EvalHub on
+ * first use and concurrent runs reuse it. Preinstalled environments use reuse-only mode.
  */
 describe('Eval Hub E2E', () => {
   let testData: EvalHubTestData;
@@ -52,6 +54,7 @@ describe('Eval Hub E2E', () => {
   let mlflowExperimentName = '';
   let additionalBenchmarkParams = '';
   let projectNamePrefix = '';
+  let evalHubInstance: EvalHubInstance | undefined;
 
   retryableBefore(() => {
     ensureAdminOcSession();
@@ -75,8 +78,10 @@ describe('Eval Hub E2E', () => {
     });
 
     cy.then(() => {
-      cy.step('[Setup] Provision EvalHub instance');
-      return ensureEvalHubCrReady(evalHubCrName, evalHubInstanceYamlPath);
+      cy.step('[Setup] Resolve EvalHub instance');
+      return ensureEvalHubCrReady(evalHubCrName, evalHubInstanceYamlPath).then((instance) => {
+        evalHubInstance = instance;
+      });
     });
 
     cy.then(() => {
@@ -88,8 +93,16 @@ describe('Eval Hub E2E', () => {
 
     cy.then(() => {
       cy.step('[Setup] Deploy vLLM model and configure tenant access');
+      if (!evalHubInstance) {
+        throw new Error('EvalHub instance was not resolved during setup.');
+      }
       addUserToProject(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME, 'admin');
-      setupTenantAndDeployModel(evaluationTenantProject, testData, hardwareProfileName);
+      setupTenantAndDeployModel(
+        evaluationTenantProject,
+        testData,
+        hardwareProfileName,
+        evalHubInstance,
+      );
       grantEvalHubTenantAccess(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME);
       inferenceServiceName = testData.inferenceServiceName;
       cy.log(`InferenceService: ${inferenceServiceName}`);
@@ -97,14 +110,16 @@ describe('Eval Hub E2E', () => {
 
     cy.then(() => {
       cy.step('[Setup] Select an available MLflow experiment name');
-      return findAvailableExperimentSuffix(
-        evaluationTenantProject,
-        [testData.mlflowExperimentName],
-        uuid,
-      ).then((suffix) => {
-        mlflowExperimentName = `${testData.mlflowExperimentName}-${suffix}`;
-        cy.log(`MLflow experiment: ${mlflowExperimentName}`);
-      });
+      return getEvalHubExperimentSuffix(uuid).then((experimentSuffix) =>
+        findAvailableExperimentSuffix(
+          evaluationTenantProject,
+          [testData.mlflowExperimentName],
+          experimentSuffix,
+        ).then((suffix) => {
+          mlflowExperimentName = `${testData.mlflowExperimentName}-${suffix}`;
+          cy.log(`MLflow experiment: ${mlflowExperimentName}`);
+        }),
+      );
     });
 
     cy.then(() => {
