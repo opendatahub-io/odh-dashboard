@@ -1,7 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { mockConnectionType } from '~/__mocks__/mockConnectionType';
 import {
   ConnectionTypeCard,
@@ -15,11 +14,6 @@ jest.mock('@odh-dashboard/ui-core/components/TruncatedText', () => ({
   __esModule: true,
   default: ({ content }: { content?: string | null }) => <>{content}</>,
 }));
-
-const LocationDisplay = () => {
-  const location = useLocation();
-  return <span data-testid="location">{location.pathname + location.search}</span>;
-};
 
 describe('ConnectionType', () => {
   afterEach(() => {
@@ -47,37 +41,22 @@ describe('ConnectionType', () => {
     expect(screen.getByTestId('connection-type-icon-fallback')).toBeTruthy();
   });
 
-  it('should render card content and navigate to an encoded details route', async () => {
+  it('should render card content and call the click handler', async () => {
     const user = userEvent.setup();
+    const onClick = jest.fn();
     const connectionType = mockConnectionType({
       metadata: { id: 'provider/type one' },
       resource: { name: 'Provider type', description: 'Provider description' },
     });
-    render(
-      <MemoryRouter initialEntries={['/connection-types?project=test-project']}>
-        <Routes>
-          <Route
-            path="*"
-            element={
-              <>
-                <ConnectionTypeCard connectionType={connectionType} />
-                <LocationDisplay />
-              </>
-            }
-          />
-        </Routes>
-      </MemoryRouter>,
-    );
+    render(<ConnectionTypeCard connectionType={connectionType} onClick={onClick} />);
 
     expect(screen.getByTestId(ConnectionTypeCardIdentifier('provider/type one'))).toBeTruthy();
     expect(screen.getByText('Provider type')).toBeTruthy();
     expect(screen.getByText('Provider description')).toBeTruthy();
 
-    await user.click(screen.getByRole('link'));
+    await user.click(screen.getByRole('button', { name: 'Provider type' }));
 
-    expect(screen.getByTestId('location').textContent).toBe(
-      '/connection-types/provider%2Ftype%20one?project=test-project',
-    );
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 
   it('should render the provider and relative timestamps in the details values', () => {
