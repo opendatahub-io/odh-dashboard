@@ -1392,7 +1392,11 @@ describe('AutoragResultsPage', () => {
       await userEvent.click(screen.getByTestId('starter-kit-download-button'));
 
       await waitFor(() => {
-        expect(mockFetchS3File).toHaveBeenCalledWith('test-ns', key);
+        expect(mockFetchS3File).toHaveBeenCalledWith(
+          'test-ns',
+          key,
+          expect.objectContaining({ signal: expect.any(AbortSignal) }),
+        );
         expect(downloadBlobMock).toHaveBeenCalledWith(blob, 'starter_kit.zip');
         expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
           AUTORAG_EVENTS.STARTER_KIT_DOWNLOADED,
@@ -1431,6 +1435,7 @@ describe('AutoragResultsPage', () => {
 
       await userEvent.click(screen.getByTestId('starter-kit-download-button'));
       expect(mockFetchS3File).toHaveBeenCalledTimes(1);
+      const firstController = mockFetchS3File.mock.calls[0][2].signal as AbortSignal;
 
       mockUseParams.mockReturnValue({ namespace: 'test-ns', runId: 'run-456' });
       mockUsePipelineRunQuery.mockImplementation((nextRunId: string) => ({
@@ -1451,6 +1456,7 @@ describe('AutoragResultsPage', () => {
 
       await userEvent.click(screen.getByTestId('starter-kit-download-button'));
       expect(mockFetchS3File).toHaveBeenCalledTimes(2);
+      expect(firstController.aborted).toBe(true);
 
       rejectFirstDownload(new Error('stale download failed'));
 
@@ -1469,6 +1475,30 @@ describe('AutoragResultsPage', () => {
           'true',
         );
       });
+    });
+
+    it('should abort and ignore a pending starter kit download after unmount', async () => {
+      let rejectDownload: (reason?: unknown) => void = () => undefined;
+      const pendingDownload = new Promise<Blob>((_, reject) => {
+        rejectDownload = reject;
+      });
+      mockNestedArtifactLists();
+      mockFetchS3File.mockReturnValue(pendingDownload);
+      const { unmount } = renderWithRun(createMockPipelineRun());
+
+      await userEvent.click(screen.getByTestId('starter-kit-download-button'));
+      const controller = mockFetchS3File.mock.calls[0][2].signal as AbortSignal;
+      unmount();
+
+      expect(controller.aborted).toBe(true);
+      rejectDownload(new Error('stale starter kit failure'));
+      await pendingDownload.catch(() => undefined);
+
+      expect(downloadBlobMock).not.toHaveBeenCalled();
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTORAG_EVENTS.STARTER_KIT_DOWNLOADED,
+        expect.anything(),
+      );
     });
   });
 

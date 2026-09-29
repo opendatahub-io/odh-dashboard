@@ -62,6 +62,9 @@ const ARTIFACT_UNSUCCESSFUL_TOOLTIP = 'Unavailable because the run did not compl
 const ARTIFACT_UNAVAILABLE_TOOLTIP = 'Artifact unavailable';
 const ARTIFACT_DOWNLOADING_TOOLTIP = 'Downloading...';
 
+const isAbortError = (error: unknown): boolean =>
+  error instanceof Error && error.name === 'AbortError';
+
 function AutomlResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
   const location = useLocation();
@@ -73,6 +76,22 @@ function AutomlResultsPage(): React.JSX.Element {
   const [stopInitiated, setStopInitiated] = React.useState(false);
   const [runNotebookDownloadError, setRunNotebookDownloadError] = React.useState<string>();
   const [isDownloadingRunNotebook, setIsDownloadingRunNotebook] = React.useState(false);
+  const runNotebookDownloadController = React.useRef<AbortController | null>(null);
+  const runNotebookDownloadGeneration = React.useRef(0);
+
+  React.useLayoutEffect(() => {
+    runNotebookDownloadGeneration.current += 1;
+    runNotebookDownloadController.current?.abort();
+    runNotebookDownloadController.current = null;
+    setRunNotebookDownloadError(undefined);
+    setIsDownloadingRunNotebook(false);
+
+    return () => {
+      runNotebookDownloadGeneration.current += 1;
+      runNotebookDownloadController.current?.abort();
+      runNotebookDownloadController.current = null;
+    };
+  }, [namespace, runId]);
   const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutomlRunActions(
     namespace ?? '',
     runId ?? '',
@@ -170,18 +189,44 @@ function AutomlResultsPage(): React.JSX.Element {
       return;
     }
 
+    const controller = new AbortController();
+    const downloadGeneration = ++runNotebookDownloadGeneration.current;
+    runNotebookDownloadController.current = controller;
     setRunNotebookDownloadError(undefined);
     setIsDownloadingRunNotebook(true);
     try {
-      const notebook = await fetchS3File(namespace, runNotebookKey);
+      const notebook = await fetchS3File(namespace, runNotebookKey, {
+        signal: controller.signal,
+      });
+      if (
+        downloadGeneration !== runNotebookDownloadGeneration.current ||
+        runNotebookDownloadController.current !== controller ||
+        controller.signal.aborted
+      ) {
+        return;
+      }
       downloadBlob(notebook, RUN_NOTEBOOK_FILENAME);
       fireAutomlRunNotebookDownloaded();
     } catch (error) {
+      if (
+        isAbortError(error) ||
+        downloadGeneration !== runNotebookDownloadGeneration.current ||
+        runNotebookDownloadController.current !== controller ||
+        controller.signal.aborted
+      ) {
+        return;
+      }
       setRunNotebookDownloadError(
         error instanceof Error ? error.message : 'An unknown error occurred',
       );
     } finally {
-      setIsDownloadingRunNotebook(false);
+      if (
+        downloadGeneration === runNotebookDownloadGeneration.current &&
+        runNotebookDownloadController.current === controller
+      ) {
+        runNotebookDownloadController.current = null;
+        setIsDownloadingRunNotebook(false);
+      }
     }
   }, [namespace, runNotebookDisabled, runNotebookKey]);
 

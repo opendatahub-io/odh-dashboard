@@ -1281,7 +1281,7 @@ describe('AutomlResultsPage', () => {
         isError: false,
         error: null,
       });
-      renderPage();
+      return renderPage();
     };
 
     const mockNestedArtifactLists = (
@@ -1509,7 +1509,11 @@ describe('AutomlResultsPage', () => {
       await userEvent.click(screen.getByTestId('run-notebook-download-button'));
 
       await waitFor(() => {
-        expect(mockFetchS3File).toHaveBeenCalledWith('test-ns', key);
+        expect(mockFetchS3File).toHaveBeenCalledWith(
+          'test-ns',
+          key,
+          expect.objectContaining({ signal: expect.any(AbortSignal) }),
+        );
         expect(downloadBlobMock).toHaveBeenCalledWith(blob, 'automl_experiment_notebook.ipynb');
         expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
           AUTOML_EVENTS.RUN_NOTEBOOK_DOWNLOADED,
@@ -1532,7 +1536,11 @@ describe('AutomlResultsPage', () => {
       await userEvent.click(button);
 
       await waitFor(() => {
-        expect(mockFetchS3File).toHaveBeenCalledWith('test-ns', key);
+        expect(mockFetchS3File).toHaveBeenCalledWith(
+          'test-ns',
+          key,
+          expect.objectContaining({ signal: expect.any(AbortSignal) }),
+        );
         expect(downloadBlobMock).toHaveBeenCalledWith(blob, 'automl_experiment_notebook.ipynb');
       });
     });
@@ -1546,6 +1554,63 @@ describe('AutomlResultsPage', () => {
       await userEvent.click(screen.getByTestId('run-notebook-download-button'));
 
       expect(await screen.findByText('Run notebook download failed')).toBeInTheDocument();
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTOML_EVENTS.RUN_NOTEBOOK_DOWNLOADED,
+        expect.anything(),
+      );
+    });
+
+    it('should abort and ignore a pending download after the route changes', async () => {
+      const run = tabularRun();
+      let resolveDownload: (value: Blob) => void = () => undefined;
+      const pendingDownload = new Promise<Blob>((resolve) => {
+        resolveDownload = resolve;
+      });
+      mockNestedArtifactLists(run);
+      mockFetchS3File.mockReturnValue(pendingDownload);
+      const renderResult = renderWithRun(run);
+
+      await userEvent.click(screen.getByTestId('run-notebook-download-button'));
+      const controller = mockFetchS3File.mock.calls[0][2].signal as AbortSignal;
+
+      mockUseParams.mockReturnValue({ namespace: 'other-ns', runId: 'run-456' });
+      renderResult.rerender(
+        <QueryClientProvider client={createTestQueryClient()}>
+          <AutomlResultsPage />
+        </QueryClientProvider>,
+      );
+
+      expect(controller.aborted).toBe(true);
+      resolveDownload(new Blob(['stale notebook']));
+      await waitFor(() => {
+        expect(downloadBlobMock).not.toHaveBeenCalled();
+        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+          AUTOML_EVENTS.RUN_NOTEBOOK_DOWNLOADED,
+          expect.anything(),
+        );
+        expect(screen.queryByText('Run notebook download failed')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should abort and ignore a pending download after unmount', async () => {
+      const run = tabularRun();
+      let rejectDownload: (reason?: unknown) => void = () => undefined;
+      const pendingDownload = new Promise<Blob>((_, reject) => {
+        rejectDownload = reject;
+      });
+      mockNestedArtifactLists(run);
+      mockFetchS3File.mockReturnValue(pendingDownload);
+      const { unmount } = renderWithRun(run);
+
+      await userEvent.click(screen.getByTestId('run-notebook-download-button'));
+      const controller = mockFetchS3File.mock.calls[0][2].signal as AbortSignal;
+      unmount();
+
+      expect(controller.aborted).toBe(true);
+      rejectDownload(new Error('stale download failed'));
+      await pendingDownload.catch(() => undefined);
+
+      expect(downloadBlobMock).not.toHaveBeenCalled();
       expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
         AUTOML_EVENTS.RUN_NOTEBOOK_DOWNLOADED,
         expect.anything(),

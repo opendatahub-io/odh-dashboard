@@ -81,6 +81,9 @@ const ARTIFACT_UNSUCCESSFUL_TOOLTIP = 'Unavailable because the run did not compl
 const ARTIFACT_UNAVAILABLE_TOOLTIP = 'Artifact unavailable';
 const ARTIFACT_DOWNLOADING_TOOLTIP = 'Downloading...';
 
+const isAbortError = (error: unknown): boolean =>
+  error instanceof Error && error.name === 'AbortError';
+
 function AutoragResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
   const location = useLocation();
@@ -99,11 +102,20 @@ function AutoragResultsPage(): React.JSX.Element {
   const [starterKitDownloadError, setStarterKitDownloadError] = React.useState<string>();
   const [isDownloadingStarterKit, setIsDownloadingStarterKit] = React.useState(false);
   const starterKitDownloadGeneration = React.useRef(0);
+  const starterKitDownloadController = React.useRef<AbortController | null>(null);
 
   React.useLayoutEffect(() => {
     starterKitDownloadGeneration.current += 1;
+    starterKitDownloadController.current?.abort();
+    starterKitDownloadController.current = null;
     setStarterKitDownloadError(undefined);
     setIsDownloadingStarterKit(false);
+
+    return () => {
+      starterKitDownloadGeneration.current += 1;
+      starterKitDownloadController.current?.abort();
+      starterKitDownloadController.current = null;
+    };
   }, [namespace, runId]);
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
@@ -188,23 +200,41 @@ function AutoragResultsPage(): React.JSX.Element {
     }
 
     const downloadGeneration = ++starterKitDownloadGeneration.current;
+    const controller = new AbortController();
+    starterKitDownloadController.current = controller;
     setStarterKitDownloadError(undefined);
     setIsDownloadingStarterKit(true);
     try {
-      const starterKit = await fetchS3File(namespace, starterKitKey);
-      if (downloadGeneration !== starterKitDownloadGeneration.current) {
+      const starterKit = await fetchS3File(namespace, starterKitKey, {
+        signal: controller.signal,
+      });
+      if (
+        downloadGeneration !== starterKitDownloadGeneration.current ||
+        starterKitDownloadController.current !== controller ||
+        controller.signal.aborted
+      ) {
         return;
       }
       downloadBlob(starterKit, STARTER_KIT_FILENAME);
       fireAutoragStarterKitDownloaded();
     } catch (error) {
-      if (downloadGeneration === starterKitDownloadGeneration.current) {
-        setStarterKitDownloadError(
-          error instanceof Error ? error.message : 'An unknown error occurred',
-        );
+      if (
+        isAbortError(error) ||
+        downloadGeneration !== starterKitDownloadGeneration.current ||
+        starterKitDownloadController.current !== controller ||
+        controller.signal.aborted
+      ) {
+        return;
       }
+      setStarterKitDownloadError(
+        error instanceof Error ? error.message : 'An unknown error occurred',
+      );
     } finally {
-      if (downloadGeneration === starterKitDownloadGeneration.current) {
+      if (
+        downloadGeneration === starterKitDownloadGeneration.current &&
+        starterKitDownloadController.current === controller
+      ) {
+        starterKitDownloadController.current = null;
         setIsDownloadingStarterKit(false);
       }
     }

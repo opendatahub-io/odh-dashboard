@@ -375,6 +375,22 @@ describe('fetchS3File', () => {
     expect(result).toBe(mockBlob);
   });
 
+  it('should pass the provided abort signal to fetch', async () => {
+    const mockBlob = new Blob(['file content']);
+    const controller = new AbortController();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      blob: async () => mockBlob,
+    });
+
+    await fetchS3File('test-namespace', 'file.ipynb', { signal: controller.signal });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/s3/files/file.ipynb?'),
+      { signal: controller.signal },
+    );
+  });
+
   it('should include secretName and bucket when provided', async () => {
     const mockBlob = new Blob(['content']);
     (global.fetch as jest.Mock).mockResolvedValueOnce({
