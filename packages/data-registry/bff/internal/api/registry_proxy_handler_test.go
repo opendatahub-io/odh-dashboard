@@ -3,10 +3,12 @@ package api
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/opendatahub-io/data-registry/bff/internal/config"
@@ -27,25 +29,65 @@ type capturedUpstreamRequest struct {
 	Body   []byte
 }
 
-// newRegistryProxyTestApp builds an App wired to a user_token TokenClientFactory (so
-// DataRegistryReverseProxy can read a bearer token from the RequestIdentity without a real
-// Kubernetes cluster) and pointed at dataRegistryAPIURL — normally an httptest.NewServer
-// standing in for the real Data Registry API.
+// newRegistryProxyTestApp builds an App with a test-only identity factory and points it at
+// dataRegistryAPIURL — normally an httptest.NewServer standing in for the real Data Registry API.
 func newRegistryProxyTestApp(dataRegistryAPIURL string) *App {
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cfg := config.EnvConfig{
 		AllowedOrigins:  []string{"*"},
 		AuthMethod:      config.AuthMethodUser,
 		AuthTokenHeader: config.DefaultAuthTokenHeader,
 		AuthTokenPrefix: config.DefaultAuthTokenPrefix,
 	}
+	return newRegistryProxyTestAppWithConfig(dataRegistryAPIURL, cfg)
+}
+
+func newRegistryProxyTestAppWithConfig(dataRegistryAPIURL string, cfg config.EnvConfig) *App {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	return &App{
 		config:                  cfg,
 		logger:                  logger,
-		kubernetesClientFactory: kubernetes.NewTokenClientFactory(logger, cfg),
+		kubernetesClientFactory: &proxyTestIdentityFactory{header: cfg.AuthTokenHeader, prefix: cfg.AuthTokenPrefix, userID: "proxy-test-user@example.com"},
 		repositories:            repositories.NewRepositories(),
 		dataRegistryAPIURL:      helper.NewStringHolder(dataRegistryAPIURL),
 	}
+}
+
+// proxyTestIdentityFactory verifies the configured token header and supplies a deterministic
+// user identity. The proxy tests do not exercise Kubernetes calls, so using a real token client
+// would unnecessarily require a live Kubernetes authentication endpoint for SelfSubjectReview.
+type proxyTestIdentityFactory struct {
+	header string
+	prefix string
+	userID string
+}
+
+func (f *proxyTestIdentityFactory) GetClient(context.Context) (kubernetes.KubernetesClientInterface, error) {
+	return nil, fmt.Errorf("Kubernetes client is not used by proxy tests")
+}
+
+func (f *proxyTestIdentityFactory) ExtractRequestIdentity(headers http.Header) (*kubernetes.RequestIdentity, error) {
+	raw := headers.Get(f.header)
+	if raw == "" {
+		return nil, fmt.Errorf("missing required Header: %s", f.header)
+	}
+	if f.prefix != "" {
+		if !strings.HasPrefix(raw, f.prefix) {
+			return nil, fmt.Errorf("expected token Header %s to start with Prefix %q", f.header, f.prefix)
+		}
+		raw = strings.TrimPrefix(raw, f.prefix)
+	}
+	token := strings.TrimSpace(raw)
+	if token == "" {
+		return nil, fmt.Errorf("token is required")
+	}
+	return &kubernetes.RequestIdentity{Token: token, UserID: f.userID}, nil
+}
+
+func (*proxyTestIdentityFactory) ValidateRequestIdentity(identity *kubernetes.RequestIdentity) error {
+	if identity == nil || identity.Token == "" {
+		return fmt.Errorf("token is required")
+	}
+	return nil
 }
 
 // newStandInDataRegistryServer returns an httptest.Server that records the last request it
@@ -123,29 +165,23 @@ func TestDataRegistryProxy_StripsCallerAssertedIdentityHeaders(t *testing.T) {
 	upstream := newStandInDataRegistryServer(&captured, http.StatusOK, `{"namespaces":[["default"]]}`, nil)
 	defer upstream.Close()
 
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cfg := config.EnvConfig{
 		AllowedOrigins:  []string{"*"},
 		AuthMethod:      config.AuthMethodUser,
 		AuthTokenHeader: config.DefaultAuthTokenHeader,
 		AuthTokenPrefix: config.DefaultAuthTokenPrefix,
 	}
-	app := &App{
-		config:                  cfg,
-		logger:                  logger,
-		kubernetesClientFactory: kubernetes.NewTokenClientFactory(logger, cfg),
-		repositories:            repositories.NewRepositories(),
-		dataRegistryAPIURL:      helper.NewStringHolder(upstream.URL),
-	}
+	app := newRegistryProxyTestAppWithConfig(upstream.URL, cfg)
+	app.kubernetesClientFactory = &proxyTestIdentityFactory{header: cfg.AuthTokenHeader, prefix: cfg.AuthTokenPrefix, userID: "verified-user@example.com"}
 
 	req, err := http.NewRequest(http.MethodGet, "http://bff.example/api/v1/my-project/namespaces", nil)
 	require.NoError(t, err)
 	req.Header.Set("Authorization", "Bearer user-token-123")
 	req.Header.Set("X-User", "spoofed@example.com")
-	req.Header.Set(constants.KubeflowUserIDHeader, "spoofed@example.com")
-	req.Header.Set(constants.KubeflowUserGroupsIdHeader, "spoofed-group")
+	req.Header.Set("kubeflow-userid", "spoofed@example.com")
+	req.Header.Set("kubeflow-groups", "spoofed-group")
 
-	// Inject verified identity with UserID already populated (simulating internal auth or SSR-resolved identity)
+	// Inject a verified identity with UserID already populated (simulating the token-derived user lookup).
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &kubernetes.RequestIdentity{
 		Token:  "user-token-123",
 		UserID: "verified-user@example.com",
@@ -159,8 +195,8 @@ func TestDataRegistryProxy_StripsCallerAssertedIdentityHeaders(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.Equal(t, "verified-user@example.com", captured.Header.Get("X-User"), "X-User must be set from verified RequestIdentity.UserID, not caller-supplied value")
-	assert.Empty(t, captured.Header.Get(constants.KubeflowUserIDHeader), "kubeflow-userid must never be forwarded to the upstream")
-	assert.Empty(t, captured.Header.Get(constants.KubeflowUserGroupsIdHeader), "kubeflow-groups must never be forwarded to the upstream")
+	assert.Empty(t, captured.Header.Get("kubeflow-userid"), "kubeflow-userid must never be forwarded to the upstream")
+	assert.Empty(t, captured.Header.Get("kubeflow-groups"), "kubeflow-groups must never be forwarded to the upstream")
 	assert.Equal(t, "Bearer user-token-123", captured.Header.Get("Authorization"))
 }
 
@@ -169,26 +205,19 @@ func TestDataRegistryProxy_StripsCallerAssertedIdentityHeaders(t *testing.T) {
 // "x-forwarded-access-token" rather than "Authorization" (see config.AuthTokenHeader). That
 // inbound header must never reach the upstream verbatim — only the rebuilt "Authorization:
 // Bearer <token>" may assert the caller's identity, the same guarantee already covered for
-// X-User/kubeflow-userid/kubeflow-groups above.
+// X-User and legacy Kubeflow identity headers above.
 func TestDataRegistryProxy_StripsConfiguredIncomingAuthTokenHeader(t *testing.T) {
 	var captured capturedUpstreamRequest
 	upstream := newStandInDataRegistryServer(&captured, http.StatusOK, `{"namespaces":[["default"]]}`, nil)
 	defer upstream.Close()
 
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cfg := config.EnvConfig{
 		AllowedOrigins:  []string{"*"},
 		AuthMethod:      config.AuthMethodUser,
 		AuthTokenHeader: "x-forwarded-access-token",
 		AuthTokenPrefix: "",
 	}
-	app := &App{
-		config:                  cfg,
-		logger:                  logger,
-		kubernetesClientFactory: kubernetes.NewTokenClientFactory(logger, cfg),
-		repositories:            repositories.NewRepositories(),
-		dataRegistryAPIURL:      helper.NewStringHolder(upstream.URL),
-	}
+	app := newRegistryProxyTestAppWithConfig(upstream.URL, cfg)
 
 	req, err := http.NewRequest(http.MethodGet, "http://bff.example/api/v1/my-project/namespaces", nil)
 	require.NoError(t, err)
@@ -240,7 +269,7 @@ func TestDataRegistryProxy_DiscoveredURLTakesEffectWithoutRestart(t *testing.T) 
 
 	withIdentity := func(path string) *http.Request {
 		req := httptest.NewRequest(http.MethodGet, "http://bff.example"+path, nil)
-		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &kubernetes.RequestIdentity{Token: "tok"})
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &kubernetes.RequestIdentity{Token: "tok", UserID: "proxy-test-user@example.com"})
 		return req.WithContext(ctx)
 	}
 

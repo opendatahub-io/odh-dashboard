@@ -6,6 +6,7 @@ import extensions, {
   AI_ASSET_CUSTOM_ENDPOINTS,
   CHAT_PLAYGROUND,
   EXTERNAL_VECTOR_STORES,
+  GEN_AI_MCP_REGISTRY_SERVERS,
   GUARDRAILS,
   MODEL_AS_SERVICE,
   MODEL_AS_SERVICE_CAMEL,
@@ -28,6 +29,7 @@ export const PluginStoreContextProvider: React.FC<React.PropsWithChildren> = ({ 
       [AI_ASSET_CUSTOM_ENDPOINTS]: true,
       [GEN_AI_TRACING]: true,
       [AGENT_CONFIG_MANAGEMENT]: true,
+      [GEN_AI_MCP_REGISTRY_SERVERS]: true,
     };
 
     const params = new URLSearchParams(window.location.search);

@@ -75,6 +75,8 @@ For federated modules (with their own dev server and/or BFF), add `module-federa
 
 Do not add a package-local install script. First-party frontends are members of the root pnpm workspace; run `pnpm install` from the repository root so the shared lockfile remains authoritative. Upstream subtree frontends are the exception and retain their own npm lockfiles.
 
+If the new remote participates in dashboard Cypress mock tests, add `cypress:mock:build`, `cypress:mock:build:coverage`, and `cypress:mock:dev` scripts to the **parent module package**. These should build/start its federated frontend on `module-federation.local.port`; they may delegate to existing parent `cypress:server:*` scripts. Keep standalone frontend and BFF Cypress commands separate. Run `pnpm run validate:cypress-mock` to confirm the remote is selected and its module name and port are unique. See [docs/testing.md](../../docs/testing.md#mocked-tests) for the developer workflow.
+
 ### 3. Configure the port
 
 Each package needs a unique port. See [docs/onboard-modular-architecture.md § Configure the Port](../../docs/onboard-modular-architecture.md#3-configure-the-port) for where to update it (both `Makefile` and `package.json`).

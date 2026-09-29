@@ -52,6 +52,22 @@ func isStaticAsset(filePath string) bool {
 	return staticAssetPattern.MatchString(filePath)
 }
 
+func shouldTraceRequest(r *http.Request) bool {
+	return r.Header.Get("X-Session-ID") != "" || r.Header.Get(constants.TraceParentHeader) != ""
+}
+
+func bffSpanName(_ string, r *http.Request) string {
+	if r == nil {
+		return "gen-ai-bff"
+	}
+
+	spanPath := r.URL.Path
+	if spanPath == "" || spanPath == "/" {
+		return "gen-ai-bff"
+	}
+	return "gen-ai-bff " + r.Method + " " + spanPath
+}
+
 func cacheControlForStaticFile(filePath string) string {
 	if isHashedAsset(filePath) {
 		return "public, max-age=31536000, immutable"
@@ -482,6 +498,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.FilesUploadStatusPath, app.AttachNamespace(app.LlamaStackFileUploadStatusHandler))
 	apiRouter.DELETE(constants.FilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackDeleteFileHandler))))
 	apiRouter.POST(constants.MediaFilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackMediaFileUploadHandler))))
+	apiRouter.POST(constants.DocumentsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackDocumentUploadHandler))))
 
 	// Audio Transcription (ASR)
 	apiRouter.POST(constants.AudioTranscriptionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.AttachOGXClient(app.LlamaStackAudioTranscriptionHandler)))))
@@ -566,6 +583,8 @@ func (app *App) Routes() http.Handler {
 	apiRouter.PUT(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.UpdateAgentProfileHandler)))
 	apiRouter.DELETE(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteAgentProfileHandler)))
 
+	apiRouter.POST(constants.AgentDeploymentsPath, app.AttachNamespace(app.RequireAccessToService(app.CreateAgentDeploymentHandler)))
+
 	// GenAI Proxy — OpenAI-compatible endpoints for OGX passthrough provider.
 	// OGX forwards the user JWT via Authorization: Bearer (from passthrough_api_key
 	// in X-OGX-Provider-Data). InjectRequestIdentity extracts it via the Bearer fallback.
@@ -633,9 +652,8 @@ func (app *App) Routes() http.Handler {
 	combinedMux.Handle("/", otelhttp.NewHandler(
 		app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))),
 		"gen-ai-bff",
-		otelhttp.WithSpanNameFormatter(func(_ string, _ *http.Request) string {
-			return "gen-ai-bff"
-		}),
+		otelhttp.WithFilter(shouldTraceRequest),
+		otelhttp.WithSpanNameFormatter(bffSpanName),
 	))
 
 	return combinedMux

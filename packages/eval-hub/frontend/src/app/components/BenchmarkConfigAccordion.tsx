@@ -183,6 +183,7 @@ const BenchmarkConfigAccordion: React.FC<BenchmarkConfigAccordionProps> = ({
                             label="Threshold"
                             description="Minimum score required to pass this evaluation."
                             fieldId={`${itemId}-threshold`}
+                            metric={benchmark.primaryMetric}
                           />
                         </FlexItem>
                       ) : null}

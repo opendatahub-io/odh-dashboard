@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"flag"
 	"fmt"
 	"os/signal"
@@ -26,7 +27,7 @@ func main() {
 	flag.StringVar(&keyFile, "key-file", "", "Path to TLS key file")
 	flag.BoolVar(&cfg.MockK8Client, "mock-k8s-client", false, "Use mock Kubernetes client")
 	flag.BoolVar(&cfg.MockHTTPClient, "mock-http-client", false, "Use mock HTTP client")
-	flag.BoolVar(&cfg.DevMode, "dev-mode", false, "Use development mode for access to local K8s cluster")
+	flag.BoolVar(&cfg.DevMode, "dev-mode", getEnvAsBool("DEV_MODE", false), "Use development mode for access to local K8s cluster")
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 
 	// New deployment mode flag
@@ -81,9 +82,12 @@ func main() {
 		logger.Error("invalid auth method: (must be internal or user_token)", "authMethod", cfg.AuthMethod)
 		os.Exit(1)
 	}
-	if cfg.InsecureSkipVerify && (!cfg.DevMode || certFile != "") {
-		logger.Error("insecure TLS verification is only allowed in dev mode without a server certificate")
+	if err := validateInsecureSkipVerify(cfg.InsecureSkipVerify, cfg.DevMode, certFile); err != nil {
+		logger.Error(err.Error())
 		os.Exit(1)
+	}
+	if cfg.InsecureSkipVerify {
+		logger.Warn("SECURITY WARNING: TLS certificate verification is disabled for local development")
 	}
 
 	// Only use for logging errors about logging configuration.
@@ -147,4 +151,17 @@ func main() {
 
 	logger.Info("server stopped")
 	os.Exit(0)
+}
+
+func validateInsecureSkipVerify(insecureSkipVerify, devMode bool, certFile string) error {
+	if !insecureSkipVerify {
+		return nil
+	}
+	if !devMode {
+		return errors.New("insecure TLS verification is only allowed in dev mode")
+	}
+	if certFile != "" {
+		return errors.New("insecure TLS verification is not allowed when a server certificate is configured")
+	}
+	return nil
 }

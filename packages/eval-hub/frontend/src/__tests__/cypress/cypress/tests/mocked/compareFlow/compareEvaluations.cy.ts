@@ -96,6 +96,23 @@ const suiteJob1 = mockEvaluationJob({
   createdAt: '2026-04-15T10:00:00Z',
   benchmarkIds: ['bench-a', 'bench-b'],
   providerId: 'lm_evaluation_harness',
+  mlflowExperimentId: 'experiment-suite-1',
+  benchmarkResults: [
+    {
+      id: 'bench-a',
+      provider_id: 'lm_evaluation_harness',
+      mlflow_run_id: 'run-suite-1-a',
+      metrics: {},
+      test: { primary_score: 0.8, threshold: 0.7, pass: true },
+    },
+    {
+      id: 'bench-b',
+      provider_id: 'lm_evaluation_harness',
+      mlflow_run_id: 'run-suite-1-b',
+      metrics: {},
+      test: { primary_score: 0.6, threshold: 0.5, pass: true },
+    },
+  ],
 });
 
 const suiteJob2 = mockEvaluationJob({
@@ -105,6 +122,23 @@ const suiteJob2 = mockEvaluationJob({
   createdAt: '2026-04-14T10:00:00Z',
   benchmarkIds: ['bench-a', 'bench-b'],
   providerId: 'lm_evaluation_harness',
+  mlflowExperimentId: 'experiment-suite-2',
+  benchmarkResults: [
+    {
+      id: 'bench-a',
+      provider_id: 'lm_evaluation_harness',
+      mlflow_run_id: 'run-suite-2-a',
+      metrics: {},
+      test: { primary_score: 0.75, threshold: 0.7, pass: true },
+    },
+    {
+      id: 'bench-b',
+      provider_id: 'lm_evaluation_harness',
+      mlflow_run_id: 'run-suite-2-b',
+      metrics: {},
+      test: { primary_score: 0.55, threshold: 0.5, pass: true },
+    },
+  ],
 });
 
 describe('Evaluations Page - Compare button state', () => {

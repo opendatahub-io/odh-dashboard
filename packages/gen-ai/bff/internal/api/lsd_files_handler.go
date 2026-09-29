@@ -6,18 +6,162 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/services"
 )
 
 type FileUploadResponse = llamastack.APIResponse
+
+const (
+	scannedPDFMinimumTextCharacters        = 50
+	playgroundDocumentUploadPurpose        = "assistants"
+	documentAttachmentMultipartMemoryLimit = 8 << 20 // 8MB
+)
+
+var supportedDocumentMIMETypes = map[string][]string{
+	".pdf":  {"application/pdf"},
+	".txt":  {"text/plain"},
+	".md":   {"text/markdown", "text/plain"},
+	".csv":  {"text/csv", "text/plain"},
+	".docx": {"application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/octet-stream"},
+	".pptx": {"application/vnd.openxmlformats-officedocument.presentationml.presentation", "application/octet-stream"},
+}
+
+type DocumentUploadResponse struct {
+	ID          string `json:"id"`
+	Filename    string `json:"filename"`
+	ContentType string `json:"content_type"`
+	Text        string `json:"text"`
+}
+
+func normalizeDocumentContentType(filename, contentType string) (string, bool) {
+	allowedTypes, ok := supportedDocumentMIMETypes[strings.ToLower(filepath.Ext(filename))]
+	if !ok {
+		return "", false
+	}
+	for _, allowedType := range allowedTypes {
+		if contentType == allowedType {
+			return contentType, true
+		}
+	}
+
+	switch strings.ToLower(filepath.Ext(filename)) {
+	case ".csv":
+		if contentType == "application/vnd.ms-excel" {
+			return "text/csv", true
+		}
+	case ".md":
+		if contentType == "text/x-markdown" {
+			return "text/markdown", true
+		}
+	}
+	return "", false
+}
+
+// LlamaStackDocumentUploadHandler stores a text-based Playground attachment in
+// OGX and extracts its text before returning it to the caller. The returned ID
+// remains the durable OGX reference; the returned text is later supplied in a
+// Responses request as input_text so every model can answer about a document.
+func (app *App) LlamaStackDocumentUploadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	// Multipart framing contributes a small amount of overhead beyond the
+	// enforced 50 MB direct-document limit.
+	r.Body = http.MaxBytesReader(w, r.Body, constants.DocumentAttachmentMaxBodySize+(1<<20))
+	if err := r.ParseMultipartForm(documentAttachmentMultipartMemoryLimit); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			app.payloadTooLargeResponse(w, r, constants.DocumentAttachmentMaxBodySize)
+			return
+		}
+		app.badRequestResponse(w, r, fmt.Errorf("failed to parse document upload: %w", err))
+		return
+	}
+	defer func() {
+		if r.MultipartForm != nil {
+			_ = r.MultipartForm.RemoveAll()
+		}
+	}()
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		app.badRequestResponse(w, r, errors.New("file is required"))
+		return
+	}
+	defer file.Close()
+	if header.Size > constants.DocumentAttachmentMaxBodySize {
+		app.payloadTooLargeResponse(w, r, constants.DocumentAttachmentMaxBodySize)
+		return
+	}
+	contentType, _, err := mime.ParseMediaType(header.Header.Get("Content-Type"))
+	if err != nil {
+		app.badRequestResponse(w, r, errors.New("invalid document content type"))
+		return
+	}
+	normalizedContentType, supported := normalizeDocumentContentType(header.Filename, contentType)
+	if !supported {
+		app.badRequestResponse(w, r, fmt.Errorf("unsupported document type %q", header.Filename))
+		return
+	}
+
+	client, err := helper.GetContextLlamaStackClient(r.Context())
+	if err != nil {
+		app.serviceUnavailableResponse(w, r, fmt.Errorf("OGX client not available: %w", err))
+		return
+	}
+	upload, err := client.UploadFile(r.Context(), llamastack.UploadFileParams{
+		Reader: file, Filename: header.Filename, ContentType: normalizedContentType, Purpose: playgroundDocumentUploadPurpose,
+	})
+	if err != nil {
+		app.handleLlamaStackClientError(w, r, err)
+		return
+	}
+	keepUploadedFile := false
+	defer func() {
+		if keepUploadedFile {
+			return
+		}
+		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 5*time.Second)
+		defer cancel()
+		if err := client.DeleteFile(cleanupCtx, upload.FileID); err != nil {
+			app.logger.Warn("failed to delete unusable document upload", "fileID", upload.FileID, "error", err)
+		}
+	}()
+
+	extractionCtx, cancel := context.WithTimeout(r.Context(), constants.DocumentExtractionTimeout)
+	defer cancel()
+	document, err := client.ProcessFile(extractionCtx, upload.FileID)
+	if err != nil {
+		app.handleLlamaStackClientError(w, r, err)
+		return
+	}
+	if strings.EqualFold(filepath.Ext(header.Filename), ".pdf") && len(strings.TrimSpace(document.Text)) < scannedPDFMinimumTextCharacters {
+		app.badRequestResponse(w, r, errors.New("this PDF appears to contain only scanned images; text-based content is required for document Q&A"))
+		return
+	}
+	if strings.TrimSpace(document.Text) == "" {
+		app.badRequestResponse(w, r, errors.New("no readable text could be extracted from this document"))
+		return
+	}
+
+	err = app.WriteJSON(w, http.StatusOK, llamastack.APIResponse{Data: DocumentUploadResponse{
+		ID: upload.FileID, Filename: header.Filename, ContentType: normalizedContentType, Text: document.Text,
+	}}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	keepUploadedFile = true
+}
 
 // LlamaStackUploadFileHandler handles POST /gen-ai/api/v1/files/upload.
 // Returns 202 Accepted with a job ID, then processes the upload asynchronously.

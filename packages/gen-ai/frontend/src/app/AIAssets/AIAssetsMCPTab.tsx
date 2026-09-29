@@ -11,6 +11,7 @@ import {
 import { CubesIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
+import useGenAiMcpRegistryServers from '~/app/hooks/useGenAiMcpRegistryServers';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import MCPServersTable from '~/app/AIAssets/components/mcp/MCPServersTable';
 import NoData from '~/app/EmptyStates/NoData';
@@ -22,9 +23,17 @@ import NoData from '~/app/EmptyStates/NoData';
 const AIAssetsMCPTab: React.FC = () => {
   const dashboardConfig = React.useContext(DashboardConfigContext);
   const mcpRegistryEnabled = dashboardConfig?.dashboardConfig.mcpRegistry ?? false;
+  const mcpRegistryServersEnabled = useGenAiMcpRegistryServers();
   const { data: servers = [], registryAvailable, loaded, error, refetch } = useFetchMCPServers();
+  const visibleServers = React.useMemo(
+    () =>
+      mcpRegistryServersEnabled
+        ? servers
+        : servers.filter((server) => server.source !== 'registry'),
+    [mcpRegistryServersEnabled, servers],
+  );
   const [isRegistryBannerDismissed, setIsRegistryBannerDismissed] = React.useState(false);
-  const { serverStatuses, statusesLoading } = useMCPServerStatuses(servers, loaded);
+  const { serverStatuses, statusesLoading } = useMCPServerStatuses(visibleServers, loaded);
   let errorIcon, errorTitle, errorDescription;
   if (!loaded) {
     return (
@@ -38,12 +47,12 @@ const AIAssetsMCPTab: React.FC = () => {
     errorTitle = 'Unable to load MCP servers';
     errorDescription = 'An error occurred while loading MCP servers. Try refreshing the page.';
     errorIcon = ExclamationCircleIcon;
-  } else if (servers.length === 0 && !registryAvailable) {
+  } else if (visibleServers.length === 0 && !registryAvailable) {
     errorTitle = 'Unable to load MCP servers';
     errorDescription =
       'The MCP registry is unavailable and no manually configured servers exist in this project.';
     errorIcon = ExclamationCircleIcon;
-  } else if (servers.length === 0) {
+  } else if (visibleServers.length === 0) {
     errorTitle = 'No MCP servers available';
     errorDescription = 'No MCP servers are configured for this project.';
     errorIcon = CubesIcon;
@@ -82,7 +91,7 @@ const AIAssetsMCPTab: React.FC = () => {
           <NoData icon={errorIcon} title={errorTitle} description={errorDescription} />
         ) : (
           <MCPServersTable
-            servers={servers}
+            servers={visibleServers}
             serverStatuses={serverStatuses}
             statusesLoading={statusesLoading}
           />
