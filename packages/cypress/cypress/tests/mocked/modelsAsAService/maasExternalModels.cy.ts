@@ -11,6 +11,8 @@ import {
   externalModelProviderUrlModal,
   externalModelsPage,
 } from '../../../pages/modelsAsAService';
+import { createProjectModal } from '../../../pages/projects';
+import { ProjectRequestModel } from '../../../utils/models';
 import { mockExternalModels, mockMaasNamespaces } from '../../../utils/maasUtils';
 
 const TEST_PROJECT = 'test-project';
@@ -59,6 +61,53 @@ describe('External Models Page', () => {
     externalModelsPage.findPage().should('exist');
     externalModelsPage.findProjectSelector().should('exist');
     externalModelsPage.findEmptyState().should('exist');
+  });
+
+  describe('with no projects', () => {
+    const NEW_PROJECT = 'external-models-project';
+
+    beforeEach(() => {
+      cy.interceptK8sList(ProjectModel, mockK8sResourceList([]));
+      cy.interceptOdh('GET /maas/api/v1/namespaces', { data: mockMaasNamespaces([]) });
+      externalModelsPage.visit();
+      externalModelsPage.findNoProjectsPage().should('exist');
+    });
+
+    it('should open the create project dialog from the empty state', () => {
+      cy.findByTestId('create-project').should('be.enabled').click();
+      createProjectModal.shouldBeOpen();
+      createProjectModal.findCancelButton().click();
+      createProjectModal.shouldBeOpen(false);
+    });
+
+    it('should create a project from the empty state', () => {
+      cy.interceptK8s(
+        'POST',
+        ProjectRequestModel,
+        mockProjectK8sResource({ k8sName: NEW_PROJECT }),
+      ).as('createProjectRequest');
+      cy.interceptOdh(
+        'GET /api/namespaces/:namespace/:context',
+        { path: { namespace: NEW_PROJECT, context: '0' } },
+        { applied: true },
+      );
+      cy.interceptOdh('GET /maas/api/v1/namespaces', {
+        data: mockMaasNamespaces([NEW_PROJECT]),
+      });
+      cy.interceptOdh(
+        'GET /maas/api/v1/externalmodel',
+        { query: { namespace: NEW_PROJECT } },
+        { data: [] },
+      );
+
+      cy.findByTestId('create-project').click();
+      createProjectModal.shouldBeOpen();
+      createProjectModal.k8sNameDescription.findDisplayNameInput().type(NEW_PROJECT);
+      createProjectModal.findSubmitButton().should('be.enabled').click();
+      cy.wait('@createProjectRequest');
+      cy.wsK8s('ADDED', ProjectModel, mockProjectK8sResource({ k8sName: NEW_PROJECT }));
+      cy.url().should('include', `/ai-hub/models/deployments/external/${NEW_PROJECT}`);
+    });
   });
 
   it('should not show the external models page when the feature flag is disabled', () => {

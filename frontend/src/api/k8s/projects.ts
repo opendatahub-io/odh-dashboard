@@ -40,7 +40,6 @@ export const getProjects = (withLabel?: string, opts?: K8sAPIOptions): Promise<P
   ).then((listResource) => listResource.items);
 
 export const createProject = (
-  username: string,
   displayName: string,
   description: string,
   k8sName?: string,

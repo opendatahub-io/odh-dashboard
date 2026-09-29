@@ -123,7 +123,7 @@ describe('createProject', () => {
     const projectMock = mockProjectK8sResource({ k8sName });
     k8sCreateResourceMock.mockResolvedValue(projectMock);
     mockedAxios.mockResolvedValue(axiosResponse(true));
-    const result = await createProject('user', displayName, description, k8sName);
+    const result = await createProject(displayName, description, k8sName);
     expect(result).toStrictEqual(k8sName);
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
@@ -146,7 +146,7 @@ describe('createProject', () => {
     const projectMock = mockProjectK8sResource({ k8sName: displayName });
     k8sCreateResourceMock.mockResolvedValue(projectMock);
     mockedAxios.mockResolvedValue(axiosResponse(true));
-    const result = await createProject('user', displayName, description);
+    const result = await createProject(displayName, description);
     expect(result).toStrictEqual(displayName);
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
@@ -169,7 +169,7 @@ describe('createProject', () => {
     const projectMock = mockProjectK8sResource({ k8sName });
     k8sCreateResourceMock.mockResolvedValue(projectMock);
     mockedAxios.mockResolvedValue(axiosResponse(false));
-    await expect(createProject('user', displayName, description, k8sName)).rejects.toThrow(
+    await expect(createProject(displayName, description, k8sName)).rejects.toThrow(
       `Unable to fully create your project. Ask a ${ODH_PRODUCT_NAME} admin for assistance.`,
     );
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
@@ -181,7 +181,7 @@ describe('createProject', () => {
     const projectMock = mockProjectK8sResource({ k8sName });
     k8sCreateResourceMock.mockResolvedValue(projectMock);
     mockedAxios.mockResolvedValue({});
-    await expect(createProject('user', displayName, description, k8sName)).rejects.toThrow(
+    await expect(createProject(displayName, description, k8sName)).rejects.toThrow(
       `Unable to fully create your project. Ask a ${ODH_PRODUCT_NAME} admin for assistance.`,
     );
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
@@ -195,7 +195,7 @@ describe('createProject', () => {
 
     k8sCreateResourceMock.mockResolvedValue(projectMock);
     mockedAxios.mockRejectedValue(axiosError);
-    await expect(createProject('user', displayName, description, k8sName)).rejects.toThrow(
+    await expect(createProject(displayName, description, k8sName)).rejects.toThrow(
       axiosError.response?.data.message,
     );
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
@@ -207,7 +207,7 @@ describe('createProject', () => {
 
     k8sCreateResourceMock.mockResolvedValue(projectMock);
     mockedAxios.mockRejectedValue(new Error('error'));
-    await expect(createProject('user', displayName, description, k8sName)).rejects.toThrow('error');
+    await expect(createProject(displayName, description, k8sName)).rejects.toThrow('error');
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(mockedAxios).toHaveBeenCalledTimes(1);
     expect(mockedAxios).toHaveBeenCalledWith(`/api/namespaces/${k8sName}/0`);
@@ -215,7 +215,7 @@ describe('createProject', () => {
   it('should handle other errors from k8s', async () => {
     k8sCreateResourceMock.mockRejectedValue(new Error('error'));
 
-    await expect(createProject('user', displayName, description, k8sName)).rejects.toThrow('error');
+    await expect(createProject(displayName, description, k8sName)).rejects.toThrow('error');
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(mockedAxios).toHaveBeenCalledTimes(0);
   });

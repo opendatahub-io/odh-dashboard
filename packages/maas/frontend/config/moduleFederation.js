@@ -13,6 +13,10 @@ const moduleFederationConfig = {
       singleton: true,
       requiredVersion: deps['@patternfly/react-core'],
     },
+    // Must match the host singleton so k8sCreateResource uses the host AppInitSDK UtilsConfig
+    // (otherwise project create from federated remotes fails with "UtilsConfig reference has not been set").
+    '@openshift/dynamic-plugin-sdk': { singleton: true, requiredVersion: '*' },
+    '@openshift/dynamic-plugin-sdk-utils': { singleton: true, requiredVersion: '*' },
     '@odh-dashboard/internal': { singleton: true, requiredVersion: '*' },
     '@odh-dashboard/plugin-core': { singleton: true, requiredVersion: '*' },
     '@odh-dashboard/ui-core': { singleton: true, requiredVersion: '*' },
