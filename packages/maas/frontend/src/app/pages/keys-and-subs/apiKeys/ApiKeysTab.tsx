@@ -45,6 +45,7 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
     onSetPage,
     onPerPageSelect,
     onClearFilters,
+    statusSubscriptionDetails,
   } = pageState;
 
   const subscriptionOptions = React.useMemo(
@@ -60,7 +61,6 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
 
   const apiKeys = response.data;
   const hasMore = response.has_more;
-  const { subscriptionDetails } = response;
 
   const activeApiKeys = apiKeys.filter((apiKey) => apiKey.status === 'active');
 
@@ -115,7 +115,7 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
         <ApiKeysTable
           onRevokeApiKey={setRevokeApiKey}
           apiKeys={apiKeys}
-          subscriptionDetails={subscriptionDetails}
+          subscriptionDetails={statusSubscriptionDetails}
           isKeyInactive={isKeyInactive}
           hasMore={hasMore}
           page={page}

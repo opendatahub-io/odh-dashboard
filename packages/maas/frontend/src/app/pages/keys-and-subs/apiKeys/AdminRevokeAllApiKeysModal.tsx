@@ -25,8 +25,9 @@ import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { searchApiKeys, bulkRevokeApiKeys } from '~/app/api/api-keys';
 import { useNotification } from '~/app/hooks/useNotification';
+import { useKeysAndSubsContext } from '~/app/context/KeysAndSubsContext';
 import { isKeyInactive } from '~/app/utilities/apiKeys';
-import type { APIKey, SubscriptionDetail } from '~/app/types/api-key';
+import type { APIKey } from '~/app/types/api-key';
 import ApiKeyStatusLabel from '~/app/pages/keys-and-subs/apiKeys/ApiKeyStatusLabel';
 import {
   ApiKeyBulkRevokeMode,
@@ -49,12 +50,10 @@ type AdminRevokeAllApiKeysModalProps = {
 
 const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({ onClose }) => {
   const notification = useNotification();
+  const { statusSubscriptionDetails } = useKeysAndSubsContext();
   const [username, setUsername] = React.useState('');
   const [searchedUsername, setSearchedUsername] = React.useState('');
   const [apiKeys, setApiKeys] = React.useState<APIKey[]>([]);
-  const [subscriptionDetails, setSubscriptionDetails] = React.useState<
-    Record<string, SubscriptionDetail> | undefined
-  >();
   const [searching, setSearching] = React.useState(false);
   const [searchError, setSearchError] = React.useState<Error | undefined>();
   const [revoking, setRevoking] = React.useState(false);
@@ -96,11 +95,9 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
     try {
       const response = await searchApiKeys()({}, { filters: { username: trimmed } });
       setApiKeys(response.data);
-      setSubscriptionDetails(response.subscriptionDetails);
     } catch (err) {
       setSearchError(err instanceof Error ? err : new Error('Failed to search API keys'));
       setApiKeys([]);
-      setSubscriptionDetails(undefined);
     } finally {
       setSearching(false);
     }
@@ -241,7 +238,7 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
                     </Thead>
                     <Tbody>
                       {activeKeys.map((key) => {
-                        const inactive = isKeyInactive(key, subscriptionDetails);
+                        const inactive = isKeyInactive(key, statusSubscriptionDetails);
                         return (
                           <Tr key={key.id}>
                             <Td dataLabel="Name">{key.name}</Td>

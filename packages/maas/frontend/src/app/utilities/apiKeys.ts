@@ -1,15 +1,16 @@
 import { APIKey, APIKeyDisplayStatus, SubscriptionDetail } from '~/app/types/api-key';
+import type { MaaSSubscription, UserSubscription } from '~/app/types/subscriptions';
 
 /**
  * Determines whether an API key should be displayed as "inactive".
  *
  * A key is inactive when it has `active` status on the server but its
- * subscription no longer appears in the enrichment map returned alongside the
- * key list — meaning the subscription was deleted or is otherwise unavailable.
+ * subscription no longer appears in the enrichment map — meaning the
+ * subscription was deleted or is otherwise unavailable.
  *
- * When `subscriptionDetails` is `undefined` (enrichment was not returned at
- * all, e.g. due to a transient fetch failure), no key is classified as
- * inactive so we avoid false positives.
+ * When `subscriptionDetails` is `undefined` (existence map not loaded yet, or
+ * a transient fetch failure), no key is classified as inactive so we avoid
+ * false positives.
  */
 export const isKeyInactive = (
   key: APIKey,
@@ -19,6 +20,37 @@ export const isKeyInactive = (
   !!key.subscription &&
   subscriptionDetails != null &&
   !(key.subscription in subscriptionDetails);
+
+/** Build the inactive-check map from MaaS API "my subscriptions" (non-admin). */
+export const subscriptionDetailsFromUserSubscriptions = (
+  subscriptions: UserSubscription[],
+): Record<string, SubscriptionDetail> => {
+  const details: Record<string, SubscriptionDetail> = {};
+  for (const sub of subscriptions) {
+    details[sub.subscription_id_header] = {
+      displayName: sub.display_name ?? sub.subscription_id_header,
+      models: sub.model_refs.map((ref) => ref.display_name || ref.name),
+    };
+  }
+  return details;
+};
+
+/**
+ * Build the inactive-check map from K8s-backed all-subscriptions (admin).
+ * Keyed by CR name, which matches `APIKey.subscription`.
+ */
+export const subscriptionDetailsFromMaaSSubscriptions = (
+  subscriptions: MaaSSubscription[],
+): Record<string, SubscriptionDetail> => {
+  const details: Record<string, SubscriptionDetail> = {};
+  for (const sub of subscriptions) {
+    details[sub.name] = {
+      displayName: sub.displayName ?? sub.name,
+      models: sub.modelRefs.map((ref) => ref.displayName || ref.name),
+    };
+  }
+  return details;
+};
 
 export type InactiveFilterResult = {
   data: APIKey[];

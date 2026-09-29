@@ -10,6 +10,7 @@ import {
   emptyApiKeyFilterData,
   APIKeyListResponse,
 } from '~/app/types/api-key';
+import type { SubscriptionDetail } from '~/app/types/api-key';
 import { ApiKeySortField } from '~/app/pages/keys-and-subs/apiKeys/allKeys/columns';
 import { applyInactiveFilter, isKeyInactive as isKeyInactiveUtil } from '~/app/utilities/apiKeys';
 import {
@@ -17,6 +18,7 @@ import {
   ApiKeysStatusFilterAppliedProperties,
   MaaSEvents,
 } from '~/app/types/event-tracking';
+import { useKeysAndSubsContext } from '~/app/context/KeysAndSubsContext';
 import { useFetchApiKeys } from './useFetchApiKeys';
 
 type SortDirection = 'asc' | 'desc';
@@ -32,6 +34,8 @@ export type UseApiKeysTableStateReturn = {
   refresh: () => void;
   filterData: ApiKeyFilterDataType;
   isKeyInactive: (key: APIKey) => boolean;
+  /** Client-built map for inactive checks and table enrichment (admin: all subs). */
+  statusSubscriptionDetails: Record<string, SubscriptionDetail> | undefined;
   localUsername: string;
   setLocalUsername: React.Dispatch<React.SetStateAction<string>>;
   page: number;
@@ -96,9 +100,11 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
 
   const [rawResponse, loaded, error, refresh] = useFetchApiKeys(searchRequest);
 
+  const { statusSubscriptionDetails } = useKeysAndSubsContext();
+
   const isKeyInactive = React.useCallback(
-    (key: APIKey): boolean => isKeyInactiveUtil(key, rawResponse.subscriptionDetails),
-    [rawResponse.subscriptionDetails],
+    (key: APIKey): boolean => isKeyInactiveUtil(key, statusSubscriptionDetails),
+    [statusSubscriptionDetails],
   );
 
   const { data: filteredData } = React.useMemo(
@@ -209,6 +215,7 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
     refresh,
     filterData,
     isKeyInactive,
+    statusSubscriptionDetails,
     localUsername,
     setLocalUsername,
     page,
