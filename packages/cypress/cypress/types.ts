@@ -959,7 +959,7 @@ export enum PhaseStatus {
 
 export enum APIFormat {
   OPENAI_CHAT = 'OpenAI Chat',
-  MESSAGES = 'Anthropic Messsages',
+  MESSAGES = 'Anthropic Messages',
 }
 
 export enum Path {

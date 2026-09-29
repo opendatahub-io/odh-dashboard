@@ -2257,17 +2257,6 @@ class AddProviderReferenceWizard extends ProviderReferenceModalBase {
     this.findAddButton().click();
     this.shouldBeOpen(false);
   }
-
-  addProviderConfigPair(index: number, key: string, value: string): void {
-    this.expandAdvancedSettings();
-    this.findAddConfigurationPairButton().scrollIntoView().should('be.visible').click();
-    this.find()
-      .findByTestId(`provider-config-key-${index}`)
-      .type(key, { parseSpecialCharSequences: false });
-    this.find()
-      .findByTestId(`provider-config-value-${index}`)
-      .type(value, { parseSpecialCharSequences: false });
-  }
 }
 
 class EditProviderReferenceModal extends ProviderReferenceModalBase {

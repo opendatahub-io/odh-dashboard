@@ -79,6 +79,7 @@ let subscriptionName: string;
 let subscriptionDescription: string;
 let policiesName: string;
 let apiKeyName: string;
+let setupComplete = false;
 const CLIPBOARD_WRITE_TEXT_STUB_ALIAS = 'clipboardWriteText';
 describe('An admin can create, edit and delete external models and providers and create Subscriptions and Policies and inference services for external models.', () => {
   retryableBefore(() => {
@@ -136,10 +137,14 @@ describe('An admin can create, edit and delete external models and providers and
         cy.log(`Create a Secret for the External Provider`);
         createExternalProviderSecret(projectName, existingSecretName);
         checkSecretExists(projectName, existingSecretName);
+        setupComplete = true;
       });
   });
 
   after(() => {
+    if (!setupComplete) {
+      return;
+    }
     ensureAdminOcSession();
     cleanupApiKeys(apiKeyName);
     cleanupSubscription(subscriptionName, modelsAsAServiceNamespace);
