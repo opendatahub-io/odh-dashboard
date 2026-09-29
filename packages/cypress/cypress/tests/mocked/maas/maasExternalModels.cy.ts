@@ -666,6 +666,7 @@ describe('External Models Page', () => {
 
       cy.url().should('include', `/ai-hub/models/deployments/external/${TEST_PROJECT}`);
       cy.url().should('not.include', '/register');
+      externalModelsPage.findMaaSPublishedPostDeployAlert().should('be.visible');
     });
   });
 });
@@ -838,5 +839,8 @@ describe('Edit External Model Page', () => {
 
     cy.url().should('include', `/ai-hub/models/deployments/external/${TEST_PROJECT}`);
     cy.url().should('not.include', '/edit');
+
+    // don't show the alert again on edit since external models are always MaaS
+    externalModelsPage.findMaaSPublishedPostDeployAlert().should('not.exist');
   });
 });

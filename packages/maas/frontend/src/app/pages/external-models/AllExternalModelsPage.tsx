@@ -7,6 +7,10 @@ import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import { useExternalModelsNamespace } from '~/app/hooks/useExternalModelsNamespace';
 import { ExternalModelDeletedProperties, MaaSEvents } from '~/app/types/event-tracking';
 import { convertStringToPhaseStatus } from '~/app/utilities/phaseLabelUtils';
+import {
+  MAAS_PUBLISHED_EXTERNAL_ALERT_ID,
+  MaaSPublishedPostDeployAlert,
+} from '~/odh/modelServingExtensions/MaaSPublishedPostDeployAlert';
 import EmptyExternalModelsPage from './EmptyExternalModelsPage';
 import NoProjectsPage from './NoProjectsPage';
 import {
@@ -80,23 +84,26 @@ const AllExternalModelsPage: React.FC = () => {
         data-testid="all-external-models-page"
       >
         {!noProjects && resolvedNamespace && externalModelsLoaded && !externalModelsError && (
-          <ExternalModelsTable
-            externalModels={filteredExternalModels}
-            onClearFilters={onClearFilters}
-            setDeleteExternalModel={setDeleteExternalModel}
-            toolbarContent={
-              <ExternalModelsToolBar
-                namespace={resolvedNamespace}
-                filterData={filterData}
-                onFilterUpdate={onFilterUpdate}
-              />
-            }
-            emptyTableView={
-              filterData[ExternalModelsFilterOptions.keyword] ? undefined : (
-                <EmptyExternalModelsPage namespace={resolvedNamespace} />
-              )
-            }
-          />
+          <>
+            <MaaSPublishedPostDeployAlert alertId={MAAS_PUBLISHED_EXTERNAL_ALERT_ID} />
+            <ExternalModelsTable
+              externalModels={filteredExternalModels}
+              onClearFilters={onClearFilters}
+              setDeleteExternalModel={setDeleteExternalModel}
+              toolbarContent={
+                <ExternalModelsToolBar
+                  namespace={resolvedNamespace}
+                  filterData={filterData}
+                  onFilterUpdate={onFilterUpdate}
+                />
+              }
+              emptyTableView={
+                filterData[ExternalModelsFilterOptions.keyword] ? undefined : (
+                  <EmptyExternalModelsPage namespace={resolvedNamespace} />
+                )
+              }
+            />
+          </>
         )}
         {deleteExternalModel && (
           <DeleteExternalModelModal

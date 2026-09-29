@@ -1903,6 +1903,10 @@ class ExternalModelsPage {
   findAddExternalModelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('add-external-model-button');
   }
+
+  findMaaSPublishedPostDeployAlert() {
+    return cy.findByTestId('maas-published-post-deploy-alert');
+  }
 }
 
 class ProviderRefTableRow extends Contextual<HTMLElement> {
