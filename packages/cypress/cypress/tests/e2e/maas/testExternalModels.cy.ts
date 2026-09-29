@@ -81,7 +81,7 @@ let policiesName: string;
 let apiKeyName: string;
 let setupComplete = false;
 const CLIPBOARD_WRITE_TEXT_STUB_ALIAS = 'clipboardWriteText';
-describe('An admin can create, edit and delete external models and providers and create Subscriptions and Policies and inference services for external models.', () => {
+describe('An admin can create, edit and delete External Models and Providers and manage Subscriptions and Policies and inference services for External Models.', () => {
   retryableBefore(() => {
     cy.log('Loading external model test data');
     return loadExternalModelFixture('e2e/maas/testExternalModels.yaml')

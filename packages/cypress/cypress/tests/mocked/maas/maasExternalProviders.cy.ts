@@ -446,14 +446,14 @@ describe('External providers', () => {
         .contains('Credential secret is required: error status;')
         .should('exist');
       createExternalProviderModal.findSubmitButton().should('be.disabled');
-      createExternalProviderModal.findSecretNameInput().type('secret-Name');
+      createExternalProviderModal.findSecretNameInput().type('secret-name');
       // Clear Secret Value
       createExternalProviderModal.findSecretValueInput().type('API-Key');
       createExternalProviderModal.findSecretValueInput().clear();
       createExternalProviderModal.findSecretValueInput().blur();
       createExternalProviderModal
         .find()
-        .contains('Secret value is required: error status;')
+        .contains('API key value is required when creating a new secret: error status;')
         .should('exist');
       createExternalProviderModal.findSubmitButton().should('be.disabled');
       createExternalProviderModal.findSecretValueInput().type('API-Key');
