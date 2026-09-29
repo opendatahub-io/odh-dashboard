@@ -14,7 +14,7 @@ import { GUARDRAIL_ERROR_CODES } from '~/app/Chatbot/const';
 import { getDocumentAttachmentTypeLabel } from '~/app/Chatbot/documentAttachmentUtils';
 import RhUiResourceIcon from '~/app/bgimages/rh-ui-resource-icon.svg';
 import './ChatbotMessagesList.scss';
-import * as styles from './components/ChatbotMessageInput.module.scss';
+import './components/ChatbotMessageInput.scss';
 
 type ChatbotMessagesListProps = {
   messageList: ChatbotMessageProps[];
@@ -104,16 +104,17 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
         const extraContent: PFMessageProps['extraContent'] = { ...messageExtraContent };
 
         if (message.role === 'user' && (documentAttachments?.length || attachmentWarning)) {
-          extraContent.endContent = (
-            <>
-              {documentAttachments && (
+          if (documentAttachments?.length) {
+            extraContent.beforeMainContent = (
+              <>
+                {extraContent.beforeMainContent}
                 <Flex flexWrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
                   {documentAttachments.map((attachment) => (
                     <Label
                       key={attachment.file_id}
-                      className={styles.documentAttachment}
+                      className="gen-ai-chatbot-document-attachment"
                       icon={
-                        <span className={styles.icon}>
+                        <span className="gen-ai-chatbot-icon">
                           <img src={RhUiResourceIcon} alt="" />
                         </span>
                       }
@@ -121,23 +122,29 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
                       variant="outline"
                       data-testid={`sent-document-attachment-${attachment.file_id}`}
                     >
-                      <span className={styles.details}>
-                        <span className={styles.filename}>{attachment.filename}</span>
-                        <span className={styles.type}>
+                      <span className="gen-ai-chatbot-details">
+                        <span className="gen-ai-chatbot-filename">{attachment.filename}</span>
+                        <span className="gen-ai-chatbot-type">
                           {getDocumentAttachmentTypeLabel(attachment.filename)}
                         </span>
                       </span>
                     </Label>
                   ))}
                 </Flex>
-              )}
-              {attachmentWarning && (
+              </>
+            );
+          }
+
+          if (attachmentWarning) {
+            extraContent.endContent = (
+              <>
+                {extraContent.endContent}
                 <Alert variant="danger" isInline isPlain title="Model context window exceeded">
                   Model’s context window exceeded. Instead upload files to Settings → RAG.
                 </Alert>
-              )}
-            </>
-          );
+              </>
+            );
+          }
         }
 
         const isGuardrailViolation =

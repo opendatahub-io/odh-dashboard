@@ -336,6 +336,8 @@ describe('ChatbotMessages', () => {
 
     const sentAttachment = screen.getByTestId('sent-document-attachment-file-1');
     expect(sentAttachment).toHaveTextContent('PDF');
+    expect(screen.getByTestId('before-main-content')).toContainElement(sentAttachment);
+    expect(screen.queryByTestId('end-content')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /policy\.pdf/i }));
 
     expect(onViewDocument).toHaveBeenCalledWith(attachment);

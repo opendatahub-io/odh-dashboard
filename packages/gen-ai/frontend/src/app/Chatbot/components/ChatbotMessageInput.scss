@@ -1,4 +1,4 @@
-.documentAttachments {
+.gen-ai-chatbot-document-attachments {
   padding-top: var(--pf-t--global--spacer--md);
   position: relative;
 
@@ -12,7 +12,7 @@
   }
 }
 
-.documentAttachment:global(.pf-v6-c-label) {
+.gen-ai-chatbot-document-attachment.pf-v6-c-label {
   --pf-v6-c-label--BackgroundColor: var(--pf-t--global--background--color--primary--default);
   --pf-v6-c-label--BorderColor: var(--pf-t--global--border--color--default);
   --pf-v6-c-label--BorderRadius: var(--pf-t--global--border--radius--small);
@@ -26,11 +26,11 @@
   max-inline-size: calc(var(--pf-t--global--spacer--2xl) * 6.625);
 }
 
-.staged {
+.gen-ai-chatbot-staged {
   --pf-v6-c-label--PaddingInlineEnd: var(--pf-t--global--spacer--lg);
 }
 
-.icon {
+.gen-ai-chatbot-icon {
   align-items: center;
   background-color: var(--pf-t--global--icon--color--status--custom--default);
   block-size: var(--pf-t--global--spacer--lg);
@@ -47,17 +47,17 @@
   }
 }
 
-.details {
+.gen-ai-chatbot-details {
   display: grid;
   gap: 0;
   text-align: left;
 }
 
-.filename {
+.gen-ai-chatbot-filename {
   font-size: var(--pf-t--global--font--size--sm);
 }
 
-.type {
+.gen-ai-chatbot-type {
   color: var(--pf-t--global--text--color--subtle);
   font-size: var(--pf-t--global--font--size--xs);
   font-weight: var(--pf-t--global--font--weight--body--bold);

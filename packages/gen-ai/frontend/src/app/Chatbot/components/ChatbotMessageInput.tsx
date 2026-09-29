@@ -26,7 +26,7 @@ import { AudioTranscriptionState } from '~/app/Chatbot/hooks/useAudioTranscripti
 import { getDocumentAttachmentTypeLabel } from '~/app/Chatbot/documentAttachmentUtils';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 import RhUiResourceIcon from '~/app/bgimages/rh-ui-resource-icon.svg';
-import * as styles from './ChatbotMessageInput.module.scss';
+import './ChatbotMessageInput.scss';
 
 export interface ImageUploadState {
   uploading: boolean;
@@ -436,7 +436,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
       )}
       {isDocumentUploading && (
         <Flex
-          className={`${styles.documentAttachments} pf-v6-u-w-100 pf-v6-u-pb-sm`}
+          className="gen-ai-chatbot-document-attachments pf-v6-u-w-100 pf-v6-u-pb-sm"
           alignItems={{ default: 'alignItemsCenter' }}
           justifyContent={{ default: 'justifyContentCenter' }}
           gap={{ default: 'gapSm' }}
@@ -454,7 +454,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
       {documentAttachments.length > 0 && (
         <>
           <Flex
-            className={`${styles.documentAttachments} pf-v6-u-w-100 pf-v6-u-pb-sm pf-v6-u-pl-lg`}
+            className="gen-ai-chatbot-document-attachments pf-v6-u-w-100 pf-v6-u-pb-sm pf-v6-u-pl-lg"
             flexWrap={{ default: 'wrap' }}
             gap={{ default: 'gapSm' }}
             aria-busy={isAudioActive || isDocumentUploading}
@@ -462,9 +462,9 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
             {documentAttachments.map((attachment) => (
               <Label
                 key={attachment.file_id}
-                className={`${styles.documentAttachment} ${styles.staged}`}
+                className="gen-ai-chatbot-document-attachment gen-ai-chatbot-staged"
                 icon={
-                  <span className={styles.icon}>
+                  <span className="gen-ai-chatbot-icon">
                     <img src={RhUiResourceIcon} alt="" />
                   </span>
                 }
@@ -473,9 +473,9 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
                 variant="outline"
                 data-testid={`document-attachment-${attachment.file_id}`}
               >
-                <span className={styles.details}>
-                  <span className={styles.filename}>{attachment.filename}</span>
-                  <span className={styles.type}>
+                <span className="gen-ai-chatbot-details">
+                  <span className="gen-ai-chatbot-filename">{attachment.filename}</span>
+                  <span className="gen-ai-chatbot-type">
                     {getDocumentAttachmentTypeLabel(attachment.filename)}
                   </span>
                 </span>
