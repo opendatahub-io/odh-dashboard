@@ -145,6 +145,7 @@ export {
   HuggingFaceApiKeyField,
   huggingFaceApiKeyFieldSchema,
   isHuggingFaceApiKeyConfigured,
+  shouldAttachHfTokenOwnerRefs,
   requiredHuggingFaceApiKeySchema,
   useHuggingFaceApiKeyField,
   type HuggingFaceApiKeyFieldData,

@@ -694,6 +694,21 @@ func (kc *TokenKubernetesClient) GetConfigMap(ctx context.Context, identity *int
 	return configMap, nil
 }
 
+// GetDashboardConfigMap reads dashboard-managed, non-secret configuration through the
+// dashboard service account. It falls back to the request client for local development.
+func (kc *TokenKubernetesClient) GetDashboardConfigMap(ctx context.Context, namespace string, name string) (*corev1.ConfigMap, error) {
+	reader := kc.SAClient
+	if reader == nil {
+		reader = kc.Client
+	}
+
+	configMap := &corev1.ConfigMap{}
+	if err := reader.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, configMap); err != nil {
+		return nil, fmt.Errorf("failed to get dashboard ConfigMap %s/%s: %w", namespace, name, err)
+	}
+	return configMap, nil
+}
+
 // ValidatedVectorStore pairs a VectorIOProvider with its associated RegisteredVectorStore
 // after they have been correlated by provider_id from the gen-ai-aa-vector-stores ConfigMap.
 type ValidatedVectorStore struct {
@@ -2406,16 +2421,11 @@ func requiresPassthroughProvider(model models.InstallModel) bool {
 	}
 }
 
-// GetExternalModelsConfig retrieves and parses the gen-ai-aa-custom-model-endpoints ConfigMap
+// GetExternalModelsConfig retrieves and parses the user-managed
+// gen-ai-aa-custom-model-endpoints ConfigMap using the request-scoped client.
 func (kc *TokenKubernetesClient) GetExternalModelsConfig(ctx context.Context, namespace string) (*models.ExternalModelsConfig, error) {
-	// Get the ConfigMap
-	configMap := &corev1.ConfigMap{}
-	configMapName := types.NamespacedName{
-		Name:      constants.ExternalModelsConfigMapName,
-		Namespace: namespace,
-	}
-
-	if err := kc.Client.Get(ctx, configMapName, configMap); err != nil {
+	configMap, err := kc.GetConfigMap(ctx, nil, namespace, constants.ExternalModelsConfigMapName)
+	if err != nil {
 		return nil, err
 	}
 

@@ -20,6 +20,10 @@ class InfrastructurePage {
     return cy.findByTestId('infrastructure-tab-quota-usage');
   }
 
+  findWorkloadsTab() {
+    return cy.findByTestId('infrastructure-tab-workloads');
+  }
+
   switchToQuotaUsageTab() {
     this.findQuotaUsageTab().click();
     return this;
@@ -350,6 +354,7 @@ class InfrastructurePage {
   }
 
   private wait() {
+    cy.findByTestId('infrastructure-tab-utilization').should('exist');
     this.shouldHavePageTitle();
     cy.testA11y();
   }

@@ -173,6 +173,10 @@ type EnvConfig struct {
 	// Injected by the operator via RELATED_IMAGE_POSTGRESQL_16_IMAGE.
 	PgvectorImage string
 
+	// OGXCoreImage is the container image for the OGX core agent runtime.
+	// Injected by the operator via RELATED_IMAGE_ODH_OGX_CORE_IMAGE.
+	OGXCoreImage string
+
 	// ─── GATEWAY ───────────────────────────────────────────────
 	// GatewayDomain is the external domain of the OpenShift Gateway/Route used to
 	// reach the BFF from user namespaces. Used to construct the base_url for the
