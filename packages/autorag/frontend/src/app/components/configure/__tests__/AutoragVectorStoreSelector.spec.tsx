@@ -12,9 +12,15 @@ let mockVectorRefresh: () => Promise<SecretListItem[] | undefined> = async () =>
 
 jest.mock('~/app/components/common/VectorDbConnectionModal', () => ({
   __esModule: true,
-  default: ({ onSubmit }: { onSubmit: (name: string) => Promise<void> }) => {
+  default: ({
+    onSubmit,
+    initialProvider,
+  }: {
+    onSubmit: (name: string) => Promise<void>;
+    initialProvider: string;
+  }) => {
     mockVectorModalOnSubmit = onSubmit;
-    return <div data-testid="vector-db-modal" />;
+    return <div data-testid="vector-db-modal" data-initial-provider={initialProvider} />;
   },
 }));
 
@@ -94,6 +100,21 @@ describe('AutoragVectorStoreSelector', () => {
     );
   });
 
+  it('should render labeled, non-required RAG template radios with descriptions', () => {
+    render(
+      <FormWrapper>
+        <AutoragVectorStoreSelector />
+      </FormWrapper>,
+    );
+
+    expect(screen.getByRole('radiogroup', { name: 'RAG template' })).toBeInTheDocument();
+    expect(screen.getByTestId('autorag-rag-mode-simple')).toHaveAccessibleName('Simple RAG');
+    expect(screen.getByTestId('autorag-rag-mode-graph')).toHaveAccessibleName('Graph RAG');
+    expect(screen.getByText('Uses a Milvus or PGVector database connection.')).toBeInTheDocument();
+    expect(screen.getByText('Uses a Neo4j database connection.')).toBeInTheDocument();
+    expect(screen.getByText('RAG template').closest('label')).not.toHaveAttribute('for');
+  });
+
   it('should render an action to add a vector database connection', () => {
     render(
       <FormWrapper>
@@ -128,7 +149,7 @@ describe('AutoragVectorStoreSelector', () => {
     );
   });
 
-  it('should switch to Graph RAG and offer only Neo4j connections', async () => {
+  it('should switch to Graph RAG and open Neo4j creation directly', async () => {
     render(
       <FormWrapper>
         <AutoragVectorStoreSelector />
@@ -144,12 +165,12 @@ describe('AutoragVectorStoreSelector', () => {
       'data-secret-provider',
       'neo4j',
     );
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('add-database-dropdown-toggle'));
-    });
-    expect(screen.getByTestId('add-neo4j-connection-option')).toBeInTheDocument();
-    expect(screen.queryByTestId('add-milvus-connection-option')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('add-pgvector-connection-option')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('add-database-dropdown-toggle')).not.toBeInTheDocument();
+    expect(screen.getByTestId('add-database-connection-button')).toHaveTextContent(
+      'Add Neo4j connection',
+    );
+    fireEvent.click(screen.getByTestId('add-database-connection-button'));
+    expect(screen.getByTestId('vector-db-modal')).toHaveAttribute('data-initial-provider', 'neo4j');
   });
 
   it('should clear the database selection when changing RAG mode', () => {

@@ -226,7 +226,7 @@ describe('VectorDbConnectionModal', () => {
     );
   });
 
-  it('should render only providers allowed by the caller', () => {
+  it('should omit the provider selector when Neo4j is the only allowed provider', () => {
     render(
       <VectorDbConnectionModal
         namespace="test-namespace"
@@ -237,9 +237,12 @@ describe('VectorDbConnectionModal', () => {
       />,
     );
 
-    expect(screen.getByTestId('vector-db-provider-neo4j')).toBeChecked();
+    expect(screen.queryByTestId('vector-db-provider-neo4j')).not.toBeInTheDocument();
     expect(screen.queryByTestId('vector-db-provider-milvus')).not.toBeInTheDocument();
     expect(screen.queryByTestId('vector-db-provider-pgvector')).not.toBeInTheDocument();
+    expect(screen.queryByText('Vector database type')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Add Neo4j connection' })).toBeInTheDocument();
+    expect(screen.getByTestId('neo4j-uri-input')).toBeInTheDocument();
   });
 
   it('should reject Neo4j URIs without a hostname', () => {

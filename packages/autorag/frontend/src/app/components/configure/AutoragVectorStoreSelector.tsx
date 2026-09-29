@@ -2,6 +2,7 @@ import {
   Dropdown,
   DropdownItem,
   DropdownList,
+  Button,
   Flex,
   FlexItem,
   FormGroup,
@@ -56,31 +57,35 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({
       name="db_secret_name"
       render={({ field }) => (
         <>
-          <FormGroup fieldId="autorag-rag-mode" label="RAG template" isRequired>
-            <Radio
-              id="autorag-rag-mode-simple"
-              data-testid="autorag-rag-mode-simple"
-              name="autorag-rag-mode"
-              label="Simple RAG"
-              isChecked={mode === 'simple'}
-              onChange={() => {
-                setMode('simple');
-                setSelectedSecret(undefined);
-                field.onChange('');
-              }}
-            />
-            <Radio
-              id="autorag-rag-mode-graph"
-              data-testid="autorag-rag-mode-graph"
-              name="autorag-rag-mode"
-              label="Graph RAG"
-              isChecked={mode === 'graph'}
-              onChange={() => {
-                setMode('graph');
-                setSelectedSecret(undefined);
-                field.onChange('');
-              }}
-            />
+          <FormGroup label="RAG template">
+            <div role="radiogroup" aria-label="RAG template">
+              <Radio
+                id="autorag-rag-mode-simple"
+                data-testid="autorag-rag-mode-simple"
+                name="autorag-rag-mode"
+                label="Simple RAG"
+                description="Uses a Milvus or PGVector database connection."
+                isChecked={mode === 'simple'}
+                onChange={() => {
+                  setMode('simple');
+                  setSelectedSecret(undefined);
+                  field.onChange('');
+                }}
+              />
+              <Radio
+                id="autorag-rag-mode-graph"
+                data-testid="autorag-rag-mode-graph"
+                name="autorag-rag-mode"
+                label="Graph RAG"
+                description="Uses a Neo4j database connection."
+                isChecked={mode === 'graph'}
+                onChange={() => {
+                  setMode('graph');
+                  setSelectedSecret(undefined);
+                  field.onChange('');
+                }}
+              />
+            </div>
           </FormGroup>
           <Flex
             direction={{ default: 'column', md: 'row' }}
@@ -122,37 +127,50 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({
               />
             </FlexItem>
             <FlexItem>
-              <Dropdown
-                isOpen={isAddDropdownOpen}
-                onOpenChange={setIsAddDropdownOpen}
-                toggle={(toggleRef) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    variant="secondary"
-                    isExpanded={isAddDropdownOpen}
-                    isDisabled={form.formState.isSubmitting}
-                    splitButtonItems={[
-                      <MenuToggleAction
-                        key="add-database"
-                        className="pf-v6-u-text-nowrap"
-                        data-testid="add-database-connection-button"
-                        aria-label="Add new connection"
-                        onClick={() => {
-                          setModalProvider(mode === 'graph' ? 'neo4j' : 'milvus');
-                          setIsConnectionModalOpen(true);
-                        }}
-                      >
-                        Add new connection
-                      </MenuToggleAction>,
-                    ]}
-                    data-testid="add-database-dropdown-toggle"
-                    aria-label="Add database connection options"
-                    onClick={() => setIsAddDropdownOpen((open) => !open)}
-                  />
-                )}
-              >
-                <DropdownList>
-                  {mode === 'simple' && (
+              {mode === 'graph' ? (
+                <Button
+                  variant="secondary"
+                  className="pf-v6-u-text-nowrap"
+                  data-testid="add-database-connection-button"
+                  isDisabled={form.formState.isSubmitting}
+                  onClick={() => {
+                    setModalProvider('neo4j');
+                    setIsConnectionModalOpen(true);
+                  }}
+                >
+                  Add Neo4j connection
+                </Button>
+              ) : (
+                <Dropdown
+                  isOpen={isAddDropdownOpen}
+                  onOpenChange={setIsAddDropdownOpen}
+                  toggle={(toggleRef) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      variant="secondary"
+                      isExpanded={isAddDropdownOpen}
+                      isDisabled={form.formState.isSubmitting}
+                      splitButtonItems={[
+                        <MenuToggleAction
+                          key="add-database"
+                          className="pf-v6-u-text-nowrap"
+                          data-testid="add-database-connection-button"
+                          aria-label="Add new connection"
+                          onClick={() => {
+                            setModalProvider('milvus');
+                            setIsConnectionModalOpen(true);
+                          }}
+                        >
+                          Add new connection
+                        </MenuToggleAction>,
+                      ]}
+                      data-testid="add-database-dropdown-toggle"
+                      aria-label="Add database connection options"
+                      onClick={() => setIsAddDropdownOpen((open) => !open)}
+                    />
+                  )}
+                >
+                  <DropdownList>
                     <DropdownItem
                       data-testid="add-milvus-connection-option"
                       onClick={() => {
@@ -163,8 +181,6 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({
                     >
                       Add Milvus connection
                     </DropdownItem>
-                  )}
-                  {mode === 'simple' && (
                     <DropdownItem
                       data-testid="add-pgvector-connection-option"
                       onClick={() => {
@@ -175,21 +191,9 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({
                     >
                       Add PGVector connection
                     </DropdownItem>
-                  )}
-                  {mode === 'graph' && (
-                    <DropdownItem
-                      data-testid="add-neo4j-connection-option"
-                      onClick={() => {
-                        setModalProvider('neo4j');
-                        setIsConnectionModalOpen(true);
-                        setIsAddDropdownOpen(false);
-                      }}
-                    >
-                      Add Neo4j connection
-                    </DropdownItem>
-                  )}
-                </DropdownList>
-              </Dropdown>
+                  </DropdownList>
+                </Dropdown>
+              )}
             </FlexItem>
           </Flex>
           {isConnectionModalOpen && (

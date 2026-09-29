@@ -202,38 +202,40 @@ const VectorDbConnectionModal: React.FC<Props> = ({
       />
       <ModalBody>
         <Form>
-          <FormGroup fieldId="vector-db-provider" label="Vector database type" isRequired>
-            {allowedProviders.includes('milvus') && (
-              <Radio
-                id="vector-db-provider-milvus"
-                data-testid="vector-db-provider-milvus"
-                name="vector-db-provider"
-                label="Milvus"
-                isChecked={provider === 'milvus'}
-                onChange={() => handleProviderChange('milvus')}
-              />
-            )}
-            {allowedProviders.includes('neo4j') && (
-              <Radio
-                id="vector-db-provider-neo4j"
-                data-testid="vector-db-provider-neo4j"
-                name="vector-db-provider"
-                label="Neo4j"
-                isChecked={provider === 'neo4j'}
-                onChange={() => handleProviderChange('neo4j')}
-              />
-            )}
-            {allowedProviders.includes('pgvector') && (
-              <Radio
-                id="vector-db-provider-pgvector"
-                data-testid="vector-db-provider-pgvector"
-                name="vector-db-provider"
-                label="PGVector"
-                isChecked={provider === 'pgvector'}
-                onChange={() => handleProviderChange('pgvector')}
-              />
-            )}
-          </FormGroup>
+          {allowedProviders.length > 1 && (
+            <FormGroup fieldId="vector-db-provider" label="Vector database type" isRequired>
+              {allowedProviders.includes('milvus') && (
+                <Radio
+                  id="vector-db-provider-milvus"
+                  data-testid="vector-db-provider-milvus"
+                  name="vector-db-provider"
+                  label="Milvus"
+                  isChecked={provider === 'milvus'}
+                  onChange={() => handleProviderChange('milvus')}
+                />
+              )}
+              {allowedProviders.includes('neo4j') && (
+                <Radio
+                  id="vector-db-provider-neo4j"
+                  data-testid="vector-db-provider-neo4j"
+                  name="vector-db-provider"
+                  label="Neo4j"
+                  isChecked={provider === 'neo4j'}
+                  onChange={() => handleProviderChange('neo4j')}
+                />
+              )}
+              {allowedProviders.includes('pgvector') && (
+                <Radio
+                  id="vector-db-provider-pgvector"
+                  data-testid="vector-db-provider-pgvector"
+                  name="vector-db-provider"
+                  label="PGVector"
+                  isChecked={provider === 'pgvector'}
+                  onChange={() => handleProviderChange('pgvector')}
+                />
+              )}
+            </FormGroup>
+          )}
           <K8sNameDescriptionField
             dataTestId="vector-db-connection"
             data={nameDescData}
