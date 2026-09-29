@@ -108,11 +108,6 @@ jest.mock('../../components/QuotaUsageSection', () => ({
   default: () => <div data-testid="quota-usage" />,
 }));
 
-jest.mock('../../components/InfrastructureWorkloadsSection', () => ({
-  __esModule: true,
-  default: () => <div data-testid="infrastructure-workloads" />,
-}));
-
 const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
 const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
 const mockUseAccessAllowed = jest.mocked(useAccessAllowed);
@@ -166,7 +161,24 @@ describe('InfrastructurePage - Tracking Events', () => {
       expect(mockFireMisc).toHaveBeenCalledTimes(1);
     });
 
-    it('does not fire page-viewed when metrics are not loaded', () => {
+    it('fires page-viewed for non-admin users without metrics', async () => {
+      mockCurrentMetrics = { ...mockMetrics, loaded: false, refresh: mockRefresh };
+      mockUseAccessAllowed.mockReturnValue([false, true]);
+      render(<InfrastructurePage />);
+
+      await waitFor(() => {
+        expect(mockFireMisc).toHaveBeenCalledWith(
+          GPUAAS_EVENTS.PAGE_VIEWED,
+          expect.objectContaining({
+            path: '/observe-and-monitor/infrastructure',
+            sectionCount: 4,
+            hasKueueEnabled: true,
+          }),
+        );
+      });
+    });
+
+    it('does not fire page-viewed for admin users until metrics are loaded', () => {
       mockCurrentMetrics = { ...mockMetrics, loaded: false, refresh: mockRefresh };
       render(<InfrastructurePage />);
 

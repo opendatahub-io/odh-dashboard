@@ -174,7 +174,11 @@ const InfrastructurePage: React.FC = () => {
   }, []);
 
   React.useEffect(() => {
-    if (metrics.loaded && !hasTrackedPageView.current) {
+    if (
+      adminAccessLoaded &&
+      (!canAccessAdminTabs || metrics.loaded) &&
+      !hasTrackedPageView.current
+    ) {
       hasTrackedPageView.current = true;
       const totalAccelerators = metrics.accelerators?.total;
       const acceleratorsInUse = metrics.accelerators?.inUse;
@@ -194,6 +198,8 @@ const InfrastructurePage: React.FC = () => {
       fireMiscTrackingEvent(GPUAAS_EVENTS.PAGE_VIEWED, props);
     }
   }, [
+    adminAccessLoaded,
+    canAccessAdminTabs,
     metrics.loaded,
     metrics.accelerators,
     metrics.computeUtilization,
