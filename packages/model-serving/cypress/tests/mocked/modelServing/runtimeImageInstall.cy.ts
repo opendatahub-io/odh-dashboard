@@ -45,24 +45,6 @@ describe('Runtime image Install extension navigation', () => {
     runtimeImageInstallPage.findInstallButton().should('not.exist');
   });
 
-  it('should open install page even if no install target extension is available', () => {
-    asProductAdminUser();
-    initialize(true);
-    // TODO this is a placeholder, RHOAIENG-96642 will replace the install extension point on General Settings with one on the runtime library details page and we'll make the test go there
-    cy.visitWithLogin(
-      '/settings/model-resources-operations/model-deployment-settings/general-settings',
-    );
-    runtimeImageInstallPage.findInstallButton().should('exist').click();
-    cy.url().should('include', '/placeholder-runtime-library-details-page/install');
-    runtimeImageInstallPage.findServingRuntimeRadio().should('not.exist');
-    runtimeImageInstallPage.findAcceleratorRadio().should('not.exist');
-    runtimeImageInstallPage.findUnavailableMessage().should('exist');
-    runtimeImageInstallPage.findNext().should('not.exist');
-    cy.testA11y();
-  });
-
-  // TODO tests that open the install wizard with install target extensions available will be added in https://redhat.atlassian.net/browse/RHOAIENG-96639 and https://redhat.atlassian.net/browse/RHOAIENG-96640
-
   it('should not allow a non-admin user to open the route', () => {
     asProjectEditUser();
     initialize(true);
@@ -91,4 +73,6 @@ describe('Runtime image Install extension navigation', () => {
     runtimeImageInstallPage.findReturn().click();
     cy.url().should('include', '/general-settings');
   });
+
+  // TODO tests for step 2 of the wizard (covering the install target extensions) will be added in https://redhat.atlassian.net/browse/RHOAIENG-96639 and https://redhat.atlassian.net/browse/RHOAIENG-96640
 });
