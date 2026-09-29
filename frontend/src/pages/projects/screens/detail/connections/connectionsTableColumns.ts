@@ -44,7 +44,7 @@ export const getColumns = (
   {
     field: 'status',
     label: 'Status',
-    width: 15 as const,
+    width: 15,
     sortable: (a: Connection, b: Connection) => {
       const statusA =
         a.metadata.annotations[CONNECTION_TEST_ANNOTATIONS.STATUS] ||
