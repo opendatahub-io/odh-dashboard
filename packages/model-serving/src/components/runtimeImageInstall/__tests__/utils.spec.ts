@@ -1,6 +1,6 @@
 import type { RuntimeImageInstallTargetExtension } from '../../../../extension-points/runtime-image-install-target';
 import { isRuntimeImageInstallTargetExtension } from '../../../../extension-points/runtime-image-install-target';
-import { getAvailableInstallTargets, getUniqueInstallTarget } from '../utils';
+import { getAvailableInstallTargets, getMatchingInstallTarget } from '../utils';
 import { mockRuntimeImageActionData } from '../mockRuntimeImageActionData';
 
 const servingRuntimeTarget: RuntimeImageInstallTargetExtension = {
@@ -48,28 +48,34 @@ describe('install target discovery', () => {
     );
   });
 
-  it('should resolve only a single active matching target', () => {
-    expect(getUniqueInstallTarget([servingRuntimeTarget], 'servingRuntimeTemplate')).toBe(
+  it('should resolve the first active matching target', () => {
+    expect(getMatchingInstallTarget([servingRuntimeTarget], 'servingRuntimeTemplate')).toBe(
       servingRuntimeTarget,
     );
     expect(
-      getUniqueInstallTarget([servingRuntimeTarget], 'llmAcceleratorConfiguration'),
+      getMatchingInstallTarget([servingRuntimeTarget], 'llmAcceleratorConfiguration'),
     ).toBeUndefined();
     expect(
-      getUniqueInstallTarget(
+      getMatchingInstallTarget(
         [servingRuntimeTarget, servingRuntimeTarget],
         'servingRuntimeTemplate',
       ),
-    ).toBeUndefined();
+    ).toBe(servingRuntimeTarget);
   });
 
-  it('should include only unique active extensions with corresponding target data', () => {
+  it('should include the first active extension for each target with corresponding data', () => {
     expect(
       getAvailableInstallTargets(actionData, [servingRuntimeTarget, acceleratorTarget]),
     ).toEqual([servingRuntimeTarget]);
     expect(
+      getAvailableInstallTargets(mockRuntimeImageActionData(), [
+        servingRuntimeTarget,
+        acceleratorTarget,
+      ]),
+    ).toEqual([servingRuntimeTarget, acceleratorTarget]);
+    expect(
       getAvailableInstallTargets(actionData, [servingRuntimeTarget, servingRuntimeTarget]),
-    ).toEqual([]);
+    ).toEqual([servingRuntimeTarget]);
     expect(getAvailableInstallTargets(actionData, [acceleratorTarget])).toEqual([]);
   });
 });

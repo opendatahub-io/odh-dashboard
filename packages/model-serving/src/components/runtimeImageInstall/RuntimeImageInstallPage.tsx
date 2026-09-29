@@ -18,7 +18,7 @@ import { useExtensions } from '@odh-dashboard/plugin-core';
 import RuntimeImageInstallPageUnavailable from './RuntimeImageInstallPageUnavailable';
 import RuntimeImageInstallWizardConfigureStep from './RuntimeImageInstallWizardConfigureStep';
 import RuntimeImageInstallWizardTargetStep from './RuntimeImageInstallWizardTargetStep';
-import { getAvailableInstallTargets, getUniqueInstallTarget } from './utils';
+import { getAvailableInstallTargets, getMatchingInstallTarget } from './utils';
 import { GENERAL_SETTINGS_PATH } from './const';
 import type { PlaceholderRuntimeImageActionData } from './placeholder-types';
 import {
@@ -76,7 +76,7 @@ const InstallWizard: React.FC<{
   const installTargets = getAvailableInstallTargets(data, installTargetExtensions);
   const { cancelReturnRoute } = data;
   const [selected, setSelected] = React.useState<RuntimeImageInstallTargetId>();
-  const selectedTarget = selected ? getUniqueInstallTarget(installTargets, selected) : undefined;
+  const selectedTarget = selected ? getMatchingInstallTarget(installTargets, selected) : undefined;
   const targetData = selected ? data.deploymentResources[selected] : undefined;
 
   if (installTargets.length === 0) {
