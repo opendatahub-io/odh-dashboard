@@ -114,7 +114,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
     return (
       <DashboardContent
         dashboards={viewableDashboards}
-        projectNames={projects}
+        projects={projects}
         persesProxyBasePath={persesProxyBasePath}
         routeBasePath={routeBasePath}
         browserBasePath={browserBasePath}

@@ -23,7 +23,7 @@ import type { NamespaceOption } from '../utils/transformDashboardVariables';
 
 export type DashboardContentProps = {
   dashboards: DashboardResource[];
-  projectNames: NamespaceOption[];
+  projects: NamespaceOption[];
   persesProxyBasePath?: string;
   routeBasePath?: string;
   browserBasePath?: string;
@@ -35,7 +35,7 @@ export type DashboardContentProps = {
  */
 const DashboardContent: React.FC<DashboardContentProps> = ({
   dashboards,
-  projectNames,
+  projects,
   persesProxyBasePath,
   routeBasePath = BASE_PATH,
   browserBasePath = '',
@@ -66,9 +66,9 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
   const transformedDashboards = React.useMemo(
     () =>
       dashboards.map((dashboard) =>
-        transformNamespaceVariable(dashboard, projectNames, initialNamespaceValue),
+        transformNamespaceVariable(dashboard, projects, initialNamespaceValue),
       ),
-    [dashboards, projectNames, initialNamespaceValue],
+    [dashboards, projects, initialNamespaceValue],
   );
 
   // Find the active dashboard by name, defaulting to first dashboard

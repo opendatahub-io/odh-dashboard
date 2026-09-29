@@ -73,7 +73,7 @@ describe('DashboardContent', () => {
       >
         <DashboardContent
           dashboards={[dashboard]}
-          projectNames={[]}
+          projects={[]}
           persesProxyBasePath="/maas-consumer-portal/perses/api"
           routeBasePath="/observe-and-monitor/dashboard"
           browserBasePath="/maas-consumer-portal"
