@@ -5,7 +5,7 @@ import {
   k8sPatchResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { createPatchesFromDiff } from '@odh-dashboard/internal/api/k8sUtils';
+import { createPatchesFromDiff } from '@odh-dashboard/k8s-core/api/k8sUtils';
 import type {
   EnvironmentVariablesFieldData,
   RuntimeArgsFieldData,

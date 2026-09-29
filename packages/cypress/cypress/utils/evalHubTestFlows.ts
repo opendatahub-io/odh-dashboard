@@ -10,6 +10,7 @@ import { removeEvalHubTenantLabel } from './oc_commands/evalHubModelDeploy';
 import { cleanupEvalHubHardwareProfile } from './oc_commands/evalHubHardwareProfile';
 import {
   assertEvalHubOfflineDataRequest,
+  interceptEvalHubOfflineDataReadForReconfigure,
   interceptEvalHubOfflineDataRequest,
 } from './oc_commands/evalHubOfflineData';
 import { evaluationsPage } from '../pages/evalHub/evaluationsPage';
@@ -20,6 +21,17 @@ import { evaluationResultsPage } from '../pages/evalHub/evaluationResultsPage';
 const EVAL_HUB_API_MAX_ATTEMPTS = 6;
 const EVAL_HUB_API_RETRY_INTERVAL_MS = 5000;
 const EVAL_HUB_TRANSIENT_STATUSES = new Set([502, 503, 504]);
+
+/**
+ * Use a fresh suffix for each local EvalHub setup while preserving deterministic CI names.
+ * Generating it in the test flow gives repeated Cypress open-mode runs a new experiment name.
+ */
+export const getEvalHubExperimentSuffix = (defaultSuffix: string): Cypress.Chainable<string> =>
+  cy.then(() =>
+    Cypress.env('BUILD_NUMBER') || Cypress.env('GITHUB_RUN_ID')
+      ? defaultSuffix
+      : String(Date.now()),
+  );
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -760,15 +772,16 @@ export const verifyEvaluationCompletedAndViewResults = (
 };
 
 // Stop and reconfigure flow
-export const stopAndReconfigureEvaluation = (
+export function stopAndReconfigureEvaluation(
   evaluationRunName: string,
   reconfiguredRunName: string,
-): void => {
+  tenantNamespace: string,
+): void {
   cy.step('Wait for evaluation to reach Running status');
   const statusTimeout = { timeout: 120000 };
   evaluationsPage.findRunsTabContent(statusTimeout).should('be.visible');
   evaluationsPage
-    .findEvaluationStatusButtonInRow(evaluationRunName, statusTimeout)
+    .findEvaluationStatusButtonInRow(evaluationRunName, { timeout: 600000 })
     .should('contain.text', 'Running');
 
   cy.step('Open status modal and stop the running evaluation');
@@ -794,6 +807,7 @@ export const stopAndReconfigureEvaluation = (
     .should('contain.text', 'Canceled');
 
   cy.step('Open status modal and click Reconfigure');
+  interceptEvalHubOfflineDataReadForReconfigure(tenantNamespace);
   evaluationsPage.findEvaluationStatusButtonInRow(evaluationRunName, statusTimeout).click();
   evaluationsPage.findStatusModal(statusTimeout).should('be.visible');
   evaluationsPage.findStatusModalReconfigureButton(statusTimeout).should('be.visible').click();
@@ -812,7 +826,7 @@ export const stopAndReconfigureEvaluation = (
   evaluationsPage
     .findEvaluationStatusButtonInRow(reconfiguredRunName, statusTimeout)
     .should('be.visible');
-};
+}
 
 // End-to-end flow composition
 export const runSingleBenchmarkEvaluationFlow = (

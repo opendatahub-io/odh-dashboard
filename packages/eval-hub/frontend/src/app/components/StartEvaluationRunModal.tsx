@@ -573,6 +573,7 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
                     onChange={form.handleThresholdChange}
                     label="Benchmark threshold"
                     fieldId="benchmark-threshold"
+                    metric={form.primaryMetric}
                     isDisabled={isCloning}
                   />
                 ) : null}

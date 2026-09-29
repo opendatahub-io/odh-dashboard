@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { SUITE_EVALUATES_OPTIONS } from '~/app/pages/const';
+import { isPercentageMetric } from '~/app/utilities/evaluationUtils';
 
 export const copySuiteBenchmarkParameterTypeSchema = z.enum(['number', 'boolean', 'text']);
 export type CopySuiteBenchmarkParameterType = z.infer<typeof copySuiteBenchmarkParameterTypeSchema>;
@@ -56,19 +57,29 @@ export const getAdditionalParametersError = (
   return undefined;
 };
 
-export const copySuiteBenchmarkSchema = z.object({
-  id: z.string(),
-  providerId: z.string(),
-  name: z.string(),
-  weight: z.number(),
-  primaryMetric: z.string().optional(),
-  lowerIsBetter: z.boolean().optional(),
-  metricDirections: z.record(z.string(), z.boolean()).optional(),
-  parameters: z.array(copySuiteBenchmarkParameterSchema),
-  additionalParameters: z.string().optional(),
-  threshold: z.number().min(0).max(100),
-  availableMetrics: z.array(z.string()),
-});
+export const copySuiteBenchmarkSchema = z
+  .object({
+    id: z.string(),
+    providerId: z.string(),
+    name: z.string(),
+    weight: z.number(),
+    primaryMetric: z.string().optional(),
+    lowerIsBetter: z.boolean().optional(),
+    metricDirections: z.record(z.string(), z.boolean()).optional(),
+    parameters: z.array(copySuiteBenchmarkParameterSchema),
+    additionalParameters: z.string().optional(),
+    threshold: z.number().min(0),
+    availableMetrics: z.array(z.string()),
+  })
+  .superRefine((benchmark, ctx) => {
+    if (isPercentageMetric(benchmark.primaryMetric) && benchmark.threshold > 100) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Percentage thresholds cannot exceed 100.',
+        path: ['threshold'],
+      });
+    }
+  });
 
 export const copySuiteSchema = z
   .object({

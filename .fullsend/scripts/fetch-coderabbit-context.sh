@@ -185,11 +185,13 @@ run_producer() {
     return 0
   fi
 
-  # Remote review: CodeRabbit's backend reads the PR content at head_sha itself.
+  # Remote review: CodeRabbit's backend reads the branch at head_sha itself.
   # Fork code is never fetched onto this runner, so it cannot reach the API key
   # through a fork-controlled .coderabbit.yaml / .coderabbit.config.ts (CWE-829).
+  # --deep uses the GitHub PR review capability policy (CLI 0.8+). Residual gap:
+  # this run is not PR-attached, so PR description/discussion context is absent.
   set +e
-  timeout 20m "${coderabbit_bin}" review --agent \
+  timeout 20m "${coderabbit_bin}" review --agent --deep \
     --remote "${repo_slug}" \
     --base "${base_ref}" \
     --source-branch "${head_sha}" \
@@ -317,6 +319,24 @@ run_self_test() {
   FULLSEND_ADAPTER_HEAD_SHA='not-a-sha' \
     run_producer
   jq -e '.status == "error" and .reason == "head-revision-invalid"' "${_OUT}" >/dev/null
+
+  # Successful remote path must opt into PR review policy (--deep) with --agent.
+  printf '%s\n' '#!/usr/bin/env bash' \
+    'printf "%s\0" "$@" > "${0}.argv"' \
+    'cat <<EOF' \
+    '{"type":"complete","status":"review_completed","outcome":"completed","findings":0,"unreviewedFileCount":0}' \
+    'EOF' > "${temp_dir}/recording-coderabbit"
+  chmod +x "${temp_dir}/recording-coderabbit"
+  FULLSEND_ADAPTER_TOKEN='test-token' \
+  FULLSEND_ADAPTER_BIN="${temp_dir}/recording-coderabbit" \
+  FULLSEND_ADAPTER_REPO='opendatahub-io/odh-dashboard' \
+  FULLSEND_ADAPTER_BASE_REF='main' \
+  FULLSEND_ADAPTER_HEAD_SHA="$(printf '0%.0s' {1..40})" \
+    run_producer
+  jq -e '.status == "ok" and (.findings | length == 0)' "${_OUT}" >/dev/null
+  tr '\0' '\n' < "${temp_dir}/recording-coderabbit.argv" | grep -qx -- '--agent'
+  tr '\0' '\n' < "${temp_dir}/recording-coderabbit.argv" | grep -qx -- '--deep'
+  tr '\0' '\n' < "${temp_dir}/recording-coderabbit.argv" | grep -qx -- '--remote'
   echo "PASS CodeRabbit context normalization"
 }
 

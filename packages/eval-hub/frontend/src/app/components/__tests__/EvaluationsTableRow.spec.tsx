@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router-dom';
 import { Table, Tbody } from '@patternfly/react-table';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
-import { EvaluationJob } from '~/app/types';
+import type { EvaluationJob } from '~/app/types';
 import EvaluationsTableRow from '~/app/components/EvaluationsTableRow';
 import { cancelEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
 
@@ -124,7 +124,13 @@ describe('EvaluationsTableRow', () => {
   });
 
   it('should enable the compare checkbox when evaluation is completed', () => {
-    renderRow({ state: 'completed' });
+    /* eslint-disable camelcase */
+    const job = mockEvaluationJob({ state: 'completed' });
+    job.resource.mlflow_experiment_id = 'experiment-1';
+    job.results.benchmarks = [{ id: 'default-benchmark', mlflow_run_id: 'run-1' }];
+    /* eslint-enable camelcase */
+
+    renderJob(job);
     expect(screen.getByTestId('evaluation-select-checkbox-0')).toBeEnabled();
   });
 

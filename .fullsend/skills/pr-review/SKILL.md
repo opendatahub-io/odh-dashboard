@@ -864,8 +864,7 @@ Do **not** include section payloads or context snapshots.
    not send the named section object through synthesis or challenger.
 
 **Stamp every collected finding with its producer.** As you take each array,
-set `dimension` on each of its findings to the registry id it came from —
-`correctness`, `style-review`, the `cli-adapter` id for an envelope, and so on.
+set `dimension` on each of its findings to the registry id it came from.
 For a finding you raise yourself in step 6e, use `orchestrator`. Do this at
 collect, where the provenance is still known; after synthesis merges arrays it
 is gone. The host renders a producer table from this: without it a reader
@@ -1434,13 +1433,13 @@ Every non-failure result must include:
 
   **A row may only claim `pass` or `fail` when a producer for it actually
   ran in this run.** Check the ledger (step 4c) before writing each row.
-  If the dimension that owns the row was skipped — `security` skipped at
-  triage, `jira-pr-review` skipped for a missing snapshot — the row is
-  `could-not-verify`, and its note says the dimension did not run and
-  why. "The security dimension ran and found no issues" when triage
-  skipped security is a false statement about the run, not a
-  conservative default; "no security review was performed for this
-  change" is the honest row. A dimension that was never dispatched
+  If the dimension that owns the row was skipped — e.g. a conditional
+  dimension skipped at triage, or a section dimension skipped for a
+  missing snapshot — the row is `could-not-verify`, and its note says
+  the dimension did not run and why. "The dimension ran and found no
+  issues" when triage skipped it is a false statement about the run,
+  not a conservative default; an honest row says no review was
+  performed. A dimension that was never dispatched
   cannot have found anything, with or without a scope constraint.
 - Optional `decision_needed` with a concrete question and structured A/B/None
   options when human judgment is required. Author-fixable blocking findings

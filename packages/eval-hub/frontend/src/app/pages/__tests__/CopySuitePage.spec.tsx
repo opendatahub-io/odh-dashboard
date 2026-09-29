@@ -689,6 +689,20 @@ describe('CopySuitePage', () => {
     expect(screen.getByTestId('copy-suite-next')).toBeDisabled();
   });
 
+  it('should require a category before continuing from both suite settings flows', () => {
+    mockUseCopySuiteForm.mockReturnValue(makeForm({ suiteDomains: [] }));
+    mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
+
+    const copyPage = renderPage();
+    expect(screen.getByTestId('copy-suite-next')).toBeDisabled();
+
+    copyPage.unmount();
+    mockUseFetchState.mockReturnValue([undefined, true, undefined, jest.fn()]);
+    renderCreatePage();
+
+    expect(screen.getByTestId('copy-suite-next')).toBeDisabled();
+  });
+
   it('should disable save actions when the form is invalid or submitting', () => {
     mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
     mockUseCopySuiteForm.mockReturnValue(makeForm({ isValid: false }));
