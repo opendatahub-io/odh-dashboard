@@ -31,7 +31,7 @@ import { deleteConnection, verifyConnection } from '~/app/api/dch';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useConnections } from '~/app/hooks/useConnections';
 import type { Connection } from '~/app/types';
-import emptyStateImage from '~/images/RH-API-Illustration-Gray_20-2024_07-RGB.svg';
+import emptyStateImage from '~/images/RHOAI-Noconnections-RGB.svg';
 
 type ConnectionsTabProps = { namespace: string; isActive?: boolean };
 
@@ -155,7 +155,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
 
   if (connections.length === 0) {
     return (
-      <PageSection isFilled hasBodyWrapper={false}>
+      <PageSection isFilled>
         <p className="pf-v6-u-mb-md">
           View and manage the data connections available in this project. This registry provides a
           structured way to store and configure namespace-scoped connections for use by catalog
