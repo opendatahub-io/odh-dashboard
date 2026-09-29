@@ -87,6 +87,9 @@ const parseReconfigureParameters = (params: Record<string, unknown>): Reconfigur
     if (!(key in params)) {
       continue;
     }
+    if (key === 'vector_db_secret_name' && 'db_secret_name' in params) {
+      continue;
+    }
     const schemaKey = key === 'vector_db_secret_name' ? 'db_secret_name' : key;
     const result = configureBase.shape[schemaKey].safeParse(params[key]);
     if (result.success) {
@@ -134,6 +137,10 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   const notification = useNotification();
   const params = pipelineRun?.runtime_config?.parameters;
   const isLegacyRun = hasLegacyRuntimeParameters(params);
+  const needsLegacyVectorDbLookup =
+    !!params &&
+    !hasNonEmptyString(params.db_secret_name) &&
+    hasNonEmptyString(params.vector_db_secret_name);
 
   const {
     data: storageSecrets,
@@ -154,6 +161,16 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     enabled: !!namespace && !isLegacyRun,
   });
   const {
+    data: legacyVectorDbSecrets,
+    isPending: legacyVectorDbSecretsPending,
+    isError: legacyVectorDbSecretsError,
+  } = useQuery({
+    queryKey: ['secrets', namespace, 'vector-db', 'legacy-reconfigure'],
+    queryFn: () => getSecrets('')(namespace ?? '', 'vector-db')({}),
+    enabled: !!namespace && !isLegacyRun && needsLegacyVectorDbLookup,
+  });
+
+  const {
     data: vectorDbSecrets,
     isPending: vectorDbSecretsPending,
     isError: vectorDbSecretsError,
@@ -162,6 +179,10 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     queryFn: () => getSecrets('')(namespace ?? '', 'database')({}),
     enabled: !!namespace && !isLegacyRun,
   });
+  const databaseSecrets = React.useMemo(
+    () => [...(vectorDbSecrets ?? []), ...(legacyVectorDbSecrets ?? [])],
+    [legacyVectorDbSecrets, vectorDbSecrets],
+  );
 
   const parsedParams = React.useMemo(
     () => (params == null ? undefined : parseReconfigureParameters(params)),
@@ -176,8 +197,13 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   });
 
   React.useEffect(() => {
+    if (!isLegacyRun && needsLegacyVectorDbLookup && legacyVectorDbSecretsPending) {
+      return;
+    }
     if (
-      (storageSecretsError || (!isLegacyRun && (maasSecretsError || vectorDbSecretsError))) &&
+      (storageSecretsError ||
+        (!isLegacyRun &&
+          (maasSecretsError || vectorDbSecretsError || legacyVectorDbSecretsError))) &&
       !shownWarnings.current.secretsLoadError
     ) {
       shownWarnings.current.secretsLoadError = true;
@@ -186,7 +212,16 @@ function AutoragReconfigureLoader(): React.JSX.Element {
         'The previously used connection secrets could not be loaded. You will need to manually select connection secrets.',
       );
     }
-  }, [isLegacyRun, storageSecretsError, maasSecretsError, vectorDbSecretsError, notification]);
+  }, [
+    isLegacyRun,
+    legacyVectorDbSecretsError,
+    legacyVectorDbSecretsPending,
+    maasSecretsError,
+    needsLegacyVectorDbLookup,
+    notification,
+    storageSecretsError,
+    vectorDbSecretsError,
+  ]);
 
   React.useEffect(() => {
     if ((isLegacyRun || parsedParams?.hasInvalidFields) && !shownWarnings.current.parseError) {
@@ -219,6 +254,9 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   );
 
   React.useEffect(() => {
+    if (!isLegacyRun && needsLegacyVectorDbLookup && legacyVectorDbSecretsPending) {
+      return;
+    }
     if (!isLegacyRun) {
       warnMissingSecret(
         params?.input_data_secret_name,
@@ -229,12 +267,21 @@ function AutoragReconfigureLoader(): React.JSX.Element {
       warnMissingSecret(params?.maas_secret_name, maasSecrets, 'maasMissing', 'MaaS');
       warnMissingSecret(
         params?.db_secret_name ?? params?.vector_db_secret_name,
-        vectorDbSecrets,
+        databaseSecrets,
         'databaseMissing',
         'database',
       );
     }
-  }, [isLegacyRun, params, storageSecrets, maasSecrets, vectorDbSecrets, warnMissingSecret]);
+  }, [
+    databaseSecrets,
+    isLegacyRun,
+    legacyVectorDbSecretsPending,
+    maasSecrets,
+    needsLegacyVectorDbLookup,
+    params,
+    storageSecrets,
+    warnMissingSecret,
+  ]);
 
   const invalidPipelineRunId =
     pipelineRunError &&
@@ -274,7 +321,10 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     !namespacesLoaded ||
     pipelineRunPending ||
     storageSecretsPending ||
-    (!isLegacyRun && (maasSecretsPending || vectorDbSecretsPending))
+    (!isLegacyRun &&
+      (maasSecretsPending ||
+        vectorDbSecretsPending ||
+        (needsLegacyVectorDbLookup && legacyVectorDbSecretsPending)))
   ) {
     return (
       <Bullseye>
@@ -296,7 +346,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
       : undefined;
   const initialDatabaseSecret =
     typeof databaseSecretName === 'string'
-      ? vectorDbSecrets?.find((secret) => secret.name === databaseSecretName)
+      ? databaseSecrets.find((secret) => secret.name === databaseSecretName)
       : undefined;
 
   const resolvedInputSecret = initialInputDataSecret
@@ -346,6 +396,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
       initialDatabaseSecret={
         initialDatabaseSecret ? { ...initialDatabaseSecret, invalid: false } : undefined
       }
+      preserveInitialDatabaseSecret={needsLegacyVectorDbLookup}
       sourceRunId={runId}
       sourceRunName={pipelineRun.display_name}
     />

@@ -162,6 +162,77 @@ describe('SecretSelector', () => {
       expect(screen.getByText('ogx-secret-1')).toBeInTheDocument();
     });
 
+    it('should exclude mixed database credentials from provider-filtered results', () => {
+      const databaseSecrets: SecretListItem[] = [
+        {
+          uuid: 'milvus',
+          name: 'milvus-secret',
+          data: { MILVUS_URI: 'https://milvus.example.com' },
+        },
+        {
+          uuid: 'neo4j',
+          name: 'neo4j-secret',
+          data: { NEO4J_URI: 'neo4j://neo4j.example.com' },
+        },
+        {
+          uuid: 'mixed',
+          name: 'mixed-secret',
+          data: {
+            MILVUS_URI: 'https://milvus.example.com',
+            NEO4J_URI: 'neo4j://neo4j.example.com',
+          },
+        },
+      ];
+      mockUseFetchState.mockReturnValue([databaseSecrets, true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          value={undefined}
+          onChange={mockOnChange}
+          type="database"
+          allowedProviders={['neo4j']}
+          dataTestId="test-selector"
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('test-selector'));
+      expect(screen.getByText('neo4j-secret')).toBeInTheDocument();
+      expect(screen.queryByText('milvus-secret')).not.toBeInTheDocument();
+      expect(screen.queryByText('mixed-secret')).not.toBeInTheDocument();
+    });
+
+    it('should preserve a resolved legacy mixed selection without offering it as a new option', () => {
+      const mixedSecret: SecretListItem = {
+        uuid: 'mixed',
+        name: 'mixed-secret',
+        data: {
+          MILVUS_URI: 'https://milvus.example.com',
+          NEO4J_URI: 'neo4j://neo4j.example.com',
+        },
+      };
+      mockUseFetchState.mockReturnValue([[mixedSecret], true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          valueName="mixed-secret"
+          onChange={mockOnChange}
+          type="vector-db"
+          allowedProviders={['milvus', 'pgvector']}
+          preserveSelectedValue
+          dataTestId="test-selector"
+        />,
+      );
+
+      expect(screen.getByTestId('test-selector')).toHaveTextContent('mixed-secret');
+      fireEvent.click(screen.getByTestId('test-selector'));
+      const mixedOption = screen.getByTestId('test-selector-option-mixed-secret');
+      expect(mixedOption).toBeInTheDocument();
+      fireEvent.click(mixedOption);
+      expect(mockOnChange).not.toHaveBeenCalledWith(undefined);
+    });
+
     it('should not display type labels by default', () => {
       mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
 

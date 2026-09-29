@@ -26,11 +26,15 @@ import {
 
 type Props = {
   initialSecret?: SecretSelection;
+  preserveInitialSelection?: boolean;
 };
 
 type RagMode = 'simple' | 'graph';
 
-const AutoragVectorStoreSelector: React.FC<Props> = ({ initialSecret }) => {
+const AutoragVectorStoreSelector: React.FC<Props> = ({
+  initialSecret,
+  preserveInitialSelection = false,
+}) => {
   const { namespace = '' } = useParams();
   const initialProvider = getVectorStoreProviderTypeFromSecretData(initialSecret?.data);
   const [mode, setMode] = React.useState<RagMode>(initialProvider === 'neo4j' ? 'graph' : 'simple');
@@ -92,6 +96,7 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({ initialSecret }) => {
                 type={mode === 'graph' ? 'database' : 'vector-db'}
                 provider={mode === 'graph' ? 'neo4j' : undefined}
                 allowedProviders={mode === 'graph' ? ['neo4j'] : ['milvus', 'pgvector']}
+                preserveSelectedValue={preserveInitialSelection}
                 namespace={namespace}
                 value={selectedSecret?.uuid}
                 valueName={field.value}
@@ -191,6 +196,7 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({ initialSecret }) => {
             <VectorDbConnectionModal
               namespace={namespace}
               initialProvider={modalProvider}
+              allowedProviders={mode === 'graph' ? ['neo4j'] : ['milvus', 'pgvector']}
               onClose={() => setIsConnectionModalOpen(false)}
               onSubmit={async (secretName) => {
                 const refresh = secretsRefreshRef.current;

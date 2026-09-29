@@ -25,6 +25,7 @@ import type { SecretKind } from '@odh-dashboard/k8s-core';
 type Props = {
   namespace: string;
   initialProvider?: Provider;
+  allowedProviders?: readonly Provider[];
   onClose: () => void;
   onSubmit: (secretName: string) => void | Promise<void>;
 };
@@ -43,7 +44,9 @@ const isValidUri = (value: string): boolean => {
 const isValidNeo4jUri = (value: string): boolean => {
   try {
     const parsed = new URL(value.trim());
-    return parsed.protocol === 'neo4j:' || parsed.protocol === 'bolt:';
+    return (
+      Boolean(parsed.hostname) && (parsed.protocol === 'neo4j:' || parsed.protocol === 'bolt:')
+    );
   } catch {
     return false;
   }
@@ -70,11 +73,14 @@ const NEO4J_OPTIONAL_FIELDS: ReadonlyArray<{
 const VectorDbConnectionModal: React.FC<Props> = ({
   namespace,
   initialProvider = 'milvus',
+  allowedProviders = ['milvus', 'pgvector', 'neo4j'],
   onClose,
   onSubmit,
 }) => {
   const { data: nameDescData, onDataChange: setNameDescData } = useK8sNameDescriptionFieldData();
-  const [provider, setProvider] = React.useState<Provider>(initialProvider);
+  const [provider, setProvider] = React.useState<Provider>(() =>
+    allowedProviders.includes(initialProvider) ? initialProvider : allowedProviders[0],
+  );
   const [fields, setFields] = React.useState<Partial<Record<string, string>>>({});
   const [uriTouched, setUriTouched] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<Error>();
@@ -136,9 +142,10 @@ const VectorDbConnectionModal: React.FC<Props> = ({
       }
     }
     if (provider === 'neo4j') {
-      for (const key of ['NEO4J_USERNAME', 'NEO4J_PASSWORD', 'NEO4J_DATABASE']) {
-        if (getField(key).trim()) {
-          stringData[key] = getField(key).trim();
+      for (const key of ['NEO4J_USERNAME', 'NEO4J_PASSWORD', 'NEO4J_DATABASE'] as const) {
+        const value = getField(key);
+        if (value.trim()) {
+          stringData[key] = key === 'NEO4J_PASSWORD' ? value : value.trim();
         }
       }
     }
@@ -195,30 +202,36 @@ const VectorDbConnectionModal: React.FC<Props> = ({
       <ModalBody>
         <Form>
           <FormGroup fieldId="vector-db-provider" label="Vector database type" isRequired>
-            <Radio
-              id="vector-db-provider-milvus"
-              data-testid="vector-db-provider-milvus"
-              name="vector-db-provider"
-              label="Milvus"
-              isChecked={provider === 'milvus'}
-              onChange={() => handleProviderChange('milvus')}
-            />
-            <Radio
-              id="vector-db-provider-neo4j"
-              data-testid="vector-db-provider-neo4j"
-              name="vector-db-provider"
-              label="Neo4j"
-              isChecked={provider === 'neo4j'}
-              onChange={() => handleProviderChange('neo4j')}
-            />
-            <Radio
-              id="vector-db-provider-pgvector"
-              data-testid="vector-db-provider-pgvector"
-              name="vector-db-provider"
-              label="PGVector"
-              isChecked={provider === 'pgvector'}
-              onChange={() => handleProviderChange('pgvector')}
-            />
+            {allowedProviders.includes('milvus') && (
+              <Radio
+                id="vector-db-provider-milvus"
+                data-testid="vector-db-provider-milvus"
+                name="vector-db-provider"
+                label="Milvus"
+                isChecked={provider === 'milvus'}
+                onChange={() => handleProviderChange('milvus')}
+              />
+            )}
+            {allowedProviders.includes('neo4j') && (
+              <Radio
+                id="vector-db-provider-neo4j"
+                data-testid="vector-db-provider-neo4j"
+                name="vector-db-provider"
+                label="Neo4j"
+                isChecked={provider === 'neo4j'}
+                onChange={() => handleProviderChange('neo4j')}
+              />
+            )}
+            {allowedProviders.includes('pgvector') && (
+              <Radio
+                id="vector-db-provider-pgvector"
+                data-testid="vector-db-provider-pgvector"
+                name="vector-db-provider"
+                label="PGVector"
+                isChecked={provider === 'pgvector'}
+                onChange={() => handleProviderChange('pgvector')}
+              />
+            )}
           </FormGroup>
           <K8sNameDescriptionField
             dataTestId="vector-db-connection"

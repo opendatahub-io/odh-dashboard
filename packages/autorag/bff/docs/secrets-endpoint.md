@@ -10,27 +10,28 @@ This document describes the GET endpoint for listing and filtering Kubernetes se
 
 ## Query Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `namespace` | string | **Yes** | The namespace name to query secrets from |
-| `type` | string | No | Secret type filter: `storage`, `ogx`, `maas`, `vector-db`, or `database`; omit for all secrets |
-| `provider` | string | No | Database provider filter for `type=database`: `milvus`, `pgvector`, or `neo4j` |
+| Parameter   | Type   | Required | Description                                                                                    |
+| ----------- | ------ | -------- | ---------------------------------------------------------------------------------------------- |
+| `namespace` | string | **Yes**  | The namespace name to query secrets from                                                       |
+| `type`      | string | No       | Secret type filter: `storage`, `ogx`, `maas`, `vector-db`, or `database`; omit for all secrets |
+| `provider`  | string | No       | Database provider filter for `type=database`: `milvus`, `pgvector`, or `neo4j`                 |
 
 ## Functionality
 
 The endpoint:
+
 1. Lists secrets in the specified namespace
 2. Filters secrets based on the `type` parameter:
-    - **No type** (or empty): Returns all secrets in the namespace
-    - **`type=storage`**: Filters for storage secrets matching any configured storage type (currently supports S3)
-    - **`type=ogx`**: Filters for OGX (Open GenAI Stack) secrets containing required OGX keys
-    - **`type=maas`**: Filters for secrets containing `MAAS_BASE_URL` and `MAAS_API_KEY`
-     - **`type=vector-db`**: Filters for the union of Milvus and PGVector credential key sets
-     - **`type=database`**: Filters for Milvus, PGVector, or Neo4j credentials; `provider` narrows the result
+   - **No type** (or empty): Returns all secrets in the namespace
+   - **`type=storage`**: Filters for storage secrets matching any configured storage type (currently supports S3)
+   - **`type=ogx`**: Filters for OGX (Open GenAI Stack) secrets containing required OGX keys
+   - **`type=maas`**: Filters for secrets containing `MAAS_BASE_URL` and `MAAS_API_KEY`
+   - **`type=vector-db`**: Filters for the union of Milvus and PGVector credential key sets
+   - **`type=database`**: Filters for Milvus, PGVector, or Neo4j credentials; `provider` narrows the result
 3. Returns the Kubernetes UID, name, and type of each matching secret
    - The `type` field is determined by:
-      1. The filter uses case-sensitive key-presence matching.
-      2. A non-empty `opendatahub.io/connection-type` annotation may still determine the returned `type` field after a secret matches.
+     1. The filter uses case-sensitive key-presence matching.
+     2. A non-empty `opendatahub.io/connection-type` annotation may still determine the returned `type` field after a secret matches.
    - If a secret doesn't match any known type and has no connection-type annotation, the `type` field is omitted from the response
    - If a secret matches multiple types via key detection, the first matching type is returned
 4. Requires authentication via the InjectRequestIdentity middleware
@@ -42,35 +43,35 @@ Secrets are filtered using configurable dictionaries of secret types and their r
 
 **Currently Supported Storage Types:**
 
-| Storage Type | Required Keys |
-|--------------|---------------|
-| **S3** | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_ENDPOINT` |
+| Storage Type | Required Keys                                                   |
+| ------------ | --------------------------------------------------------------- |
+| **S3**       | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_ENDPOINT` |
 
 **Future storage types** (e.g., Azure, GCP) can be easily added to the configuration without changing the API.
 
 **Currently Supported OGX Types:**
 
-| OGX Type | Required Keys |
-|----------|---------------|
+| OGX Type             | Required Keys                               |
+| -------------------- | ------------------------------------------- |
 | **Open GenAI Stack** | `OGX_CLIENT_API_KEY`, `OGX_CLIENT_BASE_URL` |
 
 **Currently Supported MaaS Types:**
 
-| MaaS Type | Required Keys |
-|----------|---------------|
+| MaaS Type       | Required Keys                   |
+| --------------- | ------------------------------- |
 | **Hosted MaaS** | `MAAS_BASE_URL`, `MAAS_API_KEY` |
 
 **Currently Supported Vector Database Types:**
 
-| Vector Database | Required Keys |
-|-----------------|---------------|
-| **Milvus** | `MILVUS_URI` |
-| **PGVector** | `PGVECTOR_HOST`, `PGVECTOR_PORT`, `PGVECTOR_DB`, `PGVECTOR_USER`, `PGVECTOR_PASSWORD` |
-| **Neo4j** | `NEO4J_URI` (optional: `NEO4J_USERNAME`, `NEO4J_PASSWORD`, `NEO4J_DATABASE`) |
+| Vector Database | Required Keys                                                                         |
+| --------------- | ------------------------------------------------------------------------------------- |
+| **Milvus**      | `MILVUS_URI`                                                                          |
+| **PGVector**    | `PGVECTOR_HOST`, `PGVECTOR_PORT`, `PGVECTOR_DB`, `PGVECTOR_USER`, `PGVECTOR_PASSWORD` |
+| **Neo4j**       | `NEO4J_URI` (optional: `NEO4J_USERNAME`, `NEO4J_PASSWORD`, `NEO4J_DATABASE`)          |
 
 The `vector-db` result is the deduplicated union of these two key sets. Filtering is based on key presence only: empty values, extra keys, mixed database families, OGX keys, and graph-related keys are not excluded.
 
-The `database` result uses the same key-presence matching for all three providers. `provider=neo4j` requires `NEO4J_URI` and returns only Neo4j connections.
+The `database` result uses key-presence matching for all three providers and excludes secrets matching more than one provider. `provider=neo4j` requires `NEO4J_URI` and returns only unambiguous Neo4j connections.
 
 ## Response Format
 
@@ -109,24 +110,24 @@ The response follows the envelope pattern:
 
 **Response Fields:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `uuid` | string | The Kubernetes UID of the secret |
-| `name` | string | The name of the secret |
-| `type` | string | **(Optional)** The returned connection type: either a non-empty `opendatahub.io/connection-type` annotation value or a detected built-in type (e.g., "s3", "ogx"). Omitted from the response only when neither is available. |
-| `data` | object | Object mapping all keys available in the secret to their values. Most values are sanitized as `"[REDACTED]"` for security. Only specific allowed keys (currently: `AWS_S3_BUCKET`) return their actual values. Use `Object.keys()` to validate that additional optional keys required for your use case are present. |
-| `displayName` | string | **(Optional)** Human-readable display name from the `openshift.io/display-name` annotation. Omitted from response if annotation doesn't exist. |
-| `description` | string | **(Optional)** Human-readable description from the `openshift.io/description` annotation. Omitted from response if annotation doesn't exist. |
+| Field         | Type   | Description                                                                                                                                                                                                                                                                                                          |
+| ------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `uuid`        | string | The Kubernetes UID of the secret                                                                                                                                                                                                                                                                                     |
+| `name`        | string | The name of the secret                                                                                                                                                                                                                                                                                               |
+| `type`        | string | **(Optional)** The returned connection type: either a non-empty `opendatahub.io/connection-type` annotation value or a detected built-in type (e.g., "s3", "ogx"). Omitted from the response only when neither is available.                                                                                         |
+| `data`        | object | Object mapping all keys available in the secret to their values. Most values are sanitized as `"[REDACTED]"` for security. Only specific allowed keys (currently: `AWS_S3_BUCKET`) return their actual values. Use `Object.keys()` to validate that additional optional keys required for your use case are present. |
+| `displayName` | string | **(Optional)** Human-readable display name from the `openshift.io/display-name` annotation. Omitted from response if annotation doesn't exist.                                                                                                                                                                       |
+| `description` | string | **(Optional)** Human-readable description from the `openshift.io/description` annotation. Omitted from response if annotation doesn't exist.                                                                                                                                                                         |
 
 ## Error Responses
 
-| Status Code | Description |
-|-------------|-------------|
-| 400 | Bad Request - Missing or invalid parameters |
-| 401 | Unauthorized - Missing authentication |
-| 403 | Forbidden - User lacks permissions |
-| 404 | Not Found - Namespace does not exist |
-| 500 | Internal Server Error |
+| Status Code | Description                                 |
+| ----------- | ------------------------------------------- |
+| 400         | Bad Request - Missing or invalid parameters |
+| 401         | Unauthorized - Missing authentication       |
+| 403         | Forbidden - User lacks permissions          |
+| 404         | Not Found - Namespace does not exist        |
+| 500         | Internal Server Error                       |
 
 ## Examples
 
@@ -149,6 +150,7 @@ GET /api/v1/secrets?namespace=my-namespace&type=ogx
 ```
 
 Response:
+
 ```json
 {
   "data": [
@@ -243,6 +245,7 @@ func IsAllowedSecretKey(key string) bool {
 ```
 
 To allow a new key to be exposed to clients:
+
 1. Add a constant in `internal/constants/secrets.go` (e.g., `AllowedSecretKey_MyNewKey`)
 2. Add it to the `allowedSecretKeys` slice
 3. The key will automatically return its actual value instead of `"[REDACTED]"`
@@ -263,6 +266,7 @@ The endpoint supports filtering modes based on the `type` parameter:
 1. **No type (all secrets)**: Returns all secrets in the namespace without filtering
 
 2. **`type=storage`**: Uses a configurable storage type dictionary to filter secrets
+
    - The dictionary maps storage types (e.g., "s3", "azure", "gcp") to their required keys
    - A secret matches if it contains ALL required keys for at least ONE storage type
    - Currently configured storage types:
@@ -272,12 +276,14 @@ The endpoint supports filtering modes based on the `type` parameter:
    - Key matching is case-sensitive; keys must be uppercase
 
 3. **`type=ogx`**: Filters for OGX (Open GenAI Stack) secrets
+
    - A secret matches if it contains ALL required OGX keys
    - Currently configured OGX type:
      - **Open GenAI Stack**: Requires `OGX_CLIENT_API_KEY`, `OGX_CLIENT_BASE_URL`
-    - Key matching is case-sensitive; keys must be uppercase
+   - Key matching is case-sensitive; keys must be uppercase
 
 4. **`type=maas`**: Filters for hosted MaaS secrets
+
    - Requires the presence of `MAAS_BASE_URL` and `MAAS_API_KEY`
    - Empty values and additional keys are allowed
 
@@ -288,6 +294,7 @@ The endpoint supports filtering modes based on the `type` parameter:
 Invalid type values result in a 400 Bad Request error.
 
 **Example**: A secret with the following data would match S3 storage type:
+
 ```json
 {
   "AWS_ACCESS_KEY_ID": "AKIAIOSFODNN7EXAMPLE",
@@ -299,6 +306,7 @@ Invalid type values result in a 400 Bad Request error.
 A secret missing any of these required keys would NOT match and would be excluded from `type=storage` results. Note that `AWS_DEFAULT_REGION` is not required for BFF-level S3 type detection; its presence is validated on the frontend side via `additionalRequiredKeys`.
 
 **Example**: A secret with the following data would match OGX (Open GenAI Stack) type:
+
 ```json
 {
   "OGX_CLIENT_API_KEY": "sk-test-api-key-123",
@@ -313,9 +321,11 @@ A secret missing any of these required keys would NOT match and would be exclude
 The `data` field exposes an object mapping all keys present in the secret to their values. For security, most values are sanitized as `"[REDACTED]"`, with only specific allowed keys returning their actual values.
 
 **Allowed keys (returning actual values):**
+
 - `AWS_S3_BUCKET` (case-sensitive, uppercase)
 
 **Key characteristics:**
+
 - **Object format**: Returns a `Record<string, string>` mapping keys to values
 - **Case-preserved**: Keys are returned exactly as they appear in Kubernetes (e.g., `AWS_ACCESS_KEY_ID`, `aws_access_key_id`, `Aws_Access_Key_Id` are all preserved)
 - **Sanitized values**: Most values are `"[REDACTED]"` for security
@@ -325,6 +335,7 @@ The `data` field exposes an object mapping all keys present in the secret to the
 - **Empty secrets**: Secrets with no keys return an empty object `{}`
 
 **Example:**
+
 ```json
 {
   "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
@@ -341,6 +352,7 @@ The `data` field exposes an object mapping all keys present in the secret to the
 ```
 
 In this example:
+
 - The secret has an optional `AWS_S3_BUCKET` key in addition to the required S3 keys
 - The `AWS_S3_BUCKET` value is exposed (`"my-bucket-name"`) because it's in the allowed list
 - All other keys have sanitized values (`"[REDACTED]"`)
@@ -355,23 +367,26 @@ The `type` field can be explicitly set using the `opendatahub.io/connection-type
 - **Ensure consistency**: Guarantee the correct type is returned even if keys change
 
 **Type determination priority:**
+
 1. **Annotation-based**: If the secret has the `opendatahub.io/connection-type` annotation with a non-empty value, use that value as the returned type
 2. **Key-based detection**: If no annotation is present or it is empty, use the matching key-based type
 
 **Example secret with connection-type annotation:**
+
 ```yaml
 apiVersion: v1
 kind: Secret
 metadata:
   name: my-database-connection
   annotations:
-    opendatahub.io/connection-type: "postgresql"
+    opendatahub.io/connection-type: 'postgresql'
 data:
   db_host: ...
   db_password: ...
 ```
 
 **Corresponding API response:**
+
 ```json
 {
   "uuid": "...",
@@ -391,30 +406,34 @@ The annotation does not replace key presence for filtering. It affects only the 
 The optional `displayName` and `description` fields provide human-readable metadata for secrets through OpenShift annotations.
 
 **Display Name (`openshift.io/display-name`)**:
+
 - **Is optional**: Only included in the response if the secret has the annotation
 - **Uses `omitempty`**: Field is omitted from JSON when the annotation doesn't exist
 - **Provides user-friendly names**: Allows administrators to set meaningful names for secrets that are displayed in UIs
 
 **Description (`openshift.io/description`)**:
+
 - **Is optional**: Only included in the response if the secret has the annotation
 - **Uses `omitempty`**: Field is omitted from JSON when the annotation doesn't exist
 - **Provides context**: Allows administrators to add detailed descriptions explaining the secret's purpose
 
 **Example secret with both display name and description annotations:**
+
 ```yaml
 apiVersion: v1
 kind: Secret
 metadata:
   name: my-s3-credentials
   annotations:
-    openshift.io/display-name: "Production S3 Bucket"
-    openshift.io/description: "Main S3 bucket for production data storage and backups"
+    openshift.io/display-name: 'Production S3 Bucket'
+    openshift.io/description: 'Main S3 bucket for production data storage and backups'
 data:
   aws_access_key_id: ...
   aws_secret_access_key: ...
 ```
 
 **Corresponding API response:**
+
 ```json
 {
   "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
@@ -431,6 +450,7 @@ data:
 ```
 
 **Secret without display name or description annotations:**
+
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -441,6 +461,7 @@ data:
 ```
 
 **Corresponding API response (type, displayName, and description omitted):**
+
 ```json
 {
   "uuid": "b2c3d4e5-f6a7-8901-bcde-f01234567891",
@@ -466,6 +487,7 @@ For complete details on S3 endpoint security validation, see [s3-endpoint-securi
 ## Testing
 
 The implementation includes comprehensive tests covering:
+
 - **Type filtering**:
   - `type=storage`: Successful retrieval with S3 secret filtering, case-sensitive key matching
   - `type=ogx`: Successful retrieval with OGX (Open GenAI Stack) secret filtering, case-sensitive key matching
@@ -496,6 +518,7 @@ The implementation includes comprehensive tests covering:
 - **Error cases**: Missing parameters, invalid parameters
 
 Run tests with:
+
 ```bash
 go test -v ./internal/api -run TestGetSecretsHandler
 ```

@@ -196,14 +196,13 @@ export const getVectorStoreProviderTypeFromSecretData = (
   ].every((key) => keys.has(key));
   const hasNeo4j = keys.has('NEO4J_URI');
 
-  if (hasNeo4j) {
-    return 'neo4j';
-  }
+  const providers = [
+    hasMilvus ? 'milvus' : undefined,
+    hasPgvector ? 'pgvector' : undefined,
+    hasNeo4j ? 'neo4j' : undefined,
+  ].filter((provider): provider is VectorStoreProviderType => provider !== undefined);
 
-  if (hasMilvus === hasPgvector) {
-    return undefined;
-  }
-  return hasMilvus ? 'milvus' : 'pgvector';
+  return providers.length === 1 ? providers[0] : undefined;
 };
 
 /**

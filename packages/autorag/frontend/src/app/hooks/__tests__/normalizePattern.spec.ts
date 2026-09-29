@@ -106,6 +106,7 @@ describe('normalizePattern', () => {
             vector_store_id: 'vs-1',
             namespace: 'tenant-a',
             index_type: 'hnsw',
+            password: 'do-not-render',
           },
         },
       };
@@ -120,6 +121,7 @@ describe('normalizePattern', () => {
       });
       expect(result.settings.store_binding).not.toHaveProperty('provider_id');
       expect(result.settings.store_binding).not.toHaveProperty('vector_store_id');
+      expect(result.settings.store_binding).not.toHaveProperty('password');
     });
 
     it('should move responses_template to inference block', () => {

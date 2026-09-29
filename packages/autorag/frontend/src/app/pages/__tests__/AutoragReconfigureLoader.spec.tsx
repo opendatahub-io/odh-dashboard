@@ -189,6 +189,81 @@ describe('AutoragReconfigureLoader', () => {
     expect(capturedProps.initialDatabaseSecret).toMatchObject({ name: 'vector-db' });
   });
 
+  it('should prefer db_secret_name over the legacy collision for form and secret selection', async () => {
+    mockGetSecrets.mockImplementation((type: string) =>
+      Promise.resolve(
+        type === 'storage'
+          ? []
+          : type === 'maas'
+            ? []
+            : [
+                { name: 'canonical-db', type: 'database', data: { MILVUS_URI: '[REDACTED]' } },
+                { name: 'legacy-db', type: 'vector-db', data: { MILVUS_URI: '[REDACTED]' } },
+              ],
+      ),
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/a.pdf'],
+        maas_secret_name: 'maas',
+        db_secret_name: 'canonical-db',
+        vector_db_secret_name: 'legacy-db',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(capturedProps.initialValues).toMatchObject({ db_secret_name: 'canonical-db' });
+    expect(capturedProps.initialDatabaseSecret).toMatchObject({ name: 'canonical-db' });
+  });
+
+  it('should use the legacy vector-db lookup for a historical mixed database secret', async () => {
+    mockGetSecrets.mockImplementation((type: string) =>
+      Promise.resolve(
+        type === 'vector-db'
+          ? [
+              {
+                name: 'legacy-mixed-db',
+                type: 'vector-db',
+                data: {
+                  MILVUS_URI: '[REDACTED]',
+                  NEO4J_URI: '[REDACTED]',
+                },
+              },
+            ]
+          : [],
+      ),
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/a.pdf'],
+        maas_secret_name: 'maas',
+        vector_db_secret_name: 'legacy-mixed-db',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(capturedProps.initialDatabaseSecret).toMatchObject({ name: 'legacy-mixed-db' });
+    expect(capturedProps.preserveInitialDatabaseSecret).toBe(true);
+    expect(mockWarning).not.toHaveBeenCalledWith(
+      'Connection secret not found',
+      'The previously used database connection "legacy-mixed-db" could not be found. Please select a new connection.',
+    );
+  });
+
   it('should resolve restored model overlap in favor of generation models without warning', async () => {
     mockUsePipelineRunQuery.mockReturnValue({
       data: createRun({

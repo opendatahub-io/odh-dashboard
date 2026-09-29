@@ -302,6 +302,15 @@ describe('getVectorStoreProviderTypeFromSecretData', () => {
     ).toBeUndefined();
     expect(getVectorStoreProviderTypeFromSecretData({})).toBeUndefined();
   });
+
+  it('should omit provider type when Neo4j credentials are mixed with vector credentials', () => {
+    expect(
+      getVectorStoreProviderTypeFromSecretData({
+        MILVUS_URI: '[REDACTED]',
+        NEO4J_URI: '[REDACTED]',
+      }),
+    ).toBeUndefined();
+  });
 });
 
 describe('fireAutoragVectorStoreConfigured', () => {

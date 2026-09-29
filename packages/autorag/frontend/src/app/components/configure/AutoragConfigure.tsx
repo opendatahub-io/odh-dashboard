@@ -156,6 +156,7 @@ type AutoragConfigureProps = {
   initialValues?: Partial<ConfigureSchema> & Record<string, unknown>;
   initialInputDataSecret?: SecretSelection;
   initialDatabaseSecret?: SecretSelection;
+  preserveInitialDatabaseSecret?: boolean;
   isReconfigure?: boolean;
   onMaaSModelsReady?: (ready: boolean) => void;
 };
@@ -170,6 +171,7 @@ function AutoragConfigure({
   initialValues,
   initialInputDataSecret,
   initialDatabaseSecret,
+  preserveInitialDatabaseSecret,
   isReconfigure = false,
   onMaaSModelsReady,
 }: AutoragConfigureProps): React.JSX.Element {
@@ -863,7 +865,10 @@ function AutoragConfigure({
                         description="Provide connection details for the selected RAG template."
                         isRequired
                       >
-                        <AutoragVectorStoreSelector initialSecret={initialDatabaseSecret} />
+                        <AutoragVectorStoreSelector
+                          initialSecret={initialDatabaseSecret}
+                          preserveInitialSelection={preserveInitialDatabaseSecret}
+                        />
                       </ConfigureFormGroup>
                     </FlexItem>
 

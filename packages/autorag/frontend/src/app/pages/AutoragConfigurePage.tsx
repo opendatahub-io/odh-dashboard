@@ -70,6 +70,7 @@ type AutoragConfigurePageProps = {
   initialInputDataSecret?: SecretSelection;
   initialMaaSSecret?: SecretSelection;
   initialDatabaseSecret?: SecretSelection;
+  preserveInitialDatabaseSecret?: boolean;
   /** When reconfiguring, the run ID of the source run (used for cancel navigation). */
   sourceRunId?: string;
   /** When reconfiguring, the display name of the source run (used in the page title and breadcrumb). */
@@ -81,6 +82,7 @@ function AutoragConfigurePage({
   initialInputDataSecret,
   initialMaaSSecret,
   initialDatabaseSecret,
+  preserveInitialDatabaseSecret,
   sourceRunId,
   sourceRunName,
 }: AutoragConfigurePageProps): React.JSX.Element {
@@ -566,6 +568,7 @@ function AutoragConfigurePage({
                     initialValues={initialValues}
                     initialInputDataSecret={initialInputDataSecret}
                     initialDatabaseSecret={initialDatabaseSecret}
+                    preserveInitialDatabaseSecret={preserveInitialDatabaseSecret}
                     isReconfigure={!!sourceRunId}
                     onMaaSModelsReady={setMaaSModelsReady}
                   />

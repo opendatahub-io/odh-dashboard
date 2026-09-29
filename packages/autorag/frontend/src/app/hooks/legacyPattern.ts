@@ -102,6 +102,8 @@ const normalizeProviderType = (providerType: string): AutoragProviderType => {
   }
 };
 
+const LEGACY_DISPLAY_SAFE_BINDING_KEYS = ['namespace', 'index_type'] as const;
+
 export function normalizeLegacyPattern(
   raw: LegacyRawPattern,
   vectorIoProviderId?: string,
@@ -135,13 +137,19 @@ export function normalizeLegacyPattern(
 
   const storeBinding: AutoragStoreBinding | undefined = legacyVectorStoreBinding
     ? (() => {
-        const bindingExtras: Record<string, unknown> = { ...legacyVectorStoreBinding };
-        const vectorStoreId = bindingExtras.vector_store_id;
-        const providerType = String(bindingExtras.provider_type);
-        const legacyCollectionName = typeof vectorStoreId === 'string' ? vectorStoreId : undefined;
-        delete bindingExtras.provider_id;
-        delete bindingExtras.vector_store_id;
-        delete bindingExtras.provider_type;
+        const bindingExtras: Record<string, unknown> = {};
+        for (const key of LEGACY_DISPLAY_SAFE_BINDING_KEYS) {
+          if (key in legacyVectorStoreBinding) {
+            bindingExtras[key] = legacyVectorStoreBinding[key];
+          }
+        }
+        const providerType = String(legacyVectorStoreBinding.provider_type);
+        const legacyCollectionName =
+          typeof legacyVectorStoreBinding.vector_store_id === 'string'
+            ? legacyVectorStoreBinding.vector_store_id
+            : typeof legacyVectorStoreBinding.collection_name === 'string'
+              ? legacyVectorStoreBinding.collection_name
+              : undefined;
         return {
           ...bindingExtras,
           provider_type: normalizeProviderType(providerType),
