@@ -10,6 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -71,6 +72,27 @@ func (kc *TokenKubernetesClient) GetAgentDeployment(
 	return kc.sandboxDeploymentSummary(ctx, namespace, sandbox)
 }
 
+// DeleteAgentDeployment deletes a dashboard-created Sandbox. Its dependent
+// resources have owner references pointing to the Sandbox and are removed by
+// Kubernetes garbage collection.
+func (kc *TokenKubernetesClient) DeleteAgentDeployment(ctx context.Context, namespace, name string) error {
+	sandbox := sandboxCR(namespace, name)
+	if err := kc.Client.Get(ctx, client.ObjectKeyFromObject(sandbox), sandbox); err != nil {
+		return sandboxDeploymentGetError(err, name, namespace)
+	}
+	if sandbox.GetLabels()[dashboardLabel] != "true" {
+		return &integrations.HTTPError{StatusCode: 404, ErrorResponse: integrations.ErrorResponse{
+			Code: "not_found", Message: "agent deployment not found",
+		}}
+	}
+
+	if err := kc.Client.Delete(ctx, sandbox, client.PropagationPolicy(metav1.DeletePropagationForeground)); err != nil {
+		return sandboxDeploymentDeleteError(err, name, namespace)
+	}
+	kc.Logger.Info("deleted agent deployment Sandbox", "name", name, "namespace", namespace)
+	return nil
+}
+
 func (kc *TokenKubernetesClient) sandboxDeploymentSummary(
 	ctx context.Context,
 	namespace string,
@@ -125,6 +147,25 @@ func sandboxDeploymentGetError(err error, name, namespace string) error {
 		}}
 	}
 	return fmt.Errorf("failed to read Sandbox deployment %s in namespace %s: %w", name, namespace, err)
+}
+
+func sandboxDeploymentDeleteError(err error, name, namespace string) error {
+	if apierrors.IsNotFound(err) {
+		return &integrations.HTTPError{StatusCode: 404, ErrorResponse: integrations.ErrorResponse{
+			Code: "not_found", Message: "agent deployment not found",
+		}}
+	}
+	if apierrors.IsForbidden(err) {
+		return &integrations.HTTPError{StatusCode: 403, ErrorResponse: integrations.ErrorResponse{
+			Code: "forbidden", Message: "insufficient permissions to delete agent deployment in this namespace",
+		}}
+	}
+	if apimeta.IsNoMatchError(err) {
+		return &integrations.HTTPError{StatusCode: 503, ErrorResponse: integrations.ErrorResponse{
+			Code: "sandbox_unavailable", Message: "Agent Sandbox CRD is not available",
+		}}
+	}
+	return fmt.Errorf("failed to delete Sandbox deployment %s in namespace %s: %w", name, namespace, err)
 }
 
 func (kc *TokenKubernetesClient) sandboxRouteURL(ctx context.Context, namespace, sandboxName string) (string, bool, error) {

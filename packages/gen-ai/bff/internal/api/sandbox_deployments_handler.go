@@ -139,6 +139,64 @@ func (app *App) GetAgentDeploymentHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// DeleteAgentDeploymentHandler handles DELETE /api/v1/agent-deployments/:id.
+// The Sandbox is the controller owner for all deployment resources, so foreground
+// deletion garbage-collects the ConfigMaps, credential Secrets, external Service,
+// and Route without manipulating the Sandbox operating mode or Pod directly.
+func (app *App) DeleteAgentDeploymentHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	if !app.isSandboxAvailable() {
+		app.sandboxUnavailableResponse(w, r)
+		return
+	}
+
+	ctx := r.Context()
+	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		app.badRequestResponse(w, r, &integrations.HTTPError{
+			StatusCode: http.StatusBadRequest,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "missing_namespace",
+				Message: "namespace parameter is required",
+			},
+		})
+		return
+	}
+
+	name := ps.ByName("id")
+	if name == "" {
+		app.badRequestResponse(w, r, &integrations.HTTPError{
+			StatusCode: http.StatusBadRequest,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "missing_id",
+				Message: "deployment ID is required",
+			},
+		})
+		return
+	}
+
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	if err := k8sClient.DeleteAgentDeployment(ctx, namespace, name); err != nil {
+		if httpErr, ok := err.(*integrations.HTTPError); ok {
+			switch httpErr.StatusCode {
+			case http.StatusForbidden:
+				app.forbiddenResponse(w, r, httpErr.Message)
+			case http.StatusNotFound, http.StatusServiceUnavailable:
+				app.errorResponse(w, r, httpErr)
+			default:
+				app.serverErrorResponse(w, r, httpErr)
+			}
+			return
+		}
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (app *App) getAgentDeploymentConfig(
 	ctx context.Context,
 	routeURL string,

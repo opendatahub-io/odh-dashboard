@@ -386,7 +386,7 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 	resources.SandboxName = sandboxName
 
 	// The ConfigMaps are created before the Sandbox, so attach their owner references now.
-	// The Service, Route, and optional RoleBinding receive the same owner at creation time.
+	// The Service and Route receive the same owner reference at creation time.
 	if err := k8sClient.SetSandboxConfigMapsOwner(ctx, namespace, sandboxName, lsCM.Name, waCM.Name); err != nil {
 		rollback()
 		if httpErr, ok := err.(*integrations.HTTPError); ok && httpErr.StatusCode == http.StatusForbidden {
@@ -423,7 +423,7 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 	}
 	resources.ServiceName = sandboxName + "-ext"
 
-	// Create the OpenShift Route with TLS edge termination and an explicit host.
+	// Create the OpenShift Route with TLS edge termination. OpenShift assigns its host.
 	routeURL, err := k8sClient.CreateSandboxRoute(ctx, namespace, sandboxName)
 	if err != nil {
 		rollback()

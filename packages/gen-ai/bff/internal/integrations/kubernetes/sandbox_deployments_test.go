@@ -95,6 +95,36 @@ func TestListAgentDeployments(t *testing.T) {
 	assert.Equal(t, 0, empty.TotalCount)
 }
 
+func TestDeleteAgentDeployment(t *testing.T) {
+	const namespace = "agent-namespace"
+	const profileID = "11111111-1111-1111-1111-111111111111"
+
+	deletable := testSandbox(namespace, "deletable-agent", map[string]string{
+		dashboardLabel: dashboardLabelValue, agentProfileIDLabel: profileID,
+	}, "agents.x-k8s.io/sandbox-name-hash=deletable")
+	notAnAgent := testSandbox(namespace, "not-an-agent", nil, "agents.x-k8s.io/sandbox-name-hash=other")
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+	kc := &TokenKubernetesClient{
+		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(deletable, notAnAgent).Build(),
+		Logger: slog.Default(),
+	}
+
+	require.NoError(t, kc.DeleteAgentDeployment(context.Background(), namespace, deletable.GetName()))
+	_, err := kc.GetAgentDeployment(context.Background(), namespace, deletable.GetName())
+	require.Error(t, err)
+	assert.Equal(t, 404, err.(*integrations.HTTPError).StatusCode)
+
+	err = kc.DeleteAgentDeployment(context.Background(), namespace, notAnAgent.GetName())
+	require.Error(t, err)
+	assert.Equal(t, 404, err.(*integrations.HTTPError).StatusCode)
+
+	err = kc.DeleteAgentDeployment(context.Background(), namespace, "does-not-exist")
+	require.Error(t, err)
+	assert.Equal(t, 404, err.(*integrations.HTTPError).StatusCode)
+}
+
 const dashboardLabelValue = "true"
 
 func testSandbox(namespace, name string, labels map[string]string, selector string) *unstructured.Unstructured {

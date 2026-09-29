@@ -2366,10 +2366,51 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '500':
           $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - AgentDeployments
+      operationId: deleteAgentDeployment
+      summary: Delete an agent Sandbox deployment by name
+      description: >-
+        Deletes the Sandbox and garbage-collects its owned ConfigMaps, Secrets,
+        external Service, and Route.
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+        - name: id
+          in: path
+          required: true
+          description: Sandbox deployment name.
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Agent deployment deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Insufficient permissions to delete the deployment
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Agent deployment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Agent Sandbox CRD is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /gen-ai/api/v1/agent-profiles:
     get:
