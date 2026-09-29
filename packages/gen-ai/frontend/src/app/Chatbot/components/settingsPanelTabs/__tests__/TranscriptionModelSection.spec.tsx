@@ -145,6 +145,21 @@ describe('TranscriptionModelSection', () => {
       expect(screen.queryByTestId('transcription-model-selector')).not.toBeInTheDocument();
     });
 
+    it('shows guidance without opening the picker when no models are available', () => {
+      renderWithContext({ aiModels: [] });
+
+      expect(
+        screen.getByRole('heading', { name: 'No models available for audio transcription' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Deploy a model or ask your administrator to make one available to the Playground.',
+        ),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /View all models/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
     it('enables transcription after selecting a tagged model from the picker', async () => {
       const user = userEvent.setup();
       renderWithContext();

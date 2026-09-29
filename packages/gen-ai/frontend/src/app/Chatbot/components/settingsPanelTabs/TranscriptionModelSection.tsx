@@ -228,16 +228,31 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
               Add audio transcription model
             </Button>
           ) : (
-            <EmptyState headingLevel="h4" titleText="No models tagged for audio transcription">
+            <EmptyState
+              headingLevel="h4"
+              titleText={
+                allModels.length === 0
+                  ? 'No models available for audio transcription'
+                  : 'No models tagged for audio transcription'
+              }
+            >
               <EmptyStateBody>
-                To enable audio transcription, tag a model with the audio capability in{' '}
-                <Link to="/ai-hub/models/registry">Model registry</Link>.
+                {allModels.length === 0 ? (
+                  'Deploy a model or ask your administrator to make one available to the Playground.'
+                ) : (
+                  <>
+                    To enable audio transcription, tag a model with the audio capability in{' '}
+                    <Link to="/ai-hub/models/registry">Model registry</Link>.
+                  </>
+                )}
               </EmptyStateBody>
-              <EmptyStateFooter>
-                <Button variant="link" onClick={() => setIsAllModelsOpen(true)}>
-                  View all models to select one manually
-                </Button>
-              </EmptyStateFooter>
+              {allModels.length > 0 && (
+                <EmptyStateFooter>
+                  <Button variant="link" onClick={() => setIsAllModelsOpen(true)}>
+                    View all models to select one manually
+                  </Button>
+                </EmptyStateFooter>
+              )}
             </EmptyState>
           )}
           <div aria-live="polite" aria-atomic="true">
@@ -293,11 +308,13 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
             </DropdownList>
           </Dropdown>
         </FlexItem>
-        <FlexItem>
-          <Button variant="link" onClick={() => setIsAllModelsOpen(true)}>
-            View all models
-          </Button>
-        </FlexItem>
+        {allModels.length > 0 && (
+          <FlexItem>
+            <Button variant="link" onClick={() => setIsAllModelsOpen(true)}>
+              View all models
+            </Button>
+          </FlexItem>
+        )}
       </Flex>
       <div aria-live="polite" aria-atomic="true">
         {helperContent && <HelperText className="pf-v6-u-mt-xs">{helperContent}</HelperText>}
