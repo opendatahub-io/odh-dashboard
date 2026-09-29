@@ -1,5 +1,6 @@
 import * as React from 'react';
 import type { DashboardResource } from '@perses-dev/core';
+import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import DashboardContent from './DashboardContent';
 import { DASHBOARD_PAGE_DESCRIPTION, DASHBOARD_PAGE_TITLE } from './const';
@@ -12,7 +13,9 @@ const NO_DASHBOARDS_MESSAGE =
 const PROJECTS_LOAD_ERROR_TITLE = 'Unable to load projects';
 
 const isForbiddenError = (error: Error | undefined): boolean =>
-  Boolean(error && 'status' in error && error.status === 403);
+  Boolean(
+    error && (('status' in error && error.status === 403) || getGenericErrorCode(error) === 403),
+  );
 
 export type DashboardViewProps = {
   dashboards: DashboardResource[];
@@ -50,13 +53,11 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   ClusterDetailsAdapter,
   noProjectsEmptyState,
 }) => {
-  const projectNames = React.useMemo(() => projects.map(({ name }) => name), [projects]);
+  const hasProjects = projects.length > 0;
   const viewableDashboards = React.useMemo(
     () =>
-      projectNames.length === 0
-        ? dashboards.filter((dashboard) => !hasNamespaceVariable(dashboard))
-        : dashboards,
-    [dashboards, projectNames],
+      hasProjects ? dashboards : dashboards.filter((dashboard) => !hasNamespaceVariable(dashboard)),
+    [dashboards, hasProjects],
   );
 
   if (dashboardsError || projectsLoadError) {
@@ -98,7 +99,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
     );
   }
 
-  if (projectNames.length === 0 && viewableDashboards.length === 0 && dashboards.length > 0) {
+  if (!hasProjects && viewableDashboards.length === 0 && dashboards.length > 0) {
     return (
       <ApplicationsPage
         title={DASHBOARD_PAGE_TITLE}
