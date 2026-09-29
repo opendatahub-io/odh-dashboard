@@ -65,6 +65,8 @@ func listHardwareProfilesForAvailability(
 			Warning: warning,
 		}, nil
 	}
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 
 	queues := make(map[string]struct{}, len(availability.LocalQueueNames))
 	for _, name := range availability.LocalQueueNames {
