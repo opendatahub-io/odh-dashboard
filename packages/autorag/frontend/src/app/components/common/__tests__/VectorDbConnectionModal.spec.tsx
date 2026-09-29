@@ -256,6 +256,48 @@ describe('VectorDbConnectionModal', () => {
     expect(screen.getByRole('button', { name: 'Add connection' })).toBeDisabled();
   });
 
+  it.each([
+    'neo4j://neo4j.example.com:7687',
+    'neo4j+s://neo4j.example.com:7687',
+    'bolt://neo4j.example.com:7687',
+    'bolt+s://neo4j.example.com:7687',
+  ])('should accept Neo4j URI %s', (value) => {
+    render(
+      <VectorDbConnectionModal
+        namespace="test-namespace"
+        initialProvider="neo4j"
+        onClose={onClose}
+        onSubmit={onSubmit}
+      />,
+    );
+    fillName();
+    fireEvent.change(screen.getByTestId('neo4j-uri-input'), { target: { value } });
+
+    expect(screen.getByRole('button', { name: 'Add connection' })).toBeEnabled();
+  });
+
+  it.each([
+    'neo4j:///',
+    'neo4j+s:///',
+    'bolt:///',
+    'bolt+s:///',
+    'neo4j://[',
+    'https://neo4j.example.com',
+  ])('should reject invalid Neo4j URI %s', (value) => {
+    render(
+      <VectorDbConnectionModal
+        namespace="test-namespace"
+        initialProvider="neo4j"
+        onClose={onClose}
+        onSubmit={onSubmit}
+      />,
+    );
+    fillName();
+    fireEvent.change(screen.getByTestId('neo4j-uri-input'), { target: { value } });
+
+    expect(screen.getByRole('button', { name: 'Add connection' })).toBeDisabled();
+  });
+
   it('should preserve whitespace in a non-empty Neo4j password', async () => {
     render(
       <VectorDbConnectionModal

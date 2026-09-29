@@ -67,9 +67,16 @@ Secrets are filtered using configurable dictionaries of secret types and their r
 | --------------- | ------------------------------------------------------------------------------------- |
 | **Milvus**      | `MILVUS_URI`                                                                          |
 | **PGVector**    | `PGVECTOR_HOST`, `PGVECTOR_PORT`, `PGVECTOR_DB`, `PGVECTOR_USER`, `PGVECTOR_PASSWORD` |
-| **Neo4j**       | `NEO4J_URI` (optional: `NEO4J_USERNAME`, `NEO4J_PASSWORD`, `NEO4J_DATABASE`)          |
 
-The `vector-db` result is the deduplicated union of these two key sets. Filtering is based on key presence only: empty values, extra keys, mixed database families, OGX keys, and graph-related keys are not excluded.
+The `vector-db` result is the deduplicated union of these two key sets. Filtering is based on key presence only: empty values, extra keys, mixed database families, and OGX keys are not excluded.
+
+**Currently Supported Generic Database Types:**
+
+| Database     | Required Keys                                                                         |
+| ------------ | ------------------------------------------------------------------------------------- |
+| **Milvus**   | `MILVUS_URI`                                                                          |
+| **PGVector** | `PGVECTOR_HOST`, `PGVECTOR_PORT`, `PGVECTOR_DB`, `PGVECTOR_USER`, `PGVECTOR_PASSWORD` |
+| **Neo4j**    | `NEO4J_URI`                                                                           |
 
 The `database` result uses key-presence matching for all three providers and excludes secrets matching more than one provider. `provider=neo4j` requires `NEO4J_URI` and returns only unambiguous Neo4j connections.
 

@@ -28,6 +28,19 @@ const LEGACY_WARNING_BODY =
 const hasNonEmptyString = (value: unknown): value is string =>
   typeof value === 'string' && value.trim() !== '';
 
+const getDatabaseSecretName = (params?: Record<string, unknown>): string | undefined => {
+  if (!params) {
+    return undefined;
+  }
+  if (hasNonEmptyString(params.db_secret_name)) {
+    return params.db_secret_name;
+  }
+  if (hasNonEmptyString(params.vector_db_secret_name)) {
+    return params.vector_db_secret_name;
+  }
+  return undefined;
+};
+
 const hasCurrentConnectionParameters = (params: Record<string, unknown>): boolean =>
   hasNonEmptyString(params.maas_secret_name) &&
   (hasNonEmptyString(params.db_secret_name) || hasNonEmptyString(params.vector_db_secret_name));
@@ -84,13 +97,27 @@ const parseReconfigureParameters = (params: Record<string, unknown>): Reconfigur
   let hasInvalidFields = !hasLegacyRuntimeParameters(params) && !hasCurrentRuntimeShape(params);
 
   for (const key of RECONFIGURE_FIELDS) {
-    if (!(key in params)) {
+    if (key === 'db_secret_name') {
+      const databaseSecretName = getDatabaseSecretName(params);
+      if (databaseSecretName === undefined) {
+        const sourceValue =
+          'db_secret_name' in params ? params.db_secret_name : params.vector_db_secret_name;
+        if (sourceValue !== undefined) {
+          const result = configureBase.shape.db_secret_name.safeParse(sourceValue);
+          if (!result.success) {
+            hasInvalidFields = true;
+          }
+        }
+      } else {
+        // eslint-disable-next-line camelcase
+        data.db_secret_name = databaseSecretName;
+      }
       continue;
     }
-    if (key === 'vector_db_secret_name' && 'db_secret_name' in params) {
+    if (!(key in params) || key === 'vector_db_secret_name') {
       continue;
     }
-    const schemaKey = key === 'vector_db_secret_name' ? 'db_secret_name' : key;
+    const schemaKey = key;
     const result = configureBase.shape[schemaKey].safeParse(params[key]);
     if (result.success) {
       data[schemaKey] = result.data;
@@ -266,7 +293,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
       );
       warnMissingSecret(params?.maas_secret_name, maasSecrets, 'maasMissing', 'MaaS');
       warnMissingSecret(
-        params?.db_secret_name ?? params?.vector_db_secret_name,
+        getDatabaseSecretName(params),
         databaseSecrets,
         'databaseMissing',
         'database',
@@ -335,7 +362,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
 
   const inputSecretName = params?.input_data_secret_name;
   const maasSecretName = params?.maas_secret_name;
-  const databaseSecretName = params?.db_secret_name ?? params?.vector_db_secret_name;
+  const databaseSecretName = getDatabaseSecretName(params);
   const initialInputDataSecret =
     typeof inputSecretName === 'string'
       ? storageSecrets?.find((secret) => secret.name === inputSecretName)

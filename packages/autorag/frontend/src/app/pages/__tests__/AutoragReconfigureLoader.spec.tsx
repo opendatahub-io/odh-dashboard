@@ -223,6 +223,36 @@ describe('AutoragReconfigureLoader', () => {
     expect(capturedProps.initialDatabaseSecret).toMatchObject({ name: 'canonical-db' });
   });
 
+  it('should restore and select the legacy secret when the canonical value is empty', async () => {
+    mockGetSecrets.mockImplementation((type: string) =>
+      Promise.resolve(
+        type === 'vector-db'
+          ? [{ name: 'legacy-db', type: 'vector-db', data: { MILVUS_URI: '[REDACTED]' } }]
+          : [],
+      ),
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/a.pdf'],
+        maas_secret_name: 'maas',
+        db_secret_name: '',
+        vector_db_secret_name: 'legacy-db',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(capturedProps.initialValues).toMatchObject({ db_secret_name: 'legacy-db' });
+    expect(capturedProps.initialDatabaseSecret).toMatchObject({ name: 'legacy-db' });
+    expect(capturedProps.preserveInitialDatabaseSecret).toBe(true);
+  });
+
   it('should use the legacy vector-db lookup for a historical mixed database secret', async () => {
     mockGetSecrets.mockImplementation((type: string) =>
       Promise.resolve(

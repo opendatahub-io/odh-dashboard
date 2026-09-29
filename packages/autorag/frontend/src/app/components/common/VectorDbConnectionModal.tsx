@@ -45,7 +45,8 @@ const isValidNeo4jUri = (value: string): boolean => {
   try {
     const parsed = new URL(value.trim());
     return (
-      Boolean(parsed.hostname) && (parsed.protocol === 'neo4j:' || parsed.protocol === 'bolt:')
+      Boolean(parsed.hostname) &&
+      ['neo4j:', 'neo4j+s:', 'bolt:', 'bolt+s:'].includes(parsed.protocol)
     );
   } catch {
     return false;
@@ -345,8 +346,8 @@ const VectorDbConnectionModal: React.FC<Props> = ({
                   <HelperText>
                     <HelperTextItem variant={showUriError ? 'error' : 'default'}>
                       {showUriError
-                        ? 'Enter a valid neo4j:// or bolt:// URI.'
-                        : 'The Neo4j service URI.'}
+                        ? 'Enter a valid neo4j://, neo4j+s://, bolt://, or bolt+s:// URI.'
+                        : 'The Neo4j service URI (neo4j://, neo4j+s://, bolt://, or bolt+s://).'}
                     </HelperTextItem>
                   </HelperText>
                 </FormHelperText>
