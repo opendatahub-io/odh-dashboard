@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
 import {
   GPUAAS_EVENTS,
   QUOTA_USAGE_INTERACTION_TYPES,
@@ -18,6 +19,10 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
   SupportedArea: { KUEUE: 'kueue' },
   useIsAreaAvailable: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed', () => ({
+  useAccessAllowed: jest.fn(),
 }));
 
 jest.mock('../../components/InfrastructureKueueHelpLink', () => ({
@@ -103,8 +108,14 @@ jest.mock('../../components/QuotaUsageSection', () => ({
   default: () => <div data-testid="quota-usage" />,
 }));
 
+jest.mock('../../components/InfrastructureWorkloadsSection', () => ({
+  __esModule: true,
+  default: () => <div data-testid="infrastructure-workloads" />,
+}));
+
 const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
 const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
+const mockUseAccessAllowed = jest.mocked(useAccessAllowed);
 
 describe('InfrastructurePage - Tracking Events', () => {
   beforeEach(() => {
@@ -119,6 +130,7 @@ describe('InfrastructurePage - Tracking Events', () => {
       requiredCapabilities: null,
       customCondition: () => false,
     });
+    mockUseAccessAllowed.mockReturnValue([true, true]);
   });
 
   describe('Infrastructure Page Viewed', () => {

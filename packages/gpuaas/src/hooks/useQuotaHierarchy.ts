@@ -12,12 +12,16 @@ export type QuotaHierarchyData = {
 
 const useQuotaHierarchy = (
   refreshRate = INFRASTRUCTURE_REFRESH_INTERVAL,
+  canAccessAdminTabs = true,
 ): FetchStateObject<QuotaHierarchyData> & { lastRefreshed: Date | null } => {
   const quotaHierarchyState = useFetch<QuotaHierarchyData>(
     React.useCallback(async () => {
+      if (!canAccessAdminTabs) {
+        return { tree: [] };
+      }
       const [clusterQueues, cohorts] = await Promise.all([listClusterQueues(), listCohorts()]);
       return { tree: buildQuotaHierarchyTree(cohorts, clusterQueues) };
-    }, []),
+    }, [canAccessAdminTabs]),
     { tree: [] },
     { refreshRate },
   );
