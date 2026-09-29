@@ -9,9 +9,11 @@ import { useClusterDetails } from '../api/useClusterDetails';
 import { usePersesDashboards } from '../api/usePersesDashboards';
 
 /**
- * TODO: Move this adapter to the frontend package once observability exposes a host-to-module adapter
- * contract. The frontend must provide this component to DashboardPage across the Module Federation
- * boundary so the package can remain host-neutral.
+ * Main-dashboard adapter for cluster details variables. It reads Redux and operator state specific
+ * to the main dashboard.
+ *
+ * TODO: Accept this adapter from the host once DashboardPage exposes an adapter prop, so
+ * observability does not depend on main-dashboard state across the Module Federation boundary.
  */
 const MainDashboardClusterDetailsVariablesProvider: React.FC = () => {
   // Get API server URL from redux state (same source as AboutDialog)
