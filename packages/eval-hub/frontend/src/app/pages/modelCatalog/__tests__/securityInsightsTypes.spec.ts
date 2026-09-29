@@ -175,4 +175,21 @@ describe('mapArtifactToInsight', () => {
 
     expect(insight.result).toBe('100.0%');
   });
+
+  it.each([null, '0', NaN, Infinity, -Infinity])(
+    'should return an empty result for an invalid lower-is-better value: %s',
+    (doubleValue) => {
+      const artifact = {
+        artifactType: 'SecurityArtifact',
+        customProperties: {
+          lower_is_better: { metadataType: 'MetadataBoolValue', bool_value: true },
+          result: { metadataType: 'MetadataDoubleValue', double_value: doubleValue },
+        },
+      } as unknown as CatalogSecurityArtifact;
+
+      const insight = mapArtifactToInsight(artifact);
+
+      expect(insight.result).toBe('');
+    },
+  );
 });
