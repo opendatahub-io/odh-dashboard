@@ -1,7 +1,6 @@
-import { fetchPersesDashboardsMetadata } from '@odh-dashboard/observability/dashboard';
-import { PERSES_PROXY_BASE_PATH } from '../paths';
+import { fetchPersesDashboardsMetadata } from '../perses-client';
 
-describe('portal Perses proxy', () => {
+describe('Perses proxy path', () => {
   let originalFetch: typeof global.fetch;
 
   beforeEach(() => {
@@ -12,14 +11,14 @@ describe('portal Perses proxy', () => {
     global.fetch = originalFetch;
   });
 
-  it('uses the portal-prefixed path to discover dashboards', async () => {
+  it('uses the supplied base path to discover dashboards', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve([]),
       headers: new Headers(),
     } as Response);
 
-    await fetchPersesDashboardsMetadata(undefined, PERSES_PROXY_BASE_PATH);
+    await fetchPersesDashboardsMetadata(undefined, '/maas-consumer-portal/perses/api');
 
     expect(global.fetch).toHaveBeenCalledWith(
       '/maas-consumer-portal/perses/api/api/v1/dashboards',
