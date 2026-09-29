@@ -10,12 +10,24 @@ declare global {
   }
 }
 
+const configuredPluginAssetPaths = new Set<string>();
+
 /**
  * Tell Perses plugin manifests to resolve asset URLs through our proxy.
  * Each manifest's getPublicPath reads PERSES_PLUGIN_ASSETS_PATH (primary)
  * or PERSES_APP_CONFIG.api_prefix (fallback) to prefix chunk URLs.
+ * Perses' module-federation runtime is page-global, so all remote plugin
+ * imports in a page must use the same proxy path.
  */
 const configurePluginAssetPath = (basePath: string): void => {
+  if (configuredPluginAssetPaths.size > 0 && !configuredPluginAssetPaths.has(basePath)) {
+    const [configuredPluginAssetPath] = configuredPluginAssetPaths;
+    throw new Error(
+      `Perses remote plugins use one proxy path per page; configured for "${configuredPluginAssetPath}" and received "${basePath}".`,
+    );
+  }
+  configuredPluginAssetPaths.add(basePath);
+
   if (typeof window !== 'undefined') {
     window.PERSES_PLUGIN_ASSETS_PATH = basePath;
     window.PERSES_APP_CONFIG = { ...window.PERSES_APP_CONFIG, api_prefix: basePath };
@@ -89,6 +101,9 @@ export const resetBundledOverridesForTests = (
  * Composite PluginLoader: discovers plugins from the Perses server API
  * via remotePluginLoader and overrides specific plugins with locally
  * bundled versions when a newer build is needed.
+ *
+ * All loaders in one page must use the same basePath because Perses shares its
+ * module-federation runtime and plugin asset-path configuration globally.
  *
  * Perses's PluginRuntime (inside remotePluginLoader) already provides a
  * Module Federation runtime with shared singletons (React, emotion,
