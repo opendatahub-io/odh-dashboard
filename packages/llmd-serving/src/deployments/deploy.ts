@@ -41,7 +41,11 @@ import {
   updateLLMInferenceServiceConfig,
 } from '../api/LLMInferenceServiceConfigs';
 import { cleanlyDuplicateConfig } from '../utils';
-import { applyHfTokenEnvVar, resolveHfTokenSecretName } from '../hfTokenSecret';
+import {
+  applyHfTokenServiceAccount,
+  resolveHfTokenSecretName,
+  resolveHfTokenServiceAccountName,
+} from '../hfTokenSecret';
 
 export const BaseLLMInferenceService = (
   name?: string,
@@ -308,12 +312,24 @@ export const deployLLMdDeployment = async (
     throw new Error('LLMInferenceService is required');
   }
 
+  const deploymentK8sName =
+    modelResource.metadata.name || wizardData.k8sNameDesc.data.k8sName.value || '';
   const hfTokenSecretName = await resolveHfTokenSecretName(
     projectName,
     wizardData.huggingFaceApiKey.data,
     { dryRun },
   );
-  const llmInferenceServiceToDeploy = applyHfTokenEnvVar(modelResource, hfTokenSecretName);
+  const hfTokenServiceAccountName = await resolveHfTokenServiceAccountName(
+    projectName,
+    hfTokenSecretName,
+    deploymentK8sName,
+    { dryRun },
+  );
+  const llmInferenceServiceToDeploy = applyHfTokenServiceAccount(
+    modelResource,
+    hfTokenSecretName,
+    hfTokenServiceAccountName,
+  );
 
   let llmInferenceServiceConfig: LLMInferenceServiceConfigKind | undefined;
   if (serverResource) {
