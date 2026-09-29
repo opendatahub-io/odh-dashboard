@@ -1,3 +1,8 @@
+export enum WorkflowType {
+  GENAI = 'genai',
+  MACHINE_LEARNING = 'machine_learning',
+}
+
 export const EXPERIMENTS_PAGE_TITLE = 'Experiments';
 export const PROMPT_MANAGEMENT_PAGE_TITLE = 'Prompts';
 
