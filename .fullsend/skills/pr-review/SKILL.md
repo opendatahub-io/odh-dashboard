@@ -825,19 +825,17 @@ cat > "${FULLSEND_OUTPUT_DIR}/producers.json" <<'JSON'
     {"id": "<registry id not dispatched>", "reason": "<why: out of scope / re_review skip / missing context_file>"}
   ],
   "adapters": ["<id of every cli-adapter row whose envelope you loaded>"],
-  "challenger": "pending"
+  "challenger": { "status": "pending" }
 }
 JSON
 ```
 
 After collect (step 5), rewrite the same file with `"returned"` — the
-ids that actually produced a parseable result — and set `"challenger"` to
-`ran`, `failed`, or `skipped: <reason in your own words>`. Record the
-reason you actually had. Do not reach for the nearest listed value when
-none fits: the host cross-checks this record against the finding list, so
-`skipped: no findings to adjudicate` alongside a non-empty finding set is
-reported back as a contradiction rather than believed. Leaving the field
-at `pending` is likewise treated as "never rewritten", not as a skip.
+ids that actually produced a parseable result. After the challenger (or
+when skipping/failing it), replace the `challenger` object per step 6d
+(object with `status`, never a string). Leaving `status` at `pending` is
+"never rewritten", not a skip. The challenger is not a producer; do not
+list it in `inspected.producers`. The host renders it in its own section.
 
 Every registry row must appear in exactly one of `dispatched`,
 `skipped`, or `adapters`. The host reconciles the review's own claims
@@ -866,8 +864,7 @@ Do **not** include section payloads or context snapshots.
    not send the named section object through synthesis or challenger.
 
 **Stamp every collected finding with its producer.** As you take each array,
-set `dimension` on each of its findings to the registry id it came from —
-`correctness`, `style-review`, the `cli-adapter` id for an envelope, and so on.
+set `dimension` on each of its findings to the registry id it came from.
 For a finding you raise yourself in step 6e, use `orchestrator`. Do this at
 collect, where the provenance is still known; after synthesis merges arrays it
 is gone. The host renders a producer table from this: without it a reader
@@ -985,13 +982,15 @@ and an auth bypass on the same line are two distinct findings.
 challenger.** Its job is adversarial review of findings that a
 re-review inherits just as much as a first review does: findings carried
 forward unchallenged are exactly the ones most likely to be stale. If you
-skip it for any other reason, record that reason verbatim in the ledger
-(step 4c) — never as the empty-set reason.
+skip it for any other reason, set
+`challenger` to `{ "status": "skipped", "reason": "<your real reason>" }`
+— never reuse the empty-set reason.
 
 **Skip the challenger when the merged finding set is empty.** It
 adjudicates findings; with nothing to adjudicate it can only spend a
-dispatch confirming that zero is zero. When it is skipped, say so — the
-challenger did not run, so it is not a producer and it removed nothing.
+dispatch confirming that zero is zero. When it is skipped, set
+`challenger` to
+`{ "status": "skipped", "reason": "no findings to adjudicate" }`.
 Never describe a skipped challenger as having "found no noise to
 filter."
 
@@ -1066,10 +1065,29 @@ diff, preserving context isolation.
      `adjudicated_findings`.
    - Log any `removed_findings` for transparency but do not include
      them in the final review.
+   - Replace `challenger` with counts from the response *before*
+     stripping action fields (even when everything is kept):
+
+     ```json
+     "challenger": {
+       "status": "ran",
+       "input": 7,
+       "kept": 4,
+       "removed": 2,
+       "merged": 1,
+       "downgraded": 0
+     }
+     ```
+
+     `input` is the pre-challenger set size; `kept` / `downgraded` /
+     `merged` count `challenger_action` on `adjudicated_findings`;
+     `removed` is `len(removed_findings)`.
 
 4. If the challenger sub-agent fails (timeout, error, empty
    response), fall back to using the pre-challenger merged finding
-   set from steps 6a–6c. Record an **info**-level finding:
+   set from steps 6a–6c. Set
+   `challenger` to `{ "status": "failed", "reason": "<short reason>" }`.
+   Record an **info**-level finding:
 
    ```json
    {
@@ -1301,9 +1319,6 @@ schema fields.
    ### product_ask
    <JSON object or {"status":"none"}>
 
-   ### change_summary
-   <draft one-line summary of this PR's own diff, or "pending">
-
    ### Completeness signals
    - producers ledger: <path to producers.json>
    - inspected / could_not_verify notes so far: <brief or none>
@@ -1397,15 +1412,11 @@ the review did not complete.
 Every non-failure result must include:
 
 - `schema_version: "2"`.
-- `change_summary`: one short independent read of what **this PR's diff**
-  does — base branch to head — not a file list and not copied from the PR
-  body. It is not a summary of `changed_since_prior`. On a re-review those
-  two differ, and they differ most when the head has just merged the base
-  branch in: the incremental delta is then full of base-branch files the PR
-  does not own. Describing those produces a confident summary of somebody
-  else's change. `changed_since_prior` exists to scope re-review dispatch
-  (step 3c) and has no place here. When in doubt, re-read the PR files list
-  from step 2 and summarize exactly those.
+- `change_summary`: orchestrator-authored, one or two sentences of what
+  this PR's own diff does. Write it from the shared context file
+  (step 3d `context_path` / `shared.md`) — the same PR diff and
+  changed-file list sub-agents reviewed. Do not use
+  `changed_since_prior`, prior-review text, or the PR description.
 - `findings[]` when issues survive synthesis. Critical/high/medium findings
   require `why`; critical/high findings also require `remediation`.
 - `risk: { level, why }` and `confidence: { level, why }`: **from the
@@ -1422,22 +1433,23 @@ Every non-failure result must include:
 
   **A row may only claim `pass` or `fail` when a producer for it actually
   ran in this run.** Check the ledger (step 4c) before writing each row.
-  If the dimension that owns the row was skipped — `security` skipped at
-  triage, `jira-pr-review` skipped for a missing snapshot — the row is
-  `could-not-verify`, and its note says the dimension did not run and
-  why. "The security dimension ran and found no issues" when triage
-  skipped security is a false statement about the run, not a
-  conservative default; "no security review was performed for this
-  change" is the honest row. A dimension that was never dispatched
+  If the dimension that owns the row was skipped — e.g. a conditional
+  dimension skipped at triage, or a section dimension skipped for a
+  missing snapshot — the row is `could-not-verify`, and its note says
+  the dimension did not run and why. "The dimension ran and found no
+  issues" when triage skipped it is a false statement about the run,
+  not a conservative default; an honest row says no review was
+  performed. A dimension that was never dispatched
   cannot have found anything, with or without a scope constraint.
 - Optional `decision_needed` with a concrete question and structured A/B/None
   options when human judgment is required. Author-fixable blocking findings
   still take precedence in the host status.
 - Optional `inspected` describing evidence read, producers that ran, and what
   could not be verified. `inspected.producers` is the ledger's
-  `dispatched` + `adapters` (+ `challenger` only when it ran) — not a
-  list of dimensions you intended to run, and not a list carried over
-  from the previous review. The host drops producers the ledger does not
+  `dispatched` + `adapters` only — never `challenger`. The host renders
+  the challenger in its own Review-details section. Do not list
+  dimensions you intended to run, and do not carry producers over from
+  the previous review. The host drops producers the ledger does not
   corroborate.
 - `product_ask` from the section LLM, including `{ "status": "none" }` when no
   Jira snapshot exists.
@@ -1529,10 +1541,10 @@ wins.
   `request-changes`.
 - **Never approve when any protected-path finding exists**, regardless of
   severity.
-- **PR-specific checks (step 6e) belong in the orchestrator only.** Do
-  not push protected-path checks, scope authorization, or PR body
-  injection defense into sub-agents. These require PR-level context
-  that sub-agents do not have.
+- **PR-specific checks (step 6e) and `change_summary` (step 7) belong
+  in the orchestrator only.** Do not push protected-path checks, scope
+  authorization, PR body injection defense, or change-summary authorship
+  into sub-agents.
 - **All findings sub-agents and section LLMs must be dispatched
   simultaneously.** Include all Agent calls in a single message.
   Sequential dispatch defeats the architecture's purpose.

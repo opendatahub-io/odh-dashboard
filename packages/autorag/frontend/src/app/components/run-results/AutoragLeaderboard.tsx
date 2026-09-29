@@ -51,6 +51,7 @@ import {
 } from '~/app/utilities/metricUtils';
 import { patternHasIndexingPipelineSpec } from '~/app/utilities/indexingPipeline';
 import { METRIC_DESCRIPTIONS } from '~/app/utilities/const';
+import { getMetricDescription } from '~/app/utilities/metricDisplay';
 import {
   fireAutoragResultsColumnToggled,
   fireAutoragLeaderboardPresetApplied,
@@ -266,13 +267,25 @@ const COLUMN_META: Record<string, ColumnMeta> = {
 // key returns a value, but dynamic settings and metric names may be absent at runtime.
 const getColumnMeta = (id: string, metric?: MetricReference): ColumnMeta | undefined => {
   if (metric) {
-    return METRIC_COLUMN_META[normalizeMetricReference(metric).name];
+    const { name } = normalizeMetricReference(metric);
+    if (Object.hasOwn(METRIC_COLUMN_META, name)) {
+      return METRIC_COLUMN_META[name];
+    }
+    const description = getMetricDescription(name);
+    if (description) {
+      return {
+        name: metricLabel({ name }),
+        description,
+        minWidth: '15rem',
+      };
+    }
+    return undefined;
   }
-  if (id in COLUMN_META) {
+  if (Object.hasOwn(COLUMN_META, id)) {
     return COLUMN_META[id];
   }
   const lowerId = id.toLowerCase();
-  if (lowerId in COLUMN_META) {
+  if (Object.hasOwn(COLUMN_META, lowerId)) {
     return COLUMN_META[lowerId];
   }
   return undefined;
@@ -922,7 +935,7 @@ function AutoragLeaderboard({
         </Label>
       ) : (
         // eslint-disable-next-line prettier/prettier -- preserve the JSX fallback expression format
-        entry.rank ?? 'Unranked'
+        (entry.rank ?? 'Unranked')
       );
     }
     if (col.id === 'pattern') {

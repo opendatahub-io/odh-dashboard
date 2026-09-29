@@ -257,7 +257,7 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
             <StackItem>
               <HelperText>
                 <HelperTextItem icon={<CheckCircleIcon />} variant="success">
-                  Your personal API key has been saved.
+                  Your personal API key is saved.
                 </HelperTextItem>
               </HelperText>
             </StackItem>
@@ -303,19 +303,20 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
 
       {isDeleteModalOpen && (
         <DeleteModal
-          title="Remove NVIDIA NIM"
+          title="Remove NVIDIA NIM?"
           onClose={() => {
             setIsDeleteModalOpen(false);
             setDeleteError(undefined);
           }}
           onDelete={handleRemoveConfirm}
           submitButtonLabel="Remove"
-          deleteName="NVIDIA NIM"
+          deleteName="Remove NVIDIA NIM"
           deleting={isDeleting}
           error={deleteError}
-          removeConfirmation
+          typeConfirmationLabel="removal"
         >
-          This will remove the NVIDIA NIM account and API key from this project.
+          NVIDIA NIM will be disabled in this project. Existing NIM deployments will begin failing,
+          and no new ones can be created in this project until a new API key is added.
         </DeleteModal>
       )}
     </>

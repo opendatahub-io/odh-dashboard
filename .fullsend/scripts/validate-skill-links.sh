@@ -9,7 +9,7 @@ EXPECTED_TARGET='../../../../.claude/skills'
 # Every Fullsend reviewer is now a sandbox-spawned skill. The host-adapters
 # directory is gone with the CI adapters; jira-snapshot's runner is a plain
 # script, not a linked canonical skill.
-SKILLS=(style-review rbac-review jira-pr-review test-impact-review pr-description-review)
+SKILLS=(style-review rbac-review product-ask-review test-impact-review pr-description-review)
 SANDBOX_SKILLS=("${SKILLS[@]}")
 
 fail=0

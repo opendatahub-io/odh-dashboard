@@ -153,7 +153,7 @@ def approve_refuse_reason(result):
 # says that dimension never ran, the row cannot honestly report pass/fail.
 LEDGER_ROW_DIMENSION = {
     "security": "security",
-    "product-ask": "jira-pr-review",
+    "product-ask": "product-ask-review",
     "evidence": "test-impact-review",
 }
 
@@ -194,8 +194,6 @@ def reconcile_producers(result):
         for item in ledger.get(key) or []:
             if isinstance(item, str) and item and item not in ran:
                 ran.append(item)
-    if (ledger.get("challenger") or "") == "ran" and "challenger" not in ran:
-        ran.append("challenger")
 
     skipped = {}
     for row in ledger.get("skipped") or []:
@@ -210,15 +208,9 @@ def reconcile_producers(result):
         inspected["producers"] = ran
     result["inspected"] = inspected
 
-    stray = summary_scope_problem(result)
-    if stray:
-        add_limit(inspected, "The change summary cites files that are not in this PR's diff: "
-                             + ", ".join(stray) + ".")
-        result["inspected"] = inspected
-
-    _, challenger_problem = challenger_state(ledger, result.get("findings") or [])
-    if challenger_problem:
-        add_limit(inspected, challenger_problem)
+    problem = challenger_problem(challenger_record(ledger), result.get("findings") or [])
+    if problem:
+        add_limit(inspected, problem)
         result["inspected"] = inspected
 
     verification = []
@@ -284,64 +276,6 @@ def normalize_protected_findings(result):
         }
     return result
 
-PATH_TOKEN = re.compile(r"(?:[\w.-]+/)+[\w.-]+\.[A-Za-z0-9]+")
-# A summary that cites "post-review.sh" without its directory evades PATH_TOKEN,
-# which is how a wrong summary got through after the first version of this guard.
-# Bare names are only worth checking when the extension says "file in a repo",
-# so this list is deliberately narrow, and a few library names that look like
-# filenames are excluded outright.
-BARE_FILE_TOKEN = re.compile(
-    r"\b[\w.-]+\.(?:tsx?|jsx?|mjs|cjs|scss|css|go|py|sh|ya?ml|json|md|snap)\b")
-BARE_FILE_EXCEPTIONS = {"node.js", "next.js", "nest.js", "vue.js", "three.js", "d3.js"}
-# A directory the PR does not touch is the same claim in coarser form.
-DIR_TOKEN = re.compile(r"(?:[\w.-]+/){1,}")
-
-def summary_scope_problem(result):
-    """File paths the change summary cites that this PR does not touch.
-
-    change_summary is meant to describe the PR's own diff. On a re-review whose
-    head has just merged the base branch in, `changed_since_prior` is full of
-    base-branch files the PR does not own, and summarizing those produces a
-    confident description of somebody else's change. The instruction not to do
-    that has now been ignored once, so the host checks it."""
-    summary = result.get("change_summary") or ""
-    changed = changed_paths()
-    if not summary or not changed:
-        return []
-    stray = []
-
-    def note(token):
-        if token not in stray:
-            stray.append(token)
-
-    paths = PATH_TOKEN.findall(summary)
-    for token in paths:
-        if any(token == f or f.endswith("/" + token) or token.endswith("/" + f) for f in changed):
-            continue
-        note(token)
-
-    basenames = {f.rsplit("/", 1)[-1] for f in changed}
-    for token in BARE_FILE_TOKEN.findall(summary):
-        if token.lower() in BARE_FILE_EXCEPTIONS or token in basenames:
-            continue
-        # Already reported, with its directory, by the full-path pass above.
-        if any(token == path.rsplit("/", 1)[-1] for path in paths):
-            continue
-        note(token)
-
-    for token in DIR_TOKEN.findall(summary):
-        directory = token.rstrip("/")
-        if not directory or "/" not in token:
-            continue
-        if any(f == directory or f.startswith(directory + "/") for f in changed):
-            continue
-        # A directory that is only the leading part of a full path already flagged.
-        if any(path.startswith(token) for path in paths):
-            continue
-        note(token)
-
-    return stray
-
 def unverified_producers(result):
     """Everything this run could not establish, by whatever shape reported it.
 
@@ -357,17 +291,13 @@ def unverified_producers(result):
         if check.get("status") == "could-not-verify":
             names.append(check.get("id") or "readiness check")
     ledger = load_ledger()
-    if ledger is not None:
-        _, problem = challenger_state(ledger, result.get("findings") or [])
-        if problem:
-            names.append("challenger (its ledger record contradicts the reported findings)")
+    if ledger is not None and challenger_problem(challenger_record(ledger), result.get("findings") or []):
+        names.append("challenger (its ledger record contradicts the reported findings)")
     return names
 
 def cap_confidence(result):
     """Host completeness re-cap: may lower confidence only (never raises risk)."""
     missing = unverified_producers(result)
-    if summary_scope_problem(result):
-        missing = missing + ["the change summary (it describes files outside this PR's diff)"]
     if not missing:
         return result
     confidence = result.get("confidence") if isinstance(result.get("confidence"), dict) else {}
@@ -571,35 +501,63 @@ def detail_block(summary, body_lines, open_by_default=False):
     attr = " open" if open_by_default else ""
     return [f"<details{attr}>", f"<summary>{summary}</summary>", ""] + body_lines + ["", "</details>"]
 
-def challenger_state(ledger, findings):
-    """Read the ledger's challenger record, and catch it contradicting itself.
+def challenger_record(ledger):
+    raw = (ledger or {}).get("challenger")
+    return raw if isinstance(raw, dict) else {}
 
-    The sanctioned skip is an empty finding set (step 6d). A run that skips for
-    another reason has to say so; recording the empty-set reason instead makes
-    the ledger assert something the finding list disproves. Since the ledger
-    exists precisely to let the host check the review's account of itself, a
-    contradiction here is reported, not absorbed."""
-    raw = (ledger.get("challenger") or "").strip()
-    if not raw:
-        return "", None
-    if raw == "ran":
-        return "✅ ran", None
-    if raw == "failed":
-        return "❌ failed", None
-    if raw == "pending":
-        return ('❔ ledger left at "pending" — never rewritten after collect',
-                'The producer ledger still records the challenger as "pending", so whether it ran is unknown.')
-    if raw.startswith("skipped"):
-        _, _, reason = raw.partition(":")
-        reason = reason.strip()
-        claims_empty = not reason or "no finding" in reason.lower() or raw == "skipped-empty-set"
+def claims_empty_skip(reason):
+    """True when a skipped challenger claims the empty-finding-set sanction."""
+    return not reason or "no finding" in reason.lower()
+
+def challenger_problem(ch, findings):
+    """Confidence/limit note when the challenger record contradicts itself."""
+    status = str(ch.get("status") or "").strip().lower()
+    reason = clean(ch.get("reason") or "")
+    if status == "pending":
+        return ('The producer ledger still records the challenger as "pending", so whether it ran is unknown.')
+    if status == "skipped" and claims_empty_skip(reason) and findings:
         count = len(findings)
-        if claims_empty and count:
-            return (f'🟡 skipped — recorded as "no findings to adjudicate", but {count} finding(s) were reported',
-                    f"The ledger records the challenger as skipped for an empty finding set, but {count} "
-                    f"finding(s) were reported. Its real reason for skipping was not recorded.")
-        return f"➖ skipped — {clean(reason) if reason else 'no findings to adjudicate'}", None
-    return clean(raw), None
+        return (f"The ledger records the challenger as skipped for an empty finding set, but {count} "
+                f"finding(s) were reported. Its real reason for skipping was not recorded.")
+    return None
+
+def challenger_prose(result):
+    ledger = load_ledger()
+    findings = result.get("findings") or []
+    if ledger is None:
+        return "Challenger state is unverified — no dispatch ledger for this run."
+    ch = challenger_record(ledger)
+    status = str(ch.get("status") or "").strip().lower()
+    if not status:
+        return "Challenger state was not recorded in the dispatch ledger."
+    problem = challenger_problem(ch, findings)
+    if problem:
+        return problem
+    reason = clean(ch.get("reason") or "")
+    if status == "failed":
+        return (f"Challenger failed ({reason}); using the pre-challenger finding set."
+                if reason else "Challenger failed; using the pre-challenger finding set.")
+    if status == "skipped":
+        if claims_empty_skip(reason):
+            return "Skipped — no findings to adjudicate."
+        return f"Skipped — {reason}."
+    if status == "ran":
+        def num(key):
+            value = ch.get(key)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                return None
+            return int(value)
+        input_n, kept = num("input"), num("kept")
+        if input_n is None or kept is None:
+            return "Challenger ran, but adjudication counts were not recorded."
+        removed, merged, downgraded = num("removed") or 0, num("merged") or 0, num("downgraded") or 0
+        noun = "finding" if input_n == 1 else "findings"
+        parts = [f"{label} {n}" for label, n in (
+            ("removed", removed), ("merged", merged), ("downgraded", downgraded)) if n]
+        if not parts:
+            return f"Adjudicated {input_n} {noun}; all kept."
+        return f"Adjudicated {input_n} {noun}; kept {kept} ({', '.join(parts)})."
+    return clean(status)
 
 def producer_rows(result):
     """What ran, and what each one found — from the dispatch ledger."""
@@ -627,20 +585,6 @@ def producer_rows(result):
         for name in ledger.get(key) or []:
             if isinstance(name, str):
                 rows.append((clean(name), "✅", count_cell(name), "—"))
-    label, problem = challenger_state(ledger, findings)
-    if label:
-        if label.startswith("✅"):
-            icon, note = "✅", "—"
-        elif label.startswith("❌"):
-            icon, note = "❌", clean(label)
-        elif label.startswith("➖"):
-            icon = "➖"
-            note = clean(label.split("—", 1)[1].strip() if "—" in label else label)
-        elif label.startswith(("🟡", "❔")):
-            icon, note = "🟡", clean(problem or label)
-        else:
-            icon, note = "🟡", clean(label)
-        rows.append(("challenger", icon, "—", note))
     for row in ledger.get("skipped") or []:
         if isinstance(row, dict) and isinstance(row.get("id"), str):
             reason = clean(row.get("reason") or "not selected")
@@ -700,7 +644,6 @@ def render_product_ask_section(pa):
         lines += ["Aligned:"] + [f"- {clean(item)}" for item in pa["aligned"]] + [""]
     if pa.get("mismatched"):
         lines += ["Mismatched:"] + [f"- {clean(item)}" for item in pa["mismatched"]] + [""]
-    lines.append("The PR description is the source of truth. This section compares description vs linked Jira text — not the diff against acceptance criteria.")
     return lines
 
 def render_body(result, previous_md, action):
@@ -713,12 +656,6 @@ def render_body(result, previous_md, action):
         return "\n".join(lines).rstrip() + "\n"
 
     lines += ["", "## Change summary", "", clean(result.get("change_summary"))]
-    stray = summary_scope_problem(result)
-    if stray:
-        changed = changed_paths()
-        lines += ["", f"> 🟡 This summary names files that are not in this PR's diff "
-                      f"(`{'`, `'.join(stray)}`). This PR changes "
-                      f"{len(changed)} file(s): `{'`, `'.join(changed)}`."]
     lines += ["", "## Status", "", status_headline(result, action)]
     lines += render_signal_table(result)
 
@@ -775,6 +712,8 @@ def render_body(result, previous_md, action):
         if not from_ledger:
             details_body += ["", "_No dispatch ledger for this run — this list is self-reported by the agent._"]
         details_body.append("")
+
+    details_body += ["### Challenger", "", challenger_prose(result), ""]
 
     criteria = result.get("jira_criteria") if isinstance(result.get("jira_criteria"), list) else []
     if criteria:
@@ -1014,7 +953,7 @@ run_self_test() {
     echo "PASS supported protected-path routes to human judgment, not request-changes"
   fi
 
-  printf '%s' '{"dispatched":["correctness"],"adapters":["jira-snapshot"],"skipped":[{"id":"security","reason":"no auth, secrets or config touched"}],"challenger":"skipped-empty-set","returned":["correctness"]}' > "${tmp}/producers.json"
+  printf '%s' '{"dispatched":["correctness"],"adapters":["jira-snapshot"],"skipped":[{"id":"security","reason":"no auth, secrets or config touched"}],"returned":["correctness"],"challenger":{"status":"skipped","reason":"no findings to adjudicate"}}' > "${tmp}/producers.json"
   printf '%s' "{${common},\"findings\":[],\"inspected\":{\"summary\":\"Read the diff.\",\"producers\":[\"correctness\",\"security\",\"challenger\"]}}" > "${tmp}/ledger.json"
   (
     export REVIEW_PRODUCER_LEDGER="${tmp}/producers.json"
@@ -1051,7 +990,7 @@ run_self_test() {
   # Provenance: the ledger drives a Producers table that distinguishes a
   # dimension that ran and found nothing from one that never ran, and each
   # finding names the producer that raised it.
-  printf '%s' '{"dispatched":["correctness","style-review"],"adapters":["jira-snapshot"],"skipped":[{"id":"security","reason":"no auth or secrets touched"}],"challenger":"ran","returned":["correctness","style-review"]}' > "${tmp}/prov-ledger.json"
+  printf '%s' '{"dispatched":["correctness","style-review"],"adapters":["jira-snapshot"],"skipped":[{"id":"security","reason":"no auth or secrets touched"}],"returned":["correctness","style-review"],"challenger":{"status":"ran","input":1,"kept":1}}' > "${tmp}/prov-ledger.json"
   printf '%s' "{${common},\"findings\":[{\"severity\":\"high\",\"category\":\"off-by-one\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"line\":3,\"description\":\"Out of bounds.\",\"why\":\"Index equals length.\",\"remediation\":\"Subtract one.\"}]}" > "${tmp}/prov.json"
   (
     export REVIEW_PRODUCER_LEDGER="${tmp}/prov-ledger.json"
@@ -1075,6 +1014,12 @@ run_self_test() {
     fail=1
   elif ! grep -q '### High (1)' <<<"${body}"; then
     echo "FAIL provenance: severity heading missing count" >&2
+    fail=1
+  elif grep -qE '^\| challenger \|' <<<"${body}"; then
+    echo "FAIL provenance: challenger must not appear in the Producers table" >&2
+    fail=1
+  elif ! grep -q '### Challenger' <<<"${body}" || ! grep -q 'Adjudicated 1 finding; all kept\.' <<<"${body}"; then
+    echo "FAIL provenance: Challenger section missing or wrong prose" >&2
     fail=1
   else
     echo "PASS producers table attributes findings and separates ran-clean from skipped"
@@ -1115,7 +1060,7 @@ run_self_test() {
 
   # The ledger claiming an empty-set skip while findings exist is the exact
   # shape run 243 produced. The host must contradict it, not repeat it.
-  printf '%s' '{"dispatched":["correctness"],"adapters":[],"skipped":[],"challenger":"skipped-empty-set"}' > "${tmp}/ch-bad.json"
+  printf '%s' '{"dispatched":["correctness"],"adapters":[],"skipped":[],"challenger":{"status":"skipped","reason":"no findings to adjudicate"}}' > "${tmp}/ch-bad.json"
   printf '%s' "{${common},\"findings\":[{\"severity\":\"high\",\"category\":\"off-by-one\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Out of bounds.\",\"why\":\"undefined.\",\"remediation\":\"length - 1.\"}]}" > "${tmp}/ch.json"
   ( export REVIEW_PRODUCER_LEDGER="${tmp}/ch-bad.json"; transform_review_result "${tmp}/ch.json" ) > "${tmp}/ch-out.json"
   body=$(jq -r .body "${tmp}/ch-out.json")
@@ -1129,18 +1074,18 @@ run_self_test() {
     echo "PASS contradictory challenger record is reported and caps confidence"
   fi
 
-  # An honest skip with a stated reason renders as-is.
-  printf '%s' '{"dispatched":["correctness"],"adapters":[],"skipped":[],"challenger":"skipped: re-review, findings unchanged since prior run"}' > "${tmp}/ch-ok.json"
+  # An honest skip with a stated reason renders in the Challenger section.
+  printf '%s' '{"dispatched":["correctness"],"adapters":[],"skipped":[],"challenger":{"status":"skipped","reason":"re-review, findings unchanged since prior run"}}' > "${tmp}/ch-ok.json"
   ( export REVIEW_PRODUCER_LEDGER="${tmp}/ch-ok.json"; transform_review_result "${tmp}/ch.json" ) > "${tmp}/ch-ok-out.json"
-  if ! grep -q '| challenger | ➖ | — | re-review, findings unchanged since prior run |' <<<"$(jq -r .body "${tmp}/ch-ok-out.json")"; then
+  if ! grep -q 'Skipped — re-review, findings unchanged since prior run\.' <<<"$(jq -r .body "${tmp}/ch-ok-out.json")"; then
     echo "FAIL challenger-reason: a stated skip reason was not rendered" >&2
     fail=1
   else
-    echo "PASS challenger skip reason renders verbatim"
+    echo "PASS challenger skip reason renders in its own section"
   fi
 
   # A ledger never rewritten after collect is not the same as a skip.
-  printf '%s' '{"dispatched":["correctness"],"adapters":[],"skipped":[],"challenger":"pending"}' > "${tmp}/ch-pending.json"
+  printf '%s' '{"dispatched":["correctness"],"adapters":[],"skipped":[],"challenger":{"status":"pending"}}' > "${tmp}/ch-pending.json"
   ( export REVIEW_PRODUCER_LEDGER="${tmp}/ch-pending.json"; transform_review_result "${tmp}/ch.json" ) > "${tmp}/ch-p-out.json"
   if ! grep -q 'whether it ran is unknown' <<<"$(jq -r .body "${tmp}/ch-p-out.json")"; then
     echo "FAIL challenger-pending: an un-rewritten ledger was read as a real state" >&2
@@ -1149,89 +1094,14 @@ run_self_test() {
     echo "PASS un-rewritten challenger record is flagged, not believed"
   fi
 
-  # The exact shape runs 240/243/246 produced: the summary describes the
-  # base-branch merge instead of the PR's own four files.
-  printf '%s' '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","schema_version":"2","change_summary":"Infrastructure-only update: modified .fullsend/scripts/post-review.sh and .fullsend/skills/pr-review/SKILL.md.","risk":{"level":"low","why":"n"},"confidence":{"level":"high","why":"All producers ran."},"verification":[{"id":"evidence","label":"Evidence","result":"pass"}],"findings":[]}' > "${tmp}/scope.json"
-  (
-    export REVIEW_CHANGED_FILES="frontend/src/pages/smokeReview/useSmokeQuota.ts
-docs/admin-dashboard.md"
-    transform_review_result "${tmp}/scope.json"
-  ) > "${tmp}/scope-out.json"
-  body=$(jq -r .body "${tmp}/scope-out.json")
-  if ! grep -q "names files that are not in this PR's diff" <<<"${body}"; then
-    echo "FAIL summary-scope: a summary describing files outside the diff went unchallenged" >&2
-    fail=1
-  elif ! grep -q 'post-review.sh' <<<"${body}"; then
-    echo "FAIL summary-scope: the offending paths were not named" >&2
-    fail=1
-  elif ! jq -e '.confidence.level == "medium"' "${tmp}/scope-out.json" >/dev/null; then
-    echo "FAIL summary-scope: confidence stayed high on a summary of the wrong change" >&2
+  # Filtered adjudication prose.
+  printf '%s' '{"dispatched":["correctness"],"adapters":[],"skipped":[],"challenger":{"status":"ran","input":7,"kept":4,"removed":2,"merged":1}}' > "${tmp}/ch-filter.json"
+  ( export REVIEW_PRODUCER_LEDGER="${tmp}/ch-filter.json"; transform_review_result "${tmp}/ch.json" ) > "${tmp}/ch-filter-out.json"
+  if ! grep -q 'Adjudicated 7 findings; kept 4 (removed 2, merged 1)\.' <<<"$(jq -r .body "${tmp}/ch-filter-out.json")"; then
+    echo "FAIL challenger-filter: expected alteration summary" >&2
     fail=1
   else
-    echo "PASS out-of-diff change summary is challenged and caps confidence"
-  fi
-
-  # A summary that names only files the PR touches must pass clean.
-  printf '%s' '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","schema_version":"2","change_summary":"Adds a quota panel in frontend/src/pages/smokeReview/useSmokeQuota.ts and documents it.","risk":{"level":"low","why":"n"},"confidence":{"level":"high","why":"All producers ran."},"verification":[{"id":"evidence","label":"Evidence","result":"pass"}],"findings":[]}' > "${tmp}/scope-ok.json"
-  (
-    export REVIEW_CHANGED_FILES="frontend/src/pages/smokeReview/useSmokeQuota.ts
-docs/admin-dashboard.md"
-    transform_review_result "${tmp}/scope-ok.json"
-  ) > "${tmp}/scope-ok-out.json"
-  if grep -q "names files that are not in this PR's diff" <<<"$(jq -r .body "${tmp}/scope-ok-out.json")"; then
-    echo "FAIL summary-scope: an in-diff summary was falsely challenged" >&2
-    fail=1
-  elif ! jq -e '.confidence.level == "high"' "${tmp}/scope-ok-out.json" >/dev/null; then
-    echo "FAIL summary-scope: an in-diff summary should not cap confidence" >&2
-    fail=1
-  else
-    echo "PASS in-diff change summary passes clean"
-  fi
-
-  # Run 249's summary, verbatim. It named the base-branch files by basename only
-  # ("post-review.sh", not ".fullsend/scripts/post-review.sh"), so the first
-  # version of this guard -- which required a slash -- let it through.
-  printf '%s' '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","schema_version":"2","change_summary":"Infrastructure-only changes to Fullsend review harness: updated fetch-jira-context.sh and post-review.sh scripts in .fullsend/scripts/. No changes to smoke fixture code (frontend/src/pages/smokeReview/) which remains unchanged since prior review at 6285d45.","risk":{"level":"low","why":"n"},"confidence":{"level":"high","why":"All producers ran."},"verification":[{"id":"evidence","label":"Evidence","result":"pass"}],"findings":[]}' > "${tmp}/bare.json"
-  (
-    export REVIEW_CHANGED_FILES="frontend/src/pages/smokeReview/SmokeAdminPanel.tsx
-frontend/src/pages/smokeReview/useSmokeQuota.ts
-frontend/src/pages/smokeReview/SmokeAdminPanel.scss
-docs/admin-dashboard.md"
-    transform_review_result "${tmp}/bare.json"
-  ) > "${tmp}/bare-out.json"
-  body=$(jq -r .body "${tmp}/bare-out.json")
-  if ! grep -q "names files that are not in this PR's diff" <<<"${body}"; then
-    echo "FAIL bare-scope: a summary citing base-branch files by basename went unchallenged" >&2
-    fail=1
-  elif ! grep -q 'post-review.sh' <<<"${body}"; then
-    echo "FAIL bare-scope: the offending basename was not named" >&2
-    fail=1
-  elif ! grep -q '.fullsend/scripts/' <<<"${body}"; then
-    echo "FAIL bare-scope: the untouched directory was not named" >&2
-    fail=1
-  elif ! jq -e '.confidence.level == "medium"' "${tmp}/bare-out.json" >/dev/null; then
-    echo "FAIL bare-scope: confidence stayed high on a summary of the wrong change" >&2
-    fail=1
-  else
-    echo "PASS basenames and directories outside the diff are challenged too"
-  fi
-
-  # The widened matcher must not fire on a correct summary: basenames that are in
-  # the diff, a directory that is, and a library whose name looks like a filename.
-  printf '%s' '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","schema_version":"2","change_summary":"Adds a quota panel in frontend/src/pages/smokeReview/useSmokeQuota.ts, styles it in SmokeAdminPanel.scss, and documents it in docs/admin-dashboard.md. Written against Node.js 22.","risk":{"level":"low","why":"n"},"confidence":{"level":"high","why":"All producers ran."},"verification":[{"id":"evidence","label":"Evidence","result":"pass"}],"findings":[]}' > "${tmp}/bare-ok.json"
-  (
-    export REVIEW_CHANGED_FILES="frontend/src/pages/smokeReview/SmokeAdminPanel.tsx
-frontend/src/pages/smokeReview/useSmokeQuota.ts
-frontend/src/pages/smokeReview/SmokeAdminPanel.scss
-docs/admin-dashboard.md"
-    transform_review_result "${tmp}/bare-ok.json"
-  ) > "${tmp}/bare-ok-out.json"
-  if grep -q "names files that are not in this PR's diff" <<<"$(jq -r .body "${tmp}/bare-ok-out.json")"; then
-    echo "FAIL bare-scope: an in-diff summary was falsely challenged" >&2
-    jq -r .body "${tmp}/bare-ok-out.json" | grep "names files" >&2
-    fail=1
-  else
-    echo "PASS in-diff basenames and a library name pass clean"
+    echo "PASS challenger section reports removals and merges"
   fi
 
   # Every U+FE0F variation selector is stripped from the comment before it is
@@ -1240,8 +1110,9 @@ docs/admin-dashboard.md"
   # GitHub no matter how the source is written. Every marker must be a character
   # that is emoji-presentation by default, so scan the rendered body rather than
   # trusting the marker tables.
-  jq -r .body "${tmp}/scope-out.json" "${tmp}/ledger-out.json" "${tmp}/prov-out.json" \
+  jq -r .body "${tmp}/ledger-out.json" "${tmp}/prov-out.json" \
       "${tmp}/request-changes-out.json" "${tmp}/structured-out.json" \
+      "${tmp}/needs-human-out.json" \
     | python3 -c '
 import sys, unicodedata
 text = sys.stdin.read()

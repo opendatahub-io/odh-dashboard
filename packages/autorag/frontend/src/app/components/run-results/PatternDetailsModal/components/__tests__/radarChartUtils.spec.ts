@@ -1,5 +1,6 @@
 import {
   collectAllMetricNames,
+  formatRadarLabel,
   metricValues,
 } from '~/app/components/run-results/PatternDetailsModal/components/radarChartUtils';
 import type { AutoRAGEvaluationMetricResult, MetricReference } from '~/app/types/autoragPattern';
@@ -50,5 +51,13 @@ describe('radarChartUtils', () => {
         [{ name: 'faithfulness', evaluator: 'unitxt' }],
       ),
     ).toEqual([undefined]);
+  });
+
+  it('should place evaluator suffixes on their own line so long radar labels wrap', () => {
+    expect(formatRadarLabel('Context correctness (unitxt)')).toBe('Context\ncorrectness\n(unitxt)');
+  });
+
+  it('should wrap two-word metric names without a suffix', () => {
+    expect(formatRadarLabel('Context correctness')).toBe('Context\ncorrectness');
   });
 });

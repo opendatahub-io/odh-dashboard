@@ -59,6 +59,15 @@ export const deployGenAiModel = (projectName: string, testData: GenAiTestData): 
   checkInferenceServiceState(inferenceServiceName, projectName, { checkReady: true });
 };
 
+export const getExternalProviders = (): Cypress.Chainable<boolean> => {
+  const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
+  return cy
+    .exec(
+      `oc get OdhDashboardConfig odh-dashboard-config -n ${namespace} -o json | jq -r '.spec.genAiStudioConfig.aiAssetCustomEndpoints.externalProviders // false'`,
+    )
+    .then((result) => result.stdout.trim() === 'true');
+};
+
 /**
  * Enable externalProviders in OdhDashboardConfig so that non-cluster-local
  * endpoint URLs are accepted by the custom endpoints form.
@@ -164,19 +173,19 @@ export const waitForExternalProvidersEnabledViaAPI = (): void => {
 };
 
 /**
- * Disable externalProviders in OdhDashboardConfig (revert to default).
+ * Restore externalProviders in OdhDashboardConfig.
  * Polls until the change is confirmed so later specs don't race on the stale flag.
  */
-export const disableExternalProviders = (): void => {
+export const disableExternalProviders = (externalProviders = false): void => {
   const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
   const patchContent = JSON.stringify({
-    spec: { genAiStudioConfig: { aiAssetCustomEndpoints: { externalProviders: false } } },
+    spec: { genAiStudioConfig: { aiAssetCustomEndpoints: { externalProviders } } },
   });
   patchOpenShiftResource('OdhDashboardConfig', 'odh-dashboard-config', patchContent, namespace);
 
   pollUntilSuccess(
-    `oc get OdhDashboardConfig odh-dashboard-config -n ${namespace} -o json | jq -e '.spec.genAiStudioConfig.aiAssetCustomEndpoints.externalProviders == false'`,
-    'externalProviders to be false',
+    `oc get OdhDashboardConfig odh-dashboard-config -n ${namespace} -o json | jq -e '.spec.genAiStudioConfig.aiAssetCustomEndpoints.externalProviders == ${externalProviders}'`,
+    `externalProviders to be ${externalProviders}`,
     { maxAttempts: 15, pollIntervalMs: 2000 },
   );
 };
@@ -238,32 +247,22 @@ export const waitForModelInLSD = (
   maxAttempts = 20,
   pollIntervalMs = 5000,
 ): void => {
-  const modelMatches = (id: string): boolean => id === modelId || id.endsWith(`/${modelId}`);
+  const serviceUrl = `http://${serviceName}.${namespace}.svc.cluster.local:8321/v1/models`;
 
   const check = (attempt: number): void => {
-    cy.request({
-      url: `/gen-ai/api/v1/lsd/models?namespace=${encodeURIComponent(namespace)}`,
-      failOnStatusCode: false,
-    }).then((response) => {
-      const models = (response.body?.data ?? []) as { id?: string }[];
-      const modelIds = models.map((model) => model.id).filter(Boolean) as string[];
-
-      if (response.status === 200 && modelIds.some(modelMatches)) {
-        cy.log(
-          `Model "${modelId}" available from Gen AI BFF LSD models endpoint for ${serviceName} ` +
-            `(attempt ${attempt}/${maxAttempts})`,
-        );
+    cy.exec(
+      `token=$(oc whoami -t) && provider_data=$(jq -cn --arg token "$token" '{passthrough_api_key: $token}') && oc exec deploy/lsd-genai-playground -n ${namespace} -- curl -s -H "Authorization: Bearer $token" -H "X-OGX-Provider-Data: $provider_data" ${serviceUrl} | jq -e '.data[] | select(.custom_metadata.provider_resource_id == "${modelId}")'`,
+      { failOnNonZeroExit: false, timeout: 30000 },
+    ).then((result) => {
+      if (result.exitCode === 0 && result.stdout.trim().length > 0) {
+        cy.log(`Model "${modelId}" registered in LSD (attempt ${attempt}/${maxAttempts})`);
         return;
       }
-
       if (attempt >= maxAttempts) {
         throw new Error(
-          `Model "${modelId}" not found in LSD after ${
-            (maxAttempts * pollIntervalMs) / 1000
-          }s. Last status: ${response.status}. Models: ${modelIds.join(', ') || '(none)'}`,
+          `Model "${modelId}" not found in LSD after ${(maxAttempts * pollIntervalMs) / 1000}s`,
         );
       }
-
       cy.log(`Model "${modelId}" not yet available (attempt ${attempt}/${maxAttempts})`);
       // eslint-disable-next-line cypress/no-unnecessary-waiting
       cy.wait(pollIntervalMs).then(() => check(attempt + 1));
@@ -557,6 +556,7 @@ export const waitForGlobalPromptsInBFF = (
  * @param endpointUrl - Base URL of the external model provider.
  * @param apiKey      - API key / token for the provider.
  * @param modelType   - Model type: 'llm' | 'embedding' | 'transcription'. Defaults to 'llm'.
+ * @param capabilities - Model capabilities exposed to the playground.
  */
 export const createExternalModelViaAPI = (
   namespace: string,
@@ -565,11 +565,13 @@ export const createExternalModelViaAPI = (
   endpointUrl: string,
   apiKey: string,
   modelType = 'llm',
+  capabilities?: string[],
 ): Cypress.Chainable<Cypress.Response<unknown>> =>
   cy.request({
     method: 'POST',
     url: `/gen-ai/api/v1/models/external?namespace=${encodeURIComponent(namespace)}`,
     log: false,
+    failOnStatusCode: false,
     body: {
       /* eslint-disable camelcase */
       model_id: modelId,
@@ -577,6 +579,7 @@ export const createExternalModelViaAPI = (
       base_url: endpointUrl,
       secret_value: apiKey,
       model_type: modelType,
+      capabilities,
       /* eslint-enable camelcase */
     },
   });
@@ -642,10 +645,10 @@ export const removeMCPServerConfigMapEntry = (configMapName: string, serverKey: 
  * and adds the Deployment, Service, and Route on top.
  * Idempotent — skips resources that already exist.
  *
- * Returns the in-cluster Service URL with `/mcp` suffix. The Route is still
- * created (for manual debugging) but the Service URL is used for the test
- * to avoid TLS failures on clusters where the ingress CA is not in the
- * BFF's trusted CA bundle.
+ * Returns an endpoint that the Gen AI BFF can resolve in its execution environment:
+ * the external Route when the BFF is running locally, otherwise the in-cluster Service URL.
+ * Keeping the Service URL for non-local runs avoids TLS failures on clusters where the
+ * ingress CA is not in the BFF's trusted CA bundle.
  */
 export const deployMCPServer = (
   mcpNamespace: string,
@@ -684,9 +687,26 @@ export const deployMCPServer = (
     timeout: 130000,
   });
 
-  const url = `http://${name}.${mcpNamespace}.svc.cluster.local:8080/mcp`;
-  cy.log(`MCP server URL: ${url}`);
-  return cy.wrap(url);
+  const serviceUrl = `http://${name}.${mcpNamespace}.svc.cluster.local:8080/mcp`;
+  const isLocalRun = Cypress.config('baseUrl')?.includes('localhost');
+  if (!isLocalRun) {
+    cy.log(`MCP server URL (cluster Service): ${serviceUrl}`);
+    return cy.wrap(serviceUrl);
+  }
+
+  return cy
+    .exec(`oc get route/${name} -n ${mcpNamespace} -o jsonpath='{.spec.host}'`)
+    .then((result) => {
+      const routeHost = result.stdout.trim();
+      if (!routeHost) {
+        throw new Error(`MCP server Route ${mcpNamespace}/${name} has no host`);
+      }
+
+      const routeUrl = `https://${routeHost}/mcp`;
+      return cy
+        .log(`MCP server URL (external Route for local BFF): ${routeUrl}`)
+        .then(() => routeUrl);
+    });
 };
 
 /**

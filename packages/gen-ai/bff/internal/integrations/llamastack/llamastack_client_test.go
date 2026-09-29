@@ -10,7 +10,25 @@ import (
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
+
+func TestHasActiveTraceContext(t *testing.T) {
+	t.Run("false without span context", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		assert.False(t, hasActiveTraceContext(req))
+	})
+
+	t.Run("true with valid span context", func(t *testing.T) {
+		spanContext := oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
+			TraceID: oteltrace.TraceID{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
+			SpanID:  oteltrace.SpanID{1, 2, 3, 4, 5, 6, 7, 8},
+		})
+		ctx := oteltrace.ContextWithSpanContext(context.Background(), spanContext)
+		req := httptest.NewRequest(http.MethodGet, "/test", nil).WithContext(ctx)
+		assert.True(t, hasActiveTraceContext(req))
+	})
+}
 
 func TestBuildRequestOptions(t *testing.T) {
 	client := &LlamaStackClient{}
