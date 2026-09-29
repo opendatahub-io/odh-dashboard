@@ -14,8 +14,10 @@ import {
   HelperText,
   HelperTextItem,
   Label,
-  List,
-  ListItem,
+  Menu,
+  MenuContent,
+  MenuItem,
+  MenuList,
   MenuToggle,
   MenuToggleElement,
   Modal,
@@ -165,26 +167,32 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
           title="Models tagged with audio are verified for audio transcription. Select any other model to test it manually."
           className="pf-v6-u-mb-md"
         />
-        <List isPlain>
-          {[...asrModels, ...allModels.filter((m) => !asrModels.includes(m))].map((model) => (
-            <ListItem key={model.model_id} className="pf-v6-u-mt-0 pf-v6-u-mb-md">
-              <Button
-                variant="link"
-                onClick={() => {
-                  updateAsrModelEnabled(configId, true);
-                  handleSelect(model.model_id);
-                }}
-                data-testid={`all-model-option-${model.model_id}`}
-              >
-                {model.display_name || model.model_id}
-              </Button>{' '}
-              {asrModels.includes(model) && <Label color="blue">Recommended</Label>}
-              {model.description && (
-                <div className="pf-v6-u-mt-sm pf-v6-u-pl-sm">{model.description}</div>
-              )}
-            </ListItem>
-          ))}
-        </List>
+        <Menu isPlain>
+          <MenuContent>
+            <MenuList aria-label="Transcription models">
+              {[...asrModels, ...allModels.filter((m) => !asrModels.includes(m))].map((model) => (
+                <MenuItem
+                  key={model.model_id}
+                  description={
+                    model.description && (
+                      <span className="pf-v6-u-display-block pf-v6-u-mt-sm">
+                        {model.description}
+                      </span>
+                    )
+                  }
+                  data-testid={`all-model-option-${model.model_id}`}
+                  onClick={() => {
+                    updateAsrModelEnabled(configId, true);
+                    handleSelect(model.model_id);
+                  }}
+                >
+                  {model.display_name || model.model_id}{' '}
+                  {asrModels.includes(model) && <Label color="blue">Recommended</Label>}
+                </MenuItem>
+              ))}
+            </MenuList>
+          </MenuContent>
+        </Menu>
       </ModalBody>
       <ModalFooter>
         <Button variant="link" className="pf-v6-u-pl-0" onClick={() => setIsAllModelsOpen(false)}>

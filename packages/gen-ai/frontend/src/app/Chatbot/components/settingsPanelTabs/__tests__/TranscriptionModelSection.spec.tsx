@@ -150,7 +150,7 @@ describe('TranscriptionModelSection', () => {
       renderWithContext();
 
       await user.click(screen.getByTestId('add-transcription-model-btn'));
-      await user.click(screen.getByTestId('all-model-option-whisper-large-v3'));
+      await user.click(screen.getByText('Transcribes spoken audio'));
 
       const state = useChatbotConfigStore.getState();
       expect(state.configurations[DEFAULT_CONFIG_ID]?.isAsrModelEnabled).toBe(true);
@@ -176,7 +176,7 @@ describe('TranscriptionModelSection', () => {
         screen.getByRole('button', { name: 'View all models to select one manually' }),
       );
       expect(screen.getByRole('dialog')).toBeInTheDocument();
-      await user.click(screen.getByTestId('all-model-option-llama-3-8b'));
+      await user.click(screen.getByRole('menuitem', { name: /Llama 3 8B/ }));
       expect(
         useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID]?.selectedAsrModel,
       ).toBe('llama-3-8b');
@@ -191,7 +191,7 @@ describe('TranscriptionModelSection', () => {
       await user.click(
         screen.getByRole('button', { name: 'View all models to select one manually' }),
       );
-      await user.click(screen.getByTestId('all-model-option-llama-3-8b'));
+      await user.click(screen.getByRole('menuitem', { name: /Llama 3 8B/ }));
       await user.click(screen.getByRole('button', { name: 'Remove' }));
 
       expect(
@@ -261,7 +261,7 @@ describe('TranscriptionModelSection', () => {
       renderWithContext();
 
       await user.click(screen.getByTestId('add-transcription-model-btn'));
-      await user.click(screen.getByTestId('all-model-option-whisper-large-v3'));
+      await user.click(screen.getByRole('menuitem', { name: /Whisper Large V3/ }));
 
       const state = useChatbotConfigStore.getState();
       expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedAsrModel).toBe('whisper-large-v3');
@@ -319,7 +319,7 @@ describe('TranscriptionModelSection', () => {
 
       await user.click(screen.getByRole('button', { name: 'View all models' }));
       expect(screen.getByRole('dialog')).toBeInTheDocument();
-      await user.click(screen.getByTestId('all-model-option-whisper-small'));
+      await user.click(screen.getByRole('menuitem', { name: /Whisper Small/ }));
       expect(screen.getByTestId('transcription-model-selector')).toHaveTextContent('Whisper Small');
     });
 
@@ -355,7 +355,7 @@ describe('TranscriptionModelSection', () => {
       renderWithContext();
 
       await user.click(screen.getByRole('button', { name: 'View all models' }));
-      await user.click(screen.getByTestId('all-model-option-llama-3-8b'));
+      await user.click(screen.getByRole('menuitem', { name: /Llama 3 8B/ }));
 
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
       expect(screen.getByTestId('transcription-model-selector')).toHaveTextContent('Llama 3 8B');
@@ -396,7 +396,7 @@ describe('TranscriptionModelSection', () => {
       await user.click(
         screen.getByRole('button', { name: 'View all models to select one manually' }),
       );
-      await user.click(screen.getByTestId('all-model-option-llama-3-8b'));
+      await user.click(screen.getByRole('menuitem', { name: /Llama 3 8B/ }));
       expect(screen.getByTestId('transcription-model-selector')).toHaveTextContent('Llama 3 8B');
       expect(screen.getByTestId('transcription-model-selector')).toBeEnabled();
       await user.click(screen.getByTestId('transcription-model-selector'));
