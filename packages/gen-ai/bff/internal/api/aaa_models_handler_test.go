@@ -138,6 +138,32 @@ var _ = Describe("ModelsAAHandler", func() {
 		assert.Equal(t, "Running", fifthModel["status"])
 	})
 
+	It("should return audio-tagged models in the mock audio namespace", func() {
+		t := GinkgoT()
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa", nil)
+		require.NoError(t, err)
+		ctx := context.WithValue(context.Background(), constants.NamespaceQueryParameterKey, "mock-audio-namespace")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		rr := httptest.NewRecorder()
+
+		app.ModelsAAHandler(rr, req.WithContext(ctx), nil)
+
+		require.Equal(t, http.StatusOK, rr.Code)
+		var response struct {
+			Data []models.AAModel `json:"data"`
+		}
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		require.Len(t, response.Data, 3)
+		assert.Equal(t, "whisper-large-v3", response.Data[0].ModelID)
+		assert.Equal(t, []string{constants.CapabilityAudioTranscription}, response.Data[0].Capabilities)
+		assert.Equal(t, "whisper-small", response.Data[1].ModelID)
+		assert.Equal(t, []string{constants.CapabilityAudioTranscription}, response.Data[1].Capabilities)
+		assert.Equal(t, "llama-3.1-8b-instruct", response.Data[2].ModelID)
+		assert.Equal(t, []string{constants.CapabilityTextGeneration}, response.Data[2].Capabilities)
+	})
+
 	It("should return error when namespace is missing from context", func() {
 		t := GinkgoT()
 		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa", nil)
