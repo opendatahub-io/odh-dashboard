@@ -36,6 +36,7 @@ describe('useAssets', () => {
           collection: 'default',
           connection_ref: null,
           owner: 'user1',
+          properties: { domain: 'finance' },
           registered_by: 'user1',
           created_at: '2026-01-01',
         },
@@ -69,6 +70,8 @@ describe('useAssets', () => {
     expect(assets[0].name).toBe('test-table');
     expect(assets[0].format).toBe('parquet');
     expect(assets[0].labels).toEqual(['production']);
+    expect(assets[0].properties).toEqual({ domain: 'finance' });
+    expect(assets[0].rawAsset).toMatchObject({ name: 'test-table' });
   });
 
   it('should map volume labels from API response', async () => {
@@ -109,6 +112,7 @@ describe('useAssets', () => {
 
     const labeled = assets.find((a) => a.name === 'labeled-volume');
     expect(labeled?.labels).toEqual(['production', 'ml-data']);
+    expect(labeled?.properties).toEqual({ description: 'Volume with labels' });
 
     const unlabeled = assets.find((a) => a.name === 'unlabeled-volume');
     expect(unlabeled?.labels).toEqual([]);

@@ -4,6 +4,7 @@ import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import type { FlatBenchmark, Collection, InferenceServiceItem } from '~/app/types';
@@ -12,13 +13,15 @@ import {
   EXTERNAL_ENDPOINT_VALUE,
 } from '~/app/pages/useStartEvaluationRunForm';
 
+const mockNavigate = jest.fn();
+
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
   fireMiscTrackingEvent: jest.fn(),
 }));
 
 jest.mock('react-router-dom', () => ({
-  useNavigate: jest.fn(() => jest.fn()),
+  useNavigate: jest.fn(() => mockNavigate),
 }));
 
 jest.mock('~/app/api/k8s', () => ({
@@ -241,6 +244,19 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
       });
     });
 
+    it('should preserve the threshold when reselecting the current metric', () => {
+      const renderResult = renderForm();
+
+      act(() => {
+        renderResult.result.current.handleThresholdChange(80);
+      });
+      act(() => {
+        renderResult.result.current.handlePrimaryMetricChange('accuracy');
+      });
+
+      expect(renderResult.result.current.threshold).toBe(80);
+    });
+
     it('should fire metric selected event with isDefault false when selecting non-default metric', () => {
       const renderResult = renderForm();
 
@@ -253,6 +269,37 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         isDefault: false,
         benchmarkName: 'ARC Easy',
       });
+    });
+
+    it('should reset the threshold to the default when switching to another metric', () => {
+      const renderResult = renderForm();
+
+      act(() => {
+        renderResult.result.current.handleThresholdChange(80);
+      });
+      act(() => {
+        renderResult.result.current.handlePrimaryMetricChange('f1_score');
+      });
+
+      expect(renderResult.result.current.threshold).toBe(70);
+    });
+
+    it('should convert the default threshold to the newly selected metric scale', () => {
+      const mixedScaleBenchmark: FlatBenchmark = {
+        ...mockBenchmark,
+        metrics: ['pct_stereotype', 'likelihood_diff'],
+        primary_score: { metric: 'pct_stereotype', lower_is_better: false },
+        pass_criteria: { threshold: 0.6 },
+      };
+      const renderResult = renderForm({ benchmark: mixedScaleBenchmark });
+
+      expect(renderResult.result.current.threshold).toBe(60);
+
+      act(() => {
+        renderResult.result.current.handlePrimaryMetricChange('likelihood_diff');
+      });
+
+      expect(renderResult.result.current.threshold).toBe(0.6);
     });
   });
 
@@ -318,6 +365,82 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         ([event]) => event === EVAL_HUB_EVENTS.RUN_PARAMETER_CHANGED,
       );
       expect(paramCalls).toHaveLength(0);
+    });
+  });
+
+  describe('Successful evaluation run submission', () => {
+    it('should navigate to the Runs tab after submitting the form', async () => {
+      const renderResult = renderForm();
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', mockInferenceServices);
+      });
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(mockNavigate).toHaveBeenCalledWith({
+        pathname: '/evaluation/test-ns',
+        search: '?tab=runs',
+      });
+    });
+  });
+
+  describe('Evaluation run cancellation', () => {
+    it('should track cancellation and notify the parent when a close handler is provided', () => {
+      const onCancel = jest.fn();
+      const renderResult = renderForm({ trackingSource: 'copy_suite', onCancel });
+
+      act(() => {
+        renderResult.result.current.setEvaluationName('Copied suite evaluation');
+        renderResult.result.current.setShowAdditionalArgs(true);
+        renderResult.result.current.handleAdditionalArgsTextChange(
+          {} as React.ChangeEvent<HTMLTextAreaElement>,
+          '{"num_examples": 10}',
+        );
+      });
+
+      act(() => {
+        renderResult.result.current.handleCancel();
+      });
+
+      expect(mockFireForm).toHaveBeenCalledWith(EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED, {
+        source: 'copy_suite',
+        evaluationName: 'Copied suite evaluation',
+        sourceType: 'model',
+        hasAPIKey: false,
+        hasAdditionalArguments: true,
+        outcome: TrackingOutcome.cancel,
+      });
+      expect(onCancel).toHaveBeenCalledTimes(1);
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Evaluation run submission', () => {
+    it('should notify the parent and track the configured source after a successful submission', async () => {
+      const onSuccess = jest.fn();
+      const renderResult = renderForm({ trackingSource: 'copy_suite', onSuccess });
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', mockInferenceServices);
+      });
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(onSuccess).toHaveBeenCalledTimes(1);
+      expect(mockFireForm).toHaveBeenCalledWith(
+        EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED,
+        expect.objectContaining({
+          source: 'copy_suite',
+          outcome: TrackingOutcome.submit,
+          success: true,
+        }),
+      );
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
   });
 

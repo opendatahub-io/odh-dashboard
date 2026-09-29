@@ -219,3 +219,5 @@ export type ModelOverviewItem = {
   subscriptions: ModelOverviewSubscription[];
   authPolicies: ModelOverviewPolicy[];
 };
+
+export const SYSTEM_AUTHENTICATED_GROUP = 'system:authenticated';

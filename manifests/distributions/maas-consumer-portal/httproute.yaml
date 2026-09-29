@@ -7,8 +7,6 @@ spec:
     - name: gateway-name
       kind: Gateway
       namespace: openshift-ingress
-  hostnames:
-    - gateway-domain
   rules:
     - matches:
         - path:

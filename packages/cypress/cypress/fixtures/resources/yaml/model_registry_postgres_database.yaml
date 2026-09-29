@@ -78,54 +78,42 @@ items:
       spec:
         containers:
         - name: postgresql
-          image: postgres:16
+          image: registry.redhat.io/rhel9/postgresql-16@sha256:4f24e4cd2206885316fe01931cfd38e27fb38b847f0f8b0dd5fe6e46dbea5c19
           imagePullPolicy: IfNotPresent
           env:
-          - name: POSTGRES_USER
+          - name: POSTGRESQL_USER
             valueFrom:
               secretKeyRef:
                 key: database-user
                 name: {{DATABASE_NAME}}
-          - name: POSTGRES_PASSWORD
+          - name: POSTGRESQL_PASSWORD
             valueFrom:
               secretKeyRef:
                 key: database-password
                 name: {{DATABASE_NAME}}
-          - name: POSTGRES_DB
+          - name: POSTGRESQL_DATABASE
             valueFrom:
               secretKeyRef:
                 key: database-name
                 name: {{DATABASE_NAME}}
-          - name: PGDATA
-            value: /var/lib/postgresql/data/pgdata
           ports:
           - containerPort: 5432
             protocol: TCP
           livenessProbe:
             exec:
               command:
-                - /usr/bin/pg_isready
-                - -U
-                - modelregistryuser
-                - -d
-                - model-registry
+                - /usr/libexec/check-container
+                - --live
             initialDelaySeconds: 30
             timeoutSeconds: 2
           readinessProbe:
             exec:
               command:
-                - psql
-                - -w
-                - -U
-                - modelregistryuser
-                - -d
-                - model-registry
-                - -c
-                - SELECT 1
+                - /usr/libexec/check-container
             initialDelaySeconds: 10
             timeoutSeconds: 5
           volumeMounts:
-          - mountPath: /var/lib/postgresql/data
+          - mountPath: /var/lib/pgsql/data
             name: {{DATABASE_NAME}}-data
         volumes:
         - name: {{DATABASE_NAME}}-data

@@ -46,7 +46,7 @@ Examples:
   /preflight --skip-review jira-eval          Run all reviewers except Jira eval
 
 How it works:
-  1. Gather    Detect PR, sync status, affected packages, Jira key
+  1. Gather    Detect PR, sync status, affected packages, Jira key (optional)
   2. Review    Fetch PR reviews or run local reviewers (interactive)
   3. Check     Orchestrate reusable checks, print results table (read-only)
   4. Fix       Optionally fix failing checks (--fix or interactive)
@@ -67,7 +67,7 @@ Parse these from `$ARGUMENTS` before processing:
 
 **First, call TaskCreate for each applicable task before running any commands:**
 
-- Task 1: "Gather context" — PR metadata, sync status, changed files, Jira key
+- Task 1: "Gather context" — PR metadata, sync status, changed files, Jira key (optional)
 - Task 2: "Run reviews" — fetch existing or run local reviewers
 - Task 3: "Run checks" — CI, lint, type-check, tests, PR body, Jira, coverage
 - Task 4: "Fix failing checks" — ONLY create this task if `--fix` was passed
@@ -203,7 +203,7 @@ Invoke these reusable skills with the context gathered in Step 1. They own their
 
 - `/ci-status-review` — provide PR metadata, sync state, affected paths, and raw CI data when already collected. It uses `analyze-ci.sh` and delegates failed-test classification to `/ci-flake-classifier`.
 - `/test-impact-review` — provide changed paths and the PR body when available.
-- `/pr-description-review` — provide the PR body, changed paths, and PR template when a PR exists.
+- `/pr-description-review` — provide the PR body and changed paths when a PR exists.
 
 Do not restate or independently reinterpret their criteria in preflight. If a skill cannot run, report that failure clearly in the results table rather than silently substituting a local heuristic.
 

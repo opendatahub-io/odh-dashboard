@@ -27,6 +27,7 @@ export const AI_ASSET_CUSTOM_ENDPOINTS = 'aiAssetCustomEndpoints';
 export const EXTERNAL_VECTOR_STORES = 'externalVectorStores';
 export const AGENT_CONFIG_MANAGEMENT = 'agentConfigManagement';
 export const MCP_REGISTRY = 'mcpRegistry';
+export const GEN_AI_MCP_REGISTRY_SERVERS = 'genAiMcpRegistryServers';
 const MODELS_AS_A_SERVICE_READY = 'ModelsAsAServiceReady';
 
 const extensions: (
@@ -63,6 +64,9 @@ const extensions: (
       reliantAreas: [PLUGIN_GEN_AI],
       featureFlags: [GUARDRAILS],
       requiredComponents: [DataScienceStackComponent.TRUSTY_AI],
+      customCondition: ({ dscStatus }) =>
+        Array.isArray(dscStatus?.conditions) &&
+        dscStatus.conditions.some((c) => c.type === 'TrustyAIReady' && c.status === 'True'),
     },
   },
   {
@@ -103,6 +107,14 @@ const extensions: (
       id: MCP_REGISTRY,
       reliantAreas: [PLUGIN_GEN_AI],
       featureFlags: [MCP_REGISTRY],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: GEN_AI_MCP_REGISTRY_SERVERS,
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: [GEN_AI_MCP_REGISTRY_SERVERS],
     },
   },
   {

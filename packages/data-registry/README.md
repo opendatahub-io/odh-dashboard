@@ -27,11 +27,28 @@ API contract that the BFF proxies to is vendored at
 
 ## Targeted environments
 
-There are two main deployment modes that the Data Registry UI supports:
+The UI has a standalone local-development mode and a federated supported deployment mode:
 
-1. **Standalone**: This is the default environment for local development. The UI is served by the BFF and the BFF is responsible for serving the API requests. The BFF exposes a `/namespace` endpoint that returns all the namespaces in the cluster.
+1. **Standalone**: Local development only. The UI is served by the BFF and the BFF is responsible for serving the API requests.
 
-2. **Federated**: This is the environment where the UI is served as a micro-frontend and integrated with a host application.
+2. **Federated**: The supported RHOAI/ODH Dashboard deployment, where the UI is served as a micro-frontend and integrated with the host dashboard.
+
+## Project Discovery And Authorization
+
+The project selector uses the same project context as the rest of the dashboard. When a project
+was selected in another section, Data Registry carries that selection forward; otherwise it uses
+the user's preferred project. If the user has no accessible projects, the UI shows the standard
+empty state with a **Create project** action.
+
+Project discovery is performed by the BFF through `/api/v1/namespaces` while preserving the
+requesting user's identity:
+
+- Kubernetes requests use the caller's OpenShift bearer token. If the caller cannot list core
+  Kubernetes namespaces, the BFF falls back to the OpenShift Project API so the selector can still
+  show projects visible to that caller.
+
+Data Registry is supported as an ODH/RHOAI Dashboard module. Its federated deployment and local
+federated development configuration use the same user-token authentication path.
 
 ## Environment Variables
 
@@ -58,7 +75,7 @@ The following environment variables are used to configure the deployment and dev
 
 ### `IMG_UI_FEDERATED`
 
-- **Description**: Specifies the image name and tag for the UI (with BFF) in **federated mode**, used for federated mode outside kubeflow.
+- **Description**: Specifies the image name and tag for the UI (with BFF) in **federated mode**, used by the ODH/RHOAI Dashboard.
 - **Default Value**: `ghcr.io/your-org/data-registry/ui-federated:latest`
 - **Example**: `IMG_UI_FEDERATED=ghcr.io/your-org/data-registry/ui-federated:latest`
 
