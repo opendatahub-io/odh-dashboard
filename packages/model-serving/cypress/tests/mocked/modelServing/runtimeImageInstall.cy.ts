@@ -6,6 +6,7 @@ import {
   asProjectEditUser,
 } from '@odh-dashboard/cypress/cypress/utils/mockUsers';
 import { runtimeImageInstallPage } from '@odh-dashboard/cypress/cypress/pages/modelDeploymentSettings/runtimeImageInstall';
+import { pageNotfound } from '@odh-dashboard/cypress/cypress/pages/pageNotFound';
 
 const initialize = (runtimeCatalogFlagEnabled: boolean) => {
   cy.interceptOdh(
@@ -30,10 +31,6 @@ const initialize = (runtimeCatalogFlagEnabled: boolean) => {
   });
 };
 
-// TODO replace this with an import from test fixtures once packages/model-serving/src/components/runtimeImageInstall/mockRuntimeImageActionData.ts moves into packages/model-serving/src/__mocks__.
-// It is needed in production code temporarily as placeholder data.
-const placeholderRuntimeImageName = 'vLLM 0.6.0';
-
 describe('Runtime image Install extension navigation', () => {
   it('should not expose the install button when the area is disabled', () => {
     asProductAdminUser();
@@ -49,7 +46,8 @@ describe('Runtime image Install extension navigation', () => {
     asProjectEditUser();
     initialize(true);
     runtimeImageInstallPage.visitInstallDirectly();
-    runtimeImageInstallPage.findPageTitle(placeholderRuntimeImageName).should('not.exist');
+    pageNotfound.findPage().should('exist');
+    runtimeImageInstallPage.findInvalidDataAlert().should('not.exist');
   });
 
   it('should handle a runtime image with no supported resources', () => {
