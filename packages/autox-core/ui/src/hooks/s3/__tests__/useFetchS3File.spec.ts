@@ -96,4 +96,28 @@ describe('useFetchS3File', () => {
     expect(requestSignal?.aborted).toBe(true);
     await expect(download).rejects.toBeDefined();
   });
+
+  it('should abort the provider request when the caller signal is cancelled', async () => {
+    const providerError = new Error('download cancelled');
+    let requestSignal: AbortSignal | undefined;
+    fetchS3File.mockImplementation(
+      async (_namespace, _key, options) =>
+        new Promise<Blob>((_resolve, reject) => {
+          requestSignal = options?.signal;
+          options?.signal?.addEventListener('abort', () => reject(providerError), { once: true });
+        }),
+    );
+    const callerController = new AbortController();
+    const { Wrapper } = createWrapper();
+    const { result } = renderHook(() => useFetchS3File(), { wrapper: Wrapper });
+    const download = result.current('project-a', 'reports/output.csv', {
+      signal: callerController.signal,
+    });
+
+    await waitFor(() => expect(requestSignal).toBeDefined());
+    callerController.abort();
+
+    expect(requestSignal?.aborted).toBe(true);
+    await expect(download).rejects.toBe(providerError);
+  });
 });

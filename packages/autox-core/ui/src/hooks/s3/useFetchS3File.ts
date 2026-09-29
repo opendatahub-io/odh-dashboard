@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
+import { combineAbortSignals } from '../../api/s3/s3';
 import type { FetchS3FileOptions } from '../../api/s3/s3';
 import { useAutoXApi } from '../../context/AutoXApiContext';
 
@@ -23,7 +24,12 @@ export function useFetchS3File(): (
           options?.view,
           options?.maxBytes,
         ],
-        queryFn: ({ signal }) => s3Api.fetchS3File(namespace, key, { ...options, signal }),
+        queryFn: ({ signal }) => {
+          const combined = combineAbortSignals(options?.signal, signal);
+          return s3Api
+            .fetchS3File(namespace, key, { ...options, signal: combined.signal })
+            .finally(combined.cleanup);
+        },
         staleTime: 0,
         gcTime: 0,
       }),
