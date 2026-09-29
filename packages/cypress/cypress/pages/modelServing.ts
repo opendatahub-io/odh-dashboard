@@ -970,6 +970,43 @@ class ModelServingWizard extends Wizard {
     cy.visitWithLogin(`/ai-hub/models/deployments/deploy`);
   }
 
+  /**
+   * Open the deploy wizard with React Router location state that sets
+   * `requiresHuggingFaceApiKey: true` (same flag catalog private/gated deploy
+   * prefill uses). Needed because the HF API key field is not shown for a
+   * blank URI wizard without that initialData flag.
+   *
+   * Does not pre-select a project (avoids races while ProjectsContext loads);
+   * callers select the project on the Preconfigure step.
+   *
+   * Uses createBrowserRouter's `usr` history-state shape (React Router 7).
+   */
+  visitRequiringHuggingFaceApiKey(returnRoute = '/ai-hub/models/deployments/') {
+    const routeState = {
+      initialData: {
+        requiresHuggingFaceApiKey: true,
+      },
+      returnRoute,
+      cancelReturnRoute: returnRoute,
+    };
+
+    cy.visit('/ai-hub/models/deployments/deploy', {
+      onBeforeLoad(win) {
+        win.history.replaceState(
+          {
+            usr: routeState,
+            key: 'hf-api-key-e2e',
+            idx: 0,
+          },
+          '',
+          '/ai-hub/models/deployments/deploy',
+        );
+      },
+    });
+
+    cy.location('pathname').should('include', '/ai-hub/models/deployments/deploy');
+  }
+
   findSpinner() {
     return cy.findByTestId('spinner');
   }
@@ -1609,6 +1646,32 @@ class ModelServingWizard extends Wizard {
 
   findReviewStepModelDetailsSection() {
     return cy.findByTestId('review-step-model-details');
+  }
+
+  findReviewHuggingFaceApiKey() {
+    // Prefer review-item testids when present (local builds); fall back to label text
+    // for clusters that do not yet ship those attributes.
+    return this.findReviewStepModelDetailsSection().then(($section) => {
+      const byTestId = $section.find('[data-testid="review-item-huggingFaceApiKey"]');
+      if (byTestId.length > 0) {
+        return cy.wrap(byTestId);
+      }
+      return cy.wrap($section).contains('Hugging Face API key');
+    });
+  }
+
+  findReviewHuggingFaceApiKeyValue() {
+    return this.findReviewStepModelDetailsSection().then(($section) => {
+      const byTestId = $section.find('[data-testid="review-item-huggingFaceApiKey-value"]');
+      if (byTestId.length > 0) {
+        return cy.wrap(byTestId);
+      }
+      return cy
+        .wrap($section)
+        .contains('Hugging Face API key')
+        .closest('.pf-v6-c-description-list__group')
+        .find('.pf-v6-c-description-list__description, dd');
+    });
   }
 
   findYAMLViewerToggle(toggle: string) {

@@ -1,0 +1,13 @@
+# Hugging Face private-model deploy e2e — ServiceAccount + Secret wiring.
+# Shared HF token lives in test-variables.yml as HF_API_KEY.
+#
+# Avoids HF catalog source create/scan (stuck Scanning/Starting on some
+# clusters). Wizard opens with requiresHuggingFaceApiKey prefill (same flag
+# catalog private/gated deploy uses) and a private HF URI.
+
+# Private HF model location (org/model that requires an API key)
+privateModelUri: hf://RedHatAI/Private-Model-AI-Hub-Testing
+
+# Deployment
+deploymentNamePrefix: hf-sa-deploy
+awsBucket: BUCKET_1
