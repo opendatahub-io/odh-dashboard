@@ -174,6 +174,16 @@ func (kc *TokenKubernetesClient) sandboxRouteURL(ctx context.Context, namespace,
 		if apierrors.IsNotFound(err) {
 			return "", false, nil
 		}
+		if apierrors.IsForbidden(err) {
+			return "", false, &integrations.HTTPError{StatusCode: 403, ErrorResponse: integrations.ErrorResponse{
+				Code: "forbidden", Message: "insufficient permissions to access the agent deployment Route",
+			}}
+		}
+		if apimeta.IsNoMatchError(err) {
+			return "", false, &integrations.HTTPError{StatusCode: 503, ErrorResponse: integrations.ErrorResponse{
+				Code: "route_unavailable", Message: "OpenShift Route API is not available",
+			}}
+		}
 		return "", false, fmt.Errorf("failed to read Route for Sandbox %s: %w", sandboxName, err)
 	}
 	host, _, err := unstructured.NestedString(route.Object, "spec", "host")
@@ -196,6 +206,16 @@ func (kc *TokenKubernetesClient) sandboxDeploymentState(
 
 	pods := &corev1.PodList{}
 	if err := kc.Client.List(ctx, pods, client.InNamespace(namespace), client.MatchingLabels(parseLabelSelectorString(selectorStr))); err != nil {
+		if apierrors.IsForbidden(err) {
+			return "", "", &integrations.HTTPError{StatusCode: 403, ErrorResponse: integrations.ErrorResponse{
+				Code: "forbidden", Message: "insufficient permissions to list Pods for agent deployments in this namespace",
+			}}
+		}
+		if apimeta.IsNoMatchError(err) {
+			return "", "", &integrations.HTTPError{StatusCode: 503, ErrorResponse: integrations.ErrorResponse{
+				Code: "pods_unavailable", Message: "Kubernetes Pod API is not available",
+			}}
+		}
 		return "", "", fmt.Errorf("failed to list Pods for Sandbox %s: %w", sandbox.GetName(), err)
 	}
 

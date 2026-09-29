@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"testing"
 
@@ -10,12 +11,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 )
 
 func TestListAgentDeployments(t *testing.T) {
@@ -123,6 +127,63 @@ func TestDeleteAgentDeployment(t *testing.T) {
 	err = kc.DeleteAgentDeployment(context.Background(), namespace, "does-not-exist")
 	require.Error(t, err)
 	assert.Equal(t, 404, err.(*integrations.HTTPError).StatusCode)
+}
+
+func TestSandboxDeploymentResourceAccessErrors(t *testing.T) {
+	const namespace = "agent-namespace"
+
+	t.Run("returns forbidden when the Route cannot be read", func(t *testing.T) {
+		kc := sandboxDeploymentClientWithInterceptor(t, interceptor.Funcs{
+			Get: func(_ context.Context, _ client.WithWatch, key client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
+				if _, isRoute := obj.(*unstructured.Unstructured); isRoute && key.Name == "test-agent" {
+					return apierrors.NewForbidden(schema.GroupResource{Group: "route.openshift.io", Resource: "routes"}, key.Name, errors.New("forbidden"))
+				}
+				return apierrors.NewNotFound(schema.GroupResource{Resource: "unknown"}, key.Name)
+			},
+		})
+
+		_, _, err := kc.sandboxRouteURL(context.Background(), namespace, "test-agent")
+		require.Error(t, err)
+		assert.Equal(t, 403, err.(*integrations.HTTPError).StatusCode)
+	})
+
+	t.Run("returns unavailable when the Route API is absent", func(t *testing.T) {
+		kc := sandboxDeploymentClientWithInterceptor(t, interceptor.Funcs{
+			Get: func(_ context.Context, _ client.WithWatch, _ client.ObjectKey, _ client.Object, _ ...client.GetOption) error {
+				return &apimeta.NoKindMatchError{GroupKind: schema.GroupKind{Group: "route.openshift.io", Kind: "Route"}, SearchedVersions: []string{"v1"}}
+			},
+		})
+
+		_, _, err := kc.sandboxRouteURL(context.Background(), namespace, "test-agent")
+		require.Error(t, err)
+		assert.Equal(t, 503, err.(*integrations.HTTPError).StatusCode)
+	})
+
+	t.Run("returns forbidden when Pods cannot be listed", func(t *testing.T) {
+		kc := sandboxDeploymentClientWithInterceptor(t, interceptor.Funcs{
+			List: func(_ context.Context, _ client.WithWatch, list client.ObjectList, _ ...client.ListOption) error {
+				if _, isPodList := list.(*corev1.PodList); isPodList {
+					return apierrors.NewForbidden(schema.GroupResource{Resource: "pods"}, "", errors.New("forbidden"))
+				}
+				return nil
+			},
+		})
+		sandbox := testSandbox(namespace, "test-agent", map[string]string{dashboardLabel: dashboardLabelValue}, "sandbox=test-agent")
+
+		_, _, err := kc.sandboxDeploymentState(context.Background(), namespace, sandbox, true)
+		require.Error(t, err)
+		assert.Equal(t, 403, err.(*integrations.HTTPError).StatusCode)
+	})
+}
+
+func sandboxDeploymentClientWithInterceptor(t *testing.T, funcs interceptor.Funcs) *TokenKubernetesClient {
+	t.Helper()
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+	return &TokenKubernetesClient{
+		Client: fake.NewClientBuilder().WithScheme(scheme).WithInterceptorFuncs(funcs).Build(),
+		Logger: slog.Default(),
+	}
 }
 
 const dashboardLabelValue = "true"

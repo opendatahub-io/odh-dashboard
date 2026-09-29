@@ -2,17 +2,34 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestListAgentDeploymentsHandlerRejectsInvalidAgentProfileID(t *testing.T) {
+	app := &App{sandboxesAvailable: true}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/agent-deployments?agentProfileId=not-a-uuid", nil)
+	req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "test-namespace"))
+	rr := httptest.NewRecorder()
+
+	app.ListAgentDeploymentsHandler(rr, req, httprouter.Params{})
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	var response ErrorEnvelope
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+	require.NotNil(t, response.Error)
+	assert.Equal(t, "invalid_agent_profile_id", response.Error.Code)
+}
 
 func TestGetAgentDeploymentConfig(t *testing.T) {
 	t.Run("forwards the caller token and decodes the profile", func(t *testing.T) {

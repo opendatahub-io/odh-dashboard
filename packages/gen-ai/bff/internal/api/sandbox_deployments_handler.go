@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
@@ -43,13 +44,29 @@ func (app *App) ListAgentDeploymentsHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	agentProfileID := r.URL.Query().Get("agentProfileId")
+	if agentProfileID != "" {
+		parsedID, err := uuid.Parse(agentProfileID)
+		if err != nil {
+			app.badRequestResponse(w, r, &integrations.HTTPError{
+				StatusCode: http.StatusBadRequest,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    "invalid_agent_profile_id",
+					Message: "agentProfileId must be a valid UUID",
+				},
+			})
+			return
+		}
+		agentProfileID = parsedID.String()
+	}
+
 	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
-	response, err := k8sClient.ListAgentDeployments(ctx, namespace, r.URL.Query().Get("agentProfileId"))
+	response, err := k8sClient.ListAgentDeployments(ctx, namespace, agentProfileID)
 	if err != nil {
 		if httpErr, ok := err.(*integrations.HTTPError); ok {
 			switch httpErr.StatusCode {
