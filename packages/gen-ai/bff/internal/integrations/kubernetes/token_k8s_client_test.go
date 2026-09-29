@@ -2763,3 +2763,65 @@ func TestInstallOGXServer_ZeroRestartPath(t *testing.T) {
 		assert.Contains(t, err.Error(), "already exists", "stale URL must fall through to legacy error, not zero-restart")
 	})
 }
+
+func TestOfficeMIMETypesWorkloadOverrides(t *testing.T) {
+	for _, testCase := range []struct {
+		enableTracing bool
+		expectedValue string
+	}{
+		{enableTracing: false, expectedValue: "false"},
+		{enableTracing: true, expectedValue: "true"},
+	} {
+		env, volumes, mounts := officeMIMETypesWorkloadOverrides(testCase.enableTracing)
+
+		require.Len(t, env, 2)
+		assert.Equal(t, "PYTHONPATH", env[0].Name)
+		assert.Equal(t, constants.OfficeMIMETypesMountPath, env[0].Value)
+		assert.Equal(t, "ODH_ENABLE_TRACING", env[1].Name)
+		assert.Equal(t, testCase.expectedValue, env[1].Value)
+
+		require.Len(t, volumes, 1)
+		assert.Equal(t, constants.OfficeMIMETypesConfigMapName, volumes[0].Name)
+		require.NotNil(t, volumes[0].ConfigMap)
+		assert.Equal(t, constants.OfficeMIMETypesConfigMapName, volumes[0].ConfigMap.Name)
+		require.Len(t, volumes[0].ConfigMap.Items, 1)
+		assert.Equal(t, constants.OfficeMIMETypesConfigMapKey, volumes[0].ConfigMap.Items[0].Key)
+
+		require.Len(t, mounts, 1)
+		assert.Equal(t, constants.OfficeMIMETypesConfigMapName, mounts[0].Name)
+		assert.Equal(t, constants.OfficeMIMETypesMountPath, mounts[0].MountPath)
+		assert.True(t, mounts[0].ReadOnly)
+	}
+}
+
+func TestNewOfficeMIMETypesConfigMap(t *testing.T) {
+	configMap := newOfficeMIMETypesConfigMap("test-namespace")
+
+	assert.Equal(t, constants.OfficeMIMETypesConfigMapName, configMap.Name)
+	assert.Equal(t, "test-namespace", configMap.Namespace)
+	assert.Equal(t, "true", configMap.Labels[OpenDataHubDashboardLabelKey])
+	assert.Equal(t, lsdName, configMap.Labels["ogx.io/server"])
+	assert.NotNil(t, configMap.Immutable)
+	assert.True(t, *configMap.Immutable)
+	assert.Contains(t, configMap.Data[constants.OfficeMIMETypesConfigMapKey], `".docx"`)
+	assert.Contains(t, configMap.Data[constants.OfficeMIMETypesConfigMapKey], `".pptx"`)
+	assert.Contains(t, configMap.Data[constants.OfficeMIMETypesConfigMapKey], `ODH_ENABLE_TRACING`)
+	assert.Contains(t, configMap.Data[constants.OfficeMIMETypesConfigMapKey], `if os.environ.get`)
+}
+
+func TestIsTrustedOfficeMIMETypesConfigMap(t *testing.T) {
+	trusted := newOfficeMIMETypesConfigMap("test-namespace")
+	assert.True(t, isTrustedOfficeMIMETypesConfigMap(trusted))
+
+	tampered := trusted.DeepCopy()
+	tampered.Data[constants.OfficeMIMETypesConfigMapKey] += "\nimport malicious_code\n"
+	assert.False(t, isTrustedOfficeMIMETypesConfigMap(tampered))
+
+	extraData := trusted.DeepCopy()
+	extraData.Data["unexpected.py"] = "import malicious_code"
+	assert.False(t, isTrustedOfficeMIMETypesConfigMap(extraData))
+
+	binaryData := trusted.DeepCopy()
+	binaryData.BinaryData = map[string][]byte{"unexpected.py": []byte("import malicious_code")}
+	assert.False(t, isTrustedOfficeMIMETypesConfigMap(binaryData))
+}

@@ -112,6 +112,25 @@ export type CreateResponseRequest = {
   guardrail_config?: GuardrailInlineConfig;
   model_source_type?: string;
   subscription?: string;
+  attachments?: DocumentAttachmentPayload[];
+};
+
+export type DocumentAttachmentPayload = {
+  file_id: string;
+  filename: string;
+  text: string;
+};
+
+export type DocumentAttachment = DocumentAttachmentPayload & {
+  content_type: string;
+  size: number;
+};
+
+export type DocumentUploadResponse = {
+  id: string;
+  filename: string;
+  content_type: string;
+  text: string;
 };
 
 export type SimplifiedUsage = {
@@ -619,6 +638,7 @@ export type GenAiAPIs = {
   deleteVectorStoreFile: DeleteVectorStoreFile;
   createVectorStore: CreateVectorStore;
   uploadSource: UploadSource;
+  uploadDocument: UploadDocument;
   getFileUploadStatus: GetFileUploadStatus;
   createResponse: CreateResponse;
   getLSDModels: GetLSDModels;
@@ -702,6 +722,7 @@ type CreateVectorStore = ModArchRestCREATE<VectorStore, CreateVectorStoreRequest
 type DeleteVectorStoreFile = ModArchRestDELETE<string, Record<string, never>>;
 type GetLSDModels = ModArchRestGET<LlamaModel[]>;
 type UploadSource = ModArchRestCREATE<FileUploadJobResponse, FormData>;
+type UploadDocument = ModArchRestCREATE<DocumentUploadResponse, FormData>;
 type GetFileUploadStatus = ModArchRestGET<FileUploadStatusResponse>;
 type CreateResponse = (
   data: CreateResponseRequest,
