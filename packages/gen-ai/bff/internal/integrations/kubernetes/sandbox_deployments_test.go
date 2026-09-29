@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"testing"
 
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -62,6 +63,7 @@ func TestListAgentDeployments(t *testing.T) {
 	assert.Equal(t, 3, response.TotalCount)
 	assert.Equal(t, []string{"failed-agent", "legacy-agent", "ready-agent"}, deploymentNames(response.Deployments))
 	assert.Equal(t, agentDeploymentStateFailed, response.Deployments[0].State)
+	assert.Equal(t, "ImagePullBackOff", response.Deployments[0].LastError)
 	assert.Equal(t, "", response.Deployments[1].AgentProfileID)
 	assert.Equal(t, agentDeploymentStateCreating, response.Deployments[1].State)
 	assert.Equal(t, profileOne, response.Deployments[2].AgentProfileID)
@@ -72,6 +74,20 @@ func TestListAgentDeployments(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, filtered.Deployments, 1)
 	assert.Equal(t, "failed-agent", filtered.Deployments[0].Name)
+
+	deployment, err := kc.GetAgentDeployment(context.Background(), namespace, "failed-agent")
+	require.NoError(t, err)
+	assert.Equal(t, profileTwo, deployment.AgentProfileID)
+	assert.Equal(t, agentDeploymentStateFailed, deployment.State)
+	assert.Equal(t, "ImagePullBackOff", deployment.LastError)
+
+	_, err = kc.GetAgentDeployment(context.Background(), namespace, "not-an-agent")
+	require.Error(t, err)
+	assert.Equal(t, 404, err.(*integrations.HTTPError).StatusCode)
+
+	_, err = kc.GetAgentDeployment(context.Background(), namespace, "does-not-exist")
+	require.Error(t, err)
+	assert.Equal(t, 404, err.(*integrations.HTTPError).StatusCode)
 
 	empty, err := kc.ListAgentDeployments(context.Background(), "empty-namespace", "")
 	require.NoError(t, err)

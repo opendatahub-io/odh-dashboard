@@ -24,11 +24,13 @@ type AgentDeploymentCreateResponse struct {
 // agent deployment. AgentProfileID is empty when the Sandbox predates the
 // deployment label or was created without one.
 type AgentDeploymentSummary struct {
-	Name           string `json:"name"`
-	Namespace      string `json:"namespace"`
-	AgentProfileID string `json:"agentProfileId"`
-	RouteURL       string `json:"routeUrl,omitempty"`
-	State          string `json:"state"`
+	Name           string        `json:"name"`
+	Namespace      string        `json:"namespace"`
+	AgentProfileID string        `json:"agentProfileId"`
+	RouteURL       string        `json:"routeUrl,omitempty"`
+	State          string        `json:"state"`
+	LastError      string        `json:"lastError,omitempty"`
+	Config         *AgentProfile `json:"config,omitempty"`
 }
 
 // AgentDeploymentListResponse is returned by GET /api/v1/agent-deployments.

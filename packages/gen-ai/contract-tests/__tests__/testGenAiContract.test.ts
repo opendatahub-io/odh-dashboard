@@ -137,6 +137,26 @@ describe('Gen AI API Contract Tests', () => {
       );
     });
 
+    it('should get an agent deployment by Sandbox name', async () => {
+      const created = await apiClient.post('/gen-ai/api/v1/agent-deployments?namespace=llama-stack', {
+        name: 'mock-agent-details',
+        agentProfileId: '11111111-1111-1111-1111-111111111111',
+      });
+      expect(created.success).toBe(true);
+      if (!created.success) {
+        throw new Error(created.error.message);
+      }
+      const sandboxName = (created.response.data as { data: { sandboxName: string } }).data.sandboxName;
+
+      const result = await apiClient.get(
+        `/gen-ai/api/v1/agent-deployments/${encodeURIComponent(sandboxName)}?namespace=llama-stack`,
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1gen-ai~1api~1v1~1agent-deployments~1{id}/get/responses/200/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
     it('should reject an invalid agent profile ID', async () => {
       const result = await apiClient.post('/gen-ai/api/v1/agent-deployments?namespace=llama-stack', {
         name: 'mock-agent',
