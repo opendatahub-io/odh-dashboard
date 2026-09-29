@@ -80,6 +80,9 @@ const (
 	AgentProfilesPath  = ApiPathPrefix + "/agent-profiles"
 	AgentProfileIDPath = ApiPathPrefix + "/agent-profiles/:id"
 
+	// Agent Deployments endpoints
+	AgentDeploymentsPath = ApiPathPrefix + "/agent-deployments"
+
 	// GenAI Proxy — OpenAI-compatible surface for OGX's remote::passthrough provider.
 	// OGX base_url must include the namespace: .../api/v1/genai-proxy/ns/<namespace>
 	GenAIProxyNSModelsPath          = ApiPathPrefix + "/genai-proxy/ns/:namespace/v1/models"
