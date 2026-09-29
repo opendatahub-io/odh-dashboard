@@ -8,13 +8,9 @@ import {
   ModalVariant,
 } from '@patternfly/react-core';
 import { InnerScrollContainer, Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
-import type { AutoragPattern } from '~/app/types/autoragPattern';
-import {
-  formatMetricName,
-  formatMetricValue,
-  formatPatternName,
-  getMetricByName,
-} from '~/app/utilities/utils';
+import type { AutoragPattern, MetricReference } from '~/app/types/autoragPattern';
+import { formatPatternName } from '~/app/utilities/utils';
+import { formatMetricValue, getObjectiveMetric, metricLabel } from '~/app/utilities/metricUtils';
 
 type ColumnDef = {
   label: string;
@@ -22,7 +18,7 @@ type ColumnDef = {
 };
 
 /** Scrollable columns rendered after the sticky radio/rank/name columns. */
-const getColumns = (optimizedMetric: string): ColumnDef[] => [
+const getColumns = (optimizationMetric: MetricReference): ColumnDef[] => [
   {
     label: 'Model name',
     getValue: (p) => (
@@ -38,9 +34,9 @@ const getColumns = (optimizedMetric: string): ColumnDef[] => [
     ),
   },
   {
-    label: `${formatMetricName(optimizedMetric)} (Optimized)`,
+    label: `${metricLabel(optimizationMetric)} (Optimized)`,
     getValue: (p) => {
-      const mean = getMetricByName(p, optimizedMetric)?.scores.mean;
+      const mean = getObjectiveMetric(p, optimizationMetric)?.scores.mean;
       return mean != null ? formatMetricValue(mean) : 'N/A';
     },
   },
@@ -70,10 +66,11 @@ type PatternComparisonSelectModalProps = {
   isOpen: boolean;
   onClose: () => void;
   patterns: AutoragPattern[];
-  rankMap: Record<string, number>;
+  patternKeys?: string[];
+  rankMap: Partial<Record<string, number>>;
   currentPatternIndex: number;
   excludePatternIndex: number;
-  optimizedMetric: string;
+  optimizationMetric: MetricReference;
   onSelectPattern: (index: number) => void;
 };
 
@@ -81,13 +78,14 @@ const PatternComparisonSelectModal: React.FC<PatternComparisonSelectModalProps> 
   isOpen,
   onClose,
   patterns,
+  patternKeys = patterns.map((_, index) => String(index)),
   rankMap,
   currentPatternIndex,
   excludePatternIndex,
-  optimizedMetric,
+  optimizationMetric,
   onSelectPattern,
 }) => {
-  const columns = React.useMemo(() => getColumns(optimizedMetric), [optimizedMetric]);
+  const columns = React.useMemo(() => getColumns(optimizationMetric), [optimizationMetric]);
 
   const [selectedIndex, setSelectedIndex] = React.useState<number | null>(
     currentPatternIndex >= 0 ? currentPatternIndex : null,
@@ -106,8 +104,12 @@ const PatternComparisonSelectModal: React.FC<PatternComparisonSelectModalProps> 
       patterns
         .map((_, i) => i)
         .filter((i) => i !== excludePatternIndex)
-        .toSorted((a, b) => (rankMap[patterns[a].name] ?? 0) - (rankMap[patterns[b].name] ?? 0)),
-    [patterns, excludePatternIndex, rankMap],
+        .toSorted((a, b) => {
+          const aRank = rankMap[patternKeys[a]];
+          const bRank = rankMap[patternKeys[b]];
+          return (aRank ?? Number.MAX_SAFE_INTEGER) - (bRank ?? Number.MAX_SAFE_INTEGER);
+        }),
+    [patterns, excludePatternIndex, patternKeys, rankMap],
   );
 
   return (
@@ -144,7 +146,7 @@ const PatternComparisonSelectModal: React.FC<PatternComparisonSelectModalProps> 
             <Tbody>
               {sortedIndices.map((i) => {
                 const pattern = patterns[i];
-                const patternRank = rankMap[pattern.name] ?? 0;
+                const patternRank = rankMap[patternKeys[i]];
                 const isSelected = selectedIndex === i;
 
                 return (
@@ -173,7 +175,7 @@ const PatternComparisonSelectModal: React.FC<PatternComparisonSelectModalProps> 
                       stickyMinWidth="70px"
                       stickyLeftOffset="50px"
                     >
-                      {patternRank}
+                      {patternRank ?? 'Unranked'}
                     </Td>
                     <Td
                       dataLabel="Name"

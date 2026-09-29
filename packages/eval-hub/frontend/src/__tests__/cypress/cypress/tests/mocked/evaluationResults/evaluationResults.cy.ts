@@ -3,6 +3,7 @@ import type { Namespace } from 'mod-arch-core';
 import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import {
+  mockEvaluationJob,
   mockSingleEvaluationJob,
   mockCollectionEvaluationJob,
 } from '~/__mocks__/mockEvaluationJob';
@@ -42,6 +43,42 @@ const initIntercepts = ({
   }
 };
 
+const initLogIntercepts = (jobId: string, truncated: boolean) => {
+  cy.intercept(
+    {
+      method: 'GET',
+      pathname: `/eval-hub/api/${CLIENT_API_VERSION}/evaluations/jobs/${jobId}/logs`,
+    },
+    (request) => {
+      request.reply({
+        statusCode: 200,
+        headers: {
+          'content-type': 'text/plain; charset=utf-8',
+          'x-log-truncated': request.query.tail_lines === '-1' ? String(truncated) : 'false',
+        },
+        body: '2026-03-01 09:00:00 - main - INFO - Evaluation log output',
+      });
+    },
+  ).as('jobLogs');
+
+  cy.intercept(
+    {
+      method: 'GET',
+      pathname: `/eval-hub/api/${CLIENT_API_VERSION}/evaluations/jobs/${jobId}/benchmarks/0/logs`,
+    },
+    (request) => {
+      request.reply({
+        statusCode: 200,
+        headers: {
+          'content-type': 'text/plain; charset=utf-8',
+          'x-log-truncated': request.query.tail_lines === '-1' ? String(truncated) : 'false',
+        },
+        body: '2026-03-01 09:00:00 - benchmark - INFO - Benchmark log output',
+      });
+    },
+  ).as('benchmarkLogs');
+};
+
 describe('Evaluation Results Page - Single Benchmark', () => {
   const singleJob = mockSingleEvaluationJob();
 
@@ -75,6 +112,12 @@ describe('Evaluation Results Page - Single Benchmark', () => {
 
 describe('Evaluation Results Page - Collection', () => {
   const collectionJob = mockCollectionEvaluationJob();
+  collectionJob.status.benchmarks = collectionJob.benchmarks!.map((benchmark, index) => ({
+    id: benchmark.id,
+    // eslint-disable-next-line camelcase
+    benchmark_index: index,
+    status: 'completed',
+  }));
 
   beforeEach(() => {
     initIntercepts({ job: collectionJob });
@@ -120,5 +163,65 @@ describe('Evaluation Results Page - Collection', () => {
     evaluationResultsPage.visit(NAMESPACE, collectionJob.resource.id);
     evaluationResultsPage.findBenchmarkCard('truthfulqa_mc1', 1).click();
     evaluationResultsPage.findBenchmarkDetails('truthfulqa_mc1', 1).should('exist');
+  });
+
+  it('should download all job logs without warning when the response is complete', () => {
+    initLogIntercepts(collectionJob.resource.id, false);
+    evaluationResultsPage.visit(NAMESPACE, collectionJob.resource.id);
+    evaluationResultsPage.findViewLogButton().click();
+    evaluationResultsPage.findEventLogModal().should('exist');
+    cy.wait('@jobLogs').its('request.query.tail_lines').should('eq', '500');
+
+    evaluationResultsPage.findDownloadLogsButton().click();
+    cy.wait('@jobLogs').its('request.query.tail_lines').should('eq', '-1');
+    cy.findByText('Log download truncated').should('not.exist');
+  });
+
+  it('should download benchmark logs and warn when the response is truncated', () => {
+    initLogIntercepts(collectionJob.resource.id, true);
+    evaluationResultsPage.visit(NAMESPACE, collectionJob.resource.id);
+    evaluationResultsPage.findViewLogButton().click();
+    evaluationResultsPage.findEventLogModal().should('exist');
+    cy.wait('@jobLogs').its('request.query.tail_lines').should('eq', '500');
+
+    evaluationResultsPage.findBenchmarkLogSelector().click();
+    evaluationResultsPage.findBenchmarkLogOption('harmful_request_refusal').click();
+    cy.wait('@benchmarkLogs').its('request.query.tail_lines').should('eq', '500');
+    evaluationResultsPage.findDownloadLogsButton().click();
+    cy.wait('@benchmarkLogs').its('request.query.tail_lines').should('eq', '-1');
+    cy.findByText('Log download truncated').should('be.visible');
+  });
+});
+
+describe('Evaluation Results Page - Non-percentage primary metric', () => {
+  const guidellmJob = mockEvaluationJob({
+    id: 'guidellm-constant-job',
+    name: 'GuideLLM constant',
+    benchmarkIds: ['constant'],
+    providerId: 'guidellm',
+    score: 41.377,
+    threshold: 10,
+    benchmarkResults: [
+      {
+        id: 'constant',
+        provider_id: 'guidellm',
+        metrics: { output_tokens_per_second: 41.377 },
+        test: { primary_score: 41.377, threshold: 10, pass: true },
+      },
+    ],
+  });
+  guidellmJob.benchmarks![0].primary_score = {
+    metric: 'output_tokens_per_second',
+    lower_is_better: false,
+  };
+
+  beforeEach(() => {
+    initIntercepts({ job: guidellmJob });
+  });
+
+  it('should display the result and threshold with the metric unit', () => {
+    evaluationResultsPage.visit(NAMESPACE, guidellmJob.resource.id);
+    evaluationResultsPage.findScoreValue().should('have.text', '41.38 output tokens/s');
+    evaluationResultsPage.findBenchmarkDetailsInfo().should('contain.text', '10 output tokens/s');
   });
 });

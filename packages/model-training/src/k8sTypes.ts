@@ -17,6 +17,7 @@ export type TrainJobKind = K8sResourceCommon & {
   metadata: {
     annotations?: Partial<{
       'opendatahub.io/display-name': string;
+      'openshift.io/description': string;
       [TRAINER_STATUS_ANNOTATION]?: string;
     }>;
     name: string;

@@ -148,12 +148,13 @@ type ListRunsParams struct {
 
 // DiscoveredPipeline holds the result of pipeline discovery by name.
 type DiscoveredPipeline struct {
-	PipelineID        string
-	PipelineVersionID string
-	PipelineName      string
-	Namespace         string
-	AllVersionIDs     []string
-	DiscoveredAt      time.Time
+	PipelineID          string
+	PipelineVersionID   string
+	PipelineVersionName string
+	PipelineName        string
+	Namespace           string
+	AllVersionIDs       []string
+	DiscoveredAt        time.Time
 }
 
 // PipelineDefinition describes a managed pipeline for discovery and auto-creation.

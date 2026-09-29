@@ -2,27 +2,20 @@ import yaml from 'js-yaml';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { deleteS3TestFiles } from '../../../utils/oc_commands/s3Cleanup';
 import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
-import {
-  createMaasSecret,
-  isExternalMaasConnection,
-  getExternalMaasConnection,
-} from '../../../utils/oc_commands/maasSecret';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutoragTestData } from '../../../types';
 import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
-import { isAutoragEnabled, setAutoragEnabled } from '../../../utils/oc_commands/autoX';
-import { allowOgxAccess, removeOgxAccess } from '../../../utils/oc_commands/ogxNetworkPolicy';
-import {
-  isOgxOperatorManaged,
-  provisionAutoragInfrastructure,
-  cleanupAutoragInfrastructure,
-  provisionVectorDatabase,
-} from '../../../utils/oc_commands/autoragInfra';
+import { cleanupAutoragInfrastructure } from '../../../utils/oc_commands/autoragInfra';
 import {
   configureAutoragRun,
+  checkAutoragMaaSReadiness,
   submitAutoragRun,
-  verifyAutoragRunSubmitted,
+  getAutoragInputDataKey,
+} from '../../../utils/autoragTestFlows';
+import type {
+  AutoragConnectionOwnership,
+  AutoragMaaSFixture,
 } from '../../../utils/autoragTestFlows';
 
 const uuid = generateTestUUID();
@@ -30,13 +23,21 @@ const defaultUuid = `${uuid}-default`;
 const faithUuid = `${uuid}-faith`;
 const overallUuid = `${uuid}-overall`;
 
-const isExternalMaas = (): boolean => isExternalMaasConnection();
-
 describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
   let testData: AutoragTestData;
   let projectName: string;
-  let autoragWasEnabled = false;
-  let selfProvisioned = false;
+  let cleanupReady = false;
+  let maasFixture: AutoragMaaSFixture | undefined;
+  const connectionOwnership: AutoragConnectionOwnership = {
+    maasSecretCreated: false,
+    vectorDbSecretCreated: false,
+  };
+  const getMaaSFixture = (): AutoragMaaSFixture => {
+    if (!maasFixture) {
+      throw new Error('AutoRAG MaaS fixture was not resolved.');
+    }
+    return maasFixture;
+  };
 
   retryableBefore(() =>
     cy
@@ -44,66 +45,30 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as AutoragTestData;
         projectName = `${testData.projectNamePrefix}-${uuid}`;
+        cleanupReady = true;
       })
-      .then(() =>
-        isAutoragEnabled().then((wasEnabled) => {
-          autoragWasEnabled = wasEnabled;
-        }),
-      )
-      .then(() => setAutoragEnabled(true))
-      .then(() =>
-        isOgxOperatorManaged().then((isManaged) => {
-          if (isExternalMaas()) {
-            provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
-            allowOgxAccess(projectName);
-
-            const connection = getExternalMaasConnection();
-            if (!connection) {
-              throw new Error('Expected MAAS_URL or OGX_URL for external mode');
-            }
-            createMaasSecret(
-              projectName,
-              testData.maasSecretName,
-              connection.url,
-              connection.apiKey,
-            );
-            provisionVectorDatabase(projectName, testData.vectorDbSecretName);
-          } else {
-            if (!isManaged) {
-              throw new Error(
-                'OGX operator is not Managed on this cluster. ' +
-                  'Either set MAAS_URL or OGX_URL for external mode or ensure the operator is Managed.',
-              );
-            }
-
-            selfProvisioned = true;
-
-            cy.step('Provision project with DSPA');
-            provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
-
-            cy.step('Provision AutoRAG infrastructure (models, Milvus, OGX)');
-            provisionAutoragInfrastructure(
-              projectName,
-              testData.maasSecretName,
-              testData.vectorDbSecretName,
-            );
-          }
-        }),
-      ),
+      .then(() => checkAutoragMaaSReadiness())
+      .then((fixture) => {
+        maasFixture = fixture;
+        provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+        configureAutoragRun(testData, projectName, uuid, fixture, {
+          createConnections: true,
+          connectionOwnership,
+        });
+      }),
   );
 
   after(() => {
-    if (!autoragWasEnabled) {
-      setAutoragEnabled(false);
+    if (!cleanupReady) {
+      return;
     }
-    if (selfProvisioned) {
-      cleanupAutoragInfrastructure(
-        projectName,
-        testData.maasSecretName,
-        testData.vectorDbSecretName,
-      );
-    }
-    removeOgxAccess(projectName);
+
+    cleanupAutoragInfrastructure(
+      projectName,
+      testData.maasSecretName,
+      testData.vectorDbSecretName,
+      connectionOwnership,
+    );
     deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
@@ -116,6 +81,8 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
         { ...testData, runName: `${testData.runName}-default` },
         projectName,
         defaultUuid,
+        getMaaSFixture(),
+        {},
       );
 
       cy.step('Set max RAG patterns without changing the default metric');
@@ -123,8 +90,12 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
         .findMaxRagPatternsInputField()
         .type(`{selectall}${testData.maxRagPatterns}`);
 
-      submitAutoragRun();
-      verifyAutoragRunSubmitted(projectName, `${testData.runName}-default`);
+      submitAutoragRun(
+        { ...testData, runName: `${testData.runName}-default` },
+        projectName,
+        getAutoragInputDataKey(testData, defaultUuid),
+        getMaaSFixture(),
+      );
     },
   );
 
@@ -132,7 +103,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
     'Can submit a run with answer_correctness metric',
     { tags: ['@AutoRAG', '@AutoRAGRegression', '@Featureflagged'] },
     () => {
-      configureAutoragRun(testData, projectName, uuid);
+      configureAutoragRun(testData, projectName, uuid, getMaaSFixture());
 
       cy.step('Select answer_correctness optimization metric');
       autoragConfigurePage.findOptimizationMetricSelect().click();
@@ -143,8 +114,12 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
         .findMaxRagPatternsInputField()
         .type(`{selectall}${testData.maxRagPatterns}`);
 
-      submitAutoragRun();
-      verifyAutoragRunSubmitted(projectName, testData.runName);
+      submitAutoragRun(
+        { ...testData, optimizationMetric: 'answer_correctness' },
+        projectName,
+        getAutoragInputDataKey(testData, uuid),
+        getMaaSFixture(),
+      );
     },
   );
 
@@ -156,6 +131,8 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
         { ...testData, runName: `${testData.runName}-faith` },
         projectName,
         faithUuid,
+        getMaaSFixture(),
+        {},
       );
 
       cy.step('Select faithfulness optimization metric');
@@ -167,8 +144,12 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
         .findMaxRagPatternsInputField()
         .type(`{selectall}${testData.maxRagPatterns}`);
 
-      submitAutoragRun();
-      verifyAutoragRunSubmitted(projectName, `${testData.runName}-faith`);
+      submitAutoragRun(
+        { ...testData, runName: `${testData.runName}-faith`, optimizationMetric: 'faithfulness' },
+        projectName,
+        getAutoragInputDataKey(testData, faithUuid),
+        getMaaSFixture(),
+      );
     },
   );
 
@@ -180,6 +161,8 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
         { ...testData, runName: `${testData.runName}-overall` },
         projectName,
         overallUuid,
+        getMaaSFixture(),
+        {},
       );
 
       cy.step('Select overall_score optimization metric');
@@ -191,8 +174,12 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
         .findMaxRagPatternsInputField()
         .type(`{selectall}${testData.maxRagPatterns}`);
 
-      submitAutoragRun();
-      verifyAutoragRunSubmitted(projectName, `${testData.runName}-overall`);
+      submitAutoragRun(
+        { ...testData, runName: `${testData.runName}-overall` },
+        projectName,
+        getAutoragInputDataKey(testData, overallUuid),
+        getMaaSFixture(),
+      );
     },
   );
 });

@@ -283,16 +283,10 @@ func (app *App) resolveProxyModelEndpoint(ctx context.Context, modelID, namespac
 	}
 
 	// Try custom endpoint — model IDs may be simple names (e.g. "gpt-4o") or
-	// provider-qualified (e.g. "openai/gpt-4o"). Check the ConfigMap for either form.
-	extURL, extKey := app.getCustomEndpointBaseURLAndKey(ctx, modelID)
+	// provider-qualified (e.g. "endpoint-1/gpt-4o"). Check the ConfigMap for either form.
+	extURL, extKey, resolvedCustomModelID := app.getCustomEndpointBaseURLKeyAndModelID(ctx, modelID)
 	if extURL != "" {
-		// Strip provider prefix so the upstream receives its own model identifier.
-		// "openai/gpt-4o" → "gpt-4o"; a bare ID like "gpt-4o" is already correct.
-		bareID := modelID
-		if idx := strings.Index(modelID, "/"); idx != -1 {
-			bareID = modelID[idx+1:]
-		}
-		return extURL, extKey, bareID, nil
+		return extURL, extKey, resolvedCustomModelID, nil
 	}
 
 	// Fallback: namespace ISVC (bare name or failed custom endpoint lookup)

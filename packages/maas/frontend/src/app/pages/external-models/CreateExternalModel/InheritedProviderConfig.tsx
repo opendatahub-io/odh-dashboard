@@ -9,15 +9,23 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  convertStringToExternalModelProviderType,
+  ExternalModelWizardInheritedConfigShowMoreClickedProperties,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 
 type InheritedProviderConfigProps = {
   config: Record<string, string>;
   previewCount?: number;
+  providerType: string;
 };
 
 const InheritedProviderConfig: React.FC<InheritedProviderConfigProps> = ({
   config,
   previewCount,
+  providerType,
 }) => {
   const entries = Object.entries(config);
   const [showAll, setShowAll] = React.useState(false);
@@ -74,7 +82,17 @@ const InheritedProviderConfig: React.FC<InheritedProviderConfigProps> = ({
         <StackItem>
           <Button
             variant="link"
-            onClick={() => setShowAll((prev) => !prev)}
+            onClick={() => {
+              setShowAll((prev) => !prev);
+              fireMiscTrackingEvent(
+                MaaSEvents.EXTERNAL_MODEL_WIZARD_INHERITED_CONFIG_SHOW_MORE_CLICKED,
+                {
+                  inheritedCount: entries.length,
+                  isExpanded: !showAll,
+                  providerType: convertStringToExternalModelProviderType(providerType),
+                } satisfies ExternalModelWizardInheritedConfigShowMoreClickedProperties,
+              );
+            }}
             data-testid="inherited-provider-config-show-more"
           >
             {showAll ? 'Show less' : 'Show more'}

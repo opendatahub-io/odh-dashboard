@@ -16,21 +16,21 @@ import {
 } from '@patternfly/react-core';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import { DownloadIcon } from '@patternfly/react-icons';
-import type { AutoragPattern } from '~/app/types/autoragPattern';
+import type { AutoragPattern, MetricReference } from '~/app/types/autoragPattern';
+import { formatPatternName } from '~/app/utilities/utils';
 import {
-  formatMetricName,
   formatMetricValue,
-  formatPatternName,
+  getObjectiveMetric,
   getOptimizedScore,
-  getMetricByName,
-} from '~/app/utilities/utils';
+  metricLabel,
+} from '~/app/utilities/metricUtils';
 import { patternHasIndexingPipelineSpec } from '~/app/utilities/indexingPipeline';
 
 type PatternDetailsModalHeaderProps = {
   patterns: AutoragPattern[];
   selectedIndex: number;
-  rank: number;
-  optimizedMetric?: string;
+  rank?: number;
+  optimizationMetric?: MetricReference;
   onPatternChange: (index: number) => void;
   onDownload: () => void;
   onSaveNotebook?: (patternName: string, notebookType: 'indexing' | 'inference') => void;
@@ -41,11 +41,14 @@ type PatternDetailsModalHeaderProps = {
   comparisonPatternIndex?: number | null;
 };
 
+// Keep the OGX callbacks wired for the upcoming Results reintroduction without exposing actions.
+const OGX_ACTIONS_ENABLED = false;
+
 const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
   patterns,
   selectedIndex,
   rank,
-  optimizedMetric,
+  optimizationMetric,
   onPatternChange,
   onDownload,
   onSaveNotebook,
@@ -120,7 +123,7 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
             </StackItem>
             <StackItem>
               <Title headingLevel="h2" size="lg" data-testid="pattern-rank">
-                {rank}
+                {rank ?? 'Unranked'}
               </Title>
             </StackItem>
           </Stack>
@@ -129,16 +132,18 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
           <Stack>
             <StackItem>
               <Content component={ContentVariants.small}>
-                {optimizedMetric
-                  ? `${formatMetricName(optimizedMetric)} (optimized)`
+                {optimizationMetric
+                  ? `${metricLabel(optimizationMetric)} (optimized)`
                   : 'Final score'}
               </Content>
             </StackItem>
             <StackItem>
               <Title headingLevel="h2" size="lg" data-testid="pattern-final-score">
-                {optimizedMetric
-                  ? formatMetricValue(getMetricByName(data, optimizedMetric)?.scores.mean ?? 'N/A')
-                  : getOptimizedScore(data).toFixed(3)}
+                {optimizationMetric
+                  ? formatMetricValue(
+                      getObjectiveMetric(data, optimizationMetric)?.scores.mean ?? 'N/A',
+                    )
+                  : formatMetricValue(getOptimizedScore(data))}
               </Title>
             </StackItem>
           </Stack>
@@ -184,7 +189,8 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
                 )}
               >
                 <DropdownList>
-                  {data.inference?.responses_template && onTryPattern && (
+                  {/* eslint-disable @typescript-eslint/no-unnecessary-condition */}
+                  {OGX_ACTIONS_ENABLED && data.inference?.responses_template && onTryPattern && (
                     <DropdownItem
                       key="try-pattern"
                       value="try-pattern"
@@ -193,7 +199,7 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
                       Try this pattern
                     </DropdownItem>
                   )}
-                  {data.inference?.responses_template && onViewCode && (
+                  {OGX_ACTIONS_ENABLED && data.inference?.responses_template && onViewCode && (
                     <DropdownItem
                       key="view-code"
                       value="view-code"
@@ -202,6 +208,7 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
                       View code
                     </DropdownItem>
                   )}
+                  {/* eslint-enable @typescript-eslint/no-unnecessary-condition */}
                   {onRunIndexingPipeline && patternHasIndexingPipelineSpec(data) && (
                     <DropdownItem
                       key="run-indexing"

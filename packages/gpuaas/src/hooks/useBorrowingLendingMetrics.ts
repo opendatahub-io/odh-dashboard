@@ -62,6 +62,7 @@ type BorrowingLendingMetricsResult = {
   series: CQMetricSeries[];
   loaded: boolean;
   error: Error | undefined;
+  refresh: () => void;
 };
 
 const getGpuNominalQuota = (cq: ClusterQueueKind): number =>
@@ -189,6 +190,10 @@ const useBorrowingLendingMetrics = (cohorts: UnifiedCohort[]): BorrowingLendingM
     return () => clearInterval(id);
   }, []);
 
+  const refresh = React.useCallback(() => {
+    setEndInMs(Date.now());
+  }, []);
+
   const [prometheusResults, loaded, error] = usePrometheusQueryRange(
     true,
     PROMETHEUS_API_PATH,
@@ -205,7 +210,7 @@ const useBorrowingLendingMetrics = (cohorts: UnifiedCohort[]): BorrowingLendingM
     [prometheusResults, cqInfoMap],
   );
 
-  return { series, loaded, error };
+  return { series, loaded, error, refresh };
 };
 
 export const useClusterQueueBorrowingSince = (

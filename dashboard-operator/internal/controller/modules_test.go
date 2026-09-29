@@ -123,9 +123,11 @@ func TestResolveModuleStatuses(t *testing.T) {
 			wantPhases: map[string]v1alpha1.ModulePhase{
 				"modelRegistry": v1alpha1.ModulePhaseDisabled,
 				"genAi":         v1alpha1.ModulePhaseDeployed,
+				"dataRegistry":  v1alpha1.ModulePhaseDisabled,
 			},
 			wantReason: map[string]string{
 				"modelRegistry": "ComponentNotAvailable",
+				"dataRegistry":  "ComponentNotAvailable",
 			},
 		},
 		{
@@ -138,6 +140,10 @@ func TestResolveModuleStatuses(t *testing.T) {
 			},
 			wantPhases: map[string]v1alpha1.ModulePhase{
 				"modelRegistry": v1alpha1.ModulePhaseDeployed,
+				"dataRegistry":  v1alpha1.ModulePhaseDisabled,
+			},
+			wantReason: map[string]string{
+				"dataRegistry": "ComponentNotAvailable",
 			},
 		},
 		{
@@ -196,10 +202,11 @@ func TestResolveModuleStatuses(t *testing.T) {
 				},
 			},
 			wantPhases: map[string]v1alpha1.ModulePhase{
-				"genAi":   v1alpha1.ModulePhaseDisabled,
-				"autorag": v1alpha1.ModulePhaseDisabled,
-				"automl":  v1alpha1.ModulePhaseDeployed,
-				"maas":    v1alpha1.ModulePhaseDeployed,
+				"genAi":        v1alpha1.ModulePhaseDisabled,
+				"autorag":      v1alpha1.ModulePhaseDisabled,
+				"automl":       v1alpha1.ModulePhaseDeployed,
+				"maas":         v1alpha1.ModulePhaseDeployed,
+				"dataRegistry": v1alpha1.ModulePhaseDeployed,
 			},
 			wantReason: map[string]string{
 				"genAi":   "ExplicitOverride",
@@ -215,13 +222,15 @@ func TestResolveModuleStatuses(t *testing.T) {
 				},
 			},
 			wantPhases: map[string]v1alpha1.ModulePhase{
-				"automl":  v1alpha1.ModulePhaseDisabled,
-				"autorag": v1alpha1.ModulePhaseDisabled,
-				"genAi":   v1alpha1.ModulePhaseDeployed,
+				"automl":       v1alpha1.ModulePhaseDisabled,
+				"autorag":      v1alpha1.ModulePhaseDisabled,
+				"genAi":        v1alpha1.ModulePhaseDeployed,
+				"dataRegistry": v1alpha1.ModulePhaseDisabled,
 			},
 			wantReason: map[string]string{
-				"automl":  "ComponentNotAvailable",
-				"autorag": "ComponentNotAvailable",
+				"automl":       "ComponentNotAvailable",
+				"autorag":      "ComponentNotAvailable",
+				"dataRegistry": "ComponentNotAvailable",
 			},
 		},
 	}
@@ -454,8 +463,10 @@ func TestModuleRegistry(t *testing.T) {
 func TestModuleNames(t *testing.T) {
 	names := ModuleNames()
 	assert.Equal(t, []string{
-		"agentOps", "automl", "autorag", "dataRegistry", "evalHub",
-		"genAi", "maas", "mlflow", "modelRegistry", "notebooks",
+		"agentOps", "automl", "autorag",
+		"dataRegistry",
+		"evalHub", "genAi",
+		"maas", "mlflow", "modelRegistry", "notebooks",
 	}, names)
 }
 

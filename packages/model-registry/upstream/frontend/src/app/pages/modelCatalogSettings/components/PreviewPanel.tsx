@@ -24,6 +24,7 @@ import {
   PAGE_TITLES,
   ERROR_MESSAGES,
   EMPTY_STATE_TEXT,
+  PREVIEW_ALERTS,
 } from '~/app/pages/modelCatalogSettings/constants';
 import { isPreviewModelGatedAccessDenied } from '~/app/pages/modelCatalogSettings/utils/modelCatalogSettingsUtils';
 import { CatalogSourcePreviewModel } from '~/app/modelCatalogTypes';
@@ -33,9 +34,10 @@ import PreviewButton from './PreviewButton';
 
 type PreviewPanelProps = {
   preview: UseSourcePreviewResult;
+  isSourceEnabled: boolean;
 };
 
-const PreviewPanel: React.FC<PreviewPanelProps> = ({ preview }) => {
+const PreviewPanel: React.FC<PreviewPanelProps> = ({ preview, isSourceEnabled }) => {
   // Derive values from preview
   const {
     previewState,
@@ -49,6 +51,9 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ preview }) => {
   const { isLoadingInitial, isLoadingMore, activeTab, summary, tabStates, error } = previewState;
   const { items, hasMore } = tabStates[activeTab];
   const previewError = error;
+  const showSourceDisabledWarning = !isSourceEnabled && !!summary && !previewError;
+
+  const showGatedAccessAlert = summary?.hasGatedAccessDeniedModels === true;
 
   const onPreview = () => handlePreview();
   const onLoadMore = () => handleLoadMore();
@@ -138,6 +143,17 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ preview }) => {
 
     return (
       <>
+        {showGatedAccessAlert && (
+          <Alert
+            variant="warning"
+            isInline
+            title={PREVIEW_ALERTS.GATED_ACCESS_REQUIRED_TITLE}
+            className="pf-v6-u-mb-md"
+            data-testid="preview-gated-access-alert"
+          >
+            {PREVIEW_ALERTS.GATED_ACCESS_REQUIRED_BODY}
+          </Alert>
+        )}
         <Tabs
           activeKey={activeTab === CatalogSettingsPreviewTab.INCLUDED ? 0 : 1}
           onSelect={handleTabSelect}
@@ -147,7 +163,7 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ preview }) => {
           <Tab eventKey={1} title={<TabTitleText>Models excluded</TabTitleText>} />
         </Tabs>
         <div className="pf-v6-u-mt-md">
-          {hasFormChanged && (
+          {hasFormChanged && canPreview && (
             <Alert
               variant="info"
               isInline
@@ -231,6 +247,17 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ preview }) => {
           />
         </FlexItem>
       </Flex>
+      {showSourceDisabledWarning && (
+        <Alert
+          variant="warning"
+          isInline
+          title={PREVIEW_ALERTS.SOURCE_DISABLED_TITLE}
+          className="pf-v6-u-mb-md"
+          data-testid="source-disabled-warning"
+        >
+          {PREVIEW_ALERTS.SOURCE_DISABLED_BODY}
+        </Alert>
+      )}
       {renderContent()}
     </div>
   );

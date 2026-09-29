@@ -1,4 +1,5 @@
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
+import { deploymentStrategyRecreate } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
 import { deployKServeDeployment } from '../deploy';
@@ -14,6 +15,10 @@ jest.mock('../deployServer', () => ({
 jest.mock('../deployModel', () => ({
   ...jest.requireActual('../deployModel'),
   deployInferenceService: jest.fn(),
+}));
+jest.mock('../hfTokenSecret', () => ({
+  ...jest.requireActual('../hfTokenSecret'),
+  resolveHfTokenSecretName: jest.fn().mockResolvedValue(undefined),
 }));
 
 const mockCreateServingRuntime = jest.mocked(createServingRuntime);
@@ -34,6 +39,8 @@ const WIZARD_DATA = {
   environmentVariables: { data: undefined },
   modelAvailability: { data: undefined },
   deploymentStrategy: { data: undefined },
+  huggingFaceApiKey: { data: { token: '' } },
+  requiresHuggingFaceApiKey: false,
   canCreateRoleBindings: false,
 } as unknown as WizardFormData['state'];
 
@@ -154,5 +161,39 @@ describe('deployKServeDeployment', () => {
 
     expect(mockCreateServingRuntime).toHaveBeenCalledTimes(1);
     expect(mockCreateServingRuntime.mock.calls[0][0].metadata.name).toBe('my-model');
+  });
+
+  it('should not apply a hidden deployment strategy to the inference service', async () => {
+    const wizardData = {
+      ...WIZARD_DATA,
+      deploymentStrategy: {
+        data: deploymentStrategyRecreate,
+        setData: jest.fn(),
+        isVisible: false,
+      },
+    } as unknown as WizardFormData['state'];
+
+    await deployKServeDeployment(wizardData, {}, 'test-project');
+
+    expect(
+      mockDeployInferenceService.mock.calls[0][0].spec.predictor.deploymentStrategy,
+    ).toBeUndefined();
+  });
+
+  it('should apply a visible deployment strategy to the inference service', async () => {
+    const wizardData = {
+      ...WIZARD_DATA,
+      deploymentStrategy: {
+        data: deploymentStrategyRecreate,
+        setData: jest.fn(),
+        isVisible: true,
+      },
+    } as unknown as WizardFormData['state'];
+
+    await deployKServeDeployment(wizardData, {}, 'test-project');
+
+    expect(mockDeployInferenceService.mock.calls[0][0].spec.predictor.deploymentStrategy).toEqual({
+      type: 'Recreate',
+    });
   });
 });

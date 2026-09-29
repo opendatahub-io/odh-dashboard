@@ -145,20 +145,24 @@ export const fireAutoragModelsSelected = (properties: ModelsSelectedProperties):
   fireFormTrackingEvent(AUTORAG_EVENTS.MODELS_SELECTED, properties);
 };
 
-/** Categorized vector database backend, derived from the secret type (milvus or pgvector). */
+/** Categorized vector I/O provider type, derived from the `SUPPORTED_VECTOR_STORE_PROVIDER_TYPES` allowlist. */
 export type VectorStoreProviderType = 'milvus' | 'pgvector';
 
-/** Maps a vector-db secret `type` (annotation or key classification) to analytics. */
-export const toVectorStoreProviderTypeFromSecret = (
-  secretType?: string,
+/**
+ * Maps a raw vector store provider type (e.g. `"remote::milvus"`) to the categorized
+ * {@link VectorStoreProviderType} used in analytics. Returns `undefined` for any provider type
+ * outside the current allowlist — callers must skip firing the tracking event in that case rather
+ * than forwarding an uncategorized value. This keeps the tracked property to a fixed, non-sensitive
+ * set even though the underlying `provider_id` is a free-form, admin-assigned string that must
+ * never be sent to analytics.
+ */
+export const toVectorStoreProviderType = (
+  providerType: string,
 ): VectorStoreProviderType | undefined => {
-  if (!secretType) {
-    return undefined;
-  }
-  switch (secretType.toLowerCase()) {
-    case 'milvus':
+  switch (providerType) {
+    case 'remote::milvus':
       return 'milvus';
-    case 'pgvector':
+    case 'remote::pgvector':
       return 'pgvector';
     default:
       return undefined;
@@ -167,13 +171,34 @@ export const toVectorStoreProviderTypeFromSecret = (
 
 export type VectorStoreConfiguredProperties = {
   providerType: VectorStoreProviderType;
-  countOfCompatibleProviders: number;
+  /** Retained for compatibility with the previous OGX discovery payload. */
+  countOfCompatibleProviders?: number;
   outcome: TrackingOutcome;
   success: boolean;
 };
 
+/** Infers a safe provider category from redacted Secret key metadata only. */
+export const getVectorStoreProviderTypeFromSecretData = (
+  data?: Record<string, string>,
+): VectorStoreProviderType | undefined => {
+  const keys = new Set(Object.keys(data ?? {}));
+  const hasMilvus = keys.has('MILVUS_URI');
+  const hasPgvector = [
+    'PGVECTOR_HOST',
+    'PGVECTOR_PORT',
+    'PGVECTOR_DB',
+    'PGVECTOR_USER',
+    'PGVECTOR_PASSWORD',
+  ].every((key) => keys.has(key));
+
+  if (hasMilvus === hasPgvector) {
+    return undefined;
+  }
+  return hasMilvus ? 'milvus' : 'pgvector';
+};
+
 /**
- * Fires when the user selects a vector database secret in the "Configure details" step of the
+ * Fires when the user selects a vector database Secret in the "Configure details" step of the
  * configure flow. Fires on every selection change (consistent with Knowledge/Evaluation Source,
  * which re-fire on every upload/replace), from the Select's `onSelect` handler only — never from
  * the effect that clears a stale selection when the provider list refreshes, and never from the

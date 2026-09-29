@@ -414,8 +414,9 @@ describe('deletePvc', () => {
     k8sDeleteResourceMock.mockResolvedValue(mockK8sStatus);
     const result = await deletePvc('pvcName', 'namespace');
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: PVCModel,
-      queryOptions: { name: 'pvcName', ns: 'namespace' },
+      queryOptions: { name: 'pvcName', ns: 'namespace', queryParams: {} },
     });
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(result).toStrictEqual(mockK8sStatus);
@@ -426,8 +427,9 @@ describe('deletePvc', () => {
     k8sDeleteResourceMock.mockResolvedValue(mockK8sStatus);
     const result = await deletePvc('pvcName', 'namespace');
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: PVCModel,
-      queryOptions: { name: 'pvcName', ns: 'namespace' },
+      queryOptions: { name: 'pvcName', ns: 'namespace', queryParams: {} },
     });
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(result).toStrictEqual(mockK8sStatus);
@@ -438,8 +440,9 @@ describe('deletePvc', () => {
     await expect(deletePvc('pvcName', 'namespace')).rejects.toThrow('error1');
     expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: PVCModel,
-      queryOptions: { name: 'pvcName', ns: 'namespace' },
+      queryOptions: { name: 'pvcName', ns: 'namespace', queryParams: {} },
     });
   });
 });

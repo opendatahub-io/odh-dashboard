@@ -213,7 +213,23 @@ class ServingModal extends Modal {
 
 class DeleteModelServingModal extends DeleteModal {
   constructor() {
-    super('Delete tier?');
+    super('Delete model deployment?');
+  }
+
+  findPVCCheckbox() {
+    return this.find().findByTestId('nim-delete-pvc-checkbox');
+  }
+
+  findPVCDependentsLoadingAlert() {
+    return this.find().findByTestId('nim-delete-pvc-dependents-loading');
+  }
+
+  findPVCDependentsAlert() {
+    return this.find().findByTestId('nim-delete-pvc-dependents-alert');
+  }
+
+  findPVCDependentItems() {
+    return this.find().findAllByTestId('nim-delete-pvc-dependent-item');
   }
 }
 
@@ -1042,6 +1058,19 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('model-deployment-resourceName');
   }
 
+  getGeneratedResourceName(): Cypress.Chainable<string> {
+    return this.findResourceNameInput()
+      .should('be.visible')
+      .invoke('val')
+      .then((value) => {
+        const resourceName = value?.toString();
+        if (!resourceName) {
+          throw new Error('Model resource name was not generated');
+        }
+        return resourceName;
+      });
+  }
+
   findModelFormatSelect() {
     return cy.findByTestId('model-framework-select');
   }
@@ -1184,6 +1213,18 @@ class ModelServingWizard extends Wizard {
     return this.findCustomModelLocationSelect().findSelectOption(name);
   }
 
+  /**
+   * Asserts a custom S3 connection type is absent when the custom-type dropdown is present.
+   * The dropdown is omitted when only one S3-compatible type remains.
+   */
+  shouldNotHaveCustomModelLocationOptionIfSelectExists(name: string) {
+    cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="custom-type-select"]').length > 0) {
+        this.findCustomModelLocationSelectOption(name).should('not.exist');
+      }
+    });
+  }
+
   findLocationPathInput() {
     return cy.findByTestId('folder-path');
   }
@@ -1253,6 +1294,22 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('prefill-alert');
   }
 
+  findHfApiKeyField() {
+    return cy.findByTestId('hf-api-key-field');
+  }
+
+  findHfApiKeyInput() {
+    return cy.findByTestId('hf-api-key-input');
+  }
+
+  findHfGatedAccessAlert() {
+    return cy.findByTestId('hf-gated-access-alert');
+  }
+
+  findHfApiKeyConfiguredHelper() {
+    return cy.findByTestId('hf-api-key-configured-helper');
+  }
+
   findHardProfileSelection(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('hardware-profile-select');
   }
@@ -1262,7 +1319,10 @@ class ModelServingWizard extends Wizard {
     cy.findByRole('option', { name }).click();
   }
 
-  selectPotentiallyDisabledProfile(profileDisplayName: string, profileName?: string): void {
+  selectPotentiallyDisabledProfile(
+    profileDisplayName: string,
+    profileResourceName = profileDisplayName,
+  ): void {
     const dropdown = this.findHardProfileSelection();
 
     dropdown.then(($el) => {
@@ -1271,7 +1331,7 @@ class ModelServingWizard extends Wizard {
         cy.log(`Dropdown is disabled with value: ${profileDisplayName}`);
       } else {
         dropdown.click();
-        cy.findByTestId(profileName || profileDisplayName).click();
+        cy.findByTestId(profileResourceName).click();
       }
     });
   }

@@ -32,3 +32,7 @@ excludedSubstrings:
   # Slack's edge/WAF intermittently 403s automated (non-browser) requests to this
   # URL regardless of headers sent; the link itself works fine for real users.
   - elasticstack.slack.com
+  # NVIDIA API key management page requires an authenticated session (401).
+  - org.ngc.nvidia.com
+  # Cluster-internal Kubernetes service, not reachable from CI agents.
+  - feast-data-registry.rhoai-data-registry.svc

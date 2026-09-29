@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const { merge } = require('rspack-merge');
 const { rspack } = require('@rspack/core');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
@@ -13,7 +14,7 @@ const getRsdoctorPlugin = () => {
 };
 
 setupDotenvFilesForEnv({ env: 'production' });
-const common = require('./rspack.common.js');
+const rspackCommon = require('./rspack.common.js');
 
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR;
@@ -34,7 +35,7 @@ module.exports = merge(
       }),
     ],
   },
-  common('production'),
+  rspackCommon('production'),
   {
     mode: 'production',
     devtool: 'source-map',

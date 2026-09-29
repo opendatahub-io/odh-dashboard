@@ -44,6 +44,8 @@ import {
   ResponseMetrics,
   NemoGuardrailsStatus,
   SimplifiedResponseData,
+  StreamingToolCall,
+  ToolCallStreamEvent,
   SourceItem,
   VectorStore,
   VectorStoreFile,
@@ -78,6 +80,62 @@ const isResponseMetrics = (value: unknown): value is ResponseMetrics => {
     return false;
   }
   return typeof value.latency_ms === 'number';
+};
+
+const isOptionalString = (value: unknown): boolean =>
+  value === undefined || value === null || typeof value === 'string';
+
+const isOptionalStringArray = (value: unknown): boolean =>
+  value === undefined ||
+  value === null ||
+  (Array.isArray(value) && value.every((item) => typeof item === 'string'));
+
+type ToolCallOutputItem = OutputItem & {
+  id: string;
+  type: 'file_search_call' | 'mcp_call';
+};
+
+const isToolCallOutputItem = (value: unknown): value is ToolCallOutputItem => {
+  if (!isRecord(value) || typeof value.id !== 'string') {
+    return false;
+  }
+
+  if (value.type !== 'file_search_call' && value.type !== 'mcp_call') {
+    return false;
+  }
+
+  return (
+    isOptionalString(value.status) &&
+    isOptionalString(value.name) &&
+    isOptionalString(value.server_label) &&
+    isOptionalString(value.arguments) &&
+    isOptionalString(value.output) &&
+    isOptionalString(value.error) &&
+    isOptionalStringArray(value.queries) &&
+    (value.results === undefined || value.results === null || Array.isArray(value.results))
+  );
+};
+
+const isToolCallStreamEvent = (value: unknown): value is ToolCallStreamEvent => {
+  if (!isRecord(value) || typeof value.type !== 'string') {
+    return false;
+  }
+
+  switch (value.type) {
+    case 'response.output_item.added':
+    case 'response.output_item.done':
+      return isToolCallOutputItem(value.item);
+    case 'response.function_call_arguments.delta':
+      return typeof value.item_id === 'string' && typeof value.delta === 'string';
+    case 'response.function_call_arguments.done':
+      return typeof value.item_id === 'string' && typeof value.arguments === 'string';
+    default:
+      return (
+        (value.type.startsWith('response.file_search_call.') ||
+          value.type.startsWith('response.mcp_call.')) &&
+        typeof value.item_id === 'string'
+      );
+  }
 };
 
 const getStatusCodeFromError = (error: unknown): number | undefined => {
@@ -273,6 +331,33 @@ const extractContentFromOutput = (output?: OutputItem[]): string => {
   return content;
 };
 
+const extractToolCalls = (output?: OutputItem[]): StreamingToolCall[] => {
+  if (!output) {
+    return [];
+  }
+
+  return output.flatMap((item) => {
+    if (!isToolCallOutputItem(item)) {
+      return [];
+    }
+
+    const failed = Boolean(item.error) || item.status === 'failed';
+    return [
+      {
+        id: item.id,
+        type: item.type,
+        name: item.name ?? (item.type === 'file_search_call' ? 'file_search' : 'MCP tool'),
+        category: item.type === 'file_search_call' ? 'RAG' : 'MCP',
+        status: failed ? 'failed' : item.status === 'in_progress' ? 'in_progress' : 'completed',
+        serverLabel: item.server_label,
+        arguments: item.arguments ?? item.queries?.[0],
+        output: item.results ? JSON.stringify(item.results, null, 2) : (item.output ?? undefined),
+        error: item.error ?? undefined,
+      },
+    ];
+  });
+};
+
 /**
  * Transforms backend response to frontend-friendly format
  * @param backendResponse - Response from backend API
@@ -280,6 +365,7 @@ const extractContentFromOutput = (output?: OutputItem[]): string => {
  */
 const transformBackendResponse = (backendResponse: BackendResponseData): SimplifiedResponseData => {
   const toolCallData = extractMCPToolCallData(backendResponse.output);
+  const toolCalls = extractToolCalls(backendResponse.output);
   const rawContent = extractContentFromOutput(backendResponse.output);
   const annotations = extractAnnotationsFromOutput(backendResponse.output);
   const sources = buildSourcesFromAnnotations(annotations);
@@ -305,6 +391,7 @@ const transformBackendResponse = (backendResponse: BackendResponseData): Simplif
     content,
     usage: backendResponse.usage,
     ...(toolCallData && { toolCallData }),
+    ...(toolCalls.length > 0 && { toolCalls }),
     ...(sources.length > 0 && { sources }),
     ...(annotations.length > 0 && { annotations, citationMap }),
     ...(backendResponse.metrics && { metrics: backendResponse.metrics }),
@@ -357,6 +444,7 @@ const streamCreateResponse = (
   url: string,
   request: CreateResponseRequest,
   onStreamData: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => void,
+  onToolCall?: (event: ToolCallStreamEvent) => void,
   abortSignal?: AbortSignal,
   headers?: Record<string, string>,
 ): Promise<SimplifiedResponseData> =>
@@ -436,6 +524,10 @@ const streamCreateResponse = (
                       return;
                     }
 
+                    if (isToolCallStreamEvent(data)) {
+                      onToolCall?.(data);
+                    }
+
                     if (data.type === 'response.reasoning_text.delta' && data.delta) {
                       thinkParser.notifyDedicatedReasoningEvent();
                       reasoningContent += data.delta;
@@ -504,6 +596,10 @@ const streamCreateResponse = (
                     }
                     reject(new ApiErrorClass(data.error, data.trace_id));
                     return;
+                  }
+
+                  if (isToolCallStreamEvent(data)) {
+                    onToolCall?.(data);
                   }
 
                   if (data.delta && data.type === 'response.output_text.delta') {
@@ -633,12 +729,20 @@ export const createResponse =
     data: CreateResponseRequest,
     opts: APIOptions & {
       onStreamData?: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => void;
+      onToolCall?: (event: ToolCallStreamEvent) => void;
       abortSignal?: AbortSignal;
     } = {},
   ): Promise<SimplifiedResponseData> => {
-    if (data.stream && opts.onStreamData) {
+    if (data.stream) {
       const url = buildApiUrl(hostPath, '/lsd/responses', baseQueryParams);
-      return streamCreateResponse(url, data, opts.onStreamData, opts.abortSignal, opts.headers);
+      return streamCreateResponse(
+        url,
+        data,
+        opts.onStreamData ?? (() => undefined),
+        opts.onToolCall,
+        opts.abortSignal,
+        opts.headers,
+      );
     }
     return postCreateResponse(hostPath, baseQueryParams, data, opts);
   };
@@ -661,7 +765,9 @@ export const createPassthroughResponse = (
 ): Promise<SimplifiedResponseData> => {
   const trimmed = bffBasePath.replace(/\/+$/, '');
   const base = trimmed.endsWith('/api/v1') ? trimmed : `${trimmed}/api/v1`;
-  const url = `${base}/lsd/responses/passthrough?namespace=${encodeURIComponent(namespace)}&secretName=${encodeURIComponent(secretName)}`;
+  const url = `${base}/lsd/responses/passthrough?namespace=${encodeURIComponent(
+    namespace,
+  )}&secretName=${encodeURIComponent(secretName)}`;
 
   return new Promise((resolve, reject) => {
     fetch(url, {

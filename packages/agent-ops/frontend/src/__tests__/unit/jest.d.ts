@@ -8,7 +8,7 @@ declare namespace jest {
     hookToStrictEqual: (expected: unknown) => R;
     hookToHaveUpdateCount: (expected: number) => R;
     hookToBeStable: <
-      V extends T extends Pick<
+      V extends (T extends Pick<
         import('~/__tests__/unit/testUtils/hooks').RenderHookResultExt<
           infer Result,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,7 +17,7 @@ declare namespace jest {
         'result'
       >
         ? import('~/__tests__/unit/testUtils/hooks').BooleanValues<Result>
-        : never,
+        : never),
     >(
       expected?: V,
     ) => R;

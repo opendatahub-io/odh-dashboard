@@ -1,9 +1,10 @@
 /* eslint-disable camelcase */
+import { mockModArchResponse } from 'mod-arch-core';
 import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
-import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 
 const REGISTRY_API = '/data-registry/api/v1';
+const MAIN_API = '/data-registry/api/v1';
 
 const mockConnectionsResponse = [
   { name: 'my-s3-connection', displayName: 'My S3 Connection', connectionType: 's3' },
@@ -24,6 +25,7 @@ const mockAssetsResponse = {
       location: 's3://bucket/claims',
       description: 'Claims processing data',
       labels: ['production', 'claims'],
+      properties: { 'data-domain': 'claims' },
       collection: 'analytics',
       connection_ref: null,
       owner: 'user1',
@@ -37,6 +39,7 @@ const mockAssetsResponse = {
       location: 'milvus://embeddings',
       description: 'Vector embeddings',
       labels: ['embeddings', 'production'],
+      properties: { 'data-domain': 'vector-search' },
       collection: 'analytics',
       connection_ref: null,
       owner: 'user1',
@@ -59,7 +62,7 @@ const mockVolumesResponse = {
       'created-at': '2026-01-01',
       'updated-at': null,
       labels: ['source-docs'],
-      properties: { description: 'PDF documents' },
+      properties: { description: 'PDF documents', 'retention-class': 'long-term' },
       config: {},
     },
   ],
@@ -75,15 +78,15 @@ const mockLabelsResponse = {
 };
 
 const initIntercepts = (options = {}) => {
-  cy.interceptApi(
-    'GET /api/:apiVersion/user',
-    { path: { apiVersion: CLIENT_API_VERSION } },
-    mockUserSettings({ userId: 'test-user', ...options }),
-  );
-  cy.interceptApi('GET /api/:apiVersion/namespaces', { path: { apiVersion: CLIENT_API_VERSION } }, [
-    mockNamespace({ name: 'test-project' }),
-    mockNamespace({ name: 'other-project' }),
-  ]);
+  cy.intercept('GET', `${MAIN_API}/user`, {
+    body: mockModArchResponse(mockUserSettings({ userId: 'test-user', ...options })),
+  });
+  cy.intercept('GET', `${MAIN_API}/namespaces`, {
+    body: mockModArchResponse([
+      mockNamespace({ name: 'other-project' }),
+      mockNamespace({ name: 'test-project' }),
+    ]),
+  });
 
   cy.intercept('GET', `${REGISTRY_API}/test-project/namespaces`, {
     body: mockCollectionsResponse,
@@ -103,11 +106,9 @@ const initIntercepts = (options = {}) => {
   cy.intercept('GET', `${REGISTRY_API}/test-project/labels`, {
     body: mockLabelsResponse,
   }).as('getLabels');
-  cy.interceptApi(
-    'GET /api/:apiVersion/connections/:namespace',
-    { path: { apiVersion: CLIENT_API_VERSION, namespace: 'test-project' } },
-    mockConnectionsResponse,
-  ).as('getConnections');
+  cy.intercept('GET', `${MAIN_API}/connections/test-project`, {
+    body: mockModArchResponse(mockConnectionsResponse),
+  }).as('getConnections');
 };
 
 const visitWithData = () => {
@@ -127,9 +128,26 @@ describe('Registry Table', () => {
     cy.contains('raw-docs').should('exist');
   });
 
-  it('should show empty state when no project selected', () => {
+  it('should select the persisted project when no project is provided in the URL', () => {
+    cy.visit('/ai-hub/data/browse', {
+      onBeforeLoad: (window) => {
+        window.localStorage.setItem('mod-arch.namespace.lastUsed', JSON.stringify('test-project'));
+      },
+    });
+    cy.url().should('include', '/ai-hub/data/browse?project=test-project');
+    cy.findByTestId('registry-table', { timeout: 15000 }).should('exist');
+  });
+
+  it('should show the no-projects state when no projects are available', () => {
+    cy.intercept('GET', `${MAIN_API}/namespaces`, {
+      body: mockModArchResponse([]),
+    });
+
     cy.visit('/ai-hub/data/browse');
-    cy.contains('Select a project').should('exist');
+    cy.findByTestId('no-projects-empty-state').should('exist');
+    cy.findByRole('img', { name: 'No projects' }).should('be.visible');
+    cy.findByRole('heading', { name: 'No projects' }).should('exist');
+    cy.findByRole('button', { name: 'Create project' }).should('exist');
   });
 
   it('should filter assets by search text', () => {
@@ -139,6 +157,13 @@ describe('Registry Table', () => {
     cy.findByTestId('asset-search').find('input').type('claims');
     cy.contains('claims-data').should('exist');
     cy.contains('embeddings').should('not.exist');
+  });
+
+  it('should filter assets by property key and value', () => {
+    visitWithData();
+    cy.findByTestId('asset-search').find('input').type('retention-class');
+    cy.contains('raw-docs').should('exist');
+    cy.contains('claims-data').should('not.exist');
   });
 
   it('should open manage collections modal', () => {
@@ -814,11 +839,9 @@ describe('Connection Selector', () => {
   });
 
   it('should show no connections available when empty', () => {
-    cy.interceptApi(
-      'GET /api/:apiVersion/connections/:namespace',
-      { path: { apiVersion: CLIENT_API_VERSION, namespace: 'test-project' } },
-      [],
-    ).as('getEmptyConnections');
+    cy.intercept('GET', `${MAIN_API}/connections/test-project`, {
+      body: mockModArchResponse([]),
+    }).as('getEmptyConnections');
 
     visitWithData();
     cy.findByTestId('register-data-button').click();

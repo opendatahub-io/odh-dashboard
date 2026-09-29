@@ -1,9 +1,10 @@
 /* eslint-disable camelcase */
+import { mockModArchResponse } from 'mod-arch-core';
 import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
-import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 
 const REGISTRY_API = '/data-registry/api/v1';
+const MAIN_API = '/data-registry/api/v1';
 
 const mockTableResponse = {
   name: 'claims-data',
@@ -43,7 +44,7 @@ const mockVolumeResponse = {
   properties: {
     description: 'Training document storage',
     'content-type': 'application/pdf',
-    purpose: 'training',
+    volume_purpose: 'training',
     environment: 'production',
     registered_by: 'ml-team@example.com',
     updated_by: 'admin@example.com',
@@ -52,14 +53,12 @@ const mockVolumeResponse = {
 };
 
 const initIntercepts = () => {
-  cy.interceptApi(
-    'GET /api/:apiVersion/user',
-    { path: { apiVersion: CLIENT_API_VERSION } },
-    mockUserSettings({ userId: 'test-user' }),
-  );
-  cy.interceptApi('GET /api/:apiVersion/namespaces', { path: { apiVersion: CLIENT_API_VERSION } }, [
-    mockNamespace({ name: 'test-project' }),
-  ]);
+  cy.intercept('GET', `${MAIN_API}/user`, {
+    body: mockModArchResponse(mockUserSettings({ userId: 'test-user' })),
+  });
+  cy.intercept('GET', `${MAIN_API}/namespaces`, {
+    body: mockModArchResponse([mockNamespace({ name: 'test-project' })]),
+  });
 };
 
 describe('Table Detail View', () => {
@@ -162,7 +161,7 @@ describe('Table Detail View', () => {
     cy.intercept(
       'DELETE',
       `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/claims-data`,
-      { statusCode: 403, body: 'Forbidden' },
+      { statusCode: 403, body: { error: { code: '403', message: 'Forbidden' } } },
     ).as('deleteTable');
 
     cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
@@ -172,7 +171,7 @@ describe('Table Detail View', () => {
     cy.findByTestId('delete-asset-confirmation').type('claims-data');
     cy.findByTestId('delete-asset-confirm').click();
     cy.wait('@deleteTable');
-    cy.findByText('API error 403: Forbidden').should('exist');
+    cy.findByText('status code 403: Forbidden').should('exist');
   });
 });
 
@@ -274,7 +273,7 @@ describe('Volume Detail View', () => {
     cy.intercept(
       'DELETE',
       `${REGISTRY_API}/test-project/namespaces/default/volumes/training-documents`,
-      { statusCode: 404, body: 'Not found' },
+      { statusCode: 404, body: { error: { code: '404', message: 'Not found' } } },
     ).as('deleteVolume');
 
     cy.visit('/ai-hub/data/browse/assets/volume/test-project/default/training-documents');
@@ -284,6 +283,6 @@ describe('Volume Detail View', () => {
     cy.findByTestId('delete-asset-confirmation').type('training-documents');
     cy.findByTestId('delete-asset-confirm').click();
     cy.wait('@deleteVolume');
-    cy.findByText('API error 404: Not found').should('exist');
+    cy.findByText('status code 404: Not found').should('exist');
   });
 });

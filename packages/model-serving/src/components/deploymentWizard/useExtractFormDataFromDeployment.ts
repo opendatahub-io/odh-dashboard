@@ -179,6 +179,17 @@ export const useExtractFormDataFromDeployment = (
       environmentVariables:
         formDataExtension?.properties.extractEnvironmentVariables(deployment) ?? undefined,
 
+      ...(() => {
+        const huggingFaceApiKey =
+          typeof formDataExtension?.properties.extractHuggingFaceApiKey === 'function'
+            ? formDataExtension.properties.extractHuggingFaceApiKey(deployment) ?? undefined
+            : undefined;
+        return {
+          huggingFaceApiKey,
+          requiresHuggingFaceApiKey: Boolean(huggingFaceApiKey),
+        };
+      })(),
+
       // Extract model availability data
       modelAvailability:
         formDataExtension?.properties.extractModelAvailabilityData(deployment) ?? undefined,

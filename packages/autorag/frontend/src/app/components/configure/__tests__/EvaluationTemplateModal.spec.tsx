@@ -32,6 +32,9 @@ describe('EvaluationTemplateModal', () => {
   it('should fire AutoRAG Evaluation Template Downloaded when the download button is clicked', () => {
     render(<EvaluationTemplateModal onClose={jest.fn()} />);
 
+    const template = screen.getByText(/"correct_answer_document_keys"/);
+    expect(template).toHaveTextContent('"correct_answer_document_keys"');
+
     fireEvent.click(screen.getByTestId('evaluation-template-download-button'));
 
     expect(fireAutoragEvaluationTemplateDownloadedMock).toHaveBeenCalledTimes(1);

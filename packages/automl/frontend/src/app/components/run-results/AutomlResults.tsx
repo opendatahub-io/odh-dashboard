@@ -20,7 +20,10 @@ import {
   type ModelActionSource,
   type ModelDetailsEntrySource,
 } from '~/app/utilities/tracking';
-import type { PipelineTreeLoadingMode } from './pipelineStatusLabels';
+import {
+  shouldShowStageMapUnavailableNotice,
+  type PipelineTreeLoadingMode,
+} from './pipelineStatusLabels';
 import AutomlLeaderboard from './AutomlLeaderboard';
 import AutomlModelDetailsModal from './AutomlModelDetailsModal/AutomlModelDetailsModal';
 import AutomlPipelineVisualization from './AutomlPipelineVisualization';
@@ -256,6 +259,13 @@ function AutomlResults(): React.JSX.Element {
             treeLoadingMode={treeLoadingMode}
             componentStageMap={componentStageMap}
             pipelineRun={pipelineRun}
+            showStageMapUnavailableNotice={shouldShowStageMapUnavailableNotice({
+              hasStageMapTask,
+              hasComponentStageMap: Boolean(componentStageMap),
+              componentStageMapLoading: Boolean(componentStageMapLoading),
+              treeLoadingMode,
+              runIsTerminal,
+            })}
           />
         </StackItem>
         <StackItem>

@@ -2,73 +2,22 @@ import { useQueries, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
 import { useS3ListFilesQuery, fetchS3Json } from '~/app/hooks/queries';
 import {
-  AutoragPatternSchema,
-  isV1RawPattern,
-  type AutoragRawPattern,
+  isCanonicalRawPattern,
+  parsePatternArtifact,
+  type RawPatternArtifact,
 } from '~/app/hooks/patternSchema';
+import { normalizeLegacyPattern } from '~/app/hooks/legacyPattern';
 import { useAutoragOutputDir } from '~/app/hooks/useAutoragOutputDir';
-import type { AutoragEvaluationMetric, AutoragPattern } from '~/app/types/autoragPattern';
+import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineRun, S3CommonPrefix } from '~/app/types';
 
 /* eslint-disable camelcase */
 export function normalizePattern(
-  raw: AutoragRawPattern,
+  raw: RawPatternArtifact,
   vectorIoProviderId?: string,
 ): AutoragPattern {
-  if (isV1RawPattern(raw)) {
-    const synthesizedOverallScore: AutoragEvaluationMetric = {
-      evaluator: 'custom',
-      name: 'overall_score',
-      scores: { mean: raw.final_score, ci_low: null, ci_high: null },
-      optimization_metric: true,
-    };
-
-    // V1 has no per-metric optimization flag; synthesize overall_score from final_score.
-    // Replace any existing overall_score from raw.scores so getMetricByName and
-    // getOptimizationMetric return the same entry.
-    const metrics: AutoragEvaluationMetric[] = Object.entries(raw.scores).map(([name, metric]) =>
-      name === 'overall_score'
-        ? synthesizedOverallScore
-        : { evaluator: 'unitxt' as const, name, scores: metric },
-    );
-    if (!metrics.some((m) => m.name === 'overall_score')) {
-      metrics.push(synthesizedOverallScore);
-    }
-
-    // Mid-release V1 already has vector_store_binding; OG V1 has vector_store
-    const vectorStoreBinding =
-      raw.settings.vector_store_binding ??
-      (raw.settings.vector_store
-        ? {
-            provider_id: vectorIoProviderId ?? '',
-            provider_type: raw.settings.vector_store.datasource_type,
-            vector_store_id: raw.settings.vector_store.collection_name,
-          }
-        : undefined);
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip the V1 key, re-map below
-    const { detected_language: detectedLang, ...generationRest } = raw.settings.generation;
-
-    return {
-      name: raw.name,
-      iteration: raw.iteration,
-      max_combinations: raw.max_combinations,
-      duration_seconds: raw.duration_seconds,
-      settings: {
-        vector_store_binding: vectorStoreBinding,
-        chunking: raw.settings.chunking,
-        embedding: raw.settings.embedding,
-        retrieval: raw.settings.retrieval,
-        generation: {
-          ...generationRest,
-          language: detectedLang,
-        },
-      },
-      evaluation: { metrics },
-      inference: raw.settings.responses_template
-        ? { responses_template: raw.settings.responses_template }
-        : undefined,
-    };
+  if (!isCanonicalRawPattern(raw)) {
+    return normalizeLegacyPattern(raw, vectorIoProviderId);
   }
 
   return {
@@ -93,6 +42,50 @@ type UseAutoragResultsReturn = {
   refetch: () => void;
   ragPatternsBasePath?: string;
 };
+
+const UUID_DIRECTORY_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export type ArtifactDirectoryResolution = {
+  id?: string;
+  error?: string;
+};
+
+/**
+ * Resolves the artifact directory only when the S3 listing identifies exactly one UUID child.
+ * Common prefixes do not include recency metadata, so multiple candidates are ambiguous.
+ */
+export function resolveArtifactDirectory(
+  prefixes: S3CommonPrefix[],
+  basePath: string,
+): ArtifactDirectoryResolution {
+  const normalizedBasePath = basePath.replace(/\/+$/, '');
+  const expectedPrefix = `${normalizedBasePath}/`;
+  const ids = prefixes
+    .map(({ prefix }) => {
+      if (!prefix.startsWith(expectedPrefix)) {
+        return undefined;
+      }
+      const remainder = prefix.slice(expectedPrefix.length).split('/').filter(Boolean);
+      const id = remainder.length === 1 ? remainder[0] : undefined;
+      return id && UUID_DIRECTORY_PATTERN.test(id) ? id : undefined;
+    })
+    .filter((id): id is string => Boolean(id));
+  const uniqueIds = [...new Set(ids)];
+
+  if (uniqueIds.length === 1) {
+    return { id: uniqueIds[0] };
+  }
+
+  if (uniqueIds.length > 1) {
+    return {
+      error: `Multiple UUID directories found in ${basePath}; artifact recency is not available from the S3 listing`,
+    };
+  }
+
+  return {
+    error: `No UUID directory found in ${basePath}. Expected a UUID child directory`,
+  };
+}
 
 /**
  * Custom hook to fetch and process AutoRAG pattern results from S3.
@@ -142,32 +135,19 @@ export function useAutoragResults(
     refetch: refetchTemplatesOptimization,
   } = useS3ListFilesQuery(namespace, templatesOptimizationPath);
 
-  // Step 1b: Extract the non-deterministic UUID directory
-  // NOTE: Using most recent directory by timestamp (lexicographic sort of UUID prefixes).
-  // TODO: Clarify if this timestamp selection logic is correct or if we need explicit timestamps.
-  const nonDeterministicId = React.useMemo(() => {
-    if (!templatesOptimizationData?.common_prefixes) {
-      return undefined;
+  // Step 1b: Extract the non-deterministic UUID directory. The listing exposes no recency
+  // metadata for common prefixes, so multiple UUID directories must be treated as ambiguous.
+  const artifactDirectoryResolution = React.useMemo(() => {
+    if (!templatesOptimizationData?.common_prefixes || !templatesOptimizationPath) {
+      return {};
     }
 
-    const prefixes = templatesOptimizationData.common_prefixes.filter(
-      (prefixObj) => typeof prefixObj.prefix === 'string' && prefixObj.prefix.length > 0,
+    return resolveArtifactDirectory(
+      templatesOptimizationData.common_prefixes,
+      templatesOptimizationPath,
     );
-    if (prefixes.length === 0) {
-      return undefined;
-    }
-
-    // Sort prefixes lexicographically and take the last one (most recent by UUID timestamp)
-    const sortedPrefixes = prefixes.toSorted((a, b) => a.prefix.localeCompare(b.prefix));
-    const lastPrefix = sortedPrefixes[sortedPrefixes.length - 1];
-
-    // Extract UUID from prefix like "documents-rag-optimization-pipeline/{runId}/rag-templates-optimization/{UUID}/"
-    const parts = lastPrefix.prefix.split('/').filter(Boolean);
-    if (parts.length === 0) {
-      return undefined;
-    }
-    return parts[parts.length - 1]; // Last segment is the UUID
-  }, [templatesOptimizationData]);
+  }, [templatesOptimizationData, templatesOptimizationPath]);
+  const nonDeterministicId = artifactDirectoryResolution.id;
 
   // Step 2: List pattern directories (Pattern1, Pattern2, etc.) from {uuid}/rag_patterns/
   const candidateRagPatternsPrefix = nonDeterministicId
@@ -231,10 +211,8 @@ export function useAutoragResults(
     }
 
     // Check if non-deterministic UUID directory was found
-    if (templatesOptimizationData && !nonDeterministicId) {
-      return new Error(
-        `No UUID directory found in ${templatesOptimizationPath}. Expected structure: documents-rag-optimization-pipeline/{runId}/rag-templates-optimization/{UUID}/`,
-      );
+    if (templatesOptimizationData && artifactDirectoryResolution.error) {
+      return new Error(artifactDirectoryResolution.error);
     }
 
     // Check if rag_patterns directory exists and has content
@@ -254,8 +232,8 @@ export function useAutoragResults(
     shouldFetchS3Files,
     isTemplatesOptimizationLoading,
     templatesOptimizationData,
+    artifactDirectoryResolution,
     nonDeterministicId,
-    templatesOptimizationPath,
     isRagPatternsLoading,
     ragPatternsData,
     patternDirectories,
@@ -273,10 +251,9 @@ export function useAutoragResults(
             throw new Error('namespace and key are required');
           }
 
-          const raw = await fetchS3Json(namespace, patternJsonPath, {
-            signal,
-            schema: AutoragPatternSchema,
-          });
+          const raw = parsePatternArtifact(
+            await fetchS3Json(namespace, patternJsonPath, { signal }),
+          );
 
           const params = pipelineRun?.runtime_config?.parameters;
           const providerId =

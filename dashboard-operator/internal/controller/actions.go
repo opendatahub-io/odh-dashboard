@@ -38,6 +38,9 @@ var (
 const (
 	dataScienceGatewayNamespace   = "openshift-ingress"
 	rayDataScienceGatewayRBACName = "fetch-ray-data-science-gateway"
+	odhGatewayNamespace           = "opendatahub"
+	dchRhoaiGatewayRBACName       = "odh-dashboard-data-connect-hub-rhoai-gateway-discovery"
+	dchOdhGatewayRBACName         = "odh-dashboard-data-connect-hub-odh-gateway-discovery"
 )
 
 const (
@@ -100,6 +103,35 @@ func remapRayDashboardGatewayRBAC(resources []unstructured.Unstructured) {
 		case "Role", "RoleBinding":
 			if r.GetName() == rayDataScienceGatewayRBACName {
 				r.SetNamespace(dataScienceGatewayNamespace)
+			}
+		}
+	}
+}
+
+func remapDataConnectHubGatewayRBAC(resources []unstructured.Unstructured, applicationsNamespace string) {
+	for i := range resources {
+		r := &resources[i]
+		var namespace string
+		switch r.GetName() {
+		case dchRhoaiGatewayRBACName:
+			namespace = dataScienceGatewayNamespace
+		case dchOdhGatewayRBACName:
+			namespace = odhGatewayNamespace
+		default:
+			continue
+		}
+		if r.GetKind() == "Role" || r.GetKind() == "RoleBinding" {
+			r.SetNamespace(namespace)
+		}
+		if r.GetKind() == "RoleBinding" {
+			if subjects, found, err := unstructured.NestedSlice(r.Object, "subjects"); err == nil && found {
+				for _, rawSubject := range subjects {
+					subject, ok := rawSubject.(map[string]interface{})
+					if ok && subject["kind"] == "ServiceAccount" && subject["name"] == "odh-dashboard-data-connect-hub-ui" {
+						subject["namespace"] = applicationsNamespace
+					}
+				}
+				_ = unstructured.SetNestedSlice(r.Object, subjects, "subjects")
 			}
 		}
 	}

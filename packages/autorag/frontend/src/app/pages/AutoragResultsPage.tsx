@@ -31,13 +31,8 @@ import { useAutoragResults } from '~/app/hooks/useAutoragResults';
 import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import { useComponentStatuses } from '~/app/hooks/useComponentStatuses';
 import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/utilities/routes';
-import {
-  formatMetricName,
-  getOptimizedMetricForRAG,
-  isRunTerminatable,
-  isRunRetryable,
-  parseErrorStatus,
-} from '~/app/utilities/utils';
+import { isRunTerminatable, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
+import { getObjectiveMetric, metricLabel } from '~/app/utilities/metricUtils';
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 import {
@@ -195,29 +190,32 @@ function AutoragResultsPage(): React.JSX.Element {
     [namespace, runId],
   );
 
-  const maasSecretName =
-    typeof pipelineRun?.runtime_config?.parameters?.maas_secret_name === 'string'
-      ? pipelineRun.runtime_config.parameters.maas_secret_name
+  const ogxSecretName =
+    typeof pipelineRun?.runtime_config?.parameters?.ogx_secret_name === 'string'
+      ? pipelineRun.runtime_config.parameters.ogx_secret_name
       : undefined;
 
   const { data: secretData, isError: secretFetchError } = useSecretCredentialsQuery(
     namespace,
-    maasSecretName,
+    ogxSecretName,
   );
 
   React.useEffect(() => {
     if (secretFetchError) {
-      notification.warning('Could not load MaaS credentials', 'Credentials could not be fetched.');
+      notification.warning(
+        'Could not load Open GenAI Stack credentials',
+        'Credentials could not be fetched.',
+      );
     }
   }, [secretFetchError, notification]);
 
-  const maasCredentials = React.useMemo(() => {
-    if (!secretData?.MAAS_BASE_URL || !('MAAS_API_KEY' in secretData)) {
+  const ogxCredentials = React.useMemo(() => {
+    if (!secretData?.OGX_CLIENT_BASE_URL || !secretData.OGX_CLIENT_API_KEY) {
       return undefined;
     }
     return {
-      baseUrl: secretData.MAAS_BASE_URL,
-      apiKey: secretData.MAAS_API_KEY,
+      baseUrl: secretData.OGX_CLIENT_BASE_URL,
+      apiKey: secretData.OGX_CLIENT_API_KEY,
     };
   }, [secretData]);
 
@@ -232,7 +230,7 @@ function AutoragResultsPage(): React.JSX.Element {
         patternsLoadError,
         onRetryPatterns: refetchPatterns,
         ragPatternsBasePath,
-        maasCredentials,
+        ogxCredentials,
         componentStageMap,
         componentStageMapLoading: componentStageMapLoading || componentStatusesLoading,
         componentStageMapError,
@@ -247,7 +245,7 @@ function AutoragResultsPage(): React.JSX.Element {
       patternsLoadError,
       refetchPatterns,
       ragPatternsBasePath,
-      maasCredentials,
+      ogxCredentials,
       componentStageMap,
       componentStageMapLoading,
       componentStatusesLoading,
@@ -271,18 +269,14 @@ function AutoragResultsPage(): React.JSX.Element {
         return false;
       }
 
-      const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
-      const scoreLookup = Object.fromEntries(
-        pattern.evaluation.metrics.map((m) => [m.name.toLowerCase(), m.scores]),
-      );
-      const metricMean = scoreLookup[optimizedMetric.toLowerCase()]?.mean;
+      const metricMean = getObjectiveMetric(pattern, contextValue.optimizationMetric)?.scores.mean;
       setDrawerContent({
         type: 'playground',
         responsesTemplate,
         patternInfo: {
           patternName,
           modelId: pattern.settings?.generation?.model_id || 'N/A',
-          optimizedMetricName: formatMetricName(optimizedMetric),
+          optimizedMetricName: metricLabel(contextValue.optimizationMetric),
           optimizedMetricValue:
             metricMean != null && Number.isFinite(metricMean) ? metricMean : 'N/A',
           chunkMethod: pattern.settings?.chunking?.method || 'N/A',
@@ -290,7 +284,7 @@ function AutoragResultsPage(): React.JSX.Element {
       });
       return true;
     },
-    [patterns, pipelineRun],
+    [contextValue.optimizationMetric, patterns],
   );
   /* eslint-enable @typescript-eslint/no-unnecessary-condition */
 
@@ -468,7 +462,7 @@ function AutoragResultsPage(): React.JSX.Element {
           onClose={() => setViewCodePattern(null)}
           patternName={viewCodePattern.patternName}
           responsesTemplate={viewCodePattern.responsesTemplate}
-          maasCredentials={maasCredentials}
+          ogxCredentials={ogxCredentials}
         />
       )}
     </AutoragResultsContext.Provider>

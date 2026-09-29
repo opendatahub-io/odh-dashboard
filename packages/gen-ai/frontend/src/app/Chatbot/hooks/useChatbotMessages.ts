@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { MessageProps, ToolResponseProps } from '@patternfly/chatbot';
+import { MessageProps } from '@patternfly/chatbot';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { Modality } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 import userAvatar from '~/app/bgimages/user_avatar.svg';
@@ -15,10 +15,11 @@ import {
   GuardrailInlineConfig,
   isApiError,
   InputContentPart,
-  MCPToolCallData,
   MCPServerFromAPI,
   ResponseMetrics,
+  StreamingToolCall,
   TokenInfo,
+  ToolCallStreamEvent,
   ClassifiedError,
 } from '~/app/types';
 import {
@@ -32,10 +33,6 @@ import { getSelectedServersForAPI } from '~/app/utilities/mcp';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import { classifyError } from '~/app/utilities/errorClassifier';
 
-import {
-  ToolResponseCardTitle,
-  ToolResponseCardBody,
-} from '~/app/Chatbot/ChatbotMessagesToolResponse';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
@@ -58,6 +55,10 @@ export type ChatbotMessageProps = MessageProps & {
   fileSearchData?: FileSearchCallData;
   annotations?: FileCitationAnnotation[];
   citationMap?: Map<string, number>;
+  toolCalls?: StreamingToolCall[];
+  isTextStreaming?: boolean;
+  /** True only after the stream has reached its terminal event. */
+  isToolCallStreamComplete?: boolean;
 };
 
 export interface UseChatbotMessagesReturn {
@@ -269,29 +270,79 @@ const useChatbotMessages = ({
     }
   }, [messages]);
 
-  // Create tool response from MCP tool call data
-  const createToolResponse = React.useCallback(
-    (toolCallData: MCPToolCallData): ToolResponseProps => {
-      const { serverLabel, toolName, toolArguments, toolOutput } = toolCallData;
-
-      return {
-        isDefaultExpanded: false,
-        toggleContent: `Tool response: ${toolName}`,
-        subheading: `${serverLabel}`,
-        body: `Here's the summary for your ${toolName} response:`,
-        cardTitle: React.createElement(ToolResponseCardTitle, { toolName }),
-        cardBody: React.createElement(ToolResponseCardBody, { toolArguments, toolOutput }),
-      };
-    },
-    [],
-  );
-
   // Create a collapsible thinking section (no Card wrapper) to display reasoning content
   const createThinkingCollapsible = React.useCallback(
     (reasoningText: string): React.ReactNode =>
       React.createElement(StreamingThinkingSection, { reasoningText, isComplete: true }),
     [],
   );
+
+  const updateToolCalls = React.useCallback((botMessageId: string, event: ToolCallStreamEvent) => {
+    const { item } = event;
+    const { item_id: itemId } = event;
+    const id = itemId ?? item?.id;
+    const isToolItem = item?.type === 'file_search_call' || item?.type === 'mcp_call';
+
+    if (!id || (!isToolItem && !event.type.includes('call'))) {
+      return;
+    }
+
+    setMessages((previousMessages) =>
+      previousMessages.map((message) => {
+        if (message.id !== botMessageId) {
+          return message;
+        }
+
+        const currentCalls = message.toolCalls ?? [];
+        const currentCall = currentCalls.find((toolCall) => toolCall.id === id);
+        if (!currentCall && !isToolItem) {
+          return message;
+        }
+
+        const completed =
+          event.type === 'response.output_item.done' || event.type.endsWith('.completed');
+        const failed =
+          event.type.endsWith('.failed') || item?.status === 'failed' || Boolean(item?.error);
+        const output = item?.results
+          ? JSON.stringify(item.results, null, 2)
+          : (item?.output ?? currentCall?.output);
+        const argumentsText = event.type.endsWith('.delta')
+          ? `${currentCall?.arguments ?? ''}${event.delta ?? ''}`
+          : (event.arguments ?? item?.arguments ?? item?.queries?.[0] ?? currentCall?.arguments);
+        const nextCall: StreamingToolCall = {
+          id,
+          type: item?.type ?? currentCall?.type ?? 'mcp_call',
+          name:
+            item?.name ??
+            currentCall?.name ??
+            (item?.type === 'file_search_call' ? 'file_search' : 'MCP tool'),
+          category:
+            item?.type === 'file_search_call' || currentCall?.category === 'RAG' ? 'RAG' : 'MCP',
+          status: failed ? 'failed' : completed ? 'completed' : 'in_progress',
+          serverLabel: item?.server_label ?? currentCall?.serverLabel,
+          arguments: argumentsText,
+          output,
+          error: item?.error ?? currentCall?.error,
+          startedAt: currentCall?.startedAt ?? Date.now(),
+          ...(completed || failed
+            ? { completedAt: Date.now() }
+            : currentCall?.completedAt
+              ? { completedAt: currentCall.completedAt }
+              : {}),
+        };
+
+        return {
+          ...message,
+          // Tool activity is visible response activity. Stop the PatternFly loading
+          // ellipsis immediately so the tool list renders before text starts streaming.
+          isLoading: false,
+          toolCalls: currentCall
+            ? currentCalls.map((toolCall) => (toolCall.id === id ? nextCall : toolCall))
+            : [...currentCalls, nextCall],
+        };
+      }),
+    );
+  }, []);
 
   const handleStopStreaming = React.useCallback(() => {
     if (abortControllerRef.current) {
@@ -425,6 +476,7 @@ const useChatbotMessages = ({
         name: modelDisplayName,
         avatar: botAvatar,
         isLoading: true,
+        isToolCallStreamComplete: false,
         timestamp: new Date().toLocaleString(),
         metrics: { latency_ms: 0 },
       };
@@ -599,6 +651,7 @@ const useChatbotMessages = ({
                     ...msg,
                     content: displayContent,
                     isLoading: !hasContent,
+                    isTextStreaming: hasContent,
                     ...thinkingExtra,
                     metrics: progressiveMetrics,
                   }
@@ -701,6 +754,7 @@ const useChatbotMessages = ({
               }
             }
           },
+          onToolCall: (event) => updateToolCalls(botMessageId!, event),
         });
 
         // Final update with processed content (file citations replaced with filenames)
@@ -709,9 +763,6 @@ const useChatbotMessages = ({
         }
 
         // Finalize message in a single update to avoid flicker
-        const toolResponse = streamingResponse.toolCallData
-          ? createToolResponse(streamingResponse.toolCallData)
-          : undefined;
         const thinkingCollapsible =
           typeof streamingResponse.reasoningContent === 'string' &&
           streamingResponse.reasoningContent
@@ -725,7 +776,8 @@ const useChatbotMessages = ({
                   ...msg,
                   content: streamingResponse.content,
                   isLoading: false,
-                  ...(toolResponse && { toolResponse }),
+                  isTextStreaming: false,
+                  isToolCallStreamComplete: true,
                   ...(thinkingCollapsible && {
                     extraContent: { ...msg.extraContent, beforeMainContent: thinkingCollapsible },
                   }),
@@ -756,10 +808,6 @@ const useChatbotMessages = ({
           headers: tracingHeaders,
         });
 
-        const toolResponse = response.toolCallData
-          ? createToolResponse(response.toolCallData)
-          : undefined;
-
         const thinkingCollapsible =
           typeof response.reasoningContent === 'string' && response.reasoningContent
             ? createThinkingCollapsible(response.reasoningContent)
@@ -776,7 +824,6 @@ const useChatbotMessages = ({
                   avatar: botAvatar,
                   timestamp: new Date().toLocaleString(),
                   isLoading: false,
-                  ...(toolResponse && { toolResponse }),
                   ...(thinkingCollapsible && {
                     extraContent: { beforeMainContent: thinkingCollapsible },
                   }),
@@ -784,6 +831,8 @@ const useChatbotMessages = ({
                   ...(response.citationMap && { citationMap: response.citationMap }),
                   ...(response.metrics && { metrics: response.metrics }),
                   ...(response.fileSearchData && { fileSearchData: response.fileSearchData }),
+                  ...(response.toolCalls && { toolCalls: response.toolCalls }),
+                  isToolCallStreamComplete: true,
                 }
               : msg,
           ),
@@ -862,7 +911,13 @@ const useChatbotMessages = ({
                 const stoppedContent = msg.content
                   ? `${msg.content}\n\n*You stopped this message*`
                   : '*You stopped this message*';
-                return { ...msg, content: stoppedContent, isLoading: false };
+                return {
+                  ...msg,
+                  content: stoppedContent,
+                  isLoading: false,
+                  isTextStreaming: false,
+                  isToolCallStreamComplete: true,
+                };
               }
               return msg;
             }),

@@ -3,6 +3,8 @@ import {
   capitalizeFirst,
   getCategoryColor,
   formatCategory,
+  getCollectionCategoryValues,
+  formatCollectionMetadataValue,
   getMetricDisplayName,
   toSafeExternalUrl,
 } from '~/app/components/benchmarkUtils';
@@ -93,11 +95,51 @@ describe('formatCategory', () => {
   });
 });
 
+describe('getCollectionCategoryValues', () => {
+  it('should prefer category when domains are also present', () => {
+    expect(
+      getCollectionCategoryValues({
+        category: 'primary_category',
+        domains: ['domain_fallback'],
+      }),
+    ).toEqual(['primary_category']);
+  });
+
+  it('should fall back to domains when category is unavailable', () => {
+    expect(getCollectionCategoryValues({ domains: ['domain_fallback'] })).toEqual([
+      'domain_fallback',
+    ]);
+  });
+});
+
+describe('formatCollectionMetadataValue', () => {
+  it('should render snake case metadata as a human-readable label', () => {
+    expect(formatCollectionMetadataValue('knowledge_and_reasoning')).toBe(
+      'Knowledge and reasoning',
+    );
+    expect(formatCollectionMetadataValue('document_chart_vqa')).toBe('Document chart VQA');
+    expect(formatCollectionMetadataValue('text-generation')).toBe('Text generation');
+  });
+
+  it('should preserve supported metadata acronyms when formatting labels', () => {
+    expect(formatCollectionMetadataValue('qa-rag-vqa')).toBe('QA RAG VQA');
+  });
+
+  it('should leave the value unchanged for payload use', () => {
+    const value = 'grounded_document_understanding';
+    expect(value).toBe('grounded_document_understanding');
+    expect(formatCollectionMetadataValue(value)).toBe('Grounded document understanding');
+  });
+});
+
 describe('getMetricDisplayName', () => {
   it('should return the mapped display name for known metrics', () => {
     expect(getMetricDisplayName('acc')).toBe('Accuracy');
+    expect(getMetricDisplayName('accuracy/accuracy')).toBe('Accuracy');
     expect(getMetricDisplayName('exact_match')).toBe('Exact match');
+    expect(getMetricDisplayName('pass@1')).toBe('Pass@1');
     expect(getMetricDisplayName('ppl')).toBe('Perplexity');
+    expect(getMetricDisplayName('telelogs_scorer/maj_at_k')).toBe('Telelogs majority at k');
     expect(getMetricDisplayName('bleu')).toBe('BLEU');
   });
 
