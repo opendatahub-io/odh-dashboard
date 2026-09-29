@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import RegistryTable from '~/app/components/RegistryTable';
 import { RegistryAsset } from '~/app/hooks/useAssets';
@@ -14,6 +14,7 @@ const mockAssets: RegistryAsset[] = [
     connectionRef: 'minio-connection',
     labels: ['production', 'claims'],
     collection: 'analytics',
+    properties: { 'data-domain': 'claims' },
   },
   {
     name: 'raw-documents',
@@ -24,6 +25,7 @@ const mockAssets: RegistryAsset[] = [
     connectionRef: '',
     labels: ['source-docs'],
     collection: 'guidelines',
+    properties: { 'retention-class': 'long-term' },
   },
 ];
 
@@ -87,6 +89,17 @@ describe('RegistryTable', () => {
     expect(screen.getByTestId('filter-category')).toBeTruthy();
     expect(screen.getByTestId('filter-value')).toBeTruthy();
     expect(screen.getByTestId('asset-search')).toBeTruthy();
+  });
+
+  it('should filter assets by property key and value', () => {
+    renderTable();
+
+    fireEvent.change(screen.getByTestId('asset-search').querySelector('input')!, {
+      target: { value: 'retention-class' },
+    });
+
+    expect(screen.getByText('raw-documents')).toBeTruthy();
+    expect(screen.queryByText('claims-data')).toBeNull();
   });
 
   it('should render kebab menu', () => {

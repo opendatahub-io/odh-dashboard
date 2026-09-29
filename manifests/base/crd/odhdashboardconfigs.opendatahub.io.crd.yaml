@@ -180,6 +180,9 @@ spec:
                     mcpRegistry:
                       type: boolean
                       description: 'When true, enables the MCP (Model Context Protocol) Registry tab within the MCP Servers page.'
+                    genAiMcpRegistryServers:
+                      type: boolean
+                      description: 'When true, enables MCP Registry servers in the Gen AI Studio playground.'
                     agentOps:
                       type: boolean
                       description: 'When true, enables the Agent Ops features in the Gen AI Studio.'

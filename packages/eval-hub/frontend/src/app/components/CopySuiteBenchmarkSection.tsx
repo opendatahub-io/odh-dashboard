@@ -195,6 +195,7 @@ const CopySuiteBenchmarkSection: React.FC<CopySuiteBenchmarkSectionProps> = ({
           label="Threshold"
           description="Minimum score required to pass this evaluation."
           fieldId={`${itemId}-threshold`}
+          metric={benchmark.primaryMetric}
           isDisabled={isInteractionDisabled}
         />
 

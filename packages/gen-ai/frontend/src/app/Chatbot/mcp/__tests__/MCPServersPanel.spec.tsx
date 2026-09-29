@@ -3,7 +3,10 @@ import '@testing-library/jest-dom';
 import { render, screen, fireEvent } from '@testing-library/react';
 import MCPServersPanel from '~/app/Chatbot/mcp/MCPServersPanel';
 import { GenAiContext } from '~/app/context/GenAiContext';
-import { MCPServerFromAPI } from '~/app/types/mcp';
+import { MCPServer, MCPServerFromAPI } from '~/app/types/mcp';
+import useGenAiMcpRegistryServers from '~/app/hooks/useGenAiMcpRegistryServers';
+import useServerSelection from '~/app/Chatbot/mcp/hooks/useServerSelection';
+import useModalState from '~/app/Chatbot/mcp/hooks/useModalState';
 
 // --- Mock dependencies ---
 
@@ -14,6 +17,11 @@ jest.mock('~/app/Chatbot/hooks/useDarkMode', () => ({
 
 jest.mock('~/app/hooks/useGenAiAPI', () => ({
   useGenAiAPI: jest.fn(() => ({ api: {}, apiAvailable: true })),
+}));
+
+jest.mock('~/app/hooks/useGenAiMcpRegistryServers', () => ({
+  __esModule: true,
+  default: jest.fn(),
 }));
 
 jest.mock('~/app/Chatbot/store', () => ({
@@ -92,11 +100,7 @@ jest.mock('../hooks/useTokenValidation', () => ({
 
 jest.mock('../hooks/useServerSelection', () => ({
   __esModule: true,
-  default: jest.fn(() => ({
-    selectedServers: [],
-    isInitialLoadComplete: true,
-    setSelectedServers: jest.fn(),
-  })),
+  default: jest.fn(),
 }));
 
 jest.mock('../hooks/useAutoUnlock', () => ({
@@ -142,6 +146,10 @@ const mockGenAiContextValue = {
   apiState: { apiAvailable: true, api: {} },
   refreshAPIState: jest.fn(),
 };
+
+const mockUseGenAiMcpRegistryServers = jest.mocked(useGenAiMcpRegistryServers);
+const mockUseServerSelection = jest.mocked(useServerSelection);
+const mockUseModalState = jest.mocked(useModalState);
 
 const createServer = (overrides: Partial<MCPServerFromAPI> = {}): MCPServerFromAPI => ({
   name: 'test-server',
@@ -189,6 +197,12 @@ const renderPanel = (props: Partial<MCPServersPanelProps> = {}) => {
 describe('MCPServersPanel', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseGenAiMcpRegistryServers.mockReturnValue(false);
+    mockUseServerSelection.mockReturnValue({
+      selectedServers: [],
+      isInitialLoadComplete: true,
+      setSelectedServers: jest.fn(),
+    });
   });
 
   describe('Loading and error states', () => {
@@ -264,6 +278,10 @@ describe('MCPServersPanel', () => {
       source: 'configmap',
     });
 
+    beforeEach(() => {
+      mockUseGenAiMcpRegistryServers.mockReturnValue(true);
+    });
+
     it('should show both Registered and Manual Connection sections when registryAvailable is true and registry servers exist', () => {
       renderPanel({
         servers: [registryServer, manualServer],
@@ -322,6 +340,112 @@ describe('MCPServersPanel', () => {
       expect(screen.queryByTestId('mcp-registered-section')).not.toBeInTheDocument();
       expect(screen.getByTestId('mcp-manual-section')).toBeInTheDocument();
     });
+  });
+
+  it('should hide registered servers and keep manual servers when the flag is disabled', () => {
+    const registryServer = createServer({
+      name: 'Registry Server',
+      url: 'http://registry:8080/sse',
+      source: 'registry',
+    });
+    const manualServer = createServer({
+      name: 'Manual Server',
+      url: 'http://manual:8080/sse',
+      source: 'configmap',
+    });
+
+    renderPanel({
+      servers: [registryServer, manualServer],
+      registryAvailable: true,
+    });
+
+    expect(screen.queryByTestId('mcp-registered-section')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mcp-server-row-http://registry:8080/sse')).not.toBeInTheDocument();
+    expect(screen.getByTestId('mcp-server-row-http://manual:8080/sse')).toBeInTheDocument();
+    expect(screen.getByTestId('mcp-manual-section')).toBeInTheDocument();
+  });
+
+  it('should clear selected registered servers when the flag is disabled', () => {
+    const registryServer = createServer({
+      name: 'Registry Server',
+      url: 'http://registry:8080/sse',
+      source: 'registry',
+    });
+    const setSelectedServers = jest.fn();
+    const selectedRegistryServer: MCPServer = {
+      id: registryServer.url,
+      name: registryServer.name,
+      description: registryServer.description,
+      status: 'active',
+      endpoint: 'View',
+      connectionUrl: registryServer.url,
+      tools: 0,
+      version: registryServer.version,
+      source: 'registry',
+      logo: registryServer.logo,
+    };
+    mockUseServerSelection.mockReturnValue({
+      selectedServers: [selectedRegistryServer],
+      isInitialLoadComplete: true,
+      setSelectedServers,
+    });
+
+    renderPanel({ servers: [registryServer], registryAvailable: true });
+
+    expect(setSelectedServers).toHaveBeenCalledWith([]);
+  });
+
+  it('should close open registered-server modals when the flag is disabled', () => {
+    const registryServer: MCPServer = {
+      id: 'registry-server',
+      name: 'Registry Server',
+      description: 'A registry server',
+      status: 'active',
+      endpoint: 'View',
+      connectionUrl: 'http://registry:8080/sse',
+      tools: 0,
+      version: '1.0.0',
+      source: 'registry',
+      logo: null,
+    };
+    const closeConfigModal = jest.fn();
+    const closeToolsModal = jest.fn();
+    const closeSuccessModal = jest.fn();
+
+    mockUseModalState
+      .mockReturnValueOnce({
+        isOpen: true,
+        selectedItem: registryServer,
+        openModal: jest.fn(),
+        closeModal: closeConfigModal,
+      })
+      .mockReturnValueOnce({
+        isOpen: true,
+        selectedItem: registryServer,
+        openModal: jest.fn(),
+        closeModal: closeToolsModal,
+      })
+      .mockReturnValueOnce({
+        isOpen: true,
+        selectedItem: registryServer,
+        openModal: jest.fn(),
+        closeModal: closeSuccessModal,
+      });
+
+    renderPanel({
+      servers: [
+        createServer({
+          name: registryServer.name,
+          url: registryServer.connectionUrl,
+          source: 'registry',
+        }),
+      ],
+      registryAvailable: true,
+    });
+
+    expect(closeConfigModal).toHaveBeenCalled();
+    expect(closeToolsModal).toHaveBeenCalled();
+    expect(closeSuccessModal).toHaveBeenCalled();
   });
 
   describe('Section toggles', () => {

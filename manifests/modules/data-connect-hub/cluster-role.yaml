@@ -4,7 +4,7 @@ metadata:
   name: odh-dashboard-data-connect-hub-ui
 rules:
   - apiGroups:
-      - ""
+      - ''
     verbs:
       - get
       - list

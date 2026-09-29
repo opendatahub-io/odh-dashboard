@@ -16,6 +16,11 @@ receivers:
       http: {}
 processors:
   batch: {}
+  filter/drop-asgi-events:
+    error_mode: ignore
+    traces:
+      span:
+      - IsMatch(name, ".* http (send|receive)$")
 exporters:
   debug:
     verbosity: basic
@@ -27,7 +32,7 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [batch]
+      processors: [filter/drop-asgi-events, batch]
       exporters: [debug]
 `
 
@@ -52,7 +57,7 @@ func TestEnsureRoutingConnector_FirstCall(t *testing.T) {
 	traces, ok := pipelines["traces"].(map[string]interface{})
 	require.True(t, ok)
 	assert.Equal(t, []interface{}{"otlp"}, traces["receivers"])
-	assert.Equal(t, []interface{}{"batch"}, traces["processors"])
+	assert.Equal(t, []interface{}{asgiSpanFilterProcessor, "batch"}, traces["processors"])
 	assert.Equal(t, []interface{}{routingConnectorKey}, traces["exporters"])
 }
 
@@ -88,6 +93,7 @@ func TestEnsureRoutingConnector_StructuredConfig(t *testing.T) {
 	pipelines := svc["pipelines"].(map[string]interface{})
 
 	traces := pipelines["traces"].(map[string]interface{})
+	assert.Equal(t, []interface{}{asgiSpanFilterProcessor, "batch"}, traces["processors"])
 	assert.Equal(t, []interface{}{routingConnectorKey}, traces["exporters"])
 }
 

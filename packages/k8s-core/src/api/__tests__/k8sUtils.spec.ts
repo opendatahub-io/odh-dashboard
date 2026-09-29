@@ -1,7 +1,33 @@
-import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
-import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
-import { addOwnerReference } from '@odh-dashboard/k8s-core/api/k8sUtils';
-import { createPatchesFromDiff, createNonDestructivePatches } from '#~/api/k8sUtils';
+import { mockProjectK8sResource } from '../../__mocks__/mockProjectK8sResource';
+import { mockSecretK8sResource } from '../../__mocks__/mockSecretK8sResource';
+import {
+  addOwnerReference,
+  createNonDestructivePatches,
+  createPatchesFromDiff,
+  groupVersionKind,
+} from '../k8sUtils';
+
+describe('groupVersionKind', () => {
+  it('maps core and grouped Kubernetes models', () => {
+    expect(groupVersionKind({ apiVersion: 'v1', kind: 'Pod', plural: 'pods' })).toStrictEqual({
+      group: undefined,
+      version: 'v1',
+      kind: 'Pod',
+    });
+    expect(
+      groupVersionKind({
+        apiGroup: 'apps',
+        apiVersion: 'v1',
+        kind: 'Deployment',
+        plural: 'deployments',
+      }),
+    ).toStrictEqual({
+      group: 'apps',
+      version: 'v1',
+      kind: 'Deployment',
+    });
+  });
+});
 
 const resource = mockSecretK8sResource({});
 

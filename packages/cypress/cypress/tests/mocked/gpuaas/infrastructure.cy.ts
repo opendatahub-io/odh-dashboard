@@ -5,20 +5,23 @@ import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockW
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
 import type { WorkloadKind, WorkloadPodSet } from '@odh-dashboard/k8s-core';
 import { WorkloadOwnerType } from '@odh-dashboard/k8s-core';
-import { LocalQueueModel, WorkloadModel } from '@odh-dashboard/k8s-core/api/models';
+import { LocalQueueModel, WorkloadModel, PodModel } from '@odh-dashboard/k8s-core/api/models';
 import { initIntercepts, type InitInterceptsOptions } from './infrastructureMocks';
-import { PodModel, ProjectModel } from '../../../utils/models';
+
+import { ProjectModel } from '../../../utils/models';
 import { getK8sAPIResourceURL } from '../../../utils/k8s';
 import { asClusterAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
 import { infrastructurePage } from '../../../pages/infrastructure';
 
 describe('GPUaaS Infrastructure Page', () => {
-  it('should not be accessible for non-admin users', () => {
+  it('should expose only the Workloads tab for non-admin users', () => {
     asProjectAdminUser();
     initIntercepts();
     infrastructurePage.visit(false);
-    infrastructurePage.findNavItem().should('not.exist');
-    infrastructurePage.shouldNotFoundPage();
+    infrastructurePage.findNavItem().should('exist');
+    infrastructurePage.findWorkloadsTab().should('exist');
+    infrastructurePage.findUtilizationTab().should('not.exist');
+    infrastructurePage.findQuotaUsageTab().should('not.exist');
   });
 
   (
