@@ -76,6 +76,7 @@ type DrawerContentType =
 
 const STARTER_KIT_FILENAME = 'starter_kit.zip';
 const ARTIFACT_AVAILABLE_TOOLTIP = 'Available after the run completes successfully';
+const ARTIFACT_CHECKING_TOOLTIP = 'Checking artifact availability...';
 const ARTIFACT_UNSUCCESSFUL_TOOLTIP = 'Unavailable because the run did not complete successfully';
 const ARTIFACT_UNAVAILABLE_TOOLTIP = 'Artifact unavailable';
 const ARTIFACT_DOWNLOADING_TOOLTIP = 'Downloading...';
@@ -97,6 +98,13 @@ function AutoragResultsPage(): React.JSX.Element {
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
   const [starterKitDownloadError, setStarterKitDownloadError] = React.useState<string>();
   const [isDownloadingStarterKit, setIsDownloadingStarterKit] = React.useState(false);
+  const starterKitDownloadGeneration = React.useRef(0);
+
+  React.useLayoutEffect(() => {
+    starterKitDownloadGeneration.current += 1;
+    setStarterKitDownloadError(undefined);
+    setIsDownloadingStarterKit(false);
+  }, [namespace, runId]);
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =
@@ -162,7 +170,7 @@ function AutoragResultsPage(): React.JSX.Element {
         : ARTIFACT_AVAILABLE_TOOLTIP;
     }
     if (runArtifactLoading) {
-      return ARTIFACT_AVAILABLE_TOOLTIP;
+      return ARTIFACT_CHECKING_TOOLTIP;
     }
     return hasStarterKit && !runArtifactListError ? undefined : ARTIFACT_UNAVAILABLE_TOOLTIP;
   }, [
@@ -179,18 +187,26 @@ function AutoragResultsPage(): React.JSX.Element {
       return;
     }
 
+    const downloadGeneration = ++starterKitDownloadGeneration.current;
     setStarterKitDownloadError(undefined);
     setIsDownloadingStarterKit(true);
     try {
       const starterKit = await fetchS3File(namespace, starterKitKey);
+      if (downloadGeneration !== starterKitDownloadGeneration.current) {
+        return;
+      }
       downloadBlob(starterKit, STARTER_KIT_FILENAME);
       fireAutoragStarterKitDownloaded();
     } catch (error) {
-      setStarterKitDownloadError(
-        error instanceof Error ? error.message : 'An unknown error occurred',
-      );
+      if (downloadGeneration === starterKitDownloadGeneration.current) {
+        setStarterKitDownloadError(
+          error instanceof Error ? error.message : 'An unknown error occurred',
+        );
+      }
     } finally {
-      setIsDownloadingStarterKit(false);
+      if (downloadGeneration === starterKitDownloadGeneration.current) {
+        setIsDownloadingStarterKit(false);
+      }
     }
   }, [namespace, starterKitDisabled, starterKitKey]);
 

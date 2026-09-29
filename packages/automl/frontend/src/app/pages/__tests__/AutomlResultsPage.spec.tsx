@@ -1367,7 +1367,8 @@ describe('AutomlResultsPage', () => {
       },
     );
 
-    it('should remain disabled while successful-run artifact discovery is pending', () => {
+    it('should show the artifact-checking tooltip while successful-run discovery is pending', async () => {
+      const user = userEvent.setup();
       mockUseS3ListFilesQuery.mockReturnValue({ data: undefined, isLoading: true, isError: false });
       renderWithRun(tabularRun());
 
@@ -1375,6 +1376,8 @@ describe('AutomlResultsPage', () => {
         'aria-disabled',
         'true',
       );
+      await user.hover(screen.getByTestId('run-notebook-download-button'));
+      expect(await screen.findByText('Checking artifact availability...')).toBeInTheDocument();
     });
 
     it.each([
@@ -1449,7 +1452,7 @@ describe('AutomlResultsPage', () => {
       ).toBeInTheDocument();
     });
 
-    it('should remain disabled when the exact artifact is absent or listing fails', () => {
+    it('should remain disabled when the exact artifact is absent', () => {
       const run = tabularRun();
       mockNestedArtifactLists(run, { notebookContents: [] });
       renderWithRun(run);
@@ -1458,8 +1461,16 @@ describe('AutomlResultsPage', () => {
         'aria-disabled',
         'true',
       );
+    });
 
-      mockNestedArtifactLists(run, { errorPath: 'autogluon-tabular-training-pipeline/run-123' });
+    it('should remain disabled when a nested artifact listing fails', () => {
+      const run = tabularRun();
+      mockNestedArtifactLists(run, {
+        errorPath:
+          'autogluon-tabular-training-pipeline/run-123/autogluon-models-training-2/11111111-1111-1111-1111-111111111111/experiment_notebook',
+      });
+      renderWithRun(run);
+
       expect(screen.getByTestId('run-notebook-download-button')).toHaveAttribute(
         'aria-disabled',
         'true',

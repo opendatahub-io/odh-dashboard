@@ -1209,7 +1209,7 @@ describe('AutoragResultsPage', () => {
         isError: false,
         error: null,
       });
-      renderPage();
+      return renderPage();
     };
 
     const mockNestedArtifactLists = (
@@ -1219,9 +1219,9 @@ describe('AutoragResultsPage', () => {
         errorPath?: string;
         loadingPath?: string;
       } = {},
+      runId = 'run-123',
     ): string => {
-      const discoveryPath =
-        'documents-rag-optimization-pipeline/run-123/rag-templates-optimization';
+      const discoveryPath = `documents-rag-optimization-pipeline/${runId}/rag-templates-optimization`;
       const artifactPath = `${discoveryPath}/11111111-1111-1111-1111-111111111111`;
       const key = `${artifactPath}/starter_kit.zip`;
 
@@ -1276,7 +1276,8 @@ describe('AutoragResultsPage', () => {
       },
     );
 
-    it('should remain disabled while successful-run artifact discovery is pending', () => {
+    it('should show the artifact-checking tooltip while successful-run discovery is pending', async () => {
+      const user = userEvent.setup();
       mockUseS3ListFilesQuery.mockReturnValue({ data: undefined, isLoading: true, isError: false });
       renderWithRun(createMockPipelineRun());
 
@@ -1284,6 +1285,8 @@ describe('AutoragResultsPage', () => {
         'aria-disabled',
         'true',
       );
+      await user.hover(screen.getByTestId('starter-kit-download-button'));
+      expect(await screen.findByText('Checking artifact availability...')).toBeInTheDocument();
     });
 
     it.each([
@@ -1333,8 +1336,21 @@ describe('AutoragResultsPage', () => {
       ).toBeInTheDocument();
     });
 
-    it('should remain disabled when the exact artifact is absent or listing fails', () => {
+    it('should remain disabled when the exact artifact is absent', () => {
       mockNestedArtifactLists({ artifactContents: [] });
+      renderWithRun(createMockPipelineRun());
+
+      expect(screen.getByTestId('starter-kit-download-button')).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+    });
+
+    it('should remain disabled when a nested artifact listing fails', () => {
+      mockNestedArtifactLists({
+        errorPath:
+          'documents-rag-optimization-pipeline/run-123/rag-templates-optimization/11111111-1111-1111-1111-111111111111',
+      });
       renderWithRun(createMockPipelineRun());
 
       expect(screen.getByTestId('starter-kit-download-button')).toHaveAttribute(
@@ -1397,6 +1413,62 @@ describe('AutoragResultsPage', () => {
         AUTORAG_EVENTS.STARTER_KIT_DOWNLOADED,
         expect.anything(),
       );
+    });
+
+    it('should ignore a stale download completion while a new route download is active', async () => {
+      let rejectFirstDownload: (reason?: unknown) => void = () => undefined;
+      let resolveSecondDownload: (value: Blob) => void = () => undefined;
+      const firstDownload = new Promise<Blob>((_, reject) => {
+        rejectFirstDownload = reject;
+      });
+      const secondBlob = new Blob(['second download']);
+      const secondDownload = new Promise<Blob>((resolve) => {
+        resolveSecondDownload = resolve;
+      });
+      mockFetchS3File.mockReturnValueOnce(firstDownload).mockReturnValueOnce(secondDownload);
+      mockNestedArtifactLists();
+      const renderResult = renderWithRun(createMockPipelineRun());
+
+      await userEvent.click(screen.getByTestId('starter-kit-download-button'));
+      expect(mockFetchS3File).toHaveBeenCalledTimes(1);
+
+      mockUseParams.mockReturnValue({ namespace: 'test-ns', runId: 'run-456' });
+      mockUsePipelineRunQuery.mockImplementation((nextRunId: string) => ({
+        data: createMockPipelineRun({ run_id: nextRunId }),
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      }));
+      mockNestedArtifactLists({}, 'run-456');
+      renderResult.rerender(
+        <MemoryRouter>
+          <QueryClientProvider client={createTestQueryClient()}>
+            <AutoragResultsPage />
+          </QueryClientProvider>
+        </MemoryRouter>,
+      );
+
+      await userEvent.click(screen.getByTestId('starter-kit-download-button'));
+      expect(mockFetchS3File).toHaveBeenCalledTimes(2);
+
+      rejectFirstDownload(new Error('stale download failed'));
+
+      await waitFor(() => {
+        expect(screen.queryByText('Starter kit download failed')).not.toBeInTheDocument();
+      });
+
+      await userEvent.hover(screen.getByTestId('starter-kit-download-button'));
+      expect(await screen.findByText('Downloading...')).toBeInTheDocument();
+
+      resolveSecondDownload(secondBlob);
+      await waitFor(() => {
+        expect(downloadBlobMock).toHaveBeenCalledWith(secondBlob, 'starter_kit.zip');
+        expect(screen.getByTestId('starter-kit-download-button')).not.toHaveAttribute(
+          'aria-disabled',
+          'true',
+        );
+      });
     });
   });
 

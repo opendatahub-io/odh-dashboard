@@ -1280,6 +1280,38 @@ describe('findTrainingTaskPrefix', () => {
 describe('resolveTrainingTaskPrefix', () => {
   const allowedTaskNames = ['autogluon-models-training', 'autogluon-models-training-2'];
 
+  it.each([
+    ['tabular', 'autogluon-models-training'],
+    ['time-series', 'autogluon-timeseries-models-training'],
+  ])(
+    'should accept only the base and -2 producer task names for %s pipelines',
+    (_pipelineKind, baseTaskName) => {
+      const prefixFor = (taskName: string) => [{ prefix: `pipeline/run-1/${taskName}/` }];
+
+      expect(
+        resolveTrainingTaskPrefix(prefixFor(baseTaskName), [baseTaskName, `${baseTaskName}-2`]),
+      ).toBe(`pipeline/run-1/${baseTaskName}`);
+      expect(
+        resolveTrainingTaskPrefix(prefixFor(`${baseTaskName}-2`), [
+          baseTaskName,
+          `${baseTaskName}-2`,
+        ]),
+      ).toBe(`pipeline/run-1/${baseTaskName}-2`);
+      expect(
+        resolveTrainingTaskPrefix(prefixFor(`${baseTaskName}-3`), [
+          baseTaskName,
+          `${baseTaskName}-2`,
+        ]),
+      ).toBeUndefined();
+      expect(
+        resolveTrainingTaskPrefix(prefixFor(`${baseTaskName}-backup`), [
+          baseTaskName,
+          `${baseTaskName}-2`,
+        ]),
+      ).toBeUndefined();
+    },
+  );
+
   it('should resolve the only allowed training task directory', () => {
     expect(
       resolveTrainingTaskPrefix(

@@ -57,6 +57,7 @@ import {
 
 const RUN_NOTEBOOK_FILENAME = 'automl_experiment_notebook.ipynb';
 const ARTIFACT_AVAILABLE_TOOLTIP = 'Available after the run completes successfully';
+const ARTIFACT_CHECKING_TOOLTIP = 'Checking artifact availability...';
 const ARTIFACT_UNSUCCESSFUL_TOOLTIP = 'Unavailable because the run did not complete successfully';
 const ARTIFACT_UNAVAILABLE_TOOLTIP = 'Artifact unavailable';
 const ARTIFACT_DOWNLOADING_TOOLTIP = 'Downloading...';
@@ -152,7 +153,7 @@ function AutomlResultsPage(): React.JSX.Element {
         : ARTIFACT_AVAILABLE_TOOLTIP;
     }
     if (runArtifactLoading) {
-      return ARTIFACT_AVAILABLE_TOOLTIP;
+      return ARTIFACT_CHECKING_TOOLTIP;
     }
     return hasRunNotebook && !runArtifactListError ? undefined : ARTIFACT_UNAVAILABLE_TOOLTIP;
   }, [
