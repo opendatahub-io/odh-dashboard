@@ -35,6 +35,7 @@ import {
   type InfrastructureTabId,
 } from '../const';
 import InfrastructureKueueHelpLink from '../components/InfrastructureKueueHelpLink';
+import InfrastructureWorkloadsSection from '../components/InfrastructureWorkloadsSection';
 import {
   GPUAAS_EVENTS,
   QUOTA_USAGE_INTERACTION_TYPES,
@@ -392,7 +393,7 @@ const InfrastructurePage: React.FC = () => {
 
   const renderTabPanel = (tabId: InfrastructureTabId): React.ReactNode => {
     if (tabId === 'workloads') {
-      return null;
+      return <InfrastructureWorkloadsSection />;
     }
     const tabInfo = INFRASTRUCTURE_TABS.find((entry) => entry.id === tabId);
     if (tabInfo?.layout === 'viewport') {
