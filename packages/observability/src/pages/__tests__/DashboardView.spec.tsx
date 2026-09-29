@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
+import { K8sStatusError } from '@odh-dashboard/k8s-core';
 import DashboardView from '../DashboardView';
 
 jest.mock('@odh-dashboard/ui-core', () => ({
@@ -87,6 +88,32 @@ describe('DashboardView', () => {
         projects={[]}
         projectsLoaded={false}
         projectsLoadError={Object.assign(new Error('Forbidden'), { status: 403 })}
+        projectsForbiddenErrorPage={<div data-testid="host-projects-forbidden">Denied</div>}
+        ClusterDetailsAdapter={() => null}
+      />,
+    );
+
+    expect(screen.getByTestId('host-projects-forbidden')).toBeDefined();
+    expect(screen.getByText('Unable to load projects')).toBeDefined();
+  });
+
+  it('should render the host forbidden page for a Kubernetes project access error', () => {
+    const projectsLoadError = new K8sStatusError({
+      kind: 'Status',
+      apiVersion: 'v1',
+      status: 'Failure',
+      message: 'Forbidden',
+      reason: 'Forbidden',
+      code: 403,
+    });
+
+    render(
+      <DashboardView
+        dashboards={[]}
+        dashboardsLoaded
+        projects={[]}
+        projectsLoaded={false}
+        projectsLoadError={projectsLoadError}
         projectsForbiddenErrorPage={<div data-testid="host-projects-forbidden">Denied</div>}
         ClusterDetailsAdapter={() => null}
       />,
