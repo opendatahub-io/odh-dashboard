@@ -140,13 +140,13 @@ describe('buildEvaluationRequest', () => {
       accessToken: 'tok-123',
     };
 
-    it('should use sourceName as model.name and set url to empty', () => {
+    it('should use sourceName as model.name and omit the endpoint URL', () => {
       const result = buildEvaluationRequest({
         ...prerecordedBase,
         benchmark: makeBenchmark(),
       });
       expect(result.model.name).toBe('gpt-4o');
-      expect(result.model.url).toBe('');
+      expect(result.model).not.toHaveProperty('url');
     });
 
     it('should not include model.auth even if apiKeySecretRef is set', () => {
@@ -158,14 +158,16 @@ describe('buildEvaluationRequest', () => {
       expect(result.model).not.toHaveProperty('auth');
     });
 
-    it('should add test_data_ref with s3 key and secret_ref to benchmarks', () => {
+    it('should add a prerecorded test_data_ref with parsed S3 coordinates', () => {
       const result = buildEvaluationRequest({
         ...prerecordedBase,
         benchmark: makeBenchmark(),
       });
       expect(result.benchmarks![0].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
         s3: {
-          key: 's3://bucket/data.jsonl',
+          bucket: 'bucket',
+          key: 'data.jsonl',
           secret_ref: 'tok-123',
         },
       });
@@ -178,7 +180,8 @@ describe('buildEvaluationRequest', () => {
         benchmark: makeBenchmark(),
       });
       expect(result.benchmarks![0].test_data_ref).toEqual({
-        s3: { key: 's3://bucket/data.jsonl' },
+        type: 'pre_recorded_data',
+        s3: { bucket: 'bucket', key: 'data.jsonl' },
       });
     });
 
@@ -191,6 +194,16 @@ describe('buildEvaluationRequest', () => {
       expect(result.benchmarks![0]).not.toHaveProperty('test_data_ref');
     });
 
+    it('should not add test_data_ref when datasetUrl is not an S3 URI', () => {
+      const result = buildEvaluationRequest({
+        ...prerecordedBase,
+        datasetUrl: 'https://example.com/data.jsonl',
+        benchmark: makeBenchmark(),
+      });
+
+      expect(result.benchmarks![0]).not.toHaveProperty('test_data_ref');
+    });
+
     it('should trim whitespace from datasetUrl and accessToken', () => {
       const result = buildEvaluationRequest({
         ...prerecordedBase,
@@ -199,8 +212,10 @@ describe('buildEvaluationRequest', () => {
         benchmark: makeBenchmark(),
       });
       expect(result.benchmarks![0].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
         s3: {
-          key: 's3://bucket/data.jsonl',
+          bucket: 'bucket',
+          key: 'data.jsonl',
           secret_ref: 'tok-123',
         },
       });
@@ -213,7 +228,8 @@ describe('buildEvaluationRequest', () => {
         benchmark: makeBenchmark(),
       });
       expect(result.benchmarks![0].test_data_ref).toEqual({
-        s3: { key: 's3://bucket/data.jsonl' },
+        type: 'pre_recorded_data',
+        s3: { bucket: 'bucket', key: 'data.jsonl' },
       });
     });
   });

@@ -54,7 +54,7 @@ import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
 import type { SourceMode } from '~/app/types';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
-import { SOURCE_OPTIONS } from '~/app/utilities/startEvaluationRunUtils';
+import { getSourceOptions } from '~/app/utilities/startEvaluationRunUtils';
 import {
   useStartEvaluationRunForm,
   DEFAULT_EXPERIMENT_NAME,
@@ -118,6 +118,10 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
     initialValues,
     onCancel: isReconfigure ? undefined : handleCancel,
   });
+  const sourceOptions = React.useMemo(
+    () => getSourceOptions(benchmark, collection),
+    [benchmark, collection],
+  );
 
   const breadcrumbFlowLabel = isCollectionFlow ? 'Select benchmark suite' : 'Select benchmark';
 
@@ -343,7 +347,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
               shouldFocusToggleOnSelect
             >
               <SelectList>
-                {SOURCE_OPTIONS.map((opt) => (
+                {sourceOptions.map((opt) => (
                   <SelectOption
                     key={opt.value}
                     value={opt.value}
@@ -510,6 +514,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
               accessToken={form.accessToken}
               onAccessTokenChange={form.setAccessToken}
               datasetUrlError={form.datasetUrlError}
+              accessTokenError={form.accessTokenError}
               touched={form.touched}
               markTouched={form.markTouched}
             />

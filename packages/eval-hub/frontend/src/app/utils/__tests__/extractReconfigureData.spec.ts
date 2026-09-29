@@ -251,6 +251,24 @@ describe('extractReconfigureData', () => {
     expect(result.accessToken).toBe('access-token-123');
   });
 
+  it('should reconstruct an S3 URI from a parsed prerecorded data reference', () => {
+    const job = mockEvaluationJob({ modelName: 'dataset-source' });
+    job.benchmarks = [
+      {
+        id: 'b1',
+        test_data_ref: {
+          type: 'pre_recorded_data',
+          s3: { bucket: 'my-bucket', key: 'path/to/data.jsonl', secret_ref: 's3-secret' },
+        },
+      },
+    ];
+
+    const result = extractReconfigureData(job, []);
+
+    expect(result.datasetUrl).toBe('s3://my-bucket/path/to/data.jsonl');
+    expect(result.accessToken).toBe('s3-secret');
+  });
+
   it('should extract prerecorded fields when only a later benchmark has test_data_ref', () => {
     const job = mockEvaluationJob({ modelName: 'dataset-source', collectionId: 'col-1' });
     job.collection = {

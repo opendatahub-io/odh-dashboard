@@ -205,7 +205,8 @@ type S3DataRef struct {
 }
 
 type TestDataRef struct {
-	S3 *S3DataRef `json:"s3,omitempty"`
+	Type string     `json:"type,omitempty"`
+	S3   *S3DataRef `json:"s3,omitempty"`
 }
 
 type JobBenchmark struct {

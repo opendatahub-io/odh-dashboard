@@ -63,6 +63,23 @@ const testProvider = mockProvider({
   ],
 });
 
+const ibmClearProvider = mockProvider({
+  id: 'ibm-clear',
+  name: 'IBM CLEAR',
+  title: 'IBM CLEAR',
+  benchmarks: [
+    mockBenchmark({
+      id: 'agentic-evaluation',
+      name: 'Agentic Evaluation',
+      category: 'Error analysis',
+      metrics: ['average_score'],
+      primaryScoreMetric: 'average_score',
+      lowerIsBetter: false,
+      threshold: 0.5,
+    }),
+  ],
+});
+
 const rawMetricProvider = mockProvider({
   id: 'guidellm',
   name: 'guidellm',
@@ -207,6 +224,36 @@ describe('Start Evaluation Run - Benchmark Mode', () => {
     startEvaluationRunPage.findAgentNameInput().should('exist');
     startEvaluationRunPage.findEndpointUrlInput().should('exist');
     startEvaluationRunPage.findModelPickerToggle().should('not.exist');
+  });
+
+  it('should offer prerecorded responses for IBM CLEAR and submit its S3 data reference', () => {
+    const createdJob = mockEvaluationJob({
+      id: 'prerecorded-job',
+      name: 'Pre-recorded evaluation',
+    });
+    cy.interceptApi('POST /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, createdJob).as(
+      'createPrerecordedJob',
+    );
+
+    navigateToBenchmarkStart(ibmClearProvider, 'agentic-evaluation');
+    startEvaluationRunPage.findSourceModeToggle().click();
+    startEvaluationRunPage.findSourceModeOption('prerecorded').should('exist').click();
+    startEvaluationRunPage.findSourceNameInput().type('recorded-agent');
+    startEvaluationRunPage.findDatasetUrlInput().type('s3://my-bucket/path/to/responses.jsonl');
+    startEvaluationRunPage.findAccessTokenInput().type('s3-credentials');
+    startEvaluationRunPage.findSubmitButton().should('be.enabled').click();
+
+    cy.wait('@createPrerecordedJob').then((interception) => {
+      expect(interception.request.body.model).to.deep.equal({ name: 'recorded-agent' });
+      expect(interception.request.body.benchmarks[0].test_data_ref).to.deep.equal({
+        type: 'pre_recorded_data',
+        s3: {
+          bucket: 'my-bucket',
+          key: 'path/to/responses.jsonl',
+          secret_ref: 's3-credentials',
+        },
+      });
+    });
   });
 
   it('should show external model fields when selecting Other (External endpoint)', () => {

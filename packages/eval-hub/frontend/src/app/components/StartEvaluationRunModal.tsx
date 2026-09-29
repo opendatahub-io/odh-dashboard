@@ -40,7 +40,7 @@ import {
 } from '~/app/pages/useStartEvaluationRunForm';
 import { isSuiteEvaluatesOption } from '~/app/pages/const';
 import {
-  SOURCE_OPTIONS,
+  getSourceOptions,
   suiteEvaluatesToSourceMode,
 } from '~/app/utilities/startEvaluationRunUtils';
 import type { Collection, FlatBenchmark, SourceMode } from '~/app/types';
@@ -125,6 +125,10 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
   });
 
   const isSubmitting = form.isSubmitting || isCloning;
+  const sourceOptions = React.useMemo(
+    () => getSourceOptions(benchmark, collection),
+    [benchmark, collection],
+  );
 
   const [isSourceOpen, setIsSourceOpen] = React.useState(false);
   React.useEffect(() => {
@@ -312,13 +316,13 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
                         isFullWidth
                         data-testid="source-mode-toggle"
                       >
-                        {SOURCE_OPTIONS.find((option) => option.value === form.sourceMode)?.label}
+                        {sourceOptions.find((option) => option.value === form.sourceMode)?.label}
                       </MenuToggle>
                     )}
                     shouldFocusToggleOnSelect
                   >
                     <SelectList>
-                      {SOURCE_OPTIONS.map((option) => (
+                      {sourceOptions.map((option) => (
                         <SelectOption
                           key={option.value}
                           value={option.value}
@@ -479,6 +483,7 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
                   accessToken={form.accessToken}
                   onAccessTokenChange={form.setAccessToken}
                   datasetUrlError={form.datasetUrlError}
+                  accessTokenError={form.accessTokenError}
                   touched={form.touched}
                   markTouched={form.markTouched}
                 />

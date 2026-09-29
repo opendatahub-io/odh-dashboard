@@ -129,7 +129,8 @@ const extractReconfigureData = (
   if (sourceMode === 'prerecorded') {
     const refBenchmark = effectiveBenchmarks?.find((b) => b.test_data_ref?.s3);
     if (refBenchmark?.test_data_ref?.s3) {
-      datasetUrl = refBenchmark.test_data_ref.s3.key ?? '';
+      const { bucket, key } = refBenchmark.test_data_ref.s3;
+      datasetUrl = bucket && key ? `s3://${bucket}/${key}` : (key ?? '');
       accessToken = refBenchmark.test_data_ref.s3.secret_ref ?? '';
     }
   }
