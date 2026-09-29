@@ -153,13 +153,10 @@ describe('RuntimeImageInstallPage', () => {
     expect(screen.getByText('Returned to General settings')).toBeInTheDocument();
   });
 
-  it('should omit duplicate target extensions', () => {
+  it('should use the first duplicate target extension', () => {
     mockExtensions = [servingTarget, servingTarget];
     renderPage(mockRuntimeImageActionData());
-    expect(
-      screen.getByText('No runtime image install target extensions are available.'),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /Serving runtime template/ })).toBeInTheDocument();
   });
 
   it('should show a loading state while resolving the selected target', () => {
