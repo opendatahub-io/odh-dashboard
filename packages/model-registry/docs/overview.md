@@ -12,7 +12,7 @@
   - Centralizes auth, namespace/RBAC checks, and proxying to the in-cluster Model Registry API, Kubernetes API, and Model Catalog.
   - **Standalone / kubeflow:** can serve compiled frontend assets from `bff/static/`.
   - **Federated:** webpack dev server serves the UI; the BFF handles API traffic only.
-- **Federated data flow:** browser → ODH Dashboard → `/model-registry/api/*` (host proxy) → BFF (e.g. :4000) → Model Registry Kubernetes `Service`, Kubernetes API (namespaces, SSAR), and Model Catalog service.
+- **Federated data flow:** browser → ODH Dashboard → `/model-registry/api/*` (host proxy) → BFF (port `4005` when started through the ODH package wrapper) → Model Registry Kubernetes `Service`, Kubernetes API (namespaces, SSAR), and Model Catalog service.
   - Mock CLI flags on the BFF (`MOCK_K8S_CLIENT`, `MOCK_MR_CLIENT`, `MOCK_MR_CATALOG_CLIENT`) mirror standalone behaviour without duplicating that table here.
 - **Module Federation:** remote name `modelRegistry`; exposed modules `./extensions` (ODH extension registrations) and `./extension-points` (types).
   - Shared singletons with the host: React, react-router, PatternFly core, dynamic plugin SDK, `@odh-dashboard/plugin-core`.
@@ -50,6 +50,7 @@
 - **Deprecated main-dashboard pages**: `frontend/src/pages/modelRegistry/` and `modelRegistrySettings/` are deprecated; develop here only.
 - **Themes**: Standalone/kubeflow use MUI (`STYLE_THEME=mui-theme`); federated uses PatternFly. Mixing themes causes visual regressions.
 - **`pnpm run start:dev:ext`**: Do not use for the main ODH frontend when testing federated integration — it skips the federation proxy setup.
+- **Local federated startup**: Run `pnpm run dev` at the repository root, then `pnpm --filter @odh-dashboard/model-registry start:dev`. The wrapper assigns the Model Registry BFF port `4005`; calling the upstream `make dev-start-federated` command directly uses port `4000` and conflicts with the dashboard backend.
 - **Docker**: `Dockerfile.workspace` build context must be the **repo root** (workspace packages).
 - **BFF flags**: `--standalone-mode` / `--federated-platform` are legacy; prefer `--deployment-mode`.
 - **CI e2e**: Full Cypress e2e for model registry is not fully tagged for CI; mock tests run; live cluster e2e is separate. See `// #e2eCiTags` in `packages/model-registry/package.json`.
