@@ -33,6 +33,7 @@ type CollectionMetadataFieldName =
 type CollectionMetadataFieldProps = {
   name: CollectionMetadataFieldName;
   label: string;
+  isRequired?: boolean;
   emptySelectionLabel?: string;
   fieldId: string;
   testId: string;
@@ -267,7 +268,7 @@ const CollectionMetadataField: React.FC<CollectionMetadataFieldProps> = (props) 
   const { control } = useFormContext<CopySuiteFormValues>();
 
   return (
-    <FormGroup label={props.label} fieldId={props.fieldId}>
+    <FormGroup label={props.label} isRequired={props.isRequired} fieldId={props.fieldId}>
       <CollectionMetadataTypeaheadField control={control} {...props} />
     </FormGroup>
   );
@@ -276,7 +277,8 @@ const CollectionMetadataField: React.FC<CollectionMetadataFieldProps> = (props) 
 const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({ onNext, onCancel }) => {
   const { control, watch } = useFormContext<CopySuiteFormValues>();
   const suiteName = watch('suiteName');
-  const isSettingsValid = suiteName.trim() !== '';
+  const suiteDomains = watch('suiteDomains');
+  const isSettingsValid = suiteName.trim() !== '' && suiteDomains.length > 0;
 
   return (
     <div
@@ -333,6 +335,7 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({ onNext, o
         <CollectionMetadataField
           name="suiteDomains"
           label="Category"
+          isRequired
           fieldId="suite-domains"
           testId="suite-domains"
           options={COLLECTION_METADATA_OPTIONS.domains}

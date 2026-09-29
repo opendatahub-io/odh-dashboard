@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { KnownLabels, type PodKind } from '@odh-dashboard/k8s-core';
-import { groupVersionKind } from '#~/api/k8sUtils';
+import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
+import { PodModel } from '@odh-dashboard/k8s-core/api/models';
+import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
 import { EventKind } from '#~/k8sTypes';
 import { CustomWatchK8sResult } from '#~/types';
-import { PodModel } from '#~/api/models/k8s';
-import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 import { useWatchPodEvents } from '#~/api/k8s/events.ts';
 
 // ideally ,would use react-query watch many, but that is not available

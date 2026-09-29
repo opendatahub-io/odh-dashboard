@@ -1,8 +1,9 @@
 import { MatchExpression } from '@openshift/dynamic-plugin-sdk-utils';
+import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
+import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
 import { ImageStreamKind } from '#~/k8sTypes';
-import { groupVersionKind, ImageStreamModel } from '#~/api';
+import { ImageStreamModel } from '#~/api';
 import { CustomWatchK8sResult, ImageStreamLabel, ImageType } from '#~/types';
-import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 
 type UseImageStreamsOptions = {
   enabled?: boolean;

@@ -249,8 +249,8 @@ func (app *App) CreateCollectionHandler(w http.ResponseWriter, r *http.Request, 
 	}
 	// TODO: Remove this temporary mapping once the EvalHub API is deployed.
 	input.Category = strings.TrimSpace(input.Category)
-	if input.Category == "" && len(input.EvaluationTargets) > 0 {
-		input.Category = input.EvaluationTargets[0]
+	if input.Category == "" && len(input.Domains) > 0 {
+		input.Category = strings.TrimSpace(input.Domains[0])
 	}
 
 	collection, err := client.CreateCollection(ctx, namespace, input)

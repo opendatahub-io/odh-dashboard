@@ -1,5 +1,9 @@
 /* eslint-disable camelcase */
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import type { FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core';
 
 declare global {
   interface Window {
@@ -55,18 +59,46 @@ const sanitizeProperties = (properties: EvalHubTrackingProperties): EvalHubTrack
     ),
   );
 
+const isTrackingOutcome = (value: unknown): value is TrackingOutcome =>
+  value === 'submit' || value === 'cancel';
+
+const isFormTrackingProperty = (value: unknown): value is string | number | boolean | undefined =>
+  value === undefined || ['string', 'number', 'boolean'].includes(typeof value);
+
+const getFormTrackingProperties = (
+  properties: EvalHubTrackingProperties,
+  outcome: TrackingOutcome,
+): FormTrackingEventProperties => {
+  const formProperties: FormTrackingEventProperties = { outcome };
+
+  Object.entries(properties).forEach(([key, value]) => {
+    if (key !== 'outcome' && isFormTrackingProperty(value)) {
+      formProperties[key] = value;
+    }
+  });
+
+  return formProperties;
+};
+
 export const trackEvalHubEvent = (
   eventName: string,
   properties: EvalHubTrackingProperties = {},
   context: EvalHubTrackingContext = {},
 ): void => {
-  fireMiscTrackingEvent(eventName, {
+  const enrichedProps = {
     ...sanitizeProperties(properties),
     event_source: 'evalhub_ui',
     evalhub_server_version: evalHubServerVersion,
     collection_type: context.collectionType ?? 'unknown',
     provider_type: context.providerType ?? 'unknown',
-  });
+  };
+
+  // Use fireFormTrackingEvent for events with a form outcome (submit/cancel)
+  if (isTrackingOutcome(properties.outcome)) {
+    fireFormTrackingEvent(eventName, getFormTrackingProperties(enrichedProps, properties.outcome));
+  } else {
+    fireMiscTrackingEvent(eventName, enrichedProps);
+  }
 };
 
 const trackEvalHubEventOnceInScope = (
