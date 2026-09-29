@@ -313,10 +313,7 @@ export const applyDefaultScheduler = (
         scheduler: {},
       };
     }
-  } else {
-    result.spec.router = {
-      ...result.spec.router,
-    };
+  } else if (result.spec.router?.scheduler) {
     delete result.spec.router.scheduler;
   }
 

@@ -45,4 +45,13 @@ describe('applyDefaultScheduler', () => {
 
     expect(result.spec.router?.scheduler).toBeUndefined();
   });
+
+  it('should not add a router when simple vLLM is selected', () => {
+    const service = mockLLMInferenceServiceK8sResource({});
+    delete service.spec.router;
+
+    const result = applyDefaultScheduler(service, false);
+
+    expect(result.spec.router).toBeUndefined();
+  });
 });
