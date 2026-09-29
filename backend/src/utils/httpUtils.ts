@@ -41,7 +41,7 @@ export type ProxyCallStatus = {
   code?: number;
 };
 
-const getProxyAgent = (targetUrl: string): HttpsProxyAgent<string> | undefined => {
+export const getProxyAgent = (targetUrl: string): HttpsProxyAgent<string> | undefined => {
   if (!targetUrl.startsWith('https:')) {
     return undefined;
   }
