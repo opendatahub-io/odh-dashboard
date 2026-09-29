@@ -8,14 +8,11 @@ type SelfSubjectAccessReview = K8sResourceCommon & {
   status?: { allowed?: boolean };
 };
 
-export type CheckAccessOptions = K8sAPIOptions & {
-  defaultAllowed?: boolean;
-  onError?: (error: unknown) => void;
-};
+export type CheckAccessOptions = K8sAPIOptions;
 
 export const checkAccess = async (
   resourceAttributes: AccessReviewResourceAttributes,
-  { defaultAllowed = false, onError, ...apiOptions }: CheckAccessOptions = {},
+  apiOptions: CheckAccessOptions = {},
 ): Promise<boolean> => {
   const review: SelfSubjectAccessReview = {
     apiVersion: 'authorization.k8s.io/v1',
@@ -27,9 +24,10 @@ export const checkAccess = async (
     const response = await k8sCreateResource<SelfSubjectAccessReview>(
       applyK8sAPIOptions({ model: SelfSubjectAccessReviewModel, resource: review }, apiOptions),
     );
-    return response.status?.allowed ?? defaultAllowed;
+    return response.status?.allowed ?? false;
   } catch (error) {
-    onError?.(error);
-    return defaultAllowed;
+    // eslint-disable-next-line no-console
+    console.warn('SelfSubjectAccessReview failed', error);
+    return false;
   }
 };

@@ -37,20 +37,19 @@ describe('checkAccess', () => {
     );
   });
 
-  it('should deny access by default when the review is inconclusive', async () => {
+  it('should deny access when the review is inconclusive', async () => {
     k8sCreateResourceMock.mockResolvedValue({});
 
     await expect(checkAccess({ verb: 'get' })).resolves.toBe(false);
-    await expect(checkAccess({ verb: 'get' }, { defaultAllowed: true })).resolves.toBe(true);
-    await expect(checkAccess({ verb: 'get' }, { defaultAllowed: false })).resolves.toBe(false);
   });
 
-  it('should deny access by default and report failures', async () => {
+  it('should deny access and warn on failures', async () => {
     const error = new Error('network unavailable');
-    const onError = jest.fn();
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
     k8sCreateResourceMock.mockRejectedValue(error);
 
-    await expect(checkAccess({ verb: 'get' }, { onError })).resolves.toBe(false);
-    expect(onError).toHaveBeenCalledWith(error);
+    await expect(checkAccess({ verb: 'get' })).resolves.toBe(false);
+    expect(consoleSpy).toHaveBeenCalledWith('SelfSubjectAccessReview failed', error);
+    consoleSpy.mockRestore();
   });
 });
