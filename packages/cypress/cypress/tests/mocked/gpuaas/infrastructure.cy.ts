@@ -14,12 +14,14 @@ import { asClusterAdminUser, asProjectAdminUser } from '../../../utils/mockUsers
 import { infrastructurePage } from '../../../pages/infrastructure';
 
 describe('GPUaaS Infrastructure Page', () => {
-  it('should not be accessible for non-admin users', () => {
+  it('should expose only the Workloads tab for non-admin users', () => {
     asProjectAdminUser();
     initIntercepts();
     infrastructurePage.visit(false);
-    infrastructurePage.findNavItem().should('not.exist');
-    infrastructurePage.shouldNotFoundPage();
+    infrastructurePage.findNavItem().should('exist');
+    infrastructurePage.findWorkloadsTab().should('exist');
+    infrastructurePage.findUtilizationTab().should('not.exist');
+    infrastructurePage.findQuotaUsageTab().should('not.exist');
   });
 
   (
