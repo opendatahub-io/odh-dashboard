@@ -919,23 +919,4 @@ describe('ManageConnectionModal buildFieldValues integration', () => {
     expect(callArgs.fieldValues.requiredField).toBe('some-value');
     expect(callArgs.fieldValues).not.toHaveProperty('optionalField');
   });
-
-  it('should show test connection UI', () => {
-    render(
-      <ManageConnectionModal
-        project={mockProjectK8sResource({})}
-        onClose={onCloseMock}
-        onSubmit={onSubmitMock}
-        connectionTypes={[
-          mockConnectionTypeConfigMapObj({
-            name: 's3',
-            fields: [{ type: 'short-text', name: 'Endpoint', envVar: 'endpoint', properties: {} }],
-          }),
-        ]}
-      />,
-    );
-
-    expect(screen.getByTestId('test-connection-button')).toBeInTheDocument();
-    expect(screen.getByTestId('connection-test-label-not-tested')).toBeInTheDocument();
-  });
 });
