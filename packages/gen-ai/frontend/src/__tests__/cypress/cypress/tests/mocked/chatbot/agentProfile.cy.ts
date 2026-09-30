@@ -240,6 +240,7 @@ describe('Agent Profile - Playground (Mocked)', () => {
       registryRow.findToolsButton().click();
       mcpToolsModal.find().should('be.visible');
       mcpToolsModal.findToolRows().first().should('contain.text', 'list_pods');
+      mcpToolsModal.findToolCountText().should('contain.text', '10 out of 10 selected');
       mcpToolsModal.findSelectAllCheckbox().uncheck();
       mcpToolsModal.findToolCheckbox(0).click();
       mcpToolsModal.findToolCountText().should('contain.text', '1 out of 10 selected');
