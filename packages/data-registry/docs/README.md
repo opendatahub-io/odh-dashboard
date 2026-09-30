@@ -5,11 +5,13 @@
 
 # Data Registry UI Documentation
 
-This is the general documentation of the Data Registry UI.
+These pages describe the current Data Registry dashboard package: its local
+development modes, request flow, test strategy, and configuration. The package
+does not deploy the upstream Data Registry service or its database.
 
 ## Developer Readmes
 
-- [Dev setup & Requirements]
-- [Architecture]
-- [Testing]
-- [Environment Variables]
+- [Dev setup & Requirements] — install dependencies and run mock or federated development.
+- [Architecture] — understand the dashboard module, BFF, API, and registry data model.
+- [Testing] — run frontend, BFF, contract, and Cypress checks.
+- [Environment Variables] — configure the frontend, BFF, and upstream API connection.
