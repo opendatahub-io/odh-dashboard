@@ -21,3 +21,7 @@ export const MLFLOW_NOT_CONFIGURED_ADMIN_MESSAGE =
 export const MLFLOW_NOT_CONFIGURED_TITLE = 'Admin configuration required';
 export const MLFLOW_NOT_CONFIGURED_MESSAGE =
   'Experiments enable you to track, compare, and manage your runs in one place. To start using experiments, request that your administrator enable MLflow for this project.';
+
+export const AGENT_OBSERVABILITY_PAGE_TITLE = 'Agent observability';
+export const AGENT_OBSERVABILITY_NO_PROJECTS_MESSAGE =
+  'To view agent observability, first create a project.';
