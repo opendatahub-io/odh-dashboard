@@ -424,6 +424,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
             paddingLeft: 'var(--pf-t--global--spacer--lg)',
           }}
           aria-busy={isAudioActive}
+          data-testid="media-attachment-row"
         >
           {imageUploadState.fileName && (
             <FileDetailsLabel

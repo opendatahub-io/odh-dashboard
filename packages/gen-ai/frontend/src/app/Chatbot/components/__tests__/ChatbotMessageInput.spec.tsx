@@ -608,6 +608,33 @@ describe('ChatbotMessageInput', () => {
   });
 
   describe('image preview chip', () => {
+    it('aligns image and audio attachments with the left inset of document attachments', () => {
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          imageUploadState={{ ...defaultImageUploadState, fileName: 'test.jpg' }}
+          audioTranscriptionState={{
+            phase: 'ready',
+            fileName: 'recording.wav',
+            uploadProgress: 100,
+            error: null,
+            transcribedText: 'hello',
+          }}
+        />,
+      );
+
+      const row = screen.getByTestId('media-attachment-row');
+      expect(within(row).getByTestId('vision-file-preview')).toBeInTheDocument();
+      expect(within(row).getByTestId('audio-file-chip')).toBeInTheDocument();
+      expect(row).toHaveStyle({
+        width: '100%',
+        paddingLeft: 'var(--pf-t--global--spacer--lg)',
+      });
+      expect(row.style.maxWidth).toBe('');
+      expect(row.style.marginLeft).toBe('');
+      expect(row.style.marginRight).toBe('');
+    });
+
     it('renders FileDetailsLabel when a file name is present', () => {
       render(
         <ChatbotMessageInput

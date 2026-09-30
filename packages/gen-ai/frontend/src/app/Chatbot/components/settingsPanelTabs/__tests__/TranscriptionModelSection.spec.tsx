@@ -246,6 +246,10 @@ describe('TranscriptionModelSection', () => {
         'all-model-option-llama-3-8b',
       ]);
       expect(screen.getAllByText('Recommended')).toHaveLength(2);
+      expect(screen.getAllByTestId('recommended-model-label')).toHaveLength(2);
+      screen.getAllByTestId('recommended-model-label').forEach((label) => {
+        expect(label).toHaveClass('pf-m-compact');
+      });
     });
 
     it('shows model descriptions and guidance and closes without selecting on Cancel', async () => {
