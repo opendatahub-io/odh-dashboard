@@ -162,6 +162,29 @@ Use the custom command `cy.visitWithLogin` to visit a page and perform the login
 
 Cypress mocked tests run against a standalone frontend while mocking all network requests.
 
+#### Test impact observation
+
+The main test workflow produces a `cypress-mock-impact-plan` artifact and job summary. The
+planner compares the Git change with the generated Cypress matrix and proposes the groups that
+would be needed for documentation, changed specs, and transitively imported Cypress helpers.
+This is observation-only: CI continues to run the complete mock-test matrix.
+
+Application and build inputs fall back to the complete matrix until CI has a compatible,
+successful per-spec coverage baseline. Coverage runs write those raw per-spec maps under
+`packages/cypress/coverage/specs/`, alongside an `index.json` that records the commit, spec,
+pass state, and source-file count. Missing data, non-code fixtures, unresolved imports, and
+deleted or renamed files also fall back to the complete matrix.
+
+To inspect a proposal locally, compare any two Git revisions:
+
+```bash
+pnpm run plan:cypress-mock-impact -- \
+  --base <base-revision> \
+  --head <head-revision> \
+  --json /tmp/cypress-mock-impact.json \
+  --markdown /tmp/cypress-mock-impact.md
+```
+
 Single command to run all Cypress mock tests or a specific test (build frontend, start HTTP server, run Cypress):
 
 ```bash

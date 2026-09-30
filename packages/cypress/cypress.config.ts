@@ -20,6 +20,11 @@ import { extractHttpsUrlsWithLocation } from './cypress/utils/urlExtractor';
 import { validateHttpsUrls } from './cypress/utils/urlValidator';
 import { logToConsole, LogLevel } from './cypress/utils/logger';
 import { getCypressTestPatterns } from './cypress/utils/discoverTestPatterns';
+import {
+  SpecCoverageCollector,
+  sanitizeCoverage,
+  type CoverageMap,
+} from './cypress/utils/specCoverage';
 
 const getCyEnvVariables = (envVars: Record<string, string | undefined>) => {
   return Object.fromEntries(
@@ -91,6 +96,14 @@ export default defineConfig({
       : ['cypress/tests/e2e/**/*.cy.ts', ...getCypressTestPatterns('e2e')],
     experimentalInteractiveRunEvents: true,
     setupNodeEvents(on, config) {
+      const specCoverageCollector =
+        config.env.coverage && config.env.MOCK
+          ? new SpecCoverageCollector(
+              path.join(__dirname, 'coverage', 'specs'),
+              env.GITHUB_SHA ?? '',
+            )
+          : undefined;
+
       registerCypressGrep(config);
       cypressHighResolution(on, config);
       // Rspack MF runtime is a data:text/javascript URI; nyc HTML reports ENAMETOOLONG on it.
@@ -106,13 +119,10 @@ export default defineConfig({
             const tasks = handler as { combineCoverage: (sent: string) => unknown };
             const original = tasks.combineCoverage.bind(tasks);
             tasks.combineCoverage = (sent: string) => {
-              const map = JSON.parse(sent) as Record<string, unknown>;
-              for (const key of Object.keys(map)) {
-                if (/data:text|__module_federation/i.test(key)) {
-                  delete map[key];
-                }
-              }
-              return original(JSON.stringify(map));
+              const sanitized = specCoverageCollector
+                ? specCoverageCollector.collect(sent)
+                : JSON.stringify(sanitizeCoverage(JSON.parse(sent) as CoverageMap));
+              return original(sanitized);
             };
           }
           (on as (eventName: string, eventHandler: unknown) => void)(event, handler);
@@ -121,6 +131,10 @@ export default defineConfig({
       );
       /* eslint-enable @typescript-eslint/consistent-type-assertions */
       setupWebsockets(on, config);
+
+      on('before:spec', (spec) => {
+        specCoverageCollector?.start(spec.relative);
+      });
 
       on('before:browser:launch', (browser, launchOptions) => {
         if (browser.family === 'chromium' && isCI) {
@@ -186,6 +200,7 @@ export default defineConfig({
 
       // Delete videos for specs without failing or retried tests
       on('after:spec', (_, results) => {
+        specCoverageCollector?.finish(!results.error && results.stats.failures === 0);
         if (results.video) {
           const failures =
             !Array.isArray(results.tests) ||

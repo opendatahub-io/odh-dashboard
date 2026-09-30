@@ -149,6 +149,9 @@ jobs:
       test-groups: ${{ steps.set-groups.outputs.test-groups }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          # The observation-only impact planner compares the PR/push base with this revision.
+          fetch-depth: 0
       - name: Setup pnpm and install dependencies
         uses: ./.github/actions/pnpm-setup
         with:
@@ -167,6 +170,27 @@ jobs:
 
           # Pretty print for logs
           echo "$TEST_GROUPS" | jq .
+
+      - name: Plan Cypress mock test impact
+        env:
+          IMPACT_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          IMPACT_HEAD: ${{ github.sha }}
+        run: |
+          mkdir -p .test-impact
+          node scripts/cypress/plan-mock-test-impact.js \
+            --base "$IMPACT_BASE" \
+            --head "$IMPACT_HEAD" \
+            --json .test-impact/cypress-mock-impact.json \
+            --markdown .test-impact/cypress-mock-impact.md
+          cat .test-impact/cypress-mock-impact.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Cypress mock impact plan
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: cypress-mock-impact-plan
+          path: .test-impact
+          if-no-files-found: error
+          retention-days: 14
 
   Contract-Tests:
     needs: [Setup]

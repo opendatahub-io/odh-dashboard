@@ -142,6 +142,7 @@ function createGroupedEntry(dir, files, suffix) {
   return {
     name: `${dir}/${suffix}`,
     spec,
+    files: files.map((file) => path.join(TESTS_DIR, file.path)),
     size: totalSize,
     count: files.length,
     strategy: 'grouped',
@@ -171,6 +172,7 @@ function generateCentralTestGroups() {
       groups.push({
         name: `${dir}/${file.name}`,
         spec: `cypress/cypress/tests/mocked/${file.path}`,
+        files: [path.join(TESTS_DIR, file.path)],
         size: file.size,
         strategy: 'individual',
       });
@@ -253,6 +255,7 @@ function generatePackageTestGroups() {
           name: path.basename(filePath, '.cy.ts'),
           size: stats.size,
           relPath,
+          repoPath: path.relative(process.cwd(), filePath),
           dir: path.dirname(relPath),
         };
       });
@@ -264,6 +267,7 @@ function generatePackageTestGroups() {
         groups.push({
           name: pkgPrefix,
           spec: `${pkgRelPath}/${mockedPattern}`,
+          files: allFiles.map((file) => file.repoPath),
           size: totalSize,
           count: allFiles.length,
           strategy: 'package',
@@ -289,6 +293,7 @@ function generatePackageTestGroups() {
           groups.push({
             name: `${pkgPrefix}/${dir}/${file.name}`,
             spec: `${pkgRelPath}/${testBaseDir}/${file.relPath}`,
+            files: [file.repoPath],
             size: file.size,
             strategy: 'package-individual',
           });
@@ -314,6 +319,7 @@ function generatePackageTestGroups() {
               groups.push({
                 name: `${pkgPrefix}/${dir}/${suffix}`,
                 spec,
+                files: binFiles.map((file) => file.repoPath),
                 size: bins[i].totalSize,
                 count: binFiles.length,
                 strategy: 'package-grouped',
@@ -330,6 +336,7 @@ function generatePackageTestGroups() {
             groups.push({
               name: `${pkgPrefix}/${dir}/other`,
               spec,
+              files: smallFiles.map((file) => file.repoPath),
               size: smallTotal,
               count: smallFiles.length,
               strategy: 'package-grouped',
@@ -374,27 +381,39 @@ function findTestFiles(dir) {
 /**
  * Main function
  */
-function main() {
-  console.error('Generating Cypress test matrix...\n');
-
-  // Generate central test groups
+function generateTestGroups() {
   const centralGroups = generateCentralTestGroups();
-  console.error(`✓ Found ${centralGroups.length} central test groups`);
-
-  // Generate package test groups
   const packageGroups = generatePackageTestGroups();
-  console.error(`✓ Found ${packageGroups.length} package test groups`);
-
-  // Combine all groups
   const allGroups = [...centralGroups, ...packageGroups];
 
   if (allGroups.length === 0) {
-    console.error('Warning: No test groups found, using default');
     allGroups.push({
       name: 'default',
       spec: 'cypress/cypress/tests/mocked/**/*.cy.ts',
+      files: findTestFiles(TESTS_DIR).map((file) => path.relative(process.cwd(), file)),
     });
   }
+
+  for (const group of allGroups) {
+    validateSafePath(group.name, 'test group name');
+    validateSafePath(group.spec, 'test group spec');
+  }
+
+  return allGroups;
+}
+
+/**
+ * Main function
+ */
+function main() {
+  console.error('Generating Cypress test matrix...\n');
+
+  const allGroups = generateTestGroups();
+  const centralGroups = allGroups.filter((group) => !group.name.startsWith('pkg-'));
+  const packageGroups = allGroups.filter((group) => group.name.startsWith('pkg-'));
+
+  console.error(`✓ Found ${centralGroups.length} central test groups`);
+  console.error(`✓ Found ${packageGroups.length} package test groups`);
 
   // Log summary
   console.error(`\n📊 Test Matrix Summary:`);
@@ -422,11 +441,7 @@ function main() {
   // Output JSON for GitHub Actions
   // Remove metadata fields (size, count, strategy) from final output
   // Validate all names and specs for shell safety
-  const output = allGroups.map(({ name, spec }) => {
-    validateSafePath(name, 'test group name');
-    validateSafePath(spec, 'test group spec');
-    return { name, spec };
-  });
+  const output = allGroups.map(({ name, spec }) => ({ name, spec }));
   console.log(JSON.stringify(output));
 }
 
@@ -435,4 +450,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { generateCentralTestGroups, generatePackageTestGroups };
+module.exports = { generateCentralTestGroups, generatePackageTestGroups, generateTestGroups };
