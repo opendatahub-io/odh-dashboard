@@ -5789,6 +5789,9 @@ importers:
       '@odh-dashboard/app-config':
         specifier: workspace:*
         version: link:../app-config
+      '@odh-dashboard/contract-tests':
+        specifier: workspace:*
+        version: link:../contract-tests
       '@odh-dashboard/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
