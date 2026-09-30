@@ -1803,6 +1803,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
+      '@odh-dashboard/autox-core':
+        specifier: workspace:*
+        version: link:../../autox-core
       '@openshift/dynamic-plugin-sdk':
         specifier: ^5.0.1
         version: 5.0.1(react@18.3.1)
@@ -2181,6 +2184,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
+      '@odh-dashboard/autox-core':
+        specifier: workspace:*
+        version: link:../../autox-core
       '@openshift/dynamic-plugin-sdk':
         specifier: ^5.0.1
         version: 5.0.1(react@18.3.1)
@@ -2522,29 +2528,22 @@ importers:
       '@odh-dashboard/internal':
         specifier: workspace:*
         version: link:../../frontend/src
+      '@odh-dashboard/k8s-core':
+        specifier: workspace:*
+        version: link:../k8s-core
       '@odh-dashboard/plugin-core':
         specifier: workspace:*
         version: link:../plugin-core
-    devDependencies:
-      '@odh-dashboard/eslint-config':
+      '@odh-dashboard/ui-core':
         specifier: workspace:*
-        version: link:../eslint-config
-      '@odh-dashboard/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
-
-  packages/autox-core/ui:
-    dependencies:
-      '@hookform/resolvers':
-        specifier: ^5.2.2
-        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
-      '@patternfly/patternfly':
-        specifier: 6.6.1
-        version: 6.6.1
+        version: link:../ui-core
       '@patternfly/react-component-groups':
-        specifier: ~6.5.0
+        specifier: ^6
         version: 6.5.0(@patternfly/react-drag-drop@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-drag-drop':
         specifier: 6.6.1
         version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
@@ -2556,24 +2555,18 @@ importers:
       '@patternfly/react-table':
         specifier: 6.6.1
         version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-templates':
-        specifier: 6.6.1
-        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-topology':
-        specifier: ~6.6.0
+        specifier: ^6
         version: 6.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@tanstack/react-query':
-        specifier: ^5.90.20
-        version: 5.101.4(react@18.3.1)
       classnames:
-        specifier: ^2.2.6
+        specifier: ^2.5.1
         version: 2.5.1
       es-toolkit:
         specifier: ^1.44.0
-        version: 1.51.0
-      lodash-es:
-        specifier: ^4.17.15
-        version: 4.18.1
+        version: 1.52.0
+      mod-arch-core:
+        specifier: ^1.15.4
+        version: 1.21.0(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
       react:
         specifier: ^18
         version: 18.3.1
@@ -2589,13 +2582,19 @@ importers:
       react-router-dom:
         specifier: ^7.18.3
         version: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      zod:
-        specifier: ^4.3.6
-        version: 4.4.3
     devDependencies:
+      '@odh-dashboard/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
       '@odh-dashboard/jest-config':
         specifier: workspace:*
-        version: link:../../jest-config
+        version: link:../jest-config
+      '@odh-dashboard/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@tanstack/react-query':
+        specifier: 5.101.4
+        version: 5.101.4(react@18.3.1)
       '@testing-library/jest-dom':
         specifier: ^6.6.2
         version: 6.10.0(@testing-library/dom@10.4.1)
@@ -2608,9 +2607,9 @@ importers:
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
-      '@types/lodash-es':
-        specifier: ^4.17.8
-        version: 4.17.12
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
       '@types/react-dom':
         specifier: ^18.3.1
         version: 18.3.7(@types/react@18.3.31)
@@ -2619,19 +2618,13 @@ importers:
         version: 30.4.1
       jest:
         specifier: ^30.2.0
-        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.2.0
         version: 30.4.1(supports-color@8.1.1)
-      prettier:
-        specifier: ^3.3.3
-        version: 3.9.6
-      tslib:
-        specifier: ^2.7.0
-        version: 2.8.1
-      typescript:
-        specifier: ^5.8.2
-        version: 5.9.3
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
 
   packages/connection-types:
     dependencies:
@@ -5789,6 +5782,9 @@ importers:
       '@odh-dashboard/app-config':
         specifier: workspace:*
         version: link:../app-config
+      '@odh-dashboard/contract-tests':
+        specifier: workspace:*
+        version: link:../contract-tests
       '@odh-dashboard/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
@@ -29304,7 +29300,7 @@ snapshots:
 
   monaco-editor@0.54.0:
     dependencies:
-      dompurify: 3.4.15
+      dompurify: 3.4.16
       marked: 14.0.0
 
   mrmime@2.0.1: {}

@@ -30,11 +30,11 @@ import {
   TopologyQuadrant,
   WithSelectionProps,
 } from '@patternfly/react-topology';
+import { useBoundedCaptionHeight } from '@odh-dashboard/autox-core/ui/hooks';
 import { isBranchStepNodeId } from './stageMapStepMetadata';
 import { usePatternsExpand } from './PatternsExpandContext';
 import { isTreeNodeData, treeStepStateToNodeStatus } from './treeStepState';
 import { resolveTaskIconForNodeId } from './stageTaskIcons';
-import { useBoundedCaptionHeight } from './treeCaptionHeight';
 import {
   resolveTreeNodeVisualState,
   useJustCompleted,

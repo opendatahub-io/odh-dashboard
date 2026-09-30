@@ -1,4 +1,5 @@
 import { DEFAULT_SPACER_NODE_TYPE, NodeShape, type EdgeModel } from '@patternfly/react-topology';
+import { ROW_LABEL_GAP, ROW_LABEL_WIDTH } from '@odh-dashboard/autox-core/ui/utils';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
 import { parseBranchIndexFromSuffix } from '~/app/topology/stageMapConstants';
 import { getPatternRowLabel } from '~/app/topology/stageMapLabels';
@@ -10,7 +11,6 @@ import {
 } from './branchExpand';
 import type { TreeNodeModel, TreeTopologyData } from './types';
 import { TREE_EDGE_TYPE, TREE_NODE_TYPE } from './treeFactories';
-import { ROW_LABEL_GAP, ROW_LABEL_WIDTH } from './treeEdgePath';
 import type { TreeNodeData } from './TreeNode';
 import { isBranchStepNodeId, parseStageMapNodeId } from './stageMapStepMetadata';
 import {

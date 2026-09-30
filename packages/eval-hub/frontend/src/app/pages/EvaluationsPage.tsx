@@ -27,6 +27,7 @@ import { IconSize } from '@odh-dashboard/internal/types';
 import { ApplicationsPage, WhosMyAdministrator } from '@odh-dashboard/ui-core';
 import SupportIcon from '~/app/icons/SupportIcon';
 import { evalHubEvaluationsRoute } from '~/app/utilities/routes';
+import { getLatestEvaluationJob } from '~/app/utilities/evaluationUtils';
 import { evaluationCopySuiteRoute, evaluationReconfigureRoute } from '~/app/routes';
 import { useEvaluationJobs } from '~/app/hooks/useEvaluationJobs';
 import useEvalHubHealth from '~/app/hooks/useEvalHubHealth';
@@ -102,13 +103,15 @@ const EvaluationsPage: React.FC = () => {
     setSearchParams(nextSearchParams);
   }, [refreshEvaluations, searchParams, setSearchParams]);
 
-  const polledJobData = React.useMemo(
-    () =>
-      selectedJob
-        ? evaluations.find((e) => e.resource.id === selectedJob.job.resource.id)
-        : undefined,
-    [evaluations, selectedJob],
-  );
+  const polledJobData = React.useMemo(() => {
+    if (!selectedJob) {
+      return undefined;
+    }
+    return getLatestEvaluationJob(
+      selectedJob.job,
+      evaluations.find((e) => e.resource.id === selectedJob.job.resource.id),
+    );
+  }, [evaluations, selectedJob]);
 
   const onShowStatus = React.useCallback(
     (job: EvaluationJob) => {
