@@ -199,7 +199,7 @@ var _ = Describe("GenAIProxyNSModelsHandler", func() {
 	})
 })
 
-func TestGenAIProxyNSModelsHandlerExcludesTranscriptionOnlyModels(t *testing.T) {
+func TestGenAIProxyNSModelsHandlerExcludesTranscriptionTypedAndASROnlyModels(t *testing.T) {
 	aaModels := []models.AAModel{
 		{
 			ModelID:         "gemini-2.5-flash",
@@ -228,6 +228,13 @@ func TestGenAIProxyNSModelsHandlerExcludesTranscriptionOnlyModels(t *testing.T) 
 			Capabilities:    []string{constants.CapabilityAudioTranscription},
 			Status:          models.ModelStatusUnknown,
 			ModelSourceType: models.ModelSourceTypeCustomEndpoint,
+		},
+		{
+			ModelID:         "transcription-type-with-text-capability",
+			ModelType:       models.ModelTypeTranscription,
+			Capabilities:    []string{constants.CapabilityTextGeneration, constants.CapabilityAudioTranscription},
+			Status:          models.ModelStatusRunning,
+			ModelSourceType: models.ModelSourceTypeMaaS,
 		},
 		{
 			ModelID:         "combined-model",

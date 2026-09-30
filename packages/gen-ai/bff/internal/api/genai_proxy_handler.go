@@ -90,7 +90,9 @@ func (app *App) GenAIProxyNSModelsHandler(w http.ResponseWriter, r *http.Request
 }
 
 // buildOpenAIModelList advertises only models the inference proxy can serve.
-// Audio transcription is handled separately by LlamaStackAudioTranscriptionHandler.
+// OGX cannot parse the transcription model type, and Playground installation
+// skips that type even if its capabilities also list text generation. Audio
+// transcription is handled separately by LlamaStackAudioTranscriptionHandler.
 func buildOpenAIModelList(aaModels []models.AAModel) openAIModelList {
 	items := make([]openAIModelItem, 0, len(aaModels))
 	for _, m := range aaModels {
