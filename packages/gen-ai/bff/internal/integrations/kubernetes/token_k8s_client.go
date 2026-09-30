@@ -70,6 +70,10 @@ const (
 	// Gen-ai playground LLS distribution name
 	lsdName = "lsd-genai-playground"
 
+	// Suppresses noisy OGX Python auto-instrumentors that otherwise emit internal
+	// database and HTTP client spans as standalone request=null MLflow traces.
+	ogxDisabledInstrumentations = "sqlite3,sqlalchemy,asyncpg,requests,urllib,urllib3,httpx,httpx2"
+
 	// Label for dashboard-managed OGXServer identification
 	OpenDataHubDashboardLabelKey = "opendatahub.io/dashboard"
 
@@ -88,7 +92,75 @@ const (
 	routerCASecretName       = "router-ca"
 	routerCASecretKey        = "tls.crt"
 	ogxRouterCABundleName    = "ogx-router-ca-bundle"
+
+	officeMIMETypesConfigMapContents = `import mimetypes
+import os
+
+# Preserve OGX's optional OpenTelemetry auto-instrumentation hook when it is
+# available in the image. Python imports this module after the standard site
+# initialization, so importing the original hook here keeps both customizations.
+if os.environ.get("ODH_ENABLE_TRACING", "").lower() == "true":
+    try:
+        from opentelemetry.instrumentation.auto_instrumentation import sitecustomize as _otel_sitecustomize
+    except ImportError:
+        pass
+
+mimetypes.add_type("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx")
+mimetypes.add_type("application/vnd.openxmlformats-officedocument.presentationml.presentation", ".pptx")
+`
 )
+
+func newOfficeMIMETypesConfigMap(namespace string) *corev1.ConfigMap {
+	immutable := true
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.OfficeMIMETypesConfigMapName,
+			Namespace: namespace,
+			Labels: map[string]string{
+				OpenDataHubDashboardLabelKey: "true",
+				"ogx.io/server":              lsdName,
+				"ogx.io/watch":               "true",
+			},
+		},
+		Data: map[string]string{
+			constants.OfficeMIMETypesConfigMapKey: officeMIMETypesConfigMapContents,
+		},
+		Immutable: &immutable,
+	}
+}
+
+func officeMIMETypesWorkloadOverrides(enableTracing bool) ([]corev1.EnvVar, []corev1.Volume, []corev1.VolumeMount) {
+	return []corev1.EnvVar{{
+			Name:  "PYTHONPATH",
+			Value: constants.OfficeMIMETypesMountPath,
+		}, {
+			Name:  "ODH_ENABLE_TRACING",
+			Value: strconv.FormatBool(enableTracing),
+		}}, []corev1.Volume{{
+			Name: constants.OfficeMIMETypesConfigMapName,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: constants.OfficeMIMETypesConfigMapName},
+					Items: []corev1.KeyToPath{{
+						Key:  constants.OfficeMIMETypesConfigMapKey,
+						Path: constants.OfficeMIMETypesConfigMapKey,
+					}},
+				},
+			},
+		}}, []corev1.VolumeMount{{
+			Name:      constants.OfficeMIMETypesConfigMapName,
+			MountPath: constants.OfficeMIMETypesMountPath,
+			ReadOnly:  true,
+		}}
+}
+
+func isTrustedOfficeMIMETypesConfigMap(configMap *corev1.ConfigMap) bool {
+	if configMap == nil || len(configMap.Data) != 1 || len(configMap.BinaryData) != 0 {
+		return false
+	}
+
+	return configMap.Data[constants.OfficeMIMETypesConfigMapKey] == officeMIMETypesConfigMapContents
+}
 
 type modelDetailsResult struct {
 	modelID     string
@@ -687,6 +759,21 @@ func (kc *TokenKubernetesClient) GetConfigMap(ctx context.Context, identity *int
 		return nil, fmt.Errorf("failed to get ConfigMap: %w", err)
 	}
 
+	return configMap, nil
+}
+
+// GetDashboardConfigMap reads dashboard-managed, non-secret configuration through the
+// dashboard service account. It falls back to the request client for local development.
+func (kc *TokenKubernetesClient) GetDashboardConfigMap(ctx context.Context, namespace string, name string) (*corev1.ConfigMap, error) {
+	reader := kc.SAClient
+	if reader == nil {
+		reader = kc.Client
+	}
+
+	configMap := &corev1.ConfigMap{}
+	if err := reader.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, configMap); err != nil {
+		return nil, fmt.Errorf("failed to get dashboard ConfigMap %s/%s: %w", namespace, name, err)
+	}
 	return configMap, nil
 }
 
@@ -1525,7 +1612,7 @@ func ogxCommand(enableTracing bool) []string {
 	if enableTracing {
 		return []string{"/bin/sh", "-c", strings.Join([]string{
 			"cp /opt/app-root/lib/python*/site-packages/opentelemetry/instrumentation/auto_instrumentation/sitecustomize.py /opt/app-root/lib/python*/site-packages/ 2>/dev/null || true",
-			"opentelemetry-instrument --traces_exporter=otlp_proto_http --metrics_exporter=none --logs_exporter=none ogx run /etc/ogx/config.yaml --insecure",
+			fmt.Sprintf("opentelemetry-instrument --traces_exporter=otlp_proto_http --metrics_exporter=none --logs_exporter=none --disabled_instrumentations=%s ogx run /etc/ogx/config.yaml --insecure", ogxDisabledInstrumentations),
 		}, " && ")}
 	}
 	return []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml --insecure"}
@@ -1549,9 +1636,11 @@ func ogxEnvVars(base []corev1.EnvVar, enableTracing bool, namespace string, coll
 			corev1.EnvVar{Name: "OTEL_RESOURCE_ATTRIBUTES", Value: fmt.Sprintf("k8s.namespace.name=%s", namespace)},
 			corev1.EnvVar{Name: "OTEL_SEMCONV_STABILITY_OPT_IN", Value: "http"},
 			corev1.EnvVar{Name: "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT", Value: "true"},
-			// Suppress noisy spans from internal endpoints and low-level instrumentors
-			corev1.EnvVar{Name: "OTEL_PYTHON_FASTAPI_EXCLUDED_URLS", Value: "health,version,metadata"},
-			corev1.EnvVar{Name: "OTEL_PYTHON_DISABLED_INSTRUMENTATIONS", Value: "sqlite3"},
+			// Suppress noisy spans from internal endpoints and low-level database/HTTP
+			// instrumentors. Otherwise OGX discovery, provider health, pgvector, and
+			// persistence calls are exported as separate request=null root traces.
+			corev1.EnvVar{Name: "OTEL_PYTHON_FASTAPI_EXCLUDED_URLS", Value: "health,version,metadata,models,vector_stores,providers,files"},
+			corev1.EnvVar{Name: "OTEL_PYTHON_DISABLED_INSTRUMENTATIONS", Value: ogxDisabledInstrumentations},
 		)
 	}
 
@@ -1823,6 +1912,54 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 
 	kc.Logger.Info("ConfigMap created successfully (before OGXServer creation)", "namespace", namespace, "configMapName", configMapName)
 
+	// inline::auto relies on Python's mimetypes registry to select MarkItDown
+	// for Office documents. The supported OGX image does not register Office
+	// mappings, so provide them as a small, isolated sitecustomize module.
+	officeMIMETypesConfigMap := newOfficeMIMETypesConfigMap(namespace)
+	officeMIMEConfigMapCreated := false
+	if err := kc.Client.Create(ctx, officeMIMETypesConfigMap); err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			if getErr := kc.Client.Get(ctx, types.NamespacedName{Name: officeMIMETypesConfigMap.Name, Namespace: namespace}, officeMIMETypesConfigMap); getErr != nil {
+				if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
+					kc.Logger.Warn("failed to clean up Llama Stack ConfigMap after MIME ConfigMap lookup failure", "error", deleteErr, "namespace", namespace)
+				}
+				return nil, rollbackPgvector(fmt.Errorf("failed to retrieve existing Office MIME types ConfigMap: %w", getErr))
+			}
+			if !isTrustedOfficeMIMETypesConfigMap(officeMIMETypesConfigMap) {
+				if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
+					kc.Logger.Warn("failed to clean up Llama Stack ConfigMap after rejecting an untrusted MIME ConfigMap", "error", deleteErr, "namespace", namespace)
+				}
+				return nil, rollbackPgvector(fmt.Errorf("existing Office MIME types ConfigMap has unexpected content"))
+			}
+			if officeMIMETypesConfigMap.Immutable == nil || !*officeMIMETypesConfigMap.Immutable {
+				immutable := true
+				officeMIMETypesConfigMap.Immutable = &immutable
+				if updateErr := kc.Client.Update(ctx, officeMIMETypesConfigMap); updateErr != nil {
+					if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
+						kc.Logger.Warn("failed to clean up Llama Stack ConfigMap after MIME ConfigMap immutability update failure", "error", deleteErr, "namespace", namespace)
+					}
+					return nil, rollbackPgvector(fmt.Errorf("failed to make existing Office MIME types ConfigMap immutable: %w", updateErr))
+				}
+			}
+		} else {
+			if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
+				kc.Logger.Warn("failed to clean up Llama Stack ConfigMap after MIME ConfigMap creation failure", "error", deleteErr, "namespace", namespace)
+			}
+			return nil, rollbackPgvector(fmt.Errorf("failed to create Office MIME types ConfigMap: %w", err))
+		}
+	} else {
+		officeMIMEConfigMapCreated = true
+	}
+
+	cleanupOfficeMIMEConfigMap := func() {
+		if !officeMIMEConfigMapCreated {
+			return
+		}
+		if deleteErr := kc.Client.Delete(ctx, officeMIMETypesConfigMap); deleteErr != nil && !apierrors.IsNotFound(deleteErr) {
+			kc.Logger.Warn("failed to clean up Office MIME types ConfigMap", "error", deleteErr, "namespace", namespace)
+		}
+	}
+
 	// Prefer the DSCI-managed bundle. A newly created E2E namespace may not yet
 	// have one, so create an OpenShift-injected bundle as a fallback.
 	caBundleConfigMapName := "odh-trusted-ca-bundle"
@@ -1844,6 +1981,10 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		}
 		if err := kc.Client.Create(ctx, caBundle); err != nil {
 			if !apierrors.IsAlreadyExists(err) {
+				cleanupOfficeMIMEConfigMap()
+				if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
+					kc.Logger.Warn("failed to clean up Llama Stack ConfigMap after CA bundle creation failure", "error", deleteErr, "namespace", namespace)
+				}
 				return nil, rollbackPgvector(fmt.Errorf("failed to create CA trust ConfigMap: %w", err))
 			}
 		} else {
@@ -1867,6 +2008,10 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 	if kc.EnvConfig.GatewayDomain != "" {
 		routerCABundleName, created, err := kc.ensureOGXGatewayCABundle(ctx, namespace)
 		if err != nil {
+			cleanupOfficeMIMEConfigMap()
+			if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
+				kc.Logger.Warn("failed to clean up Llama Stack ConfigMap after gateway CA bundle failure", "error", deleteErr, "namespace", namespace)
+			}
 			return nil, rollbackPgvector(err)
 		}
 		routerCABundleCreated = created
@@ -1888,6 +2033,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			corev1.ResourceMemory: resource.MustParse("12Gi"),
 		},
 	}
+	officeMIMEEnv, officeMIMEVolumes, officeMIMEVolumeMounts := officeMIMETypesWorkloadOverrides(enableTracing)
 	ogxServer := &ogxapi.OGXServer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      lsdName,
@@ -1915,8 +2061,10 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 				Replicas:  &replicas,
 				Resources: workloadResources,
 				Overrides: &ogxapi.WorkloadOverrides{
-					Command: ogxCommand(enableTracing),
-					Env:     ogxEnvVars(envVars, enableTracing, namespace, kc.resolveCollectorEndpoint()),
+					Command:      ogxCommand(enableTracing),
+					Env:          append(ogxEnvVars(envVars, enableTracing, namespace, kc.resolveCollectorEndpoint()), officeMIMEEnv...),
+					Volumes:      officeMIMEVolumes,
+					VolumeMounts: officeMIMEVolumeMounts,
 				},
 			},
 			Network: &ogxapi.NetworkSpec{
@@ -1940,6 +2088,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		} else {
 			kc.Logger.Info("ConfigMap cleaned up after OGXServer creation failure", "namespace", namespace, "configMapName", configMapName)
 		}
+		cleanupOfficeMIMEConfigMap()
 		if fallbackCABundleCreated {
 			if deleteErr := kc.Client.Delete(ctx, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: caBundleConfigMapName, Namespace: namespace}}); deleteErr != nil {
 				kc.Logger.Error("failed to clean up fallback CA bundle after OGXServer creation failure", "error", deleteErr, "namespace", namespace)
@@ -1976,6 +2125,11 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		// Continue without failing - the OGXServer is created successfully
 	} else {
 		kc.Logger.Info("ConfigMap updated with owner reference", "namespace", namespace, "configMapName", configMapName, "owner", lsdName)
+	}
+
+	officeMIMETypesConfigMap.OwnerReferences = configMap.OwnerReferences
+	if err := kc.Client.Update(ctx, officeMIMETypesConfigMap); err != nil {
+		kc.Logger.Warn("Office MIME types ConfigMap will not be automatically garbage collected when OGXServer is deleted", "error", err, "namespace", namespace)
 	}
 
 	// The fallback bundle is dashboard-owned; leave the DSCI-managed bundle untouched.
@@ -2400,16 +2554,11 @@ func requiresPassthroughProvider(model models.InstallModel) bool {
 	}
 }
 
-// GetExternalModelsConfig retrieves and parses the gen-ai-aa-custom-model-endpoints ConfigMap
+// GetExternalModelsConfig retrieves and parses the user-managed
+// gen-ai-aa-custom-model-endpoints ConfigMap using the request-scoped client.
 func (kc *TokenKubernetesClient) GetExternalModelsConfig(ctx context.Context, namespace string) (*models.ExternalModelsConfig, error) {
-	// Get the ConfigMap
-	configMap := &corev1.ConfigMap{}
-	configMapName := types.NamespacedName{
-		Name:      constants.ExternalModelsConfigMapName,
-		Namespace: namespace,
-	}
-
-	if err := kc.Client.Get(ctx, configMapName, configMap); err != nil {
+	configMap, err := kc.GetConfigMap(ctx, nil, namespace, constants.ExternalModelsConfigMapName)
+	if err != nil {
 		return nil, err
 	}
 

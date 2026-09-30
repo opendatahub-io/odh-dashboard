@@ -21,6 +21,7 @@ type LlamaStackClientInterface interface {
 	GetFile(ctx context.Context, fileID string) (*openai.FileObject, error)
 	GetFileContent(ctx context.Context, fileID string) (io.ReadCloser, string, error)
 	DeleteFile(ctx context.Context, fileID string) error
+	ProcessFile(ctx context.Context, fileID string) (*ProcessedDocument, error)
 	ListVectorStoreFiles(ctx context.Context, vectorStoreID string, params ListVectorStoreFilesParams) ([]openai.VectorStoreFile, error)
 	GetVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) (*openai.VectorStoreFile, error)
 	DeleteVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) error

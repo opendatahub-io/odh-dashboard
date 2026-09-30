@@ -5,7 +5,12 @@ import {
   waitForUserProjectAccess,
 } from '../../../utils/oc_commands/project';
 import { waitForOGXServerReady } from '../../../utils/oc_commands/ogxServer';
-import { waitForResource } from '../../../utils/oc_commands/baseCommands';
+import {
+  startPortForward,
+  stopPortForward,
+  waitForResource,
+  type PortForwardHandle,
+} from '../../../utils/oc_commands/baseCommands';
 import {
   enableExternalProviders,
   disableExternalProviders,
@@ -41,6 +46,7 @@ type MultimodalTestData = {
 describe('Verify multimodal inferencing in playground', { testIsolation: false }, () => {
   let testData: MultimodalTestData;
   let originalExternalProviders: boolean | undefined;
+  let portForwardHandle: PortForwardHandle | null = null;
   const projectName = `multimodal-e2e-${generateTestUUID()}`;
 
   retryableBefore(() => {
@@ -110,10 +116,17 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
 
       cy.step('Wait for vision model to be registered in LSD');
       waitForModelInLSD(testData.model.lsdServiceName, testData.model.modelId, projectName, 60);
+
+      cy.step('Start port-forward for LSD service');
+      startPortForward(projectName, testData.model.lsdServiceName, 8321).then((handle) => {
+        portForwardHandle = handle;
+      });
     });
   });
 
   after(() => {
+    stopPortForward(portForwardHandle);
+
     cy.step('Revert externalProviders in OdhDashboardConfig');
     if (originalExternalProviders !== undefined) {
       disableExternalProviders(originalExternalProviders);

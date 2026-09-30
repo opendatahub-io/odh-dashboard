@@ -12,7 +12,7 @@ This service exposes:
 
 - GET `/healthcheck` – liveness probe
 - GET `/api/v1/user` – returns the authenticated (mock) user
-- GET `/api/v1/namespaces` – list namespaces (available only when DEV_MODE=true or mock k8s enabled)
+- GET `/api/v1/namespaces` – list namespaces using the authenticated caller's Kubernetes permissions
 - `/api/v1/*` (catchall, minus `/api/v1/user` and `/api/v1/namespaces` above) – Data Registry API
   proxy (Iceberg REST Catalog-compatible + RHOAI extensions). See
   [Data Registry API proxy](#data-registry-api-proxy) below.
@@ -52,13 +52,13 @@ make run LOG_LEVEL=DEBUG
 | Flag | Env Var | Description |
 |------|---------|-------------|
 | `-port` | `PORT` | Listen port (default 4000) |
-| `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `integrated` (default `standalone`) |
+| `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `federated` (default `standalone`) |
 | `-dev-mode` | `DEV_MODE` | Enables relaxed behaviors (namespaces listing, etc.) |
 | `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution |
 | `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets |
 | `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO) |
 | `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins |
-| `-auth-method` | `AUTH_METHOD` | `user_token` (default, recommended) or `internal` (Kubeflow only) |
+| `-auth-method` | `AUTH_METHOD` | `user_token` only; uses the authenticated RHOAI/ODH user token |
 | `-auth-token-header` | `AUTH_TOKEN_HEADER` | Header to read token from (default `x-forwarded-access-token` for ODH) |
 | `-auth-token-prefix` | `AUTH_TOKEN_PREFIX` | Expected value prefix (default empty for ODH; use `Bearer` with standard `Authorization`) |
 | `-cert-file` | `CERT_FILE` | TLS certificate path (enables TLS when paired with key) |
@@ -103,7 +103,7 @@ make docker-build
 ```text
 GET /healthcheck
 GET /api/v1/user
-GET /api/v1/namespaces   (dev / mock mode only)
+GET /api/v1/namespaces   (authenticated requests)
 /api/v1/*                (Data Registry API proxy catchall, see below)
 ```
 
@@ -123,8 +123,8 @@ When running with the mocked Kubernetes client (MOCK_K8S_CLIENT=true), the user 
 
 ```shell
 curl -i localhost:4000/healthcheck
-curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/user
-curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/namespaces   # (dev / mock only)
+curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" localhost:4000/api/v1/user
+curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" localhost:4000/api/v1/namespaces   # (dev / mock only)
 ```
 
 ### Data Registry API proxy
@@ -160,8 +160,8 @@ authorization, data persistence, or business logic of its own. See
   upstream server for SAR) and `collection` is the Iceberg namespace within that project. The two
   non-project-scoped routes (`/api/v1/config`, `/api/v1/projects`) need no special-casing — they're
   just more paths under the same catchall.
-- **Auth**: the caller's bearer token (extracted by `InjectRequestIdentity` per the configured
-  `-auth-method`) is forwarded upstream as `Authorization: Bearer <token>` — rebuilt fresh from
+- **Auth**: the caller's bearer token (extracted by `InjectRequestIdentity` from the configured
+  token header) is forwarded upstream as `Authorization: Bearer <token>` — rebuilt fresh from
   the verified identity, never copied verbatim from the incoming request. The Data Registry
   server's own `kube-rbac-proxy` sidecar performs the actual TokenReview/SubjectAccessReview
   against the `project` path segment; the BFF does not perform its own authorization for these
@@ -170,7 +170,7 @@ authorization, data persistence, or business logic of its own. See
   string matters for e.g. `/api/v1/{project}/search`). Headers are forwarded unchanged **except**
   `Authorization` (always rebuilt, see above), the configured incoming auth-token header (e.g.
   `x-forwarded-access-token` — see `-auth-token-header` above; never relayed verbatim either, for
-  the same reason as `Authorization`), and `X-User`/`kubeflow-userid`/`kubeflow-groups` (always
+  the same reason as `Authorization`), and `X-User` plus legacy Kubeflow identity headers (always
   stripped) — the upstream contract trusts those identity headers for attribution (e.g. the
   `registered_by` field), so a caller-supplied value is never relayed as-is. The upstream response
   status, body, and headers are relayed back verbatim by `httputil.ReverseProxy` — including error
@@ -221,14 +221,25 @@ The BFF includes a `bffclient` package (`internal/integrations/bffclient/`) that
 
 See the `bffclient` package README and the implementation spec for detailed guidance.
 
-### Authentication modes
+### Authentication
 
-Two modes are supported (flag `--auth-method` / env `AUTH_METHOD`):
+Data Registry is an ODH Dashboard/RHOAI module and supports only `user_token` authentication.
+The BFF extracts the user's OpenShift bearer token from the configured header (normally
+`x-forwarded-access-token`) and uses that same token for Kubernetes requests. Kubernetes therefore
+applies the requesting user's RBAC permissions directly; the BFF does not use a service-account
+client or user impersonation.
 
-- **user_token** (default, recommended): extracts a bearer token from the configured header (default `x-forwarded-access-token` for ODH/RHOAI) and performs SelfSubjectAccessReview. This is the standard authentication method for ODH/RHOAI deployments and is recommended for most use cases including mock/development mode.
-- **internal** (Kubeflow only): impersonates the provided `kubeflow-userid` (and optional `kubeflow-groups`) headers using a cluster or local kubeconfig credential. Only use this mode for Kubeflow Central Dashboard deployments.
+The authenticated request identity is propagated to both the typed and dynamic Kubernetes
+clients. Project discovery first attempts the core Kubernetes Namespace API. When that list is
+forbidden for the caller, the BFF falls back to the OpenShift Project API
+(`project.openshift.io/v1/projects`), which applies the caller's visibility rules. The returned
+projects are exposed through the existing namespaces endpoint for the Data Registry project
+selector; the BFF does not list all projects and filter them using only the service account's
+permissions.
 
-> **Note:** For local development in mock mode, use `user_token` authentication (the default). The `internal` mode is only needed for Kubeflow-specific deployments.
+> **Note:** Mock mode uses synthetic bearer tokens for local tests. The federated startup
+> configuration uses `x-forwarded-access-token` without a prefix, matching the RHOAI/ODH proxy
+> integration.
 
 ### Overriding token header / prefix
 

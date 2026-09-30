@@ -62,6 +62,8 @@ describe('Suite editor benchmark selection', () => {
   it('should select benchmarks on a flat page before configuring a new suite', () => {
     copySuitePage.visitCreate(NAMESPACE);
     copySuitePage.findSuiteNameInput().type('New suite');
+    copySuitePage.findSettingsNextButton().should('be.disabled');
+    copySuitePage.selectCategory('grounded_document_understanding');
     copySuitePage.findSettingsNextButton().click();
 
     copySuitePage.findSelectBenchmarksStep().should('exist');

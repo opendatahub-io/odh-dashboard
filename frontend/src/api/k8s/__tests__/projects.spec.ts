@@ -8,6 +8,8 @@ import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import axios from '@odh-dashboard/ui-core/utilities/axios';
+import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
+import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
 import { mockAxiosError } from '#~/__mocks__/mockAxiosError';
 import {
   addSupportServingPlatformProject,
@@ -21,8 +23,6 @@ import {
 import { ProjectModel, ProjectRequestModel } from '#~/api/models';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { NamespaceApplicationCase } from '#~/pages/projects/types';
-import { groupVersionKind } from '#~/api/k8sUtils';
-import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -31,7 +31,7 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sDeleteResource: jest.fn(),
 }));
 
-jest.mock('#~/utilities/useK8sWatchResourceList', () => ({
+jest.mock('@odh-dashboard/ui-core/hooks/useK8sWatchResourceList', () => ({
   __esModule: true,
   default: jest.fn(),
 }));

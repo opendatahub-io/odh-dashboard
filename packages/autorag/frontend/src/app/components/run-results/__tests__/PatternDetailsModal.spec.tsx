@@ -186,7 +186,7 @@ describe('PatternDetailsModal', () => {
       <PatternDetailsModal
         {...defaultProps}
         patterns={[nonWinningCanonicalPattern]}
-        optimizationMetric={{ name: 'faithfulness' }}
+        optimizationMetric={{ name: 'faithfulness', evaluator: 'unitxt' }}
         rank={2}
       />,
     );
@@ -569,7 +569,10 @@ describe('PatternDetailsModal', () => {
       const printSpy = jest.spyOn(window, 'print').mockImplementation(jest.fn());
       try {
         render(
-          <PatternDetailsModal {...defaultProps} optimizationMetric={{ name: 'faithfulness' }} />,
+          <PatternDetailsModal
+            {...defaultProps}
+            optimizationMetric={{ name: 'faithfulness', evaluator: 'unitxt' }}
+          />,
         );
         await user.click(screen.getByTestId('pattern-details-download'));
 

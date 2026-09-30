@@ -21,6 +21,20 @@ class CopySuitePage {
     return cy.findByTestId('copy-suite-next');
   }
 
+  findCategoryInput() {
+    return cy.findByTestId('suite-domains-input');
+  }
+
+  findCategoryOption(category: string) {
+    return cy.findByTestId(`suite-domains-option-${category}`);
+  }
+
+  selectCategory(category: string) {
+    this.findCategoryInput().click();
+    this.findCategoryOption(category).findByRole('checkbox').click();
+    this.findCategoryInput().type('{esc}');
+  }
+
   findSelectBenchmarksStep() {
     return cy.findByTestId('copy-suite-step-select-benchmarks');
   }

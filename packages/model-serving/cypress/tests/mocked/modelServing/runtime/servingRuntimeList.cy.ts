@@ -41,12 +41,12 @@ import {
 } from '@odh-dashboard/cypress/cypress/pages/modelServing';
 import { projectDetails } from '@odh-dashboard/cypress/cypress/pages/projects';
 import { be } from '@odh-dashboard/cypress/cypress/utils/should';
-import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
+import { SecretModel, PodModel } from '@odh-dashboard/k8s-core/api/models';
+
 import {
   HardwareProfileModel,
   InferenceServiceModel,
   ODHDashboardConfigModel,
-  PodModel,
   ProjectModel,
   RouteModel,
   ServingRuntimeModel,

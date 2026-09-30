@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { renderHook, act } from '@testing-library/react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
-import { CreateResponseRequest, SimplifiedResponseData } from '~/app/types';
+import { CreateResponseRequest, DocumentAttachment, SimplifiedResponseData } from '~/app/types';
 import {
   mockModelId,
   mockSuccessResponse,
@@ -87,6 +87,7 @@ const createDefaultHookProps = (overrides?: {
   knowledgeMode?: 'inline' | 'external';
   selectedServerIds?: string[];
   subscription?: string;
+  documentAttachments?: DocumentAttachment[];
 }) => ({
   ...defaultMcpProps,
   configId: 'default',
@@ -309,6 +310,42 @@ describe('useChatbotMessages', () => {
   });
 
   describe('error handling', () => {
+    it('includes persisted document attachments in each Responses request', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+      const attachments: DocumentAttachment[] = [
+        {
+          file_id: 'file-document',
+          filename: 'notes.txt',
+          text: 'Extracted document content',
+          content_type: 'text/plain',
+          size: 42,
+        },
+      ];
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(
+          createDefaultHookProps({ isRagEnabled: false, documentAttachments: attachments }),
+        ),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Summarize these notes');
+      });
+
+      expect(mockCreateResponse).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attachments: [
+            {
+              file_id: 'file-document',
+              filename: 'notes.txt',
+              text: 'Extracted document content',
+            },
+          ],
+        }),
+        expect.objectContaining({ abortSignal: expect.any(Object) }),
+      );
+    });
+
     it('should handle missing modelId', async () => {
       const { result } = renderHook(() =>
         useChatbotMessages(createDefaultHookProps({ modelId: '' })),
@@ -589,6 +626,38 @@ describe('useChatbotMessages', () => {
       expect(secondCall.chat_context![1]).toMatchObject({
         role: 'assistant',
         content: 'This is a bot response',
+      });
+    });
+
+    it('should include sent document text in conversation history for follow-up messages', async () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+      const attachments: DocumentAttachment[] = [
+        {
+          file_id: 'file-document',
+          filename: 'notes.txt',
+          text: 'The project owner is Ada.',
+          content_type: 'text/plain',
+          size: 42,
+        },
+      ];
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(
+          createDefaultHookProps({ isRagEnabled: false, documentAttachments: attachments }),
+        ),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Summarize these notes');
+      });
+      await act(async () => {
+        await result.current.handleMessageSend('Who owns the project?');
+      });
+
+      const secondCall = mockCreateResponse.mock.calls[1][0];
+      expect(secondCall.chat_context![0]).toMatchObject({
+        role: 'user',
+        content: 'Summarize these notes\n\nThe project owner is Ada.',
       });
     });
 
@@ -904,11 +973,22 @@ describe('useChatbotMessages', () => {
       const mockGetId = jest.requireMock('~/app/utilities/utils').getId as jest.Mock;
       let idCounter = 0;
       mockGetId.mockImplementation(() => `msg-${idCounter++}`);
+      const attachments: DocumentAttachment[] = [
+        {
+          file_id: 'file-document-789',
+          filename: 'notes.txt',
+          text: 'The project owner is Ada.',
+          content_type: 'text/plain',
+          size: 42,
+        },
+      ];
 
       try {
         mockCreateResponse.mockResolvedValue(mockSuccessResponse);
 
-        const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+        const { result } = renderHook(() =>
+          useChatbotMessages(createDefaultHookProps({ documentAttachments: attachments })),
+        );
 
         // First turn: multimodal message with image
         await act(async () => {
@@ -931,6 +1011,7 @@ describe('useChatbotMessages', () => {
           content: [
             { type: 'input_text', text: 'What is in this image?' },
             { type: 'input_image', file_id: 'file-img-789' },
+            { type: 'input_text', text: 'The project owner is Ada.' },
           ],
         });
         expect(secondPayload.chat_context![1]).toMatchObject({
