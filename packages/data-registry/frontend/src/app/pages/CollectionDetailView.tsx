@@ -21,6 +21,7 @@ import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
 import type { CollectionDetail, CollectionAsset } from '~/app/hooks/useCollectionDetail';
 import { assetDetailUrl } from '~/app/utilities/routes';
+import { FORMAT_OPTIONS, getUnstructuredFormatLabel } from '~/app/utilities/formatUtils';
 
 type CollectionDetailViewProps = {
   collection: CollectionDetail;
@@ -37,6 +38,12 @@ type AssetRowProps = {
 const AssetRow: React.FC<AssetRowProps> = ({ asset, assetType, collectionName, project }) => {
   const navigate = useNavigate();
   const [isKebabOpen, setIsKebabOpen] = React.useState(false);
+  const formatLabel =
+    asset.assetType === 'volume'
+      ? getUnstructuredFormatLabel(asset.format)
+      : FORMAT_OPTIONS.find(
+          (option) => option.value === asset.format && option.assetType === asset.assetType,
+        )?.label || asset.format;
 
   const detailUrl = project
     ? assetDetailUrl(
@@ -52,15 +59,9 @@ const AssetRow: React.FC<AssetRowProps> = ({ asset, assetType, collectionName, p
       <Td dataLabel="Name">{detailUrl ? <Link to={detailUrl}>{asset.name}</Link> : asset.name}</Td>
       <Td dataLabel="Type">{assetType}</Td>
       <Td dataLabel="Format">
-        {asset.format === 'Structured' || asset.format === 'Unstructured' ? (
-          <Label isCompact variant="outline">
-            {assetType}
-          </Label>
-        ) : (
-          <Label isCompact variant="outline">
-            {asset.format}
-          </Label>
-        )}
+        <Label isCompact variant="outline">
+          {formatLabel}
+        </Label>
       </Td>
       <Td isActionCell>
         <Dropdown

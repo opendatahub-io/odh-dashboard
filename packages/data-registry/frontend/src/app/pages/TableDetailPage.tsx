@@ -26,7 +26,6 @@ import { useGenericTable } from '~/app/hooks/useGenericTable';
 import { useVolume } from '~/app/hooks/useVolume';
 import { deleteGenericTable, deleteVolume } from '~/app/api/dataRegistry';
 import { browseUrl, collectionDetailUrl } from '~/app/utilities/routes';
-import { volumeToAsset } from '~/app/utilities/assetUtils';
 import { useNotification } from '~/app/hooks/useNotification';
 import DeleteAssetModal from '~/app/components/DeleteAssetModal';
 import EditAssetModal from '~/app/components/EditAssetModal';
@@ -56,12 +55,10 @@ const TableDetailPage: React.FC = () => {
     isVolume ? name : undefined,
   );
 
-  const asset = React.useMemo(() => {
-    if (isVolume && volume && collection) {
-      return volumeToAsset(volume, collection);
-    }
-    return genericTable;
-  }, [isVolume, volume, genericTable, collection]);
+  const asset = React.useMemo(
+    () => (isVolume ? volume : genericTable),
+    [isVolume, volume, genericTable],
+  );
 
   const loaded = isVolume ? volumeLoaded : genericLoaded;
   const loadError = isVolume ? volumeError : genericError;
