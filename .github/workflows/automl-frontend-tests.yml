@@ -23,6 +23,11 @@ on:
 env:
   NODE_VERSION: 22
 
+# Only run the most recent workflow for each pull request or branch.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
