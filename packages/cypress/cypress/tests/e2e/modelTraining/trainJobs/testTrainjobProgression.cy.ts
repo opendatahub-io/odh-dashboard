@@ -4,7 +4,6 @@ import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { createCleanProject } from '../../../../utils/projectChecker';
 import {
-  deleteTrainingRuntime,
   setupTrainingResources,
   verifyTrainJobDeleted,
 } from '../../../../utils/oc_commands/trainingJobs';
@@ -55,7 +54,7 @@ describe('Verify a Training Job with Progression Tracking', () => {
 
           projectName = `${testData.projectName}-${uuid}`;
           trainJobName = `${testData.trainJobName}-${uuid}`;
-          trainingRuntimeName = `${testData.trainingRuntimeName}-${uuid}`;
+          trainingRuntimeName = testData.trainingRuntimeName;
           flavorName = `${testData.flavorName}-${uuid}`;
           clusterQueueName = `${testData.clusterQueueName}-${uuid}`;
           localQueueName = `${testData.localQueueName}-${uuid}`;
@@ -71,7 +70,7 @@ describe('Verify a Training Job with Progression Tracking', () => {
           createCleanProject(projectName);
         })
         .then(() => {
-          cy.step('Setup training resources (Kueue, TrainingRuntime, TrainJob)');
+          cy.step('Setup training resources (Kueue and TrainJob)');
           setupTrainingResources({
             namespace: projectName,
             trainJobName,
@@ -95,9 +94,6 @@ describe('Verify a Training Job with Progression Tracking', () => {
 
     cy.step('delete project');
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
-
-    cy.step('delete TrainingRuntime');
-    deleteTrainingRuntime(trainingRuntimeName, projectName, { ignoreNotFound: true });
 
     cy.step('delete Kueue resources');
     deleteKueueResources(localQueueName, clusterQueueName, flavorName, projectName, {

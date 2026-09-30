@@ -1,6 +1,6 @@
 projectName: trainer-v2-test
 trainJobName: test-train-job
-trainingRuntimeName: test-training-runtime
+trainingRuntimeName: torch-distributed-cpu
 flavorName: default-flavor
 clusterQueueName: default
 localQueueName: default
