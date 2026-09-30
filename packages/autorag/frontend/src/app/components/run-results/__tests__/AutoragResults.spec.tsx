@@ -287,7 +287,10 @@ describe('AutoragResults', () => {
   it('should pass fallback topology nodes to useTreeViewData when stage map is unavailable', () => {
     renderWithContext(mockPipelineRun);
     const fallbackNodes = useAutoragTaskTopologyMock.mock.results[0]?.value;
-    expect(useTreeViewDataMock).toHaveBeenCalledWith({}, fallbackNodes, undefined);
+    expect(useTreeViewDataMock).toHaveBeenCalledWith({}, fallbackNodes, undefined, undefined, {
+      evaluator: 'custom',
+      name: 'overall_score',
+    });
   });
 
   it('should render gracefully when pipelineRun is undefined', () => {
@@ -713,6 +716,8 @@ describe('AutoragResults', () => {
         {},
         useAutoragTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
+        undefined,
+        { evaluator: 'custom', name: 'overall_score' },
       );
     });
 
@@ -766,6 +771,8 @@ describe('AutoragResults', () => {
         {},
         buildStageMapTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
+        undefined,
+        { evaluator: 'custom', name: 'overall_score' },
       );
     });
 
@@ -798,6 +805,8 @@ describe('AutoragResults', () => {
         {},
         useAutoragTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
+        undefined,
+        { evaluator: 'custom', name: 'overall_score' },
       );
     });
 
@@ -811,6 +820,8 @@ describe('AutoragResults', () => {
         {},
         useAutoragTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
+        undefined,
+        { evaluator: 'custom', name: 'overall_score' },
       );
     });
 
@@ -825,6 +836,8 @@ describe('AutoragResults', () => {
         {},
         useAutoragTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
+        undefined,
+        { evaluator: 'custom', name: 'overall_score' },
       );
     });
 

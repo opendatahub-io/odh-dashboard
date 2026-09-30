@@ -428,7 +428,12 @@ describe('transformStageMapNodesToTree', () => {
     const firstBranchNodes = nodes.filter(
       (node) => node.id.includes('__step__') && node.id.includes('__branch-'),
     );
-    const firstBranchX = Math.min(...firstBranchNodes.map((node) => node.x));
+    const firstBranchXValues = firstBranchNodes
+      .map((node) => node.x)
+      .filter((x): x is number => x !== undefined);
+    expect(firstBranchXValues).toHaveLength(firstBranchNodes.length);
+    expect(firstBranchXValues).not.toHaveLength(0);
+    const firstBranchX = Math.min(...firstBranchXValues);
     const rowLabelRight = (rowLabels[0]?.x ?? 0) + (rowLabels[0]?.width ?? 0);
     expect(firstBranchX - rowLabelRight).toBe(24);
     expect(
