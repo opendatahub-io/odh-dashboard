@@ -190,6 +190,7 @@ jobs:
           name: cypress-mock-impact-plan
           path: .test-impact
           if-no-files-found: error
+          include-hidden-files: true
           retention-days: 14
 
   Contract-Tests:
