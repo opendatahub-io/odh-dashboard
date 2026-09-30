@@ -12,14 +12,17 @@ type UsePersesDashboardResult = Omit<FetchStateObject<DashboardResource | undefi
  *
  * @param project - The Perses project name
  * @param dashboardName - The dashboard name within the project
+ * @param persesProxyBasePath - Optional same-origin Perses proxy path
  */
 export const usePersesDashboard = (
   project: string,
   dashboardName: string,
+  persesProxyBasePath?: string,
 ): UsePersesDashboardResult => {
   const fetchDashboard = React.useCallback(
-    (opts: { signal?: AbortSignal }) => fetchPersesDashboard(project, dashboardName, opts.signal),
-    [project, dashboardName],
+    (opts: { signal?: AbortSignal }) =>
+      fetchPersesDashboard(project, dashboardName, opts.signal, persesProxyBasePath),
+    [project, dashboardName, persesProxyBasePath],
   );
 
   const {

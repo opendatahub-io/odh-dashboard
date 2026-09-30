@@ -151,10 +151,10 @@ describe('loadBundledOverride', () => {
 });
 
 describe('createPluginLoader', () => {
-  it('should configure the proxy path on import and reject a different path', async () => {
+  it('should use a portal proxy path for remote plugin manifests and assets', async () => {
     const originalAssetsPath = window.PERSES_PLUGIN_ASSETS_PATH;
     const originalAppConfig = window.PERSES_APP_CONFIG;
-    const basePaths = ['/perses/api', '/second/perses/api'];
+    const basePaths = ['/maas-consumer-portal/perses/api', '/second/perses/api'];
     window.PERSES_PLUGIN_ASSETS_PATH = '/existing/plugins';
     window.PERSES_APP_CONFIG = { api_prefix: '/existing/api' };
 
@@ -163,10 +163,17 @@ describe('createPluginLoader', () => {
         jest.requireActual('../persesPluginsLoader');
       });
       jest.clearAllMocks();
+      const existingLoaderCount = jest.mocked(remotePluginLoader).mock.results.length;
       const loaders = basePaths.map((basePath) => createPluginLoader(basePath));
       const remoteLoaders = jest
         .mocked(remotePluginLoader)
-        .mock.results.map(({ value }) => value as typeof remoteLoader);
+        .mock.results.slice(existingLoaderCount)
+        .map(({ value }) => value as typeof remoteLoader);
+
+      expect(remotePluginLoader).toHaveBeenNthCalledWith(existingLoaderCount + 1, {
+        apiPrefix: basePaths[0],
+        baseURL: basePaths[0],
+      });
 
       expect(window.PERSES_PLUGIN_ASSETS_PATH).toBe('/existing/plugins');
       expect(window.PERSES_APP_CONFIG).toEqual({ api_prefix: '/existing/api' });
