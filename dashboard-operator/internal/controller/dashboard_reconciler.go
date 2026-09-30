@@ -16,6 +16,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -716,8 +717,6 @@ func (r *DashboardReconciler) cleanupRayDashboardGatewayRBAC(ctx context.Context
 // cleanupCrossNamespaceResources explicitly removes resources on soft removal
 // as well as CR deletion. Observability remains shared while the portal needs it.
 func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context, dashboard *v1alpha1.Dashboard, preserveObservability bool) error {
-	logger := log.FromContext(ctx)
-
 	if err := r.cleanupNamespacedRBAC(ctx); err != nil {
 		return fmt.Errorf("namespaced RBAC cleanup: %w", err)
 	}
@@ -733,6 +732,15 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 		return fmt.Errorf("DCH gateway RBAC cleanup: %w", err)
 	}
 
+	// The service reference may be removed when observability is disabled. Find
+	// labeled resources across namespaces without relying on the current spec.
+	if err := r.cleanupObservabilityResources(ctx, client.MatchingLabels{
+		labels.PlatformPartOf: strings.ToLower(v1alpha1.DashboardKind),
+		moduleComponentLabel:  observabilityComponent,
+	}); err != nil {
+		return err
+	}
+
 	obsNS := ""
 	if dashboard.Spec.Observability != nil &&
 		dashboard.Spec.Observability.PersesService != nil {
@@ -743,28 +751,36 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 		obsNS = r.monitoringNamespace()
 	}
 
-	if obsNS == "" {
-		logger.Info("No observability cross-namespace resources to clean up")
+	if obsNS == "" || obsNS == r.ApplicationsNamespace {
 		return nil
 	}
 
-	logger.Info("Cleaning up cross-namespace resources", "namespace", obsNS)
+	// Older observability resources have no component label. Limit this fallback
+	// to the known observability namespace and leave other components untouched.
+	legacySelector, err := metav1.LabelSelectorAsSelector(&metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			labels.PlatformPartOf: strings.ToLower(v1alpha1.DashboardKind),
+		},
+		MatchExpressions: []metav1.LabelSelectorRequirement{{
+			Key:      moduleComponentLabel,
+			Operator: metav1.LabelSelectorOpDoesNotExist,
+		}},
+	})
+	if err != nil {
+		return fmt.Errorf("creating legacy observability selector: %w", err)
+	}
+	return r.cleanupObservabilityResources(ctx, client.InNamespace(obsNS), client.MatchingLabelsSelector{Selector: legacySelector})
+}
 
-	matchLabels := client.MatchingLabels{
-		labels.PlatformPartOf: strings.ToLower(v1alpha1.DashboardKind),
-	}
-	if obsNS == r.ApplicationsNamespace {
-		// Core teardown handles the other application resources separately,
-		// preserving the operator itself. Include PersesDashboards here too.
-		matchLabels[moduleComponentLabel] = observabilityComponent
-	}
-	inNamespace := client.InNamespace(obsNS)
+func (r *DashboardReconciler) cleanupObservabilityResources(ctx context.Context, opts ...client.ListOption) error {
+	logger := log.FromContext(ctx)
 
 	var svcs corev1.ServiceList
-	if err := r.List(ctx, &svcs, matchLabels, inNamespace); err != nil {
-		return fmt.Errorf("listing services in %s: %w", obsNS, err)
+	if err := r.List(ctx, &svcs, opts...); err != nil {
+		return fmt.Errorf("listing observability services: %w", err)
 	}
 	for i := range svcs.Items {
+		obsNS := svcs.Items[i].Namespace
 		logger.Info("Deleting cross-namespace service", "name", svcs.Items[i].Name, "namespace", obsNS)
 		if err := r.Delete(ctx, &svcs.Items[i]); client.IgnoreNotFound(err) != nil {
 			return fmt.Errorf("deleting service %s/%s: %w", obsNS, svcs.Items[i].Name, err)
@@ -772,10 +788,11 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 	}
 
 	var cms corev1.ConfigMapList
-	if err := r.List(ctx, &cms, matchLabels, inNamespace); err != nil {
-		return fmt.Errorf("listing configmaps in %s: %w", obsNS, err)
+	if err := r.List(ctx, &cms, opts...); err != nil {
+		return fmt.Errorf("listing observability configmaps: %w", err)
 	}
 	for i := range cms.Items {
+		obsNS := cms.Items[i].Namespace
 		logger.Info("Deleting cross-namespace configmap", "name", cms.Items[i].Name, "namespace", obsNS)
 		if err := r.Delete(ctx, &cms.Items[i]); client.IgnoreNotFound(err) != nil {
 			return fmt.Errorf("deleting configmap %s/%s: %w", obsNS, cms.Items[i].Name, err)
@@ -783,10 +800,11 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 	}
 
 	var netpols networkingv1.NetworkPolicyList
-	if err := r.List(ctx, &netpols, matchLabels, inNamespace); err != nil {
-		return fmt.Errorf("listing networkpolicies in %s: %w", obsNS, err)
+	if err := r.List(ctx, &netpols, opts...); err != nil {
+		return fmt.Errorf("listing observability networkpolicies: %w", err)
 	}
 	for i := range netpols.Items {
+		obsNS := netpols.Items[i].Namespace
 		logger.Info("Deleting cross-namespace networkpolicy", "name", netpols.Items[i].Name, "namespace", obsNS)
 		if err := r.Delete(ctx, &netpols.Items[i]); client.IgnoreNotFound(err) != nil {
 			return fmt.Errorf("deleting networkpolicy %s/%s: %w", obsNS, netpols.Items[i].Name, err)
@@ -795,12 +813,13 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 
 	persesList := &unstructured.UnstructuredList{}
 	persesList.SetGroupVersionKind(persesdashboardGVK)
-	if err := r.List(ctx, persesList, matchLabels, inNamespace); err != nil {
+	if err := r.List(ctx, persesList, opts...); err != nil {
 		if !k8serrors.IsNotFound(err) && !meta.IsNoMatchError(err) {
-			return fmt.Errorf("listing PersesDashboards in %s: %w", obsNS, err)
+			return fmt.Errorf("listing observability PersesDashboards: %w", err)
 		}
 	} else {
 		for i := range persesList.Items {
+			obsNS := persesList.Items[i].GetNamespace()
 			logger.Info("Deleting cross-namespace PersesDashboard", "name", persesList.Items[i].GetName(), "namespace", obsNS)
 			if err := r.Delete(ctx, &persesList.Items[i]); client.IgnoreNotFound(err) != nil {
 				return fmt.Errorf("deleting PersesDashboard %s/%s: %w", obsNS, persesList.Items[i].GetName(), err)
