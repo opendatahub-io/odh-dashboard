@@ -1,0 +1,14 @@
+PATCH INFO — Binary file conflict
+==================================
+UPSTREAM COMMIT: 4fdf8f1edffd2fdeb1aaad8165867f87f85508fe
+COMMIT MESSAGE: chore(deps): bump github.com/onsi/ginkgo/v2 from 2.32.1 to 2.33.0 in /clients/ui/bff (#3263)
+FILE: bff/go.mod
+WORKSPACE: packages/model-registry
+PACKAGE: @odh-dashboard/model-registry
+
+This file is binary and cannot have conflict markers embedded.
+The patch content has been saved to: bff/go.mod.patch
+Review the patch and apply changes manually.
+
+For more details, view the upstream commit at:
+  https://github.com/kubeflow/model-registry/commit/4fdf8f1edffd2fdeb1aaad8165867f87f85508fe
