@@ -149,12 +149,13 @@ const assertUnauthorizedNamespace = (
   }
 
   const { modelSelector } = dashboard;
-  observabilityDashboardPage.beginNetworkObservation();
+  observabilityDashboardPage.beginNetworkObservation(persona.unauthorizedNamespaceScope);
   selectNamespace(persona.unauthorizedNamespaceScope, modelSelector.namespaceVariableName);
 
   observabilityDashboardPage.findVariableInput(modelSelector.variableName).click();
   observabilityDashboardPage.shouldHaveUnauthorizedNamespaceResponse(
     observabilityContract.authorization.unauthorizedNamespaceOutcome,
+    modelSelector.variableName,
   );
   observabilityDashboardPage.shouldNotHaveVariableOptions(modelSelector.variableName, [
     observabilityContract.fixture.seededModelName,
@@ -171,7 +172,9 @@ const assertUnauthorizedNamespace = (
     );
   });
   observabilityDashboardPage.findVariableInput(modelSelector.variableName).type('{esc}');
+  observabilityDashboardPage.recordObservationEvidence();
 
+  observabilityDashboardPage.beginDashboardValidation();
   selectNamespace(persona.namespaceScope, modelSelector.namespaceVariableName);
   observabilityDashboardPage.findVariableInput(modelSelector.variableName).click();
   observabilityDashboardPage
@@ -179,7 +182,6 @@ const assertUnauthorizedNamespace = (
     .should('be.visible')
     .click();
   observabilityDashboardPage.findVariableInput(modelSelector.variableName).type('{esc}');
-  observabilityDashboardPage.beginDashboardValidation();
 };
 
 const assertDashboardPanels = (dashboard: ObservabilityDashboardContract) => {
@@ -303,7 +305,12 @@ if (!contract) {
             }
 
             cy.step('Verify shipped panel states and release capabilities');
-            observabilityDashboardPage.shouldHaveSuccessfulRequests();
+            observabilityDashboardPage.shouldHaveSuccessfulRequests(
+              dashboardContract.panels.some(
+                (panel) => panel.capability === 'shipped' && panel.expectedState === 'non-empty',
+              ),
+              dashboardContract.modelSelector ? persona.namespaceScope : undefined,
+            );
             assertDashboardPanels(dashboardContract);
             writeEvidence(contract, persona, dashboardContract);
             cy.then(() => {

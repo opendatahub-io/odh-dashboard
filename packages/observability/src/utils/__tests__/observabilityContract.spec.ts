@@ -57,6 +57,10 @@ const createContract = () => ({
   },
 });
 
+const expectContractError = (value: unknown, message: string) => {
+  expect(() => parseObservabilityContract(value)).toThrow(message);
+};
+
 describe('validateEvidenceDirectory', () => {
   it('should accept a relative evidence directory', () => {
     expect(validateEvidenceDirectory('results/observability')).toBe('results/observability');
@@ -82,6 +86,191 @@ describe('validateEvidenceDirectory', () => {
 });
 
 describe('parseObservabilityContract', () => {
+  it('should reject malformed root and required fields', () => {
+    expectContractError(null, 'must be a JSON object');
+    expectContractError({}, 'contract.release');
+    expectContractError(
+      {
+        ...createContract(),
+        release: { ...createContract().release, stage: ' ' },
+      },
+      'contract.release.stage',
+    );
+    expectContractError(
+      {
+        ...createContract(),
+        fixture: { ...createContract().fixture, sourceTelemetryReady: 'yes' },
+      },
+      'contract.fixture.sourceTelemetryReady',
+    );
+    expectContractError(
+      {
+        ...createContract(),
+        fixture: { ...createContract().fixture, foreignModelNames: [''] },
+      },
+      'contract.fixture.foreignModelNames',
+    );
+  });
+
+  it('should reject malformed dashboard and panel declarations', () => {
+    const base = createContract();
+    expectContractError(
+      { ...base, dashboards: [{ ...base.dashboards[0], capability: 'unsupported' }] },
+      'dashboards[0].capability',
+    );
+    expectContractError({ ...base, dashboards: [null] }, 'dashboards[0]');
+    expectContractError(
+      {
+        ...base,
+        dashboards: [{ ...base.dashboards[0], panels: null }],
+      },
+      'dashboards[0].panels',
+    );
+    expectContractError(
+      {
+        ...base,
+        dashboards: [{ ...base.dashboards[0], panels: [] }],
+      },
+      'must declare at least one panel',
+    );
+    expectContractError(
+      {
+        ...base,
+        dashboards: [
+          {
+            ...base.dashboards[0],
+            panels: [{ ...base.dashboards[0].panels[0], expectedState: 'unsupported' }],
+          },
+        ],
+      },
+      'expectedState',
+    );
+    expectContractError(
+      {
+        ...base,
+        dashboards: [
+          {
+            ...base.dashboards[0],
+            panels: [{ ...base.dashboards[0].panels[0], expectedState: undefined }],
+          },
+        ],
+      },
+      'must declare expectedState',
+    );
+    expectContractError(
+      {
+        ...base,
+        dashboards: [
+          {
+            ...base.dashboards[0],
+            panels: [null],
+          },
+        ],
+      },
+      'dashboards[].panels[0]',
+    );
+    expectContractError(
+      {
+        ...base,
+        dashboards: [{ ...base.dashboards[0], modelSelector: null }],
+      },
+      'modelSelector',
+    );
+  });
+
+  it('should reject malformed persona and authorization declarations', () => {
+    const base = createContract();
+    expectContractError({ ...base, personas: [null] }, 'personas[0]');
+    expectContractError({ ...base, dashboards: [] }, 'dashboards');
+    expectContractError({ ...base, personas: [] }, 'personas');
+    expectContractError(
+      {
+        ...base,
+        authorization: { ...base.authorization, unauthorizedNamespaceOutcome: 'unsupported' },
+      },
+      'unauthorizedNamespaceOutcome',
+    );
+    expectContractError(
+      {
+        ...base,
+        authorization: { ...base.authorization, foreignDataMustNotRender: false },
+      },
+      'foreignDataMustNotRender',
+    );
+  });
+
+  it('should reject invalid fixture and persona relationships', () => {
+    const base = createContract();
+    expectContractError(
+      {
+        ...base,
+        fixture: { ...base.fixture, namespaceB: base.fixture.namespaceA },
+      },
+      'namespaces must be different',
+    );
+    expectContractError(
+      {
+        ...base,
+        fixture: { ...base.fixture, foreignModelNames: [] },
+      },
+      'at least one foreign model',
+    );
+    expectContractError(
+      {
+        ...base,
+        personas: [
+          {
+            ...base.personas[0],
+            hiddenDashboardNames: ['dashboard-models'],
+          },
+        ],
+      },
+      'cannot both show and hide',
+    );
+    expectContractError(
+      {
+        ...base,
+        personas: [{ ...base.personas[0], visibleDashboardNames: ['unknown-dashboard'] }],
+      },
+      'references unknown dashboard',
+    );
+    expectContractError(
+      {
+        ...base,
+        personas: [{ ...base.personas[0], visibleDashboardNames: [] }],
+      },
+      'must validate at least one shipped dashboard',
+    );
+    expectContractError(
+      {
+        ...base,
+        personas: [{ ...base.personas[0], modelDashboardName: 'unknown-dashboard' }],
+      },
+      'invalid model dashboard',
+    );
+    expectContractError(
+      {
+        ...base,
+        personas: [{ ...base.personas[0], namespaceScope: 'namespace-c' }],
+      },
+      'authorized namespace must match',
+    );
+    expectContractError(
+      {
+        ...base,
+        personas: [{ ...base.personas[0], unauthorizedNamespaceScope: 'namespace-a' }],
+      },
+      'must use a different unauthorized namespace',
+    );
+    expectContractError(
+      {
+        ...base,
+        personas: [{ ...base.personas[0], unauthorizedNamespaceScope: 'namespace-c' }],
+      },
+      'unauthorized namespace must match',
+    );
+  });
+
   it('should parse a contract with explicit authorization coverage', () => {
     expect(parseObservabilityContract(createContract())).toEqual(
       expect.objectContaining({

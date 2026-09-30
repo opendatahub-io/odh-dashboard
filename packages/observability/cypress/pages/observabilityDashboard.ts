@@ -3,6 +3,15 @@ import {
   validateEvidenceDirectory,
   type UnauthorizedNamespaceOutcome,
 } from '../../src/utils/observabilityContract';
+import {
+  hasSeriesForNamespace,
+  isPrometheusQueryPath,
+  isPrometheusResponsePath,
+  isPrometheusVariablePath,
+  parsePrometheusResponseEvidence,
+  requestContainsNamespace,
+  type PrometheusResponseEvidence,
+} from '../../src/utils/observabilityResponse';
 
 type PanelState =
   | 'loaded'
@@ -22,6 +31,8 @@ type NetworkEvidence = {
   status: number;
   complete: boolean;
   responseTimeMs: number;
+  responseData?: PrometheusResponseEvidence;
+  namespaceMatches?: boolean;
   error?: string;
 };
 
@@ -53,6 +64,10 @@ class ObservabilityDashboardPage {
 
   private observationBoundary = 0;
 
+  private observationNamespace: string | undefined;
+
+  private observationRequests: NetworkEvidence[] = [];
+
   private panelStates: Record<string, PanelState> = {};
 
   private variableSelections: Record<string, string> = {};
@@ -75,6 +90,8 @@ class ObservabilityDashboardPage {
     this.nextRequestId = 0;
     this.networkBoundary = 0;
     this.observationBoundary = 0;
+    this.observationNamespace = undefined;
+    this.observationRequests = [];
     this.panelStates = {};
     this.variableSelections = {};
     cy.intercept({ method: '*', url: '**/api/**' }, (request) => {
@@ -89,6 +106,10 @@ class ObservabilityDashboardPage {
         status: 0,
         complete: false,
         responseTimeMs: 0,
+        namespaceMatches:
+          this.observationNamespace && isPrometheusResponsePath(path)
+            ? requestContainsNamespace(url.search, request.body, this.observationNamespace)
+            : undefined,
       };
       this.networkEvidence.push(evidence);
       request.continue((response) => {
@@ -96,6 +117,12 @@ class ObservabilityDashboardPage {
         evidence.status = status;
         evidence.complete = true;
         evidence.responseTimeMs = Date.now() - startedAt;
+        if (isPrometheusResponsePath(path)) {
+          const responseData = parsePrometheusResponseEvidence(response.body);
+          if (responseData) {
+            evidence.responseData = responseData;
+          }
+        }
         if (status >= 400 && response.statusMessage) {
           evidence.error = response.statusMessage;
         }
@@ -113,9 +140,17 @@ class ObservabilityDashboardPage {
     return this;
   }
 
-  beginNetworkObservation() {
+  beginNetworkObservation(namespace: string) {
     cy.then(() => {
       this.observationBoundary = this.nextRequestId;
+      this.observationNamespace = namespace;
+    });
+    return this;
+  }
+
+  recordObservationEvidence() {
+    cy.then(() => {
+      this.observationRequests = this.getRequestsSince(this.observationBoundary);
     });
     return this;
   }
@@ -205,8 +240,15 @@ class ObservabilityDashboardPage {
   }
 
   selectDashboard(displayName: string) {
-    this.findTab(displayName).click();
-    this.findTab(displayName).should('have.attr', 'aria-selected', 'true');
+    const tab = this.findTab(displayName);
+    tab.invoke('attr', 'aria-selected').then((selected) => {
+      if (selected === 'true') {
+        this.networkBoundary = 0;
+      } else {
+        tab.click();
+      }
+    });
+    tab.should('have.attr', 'aria-selected', 'true');
     return this;
   }
 
@@ -240,16 +282,36 @@ class ObservabilityDashboardPage {
     return this;
   }
 
-  shouldHaveSuccessfulRequests() {
+  shouldHaveSuccessfulRequests(requireData = false, expectedNamespace?: string) {
     cy.wrap(null).should(() => {
       const requests = this.getRequestsSince(this.networkBoundary).filter((request) =>
-        this.isPersesDatasourceRequest(request),
+        this.isPrometheusQueryRequest(request),
       );
-      expect(requests, 'Perses datasource requests').not.to.have.length(0);
+      expect(requests, 'Prometheus query requests').not.to.have.length(0);
       expect(
-        requests.filter(({ complete, status }) => !complete || status < 200 || status >= 300),
+        requests.filter(
+          ({ complete, status, responseData }) =>
+            !complete ||
+            status < 200 ||
+            status >= 300 ||
+            responseData === undefined ||
+            responseData.error !== undefined,
+        ),
         'failed API requests for the selected dashboard',
       ).to.have.length(0);
+      if (requireData) {
+        const dataRequests = requests.filter(({ responseData }) => responseData?.hasData === true);
+        expect(
+          expectedNamespace
+            ? dataRequests.some(
+                ({ responseData }) =>
+                  responseData !== undefined &&
+                  hasSeriesForNamespace(responseData, expectedNamespace),
+              )
+            : dataRequests.length > 0,
+          'selected dashboard telemetry data',
+        ).to.equal(true);
+      }
     });
     return this;
   }
@@ -271,33 +333,92 @@ class ObservabilityDashboardPage {
     return this;
   }
 
-  shouldHaveUnauthorizedNamespaceResponse(outcome: UnauthorizedNamespaceOutcome) {
+  shouldHaveUnauthorizedNamespaceResponse(
+    outcome: UnauthorizedNamespaceOutcome,
+    variableName: string,
+  ) {
     cy.wrap(null).should(() => {
       const requests = this.getRequestsSince(this.observationBoundary).filter((request) =>
-        this.isPersesDatasourceRequest(request),
+        this.isPrometheusResponseRequest(request),
       );
-      expect(requests, 'Perses datasource requests').not.to.have.length(0);
+      const queryRequests = requests.filter((request) => this.isPrometheusQueryRequest(request));
+      const namespaceQueryRequests = queryRequests.filter(
+        ({ namespaceMatches }) => namespaceMatches,
+      );
+      const relevantQueryRequests =
+        namespaceQueryRequests.length > 0 ? namespaceQueryRequests : queryRequests;
+      const variableRequests = requests.filter((request) =>
+        this.isPrometheusVariableRequest(request, variableName),
+      );
+      const selectorRequests =
+        variableRequests.length > 0 ? variableRequests : relevantQueryRequests;
+      const namespaceRequests =
+        outcome === 'forbidden'
+          ? [...new Set([...relevantQueryRequests, ...variableRequests])]
+          : selectorRequests;
+
+      expect(namespaceRequests, 'Prometheus namespace requests').not.to.have.length(0);
       expect(
-        requests.filter(({ complete }) => !complete),
+        namespaceRequests.filter(({ complete }) => !complete),
         'pending requests',
       ).to.have.length(0);
       expect(
-        requests.filter(
+        namespaceRequests.filter(
           ({ status }) => !((status >= 200 && status < 300) || status === 401 || status === 403),
         ),
         'unexpected namespace responses',
       ).to.have.length(0);
       if (outcome === 'forbidden') {
         expect(
-          requests.some(({ status }) => status === 401 || status === 403),
+          namespaceRequests.every(({ status }) => status === 401 || status === 403),
           'forbidden namespace response',
         ).to.equal(true);
         return;
       }
+
       expect(
-        requests.every(({ status }) => status >= 200 && status < 300),
+        selectorRequests.every(({ status }) => status >= 200 && status < 300),
         'successful namespace response',
       ).to.equal(true);
+      expect(
+        selectorRequests.filter(
+          ({ responseData }) => responseData === undefined || responseData.error !== undefined,
+        ),
+        'Prometheus response data',
+      ).to.have.length(0);
+
+      expect(relevantQueryRequests, 'Prometheus telemetry requests').not.to.have.length(0);
+      expect(
+        relevantQueryRequests.filter(
+          ({ complete, status, responseData }) =>
+            !complete ||
+            status < 200 ||
+            status >= 300 ||
+            responseData === undefined ||
+            responseData.error !== undefined,
+        ),
+        'failed unauthorized namespace telemetry requests',
+      ).to.have.length(0);
+      if (outcome === 'empty') {
+        expect(
+          [...selectorRequests, ...relevantQueryRequests].every(
+            ({ responseData }) => responseData?.hasData === false,
+          ),
+          'empty namespace response data',
+        ).to.equal(true);
+        return;
+      }
+      if (!this.observationNamespace) {
+        throw new Error('Unauthorized namespace observation did not record a namespace');
+      }
+      const { observationNamespace } = this;
+      expect(
+        relevantQueryRequests.some(
+          ({ responseData }) =>
+            responseData !== undefined && hasSeriesForNamespace(responseData, observationNamespace),
+        ),
+        'unauthorized namespace series',
+      ).to.equal(false);
     });
     return this;
   }
@@ -359,8 +480,11 @@ class ObservabilityDashboardPage {
     ) {
       return 'loading';
     }
-    const panelText = panels.text();
-    if (panelText.includes('No data')) {
+    const hasEmptyState = panels
+      .find('p')
+      .toArray()
+      .some((element) => element.textContent.trim() === 'No data');
+    if (hasEmptyState) {
       return 'valid-empty';
     }
     const hasRenderedContent = panels.find('svg, canvas, table tbody tr, [role="img"]').length > 0;
@@ -389,8 +513,9 @@ class ObservabilityDashboardPage {
         ...context,
         selections: { ...this.variableSelections },
         panels: { ...this.panelStates },
-        requests: this.getRequestsSince(this.networkBoundary),
+        requests: [...this.observationRequests, ...this.getRequestsSince(this.networkBoundary)],
       });
+      this.observationRequests = [];
     });
     return this;
   }
@@ -399,8 +524,19 @@ class ObservabilityDashboardPage {
     return this.networkEvidence.filter(({ id }) => id >= boundary);
   }
 
-  private isPersesDatasourceRequest(request: NetworkEvidence) {
-    return request.kind === 'perses' && request.path.includes('/datasources/');
+  private isPrometheusResponseRequest(request: NetworkEvidence) {
+    return request.kind === 'perses' && isPrometheusResponsePath(request.path);
+  }
+
+  private isPrometheusQueryRequest(request: NetworkEvidence) {
+    return this.isPrometheusResponseRequest(request) && isPrometheusQueryPath(request.path);
+  }
+
+  private isPrometheusVariableRequest(request: NetworkEvidence, variableName: string) {
+    return (
+      this.isPrometheusResponseRequest(request) &&
+      isPrometheusVariablePath(request.path, variableName)
+    );
   }
 
   shouldHaveEmptyState() {
