@@ -50,6 +50,11 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
   const [currentFilterKey, setCurrentFilterKey] = React.useState<FilterKey>('name');
   const [searchValue, setSearchValue] = React.useState('');
   const isAgentDeploymentEnabled = useGenAiAgentDeploymentEnabled();
+  const columns = React.useMemo(
+    () => AgentProfileColumns(isAgentDeploymentEnabled),
+    [isAgentDeploymentEnabled],
+  );
+  const lastModifiedColumnIndex = columns.findIndex((column) => column.field === 'lastModified');
 
   const onFilterUpdate = React.useCallback((key: FilterKey, value: string | undefined) => {
     setFilterData((prev) => ({ ...prev, [key]: value || undefined }));
@@ -170,10 +175,11 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
 
   return (
     <Table
+      key={isAgentDeploymentEnabled ? 'with-endpoints' : 'without-endpoints'}
       data={filteredProfiles}
-      columns={AgentProfileColumns(isAgentDeploymentEnabled)}
+      columns={columns}
       enablePagination
-      defaultSortColumn={2}
+      defaultSortColumn={lastModifiedColumnIndex}
       emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
       rowRenderer={(profile: AgentProfileSummary) => (
         <AgentProfileTableRow
