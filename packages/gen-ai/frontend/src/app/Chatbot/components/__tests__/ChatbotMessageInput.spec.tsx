@@ -628,7 +628,7 @@ describe('ChatbotMessageInput', () => {
       expect(within(row).getByTestId('vision-file-preview')).toBeInTheDocument();
       expect(within(row).getByTestId('audio-file-chip')).toBeInTheDocument();
       expect(row).toHaveStyle('width: 100%');
-      expect(row).toHaveStyle('padding-left: var(--pf-t--global--spacer--sm)');
+      expect(row).toHaveStyle('padding-left: calc(var(--pf-t--global--spacer--sm) + 2px)');
       expect(row.style.maxWidth).toBe('');
       expect(row.style.marginLeft).toBe('');
       expect(row.style.marginRight).toBe('');
