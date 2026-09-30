@@ -13,7 +13,13 @@ import { usePipelineRunQuery } from '~/app/hooks/usePipelineRunQuery';
 import { useNotification } from '~/app/hooks/useNotification';
 import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/configure.schema';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
-import { REQUIRED_CONNECTION_SECRET_KEYS } from '~/app/utilities/const';
+import {
+  DEFAULT_OPTIMIZATION_METRIC,
+  PRESET_FASTER,
+  REQUIRED_CONNECTION_SECRET_KEYS,
+  isRestoredOptimizationMetricSupported,
+  normalizeRestoredOptimizationMetric,
+} from '~/app/utilities/const';
 import { generateReconfigureName } from '~/app/utilities/utils';
 import AutoragConfigurePage from './AutoragConfigurePage';
 
@@ -79,12 +85,26 @@ type ReconfigureParseResult = {
 const parseReconfigureParameters = (params: Record<string, unknown>): ReconfigureParseResult => {
   const data: Record<string, unknown> = { ...configureSchema.defaults };
   let hasInvalidFields = !hasLegacyRuntimeParameters(params) && !hasCurrentRuntimeShape(params);
+  const restoredPresetResult = configureBase.shape.preset.safeParse(params.preset);
+  const restoredPreset = restoredPresetResult.success ? restoredPresetResult.data : PRESET_FASTER;
+  if (
+    'optimization_metric' in params &&
+    !isRestoredOptimizationMetricSupported(params.optimization_metric, restoredPreset)
+  ) {
+    hasInvalidFields = true;
+  }
+  const restoredMetric = normalizeRestoredOptimizationMetric(
+    params.optimization_metric ?? DEFAULT_OPTIMIZATION_METRIC,
+    restoredPreset,
+  );
 
   for (const key of RECONFIGURE_FIELDS) {
     if (!(key in params)) {
       continue;
     }
-    const result = configureBase.shape[key].safeParse(params[key]);
+    const result = configureBase.shape[key].safeParse(
+      key === 'optimization_metric' ? restoredMetric : params[key],
+    );
     if (result.success) {
       data[key] = result.data;
     } else {

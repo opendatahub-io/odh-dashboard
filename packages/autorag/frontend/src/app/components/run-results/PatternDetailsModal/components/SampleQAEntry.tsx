@@ -92,7 +92,7 @@ export const MetricScores: React.FC<{
             {Array.from(groupMetricsByKey(group.metrics).values()).map((metricGroup) => {
               const metric = metricGroup[0];
               const description = getMetricDescription(metric.name);
-              const label = metricLabel({ name: metric.name });
+              const label = metricLabel(metric);
               const rawScore = metricGroup.length === 1 ? metric.score : undefined;
               const score =
                 typeof rawScore === 'number' && Number.isFinite(rawScore)

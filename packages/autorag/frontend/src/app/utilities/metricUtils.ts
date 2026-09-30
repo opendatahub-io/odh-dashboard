@@ -4,7 +4,7 @@ import type {
   MetricReference,
   NormalizedMetricReference,
 } from '~/app/types/autoragPattern';
-import { DEFAULT_OPTIMIZATION_METRIC } from './const';
+import { DEFAULT_OPTIMIZATION_METRIC, QUALIFIED_METRIC_LABELS } from './const';
 
 /** Opaque key for UI maps, React keys, and table column keys. Never parse this outside this file. */
 export type MetricKey = string;
@@ -12,6 +12,13 @@ export type MetricKey = string;
 const normalize = (value: string): string => value.trim().toLowerCase();
 
 type ObjectiveReference = MetricReference | string;
+
+export function parseMetricReference(value: string): MetricReference {
+  const separator = value.indexOf(':');
+  return separator === -1
+    ? { name: value }
+    : { evaluator: value.slice(0, separator), name: value.slice(separator + 1) };
+}
 
 /** Normalize the parts of a metric identity without crossing the string-key boundary. */
 export function normalizeMetricReference(reference: MetricReference): NormalizedMetricReference {
@@ -81,8 +88,18 @@ export function findUniqueMetric<T extends MetricReference>(
 
 /** Format a metric reference for user-facing labels. */
 export function metricLabel(reference: MetricReference): string {
-  const label = formatMetricName(normalizeMetricReference(reference).name);
-  const evaluator = reference.evaluator?.trim();
+  const parsedReference =
+    reference.evaluator === undefined ? parseMetricReference(reference.name) : reference;
+  const normalizedReference = normalizeMetricReference(parsedReference);
+  const qualifiedMetric = `${normalizedReference.evaluator ?? ''}:${normalizedReference.name}`;
+  const qualifiedLabel = Object.entries(QUALIFIED_METRIC_LABELS).find(
+    ([metric]) => metric === qualifiedMetric,
+  )?.[1].results;
+  if (qualifiedLabel) {
+    return qualifiedLabel;
+  }
+  const label = formatMetricName(normalizedReference.name);
+  const evaluator = parsedReference.evaluator?.trim();
   return evaluator ? `${label} (${evaluator})` : label;
 }
 
@@ -110,7 +127,7 @@ export function getObjectiveMetric(
     objectiveReference === undefined
       ? undefined
       : typeof objectiveReference === 'string'
-        ? { name: objectiveReference }
+        ? parseMetricReference(objectiveReference)
         : objectiveReference;
   const normalizedObjective = reference ? normalizeMetricReference(reference) : undefined;
   const flaggedMatches = pattern.evaluation.metrics.filter(
@@ -146,8 +163,9 @@ export function resolveObjectiveReference(
   patterns: Record<string, AutoragPattern>,
   objectiveName: string,
 ): MetricReference {
+  const objectiveReference = parseMetricReference(objectiveName);
   const objectiveMetrics = Object.values(patterns)
-    .map((pattern) => getObjectiveMetric(pattern, objectiveName))
+    .map((pattern) => getObjectiveMetric(pattern, objectiveReference))
     .filter((metric): metric is AutoragEvaluationMetric => metric !== undefined);
   const missingEvaluator = objectiveMetrics.some(
     (metric) => normalizeMetricReference(metric).evaluator === undefined,
@@ -161,9 +179,9 @@ export function resolveObjectiveReference(
   });
 
   if (!missingEvaluator && evaluators.size === 1) {
-    return { name: objectiveName, evaluator: evaluators.values().next().value };
+    return { name: objectiveReference.name, evaluator: evaluators.values().next().value };
   }
-  return { name: objectiveName };
+  return objectiveReference;
 }
 
 /** Format metric key names for display (e.g. `answer_correctness` → `Answer correctness`). */
@@ -224,7 +242,7 @@ export function getOptimizedScore(pattern: AutoragPattern): number {
 
 export function computePatternRankMap(
   patterns: Record<string, AutoragPattern>,
-  objectiveReference: ObjectiveReference = { name: DEFAULT_OPTIMIZATION_METRIC },
+  objectiveReference: ObjectiveReference = parseMetricReference(DEFAULT_OPTIMIZATION_METRIC),
 ): Record<string, number> {
   const sorted = Object.entries(patterns)
     .filter(([, pattern]) => isPatternRankable(pattern, objectiveReference))
@@ -242,7 +260,7 @@ export function computePatternRankMap(
 
 export function resolveBestPatternKey(
   patterns: Record<string, AutoragPattern>,
-  objectiveReference: ObjectiveReference = { name: DEFAULT_OPTIMIZATION_METRIC },
+  objectiveReference: ObjectiveReference = parseMetricReference(DEFAULT_OPTIMIZATION_METRIC),
 ): string | undefined {
   const patternKeys = Object.keys(patterns).filter((key) =>
     isPatternRankable(patterns[key], objectiveReference),

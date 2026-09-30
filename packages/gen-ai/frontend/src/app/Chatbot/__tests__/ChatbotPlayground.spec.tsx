@@ -11,9 +11,20 @@ const mockDeleteFileById = jest.fn().mockResolvedValue(undefined);
 const mockRefreshFiles = jest.fn().mockResolvedValue(undefined);
 const mockOnShowErrorAlert = jest.fn();
 const mockHandleMessageSend = jest.fn().mockResolvedValue(undefined);
+const mockUploadDocument = jest.fn(async (formData: FormData) => {
+  const file = formData.get('file') as File;
+  return {
+    id: `document-${file.name}`,
+    filename: file.name,
+    // eslint-disable-next-line camelcase
+    content_type: file.type,
+    text: 'Extracted document content',
+  };
+});
 const mockChatbotSettingsPanelProps = jest.fn();
 const mockViewCodeModalProps = jest.fn();
 const mockChatbotConfigInstanceProps = jest.fn();
+const documentStorageKey = 'gen-ai-playground-document-cache:test-ns';
 
 let mockFilesWithSettings: Array<{
   id: string;
@@ -154,11 +165,19 @@ jest.mock('~/app/context/GenAiContext', () => {
   return {
     GenAiContext: createContext({
       namespace: { name: 'test-ns' },
-      apiState: { apiAvailable: true, api: {} },
+      apiState: { apiAvailable: true, api: { uploadDocument: mockUploadDocument } },
       refreshAPIState: jest.fn(),
     }),
   };
 });
+
+jest.mock('~/app/hooks/useGenAiAPI', () => ({
+  useGenAiAPI: () => ({
+    apiAvailable: true,
+    api: { uploadDocument: mockUploadDocument },
+    refreshAllAPI: jest.fn(),
+  }),
+}));
 
 jest.mock('~/app/utilities', () => ({
   isLlamaModelEnabled: jest.fn(() => true),
@@ -349,7 +368,19 @@ jest.mock('@patternfly/react-core', () => {
       isOpen?: boolean;
       'data-testid'?: string;
     }) =>
-      isOpen ? React.createElement('div', { 'data-testid': testId || 'modal' }, children) : null,
+      isOpen
+        ? React.createElement(
+            'div',
+            {
+              'data-testid': 'modal-backdrop',
+            },
+            React.createElement(
+              'div',
+              { className: 'pf-v6-c-modal-box', 'data-testid': testId || 'modal' },
+              children,
+            ),
+          )
+        : null,
     ModalHeader: ({ title }: { title: string }) => React.createElement('div', null, title),
     ModalBody: ({ children }: { children: unknown }) => React.createElement('div', null, children),
     ModalFooter: ({ children }: { children: unknown }) =>
@@ -485,7 +516,7 @@ import { useChatbotConfigStore } from '~/app/Chatbot/store/useChatbotConfigStore
 import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 import { DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
-import type { MCPServerFromAPI } from '~/app/types';
+import type { DocumentAttachment, MCPServerFromAPI } from '~/app/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockSetLastInput = (ChatbotContext as any)._currentValue.setLastInput as jest.Mock;
@@ -560,6 +591,7 @@ const createMCPServer = (overrides: Partial<MCPServerFromAPI> = {}): MCPServerFr
 describe('ChatbotPlayground — document upload and messaging', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    window.localStorage.clear();
     uuidCounter = 0;
     mockFilesWithSettings = [];
     mockFileManagementFiles = [];
@@ -620,29 +652,86 @@ describe('ChatbotPlayground — document upload and messaging', () => {
   });
 
   describe('handleAttach — document upload', () => {
-    it('calls sourceManagement.handleSourceDrop with the files', async () => {
+    it('closes the extracted text modal when its backdrop is clicked', () => {
+      renderPlayground();
+
+      const configInstanceProps = mockChatbotConfigInstanceProps.mock.calls.at(-1)?.[0] as {
+        onViewDocument: (attachment: DocumentAttachment) => void;
+      };
+      const attachment: DocumentAttachment = {
+        // eslint-disable-next-line camelcase -- matches the document-attachment API contract
+        file_id: 'document-notes.txt',
+        filename: 'notes.txt',
+        // eslint-disable-next-line camelcase -- matches the document-attachment API contract
+        content_type: 'text/plain',
+        size: 42,
+        text: 'Extracted document content',
+      };
+
+      act(() => configInstanceProps.onViewDocument(attachment));
+
+      expect(screen.getByTestId('document-extracted-text-modal')).toBeInTheDocument();
+
+      fireEvent.mouseDown(screen.getByTestId('modal-backdrop'));
+
+      expect(screen.queryByTestId('document-extracted-text-modal')).not.toBeInTheDocument();
+    });
+
+    it('uploads each document through the extraction API', async () => {
       renderPlayground();
 
       await triggerDocumentUpload([createFile('x.txt'), createFile('y.txt')]);
 
-      expect(mockHandleSourceDrop).toHaveBeenCalledTimes(1);
-      const [, filesArg] = mockHandleSourceDrop.mock.calls[0];
-      expect(filesArg).toHaveLength(2);
-      expect(filesArg[0].name).toBe('x.txt');
-      expect(filesArg[1].name).toBe('y.txt');
+      await waitFor(() => expect(mockUploadDocument).toHaveBeenCalledTimes(2));
+      expect((mockUploadDocument.mock.calls[0][0] as FormData).get('file')).toMatchObject({
+        name: 'x.txt',
+      });
+      expect((mockUploadDocument.mock.calls[1][0] as FormData).get('file')).toMatchObject({
+        name: 'y.txt',
+      });
     });
 
-    it('shows error alert on handleSourceDrop failure', async () => {
-      mockHandleSourceDrop.mockRejectedValueOnce(new Error('Upload API failed'));
+    it('shows an error alert when document extraction fails', async () => {
+      mockUploadDocument.mockRejectedValueOnce(new Error('Document extraction failed'));
       renderPlayground();
 
       await triggerDocumentUpload([createFile('fail.txt')]);
 
       await waitFor(() => {
         expect(mockOnShowErrorAlert).toHaveBeenCalledWith(
-          expect.stringContaining('Upload API failed'),
-          'File Upload Error',
+          expect.stringContaining('Document extraction failed'),
+          'Document upload error',
         );
+      });
+    });
+
+    it('caches extracted attachments without restoring them into the composer after a reload', async () => {
+      const { unmount } = renderPlayground();
+
+      await triggerDocumentUpload([createFile('notes.txt')]);
+
+      await waitFor(() => {
+        const stored = JSON.parse(window.localStorage.getItem(documentStorageKey) || '[]');
+        expect(stored).toEqual([
+          expect.objectContaining({
+            // eslint-disable-next-line camelcase
+            file_id: 'document-notes.txt',
+            filename: 'notes.txt',
+            text: 'Extracted document content',
+            fingerprint: expect.any(String),
+          }),
+        ]);
+      });
+
+      unmount();
+      mockChatbotConfigInstanceProps.mockClear();
+      renderPlayground();
+
+      await waitFor(() => {
+        const configProps = mockChatbotConfigInstanceProps.mock.calls.at(-1)?.[0] as {
+          documentAttachments?: DocumentAttachment[];
+        };
+        expect(configProps.documentAttachments).toEqual([]);
       });
     });
   });
@@ -1193,12 +1282,12 @@ describe('ChatbotPlayground — compare mode attachments', () => {
     expect(screen.getByTestId('audio-file-input')).toBeInTheDocument();
   });
 
-  it('document upload calls sourceManagement in compare mode', async () => {
+  it('document upload uses the extraction API in compare mode', async () => {
     renderPlayground();
 
     await triggerDocumentUpload([createFile('doc.pdf')]);
 
-    expect(mockHandleSourceDrop).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mockUploadDocument).toHaveBeenCalledTimes(1));
   });
 });
 

@@ -135,8 +135,11 @@ describe('formatCollectionMetadataValue', () => {
 describe('getMetricDisplayName', () => {
   it('should return the mapped display name for known metrics', () => {
     expect(getMetricDisplayName('acc')).toBe('Accuracy');
+    expect(getMetricDisplayName('accuracy/accuracy')).toBe('Accuracy');
     expect(getMetricDisplayName('exact_match')).toBe('Exact match');
+    expect(getMetricDisplayName('pass@1')).toBe('Pass@1');
     expect(getMetricDisplayName('ppl')).toBe('Perplexity');
+    expect(getMetricDisplayName('telelogs_scorer/maj_at_k')).toBe('Telelogs majority at k');
     expect(getMetricDisplayName('bleu')).toBe('BLEU');
   });
 

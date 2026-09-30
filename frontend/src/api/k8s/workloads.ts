@@ -1,17 +1,17 @@
 import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
 import type { PodKind } from '@odh-dashboard/k8s-core';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
-import { WorkloadModel } from '@odh-dashboard/k8s-core/api/models';
+import { WorkloadModel, PodModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   aggregateKueueStatusForModel,
   KUEUE_QUEUE_LABEL,
 } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import type { KueueWorkloadStatusWithMessage } from '@odh-dashboard/k8s-core/kueue/types';
+import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
+import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
 import { NotebookKind, WorkloadKind } from '#~/k8sTypes';
-import { PodModel } from '#~/api/models';
-import { groupVersionKind } from '#~/api/k8sUtils';
+
 import { CustomWatchK8sResult } from '#~/types';
-import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 
 export const listWorkloads = async (
   namespace?: string,

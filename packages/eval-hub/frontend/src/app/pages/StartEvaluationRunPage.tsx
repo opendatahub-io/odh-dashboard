@@ -257,7 +257,8 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
               onChange={() => {
                 form.setExperimentMode('existing');
                 form.setNewExperimentName('');
-                form.experimentManuallyChangedRef.current = true;
+                // Allow auto-selection when experiments load after switching back from new mode.
+                form.experimentManuallyChangedRef.current = false;
               }}
             />
 
@@ -530,6 +531,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
             onChange={form.handleThresholdChange}
             label={isCollectionFlow ? 'Benchmark suite threshold' : 'Benchmark threshold'}
             fieldId="benchmark-threshold"
+            metric={isCollectionFlow ? undefined : form.primaryMetric}
           />
 
           {/* ── Primary scorer metric ──────────────────────────── */}

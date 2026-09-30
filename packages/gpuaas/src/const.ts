@@ -58,12 +58,40 @@ export const TREND_REFRESH_INTERVAL = 5 * 60 * 1000;
 export const PROMETHEUS_CLUSTER_QUERY_PATH = '/api/prometheus/cluster/query';
 export const PROMETHEUS_CLUSTER_QUERY_RANGE_PATH = '/api/prometheus/cluster/queryRange';
 
-export const INFRASTRUCTURE_TABS = [
-  { id: 'utilization', title: 'Accelerator utilization', layout: 'page' },
-  { id: 'quota-usage', title: 'Quota usage', layout: 'viewport' },
+export const ADMIN_INFRASTRUCTURE_TABS = [
+  { id: 'utilization', title: 'Accelerator utilization', layout: 'page', isDefault: true },
+  { id: 'quota-usage', title: 'Quota usage', layout: 'viewport', isDefault: false },
 ] as const;
 
+export const USER_INFRASTRUCTURE_TABS = [
+  { id: 'workloads', title: 'Workloads', layout: 'page', isDefault: true },
+] as const;
+
+export const INFRASTRUCTURE_TABS = [
+  ...ADMIN_INFRASTRUCTURE_TABS,
+  ...USER_INFRASTRUCTURE_TABS,
+] as const;
+
+export type InfrastructureTab = (typeof INFRASTRUCTURE_TABS)[number];
 export type InfrastructureTabId = (typeof INFRASTRUCTURE_TABS)[number]['id'];
+
+export const getVisibleInfrastructureTabs = (
+  canAccessAdminTabs: boolean,
+): readonly InfrastructureTab[] =>
+  canAccessAdminTabs ? INFRASTRUCTURE_TABS : USER_INFRASTRUCTURE_TABS;
+
+export const getDefaultInfrastructureTab = (
+  tabs: readonly InfrastructureTab[],
+): InfrastructureTabId => {
+  const defaultTab = tabs.find((tab) => tab.isDefault);
+
+  if (!defaultTab) {
+    throw new Error('Infrastructure tabs must define a default tab');
+  }
+
+  return defaultTab.id;
+};
+
 export type InfrastructureTabLayout = (typeof INFRASTRUCTURE_TABS)[number]['layout'];
 
 export const QUOTA_USAGE_DESCRIPTION =
