@@ -107,17 +107,21 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
 
   const handleSelect = React.useCallback(
     (value: string) => {
-      updateSelectedAsrModel(configId, value);
-      setStaleWarning(false);
       const model = allModels.find((m) => m.model_id === value);
+      if (!model) {
+        return;
+      }
+      updateSelectedAsrModel(configId, value);
+      updateAsrModelEnabled(configId, true);
+      setStaleWarning(false);
       fireMiscTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.ASR_MODEL_SELECTED, {
-        modelName: model?.display_name || value,
+        modelName: model.display_name || value,
         isDefaultModel: false,
       });
       setIsAllModelsOpen(false);
       setIsDropdownOpen(false);
     },
-    [configId, updateSelectedAsrModel, allModels],
+    [configId, updateSelectedAsrModel, updateAsrModelEnabled, allModels],
   );
 
   const getSelectedDisplayName = (models: AIModel[], modelId: string): string => {
@@ -182,10 +186,7 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
                     )
                   }
                   data-testid={`all-model-option-${model.model_id}`}
-                  onClick={() => {
-                    updateAsrModelEnabled(configId, true);
-                    handleSelect(model.model_id);
-                  }}
+                  onClick={() => handleSelect(model.model_id)}
                 >
                   {model.display_name || model.model_id}{' '}
                   {asrModels.includes(model) && (
@@ -281,7 +282,6 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
             isOpen={isDropdownOpen}
             onSelect={(_, value) => {
               if (typeof value === 'string') {
-                updateAsrModelEnabled(configId, true);
                 handleSelect(value);
               }
             }}
