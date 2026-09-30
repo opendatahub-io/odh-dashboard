@@ -2,16 +2,16 @@ import * as React from 'react';
 import { SourceConfigsTable, SourceVisibilityLabelInfo } from '~/app/shared/catalogSettings';
 import { McpCatalogSourceConfig } from '~/app/mcpServerCatalogTypes';
 import { McpCatalogSettingsContext } from '~/app/context/mcpCatalogSettings/McpCatalogSettingsContext';
-import { MCP_ADD_SOURCE_TITLE } from '~/app/routes/mcpCatalogSettings/mcpCatalogSettings';
+import {
+  MCP_ADD_SOURCE_TITLE,
+  mcpManageSourceUrl,
+} from '~/app/routes/mcpCatalogSettings/mcpCatalogSettings';
 import { useUserInteraction } from '~/concepts/userInteraction';
 import {
   MCP_CATALOG_SOURCES_EVENTS,
   getMcpPreloadedTier,
   getMcpTrackingSourceType,
 } from '~/app/pages/mcpCatalogSettings/tracking/mcpCatalogSourcesTracking';
-import {
-  mcpManageSourceUrl,
-} from '~/app/routes/mcpCatalogSettings/mcpCatalogSettings';
 import {
   McpServerVisibilityBadgeColor,
   MCP_SOURCE_TYPE_LABELS,
@@ -55,19 +55,19 @@ const McpCatalogSourceConfigsTable: React.FC<McpCatalogSourceConfigsTableProps> 
   const { apiState, refreshMcpCatalogSourceConfigs, mcpCatalogSourcesLoadError } =
     React.useContext(McpCatalogSettingsContext);
 
-  const handleToggleUpdate = React.useCallback(async (
-    checked: boolean,
-    catalogSourceConfig: McpCatalogSourceConfig,
-  ) => {
-    const previousEnabledState = catalogSourceConfig.enabled ?? true;
-    await apiState.api.updateMcpCatalogSourceConfig({}, catalogSourceConfig.id, { enabled: checked });
-    trackSimpleEvent(MCP_CATALOG_SOURCES_EVENTS.SOURCE_ENABLE_TOGGLED, {
-      sourceId: catalogSourceConfig.id,
-      sourceType: getMcpTrackingSourceType(catalogSourceConfig),
-      preloadedTier: getMcpPreloadedTier(catalogSourceConfig),
-      newEnabledState: checked,
-      previousEnabledState,
-    });
+  const handleToggleUpdate = React.useCallback(
+    async (checked: boolean, catalogSourceConfig: McpCatalogSourceConfig) => {
+      const previousEnabledState = catalogSourceConfig.enabled ?? true;
+      await apiState.api.updateMcpCatalogSourceConfig({}, catalogSourceConfig.id, {
+        enabled: checked,
+      });
+      trackSimpleEvent(MCP_CATALOG_SOURCES_EVENTS.SOURCE_ENABLE_TOGGLED, {
+        sourceId: catalogSourceConfig.id,
+        sourceType: getMcpTrackingSourceType(catalogSourceConfig),
+        preloadedTier: getMcpPreloadedTier(catalogSourceConfig),
+        newEnabledState: checked,
+        previousEnabledState,
+      });
       refreshMcpCatalogSourceConfigs();
     },
     [apiState.api, refreshMcpCatalogSourceConfigs, trackSimpleEvent],

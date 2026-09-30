@@ -18,7 +18,6 @@ const introText = (
 export const McpExpectedYamlFormatDrawerPanel: React.FC<McpExpectedYamlFormatDrawerPanelProps> = ({
   onClose,
 }) => (
-}) => (
   <ExpectedYamlFormatDrawer
     onClose={onClose}
     title={MCP_EXPECTED_FORMAT_DRAWER_TITLE}

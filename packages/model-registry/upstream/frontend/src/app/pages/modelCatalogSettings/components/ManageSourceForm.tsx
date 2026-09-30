@@ -177,72 +177,66 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
       }
     >
       <Stack hasGutter>
-              <StackItem>
-                <SourceDetailsSection
-                  formData={formData}
-                  setData={setData}
-                  isEditMode={isEditMode}
-                />
-              </StackItem>
+        <StackItem>
+          <SourceDetailsSection formData={formData} setData={setData} isEditMode={isEditMode} />
+        </StackItem>
 
-              {isHuggingFaceMode && (
-                <StackItem>
-                  <CredentialsSection
-                    formData={formData}
-                    setData={setData}
-                    onValidate={preview.handleValidate}
-                    isValidating={preview.isValidating}
-                    validationError={preview.validationError}
-                    isValidationSuccess={preview.isValidationSuccess}
-                    onClearValidationSuccess={preview.clearValidationSuccess}
-                    hasExistingApiKey={hasExistingApiKey}
-                    onClearCredentials={handleClearCredentials}
-                    onAccessTokenClearOutcome={handleAccessTokenClearOutcome}
-                  />
-                </StackItem>
-              )}
+        {isHuggingFaceMode && (
+          <StackItem>
+            <CredentialsSection
+              formData={formData}
+              setData={setData}
+              onValidate={preview.handleValidate}
+              isValidating={preview.isValidating}
+              validationError={preview.validationError}
+              isValidationSuccess={preview.isValidationSuccess}
+              onClearValidationSuccess={preview.clearValidationSuccess}
+              hasExistingApiKey={hasExistingApiKey}
+              onClearCredentials={handleClearCredentials}
+              onAccessTokenClearOutcome={handleAccessTokenClearOutcome}
+            />
+          </StackItem>
+        )}
 
-              {!formData.isDefault && !isHuggingFaceMode && (
-                <StackItem>
-                  <YamlSection
-                    formData={formData}
-                    setData={setData}
-                    onToggleExpectedFormatDrawer={onToggleExpectedFormatDrawer}
-                  />
-                </StackItem>
-              )}
+        {!formData.isDefault && !isHuggingFaceMode && (
+          <StackItem>
+            <YamlSection
+              formData={formData}
+              setData={setData}
+              onToggleExpectedFormatDrawer={onToggleExpectedFormatDrawer}
+            />
+          </StackItem>
+        )}
 
-              <StackItem>
-                <FormSection>
-                  <FormGroup fieldId="enable-source">
-                    <Checkbox
-                      label={
-                        <span className="pf-v6-c-form__label-text">
-                          {FORM_LABELS.ENABLE_SOURCE}
-                        </span>
-                      }
-                      id="enable-source"
-                      name="enable-source"
-                      data-testid="enable-source-checkbox"
-                      description={DESCRIPTION_TEXT.ENABLE_SOURCE}
-                      isChecked={formData.enabled}
-                      onChange={(_event, checked) => handleEnableSourceChange(checked)}
-                    />
-                  </FormGroup>
-                </FormSection>
-              </StackItem>
+        <StackItem>
+          <FormSection>
+            <FormGroup fieldId="enable-source">
+              <Checkbox
+                label={
+                  <span className="pf-v6-c-form__label-text">{FORM_LABELS.ENABLE_SOURCE}</span>
+                }
+                id="enable-source"
+                name="enable-source"
+                data-testid="enable-source-checkbox"
+                description={DESCRIPTION_TEXT.ENABLE_SOURCE}
+                isChecked={formData.enabled}
+                onChange={(_event, checked) => handleEnableSourceChange(checked)}
+              />
+            </FormGroup>
+          </FormSection>
+        </StackItem>
 
-              <StackItem>
-                <ModelVisibilitySection
-                  formData={formData}
-                  setData={setData}
-                  isDefaultExpanded={
-                    existingData?.isDefault ||
-                    !!existingData?.allowedModels ||
-                    !!existingData?.excludedModels
-                  }
-                />
-              </StackItem>
+        <StackItem>
+          <ModelVisibilitySection
+            formData={formData}
+            setData={setData}
+            isDefaultExpanded={
+              existingData?.isDefault ||
+              !!existingData?.allowedModels ||
+              !!existingData?.excludedModels
+            }
+          />
+        </StackItem>
       </Stack>
     </ManageSourceFormLayout>
   );

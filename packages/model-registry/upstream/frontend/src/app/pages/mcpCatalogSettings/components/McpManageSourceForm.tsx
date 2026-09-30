@@ -178,57 +178,55 @@ const McpManageSourceForm: React.FC<McpManageSourceFormProps> = ({
       }
     >
       <Stack hasGutter>
-              <StackItem>
-                <McpSourceDetailsSection
-                  formData={formData}
-                  setData={setData}
-                  isEditMode={isEditMode}
-                  existingSourceConfig={existingSourceConfig}
-                  serverCount={preview.previewState.summary?.totalAssets}
-                />
-              </StackItem>
+        <StackItem>
+          <McpSourceDetailsSection
+            formData={formData}
+            setData={setData}
+            isEditMode={isEditMode}
+            existingSourceConfig={existingSourceConfig}
+            serverCount={preview.previewState.summary?.totalAssets}
+          />
+        </StackItem>
 
-              {!formData.isDefault && (
-                <StackItem>
-                  <McpYamlSection
-                    formData={formData}
-                    setData={setData}
-                    onToggleExpectedFormatDrawer={onToggleExpectedFormatDrawer}
-                  />
-                </StackItem>
-              )}
+        {!formData.isDefault && (
+          <StackItem>
+            <McpYamlSection
+              formData={formData}
+              setData={setData}
+              onToggleExpectedFormatDrawer={onToggleExpectedFormatDrawer}
+            />
+          </StackItem>
+        )}
 
-              <StackItem>
-                <McpServerFiltersSection
-                  formData={formData}
-                  setData={setData}
-                  isDefaultExpanded={
-                    existingData?.isDefault ||
-                    !!existingData?.includedServers ||
-                    !!existingData?.excludedServers
-                  }
-                />
-              </StackItem>
+        <StackItem>
+          <McpServerFiltersSection
+            formData={formData}
+            setData={setData}
+            isDefaultExpanded={
+              existingData?.isDefault ||
+              !!existingData?.includedServers ||
+              !!existingData?.excludedServers
+            }
+          />
+        </StackItem>
 
-              <StackItem>
-                <FormSection>
-                  <FormGroup fieldId="mcp-enable-source">
-                    <Checkbox
-                      label={
-                        <span className="pf-v6-c-form__label-text">
-                          {MCP_FORM_LABELS.ENABLE_SOURCE}
-                        </span>
-                      }
-                      id="mcp-enable-source"
-                      name="mcp-enable-source"
-                      data-testid="mcp-enable-source-checkbox"
-                      description={MCP_DESCRIPTION_TEXT.ENABLE_SOURCE}
-                      isChecked={formData.enabled}
-                      onChange={(_event, checked) => setData('enabled', checked)}
-                    />
-                  </FormGroup>
-                </FormSection>
-              </StackItem>
+        <StackItem>
+          <FormSection>
+            <FormGroup fieldId="mcp-enable-source">
+              <Checkbox
+                label={
+                  <span className="pf-v6-c-form__label-text">{MCP_FORM_LABELS.ENABLE_SOURCE}</span>
+                }
+                id="mcp-enable-source"
+                name="mcp-enable-source"
+                data-testid="mcp-enable-source-checkbox"
+                description={MCP_DESCRIPTION_TEXT.ENABLE_SOURCE}
+                isChecked={formData.enabled}
+                onChange={(_event, checked) => setData('enabled', checked)}
+              />
+            </FormGroup>
+          </FormSection>
+        </StackItem>
       </Stack>
     </ManageSourceFormLayout>
   );
