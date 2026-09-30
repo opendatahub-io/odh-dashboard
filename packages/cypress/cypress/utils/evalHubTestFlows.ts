@@ -10,6 +10,7 @@ import { removeEvalHubTenantLabel } from './oc_commands/evalHubModelDeploy';
 import { cleanupEvalHubHardwareProfile } from './oc_commands/evalHubHardwareProfile';
 import {
   assertEvalHubOfflineDataRequest,
+  interceptEvalHubOfflineDataReadForReconfigure,
   interceptEvalHubOfflineDataRequest,
 } from './oc_commands/evalHubOfflineData';
 import { evaluationsPage } from '../pages/evalHub/evaluationsPage';
@@ -20,6 +21,17 @@ import { evaluationResultsPage } from '../pages/evalHub/evaluationResultsPage';
 const EVAL_HUB_API_MAX_ATTEMPTS = 6;
 const EVAL_HUB_API_RETRY_INTERVAL_MS = 5000;
 const EVAL_HUB_TRANSIENT_STATUSES = new Set([502, 503, 504]);
+
+/**
+ * Use a fresh suffix for each local EvalHub setup while preserving deterministic CI names.
+ * Generating it in the test flow gives repeated Cypress open-mode runs a new experiment name.
+ */
+export const getEvalHubExperimentSuffix = (defaultSuffix: string): Cypress.Chainable<string> =>
+  cy.then(() =>
+    Cypress.env('BUILD_NUMBER') || Cypress.env('GITHUB_RUN_ID')
+      ? defaultSuffix
+      : String(Date.now()),
+  );
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -208,6 +220,63 @@ const listEvalHubJobIds = (
       : cy.wrap(allIds);
   });
 
+const findEvalHubJobState = (body: unknown, jobName: string): string | undefined => {
+  if (!isRecord(body)) {
+    return undefined;
+  }
+  const { data } = body;
+  const items = Array.isArray(data)
+    ? data
+    : isRecord(data) && Array.isArray(data.items)
+    ? data.items
+    : [];
+  const job = items.find((item) => isRecord(item) && item.name === jobName);
+  return isRecord(job) && isRecord(job.status) && typeof job.status.state === 'string'
+    ? job.status.state
+    : undefined;
+};
+
+/** Waits for one named EvalHub run, so earlier Jobs in the same test tenant cannot satisfy the wait. */
+export const waitForEvaluationRunComplete = (
+  namespace: string,
+  runName: string,
+  timeoutMs = 900000,
+): Cypress.Chainable<void> => {
+  const pollIntervalMs = 10000;
+  const failedStates = new Set(['failed', 'partially_failed', 'cancelled', 'stopped']);
+
+  const poll = (deadline: number): Cypress.Chainable<void> =>
+    requestEvalHubApi(
+      {
+        method: 'GET',
+        url: '/eval-hub/api/v1/evaluations/jobs',
+        qs: { namespace, limit: 100, offset: 0, name: runName },
+      },
+      `Check EvalHub evaluation ${runName}`,
+    ).then((response) => {
+      if (response.status !== 200 || !hasEvalHubListPayload(response.body)) {
+        throw new Error(`Could not read EvalHub evaluation ${runName}: HTTP ${response.status}`);
+      }
+
+      const state = findEvalHubJobState(response.body, runName);
+      if (state === 'completed') {
+        return cy.wrap(undefined as void);
+      }
+      if (state && failedStates.has(state)) {
+        throw new Error(`EvalHub evaluation ${runName} ended with status ${state}.`);
+      }
+      if (Date.now() >= deadline) {
+        throw new Error(`EvalHub evaluation ${runName} did not complete within ${timeoutMs} ms.`);
+      }
+
+      // eslint-disable-next-line cypress/no-unnecessary-waiting -- bounded API status polling
+      return cy.wait(pollIntervalMs).then(() => poll(deadline));
+    });
+
+  // Start the timeout after earlier Cypress commands (including submission) have completed.
+  return cy.then(() => poll(Date.now() + timeoutMs));
+};
+
 const deleteEvalHubEvaluationJob = (namespace: string, jobId: string): Cypress.Chainable<void> =>
   requestEvalHubApi(
     {
@@ -277,6 +346,7 @@ export type SingleBenchmarkEvaluationOptions = {
   evaluationRunName: string;
   inferenceServiceName: string;
   mlflowExperimentName: string;
+  hardwareProfileName?: string;
   additionalBenchmarkParams?: string;
 };
 
@@ -285,10 +355,12 @@ export type BenchmarkSuiteEvaluationOptions = {
   evaluationRunName: string;
   inferenceServiceName: string;
   mlflowExperimentName: string;
+  hardwareProfileName?: string;
 };
 
 export type BenchmarkSuiteCreationOptions = {
   suiteName: string;
+  suiteDomains: string[];
   benchmarkProviderId: string;
   benchmarks: {
     id: string;
@@ -362,6 +434,41 @@ const selectNewMlflowExperiment = (mlflowExperimentName: string, modalId?: strin
     .type(mlflowExperimentName);
 };
 
+/** Non-Kueue tenants have no selector; Kueue tenants require an explicit profile. */
+const configureEvaluationHardwareProfile = (profileName?: string, modalId?: string): void => {
+  if (!profileName) {
+    createEvaluationPage.findStartEvaluationSubmitButton(modalId).should('be.enabled');
+    createEvaluationPage.findHardwareProfileToggle(modalId).should('not.exist');
+    return;
+  }
+
+  createEvaluationPage.findStartEvaluationSubmitButton(modalId).should('be.disabled');
+  createEvaluationPage
+    .findHardwareProfileToggle(modalId)
+    .should('be.visible')
+    .and('be.enabled')
+    .click();
+  createEvaluationPage.findHardwareProfileOption(profileName).should('be.visible').click();
+  createEvaluationPage.findHardwareProfileToggle(modalId).should('contain.text', profileName);
+  createEvaluationPage
+    .findHardwareProfileKueueInfo(modalId)
+    .should('contain.text', 'Only hardware profiles configured with a local queue are shown');
+};
+
+/** Confirms that the selected profile is actually sent to EvalHub, not only displayed. */
+const assertEvaluationHardwareConfig = (profileName?: string): void => {
+  cy.wait('@createEvalHubJob', { timeout: 120000 }).then(({ request }) => {
+    if (profileName) {
+      expect(request.body).to.have.nested.property(
+        'hardware_config.hardware_profile_name',
+        profileName,
+      );
+    } else {
+      expect(request.body).not.to.have.property('hardware_config');
+    }
+  });
+};
+
 // Navigation and test setup
 export const navigateToEvaluationsPage = (evaluationTenantProject: string): void => {
   cy.step('Log into the application and open Evaluations page');
@@ -390,6 +497,7 @@ export const submitSingleBenchmarkEvaluation = (opts: SingleBenchmarkEvaluationO
     evaluationRunName,
     inferenceServiceName,
     mlflowExperimentName,
+    hardwareProfileName,
     additionalBenchmarkParams,
   } = opts;
 
@@ -434,9 +542,18 @@ export const submitSingleBenchmarkEvaluation = (opts: SingleBenchmarkEvaluationO
       .type(additionalBenchmarkParams.trim(), { parseSpecialCharSequences: false });
   }
 
+  cy.step(
+    hardwareProfileName
+      ? 'Select Kueue hardware profile'
+      : 'Verify no hardware profile is required',
+  );
+  configureEvaluationHardwareProfile(hardwareProfileName);
+
   cy.step('Submit evaluation and confirm it appears in the list');
   const usesOfflineData = interceptEvalHubOfflineDataRequest();
+  cy.intercept('POST', '**/eval-hub/api/v1/evaluations/jobs*').as('createEvalHubJob');
   createEvaluationPage.findStartEvaluationSubmitButton().should('be.enabled').click();
+  assertEvaluationHardwareConfig(hardwareProfileName);
   if (usesOfflineData) {
     assertEvalHubOfflineDataRequest();
   }
@@ -451,6 +568,7 @@ export const submitSingleBenchmarkEvaluation = (opts: SingleBenchmarkEvaluationO
 export const createBenchmarkSuite = (opts: BenchmarkSuiteCreationOptions): void => {
   const {
     suiteName,
+    suiteDomains,
     benchmarkProviderId,
     benchmarks,
     additionalBenchmarkParams,
@@ -471,7 +589,9 @@ export const createBenchmarkSuite = (opts: BenchmarkSuiteCreationOptions): void 
   createEvaluationPage.findSuiteDescriptionInput().type('Created by the EvalHub Cypress E2E flow.');
   createEvaluationPage.findSuiteEvaluatesToggle().click();
   createEvaluationPage.findSuiteEvaluatesOption('model').click();
-  createEvaluationPage.findCopySuiteNextButton().click();
+  createEvaluationPage.closeSuiteEvaluatesMenu();
+  suiteDomains.forEach((category) => createEvaluationPage.selectSuiteCategory(category));
+  createEvaluationPage.findCopySuiteNextButton().should('be.enabled').click();
 
   benchmarks.forEach(({ id, name }) => {
     cy.step(`Add benchmark to suite: ${name} (${id})`);
@@ -527,6 +647,7 @@ const configureAndSubmitBenchmarkSuiteEvaluation = ({
   evaluationRunName,
   inferenceServiceName,
   mlflowExperimentName,
+  hardwareProfileName,
 }: BenchmarkSuiteRunConfigurationOptions): void => {
   createEvaluationPage
     .findStartEvaluationRunModal(modalId, { timeout: 120000 })
@@ -544,9 +665,18 @@ const configureAndSubmitBenchmarkSuiteEvaluation = ({
   createEvaluationPage.findModelOption(inferenceServiceName, modalId).should('be.visible').click();
   createEvaluationPage.findModelPickerToggle(modalId).should('contain.text', inferenceServiceName);
 
+  cy.step(
+    hardwareProfileName
+      ? 'Select Kueue hardware profile'
+      : 'Verify no hardware profile is required',
+  );
+  configureEvaluationHardwareProfile(hardwareProfileName, modalId);
+
   cy.step('Submit evaluation and confirm it appears in the list');
   const usesOfflineData = interceptEvalHubOfflineDataRequest();
+  cy.intercept('POST', '**/eval-hub/api/v1/evaluations/jobs*').as('createEvalHubJob');
   createEvaluationPage.findStartEvaluationSubmitButton(modalId).should('be.enabled').click();
+  assertEvaluationHardwareConfig(hardwareProfileName);
   if (usesOfflineData) {
     assertEvalHubOfflineDataRequest();
   }
@@ -597,7 +727,6 @@ export const verifyEvaluationProgressModal = (evaluationRunName: string): void =
 
 export const verifyEvaluationCompletedAndViewResults = (
   evaluationRunName: string,
-  evaluationTenantProject: string,
   expectedBenchmarkIds: string[] = [],
 ): void => {
   cy.step('Re-open status modal after completion — View Results shown, Stop absent');
@@ -611,7 +740,8 @@ export const verifyEvaluationCompletedAndViewResults = (
     .click();
   evaluationsPage.findStatusModal(statusTimeout).should('be.visible');
   evaluationsPage.findStatusModalStopButton(statusTimeout).should('not.exist');
-  evaluationsPage.findStatusModalViewResultsButton(statusTimeout).should('be.visible').click();
+  evaluationsPage.findStatusModalViewResultsButton(statusTimeout).should('be.visible');
+  evaluationsPage.findStatusModalViewResultsButton(statusTimeout).click();
 
   cy.step('Verify evaluation results page renders with score and metadata');
   evaluationResultsPage.findResultsContent().should('be.visible');
@@ -643,28 +773,19 @@ export const verifyEvaluationCompletedAndViewResults = (
   evaluationResultsPage.findEventLogModal().should('be.visible');
   evaluationResultsPage.findLogContent().should('be.visible');
   evaluationResultsPage.findEventLogModalCloseButton().click();
-
-  cy.step('Return to evaluations list and verify Complete status');
-  cy.visitWithLogin(
-    `${evaluationsPage.pathWithLmEvalDevFlags(evaluationTenantProject)}&tab=runs`,
-    LDAP_ADMIN_USER,
-  );
-  evaluationsPage.findRunsTabContent({ timeout: 30000 }).should('be.visible');
-  evaluationsPage
-    .findEvaluationStatusButtonInRow(evaluationRunName)
-    .should('contain.text', 'Complete');
 };
 
 // Stop and reconfigure flow
-export const stopAndReconfigureEvaluation = (
+export function stopAndReconfigureEvaluation(
   evaluationRunName: string,
   reconfiguredRunName: string,
-): void => {
+  tenantNamespace: string,
+): void {
   cy.step('Wait for evaluation to reach Running status');
   const statusTimeout = { timeout: 120000 };
   evaluationsPage.findRunsTabContent(statusTimeout).should('be.visible');
   evaluationsPage
-    .findEvaluationStatusButtonInRow(evaluationRunName, statusTimeout)
+    .findEvaluationStatusButtonInRow(evaluationRunName, { timeout: 600000 })
     .should('contain.text', 'Running');
 
   cy.step('Open status modal and stop the running evaluation');
@@ -690,6 +811,7 @@ export const stopAndReconfigureEvaluation = (
     .should('contain.text', 'Canceled');
 
   cy.step('Open status modal and click Reconfigure');
+  interceptEvalHubOfflineDataReadForReconfigure(tenantNamespace);
   evaluationsPage.findEvaluationStatusButtonInRow(evaluationRunName, statusTimeout).click();
   evaluationsPage.findStatusModal(statusTimeout).should('be.visible');
   evaluationsPage.findStatusModalReconfigureButton(statusTimeout).should('be.visible').click();
@@ -698,14 +820,17 @@ export const stopAndReconfigureEvaluation = (
   cy.url().should('include', '/reconfigure');
   createEvaluationPage.findStartEvaluationForm({ timeout: 30000 }).should('exist');
   createEvaluationPage.findEvaluationNameInput().clear().type(reconfiguredRunName);
+  configureEvaluationHardwareProfile();
+  cy.intercept('POST', '**/eval-hub/api/v1/evaluations/jobs*').as('createEvalHubJob');
   createEvaluationPage.findStartEvaluationSubmitButton().should('be.enabled').click();
+  assertEvaluationHardwareConfig();
   assertEvalHubOfflineDataRequest();
   cy.url({ timeout: 120000 }).should('not.include', '/reconfigure');
   evaluationsPage.findRunsTabContent(statusTimeout).should('be.visible');
   evaluationsPage
     .findEvaluationStatusButtonInRow(reconfiguredRunName, statusTimeout)
     .should('be.visible');
-};
+}
 
 // End-to-end flow composition
 export const runSingleBenchmarkEvaluationFlow = (
@@ -716,7 +841,7 @@ export const runSingleBenchmarkEvaluationFlow = (
   submitSingleBenchmarkEvaluation(opts);
   verifyEvaluationProgressModal(opts.evaluationRunName);
   waitForEvaluationJobComplete(evaluationTenantProject);
-  verifyEvaluationCompletedAndViewResults(opts.evaluationRunName, evaluationTenantProject);
+  verifyEvaluationCompletedAndViewResults(opts.evaluationRunName);
 };
 
 // Shared cleanup orchestration

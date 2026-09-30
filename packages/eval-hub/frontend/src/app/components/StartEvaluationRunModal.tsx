@@ -32,6 +32,7 @@ import FormGroupLabel from '~/app/components/FormGroupLabel';
 import SourceAgentFields from '~/app/components/SourceAgentFields';
 import SourceModelFields from '~/app/components/SourceModelFields';
 import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
+import HardwareProfileField from '~/app/components/HardwareProfileField';
 import { useInferenceServices } from '~/app/hooks/useInferenceServices';
 import {
   DEFAULT_EXPERIMENT_NAME,
@@ -115,6 +116,7 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
     benchmark,
     collection,
     isCollectionFlow,
+    allowDeferredCollection: isCollectionFlow && !collection && !!resolveCollection,
     experiments,
     experimentsLoaded,
     defaultEvaluationName,
@@ -484,6 +486,18 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
                 />
               ) : null}
 
+              <HardwareProfileField
+                availability={form.kueueAvailability}
+                profiles={form.hardwareProfiles}
+                loaded={form.hardwareProfilesLoaded}
+                error={form.hardwareProfilesError}
+                compatibilityError={form.hardwareProfileCompatibilityError}
+                selectedProfile={form.hardwareProfile}
+                onSelect={(profile) => form.setHardwareProfile(profile?.name)}
+                isRequired={form.requiresHardwareProfile}
+                disabled={isCloning}
+              />
+
               <ExpandableSection
                 className="evalhub-start-evaluation-run-modal__advanced"
                 toggleText={
@@ -559,6 +573,7 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
                     onChange={form.handleThresholdChange}
                     label="Benchmark threshold"
                     fieldId="benchmark-threshold"
+                    metric={form.primaryMetric}
                     isDisabled={isCloning}
                   />
                 ) : null}

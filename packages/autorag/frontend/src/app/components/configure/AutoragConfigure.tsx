@@ -79,15 +79,17 @@ import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
   MAX_RAG_PATTERNS,
   MIN_RAG_PATTERNS,
+  DEFAULT_OPTIMIZATION_METRIC,
   OPTIMIZATION_METRIC_LABELS,
+  OPTIMIZATION_METRICS,
+  getOptimizationMetricsForPreset,
   PRESET_BETTER_QUALITY,
   PRESET_FASTER,
   PRESET_LABELS,
-  RAG_METRIC_ANSWER_CORRECTNESS,
-  RAG_METRIC_FAITHFULNESS,
-  RAG_METRIC_OVERALL_SCORE,
+  METRIC_DESCRIPTIONS,
   REQUIRED_CONNECTION_SECRET_KEYS,
 } from '~/app/utilities/const';
+import { metricDomId, parseMetricReference } from '~/app/utilities/metricUtils';
 import type { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
@@ -120,27 +122,16 @@ import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
 import EvaluationTemplateModal from './EvaluationTemplateModal';
 import './AutoragConfigure.scss';
 
-const OPTIMIZATION_METRICS: {
+const OPTIMIZATION_METRIC_OPTIONS: {
   value: ConfigureSchema['optimization_metric'];
   label: string;
   description: string;
 }[] = [
-  {
-    value: RAG_METRIC_OVERALL_SCORE,
-    label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_OVERALL_SCORE],
-    description:
-      'An equal-weight mean of all other selectable metrics, representing overall pattern performance.',
-  },
-  {
-    value: RAG_METRIC_FAITHFULNESS,
-    label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_FAITHFULNESS],
-    description: 'How factually grounded the answer is in the retrieved context.',
-  },
-  {
-    value: RAG_METRIC_ANSWER_CORRECTNESS,
-    label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_ANSWER_CORRECTNESS],
-    description: 'How correct the generated answer is compared to the ground truth.',
-  },
+  ...OPTIMIZATION_METRICS.map((value) => ({
+    value,
+    label: OPTIMIZATION_METRIC_LABELS[value],
+    description: METRIC_DESCRIPTIONS[value] ?? 'Metric used to evaluate RAG responses.',
+  })),
 ];
 
 const SYSTEM_FOLDER_DISABLED_REASON = 'This is a system folder and cannot be selected.';
@@ -265,6 +256,8 @@ function AutoragConfigure({
     inputDataKeys,
     generationModels,
     embeddingModels,
+    preset,
+    optimizationMetric,
   ] = useWatch({
     control: form.control,
     name: [
@@ -275,6 +268,8 @@ function AutoragConfigure({
       'input_data_keys',
       'generation_models',
       'embedding_models',
+      'preset',
+      'optimization_metric',
     ],
   });
 
@@ -894,13 +889,95 @@ function AutoragConfigure({
 
                     <FlexItem>
                       <ConfigureFormGroup
+                        label="Run preset"
+                        description="Choose a predefined resource allocation and optimization strategy for this run."
+                        labelHelp={{
+                          header: 'Run preset',
+                          body: (
+                            <Stack hasGutter>
+                              <StackItem>
+                                <Content component="p">
+                                  Select how to balance ingestion speed and retrieval quality.
+                                </Content>
+                              </StackItem>
+                              <StackItem>
+                                <Content component="p">
+                                  <strong>Faster:</strong> Recursive chunking only on exported text,
+                                  no table-structure parsing, no LLM contextual enrichment.
+                                </Content>
+                              </StackItem>
+                              <StackItem>
+                                <Content component="p">
+                                  <strong>Better quality:</strong> Explores recursive and hybrid
+                                  chunking with Docling contextualization, table layout parsing, and
+                                  LLM contextual enrichment.
+                                </Content>
+                              </StackItem>
+                            </Stack>
+                          ),
+                        }}
+                      >
+                        <Controller
+                          control={form.control}
+                          name="preset"
+                          render={({ field }) => (
+                            <Flex direction={{ default: 'column' }}>
+                              {[PRESET_FASTER, PRESET_BETTER_QUALITY].map((presetValue) => (
+                                <Radio
+                                  key={presetValue}
+                                  id={`preset-${presetValue}`}
+                                  name="preset"
+                                  label={PRESET_LABELS[presetValue]}
+                                  description={
+                                    presetValue === PRESET_FASTER ? (
+                                      <>
+                                        4 vCPU, 16 GiB
+                                        <br />
+                                        Recursive chunking only. A good default for most datasets.
+                                      </>
+                                    ) : (
+                                      <>
+                                        8 vCPU, 32 GiB
+                                        <br />
+                                        Explores recursive and hybrid chunking with table parsing
+                                        and contextual enrichment.
+                                      </>
+                                    )
+                                  }
+                                  isChecked={field.value === presetValue}
+                                  isDisabled={isSubmitting}
+                                  onChange={() => {
+                                    field.onChange(presetValue);
+                                    if (
+                                      !getOptimizationMetricsForPreset(presetValue).includes(
+                                        optimizationMetric,
+                                      )
+                                    ) {
+                                      setValue('optimization_metric', DEFAULT_OPTIMIZATION_METRIC, {
+                                        shouldValidate: true,
+                                      });
+                                    }
+                                  }}
+                                  data-testid={`preset-radio-${presetValue}`}
+                                />
+                              ))}
+                            </Flex>
+                          )}
+                        />
+                      </ConfigureFormGroup>
+                    </FlexItem>
+
+                    <FlexItem>
+                      <ConfigureFormGroup
                         label="Optimization metric"
                         labelHelp={{
                           header: 'Optimization metric',
                           position: 'bottom',
                           body: (
                             <Stack hasGutter>
-                              {OPTIMIZATION_METRICS.map((metric) => (
+                              {OPTIMIZATION_METRIC_OPTIONS.filter((metric) =>
+                                getOptimizationMetricsForPreset(preset).includes(metric.value),
+                              ).map((metric) => (
                                 <StackItem key={metric.value}>
                                   <Content component="p">
                                     <strong>{metric.label}:</strong>
@@ -918,7 +995,7 @@ function AutoragConfigure({
                           control={form.control}
                           name="optimization_metric"
                           render={({ field }) => {
-                            const selected = OPTIMIZATION_METRICS.find(
+                            const selected = OPTIMIZATION_METRIC_OPTIONS.find(
                               (m) => m.value === field.value,
                             );
                             const metricDescription = getMetricDescription(field.value);
@@ -949,11 +1026,18 @@ function AutoragConfigure({
                                   data-testid="optimization-metric-select-list"
                                 >
                                   <SelectList>
-                                    {OPTIMIZATION_METRICS.map((metric) => (
+                                    {OPTIMIZATION_METRIC_OPTIONS.filter((metric) =>
+                                      getOptimizationMetricsForPreset(preset).includes(
+                                        metric.value,
+                                      ),
+                                    ).map((metric) => (
                                       <SelectOption
                                         key={metric.value}
                                         value={metric.value}
-                                        data-testid={`metric-option-${metric.value}`}
+                                        data-testid={metricDomId(
+                                          'metric-option',
+                                          parseMetricReference(metric.value),
+                                        )}
                                       >
                                         {metric.label}
                                       </SelectOption>
@@ -1012,75 +1096,6 @@ function AutoragConfigure({
                                 </FormHelperText>
                               )}
                             </>
-                          )}
-                        />
-                      </ConfigureFormGroup>
-                    </FlexItem>
-
-                    <FlexItem>
-                      <ConfigureFormGroup
-                        label="Run preset"
-                        description="Choose a predefined resource allocation and optimization strategy for this run."
-                        labelHelp={{
-                          header: 'Run preset',
-                          body: (
-                            <Stack hasGutter>
-                              <StackItem>
-                                <Content component="p">
-                                  Select how to balance ingestion speed and retrieval quality.
-                                </Content>
-                              </StackItem>
-                              <StackItem>
-                                <Content component="p">
-                                  <strong>Faster:</strong> Recursive chunking only on exported text,
-                                  no table-structure parsing, no LLM contextual enrichment.
-                                </Content>
-                              </StackItem>
-                              <StackItem>
-                                <Content component="p">
-                                  <strong>Better quality:</strong> Explores recursive and hybrid
-                                  chunking with Docling contextualization, table layout parsing, and
-                                  LLM contextual enrichment.
-                                </Content>
-                              </StackItem>
-                            </Stack>
-                          ),
-                        }}
-                      >
-                        <Controller
-                          control={form.control}
-                          name="preset"
-                          render={({ field }) => (
-                            <Flex direction={{ default: 'column' }}>
-                              {[PRESET_FASTER, PRESET_BETTER_QUALITY].map((preset) => (
-                                <Radio
-                                  key={preset}
-                                  id={`preset-${preset}`}
-                                  name="preset"
-                                  label={PRESET_LABELS[preset]}
-                                  description={
-                                    preset === PRESET_FASTER ? (
-                                      <>
-                                        4 vCPU, 16 GiB
-                                        <br />
-                                        Recursive chunking only. A good default for most datasets.
-                                      </>
-                                    ) : (
-                                      <>
-                                        8 vCPU, 32 GiB
-                                        <br />
-                                        Explores recursive and hybrid chunking with table parsing
-                                        and contextual enrichment.
-                                      </>
-                                    )
-                                  }
-                                  isChecked={field.value === preset}
-                                  isDisabled={isSubmitting}
-                                  onChange={() => field.onChange(preset)}
-                                  data-testid={`preset-radio-${preset}`}
-                                />
-                              ))}
-                            </Flex>
                           )}
                         />
                       </ConfigureFormGroup>

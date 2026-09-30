@@ -8,7 +8,7 @@ import {
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import type { MlflowExperiment } from '@odh-dashboard/internal/concepts/mlflow';
-import { createEvaluationJob } from '~/app/api/k8s';
+import { createEvaluationJob, getHardwareProfiles } from '~/app/api/k8s';
 import {
   EVAL_HUB_EVENTS,
   type RunSourceSelectedProperties,
@@ -21,10 +21,16 @@ import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
 import { getUrlValidationError } from '~/app/utils/validationUtils';
 import getErrorTitle from '~/app/utils/getErrorTitle';
-import { normalizeThreshold } from '~/app/utilities/evaluationUtils';
+import {
+  getThresholdInputValue,
+  getThresholdRequestValue,
+  normalizeThreshold,
+} from '~/app/utilities/evaluationUtils';
 import { evaluationsBaseRoute } from '~/app/routes';
 import { useNotification } from '~/app/hooks/useNotification';
 import { useConnectionValidation } from '~/app/hooks/useConnectionValidation';
+import { useHardwareProfiles } from '~/app/hooks/useHardwareProfiles';
+import { useKueueAvailability } from '~/app/hooks/useKueueAvailability';
 import {
   startEvaluationRunDefaultValues,
   startEvaluationRunSchema,
@@ -39,11 +45,25 @@ const DEFAULT_SUITE_THRESHOLD = 70;
 
 export const EXTERNAL_ENDPOINT_VALUE = '__external__';
 
+const getProviderIds = (
+  benchmark: FlatBenchmark | undefined,
+  collection: Collection | undefined,
+): string[] =>
+  Array.from(
+    new Set(
+      [
+        benchmark?.providerId,
+        ...(collection?.benchmarks ?? []).map((item) => item.provider_id),
+      ].filter((providerId): providerId is string => Boolean(providerId?.trim())),
+    ),
+  );
+
 type UseStartEvaluationRunFormParams = {
   namespace: string | undefined;
   benchmark: FlatBenchmark | undefined;
   collection: Collection | undefined;
   isCollectionFlow: boolean;
+  allowDeferredCollection?: boolean;
   experiments: MlflowExperiment[];
   experimentsLoaded: boolean;
   initialValues?: ReconfigureFormData;
@@ -106,6 +126,8 @@ const buildInitialFormValues = ({
   primaryMetric: initialValues?.primaryMetric ?? defaultPrimaryMetric,
   showAdditionalArgs: !!initialValues?.additionalArgs,
   additionalArgs: initialValues?.additionalArgs ?? '',
+  hardwareProfile: initialValues?.hardwareProfile,
+  queue: initialValues?.queue,
 });
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
@@ -114,6 +136,7 @@ export function useStartEvaluationRunForm({
   benchmark,
   collection,
   isCollectionFlow,
+  allowDeferredCollection = false,
   experiments,
   experimentsLoaded,
   initialValues,
@@ -127,27 +150,31 @@ export function useStartEvaluationRunForm({
   const notification = useNotification();
   const isReconfigure = !!initialValues;
 
-  const defaultThreshold = React.useMemo(() => {
-    if (collection?.pass_criteria) {
-      return normalizeThreshold(collection.pass_criteria.threshold);
-    }
-    if (collection) {
-      return DEFAULT_SUITE_THRESHOLD;
-    }
-    if (benchmark?.pass_criteria) {
-      return normalizeThreshold(benchmark.pass_criteria.threshold);
-    }
-    return 0;
-  }, [benchmark, collection]);
-
   const availableMetrics = React.useMemo(() => benchmark?.metrics ?? [], [benchmark]);
   const defaultPrimaryMetric = benchmark?.primary_score?.metric ?? availableMetrics[0];
 
+  const getDefaultThresholdForMetric = React.useCallback(
+    (metric?: string) => {
+      if (collection?.pass_criteria) {
+        return normalizeThreshold(collection.pass_criteria.threshold);
+      }
+      if (collection) {
+        return DEFAULT_SUITE_THRESHOLD;
+      }
+      if (benchmark?.pass_criteria) {
+        return getThresholdInputValue(benchmark.pass_criteria.threshold, metric);
+      }
+      return 0;
+    },
+    [benchmark, collection],
+  );
+
+  const defaultThreshold = React.useMemo(
+    () => getDefaultThresholdForMetric(defaultPrimaryMetric),
+    [defaultPrimaryMetric, getDefaultThresholdForMetric],
+  );
+
   const benchmarkDisplayNameRef = React.useRef('');
-  const defaultPrimaryMetricRef = React.useRef(defaultPrimaryMetric);
-  React.useEffect(() => {
-    defaultPrimaryMetricRef.current = defaultPrimaryMetric;
-  }, [defaultPrimaryMetric]);
 
   const form = useForm<StartEvaluationRunFormValues>({
     mode: 'onChange',
@@ -160,6 +187,24 @@ export function useStartEvaluationRunForm({
       defaultPrimaryMetric,
     }),
   });
+
+  const {
+    availability: kueueAvailability,
+    loaded: kueueAvailabilityLoaded,
+    error: kueueAvailabilityError,
+  } = useKueueAvailability(namespace);
+  const providerIds = React.useMemo(
+    () => getProviderIds(benchmark, collection),
+    [benchmark, collection],
+  );
+  const {
+    profiles: hardwareProfiles,
+    loaded: hardwareProfilesQueryLoaded,
+    error: hardwareProfilesQueryError,
+    compatibilityError: hardwareProfileCompatibilityError,
+  } = useHardwareProfiles(namespace, providerIds);
+  const hardwareProfilesLoaded = kueueAvailabilityLoaded && hardwareProfilesQueryLoaded;
+  const hardwareProfilesError = kueueAvailabilityError ?? hardwareProfilesQueryError;
 
   const [
     evaluationName,
@@ -180,6 +225,7 @@ export function useStartEvaluationRunForm({
     primaryMetric,
     showAdditionalArgs,
     additionalArgs,
+    hardwareProfile,
   ] = useWatch({
     control: form.control,
     name: [
@@ -201,6 +247,7 @@ export function useStartEvaluationRunForm({
       'primaryMetric',
       'showAdditionalArgs',
       'additionalArgs',
+      'hardwareProfile',
     ],
   });
 
@@ -235,15 +282,21 @@ export function useStartEvaluationRunForm({
   const handlePrimaryMetricChange = React.useCallback(
     (metric: string) => {
       form.setValue('primaryMetric', metric, { shouldDirty: true, shouldValidate: true });
+      if (metric !== primaryMetric) {
+        form.setValue('threshold', getDefaultThresholdForMetric(metric), {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
 
       const props: RunMetricSelectedProperties = {
         metricName: metric,
-        isDefault: metric === defaultPrimaryMetricRef.current,
+        isDefault: metric === defaultPrimaryMetric,
         benchmarkName: benchmarkDisplayNameRef.current,
       };
       fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_METRIC_SELECTED, props);
     },
-    [form],
+    [defaultPrimaryMetric, form, getDefaultThresholdForMetric, primaryMetric],
   );
 
   const setEvaluationName = React.useCallback(
@@ -395,7 +448,9 @@ export function useStartEvaluationRunForm({
   benchmarkDisplayNameRef.current = benchmarkDisplayName;
 
   const hasBenchmarks =
-    !!benchmark || (!!collection && !!collection.benchmarks && collection.benchmarks.length > 0);
+    allowDeferredCollection ||
+    !!benchmark ||
+    (!!collection && !!collection.benchmarks && collection.benchmarks.length > 0);
 
   const [touched, setTouched] = React.useState<Record<string, boolean>>({});
 
@@ -426,9 +481,32 @@ export function useStartEvaluationRunForm({
   const hasExperiment =
     (experimentMode === 'existing' && !!selectedExperimentName?.trim()) ||
     (experimentMode === 'new' && newExperimentName.trim() !== '');
+  // A Kueue-managed namespace must schedule its evaluations through a
+  // HardwareProfile. This remains true while its LocalQueues or compatible
+  // profiles are unavailable, so an incomplete Kueue configuration cannot be
+  // bypassed by falling back to provider-default scheduling.
+  const requiresHardwareProfile = kueueAvailability?.enabled === true;
+  // Reconfigured jobs can reference profiles or queues that no longer exist. Derive the
+  // current selection from the available profiles so hidden, stale form values are never sent.
+  const selectedHardwareProfile =
+    kueueAvailability?.scheduling_ready === true
+      ? hardwareProfiles.find(
+          (profile) =>
+            profile.name === hardwareProfile &&
+            !!profile.local_queue_name &&
+            kueueAvailability.local_queue_names.includes(profile.local_queue_name),
+        )
+      : undefined;
 
   const isValid = React.useMemo(() => {
-    if (evaluationName.trim() === '' || !hasBenchmarks || !hasExperiment) {
+    if (
+      !hardwareProfilesLoaded ||
+      hardwareProfilesError ||
+      evaluationName.trim() === '' ||
+      !hasBenchmarks ||
+      !hasExperiment ||
+      (requiresHardwareProfile && !selectedHardwareProfile)
+    ) {
       return false;
     }
 
@@ -456,6 +534,10 @@ export function useStartEvaluationRunForm({
     datasetUrlError,
     sourceName,
     selectedInferenceServiceName,
+    hardwareProfilesLoaded,
+    hardwareProfilesError,
+    requiresHardwareProfile,
+    selectedHardwareProfile,
   ]);
 
   const canVerifyConnection = React.useMemo(() => {
@@ -516,6 +598,15 @@ export function useStartEvaluationRunForm({
   const setShowAdditionalArgs = React.useCallback(
     (checked: boolean) => form.setValue('showAdditionalArgs', checked, { shouldValidate: true }),
     [form],
+  );
+
+  const setHardwareProfile = React.useCallback(
+    (profileName: string | undefined) => {
+      const profile = hardwareProfiles.find((candidate) => candidate.name === profileName);
+      form.setValue('hardwareProfile', profile?.name, { shouldValidate: true });
+      form.setValue('queue', profile?.local_queue_name, { shouldValidate: true });
+    },
+    [form, hardwareProfiles],
   );
 
   const handleAdditionalArgsFileChange = React.useCallback(
@@ -637,7 +728,12 @@ export function useStartEvaluationRunForm({
 
     const shouldIncludeThreshold = thresholdTouched || defaultThreshold > 0;
     const passCriteriaOverride = shouldIncludeThreshold
-      ? { threshold: values.threshold / 100 }
+      ? {
+          threshold: getThresholdRequestValue(
+            values.threshold,
+            isCollectionFlow ? undefined : values.primaryMetric,
+          ),
+        }
       : undefined;
 
     const primaryScoreOverride = values.primaryMetric
@@ -693,6 +789,8 @@ export function useStartEvaluationRunForm({
       experimentTags: undefined,
       passCriteriaOverride,
       primaryScoreOverride,
+      hardwareProfile: selectedHardwareProfile?.name,
+      queue: selectedHardwareProfile?.local_queue_name,
     });
 
     fireMiscTrackingEvent(EVAL_HUB_EVENTS.MLFLOW_EXPERIMENT_SELECTED, {
@@ -743,6 +841,27 @@ export function useStartEvaluationRunForm({
     abortControllerRef.current = controller;
 
     try {
+      if (selectedHardwareProfile) {
+        // Refresh the structural profile and LocalQueue selection without depending on
+        // advisory provider compatibility, which may be unavailable or lack provider IDs.
+        const currentProfiles = await getHardwareProfiles(
+          '',
+          namespace ?? '',
+        )({
+          signal: controller.signal,
+        });
+        if (
+          !currentProfiles.some(
+            (profile) =>
+              profile.name === selectedHardwareProfile.name &&
+              profile.local_queue_name === selectedHardwareProfile.local_queue_name,
+          )
+        ) {
+          throw new Error(
+            'The selected HardwareProfile or LocalQueue is no longer available. Refresh the page and select another hardware profile.',
+          );
+        }
+      }
       await createEvaluationJob('', namespace ?? '', request)({ signal: controller.signal });
       if (controller.signal.aborted) {
         return;
@@ -837,6 +956,14 @@ export function useStartEvaluationRunForm({
     handleVerifyConnection,
     canVerifyConnection,
     requiresConnectionValidation,
+    hardwareProfiles,
+    hardwareProfilesLoaded,
+    hardwareProfilesError,
+    hardwareProfileCompatibilityError,
+    kueueAvailability,
+    requiresHardwareProfile,
+    hardwareProfile: selectedHardwareProfile?.name,
+    setHardwareProfile,
   };
 }
 

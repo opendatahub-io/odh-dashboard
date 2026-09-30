@@ -23,6 +23,7 @@ import { ApiKeyColumn } from '~/app/pages/keys-and-subs/apiKeys/allKeys/columns'
 import CreateApiKeyModal from '~/app/pages/keys-and-subs/apiKeys/CreateApiKeyModal';
 import RevokeApiKeyModal from '~/app/pages/keys-and-subs/apiKeys/RevokeApiKeyModal';
 import { ApiKeyCreateInitiatedFrom, ApiKeyRevokeInitiatedFrom } from '~/app/types/event-tracking';
+import { useKeysAndSubsContext } from '~/app/context/KeysAndSubsContext';
 
 const subscriptionApiKeyColumns: ApiKeyColumn[] = [
   {
@@ -94,12 +95,13 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
   const subscriptionId = subscription.subscription_id_header;
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [revokeApiKey, setRevokeApiKey] = React.useState<APIKey | undefined>(undefined);
+  const { refresh: refreshKeysAndSubs } = useKeysAndSubsContext();
 
   const {
     response,
     loaded,
     error,
-    refresh,
+    refresh: refreshTable,
     page,
     perPage,
     sortField,
@@ -109,6 +111,11 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
     onPerPageSelect,
     onSort,
   } = useSubscriptionApiKeysTableState(subscriptionId);
+
+  const refreshAll = () => {
+    refreshTable();
+    refreshKeysAndSubs();
+  };
 
   const apiKeys = response.data;
   const showTableLoading = !loaded || isFetching;
@@ -125,7 +132,7 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
           onClose={(created?: boolean) => {
             setIsModalOpen(false);
             if (created) {
-              refresh();
+              refreshAll();
             }
           }}
         />
@@ -137,7 +144,7 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
           onClose={(revoked?: boolean) => {
             setRevokeApiKey(undefined);
             if (revoked) {
-              refresh();
+              refreshAll();
             }
           }}
         />

@@ -91,7 +91,7 @@ export type PaginationParams = {
   nextPageToken: string;
 };
 
-export type CatalogAssetType = 'models' | 'mcp_servers' | 'agents';
+export type CatalogAssetType = 'models' | 'mcp_servers' | 'agents' | 'serving_runtimes';
 
 export type CatalogSourceListParams = {
   assetType?: CatalogAssetType;

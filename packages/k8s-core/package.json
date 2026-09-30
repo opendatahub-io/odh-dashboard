@@ -37,7 +37,9 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test-unit": "jest",
+    "test-unit-coverage": "jest --coverage"
   },
   "dependencies": {
     "@odh-dashboard/foundation": "workspace:*",
@@ -48,6 +50,7 @@
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
     "@odh-dashboard/tsconfig": "workspace:*"
   }
 }

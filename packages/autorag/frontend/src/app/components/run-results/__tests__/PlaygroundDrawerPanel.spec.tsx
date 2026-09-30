@@ -98,7 +98,7 @@ const mockPatterns: Record<string, AutoragPattern> = {
 const mockContextValue: AutoragResultsContextProps = {
   patterns: mockPatterns,
   parameters: { maas_secret_name: 'test-secret', vector_db_secret_name: 'milvus' },
-  optimizationMetric: { name: 'faithfulness' },
+  optimizationMetric: { name: 'faithfulness', evaluator: 'unitxt' },
 };
 
 const defaultProps = {

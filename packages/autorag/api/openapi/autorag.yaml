@@ -1131,7 +1131,7 @@ components:
               description: Key-value map of pipeline parameters
               additionalProperties: true
               example:
-                optimization_metric: 'overall_score'
+                optimization_metric: 'custom:overall_score'
                 test_data_secret_name: 'minio-secret'
                 test_data_bucket_name: 'autorag'
             pipeline_root:
@@ -1382,11 +1382,16 @@ components:
         optimization_metric:
           type: string
           enum:
-            - overall_score
+            - custom:overall_score
+            - unitxt:faithfulness
+            - unitxt:answer_correctness
+            - ragas:faithfulness
+            - ragas:answer_relevancy
+            - ragas:context_precision
+            - ragas:context_recall
             - faithfulness
-            - answer_correctness
-            - context_correctness
-          description: Metric to optimize (defaults to overall_score)
+          default: custom:overall_score
+          description: Metric to optimize. Defaults to custom:overall_score. speed permits the Unitxt faithfulness, Unitxt answer correctness, and custom overall score metrics; balanced permits all seven qualified metrics. The legacy bare faithfulness value is normalized according to the selected preset.
         vector_db_secret_name:
           type: string
           minLength: 1
@@ -2027,7 +2032,7 @@ components:
                 pipeline_version_id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
               runtime_config:
                 parameters:
-                  optimization_metric: 'overall_score'
+                  optimization_metric: 'custom:overall_score'
                   test_data_secret_name: 'minio-secret'
                   test_data_bucket_name: 'autorag'
                   test_data_key: 'test_data.json'
