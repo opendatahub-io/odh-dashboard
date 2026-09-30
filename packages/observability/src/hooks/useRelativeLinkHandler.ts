@@ -6,6 +6,27 @@ import { useNavigate } from 'react-router-dom';
  */
 const isRelativeLink = (href: string): boolean => href.startsWith('/') && !href.startsWith('//');
 
+const stripBasename = (href: string, basename: string): string => {
+  const normalizedBasename = basename.replace(/\/+$/, '');
+  if (!normalizedBasename) {
+    return href;
+  }
+
+  if (href === normalizedBasename) {
+    return '/';
+  }
+
+  if (href.startsWith(`${normalizedBasename}/`)) {
+    return href.slice(normalizedBasename.length);
+  }
+
+  if (href.startsWith(`${normalizedBasename}?`) || href.startsWith(`${normalizedBasename}#`)) {
+    return `/${href.slice(normalizedBasename.length)}`;
+  }
+
+  return href;
+};
+
 /**
  * Hook that returns a ref callback to attach to a DOM node. It intercepts relative link clicks
  * and navigates using React Router instead of causing a full page reload.
@@ -17,12 +38,12 @@ const isRelativeLink = (href: string): boolean => href.startsWith('/') && !href.
  *
  * @example
  * ```tsx
- * const linkHandlerRef = useRelativeLinkHandler();
+ * const linkHandlerRef = useRelativeLinkHandler('/portal');
  *
  * return <div ref={linkHandlerRef}>{markdownContent}</div>;
  * ```
  */
-const useRelativeLinkHandler = (): React.RefCallback<HTMLElement> => {
+const useRelativeLinkHandler = (basename = ''): React.RefCallback<HTMLElement> => {
   const navigate = useNavigate();
   const [node, setNode] = React.useState<HTMLElement | null>(null);
 
@@ -53,7 +74,7 @@ const useRelativeLinkHandler = (): React.RefCallback<HTMLElement> => {
       // Only intercept relative links
       if (href && isRelativeLink(href)) {
         event.preventDefault();
-        navigate(href);
+        navigate(stripBasename(href, basename));
       }
     };
 
@@ -62,7 +83,7 @@ const useRelativeLinkHandler = (): React.RefCallback<HTMLElement> => {
     return () => {
       node.removeEventListener('click', handleClick);
     };
-  }, [node, navigate]);
+  }, [basename, node, navigate]);
 
   return setNode;
 };

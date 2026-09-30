@@ -45,7 +45,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
   const [searchParams] = useSearchParams();
 
   // Intercept relative link clicks in the Perses dashboard and use React Router navigation
-  const setRelativeLinkHandlerRef = useRelativeLinkHandler();
+  const setRelativeLinkHandlerRef = useRelativeLinkHandler(browserBasePath);
 
   // Get dashboard name from query param
   const dashboardNameFromUrl = searchParams.get(DASHBOARD_URL_PARAM) || '';

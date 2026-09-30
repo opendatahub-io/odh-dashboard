@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { DashboardResource } from '@perses-dev/core';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import DashboardContent from '../DashboardContent';
 
 jest.mock('@odh-dashboard/ui-core', () => ({
@@ -10,7 +10,20 @@ jest.mock('@odh-dashboard/ui-core', () => ({
 
 jest.mock('@patternfly/react-core', () => ({
   PageSection: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  Tab: ({ href, title }: { href: string; title: React.ReactNode }) => <a href={href}>{title}</a>,
+  Tab: ({
+    href,
+    title,
+    children,
+  }: {
+    href: string;
+    title: React.ReactNode;
+    children: React.ReactNode;
+  }) => (
+    <>
+      <a href={href}>{title}</a>
+      <div>{children}</div>
+    </>
+  ),
   Tabs: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TabTitleText: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
@@ -22,7 +35,11 @@ jest.mock('../../perses/embeddable/PersesProvider', () => ({
 
 jest.mock('../../perses/embeddable/PersesDashboard', () => ({
   __esModule: true,
-  default: () => null,
+  default: () => (
+    <a href="/maas-consumer-portal/observe-and-monitor/dashboard?dashboard=dashboard-1-model">
+      Panel link
+    </a>
+  ),
 }));
 
 jest.mock('../../perses/embeddable/PersesVariables', () => ({
@@ -38,11 +55,6 @@ jest.mock('../HeaderTimeRangeControls', () => ({
 jest.mock('../NamespaceUrlSync', () => ({
   __esModule: true,
   default: () => null,
-}));
-
-jest.mock('../../hooks/useRelativeLinkHandler', () => ({
-  __esModule: true,
-  default: () => () => undefined,
 }));
 
 const dashboard = {
@@ -65,6 +77,16 @@ const dashboard = {
 } satisfies DashboardResource;
 
 describe('DashboardContent', () => {
+  const CurrentLocation: React.FC = () => {
+    const location = useLocation();
+    return (
+      <div data-testid="current-location">
+        {location.pathname}
+        {location.search}
+      </div>
+    );
+  };
+
   it('keeps direct dashboard links under the host browser base path', () => {
     render(
       <MemoryRouter
@@ -84,6 +106,30 @@ describe('DashboardContent', () => {
 
     expect(screen.getByRole('link', { name: 'Models' }).getAttribute('href')).toBe(
       '/maas-consumer-portal/observe-and-monitor/dashboard?start=30m&end=now&dashboard=dashboard-1-model',
+    );
+  });
+
+  it('navigates panel links without duplicating the router basename', () => {
+    render(
+      <MemoryRouter
+        basename="/maas-consumer-portal"
+        initialEntries={['/maas-consumer-portal/observe-and-monitor/dashboard']}
+      >
+        <CurrentLocation />
+        <DashboardContent
+          dashboards={[dashboard]}
+          projects={[]}
+          routeBasePath="/observe-and-monitor/dashboard"
+          browserBasePath="/maas-consumer-portal"
+          ClusterDetailsAdapter={() => null}
+        />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('link', { name: 'Panel link' }));
+
+    expect(screen.getByTestId('current-location').textContent).toBe(
+      '/observe-and-monitor/dashboard?dashboard=dashboard-1-model',
     );
   });
 });

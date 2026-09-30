@@ -89,11 +89,12 @@ export const loadBundledOverride = (name: string): Promise<BundledPluginModule> 
   return pending;
 };
 
-/** Clears override cache and optionally replaces loaders. Restores defaults when omitted. */
+/** Clears loader caches and proxy configuration for tests, optionally replacing bundled loaders. */
 export const resetBundledOverridesForTests = (
   loaders?: Map<string, () => Promise<BundledPluginModule>>,
 ): void => {
   loadedOverrides.clear();
+  configuredPluginAssetPaths.clear();
   bundledOverrideLoaders = loaders ?? createDefaultBundledOverrideLoaders();
 };
 
