@@ -48,11 +48,5 @@ The cluster must already provide a Data Registry API and the developer must be
 able to reach it through the configured port-forward or API URL. This command
 does not install the Data Registry backend.
 
-For an RHOAI 3.6 deployment walkthrough, see the pinned
-[Data Registry getting-started example](https://github.com/briangallagher/red-hat-ai-examples/blob/d242ab256f34519883643ec5a7f07341f97f772d/examples/data-registry/rhoai-3.6/getting-started.md).
-That example covers enabling the Technology Preview component, PostgreSQL,
-and the registry instance; use the current RHOAI documentation to validate
-cluster-specific manifests before applying them.
-
 See [Environment Variables](env-variables.md) for upstream API discovery,
 authentication, and proxy settings.
