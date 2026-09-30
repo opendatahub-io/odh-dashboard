@@ -96,9 +96,13 @@ func (app *App) GenAIProxyNSModelsHandler(w http.ResponseWriter, r *http.Request
 func buildOpenAIModelList(aaModels []models.AAModel) openAIModelList {
 	items := make([]openAIModelItem, 0, len(aaModels))
 	for _, m := range aaModels {
+		// Capability-only ASR detection applies to inference models. An embedding
+		// model may advertise audio transcription but still belongs in discovery.
+		asrOnlyInferenceModel := (m.ModelType == models.ModelTypeLLM || m.ModelType == "") &&
+			constants.IsASROnlyCapabilities(m.Capabilities)
 		if m.Status == models.ModelStatusStop ||
 			m.ModelType == models.ModelTypeTranscription ||
-			constants.IsASROnlyCapabilities(m.Capabilities) {
+			asrOnlyInferenceModel {
 			continue
 		}
 

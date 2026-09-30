@@ -250,6 +250,13 @@ func TestGenAIProxyNSModelsHandlerExcludesTranscriptionTypedAndASROnlyModels(t *
 			ModelSourceType: models.ModelSourceTypeNamespace,
 		},
 		{
+			ModelID:         "embedding-model-with-asr-capability",
+			ModelType:       models.ModelTypeEmbedding,
+			Capabilities:    []string{constants.CapabilityAudioTranscription},
+			Status:          models.ModelStatusRunning,
+			ModelSourceType: models.ModelSourceTypeMaaS,
+		},
+		{
 			ModelID:         "stopped-model",
 			ModelType:       models.ModelTypeLLM,
 			Capabilities:    []string{constants.CapabilityTextGeneration},
@@ -273,10 +280,12 @@ func TestGenAIProxyNSModelsHandlerExcludesTranscriptionTypedAndASROnlyModels(t *
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &list))
 
 	require.Equal(t, "list", list.Object)
-	require.Len(t, list.Data, 3)
+	require.Len(t, list.Data, 4)
 	assert.Equal(t, "gemini-2.5-flash", list.Data[0].ID)
 	assert.Equal(t, "llm", list.Data[0].CustomMetadata["model_type"])
 	assert.Equal(t, "combined-model", list.Data[1].ID)
 	assert.Equal(t, "embedding-model", list.Data[2].ID)
 	assert.Equal(t, "embedding", list.Data[2].CustomMetadata["model_type"])
+	assert.Equal(t, "embedding-model-with-asr-capability", list.Data[3].ID)
+	assert.Equal(t, "embedding", list.Data[3].CustomMetadata["model_type"])
 }
