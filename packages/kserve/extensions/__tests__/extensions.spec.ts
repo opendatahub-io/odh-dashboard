@@ -1,5 +1,6 @@
 import extensions from '../../extensions';
 import { SERVING_RUNTIME_TEMPLATES_TAB_PATH } from '../../src/settings/servingRuntimeTemplates/paths';
+import { RUNTIME_CATALOG_TAB_PATH } from '../../src/settings/runtimeCatalog/paths';
 
 const routeExtensions = extensions.filter((extension) => extension.type === 'app.route');
 
@@ -95,5 +96,49 @@ describe('serving runtime legacy URL redirects', () => {
     redirects.forEach((route) => {
       expect(route.flags).toEqual(servingRuntimeTemplatesTab?.flags);
     });
+  });
+});
+
+const runtimeCatalogTab = extensions.find(
+  (extension) =>
+    extension.type === 'app.tab-route/tab' && extension.properties.id === 'serving-runtime-catalog',
+);
+
+describe('runtime image library extensions', () => {
+  it('should register the runtime image library tab on the model deployment settings page', () => {
+    expect(runtimeCatalogTab).toBeDefined();
+    expect(runtimeCatalogTab?.properties).toEqual(
+      expect.objectContaining({
+        pageId: 'model-deployment-settings',
+        id: 'serving-runtime-catalog',
+        title: 'Runtime image library',
+        group: '1b_runtime-catalog',
+      }),
+    );
+  });
+
+  it('should register the details breakout route outside the tab', () => {
+    const paths = routeExtensions.map((extension) => extension.properties.path);
+    expect(paths).toContain(`${RUNTIME_CATALOG_TAB_PATH}/:runtimeName`);
+  });
+
+  it('should gate the details breakout route exactly as the tab is gated', () => {
+    const detailsRoute = routeExtensions.find(
+      (extension) => extension.properties.path === `${RUNTIME_CATALOG_TAB_PATH}/:runtimeName`,
+    );
+
+    expect(detailsRoute).toBeDefined();
+    expect(detailsRoute?.flags).toEqual(runtimeCatalogTab?.flags);
+  });
+
+  // Guards the path constant duplicated into extensions.ts, which cannot import
+  // runtime values from src. A refactor that changes paths.ts alone should fail here.
+  it('should use the shared tab path constant for the details route', () => {
+    const detailsRoute = routeExtensions.find((extension) =>
+      extension.properties.path.startsWith(`${RUNTIME_CATALOG_TAB_PATH}/`),
+    );
+
+    expect(detailsRoute).toBeDefined();
+    expect(detailsRoute?.properties.path).toBe(`${RUNTIME_CATALOG_TAB_PATH}/:runtimeName`);
   });
 });
