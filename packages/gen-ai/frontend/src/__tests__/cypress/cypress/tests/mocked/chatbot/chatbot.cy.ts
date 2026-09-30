@@ -70,6 +70,31 @@ describe('AI Playground - Chatbot Interactions (Mocked)', () => {
     );
 
     it(
+      'aligns a pending audio attachment with the message bar',
+      { tags: ['@GenAI', '@Chatbot', '@UI'] },
+      () => {
+        chatbotPage.visit('mock-audio-namespace');
+        cy.findByTestId('audio-file-input').selectFile(
+          {
+            contents: Cypress.Buffer.from('audio-data'),
+            fileName: 'recording.wav',
+            mimeType: 'audio/wav',
+          },
+          { force: true },
+        );
+        cy.findByTestId('audio-model-needed-alert').should('be.visible');
+        cy.findByTestId('chatbot-message-bar').then(($bar) => {
+          cy.findByTestId('audio-file-chip').should(($chip) => {
+            expect($chip[0].getBoundingClientRect().left).to.be.closeTo(
+              $bar[0].getBoundingClientRect().left,
+              2,
+            );
+          });
+        });
+      },
+    );
+
+    it(
       'should send message and receive bot response',
       { tags: ['@GenAI', '@Chatbot', '@Interaction'] },
       () => {

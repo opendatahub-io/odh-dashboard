@@ -139,6 +139,12 @@ describe('TranscriptionModelSection', () => {
       expect(screen.getByTestId('transcription-model-add-section')).toHaveStyle(
         'border: 1px dashed var(--pf-t--global--border--color--default)',
       );
+      expect(screen.getByTestId('transcription-model-add-section')).toHaveStyle(
+        'border-radius: var(--pf-t--global--border--radius--small)',
+      );
+      expect(screen.getByTestId('transcription-model-add-section')).not.toContainElement(
+        screen.getByRole('heading', { name: 'Transcription model' }),
+      );
       expect(
         screen.getByRole('button', { name: 'Add audio transcription model' }),
       ).toBeInTheDocument();
@@ -265,9 +271,11 @@ describe('TranscriptionModelSection', () => {
           'Models tagged with audio are verified for audio transcription. Select any other model to test it manually.',
         ),
       ).toBeInTheDocument();
-      expect(screen.getByText('Transcribes spoken audio')).toBeInTheDocument();
+      expect(screen.getByTestId('transcription-model-guidance')).toHaveClass('pf-v6-u-mb-md');
+      expect(screen.getByText('Transcribes spoken audio')).toHaveClass('pf-v6-u-mt-sm');
       expect(screen.getByText('General-purpose chat model')).toBeInTheDocument();
 
+      expect(screen.getByRole('button', { name: 'Cancel' })).toHaveClass('pf-v6-u-pl-0');
       await user.click(screen.getByRole('button', { name: 'Cancel' }));
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
       expect(
@@ -303,6 +311,7 @@ describe('TranscriptionModelSection', () => {
       expect(
         screen.getByRole('button', { name: 'Remove' }).querySelector('svg'),
       ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Remove' })).toHaveClass('pf-v6-u-mt-md');
       expect(mockFireMisc).toHaveBeenCalledWith(PLAYGROUND_MULTIMODAL_EVENTS.ASR_MODEL_SELECTED, {
         modelName: 'Whisper Large V3',
         isDefaultModel: false,

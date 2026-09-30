@@ -210,6 +210,7 @@ describe('ChatbotMessageInput', () => {
     expect(screen.getByTestId('image-capability-alert')).toHaveTextContent(
       'Vision capability not tagged',
     );
+    expect(screen.getByTestId('image-capability-alert')).toHaveClass('pf-v6-u-mb-sm');
     expect(screen.getByTestId('image-capability-alert')).toHaveTextContent(
       "This model isn't tagged for vision capabilities, which can lead to unexpected output. To identify supported models faster, tag this model's capabilities in the Model Registry or contact your admin.",
     );
@@ -608,7 +609,7 @@ describe('ChatbotMessageInput', () => {
   });
 
   describe('image preview chip', () => {
-    it('aligns image and audio attachments with the left inset of document attachments', () => {
+    it('aligns image and audio attachments with the message bar edge', () => {
       render(
         <ChatbotMessageInput
           {...defaultProps}
@@ -626,10 +627,8 @@ describe('ChatbotMessageInput', () => {
       const row = screen.getByTestId('media-attachment-row');
       expect(within(row).getByTestId('vision-file-preview')).toBeInTheDocument();
       expect(within(row).getByTestId('audio-file-chip')).toBeInTheDocument();
-      expect(row).toHaveStyle({
-        width: '100%',
-        paddingLeft: 'var(--pf-t--global--spacer--lg)',
-      });
+      expect(row).toHaveStyle('width: 100%');
+      expect(row).toHaveStyle('padding-left: var(--pf-t--global--spacer--sm)');
       expect(row.style.maxWidth).toBe('');
       expect(row.style.marginLeft).toBe('');
       expect(row.style.marginRight).toBe('');
@@ -932,6 +931,7 @@ describe('ChatbotMessageInput', () => {
       expect(screen.getByTestId('audio-model-needed-alert')).toHaveTextContent(
         'Audio files require a transcription model. Select one under the Model tab in Settings.',
       );
+      expect(screen.getByTestId('audio-model-needed-alert')).toHaveClass('pf-v6-u-mb-sm');
     });
 
     it('clicking "Upload audio" triggers the hidden audio file input and fires tracking event', async () => {

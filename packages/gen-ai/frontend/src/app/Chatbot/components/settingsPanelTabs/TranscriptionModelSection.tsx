@@ -166,6 +166,7 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
           isInline
           title="Models tagged with audio are verified for audio transcription. Select any other model to test it manually."
           className="pf-v6-u-mb-md"
+          data-testid="transcription-model-guidance"
         />
         <Menu isPlain>
           <MenuContent>

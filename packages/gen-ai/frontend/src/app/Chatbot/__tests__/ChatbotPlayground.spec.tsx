@@ -962,6 +962,7 @@ describe('ChatbotPlayground — audio transcription', () => {
     });
     expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
     expect(screen.getByTestId('audio-model-needed-alert')).toBeInTheDocument();
+    expect(screen.getByTestId('send-button')).toBeDisabled();
     expect(uploadMediaFile).not.toHaveBeenCalled();
 
     act(() => {
@@ -1249,7 +1250,7 @@ describe('ChatbotPlayground — compare mode attachments', () => {
     expect(imageMenuItem).not.toBeDisabled();
   });
 
-  it('keeps an uploaded image when a compared model lacks vision capability', async () => {
+  it('keeps an in-flight image upload when a compared model lacks vision capability', async () => {
     const visionModel = { id: 'vision-ai', capabilities: ['vision', 'text-generation'] };
     const textModel = { id: 'text-ai', capabilities: ['text-generation'] };
 
@@ -1297,7 +1298,7 @@ describe('ChatbotPlayground — compare mode attachments', () => {
           },
           'config-2': {
             ...DEFAULT_CONFIGURATION,
-            selectedModel: 'text-llama',
+            selectedModel: 'vision-llama',
           },
         },
         configIds: [DEFAULT_CONFIG_ID, 'config-2'],
@@ -1312,9 +1313,13 @@ describe('ChatbotPlayground — compare mode attachments', () => {
     expect(imageMenuItem).not.toBeDisabled();
 
     const { uploadMediaFile } = require('~/app/services/llamaStackService');
+    let finishUpload: (response: { data: { id: string } }) => void = () => undefined;
+    const abortUpload = jest.fn();
     uploadMediaFile.mockReturnValue({
-      promise: Promise.resolve({ data: { id: 'image-file' } }),
-      xhr: { abort: jest.fn() },
+      promise: new Promise((resolve) => {
+        finishUpload = resolve;
+      }),
+      xhr: { abort: abortUpload },
     });
     const file = new File(['pixels'], 'photo.png', { type: 'image/png' });
     await act(async () => {
@@ -1323,13 +1328,25 @@ describe('ChatbotPlayground — compare mode attachments', () => {
       });
     });
     expect(screen.getByTestId('vision-file-preview')).toBeInTheDocument();
+    expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+    expect(screen.getByTestId('chip-loading')).toBeInTheDocument();
+
+    act(() => {
+      useChatbotConfigStore.getState().updateSelectedModel('config-2', 'text-llama');
+    });
+    expect(screen.getByTestId('vision-file-preview')).toBeInTheDocument();
     expect(screen.getByTestId('image-capability-alert')).toBeInTheDocument();
+    expect(abortUpload).not.toHaveBeenCalled();
 
     act(() => {
       useChatbotConfigStore.getState().updateSelectedModel('config-2', 'vision-llama');
     });
-    expect(screen.getByTestId('vision-file-preview')).toBeInTheDocument();
     expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+
+    await act(async () => {
+      finishUpload({ data: { id: 'image-file' } });
+    });
+    expect(screen.getByTestId('vision-file-preview')).toBeInTheDocument();
   });
 
   it('allows image upload when workspace has no vision-tagged models', async () => {
