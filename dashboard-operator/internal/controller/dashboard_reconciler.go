@@ -447,6 +447,7 @@ func (r *DashboardReconciler) reconcileDeployment(
 	}
 
 	remapRayDashboardGatewayRBAC(allResources)
+	remapDataConnectHubGatewayRBAC(allResources, r.ApplicationsNamespace)
 
 	if err := sanitizeDeploymentProbes(ctx, r.Client, allResources); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
@@ -479,6 +480,13 @@ func (r *DashboardReconciler) reconcileDeployment(
 			conditions.WithReason("DeployFailed"),
 			conditions.WithError(err))
 		return ctrl.Result{}, fmt.Errorf("failed to deploy resources: %w", err)
+	}
+
+	if err := r.reconcileRHOAIDashboardConfigDefaults(ctx); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("DashboardConfigDefaultFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to reconcile dashboard config defaults: %w", err)
 	}
 
 	nextStatuses, err := r.reconcileModuleDemand(ctx, dashboard)
@@ -1045,8 +1053,12 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 	if err := addOptionalOwnedResourceWatches(mgr.GetRESTMapper(), controllerBuilder); err != nil {
 		return err
 	}
+	dashboardController, err := controllerBuilder.Build(r)
+	if err != nil {
+		return err
+	}
 
-	return controllerBuilder.Complete(r)
+	return addOdhDashboardConfigWatch(mgr, dashboardController, r)
 }
 
 // addOptionalOwnedResourceWatches adds watches for APIs used only by the MaaS

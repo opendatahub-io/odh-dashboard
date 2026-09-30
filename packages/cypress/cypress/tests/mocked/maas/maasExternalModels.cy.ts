@@ -10,6 +10,7 @@ import {
   addProviderReferenceWizard,
   createExternalModelPage,
   deleteExternalModelModal,
+  editExternalModelPage,
   editProviderReferenceModal,
   externalModelProviderUrlModal,
   externalModelsPage,
@@ -30,10 +31,7 @@ const TEST_PROJECT = 'test-project';
 
 const setupCommonIntercepts = () => {
   asProductAdminUser();
-  cy.interceptOdh(
-    'GET /api/config',
-    mockDashboardConfig({ modelAsService: true, externalModels: true }),
-  );
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({ modelAsService: true }));
   cy.interceptOdh('GET /maas/api/v1/user', {
     data: { userId: 'test-user', clusterAdmin: false },
   });
@@ -74,21 +72,8 @@ describe('External Models Page', () => {
     externalModelsPage.findEmptyState().should('exist');
   });
 
-  it('should not show the external models page when the feature flag is disabled', () => {
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({ modelAsService: true, externalModels: false }),
-    );
-    externalModelsPage.visit();
-    externalModelsPage.findExternalModelsTab().should('not.exist');
-    externalModelsPage.findPage().should('not.exist');
-  });
-
   it('should not show the external models page when models as a service is disabled', () => {
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({ modelAsService: false, externalModels: true }),
-    );
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({ modelAsService: false }));
     externalModelsPage.visit();
     externalModelsPage.findExternalModelsTab().should('not.exist');
     externalModelsPage.findPage().should('not.exist');
@@ -155,17 +140,20 @@ describe('External Models Page', () => {
       gptRow.findExpandedProviderStatus('openai-prod').should('contain.text', 'Ready');
       gptRow.findExpandedApiFormat('openai-prod').should('contain.text', 'openai-chat');
       gptRow.findExpandedTargetModel('openai-prod').should('contain.text', 'gpt-4o');
-      gptRow.findExpandedWeight('openai-prod').should('contain.text', '100');
+      gptRow
+        .findExpandedWeight('openai-prod')
+        .should('contain.text', '1')
+        .and('contain.text', '(100%)');
 
       gptRow.findExpandedViewUrlButton('openai-prod').click();
       externalModelProviderUrlModal.findInputValue().should('have.value', 'api.openai.com');
-      externalModelProviderUrlModal.findProviderRef().should('contain.text', 'openai');
+      externalModelProviderUrlModal.findProviderRef().should('contain.text', 'OpenAI');
       externalModelProviderUrlModal.findTargetModelId().should('contain.text', 'gpt-4o');
       externalModelProviderUrlModal.findCloseButton().click();
 
       gptRow.findExpandedViewPathButton('openai-prod').click();
       pathModal.findInputValue().should('have.value', '/v1/chat/completions');
-      pathModal.findSubContent().should('contain.text', 'openai');
+      pathModal.findSubContent().should('contain.text', 'OpenAI');
       pathModal.findCloseButton().click();
 
       const splitRow = externalModelsPage.getRow('Claude A/B Split');
@@ -173,20 +161,26 @@ describe('External Models Page', () => {
       splitRow
         .findExpandedProviderName('anthropic-dev')
         .should('contain.text', 'Anthropic Development');
-      splitRow.findExpandedWeight('anthropic-dev').should('contain.text', '60');
+      splitRow
+        .findExpandedWeight('anthropic-dev')
+        .should('contain.text', '6')
+        .and('contain.text', '(60%)');
       splitRow
         .findExpandedAuthMechanism('bedrock-us-east')
         .should('contain.text', 'Signature Version 4');
       splitRow
         .findExpandedCredentialSecret('bedrock-us-east')
         .should('contain.text', 'bedrock-credentials-us-east');
-      splitRow.findExpandedWeight('bedrock-us-east').should('contain.text', '40');
+      splitRow
+        .findExpandedWeight('bedrock-us-east')
+        .should('contain.text', '4')
+        .and('contain.text', '(40%)');
 
       splitRow.findExpandedViewUrlButton('bedrock-us-east').click();
       externalModelProviderUrlModal
         .findInputValue()
         .should('have.value', 'bedrock.us-east-1.amazonaws.com');
-      externalModelProviderUrlModal.findProviderRef().should('contain.text', 'aws-bedrock');
+      externalModelProviderUrlModal.findProviderRef().should('contain.text', 'AWS Bedrock');
       externalModelProviderUrlModal
         .findTargetModelId()
         .should('contain.text', 'anthropic.claude-3-sonnet');
@@ -194,7 +188,7 @@ describe('External Models Page', () => {
 
       splitRow.findExpandedViewPathButton('anthropic-dev').click();
       pathModal.findInputValue().should('have.value', '/v1/messages');
-      pathModal.findSubContent().should('contain.text', 'anthropic');
+      pathModal.findSubContent().should('contain.text', 'Anthropic');
       pathModal.findCloseButton().click();
 
       const awaitingRow = externalModelsPage.getRow('Awaiting Pairing Model');
@@ -220,7 +214,7 @@ describe('External Models Page', () => {
       missingRefRow
         .findMissingMaaSModelRefWarningPopover()
         .should('exist')
-        .should('contain.text', 'Missing MaaS model setup');
+        .should('contain.text', 'Missing MaaS governance setup');
     });
 
     it('should filter external models by keyword across name, display name, and description', () => {
@@ -293,7 +287,6 @@ describe('External Models Page', () => {
 
       createExternalModelPage.findTitle().should('contain.text', 'Add external model');
       createExternalModelPage.findProjectInput().should('have.value', TEST_PROJECT);
-      createExternalModelPage.findProviderRefsRequiredInfo().should('exist');
       createExternalModelPage.findCreateButton().should('be.disabled');
     });
 
@@ -308,6 +301,7 @@ describe('External Models Page', () => {
       addProviderReferenceWizard.findNextButton().should('not.be.disabled').click();
 
       addProviderReferenceWizard.fillTargetModel('claude-sonnet-4-5-20241022');
+      addProviderReferenceWizard.selectApiFormat('openai-chat');
       addProviderReferenceWizard.expandAdvancedSettings();
       addProviderReferenceWizard.findInheritedProviderConfig().should('be.visible');
       addProviderReferenceWizard.findInheritedConfigKey('project').should('have.value', 'project');
@@ -371,6 +365,7 @@ describe('External Models Page', () => {
       });
       addProviderReferenceWizard.findNextButton().should('not.be.disabled').click();
 
+      addProviderReferenceWizard.selectApiFormat('openai-chat');
       addProviderReferenceWizard.fillTargetModel('gpt-4o');
       addProviderReferenceWizard.findAddButton().click();
 
@@ -410,8 +405,7 @@ describe('External Models Page', () => {
       addProviderReferenceWizard.fillTargetModel('claude-sonnet-4');
       addProviderReferenceWizard.fillPath('v1/chat/completions');
 
-      addProviderReferenceWizard.findAddButton().should('not.be.disabled').click();
-      addProviderReferenceWizard.shouldBeOpen();
+      addProviderReferenceWizard.findAddButton().should('be.disabled');
       addProviderReferenceWizard.find().should('contain.text', 'Path must start with /');
       createExternalModelPage.findProviderReferencesTable().should('not.exist');
     });
@@ -427,11 +421,12 @@ describe('External Models Page', () => {
       addProviderReferenceWizard.selectProvider('Anthropic Provider');
       addProviderReferenceWizard.findNextButton().click();
 
+      addProviderReferenceWizard.selectApiFormat('openai-chat');
+
       addProviderReferenceWizard.fillTargetModel('claude-sonnet-4');
       addProviderReferenceWizard.fillPath('/{key}/v1/chat/completions');
 
-      addProviderReferenceWizard.findAddButton().should('not.be.disabled').click();
-      addProviderReferenceWizard.shouldBeOpen();
+      addProviderReferenceWizard.findAddButton().should('be.disabled');
       addProviderReferenceWizard.find().should('contain.text', missingPlaceholderError);
       createExternalModelPage.findProviderReferencesTable().should('not.exist');
 
@@ -456,9 +451,21 @@ describe('External Models Page', () => {
       createExternalModelPage.visit();
 
       createExternalModelPage.findAddProviderReferenceButton().click();
-      addProviderReferenceWizard.addProviderReference('Anthropic Provider', 'claude-sonnet-4');
+      addProviderReferenceWizard.addProviderReference(
+        'Anthropic Provider',
+        'claude-sonnet-4',
+        'openai-chat',
+      );
 
       createExternalModelPage.findProviderRefEditButton(0).click();
+      editProviderReferenceModal.findExternalProviderSection().should('exist');
+      editProviderReferenceModal
+        .findExternalProviderInput()
+        .should('have.value', 'Anthropic Provider');
+      editProviderReferenceModal.findConfigurationSection().should('exist');
+      editProviderReferenceModal.findApiFormatSelect().should('contain.text', 'OpenAI Chat');
+      editProviderReferenceModal.findTargetModelInput().should('have.value', 'claude-sonnet-4');
+      editProviderReferenceModal.findPathInput().should('have.value', '/v1/chat/completions');
       editProviderReferenceModal.shouldBeOpen();
       editProviderReferenceModal.expandAdvancedSettings();
       editProviderReferenceModal
@@ -466,6 +473,7 @@ describe('External Models Page', () => {
         .should('be.visible')
         .should('have.value', 'my-project');
 
+      editProviderReferenceModal.selectApiFormat('openai-chat');
       editProviderReferenceModal.findTargetModelInput().clear();
       editProviderReferenceModal.findTargetModelInput().type('claude-opus-4-20250514');
       editProviderReferenceModal.findSaveButton().click();
@@ -481,7 +489,7 @@ describe('External Models Page', () => {
       const createdModel = mockExternalModel({
         name: 'disabled-provider-model',
         displayName: 'Disabled Provider Model',
-        modelName: 'Disabled Provider Model',
+        modelName: 'disabled-provider-model',
         providerRefs: [
           {
             providerName: 'anthropic-dev',
@@ -499,7 +507,11 @@ describe('External Models Page', () => {
 
       createExternalModelPage.visit();
       createExternalModelPage.findAddProviderReferenceButton().click();
-      addProviderReferenceWizard.addProviderReference('Anthropic Provider', 'claude-sonnet-4');
+      addProviderReferenceWizard.addProviderReference(
+        'Anthropic Provider',
+        'claude-sonnet-4',
+        'openai-chat',
+      );
 
       createExternalModelPage.setProviderRefWeight(0, 0);
       createExternalModelPage
@@ -526,11 +538,15 @@ describe('External Models Page', () => {
       createExternalModelPage.findDistributeEquallyButton().should('not.exist');
 
       createExternalModelPage.findAddProviderReferenceButton().click();
-      addProviderReferenceWizard.addProviderReference('Anthropic Provider', 'claude-sonnet-4');
+      addProviderReferenceWizard.addProviderReference(
+        'Anthropic Provider',
+        'claude-sonnet-4',
+        'openai-chat',
+      );
       createExternalModelPage.findDistributeEquallyButton().should('not.exist');
 
       createExternalModelPage.findAddProviderReferenceButton().click();
-      addProviderReferenceWizard.addProviderReference('OpenAI Production', 'gpt-4o');
+      addProviderReferenceWizard.addProviderReference('OpenAI Production', 'gpt-4o', 'openai-chat');
       createExternalModelPage.findDistributeEquallyButton().should('be.visible');
       createExternalModelPage.findDistributeEquallyHelp().should('exist');
     });
@@ -539,9 +555,13 @@ describe('External Models Page', () => {
       createExternalModelPage.visit();
 
       createExternalModelPage.findAddProviderReferenceButton().click();
-      addProviderReferenceWizard.addProviderReference('Anthropic Provider', 'claude-sonnet-4');
+      addProviderReferenceWizard.addProviderReference(
+        'Anthropic Provider',
+        'claude-sonnet-4',
+        'openai-chat',
+      );
       createExternalModelPage.findAddProviderReferenceButton().click();
-      addProviderReferenceWizard.addProviderReference('OpenAI Production', 'gpt-4o');
+      addProviderReferenceWizard.addProviderReference('OpenAI Production', 'gpt-4o', 'openai-chat');
 
       createExternalModelPage.setProviderRefWeight(0, 2);
       createExternalModelPage.setProviderRefWeight(1, 4);
@@ -557,23 +577,11 @@ describe('External Models Page', () => {
       createExternalModelPage.findZeroTotalWeightWarning().should('not.exist');
     });
 
-    it('should keep the provider refs required info visible when all refs are removed', () => {
-      createExternalModelPage.visit();
-
-      createExternalModelPage.findAddProviderReferenceButton().click();
-      addProviderReferenceWizard.addProviderReference('Anthropic Provider', 'claude-sonnet-4');
-      createExternalModelPage.findProviderRefsRequiredInfo().should('not.exist');
-
-      createExternalModelPage.findProviderRefRemoveButton(0).click();
-      createExternalModelPage.findProviderRefsRequiredInfo().should('exist');
-      createExternalModelPage.findCreateButton().should('be.disabled');
-    });
-
     it('should create an external model with a provider reference', () => {
       const createdModel = mockExternalModel({
         name: 'gpt-4-turbo',
         displayName: 'GPT-4 Turbo',
-        modelName: 'GPT-4 Turbo',
+        modelName: 'gpt-4-turbo',
         description: 'External GPT-4 Turbo model',
         providerRefs: [
           {
@@ -595,7 +603,11 @@ describe('External Models Page', () => {
       createExternalModelPage.findDescriptionInput().type('External GPT-4 Turbo model');
 
       createExternalModelPage.findAddProviderReferenceButton().click();
-      addProviderReferenceWizard.addProviderReference('Anthropic Provider', 'claude-sonnet-4');
+      addProviderReferenceWizard.addProviderReference(
+        'Anthropic Provider',
+        'claude-sonnet-4',
+        'openai-chat',
+      );
 
       createExternalModelPage.findCreateButton().should('not.be.disabled').click();
 
@@ -604,7 +616,7 @@ describe('External Models Page', () => {
           name: 'gpt-4-turbo',
           namespace: TEST_PROJECT,
           displayName: 'GPT-4 Turbo',
-          modelName: 'GPT-4 Turbo',
+          modelName: 'gpt-4-turbo',
           description: 'External GPT-4 Turbo model',
         });
         expect(interception.request.body.data.providerRefs).to.have.length(1);
@@ -620,5 +632,175 @@ describe('External Models Page', () => {
       cy.url().should('include', `/ai-hub/models/deployments/external/${TEST_PROJECT}`);
       cy.url().should('not.include', '/register');
     });
+  });
+});
+
+describe('Edit External Model Page', () => {
+  const modelName = 'gpt-4o-external';
+
+  beforeEach(() => {
+    setupCommonIntercepts();
+    cy.interceptOdh(
+      'GET /maas/api/v1/externalmodel',
+      { query: { namespace: TEST_PROJECT } },
+      { data: mockExternalModels() },
+    );
+    cy.interceptOdh(
+      'GET /maas/api/v1/externalprovider',
+      { query: { namespace: TEST_PROJECT } },
+      { data: mockExternalProvidersForCreateFlow() },
+    );
+  });
+
+  it('should prefill the form with existing external model data', () => {
+    editExternalModelPage.visit(modelName);
+    editExternalModelPage.findTitle().should('contain.text', 'Edit external model');
+    editExternalModelPage.findDisplayNameInput().should('have.value', 'GPT-4o External');
+    editExternalModelPage
+      .findDescriptionInput()
+      .should('have.value', 'External GPT-4o model routed through OpenAI provider.');
+    editExternalModelPage.findProjectInput().should('have.value', TEST_PROJECT);
+    editExternalModelPage.findProviderReferencesTable().should('exist');
+    editExternalModelPage.findProviderRefRow(0).should('contain.text', 'gpt-4o');
+    editExternalModelPage.findUpdateButton().should('not.be.disabled');
+  });
+
+  it('should navigate to the edit page from the external models list', () => {
+    externalModelsPage.visit();
+    externalModelsPage.getRow('GPT-4o External').findEditButton().click();
+
+    editExternalModelPage.findTitle().should('contain.text', 'Edit external model');
+    editExternalModelPage.findBreadcrumbExternalModelsLink().should('exist');
+    editExternalModelPage.findDisplayNameInput().should('have.value', 'GPT-4o External');
+  });
+
+  it('should add a provider reference through the wizard on the edit page', () => {
+    const updatedModel = mockExternalModel({
+      providerRefs: [
+        {
+          providerName: 'openai-prod',
+          weight: 100,
+          apiFormat: 'openai-chat',
+          path: '/v1/chat/completions',
+          targetModel: 'gpt-4o',
+        },
+        {
+          providerName: 'anthropic-dev',
+          weight: 1,
+          apiFormat: 'openai-chat',
+          path: '/v1/chat/completions',
+          targetModel: 'claude-sonnet-4-5-20241022',
+        },
+      ],
+    });
+
+    cy.interceptOdh(
+      'PUT /maas/api/v1/externalmodel/:namespace/:name',
+      { path: { namespace: TEST_PROJECT, name: modelName } },
+      { data: updatedModel },
+    ).as('updateExternalModel');
+
+    editExternalModelPage.visit(modelName);
+
+    editExternalModelPage.findProviderRefRow(0).should('contain.text', 'gpt-4o');
+    editExternalModelPage.findAddProviderReferenceButton().click();
+    addProviderReferenceWizard.shouldBeOpen();
+    addProviderReferenceWizard.addProviderReference(
+      'Anthropic Provider',
+      'claude-sonnet-4-5-20241022',
+      'openai-chat',
+    );
+    addProviderReferenceWizard.shouldBeOpen(false);
+
+    editExternalModelPage.findProviderRefRow(0).should('contain.text', 'gpt-4o');
+    editExternalModelPage
+      .findProviderRefRow(1)
+      .should('contain.text', 'Anthropic Provider')
+      .and('contain.text', 'claude-sonnet-4-5-20241022');
+    editExternalModelPage.findDistributeEquallyButton().should('be.visible');
+
+    editExternalModelPage.findUpdateButton().click();
+
+    cy.wait('@updateExternalModel').then((interception) => {
+      expect(interception.request.body.data.providerRefs).to.have.length(2);
+      expect(interception.request.body.data.providerRefs[1]).to.deep.include({
+        providerName: 'anthropic-dev',
+        targetModel: 'claude-sonnet-4-5-20241022',
+        apiFormat: 'openai-chat',
+        path: '/v1/chat/completions',
+      });
+    });
+  });
+
+  it('should edit a provider reference through the edit modal', () => {
+    editExternalModelPage.visit(modelName);
+
+    editExternalModelPage.findProviderRefEditButton(0).click();
+    editProviderReferenceModal.shouldBeOpen();
+    editProviderReferenceModal.findExternalProviderSection().should('exist');
+    editProviderReferenceModal
+      .findExternalProviderInput()
+      .should('have.value', 'OpenAI Production');
+    editProviderReferenceModal.findConfigurationSection().should('exist');
+    editProviderReferenceModal.findApiFormatSelect().should('contain.text', 'OpenAI Chat');
+    editProviderReferenceModal.findTargetModelInput().should('have.value', 'gpt-4o');
+    editProviderReferenceModal.findPathInput().should('have.value', '/v1/chat/completions');
+
+    editProviderReferenceModal.expandAdvancedSettings();
+    editProviderReferenceModal
+      .findInheritedConfigValue('project')
+      .should('be.visible')
+      .should('have.value', 'my-project');
+
+    editProviderReferenceModal.findTargetModelInput().clear();
+    editProviderReferenceModal.findTargetModelInput().type('gpt-4o-mini');
+    editProviderReferenceModal.findSaveButton().click();
+    editProviderReferenceModal.shouldBeOpen(false);
+
+    editExternalModelPage.findProviderRefRow(0).should('contain.text', 'gpt-4o-mini');
+  });
+
+  it('should save an updated external model', () => {
+    const updatedModel = mockExternalModel({
+      displayName: 'GPT-4o Updated',
+      description: 'Updated external model description',
+      providerRefs: [
+        {
+          providerName: 'openai-prod',
+          weight: 100,
+          apiFormat: 'openai-chat',
+          path: '/v1/chat/completions',
+          targetModel: 'gpt-4o-mini',
+        },
+      ],
+    });
+
+    cy.interceptOdh(
+      'PUT /maas/api/v1/externalmodel/:namespace/:name',
+      { path: { namespace: TEST_PROJECT, name: modelName } },
+      { data: updatedModel },
+    ).as('updateExternalModel');
+
+    editExternalModelPage.visit(modelName);
+    editExternalModelPage.findDisplayNameInput().clear().type('GPT-4o Updated');
+    editExternalModelPage.findDescriptionInput().clear().type('Updated external model description');
+
+    editExternalModelPage.findProviderRefEditButton(0).click();
+    editProviderReferenceModal.findTargetModelInput().clear().type('gpt-4o-mini');
+    editProviderReferenceModal.findSaveButton().click();
+
+    editExternalModelPage.findUpdateButton().click();
+
+    cy.wait('@updateExternalModel').then((interception) => {
+      expect(interception.request.body.data).to.deep.include({
+        displayName: 'GPT-4o Updated',
+        description: 'Updated external model description',
+      });
+      expect(interception.request.body.data).to.not.have.property('modelName');
+      expect(interception.request.body.data.providerRefs[0].targetModel).to.equal('gpt-4o-mini');
+    });
+
+    cy.url().should('include', `/ai-hub/models/deployments/external/${TEST_PROJECT}`);
+    cy.url().should('not.include', '/edit');
   });
 });

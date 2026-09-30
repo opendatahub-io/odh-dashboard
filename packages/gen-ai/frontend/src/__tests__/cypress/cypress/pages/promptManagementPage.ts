@@ -165,6 +165,14 @@ class PromptAssistant {
     return cy.findByTestId('confirmation-modal-confirm');
   }
 
+  findVariablePanel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('prompt-variable-input-panel');
+  }
+
+  findVariableInput(variableName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`prompt-variable-input-${variableName}`);
+  }
+
   findScopeLabel(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('prompt-scope-label');
   }

@@ -13,9 +13,8 @@ import {
 import FormSection from '@odh-dashboard/internal/components/pf-overrides/FormSection';
 import { ExternalProvider, ProviderRef } from '~/app/types/external-models';
 import {
-  getProviderReferenceFieldErrors,
   getVisibleProviderReferenceFieldErrors,
-  hasProviderReferenceFieldErrors,
+  getProviderReferenceFieldErrors,
   isProviderReferenceFormIncomplete,
   ProviderReferenceFieldTouched,
   ProviderReferenceFormData,
@@ -26,6 +25,10 @@ import {
   recordToConfigPairs,
 } from '~/app/pages/external-models/providerReferenceUtils';
 import { configPairsToRecord } from '~/app/utilities/configPairs';
+import {
+  ExternalModelProviderContext,
+  ExternalModelProviderSource,
+} from '~/app/types/event-tracking';
 import ProviderReferenceStep2Form from './ProviderReferenceStep2Form';
 
 type EditProviderReferenceModalProps = {
@@ -80,9 +83,13 @@ const EditProviderReferenceModal: React.FC<EditProviderReferenceModalProps> = ({
     () => ({ inheritedConfig: selectedProvider?.config }),
     [selectedProvider?.config],
   );
-  const isSaveDisabled = isProviderReferenceFormIncomplete(form);
+  const isSaveDisabled = isProviderReferenceFormIncomplete(form, validationContext);
   const fieldErrors = getProviderReferenceFieldErrors(form, validationContext);
-  const visibleFieldErrors = getVisibleProviderReferenceFieldErrors(fieldErrors, fieldTouched);
+  const visibleFieldErrors = getVisibleProviderReferenceFieldErrors(
+    form,
+    fieldErrors,
+    fieldTouched,
+  );
 
   const handleChange = (updates: Partial<ProviderReferenceFormData>) => {
     setForm((prev) => ({ ...prev, ...updates }));
@@ -94,7 +101,7 @@ const EditProviderReferenceModal: React.FC<EditProviderReferenceModalProps> = ({
 
   const handleSave = () => {
     setFieldTouched(allProviderReferenceFieldsTouched());
-    if (hasProviderReferenceFieldErrors(form, validationContext)) {
+    if (isProviderReferenceFormIncomplete(form, validationContext)) {
       return;
     }
 
@@ -120,7 +127,11 @@ const EditProviderReferenceModal: React.FC<EditProviderReferenceModalProps> = ({
       <ModalHeader title="Edit provider reference" labelId="edit-provider-reference-modal-title" />
       <ModalBody>
         <Form>
-          <FormSection title="External provider" titleElement="h3">
+          <FormSection
+            title="External provider"
+            titleElement="h3"
+            data-testid="edit-provider-ref-external-provider-section"
+          >
             <FormGroup label="External provider" fieldId="edit-provider-ref-external-provider">
               <TextInput
                 id="edit-provider-ref-external-provider"
@@ -131,7 +142,11 @@ const EditProviderReferenceModal: React.FC<EditProviderReferenceModalProps> = ({
             </FormGroup>
           </FormSection>
 
-          <FormSection title="Provider reference configuration" titleElement="h3">
+          <FormSection
+            title="Provider reference configuration"
+            titleElement="h3"
+            data-testid="edit-provider-ref-configuration-section"
+          >
             <ProviderReferenceStep2Form
               form={form}
               selectedProvider={selectedProvider}
@@ -141,6 +156,8 @@ const EditProviderReferenceModal: React.FC<EditProviderReferenceModalProps> = ({
               wrapInForm={false}
               onTargetModelBlur={() => handleFieldTouch('targetModel')}
               onPathBlur={() => handleFieldTouch('path')}
+              providerSource={ExternalModelProviderSource.EXISTING}
+              context={ExternalModelProviderContext.EDIT}
             />
           </FormSection>
         </Form>

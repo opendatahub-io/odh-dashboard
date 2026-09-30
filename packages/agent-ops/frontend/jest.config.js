@@ -1,3 +1,5 @@
+const { pnpmTransformIgnorePatterns } = require('@odh-dashboard/jest-config/pnpm');
+
 // Default flavor override: removes references to Kubeflow-only packages.
 module.exports = {
   roots: ['<rootDir>/src/'],
@@ -19,9 +21,7 @@ module.exports = {
     '~/(.*)': '<rootDir>/src/$1',
   },
   testEnvironment: 'jest-environment-jsdom',
-  transformIgnorePatterns: [
-    'node_modules/(?!yaml|lodash-es|uuid|@patternfly|delaunator|mod-arch-core)',
-  ],
+  transformIgnorePatterns: pnpmTransformIgnorePatterns,
   snapshotSerializers: [],
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/unit/jest.setup.ts'],
   coverageDirectory: 'jest-coverage',

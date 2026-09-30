@@ -20,8 +20,14 @@ const mockUseEvaluationJobLogs = jest.fn().mockReturnValue({
   refresh: jest.fn(),
 });
 
+const mockNotificationWarning = jest.fn();
+
 jest.mock('~/app/hooks/useEvaluationJobLogs', () => ({
   useEvaluationJobLogs: (...args: unknown[]) => mockUseEvaluationJobLogs(...args),
+}));
+
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: () => ({ warning: mockNotificationWarning }),
 }));
 
 const mockGetEvaluationJobLogs = jest.mocked(getEvaluationJobLogs);
@@ -197,7 +203,9 @@ describe('EvaluationStatusModal download', () => {
 
   it('should download full logs when the download button is clicked', async () => {
     const fullLogs = 'Full log content line 1\nFull log content line 2';
-    mockGetEvaluationJobLogs.mockReturnValue(jest.fn().mockResolvedValue(fullLogs));
+    mockGetEvaluationJobLogs.mockReturnValue(
+      jest.fn().mockResolvedValue({ logs: fullLogs, truncated: false }),
+    );
 
     renderModal(mockEvaluationJob({ state: 'running', name: 'my-eval' }));
     switchToEventsLog();
@@ -206,14 +214,16 @@ describe('EvaluationStatusModal download', () => {
 
     await waitFor(() => {
       expect(mockGetEvaluationJobLogs).toHaveBeenCalledWith('', 'test-ns', 'eval-job-001', {
-        tail_lines: 10_000,
+        tail_lines: -1,
       });
     });
   });
 
   it('should use benchmark-specific endpoint when a benchmark is selected', async () => {
     const fullLogs = 'Benchmark log content';
-    mockGetEvaluationJobBenchmarkLogs.mockReturnValue(jest.fn().mockResolvedValue(fullLogs));
+    mockGetEvaluationJobBenchmarkLogs.mockReturnValue(
+      jest.fn().mockResolvedValue({ logs: fullLogs, truncated: false }),
+    );
 
     const job = mockEvaluationJob({ state: 'running' });
     job.status.benchmarks = makeBenchmarks([
@@ -234,7 +244,7 @@ describe('EvaluationStatusModal download', () => {
         'test-ns',
         'eval-job-001',
         0,
-        { tail_lines: 10_000 },
+        { tail_lines: -1 },
       );
     });
   });
@@ -947,7 +957,7 @@ describe('EvaluationStatusModal tail notice', () => {
     switchToEventsLog();
 
     const tailNotice = screen.getByTestId('log-tail-notice');
-    expect(tailNotice).toHaveTextContent('Download full log (up to 10,000 lines)');
+    expect(tailNotice).toHaveTextContent('Download full log (server limits may apply)');
   });
 
   it('should show refresh action link in tail notice for in-progress jobs', () => {

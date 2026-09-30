@@ -7,20 +7,20 @@ Minimal app shell framework - renders a PatternFly page chrome (masthead, sideba
 From the repo root:
 
 ```bash
-npm install
-npm run dev --prefix distributions/base
+pnpm install
+pnpm --dir distributions/base run dev
 ```
 
 This starts:
 
-| Service | URL | Description |
-|---------|-----|-------------|
-| BFF stub | `http://localhost:4000` | Minimal `/api/status` endpoint |
-| App shell | `http://localhost:4010` | Dev server with HMR |
+| Service   | URL                     | Description                    |
+| --------- | ----------------------- | ------------------------------ |
+| BFF stub  | `http://localhost:4000` | Minimal `/api/status` endpoint |
+| App shell | `http://localhost:4010` | Dev server with HMR            |
 
 ### Environment variables
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `BFF_PORT` | `4000` | Port for the stub BFF server |
-| `SHELL_PORT` | `4010` | Port for the dev server |
+| Variable     | Default | Purpose                      |
+| ------------ | ------- | ---------------------------- |
+| `BFF_PORT`   | `4000`  | Port for the stub BFF server |
+| `SHELL_PORT` | `4010`  | Port for the dev server      |

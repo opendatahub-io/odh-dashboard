@@ -35,11 +35,6 @@
       "outputs": ["contract-tests/contract-test-results/**"]
     },
 
-    // Prepares modules for testing by installing dependencies
-    "install:module": {
-      "cache": false
-    },
-
     "start:dev": {
       "cache": false,
       "persistent": true
@@ -52,7 +47,13 @@
       "persistent": true
     },
 
-    // Cypress tasks
+    // Dashboard mock federation tasks are explicit opt-ins; nested standalone UI tasks
+    // retain their existing cypress:server names for package-level tests.
+    "cypress:mock:build": { "cache": false },
+    "cypress:mock:build:coverage": { "cache": false },
+    "cypress:mock:dev": { "cache": false, "persistent": true },
+
+    // Package-level Cypress tasks
     "cypress:server:build": {
       // no caching until we can optimize the dependency graph
       "cache": false

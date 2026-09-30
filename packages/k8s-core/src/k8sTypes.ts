@@ -296,10 +296,10 @@ export type DashboardCommonConfig = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
-  externalModels?: boolean;
   aiAssetCustomEndpoints?: boolean;
   mcpCatalog?: boolean;
   mcpRegistry?: boolean;
+  genAiMcpRegistryServers?: boolean;
   toolCalling?: boolean;
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;
@@ -322,6 +322,7 @@ export type DashboardCommonConfig = {
   gpuaas?: boolean;
   connectionTest?: boolean;
   modelCapabilities?: boolean;
+  runtimeCatalog?: boolean;
   workbenchesV2?: boolean;
   dataRegistry?: boolean;
   dataConnectHub?: boolean;

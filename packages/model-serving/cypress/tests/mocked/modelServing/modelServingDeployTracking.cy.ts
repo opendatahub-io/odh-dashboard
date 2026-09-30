@@ -37,6 +37,7 @@ import {
 import {
   modelServingGlobal,
   modelServingWizard,
+  modelServingWizardEdit,
 } from '@odh-dashboard/cypress/cypress/pages/modelServing';
 import {
   ModelLocationSelectOption,
@@ -415,5 +416,89 @@ describe('Model Deployment Tracking Events', () => {
       'Model Deployed',
       Cypress.sinon.match.has('success', false),
     );
+    modelServingWizard.findErrorMessageAlert().should('contain.text', 'Internal server error');
+    cy.get('@analyticsTrack').then((trackStub) => {
+      const failureCall = trackStub
+        .getCalls()
+        .find(
+          (call: { args: [string, Record<string, unknown>] }) => call.args[0] === 'Model Deployed',
+        );
+      expect(failureCall).to.not.equal(undefined);
+      expect(failureCall?.args[1]).not.to.have.property('error');
+      expect(failureCall?.args[1]).not.to.have.property('errorMessage');
+    });
+  });
+
+  it('should fire Model Updated failure event without error details when an update fails', () => {
+    initIntercepts();
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockInferenceServiceK8sResource({
+          modelType: ServingRuntimeModelType.GENERATIVE,
+          hasExternalRoute: true,
+          secretName: 'test-uri-secret',
+          hardwareProfileName: 'small-profile',
+          hardwareProfileNamespace: 'opendatahub',
+        }),
+      ]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockServingRuntimeK8sResource({
+          scope: 'global',
+          templateDisplayName: 'vLLM NVIDIA',
+        }),
+      ]),
+    );
+    cy.interceptK8s(
+      'PUT',
+      { model: InferenceServiceModel, ns: 'test-project', name: 'test-inference-service' },
+      {
+        statusCode: 500,
+        body: {
+          kind: 'Status',
+          apiVersion: 'v1',
+          status: 'Failure',
+          message: 'Internal server error',
+          reason: 'InternalError',
+          code: 500,
+        },
+      },
+    ).as('updateInferenceServiceFail');
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+    cy.window().then((win) => {
+      Object.defineProperty(win, 'analytics', {
+        value: { track: cy.stub().as('analyticsTrack') },
+        writable: true,
+        configurable: true,
+      });
+    });
+
+    modelServingWizardEdit.findUpdateDeploymentButton().click();
+
+    cy.wait('@updateInferenceServiceFail');
+    modelServingWizardEdit.findErrorMessageAlert().should('contain.text', 'Internal server error');
+    cy.get('@analyticsTrack').then((trackStub) => {
+      const failureCall = trackStub
+        .getCalls()
+        .find(
+          (call: { args: [string, Record<string, unknown>] }) => call.args[0] === 'Model Updated',
+        );
+      expect(failureCall).to.not.equal(undefined);
+      expect(failureCall?.args[1]).to.include({
+        outcome: 'submit',
+        success: false,
+      });
+      expect(failureCall?.args[1]).not.to.have.property('error');
+      expect(failureCall?.args[1]).not.to.have.property('errorMessage');
+    });
   });
 });

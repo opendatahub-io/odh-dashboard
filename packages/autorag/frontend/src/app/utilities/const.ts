@@ -37,7 +37,7 @@ export const FindAdministratorOptions = [
 export const MAX_DISPLAY_NAME_LENGTH = 250;
 export const MAX_DESCRIPTION_LENGTH = 255;
 export const MIN_RAG_PATTERNS = 4;
-export const MAX_RAG_PATTERNS = 20;
+export const MAX_RAG_PATTERNS = 10;
 
 // Presets
 export const PRESET_FASTER = 'speed';
@@ -50,16 +50,121 @@ export const PRESET_LABELS: Record<string, string> = {
 };
 
 // Optimization metrics
+export const RAG_METRIC_UNITXT_FAITHFULNESS = 'unitxt:faithfulness';
+export const RAG_METRIC_UNITXT_ANSWER_CORRECTNESS = 'unitxt:answer_correctness';
+export const RAG_METRIC_CUSTOM_OVERALL_SCORE = 'custom:overall_score';
+export const RAG_METRIC_RAGAS_FAITHFULNESS = 'ragas:faithfulness';
+export const RAG_METRIC_RAGAS_ANSWER_RELEVANCY = 'ragas:answer_relevancy';
+export const RAG_METRIC_RAGAS_CONTEXT_PRECISION = 'ragas:context_precision';
+export const RAG_METRIC_RAGAS_CONTEXT_RECALL = 'ragas:context_recall';
+
+// Historical result/runtime values. These are not valid new form inputs.
 export const RAG_METRIC_FAITHFULNESS = 'faithfulness';
 export const RAG_METRIC_ANSWER_CORRECTNESS = 'answer_correctness';
 export const RAG_METRIC_CONTEXT_CORRECTNESS = 'context_correctness';
 export const RAG_METRIC_OVERALL_SCORE = 'overall_score';
 export const RAG_METRIC_ANSWER_RELEVANCE = 'answer_relevance';
+export const RAG_METRIC_ANSWER_RELEVANCY = 'answer_relevancy';
+export const RAG_METRIC_CONTEXT_PRECISION = 'context_precision';
+export const RAG_METRIC_CONTEXT_RECALL = 'context_recall';
 
-export const DEFAULT_OPTIMIZATION_METRIC = RAG_METRIC_OVERALL_SCORE;
+export const DEFAULT_OPTIMIZATION_METRIC = RAG_METRIC_CUSTOM_OVERALL_SCORE;
+
+/** Shared labels for the two qualified faithfulness metrics. */
+export const QUALIFIED_METRIC_LABELS = {
+  [RAG_METRIC_UNITXT_FAITHFULNESS]: {
+    configuration: 'Faithfulness (Unitxt)',
+    results: 'Faithfulness (Unitxt)',
+  },
+  [RAG_METRIC_RAGAS_FAITHFULNESS]: {
+    configuration: 'Faithfulness (RAGAS)',
+    results: 'Faithfulness (RAGAS)',
+  },
+} as const;
+
+export const OPTIMIZATION_METRICS_BY_PRESET = {
+  [PRESET_FASTER]: [
+    RAG_METRIC_UNITXT_FAITHFULNESS,
+    RAG_METRIC_UNITXT_ANSWER_CORRECTNESS,
+    RAG_METRIC_CUSTOM_OVERALL_SCORE,
+  ],
+  [PRESET_BETTER_QUALITY]: [
+    RAG_METRIC_UNITXT_FAITHFULNESS,
+    RAG_METRIC_UNITXT_ANSWER_CORRECTNESS,
+    RAG_METRIC_CUSTOM_OVERALL_SCORE,
+    RAG_METRIC_RAGAS_FAITHFULNESS,
+    RAG_METRIC_RAGAS_ANSWER_RELEVANCY,
+    RAG_METRIC_RAGAS_CONTEXT_PRECISION,
+    RAG_METRIC_RAGAS_CONTEXT_RECALL,
+  ],
+} as const;
+
+export const OPTIMIZATION_METRICS = [
+  RAG_METRIC_UNITXT_FAITHFULNESS,
+  RAG_METRIC_UNITXT_ANSWER_CORRECTNESS,
+  RAG_METRIC_CUSTOM_OVERALL_SCORE,
+  RAG_METRIC_RAGAS_FAITHFULNESS,
+  RAG_METRIC_RAGAS_ANSWER_RELEVANCY,
+  RAG_METRIC_RAGAS_CONTEXT_PRECISION,
+  RAG_METRIC_RAGAS_CONTEXT_RECALL,
+] as const;
+
+type OptimizationMetric = (typeof OPTIMIZATION_METRICS)[number];
+
+export const getOptimizationMetricsForPreset = (preset: string): readonly OptimizationMetric[] =>
+  preset === PRESET_BETTER_QUALITY
+    ? OPTIMIZATION_METRICS_BY_PRESET[PRESET_BETTER_QUALITY]
+    : OPTIMIZATION_METRICS_BY_PRESET[PRESET_FASTER];
+
+export const normalizeRestoredOptimizationMetric = (
+  metric: unknown,
+  preset: string,
+): (typeof OPTIMIZATION_METRICS)[number] => {
+  const normalized = getRestoredOptimizationMetric(metric, preset);
+  const allowedMetrics = getOptimizationMetricsForPreset(preset);
+  return normalized && allowedMetrics.includes(normalized)
+    ? normalized
+    : DEFAULT_OPTIMIZATION_METRIC;
+};
+
+const getRestoredOptimizationMetric = (
+  metric: unknown,
+  preset: string,
+): OptimizationMetric | undefined => {
+  // Bare values are historical runtime values accepted only while restoring a run. New create
+  // requests continue to use the qualified schema enum.
+  const legacyMetricMap: Record<string, OptimizationMetric> = {
+    faithfulness:
+      preset === PRESET_BETTER_QUALITY
+        ? RAG_METRIC_RAGAS_FAITHFULNESS
+        : RAG_METRIC_UNITXT_FAITHFULNESS,
+    answer_correctness: RAG_METRIC_UNITXT_ANSWER_CORRECTNESS,
+    overall_score: RAG_METRIC_CUSTOM_OVERALL_SCORE,
+  };
+  const normalized =
+    typeof metric === 'string'
+      ? (legacyMetricMap[metric] ?? OPTIMIZATION_METRICS.find((value) => value === metric))
+      : undefined;
+  return normalized;
+};
+
+/** Whether a persisted metric can be restored without falling back to the default. */
+export const isRestoredOptimizationMetricSupported = (metric: unknown, preset: string): boolean => {
+  const normalized = getRestoredOptimizationMetric(metric, preset);
+  return normalized !== undefined && getOptimizationMetricsForPreset(preset).includes(normalized);
+};
 
 /** Human-readable labels for optimization metric values. */
 export const OPTIMIZATION_METRIC_LABELS: Record<string, string> = {
+  [RAG_METRIC_UNITXT_FAITHFULNESS]:
+    QUALIFIED_METRIC_LABELS[RAG_METRIC_UNITXT_FAITHFULNESS].configuration,
+  [RAG_METRIC_UNITXT_ANSWER_CORRECTNESS]: 'Answer correctness (Unitxt)',
+  [RAG_METRIC_CUSTOM_OVERALL_SCORE]: 'Overall score',
+  [RAG_METRIC_RAGAS_FAITHFULNESS]:
+    QUALIFIED_METRIC_LABELS[RAG_METRIC_RAGAS_FAITHFULNESS].configuration,
+  [RAG_METRIC_RAGAS_ANSWER_RELEVANCY]: 'Answer relevancy (RAGAS)',
+  [RAG_METRIC_RAGAS_CONTEXT_PRECISION]: 'Context precision (RAGAS)',
+  [RAG_METRIC_RAGAS_CONTEXT_RECALL]: 'Context recall (RAGAS)',
   [RAG_METRIC_FAITHFULNESS]: 'Answer faithfulness',
   [RAG_METRIC_ANSWER_CORRECTNESS]: 'Answer correctness',
   [RAG_METRIC_CONTEXT_CORRECTNESS]: 'Context correctness',
@@ -68,6 +173,20 @@ export const OPTIMIZATION_METRIC_LABELS: Record<string, string> = {
 
 /** Descriptions for each optimization metric — shared by the results table and CI scores chart. */
 export const METRIC_DESCRIPTIONS: Record<string, string> = {
+  [RAG_METRIC_UNITXT_ANSWER_CORRECTNESS]:
+    'Measures whether the generated answer matches the expected ground-truth answers in your test data. A high answer correctness score means the RAG system produces answers that align with your provided correct answers.',
+  [RAG_METRIC_UNITXT_FAITHFULNESS]:
+    'Measures whether the generated answer uses information from the retrieved context rather than hallucinated content. A high faithfulness score means the answer uses information from the retrieved documents, not from the model’s training data.',
+  [RAG_METRIC_CUSTOM_OVERALL_SCORE]:
+    'A composite score that combines the other metrics to provide an overall assessment of the RAG system’s performance. A high overall score indicates that the system is performing well across all evaluated aspects.',
+  [RAG_METRIC_RAGAS_ANSWER_RELEVANCY]:
+    'Measures how relevant the generated answer is to the user’s question. A high answer relevance score means the answer directly addresses the question and provides useful information.',
+  [RAG_METRIC_RAGAS_CONTEXT_PRECISION]:
+    'Measures the precision of the retrieved context for the question.',
+  [RAG_METRIC_RAGAS_CONTEXT_RECALL]:
+    'Measures how much of the relevant context was successfully retrieved.',
+  [RAG_METRIC_RAGAS_FAITHFULNESS]:
+    'Measures whether the generated answer is supported by the retrieved context.',
   [RAG_METRIC_ANSWER_CORRECTNESS]:
     'Measures whether the generated answer matches the expected ground-truth answers in your test data. A high answer correctness score means the RAG system produces answers that align with your provided correct answers.',
   [RAG_METRIC_FAITHFULNESS]:
@@ -78,7 +197,23 @@ export const METRIC_DESCRIPTIONS: Record<string, string> = {
     'A composite score that combines the other metrics to provide an overall assessment of the RAG system’s performance. A high overall score indicates that the system is performing well across all evaluated aspects.',
   [RAG_METRIC_ANSWER_RELEVANCE]:
     'Measures how relevant the generated answer is to the user’s question. A high answer relevance score means the answer directly addresses the question and provides useful information.',
+  [RAG_METRIC_ANSWER_RELEVANCY]:
+    'Measures how relevant the generated answer is to the user’s question. A high answer relevancy score means the answer directly addresses the question and provides useful information.',
+  [RAG_METRIC_CONTEXT_PRECISION]:
+    'Measures how precise the retrieved documents are for the question. A high context precision score means a larger share of the retrieved context is relevant.',
+  [RAG_METRIC_CONTEXT_RECALL]:
+    'Measures how completely the retrieved documents cover the information needed to answer the question. A high context recall score means the retrieval step finds the necessary supporting context.',
 };
+
+export const CI_SCORE_HELP =
+  'Confidence interval scores show the statistical range of each evaluation metric. The CI low and CI high markers represent the 95% confidence interval bounds around the mean score.';
+export const CI_LOW_HELP =
+  'The lower bound of the 95% confidence interval for this metric’s mean score.';
+export const CI_HIGH_HELP =
+  'The upper bound of the 95% confidence interval for this metric’s mean score.';
+export const CI_MEAN_HELP = 'The mean score across evaluation samples for this metric.';
+export const CI_INTERVAL_HELP =
+  'A 95% confidence interval is the range expected to contain the true mean score for 95% of similar evaluations.';
 
 export const REQUIRED_CONNECTION_SECRET_KEYS: Readonly<Partial<Record<string, readonly string[]>>> =
   {

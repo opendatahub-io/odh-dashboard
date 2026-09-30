@@ -162,6 +162,7 @@ describe('Serving runtimes: CRUD + wizard visibility', () => {
       runtimeRow.shouldBeEnabled(false);
       openDeployWizardToDeploymentStep(testData.modelLocationURI);
       modelServingWizard.selectDeploymentMethodByKey(testData.deploymentMethod);
+      modelServingWizard.findModelServerManualSelectRadio().click();
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
       modelServingWizard
         .findGlobalScopedTemplateOption(servingRuntimeDisplayName)
@@ -180,6 +181,7 @@ describe('Serving runtimes: CRUD + wizard visibility', () => {
 
       openDeployWizardToDeploymentStep(testData.modelLocationURI);
       modelServingWizard.selectDeploymentMethodByKey(testData.deploymentMethod);
+      modelServingWizard.findModelServerManualSelectRadio().click();
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
       modelServingWizard.findGlobalScopedTemplateOption(servingRuntimeDisplayName).should('exist');
     },

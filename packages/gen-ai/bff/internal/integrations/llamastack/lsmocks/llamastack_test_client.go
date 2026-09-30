@@ -105,6 +105,10 @@ func (c *TestLlamaStackClient) UploadFile(ctx context.Context, params llamastack
 	return c.inner.UploadFile(ctx, params)
 }
 
+func (c *TestLlamaStackClient) ProcessFile(ctx context.Context, fileID string) (*llamastack.ProcessedDocument, error) {
+	return c.inner.ProcessFile(ctx, fileID)
+}
+
 func (c *TestLlamaStackClient) ListFiles(ctx context.Context, params llamastack.ListFilesParams) ([]openai.FileObject, error) {
 	return c.inner.ListFiles(ctx, params)
 }

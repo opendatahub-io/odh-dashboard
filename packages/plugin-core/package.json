@@ -23,14 +23,14 @@
     "./__mocks__/mockDscStatus": "./src/__mocks__/mockDscStatus.ts"
   },
   "dependencies": {
-    "@odh-dashboard/foundation": "*",
-    "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/foundation": "workspace:*",
+    "@odh-dashboard/k8s-core": "workspace:*",
     "lodash-es": "^4.18.1"
   },
   "devDependencies": {
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/jest-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
+    "@odh-dashboard/tsconfig": "workspace:*"
   },
   "peerDependencies": {
     "@openshift/dynamic-plugin-sdk": "^5",

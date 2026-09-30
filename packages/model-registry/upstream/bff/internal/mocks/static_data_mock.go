@@ -2734,11 +2734,30 @@ func GetModelsWithInclusionStatusListMocks() []models.CatalogSourcePreviewModel 
 	return allModels
 }
 
+func GetModelsWithInclusionStatusListMocksWithoutGated() []models.CatalogSourcePreviewModel {
+	return []models.CatalogSourcePreviewModel{
+		hfPreviewModel("hf-mock/public-model", true, "public"),
+		hfPreviewModel("my-org/private-model", true, "private"),
+		{Name: "sample-source/included-model-1", Included: true},
+		{Name: "sample-source/excluded-model-1", Included: false},
+	}
+}
+
 func GetCatalogSourcePreviewSummaryMock() models.CatalogSourcePreviewSummary {
 	return models.CatalogSourcePreviewSummary{
-		TotalModels:    70,
-		IncludedModels: 45,
-		ExcludedModels: 25,
+		TotalModels:                70,
+		IncludedModels:             45,
+		ExcludedModels:             25,
+		HasGatedAccessDeniedModels: true,
+	}
+}
+
+func GetCatalogSourcePreviewSummaryMockWithoutGated() models.CatalogSourcePreviewSummary {
+	return models.CatalogSourcePreviewSummary{
+		TotalModels:                4,
+		IncludedModels:             3,
+		ExcludedModels:             1,
+		HasGatedAccessDeniedModels: false,
 	}
 }
 
@@ -2796,7 +2815,23 @@ func filterAndPaginatePreviewItems(allItems []models.CatalogSourcePreviewModel, 
 }
 
 func CreateCatalogSourcePreviewMockWithFilter(filterStatus string, pageSize int, nextPageToken string) models.CatalogSourcePreviewResult {
-	return filterAndPaginatePreviewItems(GetModelsWithInclusionStatusListMocks(), GetCatalogSourcePreviewSummaryMock(), filterStatus, pageSize, nextPageToken)
+	return filterAndPaginatePreviewItems(
+		GetModelsWithInclusionStatusListMocks(),
+		GetCatalogSourcePreviewSummaryMock(),
+		filterStatus,
+		pageSize,
+		nextPageToken,
+	)
+}
+
+func CreateCatalogSourcePreviewMockWithoutGatedWithFilter(filterStatus string, pageSize int, nextPageToken string) models.CatalogSourcePreviewResult {
+	return filterAndPaginatePreviewItems(
+		GetModelsWithInclusionStatusListMocksWithoutGated(),
+		GetCatalogSourcePreviewSummaryMockWithoutGated(),
+		filterStatus,
+		pageSize,
+		nextPageToken,
+	)
 }
 
 func GetMcpServersWithInclusionStatusListMocks() []models.CatalogSourcePreviewModel {

@@ -281,6 +281,80 @@ describe('llamaStackService', () => {
         );
       });
 
+      it('should extract every completed tool call, including failures', async () => {
+        const responseWithToolCalls = {
+          ...mockBackendResponse,
+          output: [
+            ...(mockBackendResponse.output ?? []),
+            {
+              id: 42,
+              type: 'mcp_call',
+              name: 'invalid-tool',
+            },
+            {
+              id: 'mcp-success',
+              type: 'mcp_call',
+              status: 'completed',
+              name: 'list_branches',
+              server_label: 'GitHub',
+              arguments: '{"repo":"org/platform"}',
+              output: '[{"name":"main"}]',
+            },
+            {
+              id: 'mcp-failed',
+              type: 'mcp_call',
+              status: 'failed',
+              name: 'get_latest_release',
+              server_label: 'GitHub',
+              error: 'Not found',
+            },
+            {
+              id: 'file-search',
+              type: 'file_search_call',
+              status: 'completed',
+              queries: ['{"query":"example"}'],
+              results: [],
+            },
+          ],
+        };
+        mockedRestCREATE.mockResolvedValueOnce({ data: responseWithToolCalls });
+
+        const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+          mockCreateResponseRequest,
+        );
+
+        expect(result.toolCalls).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              id: 'mcp-success',
+              name: 'list_branches',
+              category: 'MCP',
+              status: 'completed',
+              arguments: '{"repo":"org/platform"}',
+              output: '[{"name":"main"}]',
+            }),
+            expect.objectContaining({
+              id: 'mcp-failed',
+              name: 'get_latest_release',
+              category: 'MCP',
+              status: 'failed',
+              arguments: undefined,
+              output: undefined,
+            }),
+            expect.objectContaining({
+              id: 'file-search',
+              category: 'RAG',
+              status: 'completed',
+              arguments: '{"query":"example"}',
+              output: '[]',
+            }),
+          ]),
+        );
+        expect(result.toolCalls).not.toEqual(
+          expect.arrayContaining([expect.objectContaining({ name: 'invalid-tool' })]),
+        );
+      });
+
       it('should handle response with no output', async () => {
         const responseWithoutOutput = {
           ...mockBackendResponse,
@@ -420,6 +494,30 @@ describe('llamaStackService', () => {
     });
 
     describe('streaming', () => {
+      it('uses the streaming path when no text callback is provided', async () => {
+        const mockReader = {
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"delta": "Hello", "type": "response.output_text.delta"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          releaseLock: jest.fn(),
+        };
+        mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
+
+        const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+          mockStreamingRequest,
+        );
+
+        expect(result.content).toBe('Hello');
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+        expect(mockedRestCREATE).not.toHaveBeenCalled();
+      });
+
       it('should handle streaming response successfully', async () => {
         const mockStreamData = jest.fn();
 
@@ -571,6 +669,156 @@ describe('llamaStackService', () => {
 
         expect(result.content).toBe(' World');
         expect(mockStreamData).toHaveBeenCalledTimes(1); // Only delta events processed
+      });
+
+      it('should forward file search lifecycle events to the tool call callback', async () => {
+        const mockStreamData = jest.fn();
+        const onToolCall = jest.fn();
+        const mockReader = {
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"type":"response.output_item.added","item":{"id":"call-1","type":"file_search_call","status":"in_progress","queries":["sample request"]}}\n',
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"type":"response.file_search_call.in_progress","item_id":"call-1"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"type":"response.output_item.done","item":{"id":"call-1","type":"file_search_call","status":"completed","results":[]}}\n',
+              ),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          releaseLock: jest.fn(),
+        };
+
+        mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
+
+        await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
+          onStreamData: mockStreamData,
+          onToolCall,
+        });
+
+        expect(onToolCall).toHaveBeenCalledTimes(3);
+        expect(onToolCall).toHaveBeenNthCalledWith(
+          1,
+          expect.objectContaining({
+            type: 'response.output_item.added',
+            item: expect.objectContaining({ id: 'call-1', type: 'file_search_call' }),
+          }),
+        );
+        expect(onToolCall).toHaveBeenNthCalledWith(
+          2,
+          expect.objectContaining({
+            type: 'response.file_search_call.in_progress',
+            item_id: 'call-1',
+          }),
+        );
+        expect(onToolCall).toHaveBeenNthCalledWith(
+          3,
+          expect.objectContaining({ type: 'response.output_item.done' }),
+        );
+      });
+
+      it('should forward MCP lifecycle events with nullable response fields', async () => {
+        const mockStreamData = jest.fn();
+        const onToolCall = jest.fn();
+        const mockReader = {
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"type":"response.output_item.added","item":{"id":"call-1","type":"mcp_call","arguments":"","name":"list_branches","server_label":"GitHub-MCP-Server","error":null,"output":null}}\n',
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"type":"response.mcp_call.arguments.done","item_id":"call-1","arguments":"{\\"owner\\":\\"octocat\\"}"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"type":"response.output_item.done","item":{"id":"call-1","type":"mcp_call","arguments":"{\\"owner\\":\\"octocat\\"}","name":"list_branches","server_label":"GitHub-MCP-Server","error":null,"output":"[]"}}\n',
+              ),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          releaseLock: jest.fn(),
+        };
+
+        mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
+
+        await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
+          onStreamData: mockStreamData,
+          onToolCall,
+        });
+
+        expect(onToolCall).toHaveBeenCalledTimes(3);
+        expect(onToolCall).toHaveBeenNthCalledWith(
+          1,
+          expect.objectContaining({
+            type: 'response.output_item.added',
+            item: expect.objectContaining({ id: 'call-1', type: 'mcp_call', output: null }),
+          }),
+        );
+        expect(onToolCall).toHaveBeenNthCalledWith(
+          2,
+          expect.objectContaining({
+            type: 'response.mcp_call.arguments.done',
+            item_id: 'call-1',
+          }),
+        );
+        expect(onToolCall).toHaveBeenNthCalledWith(
+          3,
+          expect.objectContaining({
+            type: 'response.output_item.done',
+            item: expect.objectContaining({ id: 'call-1', type: 'mcp_call', output: '[]' }),
+          }),
+        );
+      });
+
+      it('should not forward malformed tool call lifecycle events', async () => {
+        const mockStreamData = jest.fn();
+        const onToolCall = jest.fn();
+        const mockReader = {
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"type":"response.function_call_arguments.done","item_id":"call-1","arguments":false}\n',
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"type":"response.file_search_call.completed"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: true,
+              value: undefined,
+            }),
+          releaseLock: jest.fn(),
+        };
+
+        mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
+
+        await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
+          onStreamData: mockStreamData,
+          onToolCall,
+        });
+
+        expect(onToolCall).not.toHaveBeenCalled();
       });
 
       it('should handle streaming HTTP error', async () => {

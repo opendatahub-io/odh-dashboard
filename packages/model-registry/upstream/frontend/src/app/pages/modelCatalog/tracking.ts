@@ -7,6 +7,7 @@ export const MODEL_CATALOG_EVENTS = {
   VALIDATED_ARGUMENTS_EXPANDED: 'Model Catalog Validated Arguments Card Expanded',
   VALIDATED_ARGUMENTS_FILTER_APPLIED: 'Model Catalog Validated Arguments Filter Applied',
   VALIDATED_LABEL_CLICKED: 'Model Catalog Validated Label Clicked',
+  MODEL_SELECTED: 'Model Catalog Model Selected',
 } as const;
 
 /** Diff helper: which single value was added or removed between two filter arrays. */

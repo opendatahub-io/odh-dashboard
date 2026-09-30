@@ -39,8 +39,8 @@ odh-dashboard/
 ## Development Requirements
 
 - **Node.js**: >= 22.18.0
-- **npm**: 11.8.0
-- **Go**: >= 1.26 (for packages with BFF and dashboard-operator; see each package's `go.mod`)
+- **pnpm**: 11.22.0 (the version pinned in the root `package.json`)
+- **Go**: >= 1.26 (for packages with BFF), >= 1.25 (for dashboard-operator)
 
 ## Key Technologies
 
@@ -59,23 +59,23 @@ odh-dashboard/
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Start development server (main dashboard)
-npm run dev
+pnpm run dev
 
 # Build all packages
-npm run build
+pnpm run build
 
 # Run tests
-npm run test
+pnpm run test
 
 # Lint all packages
-npm run lint
-npm run lint:fix
+pnpm run lint
+pnpm run lint:fix
 
 # Type checking
-npm run type-check
+pnpm run type-check
 ```
 
 ## Documentation
@@ -141,7 +141,8 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | **Jira Validate Area Label**      | `skills/jira-validate-area-label/`     | Validating or assigning `dashboard-area-*` labels based on multi-signal content analysis |
 | **Jira Assign Scrum Team**        | `skills/jira-assign-scrum-team/`       | Assigning a scrum team label based on area-to-scrum mapping during triage |
 | **Jira Eval Review**               | `skills/jira-eval-review/`             | Evaluating PR code changes against Jira acceptance criteria for per-criterion verdicts |
-| **Jira PR Review**                 | `skills/jira-pr-review/`               | Reviewing a PR against its Jira product ask and explicit acceptance criteria — used by `/preflight` and by the Fullsend review harness |
+| **Jira PR Review**                 | `skills/jira-pr-review/`               | Reviewing a PR against its Jira product ask and explicit acceptance criteria — used by `/preflight` |
+| **Product Ask Review**             | `skills/product-ask-review/`           | Evaluating whether a PR's stated work fulfills the current Jira product ask — used by Fullsend (`section:product_ask`) |
 | **Test Impact Review**             | `skills/test-impact-review/`           | Judging whether changed behavior has proportionate test coverage or a substantive rationale |
 | **PR Description Review**          | `skills/pr-description-review/`        | Checking a PR body against `.github/pull_request_template.md` — description, testing, Test Impact, Jira linkage, UI evidence |
 | **CI Status Review**               | `skills/ci-status-review/`             | Interpreting PR CI state and applicability, delegating failed-test classification to `/ci-flake-classifier` |

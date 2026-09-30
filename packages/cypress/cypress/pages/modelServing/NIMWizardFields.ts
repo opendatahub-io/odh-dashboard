@@ -10,6 +10,7 @@ export class NIMWizardFields extends SubComponentBase {
     // Escape regex special characters to match literal text
     const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     this.findImageSelect().click();
+    this.findImageSelect().find('input').type(name);
     cy.findByRole('option', { name: new RegExp(escapedName) }).click();
   }
 

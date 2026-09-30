@@ -915,6 +915,15 @@ func TestCreateIndexingPipelineRunHandler(t *testing.T) {
 			wantBodySubstr: `"code": "404"`,
 		},
 		{
+			name:           "indexing pipeline schema unavailable",
+			namespace:      ns,
+			body:           validBody,
+			setupRepo:      true,
+			repoErr:        repositories.ErrIndexingPipelineUnavailable,
+			wantStatusCode: http.StatusServiceUnavailable,
+			wantBodySubstr: "input schema could not be loaded",
+		},
+		{
 			name:           "repo no DSPA found",
 			namespace:      ns,
 			body:           validBody,

@@ -1,29 +1,20 @@
 import React from 'react';
-import type {
-  AutoragPattern,
-  AutoragPatternScores,
-  TabContentProps,
-} from '~/app/types/autoragPattern';
-import {
-  formatPatternName,
-  getOptimizedScore,
-  getRankableOptimizationMetric,
-} from '~/app/utilities/utils';
+import type { AutoragPattern, MetricReference, TabContentProps } from '~/app/types/autoragPattern';
+import { formatPatternName } from '~/app/utilities/utils';
+import { getObjectiveMetric } from '~/app/utilities/metricUtils';
 import KeyValueList from '~/app/components/run-results/PatternDetailsModal/components/KeyValueList';
 import ComparisonKeyValueList from '~/app/components/run-results/PatternDetailsModal/components/ComparisonKeyValueList';
 import ConfidenceIntervalChart from '~/app/components/run-results/PatternDetailsModal/components/ConfidenceIntervalChart';
 
-function metricsToScores(pattern: AutoragPattern): AutoragPatternScores {
-  return Object.fromEntries(pattern.evaluation.metrics.map((m) => [m.name, m.scores]));
-}
-
 export function buildTopLevelFields(
   pattern: AutoragPattern,
-  optimizedMetric?: string,
+  optimizationMetric?: MetricReference,
 ): Record<string, unknown> {
-  const finalScore = optimizedMetric
-    ? (getRankableOptimizationMetric(pattern, optimizedMetric)?.scores.mean ?? 'N/A')
-    : getOptimizedScore(pattern);
+  const objectiveMean = optimizationMetric
+    ? getObjectiveMetric(pattern, optimizationMetric)?.scores.mean
+    : getObjectiveMetric(pattern)?.scores.mean;
+  const finalScore =
+    typeof objectiveMean === 'number' && Number.isFinite(objectiveMean) ? objectiveMean : 'N/A';
 
   return {
     name: formatPatternName(pattern.name),
@@ -40,21 +31,21 @@ export function buildTopLevelFields(
 const PatternInformationTab: React.FC<TabContentProps> = ({
   primaryPattern,
   comparisonPattern,
-  optimizedMetric,
+  optimizationMetric,
   onChangeComparisonPattern,
 }) => {
-  const primaryFields = buildTopLevelFields(primaryPattern.pattern, optimizedMetric);
+  const primaryFields = buildTopLevelFields(primaryPattern.pattern, optimizationMetric);
 
   if (!comparisonPattern) {
     return (
       <>
         <KeyValueList entries={primaryFields} />
-        <ConfidenceIntervalChart scores={metricsToScores(primaryPattern.pattern)} />
+        <ConfidenceIntervalChart scores={primaryPattern.pattern.evaluation.metrics} />
       </>
     );
   }
 
-  const comparisonFields = buildTopLevelFields(comparisonPattern.pattern, optimizedMetric);
+  const comparisonFields = buildTopLevelFields(comparisonPattern.pattern, optimizationMetric);
 
   return (
     <>
@@ -66,8 +57,8 @@ const PatternInformationTab: React.FC<TabContentProps> = ({
         onChangeComparisonPattern={onChangeComparisonPattern}
       />
       <ConfidenceIntervalChart
-        scores={metricsToScores(primaryPattern.pattern)}
-        comparisonScores={metricsToScores(comparisonPattern.pattern)}
+        scores={primaryPattern.pattern.evaluation.metrics}
+        comparisonScores={comparisonPattern.pattern.evaluation.metrics}
         primaryLabel={formatPatternName(primaryPattern.pattern.name)}
         comparisonLabel={formatPatternName(comparisonPattern.pattern.name)}
       />

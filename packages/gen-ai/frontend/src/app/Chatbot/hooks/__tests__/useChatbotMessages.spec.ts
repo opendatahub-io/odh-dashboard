@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { renderHook, act } from '@testing-library/react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
-import { CreateResponseRequest, SimplifiedResponseData } from '~/app/types';
+import { CreateResponseRequest, DocumentAttachment, SimplifiedResponseData } from '~/app/types';
 import {
   mockModelId,
   mockSuccessResponse,
@@ -50,6 +50,7 @@ const mockCreateResponse = jest.fn<
     CreateResponseRequest,
     {
       onStreamData?: (chunk: string) => void;
+      onToolCall?: (event: import('~/app/types').ToolCallStreamEvent) => void;
       abortSignal?: AbortSignal;
       headers?: Record<string, string>;
     }?,
@@ -86,6 +87,7 @@ const createDefaultHookProps = (overrides?: {
   knowledgeMode?: 'inline' | 'external';
   selectedServerIds?: string[];
   subscription?: string;
+  documentAttachments?: DocumentAttachment[];
 }) => ({
   ...defaultMcpProps,
   configId: 'default',
@@ -119,6 +121,124 @@ describe('useChatbotMessages', () => {
   });
 
   describe('handleMessageSend', () => {
+    it('should use file search queries as tool call arguments', async () => {
+      mockCreateResponse.mockImplementation((_request, opts) => {
+        opts?.onToolCall?.({
+          type: 'response.output_item.added',
+          item: {
+            id: 'file-search-1',
+            type: 'file_search_call',
+            status: 'in_progress',
+            queries: ['{"query":"example"}'],
+          },
+        });
+        return Promise.resolve(mockSuccessResponse);
+      });
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Search for example');
+      });
+
+      expect(result.current.messages[1].toolCalls).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            category: 'RAG',
+            arguments: '{"query":"example"}',
+          }),
+        ]),
+      );
+    });
+
+    it('should retain MCP tool calls with nullable initial response fields', async () => {
+      mockCreateResponse.mockImplementation((_request, opts) => {
+        opts?.onToolCall?.({
+          type: 'response.output_item.added',
+          item: {
+            id: 'mcp-call-1',
+            type: 'mcp_call',
+            arguments: '',
+            name: 'list_branches',
+            server_label: 'GitHub-MCP-Server',
+            error: null,
+            output: null,
+          },
+        });
+        opts?.onToolCall?.({
+          type: 'response.mcp_call.arguments.done',
+          item_id: 'mcp-call-1',
+          arguments: '{"owner":"octocat"}',
+        });
+        opts?.onToolCall?.({
+          type: 'response.output_item.done',
+          item: {
+            id: 'mcp-call-1',
+            type: 'mcp_call',
+            arguments: '{"owner":"octocat"}',
+            name: 'list_branches',
+            server_label: 'GitHub-MCP-Server',
+            error: null,
+            output: '[]',
+          },
+        });
+        return Promise.resolve(mockSuccessResponse);
+      });
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('List branches');
+      });
+
+      expect(result.current.messages[1].toolCalls).toEqual([
+        expect.objectContaining({
+          id: 'mcp-call-1',
+          category: 'MCP',
+          status: 'completed',
+          name: 'list_branches',
+          serverLabel: 'GitHub-MCP-Server',
+          arguments: '{"owner":"octocat"}',
+          output: '[]',
+        }),
+      ]);
+    });
+
+    it('should retain a failed tool call status when no error is provided', async () => {
+      mockCreateResponse.mockImplementation((_request, opts) => {
+        opts?.onToolCall?.({
+          type: 'response.output_item.done',
+          item: {
+            id: 'mcp-call-1',
+            type: 'mcp_call',
+            status: 'failed',
+            arguments: '{"owner":"octocat"}',
+            name: 'list_branches',
+            server_label: 'GitHub-MCP-Server',
+            error: null,
+            output: null,
+          },
+        });
+        return Promise.resolve(mockSuccessResponse);
+      });
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('List branches');
+      });
+
+      expect(result.current.messages[1].toolCalls).toEqual([
+        expect.objectContaining({ id: 'mcp-call-1', status: 'failed', error: undefined }),
+      ]);
+    });
+
     it('should successfully send a message and receive a bot response', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
@@ -190,6 +310,42 @@ describe('useChatbotMessages', () => {
   });
 
   describe('error handling', () => {
+    it('includes persisted document attachments in each Responses request', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+      const attachments: DocumentAttachment[] = [
+        {
+          file_id: 'file-document',
+          filename: 'notes.txt',
+          text: 'Extracted document content',
+          content_type: 'text/plain',
+          size: 42,
+        },
+      ];
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(
+          createDefaultHookProps({ isRagEnabled: false, documentAttachments: attachments }),
+        ),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Summarize these notes');
+      });
+
+      expect(mockCreateResponse).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attachments: [
+            {
+              file_id: 'file-document',
+              filename: 'notes.txt',
+              text: 'Extracted document content',
+            },
+          ],
+        }),
+        expect.objectContaining({ abortSignal: expect.any(Object) }),
+      );
+    });
+
     it('should handle missing modelId', async () => {
       const { result } = renderHook(() =>
         useChatbotMessages(createDefaultHookProps({ modelId: '' })),
@@ -473,6 +629,38 @@ describe('useChatbotMessages', () => {
       });
     });
 
+    it('should include sent document text in conversation history for follow-up messages', async () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+      const attachments: DocumentAttachment[] = [
+        {
+          file_id: 'file-document',
+          filename: 'notes.txt',
+          text: 'The project owner is Ada.',
+          content_type: 'text/plain',
+          size: 42,
+        },
+      ];
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(
+          createDefaultHookProps({ isRagEnabled: false, documentAttachments: attachments }),
+        ),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Summarize these notes');
+      });
+      await act(async () => {
+        await result.current.handleMessageSend('Who owns the project?');
+      });
+
+      const secondCall = mockCreateResponse.mock.calls[1][0];
+      expect(secondCall.chat_context![0]).toMatchObject({
+        role: 'user',
+        content: 'Summarize these notes\n\nThe project owner is Ada.',
+      });
+    });
+
     it('should handle empty system instruction correctly', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
@@ -569,8 +757,8 @@ describe('useChatbotMessages', () => {
     });
   });
 
-  describe('tool response handling', () => {
-    it('should create tool response with isDefaultExpanded set to false', async () => {
+  describe('legacy tool response handling', () => {
+    it('should not create a legacy tool response for a non-streaming response', async () => {
       const mockResponseWithToolData: SimplifiedResponseData = {
         ...mockSuccessResponse,
         toolCallData: {
@@ -591,11 +779,10 @@ describe('useChatbotMessages', () => {
 
       const botMessage = result.current.messages[1];
 
-      // Verify isDefaultExpanded is set to false (key change)
-      expect(botMessage.toolResponse?.isDefaultExpanded).toBe(false);
+      expect(botMessage.toolResponse).toBeUndefined();
     });
 
-    it('should create tool response with isDefaultExpanded false in streaming mode', async () => {
+    it('should not create a legacy tool response for a streaming response', async () => {
       const mockStreamingResponseWithToolData: SimplifiedResponseData = {
         ...mockSuccessResponse,
         toolCallData: {
@@ -625,8 +812,7 @@ describe('useChatbotMessages', () => {
 
       const botMessage = result.current.messages[1];
 
-      // Verify isDefaultExpanded is false in streaming mode too
-      expect(botMessage.toolResponse?.isDefaultExpanded).toBe(false);
+      expect(botMessage.toolResponse).toBeUndefined();
     });
   });
 
@@ -787,11 +973,22 @@ describe('useChatbotMessages', () => {
       const mockGetId = jest.requireMock('~/app/utilities/utils').getId as jest.Mock;
       let idCounter = 0;
       mockGetId.mockImplementation(() => `msg-${idCounter++}`);
+      const attachments: DocumentAttachment[] = [
+        {
+          file_id: 'file-document-789',
+          filename: 'notes.txt',
+          text: 'The project owner is Ada.',
+          content_type: 'text/plain',
+          size: 42,
+        },
+      ];
 
       try {
         mockCreateResponse.mockResolvedValue(mockSuccessResponse);
 
-        const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+        const { result } = renderHook(() =>
+          useChatbotMessages(createDefaultHookProps({ documentAttachments: attachments })),
+        );
 
         // First turn: multimodal message with image
         await act(async () => {
@@ -814,6 +1011,7 @@ describe('useChatbotMessages', () => {
           content: [
             { type: 'input_text', text: 'What is in this image?' },
             { type: 'input_image', file_id: 'file-img-789' },
+            { type: 'input_text', text: 'The project owner is Ada.' },
           ],
         });
         expect(secondPayload.chat_context![1]).toMatchObject({
@@ -1168,8 +1366,7 @@ describe('useChatbotMessages', () => {
       });
 
       const firstCallHeaders = mockCreateResponse.mock.calls[0][1]?.headers as
-        | Record<string, string>
-        | undefined;
+        Record<string, string> | undefined;
       const firstSessionId = firstCallHeaders?.['X-Session-ID'];
 
       await act(async () => {
@@ -1177,8 +1374,7 @@ describe('useChatbotMessages', () => {
       });
 
       const secondCallHeaders = mockCreateResponse.mock.calls[1][1]?.headers as
-        | Record<string, string>
-        | undefined;
+        Record<string, string> | undefined;
       const secondSessionId = secondCallHeaders?.['X-Session-ID'];
 
       expect(firstSessionId).toBeDefined();

@@ -414,10 +414,17 @@ class AttachExistingStorageModal extends Modal {
   }
 
   selectExistingPersistentStorage(name: string) {
-    cy.findByTestId('persistent-storage-group')
-      .findByPlaceholderText('Select a persistent storage')
-      .click();
-    cy.findByTestId('persistent-storage-typeahead').contains(name).click();
+    this.findPersistentStorageInput()
+      .invoke('prop', 'disabled')
+      .then((isDisabled) => {
+        if (isDisabled) {
+          attachExistingStorageModal.findPersistentStorageInput().should('have.value', name);
+          return;
+        }
+
+        attachExistingStorageModal.findPersistentStorageInput().click();
+        attachExistingStorageModal.findPersistentStorageOption(name).should('be.visible').click();
+      });
   }
 
   verifyPSDropdownIsDisabled(): void {
@@ -451,6 +458,19 @@ class AttachExistingStorageModal extends Modal {
 
   findTypeaheadOptionUnderGroup(groupLabel: string, optionText: string) {
     return this.findTypeaheadGroup(groupLabel).contains(optionText);
+  }
+
+  findPersistentStorageOption(name: string) {
+    const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return cy.findByTestId('persistent-storage-typeahead').findByRole('option', {
+      name: new RegExp(`^${escapedName}(?:\\s|$)`),
+    });
+  }
+
+  findPersistentStorageInput() {
+    return cy
+      .findByTestId('persistent-storage-group')
+      .findByPlaceholderText('Select a persistent storage');
   }
 }
 
@@ -1002,6 +1022,10 @@ class WorkbenchStatusModal extends Modal {
 
   findModalTitle() {
     return cy.findByTestId('notebook-status-modal-header').find('h1,h2,h3,h4,h5,h6').first();
+  }
+
+  findModalDescription() {
+    return cy.findByTestId('notebook-status-modal-description');
   }
 
   findEventlogTab() {

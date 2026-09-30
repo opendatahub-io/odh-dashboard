@@ -38,8 +38,8 @@
 
 ## Known Issues / Gotchas
 
-- **Subtree updates**: Refresh with `npm run update-subtree`; review upstream breaking changes to extensions or WorkspaceKind schema before merging — adjust `src/odh/` as needed.
-- **`npm run start:dev:ext`**: Isolates upstream UI without the ODH host — use `npm run start:dev` + root `npm run dev:frontend` for real integration (same class of issue as `start:dev:ext` on the main app for other federated packages).
+- **Subtree updates**: Refresh with `pnpm run update-subtree`; review upstream breaking changes to extensions or WorkspaceKind schema before merging — adjust `src/odh/` as needed.
+- **`pnpm run start:dev:ext`**: Isolates upstream UI without the ODH host — use `pnpm run start:dev` + root `pnpm run dev:frontend` for real integration (same class of issue as `start:dev:ext` on the main app for other federated packages).
 - **Docker**: Build `Dockerfile.workspace` from **repo root**, not `packages/notebooks/`, or workspace deps are missing.
 - **Visibility**: Area uses a dev flag (`Notebooks Plugin`); production exposure depends on promoting to a proper feature flag in `OdhDashboardConfig`.
 - **`OdhDashboardConfig`**: `reliantAreas: ['workbenches']` — core workbench area must be on for nav items.

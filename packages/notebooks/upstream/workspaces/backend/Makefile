@@ -74,11 +74,11 @@ test: swag fmt vet envtest ## Run tests.
 
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint linter
-	$(GOLANGCI_LINT) run
+	$(GOLANGCI_LINT) run --max-issues-per-linter 0 --max-same-issues 0
 
 .PHONY: lint-fix
 lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
-	$(GOLANGCI_LINT) run --fix
+	$(GOLANGCI_LINT) run --fix --max-issues-per-linter 0 --max-same-issues 0
 
 ##@ Swagger
 ALL_GO_DIRS := $(shell find . -type f -name '*.go' -exec dirname {} \; | sed 's|^\./||' | sort -u)
@@ -94,11 +94,21 @@ swag: SWAGGER
 
 .PHONY: build
 build: fmt vet swag ## Build backend binary.
-	go build -o bin/backend cmd/main.go
+	go build -o bin/backend ./cmd
+
+.PHONY: build-mock
+build-mock: fmt vet swag ## Build backend binary with mock Kubernetes support.
+	go build -tags mockk8s -o bin/backend ./cmd
+
+##@ Clean
+.PHONY: clean
+clean: ## Remove local test/build artifacts.
+	rm -rf $(LOCALBIN)
+	@echo "INFO: '$(LOCALBIN)' successfully cleaned."
 
 .PHONY: run
 run: fmt vet swag ## Run a backend from your host.
-	go run ./cmd/main.go --port=$(PORT)
+	go run ./cmd --port="$(PORT)"
 
 .PHONY: docker-build
 docker-build:
@@ -136,7 +146,7 @@ SWAGGER = $(LOCALBIN)/swag
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.5.0
 ENVTEST_VERSION ?= release-0.19
-GOLANGCI_LINT_VERSION ?= v1.64.8
+GOLANGCI_LINT_VERSION ?= v2.12.2
 SWAGGER_VERSION ?= v1.16.6
 
 .PHONY: SWAGGER
@@ -152,7 +162,7 @@ $(ENVTEST): $(LOCALBIN)
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
-	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
+	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/v2/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
 
 
 ##@ deployment

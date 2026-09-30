@@ -30,6 +30,7 @@ import {
   SUCCESS_MESSAGES,
   CLEAR_ACCESS_TOKEN_MODAL,
 } from '~/app/pages/modelCatalogSettings/constants';
+import { ModelCatalogAccessTokenClearOutcome } from '~/app/pages/modelCatalogSettings/tracking/modelCatalogSourcesTracking';
 
 type CredentialsSectionProps = {
   formData: ManageSourceFormData;
@@ -41,6 +42,7 @@ type CredentialsSectionProps = {
   onClearValidationSuccess: () => void;
   hasExistingApiKey?: boolean;
   onClearCredentials?: () => Promise<void>;
+  onAccessTokenClearOutcome?: (outcome: ModelCatalogAccessTokenClearOutcome) => void;
 };
 
 const CredentialsSection: React.FC<CredentialsSectionProps> = ({
@@ -53,6 +55,7 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
   onClearValidationSuccess,
   hasExistingApiKey = false,
   onClearCredentials,
+  onAccessTokenClearOutcome,
 }) => {
   const [isOrganizationTouched, setIsOrganizationTouched] = React.useState(false);
   const [isClearModalOpen, setIsClearModalOpen] = React.useState(false);
@@ -73,6 +76,7 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
       setData('accessToken', '');
       setData('tokenModified', true);
       onClearValidationSuccess();
+      onAccessTokenClearOutcome?.('cleared');
       setIsClearModalOpen(false);
     } catch (error) {
       setClearError(
@@ -81,7 +85,16 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
     } finally {
       setIsClearing(false);
     }
-  }, [setData, onClearValidationSuccess, onClearCredentials]);
+  }, [setData, onClearValidationSuccess, onClearCredentials, onAccessTokenClearOutcome]);
+
+  const handleClearModalDismiss = React.useCallback(() => {
+    if (isClearing) {
+      return;
+    }
+    onAccessTokenClearOutcome?.('cancelled');
+    setIsClearModalOpen(false);
+    setClearError(undefined);
+  }, [isClearing, onAccessTokenClearOutcome]);
 
   const organizationInput = (
     <TextInput
@@ -208,7 +221,7 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
         </ThemeAwareFormGroupWrapper>
         {validationError && (
           <Alert isInline variant="danger" title={ERROR_MESSAGES.VALIDATION_FAILED}>
-            {validationError.message}
+            {ERROR_MESSAGES.VALIDATION_FAILED_BODY}
           </Alert>
         )}
         {isValidationSuccess && !isTokenLocked && (
@@ -234,12 +247,7 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
       <Modal
         variant={ModalVariant.small}
         isOpen={isClearModalOpen}
-        onClose={() => {
-          if (!isClearing) {
-            setIsClearModalOpen(false);
-            setClearError(undefined);
-          }
-        }}
+        onClose={handleClearModalDismiss}
         data-testid="clear-access-token-modal"
       >
         <ModalHeader title={CLEAR_ACCESS_TOKEN_MODAL.MODAL_TITLE} />
@@ -268,14 +276,7 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
           >
             {CLEAR_ACCESS_TOKEN_MODAL.CONFIRM_BTN}
           </Button>
-          <Button
-            variant="link"
-            isDisabled={isClearing}
-            onClick={() => {
-              setIsClearModalOpen(false);
-              setClearError(undefined);
-            }}
-          >
+          <Button variant="link" isDisabled={isClearing} onClick={handleClearModalDismiss}>
             {CLEAR_ACCESS_TOKEN_MODAL.CANCEL_BTN}
           </Button>
         </ModalFooter>

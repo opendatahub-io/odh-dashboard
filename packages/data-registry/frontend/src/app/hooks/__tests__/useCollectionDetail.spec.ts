@@ -31,11 +31,11 @@ describe('useCollectionDetail', () => {
     jest.clearAllMocks();
   });
 
-  it('should return null when project or collection is undefined', () => {
+  it('should return null when project or collection is undefined', async () => {
     const { result } = renderHook(() => useCollectionDetail(undefined, undefined));
 
     expect(result.current[0]).toBeNull();
-    expect(result.current[1]).toBe(true);
+    await waitFor(() => expect(result.current[1]).toBe(true));
     expect(result.current[2]).toBeUndefined();
   });
 
@@ -154,10 +154,10 @@ describe('useCollectionDetail', () => {
 
     const { result } = renderHook(() => useCollectionDetail('demo-user-1', 'default'));
 
-    await waitFor(() => expect(result.current[1]).toBe(true));
+    await waitFor(() => expect(result.current[2]).toBeDefined());
 
     const [detail, loaded, apiError] = result.current;
-    expect(loaded).toBe(true);
+    expect(loaded).toBe(false);
     expect(detail).toBeNull();
     expect(apiError).toBe(error);
   });

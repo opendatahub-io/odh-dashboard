@@ -19,7 +19,7 @@ We needed a tool that:
 - Understands package dependencies
 - Runs tasks in parallel where possible
 - Caches task outputs intelligently
-- Works with npm workspaces
+- Works with the repository's workspace package manager
 - Is simple to configure
 
 ## Decision
@@ -48,7 +48,7 @@ Configuration in `turbo.jsonc`:
 - **Learning curve**: Team needs to understand Turbo pipelines
 
 **Neutral:**
-- Works alongside npm workspaces (doesn't replace)
+- Works alongside pnpm workspaces (doesn't replace them)
 - Cache can be local or remote (remote not set up yet)
 - Configuration requires understanding task dependencies
 
@@ -57,16 +57,16 @@ Configuration in `turbo.jsonc`:
 ### Common Commands
 ```bash
 # Build all packages (with caching)
-npm run build  # → turbo run build
+pnpm run build  # → turbo run build
 
 # Type check all packages
-npm run type-check  # → turbo run type-check
+pnpm run type-check  # → turbo run type-check
 
 # Run tests
-npm run test-unit  # → turbo run test-unit
+pnpm run test-unit  # → turbo run test-unit
 
 # Lint all packages
-npm run lint  # → turbo run lint
+pnpm run lint  # → turbo run lint
 ```
 
 ### Pipeline Configuration
@@ -89,7 +89,7 @@ Tasks are defined in `turbo.jsonc` with:
 - Steeper learning curve
 - We don't need all the features
 
-### Custom npm scripts
+### Custom package scripts
 **Rejected because:**
 - No caching
 - Hard to coordinate parallel execution
@@ -113,4 +113,4 @@ Tasks are defined in `turbo.jsonc` with:
 - [turbo.jsonc](../../turbo.jsonc)
 - [Turbo documentation](https://turbo.build/repo/docs)
 - [package.json scripts](../../package.json)
-- [ADR 0001: Use Monorepo](0001-use-monorepo-with-npm-workspaces.md)
+- [ADR 0001: Original npm workspace decision](0001-use-monorepo-with-npm-workspaces.md)

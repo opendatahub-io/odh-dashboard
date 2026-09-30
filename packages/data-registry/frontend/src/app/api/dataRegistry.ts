@@ -1,5 +1,14 @@
 import * as z from 'zod';
 import {
+  APIOptions,
+  handleRestFailures,
+  restCREATE,
+  restDELETE,
+  restGET,
+  restPATCH,
+  restUPDATE,
+} from 'mod-arch-core';
+import {
   AssetResponse,
   AssetListResponse,
   VolumeInfo,
@@ -17,15 +26,6 @@ import {
 import { URL_PREFIX, BFF_API_VERSION } from '~/app/utilities/const';
 
 const registryUrl = (path: string) => `${URL_PREFIX}/api/${BFF_API_VERSION}${path}`;
-
-class ApiError extends Error {
-  status: number;
-
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-  }
-}
 
 const schemaFieldSchema = z.object({
   name: z.string(),
@@ -68,71 +68,150 @@ const listVolumesResponseSchema = z.object({
   volumes: z.array(volumeInfoSchema).optional(),
 });
 
-const fetchJSON = async <T>(url: string, schema?: z.ZodType<T>): Promise<T> => {
-  const response = await fetch(url);
-  if (!response.ok) {
-    const text = await response.text();
-    throw new ApiError(response.status, `API error ${response.status}: ${text}`);
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const getRegistryError = (
+  value: unknown,
+): { code?: number | string; message: string } | undefined => {
+  if (typeof value === 'string' && value.trim()) {
+    try {
+      return getRegistryError(JSON.parse(value));
+    } catch {
+      return undefined;
+    }
   }
-  if (!schema) {
-    return response.json();
+  if (!isRecord(value)) {
+    return undefined;
   }
-  return schema.parse(await response.json());
+
+  const error = isRecord(value.error) ? value.error : undefined;
+  const errorMessage = typeof error?.message === 'string' ? error.message : undefined;
+  if (errorMessage) {
+    const errorCodeValue = error?.code;
+    const errorCode =
+      typeof errorCodeValue === 'number' || typeof errorCodeValue === 'string'
+        ? errorCodeValue
+        : undefined;
+    return { code: errorCode, message: errorMessage };
+  }
+  if (typeof value.status_code === 'number' && typeof value.detail === 'string') {
+    return { code: value.status_code, message: value.detail };
+  }
+  return undefined;
 };
 
-const fetchRequest = async (url: string, method: string, body?: unknown): Promise<Response> => {
-  const response = await fetch(url, {
-    method,
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new ApiError(response.status, `API error ${response.status}: ${text}`);
+/**
+ * The Data Registry proxy returns its upstream error envelope even for non-2xx responses.
+ * Normalize that envelope before passing it to mod-arch-core so handleRestFailures remains the
+ * single place that creates the error surfaced to callers.
+ */
+const handleRegistryRequest = <T>(request: Promise<T>): Promise<T> =>
+  handleRestFailures(
+    request.then((response) => {
+      const registryError = getRegistryError(response);
+      if (registryError) {
+        const code = registryError.code === undefined ? '' : `status code ${registryError.code}: `;
+        return Promise.reject({
+          error: {
+            code: String(registryError.code ?? 'UNKNOWN'),
+            message: `${code}${registryError.message}`,
+          },
+        });
+      }
+      return response;
+    }),
+  );
+
+const get = async <T>(path: string, opts: APIOptions = {}, schema?: z.ZodType<T>): Promise<T> => {
+  const response = await handleRegistryRequest(restGET<T>('', registryUrl(path), {}, opts));
+  return schema ? schema.parse(response) : response;
+};
+
+const create = <T>(
+  path: string,
+  data: Record<string, unknown>,
+  opts: APIOptions = {},
+): Promise<T> => handleRegistryRequest(restCREATE<T>('', registryUrl(path), data, {}, opts));
+
+const patch = (path: string, data: Record<string, unknown>, opts: APIOptions = {}): Promise<void> =>
+  handleRegistryRequest(
+    restPATCH<unknown>('', registryUrl(path), data, {}, { ...opts, parseJSON: false }),
+  ).then(() => undefined);
+
+const update = (
+  path: string,
+  data: Record<string, unknown>,
+  opts: APIOptions = {},
+): Promise<void> =>
+  handleRegistryRequest(
+    restUPDATE<unknown>('', registryUrl(path), data, {}, { ...opts, parseJSON: false }),
+  ).then(() => undefined);
+
+const remove = (path: string, opts: APIOptions = {}): Promise<void> =>
+  handleRegistryRequest(
+    restDELETE<unknown>('', registryUrl(path), {}, {}, { ...opts, parseJSON: false }),
+  ).then(() => undefined);
+
+const encodedPath = (...parts: string[]): string => parts.map(encodeURIComponent).join('/');
+
+const asRequestBody = (data: object): Record<string, unknown> => ({ ...data });
+
+const getErrorCode = (error: unknown): number | undefined => {
+  if (!(error instanceof Error)) {
+    return undefined;
   }
-  return response;
+  const match = error.message.match(/(?:status code|status|code)\D+(\d{3})\b/i);
+  return match ? Number(match[1]) : undefined;
 };
 
 // Collections (namespaces)
 
-export const fetchCollections = (project: string): Promise<ListNamespacesResponse> =>
-  fetchJSON(registryUrl(`/${project}/namespaces`));
+export const fetchCollections = (
+  project: string,
+  opts: APIOptions = {},
+): Promise<ListNamespacesResponse> => get(`/${encodedPath(project)}/namespaces`, opts);
 
 export const fetchCollectionDetails = (
   project: string,
   collection: string,
-): Promise<NamespaceResponse> => fetchJSON(registryUrl(`/${project}/namespaces/${collection}`));
+  opts: APIOptions = {},
+): Promise<NamespaceResponse> =>
+  get(`/${encodedPath(project)}/namespaces/${encodedPath(collection)}`, opts);
 
-export const createCollection = async (
+export const createCollection = (
   project: string,
   data: CreateNamespaceRequest,
-): Promise<NamespaceResponse> => {
-  const response = await fetchRequest(registryUrl(`/${project}/namespaces`), 'POST', data);
-  return response.json();
-};
+  opts: APIOptions = {},
+): Promise<NamespaceResponse> =>
+  create(`/${encodedPath(project)}/namespaces`, asRequestBody(data), opts);
 
-export const deleteCollection = async (project: string, collection: string): Promise<void> => {
-  await fetchRequest(registryUrl(`/${project}/namespaces/${collection}`), 'DELETE');
-};
-
-export { ApiError };
+export const deleteCollection = (
+  project: string,
+  collection: string,
+  opts: APIOptions = {},
+): Promise<void> => remove(`/${encodedPath(project)}/namespaces/${encodedPath(collection)}`, opts);
 
 // Assets (generic tables)
 
-export const fetchAssets = (project: string, collection: string): Promise<AssetListResponse> =>
-  fetchJSON(registryUrl(`/${project}/namespaces/${collection}/generic-tables`));
+export const fetchAssets = (
+  project: string,
+  collection: string,
+  opts: APIOptions = {},
+): Promise<AssetListResponse> =>
+  get(`/${encodedPath(project)}/namespaces/${encodedPath(collection)}/generic-tables`, opts);
 
 export const fetchGenericTable = (
   project: string,
   collection: string,
   name: string,
+  opts: APIOptions = {},
 ): Promise<AssetResponse> =>
-  fetchJSON(
-    registryUrl(
-      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(
-        collection,
-      )}/generic-tables/${encodeURIComponent(name)}`,
-    ),
+  get(
+    `/${encodedPath(project)}/namespaces/${encodedPath(
+      collection,
+    )}/generic-tables/${encodeURIComponent(name)}`,
+    opts,
     assetResponseSchema,
   );
 
@@ -140,72 +219,80 @@ export const deleteGenericTable = (
   project: string,
   collection: string,
   name: string,
+  opts: APIOptions = {},
 ): Promise<void> =>
-  fetchRequest(
-    registryUrl(
-      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(
-        collection,
-      )}/generic-tables/${encodeURIComponent(name)}`,
-    ),
-    'DELETE',
-  ).then(() => undefined);
+  remove(
+    `/${encodedPath(project)}/namespaces/${encodedPath(
+      collection,
+    )}/generic-tables/${encodeURIComponent(name)}`,
+    opts,
+  );
 
 // Volumes
 
-export const fetchVolumes = (project: string, collection: string): Promise<ListVolumesResponse> =>
-  fetchJSON(registryUrl(`/${project}/namespaces/${collection}/volumes`), listVolumesResponseSchema);
+export const fetchVolumes = (
+  project: string,
+  collection: string,
+  opts: APIOptions = {},
+): Promise<ListVolumesResponse> =>
+  get(
+    `/${encodedPath(project)}/namespaces/${encodedPath(collection)}/volumes`,
+    opts,
+    listVolumesResponseSchema,
+  );
 
-export const createVolume = async (
+export const createVolume = (
   project: string,
   collection: string,
   data: CreateVolumeRequest,
-): Promise<VolumeInfo> => {
-  const response = await fetchRequest(
-    registryUrl(`/${project}/namespaces/${collection}/volumes`),
-    'POST',
-    data,
+  opts: APIOptions = {},
+): Promise<VolumeInfo> =>
+  create(
+    `/${encodedPath(project)}/namespaces/${encodedPath(collection)}/volumes`,
+    asRequestBody(data),
+    opts,
   );
-  return response.json();
-};
 
 export const fetchVolume = (
   project: string,
   collection: string,
   name: string,
+  opts: APIOptions = {},
 ): Promise<VolumeInfo> =>
-  fetchJSON(
-    registryUrl(
-      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(
-        collection,
-      )}/volumes/${encodeURIComponent(name)}`,
-    ),
+  get(
+    `/${encodedPath(project)}/namespaces/${encodedPath(collection)}/volumes/${encodeURIComponent(
+      name,
+    )}`,
+    opts,
     volumeInfoSchema,
   );
 
-export const deleteVolume = (project: string, collection: string, name: string): Promise<void> =>
-  fetchRequest(
-    registryUrl(
-      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(
-        collection,
-      )}/volumes/${encodeURIComponent(name)}`,
-    ),
-    'DELETE',
-  ).then(() => undefined);
+export const deleteVolume = (
+  project: string,
+  collection: string,
+  name: string,
+  opts: APIOptions = {},
+): Promise<void> =>
+  remove(
+    `/${encodedPath(project)}/namespaces/${encodedPath(collection)}/volumes/${encodeURIComponent(
+      name,
+    )}`,
+    opts,
+  );
 
 // Generic tables (structured assets)
 
-export const createGenericTable = async (
+export const createGenericTable = (
   project: string,
   collection: string,
   data: CreateGenericTableRequest,
-): Promise<AssetResponse> => {
-  const response = await fetchRequest(
-    registryUrl(`/${project}/namespaces/${collection}/generic-tables`),
-    'POST',
-    data,
+  opts: APIOptions = {},
+): Promise<AssetResponse> =>
+  create(
+    `/${encodedPath(project)}/namespaces/${encodedPath(collection)}/generic-tables`,
+    asRequestBody(data),
+    opts,
   );
-  return response.json();
-};
 
 // Update assets
 
@@ -230,17 +317,15 @@ export const updateGenericTable = async (
   collection: string,
   name: string,
   data: UpdateGenericTableRequest,
-): Promise<void> => {
-  await fetchRequest(
-    registryUrl(
-      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(
-        collection,
-      )}/generic-tables/${encodeURIComponent(name)}`,
-    ),
-    'PATCH',
-    data,
+  opts: APIOptions = {},
+): Promise<void> =>
+  patch(
+    `/${encodedPath(project)}/namespaces/${encodedPath(
+      collection,
+    )}/generic-tables/${encodeURIComponent(name)}`,
+    asRequestBody(data),
+    opts,
   );
-};
 
 export type UpdateVolumeRequest = {
   comment?: string;
@@ -256,46 +341,47 @@ export const updateVolume = async (
   collection: string,
   name: string,
   data: UpdateVolumeRequest,
-): Promise<void> => {
-  await fetchRequest(
-    registryUrl(
-      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(
-        collection,
-      )}/volumes/${encodeURIComponent(name)}`,
-    ),
-    'PUT',
-    data,
+  opts: APIOptions = {},
+): Promise<void> =>
+  update(
+    `/${encodedPath(project)}/namespaces/${encodedPath(collection)}/volumes/${encodeURIComponent(
+      name,
+    )}`,
+    asRequestBody(data),
+    opts,
   );
-};
 
 // Labels
 
-export const fetchLabels = (project: string): Promise<LabelListResponse> =>
-  fetchJSON(registryUrl(`/${project}/labels`));
+export const fetchLabels = (project: string, opts: APIOptions = {}): Promise<LabelListResponse> =>
+  get(`/${encodedPath(project)}/labels`, opts);
 
-export const createLabel = async (
+export const createLabel = (
   project: string,
   data: CreateLabelRequest,
-): Promise<LabelResponse> => {
-  const response = await fetchRequest(registryUrl(`/${project}/labels`), 'POST', data);
-  return response.json();
-};
+  opts: APIOptions = {},
+): Promise<LabelResponse> => create(`/${encodedPath(project)}/labels`, asRequestBody(data), opts);
 
-export const deleteLabel = async (project: string, label: string): Promise<void> => {
-  await fetchRequest(registryUrl(`/${project}/labels/${encodeURIComponent(label)}`), 'DELETE');
-};
+export const deleteLabel = (project: string, label: string, opts: APIOptions = {}): Promise<void> =>
+  remove(`/${encodedPath(project)}/labels/${encodeURIComponent(label)}`, opts);
 
 // Error type guards
 
 export const is503Error = (error: unknown): boolean =>
-  error instanceof ApiError && error.status === 503;
+  getErrorCode(error) === 503 ||
+  (error instanceof Error && error.message.toLowerCase().includes('service unavailable'));
 
 export const is403Error = (error: unknown): boolean =>
-  error instanceof ApiError && error.status === 403;
+  getErrorCode(error) === 403 ||
+  (error instanceof Error && /access (?:denied|forbidden)/i.test(error.message));
+
+export const isConflictError = (error: unknown): boolean =>
+  getErrorCode(error) === 409 ||
+  (error instanceof Error && /(?:already exists|conflict|not empty)/i.test(error.message));
 
 export const isConnectionError = (error: unknown): boolean =>
-  !(error instanceof ApiError) &&
   error instanceof Error &&
   (error.message.includes('NetworkError') ||
     error.message.includes('Failed to fetch') ||
-    error.message.toLowerCase().includes('network'));
+    error.message.toLowerCase().includes('network') ||
+    error.message === 'Error communicating with server');

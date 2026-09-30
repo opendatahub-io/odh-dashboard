@@ -14,7 +14,7 @@ paths:
 
 ## Monorepo Structure
 
-ODH Dashboard is a monorepo managed with npm workspaces and Turbo. It provides the web UI for Red Hat OpenShift AI (RHOAI) and Open Data Hub (ODH).
+ODH Dashboard is a monorepo managed with pnpm workspaces and Turbo. It provides the web UI for Red Hat OpenShift AI (RHOAI) and Open Data Hub (ODH).
 
 ### Main Applications
 
@@ -86,11 +86,11 @@ A standalone Kubernetes operator that manages the full lifecycle of the Dashboar
 - **CI**: `.github/workflows/dashboard-operator-tests.yml` — lint, build, test on `dashboard-operator/**` changes
 - **Container**: `quay.io/opendatahub/dashboard-operator:latest` built from `dashboard-operator/Dockerfile`
 
-The controller is **not** part of the npm workspace or Turbo pipeline. It has its own `go.mod`, `Makefile`, and CI workflow. See `dashboard-operator/AGENTS.md` and `.claude/rules/operator-controller.md` for detailed conventions.
+The controller is **not** part of the pnpm workspace or Turbo pipeline. It has its own `go.mod`, `Makefile`, and CI workflow. See `dashboard-operator/AGENTS.md` and `.claude/rules/operator-controller.md` for detailed conventions.
 
 ## Distributions (`distributions/`)
 
-Dashboard variants — three independently-deployable distributions plus a shared app-shell library (`base/`). All four are **npm workspace members** and participate in the **Turbo pipeline** — Turbo-based root commands (`lint`, `type-check`, `test:contract`) run on distributions that define matching scripts. Some root convenience scripts (`build`, `test`, `dev`) are hardcoded to `frontend/` and `backend/` and do not cover distributions.
+Dashboard variants — three independently-deployable distributions plus a shared app-shell library (`base/`). All four are **pnpm workspace members** and participate in the **Turbo pipeline** — Turbo-based root commands (`lint`, `type-check`, `test:contract`) run on distributions that define matching scripts. Some root convenience scripts (`build`, `test`, `dev`) are hardcoded to `frontend/` and `backend/` and do not cover distributions.
 
 | Directory | Description | Has BFF? | Build System |
 |-----------|-------------|----------|--------------|

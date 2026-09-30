@@ -21,8 +21,13 @@ import {
   IPP_MANAGED_SECRET_LABEL_KEY,
   IPP_MANAGED_SECRET_LABEL_VALUE,
   CREATE_NEW_SECRET_VALUE,
+  MISSING_CREDENTIAL_SECRET_WARNING_MESSAGE,
   SECRET_API_KEY_DATA_KEY,
 } from '~/app/pages/external-providers/const';
+import {
+  formatMissingCredentialSecretLabel,
+  getMissingCredentialSecretRef,
+} from '~/app/pages/external-providers/utils';
 import styles from './CredentialSecretField.module.scss';
 
 type CredentialSecretFieldProps = {
@@ -41,18 +46,7 @@ type CredentialSecretFieldProps = {
   secretValueValidationMessage?: string;
 };
 
-const credentialSecretHelpContent = (
-  <>
-    <p>
-      A <strong>credential secret</strong> is a Kubernetes Secret (type: Opaque) in your namespace
-      that stores the authentication credentials needed to connect to the provider.
-    </p>
-    <p>
-      <strong>Expected format:</strong> The secret must contain the data key{' '}
-      <code>{SECRET_API_KEY_DATA_KEY}</code> whose value is your API key or token.
-    </p>
-  </>
-);
+const credentialSecretHelpContent = <>The secret that stores this provider&apos;s credentials.</>;
 
 const EXISTING_SECRETS_GROUP = 'existing-secrets';
 
@@ -86,23 +80,41 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
 }) => {
   const [isApiKeyVisible, setIsApiKeyVisible] = React.useState(false);
 
-  const secretSelectOptions = React.useMemo<TypeaheadSelectOption[]>(
-    () => [
-      ...secrets.map((secret) => ({
-        value: secret.name,
-        content: secret.name,
-        group: EXISTING_SECRETS_GROUP,
-        'data-testid': `credential-secret-option-${secret.name}`,
-      })),
+  const missingCredentialSecretRef = React.useMemo(
+    () => getMissingCredentialSecretRef(credentialSecretRef, secrets, isNewSecret),
+    [credentialSecretRef, isNewSecret, secrets],
+  );
+
+  const secretSelectOptions = React.useMemo<TypeaheadSelectOption[]>(() => {
+    const existingSecretOptions = secrets.map((secret) => ({
+      value: secret.name,
+      content: secret.name,
+      group: EXISTING_SECRETS_GROUP,
+      'data-testid': `credential-secret-option-${secret.name}`,
+    }));
+
+    const missingSecretOption = missingCredentialSecretRef
+      ? [
+          {
+            value: missingCredentialSecretRef,
+            content: formatMissingCredentialSecretLabel(missingCredentialSecretRef),
+            group: EXISTING_SECRETS_GROUP,
+            'data-testid': 'credential-secret-option-missing',
+          },
+        ]
+      : [];
+
+    return [
+      ...missingSecretOption,
+      ...existingSecretOptions,
       {
         value: CREATE_NEW_SECRET_VALUE,
         content: 'Create new secret',
         icon: <PlusCircleIcon aria-hidden />,
         'data-testid': 'credential-secret-create-new-option',
       },
-    ],
-    [secrets],
-  );
+    ];
+  }, [missingCredentialSecretRef, secrets]);
 
   const selectedSecretValue = isNewSecret ? CREATE_NEW_SECRET_VALUE : credentialSecretRef;
 
@@ -128,7 +140,7 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
   return (
     <>
       <FormGroup
-        label="Credential secret"
+        label="Secret"
         isRequired
         fieldId="credential-secret"
         labelHelp={
@@ -139,6 +151,13 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
           />
         }
       >
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem>
+              Select an existing secret by its name, or create a new one.
+            </HelperTextItem>
+          </HelperText>
+        </FormHelperText>
         <TypeaheadSelect
           id="credential-secret"
           dataTestId="credential-secret-toggle"
@@ -155,7 +174,7 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
             }
           }}
           filterFunction={filterSecretOptions}
-          placeholder="Select a credential secret"
+          placeholder="Select or create a secret"
           previewDescription={false}
           isRequired={false}
           isDisabled={!secretsLoaded}
@@ -164,14 +183,15 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
           popperProps={{ maxWidth: 'trigger' }}
           isScrollable
         />
-        <FormHelperText>
-          <HelperText>
-            <HelperTextItem>
-              Select an existing secret, or create a new one and set the Secret resource name plus
-              API key.
-            </HelperTextItem>
-          </HelperText>
-        </FormHelperText>
+        {missingCredentialSecretRef && (
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem variant="warning" data-testid="credential-secret-missing-warning">
+                {MISSING_CREDENTIAL_SECRET_WARNING_MESSAGE}
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+        )}
         {!isNewSecret && secretValidationMessage && (
           <FormHelperText>
             <HelperText>

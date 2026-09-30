@@ -43,7 +43,9 @@ describe('useEvaluationJobLogs', () => {
   });
 
   it('should fetch job-level logs when benchmarkIndex is undefined', async () => {
-    const fetcher = jest.fn().mockResolvedValue('log line 1\nlog line 2');
+    const fetcher = jest
+      .fn()
+      .mockResolvedValue({ logs: 'log line 1\nlog line 2', truncated: false });
     mockGetEvaluationJobLogs.mockReturnValue(fetcher);
 
     const renderResult = testHook(useEvaluationJobLogs)('test-ns', 'job-1', undefined);
@@ -61,7 +63,7 @@ describe('useEvaluationJobLogs', () => {
   });
 
   it('should fetch benchmark-level logs when benchmarkIndex is provided', async () => {
-    const fetcher = jest.fn().mockResolvedValue('benchmark output');
+    const fetcher = jest.fn().mockResolvedValue({ logs: 'benchmark output', truncated: false });
     mockGetEvaluationJobBenchmarkLogs.mockReturnValue(fetcher);
 
     const renderResult = testHook(useEvaluationJobLogs)('test-ns', 'job-1', 2);
@@ -81,7 +83,7 @@ describe('useEvaluationJobLogs', () => {
   });
 
   it('should pass tailLines as tail_lines param', async () => {
-    const fetcher = jest.fn().mockResolvedValue('');
+    const fetcher = jest.fn().mockResolvedValue({ logs: '', truncated: false });
     mockGetEvaluationJobLogs.mockReturnValue(fetcher);
 
     const renderResult = testHook(useEvaluationJobLogs)('ns', 'j1', undefined, 500);
@@ -119,7 +121,7 @@ describe('useEvaluationJobLogs', () => {
   });
 
   it('should re-fetch when refresh is called', async () => {
-    const fetcher = jest.fn().mockResolvedValue('first');
+    const fetcher = jest.fn().mockResolvedValue({ logs: 'first', truncated: false });
     mockGetEvaluationJobLogs.mockReturnValue(fetcher);
 
     const renderResult = testHook(useEvaluationJobLogs)('ns', 'j1', undefined);
@@ -127,7 +129,7 @@ describe('useEvaluationJobLogs', () => {
     await renderResult.waitForNextUpdate();
     expect(renderResult.result.current.logs).toBe('first');
 
-    fetcher.mockResolvedValue('second');
+    fetcher.mockResolvedValue({ logs: 'second', truncated: false });
     React.act(() => {
       renderResult.result.current.refresh();
     });

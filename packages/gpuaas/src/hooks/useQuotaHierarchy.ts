@@ -12,14 +12,40 @@ export type QuotaHierarchyData = {
 
 const useQuotaHierarchy = (
   refreshRate = INFRASTRUCTURE_REFRESH_INTERVAL,
-): FetchStateObject<QuotaHierarchyData> =>
-  useFetch<QuotaHierarchyData>(
+  canAccessAdminTabs = true,
+): FetchStateObject<QuotaHierarchyData> & { lastRefreshed: Date | null } => {
+  const quotaHierarchyState = useFetch<QuotaHierarchyData>(
     React.useCallback(async () => {
+      if (!canAccessAdminTabs) {
+        return { tree: [] };
+      }
       const [clusterQueues, cohorts] = await Promise.all([listClusterQueues(), listCohorts()]);
       return { tree: buildQuotaHierarchyTree(cohorts, clusterQueues) };
-    }, []),
+    }, [canAccessAdminTabs]),
     { tree: [] },
     { refreshRate },
   );
+
+  const initializedRef = React.useRef(false);
+  const [lastRefreshed, setLastRefreshed] = React.useState<Date | null>(null);
+  const { refresh: refreshQuotaHierarchy } = quotaHierarchyState;
+
+  React.useEffect(() => {
+    if (quotaHierarchyState.loaded && !initializedRef.current) {
+      initializedRef.current = true;
+      setLastRefreshed(new Date());
+    }
+  }, [quotaHierarchyState.loaded]);
+
+  const refresh = React.useCallback(async () => {
+    const result = await refreshQuotaHierarchy();
+    if (result !== undefined) {
+      setLastRefreshed(new Date());
+    }
+    return result;
+  }, [refreshQuotaHierarchy]);
+
+  return { ...quotaHierarchyState, lastRefreshed, refresh };
+};
 
 export default useQuotaHierarchy;

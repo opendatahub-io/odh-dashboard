@@ -2,6 +2,15 @@ base: https://raw.githubusercontent.com/fullsend-ai/agents/91f61f3441baedf3f912c
 
 agent: agents/review.md
 
+# Pin the multi-architecture Fullsend sandbox image that carries Pi 0.87.1
+# and its GPT-6 model catalog.
+image: ghcr.io/fullsend-ai/fullsend-sandbox@sha256:03e142441eb11f632a6edba14d5dd96031844c72b3afef817a5ca51d09d5d925
+
+# Enables the runner's run-scoped OpenAI provider used by the orchestrator and
+# every configured review persona.
+providers:
+  - openai
+
 skills:
   # This local skill replaces Fullsend's inherited pr-review with the
   # registry-driven dimensions orchestrator. ODH-owned reviewer skills are
@@ -12,8 +21,12 @@ skills:
 host_files:
   - src: dimensions.json
     dest: /sandbox/workspace/.fullsend/dimensions.json
+  # product-ask-review reads its trusted snapshot by path (registry context_file).
   - src: .run/jira.json
     dest: /sandbox/workspace/.fullsend/.run/jira.json
+    optional: true
+  - src: .run/collected.json
+    dest: /sandbox/workspace/.fullsend/.run/collected.json
     optional: true
 
 model: sonnet

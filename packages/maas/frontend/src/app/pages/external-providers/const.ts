@@ -38,6 +38,9 @@ export { EMPTY_CONFIG_PAIR };
 /** Select value for the "Create new secret" dropdown option. */
 export const CREATE_NEW_SECRET_VALUE = '__create_new_secret__';
 
+export const MISSING_CREDENTIAL_SECRET_WARNING_MESSAGE =
+  'The referenced secret no longer exists in this project. Select an existing secret or create a new one.';
+
 export const SECRET_API_KEY_DATA_KEY = 'api-key';
 
 export const IPP_MANAGED_SECRET_LABEL_KEY = 'inference.llm-d.ai/ipp-managed';

@@ -11,6 +11,7 @@ import {
   deployInferenceService,
   type CreatingInferenceServiceObject,
 } from './deployModel';
+import { resolveHfTokenSecretName, resolveHfTokenServiceAccountName } from './hfTokenSecret';
 import { KSERVE_ID } from '../extensions';
 
 export const deployKServeDeployment = async (
@@ -28,6 +29,20 @@ export const deployKServeDeployment = async (
   applyFieldData?: DeploymentAssemblyFn<KServeDeployment>,
   updateExistingServingRuntime?: boolean,
 ): Promise<KServeDeployment> => {
+  const deploymentK8sName =
+    wizardData.k8sNameDesc.data.k8sName.value || existingDeployment?.model.metadata.name || '';
+  const hfTokenSecretName = await resolveHfTokenSecretName(
+    projectName,
+    wizardData.huggingFaceApiKey.data,
+    { dryRun },
+  );
+  const hfTokenServiceAccountName = await resolveHfTokenServiceAccountName(
+    projectName,
+    hfTokenSecretName,
+    deploymentK8sName,
+    { dryRun },
+  );
+
   const inferenceServiceData: CreatingInferenceServiceObject = {
     project: projectName,
     name: wizardData.k8sNameDesc.data.name,
@@ -44,7 +59,9 @@ export const deployKServeDeployment = async (
     runtimeArgs: wizardData.runtimeArgs.data,
     environmentVariables: wizardData.environmentVariables.data,
     modelAvailability: wizardData.modelAvailability.data,
-    deploymentStrategy: wizardData.deploymentStrategy.data,
+    deploymentStrategy: wizardData.deploymentStrategy,
+    hfTokenSecretName,
+    hfTokenServiceAccountName,
   };
 
   const servingRuntime = existingDeployment?.server ?? serverResource;

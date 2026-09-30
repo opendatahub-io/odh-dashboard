@@ -82,6 +82,7 @@ type DashboardFeatureFlags struct {
 	Mlflow                       bool `json:"mlflow"`
 	McpCatalog                   bool `json:"mcpCatalog"`
 	McpRegistry                  bool `json:"mcpRegistry"`
+	GenAiMcpRegistryServers      bool `json:"genAiMcpRegistryServers"`
 	AgentsCatalog                bool `json:"agentsCatalog"`
 	ToolCalling                  bool `json:"toolCalling"`
 	TrainingJobs                 bool `json:"trainingJobs"`
@@ -96,6 +97,7 @@ type DashboardFeatureFlags struct {
 	MySubscriptions              bool `json:"mySubscriptions"`
 	ConnectionTest               bool `json:"connectionTest"`
 	ModelCapabilities            bool `json:"modelCapabilities"`
+	RuntimeCatalog               bool `json:"runtimeCatalog"`
 }
 
 type NotebookController struct {
@@ -178,6 +180,7 @@ var BlankDashboardCR = DashboardConfig{
 			Mlflow:                       true,
 			McpCatalog:                   false,
 			McpRegistry:                  false,
+			GenAiMcpRegistryServers:      false,
 			AgentsCatalog:                false,
 			ToolCalling:                  false,
 			TrainingJobs:                 true,
@@ -191,6 +194,7 @@ var BlankDashboardCR = DashboardConfig{
 			MySubscriptions:              false,
 			ConnectionTest:               false,
 			ModelCapabilities:            false,
+			RuntimeCatalog:               false,
 		},
 		NotebookController: &NotebookController{
 			Enabled: true,

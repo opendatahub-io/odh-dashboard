@@ -10,18 +10,29 @@ import {
   useZodFormValidation,
 } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import { ZodIssue } from 'zod';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
 import { AuthMechanism, SecretSummary } from '~/app/types/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import { useCreateExternalProvider } from '~/app/hooks/useCreateExternalProvider';
 import { useCreateSecret } from '~/app/hooks/useCreateSecret';
 import { EMPTY_CONFIG_PAIR } from '~/app/pages/external-providers/const';
-import { toCreateExternalProviderRequest } from '~/app/pages/external-providers/utils';
+import {
+  formatOrphanedCredentialSecretSubmitError,
+  toCreateExternalProviderRequest,
+} from '~/app/pages/external-providers/utils';
 import {
   createExternalProviderFormSchema,
   getConfigPairsValidationError,
   isAuthMechanism,
 } from '~/app/pages/external-providers/validation';
 import { ConfigPair, countNonEmptyConfigPairs } from '~/app/utilities/configPairs';
+import {
+  convertStringToExternalModelProviderType,
+  ExternalProviderAddedProperties,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
+import { convertStringToAuthMechanism } from '~/app/pages/external-models/utils';
 
 export type CreateExternalProviderFormFields = {
   provider: string;
@@ -122,22 +133,17 @@ export const useCreateExternalProviderForm = (
 
     setSubmitError(undefined);
 
-    try {
-      const credentialSecretRef = formData.credentialSecretRef.trim();
+    const credentialSecretRef = formData.credentialSecretRef.trim();
+    let createdSecretName: string | undefined;
 
+    try {
       if (formData.isNewSecret) {
         await createSecretCallback({
           namespace,
           name: credentialSecretRef,
           value: formData.secretValue.trim(),
         });
-        refreshSecrets();
-        setFormData((current) => ({
-          ...current,
-          isNewSecret: false,
-          credentialSecretRef,
-          secretValue: '',
-        }));
+        createdSecretName = credentialSecretRef;
       }
 
       if (!isAuthMechanism(formData.authMechanism)) {
@@ -157,10 +163,44 @@ export const useCreateExternalProviderForm = (
       );
 
       await createExternalProviderCallback(request);
+
+      if (createdSecretName) {
+        const linkedSecretName = createdSecretName;
+        refreshSecrets();
+        setFormData((current) => ({
+          ...current,
+          isNewSecret: false,
+          credentialSecretRef: linkedSecretName,
+          secretValue: '',
+        }));
+      }
+      fireFormTrackingEvent(MaaSEvents.EXTERNAL_PROVIDER_ADDED, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        providerType: convertStringToExternalModelProviderType(formData.provider),
+        authMechanism: convertStringToAuthMechanism(formData.authMechanism),
+        hasCreatedSecret: formData.isNewSecret,
+        hasDescription: nameDescData.description.trim() !== '',
+        countOfConfigPairs: countNonEmptyConfigPairs(configPairs),
+      } satisfies ExternalProviderAddedProperties);
+
       return request.name;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create external provider';
-      setSubmitError(message);
+      setSubmitError(
+        createdSecretName
+          ? formatOrphanedCredentialSecretSubmitError(message, createdSecretName, 'create')
+          : message,
+      );
+      fireFormTrackingEvent(MaaSEvents.EXTERNAL_PROVIDER_ADDED, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        providerType: convertStringToExternalModelProviderType(formData.provider),
+        authMechanism: convertStringToAuthMechanism(formData.authMechanism),
+        hasCreatedSecret: formData.isNewSecret,
+        hasDescription: nameDescData.description.trim() !== '',
+        countOfConfigPairs: countNonEmptyConfigPairs(configPairs),
+      } satisfies ExternalProviderAddedProperties);
       return undefined;
     }
   }, [

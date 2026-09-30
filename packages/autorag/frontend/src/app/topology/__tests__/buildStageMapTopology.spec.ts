@@ -474,10 +474,13 @@ describe('buildStageMapTopology', () => {
       );
       expect(patternNodesForZero).toHaveLength(MIN_RAG_PATTERNS);
 
+      // A fan-in spacer is only inserted when there's more than one branch to converge;
+      // a single pattern branch connects directly to the post-branch step.
       const spacerForZero = nodesForZero.find((n) => n.type === 'DEFAULT_SPACER_NODE');
-      expect(spacerForZero).toBeDefined();
       const postBranchNode = nodesForZero.find((n) => n.id.includes('__run_optimization'));
-      expect(postBranchNode?.runAfterTasks).toEqual([spacerForZero!.id]);
+      const expectedRunAfter =
+        patternNodesForZero.length > 1 ? [spacerForZero!.id] : [patternNodesForZero[0].id];
+      expect(postBranchNode?.runAfterTasks).toEqual(expectedRunAfter);
 
       const nodesForNaN = buildStageMapTopology(stageMap, undefined, undefined, Number.NaN);
       const patternNodesForNaN = nodesForNaN.filter(

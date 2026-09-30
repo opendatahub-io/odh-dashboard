@@ -232,6 +232,14 @@ module.exports = {
   },
   "overrides": [
     {
+      "files": ["config/**/*.js"],
+      "parser": "espree",
+      "parserOptions": {
+        "ecmaVersion": 2022,
+        "sourceType": "commonjs"
+      }
+    },
+    {
       "files": ["./src/api/**"],
       "rules": {
         "no-restricted-imports": [
