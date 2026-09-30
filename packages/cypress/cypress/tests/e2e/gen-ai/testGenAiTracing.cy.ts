@@ -65,7 +65,7 @@ describe('Verify tracing and observability in Gen AI Playground', { testIsolatio
 
       cy.step('Log into the application with custom endpoints and tracing enabled');
       cy.visitWithLogin(
-        '/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,genAiTracing=true,modelAsService=false&genAiTracing=true',
+        '/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,modelAsService=false&genAiTracing=true',
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
     });
