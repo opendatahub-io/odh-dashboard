@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { useHostApiCore } from '@odh-dashboard/plugin-core/host-api';
+import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import useNamespaces from '#~/pages/notebookController/useNamespaces';
 import { checkAccess } from '#~/api/checkAccess';
 import { AccessReviewProvider } from '#~/concepts/userSSAR/AccessReviewContext';
@@ -25,7 +26,7 @@ const k8sCreateResourceMock = jest.mocked(k8sCreateResource);
 const useHostApiCoreMock = jest.mocked(useHostApiCore);
 const useNamespacesMock = jest.mocked(useNamespaces);
 
-const resourceAttributes = {
+const resourceAttributes: AccessReviewResourceAttributes = {
   group: 'apps',
   resource: 'deployments',
   verb: 'get',
