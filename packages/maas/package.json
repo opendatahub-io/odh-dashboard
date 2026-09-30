@@ -1,6 +1,7 @@
 {
   "private": true,
   "name": "@odh-dashboard/maas",
+  "lint:delegates": ["frontend"],
   "description": "Models-as-a-Service plugin",
   "version": "0.0.1",
   "module-federation": {

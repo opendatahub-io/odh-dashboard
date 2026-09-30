@@ -1,6 +1,7 @@
 {
   "private": true,
   "name": "@odh-dashboard/mlflow",
+  "lint:delegates": ["frontend"],
   "description": "MLflow plugin.",
   "version": "0.0.0",
   "module-federation": {

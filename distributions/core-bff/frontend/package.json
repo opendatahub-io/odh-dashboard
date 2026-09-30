@@ -1,5 +1,6 @@
 {
   "name": "core-bff-ui",
+  "lint:owner": true,
   "version": "1.0.0",
   "description": "An user interface for Core Bff projects",
   "repository": "https://github.com/opendatahub-io/odh-dashboard.git",

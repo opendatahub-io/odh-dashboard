@@ -1,5 +1,6 @@
 {
   "name": "maas-ui",
+  "lint:owner": true,
   "version": "1.0.0",
   "description": "A user interface for Models as a Service",
   "repository": "https://github.com/opendatahub-io/odh-dashboard.git",

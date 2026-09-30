@@ -1,6 +1,7 @@
 {
   "private": true,
   "name": "@odh-dashboard/core-bff",
+  "lint:delegates": ["frontend"],
   "description": "Core BFF - replaces Fastify backend for RHOAI sidecar and RHAII standalone deployments.",
   "version": "0.0.1",
   "engines": {
