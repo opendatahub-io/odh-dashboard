@@ -10,8 +10,10 @@ import (
 
 	routev1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -137,29 +139,64 @@ func remapDataConnectHubGatewayRBAC(resources []unstructured.Unstructured, appli
 	}
 }
 
+func dataConnectHubGatewayRBACForPlatform(platform cluster.Platform) (string, string) {
+	if platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai {
+		return dchRhoaiGatewayRBACName, dataScienceGatewayNamespace
+	}
+
+	return dchOdhGatewayRBACName, odhGatewayNamespace
+}
+
+// cleanupDataConnectHubGatewayRBAC removes DCH gateway RBAC other than keepName.
+// Passing an empty keepName removes both platform pairs during module teardown.
+func (r *DashboardReconciler) cleanupDataConnectHubGatewayRBAC(ctx context.Context, keepName string) error {
+	logger := log.FromContext(ctx)
+	pairs := []struct {
+		name      string
+		namespace string
+	}{
+		{name: dchRhoaiGatewayRBACName, namespace: dataScienceGatewayNamespace},
+		{name: dchOdhGatewayRBACName, namespace: odhGatewayNamespace},
+	}
+	var errs []error
+
+	for _, pair := range pairs {
+		if pair.name == keepName {
+			continue
+		}
+
+		role := &rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: pair.name, Namespace: pair.namespace}}
+		logger.Info("Deleting DCH Gateway Role", "name", pair.name, "namespace", pair.namespace)
+		if err := r.Delete(ctx, role); client.IgnoreNotFound(err) != nil {
+			errs = append(errs, fmt.Errorf("deleting Role %s/%s: %w", pair.namespace, pair.name, err))
+		}
+
+		roleBinding := &rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: pair.name, Namespace: pair.namespace}}
+		logger.Info("Deleting DCH Gateway RoleBinding", "name", pair.name, "namespace", pair.namespace)
+		if err := r.Delete(ctx, roleBinding); client.IgnoreNotFound(err) != nil {
+			errs = append(errs, fmt.Errorf("deleting RoleBinding %s/%s: %w", pair.namespace, pair.name, err))
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
 // filterAndRemapDataConnectHubGatewayRBAC is the platform-aware counterpart to
 // remapDataConnectHubGatewayRBAC. It drops gateway RBAC resources that do not
 // apply to the current platform before remapping namespaces, so the deployer
 // never tries to create resources in a namespace that may not exist
 // (e.g. opendatahub does not exist on RHOAI).
 func filterAndRemapDataConnectHubGatewayRBAC(resources []unstructured.Unstructured, applicationsNamespace string, platform cluster.Platform) []unstructured.Unstructured {
-	isRHOAI := platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai
+	activeName, targetNamespace := dataConnectHubGatewayRBACForPlatform(platform)
 	result := make([]unstructured.Unstructured, 0, len(resources))
 	for _, res := range resources {
 		r := res
 		kind := r.GetKind()
-		var targetNamespace string
 		switch r.GetName() {
-		case dchRhoaiGatewayRBACName:
-			if !isRHOAI {
-				continue // omit on ODH — openshift-ingress RBAC not needed
+		case dchRhoaiGatewayRBACName, dchOdhGatewayRBACName:
+			if r.GetName() != activeName {
+				continue
 			}
-			targetNamespace = dataScienceGatewayNamespace
-		case dchOdhGatewayRBACName:
-			if isRHOAI {
-				continue // omit on RHOAI — opendatahub namespace may not exist
-			}
-			targetNamespace = odhGatewayNamespace
 		default:
 			result = append(result, r)
 			continue
