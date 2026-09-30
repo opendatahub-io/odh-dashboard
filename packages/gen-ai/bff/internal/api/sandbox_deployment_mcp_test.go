@@ -72,6 +72,36 @@ func TestResolveSandboxMCPServersUsesDashboardConfigAndDeploymentAuth(t *testing
 	}
 }
 
+func TestResolveSandboxMCPServersRejectsRegistryReference(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	serverConfig, err := json.Marshal(models.MCPServerConfig{
+		URL:       "https://api.githubcopilot.com/mcp/x/repos/readonly",
+		Transport: "streamable-http",
+	})
+	require.NoError(t, err)
+	k8sClient := &kubernetes.TokenKubernetesClient{
+		Client: fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Namespace: "redhat-ods-applications", Name: constants.MCPServerName},
+			Data:       map[string]string{"GitHub-MCP-Server": string(serverConfig)},
+		}).Build(),
+		Logger: logger,
+	}
+	app := &App{
+		logger:             logger,
+		dashboardNamespace: "redhat-ods-applications",
+		repositories:       repositories.NewRepositoriesWithMCP(nil, logger),
+	}
+	profile := &models.AgentProfile{Spec: models.AgentProfileSpec{MCPServers: []models.MCPServerReference{{
+		Name: "com.example/github", Source: "mlflow",
+	}}}}
+
+	var resolveErr error
+	require.NotPanics(t, func() {
+		_, resolveErr = app.resolveSandboxMCPServers(context.Background(), k8sClient, profile, nil)
+	})
+	require.ErrorContains(t, resolveErr, "Registry MCP servers are not supported for sandbox deployment")
+}
+
 func TestResolveSandboxMCPServersRejectsAuthForUnselectedServer(t *testing.T) {
 	app := &App{}
 	profile := &models.AgentProfile{}

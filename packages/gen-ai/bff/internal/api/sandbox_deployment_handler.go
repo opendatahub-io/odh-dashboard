@@ -544,6 +544,9 @@ func (app *App) resolveSandboxMCPServers(
 	selectedIDs := make(map[string]struct{}, len(profile.Spec.MCPServers))
 	servers := make([]kubernetes.SandboxMCPServer, 0, len(profile.Spec.MCPServers))
 	for i, selected := range profile.Spec.MCPServers {
+		if selected.ServerRef == nil {
+			return nil, fmt.Errorf("spec.mcpServers[%d]: Registry MCP servers are not supported for sandbox deployment", i)
+		}
 		if selected.ServerRef.Kind != "ConfigMap" || selected.ServerRef.Name != constants.MCPServerName {
 			return nil, fmt.Errorf("spec.mcpServers[%d] must reference ConfigMap %q", i, constants.MCPServerName)
 		}
