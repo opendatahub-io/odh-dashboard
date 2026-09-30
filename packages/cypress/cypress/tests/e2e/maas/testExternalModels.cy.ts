@@ -53,6 +53,7 @@ let projectName: string;
 let existingSecretName: string;
 let externalProviderName: string;
 let providerDescription: string;
+let kind: string;
 let externalModelName: string;
 let externalModelDescription: string;
 let providerType: string;
@@ -90,6 +91,7 @@ describe('An admin can create, edit and delete External Models and Providers and
         existingSecretName = `${fixtureData.existingSecretName}-${uuid}`;
         externalProviderName = `${fixtureData.externalProviderName}-${uuid}`;
         providerDescription = `${fixtureData.providerDescription}`;
+        kind = fixtureData.kind;
         externalModelName = `${fixtureData.externalModelName}-${uuid}`;
         externalModelDescription = `${fixtureData.externalModelDescription}`;
         providerType = fixtureData.providerType;
@@ -168,7 +170,6 @@ describe('An admin can create, edit and delete External Models and Providers and
     () => {
       cy.step('Log into Deployments > External models as a admin user with the flag disabled');
       externalModelsPage.visitAsUser(LDAP_ADMIN_USER, {
-        enableExternalModelsFlag: false,
         projectName,
       });
 
@@ -286,8 +287,15 @@ describe('An admin can create, edit and delete External Models and Providers and
       createExternalModelPage.findCreateButton().click();
 
       cy.step('Verify external model and mass model ref is created');
-      checkMaaSModelRefExists(projectName, externalModelName);
-      checkExternalModelExists(projectName, externalModelName, { phase: PhaseStatus.READY });
+      checkMaaSModelRefExists(projectName, externalModelName, {
+        modelRef: { kind, name: externalModelName },
+        displayName: externalModelName,
+      });
+      checkExternalModelExists(projectName, externalModelName, {
+        phase: PhaseStatus.READY,
+        modelName: externalModelName,
+        externalProviderRefs: [externalProviderName, providerRef.displayName],
+      });
 
       cy.step('Verify external model details');
       const row = externalModelsPage.getRow(externalModelName);
@@ -311,6 +319,7 @@ describe('An admin can create, edit and delete External Models and Providers and
       cy.step('Edit external model');
       row.findEditButton().click();
       createExternalModelPage.findDescriptionInput().clear().type(externalModelDescription);
+      // remove the provider reference
       providerRefRow2.findRemoveButton().click();
       editExternalModelPage
         .findProviderReferencesTable()
@@ -318,6 +327,14 @@ describe('An admin can create, edit and delete External Models and Providers and
       editExternalModelPage.findUpdateButton().click();
       row.findDescription().should('contain.text', externalModelDescription);
       row.findExpandedProviderRow(providerRef.displayName).should('not.exist');
+      checkMaaSModelRefExists(projectName, externalModelName, {
+        displayName: externalModelName,
+        description: externalModelDescription,
+      });
+      checkExternalModelExists(projectName, externalModelName, {
+        modelName: externalModelName,
+        externalProviderRefs: [externalProviderName],
+      });
 
       cy.step(
         'Verify the pending governance warning next to status (subscription and policy needed)',
@@ -342,7 +359,6 @@ describe('An admin can create, edit and delete External Models and Providers and
 
       cy.step('Verify the governance warning is removed');
       externalModelsPage.visitAsUser(LDAP_ADMIN_USER, {
-        enableExternalModelsFlag: true,
         projectName,
       });
       row.findGovernanceWarning().should('not.exist');
@@ -375,7 +391,6 @@ describe('An admin can create, edit and delete External Models and Providers and
 
       cy.step('Delete the external model');
       externalModelsPage.visitAsUser(LDAP_ADMIN_USER, {
-        enableExternalModelsFlag: false,
         projectName,
       });
       const deletedRow = externalModelsPage.getRow(externalModelName);
@@ -386,6 +401,7 @@ describe('An admin can create, edit and delete External Models and Providers and
 
       cy.step('Verify the external model is deleted');
       checkExternalModelExists(projectName, externalModelName, { expectDeleted: true });
+      checkMaaSModelRefExists(projectName, externalModelName, { expectDeleted: true });
 
       cy.step('Delete the external provider');
       externalProvidersPage.visitAsUser(LDAP_ADMIN_USER, {

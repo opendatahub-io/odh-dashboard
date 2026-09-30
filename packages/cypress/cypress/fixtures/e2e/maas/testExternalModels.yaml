@@ -15,6 +15,7 @@ providerConfigPair:
   value: 'value'
 
 #External Model Data
+kind: 'ExternalModel'
 externalModelName: 'e2e-external-model'
 externalModelDescription: 'e2e-external-model-description'
 providerReferenceName: 'e2e-external-provider-reference'

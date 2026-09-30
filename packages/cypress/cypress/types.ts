@@ -908,6 +908,7 @@ export type ModelAsAServiceTestData = {
 };
 
 export type ExternalModelTestData = {
+  kind: string;
   projectResourceName: string;
   existingSecretName: string;
   createSecretName: string;

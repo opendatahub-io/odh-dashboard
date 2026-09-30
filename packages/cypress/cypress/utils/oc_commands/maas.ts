@@ -12,6 +12,38 @@ const maasGatewayRouteNamespace = 'openshift-ingress';
 /** LLM completions can exceed Cypress's default 30s `cy.request` timeout (especially with high `max_tokens`). */
 const completionsRequestTimeoutMs = 180000;
 
+/** DNS-1123 label: lowercase alphanumeric + hyphens, max 63 characters. */
+const K8S_DNS1123_LABEL_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
+
+/**
+ * Rejects values that are unsafe to interpolate into `oc` / shell commands (CWE-78).
+ * K8s resource names and namespaces used by these helpers must be DNS-1123 labels.
+ */
+const assertValidK8sLabel = (value: string, description: string): string => {
+  if (!value || !K8S_DNS1123_LABEL_RE.test(value)) {
+    throw new Error(
+      `Invalid ${description}: '${value}' must be a DNS-1123 label (lowercase alphanumeric and hyphens, max 63 characters).`,
+    );
+  }
+  return value;
+};
+
+const assertValidK8sNamespace = (namespace: string): string =>
+  assertValidK8sLabel(namespace, 'namespace');
+
+/** Quote a shell argument after allowlist validation (defense in depth for cy.exec). */
+const quoteShellArg = (value: string): string => `"${value}"`;
+
+/** Status phases used with `oc wait` (e.g. Ready, Active) — alphanumeric only. */
+const assertValidK8sPhase = (phase: string): string => {
+  if (!/^[A-Za-z][A-Za-z0-9]*$/.test(phase)) {
+    throw new Error(
+      `Invalid phase: '${phase}' must be an alphanumeric Kubernetes status phase name.`,
+    );
+  }
+  return phase;
+};
+
 /**
  * Resolves the MaaS API gateway hostname from the cluster Route
  * (`maas-gateway-route` in `openshift-ingress`).
@@ -19,14 +51,16 @@ const completionsRequestTimeoutMs = 180000;
  * @returns Hostname only (e.g. `maas.apps.my-cluster.example.com`), no scheme.
  */
 export const getGatewayHostForMaaS = (): Cypress.Chainable<string> => {
-  const ocCommand = `oc get route ${maasGatewayRouteName} -n ${maasGatewayRouteNamespace} -o jsonpath='{.spec.host}'`;
+  const routeName = assertValidK8sLabel(maasGatewayRouteName, 'MaaS gateway route name');
+  const routeNamespace = assertValidK8sNamespace(maasGatewayRouteNamespace);
+  const ocCommand = `oc get route ${quoteShellArg(routeName)} -n ${quoteShellArg(
+    routeNamespace,
+  )} -o jsonpath='{.spec.host}'`;
   cy.log(`Resolving MaaS gateway host: ${ocCommand}`);
   return cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result: CommandLineResult) => {
     const host = result.stdout.trim().replace(/^'|'$/g, '');
     if (!host) {
-      throw new Error(
-        `MaaS gateway Route ${maasGatewayRouteNamespace}/${maasGatewayRouteName} has an empty .spec.host`,
-      );
+      throw new Error(`MaaS gateway Route ${routeNamespace}/${routeName} has an empty .spec.host`);
     }
     cy.log(`✅ MaaS gateway host: ${host}`);
     return cy.wrap(host);
@@ -185,7 +219,11 @@ export const cleanupSubscription = (
   subscriptionName: string,
   namespace: string,
 ): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc delete MaaSSubscription ${subscriptionName} -n ${namespace}`;
+  const name = assertValidK8sLabel(subscriptionName, 'subscription name');
+  const ns = assertValidK8sNamespace(namespace);
+  const ocCommand = `oc delete MaaSSubscription ${quoteShellArg(name)} -n ${quoteShellArg(
+    ns,
+  )} --ignore-not-found`;
   cy.log(`Executing delete subscription command: ${ocCommand}`);
   return cy.exec(ocCommand, { failOnNonZeroExit: false });
 };
@@ -194,7 +232,11 @@ export const cleanupAuthPolicy = (
   authPolicyName: string,
   namespace: string,
 ): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc delete MaaSAuthPolicy ${authPolicyName} -n ${namespace}`;
+  const name = assertValidK8sLabel(authPolicyName, 'auth policy name');
+  const ns = assertValidK8sNamespace(namespace);
+  const ocCommand = `oc delete MaaSAuthPolicy ${quoteShellArg(name)} -n ${quoteShellArg(
+    ns,
+  )} --ignore-not-found`;
   cy.log(`Executing delete auth policy command: ${ocCommand}`);
   return cy.exec(ocCommand, { failOnNonZeroExit: false });
 };
@@ -208,26 +250,34 @@ export const cleanupAuthPolicy = (
  * @param apiKeyName Display name of the API key to delete (same value used in the UI).
  */
 export const cleanupApiKeys = (apiKeyName: string): Cypress.Chainable<CommandLineResult> => {
-  const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE') as string;
+  const applicationNamespace = assertValidK8sNamespace(
+    Cypress.env('APPLICATIONS_NAMESPACE') as string,
+  );
   const escapedName = apiKeyName.replace(/'/g, "''");
   cy.log(`Deleting API key "${apiKeyName}" from Postgres api_keys table`);
 
   return cy
     .exec(
-      `oc get secret postgres-creds -n ${applicationNamespace} -o jsonpath='{.data.POSTGRES_USER}' | base64 -d`,
+      `oc get secret postgres-creds -n ${quoteShellArg(
+        applicationNamespace,
+      )} -o jsonpath='{.data.POSTGRES_USER}' | base64 -d`,
       { failOnNonZeroExit: false },
     )
     .then((userResult) => {
       const pgUser = userResult.stdout.trim();
       return cy
         .exec(
-          `oc get secret postgres-creds -n ${applicationNamespace} -o jsonpath='{.data.POSTGRES_DB}' | base64 -d`,
+          `oc get secret postgres-creds -n ${quoteShellArg(
+            applicationNamespace,
+          )} -o jsonpath='{.data.POSTGRES_DB}' | base64 -d`,
           { failOnNonZeroExit: false },
         )
         .then((dbResult) => {
           const pgDb = dbResult.stdout.trim();
           return cy.exec(
-            `oc exec -n ${applicationNamespace} deployment/postgres -- psql -U "${pgUser}" -d "${pgDb}" -c "DELETE FROM api_keys WHERE name = '${escapedName}';"`,
+            `oc exec -n ${quoteShellArg(
+              applicationNamespace,
+            )} deployment/postgres -- psql -U "${pgUser}" -d "${pgDb}" -c "DELETE FROM api_keys WHERE name = '${escapedName}';"`,
             { failOnNonZeroExit: false },
           );
         });
@@ -251,12 +301,17 @@ export const createLLMInferenceServiceWithMaaSEnabled = (
   fixturePath: string,
   connectionName = '',
 ): Cypress.Chainable<CommandLineResult> => {
-  cy.log(`Creating LLMInferenceService "${modelName}" in namespace "${projectName}"`);
+  const project = assertValidK8sNamespace(projectName);
+  const model = assertValidK8sLabel(modelName, 'model name');
+  if (connectionName) {
+    assertValidK8sLabel(connectionName, 'connection name');
+  }
+  cy.log(`Creating LLMInferenceService "${model}" in namespace "${project}"`);
 
   return cy.fixture(fixturePath).then((yamlContent: string) => {
     const replacements = {
-      PROJECT_NAME: projectName,
-      MODEL_NAME: modelName,
+      PROJECT_NAME: project,
+      MODEL_NAME: model,
       CONNECTION_NAME: connectionName,
     };
     const processedYaml = replacePlaceholdersInYaml(yamlContent, replacements);
@@ -265,7 +320,7 @@ export const createLLMInferenceServiceWithMaaSEnabled = (
 ${processedYaml}
 EOF`;
 
-    cy.log(`Applying LLMInferenceService YAML for "${modelName}" in "${projectName}"`);
+    cy.log(`Applying LLMInferenceService YAML for "${model}" in "${project}"`);
     return cy.exec(ocCommand, { failOnNonZeroExit: false });
   });
 };
@@ -284,12 +339,14 @@ export const createMaaSModelRef = (
   modelName: string,
   fixturePath = 'resources/maas/MaaSModelRef.yaml',
 ): Cypress.Chainable<CommandLineResult> => {
-  cy.log(`Creating MaaSModelRef "${modelName}" in namespace "${projectName}"`);
+  const project = assertValidK8sNamespace(projectName);
+  const model = assertValidK8sLabel(modelName, 'model name');
+  cy.log(`Creating MaaSModelRef "${model}" in namespace "${project}"`);
 
   return cy.fixture(fixturePath).then((yamlContent: string) => {
     const replacements = {
-      PROJECT_NAME: projectName,
-      MODEL_NAME: modelName,
+      PROJECT_NAME: project,
+      MODEL_NAME: model,
     };
     const processedYaml = replacePlaceholdersInYaml(yamlContent, replacements);
 
@@ -297,7 +354,7 @@ export const createMaaSModelRef = (
 ${processedYaml}
 EOF`;
 
-    cy.log(`Applying MaaSModelRef YAML for "${modelName}" in "${projectName}"`);
+    cy.log(`Applying MaaSModelRef YAML for "${model}" in "${project}"`);
     return cy.exec(ocCommand, { failOnNonZeroExit: false });
   });
 };
@@ -309,19 +366,22 @@ export const createMaaSSubscription = (
   modelName: string,
   fixturePath = 'resources/maas/MaaSSubscription.yaml',
 ): Cypress.Chainable<CommandLineResult> => {
-  cy.log(`Creating MaaSSubscription "${subscriptionName} through yaml"`);
+  const name = assertValidK8sLabel(subscriptionName, 'subscription name');
+  const project = assertValidK8sNamespace(projectName);
+  const model = assertValidK8sLabel(modelName, 'model name');
+  cy.log(`Creating MaaSSubscription "${name} through yaml"`);
   return cy.fixture(fixturePath).then((yamlContent: string) => {
     const replacements = {
-      SUBSCRIPTION_NAME: subscriptionName,
+      SUBSCRIPTION_NAME: name,
       SUBSCRIPTION_DESCRIPTION: subscriptionDescription,
-      MODEL_NAME: modelName,
-      PROJECT_NAME: projectName,
+      MODEL_NAME: model,
+      PROJECT_NAME: project,
     };
     const processedYaml = replacePlaceholdersInYaml(yamlContent, replacements);
     const ocCommand = `cat <<'EOF' | oc apply -f -
 ${processedYaml}
 EOF`;
-    cy.log(`Applying MaaSSubscription YAML for "${subscriptionName}"`);
+    cy.log(`Applying MaaSSubscription YAML for "${name}"`);
     return cy.exec(ocCommand, { failOnNonZeroExit: true });
   });
 };
@@ -332,18 +392,21 @@ export const createMaaSAuthPolicy = (
   modelName: string,
   fixturePath = 'resources/maas/MaaSAuthPolicy.yaml',
 ): Cypress.Chainable<CommandLineResult> => {
-  cy.log(`Creating MaaSAuthPolicy "${policyName} through yaml"`);
+  const name = assertValidK8sLabel(policyName, 'auth policy name');
+  const project = assertValidK8sNamespace(projectName);
+  const model = assertValidK8sLabel(modelName, 'model name');
+  cy.log(`Creating MaaSAuthPolicy "${name} through yaml"`);
   return cy.fixture(fixturePath).then((yamlContent: string) => {
     const replacements = {
-      POLICY_NAME: policyName,
-      MODEL_NAME: modelName,
-      PROJECT_NAME: projectName,
+      POLICY_NAME: name,
+      MODEL_NAME: model,
+      PROJECT_NAME: project,
     };
     const processedYaml = replacePlaceholdersInYaml(yamlContent, replacements);
     const ocCommand = `cat <<'EOF' | oc apply -f -
 ${processedYaml}
 EOF`;
-    cy.log(`Applying MaaSAuthPolicy YAML for "${policyName}"`);
+    cy.log(`Applying MaaSAuthPolicy YAML for "${name}"`);
     return cy.exec(ocCommand, { failOnNonZeroExit: true });
   });
 };
@@ -355,16 +418,18 @@ const applyExternalModelsFixture = (
   fixturePath: string,
   failOnNonZeroExit = true,
 ): Cypress.Chainable<CommandLineResult> => {
-  cy.log(`Creating ${resourceLabel} "${resourceName}" in namespace "${projectName}"`);
+  const project = assertValidK8sNamespace(projectName);
+  const name = assertValidK8sLabel(resourceName, 'resource name');
+  cy.log(`Creating ${resourceLabel} "${name}" in namespace "${project}"`);
   return cy.fixture(fixturePath).then((yamlContent: string) => {
     const processedYaml = replacePlaceholdersInYaml(yamlContent, {
-      PROJECT_NAME: projectName,
-      RESOURCE_NAME: resourceName,
+      PROJECT_NAME: project,
+      RESOURCE_NAME: name,
     });
     const ocCommand = `cat <<'EOF' | oc apply -f -
 ${processedYaml}
 EOF`;
-    cy.log(`Applying ${resourceLabel} YAML for "${resourceName}" in "${projectName}"`);
+    cy.log(`Applying ${resourceLabel} YAML for "${name}" in "${project}"`);
     return cy.exec(ocCommand, { failOnNonZeroExit });
   });
 };
@@ -380,14 +445,16 @@ export function checkSecretExists(
   projectName: string,
   resourceName: string,
 ): Cypress.Chainable<CommandLineResult> {
+  const name = assertValidK8sLabel(resourceName, 'secret name');
+  const ns = assertValidK8sNamespace(projectName);
   return cy
-    .exec(`oc get secret ${resourceName} -n ${projectName}`, { failOnNonZeroExit: false })
+    .exec(`oc get secret ${quoteShellArg(name)} -n ${quoteShellArg(ns)}`, {
+      failOnNonZeroExit: false,
+    })
     .then((result: CommandLineResult) => {
       if (result.exitCode !== 0) {
         throw new Error(
-          `Secret ${resourceName} does not exist in namespace ${projectName}: ${
-            result.stderr || result.stdout
-          }`,
+          `Secret ${name} does not exist in namespace ${ns}: ${result.stderr || result.stdout}`,
         );
       }
       return result;
@@ -419,7 +486,11 @@ export const checkExternalProviderExists = (
   const expectedPhase = options.phase ?? 'Ready';
   const maxAttempts = options.maxAttempts ?? MAAS_STATE_DEFAULT_MAX_ATTEMPTS;
   const retryIntervalMs = options.retryIntervalMs ?? MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS;
-  const ocCommand = `oc get externalprovider ${resourceName} -n ${projectName} -o json`;
+  const name = assertValidK8sLabel(resourceName, 'ExternalProvider name');
+  const ns = assertValidK8sNamespace(projectName);
+  const ocCommand = `oc get externalprovider ${quoteShellArg(name)} -n ${quoteShellArg(
+    ns,
+  )} -o json`;
   let attempts = 0;
 
   const checkState = (): Cypress.Chainable<CommandLineResult> =>
@@ -430,15 +501,13 @@ export const checkExternalProviderExists = (
 
         if (expectDeleted) {
           if (result.exitCode !== 0 && ocGetIndicatesResourceNotFound(result)) {
-            cy.log(
-              `✅ ExternalProvider ${resourceName} does not exist in namespace ${projectName}`,
-            );
+            cy.log(`✅ ExternalProvider ${name} does not exist in namespace ${ns}`);
             return cy.wrap(result);
           }
 
           if (result.exitCode === 0 && attempts < maxAttempts) {
             cy.log(
-              `ExternalProvider ${resourceName} still exists, waiting for deletion (attempt ${attempts}/${maxAttempts})`,
+              `ExternalProvider ${name} still exists, waiting for deletion (attempt ${attempts}/${maxAttempts})`,
             );
             // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
             return cy.wait(retryIntervalMs).then(() => checkState());
@@ -446,7 +515,7 @@ export const checkExternalProviderExists = (
 
           if (result.exitCode === 0) {
             throw new Error(
-              `ExternalProvider ${resourceName} still exists in namespace ${projectName} after ${maxAttempts} attempts`,
+              `ExternalProvider ${name} still exists in namespace ${ns} after ${maxAttempts} attempts`,
             );
           }
 
@@ -459,14 +528,12 @@ export const checkExternalProviderExists = (
 
         if (result.exitCode !== 0) {
           if (attempts < maxAttempts) {
-            cy.log(
-              `ExternalProvider ${resourceName} not found yet (attempt ${attempts}/${maxAttempts})`,
-            );
+            cy.log(`ExternalProvider ${name} not found yet (attempt ${attempts}/${maxAttempts})`);
             // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
             return cy.wait(retryIntervalMs).then(() => checkState());
           }
           throw new Error(
-            `ExternalProvider ${resourceName} does not exist in namespace ${projectName}: ${
+            `ExternalProvider ${name} does not exist in namespace ${ns}: ${
               result.stderr || result.stdout
             }`,
           );
@@ -476,24 +543,22 @@ export const checkExternalProviderExists = (
         try {
           doc = JSON.parse(result.stdout) as ExternalProviderDoc;
         } catch {
-          throw new Error(`Failed to parse ExternalProvider JSON for ${resourceName}`);
+          throw new Error(`Failed to parse ExternalProvider JSON for ${name}`);
         }
 
         const phase = doc.status?.phase;
         if (phase === expectedPhase) {
-          cy.log(`✅ ExternalProvider ${resourceName} exists with phase ${expectedPhase}`);
+          cy.log(`✅ ExternalProvider ${name} exists with phase ${expectedPhase}`);
           return cy.wrap(result);
         }
 
         if (phase === 'Failed') {
-          throw new Error(
-            `ExternalProvider ${resourceName} is in Failed phase in namespace ${projectName}`,
-          );
+          throw new Error(`ExternalProvider ${name} is in Failed phase in namespace ${ns}`);
         }
 
         if (attempts < maxAttempts) {
           cy.log(
-            `ExternalProvider ${resourceName} phase is ${
+            `ExternalProvider ${name} phase is ${
               phase ?? 'Unknown'
             }, expected ${expectedPhase} (attempt ${attempts}/${maxAttempts})`,
           );
@@ -502,7 +567,7 @@ export const checkExternalProviderExists = (
         }
 
         throw new Error(
-          `ExternalProvider ${resourceName} did not reach phase ${expectedPhase} in namespace ${projectName}. Current phase: ${
+          `ExternalProvider ${name} did not reach phase ${expectedPhase} in namespace ${ns}. Current phase: ${
             phase ?? 'Unknown'
           }`,
         );
@@ -511,32 +576,85 @@ export const checkExternalProviderExists = (
   return checkState();
 };
 
+type CheckExternalModelOptions = {
+  expectDeleted?: boolean;
+  phase?: string;
+  modelName?: string;
+  externalProviderRefs?: string[];
+  maxAttempts?: number;
+  retryIntervalMs?: number;
+};
+
 type ExternalModelDoc = {
   status?: {
     phase?: string;
   };
+  spec?: {
+    modelName?: string;
+    externalProviderRefs?: Array<{
+      ref?: { name?: string };
+    }>;
+  };
+};
+
+const assertExternalModelDocMatches = (
+  doc: ExternalModelDoc,
+  resourceName: string,
+  options: CheckExternalModelOptions,
+): void => {
+  if (options.modelName !== undefined) {
+    const actual = doc.spec?.modelName;
+    if (actual !== options.modelName) {
+      throw new Error(
+        `ExternalModel ${resourceName} spec.modelName mismatch: expected '${
+          options.modelName
+        }', got '${actual ?? 'undefined'}'`,
+      );
+    }
+  }
+
+  if (options.externalProviderRefs) {
+    const actualNames = (doc.spec?.externalProviderRefs ?? []).map(
+      (ref) => ref.ref?.name ?? 'undefined',
+    );
+    const expectedNames = options.externalProviderRefs;
+
+    if (actualNames.length !== expectedNames.length) {
+      throw new Error(
+        `ExternalModel ${resourceName} externalProviderRefs length mismatch: expected ${expectedNames.length}, got ${actualNames.length}`,
+      );
+    }
+
+    for (const expectedName of expectedNames) {
+      if (!actualNames.includes(expectedName)) {
+        throw new Error(
+          `ExternalModel ${resourceName} missing externalProviderRef name=${expectedName}. Actual names: ${actualNames.join(
+            ', ',
+          )}`,
+        );
+      }
+    }
+  }
 };
 
 /**
  * Verifies an ExternalModel exists and reaches the expected status phase (default: Ready),
+ * optionally matching `spec.modelName` / `spec.externalProviderRefs`,
  * or is absent when `expectDeleted` is true.
  * Polls until the condition is met or throws on Failed / timeout.
  */
 export const checkExternalModelExists = (
   projectName: string,
   resourceName: string,
-  options: {
-    expectDeleted?: boolean;
-    phase?: string;
-    maxAttempts?: number;
-    retryIntervalMs?: number;
-  } = {},
+  options: CheckExternalModelOptions = {},
 ): Cypress.Chainable<CommandLineResult> => {
   const expectDeleted = options.expectDeleted === true;
   const expectedPhase = options.phase ?? 'Ready';
   const maxAttempts = options.maxAttempts ?? MAAS_STATE_DEFAULT_MAX_ATTEMPTS;
   const retryIntervalMs = options.retryIntervalMs ?? MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS;
-  const ocCommand = `oc get externalmodel ${resourceName} -n ${projectName} -o json`;
+  const name = assertValidK8sLabel(resourceName, 'ExternalModel name');
+  const ns = assertValidK8sNamespace(projectName);
+  const ocCommand = `oc get externalmodel ${quoteShellArg(name)} -n ${quoteShellArg(ns)} -o json`;
   let attempts = 0;
 
   const checkState = (): Cypress.Chainable<CommandLineResult> =>
@@ -547,13 +665,13 @@ export const checkExternalModelExists = (
 
         if (expectDeleted) {
           if (result.exitCode !== 0 && ocGetIndicatesResourceNotFound(result)) {
-            cy.log(`✅ ExternalModel ${resourceName} does not exist in namespace ${projectName}`);
+            cy.log(`✅ ExternalModel ${name} does not exist in namespace ${ns}`);
             return cy.wrap(result);
           }
 
           if (result.exitCode === 0 && attempts < maxAttempts) {
             cy.log(
-              `ExternalModel ${resourceName} still exists, waiting for deletion (attempt ${attempts}/${maxAttempts})`,
+              `ExternalModel ${name} still exists, waiting for deletion (attempt ${attempts}/${maxAttempts})`,
             );
             // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
             return cy.wait(retryIntervalMs).then(() => checkState());
@@ -561,7 +679,7 @@ export const checkExternalModelExists = (
 
           if (result.exitCode === 0) {
             throw new Error(
-              `ExternalModel ${resourceName} still exists in namespace ${projectName} after ${maxAttempts} attempts`,
+              `ExternalModel ${name} still exists in namespace ${ns} after ${maxAttempts} attempts`,
             );
           }
 
@@ -574,14 +692,12 @@ export const checkExternalModelExists = (
 
         if (result.exitCode !== 0) {
           if (attempts < maxAttempts) {
-            cy.log(
-              `ExternalModel ${resourceName} not found yet (attempt ${attempts}/${maxAttempts})`,
-            );
+            cy.log(`ExternalModel ${name} not found yet (attempt ${attempts}/${maxAttempts})`);
             // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
             return cy.wait(retryIntervalMs).then(() => checkState());
           }
           throw new Error(
-            `ExternalModel ${resourceName} does not exist in namespace ${projectName}: ${
+            `ExternalModel ${name} does not exist in namespace ${ns}: ${
               result.stderr || result.stdout
             }`,
           );
@@ -591,24 +707,23 @@ export const checkExternalModelExists = (
         try {
           doc = JSON.parse(result.stdout) as ExternalModelDoc;
         } catch {
-          throw new Error(`Failed to parse ExternalModel JSON for ${resourceName}`);
+          throw new Error(`Failed to parse ExternalModel JSON for ${name}`);
         }
 
         const phase = doc.status?.phase;
         if (phase === expectedPhase) {
-          cy.log(`✅ ExternalModel ${resourceName} exists with phase ${expectedPhase}`);
+          assertExternalModelDocMatches(doc, name, options);
+          cy.log(`✅ ExternalModel ${name} exists with phase ${expectedPhase}`);
           return cy.wrap(result);
         }
 
         if (phase === 'Failed') {
-          throw new Error(
-            `ExternalModel ${resourceName} is in Failed phase in namespace ${projectName}`,
-          );
+          throw new Error(`ExternalModel ${name} is in Failed phase in namespace ${ns}`);
         }
 
         if (attempts < maxAttempts) {
           cy.log(
-            `ExternalModel ${resourceName} phase is ${
+            `ExternalModel ${name} phase is ${
               phase ?? 'Unknown'
             }, expected ${expectedPhase} (attempt ${attempts}/${maxAttempts})`,
           );
@@ -617,7 +732,7 @@ export const checkExternalModelExists = (
         }
 
         throw new Error(
-          `ExternalModel ${resourceName} did not reach phase ${expectedPhase} in namespace ${projectName}. Current phase: ${
+          `ExternalModel ${name} did not reach phase ${expectedPhase} in namespace ${ns}. Current phase: ${
             phase ?? 'Unknown'
           }`,
         );
@@ -626,21 +741,84 @@ export const checkExternalModelExists = (
   return checkState();
 };
 
+type CheckMaaSModelRefOptions = {
+  expectDeleted?: boolean;
+  modelRef?: {
+    kind: string;
+    name?: string;
+  };
+  displayName?: string;
+  description?: string;
+  maxAttempts?: number;
+  retryIntervalMs?: number;
+};
+
+const assertMaaSModelRefDocMatches = (
+  doc: {
+    metadata?: { annotations?: Record<string, string> };
+    spec?: { modelRef?: { kind?: string; name?: string } };
+  },
+  resourceName: string,
+  options: CheckMaaSModelRefOptions,
+): void => {
+  if (options.modelRef) {
+    const expectedKind = options.modelRef.kind;
+    const expectedName = options.modelRef.name ?? resourceName;
+    const actualKind = doc.spec?.modelRef?.kind;
+    const actualName = doc.spec?.modelRef?.name;
+    if (actualKind !== expectedKind || actualName !== expectedName) {
+      throw new Error(
+        `MaaSModelRef ${resourceName} spec.modelRef mismatch: expected kind=${expectedKind} name=${expectedName}, got kind=${
+          actualKind ?? 'undefined'
+        } name=${actualName ?? 'undefined'}`,
+      );
+    }
+  }
+
+  if (options.displayName !== undefined) {
+    const actual = doc.metadata?.annotations?.['openshift.io/display-name'];
+    if (actual !== options.displayName) {
+      throw new Error(
+        `MaaSModelRef ${resourceName} display-name mismatch: expected '${
+          options.displayName
+        }', got '${actual ?? 'undefined'}'`,
+      );
+    }
+  }
+
+  if (options.description !== undefined) {
+    const actual = doc.metadata?.annotations?.['openshift.io/description'];
+    if (actual !== options.description) {
+      throw new Error(
+        `MaaSModelRef ${resourceName} description mismatch: expected '${
+          options.description
+        }', got '${actual ?? 'undefined'}'`,
+      );
+    }
+  }
+};
+
 /**
- * Verifies a MaaSModelRef exists.
- * Polls until the resource is found or times out.
+ * Verifies a MaaSModelRef exists (optionally matching `spec.modelRef` / OpenShift annotations),
+ * or is absent when `expectDeleted` is true.
+ * Polls until the condition is met or times out.
  */
 export const checkMaaSModelRefExists = (
   projectName: string,
   resourceName: string,
-  options: {
-    maxAttempts?: number;
-    retryIntervalMs?: number;
-  } = {},
+  options: CheckMaaSModelRefOptions = {},
 ): Cypress.Chainable<CommandLineResult> => {
+  const expectDeleted = options.expectDeleted === true;
   const maxAttempts = options.maxAttempts ?? MAAS_STATE_DEFAULT_MAX_ATTEMPTS;
   const retryIntervalMs = options.retryIntervalMs ?? MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS;
-  const ocCommand = `oc get MaaSModelRef ${resourceName} -n ${projectName}`;
+  const needsJson =
+    !expectDeleted &&
+    !!(options.modelRef || options.displayName !== undefined || options.description !== undefined);
+  const name = assertValidK8sLabel(resourceName, 'MaaSModelRef name');
+  const ns = assertValidK8sNamespace(projectName);
+  const ocCommand = needsJson
+    ? `oc get MaaSModelRef ${quoteShellArg(name)} -n ${quoteShellArg(ns)} -o json`
+    : `oc get MaaSModelRef ${quoteShellArg(name)} -n ${quoteShellArg(ns)}`;
   let attempts = 0;
 
   const checkState = (): Cypress.Chainable<CommandLineResult> =>
@@ -649,22 +827,62 @@ export const checkMaaSModelRefExists = (
       .then((result: CommandLineResult): Cypress.Chainable<CommandLineResult> => {
         attempts++;
 
-        if (result.exitCode === 0) {
-          cy.log(`✅ MaaSModelRef ${resourceName} exists in namespace ${projectName}`);
-          return cy.wrap(result);
+        if (expectDeleted) {
+          if (result.exitCode !== 0 && ocGetIndicatesResourceNotFound(result)) {
+            cy.log(`✅ MaaSModelRef ${name} does not exist in namespace ${ns}`);
+            return cy.wrap(result);
+          }
+
+          if (result.exitCode === 0 && attempts < maxAttempts) {
+            cy.log(
+              `MaaSModelRef ${name} still exists, waiting for deletion (attempt ${attempts}/${maxAttempts})`,
+            );
+            // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
+            return cy.wait(retryIntervalMs).then(() => checkState());
+          }
+
+          if (result.exitCode === 0) {
+            throw new Error(
+              `MaaSModelRef ${name} still exists in namespace ${ns} after ${maxAttempts} attempts`,
+            );
+          }
+
+          throw new Error(
+            `Unexpected oc error while verifying MaaSModelRef deletion: ${
+              result.stderr || result.stdout
+            }`,
+          );
         }
 
-        if (attempts < maxAttempts) {
-          cy.log(`MaaSModelRef ${resourceName} not found yet (attempt ${attempts}/${maxAttempts})`);
-          // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
-          return cy.wait(retryIntervalMs).then(() => checkState());
+        if (result.exitCode !== 0) {
+          if (attempts < maxAttempts) {
+            cy.log(`MaaSModelRef ${name} not found yet (attempt ${attempts}/${maxAttempts})`);
+            // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
+            return cy.wait(retryIntervalMs).then(() => checkState());
+          }
+
+          throw new Error(
+            `MaaSModelRef ${name} does not exist in namespace ${ns}: ${
+              result.stderr || result.stdout
+            }`,
+          );
         }
 
-        throw new Error(
-          `MaaSModelRef ${resourceName} does not exist in namespace ${projectName}: ${
-            result.stderr || result.stdout
-          }`,
-        );
+        if (needsJson) {
+          let doc: {
+            metadata?: { annotations?: Record<string, string> };
+            spec?: { modelRef?: { kind?: string; name?: string } };
+          };
+          try {
+            doc = JSON.parse(result.stdout) as typeof doc;
+          } catch {
+            throw new Error(`Failed to parse MaaSModelRef JSON for ${name}`);
+          }
+          assertMaaSModelRefDocMatches(doc, name, options);
+        }
+
+        cy.log(`✅ MaaSModelRef ${name} exists in namespace ${ns}`);
+        return cy.wrap(result);
       });
 
   return checkState();
@@ -695,7 +913,11 @@ export const cleanupMaaSModelRef = (
   resourceName: string,
   projectName: string,
 ): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc delete MaaSModelRef ${resourceName} -n ${projectName} --ignore-not-found`;
+  const name = assertValidK8sLabel(resourceName, 'MaaSModelRef name');
+  const ns = assertValidK8sNamespace(projectName);
+  const ocCommand = `oc delete MaaSModelRef ${quoteShellArg(name)} -n ${quoteShellArg(
+    ns,
+  )} --ignore-not-found`;
   cy.log(`Executing delete MaaSModelRef command: ${ocCommand}`);
   return cy.exec(ocCommand, { failOnNonZeroExit: false });
 };
@@ -704,7 +926,11 @@ export const cleanupExternalModel = (
   resourceName: string,
   projectName: string,
 ): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc delete ExternalModel ${resourceName} -n ${projectName} --ignore-not-found`;
+  const name = assertValidK8sLabel(resourceName, 'ExternalModel name');
+  const ns = assertValidK8sNamespace(projectName);
+  const ocCommand = `oc delete ExternalModel ${quoteShellArg(name)} -n ${quoteShellArg(
+    ns,
+  )} --ignore-not-found`;
   cy.log(`Executing delete ExternalModel command: ${ocCommand}`);
   return cy.exec(ocCommand, { failOnNonZeroExit: false });
 };
@@ -727,7 +953,11 @@ export const cleanupExternalProvider = (
   resourceName: string,
   projectName: string,
 ): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc delete ExternalProvider ${resourceName} -n ${projectName} --ignore-not-found`;
+  const name = assertValidK8sLabel(resourceName, 'ExternalProvider name');
+  const ns = assertValidK8sNamespace(projectName);
+  const ocCommand = `oc delete ExternalProvider ${quoteShellArg(name)} -n ${quoteShellArg(
+    ns,
+  )} --ignore-not-found`;
   cy.log(`Executing delete ExternalProvider command: ${ocCommand}`);
   return cy.exec(ocCommand, { failOnNonZeroExit: false });
 };
@@ -736,7 +966,11 @@ export const cleanupExternalProviderSecret = (
   resourceName: string,
   projectName: string,
 ): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc delete Secret ${resourceName} -n ${projectName} --ignore-not-found`;
+  const name = assertValidK8sLabel(resourceName, 'secret name');
+  const ns = assertValidK8sNamespace(projectName);
+  const ocCommand = `oc delete Secret ${quoteShellArg(name)} -n ${quoteShellArg(
+    ns,
+  )} --ignore-not-found`;
   cy.log(`Executing delete Secret command: ${ocCommand}`);
   return cy.exec(ocCommand, { failOnNonZeroExit: false });
 };
@@ -747,6 +981,16 @@ type MaaSModelRefCondition = {
 };
 
 type MaaSModelRefDoc = {
+  metadata?: {
+    name?: string;
+    annotations?: Record<string, string>;
+  };
+  spec?: {
+    modelRef?: {
+      kind?: string;
+      name?: string;
+    };
+  };
   status?: {
     conditions?: MaaSModelRefCondition[];
   };
@@ -763,7 +1007,9 @@ export const waitForExternalModelGovernancePending = (
 ): Cypress.Chainable<CommandLineResult> => {
   const maxAttempts = options.maxAttempts ?? MAAS_STATE_DEFAULT_MAX_ATTEMPTS;
   const retryIntervalMs = options.retryIntervalMs ?? MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS;
-  const ocCommand = `oc get MaaSModelRef ${resourceName} -n ${projectName} -o json`;
+  const name = assertValidK8sLabel(resourceName, 'MaaSModelRef name');
+  const ns = assertValidK8sNamespace(projectName);
+  const ocCommand = `oc get MaaSModelRef ${quoteShellArg(name)} -n ${quoteShellArg(ns)} -o json`;
   let attempts = 0;
 
   const checkState = (): Cypress.Chainable<CommandLineResult> =>
@@ -774,7 +1020,7 @@ export const waitForExternalModelGovernancePending = (
         try {
           doc = JSON.parse(result.stdout) as MaaSModelRefDoc;
         } catch {
-          throw new Error(`Failed to parse MaaSModelRef JSON for ${resourceName}`);
+          throw new Error(`Failed to parse MaaSModelRef JSON for ${name}`);
         }
         const governanceCondition = doc.status?.conditions?.find(
           (condition) => condition.type === 'GovernanceAttached',
@@ -782,7 +1028,7 @@ export const waitForExternalModelGovernancePending = (
         const governanceAttached = governanceCondition?.status === 'True';
         if (!governanceAttached) {
           cy.log(
-            `✅ MaaSModelRef ${resourceName} exists with GovernanceAttached not True (attempt ${attempts})`,
+            `✅ MaaSModelRef ${name} exists with GovernanceAttached not True (attempt ${attempts})`,
           );
           return cy.wrap(result);
         }
@@ -790,14 +1036,14 @@ export const waitForExternalModelGovernancePending = (
 
       if (attempts < maxAttempts) {
         cy.log(
-          `⏳ Waiting for MaaSModelRef ${resourceName} governance pending (attempt ${attempts}/${maxAttempts})`,
+          `⏳ Waiting for MaaSModelRef ${name} governance pending (attempt ${attempts}/${maxAttempts})`,
         );
         // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
         return cy.wait(retryIntervalMs).then(() => checkState());
       }
 
       throw new Error(
-        `MaaSModelRef ${resourceName} did not reach governance-pending state in namespace ${projectName}`,
+        `MaaSModelRef ${name} did not reach governance-pending state in namespace ${ns}`,
       );
     });
 
@@ -905,20 +1151,25 @@ const waitForMaaSPhase = (
   phase: string,
   timeoutSeconds: number,
 ): Cypress.Chainable<CommandLineResult> => {
-  const resource = `${kind}/${name}`;
-  const command = `oc wait --for=jsonpath='{.status.phase}'=${phase} ${resource} -n ${namespace} --timeout=${timeoutSeconds}s`;
-  cy.log(`⏳ oc wait ${resource} phase=${phase} (timeout ${timeoutSeconds}s)`);
+  const safeName = assertValidK8sLabel(name, `${kind} name`);
+  const ns = assertValidK8sNamespace(namespace);
+  const safePhase = assertValidK8sPhase(phase);
+  const resource = `${kind}/${safeName}`;
+  const command = `oc wait --for=jsonpath='{.status.phase}'=${quoteShellArg(
+    safePhase,
+  )} ${quoteShellArg(resource)} -n ${quoteShellArg(ns)} --timeout=${timeoutSeconds}s`;
+  cy.log(`⏳ oc wait ${resource} phase=${safePhase} (timeout ${timeoutSeconds}s)`);
   return cy
     .exec(command, { failOnNonZeroExit: false, timeout: (timeoutSeconds + 15) * 1000 })
     .then((result) => {
       if (result.exitCode !== 0) {
         throw new Error(
-          `${resource} in namespace ${namespace} did not reach phase ${phase}: ${
+          `${resource} in namespace ${ns} did not reach phase ${safePhase}: ${
             result.stderr || result.stdout
           }`,
         );
       }
-      cy.log(`✅ ${resource} reached phase ${phase}`);
+      cy.log(`✅ ${resource} reached phase ${safePhase}`);
       return cy.wrap(result);
     });
 };
@@ -993,31 +1244,33 @@ export const checkMaaSSubscriptionState = (
   namespace = modelsAsAServiceNamespace,
   options: CheckMaaSOptions = {},
 ): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc get MaaSSubscription ${subscriptionName} -n ${namespace} -o json`;
+  const name = assertValidK8sLabel(subscriptionName, 'subscription name');
+  const ns = assertValidK8sNamespace(namespace);
+  const ocCommand = `oc get MaaSSubscription ${quoteShellArg(name)} -n ${quoteShellArg(
+    ns,
+  )} -o json`;
 
   if (options.expectDeleted === true) {
-    cy.log(`Checking MaaSSubscription is absent: ${subscriptionName} in namespace ${namespace}`);
+    cy.log(`Checking MaaSSubscription is absent: ${name} in namespace ${ns}`);
     return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
       if (result.exitCode !== 0 && ocGetIndicatesResourceNotFound(result)) {
-        cy.log(`✅ MaaSSubscription ${subscriptionName} is absent from namespace ${namespace}`);
+        cy.log(`✅ MaaSSubscription ${name} is absent from namespace ${ns}`);
         return cy.wrap(result);
       }
       if (result.exitCode === 0) {
-        throw new Error(
-          `MaaSSubscription ${subscriptionName} still exists in namespace ${namespace}`,
-        );
+        throw new Error(`MaaSSubscription ${name} still exists in namespace ${ns}`);
       }
       throw new Error(
         `Unexpected oc error while verifying MaaSSubscription deletion: ${result.stderr}`,
       );
     });
   }
-  cy.log(`Checking MaaSSubscription exists: ${subscriptionName} in namespace ${namespace}`);
-  const resourceLabel = `MaaSSubscription ${subscriptionName} in namespace ${namespace}`;
+  cy.log(`Checking MaaSSubscription exists: ${name} in namespace ${ns}`);
+  const resourceLabel = `MaaSSubscription ${name} in namespace ${ns}`;
 
   if (!options.phase && !options.models) {
     return cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
-      parseMaaSSubscriptionDoc(subscriptionName, result.stdout);
+      parseMaaSSubscriptionDoc(name, result.stdout);
       cy.log(`✅ ${resourceLabel} exists`);
       return cy.wrap(result);
     });
@@ -1026,10 +1279,10 @@ export const checkMaaSSubscriptionState = (
   return pollMaaSResourceState(
     resourceLabel,
     'MaaSSubscription',
-    subscriptionName,
-    namespace,
+    name,
+    ns,
     ocCommand,
-    (stdout) => parseMaaSSubscriptionDoc(subscriptionName, stdout),
+    (stdout) => parseMaaSSubscriptionDoc(name, stdout),
     subscriptionOptionsMet,
     options,
     shouldPollMaaSState(options),
@@ -1044,17 +1297,19 @@ export const checkMaaSAuthPolicyState = (
   namespace = modelsAsAServiceNamespace,
   options: CheckMaaSOptions = {},
 ): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc get MaaSAuthPolicy ${policyName} -n ${namespace} -o json`;
+  const name = assertValidK8sLabel(policyName, 'auth policy name');
+  const ns = assertValidK8sNamespace(namespace);
+  const ocCommand = `oc get MaaSAuthPolicy ${quoteShellArg(name)} -n ${quoteShellArg(ns)} -o json`;
 
   if (options.expectDeleted === true) {
-    cy.log(`Checking MaaSAuthPolicy is absent: ${policyName} in namespace ${namespace}`);
+    cy.log(`Checking MaaSAuthPolicy is absent: ${name} in namespace ${ns}`);
     return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
       if (result.exitCode !== 0 && ocGetIndicatesResourceNotFound(result)) {
-        cy.log(`✅ MaaSAuthPolicy ${policyName} is absent from namespace ${namespace}`);
+        cy.log(`✅ MaaSAuthPolicy ${name} is absent from namespace ${ns}`);
         return cy.wrap(result);
       }
       if (result.exitCode === 0) {
-        throw new Error(`MaaSAuthPolicy ${policyName} still exists in namespace ${namespace}`);
+        throw new Error(`MaaSAuthPolicy ${name} still exists in namespace ${ns}`);
       }
       throw new Error(
         `Unexpected oc error while verifying MaaSAuthPolicy deletion: ${result.stderr}`,
@@ -1062,12 +1317,12 @@ export const checkMaaSAuthPolicyState = (
     });
   }
 
-  cy.log(`Checking MaaSAuthPolicy exists: ${policyName} in namespace ${namespace}`);
-  const resourceLabel = `MaaSAuthPolicy ${policyName} in namespace ${namespace}`;
+  cy.log(`Checking MaaSAuthPolicy exists: ${name} in namespace ${ns}`);
+  const resourceLabel = `MaaSAuthPolicy ${name} in namespace ${ns}`;
 
   if (!options.phase && !options.groups) {
     return cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
-      parseMaaSAuthPolicyDoc(policyName, result.stdout);
+      parseMaaSAuthPolicyDoc(name, result.stdout);
       cy.log(`✅ ${resourceLabel} exists`);
       return cy.wrap(result);
     });
@@ -1076,10 +1331,10 @@ export const checkMaaSAuthPolicyState = (
   return pollMaaSResourceState(
     resourceLabel,
     'MaaSAuthPolicy',
-    policyName,
-    namespace,
+    name,
+    ns,
     ocCommand,
-    (stdout) => parseMaaSAuthPolicyDoc(policyName, stdout),
+    (stdout) => parseMaaSAuthPolicyDoc(name, stdout),
     authPolicyOptionsMet,
     options,
     shouldPollMaaSState(options),
