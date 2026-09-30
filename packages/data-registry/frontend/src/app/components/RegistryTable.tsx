@@ -38,7 +38,7 @@ import {
 } from '~/app/api/dataRegistry';
 import { useNotification } from '~/app/hooks/useNotification';
 import { assetDetailUrl } from '~/app/utilities/routes';
-import { getFormatBadge, isStructured, FORMAT_OPTIONS } from '~/app/utilities/formatUtils';
+import { getFormatBadge, FORMAT_OPTIONS } from '~/app/utilities/formatUtils';
 import AccessDeniedError from '~/app/components/errors/AccessDeniedError';
 import ConnectionError from '~/app/components/errors/ConnectionError';
 import ServiceUnavailableError from '~/app/components/errors/ServiceUnavailableError';
@@ -145,11 +145,16 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
     }
     if (selectedAssetType) {
       result = result.filter((a) =>
-        selectedAssetType === 'Structured' ? isStructured(a.format) : !isStructured(a.format),
+        selectedAssetType === 'Structured' ? a.assetType === 'table' : a.assetType === 'volume',
       );
     }
     if (selectedFormat) {
-      result = result.filter((a) => a.format.toLowerCase() === selectedFormat.toLowerCase());
+      const selectedOption = FORMAT_OPTIONS.find((option) => option.key === selectedFormat);
+      result = result.filter(
+        (a) =>
+          a.format.toLowerCase() === (selectedOption?.value ?? selectedFormat).toLowerCase() &&
+          (!selectedOption || a.assetType === selectedOption.assetType),
+      );
     }
     if (activeSortIndex !== undefined) {
       const getSortValue = (asset: RegistryAsset, colIndex: number): string => {
@@ -589,7 +594,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
               </Tr>
             ) : (
               paginatedAssets.map((asset) => {
-                const badge = getFormatBadge(asset.format);
+                const badge = getFormatBadge(asset.format, asset.assetType);
                 const assetKey = JSON.stringify([asset.assetType, asset.collection, asset.name]);
                 const assetTestId = (prefix: string) =>
                   `${prefix}-${asset.assetType}-${asset.collection}-${asset.name}`;
@@ -619,7 +624,10 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                     </Td>
                     <Td dataLabel="Format">
                       <Label variant="outline" color={badge.color}>
-                        {asset.format}
+                        {FORMAT_OPTIONS.find(
+                          (option) =>
+                            option.value === asset.format && option.assetType === asset.assetType,
+                        )?.label || asset.format}
                       </Label>{' '}
                       <Content component="small">{badge.text}</Content>
                     </Td>

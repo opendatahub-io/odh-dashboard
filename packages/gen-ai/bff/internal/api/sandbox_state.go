@@ -2,14 +2,27 @@ package api
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
 )
 
-const sandboxProbeTimeout = 10 * time.Second
+const (
+	sandboxProbeTimeout      = 10 * time.Second
+	sandboxDiscoveryInterval = 30 * time.Second
+)
 
-const sandboxDiscoveryInterval = 30 * time.Second
+func (app *App) sandboxUnavailableResponse(w http.ResponseWriter, r *http.Request) {
+	app.errorResponse(w, r, &integrations.HTTPError{
+		StatusCode: http.StatusServiceUnavailable,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    "sandbox_unavailable",
+			Message: "Agent Sandbox CRD is not available",
+		},
+	})
+}
 
 // sandboxState groups the fields on App that are protected by sandboxMu.
 //

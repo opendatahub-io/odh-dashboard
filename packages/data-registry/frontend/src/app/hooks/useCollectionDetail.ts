@@ -6,7 +6,7 @@ import {
   type FetchStateCallbackPromise,
 } from 'mod-arch-core';
 import { fetchCollectionDetails, fetchAssets, fetchVolumes } from '~/app/api/dataRegistry';
-import type { AssetResponse, VolumeInfo } from '~/app/types';
+import type { AssetResponse } from '~/app/types';
 import { parseCollectionDescription } from '~/app/utilities/collectionUtils';
 
 export type CollectionAsset = {
@@ -28,14 +28,14 @@ export type CollectionDetail = {
 
 const mapTableToAsset = (asset: AssetResponse): CollectionAsset => ({
   name: asset.name,
-  assetType: 'table',
-  format: asset.format || '-',
+  assetType: asset.asset_type,
+  format: asset.format,
 });
 
-const mapVolumeToAsset = (volume: VolumeInfo): CollectionAsset => ({
+const mapVolumeToAsset = (volume: AssetResponse): CollectionAsset => ({
   name: volume.name,
-  assetType: 'volume',
-  format: volume['volume-type'] || '-',
+  assetType: volume.asset_type,
+  format: volume.format,
 });
 
 export const useCollectionDetail = (
@@ -54,8 +54,8 @@ export const useCollectionDetail = (
         fetchVolumes(project, collection, opts),
       ]);
 
-      const tableAssets = (assetsResponse.assets ?? []).map(mapTableToAsset);
-      const volumeAssets = (volumesResponse.volumes ?? []).map(mapVolumeToAsset);
+      const tableAssets = assetsResponse.assets.map(mapTableToAsset);
+      const volumeAssets = volumesResponse.volumes.map(mapVolumeToAsset);
       const { properties } = namespaceResponse;
 
       return {

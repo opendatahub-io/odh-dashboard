@@ -498,6 +498,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.FilesUploadStatusPath, app.AttachNamespace(app.LlamaStackFileUploadStatusHandler))
 	apiRouter.DELETE(constants.FilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackDeleteFileHandler))))
 	apiRouter.POST(constants.MediaFilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackMediaFileUploadHandler))))
+	apiRouter.POST(constants.DocumentsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackDocumentUploadHandler))))
 
 	// Audio Transcription (ASR)
 	apiRouter.POST(constants.AudioTranscriptionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.AttachOGXClient(app.LlamaStackAudioTranscriptionHandler)))))
@@ -581,6 +582,11 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.GetAgentProfileHandler)))
 	apiRouter.PUT(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.UpdateAgentProfileHandler)))
 	apiRouter.DELETE(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteAgentProfileHandler)))
+
+	apiRouter.GET(constants.AgentDeploymentsPath, app.AttachNamespace(app.RequireAccessToService(app.ListAgentDeploymentsHandler)))
+	apiRouter.GET(constants.AgentDeploymentIDPath, app.AttachNamespace(app.RequireAccessToService(app.GetAgentDeploymentHandler)))
+	apiRouter.DELETE(constants.AgentDeploymentIDPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteAgentDeploymentHandler)))
+	apiRouter.POST(constants.AgentDeploymentsPath, app.AttachNamespace(app.RequireAccessToService(app.CreateAgentDeploymentHandler)))
 
 	// GenAI Proxy — OpenAI-compatible endpoints for OGX passthrough provider.
 	// OGX forwards the user JWT via Authorization: Bearer (from passthrough_api_key
