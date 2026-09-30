@@ -341,12 +341,18 @@ class GenAiPlayground {
     return cy.findByTestId('chatbot-settings-page-tab-knowledge');
   }
 
-  findDocumentFileInput() {
-    return cy.findByTestId('document-file-input');
+  findKnowledgeModeUploadRadio() {
+    return cy.findByTestId('knowledge-mode-upload-radio');
   }
 
-  uploadDocumentViaAttachMenu(fixturePath: string) {
-    this.findDocumentFileInput().selectFile(fixturePath, { force: true });
+  findKnowledgeSourceFileInput() {
+    return cy.findByTestId('source-file-input');
+  }
+
+  uploadDocumentToKnowledge(fixturePath: string) {
+    this.findKnowledgeSourceFileInput()
+      .should('be.enabled')
+      .selectFile(fixturePath, { force: true });
   }
 
   findSourceSettingsModal() {

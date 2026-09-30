@@ -205,6 +205,19 @@ export const waitForModelInLSD = (
 };
 
 /**
+ * Wait for the namespace's NemoGuardrails instance to become ready.
+ * The OGXServer can report Ready before the separately provisioned guardrails service is available.
+ *
+ * @param namespace - Namespace containing the NemoGuardrails custom resource.
+ */
+export const waitForNemoGuardrailsReady = (namespace: string): Cypress.Chainable<Cypress.Exec> =>
+  pollUntilSuccess(
+    `oc get nemoguardrails nemoguardrails -n ${namespace} -o json | jq -e '.status.phase == "Ready"'`,
+    `NemoGuardrails to be Ready in namespace ${namespace}`,
+    { maxAttempts: 60, pollIntervalMs: 5000 },
+  );
+
+/**
  * Create a prompt via the Gen AI BFF MLflow prompts API.
  *
  * @param namespace - The workspace/namespace for the prompt.

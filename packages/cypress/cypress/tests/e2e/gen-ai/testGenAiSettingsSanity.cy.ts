@@ -20,6 +20,7 @@ import {
   forceDashboardConfigRefresh,
   createGenAiPromptViaAPI,
   deleteGenAiPromptViaAPI,
+  waitForNemoGuardrailsReady,
 } from '../../../utils/oc_commands/genAi';
 import {
   enableMlflowBackend,
@@ -33,9 +34,10 @@ import { genAiPlayground } from '../../../pages/genAiPlayground';
 
 const ALLOWED_ENDPOINT_HOSTS = ['generativelanguage.googleapis.com'];
 
-describe('Verify settings in playground using custom endpoint', { testIsolation: false }, () => {
+describe('Verify settings in playground using custom endpoint', () => {
   let testData: CustomEndpointTestData;
   let portForwardHandle: PortForwardHandle | null = null;
+  let nemoPortForwardHandle: PortForwardHandle | null = null;
   const projectName = `custom-ep-e2e-${generateTestUUID()}`;
 
   retryableBefore(() => {
@@ -96,6 +98,7 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
 
   after(() => {
     stopPortForward(portForwardHandle);
+    stopPortForward(nemoPortForwardHandle);
 
     cy.step('Delete test prompt from MLflow');
     deleteGenAiPromptViaAPI(projectName, testData.prompt.name);
@@ -168,6 +171,10 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
       tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
     },
     () => {
+      cy.step('Navigate to AI asset endpoints page');
+      genAiPlayground.navigateToAssetsWithGuardrailsAndPromptManagement(projectName);
+      genAiPlayground.findAiModelsTable({ timeout: 30000 }).should('be.visible');
+
       cy.step('Add endpoint to playground');
       genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
       genAiPlayground.findConfigurationTable().should('be.visible');
@@ -176,6 +183,14 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
 
       cy.step('Wait for OGX Server to be ready');
       waitForOGXServerReady(projectName);
+
+      cy.step('Wait for NemoGuardrails to be ready');
+      waitForNemoGuardrailsReady(projectName);
+
+      cy.step('Start port-forward for NeMo Guardrails');
+      startPortForward(projectName, 'nemoguardrails', 8443, 3000, 443).then((handle) => {
+        nemoPortForwardHandle = handle;
+      });
 
       cy.step('Wait for playground service to be created');
       waitForResource('service', testData.lsdServiceName, projectName);
@@ -190,62 +205,6 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
       startPortForward(projectName, testData.lsdServiceName, 8321).then((handle) => {
         portForwardHandle = handle;
       });
-    },
-  );
-
-  it(
-    'Verify guardrails lifecycle — user input toggle blocks malicious message',
-    {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
-    },
-    () => {
-      cy.step('Navigate to playground with guardrails enabled');
-      genAiPlayground.navigateToPlaygroundWithGuardrails(projectName);
-
-      cy.step('Open settings panel and navigate to Guardrails tab');
-      genAiPlayground.ensureSettingsPanelOpen();
-      genAiPlayground.findGuardrailsTab().should('be.visible').click();
-
-      cy.step('Verify guardrails panel shows model dropdown and both toggles defaulting to OFF');
-      genAiPlayground.findGuardrailsSection().should('be.visible');
-      genAiPlayground.findGuardrailModelToggle().should('be.visible');
-      genAiPlayground.findUserInputGuardrailsSwitch().should('not.be.checked');
-      genAiPlayground.findModelOutputGuardrailsSwitch().should('not.be.checked');
-
-      cy.step(`Select guardrail model ending with "${testData.displayName}"`);
-      genAiPlayground.selectGuardrailModel(testData.displayName);
-      genAiPlayground.findGuardrailModelToggle().should('contain', testData.displayName);
-
-      cy.step('Toggle user input guardrails ON');
-      genAiPlayground.toggleUserInputGuardrails(true);
-      genAiPlayground.findUserInputGuardrailsSwitch().should('be.checked');
-
-      cy.step(`Send safe message: "${testData.guardrails.safeMessage}"`);
-      genAiPlayground.sendMessage(testData.guardrails.safeMessage);
-      genAiPlayground
-        .findUserMessage()
-        .should('exist')
-        .and('contain', testData.guardrails.safeMessage);
-
-      cy.step('Verify assistant responds normally (safe message passes input guardrail)');
-      genAiPlayground.waitForStreamingComplete({ timeout: 120000 });
-      genAiPlayground.findAssistantMessage({ timeout: 120000 }).should('exist').and('not.be.empty');
-
-      cy.step(`Send malicious message: "${testData.guardrails.maliciousMessage}"`);
-      genAiPlayground.sendMessage(testData.guardrails.maliciousMessage);
-      genAiPlayground
-        .findAllUserMessages()
-        .last()
-        .should('exist')
-        .and('contain', testData.guardrails.maliciousMessage);
-
-      cy.step('Verify input guardrail violation alert is displayed');
-      genAiPlayground.findGuardrailViolationAlert({ timeout: 120000 }).should('exist');
-
-      cy.step('Toggle user input guardrails OFF and clear chat');
-      genAiPlayground.toggleUserInputGuardrails(false);
-      genAiPlayground.findUserInputGuardrailsSwitch().should('not.be.checked');
-      genAiPlayground.clearChat();
     },
   );
 
@@ -323,8 +282,15 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
       genAiPlayground.ensureSettingsPanelOpen();
       genAiPlayground.findKnowledgeTab().should('be.visible').click();
 
-      cy.step('Upload RAG document via the message bar attachment');
-      genAiPlayground.uploadDocumentViaAttachMenu(`cypress/fixtures/${testData.rag.fixturePath}`);
+      cy.step('Select uploaded documents as the Knowledge source');
+      genAiPlayground.findKnowledgeModeUploadRadio().should('be.visible').click();
+
+      cy.step('Enable RAG in the Knowledge tab');
+      genAiPlayground.findRagToggle().should('not.be.checked').click({ force: true });
+      genAiPlayground.findRagToggle().should('be.checked');
+
+      cy.step('Upload RAG document from the Knowledge tab');
+      genAiPlayground.uploadDocumentToKnowledge(`cypress/fixtures/${testData.rag.fixturePath}`);
 
       cy.step('Confirm upload in source settings modal');
       genAiPlayground.findSourceSettingsModal().should('be.visible');
@@ -479,6 +445,62 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
       cy.step('Verify agent is no longer visible in the Agents table');
       genAiPlayground.findDeleteAgentModal().should('not.exist');
       genAiPlayground.findAgentProfilesEmptyState().should('be.visible');
+    },
+  );
+
+  it(
+    'Verify guardrails lifecycle — user input toggle blocks malicious message',
+    {
+      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+    },
+    () => {
+      cy.step('Navigate to playground with guardrails enabled');
+      genAiPlayground.navigateToPlaygroundWithGuardrails(projectName);
+
+      cy.step('Open settings panel and navigate to Guardrails tab');
+      genAiPlayground.ensureSettingsPanelOpen();
+      genAiPlayground.findGuardrailsTab().should('be.visible').click();
+
+      cy.step('Verify guardrails panel shows model dropdown and both toggles defaulting to OFF');
+      genAiPlayground.findGuardrailsSection().should('be.visible');
+      genAiPlayground.findGuardrailModelToggle().should('be.visible');
+      genAiPlayground.findUserInputGuardrailsSwitch().should('not.be.checked');
+      genAiPlayground.findModelOutputGuardrailsSwitch().should('not.be.checked');
+
+      cy.step(`Select guardrail model ending with "${testData.displayName}"`);
+      genAiPlayground.selectGuardrailModel(testData.displayName);
+      genAiPlayground.findGuardrailModelToggle().should('contain', testData.displayName);
+
+      cy.step('Toggle user input guardrails ON');
+      genAiPlayground.toggleUserInputGuardrails(true);
+      genAiPlayground.findUserInputGuardrailsSwitch().should('be.checked');
+
+      cy.step(`Send safe message: "${testData.guardrails.safeMessage}"`);
+      genAiPlayground.sendMessage(testData.guardrails.safeMessage);
+      genAiPlayground
+        .findUserMessage()
+        .should('exist')
+        .and('contain', testData.guardrails.safeMessage);
+
+      cy.step('Verify assistant responds normally (safe message passes input guardrail)');
+      genAiPlayground.waitForStreamingComplete({ timeout: 120000 });
+      genAiPlayground.findAssistantMessage({ timeout: 120000 }).should('exist').and('not.be.empty');
+
+      cy.step(`Send malicious message: "${testData.guardrails.maliciousMessage}"`);
+      genAiPlayground.sendMessage(testData.guardrails.maliciousMessage);
+      genAiPlayground
+        .findAllUserMessages()
+        .last()
+        .should('exist')
+        .and('contain', testData.guardrails.maliciousMessage);
+
+      cy.step('Verify input guardrail violation alert is displayed');
+      genAiPlayground.findGuardrailViolationAlert({ timeout: 120000 }).should('exist');
+
+      cy.step('Toggle user input guardrails OFF and clear chat');
+      genAiPlayground.toggleUserInputGuardrails(false);
+      genAiPlayground.findUserInputGuardrailsSwitch().should('not.be.checked');
+      genAiPlayground.clearChat();
     },
   );
 
