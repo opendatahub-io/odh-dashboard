@@ -1,16 +1,8 @@
 import * as React from 'react';
-import {
-  Form,
-  FormGroup,
-  Checkbox,
-  Stack,
-  StackItem,
-  Sidebar,
-  SidebarPanel,
-  SidebarContent,
-} from '@patternfly/react-core';
+import { FormGroup, Checkbox, Stack, StackItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import FormSection from '~/app/pages/modelRegistry/components/pf-overrides/FormSection';
+import { ManageSourceFormLayout } from '~/app/shared/catalogSettings';
 import { catalogSettingsUrl } from '~/app/routes/modelCatalogSettings/modelCatalogSettings';
 import { isFormValid } from '~/app/pages/modelCatalogSettings/utils/validation';
 import { useManageSourceData } from '~/app/pages/modelCatalogSettings/useManageSourceData';
@@ -138,13 +130,13 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
           catalogSources?.items?.find((s) => s.id === formData.id)?.status ?? '';
         await apiState.api.updateCatalogSourceConfig({}, formData.id, payload);
         const validationFieldsChanged =
-          existingData!.sourceType !== formData.sourceType ||
-          existingData!.yamlContent !== formData.yamlContent ||
-          existingData!.accessToken !== formData.accessToken ||
-          existingData!.organization !== formData.organization ||
-          existingData!.allowedModels !== formData.allowedModels ||
-          existingData!.excludedModels !== formData.excludedModels ||
-          existingData!.enabled !== formData.enabled;
+          existingData.sourceType !== formData.sourceType ||
+          existingData.yamlContent !== formData.yamlContent ||
+          existingData.accessToken !== formData.accessToken ||
+          existingData.organization !== formData.organization ||
+          existingData.allowedModels !== formData.allowedModels ||
+          existingData.excludedModels !== formData.excludedModels ||
+          existingData.enabled !== formData.enabled;
         if (validationFieldsChanged) {
           markSourcePending(formData.id, previousStatus);
         }
@@ -167,11 +159,24 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
   };
 
   return (
-    <>
-      <Sidebar hasBorder isPanelRight hasGutter>
-        <SidebarContent>
-          <Form isWidthLimited>
-            <Stack hasGutter>
+    <ManageSourceFormLayout
+      previewPanel={<PreviewPanel preview={preview} isSourceEnabled={formData.enabled} />}
+      footer={
+        <ManageSourceFormFooter
+          submitLabel={isEditMode ? 'Save' : 'Add'}
+          submitError={submitError}
+          isSubmitDisabled={!isFormComplete || isSubmitting}
+          isSubmitting={isSubmitting}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+          isPreviewDisabled={!preview.canPreview}
+          isPreviewLoading={preview.previewState.isLoadingInitial}
+          onPreview={preview.handlePreview}
+          previewDisabledTooltip={preview.previewDisabledTooltip}
+        />
+      }
+    >
+      <Stack hasGutter>
               <StackItem>
                 <SourceDetailsSection
                   formData={formData}
@@ -238,26 +243,8 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
                   }
                 />
               </StackItem>
-            </Stack>
-          </Form>
-        </SidebarContent>
-        <SidebarPanel width={{ default: 'width_50' }}>
-          <PreviewPanel preview={preview} isSourceEnabled={formData.enabled} />
-        </SidebarPanel>
-      </Sidebar>
-      <ManageSourceFormFooter
-        submitLabel={isEditMode ? 'Save' : 'Add'}
-        submitError={submitError}
-        isSubmitDisabled={!isFormComplete || isSubmitting}
-        isSubmitting={isSubmitting}
-        onSubmit={handleSubmit}
-        onCancel={handleCancel}
-        isPreviewDisabled={!preview.canPreview}
-        isPreviewLoading={preview.previewState.isLoadingInitial}
-        onPreview={() => preview.handlePreview()}
-        previewDisabledTooltip={preview.previewDisabledTooltip}
-      />
-    </>
+      </Stack>
+    </ManageSourceFormLayout>
   );
 };
 

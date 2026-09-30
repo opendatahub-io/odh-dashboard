@@ -1,16 +1,8 @@
 import * as React from 'react';
-import {
-  Form,
-  FormGroup,
-  Checkbox,
-  Stack,
-  StackItem,
-  Sidebar,
-  SidebarPanel,
-  SidebarContent,
-} from '@patternfly/react-core';
+import { FormGroup, Checkbox, Stack, StackItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import FormSection from '~/app/pages/modelRegistry/components/pf-overrides/FormSection';
+import { ManageSourceFormLayout } from '~/app/shared/catalogSettings';
 import { mcpCatalogSettingsUrl } from '~/app/routes/mcpCatalogSettings/mcpCatalogSettings';
 import { isMcpFormValid } from '~/app/pages/mcpCatalogSettings/utils/validation';
 import { useManageMcpSourceData } from '~/app/pages/mcpCatalogSettings/useManageMcpSourceData';
@@ -169,11 +161,23 @@ const McpManageSourceForm: React.FC<McpManageSourceFormProps> = ({
   };
 
   return (
-    <>
-      <Sidebar hasBorder isPanelRight hasGutter>
-        <SidebarContent>
-          <Form isWidthLimited>
-            <Stack hasGutter>
+    <ManageSourceFormLayout
+      previewPanel={<McpPreviewPanel preview={previewWithTracking} />}
+      footer={
+        <McpManageSourceFormFooter
+          submitLabel={isEditMode ? 'Save' : 'Add'}
+          submitError={submitError}
+          isSubmitDisabled={!isFormComplete || isSubmitting}
+          isSubmitting={isSubmitting}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+          isPreviewDisabled={!preview.canPreview}
+          isPreviewLoading={preview.previewState.isLoadingInitial}
+          onPreview={handleUserPreview}
+        />
+      }
+    >
+      <Stack hasGutter>
               <StackItem>
                 <McpSourceDetailsSection
                   formData={formData}
@@ -225,25 +229,8 @@ const McpManageSourceForm: React.FC<McpManageSourceFormProps> = ({
                   </FormGroup>
                 </FormSection>
               </StackItem>
-            </Stack>
-          </Form>
-        </SidebarContent>
-        <SidebarPanel width={{ default: 'width_50' }}>
-          <McpPreviewPanel preview={previewWithTracking} />
-        </SidebarPanel>
-      </Sidebar>
-      <McpManageSourceFormFooter
-        submitLabel={isEditMode ? 'Save' : 'Add'}
-        submitError={submitError}
-        isSubmitDisabled={!isFormComplete || isSubmitting}
-        isSubmitting={isSubmitting}
-        onSubmit={handleSubmit}
-        onCancel={handleCancel}
-        isPreviewDisabled={!preview.canPreview}
-        isPreviewLoading={preview.previewState.isLoadingInitial}
-        onPreview={handleUserPreview}
-      />
-    </>
+      </Stack>
+    </ManageSourceFormLayout>
   );
 };
 
