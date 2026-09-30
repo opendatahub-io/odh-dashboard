@@ -289,6 +289,9 @@ export type TestConfig = {
   PIP_TRUSTED_HOST: string;
   NGC_API_KEY: string;
   GEMINI_API_KEY: string;
+  ASR_ENDPOINT_URL?: string;
+  ASR_MODEL_ID?: string;
+  ASR_API_KEY?: string;
   OCI_SECRET_VALUE: string;
   OCI_MODEL_URI: string;
   MAAS_URL?: string;
