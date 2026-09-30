@@ -279,7 +279,7 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
         <FlexItem flex={{ default: 'flex_1' }}>
           <Dropdown
             isOpen={isDropdownOpen}
-            popperProps={{ minWidth: 'auto' }}
+            popperProps={{ width: 'trigger' }}
             onSelect={(_, value) => {
               if (typeof value === 'string') {
                 handleSelect(value);

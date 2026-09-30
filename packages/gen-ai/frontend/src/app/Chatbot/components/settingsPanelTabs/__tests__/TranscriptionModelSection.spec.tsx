@@ -11,6 +11,20 @@ import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 import { type AAModelResponse, AIModel } from '~/app/types';
 
+let mockDropdownWidth: string | undefined;
+jest.mock('@patternfly/react-core', () => {
+  const actual = jest.requireActual('@patternfly/react-core');
+  return {
+    ...actual,
+    Dropdown: (props: React.ComponentProps<typeof import('@patternfly/react-core').Dropdown>) => {
+      mockDropdownWidth = props.popperProps?.width;
+      return jest
+        .requireActual<typeof import('react')>('react')
+        .createElement(actual.Dropdown, props);
+    },
+  };
+});
+
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireMiscTrackingEvent: jest.fn(),
 }));
@@ -121,6 +135,7 @@ const renderWithContext = (
 describe('TranscriptionModelSection', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockDropdownWidth = undefined;
     act(() => {
       useChatbotConfigStore.setState({
         configurations: { [DEFAULT_CONFIG_ID]: { ...DEFAULT_CONFIGURATION } },
@@ -319,6 +334,7 @@ describe('TranscriptionModelSection', () => {
       });
       await user.click(screen.getByTestId('transcription-model-selector'));
       expect(screen.getByRole('menu')).not.toHaveClass('pf-v6-u-w-100');
+      expect(mockDropdownWidth).toBe('trigger');
     });
 
     it('shows helper text with chat model name after selection', () => {
