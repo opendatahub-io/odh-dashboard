@@ -42,7 +42,7 @@ func TestGetOperatorSubscriptionStatusHandler(t *testing.T) {
 		a.repositories.OperatorSubscriptionStatus = repositories.NewOperatorSubscriptionStatusRepository(
 			fake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), map[schema.GroupVersionResource]string{
 				models.DataScienceClusterGVR: "DataScienceClusterList",
-			}, dsc, subscription),
+			}, dsc, subscription), "",
 		)
 	})
 

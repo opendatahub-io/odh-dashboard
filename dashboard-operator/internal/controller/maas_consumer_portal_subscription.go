@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -32,6 +33,15 @@ var maasConsumerPortalOperatorSubscriptionNamespaces = map[string]string{
 var maasConsumerPortalOperatorNamespaces = []string{
 	maasConsumerPortalRhodsOperatorNamespace,
 	maasConsumerPortalOpenDataHubOperatorNamespace,
+	"openshift-operators",
+}
+
+func (r *DashboardReconciler) maasConsumerPortalSubscriptionNamespaces() []string {
+	namespaces := slices.Clone(maasConsumerPortalOperatorNamespaces)
+	if r.Namespace != "" && !slices.Contains(namespaces, r.Namespace) {
+		namespaces = append(namespaces, r.Namespace)
+	}
+	return namespaces
 }
 
 func (r *DashboardReconciler) isMaaSConsumerPortalOperatorNamespace(obj client.Object) bool {
@@ -39,12 +49,7 @@ func (r *DashboardReconciler) isMaaSConsumerPortalOperatorNamespace(obj client.O
 		return false
 	}
 
-	switch obj.GetName() {
-	case maasConsumerPortalRhodsOperatorNamespace, maasConsumerPortalOpenDataHubOperatorNamespace:
-		return true
-	default:
-		return false
-	}
+	return slices.Contains(r.maasConsumerPortalSubscriptionNamespaces(), obj.GetName())
 }
 
 func (r *DashboardReconciler) mapMaaSConsumerPortalOperatorNamespaceToDashboard(_ context.Context, obj client.Object) []reconcile.Request {
@@ -57,7 +62,7 @@ func (r *DashboardReconciler) mapMaaSConsumerPortalOperatorNamespaceToDashboard(
 
 func (r *DashboardReconciler) existingMaaSConsumerPortalOperatorNamespaces(ctx context.Context) (map[string]struct{}, error) {
 	existing := make(map[string]struct{}, len(maasConsumerPortalOperatorNamespaces))
-	for _, namespace := range maasConsumerPortalOperatorNamespaces {
+	for _, namespace := range r.maasConsumerPortalSubscriptionNamespaces() {
 		if err := r.Get(ctx, client.ObjectKey{Name: namespace}, &corev1.Namespace{}); err != nil {
 			if apierrors.IsNotFound(err) {
 				continue
@@ -75,7 +80,7 @@ func (r *DashboardReconciler) deleteLabeledMaaSConsumerPortalOperatorSubscriptio
 		return fmt.Errorf("getting operator namespaces: %w", err)
 	}
 	var errs []error
-	for _, namespace := range maasConsumerPortalOperatorNamespaces {
+	for _, namespace := range r.maasConsumerPortalSubscriptionNamespaces() {
 		if _, exists := operatorNamespaces[namespace]; !exists {
 			continue
 		}
@@ -95,6 +100,9 @@ func filterMaaSConsumerPortalResources(resources []unstructured.Unstructured, op
 			continue
 		}
 		if namespace, isOperatorSubscriptionRBAC := maasConsumerPortalOperatorSubscriptionNamespaces[resource.GetKind()+"/"+resource.GetName()]; isOperatorSubscriptionRBAC {
+			if resource.GetNamespace() != "" {
+				namespace = resource.GetNamespace()
+			}
 			if _, exists := operatorNamespaces[namespace]; !exists {
 				continue
 			}
@@ -104,10 +112,26 @@ func filterMaaSConsumerPortalResources(resources []unstructured.Unstructured, op
 	return filtered
 }
 
-func setMaaSConsumerPortalOperatorSubscriptionNamespaces(resources []unstructured.Unstructured) {
+func setMaaSConsumerPortalOperatorSubscriptionNamespaces(resources []unstructured.Unstructured, operatorNamespace string) []unstructured.Unstructured {
+	var extra []unstructured.Unstructured
 	for i := range resources {
 		if namespace, ok := maasConsumerPortalOperatorSubscriptionNamespaces[resources[i].GetKind()+"/"+resources[i].GetName()]; ok {
 			resources[i].SetNamespace(namespace)
+			namespaces := []string{operatorNamespace}
+			if namespace == maasConsumerPortalOpenDataHubOperatorNamespace {
+				namespaces = append(namespaces, "openshift-operators")
+			}
+			seen := map[string]bool{namespace: true, "": true}
+			for _, target := range namespaces {
+				if seen[target] {
+					continue
+				}
+				seen[target] = true
+				copy := resources[i].DeepCopy()
+				copy.SetNamespace(target)
+				extra = append(extra, *copy)
+			}
 		}
 	}
+	return append(resources, extra...)
 }

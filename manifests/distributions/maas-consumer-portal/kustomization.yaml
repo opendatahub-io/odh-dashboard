@@ -110,3 +110,13 @@ replacements:
           name: maas-consumer-portal
         fieldPaths:
           - spec.template.spec.volumes.[name=maas-consumer-portal-federation-config].configMap.name
+  - source:
+      kind: ConfigMap
+      name: maas-consumer-portal-params
+      fieldPath: data.operator-namespace
+    targets:
+      - select:
+          kind: Deployment
+          name: maas-consumer-portal
+        fieldPaths:
+          - spec.template.spec.containers.[name=maas-consumer-portal].env.[name=OPERATOR_NAMESPACE].value

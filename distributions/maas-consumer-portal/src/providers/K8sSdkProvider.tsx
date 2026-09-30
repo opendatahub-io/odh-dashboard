@@ -12,7 +12,7 @@ type K8sSdkProviderProps = {
 };
 
 const K8sSdkProvider: React.FC<K8sSdkProviderProps> = ({ store, children }) => (
-  <BaseK8sSdkProvider store={store} appFetch={appFetch}>
+  <BaseK8sSdkProvider store={store} appFetch={appFetch} basePath={PORTAL_BASE_PATH}>
     {children}
   </BaseK8sSdkProvider>
 );

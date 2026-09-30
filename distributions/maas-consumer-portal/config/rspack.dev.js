@@ -15,6 +15,7 @@ const portalApiPaths = {
   genAi: `${BASE_PATH}/gen-ai/api`,
   perses: `${BASE_PATH}/perses/api`,
   k8s: `${BASE_PATH}/api/k8s`,
+  k8sWatch: `${BASE_PATH}/wss/k8s`,
   operatorSubscriptionStatus: `${BASE_PATH}/api/operator-subscription-status`,
 };
 const portalApiContexts = Object.values(portalApiPaths);
@@ -131,13 +132,20 @@ const buildProxyConfig = () => {
         proxyReq.setHeader('x-forwarded-access-token', token);
       }
     },
+    proxyReqWs: (proxyReq) => {
+      if (token) {
+        proxyReq.setHeader('Authorization', `Bearer ${token}`);
+        proxyReq.setHeader('x-forwarded-access-token', token);
+      }
+    },
   };
 
   // Match frontend start:dev:ext: discover the dashboard route and proxy through
   // its backend. OC_PROJECT is required for non-default namespaces.
   const odhProject = process.env.OC_PROJECT || (process.env.EXT_CLUSTER ? 'opendatahub' : '');
   if (odhProject) {
-    const app = process.env.ODH_APP || 'odh-dashboard';
+    const legacy = process.env.DEV_LEGACY === 'true';
+    const app = legacy ? process.env.ODH_APP || 'odh-dashboard' : 'maas-consumer-portal';
     if (!token) {
       throw new Error(
         'Login with `oc login` prior to starting dev server in external-cluster mode.',
@@ -178,7 +186,8 @@ const buildProxyConfig = () => {
         {
           context: portalApiContexts,
           target: `https://${dashboardHost}`,
-          pathRewrite: { [`^${BASE_PATH}`]: '' },
+          ...(legacy ? { pathRewrite: { [`^${BASE_PATH}`]: '' } } : {}),
+          ws: true,
           secure: Boolean(clusterCAFile),
           ...(clusterProxyAgent ? { agent: clusterProxyAgent } : {}),
           changeOrigin: true,
@@ -208,6 +217,7 @@ const buildProxyConfig = () => {
     { path: portalApiPaths.genAi, target: GENAI_BFF_TARGET, pathRewrite: '/api' },
     { path: portalApiPaths.perses, target: PERSES_TARGET, pathRewrite: '' },
     { path: portalApiPaths.k8s, target: CORE_BFF_TARGET, pathRewrite: '/api/k8s' },
+    { path: portalApiPaths.k8sWatch, target: CORE_BFF_TARGET, pathRewrite: '/wss/k8s' },
     {
       path: portalApiPaths.operatorSubscriptionStatus,
       target: CORE_BFF_TARGET,
@@ -220,6 +230,7 @@ const buildProxyConfig = () => {
     secure: false,
     changeOrigin: true,
     on,
+    ws: proxyPath === portalApiPaths.k8sWatch,
   }));
 };
 

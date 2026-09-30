@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
@@ -12,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic/fake"
+	k8stesting "k8s.io/client-go/testing"
 )
 
 func subscription(name, namespace, channel, lastUpdated, installedCSV string) *unstructured.Unstructured {
@@ -84,7 +86,7 @@ func TestGetOperatorSubscriptionStatus(t *testing.T) {
 			dynClient := fake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), map[schema.GroupVersionResource]string{
 				models.DataScienceClusterGVR: "DataScienceClusterList",
 			}, objects...)
-			repo := NewOperatorSubscriptionStatusRepository(dynClient)
+			repo := NewOperatorSubscriptionStatusRepository(dynClient, "")
 
 			status, err := repo.GetOperatorSubscriptionStatus(context.Background())
 
@@ -107,11 +109,52 @@ func TestGetOperatorSubscriptionStatus_PrefersRHOAI(t *testing.T) {
 		subscription("rhods-operator", "redhat-ods-operator", "stable", "2026-09-25T12:00:00Z", "rhods-operator.v3.0.0"),
 		subscription("opendatahub-operator", "opendatahub-operator", "fast", "2026-09-25T13:00:00Z", "opendatahub-operator.v2.0.0"),
 	)
-	repo := NewOperatorSubscriptionStatusRepository(dynClient)
+	repo := NewOperatorSubscriptionStatusRepository(dynClient, "")
 
 	status, err := repo.GetOperatorSubscriptionStatus(context.Background())
 
 	require.NoError(t, err)
 	assert.Equal(t, "stable", status.Channel)
 	assert.Equal(t, "2026-09-25T12:00:00Z", status.LastUpdated)
+}
+
+func TestGetOperatorSubscriptionStatus_Namespaces(t *testing.T) {
+	for _, tt := range []struct {
+		name, namespace, configured string
+		forbiddenDefault            bool
+	}{
+		{name: "standard ODH", namespace: "opendatahub-operator"},
+		{name: "legacy ODH", namespace: "openshift-operators"},
+		{name: "missing primary namespace has no role", namespace: "openshift-operators", forbiddenDefault: true},
+		{name: "custom operator namespace", namespace: "custom-operators", configured: "custom-operators"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			cli := fake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), map[schema.GroupVersionResource]string{models.DataScienceClusterGVR: "DataScienceClusterList"}, dataScienceCluster("Open Data Hub"), subscription("opendatahub-operator", tt.namespace, "fast", "", "opendatahub-operator.v3.0.0"))
+			if tt.forbiddenDefault {
+				cli.PrependReactor("get", "subscriptions", func(action k8stesting.Action) (bool, runtime.Object, error) {
+					if action.GetNamespace() == "opendatahub-operator" {
+						return true, nil, apierrors.NewForbidden(models.SubscriptionGVR.GroupResource(), "opendatahub-operator", errors.New("no role"))
+					}
+					return false, nil, nil
+				})
+			}
+			status, err := NewOperatorSubscriptionStatusRepository(cli, tt.configured).GetOperatorSubscriptionStatus(context.Background())
+			require.NoError(t, err)
+			assert.Equal(t, "fast", status.Channel)
+			for _, action := range cli.Actions() {
+				if action.GetResource() == models.SubscriptionGVR {
+					assert.Equal(t, "get", action.GetVerb(), "subscription access must remain a named GET")
+				}
+			}
+		})
+	}
+}
+
+func TestGetOperatorSubscriptionStatus_PreservesErrors(t *testing.T) {
+	for _, err := range []error{apierrors.NewForbidden(models.SubscriptionGVR.GroupResource(), "opendatahub-operator", errors.New("denied")), errors.New("connection failed")} {
+		cli := fake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), map[schema.GroupVersionResource]string{models.DataScienceClusterGVR: "DataScienceClusterList"}, dataScienceCluster("Open Data Hub"))
+		cli.PrependReactor("get", "subscriptions", func(k8stesting.Action) (bool, runtime.Object, error) { return true, nil, err })
+		_, got := NewOperatorSubscriptionStatusRepository(cli, "").GetOperatorSubscriptionStatus(context.Background())
+		require.ErrorIs(t, got, err)
+	}
 }

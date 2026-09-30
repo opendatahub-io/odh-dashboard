@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -31,11 +32,12 @@ var operatorSubscriptions = []operatorSubscription{
 
 // OperatorSubscriptionStatusRepository reads the installed data science operator subscription.
 type OperatorSubscriptionStatusRepository struct {
-	saDynClient dynamic.Interface
+	saDynClient       dynamic.Interface
+	operatorNamespace string
 }
 
-func NewOperatorSubscriptionStatusRepository(saDynClient dynamic.Interface) *OperatorSubscriptionStatusRepository {
-	return &OperatorSubscriptionStatusRepository{saDynClient: saDynClient}
+func NewOperatorSubscriptionStatusRepository(saDynClient dynamic.Interface, operatorNamespace string) *OperatorSubscriptionStatusRepository {
+	return &OperatorSubscriptionStatusRepository{saDynClient: saDynClient, operatorNamespace: operatorNamespace}
 }
 
 // GetOperatorSubscriptionStatus returns the operator channel selected by the DSC release.
@@ -49,16 +51,11 @@ func (r *OperatorSubscriptionStatusRepository) GetOperatorSubscriptionStatus(ctx
 		return nil, err
 	}
 
-	resource, err := r.saDynClient.Resource(models.SubscriptionGVR).Namespace(subscription.namespace).Get(ctx, subscription.name, metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
+	resource, err := r.findSubscription(ctx, subscription)
+	if err != nil {
 		return nil, err
 	}
-	if err != nil {
-		return nil, fmt.Errorf("getting subscription %s/%s: %w", subscription.namespace, subscription.name, err)
-	}
-	if !strings.Contains(subscriptionInstalledCSV(resource), subscription.name) {
-		return nil, apierrors.NewNotFound(models.SubscriptionGVR.GroupResource(), subscription.name)
-	}
+
 	if channel := subscriptionChannel(resource); channel != "" {
 		return &models.OperatorSubscriptionStatus{
 			Channel:     channel,
@@ -66,6 +63,42 @@ func (r *OperatorSubscriptionStatusRepository) GetOperatorSubscriptionStatus(ctx
 		}, nil
 	}
 	return &models.OperatorSubscriptionStatus{Channel: unknownOperatorChannel}, nil
+}
+
+// Probe only known namespaces using named GETs; the portal needs no cluster-wide
+// subscription list permission. An absent namespace may return Forbidden when
+// no RoleBinding could be installed there, so try the remaining candidates.
+func (r *OperatorSubscriptionStatusRepository) findSubscription(ctx context.Context, subscription operatorSubscription) (*unstructured.Unstructured, error) {
+	namespaces := []string{r.operatorNamespace, subscription.namespace}
+	if subscription.name == "opendatahub-operator" {
+		namespaces = append(namespaces, "openshift-operators")
+	}
+	seen := make(map[string]bool)
+	var accessErrors []error
+	for _, namespace := range namespaces {
+		if namespace == "" || seen[namespace] {
+			continue
+		}
+		seen[namespace] = true
+		resource, err := r.saDynClient.Resource(models.SubscriptionGVR).Namespace(namespace).Get(ctx, subscription.name, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			continue
+		}
+		if apierrors.IsForbidden(err) {
+			accessErrors = append(accessErrors, err)
+			continue
+		}
+		if err != nil {
+			return nil, fmt.Errorf("getting subscription %s/%s: %w", namespace, subscription.name, err)
+		}
+		if strings.Contains(subscriptionInstalledCSV(resource), subscription.name) {
+			return resource, nil
+		}
+	}
+	if len(accessErrors) > 0 {
+		return nil, fmt.Errorf("getting operator subscription: %w", errors.Join(accessErrors...))
+	}
+	return nil, apierrors.NewNotFound(models.SubscriptionGVR.GroupResource(), subscription.name)
 }
 
 func (r *OperatorSubscriptionStatusRepository) selectedOperatorSubscription(ctx context.Context) (operatorSubscription, error) {

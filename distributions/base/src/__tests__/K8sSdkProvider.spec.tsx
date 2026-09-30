@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { render } from '@testing-library/react';
 import { AppInitSDK } from '@openshift/dynamic-plugin-sdk-utils';
 import type { PluginStore } from '@odh-dashboard/plugin-core';
 import { K8sSdkProvider } from '../K8sSdkProvider';
@@ -16,13 +16,12 @@ jest.mock('@openshift/dynamic-plugin-sdk', () => ({
 
 const appFetch = jest.fn(() => Promise.resolve({} as Response));
 
-const renderProvider = (children: React.ReactNode): void => {
-  renderToStaticMarkup(
-    <K8sSdkProvider store={{} as PluginStore} appFetch={appFetch}>
+const renderProvider = (children: React.ReactNode, basePath = '') =>
+  render(
+    <K8sSdkProvider store={{} as PluginStore} appFetch={appFetch} basePath={basePath}>
       {children}
     </K8sSdkProvider>,
   );
-};
 
 const getConfigurations = (callIndex: number) =>
   jest.mocked(AppInitSDK).mock.calls[callIndex][0].configurations;
@@ -33,14 +32,28 @@ describe('K8sSdkProvider', () => {
   });
 
   it('should keep SDK callback references stable across renders', () => {
-    renderProvider(<div>first render</div>);
-    renderProvider(<div>second render</div>);
+    const { rerender } = renderProvider(<div>first render</div>);
+    rerender(
+      <K8sSdkProvider store={{} as PluginStore} appFetch={appFetch}>
+        <div>second render</div>
+      </K8sSdkProvider>,
+    );
 
     const firstConfigurations = getConfigurations(0);
     const secondConfigurations = getConfigurations(1);
 
     expect(secondConfigurations.apiDiscovery).toBe(firstConfigurations.apiDiscovery);
     expect(secondConfigurations.wsAppSettings).toBe(firstConfigurations.wsAppSettings);
+  });
+
+  it('should keep WebSocket requests under the portal mount point', async () => {
+    renderProvider(<div>content</div>, '/maas-consumer-portal');
+    const settings = await getConfigurations(0).wsAppSettings({ path: '/api/v1/pods' });
+    expect(settings.host).toBe(
+      `${window.location.protocol.replace(/^http/i, 'ws')}//${
+        window.location.host
+      }/maas-consumer-portal/wss/k8s`,
+    );
   });
 
   it('should configure websocket settings and add watch=true to URLs', async () => {

@@ -212,6 +212,7 @@ func (r *DashboardReconciler) deployMaaSConsumerPortalBundle(ctx context.Context
 	params := readExistingParams(filepath.Join(m.String(), "params.env"))
 	maps.Copy(params, resolveImageParams())
 	params["dashboard-namespace"] = r.ApplicationsNamespace
+	params["operator-namespace"] = r.Namespace
 	params["perses-namespace"] = r.maasConsumerPortalPersesNamespace(dashboard)
 	params["gateway-name"] = maasConsumerPortalGatewayName
 	params["maas-consumer-portal-federation-config"] = maasConsumerPortalFederationConfigMapName
@@ -226,7 +227,7 @@ func (r *DashboardReconciler) deployMaaSConsumerPortalBundle(ctx context.Context
 	if err != nil {
 		return fmt.Errorf("getting operator namespaces: %w", err)
 	}
-	setMaaSConsumerPortalOperatorSubscriptionNamespaces(rendered)
+	rendered = setMaaSConsumerPortalOperatorSubscriptionNamespaces(rendered, r.Namespace)
 	resources := filterMaaSConsumerPortalResources(rendered, operatorNamespaces)
 	if err := deploy.NewDeployer(deploy.WithFieldOwner("dashboard-operator"), deploy.WithLabel(labels.PlatformPartOf, maasConsumerPortalPartOf), deploy.WithApplyOrder()).Deploy(ctx, deploy.DeployInput{Client: r.Client, Owner: dashboard, Release: deploy.ReleaseInfo{Type: string(r.Platform)}, Resources: resources}); err != nil {
 		return fmt.Errorf("deploying MaaS Consumer Portal bundle: %w", err)

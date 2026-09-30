@@ -164,4 +164,29 @@ func TestIntegration_MaaSConsumerPortalSubscriptionRBACWatches(t *testing.T) {
 		return directClient.Get(ctx, key, binding) == nil && len(binding.Subjects) > 0
 	}, 10*time.Second, 100*time.Millisecond, "RoleBinding drift did not trigger reconciliation")
 	assert.Equal(t, expectedSubjects, binding.Subjects)
+
+	t.Run("configured operator namespace", func(t *testing.T) {
+		configuredKey := client.ObjectKey{Name: key.Name, Namespace: integrationNamespace}
+		configuredRole := &rbacv1.Role{}
+		configuredBinding := &rbacv1.RoleBinding{}
+		require.NoError(t, directClient.Get(ctx, configuredKey, configuredRole))
+		require.NoError(t, directClient.Get(ctx, configuredKey, configuredBinding))
+		assert.Equal(t, expectedRules, configuredRole.Rules)
+		assert.Equal(t, expectedSubjects, configuredBinding.Subjects)
+	})
+
+	t.Run("late openshift-operators namespace", func(t *testing.T) {
+		waitForIdle(t)
+		require.NoError(t, directClient.Create(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "openshift-operators"}}))
+		legacyKey := client.ObjectKey{Name: "maas-consumer-portal-opendatahub-operator-subscription", Namespace: "openshift-operators"}
+		legacyRole := &rbacv1.Role{}
+		legacyBinding := &rbacv1.RoleBinding{}
+		require.Eventually(t, func() bool {
+			return directClient.Get(ctx, legacyKey, legacyRole) == nil && directClient.Get(ctx, legacyKey, legacyBinding) == nil
+		}, 10*time.Second, 100*time.Millisecond, "namespace creation did not install the ODH subscription grant")
+		require.Len(t, legacyRole.Rules, 1)
+		assert.Equal(t, []string{"get"}, legacyRole.Rules[0].Verbs)
+		assert.Equal(t, []string{"opendatahub-operator"}, legacyRole.Rules[0].ResourceNames)
+		assert.Equal(t, expectedSubjects, legacyBinding.Subjects)
+	})
 }

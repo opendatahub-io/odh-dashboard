@@ -39,14 +39,16 @@ For certificate-verified cluster proxying, set `ODH_DASHBOARD_CA_FILE` to the PE
 
 ### Mode B: External-cluster development (no port-forwards)
 
-This is the portal equivalent of the main frontend's `start:dev:ext`: serve the portal locally and proxy its API requests through the cluster's Dashboard route. Log in with `oc` first, then run:
+Serve the portal locally and proxy its API requests through the deployed portal's HTTPRoute. The proxy preserves `/maas-consumer-portal`, so this works when the core dashboard operand is removed. Log in with `oc` first, then run:
 
 ```bash
 cd distributions/maas-consumer-portal
-OC_PROJECT=redhat-ods-applications ODH_APP=rhods-dashboard pnpm run start:dev:ext
+OC_PROJECT=redhat-ods-applications pnpm run start:dev:ext
 ```
 
-For ODH, use `OC_PROJECT=opendatahub ODH_APP=odh-dashboard`. `EXT_CLUSTER=true` defaults to those ODH values when `OC_PROJECT` and `ODH_APP` are omitted. Set `ODH_DASHBOARD_HOST` only if automatic Gateway/Route discovery does not find the Dashboard host. This mode follows the main frontend dev proxy's TLS behavior; set `ODH_DASHBOARD_CA_FILE` to enable certificate verification with your cluster CA.
+`EXT_CLUSTER=true` defaults the namespace to `opendatahub` when `OC_PROJECT` is omitted. Set `ODH_DASHBOARD_HOST` only if automatic Gateway/Route discovery does not find the portal host. Set `ODH_DASHBOARD_CA_FILE` to enable certificate verification with your cluster CA.
+
+For older clusters that serve APIs through the root dashboard route, use `DEV_LEGACY=true` and select the root operand with `ODH_APP=rhods-dashboard` (or `odh-dashboard` for ODH). This explicitly strips the portal prefix and requires the core dashboard operand.
 
 ### Mode C: Real cluster data via port-forwards
 
@@ -89,6 +91,8 @@ pnpm run dev
 ```
 
 All three BFF targets use `https://` because on-cluster BFFs serve over TLS. The Core BFF target is used for the operator subscription status request.
+
+For a portal-only deployment, forward `svc/maas-consumer-portal 8943:8443` instead of `svc/"$APP" 8943:8943`. Keep `CORE_BFF_TARGET=https://localhost:8943`; Kubernetes API requests and watches will use the portal's Core BFF.
 
 #### Optional: Run the Core BFF locally
 
