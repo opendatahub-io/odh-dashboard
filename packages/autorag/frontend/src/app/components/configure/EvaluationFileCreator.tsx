@@ -28,7 +28,13 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { Table, Thead, Tr, Th, Tbody, Td, ActionsColumn } from '@patternfly/react-table';
-import { AngleRightIcon, CubesIcon, PlusCircleIcon, TimesIcon } from '@patternfly/react-icons';
+import {
+  AngleRightIcon,
+  CubesIcon,
+  EllipsisVIcon,
+  PlusCircleIcon,
+  TimesIcon,
+} from '@patternfly/react-icons';
 import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
 import { useUploadToStorageMutation } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -245,7 +251,10 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
                     helps measure how accurately a RAG pattern retrieves context and generates
                     responses.
                   </Content>
-                  <Form className="autorag-evaluation-creator__form">
+                  <Form
+                    className="autorag-evaluation-creator__form"
+                    onSubmit={(event) => event.preventDefault()}
+                  >
                     <FormGroup label="Question" isRequired fieldId="eval-question">
                       <TextArea
                         id="eval-question"
@@ -276,6 +285,7 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
                           <Button
                             variant="tertiary"
                             size="sm"
+                            type="button"
                             isInline
                             icon={<PlusCircleIcon />}
                             onClick={() => setFileExplorerOpen(true)}
@@ -315,6 +325,7 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
                                       aria-label={`Remove ${doc}`}
                                       onClick={() => handleRemoveDocument(i)}
                                       size="sm"
+                                      type="button"
                                     >
                                       <TimesIcon />
                                     </Button>
@@ -333,6 +344,7 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
             <GridItem span={1} className="autorag-evaluation-creator__add-button">
               <Button
                 variant="secondary"
+                type="button"
                 isDisabled={!isFormValid}
                 onClick={handleAdd}
                 icon={<AngleRightIcon />}
@@ -405,13 +417,35 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
                         <Td isActionCell>
                           <ActionsColumn
                             popperProps={{ appendTo: () => document.body }}
+                            actionsToggle={({
+                              onToggle,
+                              isOpen: isActionsOpen,
+                              isDisabled: isActionsDisabled,
+                              toggleRef,
+                            }) => (
+                              <MenuToggle
+                                aria-label="Kebab toggle"
+                                ref={toggleRef}
+                                type="button"
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  onToggle(event);
+                                }}
+                                isExpanded={isActionsOpen}
+                                isDisabled={isActionsDisabled}
+                                variant="plain"
+                                icon={<EllipsisVIcon />}
+                              />
+                            )}
                             items={[
                               {
                                 title: 'Edit',
+                                type: 'button',
                                 onClick: () => handleEdit(index),
                               },
                               {
                                 title: 'Delete',
+                                type: 'button',
                                 onClick: () => handleDelete(index),
                               },
                             ]}
@@ -428,6 +462,7 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
         <ModalFooter>
           <Button
             variant="primary"
+            type="button"
             isDisabled={!isSubmitEnabled}
             isLoading={isSubmitting}
             onClick={handleSubmit}
@@ -435,7 +470,12 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
           >
             Create evaluation source
           </Button>
-          <Button variant="link" onClick={handleClose} data-testid="eval-create-cancel">
+          <Button
+            variant="link"
+            type="button"
+            onClick={handleClose}
+            data-testid="eval-create-cancel"
+          >
             Cancel
           </Button>
         </ModalFooter>

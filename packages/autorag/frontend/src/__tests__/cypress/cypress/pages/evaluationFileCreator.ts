@@ -44,6 +44,14 @@ class EvaluationFileCreator extends Modal {
   findKebabAction(question: string, action: string) {
     return this.findTableRow(question).findKebabAction(action);
   }
+
+  clickKebabAction(question: string, action: string) {
+    this.findKebabAction(question, action).then(($action) => {
+      // Clicking an action removes or re-renders the menu immediately, so Cypress's
+      // normal click command can report that the subject detached after the click.
+      $action[0].click();
+    });
+  }
 }
 
 class FileExplorer {
@@ -93,16 +101,25 @@ class FileExplorer {
 
 class AutoragConfigurePage {
   selectMaaSSecret(secretName: string) {
-    cy.findByTestId('maas-secret-selector').click();
-    cy.findByRole('option', { name: new RegExp(secretName, 'i') }).click();
+    const selectorTestId = 'maas-secret-selector';
+    cy.findByTestId(selectorTestId, { timeout: 60000 }).should('not.be.disabled');
+    cy.findByTestId(selectorTestId).click();
+    cy.findByTestId(selectorTestId).type(secretName);
+    cy.findByRole('option', { name: new RegExp(`^${secretName}$`, 'i') })
+      .should('be.visible')
+      .click();
+    cy.findByTestId(selectorTestId).find('input').should('have.value', secretName);
   }
 
   selectStorageSecret(secretName: string) {
-    cy.findByTestId('aws-secret-selector').should('exist').click();
-    cy.findByTestId('aws-secret-selector').find('input').type(secretName);
-    cy.findByRole('option', { name: new RegExp(secretName, 'i') })
+    const selectorTestId = 'aws-secret-selector';
+    cy.findByTestId(selectorTestId, { timeout: 60000 }).should('exist').and('not.be.disabled');
+    cy.findByTestId(selectorTestId).click();
+    cy.findByTestId(selectorTestId).type(secretName);
+    cy.findByRole('option', { name: new RegExp(`^${secretName}$`, 'i') })
       .should('be.visible')
       .click();
+    cy.findByTestId(selectorTestId).find('input').should('have.value', secretName);
   }
 }
 

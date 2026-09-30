@@ -120,7 +120,7 @@ describe('EvaluationFileCreator', () => {
     evaluationFileCreator.findTableRow('Q1').should('be.visible');
 
     // Edit the row
-    evaluationFileCreator.findKebabAction('Q1', 'Edit').click();
+    evaluationFileCreator.clickKebabAction('Q1', 'Edit');
     evaluationFileCreator.findQuestionInput().should('have.value', 'Q1');
     evaluationFileCreator.findAnswerInput().should('have.value', 'A1');
 
@@ -129,7 +129,7 @@ describe('EvaluationFileCreator', () => {
     evaluationFileCreator.findTableRow('Q1').should('be.visible');
 
     // Delete the row
-    evaluationFileCreator.findKebabAction('Q1', 'Delete').click();
+    evaluationFileCreator.clickKebabAction('Q1', 'Delete');
     evaluationFileCreator.findEmptyState().should('be.visible');
   });
 
