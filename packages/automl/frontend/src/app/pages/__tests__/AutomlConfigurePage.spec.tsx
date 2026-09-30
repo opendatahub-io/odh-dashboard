@@ -96,6 +96,7 @@ jest.mock('~/app/hooks/useS3GetFileSchemaQuery', () => ({
     isLoading: false,
     isFetching: false,
     error: null,
+    resetSchemaCache: jest.fn(),
   })),
 }));
 

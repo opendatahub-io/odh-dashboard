@@ -1104,7 +1104,7 @@ describe('AutomlLeaderboard component', () => {
 
       // Open modal and uncheck F1
       fireEvent.click(screen.getByTestId('manage-columns-button'));
-      const f1Checkbox = screen.getByTestId('column-check-metric:f1');
+      const f1Checkbox = screen.getByTestId('column-check-metric-f1');
       expect(f1Checkbox).not.toBeDisabled();
       fireEvent.click(f1Checkbox);
       fireEvent.click(screen.getByText('Save'));
@@ -1125,7 +1125,7 @@ describe('AutomlLeaderboard component', () => {
       expect(screen.getByTestId('metric-f1-1')).toBeInTheDocument();
 
       fireEvent.click(screen.getByTestId('manage-columns-button'));
-      fireEvent.click(screen.getByTestId('column-check-metric:f1'));
+      fireEvent.click(screen.getByTestId('column-check-metric-f1'));
       fireEvent.click(screen.getByText('Save'));
 
       expect(screen.queryByTestId('metric-f1-1')).not.toBeInTheDocument();
@@ -1159,7 +1159,7 @@ describe('AutomlLeaderboard component', () => {
       expect(screen.getByTestId('metric-header-f1')).toBeInTheDocument();
 
       fireEvent.click(screen.getByTestId('manage-columns-button'));
-      fireEvent.click(screen.getByTestId('column-check-metric:f1'));
+      fireEvent.click(screen.getByTestId('column-check-metric-f1'));
       fireEvent.click(screen.getByText('Cancel'));
 
       expect(screen.getByTestId('metric-header-f1')).toBeInTheDocument();
@@ -1180,7 +1180,7 @@ describe('AutomlLeaderboard component', () => {
       expect(modelLinks[0]).toHaveTextContent('Logistic Regression');
 
       fireEvent.click(screen.getByTestId('manage-columns-button'));
-      fireEvent.click(screen.getByTestId('column-check-metric:f1'));
+      fireEvent.click(screen.getByTestId('column-check-metric-f1'));
       fireEvent.click(screen.getByText('Save'));
 
       modelLinks = screen.getAllByTestId(/^model-link-/);
@@ -1201,7 +1201,7 @@ describe('AutomlLeaderboard component', () => {
 
       // Now hide that column
       fireEvent.click(screen.getByTestId('manage-columns-button'));
-      fireEvent.click(screen.getByTestId('column-check-metric:f1'));
+      fireEvent.click(screen.getByTestId('column-check-metric-f1'));
       fireEvent.click(screen.getByText('Save'));
 
       // Table should still render (sort reset to rank)
@@ -1352,7 +1352,7 @@ describe('AutomlLeaderboard component', () => {
       fireEvent.click(screen.getByTestId('manage-columns-button'));
       expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
 
-      fireEvent.click(screen.getByTestId('column-check-metric:f1'));
+      fireEvent.click(screen.getByTestId('column-check-metric-f1'));
       expect(screen.getByRole('button', { name: 'Save' })).not.toBeDisabled();
     });
 

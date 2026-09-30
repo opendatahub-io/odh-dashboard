@@ -32,6 +32,8 @@ import { AutomlModelSchema, isRawTimeseriesModelV34, isRawModelV35 } from '~/app
 // Mock fetch globally
 global.fetch = jest.fn();
 
+const queryClients = new Set<QueryClient>();
+
 const createWrapper = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -40,6 +42,7 @@ const createWrapper = () => {
       },
     },
   });
+  queryClients.add(queryClient);
   const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <AutoXApiProvider apiPrefix={URL_PREFIX} bffApiVersion={BFF_API_VERSION}>
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
@@ -49,9 +52,17 @@ const createWrapper = () => {
   return { Wrapper, queryClient };
 };
 
+afterEach(async () => {
+  await Promise.all([...queryClients].map((queryClient) => queryClient.cancelQueries()));
+  queryClients.forEach((queryClient) => queryClient.clear());
+  queryClients.clear();
+  (global.fetch as jest.Mock).mockReset();
+});
+
 describe('useS3GetFileSchemaQuery', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (global.fetch as jest.Mock).mockReset();
   });
 
   it('should be disabled when namespace is missing', () => {
@@ -703,6 +714,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (global.fetch as jest.Mock).mockReset();
   });
 
   it('should not get stuck loading for regression runs (isClassification=false)', async () => {
