@@ -10,11 +10,19 @@ import { fetchInferenceServiceCount } from '#~/pages/modelServing/screens/projec
 export const getNGCSecretType = (isNGC: boolean): string =>
   isNGC ? 'kubernetes.io/dockerconfigjson' : 'Opaque';
 
+export type NIMSecretResource = 'apiKeySecret' | 'nimPullSecret';
+
 export const getNIMResource = async <T extends K8sResourceCommon = SecretKind>(
-  resourceRef: string,
+  ...[resourceRef, namespace]:
+    | [resourceRef: 'nimConfig']
+    | [resourceRef: NIMSecretResource, namespace: string]
 ): Promise<T> => {
+  if (resourceRef !== 'nimConfig' && (typeof namespace !== 'string' || !namespace.trim())) {
+    throw new Error('A target project is required to retrieve NIM credentials.');
+  }
+  const query = namespace ? `?${new URLSearchParams({ namespace }).toString()}` : '';
   try {
-    const response = await fetch(`/api/nim-serving/${resourceRef}`, {
+    const response = await fetch(`/api/nim-serving/${resourceRef}${query}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -22,20 +30,25 @@ export const getNIMResource = async <T extends K8sResourceCommon = SecretKind>(
     });
 
     if (!response.ok) {
-      throw new Error(`Error fetching secret: ${response.statusText}`);
+      throw new Error(`Error fetching NIM resource: ${response.statusText}`);
     }
     const resourceData = await response.json();
     return resourceData.body;
   } catch (error) {
-    throw new Error(`Failed to fetch the resource: ${resourceRef}.`);
+    throw new Error(
+      `Failed to fetch the resource: ${resourceRef}.${
+        error instanceof Error ? ` ${error.message}` : ''
+      }`,
+    );
   }
 };
 
 export const getNIMData = async (
-  secretKey: string,
+  secretKey: NIMSecretResource,
   isNGC: boolean,
+  namespace: string,
 ): Promise<Record<string, string> | undefined> => {
-  const nimSecretData = await getNIMResource(secretKey);
+  const nimSecretData = await getNIMResource(secretKey, namespace);
 
   if (!nimSecretData.data) {
     throw new Error(`Error retrieving ${isNGC ? 'NGC' : 'NIM'} secret data`);

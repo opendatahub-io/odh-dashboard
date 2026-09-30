@@ -8,7 +8,9 @@ import {
   mockNimImages,
   mockNimServingResource,
 } from '@odh-dashboard/model-serving/__mocks__/mockLegacyNimResource';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import { InferenceServiceModel, ServingRuntimeModel } from '../../../../utils/models';
+import { asProjectAdminUser } from '../../../../utils/mockUsers';
 import { projectDetails, projectDetailsOverviewTab } from '../../../../pages/projects';
 import { nimDeployModal } from '../../../../pages/components/NIMDeployModal';
 import {
@@ -32,8 +34,19 @@ describe('NIM Model Serving', () => {
       nimDeployModal.findSubmitButton().should('be.disabled');
     });
 
-    it('should be enabled if the modal has the minimal info', () => {
+    it('should deploy with project-scoped credential requests as a non-admin', () => {
+      asProjectAdminUser();
       initInterceptsToEnableNim();
+      cy.interceptK8s(
+        'GET',
+        { model: SecretModel, ns: 'test-project', name: 'nvidia-nim-secrets' },
+        { statusCode: 404 },
+      );
+      cy.interceptK8s(
+        'GET',
+        { model: SecretModel, ns: 'test-project', name: 'ngc-secret' },
+        { statusCode: 404 },
+      );
       const nimInferenceService = mockNimInferenceService({
         resources: {
           limits: {
@@ -127,6 +140,10 @@ describe('NIM Model Serving', () => {
         expect(interceptions).to.have.length(2); // 1 dry run request and 1 actual request
       });
 
+      cy.wait('@fetchLegacyNimKey').its('request.query.namespace').should('eq', 'test-project');
+      cy.wait('@fetchLegacyNimPullSecret')
+        .its('request.query.namespace')
+        .should('eq', 'test-project');
       nimDeployModal.shouldBeOpen(false);
     });
 

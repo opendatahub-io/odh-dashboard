@@ -227,9 +227,9 @@ describe('createNIMSecret', () => {
     (getNIMData as jest.Mock).mockResolvedValueOnce(nimSecretDataNGC);
     (createSecret as jest.Mock).mockResolvedValueOnce(nimSecretMock);
 
-    const result = await createNIMSecret(projectName, 'ngc-secret', true, dryRun);
+    const result = await createNIMSecret(projectName, 'nimPullSecret', true, dryRun);
 
-    expect(getNIMData).toHaveBeenCalledWith('ngc-secret', true);
+    expect(getNIMData).toHaveBeenCalledWith('nimPullSecret', true, projectName);
     expect(createSecret).toHaveBeenCalledWith(
       {
         apiVersion: 'v1',
@@ -250,9 +250,9 @@ describe('createNIMSecret', () => {
     (getNIMData as jest.Mock).mockResolvedValueOnce(nimSecretDataNonNGC);
     (createSecret as jest.Mock).mockResolvedValueOnce(nimSecretMock);
 
-    const result = await createNIMSecret(projectName, 'nvidia-nim-secrets', false, dryRun);
+    const result = await createNIMSecret(projectName, 'apiKeySecret', false, dryRun);
 
-    expect(getNIMData).toHaveBeenCalledWith('nvidia-nim-secrets', false);
+    expect(getNIMData).toHaveBeenCalledWith('apiKeySecret', false, projectName);
     expect(createSecret).toHaveBeenCalledWith(
       {
         apiVersion: 'v1',
@@ -272,7 +272,7 @@ describe('createNIMSecret', () => {
   it('should reject if getNIMData throws an error', async () => {
     (getNIMData as jest.Mock).mockRejectedValueOnce(new Error('Error retrieving secret data'));
 
-    await expect(createNIMSecret(projectName, 'ngc-secret', true, dryRun)).rejects.toThrow(
+    await expect(createNIMSecret(projectName, 'nimPullSecret', true, dryRun)).rejects.toThrow(
       'Error creating NGC secret',
     );
   });
@@ -281,7 +281,7 @@ describe('createNIMSecret', () => {
     (getNIMData as jest.Mock).mockResolvedValueOnce(nimSecretDataNonNGC);
     (createSecret as jest.Mock).mockRejectedValueOnce(new Error('Error creating secret'));
 
-    await expect(createNIMSecret(projectName, 'nvidia-nim-secrets', false, dryRun)).rejects.toThrow(
+    await expect(createNIMSecret(projectName, 'apiKeySecret', false, dryRun)).rejects.toThrow(
       'Error creating NIM secret',
     );
   });

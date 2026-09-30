@@ -105,15 +105,21 @@ export const initInterceptsToDeployModel = (nimInferenceService: InferenceServic
 
   cy.interceptOdh(
     `GET /api/nim-serving/:resource`,
-    { path: { resource: 'apiKeySecret' } },
+    {
+      path: { resource: 'apiKeySecret' },
+      query: { namespace: nimInferenceService.metadata.namespace },
+    },
     mockNimServingResource(mockNvidiaNimAccessSecret()),
-  );
+  ).as('fetchLegacyNimKey');
 
   cy.interceptOdh(
     `GET /api/nim-serving/:resource`,
-    { path: { resource: 'nimPullSecret' } },
+    {
+      path: { resource: 'nimPullSecret' },
+      query: { namespace: nimInferenceService.metadata.namespace },
+    },
     mockNimServingResource(mockNvidiaNimImagePullSecret()),
-  );
+  ).as('fetchLegacyNimPullSecret');
 
   cy.interceptK8s('POST', PVCModel, mockNimModelPVC());
   cy.interceptK8s('GET', NIMAccountModel, mockNimAccount({}));

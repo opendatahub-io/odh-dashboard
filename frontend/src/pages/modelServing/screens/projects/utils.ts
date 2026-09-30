@@ -39,7 +39,11 @@ import {
   updateServingRuntime,
 } from '#~/api';
 import { removeLeadingSlash } from '#~/utilities/string';
-import { getNIMData, getNIMResource } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
+import {
+  getNIMData,
+  getNIMResource,
+  NIMSecretResource,
+} from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import {
   isModelServingCompatible,
@@ -559,12 +563,12 @@ export const fetchNIMModelNames = async (): Promise<ModelInfo[] | undefined> => 
 
 export const createNIMSecret = async (
   projectName: string,
-  secretKey: string,
+  secretKey: NIMSecretResource,
   isNGC: boolean,
   dryRun: boolean,
 ): Promise<SecretKind> => {
   try {
-    const data = await getNIMData(secretKey, isNGC);
+    const data = await getNIMData(secretKey, isNGC, projectName);
 
     const newSecret = {
       apiVersion: 'v1',
@@ -579,7 +583,9 @@ export const createNIMSecret = async (
 
     return await createSecret(newSecret, { dryRun });
   } catch (e) {
-    return Promise.reject(new Error(`Error creating ${isNGC ? 'NGC' : 'NIM'} secret`));
+    throw new Error(
+      `Error creating ${isNGC ? 'NGC' : 'NIM'} secret${e instanceof Error ? `: ${e.message}` : ''}`,
+    );
   }
 };
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { getSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import type { ProjectKind, SecretKind } from '@odh-dashboard/k8s-core';
@@ -156,7 +157,14 @@ jest.mock('../../../ServingRuntimeModal/AuthServingRuntimeSection', () => ({
 
 jest.mock('@odh-dashboard/ui-core/components/DashboardModalFooter', () => ({
   __esModule: true,
-  default: jest.fn(() => <div data-testid="modal-footer">Modal Footer</div>),
+  default: jest.fn(({ onSubmit, error }: { onSubmit: () => void; error?: Error }) => (
+    <div data-testid="modal-footer">
+      <button data-testid="submit-deployment" onClick={onSubmit}>
+        Deploy
+      </button>
+      {error?.message}
+    </div>
+  )),
 }));
 
 jest.mock('../../../kServeModal/EnvironmentVariablesSection', () => ({
@@ -349,6 +357,75 @@ describe('ManageNIMServingModal', () => {
       storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
       storageClassesLoaded: true,
       selectedStorageClassConfig: mockStorageClasses[0],
+    });
+  });
+
+  describe('credential provisioning order', () => {
+    it('should wait for real serving resource submission before fetching credentials', async () => {
+      let finishSubmission: () => void = () => undefined;
+      const pending = new Promise<void>((resolve) => {
+        finishSubmission = resolve;
+      });
+      const submitRuntime = jest.fn().mockResolvedValueOnce(undefined).mockReturnValueOnce(pending);
+      jest.mocked(utils.getSubmitServingRuntimeResourcesFn).mockReturnValue(submitRuntime);
+      jest
+        .mocked(utils.getSubmitInferenceServiceResourceFn)
+        .mockReturnValue(jest.fn().mockResolvedValue(undefined));
+      jest.mocked(getSecret).mockRejectedValue(new Error('Not found'));
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+      fireEvent.click(screen.getByTestId('submit-deployment'));
+      await waitFor(() => expect(submitRuntime).toHaveBeenCalledWith({ dryRun: false }));
+      expect(utils.createNIMSecret).not.toHaveBeenCalled();
+      finishSubmission();
+      await waitFor(() => expect(utils.createNIMSecret).toHaveBeenCalledTimes(2));
+      expect(utils.createNIMSecret).toHaveBeenCalledWith(
+        'test-project',
+        'apiKeySecret',
+        false,
+        false,
+      );
+      expect(utils.createNIMSecret).toHaveBeenCalledWith(
+        'test-project',
+        'nimPullSecret',
+        true,
+        false,
+      );
+    });
+
+    it('should stop credential provisioning when real submission fails', async () => {
+      const submitRuntime = jest
+        .fn()
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error('Promotion denied'));
+      jest.mocked(utils.getSubmitServingRuntimeResourcesFn).mockReturnValue(submitRuntime);
+      jest
+        .mocked(utils.getSubmitInferenceServiceResourceFn)
+        .mockReturnValue(jest.fn().mockResolvedValue(undefined));
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+      fireEvent.click(screen.getByTestId('submit-deployment'));
+      await waitFor(() =>
+        expect(screen.getByTestId('modal-footer')).toHaveTextContent('Promotion denied'),
+      );
+      expect(utils.createNIMSecret).not.toHaveBeenCalled();
+    });
+
+    it('should reuse existing project Secrets', async () => {
+      jest
+        .mocked(utils.getSubmitServingRuntimeResourcesFn)
+        .mockReturnValue(jest.fn().mockResolvedValue(undefined));
+      jest
+        .mocked(utils.getSubmitInferenceServiceResourceFn)
+        .mockReturnValue(jest.fn().mockResolvedValue(undefined));
+      jest.mocked(getSecret).mockResolvedValue({
+        apiVersion: 'v1',
+        kind: 'Secret',
+        metadata: { name: 'existing', namespace: 'test-project' },
+      });
+      render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
+      fireEvent.click(screen.getByTestId('submit-deployment'));
+      await waitFor(() => expect(mockOnClose).toHaveBeenCalledWith(true));
+      expect(getSecret).toHaveBeenCalledTimes(2);
+      expect(utils.createNIMSecret).not.toHaveBeenCalled();
     });
   });
 

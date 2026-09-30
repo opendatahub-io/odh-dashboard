@@ -338,10 +338,13 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       submitInferenceServiceResource({ dryRun: true }),
     ])
       .then(async () => {
-        const promises: Promise<void | SecretKind | PersistentVolumeClaimKind>[] = [
-          submitServingRuntimeResources({ dryRun: false }).then(() => undefined),
-          submitInferenceServiceResource({ dryRun: false }).then(() => undefined),
-        ];
+        // Credential access requires the real project promotion to have completed.
+        // This also stops provisioning if promotion/resource submission fails.
+        await Promise.all([
+          submitServingRuntimeResources({ dryRun: false }),
+          submitInferenceServiceResource({ dryRun: false }),
+        ]);
+        const promises: Promise<void | SecretKind | PersistentVolumeClaimKind>[] = [];
 
         if (!editInfo) {
           if (await isSecretNeeded(namespace, NIM_SECRET_NAME)) {

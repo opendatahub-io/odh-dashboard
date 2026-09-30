@@ -862,6 +862,7 @@ declare global {
             path: {
               resource: string;
             };
+            query?: { namespace: string };
           },
           response: OdhResponse<NimServingResponse>,
         ) => Cypress.Chainable<null>) &

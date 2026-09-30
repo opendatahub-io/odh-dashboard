@@ -5,6 +5,7 @@ import { createCustomError } from '../../../utils/requestUtils';
 import { isK8sStatus } from '../../../utils/pass-through';
 import { getDashboardConfig } from '../../../utils/resourceUtils';
 import { createSelfSubjectAccessReview } from '../../../utils/authUtils';
+import { ensureLegacyNIMEnabled } from '../nim-serving/nimServingUtils';
 
 export const checkAdminNamespacePermission = (
   fastify: KubeFastifyInstance,
@@ -97,6 +98,7 @@ export const applyNamespaceChange = async (
       break;
     case NamespaceApplicationCase.KSERVE_NIM_PROMOTION:
       {
+        ensureLegacyNIMEnabled();
         annotations = { 'opendatahub.io/nim-support': 'true' };
         checkPermissionsFn = checkEditNamespacePermission;
       }
