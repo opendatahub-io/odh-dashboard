@@ -34,7 +34,12 @@ import { genAiPlayground } from '../../../pages/genAiPlayground';
 
 const ALLOWED_ENDPOINT_HOSTS = ['generativelanguage.googleapis.com'];
 
-describe('Verify settings in playground using custom endpoint', () => {
+const SHARED_STATE_SUITE_CONFIG = {
+  testIsolation: false,
+  retries: { runMode: 0, openMode: 0 },
+};
+
+describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUITE_CONFIG, () => {
   let testData: CustomEndpointTestData;
   let portForwardHandle: PortForwardHandle | null = null;
   let nemoPortForwardHandle: PortForwardHandle | null = null;
