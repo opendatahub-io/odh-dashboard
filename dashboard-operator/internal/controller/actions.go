@@ -288,6 +288,7 @@ func deployObservabilityManifests(
 	dashboard *v1alpha1.Dashboard,
 	basePath string,
 	platform cluster.Platform,
+	applicationsNamespace string,
 ) error {
 	logger := log.FromContext(ctx)
 
@@ -316,11 +317,15 @@ func deployObservabilityManifests(
 	}
 
 	m := observabilityManifestInfo(basePath, platform)
-	engine := kustomize.NewEngine()
-
-	rendered, err := engine.Render(m.String(), kustomize.WithNamespace(obsNamespace))
+	rendered, err := kustomize.NewEngine().Render(m.String(), kustomize.WithNamespace(obsNamespace))
 	if err != nil {
 		return fmt.Errorf("failed to render observability manifests from %s: %w", m, err)
+	}
+
+	if maasConsumerPortalSupportedPlatform(platform) {
+		if err := setMaaSConsumerPortalPersesIngressNamespace(rendered, applicationsNamespace); err != nil {
+			return err
+		}
 	}
 
 	logger.Info("Deploying observability manifests", "namespace", obsNamespace, "resources", len(rendered))

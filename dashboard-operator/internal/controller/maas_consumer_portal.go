@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -250,6 +251,41 @@ func (r *DashboardReconciler) maasConsumerPortalPersesNamespace(dashboard *v1alp
 	}
 
 	return r.monitoringNamespace()
+}
+
+// setMaaSConsumerPortalPersesIngressNamespace updates only the portal peer;
+// the policy itself remains in the Perses namespace.
+func setMaaSConsumerPortalPersesIngressNamespace(resources []unstructured.Unstructured, applicationsNamespace string) error {
+	if applicationsNamespace == "" {
+		return fmt.Errorf("observability applications namespace must not be empty")
+	}
+	for i := range resources {
+		resource := &resources[i]
+		if resource.GetKind() != "NetworkPolicy" || resource.GetName() != "dashboard-perses-access" {
+			continue
+		}
+		var policy networkingv1.NetworkPolicy
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(resource.Object, &policy); err != nil {
+			return err
+		}
+		for _, ingress := range policy.Spec.Ingress {
+			for _, peer := range ingress.From {
+				if peer.PodSelector != nil && peer.NamespaceSelector != nil &&
+					peer.PodSelector.MatchLabels["app.kubernetes.io/part-of"] == maasConsumerPortalDeploymentName {
+					if peer.NamespaceSelector.MatchLabels == nil {
+						peer.NamespaceSelector.MatchLabels = make(map[string]string)
+					}
+					peer.NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"] = applicationsNamespace
+				}
+			}
+		}
+		object, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&policy)
+		if err != nil {
+			return err
+		}
+		resource.Object = object
+	}
+	return nil
 }
 
 func (r *DashboardReconciler) deleteMaaSConsumerPortalResources(ctx context.Context) error {

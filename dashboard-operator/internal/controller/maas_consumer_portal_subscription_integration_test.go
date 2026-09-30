@@ -79,35 +79,46 @@ func TestIntegration_MaaSConsumerPortalSubscriptionRBACWatches(t *testing.T) {
 
 	// Settle the portal into Ready so periodic readiness retries cannot repair
 	// the grants for us. Each repair below must happen within ten seconds.
-	for _, name := range []string{"maas-consumer-portal", "maas-ui", "gen-ai-ui"} {
-		require.Eventually(t, func() bool {
-			deployment := &appsv1.Deployment{}
-			if directClient.Get(ctx, client.ObjectKey{Name: name, Namespace: integrationNamespace}, deployment) != nil {
-				return false
-			}
-			deployment.Status.ObservedGeneration = deployment.Generation
-			deployment.Status.Replicas = 1
-			deployment.Status.ReadyReplicas = 1
-			deployment.Status.Conditions = []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue}}
-			return directClient.Status().Update(ctx, deployment) == nil
-		}, 10*time.Second, 100*time.Millisecond)
-	}
-	require.Eventually(t, func() bool {
-		route := &gatewayv1.HTTPRoute{}
-		if directClient.Get(ctx, client.ObjectKey{Name: "maas-consumer-portal", Namespace: integrationNamespace}, route) != nil {
-			return false
-		}
-		route.Status.Parents = []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
-			{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
-			{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
-		}}}
-		return directClient.Status().Update(ctx, route) == nil
-	}, 10*time.Second, 100*time.Millisecond)
+	// envtest has no Deployment or Gateway controllers. Keep their status current
+	// during setup: the asynchronous federation hash patch can advance the portal
+	// generation after its first readiness update. Stop writing status before any
+	// RBAC mutations so these events cannot conceal a missing RBAC watch.
 	dashboard := &v1alpha1.Dashboard{}
-	require.Eventually(t, func() bool {
-		return directClient.Get(ctx, client.ObjectKey{Name: v1alpha1.DashboardInstanceName}, dashboard) == nil &&
-			conditionStatus(dashboard, string(common.ConditionTypeReady)) == metav1.ConditionTrue
-	}, 10*time.Second, 100*time.Millisecond)
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		for _, name := range []string{"maas-consumer-portal", "maas-ui", "gen-ai-ui"} {
+			deployment := &appsv1.Deployment{}
+			if !assert.NoError(c, directClient.Get(ctx, client.ObjectKey{Name: name, Namespace: integrationNamespace}, deployment)) {
+				return
+			}
+			if deployment.Status.ObservedGeneration != deployment.Generation || deployment.Status.ReadyReplicas != 1 {
+				deployment.Status.ObservedGeneration = deployment.Generation
+				deployment.Status.Replicas = 1
+				deployment.Status.ReadyReplicas = 1
+				deployment.Status.Conditions = []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue}}
+				if !assert.NoError(c, directClient.Status().Update(ctx, deployment)) {
+					return
+				}
+			}
+		}
+		route := &gatewayv1.HTTPRoute{}
+		if !assert.NoError(c, directClient.Get(ctx, client.ObjectKey{Name: "maas-consumer-portal", Namespace: integrationNamespace}, route)) {
+			return
+		}
+		if len(route.Status.Parents) == 0 || len(route.Status.Parents[0].Conditions) == 0 ||
+			route.Status.Parents[0].Conditions[0].ObservedGeneration != route.Generation {
+			route.Status.Parents = []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
+				{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
+				{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
+			}}}
+			if !assert.NoError(c, directClient.Status().Update(ctx, route)) {
+				return
+			}
+		}
+		if assert.NoError(c, directClient.Get(ctx, client.ObjectKey{Name: v1alpha1.DashboardInstanceName}, dashboard)) {
+			assert.Equal(c, metav1.ConditionTrue, conditionStatus(dashboard, string(common.ConditionTypeReady)),
+				"portal setup did not become Ready; conditions: %+v; modules: %+v", dashboard.Status.Conditions, dashboard.Status.ModuleStatuses)
+		}
+	}, 10*time.Second, 100*time.Millisecond, "portal did not settle before RBAC watch checks")
 
 	key := client.ObjectKey{Name: "maas-consumer-portal-rhods-operator-subscription", Namespace: "redhat-ods-operator"}
 	role := &rbacv1.Role{}
