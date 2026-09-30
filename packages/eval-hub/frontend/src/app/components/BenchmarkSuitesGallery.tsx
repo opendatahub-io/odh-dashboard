@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
 import {
   Bullseye,
@@ -36,6 +37,8 @@ import DeleteConfirmationModal from '~/app/components/DeleteConfirmationModal';
 import type { Collection, CollectionFilterParams, CollectionScope } from '~/app/types';
 import { formatCategory, getCollectionCategoryValues } from '~/app/components/benchmarkUtils';
 import { COLLECTION_FETCH_LIMIT } from '~/app/utilities/const';
+import { createEvalHubTrackingScope, trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import './BenchmarkSuitesGallery.scss';
 
 // TODO: Remove this curated mock fallback once the curated collections API is available.
@@ -184,7 +187,7 @@ type BenchmarkSuitesGalleryProps = {
   onCreateSuite?: () => void;
   onPrimaryAction: (collection: Collection) => void;
   onDuplicateCollection: (collection: Collection) => void;
-  onSelectCollection: (collection: Collection) => void;
+  onSelectCollection: (collection: Collection) => boolean | void;
 };
 
 const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
@@ -275,6 +278,30 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   // TODO: Remove the mock fallback and this switch once the collections API is the source of
   // truth for every benchmark suite gallery.
   const isUsingMockCollections = useMockFallback && !isLoading && Boolean(error);
+  const trackingScope = React.useRef(createEvalHubTrackingScope()).current;
+
+  React.useEffect(() => () => trackingScope.clear(), [trackingScope]);
+
+  React.useEffect(() => {
+    if (isLoading || isFetching || shouldShowLoadError) {
+      return;
+    }
+
+    trackingScope.trackEventOnce(
+      EVAL_HUB_EVENTS.COLLECTION_GALLERY_VIEWED,
+      `${namespace}:${scope}:${queryFilters?.evaluationTargets?.join(',') ?? 'all'}`,
+      { surface: 'collection_gallery' },
+      { collectionType: scope === 'system' ? 'system' : 'custom' },
+    );
+  }, [
+    isFetching,
+    isLoading,
+    namespace,
+    queryFilters?.evaluationTargets,
+    scope,
+    shouldShowLoadError,
+    trackingScope,
+  ]);
   const collections = React.useMemo(() => {
     if (shouldShowLoadError || isLoading) {
       return [];
@@ -439,6 +466,17 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     }
     try {
       await deleteCollection(collectionToDelete.resource.id);
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.COLLECTION_DELETED,
+        {
+          collectionName: collectionToDelete.name,
+          outcome: 'success',
+        },
+        {
+          collectionType: collectionToDelete.resource.read_only ? 'system' : 'custom',
+          providerType: collectionToDelete.benchmarks?.[0]?.provider_id,
+        },
+      );
       notification.success(
         'Benchmark suite deleted',
         `"${collectionToDelete.name}" has been deleted.`,
@@ -447,6 +485,18 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     } catch (deleteError) {
       const message =
         deleteError instanceof Error ? deleteError.message : 'Unable to delete benchmark suite.';
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.COLLECTION_DELETED,
+        {
+          collectionName: collectionToDelete.name,
+          outcome: 'error',
+          error_category: deleteError instanceof Error ? deleteError.name : 'unknown_error',
+        },
+        {
+          collectionType: collectionToDelete.resource.read_only ? 'system' : 'custom',
+          providerType: collectionToDelete.benchmarks?.[0]?.provider_id,
+        },
+      );
       notification.error('Unable to delete benchmark suite', message);
       setCollectionToDelete(null);
     }

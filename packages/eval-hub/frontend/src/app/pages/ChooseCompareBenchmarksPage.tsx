@@ -16,13 +16,13 @@ import {
 import { ApplicationsPage, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import CompareBenchmarksTable from '~/app/components/compare/CompareBenchmarksTable';
 import { useCollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import { useEvaluationJobs } from '~/app/hooks/useEvaluationJobs';
 import { EvaluationJob } from '~/app/types';
 import { getBenchmarkDisplayName, getEvaluationName } from '~/app/utilities/evaluationUtils';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import {
   COMPARE_RUNS_PAGE_TITLE,
   buildMlflowCompareSearchParams,
@@ -101,7 +101,7 @@ const ChooseCompareBenchmarksPage: React.FC = () => {
       ...new Set(selections.map((s) => getBenchmarkDisplayName(s.benchmarkId))),
     ];
 
-    fireMiscTrackingEvent(EVAL_HUB_EVENTS.COMPARE_BENCHMARK_CHOSEN, {
+    trackEvalHubEvent(EVAL_HUB_EVENTS.COMPARE_BENCHMARK_CHOSEN, {
       countOfBenchmarks: selections.length,
       totalAvailable,
       benchmarkNames: JSON.stringify(benchmarkNames),

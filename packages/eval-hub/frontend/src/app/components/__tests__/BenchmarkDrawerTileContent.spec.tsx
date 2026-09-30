@@ -15,6 +15,10 @@ jest.mock('~/app/utilities/benchmarkDatasetUrls', () => ({
 const mockFireEvent = jest.mocked(fireMiscTrackingEvent);
 const mockGetDatasetUrl = jest.mocked(getBenchmarkDatasetUrl);
 
+const expectTracked = (eventName: string, properties: unknown): void => {
+  expect(mockFireEvent).toHaveBeenCalledWith(eventName, expect.objectContaining(properties));
+};
+
 describe('BenchmarkDrawerTileContent', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -111,7 +115,7 @@ describe('BenchmarkDrawerTileContent', () => {
       />,
     );
     fireEvent.click(screen.getByRole('link', { name: /View benchmark dataset/i }));
-    expect(mockFireEvent).toHaveBeenCalledWith('Evaluations External Link Clicked', {
+    expectTracked('Evaluations External Link Clicked', {
       url: 'https://example.com',
       benchmarkId: 'bench-1',
       surface: 'benchmark_drawer',

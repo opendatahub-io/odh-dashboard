@@ -20,6 +20,8 @@ import { EllipsisVIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import type { Collection } from '~/app/types';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import {
   formatCategory,
   getCategoryColor,
@@ -44,7 +46,7 @@ type BenchmarkSuiteCardProps = {
     state?: unknown;
   };
   contextualActions?: BenchmarkSuiteCardAction[];
-  onSelect?: (collection: Collection) => void;
+  onSelect?: (collection: Collection) => boolean | void;
 };
 
 const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
@@ -136,7 +138,33 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
             variant="link"
             isInline
             className="evalhub-benchmark-suite-card__title-button"
-            onClick={() => onSelect(collection)}
+            onClick={() => {
+              trackEvalHubEvent(
+                EVAL_HUB_EVENTS.COLLECTION_TILE_CLICKED,
+                {
+                  collectionName: collection.name,
+                  surface: 'collection_gallery',
+                },
+                {
+                  collectionType: collection.resource.read_only ? 'system' : 'custom',
+                  providerType: collection.benchmarks?.[0]?.provider_id,
+                },
+              );
+              const didOpenDrawer = onSelect(collection);
+              if (didOpenDrawer === true) {
+                trackEvalHubEvent(
+                  EVAL_HUB_EVENTS.COLLECTION_DETAIL_VIEWED,
+                  {
+                    collectionName: collection.name,
+                    surface: 'collection_gallery',
+                  },
+                  {
+                    collectionType: collection.resource.read_only ? 'system' : 'custom',
+                    providerType: collection.benchmarks?.[0]?.provider_id,
+                  },
+                );
+              }
+            }}
             data-testid={`benchmark-suite-card-name-${collection.resource.id}`}
           >
             {collection.name}

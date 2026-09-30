@@ -2,21 +2,20 @@
 import * as React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import { createEvaluationJob } from '~/app/api/k8s';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import type { Collection, SourceMode } from '~/app/types';
 
 const mockNavigate = jest.fn();
 const mockMlflowSelectorMounted = jest.fn();
 const mockMlflowSelectorUnmounted = jest.fn();
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
+jest.mock('~/app/tracking/evalhubTracking', () => ({
+  trackEvalHubEvent: jest.fn(),
 }));
 
 jest.mock('@odh-dashboard/internal/concepts/mlflow', () => {
@@ -85,7 +84,11 @@ jest.mock('~/app/hooks/useNotification', () => ({
 }));
 
 const mockCreateEvaluationJob = jest.mocked(createEvaluationJob);
-const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
+const mockTrack = jest.mocked(trackEvalHubEvent);
+
+const expectTracked = (eventName: string, properties: unknown): void => {
+  expect(mockTrack).toHaveBeenCalledWith(eventName, properties, expect.any(Object));
+};
 
 const collection: Collection = {
   resource: { id: 'source-suite' },
@@ -241,7 +244,7 @@ describe('StartEvaluationRunModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(cloneSignal?.aborted).toBe(true);
     expect(onClonePendingChange).toHaveBeenLastCalledWith(false);
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+    expectTracked(
       EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED,
       expect.objectContaining({
         source: 'copy_suite',
@@ -301,7 +304,7 @@ describe('StartEvaluationRunModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+    expectTracked(
       EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED,
       expect.objectContaining({ outcome: TrackingOutcome.cancel }),
     );
@@ -377,9 +380,10 @@ describe('StartEvaluationRunModal', () => {
     });
 
     expect(mockNavigate).not.toHaveBeenCalled();
-    expect(mockFireFormTrackingEvent).not.toHaveBeenCalledWith(
+    expect(mockTrack).not.toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED,
       expect.objectContaining({ outcome: TrackingOutcome.submit, success: true }),
+      expect.any(Object),
     );
   });
 });

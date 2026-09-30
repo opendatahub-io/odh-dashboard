@@ -23,6 +23,19 @@ export const EVAL_HUB_EVENTS = {
   SECURITY_INSIGHTS_FILTER_APPLIED: 'Security Insights Filter Applied',
   SECURITY_INSIGHTS_SORT_CHANGED: 'Security Insights Sort Changed',
   SECURITY_INSIGHTS_PAGINATION_CHANGED: 'Security Insights Pagination Changed',
+  COLLECTION_GALLERY_VIEWED: 'evalhub.collection.gallery.viewed',
+  COLLECTION_TILE_CLICKED: 'evalhub.collection.gallery.tile_clicked',
+  COLLECTION_DETAIL_VIEWED: 'evalhub.collection.detail.viewed',
+  JOB_CREATE_OPENED: 'evalhub.job.create.opened',
+  JOB_CREATE_VALIDATION_FAILED: 'evalhub.job.create.validation_failed',
+  COMPARISON_VIEW_RENDERED: 'evalhub.comparison.view.rendered',
+  JOB_DETAIL_OPENED: 'evalhub.monitoring.job_detail_opened',
+  FAILURE_DETAIL_OPENED: 'evalhub.monitoring.failure_detail_opened',
+  COLLECTION_CUSTOMIZE_CLICKED: 'evalhub.collection.customize.clicked',
+  COLLECTION_CREATE_OPENED: 'evalhub.collection.create.opened',
+  COLLECTION_SAVED: 'evalhub.collection.saved',
+  REPORT_GENERATION_TRIGGERED: 'evalhub.report.generation.triggered',
+  COLLECTION_DELETED: 'evalhub.collection.deleted',
 } as const;
 
 /**

@@ -57,6 +57,10 @@ jest.mock('@odh-dashboard/internal/components/table/TableRowTitleDescription', (
 
 const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
 
+const expectTracked = (eventName: string, properties: unknown): void => {
+  expect(mockFireMisc).toHaveBeenCalledWith(eventName, expect.objectContaining(properties));
+};
+
 const renderView = (props?: Partial<{ sourceId: string; modelName: string; namespace: string }>) =>
   import('~/app/pages/modelCatalog/SecurityInsightsView').then(
     ({ default: SecurityInsightsView }) =>
@@ -87,7 +91,7 @@ describe('SecurityInsightsView - Tracking Events', () => {
     it('should fire viewed event when data loads successfully', async () => {
       await renderView();
 
-      expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_VIEWED, {
+      expectTracked(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_VIEWED, {
         sourceId: 'src-1',
         modelName: 'test-model',
         insightCount: 3,
@@ -117,7 +121,7 @@ describe('SecurityInsightsView - Tracking Events', () => {
       mockInsightsData = [];
       await renderView();
 
-      expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_VIEWED, {
+      expectTracked(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_VIEWED, {
         sourceId: 'src-1',
         modelName: 'test-model',
         insightCount: 0,
@@ -142,13 +146,10 @@ describe('SecurityInsightsView - Tracking Events', () => {
 
       await selectFilterOption('Category');
 
-      expect(mockFireMisc).toHaveBeenCalledWith(
-        EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_TYPE_CHANGED,
-        {
-          previousFilterType: 'evaluation',
-          newFilterType: 'category',
-        },
-      );
+      expectTracked(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_TYPE_CHANGED, {
+        previousFilterType: 'evaluation',
+        newFilterType: 'category',
+      });
     });
 
     it('should not fire when re-selecting the already active filter', async () => {
@@ -174,14 +175,18 @@ describe('SecurityInsightsView - Tracking Events', () => {
         ([event]) => event === EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_TYPE_CHANGED,
       );
       expect(filterChangeCalls).toHaveLength(2);
-      expect(filterChangeCalls[0][1]).toEqual({
-        previousFilterType: 'evaluation',
-        newFilterType: 'category',
-      });
-      expect(filterChangeCalls[1][1]).toEqual({
-        previousFilterType: 'category',
-        newFilterType: 'benchmark',
-      });
+      expect(filterChangeCalls[0][1]).toEqual(
+        expect.objectContaining({
+          previousFilterType: 'evaluation',
+          newFilterType: 'category',
+        }),
+      );
+      expect(filterChangeCalls[1][1]).toEqual(
+        expect.objectContaining({
+          previousFilterType: 'category',
+          newFilterType: 'benchmark',
+        }),
+      );
     });
   });
 
@@ -203,7 +208,7 @@ describe('SecurityInsightsView - Tracking Events', () => {
         jest.advanceTimersByTime(500);
       });
 
-      expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_APPLIED, {
+      expectTracked(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_APPLIED, {
         filterType: 'evaluation',
         hasResults: true,
         resultCount: 1,
@@ -247,7 +252,7 @@ describe('SecurityInsightsView - Tracking Events', () => {
         jest.advanceTimersByTime(500);
       });
 
-      expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_APPLIED, {
+      expectTracked(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_APPLIED, {
         filterType: 'evaluation',
         hasResults: false,
         resultCount: 0,
@@ -264,7 +269,7 @@ describe('SecurityInsightsView - Tracking Events', () => {
       const sortButton = evaluationHeader.querySelector('button')!;
       fireEvent.click(sortButton);
 
-      expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_SORT_CHANGED, {
+      expectTracked(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_SORT_CHANGED, {
         column: 'Evaluation',
         direction: expect.stringMatching(/^(asc|desc)$/),
       });
