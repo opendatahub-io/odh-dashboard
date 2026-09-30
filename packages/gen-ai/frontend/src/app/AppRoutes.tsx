@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import ChatbotPage from '~/app/Chatbot/ChatbotPage';
 import { AIAssetsPage } from '~/app/AIAssets/AIAssetsPage';
+import AgentProfileDetailPage from '~/app/AIAssets/AgentProfileDetailPage';
 import { NotFound } from '~/app/EmptyStates/NotFound';
 import { NavDataItem } from '~/app/standalone/types';
 import GenAiCoreLoader from '~/app/GenAiCoreLoader';
@@ -77,6 +78,7 @@ const AppRoutes = (): React.ReactElement => (
     >
       <Route path=":namespace" element={<AIAssetsPage />} />
       <Route path=":namespace/:tab" element={<AIAssetsPage />} />
+      <Route path=":namespace/agentprofile/:profileId" element={<AgentProfileDetailPage />} />
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>
