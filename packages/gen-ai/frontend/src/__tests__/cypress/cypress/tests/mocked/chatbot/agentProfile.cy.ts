@@ -263,13 +263,19 @@ describe('Agent Profile - Playground (Mocked)', () => {
       cy.location('search').should('include', `agentProfileId=${profileId}`);
       cy.reload();
       cy.wait('@getSavedRegistryProfile');
+      cy.wait('@registryList');
       chatbotPage.mcpTab.openMCPTab();
+      cy.wait('@registryStatusCheckAutoConnect');
       const reloadedRow = chatbotPage.mcpTab.getRegisteredServerRow(
         SELECTABLE_REGISTRY_SERVER.name,
         SELECTABLE_REGISTRY_SERVER.url,
       );
       reloadedRow.findCheckbox().should('be.checked');
-      reloadedRow.findToolsButton().should('contain.text', '1 active').click();
+      reloadedRow.findToolsButton().should('contain.text', '1 active');
+      reloadedRow.findToolsButton().should('not.have.attr', 'aria-disabled');
+      reloadedRow.findToolsButton().click();
+      cy.wait('@registryToolsRequestAutoConnect');
+      mcpToolsModal.find().should('be.visible');
       mcpToolsModal.findToolCountText().should('contain.text', '1 out of 10 selected');
       mcpToolsModal.findToolCheckbox(0).should('be.checked');
       mcpToolsModal.findToolCheckbox(1).should('not.be.checked').click();
@@ -309,13 +315,19 @@ describe('Agent Profile - Playground (Mocked)', () => {
 
       cy.reload();
       cy.wait('@getSavedRegistryProfile');
+      cy.wait('@registryList');
       chatbotPage.mcpTab.openMCPTab();
+      cy.wait('@registryStatusCheckAutoConnect');
       const emptyToolsRow = chatbotPage.mcpTab.getRegisteredServerRow(
         SELECTABLE_REGISTRY_SERVER.name,
         SELECTABLE_REGISTRY_SERVER.url,
       );
       emptyToolsRow.findCheckbox().should('be.checked');
-      emptyToolsRow.findToolsButton().should('contain.text', '0 active').click();
+      emptyToolsRow.findToolsButton().should('contain.text', '0 active');
+      emptyToolsRow.findToolsButton().should('not.have.attr', 'aria-disabled');
+      emptyToolsRow.findToolsButton().click();
+      cy.wait('@registryToolsRequestAutoConnect');
+      mcpToolsModal.find().should('be.visible');
       mcpToolsModal.findToolCountText().should('contain.text', '0 out of 10 selected');
     },
   );
