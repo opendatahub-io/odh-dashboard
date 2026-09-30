@@ -632,7 +632,7 @@ describe('AutoRAG API Contract Tests', () => {
         input_data_bucket_name: BUCKET,
         input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
         maas_secret_name: MAAS_SECRET,
-        vector_db_secret_name: 'vector-db',
+        db_secret_name: 'vector-db',
         embedding_models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'],
         generation_models: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'],
       };
