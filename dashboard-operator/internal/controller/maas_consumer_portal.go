@@ -161,6 +161,12 @@ func maasConsumerPortalSupportedPlatform(platform cluster.Platform) bool {
 	return platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai
 }
 
+func (r *DashboardReconciler) maasConsumerPortalManaged(dashboard *v1alpha1.Dashboard) bool {
+	return dashboard.Spec.MaaSConsumerPortal != nil &&
+		dashboard.Spec.MaaSConsumerPortal.ManagementState == "Managed" &&
+		maasConsumerPortalSupportedPlatform(r.Platform)
+}
+
 func portalGatewayDomain(d *v1alpha1.Dashboard) string {
 	if d.Spec.Gateway != nil {
 		return d.Spec.Gateway.Domain

@@ -271,7 +271,9 @@ func TestIntegration_MaaSConsumerPortalLifecycle(t *testing.T) {
 		route.Status.Parents[0].Conditions[i].ObservedGeneration = route.Generation
 	}
 	require.NoError(t, k8sClient.Status().Update(ctx, route))
-	reconcile(t, r)
+	discoveryResult := reconcile(t, r)
+	assert.Equal(t, ctrlpkg.ObservabilityRetryInterval, discoveryResult.RequeueAfter,
+		"a ready portal must keep checking for Perses when observability is not configured")
 
 	updated := getDashboard(t)
 	assert.Equal(t, common.PhaseReady, updated.Status.Phase)

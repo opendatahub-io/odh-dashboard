@@ -4,6 +4,8 @@ Consumer-facing portal for MaaS API key management and AI asset endpoints. Bundl
 
 In production the portal is served at `https://<gateway-domain>/maas-consumer-portal/`. Its router, static assets, and MaaS/GenAI browser API calls use that base path; the Gateway strips the prefix before forwarding to the existing Core-BFF and shared module BFF contracts. The portal can remain available when the core dashboard operand is removed. The shared gateway retains the OAuth callback and sign-out endpoints.
 
+Production observability remains available in portal-only deployments. Custom Perses services must meet the operator's [Perses service requirements](../../docs/dashboard-operator.md#perses-service-requirements).
+
 ## Running locally
 
 ### Mode A: Mock data (no cluster needed)

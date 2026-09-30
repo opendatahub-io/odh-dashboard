@@ -169,7 +169,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			if err := r.deleteMaaSConsumerPortalResources(ctx); err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to cleanup MaaS Consumer Portal resources: %w", err)
 			}
-			if err := r.cleanupCrossNamespaceResources(ctx, dashboard); err != nil {
+			if err := r.cleanupCrossNamespaceResources(ctx, dashboard, false); err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to cleanup cross-namespace resources: %w", err)
 			}
 
@@ -209,6 +209,12 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// reconciliation. Clear a stale failure now; failures recorded later in this
 	// cycle (for example federation ConfigMap reconciliation) remain intact.
 	cm.ClearCondition(conditionMaaSConsumerPortalAvailable)
+	portalManaged := r.maasConsumerPortalManaged(dashboard)
+	if dashboard.Spec.ManagementState != "Removed" || portalManaged {
+		if err := r.autoDetectObservability(ctx, dashboard); err != nil {
+			logger.Error(err, "Failed to auto-detect observability, continuing without it")
+		}
+	}
 
 	if dashboard.Spec.ManagementState == "Removed" {
 		logger.Info("ManagementState is Removed, tearing down resources")
@@ -223,6 +229,9 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		preserveModuleStatusTransitionTimes(dashboard.Status.ModuleStatuses, nextStatuses)
 		dashboard.Status.ModuleStatuses = nextStatuses
 		r.setMaaSConsumerPortalModuleCondition(cm, dashboard, nextStatuses)
+		if portalManaged {
+			r.reconcileObservability(ctx, dashboard, cm)
+		}
 		if err := r.deployMaaSConsumerPortalFederationConfigMap(ctx, dashboard, nextStatuses); err != nil {
 			r.markMaaSConsumerPortalFederationConfigMapFailed(cm, err)
 			logger.Error(err, "Failed to deploy MaaS Consumer Portal federation ConfigMap")
@@ -249,10 +258,12 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			conditions.WithReason("Removed"),
 			conditions.WithMessage("Dashboard has been removed"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
-		cm.MarkFalse(conditionObservabilityAvailable,
-			conditions.WithReason("Removed"),
-			conditions.WithMessage("Dashboard has been removed"),
-			conditions.WithSeverity(common.ConditionSeverityInfo))
+		if !portalManaged {
+			cm.MarkFalse(conditionObservabilityAvailable,
+				conditions.WithReason("Removed"),
+				conditions.WithMessage("Dashboard has been removed"),
+				conditions.WithSeverity(common.ConditionSeverityInfo))
+		}
 		if dashboard.Spec.MaaSConsumerPortal == nil || dashboard.Spec.MaaSConsumerPortal.ManagementState != "Managed" {
 			// With neither operand managed, retain the established Removed state.
 			cm.MarkFalse(string(common.ConditionTypeReady),
@@ -272,6 +283,9 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, fmt.Errorf("failed to update status after removal: %w", statusErr)
 		}
 
+		if portalManaged && dashboard.Spec.Observability == nil && portalRetryAfter == 0 {
+			portalRetryAfter = observabilityRetryInterval
+		}
 		return ctrl.Result{RequeueAfter: portalRetryAfter}, nil
 	}
 
@@ -350,10 +364,6 @@ func (r *DashboardReconciler) reconcile(
 	cm *conditions.Manager,
 	cfg OperatorConfig,
 ) (ctrl.Result, error) {
-	if err := r.autoDetectObservability(ctx, dashboard); err != nil {
-		log.FromContext(ctx).Error(err, "Failed to auto-detect observability, continuing without it")
-	}
-
 	result, err := r.reconcileDeployment(ctx, dashboard, cm, cfg)
 
 	if dashboard.Spec.Observability == nil && err == nil && result.RequeueAfter == 0 {
@@ -697,11 +707,9 @@ func (r *DashboardReconciler) cleanupRayDashboardGatewayRBAC(ctx context.Context
 	return nil
 }
 
-// cleanupCrossNamespaceResources deletes Perses monitoring resources in the
-// observability namespace. OwnerReference GC only works within the same
-// namespace (or for cluster-scoped owners referencing cluster-scoped children),
-// so resources deployed to a different namespace need explicit cleanup.
-func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
+// cleanupCrossNamespaceResources explicitly removes resources on soft removal
+// as well as CR deletion. Observability remains shared while the portal needs it.
+func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context, dashboard *v1alpha1.Dashboard, preserveObservability bool) error {
 	logger := log.FromContext(ctx)
 
 	if err := r.cleanupNamespacedRBAC(ctx); err != nil {
@@ -710,6 +718,9 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 
 	if err := r.cleanupRayDashboardGatewayRBAC(ctx); err != nil {
 		return err
+	}
+	if preserveObservability {
+		return nil
 	}
 
 	if err := r.cleanupDataConnectHubGatewayRBAC(ctx, ""); err != nil {
@@ -726,7 +737,7 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 		obsNS = r.monitoringNamespace()
 	}
 
-	if obsNS == "" || obsNS == r.ApplicationsNamespace {
+	if obsNS == "" {
 		logger.Info("No observability cross-namespace resources to clean up")
 		return nil
 	}
@@ -735,6 +746,11 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 
 	matchLabels := client.MatchingLabels{
 		labels.PlatformPartOf: strings.ToLower(v1alpha1.DashboardKind),
+	}
+	if obsNS == r.ApplicationsNamespace {
+		// Core teardown handles the other application resources separately,
+		// preserving the operator itself. Include PersesDashboards here too.
+		matchLabels[moduleComponentLabel] = observabilityComponent
 	}
 	inNamespace := client.InNamespace(obsNS)
 
@@ -795,8 +811,11 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dashboard *v1alpha1.Dashboard, statuses map[string]v1alpha1.ModuleStatus) error {
 	logger := log.FromContext(ctx)
 	maasConsumerPortalRequiredModules := maasConsumerPortalRequiredModuleSlugs(&dashboard.Spec, statuses)
+	preserveObservability := r.maasConsumerPortalManaged(dashboard) &&
+		dashboard.Spec.Observability != nil && dashboard.Spec.Observability.Enabled
 	shouldPreserve := func(resource client.Object) bool {
-		return maasConsumerPortalRequiredModules[resource.GetLabels()[moduleComponentLabel]]
+		component := resource.GetLabels()[moduleComponentLabel]
+		return maasConsumerPortalRequiredModules[component] || (preserveObservability && component == observabilityComponent)
 	}
 
 	matchLabels := client.MatchingLabels{
@@ -940,7 +959,7 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 		}
 	}
 
-	if err := r.cleanupCrossNamespaceResources(ctx, dashboard); err != nil {
+	if err := r.cleanupCrossNamespaceResources(ctx, dashboard, preserveObservability); err != nil {
 		return fmt.Errorf("cross-namespace cleanup: %w", err)
 	}
 
@@ -1047,6 +1066,8 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		Owns(&networkingv1.NetworkPolicy{}).
 		Owns(&rbacv1.ClusterRole{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
+		Owns(&rbacv1.Role{}).
+		Owns(&rbacv1.RoleBinding{}).
 		Owns(&policyv1.PodDisruptionBudget{}).
 		Watches(
 			&corev1.ConfigMap{},

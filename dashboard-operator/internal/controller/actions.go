@@ -46,6 +46,7 @@ const (
 )
 
 const (
+	observabilityComponent         = "observability"
 	persesServiceName              = "data-science-perses"
 	persesServicePort        int32 = 8080
 	rhoaiMonitoringNamespace       = "redhat-ods-monitoring"
@@ -327,6 +328,7 @@ func deployObservabilityManifests(
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
+		deploy.WithLabel(moduleComponentLabel, observabilityComponent),
 		deploy.WithApplyOrder(),
 	)
 

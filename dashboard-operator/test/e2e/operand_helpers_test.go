@@ -226,6 +226,40 @@ func TestValidateModuleAPIResponse(t *testing.T) {
 	}
 }
 
+func TestValidatePersesDashboardsResponse(t *testing.T) {
+	const dashboard = `[{"kind":"Dashboard","metadata":{"name":"dashboard-1-model"}}]`
+	for _, tt := range []struct {
+		name        string
+		status      int
+		contentType string
+		body        string
+		wantErr     bool
+	}{
+		{name: "dashboard present", status: http.StatusOK, contentType: "application/json; charset=utf-8", body: dashboard},
+		{name: "unauthorized", status: http.StatusUnauthorized, contentType: "application/json", body: dashboard, wantErr: true},
+		{name: "forbidden", status: http.StatusForbidden, contentType: "application/json", body: dashboard, wantErr: true},
+		{name: "redirect", status: http.StatusFound, contentType: "application/json", body: dashboard, wantErr: true},
+		{name: "proxy unavailable", status: http.StatusBadGateway, contentType: "application/json", body: dashboard, wantErr: true},
+		{name: "SPA fallback", status: http.StatusOK, contentType: "text/html", body: "<html></html>", wantErr: true},
+		{name: "HTML labeled JSON", status: http.StatusOK, contentType: "application/json", body: "<html></html>", wantErr: true},
+		{name: "malformed content type", status: http.StatusOK, contentType: "application/json; charset", body: dashboard, wantErr: true},
+		{name: "error object", status: http.StatusOK, contentType: "application/json", body: `{"error":"unavailable"}`, wantErr: true},
+		{name: "empty list", status: http.StatusOK, contentType: "application/json", body: `[]`, wantErr: true},
+		{name: "null", status: http.StatusOK, contentType: "application/json", body: `null`, wantErr: true},
+		{name: "wrong kind", status: http.StatusOK, contentType: "application/json", body: `[{"kind":"Project","metadata":{"name":"dashboard-1-model"}}]`, wantErr: true},
+		{name: "missing expected dashboard", status: http.StatusOK, contentType: "application/json", body: `[{"kind":"Dashboard","metadata":{"name":"other"}}]`, wantErr: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validatePersesDashboardsResponse(tt.status, tt.contentType, []byte(tt.body), "dashboard-1-model")
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestMissingOperandResources(t *testing.T) {
 	inventory := operandInventory{
 		deployments: []appsv1.Deployment{{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard"}}},
