@@ -1,5 +1,5 @@
 import { APIOptions } from 'mod-arch-core';
-import { CatalogListParams } from '~/app/shared/types/catalogTypes';
+import { CatalogListParams } from './shared/types/catalogTypes';
 import {
   ModelRegistryCustomPropertyInt,
   ModelRegistryCustomPropertyDouble,
