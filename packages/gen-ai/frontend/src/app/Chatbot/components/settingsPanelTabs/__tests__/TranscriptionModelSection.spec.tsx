@@ -307,7 +307,8 @@ describe('TranscriptionModelSection', () => {
       expect(selectionRow).toContainElement(
         screen.getByRole('button', { name: 'View all models' }),
       );
-      expect(screen.getByTestId('transcription-model-selector')).toHaveClass('pf-m-full-width');
+      expect(selectionRow?.firstElementChild).not.toHaveClass('pf-m-flex-1');
+      expect(screen.getByTestId('transcription-model-selector')).not.toHaveClass('pf-m-full-width');
       expect(
         screen.getByRole('button', { name: 'Remove' }).querySelector('svg'),
       ).toBeInTheDocument();
@@ -316,6 +317,8 @@ describe('TranscriptionModelSection', () => {
         modelName: 'Whisper Large V3',
         isDefaultModel: false,
       });
+      await user.click(screen.getByTestId('transcription-model-selector'));
+      expect(screen.getByRole('menu')).not.toHaveClass('pf-v6-u-w-100');
     });
 
     it('shows helper text with chat model name after selection', () => {
