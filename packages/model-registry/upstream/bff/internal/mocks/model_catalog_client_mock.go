@@ -6,6 +6,9 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"regexp"
+	"slices"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -187,6 +190,8 @@ func (m *ModelCatalogClientMock) GetAllCatalogSources(client httpclient.HTTPClie
 		allMockSources = GetMcpServerCatalogSourceListMock()
 	case "agents":
 		allMockSources = GetAgentCatalogSourceListMock()
+	case "serving_runtimes":
+		allMockSources = GetServingRuntimeCatalogSourceListMock()
 	default:
 		allMockSources = GetCatalogSourceListMock()
 	}
@@ -742,4 +747,217 @@ func (m *ModelCatalogClientMock) GetAgentArtifacts(client httpclient.HTTPClientI
 	}
 
 	return GetAgentArtifactListMock(agentId), nil
+}
+
+func (m *ModelCatalogClientMock) GetAllServingRuntimes(_ httpclient.HTTPClientInterface, query url.Values) (*models.ServingRuntimeList, error) {
+	items := []models.ServingRuntime{}
+	for _, runtime := range GetServingRuntimeMocks() {
+		text := strings.ToLower(*runtime.Name + " " + *runtime.DisplayName + " " + *runtime.Description)
+		if q := strings.ToLower(query.Get("q")); q != "" && !strings.Contains(text, q) {
+			continue
+		}
+		if name := query.Get("name"); name != "" && !runtimeMockNameMatches(*runtime.Name, name) {
+			continue
+		}
+		if !runtimeMockContains(query["source"], *runtime.SourceID) {
+			continue
+		}
+		// The Red Hat source is labeled Red Hat; the community source is unlabeled.
+		label := "null"
+		if *runtime.SourceID == "redhat-runtimes" {
+			label = "Red Hat"
+		}
+		if !runtimeMockContains(query["sourceLabel"], label) {
+			continue
+		}
+		items = append(items, runtime)
+	}
+	var err error
+	items, err = filterRuntimeMockItems(items, query.Get("filterQuery"), func(item models.ServingRuntime, key string) ([]string, bool) {
+		switch key {
+		case "hardware":
+			values := []string{}
+			for _, tag := range item.Tags {
+				if tag == "cpu" || tag == "cpu-or-gpu" {
+					values = append(values, tag)
+				}
+			}
+			if item.Capabilities != nil {
+				values = append(values, item.Capabilities.SupportedAccelerators...)
+			}
+			return values, true
+		case "modelFormat":
+			formats := make([]string, 0, len(item.SupportedModelFormats))
+			for _, format := range item.SupportedModelFormats {
+				formats = append(formats, format.Name)
+			}
+			return formats, true
+		default:
+			return nil, false
+		}
+	}, []string{"hardware", "modelFormat"})
+	if err != nil {
+		return nil, err
+	}
+	items, token, pageSize, err := pageRuntimeMockItems(items, query, func(item models.ServingRuntime, key string) string {
+		if key == "NAME" {
+			return *item.Name
+		}
+		return *item.ID
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &models.ServingRuntimeList{Items: items, Size: int32(len(items)), PageSize: pageSize, NextPageToken: token}, nil
+}
+
+func (m *ModelCatalogClientMock) GetServingRuntimesFilter(_ httpclient.HTTPClientInterface) (*models.FilterOptionsList, error) {
+	filters := GetServingRuntimeFilterOptionsListMock()
+	return &filters, nil
+}
+
+func (m *ModelCatalogClientMock) GetServingRuntime(_ httpclient.HTTPClientInterface, id string) (*models.ServingRuntime, error) {
+	for _, runtime := range GetServingRuntimeMocks() {
+		if *runtime.ID == id {
+			return &runtime, nil
+		}
+	}
+	return nil, runtimeMockError(http.StatusNotFound, "serving runtime not found: "+id)
+}
+
+func (m *ModelCatalogClientMock) GetServingRuntimeVersions(client httpclient.HTTPClientInterface, id string, query url.Values) (*models.ServingRuntimeVersionList, error) {
+	if _, err := m.GetServingRuntime(client, id); err != nil {
+		return nil, err
+	}
+	items, err := filterRuntimeMockItems(GetServingRuntimeVersionMocks(id), query.Get("filterQuery"), func(item models.ServingRuntimeVersion, key string) ([]string, bool) {
+		switch key {
+		case "version":
+			return []string{item.Version}, true
+		case "supportLevel":
+			return []string{string(*item.SupportLevel)}, true
+		default:
+			return nil, false
+		}
+	}, []string{"version", "supportLevel"})
+	if err != nil {
+		return nil, err
+	}
+	items, token, pageSize, err := pageRuntimeMockItems(items, query, func(item models.ServingRuntimeVersion, key string) string {
+		if key == "NAME" {
+			return *item.Name
+		}
+		return *item.ID
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &models.ServingRuntimeVersionList{Items: items, Size: int32(len(items)), PageSize: pageSize, NextPageToken: token}, nil
+}
+
+func runtimeMockError(status int, message string) error {
+	return &httpclient.HTTPError{StatusCode: status, ErrorResponse: httpclient.ErrorResponse{Code: strconv.Itoa(status), Message: message}}
+}
+
+func runtimeMockContains(values []string, value string) bool {
+	if len(values) == 0 {
+		return true
+	}
+	for _, entry := range values {
+		for _, part := range strings.Split(entry, ",") {
+			if strings.EqualFold(strings.TrimSpace(part), value) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func runtimeMockNameMatches(name, pattern string) bool {
+	expression := "(?i)^" + strings.ReplaceAll(strings.ReplaceAll(regexp.QuoteMeta(pattern), "%", ".*"), "_", ".") + "$"
+	return regexp.MustCompile(expression).MatchString(name)
+}
+
+// Like the other catalog mocks, support a small subset of filterQuery:
+// equality and IN clauses joined by AND. Reject unsupported expressions.
+func filterRuntimeMockItems[T any](items []T, query string, field func(T, string) ([]string, bool), keys []string) ([]T, error) {
+	if query == "" {
+		return items, nil
+	}
+	for _, clause := range strings.Split(query, " AND ") {
+		match := runtimeMockFilterPattern.FindStringSubmatch(strings.TrimSpace(clause))
+		if match == nil {
+			return nil, runtimeMockError(http.StatusBadRequest, "mock filterQuery supports equality and IN clauses joined by AND")
+		}
+		key, value := match[1], match[2]
+		if !slices.Contains(keys, key) {
+			return nil, runtimeMockError(http.StatusBadRequest, "unsupported mock filter field: "+key)
+		}
+		values := []string{value}
+		if match[3] != "" {
+			values = nil
+			for _, part := range strings.Split(match[3], ",") {
+				values = append(values, strings.Trim(strings.TrimSpace(part), "'"))
+			}
+		}
+		filtered := []T{}
+		for _, item := range items {
+			actual, _ := field(item, key)
+			for _, candidate := range actual {
+				if runtimeMockContains(values, candidate) {
+					filtered = append(filtered, item)
+					break
+				}
+			}
+		}
+		items = filtered
+	}
+	return items, nil
+}
+
+var runtimeMockFilterPattern = regexp.MustCompile(`^([a-zA-Z][a-zA-Z0-9_.]*)\s*(?:=\s*'([^']*)'|IN\s*\(('(?:[^']*)'(?:\s*,\s*'[^']*')*)\))$`)
+
+func pageRuntimeMockItems[T any](items []T, query url.Values, field func(T, string) string) ([]T, string, int32, error) {
+	pageSize := int64(10)
+	var err error
+	if raw := query.Get("pageSize"); raw != "" {
+		pageSize, err = strconv.ParseInt(raw, 10, 32)
+		if err != nil || pageSize <= 0 {
+			return nil, "", 0, runtimeMockError(http.StatusBadRequest, "pageSize must be a positive int32")
+		}
+	}
+	start := int64(0)
+	if raw := query.Get("nextPageToken"); raw != "" {
+		start, err = strconv.ParseInt(raw, 10, 64)
+		if err != nil || start < 0 {
+			return nil, "", 0, runtimeMockError(http.StatusBadRequest, "invalid nextPageToken")
+		}
+	}
+	orderBy := strings.ToUpper(query.Get("orderBy"))
+	if orderBy == "" {
+		orderBy = "ID"
+	}
+	if orderBy != "ID" && orderBy != "NAME" {
+		return nil, "", 0, runtimeMockError(http.StatusBadRequest, "mock orderBy supports ID and NAME")
+	}
+	order := strings.ToUpper(query.Get("sortOrder"))
+	if order != "" && order != "ASC" && order != "DESC" {
+		return nil, "", 0, runtimeMockError(http.StatusBadRequest, "invalid sortOrder")
+	}
+	sort.SliceStable(items, func(i, j int) bool {
+		left, right := field(items[i], orderBy), field(items[j], orderBy)
+		if order == "DESC" {
+			return left > right
+		}
+		return left < right
+	})
+	total := int64(len(items))
+	if start > total {
+		start = total
+	}
+	end := start + min(pageSize, total-start)
+	token := ""
+	if end < total {
+		token = strconv.FormatInt(end, 10)
+	}
+	return items[start:end], token, int32(pageSize), nil
 }
