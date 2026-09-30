@@ -153,8 +153,12 @@ const AgentConfigurationCard: React.FC<AgentConfigurationCardProps> = ({
                   <Label isCompact color="grey">
                     Not saved
                   </Label>
-                ) : (
+                ) : guardrailCount > 0 ? (
                   `${guardrailCount} enabled`
+                ) : (
+                  <Label isCompact color="grey">
+                    Not saved
+                  </Label>
                 )}
               </FlexItem>
             </Flex>

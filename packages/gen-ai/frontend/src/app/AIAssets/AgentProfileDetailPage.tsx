@@ -10,6 +10,14 @@ import {
   Bullseye,
   Button,
   ButtonVariant,
+  Card,
+  CardBody,
+  CardTitle,
+  ClipboardCopy,
+  ClipboardCopyButton,
+  CodeBlock,
+  CodeBlockAction,
+  CodeBlockCode,
   Content,
   EmptyState,
   EmptyStateBody,
@@ -18,6 +26,7 @@ import {
   Label,
   PageSection,
   Spinner,
+  Skeleton,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
@@ -64,6 +73,23 @@ const deploymentStateLabel = (state: AgentDeploymentSummary['state']): React.Rea
   }
 };
 
+const DeploymentSnapshotSkeleton: React.FC = () => (
+  <Card isFullHeight data-testid="deployment-snapshot-skeleton">
+    <CardTitle>
+      <Skeleton width="12rem" fontSize="xl" screenreaderText="Loading deployment snapshot" />
+    </CardTitle>
+    <CardBody>
+      <Stack hasGutter>
+        {['40%', '60%', '45%', '35%'].map((width) => (
+          <StackItem key={width}>
+            <Skeleton width={width} />
+          </StackItem>
+        ))}
+      </Stack>
+    </CardBody>
+  </Card>
+);
+
 const DeploymentAccordionItem: React.FC<DeploymentAccordionItemProps> = ({
   deployment,
   isLatest,
@@ -75,6 +101,16 @@ const DeploymentAccordionItem: React.FC<DeploymentAccordionItemProps> = ({
   const [detailsError, setDetailsError] = React.useState<string | null>(null);
   const contentId = React.useId();
   const toggleId = `agent-deployment-${deployment.name}-toggle`;
+  const responseAPICurl = deployment.routeUrl
+    ? [
+        `curl -s -X POST "${deployment.routeUrl}/v1/responses" \\`,
+        '  -H "Content-Type: application/json" \\',
+        '  -H "Authorization: Bearer $TOKEN" \\',
+        "  -d '{",
+        '    "input": "Hello, what can you help me with?"',
+        "  }'",
+      ].join('\n')
+    : '';
 
   const handleToggle = React.useCallback(() => {
     setIsExpanded((wasExpanded) => {
@@ -91,6 +127,12 @@ const DeploymentAccordionItem: React.FC<DeploymentAccordionItemProps> = ({
       return willExpand;
     });
   }, [api, deployment.name, details, loadingDetails]);
+
+  const copyResponseAPICurl = React.useCallback(() => {
+    void navigator.clipboard.writeText(responseAPICurl).catch(() => {
+      // Clipboard access is not available in every browser context.
+    });
+  }, [responseAPICurl]);
 
   return (
     <AccordionItem isExpanded={isExpanded} data-testid={`agent-deployment-${deployment.name}`}>
@@ -123,9 +165,7 @@ const DeploymentAccordionItem: React.FC<DeploymentAccordionItemProps> = ({
             )}
             {loadingDetails && (
               <StackItem>
-                <Bullseye>
-                  <Spinner size="md" aria-label="Loading deployment details" />
-                </Bullseye>
+                <DeploymentSnapshotSkeleton />
               </StackItem>
             )}
             {detailsError && (
@@ -150,9 +190,32 @@ const DeploymentAccordionItem: React.FC<DeploymentAccordionItemProps> = ({
             {deployment.routeUrl && (
               <StackItem>
                 <Content component="h3">Endpoint</Content>
-                <a href={deployment.routeUrl} target="_blank" rel="noreferrer">
+                <ClipboardCopy
+                  isReadOnly
+                  hoverTip="Copy endpoint"
+                  clickTip="Copied"
+                  aria-label={`Endpoint for ${deployment.name}`}
+                >
                   {deployment.routeUrl}
-                </a>
+                </ClipboardCopy>
+                <Content component="h3" className="pf-v6-u-mt-lg">
+                  Curl
+                </Content>
+                <CodeBlock
+                  actions={
+                    <CodeBlockAction>
+                      <ClipboardCopyButton
+                        aria-label="Copy Responses API curl command"
+                        onClick={copyResponseAPICurl}
+                        variant="plain"
+                      >
+                        Copy
+                      </ClipboardCopyButton>
+                    </CodeBlockAction>
+                  }
+                >
+                  <CodeBlockCode>{responseAPICurl}</CodeBlockCode>
+                </CodeBlock>
               </StackItem>
             )}
           </Stack>
@@ -235,7 +298,7 @@ const AgentProfileDetailPage: React.FC = () => {
                   component={(props) => <Link {...props} to={playgroundPath} />}
                   data-testid="edit-in-playground"
                 >
-                  Edit in playground
+                  Try in Playground
                 </Button>
               </FlexItem>
             </Flex>

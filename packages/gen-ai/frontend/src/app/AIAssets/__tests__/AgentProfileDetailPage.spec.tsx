@@ -133,6 +133,7 @@ describe('AgentProfileDetailPage', () => {
     expect(screen.getByText('Latest')).toBeInTheDocument();
     expect(screen.getByText('Jul 29')).toBeInTheDocument();
     expect(screen.getByText('hr-chatbot-a1b2')).toBeInTheDocument();
+    expect(screen.getByTestId('edit-in-playground')).toHaveAccessibleName('Try in Playground');
     expect(screen.getByTestId('edit-in-playground')).toHaveAttribute(
       'href',
       '/gen-ai-studio/playground/my-project?agentProfileId=123',
@@ -140,7 +141,11 @@ describe('AgentProfileDetailPage', () => {
   });
 
   it('loads the deployment snapshot only when its accordion is expanded', async () => {
-    const getAgentDeployment = jest.fn().mockResolvedValue({ ...deployment, config: profile });
+    let resolveDeployment: (value: AgentDeploymentSummary) => void = () => undefined;
+    const deploymentDetails = new Promise<AgentDeploymentSummary>((resolve) => {
+      resolveDeployment = resolve;
+    });
+    const getAgentDeployment = jest.fn().mockReturnValue(deploymentDetails);
     mockUseGenAiAPI.mockReturnValue({
       api: { getAgentDeployment },
       apiAvailable: true,
@@ -152,9 +157,19 @@ describe('AgentProfileDetailPage', () => {
 
     fireEvent.click(screen.getByTestId('agent-deployment-hr-chatbot-a1b2-toggle'));
 
+    expect(screen.getByTestId('deployment-snapshot-skeleton')).toBeInTheDocument();
+
+    resolveDeployment({ ...deployment, config: profile });
+
     await waitFor(() => {
       expect(getAgentDeployment).toHaveBeenCalledWith({ id: 'hr-chatbot-a1b2' });
     });
     expect(await screen.findByText('Deployed snapshot')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Endpoint' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Curl' })).toBeInTheDocument();
+    expect(
+      screen.getByText(/https:\/\/hr-chatbot\.example\.com\/v1\/responses/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/"input": "Hello, what can you help me with\?"/)).toBeInTheDocument();
   });
 });
