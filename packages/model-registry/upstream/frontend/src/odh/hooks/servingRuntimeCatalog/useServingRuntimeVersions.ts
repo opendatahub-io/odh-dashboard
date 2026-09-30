@@ -9,7 +9,7 @@ import {
 import {
   ServingRuntimeVersionList,
   ServingRuntimeVersionListParams,
-} from '~/app/servingRuntimeCatalogTypes';
+} from '~/odh/types/servingRuntimeCatalogTypes';
 import { useServingRuntimeCatalogAPI } from './useServingRuntimeCatalogAPI';
 
 export const useServingRuntimeVersions = (

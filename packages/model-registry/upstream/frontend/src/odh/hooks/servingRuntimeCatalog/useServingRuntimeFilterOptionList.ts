@@ -1,6 +1,6 @@
 import React from 'react';
 import { FetchState, FetchStateCallbackPromise, NotReadyError, useFetchState } from 'mod-arch-core';
-import { ServingRuntimeFilterOptionsList } from '~/app/servingRuntimeCatalogTypes';
+import { ServingRuntimeFilterOptionsList } from '~/odh/types/servingRuntimeCatalogTypes';
 import { useServingRuntimeCatalogAPI } from './useServingRuntimeCatalogAPI';
 
 export const useServingRuntimeFilterOptionList =

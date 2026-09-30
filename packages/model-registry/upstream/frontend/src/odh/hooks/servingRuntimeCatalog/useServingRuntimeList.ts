@@ -6,7 +6,10 @@ import {
   useFetchState,
   useDeepCompareMemoize,
 } from 'mod-arch-core';
-import { ServingRuntimeList, ServingRuntimeListParams } from '~/app/servingRuntimeCatalogTypes';
+import {
+  ServingRuntimeList,
+  ServingRuntimeListParams,
+} from '~/odh/types/servingRuntimeCatalogTypes';
 import { useServingRuntimeCatalogAPI } from './useServingRuntimeCatalogAPI';
 
 export const useServingRuntimeList = (

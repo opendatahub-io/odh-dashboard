@@ -6,7 +6,7 @@ import {
   ServingRuntimeList,
   ServingRuntimeListParams,
   ServingRuntimeVersionList,
-} from '~/app/servingRuntimeCatalogTypes';
+} from '~/odh/types/servingRuntimeCatalogTypes';
 
 const buildQueryParams = (
   queryParams: Record<string, unknown>,

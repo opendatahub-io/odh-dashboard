@@ -1,11 +1,11 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { useServingRuntimeCatalogAPI } from '~/app/hooks/servingRuntimeCatalog/useServingRuntimeCatalogAPI';
-import { useServingRuntime } from '~/app/hooks/servingRuntimeCatalog/useServingRuntime';
-import { useServingRuntimeList } from '~/app/hooks/servingRuntimeCatalog/useServingRuntimeList';
-import { useServingRuntimeVersions } from '~/app/hooks/servingRuntimeCatalog/useServingRuntimeVersions';
-import { useServingRuntimeFilterOptionList } from '~/app/hooks/servingRuntimeCatalog/useServingRuntimeFilterOptionList';
+import { useServingRuntimeCatalogAPI } from '~/odh/hooks/servingRuntimeCatalog/useServingRuntimeCatalogAPI';
+import { useServingRuntime } from '~/odh/hooks/servingRuntimeCatalog/useServingRuntime';
+import { useServingRuntimeList } from '~/odh/hooks/servingRuntimeCatalog/useServingRuntimeList';
+import { useServingRuntimeVersions } from '~/odh/hooks/servingRuntimeCatalog/useServingRuntimeVersions';
+import { useServingRuntimeFilterOptionList } from '~/odh/hooks/servingRuntimeCatalog/useServingRuntimeFilterOptionList';
 
-jest.mock('~/app/hooks/servingRuntimeCatalog/useServingRuntimeCatalogAPI');
+jest.mock('~/odh/hooks/servingRuntimeCatalog/useServingRuntimeCatalogAPI');
 const api = {
   getServingRuntimeList: jest.fn(),
   getServingRuntime: jest.fn(),

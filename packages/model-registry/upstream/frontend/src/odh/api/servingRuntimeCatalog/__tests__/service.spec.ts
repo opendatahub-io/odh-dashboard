@@ -4,7 +4,7 @@ import {
   getServingRuntimeFilterOptionList,
   getServingRuntimeList,
   getServingRuntimeVersions,
-} from '~/app/api/servingRuntimeCatalog/service';
+} from '~/odh/api/servingRuntimeCatalog/service';
 
 jest.mock('mod-arch-core', () => ({
   restGET: jest.fn(),

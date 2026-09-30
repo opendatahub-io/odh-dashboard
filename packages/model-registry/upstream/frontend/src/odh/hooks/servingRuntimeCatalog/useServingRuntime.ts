@@ -1,6 +1,6 @@
 import React from 'react';
 import { FetchState, FetchStateCallbackPromise, NotReadyError, useFetchState } from 'mod-arch-core';
-import { ServingRuntime } from '~/app/servingRuntimeCatalogTypes';
+import { ServingRuntime } from '~/odh/types/servingRuntimeCatalogTypes';
 import { useServingRuntimeCatalogAPI } from './useServingRuntimeCatalogAPI';
 
 export const useServingRuntime = (runtimeId: string): FetchState<ServingRuntime | null> => {

@@ -5,8 +5,8 @@ import {
   getServingRuntimeFilterOptionList,
   getServingRuntimeList,
   getServingRuntimeVersions,
-} from '~/app/api/servingRuntimeCatalog/service';
-import { ServingRuntimeCatalogAPIs } from '~/app/servingRuntimeCatalogTypes';
+} from '~/odh/api/servingRuntimeCatalog/service';
+import { ServingRuntimeCatalogAPIs } from '~/odh/types/servingRuntimeCatalogTypes';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 
 export type ServingRuntimeCatalogAPIState = APIState<ServingRuntimeCatalogAPIs>;
