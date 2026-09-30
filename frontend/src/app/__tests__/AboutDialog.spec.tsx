@@ -199,4 +199,23 @@ describe('AboutDialog', () => {
     );
     expect(hasComponentReleasesMetadata).toBe(true);
   });
+
+  it('should show subscription request failures', () => {
+    const subscriptionError = new Error('subscription status unavailable');
+    useAppContextMock.mockReturnValue(appContext);
+    useUserMock.mockReturnValue(userInfo);
+    useClusterInfoMock.mockReturnValue(clusterInfo);
+    useFetchDscStatusMock.mockReturnValue(dscFetchStatus);
+    useWatchOperatorSubscriptionStatusMock.mockReturnValue([
+      operatorSubscriptionStatus,
+      false,
+      subscriptionError,
+      () => Promise.resolve(operatorSubscriptionStatus),
+    ]);
+
+    render(<AboutDialog onClose={jest.fn()} />);
+
+    expect(screen.getByText('Problem loading product information')).toBeInTheDocument();
+    expect(screen.getByText('subscription status unavailable')).toBeInTheDocument();
+  });
 });

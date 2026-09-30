@@ -28,6 +28,6 @@ export const checkAccess = async (
   } catch (error) {
     // eslint-disable-next-line no-console
     console.warn('SelfSubjectAccessReview failed', error);
-    return false;
+    throw error;
   }
 };

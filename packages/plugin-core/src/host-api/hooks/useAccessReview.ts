@@ -29,10 +29,15 @@ export const useAccessReview = (
 
   React.useEffect(() => {
     if (shouldRunCheck) {
-      checkAccess({ group, resource, subresource, verb, name, namespace }).then((allowed) => {
-        setAllowed(allowed);
-        setIsLoaded(true);
-      });
+      checkAccess({ group, resource, subresource, verb, name, namespace })
+        .then((allowed) => {
+          setAllowed(allowed);
+          setIsLoaded(true);
+        })
+        .catch(() => {
+          setAllowed(false);
+          setIsLoaded(true);
+        });
     }
   }, [checkAccess, group, name, namespace, resource, subresource, verb, shouldRunCheck]);
 

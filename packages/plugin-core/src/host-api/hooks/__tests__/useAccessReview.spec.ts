@@ -48,6 +48,17 @@ describe('useAccessReview', () => {
     expect(result.current).toEqual([false, true]);
   });
 
+  it('should deny and mark loaded when the access review fails', async () => {
+    const checkAccess = jest.fn(() => Promise.reject(new Error('network unavailable')));
+    const { result } = renderHook(
+      () => useAccessReview({ verb: 'get', group: 'apps', resource: 'deployments' }),
+      { wrapper: createWrapper(checkAccess) },
+    );
+
+    await act(() => Promise.resolve());
+    expect(result.current).toEqual([false, true]);
+  });
+
   it('should not call checkAccess when shouldRunCheck is false', () => {
     const checkAccess = jest.fn(() => Promise.resolve(true));
     const { result } = renderHook(

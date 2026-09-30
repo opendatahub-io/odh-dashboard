@@ -43,12 +43,12 @@ describe('checkAccess', () => {
     await expect(checkAccess({ verb: 'get' })).resolves.toBe(false);
   });
 
-  it('should deny access and warn on failures', async () => {
+  it('should reject and warn when the access review fails', async () => {
     const error = new Error('network unavailable');
     const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
     k8sCreateResourceMock.mockRejectedValue(error);
 
-    await expect(checkAccess({ verb: 'get' })).resolves.toBe(false);
+    await expect(checkAccess({ verb: 'get' })).rejects.toBe(error);
     expect(consoleSpy).toHaveBeenCalledWith('SelfSubjectAccessReview failed', error);
     consoleSpy.mockRestore();
   });

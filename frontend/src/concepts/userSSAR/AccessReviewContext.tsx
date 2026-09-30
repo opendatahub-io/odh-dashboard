@@ -6,6 +6,7 @@ import useNamespaces from '#~/pages/notebookController/useNamespaces';
 type AccessReviewCacheData = {
   isLoading: boolean;
   canAccess: boolean;
+  error?: Error;
 };
 
 type AccessReviewCacheType = Record<string, AccessReviewCacheData | undefined>;
@@ -24,7 +25,7 @@ export const AccessReviewContext = React.createContext<AccessReviewContextType>(
 
 export const AccessReviewProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [accessReviewCache, setAccessReviewCache] = React.useState<AccessReviewCacheType>({});
-  const keysRef = React.useRef(new Set());
+  const keysRef = React.useRef(new Set<string>());
   const { checkAccess } = useHostApiCore();
   // If namespace is not provided in the data, assume it means the dashboard deployment namespace
   const { dashboardNamespace } = useNamespaces();
@@ -69,8 +70,8 @@ export const AccessReviewProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }));
 
       // Determine access
-      return checkAccess({ group, resource, subresource, verb, name, namespace }).then(
-        (allowed) => {
+      return checkAccess({ group, resource, subresource, verb, name, namespace })
+        .then((allowed) => {
           setAccessReviewCache((oldValue) => ({
             ...oldValue,
             [key]: {
@@ -78,8 +79,20 @@ export const AccessReviewProvider: React.FC<{ children: React.ReactNode }> = ({ 
               canAccess: allowed,
             } satisfies AccessReviewCacheData,
           }));
-        },
-      );
+        })
+        .catch((error: unknown) => {
+          // A failed check must deny access, but it is not a permission denial. Remove the key
+          // from the in-flight/completed set so a later visit can retry the review.
+          keysRef.current.delete(key);
+          setAccessReviewCache((oldValue) => ({
+            ...oldValue,
+            [key]: {
+              isLoading: false,
+              canAccess: false,
+              error: error instanceof Error ? error : new Error(String(error)),
+            } satisfies AccessReviewCacheData,
+          }));
+        });
     },
     [checkAccess, dashboardNamespace, genKey],
   );
