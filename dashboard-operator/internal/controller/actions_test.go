@@ -317,6 +317,62 @@ func TestRemapDataConnectHubGatewayRBAC(t *testing.T) {
 	}
 }
 
+func TestFilterAndRemapDataConnectHubGatewayRBAC(t *testing.T) {
+	makeResources := func() []unstructured.Unstructured {
+		return []unstructured.Unstructured{
+			{Object: map[string]interface{}{
+				"kind": "Role", "metadata": map[string]interface{}{"name": dchRhoaiGatewayRBACName},
+			}},
+			{Object: map[string]interface{}{
+				"kind": "RoleBinding", "metadata": map[string]interface{}{"name": dchRhoaiGatewayRBACName},
+				"subjects": []interface{}{map[string]interface{}{"kind": "ServiceAccount", "name": "odh-dashboard-data-connect-hub-ui"}},
+			}},
+			{Object: map[string]interface{}{
+				"kind": "Role", "metadata": map[string]interface{}{"name": dchOdhGatewayRBACName},
+			}},
+			{Object: map[string]interface{}{
+				"kind": "RoleBinding", "metadata": map[string]interface{}{"name": dchOdhGatewayRBACName},
+				"subjects": []interface{}{map[string]interface{}{"kind": "ServiceAccount", "name": "odh-dashboard-data-connect-hub-ui"}},
+			}},
+			{Object: map[string]interface{}{
+				"kind": "Deployment", "metadata": map[string]interface{}{"name": "data-connect-hub-ui"},
+			}},
+		}
+	}
+
+	t.Run("RHOAI keeps only RHOAI gateway resources in openshift-ingress", func(t *testing.T) {
+		result := filterAndRemapDataConnectHubGatewayRBAC(makeResources(), "redhat-ods-applications", cluster.SelfManagedRhoai)
+
+		require.Len(t, result, 3) // rhoai Role + RoleBinding + Deployment; ODH resources dropped
+		assert.Equal(t, dchRhoaiGatewayRBACName, result[0].GetName())
+		assert.Equal(t, dataScienceGatewayNamespace, result[0].GetNamespace())
+		assert.Equal(t, dchRhoaiGatewayRBACName, result[1].GetName())
+		assert.Equal(t, dataScienceGatewayNamespace, result[1].GetNamespace())
+		assert.Equal(t, "data-connect-hub-ui", result[2].GetName())
+
+		subjects, found, err := unstructured.NestedSlice(result[1].Object, "subjects")
+		require.NoError(t, err)
+		require.True(t, found)
+		assert.Equal(t, "redhat-ods-applications", subjects[0].(map[string]interface{})["namespace"])
+	})
+
+	t.Run("ODH keeps only ODH gateway resources in opendatahub", func(t *testing.T) {
+		result := filterAndRemapDataConnectHubGatewayRBAC(makeResources(), "opendatahub", cluster.OpenDataHub)
+
+		require.Len(t, result, 3) // odh Role + RoleBinding + Deployment; RHOAI resources dropped
+		assert.Equal(t, dchOdhGatewayRBACName, result[0].GetName())
+		assert.Equal(t, odhGatewayNamespace, result[0].GetNamespace())
+		assert.Equal(t, dchOdhGatewayRBACName, result[1].GetName())
+		assert.Equal(t, odhGatewayNamespace, result[1].GetNamespace())
+		assert.Equal(t, "data-connect-hub-ui", result[2].GetName())
+
+		subjects, found, err := unstructured.NestedSlice(result[1].Object, "subjects")
+		require.NoError(t, err)
+		require.True(t, found)
+		assert.Equal(t, "opendatahub", subjects[0].(map[string]interface{})["namespace"])
+	})
+}
+
 func TestMonitoringNamespace(t *testing.T) {
 	tests := []struct {
 		name                  string

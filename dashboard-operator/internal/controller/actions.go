@@ -137,6 +137,52 @@ func remapDataConnectHubGatewayRBAC(resources []unstructured.Unstructured, appli
 	}
 }
 
+// filterAndRemapDataConnectHubGatewayRBAC is the platform-aware counterpart to
+// remapDataConnectHubGatewayRBAC. It drops gateway RBAC resources that do not
+// apply to the current platform before remapping namespaces, so the deployer
+// never tries to create resources in a namespace that may not exist
+// (e.g. opendatahub does not exist on RHOAI).
+func filterAndRemapDataConnectHubGatewayRBAC(resources []unstructured.Unstructured, applicationsNamespace string, platform cluster.Platform) []unstructured.Unstructured {
+	isRHOAI := platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai
+	result := make([]unstructured.Unstructured, 0, len(resources))
+	for _, res := range resources {
+		r := res
+		kind := r.GetKind()
+		var targetNamespace string
+		switch r.GetName() {
+		case dchRhoaiGatewayRBACName:
+			if !isRHOAI {
+				continue // omit on ODH — openshift-ingress RBAC not needed
+			}
+			targetNamespace = dataScienceGatewayNamespace
+		case dchOdhGatewayRBACName:
+			if isRHOAI {
+				continue // omit on RHOAI — opendatahub namespace may not exist
+			}
+			targetNamespace = odhGatewayNamespace
+		default:
+			result = append(result, r)
+			continue
+		}
+		if kind == "Role" || kind == "RoleBinding" {
+			r.SetNamespace(targetNamespace)
+		}
+		if kind == "RoleBinding" {
+			if subjects, found, err := unstructured.NestedSlice(r.Object, "subjects"); err == nil && found {
+				for _, rawSubject := range subjects {
+					subject, ok := rawSubject.(map[string]interface{})
+					if ok && subject["kind"] == "ServiceAccount" && subject["name"] == "odh-dashboard-data-connect-hub-ui" {
+						subject["namespace"] = applicationsNamespace
+					}
+				}
+				_ = unstructured.SetNestedSlice(r.Object, subjects, "subjects")
+			}
+		}
+		result = append(result, r)
+	}
+	return result
+}
+
 func manifestSets(basePath string, platform cluster.Platform) []render.ManifestInfo {
 	return []render.ManifestInfo{
 		defaultManifestInfo(basePath, platform),
