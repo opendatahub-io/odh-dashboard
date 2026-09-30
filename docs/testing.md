@@ -164,17 +164,16 @@ Cypress mocked tests run against a standalone frontend while mocking all network
 
 #### Selective mock tests
 
-The main test workflow produces a `cypress-mock-impact-plan` artifact and job summary. The
-planner compares the Git change with the generated Cypress matrix. Documentation-only changes skip
-the Cypress mock matrix. Changes to individual specs and transitively imported Cypress helpers run
-only their affected groups.
+The main test workflow compares the Git change with the generated Cypress matrix.
+Documentation-only changes skip the Cypress mock matrix. Changes to individual specs and
+transitively imported Cypress helpers run only their affected groups.
 
 Application and build inputs remain on the complete matrix because every mock suite executes
 against the complete dashboard host. Non-code fixtures, unresolved imports, missing consumers,
 and deleted or renamed files also fall back to the complete matrix.
 
-Partial Cypress coverage is retained in the workflow artifact but is published to Codecov under
-the `cypress-mock` flag only when the complete matrix runs.
+The `cypress-mock` Codecov flag is updated only when the complete matrix runs; selective runs use
+the configured carryforward coverage.
 
 To inspect a selection locally, compare any two Git revisions:
 
@@ -182,8 +181,6 @@ To inspect a selection locally, compare any two Git revisions:
 pnpm run plan:cypress-mock-impact -- \
   --base <base-revision> \
   --head <head-revision> \
-  --json /tmp/cypress-mock-impact.json \
-  --markdown /tmp/cypress-mock-impact.md \
   --matrix /tmp/cypress-mock-matrix.json
 ```
 

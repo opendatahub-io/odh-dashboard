@@ -2,7 +2,7 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 
 const { planMockTestImpact } = require('../lib/mock-test-impact');
-const { createTestMatrix, toMarkdown } = require('../plan-mock-test-impact');
+const { createTestMatrix } = require('../plan-mock-test-impact');
 
 const groups = [
   { name: 'hardware/one', files: ['packages/cypress/cypress/tests/mocked/hardware/one.cy.ts'] },
@@ -107,21 +107,6 @@ describe('planMockTestImpact', () => {
 
     assert.equal(result.scope, 'full');
     assert.match(result.reason, /unresolved code edges/);
-  });
-});
-
-describe('toMarkdown', () => {
-  it('states that the selected groups will run', () => {
-    const result = plan([{ status: 'M', path: specs[2] }]);
-    const markdown = toMarkdown(result, {
-      base: 'base-sha',
-      head: 'head-sha',
-      totalGroups: groups.length,
-    });
-
-    assert.doesNotMatch(markdown, /observation only/);
-    assert.match(markdown, /CI runs only the statically reached Cypress mock groups/);
-    assert.match(markdown, /Selected:\*\* 1\/4 groups/);
   });
 });
 

@@ -158,27 +158,21 @@ jobs:
         uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Select Cypress mock test groups
+      - id: set-groups
+        name: Select Cypress mock test groups
+        shell: bash
         env:
           IMPACT_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
           IMPACT_HEAD: ${{ github.sha }}
         run: |
-          mkdir -p .test-impact
           node scripts/cypress/plan-mock-test-impact.js \
             --base "$IMPACT_BASE" \
             --head "$IMPACT_HEAD" \
-            --json .test-impact/cypress-mock-impact.json \
-            --markdown .test-impact/cypress-mock-impact.md \
-            --matrix .test-impact/cypress-mock-matrix.json
-          cat .test-impact/cypress-mock-impact.md >> "$GITHUB_STEP_SUMMARY"
+            --matrix "$RUNNER_TEMP/cypress-mock-matrix.json"
 
-      - id: set-groups
-        name: Export Cypress mock test matrix
-        shell: bash
-        run: |
-          TEST_GROUPS=$(jq -c . .test-impact/cypress-mock-matrix.json)
-          TOTAL_GROUPS=$(jq '.metadata.totalGroups' .test-impact/cypress-mock-impact.json)
-          SELECTED_GROUPS=$(jq 'length' .test-impact/cypress-mock-matrix.json)
+          TEST_GROUPS=$(jq -c . "$RUNNER_TEMP/cypress-mock-matrix.json")
+          TOTAL_GROUPS=$(node scripts/generate-cypress-test-matrix.js | jq 'length')
+          SELECTED_GROUPS=$(jq 'length' "$RUNNER_TEMP/cypress-mock-matrix.json")
           HAS_TESTS=$([[ "$SELECTED_GROUPS" -gt 0 ]] && echo true || echo false)
           FULL_MATRIX=$([[ "$SELECTED_GROUPS" -eq "$TOTAL_GROUPS" ]] && echo true || echo false)
 
@@ -191,15 +185,6 @@ jobs:
           echo "has-tests=$HAS_TESTS" >> "$GITHUB_OUTPUT"
           echo "full-matrix=$FULL_MATRIX" >> "$GITHUB_OUTPUT"
           echo "$TEST_GROUPS" | jq .
-
-      - name: Upload Cypress mock impact plan
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: cypress-mock-impact-plan
-          path: .test-impact
-          if-no-files-found: error
-          include-hidden-files: true
-          retention-days: 14
 
   Contract-Tests:
     needs: [Setup]

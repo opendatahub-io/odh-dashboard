@@ -43,46 +43,6 @@ const readChanges = (root, base, head) => {
   return changes;
 };
 
-const toMarkdown = (plan, metadata) => {
-  const lines = [
-    '## Cypress mock test impact',
-    '',
-    `**Scope:** ${plan.scope} · **Selected:** ${plan.selectedGroups.length}/${metadata.totalGroups} groups`,
-    '',
-    plan.reason,
-    '',
-    `Safety: ${plan.safety}`,
-    '',
-    `<details><summary>Changed files (${plan.changedFiles.length})</summary>`,
-    '',
-    ...plan.changedFiles.map((file) => `- \`${file}\``),
-    '',
-    '</details>',
-  ];
-  if (plan.details.length > 0) {
-    lines.push(
-      '',
-      '<details><summary>Selection evidence</summary>',
-      '',
-      ...plan.details.map((detail) => `- ${detail}`),
-      '',
-      '</details>',
-    );
-  }
-  if (plan.selectedGroups.length > 0 && plan.selectedGroups.length < metadata.totalGroups) {
-    lines.push(
-      '',
-      '<details><summary>Proposed groups</summary>',
-      '',
-      ...plan.selectedGroups.map((group) => `- \`${group}\``),
-      '',
-      '</details>',
-    );
-  }
-  lines.push('', `Compared \`${metadata.base}\` with \`${metadata.head}\`.`);
-  return `${lines.join('\n')}\n`;
-};
-
 const writeFile = (file, contents) => {
   if (!file) {
     return;
@@ -105,21 +65,12 @@ const main = () => {
   const base = options.base || `${head}^`;
   const groups = generateTestGroups();
   const specs = [...new Set(groups.flatMap((group) => group.files))];
-  const metadata = {
-    base,
-    head,
-    totalGroups: groups.length,
-    totalSpecs: specs.length,
-  };
 
   let plan;
   try {
     const changes = readChanges(root, base, head);
     const dependencyIndex = buildDependencyIndex({ root, specs });
     plan = planMockTestImpact({ groups, changes, dependencyIndex });
-    metadata.graphFiles = Object.keys(dependencyIndex.consumers).length;
-    metadata.unresolvedCode = dependencyIndex.unresolvedCode.length;
-    metadata.dynamicImports = dependencyIndex.dynamicImports.length;
   } catch (error) {
     plan = {
       mode: 'select',
@@ -133,20 +84,17 @@ const main = () => {
       details: [],
       safety: 'CI runs the complete Cypress mock matrix.',
     };
-    metadata.error = error instanceof Error ? error.stack : String(error);
   }
 
-  const report = { metadata, plan };
-  const markdown = toMarkdown(plan, metadata);
   const matrix = createTestMatrix(groups, plan.selectedGroups);
-  writeFile(options.json, `${JSON.stringify(report, null, 2)}\n`);
-  writeFile(options.markdown, markdown);
   writeFile(options.matrix, `${JSON.stringify(matrix, null, 2)}\n`);
-  process.stdout.write(markdown);
+  process.stdout.write(
+    `Cypress mock selection: ${matrix.length}/${groups.length} groups (${plan.scope}). ${plan.reason}\n`,
+  );
 };
 
 if (require.main === module) {
   main();
 }
 
-module.exports = { createTestMatrix, parseArgs, readChanges, toMarkdown };
+module.exports = { createTestMatrix, parseArgs, readChanges };
