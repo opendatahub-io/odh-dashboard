@@ -845,6 +845,8 @@ export type EvalHubTestData = {
 export type EvalHubBenchmarkSuiteTestData = Omit<EvalHubTestData, 'benchmarkCardTitle'> & {
   /** Base name for the tenant suite created by this spec. */
   suiteName: string;
+  /** Category IDs assigned to suites created from this fixture. */
+  suiteDomains: string[];
   /** Provider ID used to disambiguate benchmark IDs in the catalog. */
   benchmarkProviderId: string;
   /** LM Evaluation Harness benchmarks added to each tenant suite. */

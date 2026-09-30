@@ -12,6 +12,7 @@ export const editAssetSchema = z.object({
   purpose: z.string().max(200, 'Purpose must be 200 characters or fewer'),
   license: z.string(),
   maturity: z.string(),
+  domain: z.string(),
   piiStatus: z.string(),
   customProperties: z
     .array(z.object({ id: z.number(), key: z.string(), value: z.string() }))

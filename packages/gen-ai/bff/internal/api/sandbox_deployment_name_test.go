@@ -4,9 +4,36 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestResolveSandboxOGXImage(t *testing.T) {
+	tests := []struct {
+		name      string
+		config    config.EnvConfig
+		wantImage string
+		wantErr   string
+	}{
+		{name: "uses configured image", config: config.EnvConfig{OGXCoreImage: "configured-image"}, wantImage: "configured-image"},
+		{name: "allows missing image in mock mode", config: config.EnvConfig{MockK8sClient: true}},
+		{name: "requires image outside mock mode", wantErr: "OGX core image not configured"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			image, err := resolveSandboxOGXImage(tt.config)
+
+			if tt.wantErr != "" {
+				assert.ErrorContains(t, err, tt.wantErr)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.wantImage, image)
+		})
+	}
+}
 
 func TestValidateSandboxDeploymentName(t *testing.T) {
 	tests := []struct {
