@@ -30,6 +30,10 @@ class EditAssetModal extends Modal {
     return cy.findByTestId('data-format-toggle');
   }
 
+  findFormatOption(format: string) {
+    return cy.findByTestId(`data-format-option-${format}`);
+  }
+
   findCollectionInput() {
     return cy.findByTestId('data-collection-toggle');
   }

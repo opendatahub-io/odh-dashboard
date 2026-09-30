@@ -33,6 +33,7 @@ import {
   getVectorStoreProviderTypeFromSecretData,
   isAutoragResultsNavigationState,
   mapOptimizationMetric,
+  mapOptimizationMetricEvaluator,
   toVectorStoreProviderType,
 } from '~/app/utilities/tracking';
 
@@ -327,16 +328,30 @@ describe('fireAutoragVectorStoreConfigured', () => {
 });
 
 describe('mapOptimizationMetric', () => {
-  it('should map all four schema values to their camelCase taxonomy', () => {
-    expect(mapOptimizationMetric('overall_score')).toBe('overallScore');
-    expect(mapOptimizationMetric('faithfulness')).toBe('answerFaithfulness');
-    expect(mapOptimizationMetric('answer_correctness')).toBe('answerCorrectness');
-    expect(mapOptimizationMetric('context_correctness')).toBe('contextCorrectness');
+  it('should map qualified schema values to their camelCase taxonomy', () => {
+    expect(mapOptimizationMetric('custom:overall_score')).toBe('overallScore');
+    expect(mapOptimizationMetric('unitxt:faithfulness')).toBe('answerFaithfulness');
+    expect(mapOptimizationMetric('unitxt:answer_correctness')).toBe('answerCorrectness');
+    expect(mapOptimizationMetric('ragas:context_precision')).toBe('contextPrecision');
   });
 
   it('should return undefined for an unrecognized metric', () => {
     expect(mapOptimizationMetric('answer_relevance')).toBeUndefined();
     expect(mapOptimizationMetric('')).toBeUndefined();
+  });
+});
+
+describe('mapOptimizationMetricEvaluator', () => {
+  it('should distinguish Unitxt and RAGAS faithfulness evaluators', () => {
+    expect(mapOptimizationMetricEvaluator('unitxt:faithfulness')).toBe('unitxt');
+    expect(mapOptimizationMetricEvaluator('ragas:faithfulness')).toBe('ragas');
+  });
+
+  it('should map custom overall score and reject unqualified metrics', () => {
+    expect(mapOptimizationMetricEvaluator('custom:overall_score')).toBe('custom');
+    expect(mapOptimizationMetricEvaluator('faithfulness')).toBeUndefined();
+    expect(mapOptimizationMetricEvaluator('custom:unsupported')).toBeUndefined();
+    expect(mapOptimizationMetricEvaluator('')).toBeUndefined();
   });
 });
 
@@ -346,6 +361,7 @@ describe('fireAutoragRunTriggered', () => {
       knowledgeSourceType: 's3',
       evaluationSourceType: 'upload',
       optimizationMetric: 'overallScore',
+      optimizationMetricEvaluator: 'custom',
       vectorDatabase: 'milvus',
       countOfModels: 3,
       countOfKnowledgeDocuments: 1,
@@ -361,6 +377,7 @@ describe('fireAutoragRunTriggered', () => {
       knowledgeSourceType: 's3',
       evaluationSourceType: 'upload',
       optimizationMetric: 'overallScore',
+      optimizationMetricEvaluator: 'custom',
       vectorDatabase: 'milvus',
       countOfModels: 3,
       countOfKnowledgeDocuments: 1,

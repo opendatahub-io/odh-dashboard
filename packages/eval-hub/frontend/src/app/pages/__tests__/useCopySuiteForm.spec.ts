@@ -111,6 +111,20 @@ const providers: Provider[] = [
   },
 ];
 
+const rawMetricProvider: Provider = {
+  resource: { id: 'provider-raw' },
+  name: 'Raw Metric Provider',
+  benchmarks: [
+    {
+      id: 'benchmark-throughput',
+      name: 'Benchmark Throughput',
+      metrics: ['output_tokens_per_second', 'mean_ttft_ms'],
+      primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+      pass_criteria: { threshold: 250 },
+    },
+  ],
+};
+
 type FormParams = Parameters<typeof useCopySuiteForm>[0];
 
 const defaultParams: FormParams = {
@@ -202,6 +216,33 @@ describe('createBenchmarkFromKey', () => {
         benchmarks: [expect.objectContaining({ id: 'benchmark-one' })],
       }),
     );
+  });
+
+  it('should preserve raw metric thresholds from provider benchmarks', () => {
+    const benchmark = createBenchmarkFromKey('provider-raw:benchmark-throughput', [
+      rawMetricProvider,
+    ]);
+
+    expect(benchmark).toEqual(
+      expect.objectContaining({
+        primaryMetric: 'output_tokens_per_second',
+        threshold: 250,
+      }),
+    );
+
+    expect(
+      buildPendingCollection({
+        suiteName: 'New suite',
+        suiteDescription: '',
+        suiteDomains: [],
+        suiteTasks: [],
+        suiteModalities: [],
+        suiteIndustries: [],
+        suiteEvaluates: ['model'],
+        suiteThreshold: 70,
+        benchmarks: [benchmark!],
+      }).benchmarks?.[0].pass_criteria,
+    ).toEqual({ threshold: 250 });
   });
 });
 
@@ -853,6 +894,187 @@ describe('useCopySuiteForm', () => {
         threshold: 85,
       }),
     );
+  });
+
+  it('should preserve raw metric thresholds in pending and clone requests', async () => {
+    const rawSourceCollection: Collection = {
+      ...sourceCollection,
+      benchmarks: [
+        {
+          id: 'benchmark-throughput',
+          provider_id: 'provider-raw',
+          weight: 1,
+          primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+          pass_criteria: { threshold: 250 },
+        },
+      ],
+    };
+    const cloneFetcher = jest.fn().mockResolvedValue({
+      resource: { id: 'saved-collection' },
+      name: 'Saved suite',
+    } as Collection);
+    mockCloneCollection.mockReturnValue(cloneFetcher);
+    const result = renderForm({
+      sourceCollection: rawSourceCollection,
+      providers: [rawMetricProvider],
+    });
+
+    await waitFor(() => expect(result.result.current.benchmarks).toHaveLength(1));
+    expect(result.result.current.benchmarks[0]).toEqual(
+      expect.objectContaining({
+        primaryMetric: 'output_tokens_per_second',
+        threshold: 250,
+      }),
+    );
+    await waitFor(() => expect(result.result.current.isValid).toBe(true));
+
+    expect(result.result.current.buildPendingCollection()?.benchmarks?.[0].pass_criteria).toEqual({
+      threshold: 250,
+    });
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    expect(mockCloneCollection).toHaveBeenCalledWith(
+      '',
+      'test-namespace',
+      'source-collection',
+      expect.objectContaining({
+        benchmarks: [expect.objectContaining({ pass_criteria: { threshold: 250 } })],
+      }),
+    );
+  });
+
+  it('should convert percentage thresholds in pending and clone requests', async () => {
+    const cloneFetcher = jest.fn().mockResolvedValue({
+      resource: { id: 'saved-collection' },
+      name: 'Saved suite',
+    } as Collection);
+    mockCloneCollection.mockReturnValue(cloneFetcher);
+    const result = renderForm();
+
+    await waitFor(() => expect(result.result.current.benchmarks).toHaveLength(1));
+    expect(result.result.current.benchmarks[0].threshold).toBe(75);
+    expect(result.result.current.buildPendingCollection()?.benchmarks?.[0].pass_criteria).toEqual({
+      threshold: 0.75,
+    });
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    expect(mockCloneCollection).toHaveBeenCalledWith(
+      '',
+      'test-namespace',
+      'source-collection',
+      expect.objectContaining({
+        benchmarks: [expect.objectContaining({ pass_criteria: { threshold: 0.75 } })],
+      }),
+    );
+  });
+
+  it('should use the provider threshold converted for the selected metric', async () => {
+    const rawSourceCollection: Collection = {
+      ...sourceCollection,
+      benchmarks: [
+        {
+          id: 'benchmark-throughput',
+          provider_id: 'provider-raw',
+          weight: 1,
+          primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+          pass_criteria: { threshold: 250 },
+        },
+      ],
+    };
+    const result = renderForm({
+      sourceCollection: rawSourceCollection,
+      providers: [rawMetricProvider],
+    });
+
+    await waitFor(() => expect(result.result.current.benchmarks).toHaveLength(1));
+
+    act(() => result.result.current.updateBenchmark(0, 'primaryMetric', 'mean_ttft_ms'));
+    expect(result.result.current.benchmarks[0]).toEqual(
+      expect.objectContaining({ primaryMetric: 'mean_ttft_ms', threshold: 250 }),
+    );
+
+    act(() => result.result.current.updateBenchmark(0, 'threshold', 12));
+    act(() => result.result.current.updateBenchmark(0, 'primaryMetric', 'mean_ttft_ms'));
+    expect(result.result.current.benchmarks[0].threshold).toBe(12);
+  });
+
+  it('should convert a provider threshold to the percentage scale for the selected metric', async () => {
+    const percentageProvider: Provider = {
+      resource: { id: 'provider-percentage' },
+      name: 'Percentage Provider',
+      benchmarks: [
+        {
+          id: 'benchmark-percentage',
+          name: 'Benchmark Percentage',
+          metrics: ['output_tokens_per_second', 'accuracy'],
+          primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+          pass_criteria: { threshold: 0.65 },
+        },
+      ],
+    };
+    const rawSourceCollection: Collection = {
+      ...sourceCollection,
+      benchmarks: [
+        {
+          id: 'benchmark-percentage',
+          provider_id: 'provider-percentage',
+          weight: 1,
+          primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+          pass_criteria: { threshold: 250 },
+        },
+      ],
+    };
+    const result = renderForm({
+      sourceCollection: rawSourceCollection,
+      providers: [percentageProvider],
+    });
+
+    await waitFor(() => expect(result.result.current.benchmarks).toHaveLength(1));
+
+    act(() => result.result.current.updateBenchmark(0, 'primaryMetric', 'accuracy'));
+    expect(result.result.current.benchmarks[0].threshold).toBe(65);
+  });
+
+  it('should use metric-specific fallback thresholds when the provider has no pass criterion', async () => {
+    const providerWithoutPassCriteria: Provider = {
+      ...rawMetricProvider,
+      benchmarks: [
+        {
+          ...rawMetricProvider.benchmarks![0],
+          metrics: ['output_tokens_per_second', 'mean_ttft_ms', 'accuracy'],
+          pass_criteria: undefined,
+        },
+      ],
+    };
+    const rawSourceCollection: Collection = {
+      ...sourceCollection,
+      benchmarks: [
+        {
+          id: 'benchmark-throughput',
+          provider_id: 'provider-raw',
+          weight: 1,
+          primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+        },
+      ],
+    };
+    const result = renderForm({
+      sourceCollection: rawSourceCollection,
+      providers: [providerWithoutPassCriteria],
+    });
+
+    await waitFor(() => expect(result.result.current.benchmarks).toHaveLength(1));
+
+    act(() => result.result.current.updateBenchmark(0, 'primaryMetric', 'mean_ttft_ms'));
+    expect(result.result.current.benchmarks[0].threshold).toBe(0);
+
+    act(() => result.result.current.updateBenchmark(0, 'primaryMetric', 'accuracy'));
+    expect(result.result.current.benchmarks[0].threshold).toBe(70);
   });
 
   it('should apply benchmark selection in alphabetical order regardless of key order', async () => {

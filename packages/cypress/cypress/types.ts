@@ -1045,15 +1045,6 @@ export type AutoragTestData = {
   optimizationMetric?: string;
 };
 
-export type AgentRuntimesTestData = {
-  pageTitle: string;
-  projectResourceName: string;
-  filterSearchTerm: string;
-  filterOptionStatus: string;
-  statusPending: string;
-  statusReady: string;
-};
-
 export type MlflowIrisRunData = {
   name: string;
   description: string;

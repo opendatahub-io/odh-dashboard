@@ -5,8 +5,9 @@ set -euo pipefail
 
 # 0.7.7+ is required for `review --remote`, which reviews the PR server-side
 # instead of checking fork code out next to the API key.
-CODERABBIT_VERSION="0.7.8"
-CODERABBIT_INSTALLER_SHA256="d0d6e3bf9abc95e4c93b40ad8b363940b69289fdb598fad53adc5e8951f84206"
+# 0.8+ is required for `review --deep` (GitHub PR review capability policy).
+CODERABBIT_VERSION="0.8.2"
+CODERABBIT_INSTALLER_SHA256="2a91b23055967aeafdbefb0baebcd4e3f136ca2883d73d1f3f617fff22b2c485"
 CODERABBIT_INSTALL_DIR="${RUNNER_TEMP:?RUNNER_TEMP is required}/coderabbit-bin"
 installer="${RUNNER_TEMP}/coderabbit-install.sh"
 

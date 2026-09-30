@@ -5,7 +5,7 @@ import {
   k8sListResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
-import { PodModel } from '@odh-dashboard/internal/api/models/k8s';
+import { PodModel } from '@odh-dashboard/k8s-core/api/models';
 import { FeatureStoreKind } from '../../k8sTypes';
 import {
   createFeatureStore,

@@ -50,6 +50,61 @@ describe('copySuiteSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('should accept raw metric thresholds above the percentage slider range', () => {
+    const result = copySuiteSchema.safeParse({
+      ...validValues(),
+      benchmarks: [
+        {
+          ...validValues().benchmarks[0],
+          primaryMetric: 'output_tokens_per_second',
+          threshold: 250,
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('should reject percentage thresholds above 100', () => {
+    const result = copySuiteSchema.safeParse({
+      ...validValues(),
+      benchmarks: [
+        {
+          ...validValues().benchmarks[0],
+          primaryMetric: 'accuracy',
+          threshold: 101,
+        },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: ['benchmarks', 0, 'threshold'],
+            message: 'Percentage thresholds cannot exceed 100.',
+          }),
+        ]),
+      );
+    }
+  });
+
+  it('should accept a percentage threshold of exactly 100', () => {
+    const result = copySuiteSchema.safeParse({
+      ...validValues(),
+      benchmarks: [
+        {
+          ...validValues().benchmarks[0],
+          primaryMetric: 'accuracy',
+          threshold: 100,
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
   it('should reject scalar or unsupported evaluates values', () => {
     const scalar = copySuiteSchema.safeParse({
       ...validValues(),

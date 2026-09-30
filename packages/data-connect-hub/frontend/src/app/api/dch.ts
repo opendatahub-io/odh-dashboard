@@ -88,6 +88,27 @@ export const getConnectionTypes =
       throw new Error('Invalid response format');
     });
 
+export const getConnectionType =
+  (hostPath: string) =>
+  (opts: APIOptions, namespace: string, connectionTypeId: string): Promise<ConnectionType> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/connection-types/${encodeURIComponent(connectionTypeId)}`,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (
+        isModArchResponse<unknown>(response) &&
+        response.data &&
+        isConnectionType(response.data)
+      ) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
 export const verifyConnection =
   (hostPath: string) =>
   (opts: APIOptions, namespace: string, connectionId: string): Promise<void> =>
