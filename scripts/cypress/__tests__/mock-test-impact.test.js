@@ -3,12 +3,29 @@ const assert = require('node:assert/strict');
 
 const { planMockTestImpact } = require('../lib/mock-test-impact');
 const { toMarkdown } = require('../plan-mock-test-impact');
+const { createWorkspaceTestIndex } = require('../lib/workspace-test-impact');
 
 const groups = [
-  { name: 'hardware/one', files: ['packages/cypress/cypress/tests/mocked/hardware/one.cy.ts'] },
-  { name: 'hardware/two', files: ['packages/cypress/cypress/tests/mocked/hardware/two.cy.ts'] },
-  { name: 'observability', files: ['packages/observability/cypress/tests/dashboard.cy.ts'] },
-  { name: 'model-serving', files: ['packages/model-serving/cypress/tests/serve.cy.ts'] },
+  {
+    name: 'hardware/one',
+    owner: 'odh-dashboard-frontend',
+    files: ['packages/cypress/cypress/tests/mocked/hardware/one.cy.ts'],
+  },
+  {
+    name: 'hardware/two',
+    owner: 'odh-dashboard-frontend',
+    files: ['packages/cypress/cypress/tests/mocked/hardware/two.cy.ts'],
+  },
+  {
+    name: 'observability',
+    owner: '@odh-dashboard/observability',
+    files: ['packages/observability/cypress/tests/dashboard.cy.ts'],
+  },
+  {
+    name: 'model-serving',
+    owner: 'model-serving-cypress',
+    files: ['packages/model-serving/cypress/tests/serve.cy.ts'],
+  },
 ];
 
 const specs = groups.flatMap((group) => group.files);
@@ -59,11 +76,36 @@ describe('planMockTestImpact', () => {
     assert.equal(result.selectedGroups.length, groups.length);
   });
 
-  it('keeps all groups for application code without a trusted coverage mapping', () => {
+  it('keeps all groups for application code without a trusted workspace mapping', () => {
     const result = plan([{ status: 'M', path: 'frontend/src/app/App.tsx' }]);
 
     assert.equal(result.scope, 'full');
-    assert.match(result.reason, /no trusted per-spec coverage mapping/);
+    assert.match(result.reason, /no trusted workspace dependency mapping/);
+  });
+
+  it('expands application changes to every suite that executes the shared host', () => {
+    const workspaceIndex = createWorkspaceTestIndex({
+      packages: [
+        { name: 'odh-dashboard-frontend', path: 'frontend' },
+        {
+          name: '@odh-dashboard/observability',
+          path: 'packages/observability',
+          'module-federation': { name: 'observability' },
+        },
+        { name: 'model-serving-cypress', path: 'packages/model-serving/cypress' },
+      ],
+      groups,
+    });
+    const result = planMockTestImpact({
+      groups,
+      changes: [{ status: 'M', path: 'packages/observability/frontend/src/App.tsx' }],
+      dependencyIndex,
+      workspaceIndex,
+    });
+
+    assert.equal(result.scope, 'full');
+    assert.equal(result.selectedGroups.length, groups.length);
+    assert.match(result.reason, /Workspace and Cypress dependency closure/);
   });
 
   it('keeps all groups for deleted or renamed inputs', () => {

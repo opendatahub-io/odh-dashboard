@@ -7,6 +7,7 @@ const {
   normalizePath,
   planMockTestImpact,
 } = require('./lib/mock-test-impact');
+const { buildWorkspaceTestIndex } = require('./lib/workspace-test-impact');
 const { generateTestGroups } = require('../generate-cypress-test-matrix');
 
 const parseArgs = (args) => {
@@ -109,10 +110,14 @@ const main = () => {
   try {
     const changes = readChanges(root, base, head);
     const dependencyIndex = buildDependencyIndex({ root, specs });
-    plan = planMockTestImpact({ groups, changes, dependencyIndex });
+    const workspaceIndex = buildWorkspaceTestIndex({ root, groups });
+    plan = planMockTestImpact({ groups, changes, dependencyIndex, workspaceIndex });
     metadata.graphFiles = Object.keys(dependencyIndex.consumers).length;
     metadata.unresolvedCode = dependencyIndex.unresolvedCode.length;
     metadata.dynamicImports = dependencyIndex.dynamicImports.length;
+    metadata.workspacePackages = workspaceIndex.packageCount;
+    metadata.workspaceEdges = workspaceIndex.edgeCount;
+    metadata.workspaceErrors = workspaceIndex.errors.length;
   } catch (error) {
     plan = {
       mode: 'observe',

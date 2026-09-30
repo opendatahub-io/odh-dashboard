@@ -16,6 +16,7 @@ const WORKSPACE_QUERY_SCRIPT = path.join(__dirname, 'query-workspace-packages.js
 
 // Configuration
 const TESTS_DIR = 'packages/cypress/cypress/tests/mocked';
+const CENTRAL_TEST_OWNER = 'odh-dashboard-frontend';
 const SIZE_THRESHOLD = 15 * 1024; // 15KB - files larger than this get split into individual groups
 const GROUP_SIZE_THRESHOLD = 40 * 1024; // 40KB - grouped shards larger than this get split into balanced sub-groups
 
@@ -142,6 +143,7 @@ function createGroupedEntry(dir, files, suffix) {
   return {
     name: `${dir}/${suffix}`,
     spec,
+    owner: CENTRAL_TEST_OWNER,
     files: files.map((file) => path.join(TESTS_DIR, file.path)),
     size: totalSize,
     count: files.length,
@@ -172,6 +174,7 @@ function generateCentralTestGroups() {
       groups.push({
         name: `${dir}/${file.name}`,
         spec: `cypress/cypress/tests/mocked/${file.path}`,
+        owner: CENTRAL_TEST_OWNER,
         files: [path.join(TESTS_DIR, file.path)],
         size: file.size,
         strategy: 'individual',
@@ -267,6 +270,7 @@ function generatePackageTestGroups() {
         groups.push({
           name: pkgPrefix,
           spec: `${pkgRelPath}/${mockedPattern}`,
+          owner: pkg.name,
           files: allFiles.map((file) => file.repoPath),
           size: totalSize,
           count: allFiles.length,
@@ -293,6 +297,7 @@ function generatePackageTestGroups() {
           groups.push({
             name: `${pkgPrefix}/${dir}/${file.name}`,
             spec: `${pkgRelPath}/${testBaseDir}/${file.relPath}`,
+            owner: pkg.name,
             files: [file.repoPath],
             size: file.size,
             strategy: 'package-individual',
@@ -319,6 +324,7 @@ function generatePackageTestGroups() {
               groups.push({
                 name: `${pkgPrefix}/${dir}/${suffix}`,
                 spec,
+                owner: pkg.name,
                 files: binFiles.map((file) => file.repoPath),
                 size: bins[i].totalSize,
                 count: binFiles.length,
@@ -336,6 +342,7 @@ function generatePackageTestGroups() {
             groups.push({
               name: `${pkgPrefix}/${dir}/other`,
               spec,
+              owner: pkg.name,
               files: smallFiles.map((file) => file.repoPath),
               size: smallTotal,
               count: smallFiles.length,
@@ -390,6 +397,7 @@ function generateTestGroups() {
     allGroups.push({
       name: 'default',
       spec: 'cypress/cypress/tests/mocked/**/*.cy.ts',
+      owner: CENTRAL_TEST_OWNER,
       files: findTestFiles(TESTS_DIR).map((file) => path.relative(process.cwd(), file)),
     });
   }

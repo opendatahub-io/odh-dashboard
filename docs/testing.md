@@ -166,14 +166,19 @@ Cypress mocked tests run against a standalone frontend while mocking all network
 
 The main test workflow produces a `cypress-mock-impact-plan` artifact and job summary. The
 planner compares the Git change with the generated Cypress matrix and proposes the groups that
-would be needed for documentation, changed specs, and transitively imported Cypress helpers.
+would be needed for documentation, changed specs, transitively imported Cypress helpers, and
+workspace targets reached through reverse package dependencies. Plugin discovery, Module
+Federation, and nested frontend workspaces are modeled as explicit runtime/build edges.
 This is observation-only: CI continues to run the complete mock-test matrix.
 
-Application and build inputs fall back to the complete matrix until CI has a compatible,
-successful per-spec coverage baseline. Coverage runs write those raw per-spec maps under
-`packages/cypress/coverage/specs/`, alongside an `index.json` that records the commit, spec,
-pass state, and source-file count. Missing data, non-code fixtures, unresolved imports, and
-deleted or renamed files also fall back to the complete matrix.
+Every generated group has a workspace owner. Application changes select all groups owned by the
+changed workspace target and its reverse dependents. Missing owners or dependencies, build
+configuration, non-code fixtures, unresolved imports, and deleted or renamed files fall back to
+the complete matrix. Every mock suite currently executes against the complete dashboard host, so
+the enforced runtime edges make application-source changes close over the complete matrix.
+Coverage runs also write raw per-spec evidence under
+`packages/cypress/coverage/specs/`, alongside an `index.json` that records the commit, spec, pass
+state, and source-file count; coverage is not used to exclude tests.
 
 To inspect a proposal locally, compare any two Git revisions:
 

@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const { resolveWorkspaceFileImpact } = require('./workspace-test-impact');
+
 const SUPPORT_FILE = 'packages/cypress/cypress/support/e2e.ts';
 const CODE_FILE_PATTERN = /\.[cm]?[jt]sx?$/;
 
@@ -25,8 +27,10 @@ const isSelectorInfrastructure = (file) => {
     normalized === 'scripts/generate-cypress-test-matrix.js' ||
     normalized.startsWith('scripts/cypress/') ||
     normalized === 'packages/cypress/cypress.config.ts' ||
+    /(^|\/)package\.json$/.test(normalized) ||
     /(^|\/)tsconfig[^/]*\.json$/.test(normalized) ||
-    /(^|\/)rspack[^/]*\.[cm]?js$/.test(normalized)
+    /(^|\/)rspack[^/]*\.[cm]?js$/.test(normalized) ||
+    /(^|\/)frontend\/config\//.test(normalized)
   );
 };
 
@@ -59,7 +63,7 @@ const fullPlan = (groups, changes, reason, details = []) => ({
   safety: 'CI still runs the complete Cypress mock matrix.',
 });
 
-const planMockTestImpact = ({ groups, changes, dependencyIndex }) => {
+const planMockTestImpact = ({ groups, changes, dependencyIndex, workspaceIndex }) => {
   if (changes.length === 0) {
     return fullPlan(groups, changes, 'No usable Git changes were found.');
   }
@@ -95,15 +99,6 @@ const planMockTestImpact = ({ groups, changes, dependencyIndex }) => {
     );
   }
 
-  const nonTestInput = runtimeChanges.find((change) => !isCypressTestInput(change.path));
-  if (nonTestInput) {
-    return fullPlan(
-      groups,
-      changes,
-      `Application or build input has no trusted per-spec coverage mapping: ${nonTestInput.path}`,
-    );
-  }
-
   if (dependencyIndex.unresolvedCode.length > 0 || dependencyIndex.dynamicImports.length > 0) {
     return fullPlan(
       groups,
@@ -114,9 +109,31 @@ const planMockTestImpact = ({ groups, changes, dependencyIndex }) => {
   }
 
   const specs = new Set();
+  const groupsFromWorkspace = new Set();
   const details = [];
   for (const change of runtimeChanges) {
     const changedPath = normalizePath(change.path);
+    if (!isCypressTestInput(changedPath)) {
+      if (!workspaceIndex) {
+        return fullPlan(
+          groups,
+          changes,
+          `Application input has no trusted workspace dependency mapping: ${changedPath}`,
+        );
+      }
+      const impact = resolveWorkspaceFileImpact(workspaceIndex, changedPath);
+      if (impact.error) {
+        return fullPlan(groups, changes, impact.error, impact.details);
+      }
+      for (const group of impact.selectedGroups) {
+        groupsFromWorkspace.add(group);
+      }
+      details.push(
+        `${changedPath}: ${impact.owner} reaches ${impact.affectedPackages.length} workspace target(s) and ${impact.selectedGroups.length} group(s)`,
+      );
+      continue;
+    }
+
     if (changedPath.endsWith('.cy.ts')) {
       if (!dependencyIndex.specs.includes(changedPath)) {
         return fullPlan(groups, changes, `Changed Cypress spec was not discovered: ${changedPath}`);
@@ -144,7 +161,9 @@ const planMockTestImpact = ({ groups, changes, dependencyIndex }) => {
     details.push(`${changedPath}: ${consumers.length} importing spec(s)`);
   }
 
-  const selectedGroups = findGroupNames(groups, [...specs]);
+  const selectedGroups = [
+    ...new Set([...groupsFromWorkspace, ...findGroupNames(groups, [...specs])]),
+  ].toSorted();
   if (selectedGroups.length === 0) {
     return fullPlan(groups, changes, 'Impacted specs did not map to the generated CI groups.');
   }
@@ -159,7 +178,10 @@ const planMockTestImpact = ({ groups, changes, dependencyIndex }) => {
       .map((group) => group.name)
       .filter((name) => !selected.has(name))
       .toSorted(),
-    reason: `Static Cypress imports reach ${specs.size} spec(s) in ${selectedGroups.length} group(s).`,
+    reason:
+      groupsFromWorkspace.size > 0
+        ? `Workspace and Cypress dependency closure reaches ${selectedGroups.length} group(s).`
+        : `Static Cypress imports reach ${specs.size} spec(s) in ${selectedGroups.length} group(s).`,
     details,
     safety: 'CI still runs the complete Cypress mock matrix.',
   };
