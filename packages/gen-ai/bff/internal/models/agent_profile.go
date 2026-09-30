@@ -97,7 +97,8 @@ type MCPServerReference struct {
 	Source         string          `json:"source,omitempty" yaml:"source,omitempty"`
 	Version        string          `json:"version,omitempty" yaml:"version,omitempty"`
 	CredentialsRef *CredentialsRef `json:"credentialsRef,omitempty" yaml:"credentialsRef,omitempty"`
-	AllowedTools   []string        `json:"allowedTools,omitempty" yaml:"allowedTools,omitempty"`
+	// Nil omits the restriction; a pointer to an empty list explicitly allows no tools.
+	AllowedTools *[]string `json:"allowedTools,omitempty" yaml:"allowedTools,omitempty"`
 }
 
 // MCPServerRef can point to either a ConfigMap or MCPServer CRD

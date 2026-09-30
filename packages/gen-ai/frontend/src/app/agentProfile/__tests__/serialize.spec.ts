@@ -290,6 +290,107 @@ describe('serializeToAgentProfileSpec', () => {
       ]);
     });
 
+    it('should preserve an explicitly empty registry tool restriction', () => {
+      const registryServer = makeMcpServer({
+        name: 'com.example/jira',
+        url: 'https://registry.example.com/jira',
+        source: 'registry',
+      });
+      const config = {
+        ...DEFAULT_CONFIGURATION,
+        selectedMcpServerIds: [registryServer.url],
+        mcpToolSelections: { 'default-ns': { [registryServer.url]: [] } },
+      };
+
+      const result = serializeToAgentProfileSpec(
+        config,
+        'My Agent',
+        undefined,
+        makeContext({ mcpServers: [registryServer] }),
+      );
+
+      expect(result.mcpServers?.[0].allowedTools).toEqual([]);
+    });
+
+    it('should retain a saved registry server that is currently unreachable', () => {
+      const registryServer = makeMcpServer({
+        name: 'com.example/jira',
+        url: 'https://registry.example.com/jira',
+        source: 'registry',
+      });
+      const savedEntry = {
+        name: registryServer.name,
+        source: 'mlflow' as const,
+        version: '3',
+        allowedTools: ['search_issues'],
+      };
+      const config = {
+        ...DEFAULT_CONFIGURATION,
+        selectedMcpServerIds: [], // The hidden picker row must not erase the saved reference.
+      };
+
+      const result = serializeToAgentProfileSpec(
+        config,
+        'My Agent',
+        undefined,
+        makeContext({
+          mcpServers: [],
+          previousMcpServers: [savedEntry],
+        }),
+      );
+
+      expect(result.mcpServers).toEqual([savedEntry]);
+    });
+
+    it('should retain a saved registry server absent from the current list', () => {
+      const savedEntry = {
+        name: 'com.example/gone',
+        source: 'mlflow' as const,
+        allowedTools: [] as string[],
+      };
+      const result = serializeToAgentProfileSpec(
+        DEFAULT_CONFIGURATION,
+        'My Agent',
+        undefined,
+        makeContext({ previousMcpServers: [savedEntry] }),
+      );
+
+      expect(result.mcpServers).toEqual([savedEntry]);
+    });
+
+    it('should retain an unavailable saved registry server alongside an available ConfigMap server', () => {
+      const configMapServer = makeMcpServer();
+      const savedRegistryEntry = {
+        name: 'com.example/gone',
+        source: 'mlflow' as const,
+        version: '3',
+        allowedTools: ['search'],
+      };
+      const config = {
+        ...DEFAULT_CONFIGURATION,
+        selectedMcpServerIds: [configMapServer.url],
+      };
+
+      const result = serializeToAgentProfileSpec(
+        config,
+        'My Agent',
+        undefined,
+        makeContext({
+          mcpServers: [configMapServer],
+          mcpConfigMapName: 'mcp-config',
+          previousMcpServers: [savedRegistryEntry],
+        }),
+      );
+
+      expect(result.mcpServers).toEqual([
+        {
+          serverRef: { kind: 'ConfigMap', name: 'mcp-config', key: configMapServer.name },
+          allowedTools: undefined,
+        },
+        savedRegistryEntry,
+      ]);
+    });
+
     it('should serialize selected MCP servers with ConfigMap ref', () => {
       const server = makeMcpServer();
       const config = {

@@ -117,6 +117,26 @@ func TestCreateAgentProfileHandler(t *testing.T) {
 				assert.Contains(t, envelope.Error.Message, "exactly one of serverRef or registry reference")
 			},
 		},
+		{
+			name: "invalid profile - unsupported MCP resource kind",
+			requestBody: models.AgentProfileCreateRequest{
+				Spec: models.AgentProfileSpec{
+					DisplayName: "Invalid MCP Agent",
+					Model:       models.ModelReference{ID: "llama-3-8b", URI: "https://api.example.com/v1/models"},
+					MCPServers: []models.MCPServerReference{{
+						ServerRef: &models.MCPServerRef{Kind: "Secret", Name: "not-a-server", Key: "key"},
+					}},
+				},
+			},
+			namespace:      testNamespace,
+			wantStatusCode: http.StatusBadRequest,
+			validateFunc: func(t *testing.T, responseBody []byte) {
+				var envelope ErrorEnvelope
+				require.NoError(t, json.Unmarshal(responseBody, &envelope))
+				assert.Equal(t, "invalid_request", envelope.Error.Code)
+				assert.Contains(t, envelope.Error.Message, "unsupported serverRef.kind")
+			},
+		},
 		// Note: apiVersion and kind are now set by the server, so no invalid version test needed
 		{
 			name: "missing namespace",

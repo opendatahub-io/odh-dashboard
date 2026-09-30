@@ -63,6 +63,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
   const loadedProfileDisplayName = useChatbotConfigStore((s) => s.loadedProfileDisplayName);
   const loadedResourceVersion = useChatbotConfigStore((s) => s.loadedResourceVersion);
   const loadedProfileDescription = useChatbotConfigStore((s) => s.loadedProfileDescription);
+  const loadedProfileSpec = useChatbotConfigStore((s) => s.loadedProfileSpec);
 
   const { data: externalVectorStores = [] } = useFetchAAEVectorStores();
 
@@ -151,6 +152,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
           model: aiModel,
           asrModel,
           mcpServers,
+          previousMcpServers: loadedProfileSpec?.mcpServers,
           mcpConfigMapName: mcpConfigMapName ?? MCP_CONFIG_MAP_NAME_FALLBACK,
         },
       );

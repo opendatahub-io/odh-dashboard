@@ -3,13 +3,21 @@ import {
   interceptNewAgentProfile,
   interceptExistingAgentProfile,
   makeCreateProfileResponse,
+  makeProfileResponse,
 } from '~/__tests__/cypress/cypress/support/helpers/agentProfiles/agentProfilePlaygroundHelpers';
 import {
   mockAgentProfiles,
   mockMCPRegistryStatusAutoConnect,
+  mockMCPRegistryToolsAutoConnect,
   mockMCPServer,
   mockMCPServersWithRegistry,
 } from '~/__tests__/cypress/cypress/__mocks__';
+import { mcpToolsModal } from '~/__tests__/cypress/cypress/pages/playgroundPage/mcpModals';
+import {
+  clearMCPRegistryServersFlag,
+  visitWithMCPRegistryServersFlag,
+} from '~/__tests__/cypress/cypress/support/helpers/mcpServers/mcpServersTestHelpers';
+import type { AgentProfileSpec } from '~/app/agentProfile/types';
 
 // Use mock-test-namespace-2 which has LSD configured and ready in the BFF
 const TEST_NAMESPACE = 'mock-test-namespace-2';
@@ -23,6 +31,13 @@ const REGISTRY_MCP_SERVER = mockMCPServer({
   source: 'registry',
   version: '3',
 });
+const SELECTABLE_REGISTRY_SERVER = mockMCPServer({
+  name: 'com.example/kubernetes',
+  url: 'https://registry.example.com/kubernetes',
+  transport: 'streamable-http',
+  source: 'registry',
+  version: '1.0.0',
+});
 
 const interceptRegistryMcpServer = (): void => {
   cy.intercept(
@@ -34,6 +49,10 @@ const interceptRegistryMcpServer = (): void => {
 };
 
 describe('Agent Profile - Playground (Mocked)', () => {
+  afterEach(() => {
+    clearMCPRegistryServersFlag();
+  });
+
   it(
     'should save a new profile and verify the same profile is active',
     { tags: ['@GenAI', '@AgentProfile', '@Chatbot'] },
@@ -141,6 +160,225 @@ describe('Agent Profile - Playground (Mocked)', () => {
       cy.findByTestId('save-agent-profile-submit-button').click();
 
       cy.wait('@createRegistryProfile').then((interception) => {
+        expect(interception.request.body.spec.mcpServers).to.deep.equal([
+          {
+            name: REGISTRY_MCP_SERVER.name,
+            source: 'mlflow',
+            version: REGISTRY_MCP_SERVER.version,
+            allowedTools: ['search_issues'],
+          },
+        ]);
+      });
+    },
+  );
+
+  it(
+    'should retain a selected registry server and its tools across save, reload, and edit',
+    { tags: ['@GenAI', '@AgentProfile', '@Chatbot', '@Registry'] },
+    () => {
+      const profileId = 'selected-registry-profile-uuid';
+      const profileName = 'Kubernetes registry agent';
+      let persistedSpec: AgentProfileSpec | undefined;
+      const profileResponse = makeProfileResponse(profileId, profileName);
+
+      cy.intercept(
+        'GET',
+        '**/gen-ai/api/v1/aaa/mcps*',
+        mockMCPServersWithRegistry([SELECTABLE_REGISTRY_SERVER], []),
+      ).as('registryList');
+      mockMCPRegistryStatusAutoConnect(
+        SELECTABLE_REGISTRY_SERVER.name,
+        SELECTABLE_REGISTRY_SERVER.url,
+      );
+      mockMCPRegistryToolsAutoConnect(
+        SELECTABLE_REGISTRY_SERVER.name,
+        SELECTABLE_REGISTRY_SERVER.url,
+      );
+      cy.intercept('POST', '**/gen-ai/api/v1/agent-profiles*', (request) => {
+        persistedSpec = request.body.spec as AgentProfileSpec;
+        request.reply({
+          statusCode: 201,
+          body: makeCreateProfileResponse(profileId, profileName, TEST_NAMESPACE),
+        });
+      }).as('createSelectedRegistryProfile');
+      cy.intercept('GET', '**/gen-ai/api/v1/agent-profiles/*', (request) => {
+        request.reply({
+          statusCode: 200,
+          body: {
+            ...profileResponse,
+            data: { ...(profileResponse.data as object), spec: persistedSpec },
+          },
+        });
+      }).as('getSavedRegistryProfile');
+      cy.intercept('PUT', '**/gen-ai/api/v1/agent-profiles/*', (request) => {
+        persistedSpec = request.body.spec as AgentProfileSpec;
+        request.reply({
+          statusCode: 200,
+          body: {
+            data: {
+              ...makeCreateProfileResponse(profileId, profileName, TEST_NAMESPACE).data,
+              resourceVersion: 'rv-2',
+            },
+          },
+        });
+      }).as('updateSelectedRegistryProfile');
+
+      visitWithMCPRegistryServersFlag(true);
+      chatbotPage.visit(TEST_NAMESPACE);
+      cy.wait('@registryList');
+      chatbotPage.mcpTab.openMCPTab();
+      const registryRow = chatbotPage.mcpTab.getRegisteredServerRow(
+        SELECTABLE_REGISTRY_SERVER.name,
+        SELECTABLE_REGISTRY_SERVER.url,
+      );
+      registryRow.findCheckbox().check();
+      cy.wait('@registryToolsRequestAutoConnect');
+      chatbotPage.mcpTab.findSuccessModal().should('be.visible');
+      chatbotPage.mcpTab.closeSuccessModal();
+
+      registryRow.findToolsButton().should('not.have.attr', 'aria-disabled');
+      registryRow.findToolsButton().click();
+      mcpToolsModal.find().should('be.visible');
+      mcpToolsModal.findToolRows().first().should('contain.text', 'list_pods');
+      mcpToolsModal.findSelectAllCheckbox().uncheck();
+      mcpToolsModal.findToolCheckbox(0).click();
+      mcpToolsModal.findToolCountText().should('contain.text', '1 out of 10 selected');
+      mcpToolsModal.findSaveButton().click();
+
+      chatbotPage.openKebabAndClickItem('save-as-agent-profile-button');
+      chatbotPage.findSaveProfileNameInput().type(profileName);
+      chatbotPage.findSaveProfileSubmitButton().click();
+      cy.wait('@createSelectedRegistryProfile').then((interception) => {
+        expect(interception.request.body.spec.mcpServers).to.deep.equal([
+          {
+            name: SELECTABLE_REGISTRY_SERVER.name,
+            source: 'mlflow',
+            version: SELECTABLE_REGISTRY_SERVER.version,
+            allowedTools: ['list_pods'],
+          },
+        ]);
+      });
+
+      cy.location('search').should('include', `agentProfileId=${profileId}`);
+      cy.reload();
+      cy.wait('@getSavedRegistryProfile');
+      chatbotPage.mcpTab.openMCPTab();
+      const reloadedRow = chatbotPage.mcpTab.getRegisteredServerRow(
+        SELECTABLE_REGISTRY_SERVER.name,
+        SELECTABLE_REGISTRY_SERVER.url,
+      );
+      reloadedRow.findCheckbox().should('be.checked');
+      reloadedRow.findToolsButton().should('contain.text', '1 active').click();
+      mcpToolsModal.findToolCountText().should('contain.text', '1 out of 10 selected');
+      mcpToolsModal.findToolCheckbox(0).should('be.checked');
+      mcpToolsModal.findToolCheckbox(1).should('not.be.checked').click();
+      mcpToolsModal.findSaveButton().click();
+
+      chatbotPage.openKebabAndClickItem('save-agent-profile-button');
+      chatbotPage.findSaveProfileSubmitButton().click();
+      cy.wait('@updateSelectedRegistryProfile').then((interception) => {
+        expect(interception.request.body.resourceVersion).to.equal('rv-1');
+        expect(interception.request.body.spec.mcpServers).to.deep.equal([
+          {
+            name: SELECTABLE_REGISTRY_SERVER.name,
+            source: 'mlflow',
+            version: SELECTABLE_REGISTRY_SERVER.version,
+            allowedTools: ['list_pods', 'get_pod'],
+          },
+        ]);
+      });
+
+      reloadedRow.findToolsButton().should('contain.text', '2 active').click();
+      mcpToolsModal.findSelectAllCheckbox().check();
+      mcpToolsModal.findSelectAllCheckbox().uncheck();
+      mcpToolsModal.findToolCountText().should('contain.text', '0 out of 10 selected');
+      mcpToolsModal.findSaveButton().click();
+      chatbotPage.openKebabAndClickItem('save-agent-profile-button');
+      chatbotPage.findSaveProfileSubmitButton().click();
+      cy.wait('@updateSelectedRegistryProfile').then((interception) => {
+        expect(interception.request.body.spec.mcpServers).to.deep.equal([
+          {
+            name: SELECTABLE_REGISTRY_SERVER.name,
+            source: 'mlflow',
+            version: SELECTABLE_REGISTRY_SERVER.version,
+            allowedTools: [],
+          },
+        ]);
+      });
+
+      cy.reload();
+      cy.wait('@getSavedRegistryProfile');
+      chatbotPage.mcpTab.openMCPTab();
+      const emptyToolsRow = chatbotPage.mcpTab.getRegisteredServerRow(
+        SELECTABLE_REGISTRY_SERVER.name,
+        SELECTABLE_REGISTRY_SERVER.url,
+      );
+      emptyToolsRow.findCheckbox().should('be.checked');
+      emptyToolsRow.findToolsButton().should('contain.text', '0 active').click();
+      mcpToolsModal.findToolCountText().should('contain.text', '0 out of 10 selected');
+    },
+  );
+
+  it(
+    'should warn when a saved registry MCP server is no longer listed',
+    { tags: ['@GenAI', '@AgentProfile', '@Chatbot', '@Registry'] },
+    () => {
+      cy.intercept('GET', '**/gen-ai/api/v1/aaa/mcps*', mockMCPServersWithRegistry([], []));
+      interceptExistingAgentProfile(EXISTING_PROFILE_ID, AGENT_NAME, TEST_NAMESPACE, {
+        mcpServers: [{ name: REGISTRY_MCP_SERVER.name, source: 'mlflow' }],
+      });
+
+      visitWithMCPRegistryServersFlag(true);
+      chatbotPage.visit(TEST_NAMESPACE, { agentProfileId: EXISTING_PROFILE_ID });
+      cy.wait('@getAgentProfile');
+      chatbotPage
+        .findProfileLoadWarning()
+        .should('contain.text', `MCP server "${REGISTRY_MCP_SERVER.name}" is no longer available.`);
+    },
+  );
+
+  it(
+    'should warn and retain a saved registry MCP server when it is unreachable',
+    { tags: ['@GenAI', '@AgentProfile', '@Chatbot', '@Registry'] },
+    () => {
+      cy.intercept(
+        'GET',
+        '**/gen-ai/api/v1/aaa/mcps*',
+        mockMCPServersWithRegistry([REGISTRY_MCP_SERVER], []),
+      );
+      cy.intercept(
+        'GET',
+        `**/mcp/status*server_name=${encodeURIComponent(REGISTRY_MCP_SERVER.name)}*`,
+        {
+          statusCode: 503,
+          body: { error: { code: 'unavailable', message: 'Server unreachable' } },
+        },
+      ).as('unreachableRegistryStatus');
+      interceptExistingAgentProfile(EXISTING_PROFILE_ID, AGENT_NAME, TEST_NAMESPACE, {
+        mcpServers: [
+          {
+            name: REGISTRY_MCP_SERVER.name,
+            source: 'mlflow',
+            version: REGISTRY_MCP_SERVER.version,
+            allowedTools: ['search_issues'],
+          },
+        ],
+      });
+
+      visitWithMCPRegistryServersFlag(true);
+      chatbotPage.visit(TEST_NAMESPACE, { agentProfileId: EXISTING_PROFILE_ID });
+      cy.wait('@unreachableRegistryStatus');
+      cy.wait('@getAgentProfile');
+      chatbotPage
+        .findProfileLoadWarning()
+        .should('contain.text', `MCP server "${REGISTRY_MCP_SERVER.name}" is no longer available.`);
+
+      chatbotPage.mcpTab.openMCPTab();
+      chatbotPage.mcpTab.findRegisteredSection().should('not.exist');
+
+      chatbotPage.openKebabAndClickItem('save-agent-profile-button');
+      chatbotPage.findSaveProfileSubmitButton().click();
+      cy.wait('@updateAgentProfile').then((interception) => {
         expect(interception.request.body.spec.mcpServers).to.deep.equal([
           {
             name: REGISTRY_MCP_SERVER.name,

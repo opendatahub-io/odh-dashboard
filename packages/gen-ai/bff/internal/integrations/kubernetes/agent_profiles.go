@@ -275,6 +275,9 @@ func validateAgentProfile(profile *models.AgentProfile) error {
 				if mcp.ServerRef.Kind == "" || mcp.ServerRef.Name == "" {
 					return fmt.Errorf("spec.mcpServers[%d]: serverRef.kind and serverRef.name are required", i)
 				}
+				if mcp.ServerRef.Kind != "ConfigMap" && mcp.ServerRef.Kind != "MCPServer" {
+					return fmt.Errorf("spec.mcpServers[%d]: unsupported serverRef.kind %q", i, mcp.ServerRef.Kind)
+				}
 				// key is required for ConfigMap, unused for MCPServer
 				if mcp.ServerRef.Kind == "ConfigMap" && mcp.ServerRef.Key == "" {
 					return fmt.Errorf("spec.mcpServers[%d]: serverRef.key is required when kind is ConfigMap", i)
