@@ -307,8 +307,8 @@ describe('TranscriptionModelSection', () => {
       expect(selectionRow).toContainElement(
         screen.getByRole('button', { name: 'View all models' }),
       );
-      expect(selectionRow?.firstElementChild).not.toHaveClass('pf-m-flex-1');
-      expect(screen.getByTestId('transcription-model-selector')).not.toHaveClass('pf-m-full-width');
+      expect(selectionRow?.firstElementChild).toHaveClass('pf-m-flex-1');
+      expect(screen.getByTestId('transcription-model-selector')).toHaveClass('pf-m-full-width');
       expect(
         screen.getByRole('button', { name: 'Remove' }).querySelector('svg'),
       ).toBeInTheDocument();
