@@ -32,9 +32,10 @@ import (
 )
 
 const (
-	federationConfigMapName = "federation-config"
-	federationConfigKey     = "module-federation-config.json"
-	moduleComponentLabel    = "app.kubernetes.io/component"
+	federationConfigMapName  = "federation-config"
+	federationConfigKey      = "module-federation-config.json"
+	moduleComponentLabel     = "app.kubernetes.io/component"
+	dataConnectHubModuleName = "dataConnectHub"
 )
 
 // --- Module proxy and federation types ---
@@ -209,6 +210,13 @@ func (r *DashboardReconciler) deployModuleManifests(
 			continue
 		}
 
+		if name == dataConnectHubModuleName {
+			activeRBACName, _ := dataConnectHubGatewayRBACForPlatform(r.Platform)
+			if err := r.cleanupDataConnectHubGatewayRBAC(ctx, activeRBACName); err != nil {
+				return fmt.Errorf("cleaning up inactive DCH gateway RBAC: %w", err)
+			}
+		}
+
 		params := readExistingParams(filepath.Join(modulePath, "params.env"))
 		maps.Copy(params, computed)
 		addInterBFFParams(params, name, statuses, r.Platform)
@@ -223,7 +231,7 @@ func (r *DashboardReconciler) deployModuleManifests(
 			return fmt.Errorf("failed to render manifests for module %s: %w", name, err)
 		}
 		remapRayDashboardGatewayRBAC(rendered)
-		remapDataConnectHubGatewayRBAC(rendered, r.ApplicationsNamespace)
+		rendered = filterAndRemapDataConnectHubGatewayRBAC(rendered, r.ApplicationsNamespace, r.Platform)
 
 		deployer := deploy.NewDeployer(
 			deploy.WithFieldOwner("dashboard-operator"),
@@ -261,6 +269,12 @@ func (r *DashboardReconciler) deleteModuleResources(
 		status := statuses[name]
 		if status.Phase == v1alpha1.ModulePhaseDeployed || status.Phase == v1alpha1.ModulePhaseDegraded {
 			continue
+		}
+
+		if name == dataConnectHubModuleName {
+			if err := r.cleanupDataConnectHubGatewayRBAC(ctx, ""); err != nil {
+				errs = append(errs, fmt.Errorf("cleaning up DCH gateway RBAC: %w", err))
+			}
 		}
 
 		matchLabels := client.MatchingLabels{
