@@ -280,8 +280,8 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
       tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
     },
     () => {
-      cy.step('Navigate to playground with prompt management enabled');
-      genAiPlayground.navigateToPlaygroundWithPromptManagementRetry(projectName);
+      cy.step('Navigate to playground with RAG enabled');
+      genAiPlayground.navigateToPlaygroundWithRag(projectName);
 
       cy.step('Open settings panel and navigate to Knowledge tab');
       genAiPlayground.ensureSettingsPanelOpen();

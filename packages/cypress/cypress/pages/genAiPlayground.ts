@@ -3,6 +3,8 @@ const GEN_AI_CUSTOM_ENDPOINTS_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,modelAsService=false';
+const GEN_AI_CUSTOM_ENDPOINTS_RAG_FLAG =
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,aiAssetVectorStores=true,modelAsService=false';
 const GEN_AI_GUARDRAILS_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,guardrails=true,modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_GUARDRAILS_FLAG =
@@ -63,6 +65,12 @@ class GenAiPlayground {
 
   navigateToPlaygroundWithPromptManagementRetry(projectName: string) {
     const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG}`;
+    cy.visit(playgroundUrl);
+    cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
+  }
+
+  navigateToPlaygroundWithRag(projectName: string) {
+    const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_RAG_FLAG}`;
     cy.visit(playgroundUrl);
     cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
   }
