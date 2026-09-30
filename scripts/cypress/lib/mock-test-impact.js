@@ -50,14 +50,14 @@ const findGroupNames = (groups, specs) => {
 };
 
 const fullPlan = (groups, changes, reason, details = []) => ({
-  mode: 'observe',
+  mode: 'select',
   scope: 'full',
   changedFiles: changes.map((change) => change.path),
   selectedGroups: groups.map((group) => group.name).toSorted(),
   excludedGroups: [],
   reason,
   details,
-  safety: 'CI still runs the complete Cypress mock matrix.',
+  safety: 'CI runs the complete Cypress mock matrix.',
 });
 
 const planMockTestImpact = ({ groups, changes, dependencyIndex }) => {
@@ -67,14 +67,14 @@ const planMockTestImpact = ({ groups, changes, dependencyIndex }) => {
 
   if (changes.every((change) => isDocumentationOnly(change.path))) {
     return {
-      mode: 'observe',
+      mode: 'select',
       scope: 'none',
       changedFiles: changes.map((change) => change.path),
       selectedGroups: [],
       excludedGroups: groups.map((group) => group.name).toSorted(),
       reason: 'Every changed file is validated non-runtime documentation.',
       details: [],
-      safety: 'CI still runs the complete Cypress mock matrix.',
+      safety: 'CI skips Cypress mock tests for this documentation-only change.',
     };
   }
 
@@ -152,7 +152,7 @@ const planMockTestImpact = ({ groups, changes, dependencyIndex }) => {
 
   const selected = new Set(selectedGroups);
   return {
-    mode: 'observe',
+    mode: 'select',
     scope: selectedGroups.length === groups.length ? 'full' : 'partial',
     changedFiles: changes.map((change) => change.path),
     selectedGroups,
@@ -162,7 +162,7 @@ const planMockTestImpact = ({ groups, changes, dependencyIndex }) => {
       .toSorted(),
     reason: `Static Cypress imports reach ${specs.size} spec(s) in ${selectedGroups.length} group(s).`,
     details,
-    safety: 'CI still runs the complete Cypress mock matrix.',
+    safety: 'CI runs only the statically reached Cypress mock groups.',
   };
 };
 

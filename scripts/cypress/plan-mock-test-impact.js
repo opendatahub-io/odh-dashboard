@@ -45,9 +45,9 @@ const readChanges = (root, base, head) => {
 
 const toMarkdown = (plan, metadata) => {
   const lines = [
-    '## Cypress mock test impact (observation only)',
+    '## Cypress mock test impact',
     '',
-    `**Proposed scope:** ${plan.scope} · **Selected:** ${plan.selectedGroups.length}/${metadata.totalGroups} groups`,
+    `**Scope:** ${plan.scope} · **Selected:** ${plan.selectedGroups.length}/${metadata.totalGroups} groups`,
     '',
     plan.reason,
     '',
@@ -91,6 +91,13 @@ const writeFile = (file, contents) => {
   fs.writeFileSync(file, contents);
 };
 
+const createTestMatrix = (groups, selectedGroups) => {
+  const selectedNames = new Set(selectedGroups);
+  return groups
+    .filter((group) => selectedNames.has(group.name))
+    .map(({ name, spec }) => ({ name, spec }));
+};
+
 const main = () => {
   const root = path.resolve(__dirname, '../..');
   const options = parseArgs(process.argv.slice(2));
@@ -115,24 +122,26 @@ const main = () => {
     metadata.dynamicImports = dependencyIndex.dynamicImports.length;
   } catch (error) {
     plan = {
-      mode: 'observe',
+      mode: 'select',
       scope: 'full',
       changedFiles: [],
       selectedGroups: groups.map((group) => group.name).toSorted(),
       excludedGroups: [],
-      reason: `Planner error; fail-open is disabled for test execution: ${
+      reason: `Planner error; running the complete Cypress mock matrix: ${
         error instanceof Error ? error.message : String(error)
       }`,
       details: [],
-      safety: 'CI still runs the complete Cypress mock matrix.',
+      safety: 'CI runs the complete Cypress mock matrix.',
     };
     metadata.error = error instanceof Error ? error.stack : String(error);
   }
 
   const report = { metadata, plan };
   const markdown = toMarkdown(plan, metadata);
+  const matrix = createTestMatrix(groups, plan.selectedGroups);
   writeFile(options.json, `${JSON.stringify(report, null, 2)}\n`);
   writeFile(options.markdown, markdown);
+  writeFile(options.matrix, `${JSON.stringify(matrix, null, 2)}\n`);
   process.stdout.write(markdown);
 };
 
@@ -140,4 +149,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { parseArgs, readChanges, toMarkdown };
+module.exports = { createTestMatrix, parseArgs, readChanges, toMarkdown };

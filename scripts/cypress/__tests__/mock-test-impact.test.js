@@ -2,7 +2,7 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 
 const { planMockTestImpact } = require('../lib/mock-test-impact');
-const { toMarkdown } = require('../plan-mock-test-impact');
+const { createTestMatrix, toMarkdown } = require('../plan-mock-test-impact');
 
 const groups = [
   { name: 'hardware/one', files: ['packages/cypress/cypress/tests/mocked/hardware/one.cy.ts'] },
@@ -111,7 +111,7 @@ describe('planMockTestImpact', () => {
 });
 
 describe('toMarkdown', () => {
-  it('states that the proposal does not skip the full matrix', () => {
+  it('states that the selected groups will run', () => {
     const result = plan([{ status: 'M', path: specs[2] }]);
     const markdown = toMarkdown(result, {
       base: 'base-sha',
@@ -119,8 +119,35 @@ describe('toMarkdown', () => {
       totalGroups: groups.length,
     });
 
-    assert.match(markdown, /observation only/);
-    assert.match(markdown, /CI still runs the complete Cypress mock matrix/);
+    assert.doesNotMatch(markdown, /observation only/);
+    assert.match(markdown, /CI runs only the statically reached Cypress mock groups/);
     assert.match(markdown, /Selected:\*\* 1\/4 groups/);
+  });
+});
+
+describe('createTestMatrix', () => {
+  it('exports only selected groups without planner metadata', () => {
+    const matrixGroups = [
+      {
+        name: 'hardware/two',
+        spec: 'cypress/two.cy.ts',
+        files: ['packages/cypress/two.cy.ts'],
+        size: 100,
+      },
+      {
+        name: 'observability',
+        spec: 'observability/dashboard.cy.ts',
+        files: ['packages/observability/dashboard.cy.ts'],
+        size: 200,
+      },
+    ];
+
+    assert.deepEqual(createTestMatrix(matrixGroups, ['observability']), [
+      { name: 'observability', spec: 'observability/dashboard.cy.ts' },
+    ]);
+  });
+
+  it('exports an empty matrix when no tests are selected', () => {
+    assert.deepEqual(createTestMatrix(groups, []), []);
   });
 });
