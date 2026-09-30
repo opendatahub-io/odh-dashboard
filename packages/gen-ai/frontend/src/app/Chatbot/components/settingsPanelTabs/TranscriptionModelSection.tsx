@@ -276,9 +276,10 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
         Transcription model
       </Title>
       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-        <FlexItem>
+        <FlexItem flex={{ default: 'flex_1' }}>
           <Dropdown
             isOpen={isDropdownOpen}
+            popperProps={{ minWidth: 'auto' }}
             onSelect={(_, value) => {
               if (typeof value === 'string') {
                 handleSelect(value);
@@ -291,6 +292,7 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
                 id="asr-model-selector"
                 aria-label="Transcription model"
                 isExpanded={isDropdownOpen}
+                isFullWidth
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 data-testid="transcription-model-selector"
               >
