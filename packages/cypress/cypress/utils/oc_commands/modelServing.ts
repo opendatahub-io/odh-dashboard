@@ -1,6 +1,6 @@
 /* eslint-disable cypress/no-unnecessary-waiting */
 import { createDataConnection } from './dataConnection';
-import { ensureAdminOcSession } from './baseCommands';
+import { ensureAdminOcSession, getClusterArchitecture } from './baseCommands';
 import { AWS_BUCKETS } from '../s3Buckets';
 import type { CommandLineResult, DataConnectionReplacements } from '../../types';
 import { createCleanProject } from '../projectChecker';
@@ -406,7 +406,11 @@ export const checkInferenceServiceState = (
         cy.log(errorMessage);
         throw new Error(errorMessage);
       } else {
-        return cy.wait(30000).then(() => checkState());
+        return getClusterArchitecture().then((arch) => {
+          const waitTime = arch === 's390x' ? 50000 : 8000;
+          cy.log(`Arch "${arch}" detected — waiting ${waitTime / 1000}s before next poll`);
+          return cy.wait(waitTime).then(() => checkState());
+        });
       }
     });
 
