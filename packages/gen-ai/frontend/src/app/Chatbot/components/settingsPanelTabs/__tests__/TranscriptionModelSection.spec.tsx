@@ -373,6 +373,28 @@ describe('TranscriptionModelSection', () => {
       });
     });
 
+    it('ignores a dropdown choice whose model is no longer available', async () => {
+      const user = userEvent.setup();
+      const staleModel = { ...mockAsrModel2 };
+      act(() => {
+        useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-large-v3');
+      });
+      renderWithContext({ aiModels: [mockChatModel, mockAsrModel, staleModel] });
+
+      await user.click(screen.getByTestId('transcription-model-selector'));
+      const staleChoice = screen.getByRole('menuitem', { name: 'Whisper Small' });
+      staleModel.model_id = 'renamed-whisper-small';
+      await user.click(staleChoice);
+
+      expect(
+        useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID]?.selectedAsrModel,
+      ).toBe('whisper-large-v3');
+      expect(mockFireMisc).not.toHaveBeenCalled();
+    });
+
     it('selects an untagged model from the modal when tagged models exist', async () => {
       const user = userEvent.setup();
       act(() => {
