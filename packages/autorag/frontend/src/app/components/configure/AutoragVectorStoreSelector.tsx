@@ -28,6 +28,10 @@ import {
 type Props = {
   initialSecret?: SecretSelection;
   preserveInitialSelection?: boolean;
+  mode?: RagMode;
+  selectedSecret?: SecretSelection;
+  onModeChange?: (mode: RagMode) => void;
+  onSelectedSecretChange?: (secret: SecretSelection | undefined) => void;
 };
 
 type RagMode = 'simple' | 'graph';
@@ -35,10 +39,16 @@ type RagMode = 'simple' | 'graph';
 const AutoragVectorStoreSelector: React.FC<Props> = ({
   initialSecret,
   preserveInitialSelection = false,
+  mode: controlledMode,
+  selectedSecret: controlledSelectedSecret,
+  onModeChange,
+  onSelectedSecretChange,
 }) => {
   const { namespace = '' } = useParams();
   const initialProvider = getVectorStoreProviderTypeFromSecretData(initialSecret?.data);
-  const [mode, setMode] = React.useState<RagMode>(initialProvider === 'neo4j' ? 'graph' : 'simple');
+  const [internalMode, setInternalMode] = React.useState<RagMode>(
+    initialProvider === 'neo4j' ? 'graph' : 'simple',
+  );
   const [selectedSecret, setSelectedSecret] = React.useState<SecretSelection | undefined>(
     initialSecret,
   );
@@ -50,6 +60,18 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({
   );
   const { onVectorStoreConfigured } = useRunTriggeredTracking();
   const form = useFormContext<ConfigureSchema>();
+  const mode = controlledMode ?? internalMode;
+  const selected = onSelectedSecretChange ? controlledSelectedSecret : selectedSecret;
+
+  const setMode = (nextMode: RagMode) => {
+    setInternalMode(nextMode);
+    onModeChange?.(nextMode);
+  };
+
+  const setSelected = (secret: SecretSelection | undefined) => {
+    setSelectedSecret(secret);
+    onSelectedSecretChange?.(secret);
+  };
 
   return (
     <Controller
@@ -68,7 +90,7 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({
                 isChecked={mode === 'simple'}
                 onChange={() => {
                   setMode('simple');
-                  setSelectedSecret(undefined);
+                  setSelected(undefined);
                   field.onChange('');
                 }}
               />
@@ -81,7 +103,7 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({
                 isChecked={mode === 'graph'}
                 onChange={() => {
                   setMode('graph');
-                  setSelectedSecret(undefined);
+                  setSelected(undefined);
                   field.onChange('');
                 }}
               />
@@ -103,10 +125,10 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({
                 allowedProviders={mode === 'graph' ? ['neo4j'] : ['milvus', 'pgvector']}
                 preserveSelectedValue={preserveInitialSelection}
                 namespace={namespace}
-                value={selectedSecret?.uuid}
+                value={field.value ? selected?.uuid : undefined}
                 valueName={field.value}
                 onChange={(secret: SecretSelection | undefined) => {
-                  setSelectedSecret(secret);
+                  setSelected(secret);
                   field.onChange(!secret || secret.invalid ? '' : secret.name);
                   if (secret && !secret.invalid) {
                     const providerType = getVectorStoreProviderTypeFromSecretData(secret.data);
@@ -214,8 +236,8 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({
                     'The new database connection was not found after refreshing the connection list.',
                   );
                 }
-                const selected = { ...secret, invalid: false };
-                setSelectedSecret(selected);
+                const selectedSecretFromList = { ...secret, invalid: false };
+                setSelected(selectedSecretFromList);
                 field.onChange(secret.name);
                 const providerType = getVectorStoreProviderTypeFromSecretData(secret.data);
                 if (providerType) {

@@ -139,7 +139,7 @@ const parseReconfigureParameters = (params: Record<string, unknown>): Reconfigur
       key === 'optimization_metric' ? restoredMetric : params[key],
     );
     if (result.success) {
-      data[schemaKey] = result.data;
+      data[key] = result.data;
     } else {
       hasInvalidFields = true;
     }
@@ -209,6 +209,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   const {
     data: legacyVectorDbSecrets,
     isPending: legacyVectorDbSecretsPending,
+    isFetching: legacyVectorDbSecretsFetching,
     isError: legacyVectorDbSecretsError,
   } = useQuery({
     queryKey: ['secrets', namespace, 'vector-db', 'legacy-reconfigure'],
@@ -219,6 +220,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   const {
     data: vectorDbSecrets,
     isPending: vectorDbSecretsPending,
+    isFetching: vectorDbSecretsFetching,
     isError: vectorDbSecretsError,
   } = useQuery({
     queryKey: ['secrets', namespace, 'database'],
@@ -243,7 +245,10 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   });
 
   React.useEffect(() => {
-    if (!isLegacyRun && needsLegacyVectorDbLookup && legacyVectorDbSecretsPending) {
+    if (
+      !isLegacyRun &&
+      (vectorDbSecretsFetching || (needsLegacyVectorDbLookup && legacyVectorDbSecretsFetching))
+    ) {
       return;
     }
     if (
@@ -261,11 +266,12 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   }, [
     isLegacyRun,
     legacyVectorDbSecretsError,
-    legacyVectorDbSecretsPending,
+    legacyVectorDbSecretsFetching,
     maasSecretsError,
     needsLegacyVectorDbLookup,
     notification,
     storageSecretsError,
+    vectorDbSecretsFetching,
     vectorDbSecretsError,
   ]);
 
@@ -300,7 +306,10 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   );
 
   React.useEffect(() => {
-    if (!isLegacyRun && needsLegacyVectorDbLookup && legacyVectorDbSecretsPending) {
+    if (
+      !isLegacyRun &&
+      (vectorDbSecretsFetching || (needsLegacyVectorDbLookup && legacyVectorDbSecretsFetching))
+    ) {
       return;
     }
     if (!isLegacyRun) {
@@ -321,11 +330,12 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   }, [
     databaseSecrets,
     isLegacyRun,
-    legacyVectorDbSecretsPending,
+    legacyVectorDbSecretsFetching,
     maasSecrets,
     needsLegacyVectorDbLookup,
     params,
     storageSecrets,
+    vectorDbSecretsFetching,
     warnMissingSecret,
   ]);
 

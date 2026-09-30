@@ -1,9 +1,10 @@
 /* eslint-disable camelcase */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import AutoragReconfigureLoader from '~/app/pages/AutoragReconfigureLoader';
+import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import type { PipelineRun } from '~/app/types';
 
 const mockUseParams = jest.fn();
@@ -78,11 +79,9 @@ const createRun = (parameters?: Record<string, unknown>): PipelineRun => ({
   runtime_config: parameters ? { parameters } : undefined,
 });
 
-const renderPage = () =>
+const renderPage = (client = new QueryClient({ defaultOptions: { queries: { retry: false } } })) =>
   render(
-    <QueryClientProvider
-      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
-    >
+    <QueryClientProvider client={client}>
       <AutoragReconfigureLoader />
     </QueryClientProvider>,
   );
@@ -625,5 +624,197 @@ describe('AutoragReconfigureLoader', () => {
       'Unable to load connection secrets',
       'The previously used connection secrets could not be loaded. You will need to manually select connection secrets.',
     );
+  });
+
+  it('should wait for current and legacy database queries before warning about a missing connection', async () => {
+    let resolveDatabase: ((secrets: never[]) => void) | undefined;
+    let resolveLegacyDatabase: ((secrets: never[]) => void) | undefined;
+    const databaseQuery = new Promise<never[]>((resolve) => {
+      resolveDatabase = resolve;
+    });
+    const legacyDatabaseQuery = new Promise<never[]>((resolve) => {
+      resolveLegacyDatabase = resolve;
+    });
+    mockGetSecrets.mockImplementation((type: string) => {
+      if (type === 'database') {
+        return databaseQuery;
+      }
+      if (type === 'vector-db') {
+        return legacyDatabaseQuery;
+      }
+      return Promise.resolve([]);
+    });
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/input.pdf'],
+        maas_secret_name: 'maas',
+        vector_db_secret_name: 'missing-database',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+    await waitFor(() => expect(mockGetSecrets).toHaveBeenCalledWith('database'));
+    expect(mockWarning).not.toHaveBeenCalledWith(
+      'Connection secret not found',
+      'The previously used database connection "missing-database" could not be found. Please select a new connection.',
+    );
+
+    await act(async () => {
+      resolveDatabase?.([]);
+    });
+    expect(mockWarning).not.toHaveBeenCalledWith(
+      'Connection secret not found',
+      'The previously used database connection "missing-database" could not be found. Please select a new connection.',
+    );
+
+    await act(async () => {
+      resolveLegacyDatabase?.([]);
+    });
+    await screen.findByTestId('configure-page');
+    expect(mockWarning).toHaveBeenCalledWith(
+      'Connection secret not found',
+      'The previously used database connection "missing-database" could not be found. Please select a new connection.',
+    );
+    expect(
+      mockWarning.mock.calls.filter(
+        ([title, body]) =>
+          title === 'Connection secret not found' &&
+          body ===
+            'The previously used database connection "missing-database" could not be found. Please select a new connection.',
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('should wait for a current database query before warning about a missing connection', async () => {
+    let resolveDatabase: ((secrets: never[]) => void) | undefined;
+    const databaseQuery = new Promise<never[]>((resolve) => {
+      resolveDatabase = resolve;
+    });
+    mockGetSecrets.mockImplementation((type: string) =>
+      type === 'database'
+        ? databaseQuery
+        : type === 'maas'
+          ? Promise.resolve([{ uuid: 'maas-uuid', name: 'maas', type: 'maas', data: {} }])
+          : Promise.resolve([]),
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/input.pdf'],
+        maas_secret_name: 'maas',
+        db_secret_name: 'missing-database',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+    await waitFor(() => expect(mockGetSecrets).toHaveBeenCalledWith('database'));
+    expect(mockWarning).not.toHaveBeenCalledWith(
+      'Connection secret not found',
+      'The previously used database connection "missing-database" could not be found. Please select a new connection.',
+    );
+
+    await act(async () => {
+      resolveDatabase?.([]);
+    });
+    await screen.findByTestId('configure-page');
+    await waitFor(() =>
+      expect(mockWarning).toHaveBeenCalledWith(
+        'Connection secret not found',
+        'The previously used database connection "missing-database" could not be found. Please select a new connection.',
+      ),
+    );
+    expect(
+      mockWarning.mock.calls.filter(
+        ([title, body]) =>
+          title === 'Connection secret not found' &&
+          body ===
+            'The previously used database connection "missing-database" could not be found. Please select a new connection.',
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('should not warn when a cached database miss is refetched and resolves the secret', async () => {
+    let resolveDatabase: ((secrets: SecretSelection[]) => void) | undefined;
+    const databaseQuery = new Promise<SecretSelection[]>((resolve) => {
+      resolveDatabase = resolve;
+    });
+    mockGetSecrets.mockImplementation((type: string) =>
+      type === 'database'
+        ? databaseQuery
+        : type === 'maas'
+          ? Promise.resolve([{ uuid: 'maas-uuid', name: 'maas', type: 'maas', data: {} }])
+          : Promise.resolve([]),
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/input.pdf'],
+        maas_secret_name: 'maas',
+        db_secret_name: 'database',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(['secrets', 'test-ns', 'database'], []);
+
+    renderPage(queryClient);
+    await waitFor(() => expect(mockGetSecrets).toHaveBeenCalledWith('database'));
+    expect(mockWarning).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveDatabase?.([{ uuid: 'database-uuid', name: 'database', type: 'database', data: {} }]);
+    });
+    await waitFor(() =>
+      expect(capturedProps.initialDatabaseSecret).toMatchObject({ name: 'database' }),
+    );
+    expect(mockWarning).not.toHaveBeenCalled();
+  });
+
+  it('should not warn when a pending current database query resolves the matching secret', async () => {
+    let resolveDatabase: ((secrets: SecretSelection[]) => void) | undefined;
+    const databaseQuery = new Promise<SecretSelection[]>((resolve) => {
+      resolveDatabase = resolve;
+    });
+    mockGetSecrets.mockImplementation((type: string) =>
+      type === 'database'
+        ? databaseQuery
+        : type === 'maas'
+          ? Promise.resolve([{ uuid: 'maas-uuid', name: 'maas', type: 'maas', data: {} }])
+          : Promise.resolve([]),
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/input.pdf'],
+        maas_secret_name: 'maas',
+        db_secret_name: 'database',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+    await waitFor(() => expect(mockGetSecrets).toHaveBeenCalledWith('database'));
+    expect(mockWarning).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveDatabase?.([{ uuid: 'database-uuid', name: 'database', type: 'database', data: {} }]);
+    });
+    await screen.findByTestId('configure-page');
+    expect(mockWarning).not.toHaveBeenCalled();
   });
 });

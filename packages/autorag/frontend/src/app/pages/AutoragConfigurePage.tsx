@@ -34,6 +34,7 @@ import {
   fireAutoragFlowExited,
   fireAutoragRunReconfigured,
   fireAutoragRunTriggered,
+  getVectorStoreProviderTypeFromSecretData,
   mapOptimizationMetric,
   mapOptimizationMetricEvaluator,
   TrackingOutcome,
@@ -77,6 +78,8 @@ type AutoragConfigurePageProps = {
   /** When reconfiguring, the display name of the source run (used in the page title and breadcrumb). */
   sourceRunName?: string;
 };
+
+type RagMode = 'simple' | 'graph';
 
 function AutoragConfigurePage({
   initialValues,
@@ -145,6 +148,14 @@ function AutoragConfigurePage({
 
   const [step, setStep] = useState<'create' | 'configure'>('create');
   const [maasModelsReady, setMaaSModelsReady] = useState(false);
+  const [ragMode, setRagMode] = useState<RagMode>(() =>
+    getVectorStoreProviderTypeFromSecretData(initialDatabaseSecret?.data) === 'neo4j'
+      ? 'graph'
+      : 'simple',
+  );
+  const [databaseSecret, setDatabaseSecret] = useState<SecretSelection | undefined>(
+    initialDatabaseSecret,
+  );
   // Populated by the Knowledge/Evaluation/Vector-store selectors via RunTriggeredTrackingContext
   // when the user actually (re)selects a source/provider in this session — see the context's
   // doc comment for why this can't be safely derived from form data alone. Read at submit time
@@ -575,6 +586,10 @@ function AutoragConfigurePage({
                     initialDatabaseSecret={initialDatabaseSecret}
                     preserveInitialDatabaseSecret={preserveInitialDatabaseSecret}
                     isReconfigure={!!sourceRunId}
+                    ragMode={ragMode}
+                    selectedDatabaseSecret={databaseSecret}
+                    onRagModeChange={setRagMode}
+                    onDatabaseSecretChange={setDatabaseSecret}
                     onMaaSModelsReady={setMaaSModelsReady}
                   />
                 )}

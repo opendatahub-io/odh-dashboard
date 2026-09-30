@@ -149,6 +149,10 @@ type AutoragConfigureProps = {
   initialDatabaseSecret?: SecretSelection;
   preserveInitialDatabaseSecret?: boolean;
   isReconfigure?: boolean;
+  ragMode?: 'simple' | 'graph';
+  selectedDatabaseSecret?: SecretSelection;
+  onRagModeChange?: (mode: 'simple' | 'graph') => void;
+  onDatabaseSecretChange?: (secret: SecretSelection | undefined) => void;
   onMaaSModelsReady?: (ready: boolean) => void;
 };
 
@@ -164,6 +168,10 @@ function AutoragConfigure({
   initialDatabaseSecret,
   preserveInitialDatabaseSecret,
   isReconfigure = false,
+  ragMode,
+  selectedDatabaseSecret,
+  onRagModeChange,
+  onDatabaseSecretChange,
   onMaaSModelsReady,
 }: AutoragConfigureProps): React.JSX.Element {
   const { namespace } = useParams();
@@ -863,6 +871,10 @@ function AutoragConfigure({
                         <AutoragVectorStoreSelector
                           initialSecret={initialDatabaseSecret}
                           preserveInitialSelection={preserveInitialDatabaseSecret}
+                          mode={ragMode}
+                          selectedSecret={selectedDatabaseSecret}
+                          onModeChange={onRagModeChange}
+                          onSelectedSecretChange={onDatabaseSecretChange}
                         />
                       </ConfigureFormGroup>
                     </FlexItem>

@@ -4,6 +4,7 @@ import React, { act } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useParams } from 'react-router';
 import AutoragVectorStoreSelector from '~/app/components/configure/AutoragVectorStoreSelector';
+import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
 
@@ -36,12 +37,14 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
     dataTestId,
     type,
     provider,
+    value,
     onRefreshReady,
   }: {
     onChange: (value: unknown) => void;
     dataTestId: string;
     type: string;
     provider?: string;
+    value?: string;
     onRefreshReady?: (refresh: () => Promise<SecretListItem[] | undefined>) => void;
   }) => {
     onRefreshReady?.(mockVectorRefresh);
@@ -50,7 +53,15 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
         data-testid={dataTestId}
         data-secret-type={type}
         data-secret-provider={provider}
-        onClick={() => onChange({ uuid: 'vector-db-1', name: 'vector-db-secret', invalid: false })}
+        data-selected-value={value}
+        onClick={() =>
+          onChange({
+            uuid: provider === 'neo4j' ? 'neo4j-1' : 'vector-db-1',
+            name: provider === 'neo4j' ? 'neo4j-secret' : 'vector-db-secret',
+            data: provider === 'neo4j' ? { NEO4J_URI: 'neo4j://example' } : {},
+            invalid: false,
+          })
+        }
       >
         Select vector database secret
       </button>
@@ -212,5 +223,90 @@ describe('AutoragVectorStoreSelector', () => {
       'not found after refreshing',
     );
     expect(screen.getByTestId('vector-db-modal')).toBeInTheDocument();
+  });
+
+  it('should preserve a selected Graph RAG connection when the selector remounts', () => {
+    const ControlledSelector = () => {
+      const [mode, setMode] = React.useState<'simple' | 'graph'>('simple');
+      const [selectedSecret, setSelectedSecret] = React.useState<SecretListItem>();
+      const [renderKey, setRenderKey] = React.useState(0);
+
+      return (
+        <>
+          <button data-testid="remount-selector" onClick={() => setRenderKey((key) => key + 1)}>
+            Remount
+          </button>
+          <AutoragVectorStoreSelector
+            key={renderKey}
+            mode={mode}
+            selectedSecret={selectedSecret}
+            onModeChange={setMode}
+            onSelectedSecretChange={setSelectedSecret}
+          />
+        </>
+      );
+    };
+
+    render(
+      <FormWrapper>
+        <ControlledSelector />
+      </FormWrapper>,
+    );
+
+    fireEvent.click(screen.getByTestId('autorag-rag-mode-graph'));
+    fireEvent.click(screen.getByTestId('database-secret-selector'));
+    fireEvent.click(screen.getByTestId('remount-selector'));
+
+    expect(screen.getByTestId('autorag-rag-mode-graph')).toBeChecked();
+    expect(screen.getByTestId('database-secret-selector')).toHaveAttribute(
+      'data-secret-provider',
+      'neo4j',
+    );
+    expect(screen.getByTestId('database-secret-selector')).toHaveAttribute(
+      'data-selected-value',
+      'neo4j-1',
+    );
+  });
+
+  it('should preserve an edited reconfiguration selection when the selector remounts', () => {
+    const originalSecret = {
+      uuid: 'original-db',
+      name: 'original-db',
+      data: { MILVUS_URI: 'milvus://original' },
+      invalid: false,
+    };
+    const ControlledSelector = () => {
+      const [selectedSecret, setSelectedSecret] = React.useState<SecretSelection | undefined>(
+        originalSecret,
+      );
+      const [renderKey, setRenderKey] = React.useState(0);
+
+      return (
+        <>
+          <button data-testid="remount-selector" onClick={() => setRenderKey((key) => key + 1)}>
+            Remount
+          </button>
+          <AutoragVectorStoreSelector
+            key={renderKey}
+            selectedSecret={selectedSecret}
+            onSelectedSecretChange={setSelectedSecret}
+          />
+        </>
+      );
+    };
+
+    render(
+      <FormWrapper>
+        <ControlledSelector />
+      </FormWrapper>,
+    );
+
+    fireEvent.click(screen.getByTestId('database-secret-selector'));
+    fireEvent.click(screen.getByTestId('remount-selector'));
+
+    expect(screen.getByTestId('database-secret-selector')).toHaveAttribute(
+      'data-selected-value',
+      'vector-db-1',
+    );
   });
 });
