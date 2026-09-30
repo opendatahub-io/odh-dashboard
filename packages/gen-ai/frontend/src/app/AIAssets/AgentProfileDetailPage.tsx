@@ -205,6 +205,7 @@ const DeploymentAccordionItem: React.FC<DeploymentAccordionItemProps> = ({
                   actions={
                     <CodeBlockAction>
                       <ClipboardCopyButton
+                        id={`agent-deployment-${deployment.name}-curl-copy`}
                         aria-label="Copy Responses API curl command"
                         onClick={copyResponseAPICurl}
                         variant="plain"
