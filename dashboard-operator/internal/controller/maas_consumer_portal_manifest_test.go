@@ -54,6 +54,7 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	params["core-bff-image"] = maasConsumerPortalCoreBFFImage
 	params["dashboard-namespace"] = "portal-test"
 	params["perses-namespace"] = "custom-perses"
+	params["operator-namespace"] = "custom-operators"
 	params["gateway-name"] = "portal-gateway"
 	params["maas-consumer-portal-federation-config"] = "maas-consumer-portal-federation-test"
 	require.NoError(t, writeParamsEnv(dir, params))
@@ -61,8 +62,8 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	engine := kustomize.NewEngine()
 	rendered, err := engine.Render(dir, kustomize.WithNamespace("portal-test"))
 	require.NoError(t, err)
-	setMaaSConsumerPortalOperatorSubscriptionNamespaces(rendered)
-	require.Len(t, rendered, 12, "bundle must render its eleven operand resources and params ConfigMap")
+	rendered = setMaaSConsumerPortalOperatorSubscriptionNamespaces(rendered, "custom-operators")
+	require.Len(t, rendered, 18, "bundle must include scoped subscription RBAC in default and configured operator namespaces")
 
 	resources := make(map[string]*unstructured.Unstructured, len(rendered))
 	for i := range rendered {
@@ -104,6 +105,7 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	require.Len(t, containers, 1)
 	container := containers[0].(map[string]interface{})
 	assert.Equal(t, maasConsumerPortalCoreBFFImage, container["image"])
+	assert.Equal(t, "custom-operators", namedManifestObject(t, container["env"].([]interface{}), "OPERATOR_NAMESPACE")["value"])
 	assert.Contains(t, container["args"], "--deployment-mode=standalone")
 	assert.Contains(t, container["args"], "--platform-type=OpenShift")
 	assert.Contains(t, container["args"], "--namespace=portal-test")
@@ -220,6 +222,9 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 
 	assertOperatorSubscriptionRole(t, resources, "redhat-ods-operator", "rhods-operator")
 	assertOperatorSubscriptionRole(t, resources, "opendatahub-operator", "opendatahub-operator")
+	assertOperatorSubscriptionRole(t, resources, "openshift-operators", "opendatahub-operator")
+	assertOperatorSubscriptionRole(t, resources, "custom-operators", "rhods-operator")
+	assertOperatorSubscriptionRole(t, resources, "custom-operators", "opendatahub-operator")
 
 	networkPolicy := resources["NetworkPolicy/"+maasConsumerPortalName]
 	require.NotNil(t, networkPolicy)

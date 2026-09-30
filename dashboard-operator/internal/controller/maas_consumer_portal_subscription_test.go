@@ -270,3 +270,42 @@ func writeMaaSConsumerPortalSubscriptionTestManifest(t *testing.T) string {
 	}
 	return base
 }
+
+func TestMaaSConsumerPortalSubscriptionRBAC_AdditionalNamespaces(t *testing.T) {
+	for _, namespace := range []string{"openshift-operators", "custom-operators"} {
+		t.Run(namespace, func(t *testing.T) {
+			scheme := maasConsumerPortalScheme(t)
+			cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}).Build()
+			r := &DashboardReconciler{Client: cli, Scheme: scheme, Namespace: namespace, ApplicationsNamespace: maasConsumerPortalTestNamespace, ManifestsBasePath: writeMaaSConsumerPortalSubscriptionTestManifest(t)}
+			dashboard := &v1alpha1.Dashboard{ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName}, Spec: v1alpha1.DashboardSpec{Gateway: &v1alpha1.GatewaySpec{Domain: "apps.example.com"}}}
+			require.NoError(t, r.deployMaaSConsumerPortalBundle(context.Background(), dashboard))
+			for _, name := range []string{maasConsumerPortalRhodsOperatorSubscriptionResourceName, maasConsumerPortalOpenDataHubOperatorSubscriptionResourceName} {
+				require.NoError(t, cli.Get(context.Background(), client.ObjectKey{Name: name, Namespace: namespace}, &rbacv1.Role{}))
+				require.NoError(t, cli.Get(context.Background(), client.ObjectKey{Name: name, Namespace: namespace}, &rbacv1.RoleBinding{}))
+			}
+			require.Len(t, r.mapMaaSConsumerPortalOperatorNamespaceToDashboard(context.Background(), &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}), 1)
+			require.NoError(t, r.deleteLabeledMaaSConsumerPortalOperatorSubscriptionRBACResources(context.Background()))
+			roles := &rbacv1.RoleList{}
+			require.NoError(t, cli.List(context.Background(), roles, client.InNamespace(namespace)))
+			assert.Empty(t, roles.Items)
+		})
+	}
+}
+
+func TestMaaSConsumerPortalSubscriptionRBAC_ScopedAndDeduplicated(t *testing.T) {
+	role := unstructured.Unstructured{Object: map[string]interface{}{
+		"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "Role", "metadata": map[string]interface{}{"name": maasConsumerPortalOpenDataHubOperatorSubscriptionResourceName},
+		"rules": []interface{}{map[string]interface{}{"apiGroups": []interface{}{"operators.coreos.com"}, "resources": []interface{}{"subscriptions"}, "resourceNames": []interface{}{"opendatahub-operator"}, "verbs": []interface{}{"get"}}},
+	}}
+	for _, namespace := range []string{"openshift-operators", "custom-operators"} {
+		resources := setMaaSConsumerPortalOperatorSubscriptionNamespaces([]unstructured.Unstructured{*role.DeepCopy()}, namespace)
+		seen := map[string]bool{}
+		for _, resource := range resources {
+			assert.False(t, seen[resource.GetNamespace()], "duplicate Role in %s", resource.GetNamespace())
+			seen[resource.GetNamespace()] = true
+			assert.Equal(t, role.Object["rules"], resource.Object["rules"])
+		}
+		assert.True(t, seen[namespace])
+		assert.True(t, seen["openshift-operators"])
+	}
+}

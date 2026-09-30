@@ -8,9 +8,11 @@ type SDKConfigurations = React.ComponentProps<typeof AppInitSDK>['configurations
 
 const apiDiscovery: NonNullable<SDKConfigurations['apiDiscovery']> = () => null;
 
-const wsAppSettings: SDKConfigurations['wsAppSettings'] = () =>
+const getWsAppSettings = (basePath: string): ReturnType<SDKConfigurations['wsAppSettings']> =>
   Promise.resolve({
-    host: `${window.location.protocol.replace(/^http/i, 'ws')}//${window.location.host}/wss/k8s`,
+    host: `${window.location.protocol.replace(/^http/i, 'ws')}//${
+      window.location.host
+    }${basePath}/wss/k8s`,
     urlAugment: (url: string) => {
       const [path, query] = url.split('?');
       const queryParams = new URLSearchParams(query);
@@ -25,13 +27,21 @@ const wsAppSettings: SDKConfigurations['wsAppSettings'] = () =>
 type K8sSdkProviderProps = {
   store: PluginStore;
   appFetch: (url: string, options?: RequestInit) => Promise<Response>;
+  /** Browser-visible mount point for the distribution's Kubernetes WebSocket proxy. */
+  basePath?: string;
   children: React.ReactNode;
 };
 
 /** Initializes the SDK Kubernetes client using the distribution's Core BFF transport. */
-export const K8sSdkProvider: React.FC<K8sSdkProviderProps> = ({ store, appFetch, children }) => {
+export const K8sSdkProvider: React.FC<K8sSdkProviderProps> = ({
+  store,
+  appFetch,
+  basePath = '',
+  children,
+}) => {
   const [ready, setReady] = React.useState(isUtilsConfigSet);
   const sdkPluginStore = React.useMemo(() => new SdkPluginStore(), []);
+  const wsAppSettings = React.useCallback(() => getWsAppSettings(basePath), [basePath]);
 
   React.useEffect(() => {
     if (ready) {

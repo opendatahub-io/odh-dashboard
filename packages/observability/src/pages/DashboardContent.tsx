@@ -105,7 +105,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
   const needsClusterDetails = hasClusterDetailsVariables(activeDashboard);
 
   return (
-    <div ref={setRelativeLinkHandlerRef}>
+    <div>
       <PersesProvider
         key={activeDashboardName}
         dashboardResource={activeDashboard}
@@ -141,8 +141,10 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
                 )}
               >
                 <PageSection hasBodyWrapper={false} isFilled>
-                  <PersesVariables />
-                  <PersesDashboard />
+                  <div ref={setRelativeLinkHandlerRef}>
+                    <PersesVariables />
+                    <PersesDashboard />
+                  </div>
                 </PageSection>
               </Tab>
             ))}

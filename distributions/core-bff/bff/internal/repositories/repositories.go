@@ -30,11 +30,12 @@ type Repositories struct {
 // saDynClient and saClientset are service-account-scoped clients for privileged operations,
 // matching the privileged watcher model where the dashboard SA performs reads and admin-gated mutations.
 type RepositoriesConfig struct {
-	Platform    config.PlatformType
-	SADynClient dynamic.Interface
-	SAClientset kubernetes.Interface
-	Namespace   string
-	Prometheus  PrometheusConfig
+	Platform          config.PlatformType
+	SADynClient       dynamic.Interface
+	SAClientset       kubernetes.Interface
+	Namespace         string
+	OperatorNamespace string
+	Prometheus        PrometheusConfig
 }
 
 // NewRepositories creates a new Repositories instance with all repositories initialized.
@@ -55,6 +56,6 @@ func NewRepositories(cfg RepositoriesConfig) *Repositories {
 		NIM:                        NewNIMRepository(cfg.SADynClient, cfg.SAClientset),
 		NamespaceMutation:          NewNamespaceMutationRepository(cfg.SAClientset),
 		Prometheus:                 NewPrometheusRepository(cfg.Prometheus),
-		OperatorSubscriptionStatus: NewOperatorSubscriptionStatusRepository(cfg.SADynClient),
+		OperatorSubscriptionStatus: NewOperatorSubscriptionStatusRepository(cfg.SADynClient, cfg.OperatorNamespace),
 	}
 }

@@ -391,7 +391,7 @@ paths:
         - Status
       operationId: getOperatorSubscriptionStatus
       summary: Get the installed data science operator subscription status
-      description: Returns the channel and last-updated timestamp of the installed OpenShift AI or Open Data Hub operator subscription.
+      description: Returns the channel and last-updated timestamp of the installed OpenShift AI or Open Data Hub operator subscription. Checks the configured operator namespace before the platform defaults, including openshift-operators for Open Data Hub.
       responses:
         '200':
           $ref: '#/components/responses/OperatorSubscriptionStatusResponse'
@@ -1705,6 +1705,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/OperatorSubscriptionStatus'
+          example:
+            channel: fast
+            lastUpdated: '2026-09-25T12:00:00Z'
 
     ComponentsResponse:
       description: List of OdhApplication components
