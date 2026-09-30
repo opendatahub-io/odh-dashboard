@@ -408,6 +408,7 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
           variant="info"
           title="Additional configuration required"
           data-testid="additional-configuration-required-alert"
+          isInline
         >
           To make the endpoint accessible to users, an admin must configure subscriptions and
           authorization policies on the <strong>MaaS governance</strong> page. Users can view their
