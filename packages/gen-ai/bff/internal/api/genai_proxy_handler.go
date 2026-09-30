@@ -83,10 +83,20 @@ func (app *App) GenAIProxyNSModelsHandler(w http.ResponseWriter, r *http.Request
 		aaModels = append(aaModels, maasModels...)
 	}
 
-	// Convert to OpenAI format, filtering out stopped models
+	list := buildOpenAIModelList(aaModels)
+	if err := app.WriteJSON(w, http.StatusOK, list, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// buildOpenAIModelList advertises only models the inference proxy can serve.
+// Audio transcription is handled separately by LlamaStackAudioTranscriptionHandler.
+func buildOpenAIModelList(aaModels []models.AAModel) openAIModelList {
 	items := make([]openAIModelItem, 0, len(aaModels))
 	for _, m := range aaModels {
-		if m.Status == models.ModelStatusStop {
+		if m.Status == models.ModelStatusStop ||
+			m.ModelType == models.ModelTypeTranscription ||
+			constants.IsASROnlyCapabilities(m.Capabilities) {
 			continue
 		}
 
@@ -110,8 +120,5 @@ func (app *App) GenAIProxyNSModelsHandler(w http.ResponseWriter, r *http.Request
 		items = append(items, item)
 	}
 
-	list := openAIModelList{Object: "list", Data: items}
-	if err := app.WriteJSON(w, http.StatusOK, list, nil); err != nil {
-		app.serverErrorResponse(w, r, err)
-	}
+	return openAIModelList{Object: "list", Data: items}
 }
