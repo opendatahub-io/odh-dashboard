@@ -73,6 +73,35 @@ const deploymentStateLabel = (state: AgentDeploymentSummary['state']): React.Rea
   }
 };
 
+export const buildResponseAPICurl = (routeUrl?: string): string => {
+  if (!routeUrl) {
+    return '';
+  }
+
+  try {
+    const responseURL = new URL(routeUrl);
+    if (responseURL.protocol !== 'http:' && responseURL.protocol !== 'https:') {
+      return '';
+    }
+
+    responseURL.search = '';
+    responseURL.hash = '';
+    responseURL.pathname = `${responseURL.pathname.replace(/\/$/, '')}/v1/responses`;
+    const shellSafeURL = responseURL.toString().replaceAll("'", "'\"'\"'");
+
+    return [
+      `curl -s -X POST '${shellSafeURL}' \\`,
+      '  -H "Content-Type: application/json" \\',
+      '  -H "Authorization: Bearer $TOKEN" \\',
+      "  -d '{",
+      '    "input": "Hello, what can you help me with?"',
+      "  }'",
+    ].join('\n');
+  } catch {
+    return '';
+  }
+};
+
 const DeploymentSnapshotSkeleton: React.FC = () => (
   <Card isFullHeight data-testid="deployment-snapshot-skeleton">
     <CardTitle>
@@ -99,34 +128,33 @@ const DeploymentAccordionItem: React.FC<DeploymentAccordionItemProps> = ({
   const [details, setDetails] = React.useState<AgentDeploymentSummary | null>(null);
   const [loadingDetails, setLoadingDetails] = React.useState(false);
   const [detailsError, setDetailsError] = React.useState<string | null>(null);
+  const isExpandedRef = React.useRef(false);
+  const snapshotRequestInFlightRef = React.useRef(false);
   const contentId = React.useId();
   const toggleId = `agent-deployment-${deployment.name}-toggle`;
-  const responseAPICurl = deployment.routeUrl
-    ? [
-        `curl -s -X POST "${deployment.routeUrl}/v1/responses" \\`,
-        '  -H "Content-Type: application/json" \\',
-        '  -H "Authorization: Bearer $TOKEN" \\',
-        "  -d '{",
-        '    "input": "Hello, what can you help me with?"',
-        "  }'",
-      ].join('\n')
-    : '';
+  const responseAPICurl = buildResponseAPICurl(deployment.routeUrl);
 
   const handleToggle = React.useCallback(() => {
-    setIsExpanded((wasExpanded) => {
-      const willExpand = !wasExpanded;
-      if (willExpand && !details && !loadingDetails) {
-        setLoadingDetails(true);
-        setDetailsError(null);
-        void api
-          .getAgentDeployment({ id: deployment.name })
-          .then(setDetails)
-          .catch(() => setDetailsError('Unable to load this deployment snapshot.'))
-          .finally(() => setLoadingDetails(false));
-      }
-      return willExpand;
-    });
-  }, [api, deployment.name, details, loadingDetails]);
+    const willExpand = !isExpandedRef.current;
+    isExpandedRef.current = willExpand;
+    setIsExpanded(willExpand);
+
+    if (!willExpand || details || snapshotRequestInFlightRef.current) {
+      return;
+    }
+
+    snapshotRequestInFlightRef.current = true;
+    setLoadingDetails(true);
+    setDetailsError(null);
+    void api
+      .getAgentDeployment({ id: deployment.name })
+      .then(setDetails)
+      .catch(() => setDetailsError('Unable to load this deployment snapshot.'))
+      .finally(() => {
+        snapshotRequestInFlightRef.current = false;
+        setLoadingDetails(false);
+      });
+  }, [api, deployment.name, details]);
 
   const copyResponseAPICurl = React.useCallback(() => {
     void navigator.clipboard.writeText(responseAPICurl).catch(() => {

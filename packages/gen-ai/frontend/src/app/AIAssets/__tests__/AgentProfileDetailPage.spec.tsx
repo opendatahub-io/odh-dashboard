@@ -1,7 +1,9 @@
 import * as React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import AgentProfileDetailPage from '~/app/AIAssets/AgentProfileDetailPage';
+import AgentProfileDetailPage, {
+  buildResponseAPICurl,
+} from '~/app/AIAssets/AgentProfileDetailPage';
 import useFetchAgentDeployments from '~/app/AIAssets/hooks/useFetchAgentDeployments';
 import useFetchAgentProfile from '~/app/AIAssets/hooks/useFetchAgentProfile';
 import useFetchAgentProfiles from '~/app/hooks/useFetchAgentProfiles';
@@ -114,6 +116,14 @@ describe('AgentProfileDetailPage', () => {
     });
   });
 
+  it('creates a shell-safe Responses API command only for HTTP endpoints', () => {
+    expect(buildResponseAPICurl('javascript:alert(1)')).toBe('');
+    expect(buildResponseAPICurl('not a URL')).toBe('');
+    expect(buildResponseAPICurl("https://example.com/agent's-route")).toContain(
+      "'https://example.com/agent'\"'\"'s-route/v1/responses'",
+    );
+  });
+
   it('shows the saved configuration and deployment summaries', () => {
     mockUseGenAiAPI.mockReturnValue({
       api: { getAgentDeployment: jest.fn() },
@@ -158,6 +168,10 @@ describe('AgentProfileDetailPage', () => {
     fireEvent.click(screen.getByTestId('agent-deployment-hr-chatbot-a1b2-toggle'));
 
     expect(screen.getByTestId('deployment-snapshot-skeleton')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('agent-deployment-hr-chatbot-a1b2-toggle'));
+    fireEvent.click(screen.getByTestId('agent-deployment-hr-chatbot-a1b2-toggle'));
+    expect(getAgentDeployment).toHaveBeenCalledTimes(1);
 
     resolveDeployment({ ...deployment, config: profile });
 
