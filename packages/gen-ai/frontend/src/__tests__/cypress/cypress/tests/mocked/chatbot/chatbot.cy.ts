@@ -70,7 +70,7 @@ describe('AI Playground - Chatbot Interactions (Mocked)', () => {
     );
 
     it(
-      'aligns a pending audio attachment with the message text field',
+      'aligns a pending audio attachment with the message bar frame',
       { tags: ['@GenAI', '@Chatbot', '@UI'] },
       () => {
         chatbotPage.visit('mock-audio-namespace');
@@ -83,7 +83,7 @@ describe('AI Playground - Chatbot Interactions (Mocked)', () => {
           { force: true },
         );
         cy.findByTestId('audio-model-needed-alert').should('be.visible');
-        cy.findByTestId('chatbot-message-bar').then(($bar) => {
+        cy.findByTestId('chatbot-message-bar-frame').then(($bar) => {
           cy.findByTestId('audio-file-chip').should(($chip) => {
             expect($chip[0].getBoundingClientRect().left).to.eq(
               $bar[0].getBoundingClientRect().left,

@@ -421,7 +421,6 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
             gap: 'var(--pf-t--global--spacer--sm)',
             paddingBottom: 'var(--pf-t--global--spacer--sm)',
             width: '100%',
-            paddingLeft: 'calc(var(--pf-t--global--spacer--sm) + 2px)',
           }}
           aria-busy={isAudioActive}
           data-testid="media-attachment-row"
@@ -554,6 +553,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
           border: isDarkMode ? 'none' : '1px solid var(--pf-t--global--border--color--default)',
           borderRadius: '2.25rem',
         }}
+        data-testid="chatbot-message-bar-frame"
       >
         <MessageBar
           onSendMessage={(message) => {
