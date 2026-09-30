@@ -25,46 +25,49 @@ beforeEach(() => {
 });
 
 describe('serving runtime catalog services', () => {
-  it('should preserve namespace and request options while serializing list parameters', async () => {
-    const opts = { signal: new AbortController().signal };
-    const list = {
-      items: [{ id: '1', name: 'vllm' }],
-      size: 1,
-      pageSize: 5,
-      nextPageToken: 'next',
-    };
-    handleRestFailuresMock.mockResolvedValue({ data: list });
-    await expect(
-      getServingRuntimeList(host, namespace)(opts, {
-        source: ['redhat-runtimes', 'community-runtimes'],
-        sourceLabel: ['Red Hat'],
+  it.each([5, '5'])(
+    'should serialize pageSize %p and preserve list parameters',
+    async (pageSize) => {
+      const opts = { signal: new AbortController().signal };
+      const list = {
+        items: [{ id: '1', name: 'vllm' }],
+        size: 1,
         pageSize: 5,
-        nextPageToken: 'cursor',
-        q: 'vllm',
-        name: 'v%',
-        filterQuery: "provider='Red Hat'",
-        orderBy: 'NAME',
-        sortOrder: 'DESC',
-      }),
-    ).resolves.toEqual(list);
-    expect(restGETMock).toHaveBeenCalledWith(
-      host,
-      '/serving_runtimes',
-      {
-        ...namespace,
-        source: 'redhat-runtimes,community-runtimes',
-        sourceLabel: 'Red Hat',
-        pageSize: '5',
-        nextPageToken: 'cursor',
-        q: 'vllm',
-        name: 'v%',
-        filterQuery: "provider='Red Hat'",
-        orderBy: 'NAME',
-        sortOrder: 'DESC',
-      },
-      opts,
-    );
-  });
+        nextPageToken: 'next',
+      };
+      handleRestFailuresMock.mockResolvedValue({ data: list });
+      await expect(
+        getServingRuntimeList(host, namespace)(opts, {
+          source: ['redhat-runtimes', 'community-runtimes'],
+          sourceLabel: ['Red Hat'],
+          pageSize,
+          nextPageToken: 'cursor',
+          q: 'vllm',
+          name: 'v%',
+          filterQuery: "provider='Red Hat'",
+          orderBy: 'NAME',
+          sortOrder: 'DESC',
+        }),
+      ).resolves.toEqual(list);
+      expect(restGETMock).toHaveBeenCalledWith(
+        host,
+        '/serving_runtimes',
+        {
+          ...namespace,
+          source: 'redhat-runtimes,community-runtimes',
+          sourceLabel: 'Red Hat',
+          pageSize: '5',
+          nextPageToken: 'cursor',
+          q: 'vllm',
+          name: 'v%',
+          filterQuery: "provider='Red Hat'",
+          orderBy: 'NAME',
+          sortOrder: 'DESC',
+        },
+        opts,
+      );
+    },
+  );
 
   it('should omit unset and empty query parameters', async () => {
     await getServingRuntimeList(host, namespace)({}, { q: '', filterQuery: undefined });

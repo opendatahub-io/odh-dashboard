@@ -98,7 +98,6 @@ export interface ServingRuntimeFilterOptionsList {
 }
 
 export interface ServingRuntimeVersionListParams extends CatalogListParams {
-  pageSize?: number;
   sortOrder?: 'ASC' | 'DESC';
 }
 

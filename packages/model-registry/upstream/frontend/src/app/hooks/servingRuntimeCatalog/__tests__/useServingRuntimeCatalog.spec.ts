@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useServingRuntimeCatalogAPI } from '~/app/hooks/servingRuntimeCatalog/useServingRuntimeCatalogAPI';
 import { useServingRuntime } from '~/app/hooks/servingRuntimeCatalog/useServingRuntime';
-import { useServingRuntimesBySource } from '~/app/hooks/servingRuntimeCatalog/useServingRuntimesBySource';
+import { useServingRuntimeList } from '~/app/hooks/servingRuntimeCatalog/useServingRuntimeList';
 import { useServingRuntimeVersions } from '~/app/hooks/servingRuntimeCatalog/useServingRuntimeVersions';
 import { useServingRuntimeFilterOptionList } from '~/app/hooks/servingRuntimeCatalog/useServingRuntimeFilterOptionList';
 
@@ -50,7 +50,7 @@ describe('serving runtime catalog hooks', () => {
     });
     const { result, rerender } = renderHook(
       ({ token }) =>
-        useServingRuntimesBySource({
+        useServingRuntimeList({
           source: ['redhat-runtimes'],
           pageSize: 1,
           nextPageToken: token,
@@ -83,10 +83,22 @@ describe('serving runtime catalog hooks', () => {
     await waitFor(() => expect(result.current[2]?.message).toBe('Runtime not found'));
   });
 
-  it('should expose the raw filter options to components', async () => {
-    const filters = { filters: { tags: { type: 'string', values: ['gpu'] } } };
+  it('should fetch filter options only after the API becomes available', async () => {
+    const filters = { filters: { hardware: { type: 'string', values: ['cpu'] } } };
     api.getServingRuntimeFilterOptionList.mockResolvedValue(filters);
-    const { result } = renderHook(() => useServingRuntimeFilterOptionList());
-    await waitFor(() => expect(result.current[0]).toEqual(filters));
+    jest.mocked(useServingRuntimeCatalogAPI).mockReturnValue({ ...apiState, apiAvailable: false });
+    const { result, rerender } = renderHook(() => useServingRuntimeFilterOptionList());
+
+    expect(api.getServingRuntimeFilterOptionList).not.toHaveBeenCalled();
+    expect(result.current[0]).toBeNull();
+    expect(result.current[1]).toBe(false);
+
+    jest.mocked(useServingRuntimeCatalogAPI).mockReturnValue(apiState);
+    rerender();
+
+    await waitFor(() => expect(result.current[1]).toBe(true));
+    expect(api.getServingRuntimeFilterOptionList).toHaveBeenCalledTimes(1);
+    expect(result.current[0]).toEqual(filters);
+    expect(result.current[2]).toBeUndefined();
   });
 });

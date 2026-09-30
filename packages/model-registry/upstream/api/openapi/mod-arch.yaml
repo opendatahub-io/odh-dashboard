@@ -1286,17 +1286,6 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "500":
           $ref: "#/components/responses/InternalServerError"
-        "501":
-          description: Serving runtime catalog is only available in catalog mock mode.
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - error
-                properties:
-                  error:
-                    $ref: "#/components/schemas/Error"
       operationId: findServingRuntimes
 
   /api/v1/serving_runtime_catalog/serving_runtimes_filter_options:
@@ -1317,17 +1306,6 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "500":
           $ref: "#/components/responses/InternalServerError"
-        "501":
-          description: Serving runtime catalog is only available in catalog mock mode.
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - error
-                properties:
-                  error:
-                    $ref: "#/components/schemas/Error"
       operationId: findServingRuntimesFilterOptions
 
   /api/v1/serving_runtime_catalog/serving_runtimes/{id}:
@@ -1357,17 +1335,6 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
-        "501":
-          description: Serving runtime catalog is only available in catalog mock mode.
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - error
-                properties:
-                  error:
-                    $ref: "#/components/schemas/Error"
       operationId: getServingRuntime
 
   /api/v1/serving_runtime_catalog/serving_runtimes/{id}/versions:
@@ -1397,17 +1364,6 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
-        "501":
-          description: Serving runtime catalog is only available in catalog mock mode.
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - error
-                properties:
-                  error:
-                    $ref: "#/components/schemas/Error"
       operationId: getServingRuntimeVersions
     parameters:
       - name: id

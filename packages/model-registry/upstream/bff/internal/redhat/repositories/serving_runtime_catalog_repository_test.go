@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"fmt"
 	"net/url"
 	"testing"
 
@@ -43,14 +44,19 @@ func TestServingRuntimeCatalogMockFilters(t *testing.T) {
 		{"search", url.Values{"q": {"VLLM"}}, 1},
 		{"name pattern", url.Values{"name": {"%server"}}, 1},
 		{"source", url.Values{"source": {"redhat-runtimes"}}, 2},
-		{"multiple sources", url.Values{"source": {"redhat-runtimes", "community-runtimes"}}, 5},
-		{"source label", url.Values{"sourceLabel": {"null"}}, 3},
+		{"multiple sources", url.Values{"source": {"redhat-runtimes", "community-runtimes"}}, 8},
+		{"source label", url.Values{"sourceLabel": {"null"}}, 6},
+		{"named source label", url.Values{"sourceLabel": {"Red Hat"}}, 2},
+		{"multiple source labels", url.Values{"sourceLabel": {"Red Hat", "null"}}, 8},
+		{"comma separated source labels", url.Values{"sourceLabel": {"Red Hat,null"}}, 8},
+		{"unknown source label", url.Values{"sourceLabel": {"unknown"}}, 0},
+		{"source and label intersection", url.Values{"source": {"community-runtimes"}, "sourceLabel": {"Red Hat"}}, 0},
 		{"filter", url.Values{"filterQuery": {"hardware='nvidia.com/gpu' AND modelFormat IN ('safetensors')"}}, 1},
 		{"accelerator", url.Values{"filterQuery": {"hardware='nvidia.com/gpu'"}}, 2},
 		{"format", url.Values{"filterQuery": {"modelFormat IN ('onnx', 'sklearn')"}}, 3},
 		{"huggingface", url.Values{"filterQuery": {"modelFormat='huggingface'"}}, 1},
 		{"cpu or gpu", url.Values{"filterQuery": {"hardware='cpu-or-gpu'"}}, 1},
-		{"unrepresented accelerator", url.Values{"filterQuery": {"hardware='amd.com/gpu'"}}, 0},
+		{"amd accelerator", url.Values{"filterQuery": {"hardware='amd.com/gpu'"}}, 1},
 		{"empty", url.Values{"q": {"no-such-runtime"}}, 0},
 		{"end of results", url.Values{"nextPageToken": {"9223372036854775807"}}, 0},
 	} {
@@ -85,4 +91,52 @@ func TestServingRuntimeCatalogMockErrors(t *testing.T) {
 	var httpErr *httpclient.HTTPError
 	require.ErrorAs(t, err, &httpErr)
 	require.Equal(t, 404, httpErr.StatusCode)
+}
+
+func TestServingRuntimeCatalogOrderByValues(t *testing.T) {
+	repo := NewServingRuntimeCatalogRepository(&mocks.ModelCatalogClientMock{})
+	for _, field := range []string{"ID", "NAME", "CREATE_TIME", "LAST_UPDATE_TIME", "RECOMMENDED"} {
+		t.Run(field, func(t *testing.T) {
+			query := url.Values{"orderBy": {field}}
+			list, err := repo.List(query)
+			require.NoError(t, err)
+			require.Len(t, list.Items, 8)
+			versions, err := repo.Versions("1", query)
+			require.NoError(t, err)
+			require.Len(t, versions.Items, 2)
+		})
+	}
+	_, err := repo.List(url.Values{"orderBy": {"INVALID"}})
+	require.Error(t, err)
+}
+
+func TestServingRuntimeFilterOptionsMatchMockData(t *testing.T) {
+	repo := NewServingRuntimeCatalogRepository(&mocks.ModelCatalogClientMock{})
+	options, err := repo.FilterOptions()
+	require.NoError(t, err)
+	require.Len(t, *options.Filters, 2)
+	require.ElementsMatch(t, []interface{}{"amd.com/gpu", "cpu", "cpu-or-gpu", "ibm.com/spyre", "habana.ai/gaudi", "nvidia.com/gpu"}, (*options.Filters)["hardware"].Values)
+	require.ElementsMatch(t, []interface{}{"huggingface", "onnx", "openvino_ir", "xgboost", "safetensors", "sklearn", "tensorflow", "tensorrt"}, (*options.Filters)["modelFormat"].Values)
+	for field, option := range *options.Filters {
+		for _, value := range option.Values {
+			t.Run(fmt.Sprintf("%s/%v", field, value), func(t *testing.T) {
+				result, err := repo.List(url.Values{"filterQuery": {fmt.Sprintf("%s='%v'", field, value)}})
+				require.NoError(t, err)
+				require.NotEmpty(t, result.Items)
+			})
+		}
+	}
+	for _, runtime := range mocks.GetServingRuntimeMocks() {
+		for _, format := range runtime.SupportedModelFormats {
+			require.Contains(t, (*options.Filters)["modelFormat"].Values, format.Name)
+		}
+		if runtime.Capabilities != nil {
+			for _, hardware := range runtime.Capabilities.SupportedAccelerators {
+				require.Contains(t, (*options.Filters)["hardware"].Values, hardware)
+			}
+		}
+		versions, err := repo.Versions(*runtime.ID, nil)
+		require.NoError(t, err)
+		require.Equal(t, *runtime.VersionCount, versions.Size)
+	}
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"sort"
 
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/google/uuid"
@@ -4363,6 +4364,30 @@ func GetServingRuntimeMocks() []models.ServingRuntime {
 			SupportedModelFormats: []models.SupportedModelFormat{{Name: "tensorflow"}},
 			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &cpu}, VersionCount: &one,
 		},
+		{
+			ID: stringToPointer("6"), Name: stringToPointer("sample-amd"), DisplayName: stringToPointer("AMD GPU sample runtime"),
+			SourceID:              stringToPointer("community-runtimes"),
+			Description:           stringToPointer("Illustrative mock runtime for hardware filtering; not a deployable runtime."),
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &gpu, SupportedAccelerators: []string{"amd.com/gpu"}},
+			VersionCount:          &one,
+		},
+		{
+			ID: stringToPointer("7"), Name: stringToPointer("sample-spyre"), DisplayName: stringToPointer("IBM Spyre sample runtime"),
+			SourceID:              stringToPointer("community-runtimes"),
+			Description:           stringToPointer("Illustrative mock runtime for hardware filtering; not a deployable runtime."),
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &gpu, SupportedAccelerators: []string{"ibm.com/spyre"}},
+			VersionCount:          &one,
+		},
+		{
+			ID: stringToPointer("8"), Name: stringToPointer("sample-gaudi"), DisplayName: stringToPointer("Intel Gaudi sample runtime"),
+			SourceID:              stringToPointer("community-runtimes"),
+			Description:           stringToPointer("Illustrative mock runtime for hardware filtering; not a deployable runtime."),
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &gpu, SupportedAccelerators: []string{"habana.ai/gaudi"}},
+			VersionCount:          &one,
+		},
 	}
 }
 
@@ -4403,6 +4428,9 @@ func GetServingRuntimeVersionMocks(runtimeID string) []models.ServingRuntimeVers
 		"3": {{ID: stringToPointer("301"), Name: stringToPointer("mlserver-1.6.0"), ArtifactType: "serving-runtime-version", Version: "1.6.0", Image: "registry.example.com/mock/mlserver:1.6.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "sklearn"}, {Name: "xgboost"}}, ProtocolVersions: []string{"v2"}}},
 		"4": {{ID: stringToPointer("401"), Name: stringToPointer("triton-24.02"), ArtifactType: "serving-runtime-version", Version: "24.02", Image: "registry.example.com/mock/triton:24.02", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "onnx"}, {Name: "tensorrt"}}, ProtocolVersions: []string{"v2", "grpc-v2"}}},
 		"5": {{ID: stringToPointer("501"), Name: stringToPointer("tensorflow-serving-2.15.0"), ArtifactType: "serving-runtime-version", Version: "2.15.0", Image: "registry.example.com/mock/tensorflow-serving:2.15.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "tensorflow"}}, ProtocolVersions: []string{"v1"}}},
+		"6": {{ID: stringToPointer("601"), Name: stringToPointer("sample-amd-1.0.0"), ArtifactType: "serving-runtime-version", Version: "1.0.0", Image: "registry.example.com/mock/sample-amd:1.0.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}}}},
+		"7": {{ID: stringToPointer("701"), Name: stringToPointer("sample-spyre-1.0.0"), ArtifactType: "serving-runtime-version", Version: "1.0.0", Image: "registry.example.com/mock/sample-spyre:1.0.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}}}},
+		"8": {{ID: stringToPointer("801"), Name: stringToPointer("sample-gaudi-1.0.0"), ArtifactType: "serving-runtime-version", Version: "1.0.0", Image: "registry.example.com/mock/sample-gaudi:1.0.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}}}},
 	}
 	if items, ok := versions[runtimeID]; ok {
 		return items
@@ -4410,9 +4438,41 @@ func GetServingRuntimeVersionMocks(runtimeID string) []models.ServingRuntimeVers
 	return []models.ServingRuntimeVersion{}
 }
 
+func servingRuntimeMockHardware(runtime models.ServingRuntime) []string {
+	values := []string{}
+	for _, tag := range runtime.Tags {
+		if tag == "cpu" || tag == "cpu-or-gpu" {
+			values = append(values, tag)
+		}
+	}
+	if runtime.Capabilities != nil {
+		values = append(values, runtime.Capabilities.SupportedAccelerators...)
+	}
+	return values
+}
+
 func GetServingRuntimeFilterOptionsListMock() models.FilterOptionsList {
-	return models.FilterOptionsList{Filters: &map[string]models.FilterOption{
-		"hardware":    {Type: FilterOptionTypeString, Values: []interface{}{"amd.com/gpu", "cpu", "cpu-or-gpu", "ibm.com/spyre", "habana.ai/gaudi", "nvidia.com/gpu"}},
-		"modelFormat": {Type: FilterOptionTypeString, Values: []interface{}{"huggingface", "onnx", "openvino_ir", "xgboost", "safetensors", "sklearn"}},
-	}}
+	values := map[string]map[string]bool{"hardware": {}, "modelFormat": {}}
+	for _, runtime := range GetServingRuntimeMocks() {
+		for _, hardware := range servingRuntimeMockHardware(runtime) {
+			values["hardware"][hardware] = true
+		}
+		for _, format := range runtime.SupportedModelFormats {
+			values["modelFormat"][format.Name] = true
+		}
+	}
+	filters := make(map[string]models.FilterOption, len(values))
+	for field, unique := range values {
+		names := make([]string, 0, len(unique))
+		for value := range unique {
+			names = append(names, value)
+		}
+		sort.Strings(names)
+		options := make([]interface{}, 0, len(names))
+		for _, name := range names {
+			options = append(options, name)
+		}
+		filters[field] = models.FilterOption{Type: FilterOptionTypeString, Values: options}
+	}
+	return models.FilterOptionsList{Filters: &filters}
 }

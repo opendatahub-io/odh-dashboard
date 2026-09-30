@@ -53,6 +53,6 @@ func TestServingRuntimeCatalogDisabledOutsideMockMode(t *testing.T) {
 	for _, path := range []string{api.ServingRuntimeListPath, api.ServingRuntimeFilterOptionsPath, api.ServingRuntimeListPath + "/1", api.ServingRuntimeListPath + "/1/versions"} {
 		rr := httptest.NewRecorder()
 		router.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, path+"?namespace=test", nil))
-		require.Equal(t, http.StatusNotImplemented, rr.Code, rr.Body.String())
+		require.Equal(t, http.StatusInternalServerError, rr.Code, rr.Body.String())
 	}
 }

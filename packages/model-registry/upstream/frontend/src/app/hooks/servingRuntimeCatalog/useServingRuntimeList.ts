@@ -9,7 +9,7 @@ import {
 import { ServingRuntimeList, ServingRuntimeListParams } from '~/app/servingRuntimeCatalogTypes';
 import { useServingRuntimeCatalogAPI } from './useServingRuntimeCatalogAPI';
 
-export const useServingRuntimesBySource = (
+export const useServingRuntimeList = (
   params: ServingRuntimeListParams = {},
 ): FetchState<ServingRuntimeList> => {
   const { api, apiAvailable } = useServingRuntimeCatalogAPI();

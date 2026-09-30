@@ -8,7 +8,6 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/kubeflow/hub/ui/bff/internal/config"
-	"github.com/kubeflow/hub/ui/bff/internal/integrations/httpclient"
 	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
 	"github.com/kubeflow/hub/ui/bff/internal/repositories"
 )
@@ -55,16 +54,10 @@ func (app *App) Conflict(w http.ResponseWriter, r *http.Request, message string)
 
 // NotImplemented writes a standard placeholder response for unimplemented endpoints.
 func (app *App) NotImplemented(w http.ResponseWriter, r *http.Request, feature string) {
-	app.errorResponse(w, r, &httpclient.HTTPError{
-		StatusCode: http.StatusNotImplemented,
-		ErrorResponse: httpclient.ErrorResponse{
-			Code:    "501",
-			Message: fmt.Sprintf("%s is not implemented", feature),
-		},
-	})
+	app.serverErrorResponse(w, r, fmt.Errorf("%s is not implemented", feature))
 }
 
-// EndpointNotImplementedHandler returns a generic 501 Not Implemented handler.
+// EndpointNotImplementedHandler returns a generic 500 response for unimplemented endpoints.
 // Use this for endpoints that are defined upstream but require a downstream override to function.
 // Downstream packages must register an override via api.RegisterHandlerOverride() to provide
 // the real implementation.
