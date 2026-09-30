@@ -352,6 +352,9 @@ class ObservabilityDashboardPage {
       );
       const selectorRequests =
         variableRequests.length > 0 ? variableRequests : relevantQueryRequests;
+      if (outcome === 'forbidden') {
+        expect(namespaceQueryRequests, 'Prometheus namespace query requests').not.to.have.length(0);
+      }
       const namespaceRequests =
         outcome === 'forbidden'
           ? [...new Set([...relevantQueryRequests, ...variableRequests])]

@@ -91,12 +91,34 @@ export const requestContainsNamespace = (
   body: unknown,
   namespace: string,
 ): boolean => {
-  const requestContent = [search, typeof body === 'string' ? body : ''].join(' ');
-  try {
-    return decodeURIComponent(requestContent.replace(/\+/g, ' ')).includes(namespace);
-  } catch {
-    return false;
+  const requestContents = [search, typeof body === 'string' ? body : ''].flatMap((part) => {
+    let decodedPart = part;
+    try {
+      decodedPart = decodeURIComponent(part.replace(/\+/g, ' '));
+    } catch {
+      // Keep the raw request content when a different parameter is malformed.
+    }
+    return [decodedPart, ...new URLSearchParams(part).values()];
+  });
+  const namespaceMatchers = /(?:^|[,{]\s*)namespace\s*(=|=~)\s*"((?:\\.|[^"\\])*)"/g;
+
+  for (const requestContent of requestContents) {
+    for (const [, operator, value] of requestContent.matchAll(namespaceMatchers)) {
+      if (operator === '=' && value === namespace) {
+        return true;
+      }
+      if (operator === '=~') {
+        try {
+          if (new RegExp(`^(?:${value})$`).test(namespace)) {
+            return true;
+          }
+        } catch {
+          // Ignore invalid regular expressions and inspect any remaining matchers.
+        }
+      }
+    }
   }
+  return false;
 };
 
 export const hasSeriesForNamespace = (

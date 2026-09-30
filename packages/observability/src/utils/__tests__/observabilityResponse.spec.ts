@@ -109,14 +109,50 @@ describe('Prometheus request path helpers', () => {
     );
   });
 
-  it('should identify an encoded namespace in request parameters or a form body', () => {
+  it('should match exact namespace label matchers in request parameters or a form body', () => {
     expect(
       requestContainsNamespace('?match%5B%5D=namespace%3D%22namespace-b%22', '', 'namespace-b'),
     ).toBe(true);
-    expect(requestContainsNamespace('', 'query=namespace%3D%22namespace-b%22', 'namespace-b')).toBe(
-      true,
-    );
-    expect(requestContainsNamespace('', 'query=up', 'namespace-b')).toBe(false);
-    expect(requestContainsNamespace('%', { query: 'up' }, 'namespace-b')).toBe(false);
+    expect(
+      requestContainsNamespace(
+        '',
+        'query=metric%7Bnamespace%3D%22namespace-b%22%7D',
+        'namespace-b',
+      ),
+    ).toBe(true);
+    expect(
+      requestContainsNamespace(
+        '',
+        'query=metric%7Bmodel_name%3D%22namespace-b%22%7D',
+        'namespace-b',
+      ),
+    ).toBe(false);
+    expect(
+      requestContainsNamespace(
+        '',
+        'query=metric%7Bnamespace%3D%22namespace-b-extra%22%7D',
+        'namespace-b',
+      ),
+    ).toBe(false);
+  });
+
+  it('should evaluate valid namespace regex matchers and ignore invalid ones', () => {
+    expect(
+      requestContainsNamespace(
+        '',
+        'query=metric%7Bnamespace%3D~%22namespace-%28a%7Cb%29%22%7D',
+        'namespace-b',
+      ),
+    ).toBe(true);
+    expect(
+      requestContainsNamespace(
+        '',
+        'query=metric%7Bnamespace%3D~%22namespace-b%22%7D',
+        'namespace-b-extra',
+      ),
+    ).toBe(false);
+    expect(
+      requestContainsNamespace('', 'query=metric%7Bnamespace%3D~%22%5B%22%7D', 'namespace-b'),
+    ).toBe(false);
   });
 });
