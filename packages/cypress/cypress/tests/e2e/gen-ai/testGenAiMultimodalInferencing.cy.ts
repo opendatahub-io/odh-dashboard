@@ -385,8 +385,10 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       genAiPlayground
         .findAllUserMessages()
         .last()
-        .should('contain.text', transcribedText.trim())
-        .and('contain.text', testData.audio.prompt);
+        .should(($message) => {
+          expect($message.text()).to.contain(transcribedText.trim());
+          expect($message.text()).to.contain(testData.audio.prompt);
+        });
       genAiPlayground
         .findAllAssistantMessages({ timeout: 120000 })
         .last()
