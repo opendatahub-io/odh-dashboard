@@ -101,40 +101,42 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
         // Build extraContent with metrics and error alerts
         const extraContent: PFMessageProps['extraContent'] = { ...messageExtraContent };
 
-        if (message.role === 'user' && (documentAttachments?.length || attachmentWarning)) {
-          extraContent.endContent = (
+        if (message.role === 'user' && documentAttachments?.length) {
+          extraContent.beforeMainContent = (
             <>
-              {documentAttachments && (
-                <Flex flexWrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
-                  {documentAttachments.map((attachment) => (
-                    <Label
-                      key={attachment.file_id}
-                      className="gen-ai-chatbot-document-attachment"
-                      icon={
-                        <span className="gen-ai-chatbot-icon">
-                          <img src={RhUiResourceIcon} alt="" />
-                        </span>
-                      }
-                      onClick={() => onViewDocument?.(attachment)}
-                      variant="outline"
-                      data-testid={`sent-document-attachment-${attachment.file_id}`}
-                    >
-                      <span className="gen-ai-chatbot-details">
-                        <span className="gen-ai-chatbot-filename">{attachment.filename}</span>
-                        <span className="gen-ai-chatbot-type">
-                          {getDocumentAttachmentTypeLabel(attachment.filename)}
-                        </span>
+              {extraContent.beforeMainContent}
+              <Flex flexWrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
+                {documentAttachments.map((attachment) => (
+                  <Label
+                    key={attachment.file_id}
+                    className="gen-ai-chatbot-document-attachment"
+                    icon={
+                      <span className="gen-ai-chatbot-icon">
+                        <img src={RhUiResourceIcon} alt="" />
                       </span>
-                    </Label>
-                  ))}
-                </Flex>
-              )}
-              {attachmentWarning && (
-                <Alert variant="danger" isInline isPlain title="Model context window exceeded">
-                  Model’s context window exceeded. Instead upload files to Settings → RAG.
-                </Alert>
-              )}
+                    }
+                    onClick={() => onViewDocument?.(attachment)}
+                    variant="outline"
+                    data-testid={`sent-document-attachment-${attachment.file_id}`}
+                  >
+                    <span className="gen-ai-chatbot-details">
+                      <span className="gen-ai-chatbot-filename">{attachment.filename}</span>
+                      <span className="gen-ai-chatbot-type">
+                        {getDocumentAttachmentTypeLabel(attachment.filename)}
+                      </span>
+                    </span>
+                  </Label>
+                ))}
+              </Flex>
             </>
+          );
+        }
+
+        if (message.role === 'user' && attachmentWarning) {
+          extraContent.endContent = (
+            <Alert variant="danger" isInline isPlain title="Model context window exceeded">
+              Model’s context window exceeded. Instead upload files to Settings → RAG.
+            </Alert>
           );
         }
 
