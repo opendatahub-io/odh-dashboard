@@ -30,6 +30,7 @@ import {
   FileSearchResult,
   FileUploadJobResponse,
   FileUploadStatusResponse,
+  DocumentUploadResponse,
   isApiError,
   LlamaModel,
   LlamaStackDistributionModel,
@@ -1054,6 +1055,14 @@ export const uploadSource = (
     hostPath,
     baseQueryParams,
   );
+
+// Synchronous document upload for Playground attachments. OGX extracts the
+// text before this call resolves, so callers can include it in a Responses request.
+export const uploadDocument = (
+  hostPath: string,
+  baseQueryParams: Record<string, unknown> = {},
+): ModArchRestCREATE<DocumentUploadResponse, FormData> =>
+  modArchRestCREATE<DocumentUploadResponse, FormData>('/lsd/documents')(hostPath, baseQueryParams);
 
 // File upload status polling
 export const getFileUploadStatus = modArchRestGET<FileUploadStatusResponse>(

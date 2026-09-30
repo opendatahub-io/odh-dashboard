@@ -17,6 +17,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -25,6 +27,10 @@ import (
 
 const (
 	mockLSDName = "mock-lsd"
+
+	mockSandboxGroup   = "agents.x-k8s.io"
+	mockSandboxVersion = "v1beta1"
+	mockSandboxKind    = "Sandbox"
 )
 
 type TokenKubernetesClientMock struct {
@@ -67,6 +73,51 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 
 	// Return different mock AA models based on namespace
 	switch namespace {
+	case "mock-audio-namespace":
+		mockModels = []models.AAModel{
+			{
+				ModelName:       "whisper-large-v3",
+				ModelID:         "whisper-large-v3",
+				ServingRuntime:  "vLLM",
+				APIProtocol:     "OpenAI",
+				Description:     "Speech recognition model for audio transcription",
+				Usecase:         "Audio transcription",
+				Endpoints:       []string{fmt.Sprintf("internal: http://whisper-large-v3.%s.svc.cluster.local:8080", namespace)},
+				Status:          "Running",
+				DisplayName:     "Whisper Large V3",
+				ModelSourceType: models.ModelSourceTypeNamespace,
+				ModelType:       models.ModelTypeTranscription,
+				Capabilities:    []string{constants.CapabilityAudioTranscription},
+			},
+			{
+				ModelName:       "whisper-small",
+				ModelID:         "whisper-small",
+				ServingRuntime:  "vLLM",
+				APIProtocol:     "OpenAI",
+				Description:     "Compact speech recognition model for audio transcription",
+				Usecase:         "Audio transcription",
+				Endpoints:       []string{fmt.Sprintf("internal: http://whisper-small.%s.svc.cluster.local:8080", namespace)},
+				Status:          "Running",
+				DisplayName:     "Whisper Small",
+				ModelSourceType: models.ModelSourceTypeNamespace,
+				ModelType:       models.ModelTypeTranscription,
+				Capabilities:    []string{constants.CapabilityAudioTranscription},
+			},
+			{
+				ModelName:       "llama-3.1-8b-instruct",
+				ModelID:         "llama-3.1-8b-instruct",
+				ServingRuntime:  "vLLM",
+				APIProtocol:     "OpenAI",
+				Description:     "Chat model for testing the transcription flow",
+				Usecase:         "General chat",
+				Endpoints:       []string{fmt.Sprintf("internal: http://llama-3.1-8b-instruct.%s.svc.cluster.local:8080", namespace)},
+				Status:          "Running",
+				DisplayName:     "Llama 3.1 8B Instruct",
+				ModelSourceType: models.ModelSourceTypeNamespace,
+				ModelType:       models.ModelTypeLLM,
+				Capabilities:    []string{constants.CapabilityTextGeneration},
+			},
+		}
 	case "mock-test-namespace-1":
 		// Return only LLMInferenceService models for testing llm-d architecture
 		mockModels = []models.AAModel{
@@ -299,7 +350,7 @@ func (m *TokenKubernetesClientMock) GetOGXServers(ctx context.Context, identity 
 	}
 
 	// For namespaces that should return mock OGXServer data (for testing existing server scenarios)
-	if namespace == "mock-test-namespace-2" || namespace == "test-namespace" {
+	if namespace == "mock-test-namespace-2" || namespace == "test-namespace" || namespace == "mock-audio-namespace" {
 		return &ogxapi.OGXServerList{
 			Items: []ogxapi.OGXServer{
 				{
@@ -318,7 +369,7 @@ func (m *TokenKubernetesClientMock) GetOGXServers(ctx context.Context, identity 
 						Version: ogxapi.VersionInfo{
 							ServerVersion: "v0.2.0",
 						},
-						ServiceURL: "http://mock-lsd.test-namespace.svc.cluster.local:8321",
+						ServiceURL: fmt.Sprintf("http://mock-lsd.%s.svc.cluster.local:8321", namespace),
 						DistributionConfig: ogxapi.DistributionConfig{
 							ActiveDistribution: "mock-distribution",
 							Providers: []ogxapi.ProviderInfo{
@@ -435,8 +486,8 @@ providers:
         namespace: vector_io::faiss
         backend: kv_default
   file_processors:
-  - provider_id: pypdf
-    provider_type: inline::pypdf
+  - provider_id: auto
+    provider_type: inline::auto
     config: {}
   responses:
   - provider_id: builtin
@@ -843,4 +894,113 @@ func (m *TokenKubernetesClientMock) UpdateAgentProfile(ctx context.Context, name
 func (m *TokenKubernetesClientMock) DeleteAgentProfile(ctx context.Context, namespace string, profileID string) error {
 	// Use the embedded TokenKubernetesClient which will use m.Client (the fake client)
 	return m.TokenKubernetesClient.DeleteAgentProfile(ctx, namespace, profileID)
+}
+
+func (m *TokenKubernetesClientMock) CreateSandboxConfigMap(ctx context.Context, namespace string, profileID string, configYAML string) (*corev1.ConfigMap, error) {
+	return m.TokenKubernetesClient.CreateSandboxConfigMap(ctx, namespace, profileID, configYAML)
+}
+
+func (m *TokenKubernetesClientMock) CreateWrapperAppConfigMap(ctx context.Context, namespace string, profileID string, appPy string) (*corev1.ConfigMap, error) {
+	return m.TokenKubernetesClient.CreateWrapperAppConfigMap(ctx, namespace, profileID, appPy)
+}
+
+func (m *TokenKubernetesClientMock) CreateSandboxCR(ctx context.Context, namespace string, opts k8s.SandboxCROptions) (string, error) {
+	name, err := m.TokenKubernetesClient.CreateSandboxCR(ctx, namespace, opts)
+	if err != nil {
+		return "", err
+	}
+
+	sandbox := mockSandbox(namespace, name)
+	if err := m.Client.Get(ctx, client.ObjectKeyFromObject(sandbox), sandbox); err != nil {
+		return "", fmt.Errorf("failed to read mock Sandbox %s: %w", name, err)
+	}
+	if err := unstructured.SetNestedField(sandbox.Object,
+		"agents.x-k8s.io/sandbox-name-hash=mockhash", "status", "selector"); err != nil {
+		return "", fmt.Errorf("failed to set mock Sandbox selector: %w", err)
+	}
+	if err := unstructured.SetNestedSlice(sandbox.Object, []interface{}{map[string]interface{}{
+		"type": "Ready", "status": "True", "reason": "MockReady", "message": "Mock Sandbox is ready",
+	}}, "status", "conditions"); err != nil {
+		return "", fmt.Errorf("failed to set mock Sandbox readiness: %w", err)
+	}
+	if err := m.Client.Status().Update(ctx, sandbox); err != nil {
+		return "", fmt.Errorf("failed to update mock Sandbox status: %w", err)
+	}
+	return name, nil
+}
+
+func (m *TokenKubernetesClientMock) SetSandboxConfigMapsOwner(ctx context.Context, namespace, sandboxName string, configMapNames ...string) error {
+	return m.TokenKubernetesClient.SetSandboxConfigMapsOwner(ctx, namespace, sandboxName, configMapNames...)
+}
+
+func (m *TokenKubernetesClientMock) CreateSandboxMCPAuthSecret(ctx context.Context, namespace, serverID, authorization string) (*corev1.Secret, error) {
+	return m.TokenKubernetesClient.CreateSandboxMCPAuthSecret(ctx, namespace, serverID, authorization)
+}
+
+func (m *TokenKubernetesClientMock) CreateSandboxModelAuthSecret(ctx context.Context, namespace, apiKey string) (*corev1.Secret, error) {
+	return m.TokenKubernetesClient.CreateSandboxModelAuthSecret(ctx, namespace, apiKey)
+}
+
+func (m *TokenKubernetesClientMock) SetSandboxMCPAuthSecretsOwner(ctx context.Context, namespace, sandboxName string, secretNames ...string) error {
+	return m.TokenKubernetesClient.SetSandboxMCPAuthSecretsOwner(ctx, namespace, sandboxName, secretNames...)
+}
+
+func (m *TokenKubernetesClientMock) RollbackSandboxDeployment(ctx context.Context, namespace string, resources k8s.SandboxDeploymentResources) {
+	m.TokenKubernetesClient.RollbackSandboxDeployment(ctx, namespace, resources)
+}
+
+func (m *TokenKubernetesClientMock) WaitForSandboxSelector(ctx context.Context, namespace, sandboxName string) (map[string]string, error) {
+	sandbox := mockSandbox(namespace, sandboxName)
+	if err := m.Client.Get(ctx, client.ObjectKeyFromObject(sandbox), sandbox); err != nil {
+		return nil, fmt.Errorf("failed to read mock Sandbox %s: %w", sandboxName, err)
+	}
+	selector, found, err := unstructured.NestedString(sandbox.Object, "status", "selector")
+	if err != nil || !found || selector == "" {
+		return nil, fmt.Errorf("mock Sandbox %s has no status.selector", sandboxName)
+	}
+	return map[string]string{"agents.x-k8s.io/sandbox-name-hash": "mockhash"}, nil
+}
+
+func (m *TokenKubernetesClientMock) CreateSandboxService(ctx context.Context, namespace, sandboxName string, selector map[string]string) error {
+	return m.TokenKubernetesClient.CreateSandboxService(ctx, namespace, sandboxName, selector)
+}
+
+func (m *TokenKubernetesClientMock) CreateSandboxRoute(ctx context.Context, namespace, sandboxName string) (string, error) {
+	sandbox := mockSandbox(namespace, sandboxName)
+	if err := m.Client.Get(ctx, client.ObjectKeyFromObject(sandbox), sandbox); err != nil {
+		return "", fmt.Errorf("failed to read mock Sandbox %s for Route owner reference: %w", sandboxName, err)
+	}
+	controller := true
+	host := sandboxName + "-" + namespace + ".apps.example.com"
+	route := &unstructured.Unstructured{Object: map[string]interface{}{
+		"apiVersion": "route.openshift.io/v1",
+		"kind":       "Route",
+		"metadata": map[string]interface{}{
+			"name": sandboxName, "namespace": namespace,
+			"labels": map[string]interface{}{"opendatahub.io/dashboard": "true"},
+			"ownerReferences": []interface{}{map[string]interface{}{
+				"apiVersion": mockSandboxGroup + "/" + mockSandboxVersion,
+				"kind":       mockSandboxKind, "name": sandboxName, "uid": string(sandbox.GetUID()), "controller": controller,
+			}},
+		},
+		"spec": map[string]interface{}{
+			"host": host,
+			"to":   map[string]interface{}{"kind": "Service", "name": sandboxName + "-ext"},
+			"port": map[string]interface{}{"targetPort": "http"},
+			"tls":  map[string]interface{}{"termination": "edge", "insecureEdgeTerminationPolicy": "Redirect"},
+		},
+	}}
+	route.SetGroupVersionKind(schema.GroupVersionKind{Group: "route.openshift.io", Version: "v1", Kind: "Route"})
+	if err := m.Client.Create(ctx, route); err != nil {
+		return "", fmt.Errorf("failed to create mock Route %s: %w", sandboxName, err)
+	}
+	return "https://" + host, nil
+}
+
+func mockSandbox(namespace, name string) *unstructured.Unstructured {
+	sandbox := &unstructured.Unstructured{}
+	sandbox.SetGroupVersionKind(schema.GroupVersionKind{Group: mockSandboxGroup, Version: mockSandboxVersion, Kind: mockSandboxKind})
+	sandbox.SetNamespace(namespace)
+	sandbox.SetName(name)
+	return sandbox
 }

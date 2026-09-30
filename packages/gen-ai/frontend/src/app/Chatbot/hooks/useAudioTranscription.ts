@@ -11,7 +11,14 @@ import { classifyError } from '~/app/utilities/errorClassifier';
 import { ClassifiedError, isApiError } from '~/app/types';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 
-export type AudioTranscriptionPhase = 'idle' | 'uploading' | 'transcribing' | 'ready' | 'error';
+export type AudioTranscriptionPhase =
+  | 'idle'
+  // Keep the file pending while the user chooses a transcription model.
+  | 'waiting-for-model'
+  | 'uploading'
+  | 'transcribing'
+  | 'ready'
+  | 'error';
 
 export interface AudioTranscriptionState {
   phase: AudioTranscriptionPhase;
@@ -40,6 +47,12 @@ interface UseAudioTranscriptionReturn {
     subscription?: string,
     configIndex?: number,
   ) => void;
+  resumeUpload: (
+    asrModelId: string,
+    namespace: string,
+    subscription?: string,
+    configIndex?: number,
+  ) => void;
   abort: () => void;
   reset: () => void;
   discard: () => void;
@@ -52,6 +65,7 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
   const xhrRef = React.useRef<XMLHttpRequest | null>(null);
   const uploadGenRef = React.useRef(0);
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingFileRef = React.useRef<File | null>(null);
 
   const cleanup = React.useCallback(() => {
     if (timeoutRef.current) {
@@ -72,15 +86,18 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
 
   const abort = React.useCallback(() => {
     cleanup();
+    pendingFileRef.current = null;
     uploadGenRef.current += 1;
     setState(INITIAL_STATE);
   }, [cleanup]);
 
   const reset = React.useCallback(() => {
+    pendingFileRef.current = null;
     setState(INITIAL_STATE);
   }, []);
 
   const discard = React.useCallback(() => {
+    pendingFileRef.current = null;
     setState(INITIAL_STATE);
   }, []);
 
@@ -95,6 +112,20 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
       cleanup();
       uploadGenRef.current += 1;
       const gen = uploadGenRef.current;
+
+      if (!asrModelId) {
+        pendingFileRef.current = file;
+        setState({
+          phase: 'waiting-for-model',
+          file: null,
+          fileName: file.name,
+          uploadProgress: 0,
+          error: null,
+          transcribedText: '',
+        });
+        return;
+      }
+      pendingFileRef.current = null;
 
       const controller = new AbortController();
       abortControllerRef.current = controller;
@@ -286,8 +317,17 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
     [cleanup],
   );
 
+  const resumeUpload = React.useCallback(
+    (asrModelId: string, namespace: string, subscription?: string, configIndex?: number) => {
+      if (pendingFileRef.current) {
+        startUpload(pendingFileRef.current, asrModelId, namespace, subscription, configIndex);
+      }
+    },
+    [startUpload],
+  );
+
   return React.useMemo(
-    () => ({ state, startUpload, abort, reset, discard }),
-    [state, startUpload, abort, reset, discard],
+    () => ({ state, startUpload, resumeUpload, abort, reset, discard }),
+    [state, startUpload, resumeUpload, abort, reset, discard],
   );
 };

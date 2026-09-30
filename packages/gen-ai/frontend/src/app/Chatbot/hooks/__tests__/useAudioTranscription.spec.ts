@@ -73,6 +73,65 @@ describe('useAudioTranscription', () => {
     );
   });
 
+  it('keeps an audio file pending until a model is selected', () => {
+    mockUploadMediaFile.mockReturnValue({
+      promise: new Promise(() => {
+        /* Keep the upload in progress. */
+      }),
+      xhr: { abort: jest.fn() } as unknown as XMLHttpRequest,
+    });
+    const { result } = renderHook(() => useAudioTranscription());
+    const file = createMockFile();
+
+    act(() => result.current.startUpload(file, '', 'test-ns'));
+    expect(result.current.state.phase).toBe('waiting-for-model');
+    expect(result.current.state.file).toBeNull();
+    expect(result.current.state.fileName).toBe('test.wav');
+    expect(mockUploadMediaFile).not.toHaveBeenCalled();
+
+    act(() => result.current.resumeUpload('untagged-model', 'test-ns'));
+    expect(result.current.state.phase).toBe('uploading');
+    expect(mockUploadMediaFile).toHaveBeenCalledWith(
+      expect.stringContaining('namespace=test-ns'),
+      file,
+      'audio',
+      expect.any(Function),
+    );
+  });
+
+  it('uploads only the latest pending audio file after a model is selected', () => {
+    mockUploadMediaFile.mockReturnValue({
+      promise: new Promise(() => {
+        /* Keep the upload in progress. */
+      }),
+      xhr: { abort: jest.fn() } as unknown as XMLHttpRequest,
+    });
+    const { result } = renderHook(() => useAudioTranscription());
+    const latestFile = createMockFile('latest.wav');
+
+    act(() => result.current.startUpload(createMockFile('first.wav'), '', 'test-ns'));
+    act(() => result.current.startUpload(latestFile, '', 'test-ns'));
+    expect(result.current.state.fileName).toBe('latest.wav');
+
+    act(() => result.current.resumeUpload('whisper-model', 'test-ns'));
+    expect(mockUploadMediaFile).toHaveBeenCalledTimes(1);
+    expect(mockUploadMediaFile).toHaveBeenCalledWith(
+      expect.stringContaining('namespace=test-ns'),
+      latestFile,
+      'audio',
+      expect.any(Function),
+    );
+  });
+
+  it('discards an audio file waiting for a model', () => {
+    const { result } = renderHook(() => useAudioTranscription());
+    act(() => result.current.startUpload(createMockFile(), '', 'test-ns'));
+    act(() => result.current.abort());
+    act(() => result.current.resumeUpload('untagged-model', 'test-ns'));
+    expect(result.current.state.phase).toBe('idle');
+    expect(mockUploadMediaFile).not.toHaveBeenCalled();
+  });
+
   it('should transition to transcribing after upload success', async () => {
     const xhrMock = { abort: jest.fn() } as unknown as XMLHttpRequest;
     mockUploadMediaFile.mockReturnValue({

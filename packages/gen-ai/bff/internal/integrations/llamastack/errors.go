@@ -1,6 +1,7 @@
 package llamastack
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -178,6 +179,11 @@ func ResolveComponent(errorCode string) string {
 func wrapClientError(err error, operation string) *LlamaStackError {
 	if err == nil {
 		return nil
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		e := NewLlamaStackError(ErrCodeTimeout, fmt.Sprintf("LlamaStack operation %s timed out", operation), http.StatusGatewayTimeout)
+		e.Component = ComponentOGX
+		return e
 	}
 
 	// Check for network-level errors (connection refused, timeout, DNS failures, etc.)
