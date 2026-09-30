@@ -6,6 +6,8 @@ import {
   fetchGenericTable,
   fetchVolume,
 } from '~/app/api/dataRegistry';
+import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
+import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
 
 jest.mock('mod-arch-core', () => ({
   ...jest.requireActual('mod-arch-core'),
@@ -19,8 +21,7 @@ const mockRestDELETE = jest.mocked(modArchCore.restDELETE);
 describe('fetchGenericTable', () => {
   it('should accept null columns for tables without a schema', async () => {
     mockRestGET.mockResolvedValue({
-      name: 'schema-less-table',
-      asset_type: 'table',
+      ...mockAssetResponse({ name: 'schema-less-table' }),
       columns: null,
     });
 
@@ -31,16 +32,30 @@ describe('fetchGenericTable', () => {
       columns: null,
     });
   });
+
+  it('should reject unsupported format values in table responses', async () => {
+    mockRestGET.mockResolvedValue({
+      ...mockAssetResponse({ name: 'external-table' }),
+      format: 'external',
+    } as never);
+
+    await expect(fetchGenericTable('test-project', 'default', 'external-table')).rejects.toThrow();
+  });
 });
 
 describe('fetchVolume', () => {
+  it('should reject unsupported format values in volume responses', async () => {
+    mockRestGET.mockResolvedValue({
+      ...mockVolumeInfo({ name: 'pdf-volume' }),
+      format: 'pdf',
+    } as never);
+
+    await expect(fetchVolume('test-project', 'default', 'pdf-volume')).rejects.toThrow();
+  });
+
   it('should reject non-string volume properties', async () => {
     mockRestGET.mockResolvedValue({
-      name: 'invalid-volume',
-      'catalog-name': 'test-project',
-      'schema-name': 'default',
-      'volume-type': 'documents',
-      'storage-location': 's3://bucket/documents',
+      ...mockVolumeInfo({ name: 'invalid-volume', storage_location: 's3://bucket/documents' }),
       properties: { 'content-type': 123 },
     });
 

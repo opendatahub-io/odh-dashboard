@@ -2272,6 +2272,51 @@ paths:
   # =============================================================================
 
   /gen-ai/api/v1/agent-deployments:
+    get:
+      tags:
+        - AgentDeployments
+      operationId: listAgentDeployments
+      summary: List agent Sandbox deployments in a namespace
+      description: >-
+        Lists dashboard-created Sandbox deployments in the requested namespace only.
+        Agent deployments created before the agent profile label was introduced are
+        included with an empty agentProfileId.
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+        - name: agentProfileId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Filter deployments using the AgentProfile ID label.
+      responses:
+        '200':
+          description: Agent deployments in the namespace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentDeploymentListResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Insufficient permissions to list deployments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Agent Sandbox CRD is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
     post:
       tags:
         - AgentDeployments
@@ -2335,10 +2380,99 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '504':
           description: Agent prompt provider timed out
+
+  /gen-ai/api/v1/agent-deployments/{id}:
+    get:
+      tags:
+        - AgentDeployments
+      operationId: getAgentDeployment
+      summary: Get an agent Sandbox deployment by name
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+        - name: id
+          in: path
+          required: true
+          description: Sandbox deployment name.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent deployment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentDeploymentResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Insufficient permissions to access the deployment
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Agent deployment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Agent Sandbox CRD is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - AgentDeployments
+      operationId: deleteAgentDeployment
+      summary: Delete an agent Sandbox deployment by name
+      description: >-
+        Deletes the Sandbox and garbage-collects its owned ConfigMaps, Secrets,
+        external Service, and Route.
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+        - name: id
+          in: path
+          required: true
+          description: Sandbox deployment name.
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Agent deployment deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Insufficient permissions to delete the deployment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Agent deployment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Agent Sandbox CRD is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /gen-ai/api/v1/agent-profiles:
     get:
@@ -5417,6 +5551,70 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/AgentDeploymentCreateResponse'
+
+    AgentDeploymentSummary:
+      type: object
+      required:
+        - name
+        - namespace
+        - agentProfileId
+        - state
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        agentProfileId:
+          type: string
+          description: >-
+            AgentProfile ID from the Sandbox label. Empty for legacy Sandboxes
+            that do not have the label.
+        routeUrl:
+          type: string
+          format: uri
+          description: Public Route URL when the Route has been created.
+        state:
+          type: string
+          enum: [ready, creating, failed]
+          description: State derived from the deployment pod and Route.
+        lastError:
+          type: string
+          description: Latest Pod startup or readiness error, when available.
+        config:
+          $ref: '#/components/schemas/AgentProfile'
+          description: >-
+            Immutable AgentProfile snapshot fetched from the deployment when its
+            internal config endpoint is reachable and the caller is authorized.
+
+    AgentDeploymentListResponse:
+      type: object
+      required:
+        - deployments
+        - totalCount
+      properties:
+        deployments:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentDeploymentSummary'
+        totalCount:
+          type: integer
+          minimum: 0
+
+    AgentDeploymentListResponseEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/AgentDeploymentListResponse'
+
+    AgentDeploymentResponseEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/AgentDeploymentSummary'
 
     AgentProfileCreateRequest:
       type: object

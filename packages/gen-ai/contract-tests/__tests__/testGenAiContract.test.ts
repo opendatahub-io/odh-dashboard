@@ -110,6 +110,14 @@ describe('Gen AI API Contract Tests', () => {
   });
 
   describe('Agent Deployments Endpoint', () => {
+    it('should list agent deployments', async () => {
+      const result = await apiClient.get('/gen-ai/api/v1/agent-deployments?namespace=llama-stack');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1gen-ai~1api~1v1~1agent-deployments/get/responses/200/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
     it('should create a stateful mock agent deployment', async () => {
       const result = await apiClient.post('/gen-ai/api/v1/agent-deployments?namespace=llama-stack', {
         name: 'mock-agent',
@@ -127,6 +135,61 @@ describe('Gen AI API Contract Tests', () => {
       expect(response.data.routeUrl).toMatch(
         /^https:\/\/mock-agent-[a-f0-9]{4}-llama-stack\.apps\.example\.com$/,
       );
+    });
+
+    it('should get an agent deployment by Sandbox name', async () => {
+      const created = await apiClient.post('/gen-ai/api/v1/agent-deployments?namespace=llama-stack', {
+        name: 'mock-agent-details',
+        agentProfileId: '11111111-1111-1111-1111-111111111111',
+      });
+      expect(created.success).toBe(true);
+      if (!created.success) {
+        throw new Error(created.error.message);
+      }
+      const sandboxName = (created.response.data as { data: { sandboxName: string } }).data.sandboxName;
+
+      const result = await apiClient.get(
+        `/gen-ai/api/v1/agent-deployments/${encodeURIComponent(sandboxName)}?namespace=llama-stack`,
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1gen-ai~1api~1v1~1agent-deployments~1{id}/get/responses/200/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should delete an agent deployment by Sandbox name', async () => {
+      const created = await apiClient.post('/gen-ai/api/v1/agent-deployments?namespace=llama-stack', {
+        name: 'mock-agent-delete',
+        agentProfileId: '11111111-1111-1111-1111-111111111111',
+      });
+      expect(created.success).toBe(true);
+      if (!created.success) {
+        throw new Error(created.error.message);
+      }
+      const sandboxName = (created.response.data as { data: { sandboxName: string } }).data.sandboxName;
+
+      const deleted = await apiClient.delete(
+        `/gen-ai/api/v1/agent-deployments/${encodeURIComponent(sandboxName)}?namespace=llama-stack`,
+      );
+      expect(deleted).toMatchContract(apiSchema, {
+        ref: '#/paths/~1gen-ai~1api~1v1~1agent-deployments~1{id}/delete/responses/204',
+        status: 204,
+      });
+
+      const fetched = await apiClient.get(
+        `/gen-ai/api/v1/agent-deployments/${encodeURIComponent(sandboxName)}?namespace=llama-stack`,
+      );
+      expect(fetched.success).toBe(false);
+      if (!fetched.success) {
+        expect({
+          status: fetched.error.status,
+          headers: fetched.error.headers,
+          data: fetched.error.data,
+        }).toMatchContract(apiSchema, {
+          ref: '#/paths/~1gen-ai~1api~1v1~1agent-deployments~1{id}/get/responses/404/content/application~1json/schema',
+          status: 404,
+        });
+      }
     });
 
     it('should reject an invalid agent profile ID', async () => {

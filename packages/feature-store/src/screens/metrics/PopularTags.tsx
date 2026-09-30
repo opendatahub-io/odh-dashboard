@@ -62,7 +62,7 @@ const PopularTagCard = ({ tag }: { tag: PopularTag }) => {
           Feature views:
         </Content>
         <List
-          className="pf-u-ps-sm"
+          className="pf-v6-u-pl-sm"
           style={{
             margin: 0,
             gap: 'var(--pf-t--global--spacer--xs)',

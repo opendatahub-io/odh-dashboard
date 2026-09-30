@@ -14,8 +14,11 @@ import {
   LabelGroup,
   Stack,
   StackItem,
+  Timestamp,
+  TimestampTooltipVariant,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
+import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
 import { AssetResponse } from '~/app/types';
 import SchemaColumnsTable from '~/app/components/SchemaColumnsTable';
 import ConnectionRefLink from '~/app/components/ConnectionRefLink';
@@ -23,7 +26,7 @@ import { collectionDetailUrl } from '~/app/utilities/routes';
 import {
   getFormatBadge,
   getUnstructuredFormatLabel,
-  isStructured,
+  FORMAT_OPTIONS,
 } from '~/app/utilities/formatUtils';
 
 type TableDetailViewProps = {
@@ -32,28 +35,35 @@ type TableDetailViewProps = {
 };
 
 const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => {
-  const formatBadge = asset.format ? getFormatBadge(asset.format) : undefined;
-  const normalizedAssetType = asset.asset_type.toLowerCase();
-  const isUnstructured = normalizedAssetType === 'unstructured' || normalizedAssetType === 'volume';
-  const assetTypeLabel = isUnstructured ? 'Unstructured' : formatBadge?.text || asset.asset_type;
+  const isUnstructured = asset.asset_type === 'volume';
+  const formatBadge = getFormatBadge(asset.format, asset.asset_type);
+  const assetTypeLabel = isUnstructured ? 'Unstructured' : 'Structured';
+  const formatLabel = isUnstructured
+    ? getUnstructuredFormatLabel(asset.format)
+    : FORMAT_OPTIONS.find(
+        (option) => option.value === asset.format && option.assetType === asset.asset_type,
+      )?.label || asset.format;
 
-  const formatTimestamp = (timestamp: string | null | undefined): string => {
+  const renderTimestamp = (timestamp: string | null | undefined) => {
     if (!timestamp) {
-      return '-';
+      return <span>-</span>;
     }
+
     const date = new Date(timestamp);
     if (Number.isNaN(date.getTime())) {
-      return '-';
+      return <span>-</span>;
     }
-    return date.toLocaleString('en-US', {
-      month: 'numeric',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
-      second: 'numeric',
-      hour12: true,
-    });
+
+    return (
+      <Timestamp
+        date={date}
+        tooltip={{
+          variant: TimestampTooltipVariant.default,
+        }}
+      >
+        {relativeTime(Date.now(), date.getTime())}
+      </Timestamp>
+    );
   };
 
   return (
@@ -82,16 +92,16 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
                     {assetTypeLabel}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
-              ) : asset.format && isStructured(asset.format) ? (
+              ) : (
                 <DescriptionListGroup>
                   <DescriptionListTerm>Format</DescriptionListTerm>
                   <DescriptionListDescription data-testid="asset-format">
-                    <Label isCompact variant="outline" color={formatBadge?.color}>
-                      {asset.format}
+                    <Label isCompact variant="outline" color={formatBadge.color}>
+                      {formatLabel}
                     </Label>
                   </DescriptionListDescription>
                 </DescriptionListGroup>
-              ) : null}
+              )}
 
               {/* Collection - third for unstructured (left column), third for structured */}
               <DescriptionListGroup>
@@ -116,8 +126,8 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
                 <DescriptionListGroup>
                   <DescriptionListTerm>Format</DescriptionListTerm>
                   <DescriptionListDescription data-testid="asset-format">
-                    <Label isCompact variant="outline" color={formatBadge?.color}>
-                      {getUnstructuredFormatLabel(asset.format)}
+                    <Label isCompact variant="outline" color={formatBadge.color}>
+                      {formatLabel}
                     </Label>
                   </DescriptionListDescription>
                 </DescriptionListGroup>
@@ -153,7 +163,7 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
               <DescriptionListGroup>
                 <DescriptionListTerm>Path</DescriptionListTerm>
                 <DescriptionListDescription data-testid="asset-location">
-                  {asset.location || '-'}
+                  {asset.storage_location || '-'}
                 </DescriptionListDescription>
               </DescriptionListGroup>
 
@@ -161,8 +171,7 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
               <DescriptionListGroup>
                 <DescriptionListTerm>Created</DescriptionListTerm>
                 <DescriptionListDescription data-testid="asset-created-at">
-                  {formatTimestamp(asset.created_at)}
-                  {asset.created_at && asset.registered_by ? ` by ${asset.registered_by}` : null}
+                  {renderTimestamp(asset.created_at)}
                 </DescriptionListDescription>
               </DescriptionListGroup>
 
@@ -176,8 +185,7 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
               <DescriptionListGroup>
                 <DescriptionListTerm>Last modified</DescriptionListTerm>
                 <DescriptionListDescription data-testid="asset-updated-at">
-                  {formatTimestamp(asset.updated_at)}
-                  {asset.updated_at && asset.updated_by ? ` by ${asset.updated_by}` : null}
+                  {renderTimestamp(asset.updated_at)}
                 </DescriptionListDescription>
               </DescriptionListGroup>
             </DescriptionList>
