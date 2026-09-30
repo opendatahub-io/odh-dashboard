@@ -13,7 +13,10 @@ does not deploy the upstream Data Registry service or its database.
 ## Developer Readmes
 
 - [Dev setup & Requirements] — install dependencies and run mock or federated development.
-- [Full environment setup] — connect a local dashboard, frontend, BFF, and Data Registry backend.
 - [Architecture] — understand the dashboard module, BFF, API, and registry data model.
 - [Testing] — run frontend, BFF, contract, and Cypress checks.
 - [Environment Variables] — configure the frontend, BFF, and upstream API connection.
+
+## Full Environment Setup
+
+- [Full environment setup] — create the backend FeatureStore and connect a local dashboard, frontend, and BFF.

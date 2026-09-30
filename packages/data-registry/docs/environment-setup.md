@@ -23,13 +23,61 @@ spec:
 
 The backend needs a PostgreSQL metadata store and a registry-only
 `FeatureStore` instance named `data-registry`. Wait for the instance to be
-ready before starting the local UI:
+ready before starting the local UI.
+
+Create a PostgreSQL Secret containing the registry DSN, then create the
+registry-only `FeatureStore` CR. The following is the relevant shape for the
+RHOAI Data Registry setup; use the supported server image and namespace for
+the target RHOAI release:
+
+```yaml
+apiVersion: feast.dev/v1
+kind: FeatureStore
+metadata:
+  name: data-registry
+  namespace: <registry-namespace>
+  annotations:
+    dataregistry.opendatahub.io/enabled: "true"
+spec:
+  feastProject: catalog
+  authz:
+    kubernetes: {}
+  services:
+    onlineStore:
+      disabled: true
+    registry:
+      local:
+        persistence:
+          store:
+            type: sql
+            secretRef:
+              name: data-registry-database
+            secretKeyName: dsn
+        server:
+          envFrom:
+            - secretRef:
+                name: data-registry-database
+          grpc: true
+          restAPI: true
+```
+
+Apply the CR and wait for the operator-managed workload:
 
 ```bash
 oc whoami
 oc config current-context
+oc apply -f feature-store.yaml
+oc wait featurestore/data-registry \
+  -n <registry-namespace> \
+  --for=jsonpath='{.status.phase}'=Ready \
+  --timeout=10m
 oc get featurestore data-registry -n <registry-namespace>
+oc get deployments,pods,services -n <registry-namespace>
 ```
+
+The PostgreSQL Secret name, Data Registry annotation, and service namespace
+can vary between RHOAI releases. Do not commit the Secret or copy temporary
+development image coordinates into a shared manifest.
 
 The registry records asset metadata, locations, and optional Data Connection
 references. It does not copy the underlying data or expose connection
