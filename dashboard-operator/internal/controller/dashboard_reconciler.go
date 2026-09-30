@@ -595,7 +595,7 @@ func (r *DashboardReconciler) reconcileObservability(
 ) {
 	logger := log.FromContext(ctx)
 
-	switch obsErr := deployObservabilityManifests(ctx, r.Client, dashboard, r.ManifestsBasePath, r.Platform); {
+	switch obsErr := deployObservabilityManifests(ctx, r.Client, dashboard, r.ManifestsBasePath, r.Platform, r.ApplicationsNamespace); {
 	case obsErr == nil:
 		cm.MarkTrue(conditionObservabilityAvailable,
 			conditions.WithReason("Deployed"),

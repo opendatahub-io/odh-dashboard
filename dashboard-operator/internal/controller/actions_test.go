@@ -613,7 +613,7 @@ func TestDeployObservabilityManifests_PersesServiceRequired(t *testing.T) {
 		},
 	}
 
-	err := deployObservabilityManifests(context.Background(), cli, dashboard, "/base", cluster.OpenDataHub)
+	err := deployObservabilityManifests(context.Background(), cli, dashboard, "/base", cluster.OpenDataHub, "applications")
 	assert.ErrorIs(t, err, ErrPersesServiceRequired)
 }
 
