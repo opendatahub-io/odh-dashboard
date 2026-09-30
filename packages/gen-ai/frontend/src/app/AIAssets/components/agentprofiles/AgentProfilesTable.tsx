@@ -18,6 +18,7 @@ import {
 import { CloseIcon, FilterIcon } from '@patternfly/react-icons';
 import { Table, DashboardEmptyTableView } from 'mod-arch-shared';
 import { AgentProfileSummary } from '~/app/agentProfile/types';
+import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
 import AgentProfileTableRow from './AgentProfileTableRow';
 import AgentProfileColumns from './AgentProfileColumns';
 
@@ -48,6 +49,7 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = React.useState(false);
   const [currentFilterKey, setCurrentFilterKey] = React.useState<FilterKey>('name');
   const [searchValue, setSearchValue] = React.useState('');
+  const isAgentDeploymentEnabled = useGenAiAgentDeploymentEnabled();
 
   const onFilterUpdate = React.useCallback((key: FilterKey, value: string | undefined) => {
     setFilterData((prev) => ({ ...prev, [key]: value || undefined }));
@@ -169,7 +171,7 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
   return (
     <Table
       data={filteredProfiles}
-      columns={AgentProfileColumns}
+      columns={AgentProfileColumns(isAgentDeploymentEnabled)}
       enablePagination
       defaultSortColumn={2}
       emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
@@ -179,6 +181,7 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
           profile={profile}
           onDelete={onDelete}
           onRefresh={onRefresh}
+          showEndpointsColumn={isAgentDeploymentEnabled}
         />
       )}
       toolbarContent={toolbar}

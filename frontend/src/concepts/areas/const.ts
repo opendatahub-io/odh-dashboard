@@ -22,6 +22,7 @@ export const techPreviewFlags = {
   deploymentWizardYAMLViewer: false,
   externalVectorStores: false,
   agentConfigManagement: false,
+  genAiAgentDeployment: false,
   vLLMDeploymentOnMaaS: false,
   llmdTemplates: false,
   llmGatewayField: false,
