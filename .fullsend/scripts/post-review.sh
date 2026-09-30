@@ -11,7 +11,7 @@
 #      review comments by omitting line numbers only from the CLI payload.
 #   4. Render the durable structured review: change summary, host status,
 #      Signal|Level|Assessment (risk/confidence), decisions, findings, Jira
-#      coherence, verification, inspected evidence, signals, and labels.
+#      coherence, inspected evidence, signals, checks, and labels.
 
 #
 # Harness may fetch this script with sibling files in scripts/.
@@ -129,9 +129,20 @@ def is_blocking(finding):
 def blocking_count(result):
     return sum(1 for finding in (result.get("findings") or []) if is_blocking(finding))
 
+def checks(result):
+    return [c for c in (result.get("checks") or []) if isinstance(c, dict)]
+
+def checks_with_status(result, status):
+    return [c for c in checks(result) if c.get("status") == status]
+
+def failed_checks(result):
+    return checks_with_status(result, "fail")
+
 def needs_human(result):
     pa = result.get("product_ask") if isinstance(result.get("product_ask"), dict) else {}
-    if result.get("decision_needed"):
+    if os.environ.get("REVIEW_FORCE_PROTECTED_PATH"):
+        return True
+    if checks_with_status(result, "could-not-verify"):
         return True
     if "needs_human" in pa:
         if pa.get("needs_human"):
@@ -149,14 +160,6 @@ def approve_refuse_reason(result):
         return "confidence"
     return None
 
-# Rows whose result is owned by exactly one registry dimension. If the ledger
-# says that dimension never ran, the row cannot honestly report pass/fail.
-LEDGER_ROW_DIMENSION = {
-    "security": "security",
-    "product-ask": "product-ask-review",
-    "evidence": "test-impact-review",
-}
-
 def load_ledger():
     """Producer ledger written by the orchestrator at dispatch time (step 4c)."""
     path = os.environ.get("REVIEW_PRODUCER_LEDGER") or ""
@@ -169,6 +172,39 @@ def load_ledger():
         return None
     return data if isinstance(data, dict) else None
 
+def load_collected():
+    """Host adapter envelopes from collected.json (status: ok|none|skipped|error).
+
+    Path resolution: REVIEW_COLLECTED, else FULLSEND_CONFIG_DIR/.run/collected.json.
+    Missing or malformed input is an empty index — adapters then render as
+    envelope-missing rather than as a clean run."""
+    candidates = []
+    env_path = os.environ.get("REVIEW_COLLECTED") or ""
+    if env_path:
+        candidates.append(env_path)
+    config_dir = os.environ.get("FULLSEND_CONFIG_DIR") or ""
+    if config_dir:
+        candidates.append(os.path.join(config_dir, ".run", "collected.json"))
+    for path in candidates:
+        if not path or not os.path.isfile(path):
+            continue
+        try:
+            with open(path, encoding="utf-8") as fh:
+                data = json.load(fh)
+        except (OSError, ValueError):
+            continue
+        if not isinstance(data, list):
+            continue
+        index = {}
+        for entry in data:
+            if not isinstance(entry, dict):
+                continue
+            key = entry.get("dimension") or entry.get("id")
+            if isinstance(key, str) and key and key not in index:
+                index[key] = entry
+        return index
+    return {}
+
 def add_limit(inspected, note):
     notes = list(inspected.get("could_not_verify") or [])
     if note not in notes:
@@ -180,8 +216,8 @@ def reconcile_producers(result):
 
     The agent writes the ledger before any result is known, so it records what
     the run did rather than what the review would like to claim. Without this,
-    a re-review can inherit the previous run's producer list and verification
-    prose and present it as this run's work."""
+    a re-review can inherit the previous run's producer list and present it
+    as this run's work."""
     inspected = dict(result.get("inspected") or {})
     ledger = load_ledger()
     if ledger is None:
@@ -194,11 +230,6 @@ def reconcile_producers(result):
         for item in ledger.get(key) or []:
             if isinstance(item, str) and item and item not in ran:
                 ran.append(item)
-
-    skipped = {}
-    for row in ledger.get("skipped") or []:
-        if isinstance(row, dict) and isinstance(row.get("id"), str):
-            skipped[row["id"]] = str(row.get("reason") or "").strip()
 
     claimed = [item for item in (inspected.get("producers") or []) if isinstance(item, str)]
     for item in claimed:
@@ -213,17 +244,21 @@ def reconcile_producers(result):
         add_limit(inspected, problem)
         result["inspected"] = inspected
 
-    verification = []
-    for row in result.get("verification") or []:
-        dimension = LEDGER_ROW_DIMENSION.get(row.get("id"))
-        if dimension and dimension in skipped and row.get("result") in ("pass", "fail"):
-            reason = skipped[dimension] or "it was not selected for this change"
-            row = dict(row)
-            row["result"] = "could-not-verify"
-            row["notes"] = f"The {dimension} producer did not run in this review ({reason}), so this check was not performed."
-        verification.append(row)
-    if verification:
-        result["verification"] = verification
+    # A producer the ledger did not run cannot establish a check result.
+    # Pass, fail, warning, and not-applicable are all claims that it ran.
+    ran_ids = set(ran)
+    for check in checks(result):
+        check_id = check.get("id")
+        if not isinstance(check_id, str) or not check_id or check_id in ran_ids:
+            continue
+        if check.get("status") == "could-not-verify":
+            continue
+        prior = str(check.get("status") or "missing")
+        check["status"] = "could-not-verify"
+        check["summary"] = (
+            f"The dispatch ledger does not record '{check_id}' as running, "
+            f"so the reported status ({prior}) is not a completed check."
+        )
     return result
 
 def protected_prefixes():
@@ -265,31 +300,17 @@ def normalize_protected_findings(result):
         result["inspected"] = inspected
         return result
 
-    if not result.get("decision_needed"):
-        listed = ", ".join(sorted(matches))
-        result["decision_needed"] = {
-            "question": f"A human must approve this protected-path change: {listed}",
-            "options": [
-                {"id": "A", "title": "Approve the protected-path change", "implication": "A human accepts the governance or infrastructure risk."},
-                {"id": "None", "title": "Do not land this approach"},
-            ],
-        }
+    append_todo(result, protected_path_todo(", ".join(sorted(matches))))
     return result
 
 def unverified_producers(result):
     """Everything this run could not establish, by whatever shape reported it.
 
-    A producer that failed is a producer that did not run, whether it reported
-    that as a could-not-verify verification row, a could-not-verify readiness
-    check. Reading only one of the two lets a review claim every producer ran
-    while a section of itself says otherwise."""
+    A readiness check that could not be verified is a producer that did not
+    establish its result."""
     names = []
-    for row in result.get("verification") or []:
-        if row.get("result") == "could-not-verify":
-            names.append(row.get("label") or row.get("id") or "verification check")
-    for check in result.get("checks") or []:
-        if check.get("status") == "could-not-verify":
-            names.append(check.get("id") or "readiness check")
+    for check in checks_with_status(result, "could-not-verify"):
+        names.append(check.get("id") or "readiness check")
     ledger = load_ledger()
     if ledger is not None and challenger_problem(challenger_record(ledger), result.get("findings") or []):
         names.append("challenger (its ledger record contradicts the reported findings)")
@@ -310,24 +331,23 @@ def cap_confidence(result):
     result["confidence"] = {"level": floor, "why": (why + " " + limit).strip()}
     return result
 
-def normalize_host_verification(result):
-    """Make the host-owned blocker audit agree with the host action rule."""
-    count = blocking_count(result)
-    noun = "finding" if count == 1 else "findings"
-    severities = "/".join(sorted(POLICY["_blocking_severities"])) or "configured"
-    excluded = ", ".join(sorted(POLICY["_exclude_categories"])) or "none"
-    row = {
-        "id": "blocking-findings",
-        "label": "Blocking findings",
-        "result": "fail" if count else "pass",
-        "notes": f"{count} blocking {noun} under the host rule: {severities} (excluded: {excluded}).",
-    }
-    verification = [
-        existing for existing in (result.get("verification") or [])
-        if existing.get("id") != "blocking-findings"
-    ]
-    verification.append(row)
-    result["verification"] = verification
+def protected_path_todo(listed):
+    return f"A human must approve this protected-path change: {listed}"
+
+def todo_items(result):
+    return [t for t in (result.get("todo") or []) if isinstance(t, str) and t.strip()]
+
+def append_todo(result, item):
+    todos = todo_items(result)
+    if item not in todos:
+        todos.append(item)
+    result["todo"] = todos
+
+def apply_host_todos(result):
+    """Host-owned todos that the agent cannot know (protected-path gate)."""
+    forced = (os.environ.get("REVIEW_FORCE_PROTECTED_PATH") or "").strip()
+    if forced:
+        append_todo(result, protected_path_todo(forced))
     return result
 
 def compute_action(result):
@@ -339,6 +359,8 @@ def compute_action(result):
         return "reject", "approach-rejected"
     if blocking_count(result):
         return "request-changes", "blocking-findings"
+    if failed_checks(result):
+        return "request-changes", "check-fail"
     refuse = approve_refuse_reason(result)
     if refuse == "risk":
         return "comment", "risk-blocks-approve"
@@ -370,19 +392,13 @@ def apply_product_ask(result):
 
 
 def augment_inspected(result):
-    """Record verification limits for audit."""
+    """Record readiness limits for audit."""
     inspected = dict(result.get("inspected") or {})
     could_not_verify = list(inspected.get("could_not_verify") or [])
-    for row in result.get("verification") or []:
-        if row.get("result") == "could-not-verify":
-            note = row.get("notes") or row.get("label")
-            if note and note not in could_not_verify:
-                could_not_verify.append(note)
-    for check in result.get("checks") or []:
-        if check.get("status") == "could-not-verify":
-            note = f"{check.get('id') or 'readiness check'}: {check.get('summary') or 'could not be verified'}"
-            if note not in could_not_verify:
-                could_not_verify.append(note)
+    for check in checks_with_status(result, "could-not-verify"):
+        note = f"{check.get('id') or 'readiness check'}: {check.get('summary') or 'could not be verified'}"
+        if note not in could_not_verify:
+            could_not_verify.append(note)
     if could_not_verify:
         inspected["could_not_verify"] = could_not_verify
     if inspected:
@@ -437,7 +453,9 @@ def render_remediation(text):
     return out
 
 def table_cell(text):
-    return clean(text).replace("|", "\\|").replace("\n", " ")
+    """One markdown table cell. Pipes and newlines would break the row; a raw
+    `<` would let a cell close the surrounding `<details>` block."""
+    return clean(text).replace("|", "\\|").replace("\n", " ").replace("<", "&lt;")
 
 def render_header(result, action):
     sha = result.get("head_sha") or ""
@@ -462,37 +480,26 @@ def render_header(result, action):
     lines.append(" · ".join(meta))
     return lines
 
-def status_text(result, action):
+def author_wait_detail(result):
     count = blocking_count(result)
-    if action == "request-changes":
+    failed = failed_checks(result)
+    bits = []
+    if count:
         noun = "finding" if count == 1 else "findings"
-        return f"Waiting on author — {count} blocking {noun} before the agent bar can clear. Human still finalizes."
-    if action == "comment" and needs_human(result):
-        return "Needs human judgment."
-    if action == "comment":
-        refuse = approve_refuse_reason(result)
-        if refuse == "risk":
-            return "Agent cannot approve this head — blast-radius risk. Human still finalizes."
-        if refuse == "confidence":
-            return "Agent cannot approve this head — low confidence. Human still finalizes."
-        return "Advisory — no blocking findings. Human still finalizes."
-    if action == "approve":
-        return "Agent bar cleared for this head. Human still finalizes."
-    if action == "reject":
-        return "Approach rejected."
-    return "This review did not complete. Do not treat this head as reviewed."
+        bits.append(f"{count} blocking {noun}")
+    if failed:
+        n = len(failed)
+        noun = "readiness check" if n == 1 else "readiness checks"
+        bits.append(f"{n} failed {noun}")
+    listed = " and ".join(bits) if bits else "blocking issues"
+    return f"{listed} before the agent bar can clear. Human still finalizes."
 
 STATUS_MARK = {"pass": "✅", "warning": "🟡", "fail": "❌", "not-applicable": "➖", "could-not-verify": "❔"}
-VERDICT_MARK = {"PASS": "✅", "PARTIAL": "🟠", "MISS": "❌", "SKIP": "➖"}
 ACTION_MARK = {"approve": "✅", "comment": "💬", "request-changes": "🔴", "reject": "⛔", "failure": "❌"}
 
 def mark(table, key, default=""):
-    """Verdict keys are upper-case (PASS/MISS), status keys lower-case.
-    Try the key as given before folding case, so both resolve."""
     if not isinstance(key, str):
         return default
-    if key in table:
-        return table[key]
     return table.get(key.lower(), default)
 
 def detail_block(summary, body_lines, open_by_default=False):
@@ -559,15 +566,89 @@ def challenger_prose(result):
         return f"Adjudicated {input_n} {noun}; kept {kept} ({', '.join(parts)})."
     return clean(status)
 
+def producer_ids(finding):
+    """Registry ids stamped on a finding, including a same-category merge.
+
+    Step 6b keeps both producer ids, comma-separated, when two findings merge.
+    Distinct categories stay separate, so this split does not combine them."""
+    dimension = finding.get("dimension")
+    if not isinstance(dimension, str):
+        return []
+    ids = []
+    for part in dimension.split(","):
+        part = part.strip()
+        if part and part not in ids:
+            ids.append(part)
+    return ids
+
+def producer_note(name, findings, checks):
+    mine = [f for f in findings if name in producer_ids(f)]
+    if mine:
+        cats = []
+        for finding in mine:
+            cat = finding.get("category") or "finding"
+            if cat not in cats:
+                cats.append(cat)
+        noun = "finding" if len(mine) == 1 else "findings"
+        return f"{len(mine)} {noun}: {', '.join(cats)}"
+    for check in checks:
+        if isinstance(check, dict) and check.get("id") == name and check.get("summary"):
+            return clean(check.get("summary"))
+    return "No findings."
+
+# Adapter `reason` values are fixed tokens (`no-issue-key`, `http-404`,
+# `URLError`). Issue titles and other free-form text are not.
+_ADAPTER_REASON = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
+
+def adapter_reason(envelope):
+    """Humanize a fixed adapter reason token for the Producers Notes cell.
+
+    Only `reason` is eligible. Snapshot fields such as `summary` stay off the
+    public comment. A value that is not a token is dropped so the caller can
+    use its status default."""
+    raw = envelope.get("reason")
+    if not isinstance(raw, str):
+        return ""
+    token = raw.strip()
+    if _ADAPTER_REASON.fullmatch(token) is None:
+        return ""
+    return clean(token.replace("-", " "))
+
+def adapter_producer_row(name, envelope, findings, review_checks, count_cell):
+    """Render a cli-adapter ledger entry from its collected envelope status.
+
+    ok → ran (✅). none/skipped → unavailable (⚪), not a clean zero-finding run.
+    error → ❌. Missing or unrecognized envelope → ❔."""
+    if not isinstance(envelope, dict):
+        return (clean(name), "❔", "—", "adapter envelope missing")
+    status = str(envelope.get("status") or "").strip().lower()
+    reason = adapter_reason(envelope)
+    if status == "ok":
+        if str(envelope.get("output") or "").strip().lower() == "context":
+            note = "Context available."
+        else:
+            note = producer_note(name, findings, review_checks)
+        return (clean(name), "✅", count_cell(name), note)
+    if status in ("none", "skipped"):
+        default = "No usable adapter context." if status == "none" else "Adapter skipped."
+        return (clean(name), "⚪", "—", reason or default)
+    if status == "error":
+        return (clean(name), "❌", "—", reason or "Adapter error.")
+    return (clean(name), "❔", "—", reason or f"Unrecognized adapter status: {status or 'missing'}")
+
 def producer_rows(result):
-    """What ran, and what each one found — from the dispatch ledger."""
+    """What ran, and what each one found — from the dispatch ledger.
+
+    LLM rows in `dispatched` are ✅. Adapter rows consult collected.json so
+    status none/skipped/error are not shown as a clean run with zero findings."""
     ledger = load_ledger()
+    collected = load_collected()
     findings = result.get("findings") or []
+    review_checks = checks(result)
     attributed = any(f.get("dimension") for f in findings)
     counts = {}
     for f in findings:
-        key = f.get("dimension")
-        if key:
+        for key in producer_ids(f):
             counts[key] = counts.get(key, 0) + 1
 
     def count_cell(name):
@@ -581,10 +662,13 @@ def producer_rows(result):
         for name in (result.get("inspected") or {}).get("producers") or []:
             rows.append((clean(name), "❔", count_cell(name), unverified_note))
         return rows, False
-    for key in ("dispatched", "adapters"):
-        for name in ledger.get(key) or []:
-            if isinstance(name, str):
-                rows.append((clean(name), "✅", count_cell(name), "—"))
+    for name in ledger.get("dispatched") or []:
+        if isinstance(name, str):
+            rows.append((clean(name), "✅", count_cell(name), producer_note(name, findings, review_checks)))
+    for name in ledger.get("adapters") or []:
+        if isinstance(name, str):
+            rows.append(adapter_producer_row(
+                name, collected.get(name), findings, review_checks, count_cell))
     for row in ledger.get("skipped") or []:
         if isinstance(row, dict) and isinstance(row.get("id"), str):
             reason = clean(row.get("reason") or "not selected")
@@ -593,13 +677,8 @@ def producer_rows(result):
 
 def status_headline(result, action):
     """Visible status line: icon + bold label + remainder."""
-    text = status_text(result, action)
     if action == "request-changes":
-        count = blocking_count(result)
-        noun = "finding" if count == 1 else "findings"
-        inner = (f"**Waiting on author** — {count} blocking {noun} before the agent bar can clear. "
-                 f"Human still finalizes.")
-        return f"{mark(ACTION_MARK, action)} {inner}"
+        return f"{mark(ACTION_MARK, action)} **Waiting on author** — {author_wait_detail(result)}"
     if action == "comment" and needs_human(result):
         return f"{mark(ACTION_MARK, action)} **Needs human judgment.**"
     if action == "comment":
@@ -615,7 +694,7 @@ def status_headline(result, action):
         return f"{mark(ACTION_MARK, action)} **Agent bar cleared for this head.** Human still finalizes."
     if action == "reject":
         return f"{mark(ACTION_MARK, action)} **Approach rejected.**"
-    return f"{mark(ACTION_MARK, action)} {text}"
+    return f"{mark(ACTION_MARK, action)} This review did not complete. Do not treat this head as reviewed."
 
 def render_signal_table(result):
     """Signal | Level | Assessment — always risk + confidence under Status."""
@@ -625,11 +704,33 @@ def render_signal_table(result):
     conf_level = rated_level(result, "confidence", "high")
     lines = [
         "",
+        "### Signals",
+        "",
         "| Signal | Level | Assessment |",
         "| --- | --- | --- |",
         f"| Risk | `{table_cell(risk_level)}` | {table_cell(risk.get('why') or '—')} |",
         f"| Confidence | `{table_cell(conf_level)}` | {table_cell(confidence.get('why') or '—')} |",
     ]
+    return lines
+
+def render_checks_table(result):
+    rows = checks(result)
+    if not rows:
+        return []
+    lines = ["", "### Checks", "", "| Check | Status | Summary |", "| --- | --- | --- |"]
+    for check in rows:
+        status = check.get("status") or ""
+        lines.append(
+            f"| {table_cell(check.get('id'))} | {mark(STATUS_MARK, status)} {table_cell(status)} "
+            f"| {table_cell(check.get('summary'))} |")
+    return lines
+
+def render_todo_section(result):
+    todos = todo_items(result)
+    if not todos:
+        return []
+    lines = ["", "## TODO", ""]
+    lines += [f"- {clean(item)}" for item in todos]
     return lines
 
 def render_product_ask_section(pa):
@@ -658,13 +759,7 @@ def render_body(result, previous_md, action):
     lines += ["", "## Change summary", "", clean(result.get("change_summary"))]
     lines += ["", "## Status", "", status_headline(result, action)]
     lines += render_signal_table(result)
-
-    decision = result.get("decision_needed") if isinstance(result.get("decision_needed"), dict) else None
-    if decision:
-        lines += ["", "## Decision needed", "", clean(decision.get("question")), ""]
-        for option in decision.get("options") or []:
-            suffix = f" — {clean(option.get('implication'))}" if option.get("implication") else ""
-            lines.append(f"- **{clean(option.get('id'))}.** {clean(option.get('title'))}{suffix}")
+    lines += render_checks_table(result)
 
     findings = result.get("findings") or []
     if findings:
@@ -685,22 +780,11 @@ def render_body(result, previous_md, action):
 
     pa = result.get("product_ask") if isinstance(result.get("product_ask"), dict) else None
     lines += render_product_ask_section(pa)
+    lines += render_todo_section(result)
 
     inspected = result.get("inspected") if isinstance(result.get("inspected"), dict) else {}
     labels = result.get("label_actions") if isinstance(result.get("label_actions"), dict) else {}
     details_body = []
-
-    verification = result.get("verification") or []
-    if verification:
-        details_body += ["### Verification", "",
-                         "| Check | Result | Notes |", "| --- | --- | --- |"]
-        for row in verification:
-            res = row.get("result") or ""
-            note = table_cell(row.get("notes") or "—")
-            details_body.append(
-                f"| {table_cell(row.get('label') or row.get('id'))} | "
-                f"{mark(STATUS_MARK, res)} {table_cell(res)} | {note} |")
-        details_body.append("")
 
     rows, from_ledger = producer_rows(result)
     if rows:
@@ -708,36 +792,13 @@ def render_body(result, previous_md, action):
                          "| Producer | Ran | Findings count | Notes |",
                          "| --- | --- | --- | --- |"]
         for name, ran, count, notes in rows:
-            details_body.append(f"| {name} | {ran} | {count} | {notes} |")
+            details_body.append(
+                f"| {table_cell(name)} | {ran} | {table_cell(count)} | {table_cell(notes)} |")
         if not from_ledger:
             details_body += ["", "_No dispatch ledger for this run — this list is self-reported by the agent._"]
         details_body.append("")
 
     details_body += ["### Challenger", "", challenger_prose(result), ""]
-
-    criteria = result.get("jira_criteria") if isinstance(result.get("jira_criteria"), list) else []
-    if criteria:
-        details_body += ["### Jira acceptance criteria", "",
-                         "| Criterion | Verdict | Evidence |", "| --- | --- | --- |"]
-        for c in criteria:
-            verdict = c.get("verdict") or ""
-            stale = " · stale comment" if c.get("stale_comment") else ""
-            details_body.append(
-                f"| {table_cell(c.get('criterion'))} | "
-                f"{mark(VERDICT_MARK, verdict)} {table_cell(verdict)}{stale} "
-                f"| {table_cell(c.get('evidence'))} |")
-        details_body.append("")
-
-    checks = result.get("checks") if isinstance(result.get("checks"), list) else []
-    if checks:
-        details_body += ["### Readiness checks", "",
-                         "| Check | Status | Summary |", "| --- | --- | --- |"]
-        for check in checks:
-            status = check.get("status") or ""
-            details_body.append(
-                f"| {table_cell(check.get('id'))} | {mark(STATUS_MARK, status)} {table_cell(status)} "
-                f"| {table_cell(check.get('summary'))} |")
-        details_body.append("")
 
     if inspected.get("summary") or inspected.get("could_not_verify"):
         details_body += ["### Evidence inspected", ""]
@@ -760,8 +821,19 @@ def render_body(result, previous_md, action):
 
     if details_body:
         ran = sum(1 for _, icon, _, _ in rows if icon == "✅")
+        unavailable = sum(1 for _, icon, _, _ in rows if icon == "⚪")
+        errored = sum(1 for _, icon, _, _ in rows if icon == "❌")
         skipped = sum(1 for _, icon, _, _ in rows if icon == "➖")
-        blurb = f"{ran} producer(s) ran, {skipped} skipped" if rows else "audit trail"
+        parts = []
+        if ran:
+            parts.append(f"{ran} producer(s) ran")
+        if unavailable:
+            parts.append(f"{unavailable} unavailable")
+        if errored:
+            parts.append(f"{errored} errored")
+        if skipped:
+            parts.append(f"{skipped} skipped")
+        blurb = ", ".join(parts) if parts else "audit trail"
         lines += [""] + detail_block(f"🔍 <strong>Review details</strong> — {blurb}", details_body)
 
     _ = previous_md
@@ -772,7 +844,7 @@ with open(sys.argv[1], encoding="utf-8") as fh:
 previous_md = os.environ.get("REVIEW_PREVIOUS_MARKDOWN", "")
 result = normalize_protected_findings(result)
 result = reconcile_producers(result)
-result = normalize_host_verification(result)
+result = apply_host_todos(result)
 result = augment_inspected(result)
 result = apply_product_ask(result)
 result = cap_confidence(result)
@@ -813,10 +885,13 @@ run_self_test() {
     body=$(jq -r .body "${tmp}/${name}-out.json")
     if ! grep -q '## Change summary' <<<"${body}" ||
        ! grep -q '## Status' <<<"${body}" ||
+       ! grep -q '### Signals' <<<"${body}" ||
        ! grep -q '<summary>🔍 <strong>Review details</strong>' <<<"${body}" ||
-       ! grep -q '### Verification' <<<"${body}" ||
-       grep -q '## Checks' <<<"${body}"; then
-      echo "FAIL ${name}: required rendered sections missing or legacy Checks present" >&2
+       grep -q '### Verification' <<<"${body}" ||
+       grep -q '### Jira acceptance criteria' <<<"${body}" ||
+       grep -q '## Decision needed' <<<"${body}" ||
+       grep -q '### Readiness checks' <<<"${body}"; then
+      echo "FAIL ${name}: required rendered sections missing or retired sections present" >&2
       fail=1
       return
     fi
@@ -824,13 +899,13 @@ run_self_test() {
   }
 
   local common
-  common='"schema_version":"2","pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","change_summary":"Changes a small frontend helper without changing authorization.","risk":{"level":"low","why":"The change is isolated to one internal helper."},"confidence":{"level":"high","why":"The complete diff and matching unit evidence were inspected."},"verification":[{"id":"description-vs-code","label":"Description vs code","result":"pass"},{"id":"evidence","label":"Evidence","result":"pass"},{"id":"security","label":"Security","result":"pass"},{"id":"blocking-findings","label":"Blocking findings","result":"pass"},{"id":"product-ask","label":"Product ask","result":"pass"}]'
+  common='"schema_version":"2","pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","change_summary":"Changes a small frontend helper without changing authorization.","risk":{"level":"low","why":"The change is isolated to one internal helper."},"confidence":{"level":"high","why":"The complete diff and matching unit evidence were inspected."}'
 
   render_fixture approve approve "{${common},\"findings\":[],\"product_ask\":{\"status\":\"none\"},\"inspected\":{\"summary\":\"Read the PR body and full diff.\",\"producers\":[\"correctness\",\"style-conventions\"]}}"
 
   render_fixture request-changes request-changes "{${common},\"findings\":[{\"severity\":\"high\",\"category\":\"correctness\",\"file\":\"a.ts\",\"line\":12,\"description\":\"Empty state throws.\",\"why\":\"The supported empty route reaches an unguarded map.\",\"remediation\":\"Guard the list and add an empty-state test.\"}],\"product_ask\":{\"status\":\"aligned\"}}"
 
-  render_fixture needs-human comment "{${common},\"findings\":[],\"decision_needed\":{\"question\":\"Which product scope should this PR implement?\",\"options\":[{\"id\":\"A\",\"title\":\"Keep the PR scope\"},{\"id\":\"B\",\"title\":\"Match Jira\"}]},\"product_ask\":{\"status\":\"mismatch-justified\",\"needs_human\":true}}"
+  render_fixture needs-human comment "{${common},\"findings\":[],\"todo\":[\"Decide which product scope this PR implements.\"],\"product_ask\":{\"status\":\"mismatch-justified\",\"needs_human\":true}}"
 
   local pa body
   printf '%s' "{${common},\"product_ask\":{\"status\":\"mismatch-unjustified\",\"mismatched\":[\"Jira asks for export\"]}}" > "${tmp}/product-ask.json"
@@ -876,32 +951,64 @@ run_self_test() {
     echo "PASS request-changes status and linked location"
   fi
   body=$(jq -r .body "${tmp}/needs-human-out.json")
-  if ! grep -Fq '**Needs human judgment.**' <<<"${body}" || ! grep -q '## Decision needed' <<<"${body}"; then
-    echo "FAIL needs-human: status or decision section missing" >&2
+  if ! grep -Fq '**Needs human judgment.**' <<<"${body}" || ! grep -q '## TODO' <<<"${body}" || grep -q '## Decision needed' <<<"${body}"; then
+    echo "FAIL needs-human: status or TODO section missing" >&2
     fail=1
   else
-    echo "PASS needs-human status and decision section"
+    echo "PASS needs-human status and TODO section"
   fi
   body=$(jq -r .body "${tmp}/approve-out.json")
-  if grep -q '## Findings' <<<"${body}" || ! grep -q 'Looks good to me' <<<"${body}"; then
-    echo "FAIL approve: empty findings rendering" >&2
+  if grep -q '## Findings' <<<"${body}" || grep -q '## TODO' <<<"${body}" || ! grep -q 'Looks good to me' <<<"${body}"; then
+    echo "FAIL approve: empty findings rendering or unexpected TODO section" >&2
     fail=1
   else
     echo "PASS approve omits findings section"
   fi
 
-  printf '%s' "{${common},\"jira_criteria\":[{\"criterion\":\"Permission is checked\",\"verdict\":\"PASS\",\"evidence\":\"Route gate is present.\",\"stale_comment\":true}],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"warning\",\"summary\":\"No targeted tests were changed.\",\"details\":[\"PR body explains manual verification only.\"]}]}" > "${tmp}/structured.json"
+  printf '%s' "{${common},\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"warning\",\"summary\":\"No targeted tests were changed.\",\"details\":[\"PR body explains manual verification only.\"]}],\"todo\":[\"Confirm the manual verification note is enough.\"]}" > "${tmp}/structured.json"
   transform_review_result "${tmp}/structured.json" > "${tmp}/structured-out.json"
   body=$(jq -r .body "${tmp}/structured-out.json")
-  if grep -q '## Checks' <<<"${body}" ||
-     ! grep -q '### Readiness checks' <<<"${body}" ||
+  if [[ "$(jq -r .action "${tmp}/structured-out.json")" != "approve" ]] ||
+     ! grep -q '### Checks' <<<"${body}" ||
      ! grep -q 'test-impact-review' <<<"${body}" ||
-     ! grep -q '### Jira acceptance criteria' <<<"${body}" ||
-     ! grep -q 'Permission is checked' <<<"${body}"; then
-    echo "FAIL structured results: audit tables were not rendered in Review details" >&2
+     ! grep -q '## TODO' <<<"${body}" ||
+     grep -q '### Verification' <<<"${body}" ||
+     grep -q '### Jira acceptance criteria' <<<"${body}" ||
+     grep -q '### Readiness checks' <<<"${body}"; then
+    echo "FAIL structured results: checks/TODO were not rendered as visible sections" >&2
     fail=1
   else
-    echo "PASS structured results render separately from findings"
+    # Visible order: Signals, then Checks, then TODO after product ask (none here).
+    signals_at=$(grep -n '### Signals' <<<"${body}" | head -1 | cut -d: -f1)
+    checks_at=$(grep -n '### Checks' <<<"${body}" | head -1 | cut -d: -f1)
+    todo_at=$(grep -n '## TODO' <<<"${body}" | head -1 | cut -d: -f1)
+    if [[ -z "${signals_at}" || -z "${checks_at}" || -z "${todo_at}" ||
+          "${signals_at}" -ge "${checks_at}" || "${checks_at}" -ge "${todo_at}" ]]; then
+      echo "FAIL structured results: visible order is not Signals → Checks → TODO" >&2
+      fail=1
+    else
+      echo "PASS structured results render Checks and TODO in sticky order"
+    fi
+  fi
+
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"pr-description-review\",\"status\":\"fail\",\"summary\":\"Problem section is empty.\"}]}" > "${tmp}/check-fail.json"
+  transform_review_result "${tmp}/check-fail.json" > "${tmp}/check-fail-out.json"
+  if [[ "$(jq -r .action "${tmp}/check-fail-out.json")" != "request-changes" ]] ||
+     ! grep -Fq '**Waiting on author** — 1 failed readiness check' <<<"$(jq -r .body "${tmp}/check-fail-out.json")"; then
+    echo "FAIL check-fail: failed readiness check must request changes" >&2
+    fail=1
+  else
+    echo "PASS failed readiness check requests changes"
+  fi
+
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"could-not-verify\",\"summary\":\"CI host context was unavailable.\"}],\"todo\":[\"Re-run when CI context is available.\"]}" > "${tmp}/check-cnv.json"
+  transform_review_result "${tmp}/check-cnv.json" > "${tmp}/check-cnv-out.json"
+  if [[ "$(jq -r .action "${tmp}/check-cnv-out.json")" != "comment" ]] ||
+     ! grep -Fq '**Needs human judgment.**' <<<"$(jq -r .body "${tmp}/check-cnv-out.json")"; then
+    echo "FAIL check-cnv: could-not-verify must refuse approve and need a human" >&2
+    fail=1
+  else
+    echo "PASS could-not-verify check needs a human"
   fi
 
   prepare_summary_only_result "${tmp}/request-changes-out.json" "${tmp}/summary-only.json"
@@ -943,8 +1050,8 @@ run_self_test() {
     export REVIEW_CHANGED_FILES=$'.github/workflows/ci.yaml\nsrc/app.ts'
     transform_review_result "${tmp}/pp-real.json"
   ) > "${tmp}/pp-real-out.json"
-  if ! jq -e '.action == "comment" and ((.findings // []) | length) == 1 and (.decision_needed.question | contains(".github/workflows/ci.yaml"))' "${tmp}/pp-real-out.json" >/dev/null; then
-    echo "FAIL protected-path-real: want comment + retained finding + decision_needed" >&2
+  if ! jq -e '.action == "comment" and ((.findings // []) | length) == 1 and ((.todo // []) | any(.[]; contains(".github/workflows/ci.yaml"))) and (.decision_needed | not)' "${tmp}/pp-real-out.json" >/dev/null; then
+    echo "FAIL protected-path-real: want comment + retained finding + TODO, no decision_needed" >&2
     fail=1
   elif ! grep -q 'Needs human judgment' <<<"$(jq -r .body "${tmp}/pp-real-out.json")"; then
     echo "FAIL protected-path-real: status should route to human judgment, not the author" >&2
@@ -959,17 +1066,17 @@ run_self_test() {
     export REVIEW_PRODUCER_LEDGER="${tmp}/producers.json"
     transform_review_result "${tmp}/ledger.json"
   ) > "${tmp}/ledger-out.json"
-  if ! jq -e '(.verification[] | select(.id == "security") | .result) == "could-not-verify"' "${tmp}/ledger-out.json" >/dev/null; then
-    echo "FAIL ledger: a skipped dimension still reported a pass verification row" >&2
-    fail=1
-  elif ! jq -e '.inspected.producers == ["correctness","jira-snapshot"]' "${tmp}/ledger-out.json" >/dev/null; then
+  if ! jq -e '.inspected.producers == ["correctness","jira-snapshot"]' "${tmp}/ledger-out.json" >/dev/null; then
     echo "FAIL ledger: producer list was not reconciled against the ledger" >&2
     fail=1
-  elif ! jq -e '.confidence.level == "medium"' "${tmp}/ledger-out.json" >/dev/null; then
-    echo "FAIL ledger: confidence stayed high despite an unverifiable check" >&2
+  elif ! jq -e '.confidence.level == "high"' "${tmp}/ledger-out.json" >/dev/null; then
+    echo "FAIL ledger: a skipped conditional producer should not cap confidence" >&2
+    fail=1
+  elif jq -e 'has("verification") and (.verification | length > 0)' "${tmp}/ledger-out.json" >/dev/null; then
+    echo "FAIL ledger: host must not invent verification rows" >&2
     fail=1
   else
-    echo "PASS ledger reconciles producers, verification rows and confidence"
+    echo "PASS ledger reconciles producers without a verification table"
   fi
 
   # An unavailable readiness check is an incomplete review, even when every
@@ -977,14 +1084,32 @@ run_self_test() {
   # readiness check reported could-not-verify while confidence still claimed high.
   printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"could-not-verify\",\"summary\":\"CI host context was unavailable.\"}]}" > "${tmp}/unavailable-check.json"
   transform_review_result "${tmp}/unavailable-check.json" > "${tmp}/unavailable-check-out.json"
-  if ! jq -e '.confidence.level == "medium" and (.confidence.why | contains("test-impact-review"))' "${tmp}/unavailable-check-out.json" >/dev/null; then
-    echo "FAIL unavailable-check: confidence stayed high despite an unverifiable readiness check" >&2
+  if ! jq -e '.action == "comment" and .confidence.level == "medium" and (.confidence.why | contains("test-impact-review"))' "${tmp}/unavailable-check-out.json" >/dev/null; then
+    echo "FAIL unavailable-check: confidence stayed high or approve was not refused" >&2
     fail=1
   elif ! jq -e '.inspected.could_not_verify | any(.[]; contains("test-impact-review"))' "${tmp}/unavailable-check-out.json" >/dev/null; then
     echo "FAIL unavailable-check: the limit was not recorded in inspected" >&2
     fail=1
   else
     echo "PASS unavailable readiness check caps confidence and is recorded"
+  fi
+
+  # A skipped producer cannot leave a passed check in place. The ledger is the
+  # record of what ran; a schema-valid pass for an unrun check must not approve.
+  printf '%s' '{"dispatched":["test-impact-review"],"adapters":[],"skipped":[{"id":"pr-description-review","reason":"not spawned"}],"returned":["test-impact-review"],"challenger":{"status":"skipped","reason":"no findings to adjudicate"}}' > "${tmp}/skip-check-ledger.json"
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"pr-description-review\",\"status\":\"pass\",\"summary\":\"PR body is complete.\"},{\"id\":\"test-impact-review\",\"status\":\"pass\",\"summary\":\"Tests cover the change.\"}]}" > "${tmp}/skip-check.json"
+  (
+    export REVIEW_PRODUCER_LEDGER="${tmp}/skip-check-ledger.json"
+    transform_review_result "${tmp}/skip-check.json"
+  ) > "${tmp}/skip-check-out.json"
+  if ! jq -e '.action == "comment" and .confidence.level == "medium" and ([.checks[] | select(.id == "pr-description-review") | .status] == ["could-not-verify"]) and ([.checks[] | select(.id == "test-impact-review") | .status] == ["pass"])' "${tmp}/skip-check-out.json" >/dev/null; then
+    echo "FAIL skip-check: a skipped producer must not keep a passing check or approve" >&2
+    fail=1
+  elif ! grep -Fq '**Needs human judgment.**' <<<"$(jq -r .body "${tmp}/skip-check-out.json")"; then
+    echo "FAIL skip-check: downgraded check must need a human" >&2
+    fail=1
+  else
+    echo "PASS skipped producer cannot leave a passing check"
   fi
 
   # Provenance: the ledger drives a Producers table that distinguishes a
@@ -1025,6 +1150,113 @@ run_self_test() {
     echo "PASS producers table attributes findings and separates ran-clean from skipped"
   fi
 
+  # Same-category merges keep both producer ids, comma-separated. Each id must
+  # count and note the finding; the joined string is not a producer.
+  printf '%s' '{"dispatched":["correctness","style-review"],"adapters":[],"skipped":[],"returned":["correctness","style-review"],"challenger":{"status":"skipped","reason":"no findings to adjudicate"}}' > "${tmp}/merged-ledger.json"
+  printf '%s' "{${common},\"findings\":[{\"severity\":\"low\",\"category\":\"naming\",\"dimension\":\"correctness, style-review\",\"file\":\"a.ts\",\"description\":\"Shared naming nit.\"},{\"severity\":\"low\",\"category\":\"off-by-one\",\"dimension\":\"correctness\",\"file\":\"b.ts\",\"description\":\"Index equals length.\"}]}" > "${tmp}/merged.json"
+  (
+    export REVIEW_PRODUCER_LEDGER="${tmp}/merged-ledger.json"
+    transform_review_result "${tmp}/merged.json"
+  ) > "${tmp}/merged-out.json"
+  body=$(jq -r .body "${tmp}/merged-out.json")
+  if ! grep -qE '^\| correctness \| ✅ \| 2 \| 2 findings: naming, off-by-one' <<<"${body}"; then
+    echo "FAIL merged-dimension: correctness did not receive both findings" >&2
+    fail=1
+  elif ! grep -qE '^\| style-review \| ✅ \| 1 \| 1 finding: naming' <<<"${body}"; then
+    echo "FAIL merged-dimension: style-review missed the merged finding" >&2
+    fail=1
+  else
+    echo "PASS merged findings attribute to each producer id"
+  fi
+
+  # Adapter envelopes with status none/skipped/error must not look like a clean
+  # ✅ run with zero findings. collected.json is the status source of truth.
+  printf '%s' '{"dispatched":["correctness"],"adapters":["jira-snapshot","coderabbit"],"skipped":[],"returned":["correctness"],"challenger":{"status":"skipped","reason":"no findings to adjudicate"}}' > "${tmp}/adapter-ledger.json"
+  printf '%s' '[{"id":"jira-snapshot","dimension":"jira-snapshot","kind":"cli-adapter","output":"context","status":"none","reason":"no-issue-key"},{"id":"coderabbit","dimension":"coderabbit","kind":"cli-adapter","output":"findings","status":"ok","findings":[]}]' > "${tmp}/adapter-collected.json"
+  printf '%s' "{${common},\"findings\":[]}" > "${tmp}/adapter-status.json"
+  (
+    export REVIEW_PRODUCER_LEDGER="${tmp}/adapter-ledger.json"
+    export REVIEW_COLLECTED="${tmp}/adapter-collected.json"
+    transform_review_result "${tmp}/adapter-status.json"
+  ) > "${tmp}/adapter-status-out.json"
+  body=$(jq -r .body "${tmp}/adapter-status-out.json")
+  if ! grep -qE '^\| jira-snapshot \| ⚪ \| — \| no issue key' <<<"${body}"; then
+    echo "FAIL adapter-status: status=none adapter was not marked unavailable" >&2
+    fail=1
+  elif ! grep -qE '^\| coderabbit \| ✅ \| — \| No findings\.' <<<"${body}"; then
+    echo "FAIL adapter-status: status=ok findings adapter with empty findings should still show ran-clean" >&2
+    fail=1
+  elif ! grep -q '2 producer(s) ran, 1 unavailable' <<<"${body}"; then
+    echo "FAIL adapter-status: review-details blurb should separate ran from unavailable" >&2
+    fail=1
+  else
+    echo "PASS adapter envelopes distinguish unavailable from ran-clean"
+  fi
+
+  printf '%s' '[{"id":"coderabbit","dimension":"coderabbit","kind":"cli-adapter","output":"findings","status":"error","reason":"cli-unavailable","findings":[]}]' > "${tmp}/adapter-error-collected.json"
+  printf '%s' '{"dispatched":[],"adapters":["coderabbit"],"skipped":[],"returned":[],"challenger":{"status":"skipped","reason":"no findings to adjudicate"}}' > "${tmp}/adapter-error-ledger.json"
+  (
+    export REVIEW_PRODUCER_LEDGER="${tmp}/adapter-error-ledger.json"
+    export REVIEW_COLLECTED="${tmp}/adapter-error-collected.json"
+    transform_review_result "${tmp}/adapter-status.json"
+  ) > "${tmp}/adapter-error-out.json"
+  body=$(jq -r .body "${tmp}/adapter-error-out.json")
+  if ! grep -qE '^\| coderabbit \| ❌ \| — \| cli unavailable' <<<"${body}"; then
+    echo "FAIL adapter-error: status=error adapter was not marked errored" >&2
+    fail=1
+  else
+    echo "PASS adapter error envelopes render as errored, not ran-clean"
+  fi
+
+  # Context snapshots must not publish summary/description, free-form reasons
+  # must fall back to the status default, and Notes cells must not break the
+  # table or close the host <details> block.
+  jq -n \
+    --arg summary $'Secret title </details>\n| break' \
+    --arg reason $'boom </details>' \
+    '[
+      {id:"jira-snapshot",dimension:"jira-snapshot",kind:"cli-adapter",output:"context",status:"ok",summary:$summary,description:"private body"},
+      {id:"coderabbit",dimension:"coderabbit",kind:"cli-adapter",output:"findings",status:"error",reason:$reason,findings:[]},
+      {id:"other",dimension:"other",kind:"cli-adapter",output:"findings",status:"error",reason:"http-404",findings:[]}
+    ]' > "${tmp}/adapter-safe-collected.json"
+  jq -n --arg skip $'skip </details>\n| x' \
+    '{dispatched:["pr-description-review"],adapters:["jira-snapshot","coderabbit","other"],skipped:[{id:"security",reason:$skip}],returned:["pr-description-review"],challenger:{status:"skipped",reason:"no findings to adjudicate"}}' \
+    > "${tmp}/adapter-safe-ledger.json"
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"pr-description-review\",\"status\":\"warning\",\"summary\":\"placeholder\"}]}" > "${tmp}/adapter-safe.json"
+  jq --arg summary $'note </details>\n| x' '.checks[0].summary = $summary' \
+    "${tmp}/adapter-safe.json" > "${tmp}/adapter-safe-in.json"
+  mv "${tmp}/adapter-safe-in.json" "${tmp}/adapter-safe.json"
+  (
+    export REVIEW_PRODUCER_LEDGER="${tmp}/adapter-safe-ledger.json"
+    export REVIEW_COLLECTED="${tmp}/adapter-safe-collected.json"
+    transform_review_result "${tmp}/adapter-safe.json"
+  ) > "${tmp}/adapter-safe-out.json"
+  body=$(jq -r .body "${tmp}/adapter-safe-out.json")
+  if grep -q 'Secret title' <<<"${body}" || grep -q 'private body' <<<"${body}" || grep -q 'boom' <<<"${body}"; then
+    echo "FAIL adapter-safe: snapshot text or free-form reason reached the comment" >&2
+    fail=1
+  elif ! grep -qF '| jira-snapshot | ✅ | — | Context available. |' <<<"${body}"; then
+    echo "FAIL adapter-safe: ok context adapter must use the fixed note" >&2
+    fail=1
+  elif ! grep -qF '| coderabbit | ❌ | — | Adapter error. |' <<<"${body}"; then
+    echo "FAIL adapter-safe: free-form error reason must use the status default" >&2
+    fail=1
+  elif ! grep -qF '| other | ❌ | — | http 404 |' <<<"${body}"; then
+    echo "FAIL adapter-safe: token reason was not humanized" >&2
+    fail=1
+  elif ! grep -qF '| pr-description-review | ✅ | — | note &lt;/details> \| x |' <<<"${body}"; then
+    echo "FAIL adapter-safe: check summary in Notes was not escaped" >&2
+    fail=1
+  elif ! grep -qF '| security | ➖ | — | skip &lt;/details> \| x |' <<<"${body}"; then
+    echo "FAIL adapter-safe: skipped reason in Notes was not escaped" >&2
+    fail=1
+  elif [[ "$(grep -c '</details>' <<<"${body}")" -ne 1 ]]; then
+    echo "FAIL adapter-safe: a Notes cell closed the host details block" >&2
+    fail=1
+  else
+    echo "PASS adapter notes stay inside the table and omit snapshot text"
+  fi
+
   # A patch snippet must survive as code. Flattened to one bullet it is
   # unreadable, and a fence shorter than the snippet's own backticks breaks out.
   fix_finding='{"severity":"high","category":"coderabbit","dimension":"coderabbit","file":"a.ts","description":"Guard the empty list.","why":"The list can be empty.","remediation":"if (!items.length) {\n  return null;\n}\n\n```ts\nconst safe = items ?? [];\n```"}'
@@ -1048,14 +1280,14 @@ run_self_test() {
     echo "PASS remediation renders snippets as code and prose inline"
   fi
 
-  # Unmet criteria stay expanded; an all-clear set collapses.
+  # Unmet Jira criteria are not a sticky section. Product ask covers description↔Jira.
   printf '%s' "{${common},\"jira_criteria\":[{\"criterion\":\"Gate is present\",\"verdict\":\"MISS\",\"evidence\":\"No gate in diff.\"}]}" > "${tmp}/jira-miss.json"
   body=$(transform_review_result "${tmp}/jira-miss.json" | jq -r .body)
-  if ! grep -q '### Jira acceptance criteria' <<<"${body}" || ! grep -q 'Gate is present' <<<"${body}"; then
-    echo "FAIL jira-miss: unmet Jira criteria must appear in Review details" >&2
+  if grep -q '### Jira acceptance criteria' <<<"${body}" || grep -q 'Gate is present' <<<"${body}"; then
+    echo "FAIL jira-miss: Jira acceptance criteria must not render" >&2
     fail=1
   else
-    echo "PASS unmet Jira criteria render in Review details"
+    echo "PASS Jira acceptance criteria are not rendered"
   fi
 
   # The ledger claiming an empty-set skip while findings exist is the exact
@@ -1231,6 +1463,23 @@ else
   REVIEW_PRODUCER_LEDGER=""
 fi
 export REVIEW_PRODUCER_LEDGER
+
+# collected.json carries cli-adapter envelope status (ok/none/skipped/error).
+# Without it, adapter rows in the Producers table cannot be distinguished from
+# a clean zero-finding run.
+if [[ -z "${REVIEW_COLLECTED:-}" ]]; then
+  if [[ -f "${FULLSEND_CONFIG_DIR}/.run/collected.json" ]]; then
+    REVIEW_COLLECTED="${FULLSEND_CONFIG_DIR}/.run/collected.json"
+  fi
+fi
+if [[ -n "${REVIEW_COLLECTED:-}" && -f "${REVIEW_COLLECTED}" ]]; then
+  echo "Adapter envelopes: ${REVIEW_COLLECTED}"
+  export REVIEW_COLLECTED
+else
+  echo "::warning::No collected.json — adapter Producers rows cannot report envelope status"
+  REVIEW_COLLECTED=""
+  export REVIEW_COLLECTED
+fi
 
 # ---------------------------------------------------------------------------
 # Severity filtering: drop findings below the configured threshold.
@@ -1438,22 +1687,15 @@ if [ "${ACTION}" = "approve" ]; then
 
       _PROTECTED_LIST=$(printf '%s' "${PROTECTED_MATCHES}" | sed '/^$/d' | paste -sd ', ' -)
 
-      # Express the policy gate as structured input, then let the host renderer
-      # recompute the comment instead of appending a second visual language.
+      # Drop the prior action/body so the re-render applies the protected-path gate.
+      # REVIEW_FORCE_PROTECTED_PATH is what adds the TODO and refuses approve.
       MODIFIED_RESULT=$(mktemp)
       CLEANUP_FILES+=("${MODIFIED_RESULT}")
-      jq --arg files "${_PROTECTED_LIST}" \
-        '.decision_needed = {
-          question: ("A human must approve this protected-path change: " + $files),
-          options: [
-            {id: "A", title: "Approve the protected-path change", implication: "A human accepts the governance or infrastructure risk."},
-            {id: "None", title: "Do not land this approach"}
-          ]
-        } | del(.body, .action)' \
-        "${RESULT_FILE}" > "${MODIFIED_RESULT}"
+      jq 'del(.body, .action)' "${RESULT_FILE}" > "${MODIFIED_RESULT}"
       RERENDERED_RESULT=$(mktemp)
       CLEANUP_FILES+=("${RERENDERED_RESULT}")
-      transform_review_result "${MODIFIED_RESULT}" > "${RERENDERED_RESULT}"
+      REVIEW_FORCE_PROTECTED_PATH="${_PROTECTED_LIST}" \
+        transform_review_result "${MODIFIED_RESULT}" > "${RERENDERED_RESULT}"
       RESULT_FILE="${RERENDERED_RESULT}"
       DOWNGRADED=true
     fi

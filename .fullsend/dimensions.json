@@ -1,5 +1,5 @@
 {
-  "comment": "Review dimension registry. Findings dimensions are dispatched by the local pr-review orchestrator and adjudicated by the challenger. Context adapters provide trusted host data and are never reviewed as findings.",
+  "comment": "Review dimension registry. The orchestrator dispatches by output kind only: findings (then challenger), section:* in parallel with findings, then every check:* row, then every signal:* row. It must not special-case producer names. Context adapters are trusted host data and never enter challenger synthesis.",
   "dimensions": [
     {
       "id": "correctness",
@@ -216,6 +216,18 @@
       "budget_priority": 4,
       "re_review": "full",
       "notes": "Scores the PR body for substance independently of code findings."
+    },
+    {
+      "id": "rating",
+      "kind": "llm-subagent",
+      "output": "signal:rating",
+      "result_fields": ["risk", "confidence"],
+      "dispatch": "always",
+      "definition": "skills/pr-review/sub-agents/rating.md",
+      "meta_prompt": "meta-prompts/signal-output.md",
+      "failure_severity": "info",
+      "re_review": "full",
+      "notes": "Signal producer. Runs only after every selected check:* row. Projects result_fields onto the review result. Not a findings producer and not challenger input."
     }
   ]
 }

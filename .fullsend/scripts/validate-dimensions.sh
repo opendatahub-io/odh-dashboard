@@ -12,6 +12,18 @@ fail() {
   exit 1
 }
 
+schema_has_property() {
+  jq -e --arg field "$1" '.properties[$field] != null' "${SCHEMA}" >/dev/null
+}
+
+validate_result_fields() {
+  local id="$1" result_fields="$2" field
+  jq -ne --argjson fields "${result_fields}" '($fields | type == "array" and length > 0) and all($fields[]; type == "string" and . != "")' >/dev/null || fail "${id}: result_fields must be a non-empty string array"
+  while IFS= read -r field; do
+    schema_has_property "${field}" || fail "${id}: result field ${field} is absent from result schema"
+  done < <(jq -r '.[]' <<<"${result_fields}")
+}
+
 jq empty "${REGISTRY}" || fail "invalid JSON: ${REGISTRY}"
 jq empty "${SCHEMA}" || fail "invalid JSON: ${SCHEMA}"
 
@@ -26,16 +38,17 @@ while IFS=$'\t' read -r id kind output definition meta result_fields inline_skil
     findings|context) ;;
     section:*)
       section="${output#section:}"
-      jq -e --arg section "${section}" '.properties[$section] != null' "${SCHEMA}" >/dev/null || fail "${id}: section ${section} is absent from result schema"
-      if [[ -n "${result_fields}" ]]; then
-        jq -ne --argjson fields "${result_fields}" '($fields | type == "array" and length > 0) and all($fields[]; type == "string" and . != "")' >/dev/null || fail "${id}: result_fields must be a non-empty string array"
-        while IFS= read -r field; do
-          jq -e --arg field "${field}" '.properties[$field] != null' "${SCHEMA}" >/dev/null || fail "${id}: result field ${field} is absent from result schema"
-        done < <(jq -r '.[]' <<<"${result_fields}")
+      schema_has_property "${section}" || fail "${id}: section ${section} is absent from result schema"
+      if [[ -n "${result_fields}" && "${result_fields}" != "[]" ]]; then
+        validate_result_fields "${id}" "${result_fields}"
       fi
       ;;
     check:*)
       jq -e '."$defs".readiness_check != null' "${SCHEMA}" >/dev/null || fail "${id}: result schema lacks readiness_check"
+      ;;
+    signal:*)
+      [[ -n "${result_fields}" && "${result_fields}" != "[]" ]] || fail "${id}: signal rows require result_fields"
+      validate_result_fields "${id}" "${result_fields}"
       ;;
     *) fail "${id}: unsupported output ${output}" ;;
   esac
