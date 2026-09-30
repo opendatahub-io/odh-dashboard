@@ -555,7 +555,7 @@ func (app *App) resolveSandboxMCPServers(
 		selectedIDs[serverID] = struct{}{}
 		server := kubernetes.SandboxMCPServer{ServerLabel: serverID, ServerURL: config.URL}
 		if selected.AllowedTools != nil {
-			server.AllowedTools = &selected.AllowedTools
+			server.AllowedTools = selected.AllowedTools
 		}
 		if authorization, found := authorizations[serverID]; found {
 			if strings.TrimSpace(authorization) == "" {

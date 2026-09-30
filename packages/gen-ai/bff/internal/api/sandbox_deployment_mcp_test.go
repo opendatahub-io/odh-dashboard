@@ -38,20 +38,38 @@ func TestResolveSandboxMCPServersUsesDashboardConfigAndDeploymentAuth(t *testing
 		dashboardNamespace: "redhat-ods-applications",
 		repositories:       repositories.NewRepositoriesWithMCP(nil, logger),
 	}
-	profile := &models.AgentProfile{Spec: models.AgentProfileSpec{MCPServers: []models.MCPServerReference{{
-		ServerRef:    models.MCPServerRef{Kind: "ConfigMap", Name: constants.MCPServerName, Key: "GitHub-MCP-Server"},
-		AllowedTools: []string{"search_code"},
-	}}}}
+	for _, tt := range []struct {
+		name         string
+		allowedTools *[]string
+	}{
+		{name: "populated", allowedTools: &[]string{"search_code"}},
+		{name: "explicitly empty", allowedTools: &[]string{}},
+		{name: "omitted"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			profile := &models.AgentProfile{Spec: models.AgentProfileSpec{MCPServers: []models.MCPServerReference{{
+				ServerRef:    &models.MCPServerRef{Kind: "ConfigMap", Name: constants.MCPServerName, Key: "GitHub-MCP-Server"},
+				AllowedTools: tt.allowedTools,
+			}}}}
 
-	servers, err := app.resolveSandboxMCPServers(
-		context.Background(), k8sClient, profile, map[string]string{"GitHub-MCP-Server": "Bearer deployment-token"},
-	)
-	require.NoError(t, err)
-	require.Len(t, servers, 1)
-	require.Equal(t, "GitHub-MCP-Server", servers[0].ServerLabel)
-	require.Equal(t, "https://api.githubcopilot.com/mcp/x/repos/readonly", servers[0].ServerURL)
-	require.Equal(t, []string{"search_code"}, *servers[0].AllowedTools)
-	require.Equal(t, "MCP_AUTH_1", servers[0].AuthorizationEnvVar)
+			servers, err := app.resolveSandboxMCPServers(
+				context.Background(), k8sClient, profile,
+				map[string]string{"GitHub-MCP-Server": "Bearer deployment-token"},
+			)
+			require.NoError(t, err)
+			require.Len(t, servers, 1)
+			require.Equal(t, "GitHub-MCP-Server", servers[0].ServerLabel)
+			require.Equal(t, "https://api.githubcopilot.com/mcp/x/repos/readonly", servers[0].ServerURL)
+			require.Equal(t, "MCP_AUTH_1", servers[0].AuthorizationEnvVar)
+
+			if tt.allowedTools == nil {
+				require.Nil(t, servers[0].AllowedTools)
+				return
+			}
+			require.NotNil(t, servers[0].AllowedTools)
+			require.Equal(t, *tt.allowedTools, *servers[0].AllowedTools)
+		})
+	}
 }
 
 func TestResolveSandboxMCPServersRejectsAuthForUnselectedServer(t *testing.T) {
@@ -76,7 +94,7 @@ func TestResolveSandboxMCPServersClassifiesDashboardConfigReadFailures(t *testin
 		repositories:       repositories.NewRepositoriesWithMCP(nil, logger),
 	}
 	profile := &models.AgentProfile{Spec: models.AgentProfileSpec{MCPServers: []models.MCPServerReference{{
-		ServerRef: models.MCPServerRef{Kind: "ConfigMap", Name: constants.MCPServerName, Key: "GitHub-MCP-Server"},
+		ServerRef: &models.MCPServerRef{Kind: "ConfigMap", Name: constants.MCPServerName, Key: "GitHub-MCP-Server"},
 	}}}}
 
 	_, err := app.resolveSandboxMCPServers(context.Background(), k8sClient, profile, nil)
