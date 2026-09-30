@@ -187,7 +187,11 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
                   }}
                 >
                   {model.display_name || model.model_id}{' '}
-                  {asrModels.includes(model) && <Label color="blue">Recommended</Label>}
+                  {asrModels.includes(model) && (
+                    <Label color="blue" isCompact>
+                      Recommended
+                    </Label>
+                  )}
                 </MenuItem>
               ))}
             </MenuList>

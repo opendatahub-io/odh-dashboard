@@ -420,8 +420,6 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
             flexWrap: 'wrap',
             gap: 'var(--pf-t--global--spacer--sm)',
             paddingBottom: 'var(--pf-t--global--spacer--sm)',
-            maxWidth: '60rem',
-            margin: '0 auto',
             width: '100%',
             paddingLeft: 'var(--pf-t--global--spacer--lg)',
           }}
