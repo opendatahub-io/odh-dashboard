@@ -35,6 +35,19 @@ func TestResolveSandboxMaaSGatewayURL(t *testing.T) {
 		assert.Equal(t, "https://maas.apps.example.com/maas-api", url)
 	})
 
+	t.Run("uses the default MaaS BFF mock gateway URL", func(t *testing.T) {
+		ctx := context.WithValue(
+			context.Background(),
+			constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)),
+			bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS),
+		)
+
+		url, err := resolveSandboxMaaSGatewayURL(ctx)
+
+		require.NoError(t, err)
+		assert.Equal(t, "https://maas.apps.example.com/maas-api", url)
+	})
+
 	t.Run("rejects an invalid gateway URL", func(t *testing.T) {
 		_, err := resolveSandboxMaaSGatewayURL(withMaaSClient("maas.apps.example.com/maas-api"))
 
