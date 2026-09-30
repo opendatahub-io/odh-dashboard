@@ -134,16 +134,12 @@ extra layer of indirection to read through, for no benefit.
 
 ### Layout
 
-Named-slot composition (e.g. `<ResultsLayout header={<Header />} drawer={<Panel />} />`),
-consistent with the existing `ApplicationsPage`/`CatalogPageLayout` precedent
-elsewhere in the dashboard. Owns cross-cutting page-shell concerns: loading/error
-state branching, analytics tracking-once guards, breadcrumb/header composition.
-Lives in `layouts/`.
-
-Example: `ResultsLayout` — extracted from the ~90%-identical shell logic in
-`AutomlResultsPage`/`AutoragResultsPage` (namespace validation, two-tier
-error handling, results-viewed tracking guard, header action row, `StopRunModal`
-wiring).
+Named-slot composition is a planned layer, consistent with the existing
+`ApplicationsPage`/`CatalogPageLayout` precedent elsewhere in the dashboard. It is
+intended to own cross-cutting page-shell concerns: loading/error state branching,
+analytics tracking-once guards, breadcrumb/header composition. No shared layout
+implementation is currently public; extracting a layout from the similar
+`AutomlResultsPage`/`AutoragResultsPage` shell logic is intentionally deferred.
 
 ### Page
 
@@ -286,10 +282,12 @@ Already wired as a `dependency` in both `packages/automl/package.json` and
 in either consumer.
 
 ```
-import { ResultsLayout } from '@odh-dashboard/autox-core/ui/layouts';
 import { Leaderboard, RunInProgress } from '@odh-dashboard/autox-core/ui/components/feature';
 import { ActionableEmptyState } from '@odh-dashboard/autox-core/ui/components/primitive';
 ```
+
+Layouts remain an internal scaffold for the planned extraction and are not yet a
+public import surface.
 
 ## Rollout Approach
 

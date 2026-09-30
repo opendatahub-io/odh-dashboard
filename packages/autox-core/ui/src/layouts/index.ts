@@ -1,9 +1,9 @@
 /**
- * Shared AutoX `layouts` layer.
+ * Internal scaffold for the planned shared AutoX `layouts` layer.
  *
- * Named-slot page-shell compositions (e.g. `<ResultsLayout header={} drawer={} />`)
- * that own cross-cutting concerns like loading/error handling and analytics
- * tracking-once guards. Consumed by product pages in automl/autorag.
+ * No shared layout implementation is currently available. Named-slot page-shell
+ * compositions will eventually own cross-cutting concerns like loading/error
+ * handling and analytics tracking-once guards for product pages in automl/autorag.
  *
  * See ../../ARCHITECTURE.md for the full layering conventions.
  */

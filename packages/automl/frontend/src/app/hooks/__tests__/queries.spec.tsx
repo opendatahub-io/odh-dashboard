@@ -881,6 +881,60 @@ describe('useModelEvaluationArtifactsQuery', () => {
     expect(result.current.curves).toBeUndefined();
   });
 
+  it.each([
+    {
+      artifact: 'featureImportance',
+      namespace: 'test-ns',
+      modelDirectory: 'models/best/',
+      isClassification: false,
+      isTimeseries: false,
+      responses: [{ importance: { feature_a: 'invalid' } }],
+    },
+    {
+      artifact: 'confusionMatrix',
+      namespace: 'test-ns',
+      modelDirectory: 'models/best/',
+      isClassification: true,
+      isTimeseries: false,
+      responses: [mockFeatureImportance, { cat: { cat: 'invalid' } }, mockCurves],
+    },
+    {
+      artifact: 'backTesting',
+      namespace: 'test-ns',
+      modelDirectory: 'models/best/',
+      isClassification: false,
+      isTimeseries: true,
+      responses: [{ model_name: 'invalid' }],
+    },
+  ])(
+    'should reject malformed $artifact data without retrying',
+    async ({ artifact, namespace, modelDirectory, isClassification, isTimeseries, responses }) => {
+      responses.forEach((response) => {
+        (global.fetch as jest.Mock).mockResolvedValueOnce(mockBlobJsonResponse(response));
+      });
+
+      const { result } = renderHook(
+        () =>
+          useModelEvaluationArtifactsQuery(
+            namespace,
+            modelDirectory,
+            isClassification,
+            isTimeseries,
+          ),
+        { wrapper: createWrapper().Wrapper },
+      );
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(
+        result.current[artifact as 'featureImportance' | 'confusionMatrix' | 'backTesting'],
+      ).toBeUndefined();
+      expect(global.fetch).toHaveBeenCalledTimes(responses.length);
+    },
+  );
+
   it('should load back_testing.json for timeseries runs (isTimeseries=true)', async () => {
     const mockBackTesting = {
       schema_version: 1,
