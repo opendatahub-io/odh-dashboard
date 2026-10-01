@@ -8,11 +8,13 @@ import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData
 import { createEvaluationJob } from '~/app/api/k8s';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import type { Collection, SourceMode } from '~/app/types';
+import type { Collection, HardwareProfile, KueueAvailability, SourceMode } from '~/app/types';
 
 const mockNavigate = jest.fn();
 const mockMlflowSelectorMounted = jest.fn();
 const mockMlflowSelectorUnmounted = jest.fn();
+const mockUseHardwareProfiles = jest.fn();
+const mockUseKueueAvailability = jest.fn();
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
@@ -62,6 +64,14 @@ jest.mock('~/app/hooks/useConnectionValidation', () => ({
   }),
 }));
 
+jest.mock('~/app/hooks/useHardwareProfiles', () => ({
+  useHardwareProfiles: () => mockUseHardwareProfiles(),
+}));
+
+jest.mock('~/app/hooks/useKueueAvailability', () => ({
+  useKueueAvailability: () => mockUseKueueAvailability(),
+}));
+
 jest.mock('~/app/hooks/useInferenceServices', () => ({
   useInferenceServices: () => ({
     inferenceServices: [
@@ -99,6 +109,22 @@ const clonedCollection: Collection = {
   name: 'Copied suite',
 };
 
+const kueueAvailability: KueueAvailability = {
+  enabled: true,
+  scheduling_ready: true,
+  cluster_enabled: true,
+  namespace_managed: true,
+  local_queues_available: true,
+  local_queue_names: ['default'],
+};
+
+const hardwareProfile: HardwareProfile = {
+  name: 'default-profile',
+  display_name: 'Default profile',
+  enabled: true,
+  local_queue_name: 'default',
+};
+
 type Deferred<T> = {
   promise: Promise<T>;
   resolve: (value: T) => void;
@@ -123,9 +149,14 @@ type ResolveCollection = NonNullable<
 const renderModal = (
   resolveCollection?: ResolveCollection,
   onClonePendingChange?: (isPending: boolean) => void,
-  options: { collection?: Collection; defaultSourceMode?: SourceMode } = {},
+  options: {
+    collection?: Collection;
+    defaultSourceMode?: SourceMode;
+    omitCollection?: boolean;
+  } = {},
 ) => {
   const onClose = jest.fn();
+  const modalCollection = options.omitCollection ? undefined : (options.collection ?? collection);
 
   render(
     <MemoryRouter>
@@ -133,7 +164,7 @@ const renderModal = (
         isOpen
         onClose={onClose}
         namespace="test-namespace"
-        collection={options.collection ?? collection}
+        collection={modalCollection}
         isCollectionFlow
         defaultEvaluationName="Copied suite"
         defaultSourceMode={options.defaultSourceMode}
@@ -166,7 +197,44 @@ const selectClusterModel = async () => {
 describe('StartEvaluationRunModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseHardwareProfiles.mockReturnValue({
+      profiles: [],
+      loaded: true,
+      error: undefined,
+    });
+    mockUseKueueAvailability.mockReturnValue({
+      availability: undefined,
+      loaded: true,
+      error: undefined,
+    });
     mockCreateEvaluationJob.mockReturnValue(() => Promise.resolve(mockEvaluationJob()));
+  });
+
+  it('shows a required HardwareProfile before collapsed advanced configuration for Kueue', () => {
+    mockUseKueueAvailability.mockReturnValue({
+      availability: kueueAvailability,
+      loaded: true,
+      error: undefined,
+    });
+    mockUseHardwareProfiles.mockReturnValue({
+      profiles: [hardwareProfile],
+      loaded: true,
+      error: undefined,
+    });
+
+    renderModal();
+
+    const hardwareProfileToggle = screen.getByTestId('hardware-profile-toggle');
+    const advancedToggle = screen.getByTestId('start-evaluation-run-advanced-toggle');
+
+    expect(hardwareProfileToggle).toBeInTheDocument();
+    expect(
+      screen.queryByText('Select a hardware profile to schedule this evaluation through Kueue.'),
+    ).not.toBeInTheDocument();
+    expect(
+      hardwareProfileToggle.compareDocumentPosition(advancedToggle) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
   it('should preselect and hide evaluating when a collection has one evaluation target', () => {
@@ -322,6 +390,25 @@ describe('StartEvaluationRunModal', () => {
 
     fireEvent.click(screen.getByTestId('start-evaluation-submit'));
 
+    await waitFor(() => expect(mockCreateEvaluationJob).toHaveBeenCalledTimes(1));
+    expect(mockCreateEvaluationJob).toHaveBeenCalledWith(
+      '',
+      'test-namespace',
+      expect.objectContaining({
+        collection: expect.objectContaining({ id: 'cloned-suite' }),
+      }),
+    );
+  });
+
+  it('should resolve a deferred collection before submitting a create run', async () => {
+    const resolveCollection = jest.fn(() => Promise.resolve(clonedCollection));
+    renderModal(resolveCollection, undefined, { omitCollection: true });
+
+    await selectClusterModel();
+
+    fireEvent.click(screen.getByTestId('start-evaluation-submit'));
+
+    await waitFor(() => expect(resolveCollection).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(mockCreateEvaluationJob).toHaveBeenCalledTimes(1));
     expect(mockCreateEvaluationJob).toHaveBeenCalledWith(
       '',

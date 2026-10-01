@@ -21,11 +21,13 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { useMutation } from '@tanstack/react-query';
 import { useParams } from 'react-router';
 import { useModelRegistriesQuery } from '~/app/hooks/useModelRegistriesQuery';
-import { registerModel } from '~/app/api/modelRegistry';
-import type { ModelRegistry, RegisterModelRequest } from '~/app/types';
+import {
+  useRegisterModelMutation,
+  type RegisterModelMutationVariables,
+} from '~/app/hooks/useRegisterModelMutation';
+import type { ModelRegistry, RegisterModelRequest, RegisterModelResponse } from '~/app/types';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { useNotification } from '~/app/hooks/useNotification';
 import {
@@ -95,7 +97,7 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
     // Find the current version of the selected registry in the latest data
     const currentRegistry = readyRegistries.find((r) => r.id === selectedRegistry.id);
     if (!currentRegistry) {
-      return ''; // Registry was removed
+      return 'This registry is no longer available and cannot be used for model registration.';
     }
     if (!currentRegistry.external_url?.trim()) {
       return 'This registry does not have an external URL configured and cannot be used for model registration.';
@@ -109,24 +111,12 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Record<string,T> can be undefined at runtime
   const s3Path = model?.location?.predictor ?? undefined;
 
-  const registerMutation = useMutation({
-    mutationFn: async (params: {
-      registryId: string;
-      registryName: string;
-      request: RegisterModelRequest;
-    }) => {
-      if (!namespace) {
-        throw new Error('Namespace is not available');
-      }
-      return registerModel('', {
-        namespace,
-        registryId: params.registryId,
-        request: params.request,
-      });
-    },
-    onSuccess: (data, variables) => {
-      const modelDetailsUrl = `/ai-hub/registry/${encodeURIComponent(variables.registryName)}/registered-models/${encodeURIComponent(data.registered_model_id)}/overview`;
-      notification.success(`${registeredModelName.trim()} registered successfully`, undefined, [
+  const handleRegistrationSuccess = React.useCallback(
+    (data: RegisterModelResponse, variables: RegisterModelMutationVariables) => {
+      const modelDetailsUrl = `/ai-hub/registry/${encodeURIComponent(
+        variables.registryName,
+      )}/registered-models/${encodeURIComponent(data.registered_model_id)}/overview`;
+      notification.success(`${variables.modelName} registered successfully`, undefined, [
         {
           title: 'View in model registry',
           onClick: () => window.open(modelDetailsUrl, '_blank', 'noopener,noreferrer'),
@@ -140,18 +130,23 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
       });
       onClose();
     },
-    onError: () => {
-      notification.error('Failed to register model', REGISTRATION_FAILURE_MESSAGE);
-      fireAutomlModelRegistered({
-        outcome: TrackingOutcome.submit,
-        success: false,
-        source,
-        error: AUTOML_FAILURE_CATEGORY,
-      });
-    },
+    [notification, onClose, source],
+  );
+  const handleRegistrationError = React.useCallback(() => {
+    notification.error('Failed to register model', REGISTRATION_FAILURE_MESSAGE);
+    fireAutomlModelRegistered({
+      outcome: TrackingOutcome.submit,
+      success: false,
+      source,
+      error: AUTOML_FAILURE_CATEGORY,
+    });
+  }, [notification, source]);
+  const registerMutation = useRegisterModelMutation(namespace, {
+    onSuccess: handleRegistrationSuccess,
+    onError: handleRegistrationError,
   });
 
-  const handleSubmit = React.useCallback(() => {
+  const handleSubmit = React.useCallback(async () => {
     if (!selectedRegistry || !registeredModelName.trim() || !s3Path || registryValidationError) {
       return;
     }
@@ -165,18 +160,23 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
     };
     /* eslint-enable camelcase */
 
-    registerMutation.mutate({
-      registryId: selectedRegistry.id,
-      registryName: selectedRegistry.name,
-      request,
-    });
+    try {
+      await registerMutation.mutateAsync({
+        registryId: selectedRegistry.id,
+        registryName: selectedRegistry.name,
+        modelName: registeredModelName.trim(),
+        request,
+      });
+    } catch {
+      // The mutation's onError callback handles notification and tracking.
+    }
   }, [
-    selectedRegistry,
-    registeredModelName,
-    s3Path,
     modelDescription,
     registerMutation,
+    registeredModelName,
     registryValidationError,
+    selectedRegistry,
+    s3Path,
   ]);
 
   const isFormValid =

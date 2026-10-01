@@ -37,7 +37,6 @@ func TestMockSandboxDeploymentPersistsResources(t *testing.T) {
 		ProfileID:               profileID,
 		LlamaStackConfigMapName: llamaConfig.Name,
 		WrapperAppConfigMapName: wrapperConfig.Name,
-		Image:                   "example.com/ogx:mock",
 	})
 	require.NoError(t, err)
 	require.Equal(t, "mock-agent", sandboxName)

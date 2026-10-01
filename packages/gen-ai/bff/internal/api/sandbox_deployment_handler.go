@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
@@ -24,8 +25,6 @@ type AgentDeploymentCreateEnvelope = Envelope[models.AgentDeploymentCreateRespon
 
 const sandboxRollbackTimeout = 30 * time.Second
 
-const mockSandboxOGXImage = "example.com/ogx:mock"
-
 var errSandboxMCPDashboardConfigRead = errors.New("failed to read dashboard MCP server ConfigMap")
 
 const (
@@ -33,6 +32,20 @@ const (
 	sandboxServiceSuffixLength = len("-ext")
 	dnsLabelMaxLength          = 63
 )
+
+func resolveSandboxOGXImage(cfg config.EnvConfig) (string, error) {
+	if cfg.OGXCoreImage != "" || cfg.MockK8sClient {
+		return cfg.OGXCoreImage, nil
+	}
+
+	return "", &integrations.HTTPError{
+		StatusCode: 500,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    "missing_image",
+			Message: "OGX core image not configured; set RELATED_IMAGE_ODH_OGX_CORE_IMAGE or --ogx-core-image",
+		},
+	}
+}
 
 // CreateAgentDeploymentHandler handles POST /api/v1/agent-deployments.
 // It loads the agent profile, builds the llama-stack-config ConfigMap from the profile's
@@ -259,21 +272,10 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 	resources.WrapperAppConfigMapName = waCM.Name
 
 	// Require the OGX core image — injected by the operator via RELATED_IMAGE_ODH_OGX_CORE_IMAGE.
-	ogxImage := app.config.OGXCoreImage
-	if ogxImage == "" && app.config.MockK8sClient {
-		// Mock mode persists a simulated Sandbox but never starts a pod, so it does
-		// not receive the operator-injected RELATED_IMAGE_ODH_OGX_CORE_IMAGE environment value.
-		ogxImage = mockSandboxOGXImage
-	}
-	if ogxImage == "" {
+	ogxImage, imageErr := resolveSandboxOGXImage(app.config)
+	if imageErr != nil {
 		rollback()
-		app.serverErrorResponse(w, r, &integrations.HTTPError{
-			StatusCode: 500,
-			ErrorResponse: integrations.ErrorResponse{
-				Code:    "missing_image",
-				Message: "OGX core image not configured; set RELATED_IMAGE_ODH_OGX_CORE_IMAGE or --ogx-core-image",
-			},
-		})
+		app.serverErrorResponse(w, r, imageErr)
 		return
 	}
 

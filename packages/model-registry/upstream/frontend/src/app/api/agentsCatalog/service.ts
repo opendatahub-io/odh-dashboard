@@ -1,4 +1,5 @@
-import { APIOptions, handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
+import { APIOptions } from 'mod-arch-core';
+import { getCatalogResource } from '~/app/shared/api/getCatalogResource';
 import { Agent, AgentList, AgentListParams } from '~/app/agentsCatalogTypes';
 import { CatalogFilterOptionsList } from '~/app/modelCatalogTypes';
 
@@ -21,34 +22,20 @@ export const getAgentList =
         listParams.sortOrder !== '' && { sortOrder: listParams.sortOrder }),
       ...(listParams?.q !== undefined && listParams.q !== '' && { q: listParams.q }),
     };
-    return handleRestFailures(restGET(hostPath, '/agents', allParams, opts)).then((response) => {
-      if (isModArchResponse<AgentList>(response)) {
-        return response.data;
-      }
-      throw new Error('Invalid response format');
-    });
+    return getCatalogResource<AgentList>(hostPath, '/agents', allParams, opts);
   };
 
 export const getAgentFilterOptionList =
   (hostPath: string, queryParams: Record<string, unknown> = {}) =>
   (opts: APIOptions): Promise<CatalogFilterOptionsList> =>
-    handleRestFailures(restGET(hostPath, '/agents_filter_options', queryParams, opts)).then(
-      (response) => {
-        if (isModArchResponse<CatalogFilterOptionsList>(response)) {
-          return response.data;
-        }
-        throw new Error('Invalid response format');
-      },
+    getCatalogResource<CatalogFilterOptionsList>(
+      hostPath,
+      '/agents_filter_options',
+      queryParams,
+      opts,
     );
 
 export const getAgent =
   (hostPath: string, queryParams: Record<string, unknown> = {}) =>
   (opts: APIOptions, agentId: string): Promise<Agent> =>
-    handleRestFailures(restGET(hostPath, `/agents/${agentId}`, queryParams, opts)).then(
-      (response) => {
-        if (isModArchResponse<Agent>(response)) {
-          return response.data;
-        }
-        throw new Error('Invalid response format');
-      },
-    );
+    getCatalogResource<Agent>(hostPath, `/agents/${agentId}`, queryParams, opts);

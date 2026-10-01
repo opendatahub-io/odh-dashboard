@@ -1,0 +1,38 @@
+import { useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
+import { combineAbortSignals } from '../../api/s3/s3';
+import type { FetchS3FileOptions } from '../../api/s3/s3';
+import { useAutoXApi } from '../../context/AutoXApiContext';
+
+export function useFetchS3File(): (
+  namespace: string,
+  key: string,
+  options?: FetchS3FileOptions,
+) => Promise<Blob> {
+  const queryClient = useQueryClient();
+  const { s3: s3Api } = useAutoXApi();
+
+  return useCallback(
+    (namespace: string, key: string, options?: FetchS3FileOptions) =>
+      queryClient.fetchQuery({
+        queryKey: [
+          's3Download',
+          namespace,
+          key,
+          options?.secretName,
+          options?.bucket,
+          options?.view,
+          options?.maxBytes,
+        ],
+        queryFn: ({ signal }) => {
+          const combined = combineAbortSignals(options?.signal, signal);
+          return s3Api
+            .fetchS3File(namespace, key, { ...options, signal: combined.signal })
+            .finally(combined.cleanup);
+        },
+        staleTime: 0,
+        gcTime: 0,
+      }),
+    [queryClient, s3Api],
+  );
+}

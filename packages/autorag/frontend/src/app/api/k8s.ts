@@ -1,68 +1,21 @@
-import {
-  APIOptions,
-  handleRestFailures,
-  UserSettings,
-  isModArchResponse,
-  restGET,
-} from 'mod-arch-core';
+import { APIOptions, handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
 import * as z from 'zod';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { MaaSModelsResponse, NamespaceKind, SecretListItem } from '~/app/types';
+import { MaaSModelsResponse } from '~/app/types';
 
-const SecretListItemSchema = z.object({
-  uuid: z.string(),
-  name: z.string(),
-  type: z.string().optional(),
-  data: z.record(z.string(), z.string()),
-  displayName: z.string().optional(),
-  description: z.string().optional(),
+const MaaSModelsResponseSchema = z.object({
+  /* eslint-disable camelcase */
+  models: z.array(
+    z.object({
+      id: z.string(),
+      display_name: z.string().optional(),
+      description: z.string().optional(),
+      owned_by: z.string().optional(),
+      ready: z.boolean(),
+    }),
+  ),
+  /* eslint-enable camelcase */
 });
-
-export const getUser =
-  (hostPath: string) =>
-  (opts: APIOptions): Promise<UserSettings> =>
-    handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/user`, {}, opts),
-    ).then((response) => {
-      if (isModArchResponse<UserSettings>(response)) {
-        return response.data;
-      }
-      throw new Error('Invalid response format');
-    });
-
-export const getNamespaces =
-  (hostPath: string) =>
-  (opts: APIOptions): Promise<NamespaceKind[]> =>
-    handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/namespaces`, {}, opts),
-    ).then((response) => {
-      if (isModArchResponse<NamespaceKind[]>(response)) {
-        return response.data;
-      }
-      throw new Error('Invalid response format');
-    });
-
-export const getSecrets =
-  (hostPath: string) =>
-  (namespace: string, type?: 'storage' | 'maas' | 'vector-db') =>
-  (opts: APIOptions): Promise<SecretListItem[]> => {
-    const queryParams: Record<string, string> = { namespace };
-    if (type) {
-      queryParams.type = type;
-    }
-    return handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/secrets`, queryParams, opts),
-    ).then((response) => {
-      if (isModArchResponse<SecretListItem[]>(response)) {
-        try {
-          return SecretListItemSchema.array().parse(response.data);
-        } catch {
-          throw new Error('Invalid response format');
-        }
-      }
-      throw new Error('Invalid response format');
-    });
-  };
 
 export const getSecretByName =
   (hostPath: string) =>
@@ -98,7 +51,11 @@ export const getMaaSModels =
       ),
     ).then((response) => {
       if (isModArchResponse<MaaSModelsResponse>(response)) {
-        return response.data;
+        try {
+          return MaaSModelsResponseSchema.parse(response.data);
+        } catch {
+          throw new Error('Invalid response format');
+        }
       }
       throw new Error('Invalid response format');
     });
