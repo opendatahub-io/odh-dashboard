@@ -14,6 +14,9 @@ import {
   DrawerHead,
   DrawerPanelBody,
   DrawerPanelContent,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
   Flex,
   FlexItem,
   MenuToggle,
@@ -22,7 +25,7 @@ import {
   SelectOption,
   Spinner,
 } from '@patternfly/react-core';
-import { CodeIcon } from '@patternfly/react-icons';
+import { CodeIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
@@ -64,12 +67,16 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
 
   const vectorDbSecretNameParameter = parameters?.vector_db_secret_name;
   const vectorDbSecretName =
-    typeof vectorDbSecretNameParameter === 'string' ? vectorDbSecretNameParameter : '';
+    typeof vectorDbSecretNameParameter === 'string' && vectorDbSecretNameParameter.trim()
+      ? vectorDbSecretNameParameter.trim()
+      : '';
   const responsesEndpointUrl = React.useMemo(() => {
-    const query = new URLSearchParams({ namespace });
-    if (vectorDbSecretName) {
-      query.set('vectorDbSecretName', vectorDbSecretName);
+    if (!vectorDbSecretName) {
+      return undefined;
     }
+
+    const query = new URLSearchParams({ namespace });
+    query.set('vectorDbSecretName', vectorDbSecretName);
     if (secretName) {
       query.set('maasSecretName', secretName);
     }
@@ -133,14 +140,16 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
               alignItems={{ default: 'alignItemsCenter' }}
               spaceItems={{ default: 'spaceItemsSm' }}
             >
-              <Button
-                variant="secondary"
-                icon={<CodeIcon />}
-                onClick={() => onViewCode(patternInfo.patternName)}
-                data-testid="playground-view-code-button"
-              >
-                View Code
-              </Button>
+              {vectorDbSecretName ? (
+                <Button
+                  variant="secondary"
+                  icon={<CodeIcon />}
+                  onClick={() => onViewCode(patternInfo.patternName)}
+                  data-testid="playground-view-code-button"
+                >
+                  View Code
+                </Button>
+              ) : null}
             </Flex>
           </FlexItem>
         </Flex>
@@ -183,34 +192,52 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
           </Card>
         </div>
         <div className="autorag-playground-drawer__chatbot-container">
-          <React.Suspense
-            fallback={
-              <Bullseye>
-                <Spinner />
-              </Bullseye>
-            }
-          >
-            <EmbeddedPlayground
-              key={patternInfo.patternName}
-              namespace={namespace}
-              secretName={secretName}
-              responsesTemplate={responsesTemplate}
-              patternName={patternInfo.patternName}
-              bffBasePath="/gen-ai/api/v1"
-              responsesEndpointUrl={responsesEndpointUrl}
-              additionalMetadata={additionalMetadata}
-              placeholderBotContent=""
-              welcomeContent={
-                <Content
-                  component={ContentVariants.p}
-                  className="pf-v6-u-color-200 pf-v6-u-text-align-center"
-                >
-                  Ask a question about your documents to see how{' '}
-                  {formatPatternName(patternInfo.patternName)} responds.
-                </Content>
+          {vectorDbSecretName ? (
+            <React.Suspense
+              fallback={
+                <Bullseye>
+                  <Spinner />
+                </Bullseye>
               }
-            />
-          </React.Suspense>
+            >
+              <EmbeddedPlayground
+                key={patternInfo.patternName}
+                namespace={namespace}
+                secretName={secretName}
+                responsesTemplate={responsesTemplate}
+                patternName={patternInfo.patternName}
+                bffBasePath="/gen-ai/api/v1"
+                responsesEndpointUrl={responsesEndpointUrl}
+                additionalMetadata={additionalMetadata}
+                placeholderBotContent=""
+                welcomeContent={
+                  <Content
+                    component={ContentVariants.p}
+                    className="pf-v6-u-color-200 pf-v6-u-text-align-center"
+                  >
+                    Ask a question about your documents to see how{' '}
+                    {formatPatternName(patternInfo.patternName)} responds.
+                  </Content>
+                }
+              />
+            </React.Suspense>
+          ) : (
+            <Bullseye>
+              <EmptyState
+                data-testid="playground-vector-db-unavailable"
+                headingLevel="h2"
+                icon={ExclamationCircleIcon}
+                titleText="Playground unavailable"
+                variant={EmptyStateVariant.sm}
+                status="warning"
+              >
+                <EmptyStateBody>
+                  The vector database connection is unavailable for this historical run. Rerun or
+                  configure the run with its vector database connection to use the playground.
+                </EmptyStateBody>
+              </EmptyState>
+            </Bullseye>
+          )}
         </div>
       </DrawerPanelBody>
     </DrawerPanelContent>
