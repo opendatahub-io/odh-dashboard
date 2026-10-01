@@ -1,31 +1,11 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { stripBasename } from '../utils/stripBasename';
 
 /**
  * Check if a URL is a relative link (starts with / but not //)
  */
 const isRelativeLink = (href: string): boolean => href.startsWith('/') && !href.startsWith('//');
-
-const stripBasename = (href: string, basename: string): string => {
-  const normalizedBasename = basename.replace(/\/+$/, '');
-  if (!normalizedBasename) {
-    return href;
-  }
-
-  if (href === normalizedBasename) {
-    return '/';
-  }
-
-  if (href.startsWith(`${normalizedBasename}/`)) {
-    return href.slice(normalizedBasename.length);
-  }
-
-  if (href.startsWith(`${normalizedBasename}?`) || href.startsWith(`${normalizedBasename}#`)) {
-    return `/${href.slice(normalizedBasename.length)}`;
-  }
-
-  return href;
-};
 
 /**
  * Hook that returns a ref callback to attach to a DOM node. It intercepts relative link clicks

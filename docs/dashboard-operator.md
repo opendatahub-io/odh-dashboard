@@ -79,7 +79,7 @@ The controller supports `managementState: Removed` on the Dashboard CR. When set
 2. Enabled observability resources are retained while the portal is managed, including resources in a separate monitoring namespace; otherwise they are cleaned up
 3. Core-dashboard conditions are updated with reason `Removed` and informational severity. If no MaaS Consumer Portal is managed, status remains `phase: NotReady`; if a MaaS Consumer Portal is managed, its health determines the aggregate `Ready` condition and `phase`.
 4. `status.url` and distribution status are cleared; `status.moduleStatuses` continues to reflect aggregate module demand
-5. The controller requeues while a managed MaaS Consumer Portal is awaiting readiness or retrying a transient failure; when `spec.observability` is unset, it also keeps checking for Perses every five minutes
+5. The controller requeues while a managed MaaS Consumer Portal is awaiting readiness or retrying a transient failure. If the portal is managed, `spec.observability` is unset, and Perses remains undetected, it schedules a five-minute retry when no other retry is pending. Successful detection does not schedule this periodic retry, even though `spec.observability` remains unset in the stored CR.
 
 **The MaaS Portal is an independent RHOAI-only operand, decoupled from the core dashboard's `managementState`.** It is gated by `spec.maasPortal.managementState`, not the core dashboard lifecycle:
 
@@ -88,7 +88,7 @@ The controller supports `managementState: Removed` on the Dashboard CR. When set
 - Observability is shared by both operands. Portal-only operation auto-detects Perses and deploys its dashboard resources and access policy; `ObservabilityAvailable` continues to report their state after core removal.
 - On non-RHOAI platforms the controller removes stale portal resources and reports an informational `UnsupportedPlatform` condition without creating portal demand.
 
-Consequently, core `managementState: Removed` with `maasPortal.managementState: Managed` retains the portal operand and its aggregate MaaS/GenAI demand. When the portal is removed, the controller deletes only portal-owned resources, including the serving-certificate Secret that does not use owner-reference garbage collection. Dashboard CR deletion cleans up all portal resources.
+Consequently, core `managementState: Removed` with `maasPortal.managementState: Managed` retains the portal operand and its aggregate MaaS/GenAI demand. When the portal is removed, the controller deletes portal-owned resources, including the serving-certificate Secret that does not use owner-reference garbage collection. If the core dashboard is already `Removed`, removing the remaining portal also cleans up shared observability resources. Dashboard CR deletion cleans up all portal resources.
 
 The finalizer handles a separate concern: cleanup on CR **deletion** (when `DeletionTimestamp` is set). `Removed` is a "soft stop" that preserves the CR while removing the operand.
 
@@ -323,10 +323,11 @@ This behavior is built into the `odh-platform-utilities/pkg/deploy` package, whi
 
 The cluster-scoped Dashboard CR can own resources in any namespace. Explicit cleanup also handles soft removal, where the CR remains present and owner-reference garbage collection does not run. Perses resources may be deployed to a separate observability namespace (`spec.observability.persesService.namespace`).
 
-On Dashboard CR deletion, or soft removal when the portal no longer needs observability, the controller explicitly cleans up observability resources:
-- Lists Services, ConfigMaps, NetworkPolicies, and PersesDashboards in the observability namespace labeled `platform.opendatahub.io/part-of: dashboard`
+On Dashboard CR deletion, or core soft removal when the portal no longer needs observability, the controller explicitly cleans up observability resources:
+
+- Lists Services, ConfigMaps, NetworkPolicies, and PersesDashboards across all namespaces using both `platform.opendatahub.io/part-of: dashboard` and `app.kubernetes.io/component: observability`
+- Also cleans up legacy resources labeled `platform.opendatahub.io/part-of: dashboard` without a component label in the configured observability namespace, or the platform monitoring namespace when none is configured. This fallback is skipped when that namespace matches the applications namespace to avoid deleting unrelated resources.
 - Deletes each resource, ignoring NotFound errors for idempotency
-- When the observability namespace matches the applications namespace, also selects `app.kubernetes.io/component: observability` to avoid deleting unrelated resources, including the operator itself
 
 ### Labels
 

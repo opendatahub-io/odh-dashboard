@@ -97,7 +97,6 @@ describe('DashboardContent', () => {
           dashboards={[dashboard]}
           projects={[]}
           persesProxyBasePath="/maas-consumer-portal/perses/api"
-          routeBasePath="/observe-and-monitor/dashboard"
           browserBasePath="/maas-consumer-portal"
           ClusterDetailsAdapter={() => null}
         />
@@ -119,7 +118,6 @@ describe('DashboardContent', () => {
         <DashboardContent
           dashboards={[dashboard]}
           projects={[]}
-          routeBasePath="/observe-and-monitor/dashboard"
           browserBasePath="/maas-consumer-portal"
           ClusterDetailsAdapter={() => null}
         />

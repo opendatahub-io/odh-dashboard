@@ -1,9 +1,8 @@
-import type { PluginModuleResource } from '@perses-dev/plugin-system';
+import type { PluginLoader, PluginModuleResource } from '@perses-dev/plugin-system';
 import { getPluginModuleCompoundKey, remotePluginLoader } from '@perses-dev/plugin-system';
 import {
   createPluginLoader,
   loadBundledOverride,
-  pluginLoader,
   resetBundledOverridesForTests,
   type BundledPluginModule,
 } from '../persesPluginsLoader';
@@ -30,7 +29,7 @@ jest.mock('@perses-dev/plugin-system', () => ({
   })),
 }));
 
-const remoteLoader = jest.mocked(remotePluginLoader).mock.results[0]?.value as {
+type MockRemoteLoader = {
   getInstalledPlugins: jest.Mock;
   importPluginModule: jest.Mock;
 };
@@ -151,6 +150,11 @@ describe('loadBundledOverride', () => {
 });
 
 describe('createPluginLoader', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resetBundledOverridesForTests(new Map());
+  });
+
   it('should use a portal proxy path for remote plugin manifests and assets', async () => {
     const originalAssetsPath = window.PERSES_PLUGIN_ASSETS_PATH;
     const originalAppConfig = window.PERSES_APP_CONFIG;
@@ -168,7 +172,7 @@ describe('createPluginLoader', () => {
       const remoteLoaders = jest
         .mocked(remotePluginLoader)
         .mock.results.slice(existingLoaderCount)
-        .map(({ value }) => value as typeof remoteLoader);
+        .map(({ value }) => value as MockRemoteLoader);
 
       expect(remotePluginLoader).toHaveBeenNthCalledWith(existingLoaderCount + 1, {
         apiPrefix: basePaths[0],
@@ -197,10 +201,15 @@ describe('createPluginLoader', () => {
   });
 });
 
-describe('pluginLoader', () => {
+describe('default plugin loader', () => {
+  let pluginLoader: PluginLoader;
+  let remoteLoader: MockRemoteLoader;
+
   beforeEach(() => {
     jest.clearAllMocks();
     resetBundledOverridesForTests(new Map());
+    pluginLoader = createPluginLoader();
+    remoteLoader = jest.mocked(remotePluginLoader).mock.results[0].value as MockRemoteLoader;
   });
 
   describe('getInstalledPlugins', () => {

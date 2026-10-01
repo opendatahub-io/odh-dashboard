@@ -63,25 +63,6 @@ describe('usePersesDashboard', () => {
       'test-project',
       'test-dashboard',
       expect.any(AbortSignal),
-      undefined,
-    );
-  });
-
-  it('should fetch through the supplied Perses proxy path', async () => {
-    fetchPersesDashboardMock.mockResolvedValue(mockDashboard);
-    const renderResult = testHook(usePersesDashboard)(
-      'test-project',
-      'test-dashboard',
-      '/maas-consumer-portal/perses/api',
-    );
-
-    await renderResult.waitForNextUpdate();
-
-    expect(fetchPersesDashboardMock).toHaveBeenCalledWith(
-      'test-project',
-      'test-dashboard',
-      expect.any(AbortSignal),
-      '/maas-consumer-portal/perses/api',
     );
   });
 
