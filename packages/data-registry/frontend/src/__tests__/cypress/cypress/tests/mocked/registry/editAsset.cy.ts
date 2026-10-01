@@ -151,7 +151,7 @@ describe('Edit Table Asset', () => {
     });
   });
 
-  it('should submit explicit empty values for optional table metadata', () => {
+  it('should submit null values for unset optional table metadata', () => {
     cy.intercept(
       'GET',
       `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/unclassified-data`,
@@ -172,9 +172,39 @@ describe('Edit Table Asset', () => {
 
     cy.wait('@updateTableWithoutOptionalMetadata').then((interception) => {
       expect(interception.request.body).to.include({
-        license: '',
-        maturity: '',
-        pii: '',
+        license: null,
+        maturity: null,
+        pii: null,
+      });
+    });
+  });
+
+  it('should clear nullable table metadata', () => {
+    cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
+    cy.wait('@getTable');
+
+    cy.intercept(
+      'PATCH',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/claims-data`,
+      { body: tableResponse },
+    ).as('clearTableMetadata');
+
+    assetDetailPage.findActionsToggle().click();
+    assetDetailPage.findEditAction().click();
+
+    editAssetModal.findLicenseToggle().click();
+    editAssetModal.findClearLicenseOption().click();
+    editAssetModal.findMaturityToggle().click();
+    editAssetModal.findClearMaturityOption().click();
+    editAssetModal.findPiiToggle().click();
+    editAssetModal.findClearPiiOption().click();
+    editAssetModal.findSaveButton().click();
+
+    cy.wait('@clearTableMetadata').then((interception) => {
+      expect(interception.request.body).to.include({
+        license: null,
+        maturity: null,
+        pii: null,
       });
     });
   });
@@ -274,13 +304,25 @@ describe('Edit Table Asset', () => {
     });
   });
 
-  it('should disable custom property removal in edit mode', () => {
+  it('should remove custom properties in edit mode', () => {
     cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
+    cy.intercept(
+      'PATCH',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/claims-data`,
+      { body: tableResponse },
+    ).as('removeCustomProperty');
+
     assetDetailPage.findActionsToggle().click();
     assetDetailPage.findEditAction().click();
-    editAssetModal.findCustomPropertyRemove(0).should('be.disabled');
+    editAssetModal.findCustomPropertyRemove(0).click();
+    editAssetModal.findSaveButton().click();
+
+    cy.wait('@removeCustomProperty').then((interception) => {
+      expect(interception.request.body.remove_properties).to.include('custom-key');
+      expect(interception.request.body.properties).not.to.have.property('custom-key');
+    });
   });
 
   it('should close modal on cancel', () => {
