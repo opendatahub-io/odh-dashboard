@@ -513,6 +513,19 @@ func communityProxyPath(remoteName, suffix string) (string, error) {
 	return communityPluginsProxyPrefix + "/" + remoteName + "/" + suffix, nil
 }
 
+func validateCommunityRemoteEntryPath(remoteEntry string) error {
+	if remoteEntry == "" || !strings.HasPrefix(remoteEntry, "/") ||
+		strings.ContainsAny(remoteEntry, "?#%") {
+		return fmt.Errorf("backend.remoteEntry %q must be a non-empty absolute URL path", remoteEntry)
+	}
+	for _, segment := range strings.Split(strings.TrimPrefix(remoteEntry, "/"), "/") {
+		if segment == "" || segment == "." || segment == ".." {
+			return fmt.Errorf("backend.remoteEntry %q contains an invalid path segment", remoteEntry)
+		}
+	}
+	return nil
+}
+
 func validateCommunityFederationEntry(entry communityFederationEntry, existingNames, existingPaths map[string]struct{}) error {
 	if !moduleFederationRemoteName.MatchString(entry.Name) {
 		return fmt.Errorf("remote name %q must be a valid JavaScript identifier", entry.Name)
@@ -520,8 +533,8 @@ func validateCommunityFederationEntry(entry communityFederationEntry, existingNa
 	if _, exists := existingNames[entry.Name]; exists {
 		return fmt.Errorf("remote name %q collides with an existing federation entry", entry.Name)
 	}
-	if !strings.HasPrefix(entry.Backend.RemoteEntry, "/") {
-		return fmt.Errorf("backend.remoteEntry %q must be an absolute path", entry.Backend.RemoteEntry)
+	if err := validateCommunityRemoteEntryPath(entry.Backend.RemoteEntry); err != nil {
+		return err
 	}
 	if err := validateCommunityServiceRef("backend", entry.Backend.Service); err != nil {
 		return err
