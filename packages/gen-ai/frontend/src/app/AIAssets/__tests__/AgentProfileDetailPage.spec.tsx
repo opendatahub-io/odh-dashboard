@@ -58,6 +58,10 @@ const profile: AgentProfile = {
       {
         serverRef: { kind: 'ConfigMap', name: 'gen-ai-aa-mcp-servers', key: 'jira' },
       },
+      {
+        name: 'registry-tool',
+        source: 'mlflow',
+      },
     ],
     vectorStores: { stores: [{ id: 'handbook' }] },
   },
@@ -138,6 +142,7 @@ describe('AgentProfileDetailPage', () => {
     expect(screen.getByText('hr-assistant')).toBeInTheDocument();
     expect(screen.getByText('v3')).toBeInTheDocument();
     expect(screen.getByText('jira')).toBeInTheDocument();
+    expect(screen.getByText('registry-tool')).toBeInTheDocument();
     expect(screen.getByText('Deployments (1)')).toBeInTheDocument();
     expect(screen.getByText(/Last modified Jul 30, 2026/)).toBeInTheDocument();
     expect(screen.getByText('Latest')).toBeInTheDocument();
