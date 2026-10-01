@@ -2,7 +2,7 @@ import { DEFAULT_CONFIGURATION, ChatbotConfiguration } from '~/app/Chatbot/store
 import { LlamaModel } from '~/app/types';
 import { MCPServerFromAPI } from '~/app/types/mcp';
 import { isMaasLlamaModelId } from '~/app/utilities/utils';
-import { AgentProfile } from './types';
+import { AgentProfile, AgentProfileMcpServer } from './types';
 
 export type AgentProfileDeserializationContext = {
   /**
@@ -42,6 +42,29 @@ export type AgentProfileDeserializeResult = {
    * server data is available.
    */
   mcpToolsPending?: Record<string, string[]>;
+};
+
+const getMcpServerName = (server: AgentProfileMcpServer): string =>
+  'serverRef' in server ? (server.serverRef.key ?? server.serverRef.name) : server.name;
+
+const resolveMcpServer = (
+  server: AgentProfileMcpServer,
+  mcpServers: MCPServerFromAPI[],
+): MCPServerFromAPI | undefined => {
+  const name = getMcpServerName(server);
+  if ('source' in server) {
+    return mcpServers.find(
+      (candidate) => candidate.name === name && candidate.source === 'registry',
+    );
+  }
+  // ConfigMap references are source-specific. Older MCPServer CR references predate the
+  // source field and are resolved by name to preserve saved-profile compatibility.
+  if (server.serverRef.kind === 'ConfigMap') {
+    return mcpServers.find(
+      (candidate) => candidate.name === name && candidate.source === 'configmap',
+    );
+  }
+  return mcpServers.find((candidate) => candidate.name === name);
 };
 
 /**
@@ -105,8 +128,8 @@ export const deserializeAgentProfile = (
   if (spec.mcpServers?.length) {
     config.selectedMcpServerIds = spec.mcpServers
       .map((s) => {
-        const key = s.serverRef.key ?? s.serverRef.name;
-        const match = mcpServers.find((ms) => ms.name === key);
+        const key = getMcpServerName(s);
+        const match = resolveMcpServer(s, mcpServers);
         return match?.url ?? key;
       })
       .filter(Boolean);
@@ -159,8 +182,8 @@ export const deserializeAgentProfile = (
         spec.mcpServers
           .filter((s) => s.allowedTools !== undefined)
           .map((s) => {
-            const key = s.serverRef.key ?? s.serverRef.name;
-            const match = mcpServers.find((ms) => ms.name === key);
+            const key = getMcpServerName(s);
+            const match = resolveMcpServer(s, mcpServers);
             return [match?.url ?? key, s.allowedTools ?? []];
           }),
       )
