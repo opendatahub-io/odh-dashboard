@@ -257,10 +257,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
   const primarySelectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
   const primarySelectedAsrModel = useChatbotConfigStore(selectSelectedAsrModel(primaryConfigId));
-  const primaryIsAsrModelEnabled = useChatbotConfigStore(selectIsAsrModelEnabled(primaryConfigId));
   const primarySelectedAsrSubscription = useChatbotConfigStore(
     selectSelectedAsrSubscription(primaryConfigId),
   );
+  const primaryIsAsrEnabled = useChatbotConfigStore(selectIsAsrModelEnabled(primaryConfigId));
 
   const workspaceCapabilities = useWorkspaceCapabilities(
     aiModels,
@@ -798,7 +798,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   React.useEffect(() => {
     if (
       audioTranscription.state.phase === 'waiting-for-model' &&
-      primaryIsAsrModelEnabled &&
+      primaryIsAsrEnabled &&
       primarySelectedAsrModel
     ) {
       audioTranscription.resumeUpload(
@@ -810,7 +810,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     }
   }, [
     audioTranscription,
-    primaryIsAsrModelEnabled,
+    primaryIsAsrEnabled,
     primarySelectedAsrModel,
     primarySelectedAsrSubscription,
     namespace?.name,
