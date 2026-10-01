@@ -31,6 +31,7 @@ COPY --chown=default:root prefetch/pnpm/package.json prefetch/pnpm/package-lock.
 ### Workspace setup
 # Copy root workspace manifest and lockfile for pnpm workspace resolution.
 COPY --chown=default:root package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY --chown=default:root .npmrc ./
 # Copy the MaaS Portal workspace and the source packages used by its production build.
 COPY --chown=default:root frontend/package.json ./frontend/
 COPY --chown=default:root distributions/maas-portal/ ./distributions/maas-portal/
