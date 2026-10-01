@@ -26,6 +26,8 @@ jobs:
             "packages/model-registry/upstream/package-lock.json"
             "packages/model-registry/upstream/frontend/package-lock.json"
             "packages/notebooks/upstream/workspaces/frontend/package-lock.json"
+            # Locked npm bootstrap for pnpm in hermetic Konflux builds.
+            "prefetch/pnpm/package-lock.json"
           )
           unexpected=()
           while IFS= read -r file; do
@@ -42,7 +44,7 @@ jobs:
             printf '::error::Unexpected npm lockfile(s):\n'
             printf '  %s\n' "${unexpected[@]}"
             echo 'Use the root pnpm-lock.yaml.'
-            echo 'Only documented vendored upstream lockfiles are allowed.'
+            echo 'Only documented upstream and bootstrap lockfiles are allowed.'
             exit 1
           fi
       - name: Free disk space
