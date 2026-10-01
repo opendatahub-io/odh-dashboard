@@ -363,7 +363,7 @@ describe('An admin can create, edit and delete External Models and Providers and
       });
       row.findGovernanceWarning().should('not.exist');
 
-      cy.step(' verify inference for the external model');
+      cy.step(' Verify inference for the external model');
       apiKeysPage.visit();
       apiKeysPage.findCreateApiKeyButton().click();
       createApiKeyModal.shouldBeOpen();
@@ -405,7 +405,6 @@ describe('An admin can create, edit and delete External Models and Providers and
 
       cy.step('Delete the external provider');
       externalProvidersPage.visitAsUser(LDAP_ADMIN_USER, {
-        enableExternalModelsFlag: false,
         projectName,
       });
       const deletedProviderRow = externalProvidersPage.getRow(externalProviderName);

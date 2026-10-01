@@ -2457,18 +2457,9 @@ class ExternalProvidersPage {
     cy.testA11y();
   }
 
-  visitAsUser(
-    user: UserAuthConfig,
-    options?: { enableExternalModelsFlag?: boolean; projectName?: string },
-  ): void {
+  visitAsUser(user: UserAuthConfig, options?: { projectName?: string }): void {
     const projectSegment = options?.projectName ? `/${options.projectName}` : '';
-    const flagQuery = options?.enableExternalModelsFlag
-      ? '?devFeatureFlags=externalModels=true'
-      : '';
-    cy.visitWithLogin(
-      `/ai-hub/models/deployments/external-providers${projectSegment}${flagQuery}`,
-      user,
-    );
+    cy.visitWithLogin(`/ai-hub/models/deployments/external-providers${projectSegment}`, user);
     cy.testA11y();
   }
 
