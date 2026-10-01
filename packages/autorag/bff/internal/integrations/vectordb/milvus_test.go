@@ -16,6 +16,13 @@ func TestNewMilvusFromSecret_MissingURI(t *testing.T) {
 	assert.Contains(t, err.Error(), "missing MILVUS_URI")
 }
 
+func TestMilvusSearch_RejectsHybridSearch(t *testing.T) {
+	db := &milvusDB{}
+	_, err := db.Search(context.Background(), "collection", nil, "query", 5, 0.5, true)
+	require.ErrorIs(t, err, ErrUnsupportedSearch)
+	assert.Contains(t, err.Error(), "Milvus hybrid search is not supported")
+}
+
 func TestNewMilvusFromSecret_PlaintextRejectedForRemoteHost(t *testing.T) {
 	_, err := newMilvusFromSecret(context.Background(), map[string][]byte{
 		"MILVUS_URI": []byte("http://milvus.apps.example.com:19530"),

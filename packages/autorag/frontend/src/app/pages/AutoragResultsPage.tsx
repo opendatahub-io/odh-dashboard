@@ -96,7 +96,7 @@ const hasStoreBindingFallback = (
 ): settings is PatternSettingsWithStoreBindingFallback =>
   typeof settings === 'object' && settings !== null && 'store_binding' in settings;
 
-const buildResponsesTemplate = (
+export const buildResponsesTemplate = (
   pattern: AutoragPattern,
   runId: string | undefined,
 ): ResponsesTemplate => {
@@ -107,18 +107,7 @@ const buildResponsesTemplate = (
     : undefined;
   const collectionName =
     vectorStoreBinding?.collection_name ?? storeBindingFallback?.collection_name;
-  const searchMode =
-    retrieval.search_mode === 'hybrid' ||
-    retrieval.search_mode === 'keyword' ||
-    retrieval.search_mode === 'semantic'
-      ? retrieval.search_mode
-      : 'semantic';
-  const rankerStrategy =
-    retrieval.ranker_strategy === 'rrf' ||
-    retrieval.ranker_strategy === 'linear' ||
-    retrieval.ranker_strategy === 'cross_encoder'
-      ? retrieval.ranker_strategy
-      : 'rrf';
+  const isHybrid = retrieval.search_mode === 'hybrid';
 
   return {
     /* eslint-disable camelcase */
@@ -142,12 +131,14 @@ const buildResponsesTemplate = (
         type: 'file_search',
         vector_store_ids: collectionName ? [collectionName] : [],
         max_num_results: retrieval.number_of_chunks,
-        ranking_options: {
-          search_mode: searchMode,
-          ranker_strategy: rankerStrategy,
-          ranker_k: 60,
-          ranker_alpha: retrieval.ranker_alpha ?? 0.5,
-        },
+        ...(isHybrid
+          ? {
+              ranking_options: {
+                ranker: 'rrf',
+                alpha: retrieval.ranker_alpha ?? 0.5,
+              },
+            }
+          : {}),
       },
     ],
     tool_choice: { type: 'file_search' },
@@ -155,6 +146,24 @@ const buildResponsesTemplate = (
     /* eslint-enable camelcase */
   };
 };
+
+/* eslint-disable camelcase */
+export const normalizeResponsesTemplate = (template: ResponsesTemplate): ResponsesTemplate => ({
+  ...template,
+  tools: template.tools.map((tool) => {
+    if (!tool.ranking_options) {
+      return tool;
+    }
+    return {
+      ...tool,
+      ranking_options: {
+        ranker: 'rrf',
+        alpha: Number.isFinite(tool.ranking_options.alpha) ? tool.ranking_options.alpha : 0.5,
+      },
+    };
+  }),
+});
+/* eslint-enable camelcase */
 
 function AutoragResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
@@ -479,9 +488,10 @@ function AutoragResultsPage(): React.JSX.Element {
       if (!pattern) {
         return false;
       }
-      const responsesTemplate =
+      const responsesTemplate = normalizeResponsesTemplate(
         pattern.inference?.responses_template ??
-        buildResponsesTemplate(pattern, pipelineRun?.run_id);
+          buildResponsesTemplate(pattern, pipelineRun?.run_id),
+      );
 
       const metricMean = getObjectiveMetric(pattern, contextValue.optimizationMetric)?.scores.mean;
       setDrawerContent({
@@ -519,7 +529,10 @@ function AutoragResultsPage(): React.JSX.Element {
   const handleViewCode = React.useCallback(
     (patternName: string, source: ViewCodeEntrySource) => {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      const responsesTemplate = patterns?.[patternName]?.inference?.responses_template;
+      const persistedTemplate = patterns?.[patternName]?.inference?.responses_template;
+      const responsesTemplate = persistedTemplate
+        ? normalizeResponsesTemplate(persistedTemplate)
+        : undefined;
       if (responsesTemplate) {
         setViewCodePattern({ patternName, responsesTemplate });
         fireAutoragCodeSnippetsExported('viewed', source);
@@ -710,7 +723,6 @@ function AutoragResultsPage(): React.JSX.Element {
           onClose={() => setViewCodePattern(null)}
           patternName={viewCodePattern.patternName}
           responsesTemplate={viewCodePattern.responsesTemplate}
-          ogxCredentials={ogxCredentials}
         />
       )}
     </AutoragResultsContext.Provider>

@@ -157,7 +157,7 @@ Executes a RAG query and streams the answer back as [OpenAI Responses API](https
 | `vectorDbSecretName` | Name of the K8s secret with vector DB credentials (auto-detected: Milvus or pgvector) |
 | `maasSecretName` | Name of the K8s secret with MaaS credentials (`MAAS_BASE_URL`, `MAAS_API_KEY`) |
 
-**Request body** — OpenAI Responses API format:
+**Request body** — OpenAI Responses API format. The `ranking_options` shown below requests hybrid RRF, which is supported by the pgvector adapter only:
 
 ```json
 {
@@ -169,9 +169,9 @@ Executes a RAG query and streams the answer back as [OpenAI Responses API](https
   "tools": [
     {
       "type": "file_search",
-      "vector_store_ids": ["my-collection"],
+      "vector_store_ids": ["my-collection.v1"],
       "max_num_results": 5,
-      "ranking_options": { "ranker": "hybrid", "alpha": 0.5 }
+      "ranking_options": { "ranker": "rrf", "alpha": 0.5 }
     }
   ],
   "metadata": {
@@ -188,7 +188,8 @@ Executes a RAG query and streams the answer back as [OpenAI Responses API](https
 **Key fields:**
 
 - `input` — conversation history; the last `user` message is the question; an optional `system` message is injected into the chat prompt
-- `tools[].vector_store_ids[0]` — vector DB collection name (hyphens/dots are auto-normalised)
+- `tools[].vector_store_ids[0]` — logical vector DB collection name. IDs may contain only letters, numbers, `_`, `-`, and `.`; `-` and `.` are canonicalized to `_` before adapter lookup. Logical names that canonicalize to the same ID cannot coexist (for example, `my-store` and `my.store`).
+- `tools[].ranking_options` — optional supported fields are `ranker: "rrf"` and `alpha` from 0 through 1. Omit the object for dense search; include it for pgvector hybrid RRF search. Milvus rejects hybrid requests because sparse hybrid retrieval is not implemented. `search_mode`, `ranker_strategy`, `ranker_k`, and other ranking fields are rejected rather than ignored.
 - `metadata.embedding_model` — required; model used for query embedding
 - `metadata.context_template_text` — optional; template for each retrieved chunk (`{document}`, `{doc_number}` placeholders)
 - `metadata.user_message_text` — optional; wraps context + question (`{reference_documents}`, `{question}` placeholders)
@@ -207,7 +208,11 @@ data: {"type":"response.metrics",       "sequence_number":N+2, "response":{...}}
 data: [DONE]
 ```
 
-The `response.completed` event includes a `file_search_call` output item with the retrieved source chunks and a `message` output item with the full answer text.
+The `response.completed` event includes a `file_search_call` output item with the retrieved source chunks and a `message` output item with the full answer text. Each source result contains `text`, `score`, and `file_id` when the adapter returned an ID:
+
+```json
+{"type":"file_search_call","results":[{"text":"retrieved chunk","score":0.9,"file_id":"document-1"}]}
+```
 
 **Sample call (streaming):**
 

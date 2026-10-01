@@ -59,31 +59,21 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
 }) => {
   const { parameters, patterns } = useAutoragResultsContext();
   const secretName =
-    typeof parameters?.maas_secret_name === 'string'
-      ? parameters.maas_secret_name
-      : typeof parameters?.ogx_secret_name === 'string'
-        ? parameters.ogx_secret_name
-        : '';
+    typeof parameters?.maas_secret_name === 'string' ? parameters.maas_secret_name : '';
   const [isPatternSelectOpen, setIsPatternSelectOpen] = React.useState(false);
 
   const vectorDbSecretNameParameter = parameters?.vector_db_secret_name;
-  const vectorIoProviderId = parameters?.vector_io_provider_id;
   const vectorDbSecretName =
-    typeof vectorDbSecretNameParameter === 'string'
-      ? vectorDbSecretNameParameter
-      : typeof vectorIoProviderId === 'string'
-        ? vectorIoProviderId.replace(/-remote$/, '')
-        : '';
+    typeof vectorDbSecretNameParameter === 'string' ? vectorDbSecretNameParameter : '';
   const responsesEndpointUrl = React.useMemo(() => {
-    if (!vectorDbSecretName || !secretName) {
-      return undefined;
+    const query = new URLSearchParams({ namespace });
+    if (vectorDbSecretName) {
+      query.set('vectorDbSecretName', vectorDbSecretName);
     }
-    const params = new URLSearchParams({
-      namespace,
-      vectorDbSecretName,
-      maasSecretName: secretName,
-    });
-    return `/autorag/api/v1/responses?${params.toString()}`;
+    if (secretName) {
+      query.set('maasSecretName', secretName);
+    }
+    return `/autorag/api/v1/responses?${query.toString()}`;
   }, [namespace, vectorDbSecretName, secretName]);
 
   const additionalMetadata = React.useMemo(() => {

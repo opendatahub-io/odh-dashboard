@@ -1,5 +1,10 @@
 package models
 
+import (
+	"bytes"
+	"encoding/json"
+)
+
 // --- Responses API (endpoint 1) ---
 
 type InputContent struct {
@@ -14,9 +19,21 @@ type InputMessage struct {
 }
 
 type RankingOptions struct {
-	Ranker       string  `json:"ranker,omitempty"`
-	Alpha        float64 `json:"alpha,omitempty"`
-	ImpactFactor float64 `json:"impact_factor,omitempty"`
+	Ranker string   `json:"ranker,omitempty"`
+	Alpha  *float64 `json:"alpha,omitempty"`
+}
+
+// UnmarshalJSON rejects ranking fields that the AutoRAG BFF cannot honor.
+func (r *RankingOptions) UnmarshalJSON(data []byte) error {
+	type rankingOptions RankingOptions
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	var options rankingOptions
+	if err := decoder.Decode(&options); err != nil {
+		return err
+	}
+	*r = RankingOptions(options)
+	return nil
 }
 
 type FileSearchTool struct {
@@ -47,8 +64,9 @@ type ResponsesRequest struct {
 // --- RAG response ---
 
 type SourceChunk struct {
-	Text  string  `json:"text"`
-	Score float32 `json:"score"`
+	Text   string  `json:"text"`
+	Score  float32 `json:"score"`
+	FileID string  `json:"file_id,omitempty"`
 }
 
 type RAGResponse struct {
