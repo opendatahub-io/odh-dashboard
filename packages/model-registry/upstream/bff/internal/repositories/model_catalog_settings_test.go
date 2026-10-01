@@ -2,6 +2,8 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"strings"
 
 	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
@@ -9,8 +11,28 @@ import (
 	"github.com/kubeflow/hub/ui/bff/internal/models"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
+
+type configOnlyCatalogClient struct {
+	k8s.KubernetesClientInterface
+	reader          k8s.SharedClientLogic
+	secretReadCalls int
+}
+
+func (c *configOnlyCatalogClient) GetAllCatalogSourceConfigs(ctx context.Context, namespace string) (corev1.ConfigMap, corev1.ConfigMap, error) {
+	return c.reader.GetAllCatalogSourceConfigs(ctx, namespace)
+}
+
+func (c *configOnlyCatalogClient) GetSecret(context.Context, string, string) (*corev1.Secret, error) {
+	c.secretReadCalls++
+	return nil, fmt.Errorf("unexpected Secret read")
+}
 
 var _ = Describe("ModelCatalogSettingRepository", func() {
 	var (
@@ -106,6 +128,111 @@ var _ = Describe("ModelCatalogSettingRepository", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(catalog.AllowedOrganization).NotTo(BeNil())
 		})
+
+		It("allows a ConfigMap reader with no Secret read permission to see credential configuration", func() {
+			admin, err := kubernetes.NewForConfig(testEnv.Config)
+			Expect(err).NotTo(HaveOccurred())
+			roleName := "catalog-config-credential-reader"
+			_, err = admin.RbacV1().Roles("kubeflow").Create(ctx, &rbacv1.Role{
+				ObjectMeta: metav1.ObjectMeta{Name: roleName},
+				Rules: []rbacv1.PolicyRule{{
+					APIGroups: []string{""}, Resources: []string{"configmaps"}, Verbs: []string{"get"},
+					ResourceNames: []string{k8s.CatalogSourceDefaultConfigMapName, k8s.CatalogSourceUserConfigMapName},
+				}},
+			}, metav1.CreateOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			DeferCleanup(func() {
+				Expect(admin.RbacV1().Roles("kubeflow").Delete(ctx, roleName, metav1.DeleteOptions{})).To(Succeed())
+			})
+			_, err = admin.RbacV1().RoleBindings("kubeflow").Create(ctx, &rbacv1.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{Name: roleName},
+				Subjects:   []rbacv1.Subject{{Kind: "User", Name: roleName, APIGroup: "rbac.authorization.k8s.io"}},
+				RoleRef:    rbacv1.RoleRef{Kind: "Role", Name: roleName, APIGroup: "rbac.authorization.k8s.io"},
+			}, metav1.CreateOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			DeferCleanup(func() {
+				Expect(admin.RbacV1().RoleBindings("kubeflow").Delete(ctx, roleName, metav1.DeleteOptions{})).To(Succeed())
+			})
+
+			restrictedConfig := rest.CopyConfig(testEnv.Config)
+			restrictedConfig.Impersonate.UserName = roleName
+			restrictedSet, err := kubernetes.NewForConfig(restrictedConfig)
+			Expect(err).NotTo(HaveOccurred())
+			_, err = restrictedSet.CoreV1().Secrets("kubeflow").Get(ctx, "hugging-face-source-secret", metav1.GetOptions{})
+			Expect(apierrors.IsForbidden(err)).To(BeTrue())
+
+			reader := &configOnlyCatalogClient{
+				KubernetesClientInterface: k8sClient,
+				reader:                    k8s.SharedClientLogic{Client: restrictedSet, Logger: logger},
+			}
+			list, err := repo.GetAllCatalogSourceConfigs(ctx, reader, "kubeflow")
+			Expect(err).NotTo(HaveOccurred())
+			var found bool
+			for _, source := range list.Catalogs {
+				if source.Id == "hugging_face_source" {
+					found = true
+					Expect(source.HasConfiguredApiKey).NotTo(BeNil())
+					Expect(*source.HasConfiguredApiKey).To(BeTrue())
+				}
+			}
+			Expect(found).To(BeTrue())
+			source, err := repo.GetCatalogSourceConfig(ctx, reader, "kubeflow", "hugging_face_source")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(*source.HasConfiguredApiKey).To(BeTrue())
+			Expect(source.ApiKey).To(BeNil())
+			Expect(reader.secretReadCalls).To(BeZero())
+		})
+	})
+
+	It("reports configured credentials immediately and recomputes caller-supplied metadata", func() {
+		payload := models.CatalogSourceConfigPayload{
+			Id: "hf_configured_flag", Name: "Configured Flag", Type: "hf", Enabled: boolPtr(false),
+			ApiKey: stringPtr("hf_test_token"), AllowedOrganization: stringPtr("test-org"),
+			HasConfiguredApiKey: boolPtr(false),
+		}
+		created, err := repo.CreateCatalogSourceConfig(ctx, k8sClient, "kubeflow", payload)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(*created.HasConfiguredApiKey).To(BeTrue())
+		Expect(created.ApiKey).To(BeNil())
+		encoded, err := json.Marshal(created)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(encoded)).NotTo(ContainSubstring("hf_test_token"))
+		Expect(string(encoded)).NotTo(ContainSubstring("catalog-hf-configured-flag-apikey"))
+		Expect(string(encoded)).NotTo(ContainSubstring(`"apiKey"`))
+
+		list, err := repo.GetAllCatalogSourceConfigs(ctx, k8sClient, "kubeflow")
+		Expect(err).NotTo(HaveOccurred())
+		for _, source := range list.Catalogs {
+			if source.Id == payload.Id {
+				Expect(*source.HasConfiguredApiKey).To(BeTrue())
+			}
+		}
+		_, userCM, err := k8sClient.GetAllCatalogSourceConfigs(ctx, "kubeflow")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(userCM.Data[k8s.CatalogSourceKey]).NotTo(ContainSubstring("hasConfiguredApiKey"))
+
+		updated, err := repo.UpdateCatalogSourceConfig(ctx, k8sClient, "kubeflow", payload.Id,
+			models.CatalogSourceConfigPayload{HasConfiguredApiKey: boolPtr(false), Enabled: boolPtr(true)})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(*updated.HasConfiguredApiKey).To(BeTrue())
+
+		err = repo.ClearHuggingFaceCatalogSourceCredentials(ctx, k8sClient, "kubeflow", payload.Id)
+		Expect(err).NotTo(HaveOccurred())
+		cleared, err := repo.GetCatalogSourceConfig(ctx, k8sClient, "kubeflow", payload.Id)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(*cleared.HasConfiguredApiKey).To(BeFalse())
+		list, err = repo.GetAllCatalogSourceConfigs(ctx, k8sClient, "kubeflow")
+		Expect(err).NotTo(HaveOccurred())
+		for _, source := range list.Catalogs {
+			if source.Id == payload.Id {
+				Expect(*source.HasConfiguredApiKey).To(BeFalse())
+			}
+		}
+
+		cleared, err = repo.UpdateCatalogSourceConfig(ctx, k8sClient, "kubeflow", payload.Id,
+			models.CatalogSourceConfigPayload{HasConfiguredApiKey: boolPtr(true), Enabled: boolPtr(false)})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(*cleared.HasConfiguredApiKey).To(BeFalse())
 	})
 
 	Describe("CreateCatalogSourceConfig", func() {
