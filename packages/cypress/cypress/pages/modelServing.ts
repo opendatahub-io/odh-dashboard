@@ -33,6 +33,10 @@ class ModelServingGlobal {
     this.wait();
   }
 
+  assertPathname(pathname: string) {
+    return cy.location('pathname').should('eq', pathname);
+  }
+
   navigate() {
     appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).click();
     this.wait();
@@ -1649,29 +1653,11 @@ class ModelServingWizard extends Wizard {
   }
 
   findReviewHuggingFaceApiKey() {
-    // Prefer review-item testids when present (local builds); fall back to label text
-    // for clusters that do not yet ship those attributes.
-    return this.findReviewStepModelDetailsSection().then(($section) => {
-      const byTestId = $section.find('[data-testid="review-item-huggingFaceApiKey"]');
-      if (byTestId.length > 0) {
-        return cy.wrap(byTestId);
-      }
-      return cy.wrap($section).contains('Hugging Face API key');
-    });
+    return cy.findByTestId('review-item-huggingFaceApiKey');
   }
 
   findReviewHuggingFaceApiKeyValue() {
-    return this.findReviewStepModelDetailsSection().then(($section) => {
-      const byTestId = $section.find('[data-testid="review-item-huggingFaceApiKey-value"]');
-      if (byTestId.length > 0) {
-        return cy.wrap(byTestId);
-      }
-      return cy
-        .wrap($section)
-        .contains('Hugging Face API key')
-        .closest('.pf-v6-c-description-list__group')
-        .find('.pf-v6-c-description-list__description, dd');
-    });
+    return cy.findByTestId('review-item-huggingFaceApiKey-value');
   }
 
   findYAMLViewerToggle(toggle: string) {

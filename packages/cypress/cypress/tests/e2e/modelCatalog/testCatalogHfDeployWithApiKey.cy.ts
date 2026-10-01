@@ -42,21 +42,7 @@ describe('Verify HF private deploy uses ServiceAccount and Secret', () => {
   let projectName: string;
   let deploymentDisplayName: string;
   let deploymentResourceName: string;
-
-  // Local federated remotes (e.g. modelRegistry) may throw Module build failed when
-  // their node_modules are incomplete; this wizard test does not need those remotes.
-  before(() => {
-    Cypress.on('uncaught:exception', (err) => {
-      if (
-        err.message.includes('Module build failed') ||
-        err.message.includes('webpack-bundler-runtime') ||
-        err.message.includes('remoteEntry')
-      ) {
-        return false;
-      }
-      return undefined;
-    });
-  });
+  let returnRoute: string;
 
   retryableBefore(() => {
     return cy
@@ -65,6 +51,7 @@ describe('Verify HF private deploy uses ServiceAccount and Secret', () => {
         testData = yaml.load(yamlContent) as Record<string, string>;
         projectName = `hf-sa-${testRunId}`.slice(0, 30).toLowerCase();
         deploymentDisplayName = `${testData.deploymentNamePrefix}-${testRunId}`.slice(0, 40);
+        returnRoute = `/ai-hub/models/deployments/internal/${projectName}`;
       })
       .then(() => {
         hfApiKey = requireHuggingFaceApiKey();
@@ -72,7 +59,7 @@ describe('Verify HF private deploy uses ServiceAccount and Secret', () => {
         ensureAdminOcSession();
         provisionProjectForModelServing(
           projectName,
-          'BUCKET_1',
+          testData.awsBucket as 'BUCKET_1' | 'BUCKET_3',
           'resources/yaml/data_connection_model_serving.yaml',
         );
       });
@@ -85,7 +72,8 @@ describe('Verify HF private deploy uses ServiceAccount and Secret', () => {
       cleanupLLMInferenceService(deploymentResourceName, projectName);
     }
     if (projectName) {
-      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true, timeout: 300000 });
+      // Wait for namespace deletion so the HF_TOKEN Secret cannot linger for other users.
+      deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
     }
   });
 
@@ -99,7 +87,6 @@ describe('Verify HF private deploy uses ServiceAccount and Secret', () => {
         '@ModelServingCI',
         '@LLMDServingCI',
         '@NonConcurrent',
-        '@Featureflagged',
       ],
     },
     () => {
@@ -107,7 +94,6 @@ describe('Verify HF private deploy uses ServiceAccount and Secret', () => {
       cy.visitWithLogin('/', LDAP_ADMIN_USER);
 
       cy.step('Open deploy wizard with HF API key required (catalog private-model prefill flag)');
-      const returnRoute = `/ai-hub/models/deployments/internal/${projectName}`;
       modelServingWizard.visitRequiringHuggingFaceApiKey(returnRoute);
 
       cy.step('Preconfigure: select project');
@@ -152,11 +138,13 @@ describe('Verify HF private deploy uses ServiceAccount and Secret', () => {
       cy.step('Review and submit');
       modelServingWizard.findReviewStepModelDetailsSection().should('exist');
       modelServingWizard.findReviewHuggingFaceApiKey().should('exist');
-      modelServingWizard.findReviewHuggingFaceApiKeyValue().should('contain', 'Provided');
+      modelServingWizard
+        .findReviewHuggingFaceApiKeyValue()
+        .should('contain', testData.reviewHfApiKeyProvidedLabel);
       modelServingWizard.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify redirect to deployments and HF ServiceAccount/Secret wiring');
-      cy.location('pathname').should('eq', `/ai-hub/models/deployments/internal/${projectName}`);
+      modelServingGlobal.assertPathname(returnRoute);
       const deploymentRow = modelServingGlobal.getDeploymentRow(deploymentDisplayName);
       deploymentRow.find().should('exist');
       cy.then(() => {
@@ -173,7 +161,10 @@ describe('Verify HF private deploy uses ServiceAccount and Secret', () => {
       modelServingWizardEdit.findModelSourceStep().should('be.enabled');
       modelServingWizardEdit.findHfApiKeyField().should('be.visible');
       modelServingWizardEdit.findHfApiKeyConfiguredHelper().should('be.visible');
-      modelServingWizardEdit.findHfApiKeyInput().should('have.value', '*******');
+      modelServingWizardEdit
+        .findHfApiKeyInput()
+        .should('have.attr', 'type', 'password')
+        .and('have.value', testData.configuredHfApiKeyPlaceholder);
     },
   );
 });

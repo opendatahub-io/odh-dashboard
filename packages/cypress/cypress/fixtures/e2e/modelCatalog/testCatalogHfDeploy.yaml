@@ -11,3 +11,7 @@ privateModelUri: hf://RedHatAI/Private-Model-AI-Hub-Testing
 # Deployment
 deploymentNamePrefix: hf-sa-deploy
 awsBucket: BUCKET_1
+
+# Review / edit UI copy asserted by the e2e
+reviewHfApiKeyProvidedLabel: Provided
+configuredHfApiKeyPlaceholder: '*******'
