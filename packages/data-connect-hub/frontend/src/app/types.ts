@@ -62,7 +62,7 @@ export type ConnectionTypeGroup = 'all' | 'red_hat' | 'partner' | 'other';
 
 type ConnectionTypeEnumValue = Labelled<string> & Valued<string>;
 
-type ConnectionTypeCredentialField = {
+export type ConnectionTypeCredentialField = {
   name: string;
   label: string;
   description?: string | null;
@@ -86,4 +86,20 @@ export type ConnectionType = {
     credentials_fields: ConnectionTypeCredentialField[];
   };
   status?: { capabilities: { flight: boolean; rest: boolean } };
+};
+
+export type TestCredentialsRequest = {
+  data_connection_type_id: string;
+  credentials: Record<string, string>;
+};
+
+export type CreateConnectionRequest = {
+  name: string;
+  data_connection_type_id: string;
+  format: 'tabular' | 'binary';
+  credentials: {
+    secret: string;
+    properties: Record<string, string>;
+  };
+  properties: Record<string, string>;
 };

@@ -45,6 +45,21 @@ type ConnectionType struct {
 	} `json:"status"`
 }
 
+type ConnectionTypeField struct {
+	Name         string      `json:"name"`
+	Label        string      `json:"label"`
+	Description  string      `json:"description,omitempty"`
+	Required     bool        `json:"required"`
+	Type         string      `json:"type"`
+	EnumValues   []EnumValue `json:"enum_values,omitempty"`
+	DefaultValue string      `json:"default_value,omitempty"`
+}
+
+type EnumValue struct {
+	Value string `json:"value"`
+	Label string `json:"label"`
+}
+
 type upstreamConnectionTypeList struct {
 	Items []ConnectionType `json:"items"`
 }
