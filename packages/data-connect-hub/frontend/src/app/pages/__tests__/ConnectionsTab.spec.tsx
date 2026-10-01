@@ -150,7 +150,7 @@ describe('ConnectionsTab', () => {
 
     await user.click(screen.getByRole('button', { name: 'Create connection' }));
 
-    expect(screen.getByTestId('create-connection-modal')).toBeTruthy();
+    expect(screen.getByTestId('create-connection-tearsheet')).toBeTruthy();
     expect(screen.getAllByText('Connection type').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Connection details').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Configuration').length).toBeGreaterThan(0);
@@ -253,7 +253,7 @@ describe('ConnectionsTab', () => {
         'creation failed',
       ),
     );
-    expect(screen.getByTestId('create-connection-modal')).toBeTruthy();
+    expect(screen.getByTestId('create-connection-tearsheet')).toBeTruthy();
   });
 
   it('disables connection polling while the Registry tab is inactive', () => {
@@ -390,6 +390,6 @@ describe('ConnectionsTab', () => {
     ).toBeTruthy();
     expect(screen.queryByRole('textbox', { name: 'Filter by name' })).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Create connection' }));
-    expect(screen.getByTestId('create-connection-modal')).toBeTruthy();
+    expect(screen.getByTestId('create-connection-tearsheet')).toBeTruthy();
   });
 });
