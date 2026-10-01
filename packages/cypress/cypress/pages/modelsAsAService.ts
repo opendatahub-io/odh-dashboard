@@ -211,6 +211,10 @@ class APIKeyTableRow extends TableRow {
     return this.find().findByTestId('subscription-detail-link');
   }
 
+  findSubscriptionGovernanceLink(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('subscription-governance-link');
+  }
+
   findOwner(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('api-key-owner');
   }

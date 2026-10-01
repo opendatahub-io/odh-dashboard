@@ -27,6 +27,8 @@ const getDisplayStatus = (apiKey: APIKey, isInactive: boolean): APIKeyDisplaySta
 type CellRenderContext = {
   apiKey: APIKey;
   subscriptionDetail: SubscriptionDetail | undefined;
+  subscriptionLinkable: boolean;
+  isMaasAdmin: boolean;
   isInactive: boolean;
 };
 
@@ -50,10 +52,12 @@ const cellRenderers: Record<string, CellRenderer> = {
     );
   },
 
-  subscription: ({ apiKey, subscriptionDetail }) => (
+  subscription: ({ apiKey, subscriptionDetail, subscriptionLinkable, isMaasAdmin }) => (
     <SubscriptionCell
       subscriptionName={apiKey.subscription}
       subscriptionDetail={subscriptionDetail}
+      linkable={subscriptionLinkable}
+      isMaasAdmin={isMaasAdmin}
     />
   ),
 
@@ -73,6 +77,8 @@ type ApiKeysTableRowProps = {
   apiKey: APIKey;
   columns: ApiKeyColumn[];
   subscriptionDetail?: SubscriptionDetail;
+  subscriptionLinkable: boolean;
+  isMaasAdmin: boolean;
   isInactive: boolean;
   onRevokeApiKey: (apiKey: APIKey) => void;
 };
@@ -81,10 +87,18 @@ const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({
   apiKey,
   columns,
   subscriptionDetail,
+  subscriptionLinkable,
+  isMaasAdmin,
   isInactive,
   onRevokeApiKey,
 }) => {
-  const ctx: CellRenderContext = { apiKey, subscriptionDetail, isInactive };
+  const ctx: CellRenderContext = {
+    apiKey,
+    subscriptionDetail,
+    subscriptionLinkable,
+    isMaasAdmin,
+    isInactive,
+  };
 
   return (
     <Tr>

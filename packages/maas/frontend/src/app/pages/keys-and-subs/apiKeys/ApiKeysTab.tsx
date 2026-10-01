@@ -46,6 +46,7 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
     onPerPageSelect,
     onClearFilters,
     statusSubscriptionDetails,
+    accessibleSubscriptionDetails,
   } = pageState;
 
   const subscriptionOptions = React.useMemo(
@@ -116,6 +117,7 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
           onRevokeApiKey={setRevokeApiKey}
           apiKeys={apiKeys}
           subscriptionDetails={statusSubscriptionDetails}
+          accessibleSubscriptionDetails={accessibleSubscriptionDetails}
           isKeyInactive={isKeyInactive}
           hasMore={hasMore}
           page={page}
