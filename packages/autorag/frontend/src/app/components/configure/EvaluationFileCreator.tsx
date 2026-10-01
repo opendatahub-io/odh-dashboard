@@ -20,10 +20,6 @@ import {
   List,
   ListItem,
   MenuToggle,
-  Modal,
-  ModalBody,
-  ModalFooter,
-  ModalHeader,
   TextArea,
   Title,
 } from '@patternfly/react-core';
@@ -35,6 +31,12 @@ import {
   PlusCircleIcon,
   TimesIcon,
 } from '@patternfly/react-icons';
+import {
+  Tearsheet,
+  TearsheetHeader,
+  TearsheetBody,
+  TearsheetFooter,
+} from '@patternfly/react-component-groups';
 import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
 import { useUploadToStorageMutation } from '~/app/hooks/useUploadToStorageMutation';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -229,18 +231,17 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
 
   return (
     <>
-      <Modal
+      <Tearsheet
         isOpen={isOpen}
         onClose={handleClose}
         aria-label="Create an evaluation source"
-        variant="large"
         data-testid="evaluation-creator-modal"
       >
-        <ModalHeader
+        <TearsheetHeader
           title="Create an evaluation source"
           description="Build a test dataset by adding at least one question-answer pair. The resulting file will be uploaded to your S3 bucket and used to evaluate pattern accuracy."
         />
-        <ModalBody className="autorag-evaluation-creator__body">
+        <TearsheetBody className="autorag-evaluation-creator__body">
           <Grid hasGutter className="autorag-evaluation-creator__grid">
             <GridItem span={4} className="autorag-evaluation-creator__form-column">
               <Card variant="secondary" isFullHeight>
@@ -458,8 +459,8 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
               </Table>
             </GridItem>
           </Grid>
-        </ModalBody>
-        <ModalFooter>
+        </TearsheetBody>
+        <TearsheetFooter>
           <Button
             variant="primary"
             type="button"
@@ -478,8 +479,8 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
           >
             Cancel
           </Button>
-        </ModalFooter>
-      </Modal>
+        </TearsheetFooter>
+      </Tearsheet>
       <S3FileExplorer
         apiPath="/autorag/api/v1/s3"
         namespace={namespace}
