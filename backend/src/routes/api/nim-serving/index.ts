@@ -1,10 +1,12 @@
 import { KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
-import { isHttpError } from '../../../utils';
 import { createCustomError } from '../../../utils/requestUtils';
 import { logRequestDetails } from '../../../utils/fileUtils';
 import { getNIMAccount } from '../integrations/nim/nimUtils';
-import { checkEditNamespacePermission, ensureLegacyNIMEnabled } from '../namespaces/namespaceUtils';
-import { isK8sStatus } from '../k8s/pass-through';
+import {
+  ensureEditNamespacePermission,
+  ensureNIMFeatureFlagEnabled,
+  ensureProjectNIMAnnotation,
+} from '../namespaces/namespaceUtils';
 import { get } from 'lodash';
 
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
@@ -19,7 +21,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
     async (
       request: OauthFastifyRequest<{
         Params: { nimResource: string };
-        Querystring: { namespace?: string };
+        Querystring: { projectNamespace?: string };
       }>,
     ) => {
       logRequestDetails(fastify, request);
@@ -28,44 +30,13 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       const isRequestingSecret = nimResource === 'apiKeySecret' || nimResource === 'nimPullSecret';
 
       if (isRequestingSecret) {
-        const { namespace: requestNamespace } = request.query;
-        if (!requestNamespace) {
+        const { projectNamespace } = request.query;
+        if (!projectNamespace) {
           throw createCustomError('Invalid request', 'Project namespace is required', 400);
         }
-
-        ensureLegacyNIMEnabled();
-
-        const accessReview = await checkEditNamespacePermission(fastify, request, requestNamespace);
-        if (isK8sStatus(accessReview)) {
-          throw createCustomError(accessReview.reason, accessReview.message, accessReview.code);
-        }
-        if (!accessReview.status?.allowed) {
-          fastify.log.error(
-            `User does not have edit permission in project "${requestNamespace}": ${accessReview.status?.reason}`,
-          );
-          throw createCustomError(
-            'Forbidden',
-            `You don't have permission to access NIM credentials for this project.`,
-            403,
-          );
-        }
-
-        let namespaceResource;
-        try {
-          namespaceResource = (await coreV1Api.readNamespace(requestNamespace)).body;
-        } catch (e) {
-          if (isHttpError(e) && typeof e.response.statusCode === 'number') {
-            throw createCustomError('Failed to read namespace', e.message, e.response.statusCode);
-          }
-          throw e;
-        }
-        if (namespaceResource.metadata?.annotations?.['opendatahub.io/nim-support'] !== 'true') {
-          throw createCustomError(
-            'Forbidden',
-            'NIM model serving is not enabled for this project.',
-            403,
-          );
-        }
+        ensureNIMFeatureFlagEnabled(); // Synchronous, OdhDashboardConfig is already in memory
+        await ensureEditNamespacePermission(fastify, request, projectNamespace);
+        await ensureProjectNIMAnnotation(fastify, projectNamespace);
       }
 
       // Fetch the Account CR to determine the actual resource name dynamically

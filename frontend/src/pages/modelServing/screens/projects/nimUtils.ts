@@ -10,10 +10,12 @@ export const getNGCSecretType = (isNGC: boolean): string =>
 
 export const getNIMResource = async <T extends K8sResourceCommon = SecretKind>(
   resourceRef: string,
-  namespace?: string,
+  projectNamespace?: string,
 ): Promise<T> => {
   try {
-    const query = namespace ? `?${new URLSearchParams({ namespace }).toString()}` : '';
+    const query = projectNamespace
+      ? `?${new URLSearchParams({ projectNamespace }).toString()}`
+      : '';
     const response = await fetch(`/api/nim-serving/${resourceRef}${query}`, {
       method: 'GET',
       headers: {
@@ -34,9 +36,9 @@ export const getNIMResource = async <T extends K8sResourceCommon = SecretKind>(
 export const getNIMData = async (
   secretKey: string,
   isNGC: boolean,
-  namespace: string,
+  projectNamespace: string,
 ): Promise<Record<string, string> | undefined> => {
-  const nimSecretData = await getNIMResource(secretKey, namespace);
+  const nimSecretData = await getNIMResource(secretKey, projectNamespace);
 
   if (!nimSecretData.data) {
     throw new Error(`Error retrieving ${isNGC ? 'NGC' : 'NIM'} secret data`);
