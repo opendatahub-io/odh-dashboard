@@ -4,14 +4,19 @@ import { Link } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, EmptyState, EmptyStateBody } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
 import { ApplicationsPage } from 'mod-arch-shared';
-import {
-  MODEL_DEPLOYMENT_SETTINGS_PATH,
-  MODEL_DEPLOYMENT_SETTINGS_TITLE,
-  RUNTIME_CATALOG_TAB_PATH,
-  RUNTIME_CATALOG_TITLE,
-} from './const';
+import { RUNTIME_CATALOG_TITLE } from './const';
 
-const RuntimeCatalogDetailsView: React.FC = () => {
+export type RuntimeCatalogDetailsViewProps = {
+  settingsHref: string;
+  settingsTitle: string;
+  catalogHref: string;
+};
+
+const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
+  settingsHref,
+  settingsTitle,
+  catalogHref,
+}) => {
   const { runtimeName = 'Unknown' } = useParams<{ runtimeName: string }>();
 
   return (
@@ -19,10 +24,10 @@ const RuntimeCatalogDetailsView: React.FC = () => {
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem>
-            <Link to={MODEL_DEPLOYMENT_SETTINGS_PATH}>{MODEL_DEPLOYMENT_SETTINGS_TITLE}</Link>
+            <Link to={settingsHref}>{settingsTitle}</Link>
           </BreadcrumbItem>
           <BreadcrumbItem>
-            <Link to={RUNTIME_CATALOG_TAB_PATH}>{RUNTIME_CATALOG_TITLE}</Link>
+            <Link to={catalogHref}>{RUNTIME_CATALOG_TITLE}</Link>
           </BreadcrumbItem>
           <BreadcrumbItem isActive data-testid="breadcrumb-runtime-name">
             {runtimeName}

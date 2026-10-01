@@ -17,7 +17,7 @@ const reliantAreas = ['model-registry'];
 const PLUGIN_MODEL_REGISTRY = 'model-registry-plugin';
 const ADMIN_USER = 'ADMIN_USER';
 
-// Duplicated from app/pages/runtimeCatalog/const.ts — extensions.ts may not
+// Duplicated from odh/pages/runtimeCatalog/const.ts — extensions.ts may not
 // import runtime values from src (no-restricted-syntax).
 const RUNTIME_CATALOG_TAB_PATH =
   '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog';
@@ -131,7 +131,10 @@ const extensions: (
     },
     properties: {
       path: `${RUNTIME_CATALOG_TAB_PATH}/:runtimeName`,
-      component: () => import('./RuntimeCatalogDetailsWrapper'),
+      component: () =>
+        import('./RuntimeCatalogWrapper').then((module) => ({
+          default: module.RuntimeCatalogDetailsWrapper,
+        })),
     },
   },
   // KF plugin nav items (kept as-is, these are dev-flag-gated)
