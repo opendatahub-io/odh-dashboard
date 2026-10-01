@@ -106,23 +106,20 @@ export const checkHfServiceAccountOwnerRefs = (
 };
 
 /**
- * One-shot: is there a dashboard-labeled Secret with HF_TOKEN owned by the deployment,
- * and does the HF ServiceAccount reference that Secret?
+ * One-shot: is there a dashboard-labeled Secret with HF_TOKEN owned by the deployment?
  */
 export const checkHfTokenSecretOwnerRefs = (
   deploymentName: string,
   namespace: string,
   kind: HfTokenDeploymentKind,
 ): Cypress.Chainable<SecretCheck> => {
-  const saName = `${deploymentName}-hf-sa`;
   const secretListCmd = `oc get secret -n ${namespace} -l opendatahub.io/dashboard=true -o json`;
 
-  return execWithOutput(secretListCmd, 30).then((secretListResult) => {
+  return execWithOutput(secretListCmd, 30).then((secretListResult): SecretCheck => {
     if (secretListResult.exitCode !== 0) {
-      return cy.wrap({ ok: false } satisfies SecretCheck);
+      return { ok: false };
     }
 
-    let secretName = '';
     try {
       const parsed = JSON.parse(secretListResult.stdout) as {
         items?: Array<{
@@ -137,34 +134,41 @@ export const checkHfTokenSecretOwnerRefs = (
         const ownedByDeployment = hasOwnerRef(item.metadata?.ownerReferences, kind, deploymentName);
         return ownedByDeployment && Boolean(item.data?.HF_TOKEN);
       });
-      secretName = match?.metadata?.name ?? '';
+      const secretName = match?.metadata?.name ?? '';
+      if (secretName) {
+        return { ok: true, secretName };
+      }
     } catch {
-      return cy.wrap({ ok: false } satisfies SecretCheck);
+      // fall through
+    }
+    return { ok: false };
+  });
+};
+
+/**
+ * One-shot: does the HF ServiceAccount list the given Secret in secrets[]?
+ */
+export const checkHfServiceAccountReferencesSecret = (
+  deploymentName: string,
+  namespace: string,
+  secretName: string,
+): Cypress.Chainable<boolean> => {
+  const saName = `${deploymentName}-hf-sa`;
+  const saCmd = `oc get sa ${saName} -n ${namespace} -o json`;
+
+  return execWithOutput(saCmd, 30).then((saResult): boolean => {
+    if (saResult.exitCode !== 0) {
+      return false;
     }
 
-    if (!secretName) {
-      return cy.wrap({ ok: false } satisfies SecretCheck);
+    try {
+      const sa = JSON.parse(saResult.stdout) as {
+        secrets?: Array<{ name?: string }>;
+      };
+      return (sa.secrets ?? []).some((ref) => ref.name === secretName);
+    } catch {
+      return false;
     }
-
-    const saCmd = `oc get sa ${saName} -n ${namespace} -o json`;
-    return execWithOutput(saCmd, 30).then((saResult): SecretCheck => {
-      if (saResult.exitCode !== 0) {
-        return { ok: false };
-      }
-
-      try {
-        const sa = JSON.parse(saResult.stdout) as {
-          secrets?: Array<{ name?: string }>;
-        };
-        const referenced = (sa.secrets ?? []).some((ref) => ref.name === secretName);
-        if (referenced) {
-          return { ok: true, secretName };
-        }
-      } catch {
-        // fall through
-      }
-      return { ok: false };
-    });
   });
 };
 
@@ -245,18 +249,34 @@ export const verifyHfTokenServiceAccountWiring = (
           if (!secretCheck.ok) {
             if (attempts >= DEFAULT_MAX_ATTEMPTS) {
               throw new Error(
-                `HF Secret wiring incomplete for ${deploymentName}: no dashboard Secret with HF_TOKEN owned by ${kind}/${deploymentName} and referenced by SA ${saName}`,
+                `HF Secret wiring incomplete for ${deploymentName}: no dashboard Secret with HF_TOKEN owned by ${kind}/${deploymentName}`,
               );
             }
             // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for Secret create/ownerRef
             return cy.wait(5000).then(() => checkWiring());
           }
 
-          return verifyNoHfTokenContainerEnv(deploymentName, namespace, kind).then(() => {
-            cy.log(
-              `✓ HF ServiceAccount wiring verified: ${kind}/${deploymentName} → SA ${saName} → Secret ${secretCheck.secretName}`,
-            );
-            return cy.wrap(undefined);
+          return checkHfServiceAccountReferencesSecret(
+            deploymentName,
+            namespace,
+            secretCheck.secretName,
+          ).then((referenced) => {
+            if (!referenced) {
+              if (attempts >= DEFAULT_MAX_ATTEMPTS) {
+                throw new Error(
+                  `HF Secret wiring incomplete for ${deploymentName}: SA ${saName} does not reference Secret ${secretCheck.secretName}`,
+                );
+              }
+              // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for SA secrets[] link
+              return cy.wait(5000).then(() => checkWiring());
+            }
+
+            return verifyNoHfTokenContainerEnv(deploymentName, namespace, kind).then(() => {
+              cy.log(
+                `✓ HF ServiceAccount wiring verified: ${kind}/${deploymentName} → SA ${saName} → Secret ${secretCheck.secretName}`,
+              );
+              return cy.wrap(undefined);
+            });
           });
         });
       });
