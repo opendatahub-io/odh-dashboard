@@ -197,7 +197,7 @@ describe('InfrastructurePage - Tracking Events', () => {
       render(<InfrastructurePage />);
 
       expect(mockUseInfrastructureMetrics).toHaveBeenCalledWith(false);
-      expect(mockUseQuotaHierarchy).toHaveBeenCalledWith(undefined, false, false);
+      expect(mockUseQuotaHierarchy).toHaveBeenCalledWith(false, false);
     });
 
     it('keeps admin content disabled when access is denied', () => {
@@ -209,7 +209,7 @@ describe('InfrastructurePage - Tracking Events', () => {
       expect(screen.queryByTestId('infrastructure-tab-utilization')).not.toBeInTheDocument();
       expect(screen.queryByTestId('infrastructure-tab-quota-usage')).not.toBeInTheDocument();
       expect(mockUseInfrastructureMetrics).toHaveBeenCalledWith(false);
-      expect(mockUseQuotaHierarchy).toHaveBeenCalledWith(undefined, false, true);
+      expect(mockUseQuotaHierarchy).toHaveBeenCalledWith(false, true);
     });
   });
 

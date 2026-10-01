@@ -141,7 +141,7 @@ const InfrastructurePage: React.FC = () => {
   const adminTabsEnabled = adminAccessLoaded && canAccessAdminTabs;
   const metrics = useInfrastructureMetrics(adminTabsEnabled);
   const { refresh: refreshMetrics } = metrics;
-  const quotaHierarchy = useQuotaHierarchy(undefined, adminTabsEnabled, adminAccessLoaded);
+  const quotaHierarchy = useQuotaHierarchy(canAccessAdminTabs, adminAccessLoaded);
   const { refresh: refreshQuotaHierarchy } = quotaHierarchy;
   const borrowingLendingRefreshRef = React.useRef<(() => void) | undefined>(undefined);
   const quotaWorkloadRefreshRef = React.useRef<(() => Promise<unknown>) | undefined>(undefined);

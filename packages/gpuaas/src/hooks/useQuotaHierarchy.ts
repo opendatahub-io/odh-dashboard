@@ -11,9 +11,9 @@ export type QuotaHierarchyData = {
 };
 
 const useQuotaHierarchy = (
+  canAccessAdminTabs: boolean,
+  adminAccessLoaded: boolean,
   refreshRate = INFRASTRUCTURE_REFRESH_INTERVAL,
-  canAccessAdminTabs = true,
-  adminAccessLoaded = true,
 ): FetchStateObject<QuotaHierarchyData> & { lastRefreshed: Date | null } => {
   const quotaHierarchyState = useFetch<QuotaHierarchyData>(
     React.useCallback(async () => {
