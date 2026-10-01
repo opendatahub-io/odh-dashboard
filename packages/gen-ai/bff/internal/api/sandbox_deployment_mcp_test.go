@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
 	kubernetes "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
@@ -53,7 +55,7 @@ func TestResolveSandboxMCPServersUsesDashboardConfigAndDeploymentAuth(t *testing
 			}}}}
 
 			servers, err := app.resolveSandboxMCPServers(
-				context.Background(), k8sClient, profile,
+				context.Background(), "test-namespace", k8sClient, profile,
 				map[string]string{"GitHub-MCP-Server": "Bearer deployment-token"},
 			)
 			require.NoError(t, err)
@@ -72,7 +74,7 @@ func TestResolveSandboxMCPServersUsesDashboardConfigAndDeploymentAuth(t *testing
 	}
 }
 
-func TestResolveSandboxMCPServersRejectsRegistryReference(t *testing.T) {
+func TestResolveSandboxMCPServersUsesConfigMapAndRegistryReferences(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	serverConfig, err := json.Marshal(models.MCPServerConfig{
 		URL:       "https://api.githubcopilot.com/mcp/x/repos/readonly",
@@ -92,14 +94,40 @@ func TestResolveSandboxMCPServersRejectsRegistryReference(t *testing.T) {
 		repositories:       repositories.NewRepositoriesWithMCP(nil, logger),
 	}
 	profile := &models.AgentProfile{Spec: models.AgentProfileSpec{MCPServers: []models.MCPServerReference{{
-		Name: "com.example/github", Source: "mlflow",
+		ServerRef: &models.MCPServerRef{Kind: "ConfigMap", Name: constants.MCPServerName, Key: "GitHub-MCP-Server"},
+	}, {
+		Name: "com.example/github", Source: "mlflow", AllowedTools: &[]string{"search_repositories"},
 	}}}}
+	registryClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMLflow)
+	registryClient.CallHandler = func(_ context.Context, method, path string, _ interface{}, response interface{}) error {
+		require.Equal(t, "GET", method)
+		require.Equal(t, "/mcp-registry/servers/com.example/github?workspace=test-namespace", path)
+		return json.Unmarshal([]byte(`{
+			"data": {
+				"name": "com.example/github",
+				"access_endpoints": [{
+					"endpoint_url": "https://registry.example.com/mcp",
+					"transport_type": "streamable-http"
+				}]
+			}
+		}`), response)
+	}
+	ctx := context.WithValue(
+		context.Background(),
+		constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMLflow)),
+		registryClient,
+	)
 
-	var resolveErr error
-	require.NotPanics(t, func() {
-		_, resolveErr = app.resolveSandboxMCPServers(context.Background(), k8sClient, profile, nil)
+	servers, resolveErr := app.resolveSandboxMCPServers(ctx, "test-namespace", k8sClient, profile, map[string]string{
+		"com.example/github": "Bearer registry-token",
 	})
-	require.ErrorContains(t, resolveErr, "Registry MCP servers are not supported for sandbox deployment")
+	require.NoError(t, resolveErr)
+	require.Len(t, servers, 2)
+	require.Equal(t, "GitHub-MCP-Server", servers[0].ServerLabel)
+	require.Equal(t, "com.example/github", servers[1].ServerLabel)
+	require.Equal(t, "https://registry.example.com/mcp", servers[1].ServerURL)
+	require.Equal(t, []string{"search_repositories"}, *servers[1].AllowedTools)
+	require.Equal(t, "MCP_AUTH_2", servers[1].AuthorizationEnvVar)
 }
 
 func TestResolveSandboxMCPServersRejectsAuthForUnselectedServer(t *testing.T) {
@@ -107,7 +135,7 @@ func TestResolveSandboxMCPServersRejectsAuthForUnselectedServer(t *testing.T) {
 	profile := &models.AgentProfile{}
 
 	_, err := app.resolveSandboxMCPServers(
-		context.Background(), nil, profile, map[string]string{"GitHub-MCP-Server": "Bearer deployment-token"},
+		context.Background(), "test-namespace", nil, profile, map[string]string{"GitHub-MCP-Server": "Bearer deployment-token"},
 	)
 	require.ErrorContains(t, err, "AgentProfile has no MCP servers")
 }
@@ -127,7 +155,7 @@ func TestResolveSandboxMCPServersClassifiesDashboardConfigReadFailures(t *testin
 		ServerRef: &models.MCPServerRef{Kind: "ConfigMap", Name: constants.MCPServerName, Key: "GitHub-MCP-Server"},
 	}}}}
 
-	_, err := app.resolveSandboxMCPServers(context.Background(), k8sClient, profile, nil)
+	_, err := app.resolveSandboxMCPServers(context.Background(), "test-namespace", k8sClient, profile, nil)
 
 	require.Error(t, err)
 	require.ErrorIs(t, err, errSandboxMCPDashboardConfigRead)
