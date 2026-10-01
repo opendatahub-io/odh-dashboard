@@ -400,7 +400,7 @@ func TestBuildFederationConfigMap_MergesNestedCommunityPluginWithoutChangingLega
     "service": {"name": "community-plugins-admin-ui", "namespace": "cai-plugin-system", "port": 8080}
   },
   "proxyService": [{
-    "path": "/community-plugins-admin/api",
+    "pathSuffix": "api",
     "pathRewrite": "/api",
     "authorize": true,
     "tls": false,
@@ -441,6 +441,7 @@ func TestBuildFederationConfigMap_MergesNestedCommunityPluginWithoutChangingLega
 	assert.Contains(t, community, "proxyService")
 	assert.Equal(t, "/remoteEntry.js", community["backend"].(map[string]interface{})["remoteEntry"])
 	proxy := community["proxyService"].([]interface{})[0].(map[string]interface{})
+	assert.Equal(t, "/community-plugins/communityPluginsAdmin/api", proxy["path"])
 	assert.Equal(t, "community-plugins-admin-bff", proxy["service"].(map[string]interface{})["name"])
 	assert.Equal(t, "cai-plugin-system", proxy["service"].(map[string]interface{})["namespace"])
 
@@ -468,12 +469,13 @@ func TestBuildFederationConfigMap_RejectsInvalidCommunityPlugins(t *testing.T) {
 	communitySource := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{Name: "community-plugins-config", Namespace: testNamespace},
 		Data: map[string]string{
-			"invalid-name":   `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
-			"malformed":      `{`,
-			"modelRegistry":  `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
-			"routeCollision": `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"path":"/core-bff/api","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
-			"unexpected":     `{"name":"anotherRemote","backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
-			"validRemote":    `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"invalid-name":         `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"malformed":            `{`,
+			"modelRegistry":        `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"invalidSuffix":        `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"pathSuffix":"../core-bff/api","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
+			"unsupportedPathField": `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"path":"/","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
+			"unexpected":           `{"name":"anotherRemote","backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"validRemote":          `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
 		},
 	}
 	r := &ctrlpkg.DashboardReconciler{
@@ -496,7 +498,8 @@ func TestBuildFederationConfigMap_RejectsInvalidCommunityPlugins(t *testing.T) {
 	assert.Contains(t, names, "modelRegistry", "built-in entries must remain")
 	assert.NotContains(t, names, "invalid-name")
 	assert.NotContains(t, names, "malformed")
-	assert.NotContains(t, names, "routeCollision")
+	assert.NotContains(t, names, "invalidSuffix")
+	assert.NotContains(t, names, "unsupportedPathField")
 	assert.NotContains(t, names, "unexpected")
 }
 

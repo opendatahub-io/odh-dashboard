@@ -38,6 +38,7 @@ const (
 	federationConfigMapName       = "federation-config"
 	federationConfigKey           = "module-federation-config.json"
 	communityPluginsConfigMapName = "community-plugins-config"
+	communityPluginsProxyPrefix   = "/community-plugins"
 	moduleComponentLabel          = "app.kubernetes.io/component"
 	dataConnectHubModuleName      = "dataConnectHub"
 )
@@ -87,8 +88,8 @@ type communityFederationEntry struct {
 }
 
 type communityFederationSourceEntry struct {
-	Backend      communityFederationBackend   `json:"backend"`
-	ProxyService []communityProxyServiceEntry `json:"proxyService,omitempty"`
+	Backend      communityFederationBackend         `json:"backend"`
+	ProxyService []communityProxyServiceSourceEntry `json:"proxyService,omitempty"`
 }
 
 type communityFederationBackend struct {
@@ -101,6 +102,17 @@ type communityFederationBackend struct {
 type communityProxyServiceEntry struct {
 	Authorize   *bool      `json:"authorize,omitempty"`
 	Path        string     `json:"path"`
+	PathRewrite string     `json:"pathRewrite,omitempty"`
+	TLS         *bool      `json:"tls,omitempty"`
+	Service     serviceRef `json:"service"`
+}
+
+// communityProxyServiceSourceEntry accepts a relative suffix rather than a
+// public path. The Dashboard controls the public route namespace and derives
+// the final path as /community-plugins/<remote-name>/<path-suffix>.
+type communityProxyServiceSourceEntry struct {
+	Authorize   *bool      `json:"authorize,omitempty"`
+	PathSuffix  string     `json:"pathSuffix"`
 	PathRewrite string     `json:"pathRewrite,omitempty"`
 	TLS         *bool      `json:"tls,omitempty"`
 	Service     serviceRef `json:"service"`
@@ -480,9 +492,25 @@ func validateCommunityServiceRef(field string, service serviceRef) error {
 }
 
 func proxyPathsConflict(first, second string) bool {
+	if first == "/" || second == "/" {
+		return true
+	}
 	return first == second ||
 		strings.HasPrefix(first, second+"/") ||
 		strings.HasPrefix(second, first+"/")
+}
+
+func communityProxyPath(remoteName, suffix string) (string, error) {
+	if suffix == "" || strings.HasPrefix(suffix, "/") || strings.HasSuffix(suffix, "/") ||
+		strings.ContainsAny(suffix, "?#%") {
+		return "", fmt.Errorf("proxyService pathSuffix %q must be a non-empty relative URL path", suffix)
+	}
+	for _, segment := range strings.Split(suffix, "/") {
+		if segment == "" || segment == "." || segment == ".." {
+			return "", fmt.Errorf("proxyService pathSuffix %q contains an invalid path segment", suffix)
+		}
+	}
+	return communityPluginsProxyPrefix + "/" + remoteName + "/" + suffix, nil
 }
 
 func validateCommunityFederationEntry(entry communityFederationEntry, existingNames, existingPaths map[string]struct{}) error {
@@ -501,9 +529,6 @@ func validateCommunityFederationEntry(entry communityFederationEntry, existingNa
 
 	paths := make(map[string]struct{}, len(entry.ProxyService))
 	for _, proxy := range entry.ProxyService {
-		if !strings.HasPrefix(proxy.Path, "/") {
-			return fmt.Errorf("proxyService path %q must be an absolute path", proxy.Path)
-		}
 		for existingPath := range existingPaths {
 			if proxyPathsConflict(proxy.Path, existingPath) {
 				return fmt.Errorf("proxyService path %q collides with existing proxy route %q", proxy.Path, existingPath)
@@ -569,10 +594,24 @@ func communityFederationEntries(
 			log.FromContext(ctx).Info("Ignoring invalid community plugin federation entry", "configMap", key.Name, "entry", name, "reason", "value contains multiple JSON objects")
 			continue
 		}
-		entry := communityFederationEntry{
-			Name:         name,
-			Backend:      sourceEntry.Backend,
-			ProxyService: sourceEntry.ProxyService,
+		entry := communityFederationEntry{Name: name, Backend: sourceEntry.Backend}
+		for _, sourceProxy := range sourceEntry.ProxyService {
+			proxyPath, err := communityProxyPath(name, sourceProxy.PathSuffix)
+			if err != nil {
+				log.FromContext(ctx).Error(err, "Ignoring invalid community plugin federation entry", "configMap", key.Name, "entry", name)
+				entry = communityFederationEntry{}
+				break
+			}
+			entry.ProxyService = append(entry.ProxyService, communityProxyServiceEntry{
+				Authorize:   sourceProxy.Authorize,
+				Path:        proxyPath,
+				PathRewrite: sourceProxy.PathRewrite,
+				TLS:         sourceProxy.TLS,
+				Service:     sourceProxy.Service,
+			})
+		}
+		if entry.Name == "" {
+			continue
 		}
 		if err := validateCommunityFederationEntry(entry, existingNames, existingPaths); err != nil {
 			log.FromContext(ctx).Error(err, "Ignoring invalid community plugin federation entry", "configMap", key.Name, "entry", name)
