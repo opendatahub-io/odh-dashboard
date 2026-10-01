@@ -7,6 +7,20 @@ export const getExactVisibleOptionRegex = (label: string): RegExp => {
   return new RegExp(`^${escapedLabel.replace(/ /g, '\\s+')}$`, 'i');
 };
 
+const getMetricOptionTestId = (value: string): string => {
+  const separator = value.indexOf(':');
+  const evaluator = separator === -1 ? undefined : value.slice(0, separator);
+  const name = separator === -1 ? value : value.slice(separator + 1);
+  const identity = [name.trim().toLowerCase(), evaluator?.trim().toLowerCase()]
+    .filter(Boolean)
+    .join('-')
+    .replace(/[^a-zA-Z0-9_-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  return `metric-option-${identity || 'metric'}`;
+};
+
 class AutoragConfigurePage {
   visit(namespace: string) {
     cy.visitWithLogin(`/gen-ai-studio/autorag/configure/${namespace}`);
@@ -188,7 +202,7 @@ class AutoragConfigurePage {
   }
 
   findMetricOption(value: string) {
-    return cy.findByTestId(`metric-option-${value}`);
+    return cy.findByTestId(getMetricOptionTestId(value));
   }
 
   findMaxRagPatternsInput() {

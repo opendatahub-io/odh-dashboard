@@ -7,13 +7,13 @@ spec:
   target:
     operator: dashboard
     component: odh-dashboard
-    resource: Deployment/odh-dashboard
+    resource: Deployment/dashboard-operator
   steadyState:
     checks:
       - type: conditionTrue
         apiVersion: apps/v1
         kind: Deployment
-        name: odh-dashboard
+        name: dashboard-operator
         namespace: opendatahub
         conditionType: Available
     timeout: "30s"
@@ -21,16 +21,16 @@ spec:
     type: PDBBlock
     dangerLevel: high
     parameters:
-      labelSelector: deployment=odh-dashboard
+      labelSelector: app.kubernetes.io/name=dashboard-operator
     ttl: "10s"
   hypothesis:
     description: >-
-      Creating a PDB with maxUnavailable=0 blocks all voluntary
-      evictions. Tests whether the operator's pods can be drained
-      for node maintenance or cluster upgrades.
+      Creating a PDB with maxUnavailable=0 must block voluntary eviction of
+      the dashboard-operator controller pod without degrading its operands.
+      Removing the injected PDB must restore the normal controller state.
     recoveryTimeout: 120s
   blastRadius:
-    maxPodsAffected: 2
+    maxPodsAffected: 1
     allowDangerous: true
     allowedNamespaces:
       - opendatahub

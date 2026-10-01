@@ -11,7 +11,7 @@ import {
 import type { AutoRAGEvaluationMetricResult, MetricReference } from '~/app/types/autoragPattern';
 import { getCSSVar } from '~/app/utilities/utils';
 import { metricLabel } from '~/app/utilities/metricUtils';
-import { formatRadarLabel, metricValues } from './radarChartUtils';
+import { formatRadarLabel, metricValues, radarAxisNameStyle } from './radarChartUtils';
 import { getRadarChartTheme } from './radarChartTheme';
 
 let echartsRegistered = false;
@@ -40,9 +40,10 @@ const ScoreRadarChart: React.FC<ScoreRadarChartProps> = ({ metrics, allMetricNam
           name: formatRadarLabel(metricLabel(metric)),
           max: 1,
         })),
-        radius: 70,
-        center: ['45%', '55%'],
-        axisName: { color: labelColor, lineHeight: 20 },
+        radius: 56,
+        center: ['50%', '52%'],
+        axisName: radarAxisNameStyle(labelColor),
+        axisNameGap: 8,
         splitLine: { lineStyle: { color: splitLineColor } },
         splitArea: { show: false },
         axisLine: { lineStyle: { color: splitLineColor } },
@@ -75,8 +76,8 @@ const ScoreRadarChart: React.FC<ScoreRadarChartProps> = ({ metrics, allMetricNam
     <Charts
       theme={theme}
       nodeSelector="html"
-      height={280}
-      width={420}
+      height={340}
+      width={480}
       option={option}
       data-testid="score-radar-chart"
     />

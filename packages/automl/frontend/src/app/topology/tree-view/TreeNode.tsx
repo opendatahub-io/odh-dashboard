@@ -29,12 +29,12 @@ import {
   TopologyQuadrant,
   WithSelectionProps,
 } from '@patternfly/react-topology';
+import { useBoundedCaptionHeight } from '@odh-dashboard/autox-core/ui/hooks';
 import { isStatusOnlyBranchStepNode, isBranchStepNodeId } from './stageMapStepMetadata';
 import { useModelsExpand } from './ModelsExpandContext';
 import { isTreeNodeData, treeStepStateToNodeStatus } from './treeStepState';
 import PendingHourglassGlyph from './icons/PendingHourglassGlyph';
 import { resolveTaskIconForNodeId } from './stageTaskIcons';
-import { useBoundedCaptionHeight } from './treeCaptionHeight';
 import './TreeNode.scss';
 
 export type TreeNodeData = {

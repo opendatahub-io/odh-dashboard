@@ -3,6 +3,125 @@ class CreateEvaluationPage {
     return cy.findByTestId('standardised-benchmarks-card');
   }
 
+  findSuiteNameInput() {
+    return cy.findByTestId('suite-name-input');
+  }
+
+  findSuiteDescriptionInput() {
+    return cy.findByTestId('suite-description-input');
+  }
+
+  findSuiteEvaluatesToggle() {
+    return cy.findByTestId('suite-evaluates-toggle');
+  }
+
+  findSuiteEvaluatesInput() {
+    return cy.findByTestId('suite-evaluates-input');
+  }
+
+  findSuiteEvaluatesOption(evaluatesType: string) {
+    return cy.findByTestId(`suite-evaluates-option-${evaluatesType}`);
+  }
+
+  closeSuiteEvaluatesMenu() {
+    this.findSuiteEvaluatesInput().type('{esc}').should('have.attr', 'aria-expanded', 'false');
+  }
+
+  findSuiteCategoryInput() {
+    return cy.findByTestId('suite-domains-input');
+  }
+
+  findSuiteCategoryOption(category: string) {
+    return cy.findByTestId(`suite-domains-option-${category}`);
+  }
+
+  selectSuiteCategory(category: string) {
+    this.findSuiteCategoryInput().click();
+    this.findSuiteCategoryOption(category).findByRole('checkbox').click();
+    this.findSuiteCategoryInput().type('{esc}');
+  }
+
+  findCopySuiteNextButton() {
+    return cy.findByTestId('copy-suite-next');
+  }
+
+  findBenchmarkCatalogSearch() {
+    return cy.findByTestId('benchmark-catalog-search').find('input').first();
+  }
+
+  findBenchmarkCatalogTable() {
+    return cy.findByTestId('benchmark-catalog-table');
+  }
+
+  findBenchmarkCatalogCheckboxById(benchmarkId: string, providerId: string) {
+    return this.findBenchmarkCatalogTable().find(
+      `[data-testid="benchmark-catalog-checkbox-${benchmarkId}"]` +
+        `[id="benchmark-catalog-${providerId}:${benchmarkId}"]`,
+    );
+  }
+
+  findCopySuiteNextSelectBenchmarksButton() {
+    return cy.findByTestId('copy-suite-next-select-benchmarks');
+  }
+
+  findCopySuiteStepBenchmarks(options?: Partial<Cypress.Timeoutable>) {
+    return cy.findByTestId('copy-suite-step-benchmarks', options);
+  }
+
+  findBenchmarkAdvancedToggle(index: number) {
+    return cy
+      .findByTestId(`benchmark-advanced-toggle-${index}`)
+      .filter(':visible')
+      .first()
+      .find('button')
+      .first();
+  }
+
+  findBenchmarkAdditionalParameters(index: number) {
+    return cy
+      .findByTestId(`benchmark-additional-parameters-${index}`)
+      .filter(':visible')
+      .first()
+      .find('textarea')
+      .first();
+  }
+
+  findBenchmarkParameterInput(index: number, parameterKey: string) {
+    return cy.findByTestId(`benchmark-${index}-parameter-input-${parameterKey}`);
+  }
+
+  findCopySuiteSaveOnlyButton() {
+    return cy.findByTestId('copy-suite-save-only');
+  }
+
+  findCopySuiteSaveAndRunButton(options?: Partial<Cypress.Timeoutable>) {
+    return cy.findByTestId('copy-suite-save-and-run', options);
+  }
+
+  findCreateSuiteSaveAndRunButton(options?: Partial<Cypress.Timeoutable>) {
+    return cy.findByTestId('create-suite-submit', options);
+  }
+
+  findStartEvaluationRunModal(
+    modalId = 'evaluations-page-start-evaluation-run-modal',
+    options?: Partial<Cypress.Timeoutable>,
+  ) {
+    return cy.findByTestId(modalId, options);
+  }
+
+  findAdvancedConfigurationToggle(modalId?: string) {
+    const toggle = modalId
+      ? this.findStartEvaluationRunModal(modalId).find(
+          '[data-testid="start-evaluation-run-advanced-toggle"]',
+        )
+      : cy.findByTestId('start-evaluation-run-advanced-toggle');
+    return toggle.filter(':visible').first().find('button').first();
+  }
+
+  findStartEvaluationRunCollectionName() {
+    return cy.findByTestId('start-evaluation-run-collection-name');
+  }
+
   findEvaluationCollectionsCard() {
     return cy.findByTestId('evaluation-collections-card');
   }
@@ -48,28 +167,58 @@ class CreateEvaluationPage {
     return cy.findByTestId('benchmark-name-display');
   }
 
-  findEvaluationNameInput() {
-    return cy.findByTestId('evaluation-name-input');
+  findEvaluationNameInput(modalId?: string) {
+    return modalId
+      ? this.findStartEvaluationRunModal(modalId).find('[data-testid="evaluation-name-input"]')
+      : cy.findByTestId('evaluation-name-input');
   }
 
-  findExperimentModeNew() {
-    return cy.findByTestId('experiment-mode-new');
+  findExperimentModeNew(modalId?: string) {
+    return modalId
+      ? this.findStartEvaluationRunModal(modalId).find('[data-testid="experiment-mode-new"]')
+      : cy.findByTestId('experiment-mode-new');
   }
 
-  findNewExperimentNameInput() {
-    return cy.findByTestId('new-experiment-name-input');
+  findNewExperimentNameInput(modalId?: string) {
+    return modalId
+      ? this.findStartEvaluationRunModal(modalId).find('[data-testid="new-experiment-name-input"]')
+      : cy.findByTestId('new-experiment-name-input');
   }
 
   findSourceModeToggle() {
     return cy.findByTestId('source-mode-toggle');
   }
 
-  findModelPickerToggle() {
-    return cy.findByTestId('model-picker-toggle');
+  findModelPickerToggle(modalId?: string) {
+    const toggle = modalId
+      ? this.findStartEvaluationRunModal(modalId).find('[data-testid="model-picker-toggle"]')
+      : cy.findByTestId('model-picker-toggle');
+    return toggle.filter(':visible').first();
   }
 
-  findModelOption(name: string) {
-    return cy.findByTestId(`model-option-${name}`);
+  findModelOption(name: string, modalId?: string) {
+    const option = modalId
+      ? cy.findByTestId(`model-option-${name}`).filter(':visible').first()
+      : cy.findByTestId(`model-option-${name}`);
+    return option.find('[role="option"]').first();
+  }
+
+  findHardwareProfileToggle(modalId?: string) {
+    return modalId
+      ? this.findStartEvaluationRunModal(modalId).find('[data-testid="hardware-profile-toggle"]')
+      : cy.findByTestId('hardware-profile-toggle');
+  }
+
+  findHardwareProfileOption(name: string) {
+    return cy.findByTestId(`hardware-profile-option-${name}`).find('[role="option"]');
+  }
+
+  findHardwareProfileKueueInfo(modalId?: string) {
+    return modalId
+      ? this.findStartEvaluationRunModal(modalId).find(
+          '[data-testid="hardware-profile-kueue-info"]',
+        )
+      : cy.findByTestId('hardware-profile-kueue-info');
   }
 
   findExternalModelOption() {
@@ -96,8 +245,10 @@ class CreateEvaluationPage {
     return cy.findByTestId('additional-args-upload').find('textarea');
   }
 
-  findStartEvaluationSubmitButton() {
-    return cy.findByTestId('start-evaluation-submit');
+  findStartEvaluationSubmitButton(modalId?: string) {
+    return modalId
+      ? this.findStartEvaluationRunModal(modalId).find('[data-testid="start-evaluation-submit"]')
+      : cy.findByTestId('start-evaluation-submit');
   }
 }
 

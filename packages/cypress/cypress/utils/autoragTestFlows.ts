@@ -467,7 +467,9 @@ export const submitAutoragRun = (
       expect(body.vector_db_secret_name).to.equal(testData.vectorDbSecretName);
       expect(body.generation_models).to.deep.equal([maasFixture.generationModelId]);
       expect(body.embedding_models).to.deep.equal([maasFixture.embeddingModelId]);
-      expect(body.optimization_metric).to.equal(testData.optimizationMetric ?? 'overall_score');
+      expect(body.optimization_metric).to.equal(
+        testData.optimizationMetric ?? 'custom:overall_score',
+      );
       expect(body.preset).to.equal('speed');
       expect(body.optimization_max_rag_patterns).to.equal(testData.maxRagPatterns);
 

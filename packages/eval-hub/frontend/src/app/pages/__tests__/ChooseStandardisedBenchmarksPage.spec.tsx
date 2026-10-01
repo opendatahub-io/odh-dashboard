@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import ChooseStandardisedBenchmarksPage from '~/app/pages/ChooseStandardisedBenchmarksPage';
 import { Provider } from '~/app/types';
@@ -83,6 +84,11 @@ describe('ChooseStandardisedBenchmarksPage', () => {
     expect(screen.getByPlaceholderText('Filter by name or ID')).toBeInTheDocument();
   });
 
+  it('should not render the evaluation type breadcrumb', () => {
+    renderPage();
+    expect(screen.queryByRole('link', { name: 'Select evaluation type' })).not.toBeInTheDocument();
+  });
+
   it('should show all benchmarks when no filter is applied', () => {
     renderPage();
     expect(screen.getByTestId('benchmark-card-lm_evaluation_harness-arc_easy')).toBeInTheDocument();
@@ -92,6 +98,49 @@ describe('ChooseStandardisedBenchmarksPage', () => {
     expect(
       screen.getByTestId('benchmark-card-lm_evaluation_harness-truthfulqa_mc1'),
     ).toBeInTheDocument();
+  });
+
+  it('should filter benchmarks by framework', async () => {
+    mockUseProviders.mockReturnValue({
+      providers: [
+        makeProvider({
+          benchmarks: [
+            {
+              id: 'arc_easy',
+              name: 'Basic science Q&A',
+              category: 'Reasoning',
+              metrics: ['accuracy'],
+            },
+          ],
+        }),
+        makeProvider({
+          resource: { id: 'ragas' },
+          name: 'ragas',
+          title: 'RAGAS',
+          benchmarks: [
+            {
+              id: 'ragas_rag_default',
+              name: 'RAG Default Suite',
+              category: 'Rag evaluation',
+              metrics: ['answer_relevancy'],
+            },
+          ],
+        }),
+      ],
+      loaded: true,
+      loadError: undefined,
+    });
+
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByTestId('benchmarks-framework-filter'));
+    await user.click(screen.getByRole('checkbox', { name: 'RAGAS' }));
+
+    expect(screen.getByTestId('benchmark-card-ragas-ragas_rag_default')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('benchmark-card-lm_evaluation_harness-arc_easy'),
+    ).not.toBeInTheDocument();
   });
 
   it('should filter benchmarks by name', () => {

@@ -1,13 +1,14 @@
-import { AssetResponse } from '~/app/types';
+import { StructuredAssetResponse } from '~/app/types';
 
 /* eslint-disable camelcase */
-export const mockAssetResponse = (overrides?: Partial<AssetResponse>): AssetResponse => ({
+export const mockAssetResponse = (
+  overrides?: Partial<StructuredAssetResponse>,
+): StructuredAssetResponse => ({
   name: 'test-table',
   asset_type: 'table',
   uuid: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
   format: 'parquet',
-  location: 's3://my-bucket/data/test-table/',
-  content_type: undefined,
+  storage_location: 's3://my-bucket/data/test-table/',
   columns: [
     { name: 'id', type: 'integer', nullable: false, description: 'Primary key' },
     { name: 'name', type: 'string', nullable: true, description: 'Display name' },
@@ -19,8 +20,6 @@ export const mockAssetResponse = (overrides?: Partial<AssetResponse>): AssetResp
   description: 'A test table for unit testing',
   labels: ['production', 'analytics'],
   properties: { 'data.quality': 'verified', source: 'etl-pipeline' },
-  registered_by: 'user@example.com',
-  updated_by: 'admin@example.com',
   created_at: '2026-07-15T10:30:00Z',
   updated_at: '2026-08-20T14:45:00Z',
   ...overrides,

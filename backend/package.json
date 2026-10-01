@@ -52,7 +52,7 @@
     "dotenv": "^16.6.1",
     "https-proxy-agent": "^7.0.6",
     "ejs": "^3.1.10",
-    "fastify": "^5.11.2",
+    "fastify": "^5.12.5",
     "fastify-plugin": "^5.1.0",
     "http-errors": "^1.8.1",
     "js-yaml": "^4.2.0",

@@ -57,7 +57,7 @@ func (app *App) NotImplemented(w http.ResponseWriter, r *http.Request, feature s
 	app.serverErrorResponse(w, r, fmt.Errorf("%s is not implemented", feature))
 }
 
-// EndpointNotImplementedHandler returns a generic 501 Not Implemented handler.
+// EndpointNotImplementedHandler returns a generic 500 response for unimplemented endpoints.
 // Use this for endpoints that are defined upstream but require a downstream override to function.
 // Downstream packages must register an override via api.RegisterHandlerOverride() to provide
 // the real implementation.

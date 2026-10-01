@@ -147,29 +147,6 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
-  /api/v1/projects:
-    get:
-      tags: [discovery]
-      operationId: proxyListProjects
-      summary: List accessible projects (proxied)
-      description: |
-        Pass-through proxy for `GET /v1/projects` on the upstream Data Registry API. See
-        `data-registry-api.yaml#/paths/~1v1~1projects` for the full upstream contract.
-      responses:
-        "200":
-          description: List of project names
-          content:
-            application/json:
-              schema:
-                $ref: "data-registry-api.yaml#/components/schemas/ProjectListResponse"
-              example:
-                projects: [my-project, another-project]
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "503":
-          $ref: "#/components/responses/ServiceUnavailable"
   /api/v1/{project}/config:
     get:
       tags: [discovery]
@@ -639,7 +616,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "data-registry-api.yaml#/components/schemas/VolumeInfo"
+                $ref: "data-registry-api.yaml#/components/schemas/UnstructuredAssetResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -668,7 +645,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "data-registry-api.yaml#/components/schemas/VolumeInfo"
+                $ref: "data-registry-api.yaml#/components/schemas/UnstructuredAssetResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -703,12 +680,12 @@ paths:
           description: Volume does not exist
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
-    put:
+    patch:
       tags: [volumes]
       operationId: proxyUpdateVolume
       summary: Update volume (proxied)
       description: |
-        Pass-through proxy for `PUT /v1/{project}/namespaces/{collection}/volumes/{volume}`
+        Pass-through proxy for `PATCH /v1/{project}/namespaces/{collection}/volumes/{volume}`
         on the upstream Data Registry API. All fields are optional — only provided fields
         are updated.
       parameters:
@@ -727,7 +704,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "data-registry-api.yaml#/components/schemas/VolumeInfo"
+                $ref: "data-registry-api.yaml#/components/schemas/UnstructuredAssetResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -789,15 +766,18 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "data-registry-api.yaml#/components/schemas/AssetListResponse"
+                $ref: "data-registry-api.yaml#/components/schemas/ListGenericTablesResponse"
               example:
                 assets:
                   - name: sales_2024
                     asset_type: table
                     uuid: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
                     format: iceberg
-                    location: "s3://my-bucket/sales/sales_2024"
-                    content_type: null
+                    storage_location: "s3://my-bucket/sales/sales_2024"
+                    collection: default
+                    owner: data-team
+                    created_at: "2026-07-15T10:30:00Z"
+                    updated_at: "2026-07-15T10:30:00Z"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -812,8 +792,8 @@ paths:
       summary: Register table with extended metadata (proxied)
       description: |
         Pass-through proxy for `POST /v1/{project}/namespaces/{collection}/generic-tables` on
-        the upstream Data Registry API. The `registered_by` property is set upstream from the
-        caller's identity header.
+        the upstream Data Registry API. The owner is assigned upstream from the authenticated
+        caller and is returned in the shared asset response.
       parameters:
         - $ref: "data-registry-api.yaml#/components/parameters/project"
         - $ref: "data-registry-api.yaml#/components/parameters/collection"
@@ -829,7 +809,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "data-registry-api.yaml#/components/schemas/AssetResponse"
+                $ref: "data-registry-api.yaml#/components/schemas/StructuredAssetResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -859,7 +839,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "data-registry-api.yaml#/components/schemas/AssetResponse"
+                $ref: "data-registry-api.yaml#/components/schemas/StructuredAssetResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -920,7 +900,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "data-registry-api.yaml#/components/schemas/AssetResponse"
+                $ref: "data-registry-api.yaml#/components/schemas/StructuredAssetResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -935,6 +915,52 @@ paths:
   # ===========================================================================
   # Data Registry proxy routes — search (RHOAI extension)
   # ===========================================================================
+  /api/v1/search/{project}:
+    get:
+      tags: [search]
+      operationId: proxySearchDataRegistryByProject
+      summary: Project-scoped global search alias (proxied)
+      description: |
+        Pass-through proxy for `GET /v1/search/{project}`. This route is reserved for a future
+        global Feast search integration; the UI continues to use `/api/v1/{project}/search`.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - name: query
+          in: query
+          schema:
+            type: string
+            default: ""
+        - name: namespace
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            $ref: "data-registry-api.yaml#/components/schemas/SearchAssetType"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 50
+      responses:
+        "200":
+          description: Search results with scoring
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/SearchResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
   /api/v1/{project}/search:
     get:
       tags: [search]
@@ -968,14 +994,14 @@ paths:
         - name: type
           in: query
           schema:
-            type: string
+            $ref: "data-registry-api.yaml#/components/schemas/SearchAssetType"
           description: |
             Filter by asset type. Values: `table`, `volume`, `collection`,
             `iceberg_table`, `document_collection`, `vector_index`, `dataset`
         - name: asset_type
           in: query
           schema:
-            type: string
+            $ref: "data-registry-api.yaml#/components/schemas/SearchAssetType"
           description: Alternative to `type` parameter (same values accepted)
         - name: properties
           in: query
@@ -1037,11 +1063,9 @@ paths:
                     properties:
                       format: iceberg
                     score: 100
-                    project: my-project
                 total: 1
                 page: 1
                 limit: 50
-                searched_projects: [my-project]
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1266,7 +1290,7 @@ components:
     Forbidden:
       description: >-
         The upstream Data Registry server's kube-rbac-proxy sidecar denied the request
-        (SubjectAccessReview failure against the RHOAI project in the path). Relayed
+        (SAR failure against the RHOAI project in the path). Relayed
         verbatim by the proxy. The body is upstream-controlled: either the Iceberg REST
         `ErrorResponse` shape or a plain-text kube-rbac-proxy denial.
       content:

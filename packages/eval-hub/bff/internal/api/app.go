@@ -40,7 +40,12 @@ const (
 	EvaluationJobByIDPath          = ApiPathPrefix + "/evaluations/jobs/:id"
 	CollectionsPath                = ApiPathPrefix + "/evaluations/collections"
 	CollectionByIDPath             = ApiPathPrefix + "/evaluations/collections/*id"
+	CollectionClonePath            = ApiPathPrefix + "/evaluations/collections/*id"
 	ProvidersPath                  = ApiPathPrefix + "/evaluations/providers"
+	KueueAvailabilityPath          = ApiPathPrefix + "/kueue/availability"
+	KueueWorkloadStatusesPath      = ApiPathPrefix + "/kueue/workloads"
+	HardwareProfilesPath           = ApiPathPrefix + "/hardwareprofiles"
+	HardwareProfileValidationPath  = ApiPathPrefix + "/hardwareprofiles/validate"
 	EvaluationJobLogsPath          = ApiPathPrefix + "/evaluations/jobs/:id/logs"
 	EvaluationJobBenchmarkLogsPath = ApiPathPrefix + "/evaluations/jobs/:id/benchmarks/:benchmark_index/logs"
 	EvalHubCRStatusPath            = ApiPathPrefix + "/evalhub/status"
@@ -284,8 +289,16 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(EvaluationJobLogsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetEvaluationJobLogsHandler))))
 	apiRouter.GET(EvaluationJobBenchmarkLogsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetEvaluationJobBenchmarkLogsHandler))))
 	apiRouter.GET(CollectionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CollectionsHandler))))
+	apiRouter.POST(CollectionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CreateCollectionHandler))))
 	apiRouter.GET(CollectionByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetCollectionHandler))))
+	apiRouter.PATCH(CollectionByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.PatchCollectionHandler))))
+	apiRouter.DELETE(CollectionByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.DeleteCollectionHandler))))
+	apiRouter.POST(CollectionClonePath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CloneCollectionHandler))))
 	apiRouter.GET(ProvidersPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ProvidersHandler))))
+	apiRouter.GET(KueueAvailabilityPath, app.AttachNamespace(app.RequireAccessToService(app.KueueAvailabilityHandler)))
+	apiRouter.GET(KueueWorkloadStatusesPath, app.AttachNamespace(app.RequireAccessToService(app.KueueWorkloadStatusesHandler)))
+	apiRouter.POST(HardwareProfileValidationPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ValidateHardwareProfilesHandler))))
+	apiRouter.GET(HardwareProfilesPath, app.AttachNamespace(app.RequireAccessToService(app.HardwareProfilesHandler)))
 
 	// InferenceService listing (user-token dynamic client, no EvalHub REST client needed)
 	apiRouter.GET(InferenceServicesPath, app.AttachNamespace(app.RequireAccessToService(app.InferenceServicesHandler)))

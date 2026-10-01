@@ -20,10 +20,10 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 // Mock empty state component
-jest.mock('~/app/components/empty-states/AutoragRunInProgress', () => ({
-  __esModule: true,
-  default: ({ namespace }: { namespace: string }) => (
-    <div data-testid="run-in-progress">Pipeline running in namespace: {namespace}</div>
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/components/feature'),
+  RunInProgress: ({ viewRunsRoute }: { viewRunsRoute: string }) => (
+    <div data-testid="run-in-progress">Pipeline running, view runs at: {viewRunsRoute}</div>
   ),
 }));
 
@@ -210,10 +210,26 @@ const mockPatternsWithMalformedSettings: Record<string, AutoragPattern> = {
   },
 };
 
+type TestOptimizationMetric =
+  | 'faithfulness'
+  | 'answer_correctness'
+  | 'context_correctness'
+  | 'unitxt:faithfulness'
+  | 'unitxt:answer_correctness'
+  | 'ragas:faithfulness';
+
+const qualifyTestOptimizationMetric = (optimizationMetric: TestOptimizationMetric): string => {
+  if (optimizationMetric === 'faithfulness') {
+    return 'unitxt:faithfulness';
+  }
+  if (optimizationMetric === 'answer_correctness') {
+    return 'unitxt:answer_correctness';
+  }
+  return optimizationMetric;
+};
+
 // Helper to create mock parameters
-const createMockParameters = (
-  optimizationMetric: 'faithfulness' | 'answer_correctness' | 'context_correctness',
-) => ({
+const createMockParameters = (optimizationMetric: TestOptimizationMetric) => ({
   display_name: 'Test RAG Run',
   input_data_secret_name: 'test-secret',
   input_data_bucket_name: 'test-bucket',
@@ -224,13 +240,13 @@ const createMockParameters = (
   ogx_secret_name: 'ogx-secret',
   generation_models: ['llama-3'],
   embedding_models: ['text-embedding-3'],
-  optimization_metric: optimizationMetric,
+  optimization_metric: qualifyTestOptimizationMetric(optimizationMetric),
   optimization_max_rag_patterns: 10,
 });
 
 const createMockPipelineRun = (
   state: RuntimeStateKF,
-  optimizationMetric?: 'faithfulness' | 'answer_correctness' | 'context_correctness',
+  optimizationMetric?: TestOptimizationMetric,
 ): PipelineRun => ({
   run_id: 'test-run-123',
   display_name: 'Test AutoRAG Run',
@@ -254,12 +270,10 @@ interface RenderWithContextOptions {
   patternsLoading?: boolean;
   patternsError?: boolean;
   patternsLoadError?: Error;
-  onRetryPatterns?: () => void;
-  optimizationMetric?: 'faithfulness' | 'answer_correctness' | 'context_correctness';
+  onRetryPatterns?: () => Promise<void>;
+  optimizationMetric?: TestOptimizationMetric;
   namespace?: string;
 }
-
-type TestOptimizationMetric = 'faithfulness' | 'answer_correctness' | 'context_correctness';
 
 const renderWithContext = ({
   patterns = {},
@@ -276,7 +290,7 @@ const renderWithContext = ({
     optimizationMetric ??
     ((pipelineRun?.runtime_config?.parameters as Record<string, unknown> | undefined)
       ?.optimization_metric as TestOptimizationMetric | undefined) ??
-    'faithfulness';
+    'unitxt:faithfulness';
 
   const contextValue = {
     pipelineRun,
@@ -624,7 +638,7 @@ describe('AutoragLeaderboard component', () => {
         patternsError: false,
         onRetryPatterns: mockRetry,
         parameters: createMockParameters('faithfulness'),
-        optimizationMetric: { name: 'faithfulness' },
+        optimizationMetric: { name: 'faithfulness', evaluator: 'unitxt' },
       };
 
       rerender(
@@ -872,17 +886,18 @@ describe('AutoragLeaderboard component', () => {
     it('qualifies duplicate metric names by evaluator and uses the flagged evaluator value', () => {
       renderWithContext({
         patterns: { 'pattern-1': createMockPatternWithDuplicateFaithfulness() },
-        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'ragas:faithfulness'),
       });
 
       const optimizedHeader = screen.getByTestId('metric-header-faithfulness-ragas');
-      expect(optimizedHeader).toHaveTextContent('Answer faithfulness (ragas)');
+      expect(optimizedHeader).toHaveTextContent('Faithfulness (RAGAS)');
       expect(within(optimizedHeader).getByTestId('optimized-indicator')).toBeInTheDocument();
       expect(screen.getByTestId('metric-faithfulness-ragas-1')).toHaveTextContent('0.771');
 
       showAllColumns();
 
-      expect(screen.getByText('Answer faithfulness (unitxt)')).toBeInTheDocument();
+      expect(screen.getByText('Faithfulness (Unitxt)')).toBeInTheDocument();
+      expect(screen.getByText('Faithfulness (RAGAS)')).toBeInTheDocument();
       expect(screen.getByTestId('metric-faithfulness-unitxt-1')).toHaveTextContent('0.618');
       expect(screen.getByTestId('metric-faithfulness-ragas-1')).toHaveTextContent('0.771');
     });
@@ -989,9 +1004,7 @@ describe('AutoragLeaderboard component', () => {
       });
 
       fireEvent.click(screen.getByTestId('manage-columns-button'));
-      expect(
-        screen.getByRole('checkbox', { name: 'Answer faithfulness (unitxt)' }),
-      ).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: 'Faithfulness (Unitxt)' })).toBeInTheDocument();
       expect(
         screen.getByRole('checkbox', { name: 'Answer faithfulness (custom)' }),
       ).toBeInTheDocument();
@@ -1000,7 +1013,7 @@ describe('AutoragLeaderboard component', () => {
       showAllColumns();
 
       expect(
-        screen.getByRole('columnheader', { name: /Answer faithfulness \(unitxt\)/i }),
+        screen.getByRole('columnheader', { name: /Faithfulness \(Unitxt\)/i }),
       ).toBeInTheDocument();
       expect(
         screen.getByRole('columnheader', { name: /Answer faithfulness \(custom\)/i }),
@@ -1027,10 +1040,23 @@ describe('AutoragLeaderboard component', () => {
       renderWithContext({
         patterns: { ambiguous: pattern },
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+        optimizationMetric: 'faithfulness',
       });
 
       expect(screen.getByTestId('rank-unranked-ambiguous')).toHaveTextContent('Unranked');
       expect(screen.getByTestId('metric-faithfulness-unranked-ambiguous')).toHaveTextContent('N/A');
+    });
+
+    it('should provide definition hover help for metric headers including Answer correctness', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+      showAllColumns();
+
+      const header = screen.getByTestId('metric-header-answer_correctness-unitxt');
+      fireEvent.click(within(header).getByRole('button', { name: /more info/i }));
+      expect(screen.getByText(/matches the expected ground-truth answers/i)).toBeInTheDocument();
     });
 
     it('should display all metrics for each pattern', () => {

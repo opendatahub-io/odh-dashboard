@@ -447,6 +447,7 @@ func (r *DashboardReconciler) reconcileDeployment(
 	}
 
 	remapRayDashboardGatewayRBAC(allResources)
+	remapDataConnectHubGatewayRBAC(allResources, r.ApplicationsNamespace)
 
 	if err := sanitizeDeploymentProbes(ctx, r.Client, allResources); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
@@ -709,6 +710,10 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 
 	if err := r.cleanupRayDashboardGatewayRBAC(ctx); err != nil {
 		return err
+	}
+
+	if err := r.cleanupDataConnectHubGatewayRBAC(ctx, ""); err != nil {
+		return fmt.Errorf("DCH gateway RBAC cleanup: %w", err)
 	}
 
 	obsNS := ""

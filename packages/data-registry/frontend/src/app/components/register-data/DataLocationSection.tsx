@@ -17,23 +17,14 @@ import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
 import { ConnectionModel } from '~/app/types';
 import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
 
-type DataLocationSectionProps =
-  | {
-      connections: ConnectionModel[];
-      connectionsLoaded: boolean;
-      connectionsError?: Error;
-      pathLabel?: never;
-      showConnection?: never;
-      isConnectionReadOnly?: never;
-    }
-  | {
-      pathLabel?: string;
-      showConnection?: boolean;
-      isConnectionReadOnly?: boolean;
-      connections?: never;
-      connectionsLoaded?: never;
-      connectionsError?: never;
-    };
+type DataLocationSectionProps = {
+  connections?: ConnectionModel[];
+  connectionsLoaded?: boolean;
+  connectionsError?: Error;
+  pathLabel?: string;
+  showConnection?: boolean;
+  isConnectionReadOnly?: boolean;
+};
 
 const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
   const {
@@ -44,7 +35,6 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
     showConnection = false,
     isConnectionReadOnly = false,
   } = props;
-  const isEditMode = !('connections' in props);
   const { control } = useFormContext<RegisterDataFormData | EditAssetFormData>();
   const [isConnectionOpen, setIsConnectionOpen] = React.useState(false);
 
@@ -73,7 +63,7 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
         </Alert>
       ) : null}
 
-      {!isEditMode || showConnection ? (
+      {showConnection ? (
         <Controller
           name="connection"
           control={control}

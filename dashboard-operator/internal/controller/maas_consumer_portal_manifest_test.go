@@ -17,6 +17,32 @@ const (
 	maasConsumerPortalCoreBFFImage = "registry.example.com/odh-core-bff@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 )
 
+func TestRenderCoreDashboardRouteHasNoHostnames(t *testing.T) {
+	source := filepath.Join("..", "..", "..", "manifests", "rhoai")
+	engine := kustomize.NewEngine()
+	rendered, err := engine.Render(source, kustomize.WithNamespace("dashboard-test"))
+	require.NoError(t, err)
+
+	for i := range rendered {
+		resource := &rendered[i]
+		if resource.GetKind() != "HTTPRoute" || resource.GetName() != "rhods-dashboard" {
+			continue
+		}
+
+		_, found, err := unstructured.NestedStringSlice(resource.Object, "spec", "hostnames")
+		require.NoError(t, err)
+		assert.False(t, found, "the core dashboard catch-all route must not set hostnames")
+		parentRefs, found, err := unstructured.NestedSlice(resource.Object, "spec", "parentRefs")
+		require.NoError(t, err)
+		require.True(t, found)
+		require.Len(t, parentRefs, 1)
+		assert.Equal(t, "data-science-gateway", parentRefs[0].(map[string]interface{})["name"])
+		return
+	}
+
+	require.Fail(t, "core dashboard HTTPRoute was not rendered")
+}
+
 func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	// Render a copy of the checked-in bundle: reconciliation writes params.env at
 	// runtime, so rendering the source directory directly would mutate the worktree.
@@ -29,7 +55,6 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	params["dashboard-namespace"] = "portal-test"
 	params["gateway-name"] = "portal-gateway"
 	params["maas-consumer-portal-federation-config"] = "maas-consumer-portal-federation-test"
-	params["gateway-domain"] = "gateway.apps.example.com"
 	require.NoError(t, writeParamsEnv(dir, params))
 
 	engine := kustomize.NewEngine()
@@ -134,10 +159,9 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 
 	route := resources["HTTPRoute/"+maasConsumerPortalName]
 	require.NotNil(t, route)
-	hostnames, found, err := unstructured.NestedStringSlice(route.Object, "spec", "hostnames")
+	_, found, err = unstructured.NestedStringSlice(route.Object, "spec", "hostnames")
 	require.NoError(t, err)
-	require.True(t, found)
-	assert.Equal(t, []string{"gateway.apps.example.com"}, hostnames)
+	assert.False(t, found, "path-partitioned routes must not set hostnames")
 	rules, found, err := unstructured.NestedSlice(route.Object, "spec", "rules")
 	require.NoError(t, err)
 	require.True(t, found)
