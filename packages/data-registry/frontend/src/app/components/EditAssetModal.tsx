@@ -10,6 +10,9 @@ import {
   ConnectionRef,
   StructuredFormat,
   UnstructuredFormat,
+  LICENSE_VALUES,
+  MATURITY_VALUES,
+  PII_STATUS_VALUES,
 } from '~/app/types';
 import {
   isConflictError,
@@ -62,6 +65,11 @@ const isStructuredFormat = (format: string): format is StructuredFormat =>
 const isUnstructuredFormat = (format: string): format is UnstructuredFormat =>
   UNSTRUCTURED_FORMATS.some((value) => value === format);
 
+const getEnumPropertyValue = <T extends string>(
+  value: string | undefined,
+  values: readonly T[],
+): T | '' => values.find((option) => option === value) ?? '';
+
 const getConnectionDisplayValue = (connectionRef?: ConnectionRef | null): string => {
   if (!connectionRef) {
     return '';
@@ -99,10 +107,10 @@ const buildFormDefaults = (props: EditAssetModalProps, idStart: number): EditAss
     connection: getConnectionDisplayValue(asset.connection_ref),
     path: asset.storage_location ?? '',
     purpose: properties.purpose || '',
-    license: properties.license || '',
-    maturity: properties.maturity || '',
+    license: getEnumPropertyValue(properties.license, LICENSE_VALUES),
+    maturity: getEnumPropertyValue(properties.maturity, MATURITY_VALUES),
     domain: properties.domain || '',
-    piiStatus: properties.pii || '',
+    piiStatus: getEnumPropertyValue(properties.pii, PII_STATUS_VALUES),
     customProperties,
     schemaFields:
       assetKind === 'table'
@@ -166,6 +174,19 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
           customProperties[property.key] = property.value;
         }
       });
+      const incompleteCustomPropertyKeys = new Set(
+        data.customProperties
+          .filter((property) => property.key && !property.value)
+          .map((property) => property.key),
+      );
+      const originalCustomPropertyKeys = Object.keys(asset.properties ?? {}).filter(
+        (key) => !WELL_KNOWN_PROPERTIES.has(key),
+      );
+      const removeProperties = originalCustomPropertyKeys.filter(
+        (key) =>
+          !Object.prototype.hasOwnProperty.call(customProperties, key) &&
+          !incompleteCustomPropertyKeys.has(key),
+      );
 
       const originalConnection = getConnectionDisplayValue(asset.connection_ref);
       const connectionUpdate =
@@ -177,13 +198,14 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
         description: data.description,
         storage_location: data.path || null,
         ...connectionUpdate,
-        purpose: data.purpose,
-        license: data.license,
-        maturity: data.maturity,
-        domain: data.domain,
-        pii: data.piiStatus,
+        ...(data.purpose !== defaults.purpose ? { purpose: data.purpose || null } : {}),
+        ...(data.license !== defaults.license ? { license: data.license || null } : {}),
+        ...(data.maturity !== defaults.maturity ? { maturity: data.maturity || null } : {}),
+        ...(data.domain !== defaults.domain ? { domain: data.domain || null } : {}),
+        ...(data.piiStatus !== defaults.piiStatus ? { pii: data.piiStatus || null } : {}),
         ...(addLabels.length > 0 ? { add_labels: addLabels } : {}),
         ...(removeLabels.length > 0 ? { remove_labels: removeLabels } : {}),
+        ...(removeProperties.length > 0 ? { remove_properties: removeProperties } : {}),
         properties: customProperties,
       };
 
@@ -229,11 +251,13 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
       asset.connection_ref,
       collection,
       connections,
+      defaults,
       isTable,
       name,
       onSaved,
       originalLabels,
       project,
+      asset.properties,
     ],
   );
 
@@ -267,7 +291,7 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
               connectionsError={connectionsError}
             />
             <PropertiesSection />
-            <CustomPropertiesSection isEditMode />
+            <CustomPropertiesSection />
             {isTable ? <SchemaSection /> : null}
           </Form>
         </FormProvider>

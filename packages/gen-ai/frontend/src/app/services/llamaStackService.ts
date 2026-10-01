@@ -16,6 +16,8 @@ import {
   AgentProfileListResponse,
   AgentProfileUpdateRequest,
   AgentProfileUpdateResponse,
+  AgentDeploymentListResponse,
+  AgentDeploymentSummary,
 } from '~/app/agentProfile/types';
 import {
   ApiErrorClass,
@@ -1460,6 +1462,30 @@ export const getAgentProfile =
       restGET<AgentProfile>(hostPath, path, { ...baseQueryParams, ...restParams }, opts),
     ).then((response) => {
       if (isModArchResponse<AgentProfile>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
+export const listAgentDeployments =
+  modArchRestGET<AgentDeploymentListResponse>('/agent-deployments');
+
+export const getAgentDeployment =
+  (
+    hostPath: string,
+    baseQueryParams: Record<string, unknown> = {},
+  ): ModArchRestGET<AgentDeploymentSummary> =>
+  (queryParams: Record<string, unknown> = {}, opts: APIOptions = {}) => {
+    const { id, ...restParams } = queryParams;
+    if (!id || typeof id !== 'string') {
+      return Promise.reject(new Error('id parameter is required'));
+    }
+    const path = `/agent-deployments/${encodeURIComponent(id)}`;
+    return handleRestFailures(
+      restGET<AgentDeploymentSummary>(hostPath, path, { ...baseQueryParams, ...restParams }, opts),
+    ).then((response) => {
+      if (isModArchResponse<AgentDeploymentSummary>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');

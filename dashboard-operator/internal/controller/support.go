@@ -33,6 +33,7 @@ var imagesMap = map[string]string{
 	"autorag-pipeline-runtime-image": "RELATED_IMAGE_ODH_AUTORAG_IMAGE",
 	"core-bff-image":                 "RELATED_IMAGE_ODH_CORE_BFF_IMAGE",
 	"ogx-core-image":                 "RELATED_IMAGE_ODH_OGX_CORE_IMAGE",
+	"pgvector-image":                 "RELATED_IMAGE_POSTGRESQL_16_IMAGE",
 }
 
 func init() {

@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 import { LlamaModel } from '~/app/types';
+import { MCPServerFromAPI } from '~/app/types/mcp';
 import { AgentProfile } from '~/app/agentProfile/types';
 import {
   AgentProfileDeserializationContext,
@@ -214,6 +215,39 @@ describe('deserializeAgentProfile', () => {
   });
 
   describe('mcpServers', () => {
+    it('should restore registry MCP servers and allowed tools using their runtime URL', () => {
+      const registryServer: MCPServerFromAPI = {
+        name: 'com.example/jira',
+        url: 'https://registry.example.com/jira',
+        transport: 'streamable-http',
+        description: 'Jira MCP server',
+        logo: null,
+        status: 'healthy',
+        source: 'registry',
+        version: '3',
+        tools: [],
+        tool_count: 0,
+      };
+      const profile = makeProfile({
+        mcpServers: [
+          {
+            name: 'com.example/jira',
+            source: 'mlflow',
+            version: '3',
+            allowedTools: ['search_issues'],
+          },
+        ] as never,
+      });
+
+      const { config, mcpToolsPending } = deserializeAgentProfile(
+        profile,
+        makeContext({ mcpServers: [registryServer] }),
+      );
+
+      expect(config.selectedMcpServerIds).toEqual([registryServer.url]);
+      expect(mcpToolsPending).toEqual({ [registryServer.url]: ['search_issues'] });
+    });
+
     it('should restore selectedMcpServerIds from serverRef.key', () => {
       const profile = makeProfile({
         mcpServers: [

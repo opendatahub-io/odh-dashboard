@@ -1,10 +1,6 @@
-import { useContext } from 'react';
-import { UserSettings } from 'mod-arch-core';
+import { createUseUser } from '@odh-dashboard/autox-core/ui/hooks';
 import { AppContext } from '~/app/context/AppContext';
 
-const useUser = (): UserSettings => {
-  const { user } = useContext(AppContext);
-  return user;
-};
+const useUser = createUseUser(AppContext);
 
 export default useUser;

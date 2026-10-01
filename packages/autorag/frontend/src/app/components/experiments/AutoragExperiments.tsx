@@ -1,20 +1,19 @@
-import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
+import { EmptyExperimentsState } from '@odh-dashboard/autox-core/ui/components/feature';
+import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
 import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
 import { Alert, Spinner } from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
 import { AutoragRunsTable } from '~/app/components/AutoragRunsTable';
-import EmptyExperimentsState from '~/app/components/empty-states/EmptyExperimentsState';
 import PipelineServerSetup from '~/app/components/empty-states/PipelineServerSetup';
-import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
 import {
   shouldShowManagedPipelinesMissing,
   shouldShowNoDSPAEmptyState,
   shouldShowPipelineServerNotReady,
+  getPipelineErrorCode,
 } from '~/app/utilities/pipelineServerEmptyState';
 import { autoragConfigurePathname } from '~/app/utilities/routes';
-import { parseErrorStatus } from '~/app/utilities/utils';
 
 export type AutoragExperimentsListStatus = {
   /** True once pipeline definitions and runs have finished loading without a blocking list error. */
@@ -47,11 +46,6 @@ function AutoragExperiments({
     false,
   );
   const {
-    loaded: defsLoaded,
-    error: defsError,
-    refresh: refreshDefs,
-  } = usePipelineDefinitions(effectiveNamespace);
-  const {
     runs,
     totalSize,
     page,
@@ -63,8 +57,8 @@ function AutoragExperiments({
     refresh: refreshRuns,
   } = usePipelineRuns(effectiveNamespace);
 
-  const loaded = defsLoaded && runsLoaded;
-  const loadError = defsError ?? runsError;
+  const loaded = runsLoaded;
+  const loadError = runsError;
   const hasLoadError = Boolean(loadError);
 
   const hasExperiments = totalSize > 0;
@@ -118,15 +112,11 @@ function AutoragExperiments({
     };
   }, [effectiveNamespace, hasLoadError, loaded, hasExperiments]);
 
-  const errorCode = loadError
-    ? (getGenericErrorCode(loadError) ??
-      (loadError instanceof Error ? parseErrorStatus(loadError) : undefined))
-    : undefined;
+  const errorCode = loadError ? getPipelineErrorCode(loadError) : undefined;
 
   const handleServerReady = React.useCallback(() => {
-    void refreshDefs();
     refreshRuns();
-  }, [refreshDefs, refreshRuns]);
+  }, [refreshRuns]);
 
   React.useEffect(() => {
     if (serverBusy && (loaded || loadError)) {
@@ -190,6 +180,9 @@ function AutoragExperiments({
     return (
       <EmptyExperimentsState
         createExperimentRoute={`${autoragConfigurePathname}/${effectiveNamespace}`}
+        title="Create an AutoRAG optimization run"
+        description="Test different retrieval and model configurations to find the best-performing setup."
+        iconImage={typedEmptyImage(ProjectObjectType.pipeline)}
         dataTestId="empty-experiments-state"
       />
     );

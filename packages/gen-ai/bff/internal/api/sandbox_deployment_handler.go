@@ -151,6 +151,15 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	maasGatewayURL := ""
+	if profile.Spec.Model.SourceType == string(models.ModelSourceTypeMaaS) {
+		maasGatewayURL, err = resolveSandboxMaaSGatewayURL(ctx)
+		if err != nil {
+			app.handleBFFClientError(w, r, err)
+			return
+		}
+	}
+
 	// Custom endpoint credentials belong to the dashboard-managed provider record.
 	// Resolve that record before building the OGX configuration so the credential can
 	// only ever be sent to the provider URL it was configured for, never a URI from
@@ -349,20 +358,17 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		LlamaStackConfigMapName: lsCM.Name,
 		WrapperAppConfigMapName: waCM.Name,
 		Image:                   ogxImage,
-		// Use the configured MaaS URL when present, otherwise derive the current
-		// cluster's MaaS gateway URL. This keeps deployed Sandboxes usable when
-		// MAAS_URL is not injected into the Gen AI BFF deployment.
-		MaaSGatewayURL:     app.resolveMaaSBaseURL(),
-		AgentConfigJSON:    string(agentConfigJSON),
-		OGXModelID:         kubernetes.SandboxOGXModelID(profile.Spec.Model.ID),
-		ModelSourceType:    profile.Spec.Model.SourceType,
-		SystemPrompt:       systemPrompt,
-		MCPServersJSON:     string(mcpServersJSON),
-		VectorStoreIDsJSON: string(vectorStoreIDsJSON),
-		MCPAuthSecrets:     mcpAuthSecrets,
-		ModelAuthSecret:    modelAuthSecret,
-		PgvectorHost:       app.config.PgvectorHost,
-		PgvectorSecretName: app.config.PgvectorPasswordSecretName,
+		MaaSGatewayURL:          maasGatewayURL,
+		AgentConfigJSON:         string(agentConfigJSON),
+		OGXModelID:              kubernetes.SandboxOGXModelID(profile.Spec.Model.ID),
+		ModelSourceType:         profile.Spec.Model.SourceType,
+		SystemPrompt:            systemPrompt,
+		MCPServersJSON:          string(mcpServersJSON),
+		VectorStoreIDsJSON:      string(vectorStoreIDsJSON),
+		MCPAuthSecrets:          mcpAuthSecrets,
+		ModelAuthSecret:         modelAuthSecret,
+		PgvectorHost:            app.config.PgvectorHost,
+		PgvectorSecretName:      app.config.PgvectorPasswordSecretName,
 	}
 	if profile.Spec.Model.Authorization != nil {
 		sandboxOpts.MaaSSubscription = profile.Spec.Model.Authorization.MaaSSubscription
@@ -546,6 +552,9 @@ func (app *App) resolveSandboxMCPServers(
 	selectedIDs := make(map[string]struct{}, len(profile.Spec.MCPServers))
 	servers := make([]kubernetes.SandboxMCPServer, 0, len(profile.Spec.MCPServers))
 	for i, selected := range profile.Spec.MCPServers {
+		if selected.ServerRef == nil {
+			return nil, fmt.Errorf("spec.mcpServers[%d]: Registry MCP servers are not supported for sandbox deployment", i)
+		}
 		if selected.ServerRef.Kind != "ConfigMap" || selected.ServerRef.Name != constants.MCPServerName {
 			return nil, fmt.Errorf("spec.mcpServers[%d] must reference ConfigMap %q", i, constants.MCPServerName)
 		}
@@ -557,7 +566,7 @@ func (app *App) resolveSandboxMCPServers(
 		selectedIDs[serverID] = struct{}{}
 		server := kubernetes.SandboxMCPServer{ServerLabel: serverID, ServerURL: config.URL}
 		if selected.AllowedTools != nil {
-			server.AllowedTools = &selected.AllowedTools
+			server.AllowedTools = selected.AllowedTools
 		}
 		if authorization, found := authorizations[serverID]; found {
 			if strings.TrimSpace(authorization) == "" {
