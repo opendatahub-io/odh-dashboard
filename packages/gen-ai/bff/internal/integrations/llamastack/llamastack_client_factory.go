@@ -12,6 +12,7 @@ import (
 // LlamaStackClientInterface defines the interface for LlamaStack client operations
 type LlamaStackClientInterface interface {
 	ListModels(ctx context.Context) ([]openai.Model, error)
+	ListModelsWithProviderData(ctx context.Context, providerData map[string]interface{}) ([]openai.Model, error)
 	ListVectorStores(ctx context.Context, params ListVectorStoresParams) ([]openai.VectorStore, error)
 	CreateVectorStore(ctx context.Context, params CreateVectorStoreParams) (*openai.VectorStore, error)
 	DeleteVectorStore(ctx context.Context, vectorStoreID string) error
@@ -20,6 +21,7 @@ type LlamaStackClientInterface interface {
 	GetFile(ctx context.Context, fileID string) (*openai.FileObject, error)
 	GetFileContent(ctx context.Context, fileID string) (io.ReadCloser, string, error)
 	DeleteFile(ctx context.Context, fileID string) error
+	ProcessFile(ctx context.Context, fileID string) (*ProcessedDocument, error)
 	ListVectorStoreFiles(ctx context.Context, vectorStoreID string, params ListVectorStoreFilesParams) ([]openai.VectorStoreFile, error)
 	GetVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) (*openai.VectorStoreFile, error)
 	DeleteVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) error

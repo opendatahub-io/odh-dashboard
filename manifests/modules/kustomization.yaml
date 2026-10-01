@@ -10,3 +10,5 @@ resources:
   - autorag
   - agent-ops
   - notebooks
+  - data-registry
+  - data-connect-hub

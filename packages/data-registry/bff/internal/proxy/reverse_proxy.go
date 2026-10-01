@@ -19,6 +19,14 @@ import (
 // (inherited from http.DefaultTransport) have already succeeded.
 const dataRegistryUpstreamResponseHeaderTimeout = 60 * time.Second
 
+const (
+	// These legacy identity headers are stripped even though Data Registry authenticates only
+	// with the caller's bearer token. The upstream API may trust them for attribution, so a caller
+	// must never be able to supply them directly.
+	kubeflowUserIDHeader     = "kubeflow-userid"
+	kubeflowUserGroupsHeader = "kubeflow-groups"
+)
+
 // DataRegistryProxyConfig configures the catchall reverse proxy that forwards every request
 // under the BFF's Data Registry prefix straight through to the upstream Data Registry API with
 // no per-operation transformation logic — the BFF is a "dumb proxy" for this backend (see
@@ -48,9 +56,12 @@ type DataRegistryProxyConfig struct {
 	// AuthHeaderFn returns the "Authorization" header value to send upstream. The incoming
 	// request's own Authorization header is always discarded first: the value sent upstream is
 	// rebuilt from the caller's verified identity, never copied verbatim. Other caller-asserted
-	// identity headers the upstream trusts (X-User, kubeflow-userid, kubeflow-groups) are always
+	// identity headers the upstream trusts (X-User and legacy Kubeflow headers) are always
 	// stripped outright — see NewDataRegistryReverseProxy.
 	AuthHeaderFn func(*http.Request) string
+	// UserIDFn returns the verified user ID to send upstream as X-User when the upstream
+	// implementation needs the authenticated identity for auditing.
+	UserIDFn func(*http.Request) string
 	// InsecureSkipVerify skips upstream TLS certificate verification (dev only).
 	InsecureSkipVerify bool
 	Logger             *slog.Logger
@@ -105,13 +116,18 @@ func NewDataRegistryReverseProxy(cfg DataRegistryProxyConfig) *httputil.ReverseP
 				}
 			}
 
-			// The upstream Data Registry API trusts these headers for user attribution (e.g. the
-			// `registered_by` field on registered assets). As with Authorization above, a
-			// caller-supplied value must never be forwarded verbatim — only the BFF's own
-			// verified identity may assert who the caller is.
+			// The upstream Data Registry API trusts these headers for user attribution. As with
+			// Authorization above, caller-supplied values must never be forwarded verbatim — only
+			// the BFF's own verified identity may assert who the caller is.
 			pr.Out.Header.Del(constants.XUserHeader)
-			pr.Out.Header.Del(constants.KubeflowUserIDHeader)
-			pr.Out.Header.Del(constants.KubeflowUserGroupsIdHeader)
+			pr.Out.Header.Del(kubeflowUserIDHeader)
+			pr.Out.Header.Del(kubeflowUserGroupsHeader)
+
+			if cfg.UserIDFn != nil {
+				if uid := cfg.UserIDFn(pr.In); uid != "" {
+					pr.Out.Header.Set(constants.XUserHeader, uid)
+				}
+			}
 		},
 		Transport: transport,
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {

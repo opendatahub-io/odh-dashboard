@@ -103,6 +103,9 @@ func (m *mockLSClientForASR) GetFileContent(_ context.Context, _ string) (io.Rea
 func (m *mockLSClientForASR) ListModels(_ context.Context) ([]openai.Model, error) {
 	return nil, nil
 }
+func (m *mockLSClientForASR) ListModelsWithProviderData(_ context.Context, _ map[string]interface{}) ([]openai.Model, error) {
+	return nil, nil
+}
 func (m *mockLSClientForASR) ListVectorStores(_ context.Context, _ llamastack.ListVectorStoresParams) ([]openai.VectorStore, error) {
 	return nil, nil
 }
@@ -111,6 +114,9 @@ func (m *mockLSClientForASR) CreateVectorStore(_ context.Context, _ llamastack.C
 }
 func (m *mockLSClientForASR) DeleteVectorStore(_ context.Context, _ string) error { return nil }
 func (m *mockLSClientForASR) UploadFile(_ context.Context, _ llamastack.UploadFileParams) (*llamastack.FileUploadResult, error) {
+	return nil, nil
+}
+func (m *mockLSClientForASR) ProcessFile(_ context.Context, _ string) (*llamastack.ProcessedDocument, error) {
 	return nil, nil
 }
 func (m *mockLSClientForASR) ListFiles(_ context.Context, _ llamastack.ListFilesParams) ([]openai.FileObject, error) {

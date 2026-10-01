@@ -1,18 +1,31 @@
+/* eslint-disable camelcase */
 import React from 'react';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import {
   Modal,
   ModalHeader,
   ModalBody,
   ModalFooter,
-  Button,
   Form,
   Alert,
   Content,
 } from '@patternfly/react-core';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createVolume, createGenericTable, createLabel, ApiError } from '~/app/api/dataRegistry';
-import { CreateVolumeRequest, CreateGenericTableRequest } from '~/app/types';
+import {
+  createVolume,
+  createGenericTable,
+  createLabel,
+  isConflictError,
+} from '~/app/api/dataRegistry';
+import {
+  CreateVolumeRequest,
+  CreateGenericTableRequest,
+  ConnectionModel,
+  ConnectionRef,
+  UnstructuredFormat,
+  StructuredFormat,
+} from '~/app/types';
 import { useConnections } from '~/app/hooks/useConnections';
 import {
   registerDataSchema,
@@ -34,38 +47,80 @@ type RegisterDataModalProps = {
   onManageCollections: () => void;
 };
 
-const buildVolumeRequest = (data: RegisterDataFormData): CreateVolumeRequest => {
-  const request: CreateVolumeRequest = {
+const getConnectionRef = (
+  connection: string,
+  connections: ConnectionModel[],
+): ConnectionRef | undefined => {
+  if (!connection) {
+    return undefined;
+  }
+  const selectedConnection = connections.find((c) => c.name === connection);
+  const isDch = selectedConnection?.connectionType?.toLowerCase() === 'dch';
+  return isDch ? { type: 'dch', id: connection } : { type: 'rhai', secret_name: connection };
+};
+
+type SharedCreateAssetRequest = Omit<CreateVolumeRequest, 'format'> & { format: string };
+
+const UNSTRUCTURED_FORMAT_VALUES: UnstructuredFormat[] = [
+  'documents',
+  'images',
+  'audio',
+  'video',
+  'binary',
+  'other',
+];
+
+const STRUCTURED_FORMAT_VALUES: StructuredFormat[] = [
+  'iceberg',
+  'parquet',
+  'csv',
+  'delta',
+  'postgresql',
+  'milvus',
+  'other',
+];
+
+const isUnstructuredFormat = (format: string): format is UnstructuredFormat =>
+  UNSTRUCTURED_FORMAT_VALUES.some((value) => value === format);
+
+const isStructuredFormat = (format: string): format is StructuredFormat =>
+  STRUCTURED_FORMAT_VALUES.some((value) => value === format);
+
+const buildSharedAssetRequest = (
+  data: RegisterDataFormData,
+  connections: ConnectionModel[],
+): SharedCreateAssetRequest => {
+  const request: SharedCreateAssetRequest = {
     name: data.name.trim(),
-    // eslint-disable-next-line camelcase
-    content_type: data.format,
+    format: data.format,
   };
   if (data.description) {
     request.description = data.description;
   }
   if (data.path && data.path !== '/') {
-    request.location = data.path;
+    request.storage_location = data.path;
   }
   if (data.connection) {
-    // eslint-disable-next-line camelcase
-    request.connection_ref = data.connection;
+    request.connection_ref = getConnectionRef(data.connection, connections);
   }
   if (data.labels.length > 0) {
     request.labels = data.labels;
   }
   const properties: Record<string, string> = {};
   if (data.purpose) {
-    properties.purpose = data.purpose;
+    request.purpose = data.purpose;
   }
   if (data.license) {
-    properties.license = data.license;
+    request.license = data.license;
   }
   if (data.maturity) {
-    properties.maturity = data.maturity;
+    request.maturity = data.maturity;
+  }
+  if (data.domain) {
+    request.domain = data.domain;
   }
   if (data.piiStatus) {
-    // eslint-disable-next-line camelcase
-    properties.pii_status = data.piiStatus;
+    request.pii = data.piiStatus;
   }
   data.customProperties.forEach((prop) => {
     if (prop.key && prop.value) {
@@ -78,36 +133,23 @@ const buildVolumeRequest = (data: RegisterDataFormData): CreateVolumeRequest => 
   return request;
 };
 
-const buildTableRequest = (data: RegisterDataFormData): CreateGenericTableRequest => {
+const buildVolumeRequest = (
+  data: RegisterDataFormData,
+  connections: ConnectionModel[],
+): CreateVolumeRequest => {
+  const format = isUnstructuredFormat(data.format) ? data.format : 'other';
+  return { ...buildSharedAssetRequest(data, connections), format };
+};
+
+const buildTableRequest = (
+  data: RegisterDataFormData,
+  connections: ConnectionModel[],
+): CreateGenericTableRequest => {
   const request: CreateGenericTableRequest = {
-    name: data.name.trim(),
-    format: data.format,
+    ...buildSharedAssetRequest(data, connections),
+    format: isStructuredFormat(data.format) ? data.format : 'other',
   };
-  if (data.description) {
-    request.description = data.description;
-  }
-  if (data.path && data.path !== '/') {
-    request.location = data.path;
-  }
-  if (data.connection) {
-    // eslint-disable-next-line camelcase
-    request.connection_ref = data.connection;
-  }
-  if (data.labels.length > 0) {
-    request.labels = data.labels;
-  }
-  if (data.purpose) {
-    request.purpose = data.purpose;
-  }
-  if (data.license) {
-    request.license = data.license;
-  }
-  if (data.maturity) {
-    request.maturity = data.maturity;
-  }
-  if (data.piiStatus) {
-    request.pii = data.piiStatus;
-  }
+
   const filteredFields = data.schemaFields
     .filter((col) => col.name && col.type)
     .map((col) => ({
@@ -117,17 +159,7 @@ const buildTableRequest = (data: RegisterDataFormData): CreateGenericTableReques
       nullable: col.nullable,
     }));
   if (filteredFields.length > 0) {
-    // eslint-disable-next-line camelcase
     request.schema_fields = filteredFields;
-  }
-  const properties: Record<string, string> = {};
-  data.customProperties.forEach((prop) => {
-    if (prop.key && prop.value) {
-      properties[prop.key] = prop.value;
-    }
-  });
-  if (Object.keys(properties).length > 0) {
-    request.properties = properties;
   }
   return request;
 };
@@ -166,7 +198,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
           await Promise.all(
             data.labels.map((label) =>
               createLabel(project, { name: label }).catch((err) => {
-                if (err instanceof ApiError && err.status === 409) {
+                if (isConflictError(err)) {
                   return;
                 }
                 throw err;
@@ -175,9 +207,9 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
           );
         }
         if (data.assetType === 'unstructured') {
-          await createVolume(project, data.collection, buildVolumeRequest(data));
+          await createVolume(project, data.collection, buildVolumeRequest(data, connections));
         } else {
-          await createGenericTable(project, data.collection, buildTableRequest(data));
+          await createGenericTable(project, data.collection, buildTableRequest(data, connections));
         }
         form.reset(registerDataDefaults);
         onCreated();
@@ -188,7 +220,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
         setIsSubmitting(false);
       }
     },
-    [project, form, onCreated, onClose],
+    [project, form, onCreated, onClose, connections],
   );
 
   const assetType = form.watch('assetType');
@@ -219,6 +251,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
               connections={connections}
               connectionsLoaded={connectionsLoaded}
               connectionsError={connectionsError}
+              showConnection
             />
             <PropertiesSection />
             <CustomPropertiesSection />
@@ -227,18 +260,14 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
         </FormProvider>
       </ModalBody>
       <ModalFooter>
-        <Button
-          variant="primary"
-          onClick={form.handleSubmit(handleSubmit)}
-          isDisabled={isSubmitting}
-          isLoading={isSubmitting}
-          data-testid="register-data-submit"
-        >
-          Register
-        </Button>
-        <Button variant="link" onClick={handleClose}>
-          Cancel
-        </Button>
+        <DashboardModalFooter
+          submitLabel="Register"
+          onSubmit={form.handleSubmit(handleSubmit)}
+          onCancel={handleClose}
+          isSubmitDisabled={isSubmitting}
+          isSubmitLoading={isSubmitting}
+          submitButtonTestId="register-data-submit"
+        />
       </ModalFooter>
     </Modal>
   );

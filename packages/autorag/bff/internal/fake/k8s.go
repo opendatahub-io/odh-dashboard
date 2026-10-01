@@ -96,6 +96,27 @@ var fakeSecrets = map[string][]v1.Secret{
 				"OGX_CLIENT_BASE_URL": []byte("https://ogx.example.com"),
 			},
 		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "maas",
+				Namespace: "my-project",
+				UID:       "5a1f5c27-3d1c-4a1b-9c7f-7d6e8b9c0a1f",
+			},
+			Data: map[string][]byte{
+				"MAAS_BASE_URL": []byte("https://maas.example.com"),
+				"MAAS_API_KEY":  []byte("fake-maas-api-key"),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "vector-db",
+				Namespace: "my-project",
+				UID:       "6b2f6d38-4e2d-5b2c-ad8f-8e7f9c0b1a2e",
+			},
+			Data: map[string][]byte{
+				"MILVUS_URI": []byte("https://milvus.example.com:19530"),
+			},
+		},
 	},
 }
 

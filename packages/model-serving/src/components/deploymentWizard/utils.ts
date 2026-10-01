@@ -13,7 +13,7 @@ import type {
   ConnectionTypeConfigMapObj,
   ProjectKind,
 } from '@odh-dashboard/k8s-core';
-import type { SecretOps } from '@odh-dashboard/plugin-core/host-api';
+import type { SecretOps } from '@odh-dashboard/plugin-core';
 import { type TokenAuthenticationFieldData } from './fields/TokenAuthenticationField';
 import { DeployExtension } from './deploying/useDeployMethod';
 import { ExternalDataMap } from './ExternalDataLoader';
@@ -26,10 +26,17 @@ import {
   type InitialWizardFormData,
   WizardStepTitle,
 } from '../../shared/types/form-data';
+import { shouldAttachHfTokenOwnerRefs } from '../../shared/wizard-fields';
 import {
   handleConnectionCreation,
   handleSecretOwnerReferencePatch,
 } from '../../concepts/connectionUtils';
+import { getHfTokenServiceAccountName } from '../../shared/hfTokenConstants';
+import { getHfTokenSecretNameFromServiceAccount } from '../../shared/hfTokenSecret';
+import {
+  patchHfTokenSecretOwnerReference,
+  patchHfTokenServiceAccountOwnerReference,
+} from '../../concepts/hfTokenSecretUtils';
 import type {
   Deployment,
   DeploymentEndpoint,
@@ -223,6 +230,38 @@ export const deployModel = async (
       wizardState.modelLocationData.data,
       createdSecretName,
       deploymentResult.model.metadata.uid ?? '',
+      false,
+    );
+  }
+  // OwnerRefs use the shared `{deployment}-hf-sa` name; only run when the wizard HF field
+  // supplied a token / configured secret (avoids probing the cluster on every deploy).
+  if (shouldAttachHfTokenOwnerRefs(wizardState.huggingFaceApiKey.data)) {
+    const deploymentName = deploymentResult.model.metadata.name;
+    const hfServiceAccountName = deploymentName
+      ? getHfTokenServiceAccountName(deploymentName)
+      : undefined;
+    const deploymentUid = deploymentResult.model.metadata.uid ?? '';
+    const hfSecretName = hfServiceAccountName
+      ? await getHfTokenSecretNameFromServiceAccount(hfServiceAccountName, projectName).catch(
+          (err) => {
+            console.warn('Skipping HF token owner reference patch; could not resolve Secret', err);
+            return undefined;
+          },
+        )
+      : undefined;
+    await patchHfTokenSecretOwnerReference(
+      secretOps,
+      projectName,
+      deploymentResult.model,
+      hfSecretName,
+      deploymentUid,
+      false,
+    );
+    await patchHfTokenServiceAccountOwnerReference(
+      projectName,
+      deploymentResult.model,
+      hfServiceAccountName,
+      deploymentUid,
       false,
     );
   }

@@ -1,6 +1,9 @@
 import * as React from 'react';
 import { isPreviewReady } from '~/app/pages/modelCatalogSettings/utils/validation';
-import { transformFormDataToConfig } from '~/app/pages/modelCatalogSettings/utils/modelCatalogSettingsUtils';
+import {
+  transformFormDataToConfig,
+  resolveHuggingFaceApiKeyField,
+} from '~/app/pages/modelCatalogSettings/utils/modelCatalogSettingsUtils';
 import {
   CatalogSourceConfig,
   CatalogSourceType,
@@ -9,14 +12,54 @@ import {
   CatalogSourcePreviewSummary,
 } from '~/app/modelCatalogTypes';
 import { ModelCatalogSettingsAPIState } from '~/app/hooks/modelCatalogSettings/useModelCatalogSettingsAPIState';
-import { CatalogSettingsPreviewTab } from '~/app/shared/catalogSettings/hooks/previewTypes';
+import {
+  CatalogSettingsPreviewTab,
+  DEFAULT_PREVIEW_PAGE_SIZE,
+} from '~/app/shared/catalogSettings/hooks/previewTypes';
 import { useCatalogSourcePreviewCore } from '~/app/shared/catalogSettings/hooks/useCatalogSourcePreviewCore';
+import { useUserInteraction } from '~/concepts/userInteraction';
+import {
+  MODEL_CATALOG_SOURCE_EVENTS,
+  buildAccessTokenValidatedTrackingProperties,
+} from '~/app/pages/modelCatalogSettings/tracking/modelCatalogSourcesTracking';
+import { TOOLTIP_MESSAGES } from './constants';
 import { ManageSourceFormData } from './useManageSourceData';
 
 export enum PreviewMode {
   PREVIEW = 'preview',
-  VALIDATE = 'validate',
 }
+
+type CredentialsValidationStatus = 'unknown' | 'valid' | 'invalid';
+
+const isHuggingFaceWithAccessToken = (formData: ManageSourceFormData): boolean =>
+  formData.sourceType === CatalogSourceType.HUGGING_FACE && formData.accessToken.trim().length > 0;
+
+export const isPreviewEnabled = (
+  formData: ManageSourceFormData,
+  credentialsValidationStatus: CredentialsValidationStatus,
+): boolean => {
+  if (!isPreviewReady(formData)) {
+    return false;
+  }
+  if (isHuggingFaceWithAccessToken(formData)) {
+    return credentialsValidationStatus === 'valid';
+  }
+  return true;
+};
+
+export const getPreviewDisabledTooltip = (
+  formData: ManageSourceFormData,
+  credentialsValidationStatus: CredentialsValidationStatus,
+): string | undefined => {
+  if (
+    isPreviewReady(formData) &&
+    isHuggingFaceWithAccessToken(formData) &&
+    credentialsValidationStatus !== 'valid'
+  ) {
+    return TOOLTIP_MESSAGES.PREVIEW_REQUIRES_VALIDATION;
+  }
+  return undefined;
+};
 
 export type PreviewTabState = {
   items: CatalogSourcePreviewModel[];
@@ -41,6 +84,7 @@ export interface UseSourcePreviewOptions {
   existingSourceConfig?: CatalogSourceConfig;
   apiState: ModelCatalogSettingsAPIState;
   isEditMode: boolean;
+  hasExistingApiKey?: boolean;
 }
 
 export interface UseSourcePreviewResult {
@@ -55,6 +99,7 @@ export interface UseSourcePreviewResult {
   validationError?: Error;
   isValidationSuccess: boolean;
   canPreview: boolean;
+  previewDisabledTooltip?: string;
 }
 
 export const useSourcePreview = ({
@@ -62,15 +107,24 @@ export const useSourcePreview = ({
   existingSourceConfig,
   apiState,
   isEditMode,
+  hasExistingApiKey = false,
 }: UseSourcePreviewOptions): UseSourcePreviewResult => {
-  const canPreview = isPreviewReady(formData);
-  const [mode, setMode] = React.useState<PreviewMode | undefined>();
+  const { trackSimpleEvent } = useUserInteraction();
+  const [credentialsValidationStatus, setCredentialsValidationStatus] =
+    React.useState<CredentialsValidationStatus>('unknown');
+  const [isValidating, setIsValidating] = React.useState(false);
+  const [validationError, setValidationError] = React.useState<Error | undefined>();
   const [resultDismissed, setResultDismissed] = React.useState(false);
+  const [mode, setMode] = React.useState<PreviewMode | undefined>();
+
+  const canPreview = isPreviewEnabled(formData, credentialsValidationStatus);
+  const previewDisabledTooltip = getPreviewDisabledTooltip(formData, credentialsValidationStatus);
 
   const buildPreviewRequest = React.useCallback((): CatalogSourcePreviewRequest => {
     const payload = transformFormDataToConfig(formData, existingSourceConfig);
 
     const request: CatalogSourcePreviewRequest = {
+      id: payload.id,
       type: payload.type,
       includedModels: payload.includedModels,
       excludedModels: payload.excludedModels,
@@ -79,7 +133,11 @@ export const useSourcePreview = ({
     if (payload.type === CatalogSourceType.HUGGING_FACE) {
       request.properties = {
         allowedOrganization: payload.allowedOrganization,
-        apiKey: payload.apiKey,
+        ...resolveHuggingFaceApiKeyField(payload.apiKey, {
+          tokenModified: formData.tokenModified,
+          hasExistingApiKey,
+          forPreview: true,
+        }),
       };
     } else {
       request.properties = {
@@ -89,7 +147,7 @@ export const useSourcePreview = ({
     }
 
     return request;
-  }, [formData, existingSourceConfig]);
+  }, [formData, existingSourceConfig, hasExistingApiKey]);
 
   const previewApi = React.useCallback(
     (
@@ -124,26 +182,65 @@ export const useSourcePreview = ({
     resultDismissed,
   };
 
-  const isValidating = mode === PreviewMode.VALIDATE && previewState.isLoadingInitial;
-  const validationError = mode === PreviewMode.VALIDATE ? previewState.error : undefined;
-  const isValidationSuccess =
-    mode === PreviewMode.VALIDATE &&
-    !previewState.isLoadingInitial &&
-    !previewState.error &&
-    !resultDismissed;
+  React.useEffect(() => {
+    setCredentialsValidationStatus('unknown');
+    setValidationError(undefined);
+    setResultDismissed(false);
+  }, [formData.accessToken, formData.organization]);
 
-  const handlePreview = React.useCallback(
-    async (nextMode: PreviewMode = PreviewMode.PREVIEW) => {
-      setMode(nextMode);
-      setResultDismissed(false);
-      await handlePreviewInternal();
-    },
-    [handlePreviewInternal],
-  );
+  const isValidationSuccess = credentialsValidationStatus === 'valid' && !resultDismissed;
+
+  const handlePreview = React.useCallback(async () => {
+    setMode(PreviewMode.PREVIEW);
+    await handlePreviewInternal();
+  }, [handlePreviewInternal]);
 
   const handleValidate = React.useCallback(async () => {
-    await handlePreview(PreviewMode.VALIDATE);
-  }, [handlePreview]);
+    const hasOrganization = formData.organization.trim().length > 0;
+
+    if (!apiState.apiAvailable) {
+      const apiError = new Error('API is not available');
+      setValidationError(apiError);
+      setCredentialsValidationStatus('invalid');
+      trackSimpleEvent(
+        MODEL_CATALOG_SOURCE_EVENTS.ACCESS_TOKEN_VALIDATED,
+        buildAccessTokenValidatedTrackingProperties(false, hasOrganization, apiError.message),
+      );
+      return;
+    }
+
+    setIsValidating(true);
+    setValidationError(undefined);
+    setResultDismissed(false);
+
+    try {
+      await previewApi({}, buildPreviewRequest(), {
+        filterStatus: CatalogSettingsPreviewTab.INCLUDED,
+        pageSize: DEFAULT_PREVIEW_PAGE_SIZE,
+      });
+      setCredentialsValidationStatus('valid');
+      trackSimpleEvent(
+        MODEL_CATALOG_SOURCE_EVENTS.ACCESS_TOKEN_VALIDATED,
+        buildAccessTokenValidatedTrackingProperties(true, hasOrganization),
+      );
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error('Failed to validate credentials');
+      setValidationError(err);
+      setCredentialsValidationStatus('invalid');
+      trackSimpleEvent(
+        MODEL_CATALOG_SOURCE_EVENTS.ACCESS_TOKEN_VALIDATED,
+        buildAccessTokenValidatedTrackingProperties(false, hasOrganization, err.message),
+      );
+    } finally {
+      setIsValidating(false);
+    }
+  }, [
+    apiState.apiAvailable,
+    buildPreviewRequest,
+    formData.organization,
+    previewApi,
+    trackSimpleEvent,
+  ]);
 
   const clearValidationSuccess = React.useCallback(() => {
     setResultDismissed(true);
@@ -161,5 +258,6 @@ export const useSourcePreview = ({
     validationError,
     isValidationSuccess,
     canPreview,
+    previewDisabledTooltip,
   };
 };

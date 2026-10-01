@@ -47,6 +47,9 @@ export type CatalogSource = {
   status?: 'available' | 'partially-available' | 'error' | 'disabled';
   error?: string;
   assetType?: CatalogAssetType;
+  hasApiKey?: boolean;
+  authenticated?: boolean;
+  hfUsername?: string;
 };
 
 export type CatalogSourceList = PaginationParams & { items?: CatalogSource[] };
@@ -88,7 +91,7 @@ export type PaginationParams = {
   nextPageToken: string;
 };
 
-export type CatalogAssetType = 'models' | 'mcp_servers' | 'agents';
+export type CatalogAssetType = 'models' | 'mcp_servers' | 'agents' | 'serving_runtimes';
 
 export type CatalogSourceListParams = {
   assetType?: CatalogAssetType;
@@ -444,14 +447,17 @@ export type YamlCatalogSourceConfig = CatalogSourceConfigCommon & {
 export type HuggingFaceCatalogSourceConfig = CatalogSourceConfigCommon & {
   type: CatalogSourceType.HUGGING_FACE;
   allowedOrganization?: string;
-  /** apiKey will be populated on GET (by ID) requests, not on LIST requests */
+  /** Indicates a configured credential reference, not authentication success. */
+  hasConfiguredApiKey?: boolean;
+  /** Only sent in create/update requests; never returned by configuration reads. */
   apiKey?: string;
 };
 
 export type CatalogSourceConfig = YamlCatalogSourceConfig | HuggingFaceCatalogSourceConfig;
 
 export type CatalogSourceConfigPayload =
-  | CatalogSourceConfig
+  | YamlCatalogSourceConfig
+  | Omit<HuggingFaceCatalogSourceConfig, 'hasConfiguredApiKey'>
   | Pick<CatalogSourceConfig, 'enabled' | 'includedModels' | 'excludedModels'>;
 
 export type CatalogSourceConfigList = {
@@ -476,6 +482,7 @@ export type DeleteCatalogSourceConfig = (opts: APIOptions, sourceId: string) => 
 
 // Preview types
 export type CatalogSourcePreviewRequest = {
+  id?: string;
   type: string;
   includedModels?: string[];
   excludedModels?: string[];
@@ -485,12 +492,15 @@ export type CatalogSourcePreviewRequest = {
 export type CatalogSourcePreviewModel = {
   name: string;
   included: boolean;
+  hfAccessType?: string;
+  hfGatedAccessGranted?: boolean;
 };
 
 export type CatalogSourcePreviewSummary = {
   totalModels: number;
   includedModels: number;
   excludedModels: number;
+  hasGatedAccessDeniedModels: boolean;
 };
 
 export type CatalogSourcePreviewResult = {
@@ -513,11 +523,14 @@ export type PreviewCatalogSource = (
   queryParams?: PreviewCatalogSourceQueryParams,
 ) => Promise<CatalogSourcePreviewResult>;
 
+export type DeleteCatalogSourceCredentials = (opts: APIOptions, sourceId: string) => Promise<void>;
+
 export type ModelCatalogSettingsAPIs = {
   getCatalogSourceConfigs: GetCatalogSourceConfigs;
   createCatalogSourceConfig: CreateCatalogSourceConfig;
   getCatalogSourceConfig: GetCatalogSourceConfig;
   updateCatalogSourceConfig: UpdateCatalogSourceConfig;
   deleteCatalogSourceConfig: DeleteCatalogSourceConfig;
+  deleteCatalogSourceCredentials: DeleteCatalogSourceCredentials;
   previewCatalogSource: PreviewCatalogSource;
 };

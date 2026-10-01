@@ -50,15 +50,32 @@ const resolveEffectivePhase = (
 };
 
 const phaseLabel = (phase: string): React.ReactNode => {
+  const testId = `status-badge-${phase.toLowerCase()}`;
   switch (phase) {
     case 'Ready':
-      return <Label color="green">Ready</Label>;
+      return (
+        <Label color="green" data-testid={testId}>
+          Ready
+        </Label>
+      );
     case 'Failed':
-      return <Label color="red">Failed</Label>;
+      return (
+        <Label color="red" data-testid={testId}>
+          Failed
+        </Label>
+      );
     case 'Installing':
-      return <Label color="blue">Installing</Label>;
+      return (
+        <Label color="blue" data-testid={testId}>
+          Installing
+        </Label>
+      );
     default:
-      return <Label color="purple">{phase}</Label>;
+      return (
+        <Label color="purple" data-testid={testId}>
+          {phase}
+        </Label>
+      );
   }
 };
 
@@ -162,6 +179,7 @@ const FeatureStoreTableRow: React.FC<FeatureStoreTableRowProps> = ({
     <>
       <Tr data-testid={`feature-store-row-${fs.metadata.namespace}-${fs.metadata.name}`}>
         <Td
+          data-testid="feature-store-expand-toggle"
           expand={{
             rowIndex,
             expandId: `feature-store-${fs.metadata.namespace}-${fs.metadata.name}`,
@@ -200,7 +218,7 @@ const FeatureStoreTableRow: React.FC<FeatureStoreTableRowProps> = ({
           )}
         </Td>
         <Td dataLabel="Project">{fs.metadata.namespace}</Td>
-        <Td dataLabel="Status">
+        <Td dataLabel="Status" data-testid="feature-store-status">
           {phaseLabel(resolveEffectivePhase(fs.status?.phase, fs.status?.conditions))}
         </Td>
         <Td dataLabel="Version">{fs.status?.feastVersion ?? '-'}</Td>
@@ -221,7 +239,7 @@ const FeatureStoreTableRow: React.FC<FeatureStoreTableRowProps> = ({
             items={[
               {
                 title: 'Delete',
-                isDisabled: !canDelete,
+                isAriaDisabled: !canDelete,
                 tooltipProps: !canDelete
                   ? { content: 'You do not have permission to delete feature stores.' }
                   : undefined,

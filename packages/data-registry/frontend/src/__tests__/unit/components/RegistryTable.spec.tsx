@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import RegistryTable from '~/app/components/RegistryTable';
 import { RegistryAsset } from '~/app/hooks/useAssets';
@@ -14,16 +14,18 @@ const mockAssets: RegistryAsset[] = [
     connectionRef: 'minio-connection',
     labels: ['production', 'claims'],
     collection: 'analytics',
+    properties: { 'data-domain': 'claims' },
   },
   {
     name: 'raw-documents',
     description: 'PDF documents',
-    format: 'application/pdf',
+    format: 'documents',
     assetType: 'volume',
     location: 's3://bucket/docs',
     connectionRef: '',
     labels: ['source-docs'],
     collection: 'guidelines',
+    properties: { 'retention-class': 'long-term' },
   },
 ];
 
@@ -41,6 +43,7 @@ const renderTable = (props?: Partial<React.ComponentProps<typeof RegistryTable>>
         onManageCollections={jest.fn()}
         onManageLabels={jest.fn()}
         onRegisterData={jest.fn()}
+        onRetry={jest.fn()}
         {...props}
       />
     </MemoryRouter>,
@@ -55,8 +58,8 @@ describe('RegistryTable', () => {
 
   it('should render format badges', () => {
     renderTable();
-    expect(screen.getByText('parquet')).toBeTruthy();
-    expect(screen.getByText('application/pdf')).toBeTruthy();
+    expect(screen.getByText('Apache Parquet')).toBeTruthy();
+    expect(screen.getByText('Documents')).toBeTruthy();
   });
 
   it('should render labels', () => {
@@ -74,7 +77,6 @@ describe('RegistryTable', () => {
   it('should show error state', () => {
     renderTable({ error: new Error('Failed to load'), loaded: true });
     expect(screen.getByText('Error loading assets')).toBeTruthy();
-    expect(screen.getByText('Failed to load')).toBeTruthy();
   });
 
   it('should show empty state when no assets', () => {
@@ -87,6 +89,17 @@ describe('RegistryTable', () => {
     expect(screen.getByTestId('filter-category')).toBeTruthy();
     expect(screen.getByTestId('filter-value')).toBeTruthy();
     expect(screen.getByTestId('asset-search')).toBeTruthy();
+  });
+
+  it('should filter assets by property key and value', () => {
+    renderTable();
+
+    fireEvent.change(screen.getByTestId('asset-search').querySelector('input')!, {
+      target: { value: 'retention-class' },
+    });
+
+    expect(screen.getByText('raw-documents')).toBeTruthy();
+    expect(screen.queryByText('claims-data')).toBeNull();
   });
 
   it('should render kebab menu', () => {

@@ -1,6 +1,7 @@
 package models
 
 type CatalogSourcePreviewRequest struct {
+	Id              string                 `json:"id,omitempty"`
 	Type            string                 `json:"type"`
 	IncludedModels  []string               `json:"includedModels,omitempty"`
 	ExcludedModels  []string               `json:"excludedModels,omitempty"`
@@ -10,17 +11,20 @@ type CatalogSourcePreviewRequest struct {
 }
 
 type CatalogSourcePreviewModel struct {
-	Name     string `json:"name"`
-	Included bool   `json:"included"`
+	Name                 string  `json:"name"`
+	Included             bool    `json:"included"`
+	HfAccessType         *string `json:"hfAccessType,omitempty"`
+	HfGatedAccessGranted *bool   `json:"hfGatedAccessGranted,omitempty"`
 }
 
 type CatalogSourcePreviewSummary struct {
-	TotalModels    int32 `json:"totalModels,omitempty"`
-	IncludedModels int32 `json:"includedModels,omitempty"`
-	ExcludedModels int32 `json:"excludedModels,omitempty"`
-	TotalAssets    int32 `json:"totalAssets,omitempty"`
-	IncludedAssets int32 `json:"includedAssets,omitempty"`
-	ExcludedAssets int32 `json:"excludedAssets,omitempty"`
+	TotalModels                int32 `json:"totalModels,omitempty"`
+	IncludedModels             int32 `json:"includedModels,omitempty"`
+	ExcludedModels             int32 `json:"excludedModels,omitempty"`
+	HasGatedAccessDeniedModels bool  `json:"hasGatedAccessDeniedModels"`
+	TotalAssets                int32 `json:"totalAssets,omitempty"`
+	IncludedAssets             int32 `json:"includedAssets,omitempty"`
+	ExcludedAssets             int32 `json:"excludedAssets,omitempty"`
 }
 
 type CatalogSourcePreviewResult struct {

@@ -51,48 +51,46 @@ export type RhaiConnectionRef = {
 
 export type ConnectionRef = DchConnectionRef | RhaiConnectionRef;
 
-export type AssetResponse = {
+export type UnstructuredFormat = 'documents' | 'images' | 'audio' | 'video' | 'binary' | 'other';
+
+export type StructuredFormat =
+  'iceberg' | 'parquet' | 'csv' | 'delta' | 'postgresql' | 'milvus' | 'other';
+
+export type AssetFormat = UnstructuredFormat | StructuredFormat;
+
+export type AssetResponseBase = {
   name: string;
-  asset_type: string;
-  uuid?: string;
-  format?: string;
-  location?: string;
-  content_type?: string;
-  columns?: SchemaField[];
-  collection?: string;
-  // Backend will return ConnectionRef object per OpenAPI spec; currently returns a plain string
-  connection_ref?: ConnectionRef | string | null;
-  owner?: string;
-  description?: string;
-  labels?: string[];
-  properties?: Record<string, string>;
-  registered_by?: string;
-  updated_by?: string;
-  created_at?: string;
-  updated_at?: string;
+  uuid: string;
+  storage_location?: string | null;
+  columns?: SchemaField[] | null;
+  collection: string;
+  connection_ref?: ConnectionRef | null;
+  owner: string;
+  description?: string | null;
+  labels?: string[] | null;
+  properties?: Record<string, string> | null;
+  created_at: string;
+  updated_at: string;
 };
+
+export type StructuredAssetResponse = AssetResponseBase & {
+  asset_type: 'table';
+  format: StructuredFormat;
+};
+
+export type UnstructuredAssetResponse = AssetResponseBase & {
+  asset_type: 'volume';
+  format: UnstructuredFormat;
+};
+
+export type AssetResponse = StructuredAssetResponse | UnstructuredAssetResponse;
 
 export type AssetListResponse = {
-  assets: AssetResponse[];
-};
-
-export type VolumeInfo = {
-  name: string;
-  'catalog-name': string;
-  'schema-name': string;
-  'volume-type': string;
-  'storage-location': string;
-  comment?: string;
-  owner?: string;
-  'created-at'?: string;
-  'updated-at'?: string;
-  labels?: string[];
-  properties?: Record<string, string>;
-  config?: Record<string, string>;
+  assets: StructuredAssetResponse[];
 };
 
 export type ListVolumesResponse = {
-  volumes: VolumeInfo[];
+  volumes: UnstructuredAssetResponse[];
 };
 
 export type ListNamespacesResponse = {
@@ -111,26 +109,30 @@ export type CreateNamespaceRequest = {
 
 export type CreateVolumeRequest = {
   name: string;
-  location?: string;
-  content_type?: string;
-  connection_ref?: string;
-  description?: string;
-  labels?: string[];
-  properties?: Record<string, string>;
-};
-
-export type CreateGenericTableRequest = {
-  name: string;
-  format?: string;
-  location?: string;
-  connection_ref?: string;
+  format: UnstructuredFormat;
+  storage_location?: string;
+  connection_ref?: ConnectionRef | null;
   description?: string;
   purpose?: string;
   license?: string;
   maturity?: string;
   domain?: string;
   pii?: string;
-  owner?: string;
+  labels?: string[];
+  properties?: Record<string, string>;
+};
+
+export type CreateGenericTableRequest = {
+  name: string;
+  format: StructuredFormat;
+  storage_location?: string;
+  connection_ref?: ConnectionRef | null;
+  description?: string;
+  purpose?: string;
+  license?: string;
+  maturity?: string;
+  domain?: string;
+  pii?: string;
   labels?: string[];
   schema_fields?: SchemaField[];
   properties?: Record<string, string>;

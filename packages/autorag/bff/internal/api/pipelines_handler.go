@@ -300,6 +300,11 @@ func (h *PipelinesHandler) mapPipelineError(w http.ResponseWriter, r *http.Reque
 		notFoundResponseWithMessage(h.logger, w, r, err.Error())
 		return
 	}
+	if errors.Is(err, repositories.ErrIndexingPipelineUnavailable) {
+		serviceUnavailableResponseWithMessage(h.logger, w, r, err,
+			"indexing pipeline is unavailable because its input schema could not be loaded")
+		return
+	}
 	if errors.Is(err, repositories.ErrValidation) {
 		badRequestResponse(h.logger, w, r, err.Error())
 		return

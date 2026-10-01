@@ -1,13 +1,16 @@
 package llamastack
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -19,12 +22,18 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	nemo "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // LlamaStackClient wraps the OpenAI client for Llama Stack communication.
 type LlamaStackClient struct {
-	client *openai.Client
+	client     *openai.Client
+	baseURL    string
+	authToken  string
+	httpClient *http.Client
 }
+
+const fileProcessorPollInterval = 250 * time.Millisecond
 
 // SetClientForTest replaces the internal OpenAI client (test use only).
 func SetClientForTest(c *LlamaStackClient, client *openai.Client) {
@@ -44,8 +53,13 @@ func NewLlamaStackClient(baseURL string, authToken string, insecureSkipVerify bo
 	httpClient := &http.Client{
 		Transport: otelhttp.NewTransport(&http.Transport{
 			TLSClientConfig: tlsConfig,
-		}),
+		}, otelhttp.WithFilter(hasActiveTraceContext)),
 		Timeout: 8 * time.Minute, // Overall request timeout (matches server WriteTimeout)
+		// Provider data can contain credentials. Return redirect responses to the caller
+		// rather than forwarding those credentials to the redirect target.
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
 
 	// Use the provided apiPath to construct the full base URL
@@ -55,14 +69,23 @@ func NewLlamaStackClient(baseURL string, authToken string, insecureSkipVerify bo
 		option.WithHTTPClient(httpClient),
 	)
 
-	return &LlamaStackClient{
-		client: &client,
-	}
+	return &LlamaStackClient{client: &client, baseURL: baseURL, authToken: authToken, httpClient: httpClient}
+}
+
+func hasActiveTraceContext(r *http.Request) bool {
+	return trace.SpanContextFromContext(r.Context()).IsValid()
 }
 
 // ListModels retrieves all available models from Llama Stack.
 func (c *LlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, error) {
-	modelsPage, err := c.client.Models.List(ctx)
+	return c.ListModelsWithProviderData(ctx, nil)
+}
+
+// ListModelsWithProviderData retrieves all available models and forwards provider
+// data to OGX. The remote::passthrough provider uses passthrough_api_key from
+// X-OGX-Provider-Data to authenticate its request to the Gen AI BFF.
+func (c *LlamaStackClient) ListModelsWithProviderData(ctx context.Context, providerData map[string]interface{}) ([]openai.Model, error) {
+	modelsPage, err := c.client.Models.List(ctx, c.buildRequestOptions(providerData)...)
 	if err != nil {
 		return nil, wrapClientError(err, "ListModels")
 	}
@@ -388,7 +411,7 @@ type CreateResponseParams struct {
 	Store *bool
 	// Tools contains MCP server configurations for tool-enabled responses.
 	Tools []MCPServerParam
-	// ProviderData contains custom provider headers (e.g., vllm_api_token)
+	// ProviderData contains custom provider headers
 	ProviderData map[string]interface{}
 	// GuardrailOpts carries the inline NeMo guardrail configuration for this request.
 	// Input moderation is applied before the LlamaStack call; output moderation is applied
@@ -721,6 +744,139 @@ func (c *LlamaStackClient) GetFileContent(ctx context.Context, fileID string) (i
 	}
 
 	return resp.Body, resp.Header.Get("Content-Type"), nil
+}
+
+// ProcessFile asks the OGX file-processors API to extract document text. The
+// API executes processing asynchronously, so this method submits the job then
+// polls it within the caller's timeout. Playground needs the complete document
+// text, so chunks are concatenated in response order.
+func (c *LlamaStackClient) ProcessFile(ctx context.Context, fileID string) (*ProcessedDocument, error) {
+	if fileID == "" {
+		return nil, NewInvalidRequestError("fileID is required")
+	}
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	if err := writer.WriteField("file_id", fileID); err != nil {
+		return nil, fmt.Errorf("write file processor request: %w", err)
+	}
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("close file processor request: %w", err)
+	}
+
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost,
+		strings.TrimRight(c.baseURL, "/")+"/v1alpha/file-processors/jobs", &body)
+	if err != nil {
+		return nil, fmt.Errorf("create file processor request: %w", err)
+	}
+	request.Header.Set("Content-Type", writer.FormDataContentType())
+	if c.authToken != "" {
+		request.Header.Set("Authorization", "Bearer "+c.authToken)
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, wrapClientError(err, "ProcessFile")
+	}
+	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+		responseBody, _ := io.ReadAll(io.LimitReader(response.Body, 64<<10))
+		response.Body.Close()
+		result := NewLlamaStackError("file_processing_failed", string(responseBody), response.StatusCode)
+		result.Component = ComponentOGX
+		return nil, result
+	}
+
+	payload, err := decodeProcessFileJob(io.LimitReader(response.Body, constants.ResponsesMaxBodySize+1))
+	response.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	for payload.Status == "in_progress" || payload.Status == "scheduled" {
+		select {
+		case <-ctx.Done():
+			return nil, wrapClientError(ctx.Err(), "ProcessFile")
+		case <-time.After(fileProcessorPollInterval):
+		}
+
+		request, err := http.NewRequestWithContext(ctx, http.MethodGet,
+			strings.TrimRight(c.baseURL, "/")+"/v1alpha/file-processors/jobs/"+url.PathEscape(payload.JobID), nil)
+		if err != nil {
+			return nil, fmt.Errorf("create file processor status request: %w", err)
+		}
+		if c.authToken != "" {
+			request.Header.Set("Authorization", "Bearer "+c.authToken)
+		}
+
+		response, err := c.httpClient.Do(request)
+		if err != nil {
+			return nil, wrapClientError(err, "ProcessFile")
+		}
+		if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+			responseBody, _ := io.ReadAll(io.LimitReader(response.Body, 64<<10))
+			response.Body.Close()
+			result := NewLlamaStackError("file_processing_failed", string(responseBody), response.StatusCode)
+			result.Component = ComponentOGX
+			return nil, result
+		}
+		payload, err = decodeProcessFileJob(io.LimitReader(response.Body, constants.ResponsesMaxBodySize+1))
+		response.Body.Close()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if payload.Status != "completed" || payload.Result == nil {
+		message := payload.Error
+		if message == "" {
+			message = "file processor did not return a result"
+		}
+		result := NewLlamaStackError("file_processing_failed", message, http.StatusUnprocessableEntity)
+		result.Component = ComponentOGX
+		return nil, result
+	}
+
+	var text strings.Builder
+	for _, chunk := range payload.Result.Chunks {
+		if chunk.Content == "" {
+			continue
+		}
+		additionalBytes := len(chunk.Content)
+		if text.Len() > 0 {
+			additionalBytes++
+		}
+		if text.Len()+additionalBytes > constants.ResponsesMaxBodySize {
+			result := NewLlamaStackError("file_processing_failed", "extracted document text exceeds the supported size", http.StatusRequestEntityTooLarge)
+			result.Component = ComponentOGX
+			return nil, result
+		}
+		if text.Len() > 0 {
+			text.WriteString("\n")
+		}
+		text.WriteString(chunk.Content)
+	}
+	return &ProcessedDocument{Text: text.String()}, nil
+}
+
+type processFileJob struct {
+	JobID  string `json:"job_id"`
+	Status string `json:"status"`
+	Result *struct {
+		Chunks []struct {
+			Content string `json:"content"`
+		} `json:"chunks"`
+	} `json:"result"`
+	Error string `json:"error"`
+}
+
+func decodeProcessFileJob(body io.Reader) (*processFileJob, error) {
+	var job processFileJob
+	if err := json.NewDecoder(body).Decode(&job); err != nil {
+		return nil, fmt.Errorf("decode file processor job: %w", err)
+	}
+	if job.JobID == "" {
+		return nil, fmt.Errorf("decode file processor job: response did not contain job_id")
+	}
+	return &job, nil
 }
 
 // DeleteFile deletes a file by ID.

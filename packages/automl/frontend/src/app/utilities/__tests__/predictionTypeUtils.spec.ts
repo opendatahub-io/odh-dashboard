@@ -178,7 +178,7 @@ describe('predictionTypeUtils', () => {
       ).toBe('regression');
     });
 
-    it('should infer timeseries when a "ds" datestamp column exists', () => {
+    it('should not infer timeseries for an integer datestamp', () => {
       expect(
         getInferredPredictionType(
           { name: 'y', type: 'double', task_type: 'regression', unique_count: 100 },
@@ -187,7 +187,7 @@ describe('predictionTypeUtils', () => {
             { name: 'y', type: 'double' },
           ],
         ),
-      ).toBe('timeseries');
+      ).toBe('regression');
     });
 
     it('should not infer timeseries for a boolean target when a timestamp column exists', () => {
@@ -297,7 +297,7 @@ describe('predictionTypeUtils', () => {
       const assessments = assessPredictionTypes(
         { name: 'y', type: 'double', task_type: 'regression', unique_count: 100 },
         [
-          { name: 'ds', type: 'integer' },
+          { name: 'ds', type: 'timestamp' },
           { name: 'y', type: 'double' },
         ],
       );

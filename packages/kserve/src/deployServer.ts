@@ -6,7 +6,7 @@ import {
 import { ServingRuntimeModel } from '@odh-dashboard/internal/api/index';
 import { type InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import type { ModelServerSelectFieldData } from '@odh-dashboard/model-serving/shared/wizard-fields';
-import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
+import { k8sCreateResource, k8sUpdateResource } from '@openshift/dynamic-plugin-sdk-utils';
 import type { KServeDeployment } from './types';
 
 type CreatingServingRuntimeObject = {
@@ -51,6 +51,20 @@ export const createServingRuntime = (
     ),
   );
 };
+
+export const updateServingRuntime = (
+  servingRuntime: ServingRuntimeKind,
+  opts?: K8sAPIOptions,
+): Promise<ServingRuntimeKind> =>
+  k8sUpdateResource<ServingRuntimeKind>(
+    applyK8sAPIOptions(
+      {
+        model: ServingRuntimeModel,
+        resource: servingRuntime,
+      },
+      opts,
+    ),
+  );
 
 export const applyModelRuntime = (
   inferenceService: InferenceServiceKind,

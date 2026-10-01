@@ -1,13 +1,34 @@
 package llamastack
 
 import (
+	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
+
+func TestHasActiveTraceContext(t *testing.T) {
+	t.Run("false without span context", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		assert.False(t, hasActiveTraceContext(req))
+	})
+
+	t.Run("true with valid span context", func(t *testing.T) {
+		spanContext := oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
+			TraceID: oteltrace.TraceID{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
+			SpanID:  oteltrace.SpanID{1, 2, 3, 4, 5, 6, 7, 8},
+		})
+		ctx := oteltrace.ContextWithSpanContext(context.Background(), spanContext)
+		req := httptest.NewRequest(http.MethodGet, "/test", nil).WithContext(ctx)
+		assert.True(t, hasActiveTraceContext(req))
+	})
+}
 
 func TestBuildRequestOptions(t *testing.T) {
 	client := &LlamaStackClient{}
@@ -99,6 +120,125 @@ func TestBuildRequestOptions(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestProcessFile(t *testing.T) {
+	t.Run("concatenates processor chunks and propagates the user token", func(t *testing.T) {
+		var requests int
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "Bearer user-token", r.Header.Get("Authorization"))
+			requests++
+			switch requests {
+			case 1:
+				assert.Equal(t, http.MethodPost, r.Method)
+				assert.Equal(t, "/v1alpha/file-processors/jobs", r.URL.Path)
+				assert.Contains(t, r.Header.Get("Content-Type"), "multipart/form-data")
+				require.NoError(t, r.ParseMultipartForm(1<<20))
+				assert.Equal(t, "file-123", r.FormValue("file_id"))
+				_, err := w.Write([]byte(`{"job_id":"job-123","status":"in_progress"}`))
+				require.NoError(t, err)
+			case 2:
+				assert.Equal(t, http.MethodGet, r.Method)
+				assert.Equal(t, "/v1alpha/file-processors/jobs/job-123", r.URL.Path)
+				_, err := w.Write([]byte(`{"job_id":"job-123","status":"completed","result":{"chunks":[{"content":"First page"},{"content":"Second page"}]}}`))
+				require.NoError(t, err)
+			default:
+				t.Fatalf("unexpected request %d", requests)
+			}
+		}))
+		defer server.Close()
+
+		client := NewLlamaStackClient(server.URL, "user-token", false, nil, "/v1")
+		document, err := client.ProcessFile(context.Background(), "file-123")
+
+		require.NoError(t, err)
+		assert.Equal(t, "First page\nSecond page", document.Text)
+	})
+
+	t.Run("escapes the processor job ID in the polling URL", func(t *testing.T) {
+		var requests int
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			requests++
+			switch requests {
+			case 1:
+				_, err := w.Write([]byte(`{"job_id":"job/123?secret#fragment","status":"in_progress"}`))
+				require.NoError(t, err)
+			case 2:
+				assert.Equal(t, "/v1alpha/file-processors/jobs/job%2F123%3Fsecret%23fragment", r.URL.EscapedPath())
+				assert.Empty(t, r.URL.RawQuery)
+				_, err := w.Write([]byte(`{"job_id":"job/123?secret#fragment","status":"completed","result":{"chunks":[{"content":"Processed"}]}}`))
+				require.NoError(t, err)
+			default:
+				t.Fatalf("unexpected request %d", requests)
+			}
+		}))
+		defer server.Close()
+
+		client := NewLlamaStackClient(server.URL, "user-token", false, nil, "/v1")
+		document, err := client.ProcessFile(context.Background(), "file-123")
+
+		require.NoError(t, err)
+		assert.Equal(t, "Processed", document.Text)
+	})
+
+	t.Run("attributes processor failures to OGX", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, "processor unavailable", http.StatusServiceUnavailable)
+		}))
+		defer server.Close()
+
+		client := NewLlamaStackClient(server.URL, "user-token", false, nil, "/v1")
+		_, err := client.ProcessFile(context.Background(), "file-123")
+
+		require.Error(t, err)
+		processorError, ok := err.(*LlamaStackError)
+		require.True(t, ok)
+		assert.Equal(t, ComponentOGX, processorError.Component)
+		assert.Equal(t, http.StatusServiceUnavailable, processorError.StatusCode)
+	})
+}
+
+func TestListModelsWithProviderData(t *testing.T) {
+	var receivedProviderData map[string]interface{}
+	var unmarshalErr error
+	var responseWriteErr error
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "Bearer user-token", r.Header.Get("Authorization"))
+		unmarshalErr = json.Unmarshal([]byte(r.Header.Get("X-Ogx-Provider-Data")), &receivedProviderData)
+		w.Header().Set("Content-Type", "application/json")
+		_, responseWriteErr = w.Write([]byte(`{"object":"list","data":[]}`))
+	}))
+	defer server.Close()
+
+	client := NewLlamaStackClient(server.URL, "user-token", false, nil, "")
+	_, err := client.ListModelsWithProviderData(context.Background(), map[string]interface{}{
+		"passthrough_api_key": "user-token",
+	})
+	require.NoError(t, err)
+	require.NoError(t, unmarshalErr)
+	require.NoError(t, responseWriteErr)
+	assert.Equal(t, map[string]interface{}{"passthrough_api_key": "user-token"}, receivedProviderData)
+}
+
+func TestListModelsWithProviderData_DoesNotFollowRedirects(t *testing.T) {
+	redirectTargetCalled := false
+	redirectTarget := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		redirectTargetCalled = true
+	}))
+	defer redirectTarget.Close()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, redirectTarget.URL, http.StatusFound)
+	}))
+	defer server.Close()
+
+	client := NewLlamaStackClient(server.URL, "user-token", false, nil, "")
+	_, err := client.ListModelsWithProviderData(context.Background(), map[string]interface{}{
+		"passthrough_api_key": "user-token",
+	})
+
+	require.Error(t, err)
+	assert.False(t, redirectTargetCalled, "provider data must not be forwarded to a redirect target")
 }
 
 func TestBuildRequestOptions_JSONFormat(t *testing.T) {

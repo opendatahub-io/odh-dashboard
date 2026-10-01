@@ -30,8 +30,10 @@ import {
   fireAutoragRunTriggered,
   fireAutoragS3ConnectionCreated,
   fireAutoragVectorStoreConfigured,
+  getVectorStoreProviderTypeFromSecretData,
   isAutoragResultsNavigationState,
   mapOptimizationMetric,
+  mapOptimizationMetricEvaluator,
   toVectorStoreProviderType,
 } from '~/app/utilities/tracking';
 
@@ -271,6 +273,38 @@ describe('toVectorStoreProviderType', () => {
   });
 });
 
+describe('getVectorStoreProviderTypeFromSecretData', () => {
+  it('should infer Milvus from redacted key metadata', () => {
+    expect(getVectorStoreProviderTypeFromSecretData({ MILVUS_URI: '[REDACTED]' })).toBe('milvus');
+  });
+
+  it('should infer PGVector from its complete redacted key metadata', () => {
+    expect(
+      getVectorStoreProviderTypeFromSecretData({
+        PGVECTOR_HOST: '[REDACTED]',
+        PGVECTOR_PORT: '[REDACTED]',
+        PGVECTOR_DB: '[REDACTED]',
+        PGVECTOR_USER: '[REDACTED]',
+        PGVECTOR_PASSWORD: '[REDACTED]',
+      }),
+    ).toBe('pgvector');
+  });
+
+  it('should omit provider type for ambiguous or incomplete metadata', () => {
+    expect(
+      getVectorStoreProviderTypeFromSecretData({
+        MILVUS_URI: '[REDACTED]',
+        PGVECTOR_HOST: '[REDACTED]',
+        PGVECTOR_PORT: '[REDACTED]',
+        PGVECTOR_DB: '[REDACTED]',
+        PGVECTOR_USER: '[REDACTED]',
+        PGVECTOR_PASSWORD: '[REDACTED]',
+      }),
+    ).toBeUndefined();
+    expect(getVectorStoreProviderTypeFromSecretData({})).toBeUndefined();
+  });
+});
+
 describe('fireAutoragVectorStoreConfigured', () => {
   it('should fire with the categorized provider type and compatible provider count', () => {
     fireAutoragVectorStoreConfigured({
@@ -286,20 +320,38 @@ describe('fireAutoragVectorStoreConfigured', () => {
       outcome: TrackingOutcome.submit,
       success: true,
     });
+    const payload =
+      fireFormTrackingEventMock.mock.calls[fireFormTrackingEventMock.mock.calls.length - 1][1];
+    expect(payload).not.toHaveProperty('secretName');
+    expect(payload).not.toHaveProperty('MILVUS_URI');
   });
 });
 
 describe('mapOptimizationMetric', () => {
-  it('should map all four schema values to their camelCase taxonomy', () => {
-    expect(mapOptimizationMetric('overall_score')).toBe('overallScore');
-    expect(mapOptimizationMetric('faithfulness')).toBe('answerFaithfulness');
-    expect(mapOptimizationMetric('answer_correctness')).toBe('answerCorrectness');
-    expect(mapOptimizationMetric('context_correctness')).toBe('contextCorrectness');
+  it('should map qualified schema values to their camelCase taxonomy', () => {
+    expect(mapOptimizationMetric('custom:overall_score')).toBe('overallScore');
+    expect(mapOptimizationMetric('unitxt:faithfulness')).toBe('answerFaithfulness');
+    expect(mapOptimizationMetric('unitxt:answer_correctness')).toBe('answerCorrectness');
+    expect(mapOptimizationMetric('ragas:context_precision')).toBe('contextPrecision');
   });
 
   it('should return undefined for an unrecognized metric', () => {
     expect(mapOptimizationMetric('answer_relevance')).toBeUndefined();
     expect(mapOptimizationMetric('')).toBeUndefined();
+  });
+});
+
+describe('mapOptimizationMetricEvaluator', () => {
+  it('should distinguish Unitxt and RAGAS faithfulness evaluators', () => {
+    expect(mapOptimizationMetricEvaluator('unitxt:faithfulness')).toBe('unitxt');
+    expect(mapOptimizationMetricEvaluator('ragas:faithfulness')).toBe('ragas');
+  });
+
+  it('should map custom overall score and reject unqualified metrics', () => {
+    expect(mapOptimizationMetricEvaluator('custom:overall_score')).toBe('custom');
+    expect(mapOptimizationMetricEvaluator('faithfulness')).toBeUndefined();
+    expect(mapOptimizationMetricEvaluator('custom:unsupported')).toBeUndefined();
+    expect(mapOptimizationMetricEvaluator('')).toBeUndefined();
   });
 });
 
@@ -309,6 +361,7 @@ describe('fireAutoragRunTriggered', () => {
       knowledgeSourceType: 's3',
       evaluationSourceType: 'upload',
       optimizationMetric: 'overallScore',
+      optimizationMetricEvaluator: 'custom',
       vectorDatabase: 'milvus',
       countOfModels: 3,
       countOfKnowledgeDocuments: 1,
@@ -324,6 +377,7 @@ describe('fireAutoragRunTriggered', () => {
       knowledgeSourceType: 's3',
       evaluationSourceType: 'upload',
       optimizationMetric: 'overallScore',
+      optimizationMetricEvaluator: 'custom',
       vectorDatabase: 'milvus',
       countOfModels: 3,
       countOfKnowledgeDocuments: 1,

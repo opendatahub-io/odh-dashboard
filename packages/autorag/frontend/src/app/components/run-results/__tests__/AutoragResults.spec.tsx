@@ -14,12 +14,16 @@ import {
 import type { PipelineRun } from '~/app/types';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
-import * as queries from '~/app/hooks/queries';
+import * as managedPipelinesQuery from '~/app/hooks/useManagedPipelinesQuery';
 import * as treeView from '~/app/topology/tree-view';
 import * as transformPipelineDataModule from '~/app/topology/tree-view/transformPipelineData';
 import * as buildStageMapTopologyModule from '~/app/topology/buildStageMapTopology';
 import * as useAutoragTaskTopologyModule from '~/app/topology/useAutoragTaskTopology';
 import * as utils from '~/app/utilities/utils';
+import { DEFAULT_OPTIMIZATION_METRIC } from '~/app/utilities/const';
+import { resolveObjectiveReference } from '~/app/utilities/metricUtils';
+
+const mockFetchS3File = jest.fn();
 
 jest.mock('~/app/topology/tree-view', () => ({
   useTreeViewData: jest.fn().mockReturnValue({ selectedPattern: undefined, stageMapNodes: [] }),
@@ -43,16 +47,19 @@ jest.mock('~/app/components/run-results/AutoragPipelineVisualization', () => ({
     runTitle,
     runState,
     treeLoadingMode,
+    showStageMapUnavailableNotice,
   }: {
     runTitle: string;
     runState?: string;
     treeLoadingMode?: string;
+    showStageMapUnavailableNotice?: boolean;
   }) => (
     <div
       data-testid="autorag-pipeline-visualization"
       data-run-title={runTitle}
       data-run-state={runState}
       data-tree-loading-mode={treeLoadingMode ?? 'none'}
+      data-stage-map-unavailable={showStageMapUnavailableNotice ? 'true' : 'false'}
     />
   ),
 }));
@@ -70,9 +77,12 @@ jest.mock('~/app/utilities/utils', () => ({
   downloadBlob: jest.fn(),
 }));
 
-jest.mock('~/app/hooks/queries', () => ({
-  ...jest.requireActual('~/app/hooks/queries'),
-  fetchS3File: jest.fn(),
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
+  useFetchS3File: jest.fn(() => mockFetchS3File),
+}));
+
+jest.mock('~/app/hooks/useManagedPipelinesQuery', () => ({
   useManagedPipelinesQuery: jest.fn().mockReturnValue({
     data: [
       {
@@ -88,7 +98,7 @@ jest.mock('~/app/hooks/queries', () => ({
   }),
 }));
 
-jest.mock('~/app/hooks/mutations', () => ({
+jest.mock('~/app/hooks/useCreateIndexingPipelineRunMutation', () => ({
   useCreateIndexingPipelineRunMutation: jest.fn().mockReturnValue({
     mutateAsync: jest.fn(),
     isPending: false,
@@ -135,9 +145,8 @@ const createMockPattern = (name: string): AutoragPattern => ({
   duration_seconds: 120,
   settings: {
     vector_store_binding: {
-      provider_id: 'milvus',
-      provider_type: 'remote::milvus',
-      vector_store_id: 'vs_collection0',
+      provider_type: 'milvus',
+      collection_name: 'vs_collection0',
     },
     chunking: {
       method: 'fixed',
@@ -200,7 +209,7 @@ const createMockPattern = (name: string): AutoragPattern => ({
   },
 });
 
-const fetchS3FileMock = jest.mocked(queries.fetchS3File);
+const fetchS3FileMock = jest.mocked(mockFetchS3File);
 const downloadBlobMock = jest.mocked(utils.downloadBlob);
 const useTreeViewDataMock = jest.mocked(treeView.useTreeViewData);
 const transformPipelineDataMock = jest.mocked(transformPipelineDataModule.transformPipelineData);
@@ -220,35 +229,48 @@ describe('AutoragResults', () => {
     });
   });
 
+  const createResultsElement = (
+    pipelineRun?: PipelineRun,
+    patterns: Record<string, AutoragPattern> = {},
+    namespace = 'test-namespace',
+    contextOverrides?: Partial<AutoragResultsContextProps>,
+    props?: React.ComponentProps<typeof AutoragResults>,
+  ) => (
+    <MemoryRouter initialEntries={[`/autorag/${namespace}/results`]}>
+      <Routes>
+        <Route
+          path="/autorag/:namespace/results"
+          element={
+            <AutoragResultsContext.Provider
+              value={{
+                pipelineRun,
+                patterns,
+                parameters: {},
+                ragPatternsBasePath: 'rag_patterns',
+                optimizationMetric: resolveObjectiveReference(
+                  patterns,
+                  typeof pipelineRun?.runtime_config?.parameters?.optimization_metric === 'string'
+                    ? pipelineRun.runtime_config.parameters.optimization_metric
+                    : DEFAULT_OPTIMIZATION_METRIC,
+                ),
+                ...contextOverrides,
+              }}
+            >
+              <AutoragResults {...props} />
+            </AutoragResultsContext.Provider>
+          }
+        />
+      </Routes>
+    </MemoryRouter>
+  );
+
   const renderWithContext = (
     pipelineRun?: PipelineRun,
     patterns: Record<string, AutoragPattern> = {},
     namespace = 'test-namespace',
     contextOverrides?: Partial<AutoragResultsContextProps>,
     props?: React.ComponentProps<typeof AutoragResults>,
-  ) =>
-    render(
-      <MemoryRouter initialEntries={[`/autorag/${namespace}/results`]}>
-        <Routes>
-          <Route
-            path="/autorag/:namespace/results"
-            element={
-              <AutoragResultsContext.Provider
-                value={{
-                  pipelineRun,
-                  patterns,
-                  parameters: {},
-                  ragPatternsBasePath: 'rag_patterns',
-                  ...contextOverrides,
-                }}
-              >
-                <AutoragResults {...props} />
-              </AutoragResultsContext.Provider>
-            }
-          />
-        </Routes>
-      </MemoryRouter>,
-    );
+  ) => render(createResultsElement(pipelineRun, patterns, namespace, contextOverrides, props));
 
   it('should render the pipeline visualization component', () => {
     renderWithContext(mockPipelineRun);
@@ -275,12 +297,12 @@ describe('AutoragResults', () => {
   });
 
   it('should toast a warning when managed pipelines query fails', () => {
-    jest.mocked(queries.useManagedPipelinesQuery).mockReturnValueOnce({
+    jest.mocked(managedPipelinesQuery.useManagedPipelinesQuery).mockReturnValueOnce({
       data: undefined,
       isLoading: false,
       isError: true,
       error: new Error('Network Error'),
-    } as ReturnType<typeof queries.useManagedPipelinesQuery>);
+    } as ReturnType<typeof managedPipelinesQuery.useManagedPipelinesQuery>);
 
     renderWithContext(mockPipelineRun);
 
@@ -350,6 +372,7 @@ describe('AutoragResults', () => {
                     patterns,
                     parameters: {},
                     ragPatternsBasePath: 'rag_patterns',
+                    optimizationMetric: { name: 'overall_score', evaluator: 'custom' },
                   }}
                 >
                   <AutoragResults />
@@ -688,7 +711,7 @@ describe('AutoragResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
+        useAutoragTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
       );
     });
@@ -741,7 +764,7 @@ describe('AutoragResults', () => {
       expect(buildStageMapTopologyMock).toHaveBeenCalled();
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        buildStageMapTopologyMock.mock.results.at(-1)?.value,
+        buildStageMapTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
       );
     });
@@ -773,7 +796,7 @@ describe('AutoragResults', () => {
 
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
+        useAutoragTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
       );
     });
@@ -786,7 +809,7 @@ describe('AutoragResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
+        useAutoragTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
       );
     });
@@ -800,7 +823,7 @@ describe('AutoragResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
+        useAutoragTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
       );
     });
@@ -816,6 +839,44 @@ describe('AutoragResults', () => {
 
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(getPipelineVisualization()).toHaveAttribute('data-run-state', 'SUCCEEDED');
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'true');
+    });
+
+    it('should show a pipeline view notice when a failed run has no stage map', () => {
+      const failedStageMapRun: PipelineRun = {
+        ...stageMapRun,
+        state: 'FAILED',
+      };
+      renderWithContext(failedStageMapRun, {}, 'test-namespace', {
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'true');
+    });
+
+    it('should not show a pipeline view notice while the run is still preparing', () => {
+      renderWithContext(stageMapRun, {}, 'test-namespace', {
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'false');
+    });
+
+    it('should not show a pipeline view notice when the stage map is available', () => {
+      renderWithContext({ ...stageMapRun, state: 'FAILED' }, {}, 'test-namespace', {
+        componentStageMap: mockComponentStageMap,
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'false');
+    });
+
+    it('should not show a pipeline view notice for pipelines without a stage map task', () => {
+      renderWithContext({ ...noStageMapRun, state: 'FAILED' }, {}, 'test-namespace', {
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'false');
     });
   });
 
@@ -856,18 +917,17 @@ describe('AutoragResults', () => {
     };
     const patterns = { Pattern1: patternWithTemplate };
 
-    it('should call onTryPattern with source: resultsTable from the leaderboard action', () => {
+    it('should not expose Try this pattern from the leaderboard action', () => {
       const onTryPattern = jest.fn();
       renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onTryPattern });
 
       const row = screen.getByTestId('leaderboard-row-1');
       fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
-      fireEvent.click(screen.getByText('Try this pattern'));
 
-      expect(onTryPattern).toHaveBeenCalledWith('Pattern1', 'resultsTable');
+      expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
     });
 
-    it('should call onTryPattern with source: patternDetails from the pattern details modal action', async () => {
+    it('should not expose Try this pattern from the pattern details modal action', async () => {
       const user = userEvent.setup();
       const onTryPattern = jest.fn();
       renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, {
@@ -875,16 +935,16 @@ describe('AutoragResults', () => {
       });
 
       const row = screen.getByTestId('leaderboard-row-1');
-      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
-      fireEvent.click(screen.getByText('View details'));
+      await user.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+
+      const viewDetailsAction = await screen.findByText('View details');
+      await user.click(viewDetailsAction);
 
       const actionsToggle = await screen.findByTestId('pattern-details-actions-toggle');
       await user.click(actionsToggle);
-      const tryPatternAction = await screen.findByText('Try this pattern');
-      await user.click(tryPatternAction);
 
-      expect(onTryPattern).toHaveBeenCalledWith('Pattern1', 'patternDetails');
-    }, 15_000);
+      expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
+    }, 45_000);
   });
 
   describe('onViewCode source', () => {
@@ -924,33 +984,32 @@ describe('AutoragResults', () => {
     };
     const patterns = { Pattern1: patternWithTemplate };
 
-    it('should call onViewCode with source: resultsTable from the leaderboard action', () => {
+    it('should not expose View code from the leaderboard action', () => {
       const onViewCode = jest.fn();
       renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onViewCode });
 
       const row = screen.getByTestId('leaderboard-row-1');
       fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
-      fireEvent.click(screen.getByText('View code'));
 
-      expect(onViewCode).toHaveBeenCalledWith('Pattern1', 'resultsTable');
+      expect(screen.queryByText('View code')).not.toBeInTheDocument();
     });
 
-    it('should call onViewCode with source: patternDetails from the pattern details modal action', async () => {
+    it('should not expose View code from the pattern details modal action', async () => {
       const user = userEvent.setup();
       const onViewCode = jest.fn();
       renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onViewCode });
 
       const row = screen.getByTestId('leaderboard-row-1');
-      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
-      fireEvent.click(screen.getByText('View details'));
+      await user.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+
+      const viewDetailsAction = await screen.findByText('View details');
+      await user.click(viewDetailsAction);
 
       const actionsToggle = await screen.findByTestId('pattern-details-actions-toggle');
       await user.click(actionsToggle);
-      const viewCodeAction = await screen.findByText('View code');
-      await user.click(viewCodeAction);
 
-      expect(onViewCode).toHaveBeenCalledWith('Pattern1', 'patternDetails');
-    }, 15_000);
+      expect(screen.queryByText('View code')).not.toBeInTheDocument();
+    }, 45_000);
   });
 
   describe('AutoRAG Pattern Details Viewed tracking', () => {
@@ -970,6 +1029,26 @@ describe('AutoragResults', () => {
       );
     });
 
+    it('should select a pattern by record key when its display name differs', async () => {
+      const firstPattern = createMockPattern('First display name');
+      firstPattern.evaluation.metrics[1].scores.mean = 0.95;
+      const secondPattern = createMockPattern('Second display name');
+      secondPattern.evaluation.metrics[1].scores.mean = 0.8;
+
+      renderWithContext(mockPipelineRun, {
+        firstKey: firstPattern,
+        secondKey: secondPattern,
+      });
+
+      fireEvent.click(screen.getByTestId('pattern-link-2'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('pattern-details-header')).toHaveTextContent(
+          'Second display name',
+        );
+      });
+    });
+
     it('should fire with source: resultsTable when opening via the row kebab "View details" action', () => {
       renderWithContext(mockPipelineRun, patterns);
 
@@ -981,6 +1060,44 @@ describe('AutoragResults', () => {
         AUTORAG_EVENTS.PATTERN_DETAILS_VIEWED,
         { source: 'resultsTable' },
       );
+    });
+
+    it('should select a pattern by record key from the row kebab action', async () => {
+      const firstPattern = createMockPattern('First display name');
+      firstPattern.evaluation.metrics[1].scores.mean = 0.95;
+      const secondPattern = createMockPattern('Second display name');
+      secondPattern.evaluation.metrics[1].scores.mean = 0.8;
+
+      renderWithContext(mockPipelineRun, {
+        firstKey: firstPattern,
+        secondKey: secondPattern,
+      });
+
+      const secondRow = screen.getByTestId('leaderboard-row-2');
+      fireEvent.click(within(secondRow).getByRole('button', { name: /kebab toggle/i }));
+      fireEvent.click(screen.getByText('View details'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('pattern-details-header')).toHaveTextContent(
+          'Second display name',
+        );
+      });
+    });
+
+    it('should close the details modal when the selected pattern is removed', async () => {
+      const selectedPatterns: Record<string, AutoragPattern> = {
+        stableKey: createMockPattern('Display name'),
+      };
+      const view = renderWithContext(mockPipelineRun, selectedPatterns);
+
+      fireEvent.click(screen.getByTestId('pattern-link-1'));
+      expect(screen.getByTestId('pattern-details-modal')).toBeInTheDocument();
+
+      view.rerender(createResultsElement(mockPipelineRun, {}));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('pattern-details-modal')).not.toBeInTheDocument();
+      });
     });
 
     it('should not fire again when switching patterns via the in-modal pattern selector', () => {

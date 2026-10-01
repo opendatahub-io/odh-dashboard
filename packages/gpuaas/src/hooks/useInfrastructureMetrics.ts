@@ -105,32 +105,45 @@ const parseHardwareNodeLabels = (response: NodeLabelResponse | null): HardwareMo
     .toSorted((a, b) => b.available - a.available);
 };
 
-const useInfrastructureMetrics = (): ClusterMetrics => {
+const useInfrastructureMetrics = (canAccessAdminTabs = true): ClusterMetrics => {
+  const initializedRef = React.useRef(false);
   const [lastRefreshed, setLastRefreshed] = React.useState<Date | null>(null);
   const fetchOptions = React.useMemo(() => ({ refreshRate: INFRASTRUCTURE_REFRESH_INTERVAL }), []);
 
   const allocatable = usePrometheusQuery(
     PROMETHEUS_API,
-    PROMQL_ACCELERATOR_ALLOCATABLE,
+    canAccessAdminTabs ? PROMQL_ACCELERATOR_ALLOCATABLE : undefined,
     fetchOptions,
   );
-  const inUse = usePrometheusQuery(PROMETHEUS_API, PROMQL_ACCELERATOR_IN_USE, fetchOptions);
-  const compute = usePrometheusQuery(PROMETHEUS_API, PROMQL_COMPUTE_UTILIZATION, fetchOptions);
-  const memory = usePrometheusQuery(PROMETHEUS_API, PROMQL_MEMORY_UTILIZATION, fetchOptions);
+  const inUse = usePrometheusQuery(
+    PROMETHEUS_API,
+    canAccessAdminTabs ? PROMQL_ACCELERATOR_IN_USE : undefined,
+    fetchOptions,
+  );
+  const compute = usePrometheusQuery(
+    PROMETHEUS_API,
+    canAccessAdminTabs ? PROMQL_COMPUTE_UTILIZATION : undefined,
+    fetchOptions,
+  );
+  const memory = usePrometheusQuery(
+    PROMETHEUS_API,
+    canAccessAdminTabs ? PROMQL_MEMORY_UTILIZATION : undefined,
+    fetchOptions,
+  );
 
   const hwTotal = usePrometheusQuery<HardwareModelResponse>(
     PROMETHEUS_API,
-    PROMQL_HARDWARE_TOTAL,
+    canAccessAdminTabs ? PROMQL_HARDWARE_TOTAL : undefined,
     fetchOptions,
   );
   const hwInUse = usePrometheusQuery<HardwareModelResponse>(
     PROMETHEUS_API,
-    PROMQL_HARDWARE_IN_USE,
+    canAccessAdminTabs ? PROMQL_HARDWARE_IN_USE : undefined,
     fetchOptions,
   );
   const hwNodeLabels = usePrometheusQuery<NodeLabelResponse>(
     PROMETHEUS_API,
-    PROMQL_HARDWARE_NODE_LABELS,
+    canAccessAdminTabs ? PROMQL_HARDWARE_NODE_LABELS : undefined,
     fetchOptions,
   );
 
@@ -143,23 +156,15 @@ const useInfrastructureMetrics = (): ClusterMetrics => {
     (hwTotal.loaded || !!hwTotal.error) &&
     (hwInUse.loaded || !!hwInUse.error) &&
     (hwNodeLabels.loaded || !!hwNodeLabels.error);
-  const loaded = clusterLoaded && hardwareLoaded;
+  const loaded = canAccessAdminTabs && clusterLoaded && hardwareLoaded;
   const error = allocatable.error || inUse.error || compute.error || memory.error || hwTotal.error;
 
   React.useEffect(() => {
-    if (loaded) {
+    if (loaded && !initializedRef.current) {
+      initializedRef.current = true;
       setLastRefreshed(new Date());
     }
-  }, [
-    loaded,
-    allocatable.data,
-    inUse.data,
-    compute.data,
-    memory.data,
-    hwTotal.data,
-    hwInUse.data,
-    hwNodeLabels.data,
-  ]);
+  }, [loaded]);
 
   const accelerators = React.useMemo((): AcceleratorMetrics | null => {
     const total = parseScalarResult(allocatable.data);
@@ -196,6 +201,9 @@ const useInfrastructureMetrics = (): ClusterMetrics => {
   }, [hwTotal.data, hwInUse.data, hwNodeLabels.data]);
 
   const refresh = React.useCallback(() => {
+    if (!canAccessAdminTabs) {
+      return;
+    }
     allocatable.refresh();
     inUse.refresh();
     compute.refresh();
@@ -206,6 +214,7 @@ const useInfrastructureMetrics = (): ClusterMetrics => {
     setLastRefreshed(new Date());
     // eslint-disable-next-line react-hooks/exhaustive-deps -- .refresh references are stable from useFetch
   }, [
+    canAccessAdminTabs,
     allocatable.refresh,
     inUse.refresh,
     compute.refresh,

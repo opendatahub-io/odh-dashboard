@@ -226,7 +226,7 @@ class ChatbotPage {
   }
 
   findMCPServersTable(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('mcp-servers-panel-table');
+    return cy.findByTestId('mcp-manual-servers-table');
   }
 
   openKebabAndClickItem(testId: string): void {
@@ -383,7 +383,18 @@ class ChatbotPage {
 
   verifyMetricsDisplayed(): void {
     this.findMetrics().should('be.visible');
-    this.findMetrics().find('.pf-v6-c-label').should('have.length.at.least', 1);
+    this.findMetrics()
+      .find('button[aria-expanded]')
+      .should('be.visible')
+      .then(($toggle) => {
+        if ($toggle.attr('aria-expanded') === 'false') {
+          cy.wrap($toggle).click();
+        }
+      });
+    cy.get('[data-testid="chatbot-message-metrics"] .pf-v6-c-label').should(
+      'have.length.at.least',
+      1,
+    );
   }
 
   // Compare Mode Methods

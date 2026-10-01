@@ -6,7 +6,14 @@ alwaysApply: false
 
 # Pull Request Creation
 
-When creating a pull request targeting `opendatahub-io/odh-dashboard`, you **MUST** use the PR template at `.github/pull_request_template.md` as the PR body structure. Read the template, fill in every section following the HTML comment instructions within it, and include the full checklist. This rule does not apply to PRs targeting other repositories.
+When creating a pull request targeting `opendatahub-io/odh-dashboard`, choose the template that matches the review path, then fill every required section from its HTML comment instructions. This rule does not apply to PRs targeting other repositories.
+
+| Path | Template |
+| --- | --- |
+| Classic / default | `.github/pull_request_template.md` (include the full checklist) |
+| Fullsend / `flow/agentic` (pilot) | `.github/PULL_REQUEST_TEMPLATE/agentic.md` via `?template=agentic.md` or `gh pr create --template agentic.md` |
+
+On the agentic path, the PR description is the **sole source of truth** for review: put goals, constraints, and proof in the body; do not rely on Jira, chat, or comments as substitutes. A linked Jira is still evaluated for alignment with the description — justify any departure in the body. Keep the body present-tense and current with the branch head.
 
 ## Agent-Specific Guidance
 

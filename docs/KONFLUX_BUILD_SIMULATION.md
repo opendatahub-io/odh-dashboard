@@ -13,19 +13,16 @@ Runs BEFORE Docker build to catch issues in <1 minute:
 
 #### Hermetic Lockfile Validation
 - ✅ **Detects unsupported dependency protocols** that break downstream RHOAI hermetic builds
-  - Fails on: `git+`, `github:`, `file:` protocols in `package-lock.json`
-  - Requires: All dependencies must have HTTP/HTTPS URLs
+  - Fails on: `git+`, `github:`, and `file:` protocols in `pnpm-lock.yaml`
+  - Requires: Dependencies must resolve through sources supported by Hermeto/Cachi2
   - Why: Hermeto/Cachi2 (RHOAI's dependency resolver) cannot fetch from git/file protocols
-  - Example failure: `"resolved": "git+https://github.com/..."` → Must use registry version
+  - Example failure: a lockfile `resolution` or `tarball` containing `git+https://...` → use a registry version
 
-- ✅ **Validates all dependencies have resolved URLs**
-  - Prevents: "Cannot resolve package" errors in hermetic builds
-  - Checks: Every entry in `package-lock.json` has a `resolved` field
-
-- ✅ **Tests hermetic npm install** with `--network=none`
-  - Simulates: Actual RHOAI build environment (network disabled)
-  - Catches: Lockfile-out-of-sync issues without running full Docker build
-  - Speed: ~30 seconds vs 10+ minutes for full build
+- ✅ **Tests a hermetic pnpm install** with `--offline`
+  - Simulates: Actual RHOAI build environment after the dependency store is populated
+  - Catches: Lockfile-out-of-sync issues and dependencies that require network access
+  - Speed: ~30 seconds vs 10+ minutes for a full Docker build
+  - Note: The check first populates a pnpm store, then installs from that store with networking disabled.
 
 #### Workspace Dependency Validation
 - ✅ **Dynamically detects workspace scope** from `package.json`
@@ -62,6 +59,12 @@ Runs BEFORE Docker build to catch issues in <1 minute:
   - Builder stage: Compiles TypeScript, builds rspack bundles
   - Runtime stage: Serves production artifacts
   - Catches: Missing COPY commands, permission issues
+
+- ✅ **Dashboard operator image build** (`dashboard-operator/Dockerfile`)
+  - Builds: The controller-runtime operator image (`--build-arg OPERATOR_VERSION=ci-test`)
+  - Catches: Go compilation errors, missing COPY dependencies, FIPS build failures
+  - Output: Saved as the `dashboard-operator-image` artifact for reuse in the Phase 4 Kind cluster (no rebuild)
+  - Triggers: Runs when the PR touches `dashboard-operator/**` (alongside frontend/backend/manifest changes)
 
 ### Phase 2: Runtime Validation
 - ✅ **Container startup health**
@@ -123,15 +126,27 @@ Runs BEFORE Docker build to catch issues in <1 minute:
 ### Phase 4: Operator Integration (Kind Cluster)
 - ✅ **Kind cluster creation**
   - Creates: Temporary local Kubernetes cluster
-  - Loads: Built Docker image
+  - Loads: Built dashboard Docker image and the dashboard-operator image (from the Phase 1 artifacts)
 
 - ✅ **Manifest application**
-  - Applies: Kustomize overlays (`manifests/overlays/odh`)
+  - Applies: Kustomize overlays (`manifests/odh`)
   - Tests: CRD installation, ConfigMap generation
 
 - ✅ **Deployment validation**
   - Waits: Up to 5 minutes for pod to be ready
   - Checks: Pod status, logs, health endpoints
+
+- ✅ **Operator CRD + RBAC deployment**
+  - Applies: The `Dashboard` CRD (`components.platform.opendatahub.io`) and waits for the `Established` condition
+  - Applies: The operator ClusterRole (`config/rbac/role.yaml`) plus a ServiceAccount and ClusterRoleBinding
+  - Catches: CRD schema regressions, RBAC manifest errors that only surface on `kubectl apply`
+
+- ✅ **Operator reconciliation smoke test**
+  - Deploys: A minimal operator Deployment (no cert-manager webhook/metrics TLS — Kind-friendly)
+  - Creates: A minimal `Dashboard` CR and polls for reconciliation evidence
+  - Asserts: The finalizer (`components.platform.opendatahub.io/cleanup`) and `status.observedGeneration` are set, with **0 operator restarts**
+  - Catches: Controller panics on startup, scheme/registration errors, reconcile crashes that unit + envtest tests can miss on a real API server
+  - Note: The operand cannot fully provision on Kind (no OpenShift Routes/Ingress), so the test validates that the controller *starts reconciling cleanly*, not that the operand reaches Ready
 
 ### BFF Module Validation
 
@@ -140,12 +155,12 @@ Runs only when a PR changes files in a package that has a `Dockerfile.workspace`
 - ✅ **Dynamic module discovery**
   - Discovers: All `packages/*/Dockerfile.workspace` files automatically
   - Detects: Which packages have changed files in the PR
-  - Triggers: Also rebuilds all modules when root `package.json` or `package-lock.json` change
+  - Triggers: The BFF matrix also rebuilds all modules when root `package.json` or `pnpm-lock.yaml` change; `pnpm-workspace.yaml` still triggers the overall workflow and hermetic preflight
   - Future-proof: New modules with a `Dockerfile.workspace` are picked up without config changes
 
 - ✅ **BFF Docker image build**
   - Builds: Each affected module's `Dockerfile.workspace` (same Dockerfile that Konflux uses post-merge)
-  - Catches: Go compilation errors, missing COPY dependencies, npm install failures
+  - Catches: Go compilation errors, missing COPY dependencies, and pnpm install failures
   - Parallel: Affected modules build concurrently via matrix strategy
 
 - ✅ **BFF startup crash detection**
@@ -158,18 +173,24 @@ Runs only when a PR changes files in a package that has a `Dockerfile.workspace`
 **Note:** BFF startup validation does not test application-level health (`/healthcheck` endpoint) or connectivity to backend services. It validates that the Go binary can start without crashing — the class of failure that previously only surfaced after merge.
 
 ### Phase 5: Manifest Validation
-- ✅ **Kustomize build testing**
-  - Builds: All overlays and bases
-  - Validates: YAML syntax, resource generation
+Runs independently of the Docker build (no image needed), so it fails fast on manifest regressions.
 
-- ✅ **ConfigMap generation**
-  - Tests: ConfigMapGenerators work correctly
-  - Catches: Missing files, syntax errors
+- ✅ **Kustomize build testing**
+  - Builds: The set the `dashboard-operator` actually renders — the platform overlays (`manifests/base`, `manifests/odh`, `manifests/rhoai`), the observability overlays (`manifests/observability/{odh,rhoai}`), the MaaS consumer-portal distribution (`manifests/distributions/maas-consumer-portal`), and every module overlay under `manifests/modules/<slug>` (discovered automatically, so a new module needs no workflow edit). The ConsoleLink overlays are covered transitively through the platform overlays.
+  - Validates: YAML syntax, kustomization references, resource generation
+  - Catches: Missing files, broken `resources:`/`patches:` paths, ConfigMapGenerator errors
+
+- ✅ **Kubernetes schema validation** (kubeconform)
+  - Pipes: Each `kustomize build` output through `kubeconform -strict -ignore-missing-schemas` (parsed as JSON)
+  - Validates: Resources conform to the Kubernetes API schema (v1.31.0)
+  - Skips: CRDs without a published schema (`-ignore-missing-schemas`) so custom resources don't false-fail
+  - Fails: When a *built-in* Kubernetes kind is skipped — i.e. a skipped resource in the core group, `*.k8s.io`, or `apps`/`batch`/`policy`/`autoscaling`/`extensions`. Those always have a schema, so a skip there means a misspelled `kind` or `apiVersion`. This guard is what makes `-ignore-missing-schemas` safe to use.
+  - Catches: Invalid field names, wrong types, malformed spec sections, and typo'd built-in kinds before they reach a cluster
 
 ## Usage
 
 ### GitHub Actions (Automatic)
-The workflow runs automatically on all PRs to `main` that modify relevant files (frontend, backend, packages, Dockerfile, manifests).
+The workflow runs automatically on all PRs to `main` that modify relevant files (frontend, backend, packages, Dockerfile, manifests, `dashboard-operator/**`).
 
 **Skip validation on a PR:**
 Add `[skip konflux-sim]` to the PR title or add the `skip-konflux-sim` label.
@@ -220,9 +241,10 @@ Local testing is not yet available. The validation currently only runs in GitHub
 
 ### GitHub Actions (Parallel)
 - Phase 0: 1-2 minutes
-- Phase 1 (ODH + RHOAI): 8-12 minutes (parallel)
+- Phase 1 (ODH + RHOAI + operator): 8-12 minutes (parallel)
 - Phase 2-3 (ODH + RHOAI): 3-5 minutes (parallel, after Phase 1)
-- Phase 4: 5-8 minutes
+- Phase 4 (dashboard + operator CRD/CR reconciliation): 6-10 minutes
+- Phase 5 (manifest validation): 1-2 minutes (parallel, independent of Docker build)
 
 **Total: 10-20 minutes** (with parallelization)
 
@@ -244,27 +266,31 @@ Local testing is not yet available. The validation currently only runs in GitHub
 
 **Fix:**
 1. Find the dependency in `package.json`
-2. Replace with registry version:
+2. Replace it with a registry version and update the lockfile:
    ```bash
-   npm install package-name@version --save-exact
-   npm install  # Update lockfile
+   pnpm add package-name@version --save-exact
+   ```
+   For a dependency owned by a workspace package, run the command from the repository root with that package selected, for example:
+   ```bash
+   pnpm --filter @odh-dashboard/<package> add package-name@version --save-exact
    ```
 
 **Error: Hermetic install failed (network disabled)**
 ```bash
 ❌ FAIL: Hermetic install failed
-npm ERR! network request to https://registry.npmjs.org/package failed
+ERR_PNPM_NO_OFFLINE_TARBALL  A package is missing from the offline store
 ```
 
 **Fix:**
-1. Lockfile is out of sync:
+1. Refresh dependencies from the repository root:
    ```bash
-   rm -rf node_modules package-lock.json
-   npm install
+   rm -rf node_modules
+   pnpm install
    ```
-2. Or dependency has dynamic resolution:
-   - Check for `*` or `^` versions
-   - Use exact versions with `--save-exact`
+   Do not delete `pnpm-lock.yaml`; regenerate it only when dependency manifests intentionally change.
+2. Or the dependency has dynamic or unsupported resolution:
+   - Check the lockfile for `git+`, `github:`, or `file:` protocols
+   - Use an exact registry version with `--save-exact`
 
 ### Workspace Dependency Failures
 
@@ -287,7 +313,7 @@ COPY packages/app-config /usr/src/app/packages/app-config
 ```
 
 **Fix:**
-Add to Dockerfile after `npm install`:
+Add to Dockerfile after `pnpm install`:
 ```dockerfile
 RUN rm -rf node_modules/esbuild node_modules/@esbuild node_modules/.bin/esbuild
 ```
@@ -329,7 +355,7 @@ RUN rm -rf node_modules/esbuild node_modules/@esbuild node_modules/.bin/esbuild
 2. Verify `publicPath` is correct
 3. Ensure all chunks are generated:
    ```bash
-   npm run build
+   pnpm run build
    ls frontend/public/*.bundle.js
    ```
 
@@ -391,8 +417,8 @@ on:
 
 ## Maintenance
 
-### Update Node.js version
-When updating Node.js version in the project, update in the workflow:
+### Update Node.js or pnpm versions
+When updating Node.js or pnpm in the project, update the repository source of truth (`package.json` and `pnpm-workspace.yaml`) and then update the workflow:
 
 ```yaml
 - uses: actions/setup-node@v4
@@ -400,7 +426,7 @@ When updating Node.js version in the project, update in the workflow:
     node-version: '22'  # Update this
 ```
 
-Also update in Dockerfile base image:
+Also update the Dockerfile base image and the `packageManager` field in `package.json`:
 ```dockerfile
 ARG BASE_IMAGE="registry.access.redhat.com/ubi9/nodejs-22:latest"  # Update this
 ```
@@ -416,6 +442,7 @@ This validation catches issues like:
 - **PR #6727**: Fastify v5 content-type rejection (415 errors)
 - **PR #7387**: @fastify/websocket v11 SocketStream crashes
 - **PR #8479**: Go protobuf registration conflict in gen-ai BFF (startup panic)
+- **RHOAIENG-87691**: Operator build + CRD/CR reconciliation and manifest schema validation in the simulator
 
 ## References
 

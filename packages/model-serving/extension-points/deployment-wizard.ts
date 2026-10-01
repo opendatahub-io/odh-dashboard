@@ -12,7 +12,12 @@ import type {
   WizardField,
   ModelLocationData,
 } from '../src/shared/types/form-data';
-import type { ModelTypeFieldData, ModelServerSelectFieldData } from '../src/shared/wizard-fields';
+import type {
+  EnvironmentVariable,
+  HuggingFaceApiKeyFieldData,
+  ModelTypeFieldData,
+  ModelServerSelectFieldData,
+} from '../src/shared/wizard-fields';
 import type { ExternalDataMap } from '../src/components/deploymentWizard/ExternalDataLoader';
 
 export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deployment> = Extension<
@@ -37,7 +42,7 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     extractReplicas: CodeRef<(deployment: D) => ExtractionResult<number | null>>;
     extractRuntimeArgs: CodeRef<(deployment: D) => { enabled: boolean; args: string[] } | null>;
     extractEnvironmentVariables: CodeRef<
-      (deployment: D) => { enabled: boolean; variables: { name: string; value: string }[] } | null
+      (deployment: D) => { enabled: boolean; variables: EnvironmentVariable[] } | null
     >;
     extractModelAvailabilityData: CodeRef<
       (deployment: D) => { saveAsAiAsset: boolean; useCase?: string } | null
@@ -49,6 +54,11 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     extractModelType?: CodeRef<(deployment: D) => ModelTypeFieldData | null>;
     extractModelServerTemplate: CodeRef<
       (deployment: D, dashboardNamespace?: string) => { data: ModelServerSelectFieldData } | null
+    >;
+    extractHuggingFaceApiKey?: CodeRef<
+      (
+        deployment: D,
+      ) => HuggingFaceApiKeyFieldData | null | Promise<HuggingFaceApiKeyFieldData | null>
     >;
     validateExtraction?: CodeRef<(deployment: D) => string[]>;
   }
@@ -319,6 +329,7 @@ export type WizardTrackingPropertiesExtension<D extends Deployment = Deployment>
     getProperties: CodeRef<
       (
         wizardState: WizardFormData['state'],
+        externalData?: ExternalDataMap,
       ) => Record<string, string | number | boolean | undefined>
     >;
   }

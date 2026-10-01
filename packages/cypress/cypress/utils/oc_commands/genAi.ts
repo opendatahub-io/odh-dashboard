@@ -59,6 +59,15 @@ export const deployGenAiModel = (projectName: string, testData: GenAiTestData): 
   checkInferenceServiceState(inferenceServiceName, projectName, { checkReady: true });
 };
 
+export const getExternalProviders = (): Cypress.Chainable<boolean> => {
+  const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
+  return cy
+    .exec(
+      `oc get OdhDashboardConfig odh-dashboard-config -n ${namespace} -o json | jq -r '.spec.genAiStudioConfig.aiAssetCustomEndpoints.externalProviders // false'`,
+    )
+    .then((result) => result.stdout.trim() === 'true');
+};
+
 /**
  * Enable externalProviders in OdhDashboardConfig so that non-cluster-local
  * endpoint URLs are accepted by the custom endpoints form.
@@ -98,19 +107,19 @@ export const forceDashboardConfigRefresh = (): void => {
 };
 
 /**
- * Disable externalProviders in OdhDashboardConfig (revert to default).
+ * Restore externalProviders in OdhDashboardConfig.
  * Polls until the change is confirmed so later specs don't race on the stale flag.
  */
-export const disableExternalProviders = (): void => {
+export const disableExternalProviders = (externalProviders = false): void => {
   const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
   const patchContent = JSON.stringify({
-    spec: { genAiStudioConfig: { aiAssetCustomEndpoints: { externalProviders: false } } },
+    spec: { genAiStudioConfig: { aiAssetCustomEndpoints: { externalProviders } } },
   });
   patchOpenShiftResource('OdhDashboardConfig', 'odh-dashboard-config', patchContent, namespace);
 
   pollUntilSuccess(
-    `oc get OdhDashboardConfig odh-dashboard-config -n ${namespace} -o json | jq -e '.spec.genAiStudioConfig.aiAssetCustomEndpoints.externalProviders == false'`,
-    'externalProviders to be false',
+    `oc get OdhDashboardConfig odh-dashboard-config -n ${namespace} -o json | jq -e '.spec.genAiStudioConfig.aiAssetCustomEndpoints.externalProviders == ${externalProviders}'`,
+    `externalProviders to be ${externalProviders}`,
     { maxAttempts: 15, pollIntervalMs: 2000 },
   );
 };
@@ -174,7 +183,7 @@ export const waitForModelInLSD = (
 
   const check = (attempt: number): void => {
     cy.exec(
-      `oc exec deploy/lsd-genai-playground -n ${namespace} -- curl -s ${serviceUrl} | jq -e '.data[] | select(.custom_metadata.provider_resource_id == "${modelId}")'`,
+      `token=$(oc whoami -t) && provider_data=$(jq -cn --arg token "$token" '{passthrough_api_key: $token}') && oc exec deploy/lsd-genai-playground -n ${namespace} -- curl -s -H "Authorization: Bearer $token" -H "X-OGX-Provider-Data: $provider_data" ${serviceUrl} | jq -e '.data[] | select(.custom_metadata.provider_resource_id == "${modelId}")'`,
       { failOnNonZeroExit: false, timeout: 30000 },
     ).then((result) => {
       if (result.exitCode === 0 && result.stdout.trim().length > 0) {
@@ -194,6 +203,19 @@ export const waitForModelInLSD = (
 
   check(1);
 };
+
+/**
+ * Wait for the namespace's NemoGuardrails instance, deployment, and service endpoint to become ready.
+ * The custom resource can report Ready before the separately provisioned workload is available.
+ *
+ * @param namespace - Namespace containing the NemoGuardrails custom resource.
+ */
+export const waitForNemoGuardrailsReady = (namespace: string): Cypress.Chainable<Cypress.Exec> =>
+  pollUntilSuccess(
+    `oc get nemoguardrails nemoguardrails -n ${namespace} -o json | jq -e '.status.phase == "Ready"' && oc get deployment nemoguardrails -n ${namespace} -o json | jq -e '.status.availableReplicas != null and .status.availableReplicas == .spec.replicas' && oc get endpoints nemoguardrails -n ${namespace} -o json | jq -e '[.subsets[]?.addresses[]?] | length > 0'`,
+    `NemoGuardrails to be Ready in namespace ${namespace}`,
+    { maxAttempts: 60, pollIntervalMs: 5000 },
+  );
 
 /**
  * Create a prompt via the Gen AI BFF MLflow prompts API.
@@ -247,6 +269,185 @@ export const deleteGenAiPromptViaAPI = (namespace: string, name: string): void =
   });
 };
 
+type ConfigInstance = { namespace: string; name: string };
+export type GlobalMLflowNamespacesBaseline = ConfigInstance & {
+  globalMLflowNamespaces?: string[];
+};
+
+/**
+ * Get all OdhDashboardConfig instances in the cluster.
+ * Falls back to default config if none found.
+ */
+export const getOdhDashboardConfigs = (): Cypress.Chainable<ConfigInstance[]> =>
+  cy
+    .exec(
+      `oc get OdhDashboardConfig -A -o jsonpath='{range .items[*]}{.metadata.namespace}{" "}{.metadata.name}{"\\n"}{end}'`,
+      { failOnNonZeroExit: false },
+    )
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `Failed to list OdhDashboardConfig resources: ${result.stderr || result.stdout}`,
+        );
+      }
+      const lines = result.stdout.replace(/'/g, '').trim().split('\n').filter(Boolean);
+      if (lines.length > 0) {
+        return lines.map((line) => {
+          const [namespace, name] = line.split(/\s+/);
+          return { namespace, name };
+        });
+      }
+      return [
+        {
+          namespace: Cypress.env('APPLICATIONS_NAMESPACE') as string,
+          name: 'odh-dashboard-config',
+        },
+      ];
+    });
+
+/**
+ * Set globalMLflowNamespaces in all OdhDashboardConfig instances.
+ * Replaces existing values with the provided namespaces.
+ * Polls until the change is confirmed.
+ *
+ * @param namespaces - Array of namespace strings to set as global MLflow namespaces.
+ * @param baselineStore - Mutable store for setup-time values shared with cleanup and retries.
+ */
+export const setGlobalMLflowNamespaces = (
+  namespaces: string[],
+  baselineStore: GlobalMLflowNamespacesBaseline[],
+): Cypress.Chainable<GlobalMLflowNamespacesBaseline[]> =>
+  getOdhDashboardConfigs().then((configs) => {
+    const capturedBaselines: GlobalMLflowNamespacesBaseline[] = [];
+
+    if (baselineStore.length === 0) {
+      cy.wrap(configs).each((config) => {
+        const { namespace: ns, name } = config as unknown as ConfigInstance;
+        cy.exec(`oc get OdhDashboardConfig ${name} -n ${ns} -o json`, {
+          failOnNonZeroExit: false,
+        }).then((result) => {
+          if (result.exitCode !== 0) {
+            throw new Error(
+              `Failed to get OdhDashboardConfig ${name} in ${ns}: ${
+                result.stderr || result.stdout
+              }`,
+            );
+          }
+          const resource = JSON.parse(result.stdout) as {
+            spec?: { globalMLflowNamespaces?: string[] };
+          };
+          const baseline: GlobalMLflowNamespacesBaseline = { namespace: ns, name };
+          if (Object.prototype.hasOwnProperty.call(resource.spec ?? {}, 'globalMLflowNamespaces')) {
+            baseline.globalMLflowNamespaces = resource.spec?.globalMLflowNamespaces;
+          }
+          capturedBaselines.push(baseline);
+        });
+      });
+
+      cy.then(() => {
+        baselineStore.push(...capturedBaselines);
+      });
+    }
+
+    return cy
+      .then(() => {
+        for (const { namespace: ns, name } of baselineStore.length > 0 ? baselineStore : configs) {
+          const patchContent = JSON.stringify({ spec: { globalMLflowNamespaces: namespaces } });
+          patchOpenShiftResource('OdhDashboardConfig', name, patchContent, ns);
+        }
+
+        cy.step('Wait for globalMLflowNamespaces to be confirmed in all config instances');
+        for (const { namespace: ns, name } of baselineStore.length > 0 ? baselineStore : configs) {
+          const expected = JSON.stringify(namespaces);
+          pollUntilSuccess(
+            `oc get OdhDashboardConfig ${name} -n ${ns} -o json | jq -e '.spec.globalMLflowNamespaces == ${expected}'`,
+            `globalMLflowNamespaces to be set in ${ns}`,
+            { maxAttempts: 30, pollIntervalMs: 2000 },
+          );
+        }
+      })
+      .then(() => baselineStore);
+  });
+
+/**
+ * Restore globalMLflowNamespaces in OdhDashboardConfig instances to their setup-time values.
+ */
+export const removeGlobalMLflowNamespaces = (baselines: GlobalMLflowNamespacesBaseline[]): void => {
+  for (const baseline of baselines) {
+    const { namespace: ns, name } = baseline;
+    const patchContent = JSON.stringify({
+      spec: {
+        globalMLflowNamespaces: Object.prototype.hasOwnProperty.call(
+          baseline,
+          'globalMLflowNamespaces',
+        )
+          ? baseline.globalMLflowNamespaces
+          : null,
+      },
+    });
+    patchOpenShiftResource('OdhDashboardConfig', name, patchContent, ns);
+
+    pollUntilSuccess(
+      Object.prototype.hasOwnProperty.call(baseline, 'globalMLflowNamespaces')
+        ? `oc get OdhDashboardConfig ${name} -n ${ns} -o json | jq -e '.spec.globalMLflowNamespaces == ${JSON.stringify(
+            baseline.globalMLflowNamespaces,
+          )}'`
+        : `oc get OdhDashboardConfig ${name} -n ${ns} -o json | jq -e '(.spec | has("globalMLflowNamespaces") | not)'`,
+      `globalMLflowNamespaces to be restored in ${ns}`,
+      { maxAttempts: 15, pollIntervalMs: 2000 },
+    );
+  }
+};
+
+/**
+ * Wait for the MLflow BFF to discover a global prompt in a specific namespace.
+ * Polls the BFF prompts endpoint until the prompt appears with scope type 'global'.
+ *
+ * @param projectNamespace - The namespace to query prompts from.
+ * @param expectedPromptName - The prompt name to wait for.
+ * @param maxAttempts - Maximum number of polling attempts (default: 15).
+ * @param pollIntervalMs - Interval between attempts in milliseconds (default: 3000).
+ */
+export const waitForGlobalPromptsInBFF = (
+  projectNamespace: string,
+  expectedPromptName: string,
+  maxAttempts = 15,
+  pollIntervalMs = 3000,
+): void => {
+  const check = (attemptNumber: number): void => {
+    cy.request({
+      url: `/gen-ai/api/v1/mlflow/prompts?namespace=${encodeURIComponent(projectNamespace)}`,
+      failOnStatusCode: false,
+    }).then((response) => {
+      const body = response.body || {};
+      const prompts: { name?: string; scope?: { type?: string } }[] =
+        body.data?.prompts || body.prompts || [];
+      const found = prompts.some(
+        (p) => p.name === expectedPromptName && p.scope?.type === 'global',
+      );
+
+      if (found) {
+        cy.log(`Global prompt "${expectedPromptName}" discovered by BFF`);
+        return;
+      }
+
+      if (attemptNumber >= maxAttempts) {
+        throw new Error(
+          `MLflow BFF did not return global prompt "${expectedPromptName}" after ${maxAttempts} attempts ` +
+            `(status=${response.status}, prompts=${prompts.length})`,
+        );
+      }
+
+      cy.log(`Waiting for BFF global prompt (attempt ${attemptNumber}/${maxAttempts})`);
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(pollIntervalMs).then(() => check(attemptNumber + 1));
+    });
+  };
+
+  cy.step('Wait for MLflow BFF to discover global namespace and prompt');
+  check(1);
+};
+
 /**
  * Create an external model endpoint via the gen-ai BFF API.
  * Bypasses the UI form — creates the ConfigMap and Secret directly.
@@ -257,6 +458,7 @@ export const deleteGenAiPromptViaAPI = (namespace: string, name: string): void =
  * @param endpointUrl - Base URL of the external model provider.
  * @param apiKey      - API key / token for the provider.
  * @param modelType   - Model type: 'llm' | 'embedding' | 'transcription'. Defaults to 'llm'.
+ * @param capabilities - Model capabilities exposed to the playground.
  */
 export const createExternalModelViaAPI = (
   namespace: string,
@@ -265,11 +467,13 @@ export const createExternalModelViaAPI = (
   endpointUrl: string,
   apiKey: string,
   modelType = 'llm',
+  capabilities?: string[],
 ): Cypress.Chainable<Cypress.Response<unknown>> =>
   cy.request({
     method: 'POST',
     url: `/gen-ai/api/v1/models/external?namespace=${encodeURIComponent(namespace)}`,
     log: false,
+    failOnStatusCode: false,
     body: {
       /* eslint-disable camelcase */
       model_id: modelId,
@@ -277,6 +481,7 @@ export const createExternalModelViaAPI = (
       base_url: endpointUrl,
       secret_value: apiKey,
       model_type: modelType,
+      capabilities,
       /* eslint-enable camelcase */
     },
   });
@@ -342,10 +547,10 @@ export const removeMCPServerConfigMapEntry = (configMapName: string, serverKey: 
  * and adds the Deployment, Service, and Route on top.
  * Idempotent — skips resources that already exist.
  *
- * Returns the in-cluster Service URL with `/mcp` suffix. The Route is still
- * created (for manual debugging) but the Service URL is used for the test
- * to avoid TLS failures on clusters where the ingress CA is not in the
- * BFF's trusted CA bundle.
+ * Returns an endpoint that the Gen AI BFF can resolve in its execution environment:
+ * the external Route when the BFF is running locally, otherwise the in-cluster Service URL.
+ * Keeping the Service URL for non-local runs avoids TLS failures on clusters where the
+ * ingress CA is not in the BFF's trusted CA bundle.
  */
 export const deployMCPServer = (
   mcpNamespace: string,
@@ -366,6 +571,12 @@ export const deployMCPServer = (
     configMapName: name,
   });
 
+  // Delete the deployment first to avoid "spec.selector is immutable" errors if
+  // a stale deployment with different labels exists from a previous test run.
+  cy.exec(`oc delete deployment/${name} -n ${mcpNamespace} --ignore-not-found`, {
+    failOnNonZeroExit: false,
+  });
+
   cy.fixture('resources/genAi/mcp_server_deploy.yaml').then((yamlContent: string) => {
     const rendered = replacePlaceholdersInYaml(yamlContent, {
       NAMESPACE: mcpNamespace,
@@ -378,9 +589,26 @@ export const deployMCPServer = (
     timeout: 130000,
   });
 
-  const url = `http://${name}.${mcpNamespace}.svc.cluster.local:8080/mcp`;
-  cy.log(`MCP server URL: ${url}`);
-  return cy.wrap(url);
+  const serviceUrl = `http://${name}.${mcpNamespace}.svc.cluster.local:8080/mcp`;
+  const isLocalRun = Cypress.config('baseUrl')?.includes('localhost');
+  if (!isLocalRun) {
+    cy.log(`MCP server URL (cluster Service): ${serviceUrl}`);
+    return cy.wrap(serviceUrl);
+  }
+
+  return cy
+    .exec(`oc get route/${name} -n ${mcpNamespace} -o jsonpath='{.spec.host}'`)
+    .then((result) => {
+      const routeHost = result.stdout.trim();
+      if (!routeHost) {
+        throw new Error(`MCP server Route ${mcpNamespace}/${name} has no host`);
+      }
+
+      const routeUrl = `https://${routeHost}/mcp`;
+      return cy
+        .log(`MCP server URL (external Route for local BFF): ${routeUrl}`)
+        .then(() => routeUrl);
+    });
 };
 
 /**
@@ -395,5 +623,224 @@ export const teardownMCPServer = (mcpNamespace: string, clusterRoleBindingName: 
   );
   cleanupMcpServerDeployResources(clusterRoleBindingName);
 };
+
+const MLFLOW_UI_BFF_SVC = 'odh-dashboard-mlflow-ui'; // Service name (used in URL)
+const MLFLOW_UI_BFF_DEPLOY = 'mlflow-ui'; // Deployment name (used for oc exec)
+const MLFLOW_UI_BFF_PORT = '8343';
+
+/**
+ * Execute a curl command against the MLflow UI BFF service on the cluster.
+ * Uses `oc run` with a temporary curl pod to reach the in-cluster service.
+ */
+const execMlflowBffCurl = (
+  method: string,
+  path: string,
+  workspace: string,
+  body?: object,
+): Cypress.Chainable<{ status: number; body: string }> => {
+  const namespace = Cypress.env('APPLICATIONS_NAMESPACE') || 'redhat-ods-applications';
+  const svcUrl = `https://${MLFLOW_UI_BFF_SVC}.${namespace}.svc:${MLFLOW_UI_BFF_PORT}${path}`;
+  const bodyArgs = body ? `-d '${JSON.stringify(body).replace(/'/g, "'\\''")}'` : '';
+  // Pipe auth headers via stdin so the OAuth token never appears in process arguments
+  // (avoids CWE-522; requires curl >= 7.55.0 for -H @- support).
+  const curlArgs = [
+    `curl -sk -X ${method} '${svcUrl}'`,
+    `-H 'Content-Type: application/json'`,
+    `-H @-`,
+    `-w '\\n%{http_code}'`,
+    bodyArgs,
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const cmd =
+    `printf 'Authorization: Bearer %s\\r\\nX-Forwarded-Access-Token: %s\\r\\n' ` +
+    `"$(oc whoami -t)" "$(oc whoami -t)" | ` +
+    `oc exec -i -n ${namespace} deploy/${MLFLOW_UI_BFF_DEPLOY} -- ${curlArgs}`;
+
+  return cy.exec(cmd, { timeout: 30000, failOnNonZeroExit: false }).then((result) => {
+    const lines = result.stdout.trim().split('\n');
+    const rawStatus = lines[lines.length - 1];
+    const status = parseInt(rawStatus, 10);
+    if (Number.isNaN(status)) {
+      throw new Error(
+        `MLflow BFF curl produced no HTTP status code — oc exec may have failed.\n` +
+          `stdout: ${result.stdout || '(empty)'}\nstderr: ${result.stderr || '(empty)'}`,
+      );
+    }
+    const responseBody = lines.slice(0, -1).join('\n');
+    return { status, body: responseBody };
+  });
+};
+
+/**
+ * Register an MCP server in the MLflow MCP Registry via the cluster's MLflow UI BFF.
+ * Creates the server, a version, activates it, and adds an access endpoint.
+ *
+ * @param workspace - Namespace/workspace to register the server in.
+ * @param serverName - Registry server name (e.g. "io.kubernetes/mcp-server").
+ * @param serverUrl - The access endpoint URL for the MCP server.
+ * @param description - Server description.
+ */
+/* eslint-disable camelcase */
+export const registerMCPServerInRegistry = (
+  workspace: string,
+  serverName: string,
+  serverUrl: string,
+  description: string,
+): Cypress.Chainable<void> => {
+  const encodedName = serverName.split('/').map(encodeURIComponent).join('%2F');
+
+  cy.log(`Registering MCP server "${serverName}" in MLflow registry for workspace "${workspace}"`);
+
+  // Pre-cleanup: remove any stale server from a previous run (best effort, ignores errors).
+  // This prevents 400 "already exists" failures when a prior test run's cleanup was incomplete.
+  return removeMCPServerFromRegistryBestEffort(workspace, serverName).then(
+    () =>
+      // Step 1: Create the server entry
+      execMlflowBffCurl('POST', `/api/v1/mcp-registry/servers?workspace=${workspace}`, workspace, {
+        name: serverName,
+        description,
+      })
+        .then((resp) => {
+          if (resp.status !== 201 && resp.status !== 409) {
+            throw new Error(`Failed to create MCP registry server: ${resp.status} ${resp.body}`);
+          }
+
+          // Step 2: Create a version
+          return execMlflowBffCurl(
+            'POST',
+            `/api/v1/mcp-registry/servers/${encodedName}/versions?workspace=${workspace}`,
+            workspace,
+            {
+              server_json: {
+                name: serverName,
+                version: '1.0.0',
+                display_name: serverName.split('/').pop(),
+                description,
+              },
+            },
+          );
+        })
+        .then((resp) => {
+          if (resp.status !== 201 && resp.status !== 409) {
+            throw new Error(`Failed to create MCP registry version: ${resp.status} ${resp.body}`);
+          }
+
+          // Step 3: Activate the version
+          return execMlflowBffCurl(
+            'PATCH',
+            `/api/v1/mcp-registry/servers/${encodedName}/versions/1.0.0?workspace=${workspace}`,
+            workspace,
+            { status: 'active' },
+          );
+        })
+        .then((resp) => {
+          if (resp.status !== 200 && resp.status !== 409) {
+            throw new Error(
+              `Failed to activate MCP registry version: HTTP ${resp.status} ${resp.body}`,
+            );
+          }
+
+          // Step 4: Create an access endpoint
+          return execMlflowBffCurl(
+            'POST',
+            `/api/v1/mcp-registry/servers/${encodedName}/endpoints?workspace=${workspace}`,
+            workspace,
+            {
+              endpoint_url: serverUrl,
+              transport_type: 'streamable-http',
+              server_version: '1.0.0',
+            },
+          );
+        })
+        .then((resp) => {
+          if (resp.status !== 201 && resp.status !== 409) {
+            throw new Error(
+              `Failed to create MCP registry endpoint: HTTP ${resp.status} ${resp.body}`,
+            );
+          }
+          cy.log(`MCP server "${serverName}" registered in MLflow registry`);
+        }) as unknown as Cypress.Chainable<void>,
+  );
+};
+
+/**
+ * Best-effort removal of an MCP registry server. Silently ignores all errors so it
+ * can safely be called as a pre-cleanup step even when the server may not exist.
+ */
+const removeMCPServerFromRegistryBestEffort = (
+  workspace: string,
+  serverName: string,
+): Cypress.Chainable<void> => {
+  const encodedName = serverName.split('/').map(encodeURIComponent).join('%2F');
+  cy.log(`Best-effort cleanup of registry server "${serverName}" in workspace "${workspace}"`);
+  // Attempt each step; ignore errors at every stage (404, etc.)
+  return execMlflowBffCurl(
+    'PATCH',
+    `/api/v1/mcp-registry/servers/${encodedName}/versions/1.0.0?workspace=${workspace}`,
+    workspace,
+    { status: 'deprecated' },
+  )
+    .then(() =>
+      execMlflowBffCurl(
+        'DELETE',
+        `/api/v1/mcp-registry/servers/${encodedName}/versions/1.0.0?workspace=${workspace}`,
+        workspace,
+      ),
+    )
+    .then(() =>
+      execMlflowBffCurl(
+        'DELETE',
+        `/api/v1/mcp-registry/servers/${encodedName}?workspace=${workspace}`,
+        workspace,
+      ),
+    )
+    .then(() => {
+      cy.log(`Best-effort cleanup done for "${serverName}"`);
+    }) as unknown as Cypress.Chainable<void>;
+};
+
+/**
+ * Remove an MCP server from the MLflow MCP Registry via the cluster's MLflow UI BFF.
+ * The registry requires the active version to be deprecated and deleted before the
+ * server itself can be deleted.
+ */
+export const removeMCPServerFromRegistry = (
+  workspace: string,
+  serverName: string,
+): Cypress.Chainable<void> => {
+  const encodedName = serverName.split('/').map(encodeURIComponent).join('%2F');
+
+  // Step 1: Deprecate the active version (active → deprecated transition is required)
+  return execMlflowBffCurl(
+    'PATCH',
+    `/api/v1/mcp-registry/servers/${encodedName}/versions/1.0.0?workspace=${workspace}`,
+    workspace,
+    { status: 'deprecated' },
+  )
+    .then(() => {
+      // Step 2: Delete the version
+      return execMlflowBffCurl(
+        'DELETE',
+        `/api/v1/mcp-registry/servers/${encodedName}/versions/1.0.0?workspace=${workspace}`,
+        workspace,
+      );
+    })
+    .then(() => {
+      // Step 3: Delete the server
+      return execMlflowBffCurl(
+        'DELETE',
+        `/api/v1/mcp-registry/servers/${encodedName}?workspace=${workspace}`,
+        workspace,
+      );
+    })
+    .then((resp) => {
+      if (resp.status !== 204 && resp.status !== 404) {
+        throw new Error(`Failed to delete MCP registry server: HTTP ${resp.status} ${resp.body}`);
+      }
+      cy.log(`MCP registry server "${serverName}" removed`);
+    }) as unknown as Cypress.Chainable<void>;
+};
+/* eslint-enable camelcase */
 
 export { cleanupServingRuntimeTemplate } from './servingRuntimeTemplate';

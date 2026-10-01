@@ -8,13 +8,17 @@ export interface UseAutoUnlockReturn {
 }
 
 export interface UseAutoUnlockProps {
-  checkServerStatus: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
+  checkServerStatus: (
+    serverUrl: string,
+    mcpBearerToken?: string,
+    serverName?: string,
+  ) => Promise<ServerStatusInfo>;
   selectedServers: MCPServer[];
   isInitialLoadComplete: boolean;
   initialServerStatuses?: Map<string, ServerStatusInfo>;
   getToken: (serverUrl: string) => TokenInfo | undefined;
   onTokenUpdate: (serverUrl: string, tokenInfo: TokenInfo) => void;
-  onFetchTools: (serverUrl: string, token: string) => Promise<void>;
+  onFetchTools: (serverUrl: string, token: string, serverName?: string) => Promise<void>;
 }
 
 /**
@@ -42,7 +46,10 @@ const useAutoUnlock = ({
       setAutoUnlockingServers((prev) => new Set(prev).add(server.connectionUrl));
 
       try {
-        const statusInfo = await checkServerStatus(server.connectionUrl);
+        const statusInfo =
+          server.source === 'registry'
+            ? await checkServerStatus(server.connectionUrl, undefined, server.name)
+            : await checkServerStatus(server.connectionUrl);
 
         if (statusInfo.status === 'connected') {
           onTokenUpdate(server.connectionUrl, {
@@ -51,7 +58,11 @@ const useAutoUnlock = ({
             autoConnected: true,
           });
 
-          await onFetchTools(server.connectionUrl, '');
+          if (server.source === 'registry') {
+            await onFetchTools(server.connectionUrl, '', server.name);
+          } else {
+            await onFetchTools(server.connectionUrl, '');
+          }
         }
       } catch {
         // Silently fail

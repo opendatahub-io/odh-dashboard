@@ -1,4 +1,4 @@
-import { LDAP_CONTRIBUTOR_USER, LDAP_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
+import { LDAP_CONTRIBUTOR_USER, HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { generalSettingsPage } from '../../../../pages/modelDeploymentSettings/generalSettings';
 import { pageNotfound } from '../../../../pages/pageNotFound';
 import type { DashboardConfig } from '../../../../types';
@@ -30,7 +30,7 @@ describe('Verify Model Deployment General Settings access and model-serving cont
     },
     () => {
       cy.step('Log into the application as admin');
-      cy.visitWithLogin('/', LDAP_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       // Validate the model-serving platform switch on the General settings tab based on the
       // OpenShift 'get OdhDashboardConfig' configuration. validateModelServingPlatforms

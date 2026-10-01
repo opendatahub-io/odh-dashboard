@@ -285,7 +285,6 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
           lsdStatus={lsdStatus}
           aiModels={allModels}
           existingModels={playgroundModels}
-          extraSelectedModels={[model]}
           redirectToPlayground
           allCollections={allCollections}
           collectionsLoaded={collectionsLoaded}

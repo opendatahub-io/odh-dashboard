@@ -10,9 +10,7 @@ const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR === 'true';
 const IMAGES_DIRNAME = process.env._IMAGES_DIRNAME;
 const PUBLIC_PATH = process.env._PUBLIC_PATH;
 const SRC_DIR = process.env._SRC_DIR;
-const COMMON_DIR = process.env._COMMON_DIR;
 const DIST_DIR = process.env._DIST_DIR;
-const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules');
 const { _OUTPUT_ONLY: OUTPUT_ONLY, FAVICON, PRODUCT_NAME, COVERAGE } = process.env;
 const BASE_PATH = PUBLIC_PATH;
 
@@ -53,28 +51,9 @@ module.exports = (env) => ({
         ].filter(Boolean),
       },
       {
-        test: /\.(svg|ttf|eot|woff|woff2)$/,
+        test: /\.(ttf|eot|woff|woff2)$|[/\\]pficon[/\\].*\.svg$/i,
         // only process modules with this loader
         // if they live under a 'fonts' or 'pficon' directory
-        include: [
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/patternfly/dist/fonts'),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-core/dist/styles/assets/fonts',
-          ),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-core/dist/styles/assets/pficon',
-          ),
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly/assets/fonts'),
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly/assets/pficon'),
-          // Root node_modules for @odh-dashboard/internal imports
-          path.resolve(ROOT_NODE_MODULES, 'patternfly/dist/fonts'),
-          path.resolve(ROOT_NODE_MODULES, '@patternfly/react-core/dist/styles/assets/fonts'),
-          path.resolve(ROOT_NODE_MODULES, '@patternfly/react-core/dist/styles/assets/pficon'),
-          path.resolve(ROOT_NODE_MODULES, '@patternfly/patternfly/assets/fonts'),
-          path.resolve(ROOT_NODE_MODULES, '@patternfly/patternfly/assets/pficon'),
-        ],
         use: {
           loader: 'file-loader',
           options: {
@@ -126,37 +105,6 @@ module.exports = (env) => ({
       },
       {
         test: /\.(jpg|jpeg|png|gif)$/i,
-        include: [
-          SRC_DIR,
-          COMMON_DIR,
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/patternfly'),
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly/assets/images'),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-styles/css/assets/images',
-          ),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-core/dist/styles/assets/images',
-          ),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-core/node_modules/@patternfly/react-styles/css/assets/images',
-          ),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-table/node_modules/@patternfly/react-styles/css/assets/images',
-          ),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css/assets/images',
-          ),
-          // Root node_modules for @odh-dashboard/internal imports
-          path.resolve(ROOT_NODE_MODULES, 'patternfly'),
-          path.resolve(ROOT_NODE_MODULES, '@patternfly/patternfly/assets/images'),
-          path.resolve(ROOT_NODE_MODULES, '@patternfly/react-styles/css/assets/images'),
-          path.resolve(ROOT_NODE_MODULES, '@patternfly/react-core/dist/styles/assets/images'),
-        ],
         use: [
           {
             loader: 'url-loader',
@@ -250,7 +198,7 @@ module.exports = (env) => ({
       '~': path.resolve(SRC_DIR),
       '@odh-dashboard/internal': path.resolve(RELATIVE_DIRNAME, '../../../frontend/src'),
     },
-    symlinks: false,
+    symlinks: true,
     cacheWithContext: false,
   },
 });

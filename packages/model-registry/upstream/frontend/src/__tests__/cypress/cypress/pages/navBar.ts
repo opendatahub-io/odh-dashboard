@@ -1,6 +1,6 @@
 class NavBar {
   findBrand() {
-    return cy.get('.pf-v5-c-brand');
+    return cy.get('.pf-v6-c-brand');
   }
 
   findNavToggleButton() {

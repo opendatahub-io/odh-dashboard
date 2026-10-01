@@ -69,7 +69,7 @@ See [reference.md](reference.md) for naming conventions, port ranges, templates,
 ### Step 1: Run the installer
 
 ```bash
-cd packages && npx mod-arch-installer -n <name>
+cd packages && pnpm dlx mod-arch-installer -n <name>
 ```
 
 If the installer fails (network error, not found, etc.), fall back to **manual scaffolding**: copy the structure from an existing federated module like `packages/eval-hub/` and replace all name references. See reference.md § Module Federation Config for the package.json template.
@@ -207,15 +207,15 @@ Run these sequentially. Stop and fix on first failure before proceeding.
 ### Step 1: Install workspace
 
 ```bash
-npm install
+pnpm install
 ```
 
-This wires up the new package in the npm workspace. Must succeed before other steps.
+This wires up the new package in the pnpm workspace. Must succeed before other steps.
 
 ### Step 2: Validate ports
 
 ```bash
-npm run validate:ports
+pnpm run validate:ports
 ```
 
 If this fails, a port conflict exists. Fix the conflicting port in `package.json` and re-run.
@@ -223,7 +223,7 @@ If this fails, a port conflict exists. Fix the conflicting port in `package.json
 ### Step 3: Type-check
 
 ```bash
-npm run type-check
+pnpm run type-check
 ```
 
 This verifies:

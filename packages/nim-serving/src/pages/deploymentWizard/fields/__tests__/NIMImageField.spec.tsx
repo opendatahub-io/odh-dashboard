@@ -51,6 +51,45 @@ describe('NIMImageFieldComponent', () => {
     mockUseAccessReview.mockReturnValue([true, true]);
   });
 
+  it('should provide NIM-specific review details', () => {
+    const { NIMImageFieldWizardField } = require('../NIMImageField');
+    const sections = NIMImageFieldWizardField.getReviewSections?.({
+      repository: 'nvcr.io/nim/meta/llama-3.2-1b-instruct',
+      tag: '1.8',
+    });
+
+    expect(sections).toEqual([
+      {
+        title: 'Model details',
+        items: [
+          {
+            key: 'nimModelType',
+            replaces: 'modelType',
+            label: 'Model type',
+            value: expect.any(Function),
+          },
+          {
+            key: 'nimModelLocation',
+            replaces: 'modelLocationData-locationType',
+            label: 'Model location',
+            value: expect.any(Function),
+            isVisible: expect.any(Function),
+          },
+          {
+            key: 'nimImage',
+            label: 'NIM image',
+            value: expect.any(Function),
+          },
+        ],
+      },
+    ]);
+
+    const items = sections?.[0].items ?? [];
+    expect(items[0].value({} as never)).toBe('NVIDIA NIM');
+    expect(items[1].isVisible?.({} as never)).toBe(false);
+    expect(items[2].value({} as never)).toBe('nvcr.io/nim/meta/llama-3.2-1b-instruct:1.8');
+  });
+
   it('should show info alert when no project is selected', () => {
     renderComponent({
       externalData: {
@@ -235,7 +274,7 @@ describe('NIMImageFieldComponent', () => {
     expect(screen.queryByRole('button', { name: 'Clear input value' })).not.toBeInTheDocument();
     expect(screen.queryByText('No NVIDIA NIM key', { exact: false })).not.toBeInTheDocument();
     expect(
-      screen.getByText(/NVIDIA NIM account information could not be loaded/),
+      screen.getByText(/Unable to retrieve NVIDIA NIM account information/),
     ).toBeInTheDocument();
     expect(screen.queryByTestId('nim-image-not-found-warning')).not.toBeInTheDocument();
   });
@@ -256,7 +295,7 @@ describe('NIMImageFieldComponent', () => {
 
     expect(screen.getByRole('combobox')).toHaveValue('nvcr.io/nim/test/legacy-model:9.9.9');
     expect(
-      screen.getByText(/NVIDIA NIM account information could not be loaded/),
+      screen.getByText(/Unable to retrieve NVIDIA NIM account information/),
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Clear input value' })).not.toBeInTheDocument();
     expect(screen.queryByTestId('nim-image-not-found-warning')).not.toBeInTheDocument();
@@ -278,7 +317,7 @@ describe('NIMImageFieldComponent', () => {
 
     expect(screen.getByRole('combobox')).toHaveValue('nvcr.io/nim/test/legacy-model:9.9.9');
     expect(
-      screen.getByText(/deployed image is preserved but cannot be changed/),
+      screen.getByText(/deployed image is preserved but cannot be edited/),
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Clear input value' })).not.toBeInTheDocument();
   });

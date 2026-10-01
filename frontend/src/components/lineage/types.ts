@@ -70,6 +70,7 @@ export interface LineageProps {
   componentFactory: ComponentFactory;
   popoverComponent?: PopoverComponent;
   toolbarComponent?: React.ComponentType;
+  legendComponent?: React.ComponentType;
   autoResetOnDataChange?: boolean;
 }
 

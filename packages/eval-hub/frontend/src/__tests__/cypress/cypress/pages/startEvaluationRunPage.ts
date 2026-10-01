@@ -45,6 +45,10 @@ class StartEvaluationRunPage {
     return cy.findByTestId('source-mode-select');
   }
 
+  findSourceModeOption(mode: 'model' | 'agent' | 'prerecorded') {
+    return cy.get(`[data-testid="source-mode-option-${mode}"]`);
+  }
+
   findModelPickerToggle() {
     return cy.findByTestId('model-picker-toggle');
   }
@@ -103,6 +107,18 @@ class StartEvaluationRunPage {
 
   findAdditionalArgsUpload() {
     return cy.findByTestId('additional-args-upload');
+  }
+
+  findHardwareProfileToggle() {
+    return cy.findByTestId('hardware-profile-toggle');
+  }
+
+  findHardwareProfileOption(profileName: string) {
+    return cy.findByTestId(`hardware-profile-option-${profileName}`);
+  }
+
+  findHardwareProfileHelperText() {
+    return cy.findByTestId('hardware-profile-helper-text');
   }
 
   findSubmitButton() {

@@ -31,12 +31,8 @@ type openAIModelList struct {
 // GenAIProxyNSModelsHandler handles GET /api/v1/genai-proxy/ns/:namespace/v1/models.
 //
 // Aggregates models from namespace ISVCs, custom endpoints, and MaaS and returns them
-// in OpenAI list format. Consumed by OGX's remote::passthrough provider so OGX
-// discovers new models without a pod restart.
-//
-// Auth is required: OGX forwards the user's JWT via X-OGX-Provider-Data →
-// forward_headers → x-forwarded-access-token header. The middleware extracts
-// the identity before this handler runs.
+// in OpenAI list format. Auth is required: OGX forwards the user's JWT via
+// Authorization: Bearer (from passthrough_api_key in X-OGX-Provider-Data).
 func (app *App) GenAIProxyNSModelsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 
@@ -49,8 +45,6 @@ func (app *App) GenAIProxyNSModelsHandler(w http.ResponseWriter, r *http.Request
 	ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
 	r = r.WithContext(ctx)
 
-	// Auth is required: OGX forwards the user's JWT via X-OGX-Provider-Data → forward_headers
-	// → x-forwarded-access-token. The middleware extracts the identity before this handler runs.
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil || identity.Token == "" {
 		app.unauthorizedResponse(w, r, errors.New("missing authentication identity"))
@@ -89,10 +83,26 @@ func (app *App) GenAIProxyNSModelsHandler(w http.ResponseWriter, r *http.Request
 		aaModels = append(aaModels, maasModels...)
 	}
 
-	// Convert to OpenAI format, filtering out stopped models
+	list := buildOpenAIModelList(aaModels)
+	if err := app.WriteJSON(w, http.StatusOK, list, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// buildOpenAIModelList advertises only models the inference proxy can serve.
+// OGX cannot parse the transcription model type, and Playground installation
+// skips that type even if its capabilities also list text generation. Audio
+// transcription is handled separately by LlamaStackAudioTranscriptionHandler.
+func buildOpenAIModelList(aaModels []models.AAModel) openAIModelList {
 	items := make([]openAIModelItem, 0, len(aaModels))
 	for _, m := range aaModels {
-		if m.Status == models.ModelStatusStop {
+		// Capability-only ASR detection applies to inference models. An embedding
+		// model may advertise audio transcription but still belongs in discovery.
+		asrOnlyInferenceModel := (m.ModelType == models.ModelTypeLLM || m.ModelType == "") &&
+			constants.IsASROnlyCapabilities(m.Capabilities)
+		if m.Status == models.ModelStatusStop ||
+			m.ModelType == models.ModelTypeTranscription ||
+			asrOnlyInferenceModel {
 			continue
 		}
 
@@ -116,8 +126,5 @@ func (app *App) GenAIProxyNSModelsHandler(w http.ResponseWriter, r *http.Request
 		items = append(items, item)
 	}
 
-	list := openAIModelList{Object: "list", Data: items}
-	if err := app.WriteJSON(w, http.StatusOK, list, nil); err != nil {
-		app.serverErrorResponse(w, r, err)
-	}
+	return openAIModelList{Object: "list", Data: items}
 }

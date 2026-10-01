@@ -28,31 +28,31 @@ help: ## Display this help.
 
 .PHONY: dev-install-dependencies
 dev-install-dependencies:
-	cd frontend && npm install
+	@echo "Dependencies are installed by pnpm install at the repository root."
 
 .PHONY: dev-bff-mock
 dev-bff-mock: ## Run BFF with all mocks enabled
-	cd bff && make run PORT=4001 LOG_LEVEL=debug DEV_MODE=true MOCK_K8S_CLIENT=true MOCK_S3_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true MOCK_OGX_CLIENT=true AUTH_METHOD=internal DEPLOYMENT_MODE=standalone
+	cd bff && make run PORT=4001 LOG_LEVEL=debug DEV_MODE=true MOCK_K8S_CLIENT=true MOCK_MAAS_CLIENT=true MOCK_S3_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true AUTH_METHOD=internal DEPLOYMENT_MODE=standalone
 
 .PHONY: dev-bff-mock-debug
-dev-bff-mock-debug: ## Run BFF with all mocks and Delve debugger on port 2345
-	cd bff && make debug PORT=4001 LOG_LEVEL=debug DEV_MODE=true MOCK_K8S_CLIENT=true MOCK_S3_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true MOCK_OGX_CLIENT=true AUTH_METHOD=internal DEPLOYMENT_MODE=standalone
+dev-bff-mock-debug: ## Run BFF with all mocks and debug logging
+	cd bff && make run PORT=4001 LOG_LEVEL=debug DEV_MODE=true MOCK_K8S_CLIENT=true MOCK_MAAS_CLIENT=true MOCK_S3_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true AUTH_METHOD=internal DEPLOYMENT_MODE=standalone
 
 .PHONY: dev-bff
 dev-bff:
 	trap 'exit 0' INT; \
-	cd bff && make run PORT=4001 MOCK_K8S_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone
+	cd bff && make run PORT=4001 MOCK_K8S_CLIENT=true MOCK_MAAS_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone
 
 .PHONY: dev-frontend
 dev-frontend:
-	cd frontend && DEPLOYMENT_MODE=standalone STYLE_THEME=mui-theme npm run start:dev
+	cd frontend && DEPLOYMENT_MODE=standalone STYLE_THEME=mui-theme pnpm run start:dev
 
 .PHONY: dev-start-mock
 dev-start-mock: ## Run frontend and BFF with all mocks in development mode
 	make -j 2 dev-bff-mock dev-frontend
 
 .PHONY: dev-start-mock-debug
-dev-start-mock-debug: ## Run frontend and BFF with all mocks and Delve debugger (VSCode: F5 → "Attach to BFF")
+dev-start-mock-debug: ## Run frontend and BFF with all mocks and debug logging
 	make -j 2 dev-bff-mock-debug dev-frontend
 
 .PHONY: dev-start
@@ -68,7 +68,7 @@ dev-start-kubeflow:
 
 .PHONY: dev-frontend-kubeflow
 dev-frontend-kubeflow:
-	cd frontend && DEPLOYMENT_MODE=kubeflow STYLE_THEME=mui-theme npm run start:dev
+	cd frontend && DEPLOYMENT_MODE=kubeflow STYLE_THEME=mui-theme pnpm run start:dev
 
 .PHONY: dev-bff-kubeflow
 dev-bff-kubeflow:
@@ -84,7 +84,7 @@ dev-start-federated:
 
 .PHONY: dev-frontend-federated
 dev-frontend-federated:
-	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9107 PROXY_PORT=4001 npm run start:dev
+	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9107 PROXY_PORT=4001 pnpm run start:dev
 
 .PHONY: dev-bff-federated
 dev-bff-federated:
@@ -100,7 +100,7 @@ dev-start-federated-mock:
 
 .PHONY: dev-bff-federated-mock
 dev-bff-federated-mock:
-	cd bff && make run PORT=4001 MOCK_K8S_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
+	cd bff && make run PORT=4001 MOCK_K8S_CLIENT=true MOCK_MAAS_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
 
 ############ E2E Test Targets ############
 # These targets are used by the GitHub Actions e2e workflow to start BFFs
@@ -110,7 +110,7 @@ E2E_BFF_PORT ?= 4001
 
 .PHONY: dev-bff-e2e-mock
 dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
-	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=true MOCK_MAAS_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated
 
 .PHONY: dev-bff-e2e-cluster
 dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to cluster)
@@ -120,27 +120,27 @@ dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to clus
 
 .PHONY: docker-build
 docker-build:
-	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme -t ${IMG_UI} .
+	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme -f Dockerfile.workspace -t ${IMG_UI} ../..
 
 .PHONY: docker-build-standalone
 docker-build-standalone:
-	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme -t ${IMG_UI_STANDALONE} .
+	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme -f Dockerfile.workspace -t ${IMG_UI_STANDALONE} ../..
 
 .PHONY: docker-build-federated
 docker-build-federated:
-	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly -t ${IMG_UI_FEDERATED} .
+	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly -f Dockerfile.workspace -t ${IMG_UI_FEDERATED} ../..
 
 .PHONY: docker-buildx
 docker-buildx:
-	docker buildx build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -t ${IMG_UI} --push .
+	docker buildx build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -f Dockerfile.workspace -t ${IMG_UI} --push ../..
 
 .PHONY: docker-buildx-standalone
 docker-buildx-standalone:
-	docker buildx build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -t ${IMG_UI_STANDALONE} --push .
+	docker buildx build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -f Dockerfile.workspace -t ${IMG_UI_STANDALONE} --push ../..
 
 .PHONY: docker-buildx-federated
 docker-buildx-federated:
-	docker buildx build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly --platform ${PLATFORM} -t ${IMG_UI_FEDERATED} --push .
+	docker buildx build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly --platform ${PLATFORM} -f Dockerfile.workspace -t ${IMG_UI_FEDERATED} --push ../..
 
 ############ Push ############
 
@@ -169,11 +169,11 @@ kubeflow-deployment:
 ############ Build ############
 .PHONY: frontend-build
 frontend-build:
-	cd frontend && DEPLOYMENT_MODE=kubeflow npm run build:prod
+	cd frontend && DEPLOYMENT_MODE=kubeflow pnpm run build:prod
 
 .PHONY: frontend-build-standalone
 frontend-build-standalone:
-	cd frontend && DEPLOYMENT_MODE=standalone npm run build:prod
+	cd frontend && DEPLOYMENT_MODE=standalone pnpm run build:prod
 
 .PHONY: bff-build
 bff-build:
@@ -185,6 +185,4 @@ build: frontend-build bff-build
 ############ Run mocked ########
 .PHONY: run-local-mocked
 run-local-mocked: frontend-build-standalone bff-build
-	rm -r ./bff/static-local-run && cp -r ./frontend/dist/ ./bff/static-local-run/ && cd bff && make run STATIC_ASSETS_DIR=./static-local-run MOCK_K8S_CLIENT=true DEV_MODE=true
-
-
+	rm -rf ./bff/static-local-run && cp -r ./frontend/dist/ ./bff/static-local-run/ && cd bff && make run LOG_LEVEL=debug STATIC_ASSETS_DIR=./static-local-run DEV_MODE=true MOCK_K8S_CLIENT=true MOCK_MAAS_CLIENT=true MOCK_S3_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true AUTH_METHOD=disabled DEPLOYMENT_MODE=standalone

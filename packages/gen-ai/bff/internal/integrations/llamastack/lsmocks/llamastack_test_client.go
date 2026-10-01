@@ -85,6 +85,10 @@ func (c *TestLlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, 
 	return c.inner.ListModels(ctx)
 }
 
+func (c *TestLlamaStackClient) ListModelsWithProviderData(ctx context.Context, providerData map[string]interface{}) ([]openai.Model, error) {
+	return c.inner.ListModelsWithProviderData(ctx, providerData)
+}
+
 func (c *TestLlamaStackClient) ListVectorStores(ctx context.Context, params llamastack.ListVectorStoresParams) ([]openai.VectorStore, error) {
 	return c.inner.ListVectorStores(ctx, params)
 }
@@ -99,6 +103,10 @@ func (c *TestLlamaStackClient) DeleteVectorStore(ctx context.Context, vectorStor
 
 func (c *TestLlamaStackClient) UploadFile(ctx context.Context, params llamastack.UploadFileParams) (*llamastack.FileUploadResult, error) {
 	return c.inner.UploadFile(ctx, params)
+}
+
+func (c *TestLlamaStackClient) ProcessFile(ctx context.Context, fileID string) (*llamastack.ProcessedDocument, error) {
+	return c.inner.ProcessFile(ctx, fileID)
 }
 
 func (c *TestLlamaStackClient) ListFiles(ctx context.Context, params llamastack.ListFilesParams) ([]openai.FileObject, error) {

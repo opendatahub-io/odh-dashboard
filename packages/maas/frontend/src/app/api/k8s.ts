@@ -5,14 +5,14 @@ import {
   isModArchResponse,
   restGET,
 } from 'mod-arch-core';
-import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
+import { BFF_API_VERSION, API_URL_PREFIX } from '~/app/utilities/const';
 import { NamespaceKind } from '~/app/types';
 
 export const getUser =
   (hostPath: string) =>
   (opts: APIOptions): Promise<UserSettings> =>
     handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/user`, {}, opts),
+      restGET(hostPath, `${API_URL_PREFIX}/api/${BFF_API_VERSION}/user`, {}, opts),
     ).then((response) => {
       if (isModArchResponse<UserSettings>(response)) {
         return response.data;
@@ -24,7 +24,7 @@ export const getNamespaces =
   (hostPath: string) =>
   (opts: APIOptions): Promise<NamespaceKind[]> =>
     handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/namespaces`, {}, opts),
+      restGET(hostPath, `${API_URL_PREFIX}/api/${BFF_API_VERSION}/namespaces`, {}, opts),
     ).then((response) => {
       if (isModArchResponse<NamespaceKind[]>(response)) {
         return response.data;
@@ -43,7 +43,7 @@ export const getIsMaasAdmin =
   (hostPath = '') =>
   (opts: APIOptions): Promise<IsMaasAdminResult> =>
     handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/is-maas-admin`, {}, opts),
+      restGET(hostPath, `${API_URL_PREFIX}/api/${BFF_API_VERSION}/is-maas-admin`, {}, opts),
     ).then((response) => {
       if (isModArchResponse<unknown>(response) && isIsMaasAdminResult(response.data)) {
         return response.data;

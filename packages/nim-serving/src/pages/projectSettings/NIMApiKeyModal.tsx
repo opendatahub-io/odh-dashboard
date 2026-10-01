@@ -11,6 +11,7 @@ import {
   InputGroup,
   InputGroupItem,
   ValidatedOptions,
+  Form,
 } from '@patternfly/react-core';
 import {
   EyeIcon,
@@ -21,6 +22,8 @@ import {
 import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 import { NIMAccountStatus } from '../../api/accounts/hooks';
 import { createNIMResources, createOrReplaceSecret } from '../../api/accounts/api';
+import { NimAccountEnabledMode } from '../../tracking/nimTrackingConstants';
+import { useNimAccountEnabledTracking } from '../../tracking/useNimAccountEnabledTracking';
 
 type NIMApiKeyModalProps = {
   onClose: () => void;
@@ -42,14 +45,23 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
   const [isCreating, setIsCreating] = React.useState(false);
   const [submitted, setSubmitted] = React.useState(false);
   const [createError, setCreateError] = React.useState<string>();
+  const [submitMode, setSubmitMode] = React.useState(NimAccountEnabledMode.ENABLE);
+  const { resetTrackingRefs, trackSubmitApiFailure } = useNimAccountEnabledTracking(
+    submitted,
+    accountStatus,
+    submitMode,
+  );
 
   const handleSubmit = React.useCallback(async () => {
     const trimmedKey = apiKey.trim();
     setIsCreating(true);
     setCreateError(undefined);
+    resetTrackingRefs();
 
     const accountExists =
       accountStatus !== NIMAccountStatus.NOT_FOUND && accountStatus !== NIMAccountStatus.LOADING;
+    const mode = accountExists ? NimAccountEnabledMode.REPLACE : NimAccountEnabledMode.ENABLE;
+    setSubmitMode(mode);
 
     try {
       if (accountExists) {
@@ -58,14 +70,33 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
       } else {
         await createNIMResources(namespace, trimmedKey);
       }
-      setSubmitted(true);
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : 'Failed to create NIM resources.';
+      setCreateError(errorMessage);
+      trackSubmitApiFailure(mode);
+      setIsCreating(false);
+      return;
+    }
+
+    setSubmitted(true);
+    try {
       await refresh();
     } catch (e) {
-      setCreateError(e instanceof Error ? e.message : 'Failed to create NIM resources.');
+      setCreateError(
+        e instanceof Error ? e.message : 'Failed to refresh NVIDIA NIM account status.',
+      );
     } finally {
       setIsCreating(false);
     }
-  }, [apiKey, accountStatus, namespace, startRevalidation, refresh]);
+  }, [
+    apiKey,
+    accountStatus,
+    namespace,
+    startRevalidation,
+    refresh,
+    resetTrackingRefs,
+    trackSubmitApiFailure,
+  ]);
 
   const handleClose = React.useCallback(() => {
     onClose();
@@ -111,7 +142,8 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
 
   return (
     <ContentModal
-      title="Enter NVIDIA personal API key"
+      title="Add NVIDIA personal API key"
+      description="Your personal API key will be saved to this project and used for all future NIM deployments within it."
       onClose={handleClose}
       variant="medium"
       dataTestId="nim-api-key-modal"
@@ -135,42 +167,44 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
         },
       ]}
       contents={
-        <FormGroup label="NVIDIA personal API key" fieldId="nim-api-key">
-          <InputGroup>
-            <InputGroupItem isFill>
-              <TextInput
-                id="nim-api-key"
-                type={showKey ? 'text' : 'password'}
-                value={apiKey}
-                onChange={(_e, value) => setApiKey(value)}
-                isDisabled={isInputDisabled}
-                validated={hasValidationError ? ValidatedOptions.error : ValidatedOptions.default}
-                data-testid="nim-api-key-input"
-              />
-            </InputGroupItem>
-            <InputGroupItem>
-              <Button
-                variant="control"
-                onClick={() => setShowKey((prev) => !prev)}
-                aria-label={showKey ? 'Hide API key' : 'Show API key'}
-                data-testid="nim-api-key-toggle"
-              >
-                {showKey ? <EyeSlashIcon /> : <EyeIcon />}
-              </Button>
-            </InputGroupItem>
-          </InputGroup>
-          <FormHelperText>
-            <HelperText>
-              {hasValidationError ? (
-                <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
-                  Invalid API key. Verify your key and try again.
-                </HelperTextItem>
-              ) : (
-                <HelperTextItem>This key is given to you by NVIDIA</HelperTextItem>
-              )}
-            </HelperText>
-          </FormHelperText>
-        </FormGroup>
+        <Form>
+          <FormGroup label="NVIDIA personal API key" fieldId="nim-api-key">
+            <InputGroup>
+              <InputGroupItem isFill>
+                <TextInput
+                  id="nim-api-key"
+                  type={showKey ? 'text' : 'password'}
+                  value={apiKey}
+                  onChange={(_e, value) => setApiKey(value)}
+                  isDisabled={isInputDisabled}
+                  validated={hasValidationError ? ValidatedOptions.error : ValidatedOptions.default}
+                  data-testid="nim-api-key-input"
+                />
+              </InputGroupItem>
+              <InputGroupItem>
+                <Button
+                  variant="control"
+                  onClick={() => setShowKey((prev) => !prev)}
+                  aria-label={showKey ? 'Hide API key' : 'Show API key'}
+                  data-testid="nim-api-key-toggle"
+                >
+                  {showKey ? <EyeSlashIcon /> : <EyeIcon />}
+                </Button>
+              </InputGroupItem>
+            </InputGroup>
+            <FormHelperText>
+              <HelperText>
+                {hasValidationError ? (
+                  <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
+                    Invalid API key. Ensure it is accurate, then try again.
+                  </HelperTextItem>
+                ) : (
+                  <HelperTextItem>Get your API key from the NVIDIA NGC portal.</HelperTextItem>
+                )}
+              </HelperText>
+            </FormHelperText>
+          </FormGroup>
+        </Form>
       }
     />
   );

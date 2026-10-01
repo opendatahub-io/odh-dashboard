@@ -13,20 +13,22 @@ This document describes the GET endpoint for listing and filtering Kubernetes se
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `namespace` | string | **Yes** | The namespace name to query secrets from |
-| `type` | string | No | Secret type filter: `storage` for storage secrets (e.g., S3), `ogx` for OGX (Open GenAI Stack) secrets, or omit for all secrets |
+| `type` | string | No | Secret type filter: `storage`, `ogx`, `maas`, or `vector-db`; omit for all secrets |
 
 ## Functionality
 
 The endpoint:
 1. Lists secrets in the specified namespace
 2. Filters secrets based on the `type` parameter:
-   - **No type** (or empty): Returns all secrets in the namespace
-   - **`type=storage`**: Filters for storage secrets matching any configured storage type (currently supports S3)
-   - **`type=ogx`**: Filters for OGX (Open GenAI Stack) secrets containing required OGX keys
+    - **No type** (or empty): Returns all secrets in the namespace
+    - **`type=storage`**: Filters for storage secrets matching any configured storage type (currently supports S3)
+    - **`type=ogx`**: Filters for OGX (Open GenAI Stack) secrets containing required OGX keys
+    - **`type=maas`**: Filters for secrets containing `MAAS_BASE_URL` and `MAAS_API_KEY`
+    - **`type=vector-db`**: Filters for the union of Milvus and PGVector credential key sets
 3. Returns the Kubernetes UID, name, and type of each matching secret
    - The `type` field is determined by:
-     1. **First priority**: The `opendatahub.io/connection-type` annotation if present and non-empty
-     2. **Fallback**: Key-based type detection (e.g., "s3", "ogx")
+      1. The filter uses case-sensitive key-presence matching.
+      2. A non-empty `opendatahub.io/connection-type` annotation may still determine the returned `type` field after a secret matches.
    - If a secret doesn't match any known type and has no connection-type annotation, the `type` field is omitted from the response
    - If a secret matches multiple types via key detection, the first matching type is returned
 4. Requires authentication via the InjectRequestIdentity middleware
@@ -49,6 +51,21 @@ Secrets are filtered using configurable dictionaries of secret types and their r
 | OGX Type | Required Keys |
 |----------|---------------|
 | **Open GenAI Stack** | `OGX_CLIENT_API_KEY`, `OGX_CLIENT_BASE_URL` |
+
+**Currently Supported MaaS Types:**
+
+| MaaS Type | Required Keys |
+|----------|---------------|
+| **Hosted MaaS** | `MAAS_BASE_URL`, `MAAS_API_KEY` |
+
+**Currently Supported Vector Database Types:**
+
+| Vector Database | Required Keys |
+|-----------------|---------------|
+| **Milvus** | `MILVUS_URI` |
+| **PGVector** | `PGVECTOR_HOST`, `PGVECTOR_PORT`, `PGVECTOR_DB`, `PGVECTOR_USER`, `PGVECTOR_PASSWORD` |
+
+The `vector-db` result is the deduplicated union of these two key sets. Filtering is based on key presence only: empty values, extra keys, mixed database families, OGX keys, and graph-related keys are not excluded.
 
 ## Response Format
 
@@ -155,6 +172,22 @@ Response:
 
 **Note:** The first secret includes a `displayName` field because it has the `openshift.io/display-name` annotation, while the second secret omits this field as it lacks the annotation.
 
+### List hosted MaaS secrets only
+
+```bash
+GET /api/v1/secrets?namespace=my-namespace&type=maas
+```
+
+Matching requires both `MAAS_BASE_URL` and `MAAS_API_KEY` to be present. Credential values remain redacted.
+
+### List vector database secrets only
+
+```bash
+GET /api/v1/secrets?namespace=my-namespace&type=vector-db
+```
+
+This returns the deduplicated union of Milvus and PGVector key sets using presence-only matching.
+
 ## Implementation Details
 
 ### Files Created/Modified
@@ -220,7 +253,7 @@ Key matching is case-sensitive via the `IsAllowedSecretKey()` function. Keys mus
 
 ### Filtering Logic
 
-The endpoint supports three filtering modes based on the `type` parameter:
+The endpoint supports filtering modes based on the `type` parameter:
 
 1. **No type (all secrets)**: Returns all secrets in the namespace without filtering
 
@@ -237,7 +270,15 @@ The endpoint supports three filtering modes based on the `type` parameter:
    - A secret matches if it contains ALL required OGX keys
    - Currently configured OGX type:
      - **Open GenAI Stack**: Requires `OGX_CLIENT_API_KEY`, `OGX_CLIENT_BASE_URL`
-   - Key matching is case-sensitive; keys must be uppercase
+    - Key matching is case-sensitive; keys must be uppercase
+
+4. **`type=maas`**: Filters for hosted MaaS secrets
+   - Requires the presence of `MAAS_BASE_URL` and `MAAS_API_KEY`
+   - Empty values and additional keys are allowed
+
+5. **`type=vector-db`**: Filters for vector database secrets
+   - Returns the deduplicated union of `MILVUS_URI` and the complete PGVector key set
+   - Uses key presence only; empty values and additional or mixed keys are allowed
 
 Invalid type values result in a 400 Bad Request error.
 
@@ -304,13 +345,13 @@ In this example:
 
 The `type` field can be explicitly set using the `opendatahub.io/connection-type` annotation on a secret. This provides a way to:
 
-- **Override key-based detection**: Explicitly specify the connection type regardless of the secret's keys
+- **Control the returned type field**: Explicitly specify the connection type for a secret that matched the requested key filter
 - **Support custom types**: Define connection types that aren't covered by the built-in key-based detection
 - **Ensure consistency**: Guarantee the correct type is returned even if keys change
 
 **Type determination priority:**
-1. **Annotation-based** (highest priority): If the secret has the `opendatahub.io/connection-type` annotation with a non-empty value, use that value as the type
-2. **Key-based detection** (fallback): If no annotation is present or it's empty, analyze the secret's keys to determine the type
+1. **Annotation-based**: If the secret has the `opendatahub.io/connection-type` annotation with a non-empty value, use that value as the returned type
+2. **Key-based detection**: If no annotation is present or it is empty, use the matching key-based type
 
 **Example secret with connection-type annotation:**
 ```yaml
@@ -338,7 +379,7 @@ data:
 }
 ```
 
-Even if the secret contains keys that would normally match S3 or OGX detection, the annotation takes precedence and the type will be set to the annotation value.
+The annotation does not replace key presence for filtering. It affects only the returned `type` field after the secret matches the requested filter.
 
 ### Display Name and Description
 

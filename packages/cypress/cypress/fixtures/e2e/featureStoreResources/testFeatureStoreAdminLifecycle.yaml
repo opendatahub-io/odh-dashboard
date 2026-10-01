@@ -1,0 +1,14 @@
+# testFeatureStoreAdminLifecycle.cy.ts Test Data
+createPageTitle: 'Create feature store'
+managePageTitle: 'Feature stores'
+statusReady: 'Ready'
+wizardSteps:
+  details: 'Details'
+  registry: 'Registry'
+  onlineOfflineStores: 'Online & offline stores'
+  advancedOptions: 'Advanced options'
+  review: 'Review'
+expandedDetails:
+  feastProject: 'Feast project'
+  conditions: 'Conditions'
+deleteAction: 'Delete'

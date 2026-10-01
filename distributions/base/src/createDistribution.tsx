@@ -16,6 +16,16 @@ export interface DistributionConfig {
   extensions: Record<string, Extension[]>;
   featureFlags?: Record<string, boolean>;
   rootElementId?: string;
+  /** Optional public base path for a distribution hosted below the gateway root. */
+  basename?: string;
+  /**
+   * Optional replacement for PluginStoreProvider. Use when a distribution
+   * needs to initialize additional SDK state around the same plugin store.
+   */
+  PluginStoreWrapper?: React.ComponentType<{
+    store: PluginStore;
+    children: React.ReactNode;
+  }>;
   /**
    * Optional host wrapper around the shell (e.g. ProjectsContextProvider).
    * Distributions use this to mount host-only providers without forking the shell.
@@ -32,7 +42,7 @@ const DistributionApp: React.FC<{ config: DistributionConfig }> = ({ config }) =
     return s;
   }, [config]);
 
-  const { AppWrapper } = config;
+  const { AppWrapper, PluginStoreWrapper } = config;
 
   const shellContent = (
     <Shell masthead={<ShellHeader />} sidebar={<ShellNav />}>
@@ -40,13 +50,16 @@ const DistributionApp: React.FC<{ config: DistributionConfig }> = ({ config }) =
     </Shell>
   );
 
+  const appContent = AppWrapper ? <AppWrapper>{shellContent}</AppWrapper> : shellContent;
+  const storeContent = PluginStoreWrapper ? (
+    <PluginStoreWrapper store={store}>{appContent}</PluginStoreWrapper>
+  ) : (
+    <PluginStoreProvider store={store}>{appContent}</PluginStoreProvider>
+  );
+
   return (
     <ThemeProvider>
-      <BrowserStorageContextProvider>
-        <PluginStoreProvider store={store}>
-          {AppWrapper ? <AppWrapper>{shellContent}</AppWrapper> : shellContent}
-        </PluginStoreProvider>
-      </BrowserStorageContextProvider>
+      <BrowserStorageContextProvider>{storeContent}</BrowserStorageContextProvider>
     </ThemeProvider>
   );
 };
@@ -58,12 +71,15 @@ export function createDistribution(config: DistributionConfig): void {
     throw new Error(`Root element #${rootElementId} not found`);
   }
 
-  const router = createBrowserRouter([
-    {
-      path: '*',
-      element: <DistributionApp config={config} />,
-    },
-  ]);
+  const router = createBrowserRouter(
+    [
+      {
+        path: '*',
+        element: <DistributionApp config={config} />,
+      },
+    ],
+    { basename: config.basename },
+  );
 
   const root = createRoot(container);
   root.render(

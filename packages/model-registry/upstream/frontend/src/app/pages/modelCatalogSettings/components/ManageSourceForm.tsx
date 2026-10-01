@@ -1,16 +1,8 @@
 import * as React from 'react';
-import {
-  Form,
-  FormGroup,
-  Checkbox,
-  Stack,
-  StackItem,
-  Sidebar,
-  SidebarPanel,
-  SidebarContent,
-} from '@patternfly/react-core';
+import { FormGroup, Checkbox, Stack, StackItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import FormSection from '~/app/pages/modelRegistry/components/pf-overrides/FormSection';
+import { ManageSourceFormLayout } from '~/app/shared/catalogSettings';
 import { catalogSettingsUrl } from '~/app/routes/modelCatalogSettings/modelCatalogSettings';
 import { isFormValid } from '~/app/pages/modelCatalogSettings/utils/validation';
 import { useManageSourceData } from '~/app/pages/modelCatalogSettings/useManageSourceData';
@@ -27,6 +19,12 @@ import {
   transformFormDataToConfig,
 } from '~/app/pages/modelCatalogSettings/utils/modelCatalogSettingsUtils';
 import { CatalogSourceConfig, CatalogSourceType } from '~/app/modelCatalogTypes';
+import { useUserInteraction } from '~/concepts/userInteraction';
+import {
+  MODEL_CATALOG_HF_TRACKING_SOURCE_TYPE,
+  MODEL_CATALOG_SOURCE_EVENTS,
+  ModelCatalogAccessTokenClearOutcome,
+} from '~/app/pages/modelCatalogSettings/tracking/modelCatalogSourcesTracking';
 import SourceDetailsSection from './SourceDetailsSection';
 import CredentialsSection from './CredentialsSection';
 import YamlSection from './YamlSection';
@@ -46,8 +44,9 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
   onToggleExpectedFormatDrawer,
 }) => {
   const navigate = useNavigate();
+  const { trackSimpleEvent } = useUserInteraction();
   const existingData = existingSourceConfig
-    ? catalogSourceConfigToFormData(existingSourceConfig)
+    ? { ...catalogSourceConfigToFormData(existingSourceConfig), tokenModified: false }
     : undefined;
   const [formData, setData] = useManageSourceData(existingData);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -60,15 +59,55 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
     markSourcePending,
   } = React.useContext(ModelCatalogSettingsContext);
 
-  // Use the preview hook
+  const hasExistingApiKey =
+    isEditMode &&
+    existingSourceConfig?.type === CatalogSourceType.HUGGING_FACE &&
+    existingSourceConfig.hasConfiguredApiKey === true;
+
   const preview = useSourcePreview({
     formData,
     existingSourceConfig,
     apiState,
     isEditMode,
+    hasExistingApiKey,
   });
 
   const isHuggingFaceMode = formData.sourceType === CatalogSourceType.HUGGING_FACE;
+
+  const handleEnableSourceChange = React.useCallback(
+    (checked: boolean) => {
+      setData('enabled', checked);
+      if (isHuggingFaceMode) {
+        trackSimpleEvent(MODEL_CATALOG_SOURCE_EVENTS.ENABLE_SOURCE_TOGGLED, {
+          isSourceEnabled: checked,
+          sourceType: MODEL_CATALOG_HF_TRACKING_SOURCE_TYPE,
+        });
+      }
+    },
+    [isHuggingFaceMode, setData, trackSimpleEvent],
+  );
+
+  const handleAccessTokenClearOutcome = React.useCallback(
+    (outcome: ModelCatalogAccessTokenClearOutcome) => {
+      trackSimpleEvent(MODEL_CATALOG_SOURCE_EVENTS.ACCESS_TOKEN_CLEAR_CONFIRMED, {
+        outcome,
+      });
+    },
+    [trackSimpleEvent],
+  );
+
+  const handleClearCredentials = React.useCallback(async () => {
+    if (!formData.id) {
+      return;
+    }
+    if (!apiState.apiAvailable) {
+      throw new Error('API is not available');
+    }
+    await apiState.api.deleteCatalogSourceCredentials({}, formData.id);
+    refreshCatalogSourceConfigs();
+    refreshCatalogSources();
+  }, [apiState, formData.id, refreshCatalogSourceConfigs, refreshCatalogSources]);
+
   const isFormComplete = isFormValid(formData);
 
   const handleSubmit = async () => {
@@ -81,20 +120,20 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
 
     try {
       const sourceConfig = transformFormDataToConfig(formData, existingSourceConfig);
-      const payload = getPayloadForConfig(sourceConfig, isEditMode);
+      const payload = getPayloadForConfig(sourceConfig, isEditMode, formData.tokenModified);
 
       if (isEditMode && existingData) {
         const previousStatus =
           catalogSources?.items?.find((s) => s.id === formData.id)?.status ?? '';
         await apiState.api.updateCatalogSourceConfig({}, formData.id, payload);
         const validationFieldsChanged =
-          existingData!.sourceType !== formData.sourceType ||
-          existingData!.yamlContent !== formData.yamlContent ||
-          existingData!.accessToken !== formData.accessToken ||
-          existingData!.organization !== formData.organization ||
-          existingData!.allowedModels !== formData.allowedModels ||
-          existingData!.excludedModels !== formData.excludedModels ||
-          existingData!.enabled !== formData.enabled;
+          existingData.sourceType !== formData.sourceType ||
+          existingData.yamlContent !== formData.yamlContent ||
+          existingData.accessToken !== formData.accessToken ||
+          existingData.organization !== formData.organization ||
+          existingData.allowedModels !== formData.allowedModels ||
+          existingData.excludedModels !== formData.excludedModels ||
+          existingData.enabled !== formData.enabled;
         if (validationFieldsChanged) {
           markSourcePending(formData.id, previousStatus);
         }
@@ -117,93 +156,86 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
   };
 
   return (
-    <>
-      <Sidebar hasBorder isPanelRight hasGutter>
-        <SidebarContent>
-          <Form isWidthLimited>
-            <Stack hasGutter>
-              <StackItem>
-                <SourceDetailsSection
-                  formData={formData}
-                  setData={setData}
-                  isEditMode={isEditMode}
-                />
-              </StackItem>
+    <ManageSourceFormLayout
+      previewPanel={<PreviewPanel preview={preview} isSourceEnabled={formData.enabled} />}
+      footer={
+        <ManageSourceFormFooter
+          submitLabel={isEditMode ? 'Save' : 'Add'}
+          submitError={submitError}
+          isSubmitDisabled={!isFormComplete || isSubmitting}
+          isSubmitting={isSubmitting}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+          isPreviewDisabled={!preview.canPreview}
+          isPreviewLoading={preview.previewState.isLoadingInitial}
+          onPreview={preview.handlePreview}
+          previewDisabledTooltip={preview.previewDisabledTooltip}
+        />
+      }
+    >
+      <Stack hasGutter>
+        <StackItem>
+          <SourceDetailsSection formData={formData} setData={setData} isEditMode={isEditMode} />
+        </StackItem>
 
-              {isHuggingFaceMode && (
-                <StackItem>
-                  <CredentialsSection
-                    formData={formData}
-                    setData={setData}
-                    onValidate={preview.handleValidate}
-                    isValidating={preview.isValidating}
-                    validationError={preview.validationError}
-                    isValidationSuccess={preview.isValidationSuccess}
-                    onClearValidationSuccess={preview.clearValidationSuccess}
-                  />
-                </StackItem>
-              )}
+        {isHuggingFaceMode && (
+          <StackItem>
+            <CredentialsSection
+              formData={formData}
+              setData={setData}
+              onValidate={preview.handleValidate}
+              isValidating={preview.isValidating}
+              validationError={preview.validationError}
+              isValidationSuccess={preview.isValidationSuccess}
+              onClearValidationSuccess={preview.clearValidationSuccess}
+              hasExistingApiKey={hasExistingApiKey}
+              onClearCredentials={handleClearCredentials}
+              onAccessTokenClearOutcome={handleAccessTokenClearOutcome}
+            />
+          </StackItem>
+        )}
 
-              {!formData.isDefault && !isHuggingFaceMode && (
-                <StackItem>
-                  <YamlSection
-                    formData={formData}
-                    setData={setData}
-                    onToggleExpectedFormatDrawer={onToggleExpectedFormatDrawer}
-                  />
-                </StackItem>
-              )}
+        {!formData.isDefault && !isHuggingFaceMode && (
+          <StackItem>
+            <YamlSection
+              formData={formData}
+              setData={setData}
+              onToggleExpectedFormatDrawer={onToggleExpectedFormatDrawer}
+            />
+          </StackItem>
+        )}
 
-              <StackItem>
-                <ModelVisibilitySection
-                  formData={formData}
-                  setData={setData}
-                  isDefaultExpanded={
-                    existingData?.isDefault ||
-                    !!existingData?.allowedModels ||
-                    !!existingData?.excludedModels
-                  }
-                />
-              </StackItem>
+        <StackItem>
+          <FormSection>
+            <FormGroup fieldId="enable-source">
+              <Checkbox
+                label={
+                  <span className="pf-v6-c-form__label-text">{FORM_LABELS.ENABLE_SOURCE}</span>
+                }
+                id="enable-source"
+                name="enable-source"
+                data-testid="enable-source-checkbox"
+                description={DESCRIPTION_TEXT.ENABLE_SOURCE}
+                isChecked={formData.enabled}
+                onChange={(_event, checked) => handleEnableSourceChange(checked)}
+              />
+            </FormGroup>
+          </FormSection>
+        </StackItem>
 
-              <StackItem>
-                <FormSection>
-                  <FormGroup fieldId="enable-source">
-                    <Checkbox
-                      label={
-                        <span className="pf-v6-c-form__label-text">
-                          {FORM_LABELS.ENABLE_SOURCE}
-                        </span>
-                      }
-                      id="enable-source"
-                      name="enable-source"
-                      data-testid="enable-source-checkbox"
-                      description={DESCRIPTION_TEXT.ENABLE_SOURCE}
-                      isChecked={formData.enabled}
-                      onChange={(_event, checked) => setData('enabled', checked)}
-                    />
-                  </FormGroup>
-                </FormSection>
-              </StackItem>
-            </Stack>
-          </Form>
-        </SidebarContent>
-        <SidebarPanel width={{ default: 'width_50' }}>
-          <PreviewPanel preview={preview} />
-        </SidebarPanel>
-      </Sidebar>
-      <ManageSourceFormFooter
-        submitLabel={isEditMode ? 'Save' : 'Add'}
-        submitError={submitError}
-        isSubmitDisabled={!isFormComplete || isSubmitting}
-        isSubmitting={isSubmitting}
-        onSubmit={handleSubmit}
-        onCancel={handleCancel}
-        isPreviewDisabled={!preview.canPreview}
-        isPreviewLoading={preview.previewState.isLoadingInitial}
-        onPreview={() => preview.handlePreview()}
-      />
-    </>
+        <StackItem>
+          <ModelVisibilitySection
+            formData={formData}
+            setData={setData}
+            isDefaultExpanded={
+              existingData?.isDefault ||
+              !!existingData?.allowedModels ||
+              !!existingData?.excludedModels
+            }
+          />
+        </StackItem>
+      </Stack>
+    </ManageSourceFormLayout>
   );
 };
 

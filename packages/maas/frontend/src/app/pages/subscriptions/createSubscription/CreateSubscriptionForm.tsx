@@ -37,6 +37,7 @@ import {
   SubscriptionModelEntry,
   CreateSubscriptionRequest,
   UpdateSubscriptionRequest,
+  SYSTEM_AUTHENTICATED_GROUP,
 } from '~/app/types/subscriptions';
 import AddModelsModal from '~/app/shared/AddModelsModal';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
@@ -51,6 +52,7 @@ import {
   SubscriptionUpdatedErrorProperties,
   SubscriptionUpdatedSuccessProperties,
 } from '~/app/types/event-tracking';
+import SystemAuthenticatedWarning from '~/app/shared/SystemAuthenticatedWarning';
 import EditRateLimitsModal from './EditRateLimitsModal';
 
 type CreateSubscriptionFormProps = {
@@ -403,6 +405,9 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             createOptionMessage={(value) => `Add group "${value}"`}
             placeholder="Select groups"
           />
+          {selectedGroupNames.includes(SYSTEM_AUTHENTICATED_GROUP) && (
+            <SystemAuthenticatedWarning />
+          )}
           {groupsTouched && getFieldValidation(['groups'], true).length > 0 && (
             <FormHelperText>
               <HelperText>
@@ -421,9 +426,9 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             title="No models available"
             data-testid="no-models-warning"
           >
-            There are no model endpoints available on the cluster. Deploy a model on the{' '}
-            <Link to="/ai-hub/models/deployments">Deployments page</Link> and create a MaaSModelRef
-            before creating a subscription.
+            There are no model endpoints available on the cluster. To create a subscription, first
+            deploy a model from the <Link to="/ai-hub/models/deployments">Deployments page</Link>{' '}
+            and create a MaaSModelRef.
           </Alert>
         ) : (
           <MaasModelsSection

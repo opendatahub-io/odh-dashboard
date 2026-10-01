@@ -8,6 +8,13 @@ import {
   RAG_METRIC_ANSWER_CORRECTNESS,
   RAG_METRIC_CONTEXT_CORRECTNESS,
   RAG_METRIC_OVERALL_SCORE,
+  RAG_METRIC_CUSTOM_OVERALL_SCORE,
+  RAG_METRIC_UNITXT_FAITHFULNESS,
+  RAG_METRIC_UNITXT_ANSWER_CORRECTNESS,
+  RAG_METRIC_RAGAS_FAITHFULNESS,
+  RAG_METRIC_RAGAS_ANSWER_RELEVANCY,
+  RAG_METRIC_RAGAS_CONTEXT_PRECISION,
+  RAG_METRIC_RAGAS_CONTEXT_RECALL,
 } from '~/app/utilities/const';
 
 export { TrackingOutcome };
@@ -149,7 +156,7 @@ export const fireAutoragModelsSelected = (properties: ModelsSelectedProperties):
 export type VectorStoreProviderType = 'milvus' | 'pgvector';
 
 /**
- * Maps a raw `OgxVectorStoreProvider.provider_type` (e.g. `"remote::milvus"`) to the categorized
+ * Maps a raw vector store provider type (e.g. `"remote::milvus"`) to the categorized
  * {@link VectorStoreProviderType} used in analytics. Returns `undefined` for any provider type
  * outside the current allowlist — callers must skip firing the tracking event in that case rather
  * than forwarding an uncategorized value. This keeps the tracked property to a fixed, non-sensitive
@@ -171,17 +178,38 @@ export const toVectorStoreProviderType = (
 
 export type VectorStoreConfiguredProperties = {
   providerType: VectorStoreProviderType;
-  countOfCompatibleProviders: number;
+  /** Retained for compatibility with the previous OGX discovery payload. */
+  countOfCompatibleProviders?: number;
   outcome: TrackingOutcome;
   success: boolean;
 };
 
+/** Infers a safe provider category from redacted Secret key metadata only. */
+export const getVectorStoreProviderTypeFromSecretData = (
+  data?: Record<string, string>,
+): VectorStoreProviderType | undefined => {
+  const keys = new Set(Object.keys(data ?? {}));
+  const hasMilvus = keys.has('MILVUS_URI');
+  const hasPgvector = [
+    'PGVECTOR_HOST',
+    'PGVECTOR_PORT',
+    'PGVECTOR_DB',
+    'PGVECTOR_USER',
+    'PGVECTOR_PASSWORD',
+  ].every((key) => keys.has(key));
+
+  if (hasMilvus === hasPgvector) {
+    return undefined;
+  }
+  return hasMilvus ? 'milvus' : 'pgvector';
+};
+
 /**
- * Fires when the user selects a vector I/O provider in the "Configure details" step of the
+ * Fires when the user selects a vector database Secret in the "Configure details" step of the
  * configure flow. Fires on every selection change (consistent with Knowledge/Evaluation Source,
  * which re-fire on every upload/replace), from the Select's `onSelect` handler only — never from
  * the effect that clears a stale selection when the provider list refreshes, and never from the
- * initial/reconfigure pre-fill of `vector_io_provider_id`. This is a pure local field selection
+ * initial/reconfigure pre-fill of `vector_db_secret_name`. This is a pure local field selection
  * with no direct backend call, so `outcome` is always `submit` and `success` is always `true`.
  */
 export const fireAutoragVectorStoreConfigured = (
@@ -192,10 +220,25 @@ export const fireAutoragVectorStoreConfigured = (
 
 /** Product-wide, camelCase taxonomy for the RAG optimization metric, independent of the schema's snake_case values. */
 export type RagOptimizationMetric =
-  'overallScore' | 'answerFaithfulness' | 'answerCorrectness' | 'contextCorrectness';
+  | 'overallScore'
+  | 'answerFaithfulness'
+  | 'answerCorrectness'
+  | 'answerRelevancy'
+  | 'contextPrecision'
+  | 'contextRecall'
+  | 'contextCorrectness';
+
+export type RagOptimizationMetricEvaluator = 'unitxt' | 'ragas' | 'custom';
 
 /* eslint-disable camelcase -- keys mirror the schema's snake_case optimization_metric values */
 const RAG_OPTIMIZATION_METRIC_MAP: Record<string, RagOptimizationMetric> = {
+  [RAG_METRIC_CUSTOM_OVERALL_SCORE]: 'overallScore',
+  [RAG_METRIC_UNITXT_FAITHFULNESS]: 'answerFaithfulness',
+  [RAG_METRIC_UNITXT_ANSWER_CORRECTNESS]: 'answerCorrectness',
+  [RAG_METRIC_RAGAS_FAITHFULNESS]: 'answerFaithfulness',
+  [RAG_METRIC_RAGAS_ANSWER_RELEVANCY]: 'answerRelevancy',
+  [RAG_METRIC_RAGAS_CONTEXT_PRECISION]: 'contextPrecision',
+  [RAG_METRIC_RAGAS_CONTEXT_RECALL]: 'contextRecall',
   [RAG_METRIC_OVERALL_SCORE]: 'overallScore',
   [RAG_METRIC_FAITHFULNESS]: 'answerFaithfulness',
   [RAG_METRIC_ANSWER_CORRECTNESS]: 'answerCorrectness',
@@ -214,6 +257,19 @@ export const mapOptimizationMetric = (metric: string): RagOptimizationMetric | u
     ? RAG_OPTIMIZATION_METRIC_MAP[metric]
     : undefined;
 
+/** Maps a qualified optimization metric to its bounded evaluator dimension. */
+export const mapOptimizationMetricEvaluator = (
+  metric: string,
+): RagOptimizationMetricEvaluator | undefined => {
+  if (mapOptimizationMetric(metric) === undefined) {
+    return undefined;
+  }
+  const evaluator = metric.split(':', 1)[0];
+  return evaluator === 'unitxt' || evaluator === 'ragas' || evaluator === 'custom'
+    ? evaluator
+    : undefined;
+};
+
 export type RunTriggeredProperties = {
   /**
    * Only known when the corresponding source was actually (re)selected in this session — see
@@ -224,6 +280,7 @@ export type RunTriggeredProperties = {
   /** See {@link RunTriggeredProperties.knowledgeSourceType} — same caveat applies. */
   evaluationSourceType?: EvaluationSourceType;
   optimizationMetric?: RagOptimizationMetric;
+  optimizationMetricEvaluator?: RagOptimizationMetricEvaluator;
   /** See {@link RunTriggeredProperties.knowledgeSourceType} — same caveat applies. */
   vectorDatabase?: VectorStoreProviderType;
   countOfModels: number;
@@ -294,6 +351,7 @@ export type RunReconfiguredProperties = {
   /** See {@link RunReconfiguredProperties.knowledgeSourceType} — same caveat applies. */
   evaluationSourceType?: EvaluationSourceType;
   optimizationMetric?: RagOptimizationMetric;
+  optimizationMetricEvaluator?: RagOptimizationMetricEvaluator;
   /** See {@link RunReconfiguredProperties.knowledgeSourceType} — same caveat applies. */
   vectorDatabase?: VectorStoreProviderType;
   countOfFoundationModels: number;

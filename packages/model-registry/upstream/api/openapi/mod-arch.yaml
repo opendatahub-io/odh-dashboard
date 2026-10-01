@@ -1229,6 +1229,150 @@ paths:
       operationId: getAgentArtifacts
       description: Lists artifacts for a specific agent.
 
+  # Serving runtime catalog endpoints
+  /api/v1/serving_runtime_catalog/serving_runtimes:
+    description: >-
+      The REST endpoint/path used to list zero or more `ServingRuntime` entities.
+    get:
+      summary: List serving_runtimes.
+      tags:
+        - ServingRuntimeCatalogService
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/namespace"
+        - name: name
+          description: Filter by name using SQL LIKE pattern matching.
+          schema:
+            type: string
+          in: query
+          required: false
+        - name: q
+          description: Free-form keyword search used to filter the response.
+          schema:
+            type: string
+          in: query
+          required: false
+        - name: source
+          description: Filter by source ID.
+          schema:
+            type: array
+            items:
+              type: string
+          in: query
+          required: false
+        - name: sourceLabel
+          description: |-
+            Filter by the label associated with the source. Multiple
+            values can be separated by commas. If one of the values is the
+            string `null`, then entities from every source without a label will
+            be returned.
+          schema:
+            type: array
+            items:
+              type: string
+          in: query
+          required: false
+        - $ref: "#/components/parameters/filterQuery"
+        - $ref: "#/components/parameters/pageSize"
+        - $ref: "#/components/parameters/orderBy"
+        - $ref: "#/components/parameters/sortOrder"
+        - $ref: "#/components/parameters/nextPageToken"
+      responses:
+        "200":
+          $ref: "#/components/responses/ServingRuntimeListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: findServingRuntimes
+
+  /api/v1/serving_runtime_catalog/serving_runtimes_filter_options:
+    description: Lists options for `filterQuery` when listing serving_runtimes.
+    get:
+      summary: Lists fields and values that can be used in `filterQuery` on the list serving_runtimes endpoint.
+      tags:
+        - ServingRuntimeCatalogService
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/namespace"
+      responses:
+        "200":
+          $ref: "#/components/responses/ServingRuntimeFilterOptionsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: findServingRuntimesFilterOptions
+
+  /api/v1/serving_runtime_catalog/serving_runtimes/{id}:
+    description: >-
+      The REST endpoint/path used to get a single `ServingRuntime` entity.
+    get:
+      summary: Get a serving_runtime by ID.
+      tags:
+        - ServingRuntimeCatalogService
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/namespace"
+        - name: id
+          description: The unique identifier of the entity.
+          schema:
+            type: string
+          in: path
+          required: true
+      responses:
+        "200":
+          $ref: "#/components/responses/ServingRuntimeResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getServingRuntime
+
+  /api/v1/serving_runtime_catalog/serving_runtimes/{id}/versions:
+    description: >-
+      The REST endpoint/path used to list zero or more `ServingRuntimeVersion`
+      entities for a `ServingRuntime`.
+    get:
+      summary: List versions of a `ServingRuntime`.
+      tags:
+        - ServingRuntimeCatalogService
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/filterQuery"
+        - $ref: "#/components/parameters/pageSize"
+        - $ref: "#/components/parameters/orderBy"
+        - $ref: "#/components/parameters/sortOrder"
+        - $ref: "#/components/parameters/nextPageToken"
+      responses:
+        "200":
+          $ref: "#/components/responses/ServingRuntimeVersionListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getServingRuntimeVersions
+    parameters:
+      - name: id
+        description: The unique identifier of the `ServingRuntime`.
+        schema:
+          type: string
+        in: path
+        required: true
+
   # MCP catalog settings endpoints
   /api/v1/settings/mcp_catalog/source_configs:
     summary: Path used to manage MCP catalog sources.
@@ -1461,21 +1605,32 @@ paths:
       The REST endpoint/path used to preview the effects of catalog source configuration changes.
     post:
       summary: Preview catalog source configuration effects
-      description: >-
-        Accepts catalog source definitions and returns a preview of which models would be
-        included or excluded based on the configuration. Supports multipart form uploads
-        for YAML catalogs files.
+      description: |-
+        Accepts a catalog source configuration and returns a list of assets showing
+        which would be included or excluded based on the configured filters. This allows
+        users to test and validate their source configurations before applying them.
+
+        The response summary varies based on the `assetType` query parameter (defaults to `models`):
+        - `models`: model-specific summary fields (`totalModels`, `includedModels`, `excludedModels`).
+        - `mcp_servers`: asset summary fields (`totalAssets`, `includedAssets`, `excludedAssets`).
+
+        For MCP server sources, set `assetType=mcp_servers` and use `includedServers` / `excludedServers`
+        in the request body. For model sources, use `includedModels` / `excludedModels`.
+
+        The BFF accepts JSON (`data` wrapper) and translates the request to multipart form data
+        (`config` and optional `catalogData` parts) when calling the catalog service. YAML catalog
+        content for stateless model or MCP preview is provided via `properties.yaml` in the JSON body.
       tags:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
         - $ref: "#/components/parameters/assetType"
-        - name: statusFilter
+        - name: filterStatus
           description: |-
-            Filter the response to show specific model statuses.
-            - `all` shows all models (default)
-            - `included` shows only models that would be included
-            - `excluded` shows only models that would be excluded
+            Filter the response to show specific inclusion statuses.
+            - `all` shows all assets (default)
+            - `included` shows only assets that would be included
+            - `excluded` shows only assets that would be excluded
           schema:
             type: string
             enum:
@@ -1488,25 +1643,19 @@ paths:
         - $ref: "#/components/parameters/pageSize"
         - $ref: "#/components/parameters/nextPageToken"
       requestBody:
-        description: Catalog source configuration
+        description: |-
+          Catalog source preview configuration in the `data` field. The BFF builds multipart
+          `config` / `catalogData` parts for the catalog preview API.
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CatalogSourcePreviewRequest"
-          multipart/form-data:
-            schema:
               type: object
+              required:
+                - data
               properties:
-                file:
-                  type: string
-                  format: yaml
-                description:
-                  type: string
-                  description:
-                    Should include a file named `source.json`, and may optionally
-                    include a YAML catalog. The name referenced in the source
-                    definition should match uploaded file name.
+                data:
+                  $ref: "#/components/schemas/CatalogSourcePreviewRequest"
       responses:
         "200":
           $ref: "#/components/responses/CatalogSourcePreviewResponse"
@@ -2250,6 +2399,7 @@ components:
         - CREATE_TIME
         - LAST_UPDATE_TIME
         - Id
+        - RECOMMENDED
       type: string
     Artifact:
       oneOf:
@@ -2673,6 +2823,280 @@ components:
           format: int32
           description: Number of items in result list.
           type: integer
+    ServingRuntime:
+      description: A serving runtime family in the serving runtime catalog.
+      allOf:
+        - $ref: "#/components/schemas/BaseResource"
+        - type: object
+          properties:
+            displayName:
+              type: string
+              description: Human-friendly display label.
+              example: vLLM
+              maxLength: 255
+            sourceId:
+              type: string
+              description: Catalog source that provides this runtime.
+            provider:
+              type: string
+              description: Organization providing the runtime.
+              example: Red Hat
+            readme:
+              type: string
+              description: Full Markdown documentation for this runtime.
+            logo:
+              type: string
+              description: >-
+                Runtime logo. A data URL is recommended; a plain http(s) URL is
+                also accepted.
+            tags:
+              type: array
+              description: Categorization tags.
+              items:
+                type: string
+              example: ["llm", "generative-ai", "gpu"]
+            license:
+              type: string
+              description: SPDX identifier for the runtime license.
+              example: apache-2.0
+            licenseLink:
+              type: string
+              format: uri
+              description: URL to the full license text.
+            documentationUrl:
+              type: string
+              format: uri
+              description: URL to external documentation.
+            repositoryUrl:
+              type: string
+              format: uri
+              description: URL to the source repository.
+            supportedModelFormats:
+              type: array
+              description: >-
+                Model formats this runtime can serve, aggregated across its
+                versions. Maps to ServingRuntime.spec.supportedModelFormats.
+              items:
+                $ref: "#/components/schemas/SupportedModelFormat"
+            capabilities:
+              $ref: "#/components/schemas/ServingRuntimeCapabilities"
+            versionCount:
+              type: integer
+              format: int32
+              description: Number of catalog versions available for this runtime.
+              readOnly: true
+              example: 3
+            publishedDate:
+              type: string
+              format: date-time
+              description: Initial publication timestamp.
+            lastUpdated:
+              type: string
+              format: date-time
+              description: Last metadata update timestamp.
+
+    ServingRuntimeVersion:
+      description: >-
+        A specific, deployable version of a serving runtime. Carries the
+        container image and the metadata needed to generate a ServingRuntime
+        manifest. Discovery metadata only — not a live deployment.
+      allOf:
+        - $ref: "#/components/schemas/BaseResource"
+        - type: object
+          required:
+            - artifactType
+            - version
+            - image
+          properties:
+            artifactType:
+              type: string
+              default: serving-runtime-version
+            version:
+              type: string
+              description: Version string of the runtime (typically the image tag).
+              example: "0.5.0"
+            image:
+              type: string
+              description: >-
+                Fully-qualified container image reference for this version. The
+                registry host may be rewritten by the dashboard for disconnected
+                environments (registry mirror override).
+              example: registry.redhat.io/rhoai/vllm-rhel9:0.5.0
+            supportLevel:
+              $ref: "#/components/schemas/ServingRuntimeSupportLevel"
+            supportedModelFormats:
+              type: array
+              description: Model formats supported by this specific version.
+              items:
+                $ref: "#/components/schemas/SupportedModelFormat"
+            protocolVersions:
+              type: array
+              description: Inference protocols supported (maps to ServingRuntime.spec.protocolVersions).
+              items:
+                type: string
+              example: ["v2", "grpc-v2"]
+            recommendedResources:
+              $ref: "#/components/schemas/ServingRuntimeResourceRecommendation"
+            defaultArgs:
+              type: array
+              description: Default container args for the generated ServingRuntime.
+              items:
+                type: string
+              example: ["--max-model-len", "4096"]
+            env:
+              type: array
+              description: Environment variables the runtime accepts (discovery hints; no secret values).
+              items:
+                $ref: "#/components/schemas/ServingRuntimeEnvVar"
+            template:
+              type: string
+              description: >-
+                Optional full ServingRuntime (KServe v1alpha1) manifest for this
+                version, as a JSON-encoded string, ready for review/edit before
+                creation. If omitted, the consumer generates the manifest from the
+                fields above.
+            deprecated:
+              type: boolean
+              description: Whether this version is deprecated and should be de-emphasized in the UI.
+              default: false
+            publishedDate:
+              type: string
+              format: date-time
+              description: Publication timestamp for this version/image.
+
+    SupportedModelFormat:
+      description: A model format a runtime can serve. Maps to ServingRuntime.spec.supportedModelFormats[].
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Format name.
+          example: safetensors
+        version:
+          type: string
+          description: Optional format version.
+        autoSelect:
+          type: boolean
+          description: Whether this runtime may be auto-selected for the format.
+          default: false
+        priority:
+          type: integer
+          format: int32
+          description: Selection priority when multiple runtimes support the format.
+
+    ServingRuntimeSupportLevel:
+      description: >-
+        Support/provenance badge for a runtime version. A display label usable
+        for filtering; carries no ordering semantics.
+      type: string
+      enum:
+        - supported
+        - techPreview
+        - developerPreview
+        - community
+
+    ServingRuntimeCapabilities:
+      description: High-level capability flags to aid discovery and filtering.
+      type: object
+      properties:
+        requiresGPU:
+          type: boolean
+          description: Whether the runtime requires a GPU/accelerator.
+          default: false
+        supportedAccelerators:
+          type: array
+          description: Accelerator types this runtime supports.
+          items:
+            type: string
+          example: ["nvidia.com/gpu", "amd.com/gpu"]
+        multiModel:
+          type: boolean
+          description: Whether the runtime can serve multiple models (ModelMesh-style). Maps to ServingRuntime.spec.multiModel.
+          default: false
+
+    ServingRuntimeResourceRecommendation:
+      description: >-
+        Recommended resource requests/limits for deploying a runtime version.
+        Users should adjust based on model size and traffic.
+      type: object
+      properties:
+        minimal:
+          $ref: "#/components/schemas/ResourceTier"
+        recommended:
+          $ref: "#/components/schemas/ResourceTier"
+        high:
+          $ref: "#/components/schemas/ResourceTier"
+
+    ResourceTier:
+      type: object
+      properties:
+        cpu:
+          type: string
+          example: "4"
+        memory:
+          type: string
+          example: 16Gi
+        accelerator:
+          type: object
+          description: 'Accelerator request, e.g. {"nvidia.com/gpu": "1"}.'
+          additionalProperties:
+            type: string
+          example:
+            nvidia.com/gpu: "1"
+
+    ServingRuntimeEnvVar:
+      description: An environment variable the runtime accepts. Discovery hint only; never carries secret values.
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: HF_TOKEN
+        description:
+          type: string
+          example: Hugging Face token used to pull gated models.
+        required:
+          type: boolean
+          default: false
+        defaultValue:
+          type: string
+          description: Default value for optional, non-secret variables only.
+        secret:
+          type: boolean
+          description: Whether the value should come from a Secret (never defaulted).
+          default: false
+
+    ServingRuntimeList:
+      description: A list of serving_runtime entities.
+      allOf:
+        - type: object
+          properties:
+            items:
+              description: Array of `ServingRuntime` entities.
+              type: array
+              items:
+                $ref: "#/components/schemas/ServingRuntime"
+          required:
+            - items
+        - $ref: "#/components/schemas/BaseResourceList"
+
+    ServingRuntimeVersionList:
+      description: A list of serving_runtime_version entities.
+      allOf:
+        - type: object
+          properties:
+            items:
+              description: Array of `ServingRuntimeVersion` entities.
+              type: array
+              items:
+                $ref: "#/components/schemas/ServingRuntimeVersion"
+          required:
+            - items
+        - $ref: "#/components/schemas/BaseResourceList"
+
     Agent:
       description: An agent in the agent catalog.
       type: object
@@ -2947,17 +3371,41 @@ components:
           description: |-
             Operational status of a catalog source.
             - `available`: The source is functioning correctly and models can be retrieved
+            - `partially-available`: Some models loaded successfully but others failed (for example gated models without access)
             - `error`: The source is experiencing issues and cannot provide models
             - `disabled`: The source has been intentionally disabled
           type: string
           enum:
             - available
+            - partially-available
             - error
             - disabled
         error:
           description: |-
-            Error message when status is Failed. Contains details about what went wrong.
+            Error message when status is error or partially-available. Contains details about what went wrong.
+            Null or empty when the source is functioning normally.
           type: string
+          nullable: true
+        hasApiKey:
+          description: |-
+            Whether an API token is stored for this source. The token value is never
+            returned. False for sources that have no stored token.
+          type: boolean
+          readOnly: true
+        authenticated:
+          description: |-
+            Whether the stored API token validated successfully.
+            Null when no token exists (`hasApiKey` is false).
+          type: boolean
+          nullable: true
+          readOnly: true
+        hfUsername:
+          description: |-
+            The Hugging Face username associated with the stored API token.
+            Null when no token exists or authentication failed.
+          type: string
+          nullable: true
+          readOnly: true
         assetType:
           $ref: "#/components/schemas/assetType"
           description: |-
@@ -3008,10 +3456,12 @@ components:
         - models
         - mcp_servers
         - agents
+        - serving_runtimes
       default: models
       description: |-
         The type of assets a source manages. Filters sources by asset type.
-        "models" for model catalog sources, "mcp_servers" for MCP server catalog sources, "agents" for agent catalog sources.
+        `models` for model catalog sources, `mcp_servers` for MCP server catalog sources,
+        `agents` for agent catalog sources, `serving_runtimes` for serving runtime catalog sources.
     FieldFilter:
       type: object
       required:
@@ -3217,6 +3667,53 @@ components:
           example: /mcp
         prerequisites:
           $ref: "#/components/schemas/McpPrerequisites"
+        storage:
+          type: array
+          description: |-
+            Storage mounts applied to the generated MCPServer's spec.config.storage.
+            EmptyDir mounts provide writable scratch space while the container
+            root filesystem stays read-only.
+          items:
+            $ref: "#/components/schemas/McpStorageMount"
+    McpStorageMount:
+      type: object
+      required:
+        - path
+        - source
+      properties:
+        path:
+          type: string
+          description: Absolute mount path inside the container.
+          example: /tmp
+        permissions:
+          type: string
+          enum: [ReadOnly, ReadWrite]
+          description: Mount permissions. Defaults to ReadOnly when unset.
+          example: ReadWrite
+        source:
+          $ref: "#/components/schemas/McpStorageSource"
+    McpStorageSource:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [EmptyDir, ConfigMap, Secret]
+          description: Volume source type for the mount.
+          example: EmptyDir
+        emptyDir:
+          type: object
+          additionalProperties: true
+          description: EmptyDir volume source; use {} for defaults.
+        configMap:
+          type: object
+          additionalProperties: true
+          description: ConfigMap volume source.
+        secret:
+          type: object
+          additionalProperties: true
+          description: Secret volume source.
     McpServiceAccountRequirement:
       type: object
       properties:
@@ -3564,22 +4061,38 @@ components:
       properties:
         type:
           type: string
-          description: The type of catalog source (e.g., 'huggingface', 'yaml')
+          description: The type of catalog source (e.g., `yaml`, `huggingface`)
           example: yaml
         includedModels:
           type: array
+          description: Glob patterns for models to include (when assetType=models).
           items:
             type: string
         excludedModels:
           type: array
+          description: Glob patterns for models to exclude (when assetType=models).
+          items:
+            type: string
+        includedServers:
+          type: array
+          description: Glob patterns for MCP servers to include (when assetType=mcp_servers).
+          items:
+            type: string
+        excludedServers:
+          type: array
+          description: Glob patterns for MCP servers to exclude (when assetType=mcp_servers).
           items:
             type: string
         properties:
           type: object
-          description: Type-specific configuration properties
+          description: |-
+            Type-specific configuration properties. For yaml sources, provide `yaml` (catalog
+            content) or `yamlCatalogPath`. For Hugging Face sources, `apiKey` (raw Hugging Face
+            access token forwarded to catalog for preview; omitted on edit when no credentials exist)
+            and `allowedOrganization` may be included.
           additionalProperties: true
-    CatalogSourcePreviewModel:
-      description: A model in the preview response with inclusion status.
+    CatalogSourcePreviewItem:
+      description: An asset in the preview response with inclusion status.
       type: object
       required:
         - name
@@ -3587,57 +4100,114 @@ components:
       properties:
         name:
           type: string
-          description: Name of the model
+          description: Name of the model or asset
           example: microsoft/DialoGPT-medium
         included:
           type: boolean
-          description: Whether this model would be included based on the source configuration
-    CatalogSourcePreviewResult:
-      description: Preview result for catalog source configuration.
+          description: Whether this asset would be included based on the source configuration
+        hfAccessType:
+          type: string
+          description: |-
+            Hugging Face access type classification. Only present for Hugging Face sources.
+            Possible values: public, private, gated_auto, gated_manual.
+          example: gated_auto
+        hfGatedAccessGranted:
+          type: boolean
+          description: |-
+            Whether the configured API key has been granted access to this gated model.
+            Only present for gated Hugging Face models when the information is available.
+    CatalogSourcePreviewModel:
+      description: |-
+        Deprecated alias for `CatalogSourcePreviewItem`. A model or asset with its inclusion status.
+      allOf:
+        - $ref: "#/components/schemas/CatalogSourcePreviewItem"
+    CatalogSourcePreviewModelSummary:
+      description: Summary counts for model preview (`assetType=models`).
+      type: object
+      required:
+        - totalModels
+        - includedModels
+        - excludedModels
+        - hasGatedAccessDeniedModels
+      properties:
+        totalModels:
+          type: integer
+          description: Total number of models evaluated
+          example: 1500
+        includedModels:
+          type: integer
+          description: Number of models that would be included
+          example: 850
+        excludedModels:
+          type: integer
+          description: Number of models that would be excluded
+          example: 650
+        hasGatedAccessDeniedModels:
+          type: boolean
+          description: |-
+            Whether any evaluated model is a gated Hugging Face model without access
+            (`hfAccessType` gated_auto/gated_manual and `hfGatedAccessGranted` is false or unset),
+            including models outside the current page.
+          example: true
+    CatalogSourcePreviewAssetSummary:
+      description: Summary counts for MCP server preview (`assetType=mcp_servers`).
+      type: object
+      required:
+        - totalAssets
+        - includedAssets
+        - excludedAssets
+      properties:
+        totalAssets:
+          type: integer
+          description: Total number of assets evaluated
+          example: 25
+        includedAssets:
+          type: integer
+          description: Number of assets that would be included
+          example: 18
+        excludedAssets:
+          type: integer
+          description: Number of assets that would be excluded
+          example: 7
+    CatalogSourcePreviewModelResult:
+      description: Preview result when `assetType` is `models` (default).
       allOf:
         - type: object
           properties:
             items:
-              description: Array of models with their inclusion status.
+              description: Array of model preview results.
               type: array
               items:
-                $ref: "#/components/schemas/CatalogSourcePreviewModel"
+                $ref: "#/components/schemas/CatalogSourcePreviewItem"
             summary:
-              description: Summary of the preview results
-              type: object
-              properties:
-                totalModels:
-                  type: integer
-                  description: Total number of models evaluated (when assetType=models)
-                  example: 1500
-                includedModels:
-                  type: integer
-                  description: Number of models that would be included (when assetType=models)
-                  example: 850
-                excludedModels:
-                  type: integer
-                  description: Number of models that would be excluded (when assetType=models)
-                  example: 650
-                totalAssets:
-                  type: integer
-                  description: Total number of assets evaluated (when assetType=mcp_servers)
-                  example: 25
-                includedAssets:
-                  type: integer
-                  description: Number of assets that would be included (when assetType=mcp_servers)
-                  example: 18
-                excludedAssets:
-                  type: integer
-                  description: Number of assets that would be excluded (when assetType=mcp_servers)
-                  example: 7
-              required:
-                - totalModels
-                - includedModels
-                - excludedModels
+              $ref: "#/components/schemas/CatalogSourcePreviewModelSummary"
           required:
             - items
             - summary
         - $ref: "#/components/schemas/BaseResourceList"
+    CatalogSourcePreviewAssetResult:
+      description: Preview result when `assetType` is `mcp_servers`.
+      allOf:
+        - type: object
+          properties:
+            items:
+              description: Array of asset preview results.
+              type: array
+              items:
+                $ref: "#/components/schemas/CatalogSourcePreviewItem"
+            summary:
+              $ref: "#/components/schemas/CatalogSourcePreviewAssetSummary"
+          required:
+            - items
+            - summary
+        - $ref: "#/components/schemas/BaseResourceList"
+    CatalogSourcePreviewResult:
+      description: |-
+        Polymorphic preview result. Summary fields depend on `assetType`:
+        model counts for `models`, asset counts for `mcp_servers`.
+      oneOf:
+        - $ref: "#/components/schemas/CatalogSourcePreviewModelResult"
+        - $ref: "#/components/schemas/CatalogSourcePreviewAssetResult"
 
     # Schema for catalog settings
     CatalogSourceConfig:
@@ -3645,6 +4215,15 @@ components:
       type: object
       allOf:
         - $ref: "#/components/schemas/CatalogSourceConfigPayload"
+        - type: object
+          properties:
+            hasConfiguredApiKey:
+              type: boolean
+              readOnly: true
+              description: >-
+                For Hugging Face sources, whether the effective configuration has a
+                nonempty properties.apiKey value. This does not verify that the
+                referenced Secret exists or that authentication succeeded.
     CatalogSourceConfigList:
       description: List of catalog sources.
       type: object
@@ -4244,6 +4823,52 @@ components:
       description: A response containing a single `RoleBinding` entity.
 
     # Agent Catalog responses
+    ServingRuntimeListResponse:
+      description: A list of serving_runtime entities.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/ServingRuntimeList"
+    ServingRuntimeResponse:
+      description: A single serving_runtime entity.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/ServingRuntime"
+    ServingRuntimeVersionListResponse:
+      description: A list of serving_runtime_version entities.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/ServingRuntimeVersionList"
+
+    ServingRuntimeFilterOptionsResponse:
+      description: Filter options for serving runtimes.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/FilterOptionsList"
+
     AgentListResponse:
       content:
         application/json:
@@ -4310,7 +4935,10 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/CatalogSourcePreviewResult"
+            type: object
+            properties:
+              data:
+                $ref: "#/components/schemas/CatalogSourcePreviewResult"
       description: A response containing the preview results of catalog source configuration effects.
 
     # Catalog settings response
@@ -4500,7 +5128,7 @@ components:
       required: false
     assetType:
       name: assetType
-      description: Filter sources by asset type (models, mcp_servers, or agents).
+      description: Filter by asset type (models, mcp_servers, or agents).
       schema:
         $ref: "#/components/schemas/assetType"
       in: query
@@ -4785,3 +5413,5 @@ tags:
     description: Model Catalog REST API
   - name: MCPCatalogService
     description: MCP Catalog REST API
+  - name: ServingRuntimeCatalogService
+    description: Serving Runtime Catalog REST API

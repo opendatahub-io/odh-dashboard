@@ -6,7 +6,7 @@ import { StorageTableData } from './types';
 import { getContextStorageTypeExplanation, StorageContextType } from './useStorageContextType';
 
 export const columns = (data: {
-  storageContextTypes: StorageContextType[];
+  storageContextTypes?: StorageContextType[];
 }): SortableData<StorageTableData>[] => [
   {
     field: 'name',
@@ -48,7 +48,7 @@ export const columns = (data: {
     width: 15,
     sortable: false,
     info: {
-      popover: getContextStorageTypeExplanation(data.storageContextTypes),
+      popover: getContextStorageTypeExplanation(data.storageContextTypes ?? []),
       popoverProps: {
         showClose: true,
       },

@@ -121,6 +121,11 @@ func ParseCatalogYaml(raw string, isDefault bool) ([]models.CatalogSourceConfig,
 			if apiKey, ok := c.Properties[ApiKey].(string); ok {
 				entry.ApiKey = &apiKey
 			}
+			if value, present := c.Properties[ApiKey]; present {
+				apiKey, _ := value.(string)
+				configured := apiKey != ""
+				entry.HasConfiguredApiKey = &configured
+			}
 
 			if allowedOrganization, ok := c.Properties["allowedOrganization"].(string); ok {
 				entry.AllowedOrganization = &allowedOrganization
@@ -186,6 +191,11 @@ func FindCatalogSourceById(sourceYAML string, catalogId string, isDefault bool) 
 			}
 
 			if catalog.Properties != nil {
+				if value, present := catalog.Properties[ApiKey]; present {
+					apiKey, _ := value.(string)
+					configured := apiKey != ""
+					result.HasConfiguredApiKey = &configured
+				}
 				if org, ok := catalog.Properties["allowedOrganization"].(string); ok {
 					result.AllowedOrganization = &org
 				}
@@ -314,6 +324,7 @@ func UpdateCatalogSourceInYAML(
 	payload models.CatalogSourceConfigPayload,
 	secretName string,
 	yamlFilePath string,
+	clearApiKey bool,
 ) (string, error) {
 	var parsed struct {
 		Catalogs []map[string]interface{} `yaml:"catalogs"`
@@ -364,7 +375,9 @@ func UpdateCatalogSourceInYAML(
 			if payload.AllowedOrganization != nil {
 				properties["allowedOrganization"] = *payload.AllowedOrganization
 			}
-			if secretName != "" {
+			if clearApiKey {
+				delete(properties, ApiKey)
+			} else if secretName != "" {
 				properties["apiKey"] = secretName
 			}
 			if yamlFilePath != "" && payload.Yaml != nil {

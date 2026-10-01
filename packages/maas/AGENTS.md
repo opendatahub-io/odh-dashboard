@@ -85,7 +85,7 @@ maas/
 │   │   ├── rspack.dev.js       # Development rspack config
 │   │   ├── rspack.prod.js      # Production rspack config
 │   │   └── moduleFederation.js  # Module Federation config
-│   ├── package.json             # NPM dependencies and scripts
+│   ├── package.json             # Node.js dependencies and scripts
 │   └── README.md                # Frontend documentation
 ├── docs/                        # Project documentation
 ├── scripts/                     # Utility scripts
@@ -100,8 +100,8 @@ maas/
 
 ### Frontend
 
-- **Node.js**: >= 20.0.0
-- **npm**: >= 10.0.0
+- **Node.js**: >= 22.18.0
+- **pnpm**: 11.22.0
 
 ### BFF
 
@@ -160,7 +160,7 @@ make docker-build-federated    # Federated mode
 
 ```bash
 # Frontend tests (lint + type-check + unit + cypress)
-cd frontend && npm run test
+cd frontend && pnpm run test
 
 # BFF tests
 cd bff && make lint && make test
@@ -258,8 +258,8 @@ All backend-for-frontend (BFF) Go code MUST use the following directory organiza
 
 All checks MUST pass.
 
-- Run lint: `npm run lint`
-- Run tests: `npm run test`
+- Run lint: `pnpm run lint`
+- Run tests: `pnpm run test`
 - Ensure Module Federation metadata stays correct in `config/moduleFederation.js`
 
 ---
@@ -331,7 +331,7 @@ DEPLOYMENT_MODE=federated STYLE_THEME=patternfly-theme make dev-start
 3. Stick to **PatternFly components** and utilities; Material UI appears only when Kubeflow flavor
    explicitly requires it
 4. You MUST run tests before pushing:
-   - Frontend: `npm run test` in `frontend/`
+   - Frontend: `pnpm run test` in `frontend/`
    - BFF: `make lint && make test` in `bff/`
 5. Keep [docs/](docs/) updated when you change workflows, env vars, or deployment steps
 

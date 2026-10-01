@@ -32,7 +32,9 @@ mask_value "$(extract_scalar AWS_SECRET_ACCESS_KEY)"
 mask_value "$(extract_scalar NGC_API_KEY)"
 mask_value "$(extract_scalar GEMINI_API_KEY)"
 mask_value "$(extract_scalar OGX_API_KEY)"
+mask_value "$(extract_scalar MAAS_API_KEY)"
 mask_value "$(extract_scalar OCI_SECRET_VALUE)"
+mask_value "$(extract_scalar HF_API_KEY)"
 
 while IFS= read -r password; do
   mask_value "$password"

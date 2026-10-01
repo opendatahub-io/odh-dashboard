@@ -96,7 +96,7 @@ const McpSourceDetailsSection: React.FC<McpSourceDetailsSectionProps> = ({
 
       {isEditMode && formData.isDefault && serverCount !== undefined && (
         <FormGroup label={MCP_FORM_LABELS.MCP_SERVERS} fieldId="mcp-servers-count">
-          <Content component="p" data-testid="mcp-servers-count">
+          <Content component="p" id="mcp-servers-count" data-testid="mcp-servers-count">
             {serverCount} servers
           </Content>
         </FormGroup>

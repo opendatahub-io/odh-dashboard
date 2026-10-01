@@ -2,35 +2,42 @@ import yaml from 'js-yaml';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { deleteS3TestFiles } from '../../../utils/oc_commands/s3Cleanup';
 import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
-import { createOgxSecret } from '../../../utils/oc_commands/ogxSecret';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutoragTestData } from '../../../types';
 import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
 import { autoragResultsPage } from '../../../pages/autorag/resultsPage';
-import { isAutoragEnabled, setAutoragEnabled } from '../../../utils/oc_commands/autoX';
-import { allowOgxAccess, removeOgxAccess } from '../../../utils/oc_commands/ogxNetworkPolicy';
-import {
-  isOgxOperatorManaged,
-  provisionAutoragInfrastructure,
-  cleanupAutoragInfrastructure,
-} from '../../../utils/oc_commands/autoragInfra';
+import { cleanupAutoragInfrastructure } from '../../../utils/oc_commands/autoragInfra';
 import {
   configureAutoragRun,
+  checkAutoragMaaSReadiness,
   submitAutoragRun,
-  verifyAutoragRunSubmitted,
-  verifyAutoragRunStopped,
+  getAutoragInputDataKey,
+  verifyAutoragRunTerminated,
+  verifyAutoragRunListed,
+} from '../../../utils/autoragTestFlows';
+import type {
+  AutoragConnectionOwnership,
+  AutoragMaaSFixture,
 } from '../../../utils/autoragTestFlows';
 
 const uuid = generateTestUUID();
 
-const isExternalOgx = (): boolean => !!(Cypress.env('OGX_URL') as string);
-
 describe('AutoRAG Experiments List and Run Management E2E', () => {
   let testData: AutoragTestData;
   let projectName: string;
-  let autoragWasEnabled = false;
-  let selfProvisioned = false;
+  let cleanupReady = false;
+  let maasFixture: AutoragMaaSFixture | undefined;
+  const connectionOwnership: AutoragConnectionOwnership = {
+    maasSecretCreated: false,
+    vectorDbSecretCreated: false,
+  };
+  const getMaaSFixture = (): AutoragMaaSFixture => {
+    if (!maasFixture) {
+      throw new Error('AutoRAG MaaS fixture was not resolved.');
+    }
+    return maasFixture;
+  };
 
   retryableBefore(() =>
     cy
@@ -38,50 +45,26 @@ describe('AutoRAG Experiments List and Run Management E2E', () => {
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as AutoragTestData;
         projectName = `${testData.projectNamePrefix}-${uuid}`;
+        cleanupReady = true;
       })
-      .then(() =>
-        isAutoragEnabled().then((wasEnabled) => {
-          autoragWasEnabled = wasEnabled;
-        }),
-      )
-      .then(() => setAutoragEnabled(true))
-      .then(() =>
-        isOgxOperatorManaged().then((isManaged) => {
-          if (isExternalOgx()) {
-            provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
-            allowOgxAccess(projectName);
-
-            const ogxUrl = Cypress.env('OGX_URL') as string;
-            const ogxApiKey = (Cypress.env('OGX_API_KEY') as string) || '';
-            createOgxSecret(projectName, testData.ogxSecretName, ogxUrl, ogxApiKey);
-          } else {
-            if (!isManaged) {
-              throw new Error(
-                'OGX operator is not Managed on this cluster. ' +
-                  'Either set OGX_URL for external mode or ensure the operator is Managed.',
-              );
-            }
-
-            selfProvisioned = true;
-
-            cy.step('Provision project with DSPA');
-            provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
-
-            cy.step('Provision AutoRAG infrastructure (models, Milvus, OGX)');
-            provisionAutoragInfrastructure(projectName, testData.ogxSecretName);
-          }
-        }),
-      ),
+      .then(() => checkAutoragMaaSReadiness())
+      .then((fixture) => {
+        maasFixture = fixture;
+        provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+      }),
   );
 
   after(() => {
-    if (!autoragWasEnabled) {
-      setAutoragEnabled(false);
+    if (!cleanupReady) {
+      return;
     }
-    if (selfProvisioned) {
-      cleanupAutoragInfrastructure(projectName, testData.ogxSecretName);
-    }
-    removeOgxAccess(projectName);
+
+    cleanupAutoragInfrastructure(
+      projectName,
+      testData.maasSecretName,
+      testData.vectorDbSecretName,
+      connectionOwnership,
+    );
     deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
@@ -90,31 +73,31 @@ describe('AutoRAG Experiments List and Run Management E2E', () => {
     'Can submit a run, verify it in experiments list, and stop it',
     { tags: ['@AutoRAG', '@AutoRAGRegression', '@Featureflagged'] },
     () => {
-      configureAutoragRun(testData, projectName, uuid);
+      configureAutoragRun(testData, projectName, uuid, getMaaSFixture(), {
+        createConnections: true,
+        connectionOwnership,
+      });
 
       cy.step('Set max RAG patterns to minimize run time');
       autoragConfigurePage
         .findMaxRagPatternsInputField()
         .type(`{selectall}${testData.maxRagPatterns}`);
 
-      submitAutoragRun();
-      verifyAutoragRunSubmitted(projectName, testData.runName);
+      submitAutoragRun(
+        testData,
+        projectName,
+        getAutoragInputDataKey(testData, uuid),
+        getMaaSFixture(),
+      ).then((runId) => {
+        cy.step('Terminate the submitted run and confirm');
+        autoragResultsPage.findStopRunButton().click();
+        autoragResultsPage.findStopRunModal().should('be.visible');
+        autoragResultsPage.findConfirmStopRunButton().click();
 
-      cy.step('Click on the run to go to results page');
-      autoragResultsPage.findRunsTable().contains(testData.runName).click();
-
-      cy.step('Verify run is in progress');
-      autoragResultsPage.findRunInProgressMessage().should('be.visible');
-
-      cy.step('Click stop button and confirm');
-      autoragResultsPage.findStopRunButton().click();
-      autoragResultsPage.findStopRunModal().should('be.visible');
-      autoragResultsPage.findConfirmStopRunButton().click();
-
-      verifyAutoragRunStopped(projectName);
-
-      cy.step('Verify run status shows as canceled or failed');
-      autoragResultsPage.findRunStatusLabel(80000).should('exist');
+        cy.step('Verify the submitted run reaches a terminal state');
+        verifyAutoragRunTerminated(projectName, runId);
+        verifyAutoragRunListed(projectName, testData.runName);
+      });
     },
   );
 });

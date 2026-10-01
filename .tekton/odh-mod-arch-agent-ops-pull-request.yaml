@@ -34,8 +34,6 @@ spec:
     value: .
   - name: pipeline-type
     value: pull-request
-  - name: enable-early-gate-testing
-    value: "false"
   - name: additional-tags
     value:
     - 'odh-pr-{{revision}}'

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import ProjectSelectorNavigator from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelectorNavigator';
+import { ProjectSelectorNavigator } from '@odh-dashboard/ui-core';
 
 type ModelServingProjectSelectionProps = {
   getRedirectPath: (namespace: string) => string;

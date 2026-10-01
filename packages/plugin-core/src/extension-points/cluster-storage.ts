@@ -2,6 +2,17 @@ import type { PersistentVolumeClaimKind, ProjectKind } from '@odh-dashboard/k8s-
 import type { CodeRef, Extension } from '@openshift/dynamic-plugin-sdk';
 // eslint-disable-next-line no-restricted-syntax
 import { createExtensionGuard } from './utils';
+import type { ComponentCodeRef } from '../core';
+
+/**
+ * Props passed to a storage context's settings fields when editing an existing PVC of that type.
+ * The component reads its initial values from `existingPvc` (it owns its annotation keys) and
+ * reports the annotations to persist back to the host via `onChange`.
+ */
+export type PVCStorageContextSettingsFieldsProps = {
+  existingPvc: PersistentVolumeClaimKind;
+  onChange: (annotations: Record<string, string>) => void;
+};
 
 export type ClusterStorageContextProperties = {
   /** Display name of the storage context, shown in the storage table and the PVC form. */
@@ -10,6 +21,8 @@ export type ClusterStorageContextProperties = {
   description?: string;
   /** Returns `true` when the given PVC belongs to this storage context. */
   isPVCUsingStorageContextType: CodeRef<(pvc: PersistentVolumeClaimKind) => boolean>;
+  /** Settings fields shown when editing an existing PVC of this context type. */
+  PVCStorageContextSettingsFields: ComponentCodeRef<PVCStorageContextSettingsFieldsProps>;
 };
 
 /**

@@ -19,9 +19,16 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, SyncAltIcon } from '@patternfly/react-icons';
-import type { AutoRAGEvaluationResult, TabContentProps } from '~/app/types/autoragPattern';
+import type {
+  AutoRAGEvaluationResult,
+  MetricReference,
+  TabContentProps,
+} from '~/app/types/autoragPattern';
 import { formatPatternName } from '~/app/utilities/utils';
-import SampleQAEntry from '~/app/components/run-results/PatternDetailsModal/components/SampleQAEntry';
+import SampleQAEntry, {
+  MetricScores,
+  RetrievedContextSection,
+} from '~/app/components/run-results/PatternDetailsModal/components/SampleQAEntry';
 import ComparisonRadarChart from '~/app/components/run-results/PatternDetailsModal/components/ComparisonRadarChart';
 import { collectAllMetricNames } from '~/app/components/run-results/PatternDetailsModal/components/radarChartUtils';
 
@@ -31,7 +38,7 @@ const ComparisonQAEntry: React.FC<{
   primaryLabel: string;
   comparisonLabel: string;
   questionNumber: number;
-  allMetricNames: string[];
+  allMetricNames: MetricReference[];
   onChangeComparisonPattern?: () => void;
 }> = ({
   primaryResult,
@@ -59,8 +66,12 @@ const ComparisonQAEntry: React.FC<{
               {primaryResult.question}
             </Content>
           </StackItem>
-          {comparisonResult && (
-            <StackItem>
+          <StackItem>
+            <MetricScores
+              metrics={primaryResult.metrics}
+              testId={`qa-primary-metric-scores-${primaryResult.question_id}`}
+            />
+            {comparisonResult && (
               <ComparisonRadarChart
                 primaryMetrics={primaryResult.metrics}
                 primaryLabel={primaryLabel}
@@ -68,8 +79,14 @@ const ComparisonQAEntry: React.FC<{
                 comparisonLabel={comparisonLabel}
                 allMetricNames={allMetricNames}
               />
-            </StackItem>
-          )}
+            )}
+            {comparisonResult && (
+              <MetricScores
+                metrics={comparisonResult.metrics}
+                testId={`qa-comparison-metric-scores-${primaryResult.question_id}`}
+              />
+            )}
+          </StackItem>
           <StackItem>
             <Grid hasGutter>
               <GridItem span={6} data-testid={`qa-primary-answer-${primaryResult.question_id}`}>
@@ -108,6 +125,20 @@ const ComparisonQAEntry: React.FC<{
             </Grid>
           </StackItem>
           <StackItem>
+            <RetrievedContextSection
+              result={primaryResult}
+              label={primaryLabel}
+              testId={`qa-primary-retrieved-context-${primaryResult.question_id}`}
+            />
+            {comparisonResult && (
+              <RetrievedContextSection
+                result={comparisonResult}
+                label={comparisonLabel}
+                testId={`qa-comparison-retrieved-context-${primaryResult.question_id}`}
+              />
+            )}
+          </StackItem>
+          <StackItem>
             <ExpandableSection
               toggleText={`View expected answer (${primaryResult.correct_answers.length})`}
               isExpanded={isExpanded}
@@ -134,6 +165,21 @@ const ComparisonQAEntry: React.FC<{
     </Card>
   );
 };
+
+export function getComparisonResult(
+  primaryResult: AutoRAGEvaluationResult,
+  comparisonByQuestionId: Map<string, AutoRAGEvaluationResult>,
+  comparisonResults: AutoRAGEvaluationResult[],
+  index: number,
+): AutoRAGEvaluationResult | undefined {
+  const comparisonAtIndex = comparisonResults[index];
+
+  return comparisonResults.length <= index ||
+    !primaryResult.question_id ||
+    !comparisonAtIndex.question_id
+    ? comparisonAtIndex
+    : comparisonByQuestionId.get(primaryResult.question_id);
+}
 
 const EMPTY_RESULTS: AutoRAGEvaluationResult[] = [];
 
@@ -202,11 +248,12 @@ const SampleQATab: React.FC<TabContentProps> = ({
         <StackItem key={`qa-${primaryResult.question_id || index}`}>
           <ComparisonQAEntry
             primaryResult={primaryResult}
-            comparisonResult={
-              primaryResult.question_id
-                ? comparisonByQuestionId.get(primaryResult.question_id)
-                : comparisonResults[index]
-            }
+            comparisonResult={getComparisonResult(
+              primaryResult,
+              comparisonByQuestionId,
+              comparisonResults,
+              index,
+            )}
             primaryLabel={primaryLabel}
             comparisonLabel={comparisonLabel}
             questionNumber={index + 1}

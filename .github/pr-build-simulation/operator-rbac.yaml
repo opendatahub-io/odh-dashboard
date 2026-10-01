@@ -1,0 +1,23 @@
+# Sim-only RBAC for the Konflux build simulator's operator reconciliation smoke
+# test (see .github/workflows/pr-build-validation.yml, "Phase 4: Operator
+# Integration"). NOT shipped and NOT part of any kustomize overlay — it binds the
+# real ClusterRole (dashboard-operator/config/rbac/role.yaml) to a ServiceAccount
+# in the throwaway Kind `opendatahub` namespace so the operator can reconcile.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dashboard-operator
+  namespace: opendatahub
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: dashboard-operator-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: dashboard-operator-role
+subjects:
+  - kind: ServiceAccount
+    name: dashboard-operator
+    namespace: opendatahub

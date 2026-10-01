@@ -144,6 +144,20 @@ describe('convertFeatureViewLineageToVisualizationData', () => {
     expect(result.edges).toHaveLength(0);
   });
 
+  it('skips unknown object types instead of mislabeling them', () => {
+    const lineageWithUnknown: FeatureViewLineage = {
+      relationships: [
+        buildRelationship('entity', 'driver', 'featureView', 'driver_stats'),
+        buildRelationship('unknownType', 'mystery', 'featureView', 'driver_stats'),
+      ],
+      pagination: { totalCount: 2, totalPages: 1 },
+    };
+
+    const { nodes } = convert(lineageWithUnknown);
+
+    expect(nodes.map((n) => n.name)).toEqual(['driver', 'driver_stats']);
+  });
+
   it('deduplicates features from duplicate relationships', () => {
     const dupeLineage: FeatureViewLineage = {
       relationships: [

@@ -26,13 +26,13 @@ describe('findTimestampColumn', () => {
     expect(findTimestampColumn(columns)).toBe('recorded_at');
   });
 
-  it('should fall back to name pattern when no type match exists', () => {
+  it('should not infer a timestamp from a name alone', () => {
     const columns = [
       { name: 'id', type: 'integer' },
       { name: 'timestamp', type: 'string' },
       { name: 'value', type: 'double' },
     ];
-    expect(findTimestampColumn(columns)).toBe('timestamp');
+    expect(findTimestampColumn(columns)).toBeUndefined();
   });
 
   it.each([
@@ -57,12 +57,12 @@ describe('findTimestampColumn', () => {
     'recorded-at',
     'event_time',
     'event-time',
-  ])('should match column named "%s" by name pattern', (name) => {
+  ])('should not infer column named "%s" by name alone', (name) => {
     const columns = [
       { name: 'id', type: 'integer' },
       { name, type: 'string' },
     ];
-    expect(findTimestampColumn(columns)).toBe(name);
+    expect(findTimestampColumn(columns)).toBeUndefined();
   });
 
   it('should return undefined when no columns match', () => {
@@ -78,12 +78,12 @@ describe('findTimestampColumn', () => {
     expect(findTimestampColumn([])).toBeUndefined();
   });
 
-  it('should match "ds" columns with numeric types (common forecasting datestamp)', () => {
+  it('should not match numeric datestamps', () => {
     const columns = [
       { name: 'y', type: 'double' },
       { name: 'ds', type: 'integer' },
     ];
-    expect(findTimestampColumn(columns)).toBe('ds');
+    expect(findTimestampColumn(columns)).toBeUndefined();
   });
 
   it('should not match partial name patterns', () => {

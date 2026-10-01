@@ -374,6 +374,22 @@ class FeatureStoreGlobal {
   findHideConnectedWorkbenchesSwitch() {
     return cy.pfSwitch('hide-connected-workbenches-switch');
   }
+
+  findLineageTab() {
+    return cy.findByTestId('lineage-tab');
+  }
+
+  clickLineageTab() {
+    this.findLineageTab().click();
+  }
+
+  findLineageLegend() {
+    return cy.findByTestId('feature-store-lineage-legend');
+  }
+
+  findLineageLegendItem(type: 'entity' | 'data_source' | 'feature_view' | 'feature_service') {
+    return cy.findByTestId(`feature-store-lineage-legend-${type}`);
+  }
 }
 
 class FeatureStoreProjectSelector extends Contextual<HTMLElement> {

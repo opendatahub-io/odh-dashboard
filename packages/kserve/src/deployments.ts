@@ -159,15 +159,42 @@ export const fetchDeploymentStatus = async (
   }
 };
 
-export const deleteDeployment = async (deployment: KServeDeployment): Promise<void> => {
+export const deleteDeployment = async (
+  deployment: KServeDeployment,
+  options?: K8sAPIOptions,
+): Promise<void> => {
+  const dryRun = options?.dryRun === true;
+  const deleteWithContext = async <T>(label: string, action: () => Promise<T>): Promise<T> => {
+    try {
+      return await action();
+    } catch (error: unknown) {
+      if (dryRun) {
+        throw new Error(
+          `Nothing was deleted. Dry run deletion failed: ${label}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+      throw error;
+    }
+  };
+
   await Promise.all([
-    deleteInferenceService(deployment.model.metadata.name, deployment.model.metadata.namespace),
+    deleteWithContext(`InferenceService ${deployment.model.metadata.name}`, () =>
+      deleteInferenceService(
+        deployment.model.metadata.name,
+        deployment.model.metadata.namespace,
+        options,
+      ),
+    ),
     ...(deployment.server
       ? [
-          deleteServingRuntime(
-            deployment.server.metadata.name,
-            deployment.server.metadata.namespace,
-          ),
+          (() => {
+            const { server } = deployment;
+            return deleteWithContext(`ServingRuntime ${server.metadata.name}`, () =>
+              deleteServingRuntime(server.metadata.name, server.metadata.namespace, options),
+            );
+          })(),
         ]
       : []),
   ]);

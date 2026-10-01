@@ -2,6 +2,7 @@ import { fastify } from 'fastify';
 import pino from 'pino';
 import { APP_ENV, PORT, IP, LOG_LEVEL } from './utils/constants';
 import { initializeApp } from './app';
+import { registerPatchContentTypeParsers } from './utils/patchContentTypeParsers';
 import { AddressInfo } from 'net';
 import https from 'https';
 import fs from 'fs';
@@ -15,11 +16,13 @@ const transport =
     : undefined;
 
 const app = fastify({
-  // set to kubernetes max name length
-  maxParamLength: 253,
   // Increase body limit to 32MB to support file uploads (matches gen-ai BFF limit)
   bodyLimit: 32 * 1024 * 1024,
-  logger: pino(
+  // set to kubernetes max name length
+  routerOptions: {
+    maxParamLength: 253,
+  },
+  loggerInstance: pino(
     {
       level: LOG_LEVEL,
       redact: [
@@ -35,20 +38,8 @@ const app = fastify({
   pluginTimeout: 10000,
 });
 
-// Allow the fastify server to parse the merge-patch/json content type
-app.addContentTypeParser(
-  'application/merge-patch+json',
-  { parseAs: 'string' },
-  function (req, body, done) {
-    try {
-      const json = JSON.parse(String(body));
-      done(null, json);
-    } catch (err) {
-      err.statusCode = 400;
-      done(err, undefined);
-    }
-  },
-);
+// Fastify 5 requires explicit parsers for K8s PATCH content types (json-patch and merge-patch).
+registerPatchContentTypeParsers(app);
 
 app.register(initializeApp);
 

@@ -1,11 +1,12 @@
 import { DEFAULT_SPACER_NODE_TYPE, RunStatus } from '@patternfly/react-topology';
+import { isRunInTerminalState } from '~/app/types/pipeline';
 import type {
   ComponentStageMapComponent,
   ComponentStageMapStage,
 } from '~/app/hooks/useComponentStageMap';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
-import { isRunInTerminalState, normalizePipelineRunState } from '~/app/utilities/utils';
+import { normalizePipelineRunState } from '~/app/utilities/utils';
 import { MAX_RAG_PATTERNS, MIN_RAG_PATTERNS } from '~/app/utilities/const';
 import { componentIdToTaskId } from '~/app/hooks/useComponentStatuses';
 import { dedupePreservingOrder } from './stageMapConstants';
@@ -26,6 +27,7 @@ export const translateStageStatus = (status?: string): RunStatus | undefined => 
     case 'completed':
       return RunStatus.Succeeded;
     case 'started':
+    case 'running':
       return RunStatus.InProgress;
     case 'failed':
       return RunStatus.Failed;

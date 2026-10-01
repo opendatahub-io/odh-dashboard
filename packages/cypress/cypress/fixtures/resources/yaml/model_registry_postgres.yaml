@@ -1,0 +1,21 @@
+apiVersion: modelregistry.opendatahub.io/v1beta1
+kind: ModelRegistry
+metadata:
+  name: {{REGISTRY_NAME}}
+  namespace: {{NAMESPACE}}
+  annotations:
+    openshift.io/display-name: {{REGISTRY_NAME}}
+    openshift.io/description: E2E test model registry (PostgreSQL)
+spec:
+  grpc: {}
+  rest: {}
+  kubeRBACProxy: {}
+  postgres:
+    host: {{DATABASE_NAME}}
+    port: 5432
+    database: model-registry
+    username: modelregistryuser
+    skipDBCreation: false
+    passwordSecret:
+      name: {{DATABASE_NAME}}
+      key: database-password

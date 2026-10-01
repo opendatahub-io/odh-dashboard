@@ -26,11 +26,6 @@ const modelSourceStepSchema = z.object({
 
 type ModelSourceStepData = z.infer<typeof modelSourceStepSchema>;
 
-jest.mock('@odh-dashboard/plugin-core', () => ({
-  useResolvedExtensions: jest.fn().mockReturnValue([[], true]),
-  useExtensions: jest.fn().mockReturnValue([]),
-}));
-
 const StubConnectionTypeFormFields: React.FC<{
   fields?: { type: string; envVar?: string }[];
   connectionValues?: Record<string, unknown>;
@@ -49,7 +44,9 @@ const StubConnectionTypeFormFields: React.FC<{
       ))}
   </>
 );
-jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+jest.mock('@odh-dashboard/plugin-core', () => ({
+  useResolvedExtensions: jest.fn().mockReturnValue([[], true]),
+  useExtensions: jest.fn().mockReturnValue([]),
   useWatchConnectionTypes: jest.fn(() => [[], true]),
   useServingConnections: jest.fn(() => [[], true]),
   useHostApi: jest.fn(() => ({

@@ -8,7 +8,6 @@ import {
   Drawer,
   DrawerContent,
   DrawerContentBody,
-  DropEvent,
   Modal,
   ModalBody,
   ModalFooter,
@@ -33,7 +32,8 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import { uploadMediaFile } from '~/app/services/llamaStackService';
 import { useAudioTranscription } from '~/app/Chatbot/hooks/useAudioTranscription';
-import { isLlamaModelEnabled, URL_PREFIX } from '~/app/utilities';
+import { API_URL_PREFIX, isLlamaModelEnabled } from '~/app/utilities';
+import { filterUnavailableMCPServers } from '~/app/utilities/mcp';
 import {
   convertMaaSModelToAIModel,
   getId,
@@ -42,10 +42,9 @@ import {
 } from '~/app/utilities/utils';
 import useCapabilityOnboarding from '~/app/hooks/useCapabilityOnboarding';
 import useWorkspaceCapabilities from '~/app/hooks/useWorkspaceCapabilities';
-import { TokenInfo, ResponseMetrics } from '~/app/types';
-import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
-
-import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
+import { DocumentAttachment, TokenInfo, MCPServerFromAPI } from '~/app/types';
+import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import type { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
@@ -77,6 +76,62 @@ import {
 } from './store';
 import { useIsEmbeddedPlayground } from './context/EmbeddedMessagesContext';
 
+const documentAttachmentsStorageKey = (namespace: string) =>
+  `gen-ai-playground-document-cache:${namespace}`;
+
+type CachedDocumentAttachment = DocumentAttachment & {
+  fingerprint: string;
+};
+
+const documentFingerprint = (file: File) => `${file.name}:${file.size}:${file.lastModified}`;
+
+const hasValueType = (value: object, property: string, type: 'string' | 'number') =>
+  Object.hasOwn(value, property) && typeof Reflect.get(value, property) === type;
+
+const isDocumentAttachment = (value: unknown): value is DocumentAttachment => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+  return (
+    hasValueType(value, 'file_id', 'string') &&
+    hasValueType(value, 'filename', 'string') &&
+    hasValueType(value, 'text', 'string') &&
+    hasValueType(value, 'content_type', 'string') &&
+    hasValueType(value, 'size', 'number')
+  );
+};
+
+const loadDocumentCache = (storageKey: string): CachedDocumentAttachment[] => {
+  try {
+    const stored = window.localStorage.getItem(storageKey);
+    if (!stored) {
+      return [];
+    }
+    const parsed: unknown = JSON.parse(stored);
+    return Array.isArray(parsed)
+      ? parsed.filter(
+          (entry): entry is CachedDocumentAttachment =>
+            isDocumentAttachment(entry) && hasValueType(entry, 'fingerprint', 'string'),
+        )
+      : [];
+  } catch {
+    return [];
+  }
+};
+
+const persistDocumentCache = (storageKey: string, attachments: CachedDocumentAttachment[]) => {
+  try {
+    if (attachments.length === 0) {
+      window.localStorage.removeItem(storageKey);
+      return;
+    }
+    window.localStorage.setItem(storageKey, JSON.stringify(attachments));
+  } catch {
+    // Storage can be disabled or full. Attachments remain available in memory
+    // for the current Playground session in that case.
+  }
+};
+
 /**
  * Wrapper for compare mode panes that subscribes to Zustand store for reactive model updates.
  */
@@ -85,10 +140,6 @@ interface ComparePaneWrapperProps {
   displayLabel: string;
   onClose: () => void;
   children: React.ReactNode;
-  /** Metrics from the last response (latency, tokens, TTFT) */
-  metrics?: ResponseMetrics | null;
-  /** Whether a response is currently being generated */
-  isLoading?: boolean;
   isSettingsOpen?: boolean;
   isActiveConfig?: boolean;
 }
@@ -98,8 +149,6 @@ const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
   displayLabel,
   onClose,
   children,
-  metrics,
-  isLoading,
   isSettingsOpen,
   isActiveConfig,
 }) => (
@@ -107,8 +156,6 @@ const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
     configId={configId}
     displayLabel={displayLabel}
     onClose={onClose}
-    metrics={metrics}
-    isLoading={isLoading}
     isSettingsOpen={isSettingsOpen}
     isActiveConfig={isActiveConfig}
   >
@@ -122,6 +169,10 @@ const TAB_KEY_MAP: Record<string, number> = {
   knowledge: 2,
   mcp: 3,
 };
+
+const EMPTY_MCP_SERVER_STATUSES = new Map<string, ServerStatusInfo>();
+const checkMcpServerStatusUnavailable = (): Promise<ServerStatusInfo> =>
+  Promise.reject(new Error('MCP server status checks are unavailable'));
 
 type ChatbotPlaygroundProps = {
   isViewCodeModalOpen: boolean;
@@ -145,6 +196,12 @@ type ChatbotPlaygroundProps = {
   onClearAgent?: () => void;
   isProfileDirty?: boolean;
   onResetToLastSaved?: () => void;
+  mcpServers?: MCPServerFromAPI[];
+  mcpRegistryAvailable?: boolean;
+  mcpServersLoaded?: boolean;
+  mcpServersLoadError?: Error;
+  mcpServerStatuses?: Map<string, ServerStatusInfo>;
+  checkMcpServerStatus?: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
 };
 
 const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
@@ -168,6 +225,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   onClearAgent,
   isProfileDirty = false,
   onResetToLastSaved,
+  mcpServers = [],
+  mcpRegistryAvailable = false,
+  mcpServersLoaded = false,
+  mcpServersLoadError,
+  mcpServerStatuses = EMPTY_MCP_SERVER_STATUSES,
+  checkMcpServerStatus = checkMcpServerStatusUnavailable,
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
@@ -185,6 +248,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   } = React.useContext(ChatbotContext);
 
   const { data: bffConfig } = useFetchBFFConfig();
+  const { api, apiAvailable } = useGenAiAPI();
   const isDarkMode = useDarkMode();
 
   // Store state
@@ -271,14 +335,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     return statuses ? new Map(Object.entries(statuses)) : new Map();
   }, [location.state?.mcpServerStatuses]);
 
-  // MCP hooks
-  const {
-    data: mcpServers = [],
-    loaded: mcpServersLoaded,
-    error: mcpServersLoadError,
-  } = useFetchMCPServers();
-  const { serverStatuses: mcpServerStatuses, checkServerStatus: checkMcpServerStatus } =
-    useMCPServerStatuses(mcpServers, mcpServersLoaded);
+  const availableMcpServers = React.useMemo(
+    () => filterUnavailableMCPServers(mcpServers, mcpServerStatuses),
+    [mcpServers, mcpServerStatuses],
+  );
   const [mcpServerTokens, setMcpServerTokens] = React.useState<Map<string, TokenInfo>>(new Map());
 
   // UI state — can be controlled externally (e.g. from header Settings button)
@@ -328,9 +388,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const messageHooksRef = React.useRef<Map<string, UseChatbotMessagesReturn>>(new Map());
   const [loadingStates, setLoadingStates] = React.useState<Map<string, boolean>>(new Map());
   const [disabledStates, setDisabledStates] = React.useState<Map<string, boolean>>(new Map());
-  const [metricsStates, setMetricsStates] = React.useState<Map<string, ResponseMetrics | null>>(
-    new Map(),
-  );
 
   // Vision image upload state
   const [imageUploadState, setImageUploadState] = React.useState<ImageUploadState>({
@@ -387,6 +444,29 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const audioUploadLatchRef = React.useRef(false);
   const [showAudioPerMessageModal, setShowAudioPerMessageModal] = React.useState(false);
   const [messageBarValue, setMessageBarValue] = React.useState<string>('');
+  const documentStorageKey = React.useMemo(
+    () => documentAttachmentsStorageKey(namespace?.name ?? 'default'),
+    [namespace?.name],
+  );
+  const [documentAttachments, setDocumentAttachments] = React.useState<DocumentAttachment[]>([]);
+  const [isDocumentUploading, setIsDocumentUploading] = React.useState(false);
+  const [documentUploadCount, setDocumentUploadCount] = React.useState(0);
+  const [viewedDocument, setViewedDocument] = React.useState<DocumentAttachment | null>(null);
+
+  React.useEffect(() => {
+    if (!viewedDocument) {
+      return undefined;
+    }
+
+    const closeOnBackdropClick = (event: MouseEvent) => {
+      if (event.target instanceof Element && !event.target.closest('.pf-v6-c-modal-box')) {
+        setViewedDocument(null);
+      }
+    };
+
+    document.addEventListener('mousedown', closeOnBackdropClick);
+    return () => document.removeEventListener('mousedown', closeOnBackdropClick);
+  }, [viewedDocument]);
 
   // Revoke unsent image preview blob URL on unmount
   React.useEffect(
@@ -465,15 +545,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         next.set(configIdParam, hook.isMessageSendButtonDisabled);
         return next;
       });
-      // Track metrics for pane header display
-      setMetricsStates((prev) => {
-        if (prev.get(configIdParam) === hook.lastResponseMetrics) {
-          return prev;
-        }
-        const next = new Map(prev);
-        next.set(configIdParam, hook.lastResponseMetrics);
-        return next;
-      });
     },
     [],
   );
@@ -537,6 +608,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       if (pendingTranscription) {
         audioTranscription.discard();
       }
+      setDocumentAttachments([]);
       audioUploadLatchRef.current = false;
       setHasAudioInCurrentMessage(false);
       setMessageBarValue('');
@@ -557,18 +629,71 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     messageHooksRef.current.forEach((hook) => hook.handleStopStreaming());
   }, []);
 
-  const handleAttach = React.useCallback(
-    <T extends File>(acceptedFiles: T[], _fileRejections: unknown, event: DropEvent) => {
-      sourceManagement.handleSourceDrop(event, acceptedFiles).catch((error) => {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-        alertManagement.onShowErrorAlert(
-          `Failed to process files: ${errorMessage}`,
-          'File Upload Error',
-        );
-      });
+  const handleDocumentAttach = React.useCallback(
+    async <T extends File>(acceptedFiles: T[]) => {
+      if (!apiAvailable) {
+        alertManagement.onShowErrorAlert('API is not available', 'Document upload error');
+        return;
+      }
+      setDocumentUploadCount(acceptedFiles.length);
+      setIsDocumentUploading(true);
+      const uploaded: DocumentAttachment[] = [];
+      const cachedDocuments = new Map(
+        loadDocumentCache(documentStorageKey).map((attachment) => [
+          attachment.fingerprint,
+          attachment,
+        ]),
+      );
+      try {
+        for (const file of acceptedFiles) {
+          const cached = cachedDocuments.get(documentFingerprint(file));
+          if (cached) {
+            uploaded.push(cached);
+            continue;
+          }
+          const formData = new FormData();
+          formData.append('file', file);
+          const result = await api.uploadDocument(formData);
+          // eslint-disable-next-line camelcase
+          const attachment = { ...result, file_id: result.id, size: file.size };
+          uploaded.push(attachment);
+          cachedDocuments.set(documentFingerprint(file), {
+            ...attachment,
+            fingerprint: documentFingerprint(file),
+          });
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Document extraction failed.';
+        alertManagement.onShowErrorAlert(message, 'Document upload error');
+      } finally {
+        persistDocumentCache(documentStorageKey, Array.from(cachedDocuments.values()));
+        if (uploaded.length > 0) {
+          setDocumentAttachments((current) => {
+            const attachmentIDs = new Set(current.map((attachment) => attachment.file_id));
+            return [
+              ...current,
+              ...uploaded.filter((attachment) => {
+                if (attachmentIDs.has(attachment.file_id)) {
+                  return false;
+                }
+                attachmentIDs.add(attachment.file_id);
+                return true;
+              }),
+            ];
+          });
+        }
+        setIsDocumentUploading(false);
+        setDocumentUploadCount(0);
+      }
     },
-    [sourceManagement, alertManagement],
+    [api, apiAvailable, alertManagement, documentStorageKey],
   );
+
+  const handleRemoveDocument = React.useCallback((fileID: string) => {
+    setDocumentAttachments((current) =>
+      current.filter((attachment) => attachment.file_id !== fileID),
+    );
+  }, []);
 
   const performImageUpload = React.useCallback(
     (file: File) => {
@@ -587,7 +712,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         fileName: normalizedName,
       });
 
-      const url = `${URL_PREFIX}/api/v1/lsd/files/media?namespace=${encodeURIComponent(
+      const url = `${API_URL_PREFIX}/api/v1/lsd/files/media?namespace=${encodeURIComponent(
         namespace?.name || '',
       )}`;
       const { promise, xhr } = uploadMediaFile(url, file, 'vision', (percent) => {
@@ -829,10 +954,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   React.useEffect(() => {
     const shouldClear = Boolean(
       location.state?.mcpServers ||
-        location.state?.model ||
-        location.state?.mcpServerStatuses ||
-        location.state?.openSettingsToTab ||
-        location.state?.vectorStoreId,
+      location.state?.model ||
+      location.state?.mcpServerStatuses ||
+      location.state?.openSettingsToTab ||
+      location.state?.vectorStoreId,
     );
     if (shouldClear) {
       const timeoutId = setTimeout(() => window.history.replaceState({}, ''), 100);
@@ -882,15 +1007,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         staleKeys.forEach((key) => next.delete(key));
         return next;
       });
-
-      // Remove from metrics states
-      setMetricsStates((prev) => {
-        const next = new Map(prev);
-        staleKeys.forEach((key) => {
-          next.delete(key);
-        });
-        return next;
-      });
     }
   }, [configIds]);
 
@@ -913,6 +1029,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         audioUploadLatchRef.current = false;
         setHasAudioInCurrentMessage(false);
         setMessageBarValue('');
+        setDocumentAttachments([]);
+        setViewedDocument(null);
       };
     }
     return () => {
@@ -988,10 +1106,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           configId={configId}
           username={username}
           currentVectorStoreId={fileManagement.currentVectorStoreId}
-          mcpServers={mcpServers}
+          mcpServers={availableMcpServers}
           mcpServerStatuses={mcpServerStatuses}
           mcpServerTokens={mcpServerTokens}
           namespace={namespace?.name}
+          documentAttachments={documentAttachments}
+          onViewDocument={setViewedDocument}
           showWelcomePrompt
           welcomeContent={
             !isCompareMode &&
@@ -1075,7 +1195,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           onToggle={() => setIsViewCodeModalOpen(!isViewCodeModalOpen)}
           input={lastInput}
           files={fileManagement.files}
-          mcpServers={mcpServers}
+          mcpServers={availableMcpServers}
           mcpServerTokens={mcpServerTokens}
           namespace={namespace?.name}
         />
@@ -1100,6 +1220,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               }
             });
             setMessageBarValue('');
+            setDocumentAttachments([]);
+            setViewedDocument(null);
             if (isCompareMode) {
               fireMiscTrackingEvent('Playground Compare Chat Cleared', {
                 success: true,
@@ -1124,9 +1246,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 sourceManagement={sourceManagement}
                 fileManagement={fileManagement}
                 initialServerStatuses={mcpServerStatusesFromRoute}
-                mcpServers={mcpServers}
+                mcpServers={availableMcpServers}
                 mcpServersLoaded={mcpServersLoaded}
                 mcpServersLoadError={mcpServersLoadError}
+                mcpRegistryAvailable={mcpRegistryAvailable}
                 mcpServerTokens={mcpServerTokens}
                 onMcpServerTokensChange={setMcpServerTokens}
                 checkMcpServerStatus={checkMcpServerStatus}
@@ -1159,8 +1282,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 {/* Single mode header */}
                 {!isCompareMode && !isEmbedded && (
                   <ChatbotPaneHeader
-                    metrics={metricsStates.get(primaryConfigId)}
-                    isLoading={loadingStates.get(primaryConfigId)}
                     hasDivider
                     isDarkMode={isDarkMode}
                     agentName={profileApplied ? (loadedProfileDisplayName ?? undefined) : undefined}
@@ -1193,8 +1314,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                             configId={configId}
                             displayLabel={getConfigDisplayLabel(index)}
                             onClose={() => setPendingCloseConfigId(configId)}
-                            metrics={metricsStates.get(configId)}
-                            isLoading={loadingStates.get(configId)}
                             isSettingsOpen={isDrawerExpanded}
                             isActiveConfig={isDrawerExpanded && configId === activePaneConfigId}
                           >
@@ -1219,10 +1338,22 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                     Array.from(disabledStates.values()).some(Boolean) ||
                     imageUploadState.uploading ||
                     audioTranscription.state.phase === 'uploading' ||
-                    audioTranscription.state.phase === 'transcribing'
+                    audioTranscription.state.phase === 'transcribing' ||
+                    isDocumentUploading
                   }
                   showAttachButton={!isEmbedded}
-                  onDocumentAttach={handleAttach}
+                  onDocumentAttach={handleDocumentAttach}
+                  documentAttachments={documentAttachments}
+                  onRemoveDocument={handleRemoveDocument}
+                  onViewDocument={setViewedDocument}
+                  isDocumentUploading={isDocumentUploading}
+                  documentUploadCount={documentUploadCount}
+                  isDocumentUploadDisabled={isDocumentUploading}
+                  shouldShowPdfTextExtractionNotice={
+                    capabilitiesReady &&
+                    !capabilitiesError &&
+                    (!hasVisionModel || !allModelsHaveVision)
+                  }
                   isDarkMode={isDarkMode}
                   onImageUpload={handleImageUpload}
                   imageUploadState={imageUploadState}
@@ -1262,6 +1393,20 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           }}
           onCancel={() => setPendingCloseConfigId(null)}
         />
+      )}
+
+      {viewedDocument && (
+        <Modal
+          isOpen
+          onClose={() => setViewedDocument(null)}
+          variant="large"
+          data-testid="document-extracted-text-modal"
+        >
+          <ModalHeader title={viewedDocument.filename} />
+          <ModalBody>
+            <pre>{viewedDocument.text}</pre>
+          </ModalBody>
+        </Modal>
       )}
 
       {showReplaceMediaModal && (

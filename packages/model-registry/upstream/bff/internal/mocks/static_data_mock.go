@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"sort"
 
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/google/uuid"
@@ -316,6 +317,38 @@ func catalogCustomPropertiesWithVariant(variantGroupId string, tensorType string
 	}
 
 	return &result
+}
+
+func hfAccessCustomProperties(accessType string, gatedAccessGranted ...string) *map[string]openapi.MetadataValue {
+	result := map[string]openapi.MetadataValue{
+		"hf_access_type": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  accessType,
+				MetadataType: "MetadataStringValue",
+			},
+		},
+	}
+	if len(gatedAccessGranted) > 0 {
+		result["hf_gated_access_granted"] = openapi.MetadataValue{
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  gatedAccessGranted[0],
+				MetadataType: "MetadataStringValue",
+			},
+		}
+	}
+	return &result
+}
+
+func hfPreviewModel(name string, included bool, accessType string, gatedAccessGranted ...bool) models.CatalogSourcePreviewModel {
+	model := models.CatalogSourcePreviewModel{
+		Name:         name,
+		Included:     included,
+		HfAccessType: stringToPointer(accessType),
+	}
+	if len(gatedAccessGranted) > 0 {
+		model.HfGatedAccessGranted = BoolPtr(gatedAccessGranted[0])
+	}
+	return model
 }
 
 func NewMockSessionContext(parent context.Context) context.Context {
@@ -793,69 +826,84 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 		Logo: stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
 	}
 
+	// Hugging Face access mock matrix (customProperties.hf_access_type / hf_gated_access_granted):
+	//   All HF models use source: hugging_face_source (Other models tab)
+	//   public              — full metadata, no hf_gated_access_granted
+	//   private             — full metadata
+	//   gated_auto + true   — full metadata
+	//   gated_auto + false  — lock / request access; empty readme & description
+	//   gated_manual + true — full metadata
+	//   gated_manual + false— lock / request access; empty readme & description
+	// Non-HF models (sample-source, admin sources) have no hf_access_type.
 	huggingFaceModel1 := models.CatalogModel{
-		Name:        "provider2/bert-base-uncased",
-		Description: stringToPointer("BERT base model (uncased) - Pretrained model on English language"),
-		Provider:    stringToPointer("Google"),
-		Tasks:       []string{"audio-to-text", "text-to-text"},
-		License:     stringToPointer("Apache 2.0"),
-		Maturity:    stringToPointer("Generally Available"),
-		Language:    []string{"en"},
-		SourceId:    stringToPointer("huggingface"),
-		LibraryName: stringToPointer("transformers"),
-		Readme: stringToPointer(`# BERT Base Uncased
-
-BERT is a transformers model pretrained on a large corpus of English data.
-
-## Installation
-
-` + "```bash" + `
-pip install transformers torch
-` + "```" + `
-
-## Quick Start
-
-` + "```python" + `
-from transformers import BertTokenizer, BertModel
-
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-model = BertModel.from_pretrained('bert-base-uncased')
-
-text = "Replace this with your text"
-encoded = tokenizer(text, return_tensors='pt')
-output = model(**encoded)
-` + "```" + `
-
-## Using with Pipeline
-
-` + "```bash" + `
-python -c "from transformers import pipeline; nlp = pipeline('fill-mask', model='bert-base-uncased'); print(nlp('The capital of France is [MASK].'))"
-` + "```" + `
-`),
+		Name:             "hf-mock/public-model",
+		Description:      stringToPointer("Public Hugging Face model with full metadata (hf_access_type=public)"),
+		Provider:         stringToPointer("hf-mock"),
+		Tasks:            []string{"text-generation"},
+		License:          stringToPointer("apache-2.0"),
+		Maturity:         stringToPointer("Generally Available"),
+		Language:         []string{"en"},
+		SourceId:         stringToPointer("hugging_face_source"),
+		LibraryName:      stringToPointer("transformers"),
+		Readme:           stringToPointer("# Public HF model\n\nFull readme for a public Hugging Face repository."),
+		CustomProperties: hfAccessCustomProperties("public"),
 	}
 
-	huggingFaceModel2 := models.CatalogModel{
-		Name:        "provider3/gpt2",
-		Description: stringToPointer("GPT-2 is a transformers model pretrained on a very large corpus of English data"),
-		Provider:    stringToPointer("provider3"),
-		Tasks:       []string{"video-to-text"},
-		License:     stringToPointer("MIT"),
-		Maturity:    stringToPointer("Generally Available"),
-		Language:    []string{"en"},
-		SourceId:    stringToPointer("huggingface"),
-		LibraryName: stringToPointer("transformers"),
+	hfPrivateModel := models.CatalogModel{
+		Name:             "my-org/Llama-3.1-8B-Instruct-FP8-dynamic",
+		Description:      stringToPointer("Prototype variant of Llama 3.1 8B Instruct with FP8 weights/activations for higher throughput on supported accelerators."),
+		Provider:         stringToPointer("Meta"),
+		Tasks:            []string{"text-to-text"},
+		Language:         []string{"en"},
+		SourceId:         stringToPointer("hugging_face_source"),
+		License:          stringToPointer("llama3.1"),
+		Readme:           stringToPointer("# Llama 3.1 8B Instruct FP8\n\nPrototype FP8 variant."),
+		CustomProperties: hfAccessCustomProperties("private"),
 	}
 
-	huggingFaceModel3 := models.CatalogModel{
-		Name:        "huggingface/distilbert-base-uncased",
-		Description: stringToPointer("DistilBERT base model (uncased) - A smaller, faster version of BERT"),
-		Provider:    stringToPointer("Hugging Face"),
-		Tasks:       []string{"fill-mask", "text-classification"},
-		License:     stringToPointer("Apache 2.0"),
-		Maturity:    stringToPointer("Generally Available"),
-		Language:    []string{"en"},
-		SourceId:    stringToPointer("huggingface"),
-		LibraryName: stringToPointer("transformers"),
+	hfGatedAutoGranted := models.CatalogModel{
+		Name:             "meta-llama/Llama-3.1-8B-Instruct-INT4",
+		Description:      stringToPointer("Prototype INT4-weight variant of Llama 3.1 8B Instruct emphasizing peak throughput; prefill latency may be slightly higher than FP16."),
+		Provider:         stringToPointer("Meta"),
+		Tasks:            []string{"text-to-text"},
+		Language:         []string{"en"},
+		License:          stringToPointer("llama3.1"),
+		SourceId:         stringToPointer("hugging_face_source"),
+		Readme:           stringToPointer("# Llama 3.1 8B Instruct INT4\n\nMeta's latest generation..."),
+		CustomProperties: hfAccessCustomProperties("gated_auto", "true"),
+	}
+
+	hfGatedAutoDenied := models.CatalogModel{
+		Name:             "meta-llama/Llama-3.1-8B-Instruct",
+		Description:      stringToPointer(""),
+		Provider:         stringToPointer("Meta"),
+		Tasks:            []string{},
+		License:          stringToPointer("unknown"),
+		SourceId:         stringToPointer("hugging_face_source"),
+		Readme:           stringToPointer(""),
+		CustomProperties: hfAccessCustomProperties("gated_auto", "false"),
+	}
+
+	hfGatedManualGranted := models.CatalogModel{
+		Name:             "hf-mock/gated-manual-granted",
+		Description:      stringToPointer("Gated manual model with access granted (hf_access_type=gated_manual, hf_gated_access_granted=true)"),
+		Provider:         stringToPointer("hf-mock"),
+		Tasks:            []string{"text-generation"},
+		License:          stringToPointer("custom"),
+		SourceId:         stringToPointer("hugging_face_source"),
+		Readme:           stringToPointer("# Gated manual model\n\nFull metadata when manual gate access is granted."),
+		CustomProperties: hfAccessCustomProperties("gated_manual", "true"),
+	}
+
+	hfGatedManualDenied := models.CatalogModel{
+		Name:             "hf-mock/gated-manual-denied",
+		Description:      stringToPointer(""),
+		Provider:         stringToPointer("hf-mock"),
+		Tasks:            []string{},
+		License:          stringToPointer("unknown"),
+		SourceId:         stringToPointer("hugging_face_source"),
+		Readme:           stringToPointer(""),
+		CustomProperties: hfAccessCustomProperties("gated_manual", "false"),
 	}
 
 	otherModel1 := models.CatalogModel{
@@ -914,7 +962,11 @@ python -c "from transformers import pipeline; nlp = pipeline('fill-mask', model=
 
 	allModels := []models.CatalogModel{
 		sampleModel1, sampleModel2, sampleModel3, sampleModel4,
-		huggingFaceModel1, huggingFaceModel2, huggingFaceModel3, noPerformanceModel,
+		huggingFaceModel1,
+		hfPrivateModel,
+		hfGatedAutoGranted, hfGatedAutoDenied,
+		hfGatedManualGranted, hfGatedManualDenied,
+		noPerformanceModel,
 		otherModel1, otherModel2,
 	}
 	allModels = append(allModels, additionalRepo1Models...)
@@ -939,11 +991,17 @@ func GetCatalogSourceMocks() []models.CatalogSource {
 
 	// Status examples (matching OpenAPI spec)
 	availableStatus := "available"
+	partiallyAvailableStatus := "partially-available"
 	errorStatus := "error"
 	disabledStatus := "disabled"
 
+	hasApiKeyTrue := true
+	authenticatedTrue := true
+	authenticatedFalse := false
+
 	invalidCredentialError := "The provided API key is invalid or has expired. Please update your credentials."
 	invalidOrgError := "The specified organization 'invalid-org' does not exist or you don't have access to it. Please verify the organization name and ensure you have the necessary permissions to access models from this organization."
+	partialAvailabilityError := "2 models returned 403: gated model requires agreement"
 
 	return []models.CatalogSource{
 		{
@@ -954,19 +1012,25 @@ func GetCatalogSourceMocks() []models.CatalogSource {
 			Status:  &availableStatus,
 		},
 		{
-			Id:     "huggingface",
-			Name:   "Hugging Face",
-			Labels: []string{"Sample category 2", "Sample category"},
+			Id:            "huggingface",
+			Name:          "Hugging Face",
+			Labels:        []string{"Sample category 2", "Sample category"},
+			HasApiKey:     &hasApiKeyTrue,
+			Authenticated: &authenticatedTrue,
+			HfUsername:    "johndoe",
 			// Status is nil - represents "Starting" state (no status yet)
 			Status: nil,
 		},
 		{
-			Id:      "adminModel1",
-			Name:    "Admin model 1",
-			Enabled: &enabled,
-			Labels:  []string{},
-			Status:  &errorStatus,
-			Error:   &invalidCredentialError,
+			Id:            "adminModel1",
+			Name:          "Admin model 1",
+			Enabled:       &enabled,
+			Labels:        []string{},
+			Status:        &errorStatus,
+			Error:         &invalidCredentialError,
+			HasApiKey:     &hasApiKeyTrue,
+			Authenticated: &authenticatedFalse,
+			HfUsername:    "bob",
 		},
 		{
 			Id:      "adminModel2",
@@ -1005,11 +1069,15 @@ func GetCatalogSourceMocks() []models.CatalogSource {
 			Error:   &invalidCredentialError,
 		},
 		{
-			Id:      "hugging_face_source",
-			Name:    "Hugging face source",
-			Enabled: &enabled,
-			Labels:  []string{},
-			Status:  &availableStatus,
+			Id:            "hugging_face_source",
+			Name:          "Hugging face source",
+			Enabled:       &enabled,
+			Labels:        []string{},
+			Status:        &partiallyAvailableStatus,
+			Error:         &partialAvailabilityError,
+			HasApiKey:     &hasApiKeyTrue,
+			Authenticated: &authenticatedTrue,
+			HfUsername:    "alice",
 		},
 	}
 }
@@ -2628,16 +2696,36 @@ func GetModelsWithInclusionStatusListMocks() []models.CatalogSourcePreviewModel 
 	// We want 45 included and 25 excluded = 70 total models
 	var allModels []models.CatalogSourcePreviewModel
 
-	// Add 45 included models
-	for i := 1; i <= 45; i++ {
+	// Hugging Face access preview matrix (hfAccessType / hfGatedAccessGranted):
+	//   public              — no hfGatedAccessGranted
+	//   private             — no hfGatedAccessGranted
+	//   gated_auto + true   — access granted
+	//   gated_auto + false  — access denied
+	//   gated_manual + true — access granted
+	//   gated_manual + false— access denied
+	allModels = append(allModels,
+		hfPreviewModel("hf-mock/public-model", true, "public"),
+		hfPreviewModel("my-org/private-model", true, "private"),
+		hfPreviewModel("meta-llama/gated-auto-granted", true, "gated_auto", true),
+		hfPreviewModel("meta-llama/gated-auto-denied", false, "gated_auto", false),
+		hfPreviewModel("hf-mock/gated-manual-granted", true, "gated_manual", true),
+		hfPreviewModel("hf-mock/gated-manual-denied", false, "gated_manual", false),
+	)
+
+	// Add remaining included models (first two are gated for preview icon testing)
+	allModels = append(allModels,
+		hfPreviewModel("sample-source/included-model-1", true, "gated_auto", true),
+		hfPreviewModel("sample-source/included-model-2", true, "gated_manual", false),
+	)
+	for i := 3; i <= 41; i++ {
 		allModels = append(allModels, models.CatalogSourcePreviewModel{
 			Name:     fmt.Sprintf("sample-source/included-model-%d", i),
 			Included: true,
 		})
 	}
 
-	// Add 25 excluded models
-	for i := 1; i <= 25; i++ {
+	// Add remaining excluded models
+	for i := 1; i <= 23; i++ {
 		allModels = append(allModels, models.CatalogSourcePreviewModel{
 			Name:     fmt.Sprintf("sample-source/excluded-model-%d", i),
 			Included: false,
@@ -2647,11 +2735,30 @@ func GetModelsWithInclusionStatusListMocks() []models.CatalogSourcePreviewModel 
 	return allModels
 }
 
+func GetModelsWithInclusionStatusListMocksWithoutGated() []models.CatalogSourcePreviewModel {
+	return []models.CatalogSourcePreviewModel{
+		hfPreviewModel("hf-mock/public-model", true, "public"),
+		hfPreviewModel("my-org/private-model", true, "private"),
+		{Name: "sample-source/included-model-1", Included: true},
+		{Name: "sample-source/excluded-model-1", Included: false},
+	}
+}
+
 func GetCatalogSourcePreviewSummaryMock() models.CatalogSourcePreviewSummary {
 	return models.CatalogSourcePreviewSummary{
-		TotalModels:    70,
-		IncludedModels: 45,
-		ExcludedModels: 25,
+		TotalModels:                70,
+		IncludedModels:             45,
+		ExcludedModels:             25,
+		HasGatedAccessDeniedModels: true,
+	}
+}
+
+func GetCatalogSourcePreviewSummaryMockWithoutGated() models.CatalogSourcePreviewSummary {
+	return models.CatalogSourcePreviewSummary{
+		TotalModels:                4,
+		IncludedModels:             3,
+		ExcludedModels:             1,
+		HasGatedAccessDeniedModels: false,
 	}
 }
 
@@ -2709,7 +2816,23 @@ func filterAndPaginatePreviewItems(allItems []models.CatalogSourcePreviewModel, 
 }
 
 func CreateCatalogSourcePreviewMockWithFilter(filterStatus string, pageSize int, nextPageToken string) models.CatalogSourcePreviewResult {
-	return filterAndPaginatePreviewItems(GetModelsWithInclusionStatusListMocks(), GetCatalogSourcePreviewSummaryMock(), filterStatus, pageSize, nextPageToken)
+	return filterAndPaginatePreviewItems(
+		GetModelsWithInclusionStatusListMocks(),
+		GetCatalogSourcePreviewSummaryMock(),
+		filterStatus,
+		pageSize,
+		nextPageToken,
+	)
+}
+
+func CreateCatalogSourcePreviewMockWithoutGatedWithFilter(filterStatus string, pageSize int, nextPageToken string) models.CatalogSourcePreviewResult {
+	return filterAndPaginatePreviewItems(
+		GetModelsWithInclusionStatusListMocksWithoutGated(),
+		GetCatalogSourcePreviewSummaryMockWithoutGated(),
+		filterStatus,
+		pageSize,
+		nextPageToken,
+	)
 }
 
 func GetMcpServersWithInclusionStatusListMocks() []models.CatalogSourcePreviewModel {
@@ -4163,4 +4286,193 @@ func GetAgentCatalogLabelListMock() models.CatalogLabelList {
 		PageSize:      int32(10),
 		NextPageToken: "",
 	}
+}
+
+func GetServingRuntimeCatalogSourceListMock() models.CatalogSourceList {
+	enabled := true
+	status := "available"
+	sources := []models.CatalogSource{
+		{Id: "redhat-runtimes", Name: "Red Hat runtimes", Enabled: &enabled, Status: &status, Labels: []string{"Red Hat"}},
+		{Id: "community-runtimes", Name: "Community runtimes", Enabled: &enabled, Status: &status, Labels: []string{}},
+	}
+	return models.CatalogSourceList{
+		Items: sources, Size: int32(len(sources)), PageSize: 10, NextPageToken: "",
+	}
+}
+
+// GetServingRuntimeMocks returns illustrative catalog families for UI development.
+func GetServingRuntimeMocks() []models.ServingRuntime {
+	gpu, cpu := true, false
+	two, one := int32(2), int32(1)
+	customProperties := map[string]openapi.MetadataValue{
+		"maintainer": {MetadataStringValue: &openapi.MetadataStringValue{StringValue: "Mock catalog team", MetadataType: "MetadataStringValue"}},
+	}
+	return []models.ServingRuntime{
+		{
+			CustomProperties:         &customProperties,
+			ExternalID:               stringToPointer("mock-runtime-vllm"),
+			CreateTimeSinceEpoch:     stringToPointer("1706745600000"),
+			LastUpdateTimeSinceEpoch: stringToPointer("1709424000000"),
+			Logo:                     stringToPointer("https://example.com/mock/vllm-logo.svg"),
+			LicenseLink:              stringToPointer("https://example.com/mock/vllm/LICENSE"),
+			DocumentationURL:         stringToPointer("https://example.com/mock/vllm/docs"),
+			RepositoryURL:            stringToPointer("https://example.com/mock/vllm/repository"),
+			PublishedDate:            stringToPointer("2024-02-01T00:00:00Z"),
+			LastUpdated:              stringToPointer("2024-03-03T00:00:00Z"),
+			ID:                       stringToPointer("1"), Name: stringToPointer("vllm"), DisplayName: stringToPointer("vLLM"),
+			SourceID: stringToPointer("redhat-runtimes"), Provider: stringToPointer("Red Hat"),
+			Description: stringToPointer("GPU-accelerated serving for large language models."),
+			Readme:      stringToPointer("# vLLM\n\nMock serving runtime for large language models."),
+			License:     stringToPointer("apache-2.0"), Tags: []string{"llm", "gpu"},
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors", Version: stringToPointer("1"), AutoSelect: &gpu, Priority: &one}, {Name: "huggingface"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &gpu, SupportedAccelerators: []string{"nvidia.com/gpu"}, MultiModel: &cpu},
+			VersionCount:          &two,
+		},
+		{
+			ID: stringToPointer("2"), Name: stringToPointer("ovms"), DisplayName: stringToPointer("OpenVINO Model Server"),
+			SourceID: stringToPointer("redhat-runtimes"), Provider: stringToPointer("Red Hat"),
+			Description: stringToPointer("Model serving with OpenVINO."),
+			Readme:      stringToPointer("# OpenVINO Model Server\n\nMock runtime for OpenVINO models."),
+			License:     stringToPointer("apache-2.0"), Tags: []string{"predictive-ai", "cpu"},
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "openvino_ir"}, {Name: "onnx"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &cpu}, VersionCount: &one,
+		},
+		{
+			ID: stringToPointer("3"), Name: stringToPointer("mlserver"), DisplayName: stringToPointer("MLServer"),
+			SourceID: stringToPointer("community-runtimes"), Provider: stringToPointer("Seldon"),
+			Description: stringToPointer("Python-based inference server for machine learning models."),
+			Readme:      stringToPointer("# MLServer\n\nMock community runtime."),
+			License:     stringToPointer("apache-2.0"), Tags: []string{"predictive-ai", "cpu"},
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "sklearn"}, {Name: "xgboost"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &cpu, MultiModel: &gpu}, VersionCount: &one,
+		},
+		{
+			ID: stringToPointer("4"), Name: stringToPointer("triton"), DisplayName: stringToPointer("Triton Inference Server"),
+			SourceID: stringToPointer("community-runtimes"), Provider: stringToPointer("NVIDIA"),
+			Description: stringToPointer("Mock inference runtime for multiple model frameworks."),
+			Readme:      stringToPointer("# Triton Inference Server\n\nMock community runtime with GPU support."),
+			License:     stringToPointer("bsd-3-clause"), Tags: []string{"predictive-ai", "gpu", "cpu-or-gpu"},
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "onnx"}, {Name: "tensorrt"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &cpu, SupportedAccelerators: []string{"nvidia.com/gpu"}, MultiModel: &gpu}, VersionCount: &one,
+		},
+		{
+			ID: stringToPointer("5"), Name: stringToPointer("tensorflow-serving"), DisplayName: stringToPointer("TensorFlow Serving"),
+			SourceID: stringToPointer("community-runtimes"), Provider: stringToPointer("TensorFlow"),
+			Description: stringToPointer("Mock runtime for TensorFlow SavedModel inference."),
+			Readme:      stringToPointer("# TensorFlow Serving\n\nMock community runtime for TensorFlow models."),
+			License:     stringToPointer("apache-2.0"), Tags: []string{"predictive-ai", "cpu"},
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "tensorflow"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &cpu}, VersionCount: &one,
+		},
+		{
+			ID: stringToPointer("6"), Name: stringToPointer("sample-amd"), DisplayName: stringToPointer("AMD GPU sample runtime"),
+			SourceID:              stringToPointer("community-runtimes"),
+			Description:           stringToPointer("Illustrative mock runtime for hardware filtering; not a deployable runtime."),
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &gpu, SupportedAccelerators: []string{"amd.com/gpu"}},
+			VersionCount:          &one,
+		},
+		{
+			ID: stringToPointer("7"), Name: stringToPointer("sample-spyre"), DisplayName: stringToPointer("IBM Spyre sample runtime"),
+			SourceID:              stringToPointer("community-runtimes"),
+			Description:           stringToPointer("Illustrative mock runtime for hardware filtering; not a deployable runtime."),
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &gpu, SupportedAccelerators: []string{"ibm.com/spyre"}},
+			VersionCount:          &one,
+		},
+		{
+			ID: stringToPointer("8"), Name: stringToPointer("sample-gaudi"), DisplayName: stringToPointer("Intel Gaudi sample runtime"),
+			SourceID:              stringToPointer("community-runtimes"),
+			Description:           stringToPointer("Illustrative mock runtime for hardware filtering; not a deployable runtime."),
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &gpu, SupportedAccelerators: []string{"habana.ai/gaudi"}},
+			VersionCount:          &one,
+		},
+	}
+}
+
+// GetServingRuntimeVersionMocks returns sample metadata, not deployable cluster resources.
+func GetServingRuntimeVersionMocks(runtimeID string) []models.ServingRuntimeVersion {
+	supported, preview, community := models.ServingRuntimeSupportLevelSupported, models.ServingRuntimeSupportLevelTechPreview, models.ServingRuntimeSupportLevelCommunity
+	priority := int32(1)
+	customProperties := map[string]openapi.MetadataValue{
+		"releaseNotes": {MetadataStringValue: &openapi.MetadataStringValue{StringValue: "Complete mock version for UI development", MetadataType: "MetadataStringValue"}},
+	}
+	versions := map[string][]models.ServingRuntimeVersion{
+		"1": {
+			{
+				ID: stringToPointer("101"), Name: stringToPointer("vllm-0.5.0"),
+				CustomProperties:         &customProperties,
+				Description:              stringToPointer("Complete mock vLLM version with all optional metadata."),
+				ExternalID:               stringToPointer("mock-runtime-vllm-0.5.0"),
+				CreateTimeSinceEpoch:     stringToPointer("1706745600000"),
+				LastUpdateTimeSinceEpoch: stringToPointer("1709424000000"),
+				ArtifactType:             "serving-runtime-version", Version: "0.5.0", Image: "registry.example.com/mock/vllm:0.5.0", SupportLevel: &supported,
+				SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors", Version: stringToPointer("1"), AutoSelect: boolToPointer(true), Priority: &priority}, {Name: "huggingface"}},
+				ProtocolVersions:      []string{"v2"}, DefaultArgs: []string{"--max-model-len", "4096"},
+				RecommendedResources: &models.ServingRuntimeResourceRecommendation{
+					Minimal:     &models.ResourceTier{CPU: stringToPointer("2"), Memory: stringToPointer("8Gi"), Accelerator: &map[string]string{"nvidia.com/gpu": "1"}},
+					Recommended: &models.ResourceTier{CPU: stringToPointer("4"), Memory: stringToPointer("16Gi"), Accelerator: &map[string]string{"nvidia.com/gpu": "1"}},
+					High:        &models.ResourceTier{CPU: stringToPointer("8"), Memory: stringToPointer("32Gi"), Accelerator: &map[string]string{"nvidia.com/gpu": "2"}},
+				},
+				Env: []models.ServingRuntimeEnvVar{
+					{Name: "LOG_LEVEL", Description: stringToPointer("Runtime logging verbosity"), Required: boolToPointer(false), DefaultValue: stringToPointer("info"), Secret: boolToPointer(false)},
+					{Name: "HF_TOKEN", Description: stringToPointer("Token for gated models"), Required: boolToPointer(false), Secret: boolToPointer(true)},
+				},
+				Template:   stringToPointer(`{"apiVersion":"serving.kserve.io/v1alpha1","kind":"ServingRuntime","metadata":{"name":"mock-vllm"},"spec":{"supportedModelFormats":[{"name":"safetensors","version":"1","autoSelect":true,"priority":1}],"protocolVersions":["v2"],"multiModel":false,"containers":[{"name":"kserve-container","image":"registry.example.com/mock/vllm:0.5.0","args":["--max-model-len","4096"],"env":[{"name":"LOG_LEVEL","value":"info"}],"resources":{"requests":{"cpu":"4","memory":"16Gi","nvidia.com/gpu":"1"},"limits":{"nvidia.com/gpu":"1"}}}]}}`),
+				Deprecated: boolToPointer(false), PublishedDate: stringToPointer("2024-02-01T00:00:00Z"),
+			},
+			{ID: stringToPointer("102"), Name: stringToPointer("vllm-0.6.0"), ArtifactType: "serving-runtime-version", Version: "0.6.0", Image: "registry.example.com/mock/vllm:0.6.0", SupportLevel: &preview, SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}}, ProtocolVersions: []string{"v2"}},
+		},
+		"2": {{ID: stringToPointer("201"), Name: stringToPointer("ovms-2024.1"), ArtifactType: "serving-runtime-version", Version: "2024.1", Image: "registry.example.com/mock/ovms:2024.1", SupportLevel: &supported, SupportedModelFormats: []models.SupportedModelFormat{{Name: "openvino_ir"}, {Name: "onnx"}}, ProtocolVersions: []string{"v2", "grpc-v2"}}},
+		"3": {{ID: stringToPointer("301"), Name: stringToPointer("mlserver-1.6.0"), ArtifactType: "serving-runtime-version", Version: "1.6.0", Image: "registry.example.com/mock/mlserver:1.6.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "sklearn"}, {Name: "xgboost"}}, ProtocolVersions: []string{"v2"}}},
+		"4": {{ID: stringToPointer("401"), Name: stringToPointer("triton-24.02"), ArtifactType: "serving-runtime-version", Version: "24.02", Image: "registry.example.com/mock/triton:24.02", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "onnx"}, {Name: "tensorrt"}}, ProtocolVersions: []string{"v2", "grpc-v2"}}},
+		"5": {{ID: stringToPointer("501"), Name: stringToPointer("tensorflow-serving-2.15.0"), ArtifactType: "serving-runtime-version", Version: "2.15.0", Image: "registry.example.com/mock/tensorflow-serving:2.15.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "tensorflow"}}, ProtocolVersions: []string{"v1"}}},
+		"6": {{ID: stringToPointer("601"), Name: stringToPointer("sample-amd-1.0.0"), ArtifactType: "serving-runtime-version", Version: "1.0.0", Image: "registry.example.com/mock/sample-amd:1.0.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}}}},
+		"7": {{ID: stringToPointer("701"), Name: stringToPointer("sample-spyre-1.0.0"), ArtifactType: "serving-runtime-version", Version: "1.0.0", Image: "registry.example.com/mock/sample-spyre:1.0.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}}}},
+		"8": {{ID: stringToPointer("801"), Name: stringToPointer("sample-gaudi-1.0.0"), ArtifactType: "serving-runtime-version", Version: "1.0.0", Image: "registry.example.com/mock/sample-gaudi:1.0.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}}}},
+	}
+	if items, ok := versions[runtimeID]; ok {
+		return items
+	}
+	return []models.ServingRuntimeVersion{}
+}
+
+func servingRuntimeMockHardware(runtime models.ServingRuntime) []string {
+	values := []string{}
+	for _, tag := range runtime.Tags {
+		if tag == "cpu" || tag == "cpu-or-gpu" {
+			values = append(values, tag)
+		}
+	}
+	if runtime.Capabilities != nil {
+		values = append(values, runtime.Capabilities.SupportedAccelerators...)
+	}
+	return values
+}
+
+func GetServingRuntimeFilterOptionsListMock() models.FilterOptionsList {
+	values := map[string]map[string]bool{"hardware": {}, "modelFormat": {}}
+	for _, runtime := range GetServingRuntimeMocks() {
+		for _, hardware := range servingRuntimeMockHardware(runtime) {
+			values["hardware"][hardware] = true
+		}
+		for _, format := range runtime.SupportedModelFormats {
+			values["modelFormat"][format.Name] = true
+		}
+	}
+	filters := make(map[string]models.FilterOption, len(values))
+	for field, unique := range values {
+		names := make([]string, 0, len(unique))
+		for value := range unique {
+			names = append(names, value)
+		}
+		sort.Strings(names)
+		options := make([]interface{}, 0, len(names))
+		for _, name := range names {
+			options = append(options, name)
+		}
+		filters[field] = models.FilterOption{Type: FilterOptionTypeString, Values: options}
+	}
+	return models.FilterOptionsList{Filters: &filters}
 }

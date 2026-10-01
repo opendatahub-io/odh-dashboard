@@ -103,6 +103,38 @@ describe('useServerTools', () => {
     );
   });
 
+  it('should use the registry server name when provided', async () => {
+    mockGetMCPServerTools.mockResolvedValue({
+      status: 'success',
+      // eslint-disable-next-line camelcase
+      tools_count: 14,
+    });
+
+    const { result } = renderHook(() =>
+      useServerTools({
+        api: mockApi,
+        apiAvailable: true,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.fetchToolsCount(
+        'https://kubernetes-mcp-server.example.com/mcp',
+        undefined,
+        'io.kubernetes/kubernetes-mcp-server',
+      );
+    });
+
+    expect(mockGetMCPServerTools).toHaveBeenCalledWith(
+      // eslint-disable-next-line camelcase
+      { server_name: 'io.kubernetes/kubernetes-mcp-server' },
+      { headers: {} },
+    );
+    expect(
+      result.current.serverToolsCount.get('https://kubernetes-mcp-server.example.com/mcp'),
+    ).toBe(14);
+  });
+
   it('should track fetching state', async () => {
     let resolvePromise: (
       value:

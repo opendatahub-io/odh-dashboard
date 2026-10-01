@@ -68,6 +68,8 @@ export const typedIconColor = (objectType: ProjectObjectType): string => {
       return 'var(--ai-general--IconColor)';
     case ProjectObjectType.apiKeys:
       return 'var(--ai-organize--IconColor)';
+    case ProjectObjectType.dataRegistry:
+      return 'var(--ai-data-registry--IconColor)';
     default:
       return '';
   }
@@ -113,8 +115,11 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.modelRegistrySettings:
       return 'var(--ai-set-up--BackgroundColor)';
     case ProjectObjectType.dataConnection:
-    case ProjectObjectType.connections:
       return 'var(--ai-data-connection--BackgroundColor)';
+    case ProjectObjectType.connections:
+      // with data-connect-hub under AI hub, match the background colour with the other
+      // AI hub items, as well as any other instance of connections, as per design
+      return 'var(--ai-serving--BackgroundColor)';
     case ProjectObjectType.user:
       return 'var(--ai-user--BackgroundColor)';
     case ProjectObjectType.group:
@@ -140,6 +145,8 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
       return 'var(--ai-general--BackgroundColor)';
     case ProjectObjectType.apiKeys:
       return 'var(--ai-organize--BackgroundColor)';
+    case ProjectObjectType.dataRegistry:
+      return 'var(--ai-data-registry--BackgroundColor)';
     default:
       return '';
   }

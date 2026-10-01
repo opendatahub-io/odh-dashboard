@@ -1,6 +1,11 @@
 import React from 'react';
-import * as z from 'zod';
-import { fetchS3Json, useS3ListFilesQuery } from '~/app/hooks/queries';
+import type { S3FileFetchers } from '@odh-dashboard/autox-core/ui/hooks';
+import {
+  useS3FileFetchers,
+  useS3FileOperations,
+  useS3ListFilesQuery,
+} from '@odh-dashboard/autox-core/ui/hooks';
+import { isRunInTerminalState } from '~/app/types/pipeline';
 import { useAutoragOutputDir } from '~/app/hooks/useAutoragOutputDir';
 import type {
   ComponentStageMap,
@@ -8,7 +13,6 @@ import type {
   ComponentStageMapStage,
 } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun, PipelineRunTaskDetail, S3ListObjectsResponse } from '~/app/types';
-import { getFiles as getS3Files } from '~/app/api/s3';
 import {
   isAllowedFlattenKey,
   NESTED_STAGE_FIELD_KEYS,
@@ -17,9 +21,17 @@ import {
 import {
   findComponentTaskPrefix,
   isRunCompleted,
-  isRunInTerminalState,
   normalizePipelineRunState,
 } from '~/app/utilities/utils';
+import {
+  CanonicalComponentStatusFileSchema,
+  normalizeCanonicalComponentStatus,
+  normalizeComponentStageStatus,
+  type NormalizedComponentStatusFile,
+  type NormalizedComponentStatusStage,
+  type NormalizedComponentStageStatus,
+} from './componentStatusSchema';
+import { parseLegacyComponentStatus } from './legacyComponentStatus';
 
 function parseSelectedPatterns(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) {
@@ -32,23 +44,16 @@ function parseSelectedPatterns(value: unknown): string[] | undefined {
   return patterns.length > 0 ? patterns : undefined;
 }
 
-/** Documented inline stage statuses (aligned with translateStageStatus). */
-export const COMPONENT_STAGE_STATUSES = ['completed', 'started', 'failed', 'skipped'] as const;
-export type ComponentStageStatus = (typeof COMPONENT_STAGE_STATUSES)[number];
-
-/** Normalize and accept only documented stage statuses; unsupported values become undefined. */
-export function normalizeComponentStageStatus(value: unknown): ComponentStageStatus | undefined {
-  if (typeof value !== 'string') {
-    return undefined;
-  }
-  const normalized = value.trim().toLowerCase();
-  for (const status of COMPONENT_STAGE_STATUSES) {
-    if (status === normalized) {
-      return status;
-    }
-  }
-  return undefined;
-}
+export const COMPONENT_STAGE_STATUSES = [
+  'completed',
+  'started',
+  'running',
+  'failed',
+  'skipped',
+] as const;
+export type ComponentStageStatus = NormalizedComponentStageStatus;
+export type ComponentStatusFile = NormalizedComponentStatusFile;
+export type ComponentStatusStage = NormalizedComponentStatusStage;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -79,41 +84,21 @@ function readSelectedPatternsFromRecord(
   return undefined;
 }
 
-/* eslint-disable camelcase */
-const ComponentStatusStageSchema = z
-  .object({
-    id: z.string(),
-    description: z.string().optional(),
-    steps: z.preprocess(
-      (val) => (Array.isArray(val) ? capPatternSelectionSteps(val) : val),
-      z.array(z.string()).optional(),
-    ),
-    selected_patterns: z.preprocess(parseSelectedPatterns, z.array(z.string()).optional()),
-    status: z.preprocess(
-      normalizeComponentStageStatus,
-      z.enum(COMPONENT_STAGE_STATUSES).optional(),
-    ),
-    timestamp: z.string().optional(),
-    metadata: z.record(z.string(), z.unknown()).optional(),
-    metrics: z.record(z.string(), z.unknown()).optional(),
-    outputs: z.record(z.string(), z.unknown()).optional(),
-    details: z.record(z.string(), z.unknown()).optional(),
-  })
-  .catchall(z.unknown());
+export function parseComponentStatusArtifact(value: unknown): ComponentStatusFile {
+  const isCanonicalArtifact =
+    isPlainObject(value) &&
+    Array.isArray(value.stages) &&
+    (value.stages.some((stage) => isPlainObject(stage) && isPlainObject(stage.status)) ||
+      (value.stages.length === 0 &&
+        isPlainObject(value.metadata) &&
+        typeof value.metadata.display_name === 'string' &&
+        typeof value.started_at === 'string'));
 
-export const ComponentStatusFileSchema = z
-  .object({
-    component_id: z.string(),
-    started_at: z.string().optional(),
-    completed_at: z.string().optional(),
-    stages: z.array(ComponentStatusStageSchema),
-    metadata: z.record(z.string(), z.unknown()).optional(),
-  })
-  .catchall(z.unknown());
-
-export type ComponentStatusFile = z.infer<typeof ComponentStatusFileSchema>;
-export type ComponentStatusStage = z.infer<typeof ComponentStatusStageSchema>;
-/* eslint-enable camelcase */
+  if (isCanonicalArtifact) {
+    return normalizeCanonicalComponentStatus(CanonicalComponentStatusFileSchema.parse(value));
+  }
+  return parseLegacyComponentStatus(value);
+}
 
 export function componentIdToTaskId(componentId: string): string {
   return componentId.replace(/_/g, '-');
@@ -298,11 +283,15 @@ export function mergeStageWithStatus(
   }
   // Prefer a validated payload status; otherwise keep a validated canonical status so
   // unsupported values cannot clear or overwrite completed/failed (or any prior) status.
-  const normalizedStatus =
-    normalizeComponentStageStatus(statusStage.status) ??
-    normalizeComponentStageStatus(stage.status);
+  const incomingStatus = normalizeComponentStageStatus(statusStage.status);
+  const normalizedStatus = incomingStatus ?? normalizeComponentStageStatus(stage.status);
   if (normalizedStatus !== undefined) {
     result.status = normalizedStatus;
+  }
+  if (typeof statusStage.error === 'string') {
+    result.error = statusStage.error;
+  } else if (incomingStatus !== undefined && incomingStatus !== 'failed') {
+    delete result.error;
   }
   const selectedPatterns =
     readSelectedPatternsFromRecord({ ...statusStage }) ??
@@ -352,19 +341,24 @@ export function mergeStatusIntoStageMap(
 }
 
 export function isComponentFullyComplete(status: ComponentStatusFile): boolean {
-  return status.stages.length > 0 && status.stages.every((s) => s.status === 'completed');
+  return (
+    status.stages.length > 0 &&
+    (status.stages.some((stage) => stage.status === 'failed') ||
+      status.stages.every((stage) => stage.status === 'completed'))
+  );
 }
 
 async function discoverStatusJsonPath(
   namespace: string,
   s3Prefix: string,
   signal: AbortSignal,
+  listS3Files: (
+    namespace: string,
+    path: string,
+    signal?: AbortSignal,
+  ) => Promise<S3ListObjectsResponse>,
 ): Promise<string | undefined> {
-  const result: S3ListObjectsResponse = await getS3Files(
-    '',
-    { signal },
-    { namespace, path: s3Prefix },
-  );
+  const result = await listS3Files(namespace, s3Prefix, signal);
   const prefix = result.common_prefixes[0]?.prefix;
   if (!prefix) {
     return undefined;
@@ -376,13 +370,21 @@ async function fetchComponentStatus(
   namespace: string,
   s3Prefix: string,
   signal: AbortSignal,
+  fetchers: S3FileFetchers,
+  listS3Files: (
+    namespace: string,
+    path: string,
+    signal?: AbortSignal,
+  ) => Promise<S3ListObjectsResponse>,
 ): Promise<ComponentStatusFile | undefined> {
-  const jsonPath = await discoverStatusJsonPath(namespace, s3Prefix, signal);
+  const jsonPath = await discoverStatusJsonPath(namespace, s3Prefix, signal, listS3Files);
   if (!jsonPath) {
     return undefined;
   }
 
-  return fetchS3Json(namespace, jsonPath, { signal, schema: ComponentStatusFileSchema });
+  return fetchers
+    .fetchS3Json(namespace, jsonPath, { signal, fresh: true })
+    .then(parseComponentStatusArtifact);
 }
 
 export async function fetchComponentStatusForComponent(
@@ -392,12 +394,21 @@ export async function fetchComponentStatusForComponent(
   componentId: string,
   runLevelPrefixes: { prefix: string }[] | undefined,
   signal: AbortSignal,
+  fetchers?: S3FileFetchers,
+  listS3Files?: (
+    namespace: string,
+    path: string,
+    signal?: AbortSignal,
+  ) => Promise<S3ListObjectsResponse>,
 ): Promise<{ componentId: string; data: ComponentStatusFile } | undefined> {
   const s3Prefix = resolveComponentTaskS3Prefix(rootDir, runId, componentId, runLevelPrefixes);
   if (!s3Prefix) {
     return undefined;
   }
-  const data = await fetchComponentStatus(namespace, s3Prefix, signal);
+  if (!fetchers || !listS3Files) {
+    return undefined;
+  }
+  const data = await fetchComponentStatus(namespace, s3Prefix, signal, fetchers, listS3Files);
   if (!data || data.component_id !== componentId) {
     return undefined;
   }
@@ -424,6 +435,8 @@ export function useComponentStatuses(
   componentStageMap: ComponentStageMap | undefined,
   dataUpdatedAt: number,
 ): UseComponentStatusesReturn {
+  const fetchers = useS3FileFetchers();
+  const { listS3Files } = useS3FileOperations();
   const { rootDir } = useAutoragOutputDir(pipelineRun);
   const runIsTerminal = isRunInTerminalState(pipelineRun?.state);
   const shouldMergeStatuses = React.useMemo(() => {
@@ -544,6 +557,8 @@ export function useComponentStatuses(
           componentId,
           runLevelPrefixes,
           controller.signal,
+          { fetchS3File: fetchers.fetchS3File, fetchS3Json: fetchers.fetchS3Json },
+          listS3Files,
         ),
       ),
     )
@@ -609,6 +624,8 @@ export function useComponentStatuses(
       controller.abort();
     };
   }, [
+    fetchers,
+    listS3Files,
     runId,
     namespace,
     pipelineRun,

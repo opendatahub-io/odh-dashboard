@@ -10,7 +10,8 @@ import {
   NESTED_STAGE_FIELD_KEY_SET,
   parseBranchIndexFromSuffix,
 } from '~/app/topology/stageMapConstants';
-import { formatDurationBetween, formatMetricName } from '~/app/utilities/utils';
+import { formatDurationBetween } from '~/app/utilities/utils';
+import { metricLabel } from '~/app/utilities/metricUtils';
 import type { StepDetail } from './stepMetadata';
 
 /* eslint-disable camelcase -- keys match backend stage field names */
@@ -159,7 +160,9 @@ function getNextStage(
 }
 
 function formatStageFieldLabel(key: string): string {
-  return Object.hasOwn(STAGE_FIELD_LABELS, key) ? STAGE_FIELD_LABELS[key] : formatMetricName(key);
+  return Object.hasOwn(STAGE_FIELD_LABELS, key)
+    ? STAGE_FIELD_LABELS[key]
+    : metricLabel({ name: key });
 }
 
 function isRenderablePrimitive(value: unknown): value is string | number | boolean {
@@ -175,7 +178,7 @@ function formatStageFieldValue(key: string, value: unknown): string {
     return '—';
   }
   if (key === 'eval_metric' && typeof value === 'string') {
-    return formatMetricName(value);
+    return metricLabel({ name: value });
   }
   if (Array.isArray(value)) {
     if (value.length === 0) {

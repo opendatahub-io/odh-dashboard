@@ -10,6 +10,7 @@ const IMAGE_DIR = process.env.IMAGE_DIR || 'images';
 const LOGO_LIGHT = process.env.LOGO || 'logo-light-theme.svg';
 const MANDATORY_NAMESPACE = process.env.MANDATORY_NAMESPACE || undefined;
 const URL_PREFIX = '/maas';
+const API_URL_PREFIX = `${process.env.BASE_PATH || ''}${URL_PREFIX}`;
 const BFF_API_VERSION = 'v1';
 const COMPANY_URI = process.env.COMPANY_URI || 'oci://odh.io';
 
@@ -21,6 +22,7 @@ export {
   IMAGE_DIR,
   LOGO_LIGHT,
   URL_PREFIX,
+  API_URL_PREFIX,
   DEPLOYMENT_MODE,
   BFF_API_VERSION,
   MANDATORY_NAMESPACE,

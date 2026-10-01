@@ -1,0 +1,11 @@
+projectNamePrefix: enable-project-scoped-nim
+modelNamePrefix: nim
+modelDescription: NVIDIA NIM model deployed by Cypress
+nimImageNameWithGpu: Llama-3.2-1B-Instruct - latest
+nimImageNameWithoutGpu: NVIDIA Active Speaker Detection ST 2110 Operator - 1.0.0
+nimModelId: meta/llama-3.2-1b-instruct
+hardwareProfileName: cypress-nim-nvidia-gpu
+hardwareProfileYamlPath: resources/hardwareProfile/nim_nvidia_gpu.yaml
+pvcNamePrefix: nim-cache
+pvcSizeGi: 32
+tokenDisplayName: nim-curl-token

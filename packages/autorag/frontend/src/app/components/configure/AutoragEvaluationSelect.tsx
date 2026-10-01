@@ -7,7 +7,7 @@ import { useParams } from 'react-router';
 import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
 import FileSelector from '~/app/components/common/FileSelector';
 import EvaluationFileCreator from '~/app/components/configure/EvaluationFileCreator';
-import { useUploadToStorageMutation } from '~/app/hooks/mutations';
+import { useUploadToStorageMutation } from '~/app/hooks/useUploadToStorageMutation';
 import { useNotification } from '~/app/hooks/useNotification';
 import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
@@ -44,10 +44,11 @@ function AutoragEvaluationSelect(): React.JSX.Element {
   const controller = useController({ control: form.control, name: 'test_data_key' });
   const { field } = controller;
 
-  const [testDataSecretName, displayName, inputDataKey] = useWatch({
+  const [testDataSecretName, displayName, inputDataKeys] = useWatch({
     control: form.control,
-    name: ['test_data_secret_name', 'display_name', 'input_data_key'],
+    name: ['test_data_secret_name', 'display_name', 'input_data_keys'],
   });
+  const inputDataKey = inputDataKeys[0] ?? '';
 
   const uploadToStorageMutation = useUploadToStorageMutation(namespace ?? '', testDataSecretName);
 

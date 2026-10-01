@@ -1,5 +1,10 @@
 import { ClusterQueueKind, ResourceFlavorKind } from '@odh-dashboard/k8s-core';
-import { resolveHardwareModels, resolvePerModelGpuCounts } from '../hardwareModels';
+import {
+  getAcceleratorDisplayName,
+  resolveHardwareModels,
+  resolvePerModelGpuCounts,
+  UNKNOWN_ACCELERATOR,
+} from '../hardwareModels';
 
 const makeGpuCQ = (
   name: string,
@@ -58,6 +63,18 @@ const makeRF = (name: string, gpuProduct?: string): ResourceFlavorKind =>
     },
   } as unknown as ResourceFlavorKind);
 
+describe('getAcceleratorDisplayName', () => {
+  it.each([
+    [makeRF('a100-flavor', 'NVIDIA A100'), 'a100-flavor', 'nvidia.com/gpu', 'NVIDIA A100'],
+    [makeRF('mi300x-flavor', undefined), 'mi300x-flavor', 'amd.com/gpu', 'mi300x-flavor'],
+    [undefined, undefined, 'nvidia.com/gpu', 'nvidia.com/gpu'],
+    [undefined, undefined, undefined, UNKNOWN_ACCELERATOR],
+    [makeRF('empty-flavor'), '', '', UNKNOWN_ACCELERATOR],
+  ])('uses fallback order', (resourceFlavor, flavorName, resourceName, expected) => {
+    expect(getAcceleratorDisplayName(resourceFlavor, flavorName, resourceName)).toBe(expected);
+  });
+});
+
 describe('resolveHardwareModels', () => {
   it('returns GPU product label for a CQ whose flavor has the label', () => {
     const cq = makeGpuCQ('cq-a', 'a100-flavor');
@@ -111,7 +128,6 @@ describe('resolveHardwareModels', () => {
     expect(result.get('cq-dup')).toEqual(['NVIDIA H100']);
   });
 });
-
 describe('resolvePerModelGpuCounts', () => {
   it.each([
     [
@@ -128,11 +144,13 @@ describe('resolvePerModelGpuCounts', () => {
     expect(resolvePerModelGpuCounts([cq], [rf]).get('cq-a')).toEqual([expected]);
   });
 
-  it('skips flavors with no matching ResourceFlavor or no gpu.product label', () => {
+  it('falls back to ResourceFlavor name when gpu.product label is unavailable', () => {
     const cq = makeGpuCQ('cq-c', 'unknown-flavor', { nominal: 8, used: 0 });
     const rf = makeRF('unknown-flavor'); // no gpuProduct
     const result = resolvePerModelGpuCounts([cq], [rf]);
-    expect(result.get('cq-c')).toEqual([]);
+    expect(result.get('cq-c')).toEqual([
+      { model: 'unknown-flavor', nominal: 8, used: 0, borrowed: undefined },
+    ]);
   });
 
   it.each([

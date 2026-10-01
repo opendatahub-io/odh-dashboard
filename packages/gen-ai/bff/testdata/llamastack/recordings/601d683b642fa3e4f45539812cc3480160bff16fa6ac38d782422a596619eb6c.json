@@ -42,7 +42,7 @@
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash",
     "provider_metadata": {
-      "openai_sdk_version": "2.45.0"
+      "openai_sdk_version": "3.1.0"
     }
   },
   "response": {
@@ -54,23 +54,13 @@
           "choices": [
             {
               "delta": {
-                "content": null,
+                "content": "Machine learning is a subset of artificial intelligence (AI) that enables systems to learn from data, identify patterns, and make decisions with",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
-                "tool_calls": [
-                  {
-                    "index": null,
-                    "id": "function-call-14176794594900456102",
-                    "function": {
-                      "arguments": "{\"query\":\"machine learning\"}",
-                      "name": "file_search"
-                    },
-                    "type": "function"
-                  }
-                ]
+                "tool_calls": null
               },
-              "finish_reason": "tool_calls",
+              "finish_reason": null,
               "index": 0,
               "logprobs": null
             }
@@ -82,9 +72,108 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 16,
+            "completion_tokens": 26,
             "prompt_tokens": 45,
-            "total_tokens": 110,
+            "total_tokens": 256,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-601d683b642f",
+          "choices": [
+            {
+              "delta": {
+                "content": " minimal human intervention. Instead of being explicitly programmed for every task, machine learning models are trained on large datasets, allowing them to adapt and improve their performance over time.\n\nKey aspects of machine learning include:\n\n*   **Learning from Data:** Algorithms",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 76,
+            "prompt_tokens": 45,
+            "total_tokens": 306,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-601d683b642f",
+          "choices": [
+            {
+              "delta": {
+                "content": " analyze data to find patterns and relationships.\n*   **Pattern Recognition:** Identifying recurring structures or regularities within data.\n*   **Prediction and Decision Making:** Using learned patterns to forecast future outcomes or make choices.\n*   **Adapt",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 125,
+            "prompt_tokens": 45,
+            "total_tokens": 355,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-601d683b642f",
+          "choices": [
+            {
+              "delta": {
+                "content": "ation:** Continuously improving performance as more data becomes available.\n\nIt's used in various applications such as image recognition, natural language processing, recommendation systems, medical diagnosis, and fraud detection.",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": "stop",
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 164,
+            "prompt_tokens": 45,
+            "total_tokens": 394,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

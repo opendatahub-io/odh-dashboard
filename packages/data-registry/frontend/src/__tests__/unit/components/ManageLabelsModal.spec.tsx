@@ -5,16 +5,9 @@ import { createLabel, deleteLabel } from '~/app/api/dataRegistry';
 import { RegistryAsset } from '~/app/hooks/useAssets';
 
 jest.mock('~/app/api/dataRegistry', () => ({
+  ...jest.requireActual('~/app/api/dataRegistry'),
   createLabel: jest.fn(),
   deleteLabel: jest.fn(),
-  ApiError: class ApiError extends Error {
-    status: number;
-
-    constructor(status: number, message: string) {
-      super(message);
-      this.status = status;
-    }
-  },
 }));
 
 const mockCreateLabel = jest.mocked(createLabel);
@@ -30,6 +23,7 @@ const mockAssets: RegistryAsset[] = [
     connectionRef: 'minio-connection',
     labels: ['production', 'shared-label'],
     collection: 'analytics',
+    properties: {},
   },
   {
     name: 'raw-documents',
@@ -40,6 +34,7 @@ const mockAssets: RegistryAsset[] = [
     connectionRef: '',
     labels: ['source-docs', 'shared-label'],
     collection: 'guidelines',
+    properties: {},
   },
   {
     name: 'embeddings',
@@ -50,6 +45,7 @@ const mockAssets: RegistryAsset[] = [
     connectionRef: '',
     labels: ['production'],
     collection: 'analytics',
+    properties: {},
   },
 ];
 

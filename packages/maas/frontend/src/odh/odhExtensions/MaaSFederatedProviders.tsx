@@ -8,13 +8,13 @@ import {
   useSettings,
 } from 'mod-arch-core';
 import { Bullseye, Spinner } from '@patternfly/react-core';
-import { URL_PREFIX } from '~/app/utilities/const';
+import { API_URL_PREFIX } from '~/app/utilities/const';
 import ToastNotifications from '~/app/components/ToastNotifications';
 import { AppContext } from '~/app/context/AppContext';
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Federated,
-  URL_PREFIX,
+  URL_PREFIX: API_URL_PREFIX,
   BFF_API_VERSION: 'v1',
 };
 

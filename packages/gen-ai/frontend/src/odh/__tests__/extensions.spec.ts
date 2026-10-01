@@ -1,5 +1,5 @@
 import type { K8sCondition } from '@odh-dashboard/k8s-core';
-import extensions, { MODEL_AS_SERVICE_CAMEL, GEN_AI_TRACING } from '~/odh/extensions';
+import extensions, { GUARDRAILS, MODEL_AS_SERVICE_CAMEL, GEN_AI_TRACING } from '~/odh/extensions';
 
 const findArea = (id: string) => {
   const area = extensions.find((ext) => ext.type === 'app.area' && ext.properties.id === id);
@@ -10,6 +10,7 @@ const findArea = (id: string) => {
 };
 
 const findMaaSArea = () => findArea(MODEL_AS_SERVICE_CAMEL);
+const findGuardrailsArea = () => findArea(GUARDRAILS);
 
 const makeDscStatus = (conditions: K8sCondition[]) =>
   ({
@@ -95,6 +96,51 @@ describe('modelAsService area extension', () => {
       dsciStatus: null,
     });
 
+    expect(result).toBe(false);
+  });
+});
+
+describe('guardrails area extension', () => {
+  it('should return true when TrustyAIReady is True', () => {
+    const area = findGuardrailsArea();
+    const result = area.properties.customCondition!({
+      dashboardConfigSpec: {} as never,
+      dscStatus: makeDscStatus([{ type: 'TrustyAIReady', status: 'True', lastTransitionTime: '' }]),
+      dsciStatus: null,
+    });
+    expect(result).toBe(true);
+  });
+
+  it.each(['False', 'Unknown'] as const)(
+    'should return false when TrustyAIReady is %s',
+    (status) => {
+      const area = findGuardrailsArea();
+      const result = area.properties.customCondition!({
+        dashboardConfigSpec: {} as never,
+        dscStatus: makeDscStatus([{ type: 'TrustyAIReady', status, lastTransitionTime: '' }]),
+        dsciStatus: null,
+      });
+      expect(result).toBe(false);
+    },
+  );
+
+  it('should return false when TrustyAIReady is absent', () => {
+    const area = findGuardrailsArea();
+    const result = area.properties.customCondition!({
+      dashboardConfigSpec: {} as never,
+      dscStatus: makeDscStatus([]),
+      dsciStatus: null,
+    });
+    expect(result).toBe(false);
+  });
+
+  it('should return false when DSC conditions are absent', () => {
+    const area = findGuardrailsArea();
+    const result = area.properties.customCondition!({
+      dashboardConfigSpec: {} as never,
+      dscStatus: { components: {} } as never,
+      dsciStatus: null,
+    });
     expect(result).toBe(false);
   });
 });

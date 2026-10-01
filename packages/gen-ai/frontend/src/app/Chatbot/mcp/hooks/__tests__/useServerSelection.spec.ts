@@ -13,6 +13,8 @@ describe('useServerSelection', () => {
       connectionUrl: 'https://server1.com',
       tools: 0,
       version: 'Unknown',
+      source: 'configmap',
+      logo: null,
     },
     {
       id: 'server2',
@@ -23,6 +25,8 @@ describe('useServerSelection', () => {
       connectionUrl: 'https://server2.com',
       tools: 0,
       version: 'Unknown',
+      source: 'configmap',
+      logo: null,
     },
   ];
 
@@ -178,5 +182,25 @@ describe('useServerSelection', () => {
     expect(result.current.isInitialLoadComplete).toBe(true);
     expect(result.current.selectedServers).toHaveLength(1);
     expect(result.current.selectedServers[0].id).toBe('server1');
+  });
+
+  it('should apply route selection that arrives after the initial empty store state', () => {
+    const { result, rerender } = renderHook(
+      ({ initialIds }: { initialIds: string[] }) =>
+        useServerSelection({
+          transformedServers: mockServers,
+          initialSelectedServerIds: initialIds,
+          onSelectionChange: mockOnSelectionChange,
+        }),
+      {
+        initialProps: { initialIds: [] as string[] },
+      },
+    );
+
+    expect(result.current.selectedServers).toHaveLength(0);
+
+    rerender({ initialIds: ['server1'] });
+
+    expect(result.current.selectedServers).toEqual([mockServers[0]]);
   });
 });

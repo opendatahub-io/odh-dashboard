@@ -26,6 +26,7 @@ import (
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 	ctrlpkg "github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
@@ -41,19 +42,33 @@ func writeMaaSConsumerPortalManifest(t *testing.T, base string) {
 	require.NoError(t, os.CopyFS(destination, os.DirFS(source)))
 }
 
-// getConsoleLink fetches a cluster-scoped ConsoleLink by name, returning nil
-// when it does not exist.
-func getConsoleLink(t *testing.T, name string) *unstructured.Unstructured {
+// writeDashboardRouteManifest adds the rendered RHOAI core route to the minimal
+// integration fixture so a managed Dashboard exercises both shared routes.
+func writeDashboardRouteManifest(t *testing.T, base string) {
 	t.Helper()
 
-	cl := &unstructured.Unstructured{}
-	cl.SetGroupVersionKind(ctrlpkg.ConsoleLinkGVK)
-	err := k8sClient.Get(context.Background(), types.NamespacedName{Name: name}, cl)
-	if err != nil {
-		return nil
+	source := filepath.Join("..", "..", "..", "manifests", "rhoai")
+	rendered, err := kustomize.NewEngine().Render(source, kustomize.WithNamespace(integrationNamespace))
+	require.NoError(t, err)
+	var routeManifest []byte
+	for i := range rendered {
+		resource := &rendered[i]
+		if resource.GetKind() == "HTTPRoute" && resource.GetName() == "rhods-dashboard" {
+			routeManifest, err = json.Marshal(resource.Object)
+			require.NoError(t, err)
+			break
+		}
 	}
+	require.NotEmpty(t, routeManifest, "RHOAI core HTTPRoute was not rendered")
 
-	return cl
+	overlay := filepath.Join(base, "rhoai")
+	require.NoError(t, os.WriteFile(filepath.Join(overlay, "kustomization.yaml"), []byte(`apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - configmap.yaml
+  - httproute.yaml
+`), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(overlay, "httproute.yaml"), routeManifest, 0644))
 }
 
 func cleanupMaaSConsumerPortalResources(t *testing.T, r *ctrlpkg.DashboardReconciler) {
@@ -96,7 +111,59 @@ func conditionReason(dashboard *v1alpha1.Dashboard, conditionType string) string
 	return ""
 }
 
-func TestIntegration_MaaSConsumerPortalConsoleLink(t *testing.T) {
+func TestIntegration_CoreDashboardAndMaaSConsumerPortalRoutesShareGateway(t *testing.T) {
+	base := createIntegrationManifests(t, []string{"maas", "gen-ai"})
+	writeDashboardRouteManifest(t, base)
+	writeMaaSConsumerPortalManifest(t, base)
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                k8sClient,
+		Scheme:                k8sClient.Scheme(),
+		ManifestsBasePath:     base,
+		Platform:              cluster.SelfManagedRhoai,
+		Namespace:             integrationNamespace,
+		ApplicationsNamespace: integrationNamespace,
+	}
+	dashboard := newDashboard(v1alpha1.DashboardSpec{
+		ManagementSpec:     common.ManagementSpec{ManagementState: "Managed"},
+		Gateway:            &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+		Modules:            disableAllModulesExcept("maas", "genAi"),
+		MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
+	})
+	require.NoError(t, k8sClient.Create(context.Background(), dashboard))
+	t.Cleanup(func() {
+		deleteDashboard(t)
+		cleanupMaaSConsumerPortalResources(t, r)
+		cleanupModuleResources(t)
+		deleteIgnoreNotFound(t, &gatewayv1.HTTPRoute{ObjectMeta: metav1.ObjectMeta{Name: "rhods-dashboard", Namespace: integrationNamespace}})
+	})
+
+	// The first pass adds the finalizer; the second applies the core and portal bundles.
+	reconcile(t, r)
+	reconcile(t, r)
+
+	for _, tt := range []struct {
+		name string
+		path string
+	}{
+		{name: "rhods-dashboard", path: "/"},
+		{name: "maas-consumer-portal", path: "/maas-consumer-portal"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			route := &gatewayv1.HTTPRoute{}
+			require.NoError(t, k8sClient.Get(context.Background(), types.NamespacedName{Name: tt.name, Namespace: integrationNamespace}, route))
+			assert.Empty(t, route.Spec.Hostnames)
+			require.Len(t, route.Spec.ParentRefs, 1)
+			assert.Equal(t, gatewayv1.ObjectName("data-science-gateway"), route.Spec.ParentRefs[0].Name)
+			require.NotEmpty(t, route.Spec.Rules)
+			require.NotEmpty(t, route.Spec.Rules[0].Matches)
+			require.NotNil(t, route.Spec.Rules[0].Matches[0].Path)
+			assert.Equal(t, tt.path, *route.Spec.Rules[0].Matches[0].Path.Value)
+		})
+	}
+}
+
+func TestIntegration_MaaSConsumerPortalLifecycle(t *testing.T) {
 	base := createIntegrationManifests(t, []string{"maas", "gen-ai"})
 	writeMaaSConsumerPortalManifest(t, base)
 
@@ -128,26 +195,6 @@ func TestIntegration_MaaSConsumerPortalConsoleLink(t *testing.T) {
 	reconcile(t, r)
 	reconcile(t, r)
 
-	// ConsoleLink is created with the derived href.
-	cl := getConsoleLink(t, ctrlpkg.MaaSConsumerPortalConsoleLinkName)
-	require.NotNil(t, cl, "maas-consumer-portal-link ConsoleLink should be created when enabled")
-
-	href, found, err := unstructured.NestedString(cl.Object, "spec", "href")
-	require.NoError(t, err)
-	require.True(t, found)
-	assert.Equal(t, "https://maas-consumer-portal.test.example.com/", href)
-
-	// ownerReference points to the Dashboard CR (for GC on CR deletion).
-	owners := cl.GetOwnerReferences()
-	require.Len(t, owners, 1, "ConsoleLink should have exactly one owner reference")
-	assert.Equal(t, v1alpha1.DashboardKind, owners[0].Kind)
-	assert.Equal(t, v1alpha1.DashboardInstanceName, owners[0].Name)
-
-	// The portal carries a distinct part-of label so the core dashboard teardown
-	// (which selects part-of=dashboard) never touches it. This makes the portal
-	// an independent operand — see TestIntegration_MaaSConsumerPortalConsoleLinkPreservedWhenCoreRemoved.
-	assert.Equal(t, "maas-consumer-portal", cl.GetLabels()[labels.PlatformPartOf],
-		"portal ConsoleLink must carry part-of=maas-consumer-portal, not part-of=dashboard")
 	for _, resource := range []struct{ apiVersion, kind, name string }{
 		{"apps/v1", "Deployment", "maas-consumer-portal"},
 		{"v1", "Service", "maas-consumer-portal"},
@@ -180,10 +227,49 @@ func TestIntegration_MaaSConsumerPortalConsoleLink(t *testing.T) {
 	}
 	route := &gatewayv1.HTTPRoute{}
 	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-consumer-portal", Namespace: integrationNamespace}, route))
+	assert.Empty(t, route.Spec.Hostnames, "the portal route must use the shared Gateway hostname contract")
+	require.Len(t, route.Spec.ParentRefs, 1)
+	assert.Equal(t, gatewayv1.ObjectName("data-science-gateway"), route.Spec.ParentRefs[0].Name)
+	require.Len(t, route.Spec.Rules, 2)
+	require.Len(t, route.Spec.Rules[0].Matches, 1)
+	require.NotNil(t, route.Spec.Rules[0].Matches[0].Path)
+	assert.Equal(t, gatewayv1.PathMatchExact, *route.Spec.Rules[0].Matches[0].Path.Type)
+	assert.Equal(t, "/maas-consumer-portal", *route.Spec.Rules[0].Matches[0].Path.Value)
+	require.Len(t, route.Spec.Rules[1].Matches, 1)
+	require.NotNil(t, route.Spec.Rules[1].Matches[0].Path)
+	assert.Equal(t, gatewayv1.PathMatchPathPrefix, *route.Spec.Rules[1].Matches[0].Path.Type)
+	assert.Equal(t, "/maas-consumer-portal", *route.Spec.Rules[1].Matches[0].Path.Value)
+
+	// Model an upgrade from the previous bundle. Applying this object with the
+	// operator's field owner means the next reconciliation must remove the
+	// formerly-owned hostname field without replacing the route.
+	preFixRoute := route.DeepCopy()
+	preFixRoute.Spec.Hostnames = []gatewayv1.Hostname{"test.example.com"}
+	preFixObject, err := runtime.DefaultUnstructuredConverter.ToUnstructured(preFixRoute)
+	require.NoError(t, err)
+	preFix := &unstructured.Unstructured{Object: preFixObject}
+	preFix.SetAPIVersion(gatewayv1.GroupVersion.String())
+	preFix.SetKind("HTTPRoute")
+	unstructured.RemoveNestedField(preFix.Object, "metadata", "managedFields")
+	unstructured.RemoveNestedField(preFix.Object, "metadata", "resourceVersion")
+	unstructured.RemoveNestedField(preFix.Object, "metadata", "uid")
+	unstructured.RemoveNestedField(preFix.Object, "status")
+	require.NoError(t, k8sClient.Apply(ctx, client.ApplyConfigurationFromUnstructured(preFix), client.FieldOwner("dashboard-operator")))
+	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-consumer-portal", Namespace: integrationNamespace}, route))
+	previousRouteUID := route.GetUID()
+	assert.Equal(t, []gatewayv1.Hostname{"test.example.com"}, route.Spec.Hostnames)
 	route.Status.Parents = []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
 		{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
 		{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
 	}}}
+	require.NoError(t, k8sClient.Status().Update(ctx, route))
+	reconcile(t, r)
+	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-consumer-portal", Namespace: integrationNamespace}, route))
+	assert.Equal(t, previousRouteUID, route.GetUID(), "removing hostnames must update the existing HTTPRoute")
+	assert.Empty(t, route.Spec.Hostnames)
+	for i := range route.Status.Parents[0].Conditions {
+		route.Status.Parents[0].Conditions[i].ObservedGeneration = route.Generation
+	}
 	require.NoError(t, k8sClient.Status().Update(ctx, route))
 	reconcile(t, r)
 
@@ -191,7 +277,7 @@ func TestIntegration_MaaSConsumerPortalConsoleLink(t *testing.T) {
 	assert.Equal(t, common.PhaseReady, updated.Status.Phase)
 	assert.Equal(t, metav1.ConditionTrue, conditionStatus(updated, string(common.ConditionTypeReady)))
 	assert.Equal(t, metav1.ConditionTrue, conditionStatus(updated, "MaaSConsumerPortalAvailable"))
-	assert.Equal(t, "https://maas-consumer-portal.test.example.com/", updated.Status.MaaSConsumerPortalURL)
+	assert.Equal(t, "https://test.example.com/maas-consumer-portal/", updated.Status.MaaSConsumerPortalURL)
 
 	// Updating a portal input reapplies the complete bundle, but retains the
 	// previous URL until the Deployment and HTTPRoute have observed the update.
@@ -205,14 +291,9 @@ func TestIntegration_MaaSConsumerPortalConsoleLink(t *testing.T) {
 	assert.Equal(t, "registry.example.com/odh-core-bff:updated", deployment.Spec.Template.Spec.Containers[0].Image)
 	route = &gatewayv1.HTTPRoute{}
 	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-consumer-portal", Namespace: integrationNamespace}, route))
-	assert.Equal(t, []gatewayv1.Hostname{"maas-consumer-portal.updated.example.com"}, route.Spec.Hostnames)
-	cl = getConsoleLink(t, ctrlpkg.MaaSConsumerPortalConsoleLinkName)
-	require.NotNil(t, cl)
-	href, found, err = unstructured.NestedString(cl.Object, "spec", "href")
-	require.NoError(t, err)
-	require.True(t, found)
-	assert.Equal(t, "https://maas-consumer-portal.updated.example.com/", href)
-	assert.Equal(t, "https://maas-consumer-portal.test.example.com/", getDashboard(t).Status.MaaSConsumerPortalURL)
+	assert.Equal(t, previousRouteUID, route.GetUID(), "gateway-domain changes must update the existing HTTPRoute")
+	assert.Empty(t, route.Spec.Hostnames, "gateway-domain changes must not restore route hostnames")
+	assert.Equal(t, "https://test.example.com/maas-consumer-portal/", getDashboard(t).Status.MaaSConsumerPortalURL)
 
 	deployment.Status.ObservedGeneration = deployment.Generation
 	require.NoError(t, k8sClient.Status().Update(ctx, deployment))
@@ -221,7 +302,7 @@ func TestIntegration_MaaSConsumerPortalConsoleLink(t *testing.T) {
 	}
 	require.NoError(t, k8sClient.Status().Update(ctx, route))
 	reconcile(t, r)
-	assert.Equal(t, "https://maas-consumer-portal.updated.example.com/", getDashboard(t).Status.MaaSConsumerPortalURL)
+	assert.Equal(t, "https://updated.example.com/maas-consumer-portal/", getDashboard(t).Status.MaaSConsumerPortalURL)
 
 	// A transient bundle apply error reports an actionable condition, requests a
 	// retry, and retains the previously verified endpoint.
@@ -247,21 +328,19 @@ func TestIntegration_MaaSConsumerPortalConsoleLink(t *testing.T) {
 	assert.Equal(t, ctrlpkg.MaaSConsumerPortalRetryInterval, result.RequeueAfter)
 	updated = getDashboard(t)
 	assert.Equal(t, "MaaSConsumerPortalDeployFailed", conditionReason(updated, "MaaSConsumerPortalAvailable"))
-	assert.Equal(t, "https://maas-consumer-portal.updated.example.com/", updated.Status.MaaSConsumerPortalURL)
+	assert.Equal(t, "https://updated.example.com/maas-consumer-portal/", updated.Status.MaaSConsumerPortalURL)
 
 	// service-ca normally creates this unlabelled Secret; model it explicitly to
 	// verify portal removal does not rely on owner-reference garbage collection.
 	require.NoError(t, k8sClient.Create(ctx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "maas-consumer-portal-tls", Namespace: integrationNamespace}}))
 
-	// Disable the portal — the ConsoleLink is removed.
+	// Disable the portal and remove its resources.
 	dashboard = getDashboard(t)
 	dashboard.Spec.MaaSConsumerPortal = &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Removed"}
 	require.NoError(t, k8sClient.Update(ctx, dashboard))
 
 	reconcile(t, r)
 
-	cl = getConsoleLink(t, ctrlpkg.MaaSConsumerPortalConsoleLinkName)
-	assert.Nil(t, cl, "maas-consumer-portal-link ConsoleLink should be deleted when disabled")
 	for _, resource := range []struct{ apiVersion, kind, name string }{
 		{"apps/v1", "Deployment", "maas-consumer-portal"},
 		{"v1", "Service", "maas-consumer-portal"},
@@ -278,12 +357,9 @@ func TestIntegration_MaaSConsumerPortalConsoleLink(t *testing.T) {
 	assert.Empty(t, getDashboard(t).Status.MaaSConsumerPortalURL)
 }
 
-// TestIntegration_MaaSConsumerPortalConsoleLinkPreservedWhenCoreRemoved verifies
-// that the portal ConsoleLink survives a core-dashboard teardown while the
-// portal itself stays enabled — the portal is independent of the core
-// dashboard's managementState, so core `managementState: Removed` with
-// `maasConsumerPortal.managementState: Managed` must keep the link visible.
-func TestIntegration_MaaSConsumerPortalConsoleLinkPreservedWhenCoreRemoved(t *testing.T) {
+// TestIntegration_MaaSConsumerPortalResourcesPreservedWhenCoreRemoved verifies
+// that core-dashboard teardown preserves the independent portal operand.
+func TestIntegration_MaaSConsumerPortalResourcesPreservedWhenCoreRemoved(t *testing.T) {
 	base := createIntegrationManifests(t, []string{"maas", "gen-ai"})
 	writeMaaSConsumerPortalManifest(t, base)
 
@@ -315,74 +391,21 @@ func TestIntegration_MaaSConsumerPortalConsoleLinkPreservedWhenCoreRemoved(t *te
 	reconcile(t, r)
 	reconcile(t, r)
 
-	require.NotNil(t, getConsoleLink(t, ctrlpkg.MaaSConsumerPortalConsoleLinkName),
-		"ConsoleLink should exist before Removed")
-
 	// Core dashboard is torn down but the portal stays enabled, so its
-	// ConsoleLink must be preserved.
+	// independently-managed Deployment and HTTPRoute must be preserved.
 	dashboard = getDashboard(t)
 	dashboard.Spec.ManagementState = "Removed"
 	require.NoError(t, k8sClient.Update(ctx, dashboard))
 
 	reconcile(t, r)
 
-	assert.NotNil(t, getConsoleLink(t, ctrlpkg.MaaSConsumerPortalConsoleLinkName),
-		"ConsoleLink should be preserved when core is Removed but portal stays enabled")
+	assert.NotNil(t, getPortalResource(t, "apps/v1", "Deployment", "maas-consumer-portal"))
+	assert.NotNil(t, getPortalResource(t, "gateway.networking.k8s.io/v1", "HTTPRoute", "maas-consumer-portal"))
 
 	updated := getDashboard(t)
 	assert.Equal(t, metav1.ConditionFalse, conditionStatus(updated, "MaaSConsumerPortalAvailable"),
 		"MaaS Consumer Portal must report unavailable when its explicitly disabled MaaS/GenAI dependencies are missing")
 	assert.Equal(t, "RequiredModuleUnavailable", conditionReason(updated, "MaaSConsumerPortalAvailable"))
-}
-
-// TestIntegration_MaaSConsumerPortalConsoleLinkRemovedWhenDisabled verifies that a
-// core-dashboard teardown with the portal disabled removes the portal
-// ConsoleLink along with the rest of the managed resources.
-func TestIntegration_MaaSConsumerPortalConsoleLinkRemovedWhenDisabled(t *testing.T) {
-	base := createIntegrationManifests(t, []string{"maas", "gen-ai"})
-	writeMaaSConsumerPortalManifest(t, base)
-
-	r := &ctrlpkg.DashboardReconciler{
-		Client:                k8sClient,
-		Scheme:                k8sClient.Scheme(),
-		ManifestsBasePath:     base,
-		Platform:              cluster.SelfManagedRhoai,
-		Namespace:             integrationNamespace,
-		ApplicationsNamespace: integrationNamespace,
-	}
-
-	dashboard := newDashboard(v1alpha1.DashboardSpec{
-		ManagementSpec:     common.ManagementSpec{ManagementState: "Removed"},
-		Gateway:            &v1alpha1.GatewaySpec{Domain: "test.example.com"},
-		Modules:            disableAllModulesExcept("maas", "genAi"),
-		MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
-	})
-
-	ctx := context.Background()
-	require.NoError(t, k8sClient.Create(ctx, dashboard))
-
-	t.Cleanup(func() {
-		deleteDashboard(t)
-		cleanupMaaSConsumerPortalResources(t, r)
-		cleanupModuleResources(t)
-	})
-
-	reconcile(t, r)
-	reconcile(t, r)
-
-	require.NotNil(t, getConsoleLink(t, ctrlpkg.MaaSConsumerPortalConsoleLinkName),
-		"ConsoleLink should exist before Removed")
-
-	// Portal disabled AND core Removed: nothing should keep the link alive.
-	dashboard = getDashboard(t)
-	dashboard.Spec.ManagementState = "Removed"
-	dashboard.Spec.MaaSConsumerPortal = &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Removed"}
-	require.NoError(t, k8sClient.Update(ctx, dashboard))
-
-	reconcile(t, r)
-
-	assert.Nil(t, getConsoleLink(t, ctrlpkg.MaaSConsumerPortalConsoleLinkName),
-		"ConsoleLink should be removed when managementState is Removed and portal is disabled")
 }
 
 func TestIntegration_MaaSConsumerPortalModuleDemandMatrix(t *testing.T) {

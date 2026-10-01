@@ -7,6 +7,7 @@ type CatalogSourceConfig struct {
 	Enabled             *bool    `json:"enabled,omitempty"`
 	Labels              []string `json:"labels"`
 	ApiKey              *string  `json:"apiKey,omitempty"`
+	HasConfiguredApiKey *bool    `json:"hasConfiguredApiKey,omitempty"`
 	AllowedOrganization *string  `json:"allowedOrganization,omitempty"`
 	IncludedModels      []string `json:"includedModels,omitempty"`
 	ExcludedModels      []string `json:"excludedModels,omitempty"`

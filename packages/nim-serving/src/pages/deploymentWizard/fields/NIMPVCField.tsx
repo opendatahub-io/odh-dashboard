@@ -25,6 +25,7 @@ import useFetch, {
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { useDefaultStorageClass } from '@odh-dashboard/internal/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import { categorizePVCs, type ExistingPVCOption } from './nimPVCUtils';
+import { NIM_PVC_STORAGE_FIELD_ID } from '../../../constants';
 
 export {
   NIM_PVC_ANNOTATION,
@@ -162,10 +163,19 @@ type SubPathFieldProps = {
   subPath: string;
   onSubPathChange: (val: string) => void;
   isDisabled?: boolean;
+  description?: string;
 };
 
-const SubPathField: React.FC<SubPathFieldProps> = ({ subPath, onSubPathChange, isDisabled }) => (
-  <FormGroup label="Subpath" fieldId="nim-subpath">
+export const SubPathField: React.FC<SubPathFieldProps> = ({
+  subPath,
+  onSubPathChange,
+  isDisabled,
+  description = 'Provide a subdirectory if you have multiple models stored in the same cluster storage. If blank, the storage root will be used.',
+}) => (
+  <FormGroup label="Subpath" fieldId="nim-subpath" className="pf-v6-u-pt-md">
+    <HelperText>
+      <HelperTextItem>{description}</HelperTextItem>
+    </HelperText>
     <TextInput
       id="nim-subpath"
       data-testid="nim-subpath-input"
@@ -174,12 +184,6 @@ const SubPathField: React.FC<SubPathFieldProps> = ({ subPath, onSubPathChange, i
       placeholder="/"
       isDisabled={isDisabled}
     />
-    <HelperText>
-      <HelperTextItem>
-        Optional: Subdirectory within the PVC. Use this if you have multiple models stored in the
-        same PVC. Leave blank to use the root of the PVC.
-      </HelperTextItem>
-    </HelperText>
   </FormGroup>
 );
 
@@ -213,7 +217,7 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
 
   if (!externalData || !externalData.loaded) {
     return (
-      <FormGroup label="Storage and deployment option" fieldId="nim-storage-mode" isRequired>
+      <FormGroup label="Deployment storage" fieldId="nim-storage-mode" isRequired>
         <Skeleton shape="square" width="100%" height="36px" />
       </FormGroup>
     );
@@ -222,13 +226,13 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
   const storageModeOptions: SimpleSelectOption[] = [
     {
       key: NIMPVCStorageMode.NEW,
-      label: 'Deploy the NIM image from a new cluster storage',
+      label: 'Create new cluster storage',
     },
     ...(hasExistingPVCs
       ? [
           {
             key: NIMPVCStorageMode.EXISTING,
-            label: 'Deploy the NIM image from an existing cluster storage',
+            label: 'Use existing cluster storage',
           },
         ]
       : []),
@@ -247,7 +251,7 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
 
   return (
     <FormSection>
-      <FormGroup label="Storage and deployment option" fieldId="nim-storage-mode" isRequired>
+      <FormGroup label="Deployment storage" fieldId="nim-storage-mode" isRequired>
         <SimpleSelect
           dataTestId="nim-storage-mode-select"
           options={storageModeOptions}
@@ -283,6 +287,11 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
         {fieldValue.storageMode === NIMPVCStorageMode.NEW ? (
           <>
             <FormGroup label="Cluster storage name" fieldId="nim-pvc-name" isRequired>
+              <HelperText>
+                <HelperTextItem>
+                  This cluster storage can be reused for future deployments of this NIM image.
+                </HelperTextItem>
+              </HelperText>
               <TextInput
                 id="nim-pvc-name"
                 data-testid="nim-pvc-name-input"
@@ -291,11 +300,6 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
                 placeholder="nim-pvc"
                 isDisabled={isDisabled}
               />
-              <HelperText>
-                <HelperTextItem>
-                  This cluster storage can be reused for future deployments of this NIM image.
-                </HelperTextItem>
-              </HelperText>
             </FormGroup>
 
             <SubPathField
@@ -304,7 +308,12 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
               isDisabled={isDisabled}
             />
 
-            <FormGroup label="Storage class" fieldId="nim-storage-class" isRequired>
+            <FormGroup
+              label="Storage class"
+              fieldId="nim-storage-class"
+              isRequired
+              className="pf-v6-u-pt-md"
+            >
               <SimpleSelect
                 dataTestId="nim-storage-class-select"
                 options={storageClassOptions}
@@ -316,7 +325,18 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
               />
             </FormGroup>
 
-            <FormGroup label="NVIDIA NIM storage size" fieldId="nim-storage-size" isRequired>
+            <FormGroup
+              label="NVIDIA NIM storage size"
+              fieldId="nim-storage-size"
+              isRequired
+              className="pf-v6-u-pt-md"
+            >
+              <HelperText>
+                <HelperTextItem>
+                  Specify the size of the storage. Make sure it is larger than the NIM image size
+                  specified by NVIDIA.
+                </HelperTextItem>
+              </HelperText>
               <NumberInputWrapper
                 id="nim-storage-size"
                 data-testid="nim-storage-size-input"
@@ -330,12 +350,6 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
                 unit="GiB"
                 isDisabled={isDisabled}
               />
-              <HelperText>
-                <HelperTextItem>
-                  Specify the size of the PVC. Make sure it is larger than the NIM image size
-                  specified by NVIDIA.
-                </HelperTextItem>
-              </HelperText>
             </FormGroup>
           </>
         ) : (
@@ -379,7 +393,7 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
 export type NIMPVCFieldType = WizardField<NIMPVCFieldValue, NIMPVCExternalData, NIMPVCDependencies>;
 
 export const NIMPVCFieldWizardField: NIMPVCFieldType = {
-  id: 'nim-serving/pvcStorage',
+  id: NIM_PVC_STORAGE_FIELD_ID,
   step: 'modelDeployment',
   type: 'addition',
   isActive: (wizardFormData) =>

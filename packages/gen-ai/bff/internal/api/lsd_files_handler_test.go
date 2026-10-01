@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/textproto"
+	"strings"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -1111,4 +1112,134 @@ func TestMediaFileUploadHandler_PerTypeSizeExceeded(t *testing.T) {
 	app.LlamaStackMediaFileUploadHandler(rr, req, nil)
 
 	assert.Equal(t, http.StatusRequestEntityTooLarge, rr.Code)
+}
+
+func TestLlamaStackDocumentUploadHandler(t *testing.T) {
+	newRequest := func(t *testing.T, filename, contentType, contents string) (*http.Request, *lsmocks.MockLlamaStackClient) {
+		t.Helper()
+		var body bytes.Buffer
+		writer := multipart.NewWriter(&body)
+		header := make(textproto.MIMEHeader)
+		header.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, filename))
+		header.Set("Content-Type", contentType)
+		part, err := writer.CreatePart(header)
+		require.NoError(t, err)
+		_, err = part.Write([]byte(contents))
+		require.NoError(t, err)
+		require.NoError(t, writer.Close())
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/lsd/documents?namespace=default", &body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		client := lsmocks.NewMockLlamaStackClient()
+		req = req.WithContext(context.WithValue(req.Context(), constants.LlamaStackClientKey, client))
+		return req, client
+	}
+
+	newApp := func() *App {
+		return &App{logger: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	}
+
+	t.Run("uploads a supported document and returns extracted text", func(t *testing.T) {
+		req, client := newRequest(t, "notes.txt", "text/plain; charset=utf-8", "source document")
+		client.ProcessFileResult = &llamastack.ProcessedDocument{Text: "extracted document text"}
+		rr := httptest.NewRecorder()
+
+		newApp().LlamaStackDocumentUploadHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		var body struct {
+			Data DocumentUploadResponse `json:"data"`
+		}
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &body))
+		assert.Equal(t, "file-mock123abc456def", body.Data.ID)
+		assert.Equal(t, "notes.txt", body.Data.Filename)
+		assert.Equal(t, "text/plain", body.Data.ContentType)
+		assert.Equal(t, "extracted document text", body.Data.Text)
+		require.Len(t, client.UploadFileParams, 1)
+		assert.Equal(t, playgroundDocumentUploadPurpose, client.UploadFileParams[0].Purpose)
+	})
+
+	t.Run("rejects scanned PDFs with too little extracted text", func(t *testing.T) {
+		req, client := newRequest(t, "scan.pdf", "application/pdf", "binary PDF")
+		client.ProcessFileResult = &llamastack.ProcessedDocument{Text: "not enough extracted text"}
+		rr := httptest.NewRecorder()
+
+		newApp().LlamaStackDocumentUploadHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "scanned images")
+	})
+
+	t.Run("rejects unsupported document types before upload", func(t *testing.T) {
+		for _, document := range []struct {
+			filename    string
+			contentType string
+		}{
+			{filename: "archive.zip", contentType: "application/zip"},
+			{filename: "legacy.doc", contentType: "application/msword"},
+			{filename: "legacy.ppt", contentType: "application/vnd.ms-powerpoint"},
+		} {
+			t.Run(document.filename, func(t *testing.T) {
+				req, _ := newRequest(t, document.filename, document.contentType, "unsupported document")
+				rr := httptest.NewRecorder()
+
+				newApp().LlamaStackDocumentUploadHandler(rr, req, nil)
+
+				assert.Equal(t, http.StatusBadRequest, rr.Code)
+				assert.Contains(t, rr.Body.String(), "unsupported document type")
+			})
+		}
+	})
+
+	t.Run("rejects a supported extension with an unsupported MIME type", func(t *testing.T) {
+		req, _ := newRequest(t, "notes.txt", "application/pdf", "wrong content type")
+		rr := httptest.NewRecorder()
+
+		newApp().LlamaStackDocumentUploadHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "unsupported document type")
+	})
+
+	t.Run("accepts a document below the 50MB limit", func(t *testing.T) {
+		req, client := newRequest(t, "large.txt", "text/plain", strings.Repeat("x", 11<<20))
+		client.ProcessFileResult = &llamastack.ProcessedDocument{Text: "extracted document text"}
+		rr := httptest.NewRecorder()
+
+		newApp().LlamaStackDocumentUploadHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+	})
+
+	t.Run("rejects a document exceeding the 50MB limit", func(t *testing.T) {
+		req, _ := newRequest(t, "large.txt", "text/plain", strings.Repeat("x", 51<<20))
+		rr := httptest.NewRecorder()
+
+		newApp().LlamaStackDocumentUploadHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusRequestEntityTooLarge, rr.Code)
+	})
+
+	t.Run("deletes an uploaded document when extraction fails", func(t *testing.T) {
+		req, client := newRequest(t, "notes.txt", "text/plain", "source document")
+		client.ProcessFileError = llamastack.NewLlamaStackError("file_processing_failed", "processor unavailable", http.StatusServiceUnavailable)
+		rr := httptest.NewRecorder()
+
+		newApp().LlamaStackDocumentUploadHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+		assert.Equal(t, []string{"file-mock123abc456def"}, client.DeletedFileIDs)
+	})
+
+	t.Run("deletes an uploaded document when it contains no readable text", func(t *testing.T) {
+		req, client := newRequest(t, "notes.txt", "text/plain", "source document")
+		client.ProcessFileResult = &llamastack.ProcessedDocument{Text: " \n\t "}
+		rr := httptest.NewRecorder()
+
+		newApp().LlamaStackDocumentUploadHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "no readable text")
+		assert.Equal(t, []string{"file-mock123abc456def"}, client.DeletedFileIDs)
+	})
 }
