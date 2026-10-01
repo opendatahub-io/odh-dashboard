@@ -4754,11 +4754,16 @@ components:
       type: object
       required:
         - isCustomLSD
+        - sandboxesAvailable
       properties:
         isCustomLSD:
           type: boolean
           example: false
           description: Indicates whether a custom LlamaStack URL is configured for the BFF
+        sandboxesAvailable:
+          type: boolean
+          example: false
+          description: Indicates whether the Agent Sandbox CRD is available in the cluster
 
     LlamaStackDistributionInstallRequest:
       type: object
@@ -7035,6 +7040,7 @@ components:
           example:
             data:
               isCustomLSD: false
+              sandboxesAvailable: false
 
 tags:
   # =============================================================================
