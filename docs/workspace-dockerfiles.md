@@ -52,7 +52,7 @@ The hybrid Docker pattern:
 2. `npm ci --prefer-offline --ignore-scripts` in the upstream frontend directory → webpack, loaders, upstream-only deps
 3. `npm run build:prod` in the upstream frontend directory
 
-Set `hermetic: true` on each PipelineRun; the shared pipeline defaults to network-enabled. In `prefetch-input`, declare `.` as a `pnpm` input and `prefetch/pnpm` as an `npm` input. This lets Hermeto cache the pnpm CLI as a normal npm dependency instead of a generic artifact. Keep `prefetch/pnpm/***` in path-change filters so changes to the bootstrap package trigger builds. Hermetic network isolation ensures `--prefer-offline` uses the prefetched cache without falling back to downloads.
+Set `hermetic: true` on each PipelineRun; the shared pipeline defaults to network-enabled. In `prefetch-input`, declare `.` as a `pnpm` input and `prefetch/pnpm` as an `npm` input. This lets Hermeto cache the pnpm CLI as a normal npm dependency instead of a generic artifact. Hermeto also injects a root `.npmrc` that points pnpm to prefetched tarballs. Since workspace Dockerfiles copy files selectively, copy `.npmrc` alongside the root manifests; otherwise pnpm falls back to the public registry, which is unavailable in hermetic builds. Keep `prefetch/pnpm/***` in path-change filters so changes to the bootstrap package trigger builds.
 
 ## Dockerfile Structure
 
@@ -70,6 +70,7 @@ WORKDIR /usr/src/workspace
 
 COPY prefetch/pnpm/package.json prefetch/pnpm/package-lock.json ./prefetch/pnpm/
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY .npmrc ./
 COPY packages/plugin-core/ ./packages/plugin-core/
 # ... other shared workspace packages ...
 COPY ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
@@ -96,6 +97,7 @@ WORKDIR /usr/src/workspace
 
 COPY prefetch/pnpm/package.json prefetch/pnpm/package-lock.json ./prefetch/pnpm/
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY .npmrc ./
 COPY packages/plugin-core/ ./packages/plugin-core/
 # ... other shared workspace packages ...
 COPY ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}   # includes upstream package-lock.json
