@@ -7,14 +7,15 @@ import SimpleSelect, {
 import { useDashboardNamespace } from '@odh-dashboard/plugin-core';
 import type { SupportedModelFormats, TemplateKind } from '@odh-dashboard/k8s-core';
 import {
-  getModelTypesFromTemplate,
   getServingRuntimeFromTemplate,
-  getServingRuntimeNameFromTemplate,
   ServingRuntimeModelType,
 } from '@odh-dashboard/model-serving/shared';
 import { type ModelTypeFieldData } from './ModelTypeSelectField';
-import { isUnsupportedUnaccepted } from '../../../concepts/versions';
 import { useServingRuntimeTemplates } from '../../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates';
+import {
+  filterTemplatesByModelType,
+  mergeProjectAndGlobalTemplates,
+} from '../../../concepts/servingRuntimeTemplates/templateUtils';
 
 const getModelFormatLabel = (modelFormat: SupportedModelFormats): string => {
   return modelFormat.version ? `${modelFormat.name} - ${modelFormat.version}` : modelFormat.name;
@@ -51,56 +52,36 @@ export const useModelFormatField = (
   projectName?: string,
 ): ModelFormatState => {
   const { dashboardNamespace } = useDashboardNamespace();
+  // Model format options are only needed for predictive models. Defer Template
+  // watches until then — generative / llm-d paths load templates via the kserve
+  // WizardField externalDataHook only when the legacy serving-runtime path is active.
+  const shouldLoadTemplates = modelType?.type === ServingRuntimeModelType.PREDICTIVE;
+
   const [servingRuntimeTemplates, servingRuntimeTemplatesLoaded, servingRuntimeTemplatesError] =
-    useServingRuntimeTemplates();
+    useServingRuntimeTemplates(undefined, shouldLoadTemplates);
 
   const hasDistinctProjectNamespace = !!projectName && projectName !== dashboardNamespace;
 
   const [projectTemplates, projectTemplatesLoaded, projectTemplatesError] =
-    useServingRuntimeTemplates(hasDistinctProjectNamespace ? projectName : undefined);
+    useServingRuntimeTemplates(
+      hasDistinctProjectNamespace ? projectName : undefined,
+      shouldLoadTemplates && hasDistinctProjectNamespace,
+    );
 
-  const allModelServerTemplates = React.useMemo(() => {
-    if (!hasDistinctProjectNamespace) {
-      return servingRuntimeTemplates;
-    }
-    // When project namespace differs, merge both lists and deduplicate by
-    // embedded ServingRuntime name. Project-scoped templates take precedence.
-    const seen = new Set<string>();
-    const merged: TemplateKind[] = [];
-    for (const t of projectTemplates) {
-      const name = getServingRuntimeNameFromTemplate(t);
-      seen.add(name);
-      merged.push(t);
-    }
-    for (const t of servingRuntimeTemplates) {
-      const name = getServingRuntimeNameFromTemplate(t);
-      if (!seen.has(name)) {
-        seen.add(name);
-        merged.push(t);
-      }
-    }
-    return merged;
-  }, [servingRuntimeTemplates, projectTemplates, hasDistinctProjectNamespace]);
+  const allModelServerTemplates = React.useMemo(
+    () =>
+      mergeProjectAndGlobalTemplates(
+        servingRuntimeTemplates,
+        projectTemplates,
+        hasDistinctProjectNamespace,
+      ),
+    [servingRuntimeTemplates, projectTemplates, hasDistinctProjectNamespace],
+  );
 
-  const templatesFilteredForModelType = React.useMemo(() => {
-    return allModelServerTemplates.filter((template) => {
-      if (isUnsupportedUnaccepted(template)) {
-        return false;
-      }
-      // If no model type is specified, show anyways for compatibility
-      if (getModelTypesFromTemplate(template).length === 0) {
-        return true;
-      }
-      if (!modelType) {
-        return true;
-      }
-      const templateModelTypes = getModelTypesFromTemplate(template);
-      if (templateModelTypes.some((type) => type === modelType.type)) {
-        return true;
-      }
-      return false;
-    });
-  }, [allModelServerTemplates, modelType]);
+  const templatesFilteredForModelType = React.useMemo(
+    () => filterTemplatesByModelType(allModelServerTemplates, modelType?.type),
+    [allModelServerTemplates, modelType?.type],
+  );
 
   const modelFormatOptions = React.useMemo(() => {
     const formats: SupportedModelFormats[] = [];

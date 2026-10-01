@@ -1,17 +1,5 @@
 import React from 'react';
 import { z } from 'zod';
-import type {
-  WizardField,
-  WizardFormData,
-} from '@odh-dashboard/model-serving/shared/types/form-data';
-import {
-  ModelServerTemplateSelectField,
-  type ModelServerOption,
-  type ModelServerSelectFieldData,
-  modelServerSelectFieldSchema,
-  getAcceleratorIdentifierFromHardwareProfile,
-  type ModelTypeFieldData,
-} from '@odh-dashboard/model-serving/shared/wizard-fields';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import type {
   HardwareProfileKind,
@@ -24,6 +12,27 @@ import {
   getServingRuntimeFromTemplate,
   getServingRuntimeVersion,
 } from '@odh-dashboard/model-serving/shared';
+import {
+  isModelServerTemplateFieldOverride,
+  type WizardField,
+  type WizardFormData,
+} from '@odh-dashboard/model-serving/shared/types/form-data';
+import {
+  ModelServerTemplateSelectField,
+  type ModelServerOption,
+  type ModelServerSelectFieldData,
+  modelServerSelectFieldSchema,
+  getAcceleratorIdentifierFromHardwareProfile,
+  type ModelTypeFieldData,
+  useWizardFieldOverrides,
+} from '@odh-dashboard/model-serving/shared/wizard-fields';
+import { useModelServingClusterSettings } from '@odh-dashboard/model-serving/concepts/useModelServingClusterSettings';
+import { useServingRuntimeTemplates } from '@odh-dashboard/model-serving/concepts/useServingRuntimeTemplates';
+import {
+  filterTemplatesByModelType,
+  findTemplateForSelection,
+  mergeProjectAndGlobalTemplates,
+} from '@odh-dashboard/model-serving/concepts/servingRuntimeTemplates/templateUtils';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import { isCompatibleWithIdentifier } from '@odh-dashboard/internal/pages/projects/screens/spawner/spawnerUtils';
 import { useProfileIdentifiers } from '@odh-dashboard/hardware-profiles/shared';
@@ -32,15 +41,16 @@ import { LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY } from '../deploymentMethodFiel
 // Types
 
 type KServeServingRuntimeDependencies = {
-  modelServerTemplates?: TemplateKind[];
   modelFormat?: SupportedModelFormats;
   hardwareProfile?: HardwareProfileKind;
   modelType?: ModelTypeFieldData;
   vLLMDeploymentOnMaaS?: boolean;
   deploymentMethod?: string;
+  projectName?: string;
 };
 
 export type KServeServingRuntimeExternalData = {
+  templates: TemplateKind[];
   extraOptions: ModelServerOption[];
   suggestion?: ModelServerOption;
 };
@@ -62,8 +72,8 @@ export type KServeServingRuntimeFieldType = WizardField<
  * - PREDICTIVE models: Always active (use traditional KServe serving runtimes)
  * - GENERATIVE models: Active only when the legacy deployment method is selected
  *
- * @param wizardState Current wizard form state
- * @returns true if the KServe serving runtime field should be shown
+ * When inactive, the field's externalDataHook is unmounted so TemplateKind resources
+ * are not fetched from the cluster.
  */
 export const isKServeServingRuntimeFieldActive = (
   wizardState: RecursivePartial<WizardFormData['state']>,
@@ -71,12 +81,10 @@ export const isKServeServingRuntimeFieldActive = (
   const modelType = wizardState.modelType?.data;
   const deploymentMethodOption = wizardState.deploymentMethod?.method;
 
-  // Predictive models always use KServe serving runtimes
   if (modelType?.type === ServingRuntimeModelType.PREDICTIVE) {
     return true;
   }
 
-  // Generative models with LLMInferenceServiceConfig flow enabled: only show if using legacy vLLM
   if (
     modelType?.type === ServingRuntimeModelType.GENERATIVE &&
     deploymentMethodOption === LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY
@@ -85,6 +93,143 @@ export const isKServeServingRuntimeFieldActive = (
   }
 
   return false;
+};
+
+/**
+ * Resolves initial model-server field state.
+ * When editing, extracted selections omit the Template object — attach it once templates load
+ * so Advanced Options / submit can resolve the ServingRuntime without relying on ModelFormat.
+ */
+export const resolveInitialModelServerFieldData = (
+  existingFieldData?: KServeServingRuntimeFieldValue,
+  externalData?: KServeServingRuntimeExternalData,
+  dependencies?: KServeServingRuntimeDependencies,
+): KServeServingRuntimeFieldValue => {
+  if (existingFieldData?.data?.selection) {
+    const { selection } = existingFieldData.data;
+    if (selection.template || !externalData?.templates.length) {
+      return existingFieldData;
+    }
+
+    const matchedTemplate = findTemplateForSelection(externalData.templates, selection);
+    if (!matchedTemplate) {
+      return existingFieldData;
+    }
+
+    return {
+      ...existingFieldData,
+      data: {
+        ...existingFieldData.data,
+        selection: {
+          ...selection,
+          template: matchedTemplate,
+        },
+      },
+    };
+  }
+
+  if (externalData?.suggestion) {
+    return {
+      data: {
+        selection: externalData.suggestion,
+        autoSelect: true,
+        suggestion: externalData.suggestion,
+      },
+    };
+  }
+
+  const suggestion = computeSuggestion(
+    externalData?.templates,
+    dependencies?.modelFormat,
+    dependencies?.hardwareProfile,
+  );
+  if (suggestion) {
+    return {
+      data: {
+        selection: suggestion,
+        autoSelect: true,
+        suggestion,
+      },
+    };
+  }
+
+  return { data: { autoSelect: false } };
+};
+
+// External data hook — only mounted while the field is active (ExternalDataLoader)
+
+export const useKServeServingRuntimeExternalData = (
+  dependencies?: KServeServingRuntimeDependencies,
+): {
+  data: KServeServingRuntimeExternalData;
+  loaded: boolean;
+  loadError?: Error;
+} => {
+  const { dashboardNamespace } = useDashboardNamespace();
+  const projectName = dependencies?.projectName;
+  const hasDistinctProjectNamespace = !!projectName && projectName !== dashboardNamespace;
+
+  const [globalTemplates, globalLoaded, globalError] = useServingRuntimeTemplates();
+  const [projectTemplates, projectLoaded, projectError] = useServingRuntimeTemplates(
+    hasDistinctProjectNamespace ? projectName : undefined,
+    hasDistinctProjectNamespace,
+  );
+
+  const templates = React.useMemo(
+    () =>
+      filterTemplatesByModelType(
+        mergeProjectAndGlobalTemplates(
+          globalTemplates,
+          projectTemplates,
+          hasDistinctProjectNamespace,
+        ),
+        dependencies?.modelType?.type,
+      ),
+    [globalTemplates, projectTemplates, hasDistinctProjectNamespace, dependencies?.modelType?.type],
+  );
+
+  const {
+    data: modelServingClusterSettings,
+    loaded: clusterSettingsLoaded,
+    error: clusterSettingsError,
+  } = useModelServingClusterSettings();
+
+  const formData = React.useMemo(
+    () => ({
+      modelType: { data: dependencies?.modelType },
+      devFeatureFlags: { vLLMDeploymentOnMaaS: dependencies?.vLLMDeploymentOnMaaS },
+    }),
+    [dependencies?.modelType, dependencies?.vLLMDeploymentOnMaaS],
+  );
+
+  const modelServerOverrides = useWizardFieldOverrides(
+    isModelServerTemplateFieldOverride,
+    formData,
+  );
+
+  return React.useMemo(() => {
+    const extraOptions = modelServerOverrides.flatMap((override) => override.extraOptions ?? []);
+    const suggestion = modelServerOverrides.reduce<ModelServerOption | undefined>(
+      (acc, override) => acc ?? override.suggestion?.(modelServingClusterSettings),
+      undefined,
+    );
+
+    return {
+      data: { templates, extraOptions, suggestion },
+      loaded: globalLoaded && projectLoaded && clusterSettingsLoaded,
+      loadError: globalError || projectError || clusterSettingsError,
+    };
+  }, [
+    templates,
+    modelServerOverrides,
+    modelServingClusterSettings,
+    globalLoaded,
+    projectLoaded,
+    clusterSettingsLoaded,
+    globalError,
+    projectError,
+    clusterSettingsError,
+  ]);
 };
 
 const computeSuggestion = (
@@ -139,7 +284,7 @@ const KServeServingRuntimeField: KServeServingRuntimeFieldType['component'] = ({
     result.push(...(externalData?.data.extraOptions ?? []));
 
     result.push(
-      ...(dependencies?.modelServerTemplates?.map(
+      ...(externalData?.data.templates.map(
         (template) =>
           ({
             name: template.metadata.name,
@@ -158,7 +303,7 @@ const KServeServingRuntimeField: KServeServingRuntimeFieldType['component'] = ({
     return result;
   }, [
     externalData?.data.extraOptions,
-    dependencies?.modelServerTemplates,
+    externalData?.data.templates,
     dashboardNamespace,
     profileIdentifiers,
   ]);
@@ -186,50 +331,15 @@ export const KServeServingRuntimeFieldWizardField: KServeServingRuntimeFieldType
   isActive: isKServeServingRuntimeFieldActive,
   reducerFunctions: {
     resolveDependencies: (formData) => ({
-      modelServerTemplates: formData.modelFormatState.templatesFilteredForModelType,
       modelFormat: formData.modelFormatState.modelFormat,
       hardwareProfile: formData.hardwareProfileConfig.formData.selectedProfile,
       modelType: formData.modelType.data,
       vLLMDeploymentOnMaaS: formData.devFeatureFlags?.vLLMDeploymentOnMaaS,
       deploymentMethod: formData.deploymentMethod?.method,
+      projectName: formData.project.projectName,
     }),
     setFieldData: (value: KServeServingRuntimeFieldValue) => value,
-    getInitialFieldData: (
-      existingFieldData?: KServeServingRuntimeFieldValue,
-      externalData?: KServeServingRuntimeExternalData,
-      dependencies?: KServeServingRuntimeDependencies,
-    ): KServeServingRuntimeFieldValue => {
-      if (existingFieldData?.data?.selection) {
-        return existingFieldData;
-      }
-
-      if (externalData?.suggestion) {
-        return {
-          data: {
-            selection: externalData.suggestion,
-            autoSelect: true,
-            suggestion: externalData.suggestion,
-          },
-        };
-      }
-
-      const suggestion = computeSuggestion(
-        dependencies?.modelServerTemplates,
-        dependencies?.modelFormat,
-        dependencies?.hardwareProfile,
-      );
-      if (suggestion) {
-        return {
-          data: {
-            selection: suggestion,
-            autoSelect: true,
-            suggestion,
-          },
-        };
-      }
-
-      return { data: { autoSelect: false } };
-    },
+    getInitialFieldData: resolveInitialModelServerFieldData,
     validationSchema: z.object({
       data: modelServerSelectFieldSchema,
     }),
@@ -237,9 +347,10 @@ export const KServeServingRuntimeFieldWizardField: KServeServingRuntimeFieldType
   shouldResetOnDependencyChange: (prevDependencies, newDependencies) => {
     return (
       prevDependencies.modelType?.type !== newDependencies.modelType?.type ||
-      prevDependencies.deploymentMethod !== newDependencies.deploymentMethod
+      prevDependencies.deploymentMethod !== newDependencies.deploymentMethod ||
+      prevDependencies.projectName !== newDependencies.projectName
     );
   },
   component: KServeServingRuntimeField,
-  // externalDataHook: NOT NEEDED - the ServingRuntime Templates currently are from the model format field
+  externalDataHook: useKServeServingRuntimeExternalData,
 };
