@@ -14,6 +14,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/maas"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/vectordb"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
@@ -22,6 +23,7 @@ import (
 type responsesRepository interface {
 	HandleResponses(ctx context.Context, params repositories.ResponsesParams, req *models.ResponsesRequest) (*models.RAGResponse, error)
 	HandleResponsesStream(ctx context.Context, params repositories.ResponsesParams, req *models.ResponsesRequest, onDelta func(string)) (*models.RAGStreamResult, error)
+	ValidateResponses(ctx context.Context, params repositories.ResponsesParams, req *models.ResponsesRequest) error
 }
 
 type ResponsesHandler struct {
@@ -32,6 +34,8 @@ type ResponsesHandler struct {
 type RAGResponseEnvelope Envelope[*models.RAGResponse, None]
 
 const maxFileSearchResults = 100
+
+const genericStreamingErrorMessage = "The response could not be completed."
 
 // ResponsesHandler handles POST /api/v1/pipeline-runs/:runId/patterns/:patternName/responses
 func (h *ResponsesHandler) HandleResponsesEndpoint(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -52,6 +56,10 @@ func (h *ResponsesHandler) HandleResponsesEndpoint(w http.ResponseWriter, r *htt
 	}
 
 	if req.Stream {
+		if err := h.repo.ValidateResponses(r.Context(), params, &req); err != nil {
+			h.mapError(w, r, err)
+			return
+		}
 		h.handleStreamingResponse(w, r, params, &req)
 		return
 	}
@@ -75,8 +83,14 @@ func validateResponsesRequest(req *models.ResponsesRequest) error {
 		if tool.MaxNumResults < 0 || tool.MaxNumResults > maxFileSearchResults {
 			return fmt.Errorf("file_search max_num_results must be between 0 and %d", maxFileSearchResults)
 		}
-		if math.IsNaN(tool.RankingOptions.Alpha) || math.IsInf(tool.RankingOptions.Alpha, 0) || tool.RankingOptions.Alpha < 0 || tool.RankingOptions.Alpha > 1 {
+		if tool.RankingOptions.Alpha != nil && (math.IsNaN(*tool.RankingOptions.Alpha) || math.IsInf(*tool.RankingOptions.Alpha, 0) || *tool.RankingOptions.Alpha < 0 || *tool.RankingOptions.Alpha > 1) {
 			return fmt.Errorf("file_search ranking_options.alpha must be between 0 and 1")
+		}
+		if tool.RankingOptions.Ranker != "" && tool.RankingOptions.Ranker != "rrf" {
+			return fmt.Errorf("file_search ranking_options.ranker %q is unsupported; only rrf is supported for hybrid search", tool.RankingOptions.Ranker)
+		}
+		if tool.RankingOptions.Alpha != nil && tool.RankingOptions.Ranker == "" {
+			return fmt.Errorf("file_search ranking_options.alpha requires ranking_options.ranker")
 		}
 	}
 	return nil
@@ -198,7 +212,7 @@ func (h *ResponsesHandler) handleStreamingResponse(w http.ResponseWriter, r *htt
 			"maas_secret_name", params.MaasSecretName,
 			"error", err,
 		)
-		sseData(w, flusher, map[string]any{"type": "error", "sequence_number": next(), "message": err.Error()})
+		sseData(w, flusher, map[string]any{"type": "error", "sequence_number": next(), "message": genericStreamingErrorMessage})
 		fmt.Fprintf(w, "data: [DONE]\n\n")
 		if flusher != nil {
 			flusher.Flush()
@@ -225,7 +239,7 @@ func (h *ResponsesHandler) handleStreamingResponse(w http.ResponseWriter, r *htt
 				map[string]any{
 					"id": fcID, "type": "file_search_call",
 					"role": "assistant", "status": "completed",
-					"queries": []string{question}, "output": "",
+					"queries": []string{question}, "results": result.Sources, "output": "",
 				},
 				map[string]any{
 					"id": msgID, "type": "message",
@@ -274,6 +288,10 @@ func (h *ResponsesHandler) mapError(w http.ResponseWriter, r *http.Request, err 
 	}
 	if errors.Is(err, maas.ErrMaasUnavailable) {
 		badGatewayResponseWithMessage(h.logger, w, r, err, "MaaS service unavailable")
+		return
+	}
+	if errors.Is(err, vectordb.ErrUnsupportedSearch) {
+		badRequestResponse(h.logger, w, r, err.Error())
 		return
 	}
 	serverErrorResponse(h.logger, w, r, err)

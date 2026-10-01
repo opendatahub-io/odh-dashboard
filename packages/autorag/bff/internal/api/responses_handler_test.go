@@ -17,6 +17,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/maas"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/vectordb"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
@@ -165,6 +166,24 @@ func TestHandleResponsesEndpoint_NonStreaming(t *testing.T) {
 			wantBodySubstr: "invalid request body",
 		},
 		{
+			name:           "unsupported ranking field returns 400",
+			body:           strings.Replace(validResponsesBody, `"vector_store_ids":["col1"]}]`, `"vector_store_ids":["col1"],"ranking_options":{"ranker":"rrf","ranker_k":60}}]`, 1),
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "invalid request body",
+		},
+		{
+			name:           "unsupported ranker returns 400 without calling repository",
+			body:           strings.Replace(validResponsesBody, `"vector_store_ids":["col1"]}]`, `"vector_store_ids":["col1"],"ranking_options":{"ranker":"linear"}}]`, 1),
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "unsupported",
+		},
+		{
+			name:           "alpha without ranker returns 400 without calling repository",
+			body:           strings.Replace(validResponsesBody, `"vector_store_ids":["col1"]}]`, `"vector_store_ids":["col1"],"ranking_options":{"alpha":0.5}}]`, 1),
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "requires ranking_options.ranker",
+		},
+		{
 			name:           "k8s not found returns 404",
 			body:           validResponsesBody,
 			repoResult:     nil,
@@ -198,6 +217,13 @@ func TestHandleResponsesEndpoint_NonStreaming(t *testing.T) {
 			repoResult:     nil,
 			repoErr:        errors.New("something broke"),
 			wantStatusCode: http.StatusInternalServerError,
+		},
+		{
+			name:           "unsupported vector search returns 400",
+			body:           validResponsesBody,
+			repoResult:     nil,
+			repoErr:        fmt.Errorf("search: %w", vectordb.ErrUnsupportedSearch),
+			wantStatusCode: http.StatusBadRequest,
 		},
 	}
 
@@ -234,6 +260,7 @@ func TestHandleResponsesEndpoint_Streaming(t *testing.T) {
 
 		streamResult := &models.RAGStreamResult{
 			Answer:       "hello world",
+			Sources:      []models.SourceChunk{{Text: "source text", Score: 0.9, FileID: "file-1"}},
 			InputTokens:  10,
 			OutputTokens: 5,
 			LatencyMs:    100,
@@ -247,6 +274,7 @@ func TestHandleResponsesEndpoint_Streaming(t *testing.T) {
 				onDelta(" world")
 			}).
 			Return(streamResult, nil)
+		repo.On("ValidateResponses", mock.Anything, validParams, mock.Anything).Return(nil)
 
 		req := responsesRequestWithNamespace(http.MethodPost, url, streamingResponsesBody, ns)
 		rr := httptest.NewRecorder()
@@ -263,6 +291,7 @@ func TestHandleResponsesEndpoint_Streaming(t *testing.T) {
 		assert.Contains(t, body, `"delta":" world"`)
 		assert.Contains(t, body, "response.content_part.done")
 		assert.Contains(t, body, "response.completed")
+		assert.Contains(t, body, `"results":[{"text":"source text","score":0.9,"file_id":"file-1"}]`)
 		assert.Contains(t, body, "response.metrics")
 		assert.Contains(t, body, "[DONE]")
 
@@ -296,6 +325,7 @@ func TestHandleResponsesEndpoint_Streaming(t *testing.T) {
 
 		repo.On("HandleResponsesStream", mock.Anything, validParams, mock.Anything, mock.AnythingOfType("func(string)")).
 			Return(nil, errors.New("stream failed"))
+		repo.On("ValidateResponses", mock.Anything, validParams, mock.Anything).Return(nil)
 
 		req := responsesRequestWithNamespace(http.MethodPost, url, streamingResponsesBody, ns)
 		rr := httptest.NewRecorder()
@@ -304,8 +334,29 @@ func TestHandleResponsesEndpoint_Streaming(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 		body := rr.Body.String()
 		assert.Contains(t, body, `"type":"error"`)
-		assert.Contains(t, body, "stream failed")
+		assert.Contains(t, body, genericStreamingErrorMessage)
+		assert.NotContains(t, body, "stream failed")
 		assert.Contains(t, body, "[DONE]")
+		repo.AssertExpectations(t)
+	})
+
+	t.Run("unsupported streaming search returns 400 before SSE headers", func(t *testing.T) {
+		h, repo := newTestResponsesHandler()
+		repo.On("ValidateResponses", mock.Anything, validParams, mock.Anything).
+			Return(fmt.Errorf("search: %w", vectordb.ErrUnsupportedSearch))
+
+		req := responsesRequestWithNamespace(http.MethodPost, url, strings.Replace(
+			streamingResponsesBody,
+			`"vector_store_ids":["col1"]}]`,
+			`"vector_store_ids":["col1"],"ranking_options":{"ranker":"rrf","alpha":0.5}}]`,
+			1,
+		), ns)
+		rr := httptest.NewRecorder()
+		h.HandleResponsesEndpoint(rr, req, httprouter.Params{})
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.NotEqual(t, "text/event-stream", rr.Header().Get("Content-Type"))
+		assert.NotContains(t, rr.Body.String(), "response.created")
 		repo.AssertExpectations(t)
 	})
 }

@@ -231,6 +231,11 @@ type mockResponsesRepo struct {
 	mock.Mock
 }
 
+func (m *mockResponsesRepo) ValidateResponses(ctx context.Context, params repositories.ResponsesParams, req *models.ResponsesRequest) error {
+	args := m.Called(ctx, params, req)
+	return args.Error(0)
+}
+
 func (m *mockResponsesRepo) HandleResponses(ctx context.Context, params repositories.ResponsesParams, req *models.ResponsesRequest) (*models.RAGResponse, error) {
 	args := m.Called(ctx, params, req)
 	if args.Get(0) == nil {

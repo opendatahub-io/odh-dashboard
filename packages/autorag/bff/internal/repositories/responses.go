@@ -19,10 +19,10 @@ import (
 // unbounded LIMIT/allocation in the vector DB search.
 const maxTopK = 100
 
-// validVectorStoreID matches a vector store ID that is already a safe Milvus
-// collection / pgvector table identifier, so distinct IDs never silently
-// collide onto the same target after sanitizeCollection normalizes them.
-var validVectorStoreID = regexp.MustCompile(`^[A-Za-z0-9_]+$`)
+// validVectorStoreID accepts logical vector store IDs. Hyphens and dots are
+// canonicalized before they reach a vector DB adapter. Logical names that
+// canonicalize to the same ID cannot coexist.
+var validVectorStoreID = regexp.MustCompile(`^[A-Za-z0-9_.-]+$`)
 
 // ResponsesParams holds the per-request parameters for the responses endpoint.
 type ResponsesParams struct {
@@ -103,7 +103,7 @@ func (r *ResponsesRepository) ragSearch(
 
 	chunks := make([]models.SourceChunk, 0, len(results))
 	for _, res := range results {
-		chunks = append(chunks, models.SourceChunk{Text: res.Text, Score: res.Score})
+		chunks = append(chunks, models.SourceChunk{Text: res.Text, Score: res.Score, FileID: res.ID})
 	}
 	return chunks, nil
 }
@@ -235,13 +235,18 @@ func parseFileSearchTool(req *models.ResponsesRequest) (collection string, topK 
 			topK = tool.MaxNumResults
 		}
 		if tool.RankingOptions.Ranker != "" {
-			hybrid = true
-			if tool.RankingOptions.Alpha > 0 {
-				if tool.RankingOptions.Alpha > 1 {
-					return "", 0, 0, false, fmt.Errorf("ranking_options.alpha %v must be between 0 and 1", tool.RankingOptions.Alpha)
-				}
-				alpha = float32(tool.RankingOptions.Alpha)
+			if tool.RankingOptions.Ranker != "rrf" {
+				return "", 0, 0, false, fmt.Errorf("ranking_options.ranker %q is unsupported; only rrf is supported for hybrid search", tool.RankingOptions.Ranker)
 			}
+			hybrid = true
+			if tool.RankingOptions.Alpha != nil {
+				if *tool.RankingOptions.Alpha < 0 || *tool.RankingOptions.Alpha > 1 {
+					return "", 0, 0, false, fmt.Errorf("ranking_options.alpha %v must be between 0 and 1", *tool.RankingOptions.Alpha)
+				}
+				alpha = float32(*tool.RankingOptions.Alpha)
+			}
+		} else if tool.RankingOptions.Alpha != nil {
+			return "", 0, 0, false, fmt.Errorf("ranking_options.alpha requires ranking_options.ranker")
 		}
 		break
 	}
@@ -251,7 +256,7 @@ func parseFileSearchTool(req *models.ResponsesRequest) (collection string, topK 
 	if !validVectorStoreID.MatchString(collection) {
 		return "", 0, 0, false, fmt.Errorf("invalid vector_store_ids value %q: must match %s", collection, validVectorStoreID.String())
 	}
-	return collection, topK, alpha, hybrid, nil
+	return sanitizeCollection(collection), topK, alpha, hybrid, nil
 }
 
 // prepareRAGContext resolves credentials, does vector search, and assembles the chat messages.
@@ -312,6 +317,21 @@ func (r *ResponsesRepository) prepareRAGContext(ctx context.Context, params Resp
 			MaxTokens:   maxTokens,
 		},
 	}, nil
+}
+
+// ValidateResponses checks backend capabilities before a streaming response commits its SSE headers.
+// It deliberately does not resolve MaaS, connect to a vector DB, or execute a search.
+func (r *ResponsesRepository) ValidateResponses(ctx context.Context, params ResponsesParams, req *models.ResponsesRequest) error {
+	_, _, _, hybrid, err := parseFileSearchTool(req)
+	if err != nil || !hybrid {
+		return err
+	}
+
+	secret, err := r.k8sService.GetSecret(ctx, params.Namespace, params.VectorDbSecretName)
+	if err != nil {
+		return fmt.Errorf("failed to get vector DB secret %q: %w", params.VectorDbSecretName, err)
+	}
+	return vectordb.ValidateSearchOptions(secret.Data, hybrid)
 }
 
 // HandleResponses processes a non-streaming RAG request.

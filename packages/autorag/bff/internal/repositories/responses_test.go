@@ -350,6 +350,10 @@ func fileSearchRequest(tool models.FileSearchTool) *models.ResponsesRequest {
 	return &models.ResponsesRequest{Tools: []models.FileSearchTool{tool}}
 }
 
+func floatPtr(value float64) *float64 {
+	return &value
+}
+
 func TestParseFileSearchTool_Defaults(t *testing.T) {
 	collection, topK, alpha, hybrid, err := parseFileSearchTool(fileSearchRequest(models.FileSearchTool{
 		Type:           "file_search",
@@ -369,7 +373,7 @@ func TestParseFileSearchTool_NoFileSearchTool(t *testing.T) {
 }
 
 func TestParseFileSearchTool_RejectsInvalidVectorStoreID(t *testing.T) {
-	tests := []string{"vs-abc-123", "vs.abc.123", "vs abc", "", "vs/abc"}
+	tests := []string{"vs abc", "", "vs/abc"}
 	for _, id := range tests {
 		t.Run(id, func(t *testing.T) {
 			_, _, _, _, err := parseFileSearchTool(fileSearchRequest(models.FileSearchTool{
@@ -386,6 +390,15 @@ func TestParseFileSearchTool_RejectsInvalidVectorStoreID(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestParseFileSearchTool_CanonicalizesVectorStoreID(t *testing.T) {
+	collection, _, _, _, err := parseFileSearchTool(fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"vs-abc.123"},
+	}))
+	require.NoError(t, err)
+	assert.Equal(t, "vs_abc_123", collection)
 }
 
 func TestParseFileSearchTool_RejectsExcessiveMaxNumResults(t *testing.T) {
@@ -412,7 +425,7 @@ func TestParseFileSearchTool_RejectsAlphaAboveOne(t *testing.T) {
 	_, _, _, _, err := parseFileSearchTool(fileSearchRequest(models.FileSearchTool{
 		Type:           "file_search",
 		VectorStoreIDs: []string{"vs_abc_123"},
-		RankingOptions: models.RankingOptions{Ranker: "rrf", Alpha: 1.5},
+		RankingOptions: models.RankingOptions{Ranker: "rrf", Alpha: floatPtr(1.5)},
 	}))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "must be between 0 and 1")
@@ -422,10 +435,31 @@ func TestParseFileSearchTool_HybridWithValidAlpha(t *testing.T) {
 	collection, _, alpha, hybrid, err := parseFileSearchTool(fileSearchRequest(models.FileSearchTool{
 		Type:           "file_search",
 		VectorStoreIDs: []string{"vs_abc_123"},
-		RankingOptions: models.RankingOptions{Ranker: "rrf", Alpha: 0.7},
+		RankingOptions: models.RankingOptions{Ranker: "rrf", Alpha: floatPtr(0.7)},
 	}))
 	require.NoError(t, err)
 	assert.Equal(t, "vs_abc_123", collection)
 	assert.True(t, hybrid)
 	assert.InDelta(t, 0.7, alpha, 0.0001)
+}
+
+func TestParseFileSearchTool_PreservesZeroAlpha(t *testing.T) {
+	_, _, alpha, hybrid, err := parseFileSearchTool(fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"vs_abc_123"},
+		RankingOptions: models.RankingOptions{Ranker: "rrf", Alpha: floatPtr(0)},
+	}))
+	require.NoError(t, err)
+	assert.True(t, hybrid)
+	assert.Zero(t, alpha)
+}
+
+func TestParseFileSearchTool_RejectsUnsupportedRanker(t *testing.T) {
+	_, _, _, _, err := parseFileSearchTool(fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"vs_abc_123"},
+		RankingOptions: models.RankingOptions{Ranker: "linear"},
+	}))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported")
 }

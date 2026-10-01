@@ -78,34 +78,10 @@ func newMilvusFromSecret(ctx context.Context, data map[string][]byte) (VectorDB,
 }
 
 func (m *milvusDB) Search(ctx context.Context, collection string, queryVec []float32, query string, topK int, alpha float32, hybrid bool) ([]SearchResult, error) {
-	sp, _ := entity.NewIndexFlatSearchParam()
-
-	denseReq := milvusclient.NewANNSearchRequest(
-		milvusDenseVectorField,
-		entity.COSINE,
-		"",
-		[]entity.Vector{entity.FloatVector(queryVec)},
-		sp,
-		topK,
-	)
-
 	if hybrid {
-		// Hybrid search requires a pre-built sparse vector. Without one, we attempt
-		// HybridSearch with a single ANN request (weighted reranker on dense only).
-		// If the collection lacks a sparse field the call degrades to dense search.
-		reranker := milvusclient.NewWeightedReranker([]float64{1.0})
-		results, err := m.client.HybridSearch(ctx, collection, nil, topK, []string{milvusTextField}, reranker,
-			[]*milvusclient.ANNSearchRequest{denseReq})
-		if err != nil {
-			// Fall back to plain dense search if hybrid is unsupported.
-			results, err = m.client.Search(ctx, collection, nil, "", []string{milvusTextField},
-				[]entity.Vector{entity.FloatVector(queryVec)}, milvusDenseVectorField, entity.COSINE, topK, sp)
-			if err != nil {
-				return nil, fmt.Errorf("milvus dense search fallback: %w", err)
-			}
-		}
-		return extractMilvusResults(results, topK), nil
+		return nil, fmt.Errorf("%w: Milvus hybrid search is not supported", ErrUnsupportedSearch)
 	}
+	sp, _ := entity.NewIndexFlatSearchParam()
 
 	results, err := m.client.Search(ctx, collection, nil, "", []string{milvusTextField},
 		[]entity.Vector{entity.FloatVector(queryVec)}, milvusDenseVectorField, entity.COSINE, topK, sp)

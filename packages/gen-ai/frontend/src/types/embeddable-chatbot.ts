@@ -2,7 +2,7 @@ import type React from 'react';
 
 /**
  * OpenAI Responses API template structure used by AutoRAG to define
- * how queries should be sent to the OGX (Open GenAI Stack) instance.
+ * how queries should be sent to the AutoRAG responses endpoint.
  */
 type ResponsesTemplate = {
   model: string;
@@ -27,11 +27,9 @@ type ResponsesTemplate = {
     type: 'file_search';
     vector_store_ids: string[];
     max_num_results: number;
-    ranking_options: {
-      search_mode: 'hybrid' | 'keyword' | 'semantic';
-      ranker_strategy: 'rrf' | 'linear' | 'cross_encoder';
-      ranker_k: number;
-      ranker_alpha: number;
+    ranking_options?: {
+      ranker: 'rrf';
+      alpha: number;
     };
   }>;
   tool_choice: {

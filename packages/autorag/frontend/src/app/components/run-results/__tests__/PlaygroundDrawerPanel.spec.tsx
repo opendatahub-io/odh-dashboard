@@ -40,10 +40,8 @@ const mockTemplate: ResponsesTemplate = {
       vector_store_ids: ['vs-1'],
       max_num_results: 5,
       ranking_options: {
-        search_mode: 'hybrid',
-        ranker_strategy: 'rrf',
-        ranker_k: 60,
-        ranker_alpha: 0.5,
+        ranker: 'rrf',
+        alpha: 0.5,
       },
     },
   ],
@@ -140,6 +138,23 @@ describe('PlaygroundDrawerPanel', () => {
     expect(screen.getByTestId('mock-embedded-playground')).toHaveAttribute(
       'data-endpoint',
       '/autorag/api/v1/responses?namespace=test-ns&vectorDbSecretName=milvus&maasSecretName=test-secret',
+    );
+  });
+
+  it('should keep the AutoRAG endpoint when resolved secrets are unavailable', () => {
+    render(
+      <AutoragResultsContext.Provider value={{ ...mockContextValue, parameters: {} }}>
+        <Drawer isExpanded>
+          <DrawerContent panelContent={<PlaygroundDrawerPanel {...defaultProps} />}>
+            <div>Main content</div>
+          </DrawerContent>
+        </Drawer>
+      </AutoragResultsContext.Provider>,
+    );
+
+    expect(screen.getByTestId('mock-embedded-playground')).toHaveAttribute(
+      'data-endpoint',
+      '/autorag/api/v1/responses?namespace=test-ns',
     );
   });
 
