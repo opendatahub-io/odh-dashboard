@@ -10,6 +10,7 @@ import (
 	kubernetes "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
 	"github.com/opendatahub-io/gen-ai/internal/models"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // MCPClientRepository handles MCP client operations
@@ -62,8 +63,26 @@ func (r *MCPClientRepository) GetMCPServersFromConfig(
 		return nil, fmt.Errorf("failed to get MCP server ConfigMap: %w", err)
 	}
 
-	var servers []MCPServerInfo
+	return r.parseMCPServersConfigMap(configMap), nil
+}
 
+// GetMCPServersFromDashboardConfig retrieves dashboard-managed MCP server metadata using
+// the dashboard service account. This configuration must not contain credentials.
+func (r *MCPClientRepository) GetMCPServersFromDashboardConfig(
+	k8sClient kubernetes.KubernetesClientInterface,
+	ctx context.Context,
+	namespace string,
+	configMapName string,
+) ([]MCPServerInfo, error) {
+	configMap, err := k8sClient.GetDashboardConfigMap(ctx, namespace, configMapName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get dashboard MCP server ConfigMap: %w", err)
+	}
+	return r.parseMCPServersConfigMap(configMap), nil
+}
+
+func (r *MCPClientRepository) parseMCPServersConfigMap(configMap *corev1.ConfigMap) []MCPServerInfo {
+	servers := make([]MCPServerInfo, 0, len(configMap.Data))
 	for serverName, configJSON := range configMap.Data {
 		var config models.MCPServerConfig
 		if err := json.Unmarshal([]byte(configJSON), &config); err != nil {
@@ -81,7 +100,7 @@ func (r *MCPClientRepository) GetMCPServersFromConfig(
 		})
 	}
 
-	return servers, nil
+	return servers
 }
 
 // GetMCPServersFromConfigWithMetadata retrieves MCP server configurations with ConfigMap metadata

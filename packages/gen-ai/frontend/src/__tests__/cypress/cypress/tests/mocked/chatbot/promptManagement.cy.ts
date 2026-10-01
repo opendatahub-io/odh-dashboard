@@ -102,7 +102,9 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
           includeAAModel: true,
         });
         cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
-        cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } }).as('bffConfig');
+        cy.interceptGenAi('GET /api/v1/config', {
+          data: { isCustomLSD: false, sandboxesAvailable: true },
+        }).as('bffConfig');
         cy.intercept('GET', '**/api/v1/mcp/status**', {
           statusCode: 200,
           body: { status: 'ready' },
@@ -135,7 +137,9 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
           includeAAModel: true,
         });
         cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
-        cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } }).as('bffConfig');
+        cy.interceptGenAi('GET /api/v1/config', {
+          data: { isCustomLSD: false, sandboxesAvailable: true },
+        }).as('bffConfig');
         cy.intercept('GET', '**/api/v1/mcp/status**', {
           statusCode: 200,
           body: { status: 'ready' },
@@ -168,7 +172,9 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         includeAAModel: true,
       });
       cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
-      cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } }).as('bffConfig');
+      cy.interceptGenAi('GET /api/v1/config', {
+        data: { isCustomLSD: false, sandboxesAvailable: true },
+      }).as('bffConfig');
       cy.intercept('GET', '**/api/v1/mcp/status**', {
         statusCode: 200,
         body: { status: 'ready' },
@@ -257,7 +263,9 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         includeAAModel: true,
       });
       cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
-      cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } }).as('bffConfig');
+      cy.interceptGenAi('GET /api/v1/config', {
+        data: { isCustomLSD: false, sandboxesAvailable: true },
+      }).as('bffConfig');
       cy.intercept('GET', '**/api/v1/mcp/status**', {
         statusCode: 200,
         body: { status: 'ready' },
@@ -345,7 +353,9 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         includeAAModel: true,
       });
       cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
-      cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } }).as('bffConfig');
+      cy.interceptGenAi('GET /api/v1/config', {
+        data: { isCustomLSD: false, sandboxesAvailable: true },
+      }).as('bffConfig');
       cy.intercept('GET', '**/api/v1/mcp/status**', {
         statusCode: 200,
         body: { status: 'ready' },
@@ -427,7 +437,9 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         includeAAModel: true,
       });
       cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
-      cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } }).as('bffConfig');
+      cy.interceptGenAi('GET /api/v1/config', {
+        data: { isCustomLSD: false, sandboxesAvailable: true },
+      }).as('bffConfig');
       cy.intercept('GET', '**/api/v1/mcp/status**', {
         statusCode: 200,
         body: { status: 'ready' },
@@ -517,7 +529,9 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         includeAAModel: true,
       });
       cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
-      cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } }).as('bffConfig');
+      cy.interceptGenAi('GET /api/v1/config', {
+        data: { isCustomLSD: false, sandboxesAvailable: true },
+      }).as('bffConfig');
       cy.intercept('GET', '**/api/v1/mcp/status**', {
         statusCode: 200,
         body: { status: 'ready' },
@@ -599,7 +613,9 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         includeAAModel: true,
       });
       cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
-      cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } }).as('bffConfig');
+      cy.interceptGenAi('GET /api/v1/config', {
+        data: { isCustomLSD: false, sandboxesAvailable: true },
+      }).as('bffConfig');
       cy.intercept('GET', '**/api/v1/mcp/status**', {
         statusCode: 200,
         body: { status: 'ready' },
@@ -671,7 +687,9 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         includeAAModel: true,
       });
       cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
-      cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } }).as('bffConfig');
+      cy.interceptGenAi('GET /api/v1/config', {
+        data: { isCustomLSD: false, sandboxesAvailable: true },
+      }).as('bffConfig');
       cy.intercept('GET', '**/api/v1/mcp/status**', {
         statusCode: 200,
         body: { status: 'ready' },
@@ -812,7 +830,9 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         includeAAModel: true,
       });
       cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
-      cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } }).as('bffConfig');
+      cy.interceptGenAi('GET /api/v1/config', {
+        data: { isCustomLSD: false, sandboxesAvailable: true },
+      }).as('bffConfig');
       cy.intercept('GET', '**/api/v1/mcp/status**', {
         statusCode: 200,
         body: { status: 'ready' },

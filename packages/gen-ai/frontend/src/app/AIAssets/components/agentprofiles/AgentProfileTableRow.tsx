@@ -22,6 +22,7 @@ type AgentProfileTableRowProps = {
   profile: AgentProfileSummary;
   onDelete: (profileId: string) => Promise<void>;
   onRefresh: () => void;
+  showEndpointsColumn: boolean;
 };
 
 const formatDate = (iso: string): string => {
@@ -42,6 +43,7 @@ const AgentProfileTableRow: React.FC<AgentProfileTableRowProps> = ({
   profile,
   onDelete,
   onRefresh,
+  showEndpointsColumn,
 }) => {
   const navigate = useNavigate();
   const { namespace } = useParams<{ namespace: string }>();
@@ -72,6 +74,11 @@ const AgentProfileTableRow: React.FC<AgentProfileTableRowProps> = ({
             <span className="pf-v6-u-color-200">—</span>
           )}
         </Td>
+        {showEndpointsColumn && (
+          <Td dataLabel="Endpoint(s)">
+            <span className="pf-v6-u-color-200">—</span>
+          </Td>
+        )}
         <Td dataLabel="Last modified">{formatDate(profile.lastModified)}</Td>
         <Td dataLabel="Actions" isActionCell>
           <div

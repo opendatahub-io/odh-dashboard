@@ -4,8 +4,10 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import TableDetailView from '~/app/pages/TableDetailView';
 import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
+import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
+import type { AssetResponse } from '~/app/types';
 
-const renderView = (asset: ReturnType<typeof mockAssetResponse>, project = 'test-project') =>
+const renderView = (asset: AssetResponse, project = 'test-project') =>
   render(
     <MemoryRouter>
       <TableDetailView asset={asset} project={project} />
@@ -21,7 +23,7 @@ describe('TableDetailView', () => {
     expect(screen.getByTestId('asset-description')).toHaveTextContent(
       'A test table for unit testing',
     );
-    expect(screen.getByTestId('asset-format')).toHaveTextContent('parquet');
+    expect(screen.getByTestId('asset-format')).toHaveTextContent('Apache Parquet');
     expect(screen.getByTestId('asset-collection')).toHaveTextContent('default');
     expect(screen.getByTestId('asset-location')).toHaveTextContent(
       's3://my-bucket/data/test-table/',
@@ -47,12 +49,22 @@ describe('TableDetailView', () => {
     expect(el).toHaveTextContent('my-s3-connection');
   });
 
-  it('should render created and last modified with user attribution', () => {
+  it('should render relative created and last modified timestamps with hover details', () => {
     const asset = mockAssetResponse();
-    renderView(asset);
+    const dateNowSpy = jest
+      .spyOn(Date, 'now')
+      .mockReturnValue(new Date('2026-08-21T14:45:00Z').getTime());
 
-    expect(screen.getByTestId('asset-created-at')).toHaveTextContent('by user@example.com');
-    expect(screen.getByTestId('asset-updated-at')).toHaveTextContent('by admin@example.com');
+    try {
+      renderView(asset);
+
+      expect(screen.getByTestId('asset-created-at')).toHaveTextContent('1 month ago');
+      expect(screen.getByTestId('asset-updated-at')).toHaveTextContent('1 day ago');
+      expect(screen.getByTestId('asset-created-at')).not.toHaveTextContent('View timestamp');
+      expect(screen.getByTestId('asset-updated-at')).not.toHaveTextContent('View timestamp');
+    } finally {
+      dateNowSpy.mockRestore();
+    }
   });
 
   it('should render labels card with expandable label group', () => {
@@ -93,16 +105,8 @@ describe('TableDetailView', () => {
     expect(screen.getByTestId('schema-column-type-name')).toHaveTextContent('string');
   });
 
-  it('should hide format field when format is not set', () => {
-    const asset = mockAssetResponse({ format: undefined });
-    renderView(asset);
-    expect(screen.queryByTestId('asset-format')).not.toBeInTheDocument();
-    expect(screen.getByTestId('asset-type')).toHaveTextContent('table');
-  });
-
   it('should render an unstructured volume with its human-readable format', () => {
-    const asset = mockAssetResponse({
-      asset_type: 'Unstructured',
+    const asset = mockVolumeInfo({
       format: 'documents',
       columns: [],
       properties: { 'content-type': 'application/pdf' },
@@ -121,9 +125,8 @@ describe('TableDetailView', () => {
 
   it('should render dash for missing optional fields', () => {
     const asset = mockAssetResponse({
-      format: undefined,
       description: undefined,
-      location: undefined,
+      storage_location: undefined,
       owner: undefined,
       labels: [],
       properties: undefined,
@@ -132,7 +135,7 @@ describe('TableDetailView', () => {
     });
     renderView(asset);
 
-    expect(screen.queryByTestId('asset-format')).not.toBeInTheDocument();
+    expect(screen.getByTestId('asset-format')).toHaveTextContent('Apache Parquet');
     expect(screen.getByTestId('asset-description')).toHaveTextContent('-');
     expect(screen.getByTestId('asset-location')).toHaveTextContent('-');
     expect(screen.getByTestId('asset-owner')).toHaveTextContent('-');
