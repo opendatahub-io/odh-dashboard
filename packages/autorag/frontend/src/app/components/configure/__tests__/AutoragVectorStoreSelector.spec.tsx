@@ -3,8 +3,8 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import React, { act } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useParams } from 'react-router';
+import type { SecretSelection } from '@odh-dashboard/autox-core/ui/components/feature';
 import AutoragVectorStoreSelector from '~/app/components/configure/AutoragVectorStoreSelector';
-import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
 
@@ -30,9 +30,9 @@ jest.mock('react-router', () => ({
   useParams: jest.fn(),
 }));
 
-jest.mock('~/app/components/common/SecretSelector', () => ({
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
   __esModule: true,
-  default: ({
+  SecretSelector: ({
     onChange,
     dataTestId,
     type,

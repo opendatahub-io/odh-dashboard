@@ -8,7 +8,7 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { useParams } from 'react-router';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutoragEvaluationSelect from '~/app/components/configure/AutoragEvaluationSelect';
-import { useUploadToStorageMutation } from '~/app/hooks/mutations';
+import { useUploadToStorageMutation } from '~/app/hooks/useUploadToStorageMutation';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
@@ -31,8 +31,8 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
   fireMiscTrackingEvent: jest.fn(),
 }));
 
-jest.mock('~/app/hooks/mutations', () => ({
-  ...jest.requireActual('~/app/hooks/mutations'),
+jest.mock('~/app/hooks/useUploadToStorageMutation', () => ({
+  ...jest.requireActual('~/app/hooks/useUploadToStorageMutation'),
   useUploadToStorageMutation: jest.fn(),
 }));
 

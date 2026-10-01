@@ -388,8 +388,9 @@ export type PortForwardHandle = {
  *
  * @param namespace The namespace containing the service.
  * @param serviceName The name of the service to port-forward.
- * @param port The port to forward (used as both the local and remote port).
+ * @param port The local port to forward.
  * @param waitTimeMs Time to wait after starting the port-forward for the tunnel to establish (default 3000ms).
+ * @param targetPort The service port to forward (defaults to the local port).
  * @returns A Cypress chainable resolving to a handle for cleanup, or `null` if the port-forward was skipped.
  */
 export const startPortForward = (
@@ -397,6 +398,7 @@ export const startPortForward = (
   serviceName: string,
   port: number,
   waitTimeMs = 3000,
+  targetPort = port,
 ): Cypress.Chainable<PortForwardHandle | null> => {
   const baseUrl = Cypress.config('baseUrl') || '';
   if (!baseUrl.includes('localhost')) {
@@ -408,7 +410,7 @@ export const startPortForward = (
 
   return cy
     .exec(
-      `nohup oc port-forward -n ${namespace} svc/${serviceName} ${port}:${port} > ${logFile} 2>&1 & echo $!`,
+      `nohup oc port-forward -n ${namespace} svc/${serviceName} ${port}:${targetPort} > ${logFile} 2>&1 & echo $!`,
       { failOnNonZeroExit: false },
     )
     .then((result: CommandLineResult): Cypress.Chainable<PortForwardHandle | null> => {

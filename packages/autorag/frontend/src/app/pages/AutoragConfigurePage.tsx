@@ -16,15 +16,18 @@ import { ApplicationsPage } from 'mod-arch-shared';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import {
+  ContextBreadcrumb,
+  useCatchUIError,
+} from '@odh-dashboard/autox-core/ui/components/primitive';
+import type { SecretSelection } from '@odh-dashboard/autox-core/ui/components/feature';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
-import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
 import AutoragCreate from '~/app/components/create/AutoragCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
-import { useCreatePipelineRunMutation } from '~/app/hooks/mutations';
+import { useCreatePipelineRunMutation } from '~/app/hooks/useCreatePipelineRunMutation';
 import { useNotification } from '~/app/hooks/useNotification';
-import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilities/routes';
 import {
@@ -48,7 +51,6 @@ import {
   RunTriggeredTrackingContext,
   type RunTriggeredTrackingContextProps,
 } from '~/app/context/RunTriggeredTrackingContext';
-import { useCatchUIError } from '~/app/components/common/UIError/UIErrorHandler.tsx';
 
 const configureSchema = createConfigureSchema();
 type ConfigureInitialValues = Partial<ConfigureSchema> & Record<string, unknown>;
@@ -437,12 +439,14 @@ function AutoragConfigurePage({
       breadcrumb={
         (step === 'configure' || sourceRunId) &&
         namespace && (
-          <ExperimentContextBreadcrumb
+          <ContextBreadcrumb
             pageName="AutoRAG"
-            namespace={namespace}
             projectDisplayName={projectDisplayName}
             homePath={getRedirectPath(namespace)}
+            projectHomePath={`/projects/${namespace}`}
             onHomeNavigate={handleHomeNavigate}
+            homeTestId="experiment-breadcrumb-home"
+            projectLinkTestId="project-navigator-link-in-breadcrumb"
           >
             {fromResultsPage && sourceRunId && sourceRunName && (
               <BreadcrumbItem data-testid="configure-breadcrumb-source-run">
@@ -459,7 +463,7 @@ function AutoragConfigurePage({
             <BreadcrumbItem isActive data-testid="configure-breadcrumb-name">
               {sourceRunId ? 'Reconfigure' : 'Run configurations'}
             </BreadcrumbItem>
-          </ExperimentContextBreadcrumb>
+          </ContextBreadcrumb>
         )
       }
       empty={noNamespaces || invalidNamespace}

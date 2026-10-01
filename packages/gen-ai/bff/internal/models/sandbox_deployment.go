@@ -19,3 +19,23 @@ type AgentDeploymentCreateResponse struct {
 	RouteURL                string `json:"routeUrl"`
 	AgentProfileID          string `json:"agentProfileId"`
 }
+
+// AgentDeploymentSummary is the namespace-scoped view of a Sandbox-backed
+// agent deployment. AgentProfileID is empty when the Sandbox predates the
+// deployment label or was created without one.
+type AgentDeploymentSummary struct {
+	Name           string        `json:"name"`
+	Namespace      string        `json:"namespace"`
+	AgentProfileID string        `json:"agentProfileId"`
+	RouteURL       string        `json:"routeUrl,omitempty"`
+	CreatedAt      string        `json:"createdAt"`
+	State          string        `json:"state"`
+	LastError      string        `json:"lastError,omitempty"`
+	Config         *AgentProfile `json:"config,omitempty"`
+}
+
+// AgentDeploymentListResponse is returned by GET /api/v1/agent-deployments.
+type AgentDeploymentListResponse struct {
+	Deployments []AgentDeploymentSummary `json:"deployments"`
+	TotalCount  int                      `json:"totalCount"`
+}

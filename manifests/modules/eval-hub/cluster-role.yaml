@@ -17,3 +17,44 @@ rules:
       - create
     resources:
       - subjectaccessreviews
+  # The BFF checks the user's EvalHub access before these reads. EvalHub tenants
+  # are not required to have direct permission to read Kueue resources.
+  # HardwareProfile reads in the dashboard namespace are already granted by
+  # manifests/base/rbac/all-users/fetch-hardwares.rbac.yaml.
+  # Read the namespace label that indicates whether Kueue manages it.
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - get
+  # Detect a Kueue operator installation.
+  - apiGroups:
+      - kueue.openshift.io
+    resources:
+      - kueues
+    verbs:
+      - list
+  # Support installations where DataScienceCluster manages Kueue.
+  - apiGroups:
+      - datasciencecluster.opendatahub.io
+    resources:
+      - datascienceclusters
+    verbs:
+      - list
+  # Evaluations can run in any tenant namespace. The BFF lists these resources
+  # only in the namespace that passed the user's EvalHub access check.
+  - apiGroups:
+      - kueue.x-k8s.io
+    resources:
+      - localqueues
+      - workloads
+    verbs:
+      - list
+  # Queue position is optional; the BFF still reports status without it.
+  - apiGroups:
+      - visibility.kueue.x-k8s.io
+    resources:
+      - localqueues/pendingworkloads
+    verbs:
+      - get
