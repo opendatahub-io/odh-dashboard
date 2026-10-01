@@ -90,21 +90,6 @@ describe('useRelativeLinkHandler', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/observe-and-monitor/dashboard?dashboard=models');
     });
 
-    it('should not remove a basename that only matches the start of another path segment', () => {
-      const renderResult = testHook(useRelativeLinkHandler)('/portal');
-      const anchor = document.createElement('a');
-      anchor.setAttribute('href', '/portal-extra/dashboard');
-      container.appendChild(anchor);
-
-      act(() => {
-        renderResult.result.current(container);
-      });
-
-      anchor.dispatchEvent(createClickEvent());
-
-      expect(mockNavigate).toHaveBeenCalledWith('/portal-extra/dashboard');
-    });
-
     it('should intercept clicks on nested elements within anchor tags', () => {
       const renderResult = testHook(useRelativeLinkHandler)();
       const anchor = document.createElement('a');

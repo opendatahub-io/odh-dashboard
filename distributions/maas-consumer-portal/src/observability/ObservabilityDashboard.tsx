@@ -2,7 +2,7 @@ import * as React from 'react';
 import { EmptyState, EmptyStateBody, EmptyStateVariant, PageSection } from '@patternfly/react-core';
 import { ExclamationCircleIcon, WrenchIcon } from '@patternfly/react-icons';
 import { DashboardView } from '@odh-dashboard/observability/dashboard';
-import { DASHBOARD_ROUTE, PERSES_PROXY_BASE_PATH } from './paths';
+import { PERSES_PROXY_BASE_PATH } from './paths';
 import { useObservabilityDashboardData } from './useObservabilityDashboardData';
 import PortalClusterDetailsVariablesProvider from '../providers/PortalClusterDetailsVariablesProvider';
 import { PORTAL_BASE_PATH } from '../portalPaths';
@@ -83,7 +83,6 @@ const ObservabilityDashboard: React.FC = () => {
       }
       projectsLoadErrorPage={<ObservabilityUnavailable />}
       persesProxyBasePath={PERSES_PROXY_BASE_PATH}
-      routeBasePath={DASHBOARD_ROUTE}
       browserBasePath={PORTAL_BASE_PATH}
       ClusterDetailsAdapter={PortalClusterDetailsVariablesProvider}
       noProjectsEmptyState={<NoProjects />}

@@ -10,7 +10,7 @@ declare global {
   }
 }
 
-const configuredPluginAssetPaths = new Set<string>();
+let configuredPluginAssetPath: string | undefined;
 
 /**
  * Tell Perses plugin manifests to resolve asset URLs through our proxy.
@@ -20,13 +20,12 @@ const configuredPluginAssetPaths = new Set<string>();
  * imports in a page must use the same proxy path.
  */
 const configurePluginAssetPath = (basePath: string): void => {
-  if (configuredPluginAssetPaths.size > 0 && !configuredPluginAssetPaths.has(basePath)) {
-    const [configuredPluginAssetPath] = configuredPluginAssetPaths;
+  if (configuredPluginAssetPath !== undefined && configuredPluginAssetPath !== basePath) {
     throw new Error(
       `Perses remote plugins use one proxy path per page; configured for "${configuredPluginAssetPath}" and received "${basePath}".`,
     );
   }
-  configuredPluginAssetPaths.add(basePath);
+  configuredPluginAssetPath = basePath;
 
   if (typeof window !== 'undefined') {
     window.PERSES_PLUGIN_ASSETS_PATH = basePath;
@@ -94,7 +93,7 @@ export const resetBundledOverridesForTests = (
   loaders?: Map<string, () => Promise<BundledPluginModule>>,
 ): void => {
   loadedOverrides.clear();
-  configuredPluginAssetPaths.clear();
+  configuredPluginAssetPath = undefined;
   bundledOverrideLoaders = loaders ?? createDefaultBundledOverrideLoaders();
 };
 
@@ -169,5 +168,3 @@ export const createPluginLoader = (basePath: string = PERSES_PROXY_BASE_PATH): P
     },
   };
 };
-
-export const pluginLoader = createPluginLoader();

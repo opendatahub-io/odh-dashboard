@@ -29,7 +29,6 @@ export type DashboardViewProps = {
   projectsLoadErrorPage?: React.ReactNode;
   projectsForbiddenErrorPage?: React.ReactNode;
   persesProxyBasePath?: string;
-  routeBasePath?: string;
   browserBasePath?: string;
   ClusterDetailsAdapter: React.ComponentType;
   noProjectsEmptyState?: React.ReactNode;
@@ -48,7 +47,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   projectsLoadErrorPage,
   projectsForbiddenErrorPage,
   persesProxyBasePath,
-  routeBasePath,
   browserBasePath,
   ClusterDetailsAdapter,
   noProjectsEmptyState,
@@ -117,7 +115,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({
         dashboards={viewableDashboards}
         projects={projects}
         persesProxyBasePath={persesProxyBasePath}
-        routeBasePath={routeBasePath}
         browserBasePath={browserBasePath}
         ClusterDetailsAdapter={ClusterDetailsAdapter}
       />

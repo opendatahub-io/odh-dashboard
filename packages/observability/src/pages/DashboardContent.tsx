@@ -25,7 +25,6 @@ export type DashboardContentProps = {
   dashboards: DashboardResource[];
   projects: NamespaceOption[];
   persesProxyBasePath?: string;
-  routeBasePath?: string;
   browserBasePath?: string;
   ClusterDetailsAdapter: React.ComponentType;
 };
@@ -37,7 +36,6 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
   dashboards,
   projects,
   persesProxyBasePath,
-  routeBasePath = BASE_PATH,
   browserBasePath = '',
   ClusterDetailsAdapter,
 }) => {
@@ -89,11 +87,11 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
       }
       event.preventDefault();
       // Use replace to avoid creating extra history entries when switching tabs
-      navigate(buildDashboardUrl(String(eventKey), searchParams.toString(), routeBasePath), {
+      navigate(buildDashboardUrl(String(eventKey), searchParams.toString()), {
         replace: true,
       });
     },
-    [navigate, routeBasePath, searchParams],
+    [navigate, searchParams],
   );
 
   if (transformedDashboards.length === 0) {
@@ -137,7 +135,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
                 href={buildDashboardUrl(
                   dashboard.metadata.name,
                   searchParams.toString(),
-                  `${browserBasePath}${routeBasePath}`,
+                  `${browserBasePath}${BASE_PATH}`,
                 )}
               >
                 <PageSection hasBodyWrapper={false} isFilled>
