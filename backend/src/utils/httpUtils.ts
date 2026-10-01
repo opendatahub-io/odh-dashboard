@@ -42,7 +42,7 @@ export type ProxyCallStatus = {
 };
 
 export const getProxyAgent = (targetUrl: string): HttpsProxyAgent<string> | undefined => {
-  if (!targetUrl.startsWith('https:')) {
+  if (process.env.E2E_USE_PROXY_FROM_ENV !== 'true' || !targetUrl.startsWith('https:')) {
     return undefined;
   }
 

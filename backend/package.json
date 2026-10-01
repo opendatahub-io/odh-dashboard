@@ -20,7 +20,7 @@
     "clean": "rimraf ../logs/adminActivity.log",
     "start": "NODE_ENV=production IP=127.0.0.1 node ./dist/server.js",
     "start:dev": "pnpm run clean && cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 NODE_ENV=development tsx watch src/server.ts",
-    "cypress:server:e2e": "pnpm run clean && cross-env ODH_STATIC_DIR=../frontend/public-cypress NODE_TLS_REJECT_UNAUTHORIZED=0 NODE_ENV=development APP_ENV=development tsx src/server.ts",
+    "cypress:server:e2e": "pnpm run clean && cross-env ODH_STATIC_DIR=../frontend/public-cypress NODE_TLS_REJECT_UNAUTHORIZED=0 NODE_ENV=development APP_ENV=development E2E_USE_PROXY_FROM_ENV=true tsx src/server.ts",
     "cypress:server:e2e:wait": "wait-on -i 1000 http-get://localhost:4000/api/health",
     "debug": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 NODE_ENV=development tsx watch --inspect src/server.ts",
     "start:dev:wait": "wait-on -i 1000 http://localhost:4000",
