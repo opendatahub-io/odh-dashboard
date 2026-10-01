@@ -174,11 +174,18 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
           customProperties[property.key] = property.value;
         }
       });
+      const incompleteCustomPropertyKeys = new Set(
+        data.customProperties
+          .filter((property) => property.key && !property.value)
+          .map((property) => property.key),
+      );
       const originalCustomPropertyKeys = Object.keys(asset.properties ?? {}).filter(
         (key) => !WELL_KNOWN_PROPERTIES.has(key),
       );
       const removeProperties = originalCustomPropertyKeys.filter(
-        (key) => !Object.prototype.hasOwnProperty.call(customProperties, key),
+        (key) =>
+          !Object.prototype.hasOwnProperty.call(customProperties, key) &&
+          !incompleteCustomPropertyKeys.has(key),
       );
 
       const originalConnection = getConnectionDisplayValue(asset.connection_ref);
@@ -192,10 +199,10 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
         storage_location: data.path || null,
         ...connectionUpdate,
         purpose: data.purpose,
-        license: data.license || null,
-        maturity: data.maturity || null,
+        ...(data.license !== defaults.license ? { license: data.license || null } : {}),
+        ...(data.maturity !== defaults.maturity ? { maturity: data.maturity || null } : {}),
         domain: data.domain,
-        pii: data.piiStatus || null,
+        ...(data.piiStatus !== defaults.piiStatus ? { pii: data.piiStatus || null } : {}),
         ...(addLabels.length > 0 ? { add_labels: addLabels } : {}),
         ...(removeLabels.length > 0 ? { remove_labels: removeLabels } : {}),
         ...(removeProperties.length > 0 ? { remove_properties: removeProperties } : {}),
@@ -244,6 +251,7 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
       asset.connection_ref,
       collection,
       connections,
+      defaults,
       isTable,
       name,
       onSaved,
