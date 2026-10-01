@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -14,6 +15,7 @@ import (
 )
 
 const unknownOperatorChannel = "Unknown"
+const operatorSubscriptionQueryTimeout = 10 * time.Second
 
 const (
 	selfManagedRHOAIReleaseName = "OpenShift AI Self-Managed"
@@ -45,24 +47,34 @@ func (r *OperatorSubscriptionStatusRepository) GetOperatorSubscriptionStatus(ctx
 	if r.saDynClient == nil {
 		return &models.OperatorSubscriptionStatus{Channel: unknownOperatorChannel}, nil
 	}
+	ctx, cancel := context.WithTimeout(ctx, operatorSubscriptionQueryTimeout)
+	defer cancel()
 
-	subscription, err := r.selectedOperatorSubscription(ctx)
+	subscriptions, err := r.selectedOperatorSubscriptions(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	resource, err := r.findSubscription(ctx, subscription)
-	if err != nil {
-		return nil, err
-	}
-
-	if channel := subscriptionChannel(resource); channel != "" {
+	var lookupErrors []error
+	for _, subscription := range subscriptions {
+		resource, err := r.findSubscription(ctx, subscription)
+		if err != nil {
+			if !apierrors.IsNotFound(err) && !apierrors.IsForbidden(err) {
+				return nil, err
+			}
+			lookupErrors = append(lookupErrors, err)
+			continue
+		}
+		channel := subscriptionChannel(resource)
+		if channel == "" {
+			channel = unknownOperatorChannel
+		}
 		return &models.OperatorSubscriptionStatus{
 			Channel:     channel,
 			LastUpdated: subscriptionLastUpdated(resource),
 		}, nil
 	}
-	return &models.OperatorSubscriptionStatus{Channel: unknownOperatorChannel}, nil
+	return nil, errors.Join(lookupErrors...)
 }
 
 // Probe only known namespaces using named GETs; the portal needs no cluster-wide
@@ -101,24 +113,28 @@ func (r *OperatorSubscriptionStatusRepository) findSubscription(ctx context.Cont
 	return nil, apierrors.NewNotFound(models.SubscriptionGVR.GroupResource(), subscription.name)
 }
 
-func (r *OperatorSubscriptionStatusRepository) selectedOperatorSubscription(ctx context.Context) (operatorSubscription, error) {
+func (r *OperatorSubscriptionStatusRepository) selectedOperatorSubscriptions(ctx context.Context) ([]operatorSubscription, error) {
 	dscs, err := r.saDynClient.Resource(models.DataScienceClusterGVR).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return operatorSubscription{}, fmt.Errorf("listing DataScienceClusters: %w", err)
+		return nil, fmt.Errorf("listing DataScienceClusters: %w", err)
 	}
 
 	releaseName := ""
 	if len(dscs.Items) > 0 {
 		releaseName, _, err = unstructured.NestedString(dscs.Items[0].Object, "status", "release", "name")
 		if err != nil {
-			return operatorSubscription{}, fmt.Errorf("reading DataScienceCluster release name: %w", err)
+			return nil, fmt.Errorf("reading DataScienceCluster release name: %w", err)
 		}
 	}
 
 	if isRHOAIRelease(releaseName) {
-		return operatorSubscriptions[0], nil
+		return operatorSubscriptions[:1], nil
 	}
-	return operatorSubscriptions[1], nil
+	if releaseName == "Open Data Hub" {
+		return operatorSubscriptions[1:], nil
+	}
+	// Without release metadata, try both known operators using the existing named GETs.
+	return operatorSubscriptions, nil
 }
 
 func isRHOAIRelease(releaseName string) bool {
