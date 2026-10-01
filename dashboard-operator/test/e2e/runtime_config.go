@@ -64,6 +64,13 @@ func resolveGatewayDomain(explicitDomain, dashboardURL string) (string, error) {
 	return domain, nil
 }
 
+func resolveManagedGatewayDomain(explicitDomain string) (string, error) {
+	if strings.TrimSpace(explicitDomain) == "" {
+		return "", fmt.Errorf("managed fixture mode requires TEST_GATEWAY_DOMAIN before the Dashboard CR is created")
+	}
+	return resolveGatewayDomain(explicitDomain, "")
+}
+
 func resolvePlatform(explicitPlatform string, hasODHService, hasRHOAIService bool) (string, error) {
 	platform := strings.ToLower(strings.TrimSpace(explicitPlatform))
 	if platform != "" {

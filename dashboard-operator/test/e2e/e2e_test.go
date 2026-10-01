@@ -86,7 +86,7 @@ func TestMain(m *testing.M) {
 
 func setupE2EFixture() error {
 	if testFixtureMode == fixtureModeManaged {
-		gatewayDomain, err := resolveGatewayDomain(os.Getenv("TEST_GATEWAY_DOMAIN"), "")
+		gatewayDomain, err := resolveManagedGatewayDomain(os.Getenv("TEST_GATEWAY_DOMAIN"))
 		if err != nil {
 			return fmt.Errorf("configure managed Dashboard fixture: %w", err)
 		}

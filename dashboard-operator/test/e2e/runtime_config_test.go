@@ -83,6 +83,19 @@ func TestResolveGatewayDomain(t *testing.T) {
 	}
 }
 
+func TestResolveManagedGatewayDomain(t *testing.T) {
+	t.Run("explicit domain", func(t *testing.T) {
+		got, err := resolveManagedGatewayDomain(" dashboard.example.com ")
+		require.NoError(t, err)
+		require.Equal(t, "dashboard.example.com", got)
+	})
+
+	t.Run("missing domain", func(t *testing.T) {
+		_, err := resolveManagedGatewayDomain("")
+		require.ErrorContains(t, err, "managed fixture mode requires TEST_GATEWAY_DOMAIN")
+	})
+}
+
 func TestResolvePlatform(t *testing.T) {
 	tests := []struct {
 		name     string
