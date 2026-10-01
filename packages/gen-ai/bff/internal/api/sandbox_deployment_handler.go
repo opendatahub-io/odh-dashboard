@@ -570,6 +570,7 @@ func (app *App) resolveSandboxMCPServers(
 
 	selectedIDs := make(map[string]struct{}, len(profile.Spec.MCPServers))
 	servers := make([]kubernetes.SandboxMCPServer, 0, len(profile.Spec.MCPServers))
+	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
 	for i, selected := range profile.Spec.MCPServers {
 		var (
 			serverID string
@@ -591,7 +592,7 @@ func (app *App) resolveSandboxMCPServers(
 			}
 			serverID = selected.Name
 			var resolveErr error
-			config, resolveErr = app.resolveRegistryServerConfig(ctx, namespace, serverID, app.mlflowBFFClient(ctx))
+			config, resolveErr = app.resolveRegistryServerConfig(ctx, namespace, serverID, mlflowClient)
 			if resolveErr != nil {
 				return nil, fmt.Errorf("resolve registry MCP server %q: %w", serverID, resolveErr)
 			}
