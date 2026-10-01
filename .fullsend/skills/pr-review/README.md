@@ -57,8 +57,37 @@ Visible sections, in order:
 6. Findings (omit when empty)
 7. Product ask (omit when `status` is `none`)
 8. TODO (omit when empty)
-9. Collapsed **Review details**: Producers (with Notes), Challenger, Evidence
-   inspected, Labels
+9. Collapsed **Review details**: Producers, Challenger, Evidence inspected,
+   Labels
+
+### Producers table
+
+Host-rendered provenance under Review details:
+
+| Column | Meaning |
+| --- | --- |
+| Producer | Human `label` from [`dimensions.json`](../../dimensions.json) (fallback: registry id) |
+| Type | Lowercase output kind: `findings`, `check`, `signal`, `section`, `context` (unknown → `—`) |
+| Ran | Dispatch / adapter status icon (see below) |
+| Result | Kind-aware one-line outcome (not a second Status table) |
+
+**Type resolution:** registry `output` for the dimension id first; if the id is
+absent from the registry, fall back to the CLI adapter envelope’s `output`.
+Collapse `check:*` / `signal:*` / `section:*` to the prefix before `:`.
+
+**Result by Type:**
+
+| Type | Result cell |
+| --- | --- |
+| `findings` | `N findings: cat1, cat2` or `No findings.` |
+| `check` | `pass — <summary>` (status + summary); skipped rows use the skip reason |
+| `signal` | `risk high · confidence medium` from `result_fields` levels (no `why` prose) |
+| `section` | e.g. `product_ask aligned` from each `result_fields` member’s `status` |
+| `context` | `Context available.` / adapter reason token / unavailable defaults |
+| skipped / unverified | Skip or unverified reason in Result; Type still resolved when known |
+
+Check and signal Result cells intentionally overlap Status → Checks / Signals
+for provenance. Status remains the primary outcome surface.
 
 Producer **Ran** icons (ledger + `collected.json` for adapters):
 

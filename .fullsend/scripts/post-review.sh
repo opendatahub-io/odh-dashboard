@@ -14,6 +14,8 @@
 #      coherence, inspected evidence, signals, checks, and labels.
 #   5. Resolve human-facing Check/Producer names from dimensions.json `label`
 #      (fallback: registry id). Machine matching still uses `id`.
+#   6. Producers table columns: Producer | Type | Ran | Result (kind-aware;
+#      Type from registry output, else adapter envelope output).
 
 #
 # Harness may fetch this script with sibling files in scripts/.
@@ -115,36 +117,70 @@ def load_rating_policy():
 
 POLICY = load_rating_policy()
 
-def load_dimension_labels():
-    """Map dimension id → optional human label from dimensions.json."""
-    labels = {}
+def load_dimension_registry():
+    """Map dimension id → {label, output, result_fields} from dimensions.json."""
+    registry = {}
     base = os.environ.get("FULLSEND_CONFIG_DIR") or ""
     path = os.path.join(base, "dimensions.json") if base else ""
     if not path or not os.path.isfile(path):
-        return labels
+        return registry
     try:
         with open(path, encoding="utf-8") as fh:
             loaded = json.load(fh)
     except (OSError, ValueError):
-        return labels
+        return registry
     if not isinstance(loaded, dict):
-        return labels
+        return registry
     for row in loaded.get("dimensions") or []:
         if not isinstance(row, dict):
             continue
         dim_id = row.get("id")
+        if not isinstance(dim_id, str) or not dim_id:
+            continue
+        entry = {}
         label = row.get("label")
-        if isinstance(dim_id, str) and dim_id and isinstance(label, str) and label.strip():
-            labels[dim_id] = label.strip()
-    return labels
+        if isinstance(label, str) and label.strip():
+            entry["label"] = label.strip()
+        output = row.get("output")
+        if isinstance(output, str) and output.strip():
+            entry["output"] = output.strip()
+        fields = row.get("result_fields")
+        if isinstance(fields, list):
+            entry["result_fields"] = [f for f in fields if isinstance(f, str) and f]
+        registry[dim_id] = entry
+    return registry
 
-DIMENSION_LABELS = load_dimension_labels()
+DIMENSION_REGISTRY = load_dimension_registry()
 
 def dimension_label(dim_id):
     """Human-facing name for a registry id; falls back to the id."""
     if not isinstance(dim_id, str) or not dim_id:
         return dim_id or ""
-    return DIMENSION_LABELS.get(dim_id) or dim_id
+    entry = DIMENSION_REGISTRY.get(dim_id) or {}
+    return entry.get("label") or dim_id
+
+def output_kind(output):
+    """Collapse registry/envelope output to a lowercase Type token."""
+    if not isinstance(output, str) or not output.strip():
+        return "—"
+    raw = output.strip().lower()
+    if raw in ("findings", "context"):
+        return raw
+    if ":" in raw:
+        prefix = raw.split(":", 1)[0]
+        if prefix in ("check", "signal", "section"):
+            return prefix
+    return "—"
+
+def dimension_type(dim_id, envelope=None):
+    """Type column: registry output first, else adapter envelope output."""
+    entry = DIMENSION_REGISTRY.get(dim_id) if isinstance(dim_id, str) else None
+    output = (entry or {}).get("output")
+    if not output and isinstance(envelope, dict):
+        env_out = envelope.get("output")
+        if isinstance(env_out, str) and env_out.strip():
+            output = env_out.strip()
+    return output_kind(output)
 
 def rated_level(result, field, default):
     rated = result.get(field)
@@ -617,7 +653,7 @@ def producer_ids(finding):
             ids.append(part)
     return ids
 
-def producer_note(name, findings, checks):
+def findings_result(name, findings):
     mine = [f for f in findings if name in producer_ids(f)]
     if mine:
         cats = []
@@ -627,17 +663,63 @@ def producer_note(name, findings, checks):
                 cats.append(cat)
         noun = "finding" if len(mine) == 1 else "findings"
         return f"{len(mine)} {noun}: {', '.join(cats)}"
-    for check in checks:
-        if isinstance(check, dict) and check.get("id") == name and check.get("summary"):
-            return clean(check.get("summary"))
     return "No findings."
+
+def check_result(name, review_checks):
+    for check in review_checks:
+        if isinstance(check, dict) and check.get("id") == name:
+            status = clean(check.get("status") or "")
+            summary = clean(check.get("summary") or "")
+            if status and summary:
+                return f"{status} — {summary}"
+            return status or summary or "No check result."
+    return "No check result."
+
+def signal_result(dim_id, result):
+    entry = DIMENSION_REGISTRY.get(dim_id) or {}
+    fields = entry.get("result_fields") or ["risk", "confidence"]
+    parts = []
+    for field in fields:
+        rated = result.get(field) if isinstance(result, dict) else None
+        if isinstance(rated, dict) and rated.get("level"):
+            parts.append(f"{field} {clean(str(rated.get('level')).lower())}")
+    return " · ".join(parts) if parts else "No signal levels."
+
+def section_result(dim_id, result):
+    entry = DIMENSION_REGISTRY.get(dim_id) or {}
+    fields = list(entry.get("result_fields") or [])
+    if not fields:
+        output = entry.get("output") or ""
+        if isinstance(output, str) and output.startswith("section:") and output.split(":", 1)[1]:
+            fields = [output.split(":", 1)[1]]
+    parts = []
+    for field in fields:
+        section = result.get(field) if isinstance(result, dict) else None
+        if isinstance(section, dict) and section.get("status") is not None:
+            parts.append(f"{field} {clean(str(section.get('status')))}")
+    return " · ".join(parts) if parts else "No section result."
+
+def producer_result(name, result, findings, review_checks, kind=None):
+    """Kind-aware Result cell for a dispatched (or ok-adapter) producer."""
+    kind = kind or dimension_type(name)
+    if kind == "findings":
+        return findings_result(name, findings)
+    if kind == "check":
+        return check_result(name, review_checks)
+    if kind == "signal":
+        return signal_result(name, result)
+    if kind == "section":
+        return section_result(name, result)
+    if kind == "context":
+        return "Context available."
+    return "—"
 
 # Adapter `reason` values are fixed tokens (`no-issue-key`, `http-404`,
 # `URLError`). Issue titles and other free-form text are not.
 _ADAPTER_REASON = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
 
 def adapter_reason(envelope):
-    """Humanize a fixed adapter reason token for the Producers Notes cell.
+    """Humanize a fixed adapter reason token for the Producers Result cell.
 
     Only `reason` is eligible. Snapshot fields such as `summary` stay off the
     public comment. A value that is not a token is dropped so the caller can
@@ -650,66 +732,68 @@ def adapter_reason(envelope):
         return ""
     return clean(token.replace("-", " "))
 
-def adapter_producer_row(name, envelope, findings, review_checks, count_cell):
+def adapter_producer_row(name, envelope, result, findings, review_checks):
     """Render a cli-adapter ledger entry from its collected envelope status.
 
     ok → ran (✅). none/skipped → unavailable (⚪), not a clean zero-finding run.
-    error → ❌. Missing or unrecognized envelope → ❔."""
+    error → ❌. Missing or unrecognized envelope → ❔.
+    Returns (label, type, ran_icon, result)."""
     shown = dimension_label(name)
+    typ = dimension_type(name, envelope if isinstance(envelope, dict) else None)
     if not isinstance(envelope, dict):
-        return (clean(shown), "❔", "—", "adapter envelope missing")
+        return (clean(shown), typ, "❔", "adapter envelope missing")
     status = str(envelope.get("status") or "").strip().lower()
     reason = adapter_reason(envelope)
     if status == "ok":
-        if str(envelope.get("output") or "").strip().lower() == "context":
-            note = "Context available."
-        else:
-            note = producer_note(name, findings, review_checks)
-        return (clean(shown), "✅", count_cell(name), note)
+        res = producer_result(name, result, findings, review_checks, kind=typ)
+        return (clean(shown), typ, "✅", res)
     if status in ("none", "skipped"):
         default = "No usable adapter context." if status == "none" else "Adapter skipped."
-        return (clean(shown), "⚪", "—", reason or default)
+        return (clean(shown), typ, "⚪", reason or default)
     if status == "error":
-        return (clean(shown), "❌", "—", reason or "Adapter error.")
-    return (clean(shown), "❔", "—", reason or f"Unrecognized adapter status: {status or 'missing'}")
+        return (clean(shown), typ, "❌", reason or "Adapter error.")
+    return (clean(shown), typ, "❔", reason or f"Unrecognized adapter status: {status or 'missing'}")
 
 def producer_rows(result):
-    """What ran, and what each one found — from the dispatch ledger.
+    """What ran, by kind, with a Result cell — from the dispatch ledger.
 
     LLM rows in `dispatched` are ✅. Adapter rows consult collected.json so
-    status none/skipped/error are not shown as a clean run with zero findings."""
+    status none/skipped/error are not shown as a clean run with zero findings.
+    Each row is (label, type, ran_icon, result)."""
     ledger = load_ledger()
     collected = load_collected()
     findings = result.get("findings") or []
     review_checks = checks(result)
-    attributed = any(f.get("dimension") for f in findings)
-    counts = {}
-    for f in findings:
-        for key in producer_ids(f):
-            counts[key] = counts.get(key, 0) + 1
-
-    def count_cell(name):
-        if not attributed:
-            return "—"
-        return str(counts.get(name, 0))
 
     rows = []
     if ledger is None:
         unverified_note = "run state is unverified because no dispatch ledger exists"
         for name in (result.get("inspected") or {}).get("producers") or []:
-            rows.append((clean(dimension_label(name)), "❔", count_cell(name), unverified_note))
+            if isinstance(name, str):
+                rows.append((clean(dimension_label(name)), dimension_type(name), "❔", unverified_note))
         return rows, False
     for name in ledger.get("dispatched") or []:
         if isinstance(name, str):
-            rows.append((clean(dimension_label(name)), "✅", count_cell(name), producer_note(name, findings, review_checks)))
+            typ = dimension_type(name)
+            rows.append((
+                clean(dimension_label(name)),
+                typ,
+                "✅",
+                producer_result(name, result, findings, review_checks, kind=typ),
+            ))
     for name in ledger.get("adapters") or []:
         if isinstance(name, str):
             rows.append(adapter_producer_row(
-                name, collected.get(name), findings, review_checks, count_cell))
+                name, collected.get(name), result, findings, review_checks))
     for row in ledger.get("skipped") or []:
         if isinstance(row, dict) and isinstance(row.get("id"), str):
             reason = clean(row.get("reason") or "not selected")
-            rows.append((clean(dimension_label(row["id"])), "➖", "—", reason))
+            rows.append((
+                clean(dimension_label(row["id"])),
+                dimension_type(row["id"]),
+                "➖",
+                reason,
+            ))
     return rows, True
 
 def status_headline(result, action):
@@ -830,11 +914,11 @@ def render_body(result, previous_md, action):
     rows, from_ledger = producer_rows(result)
     if rows:
         details_body += ["### Producers", "",
-                         "| Producer | Ran | Findings count | Notes |",
+                         "| Producer | Type | Ran | Result |",
                          "| --- | --- | --- | --- |"]
-        for name, ran, count, notes in rows:
+        for name, typ, ran, res in rows:
             details_body.append(
-                f"| {table_cell(name)} | {ran} | {table_cell(count)} | {table_cell(notes)} |")
+                f"| {table_cell(name)} | {table_cell(typ)} | {ran} | {table_cell(res)} |")
         if not from_ledger:
             details_body += ["", "_No dispatch ledger for this run — this list is self-reported by the agent._"]
         details_body.append("")
@@ -861,10 +945,10 @@ def render_body(result, previous_md, action):
         details_body.append("")
 
     if details_body:
-        ran = sum(1 for _, icon, _, _ in rows if icon == "✅")
-        unavailable = sum(1 for _, icon, _, _ in rows if icon == "⚪")
-        errored = sum(1 for _, icon, _, _ in rows if icon == "❌")
-        skipped = sum(1 for _, icon, _, _ in rows if icon == "➖")
+        ran = sum(1 for _, _, icon, _ in rows if icon == "✅")
+        unavailable = sum(1 for _, _, icon, _ in rows if icon == "⚪")
+        errored = sum(1 for _, _, icon, _ in rows if icon == "❌")
+        skipped = sum(1 for _, _, icon, _ in rows if icon == "➖")
         parts = []
         if ran:
             parts.append(f"{ran} producer(s) ran")
@@ -1166,13 +1250,13 @@ run_self_test() {
   if ! grep -q '### Producers' <<<"${body}"; then
     echo "FAIL provenance: no Producers table" >&2
     fail=1
-  elif ! grep -qE '^\| Correctness \| ✅ \| 1 \|' <<<"${body}"; then
+  elif ! grep -qE '^\| Correctness \| findings \| ✅ \| 1 finding: off-by-one' <<<"${body}"; then
     echo "FAIL provenance: producer that found something is not counted" >&2
     fail=1
-  elif ! grep -qE '^\| Style \| ✅ \| 0 \|' <<<"${body}"; then
+  elif ! grep -qE '^\| Style \| findings \| ✅ \| No findings\.' <<<"${body}"; then
     echo "FAIL provenance: producer that ran clean is not distinguished from one that was skipped" >&2
     fail=1
-  elif ! grep -qE '^\| Security \| ➖ \| — \| no auth or secrets touched' <<<"${body}"; then
+  elif ! grep -qE '^\| Security \| findings \| ➖ \| no auth or secrets touched' <<<"${body}"; then
     echo "FAIL provenance: skipped producer missing its reason" >&2
     fail=1
   elif ! grep -q '`Correctness` · \*\*off-by-one\*\*' <<<"${body}"; then
@@ -1200,10 +1284,10 @@ run_self_test() {
     transform_review_result "${tmp}/merged.json"
   ) > "${tmp}/merged-out.json"
   body=$(jq -r .body "${tmp}/merged-out.json")
-  if ! grep -qE '^\| Correctness \| ✅ \| 2 \| 2 findings: naming, off-by-one' <<<"${body}"; then
+  if ! grep -qE '^\| Correctness \| findings \| ✅ \| 2 findings: naming, off-by-one' <<<"${body}"; then
     echo "FAIL merged-dimension: correctness did not receive both findings" >&2
     fail=1
-  elif ! grep -qE '^\| Style \| ✅ \| 1 \| 1 finding: naming' <<<"${body}"; then
+  elif ! grep -qE '^\| Style \| findings \| ✅ \| 1 finding: naming' <<<"${body}"; then
     echo "FAIL merged-dimension: style-review missed the merged finding" >&2
     fail=1
   else
@@ -1221,10 +1305,10 @@ run_self_test() {
     transform_review_result "${tmp}/adapter-status.json"
   ) > "${tmp}/adapter-status-out.json"
   body=$(jq -r .body "${tmp}/adapter-status-out.json")
-  if ! grep -qE '^\| Jira \| ⚪ \| — \| no issue key' <<<"${body}"; then
+  if ! grep -qE '^\| Jira \| context \| ⚪ \| no issue key' <<<"${body}"; then
     echo "FAIL adapter-status: status=none adapter was not marked unavailable" >&2
     fail=1
-  elif ! grep -qE '^\| CodeRabbit \| ✅ \| — \| No findings\.' <<<"${body}"; then
+  elif ! grep -qE '^\| CodeRabbit \| findings \| ✅ \| No findings\.' <<<"${body}"; then
     echo "FAIL adapter-status: status=ok findings adapter with empty findings should still show ran-clean" >&2
     fail=1
   elif ! grep -q '2 producer(s) ran, 1 unavailable' <<<"${body}"; then
@@ -1242,7 +1326,7 @@ run_self_test() {
     transform_review_result "${tmp}/adapter-status.json"
   ) > "${tmp}/adapter-error-out.json"
   body=$(jq -r .body "${tmp}/adapter-error-out.json")
-  if ! grep -qE '^\| CodeRabbit \| ❌ \| — \| cli unavailable' <<<"${body}"; then
+  if ! grep -qE '^\| CodeRabbit \| findings \| ❌ \| cli unavailable' <<<"${body}"; then
     echo "FAIL adapter-error: status=error adapter was not marked errored" >&2
     fail=1
   else
@@ -1250,7 +1334,7 @@ run_self_test() {
   fi
 
   # Context snapshots must not publish summary/description, free-form reasons
-  # must fall back to the status default, and Notes cells must not break the
+  # must fall back to the status default, and Result cells must not break the
   # table or close the host <details> block.
   jq -n \
     --arg summary $'Secret title </details>\n| break' \
@@ -1276,26 +1360,50 @@ run_self_test() {
   if grep -q 'Secret title' <<<"${body}" || grep -q 'private body' <<<"${body}" || grep -q 'boom' <<<"${body}"; then
     echo "FAIL adapter-safe: snapshot text or free-form reason reached the comment" >&2
     fail=1
-  elif ! grep -qF '| Jira | ✅ | — | Context available. |' <<<"${body}"; then
+  elif ! grep -qF '| Jira | context | ✅ | Context available. |' <<<"${body}"; then
     echo "FAIL adapter-safe: ok context adapter must use the fixed note" >&2
     fail=1
-  elif ! grep -qF '| CodeRabbit | ❌ | — | Adapter error. |' <<<"${body}"; then
+  elif ! grep -qF '| CodeRabbit | findings | ❌ | Adapter error. |' <<<"${body}"; then
     echo "FAIL adapter-safe: free-form error reason must use the status default" >&2
     fail=1
-  elif ! grep -qF '| other | ❌ | — | http 404 |' <<<"${body}"; then
+  elif ! grep -qF '| other | findings | ❌ | http 404 |' <<<"${body}"; then
     echo "FAIL adapter-safe: token reason was not humanized" >&2
     fail=1
-  elif ! grep -qF '| PR description | ✅ | — | note &lt;/details> \| x |' <<<"${body}"; then
-    echo "FAIL adapter-safe: check summary in Notes was not escaped" >&2
+  elif ! grep -qF '| PR description | check | ✅ | warning — note &lt;/details> \| x |' <<<"${body}"; then
+    echo "FAIL adapter-safe: check Result was not escaped" >&2
     fail=1
-  elif ! grep -qF '| Security | ➖ | — | skip &lt;/details> \| x |' <<<"${body}"; then
-    echo "FAIL adapter-safe: skipped reason in Notes was not escaped" >&2
+  elif ! grep -qF '| Security | findings | ➖ | skip &lt;/details> \| x |' <<<"${body}"; then
+    echo "FAIL adapter-safe: skipped reason in Result was not escaped" >&2
     fail=1
   elif [[ "$(grep -c '</details>' <<<"${body}")" -ne 1 ]]; then
-    echo "FAIL adapter-safe: a Notes cell closed the host details block" >&2
+    echo "FAIL adapter-safe: a Result cell closed the host details block" >&2
     fail=1
   else
     echo "PASS adapter notes stay inside the table and omit snapshot text"
+  fi
+
+  # Mixed kinds: check / signal / section Type + Result cells (not findings-shaped).
+  printf '%s' '{"dispatched":["correctness","test-impact-review","rating","product-ask-review"],"adapters":[],"skipped":[],"returned":["correctness","test-impact-review","rating","product-ask-review"],"challenger":{"status":"skipped","reason":"no findings to adjudicate"}}' > "${tmp}/mixed-ledger.json"
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"pass\",\"summary\":\"Selector tests cover the planner.\"}],\"product_ask\":{\"status\":\"aligned\"},\"risk\":{\"level\":\"high\",\"why\":\"Wide CI surface.\"},\"confidence\":{\"level\":\"medium\",\"why\":\"Unit evidence only.\"}}" > "${tmp}/mixed.json"
+  (
+    export REVIEW_PRODUCER_LEDGER="${tmp}/mixed-ledger.json"
+    transform_review_result "${tmp}/mixed.json"
+  ) > "${tmp}/mixed-out.json"
+  body=$(jq -r .body "${tmp}/mixed-out.json")
+  if ! grep -qE '^\| Correctness \| findings \| ✅ \| No findings\.' <<<"${body}"; then
+    echo "FAIL mixed-kind: findings producer Result wrong" >&2
+    fail=1
+  elif ! grep -qE '^\| Test impact \| check \| ✅ \| pass — Selector tests cover the planner\.' <<<"${body}"; then
+    echo "FAIL mixed-kind: check Type/Result wrong" >&2
+    fail=1
+  elif ! grep -qE '^\| Rating \| signal \| ✅ \| risk high · confidence medium' <<<"${body}"; then
+    echo "FAIL mixed-kind: signal Type/Result wrong" >&2
+    fail=1
+  elif ! grep -qE '^\| Product ask \| section \| ✅ \| product_ask aligned' <<<"${body}"; then
+    echo "FAIL mixed-kind: section Type/Result wrong" >&2
+    fail=1
+  else
+    echo "PASS mixed-kind producers render Type and Result by output kind"
   fi
 
   # A patch snippet must survive as code. Flattened to one bullet it is
