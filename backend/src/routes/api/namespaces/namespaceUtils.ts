@@ -42,7 +42,7 @@ const checkAdminNamespacePermission = (
     namespace: name,
   });
 
-const checkEditNamespacePermission = (
+export const checkEditNamespacePermission = (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
   name: string,
@@ -55,6 +55,13 @@ const checkEditNamespacePermission = (
     name,
     namespace: name,
   });
+
+export const ensureLegacyNIMEnabled = (): void => {
+  const config = getDashboardConfig();
+  if (!config || config.spec.dashboardConfig.disableNIMModelServing) {
+    throw createCustomError('NIM model serving disabled', 'NIM model serving is disabled.', 403);
+  }
+};
 
 export const applyNamespaceChange = async (
   fastify: KubeFastifyInstance,
@@ -101,6 +108,7 @@ export const applyNamespaceChange = async (
       break;
     case NamespaceApplicationCase.KSERVE_NIM_PROMOTION:
       {
+        ensureLegacyNIMEnabled();
         annotations = { 'opendatahub.io/nim-support': 'true' };
         labels = { 'modelmesh-enabled': 'false' };
         checkPermissionsFn = checkEditNamespacePermission;
