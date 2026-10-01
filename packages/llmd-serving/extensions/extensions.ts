@@ -18,6 +18,7 @@ import type {
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type {
   AreaExtension,
+  ResourceCapabilityExtension,
   HrefNavItemExtension,
   RouteExtension,
   TabRouteTabExtension,
@@ -410,14 +411,36 @@ const extensions: (
   | WizardFieldExtractorExtension<{ method: string }, LLMdDeployment>
   | TopologyConfigsExtensionsType
   | HrefNavItemExtension
+  | ResourceCapabilityExtension
   | RouteExtension
   | TabRouteTabExtension
 )[] = [
   {
+    type: 'app.resource-capability',
+    flags: {
+      required: [LLMD_SERVING_ID, SupportedArea.MODEL_SERVING],
+    },
+    properties: {
+      id: 'llm-inference-services',
+      resource: {
+        group: 'serving.kserve.io',
+        version: 'v1alpha2',
+        resource: 'llminferenceservices',
+      },
+      // Deployment watches are project-scoped; cluster-wide permission is not required.
+      namespaceScope: 'any',
+      permissions: (['list', 'watch'] as const).map((verb) => ({
+        group: 'serving.kserve.io',
+        resource: 'llminferenceservices',
+        verb,
+      })),
+    },
+  },
+  {
     type: 'app.area',
     properties: {
       id: LLMD_SERVING_ID,
-      reliantAreas: [SupportedArea.K_SERVE],
+      reliantAreas: [SupportedArea.MODEL_SERVING],
       featureFlags: ['disableLLMd'],
     },
   },

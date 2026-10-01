@@ -1,9 +1,17 @@
 import * as React from 'react';
+import { Bullseye, Spinner } from '@patternfly/react-core';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
+import {
+  GatewayDiscoveryContext,
+  gatewayDiscoveryServices,
+} from '@odh-dashboard/model-serving/api/gatewayDiscovery';
 import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   HostApiContext,
   HostApiCoreContext,
   HostApiInfraContext,
+  PluginCapabilities,
   type HostApiCoreServices,
   type HostApiInfraServices,
   type HostApiServices,
@@ -16,6 +24,8 @@ import {
   getSecretsByLabel,
 } from '@odh-dashboard/k8s-core/api/secrets';
 import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
+import { checkAccessStrict } from '@odh-dashboard/k8s-core/api/accessReview';
+import { discoverK8sResource } from '@odh-dashboard/k8s-core/api/discovery';
 import type { K8sResourceCommon, SecretKind } from '@odh-dashboard/k8s-core';
 import { DashboardNamespaceContext } from './DashboardNamespaceContext';
 
@@ -101,7 +111,9 @@ const patchSecretWithProtocolAnnotation = (
 
 const createCoreApi = (dashboardNamespace: string): HostApiCoreServices => ({
   dashboardNamespace,
-  checkAccess: () => Promise.resolve(false),
+  checkAccess: (attrs) => checkAccessStrict(attrs).catch(() => false),
+  reviewAccess: checkAccessStrict,
+  discoverResource: discoverK8sResource,
   trackEvent: () => undefined,
   fetchDashboardConfig: () =>
     Promise.reject(new Error('DashboardConfig is not available in the RHAII Tilt host.')),
@@ -153,12 +165,31 @@ type HostApiProviderProps = {
 const HostApiProvider: React.FC<HostApiProviderProps> = ({ children }) => {
   const dashboardNamespace = React.useContext(DashboardNamespaceContext);
   const coreApi = React.useMemo(() => createCoreApi(dashboardNamespace), [dashboardNamespace]);
+  const { projects, loaded, loadError } = React.useContext(ProjectsContext);
+  const namespaceCandidates = useDeepCompareMemoize({
+    namespaces: [...new Set(projects.map((project) => project.metadata.name))].toSorted(),
+    loaded,
+    error: loadError,
+  });
 
   return (
     <HostApiCoreContext.Provider value={coreApi}>
-      <HostApiInfraContext.Provider value={infraApi}>
-        <HostApiContext.Provider value={hostApi}>{children}</HostApiContext.Provider>
-      </HostApiInfraContext.Provider>
+      <PluginCapabilities
+        namespaceCandidates={namespaceCandidates}
+        fallback={
+          <Bullseye>
+            <Spinner />
+          </Bullseye>
+        }
+      >
+        <HostApiInfraContext.Provider value={infraApi}>
+          <HostApiContext.Provider value={hostApi}>
+            <GatewayDiscoveryContext.Provider value={gatewayDiscoveryServices}>
+              {children}
+            </GatewayDiscoveryContext.Provider>
+          </HostApiContext.Provider>
+        </HostApiInfraContext.Provider>
+      </PluginCapabilities>
     </HostApiCoreContext.Provider>
   );
 };

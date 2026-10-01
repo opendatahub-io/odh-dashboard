@@ -95,6 +95,7 @@ curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" localhost:4000/a
 curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" localhost:4000/api/connection-types
 
 # Model Serving
+curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" 'localhost:4000/api/service/model-serving/api/v1/gateways?namespace=project-a'
 curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" localhost:4000/api/nim-serving/apiKeySecret
 curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" localhost:4000/api/integrations/nim
 curl -i -X POST -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" -H "Content-Type: application/json" -d '{"query":"up"}' localhost:4000/api/prometheus/query
@@ -103,6 +104,8 @@ curl -i -X POST -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" -H "Cont
 ### Route Security
 
 Authenticated endpoints use `secureRoute()` (token validation + audit logging) and admin endpoints use `secureAdminRoute()` (token validation + SSAR admin check + audit logging). Admin detection checks SSAR for `patch` on `auths/default-auth`. Non-admin users receive 403. Namespace validation is handled separately by `isAllowedNamespace`.
+
+Gateway discovery forwards only `GET /api/service/model-serving/api/v1/gateways` with a single valid `namespace` query parameter to the configured model-serving service. Arbitrary paths, methods, services, and additional query parameters are rejected. Kubernetes discovery and SelfSubjectAccessReview use the existing `/api/k8s` proxy with the authenticated caller token, not the service account.
 
 ### Privilege Model
 

@@ -1,6 +1,6 @@
+import { isGatewayOption } from '@odh-dashboard/model-serving/api/gatewayDiscovery';
 import { GatewaySelectFieldData } from './GatewaySelectField';
 import { LLMdDeployment } from '../../types';
-import { isGatewayOption } from '../../api/services/gatewayDiscovery';
 
 /**
  * Applies gateway selection to an LLMInferenceService deployment.

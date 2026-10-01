@@ -1,7 +1,7 @@
 import React, { act } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { GatewayOption } from '../../../api/services/gatewayDiscovery';
+import { GatewayOption } from '@odh-dashboard/model-serving/api/gatewayDiscovery';
 import { GatewaySelectField, GatewaySelectFieldData } from '../GatewaySelectField';
 
 const GatewaySelectFieldComponent = GatewaySelectField.component;
@@ -179,6 +179,7 @@ describe('GatewaySelectFieldComponent', () => {
       });
 
       expect(screen.getByTestId('gateway-select')).toHaveClass('pf-m-warning');
+      expect(screen.getByTestId('gateway-select')).toBeDisabled();
       expect(screen.getByText(/Gateway discovery failed\./)).toBeInTheDocument();
       expect(
         screen.getByText(/Ensure "model-serving-api" service is healthy and accessible\./),

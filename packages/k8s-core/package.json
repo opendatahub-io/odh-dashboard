@@ -5,6 +5,7 @@
   "version": "0.0.0",
   "exports": {
     ".": "./src/index.ts",
+    "./__mocks__/mockK8sAPIResourceList": "./src/__mocks__/mockK8sAPIResourceList.ts",
     "./__mocks__/mockConfigMap": "./src/__mocks__/mockConfigMap.ts",
     "./__mocks__/mockConnectionType": "./src/__mocks__/mockConnectionType.ts",
     "./__mocks__/mockDashboardConfig": "./src/__mocks__/mockDashboardConfig.ts",
@@ -20,6 +21,8 @@
     "./__mocks__/mockSecretK8sResource": "./src/__mocks__/mockSecretK8sResource.ts",
     "./__mocks__/mockTrustyAIServiceK8sResource": "./src/__mocks__/mockTrustyAIServiceK8sResource.ts",
     "./api/models": "./src/api/models.ts",
+    "./api/accessReview": "./src/api/accessReview.ts",
+    "./api/discovery": "./src/api/discovery.ts",
     "./api/secrets": "./src/api/secrets.ts",
     "./api/serviceAccounts": "./src/api/serviceAccounts.ts",
     "./api/roles": "./src/api/roles.ts",

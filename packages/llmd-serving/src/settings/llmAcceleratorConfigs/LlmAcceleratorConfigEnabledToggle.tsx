@@ -17,7 +17,9 @@ import {
   getResourceVersions,
 } from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
-import type { LLMInferenceServiceConfigKind } from '../../types';
+import { useAccessReviewState } from '@odh-dashboard/plugin-core/host-api';
+import { verbModelAccess } from '@odh-dashboard/k8s-core/api/accessReview';
+import { LLMInferenceServiceConfigModel, type LLMInferenceServiceConfigKind } from '../../types';
 import { DISABLED_ANNOTATION } from '../../const';
 import { isConfigEnabled } from '../../utils';
 import { patchLLMInferenceServiceConfig } from '../../api/LLMInferenceServiceConfigs';
@@ -31,6 +33,13 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
   config,
 }) => {
   const notification = useNotification();
+  const patchAccess = useAccessReviewState(
+    {
+      ...verbModelAccess('patch', LLMInferenceServiceConfigModel, config.metadata.namespace),
+      name: config.metadata.name,
+    },
+    !!config.metadata.namespace && !!config.metadata.name,
+  );
   const [isToggling, setIsToggling] = React.useState(false);
   const [showAcceptanceModal, setShowAcceptanceModal] = React.useState(false);
 
@@ -120,7 +129,7 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
         aria-label={`${configName}-enabled-toggle`}
         data-testid={`llm-accelerator-config-enabled-toggle-${configName}`}
         isChecked={effectiveEnabled}
-        isDisabled={isToggling}
+        isDisabled={isToggling || patchAccess.state !== 'allowed'}
         onChange={handleToggle}
       />
       {showAcceptanceModal ? (

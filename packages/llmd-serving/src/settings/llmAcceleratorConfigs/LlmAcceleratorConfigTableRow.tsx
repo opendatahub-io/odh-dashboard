@@ -9,6 +9,7 @@ import { PreInstalledName } from '@odh-dashboard/internal/concepts/k8s/utils';
 import LlmAcceleratorConfigEnabledToggle from './LlmAcceleratorConfigEnabledToggle';
 import type { LLMInferenceServiceConfigKind } from '../../types';
 import { isConfigPreInstalled } from '../../utils';
+import { useLlmConfigAccess } from '../useLlmConfigAccess';
 
 type LlmAcceleratorConfigTableRowProps = {
   obj: LLMInferenceServiceConfigKind;
@@ -24,6 +25,7 @@ const LlmAcceleratorConfigTableRow: React.FC<LlmAcceleratorConfigTableRowProps> 
   const navigate = useNavigate();
   const configName = config.metadata.name;
   const preInstalled = isConfigPreInstalled(config);
+  const { canEdit, canDuplicate, canDelete } = useLlmConfigAccess(config, 'update');
 
   const kebabItems = preInstalled
     ? [
@@ -50,6 +52,18 @@ const LlmAcceleratorConfigTableRow: React.FC<LlmAcceleratorConfigTableRowProps> 
           isDanger: true,
         },
       ];
+  const allowedItems = kebabItems.filter((item) => {
+    switch (item.title) {
+      case 'Edit':
+        return canEdit;
+      case 'Duplicate':
+        return canDuplicate;
+      case 'Delete':
+        return canDelete;
+      default:
+        return false;
+    }
+  });
 
   return (
     <Tr key={rowIndex} data-testid={`llm-accelerator-config ${configName}`}>
@@ -65,9 +79,7 @@ const LlmAcceleratorConfigTableRow: React.FC<LlmAcceleratorConfigTableRowProps> 
       <Td dataLabel="Enabled">
         <LlmAcceleratorConfigEnabledToggle config={config} />
       </Td>
-      <Td isActionCell>
-        <ActionsColumn items={kebabItems} />
-      </Td>
+      <Td isActionCell>{allowedItems.length > 0 && <ActionsColumn items={allowedItems} />}</Td>
     </Tr>
   );
 };

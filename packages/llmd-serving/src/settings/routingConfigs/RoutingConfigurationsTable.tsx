@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import RoutingConfigurationRow, { getSupportedTopologiesLabel } from './RoutingConfigurationRow';
+import LlmConfigCreateAccess from '../LlmConfigCreateAccess';
 import { type LLMInferenceServiceConfigKind } from '../../types';
 import { isConfigEnabled, isConfigEffectivelyEnabled } from '../../utils';
 import { patchLLMInferenceServiceConfig } from '../../api/LLMInferenceServiceConfigs';
@@ -100,7 +101,7 @@ const RoutingConfigurationsTable: React.FC<RoutingConfigurationsTableProps> = ({
         data-testid="routing-configurations-table"
         data={configs}
         columns={columns}
-        toolbarContent={toolbarContent}
+        toolbarContent={<LlmConfigCreateAccess>{toolbarContent}</LlmConfigCreateAccess>}
         emptyTableView={
           <EmptyState
             headingLevel="h2"

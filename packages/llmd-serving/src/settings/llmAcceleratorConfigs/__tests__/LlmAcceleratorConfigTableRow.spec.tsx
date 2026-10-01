@@ -4,6 +4,10 @@ import '@testing-library/jest-dom';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import LlmAcceleratorConfigTableRow from '../LlmAcceleratorConfigTableRow';
 
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+  useAccessReviewState: jest.fn(() => ({ state: 'allowed' })),
+}));
+
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: jest.fn(() => jest.fn()),

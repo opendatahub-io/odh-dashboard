@@ -33,7 +33,7 @@ import { PluginStoreAreaFlagsProvider } from '#~/plugins/PluginStoreAreaFlagsPro
 import { OdhPlatformType } from '#~/types';
 import { HardwareProfilesContextProvider } from '#~/concepts/hardwareProfiles/HardwareProfilesContext';
 import { useFederatedNotificationListener } from '#~/utilities/useFederatedNotificationListener';
-import HostApiProvider from './HostApiProvider';
+import HostApiProvider, { HostCapabilities } from './HostApiProvider';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
@@ -182,15 +182,17 @@ const App: React.FC = () => {
                 <ErrorBoundary>
                   <IntegrationsStatusProvider>
                     <ProjectsContextProvider>
-                      <HardwareProfilesContextProvider>
-                        <ModelRegistriesContextProvider>
-                          <QuickStarts>
-                            <NotificationWatcherContextProvider pollInterval={POLL_INTERVAL}>
-                              <AppRoutes />
-                            </NotificationWatcherContextProvider>
-                          </QuickStarts>
-                        </ModelRegistriesContextProvider>
-                      </HardwareProfilesContextProvider>
+                      <HostCapabilities>
+                        <HardwareProfilesContextProvider>
+                          <ModelRegistriesContextProvider>
+                            <QuickStarts>
+                              <NotificationWatcherContextProvider pollInterval={POLL_INTERVAL}>
+                                <AppRoutes />
+                              </NotificationWatcherContextProvider>
+                            </QuickStarts>
+                          </ModelRegistriesContextProvider>
+                        </HardwareProfilesContextProvider>
+                      </HostCapabilities>
                     </ProjectsContextProvider>
                   </IntegrationsStatusProvider>
                   <ToastNotifications />

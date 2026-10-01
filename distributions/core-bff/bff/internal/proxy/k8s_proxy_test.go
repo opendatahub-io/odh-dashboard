@@ -98,6 +98,44 @@ func TestK8sProxy_QueryParams(t *testing.T) {
 	}
 }
 
+func TestK8sProxy_DiscoveryAndSSARUseCallerIdentity(t *testing.T) {
+	const callerToken = "caller-token"
+	const ssar = `{"apiVersion":"authorization.k8s.io/v1","kind":"SelfSubjectAccessReview","spec":{"resourceAttributes":{"group":"serving.kserve.io","resource":"llminferenceservices","verb":"list","namespace":"project-a"}}}`
+	for _, tc := range []struct{ method, path, body string }{
+		{http.MethodGet, "/apis/serving.kserve.io/v1alpha2", ""},
+		{http.MethodPost, "/apis/authorization.k8s.io/v1/selfsubjectaccessreviews", ssar},
+	} {
+		t.Run(tc.path, func(t *testing.T) {
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if got := r.Header.Get("Authorization"); got != "Bearer "+callerToken {
+					t.Errorf("authorization = %q; expected caller token", got)
+				}
+				if r.URL.Path != tc.path {
+					t.Errorf("path = %q, want %q", r.URL.Path, tc.path)
+				}
+				body, _ := io.ReadAll(r.Body)
+				if string(body) != tc.body {
+					t.Errorf("SSAR body changed: %s", body)
+				}
+				w.WriteHeader(http.StatusForbidden)
+			}))
+			defer upstream.Close()
+			cfg := testK8sProxyConfig(upstream.URL)
+			cfg.DevFallbackToken = "must-not-use-service-account-token"
+			handler, err := NewK8sProxyHandler(cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			req := httptest.NewRequest(tc.method, "/api/k8s"+tc.path, strings.NewReader(tc.body)).WithContext(newIdentityContext(callerToken))
+			rr := httptest.NewRecorder()
+			handler.ServeHTTP(rr, req)
+			if rr.Code != http.StatusForbidden {
+				t.Errorf("status = %d, want 403", rr.Code)
+			}
+		})
+	}
+}
+
 func TestK8sProxy_AuthHeader(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Got-Auth", r.Header.Get("Authorization"))

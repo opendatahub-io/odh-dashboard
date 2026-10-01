@@ -8,6 +8,10 @@ import LlmAcceleratorConfigEnabledToggle from '../LlmAcceleratorConfigEnabledTog
 import { patchLLMInferenceServiceConfig } from '../../../api/LLMInferenceServiceConfigs';
 import type { LLMInferenceServiceConfigKind } from '../../../types';
 
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+  useAccessReviewState: jest.fn(() => ({ state: 'allowed' })),
+}));
+
 jest.mock('@odh-dashboard/internal/utilities/useNotification', () => {
   const mockNotification = { error: jest.fn(), success: jest.fn(), info: jest.fn() };
   return { __esModule: true, default: () => mockNotification };

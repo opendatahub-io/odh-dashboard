@@ -7,7 +7,7 @@ import LlmAcceleratorConfigContextProvider from '../LlmAcceleratorConfigContext'
 import { useWatchLLMInferenceServiceConfigs } from '../../../api/LLMInferenceServiceConfigs';
 import { ConfigType } from '../../../types';
 
-jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   useDashboardNamespace: jest.fn(),
 }));
 
@@ -21,7 +21,7 @@ jest.mock('react-router-dom', () => ({
 
 const mockUseDashboardNamespace = jest.mocked(
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  require('@odh-dashboard/internal/redux/selectors/project').useDashboardNamespace,
+  require('@odh-dashboard/plugin-core/host-api').useDashboardNamespace,
 );
 
 const mockUseWatchLLMInferenceServiceConfigs = jest.mocked(useWatchLLMInferenceServiceConfigs);

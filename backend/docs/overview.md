@@ -10,6 +10,7 @@
 
 - **Two outbound call styles**: **Service-account calls** use the dashboard's own kubeconfig credentials for infrastructure reads (cached `OdhApplication` lists, `OdhDashboardConfig`, notebook lifecycle helpers). **Pass-through calls** substitute the caller's bearer token (`x-forwarded-access-token`) so the API server enforces that user's RBAC (`/api/k8s/*`, Prometheus/Thanos, `/api/service/*` proxies).
 - **No global auth hook**: `secureRoute` / `secureAdminRoute` invoke `getUserInfo` inside the handler; pass-through routes forward the raw access token upstream
+- **Gateway discovery**: `/api/service/model-serving/api/v1/gateways` permits only `GET` with one validated `namespace` query parameter. The upstream service and path are fixed; other methods, paths, and query keys are rejected. The same domain contract is implemented by Core BFF and consumed through model-serving, not a generic feature-facing proxy.
 - **User identity** resolved in `getUserInfo` — tries kube-rbac-proxy headers, OpenShift user API, `SelfSubjectReview`, JWT claims, and local kubeconfig (dev only), in that order
 - **Admin** decided via `SelfSubjectAccessReview` against the dashboard `Auth` CR (`adminUtils` / `authUtils`), not the deprecated OpenShift Group API
 - **ResourceWatcher** polls selected resources on an interval, keeps results in memory; handlers read the cache synchronously and can force refresh via `Cache-Control: no-cache`

@@ -13,22 +13,15 @@ jest.mock('react-router', () => ({
   useNavigate: jest.fn(),
 }));
 
-jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   useDashboardNamespace: jest.fn(() => ({ dashboardNamespace: 'opendatahub' })),
+  useAccessReviewState: jest.fn(() => ({ state: 'allowed' })),
 }));
 
 jest.mock('@odh-dashboard/internal/utilities/useNotification', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
-
-jest.mock('@odh-dashboard/internal/concepts/userSSAR', () => {
-  const actual = jest.requireActual('@odh-dashboard/internal/concepts/userSSAR');
-  return {
-    ...actual,
-    useKebabAccessAllowed: (actions: unknown[]) => actions,
-  };
-});
 
 jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
   patchLLMInferenceServiceConfig: jest.fn(),

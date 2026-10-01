@@ -10,6 +10,7 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
+import LlmConfigCreateAccess from '../LlmConfigCreateAccess';
 
 /**
  * Empty state for the accelerator configurations list. Carries its own add action
@@ -29,17 +30,19 @@ const LlmAcceleratorConfigEmptyState: React.FC = () => (
         No accelerator configurations have been added yet. Add one to make it available in the
         deployment wizard.
       </EmptyStateBody>
-      <EmptyStateFooter>
-        <EmptyStateActions>
-          <Button
-            variant="primary"
-            data-testid="add-accelerator-config-button"
-            component={(props) => <Link {...props} to="add" />}
-          >
-            Add LLM accelerator configuration
-          </Button>
-        </EmptyStateActions>
-      </EmptyStateFooter>
+      <LlmConfigCreateAccess>
+        <EmptyStateFooter>
+          <EmptyStateActions>
+            <Button
+              variant="primary"
+              data-testid="add-accelerator-config-button"
+              component={(props) => <Link {...props} to="add" />}
+            >
+              Add LLM accelerator configuration
+            </Button>
+          </EmptyStateActions>
+        </EmptyStateFooter>
+      </LlmConfigCreateAccess>
     </EmptyState>
   </PageSection>
 );

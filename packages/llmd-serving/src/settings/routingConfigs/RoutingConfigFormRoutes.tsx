@@ -20,10 +20,13 @@ import LlmInferenceServiceConfigAccessGate from '../LlmInferenceServiceConfigAcc
  * therefore resolved from the location directly.
  */
 const RoutingConfigFormRoutes: React.FC = () => {
+  const isEdit = useMatch(`${ROUTING_CONFIGS_TAB_PATH}/edit/:configName`) !== null;
   const isDuplicate = useMatch(`${ROUTING_CONFIGS_TAB_PATH}/duplicate/:configName`) !== null;
 
   return (
-    <LlmInferenceServiceConfigAccessGate>
+    <LlmInferenceServiceConfigAccessGate
+      mode={isEdit ? 'edit' : isDuplicate ? 'duplicate' : 'create'}
+    >
       <RoutingConfigContextProvider>
         <RoutingConfigurationCreateEdit isDuplicate={isDuplicate} />
       </RoutingConfigContextProvider>

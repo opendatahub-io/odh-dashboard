@@ -21,7 +21,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
 import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
 import {
   getDisplayNameFromK8sResource,
   isK8sNameDescriptionDataValid,

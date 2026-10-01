@@ -27,7 +27,10 @@ const LlmAcceleratorConfigFormRoutes: React.FC = () => {
     useMatch(`${LLM_ACCELERATOR_CONFIGS_TAB_PATH}/duplicate/:configName`) !== null;
 
   return (
-    <LlmInferenceServiceConfigAccessGate>
+    <LlmInferenceServiceConfigAccessGate
+      mode={isEdit ? 'edit' : isDuplicate ? 'duplicate' : 'create'}
+      editVerb="update"
+    >
       <LlmAcceleratorConfigContextProvider>
         {isEdit || isDuplicate ? (
           <LlmAcceleratorConfigFormByName mode={isEdit ? 'edit' : 'duplicate'} />

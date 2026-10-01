@@ -4,12 +4,14 @@
 // RHOAIENG-79895). Prefer the Core and Infra APIs below for new code.
 export { HostApiContext } from './HostApiContext';
 export { HostApiCoreContext } from './HostApiCoreContext';
+export { PluginCapabilities } from './PluginCapabilities';
 export { HostApiInfraContext } from './HostApiInfraContext';
 export { useHostApi } from './hooks/useHostApi';
 export { useHostApiCore } from './hooks/useHostApiCore';
 export { useHostApiInfra } from './hooks/useHostApiInfra';
 export { useDashboardNamespace } from './hooks/useDashboardNamespace';
 export { useAccessReview } from './hooks/useAccessReview';
+export { useAccessReviewState, type AccessReviewState } from './hooks/useAccessReviewState';
 export { useTemplates } from './hooks/useTemplates';
 export { useSecretOps } from './hooks/useSecretOps';
 export { useWatchConnectionTypes } from './hooks/useWatchConnectionTypes';

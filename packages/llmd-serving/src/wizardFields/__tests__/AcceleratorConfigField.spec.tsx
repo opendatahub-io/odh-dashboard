@@ -17,7 +17,7 @@ import {
   useFetchLLMInferenceServiceConfigs,
 } from '../../api/LLMInferenceServiceConfigs';
 
-jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   useDashboardNamespace: jest.fn(() => ({ dashboardNamespace: 'opendatahub' })),
 }));
 

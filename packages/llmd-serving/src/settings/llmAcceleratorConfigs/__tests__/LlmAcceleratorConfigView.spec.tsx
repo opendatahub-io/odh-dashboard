@@ -7,6 +7,12 @@ import LlmAcceleratorConfigView from '../LlmAcceleratorConfigView';
 import { LlmAcceleratorConfigContext } from '../LlmAcceleratorConfigContext';
 import type { LLMInferenceServiceConfigKind } from '../../../types';
 
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/host-api'),
+  useDashboardNamespace: () => ({ dashboardNamespace: 'opendatahub' }),
+  useAccessReviewState: () => ({ state: 'allowed' }),
+}));
+
 jest.mock('../LlmAcceleratorConfigListView', () => ({
   __esModule: true,
   default: () => <div data-testid="list-view">List View</div>,

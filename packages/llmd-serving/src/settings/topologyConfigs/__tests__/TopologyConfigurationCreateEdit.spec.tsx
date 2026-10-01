@@ -8,7 +8,7 @@ import { TopologyConfigContext } from '../TopologyConfigContext';
 import TopologyConfigurationCreateEdit from '../TopologyConfigurationCreateEdit';
 import { TOPOLOGY_CONFIGS_TAB_PATH } from '../paths';
 
-jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   useDashboardNamespace: jest.fn(() => ({ dashboardNamespace: 'opendatahub' })),
 }));
 

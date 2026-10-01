@@ -17,8 +17,11 @@ import {
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import { ProjectSectionType } from '@odh-dashboard/model-serving/shared/wizard-fields';
+import {
+  GatewayOption,
+  useGetGatewayOptions,
+} from '@odh-dashboard/model-serving/api/gatewayDiscovery';
 import { isLLMInferenceServiceActive } from '../../formUtils';
-import { GatewayOption, useGetGatewayOptions } from '../../api/services/gatewayDiscovery';
 
 export type GatewaySelectDependencies = {
   project: ProjectSectionType;
@@ -137,7 +140,7 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
       value={selectedGatewayKey ?? undefined}
       toggleProps={toggleProps}
       dataTestId="gateway-select"
-      isDisabled={isDisabled}
+      isDisabled={isDisabled || !externalData?.loaded || !!externalData.loadError}
       autoSelectOnlyOption={false}
     />
   );

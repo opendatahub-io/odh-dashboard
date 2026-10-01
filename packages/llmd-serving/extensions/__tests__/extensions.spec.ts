@@ -1,9 +1,150 @@
-import extensions from '../extensions';
+import * as React from 'react';
+import { act, render, screen, waitFor } from '@testing-library/react';
+import { PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
+import { PluginStore } from '@odh-dashboard/plugin-core';
+import {
+  HostApiCoreContext,
+  PluginCapabilities,
+  type HostApiCoreServices,
+} from '@odh-dashboard/plugin-core/host-api';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import extensions, { LLMD_SERVING_ID } from '../extensions';
 import { LLM_ACCELERATOR_CONFIGS_TAB_PATH } from '../../src/settings/llmAcceleratorConfigs/paths';
 import { TOPOLOGY_CONFIGS_TAB_PATH } from '../../src/settings/topologyConfigs/paths';
 import { ROUTING_CONFIGS_TAB_PATH } from '../../src/settings/routingConfigs/paths';
 
 const routeExtensions = extensions.filter((extension) => extension.type === 'app.route');
+
+// Mount the actual llmd declaration under the same capability boundary used by hosts.
+const CapabilityHost: React.FC<{
+  store: PluginStore;
+  services: Pick<HostApiCoreServices, 'discoverResource' | 'reviewAccess'>;
+}> = ({ store, services }) => {
+  const defaults = React.useContext(HostApiCoreContext);
+  const core = React.useMemo(() => ({ ...defaults, ...services }), [defaults, services]);
+  return React.createElement(
+    PluginStoreProvider,
+    { store },
+    React.createElement(
+      HostApiCoreContext.Provider,
+      { value: core },
+      React.createElement(
+        PluginCapabilities,
+        {
+          namespaceCandidates: { namespaces: [], loaded: false },
+          fallback: 'Checking capabilities',
+        },
+        'Unrelated page',
+      ),
+    ),
+  );
+};
+
+describe('llmd-serving activation', () => {
+  it('should depend on the serving hub, not another serving spoke', () => {
+    const area = extensions.find(
+      (extension) => extension.type === 'app.area' && extension.properties.id === 'llmd-serving',
+    );
+    expect(area?.properties).toMatchObject({ reliantAreas: [SupportedArea.MODEL_SERVING] });
+  });
+
+  it('should declare its own API and project-scoped watch capability', () => {
+    const capability = extensions.find((extension) => extension.type === 'app.resource-capability');
+    expect(capability?.flags).toEqual({
+      required: [LLMD_SERVING_ID, SupportedArea.MODEL_SERVING],
+    });
+    expect(capability?.properties).toEqual({
+      id: 'llm-inference-services',
+      resource: {
+        group: 'serving.kserve.io',
+        version: 'v1alpha2',
+        resource: 'llminferenceservices',
+      },
+      namespaceScope: 'any',
+      permissions: ['list', 'watch'].map((verb) => ({
+        group: 'serving.kserve.io',
+        resource: 'llminferenceservices',
+        verb,
+      })),
+    });
+  });
+
+  it.each([
+    [undefined, undefined],
+    [false, false],
+    [false, true],
+    [true, false],
+  ])(
+    'should render unrelated pages without discovery or SSAR when llmd=%s and model-serving=%s',
+    (llmd, modelServing) => {
+      const store = new PluginStore({ [LLMD_SERVING_ID]: extensions });
+      if (llmd !== undefined) {
+        store.setFeatureFlags({ [LLMD_SERVING_ID]: llmd });
+      }
+      if (modelServing !== undefined) {
+        store.setFeatureFlags({ [SupportedArea.MODEL_SERVING]: modelServing });
+      }
+      const services = {
+        discoverResource: jest.fn().mockResolvedValue(true),
+        reviewAccess: jest.fn().mockResolvedValue(false),
+      };
+      render(React.createElement(CapabilityHost, { store, services }));
+
+      expect(screen.getByText('Unrelated page')).toBeVisible();
+      expect(screen.queryByText('Checking capabilities')).toBeNull();
+      expect(services.discoverResource).not.toHaveBeenCalled();
+      expect(services.reviewAccess).not.toHaveBeenCalled();
+      // Area metadata must remain visible so hosts can resolve feature flags.
+      expect(store.getExtensions().some((extension) => extension.type === 'app.area')).toBe(true);
+    },
+  );
+
+  it('should check enabled llmd and release unrelated pages if it is disabled while projects load', async () => {
+    const store = new PluginStore({ [LLMD_SERVING_ID]: extensions });
+    store.setFeatureFlags({ [LLMD_SERVING_ID]: true, [SupportedArea.MODEL_SERVING]: true });
+    const services = {
+      discoverResource: jest.fn().mockResolvedValue(true),
+      reviewAccess: jest.fn().mockResolvedValue(false),
+    };
+    render(React.createElement(CapabilityHost, { store, services }));
+
+    await waitFor(() => expect(services.reviewAccess).toHaveBeenCalledTimes(2));
+    expect(screen.getByText('Checking capabilities')).toBeVisible();
+    expect(screen.queryByText('Unrelated page')).toBeNull();
+    act(() => store.setFeatureFlags({ [LLMD_SERVING_ID]: false }));
+    expect(screen.getByText('Unrelated page')).toBeVisible();
+    expect(screen.queryByText('Checking capabilities')).toBeNull();
+  });
+
+  it('should still require API discovery and both operation-specific grants when enabled', async () => {
+    const store = new PluginStore({ [LLMD_SERVING_ID]: extensions });
+    store.setFeatureFlags({ [LLMD_SERVING_ID]: true, [SupportedArea.MODEL_SERVING]: true });
+    const services = {
+      discoverResource: jest.fn().mockResolvedValue(true),
+      reviewAccess: jest.fn().mockResolvedValue(true),
+    };
+    render(React.createElement(CapabilityHost, { store, services }));
+    await waitFor(() => expect(screen.getByText('Unrelated page')).toBeVisible());
+    expect(services.discoverResource).toHaveBeenCalledWith(
+      { group: 'serving.kserve.io', version: 'v1alpha2', resource: 'llminferenceservices' },
+      { signal: expect.any(AbortSignal) },
+    );
+    ['list', 'watch'].forEach((verb) =>
+      expect(services.reviewAccess).toHaveBeenCalledWith(
+        {
+          group: 'serving.kserve.io',
+          resource: 'llminferenceservices',
+          verb,
+          namespace: undefined,
+        },
+        { signal: expect.any(AbortSignal) },
+      ),
+    );
+    expect(store.getPluginCapabilityState(LLMD_SERVING_ID, 'llm-inference-services')).toBe(
+      'available',
+    );
+  });
+});
 
 const acceleratorTab = extensions.find(
   (extension) =>

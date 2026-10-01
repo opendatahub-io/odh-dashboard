@@ -19,7 +19,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
 import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';

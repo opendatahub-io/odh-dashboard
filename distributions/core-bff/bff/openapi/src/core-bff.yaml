@@ -800,118 +800,82 @@ paths:
   # MODEL SERVING PROXY
   # =============================================================================
 
-  /api/service/model-serving/{path}:
-    summary: Model serving service proxy
-    description: >-
-      Proxies all HTTP methods to the model-serving-api service. Strips the
-      /api/service/model-serving prefix and forwards the remaining path,
-      including nested segments (e.g. /api/service/model-serving/a/b/c).
-      OpenAPI 3.0 cannot represent multi-segment path parameters; the actual
-      route is a wildcard prefix match, not a single-segment capture.
-      The user's bearer token is injected as the Authorization header.
-      Responses depend on the upstream model serving service.
-    parameters:
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-        description: >-
-          Remainder of the URL after /api/service/model-serving/, including
-          any nested segments. Forwarded verbatim to the upstream service.
+  /api/service/model-serving/api/v1/gateways:
     get:
       tags:
         - Model Serving Proxy
-      operationId: modelServingProxyGet
-      summary: Proxy GET to model serving service
+      operationId: discoverModelServingGateways
+      summary: Discover gateways available to a deployment project
+      description: >-
+        Forwards only this GET endpoint to the configured model-serving-api service,
+        using the authenticated caller's bearer token. Only one namespace query
+        parameter is accepted. Arbitrary upstream services, paths and methods are rejected.
+      parameters:
+        - name: namespace
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 63
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+          example: project-a
       responses:
         '200':
-          description: Upstream response (passthrough)
-          content:
-            application/json:
-              schema:
-                type: object
+          $ref: '#/components/responses/GatewayDiscoveryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '405':
+          $ref: '#/components/responses/ModelServingMethodNotAllowed'
         '502':
           $ref: '#/components/responses/BadGateway'
-    post:
+
+  /api/service/model-serving/api/v1/samples/llm-d:
+    get:
       tags:
         - Model Serving Proxy
-      operationId: modelServingProxyPost
-      summary: Proxy POST to model serving service
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+      operationId: getLLMdSampleConfiguration
+      summary: Get a sample llm-d topology or routing configuration
+      description: >-
+        Forwards this GET endpoint to the configured model-serving-api service,
+        using the authenticated caller's bearer token. The upstream YAML response
+        is passed through unchanged. Exactly one type parameter is required.
+        For router samples, exactly one topology parameter is also required;
+        for workload samples, topology must be omitted. Duplicate and additional
+        query parameters, arbitrary upstream services, paths and methods are rejected.
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - workload-single-node
+              - workload-multi-node-data-parallel
+              - workload-single-node-pd
+              - workload-multi-node-data-parallel-pd
+              - router
+        - name: topology
+          in: query
+          description: Required only when type is router; otherwise must be omitted.
+          schema:
+            $ref: '#/components/schemas/LLMdSampleTopology'
       responses:
         '200':
-          description: Upstream response (passthrough)
-          content:
-            application/json:
-              schema:
-                type: object
+          $ref: '#/components/responses/LLMdSampleConfigurationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '502':
-          $ref: '#/components/responses/BadGateway'
-    put:
-      tags:
-        - Model Serving Proxy
-      operationId: modelServingProxyPut
-      summary: Proxy PUT to model serving service
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: Upstream response (passthrough)
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '502':
-          $ref: '#/components/responses/BadGateway'
-    delete:
-      tags:
-        - Model Serving Proxy
-      operationId: modelServingProxyDelete
-      summary: Proxy DELETE to model serving service
-      responses:
-        '200':
-          description: Upstream response (passthrough)
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '502':
-          $ref: '#/components/responses/BadGateway'
-    patch:
-      tags:
-        - Model Serving Proxy
-      operationId: modelServingProxyPatch
-      summary: Proxy PATCH to model serving service
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: Upstream response (passthrough)
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/BFFNotFound'
+        '405':
+          $ref: '#/components/responses/ModelServingMethodNotAllowed'
         '502':
           $ref: '#/components/responses/BadGateway'
 
@@ -1250,6 +1214,44 @@ components:
         Endpoints marked with security: [] do not require authentication.
 
   schemas:
+    GatewayOption:
+      type: object
+      required: [name, namespace]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        namespace:
+          type: string
+          minLength: 1
+        listener:
+          type: string
+        status:
+          type: string
+          enum: [Ready, NotReady, Unknown]
+        displayName:
+          type: string
+        description:
+          type: string
+      example:
+        name: shared-gateway
+        namespace: gateway-system
+        listener: https
+        status: Ready
+        displayName: Shared gateway
+        description: External model traffic
+
+    GatewayDiscovery:
+      type: object
+      required: [gateways]
+      properties:
+        gateways:
+          type: array
+          items:
+            $ref: '#/components/schemas/GatewayOption'
+      example:
+        gateways: []
+
     HealthCheckResponse:
       type: object
       required:
@@ -1617,7 +1619,50 @@ components:
           success: true
           message: 'Connection to bucket my-bucket successful'
 
+    LLMdSampleTopology:
+      type: string
+      enum:
+        - workload-single-node
+        - workload-multi-node-data-parallel
+        - workload-single-node-pd
+        - workload-multi-node-data-parallel-pd
+
+    LLMdSampleConfiguration:
+      type: string
+      minLength: 1
+      description: YAML document containing a sample LLMInferenceServiceConfig
+
   responses:
+    GatewayDiscoveryResponse:
+      description: Gateway options available to the caller for the requested project
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GatewayDiscovery'
+    LLMdSampleConfigurationResponse:
+      description: Sample configuration YAML with the upstream content type preserved
+      content:
+        application/yaml:
+          schema:
+            $ref: '#/components/schemas/LLMdSampleConfiguration'
+        text/yaml:
+          schema:
+            $ref: '#/components/schemas/LLMdSampleConfiguration'
+        text/plain:
+          schema:
+            $ref: '#/components/schemas/LLMdSampleConfiguration'
+    ModelServingMethodNotAllowed:
+      description: Only GET is supported for gateway discovery and configuration samples
+      headers:
+        Allow:
+          schema:
+            type: string
+            example: GET
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
     HealthCheckResponse:
       description: Service is healthy
       content:

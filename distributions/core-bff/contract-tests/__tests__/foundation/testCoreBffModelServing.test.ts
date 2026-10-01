@@ -61,36 +61,116 @@ describe('Core BFF Model Serving', () => {
     });
   });
 
-  describe('Model Serving Proxy', () => {
-    it('should proxy GET requests and return 200', async () => {
-      expectSuccess(await apiClient.get('/api/service/model-serving/test-path'));
+  describe('Gateway discovery', () => {
+    const path = '/api/service/model-serving/api/v1/gateways';
+
+    it('should return validated gateway options with metadata', async () => {
+      const result = await apiClient.get(`${path}?namespace=project-a`);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/GatewayDiscoveryResponse/content/application/json/schema',
+        status: 200,
+      });
     });
 
-    it('should proxy POST requests and return 200', async () => {
-      expectSuccess(await apiClient.post('/api/service/model-serving/test-path', { key: 'value' }));
-    });
-
-    it('should proxy PUT requests and return 200', async () => {
-      expectSuccess(await apiClient.put('/api/service/model-serving/test-path', { key: 'value' }));
-    });
-
-    it('should proxy PATCH requests and return 200', async () => {
-      expectSuccess(
-        await apiClient.patch('/api/service/model-serving/test-path', { key: 'value' }),
+    it.each([
+      '',
+      '?namespace=../other',
+      '?namespace=a&namespace=b',
+      '?namespace=a&path=/secrets',
+      '?namespace=a&service=other',
+    ])('should reject invalid query %s', async (query) => {
+      const error = expectError(await apiClient.get(path + query), 400);
+      expect({ status: error.status, data: error.data, headers: error.headers }).toMatchContract(
+        apiSchema,
+        {
+          ref: '#/components/responses/BadRequest/content/application/json/schema',
+          status: 400,
+        },
       );
     });
 
-    it('should proxy DELETE requests and return 200', async () => {
-      expectSuccess(await apiClient.delete('/api/service/model-serving/test-path'));
+    it('should reject arbitrary paths', async () => {
+      expectError(await apiClient.get('/api/service/model-serving/nested/deep/path'), 404);
     });
 
-    it('should proxy nested paths and return 200', async () => {
-      expectSuccess(await apiClient.get('/api/service/model-serving/nested/deep/path'));
+    it('should reject unsupported methods with the documented error and Allow header', async () => {
+      const error = expectError(await apiClient.post(`${path}?namespace=project-a`, {}), 405);
+      expect({ status: error.status, data: error.data, headers: error.headers }).toMatchContract(
+        apiSchema,
+        {
+          ref: '#/components/responses/ModelServingMethodNotAllowed/content/application/json/schema',
+          status: 405,
+          headers: { allow: 'GET' },
+        },
+      );
     });
 
-    it('should return 401 when no auth token is provided', async () => {
-      expectError(await unauthenticatedClient.get('/api/service/model-serving/test-path'), 401);
+    it('should require an authenticated caller', async () => {
+      expectError(await unauthenticatedClient.get(`${path}?namespace=project-a`), 401);
     });
+  });
+
+  describe('llm-d configuration samples', () => {
+    const path = '/api/service/model-serving/api/v1/samples/llm-d';
+    const topologies = [
+      'workload-single-node',
+      'workload-multi-node-data-parallel',
+      'workload-single-node-pd',
+      'workload-multi-node-data-parallel-pd',
+    ];
+
+    it.each(
+      topologies.flatMap((topology) => [`type=${topology}`, `type=router&topology=${topology}`]),
+    )('should return sample configuration YAML for %s', async (query) => {
+      const result = await apiClient.get(`${path}?${query}`);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/LLMdSampleConfigurationResponse/content/text/yaml/schema',
+        status: 200,
+        headers: { 'content-type': /text\/yaml/ },
+      });
+    });
+
+    it.each([
+      '',
+      '?type=unknown',
+      '?type=router',
+      '?type=router&topology=unknown',
+      '?type=router&topology=../other',
+      '?type=workload-single-node&topology=workload-single-node',
+      '?type=workload-single-node&type=router',
+      '?type=router&topology=workload-single-node&topology=workload-single-node-pd',
+      '?type=workload-single-node&service=other',
+      '?type=router&topology=workload-single-node&path=/secrets',
+    ])('should reject invalid sample query %s', async (query) => {
+      const error = expectError(await apiClient.get(path + query), 400);
+      expect({ status: error.status, data: error.data, headers: error.headers }).toMatchContract(
+        apiSchema,
+        { ref: '#/components/responses/BadRequest/content/application/json/schema', status: 400 },
+      );
+    });
+
+    it('should reject sample writes with the documented error and Allow header', async () => {
+      const error = expectError(await apiClient.post(`${path}?type=workload-single-node`, {}), 405);
+      expect({ status: error.status, data: error.data, headers: error.headers }).toMatchContract(
+        apiSchema,
+        {
+          ref: '#/components/responses/ModelServingMethodNotAllowed/content/application/json/schema',
+          status: 405,
+          headers: { allow: 'GET' },
+        },
+      );
+    });
+
+    it('should reject non-allowlisted sample paths', async () => {
+      expectError(await apiClient.get(`${path}/extra?type=workload-single-node`), 404);
+    });
+
+    it.each(['type=workload-single-node', 'type=router&topology=workload-single-node'])(
+      'should require an authenticated caller for %s',
+      async (query) => {
+        expectError(await unauthenticatedClient.get(`${path}?${query}`), 401);
+      },
+    );
   });
 
   describe('Namespace Mutation GET', () => {

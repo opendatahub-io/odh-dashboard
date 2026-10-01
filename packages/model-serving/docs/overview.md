@@ -7,7 +7,7 @@
 
 ## Design Intent
 
-- **No package-local BFF:** all API traffic goes through the main dashboard backend (e.g. `/api/k8s/`) or equivalent cluster proxy; the UI never talks to a dedicated model-serving Go/Node service.
+- **No package-local BFF:** API traffic goes through the host backend or equivalent cluster proxy. Gateway discovery uses the fixed host route to `model-serving-api`, not a browser-selected service or path.
 - **Module Federation remote (hybrid):** model-serving operates in two modes. The `src/` subtree is consumed directly as a library via package `exports`. The `frontend/` subtree builds as a standalone MF remote (`modelServing`) producing `remoteEntry.js` on port 9109, exposing `./extensions` and `./extension-points`. Shared dependencies (React, PatternFly, all `@odh-dashboard/*` packages) are managed automatically by `OdhFederationPlugin` as singletons.
 - **Hub-and-spoke architecture:** model-serving is the hub. Platform packages (`packages/kserve`, `packages/nim-serving`, `packages/llmd-serving`) are spokes that implement extension points such as `model-serving.platform`, `watch-deployments`, and `deployment/deploy`. These platform packages form a **cohort** with model-serving — they are added and removed together.
 - **Data flow:** Kubernetes → main backend → React; platform-specific behaviour is injected through extension points instead of branching inside every component.
@@ -102,6 +102,7 @@ The `package.json` `exports` field defines the public API. Key categories:
 | `./concepts/auth`, `./concepts/versions` | Utilities | Token auth setup, serving runtime version extraction |
 | `./hooks/useServingPlatformStatuses`, `./hooks/useIsNIMAvailable` | Hooks | Platform status and NIM availability |
 | `./utils` | Utilities | Deployment status helpers |
+| `./api/gatewayDiscovery` | Domain service | Optional host gateway discovery, validated options, cancellation, and the shared fixed-route transport |
 | `./components/metrics/*` | Components | Performance, bias, and NIM metrics charts, tabs, and configuration |
 | `./components/connectionTypes/*` | Components | OCI and S3 connection UI fields |
 | `./__mocks__/*` | Test mocks | Mock factories for InferenceService, ServingRuntime, Prometheus responses |
@@ -143,8 +144,13 @@ The RHAII Tilt integration establishes the federation foundation: the host loads
 and includes KServe extensions plus a local demo model for validation. It is local development and
 demo wiring, not a production model-serving deployment.
 
+The host supplies strict caller-scoped access reviews and API discovery, plus operator namespace
+resolution from authenticated `/api/status`. Gateway discovery uses the same constrained endpoint
+as RHOAI; hosts without a gateway service leave the optional field disabled. See the
+[llmd authorization and API inventory](../../llmd-serving/docs/overview.md#host-capabilities-and-authorization).
+
 The Deploy/Edit wizard is not yet fully supported by that host. A follow-up must integrate the
-remaining host capabilities that the wizard depends on, including access checks, serving-runtime
+remaining host capabilities that the wizard depends on, including serving-runtime
 templates, serving-connection and connection-type services, project serving-platform configuration,
 and the applicable dashboard configuration, settings, and analytics services. Treat the RHAII
 integration as validation of the established federation contract; do not represent it as complete

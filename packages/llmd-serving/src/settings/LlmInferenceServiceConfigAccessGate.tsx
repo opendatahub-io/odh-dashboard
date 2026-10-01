@@ -1,38 +1,67 @@
 import * as React from 'react';
 import { Bullseye, Spinner } from '@patternfly/react-core';
-import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
-import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
+import { useAccessReviewState, useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
+import { verbModelAccess } from '@odh-dashboard/k8s-core/api/accessReview';
+import { useParams } from 'react-router-dom';
 import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import { LLMInferenceServiceConfigModel } from '../types';
 
 /**
- * Gates routes that manage `LLMInferenceServiceConfig` resources behind the create
- * and patch permissions their CRUD actions require, rendering NotFound otherwise.
- *
- * Delete permission is enforced per-row via SSAR on the kebab Delete action; users
- * without delete access can still view and edit configurations they can patch.
- *
- * The accelerator, topology, and routing configuration pages are all backed by this
- * same resource — they differ only by label selector — so they share this gate.
+ * All settings routes watch configs. Forms additionally require only the reads
+ * and mutation they perform; presentation flags never grant these permissions.
  */
-const LlmInferenceServiceConfigAccessGate: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const [canCreate, createLoaded] = useAccessAllowed(
-    verbModelAccess('create', LLMInferenceServiceConfigModel),
+const LlmInferenceServiceConfigAccessGate: React.FC<
+  React.PropsWithChildren<{
+    mode?: 'view' | 'create' | 'edit' | 'duplicate';
+    editVerb?: 'patch' | 'update';
+  }>
+> = ({ children, mode = 'view', editVerb = 'patch' }) => {
+  const { dashboardNamespace } = useDashboardNamespace();
+  const { configName } = useParams<{ configName: string }>();
+  const list = useAccessReviewState(
+    verbModelAccess('list', LLMInferenceServiceConfigModel, dashboardNamespace),
+    !!dashboardNamespace,
   );
-  const [canPatch, patchLoaded] = useAccessAllowed(
-    verbModelAccess('patch', LLMInferenceServiceConfigModel),
+  const watch = useAccessReviewState(
+    verbModelAccess('watch', LLMInferenceServiceConfigModel, dashboardNamespace),
+    !!dashboardNamespace,
   );
+  const needsSource = mode === 'edit' || mode === 'duplicate';
+  const get = useAccessReviewState(
+    {
+      ...verbModelAccess('get', LLMInferenceServiceConfigModel, dashboardNamespace),
+      name: configName,
+    },
+    !!dashboardNamespace && !!configName && needsSource,
+  );
+  const mutation = useAccessReviewState(
+    {
+      ...verbModelAccess(
+        mode === 'edit' ? editVerb : 'create',
+        LLMInferenceServiceConfigModel,
+        dashboardNamespace,
+      ),
+      ...(mode === 'edit' && { name: configName }),
+    },
+    !!dashboardNamespace && mode !== 'view' && (!needsSource || !!configName),
+  );
+  const required = [
+    list,
+    watch,
+    ...(needsSource ? [get] : []),
+    ...(mode === 'view' ? [] : [mutation]),
+  ];
 
-  if (!createLoaded || !patchLoaded) {
+  if (required.some(({ state }) => state === 'denied' || state === 'error')) {
+    return <NotFound />;
+  }
+
+  if (required.some(({ state }) => state === 'loading')) {
     return (
       <Bullseye>
         <Spinner />
       </Bullseye>
     );
-  }
-
-  if (!canCreate || !canPatch) {
-    return <NotFound />;
   }
 
   return <>{children}</>;

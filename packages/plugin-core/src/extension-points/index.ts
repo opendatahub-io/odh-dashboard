@@ -1,5 +1,6 @@
 // Common — consumed by both RHOAI dashboard and RHAII distributions
 export * from './areas';
+export * from './resource-capabilities';
 export * from './navigation';
 export * from './routes';
 export * from './status-provider';

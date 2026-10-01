@@ -27,7 +27,6 @@
     "@odh-dashboard/hardware-profiles": "workspace:*",
     "@odh-dashboard/internal": "workspace:*",
     "@odh-dashboard/k8s-core": "workspace:*",
-    "@odh-dashboard/kserve": "workspace:*",
     "@odh-dashboard/model-serving": "workspace:*",
     "@odh-dashboard/plugin-core": "workspace:*",
     "@odh-dashboard/ui-core": "workspace:*",

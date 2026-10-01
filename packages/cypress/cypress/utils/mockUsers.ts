@@ -1,9 +1,15 @@
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mock403Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
+import { mockK8sAPIResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sAPIResourceList';
 import { mockStatus } from '@odh-dashboard/internal/__mocks__';
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
 import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
-import { ODHDashboardConfigModel, SelfSubjectAccessReviewModel } from './models';
+import {
+  ODHDashboardConfigModel,
+  SelfSubjectAccessReviewModel,
+  LLMInferenceServiceModel,
+  LLMInferenceServiceConfigModel,
+} from './models';
 
 // Establish a user before applying any test specific intercepts.
 
@@ -228,6 +234,16 @@ const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
   };
 
   // default intercepts for all users
+  // Discovery advertises APIs independently of the caller's resource permissions.
+  // Individual tests may override this with missing/forbidden/error responses.
+  cy.intercept(
+    'GET',
+    '/api/k8s/apis/serving.kserve.io/v1alpha2',
+    mockK8sAPIResourceList('serving.kserve.io/v1alpha2', [
+      LLMInferenceServiceModel,
+      LLMInferenceServiceConfigModel,
+    ]),
+  );
   cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
   cy.interceptOdh(
     'GET /api/dashboardConfig/opendatahub/odh-dashboard-config',

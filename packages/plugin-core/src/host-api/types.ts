@@ -1,4 +1,5 @@
 import type * as React from 'react';
+import type { K8sResourceIdentifier } from '@odh-dashboard/k8s-core/api/discovery';
 import type {
   AccessReviewResourceAttributes,
   Connection,
@@ -52,6 +53,18 @@ export type HostApiCoreServices = {
 
   /** Perform a SelfSubjectAccessReview to check whether the current user has a specific permission. */
   checkAccess: (attrs: Required<AccessReviewResourceAttributes>) => Promise<boolean>;
+
+  /** Strict, caller-scoped review. Errors must reject, never grant access. */
+  reviewAccess?: (
+    attrs: AccessReviewResourceAttributes,
+    opts?: { signal?: AbortSignal },
+  ) => Promise<boolean>;
+
+  /** Discover a resource using the authenticated caller's Kubernetes transport. */
+  discoverResource?: (
+    resource: K8sResourceIdentifier,
+    opts?: { signal?: AbortSignal },
+  ) => Promise<boolean>;
 
   /** Fire a tracking event with arbitrary properties. */
   trackEvent: (

@@ -1,8 +1,17 @@
 import * as React from 'react';
+import { Bullseye, Spinner } from '@patternfly/react-core';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- The host composition root supplies the serving hub's domain adapter.
+import {
+  GatewayDiscoveryContext,
+  gatewayDiscoveryServices,
+} from '@odh-dashboard/model-serving/api/gatewayDiscovery';
 import {
   HostApiContext,
   HostApiCoreContext,
   HostApiInfraContext,
+  PluginCapabilities,
   type HostApiServices,
   type HostApiCoreServices,
   type HostApiInfraServices,
@@ -13,6 +22,8 @@ import {
   getSecret,
   deleteSecret,
 } from '@odh-dashboard/k8s-core/api/secrets';
+import { checkAccessStrict } from '@odh-dashboard/k8s-core/api/accessReview';
+import { discoverK8sResource } from '@odh-dashboard/k8s-core/api/discovery';
 import { useDashboardNamespace } from '#~/redux/selectors/project';
 import { useUser } from '#~/redux/selectors';
 import { checkAccess } from '#~/api/checkAccess';
@@ -43,6 +54,28 @@ type HostApiProviderProps = {
   children: React.ReactNode;
 };
 
+/** Mount below ProjectsContextProvider; namespace candidates never imply permission. */
+export const HostCapabilities: React.FC<React.PropsWithChildren> = ({ children }) => {
+  const { projects, loaded, loadError } = React.useContext(ProjectsContext);
+  const namespaceCandidates = useDeepCompareMemoize({
+    namespaces: [...new Set(projects.map((project) => project.metadata.name))].toSorted(),
+    loaded,
+    error: loadError,
+  });
+  return (
+    <PluginCapabilities
+      namespaceCandidates={namespaceCandidates}
+      fallback={
+        <Bullseye>
+          <Spinner />
+        </Bullseye>
+      }
+    >
+      {children}
+    </PluginCapabilities>
+  );
+};
+
 const HostApiProvider: React.FC<HostApiProviderProps> = ({ children }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const { username } = useUser();
@@ -51,6 +84,8 @@ const HostApiProvider: React.FC<HostApiProviderProps> = ({ children }) => {
     () => ({
       dashboardNamespace,
       checkAccess,
+      reviewAccess: checkAccessStrict,
+      discoverResource: discoverK8sResource,
       trackEvent: fireMiscTrackingEvent,
       fetchDashboardConfig,
       fetchClusterSettings,
@@ -97,7 +132,11 @@ const HostApiProvider: React.FC<HostApiProviderProps> = ({ children }) => {
   return (
     <HostApiCoreContext.Provider value={core}>
       <HostApiInfraContext.Provider value={infra}>
-        <HostApiContext.Provider value={domain}>{children}</HostApiContext.Provider>
+        <HostApiContext.Provider value={domain}>
+          <GatewayDiscoveryContext.Provider value={gatewayDiscoveryServices}>
+            {children}
+          </GatewayDiscoveryContext.Provider>
+        </HostApiContext.Provider>
       </HostApiInfraContext.Provider>
     </HostApiCoreContext.Provider>
   );

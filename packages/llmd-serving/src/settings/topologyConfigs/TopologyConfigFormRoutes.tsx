@@ -20,10 +20,13 @@ import LlmInferenceServiceConfigAccessGate from '../LlmInferenceServiceConfigAcc
  * therefore resolved from the location directly.
  */
 const TopologyConfigFormRoutes: React.FC = () => {
+  const isEdit = useMatch(`${TOPOLOGY_CONFIGS_TAB_PATH}/edit/:configName`) !== null;
   const isDuplicate = useMatch(`${TOPOLOGY_CONFIGS_TAB_PATH}/duplicate/:configName`) !== null;
 
   return (
-    <LlmInferenceServiceConfigAccessGate>
+    <LlmInferenceServiceConfigAccessGate
+      mode={isEdit ? 'edit' : isDuplicate ? 'duplicate' : 'create'}
+    >
       <TopologyConfigContextProvider>
         <TopologyConfigurationCreateEdit isDuplicate={isDuplicate} />
       </TopologyConfigContextProvider>

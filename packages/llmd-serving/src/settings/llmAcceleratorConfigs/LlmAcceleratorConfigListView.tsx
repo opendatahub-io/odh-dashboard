@@ -6,6 +6,7 @@ import { columns } from './columns';
 import LlmAcceleratorConfigTableRow from './LlmAcceleratorConfigTableRow';
 import DeleteLlmAcceleratorConfigModal from './DeleteLlmAcceleratorConfigModal';
 import { LlmAcceleratorConfigContext } from './LlmAcceleratorConfigContext';
+import LlmConfigCreateAccess from '../LlmConfigCreateAccess';
 import type { LLMInferenceServiceConfigKind } from '../../types';
 
 const LlmAcceleratorConfigListView: React.FC = () => {
@@ -26,14 +27,16 @@ const LlmAcceleratorConfigListView: React.FC = () => {
           />
         )}
         toolbarContent={
-          <ToolbarItem>
-            <Button
-              data-testid="add-accelerator-config-button"
-              component={(props) => <Link {...props} to="add" />}
-            >
-              Add LLM accelerator configuration
-            </Button>
-          </ToolbarItem>
+          <LlmConfigCreateAccess>
+            <ToolbarItem>
+              <Button
+                data-testid="add-accelerator-config-button"
+                component={(props) => <Link {...props} to="add" />}
+              >
+                Add LLM accelerator configuration
+              </Button>
+            </ToolbarItem>
+          </LlmConfigCreateAccess>
         }
       />
       {deleteConfig ? (

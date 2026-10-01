@@ -14,6 +14,10 @@ import {
   applySuppress,
   applyPatches,
 } from './extensionResolution';
+import {
+  isResourceCapabilityExtension,
+  type CapabilityState,
+} from '../extension-points/resource-capabilities';
 
 const uuidv4 = () =>
   '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (c) =>
@@ -35,6 +39,21 @@ export class PluginStore implements PluginStoreInterface {
 
   /** Feature flags used to determine the availability of extensions. */
   private featureFlags: FeatureFlags = {};
+
+  private readonly capabilityStates = new Map<string, CapabilityState>();
+
+  getPluginCapabilityState(pluginName: string, capabilityId: string): CapabilityState {
+    return this.capabilityStates.get(JSON.stringify([pluginName, capabilityId])) ?? 'loading';
+  }
+
+  setPluginCapabilityState(pluginName: string, capabilityId: string, state: CapabilityState): void {
+    const key = JSON.stringify([pluginName, capabilityId]);
+    if (this.capabilityStates.get(key) !== state) {
+      this.capabilityStates.set(key, state);
+      // Settled unavailable states must release hosts waiting for capability discovery.
+      this.updateExtensions(true);
+    }
+  }
 
   constructor(extensions: Record<string, Extension[]>) {
     const raw: LoadedExtension[] = [];
@@ -69,18 +88,43 @@ export class PluginStore implements PluginStoreInterface {
     });
   }
 
-  private updateExtensions() {
+  private updateExtensions(notifyCapabilityChange = false) {
     const prevExtensions = this.extensions;
 
     const inUse = this.allExtensions.filter((e) => this.isExtensionInUse(e));
     this.extensions = applyPatches(inUse, this.patches);
 
-    if (!isEqual(prevExtensions, this.extensions)) {
+    if (notifyCapabilityChange || !isEqual(prevExtensions, this.extensions)) {
       this.invokeListeners(PluginEventType.ExtensionsChanged);
     }
   }
 
   private isExtensionInUse(extension: LoadedExtension) {
+    if (!this.matchesFeatureFlags(extension)) {
+      return false;
+    }
+    // Declarations must remain discoverable while the owning plugin is disabled.
+    if (isResourceCapabilityExtension(extension)) {
+      return true;
+    }
+    // Area metadata does not grant access and must remain available for feature flag resolution.
+    if (
+      extension.type !== 'app.area' &&
+      this.allExtensions.some(
+        (candidate) =>
+          candidate.pluginName === extension.pluginName &&
+          isResourceCapabilityExtension(candidate) &&
+          this.matchesFeatureFlags(candidate) &&
+          this.getPluginCapabilityState(candidate.pluginName, candidate.properties.id) !==
+            'available',
+      )
+    ) {
+      return false;
+    }
+    return true;
+  }
+
+  private matchesFeatureFlags(extension: LoadedExtension) {
     return (
       (extension.flags?.required?.every((f) => this.featureFlags[f] === true) ?? true) &&
       (extension.flags?.disallowed?.every((f) => this.featureFlags[f] === false) ?? true)

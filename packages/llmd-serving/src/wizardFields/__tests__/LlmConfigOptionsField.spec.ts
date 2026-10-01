@@ -1,12 +1,12 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
-import * as projectSelectors from '@odh-dashboard/internal/redux/selectors/project';
+import * as projectSelectors from '@odh-dashboard/plugin-core/host-api';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import * as llmConfigsApi from '../../api/LLMInferenceServiceConfigs';
 import { useLLMConfigOptions, LLMConfigOptionsFieldNoTemplates } from '../LlmConfigOptionsField';
 
-jest.mock('@odh-dashboard/internal/redux/selectors/project');
+jest.mock('@odh-dashboard/plugin-core/host-api');
 jest.mock('../../api/LLMInferenceServiceConfigs');
 
 const mockUseDashboardNamespace = jest.mocked(projectSelectors.useDashboardNamespace);

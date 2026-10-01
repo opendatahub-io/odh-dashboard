@@ -7,10 +7,9 @@ import {
   getDescriptionFromK8sResource,
 } from '@odh-dashboard/k8s-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
-import { useKebabAccessAllowed, verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR';
+import { useLlmConfigAccess } from '../useLlmConfigAccess';
 import {
   type LLMInferenceServiceConfigKind,
-  LLMInferenceServiceConfigModel,
   TopologyTypeLabels,
   DASHBOARD_RESOURCE_LABEL,
   getConfigSupportedTopologies,
@@ -44,17 +43,18 @@ const RoutingConfigurationRow: React.FC<RoutingConfigurationRowProps> = ({
   const isDashboardCreated =
     config.metadata.labels?.[DASHBOARD_RESOURCE_LABEL] === 'true' && !preInstalled;
 
-  const deleteKebabItems = useKebabAccessAllowed(
-    [
-      { isSeparator: true },
-      {
-        title: 'Delete',
-        onClick: () => onDelete(config),
-        isDanger: true,
-      },
-    ],
-    verbModelAccess('delete', LLMInferenceServiceConfigModel, config.metadata.namespace),
-  );
+  const { canPatch, canEdit, canDuplicate, canDelete } = useLlmConfigAccess(config);
+  const actions = [
+    ...(isDashboardCreated && canEdit
+      ? [{ title: 'Edit', onClick: () => navigate(`edit/${configName}`) }]
+      : []),
+    ...(canDuplicate
+      ? [{ title: 'Duplicate', onClick: () => navigate(`duplicate/${configName}`) }]
+      : []),
+    ...(isDashboardCreated && canDelete
+      ? [{ title: 'Delete', onClick: () => onDelete(config), isDanger: true }]
+      : []),
+  ];
 
   return (
     <Tr data-testid={`routing-config-row-${configName}`}>
@@ -80,35 +80,12 @@ const RoutingConfigurationRow: React.FC<RoutingConfigurationRowProps> = ({
           aria-label={`${configName}-enabled-toggle`}
           data-testid="routing-config-enabled-toggle"
           isChecked={enabled}
-          isDisabled={isToggling}
+          isDisabled={isToggling || !canPatch}
           onChange={() => onToggleEnabled(config)}
         />
       </Td>
       <Td dataLabel="Topology type">{getSupportedTopologiesLabel(config)}</Td>
-      <Td isActionCell>
-        <ActionsColumn
-          items={
-            isDashboardCreated
-              ? [
-                  {
-                    title: 'Edit',
-                    onClick: () => navigate(`edit/${configName}`),
-                  },
-                  {
-                    title: 'Duplicate',
-                    onClick: () => navigate(`duplicate/${configName}`),
-                  },
-                  ...deleteKebabItems,
-                ]
-              : [
-                  {
-                    title: 'Duplicate',
-                    onClick: () => navigate(`duplicate/${configName}`),
-                  },
-                ]
-          }
-        />
-      </Td>
+      <Td isActionCell>{actions.length > 0 && <ActionsColumn items={actions} />}</Td>
     </Tr>
   );
 };
