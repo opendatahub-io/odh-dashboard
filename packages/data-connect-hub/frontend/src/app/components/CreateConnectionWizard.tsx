@@ -450,7 +450,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   const valueOrDash = (value?: string): string => (value?.trim() ? value : '-');
 
   return (
-    <Form>
+    <Grid>
       <StepHeader
         title="Review"
         description="Review the information below and click Create connection to complete. Use the Back button to make changes."
@@ -515,7 +515,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
         credentials={credentials}
         showTitle={false}
       />
-    </Form>
+    </Grid>
   );
 };
 
