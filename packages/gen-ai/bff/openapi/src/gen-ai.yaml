@@ -6078,6 +6078,7 @@ components:
       properties:
         name:
           type: string
+          minLength: 1
           example: 'com.example/jira'
           description: MCP Registry server name
         source:
