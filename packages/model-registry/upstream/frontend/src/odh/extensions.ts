@@ -12,15 +12,15 @@ import {
 } from '~/app/routes/modelCatalogSettings/modelCatalogSettings';
 import { mcpCatalogSettingsUrl } from '~/app/routes/mcpCatalogSettings/mcpCatalogSettings';
 import { mcpCatalogUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
+import {
+  RUNTIME_CATALOG_TAB_ID,
+  RUNTIME_CATALOG_TAB_PATH,
+  RUNTIME_CATALOG_TAB_TITLE,
+} from '~/odh/routes/runtimeCatalog/runtimeCatalog';
 
 const reliantAreas = ['model-registry'];
 const PLUGIN_MODEL_REGISTRY = 'model-registry-plugin';
 const ADMIN_USER = 'ADMIN_USER';
-
-// Duplicated from odh/pages/runtimeCatalog/const.ts — extensions.ts may not
-// import runtime values from src (no-restricted-syntax).
-const RUNTIME_CATALOG_TAB_PATH =
-  '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog';
 
 const createRedirectComponent = (args: { from: string; to: string }) => () =>
   import('@odh-dashboard/plugin-core/routing').then((module) => ({
@@ -116,8 +116,8 @@ const extensions: (
     },
     properties: {
       pageId: 'model-deployment-settings',
-      id: 'serving-runtime-catalog',
-      title: 'Runtime image library',
+      id: RUNTIME_CATALOG_TAB_ID,
+      title: RUNTIME_CATALOG_TAB_TITLE,
       component: () => import('./RuntimeCatalogWrapper'),
       group: '1b_runtime-catalog',
     },

@@ -1,17 +1,16 @@
 import * as React from 'react';
 import { EmptyState, EmptyStateBody } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
-import { RUNTIME_CATALOG_TITLE } from './const';
 
 const RuntimeCatalogView: React.FC = () => (
   <EmptyState
-    titleText={RUNTIME_CATALOG_TITLE}
-    icon={CubesIcon}
+    data-testid="runtime-catalog-landing"
     headingLevel="h2"
-    data-testid="runtime-catalog-placeholder"
+    icon={CubesIcon}
+    titleText="Runtime images"
   >
     <EmptyStateBody>
-      The runtime image library is under construction. Check back soon.
+      Browse container images and templates you can install as serving runtimes on this cluster.
     </EmptyStateBody>
   </EmptyState>
 );
