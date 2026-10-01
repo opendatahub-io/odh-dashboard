@@ -426,7 +426,7 @@ export type LlamaStackDistributionModel = {
 
 export type BFFConfig = {
   isCustomLSD: boolean;
-  sandboxesAvailable?: boolean;
+  sandboxesAvailable: boolean;
 };
 
 /** Status of the NemoGuardrails CR */

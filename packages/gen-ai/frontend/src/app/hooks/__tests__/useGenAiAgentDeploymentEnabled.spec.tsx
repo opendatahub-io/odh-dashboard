@@ -35,7 +35,7 @@ describe('useGenAiAgentDeploymentEnabled', () => {
     const { result } = renderHook(() => useGenAiAgentDeploymentEnabled());
 
     expect(mockUseFeatureFlag).toHaveBeenCalledWith(GEN_AI_AGENT_DEPLOYMENT);
-    expect(result.current).toBe(expected);
+    expect(result.current).toEqual({ enabled: expected, loaded: true });
   });
 
   it('should be disabled when the feature flag is off', () => {
@@ -49,6 +49,19 @@ describe('useGenAiAgentDeploymentEnabled', () => {
 
     const { result } = renderHook(() => useGenAiAgentDeploymentEnabled());
 
-    expect(result.current).toBe(false);
+    expect(result.current).toEqual({ enabled: false, loaded: true });
+  });
+
+  it('should remain loading until the BFF configuration resolves', () => {
+    mockUseFetchBFFConfig.mockReturnValue({
+      data: null,
+      loaded: false,
+      error: undefined,
+      refresh: jest.fn(),
+    });
+
+    const { result } = renderHook(() => useGenAiAgentDeploymentEnabled());
+
+    expect(result.current).toEqual({ enabled: false, loaded: false });
   });
 });

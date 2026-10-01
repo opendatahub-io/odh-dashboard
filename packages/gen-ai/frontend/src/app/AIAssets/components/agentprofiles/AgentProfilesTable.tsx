@@ -49,7 +49,8 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = React.useState(false);
   const [currentFilterKey, setCurrentFilterKey] = React.useState<FilterKey>('name');
   const [searchValue, setSearchValue] = React.useState('');
-  const isAgentDeploymentEnabled = useGenAiAgentDeploymentEnabled();
+  const { enabled: isAgentDeploymentEnabled, loaded: agentDeploymentAvailabilityLoaded } =
+    useGenAiAgentDeploymentEnabled();
   const columns = React.useMemo(
     () => AgentProfileColumns(isAgentDeploymentEnabled),
     [isAgentDeploymentEnabled],
@@ -173,9 +174,22 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
     </Toolbar>
   );
 
+  if (!agentDeploymentAvailabilityLoaded) {
+    return (
+      <Table
+        data={profiles}
+        columns={AgentProfileColumns(false)}
+        enablePagination
+        defaultSortColumn={2}
+        loading
+        rowRenderer={() => null}
+        data-testid="agent-profiles-table"
+      />
+    );
+  }
+
   return (
     <Table
-      key={isAgentDeploymentEnabled ? 'with-endpoints' : 'without-endpoints'}
       data={filteredProfiles}
       columns={columns}
       enablePagination
