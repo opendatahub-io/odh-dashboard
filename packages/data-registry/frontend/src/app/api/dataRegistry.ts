@@ -6,12 +6,11 @@ import {
   restDELETE,
   restGET,
   restPATCH,
-  restUPDATE,
 } from 'mod-arch-core';
 import {
-  AssetResponse,
+  StructuredAssetResponse,
+  UnstructuredAssetResponse,
   AssetListResponse,
-  VolumeInfo,
   ListVolumesResponse,
   ListNamespacesResponse,
   NamespaceResponse,
@@ -22,6 +21,8 @@ import {
   CreateLabelRequest,
   LabelResponse,
   ConnectionRef,
+  StructuredFormat,
+  UnstructuredFormat,
 } from '~/app/types';
 import { URL_PREFIX, BFF_API_VERSION } from '~/app/utilities/const';
 
@@ -40,32 +41,68 @@ const connectionRefSchema = z.union([
   z.object({ type: z.literal('rhai'), secret_name: z.string() }),
 ]);
 
-const assetResponseSchema = z
+const assetResponseBaseSchema = {
+  name: z.string(),
+  uuid: z.string(),
+  // eslint-disable-next-line camelcase
+  storage_location: z.string().nullable().optional(),
+  collection: z.string(),
+  owner: z.string(),
+  description: z.string().nullable().optional(),
+  // eslint-disable-next-line camelcase
+  created_at: z.string(),
+  // eslint-disable-next-line camelcase
+  updated_at: z.string(),
+  columns: z.array(schemaFieldSchema).nullable().optional(),
+  labels: z.array(z.string()).nullable().optional(),
+  properties: z.record(z.string(), z.string()).nullable().optional(),
+  // eslint-disable-next-line camelcase
+  connection_ref: connectionRefSchema.nullable().optional(),
+};
+
+const structuredFormatSchema = z.enum([
+  'iceberg',
+  'parquet',
+  'csv',
+  'delta',
+  'postgresql',
+  'milvus',
+  'other',
+]);
+
+const unstructuredFormatSchema = z.enum([
+  'documents',
+  'images',
+  'audio',
+  'video',
+  'binary',
+  'other',
+]);
+
+const structuredAssetResponseSchema = z
   .object({
-    name: z.string(),
+    ...assetResponseBaseSchema,
     // eslint-disable-next-line camelcase
-    asset_type: z.string(),
-    columns: z.array(schemaFieldSchema).nullable().optional(),
-    labels: z.array(z.string()).nullable().optional(),
+    asset_type: z.literal('table'),
+    format: structuredFormatSchema,
   })
   .passthrough();
 
-const volumeInfoSchema = z
+const unstructuredAssetResponseSchema = z
   .object({
-    name: z.string(),
-    'catalog-name': z.string(),
-    'schema-name': z.string(),
-    'volume-type': z.string(),
-    'storage-location': z.string(),
-    labels: z.array(z.string()).nullable().optional(),
-    properties: z.record(z.string(), z.string()).optional(),
+    ...assetResponseBaseSchema,
     // eslint-disable-next-line camelcase
-    connection_ref: connectionRefSchema.nullable().optional(),
+    asset_type: z.literal('volume'),
+    format: unstructuredFormatSchema,
   })
   .passthrough();
 
 const listVolumesResponseSchema = z.object({
-  volumes: z.array(volumeInfoSchema).optional(),
+  volumes: z.array(unstructuredAssetResponseSchema),
+});
+
+const assetListResponseSchema = z.object({
+  assets: z.array(structuredAssetResponseSchema),
 });
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -128,24 +165,21 @@ const get = async <T>(path: string, opts: APIOptions = {}, schema?: z.ZodType<T>
   return schema ? schema.parse(response) : response;
 };
 
-const create = <T>(
+const create = async <T>(
   path: string,
   data: Record<string, unknown>,
   opts: APIOptions = {},
-): Promise<T> => handleRegistryRequest(restCREATE<T>('', registryUrl(path), data, {}, opts));
+  schema?: z.ZodType<T>,
+): Promise<T> => {
+  const response = await handleRegistryRequest(
+    restCREATE<T>('', registryUrl(path), data, {}, opts),
+  );
+  return schema ? schema.parse(response) : response;
+};
 
 const patch = (path: string, data: Record<string, unknown>, opts: APIOptions = {}): Promise<void> =>
   handleRegistryRequest(
     restPATCH<unknown>('', registryUrl(path), data, {}, { ...opts, parseJSON: false }),
-  ).then(() => undefined);
-
-const update = (
-  path: string,
-  data: Record<string, unknown>,
-  opts: APIOptions = {},
-): Promise<void> =>
-  handleRegistryRequest(
-    restUPDATE<unknown>('', registryUrl(path), data, {}, { ...opts, parseJSON: false }),
   ).then(() => undefined);
 
 const remove = (path: string, opts: APIOptions = {}): Promise<void> =>
@@ -199,20 +233,24 @@ export const fetchAssets = (
   collection: string,
   opts: APIOptions = {},
 ): Promise<AssetListResponse> =>
-  get(`/${encodedPath(project)}/namespaces/${encodedPath(collection)}/generic-tables`, opts);
+  get(
+    `/${encodedPath(project)}/namespaces/${encodedPath(collection)}/generic-tables`,
+    opts,
+    assetListResponseSchema,
+  );
 
 export const fetchGenericTable = (
   project: string,
   collection: string,
   name: string,
   opts: APIOptions = {},
-): Promise<AssetResponse> =>
+): Promise<StructuredAssetResponse> =>
   get(
     `/${encodedPath(project)}/namespaces/${encodedPath(
       collection,
     )}/generic-tables/${encodeURIComponent(name)}`,
     opts,
-    assetResponseSchema,
+    structuredAssetResponseSchema,
   );
 
 export const deleteGenericTable = (
@@ -246,11 +284,12 @@ export const createVolume = (
   collection: string,
   data: CreateVolumeRequest,
   opts: APIOptions = {},
-): Promise<VolumeInfo> =>
+): Promise<UnstructuredAssetResponse> =>
   create(
     `/${encodedPath(project)}/namespaces/${encodedPath(collection)}/volumes`,
     asRequestBody(data),
     opts,
+    unstructuredAssetResponseSchema,
   );
 
 export const fetchVolume = (
@@ -258,13 +297,13 @@ export const fetchVolume = (
   collection: string,
   name: string,
   opts: APIOptions = {},
-): Promise<VolumeInfo> =>
+): Promise<UnstructuredAssetResponse> =>
   get(
     `/${encodedPath(project)}/namespaces/${encodedPath(collection)}/volumes/${encodeURIComponent(
       name,
     )}`,
     opts,
-    volumeInfoSchema,
+    unstructuredAssetResponseSchema,
   );
 
 export const deleteVolume = (
@@ -287,25 +326,26 @@ export const createGenericTable = (
   collection: string,
   data: CreateGenericTableRequest,
   opts: APIOptions = {},
-): Promise<AssetResponse> =>
+): Promise<StructuredAssetResponse> =>
   create(
     `/${encodedPath(project)}/namespaces/${encodedPath(collection)}/generic-tables`,
     asRequestBody(data),
     opts,
+    structuredAssetResponseSchema,
   );
 
 // Update assets
 
 export type UpdateGenericTableRequest = {
   description?: string;
-  format?: string;
-  location?: string;
-  connection_ref?: ConnectionRef;
+  format?: StructuredFormat;
+  storage_location?: string | null;
+  connection_ref?: ConnectionRef | null;
   purpose?: string;
   license?: string;
   maturity?: string;
+  domain?: string;
   pii?: string;
-  owner?: string;
   add_labels?: string[];
   remove_labels?: string[];
   schema_fields?: { name: string; type: string; description?: string; nullable?: boolean }[];
@@ -328,9 +368,15 @@ export const updateGenericTable = async (
   );
 
 export type UpdateVolumeRequest = {
-  comment?: string;
-  storage_location?: string;
-  owner?: string;
+  description?: string;
+  format?: UnstructuredFormat;
+  storage_location?: string | null;
+  connection_ref?: ConnectionRef | null;
+  purpose?: string;
+  license?: string;
+  maturity?: string;
+  domain?: string;
+  pii?: string;
   add_labels?: string[];
   remove_labels?: string[];
   properties?: Record<string, string>;
@@ -343,7 +389,7 @@ export const updateVolume = async (
   data: UpdateVolumeRequest,
   opts: APIOptions = {},
 ): Promise<void> =>
-  update(
+  patch(
     `/${encodedPath(project)}/namespaces/${encodedPath(collection)}/volumes/${encodeURIComponent(
       name,
     )}`,

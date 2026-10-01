@@ -7,14 +7,14 @@ import {
   type FetchStateCallbackPromise,
 } from 'mod-arch-core';
 import { fetchVolume } from '~/app/api/dataRegistry';
-import { VolumeInfo } from '~/app/types';
+import { AssetResponse } from '~/app/types';
 
 export const useVolume = (
   project?: string,
   collection?: string,
   name?: string,
-): FetchState<VolumeInfo | null> => {
-  const callback = React.useCallback<FetchStateCallbackPromise<VolumeInfo | null>>(
+): FetchState<AssetResponse | null> => {
+  const callback = React.useCallback<FetchStateCallbackPromise<AssetResponse | null>>(
     (opts: APIOptions) => {
       if (!project || !collection || !name) {
         return Promise.reject(new NotReadyError('Missing project, collection, or volume name'));
@@ -24,5 +24,5 @@ export const useVolume = (
     [project, collection, name],
   );
 
-  return useFetchState<VolumeInfo | null>(callback, null);
+  return useFetchState<AssetResponse | null>(callback, null);
 };

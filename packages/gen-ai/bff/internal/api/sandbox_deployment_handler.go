@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
@@ -24,8 +25,6 @@ type AgentDeploymentCreateEnvelope = Envelope[models.AgentDeploymentCreateRespon
 
 const sandboxRollbackTimeout = 30 * time.Second
 
-const mockSandboxOGXImage = "example.com/ogx:mock"
-
 var errSandboxMCPDashboardConfigRead = errors.New("failed to read dashboard MCP server ConfigMap")
 
 const (
@@ -33,6 +32,20 @@ const (
 	sandboxServiceSuffixLength = len("-ext")
 	dnsLabelMaxLength          = 63
 )
+
+func resolveSandboxOGXImage(cfg config.EnvConfig) (string, error) {
+	if cfg.OGXCoreImage != "" || cfg.MockK8sClient {
+		return cfg.OGXCoreImage, nil
+	}
+
+	return "", &integrations.HTTPError{
+		StatusCode: 500,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    "missing_image",
+			Message: "OGX core image not configured; set RELATED_IMAGE_ODH_OGX_CORE_IMAGE or --ogx-core-image",
+		},
+	}
+}
 
 // CreateAgentDeploymentHandler handles POST /api/v1/agent-deployments.
 // It loads the agent profile, builds the llama-stack-config ConfigMap from the profile's
@@ -136,6 +149,15 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 	if err := validateSandboxModelSourceType(profile.Spec.Model.SourceType); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
+	}
+
+	maasGatewayURL := ""
+	if profile.Spec.Model.SourceType == string(models.ModelSourceTypeMaaS) {
+		maasGatewayURL, err = resolveSandboxMaaSGatewayURL(ctx)
+		if err != nil {
+			app.handleBFFClientError(w, r, err)
+			return
+		}
 	}
 
 	// Custom endpoint credentials belong to the dashboard-managed provider record.
@@ -259,21 +281,10 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 	resources.WrapperAppConfigMapName = waCM.Name
 
 	// Require the OGX core image — injected by the operator via RELATED_IMAGE_ODH_OGX_CORE_IMAGE.
-	ogxImage := app.config.OGXCoreImage
-	if ogxImage == "" && app.config.MockK8sClient {
-		// Mock mode persists a simulated Sandbox but never starts a pod, so it does
-		// not receive the operator-injected RELATED_IMAGE_ODH_OGX_CORE_IMAGE environment value.
-		ogxImage = mockSandboxOGXImage
-	}
-	if ogxImage == "" {
+	ogxImage, imageErr := resolveSandboxOGXImage(app.config)
+	if imageErr != nil {
 		rollback()
-		app.serverErrorResponse(w, r, &integrations.HTTPError{
-			StatusCode: 500,
-			ErrorResponse: integrations.ErrorResponse{
-				Code:    "missing_image",
-				Message: "OGX core image not configured; set RELATED_IMAGE_ODH_OGX_CORE_IMAGE or --ogx-core-image",
-			},
-		})
+		app.serverErrorResponse(w, r, imageErr)
 		return
 	}
 
@@ -347,20 +358,17 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		LlamaStackConfigMapName: lsCM.Name,
 		WrapperAppConfigMapName: waCM.Name,
 		Image:                   ogxImage,
-		// Use the configured MaaS URL when present, otherwise derive the current
-		// cluster's MaaS gateway URL. This keeps deployed Sandboxes usable when
-		// MAAS_URL is not injected into the Gen AI BFF deployment.
-		MaaSGatewayURL:     app.resolveMaaSBaseURL(),
-		AgentConfigJSON:    string(agentConfigJSON),
-		OGXModelID:         kubernetes.SandboxOGXModelID(profile.Spec.Model.ID),
-		ModelSourceType:    profile.Spec.Model.SourceType,
-		SystemPrompt:       systemPrompt,
-		MCPServersJSON:     string(mcpServersJSON),
-		VectorStoreIDsJSON: string(vectorStoreIDsJSON),
-		MCPAuthSecrets:     mcpAuthSecrets,
-		ModelAuthSecret:    modelAuthSecret,
-		PgvectorHost:       app.config.PgvectorHost,
-		PgvectorSecretName: app.config.PgvectorPasswordSecretName,
+		MaaSGatewayURL:          maasGatewayURL,
+		AgentConfigJSON:         string(agentConfigJSON),
+		OGXModelID:              kubernetes.SandboxOGXModelID(profile.Spec.Model.ID),
+		ModelSourceType:         profile.Spec.Model.SourceType,
+		SystemPrompt:            systemPrompt,
+		MCPServersJSON:          string(mcpServersJSON),
+		VectorStoreIDsJSON:      string(vectorStoreIDsJSON),
+		MCPAuthSecrets:          mcpAuthSecrets,
+		ModelAuthSecret:         modelAuthSecret,
+		PgvectorHost:            app.config.PgvectorHost,
+		PgvectorSecretName:      app.config.PgvectorPasswordSecretName,
 	}
 	if profile.Spec.Model.Authorization != nil {
 		sandboxOpts.MaaSSubscription = profile.Spec.Model.Authorization.MaaSSubscription
@@ -386,7 +394,7 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 	resources.SandboxName = sandboxName
 
 	// The ConfigMaps are created before the Sandbox, so attach their owner references now.
-	// The Service, Route, and optional RoleBinding receive the same owner at creation time.
+	// The Service and Route receive the same owner reference at creation time.
 	if err := k8sClient.SetSandboxConfigMapsOwner(ctx, namespace, sandboxName, lsCM.Name, waCM.Name); err != nil {
 		rollback()
 		if httpErr, ok := err.(*integrations.HTTPError); ok && httpErr.StatusCode == http.StatusForbidden {
@@ -423,7 +431,7 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 	}
 	resources.ServiceName = sandboxName + "-ext"
 
-	// Create the OpenShift Route with TLS edge termination and an explicit host.
+	// Create the OpenShift Route with TLS edge termination. OpenShift assigns its host.
 	routeURL, err := k8sClient.CreateSandboxRoute(ctx, namespace, sandboxName)
 	if err != nil {
 		rollback()

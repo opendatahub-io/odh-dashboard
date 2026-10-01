@@ -91,7 +91,7 @@ export type PaginationParams = {
   nextPageToken: string;
 };
 
-export type CatalogAssetType = 'models' | 'mcp_servers' | 'agents';
+export type CatalogAssetType = 'models' | 'mcp_servers' | 'agents' | 'serving_runtimes';
 
 export type CatalogSourceListParams = {
   assetType?: CatalogAssetType;
@@ -447,14 +447,17 @@ export type YamlCatalogSourceConfig = CatalogSourceConfigCommon & {
 export type HuggingFaceCatalogSourceConfig = CatalogSourceConfigCommon & {
   type: CatalogSourceType.HUGGING_FACE;
   allowedOrganization?: string;
-  /** apiKey will be populated on GET (by ID) requests, not on LIST requests */
+  /** Indicates a configured credential reference, not authentication success. */
+  hasConfiguredApiKey?: boolean;
+  /** Only sent in create/update requests; never returned by configuration reads. */
   apiKey?: string;
 };
 
 export type CatalogSourceConfig = YamlCatalogSourceConfig | HuggingFaceCatalogSourceConfig;
 
 export type CatalogSourceConfigPayload =
-  | CatalogSourceConfig
+  | YamlCatalogSourceConfig
+  | Omit<HuggingFaceCatalogSourceConfig, 'hasConfiguredApiKey'>
   | Pick<CatalogSourceConfig, 'enabled' | 'includedModels' | 'excludedModels'>;
 
 export type CatalogSourceConfigList = {
