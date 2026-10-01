@@ -4,7 +4,7 @@
 #   make tilt-up     # creates kind cluster, installs KServe, and starts the full stack
 #   make tilt-down   # stops Tilt
 #
-# Prerequisites: docker/podman, kind, tilt
+# Prerequisites: docker/podman, kind, tilt, curl, go
 
 analytics_settings(False)
 version_settings(check_updates=True, constraint=">=0.33.0")
@@ -83,9 +83,14 @@ local_resource(
     labels=["model-serving"],
 )
 
-# Track readiness of the externally-installed KServe controller.
+# Track readiness of the externally-installed KServe controllers.
 local_resource(
     "kserve-controller",
-    cmd="kubectl wait --for=condition=Available --timeout=120s -n kserve deployment/kserve-controller-manager",
+    cmd="kubectl wait --for=condition=Available --timeout=300s -n kserve deployment/kserve-controller-manager",
+    labels=["model-serving"],
+)
+local_resource(
+    "llmisvc-controller",
+    cmd="kubectl wait --for=condition=Available --timeout=300s -n kserve deployment/llmisvc-controller-manager",
     labels=["model-serving"],
 )
