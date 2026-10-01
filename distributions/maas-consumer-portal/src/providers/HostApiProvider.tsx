@@ -4,7 +4,7 @@ import { HostApiCoreContext, type HostApiCoreServices } from '@odh-dashboard/plu
 
 const coreServices: HostApiCoreServices = {
   dashboardNamespace: '',
-  checkAccess,
+  checkAccess: (attributes) => checkAccess(attributes, { failureMode: 'reject' }),
   trackEvent: () => undefined,
   fetchDashboardConfig: () =>
     Promise.reject(new Error('DashboardConfig is not available in the MaaS Consumer Portal.')),
