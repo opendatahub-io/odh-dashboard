@@ -14,9 +14,60 @@ EXPECTED_CONTEXT="kind-rhaii-tilt"
 WAIT_TIMEOUT="300s"
 GATEWAY_NAME="kserve-ingress-gateway"
 GATEWAY_NAMESPACE="kserve"
+CLOUD_PROVIDER_KIND_LOG="${TMPDIR:-/tmp}/rhaii-cloud-provider-kind.log"
 
 info()  { echo "==> $*"; }
 error() { echo "ERROR: $*" >&2; exit 1; }
+
+start_cloud_provider_kind() {
+  if pgrep -f cloud-provider-kind >/dev/null 2>&1; then
+    info "cloud-provider-kind is already running"
+    return
+  fi
+
+  info "Starting cloud-provider-kind (log: ${CLOUD_PROVIDER_KIND_LOG})..."
+  : >"$CLOUD_PROVIDER_KIND_LOG" || error "Unable to write cloud-provider-kind log: ${CLOUD_PROVIDER_KIND_LOG}"
+
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    info "cloud-provider-kind requires administrator privileges on macOS"
+    if ! sudo -v; then
+      echo "Start it in another terminal, then rerun this command:" >&2
+      echo "  sudo \"${GO_BIN_DIR}/cloud-provider-kind\"" >&2
+      error "Unable to obtain administrator privileges for cloud-provider-kind"
+    fi
+    local sudo_env=("PATH=${PATH}" "HOME=${HOME}")
+    if [[ -n "${KIND_EXPERIMENTAL_PROVIDER:-}" ]]; then
+      sudo_env+=("KIND_EXPERIMENTAL_PROVIDER=${KIND_EXPERIMENTAL_PROVIDER}")
+    fi
+    if [[ -n "${DOCKER_HOST:-}" ]]; then
+      sudo_env+=("DOCKER_HOST=${DOCKER_HOST}")
+    fi
+    if [[ -n "${DOCKER_CONTEXT:-}" ]]; then
+      sudo_env+=("DOCKER_CONTEXT=${DOCKER_CONTEXT}")
+    fi
+    if [[ -n "${CONTAINER_HOST:-}" ]]; then
+      sudo_env+=("CONTAINER_HOST=${CONTAINER_HOST}")
+    fi
+    sudo env "${sudo_env[@]}" \
+      nohup "${GO_BIN_DIR}/cloud-provider-kind" >"$CLOUD_PROVIDER_KIND_LOG" 2>&1 &
+  else
+    nohup "${GO_BIN_DIR}/cloud-provider-kind" >"$CLOUD_PROVIDER_KIND_LOG" 2>&1 &
+  fi
+
+  sleep 2
+  if ! pgrep -f cloud-provider-kind >/dev/null 2>&1; then
+    if [[ -s "$CLOUD_PROVIDER_KIND_LOG" ]]; then
+      echo "cloud-provider-kind startup log (${CLOUD_PROVIDER_KIND_LOG}):" >&2
+      tail -n 50 "$CLOUD_PROVIDER_KIND_LOG" >&2
+    fi
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+      echo "Start it in another terminal, then rerun this command:" >&2
+      echo "  sudo \"${GO_BIN_DIR}/cloud-provider-kind\"" >&2
+    fi
+    error "Failed to start cloud-provider-kind; see ${CLOUD_PROVIDER_KIND_LOG}"
+  fi
+  info "cloud-provider-kind started successfully"
+}
 
 # --- Prerequisites -----------------------------------------------------------
 
@@ -64,6 +115,7 @@ curl -fsSL "$LLMISVC_DEPENDENCIES_URL" -o "$DEPENDENCY_INSTALLER"
 # pinned executable on PATH and skips the unpinned installation.
 info "Installing cloud-provider-kind ${CLOUD_PROVIDER_KIND_VERSION}..."
 GOBIN="$GO_BIN_DIR" go install "sigs.k8s.io/cloud-provider-kind@${CLOUD_PROVIDER_KIND_VERSION}"
+start_cloud_provider_kind
 
 (
   cd "$DEPENDENCY_WORK_DIR"
