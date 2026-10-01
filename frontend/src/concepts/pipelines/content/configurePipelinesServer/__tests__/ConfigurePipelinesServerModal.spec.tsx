@@ -11,7 +11,10 @@ import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import usePipelinesConnections from '#~/pages/projects/screens/detail/connections/usePipelinesConnections';
 import { createPipelinesCR } from '#~/api';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { configureDSPipelineResourceSpec } from '#~/concepts/pipelines/content/configurePipelinesServer/utils';
+import {
+  configureDSPipelineResourceSpec,
+  createDSPipelineResourceSpec,
+} from '#~/concepts/pipelines/content/configurePipelinesServer/utils';
 import { useAppContext } from '#~/app/AppContext';
 import useIsMlflowCRAvailable from '#~/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 
@@ -44,6 +47,7 @@ jest.mock('#~/concepts/analyticsTracking/segmentIOUtils', () => ({
 }));
 
 jest.mock('#~/concepts/pipelines/content/configurePipelinesServer/utils', () => ({
+  ...jest.requireActual('#~/concepts/pipelines/content/configurePipelinesServer/utils'),
   configureDSPipelineResourceSpec: jest.fn(),
   objectStorageIsValid: jest.fn(),
 }));
@@ -105,14 +109,22 @@ describe('ConfigurePipelinesServerModal', () => {
     onClose: mockOnClose,
   };
 
-  const renderModal = (props = defaultProps) =>
-    render(
-      <BrowserRouter>
-        <NotificationWatcherContext.Provider value={mockNotificationContext}>
-          <ConfigurePipelinesServerModal {...props} />
-        </NotificationWatcherContext.Provider>
-      </BrowserRouter>,
+  const modalElement = (props = defaultProps) => (
+    <BrowserRouter>
+      <NotificationWatcherContext.Provider value={mockNotificationContext}>
+        <ConfigurePipelinesServerModal {...props} />
+      </NotificationWatcherContext.Provider>
+    </BrowserRouter>
+  );
+  const renderModal = (props = defaultProps) => render(modalElement(props));
+
+  const configureSpecFromSubmitConfig = () => {
+    mockConfigureDSPipelineResourceSpec.mockImplementation((config) =>
+      Promise.resolve(
+        createDSPipelineResourceSpec(config, [undefined, { secretName: 'test-secret' }]),
+      ),
     );
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -228,6 +240,7 @@ describe('ConfigurePipelinesServerModal', () => {
         objectStorageIsValid,
       } = require('#~/concepts/pipelines/content/configurePipelinesServer/utils');
       objectStorageIsValid.mockReturnValue(true);
+      configureSpecFromSubmitConfig();
 
       mockUseAppContext.mockReturnValue({
         buildStatuses: [],
@@ -244,9 +257,11 @@ describe('ConfigurePipelinesServerModal', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Configure pipeline server' }));
 
       await waitFor(() => {
-        expect(mockConfigureDSPipelineResourceSpec).toHaveBeenCalledWith(
-          expect.objectContaining({ enableManagedPipelines: true }),
+        expect(mockCreatePipelinesCR).toHaveBeenCalledWith(
           'test-project',
+          expect.objectContaining({
+            apiServer: expect.objectContaining({ managedPipelines: {} }),
+          }),
         );
       });
     },
@@ -257,6 +272,7 @@ describe('ConfigurePipelinesServerModal', () => {
       objectStorageIsValid,
     } = require('#~/concepts/pipelines/content/configurePipelinesServer/utils');
     objectStorageIsValid.mockReturnValue(true);
+    configureSpecFromSubmitConfig();
 
     renderModal({
       onClose: mockOnClose,
@@ -269,11 +285,55 @@ describe('ConfigurePipelinesServerModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Configure pipeline server' }));
 
     await waitFor(() => {
-      expect(mockConfigureDSPipelineResourceSpec).toHaveBeenCalledWith(
-        expect.objectContaining({ enableManagedPipelines: false }),
-        'test-project',
-      );
+      expect(mockCreatePipelinesCR).toHaveBeenCalled();
     });
+
+    expect(mockConfigureDSPipelineResourceSpec).toHaveBeenCalledWith(
+      expect.objectContaining({ enableManagedPipelines: false }),
+      'test-project',
+    );
+    const submittedSpec = mockCreatePipelinesCR.mock.calls[0][1];
+    expect(submittedSpec.apiServer).not.toHaveProperty('managedPipelines');
+  });
+
+  it('should omit managed pipelines if they become unavailable before submission', async () => {
+    const {
+      objectStorageIsValid,
+    } = require('#~/concepts/pipelines/content/configurePipelinesServer/utils');
+    objectStorageIsValid.mockReturnValue(true);
+    configureSpecFromSubmitConfig();
+
+    mockUseAppContext.mockReturnValue({
+      buildStatuses: [],
+      dashboardConfig: mockDashboardConfig({ automl: true, autorag: false }),
+      storageClasses: [],
+      isRHOAI: false,
+    });
+
+    const { rerender } = renderModal();
+    fireEvent.click(screen.getByText('Advanced settings'));
+    expect(screen.getByTestId('managed-pipelines-checkbox')).toBeChecked();
+
+    mockUseAppContext.mockReturnValue({
+      buildStatuses: [],
+      dashboardConfig: mockDashboardConfig({ automl: false, autorag: false }),
+      storageClasses: [],
+      isRHOAI: false,
+    });
+    rerender(modalElement());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Configure pipeline server' }));
+
+    await waitFor(() => {
+      expect(mockCreatePipelinesCR).toHaveBeenCalled();
+    });
+
+    expect(mockConfigureDSPipelineResourceSpec).toHaveBeenCalledWith(
+      expect.objectContaining({ enableManagedPipelines: false }),
+      'test-project',
+    );
+    const submittedSpec = mockCreatePipelinesCR.mock.calls[0][1];
+    expect(submittedSpec.apiServer).not.toHaveProperty('managedPipelines');
   });
 
   it('should enable submit button when form is valid', () => {
