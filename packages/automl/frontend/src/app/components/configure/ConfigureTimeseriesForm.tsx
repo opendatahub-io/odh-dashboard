@@ -12,7 +12,7 @@ import {
 } from '@patternfly/react-core';
 import React, { useState } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
-import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
+import { ConfigureFormGroup } from '@odh-dashboard/autox-core/ui/components/primitive';
 import { MAX_PREDICTION_LENGTH } from '~/app/utilities/const';
 import { getTypeAcronym } from '~/app/utilities/columnUtils';
 import LoadingFormField from './LoadingFormField';

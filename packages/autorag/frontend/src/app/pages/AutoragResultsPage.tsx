@@ -19,50 +19,49 @@ import {
   RedoIcon,
   StopCircleIcon,
 } from '@patternfly/react-icons';
+import { InvalidPipelineRun, StopRunModal } from '@odh-dashboard/autox-core/ui/components/feature';
+import { ContextBreadcrumb } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { useFetchS3File, useS3ListFilesQuery } from '@odh-dashboard/autox-core/ui/hooks';
+import { parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
-import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
-import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutoragResults from '~/app/components/run-results/AutoragResults';
 import AutoragInputParametersPanel from '~/app/components/run-results/AutoragInputParametersPanel';
 import PlaygroundDrawerPanel from '~/app/components/run-results/PlaygroundDrawerPanel';
 import type { PlaygroundPatternInfo } from '~/app/components/run-results/PlaygroundDrawerPanel';
-import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { AutoragResultsContext, getAutoragContext } from '~/app/context/AutoragResultsContext';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
 import { useNotification } from '~/app/hooks/useNotification';
-import {
-  fetchS3File,
-  usePipelineRunQuery,
-  useS3ListFilesQuery,
-  useSecretCredentialsQuery,
-} from '~/app/hooks/queries';
+import { usePipelineRunQuery } from '~/app/hooks/usePipelineRunQuery';
+import { useSecretCredentialsQuery } from '~/app/hooks/useSecretCredentialsQuery';
 import { useAutoragOutputDir } from '~/app/hooks/useAutoragOutputDir';
 import { resolveArtifactDirectory, useAutoragResults } from '~/app/hooks/useAutoragResults';
 import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import { useComponentStatuses } from '~/app/hooks/useComponentStatuses';
+import { isRunInTerminalState } from '~/app/types/pipeline';
 import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/utilities/routes';
 import {
   downloadBlob,
   isRunCompleted,
-  isRunInTerminalState,
   isRunRetryable,
   isRunTerminatable,
-  parseErrorStatus,
 } from '~/app/utilities/utils';
 import { getObjectiveMetric, metricLabel } from '~/app/utilities/metricUtils';
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 import {
+  AUTORAG_EVENTS,
   fireAutoragCodeSnippetsExported,
   fireAutoragStarterKitDownloaded,
   fireAutoragPlaygroundOpened,
   fireAutoragResultsViewed,
   isAutoragResultsNavigationState,
+  TrackingOutcome,
 } from '~/app/utilities/tracking';
 import type { PlaygroundOpenedSource, ViewCodeEntrySource } from '~/app/utilities/tracking';
 
@@ -129,6 +128,7 @@ function AutoragResultsPage(): React.JSX.Element {
   );
 
   const notification = useNotification();
+  const fetchS3File = useFetchS3File();
 
   const {
     data: pipelineRun,
@@ -238,7 +238,7 @@ function AutoragResultsPage(): React.JSX.Element {
         setIsDownloadingStarterKit(false);
       }
     }
-  }, [namespace, starterKitDisabled, starterKitKey]);
+  }, [fetchS3File, namespace, starterKitDisabled, starterKitKey]);
 
   const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutoragRunActions(
     namespace ?? '',
@@ -579,11 +579,13 @@ function AutoragResultsPage(): React.JSX.Element {
               }
               breadcrumb={
                 namespace ? (
-                  <ExperimentContextBreadcrumb
+                  <ContextBreadcrumb
                     pageName="AutoRAG"
-                    namespace={namespace}
                     projectDisplayName={projectDisplayName}
                     homePath={getRedirectPath(namespace)}
+                    projectHomePath={`/projects/${namespace}`}
+                    homeTestId="experiment-breadcrumb-home"
+                    projectLinkTestId="project-navigator-link-in-breadcrumb"
                   >
                     <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
                       <Link
@@ -594,13 +596,13 @@ function AutoragResultsPage(): React.JSX.Element {
                       </Link>
                     </BreadcrumbItem>
                     <BreadcrumbItem isActive>Run results</BreadcrumbItem>
-                  </ExperimentContextBreadcrumb>
+                  </ContextBreadcrumb>
                 ) : undefined
               }
               empty={noNamespaces || invalidNamespace || invalidPipelineRunId}
               emptyStatePage={
                 invalidPipelineRunId ? (
-                  <InvalidPipelineRun />
+                  <InvalidPipelineRun productName="AutoRAG" />
                 ) : (
                   <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
                 )
@@ -632,7 +634,12 @@ function AutoragResultsPage(): React.JSX.Element {
         onConfirm={handleStop}
         isTerminating={isTerminating}
         runName={pipelineRun?.display_name}
-        source="resultsPage"
+        onCancel={() =>
+          fireFormTrackingEvent(AUTORAG_EVENTS.RUN_STOPPED, {
+            outcome: TrackingOutcome.cancel,
+            source: 'resultsPage',
+          })
+        }
       />
       {viewCodePattern && (
         <ViewCodeModal

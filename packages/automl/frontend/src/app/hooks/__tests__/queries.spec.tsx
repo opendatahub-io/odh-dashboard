@@ -1,24 +1,38 @@
 /* eslint-disable camelcase -- test data matches API response field names */
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import {
-  useS3GetFileSchemaQuery,
-  useModelEvaluationArtifactsQuery,
-  fetchS3File,
-  AutomlModelSchema,
-  isRawTimeseriesModelV34,
-  isRawModelV35,
-} from '~/app/hooks/queries';
+import { AutoXApiProvider } from '@odh-dashboard/autox-core/ui/context';
+import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
+import { useS3GetFileSchemaQuery } from '~/app/hooks/useS3GetFileSchemaQuery';
+import { useModelEvaluationArtifactsQuery } from '~/app/hooks/useModelEvaluationArtifactsQuery';
+
+const getS3JsonQueryKey = (
+  namespace: string,
+  key: string,
+  options: { secretName?: string; bucket?: string; view?: string; maxBytes?: number },
+) =>
+  [
+    's3Json',
+    namespace,
+    key,
+    options.secretName,
+    options.bucket,
+    options.view,
+    options.maxBytes ?? 50 * 1024 * 1024,
+  ] as const;
 import type {
   AutomlRawTabularModelV34,
   AutomlRawTimeseriesModelV34,
   AutomlRawModelV35,
   AutomlRawModel,
-} from '~/app/hooks/queries';
+} from '~/app/hooks/modelSchema';
+import { AutomlModelSchema, isRawTimeseriesModelV34, isRawModelV35 } from '~/app/hooks/modelSchema';
 
 // Mock fetch globally
 global.fetch = jest.fn();
+
+const queryClients = new Set<QueryClient>();
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -28,22 +42,33 @@ const createWrapper = () => {
       },
     },
   });
+  queryClients.add(queryClient);
   const Wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <AutoXApiProvider apiPrefix={URL_PREFIX} bffApiVersion={BFF_API_VERSION}>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </AutoXApiProvider>
   );
   Wrapper.displayName = 'TestQueryClientProvider';
-  return Wrapper;
+  return { Wrapper, queryClient };
 };
+
+afterEach(async () => {
+  await Promise.all([...queryClients].map((queryClient) => queryClient.cancelQueries()));
+  queryClients.forEach((queryClient) => queryClient.clear());
+  queryClients.clear();
+  (global.fetch as jest.Mock).mockReset();
+});
 
 describe('useS3GetFileSchemaQuery', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (global.fetch as jest.Mock).mockReset();
   });
 
   it('should be disabled when namespace is missing', () => {
     const { result } = renderHook(
       () => useS3GetFileSchemaQuery(undefined, 'test-secret', 'test-bucket', 'data.csv'),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     expect(result.current.data).toEqual([]);
@@ -54,7 +79,7 @@ describe('useS3GetFileSchemaQuery', () => {
   it('should be disabled when secretName is missing', () => {
     const { result } = renderHook(
       () => useS3GetFileSchemaQuery('test-namespace', undefined, 'test-bucket', 'data.csv'),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     expect(result.current.data).toEqual([]);
@@ -65,7 +90,7 @@ describe('useS3GetFileSchemaQuery', () => {
   it('should be disabled when key is missing', () => {
     const { result } = renderHook(
       () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', undefined),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     expect(result.current.data).toEqual([]);
@@ -87,13 +112,14 @@ describe('useS3GetFileSchemaQuery', () => {
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
-      json: async () => mockResponse,
+      headers: { get: () => null },
+      blob: async () => new Blob([JSON.stringify(mockResponse)]),
     });
 
     renderHook(
       () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
       {
-        wrapper: createWrapper(),
+        wrapper: createWrapper().Wrapper,
       },
     );
 
@@ -122,13 +148,14 @@ describe('useS3GetFileSchemaQuery', () => {
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
-      json: async () => mockResponse,
+      headers: { get: () => null },
+      blob: async () => new Blob([JSON.stringify(mockResponse)]),
     });
 
     renderHook(
       () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', undefined, 'data.csv'),
       {
-        wrapper: createWrapper(),
+        wrapper: createWrapper().Wrapper,
       },
     );
 
@@ -164,17 +191,49 @@ describe('useS3GetFileSchemaQuery', () => {
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
-      json: async () => mockResponse,
+      headers: { get: () => null },
+      blob: async () => new Blob([JSON.stringify(mockResponse)]),
     });
 
     const { result } = renderHook(
       () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
       expect(result.current.data).toEqual(mockColumns);
     });
+  });
+
+  it('should refetch changed schema content for the same file key', async () => {
+    /* eslint-disable camelcase -- matches API response field name */
+    const firstColumns = [{ name: 'old_id', type: 'integer', task_type: 'binary' as const }];
+    const secondColumns = [{ name: 'new_id', type: 'string', task_type: 'multiclass' as const }];
+    /* eslint-enable camelcase */
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => null },
+        blob: async () => new Blob([JSON.stringify({ data: { columns: firstColumns } })]),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => null },
+        blob: async () => new Blob([JSON.stringify({ data: { columns: secondColumns } })]),
+      });
+
+    const { result } = renderHook(
+      () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
+      { wrapper: createWrapper().Wrapper },
+    );
+
+    await waitFor(() => expect(result.current.data).toEqual(firstColumns));
+    await act(async () => {
+      await result.current.refetch();
+    });
+
+    expect(result.current.data).toEqual(secondColumns);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
   it('should return empty array when response data is missing', async () => {
@@ -184,12 +243,13 @@ describe('useS3GetFileSchemaQuery', () => {
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
-      json: async () => mockResponse,
+      headers: { get: () => null },
+      blob: async () => new Blob([JSON.stringify(mockResponse)]),
     });
 
     const { result } = renderHook(
       () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -205,14 +265,14 @@ describe('useS3GetFileSchemaQuery', () => {
 
     const { result } = renderHook(
       () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
       expect(result.current.error).toBeTruthy();
     });
 
-    expect(result.current.error?.message).toContain('Failed to fetch file schema');
+    expect(result.current.error?.message).toContain('Failed to fetch file');
   });
 
   it('should extract error message from API response', async () => {
@@ -231,7 +291,7 @@ describe('useS3GetFileSchemaQuery', () => {
 
     const { result } = renderHook(
       () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.txt'),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -239,7 +299,7 @@ describe('useS3GetFileSchemaQuery', () => {
     });
 
     expect(result.current.error?.message).toBe(
-      'Failed to fetch file schema: only CSV files are supported (must have .csv extension)',
+      'Failed to fetch file: only CSV files are supported (must have .csv extension)',
     );
   });
 
@@ -254,16 +314,14 @@ describe('useS3GetFileSchemaQuery', () => {
 
     const { result } = renderHook(
       () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
       expect(result.current.error).toBeTruthy();
     });
 
-    expect(result.current.error?.message).toBe(
-      'Failed to fetch file schema: Internal Server Error',
-    );
+    expect(result.current.error?.message).toBe('Failed to fetch file: Internal Server Error');
   });
 
   it('should handle network errors', async () => {
@@ -271,7 +329,7 @@ describe('useS3GetFileSchemaQuery', () => {
 
     const { result } = renderHook(
       () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -287,7 +345,7 @@ describe('useS3GetFileSchemaQuery', () => {
     renderHook(
       () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
       {
-        wrapper: createWrapper(),
+        wrapper: createWrapper().Wrapper,
       },
     );
 
@@ -297,13 +355,38 @@ describe('useS3GetFileSchemaQuery', () => {
   });
 
   it('should use correct query key', () => {
-    const { result } = renderHook(
-      () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
-      { wrapper: createWrapper() },
+    const { Wrapper, queryClient } = createWrapper();
+    const queryKey = ['files', 'test-namespace', 'test-secret', 'test-bucket', 'data.csv'];
+    const s3JsonQueryKey = getS3JsonQueryKey('test-namespace', 'data.csv', {
+      secretName: 'test-secret',
+      bucket: 'test-bucket',
+      view: 'schema',
+    });
+    queryClient.setQueryData(queryKey, [{ name: 'stale-column' }]);
+    queryClient.setQueryData(s3JsonQueryKey, { data: { columns: [] } });
+    queryClient.setQueryData(
+      ['files', 'test-namespace', 'test-secret', 'other-bucket', 'data.csv'],
+      [{ name: 'unrelated-column' }],
     );
 
-    expect(result.current).toBeDefined();
-    // Query key is ['files', namespace, secretName, bucket, key]
+    const { result } = renderHook(
+      () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
+      { wrapper: Wrapper },
+    );
+
+    act(() => result.current.resetSchemaCache());
+
+    expect(queryClient.getQueryData(queryKey)).toEqual([]);
+    expect(queryClient.getQueryState(s3JsonQueryKey)?.isInvalidated).toBe(true);
+    expect(
+      queryClient.getQueryData([
+        'files',
+        'test-namespace',
+        'test-secret',
+        'other-bucket',
+        'data.csv',
+      ]),
+    ).toEqual([{ name: 'unrelated-column' }]);
   });
 
   it('should handle URL encoding for special characters in parameters', async () => {
@@ -317,13 +400,14 @@ describe('useS3GetFileSchemaQuery', () => {
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
-      json: async () => mockResponse,
+      headers: { get: () => null },
+      blob: async () => new Blob([JSON.stringify(mockResponse)]),
     });
 
     renderHook(
       () =>
         useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'my-bucket', 'folder/my file.csv'),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -339,124 +423,6 @@ describe('useS3GetFileSchemaQuery', () => {
     expect(callUrl).toContain('secretName=test-secret');
     expect(callUrl).toContain('bucket=my-bucket');
     expect(callUrl).toContain('view=schema');
-  });
-});
-
-describe('fetchS3File', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should throw for empty key', async () => {
-    await expect(fetchS3File('ns', '')).rejects.toThrow('File key must be a non-empty string');
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  it('should throw for whitespace-only key', async () => {
-    await expect(fetchS3File('ns', '   ')).rejects.toThrow('File key must be a non-empty string');
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  it('should construct URL with namespace and key', async () => {
-    const mockBlob = new Blob(['file content']);
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      blob: async () => mockBlob,
-    });
-
-    const result = await fetchS3File('test-namespace', 'path/to/file.json');
-
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/v1/s3/files/path%2Fto%2Ffile.json?'),
-      expect.objectContaining({ signal: undefined }),
-    );
-    const callUrl = (global.fetch as jest.Mock).mock.calls[0][0];
-    expect(callUrl).toContain('namespace=test-namespace');
-    expect(result).toBe(mockBlob);
-  });
-
-  it('should pass the provided abort signal to fetch', async () => {
-    const mockBlob = new Blob(['file content']);
-    const controller = new AbortController();
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      blob: async () => mockBlob,
-    });
-
-    await fetchS3File('test-namespace', 'file.ipynb', { signal: controller.signal });
-
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/v1/s3/files/file.ipynb?'),
-      { signal: controller.signal },
-    );
-  });
-
-  it('should include secretName and bucket when provided', async () => {
-    const mockBlob = new Blob(['content']);
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      blob: async () => mockBlob,
-    });
-
-    await fetchS3File('ns', 'key.csv', { secretName: 'my-secret', bucket: 'my-bucket' });
-
-    const callUrl = (global.fetch as jest.Mock).mock.calls[0][0];
-    expect(callUrl).toContain('secretName=my-secret');
-    expect(callUrl).toContain('bucket=my-bucket');
-  });
-
-  it('should omit secretName and bucket when not provided', async () => {
-    const mockBlob = new Blob(['content']);
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      blob: async () => mockBlob,
-    });
-
-    await fetchS3File('ns', 'key.csv');
-
-    const callUrl = (global.fetch as jest.Mock).mock.calls[0][0];
-    expect(callUrl).not.toContain('secretName=');
-    expect(callUrl).not.toContain('bucket=');
-  });
-
-  it('should throw with statusText on non-ok response', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      statusText: 'Not Found',
-      json: async () => {
-        throw new Error('no body');
-      },
-    });
-
-    await expect(fetchS3File('ns', 'missing.json')).rejects.toThrow(
-      'Failed to fetch file: Not Found',
-    );
-  });
-
-  it('should throw with API error message when available', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      statusText: 'Bad Request',
-      json: async () => ({
-        error: { message: 'S3 key not found' },
-      }),
-    });
-
-    await expect(fetchS3File('ns', 'bad-key')).rejects.toThrow(
-      'Failed to fetch file: S3 key not found',
-    );
-  });
-
-  it('should fall back to statusText when error JSON is malformed', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      statusText: 'Internal Server Error',
-      json: async () => ({ unexpected: 'shape' }),
-    });
-
-    await expect(fetchS3File('ns', 'key')).rejects.toThrow(
-      'Failed to fetch file: Internal Server Error',
-    );
   });
 });
 
@@ -748,6 +714,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (global.fetch as jest.Mock).mockReset();
   });
 
   it('should not get stuck loading for regression runs (isClassification=false)', async () => {
@@ -755,7 +722,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
     const { result } = renderHook(
       () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', false),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -776,7 +743,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
     const { result } = renderHook(
       () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', true),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -813,7 +780,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
     const { result } = renderHook(
       () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', true),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -827,7 +794,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
   it('should be disabled when namespace is missing', () => {
     const { result } = renderHook(
       () => useModelEvaluationArtifactsQuery(undefined, 'models/best/', true),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     expect(result.current.isLoading).toBe(false);
@@ -839,7 +806,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
   it('should be disabled when modelDirectory is missing', () => {
     const { result } = renderHook(
       () => useModelEvaluationArtifactsQuery('test-ns', undefined, true),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     expect(result.current.isLoading).toBe(false);
@@ -877,7 +844,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
     const { result } = renderHook(
       () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', true),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -916,7 +883,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
     const { result } = renderHook(
       () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', true),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -925,6 +892,60 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
     expect(result.current.curves).toBeUndefined();
   });
+
+  it.each([
+    {
+      artifact: 'featureImportance',
+      namespace: 'test-ns',
+      modelDirectory: 'models/best/',
+      isClassification: false,
+      isTimeseries: false,
+      responses: [{ importance: { feature_a: 'invalid' } }],
+    },
+    {
+      artifact: 'confusionMatrix',
+      namespace: 'test-ns',
+      modelDirectory: 'models/best/',
+      isClassification: true,
+      isTimeseries: false,
+      responses: [mockFeatureImportance, { cat: { cat: 'invalid' } }, mockCurves],
+    },
+    {
+      artifact: 'backTesting',
+      namespace: 'test-ns',
+      modelDirectory: 'models/best/',
+      isClassification: false,
+      isTimeseries: true,
+      responses: [{ model_name: 'invalid' }],
+    },
+  ])(
+    'should reject malformed $artifact data without retrying',
+    async ({ artifact, namespace, modelDirectory, isClassification, isTimeseries, responses }) => {
+      responses.forEach((response) => {
+        (global.fetch as jest.Mock).mockResolvedValueOnce(mockBlobJsonResponse(response));
+      });
+
+      const { result } = renderHook(
+        () =>
+          useModelEvaluationArtifactsQuery(
+            namespace,
+            modelDirectory,
+            isClassification,
+            isTimeseries,
+          ),
+        { wrapper: createWrapper().Wrapper },
+      );
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(
+        result.current[artifact as 'featureImportance' | 'confusionMatrix' | 'backTesting'],
+      ).toBeUndefined();
+      expect(global.fetch).toHaveBeenCalledTimes(responses.length);
+    },
+  );
 
   it('should load back_testing.json for timeseries runs (isTimeseries=true)', async () => {
     const mockBackTesting = {
@@ -964,7 +985,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
     const { result } = renderHook(
       () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', false, true),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -981,7 +1002,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
     const { result } = renderHook(
       () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', false, false),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {

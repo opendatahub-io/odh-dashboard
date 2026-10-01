@@ -19,40 +19,43 @@ import {
   RedoIcon,
   StopCircleIcon,
 } from '@patternfly/react-icons';
+import { InvalidPipelineRun, StopRunModal } from '@odh-dashboard/autox-core/ui/components/feature';
+import { ContextBreadcrumb } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { useFetchS3File, useS3ListFilesQuery } from '@odh-dashboard/autox-core/ui/hooks';
+import { parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
-import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
-import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutomlResults from '~/app/components/run-results/AutomlResults';
 import AutomlInputParametersPanel from '~/app/components/run-results/AutomlInputParametersPanel';
-import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { AutomlResultsContext, getAutomlContext } from '~/app/context/AutomlResultsContext';
 import { useAutomlRunActions } from '~/app/hooks/useAutomlRunActions';
 import { useNotification } from '~/app/hooks/useNotification';
-import { fetchS3File, usePipelineRunQuery, useS3ListFilesQuery } from '~/app/hooks/queries';
+import { usePipelineRunQuery } from '~/app/hooks/usePipelineRunQuery';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { useAutomlOutputDir } from '~/app/hooks/useAutomlOutputDir';
 import { useAutomlResults } from '~/app/hooks/useAutomlResults';
 import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import { useComponentStatuses } from '~/app/hooks/useComponentStatuses';
+import { isRunInTerminalState } from '~/app/types/pipeline';
 import { automlExperimentsPathname, automlReconfigurePathname } from '~/app/utilities/routes';
 import {
   downloadBlob,
   isRunCompleted,
-  isRunInTerminalState,
   isRunRetryable,
   isRunTerminatable,
-  parseErrorStatus,
   resolveTrainingTaskPrefix,
   resolveUniqueUuidPrefix,
 } from '~/app/utilities/utils';
 import {
+  AUTOML_EVENTS,
   fireAutomlResultsViewed,
   fireAutomlRunNotebookDownloaded,
   isAutomlResultsNavigationState,
+  TrackingOutcome,
 } from '~/app/utilities/tracking';
 
 const RUN_NOTEBOOK_FILENAME = 'automl_experiment_notebook.ipynb';
@@ -109,6 +112,7 @@ function AutomlResultsPage(): React.JSX.Element {
   );
 
   const notification = useNotification();
+  const fetchS3File = useFetchS3File();
 
   const {
     data: pipelineRun,
@@ -228,7 +232,7 @@ function AutomlResultsPage(): React.JSX.Element {
         setIsDownloadingRunNotebook(false);
       }
     }
-  }, [namespace, runNotebookDisabled, runNotebookKey]);
+  }, [fetchS3File, namespace, runNotebookDisabled, runNotebookKey]);
 
   // Two-tier error strategy: polling errors (data already loaded) show a non-blocking
   // notification with stale data, while initial load errors (no data yet) show a full error page.
@@ -458,11 +462,13 @@ function AutomlResultsPage(): React.JSX.Element {
               }
               breadcrumb={
                 namespace ? (
-                  <ExperimentContextBreadcrumb
+                  <ContextBreadcrumb
                     pageName="AutoML"
-                    namespace={namespace}
                     projectDisplayName={projectDisplayName}
                     homePath={getRedirectPath(namespace)}
+                    projectHomePath={`/projects/${namespace}`}
+                    homeTestId="experiment-breadcrumb-home"
+                    projectLinkTestId="project-navigator-link-in-breadcrumb"
                   >
                     <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
                       <Link
@@ -473,13 +479,13 @@ function AutomlResultsPage(): React.JSX.Element {
                       </Link>
                     </BreadcrumbItem>
                     <BreadcrumbItem isActive>Run results</BreadcrumbItem>
-                  </ExperimentContextBreadcrumb>
+                  </ContextBreadcrumb>
                 ) : undefined
               }
               empty={noNamespaces || invalidNamespace || invalidPipelineRunId}
               emptyStatePage={
                 invalidPipelineRunId ? (
-                  <InvalidPipelineRun />
+                  <InvalidPipelineRun productName="AutoML" />
                 ) : (
                   <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
                 )
@@ -513,7 +519,12 @@ function AutomlResultsPage(): React.JSX.Element {
         onConfirm={handleStop}
         isTerminating={isTerminating}
         runName={pipelineRun?.display_name}
-        source="resultsPage"
+        onCancel={() =>
+          fireFormTrackingEvent(AUTOML_EVENTS.RUN_STOPPED, {
+            outcome: TrackingOutcome.cancel,
+            source: 'resultsPage',
+          })
+        }
       />
     </AutomlResultsContext.Provider>
   );

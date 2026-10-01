@@ -10,6 +10,7 @@ import React from 'react';
 import AppRoutes from '~/app/AppRoutes';
 import ToastNotifications from '~/app/components/ToastNotifications';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { ProductProvider } from './ProductProvider';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,16 +34,18 @@ function AppWrapper(): React.JSX.Element {
     <ModularArchContextProvider config={modularArchConfig}>
       <BrowserStorageContextProvider>
         <QueryClientProvider client={queryClient}>
-          <div
-            className={classNames(
-              'pf-v6-u-h-100',
-              'pf-v6-u-display-flex',
-              'pf-v6-u-flex-direction-column',
-            )}
-          >
-            <AppRoutes />
-          </div>
-          <ToastNotifications />
+          <ProductProvider>
+            <div
+              className={classNames(
+                'pf-v6-u-h-100',
+                'pf-v6-u-display-flex',
+                'pf-v6-u-flex-direction-column',
+              )}
+            >
+              <AppRoutes />
+            </div>
+            <ToastNotifications />
+          </ProductProvider>
         </QueryClientProvider>
       </BrowserStorageContextProvider>
     </ModularArchContextProvider>

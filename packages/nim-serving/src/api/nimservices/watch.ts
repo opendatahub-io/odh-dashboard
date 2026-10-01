@@ -1,6 +1,6 @@
 import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/k8s-core';
-import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
-import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
+import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
+import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
 import type { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import { NIMServiceModel, type NIMServiceKind } from './types';
 

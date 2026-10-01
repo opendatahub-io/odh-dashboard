@@ -63,10 +63,18 @@ const mockFetchS3File = jest.fn();
 
 const mockUseSecretCredentialsQuery = jest.fn();
 
-jest.mock('~/app/hooks/queries', () => ({
+jest.mock('~/app/hooks/usePipelineRunQuery', () => ({
   usePipelineRunQuery: (...args: unknown[]) => mockUsePipelineRunQuery(...args),
+}));
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
   useS3ListFilesQuery: (...args: unknown[]) => mockUseS3ListFilesQuery(...args),
-  fetchS3File: (...args: unknown[]) => mockFetchS3File(...args),
+  useFetchS3File: () => mockFetchS3File,
+  useTerminatePipelineRunMutation: jest.fn(),
+  useRetryPipelineRunMutation: jest.fn(),
+  useDeletePipelineRunMutation: jest.fn(),
+}));
+jest.mock('~/app/hooks/useSecretCredentialsQuery', () => ({
   useSecretCredentialsQuery: (...args: unknown[]) => mockUseSecretCredentialsQuery(...args),
 }));
 
@@ -96,21 +104,6 @@ jest.mock('~/app/hooks/useComponentStatuses', () => ({
   }),
 }));
 
-jest.mock('~/app/hooks/mutations', () => ({
-  useTerminatePipelineRunMutation: jest.fn().mockReturnValue({
-    mutateAsync: jest.fn(),
-    isPending: false,
-  }),
-  useRetryPipelineRunMutation: jest.fn().mockReturnValue({
-    mutateAsync: jest.fn(),
-    isPending: false,
-  }),
-  useDeletePipelineRunMutation: jest.fn().mockReturnValue({
-    mutateAsync: jest.fn(),
-    isPending: false,
-  }),
-}));
-
 // Mock AutoragResults to capture context
 let capturedContext: unknown = null;
 jest.mock('~/app/components/run-results/AutoragResults', () => ({
@@ -125,19 +118,10 @@ jest.mock('~/app/components/run-results/AutoragResults', () => ({
   },
 }));
 
-jest.mock('~/app/components/empty-states/InvalidPipelineRun', () => ({
-  __esModule: true,
-  default: () => <div data-testid="invalid-run">Invalid Run</div>,
-}));
-
-jest.mock('~/app/components/empty-states/InvalidProject', () => ({
-  __esModule: true,
-  default: () => <div data-testid="invalid-project">Invalid Project</div>,
-}));
-
-jest.mock('~/app/components/run-results/StopRunModal', () => ({
-  __esModule: true,
-  default: ({
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/components/feature'),
+  InvalidPipelineRun: () => <div data-testid="invalid-run">Invalid Run</div>,
+  StopRunModal: ({
     isOpen,
     isTerminating,
     onConfirm,
@@ -158,6 +142,11 @@ jest.mock('~/app/components/run-results/StopRunModal', () => ({
         </button>
       </div>
     ) : null,
+}));
+
+jest.mock('~/app/components/empty-states/InvalidProject', () => ({
+  __esModule: true,
+  default: () => <div data-testid="invalid-project">Invalid Project</div>,
 }));
 
 const mockNotification = { success: jest.fn(), error: jest.fn(), warning: jest.fn() };
@@ -326,13 +315,20 @@ describe('AutoragResultsPage', () => {
     });
 
     // Reset mutation mocks to default state
-    const { useTerminatePipelineRunMutation, useRetryPipelineRunMutation } =
-      jest.requireMock('~/app/hooks/mutations');
+    const {
+      useTerminatePipelineRunMutation,
+      useRetryPipelineRunMutation,
+      useDeletePipelineRunMutation,
+    } = jest.requireMock('@odh-dashboard/autox-core/ui/hooks');
     useTerminatePipelineRunMutation.mockReturnValue({
       mutateAsync: jest.fn(),
       isPending: false,
     });
     useRetryPipelineRunMutation.mockReturnValue({
+      mutateAsync: jest.fn(),
+      isPending: false,
+    });
+    useDeletePipelineRunMutation.mockReturnValue({
       mutateAsync: jest.fn(),
       isPending: false,
     });
@@ -405,7 +401,7 @@ describe('AutoragResultsPage', () => {
         ogx_secret_name: 'ogx-secret',
         generation_models: ['llama-3'],
         embedding_models: ['text-embedding-3'],
-        optimization_metric: 'faithfulness',
+        optimization_metric: 'unitxt:faithfulness',
         optimization_max_rag_patterns: 10,
       });
 
@@ -445,7 +441,7 @@ describe('AutoragResultsPage', () => {
           ogx_secret_name: 'ogx-secret',
           generation_models: ['llama-3'],
           embedding_models: ['text-embedding-3'],
-          optimization_metric: 'faithfulness',
+          optimization_metric: 'unitxt:faithfulness',
           optimization_max_rag_patterns: 10,
         },
       });
@@ -862,7 +858,9 @@ describe('AutoragResultsPage', () => {
     it('should call terminate mutation when stop is confirmed', async () => {
       setupWithRunState('RUNNING');
       const mockMutateAsync = jest.fn().mockResolvedValue(undefined);
-      const { useTerminatePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      const { useTerminatePipelineRunMutation } = jest.requireMock(
+        '@odh-dashboard/autox-core/ui/hooks',
+      );
       useTerminatePipelineRunMutation.mockReturnValue({
         mutateAsync: mockMutateAsync,
         isPending: false,
@@ -881,7 +879,9 @@ describe('AutoragResultsPage', () => {
     it('should show success notification after successful stop', async () => {
       setupWithRunState('RUNNING');
       const mockMutateAsync = jest.fn().mockResolvedValue(undefined);
-      const { useTerminatePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      const { useTerminatePipelineRunMutation } = jest.requireMock(
+        '@odh-dashboard/autox-core/ui/hooks',
+      );
       useTerminatePipelineRunMutation.mockReturnValue({
         mutateAsync: mockMutateAsync,
         isPending: false,
@@ -903,7 +903,9 @@ describe('AutoragResultsPage', () => {
     it('should show error notification when stop fails', async () => {
       setupWithRunState('RUNNING');
       const mockMutateAsync = jest.fn().mockRejectedValue(new Error('Network error'));
-      const { useTerminatePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      const { useTerminatePipelineRunMutation } = jest.requireMock(
+        '@odh-dashboard/autox-core/ui/hooks',
+      );
       useTerminatePipelineRunMutation.mockReturnValue({
         mutateAsync: mockMutateAsync,
         isPending: false,
@@ -922,7 +924,9 @@ describe('AutoragResultsPage', () => {
     it('should close StopRunModal after stop completes', async () => {
       setupWithRunState('RUNNING');
       const mockMutateAsync = jest.fn().mockResolvedValue(undefined);
-      const { useTerminatePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      const { useTerminatePipelineRunMutation } = jest.requireMock(
+        '@odh-dashboard/autox-core/ui/hooks',
+      );
       useTerminatePipelineRunMutation.mockReturnValue({
         mutateAsync: mockMutateAsync,
         isPending: false,
@@ -942,7 +946,9 @@ describe('AutoragResultsPage', () => {
 
     it('should disable modal buttons while termination is pending', async () => {
       setupWithRunState('RUNNING');
-      const { useTerminatePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      const { useTerminatePipelineRunMutation } = jest.requireMock(
+        '@odh-dashboard/autox-core/ui/hooks',
+      );
       // Start with isPending: false so the Stop button is clickable
       useTerminatePipelineRunMutation.mockReturnValue({
         // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -984,7 +990,9 @@ describe('AutoragResultsPage', () => {
     it('should show success notification and invalidate queries when retry succeeds', async () => {
       setupWithRunState('FAILED');
       const mockMutateAsync = jest.fn().mockResolvedValue(undefined);
-      const { useRetryPipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      const { useRetryPipelineRunMutation } = jest.requireMock(
+        '@odh-dashboard/autox-core/ui/hooks',
+      );
       useRetryPipelineRunMutation.mockReturnValue({
         mutateAsync: mockMutateAsync,
         isPending: false,
@@ -999,7 +1007,7 @@ describe('AutoragResultsPage', () => {
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalledTimes(1);
         expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-          queryKey: ['autorag', 'pipelineRun', 'run-123', 'test-ns'],
+          queryKey: ['pipelineRun', 'run-123', 'test-ns'],
         });
         expect(mockNotification.success).toHaveBeenCalledWith(
           'Retry submitted successfully',
@@ -1018,7 +1026,9 @@ describe('AutoragResultsPage', () => {
     it('should show error notification when retry fails', async () => {
       setupWithRunState('FAILED');
       const mockMutateAsync = jest.fn().mockRejectedValue(new Error('Retry failed'));
-      const { useRetryPipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      const { useRetryPipelineRunMutation } = jest.requireMock(
+        '@odh-dashboard/autox-core/ui/hooks',
+      );
       useRetryPipelineRunMutation.mockReturnValue({
         mutateAsync: mockMutateAsync,
         isPending: false,

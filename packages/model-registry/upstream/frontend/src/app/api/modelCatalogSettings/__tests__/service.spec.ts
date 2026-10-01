@@ -1,10 +1,14 @@
-import { restCREATE, handleRestFailures } from 'mod-arch-core';
-import { previewCatalogSource } from '~/app/api/modelCatalogSettings/service';
+import { restCREATE, restDELETE, handleRestFailures } from 'mod-arch-core';
+import {
+  deleteCatalogSourceCredentials,
+  previewCatalogSource,
+} from '~/app/api/modelCatalogSettings/service';
 
 const mockRestPromise = Promise.resolve({ data: {} });
 
 jest.mock('mod-arch-core', () => ({
   restCREATE: jest.fn(() => mockRestPromise),
+  restDELETE: jest.fn(() => mockRestPromise),
   assembleModArchBody: jest.fn((data) => data),
   isModArchResponse: jest.fn(() => true),
   handleRestFailures: jest.fn(() => mockRestPromise),
@@ -12,6 +16,7 @@ jest.mock('mod-arch-core', () => ({
 
 const handleRestFailuresMock = jest.mocked(handleRestFailures);
 const restCREATEMock = jest.mocked(restCREATE);
+const restDELETEMock = jest.mocked(restDELETE);
 
 const APIOptionsMock = {};
 
@@ -113,5 +118,33 @@ describe('previewCatalogSource', () => {
       { someKey: 'base', filterStatus: 'all' },
       APIOptionsMock,
     );
+  });
+});
+
+describe('deleteCatalogSourceCredentials', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('parses the BFF JSON response so failed clears can be rejected', async () => {
+    await deleteCatalogSourceCredentials('/api/v1/settings/model_catalog', {
+      namespace: 'kubeflow',
+    })(APIOptionsMock, 'hf_source');
+
+    expect(restDELETEMock).toHaveBeenCalledWith(
+      '/api/v1/settings/model_catalog',
+      '/source_configs/hf_source/credentials',
+      {},
+      { namespace: 'kubeflow' },
+      APIOptionsMock,
+    );
+    expect(handleRestFailuresMock).toHaveBeenCalledWith(mockRestPromise);
+  });
+
+  it('propagates a clear failure', async () => {
+    handleRestFailuresMock.mockRejectedValueOnce(new Error('forbidden'));
+    await expect(
+      deleteCatalogSourceCredentials('/api/v1/settings/model_catalog')(APIOptionsMock, 'hf_source'),
+    ).rejects.toThrow('forbidden');
   });
 });

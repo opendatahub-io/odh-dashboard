@@ -91,6 +91,7 @@ type DashboardFeatureFlags struct {
 	DeploymentWizardYAMLViewer   bool `json:"deploymentWizardYAMLViewer"`
 	ExternalVectorStores         bool `json:"externalVectorStores"`
 	AgentConfigManagement        bool `json:"agentConfigManagement"`
+	GenAiAgentDeployment         bool `json:"genAiAgentDeployment"`
 	VLLMDeploymentOnMaaS         bool `json:"vLLMDeploymentOnMaaS"`
 	LlmGatewayField              bool `json:"llmGatewayField"`
 	PromptManagement             bool `json:"promptManagement"`
@@ -188,6 +189,7 @@ var BlankDashboardCR = DashboardConfig{
 			RoleManagement:               true,
 			DeploymentWizardYAMLViewer:   false,
 			ExternalVectorStores:         false,
+			GenAiAgentDeployment:         false,
 			VLLMDeploymentOnMaaS:         false,
 			LlmGatewayField:              false,
 			PromptManagement:             false,

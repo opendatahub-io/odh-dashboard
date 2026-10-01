@@ -36,6 +36,7 @@ import (
 	gentypes "github.com/opendatahub-io/gen-ai/internal/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 type countingLlamaStackClient struct {
@@ -1250,14 +1251,11 @@ var _ = Describe("StreamingResponseMetrics", func() {
 	It("should stream response with vector store IDs for RAG file_search", func() {
 		t := GinkgoT()
 
-		vsID := testCtx.llamaStackState.Seed.VectorStoreID
-		require.NotEmpty(t, vsID, "SeedResult.VectorStoreID must be set by SeedData")
-
 		payload := CreateResponseRequest{
 			Input:          llamastack.InputUnion{Text: "What is machine learning?"},
-			Model:          testutil.GetTestLlamaStackModel(),
+			Model:          "mock-model",
 			Stream:         true,
-			VectorStoreIDs: []string{vsID},
+			VectorStoreIDs: []string{"vs_mock"},
 		}
 
 		jsonData, err := json.Marshal(payload)
@@ -1267,8 +1265,10 @@ var _ = Describe("StreamingResponseMetrics", func() {
 		require.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		// Use the in-memory mock directly so this unit-level streaming test is
+		// deterministic.
+		mockClient := lsmocks.NewMockLlamaStackClient()
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, mockClient)
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -1291,15 +1291,30 @@ var _ = Describe("StreamingResponseMetrics", func() {
 		events := parseSSEEvents(body)
 		require.Greater(t, len(events), 0, "Should have received SSE events from RAG stream")
 
-		// Verify at least one text delta event was emitted
+		// Verify text deltas were streamed and the completed response preserves the
+		// file_search_call output created when vector_store_ids are provided.
 		hasTextDelta := false
+		hasFileSearchCall := false
 		for _, event := range events {
-			if eventType, ok := event["type"].(string); ok && eventType == "response.output_text.delta" {
+			eventType, _ := event["type"].(string)
+			if eventType == "response.output_text.delta" {
 				hasTextDelta = true
-				break
+			}
+			if eventType != "response.completed" {
+				continue
+			}
+			response, _ := event["response"].(map[string]interface{})
+			output, _ := response["output"].([]interface{})
+			for _, item := range output {
+				outputItem, _ := item.(map[string]interface{})
+				if outputItem["type"] == "file_search_call" {
+					hasFileSearchCall = true
+					break
+				}
 			}
 		}
 		assert.True(t, hasTextDelta, "expected at least one response.output_text.delta event in RAG stream")
+		assert.True(t, hasFileSearchCall, "expected response.completed to include file_search_call output")
 	})
 })
 
@@ -1460,6 +1475,25 @@ func TestGetProviderDataRouting(t *testing.T) {
 			"maas_subscription":           "my-subscription",
 			"inference_model_source_type": string(models.ModelSourceTypeMaaS),
 		}, providerData)
+	})
+
+	t.Run("includes W3C trace context when request context has a sampled span", func(t *testing.T) {
+		traceID := oteltrace.TraceID{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+		spanID := oteltrace.SpanID{1, 2, 3, 4, 5, 6, 7, 8}
+		spanContext := oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
+			TraceID:    traceID,
+			SpanID:     spanID,
+			TraceFlags: oteltrace.FlagsSampled,
+		})
+		ctx := oteltrace.ContextWithSpanContext(context.Background(), spanContext)
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "test-token",
+		})
+
+		providerData, err := app.getProviderData(ctx, "", "")
+		require.NoError(t, err)
+		assert.Equal(t, "test-token", providerData["passthrough_api_key"])
+		assert.Equal(t, "00-0102030405060708090a0b0c0d0e0f10-0102030405060708-01", providerData[constants.TraceParentHeader])
 	})
 
 	t.Run("returns nil when identity is missing", func(t *testing.T) {
@@ -2811,4 +2845,37 @@ func TestLlamaStackCreateResponseHandler_PayloadTooLarge(t *testing.T) {
 	assert.True(t, ok, "response should contain 'error' object")
 	assert.Equal(t, "413", errorObj["code"])
 	assert.Contains(t, errorObj["message"], "20MB")
+}
+
+func TestAppendDocumentAttachments(t *testing.T) {
+	result, err := appendDocumentAttachments(llamastack.InputUnion{Text: "Summarize this"}, []DocumentAttachment{{
+		FileID:   "file-123",
+		Filename: "notes.txt",
+		Text:     "The attached notes contain the agenda.",
+	}})
+
+	require.NoError(t, err)
+	require.Len(t, result.Parts, 2)
+	assert.Equal(t, "Summarize this", result.Parts[0].Text)
+	assert.Equal(t, "Document: notes.txt\n---\nThe attached notes contain the agenda.", result.Parts[1].Text)
+
+	_, err = appendDocumentAttachments(llamastack.InputUnion{Text: "Summarize this"}, []DocumentAttachment{{
+		FileID:   "file-123",
+		Filename: "notes.txt",
+	}})
+	require.EqualError(t, err, `document attachment "notes.txt" has no extracted text`)
+
+	multimodalInput := llamastack.InputUnion{Parts: []llamastack.InputContentPart{
+		{Type: "input_text", Text: "Describe this image"},
+		{Type: "input_image", FileID: "file-image"},
+	}}
+	result, err = appendDocumentAttachments(multimodalInput, []DocumentAttachment{{
+		FileID:   "file-456",
+		Filename: "caption.txt",
+		Text:     "The image shows a red bicycle.",
+	}})
+	require.NoError(t, err)
+	require.Len(t, result.Parts, 3)
+	assert.Equal(t, multimodalInput.Parts[1], result.Parts[1])
+	assert.Equal(t, "Document: caption.txt\n---\nThe image shows a red bicycle.", result.Parts[2].Text)
 }

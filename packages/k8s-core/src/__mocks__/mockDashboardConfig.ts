@@ -46,6 +46,7 @@ export type MockDashboardConfigType = {
   modelAsService?: boolean;
   externalVectorStores?: boolean;
   agentConfigManagement?: boolean;
+  genAiAgentDeployment?: boolean;
   aiAssetCustomEndpoints?: boolean;
   trainingJobs?: boolean;
   observabilityDashboard?: boolean;
@@ -135,6 +136,7 @@ export const mockDashboardConfig = ({
   deploymentWizardYAMLViewer = false,
   externalVectorStores = false,
   agentConfigManagement = false,
+  genAiAgentDeployment = false,
   vLLMDeploymentOnMaaS = false,
   llmGatewayField = false,
   promptManagement = false,
@@ -333,6 +335,7 @@ export const mockDashboardConfig = ({
       deploymentWizardYAMLViewer,
       externalVectorStores,
       agentConfigManagement,
+      genAiAgentDeployment,
       vLLMDeploymentOnMaaS,
       llmGatewayField,
       promptManagement,

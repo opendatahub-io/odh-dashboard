@@ -20,10 +20,15 @@ export const isDashboardManagedHfTokenEnvVar = (envVar: HfTokenEnvVar): boolean 
   envVar.valueFrom.secretKeyRef.key === HF_TOKEN_ENV_NAME;
 
 export const isDashboardManagedHfTokenSecret = (secret: SecretKind): boolean =>
-  secret.metadata.labels?.[HF_TOKEN_DASHBOARD_LABEL] === 'true';
+  secret.metadata.labels?.[HF_TOKEN_DASHBOARD_LABEL] === 'true' &&
+  (secret.stringData?.[HF_TOKEN_ENV_NAME] !== undefined ||
+    secret.data?.[HF_TOKEN_ENV_NAME] !== undefined);
 
 export const getConfiguredHfTokenSecretName = (envVars?: HfTokenEnvVar[]): string | undefined => {
   const hfEnv = envVars?.find(isDashboardManagedHfTokenEnvVar);
 
   return hfEnv?.valueFrom?.secretKeyRef?.name;
 };
+
+export const getHfTokenServiceAccountName = (deploymentK8sName: string): string =>
+  `${deploymentK8sName}-hf-sa`;

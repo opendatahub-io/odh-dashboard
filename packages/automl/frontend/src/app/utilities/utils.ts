@@ -39,21 +39,6 @@ export const isRunCompleted = (state: unknown): boolean =>
 /**
  * Whether the run is in a state where it is no longer running.
  */
-export const isRunInTerminalState = (state: unknown): boolean => {
-  const s = normalizePipelineRunState(state);
-  if (!s) {
-    return false;
-  }
-  const TERMINAL_STATES: Set<string> = new Set([
-    RuntimeStateKF.SUCCEEDED,
-    RuntimeStateKF.FAILED,
-    RuntimeStateKF.CANCELED,
-    RuntimeStateKF.SKIPPED,
-    RuntimeStateKF.CACHED,
-  ]);
-  return TERMINAL_STATES.has(s);
-};
-
 /**
  * Whether the run is in a state where it can be terminated (stopped).
  */
@@ -92,24 +77,6 @@ export const isRunDeletable = (state: unknown): boolean => {
     s === RuntimeStateKF.SUCCEEDED || s === RuntimeStateKF.FAILED || s === RuntimeStateKF.CANCELED
   );
 };
-
-/**
- * Extracts HTTP status from Error.message when handleRestFailures (mod-arch-core)
- * has flattened AxiosError to a plain Error, so 403/404/503 branches can still run.
- * @param error - The error object to parse
- * @returns The HTTP status code, or undefined if not found
- */
-export function parseErrorStatus(error: Error): number | undefined {
-  const match =
-    error.message.match(/\bstatus\s+code\s+(\d{3})\b/i) ??
-    error.message.match(/\bstatus[:\s]+(\d{3})\b/i) ??
-    error.message.match(/\b(403|404|503)\b/);
-  if (match) {
-    const code = parseInt(match[1], 10);
-    return code >= 100 && code < 600 ? code : undefined;
-  }
-  return undefined;
-}
 
 /**
  * Extracts the task type from a pipeline run's runtime parameters.

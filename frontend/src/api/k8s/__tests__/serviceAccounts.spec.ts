@@ -49,8 +49,11 @@ describe('getServiceAccount', () => {
     const result = await getServiceAccount(name, namespace);
     expect(result).toStrictEqual(serviceAccountMock);
     expect(k8sGetResourceMock).toHaveBeenCalledWith({
+      fetchOptions: {
+        requestInit: {},
+      },
       model: ServiceAccountModel,
-      queryOptions: { name, ns: namespace },
+      queryOptions: { name, ns: namespace, queryParams: {} },
     });
     expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
   });
@@ -59,8 +62,11 @@ describe('getServiceAccount', () => {
     k8sGetResourceMock.mockRejectedValue(new Error('error'));
     await expect(getServiceAccount(name, namespace)).rejects.toThrow('error');
     expect(k8sGetResourceMock).toHaveBeenCalledWith({
+      fetchOptions: {
+        requestInit: {},
+      },
       model: ServiceAccountModel,
-      queryOptions: { name, ns: namespace },
+      queryOptions: { name, ns: namespace, queryParams: {} },
     });
     expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
   });

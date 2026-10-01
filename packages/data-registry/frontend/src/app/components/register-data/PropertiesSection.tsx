@@ -134,6 +134,21 @@ const PropertiesSection: React.FC = () => {
         )}
       />
 
+      <Controller
+        name="domain"
+        control={control}
+        render={({ field }) => (
+          <FormGroup label="Domain" fieldId="data-domain">
+            <TextInput
+              id="data-domain"
+              {...field}
+              placeholder="e.g. Finance, Healthcare"
+              data-testid="data-domain-input"
+            />
+          </FormGroup>
+        )}
+      />
+
       <SelectField
         name="license"
         label="License"

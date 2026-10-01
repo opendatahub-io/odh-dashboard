@@ -22,20 +22,26 @@ const stableStringify = (val: unknown): string =>
 // (maxOutputTokens is in AgentProfileSpec but never serialized from config) or metadata-only.
 const EXCLUDED_SPEC_KEYS = new Set(['displayName', 'description', 'guardrails', 'maxOutputTokens']);
 
+const mcpSortKey = (server: NonNullable<AgentProfileSpec['mcpServers']>[number]): string =>
+  'serverRef' in server
+    ? `resource:${server.serverRef.kind}:${server.serverRef.name}:${server.serverRef.key ?? ''}`
+    : `registry:${server.source}:${server.name}`;
+
 /**
  * Strips fields not written by serializeToAgentProfileSpec (displayName, description,
- * guardrails) and sorts mcpServers/allowedTools for stable comparison.
+ * guardrails), ignores registry version metadata, and sorts mcpServers/allowedTools
+ * for stable comparison.
  * New fields added to AgentProfileSpec are included automatically.
  */
 const normalizeSpec = (spec: AgentProfileSpec) => ({
   ...Object.fromEntries(Object.entries(spec).filter(([k]) => !EXCLUDED_SPEC_KEYS.has(k))),
   mcpServers: spec.mcpServers
     ? spec.mcpServers
-        .toSorted((a, b) =>
-          (a.serverRef.key ?? a.serverRef.name).localeCompare(b.serverRef.key ?? b.serverRef.name),
-        )
+        .toSorted((a, b) => mcpSortKey(a).localeCompare(mcpSortKey(b)))
         .map((s) => ({
-          ...s,
+          ...('serverRef' in s
+            ? s
+            : { name: s.name, source: s.source, allowedTools: s.allowedTools }),
           allowedTools: s.allowedTools ? [...s.allowedTools].toSorted() : undefined,
         }))
     : undefined,
@@ -47,8 +53,8 @@ const normalizeSpec = (spec: AgentProfileSpec) => ({
  *
  * The comparison is serialization-based: the current config is serialized to an
  * AgentProfileSpec using the same path as the save flow, then compared against the
- * stored snapshot. This means "dirty" is defined as "saving now would produce a
- * different profile" — the same fields, the same normalization.
+ * stored snapshot. Registry version changes alone are ignored because they do not
+ * affect the Playground configuration; the next real Save still records the current version.
  *
  * Callers that already resolved MCP statuses can supply their filtered MCP list to
  * ensure dirty state uses the same serialization input as saving. Returns false when
@@ -98,6 +104,7 @@ const useIsProfileDirty = (
       model: aiModel,
       asrModel,
       mcpServers,
+      previousMcpServers: loadedProfileSpec.mcpServers,
       mcpConfigMapName: mcpConfigMapName ?? MCP_CONFIG_MAP_NAME_FALLBACK,
     });
 

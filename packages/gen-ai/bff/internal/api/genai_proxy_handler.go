@@ -83,10 +83,26 @@ func (app *App) GenAIProxyNSModelsHandler(w http.ResponseWriter, r *http.Request
 		aaModels = append(aaModels, maasModels...)
 	}
 
-	// Convert to OpenAI format, filtering out stopped models
+	list := buildOpenAIModelList(aaModels)
+	if err := app.WriteJSON(w, http.StatusOK, list, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// buildOpenAIModelList advertises only models the inference proxy can serve.
+// OGX cannot parse the transcription model type, and Playground installation
+// skips that type even if its capabilities also list text generation. Audio
+// transcription is handled separately by LlamaStackAudioTranscriptionHandler.
+func buildOpenAIModelList(aaModels []models.AAModel) openAIModelList {
 	items := make([]openAIModelItem, 0, len(aaModels))
 	for _, m := range aaModels {
-		if m.Status == models.ModelStatusStop {
+		// Capability-only ASR detection applies to inference models. An embedding
+		// model may advertise audio transcription but still belongs in discovery.
+		asrOnlyInferenceModel := (m.ModelType == models.ModelTypeLLM || m.ModelType == "") &&
+			constants.IsASROnlyCapabilities(m.Capabilities)
+		if m.Status == models.ModelStatusStop ||
+			m.ModelType == models.ModelTypeTranscription ||
+			asrOnlyInferenceModel {
 			continue
 		}
 
@@ -110,8 +126,5 @@ func (app *App) GenAIProxyNSModelsHandler(w http.ResponseWriter, r *http.Request
 		items = append(items, item)
 	}
 
-	list := openAIModelList{Object: "list", Data: items}
-	if err := app.WriteJSON(w, http.StatusOK, list, nil); err != nil {
-		app.serverErrorResponse(w, r, err)
-	}
+	return openAIModelList{Object: "list", Data: items}
 }

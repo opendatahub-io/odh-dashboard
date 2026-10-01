@@ -845,6 +845,8 @@ export type EvalHubTestData = {
 export type EvalHubBenchmarkSuiteTestData = Omit<EvalHubTestData, 'benchmarkCardTitle'> & {
   /** Base name for the tenant suite created by this spec. */
   suiteName: string;
+  /** Category IDs assigned to suites created from this fixture. */
+  suiteDomains: string[];
   /** Provider ID used to disambiguate benchmark IDs in the catalog. */
   benchmarkProviderId: string;
   /** LM Evaluation Harness benchmarks added to each tenant suite. */
@@ -1043,15 +1045,6 @@ export type AutoragTestData = {
   awsBucket: 'BUCKET_2' | 'BUCKET_3';
   maxRagPatterns: number;
   optimizationMetric?: string;
-};
-
-export type AgentRuntimesTestData = {
-  pageTitle: string;
-  projectResourceName: string;
-  filterSearchTerm: string;
-  filterOptionStatus: string;
-  statusPending: string;
-  statusReady: string;
 };
 
 export type MlflowIrisRunData = {

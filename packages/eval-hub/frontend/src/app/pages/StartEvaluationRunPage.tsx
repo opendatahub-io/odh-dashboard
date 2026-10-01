@@ -51,6 +51,7 @@ import PrimaryScorerMetricField from '~/app/components/PrimaryScorerMetricField'
 import SourceModelFields from '~/app/components/SourceModelFields';
 import SourceAgentFields from '~/app/components/SourceAgentFields';
 import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
+import HardwareProfileField from '~/app/components/HardwareProfileField';
 import type { SourceMode } from '~/app/types';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
@@ -257,7 +258,8 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
               onChange={() => {
                 form.setExperimentMode('existing');
                 form.setNewExperimentName('');
-                form.experimentManuallyChangedRef.current = true;
+                // Allow auto-selection when experiments load after switching back from new mode.
+                form.experimentManuallyChangedRef.current = false;
               }}
             />
 
@@ -514,6 +516,17 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
             />
           )}
 
+          <HardwareProfileField
+            availability={form.kueueAvailability}
+            profiles={form.hardwareProfiles}
+            loaded={form.hardwareProfilesLoaded}
+            error={form.hardwareProfilesError}
+            compatibilityError={form.hardwareProfileCompatibilityError}
+            selectedProfile={form.hardwareProfile}
+            onSelect={(profile) => form.setHardwareProfile(profile?.name)}
+            isRequired={form.requiresHardwareProfile}
+          />
+
           {/* ── Benchmark display ──────────────────────────────── */}
           <FormGroup
             label={isCollectionFlow ? 'Benchmark suite' : 'Benchmark'}
@@ -530,6 +543,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
             onChange={form.handleThresholdChange}
             label={isCollectionFlow ? 'Benchmark suite threshold' : 'Benchmark threshold'}
             fieldId="benchmark-threshold"
+            metric={isCollectionFlow ? undefined : form.primaryMetric}
           />
 
           {/* ── Primary scorer metric ──────────────────────────── */}

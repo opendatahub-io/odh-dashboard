@@ -7,7 +7,6 @@ import type {
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 
 const PLUGIN_GPUAAS = 'plugin-gpuaas';
-const ADMIN_USER = 'ADMIN_USER';
 
 const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
   {
@@ -21,7 +20,7 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [PLUGIN_GPUAAS, ADMIN_USER],
+      required: [PLUGIN_GPUAAS],
     },
     properties: {
       id: 'gpuaas-infrastructure',
@@ -38,7 +37,7 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
       component: () => import('./src/InfrastructureRoutes'),
     },
     flags: {
-      required: [PLUGIN_GPUAAS, ADMIN_USER],
+      required: [PLUGIN_GPUAAS],
     },
   },
 ];

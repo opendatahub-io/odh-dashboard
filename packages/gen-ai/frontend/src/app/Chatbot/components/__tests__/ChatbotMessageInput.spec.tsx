@@ -1,11 +1,16 @@
 import * as React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import ChatbotMessageInput, {
   ImageUploadState,
 } from '~/app/Chatbot/components/ChatbotMessageInput';
-import { VISION_UPLOAD_CONFIG, AUDIO_UPLOAD_CONFIG } from '~/app/Chatbot/const';
+import {
+  VISION_UPLOAD_CONFIG,
+  AUDIO_UPLOAD_CONFIG,
+  DOCUMENT_ATTACHMENT_CONFIG,
+  FILE_UPLOAD_CONFIG,
+} from '~/app/Chatbot/const';
 import { AudioTranscriptionState } from '~/app/Chatbot/hooks/useAudioTranscription';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 
@@ -72,14 +77,26 @@ jest.mock('@patternfly/chatbot', () => ({
     fileName,
     isLoading,
     onClose,
+    onClick,
     'data-testid': testId,
   }: {
     fileName: string;
     isLoading?: boolean;
     onClose?: (event: React.MouseEvent) => void;
+    onClick?: (event: React.MouseEvent) => void;
     'data-testid'?: string;
   }) => (
-    <div data-testid={testId || 'file-details-label'}>
+    <div
+      data-testid={testId || 'file-details-label'}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if (onClick && (event.key === 'Enter' || event.key === ' ')) {
+          onClick(event as unknown as React.MouseEvent);
+        }
+      }}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    >
       <span data-testid="file-name">{fileName}</span>
       {isLoading && <span data-testid="file-loading-spinner">Loading...</span>}
       {!isLoading && onClose && (
@@ -412,6 +429,20 @@ describe('ChatbotMessageInput', () => {
       clickSpy.mockRestore();
     });
 
+    it('uses the direct-attachment picker types instead of the Knowledge upload allowlist', () => {
+      render(<ChatbotMessageInput {...defaultProps} />);
+
+      const documentInput = screen.getByTestId('document-file-input');
+      const knowledgeInputTypes = FILE_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS;
+
+      expect(documentInput).toHaveAttribute('accept', DOCUMENT_ATTACHMENT_CONFIG.ACCEPTED_TYPES);
+      expect(documentInput).not.toHaveAttribute('accept', knowledgeInputTypes);
+      expect(documentInput).toHaveAttribute('accept', expect.stringContaining('.docx'));
+      expect(documentInput).toHaveAttribute('accept', expect.stringContaining('.pptx'));
+      expect(documentInput).not.toHaveAttribute('accept', expect.stringContaining('.doc,'));
+      expect(documentInput).not.toHaveAttribute('accept', expect.stringContaining('.ppt,'));
+    });
+
     it('does not trigger file input when "Upload image" is disabled', async () => {
       const user = userEvent.setup();
       render(<ChatbotMessageInput {...defaultProps} isImageUploadDisabled />);
@@ -605,7 +636,7 @@ describe('ChatbotMessageInput', () => {
       expect(onDocumentAttach).not.toHaveBeenCalled();
     });
 
-    it('rejects oversized files and shows validation error', async () => {
+    it('rejects files exceeding the 50MB limit and shows validation error', async () => {
       const user = userEvent.setup();
       render(<ChatbotMessageInput {...defaultProps} onDocumentAttach={onDocumentAttach} />);
 
@@ -613,9 +644,9 @@ describe('ChatbotMessageInput', () => {
       await user.click(screen.getByTestId('menu-item-upload-documents'));
 
       const input = screen.getByTestId('document-file-input') as HTMLInputElement;
-      // 11MB file exceeds 10MB limit
-      const bigFile = new File(['x'.repeat(11 * 1024 * 1024)], 'huge.txt', {
-        type: 'text/plain',
+      const bigFile = new File(['x'], 'huge.txt', { type: 'text/plain' });
+      Object.defineProperty(bigFile, 'size', {
+        value: DOCUMENT_ATTACHMENT_CONFIG.MAX_FILE_SIZE + 1,
       });
       Object.defineProperty(input, 'files', { value: [bigFile], configurable: true });
       fireEvent.change(input);
@@ -653,6 +684,23 @@ describe('ChatbotMessageInput', () => {
       expect(onDocumentAttach).toHaveBeenCalledWith([validFile], [], expect.any(Event));
     });
 
+    it('accepts supported Office documents when the browser reports a generic MIME type', async () => {
+      const user = userEvent.setup();
+      render(<ChatbotMessageInput {...defaultProps} onDocumentAttach={onDocumentAttach} />);
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+      await user.click(screen.getByTestId('menu-item-upload-documents'));
+
+      const input = screen.getByTestId('document-file-input') as HTMLInputElement;
+      const wordDocument = new File(['document'], 'brief.docx', {
+        type: 'application/octet-stream',
+      });
+      Object.defineProperty(input, 'files', { value: [wordDocument], configurable: true });
+      fireEvent.change(input);
+
+      expect(onDocumentAttach).toHaveBeenCalledWith([wordDocument], [], expect.any(Event));
+    });
+
     it('validation error auto-dismisses after timeout', async () => {
       jest.useFakeTimers();
       const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
@@ -676,6 +724,56 @@ describe('ChatbotMessageInput', () => {
       });
 
       jest.useRealTimers();
+    });
+  });
+
+  describe('document attachments', () => {
+    const attachment = {
+      // eslint-disable-next-line camelcase
+      file_id: 'file-document',
+      filename: 'notes.txt',
+      text: 'Extracted document content',
+      // eslint-disable-next-line camelcase
+      content_type: 'text/plain',
+      size: 42,
+    };
+
+    it('renders removable attachments and extracted-text viewing', () => {
+      const onRemoveDocument = jest.fn();
+      const onViewDocument = jest.fn();
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          documentAttachments={[attachment]}
+          onRemoveDocument={onRemoveDocument}
+          onViewDocument={onViewDocument}
+        />,
+      );
+
+      fireEvent.click(screen.getByText('notes.txt'));
+      expect(onViewDocument).toHaveBeenCalledWith(attachment);
+      fireEvent.click(
+        within(screen.getByTestId('document-attachment-file-document')).getAllByRole('button')[1],
+      );
+      expect(onRemoveDocument).toHaveBeenCalledWith('file-document');
+    });
+
+    it('shows an in-progress attachment while a document is being added', () => {
+      render(<ChatbotMessageInput {...defaultProps} isDocumentUploading />);
+
+      expect(screen.getByTestId('document-attachment-loading')).toHaveTextContent(
+        'Adding Document…',
+      );
+      expect(screen.getByRole('progressbar', { name: 'Adding document' })).toBeInTheDocument();
+    });
+
+    it('uses plural loading text for multiple documents', () => {
+      render(<ChatbotMessageInput {...defaultProps} isDocumentUploading documentUploadCount={2} />);
+
+      expect(screen.getByTestId('document-attachment-loading')).toHaveTextContent(
+        'Adding Documents…',
+      );
+      expect(screen.getByRole('progressbar', { name: 'Adding documents' })).toBeInTheDocument();
     });
   });
 

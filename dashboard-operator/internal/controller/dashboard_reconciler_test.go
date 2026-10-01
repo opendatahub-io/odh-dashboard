@@ -487,7 +487,7 @@ func TestReconcile_Deletion_WithCrossNamespaceResources(t *testing.T) {
 	assert.Empty(t, cms.Items, "cross-namespace configmaps should be deleted")
 }
 
-func TestReconcile_Deletion_CleansRayGatewayRBAC(t *testing.T) {
+func TestReconcile_Deletion_CleansGatewayRBAC(t *testing.T) {
 	s := testScheme(t)
 
 	const gatewayNS = "openshift-ingress"
@@ -516,10 +516,16 @@ func TestReconcile_Deletion_CleansRayGatewayRBAC(t *testing.T) {
 			Namespace: gatewayNS,
 		},
 	}
+	dchResources := []client.Object{
+		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-data-connect-hub-rhoai-gateway-discovery", Namespace: "openshift-ingress"}},
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-data-connect-hub-rhoai-gateway-discovery", Namespace: "openshift-ingress"}},
+		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-data-connect-hub-odh-gateway-discovery", Namespace: "opendatahub"}},
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-data-connect-hub-odh-gateway-discovery", Namespace: "opendatahub"}},
+	}
 
 	cli := fake.NewClientBuilder().
 		WithScheme(s).
-		WithObjects(dashboard, gatewayRole, gatewayRoleBinding).
+		WithObjects(append([]client.Object{dashboard, gatewayRole, gatewayRoleBinding}, dchResources...)...).
 		WithStatusSubresource(dashboard).
 		Build()
 
@@ -544,6 +550,11 @@ func TestReconcile_Deletion_CleansRayGatewayRBAC(t *testing.T) {
 
 	err = cli.Get(context.Background(), types.NamespacedName{Name: gatewayRBACName, Namespace: gatewayNS}, &rbacv1.RoleBinding{})
 	assert.True(t, k8serrors.IsNotFound(err), "gateway RoleBinding should be deleted")
+
+	for _, resource := range dchResources {
+		err = cli.Get(context.Background(), client.ObjectKeyFromObject(resource), resource)
+		assert.True(t, k8serrors.IsNotFound(err), "DCH %T should be deleted", resource)
+	}
 }
 
 func TestReconcile_Deletion_SameNamespaceObservability(t *testing.T) {
