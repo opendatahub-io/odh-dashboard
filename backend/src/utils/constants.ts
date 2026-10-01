@@ -108,6 +108,7 @@ export const blankDashboardCR: DashboardConfig = {
       deploymentWizardYAMLViewer: false,
       externalVectorStores: false,
       agentConfigManagement: false,
+      genAiAgentDeployment: false,
       vLLMDeploymentOnMaaS: false,
       llmGatewayField: false,
       promptManagement: false,
