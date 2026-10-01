@@ -33,6 +33,7 @@ import (
 )
 
 const conditionMaaSConsumerPortalAvailable = "MaaSConsumerPortalAvailable"
+const maasConsumerPortalRetryInterval = time.Minute
 
 const (
 	maasConsumerPortalDeploymentName      = "maas-consumer-portal"
@@ -57,6 +58,21 @@ func maasConsumerPortalURL(domain string) (string, bool) {
 		return "", false
 	}
 	return fmt.Sprintf("https://%s%s", domain, maasConsumerPortalBasePath), true
+}
+
+// reconcileMaaSConsumerPortalOperand applies federation configuration before
+// reconciling the portal bundle and availability in either core management state.
+func (r *DashboardReconciler) reconcileMaaSConsumerPortalOperand(
+	ctx context.Context,
+	dashboard *v1alpha1.Dashboard,
+	cm *conditions.Manager,
+	statuses map[string]v1alpha1.ModuleStatus,
+) time.Duration {
+	if err := r.deployMaaSConsumerPortalFederationConfigMap(ctx, dashboard, statuses); err != nil {
+		r.markMaaSConsumerPortalFederationConfigMapFailed(cm, err)
+		log.FromContext(ctx).Error(err, "Failed to deploy MaaS Consumer Portal federation ConfigMap")
+	}
+	return r.reconcileMaaSConsumerPortal(ctx, dashboard, cm, statuses)
 }
 
 // reconcileMaaSConsumerPortal independently manages the portal bundle. Its resources
@@ -166,7 +182,7 @@ func maasConsumerPortalSupportedPlatform(platform cluster.Platform) bool {
 	return platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai
 }
 
-func (r *DashboardReconciler) maasConsumerPortalManaged(dashboard *v1alpha1.Dashboard) bool {
+func (r *DashboardReconciler) maasPortalManaged(dashboard *v1alpha1.Dashboard) bool {
 	return dashboard.Spec.MaaSConsumerPortal != nil &&
 		dashboard.Spec.MaaSConsumerPortal.ManagementState == "Managed" &&
 		maasConsumerPortalSupportedPlatform(r.Platform)
