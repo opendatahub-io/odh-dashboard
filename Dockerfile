@@ -49,10 +49,8 @@ RUN . /tmp/env.sh && pnpm run build
 
 FROM ${MINIMAL_IMAGE} AS runtime
 
-# The curl binary is required in the final image, as it's used for
-# liveness and readiness probes
-USER root
-RUN microdnf install -y curl-minimal && microdnf clean all && curl --version
+# The base image includes curl for liveness and readiness probes.
+RUN curl --version
 USER 1001:0
 
 WORKDIR /usr/src/app
