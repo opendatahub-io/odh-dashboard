@@ -172,6 +172,19 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
 
 describe('ChatbotMessageInput', () => {
+  const originalCreateObjectURL = URL.createObjectURL;
+  const originalRevokeObjectURL = URL.revokeObjectURL;
+
+  beforeAll(() => {
+    URL.createObjectURL = jest.fn(() => 'blob:pending-audio');
+    URL.revokeObjectURL = jest.fn();
+  });
+
+  afterAll(() => {
+    URL.createObjectURL = originalCreateObjectURL;
+    URL.revokeObjectURL = originalRevokeObjectURL;
+  });
+
   const defaultImageUploadState: ImageUploadState = {
     uploading: false,
     progress: 0,
@@ -921,6 +934,51 @@ describe('ChatbotMessageInput', () => {
       error: null,
       transcribedText: '',
     };
+
+    it('previews pending audio before sending and releases the preview when cleared', () => {
+      const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
+      const { rerender } = render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          audioTranscriptionState={{
+            ...defaultAudioState,
+            phase: 'waiting-for-model',
+            previewFile: file,
+            fileName: file.name,
+          }}
+        />,
+      );
+
+      expect(URL.createObjectURL).toHaveBeenCalledWith(file);
+      expect(screen.getByTestId('pending-audio-player')).toHaveAttribute(
+        'src',
+        'blob:pending-audio',
+      );
+      expect(screen.getByLabelText('Play recording.wav')).toHaveAttribute('controls');
+
+      rerender(
+        <ChatbotMessageInput
+          {...defaultProps}
+          audioTranscriptionState={{
+            ...defaultAudioState,
+            phase: 'ready',
+            file,
+            previewFile: file,
+            fileName: file.name,
+          }}
+        />,
+      );
+
+      expect(screen.getByTestId('pending-audio-player')).toBeInTheDocument();
+      expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+
+      rerender(
+        <ChatbotMessageInput {...defaultProps} audioTranscriptionState={defaultAudioState} />,
+      );
+
+      expect(screen.queryByTestId('pending-audio-player')).not.toBeInTheDocument();
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:pending-audio');
+    });
 
     it('explains where to select a model when audio is waiting for one', () => {
       render(

@@ -41,6 +41,7 @@ describe('useAudioTranscription', () => {
 
     expect(result.current.state.phase).toBe('idle');
     expect(result.current.state.file).toBeNull();
+    expect(result.current.state.previewFile).toBeNull();
     expect(result.current.state.fileName).toBe('');
     expect(result.current.state.error).toBeNull();
     expect(result.current.state.transcribedText).toBe('');
@@ -64,6 +65,7 @@ describe('useAudioTranscription', () => {
 
     expect(result.current.state.phase).toBe('uploading');
     expect(result.current.state.file).toBeNull();
+    expect(result.current.state.previewFile).toBe(file);
     expect(result.current.state.fileName).toBe('test.wav');
     expect(mockUploadMediaFile).toHaveBeenCalledWith(
       expect.stringContaining('namespace=test-ns'),
@@ -86,11 +88,13 @@ describe('useAudioTranscription', () => {
     act(() => result.current.startUpload(file, '', 'test-ns'));
     expect(result.current.state.phase).toBe('waiting-for-model');
     expect(result.current.state.file).toBeNull();
+    expect(result.current.state.previewFile).toBe(file);
     expect(result.current.state.fileName).toBe('test.wav');
     expect(mockUploadMediaFile).not.toHaveBeenCalled();
 
     act(() => result.current.resumeUpload('untagged-model', 'test-ns'));
     expect(result.current.state.phase).toBe('uploading');
+    expect(result.current.state.previewFile).toBe(file);
     expect(mockUploadMediaFile).toHaveBeenCalledWith(
       expect.stringContaining('namespace=test-ns'),
       file,
@@ -248,6 +252,7 @@ describe('useAudioTranscription', () => {
 
     expect(result.current.state.error).not.toBeNull();
     expect(result.current.state.file).toBeNull();
+    expect(result.current.state.previewFile).toBeNull();
     expect(result.current.state.error?.title).toBe('Audio transcription failed');
     expect(result.current.state.error?.description).toBe('Network error during upload');
     expect(result.current.state.error?.variant).toBe('danger');
@@ -340,6 +345,7 @@ describe('useAudioTranscription', () => {
     expect(result.current.state.error).not.toBeNull();
     expect(result.current.state.error?.title).toBe('No speech detected');
     expect(result.current.state.error?.description).toContain('silence.wav');
+    expect(result.current.state.previewFile).toBeNull();
     expect(mockFireForm).toHaveBeenCalledWith(
       PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_COMPLETED,
       expect.objectContaining({ success: false, error: 'No speech detected' }),
@@ -402,6 +408,7 @@ describe('useAudioTranscription', () => {
 
     expect(result.current.state.phase).toBe('error');
     expect(result.current.state.error).not.toBeNull();
+    expect(result.current.state.previewFile).toBeNull();
     expect(result.current.state.error?.title).toBe('Transcription timed out');
     expect(result.current.state.error?.isRetriable).toBe(true);
   });

@@ -128,6 +128,20 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
   const isAudioActive = audioPhase === 'uploading' || audioPhase === 'transcribing';
   const showAudioChip =
     isAudioActive || audioPhase === 'ready' || audioPhase === 'waiting-for-model';
+  const previewAudioFile =
+    audioPhase !== 'idle' && audioPhase !== 'error'
+      ? (audioTranscriptionState?.previewFile ?? audioTranscriptionState?.file)
+      : null;
+  const [audioPreview, setAudioPreview] = React.useState<{ file: File; url: string } | null>(null);
+
+  React.useEffect(() => {
+    if (!previewAudioFile) {
+      return undefined;
+    }
+    const url = URL.createObjectURL(previewAudioFile);
+    setAudioPreview({ file: previewAudioFile, url });
+    return () => URL.revokeObjectURL(url);
+  }, [previewAudioFile]);
 
   // PatternFly MessageBar only reads the `value` prop at mount time (internal useState).
   // When messageBarValue changes programmatically (e.g. from transcription), we must
@@ -447,6 +461,16 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
           )}
         </div>
       )}
+      {previewAudioFile &&
+        audioPreview?.file === previewAudioFile &&
+        React.createElement('audio', {
+          controls: true,
+          preload: 'metadata',
+          src: audioPreview.url,
+          'aria-label': `Play ${previewAudioFile.name}`,
+          className: 'pf-v6-u-mb-sm',
+          'data-testid': 'pending-audio-player',
+        })}
       {imageUploadState.fileName && showImageCapabilityAlert && !hideImageCapabilityAlert && (
         <Alert
           variant="info"
