@@ -19,6 +19,12 @@ CLOUD_PROVIDER_KIND_LOG="${TMPDIR:-/tmp}/rhaii-cloud-provider-kind.log"
 info()  { echo "==> $*"; }
 error() { echo "ERROR: $*" >&2; exit 1; }
 
+print_cloud_provider_kind_recovery_command() {
+  printf '  '
+  printf '%q ' sudo env "$@"
+  printf '%q\n' "${GO_BIN_DIR}/cloud-provider-kind"
+}
+
 start_cloud_provider_kind() {
   if pgrep -f cloud-provider-kind >/dev/null 2>&1; then
     info "cloud-provider-kind is already running"
@@ -30,11 +36,6 @@ start_cloud_provider_kind() {
 
   if [[ "$(uname -s)" == "Darwin" ]]; then
     info "cloud-provider-kind requires administrator privileges on macOS"
-    if ! sudo -v; then
-      echo "Start it in another terminal, then rerun this command:" >&2
-      echo "  sudo \"${GO_BIN_DIR}/cloud-provider-kind\"" >&2
-      error "Unable to obtain administrator privileges for cloud-provider-kind"
-    fi
     local sudo_env=("PATH=${PATH}" "HOME=${HOME}")
     if [[ -n "${KIND_EXPERIMENTAL_PROVIDER:-}" ]]; then
       sudo_env+=("KIND_EXPERIMENTAL_PROVIDER=${KIND_EXPERIMENTAL_PROVIDER}")
@@ -47,6 +48,11 @@ start_cloud_provider_kind() {
     fi
     if [[ -n "${CONTAINER_HOST:-}" ]]; then
       sudo_env+=("CONTAINER_HOST=${CONTAINER_HOST}")
+    fi
+    if ! sudo -v; then
+      echo "Start it in another terminal, then rerun this command:" >&2
+      print_cloud_provider_kind_recovery_command "${sudo_env[@]}" >&2
+      error "Unable to obtain administrator privileges for cloud-provider-kind"
     fi
     sudo env "${sudo_env[@]}" \
       nohup "${GO_BIN_DIR}/cloud-provider-kind" >"$CLOUD_PROVIDER_KIND_LOG" 2>&1 &
@@ -62,7 +68,7 @@ start_cloud_provider_kind() {
     fi
     if [[ "$(uname -s)" == "Darwin" ]]; then
       echo "Start it in another terminal, then rerun this command:" >&2
-      echo "  sudo \"${GO_BIN_DIR}/cloud-provider-kind\"" >&2
+      print_cloud_provider_kind_recovery_command "${sudo_env[@]}" >&2
     fi
     error "Failed to start cloud-provider-kind; see ${CLOUD_PROVIDER_KIND_LOG}"
   fi
