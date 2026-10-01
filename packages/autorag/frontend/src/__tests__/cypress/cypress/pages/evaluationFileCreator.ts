@@ -104,7 +104,7 @@ class AutoragConfigurePage {
     const selectorTestId = 'maas-secret-selector';
     cy.findByTestId(selectorTestId, { timeout: 60000 }).should('not.be.disabled');
     cy.findByTestId(selectorTestId).click();
-    cy.findByTestId(selectorTestId).type(secretName);
+    cy.findByTestId(selectorTestId).find('input').type(secretName);
     cy.findByRole('option', { name: new RegExp(`^${secretName}$`, 'i') })
       .should('be.visible')
       .click();
@@ -115,7 +115,7 @@ class AutoragConfigurePage {
     const selectorTestId = 'aws-secret-selector';
     cy.findByTestId(selectorTestId, { timeout: 60000 }).should('exist').and('not.be.disabled');
     cy.findByTestId(selectorTestId).click();
-    cy.findByTestId(selectorTestId).type(secretName);
+    cy.findByTestId(selectorTestId).find('input').type(secretName);
     cy.findByRole('option', { name: new RegExp(`^${secretName}$`, 'i') })
       .should('be.visible')
       .click();
