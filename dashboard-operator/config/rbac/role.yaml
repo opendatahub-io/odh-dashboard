@@ -249,6 +249,31 @@ rules:
   # Kubernetes RBAC escalation prevention requires the operator SA to hold
   # at least the same permissions it grants via those operand RBAC resources.
   #
+  # Kueue resources referenced by the EvalHub module ClusterRole
+  - apiGroups:
+      - kueue.openshift.io
+    resources:
+      - kueues
+    verbs:
+      - list
+  - apiGroups:
+      - kueue.x-k8s.io
+    resources:
+      - localqueues
+    verbs:
+      - list
+  - apiGroups:
+      - kueue.x-k8s.io
+    resources:
+      - workloads
+    verbs:
+      - list
+  - apiGroups:
+      - visibility.kueue.x-k8s.io
+    resources:
+      - localqueues/pendingworkloads
+    verbs:
+      - get
   # Core resources referenced by operand SA roles
   - apiGroups:
       - ""
