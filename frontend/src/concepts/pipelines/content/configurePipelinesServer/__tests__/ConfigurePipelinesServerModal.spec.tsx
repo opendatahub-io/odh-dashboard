@@ -218,6 +218,64 @@ describe('ConfigurePipelinesServerModal', () => {
     expect(screen.getByTestId('pipeline-caching-disabled-alert')).toBeInTheDocument();
   });
 
+  it.each([
+    ['AutoML', true, false],
+    ['AutoRAG', false, true],
+  ])(
+    'should enable managed pipelines by default when %s is available',
+    async (_feature, automl, autorag) => {
+      const {
+        objectStorageIsValid,
+      } = require('#~/concepts/pipelines/content/configurePipelinesServer/utils');
+      objectStorageIsValid.mockReturnValue(true);
+
+      mockUseAppContext.mockReturnValue({
+        buildStatuses: [],
+        dashboardConfig: mockDashboardConfig({ automl, autorag }),
+        storageClasses: [],
+        isRHOAI: false,
+      });
+
+      renderModal();
+      fireEvent.click(screen.getByText('Advanced settings'));
+
+      expect(screen.getByTestId('managed-pipelines-checkbox')).toBeChecked();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Configure pipeline server' }));
+
+      await waitFor(() => {
+        expect(mockConfigureDSPipelineResourceSpec).toHaveBeenCalledWith(
+          expect.objectContaining({ enableManagedPipelines: true }),
+          'test-project',
+        );
+      });
+    },
+  );
+
+  it('should not show or configure managed pipelines when AutoML and AutoRAG are unavailable', async () => {
+    const {
+      objectStorageIsValid,
+    } = require('#~/concepts/pipelines/content/configurePipelinesServer/utils');
+    objectStorageIsValid.mockReturnValue(true);
+
+    renderModal({
+      onClose: mockOnClose,
+      defaultConfig: { enableManagedPipelines: true },
+    });
+    fireEvent.click(screen.getByText('Advanced settings'));
+
+    expect(screen.queryByTestId('managed-pipelines-checkbox')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Configure pipeline server' }));
+
+    await waitFor(() => {
+      expect(mockConfigureDSPipelineResourceSpec).toHaveBeenCalledWith(
+        expect.objectContaining({ enableManagedPipelines: false }),
+        'test-project',
+      );
+    });
+  });
+
   it('should enable submit button when form is valid', () => {
     // Mock objectStorageIsValid to return true
     const {
@@ -431,7 +489,7 @@ describe('ConfigurePipelinesServerModal', () => {
       });
     });
 
-    it('should show managed pipelines section in standalone mode', () => {
+    it('should enable managed pipelines by default in standalone mode', () => {
       renderModal({
         onClose: mockOnClose,
         standaloneNamespace: 'standalone-ns',
@@ -441,6 +499,7 @@ describe('ConfigurePipelinesServerModal', () => {
       fireEvent.click(screen.getByText('Advanced settings'));
 
       expect(screen.getByText('Managed pipelines')).toBeInTheDocument();
+      expect(screen.getByTestId('managed-pipelines-checkbox')).toBeChecked();
     });
   });
 
