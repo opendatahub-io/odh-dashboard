@@ -145,6 +145,8 @@ jobs:
     needs: Setup
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
     outputs:
       test-groups: ${{ steps.set-groups.outputs.test-groups }}
       has-tests: ${{ steps.set-groups.outputs.has-tests }}
@@ -152,6 +154,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
+          persist-credentials: false
           # The impact planner compares the PR/push base with this revision.
           fetch-depth: 0
       - name: Setup pnpm and install dependencies
@@ -181,9 +184,11 @@ jobs:
             TEST_GROUPS='[{"name":"no-cypress-mock-tests","spec":""}]'
           fi
 
-          echo "test-groups=$TEST_GROUPS" >> "$GITHUB_OUTPUT"
-          echo "has-tests=$HAS_TESTS" >> "$GITHUB_OUTPUT"
-          echo "full-matrix=$FULL_MATRIX" >> "$GITHUB_OUTPUT"
+          {
+            echo "test-groups=$TEST_GROUPS"
+            echo "has-tests=$HAS_TESTS"
+            echo "full-matrix=$FULL_MATRIX"
+          } >> "$GITHUB_OUTPUT"
           echo "$TEST_GROUPS" | jq .
 
   Contract-Tests:

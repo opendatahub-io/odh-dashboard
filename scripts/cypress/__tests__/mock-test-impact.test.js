@@ -2,7 +2,7 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 
 const { planMockTestImpact } = require('../lib/mock-test-impact');
-const { createTestMatrix } = require('../plan-mock-test-impact');
+const { createTestMatrix, parseArgs, sanitizeLogText } = require('../plan-mock-test-impact');
 
 const groups = [
   { name: 'hardware/one', files: ['packages/cypress/cypress/tests/mocked/hardware/one.cy.ts'] },
@@ -69,6 +69,13 @@ describe('planMockTestImpact', () => {
     assert.match(result.reason, /outside the proven Cypress dependency graph/);
   });
 
+  it('treats runtime files inside docs directories as application code', () => {
+    const result = plan([{ status: 'M', path: 'backend/src/routes/api/docs/handler.ts' }]);
+
+    assert.equal(result.scope, 'full');
+    assert.match(result.reason, /outside the proven Cypress dependency graph/);
+  });
+
   it('keeps all groups for deleted or renamed inputs', () => {
     const result = plan([{ status: 'D', path: specs[0] }]);
 
@@ -107,6 +114,24 @@ describe('planMockTestImpact', () => {
 
     assert.equal(result.scope, 'full');
     assert.match(result.reason, /unresolved code edges/);
+  });
+});
+
+describe('parseArgs', () => {
+  it('allows an explicitly empty base so the CLI can use the head parent', () => {
+    assert.deepEqual(parseArgs(['--base', '', '--head', 'HEAD']), {
+      base: '',
+      head: 'HEAD',
+    });
+  });
+});
+
+describe('sanitizeLogText', () => {
+  it('keeps path-derived reasons on one non-command line', () => {
+    assert.equal(
+      sanitizeLogText('Changed path:\n::warning::unsafe\rnext'),
+      'Changed path: : :warning: :unsafe next',
+    );
   });
 });
 

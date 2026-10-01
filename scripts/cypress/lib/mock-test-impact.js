@@ -9,7 +9,7 @@ const normalizePath = (value) => value.split(path.sep).join('/').replace(/^\.\//
 const isDocumentationOnly = (file) => {
   const normalized = normalizePath(file);
   return (
-    /(^|\/)docs\//i.test(normalized) ||
+    (/(^|\/)docs\//i.test(normalized) && /\.(md|mdx|adoc|rst)$/i.test(normalized)) ||
     /^[^/]+\.(md|mdx|adoc|rst)$/i.test(normalized) ||
     /(^|\/)(README|CONTRIBUTING|AGENTS|CLAUDE)\.(md|mdx|adoc|rst)$/i.test(normalized) ||
     /^\.github\/(ISSUE_TEMPLATE\/.*|PULL_REQUEST_TEMPLATE\.md)$/i.test(normalized)

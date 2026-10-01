@@ -14,7 +14,7 @@ const parseArgs = (args) => {
   for (let index = 0; index < args.length; index += 2) {
     const key = args[index];
     const value = args[index + 1];
-    if (!key?.startsWith('--') || !value) {
+    if (!key?.startsWith('--') || value === undefined || (!value && key !== '--base')) {
       throw new Error(`Expected --name value arguments, received: ${args.join(' ')}`);
     }
     options[key.slice(2)] = value;
@@ -58,6 +58,15 @@ const createTestMatrix = (groups, selectedGroups) => {
     .map(({ name, spec }) => ({ name, spec }));
 };
 
+const sanitizeLogText = (value) =>
+  [...String(value).replace(/[\r\n\u2028\u2029]+/g, ' ')]
+    .map((character) => {
+      const codePoint = character.codePointAt(0);
+      return codePoint < 0x20 || codePoint === 0x7f ? '?' : character;
+    })
+    .join('')
+    .replace(/::/g, ': :');
+
 const main = () => {
   const root = path.resolve(__dirname, '../..');
   const options = parseArgs(process.argv.slice(2));
@@ -89,7 +98,9 @@ const main = () => {
   const matrix = createTestMatrix(groups, plan.selectedGroups);
   writeFile(options.matrix, `${JSON.stringify(matrix, null, 2)}\n`);
   process.stdout.write(
-    `Cypress mock selection: ${matrix.length}/${groups.length} groups (${plan.scope}). ${plan.reason}\n`,
+    `Cypress mock selection: ${matrix.length}/${groups.length} groups (${
+      plan.scope
+    }). ${sanitizeLogText(plan.reason)}\n`,
   );
 };
 
@@ -97,4 +108,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { createTestMatrix, parseArgs, readChanges };
+module.exports = { createTestMatrix, parseArgs, readChanges, sanitizeLogText };
