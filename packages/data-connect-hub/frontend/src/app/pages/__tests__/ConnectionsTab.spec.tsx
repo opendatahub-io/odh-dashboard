@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import ConnectionsTab, { synchronizeTypeSelection } from '~/app/pages/ConnectionsTab';
-import CreateConnectionWizard from '~/app/components/CreateConnectionWizard';
+import CreateConnectionWizard, { getPropertyErrors } from '~/app/components/CreateConnectionWizard';
 import { useConnections } from '~/app/hooks/useConnections';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
@@ -136,6 +136,16 @@ describe('ConnectionsTab', () => {
     ).toEqual(['postgresql', 'snowflake']);
   });
 
+  it('rejects duplicate normalized and whitespace-only property keys', () => {
+    expect(
+      getPropertyErrors([
+        { id: 1, key: ' key ', value: 'one' },
+        { id: 2, key: 'key', value: 'two' },
+        { id: 3, key: '   ', value: 'three' },
+      ]),
+    ).toEqual({ 1: 'Key must be unique.', 2: 'Key must be unique.', 3: 'Key is required.' });
+  });
+
   it('renders connection names and readable type names', () => {
     render(<ConnectionsTab namespace="test-project" />);
 
@@ -233,9 +243,13 @@ describe('ConnectionsTab', () => {
     await user.type(screen.getByTestId('connection-name-input'), 'warehouse');
     await user.click(screen.getByRole('button', { name: /Add key.?value pair/ }));
     await user.click(screen.getByRole('button', { name: /Add key.?value pair/ }));
+    await user.type(screen.getByTestId('connection-property-key-1'), 'first');
+    await user.type(screen.getByTestId('connection-property-value-1'), 'one');
+    await user.type(screen.getByTestId('connection-property-key-2'), 'second');
+    await user.type(screen.getByTestId('connection-property-value-2'), 'two');
     expect(screen.getByTestId('connection-property-key-1')).toBeTruthy();
     expect(screen.getByTestId('connection-property-value-2')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Remove property 1' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Remove property first' })).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Next' }));
     await user.type(screen.getByTestId('credential-URI'), 'postgres://example');
     await user.click(screen.getByRole('button', { name: 'Next' }));

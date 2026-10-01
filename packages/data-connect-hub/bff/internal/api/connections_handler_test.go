@@ -107,6 +107,36 @@ func TestMutationHandlersReturnNoContentInMockMode(t *testing.T) {
 	require.Equal(t, http.StatusCreated, createResponse.Code)
 }
 
+func TestTestCredentialsHandlerDeniesReadOnlyAccessBeforeUpstreamCall(t *testing.T) {
+	upstreamCalls := 0
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		upstreamCalls++
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer upstream.Close()
+
+	app := &App{
+		config: config.EnvConfig{DataConnectHubAPIURL: upstream.URL},
+		logger: slog.Default(),
+		kubernetesClientFactory: &authorizationTestFactory{
+			client: &authorizationTestClient{allowed: false},
+		},
+	}
+	response, request := requestWithIdentity(
+		t,
+		http.MethodPost,
+		"/api/v1/test/credentials?namespace=test-project",
+	)
+	request.Body = io.NopCloser(bytes.NewBufferString(
+		`{"data_connection_type_id":"postgresql","credentials":{"URI":"postgres://example"}}`,
+	))
+
+	app.TestCredentialsHandler(response, request, httprouter.Params{})
+
+	require.Equal(t, http.StatusForbidden, response.Code)
+	require.Zero(t, upstreamCalls)
+}
+
 func TestCreateConnectionRequestValidation(t *testing.T) {
 	valid := CreateConnectionRequest{
 		Name:                 "connection",
@@ -318,7 +348,7 @@ func TestConnectionEndpointAuthorization(t *testing.T) {
 			name:             "test credentials",
 			method:           http.MethodPost,
 			path:             "/api/v1/test/credentials?namespace=test-project",
-			expectedVerb:     "get",
+			expectedVerb:     "create",
 			expectedResource: "data-connections",
 			expectedStatus:   http.StatusNoContent,
 			invoke: func(app *App, w *httptest.ResponseRecorder, r *http.Request, p httprouter.Params) {

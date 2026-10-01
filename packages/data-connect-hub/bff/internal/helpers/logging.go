@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"slices"
+	"strings"
 
 	"github.com/opendatahub-io/data-connect-hub/bff/internal/constants"
 )
@@ -81,10 +82,20 @@ type RequestLogValuer struct {
 	Request *http.Request
 }
 
+func shouldRedactRequestBody(r *http.Request) bool {
+	if r == nil || r.URL == nil {
+		return false
+	}
+	path := strings.ToLower(strings.TrimRight(r.URL.Path, "/"))
+	return strings.HasSuffix(path, "/connections") || strings.HasSuffix(path, "/test/credentials")
+}
+
 func (r RequestLogValuer) LogValue() slog.Value {
 	body := ""
 
-	if r.Request.Body != nil {
+	if shouldRedactRequestBody(r.Request) {
+		body = "[REDACTED]"
+	} else if r.Request.Body != nil {
 		cloneBody, err := CloneBody(r.Request)
 		if err != nil {
 			body = fmt.Sprintf("error: %v", err)

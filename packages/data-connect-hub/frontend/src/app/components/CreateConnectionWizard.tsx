@@ -134,6 +134,8 @@ type ConnectionDetailsStepProps = {
   selectedNamespace: string;
   connectionName: string;
   properties: PropertyRow[];
+  propertyErrors: Record<number, string>;
+  touchedProperties: Set<number>;
   namespacesLoaded: boolean;
   namespacesError?: Error;
   connectionTypeWarning?: { connectionTypeName: string; namespace: string };
@@ -141,6 +143,7 @@ type ConnectionDetailsStepProps = {
   onConnectionNameChange: (name: string) => void;
   onPropertyAdd: () => void;
   onPropertyChange: (id: number, field: 'key' | 'value', value: string) => void;
+  onPropertyBlur: (id: number) => void;
   onPropertyRemove: (id: number) => void;
 };
 
@@ -149,6 +152,8 @@ const ConnectionDetailsStep: React.FC<ConnectionDetailsStepProps> = ({
   selectedNamespace,
   connectionName,
   properties,
+  propertyErrors,
+  touchedProperties,
   namespacesLoaded,
   namespacesError,
   connectionTypeWarning,
@@ -156,6 +161,7 @@ const ConnectionDetailsStep: React.FC<ConnectionDetailsStepProps> = ({
   onConnectionNameChange,
   onPropertyAdd,
   onPropertyChange,
+  onPropertyBlur,
   onPropertyRemove,
 }) => {
   const [isNamespaceSelectOpen, setIsNamespaceSelectOpen] = React.useState(false);
@@ -248,8 +254,11 @@ const ConnectionDetailsStep: React.FC<ConnectionDetailsStepProps> = ({
           <FormGroup label="Key-value pairs" fieldId="properties">
             <PropertiesStep
               properties={properties}
+              propertyErrors={propertyErrors}
+              touchedProperties={touchedProperties}
               onAdd={onPropertyAdd}
               onChange={onPropertyChange}
+              onBlur={onPropertyBlur}
               onRemove={onPropertyRemove}
             />
           </FormGroup>
@@ -521,17 +530,54 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
 
 type PropertyRow = { id: number; key: string; value: string };
 
+export const getPropertyErrors = (properties: PropertyRow[]): Record<number, string> => {
+  const errors: Record<number, string> = {};
+  const normalizedKeys = new Map<string, number[]>();
+
+  properties.forEach((property) => {
+    const key = property.key.trim();
+    if (!key) {
+      errors[property.id] = 'Key is required.';
+      return;
+    }
+    normalizedKeys.set(key, [...(normalizedKeys.get(key) ?? []), property.id]);
+  });
+
+  normalizedKeys.forEach((ids) => {
+    if (ids.length > 1) {
+      ids.forEach((id) => {
+        errors[id] = 'Key must be unique.';
+      });
+    }
+  });
+
+  return errors;
+};
+
 type PropertiesStepProps = {
   properties: PropertyRow[];
+  propertyErrors: Record<number, string>;
+  touchedProperties: Set<number>;
   onAdd: () => void;
   onChange: (id: number, field: 'key' | 'value', value: string) => void;
+  onBlur: (id: number) => void;
   onRemove: (id: number) => void;
 };
 
+const shouldShowPropertyError = (
+  property: PropertyRow,
+  error: string | undefined,
+  touched: boolean,
+): boolean =>
+  Boolean(error && (touched || (error === 'Key must be unique.' && property.key.trim() !== '')));
+
 const PropertiesStep: React.FC<PropertiesStepProps> = ({
   properties,
+  propertyErrors,
+  touchedProperties,
   onAdd,
   onChange,
+  onBlur,
   onRemove,
 }) => (
   <Stack hasGutter>
@@ -548,37 +594,60 @@ const PropertiesStep: React.FC<PropertiesStepProps> = ({
           <GridItem span={2} aria-hidden="true" />
         </Grid>
       ) : null}
-      {properties.map((property) => (
-        <Grid key={property.id} hasGutter className="pf-v6-u-mb-md">
-          <GridItem span={5}>
-            <TextInput
-              id={`connection-property-key-${property.id}`}
-              value={property.key}
-              placeholder="Key"
-              onChange={(_event, value) => onChange(property.id, 'key', value)}
-              data-testid={`connection-property-key-${property.id}`}
-            />
-          </GridItem>
-          <GridItem span={5}>
-            <TextInput
-              id={`connection-property-value-${property.id}`}
-              value={property.value}
-              placeholder="Value"
-              onChange={(_event, value) => onChange(property.id, 'value', value)}
-              data-testid={`connection-property-value-${property.id}`}
-            />
-          </GridItem>
-          <GridItem span={2}>
-            <Button
-              variant="plain"
-              icon={<MinusCircleIcon />}
-              onClick={() => onRemove(property.id)}
-              aria-label={`Remove property ${property.key || property.id}`}
-              data-testid={`connection-property-remove-${property.id}`}
-            />
-          </GridItem>
-        </Grid>
-      ))}
+      {properties.map((property) => {
+        const propertyError = propertyErrors[property.id];
+        const showPropertyError = shouldShowPropertyError(
+          property,
+          propertyError,
+          touchedProperties.has(property.id),
+        );
+        const propertyErrorId = `connection-property-key-error-${property.id}`;
+
+        return (
+          <Grid key={property.id} hasGutter className="pf-v6-u-mb-md">
+            <GridItem span={5}>
+              <TextInput
+                id={`connection-property-key-${property.id}`}
+                value={property.key}
+                placeholder="Key"
+                aria-label={`Property key ${property.id}`}
+                aria-describedby={showPropertyError ? propertyErrorId : undefined}
+                validated={showPropertyError ? 'error' : 'default'}
+                onChange={(_event, value) => onChange(property.id, 'key', value)}
+                onBlur={() => onBlur(property.id)}
+                data-testid={`connection-property-key-${property.id}`}
+              />
+              {showPropertyError ? (
+                <FormHelperText id={propertyErrorId}>
+                  <HelperText>
+                    <HelperTextItem variant="error">{propertyError}</HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              ) : null}
+            </GridItem>
+            <GridItem span={5}>
+              <TextInput
+                id={`connection-property-value-${property.id}`}
+                value={property.value}
+                placeholder="Value"
+                aria-label={`Property value ${property.id}`}
+                onChange={(_event, value) => onChange(property.id, 'value', value)}
+                onBlur={() => onBlur(property.id)}
+                data-testid={`connection-property-value-${property.id}`}
+              />
+            </GridItem>
+            <GridItem span={2}>
+              <Button
+                variant="plain"
+                icon={<MinusCircleIcon />}
+                onClick={() => onRemove(property.id)}
+                aria-label={`Remove property ${property.key || property.id}`}
+                data-testid={`connection-property-remove-${property.id}`}
+              />
+            </GridItem>
+          </Grid>
+        );
+      })}
       <Button variant="link" isInline icon={<PlusCircleIcon />} onClick={onAdd}>
         Add key-value pair
       </Button>
@@ -677,6 +746,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     namespace: string;
   }>();
   const [propertyRows, setPropertyRows] = React.useState<PropertyRow[]>([]);
+  const [touchedProperties, setTouchedProperties] = React.useState<Set<number>>(new Set());
   const propertyIdRef = React.useRef(0);
   const verificationRequestRef = React.useRef(0);
   const verificationAbortRef = React.useRef<AbortController>();
@@ -700,10 +770,13 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     hasNamespacesReady &&
     Boolean(selectedNamespace) &&
     isValidConnectionName(formData.name);
+  const propertyErrors = getPropertyErrors(propertyRows);
+  const hasValidProperties = Object.keys(propertyErrors).length === 0;
+  const hasValidDetailsWithProperties = hasValidDetails && hasValidProperties;
   const requiredCredentialFields =
     selectedConnectionType?.resource.credentials_fields?.filter((field) => field.required) ?? [];
   const hasValidConfiguration =
-    hasValidDetails &&
+    hasValidDetailsWithProperties &&
     requiredCredentialFields.every((field) =>
       hasCredentialValue(formData.credentials.properties[field.name]),
     );
@@ -780,7 +853,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     setFormData((current) => ({
       ...current,
       properties: Object.fromEntries(
-        rows.filter((row) => row.key.trim()).map((row) => [row.key, row.value]),
+        rows.filter((row) => row.key.trim()).map((row) => [row.key.trim(), row.value]),
       ),
     }));
   };
@@ -791,8 +864,16 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const handlePropertyChange = (id: number, field: 'key' | 'value', value: string) => {
     updateProperties(propertyRows.map((row) => (row.id === id ? { ...row, [field]: value } : row)));
   };
+  const handlePropertyBlur = (id: number) => {
+    setTouchedProperties((current) => new Set(current).add(id));
+  };
   const handleRemoveProperty = (id: number) => {
     updateProperties(propertyRows.filter((row) => row.id !== id));
+    setTouchedProperties((current) => {
+      const next = new Set(current);
+      next.delete(id);
+      return next;
+    });
   };
   const handleVerify = async () => {
     if (!selectedConnectionType || !hasValidConfiguration) {
@@ -837,6 +918,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     setIsCreating(false);
     invalidateVerification();
     setPropertyRows([]);
+    setTouchedProperties(new Set());
     propertyIdRef.current = 0;
   }, [invalidateVerification, namespace]);
   const handleClose = React.useCallback(() => {
@@ -892,7 +974,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
             isCreating={isCreating}
             hasConnectionType={hasConnectionType}
             hasConnectionTypesReady={hasConnectionTypesReady}
-            hasValidDetails={hasValidDetails}
+            hasValidDetails={hasValidDetailsWithProperties}
             hasValidConfiguration={hasValidConfiguration}
           />
         }
@@ -918,6 +1000,8 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
             selectedNamespace={selectedNamespace}
             connectionName={formData.name}
             properties={propertyRows}
+            propertyErrors={propertyErrors}
+            touchedProperties={touchedProperties}
             namespacesLoaded={namespacesLoaded}
             namespacesError={namespacesError}
             connectionTypeWarning={connectionTypeWarning}
@@ -925,10 +1009,15 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
             onConnectionNameChange={handleConnectionNameChange}
             onPropertyAdd={handleAddProperty}
             onPropertyChange={handlePropertyChange}
+            onPropertyBlur={handlePropertyBlur}
             onPropertyRemove={handleRemoveProperty}
           />
         </WizardStep>
-        <WizardStep name="Configuration" id="configuration-step" isDisabled={!hasValidDetails}>
+        <WizardStep
+          name="Configuration"
+          id="configuration-step"
+          isDisabled={!hasValidDetailsWithProperties}
+        >
           <ConfigurationStep
             connectionType={selectedConnectionType}
             credentials={formData.credentials.properties}
