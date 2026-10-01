@@ -1,6 +1,6 @@
 /* eslint-disable camelcase -- UIErrors may have messageId's of different cases. Don't enforce case for keys */
 
-import type { UIErrorMappings } from '~/app/components/common/UIError/types.ts';
+import type { UIErrorMappings } from '@odh-dashboard/autox-core/ui/components/primitive';
 
 export const autoragUIErrorMappings: UIErrorMappings = {
   unsupported_multiple_json_request: {

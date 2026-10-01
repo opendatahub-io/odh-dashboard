@@ -1,4 +1,5 @@
 import { APIOptions } from 'mod-arch-core';
+import { CatalogListParams } from './shared/types/catalogTypes';
 import {
   ModelRegistryCustomPropertyInt,
   ModelRegistryCustomPropertyDouble,
@@ -126,6 +127,24 @@ export type McpRuntimeMetadata = {
   capabilities?: McpRuntimeMetadataCapabilities;
   mcpPath?: string;
   prerequisites?: McpPrerequisites;
+  storage?: McpStorageMount[];
+};
+
+export type McpStoragePermissions = 'ReadOnly' | 'ReadWrite';
+
+export type McpStorageSourceType = 'EmptyDir' | 'ConfigMap' | 'Secret';
+
+export type McpStorageMount = {
+  path: string;
+  permissions?: McpStoragePermissions;
+  source: McpStorageSource;
+};
+
+export type McpStorageSource = {
+  type: McpStorageSourceType;
+  emptyDir?: Record<string, unknown>;
+  configMap?: Record<string, unknown>;
+  secret?: Record<string, unknown>;
 };
 
 export type McpToolParameter = {
@@ -183,16 +202,11 @@ export type McpToolWithServer = {
 
 export type McpToolList = PaginationParams & { items?: McpToolWithServer[] };
 
-export type McpServerListParams = {
+export type McpServerListParams = CatalogListParams & {
   sourceLabel?: string;
-  pageSize?: number | string;
-  nextPageToken?: string;
-  filterQuery?: string;
   namedQuery?: string;
   includeTools?: boolean;
   toolLimit?: number;
-  orderBy?: string;
-  sortOrder?: string;
   name?: string;
   q?: string;
 };

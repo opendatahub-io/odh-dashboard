@@ -4,7 +4,6 @@ import { MessageProps } from '@patternfly/chatbot';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { Modality } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 import userAvatar from '~/app/bgimages/user_avatar.svg';
-import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { getId, getLlamaModelDisplayName, splitLlamaModelId } from '~/app/utilities/utils';
 import {
   ApiError,
@@ -518,7 +517,6 @@ const useChatbotMessages = ({
         role: 'bot',
         content: '',
         name: modelDisplayName,
-        avatar: botAvatar,
         isLoading: true,
         isToolCallStreamComplete: false,
         timestamp: new Date().toLocaleString(),
@@ -889,7 +887,6 @@ const useChatbotMessages = ({
                   ...msg,
                   content: response.content || 'No response received',
                   name: modelDisplayName,
-                  avatar: botAvatar,
                   timestamp: new Date().toLocaleString(),
                   isLoading: false,
                   ...(thinkingCollapsible && {
@@ -1010,7 +1007,6 @@ const useChatbotMessages = ({
             role: 'bot',
             content: '*You stopped this message*',
             name: modelDisplayName,
-            avatar: botAvatar,
             timestamp: new Date().toLocaleString(),
           };
           setMessages((prevMessages) => [...prevMessages, botStopMessage]);
