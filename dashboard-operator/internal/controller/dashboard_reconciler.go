@@ -712,6 +712,10 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 		return err
 	}
 
+	if err := r.cleanupDataConnectHubGatewayRBAC(ctx, ""); err != nil {
+		return fmt.Errorf("DCH gateway RBAC cleanup: %w", err)
+	}
+
 	obsNS := ""
 	if dashboard.Spec.Observability != nil &&
 		dashboard.Spec.Observability.PersesService != nil {

@@ -26,6 +26,7 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import { Link, useParams } from 'react-router';
+import { isRunInTerminalState } from '~/app/types/pipeline';
 import InlineTooltip from '~/app/components/InlineTooltip';
 import type { AutoragRuntimeParameters } from '~/app/types';
 import type { MetricReference } from '~/app/types/autoragPattern';
@@ -39,7 +40,7 @@ import {
   getDetectedLanguageFromPatterns,
   isDetectedLanguageMetadata,
 } from '~/app/utilities/detectedLanguageFromPatterns';
-import { isRunCompleted, isRunInTerminalState } from '~/app/utilities/utils';
+import { isRunCompleted } from '~/app/utilities/utils';
 import { metricLabel } from '~/app/utilities/metricUtils';
 import './AutoragInputParametersPanel.scss';
 

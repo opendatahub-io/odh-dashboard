@@ -1,4 +1,4 @@
-import type { ColumnSchema } from '~/app/hooks/queries';
+import type { ColumnSchema } from '~/app/hooks/useS3GetFileSchemaQuery';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
   TASK_TYPE_BINARY,

@@ -583,7 +583,10 @@ func (app *App) Routes() http.Handler {
 	apiRouter.PUT(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.UpdateAgentProfileHandler)))
 	apiRouter.DELETE(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteAgentProfileHandler)))
 
-	apiRouter.POST(constants.AgentDeploymentsPath, app.AttachNamespace(app.RequireAccessToService(app.CreateAgentDeploymentHandler)))
+	apiRouter.GET(constants.AgentDeploymentsPath, app.AttachNamespace(app.RequireAccessToService(app.ListAgentDeploymentsHandler)))
+	apiRouter.GET(constants.AgentDeploymentIDPath, app.AttachNamespace(app.RequireAccessToService(app.GetAgentDeploymentHandler)))
+	apiRouter.DELETE(constants.AgentDeploymentIDPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteAgentDeploymentHandler)))
+	apiRouter.POST(constants.AgentDeploymentsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.CreateAgentDeploymentHandler))))
 
 	// GenAI Proxy — OpenAI-compatible endpoints for OGX passthrough provider.
 	// OGX forwards the user JWT via Authorization: Bearer (from passthrough_api_key

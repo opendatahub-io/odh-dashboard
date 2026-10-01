@@ -2,6 +2,8 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useCollectionDetail } from '~/app/hooks/useCollectionDetail';
 import * as dataRegistryApi from '~/app/api/dataRegistry';
+import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
+import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
 
 jest.mock('~/app/api/dataRegistry');
 jest.mock('~/app/utilities/collectionUtils', () => ({
@@ -52,30 +54,19 @@ describe('useCollectionDetail', () => {
 
     mockFetchAssets.mockResolvedValue({
       assets: [
-        {
-          name: 'table1',
-          asset_type: 'table',
-          format: 'iceberg',
-          collection: 'default',
-        },
-        {
-          name: 'table2',
-          asset_type: 'table',
-          format: 'delta',
-          collection: 'default',
-        },
+        mockAssetResponse({ name: 'table1', format: 'iceberg', collection: 'default' }),
+        mockAssetResponse({ name: 'table2', format: 'delta', collection: 'default' }),
       ],
     });
 
     mockFetchVolumes.mockResolvedValue({
       volumes: [
-        {
+        mockVolumeInfo({
           name: 'volume1',
-          'catalog-name': 'demo-user-1',
-          'schema-name': 'default',
-          'volume-type': 'external',
-          'storage-location': 's3://bucket/path',
-        },
+          format: 'other',
+          collection: 'default',
+          storage_location: 's3://bucket/path',
+        }),
       ],
     });
 
@@ -98,7 +89,7 @@ describe('useCollectionDetail', () => {
       assets: [
         { name: 'table1', assetType: 'table', format: 'iceberg' },
         { name: 'table2', assetType: 'table', format: 'delta' },
-        { name: 'volume1', assetType: 'volume', format: 'external' },
+        { name: 'volume1', assetType: 'volume', format: 'other' },
       ],
     });
   });

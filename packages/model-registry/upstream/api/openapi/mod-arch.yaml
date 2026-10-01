@@ -1229,6 +1229,150 @@ paths:
       operationId: getAgentArtifacts
       description: Lists artifacts for a specific agent.
 
+  # Serving runtime catalog endpoints
+  /api/v1/serving_runtime_catalog/serving_runtimes:
+    description: >-
+      The REST endpoint/path used to list zero or more `ServingRuntime` entities.
+    get:
+      summary: List serving_runtimes.
+      tags:
+        - ServingRuntimeCatalogService
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/namespace"
+        - name: name
+          description: Filter by name using SQL LIKE pattern matching.
+          schema:
+            type: string
+          in: query
+          required: false
+        - name: q
+          description: Free-form keyword search used to filter the response.
+          schema:
+            type: string
+          in: query
+          required: false
+        - name: source
+          description: Filter by source ID.
+          schema:
+            type: array
+            items:
+              type: string
+          in: query
+          required: false
+        - name: sourceLabel
+          description: |-
+            Filter by the label associated with the source. Multiple
+            values can be separated by commas. If one of the values is the
+            string `null`, then entities from every source without a label will
+            be returned.
+          schema:
+            type: array
+            items:
+              type: string
+          in: query
+          required: false
+        - $ref: "#/components/parameters/filterQuery"
+        - $ref: "#/components/parameters/pageSize"
+        - $ref: "#/components/parameters/orderBy"
+        - $ref: "#/components/parameters/sortOrder"
+        - $ref: "#/components/parameters/nextPageToken"
+      responses:
+        "200":
+          $ref: "#/components/responses/ServingRuntimeListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: findServingRuntimes
+
+  /api/v1/serving_runtime_catalog/serving_runtimes_filter_options:
+    description: Lists options for `filterQuery` when listing serving_runtimes.
+    get:
+      summary: Lists fields and values that can be used in `filterQuery` on the list serving_runtimes endpoint.
+      tags:
+        - ServingRuntimeCatalogService
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/namespace"
+      responses:
+        "200":
+          $ref: "#/components/responses/ServingRuntimeFilterOptionsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: findServingRuntimesFilterOptions
+
+  /api/v1/serving_runtime_catalog/serving_runtimes/{id}:
+    description: >-
+      The REST endpoint/path used to get a single `ServingRuntime` entity.
+    get:
+      summary: Get a serving_runtime by ID.
+      tags:
+        - ServingRuntimeCatalogService
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/namespace"
+        - name: id
+          description: The unique identifier of the entity.
+          schema:
+            type: string
+          in: path
+          required: true
+      responses:
+        "200":
+          $ref: "#/components/responses/ServingRuntimeResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getServingRuntime
+
+  /api/v1/serving_runtime_catalog/serving_runtimes/{id}/versions:
+    description: >-
+      The REST endpoint/path used to list zero or more `ServingRuntimeVersion`
+      entities for a `ServingRuntime`.
+    get:
+      summary: List versions of a `ServingRuntime`.
+      tags:
+        - ServingRuntimeCatalogService
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/filterQuery"
+        - $ref: "#/components/parameters/pageSize"
+        - $ref: "#/components/parameters/orderBy"
+        - $ref: "#/components/parameters/sortOrder"
+        - $ref: "#/components/parameters/nextPageToken"
+      responses:
+        "200":
+          $ref: "#/components/responses/ServingRuntimeVersionListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getServingRuntimeVersions
+    parameters:
+      - name: id
+        description: The unique identifier of the `ServingRuntime`.
+        schema:
+          type: string
+        in: path
+        required: true
+
   # MCP catalog settings endpoints
   /api/v1/settings/mcp_catalog/source_configs:
     summary: Path used to manage MCP catalog sources.
@@ -2255,6 +2399,7 @@ components:
         - CREATE_TIME
         - LAST_UPDATE_TIME
         - Id
+        - RECOMMENDED
       type: string
     Artifact:
       oneOf:
@@ -2678,6 +2823,280 @@ components:
           format: int32
           description: Number of items in result list.
           type: integer
+    ServingRuntime:
+      description: A serving runtime family in the serving runtime catalog.
+      allOf:
+        - $ref: "#/components/schemas/BaseResource"
+        - type: object
+          properties:
+            displayName:
+              type: string
+              description: Human-friendly display label.
+              example: vLLM
+              maxLength: 255
+            sourceId:
+              type: string
+              description: Catalog source that provides this runtime.
+            provider:
+              type: string
+              description: Organization providing the runtime.
+              example: Red Hat
+            readme:
+              type: string
+              description: Full Markdown documentation for this runtime.
+            logo:
+              type: string
+              description: >-
+                Runtime logo. A data URL is recommended; a plain http(s) URL is
+                also accepted.
+            tags:
+              type: array
+              description: Categorization tags.
+              items:
+                type: string
+              example: ["llm", "generative-ai", "gpu"]
+            license:
+              type: string
+              description: SPDX identifier for the runtime license.
+              example: apache-2.0
+            licenseLink:
+              type: string
+              format: uri
+              description: URL to the full license text.
+            documentationUrl:
+              type: string
+              format: uri
+              description: URL to external documentation.
+            repositoryUrl:
+              type: string
+              format: uri
+              description: URL to the source repository.
+            supportedModelFormats:
+              type: array
+              description: >-
+                Model formats this runtime can serve, aggregated across its
+                versions. Maps to ServingRuntime.spec.supportedModelFormats.
+              items:
+                $ref: "#/components/schemas/SupportedModelFormat"
+            capabilities:
+              $ref: "#/components/schemas/ServingRuntimeCapabilities"
+            versionCount:
+              type: integer
+              format: int32
+              description: Number of catalog versions available for this runtime.
+              readOnly: true
+              example: 3
+            publishedDate:
+              type: string
+              format: date-time
+              description: Initial publication timestamp.
+            lastUpdated:
+              type: string
+              format: date-time
+              description: Last metadata update timestamp.
+
+    ServingRuntimeVersion:
+      description: >-
+        A specific, deployable version of a serving runtime. Carries the
+        container image and the metadata needed to generate a ServingRuntime
+        manifest. Discovery metadata only — not a live deployment.
+      allOf:
+        - $ref: "#/components/schemas/BaseResource"
+        - type: object
+          required:
+            - artifactType
+            - version
+            - image
+          properties:
+            artifactType:
+              type: string
+              default: serving-runtime-version
+            version:
+              type: string
+              description: Version string of the runtime (typically the image tag).
+              example: "0.5.0"
+            image:
+              type: string
+              description: >-
+                Fully-qualified container image reference for this version. The
+                registry host may be rewritten by the dashboard for disconnected
+                environments (registry mirror override).
+              example: registry.redhat.io/rhoai/vllm-rhel9:0.5.0
+            supportLevel:
+              $ref: "#/components/schemas/ServingRuntimeSupportLevel"
+            supportedModelFormats:
+              type: array
+              description: Model formats supported by this specific version.
+              items:
+                $ref: "#/components/schemas/SupportedModelFormat"
+            protocolVersions:
+              type: array
+              description: Inference protocols supported (maps to ServingRuntime.spec.protocolVersions).
+              items:
+                type: string
+              example: ["v2", "grpc-v2"]
+            recommendedResources:
+              $ref: "#/components/schemas/ServingRuntimeResourceRecommendation"
+            defaultArgs:
+              type: array
+              description: Default container args for the generated ServingRuntime.
+              items:
+                type: string
+              example: ["--max-model-len", "4096"]
+            env:
+              type: array
+              description: Environment variables the runtime accepts (discovery hints; no secret values).
+              items:
+                $ref: "#/components/schemas/ServingRuntimeEnvVar"
+            template:
+              type: string
+              description: >-
+                Optional full ServingRuntime (KServe v1alpha1) manifest for this
+                version, as a JSON-encoded string, ready for review/edit before
+                creation. If omitted, the consumer generates the manifest from the
+                fields above.
+            deprecated:
+              type: boolean
+              description: Whether this version is deprecated and should be de-emphasized in the UI.
+              default: false
+            publishedDate:
+              type: string
+              format: date-time
+              description: Publication timestamp for this version/image.
+
+    SupportedModelFormat:
+      description: A model format a runtime can serve. Maps to ServingRuntime.spec.supportedModelFormats[].
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Format name.
+          example: safetensors
+        version:
+          type: string
+          description: Optional format version.
+        autoSelect:
+          type: boolean
+          description: Whether this runtime may be auto-selected for the format.
+          default: false
+        priority:
+          type: integer
+          format: int32
+          description: Selection priority when multiple runtimes support the format.
+
+    ServingRuntimeSupportLevel:
+      description: >-
+        Support/provenance badge for a runtime version. A display label usable
+        for filtering; carries no ordering semantics.
+      type: string
+      enum:
+        - supported
+        - techPreview
+        - developerPreview
+        - community
+
+    ServingRuntimeCapabilities:
+      description: High-level capability flags to aid discovery and filtering.
+      type: object
+      properties:
+        requiresGPU:
+          type: boolean
+          description: Whether the runtime requires a GPU/accelerator.
+          default: false
+        supportedAccelerators:
+          type: array
+          description: Accelerator types this runtime supports.
+          items:
+            type: string
+          example: ["nvidia.com/gpu", "amd.com/gpu"]
+        multiModel:
+          type: boolean
+          description: Whether the runtime can serve multiple models (ModelMesh-style). Maps to ServingRuntime.spec.multiModel.
+          default: false
+
+    ServingRuntimeResourceRecommendation:
+      description: >-
+        Recommended resource requests/limits for deploying a runtime version.
+        Users should adjust based on model size and traffic.
+      type: object
+      properties:
+        minimal:
+          $ref: "#/components/schemas/ResourceTier"
+        recommended:
+          $ref: "#/components/schemas/ResourceTier"
+        high:
+          $ref: "#/components/schemas/ResourceTier"
+
+    ResourceTier:
+      type: object
+      properties:
+        cpu:
+          type: string
+          example: "4"
+        memory:
+          type: string
+          example: 16Gi
+        accelerator:
+          type: object
+          description: 'Accelerator request, e.g. {"nvidia.com/gpu": "1"}.'
+          additionalProperties:
+            type: string
+          example:
+            nvidia.com/gpu: "1"
+
+    ServingRuntimeEnvVar:
+      description: An environment variable the runtime accepts. Discovery hint only; never carries secret values.
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: HF_TOKEN
+        description:
+          type: string
+          example: Hugging Face token used to pull gated models.
+        required:
+          type: boolean
+          default: false
+        defaultValue:
+          type: string
+          description: Default value for optional, non-secret variables only.
+        secret:
+          type: boolean
+          description: Whether the value should come from a Secret (never defaulted).
+          default: false
+
+    ServingRuntimeList:
+      description: A list of serving_runtime entities.
+      allOf:
+        - type: object
+          properties:
+            items:
+              description: Array of `ServingRuntime` entities.
+              type: array
+              items:
+                $ref: "#/components/schemas/ServingRuntime"
+          required:
+            - items
+        - $ref: "#/components/schemas/BaseResourceList"
+
+    ServingRuntimeVersionList:
+      description: A list of serving_runtime_version entities.
+      allOf:
+        - type: object
+          properties:
+            items:
+              description: Array of `ServingRuntimeVersion` entities.
+              type: array
+              items:
+                $ref: "#/components/schemas/ServingRuntimeVersion"
+          required:
+            - items
+        - $ref: "#/components/schemas/BaseResourceList"
+
     Agent:
       description: An agent in the agent catalog.
       type: object
@@ -3037,11 +3456,12 @@ components:
         - models
         - mcp_servers
         - agents
+        - serving_runtimes
       default: models
       description: |-
         The type of assets a source manages. Filters sources by asset type.
         `models` for model catalog sources, `mcp_servers` for MCP server catalog sources,
-        `agents` for agent catalog sources.
+        `agents` for agent catalog sources, `serving_runtimes` for serving runtime catalog sources.
     FieldFilter:
       type: object
       required:
@@ -3795,6 +4215,15 @@ components:
       type: object
       allOf:
         - $ref: "#/components/schemas/CatalogSourceConfigPayload"
+        - type: object
+          properties:
+            hasConfiguredApiKey:
+              type: boolean
+              readOnly: true
+              description: >-
+                For Hugging Face sources, whether the effective configuration has a
+                nonempty properties.apiKey value. This does not verify that the
+                referenced Secret exists or that authentication succeeded.
     CatalogSourceConfigList:
       description: List of catalog sources.
       type: object
@@ -4394,6 +4823,52 @@ components:
       description: A response containing a single `RoleBinding` entity.
 
     # Agent Catalog responses
+    ServingRuntimeListResponse:
+      description: A list of serving_runtime entities.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/ServingRuntimeList"
+    ServingRuntimeResponse:
+      description: A single serving_runtime entity.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/ServingRuntime"
+    ServingRuntimeVersionListResponse:
+      description: A list of serving_runtime_version entities.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/ServingRuntimeVersionList"
+
+    ServingRuntimeFilterOptionsResponse:
+      description: Filter options for serving runtimes.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/FilterOptionsList"
+
     AgentListResponse:
       content:
         application/json:
@@ -4938,3 +5413,5 @@ tags:
     description: Model Catalog REST API
   - name: MCPCatalogService
     description: MCP Catalog REST API
+  - name: ServingRuntimeCatalogService
+    description: Serving Runtime Catalog REST API

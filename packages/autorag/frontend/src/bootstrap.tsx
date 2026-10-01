@@ -19,6 +19,7 @@ import {
 import { rootPathname } from '~/app/utilities/routes';
 import App from '~/app/App';
 import { PluginStoreContextProvider } from '~/odh/PluginStoreContextProvider';
+import { ProductProvider } from '~/odh/ProductProvider';
 
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 
@@ -47,13 +48,15 @@ root.render(
           <ModularArchContextProvider config={modularArchConfig}>
             <BrowserStorageContextProvider>
               <NotificationContextProvider>
-                {/* Mirrors the "/gen-ai-studio/autorag/*" mount point used in federated mode
+                <ProductProvider>
+                  {/* Mirrors the "/gen-ai-studio/autorag/*" mount point used in federated mode
                     (see frontend/src/odh/extensions.ts) so standalone/mock mode resolves the
                     same URLs — AppRoutes and its Link/navigate calls assume this prefix. */}
-                <Routes>
-                  <Route path={`${rootPathname}/*`} element={<App />} />
-                  <Route path="*" element={<Navigate to={rootPathname} replace />} />
-                </Routes>
+                  <Routes>
+                    <Route path={`${rootPathname}/*`} element={<App />} />
+                    <Route path="*" element={<Navigate to={rootPathname} replace />} />
+                  </Routes>
+                </ProductProvider>
               </NotificationContextProvider>
             </BrowserStorageContextProvider>
           </ModularArchContextProvider>

@@ -1,19 +1,18 @@
 import { Bullseye, Spinner } from '@patternfly/react-core';
+import { InvalidPipelineRun } from '@odh-dashboard/autox-core/ui/components/feature';
+import { getMissingRequiredKeys, parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 import { useParams } from 'react-router';
-import { getSecrets } from '~/app/api/k8s';
+import { useSecretsQuery } from '@odh-dashboard/autox-core/ui/hooks';
+import type { SecretSelection } from '@odh-dashboard/autox-core/ui/components/feature';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
-import type { SecretSelection } from '~/app/components/common/SecretSelector';
-import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
-import { usePipelineRunQuery } from '~/app/hooks/queries';
+import { usePipelineRunQuery } from '~/app/hooks/usePipelineRunQuery';
 import { useNotification } from '~/app/hooks/useNotification';
 import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/configure.schema';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
-import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import {
   DEFAULT_OPTIMIZATION_METRIC,
   PRESET_FASTER,
@@ -21,7 +20,7 @@ import {
   isRestoredOptimizationMetricSupported,
   normalizeRestoredOptimizationMetric,
 } from '~/app/utilities/const';
-import { parseErrorStatus, generateReconfigureName } from '~/app/utilities/utils';
+import { generateReconfigureName } from '~/app/utilities/utils';
 import AutoragConfigurePage from './AutoragConfigurePage';
 
 const configureSchema = createConfigureSchema();
@@ -156,29 +155,17 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     data: storageSecrets,
     isPending: storageSecretsPending,
     isError: storageSecretsError,
-  } = useQuery({
-    queryKey: ['secrets', namespace, 'storage'],
-    queryFn: () => getSecrets('')(namespace ?? '', 'storage')({}),
-    enabled: !!namespace,
-  });
+  } = useSecretsQuery(namespace, 'storage');
   const {
     data: maasSecrets,
     isPending: maasSecretsPending,
     isError: maasSecretsError,
-  } = useQuery({
-    queryKey: ['secrets', namespace, 'maas'],
-    queryFn: () => getSecrets('')(namespace ?? '', 'maas')({}),
-    enabled: !!namespace && !isLegacyRun,
-  });
+  } = useSecretsQuery(!isLegacyRun ? namespace : undefined, 'maas');
   const {
     data: vectorDbSecrets,
     isPending: vectorDbSecretsPending,
     isError: vectorDbSecretsError,
-  } = useQuery({
-    queryKey: ['secrets', namespace, 'vector-db'],
-    queryFn: () => getSecrets('')(namespace ?? '', 'vector-db')({}),
-    enabled: !!namespace && !isLegacyRun,
-  });
+  } = useSecretsQuery(!isLegacyRun ? namespace : undefined, 'vector-db');
 
   const parsedParams = React.useMemo(
     () => (params == null ? undefined : parseReconfigureParameters(params)),
@@ -265,7 +252,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
         empty
         emptyStatePage={
           invalidPipelineRunId ? (
-            <InvalidPipelineRun />
+            <InvalidPipelineRun productName="AutoRAG" />
           ) : (
             <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
           )
