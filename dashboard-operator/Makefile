@@ -34,13 +34,17 @@ test: fmt vet ## Run tests.
 test-integration: setup-envtest ## Run integration tests with envtest.
 	KUBEBUILDER_ASSETS="$$($(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN)/k8s -p path)" go test -v -race -tags=integration -count=1 ./internal/controller/...
 
+E2E_FIXTURE_MODE ?= managed
+
 .PHONY: test-e2e
-test-e2e: ## Run real-cluster E2E tests (requires KUBECONFIG, TEST_NAMESPACE, and TEST_GATEWAY_DOMAIN).
+test-e2e: ## Run real-cluster E2E tests with an isolated, E2E-owned Dashboard fixture.
 	@test -n "$$KUBECONFIG" || (echo "KUBECONFIG must point to a kubeconfig file." && exit 1)
-	@test -n "$$TEST_NAMESPACE" || (echo "TEST_NAMESPACE must name an existing namespace." && exit 1)
-	@test -n "$$TEST_GATEWAY_DOMAIN" || (echo "TEST_GATEWAY_DOMAIN must name the externally reachable Dashboard gateway host." && exit 1)
+	@test -n "$$TEST_NAMESPACE$$E2E_TEST_APPLICATIONS_NAMESPACE" || (echo "TEST_NAMESPACE or E2E_TEST_APPLICATIONS_NAMESPACE must name an existing namespace." && exit 1)
+	@if [ "$(E2E_FIXTURE_MODE)" = "managed" ]; then \
+		test -n "$$TEST_GATEWAY_DOMAIN" || (echo "TEST_GATEWAY_DOMAIN is required for a managed Dashboard fixture." && exit 1); \
+	fi
 	@test -f "$$KUBECONFIG" || (echo "KUBECONFIG must point to a regular file." && exit 1)
-	go test -v -count=1 -tags=e2e -timeout=30m $(E2E_TEST_ARGS) ./test/e2e/...
+	go test -v -count=1 -tags=e2e -timeout=30m $(E2E_TEST_ARGS) ./test/e2e/... -args -fixture-mode=$(E2E_FIXTURE_MODE)
 
 .PHONY: test-e2e-chaos
 test-e2e-chaos: chaos-validate ## Run destructive operator-chaos E2E scenarios serially.
@@ -50,7 +54,7 @@ test-e2e-chaos: chaos-validate ## Run destructive operator-chaos E2E scenarios s
 	@test -n "$$TEST_GATEWAY_DOMAIN" || (echo "TEST_GATEWAY_DOMAIN must name the externally reachable Dashboard gateway host." && exit 1)
 	@test -n "$$TEST_OPERATOR_NAMESPACE" || (echo "TEST_OPERATOR_NAMESPACE must name the namespace containing dashboard-operator." && exit 1)
 	@test -f "$$KUBECONFIG" || (echo "KUBECONFIG must point to a regular file." && exit 1)
-	go test -v -count=1 -tags=e2e -timeout=45m -parallel=1 -run '^TestE2EOperatorChaos$$' ./test/e2e/...
+	go test -v -count=1 -tags=e2e -timeout=45m -parallel=1 -run '^TestE2EOperatorChaos$$' ./test/e2e/... -args -fixture-mode=managed
 
 ##@ Build
 
