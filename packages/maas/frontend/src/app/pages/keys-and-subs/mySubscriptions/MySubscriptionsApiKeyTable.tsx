@@ -111,7 +111,7 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
     onPerPageSelect,
     onSort,
   } = useSubscriptionApiKeysTableState(subscriptionId);
-  const { maxExpirationDays, apiKeyConfigLoaded, apiKeyConfigError } = useKeysAndSubsContext();
+  const { maxExpirationDays, apiKeyConfigError } = useKeysAndSubsContext();
 
   const refreshAll = () => {
     refreshTable();
@@ -119,19 +119,20 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
   };
 
   const apiKeys = response.data;
-  const showTableLoading = !loaded || isFetching || !apiKeyConfigLoaded;
-  const tableError = error ?? apiKeyConfigError;
+  const showTableLoading = !loaded || isFetching;
+  const tableError = error;
   const activeSortIndex = subscriptionApiKeyColumns.findIndex(
     (c) => c.serverSortField === sortField,
   );
 
   return (
     <>
-      {isModalOpen && apiKeyConfigLoaded && !apiKeyConfigError && (
+      {isModalOpen && (
         <CreateApiKeyModal
           initialSubscription={subscription}
           initiatedFrom={ApiKeyCreateInitiatedFrom.SUBSCRIPTION_DETAIL}
           maxExpirationDays={maxExpirationDays}
+          apiKeyConfigError={apiKeyConfigError}
           onClose={(created?: boolean) => {
             setIsModalOpen(false);
             if (created) {
@@ -164,7 +165,7 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
             <Button
               variant="primary"
               onClick={() => setIsModalOpen(true)}
-              isDisabled={!loaded || !apiKeyConfigLoaded || !!apiKeyConfigError}
+              isDisabled={!loaded}
               data-testid="create-api-key-button"
             >
               Create API key

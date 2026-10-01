@@ -10,13 +10,9 @@ import apiKeysEmptyStateImg from '@odh-dashboard/internal/images/empty-state-api
 
 type EmptyApiKeysPageProps = {
   onCreateApiKey: () => void;
-  isCreateDisabled?: boolean;
 };
 
-const EmptyApiKeysPage: React.FC<EmptyApiKeysPageProps> = ({
-  onCreateApiKey,
-  isCreateDisabled = false,
-}) => (
+const EmptyApiKeysPage: React.FC<EmptyApiKeysPageProps> = ({ onCreateApiKey }) => (
   <EmptyState
     data-testid="empty-state-title"
     headingLevel="h3"
@@ -30,12 +26,7 @@ const EmptyApiKeysPage: React.FC<EmptyApiKeysPageProps> = ({
     </EmptyStateBody>
     <EmptyStateFooter>
       <EmptyStateActions>
-        <Button
-          variant="primary"
-          onClick={onCreateApiKey}
-          isDisabled={isCreateDisabled}
-          data-testid="create-api-key-button"
-        >
+        <Button variant="primary" onClick={onCreateApiKey} data-testid="create-api-key-button">
           Create API key
         </Button>
       </EmptyStateActions>

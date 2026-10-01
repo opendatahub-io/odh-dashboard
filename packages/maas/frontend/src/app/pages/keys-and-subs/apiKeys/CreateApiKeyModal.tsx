@@ -58,7 +58,7 @@ import {
   formatExpirationLabel,
   getAfterDaysValidationMessage,
   getCalendarDaysBetween,
-  getDefaultAfterDays,
+  DEFAULT_AFTER_DAYS,
   getDefaultExpirationDate,
   getExpirationDateValidationMessage,
   getExpirationModeLabel,
@@ -69,6 +69,7 @@ import {
   startOfLocalDay,
   validateAfterDays,
   validateExpirationDate,
+  DATE_PICKER_MAX_DAYS,
   type ExpirationMode,
 } from '~/app/pages/keys-and-subs/utils';
 import { createApiKey } from '~/app/api/api-keys';
@@ -104,6 +105,14 @@ const createApiKeySchema = (maxDays: number) =>
     })
     .superRefine((data, ctx) => {
       if (data.expirationMode === 'max') {
+        // Max mode is only offered when maxDays is known and positive.
+        if (maxDays < 1) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Maximum expiration is unavailable',
+            path: ['expirationMode'],
+          });
+        }
         return;
       }
       if (data.expirationMode === 'onDate') {
@@ -134,6 +143,7 @@ type CreateApiKeyModalProps = {
   initialSubscription?: UserSubscription;
   initiatedFrom: ApiKeyCreateInitiatedFrom;
   maxExpirationDays: number;
+  apiKeyConfigError?: Error;
 };
 
 const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
@@ -141,8 +151,19 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
   initialSubscription,
   initiatedFrom,
   maxExpirationDays,
+  apiKeyConfigError,
 }) => {
   const canLockSubscription = Boolean(initialSubscription);
+  // When config fails (or returns a non-positive max), skip max enforcement and hide "max" mode.
+  const hasKnownMaxExpiration = !apiKeyConfigError && maxExpirationDays > 0;
+  const effectiveMaxDays = hasKnownMaxExpiration ? maxExpirationDays : 0;
+  const availableExpirationModes = React.useMemo(
+    () =>
+      hasKnownMaxExpiration
+        ? EXPIRATION_MODE_VALUES
+        : EXPIRATION_MODE_VALUES.filter((mode) => mode !== 'max'),
+    [hasKnownMaxExpiration],
+  );
 
   const { subscriptions, subscriptionsLoaded, subscriptionsError } = useKeysAndSubsContext();
 
@@ -150,8 +171,8 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
     name: '',
     description: '',
     expirationMode: 'onDate',
-    expirationDate: formatDatePickerValue(getDefaultExpirationDate(maxExpirationDays)),
-    afterDays: String(getDefaultAfterDays(maxExpirationDays)),
+    expirationDate: formatDatePickerValue(getDefaultExpirationDate()),
+    afterDays: String(DEFAULT_AFTER_DAYS),
     subscription: initialSubscription?.subscription_id_header ?? '',
   });
   const [isModeSelectOpen, setIsModeSelectOpen] = React.useState(false);
@@ -160,14 +181,17 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
   const [createdToken, setCreatedToken] = React.useState<string | undefined>();
 
   const createApiKeySchemaMemo = React.useMemo(
-    () => createApiKeySchema(maxExpirationDays),
-    [maxExpirationDays],
+    () => createApiKeySchema(effectiveMaxDays),
+    [effectiveMaxDays],
   );
 
   const minExpirationDate = React.useMemo(() => getMinSelectableExpirationDate(), []);
   const maxExpirationDate = React.useMemo(
-    () => getMaxSelectableExpirationDate(maxExpirationDays),
-    [maxExpirationDays],
+    () =>
+      getMaxSelectableExpirationDate(
+        hasKnownMaxExpiration ? maxExpirationDays : DATE_PICKER_MAX_DAYS,
+      ),
+    [hasKnownMaxExpiration, maxExpirationDays],
   );
 
   const dateValidators = React.useMemo(
@@ -177,12 +201,12 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
         const minDays = getCalendarDaysBetween(startOfLocalDay(), minExpirationDate);
         const pickerMaxDays = getCalendarDaysBetween(startOfLocalDay(), maxExpirationDate);
         if (days < minDays || days > pickerMaxDays) {
-          return getExpirationDateValidationMessage(maxExpirationDays);
+          return getExpirationDateValidationMessage(effectiveMaxDays);
         }
         return '';
       },
     ],
-    [minExpirationDate, maxExpirationDate, maxExpirationDays],
+    [minExpirationDate, maxExpirationDate, effectiveMaxDays],
   );
 
   const sortedSubscriptions = React.useMemo(
@@ -371,15 +395,16 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
   const hiddenToken = createdToken ? formatApiKeyHiddenPreview(createdToken) : '';
 
   const handleExpirationModeChange = (mode: ExpirationMode) => {
+    if (mode === 'max' && !hasKnownMaxExpiration) {
+      return;
+    }
     setFormData({
       ...formData,
       expirationMode: mode,
       ...(mode === 'onDate' && !formData.expirationDate
-        ? { expirationDate: formatDatePickerValue(getDefaultExpirationDate(maxExpirationDays)) }
+        ? { expirationDate: formatDatePickerValue(getDefaultExpirationDate()) }
         : {}),
-      ...(mode === 'after' && !formData.afterDays
-        ? { afterDays: String(getDefaultAfterDays(maxExpirationDays)) }
-        : {}),
+      ...(mode === 'after' && !formData.afterDays ? { afterDays: String(DEFAULT_AFTER_DAYS) } : {}),
     });
     setIsModeSelectOpen(false);
     setError(undefined);
@@ -526,6 +551,19 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                 </Alert>
               </StackItem>
             )}
+            {apiKeyConfigError && (
+              <StackItem>
+                <Alert
+                  variant="warning"
+                  isInline
+                  title="Failed to load maximum expiration days"
+                  data-testid="api-key-config-error-alert"
+                >
+                  {apiKeyConfigError.message}. You can still create an API key, but expiration is
+                  not limited by a known maximum.
+                </Alert>
+              </StackItem>
+            )}
             <StackItem>
               <Form>
                 <FormGroup label="Name" isRequired fieldId="api-key-name">
@@ -639,18 +677,24 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                             isExpanded={isModeSelectOpen}
                             data-testid="api-key-expiration-mode-toggle"
                           >
-                            {getExpirationModeLabel(formData.expirationMode, maxExpirationDays)}
+                            {getExpirationModeLabel(
+                              formData.expirationMode,
+                              hasKnownMaxExpiration ? maxExpirationDays : 0,
+                            )}
                           </MenuToggle>
                         )}
                       >
                         <SelectList>
-                          {EXPIRATION_MODE_VALUES.map((mode) => (
+                          {availableExpirationModes.map((mode) => (
                             <SelectOption
                               key={mode}
                               value={mode}
                               data-testid={`api-key-expiration-mode-${mode}`}
                             >
-                              {getExpirationModeLabel(mode, maxExpirationDays)}
+                              {getExpirationModeLabel(
+                                mode,
+                                hasKnownMaxExpiration ? maxExpirationDays : 0,
+                              )}
                             </SelectOption>
                           ))}
                         </SelectList>
@@ -683,16 +727,27 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                             id="api-key-expiration-after-days"
                             type="number"
                             min={1}
-                            max={maxExpirationDays}
+                            {...(hasKnownMaxExpiration ? { max: maxExpirationDays } : {})}
                             step={1}
                             value={formData.afterDays}
                             aria-label="Number of days until expiration"
-                            style={{ width: '6rem' }}
                             onChange={(_event, value) => {
                               setFormData({ ...formData, afterDays: value });
                               setError(undefined);
                             }}
                             {...getFieldValidationProps(['afterDays'])}
+                            style={{
+                              // Room for digits + form-control status icon (+ number spinner chrome)
+                              width: `calc(${Math.max(
+                                String(
+                                  hasKnownMaxExpiration
+                                    ? maxExpirationDays
+                                    : formData.afterDays || 99,
+                                ).length,
+                                2,
+                              )}ch + 4.5rem)`,
+                              minWidth: '9rem',
+                            }}
                             data-testid="api-key-expiration-after-days-input"
                           />
                         </InputGroupItem>
@@ -716,13 +771,14 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                         }
                       >
                         {formData.expirationMode === 'max' &&
+                          hasKnownMaxExpiration &&
                           `Expires in ${maxExpirationDays} days`}
                         {formData.expirationMode === 'onDate' &&
                           (getFieldValidation(['expirationDate'])[0]?.message ??
-                            getExpirationDateValidationMessage(maxExpirationDays))}
+                            getExpirationDateValidationMessage(effectiveMaxDays))}
                         {formData.expirationMode === 'after' &&
                           (getFieldValidation(['afterDays'])[0]?.message ??
-                            getAfterDaysValidationMessage(maxExpirationDays))}
+                            getAfterDaysValidationMessage(effectiveMaxDays))}
                       </HelperTextItem>
                     </HelperText>
                   </FormHelperText>

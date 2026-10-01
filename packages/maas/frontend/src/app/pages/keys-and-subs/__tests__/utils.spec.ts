@@ -5,7 +5,7 @@ import {
   formatExpirationLabel,
   getAfterDaysValidationMessage,
   getCalendarDaysBetween,
-  getDefaultAfterDays,
+  DEFAULT_AFTER_DAYS,
   getDefaultExpirationDate,
   getExpirationModeLabel,
   getExpiresInFromDays,
@@ -70,15 +70,12 @@ describe('expiration helpers', () => {
     expect(getExpirationModeLabel('after', 90)).toBe('After');
   });
 
-  it('should default after-days to tomorrow (1 day), capped by max', () => {
-    expect(getDefaultAfterDays(90)).toBe(1);
-    expect(getDefaultAfterDays(10)).toBe(1);
-    expect(getDefaultAfterDays(1)).toBe(1);
+  it('should default after-days to tomorrow (1 day)', () => {
+    expect(DEFAULT_AFTER_DAYS).toBe(1);
   });
 
   it('should default the on-date value to tomorrow', () => {
-    expect(formatDatePickerValue(getDefaultExpirationDate(90, from))).toBe('2026-01-16');
-    expect(formatDatePickerValue(getDefaultExpirationDate(10, from))).toBe('2026-01-16');
+    expect(formatDatePickerValue(getDefaultExpirationDate(from))).toBe('2026-01-16');
   });
 
   it('should compute min and max selectable dates', () => {
@@ -98,6 +95,9 @@ describe('expiration helpers', () => {
     );
     expect(validateAfterDays('45', 90)).toBe('');
     expect(validateAfterDays('91', 90)).toBe(getAfterDaysValidationMessage(90));
+    expect(validateAfterDays('999', 0)).toBe('');
+    expect(validateAfterDays('0', 0)).toBe('Enter a value of at least 1 day');
+    expect(validateExpirationDate('2026-01-16', 0, from)).toBe('');
   });
 
   it('should format expiresIn and success labels', () => {

@@ -46,7 +46,7 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
     onPerPageSelect,
     onClearFilters,
     maxExpirationDays,
-    canCreateApiKey,
+    apiKeyConfigError,
   } = pageState;
 
   const subscriptionOptions = React.useMemo(
@@ -83,30 +83,29 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
   if (!hasAnyApiKeys) {
     return (
       <>
-        {isModalOpen && canCreateApiKey && (
+        {isModalOpen && (
           <CreateApiKeyModal
             initiatedFrom={ApiKeyCreateInitiatedFrom.API_KEYS_TOOLBAR}
             maxExpirationDays={maxExpirationDays}
+            apiKeyConfigError={apiKeyConfigError}
             onClose={() => {
               setIsModalOpen(false);
               refreshAll();
             }}
           />
         )}
-        <EmptyApiKeysPage
-          onCreateApiKey={() => setIsModalOpen(true)}
-          isCreateDisabled={!canCreateApiKey}
-        />
+        <EmptyApiKeysPage onCreateApiKey={() => setIsModalOpen(true)} />
       </>
     );
   }
 
   return (
     <>
-      {isModalOpen && canCreateApiKey && (
+      {isModalOpen && (
         <CreateApiKeyModal
           initiatedFrom={ApiKeyCreateInitiatedFrom.API_KEYS_TOOLBAR}
           maxExpirationDays={maxExpirationDays}
+          apiKeyConfigError={apiKeyConfigError}
           onClose={() => {
             setIsModalOpen(false);
             refreshAll();
@@ -139,7 +138,6 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
             <ApiKeysToolbar
               isMaasAdmin={isMaasAdmin}
               setIsModalOpen={setIsModalOpen}
-              isCreateDisabled={!canCreateApiKey}
               filterData={filterData}
               localUsername={localUsername}
               setLocalUsername={setLocalUsername}
@@ -150,7 +148,6 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
               onSubscriptionChange={onSubscriptionChange}
               activeApiKeys={activeApiKeys}
               refresh={refreshAll}
-              onClearFilters={onClearFilters}
             />
           }
         />

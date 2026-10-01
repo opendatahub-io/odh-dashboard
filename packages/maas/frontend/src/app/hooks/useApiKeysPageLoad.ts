@@ -12,7 +12,6 @@ export type UseApiKeysPageLoadReturn = UseApiKeysTableStateReturn & {
   maxExpirationDays: number;
   apiKeyConfigLoaded: boolean;
   apiKeyConfigError: Error | undefined;
-  canCreateApiKey: boolean;
   loadError: Error | undefined;
   loaded: boolean;
   hasAnyApiKeys: boolean;
@@ -36,17 +35,11 @@ export const useApiKeysPageLoad = (): UseApiKeysPageLoadReturn => {
   } = useKeysAndSubsContext();
   const tableState = useApiKeysTableState();
 
-  // Config failures only disable create — listing/revoking keys must stay available.
+  // Config failures must not block listing/revoking; the create modal surfaces them.
+  // Do not wait on api-key config — it is only needed when creating a key.
   const loadError = hasAnyApiKeysError ?? isMaasAdminError ?? tableState.error;
 
-  const loaded =
-    hasAnyApiKeysLoaded &&
-    isMaasAdminLoaded &&
-    tableState.loaded &&
-    apiKeyConfigLoaded &&
-    !loadError;
-
-  const canCreateApiKey = apiKeyConfigLoaded && !apiKeyConfigError;
+  const loaded = hasAnyApiKeysLoaded && isMaasAdminLoaded && tableState.loaded && !loadError;
 
   const refreshAll = React.useCallback(() => {
     tableState.refresh();
@@ -60,7 +53,6 @@ export const useApiKeysPageLoad = (): UseApiKeysPageLoadReturn => {
     maxExpirationDays,
     apiKeyConfigLoaded,
     apiKeyConfigError,
-    canCreateApiKey,
     loadError,
     loaded,
     hasAnyApiKeys,
