@@ -17,13 +17,12 @@ export const useAccessAllowed = (
   doCheck = true,
 ): [isAllowed: boolean, isLoaded: boolean] => {
   const { canIAccess, accessReviewCache, genKey } = React.useContext(AccessReviewContext);
-  const { group, resource, subresource, verb, name, namespace } = resourceAttributes;
 
   React.useEffect(() => {
     if (doCheck) {
-      canIAccess({ group, resource, subresource, verb, name, namespace });
+      canIAccess(resourceAttributes);
     }
-  }, [group, resource, subresource, verb, name, namespace, canIAccess, doCheck]);
+  }, [resourceAttributes, canIAccess, doCheck]);
 
   const accessCache = accessReviewCache[genKey(resourceAttributes)];
 

@@ -25,7 +25,6 @@ export const useAccessReviewExtensions = <TExtension extends LoadedExtension<Ext
 ): [filteredExtensions: TExtension[], isLoaded: boolean] => {
   const getResourceAttributesRef = React.useRef(getResourceAttributes);
   getResourceAttributesRef.current = getResourceAttributes;
-  const requestedAccessKeysRef = React.useRef(new Set<string>());
   const { canIAccess, accessReviewCache, genKey } = React.useContext(AccessReviewContext);
 
   const [filteredExtensions, setFilteredExtensions] = React.useState<TExtension[]>([]);
@@ -67,17 +66,10 @@ export const useAccessReviewExtensions = <TExtension extends LoadedExtension<Ext
 
       if (!cacheEntry) {
         // Not in cache, trigger check and mark overall state as not loaded yet.
-        requestedAccessKeysRef.current.add(key);
         canIAccess(attributes);
         allChecksCompleted = false;
       } else if (cacheEntry.isLoading) {
         // In cache but still loading, mark overall state as not loaded yet.
-        allChecksCompleted = false;
-      } else if (cacheEntry.error && !requestedAccessKeysRef.current.has(key)) {
-        // Retry a failed review on a new consumer mount. Remember this request so a failure
-        // update does not cause this effect to retry continuously while the consumer is mounted.
-        requestedAccessKeysRef.current.add(key);
-        canIAccess(attributes);
         allChecksCompleted = false;
       } else if (cacheEntry.canAccess) {
         // In cache, loaded, and access is allowed. Add to potential results.
