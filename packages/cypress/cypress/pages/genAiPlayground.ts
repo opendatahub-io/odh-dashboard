@@ -4,7 +4,7 @@ const GEN_AI_CUSTOM_ENDPOINTS_FLAG =
 const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_RAG_FLAG =
-  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,aiAssetVectorStores=true,modelAsService=false';
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,externalVectorStores=true,modelAsService=false';
 const GEN_AI_GUARDRAILS_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,guardrails=true,modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_GUARDRAILS_FLAG =
