@@ -4,6 +4,7 @@ set -euo pipefail
 # Pinned versions used by the controller manifests and dependency installer.
 KSERVE_VERSION="v0.19.0"
 CLOUD_PROVIDER_KIND_VERSION="v0.10.0"
+LLMISVC_DEPENDENCIES_SHA256="4e523d52936c1582e35bc5b52ad7a6be8df05536f5de79dd6299cf607f98f2ce"
 
 # Pinned manifest URLs
 LLMISVC_DEPENDENCIES_URL="https://github.com/kserve/kserve/releases/download/${KSERVE_VERSION}/llmisvc-dependency-install.sh"
@@ -19,6 +20,29 @@ CLOUD_PROVIDER_KIND_LOG="${TMPDIR:-/tmp}/rhaii-cloud-provider-kind.log"
 info()  { echo "==> $*"; }
 error() { echo "ERROR: $*" >&2; exit 1; }
 
+cloud_provider_kind_is_running() {
+  local escaped_binary
+  escaped_binary=$(printf '%s\n' "${GO_BIN_DIR}/cloud-provider-kind" | sed 's/[][\\.^$*+?(){}|]/\\&/g')
+  pgrep -f "^${escaped_binary}([[:space:]]|$)" >/dev/null 2>&1
+}
+
+verify_sha256() {
+  local file="$1"
+  local expected="$2"
+  local actual
+
+  if command -v sha256sum >/dev/null 2>&1; then
+    actual=$(sha256sum "$file") || error "Unable to calculate SHA-256 for ${file}"
+  elif command -v shasum >/dev/null 2>&1; then
+    actual=$(shasum -a 256 "$file") || error "Unable to calculate SHA-256 for ${file}"
+  else
+    error "sha256sum or shasum is required to verify downloaded files"
+  fi
+  actual=${actual%% *}
+
+  [[ "$actual" == "$expected" ]] || error "Checksum mismatch for ${LLMISVC_DEPENDENCIES_URL}"
+}
+
 print_cloud_provider_kind_recovery_command() {
   printf '  '
   printf '%q ' sudo env "$@"
@@ -26,7 +50,7 @@ print_cloud_provider_kind_recovery_command() {
 }
 
 start_cloud_provider_kind() {
-  if pgrep -f cloud-provider-kind >/dev/null 2>&1; then
+  if cloud_provider_kind_is_running; then
     info "cloud-provider-kind is already running"
     return
   fi
@@ -61,7 +85,7 @@ start_cloud_provider_kind() {
   fi
 
   sleep 2
-  if ! pgrep -f cloud-provider-kind >/dev/null 2>&1; then
+  if ! cloud_provider_kind_is_running; then
     if [[ -s "$CLOUD_PROVIDER_KIND_LOG" ]]; then
       echo "cloud-provider-kind startup log (${CLOUD_PROVIDER_KIND_LOG}):" >&2
       tail -n 50 "$CLOUD_PROVIDER_KIND_LOG" >&2
@@ -115,6 +139,7 @@ trap 'rm -rf "$DEPENDENCY_WORK_DIR"' EXIT
 
 info "Installing KServe ${KSERVE_VERSION} LLMInferenceService dependencies..."
 curl -fsSL "$LLMISVC_DEPENDENCIES_URL" -o "$DEPENDENCY_INSTALLER"
+verify_sha256 "$DEPENDENCY_INSTALLER" "$LLMISVC_DEPENDENCIES_SHA256"
 
 # The upstream installer otherwise installs cloud-provider-kind@latest. Install
 # the version aligned with its Kind v0.30.0 dependency first so it finds the
@@ -135,7 +160,7 @@ start_cloud_provider_kind
 rm -rf "$DEPENDENCY_WORK_DIR"
 trap - EXIT
 
-pgrep -f cloud-provider-kind >/dev/null 2>&1 || error "cloud-provider-kind is not running"
+cloud_provider_kind_is_running || error "cloud-provider-kind is not running"
 
 info "Waiting for the KServe gateway to be programmed..."
 kubectl wait gateway "$GATEWAY_NAME" \
