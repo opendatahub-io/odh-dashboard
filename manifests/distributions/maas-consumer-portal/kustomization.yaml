@@ -11,6 +11,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - networkpolicy.yaml
+  - perses-networkpolicy.yaml
   - httproute.yaml
 configMapGenerator:
   - name: maas-consumer-portal-params
@@ -97,9 +98,9 @@ replacements:
     targets:
       - select:
           kind: NetworkPolicy
-          name: maas-consumer-portal
+          name: maas-consumer-portal-perses
         fieldPaths:
-          - spec.egress.4.to.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
+          - spec.egress.0.to.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
   - source:
       kind: ConfigMap
       name: maas-consumer-portal-params
