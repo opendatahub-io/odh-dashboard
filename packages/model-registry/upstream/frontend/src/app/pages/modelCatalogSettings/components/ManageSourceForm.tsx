@@ -59,13 +59,10 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
     markSourcePending,
   } = React.useContext(ModelCatalogSettingsContext);
 
-  const hasExistingApiKey = React.useMemo(() => {
-    if (!isEditMode || !formData.id) {
-      return false;
-    }
-    const source = catalogSources?.items?.find((s) => s.id === formData.id);
-    return source?.hasApiKey ?? false;
-  }, [isEditMode, formData.id, catalogSources]);
+  const hasExistingApiKey =
+    isEditMode &&
+    existingSourceConfig?.type === CatalogSourceType.HUGGING_FACE &&
+    existingSourceConfig.hasConfiguredApiKey === true;
 
   const preview = useSourcePreview({
     formData,
