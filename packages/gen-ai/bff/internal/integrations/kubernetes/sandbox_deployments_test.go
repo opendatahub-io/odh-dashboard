@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"testing"
+	"time"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/models"
@@ -31,12 +32,15 @@ func TestListAgentDeployments(t *testing.T) {
 	readySandbox := testSandbox(namespace, "ready-agent", map[string]string{
 		dashboardLabel: dashboardLabelValue, agentProfileIDLabel: profileOne,
 	}, "agents.x-k8s.io/sandbox-name-hash=ready")
+	readySandbox.SetCreationTimestamp(metav1.NewTime(time.Date(2026, time.July, 30, 6, 30, 0, 0, time.UTC)))
 	failedSandbox := testSandbox(namespace, "failed-agent", map[string]string{
 		dashboardLabel: dashboardLabelValue, agentProfileIDLabel: profileTwo,
 	}, "agents.x-k8s.io/sandbox-name-hash=failed")
+	failedSandbox.SetCreationTimestamp(metav1.NewTime(time.Date(2026, time.July, 28, 6, 30, 0, 0, time.UTC)))
 	legacySandbox := testSandbox(namespace, "legacy-agent", map[string]string{
 		dashboardLabel: dashboardLabelValue,
 	}, "agents.x-k8s.io/sandbox-name-hash=legacy")
+	legacySandbox.SetCreationTimestamp(metav1.NewTime(time.Date(2026, time.July, 29, 6, 30, 0, 0, time.UTC)))
 	nonDashboardSandbox := testSandbox(namespace, "not-an-agent", nil, "agents.x-k8s.io/sandbox-name-hash=other")
 	otherNamespaceSandbox := testSandbox(otherNamespace, "other-namespace-agent", map[string]string{
 		dashboardLabel: dashboardLabelValue, agentProfileIDLabel: profileOne,
@@ -65,14 +69,15 @@ func TestListAgentDeployments(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, response.Deployments, 3)
 	assert.Equal(t, 3, response.TotalCount)
-	assert.Equal(t, []string{"failed-agent", "legacy-agent", "ready-agent"}, deploymentNames(response.Deployments))
-	assert.Equal(t, agentDeploymentStateFailed, response.Deployments[0].State)
-	assert.Equal(t, "ImagePullBackOff", response.Deployments[0].LastError)
+	assert.Equal(t, []string{"ready-agent", "legacy-agent", "failed-agent"}, deploymentNames(response.Deployments))
+	assert.Equal(t, profileOne, response.Deployments[0].AgentProfileID)
+	assert.Equal(t, agentDeploymentStateReady, response.Deployments[0].State)
+	assert.Equal(t, "https://ready-agent-agent-namespace.apps.example.com", response.Deployments[0].RouteURL)
+	assert.Equal(t, "2026-07-30T06:30:00Z", response.Deployments[0].CreatedAt)
 	assert.Equal(t, "", response.Deployments[1].AgentProfileID)
 	assert.Equal(t, agentDeploymentStateCreating, response.Deployments[1].State)
-	assert.Equal(t, profileOne, response.Deployments[2].AgentProfileID)
-	assert.Equal(t, agentDeploymentStateReady, response.Deployments[2].State)
-	assert.Equal(t, "https://ready-agent-agent-namespace.apps.example.com", response.Deployments[2].RouteURL)
+	assert.Equal(t, agentDeploymentStateFailed, response.Deployments[2].State)
+	assert.Equal(t, "ImagePullBackOff", response.Deployments[2].LastError)
 
 	filtered, err := kc.ListAgentDeployments(context.Background(), namespace, profileTwo)
 	require.NoError(t, err)
