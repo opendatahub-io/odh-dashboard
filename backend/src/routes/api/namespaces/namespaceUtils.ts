@@ -1,5 +1,6 @@
-import { PatchUtils, V1SelfSubjectAccessReview } from '@kubernetes/client-node';
+import { PatchUtils, V1Namespace, V1SelfSubjectAccessReview } from '@kubernetes/client-node';
 import { NamespaceApplicationCase } from './const';
+import { isHttpError } from '../../../utils';
 import { K8sStatus, KnownLabels, KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { createCustomError } from '../../../utils/requestUtils';
 import { isK8sStatus } from '../../../utils/pass-through';
@@ -33,6 +34,53 @@ const checkEditNamespacePermission = (
     name,
     namespace: name,
   });
+
+export const ensureEditNamespacePermission = async (
+  fastify: KubeFastifyInstance,
+  request: OauthFastifyRequest,
+  projectNamespace: string,
+): Promise<void> => {
+  const accessReview = await checkEditNamespacePermission(fastify, request, projectNamespace);
+  if (isK8sStatus(accessReview)) {
+    // SSAR failed to create. This is distinct from a successful SSAR that shows the user doesn't have access.
+    throw createCustomError('Failed', 'Failed to check permissions for this project.', 500);
+  }
+  if (!accessReview.status?.allowed) {
+    fastify.log.error(
+      `User does not have edit permission in project "${projectNamespace}": ${accessReview.status?.reason}`,
+    );
+    throw createCustomError('Forbidden', `You don't have edit permission in this project.`, 403);
+  }
+};
+
+export const ensureNIMFeatureFlagEnabled = (): void => {
+  const config = getDashboardConfig();
+  if (!config || config.spec.dashboardConfig.disableNIMModelServing) {
+    throw createCustomError('NIM model serving disabled', 'NIM model serving is disabled.', 403);
+  }
+};
+
+export const ensureProjectNIMAnnotation = async (
+  fastify: KubeFastifyInstance,
+  projectNamespace: string,
+): Promise<void> => {
+  let namespaceResource: V1Namespace;
+  try {
+    namespaceResource = (await fastify.kube.coreV1Api.readNamespace(projectNamespace)).body;
+  } catch (e) {
+    if (isHttpError(e) && typeof e.response.statusCode === 'number') {
+      throw createCustomError(
+        'Failed',
+        'Failed to check project NIM promotion status',
+        e.response.statusCode,
+      );
+    }
+    throw e;
+  }
+  if (namespaceResource.metadata?.annotations?.['opendatahub.io/nim-support'] !== 'true') {
+    throw createCustomError('Forbidden', 'NIM model serving is not enabled for this project.', 403);
+  }
+};
 
 export const applyNamespaceChange = async (
   fastify: KubeFastifyInstance,
@@ -73,6 +121,7 @@ export const applyNamespaceChange = async (
       break;
     case NamespaceApplicationCase.KSERVE_NIM_PROMOTION:
       {
+        ensureNIMFeatureFlagEnabled();
         annotations = { 'opendatahub.io/nim-support': 'true' };
         checkPermissionsFn = checkEditNamespacePermission;
       }
