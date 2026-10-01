@@ -4215,6 +4215,15 @@ components:
       type: object
       allOf:
         - $ref: "#/components/schemas/CatalogSourceConfigPayload"
+        - type: object
+          properties:
+            hasConfiguredApiKey:
+              type: boolean
+              readOnly: true
+              description: >-
+                For Hugging Face sources, whether the effective configuration has a
+                nonempty properties.apiKey value. This does not verify that the
+                referenced Secret exists or that authentication succeeded.
     CatalogSourceConfigList:
       description: List of catalog sources.
       type: object

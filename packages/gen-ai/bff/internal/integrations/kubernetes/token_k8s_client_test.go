@@ -1479,6 +1479,40 @@ registered_resources:
 		assert.Equal(t, []string{constants.CapabilityTextGeneration}, result[0].Capabilities)
 	})
 
+	t.Run("custom transcription endpoint retains type and ASR capability", func(t *testing.T) {
+		cm := makeConfigMap(`providers:
+  inference:
+    - provider_id: groq-asr
+      provider_type: remote::openai
+      config:
+        base_url: https://api.groq.com/openai/v1
+registered_resources:
+  models:
+    - provider_id: groq-asr
+      model_id: whisper-large-v3
+      model_type: transcription
+      metadata:
+        display_name: Groq Whisper
+        capabilities:
+          - audio-transcription`)
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(cm).
+			Build()
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.GetAAModelsFromExternalModels(context.Background(), identity, "test-ns")
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, result[0].ModelSourceType)
+		assert.Equal(t, models.ModelTypeTranscription, result[0].ModelType)
+		assert.Equal(t, []string{constants.CapabilityAudioTranscription}, result[0].Capabilities)
+	})
+
 	t.Run("explicit capabilities in YAML are passed through", func(t *testing.T) {
 		cm := makeConfigMap(`providers:
   inference:
@@ -2500,7 +2534,7 @@ func TestGetAAModelsFromInferenceServiceCapabilities(t *testing.T) {
 		assert.Equal(t, []string{constants.CapabilityTextGeneration}, result[0].Capabilities)
 	})
 
-	t.Run("annotation populates Capabilities with text-generation prepended", func(t *testing.T) {
+	t.Run("hosted transcription annotation retains ASR-only capabilities and type", func(t *testing.T) {
 		isvc := &kservev1beta1.InferenceService{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "whisper-isvc",
@@ -2527,6 +2561,8 @@ func TestGetAAModelsFromInferenceServiceCapabilities(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, result, 1)
 		assert.Equal(t, []string{constants.CapabilityAudioTranscription}, result[0].Capabilities)
+		assert.Equal(t, models.ModelSourceTypeNamespace, result[0].ModelSourceType)
+		assert.Equal(t, models.ModelTypeTranscription, result[0].ModelType)
 	})
 
 	t.Run("custom capabilities in annotation pass through", func(t *testing.T) {

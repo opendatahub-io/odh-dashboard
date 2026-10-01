@@ -1,5 +1,12 @@
 package models
 
+// MaaSGatewayURLResponse is the MaaS API base URL discovered from the
+// maas-default-gateway tenant. Consumers use it to reach MaaS endpoints from
+// workloads that run outside the dashboard namespace.
+type MaaSGatewayURLResponse struct {
+	URL string `json:"url"`
+}
+
 type MaaSModelDetails struct {
 	DisplayName       string   `json:"displayName,omitempty"`
 	Description       string   `json:"description,omitempty"`
