@@ -1169,7 +1169,8 @@ describe('ChatbotMessageInput', () => {
       expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
     });
 
-    it('shows error Alert when audio transcription fails', () => {
+    it('keeps the audio preview visible when transcription fails', () => {
+      const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
       render(
         <ChatbotMessageInput
           {...defaultProps}
@@ -1177,6 +1178,8 @@ describe('ChatbotMessageInput', () => {
           audioTranscriptionState={{
             ...defaultAudioState,
             phase: 'error',
+            previewFile: file,
+            fileName: file.name,
             error: {
               pattern: 'full-failure',
               variant: 'danger',
@@ -1199,6 +1202,8 @@ describe('ChatbotMessageInput', () => {
       expect(alert).toBeInTheDocument();
       expect(screen.getByText('Transcription timed out')).toBeInTheDocument();
       expect(screen.getByText(/The transcription took too long/)).toBeInTheDocument();
+      expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
+      expect(screen.getByLabelText('Play recording.wav')).toHaveAttribute('controls');
     });
 
     it('shows aria-live announcement during transcription', () => {

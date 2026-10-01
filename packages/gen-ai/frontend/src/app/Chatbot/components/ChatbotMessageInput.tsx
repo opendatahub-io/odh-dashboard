@@ -127,9 +127,12 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
   const audioPhase = audioTranscriptionState?.phase || 'idle';
   const isAudioActive = audioPhase === 'uploading' || audioPhase === 'transcribing';
   const showAudioChip =
-    isAudioActive || audioPhase === 'ready' || audioPhase === 'waiting-for-model';
+    isAudioActive ||
+    audioPhase === 'ready' ||
+    audioPhase === 'waiting-for-model' ||
+    (audioPhase === 'error' && !!audioTranscriptionState?.previewFile);
   const previewAudioFile =
-    audioPhase !== 'idle' && audioPhase !== 'error'
+    audioPhase !== 'idle'
       ? (audioTranscriptionState?.previewFile ?? audioTranscriptionState?.file)
       : null;
   const [audioPreview, setAudioPreview] = React.useState<{ file: File; url: string } | null>(null);
@@ -469,6 +472,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
           src: audioPreview.url,
           'aria-label': `Play ${previewAudioFile.name}`,
           className: 'pf-v6-u-mb-sm',
+          style: { minHeight: 'var(--pf-t--global--spacer--2xl)' },
           'data-testid': 'pending-audio-player',
         })}
       {imageUploadState.fileName && showImageCapabilityAlert && !hideImageCapabilityAlert && (

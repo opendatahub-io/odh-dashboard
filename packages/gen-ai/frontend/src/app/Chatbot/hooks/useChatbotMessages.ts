@@ -457,6 +457,7 @@ const useChatbotMessages = ({
         controls: true,
         preload: 'metadata',
         'aria-label': `Play ${audioFile.name}`,
+        style: { minHeight: 'var(--pf-t--global--spacer--2xl)' },
       });
     }
     const userMessage: ChatbotMessageProps = {

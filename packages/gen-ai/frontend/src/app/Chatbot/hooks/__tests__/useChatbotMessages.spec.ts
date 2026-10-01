@@ -1143,6 +1143,7 @@ describe('useChatbotMessages', () => {
         src: string;
         controls: boolean;
         'aria-label': string;
+        style: React.CSSProperties;
       }>;
       expect(userMessage.attachments).toEqual([{ name: 'recording.wav' }]);
       expect(player.type).toBe('audio');
@@ -1151,6 +1152,7 @@ describe('useChatbotMessages', () => {
           src: 'blob:audio-preview',
           controls: true,
           'aria-label': 'Play recording.wav',
+          style: { minHeight: 'var(--pf-t--global--spacer--2xl)' },
         }),
       );
       expect(createObjectURL).toHaveBeenCalledWith(file);

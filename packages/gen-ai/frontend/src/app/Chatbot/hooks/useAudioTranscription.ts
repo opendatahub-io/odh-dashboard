@@ -181,7 +181,6 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
               setState((prev) => ({
                 ...prev,
                 phase: 'error',
-                previewFile: null,
                 error: {
                   pattern: 'full-failure',
                   variant: 'danger',
@@ -221,7 +220,6 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
             setState((prev) => ({
               ...prev,
               phase: 'error',
-              previewFile: null,
               error: {
                 pattern: 'full-failure',
                 variant: 'danger',
@@ -316,7 +314,6 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
           setState((prev) => ({
             ...prev,
             phase: 'error',
-            previewFile: null,
             error: classified,
           }));
         });
