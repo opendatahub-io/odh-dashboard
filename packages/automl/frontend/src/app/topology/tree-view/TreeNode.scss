@@ -31,8 +31,8 @@
   }
 
   50% {
-    fill: var(--pf-t--global--color--status--info--default);
-    opacity: 0.55;
+    fill: var(--pf-t--global--background--color--primary--default);
+    opacity: 1;
   }
 }
 
@@ -73,7 +73,7 @@
   &--row-label {
     height: 100%;
     justify-content: center;
-    align-items: flex-end;
+    align-items: center;
     gap: 0;
   }
 }
@@ -132,9 +132,9 @@
   }
 
   &--row-label {
-    align-items: flex-end;
+    align-items: center;
     justify-content: center;
-    text-align: end;
+    text-align: center;
     color: var(--pf-t--global--text--color--regular);
     white-space: nowrap;
     background-color: var(--pf-t--global--background--color--primary--default);

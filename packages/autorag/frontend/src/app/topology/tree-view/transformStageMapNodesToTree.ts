@@ -28,8 +28,8 @@ const ROW_LABEL_HEIGHT = 32;
 const X_START = 40;
 const X_GAP = 120;
 const Y_CENTER = 200;
-const Y_PIPELINE_GAP = 110;
-const COLUMN_HEADER_Y_OFFSET = 72;
+const Y_PIPELINE_GAP = 80;
+const COLUMN_HEADER_Y_OFFSET = 48;
 /** Horizontal run for fan-out curves before the pattern row-label column. */
 const FAN_OUT_RUN = 140;
 const COLUMN_RULE_HEIGHT = 2;
