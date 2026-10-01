@@ -2,8 +2,13 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"github.com/stretchr/testify/assert"
@@ -12,7 +17,9 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/fake"
+	"k8s.io/client-go/rest"
 	k8stesting "k8s.io/client-go/testing"
 )
 
@@ -60,6 +67,13 @@ func TestGetOperatorSubscriptionStatus(t *testing.T) {
 			subscriptions: []runtime.Object{subscription("opendatahub-operator", "opendatahub-operator", "fast", "2026-09-25T13:00:00Z", "opendatahub-operator.v2.0.0")},
 			expected:      "fast",
 			lastUpdated:   "2026-09-25T13:00:00Z",
+		},
+		{
+			name:          "keeps last updated when channel is empty",
+			releaseName:   selfManagedRHOAIReleaseName,
+			subscriptions: []runtime.Object{subscription("rhods-operator", "redhat-ods-operator", "", "2026-09-25T12:00:00Z", "rhods-operator.v3.0.0")},
+			expected:      "Unknown",
+			lastUpdated:   "2026-09-25T12:00:00Z",
 		},
 		{
 			name:        "returns not found when selected operator is not installed",
@@ -156,5 +170,52 @@ func TestGetOperatorSubscriptionStatus_PreservesErrors(t *testing.T) {
 		cli.PrependReactor("get", "subscriptions", func(k8stesting.Action) (bool, runtime.Object, error) { return true, nil, err })
 		_, got := NewOperatorSubscriptionStatusRepository(cli, "").GetOperatorSubscriptionStatus(context.Background())
 		require.ErrorIs(t, got, err)
+	}
+}
+
+func TestGetOperatorSubscriptionStatus_UnknownRelease(t *testing.T) {
+	for _, release := range []string{"no DSC", "missing release", "", "unrecognized release"} {
+		for _, operator := range operatorSubscriptions {
+			t.Run(release+"/"+operator.name, func(t *testing.T) {
+				objects := []runtime.Object{subscription(operator.name, operator.namespace, "stable", "", operator.name+".v3.0.0")}
+				if release != "no DSC" {
+					dsc := dataScienceCluster(release)
+					if release == "missing release" {
+						unstructured.RemoveNestedField(dsc.Object, "status", "release")
+					}
+					objects = append(objects, dsc)
+				}
+				cli := fake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), map[schema.GroupVersionResource]string{models.DataScienceClusterGVR: "DataScienceClusterList"}, objects...)
+				status, err := NewOperatorSubscriptionStatusRepository(cli, "").GetOperatorSubscriptionStatus(context.Background())
+				require.NoError(t, err)
+				assert.Equal(t, "stable", status.Channel)
+			})
+		}
+	}
+}
+
+func TestGetOperatorSubscriptionStatus_Deadline(t *testing.T) {
+	for _, resource := range []string{"datascienceclusters", "subscriptions"} {
+		t.Run(resource, func(t *testing.T) {
+			t.Parallel()
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				if strings.Contains(req.URL.Path, resource) {
+					<-req.Context().Done()
+					return
+				}
+				w.Header().Set("Content-Type", "application/json")
+				assert.NoError(t, json.NewEncoder(w).Encode(map[string]any{
+					"apiVersion": "datasciencecluster.opendatahub.io/v2", "kind": "DataScienceClusterList",
+					"items": []any{dataScienceCluster(selfManagedRHOAIReleaseName).Object},
+				}))
+			}))
+			defer server.Close()
+			cli, err := dynamic.NewForConfig(&rest.Config{Host: server.URL})
+			require.NoError(t, err)
+			started := time.Now()
+			_, err = NewOperatorSubscriptionStatusRepository(cli, "").GetOperatorSubscriptionStatus(context.Background())
+			require.ErrorIs(t, err, context.DeadlineExceeded)
+			assert.Less(t, time.Since(started), operatorSubscriptionQueryTimeout+2*time.Second)
+		})
 	}
 }
