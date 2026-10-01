@@ -1122,6 +1122,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 variant="warning"
                 isInline
                 title="Some resources could not be loaded or you can't access some resources"
+                data-testid="agent-profile-load-warning"
                 actionClose={<AlertActionCloseButton onClose={() => setWarningsDismissed(true)} />}
               >
                 <p>

@@ -4,6 +4,7 @@ import {
   validateAgentProfileAsync,
 } from '~/app/agentProfile/validateAgentProfile';
 import type { AgentProfile } from '~/app/agentProfile/types';
+import type { MCPServerFromAPI } from '~/app/types/mcp';
 import type {
   LlamaModel,
   AIModel,
@@ -137,9 +138,44 @@ describe('buildValidationWarnings', () => {
       });
       const warnings = buildValidationWarnings(profile, {
         ...baseContext,
-        mcpServers: [{ name: 'my-server', url: 'http://mcp.svc' } as never],
+        mcpServers: [{ name: 'my-server', url: 'http://mcp.svc', source: 'configmap' } as never],
       });
       expect(warnings.some((w) => w.message.includes('MCP'))).toBe(false);
+    });
+
+    it('should resolve registry MCP servers by registry source and warn when unavailable', () => {
+      const profile = makeProfile({
+        mcpServers: [
+          { name: 'com.example/jira', source: 'mlflow', version: '3', allowedTools: ['search'] },
+        ],
+      });
+      const available: MCPServerFromAPI = {
+        name: 'com.example/jira',
+        url: 'https://registry.example.com/jira',
+        source: 'registry',
+        transport: 'streamable-http',
+        description: '',
+        logo: null,
+        status: 'healthy',
+        version: '3',
+        tools: [],
+        tool_count: 0,
+      };
+
+      expect(
+        buildValidationWarnings(profile, { ...baseContext, mcpServers: [available] }).some(
+          (warning) => warning.message.includes('MCP'),
+        ),
+      ).toBe(false);
+      expect(
+        buildValidationWarnings(profile, {
+          ...baseContext,
+          mcpServers: [{ ...available, source: 'configmap' }],
+        }),
+      ).toContainEqual({
+        message: 'MCP server "com.example/jira" is no longer available.',
+        tab: 'mcp',
+      });
     });
   });
 
