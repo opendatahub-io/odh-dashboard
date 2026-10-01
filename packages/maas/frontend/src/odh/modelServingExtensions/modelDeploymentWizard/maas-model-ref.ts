@@ -231,6 +231,6 @@ export const postDeployMaaSModelRef = async (
   }
 
   if (newlyPublishedAsMaas) {
-    enqueuePostDeployAlert(MAAS_PUBLISHED_INTERNAL_ALERT_ID);
+    enqueuePostDeployAlert(MAAS_PUBLISHED_INTERNAL_ALERT_ID, { modelName: displayName });
   }
 };

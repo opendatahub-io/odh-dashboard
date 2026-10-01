@@ -79,7 +79,9 @@ describe('postDeployMaaSModelRef', () => {
 
     await postDeployMaaSModelRef(fieldData, deployedModel);
 
-    expect(mockEnqueuePostDeployAlert).toHaveBeenCalledWith(MAAS_PUBLISHED_INTERNAL_ALERT_ID);
+    expect(mockEnqueuePostDeployAlert).toHaveBeenCalledWith(MAAS_PUBLISHED_INTERNAL_ALERT_ID, {
+      modelName: 'test-deployment',
+    });
     expect(mockCreateMaaSModelRef).toHaveBeenCalled();
     expect(mockFireMaaSPublishTrackingEvent).toHaveBeenCalled();
   });
@@ -101,7 +103,9 @@ describe('postDeployMaaSModelRef', () => {
 
     await postDeployMaaSModelRef(fieldData, deployedModel, existingDeployment);
 
-    expect(mockEnqueuePostDeployAlert).toHaveBeenCalledWith(MAAS_PUBLISHED_INTERNAL_ALERT_ID);
+    expect(mockEnqueuePostDeployAlert).toHaveBeenCalledWith(MAAS_PUBLISHED_INTERNAL_ALERT_ID, {
+      modelName: 'test-deployment',
+    });
     expect(mockUpdateMaaSModelRef).toHaveBeenCalled();
   });
 

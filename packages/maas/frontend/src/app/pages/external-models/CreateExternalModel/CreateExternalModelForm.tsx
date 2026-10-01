@@ -179,7 +179,7 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
           success: true,
         } satisfies ExternalModelAddedProperties);
 
-        enqueuePostDeployAlert(MAAS_PUBLISHED_EXTERNAL_ALERT_ID);
+        enqueuePostDeployAlert(MAAS_PUBLISHED_EXTERNAL_ALERT_ID, { modelName: trimmedName });
       }
 
       refreshExternalModels();

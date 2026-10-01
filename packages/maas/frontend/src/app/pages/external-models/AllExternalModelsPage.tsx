@@ -7,10 +7,7 @@ import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import { useExternalModelsNamespace } from '~/app/hooks/useExternalModelsNamespace';
 import { ExternalModelDeletedProperties, MaaSEvents } from '~/app/types/event-tracking';
 import { convertStringToPhaseStatus } from '~/app/utilities/phaseLabelUtils';
-import {
-  MAAS_PUBLISHED_EXTERNAL_ALERT_ID,
-  MaaSPublishedPostDeployAlert,
-} from '~/odh/modelServingExtensions/MaaSPublishedPostDeployAlert';
+import { MaaSPublishedExternalPostDeployAlert } from '~/odh/modelServingExtensions/MaaSPublishedPostDeployAlert';
 import EmptyExternalModelsPage from './EmptyExternalModelsPage';
 import NoProjectsPage from './NoProjectsPage';
 import {
@@ -85,7 +82,7 @@ const AllExternalModelsPage: React.FC = () => {
       >
         {!noProjects && resolvedNamespace && externalModelsLoaded && !externalModelsError && (
           <>
-            <MaaSPublishedPostDeployAlert alertId={MAAS_PUBLISHED_EXTERNAL_ALERT_ID} />
+            <MaaSPublishedExternalPostDeployAlert />
             <ExternalModelsTable
               externalModels={filteredExternalModels}
               onClearFilters={onClearFilters}
