@@ -157,38 +157,89 @@ func TestFilterMaaSConsumerPortalResourcesByNamespaceCases(t *testing.T) {
 	}
 }
 
-func TestDeleteMaaSConsumerPortalOperatorSubscriptionRBACResources_OnlyExistingNamespace(t *testing.T) {
+func TestDeleteMaaSConsumerPortalOperatorSubscriptionRBACResources_AcrossNamespaces(t *testing.T) {
 	portalLabels := map[string]string{labels.PlatformPartOf: maasConsumerPortalPartOf}
-	role := &rbacv1.Role{ObjectMeta: metav1.ObjectMeta{
-		Name:      maasConsumerPortalRhodsOperatorSubscriptionResourceName,
-		Namespace: maasConsumerPortalRhodsOperatorNamespace,
-		Labels:    portalLabels,
-	}}
-	roleBinding := &rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{
-		Name:      maasConsumerPortalRhodsOperatorSubscriptionResourceName,
-		Namespace: maasConsumerPortalRhodsOperatorNamespace,
-		Labels:    portalLabels,
-	}}
-	cli := fake.NewClientBuilder().WithScheme(maasConsumerPortalScheme(t)).WithObjects(
-		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalRhodsOperatorNamespace}},
-		role,
-		roleBinding,
-	).Build()
-	r := &DashboardReconciler{Client: cli}
-
-	require.NoError(t, r.deleteLabeledMaaSConsumerPortalOperatorSubscriptionRBACResources(context.Background()))
-
-	assert.True(t, apierrors.IsNotFound(cli.Get(context.Background(), client.ObjectKeyFromObject(role), &rbacv1.Role{})))
-	assert.True(t, apierrors.IsNotFound(cli.Get(context.Background(), client.ObjectKeyFromObject(roleBinding), &rbacv1.RoleBinding{})))
+	tests := []struct {
+		name        string
+		namespace   string
+		labels      map[string]string
+		wantDeleted bool
+	}{
+		{name: maasConsumerPortalRhodsOperatorSubscriptionResourceName, namespace: "old-operators", labels: portalLabels, wantDeleted: true},
+		{name: maasConsumerPortalOpenDataHubOperatorSubscriptionResourceName, namespace: "old-operators", labels: portalLabels, wantDeleted: true},
+		{name: maasConsumerPortalRhodsOperatorSubscriptionResourceName, namespace: "new-operators", labels: portalLabels, wantDeleted: true},
+		{name: maasConsumerPortalRhodsOperatorSubscriptionResourceName, namespace: maasConsumerPortalRhodsOperatorNamespace, labels: portalLabels, wantDeleted: true},
+		{name: "unrelated-portal-role", namespace: "old-operators", labels: portalLabels},
+		{name: maasConsumerPortalRhodsOperatorSubscriptionResourceName, namespace: "unlabeled-operators"},
+		{name: maasConsumerPortalRhodsOperatorSubscriptionResourceName, namespace: "other-operators", labels: map[string]string{labels.PlatformPartOf: "other-operand"}},
+	}
+	var objects []client.Object
+	for _, tt := range tests {
+		metadata := metav1.ObjectMeta{Name: tt.name, Namespace: tt.namespace, Labels: tt.labels}
+		objects = append(objects, &rbacv1.Role{ObjectMeta: metadata}, &rbacv1.RoleBinding{ObjectMeta: metadata})
+	}
+	cli := fake.NewClientBuilder().WithScheme(maasConsumerPortalScheme(t)).WithObjects(objects...).Build()
+	r := &DashboardReconciler{Client: cli, Namespace: "new-operators"}
+	ctx := context.Background()
+	require.NoError(t, r.deleteLabeledMaaSConsumerPortalOperatorSubscriptionRBACResources(ctx))
+	require.NoError(t, r.deleteLabeledMaaSConsumerPortalOperatorSubscriptionRBACResources(ctx), "cleanup must be idempotent")
+	for i, tt := range tests {
+		for _, resource := range objects[2*i : 2*i+2] {
+			err := cli.Get(ctx, client.ObjectKeyFromObject(resource), resource)
+			if tt.wantDeleted {
+				assert.True(t, apierrors.IsNotFound(err), "%T %s/%s must be deleted", resource, tt.namespace, tt.name)
+			} else {
+				require.NoError(t, err, "%T %s/%s must be retained", resource, tt.namespace, tt.name)
+			}
+		}
+	}
 }
 
-func TestDeleteMaaSConsumerPortalOperatorSubscriptionRBACResources_PropagatesNamespaceLookupError(t *testing.T) {
-	injectedErr := errors.New("namespace lookup failed")
+func TestDeleteMaaSConsumerPortalOperatorSubscriptionRBACResources_ContinuesAfterDeleteError(t *testing.T) {
+	metadata := metav1.ObjectMeta{
+		Name:      maasConsumerPortalOpenDataHubOperatorSubscriptionResourceName,
+		Namespace: "old-operators",
+		Labels:    map[string]string{labels.PlatformPartOf: maasConsumerPortalPartOf},
+	}
+	failedRole := &rbacv1.Role{ObjectMeta: metadata}
+	objects := []client.Object{failedRole, &rbacv1.RoleBinding{ObjectMeta: metadata}}
+	metadata.Name = maasConsumerPortalRhodsOperatorSubscriptionResourceName
+	objects = append(objects, &rbacv1.Role{ObjectMeta: metadata}, &rbacv1.RoleBinding{ObjectMeta: metadata})
+	injectedErr := errors.New("Role deletion failed")
+	cli := fake.NewClientBuilder().
+		WithScheme(maasConsumerPortalScheme(t)).
+		WithObjects(objects...).
+		WithInterceptorFuncs(interceptor.Funcs{
+			Delete: func(ctx context.Context, delegate client.WithWatch, resource client.Object, opts ...client.DeleteOption) error {
+				if _, isRole := resource.(*rbacv1.Role); isRole && client.ObjectKeyFromObject(resource) == client.ObjectKeyFromObject(failedRole) {
+					return injectedErr
+				}
+				return delegate.Delete(ctx, resource, opts...)
+			},
+		}).
+		Build()
+	r := &DashboardReconciler{Client: cli, Namespace: "new-operators"}
+	ctx := context.Background()
+
+	require.ErrorIs(t, r.deleteLabeledMaaSConsumerPortalOperatorSubscriptionRBACResources(ctx), injectedErr)
+	require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(failedRole), failedRole))
+	for _, resource := range objects[1:] {
+		assert.True(t, apierrors.IsNotFound(cli.Get(ctx, client.ObjectKeyFromObject(resource), resource)),
+			"%T %s/%s must be deleted despite the other grant's deletion failure", resource, resource.GetNamespace(), resource.GetName())
+	}
+}
+
+func TestDeleteMaaSConsumerPortalOperatorSubscriptionRBACResources_PropagatesListErrors(t *testing.T) {
+	roleErr := errors.New("Role list failed")
+	bindingErr := errors.New("RoleBinding list failed")
 	cli := fake.NewClientBuilder().
 		WithScheme(maasConsumerPortalScheme(t)).
 		WithInterceptorFuncs(interceptor.Funcs{
-			Get: func(context.Context, client.WithWatch, client.ObjectKey, client.Object, ...client.GetOption) error {
-				return injectedErr
+			List: func(_ context.Context, _ client.WithWatch, list client.ObjectList, _ ...client.ListOption) error {
+				if _, isRoleList := list.(*rbacv1.RoleList); isRoleList {
+					return roleErr
+				}
+				return bindingErr
 			},
 		}).
 		Build()
@@ -196,7 +247,8 @@ func TestDeleteMaaSConsumerPortalOperatorSubscriptionRBACResources_PropagatesNam
 
 	err := r.deleteLabeledMaaSConsumerPortalOperatorSubscriptionRBACResources(context.Background())
 
-	assert.ErrorIs(t, err, injectedErr)
+	assert.ErrorIs(t, err, roleErr)
+	assert.ErrorIs(t, err, bindingErr)
 }
 
 func TestDeployMaaSConsumerPortalBundle_OperatorSubscriptionRBACUsesExistingNamespace(t *testing.T) {
