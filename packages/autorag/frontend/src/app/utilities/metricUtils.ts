@@ -185,7 +185,7 @@ export function resolveObjectiveReference(
 }
 
 /** Format metric key names for display (e.g. `answer_correctness` → `Answer correctness`). */
-function formatMetricName(metricName: string): string {
+export function formatMetricName(metricName: string): string {
   /* eslint-disable camelcase */
   const specialCases: Record<string, string> = {
     faithfulness: 'Answer faithfulness',

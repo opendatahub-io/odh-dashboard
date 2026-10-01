@@ -431,7 +431,7 @@ importers:
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.15
+        version: 3.4.16
       lodash-es:
         specifier: ^4.18.1
         version: 4.18.1
@@ -1017,7 +1017,7 @@ importers:
         version: 3.6.0
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.15
+        version: 3.4.16
       google-protobuf:
         specifier: ^3.21.4
         version: 3.21.4
@@ -1385,7 +1385,7 @@ importers:
         version: 1.20.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.15
+        version: 3.4.16
       marked:
         specifier: ^15.0.12
         version: 15.0.12
@@ -1803,6 +1803,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
+      '@odh-dashboard/autox-core':
+        specifier: workspace:*
+        version: link:../../autox-core
       '@openshift/dynamic-plugin-sdk':
         specifier: ^5.0.1
         version: 5.0.1(react@18.3.1)
@@ -1850,7 +1853,7 @@ importers:
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.15
+        version: 3.4.16
       es-toolkit:
         specifier: ^1.44.0
         version: 1.51.0
@@ -2181,6 +2184,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
+      '@odh-dashboard/autox-core':
+        specifier: workspace:*
+        version: link:../../autox-core
       '@openshift/dynamic-plugin-sdk':
         specifier: ^5.0.1
         version: 5.0.1(react@18.3.1)
@@ -2228,7 +2234,7 @@ importers:
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.15
+        version: 3.4.16
       echarts:
         specifier: ^5.6.0
         version: 5.6.0
@@ -2522,29 +2528,22 @@ importers:
       '@odh-dashboard/internal':
         specifier: workspace:*
         version: link:../../frontend/src
+      '@odh-dashboard/k8s-core':
+        specifier: workspace:*
+        version: link:../k8s-core
       '@odh-dashboard/plugin-core':
         specifier: workspace:*
         version: link:../plugin-core
-    devDependencies:
-      '@odh-dashboard/eslint-config':
+      '@odh-dashboard/ui-core':
         specifier: workspace:*
-        version: link:../eslint-config
-      '@odh-dashboard/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
-
-  packages/autox-core/ui:
-    dependencies:
-      '@hookform/resolvers':
-        specifier: ^5.2.2
-        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
-      '@patternfly/patternfly':
-        specifier: 6.6.1
-        version: 6.6.1
+        version: link:../ui-core
       '@patternfly/react-component-groups':
-        specifier: ~6.5.0
+        specifier: ^6
         version: 6.5.0(@patternfly/react-drag-drop@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-drag-drop':
         specifier: 6.6.1
         version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
@@ -2556,24 +2555,18 @@ importers:
       '@patternfly/react-table':
         specifier: 6.6.1
         version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-templates':
-        specifier: 6.6.1
-        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-topology':
-        specifier: ~6.6.0
+        specifier: ^6
         version: 6.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@tanstack/react-query':
-        specifier: ^5.90.20
-        version: 5.101.4(react@18.3.1)
       classnames:
-        specifier: ^2.2.6
+        specifier: ^2.5.1
         version: 2.5.1
       es-toolkit:
         specifier: ^1.44.0
-        version: 1.51.0
-      lodash-es:
-        specifier: ^4.17.15
-        version: 4.18.1
+        version: 1.52.0
+      mod-arch-core:
+        specifier: ^1.15.4
+        version: 1.21.0(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
       react:
         specifier: ^18
         version: 18.3.1
@@ -2589,13 +2582,19 @@ importers:
       react-router-dom:
         specifier: ^7.18.3
         version: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      zod:
-        specifier: ^4.3.6
-        version: 4.4.3
     devDependencies:
+      '@odh-dashboard/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
       '@odh-dashboard/jest-config':
         specifier: workspace:*
-        version: link:../../jest-config
+        version: link:../jest-config
+      '@odh-dashboard/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@tanstack/react-query':
+        specifier: 5.101.4
+        version: 5.101.4(react@18.3.1)
       '@testing-library/jest-dom':
         specifier: ^6.6.2
         version: 6.10.0(@testing-library/dom@10.4.1)
@@ -2608,9 +2607,9 @@ importers:
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
-      '@types/lodash-es':
-        specifier: ^4.17.8
-        version: 4.17.12
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
       '@types/react-dom':
         specifier: ^18.3.1
         version: 18.3.7(@types/react@18.3.31)
@@ -2619,19 +2618,13 @@ importers:
         version: 30.4.1
       jest:
         specifier: ^30.2.0
-        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.2.0
         version: 30.4.1(supports-color@8.1.1)
-      prettier:
-        specifier: ^3.3.3
-        version: 3.9.6
-      tslib:
-        specifier: ^2.7.0
-        version: 2.8.1
-      typescript:
-        specifier: ^5.8.2
-        version: 5.9.3
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
 
   packages/connection-types:
     dependencies:
@@ -3566,7 +3559,7 @@ importers:
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.15
+        version: 3.4.16
       lodash-es:
         specifier: ^4.17.15
         version: 4.18.1
@@ -4620,7 +4613,7 @@ importers:
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.15
+        version: 3.4.16
       lodash-es:
         specifier: ^4.17.15
         version: 4.18.1
@@ -5002,7 +4995,7 @@ importers:
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.15
+        version: 3.4.16
       lodash-es:
         specifier: ^4.17.15
         version: 4.18.1
@@ -5789,6 +5782,9 @@ importers:
       '@odh-dashboard/app-config':
         specifier: workspace:*
         version: link:../app-config
+      '@odh-dashboard/contract-tests':
+        specifier: workspace:*
+        version: link:../contract-tests
       '@odh-dashboard/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
@@ -11757,11 +11753,11 @@ packages:
     resolution: {integrity: sha512-cgwlv/1iFQiFnU96XXgROh8xTeetsnJiDsTc7TYCLFd9+/WNkIqPTxiM/8pSd8VIrhXGTf1Ny1q1hquVqDJB5w==}
     engines: {node: '>= 4'}
 
-  dompurify@3.4.13:
-    resolution: {integrity: sha512-2vmYIoqjze2d+kakP8S/nS5shfsl587kzwEjcGlTdiksUVgFHnFCsLYDVj/JNqJVOQZGSYBTmuycv0PodwmnMQ==}
-
   dompurify@3.4.15:
     resolution: {integrity: sha512-EUBjM+B+lkDE41iE82DDSCfkoPGfXx8IxFxPMjNzm/Uk4xDet77rTN9wqlxlVg71kK7XGuUMv6wUxJUwwv+Xyw==}
+
+  dompurify@3.4.16:
+    resolution: {integrity: sha512-sqo+pNp3qRhCIpbgRi1y8Tgk27Bo2Ry7w0dC1NBeNTdZChWjz9Xb/KOoZbRP/R6pQZ80Qw8YhXw13hWWBbMRnQ==}
 
   domutils@2.8.0:
     resolution: {integrity: sha512-w96Cjofp72M5IIhpjgobBimYEfoPjx1Vx0BSX9P30WBdZW2WIKU0T1Bd0kz2eNZ9ikjKgHbEyKx8BB6H1L3h3A==}
@@ -20646,7 +20642,7 @@ snapshots:
   '@patternfly/quickstarts@6.6.0(@patternfly/react-core@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(marked@15.0.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@patternfly/react-core': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      dompurify: 3.4.15
+      dompurify: 3.4.16
       history: 5.3.0
       marked: 15.0.12
       react: 18.3.1
@@ -22236,7 +22232,7 @@ snapshots:
 
   '@types/dompurify@3.2.0':
     dependencies:
-      dompurify: 3.4.15
+      dompurify: 3.4.16
 
   '@types/ejs@3.1.5': {}
 
@@ -24724,11 +24720,11 @@ snapshots:
     dependencies:
       domelementtype: 2.3.0
 
-  dompurify@3.4.13:
+  dompurify@3.4.15:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
-  dompurify@3.4.15:
+  dompurify@3.4.16:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
@@ -29263,7 +29259,7 @@ snapshots:
       '@patternfly/patternfly': 6.6.1
       '@patternfly/react-drag-drop': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       classnames: 2.5.1
-      dompurify: 3.4.13
+      dompurify: 3.4.15
       lodash-es: 4.18.1
       mod-arch-core: 1.21.0(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
       mod-arch-kubeflow: 1.21.0(@mui/material@7.3.11(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
@@ -29304,7 +29300,7 @@ snapshots:
 
   monaco-editor@0.54.0:
     dependencies:
-      dompurify: 3.4.15
+      dompurify: 3.4.16
       marked: 14.0.0
 
   mrmime@2.0.1: {}
@@ -30248,7 +30244,7 @@ snapshots:
       '@posthog/core': 1.48.2
       '@posthog/types': 1.404.1
       core-js: 3.50.0
-      dompurify: 3.4.15
+      dompurify: 3.4.16
       fflate: 0.4.9
       preact: 10.29.8
       query-selector-shadow-dom: 1.0.1

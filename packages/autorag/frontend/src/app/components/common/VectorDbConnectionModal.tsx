@@ -18,9 +18,9 @@ import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardMod
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
-import { createSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
+import { useCreateSecretMutation } from '@odh-dashboard/autox-core/ui/hooks';
 
 type Props = {
   namespace: string;
@@ -61,6 +61,7 @@ const VectorDbConnectionModal: React.FC<Props> = ({
   const [submitError, setSubmitError] = React.useState<Error>();
   const [isSaving, setIsSaving] = React.useState(false);
   const createdSecretRef = React.useRef<SecretKind>();
+  const createSecretMutation = useCreateSecretMutation();
 
   const getField = (key: string): string => fields[key] ?? '';
   const uri = getField('MILVUS_URI');
@@ -130,7 +131,7 @@ const VectorDbConnectionModal: React.FC<Props> = ({
 
     try {
       if (!createdSecretRef.current) {
-        await createSecret(secret);
+        await createSecretMutation.mutateAsync(secret);
         createdSecretRef.current = secret;
       }
       await onSubmit(k8sName);

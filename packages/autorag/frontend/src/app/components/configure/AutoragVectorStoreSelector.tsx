@@ -10,7 +10,10 @@ import {
 import React from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import { useParams } from 'react-router';
-import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
+import {
+  SecretSelector,
+  type SecretSelection,
+} from '@odh-dashboard/autox-core/ui/components/feature';
 import VectorDbConnectionModal from '~/app/components/common/VectorDbConnectionModal';
 import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
