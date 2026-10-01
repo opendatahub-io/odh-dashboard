@@ -274,7 +274,9 @@ live:
    under `qualityGatesMap.default`.
 2. Konflux tenant registration of the `odh-dashboard-operator-e2e-ci` Component
    (and its `build-pipeline-odh-dashboard-operator-e2e-ci` ServiceAccount) so the
-   `.tekton` E2E build PipelineRuns above actually run.
+   `.tekton` E2E build PipelineRuns above can run. After registration, remove
+   the temporary `false` guard from both PipelineRun CEL expressions to enable
+   pull-request and stable-image builds.
 3. ROSA HCP cluster-pool / Jenkins access for the component.
 
 ## Authoring Scenarios

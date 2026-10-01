@@ -44,7 +44,7 @@ test-e2e: ## Run real-cluster E2E tests with an isolated, E2E-owned Dashboard fi
 		test -n "$$TEST_GATEWAY_DOMAIN" || (echo "TEST_GATEWAY_DOMAIN is required for a managed Dashboard fixture." && exit 1); \
 	fi
 	@test -f "$$KUBECONFIG" || (echo "KUBECONFIG must point to a regular file." && exit 1)
-	go test -v -count=1 -tags=e2e -timeout=30m $(E2E_TEST_ARGS) ./test/e2e/... -args -fixture-mode=$(E2E_FIXTURE_MODE)
+	go test -v -count=1 -tags=e2e -timeout=30m $(E2E_TEST_ARGS) ./test/e2e/... -args -fixture-mode="$(E2E_FIXTURE_MODE)"
 
 .PHONY: test-e2e-chaos
 test-e2e-chaos: chaos-validate ## Run destructive operator-chaos E2E scenarios serially.
