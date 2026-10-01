@@ -11,6 +11,12 @@ import useQuotaHierarchy from '../useQuotaHierarchy';
 jest.mock('@odh-dashboard/ui-core/hooks/useFetch', () => ({
   __esModule: true,
   default: jest.fn(),
+  NotReadyError: class NotReadyError extends Error {
+    constructor(reason: string) {
+      super(reason);
+      this.name = 'NotReadyError';
+    }
+  },
 }));
 
 jest.mock('@odh-dashboard/internal/api/k8s/clusterQueues', () => ({
@@ -62,8 +68,18 @@ describe('useQuotaHierarchy', () => {
       { tree: [] },
       {
         refreshRate: INFRASTRUCTURE_REFRESH_INTERVAL,
+        initialPromisePurity: true,
       },
     );
+  });
+
+  it('should remain not ready while administrative access is loading', async () => {
+    testHook(useQuotaHierarchy)(undefined, false, false);
+    const fetchQuotaHierarchy = useFetchMock.mock.calls[0][0] as () => Promise<unknown>;
+
+    await expect(fetchQuotaHierarchy()).rejects.toMatchObject({ name: 'NotReadyError' });
+    expect(listClusterQueuesMock).not.toHaveBeenCalled();
+    expect(listCohortsMock).not.toHaveBeenCalled();
   });
 
   it('should list cohorts and cluster queues then build the navigation tree', async () => {
