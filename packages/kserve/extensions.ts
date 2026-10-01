@@ -46,12 +46,6 @@ const ADMIN_USER = 'ADMIN_USER';
 const SERVING_RUNTIME_TEMPLATES_TAB_PATH =
   '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates';
 
-// Duplicated from src/settings/runtimeCatalog/paths.ts — extensions.ts
-// may not import runtime values from src (no-restricted-syntax). Kept in sync by
-// extensions/__tests__/extensions.spec.ts.
-const RUNTIME_CATALOG_TAB_PATH =
-  '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog';
-
 // Base path of the former standalone serving runtimes page, and the legacy v2
 // bookmark base — kept only as redirect sources to the tab above (the standalone
 // page itself has been removed).
@@ -464,32 +458,6 @@ const extensions: (
         from: `${SERVING_RUNTIMES_V2_PATH}/editServingRuntime/*`,
         to: `${SERVING_RUNTIME_TEMPLATES_TAB_PATH}/edit/*`,
       }),
-    },
-  },
-  // Runtime image library tab on the Model deployment settings page
-  {
-    type: 'app.tab-route/tab',
-    flags: {
-      required: [SupportedArea.RUNTIME_CATALOG, ADMIN_USER],
-    },
-    properties: {
-      pageId: 'model-deployment-settings',
-      id: 'serving-runtime-catalog',
-      title: 'Runtime image library',
-      component: () => import('./src/settings/runtimeCatalog/RuntimeCatalogTabRoutes'),
-      group: '1b_runtime-catalog',
-    },
-  },
-  // Full-page breakout route for the runtime catalog details page, gated
-  // identically to the tab so it only exists when the tab does.
-  {
-    type: 'app.route',
-    flags: {
-      required: [SupportedArea.RUNTIME_CATALOG, ADMIN_USER],
-    },
-    properties: {
-      path: `${RUNTIME_CATALOG_TAB_PATH}/:runtimeName`,
-      component: () => import('./src/settings/runtimeCatalog/RuntimeCatalogDetailsRoutes'),
     },
   },
 ];

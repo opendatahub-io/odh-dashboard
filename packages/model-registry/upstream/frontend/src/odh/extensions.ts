@@ -17,6 +17,11 @@ const reliantAreas = ['model-registry'];
 const PLUGIN_MODEL_REGISTRY = 'model-registry-plugin';
 const ADMIN_USER = 'ADMIN_USER';
 
+// Duplicated from app/pages/runtimeCatalog/const.ts — extensions.ts may not
+// import runtime values from src (no-restricted-syntax).
+const RUNTIME_CATALOG_TAB_PATH =
+  '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog';
+
 const createRedirectComponent = (args: { from: string; to: string }) => () =>
   import('@odh-dashboard/plugin-core/routing').then((module) => ({
     default: () => module.buildV2RedirectElement(args),
@@ -101,6 +106,32 @@ const extensions: (
       objectType: 'agents-catalog',
       component: () => import('./AgentsCatalogWrapper'),
       group: '1_catalog',
+    },
+  },
+  // Runtime image library tab on the Model deployment settings page
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [SupportedArea.RUNTIME_CATALOG, ADMIN_USER],
+    },
+    properties: {
+      pageId: 'model-deployment-settings',
+      id: 'serving-runtime-catalog',
+      title: 'Runtime image library',
+      component: () => import('./RuntimeCatalogWrapper'),
+      group: '1b_runtime-catalog',
+    },
+  },
+  // Full-page breakout route for the runtime catalog details page, gated
+  // identically to the tab so it only exists when the tab does.
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.RUNTIME_CATALOG, ADMIN_USER],
+    },
+    properties: {
+      path: `${RUNTIME_CATALOG_TAB_PATH}/:runtimeName`,
+      component: () => import('./RuntimeCatalogDetailsWrapper'),
     },
   },
   // KF plugin nav items (kept as-is, these are dev-flag-gated)
