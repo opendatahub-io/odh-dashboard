@@ -63,7 +63,7 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	rendered, err := engine.Render(dir, kustomize.WithNamespace("portal-test"))
 	require.NoError(t, err)
 	rendered = setMaaSConsumerPortalOperatorSubscriptionNamespaces(rendered, "custom-operators")
-	require.Len(t, rendered, 18, "bundle must include scoped subscription RBAC in default and configured operator namespaces")
+	require.Len(t, rendered, 19, "bundle must include scoped subscription RBAC in default and configured operator namespaces")
 
 	resources := make(map[string]*unstructured.Unstructured, len(rendered))
 	for i := range rendered {
@@ -231,7 +231,7 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	egress, found, err := unstructured.NestedSlice(networkPolicy.Object, "spec", "egress")
 	require.NoError(t, err)
 	require.True(t, found)
-	require.Len(t, egress, 5, "portal egress is limited to DNS, Kubernetes API, MaaS, GenAI, and Perses")
+	require.Len(t, egress, 4, "base portal egress is limited to DNS, Kubernetes API, MaaS, and GenAI")
 	assert.Equal(t, []interface{}{map[string]interface{}{"namespaceSelector": map[string]interface{}{"matchLabels": map[string]interface{}{"kubernetes.io/metadata.name": "openshift-dns"}}}}, egress[0].(map[string]interface{})["to"])
 	assert.Equal(t, []interface{}{map[string]interface{}{"protocol": "UDP", "port": int64(5353)}, map[string]interface{}{"protocol": "TCP", "port": int64(5353)}}, egress[0].(map[string]interface{})["ports"])
 	assert.Equal(t, []interface{}{map[string]interface{}{"ipBlock": map[string]interface{}{"cidr": "0.0.0.0/0"}}}, egress[1].(map[string]interface{})["to"])
@@ -246,11 +246,25 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 		"podSelector":       map[string]interface{}{"matchLabels": map[string]interface{}{"deployment": "gen-ai-ui"}},
 	}}, egress[3].(map[string]interface{})["to"])
 	assert.Equal(t, []interface{}{map[string]interface{}{"protocol": "TCP", "port": int64(8143)}}, egress[3].(map[string]interface{})["ports"])
+	persesNetworkPolicy := resources["NetworkPolicy/"+maasConsumerPortalName+"-perses"]
+	require.NotNil(t, persesNetworkPolicy)
+	podSelector, found, err := unstructured.NestedStringMap(persesNetworkPolicy.Object, "spec", "podSelector", "matchLabels")
+	require.NoError(t, err)
+	require.True(t, found)
+	assert.Equal(t, map[string]string{"deployment": maasConsumerPortalName}, podSelector)
+	policyTypes, found, err := unstructured.NestedStringSlice(persesNetworkPolicy.Object, "spec", "policyTypes")
+	require.NoError(t, err)
+	require.True(t, found)
+	assert.Equal(t, []string{"Egress"}, policyTypes)
+	persesEgress, found, err := unstructured.NestedSlice(persesNetworkPolicy.Object, "spec", "egress")
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Len(t, persesEgress, 1)
 	assert.Equal(t, []interface{}{map[string]interface{}{
 		"namespaceSelector": map[string]interface{}{"matchLabels": map[string]interface{}{"kubernetes.io/metadata.name": "custom-perses"}},
 		"podSelector":       map[string]interface{}{"matchLabels": map[string]interface{}{"app.kubernetes.io/managed-by": "perses-operator"}},
-	}}, egress[4].(map[string]interface{})["to"])
-	assert.Equal(t, []interface{}{map[string]interface{}{"protocol": "TCP", "port": int64(8080)}}, egress[4].(map[string]interface{})["ports"])
+	}}, persesEgress[0].(map[string]interface{})["to"])
+	assert.Equal(t, []interface{}{map[string]interface{}{"protocol": "TCP", "port": int64(8080)}}, persesEgress[0].(map[string]interface{})["ports"])
 }
 
 func TestFilterMaaSConsumerPortalResources(t *testing.T) {
