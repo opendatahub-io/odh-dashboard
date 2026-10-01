@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Pinned version used by the controller manifests and dependency installer.
+# Pinned versions used by the controller manifests and dependency installer.
 KSERVE_VERSION="v0.19.0"
+CLOUD_PROVIDER_KIND_VERSION="v0.10.0"
 
 # Pinned manifest URLs
 LLMISVC_DEPENDENCIES_URL="https://github.com/kserve/kserve/releases/download/${KSERVE_VERSION}/llmisvc-dependency-install.sh"
@@ -11,6 +12,8 @@ KSERVE_RESOURCES_URL="https://github.com/kserve/kserve/releases/download/${KSERV
 
 EXPECTED_CONTEXT="kind-rhaii-tilt"
 WAIT_TIMEOUT="300s"
+GATEWAY_NAME="kserve-ingress-gateway"
+GATEWAY_NAMESPACE="kserve"
 
 info()  { echo "==> $*"; }
 error() { echo "ERROR: $*" >&2; exit 1; }
@@ -20,6 +23,15 @@ error() { echo "ERROR: $*" >&2; exit 1; }
 command -v kubectl >/dev/null 2>&1 || error "kubectl not found in PATH"
 command -v curl >/dev/null 2>&1 || error "curl not found in PATH"
 command -v go >/dev/null 2>&1 || error "go not found in PATH (required for Kind's external load balancer)"
+
+GO_BIN_DIR=$(go env GOBIN 2>/dev/null) || error "Unable to determine GOBIN"
+if [[ -z "$GO_BIN_DIR" ]]; then
+  GO_PATH=$(go env GOPATH 2>/dev/null) || error "Unable to determine GOPATH"
+  GO_PATH=${GO_PATH%%:*}
+  [[ -n "$GO_PATH" ]] || error "GOPATH is empty; configure GOBIN or GOPATH before continuing"
+  GO_BIN_DIR="${GO_PATH}/bin"
+fi
+mkdir -p "$GO_BIN_DIR" || error "Unable to create Go binary directory: ${GO_BIN_DIR}"
 
 CURRENT_CONTEXT=$(kubectl config current-context 2>/dev/null || true)
 if [[ "$CURRENT_CONTEXT" != "$EXPECTED_CONTEXT" ]]; then
@@ -37,15 +49,61 @@ fi
 # KServe's pinned installer is idempotent and supplies cert-manager, Gateway API
 # and Inference Extension resources, Envoy Gateway, Envoy AI Gateway, and LWS.
 # Download it before executing so a failed download is never piped into a shell.
+# Run from an owned temporary workspace so the upstream Helm/yq downloads are
+# removed even though its BIN_DIR cleanup flag is not set in KServe v0.19.0.
 
-DEPENDENCY_INSTALLER=$(mktemp)
-trap 'rm -f "$DEPENDENCY_INSTALLER"' EXIT
+DEPENDENCY_WORK_DIR=$(mktemp -d)
+DEPENDENCY_INSTALLER="${DEPENDENCY_WORK_DIR}/llmisvc-dependency-install.sh"
+trap 'rm -rf "$DEPENDENCY_WORK_DIR"' EXIT
 
 info "Installing KServe ${KSERVE_VERSION} LLMInferenceService dependencies..."
 curl -fsSL "$LLMISVC_DEPENDENCIES_URL" -o "$DEPENDENCY_INSTALLER"
-bash "$DEPENDENCY_INSTALLER"
-rm -f "$DEPENDENCY_INSTALLER"
+
+# The upstream installer otherwise installs cloud-provider-kind@latest. Install
+# the version aligned with its Kind v0.30.0 dependency first so it finds the
+# pinned executable on PATH and skips the unpinned installation.
+info "Installing cloud-provider-kind ${CLOUD_PROVIDER_KIND_VERSION}..."
+GOBIN="$GO_BIN_DIR" go install "sigs.k8s.io/cloud-provider-kind@${CLOUD_PROVIDER_KIND_VERSION}"
+
+(
+  cd "$DEPENDENCY_WORK_DIR"
+  PLATFORM=kind \
+    GOBIN="$GO_BIN_DIR" \
+    PATH="${GO_BIN_DIR}:${PATH}" \
+    TMPDIR="$DEPENDENCY_WORK_DIR" \
+    bash "$DEPENDENCY_INSTALLER"
+)
+
+rm -rf "$DEPENDENCY_WORK_DIR"
 trap - EXIT
+
+pgrep -f cloud-provider-kind >/dev/null 2>&1 || error "cloud-provider-kind is not running"
+
+info "Waiting for the KServe gateway to be programmed..."
+kubectl wait gateway "$GATEWAY_NAME" \
+  -n "$GATEWAY_NAMESPACE" \
+  --for=condition=Programmed \
+  --timeout="$WAIT_TIMEOUT"
+
+info "Waiting for the KServe gateway to receive an external address..."
+GATEWAY_ADDRESS=""
+GATEWAY_ADDRESS_DEADLINE=$((SECONDS + ${WAIT_TIMEOUT%s}))
+while ((SECONDS < GATEWAY_ADDRESS_DEADLINE)); do
+  GATEWAY_ADDRESS=$(kubectl get gateway "$GATEWAY_NAME" \
+    -n "$GATEWAY_NAMESPACE" \
+    -o jsonpath='{.status.addresses[0].value}' 2>/dev/null || true)
+  if [[ -n "$GATEWAY_ADDRESS" ]]; then
+    break
+  fi
+  sleep 2
+done
+
+if [[ -z "$GATEWAY_ADDRESS" ]]; then
+  kubectl get gateway "$GATEWAY_NAME" -n "$GATEWAY_NAMESPACE" -o wide >&2 || true
+  kubectl get service --all-namespaces -o wide >&2 || true
+  error "KServe gateway did not receive an external address within ${WAIT_TIMEOUT}"
+fi
+info "KServe gateway external address: ${GATEWAY_ADDRESS}"
 
 info "Waiting for cert-manager-webhook to be ready..."
 kubectl wait deployment cert-manager-webhook \
@@ -127,6 +185,7 @@ kubectl wait deployment llmisvc-controller-manager \
 info "KServe dev environment ready!"
 echo "  KServe:       ${KSERVE_VERSION}"
 echo "  LLMIsvc:      controller and dependencies installed"
+echo "  Gateway:      ${GATEWAY_ADDRESS}"
 echo "  Deploy mode:  RawDeployment"
 echo ""
 echo "CRDs installed:"
