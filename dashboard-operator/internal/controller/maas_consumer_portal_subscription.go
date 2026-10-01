@@ -13,6 +13,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
+
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
@@ -75,19 +77,20 @@ func (r *DashboardReconciler) existingMaaSConsumerPortalOperatorNamespaces(ctx c
 }
 
 func (r *DashboardReconciler) deleteLabeledMaaSConsumerPortalOperatorSubscriptionRBACResources(ctx context.Context) error {
-	operatorNamespaces, err := r.existingMaaSConsumerPortalOperatorNamespaces(ctx)
-	if err != nil {
-		return fmt.Errorf("getting operator namespaces: %w", err)
-	}
 	var errs []error
-	for _, namespace := range r.maasConsumerPortalSubscriptionNamespaces() {
-		if _, exists := operatorNamespaces[namespace]; !exists {
+	// Include grants in formerly configured namespaces during portal removal.
+	for _, list := range []client.ObjectList{&rbacv1.RoleList{}, &rbacv1.RoleBindingList{}} {
+		if err := r.List(ctx, list, client.MatchingLabels{labels.PlatformPartOf: maasConsumerPortalPartOf}); err != nil {
+			errs = append(errs, fmt.Errorf("listing MaaS Consumer Portal subscription RBAC: %w", err))
 			continue
 		}
-		errs = append(errs,
-			r.deleteLabeledMaaSConsumerPortalResourceList(ctx, &rbacv1.RoleList{}, client.InNamespace(namespace)),
-			r.deleteLabeledMaaSConsumerPortalResourceList(ctx, &rbacv1.RoleBindingList{}, client.InNamespace(namespace)),
-		)
+		for _, resource := range extractItems(list) {
+			if resource.GetName() != maasConsumerPortalRhodsOperatorSubscriptionResourceName &&
+				resource.GetName() != maasConsumerPortalOpenDataHubOperatorSubscriptionResourceName {
+				continue
+			}
+			errs = append(errs, r.deleteMaaSConsumerPortalObjects(ctx, resource))
+		}
 	}
 	return errors.Join(errs...)
 }
