@@ -185,7 +185,7 @@ describe('Edit Table Asset', () => {
     editAssetModal.findSaveButton().click();
 
     cy.wait('@updateTable').then((interception) => {
-      expect(interception.request.body).to.have.property('purpose', '');
+      expect(interception.request.body).to.have.property('purpose', null);
     });
   });
 
@@ -493,7 +493,7 @@ describe('Edit Volume Asset', () => {
     editAssetModal.findSaveButton().click();
 
     cy.wait('@updateVolume').then((interception) => {
-      expect(interception.request.body).to.have.property('purpose', '');
+      expect(interception.request.body).to.have.property('purpose', null);
     });
   });
 });

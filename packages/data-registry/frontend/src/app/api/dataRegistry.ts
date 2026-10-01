@@ -378,10 +378,10 @@ export type UpdateGenericTableRequest = {
   format?: StructuredFormat;
   storage_location?: string | null;
   connection_ref?: ConnectionRef | null;
-  purpose?: string;
+  purpose?: string | null;
   license?: LicenseType | null;
   maturity?: MaturityType | null;
-  domain?: string;
+  domain?: string | null;
   pii?: PiiStatus | null;
   add_labels?: string[];
   remove_labels?: string[];
@@ -410,10 +410,10 @@ export type UpdateVolumeRequest = {
   format?: UnstructuredFormat;
   storage_location?: string | null;
   connection_ref?: ConnectionRef | null;
-  purpose?: string;
+  purpose?: string | null;
   license?: LicenseType | null;
   maturity?: MaturityType | null;
-  domain?: string;
+  domain?: string | null;
   pii?: PiiStatus | null;
   add_labels?: string[];
   remove_labels?: string[];
