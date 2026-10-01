@@ -227,6 +227,19 @@ Each module entry in the ConfigMap follows this structure:
 }
 ```
 
+### Community Plugin Entries
+
+The generated ConfigMap can also contain nested community entries composed by
+dashboard-operator from the installer-owned `community-plugins-config` source.
+Unlike legacy module entries, their `backend` and `proxyService` fields are
+already in the runtime's nested format. Dashboard derives each community proxy
+path from a source `pathSuffix` under
+`/community-plugins/<remote-name>/`; the runtime consumes the resulting
+`proxyService.path` normally.
+
+See [Community Plugin Registration](community-plugin-registration.md) for the
+source ConfigMap contract, validation, reconciliation, and ownership details.
+
 ### Module Enable/Disable Flow
 
 When a module is enabled or disabled:

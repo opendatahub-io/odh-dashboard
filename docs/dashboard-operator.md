@@ -218,6 +218,18 @@ When `spec.observability` is unset, the controller looks for `data-science-perse
 
 `spec.observability.persesService` can override the HTTP service name, namespace, and service port. The managed network policies require the backing pods to have `app.kubernetes.io/managed-by: perses-operator` and listen on TCP port `8080`. A different **service port** must still forward to pod port `8080`. Other pod labels or listening ports require deployment-specific network policies; configuring the service target alone does not support those topologies.
 
+### Community Plugin Entries
+
+During an existing reconciliation, the operator also samples the optional,
+installer-owned `community-plugins-config` ConfigMap from
+`ApplicationsNamespace`. Accepted entries are merged into the generated
+`federation-config`; Dashboard derives their public proxy paths under
+`/community-plugins/<remote-name>/` and uses the same hash-based rollout.
+
+See [Community Plugin Registration](community-plugin-registration.md) for the
+source schema, validation rules, ownership boundary, and reconciliation trigger
+contract.
+
 ## Operator ConfigMap
 
 The controller reads an optional `dashboard-operator-config` ConfigMap for internal flags:
