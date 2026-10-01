@@ -23,8 +23,6 @@ import {
   Label,
   LabelGroup,
   MenuToggle,
-  Modal,
-  ModalVariant,
   Select,
   SelectList,
   SelectOption,
@@ -39,6 +37,7 @@ import {
   useWizardContext,
 } from '@patternfly/react-core';
 import { EyeIcon, EyeSlashIcon, MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import { Tearsheet } from '@patternfly/react-component-groups';
 import { testCredentials } from '~/app/api/dch';
 import ConnectionTypesGallery from '~/app/components/ConnectionTypesGallery';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
@@ -870,12 +869,11 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   };
 
   return isOpen ? (
-    <Modal
-      variant={ModalVariant.large}
+    <Tearsheet
       isOpen
       onEscapePress={handleClose}
       aria-labelledby="create-connection-wizard-title"
-      data-testid="create-connection-modal"
+      data-testid="create-connection-tearsheet"
     >
       <Wizard
         onClose={handleClose}
@@ -955,7 +953,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
           />
         </WizardStep>
       </Wizard>
-    </Modal>
+    </Tearsheet>
   ) : null;
 };
 
