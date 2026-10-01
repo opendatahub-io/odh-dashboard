@@ -177,6 +177,7 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
   if (!agentDeploymentAvailabilityLoaded) {
     return (
       <Table
+        key="agent-profiles-loading"
         data={profiles}
         columns={AgentProfileColumns(false)}
         enablePagination
@@ -190,6 +191,11 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
 
   return (
     <Table
+      key={
+        isAgentDeploymentEnabled
+          ? 'agent-profiles-with-endpoints'
+          : 'agent-profiles-without-endpoints'
+      }
       data={filteredProfiles}
       columns={columns}
       enablePagination
