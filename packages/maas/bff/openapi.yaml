@@ -190,6 +190,37 @@ paths:
               example:
                 error: Failed to retrieve LLM models
 
+  /api/v1/gateway-url:
+    get:
+      tags:
+        - gateway
+      summary: Get MaaS gateway URL
+      operationId: getMaaSGatewayURL
+      description: >
+        Returns the externally reachable MaaS API base URL discovered from the
+        maas-default-gateway tenant. The URL includes the /maas-api path.
+      responses:
+        '200':
+          description: MaaS gateway URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MaaSGatewayURL'
+                required:
+                  - data
+              example:
+                data:
+                  url: https://maas.apps.example.com/maas-api
+        '503':
+          description: MaaS gateway discovery is not complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/v1/all-maas-models:
     get:
       tags:
@@ -1964,6 +1995,17 @@ components:
           type: string
         displayName:
           type: string
+
+    MaaSGatewayURL:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+          description: Externally reachable MaaS API base URL, including /maas-api.
+          example: https://maas.apps.example.com/maas-api
 
     ModelDetails:
       type: object

@@ -5,8 +5,8 @@ import {
   t_global_border_color_default as borderColorDefault,
 } from '@patternfly/react-tokens';
 import { Edge, GraphElement, observer, isEdge, Node } from '@patternfly/react-topology';
+import { buildTreeEdgePath } from '@odh-dashboard/autox-core/ui/utils';
 import { isBranchCorridorNodeId } from './stageMapStepMetadata';
-import { buildTreeEdgePath } from './treeEdgePath';
 import { isTreeNodeData } from './treeStepState';
 
 type TreeEdgeProps = {

@@ -14,7 +14,7 @@ import {
 import type { PipelineRun } from '~/app/types';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
-import * as queries from '~/app/hooks/queries';
+import * as managedPipelinesQuery from '~/app/hooks/useManagedPipelinesQuery';
 import * as treeView from '~/app/topology/tree-view';
 import * as transformPipelineDataModule from '~/app/topology/tree-view/transformPipelineData';
 import * as buildStageMapTopologyModule from '~/app/topology/buildStageMapTopology';
@@ -22,6 +22,8 @@ import * as useAutoragTaskTopologyModule from '~/app/topology/useAutoragTaskTopo
 import * as utils from '~/app/utilities/utils';
 import { DEFAULT_OPTIMIZATION_METRIC } from '~/app/utilities/const';
 import { resolveObjectiveReference } from '~/app/utilities/metricUtils';
+
+const mockFetchS3File = jest.fn();
 
 jest.mock('~/app/topology/tree-view', () => ({
   useTreeViewData: jest.fn().mockReturnValue({ selectedPattern: undefined, stageMapNodes: [] }),
@@ -75,9 +77,12 @@ jest.mock('~/app/utilities/utils', () => ({
   downloadBlob: jest.fn(),
 }));
 
-jest.mock('~/app/hooks/queries', () => ({
-  ...jest.requireActual('~/app/hooks/queries'),
-  fetchS3File: jest.fn(),
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
+  useFetchS3File: jest.fn(() => mockFetchS3File),
+}));
+
+jest.mock('~/app/hooks/useManagedPipelinesQuery', () => ({
   useManagedPipelinesQuery: jest.fn().mockReturnValue({
     data: [
       {
@@ -93,7 +98,7 @@ jest.mock('~/app/hooks/queries', () => ({
   }),
 }));
 
-jest.mock('~/app/hooks/mutations', () => ({
+jest.mock('~/app/hooks/useCreateIndexingPipelineRunMutation', () => ({
   useCreateIndexingPipelineRunMutation: jest.fn().mockReturnValue({
     mutateAsync: jest.fn(),
     isPending: false,
@@ -204,7 +209,7 @@ const createMockPattern = (name: string): AutoragPattern => ({
   },
 });
 
-const fetchS3FileMock = jest.mocked(queries.fetchS3File);
+const fetchS3FileMock = jest.mocked(mockFetchS3File);
 const downloadBlobMock = jest.mocked(utils.downloadBlob);
 const useTreeViewDataMock = jest.mocked(treeView.useTreeViewData);
 const transformPipelineDataMock = jest.mocked(transformPipelineDataModule.transformPipelineData);
@@ -292,12 +297,12 @@ describe('AutoragResults', () => {
   });
 
   it('should toast a warning when managed pipelines query fails', () => {
-    jest.mocked(queries.useManagedPipelinesQuery).mockReturnValueOnce({
+    jest.mocked(managedPipelinesQuery.useManagedPipelinesQuery).mockReturnValueOnce({
       data: undefined,
       isLoading: false,
       isError: true,
       error: new Error('Network Error'),
-    } as ReturnType<typeof queries.useManagedPipelinesQuery>);
+    } as ReturnType<typeof managedPipelinesQuery.useManagedPipelinesQuery>);
 
     renderWithContext(mockPipelineRun);
 

@@ -132,6 +132,9 @@ jest.mock('@patternfly/chatbot', () => ({
     }) => (
       <div data-testid={dataTestId}>
         <div data-testid="message-role">{role}</div>
+        {extraContent?.beforeMainContent && (
+          <div data-testid="before-main-content">{extraContent.beforeMainContent}</div>
+        )}
         {error ? (
           <div data-testid="message-error">
             <div data-testid="error-variant">{error.variant}</div>
@@ -140,9 +143,6 @@ jest.mock('@patternfly/chatbot', () => ({
           </div>
         ) : (
           <div data-testid="message-content">{content}</div>
-        )}
-        {extraContent?.beforeMainContent && (
-          <div data-testid="before-main-content">{extraContent.beforeMainContent}</div>
         )}
         {extraContent?.afterMainContent && (
           <div data-testid="after-main-content">{extraContent.afterMainContent}</div>
@@ -305,7 +305,7 @@ describe('ChatbotMessages', () => {
     });
   });
 
-  it('should open the extracted text viewer when a sent document attachment is clicked', () => {
+  it('should render sent documents before the prompt and open the extracted text viewer', () => {
     const attachment = {
       // eslint-disable-next-line camelcase -- matches the document-attachment API contract
       file_id: 'file-1',
@@ -336,7 +336,11 @@ describe('ChatbotMessages', () => {
 
     const sentAttachment = screen.getByTestId('sent-document-attachment-file-1');
     expect(sentAttachment).toHaveTextContent('PDF');
-    expect(screen.getByTestId('end-content')).toContainElement(sentAttachment);
+    const attachmentContainer = screen.getByTestId('before-main-content');
+    expect(attachmentContainer).toContainElement(sentAttachment);
+    expect(attachmentContainer.compareDocumentPosition(screen.getByTestId('message-content'))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
     fireEvent.click(screen.getByRole('button', { name: /policy\.pdf/i }));
 
     expect(onViewDocument).toHaveBeenCalledWith(attachment);

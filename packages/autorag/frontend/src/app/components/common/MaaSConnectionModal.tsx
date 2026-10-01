@@ -16,9 +16,9 @@ import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardMod
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
-import { createSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
+import { useCreateSecretMutation } from '@odh-dashboard/autox-core/ui/hooks';
 
 type Props = {
   namespace: string;
@@ -48,6 +48,7 @@ const MaaSConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) 
   const [isSaving, setIsSaving] = React.useState(false);
   const [baseUrlTouched, setBaseUrlTouched] = React.useState(false);
   const createdSecretRef = React.useRef<SecretKind>();
+  const createSecretMutation = useCreateSecretMutation();
 
   const baseUrlValid = React.useMemo(() => isValidUrl(baseUrl), [baseUrl]);
   const showBaseUrlError = baseUrlTouched && baseUrl.trim() !== '' && !baseUrlValid;
@@ -78,7 +79,7 @@ const MaaSConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) 
 
     try {
       if (!createdSecretRef.current) {
-        await createSecret(secret);
+        await createSecretMutation.mutateAsync(secret);
         createdSecretRef.current = secret;
       }
 

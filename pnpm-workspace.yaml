@@ -6,7 +6,6 @@ packages:
   - packages/agent-ops/frontend
   - packages/automl/frontend
   - packages/autorag/frontend
-  - packages/autox-core/ui
   - packages/data-connect-hub/frontend
   - packages/data-registry/frontend
   - packages/eval-hub/frontend

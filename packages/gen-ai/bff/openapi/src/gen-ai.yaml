@@ -4754,11 +4754,16 @@ components:
       type: object
       required:
         - isCustomLSD
+        - sandboxesAvailable
       properties:
         isCustomLSD:
           type: boolean
           example: false
           description: Indicates whether a custom LlamaStack URL is configured for the BFF
+        sandboxesAvailable:
+          type: boolean
+          example: false
+          description: Indicates whether the Agent Sandbox CRD is available in the cluster
 
     LlamaStackDistributionInstallRequest:
       type: object
@@ -5573,6 +5578,10 @@ components:
           type: string
           format: uri
           description: Public Route URL when the Route has been created.
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the Sandbox deployment was created.
         state:
           type: string
           enum: [ready, creating, failed]
@@ -7031,6 +7040,7 @@ components:
           example:
             data:
               isCustomLSD: false
+              sandboxesAvailable: false
 
 tags:
   # =============================================================================

@@ -36,7 +36,7 @@ import {
   TimesIcon,
 } from '@patternfly/react-icons';
 import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
-import { useUploadToStorageMutation } from '~/app/hooks/mutations';
+import { useUploadToStorageMutation } from '~/app/hooks/useUploadToStorageMutation';
 import { useNotification } from '~/app/hooks/useNotification';
 import type { EvaluationFileEntry } from '~/app/types';
 import {

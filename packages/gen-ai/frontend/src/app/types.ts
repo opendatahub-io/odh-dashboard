@@ -426,6 +426,7 @@ export type LlamaStackDistributionModel = {
 
 export type BFFConfig = {
   isCustomLSD: boolean;
+  sandboxesAvailable: boolean;
 };
 
 /** Status of the NemoGuardrails CR */
@@ -667,6 +668,8 @@ export type GenAiAPIs = {
   updateAgentProfile: UpdateAgentProfile;
   deleteAgentProfile: DeleteAgentProfile;
   createAgentProfile: CreateAgentProfile;
+  listAgentDeployments: ListAgentDeployments;
+  getAgentDeployment: GetAgentDeployment;
 };
 
 export interface SubscriptionInfo {
@@ -769,6 +772,10 @@ type CreateAgentProfile = ModArchRestCREATE<
   import('./agentProfile/types').AgentProfileCreateResponse,
   import('./agentProfile/types').AgentProfileCreateRequest
 >;
+type ListAgentDeployments = ModArchRestGET<
+  import('./agentProfile/types').AgentDeploymentListResponse
+>;
+type GetAgentDeployment = ModArchRestGET<import('./agentProfile/types').AgentDeploymentSummary>;
 
 export type ErrorPattern = 'full-failure' | 'partial-failure' | 'streaming-interruption';
 export type ErrorVariant = 'danger' | 'warning';
