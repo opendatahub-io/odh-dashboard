@@ -24,7 +24,6 @@ import { ApiKeyColumn } from '~/app/pages/keys-and-subs/apiKeys/allKeys/columns'
 import CreateApiKeyModal from '~/app/pages/keys-and-subs/apiKeys/CreateApiKeyModal';
 import RevokeApiKeyModal from '~/app/pages/keys-and-subs/apiKeys/RevokeApiKeyModal';
 import { ApiKeyCreateInitiatedFrom, ApiKeyRevokeInitiatedFrom } from '~/app/types/event-tracking';
-import { useKeysAndSubsContext } from '~/app/context/KeysAndSubsContext';
 
 const subscriptionApiKeyColumns: ApiKeyColumn[] = [
   {

@@ -687,7 +687,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                             step={1}
                             value={formData.afterDays}
                             aria-label="Number of days until expiration"
-                            style={{ maxWidth: '5.5rem' }}
+                            style={{ width: '6rem' }}
                             onChange={(_event, value) => {
                               setFormData({ ...formData, afterDays: value });
                               setError(undefined);

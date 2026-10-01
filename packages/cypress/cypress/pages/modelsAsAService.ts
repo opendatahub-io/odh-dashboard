@@ -343,7 +343,7 @@ class CreateApiKeyModal extends Modal {
     this.findExpirationModeOption(mode).click();
   }
 
-  findExpirationDateInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findExpirationDateInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
     return this.find().findByTestId('api-key-expiration-date-picker').find('input');
   }
 

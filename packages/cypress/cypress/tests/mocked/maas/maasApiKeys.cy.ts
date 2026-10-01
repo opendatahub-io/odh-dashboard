@@ -591,7 +591,7 @@ describe('API Keys Page', () => {
     });
   });
 
-  it('should create a new API key with the default 30 days expiration', () => {
+  it('should create a new API key with the default 1 day expiration', () => {
     cy.interceptOdh('POST /maas/api/v1/api-keys', {
       data: mockCreateAPIKeyResponse(),
     }).as('createApiKey');
@@ -609,7 +609,7 @@ describe('API Keys Page', () => {
     createApiKeyModal.findSubmitButton().should('be.enabled');
     createApiKeyModal.findSubmitButton().click();
     cy.wait('@createApiKey').then((interception) => {
-      expect(interception.request.body?.data).to.include({ expiresIn: '30d' });
+      expect(interception.request.body?.data).to.include({ expiresIn: '1d' });
       expect(interception.response?.body?.data).to.include({
         name: 'production-backend',
         expiresAt: '2026-01-20T11:54:34.521671447-05:00',
@@ -618,7 +618,7 @@ describe('API Keys Page', () => {
 
     copyApiKeyModal.shouldBeOpen();
     copyApiKeyModal.findApiKeyName().should('contain.text', 'production-backend');
-    copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '30 days');
+    copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '1 days');
   });
 
   it('should show/hide the token when the visibility toggle is clicked', () => {
@@ -638,7 +638,7 @@ describe('API Keys Page', () => {
     createApiKeyModal.findSubmitButton().should('be.enabled');
     createApiKeyModal.findSubmitButton().click();
     cy.wait('@createApiKey').then((interception) => {
-      expect(interception.request.body?.data).to.include({ expiresIn: '30d' });
+      expect(interception.request.body?.data).to.include({ expiresIn: '1d' });
       expect(interception.response?.body?.data).to.include({
         name: 'production-backend',
         expiresAt: '2026-01-20T11:54:34.521671447-05:00',
@@ -703,7 +703,7 @@ describe('API Keys Page', () => {
 
     createApiKeyModal.selectExpirationMode('after');
     createApiKeyModal.findExpirationDateInput().should('not.exist');
-    createApiKeyModal.findAfterDaysInput().should('have.value', '30');
+    createApiKeyModal.findAfterDaysInput().should('have.value', '1');
     createApiKeyModal.findExpirationHelper().should('contain.text', 'Enter a value between 1 and');
     createApiKeyModal.setAfterDays(45);
     createApiKeyModal.findSubscriptionToggle().click();

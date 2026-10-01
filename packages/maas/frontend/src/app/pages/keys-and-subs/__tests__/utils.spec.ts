@@ -70,14 +70,15 @@ describe('expiration helpers', () => {
     expect(getExpirationModeLabel('after', 90)).toBe('After');
   });
 
-  it('should default after-days to min(30, max)', () => {
-    expect(getDefaultAfterDays(90)).toBe(30);
-    expect(getDefaultAfterDays(10)).toBe(10);
+  it('should default after-days to tomorrow (1 day), capped by max', () => {
+    expect(getDefaultAfterDays(90)).toBe(1);
+    expect(getDefaultAfterDays(10)).toBe(1);
+    expect(getDefaultAfterDays(1)).toBe(1);
   });
 
-  it('should default the on-date value from after-days', () => {
-    expect(formatDatePickerValue(getDefaultExpirationDate(90, from))).toBe('2026-02-14');
-    expect(formatDatePickerValue(getDefaultExpirationDate(10, from))).toBe('2026-01-25');
+  it('should default the on-date value to tomorrow', () => {
+    expect(formatDatePickerValue(getDefaultExpirationDate(90, from))).toBe('2026-01-16');
+    expect(formatDatePickerValue(getDefaultExpirationDate(10, from))).toBe('2026-01-16');
   });
 
   it('should compute min and max selectable dates', () => {
@@ -92,7 +93,9 @@ describe('expiration helpers', () => {
 
   it('should validate on-date and after-days values', () => {
     expect(validateExpirationDate('2026-02-14', 90, from)).toBe('');
-    expect(validateExpirationDate('2026-12-01', 90, from)).toContain('Select a date');
+    expect(validateExpirationDate('2026-12-01', 90, from)).toBe(
+      'Select a date between tomorrow (2026-01-16) and 2026-04-15',
+    );
     expect(validateAfterDays('45', 90)).toBe('');
     expect(validateAfterDays('91', 90)).toBe(getAfterDaysValidationMessage(90));
   });

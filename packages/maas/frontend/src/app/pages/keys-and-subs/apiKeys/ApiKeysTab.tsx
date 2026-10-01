@@ -46,6 +46,7 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
     onPerPageSelect,
     onClearFilters,
     maxExpirationDays,
+    canCreateApiKey,
   } = pageState;
 
   const subscriptionOptions = React.useMemo(
@@ -82,7 +83,7 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
   if (!hasAnyApiKeys) {
     return (
       <>
-        {isModalOpen && (
+        {isModalOpen && canCreateApiKey && (
           <CreateApiKeyModal
             initiatedFrom={ApiKeyCreateInitiatedFrom.API_KEYS_TOOLBAR}
             maxExpirationDays={maxExpirationDays}
@@ -92,14 +93,17 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
             }}
           />
         )}
-        <EmptyApiKeysPage onCreateApiKey={() => setIsModalOpen(true)} />
+        <EmptyApiKeysPage
+          onCreateApiKey={() => setIsModalOpen(true)}
+          isCreateDisabled={!canCreateApiKey}
+        />
       </>
     );
   }
 
   return (
     <>
-      {isModalOpen && (
+      {isModalOpen && canCreateApiKey && (
         <CreateApiKeyModal
           initiatedFrom={ApiKeyCreateInitiatedFrom.API_KEYS_TOOLBAR}
           maxExpirationDays={maxExpirationDays}
@@ -135,6 +139,7 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
             <ApiKeysToolbar
               isMaasAdmin={isMaasAdmin}
               setIsModalOpen={setIsModalOpen}
+              isCreateDisabled={!canCreateApiKey}
               filterData={filterData}
               localUsername={localUsername}
               setLocalUsername={setLocalUsername}

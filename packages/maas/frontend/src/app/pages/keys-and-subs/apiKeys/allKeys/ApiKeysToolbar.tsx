@@ -31,6 +31,7 @@ const isAPIKeyDisplayStatus = (value: unknown): value is APIKeyDisplayStatus =>
 
 type ApiKeysToolbarProps = {
   setIsModalOpen: (isOpen: boolean) => void;
+  isCreateDisabled?: boolean;
   filterData: ApiKeyFilterDataType;
   localUsername: string;
   setLocalUsername: (value: string) => void;
@@ -47,6 +48,7 @@ type ApiKeysToolbarProps = {
 
 const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
   setIsModalOpen,
+  isCreateDisabled = false,
   filterData,
   localUsername,
   setLocalUsername,
@@ -223,6 +225,7 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
               <Button
                 variant="primary"
                 onClick={() => setIsModalOpen(true)}
+                isDisabled={isCreateDisabled}
                 data-testid="create-api-key-button"
               >
                 Create API key

@@ -81,21 +81,26 @@ export const getMaxSelectableExpirationDate = (maxDays: number, from: Date = new
 export const getMinSelectableExpirationDate = (from: Date = new Date()): Date =>
   addCalendarDays(startOfLocalDay(from), 1);
 
-/** Default "after N days" value: min(30, maxDays). */
-export const getDefaultAfterDays = (maxDays: number): number => Math.min(30, Math.max(maxDays, 1));
+/** Default "after N days" value: tomorrow (1 day), capped by maxDays. */
+export const getDefaultAfterDays = (maxDays: number): number => Math.min(1, Math.max(maxDays, 1));
 
-/** Default expiration date for "On date" mode. */
+/** Default expiration date for "On date" mode (tomorrow). */
 export const getDefaultExpirationDate = (maxDays: number, from: Date = new Date()): Date =>
   addCalendarDays(startOfLocalDay(from), getDefaultAfterDays(maxDays));
 
 export const getExpiresInFromDays = (days: number): string => `${days}d`;
 
-export const getExpirationDateValidationMessage = (maxDays: number): string => {
+export const getExpirationDateValidationMessage = (
+  maxDays: number,
+  from: Date = new Date(),
+): string => {
+  const minDate = formatDatePickerValue(getMinSelectableExpirationDate(from));
   const pickerMax = Math.min(maxDays, DATE_PICKER_MAX_DAYS);
+  const maxDate = formatDatePickerValue(getMaxSelectableExpirationDate(pickerMax, from));
   if (maxDays > DATE_PICKER_MAX_DAYS) {
-    return `Select a date between tomorrow and ${formatDatePickerValue(getMaxSelectableExpirationDate(pickerMax))}, or use After / max value for longer expirations`;
+    return `Select a date between tomorrow (${minDate}) and ${maxDate}, or use After / max value for longer expirations`;
   }
-  return `Select a date between tomorrow and ${formatDatePickerValue(getMaxSelectableExpirationDate(maxDays))}`;
+  return `Select a date between tomorrow (${minDate}) and ${maxDate}`;
 };
 
 export const getAfterDaysValidationMessage = (maxDays: number): string =>
@@ -113,7 +118,7 @@ export const validateExpirationDate = (
   const days = getCalendarDaysBetween(startOfLocalDay(from), date);
   const pickerMaxDays = Math.min(maxDays, DATE_PICKER_MAX_DAYS);
   if (days < 1 || days > pickerMaxDays) {
-    return getExpirationDateValidationMessage(maxDays);
+    return getExpirationDateValidationMessage(maxDays, from);
   }
   return '';
 };
