@@ -141,7 +141,51 @@ describe('PlaygroundDrawerPanel', () => {
     );
   });
 
-  it('should keep the AutoRAG endpoint when resolved secrets are unavailable', () => {
+  it('should disable the playground when the canonical vector database secret is unavailable', () => {
+    render(
+      <AutoragResultsContext.Provider
+        value={{
+          ...mockContextValue,
+          parameters: { maas_secret_name: 'test-secret', vector_io_provider_id: 'milvus-remote' },
+        }}
+      >
+        <Drawer isExpanded>
+          <DrawerContent panelContent={<PlaygroundDrawerPanel {...defaultProps} />}>
+            <div>Main content</div>
+          </DrawerContent>
+        </Drawer>
+      </AutoragResultsContext.Provider>,
+    );
+
+    expect(screen.queryByTestId('mock-embedded-playground')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('playground-view-code-button')).not.toBeInTheDocument();
+    expect(screen.getByTestId('playground-vector-db-unavailable')).toHaveTextContent(
+      'The vector database connection is unavailable for this historical run.',
+    );
+    expect(screen.getByTestId('playground-vector-db-unavailable')).toHaveTextContent(
+      'Rerun or configure the run with its vector database connection',
+    );
+  });
+
+  it('should disable the playground when result parameters are absent', () => {
+    render(
+      <AutoragResultsContext.Provider value={{ ...mockContextValue, parameters: undefined }}>
+        <Drawer isExpanded>
+          <DrawerContent panelContent={<PlaygroundDrawerPanel {...defaultProps} />}>
+            <div>Main content</div>
+          </DrawerContent>
+        </Drawer>
+      </AutoragResultsContext.Provider>,
+    );
+
+    expect(screen.queryByTestId('mock-embedded-playground')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('playground-view-code-button')).not.toBeInTheDocument();
+    expect(screen.getByTestId('playground-vector-db-unavailable')).toHaveTextContent(
+      'The vector database connection is unavailable for this historical run.',
+    );
+  });
+
+  it('should disable the playground when result parameters are empty', () => {
     render(
       <AutoragResultsContext.Provider value={{ ...mockContextValue, parameters: {} }}>
         <Drawer isExpanded>
@@ -152,9 +196,10 @@ describe('PlaygroundDrawerPanel', () => {
       </AutoragResultsContext.Provider>,
     );
 
-    expect(screen.getByTestId('mock-embedded-playground')).toHaveAttribute(
-      'data-endpoint',
-      '/autorag/api/v1/responses?namespace=test-ns',
+    expect(screen.queryByTestId('mock-embedded-playground')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('playground-view-code-button')).not.toBeInTheDocument();
+    expect(screen.getByTestId('playground-vector-db-unavailable')).toHaveTextContent(
+      'The vector database connection is unavailable for this historical run.',
     );
   });
 
