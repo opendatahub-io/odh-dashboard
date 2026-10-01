@@ -197,7 +197,7 @@ const useChatbotMessages = ({
   const imagePreviewRef = React.useRef<Map<string, { previewUrl: string; fileName: string }>>(
     new Map(),
   );
-  const audioPreviewRef = React.useRef<Map<string, string>>(new Map());
+  const audioFileUrlRef = React.useRef<Map<File, string>>(new Map());
   const sessionIdRef = React.useRef<string>(getId());
   const { api, apiAvailable } = useGenAiAPI();
   const { aiModels } = React.useContext(ChatbotContext);
@@ -412,8 +412,8 @@ const useChatbotMessages = ({
     multimodalContentRef.current.clear();
     imagePreviewRef.current.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
     imagePreviewRef.current.clear();
-    audioPreviewRef.current.forEach((previewUrl) => URL.revokeObjectURL(previewUrl));
-    audioPreviewRef.current.clear();
+    audioFileUrlRef.current.forEach((previewUrl) => URL.revokeObjectURL(previewUrl));
+    audioFileUrlRef.current.clear();
 
     // Reset clearing flag after state updates complete
     // Use setTimeout to ensure this runs after React finishes all state updates
@@ -450,7 +450,11 @@ const useChatbotMessages = ({
         },
       });
     }
-    const audioPreviewUrl = audioFile ? URL.createObjectURL(audioFile) : null;
+    let audioPreviewUrl = audioFile ? audioFileUrlRef.current.get(audioFile) : undefined;
+    if (audioFile && !audioPreviewUrl) {
+      audioPreviewUrl = URL.createObjectURL(audioFile);
+      audioFileUrlRef.current.set(audioFile, audioPreviewUrl);
+    }
     if (audioFile && audioPreviewUrl) {
       extraContent.afterMainContent = React.createElement('audio', {
         src: audioPreviewUrl,
@@ -480,9 +484,6 @@ const useChatbotMessages = ({
     // Track blob URL for cleanup on unmount/clearConversation
     if (imagePreview) {
       imagePreviewRef.current.set(userMessage.id!, imagePreview);
-    }
-    if (audioPreviewUrl) {
-      audioPreviewRef.current.set(userMessage.id!, audioPreviewUrl);
     }
 
     // Build multimodal input when a vision file_id is provided
@@ -1111,7 +1112,8 @@ const useChatbotMessages = ({
           // URL.revokeObjectURL may be unavailable in test environments
         }
       });
-      audioPreviewRef.current.forEach((previewUrl) => URL.revokeObjectURL(previewUrl));
+      audioFileUrlRef.current.forEach((previewUrl) => URL.revokeObjectURL(previewUrl));
+      audioFileUrlRef.current.clear();
     },
     [],
   );

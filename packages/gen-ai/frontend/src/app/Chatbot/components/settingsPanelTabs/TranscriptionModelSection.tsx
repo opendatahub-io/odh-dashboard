@@ -28,7 +28,13 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
-import { Link } from 'react-router-dom';
+import { useExtensions } from '@odh-dashboard/plugin-core';
+import {
+  isTabRoutePageExtension,
+  isTabRouteTabExtension,
+  TabRoutePageExtension,
+  TabRouteTabExtension,
+} from '@odh-dashboard/plugin-core/extension-points';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
@@ -58,6 +64,12 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
     [aiModels, maasModels],
   );
   const asrModels = useASRModels(allModels);
+  const modelsPage = useExtensions<TabRoutePageExtension>(isTabRoutePageExtension).find(
+    ({ properties }) => properties.id === 'models-tab-page',
+  );
+  const registryTab = useExtensions<TabRouteTabExtension>(isTabRouteTabExtension).find(
+    ({ properties }) => properties.pageId === 'models-tab-page' && properties.id === 'registry',
+  );
 
   const selectedAsrModel = useChatbotConfigStore(selectSelectedAsrModel(configId));
   const selectedAsrSubscription = useChatbotConfigStore(selectSelectedAsrSubscription(configId));
@@ -248,7 +260,14 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
                 ) : (
                   <>
                     To enable audio transcription, tag a model with the audio capability in{' '}
-                    <Link to="/ai-hub/models/registry">Model registry</Link>.
+                    {modelsPage && registryTab ? (
+                      <a href={`${modelsPage.properties.href}/${registryTab.properties.id}`}>
+                        Model registry
+                      </a>
+                    ) : (
+                      'Model registry'
+                    )}
+                    .
                   </>
                 )}
               </EmptyStateBody>
