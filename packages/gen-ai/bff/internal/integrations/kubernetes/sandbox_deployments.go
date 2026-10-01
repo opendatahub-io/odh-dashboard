@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/models"
@@ -51,7 +52,12 @@ func (kc *TokenKubernetesClient) ListAgentDeployments(
 		deployments = append(deployments, *deployment)
 	}
 
-	sort.Slice(deployments, func(i, j int) bool { return deployments[i].Name < deployments[j].Name })
+	sort.Slice(deployments, func(i, j int) bool {
+		if deployments[i].CreatedAt == deployments[j].CreatedAt {
+			return deployments[i].Name < deployments[j].Name
+		}
+		return deployments[i].CreatedAt > deployments[j].CreatedAt
+	})
 	return &models.AgentDeploymentListResponse{Deployments: deployments, TotalCount: len(deployments)}, nil
 }
 
@@ -111,6 +117,7 @@ func (kc *TokenKubernetesClient) sandboxDeploymentSummary(
 		Namespace:      namespace,
 		AgentProfileID: sandbox.GetLabels()[agentProfileIDLabel],
 		RouteURL:       routeURL,
+		CreatedAt:      sandbox.GetCreationTimestamp().UTC().Format(time.RFC3339),
 		State:          state,
 		LastError:      lastError,
 	}, nil
