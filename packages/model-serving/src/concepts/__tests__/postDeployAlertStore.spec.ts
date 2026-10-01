@@ -1,60 +1,112 @@
 import { act, renderHook } from '@testing-library/react';
 import {
+  cancelScheduledPostDeployAlertDismiss,
   dismissPostDeployAlert,
   enqueuePostDeployAlert,
+  resetPostDeployAlerts,
+  schedulePostDeployAlertDismiss,
+  syncPostDeployAlertPath,
   useHasPostDeployAlert,
+  usePostDeployAlert,
 } from '../postDeployAlertStore';
-
-const STORAGE_KEY = 'odh-dashboard.model-serving.post-deploy-alerts';
-
-const getStoredIds = (): unknown => {
-  const raw = sessionStorage.getItem(STORAGE_KEY);
-  return raw ? JSON.parse(raw) : [];
-};
 
 describe('postDeployAlertStore', () => {
   beforeEach(() => {
-    sessionStorage.clear();
+    resetPostDeployAlerts();
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   describe('enqueuePostDeployAlert', () => {
-    it('should store the alert id in sessionStorage', () => {
-      enqueuePostDeployAlert('alert-a');
+    it('should make the alert visible with modelName', () => {
+      enqueuePostDeployAlert('alert-a', { modelName: 'My model' });
 
-      expect(getStoredIds()).toEqual(['alert-a']);
+      const { result } = renderHook(() => usePostDeployAlert('alert-a'));
+      expect(result.current).toEqual({ isVisible: true, modelName: 'My model' });
     });
 
-    it('should not duplicate an existing alert id', () => {
-      enqueuePostDeployAlert('alert-a');
-      enqueuePostDeployAlert('alert-a');
+    it('should not overwrite an existing alert id', () => {
+      enqueuePostDeployAlert('alert-a', { modelName: 'First' });
+      enqueuePostDeployAlert('alert-a', { modelName: 'Second' });
 
-      expect(getStoredIds()).toEqual(['alert-a']);
+      const { result } = renderHook(() => usePostDeployAlert('alert-a'));
+      expect(result.current.modelName).toBe('First');
     });
 
     it('should allow multiple distinct alert ids', () => {
-      enqueuePostDeployAlert('alert-a');
-      enqueuePostDeployAlert('alert-b');
+      enqueuePostDeployAlert('alert-a', { modelName: 'A' });
+      enqueuePostDeployAlert('alert-b', { modelName: 'B' });
 
-      expect(getStoredIds()).toEqual(['alert-a', 'alert-b']);
+      expect(renderHook(() => useHasPostDeployAlert('alert-a')).result.current).toBe(true);
+      expect(renderHook(() => useHasPostDeployAlert('alert-b')).result.current).toBe(true);
     });
   });
 
   describe('dismissPostDeployAlert', () => {
-    it('should remove the alert id from sessionStorage', () => {
-      enqueuePostDeployAlert('alert-a');
-      enqueuePostDeployAlert('alert-b');
+    it('should remove the alert', () => {
+      enqueuePostDeployAlert('alert-a', { modelName: 'A' });
+      enqueuePostDeployAlert('alert-b', { modelName: 'B' });
 
       dismissPostDeployAlert('alert-a');
 
-      expect(getStoredIds()).toEqual(['alert-b']);
+      expect(renderHook(() => useHasPostDeployAlert('alert-a')).result.current).toBe(false);
+      expect(renderHook(() => useHasPostDeployAlert('alert-b')).result.current).toBe(true);
+    });
+  });
+
+  describe('syncPostDeployAlertPath', () => {
+    it('should bind the pathname on first sync', () => {
+      enqueuePostDeployAlert('alert-a', { modelName: 'A' });
+
+      syncPostDeployAlertPath('alert-a', '/deployments/external/project-a');
+
+      expect(renderHook(() => useHasPostDeployAlert('alert-a')).result.current).toBe(true);
     });
 
-    it('should clear sessionStorage when the last alert is dismissed', () => {
-      enqueuePostDeployAlert('alert-a');
+    it('should keep the alert when synced with the same pathname', () => {
+      enqueuePostDeployAlert('alert-a', { modelName: 'A' });
+      syncPostDeployAlertPath('alert-a', '/deployments/external/project-a');
 
-      dismissPostDeployAlert('alert-a');
+      syncPostDeployAlertPath('alert-a', '/deployments/external/project-a');
 
-      expect(sessionStorage.getItem(STORAGE_KEY)).toBeNull();
+      expect(renderHook(() => useHasPostDeployAlert('alert-a')).result.current).toBe(true);
+    });
+
+    it('should dismiss the alert when synced with a different pathname', () => {
+      enqueuePostDeployAlert('alert-a', { modelName: 'A' });
+      syncPostDeployAlertPath('alert-a', '/deployments/external/project-a');
+
+      syncPostDeployAlertPath('alert-a', '/deployments/external/project-b');
+
+      expect(renderHook(() => useHasPostDeployAlert('alert-a')).result.current).toBe(false);
+    });
+  });
+
+  describe('schedulePostDeployAlertDismiss', () => {
+    it('should dismiss the alert after leaving when the timeout fires', () => {
+      enqueuePostDeployAlert('alert-a', { modelName: 'A' });
+
+      schedulePostDeployAlertDismiss('alert-a');
+      act(() => {
+        jest.runAllTimers();
+      });
+
+      expect(renderHook(() => useHasPostDeployAlert('alert-a')).result.current).toBe(false);
+    });
+
+    it('should not dismiss when remount cancels the scheduled dismiss', () => {
+      enqueuePostDeployAlert('alert-a', { modelName: 'A' });
+
+      schedulePostDeployAlertDismiss('alert-a');
+      cancelScheduledPostDeployAlertDismiss('alert-a');
+      act(() => {
+        jest.runAllTimers();
+      });
+
+      expect(renderHook(() => useHasPostDeployAlert('alert-a')).result.current).toBe(true);
     });
   });
 
@@ -69,14 +121,14 @@ describe('postDeployAlertStore', () => {
       const { result } = renderHook(() => useHasPostDeployAlert('alert-a'));
 
       act(() => {
-        enqueuePostDeployAlert('alert-a');
+        enqueuePostDeployAlert('alert-a', { modelName: 'A' });
       });
 
       expect(result.current).toBe(true);
     });
 
     it('should return false after the alert is dismissed', () => {
-      enqueuePostDeployAlert('alert-a');
+      enqueuePostDeployAlert('alert-a', { modelName: 'A' });
       const { result } = renderHook(() => useHasPostDeployAlert('alert-a'));
 
       expect(result.current).toBe(true);

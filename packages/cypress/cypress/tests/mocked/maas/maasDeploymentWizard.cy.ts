@@ -245,13 +245,10 @@ describe('MaaS Deployment Wizard', () => {
         }),
       ]),
     );
-    modelServingGlobal.visit('test-project');
-    cy.window().should((win) => {
-      expect(
-        win.sessionStorage.getItem('odh-dashboard.model-serving.post-deploy-alerts'),
-      ).to.contain('maas-model-published-internal');
-    });
     modelServingGlobal.findMaaSPublishedPostDeployAlert().should('be.visible');
+    modelServingGlobal
+      .findMaaSPublishedPostDeployAlert()
+      .should('contain.text', 'Test LLM Inference Service');
   });
   it('should update the MaaSModelRef when editing an existing deployment', () => {
     initMaaSDeploymentIntercepts();

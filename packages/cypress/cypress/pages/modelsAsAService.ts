@@ -1872,6 +1872,10 @@ class ExternalModelsPage {
   findMaaSPublishedPostDeployAlert() {
     return cy.findByTestId('maas-published-post-deploy-alert');
   }
+
+  findMaaSPublishedPostDeployAlertLink() {
+    return cy.findByTestId('maas-published-post-deploy-alert-link');
+  }
 }
 
 class ProviderRefTableRow extends Contextual<HTMLElement> {
