@@ -32,8 +32,9 @@ jq -e '
   ([.dimensions[] | select((.kind != "llm-subagent") and (.kind != "llm-skill") and (.kind != "cli-adapter"))] | length == 0)
 ' "${REGISTRY}" >/dev/null || fail "kind must be llm-subagent, llm-skill, or cli-adapter"
 
-while IFS=$'\t' read -r id kind output definition meta result_fields inline_skill; do
+while IFS=$'\t' read -r id label kind output definition meta result_fields inline_skill; do
   [[ -n "${id}" ]] || fail "dimension without id"
+  [[ -n "${label}" ]] || fail "${id}: missing non-empty label"
   case "${output}" in
     findings|context) ;;
     section:*)
@@ -68,7 +69,7 @@ while IFS=$'\t' read -r id kind output definition meta result_fields inline_skil
   if [[ "${kind}" == "cli-adapter" && "${output}" == context && -n "${meta}" ]]; then
     fail "${id}: cli context adapters must not declare an LLM meta prompt"
   fi
-  printf 'PASS dimension %s (%s, %s)\n' "${id}" "${kind}" "${output}"
-done < <(jq -r '.dimensions[] | [.id, .kind, (.output // "findings"), (.definition // ""), (.meta_prompt // ""), (.result_fields // [] | @json), (.inline_skill // "")] | @tsv' "${REGISTRY}")
+  printf 'PASS dimension %s (%s, %s, label=%s)\n' "${id}" "${kind}" "${output}" "${label}"
+done < <(jq -r '.dimensions[] | [.id, (.label // ""), .kind, (.output // "findings"), (.definition // ""), (.meta_prompt // ""), (.result_fields // [] | @json), (.inline_skill // "")] | @tsv' "${REGISTRY}")
 
 echo "Fullsend dimension registry contract is valid"

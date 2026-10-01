@@ -58,6 +58,7 @@ Each `dimensions[]` object:
 | Field | Meaning |
 | --- | --- |
 | `id` | Stable dimension key |
+| `label` | Human-facing name for Check/Producer tables in the sticky comment (host post-review only; orchestrator still matches on `id`) |
 | `kind` | `llm-subagent`, `llm-skill`, or `cli-adapter` |
 | `output` | `findings` (default) · `context` · `section:<name>` · `check:<name>` · `signal:<name>` |
 | `result_fields` | Schema members a `section:*` or `signal:*` row returns; for `section:*`, defaults to the section named by `output` |

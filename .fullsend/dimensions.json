@@ -1,8 +1,9 @@
 {
-  "comment": "Review dimension registry. The orchestrator dispatches by output kind only: findings (then challenger), section:* in parallel with findings, then every check:* row, then every signal:* row. It must not special-case producer names. Context adapters are trusted host data and never enter challenger synthesis.",
+  "comment": "Review dimension registry. The orchestrator dispatches by output kind only: findings (then challenger), section:* in parallel with findings, then every check:* row, then every signal:* row. It must not special-case producer names. Context adapters are trusted host data and never enter challenger synthesis. Host post-review uses optional label for human-facing Check/Producer names; id remains the machine key.",
   "dimensions": [
     {
       "id": "correctness",
+      "label": "Correctness",
       "kind": "llm-subagent",
       "output": "findings",
       "dispatch": "always",
@@ -21,6 +22,7 @@
     },
     {
       "id": "security",
+      "label": "Security",
       "kind": "llm-subagent",
       "output": "findings",
       "dispatch": "conditional",
@@ -41,6 +43,7 @@
     },
     {
       "id": "intent-coherence",
+      "label": "Intent coherence",
       "kind": "llm-subagent",
       "output": "findings",
       "dispatch": "conditional",
@@ -59,6 +62,7 @@
     },
     {
       "id": "style-conventions",
+      "label": "Style conventions",
       "kind": "llm-subagent",
       "output": "findings",
       "dispatch": "always",
@@ -74,6 +78,7 @@
     },
     {
       "id": "style-review",
+      "label": "Style",
       "kind": "llm-skill",
       "output": "findings",
       "dispatch": "conditional",
@@ -90,6 +95,7 @@
     },
     {
       "id": "rbac-review",
+      "label": "RBAC",
       "kind": "llm-skill",
       "output": "findings",
       "dispatch": "conditional",
@@ -106,6 +112,7 @@
     },
     {
       "id": "docs-currency",
+      "label": "Docs currency",
       "kind": "llm-subagent",
       "output": "findings",
       "dispatch": "conditional",
@@ -120,6 +127,7 @@
     },
     {
       "id": "cross-repo-contracts",
+      "label": "Cross-repo contracts",
       "kind": "llm-subagent",
       "output": "findings",
       "dispatch": "conditional",
@@ -136,6 +144,7 @@
     },
     {
       "id": "jira-snapshot",
+      "label": "Jira",
       "kind": "cli-adapter",
       "output": "context",
       "dispatch": "always",
@@ -158,6 +167,7 @@
     },
     {
       "id": "coderabbit",
+      "label": "CodeRabbit",
       "kind": "cli-adapter",
       "output": "findings",
       "dispatch": "always",
@@ -181,6 +191,7 @@
     },
     {
       "id": "product-ask-review",
+      "label": "Product ask",
       "kind": "llm-skill",
       "output": "section:product_ask",
       "result_fields": ["product_ask"],
@@ -195,6 +206,7 @@
     },
     {
       "id": "test-impact-review",
+      "label": "Test impact",
       "kind": "llm-skill",
       "output": "check:test-impact",
       "dispatch": "always",
@@ -207,6 +219,7 @@
     },
     {
       "id": "pr-description-review",
+      "label": "PR description",
       "kind": "llm-skill",
       "output": "check:pr-description",
       "dispatch": "always",
@@ -219,6 +232,7 @@
     },
     {
       "id": "rating",
+      "label": "Rating",
       "kind": "llm-subagent",
       "output": "signal:rating",
       "result_fields": ["risk", "confidence"],

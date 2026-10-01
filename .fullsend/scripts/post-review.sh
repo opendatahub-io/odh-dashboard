@@ -12,6 +12,8 @@
 #   4. Render the durable structured review: change summary, host status,
 #      Signal|Level|Assessment (risk/confidence), decisions, findings, Jira
 #      coherence, inspected evidence, signals, checks, and labels.
+#   5. Resolve human-facing Check/Producer names from dimensions.json `label`
+#      (fallback: registry id). Machine matching still uses `id`.
 
 #
 # Harness may fetch this script with sibling files in scripts/.
@@ -112,6 +114,37 @@ def load_rating_policy():
     return merged
 
 POLICY = load_rating_policy()
+
+def load_dimension_labels():
+    """Map dimension id → optional human label from dimensions.json."""
+    labels = {}
+    base = os.environ.get("FULLSEND_CONFIG_DIR") or ""
+    path = os.path.join(base, "dimensions.json") if base else ""
+    if not path or not os.path.isfile(path):
+        return labels
+    try:
+        with open(path, encoding="utf-8") as fh:
+            loaded = json.load(fh)
+    except (OSError, ValueError):
+        return labels
+    if not isinstance(loaded, dict):
+        return labels
+    for row in loaded.get("dimensions") or []:
+        if not isinstance(row, dict):
+            continue
+        dim_id = row.get("id")
+        label = row.get("label")
+        if isinstance(dim_id, str) and dim_id and isinstance(label, str) and label.strip():
+            labels[dim_id] = label.strip()
+    return labels
+
+DIMENSION_LABELS = load_dimension_labels()
+
+def dimension_label(dim_id):
+    """Human-facing name for a registry id; falls back to the id."""
+    if not isinstance(dim_id, str) or not dim_id:
+        return dim_id or ""
+    return DIMENSION_LABELS.get(dim_id) or dim_id
 
 def rated_level(result, field, default):
     rated = result.get(field)
@@ -310,7 +343,7 @@ def unverified_producers(result):
     establish its result."""
     names = []
     for check in checks_with_status(result, "could-not-verify"):
-        names.append(check.get("id") or "readiness check")
+        names.append(dimension_label(check.get("id") or "readiness check"))
     ledger = load_ledger()
     if ledger is not None and challenger_problem(challenger_record(ledger), result.get("findings") or []):
         names.append("challenger (its ledger record contradicts the reported findings)")
@@ -396,7 +429,10 @@ def augment_inspected(result):
     inspected = dict(result.get("inspected") or {})
     could_not_verify = list(inspected.get("could_not_verify") or [])
     for check in checks_with_status(result, "could-not-verify"):
-        note = f"{check.get('id') or 'readiness check'}: {check.get('summary') or 'could not be verified'}"
+        note = (
+            f"{dimension_label(check.get('id') or 'readiness check')}: "
+            f"{check.get('summary') or 'could not be verified'}"
+        )
         if note not in could_not_verify:
             could_not_verify.append(note)
     if could_not_verify:
@@ -619,8 +655,9 @@ def adapter_producer_row(name, envelope, findings, review_checks, count_cell):
 
     ok → ran (✅). none/skipped → unavailable (⚪), not a clean zero-finding run.
     error → ❌. Missing or unrecognized envelope → ❔."""
+    shown = dimension_label(name)
     if not isinstance(envelope, dict):
-        return (clean(name), "❔", "—", "adapter envelope missing")
+        return (clean(shown), "❔", "—", "adapter envelope missing")
     status = str(envelope.get("status") or "").strip().lower()
     reason = adapter_reason(envelope)
     if status == "ok":
@@ -628,13 +665,13 @@ def adapter_producer_row(name, envelope, findings, review_checks, count_cell):
             note = "Context available."
         else:
             note = producer_note(name, findings, review_checks)
-        return (clean(name), "✅", count_cell(name), note)
+        return (clean(shown), "✅", count_cell(name), note)
     if status in ("none", "skipped"):
         default = "No usable adapter context." if status == "none" else "Adapter skipped."
-        return (clean(name), "⚪", "—", reason or default)
+        return (clean(shown), "⚪", "—", reason or default)
     if status == "error":
-        return (clean(name), "❌", "—", reason or "Adapter error.")
-    return (clean(name), "❔", "—", reason or f"Unrecognized adapter status: {status or 'missing'}")
+        return (clean(shown), "❌", "—", reason or "Adapter error.")
+    return (clean(shown), "❔", "—", reason or f"Unrecognized adapter status: {status or 'missing'}")
 
 def producer_rows(result):
     """What ran, and what each one found — from the dispatch ledger.
@@ -660,11 +697,11 @@ def producer_rows(result):
     if ledger is None:
         unverified_note = "run state is unverified because no dispatch ledger exists"
         for name in (result.get("inspected") or {}).get("producers") or []:
-            rows.append((clean(name), "❔", count_cell(name), unverified_note))
+            rows.append((clean(dimension_label(name)), "❔", count_cell(name), unverified_note))
         return rows, False
     for name in ledger.get("dispatched") or []:
         if isinstance(name, str):
-            rows.append((clean(name), "✅", count_cell(name), producer_note(name, findings, review_checks)))
+            rows.append((clean(dimension_label(name)), "✅", count_cell(name), producer_note(name, findings, review_checks)))
     for name in ledger.get("adapters") or []:
         if isinstance(name, str):
             rows.append(adapter_producer_row(
@@ -672,7 +709,7 @@ def producer_rows(result):
     for row in ledger.get("skipped") or []:
         if isinstance(row, dict) and isinstance(row.get("id"), str):
             reason = clean(row.get("reason") or "not selected")
-            rows.append((clean(row["id"]), "➖", "—", reason))
+            rows.append((clean(dimension_label(row["id"])), "➖", "—", reason))
     return rows, True
 
 def status_headline(result, action):
@@ -721,7 +758,7 @@ def render_checks_table(result):
     for check in rows:
         status = check.get("status") or ""
         lines.append(
-            f"| {table_cell(check.get('id'))} | {mark(STATUS_MARK, status)} {table_cell(status)} "
+            f"| {table_cell(dimension_label(check.get('id')))} | {mark(STATUS_MARK, status)} {table_cell(status)} "
             f"| {table_cell(check.get('summary'))} |")
     return lines
 
@@ -768,7 +805,11 @@ def render_body(result, previous_md, action):
             lines += ["", f"### {severity.capitalize()} ({len(items)})"]
             for finding in items:
                 loc = render_location(result, finding, run_url)
-                origin = f"`{clean(finding.get('dimension'))}` · " if finding.get("dimension") else ""
+                origin = ""
+                if finding.get("dimension"):
+                    origin_ids = producer_ids(finding)
+                    origin_shown = ", ".join(dimension_label(i) for i in origin_ids) or clean(finding.get("dimension"))
+                    origin = f"`{origin_shown}` · "
                 tail = " · actionable follow-up" if finding.get("actionable") and severity in ("low", "info") else ""
                 lines += ["", f"- {origin}**{clean(finding.get('category'))}** ({loc}){tail}: {clean(finding.get('description'))}"]
                 if finding.get("why"):
@@ -970,7 +1011,7 @@ run_self_test() {
   body=$(jq -r .body "${tmp}/structured-out.json")
   if [[ "$(jq -r .action "${tmp}/structured-out.json")" != "approve" ]] ||
      ! grep -q '### Checks' <<<"${body}" ||
-     ! grep -q 'test-impact-review' <<<"${body}" ||
+     ! grep -q 'Test impact' <<<"${body}" ||
      ! grep -q '## TODO' <<<"${body}" ||
      grep -q '### Verification' <<<"${body}" ||
      grep -q '### Jira acceptance criteria' <<<"${body}" ||
@@ -1084,10 +1125,10 @@ run_self_test() {
   # readiness check reported could-not-verify while confidence still claimed high.
   printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"could-not-verify\",\"summary\":\"CI host context was unavailable.\"}]}" > "${tmp}/unavailable-check.json"
   transform_review_result "${tmp}/unavailable-check.json" > "${tmp}/unavailable-check-out.json"
-  if ! jq -e '.action == "comment" and .confidence.level == "medium" and (.confidence.why | contains("test-impact-review"))' "${tmp}/unavailable-check-out.json" >/dev/null; then
+  if ! jq -e '.action == "comment" and .confidence.level == "medium" and (.confidence.why | contains("Test impact"))' "${tmp}/unavailable-check-out.json" >/dev/null; then
     echo "FAIL unavailable-check: confidence stayed high or approve was not refused" >&2
     fail=1
-  elif ! jq -e '.inspected.could_not_verify | any(.[]; contains("test-impact-review"))' "${tmp}/unavailable-check-out.json" >/dev/null; then
+  elif ! jq -e '.inspected.could_not_verify | any(.[]; contains("Test impact"))' "${tmp}/unavailable-check-out.json" >/dev/null; then
     echo "FAIL unavailable-check: the limit was not recorded in inspected" >&2
     fail=1
   else
@@ -1125,16 +1166,16 @@ run_self_test() {
   if ! grep -q '### Producers' <<<"${body}"; then
     echo "FAIL provenance: no Producers table" >&2
     fail=1
-  elif ! grep -qE '^\| correctness \| ✅ \| 1 \|' <<<"${body}"; then
+  elif ! grep -qE '^\| Correctness \| ✅ \| 1 \|' <<<"${body}"; then
     echo "FAIL provenance: producer that found something is not counted" >&2
     fail=1
-  elif ! grep -qE '^\| style-review \| ✅ \| 0 \|' <<<"${body}"; then
+  elif ! grep -qE '^\| Style \| ✅ \| 0 \|' <<<"${body}"; then
     echo "FAIL provenance: producer that ran clean is not distinguished from one that was skipped" >&2
     fail=1
-  elif ! grep -qE '^\| security \| ➖ \| — \| no auth or secrets touched' <<<"${body}"; then
+  elif ! grep -qE '^\| Security \| ➖ \| — \| no auth or secrets touched' <<<"${body}"; then
     echo "FAIL provenance: skipped producer missing its reason" >&2
     fail=1
-  elif ! grep -q '`correctness` · \*\*off-by-one\*\*' <<<"${body}"; then
+  elif ! grep -q '`Correctness` · \*\*off-by-one\*\*' <<<"${body}"; then
     echo "FAIL provenance: finding does not name the producer that raised it" >&2
     fail=1
   elif ! grep -q '### High (1)' <<<"${body}"; then
@@ -1159,10 +1200,10 @@ run_self_test() {
     transform_review_result "${tmp}/merged.json"
   ) > "${tmp}/merged-out.json"
   body=$(jq -r .body "${tmp}/merged-out.json")
-  if ! grep -qE '^\| correctness \| ✅ \| 2 \| 2 findings: naming, off-by-one' <<<"${body}"; then
+  if ! grep -qE '^\| Correctness \| ✅ \| 2 \| 2 findings: naming, off-by-one' <<<"${body}"; then
     echo "FAIL merged-dimension: correctness did not receive both findings" >&2
     fail=1
-  elif ! grep -qE '^\| style-review \| ✅ \| 1 \| 1 finding: naming' <<<"${body}"; then
+  elif ! grep -qE '^\| Style \| ✅ \| 1 \| 1 finding: naming' <<<"${body}"; then
     echo "FAIL merged-dimension: style-review missed the merged finding" >&2
     fail=1
   else
@@ -1180,10 +1221,10 @@ run_self_test() {
     transform_review_result "${tmp}/adapter-status.json"
   ) > "${tmp}/adapter-status-out.json"
   body=$(jq -r .body "${tmp}/adapter-status-out.json")
-  if ! grep -qE '^\| jira-snapshot \| ⚪ \| — \| no issue key' <<<"${body}"; then
+  if ! grep -qE '^\| Jira \| ⚪ \| — \| no issue key' <<<"${body}"; then
     echo "FAIL adapter-status: status=none adapter was not marked unavailable" >&2
     fail=1
-  elif ! grep -qE '^\| coderabbit \| ✅ \| — \| No findings\.' <<<"${body}"; then
+  elif ! grep -qE '^\| CodeRabbit \| ✅ \| — \| No findings\.' <<<"${body}"; then
     echo "FAIL adapter-status: status=ok findings adapter with empty findings should still show ran-clean" >&2
     fail=1
   elif ! grep -q '2 producer(s) ran, 1 unavailable' <<<"${body}"; then
@@ -1201,7 +1242,7 @@ run_self_test() {
     transform_review_result "${tmp}/adapter-status.json"
   ) > "${tmp}/adapter-error-out.json"
   body=$(jq -r .body "${tmp}/adapter-error-out.json")
-  if ! grep -qE '^\| coderabbit \| ❌ \| — \| cli unavailable' <<<"${body}"; then
+  if ! grep -qE '^\| CodeRabbit \| ❌ \| — \| cli unavailable' <<<"${body}"; then
     echo "FAIL adapter-error: status=error adapter was not marked errored" >&2
     fail=1
   else
@@ -1235,19 +1276,19 @@ run_self_test() {
   if grep -q 'Secret title' <<<"${body}" || grep -q 'private body' <<<"${body}" || grep -q 'boom' <<<"${body}"; then
     echo "FAIL adapter-safe: snapshot text or free-form reason reached the comment" >&2
     fail=1
-  elif ! grep -qF '| jira-snapshot | ✅ | — | Context available. |' <<<"${body}"; then
+  elif ! grep -qF '| Jira | ✅ | — | Context available. |' <<<"${body}"; then
     echo "FAIL adapter-safe: ok context adapter must use the fixed note" >&2
     fail=1
-  elif ! grep -qF '| coderabbit | ❌ | — | Adapter error. |' <<<"${body}"; then
+  elif ! grep -qF '| CodeRabbit | ❌ | — | Adapter error. |' <<<"${body}"; then
     echo "FAIL adapter-safe: free-form error reason must use the status default" >&2
     fail=1
   elif ! grep -qF '| other | ❌ | — | http 404 |' <<<"${body}"; then
     echo "FAIL adapter-safe: token reason was not humanized" >&2
     fail=1
-  elif ! grep -qF '| pr-description-review | ✅ | — | note &lt;/details> \| x |' <<<"${body}"; then
+  elif ! grep -qF '| PR description | ✅ | — | note &lt;/details> \| x |' <<<"${body}"; then
     echo "FAIL adapter-safe: check summary in Notes was not escaped" >&2
     fail=1
-  elif ! grep -qF '| security | ➖ | — | skip &lt;/details> \| x |' <<<"${body}"; then
+  elif ! grep -qF '| Security | ➖ | — | skip &lt;/details> \| x |' <<<"${body}"; then
     echo "FAIL adapter-safe: skipped reason in Notes was not escaped" >&2
     fail=1
   elif [[ "$(grep -c '</details>' <<<"${body}")" -ne 1 ]]; then

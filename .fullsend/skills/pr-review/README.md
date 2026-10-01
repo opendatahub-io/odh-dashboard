@@ -157,29 +157,29 @@ Keep this table aligned with [`.fullsend/dimensions.json`](../../dimensions.json
 **Stock** = shipped in [fullsend-ai/agents `skills/pr-review`](https://github.com/fullsend-ai/agents/tree/91f61f3441baedf3f912c9afd4bd574c98793b96/skills/pr-review)
 at harness pin `91f61f3`. Everything else is an ODH overlay producer.
 
-| id | output | source | definition / runner |
-| --- | --- | --- | --- |
-| correctness | `findings` | stock | `sub-agents/correctness.md` |
-| security | `findings` | stock | `sub-agents/security.md` |
-| intent-coherence | `findings` | stock | `sub-agents/intent-coherence.md` |
-| style-conventions | `findings` | stock | `sub-agents/style-conventions.md` |
-| style-review | `findings` | ODH | `sub-agents/style-review/SKILL.md` |
-| rbac-review | `findings` | ODH | `sub-agents/rbac-review/SKILL.md` |
-| docs-currency | `findings` | stock | `sub-agents/docs-currency.md` |
-| cross-repo-contracts | `findings` | stock | `sub-agents/cross-repo-contracts.md` |
-| jira-snapshot | `context` | ODH | `scripts/fetch-jira-context.sh` |
-| coderabbit | `findings` | ODH | `scripts/fetch-coderabbit-context.sh` |
-| product-ask-review | `section:product_ask` | ODH | `sub-agents/product-ask-review/SKILL.md` |
-| test-impact-review | `check:test-impact` | ODH | `sub-agents/test-impact-review/SKILL.md` |
-| pr-description-review | `check:pr-description` | ODH | `sub-agents/pr-description-review/SKILL.md` |
-| rating | `signal:rating` (`risk`, `confidence`) | ODH | `sub-agents/rating.md` |
+| id | label | output | source | definition / runner |
+| --- | --- | --- | --- | --- |
+| correctness | Correctness | `findings` | stock | `sub-agents/correctness.md` |
+| security | Security | `findings` | stock | `sub-agents/security.md` |
+| intent-coherence | Intent coherence | `findings` | stock | `sub-agents/intent-coherence.md` |
+| style-conventions | Style conventions | `findings` | stock | `sub-agents/style-conventions.md` |
+| style-review | Style | `findings` | ODH | `sub-agents/style-review/SKILL.md` |
+| rbac-review | RBAC | `findings` | ODH | `sub-agents/rbac-review/SKILL.md` |
+| docs-currency | Docs currency | `findings` | stock | `sub-agents/docs-currency.md` |
+| cross-repo-contracts | Cross-repo contracts | `findings` | stock | `sub-agents/cross-repo-contracts.md` |
+| jira-snapshot | Jira | `context` | ODH | `scripts/fetch-jira-context.sh` |
+| coderabbit | CodeRabbit | `findings` | ODH | `scripts/fetch-coderabbit-context.sh` |
+| product-ask-review | Product ask | `section:product_ask` | ODH | `sub-agents/product-ask-review/SKILL.md` |
+| test-impact-review | Test impact | `check:test-impact` | ODH | `sub-agents/test-impact-review/SKILL.md` |
+| pr-description-review | PR description | `check:pr-description` | ODH | `sub-agents/pr-description-review/SKILL.md` |
+| rating | Rating | `signal:rating` (`risk`, `confidence`) | ODH | `sub-agents/rating.md` |
 
 ### Adding a producer
 
 1. Add a definition under `sub-agents/` (or a host `scripts/*.sh` for
    `cli-adapter`).
-2. Add a row to `dimensions.json` with the correct `output` kind and
-   `meta_prompt` / `result_fields` as required.
+2. Add a row to `dimensions.json` with the correct `output` kind, a human
+   `label`, and `meta_prompt` / `result_fields` as required.
 3. Run `.fullsend/scripts/validate-dimensions.sh`.
 4. Update the inventory table above.
 
