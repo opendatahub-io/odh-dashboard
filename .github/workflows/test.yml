@@ -166,7 +166,7 @@ jobs:
         shell: bash
         env:
           IMPACT_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
-          IMPACT_HEAD: ${{ github.sha }}
+          IMPACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           node scripts/cypress/plan-mock-test-impact.js \
             --base "$IMPACT_BASE" \
