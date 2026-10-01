@@ -11,12 +11,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
@@ -138,6 +140,51 @@ func TestIntegration_MaaSConsumerPortalObservabilityLifecycle(t *testing.T) {
 			entries := parseFederationEntries(t, getConfigMap(t, "maas-consumer-portal-federation-config"))
 			require.NotNil(t, findFederationEntry(entries, "perses"))
 			assert.True(t, apierrors.IsNotFound(persesClient.Get(ctx, client.ObjectKey{Name: "dashboard-core-config", Namespace: integrationNamespace}, &corev1.ConfigMap{})))
+
+			// Make the portal healthy so its own readiness retry cannot mask an
+			// observability failure that otherwise would never be retried.
+			for _, name := range []string{"maas-consumer-portal", "maas-ui", "gen-ai-ui"} {
+				deployment := &appsv1.Deployment{}
+				require.NoError(t, persesClient.Get(ctx, client.ObjectKey{Name: name, Namespace: integrationNamespace}, deployment))
+				deployment.Status.ObservedGeneration = deployment.Generation
+				deployment.Status.Replicas = 1
+				deployment.Status.ReadyReplicas = 1
+				deployment.Status.Conditions = []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue}}
+				require.NoError(t, persesClient.Status().Update(ctx, deployment))
+			}
+			route := &gatewayv1.HTTPRoute{}
+			require.NoError(t, persesClient.Get(ctx, client.ObjectKey{Name: "maas-consumer-portal", Namespace: integrationNamespace}, route))
+			route.Status.Parents = []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
+				{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
+				{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
+			}}}
+			require.NoError(t, persesClient.Status().Update(ctx, route))
+			assert.Zero(t, reconcile(t, r).RequeueAfter)
+
+			// An invalid data key reaches the API server and fails resource apply.
+			configMapPath := filepath.Join(base, "observability", "rhoai", "configmap.yaml")
+			validManifest, err := os.ReadFile(configMapPath)
+			require.NoError(t, err)
+			require.NoError(t, os.WriteFile(configMapPath, append(validManifest, []byte("  invalid key: rejected\n")...), 0644))
+			federation := getConfigMap(t, "maas-consumer-portal-federation-config")
+			assert.Equal(t, ctrlpkg.ObservabilityRetryInterval, reconcile(t, r).RequeueAfter)
+			failedDashboard := getDashboard(t)
+			assert.Equal(t, "DeployFailed", conditionReason(failedDashboard, conditionObservabilityAvailable))
+			for _, condition := range failedDashboard.Status.Conditions {
+				if condition.Type == conditionObservabilityAvailable {
+					assert.Contains(t, condition.Message, "is invalid")
+					assert.Contains(t, condition.Message, "data[invalid key]")
+				}
+			}
+			assert.Equal(t, metav1.ConditionTrue, conditionStatus(failedDashboard, ctrlpkg.ConditionMaaSConsumerPortalAvailable))
+			assert.Equal(t, federation.Data, getConfigMap(t, federation.Name).Data)
+			for i, resource := range resources {
+				require.NoError(t, persesClient.Get(ctx, client.ObjectKeyFromObject(resource), resource))
+				assert.Equal(t, originalUIDs[i], resource.GetUID())
+			}
+			require.NoError(t, os.WriteFile(configMapPath, validManifest, 0644))
+			assert.Zero(t, reconcile(t, r).RequeueAfter)
+			assert.Equal(t, metav1.ConditionTrue, conditionStatus(getDashboard(t), conditionObservabilityAvailable))
 
 			// An explicit opt-out also releases observability while keeping the portal.
 			dashboard = getDashboard(t)

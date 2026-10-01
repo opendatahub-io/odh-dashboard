@@ -12,14 +12,18 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
+	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/controller/conditions"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
@@ -615,6 +619,121 @@ func TestDeployObservabilityManifests_PersesServiceRequired(t *testing.T) {
 
 	err := deployObservabilityManifests(context.Background(), cli, dashboard, "/base", cluster.OpenDataHub, "applications")
 	assert.ErrorIs(t, err, ErrPersesServiceRequired)
+}
+
+func TestCleanupCrossNamespaceResources_PreserveObservabilityStillCleansDCH(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+	require.NoError(t, rbacv1.AddToScheme(scheme))
+	role := &rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: dchRhoaiGatewayRBACName, Namespace: dataScienceGatewayNamespace}}
+	binding := &rbacv1.RoleBinding{ObjectMeta: role.ObjectMeta}
+	configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		Name: "perses-dashboard-config", Namespace: rhoaiMonitoringNamespace,
+		Labels: map[string]string{labels.PlatformPartOf: "dashboard", moduleComponentLabel: observabilityComponent},
+	}}
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(role, binding, configMap).Build()
+	r := &DashboardReconciler{Client: cli, Scheme: scheme}
+	ctx := context.Background()
+
+	require.NoError(t, r.cleanupCrossNamespaceResources(ctx, &v1alpha1.Dashboard{}, true))
+	assert.True(t, apierrors.IsNotFound(cli.Get(ctx, client.ObjectKeyFromObject(role), role)))
+	assert.True(t, apierrors.IsNotFound(cli.Get(ctx, client.ObjectKeyFromObject(binding), binding)))
+	require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(configMap), configMap))
+}
+
+func TestReconcile_ObservabilityDetectionFailurePreservesResources(t *testing.T) {
+	scheme := maasConsumerPortalScheme(t)
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName, Finalizers: []string{dashboardFinalizer}},
+		Spec: v1alpha1.DashboardSpec{
+			ManagementSpec:     common.ManagementSpec{ManagementState: "Removed"},
+			MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
+		},
+	}
+	cm := maasConsumerPortalTestManager(t, dashboard)
+	cm.MarkTrue(conditionMaaSConsumerPortalAvailable, conditions.WithReason("Deployed"))
+	service := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: persesServiceName, Namespace: rhoaiMonitoringNamespace}}
+	observability := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		Name: "perses-dashboard-config", Namespace: rhoaiMonitoringNamespace, UID: "existing-observability",
+		Labels: map[string]string{labels.PlatformPartOf: "dashboard", moduleComponentLabel: observabilityComponent},
+	}}
+	federation := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalFederationConfigMapName, Namespace: "applications"},
+		Data:       map[string]string{federationConfigKey: "existing federation data"},
+	}
+	lookupFails := true
+	cli := fake.NewClientBuilder().WithScheme(scheme).
+		WithObjects(dashboard, service, observability, federation).WithStatusSubresource(dashboard).
+		WithInterceptorFuncs(interceptor.Funcs{
+			Get: func(ctx context.Context, delegate client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+				if _, isService := obj.(*corev1.Service); lookupFails && isService && key == client.ObjectKeyFromObject(service) {
+					return assert.AnError
+				}
+				return delegate.Get(ctx, key, obj, opts...)
+			},
+		}).Build()
+	r := &DashboardReconciler{Client: cli, Scheme: scheme, Platform: cluster.SelfManagedRhoai, ApplicationsNamespace: "applications"}
+	ctx := context.Background()
+	_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)})
+	require.ErrorIs(t, err, assert.AnError)
+	updated := &v1alpha1.Dashboard{}
+	require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(dashboard), updated))
+	condition := conditions.FindStatusCondition(updated, conditionObservabilityAvailable)
+	require.NotNil(t, condition)
+	assert.Equal(t, "DetectionFailed", condition.Reason)
+	assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
+	assert.True(t, conditions.IsStatusConditionTrue(updated, conditionMaaSConsumerPortalAvailable))
+	retained := &corev1.ConfigMap{}
+	require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(observability), retained))
+	assert.Equal(t, observability.UID, retained.UID)
+	require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(federation), retained))
+	assert.Equal(t, federation.Data, retained.Data)
+
+	lookupFails = false
+	require.NoError(t, r.autoDetectObservability(ctx, updated))
+	require.NotNil(t, updated.Spec.Observability)
+	assert.True(t, updated.Spec.Observability.Enabled)
+}
+
+func TestReconcileObservability_APIFailuresRetry(t *testing.T) {
+	for _, config := range []string{"explicit", "auto-detected"} {
+		for _, failure := range []struct {
+			reason string
+			err    error
+		}{
+			{reason: "DeployFailed", err: assert.AnError},
+			{reason: "PersesCRDNotFound", err: &meta.NoKindMatchError{GroupKind: persesdashboardGVK.GroupKind()}},
+		} {
+			t.Run(config+"/"+failure.reason, func(t *testing.T) {
+				scheme := maasConsumerPortalScheme(t)
+				service := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: persesServiceName, Namespace: rhoaiMonitoringNamespace}}
+				cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(service).
+					WithInterceptorFuncs(interceptor.Funcs{
+						List: func(ctx context.Context, delegate client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+							if list.GetObjectKind().GroupVersionKind() == persesdashboardGVK {
+								return failure.err
+							}
+							return delegate.List(ctx, list, opts...)
+						},
+					}).Build()
+				r := &DashboardReconciler{Client: cli, Scheme: scheme, Platform: cluster.SelfManagedRhoai, ApplicationsNamespace: "applications"}
+				dashboard := &v1alpha1.Dashboard{}
+				if config == "explicit" {
+					dashboard.Spec.Observability = &v1alpha1.ObservabilitySpec{
+						Enabled: true, PersesService: &v1alpha1.ServiceTarget{Name: service.Name, Namespace: service.Namespace, Port: 8080},
+					}
+				} else {
+					require.NoError(t, r.autoDetectObservability(context.Background(), dashboard))
+				}
+				cm := maasConsumerPortalTestManager(t, dashboard)
+				assert.Equal(t, observabilityRetryInterval, r.reconcileObservability(context.Background(), dashboard, cm))
+				condition := cm.GetCondition(conditionObservabilityAvailable)
+				require.NotNil(t, condition)
+				assert.Equal(t, metav1.ConditionFalse, condition.Status)
+				assert.Equal(t, failure.reason, condition.Reason)
+			})
+		}
+	}
 }
 
 func TestAutoDetectObservability_NonNotFoundError(t *testing.T) {

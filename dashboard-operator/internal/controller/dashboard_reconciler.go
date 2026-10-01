@@ -206,16 +206,24 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		conditionObservabilityAvailable,
 		conditionMaaSConsumerPortalAvailable,
 	)
+	maasConsumerPortalManaged := r.maasConsumerPortalManaged(dashboard)
+	if dashboard.Spec.ManagementState != "Removed" || maasConsumerPortalManaged {
+		if err := r.autoDetectObservability(ctx, dashboard); err != nil {
+			cm.MarkFalse(conditionObservabilityAvailable,
+				conditions.WithError(err),
+				conditions.WithReason("DetectionFailed"))
+			dashboard.Status.Phase = common.PhaseNotReady
+			cm.Sort()
+			if statusErr := r.Status().Update(ctx, dashboard); statusErr != nil {
+				logger.Error(statusErr, "Failed to update status after observability detection failure")
+			}
+			return ctrl.Result{}, err
+		}
+	}
 	// MaaS Consumer Portal availability is recalculated from its managed resources on every
 	// reconciliation. Clear a stale failure now; failures recorded later in this
 	// cycle (for example federation ConfigMap reconciliation) remain intact.
 	cm.ClearCondition(conditionMaaSConsumerPortalAvailable)
-	portalManaged := r.maasConsumerPortalManaged(dashboard)
-	if dashboard.Spec.ManagementState != "Removed" || portalManaged {
-		if err := r.autoDetectObservability(ctx, dashboard); err != nil {
-			logger.Error(err, "Failed to auto-detect observability, continuing without it")
-		}
-	}
 
 	if dashboard.Spec.ManagementState == "Removed" {
 		logger.Info("ManagementState is Removed, tearing down resources")
@@ -230,14 +238,14 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		preserveModuleStatusTransitionTimes(dashboard.Status.ModuleStatuses, nextStatuses)
 		dashboard.Status.ModuleStatuses = nextStatuses
 		r.setMaaSConsumerPortalModuleCondition(cm, dashboard, nextStatuses)
-		if portalManaged {
-			r.reconcileObservability(ctx, dashboard, cm)
+		var observabilityRetryAfter time.Duration
+		if maasConsumerPortalManaged {
+			observabilityRetryAfter = r.reconcileObservability(ctx, dashboard, cm)
 		}
-		if err := r.deployMaaSConsumerPortalFederationConfigMap(ctx, dashboard, nextStatuses); err != nil {
-			r.markMaaSConsumerPortalFederationConfigMapFailed(cm, err)
-			logger.Error(err, "Failed to deploy MaaS Consumer Portal federation ConfigMap")
+		portalRetryAfter := r.reconcileMaaSConsumerPortalOperand(ctx, dashboard, cm, nextStatuses)
+		if observabilityRetryAfter > 0 && (portalRetryAfter == 0 || observabilityRetryAfter < portalRetryAfter) {
+			portalRetryAfter = observabilityRetryAfter
 		}
-		portalRetryAfter := r.reconcileMaaSConsumerPortal(ctx, dashboard, cm, nextStatuses)
 
 		if err := r.teardownManagedResources(ctx, dashboard, nextStatuses); err != nil {
 			r.persistRemovedFailureStatus(ctx, dashboard, cm, "TeardownFailed", err)
@@ -259,7 +267,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			conditions.WithReason("Removed"),
 			conditions.WithMessage("Dashboard has been removed"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
-		if !portalManaged {
+		if !maasConsumerPortalManaged {
 			cm.MarkFalse(conditionObservabilityAvailable,
 				conditions.WithReason("Removed"),
 				conditions.WithMessage("Dashboard has been removed"),
@@ -278,15 +286,17 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 		cm.Sort()
 
+		// Decide before the status write refreshes the spec from the API server
+		// and clears any in-memory auto-detected observability configuration.
+		if maasConsumerPortalManaged && dashboard.Spec.Observability == nil && portalRetryAfter == 0 {
+			portalRetryAfter = observabilityRetryInterval
+		}
 		if statusErr := r.Status().Update(ctx, dashboard); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after removal")
 
 			return ctrl.Result{}, fmt.Errorf("failed to update status after removal: %w", statusErr)
 		}
 
-		if portalManaged && dashboard.Spec.Observability == nil && portalRetryAfter == 0 {
-			portalRetryAfter = observabilityRetryInterval
-		}
 		return ctrl.Result{RequeueAfter: portalRetryAfter}, nil
 	}
 
@@ -357,7 +367,6 @@ func (r *DashboardReconciler) persistRemovedFailureStatus(
 }
 
 const observabilityRetryInterval = 5 * time.Minute
-const maasConsumerPortalRetryInterval = time.Minute
 
 func (r *DashboardReconciler) reconcile(
 	ctx context.Context,
@@ -528,7 +537,7 @@ func (r *DashboardReconciler) reconcileDeployment(
 	}
 
 	// Deploy observability
-	r.reconcileObservability(ctx, dashboard, cm)
+	observabilityRetryAfter := r.reconcileObservability(ctx, dashboard, cm)
 
 	// Build and deploy federation ConfigMap
 	fedData, err := r.deployFederationConfigMap(ctx, nextStatuses, dashboard)
@@ -539,11 +548,7 @@ func (r *DashboardReconciler) reconcileDeployment(
 		logger.Error(err, "Failed to deploy federation ConfigMap")
 		return ctrl.Result{}, fmt.Errorf("federation ConfigMap: %w", err)
 	}
-	if err := r.deployMaaSConsumerPortalFederationConfigMap(ctx, dashboard, nextStatuses); err != nil {
-		r.markMaaSConsumerPortalFederationConfigMapFailed(cm, err)
-		logger.Error(err, "Failed to deploy MaaS Consumer Portal federation ConfigMap")
-	}
-	portalRetryAfter := r.reconcileMaaSConsumerPortal(ctx, dashboard, cm, nextStatuses)
+	portalRetryAfter := r.reconcileMaaSConsumerPortalOperand(ctx, dashboard, cm, nextStatuses)
 
 	if err := r.patchDeploymentFederationHash(ctx, fedData); err != nil {
 		logger.Error(err, "Failed to patch federation hash on deployment")
@@ -577,8 +582,10 @@ func (r *DashboardReconciler) reconcileDeployment(
 		requeueAfter = cfg.ReconcileInterval
 	}
 
-	if portalRetryAfter > 0 && (requeueAfter == 0 || portalRetryAfter < requeueAfter) {
-		requeueAfter = portalRetryAfter
+	for _, retryAfter := range []time.Duration{portalRetryAfter, observabilityRetryAfter} {
+		if retryAfter > 0 && (requeueAfter == 0 || retryAfter < requeueAfter) {
+			requeueAfter = retryAfter
+		}
 	}
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
@@ -587,7 +594,7 @@ func (r *DashboardReconciler) reconcileObservability(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
 	cm *conditions.Manager,
-) {
+) time.Duration {
 	logger := log.FromContext(ctx)
 
 	switch obsErr := deployObservabilityManifests(ctx, r.Client, dashboard, r.ManifestsBasePath, r.Platform, r.ApplicationsNamespace); {
@@ -611,12 +618,15 @@ func (r *DashboardReconciler) reconcileObservability(
 			conditions.WithMessage("PersesDashboard CRD is not installed; install Cluster Observability Operator"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
 		logger.Info("PersesDashboard CRD not found, skipping observability deployment")
+		return observabilityRetryInterval
 	default:
 		cm.MarkFalse(conditionObservabilityAvailable,
-			conditions.WithReason("DeployFailed"),
-			conditions.WithError(obsErr))
+			conditions.WithError(obsErr),
+			conditions.WithReason("DeployFailed"))
 		logger.Error(obsErr, "Failed to deploy observability manifests")
+		return observabilityRetryInterval
 	}
+	return 0
 }
 
 func (r *DashboardReconciler) reconcileURL(
@@ -718,12 +728,11 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 	if err := r.cleanupRayDashboardGatewayRBAC(ctx); err != nil {
 		return err
 	}
-	if preserveObservability {
-		return nil
-	}
-
 	if err := r.cleanupDataConnectHubGatewayRBAC(ctx, ""); err != nil {
 		return fmt.Errorf("DCH gateway RBAC cleanup: %w", err)
+	}
+	if preserveObservability {
+		return nil
 	}
 
 	// The service reference may be removed when observability is disabled. Find
