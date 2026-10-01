@@ -46,6 +46,56 @@ export type EvalHubHealthResponse = {
   available: boolean;
 };
 
+export type KueueAvailability = {
+  enabled: boolean;
+  scheduling_ready: boolean;
+  cluster_enabled: boolean;
+  namespace_managed: boolean;
+  local_queues_available: boolean;
+  local_queue_names: string[];
+};
+
+export type KueueWorkloadState = 'queued' | 'admitted' | 'finished' | 'preempted' | 'inadmissible';
+
+export type KueueWorkloadStatus = {
+  evaluation_id: string;
+  queue_name: string;
+  state: KueueWorkloadState;
+  message?: string;
+  queue_position?: number;
+};
+
+export type KueueWorkloadStatusesResponse = {
+  items: KueueWorkloadStatus[];
+};
+
+export type HardwareProfileResource = {
+  display_name?: string;
+  identifier: string;
+  resource_type?: string;
+  default?: string;
+  minimum?: string;
+  maximum?: string;
+};
+
+export type HardwareProfile = {
+  name: string;
+  display_name: string;
+  description?: string;
+  enabled: boolean;
+  scheduling_type?: string;
+  local_queue_name?: string;
+  cluster_queue_name?: string;
+  priority_class?: string;
+  resources?: HardwareProfileResource[];
+  compatibility?: HardwareProfileValidationResult;
+};
+
+export type HardwareProfilesResponse = {
+  items: HardwareProfile[];
+  warning?: string;
+};
+
 // ---------------------------------------------------------------------------
 // EvalHub CR status types matching the BFF response shape
 // ---------------------------------------------------------------------------
@@ -102,12 +152,14 @@ type JobResource = {
   owner?: string;
   mlflow_experiment_id?: string;
   message?: JobMessage;
+  queue?: string;
 };
 
 type JobStatus = {
   state: EvaluationJobState;
   message?: JobMessage;
   benchmarks?: BenchmarkState[];
+  queue?: string;
 };
 
 type BenchmarkState = {
@@ -181,6 +233,29 @@ type TestDataRef = {
   s3?: S3DataRef;
 };
 
+export type HardwareResourceConfig = {
+  request?: string;
+  limit?: string;
+};
+
+export type HardwareGPUConfig = {
+  name: string;
+  count: number;
+};
+
+export type HardwareQueueConfig = {
+  kind?: string;
+  name: string;
+};
+
+export type HardwareConfig = {
+  hardware_profile_name?: string;
+  cpu?: HardwareResourceConfig;
+  memory?: HardwareResourceConfig;
+  gpu?: HardwareGPUConfig;
+  queue?: HardwareQueueConfig;
+};
+
 type JobBenchmark = {
   id: string;
   provider_id?: string;
@@ -190,6 +265,7 @@ type JobBenchmark = {
   pass_criteria?: JobPassCriteria;
   parameters?: Record<string, unknown>;
   test_data_ref?: TestDataRef;
+  hardware_config?: HardwareConfig;
 };
 
 type JobCollection = {
@@ -237,6 +313,7 @@ export type EvaluationJob = {
   benchmarks?: JobBenchmark[] | null;
   collection?: JobCollection;
   experiment?: JobExperiment;
+  hardware_config?: HardwareConfig;
   custom?: Record<string, unknown>;
   exports?: JobExports;
 };
@@ -274,6 +351,13 @@ export type CollectionResource = {
   updated_at?: string;
   read_only?: boolean;
   owner?: string;
+  version_counter?: number;
+};
+
+export type CollectionState = {
+  derived_from?: string;
+  run_count?: number;
+  pinned_order?: number;
 };
 
 export type CollectionPrimaryScore = {
@@ -301,19 +385,78 @@ export type Collection = {
   category?: string;
   description?: string;
   tags?: string[];
+  domains?: string[];
+  tasks?: string[];
+  modalities?: string[];
+  industries?: string[];
+  evaluation_targets?: string[];
+  curation_order?: number;
+  state?: CollectionState;
   custom?: Record<string, unknown>;
   pass_criteria?: CollectionPassCriteria;
   benchmarks?: CollectionBenchmark[];
 };
 
-export type ListCollectionsParams = {
+export type CollectionPatchOperation =
+  | {
+      op: 'replace' | 'add';
+      path: string;
+      value: unknown;
+    }
+  | {
+      op: 'remove';
+      path: string;
+    };
+
+export type CollectionScope = 'system' | 'tenant';
+
+export type CollectionSortBy = 'curation_order';
+
+export type CollectionFilterParams = {
+  domains?: string[];
+  industries?: string[];
+  evaluationTargets?: string[];
+};
+
+export type CloneCollectionRequest = {
+  name: string;
+  description?: string;
+  category?: string;
+  tags?: string[];
+  domains?: string[];
+  tasks?: string[];
+  modalities?: string[];
+  industries?: string[];
+  evaluation_targets?: string[];
+  custom?: Record<string, unknown>;
+  pass_criteria?: CollectionPassCriteria;
+  benchmarks?: CollectionBenchmark[];
+};
+
+export type CreateCollectionRequest = {
+  name: string;
+  category?: string;
+  description?: string;
+  tags?: string[];
+  domains?: string[];
+  tasks?: string[];
+  modalities?: string[];
+  industries?: string[];
+  evaluation_targets?: string[];
+  custom?: Record<string, unknown>;
+  pass_criteria?: CollectionPassCriteria;
+  benchmarks: CollectionBenchmark[];
+};
+
+export type ListCollectionsParams = CollectionFilterParams & {
   namespace?: string;
   limit?: number;
   offset?: number;
   name?: string;
   category?: string | null;
   tags?: string[];
-  scope?: string;
+  scope?: CollectionScope;
+  sortBy?: CollectionSortBy;
 };
 
 export type CollectionsListResponse = {
@@ -382,6 +525,10 @@ export type ProviderK8sRuntime = {
   memory_request?: string;
   cpu_limit?: string;
   memory_limit?: string;
+  gpu?: {
+    resource?: string;
+    count?: number;
+  };
   env?: ProviderEnvVar[];
 };
 
@@ -421,6 +568,29 @@ export type ProvidersResponse = {
   total_count?: number;
 };
 
+export type HardwareProfileValidationRequest = {
+  hardware_profiles: string[];
+  provider_ids: string[];
+};
+
+export type HardwareProfileResourceMismatch = {
+  provider_id: string;
+  resource: string;
+  required: string;
+  available: string;
+  message: string;
+};
+
+export type HardwareProfileValidationResult = {
+  compatible: boolean;
+  hardware_profile: string;
+  mismatches?: HardwareProfileResourceMismatch[];
+};
+
+export type HardwareProfileValidationResponse = {
+  items: HardwareProfileValidationResult[];
+};
+
 // ---------------------------------------------------------------------------
 // Create Evaluation Job request / response
 // ---------------------------------------------------------------------------
@@ -443,6 +613,9 @@ export type CreateEvaluationJobRequest = {
   experiment?: JobExperiment;
   custom?: Record<string, unknown>;
   exports?: JobExports;
+  hardware_config?: HardwareConfig;
+  /** Deprecated compatibility fallback. Prefer hardware_config.queue. */
+  queue?: HardwareQueueConfig;
 };
 
 export type CreateEvaluationJobResponse = EvaluationJob;

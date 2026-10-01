@@ -28,6 +28,7 @@ func main() {
 	flag.BoolVar(&cfg.MockHTTPClient, "mock-http-client", false, "Use mock HTTP client")
 	flag.BoolVar(&cfg.MockEvalHubClient, "mock-evalhub-client", getEnvAsBool("MOCK_EVALHUB_CLIENT", false), "Use mock EvalHub client")
 	flag.StringVar(&cfg.EvalHubURL, "eval-hub-url", getEnvAsString("EVAL_HUB_URL", ""), "EvalHub API server URL")
+	flag.StringVar(&cfg.HardwareProfilesNamespace, "hardware-profiles-namespace", getEnvAsString("EVALHUB_HARDWARE_PROFILES_NAMESPACE", ""), "Platform namespace where EvalHub resolves HardwareProfiles")
 	flag.BoolVar(&cfg.DevMode, "dev-mode", false, "Use development mode for access to local K8s cluster")
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 
@@ -94,12 +95,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Allow full log retrieval to complete within the EvalHub client's
+	// two-minute timeout, with headroom to write the response.
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		Handler:      app.Routes(),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		WriteTimeout: 3 * time.Minute,
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 

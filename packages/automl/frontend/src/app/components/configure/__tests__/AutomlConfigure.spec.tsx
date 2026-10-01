@@ -3,13 +3,18 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
+import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplorer/types';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
-import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
+import { useS3GetFileSchemaQuery } from '~/app/hooks/useS3GetFileSchemaQuery';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import { AUTOML_EVENTS } from '~/app/utilities/tracking';
 import {
@@ -18,14 +23,53 @@ import {
 } from '~/app/utilities/automlTrainingDataFile';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
   fireMiscTrackingEvent: jest.fn(),
 }));
 
+const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
 const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 const mockNotificationError = jest.fn();
 
 const mockS3MutateAsync = jest.fn().mockResolvedValue({ uploaded: true, key: 'uploaded-key.csv' });
+const mockCreateSecretMutateAsync = jest.fn();
+const mockSecretRefresh = jest.fn();
+const mockAutomlConnectionTypes = [
+  mockConnectionTypeConfigMapObj({
+    name: 's3',
+    fields: [
+      {
+        type: 'short-text',
+        name: 'Access key',
+        envVar: 'AWS_ACCESS_KEY_ID',
+        required: true,
+        properties: {},
+      },
+      {
+        type: 'hidden',
+        name: 'Secret key',
+        envVar: 'AWS_SECRET_ACCESS_KEY',
+        required: true,
+        properties: {},
+      },
+      {
+        type: 'short-text',
+        name: 'Endpoint',
+        envVar: 'AWS_S3_ENDPOINT',
+        required: true,
+        properties: {},
+      },
+      {
+        type: 'short-text',
+        name: 'Bucket',
+        envVar: 'AWS_S3_BUCKET',
+        required: true,
+        properties: {},
+      },
+    ],
+  }),
+];
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -33,7 +77,7 @@ jest.mock('react-router', () => ({
   useParams: jest.fn(),
 }));
 
-jest.mock('~/app/hooks/queries');
+jest.mock('~/app/hooks/useS3GetFileSchemaQuery');
 
 jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: () => ({
@@ -43,8 +87,9 @@ jest.mock('~/app/hooks/useNotification', () => ({
   }),
 }));
 
-jest.mock('~/app/hooks/mutations', () => ({
-  ...jest.requireActual<typeof import('~/app/hooks/mutations')>('~/app/hooks/mutations'),
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
+  useCreateSecretMutation: jest.fn(() => ({ mutateAsync: mockCreateSecretMutateAsync })),
   useS3FileUploadMutation: jest.fn(() => ({
     mutateAsync: mockS3MutateAsync,
     isPending: false,
@@ -85,17 +130,20 @@ jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileEx
 }));
 
 // Mock SecretSelector — maps UUID to label like the real selector
-jest.mock('~/app/components/common/SecretSelector', () => {
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => {
   const MOCK_UUID_TO_DISPLAY_LABEL: Record<string, string> = {
     'secret-1': 'Test Secret 1',
     'secret-2': 'Test Secret 2',
     'secret-3': 'Invalid Secret',
   };
 
+  const actual = jest.requireActual('@odh-dashboard/autox-core/ui/components/feature');
+
   return {
-    __esModule: true,
-    default: ({
+    ...actual,
+    SecretSelector: ({
       onChange,
+      onRefreshReady,
       value,
       dataTestId,
     }: {
@@ -112,67 +160,69 @@ jest.mock('~/app/components/common/SecretSelector', () => {
       ) => void;
       value?: string;
       dataTestId?: string;
-    }) => (
-      <div data-testid={dataTestId}>
-        <button
-          data-testid={`${dataTestId}-select-secret-1`}
-          onClick={() =>
-            onChange({
-              uuid: 'secret-1',
-              name: 'Test Secret 1',
-              data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
-              type: 's3',
-              invalid: false,
-            })
-          }
-        >
-          Select Secret 1
-        </button>
-        <button
-          data-testid={`${dataTestId}-select-secret-2`}
-          onClick={() =>
-            onChange({
-              uuid: 'secret-2',
-              name: 'Test Secret 2',
-              data: { AWS_S3_BUCKET: 'test-bucket-2', AWS_DEFAULT_REGION: 'us-east-1' },
-              type: 's3',
-              invalid: false,
-            })
-          }
-        >
-          Select Secret 2
-        </button>
-        <button
-          data-testid={`${dataTestId}-select-invalid-secret`}
-          onClick={() =>
-            onChange({
-              uuid: 'secret-3',
-              name: 'Invalid Secret',
-              data: {},
-              type: 's3',
-              invalid: true,
-            })
-          }
-        >
-          Select Invalid Secret
-        </button>
-        {value && (
-          <div data-testid={`${dataTestId}-value`}>
-            {MOCK_UUID_TO_DISPLAY_LABEL[value] ?? value}
-          </div>
-        )}
-      </div>
-    ),
+      onRefreshReady?: (refresh: () => Promise<unknown>) => void;
+    }) => {
+      jest.requireActual('react').useEffect(() => {
+        onRefreshReady?.(mockSecretRefresh);
+      }, [onRefreshReady]);
+
+      return (
+        <div data-testid={dataTestId}>
+          <button
+            data-testid={`${dataTestId}-select-secret-1`}
+            onClick={() =>
+              onChange({
+                uuid: 'secret-1',
+                name: 'Test Secret 1',
+                data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+                type: 's3',
+                invalid: false,
+              })
+            }
+          >
+            Select Secret 1
+          </button>
+          <button
+            data-testid={`${dataTestId}-select-secret-2`}
+            onClick={() =>
+              onChange({
+                uuid: 'secret-2',
+                name: 'Test Secret 2',
+                data: { AWS_S3_BUCKET: 'test-bucket-2', AWS_DEFAULT_REGION: 'us-east-1' },
+                type: 's3',
+                invalid: false,
+              })
+            }
+          >
+            Select Secret 2
+          </button>
+          <button
+            data-testid={`${dataTestId}-select-invalid-secret`}
+            onClick={() =>
+              onChange({
+                uuid: 'secret-3',
+                name: 'Invalid Secret',
+                data: {},
+                type: 's3',
+                invalid: true,
+              })
+            }
+          >
+            Select Invalid Secret
+          </button>
+          {value && (
+            <div data-testid={`${dataTestId}-value`}>
+              {MOCK_UUID_TO_DISPLAY_LABEL[value] ?? value}
+            </div>
+          )}
+        </div>
+      );
+    },
   };
 });
 
 jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
-  useWatchConnectionTypes: () => [[]],
-}));
-
-jest.mock('~/app/components/common/AutomlConnectionModal', () => ({
-  __esModule: true,
-  default: () => null,
+  useWatchConnectionTypes: () => [mockAutomlConnectionTypes],
 }));
 
 // Mock DashboardPopupIconButton (match ConfigureFormGroup tests)
@@ -185,6 +235,7 @@ jest.mock('mod-arch-shared', () => ({
 }));
 
 const mockuseS3GetFileSchemaQuery = jest.mocked(useS3GetFileSchemaQuery);
+const mockResetSchemaCache = jest.fn();
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseParams = jest.mocked(useParams);
 
@@ -286,6 +337,29 @@ const renderWithQueryClient = (
 const renderComponent = (defaultValues?: Partial<typeof configureSchema.defaults>) =>
   renderWithQueryClient(<AutomlConfigure />, defaultValues);
 
+const openConnectionModal = () => {
+  fireEvent.click(screen.getByRole('button', { name: 'Add new connection' }));
+};
+
+const fillConnectionModal = async () => {
+  const user = userEvent.setup();
+  await user.type(screen.getByRole('textbox', { name: 'Connection name' }), 'my-connection');
+  for (const envVar of [
+    'AWS_ACCESS_KEY_ID',
+    'AWS_SECRET_ACCESS_KEY',
+    'AWS_S3_ENDPOINT',
+    'AWS_S3_BUCKET',
+  ]) {
+    const field = screen.getByTestId(`field ${envVar}`);
+    const input = field.matches('input') ? field : field.querySelector('input');
+    if (!input) {
+      throw new Error(`Expected connection input for ${envVar}`);
+    }
+    await user.type(input, `value-${envVar}`);
+  }
+  return user;
+};
+
 const renderWithInitialValues = (
   initialValues: Parameters<typeof AutomlConfigure>[0]['initialValues'] & {
     initialInputDataSecret?: Parameters<typeof AutomlConfigure>[0]['initialInputDataSecret'];
@@ -350,14 +424,66 @@ describe('AutomlConfigure', () => {
     mockuseS3GetFileSchemaQuery.mockReturnValue({
       data: MOCK_COLUMNS,
       isLoading: false,
+      resetSchemaCache: mockResetSchemaCache,
     } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
     mockUseNavigate.mockReturnValue(jest.fn());
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
     // Reset the S3 upload mock to default resolved value
     mockS3MutateAsync.mockResolvedValue({ uploaded: true, key: 'uploaded-key.csv' });
+    mockCreateSecretMutateAsync.mockResolvedValue(undefined);
+    mockSecretRefresh.mockResolvedValue([]);
   });
 
   describe('initial state - no secret selected', () => {
+    it('should track a successfully created connection through the shared modal', async () => {
+      renderComponent();
+      openConnectionModal();
+      await fillConnectionModal();
+      await userEvent.setup().click(screen.getByRole('button', { name: 'Add connection' }));
+
+      await waitFor(() =>
+        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+          AUTOML_EVENTS.S3_CONNECTION_CREATED,
+          { outcome: 'submit', success: true },
+        ),
+      );
+    });
+
+    it('should show the mapped create error and track a failed connection creation', async () => {
+      mockCreateSecretMutateAsync.mockRejectedValueOnce(new Error('create backend detail'));
+      renderComponent();
+      openConnectionModal();
+      await fillConnectionModal();
+      await userEvent.setup().click(screen.getByRole('button', { name: 'Add connection' }));
+
+      expect(await screen.findByText('create backend detail')).toBeInTheDocument();
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.S3_CONNECTION_CREATED, {
+        outcome: 'submit',
+        success: false,
+        error: 'actionFailed',
+      });
+    });
+
+    it('should show the mapped submit error after connection creation succeeds', async () => {
+      mockSecretRefresh.mockRejectedValueOnce(new Error('submit backend detail'));
+      renderComponent();
+      openConnectionModal();
+      await fillConnectionModal();
+      await userEvent.setup().click(screen.getByRole('button', { name: 'Add connection' }));
+
+      expect(await screen.findByText('submit backend detail')).toBeInTheDocument();
+    });
+
+    it('should track cancellation through the shared modal', async () => {
+      renderComponent();
+      openConnectionModal();
+      await userEvent.setup().click(screen.getByRole('button', { name: 'Cancel' }));
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.S3_CONNECTION_CREATED, {
+        outcome: 'cancel',
+      });
+    });
+
     it('should NOT show training data source toggle when no secret is selected', () => {
       renderComponent();
 
@@ -986,7 +1112,8 @@ describe('AutomlConfigure', () => {
           { name: 'amount', type: 'double', task_type: 'multiclass', unique_count: 3 },
         ],
         isLoading: false,
-      } as ReturnType<typeof useS3GetFileSchemaQuery>);
+        resetSchemaCache: mockResetSchemaCache,
+      } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
       renderComponent();
       selectSecretAndFile();
       selectTargetColumn('amount');
@@ -1014,7 +1141,8 @@ describe('AutomlConfigure', () => {
           { name: '店舗', type: 'string', task_type: 'multiclass' },
         ],
         isLoading: false,
-      } as ReturnType<typeof useS3GetFileSchemaQuery>);
+        resetSchemaCache: mockResetSchemaCache,
+      } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
       renderComponent();
       selectSecretAndFile();
       selectTargetColumn('amount');
@@ -1033,7 +1161,8 @@ describe('AutomlConfigure', () => {
           { name: 'amount', type: 'double', task_type: 'regression' },
         ],
         isLoading: false,
-      } as ReturnType<typeof useS3GetFileSchemaQuery>);
+        resetSchemaCache: mockResetSchemaCache,
+      } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
       renderComponent();
       selectSecretAndFile();
       selectTargetColumn('amount');
@@ -1052,7 +1181,8 @@ describe('AutomlConfigure', () => {
           { name: 'category', type: 'string', task_type: 'multiclass', unique_count: 3 },
         ],
         isLoading: false,
-      } as ReturnType<typeof useS3GetFileSchemaQuery>);
+        resetSchemaCache: mockResetSchemaCache,
+      } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
       renderComponent();
       selectSecretAndFile();
       selectTargetColumn('category');
@@ -1098,6 +1228,7 @@ describe('AutomlConfigure', () => {
         mockuseS3GetFileSchemaQuery.mockReturnValue({
           data: [],
           isLoading: false,
+          resetSchemaCache: mockResetSchemaCache,
         } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
         renderComponent();
         selectSecretAndFile();
@@ -1128,7 +1259,8 @@ describe('AutomlConfigure', () => {
         mockuseS3GetFileSchemaQuery.mockReturnValue({
           data: [...MOCK_COLUMNS, { name: 'observed', type: 'timestamp', task_type: 'multiclass' }],
           isLoading: false,
-        } as ReturnType<typeof useS3GetFileSchemaQuery>);
+          resetSchemaCache: mockResetSchemaCache,
+        } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
         renderWithInitialValues(
           {
             initialInputDataSecret: {

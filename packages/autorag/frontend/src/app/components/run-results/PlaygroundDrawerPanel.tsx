@@ -27,6 +27,7 @@ import React from 'react';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { formatPatternName } from '~/app/utilities/utils';
+import { formatMetricValue } from '~/app/utilities/metricUtils';
 import './PlaygroundDrawerPanel.scss';
 
 const EmbeddedPlayground = React.lazy(() => import('~/app/components/EmbeddedPlayground'));
@@ -142,7 +143,7 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
                   <DescriptionListTerm>{patternInfo.optimizedMetricName}</DescriptionListTerm>
                   <DescriptionListDescription>
                     {typeof patternInfo.optimizedMetricValue === 'number'
-                      ? patternInfo.optimizedMetricValue.toFixed(2)
+                      ? formatMetricValue(patternInfo.optimizedMetricValue, 2)
                       : patternInfo.optimizedMetricValue}
                   </DescriptionListDescription>
                 </DescriptionListGroup>

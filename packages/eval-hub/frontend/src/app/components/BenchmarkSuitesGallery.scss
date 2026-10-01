@@ -1,0 +1,21 @@
+.evalhub-benchmark-suite-gallery {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.evalhub-benchmark-suite-gallery__container {
+  position: relative;
+}
+
+.evalhub-benchmark-suite-gallery__refresh-loading {
+  position: absolute;
+  inset: 0;
+  background-color: var(--pf-t--global--background--color--primary--default);
+  opacity: 0.75;
+}
+
+.evalhub-benchmark-suite-gallery__error-state {
+  align-items: flex-start;
+  height: auto;
+  min-height: 300px;
+  padding-block-start: var(--pf-t--global--spacer--2xl);
+}

@@ -24,6 +24,26 @@ class EvaluationResultsPage {
     return cy.findByTestId('evaluation-metadata');
   }
 
+  findViewLogButton() {
+    return cy.findByTestId('view-log-button');
+  }
+
+  findEventLogModal() {
+    return cy.findByTestId('evaluation-event-log-modal');
+  }
+
+  findDownloadLogsButton() {
+    return cy.findByTestId('download-logs-button');
+  }
+
+  findBenchmarkLogSelector() {
+    return cy.findByTestId('benchmark-log-selector');
+  }
+
+  findBenchmarkLogOption(name: string) {
+    return cy.findByTestId(`benchmark-log-option-${name}`);
+  }
+
   findBenchmarksGrid() {
     return cy.findByTestId('benchmarks-grid');
   }

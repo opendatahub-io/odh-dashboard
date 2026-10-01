@@ -135,7 +135,7 @@ describe('Verify a Training Job with Progression Tracking', () => {
 
       cy.step('Verify status modal opens');
       trainingJobStatusModal.shouldBeOpen();
-      trainingJobStatusModal.findTitle().should('exist');
+      trainingJobStatusModal.findTitle(trainJobName).should('exist');
 
       cy.step('Verify status shows in modal');
       trainingJobStatusModal.findStatusLabel().should('exist');

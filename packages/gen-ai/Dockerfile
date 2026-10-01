@@ -1,33 +1,39 @@
-# Frontend build stage
+# Compatibility Dockerfile for repository-root builds.
+# Active monorepo and CI builds use packages/gen-ai/Dockerfile.workspace.
 # Build from repository root: docker build -f packages/gen-ai/Dockerfile .
-FROM registry.access.redhat.com/ubi9/nodejs-20 AS ui-builder
-USER root
+
+# Frontend build stage
+FROM registry.access.redhat.com/ubi9/nodejs-22 AS ui-builder
+
 WORKDIR /usr/src/workspace
-# Copy root workspace manifest (needed for npm workspaces)
-COPY package.json package-lock.json* ./
-# Copy frontend workspace manifests (for @odh-dashboard/internal)
-COPY frontend/package.json ./frontend/
-COPY frontend/src/package.json ./frontend/src/
-# Copy required workspace packages
-COPY packages/plugin-core/ ./packages/plugin-core/
-COPY packages/app-config/ ./packages/app-config/
-COPY packages/tsconfig/ ./packages/tsconfig/
-# Copy frontend source (for @odh-dashboard/internal exports)
-COPY frontend/src/ ./frontend/src/
-# Copy gen-ai module package.json
-COPY packages/gen-ai/package.json ./packages/gen-ai/
-COPY packages/gen-ai/frontend/package*.json ./packages/gen-ai/frontend/
-# Copy gen-ai module source code
-COPY packages/gen-ai/frontend/ ./packages/gen-ai/frontend/
-RUN chown -R default:root /usr/src/workspace && chmod -R g+w /usr/src/workspace
+
+# Copy pnpm workspace metadata and the packages required by the Gen AI frontend.
+COPY --chown=default:root package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY --chown=default:root frontend/package.json ./frontend/
+COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
+COPY --chown=default:root packages/analytics/ ./packages/analytics/
+COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
+COPY --chown=default:root packages/app-config/ ./packages/app-config/
+COPY --chown=default:root packages/foundation/ ./packages/foundation/
+COPY --chown=default:root packages/k8s-core/ ./packages/k8s-core/
+COPY --chown=default:root packages/ui-core/ ./packages/ui-core/
+COPY --chown=default:root packages/model-serving/ ./packages/model-serving/
+COPY --chown=default:root packages/trustyai/ ./packages/trustyai/
+COPY --chown=default:root packages/model-registry/package.json ./packages/model-registry/
+COPY --chown=default:root packages/model-registry/shared/ ./packages/model-registry/shared/
+COPY --chown=default:root packages/hardware-profiles/ ./packages/hardware-profiles/
+COPY --chown=default:root packages/connection-types/ ./packages/connection-types/
+COPY --chown=default:root frontend/src/ ./frontend/src/
+COPY --chown=default:root scripts/ ./scripts/
+COPY --chown=default:root packages/gen-ai/frontend/ ./packages/gen-ai/frontend/
+
 USER default
-# Install workspace dependencies at root level
-RUN npm ci --ignore-scripts
-# Change to module directory and install module dependencies
+RUN npm install -g pnpm@11.22.0
+RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
+
 WORKDIR /usr/src/workspace/packages/gen-ai/frontend
-RUN npm ci --ignore-scripts
 ENV DEPLOYMENT_MODE=standalone
-RUN npm run build:prod
+RUN pnpm run build:prod
 
 # Backend build stage
 FROM registry.redhat.io/ubi9/go-toolset:1.26 AS bff-builder
@@ -56,4 +62,4 @@ ENV OAUTH_ENABLED=false \
 
 USER 1001
 EXPOSE 8080
-CMD ["/bff"] 
+CMD ["/bff"]

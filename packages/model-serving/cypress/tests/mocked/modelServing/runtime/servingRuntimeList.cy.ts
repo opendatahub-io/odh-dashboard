@@ -41,12 +41,12 @@ import {
 } from '@odh-dashboard/cypress/cypress/pages/modelServing';
 import { projectDetails } from '@odh-dashboard/cypress/cypress/pages/projects';
 import { be } from '@odh-dashboard/cypress/cypress/utils/should';
-import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
+import { SecretModel, PodModel } from '@odh-dashboard/k8s-core/api/models';
+
 import {
   HardwareProfileModel,
   InferenceServiceModel,
   ODHDashboardConfigModel,
-  PodModel,
   ProjectModel,
   RouteModel,
   ServingRuntimeModel,
@@ -78,6 +78,7 @@ type HandlersProps = {
   DscComponents?: DataScienceClusterKindStatus['components'];
   disableProjectScoped?: boolean;
   templates?: boolean;
+  nimWizard?: boolean;
 };
 
 const initIntercepts = ({
@@ -119,6 +120,7 @@ const initIntercepts = ({
   disableNIMConfig = true,
   projectEnableNIM: enableNIM = false,
   DscComponents,
+  nimWizard = false,
 }: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -140,6 +142,7 @@ const initIntercepts = ({
       disableProjectScoped,
       disableKServeMetrics,
       disableNIMModelServing: disableNIMConfig,
+      nimWizard,
     }),
   );
   cy.interceptK8s(ODHDashboardConfigModel, mockDashboardConfig({}));

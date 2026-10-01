@@ -79,7 +79,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
             {!isCompareMode && (
               <ToolbarItem>
                 {profileApplied ? (
-                  <Tooltip content="Comparison mode is not available when an agent is loaded.">
+                  <Tooltip content="Side-by-side chat comparison isn't available for saved agents.">
                     <Button
                       variant="link"
                       aria-label="Compare chat (disabled)"

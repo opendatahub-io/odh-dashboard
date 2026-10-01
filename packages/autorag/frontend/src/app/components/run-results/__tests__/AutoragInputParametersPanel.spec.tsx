@@ -6,6 +6,7 @@ import { Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core
 import AutoragInputParametersPanel from '~/app/components/run-results/AutoragInputParametersPanel';
 import { AutoragResultsContext, getAutoragContext } from '~/app/context/AutoragResultsContext';
 import type { AutoragRuntimeParameters, PipelineRun } from '~/app/types';
+import type { AutoragPattern } from '~/app/types/autoragPattern';
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -45,7 +46,7 @@ const defaultParameters: AutoragRuntimeParameters = {
   test_data_key: 'eval-data.json',
   ogx_secret_name: 'ls-secret',
   vector_io_provider_id: 'milvus',
-  optimization_metric: 'faithfulness',
+  optimization_metric: 'unitxt:faithfulness',
   optimization_max_rag_patterns: 8,
   generation_models: ['llama-4-ma', 'gpt-oss-120b'],
   embedding_models: ['granite-embedding'],
@@ -64,8 +65,13 @@ const renderPanel = (
   contextOverrides: Partial<Parameters<typeof getAutoragContext>[0]> = {},
 ) => {
   const onClose = jest.fn();
+  const panelParameters = props.parameters ?? defaultParameters;
   const contextValue = getAutoragContext({
-    pipelineRun: createMockPipelineRun(),
+    pipelineRun:
+      contextOverrides.pipelineRun ??
+      createMockPipelineRun({
+        runtime_config: { parameters: panelParameters },
+      }),
     patterns: {},
     patternsLoading: false,
     ...contextOverrides,
@@ -278,17 +284,42 @@ describe('AutoragInputParametersPanel', () => {
 
   it('should format optimization metric with human-readable label', () => {
     renderPanel();
-    expect(screen.getByText('Answer faithfulness')).toBeInTheDocument();
+    expect(screen.getByText('Faithfulness (Unitxt)')).toBeInTheDocument();
   });
 
   it('should format context_correctness metric with human-readable label', () => {
     renderPanel({
       parameters: {
         ...defaultParameters,
-        optimization_metric: 'context_correctness',
+        optimization_metric: 'unitxt:context_correctness',
       },
     });
-    expect(screen.getByText('Context correctness')).toBeInTheDocument();
+    expect(screen.getByText('Context correctness (unitxt)')).toBeInTheDocument();
+  });
+
+  it('should include the evaluator when pattern metadata identifies the optimization metric', () => {
+    renderPanel(
+      { parameters: { ...defaultParameters, optimization_metric: 'ragas:faithfulness' } },
+      {
+        patterns: {
+          pattern1: {
+            settings: { generation: {} } as AutoragPattern['settings'],
+            evaluation: {
+              metrics: [
+                {
+                  name: 'faithfulness',
+                  evaluator: 'ragas',
+                  optimization_metric: true,
+                  scores: { mean: 0.77, ci_low: 0.6, ci_high: 0.9 },
+                },
+              ],
+            },
+          } as AutoragPattern,
+        },
+      },
+    );
+
+    expect(screen.getByText('Faithfulness (RAGAS)')).toBeInTheDocument();
   });
 
   it('should render model configuration with counts', () => {
@@ -340,7 +371,7 @@ describe('AutoragInputParametersPanel', () => {
   it('should display parameters in the defined order', () => {
     renderPanel({
       parameters: {
-        optimization_metric: 'faithfulness',
+        optimization_metric: 'unitxt:faithfulness',
         input_data_secret_name: 's3-connection',
         ogx_secret_name: 'ls-secret',
         description: 'A test run',

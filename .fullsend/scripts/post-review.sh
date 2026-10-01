@@ -3,13 +3,14 @@
 # @ 91f61f3441baedf3f912c9afd4bd574c98793b96 (harness review.yaml base).
 #
 # Local changes from the stock script:
-#   1. Set the GitHub review action from findings (critical/high →
-#      request-changes, and so on) and rewrite the sticky comment.
+#   1. Set the GitHub review action from findings (any medium+ →
+#      request-changes; risk/confidence/needs-human → comment) and rewrite
+#      the sticky comment. Floors/caps live in rating-policy.json.
 #   2. Do not append the /fs-fix "Next steps" footer.
 #   3. Link file/line references in the sticky summary and suppress inline
 #      review comments by omitting line numbers only from the CLI payload.
 #   4. Render the durable structured review: change summary, host status,
-#      blast-radius risk, confidence rationale, decisions, findings, Jira
+#      Signal|Level|Assessment (risk/confidence), decisions, findings, Jira
 #      coherence, verification, inspected evidence, signals, and labels.
 
 #
@@ -44,6 +45,9 @@
 set -euo pipefail
 
 REVIEW_STICKY_MARKER='<!-- fullsend:review-agent -->'
+_FULLSEND_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+FULLSEND_CONFIG_DIR="${FULLSEND_DIR:-${_FULLSEND_DIR}}"
+export FULLSEND_CONFIG_DIR
 
 # $1 = path to agent-result.json. Writes transformed JSON to stdout.
 transform_review_result() {
@@ -52,20 +56,62 @@ import json, os, re, sys
 from datetime import datetime, timezone
 from urllib.parse import quote
 
-# protected-path is deliberately absent: it is a governance gate whose
-# remediation is a human decision, so a medium protected-path finding routes to
-# "needs human judgment" rather than request-changes (which would tell the
-# author to fix something only a reviewer can, and wake the fix agent for it).
-# A high protected-path finding still blocks on severity alone.
-FUNCTIONAL_CATEGORIES = {
-    "correctness", "security",
+# Host policy: .fullsend/rating-policy.json (floors/caps/refuse lists only).
+# Judgment criteria live in the rating skill — not here.
+DEFAULT_POLICY = {
+    "blocking_finding_severities": ["critical", "high", "medium"],
+    "exclude_blocking_categories": ["protected-path"],
+    "risk_refuse_approve": ["high", "critical"],
+    "confidence_refuse_approve": ["low"],
+    "product_ask": {
+        "mismatch_unjustified": {
+            "confidence_floor": "low",
+            "needs_human": True,
+        },
+    },
+    "confidence_cap": {"incomplete_review": "medium"},
 }
 
-def is_functional(finding):
-    cat = (finding.get("category") or "").lower()
-    if cat in FUNCTIONAL_CATEGORIES:
-        return True
-    return any(tok in cat for tok in ("bug", "permission", "schema", "silent"))
+def _lower_set(values):
+    return frozenset(str(v).lower() for v in (values or []))
+
+def load_rating_policy():
+    """Merge rating-policy.json over DEFAULT_POLICY (same json.load pattern as the ledger)."""
+    merged = json.loads(json.dumps(DEFAULT_POLICY))  # deep copy via JSON
+    base = os.environ.get("FULLSEND_CONFIG_DIR") or ""
+    path = os.path.join(base, "rating-policy.json") if base else ""
+    if path and os.path.isfile(path):
+        try:
+            with open(path, encoding="utf-8") as fh:
+                loaded = json.load(fh)
+        except (OSError, ValueError):
+            loaded = None
+        if isinstance(loaded, dict):
+            for key, value in loaded.items():
+                if key not in merged:
+                    continue
+                if isinstance(value, dict) and isinstance(merged[key], dict):
+                    nested = dict(merged[key])
+                    for nested_key, nested_val in value.items():
+                        if isinstance(nested_val, dict) and isinstance(nested.get(nested_key), dict):
+                            nested[nested_key] = {**nested[nested_key], **nested_val}
+                        else:
+                            nested[nested_key] = nested_val
+                    merged[key] = nested
+                elif isinstance(merged[key], list):
+                    # List-valued keys: accept list overrides only. A string
+                    # would be iterated character-by-character by _lower_set.
+                    if isinstance(value, list):
+                        merged[key] = value
+                else:
+                    merged[key] = value
+    merged["_blocking_severities"] = _lower_set(merged.get("blocking_finding_severities"))
+    merged["_exclude_categories"] = _lower_set(merged.get("exclude_blocking_categories"))
+    merged["_risk_refuse"] = _lower_set(merged.get("risk_refuse_approve"))
+    merged["_confidence_refuse"] = _lower_set(merged.get("confidence_refuse_approve"))
+    return merged
+
+POLICY = load_rating_policy()
 
 def rated_level(result, field, default):
     rated = result.get(field)
@@ -74,23 +120,40 @@ def rated_level(result, field, default):
     return default
 
 def is_blocking(finding):
+    cat = (finding.get("category") or "").lower()
+    if cat in POLICY["_exclude_categories"]:
+        return False
     severity = (finding.get("severity") or "info").lower()
-    return severity in ("critical", "high") or (severity == "medium" and is_functional(finding))
+    return severity in POLICY["_blocking_severities"]
 
 def blocking_count(result):
     return sum(1 for finding in (result.get("findings") or []) if is_blocking(finding))
 
 def needs_human(result):
     pa = result.get("product_ask") if isinstance(result.get("product_ask"), dict) else {}
-    if result.get("decision_needed") or pa.get("needs_human") or pa.get("status") == "mismatch-unjustified":
+    if result.get("decision_needed"):
+        return True
+    if "needs_human" in pa:
+        if pa.get("needs_human"):
+            return True
+    elif pa.get("status") == "mismatch-unjustified":
+        # Default true when the field is absent; honor explicit false.
         return True
     return any((f.get("category") or "").lower() == "protected-path" for f in (result.get("findings") or []))
+
+def approve_refuse_reason(result):
+    """Why approve is refused on the clean-findings path: risk, confidence, or None."""
+    if rated_level(result, "risk", "low") in POLICY["_risk_refuse"]:
+        return "risk"
+    if rated_level(result, "confidence", "high") in POLICY["_confidence_refuse"]:
+        return "confidence"
+    return None
 
 # Rows whose result is owned by exactly one registry dimension. If the ledger
 # says that dimension never ran, the row cannot honestly report pass/fail.
 LEDGER_ROW_DIMENSION = {
     "security": "security",
-    "product-ask": "jira-pr-review",
+    "product-ask": "product-ask-review",
     "evidence": "test-impact-review",
 }
 
@@ -131,8 +194,6 @@ def reconcile_producers(result):
         for item in ledger.get(key) or []:
             if isinstance(item, str) and item and item not in ran:
                 ran.append(item)
-    if (ledger.get("challenger") or "") == "ran" and "challenger" not in ran:
-        ran.append("challenger")
 
     skipped = {}
     for row in ledger.get("skipped") or []:
@@ -147,15 +208,9 @@ def reconcile_producers(result):
         inspected["producers"] = ran
     result["inspected"] = inspected
 
-    stray = summary_scope_problem(result)
-    if stray:
-        add_limit(inspected, "The change summary cites files that are not in this PR's diff: "
-                             + ", ".join(stray) + ".")
-        result["inspected"] = inspected
-
-    _, challenger_problem = challenger_state(ledger, result.get("findings") or [])
-    if challenger_problem:
-        add_limit(inspected, challenger_problem)
+    problem = challenger_problem(challenger_record(ledger), result.get("findings") or [])
+    if problem:
+        add_limit(inspected, problem)
         result["inspected"] = inspected
 
     verification = []
@@ -221,71 +276,13 @@ def normalize_protected_findings(result):
         }
     return result
 
-PATH_TOKEN = re.compile(r"(?:[\w.-]+/)+[\w.-]+\.[A-Za-z0-9]+")
-# A summary that cites "post-review.sh" without its directory evades PATH_TOKEN,
-# which is how a wrong summary got through after the first version of this guard.
-# Bare names are only worth checking when the extension says "file in a repo",
-# so this list is deliberately narrow, and a few library names that look like
-# filenames are excluded outright.
-BARE_FILE_TOKEN = re.compile(
-    r"\b[\w.-]+\.(?:tsx?|jsx?|mjs|cjs|scss|css|go|py|sh|ya?ml|json|md|snap)\b")
-BARE_FILE_EXCEPTIONS = {"node.js", "next.js", "nest.js", "vue.js", "three.js", "d3.js"}
-# A directory the PR does not touch is the same claim in coarser form.
-DIR_TOKEN = re.compile(r"(?:[\w.-]+/){1,}")
-
-def summary_scope_problem(result):
-    """File paths the change summary cites that this PR does not touch.
-
-    change_summary is meant to describe the PR's own diff. On a re-review whose
-    head has just merged the base branch in, `changed_since_prior` is full of
-    base-branch files the PR does not own, and summarizing those produces a
-    confident description of somebody else's change. The instruction not to do
-    that has now been ignored once, so the host checks it."""
-    summary = result.get("change_summary") or ""
-    changed = changed_paths()
-    if not summary or not changed:
-        return []
-    stray = []
-
-    def note(token):
-        if token not in stray:
-            stray.append(token)
-
-    paths = PATH_TOKEN.findall(summary)
-    for token in paths:
-        if any(token == f or f.endswith("/" + token) or token.endswith("/" + f) for f in changed):
-            continue
-        note(token)
-
-    basenames = {f.rsplit("/", 1)[-1] for f in changed}
-    for token in BARE_FILE_TOKEN.findall(summary):
-        if token.lower() in BARE_FILE_EXCEPTIONS or token in basenames:
-            continue
-        # Already reported, with its directory, by the full-path pass above.
-        if any(token == path.rsplit("/", 1)[-1] for path in paths):
-            continue
-        note(token)
-
-    for token in DIR_TOKEN.findall(summary):
-        directory = token.rstrip("/")
-        if not directory or "/" not in token:
-            continue
-        if any(f == directory or f.startswith(directory + "/") for f in changed):
-            continue
-        # A directory that is only the leading part of a full path already flagged.
-        if any(path.startswith(token) for path in paths):
-            continue
-        note(token)
-
-    return stray
-
 def unverified_producers(result):
     """Everything this run could not establish, by whatever shape reported it.
 
     A producer that failed is a producer that did not run, whether it reported
     that as a could-not-verify verification row, a could-not-verify readiness
-    check, or an unavailable classifier. Reading only one of the three lets a
-    review claim every producer ran while a section of itself says otherwise."""
+    check. Reading only one of the two lets a review claim every producer ran
+    while a section of itself says otherwise."""
     names = []
     for row in result.get("verification") or []:
         if row.get("result") == "could-not-verify":
@@ -293,41 +290,37 @@ def unverified_producers(result):
     for check in result.get("checks") or []:
         if check.get("status") == "could-not-verify":
             names.append(check.get("id") or "readiness check")
-    for classifier in result.get("classifications") or []:
-        if classifier.get("status") == "unavailable":
-            names.append(classifier.get("id") or "classifier")
     ledger = load_ledger()
-    if ledger is not None:
-        _, problem = challenger_state(ledger, result.get("findings") or [])
-        if problem:
-            names.append("challenger (its ledger record contradicts the reported findings)")
+    if ledger is not None and challenger_problem(challenger_record(ledger), result.get("findings") or []):
+        names.append("challenger (its ledger record contradicts the reported findings)")
     return names
 
 def cap_confidence(result):
-    """Confidence follows the weaker of proof quality and completeness."""
+    """Host completeness re-cap: may lower confidence only (never raises risk)."""
     missing = unverified_producers(result)
-    if summary_scope_problem(result):
-        missing = missing + ["the change summary (it describes files outside this PR's diff)"]
     if not missing:
         return result
     confidence = result.get("confidence") if isinstance(result.get("confidence"), dict) else {}
     if (confidence.get("level") or "high").lower() != "high":
         return result
+    floor = ((POLICY.get("confidence_cap") or {}).get("incomplete_review") or "medium").lower()
     why = (confidence.get("why") or "").strip()
     listed = ", ".join(sorted(set(missing)))
     limit = f"This run could not establish: {listed}. Patch-review completeness is therefore partial."
-    result["confidence"] = {"level": "medium", "why": (why + " " + limit).strip()}
+    result["confidence"] = {"level": floor, "why": (why + " " + limit).strip()}
     return result
 
 def normalize_host_verification(result):
     """Make the host-owned blocker audit agree with the host action rule."""
     count = blocking_count(result)
     noun = "finding" if count == 1 else "findings"
+    severities = "/".join(sorted(POLICY["_blocking_severities"])) or "configured"
+    excluded = ", ".join(sorted(POLICY["_exclude_categories"])) or "none"
     row = {
         "id": "blocking-findings",
         "label": "Blocking findings",
         "result": "fail" if count else "pass",
-        "notes": f"{count} blocking {noun} under the host rule: critical/high, or functional medium.",
+        "notes": f"{count} blocking {noun} under the host rule: {severities} (excluded: {excluded}).",
     }
     verification = [
         existing for existing in (result.get("verification") or [])
@@ -346,52 +339,33 @@ def compute_action(result):
         return "reject", "approach-rejected"
     if blocking_count(result):
         return "request-changes", "blocking-findings"
-    medium = [f for f in findings if f.get("severity") == "medium"]
-    if medium:
-        return "comment", "medium-advisory"
-    action = "approve"
-    reason = "no-blocking-findings"
-    risk = rated_level(result, "risk", "low")
-    confidence = rated_level(result, "confidence", "high")
-    if action == "approve" and risk in ("high", "critical"):
+    refuse = approve_refuse_reason(result)
+    if refuse == "risk":
         return "comment", "risk-blocks-approve"
-    if action == "approve" and confidence == "low":
+    if refuse == "confidence":
         return "comment", "low-confidence"
-    if action == "approve" and needs_human(result):
+    if needs_human(result):
         return "comment", "needs-human"
-    return action, reason
+    return "approve", "no-blocking-findings"
 
 def apply_product_ask(result):
-    """Raise risk / lower confidence for unjustified Jira-vs-description mismatch.
-    Needs-human refuses approve later. Description remains SoT."""
+    """Floor confidence for unjustified Jira-vs-description mismatch. Never bump risk."""
     pa = result.get("product_ask")
-    if not isinstance(pa, dict):
+    if not isinstance(pa, dict) or (pa.get("status") or "none") != "mismatch-unjustified":
         return result
-    status = pa.get("status") or "none"
-    risk_rank = {"low": 0, "medium": 1, "high": 2, "critical": 3}
     conf_rank = {"high": 0, "medium": 1, "low": 2}
-
-    def bump_risk(floor, why):
-        rated = result.get("risk") if isinstance(result.get("risk"), dict) else {}
-        cur = (rated.get("level") or "low").lower()
-        reasons = [rated.get("why", "").strip(), why]
-        if risk_rank.get(floor, 0) > risk_rank.get(cur, 0):
-            cur = floor
-        result["risk"] = {"level": cur, "why": " ".join(r for r in reasons if r)}
-
-    def drop_confidence(floor, why):
-        rated = result.get("confidence") if isinstance(result.get("confidence"), dict) else {}
-        cur = (rated.get("level") or "high").lower()
-        reasons = [rated.get("why", "").strip(), why]
-        if conf_rank.get(floor, 0) > conf_rank.get(cur, 0):
-            cur = floor
-        result["confidence"] = {"level": cur, "why": " ".join(r for r in reasons if r)}
-
-    if status == "mismatch-unjustified":
-        pa["needs_human"] = True
-        pa["justified_in_description"] = False
-        bump_risk("high", "The PR description does not justify departing from the linked Jira ask.")
-        drop_confidence("low", "The unresolved Jira mismatch requires human judgment before approval.")
+    rules = (POLICY.get("product_ask") or {}).get("mismatch_unjustified") or {}
+    # Stamp policy so needs_human() can honor an explicit false.
+    pa["needs_human"] = bool(rules.get("needs_human", True))
+    pa["justified_in_description"] = False
+    floor = (rules.get("confidence_floor") or "low").lower()
+    rated = result.get("confidence") if isinstance(result.get("confidence"), dict) else {}
+    cur = (rated.get("level") or "high").lower()
+    why = "The unresolved Jira mismatch requires human judgment before approval."
+    reasons = [rated.get("why", "").strip(), why]
+    if conf_rank.get(floor, 0) > conf_rank.get(cur, 0):
+        cur = floor
+    result["confidence"] = {"level": cur, "why": " ".join(r for r in reasons if r)}
     return result
 
 
@@ -407,11 +381,6 @@ def augment_inspected(result):
     for check in result.get("checks") or []:
         if check.get("status") == "could-not-verify":
             note = f"{check.get('id') or 'readiness check'}: {check.get('summary') or 'could not be verified'}"
-            if note not in could_not_verify:
-                could_not_verify.append(note)
-    for classifier in result.get("classifications") or []:
-        if classifier.get("status") == "unavailable":
-            note = f"{classifier.get('id') or 'classifier'}: {classifier.get('summary') or 'unavailable'}"
             if note not in could_not_verify:
                 could_not_verify.append(note)
     if could_not_verify:
@@ -448,6 +417,25 @@ def render_location(result, finding, server_url):
 def clean(text):
     return suppress_mentions(str(text or "").strip())
 
+def render_remediation(text):
+    """A one-line remediation stays inline; a patch snippet gets a fenced block.
+
+    CodeRabbit's suggestions[] are code, so flattening them to one bullet makes
+    them unreadable. List continuation needs four-space indentation, and the
+    fence is padded past any backticks inside the snippet.
+    """
+    body = suppress_mentions(str(text or "").strip())
+    if not body:
+        return []
+    if "\n" not in body:
+        return [f"  - Remediation: {body}"]
+    longest = max((len(m) for m in re.findall(r"`+", body)), default=0)
+    fence = "`" * max(3, longest + 1)
+    out = ["  - Remediation:", "", f"    {fence}"]
+    out += [f"    {line}" if line.strip() else "" for line in body.split("\n")]
+    out += [f"    {fence}", ""]
+    return out
+
 def table_cell(text):
     return clean(text).replace("|", "\\|").replace("\n", " ")
 
@@ -460,7 +448,7 @@ def render_header(result, action):
     repo = os.environ.get("GITHUB_REPOSITORY") or result.get("repo") or ""
     run_id = os.environ.get("GITHUB_RUN_ID", "")
     lines = [
-        "<!-- fullsend:review-poc -->",
+        "<!-- fullsend:review-agent -->",
         f"<!-- **Head SHA:** {sha} -->",
         "",
         f"Finished Review · `{action}` · Commit: `{short}`",
@@ -482,6 +470,11 @@ def status_text(result, action):
     if action == "comment" and needs_human(result):
         return "Needs human judgment."
     if action == "comment":
+        refuse = approve_refuse_reason(result)
+        if refuse == "risk":
+            return "Agent cannot approve this head — blast-radius risk. Human still finalizes."
+        if refuse == "confidence":
+            return "Agent cannot approve this head — low confidence. Human still finalizes."
         return "Advisory — no blocking findings. Human still finalizes."
     if action == "approve":
         return "Agent bar cleared for this head. Human still finalizes."
@@ -489,12 +482,9 @@ def status_text(result, action):
         return "Approach rejected."
     return "This review did not complete. Do not treat this head as reviewed."
 
-SEVERITY_MARK = {"critical": "⛔", "high": "🔴", "medium": "🟠", "low": "🟡", "info": "⚪"}
 STATUS_MARK = {"pass": "✅", "warning": "🟡", "fail": "❌", "not-applicable": "➖", "could-not-verify": "❔"}
 VERDICT_MARK = {"PASS": "✅", "PARTIAL": "🟠", "MISS": "❌", "SKIP": "➖"}
 ACTION_MARK = {"approve": "✅", "comment": "💬", "request-changes": "🔴", "reject": "⛔", "failure": "❌"}
-LEVEL_MARK = {"low": "🟢", "medium": "🟠", "high": "🔴", "critical": "⛔"}
-CONFIDENCE_MARK = {"high": "🟢", "medium": "🟠", "low": "🔴"}
 
 def mark(table, key, default=""):
     """Verdict keys are upper-case (PASS/MISS), status keys lower-case.
@@ -511,42 +501,66 @@ def detail_block(summary, body_lines, open_by_default=False):
     attr = " open" if open_by_default else ""
     return [f"<details{attr}>", f"<summary>{summary}</summary>", ""] + body_lines + ["", "</details>"]
 
-def challenger_state(ledger, findings):
-    """Read the ledger's challenger record, and catch it contradicting itself.
+def challenger_record(ledger):
+    raw = (ledger or {}).get("challenger")
+    return raw if isinstance(raw, dict) else {}
 
-    The sanctioned skip is an empty finding set (step 6d). A run that skips for
-    another reason has to say so; recording the empty-set reason instead makes
-    the ledger assert something the finding list disproves. Since the ledger
-    exists precisely to let the host check the review's account of itself, a
-    contradiction here is reported, not absorbed."""
-    raw = (ledger.get("challenger") or "").strip()
-    if not raw:
-        return "", None
-    if raw == "ran":
-        return "✅ ran", None
-    if raw == "failed":
-        return "❌ failed", None
-    if raw == "pending":
-        return ('❔ ledger left at "pending" — never rewritten after collect',
-                'The producer ledger still records the challenger as "pending", so whether it ran is unknown.')
-    if raw.startswith("skipped"):
-        _, _, reason = raw.partition(":")
-        reason = reason.strip()
-        claims_empty = not reason or "no finding" in reason.lower() or raw == "skipped-empty-set"
+def claims_empty_skip(reason):
+    """True when a skipped challenger claims the empty-finding-set sanction."""
+    return not reason or "no finding" in reason.lower()
+
+def challenger_problem(ch, findings):
+    """Confidence/limit note when the challenger record contradicts itself."""
+    status = str(ch.get("status") or "").strip().lower()
+    reason = clean(ch.get("reason") or "")
+    if status == "pending":
+        return ('The producer ledger still records the challenger as "pending", so whether it ran is unknown.')
+    if status == "skipped" and claims_empty_skip(reason) and findings:
         count = len(findings)
-        if claims_empty and count:
-            return (f'🟡 skipped — recorded as "no findings to adjudicate", but {count} finding(s) were reported',
-                    f"The ledger records the challenger as skipped for an empty finding set, but {count} "
-                    f"finding(s) were reported. Its real reason for skipping was not recorded.")
-        return f"➖ skipped — {clean(reason) if reason else 'no findings to adjudicate'}", None
-    return clean(raw), None
+        return (f"The ledger records the challenger as skipped for an empty finding set, but {count} "
+                f"finding(s) were reported. Its real reason for skipping was not recorded.")
+    return None
+
+def challenger_prose(result):
+    ledger = load_ledger()
+    findings = result.get("findings") or []
+    if ledger is None:
+        return "Challenger state is unverified — no dispatch ledger for this run."
+    ch = challenger_record(ledger)
+    status = str(ch.get("status") or "").strip().lower()
+    if not status:
+        return "Challenger state was not recorded in the dispatch ledger."
+    problem = challenger_problem(ch, findings)
+    if problem:
+        return problem
+    reason = clean(ch.get("reason") or "")
+    if status == "failed":
+        return (f"Challenger failed ({reason}); using the pre-challenger finding set."
+                if reason else "Challenger failed; using the pre-challenger finding set.")
+    if status == "skipped":
+        if claims_empty_skip(reason):
+            return "Skipped — no findings to adjudicate."
+        return f"Skipped — {reason}."
+    if status == "ran":
+        def num(key):
+            value = ch.get(key)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                return None
+            return int(value)
+        input_n, kept = num("input"), num("kept")
+        if input_n is None or kept is None:
+            return "Challenger ran, but adjudication counts were not recorded."
+        removed, merged, downgraded = num("removed") or 0, num("merged") or 0, num("downgraded") or 0
+        noun = "finding" if input_n == 1 else "findings"
+        parts = [f"{label} {n}" for label, n in (
+            ("removed", removed), ("merged", merged), ("downgraded", downgraded)) if n]
+        if not parts:
+            return f"Adjudicated {input_n} {noun}; all kept."
+        return f"Adjudicated {input_n} {noun}; kept {kept} ({', '.join(parts)})."
+    return clean(status)
 
 def producer_rows(result):
-    """What ran, and what each one found — from the dispatch ledger.
-
-    This is the answer to "which sub-agent found what". Without it the review
-    is a wall of findings with no provenance, and a reader cannot tell a
-    dimension that ran and found nothing from one that never ran."""
+    """What ran, and what each one found — from the dispatch ledger."""
     ledger = load_ledger()
     findings = result.get("findings") or []
     attributed = any(f.get("dimension") for f in findings)
@@ -563,35 +577,74 @@ def producer_rows(result):
 
     rows = []
     if ledger is None:
+        unverified_note = "run state is unverified because no dispatch ledger exists"
         for name in (result.get("inspected") or {}).get("producers") or []:
-            rows.append((clean(name), "✅ ran", count_cell(name)))
+            rows.append((clean(name), "❔", count_cell(name), unverified_note))
         return rows, False
     for key in ("dispatched", "adapters"):
         for name in ledger.get(key) or []:
             if isinstance(name, str):
-                rows.append((clean(name), "✅ ran", count_cell(name)))
-    label, _ = challenger_state(ledger, findings)
-    if label:
-        rows.append(("challenger", label, "—"))
+                rows.append((clean(name), "✅", count_cell(name), "—"))
     for row in ledger.get("skipped") or []:
         if isinstance(row, dict) and isinstance(row.get("id"), str):
             reason = clean(row.get("reason") or "not selected")
-            rows.append((clean(row["id"]), f"➖ skipped — {reason}", "—"))
+            rows.append((clean(row["id"]), "➖", "—", reason))
     return rows, True
 
-def signal(marker, name, result, detail_lines, open_by_default=False):
-    """One status-bearing thing: a scannable line, expandable for the why.
+def status_headline(result, action):
+    """Visible status line: icon + bold label + remainder."""
+    text = status_text(result, action)
+    if action == "request-changes":
+        count = blocking_count(result)
+        noun = "finding" if count == 1 else "findings"
+        inner = (f"**Waiting on author** — {count} blocking {noun} before the agent bar can clear. "
+                 f"Human still finalizes.")
+        return f"{mark(ACTION_MARK, action)} {inner}"
+    if action == "comment" and needs_human(result):
+        return f"{mark(ACTION_MARK, action)} **Needs human judgment.**"
+    if action == "comment":
+        refuse = approve_refuse_reason(result)
+        if refuse == "risk":
+            return (f"{mark(ACTION_MARK, action)} **Cannot approve** — blast-radius risk. "
+                    f"Human still finalizes.")
+        if refuse == "confidence":
+            return (f"{mark(ACTION_MARK, action)} **Cannot approve** — low confidence. "
+                    f"Human still finalizes.")
+        return f"{mark(ACTION_MARK, action)} **Advisory** — no blocking findings. Human still finalizes."
+    if action == "approve":
+        return f"{mark(ACTION_MARK, action)} **Agent bar cleared for this head.** Human still finalizes."
+    if action == "reject":
+        return f"{mark(ACTION_MARK, action)} **Approach rejected.**"
+    return f"{mark(ACTION_MARK, action)} {text}"
 
-    Risk, confidence, product ask, Jira adherence, readiness checks and
-    verification rows all have the same shape — a name, a verdict, and a
-    rationale — so they get the same treatment instead of six bespoke
-    sections. Anything unmet opens by default; a problem is never hidden
-    behind a click."""
-    head = f"{marker} <strong>{name}</strong> — {result}".strip()
-    if not detail_lines:
-        return [f"<details><summary>{head}</summary>", "", "_No further detail reported._", "", "</details>"]
-    attr = " open" if open_by_default else ""
-    return [f"<details{attr}>", f"<summary>{head}</summary>", ""] + detail_lines + ["", "</details>"]
+def render_signal_table(result):
+    """Signal | Level | Assessment — always risk + confidence under Status."""
+    risk = result.get("risk") if isinstance(result.get("risk"), dict) else {}
+    confidence = result.get("confidence") if isinstance(result.get("confidence"), dict) else {}
+    risk_level = rated_level(result, "risk", "low")
+    conf_level = rated_level(result, "confidence", "high")
+    lines = [
+        "",
+        "| Signal | Level | Assessment |",
+        "| --- | --- | --- |",
+        f"| Risk | `{table_cell(risk_level)}` | {table_cell(risk.get('why') or '—')} |",
+        f"| Confidence | `{table_cell(conf_level)}` | {table_cell(confidence.get('why') or '—')} |",
+    ]
+    return lines
+
+def render_product_ask_section(pa):
+    if not pa or (pa.get("status") or "none") == "none":
+        return []
+    status = pa.get("status") or "none"
+    lines = ["", "## Product ask", ""]
+    human = " · needs human review" if pa.get("needs_human") else ""
+    lines.append(f"**Status:** `{clean(status)}`{human}")
+    lines.append("")
+    if pa.get("aligned"):
+        lines += ["Aligned:"] + [f"- {clean(item)}" for item in pa["aligned"]] + [""]
+    if pa.get("mismatched"):
+        lines += ["Mismatched:"] + [f"- {clean(item)}" for item in pa["mismatched"]] + [""]
+    return lines
 
 def render_body(result, previous_md, action):
     run_url = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
@@ -603,75 +656,8 @@ def render_body(result, previous_md, action):
         return "\n".join(lines).rstrip() + "\n"
 
     lines += ["", "## Change summary", "", clean(result.get("change_summary"))]
-    stray = summary_scope_problem(result)
-    if stray:
-        changed = changed_paths()
-        lines += ["", f"> 🟡 This summary names files that are not in this PR's diff "
-                      f"(`{'`, `'.join(stray)}`). This PR changes "
-                      f"{len(changed)} file(s): `{'`, `'.join(changed)}`."]
-    lines += ["", "## Status", "", f"{mark(ACTION_MARK, action)} {status_text(result, action)}"]
-
-    # ---- One uniform list of every judgement this review made. ----
-    signals = []
-
-    risk = result.get("risk") if isinstance(result.get("risk"), dict) else {}
-    confidence = result.get("confidence") if isinstance(result.get("confidence"), dict) else {}
-    risk_level = (risk.get("level") or "unspecified").lower()
-    conf_level = (confidence.get("level") or "unspecified").lower()
-    signals += signal(mark(LEVEL_MARK, risk_level), "Risk", clean(risk_level),
-                      [clean(risk.get("why"))] if risk.get("why") else [],
-                      open_by_default=risk_level in ("high", "critical"))
-    signals += signal(mark(CONFIDENCE_MARK, conf_level), "Confidence", clean(conf_level),
-                      [clean(confidence.get("why"))] if confidence.get("why") else [],
-                      open_by_default=conf_level == "low")
-
-    pa = result.get("product_ask") if isinstance(result.get("product_ask"), dict) else None
-    if pa and (pa.get("status") or "none") != "none":
-        status = pa.get("status") or "none"
-        needs_attention = bool(pa.get("needs_human")) or status.startswith("mismatch")
-        body = []
-        if pa.get("aligned"):
-            body += ["Aligned:"] + [f"- {clean(item)}" for item in pa["aligned"]] + [""]
-        if pa.get("mismatched"):
-            body += ["Mismatched:"] + [f"- {clean(item)}" for item in pa["mismatched"]] + [""]
-        body += ["The PR description is the source of truth. This is not a check of the diff against acceptance criteria."]
-        label = f"<code>{clean(status)}</code>" + (" · needs human review" if pa.get("needs_human") else "")
-        signals += signal("🟡" if needs_attention else "✅", "Product ask", label, body,
-                          open_by_default=needs_attention)
-
-    criteria = result.get("jira_criteria") if isinstance(result.get("jira_criteria"), list) else []
-    if criteria:
-        unmet = [c for c in criteria if (c.get("verdict") or "") in ("MISS", "PARTIAL")]
-        tally = {}
-        for c in criteria:
-            tally[c.get("verdict") or "?"] = tally.get(c.get("verdict") or "?", 0) + 1
-        counts = " · ".join(f"{mark(VERDICT_MARK, v)} {n} {v}".strip() for v, n in sorted(tally.items()))
-        table = ["| Criterion | Verdict | Evidence |", "| --- | --- | --- |"]
-        for c in criteria:
-            verdict = c.get("verdict") or ""
-            stale = " · stale comment" if c.get("stale_comment") else ""
-            table.append(
-                f"| {table_cell(c.get('criterion'))} | "
-                f"{(mark(VERDICT_MARK, verdict) + ' ' + table_cell(verdict)).strip()}{stale} "
-                f"| {table_cell(c.get('evidence'))} |")
-        signals += signal("❌" if unmet else "✅", "Jira acceptance criteria", counts, table,
-                          open_by_default=bool(unmet))
-
-    for check in result.get("checks") if isinstance(result.get("checks"), list) else []:
-        status = check.get("status") or ""
-        details = [f"- {clean(d)}" for d in check.get("details") or []]
-        signals += signal(mark(STATUS_MARK, status), clean(check.get("id")),
-                          f"{clean(status)} · {clean(check.get('summary'))}", details,
-                          open_by_default=status == "fail")
-
-    for row in result.get("verification") or []:
-        res = row.get("result") or ""
-        signals += signal(mark(STATUS_MARK, res), clean(row.get("label")), clean(res),
-                          [clean(row.get("notes"))] if row.get("notes") else [],
-                          open_by_default=res == "fail")
-
-    if signals:
-        lines += ["", "## Checks", ""] + signals
+    lines += ["", "## Status", "", status_headline(result, action)]
+    lines += render_signal_table(result)
 
     decision = result.get("decision_needed") if isinstance(result.get("decision_needed"), dict) else None
     if decision:
@@ -682,58 +668,89 @@ def render_body(result, previous_md, action):
 
     findings = result.get("findings") or []
     if findings:
-        lines += ["", "## Findings", "",
-                  "⛔ Critical, 🔴 High, and functional 🟠 Medium block the agent bar. 🟡 Low and ⚪ Info do not."]
+        lines += ["", "## Findings"]
         for severity, items in group_findings(findings):
-            lines += ["", f"### {mark(SEVERITY_MARK, severity)} {severity.capitalize()} ({len(items)})"]
+            lines += ["", f"### {severity.capitalize()} ({len(items)})"]
             for finding in items:
                 loc = render_location(result, finding, run_url)
-                actionable = " · actionable follow-up" if finding.get("actionable") and severity in ("low", "info") else ""
                 origin = f"`{clean(finding.get('dimension'))}` · " if finding.get("dimension") else ""
-                lines += ["", f"- {origin}**{clean(finding.get('category'))}** ({loc}){actionable}: {clean(finding.get('description'))}"]
+                tail = " · actionable follow-up" if finding.get("actionable") and severity in ("low", "info") else ""
+                lines += ["", f"- {origin}**{clean(finding.get('category'))}** ({loc}){tail}: {clean(finding.get('description'))}"]
                 if finding.get("why"):
                     lines.append(f"  - Why: {clean(finding.get('why'))}")
                 if finding.get("remediation"):
-                    lines.append(f"  - Remediation: {clean(finding.get('remediation'))}")
+                    lines += render_remediation(finding.get("remediation"))
     elif action == "approve":
         lines += ["", "Looks good to me."]
 
-    # ---- Provenance and audit. ----
+    pa = result.get("product_ask") if isinstance(result.get("product_ask"), dict) else None
+    lines += render_product_ask_section(pa)
+
     inspected = result.get("inspected") if isinstance(result.get("inspected"), dict) else {}
     labels = result.get("label_actions") if isinstance(result.get("label_actions"), dict) else {}
-    classifications = result.get("classifications") if isinstance(result.get("classifications"), list) else []
     details_body = []
+
+    verification = result.get("verification") or []
+    if verification:
+        details_body += ["### Verification", "",
+                         "| Check | Result | Notes |", "| --- | --- | --- |"]
+        for row in verification:
+            res = row.get("result") or ""
+            note = table_cell(row.get("notes") or "—")
+            details_body.append(
+                f"| {table_cell(row.get('label') or row.get('id'))} | "
+                f"{mark(STATUS_MARK, res)} {table_cell(res)} | {note} |")
+        details_body.append("")
 
     rows, from_ledger = producer_rows(result)
     if rows:
-        details_body += ["### Producers", "", "| Producer | Ran | Findings |", "| --- | --- | --- |"]
-        for name, ran, count in rows:
-            details_body.append(f"| {name} | {ran} | {count} |")
+        details_body += ["### Producers", "",
+                         "| Producer | Ran | Findings count | Notes |",
+                         "| --- | --- | --- | --- |"]
+        for name, ran, count, notes in rows:
+            details_body.append(f"| {name} | {ran} | {count} | {notes} |")
         if not from_ledger:
             details_body += ["", "_No dispatch ledger for this run — this list is self-reported by the agent._"]
         details_body.append("")
 
-    if classifications:
-        details_body += ["### Classifications", "", "| Classifier | Subject | Result | Reason |", "| --- | --- | --- | --- |"]
-        for classifier in classifications:
-            for item in classifier.get("classifications") or []:
-                details_body.append(
-                    f"| {table_cell(classifier.get('id'))} | {table_cell(item.get('subject'))} "
-                    f"| {table_cell(item.get('classification'))} | {table_cell(item.get('reason'))} |")
-            if not classifier.get("classifications"):
-                details_body.append(
-                    f"| {table_cell(classifier.get('id'))} | — | {table_cell(classifier.get('status'))} "
-                    f"| {table_cell(classifier.get('summary'))} |")
+    details_body += ["### Challenger", "", challenger_prose(result), ""]
+
+    criteria = result.get("jira_criteria") if isinstance(result.get("jira_criteria"), list) else []
+    if criteria:
+        details_body += ["### Jira acceptance criteria", "",
+                         "| Criterion | Verdict | Evidence |", "| --- | --- | --- |"]
+        for c in criteria:
+            verdict = c.get("verdict") or ""
+            stale = " · stale comment" if c.get("stale_comment") else ""
+            details_body.append(
+                f"| {table_cell(c.get('criterion'))} | "
+                f"{mark(VERDICT_MARK, verdict)} {table_cell(verdict)}{stale} "
+                f"| {table_cell(c.get('evidence'))} |")
         details_body.append("")
 
-    if inspected.get("could_not_verify"):
-        details_body += ["### Could not verify", ""] + [f"- {clean(i)}" for i in inspected["could_not_verify"]] + [""]
-    if inspected.get("summary"):
-        details_body += ["### Evidence", "", clean(inspected["summary"]), ""]
+    checks = result.get("checks") if isinstance(result.get("checks"), list) else []
+    if checks:
+        details_body += ["### Readiness checks", "",
+                         "| Check | Status | Summary |", "| --- | --- | --- |"]
+        for check in checks:
+            status = check.get("status") or ""
+            details_body.append(
+                f"| {table_cell(check.get('id'))} | {mark(STATUS_MARK, status)} {table_cell(status)} "
+                f"| {table_cell(check.get('summary'))} |")
+        details_body.append("")
+
+    if inspected.get("summary") or inspected.get("could_not_verify"):
+        details_body += ["### Evidence inspected", ""]
+        if inspected.get("summary"):
+            details_body += [clean(inspected["summary"]), ""]
+        if inspected.get("could_not_verify"):
+            details_body += ["**Could not verify:**", ""]
+            details_body += [f"- {clean(i)}" for i in inspected["could_not_verify"]] + [""]
 
     sig = clean(os.environ.get("REVIEW_SIGNALS"))
     if sig:
         details_body += ["### Signals", "", sig, ""]
+
     if labels and labels.get("actions"):
         details_body += ["### Labels", ""]
         reason = clean(labels.get("reason"))
@@ -742,9 +759,9 @@ def render_body(result, previous_md, action):
         details_body.append("")
 
     if details_body:
-        ran = sum(1 for _, state, _ in rows if state.startswith("✅"))
-        skipped = len(rows) - ran
-        blurb = f"{ran} producer(s) ran, {skipped} skipped" if rows else "evidence and provenance"
+        ran = sum(1 for _, icon, _, _ in rows if icon == "✅")
+        skipped = sum(1 for _, icon, _, _ in rows if icon == "➖")
+        blurb = f"{ran} producer(s) ran, {skipped} skipped" if rows else "audit trail"
         lines += [""] + detail_block(f"🔍 <strong>Review details</strong> — {blurb}", details_body)
 
     _ = previous_md
@@ -797,9 +814,9 @@ run_self_test() {
     if ! grep -q '## Change summary' <<<"${body}" ||
        ! grep -q '## Status' <<<"${body}" ||
        ! grep -q '<summary>🔍 <strong>Review details</strong>' <<<"${body}" ||
-       ! grep -q '## Checks' <<<"${body}" ||
-       ! grep -q '<strong>Blocking findings</strong>' <<<"${body}"; then
-      echo "FAIL ${name}: required rendered sections missing" >&2
+       ! grep -q '### Verification' <<<"${body}" ||
+       grep -q '## Checks' <<<"${body}"; then
+      echo "FAIL ${name}: required rendered sections missing or legacy Checks present" >&2
       fail=1
       return
     fi
@@ -818,15 +835,40 @@ run_self_test() {
   local pa body
   printf '%s' "{${common},\"product_ask\":{\"status\":\"mismatch-unjustified\",\"mismatched\":[\"Jira asks for export\"]}}" > "${tmp}/product-ask.json"
   transform_review_result "${tmp}/product-ask.json" > "${tmp}/product-ask-out.json"
-  if ! jq -e '.action == "comment" and .risk.level == "high" and .confidence.level == "low" and (.risk.why | contains("Jira")) and (.confidence.why | contains("Jira"))' "${tmp}/product-ask-out.json" >/dev/null; then
-    echo "FAIL product-ask: host floors and rationale rewrite" >&2
+  if ! jq -e '.action == "comment" and .risk.level == "low" and .confidence.level == "low" and (.confidence.why | contains("Jira"))' "${tmp}/product-ask-out.json" >/dev/null; then
+    echo "FAIL product-ask: want confidence floor only (risk unchanged) + comment" >&2
+    fail=1
+  elif jq -e '(.risk.why // "") | contains("Jira")' "${tmp}/product-ask-out.json" >/dev/null; then
+    echo "FAIL product-ask: host must not rewrite risk why for ask drift" >&2
     fail=1
   else
-    echo "PASS product-ask floors risk/confidence and rewrites why"
+    echo "PASS product-ask floors confidence only; risk unchanged"
+  fi
+
+  # Gate matrix: any medium finding → request-changes (no advisory carve-out).
+  render_fixture medium-blocks request-changes "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"style-conventions\",\"file\":\"a.ts\",\"line\":1,\"description\":\"Naming drift.\",\"why\":\"Public export renamed without alias.\"}],\"product_ask\":{\"status\":\"none\"}}"
+
+  # low/info may ride with approve.
+  render_fixture low-rides-approve approve "{${common},\"findings\":[{\"severity\":\"low\",\"category\":\"style-conventions\",\"file\":\"a.ts\",\"description\":\"Minor naming nit.\",\"actionable\":true}],\"product_ask\":{\"status\":\"none\"}}"
+
+  # high risk alone → comment (not request-changes).
+  render_fixture high-risk-comment comment "{${common},\"findings\":[],\"risk\":{\"level\":\"high\",\"why\":\"Cross-package secret wiring expands blast radius.\"},\"confidence\":{\"level\":\"high\",\"why\":\"Unit and mock coverage correlated to the claim.\"},\"product_ask\":{\"status\":\"none\"}}"
+
+  # low confidence alone → comment.
+  render_fixture low-conf-comment comment "{${common},\"findings\":[],\"risk\":{\"level\":\"low\",\"why\":\"Isolated helper.\"},\"confidence\":{\"level\":\"low\",\"why\":\"No credible proof correlated to this diff.\"},\"product_ask\":{\"status\":\"none\"}}"
+
+  body=$(jq -r .body "${tmp}/approve-out.json")
+  if ! grep -q '| Signal | Level | Assessment |' <<<"${body}" ||
+     ! grep -q '| Risk |' <<<"${body}" ||
+     ! grep -q '| Confidence |' <<<"${body}"; then
+    echo "FAIL sticky: Signal|Level|Assessment table missing under Status" >&2
+    fail=1
+  else
+    echo "PASS sticky Signal table includes risk and confidence"
   fi
 
   body=$(jq -r .body "${tmp}/request-changes-out.json")
-  if ! grep -q 'Waiting on author — 1 blocking finding' <<<"${body}" ||
+  if ! grep -Fq '**Waiting on author** — 1 blocking finding' <<<"${body}" ||
      ! grep -Fq '[a.ts:12](https://github.com/o/r/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/a.ts#L12)' <<<"${body}"; then
     echo "FAIL request-changes: status count or commit-pinned link missing" >&2
     fail=1
@@ -834,7 +876,7 @@ run_self_test() {
     echo "PASS request-changes status and linked location"
   fi
   body=$(jq -r .body "${tmp}/needs-human-out.json")
-  if ! grep -q 'Needs human judgment' <<<"${body}" || ! grep -q '## Decision needed' <<<"${body}"; then
+  if ! grep -Fq '**Needs human judgment.**' <<<"${body}" || ! grep -q '## Decision needed' <<<"${body}"; then
     echo "FAIL needs-human: status or decision section missing" >&2
     fail=1
   else
@@ -848,16 +890,15 @@ run_self_test() {
     echo "PASS approve omits findings section"
   fi
 
-  printf '%s' "{${common},\"jira_criteria\":[{\"criterion\":\"Permission is checked\",\"verdict\":\"PASS\",\"evidence\":\"Route gate is present.\",\"stale_comment\":true}],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"warning\",\"summary\":\"No targeted tests were changed.\",\"details\":[\"PR body explains manual verification only.\"]}],\"classifications\":[{\"id\":\"example-classifier\",\"status\":\"completed\",\"summary\":\"One failed check classified.\",\"classifications\":[{\"subject\":\"unit\",\"classification\":\"flaky\",\"reason\":\"Repeated on unrelated PRs.\"}]}]}" > "${tmp}/structured.json"
+  printf '%s' "{${common},\"jira_criteria\":[{\"criterion\":\"Permission is checked\",\"verdict\":\"PASS\",\"evidence\":\"Route gate is present.\",\"stale_comment\":true}],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"warning\",\"summary\":\"No targeted tests were changed.\",\"details\":[\"PR body explains manual verification only.\"]}]}" > "${tmp}/structured.json"
   transform_review_result "${tmp}/structured.json" > "${tmp}/structured-out.json"
   body=$(jq -r .body "${tmp}/structured-out.json")
-  if ! grep -q '## Checks' <<<"${body}" ||
-     ! grep -q '<strong>test-impact-review</strong>' <<<"${body}" ||
-     ! grep -q '<strong>Jira acceptance criteria</strong>' <<<"${body}" ||
-     ! grep -q 'Permission is checked' <<<"${body}" ||
-     ! grep -q '### Classifications' <<<"${body}" ||
-     ! grep -q 'example-classifier' <<<"${body}"; then
-    echo "FAIL structured results: checks or classifications were not rendered" >&2
+  if grep -q '## Checks' <<<"${body}" ||
+     ! grep -q '### Readiness checks' <<<"${body}" ||
+     ! grep -q 'test-impact-review' <<<"${body}" ||
+     ! grep -q '### Jira acceptance criteria' <<<"${body}" ||
+     ! grep -q 'Permission is checked' <<<"${body}"; then
+    echo "FAIL structured results: audit tables were not rendered in Review details" >&2
     fail=1
   else
     echo "PASS structured results render separately from findings"
@@ -912,7 +953,7 @@ run_self_test() {
     echo "PASS supported protected-path routes to human judgment, not request-changes"
   fi
 
-  printf '%s' '{"dispatched":["correctness"],"adapters":["jira-snapshot"],"skipped":[{"id":"security","reason":"no auth, secrets or config touched"}],"challenger":"skipped-empty-set","returned":["correctness"]}' > "${tmp}/producers.json"
+  printf '%s' '{"dispatched":["correctness"],"adapters":["jira-snapshot"],"skipped":[{"id":"security","reason":"no auth, secrets or config touched"}],"returned":["correctness"],"challenger":{"status":"skipped","reason":"no findings to adjudicate"}}' > "${tmp}/producers.json"
   printf '%s' "{${common},\"findings\":[],\"inspected\":{\"summary\":\"Read the diff.\",\"producers\":[\"correctness\",\"security\",\"challenger\"]}}" > "${tmp}/ledger.json"
   (
     export REVIEW_PRODUCER_LEDGER="${tmp}/producers.json"
@@ -949,7 +990,7 @@ run_self_test() {
   # Provenance: the ledger drives a Producers table that distinguishes a
   # dimension that ran and found nothing from one that never ran, and each
   # finding names the producer that raised it.
-  printf '%s' '{"dispatched":["correctness","style-review"],"adapters":["jira-snapshot"],"skipped":[{"id":"security","reason":"no auth or secrets touched"}],"challenger":"ran","returned":["correctness","style-review"]}' > "${tmp}/prov-ledger.json"
+  printf '%s' '{"dispatched":["correctness","style-review"],"adapters":["jira-snapshot"],"skipped":[{"id":"security","reason":"no auth or secrets touched"}],"returned":["correctness","style-review"],"challenger":{"status":"ran","input":1,"kept":1}}' > "${tmp}/prov-ledger.json"
   printf '%s' "{${common},\"findings\":[{\"severity\":\"high\",\"category\":\"off-by-one\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"line\":3,\"description\":\"Out of bounds.\",\"why\":\"Index equals length.\",\"remediation\":\"Subtract one.\"}]}" > "${tmp}/prov.json"
   (
     export REVIEW_PRODUCER_LEDGER="${tmp}/prov-ledger.json"
@@ -959,45 +1000,71 @@ run_self_test() {
   if ! grep -q '### Producers' <<<"${body}"; then
     echo "FAIL provenance: no Producers table" >&2
     fail=1
-  elif ! grep -qE '^\| correctness \| ✅ ran \| 1 \|' <<<"${body}"; then
+  elif ! grep -qE '^\| correctness \| ✅ \| 1 \|' <<<"${body}"; then
     echo "FAIL provenance: producer that found something is not counted" >&2
     fail=1
-  elif ! grep -qE '^\| style-review \| ✅ ran \| 0 \|' <<<"${body}"; then
+  elif ! grep -qE '^\| style-review \| ✅ \| 0 \|' <<<"${body}"; then
     echo "FAIL provenance: producer that ran clean is not distinguished from one that was skipped" >&2
     fail=1
-  elif ! grep -q 'security | ➖ skipped — no auth or secrets touched' <<<"${body}"; then
+  elif ! grep -qE '^\| security \| ➖ \| — \| no auth or secrets touched' <<<"${body}"; then
     echo "FAIL provenance: skipped producer missing its reason" >&2
     fail=1
   elif ! grep -q '`correctness` · \*\*off-by-one\*\*' <<<"${body}"; then
     echo "FAIL provenance: finding does not name the producer that raised it" >&2
     fail=1
-  elif ! grep -q '### 🔴 High (1)' <<<"${body}"; then
-    echo "FAIL provenance: severity heading missing marker or count" >&2
+  elif ! grep -q '### High (1)' <<<"${body}"; then
+    echo "FAIL provenance: severity heading missing count" >&2
+    fail=1
+  elif grep -qE '^\| challenger \|' <<<"${body}"; then
+    echo "FAIL provenance: challenger must not appear in the Producers table" >&2
+    fail=1
+  elif ! grep -q '### Challenger' <<<"${body}" || ! grep -q 'Adjudicated 1 finding; all kept\.' <<<"${body}"; then
+    echo "FAIL provenance: Challenger section missing or wrong prose" >&2
     fail=1
   else
     echo "PASS producers table attributes findings and separates ran-clean from skipped"
   fi
 
+  # A patch snippet must survive as code. Flattened to one bullet it is
+  # unreadable, and a fence shorter than the snippet's own backticks breaks out.
+  fix_finding='{"severity":"high","category":"coderabbit","dimension":"coderabbit","file":"a.ts","description":"Guard the empty list.","why":"The list can be empty.","remediation":"if (!items.length) {\n  return null;\n}\n\n```ts\nconst safe = items ?? [];\n```"}'
+  prose_finding='{"severity":"high","category":"correctness","dimension":"correctness","file":"b.ts","description":"Empty state throws.","why":"Unguarded map.","remediation":"Guard the list and add an empty-state test."}'
+  printf '%s' "{${common},\"findings\":[${fix_finding},${prose_finding}]}" > "${tmp}/fix.json"
+  transform_review_result "${tmp}/fix.json" > "${tmp}/fix-out.json"
+  body=$(jq -r .body "${tmp}/fix-out.json")
+  if ! grep -qE '^  - Remediation:$' <<<"${body}"; then
+    echo "FAIL remediation: multi-line snippet was not given its own block" >&2
+    fail=1
+  elif ! grep -qE '^    ````$' <<<"${body}"; then
+    echo "FAIL remediation: fence was not padded past the snippet's own backticks" >&2
+    fail=1
+  elif ! grep -qE '^      return null;$' <<<"${body}"; then
+    echo "FAIL remediation: snippet indentation was lost" >&2
+    fail=1
+  elif ! grep -qE '^  - Remediation: Guard the list and add an empty-state test\.$' <<<"${body}"; then
+    echo "FAIL remediation: single-line remediation should stay inline" >&2
+    fail=1
+  else
+    echo "PASS remediation renders snippets as code and prose inline"
+  fi
+
   # Unmet criteria stay expanded; an all-clear set collapses.
   printf '%s' "{${common},\"jira_criteria\":[{\"criterion\":\"Gate is present\",\"verdict\":\"MISS\",\"evidence\":\"No gate in diff.\"}]}" > "${tmp}/jira-miss.json"
   body=$(transform_review_result "${tmp}/jira-miss.json" | jq -r .body)
-  if ! grep -q '<details open>' <<<"${body}"; then
-    echo "FAIL jira-miss: an unmet criterion must stay expanded" >&2
-    fail=1
-  elif grep -q '<summary>✅ <strong>Jira acceptance criteria' <<<"${body}"; then
-    echo "FAIL jira-miss: unmet criteria were collapsed behind an all-clear summary" >&2
+  if ! grep -q '### Jira acceptance criteria' <<<"${body}" || ! grep -q 'Gate is present' <<<"${body}"; then
+    echo "FAIL jira-miss: unmet Jira criteria must appear in Review details" >&2
     fail=1
   else
-    echo "PASS unmet Jira criteria stay expanded, clean ones collapse"
+    echo "PASS unmet Jira criteria render in Review details"
   fi
 
   # The ledger claiming an empty-set skip while findings exist is the exact
   # shape run 243 produced. The host must contradict it, not repeat it.
-  printf '%s' '{"dispatched":["correctness"],"adapters":[],"skipped":[],"challenger":"skipped-empty-set"}' > "${tmp}/ch-bad.json"
+  printf '%s' '{"dispatched":["correctness"],"adapters":[],"skipped":[],"challenger":{"status":"skipped","reason":"no findings to adjudicate"}}' > "${tmp}/ch-bad.json"
   printf '%s' "{${common},\"findings\":[{\"severity\":\"high\",\"category\":\"off-by-one\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Out of bounds.\",\"why\":\"undefined.\",\"remediation\":\"length - 1.\"}]}" > "${tmp}/ch.json"
   ( export REVIEW_PRODUCER_LEDGER="${tmp}/ch-bad.json"; transform_review_result "${tmp}/ch.json" ) > "${tmp}/ch-out.json"
   body=$(jq -r .body "${tmp}/ch-out.json")
-  if ! grep -q 'recorded as "no findings to adjudicate", but 1 finding(s) were reported' <<<"${body}"; then
+  if ! grep -q 'ledger records the challenger as skipped for an empty finding set' <<<"${body}"; then
     echo "FAIL challenger-contradiction: host repeated a ledger claim the findings disprove" >&2
     fail=1
   elif ! jq -e '.confidence.level == "medium"' "${tmp}/ch-out.json" >/dev/null; then
@@ -1007,109 +1074,34 @@ run_self_test() {
     echo "PASS contradictory challenger record is reported and caps confidence"
   fi
 
-  # An honest skip with a stated reason renders as-is.
-  printf '%s' '{"dispatched":["correctness"],"adapters":[],"skipped":[],"challenger":"skipped: re-review, findings unchanged since prior run"}' > "${tmp}/ch-ok.json"
+  # An honest skip with a stated reason renders in the Challenger section.
+  printf '%s' '{"dispatched":["correctness"],"adapters":[],"skipped":[],"challenger":{"status":"skipped","reason":"re-review, findings unchanged since prior run"}}' > "${tmp}/ch-ok.json"
   ( export REVIEW_PRODUCER_LEDGER="${tmp}/ch-ok.json"; transform_review_result "${tmp}/ch.json" ) > "${tmp}/ch-ok-out.json"
-  if ! grep -q '➖ skipped — re-review, findings unchanged since prior run' <<<"$(jq -r .body "${tmp}/ch-ok-out.json")"; then
+  if ! grep -q 'Skipped — re-review, findings unchanged since prior run\.' <<<"$(jq -r .body "${tmp}/ch-ok-out.json")"; then
     echo "FAIL challenger-reason: a stated skip reason was not rendered" >&2
     fail=1
   else
-    echo "PASS challenger skip reason renders verbatim"
+    echo "PASS challenger skip reason renders in its own section"
   fi
 
   # A ledger never rewritten after collect is not the same as a skip.
-  printf '%s' '{"dispatched":["correctness"],"adapters":[],"skipped":[],"challenger":"pending"}' > "${tmp}/ch-pending.json"
+  printf '%s' '{"dispatched":["correctness"],"adapters":[],"skipped":[],"challenger":{"status":"pending"}}' > "${tmp}/ch-pending.json"
   ( export REVIEW_PRODUCER_LEDGER="${tmp}/ch-pending.json"; transform_review_result "${tmp}/ch.json" ) > "${tmp}/ch-p-out.json"
-  if ! grep -q 'never rewritten after collect' <<<"$(jq -r .body "${tmp}/ch-p-out.json")"; then
+  if ! grep -q 'whether it ran is unknown' <<<"$(jq -r .body "${tmp}/ch-p-out.json")"; then
     echo "FAIL challenger-pending: an un-rewritten ledger was read as a real state" >&2
     fail=1
   else
     echo "PASS un-rewritten challenger record is flagged, not believed"
   fi
 
-  # The exact shape runs 240/243/246 produced: the summary describes the
-  # base-branch merge instead of the PR's own four files.
-  printf '%s' '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","schema_version":"2","change_summary":"Infrastructure-only update: modified .fullsend/scripts/post-review.sh and .fullsend/skills/pr-review/SKILL.md.","risk":{"level":"low","why":"n"},"confidence":{"level":"high","why":"All producers ran."},"verification":[{"id":"evidence","label":"Evidence","result":"pass"}],"findings":[]}' > "${tmp}/scope.json"
-  (
-    export REVIEW_CHANGED_FILES="frontend/src/pages/smokeReview/useSmokeQuota.ts
-docs/admin-dashboard.md"
-    transform_review_result "${tmp}/scope.json"
-  ) > "${tmp}/scope-out.json"
-  body=$(jq -r .body "${tmp}/scope-out.json")
-  if ! grep -q "names files that are not in this PR's diff" <<<"${body}"; then
-    echo "FAIL summary-scope: a summary describing files outside the diff went unchallenged" >&2
-    fail=1
-  elif ! grep -q 'post-review.sh' <<<"${body}"; then
-    echo "FAIL summary-scope: the offending paths were not named" >&2
-    fail=1
-  elif ! jq -e '.confidence.level == "medium"' "${tmp}/scope-out.json" >/dev/null; then
-    echo "FAIL summary-scope: confidence stayed high on a summary of the wrong change" >&2
+  # Filtered adjudication prose.
+  printf '%s' '{"dispatched":["correctness"],"adapters":[],"skipped":[],"challenger":{"status":"ran","input":7,"kept":4,"removed":2,"merged":1}}' > "${tmp}/ch-filter.json"
+  ( export REVIEW_PRODUCER_LEDGER="${tmp}/ch-filter.json"; transform_review_result "${tmp}/ch.json" ) > "${tmp}/ch-filter-out.json"
+  if ! grep -q 'Adjudicated 7 findings; kept 4 (removed 2, merged 1)\.' <<<"$(jq -r .body "${tmp}/ch-filter-out.json")"; then
+    echo "FAIL challenger-filter: expected alteration summary" >&2
     fail=1
   else
-    echo "PASS out-of-diff change summary is challenged and caps confidence"
-  fi
-
-  # A summary that names only files the PR touches must pass clean.
-  printf '%s' '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","schema_version":"2","change_summary":"Adds a quota panel in frontend/src/pages/smokeReview/useSmokeQuota.ts and documents it.","risk":{"level":"low","why":"n"},"confidence":{"level":"high","why":"All producers ran."},"verification":[{"id":"evidence","label":"Evidence","result":"pass"}],"findings":[]}' > "${tmp}/scope-ok.json"
-  (
-    export REVIEW_CHANGED_FILES="frontend/src/pages/smokeReview/useSmokeQuota.ts
-docs/admin-dashboard.md"
-    transform_review_result "${tmp}/scope-ok.json"
-  ) > "${tmp}/scope-ok-out.json"
-  if grep -q "names files that are not in this PR's diff" <<<"$(jq -r .body "${tmp}/scope-ok-out.json")"; then
-    echo "FAIL summary-scope: an in-diff summary was falsely challenged" >&2
-    fail=1
-  elif ! jq -e '.confidence.level == "high"' "${tmp}/scope-ok-out.json" >/dev/null; then
-    echo "FAIL summary-scope: an in-diff summary should not cap confidence" >&2
-    fail=1
-  else
-    echo "PASS in-diff change summary passes clean"
-  fi
-
-  # Run 249's summary, verbatim. It named the base-branch files by basename only
-  # ("post-review.sh", not ".fullsend/scripts/post-review.sh"), so the first
-  # version of this guard -- which required a slash -- let it through.
-  printf '%s' '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","schema_version":"2","change_summary":"Infrastructure-only changes to Fullsend review harness: updated fetch-jira-context.sh and post-review.sh scripts in .fullsend/scripts/. No changes to smoke fixture code (frontend/src/pages/smokeReview/) which remains unchanged since prior review at 6285d45.","risk":{"level":"low","why":"n"},"confidence":{"level":"high","why":"All producers ran."},"verification":[{"id":"evidence","label":"Evidence","result":"pass"}],"findings":[]}' > "${tmp}/bare.json"
-  (
-    export REVIEW_CHANGED_FILES="frontend/src/pages/smokeReview/SmokeAdminPanel.tsx
-frontend/src/pages/smokeReview/useSmokeQuota.ts
-frontend/src/pages/smokeReview/SmokeAdminPanel.scss
-docs/admin-dashboard.md"
-    transform_review_result "${tmp}/bare.json"
-  ) > "${tmp}/bare-out.json"
-  body=$(jq -r .body "${tmp}/bare-out.json")
-  if ! grep -q "names files that are not in this PR's diff" <<<"${body}"; then
-    echo "FAIL bare-scope: a summary citing base-branch files by basename went unchallenged" >&2
-    fail=1
-  elif ! grep -q 'post-review.sh' <<<"${body}"; then
-    echo "FAIL bare-scope: the offending basename was not named" >&2
-    fail=1
-  elif ! grep -q '.fullsend/scripts/' <<<"${body}"; then
-    echo "FAIL bare-scope: the untouched directory was not named" >&2
-    fail=1
-  elif ! jq -e '.confidence.level == "medium"' "${tmp}/bare-out.json" >/dev/null; then
-    echo "FAIL bare-scope: confidence stayed high on a summary of the wrong change" >&2
-    fail=1
-  else
-    echo "PASS basenames and directories outside the diff are challenged too"
-  fi
-
-  # The widened matcher must not fire on a correct summary: basenames that are in
-  # the diff, a directory that is, and a library whose name looks like a filename.
-  printf '%s' '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","schema_version":"2","change_summary":"Adds a quota panel in frontend/src/pages/smokeReview/useSmokeQuota.ts, styles it in SmokeAdminPanel.scss, and documents it in docs/admin-dashboard.md. Written against Node.js 22.","risk":{"level":"low","why":"n"},"confidence":{"level":"high","why":"All producers ran."},"verification":[{"id":"evidence","label":"Evidence","result":"pass"}],"findings":[]}' > "${tmp}/bare-ok.json"
-  (
-    export REVIEW_CHANGED_FILES="frontend/src/pages/smokeReview/SmokeAdminPanel.tsx
-frontend/src/pages/smokeReview/useSmokeQuota.ts
-frontend/src/pages/smokeReview/SmokeAdminPanel.scss
-docs/admin-dashboard.md"
-    transform_review_result "${tmp}/bare-ok.json"
-  ) > "${tmp}/bare-ok-out.json"
-  if grep -q "names files that are not in this PR's diff" <<<"$(jq -r .body "${tmp}/bare-ok-out.json")"; then
-    echo "FAIL bare-scope: an in-diff summary was falsely challenged" >&2
-    jq -r .body "${tmp}/bare-ok-out.json" | grep "names files" >&2
-    fail=1
-  else
-    echo "PASS in-diff basenames and a library name pass clean"
+    echo "PASS challenger section reports removals and merges"
   fi
 
   # Every U+FE0F variation selector is stripped from the comment before it is
@@ -1118,8 +1110,9 @@ docs/admin-dashboard.md"
   # GitHub no matter how the source is written. Every marker must be a character
   # that is emoji-presentation by default, so scan the rendered body rather than
   # trusting the marker tables.
-  jq -r .body "${tmp}/scope-out.json" "${tmp}/ledger-out.json" "${tmp}/prov-out.json" \
+  jq -r .body "${tmp}/ledger-out.json" "${tmp}/prov-out.json" \
       "${tmp}/request-changes-out.json" "${tmp}/structured-out.json" \
+      "${tmp}/needs-human-out.json" \
     | python3 -c '
 import sys, unicodedata
 text = sys.stdin.read()
@@ -1221,6 +1214,7 @@ if [ -z "${RESULT_FILE}" ] || [ ! -f "${RESULT_FILE}" ]; then
       --repo "${REPO_FULL_NAME}" \
       --pr "${PR_NUMBER}" \
       --token "${REVIEW_TOKEN}" \
+      --fullsend-dir "${FULLSEND_CONFIG_DIR}" \
       --result -
   exit 1
 fi
@@ -1264,6 +1258,7 @@ case "${REVIEW_FINDING_SEVERITY_THRESHOLD}" in
          --repo "${REPO_FULL_NAME}" \
          --pr "${PR_NUMBER}" \
          --token "${REVIEW_TOKEN}" \
+         --fullsend-dir "${FULLSEND_CONFIG_DIR}" \
          --result -
      exit 1 ;;
 esac
@@ -1567,6 +1562,7 @@ fullsend post-review \
   --repo "${REPO_FULL_NAME}" \
   --pr "${PR_NUMBER}" \
   --token "${REVIEW_TOKEN}" \
+  --fullsend-dir "${FULLSEND_CONFIG_DIR}" \
   --result "${POST_RESULT_FILE}" || POST_REVIEW_EXIT=$?
 
 if [ "${POST_REVIEW_EXIT}" -eq 10 ]; then

@@ -10,41 +10,40 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
+import { InvalidPipelineRun, StopRunModal } from '@odh-dashboard/autox-core/ui/components/feature';
+import { ContextBreadcrumb } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
-import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
-import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutoragResults from '~/app/components/run-results/AutoragResults';
 import AutoragInputParametersPanel from '~/app/components/run-results/AutoragInputParametersPanel';
 import PlaygroundDrawerPanel from '~/app/components/run-results/PlaygroundDrawerPanel';
 import type { PlaygroundPatternInfo } from '~/app/components/run-results/PlaygroundDrawerPanel';
-import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { AutoragResultsContext, getAutoragContext } from '~/app/context/AutoragResultsContext';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
 import { useNotification } from '~/app/hooks/useNotification';
-import { usePipelineRunQuery, useSecretCredentialsQuery } from '~/app/hooks/queries';
+import { usePipelineRunQuery } from '~/app/hooks/usePipelineRunQuery';
+import { useSecretCredentialsQuery } from '~/app/hooks/useSecretCredentialsQuery';
 import { useAutoragResults } from '~/app/hooks/useAutoragResults';
 import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import { useComponentStatuses } from '~/app/hooks/useComponentStatuses';
 import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/utilities/routes';
-import {
-  formatMetricName,
-  getOptimizedMetricForRAG,
-  isRunTerminatable,
-  isRunRetryable,
-  parseErrorStatus,
-} from '~/app/utilities/utils';
+import { isRunTerminatable, isRunRetryable } from '~/app/utilities/utils';
+import { getObjectiveMetric, metricLabel } from '~/app/utilities/metricUtils';
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 import {
+  AUTORAG_EVENTS,
   fireAutoragCodeSnippetsExported,
   fireAutoragPlaygroundOpened,
   fireAutoragResultsViewed,
   isAutoragResultsNavigationState,
+  TrackingOutcome,
 } from '~/app/utilities/tracking';
 import type { PlaygroundOpenedSource, ViewCodeEntrySource } from '~/app/utilities/tracking';
 
@@ -274,18 +273,14 @@ function AutoragResultsPage(): React.JSX.Element {
         return false;
       }
 
-      const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
-      const scoreLookup = Object.fromEntries(
-        pattern.evaluation.metrics.map((m) => [m.name.toLowerCase(), m.scores]),
-      );
-      const metricMean = scoreLookup[optimizedMetric.toLowerCase()]?.mean;
+      const metricMean = getObjectiveMetric(pattern, contextValue.optimizationMetric)?.scores.mean;
       setDrawerContent({
         type: 'playground',
         responsesTemplate,
         patternInfo: {
           patternName,
           modelId: pattern.settings?.generation?.model_id || 'N/A',
-          optimizedMetricName: formatMetricName(optimizedMetric),
+          optimizedMetricName: metricLabel(contextValue.optimizationMetric),
           optimizedMetricValue:
             metricMean != null && Number.isFinite(metricMean) ? metricMean : 'N/A',
           chunkMethod: pattern.settings?.chunking?.method || 'N/A',
@@ -293,7 +288,7 @@ function AutoragResultsPage(): React.JSX.Element {
       });
       return true;
     },
-    [patterns, pipelineRun],
+    [contextValue.optimizationMetric, patterns],
   );
   /* eslint-enable @typescript-eslint/no-unnecessary-condition */
 
@@ -421,11 +416,13 @@ function AutoragResultsPage(): React.JSX.Element {
               }
               breadcrumb={
                 namespace ? (
-                  <ExperimentContextBreadcrumb
+                  <ContextBreadcrumb
                     pageName="AutoRAG"
-                    namespace={namespace}
                     projectDisplayName={projectDisplayName}
                     homePath={getRedirectPath(namespace)}
+                    projectHomePath={`/projects/${namespace}`}
+                    homeTestId="experiment-breadcrumb-home"
+                    projectLinkTestId="project-navigator-link-in-breadcrumb"
                   >
                     <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
                       <Link
@@ -436,13 +433,13 @@ function AutoragResultsPage(): React.JSX.Element {
                       </Link>
                     </BreadcrumbItem>
                     <BreadcrumbItem isActive>Run results</BreadcrumbItem>
-                  </ExperimentContextBreadcrumb>
+                  </ContextBreadcrumb>
                 ) : undefined
               }
               empty={noNamespaces || invalidNamespace || invalidPipelineRunId}
               emptyStatePage={
                 invalidPipelineRunId ? (
-                  <InvalidPipelineRun />
+                  <InvalidPipelineRun productName="AutoRAG" />
                 ) : (
                   <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
                 )
@@ -463,7 +460,12 @@ function AutoragResultsPage(): React.JSX.Element {
         onConfirm={handleStop}
         isTerminating={isTerminating}
         runName={pipelineRun?.display_name}
-        source="resultsPage"
+        onCancel={() =>
+          fireFormTrackingEvent(AUTORAG_EVENTS.RUN_STOPPED, {
+            outcome: TrackingOutcome.cancel,
+            source: 'resultsPage',
+          })
+        }
       />
       {viewCodePattern && (
         <ViewCodeModal

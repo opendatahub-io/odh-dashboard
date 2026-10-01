@@ -12,6 +12,7 @@ import {
   mockMCPToolsInterceptor,
   mockMCPStatusError,
   mockMCPStatusAutoConnect,
+  mockMCPRegistryStatusAutoConnect,
   mockMCPToolsAutoConnect,
   mockMCPToolsAutoConnectWithCount,
   mockMCPServersWithRegistry,
@@ -130,6 +131,18 @@ export const loadMCPTestConfig = (): Cypress.Chainable<MCPTestConfig> => {
   });
 };
 
+export const clearMCPRegistryServersFlag = (): void => {
+  Cypress.env('_featureFlagParams', '');
+};
+
+export const visitWithMCPRegistryServersFlag = (enabled: boolean): void => {
+  const flagParams = `genAiMcpRegistryServers=${enabled}`;
+  Cypress.env('_featureFlagParams', flagParams);
+  cy.visit(`/?${flagParams}`);
+  cy.document().should('exist');
+  cy.get('body', { timeout: 15000 }).should('be.visible');
+};
+
 type MCPServerStatus = 'healthy' | 'error' | 'unknown';
 
 type InitInterceptsOptions = {
@@ -138,7 +151,7 @@ type InitInterceptsOptions = {
   serverName: string;
   serverUrl?: string;
   serverStatus?: MCPServerStatus;
-  servers?: Array<{ name: string; status: MCPServerStatus }>;
+  servers?: Array<{ name: string; status: MCPServerStatus; url?: string }>;
   withStatusInterceptor?: { token: string; serverUrl: string };
   withToolsInterceptor?: { token: string; serverUrl: string };
   withStatusError?: { errorType: '400' | '401'; serverUrl: string };
@@ -172,6 +185,12 @@ export const initIntercepts = ({
     mockMCPStatusError(withStatusError.errorType, withStatusError.serverUrl);
   } else if (withStatusInterceptor) {
     mockMCPStatusInterceptor(withStatusInterceptor.token, withStatusInterceptor.serverUrl);
+  } else if (servers) {
+    servers.forEach(({ url }) => {
+      if (url) {
+        mockMCPStatusAutoConnect(url);
+      }
+    });
   } else if (serverUrl) {
     mockMCPStatusError('401', serverUrl);
   }
@@ -181,9 +200,16 @@ export const initIntercepts = ({
   }
 };
 
-export const navigateToPlayground = (namespace: string): void => {
+export const navigateToPlayground = (
+  namespace: string,
+  mcpRegistryServersEnabled?: boolean,
+): void => {
   cy.step('Navigate to Playground');
-  appChrome.visit();
+  if (mcpRegistryServersEnabled === undefined) {
+    appChrome.visit();
+  } else {
+    visitWithMCPRegistryServersFlag(mcpRegistryServersEnabled);
+  }
   playgroundPage.visit(namespace);
   playgroundPage.verifyOnPlaygroundPage(namespace);
   playgroundPage.mcpTab.openMCPTab();
@@ -309,4 +335,11 @@ export const initRegistryIntercepts = ({
     { query: { namespace } },
     mockMCPServersWithRegistry(regServers, cmServers),
   );
+
+  registryServers?.forEach(({ name, url }) => {
+    mockMCPRegistryStatusAutoConnect(name, url);
+  });
+  configmapServers?.forEach(({ url }) => {
+    mockMCPStatusAutoConnect(url);
+  });
 };

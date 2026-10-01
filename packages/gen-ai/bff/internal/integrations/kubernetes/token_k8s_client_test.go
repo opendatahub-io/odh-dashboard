@@ -18,12 +18,17 @@ import (
 	"github.com/stretchr/testify/require"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
 	"knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
@@ -31,6 +36,125 @@ import (
 	ogxapi "github.com/ogx-ai/ogx-k8s-operator/api/v1beta1"
 	"k8s.io/apimachinery/pkg/types"
 )
+
+type noMatchListClient struct {
+	client.Client
+}
+
+func TestGetExternalModelsConfigUsesRequestClient(t *testing.T) {
+	const namespace = "test-namespace"
+
+	requestClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.ExternalModelsConfigMapName,
+			Namespace: namespace,
+		},
+		Data: map[string]string{
+			"config.yaml": `providers:
+  inference:
+  - provider_id: endpoint-1
+    provider_type: remote::openai
+    config:
+      base_url: https://example.com/v1
+      allowed_models:
+      - example-model
+registered_resources:
+  models:
+  - provider_id: endpoint-1
+    model_id: example-model
+    model_type: llm
+    metadata:
+      display_name: Example model`,
+		},
+	}).Build()
+	kc := &TokenKubernetesClient{
+		Client:   requestClient,
+		SAClient: fake.NewClientBuilder().Build(),
+		Logger:   slog.Default(),
+	}
+
+	config, err := kc.GetExternalModelsConfig(context.Background(), namespace)
+
+	require.NoError(t, err)
+	require.Len(t, config.RegisteredResources.Models, 1)
+	assert.Equal(t, "example-model", config.RegisteredResources.Models[0].ModelID)
+}
+
+func (c noMatchListClient) List(context.Context, client.ObjectList, ...client.ListOption) error {
+	return &apimeta.NoKindMatchError{
+		GroupKind: schema.GroupKind{Group: "trustyai.opendatahub.io", Kind: "NemoGuardrails"},
+	}
+}
+
+type errorListClient struct {
+	client.Client
+	err error
+}
+
+func (c errorListClient) List(context.Context, client.ObjectList, ...client.ListOption) error {
+	return c.err
+}
+
+func TestGetNemoGuardrailsServiceURL(t *testing.T) {
+	t.Run("returns service URL for a NemoGuardrails CR", func(t *testing.T) {
+		guardrails := &unstructured.Unstructured{Object: map[string]interface{}{
+			"apiVersion": "trustyai.opendatahub.io/v1alpha1",
+			"kind":       "NemoGuardrails",
+			"metadata": map[string]interface{}{
+				"name":      "guardrails",
+				"namespace": testutil.TestNamespace,
+			},
+		}}
+		kc := &TokenKubernetesClient{Client: fake.NewClientBuilder().WithObjects(guardrails).Build(), Logger: slog.Default()}
+
+		url, err := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, testutil.TestNamespace)
+
+		require.NoError(t, err)
+		assert.Equal(t, "https://guardrails."+testutil.TestNamespace+".svc.cluster.local:443", url)
+	})
+
+	t.Run("returns no URL when no NemoGuardrails CR exists", func(t *testing.T) {
+		kc := &TokenKubernetesClient{Client: fake.NewClientBuilder().Build(), Logger: slog.Default()}
+
+		url, err := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, testutil.TestNamespace)
+
+		require.NoError(t, err)
+		assert.Empty(t, url)
+	})
+
+	t.Run("returns no URL when the CRD is not installed", func(t *testing.T) {
+		kc := &TokenKubernetesClient{Client: noMatchListClient{Client: fake.NewClientBuilder().Build()}, Logger: slog.Default()}
+
+		url, err := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, testutil.TestNamespace)
+
+		require.NoError(t, err)
+		assert.Empty(t, url)
+	})
+
+	t.Run("returns no URL when the API server reports the CRD resource as not found", func(t *testing.T) {
+		kc := &TokenKubernetesClient{
+			Client: errorListClient{
+				Client: fake.NewClientBuilder().Build(),
+				err:    apierrors.NewNotFound(schema.GroupResource{Group: "trustyai.opendatahub.io", Resource: "nemoguardrails"}, ""),
+			},
+			Logger: slog.Default(),
+		}
+
+		url, err := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, testutil.TestNamespace)
+
+		require.NoError(t, err)
+		assert.Empty(t, url)
+	})
+
+	t.Run("returns an error for an unexpected Kubernetes error", func(t *testing.T) {
+		kc := &TokenKubernetesClient{Client: errorListClient{Client: fake.NewClientBuilder().Build(), err: assert.AnError}, Logger: slog.Default()}
+
+		url, err := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, testutil.TestNamespace)
+
+		assert.Empty(t, url)
+		require.ErrorIs(t, err, assert.AnError)
+	})
+}
 
 func TestCanListOGXServers(t *testing.T) {
 	t.Run("should create proper SAR request for OGXServer resources", func(t *testing.T) {
@@ -1202,6 +1326,19 @@ func TestModelSourceTypeConstants(t *testing.T) {
 }
 
 func TestInstallModelUnmarshalJSON(t *testing.T) {
+	t.Run("ignores a legacy max_tokens property", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "gpt-4o", "model_source_type": "custom_endpoint",
+			"max_tokens": 4096.5
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "gpt-4o", model.ModelName)
+		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
+	})
 
 	t.Run("should handle custom_endpoint ModelSourceType", func(t *testing.T) {
 		jsonData := []byte(`{
@@ -1239,64 +1376,6 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "model_source_type is required")
-	})
-
-	t.Run("should handle max_tokens with ModelSourceType", func(t *testing.T) {
-		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "custom_endpoint",
-			"max_tokens": 4096
-		}`)
-
-		var model models.InstallModel
-		err := model.UnmarshalJSON(jsonData)
-
-		assert.NoError(t, err)
-		assert.Equal(t, "gpt-4o", model.ModelName)
-		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
-		assert.NotNil(t, model.MaxTokens)
-		assert.Equal(t, 4096, *model.MaxTokens)
-	})
-
-	t.Run("should handle max_tokens as float64", func(t *testing.T) {
-		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "custom_endpoint",
-			"max_tokens": 4096.0
-		}`)
-
-		var model models.InstallModel
-		err := model.UnmarshalJSON(jsonData)
-
-		assert.NoError(t, err)
-		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
-		assert.NotNil(t, model.MaxTokens)
-		assert.Equal(t, 4096, *model.MaxTokens)
-	})
-
-	t.Run("should reject fractional max_tokens", func(t *testing.T) {
-		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "custom_endpoint",
-			"max_tokens": 4096.5
-		}`)
-
-		var model models.InstallModel
-		err := model.UnmarshalJSON(jsonData)
-
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "max_tokens must be an integer")
-	})
-
-	t.Run("should handle nil max_tokens", func(t *testing.T) {
-		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "custom_endpoint",
-			"max_tokens": null
-		}`)
-
-		var model models.InstallModel
-		err := model.UnmarshalJSON(jsonData)
-
-		assert.NoError(t, err)
-		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
-		assert.Nil(t, model.MaxTokens)
 	})
 
 	t.Run("should handle maas ModelSourceType", func(t *testing.T) {
@@ -1398,6 +1477,40 @@ registered_resources:
 		require.NoError(t, err)
 		require.Len(t, result, 1)
 		assert.Equal(t, []string{constants.CapabilityTextGeneration}, result[0].Capabilities)
+	})
+
+	t.Run("custom transcription endpoint retains type and ASR capability", func(t *testing.T) {
+		cm := makeConfigMap(`providers:
+  inference:
+    - provider_id: groq-asr
+      provider_type: remote::openai
+      config:
+        base_url: https://api.groq.com/openai/v1
+registered_resources:
+  models:
+    - provider_id: groq-asr
+      model_id: whisper-large-v3
+      model_type: transcription
+      metadata:
+        display_name: Groq Whisper
+        capabilities:
+          - audio-transcription`)
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(cm).
+			Build()
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.GetAAModelsFromExternalModels(context.Background(), identity, "test-ns")
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, result[0].ModelSourceType)
+		assert.Equal(t, models.ModelTypeTranscription, result[0].ModelType)
+		assert.Equal(t, []string{constants.CapabilityAudioTranscription}, result[0].Capabilities)
 	})
 
 	t.Run("explicit capabilities in YAML are passed through", func(t *testing.T) {
@@ -2207,6 +2320,7 @@ func TestOgxCommand_TracingEnabled(t *testing.T) {
 	assert.Contains(t, cmd[2], "sitecustomize.py")
 	assert.Contains(t, cmd[2], "opentelemetry-instrument")
 	assert.Contains(t, cmd[2], "--traces_exporter=otlp_proto_http")
+	assert.Contains(t, cmd[2], "--disabled_instrumentations=sqlite3,sqlalchemy,asyncpg,requests,urllib,urllib3,httpx,httpx2")
 	assert.Contains(t, cmd[2], "ogx run /etc/ogx/config.yaml")
 }
 
@@ -2294,8 +2408,8 @@ func TestOgxEnvVars_TracingEnabled(t *testing.T) {
 	assert.Equal(t, "k8s.namespace.name=my-project", byName["OTEL_RESOURCE_ATTRIBUTES"])
 	assert.Equal(t, "http", byName["OTEL_SEMCONV_STABILITY_OPT_IN"])
 	assert.Equal(t, "true", byName["OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT"])
-	assert.Equal(t, "health,version,metadata", byName["OTEL_PYTHON_FASTAPI_EXCLUDED_URLS"])
-	assert.Equal(t, "sqlite3", byName["OTEL_PYTHON_DISABLED_INSTRUMENTATIONS"])
+	assert.Equal(t, "health,version,metadata,models,vector_stores,providers,files", byName["OTEL_PYTHON_FASTAPI_EXCLUDED_URLS"])
+	assert.Equal(t, "sqlite3,sqlalchemy,asyncpg,requests,urllib,urllib3,httpx,httpx2", byName["OTEL_PYTHON_DISABLED_INSTRUMENTATIONS"])
 }
 
 func TestOgxEnvVars_TracingEnabled_NamespaceInResourceAttributes(t *testing.T) {
@@ -2420,7 +2534,7 @@ func TestGetAAModelsFromInferenceServiceCapabilities(t *testing.T) {
 		assert.Equal(t, []string{constants.CapabilityTextGeneration}, result[0].Capabilities)
 	})
 
-	t.Run("annotation populates Capabilities with text-generation prepended", func(t *testing.T) {
+	t.Run("hosted transcription annotation retains ASR-only capabilities and type", func(t *testing.T) {
 		isvc := &kservev1beta1.InferenceService{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "whisper-isvc",
@@ -2447,6 +2561,8 @@ func TestGetAAModelsFromInferenceServiceCapabilities(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, result, 1)
 		assert.Equal(t, []string{constants.CapabilityAudioTranscription}, result[0].Capabilities)
+		assert.Equal(t, models.ModelSourceTypeNamespace, result[0].ModelSourceType)
+		assert.Equal(t, models.ModelTypeTranscription, result[0].ModelType)
 	})
 
 	t.Run("custom capabilities in annotation pass through", func(t *testing.T) {
@@ -2682,4 +2798,66 @@ func TestInstallOGXServer_ZeroRestartPath(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "already exists", "stale URL must fall through to legacy error, not zero-restart")
 	})
+}
+
+func TestOfficeMIMETypesWorkloadOverrides(t *testing.T) {
+	for _, testCase := range []struct {
+		enableTracing bool
+		expectedValue string
+	}{
+		{enableTracing: false, expectedValue: "false"},
+		{enableTracing: true, expectedValue: "true"},
+	} {
+		env, volumes, mounts := officeMIMETypesWorkloadOverrides(testCase.enableTracing)
+
+		require.Len(t, env, 2)
+		assert.Equal(t, "PYTHONPATH", env[0].Name)
+		assert.Equal(t, constants.OfficeMIMETypesMountPath, env[0].Value)
+		assert.Equal(t, "ODH_ENABLE_TRACING", env[1].Name)
+		assert.Equal(t, testCase.expectedValue, env[1].Value)
+
+		require.Len(t, volumes, 1)
+		assert.Equal(t, constants.OfficeMIMETypesConfigMapName, volumes[0].Name)
+		require.NotNil(t, volumes[0].ConfigMap)
+		assert.Equal(t, constants.OfficeMIMETypesConfigMapName, volumes[0].ConfigMap.Name)
+		require.Len(t, volumes[0].ConfigMap.Items, 1)
+		assert.Equal(t, constants.OfficeMIMETypesConfigMapKey, volumes[0].ConfigMap.Items[0].Key)
+
+		require.Len(t, mounts, 1)
+		assert.Equal(t, constants.OfficeMIMETypesConfigMapName, mounts[0].Name)
+		assert.Equal(t, constants.OfficeMIMETypesMountPath, mounts[0].MountPath)
+		assert.True(t, mounts[0].ReadOnly)
+	}
+}
+
+func TestNewOfficeMIMETypesConfigMap(t *testing.T) {
+	configMap := newOfficeMIMETypesConfigMap("test-namespace")
+
+	assert.Equal(t, constants.OfficeMIMETypesConfigMapName, configMap.Name)
+	assert.Equal(t, "test-namespace", configMap.Namespace)
+	assert.Equal(t, "true", configMap.Labels[OpenDataHubDashboardLabelKey])
+	assert.Equal(t, lsdName, configMap.Labels["ogx.io/server"])
+	assert.NotNil(t, configMap.Immutable)
+	assert.True(t, *configMap.Immutable)
+	assert.Contains(t, configMap.Data[constants.OfficeMIMETypesConfigMapKey], `".docx"`)
+	assert.Contains(t, configMap.Data[constants.OfficeMIMETypesConfigMapKey], `".pptx"`)
+	assert.Contains(t, configMap.Data[constants.OfficeMIMETypesConfigMapKey], `ODH_ENABLE_TRACING`)
+	assert.Contains(t, configMap.Data[constants.OfficeMIMETypesConfigMapKey], `if os.environ.get`)
+}
+
+func TestIsTrustedOfficeMIMETypesConfigMap(t *testing.T) {
+	trusted := newOfficeMIMETypesConfigMap("test-namespace")
+	assert.True(t, isTrustedOfficeMIMETypesConfigMap(trusted))
+
+	tampered := trusted.DeepCopy()
+	tampered.Data[constants.OfficeMIMETypesConfigMapKey] += "\nimport malicious_code\n"
+	assert.False(t, isTrustedOfficeMIMETypesConfigMap(tampered))
+
+	extraData := trusted.DeepCopy()
+	extraData.Data["unexpected.py"] = "import malicious_code"
+	assert.False(t, isTrustedOfficeMIMETypesConfigMap(extraData))
+
+	binaryData := trusted.DeepCopy()
+	binaryData.BinaryData = map[string][]byte{"unexpected.py": []byte("import malicious_code")}
+	assert.False(t, isTrustedOfficeMIMETypesConfigMap(binaryData))
 }

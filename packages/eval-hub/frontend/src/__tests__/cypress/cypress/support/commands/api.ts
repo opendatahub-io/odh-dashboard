@@ -8,7 +8,10 @@ import type {
   CreateEvaluationJobResponse,
   EvalHubHealthResponse,
   EvaluationJob,
+  HardwareProfileValidationResponse,
+  HardwareProfilesResponse,
   InferenceServicesResponse,
+  KueueAvailability,
   Provider,
   VerifyConnectionResponse,
 } from '~/app/types';
@@ -43,6 +46,21 @@ declare global {
           response: ApiResponse<Namespace[]>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'GET /api/:apiVersion/kueue/availability',
+          options: { path: { apiVersion: string } },
+          response: ApiResponse<KueueAvailability>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/hardwareprofiles',
+          options: { path: { apiVersion: string } },
+          response: ApiResponse<HardwareProfilesResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /api/:apiVersion/hardwareprofiles/validate',
+          options: { path: { apiVersion: string } },
+          response: ApiResponse<HardwareProfileValidationResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'GET /api/:apiVersion/evalhub/health',
           options: { path: { apiVersion: string } },
           response: ApiResponse<EvalHubHealthResponse>,
@@ -56,6 +74,11 @@ declare global {
           type: 'GET /api/:apiVersion/evaluations/collections',
           options: { path: { apiVersion: string }; query?: Record<string, string> },
           response: ApiResponse<CollectionsListResponse | Collection[]>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/evaluations/collections/:collectionId',
+          options: { path: { apiVersion: string; collectionId: string } },
+          response: ApiResponse<Collection>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/:apiVersion/evaluations/jobs',

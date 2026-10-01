@@ -5,31 +5,26 @@ import { RuntimeStateKF } from '~/app/types/pipeline';
 import { DEFAULT_OPTIMIZATION_METRIC } from '~/app/utilities/const';
 import {
   isRunCompleted,
-  isRunInTerminalState,
   isRunTerminatable,
   isRunInProgress,
   isRunRetryable,
   isRunDeletable,
-  parseErrorStatus,
   getOptimizedMetricForRAG,
-  getOptimizedScore,
-  formatMetricValue,
-  formatMetricName,
+  parseErrorStatus,
   formatPatternName,
   generateReconfigureName,
   humanize,
   formatDisplayValue,
-  computePatternRankMap,
-  getMetricByName,
-  getRankableOptimizationMetric,
   normalizePipelineRunState,
   formatDurationBetween,
-  resolveBestPatternKey,
-  compareOptimizedMetricValues,
-  orderPatternsByLeaderboardRank,
   isComponentTaskDirName,
   findComponentTaskPrefix,
 } from '~/app/utilities/utils';
+import {
+  formatMetricName,
+  formatMetricValue,
+  getOptimizedScore,
+} from '~/app/utilities/metricUtils';
 
 describe('isRunCompleted', () => {
   it('should return true for SUCCEEDED', () => {
@@ -56,34 +51,6 @@ describe('isRunCompleted', () => {
   it('should return false for undefined or empty state', () => {
     expect(isRunCompleted(undefined)).toBe(false);
     expect(isRunCompleted('')).toBe(false);
-  });
-});
-
-describe('isRunInTerminalState', () => {
-  it('should return true for all terminal states', () => {
-    expect(isRunInTerminalState('SUCCEEDED')).toBe(true);
-    expect(isRunInTerminalState('FAILED')).toBe(true);
-    expect(isRunInTerminalState('CANCELED')).toBe(true);
-    expect(isRunInTerminalState('SKIPPED')).toBe(true);
-    expect(isRunInTerminalState('CACHED')).toBe(true);
-  });
-
-  it('should be case-insensitive', () => {
-    expect(isRunInTerminalState('succeeded')).toBe(true);
-    expect(isRunInTerminalState('Failed')).toBe(true);
-    expect(isRunInTerminalState('canceled')).toBe(true);
-  });
-
-  it('should return false for active states', () => {
-    expect(isRunInTerminalState('RUNNING')).toBe(false);
-    expect(isRunInTerminalState('PENDING')).toBe(false);
-    expect(isRunInTerminalState('PAUSED')).toBe(false);
-    expect(isRunInTerminalState('CANCELING')).toBe(false);
-  });
-
-  it('should return false for undefined or empty state', () => {
-    expect(isRunInTerminalState(undefined)).toBe(false);
-    expect(isRunInTerminalState('')).toBe(false);
   });
 });
 
@@ -186,58 +153,6 @@ describe('isRunDeletable', () => {
   it('should return false for undefined or empty state', () => {
     expect(isRunDeletable(undefined)).toBe(false);
     expect(isRunDeletable('')).toBe(false);
-  });
-});
-
-describe('parseErrorStatus', () => {
-  it('should extract status code from "status code XXX" format', () => {
-    const error = new Error('Request failed with status code 404');
-    expect(parseErrorStatus(error)).toBe(404);
-  });
-
-  it('should extract status code from "status: XXX" format', () => {
-    const error = new Error('Error: status: 403 - Forbidden');
-    expect(parseErrorStatus(error)).toBe(403);
-  });
-
-  it('should extract status code from standalone number format', () => {
-    const error = new Error('Failed to fetch: 503');
-    expect(parseErrorStatus(error)).toBe(503);
-  });
-
-  it('should handle case-insensitive status code patterns', () => {
-    const error = new Error('Request failed with Status Code 500');
-    expect(parseErrorStatus(error)).toBe(500);
-  });
-
-  it('should return undefined for non-matching error messages', () => {
-    const error = new Error('Network timeout occurred');
-    expect(parseErrorStatus(error)).toBeUndefined();
-  });
-
-  it('should return undefined for invalid status codes', () => {
-    const error = new Error('Invalid status code 999');
-    expect(parseErrorStatus(error)).toBeUndefined();
-  });
-
-  it('should return undefined for status codes below 100', () => {
-    const error = new Error('status code 99');
-    expect(parseErrorStatus(error)).toBeUndefined();
-  });
-
-  it('should return undefined for status codes 600 or above', () => {
-    const error = new Error('status code 600');
-    expect(parseErrorStatus(error)).toBeUndefined();
-  });
-
-  it('should handle multiple numbers and extract valid status codes', () => {
-    const error = new Error('Attempt 3 failed with status code 401');
-    expect(parseErrorStatus(error)).toBe(401);
-  });
-
-  it('should extract first valid status code when multiple are present', () => {
-    const error = new Error('status code 400 after status 200');
-    expect(parseErrorStatus(error)).toBe(400);
   });
 });
 
@@ -358,84 +273,6 @@ describe('getOptimizedScore', () => {
   });
 });
 
-describe('getRankableOptimizationMetric', () => {
-  const makePattern = (metrics: AutoragPattern['evaluation']['metrics']): AutoragPattern => ({
-    name: 'Pattern1',
-    iteration: 1,
-    max_combinations: 10,
-    duration_seconds: 5,
-    settings: {} as AutoragPattern['settings'],
-    evaluation: { metrics },
-  });
-
-  const objective = {
-    evaluator: 'custom',
-    name: 'overall_score',
-    scores: { mean: 0.85, ci_low: null, ci_high: null },
-    optimization_metric: true,
-  };
-
-  it('should return the uniquely matching finite objective metric', () => {
-    expect(getRankableOptimizationMetric(makePattern([objective]), 'overall_score')).toBe(
-      objective,
-    );
-  });
-
-  it('should reject a pattern without a matching objective metric', () => {
-    expect(
-      getRankableOptimizationMetric(
-        makePattern([{ ...objective, name: 'faithfulness' }]),
-        'overall_score',
-      ),
-    ).toBeUndefined();
-  });
-
-  it('should reject duplicate matching objective metrics from different evaluators', () => {
-    expect(
-      getRankableOptimizationMetric(
-        makePattern([objective, { ...objective, evaluator: 'judge' }]),
-        'overall_score',
-      ),
-    ).toBeUndefined();
-  });
-
-  it.each([null, Number.NaN, Number.POSITIVE_INFINITY])(
-    'should reject a non-finite objective mean (%s)',
-    (mean) => {
-      expect(
-        getRankableOptimizationMetric(
-          makePattern([{ ...objective, scores: { ...objective.scores, mean } }]),
-          'overall_score',
-        ),
-      ).toBeUndefined();
-    },
-  );
-});
-
-describe('getMetricByName', () => {
-  it('should not collapse same-name metrics from different evaluators', () => {
-    const pattern = {
-      ...({} as AutoragPattern),
-      evaluation: {
-        metrics: [
-          {
-            evaluator: 'unitxt',
-            name: 'faithfulness',
-            scores: { mean: 0.8, ci_low: null, ci_high: null },
-          },
-          {
-            evaluator: 'judge',
-            name: 'faithfulness',
-            scores: { mean: 0.9, ci_low: null, ci_high: null },
-          },
-        ],
-      },
-    };
-
-    expect(getMetricByName(pattern, 'faithfulness')).toBeUndefined();
-  });
-});
-
 describe('formatMetricValue', () => {
   it('should format normal values with 3 decimal places', () => {
     expect(formatMetricValue(0.12345)).toBe('0.123');
@@ -490,6 +327,58 @@ describe('formatMetricName', () => {
   });
 });
 
+describe('parseErrorStatus', () => {
+  it('should extract status code from "status code XXX" format', () => {
+    const error = new Error('Request failed with status code 404');
+    expect(parseErrorStatus(error)).toBe(404);
+  });
+
+  it('should extract status code from "status: XXX" format', () => {
+    const error = new Error('Error: status: 403 - Forbidden');
+    expect(parseErrorStatus(error)).toBe(403);
+  });
+
+  it('should extract status code from standalone number format', () => {
+    const error = new Error('Failed to fetch: 503');
+    expect(parseErrorStatus(error)).toBe(503);
+  });
+
+  it('should handle case-insensitive status code patterns', () => {
+    const error = new Error('Request failed with Status Code 500');
+    expect(parseErrorStatus(error)).toBe(500);
+  });
+
+  it('should return undefined for non-matching error messages', () => {
+    const error = new Error('Network timeout occurred');
+    expect(parseErrorStatus(error)).toBeUndefined();
+  });
+
+  it('should return undefined for invalid status codes', () => {
+    const error = new Error('Invalid status code 999');
+    expect(parseErrorStatus(error)).toBeUndefined();
+  });
+
+  it('should return undefined for status codes below 100', () => {
+    const error = new Error('status code 99');
+    expect(parseErrorStatus(error)).toBeUndefined();
+  });
+
+  it('should return undefined for status codes 600 or above', () => {
+    const error = new Error('status code 600');
+    expect(parseErrorStatus(error)).toBeUndefined();
+  });
+
+  it('should handle multiple numbers and extract valid status codes', () => {
+    const error = new Error('Attempt 3 failed with status code 401');
+    expect(parseErrorStatus(error)).toBe(401);
+  });
+
+  it('should extract first valid status code when multiple are present', () => {
+    const error = new Error('status code 400 after status 200');
+    expect(parseErrorStatus(error)).toBe(400);
+  });
+});
+
 describe('formatPatternName', () => {
   it('should insert non-breaking space before trailing digits', () => {
     expect(formatPatternName('Pattern7')).toBe('Pattern 7');
@@ -502,57 +391,6 @@ describe('formatPatternName', () => {
 
   it('should handle names with space before digits', () => {
     expect(formatPatternName('Pattern 7')).toBe('Pattern 7');
-  });
-});
-
-describe('getMetricByName', () => {
-  it('should find a metric by name', () => {
-    const pattern = makeRankPattern('test', 0.5);
-    const patternWithMetrics: AutoragPattern = {
-      ...pattern,
-      evaluation: {
-        ...pattern.evaluation,
-        metrics: [
-          {
-            evaluator: 'unitxt',
-            name: 'faithfulness',
-            scores: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 },
-          },
-        ],
-      },
-    };
-    expect(getMetricByName(patternWithMetrics, 'faithfulness')).toEqual({
-      evaluator: 'unitxt',
-      name: 'faithfulness',
-      scores: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 },
-    });
-  });
-
-  it('should match metric names case-insensitively', () => {
-    const pattern = makeRankPattern('test', 0.5);
-    const patternWithMetrics: AutoragPattern = {
-      ...pattern,
-      evaluation: {
-        ...pattern.evaluation,
-        metrics: [
-          {
-            evaluator: 'unitxt',
-            name: 'Faithfulness',
-            scores: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 },
-          },
-        ],
-      },
-    };
-    expect(getMetricByName(patternWithMetrics, 'faithfulness')).toEqual({
-      evaluator: 'unitxt',
-      name: 'Faithfulness',
-      scores: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 },
-    });
-  });
-
-  it('should return undefined for non-existent metric', () => {
-    const pattern = makeRankPattern('test', 0.5);
-    expect(getMetricByName(pattern, 'nonexistent')).toBeUndefined();
   });
 });
 
@@ -720,47 +558,6 @@ describe('formatDisplayValue', () => {
   });
 });
 
-/** Minimal pattern factory for rank map tests. */
-const makeRankPattern = (name: string, final_score: number): AutoragPattern => ({
-  name,
-  iteration: 0,
-  max_combinations: 1,
-  duration_seconds: 0,
-  evaluation: {
-    metrics: [
-      {
-        evaluator: 'custom',
-        name: 'overall_score',
-        scores: { mean: final_score, ci_low: null, ci_high: null },
-        optimization_metric: true,
-      },
-    ],
-  },
-  settings: {
-    vector_store_binding: { provider_type: '', collection_name: '' },
-    chunking: { method: '', chunk_size: 0, chunk_overlap: 0 },
-    embedding: {
-      model_id: '',
-      distance_metric: '',
-      embedding_params: {
-        embedding_dimension: 0,
-        context_length: 0,
-        timeout: null,
-        model_type: null,
-        provider_id: null,
-        provider_resource_id: null,
-      },
-    },
-    retrieval: { method: '', number_of_chunks: 0 },
-    generation: {
-      model_id: '',
-      context_template_text: '',
-      user_message_text: '',
-      system_message_text: '',
-    },
-  },
-});
-
 describe('normalizePipelineRunState', () => {
   it('returns canonical runtime state for valid strings', () => {
     expect(normalizePipelineRunState('SUCCEEDED')).toBe(RuntimeStateKF.SUCCEEDED);
@@ -785,149 +582,6 @@ describe('formatDurationBetween', () => {
     expect(formatDurationBetween(undefined, '2024-01-01T00:01:00Z')).toBeUndefined();
     expect(formatDurationBetween('2024-01-01T00:00:00Z', undefined)).toBeUndefined();
     expect(formatDurationBetween('bad', '2024-01-01T00:01:00Z')).toBeUndefined();
-  });
-});
-
-describe('computePatternRankMap', () => {
-  it('should rank patterns by final_score descending', () => {
-    const patterns = {
-      low: makeRankPattern('low', 0.3),
-      high: makeRankPattern('high', 0.9),
-      mid: makeRankPattern('mid', 0.6),
-    };
-    expect(computePatternRankMap(patterns)).toEqual({
-      high: 1,
-      mid: 2,
-      low: 3,
-    });
-  });
-
-  it('should return empty map for empty array', () => {
-    expect(computePatternRankMap({})).toEqual({});
-  });
-
-  it('should handle single pattern', () => {
-    expect(computePatternRankMap({ solo: makeRankPattern('solo', 0.5) })).toEqual({ solo: 1 });
-  });
-
-  it('should assign sequential ranks for tied scores', () => {
-    const patterns = {
-      a: makeRankPattern('a', 0.7),
-      b: makeRankPattern('b', 0.7),
-      c: makeRankPattern('c', 0.7),
-    };
-    const rankMap = computePatternRankMap(patterns);
-    expect(Object.values(rankMap).toSorted()).toEqual([1, 2, 3]);
-  });
-
-  it('should assign contiguous ranks only to valid objective patterns', () => {
-    const validHigh = makeRankPattern('high', 0.9);
-    const invalid = {
-      ...makeRankPattern('invalid', 0.99),
-      evaluation: { metrics: [] },
-    };
-    const validLow = makeRankPattern('low', 0.3);
-
-    expect(computePatternRankMap({ high: validHigh, invalid, low: validLow })).toEqual({
-      high: 1,
-      low: 2,
-    });
-  });
-
-  it('should not mutate the original array', () => {
-    const patterns = { z: makeRankPattern('z', 0.1), a: makeRankPattern('a', 0.9) };
-    const originalOrder = Object.keys(patterns);
-    computePatternRankMap(patterns);
-    expect(Object.keys(patterns)).toEqual(originalOrder);
-  });
-
-  it('should handle negative and zero scores', () => {
-    const patterns = {
-      neg: makeRankPattern('neg', -0.2),
-      zero: makeRankPattern('zero', 0),
-      pos: makeRankPattern('pos', 0.3),
-    };
-    expect(computePatternRankMap(patterns)).toEqual({
-      pos: 1,
-      zero: 2,
-      neg: 3,
-    });
-  });
-
-  it('should keep duplicate display names independent by record key', () => {
-    expect(
-      computePatternRankMap({
-        first: makeRankPattern('Shared name', 0.4),
-        second: makeRankPattern('Shared name', 0.9),
-      }),
-    ).toEqual({ second: 1, first: 2 });
-  });
-});
-
-describe('resolveBestPatternKey', () => {
-  it('returns the rank-1 pattern key by final_score', () => {
-    const patterns = {
-      low: makeRankPattern('low', 0.3),
-      high: makeRankPattern('high', 0.9),
-      mid: makeRankPattern('mid', 0.6),
-    };
-    expect(resolveBestPatternKey(patterns)).toBe('high');
-  });
-
-  it('returns undefined for an empty patterns record', () => {
-    expect(resolveBestPatternKey({})).toBeUndefined();
-  });
-
-  it('returns the higher-scoring record key when display names collide', () => {
-    const patterns = {
-      pattern_a: makeRankPattern('Shared Name', 0.4),
-      pattern_b: makeRankPattern('Shared Name', 0.95),
-      pattern_c: makeRankPattern('Shared Name', 0.7),
-    };
-    expect(resolveBestPatternKey(patterns)).toBe('pattern_b');
-  });
-
-  it('does not select an invalid objective pattern as the best pattern', () => {
-    const patterns = {
-      invalid: { ...makeRankPattern('invalid', 0.99), evaluation: { metrics: [] } },
-      valid: makeRankPattern('valid', 0.3),
-    };
-
-    expect(resolveBestPatternKey(patterns)).toBe('valid');
-  });
-});
-
-describe('compareOptimizedMetricValues', () => {
-  it('sorts higher numeric values first and N/A last', () => {
-    expect(compareOptimizedMetricValues(0.9, 0.1)).toBeLessThan(0);
-    expect(compareOptimizedMetricValues('N/A', 0.5)).toBeGreaterThan(0);
-    expect(compareOptimizedMetricValues(0.5, 'N/A')).toBeLessThan(0);
-    expect(compareOptimizedMetricValues('N/A', 'N/A')).toBe(0);
-  });
-
-  it('orders NaN below finite values', () => {
-    expect(compareOptimizedMetricValues(Number.NaN, 0.5)).toBeGreaterThan(0);
-    expect(compareOptimizedMetricValues(0.5, Number.NaN)).toBeLessThan(0);
-  });
-});
-
-describe('orderPatternsByLeaderboardRank', () => {
-  it('orders by metric descending and pins bestPatternKey first', () => {
-    const values: Record<string, number | string> = { a: 0.5, b: 0.9, c: 0.7 };
-    expect(orderPatternsByLeaderboardRank(['a', 'b', 'c'], (key) => values[key], 'a')).toEqual([
-      'a',
-      'b',
-      'c',
-    ]);
-  });
-
-  it('falls back to metric order when bestPatternKey is missing', () => {
-    const values: Record<string, number | string> = { a: 0.5, b: 0.9, c: 0.7 };
-    expect(orderPatternsByLeaderboardRank(['a', 'b', 'c'], (key) => values[key])).toEqual([
-      'b',
-      'c',
-      'a',
-    ]);
   });
 });
 

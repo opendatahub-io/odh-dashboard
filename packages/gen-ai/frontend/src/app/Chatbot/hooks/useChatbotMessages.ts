@@ -1,10 +1,9 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { MessageProps, ToolResponseProps } from '@patternfly/chatbot';
+import { MessageProps } from '@patternfly/chatbot';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { Modality } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 import userAvatar from '~/app/bgimages/user_avatar.svg';
-import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { getId, getLlamaModelDisplayName, splitLlamaModelId } from '~/app/utilities/utils';
 import {
   ApiError,
@@ -15,11 +14,13 @@ import {
   GuardrailInlineConfig,
   isApiError,
   InputContentPart,
-  MCPToolCallData,
   MCPServerFromAPI,
   ResponseMetrics,
+  StreamingToolCall,
   TokenInfo,
+  ToolCallStreamEvent,
   ClassifiedError,
+  DocumentAttachment,
 } from '~/app/types';
 import {
   ERROR_MESSAGES,
@@ -32,10 +33,6 @@ import { getSelectedServersForAPI } from '~/app/utilities/mcp';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import { classifyError } from '~/app/utilities/errorClassifier';
 
-import {
-  ToolResponseCardTitle,
-  ToolResponseCardBody,
-} from '~/app/Chatbot/ChatbotMessagesToolResponse';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
@@ -58,6 +55,26 @@ export type ChatbotMessageProps = MessageProps & {
   fileSearchData?: FileSearchCallData;
   annotations?: FileCitationAnnotation[];
   citationMap?: Map<string, number>;
+  toolCalls?: StreamingToolCall[];
+  isTextStreaming?: boolean;
+  /** True only after the stream has reached its terminal event. */
+  isToolCallStreamComplete?: boolean;
+  attachmentWarning?: 'general' | 'near-limit' | 'context-exceeded';
+  /**
+   * Full document metadata retained with the sent message so its attachment
+   * card can reopen the extracted text that was included in the prompt.
+   */
+  documentAttachments?: DocumentAttachment[];
+};
+
+const isDocumentContextWindowExceeded = (error: ApiError): boolean => {
+  const errorCode = error.error.code.toLowerCase();
+  const errorMessage = error.error.message.toLowerCase();
+
+  return (
+    ['context_length', 'context_length_exceeded', 'stream_context'].includes(errorCode) ||
+    (errorCode === 'invalid_prompt' && errorMessage.includes('maximum context length'))
+  );
 };
 
 export interface UseChatbotMessagesReturn {
@@ -114,6 +131,7 @@ interface UseChatbotMessagesProps {
   hasImageInConversation?: boolean;
   hasAudioInConversation?: boolean;
   isProfileDirty?: boolean;
+  documentAttachments?: DocumentAttachment[];
 }
 
 const useChatbotMessages = ({
@@ -144,6 +162,7 @@ const useChatbotMessages = ({
   hasImageInConversation,
   hasAudioInConversation,
   isProfileDirty,
+  documentAttachments = [],
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -269,29 +288,79 @@ const useChatbotMessages = ({
     }
   }, [messages]);
 
-  // Create tool response from MCP tool call data
-  const createToolResponse = React.useCallback(
-    (toolCallData: MCPToolCallData): ToolResponseProps => {
-      const { serverLabel, toolName, toolArguments, toolOutput } = toolCallData;
-
-      return {
-        isDefaultExpanded: false,
-        toggleContent: `Tool response: ${toolName}`,
-        subheading: `${serverLabel}`,
-        body: `Here's the summary for your ${toolName} response:`,
-        cardTitle: React.createElement(ToolResponseCardTitle, { toolName }),
-        cardBody: React.createElement(ToolResponseCardBody, { toolArguments, toolOutput }),
-      };
-    },
-    [],
-  );
-
   // Create a collapsible thinking section (no Card wrapper) to display reasoning content
   const createThinkingCollapsible = React.useCallback(
     (reasoningText: string): React.ReactNode =>
       React.createElement(StreamingThinkingSection, { reasoningText, isComplete: true }),
     [],
   );
+
+  const updateToolCalls = React.useCallback((botMessageId: string, event: ToolCallStreamEvent) => {
+    const { item } = event;
+    const { item_id: itemId } = event;
+    const id = itemId ?? item?.id;
+    const isToolItem = item?.type === 'file_search_call' || item?.type === 'mcp_call';
+
+    if (!id || (!isToolItem && !event.type.includes('call'))) {
+      return;
+    }
+
+    setMessages((previousMessages) =>
+      previousMessages.map((message) => {
+        if (message.id !== botMessageId) {
+          return message;
+        }
+
+        const currentCalls = message.toolCalls ?? [];
+        const currentCall = currentCalls.find((toolCall) => toolCall.id === id);
+        if (!currentCall && !isToolItem) {
+          return message;
+        }
+
+        const completed =
+          event.type === 'response.output_item.done' || event.type.endsWith('.completed');
+        const failed =
+          event.type.endsWith('.failed') || item?.status === 'failed' || Boolean(item?.error);
+        const output = item?.results
+          ? JSON.stringify(item.results, null, 2)
+          : (item?.output ?? currentCall?.output);
+        const argumentsText = event.type.endsWith('.delta')
+          ? `${currentCall?.arguments ?? ''}${event.delta ?? ''}`
+          : (event.arguments ?? item?.arguments ?? item?.queries?.[0] ?? currentCall?.arguments);
+        const nextCall: StreamingToolCall = {
+          id,
+          type: item?.type ?? currentCall?.type ?? 'mcp_call',
+          name:
+            item?.name ??
+            currentCall?.name ??
+            (item?.type === 'file_search_call' ? 'file_search' : 'MCP tool'),
+          category:
+            item?.type === 'file_search_call' || currentCall?.category === 'RAG' ? 'RAG' : 'MCP',
+          status: failed ? 'failed' : completed ? 'completed' : 'in_progress',
+          serverLabel: item?.server_label ?? currentCall?.serverLabel,
+          arguments: argumentsText,
+          output,
+          error: item?.error ?? currentCall?.error,
+          startedAt: currentCall?.startedAt ?? Date.now(),
+          ...(completed || failed
+            ? { completedAt: Date.now() }
+            : currentCall?.completedAt
+              ? { completedAt: currentCall.completedAt }
+              : {}),
+        };
+
+        return {
+          ...message,
+          // Tool activity is visible response activity. Stop the PatternFly loading
+          // ellipsis immediately so the tool list renders before text starts streaming.
+          isLoading: false,
+          toolCalls: currentCall
+            ? currentCalls.map((toolCall) => (toolCall.id === id ? nextCall : toolCall))
+            : [...currentCalls, nextCall],
+        };
+      }),
+    );
+  }, []);
 
   const handleStopStreaming = React.useCallback(() => {
     if (abortControllerRef.current) {
@@ -375,13 +444,20 @@ const useChatbotMessages = ({
         },
       });
     }
-    const userMessage: MessageProps = {
+    const userMessage: ChatbotMessageProps = {
       id: getId(),
       role: 'user',
       content: message,
       name: username || 'User',
       avatar: userAvatar,
       timestamp: new Date().toLocaleString(),
+      ...(documentAttachments.length > 0 && {
+        attachments: documentAttachments.map(({ file_id, filename }) => ({
+          id: file_id,
+          name: filename,
+        })),
+        documentAttachments,
+      }),
       ...(Object.keys(extraContent).length > 0 && { extraContent }),
     };
 
@@ -423,8 +499,8 @@ const useChatbotMessages = ({
         role: 'bot',
         content: '',
         name: modelDisplayName,
-        avatar: botAvatar,
         isLoading: true,
+        isToolCallStreamComplete: false,
         timestamp: new Date().toLocaleString(),
         metrics: { latency_ms: 0 },
       };
@@ -453,11 +529,28 @@ const useChatbotMessages = ({
           }),
         chat_context: messages
           .filter((msg) => msg.content && !msg.errorClassification)
-          .map((msg) => ({
-            role:
-              msg.role === ChatMessageRole.USER ? ChatMessageRole.USER : ChatMessageRole.ASSISTANT,
-            content: multimodalContentRef.current.get(msg.id!) || msg.content || '',
-          }))
+          .map((msg) => {
+            const content = multimodalContentRef.current.get(msg.id!) || msg.content || '';
+            const attachmentText = msg.documentAttachments
+              ?.map((attachment) => attachment.text)
+              .filter(Boolean)
+              .join('\n\n');
+            const contentWithAttachmentText = attachmentText
+              ? Array.isArray(content)
+                ? [...content, { type: 'input_text' as const, text: attachmentText }]
+                : typeof content === 'string'
+                  ? [content, attachmentText].filter(Boolean).join('\n\n')
+                  : content
+              : content;
+
+            return {
+              role:
+                msg.role === ChatMessageRole.USER
+                  ? ChatMessageRole.USER
+                  : ChatMessageRole.ASSISTANT,
+              content: contentWithAttachmentText,
+            };
+          })
           .filter((msg) => msg.content),
         instructions: systemInstruction,
         stream: isStreamingEnabled,
@@ -468,6 +561,13 @@ const useChatbotMessages = ({
           model_source_type: selectedModel.model_source_type,
         }),
         ...(subscription && { subscription }),
+        ...(documentAttachments.length > 0 && {
+          attachments: documentAttachments.map(({ file_id, filename, text }) => ({
+            file_id,
+            filename,
+            text,
+          })),
+        }),
       };
 
       const hasImage = !!fileId;
@@ -599,6 +699,7 @@ const useChatbotMessages = ({
                     ...msg,
                     content: displayContent,
                     isLoading: !hasContent,
+                    isTextStreaming: hasContent,
                     ...thinkingExtra,
                     metrics: progressiveMetrics,
                   }
@@ -701,6 +802,7 @@ const useChatbotMessages = ({
               }
             }
           },
+          onToolCall: (event) => updateToolCalls(botMessageId!, event),
         });
 
         // Final update with processed content (file citations replaced with filenames)
@@ -709,9 +811,6 @@ const useChatbotMessages = ({
         }
 
         // Finalize message in a single update to avoid flicker
-        const toolResponse = streamingResponse.toolCallData
-          ? createToolResponse(streamingResponse.toolCallData)
-          : undefined;
         const thinkingCollapsible =
           typeof streamingResponse.reasoningContent === 'string' &&
           streamingResponse.reasoningContent
@@ -725,7 +824,8 @@ const useChatbotMessages = ({
                   ...msg,
                   content: streamingResponse.content,
                   isLoading: false,
-                  ...(toolResponse && { toolResponse }),
+                  isTextStreaming: false,
+                  isToolCallStreamComplete: true,
                   ...(thinkingCollapsible && {
                     extraContent: { ...msg.extraContent, beforeMainContent: thinkingCollapsible },
                   }),
@@ -756,10 +856,6 @@ const useChatbotMessages = ({
           headers: tracingHeaders,
         });
 
-        const toolResponse = response.toolCallData
-          ? createToolResponse(response.toolCallData)
-          : undefined;
-
         const thinkingCollapsible =
           typeof response.reasoningContent === 'string' && response.reasoningContent
             ? createThinkingCollapsible(response.reasoningContent)
@@ -773,10 +869,8 @@ const useChatbotMessages = ({
                   ...msg,
                   content: response.content || 'No response received',
                   name: modelDisplayName,
-                  avatar: botAvatar,
                   timestamp: new Date().toLocaleString(),
                   isLoading: false,
-                  ...(toolResponse && { toolResponse }),
                   ...(thinkingCollapsible && {
                     extraContent: { beforeMainContent: thinkingCollapsible },
                   }),
@@ -784,6 +878,8 @@ const useChatbotMessages = ({
                   ...(response.citationMap && { citationMap: response.citationMap }),
                   ...(response.metrics && { metrics: response.metrics }),
                   ...(response.fileSearchData && { fileSearchData: response.fileSearchData }),
+                  ...(response.toolCalls && { toolCalls: response.toolCalls }),
+                  isToolCallStreamComplete: true,
                 }
               : msg,
           ),
@@ -815,6 +911,19 @@ const useChatbotMessages = ({
               retriable: false,
             },
           };
+
+      if (documentAttachments.length > 0 && isDocumentContextWindowExceeded(apiError)) {
+        setMessages((previous) =>
+          previous
+            .filter((entry) => entry.id !== botMessageId)
+            .map((entry) =>
+              entry.id === userMessage.id
+                ? { ...entry, attachmentWarning: 'context-exceeded' }
+                : entry,
+            ),
+        );
+        return;
+      }
 
       // Check if this is an abort error (from user stopping or clearing)
       const isAbortError =
@@ -862,7 +971,13 @@ const useChatbotMessages = ({
                 const stoppedContent = msg.content
                   ? `${msg.content}\n\n*You stopped this message*`
                   : '*You stopped this message*';
-                return { ...msg, content: stoppedContent, isLoading: false };
+                return {
+                  ...msg,
+                  content: stoppedContent,
+                  isLoading: false,
+                  isTextStreaming: false,
+                  isToolCallStreamComplete: true,
+                };
               }
               return msg;
             }),
@@ -874,7 +989,6 @@ const useChatbotMessages = ({
             role: 'bot',
             content: '*You stopped this message*',
             name: modelDisplayName,
-            avatar: botAvatar,
             timestamp: new Date().toLocaleString(),
           };
           setMessages((prevMessages) => [...prevMessages, botStopMessage]);

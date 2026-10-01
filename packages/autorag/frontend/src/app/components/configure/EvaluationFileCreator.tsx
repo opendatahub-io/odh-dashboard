@@ -30,9 +30,13 @@ import {
 import { Table, Thead, Tr, Th, Tbody, Td, ActionsColumn } from '@patternfly/react-table';
 import { AngleRightIcon, CubesIcon, PlusCircleIcon, TimesIcon } from '@patternfly/react-icons';
 import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
-import { useUploadToStorageMutation } from '~/app/hooks/mutations';
+import { useUploadToStorageMutation } from '~/app/hooks/useUploadToStorageMutation';
 import { useNotification } from '~/app/hooks/useNotification';
 import type { EvaluationFileEntry } from '~/app/types';
+import {
+  SUPPORTED_FORMAT_EXTENSIONS,
+  SUPPORTED_FORMAT_HINT,
+} from '~/app/utilities/autoragInputDataFile';
 import './EvaluationFileCreator.scss';
 
 const MIN_ROWS = 1;
@@ -450,8 +454,8 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
         }}
         selection="checkbox"
         allowFolderSelection={false}
-        selectableExtensions={['pdf', 'docx', 'pptx', 'md', 'html', 'txt']}
-        unselectableReason="You can only select document files"
+        selectableExtensions={SUPPORTED_FORMAT_EXTENSIONS}
+        unselectableReason={SUPPORTED_FORMAT_HINT}
         rootPath={
           !inputDataIsFile && inputDataKey.trim()
             ? `/${inputDataKey.replace(/^\//, '')}`

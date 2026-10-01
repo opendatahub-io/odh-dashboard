@@ -7,7 +7,7 @@ import { useParams } from 'react-router';
 import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
 import FileSelector from '~/app/components/common/FileSelector';
 import EvaluationFileCreator from '~/app/components/configure/EvaluationFileCreator';
-import { useUploadToStorageMutation } from '~/app/hooks/mutations';
+import { useUploadToStorageMutation } from '~/app/hooks/useUploadToStorageMutation';
 import { useNotification } from '~/app/hooks/useNotification';
 import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';

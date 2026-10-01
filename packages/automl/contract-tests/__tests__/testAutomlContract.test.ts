@@ -435,6 +435,35 @@ describe('AutoML API Contract Tests', () => {
       });
     });
 
+    it('should list only objects under the requested path prefix', async () => {
+      const path = 'automl input data/timeseries/';
+      const result = await apiClient.get(
+        `/api/v1/s3/files?namespace=${NS}&secretName=${SECRET}&bucket=${BUCKET}&path=${encodeURIComponent(
+          path,
+        )}`,
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
+        status: 200,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const responseData = result.response.data as {
+          data?: {
+            prefix?: string;
+            contents?: Array<{ key?: string }>;
+            common_prefixes?: Array<{ prefix?: string }>;
+          };
+        };
+        expect(responseData.data?.prefix).toBe(path);
+        expect(responseData.data?.contents?.length).toBeGreaterThan(0);
+        expect(responseData.data?.contents?.every(({ key }) => key?.startsWith(path))).toBe(true);
+        expect(
+          responseData.data?.common_prefixes?.every(({ prefix }) => prefix?.startsWith(path)),
+        ).toBe(true);
+      }
+    });
+
     it('should list files via DSPA mode', async () => {
       const result = await apiClient.get(`/api/v1/s3/files?namespace=${NS}`);
       expect(result).toMatchContract(apiSchema, {

@@ -348,7 +348,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                     )}
                     {modelSize && (
                       <DescriptionListGroup>
-                        <DescriptionListTerm>Container size</DescriptionListTerm>
+                        <DescriptionListTerm>Container image size</DescriptionListTerm>
                         <DescriptionListDescription data-testid="image-size">
                           {modelSize}
                         </DescriptionListDescription>

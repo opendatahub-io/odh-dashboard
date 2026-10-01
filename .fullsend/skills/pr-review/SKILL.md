@@ -14,8 +14,7 @@ at harness pin `91f61f3`. Local change: dimensions come from
 `.fullsend/dimensions.json`. Discriminator is `output`:
 `findings` (LLM + CLI → merge + challenger), `context` (host
 snapshot, not challenger), `section:<name>` (schema field, not
-challenger), `check:<name>` (readiness result), and
-`classifier:<name>` (structured classification). This file must not
+challenger), and `check:<name>` (readiness result). This file must not
 hardcode dimension names, count, or kind.
 
 (This skill's design departs from ADR-0018 "scripted pipelines for
@@ -33,7 +32,9 @@ synthesizing **findings** arrays, and producing a structured result. The
 orchestrator does not evaluate code directly. It does not start CLI tools
 (those already ran on the host).
 Challenger (step 6d) is synthesis over **findings only**, not a
-dimension and not a schema section.
+dimension and not a schema section. Rating (step 6g) assigns risk and
+confidence after findings are final; it is likewise not a registry
+dimension.
 
 In pipeline mode (`$FULLSEND_OUTPUT_DIR` set), it writes JSON for the
 post-script to post. In interactive mode, it posts directly via
@@ -46,13 +47,18 @@ post-script to post. In interactive mode, it posts directly via
 only roster. Do not assume how many rows there are, what they are
 named, or that every producer is an LLM sub-agent.
 
+Also read `/sandbox/workspace/.fullsend/.run/collected.json` once when it
+exists and index its adapter envelopes by `dimension`. Treat a missing file as
+an empty adapter set. Use this index for adapter
+findings collection; never invoke a host adapter from the sandbox.
+
 Each `dimensions[]` object:
 
 | Field | Meaning |
 | --- | --- |
 | `id` | Stable dimension key |
 | `kind` | `llm-subagent`, `llm-skill`, or `cli-adapter` |
-| `output` | `findings` (default) · `context` · `section:<name>` · `check:<name>` · `classifier:<name>` |
+| `output` | `findings` (default) · `context` · `section:<name>` · `check:<name>` |
 | `result_fields` | Optional schema members returned by a `section:*` row; defaults to the section named by `output` |
 | `include_findings` | For a `section:*` LLM, also collect its returned `findings[]` into synthesis |
 | `dispatch` | `always` or `conditional` |
@@ -60,22 +66,27 @@ Each `dimensions[]` object:
 | `definition` | Prompt/skill markdown path (LLM rows only) |
 | `meta_prompt` | Fullsend-owned output contract path for an LLM row; compose it after `meta-prompts/common-review.md` |
 | `inline_skill` | Optional extra skill to inline when spawning (e.g. docs-review) |
-| `pre_pass` | Optional classifier sub-agent path, run only if this **findings** LLM is selected |
+| `pre_pass` | Optional triage sub-agent path, run only if this **findings** LLM is selected |
 | `categories` | Category strings used to group prior findings for this id |
 | `failure_severity` | `high` or `info` when this **findings** producer returns nothing |
 | `fallback` | If true, unrecognized prior-finding categories go here |
 | `budget_priority` | Lower runs deeper when attention is scarce (**findings** LLM only) |
 | `re_review` | `full` / `trivial` / `skip-unless-requalified` when this **findings** dimension had no prior findings |
-| `producer_file` | Host JSON path (`cli-adapter` only), under `.fullsend/.run/`. It may contain findings, a `check`, a `classifier`, or trusted context. Findings payloads also appear in `.fullsend/.run/collected.json` |
+| `producer_file` | Host JSON path (`cli-adapter` only), under `.fullsend/.run/`. It may contain findings, a `check`, or trusted context. Every adapter envelope also appears in `.fullsend/.run/collected.json` |
+| `host` | Trusted execution metadata for a `cli-adapter`: `workflow` or `pre_review` execution plus any artifact, setup, checkout, and credential-name requirements |
 | `context_file` | Optional trusted-host snapshot an LLM must read (do not fetch it yourself) |
 
 **Not in the registry as dimensions:**
 
 - **Challenger** — sequential after collect (step 6d). Definition:
   `sub-agents/challenger.md`. Sees **findings** only.
+- **Rating** — sequential after final findings (step 6g). Definition:
+  `sub-agents/rating.md` + `meta-prompts/rating-output.md`. Emits
+  `{ risk, confidence }` only — never `action`.
 - **CLI adapters** — do not `Task()` them and do not invoke their
-  CLIs. The host already wrote JSON. Include **findings** payloads at
-  collect. Copy `output: context` files from disk; do not send them
+  CLIs. The host already wrote their envelopes into `collected.json`.
+  Include **findings** payloads at collect. LLM rows read `output: context`
+  snapshots only by their `context_file` path; do not send them
   through the challenger.
 
 Treat missing `output` as `findings`. Treat `llm-subagent` and
@@ -404,13 +415,12 @@ Select every in-scope **findings** `llm-subagent`. Run those in
 parallel with section LLMs (step 4b). Challenger runs later (step
 6d), alone. Do not spawn `cli-adapter` rows.
 
-**Structured-output LLMs** (`output` starts with `section:`, `check:`,
-or `classifier:`): dispatch when `dispatch` is `always`, or when
-`conditional` matches `when`. Skip a row requiring a missing
-`context_file` or a snapshot whose `status` is `none` / `error`.
-For an unavailable section write its schema field as
-`{"status":"none"}`; for a check or classifier retain an explicit
-`could-not-verify` / `unavailable` result. Do **not** apply `re_review`
+**Structured-output LLMs** (`output` starts with `section:` or `check:`):
+dispatch when `dispatch` is `always`, or when `conditional` matches
+`when`. Skip a row requiring a missing `context_file` or a snapshot
+whose `status` is `none` / `error`. For an unavailable section write
+its schema field as `{"status":"none"}`; for a check retain an explicit
+`could-not-verify` result. Do **not** apply `re_review`
 skips to these rows; they are cheap and must re-run. Use the row's
 `meta_prompt`, never the findings contract by default.
 
@@ -451,7 +461,7 @@ Do not use a baked-in examples table as a second roster. Apply
 
 When step 2 selected **per-file mode** (the PR met both the
 `FILE_COUNT` and `LINE_COUNT` large-PR thresholds) **and** a selected
-`llm-subagent` row sets `pre_pass`, run that classifier before
+`llm-subagent` row sets `pre_pass`, run that triage sub-agent before
 preparing context packages. If no selected row has `pre_pass`, skip.
 For PRs handled in small-PR mode, skip this step — all files receive
 uniform attention.
@@ -679,7 +689,7 @@ prioritization.
 ### 4. Dispatch findings sub-agents
 
 For each selected **findings** LLM row (from step 3c — excludes
-`pre_pass` classifiers which run in step 3c-1, `cli-adapter` rows,
+`pre_pass` triage sub-agents which run in step 3c-1, `cli-adapter` rows,
 `section:*` rows, and `challenger` which runs in step 6d):
 
 1. Compose the spawn prompt **by reference, not by transcription.** Every
@@ -774,8 +784,8 @@ Wait for all sub-agents to complete.
 Compose these prompts **before waiting**, and include their Agent
 calls in the **same message** as the findings sub-agents in step 4.
 
-For each LLM row whose `output` starts with `section:`, `check:`, or
-`classifier:` and was selected in step 3c:
+For each LLM row whose `output` starts with `section:` or `check:` and
+was selected in step 3c:
 
 1. Point at the shared context file whenever the domain skill needs the
    diff or PR-head source; name the row's `context_file` by absolute path
@@ -794,8 +804,7 @@ For each LLM row whose `output` starts with `section:`, `check:`, or
    (or its named section when omitted) onto `agent-result.json`;
    `include_findings: true` also contributes its
    `findings[]` to step 5. For `check:<name>`, append its `check` object
-   to `checks[]`. For `classifier:<name>`, append its `classifier` object
-   to `classifications[]`. None enters challenger synthesis directly.
+   to `checks[]`. None enters challenger synthesis directly.
 
 If a structured-output LLM times out or returns malformed JSON, record its
 explicit unavailable result. Do **not** fail the review and do **not** add a
@@ -816,19 +825,17 @@ cat > "${FULLSEND_OUTPUT_DIR}/producers.json" <<'JSON'
     {"id": "<registry id not dispatched>", "reason": "<why: out of scope / re_review skip / missing context_file>"}
   ],
   "adapters": ["<id of every cli-adapter row whose envelope you loaded>"],
-  "challenger": "pending"
+  "challenger": { "status": "pending" }
 }
 JSON
 ```
 
 After collect (step 5), rewrite the same file with `"returned"` — the
-ids that actually produced a parseable result — and set `"challenger"` to
-`ran`, `failed`, or `skipped: <reason in your own words>`. Record the
-reason you actually had. Do not reach for the nearest listed value when
-none fits: the host cross-checks this record against the finding list, so
-`skipped: no findings to adjudicate` alongside a non-empty finding set is
-reported back as a contradiction rather than believed. Leaving the field
-at `pending` is likewise treated as "never rewritten", not as a skip.
+ids that actually produced a parseable result. After the challenger (or
+when skipping/failing it), replace the `challenger` object per step 6d
+(object with `status`, never a string). Leaving `status` at `pending` is
+"never rewritten", not a skip. The challenger is not a producer; do not
+list it in `inspected.producers`. The host renders it in its own section.
 
 Every registry row must appear in exactly one of `dispatched`,
 `skipped`, or `adapters`. The host reconciles the review's own claims
@@ -846,20 +853,18 @@ Do **not** include section payloads or context snapshots.
 1. **Findings LLM sub-agents** that ran in step 4. Each returns a
    JSON array of findings in the standard format. Ignore `section:*`
    returns here (those are step 4b / 7).
-2. **CLI adapters** from `/sandbox/workspace/.fullsend/.run/collected.json` (array
-   of envelopes `{dimension, findings[]}`). The host only put
-   payloads that already have a `findings` key in that file. Do not
-   re-run those tools. If the file is missing, treat CLI input as
-   empty (do not fail the whole review). If an envelope `status` is
-   `empty` / `skipped`, continue. If `status` is `error` and there is
-   one `info` finding, keep it.
+2. **CLI adapters** from `/sandbox/workspace/.fullsend/.run/collected.json`
+   (array of envelopes). Take the `findings[]` from every entry with
+   `output: findings` and concatenate them with the arrays above; they are
+   producers like any other. Context envelopes are not findings and reach
+   LLM rows only through `context_file`. If the file is missing, treat CLI
+   input as empty.
 3. **Section LLM findings** only for registry rows with
    `include_findings: true`. Collect the returned `findings[]`, but do
    not send the named section object through synthesis or challenger.
 
 **Stamp every collected finding with its producer.** As you take each array,
-set `dimension` on each of its findings to the registry id it came from —
-`correctness`, `style-review`, the `cli-adapter` id for an envelope, and so on.
+set `dimension` on each of its findings to the registry id it came from.
 For a finding you raise yourself in step 6e, use `orchestrator`. Do this at
 collect, where the provenance is still known; after synthesis merges arrays it
 is gone. The host renders a producer table from this: without it a reader
@@ -910,13 +915,6 @@ sandbox. Also read structured LLM returns when such a row was dispatched.
   and append it to `checks[]`. On malformed, absent, or unavailable host
   output, append
   `{ "id": "<row id>", "status": "could-not-verify", "summary": "The producer did not return a valid check result." }`.
-- For every `classifier:<name>` row, validate that `classifier.id` equals the
-  row id and append it to `classifications[]`. On malformed, absent, or
-  unavailable host output,
-  append `{ "id": "<row id>", "status": "unavailable", "summary": "The producer did not return a valid classification.", "classifications": [] }`.
-- A classifier may inform a dependent check's explanation, but cannot by
-  itself create a blocker or alter a finding severity.
-
 ### 6. Synthesis
 
 Collate, deduplicate, and merge **all collected findings arrays**
@@ -984,13 +982,15 @@ and an auth bypass on the same line are two distinct findings.
 challenger.** Its job is adversarial review of findings that a
 re-review inherits just as much as a first review does: findings carried
 forward unchallenged are exactly the ones most likely to be stale. If you
-skip it for any other reason, record that reason verbatim in the ledger
-(step 4c) — never as the empty-set reason.
+skip it for any other reason, set
+`challenger` to `{ "status": "skipped", "reason": "<your real reason>" }`
+— never reuse the empty-set reason.
 
 **Skip the challenger when the merged finding set is empty.** It
 adjudicates findings; with nothing to adjudicate it can only spend a
-dispatch confirming that zero is zero. When it is skipped, say so — the
-challenger did not run, so it is not a producer and it removed nothing.
+dispatch confirming that zero is zero. When it is skipped, set
+`challenger` to
+`{ "status": "skipped", "reason": "no findings to adjudicate" }`.
 Never describe a skipped challenger as having "found no noise to
 filter."
 
@@ -1065,10 +1065,29 @@ diff, preserving context isolation.
      `adjudicated_findings`.
    - Log any `removed_findings` for transparency but do not include
      them in the final review.
+   - Replace `challenger` with counts from the response *before*
+     stripping action fields (even when everything is kept):
+
+     ```json
+     "challenger": {
+       "status": "ran",
+       "input": 7,
+       "kept": 4,
+       "removed": 2,
+       "merged": 1,
+       "downgraded": 0
+     }
+     ```
+
+     `input` is the pre-challenger set size; `kept` / `downgraded` /
+     `merged` count `challenger_action` on `adjudicated_findings`;
+     `removed` is `len(removed_findings)`.
 
 4. If the challenger sub-agent fails (timeout, error, empty
    response), fall back to using the pre-challenger merged finding
-   set from steps 6a–6c. Record an **info**-level finding:
+   set from steps 6a–6c. Set
+   `challenger` to `{ "status": "failed", "reason": "<short reason>" }`.
+   Record an **info**-level finding:
 
    ```json
    {
@@ -1268,7 +1287,77 @@ challenger-adjudicated finding set. Classify blockers consistently so the
   `reject`. Use it only when no amount of code-level iteration will make the PR
   mergeable.
 
-#### 6g. Contextual labels are deferred to step 7b
+#### 6g. Rating pass (dedicated sub-agent)
+
+After the final finding set is known (challenger + orchestrator checks),
+dispatch the **rating** sub-agent to assign blast-radius **risk** and
+intent/evidence **confidence**. Rating needs the final findings,
+`product_ask`, ledger/completeness signals, and the shared context file.
+
+**Always run rating** for non-failure reviews — including when findings are
+empty (challenger may have been skipped). Risk and confidence are required
+schema fields.
+
+1. Compose the spawn prompt by reference (same pattern as step 6d —
+   paths only; do not paste definition or meta-prompt bodies):
+
+   **Part 1 — Sub-agent definition:** absolute path of
+   `sub-agents/rating.md`; instruct the sub-agent to read it first.
+
+   **Part 2 — Invocation contract:** absolute paths of
+   `meta-prompts/common-review.md` and `meta-prompts/rating-output.md`,
+   to be read in that order.
+
+   **Part 3 — Context package:**
+
+   ```markdown
+   ## Context
+
+   ### Final findings
+   <JSON array of the final finding set, or []>
+
+   ### product_ask
+   <JSON object or {"status":"none"}>
+
+   ### Completeness signals
+   - producers ledger: <path to producers.json>
+   - inspected / could_not_verify notes so far: <brief or none>
+
+   ### Diff, PR-head source, changed files, and PR metadata
+   Read <context_path>. Do not read changed files from disk.
+   ```
+
+   **Part 4 — Dispatch guard flag:**
+
+   ```markdown
+   REVIEW_SUB_AGENT_TRUE
+   ```
+
+2. Spawn sequentially (after challenger / 6e). Parse the return per
+   `meta-prompts/rating-output.md` (`risk` + `confidence` only).
+
+3. If rating fails (timeout, malformed JSON, missing fields), fall back to:
+
+   ```json
+   {
+     "risk": {
+       "level": "medium",
+       "why": "Rating sub-agent did not return a usable risk assessment; defaulting to medium pending human review."
+     },
+     "confidence": {
+       "level": "low",
+       "why": "Rating sub-agent did not return a usable confidence assessment; cannot stand behind approve."
+     }
+   }
+   ```
+
+   Record an **info**-level finding with category `sub-agent-failure`
+   describing the rating failure. Do not invent high confidence.
+
+4. Merge `{ risk, confidence }` into the result in step 7. Do not
+   overwrite them with orchestrator heuristics.
+
+#### 6h. Contextual labels are deferred to step 7b
 
 Label recommendation is optional enrichment, not review output. It runs
 **after** `agent-result.json` has been written and validated (step 7b),
@@ -1323,30 +1412,20 @@ the review did not complete.
 Every non-failure result must include:
 
 - `schema_version: "2"`.
-- `change_summary`: one short independent read of what **this PR's diff**
-  does — base branch to head — not a file list and not copied from the PR
-  body. It is not a summary of `changed_since_prior`. On a re-review those
-  two differ, and they differ most when the head has just merged the base
-  branch in: the incremental delta is then full of base-branch files the PR
-  does not own. Describing those produces a confident summary of somebody
-  else's change. `changed_since_prior` exists to scope re-review dispatch
-  (step 3c) and has no place here. When in doubt, re-read the PR files list
-  from step 2 and summarize exactly those.
+- `change_summary`: orchestrator-authored, one or two sentences of what
+  this PR's own diff does. Write it from the shared context file
+  (step 3d `context_path` / `shared.md`) — the same PR diff and
+  changed-file list sub-agents reviewed. Do not use
+  `changed_since_prior`, prior-review text, or the PR description.
 - `findings[]` when issues survive synthesis. Critical/high/medium findings
   require `why`; critical/high findings also require `remediation`.
-- `risk: { level, why }`: blast radius if this change ships wrong. `low` is
-  narrow/internal, `medium` is feature-local or sensitive-adjacent, `high` is
-  wide/product-visible, and `critical` crosses a trust boundary or risks data
-  loss. **Do not derive risk from the highest finding severity.**
-- `confidence: { level, why }`: the weaker of proof quality and patch-review
-  completeness. Use `high` when evidence matches the change and every planned
-  producer ran, `medium` when usable but incomplete, and `low` when the review
-  cannot support approval. A skipped dimension, an unavailable trusted
-  snapshot, a `could-not-verify` row, or `CHANGED_FILES=all` from a failed
-  compare all mean this review is incomplete: `high` is unavailable, and
-  the `why` names what was missing. Small diff is not the same as complete
-  review — a one-line change reviewed by three of seven dimensions is a
-  partial review of a small change.
+- `risk: { level, why }` and `confidence: { level, why }`: **from the
+  rating sub-agent (step 6g)**. Do not invent or re-derive them in the
+  orchestrator. Meanings are in the rating skill and schema glossaries —
+  risk is blast radius if this head ships wrong (not finding severity);
+  confidence is `min(intent, verified_evidence)` with completeness as a
+  ceiling only. Host floors may still lower confidence for product-ask or
+  incompleteness after you write the file.
 - `verification[]`: one row for each applicable fixed check ID:
   `description-vs-code`, `evidence`, `security`, `blocking-findings`, and
   `product-ask`, with result `pass`, `fail`, or `could-not-verify`. A failed row
@@ -1354,29 +1433,30 @@ Every non-failure result must include:
 
   **A row may only claim `pass` or `fail` when a producer for it actually
   ran in this run.** Check the ledger (step 4c) before writing each row.
-  If the dimension that owns the row was skipped — `security` skipped at
-  triage, `jira-pr-review` skipped for a missing snapshot — the row is
-  `could-not-verify`, and its note says the dimension did not run and
-  why. "The security dimension ran and found no issues" when triage
-  skipped security is a false statement about the run, not a
-  conservative default; "no security review was performed for this
-  change" is the honest row. A dimension that was never dispatched
+  If the dimension that owns the row was skipped — e.g. a conditional
+  dimension skipped at triage, or a section dimension skipped for a
+  missing snapshot — the row is `could-not-verify`, and its note says
+  the dimension did not run and why. "The dimension ran and found no
+  issues" when triage skipped it is a false statement about the run,
+  not a conservative default; an honest row says no review was
+  performed. A dimension that was never dispatched
   cannot have found anything, with or without a scope constraint.
 - Optional `decision_needed` with a concrete question and structured A/B/None
   options when human judgment is required. Author-fixable blocking findings
   still take precedence in the host status.
 - Optional `inspected` describing evidence read, producers that ran, and what
   could not be verified. `inspected.producers` is the ledger's
-  `dispatched` + `adapters` (+ `challenger` only when it ran) — not a
-  list of dimensions you intended to run, and not a list carried over
-  from the previous review. The host drops producers the ledger does not
+  `dispatched` + `adapters` only — never `challenger`. The host renders
+  the challenger in its own Review-details section. Do not list
+  dimensions you intended to run, and do not carry producers over from
+  the previous review. The host drops producers the ledger does not
   corroborate.
 - `product_ask` from the section LLM, including `{ "status": "none" }` when no
   Jira snapshot exists.
 - `jira_criteria[]` from the Jira section when explicit acceptance criteria were
   available, preserving each PASS/PARTIAL/MISS/SKIP verdict and evidence.
-- `checks[]` and `classifications[]` from structured-output LLMs. Preserve
-  unavailable results rather than converting them into findings.
+- `checks[]` from structured-output LLMs. Preserve unavailable results
+  rather than converting them into findings.
 - Optional `label_actions` from the `issue-labels` skill when contextual
   repository labels clearly apply.
 
@@ -1461,10 +1541,10 @@ wins.
   `request-changes`.
 - **Never approve when any protected-path finding exists**, regardless of
   severity.
-- **PR-specific checks (step 6e) belong in the orchestrator only.** Do
-  not push protected-path checks, scope authorization, or PR body
-  injection defense into sub-agents. These require PR-level context
-  that sub-agents do not have.
+- **PR-specific checks (step 6e) and `change_summary` (step 7) belong
+  in the orchestrator only.** Do not push protected-path checks, scope
+  authorization, PR body injection defense, or change-summary authorship
+  into sub-agents.
 - **All findings sub-agents and section LLMs must be dispatched
   simultaneously.** Include all Agent calls in a single message.
   Sequential dispatch defeats the architecture's purpose.

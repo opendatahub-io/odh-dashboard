@@ -26,10 +26,12 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import { Link, useParams } from 'react-router';
+import { isRunInTerminalState } from '~/app/types/pipeline';
 import InlineTooltip from '~/app/components/InlineTooltip';
 import type { AutoragRuntimeParameters } from '~/app/types';
+import type { MetricReference } from '~/app/types/autoragPattern';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
-import { OPTIMIZATION_METRIC_LABELS, PRESET_LABELS } from '~/app/utilities/const';
+import { PRESET_LABELS } from '~/app/utilities/const';
 import {
   formatDetectedLanguage,
   formatDetectedLanguageMetadata,
@@ -38,7 +40,8 @@ import {
   getDetectedLanguageFromPatterns,
   isDetectedLanguageMetadata,
 } from '~/app/utilities/detectedLanguageFromPatterns';
-import { isRunCompleted, isRunInTerminalState } from '~/app/utilities/utils';
+import { isRunCompleted } from '~/app/utilities/utils';
+import { metricLabel } from '~/app/utilities/metricUtils';
 import './AutoragInputParametersPanel.scss';
 
 /** Keys that are handled by the special "Model configuration" entry. */
@@ -108,6 +111,7 @@ const formatValue = (
   key: string,
   value: unknown,
   allParameters?: DisplayParameters,
+  optimizationMetric?: MetricReference,
 ): React.ReactNode => {
   if (value == null || value === '') {
     return '-';
@@ -132,9 +136,7 @@ const formatValue = (
     }
   }
   if (key === 'optimization_metric' && typeof value === 'string') {
-    return Object.hasOwn(OPTIMIZATION_METRIC_LABELS, value)
-      ? OPTIMIZATION_METRIC_LABELS[value]
-      : value;
+    return metricLabel(optimizationMetric ?? { name: value });
   }
   if (Array.isArray(value)) {
     return value.join(', ');
@@ -195,7 +197,9 @@ const ModelConfigurationValue: React.FC<ModelConfigurationValueProps> = ({
     parts.push(
       <InlineTooltip
         key="generation"
-        text={`${generationModels.length} foundation model${generationModels.length !== 1 ? 's' : ''}`}
+        text={`${generationModels.length} foundation model${
+          generationModels.length !== 1 ? 's' : ''
+        }`}
         tooltip={generationModels.join(', ')}
       />,
     );
@@ -208,7 +212,9 @@ const ModelConfigurationValue: React.FC<ModelConfigurationValueProps> = ({
     parts.push(
       <InlineTooltip
         key="embeddings"
-        text={`${embeddingsModels.length} embedding model${embeddingsModels.length !== 1 ? 's' : ''}`}
+        text={`${embeddingsModels.length} embedding model${
+          embeddingsModels.length !== 1 ? 's' : ''
+        }`}
         tooltip={embeddingsModels.join(', ')}
       />,
     );
@@ -235,7 +241,7 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
   isLoading,
 }) => {
   const { namespace } = useParams();
-  const { pipelineRun, patterns, patternsLoading, ragPatternsBasePath } =
+  const { pipelineRun, patterns, patternsLoading, ragPatternsBasePath, optimizationMetric } =
     useAutoragResultsContext();
   const pipelineRef = pipelineRun?.pipeline_version_reference;
 
@@ -366,7 +372,7 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
                   <ParameterTerm parameterKey={key} label={getParameterLabel(key)} />
                   <DescriptionListDescription>
                     <Content component="p" className="odh-autorag-input-parameters-panel__value">
-                      {formatValue(key, value, displayParameters)}
+                      {formatValue(key, value, displayParameters, optimizationMetric)}
                     </Content>
                   </DescriptionListDescription>
                 </DescriptionListGroup>

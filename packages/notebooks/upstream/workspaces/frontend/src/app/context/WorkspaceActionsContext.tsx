@@ -11,16 +11,54 @@ import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetail
 import { useTypedNavigate } from '~/app/routerHelper';
 import DeleteModal from '~/shared/components/DeleteModal';
 import { WorkspaceStartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStartActionModal';
-import { WorkspaceRestartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRestartActionModal';
 import { WorkspaceStopActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStopActionModal';
-import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
+import { WorkspacesRedirectStep, WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
+import { NotebookApis } from '~/shared/api/notebookApi';
+
+const resolveRedirectTargetId = (
+  redirectChain: WorkspacesRedirectStep[] | undefined,
+): string | undefined => {
+  if (!redirectChain || redirectChain.length === 0) {
+    return undefined;
+  }
+  return redirectChain[redirectChain.length - 1].target.id;
+};
+
+const updateWorkspaceWithRedirects = async (args: {
+  api: NotebookApis;
+  namespace: string;
+  workspace: WorkspacesWorkspaceListItem;
+  paused: boolean;
+}): Promise<void> => {
+  const { api, namespace, workspace, paused } = args;
+  const imageRedirectTargetId = resolveRedirectTargetId(
+    workspace.podTemplate.options.imageConfig.redirectChain,
+  );
+  const podRedirectTargetId = resolveRedirectTargetId(
+    workspace.podTemplate.options.podConfig.redirectChain,
+  );
+  const workspaceEnvelope = await api.workspaces.getWorkspace(namespace, workspace.name);
+  const currentState = workspaceEnvelope.data;
+  await api.workspaces.updateWorkspace(namespace, workspace.name, {
+    data: {
+      paused,
+      podTemplate: {
+        ...currentState.podTemplate,
+        options: {
+          imageConfig: imageRedirectTargetId ?? currentState.podTemplate.options.imageConfig,
+          podConfig: podRedirectTargetId ?? currentState.podTemplate.options.podConfig,
+        },
+      },
+      revision: currentState.revision,
+    },
+  });
+};
 
 export enum ActionType {
   ViewDetails = 'ViewDetails',
   Edit = 'Edit',
   Delete = 'Delete',
   Start = 'Start',
-  Restart = 'Restart',
   Stop = 'Stop',
 }
 
@@ -37,7 +75,6 @@ export type WorkspaceActionsContextType = {
   requestEditAction: RequestAction;
   requestDeleteAction: RequestAction;
   requestStartAction: RequestAction;
-  requestRestartAction: RequestAction;
   requestStopAction: RequestAction;
   isDrawerExpanded: boolean;
 };
@@ -98,7 +135,6 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
   const requestEditAction = createActionRequester(ActionType.Edit);
   const requestDeleteAction = createActionRequester(ActionType.Delete);
   const requestStartAction = createActionRequester(ActionType.Start);
-  const requestRestartAction = createActionRequester(ActionType.Restart);
   const requestStopAction = createActionRequester(ActionType.Stop);
 
   const executeEditAction = useCallback(() => {
@@ -138,7 +174,6 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
       case ActionType.Delete:
       case ActionType.ViewDetails:
       case ActionType.Start:
-      case ActionType.Restart:
       case ActionType.Stop:
         break;
       default: {
@@ -156,7 +191,6 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
       requestEditAction,
       requestDeleteAction,
       requestStartAction,
-      requestRestartAction,
       requestStopAction,
       isDrawerExpanded,
     }),
@@ -165,7 +199,6 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
       requestEditAction,
       requestDeleteAction,
       requestStartAction,
-      requestRestartAction,
       requestStopAction,
       isDrawerExpanded,
     ],
@@ -201,15 +234,13 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
                     }
                     onActionDone={activeWsAction.onActionDone}
                     onUpdateAndStart={async () => {
-                      // TODO: implement update and stop
+                      await updateWorkspaceWithRedirects({
+                        api,
+                        namespace: selectedNamespace,
+                        workspace: activeWsAction.workspace,
+                        paused: false,
+                      });
                     }}
-                  />
-                )}
-                {activeWsAction.action === ActionType.Restart && (
-                  <WorkspaceRestartActionModal
-                    isOpen
-                    onClose={onCloseActionAlertDialog}
-                    workspace={activeWsAction.workspace}
                   />
                 )}
                 {activeWsAction.action === ActionType.Stop && (
@@ -228,7 +259,12 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
                     }
                     onActionDone={activeWsAction.onActionDone}
                     onUpdateAndStop={async () => {
-                      // TODO: implement update and stop
+                      await updateWorkspaceWithRedirects({
+                        api,
+                        namespace: selectedNamespace,
+                        workspace: activeWsAction.workspace,
+                        paused: true,
+                      });
                     }}
                   />
                 )}

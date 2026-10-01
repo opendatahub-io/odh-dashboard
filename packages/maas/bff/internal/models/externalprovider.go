@@ -75,5 +75,6 @@ type UpdateExternalProviderRequest struct {
 	EndpointUrl         string            `json:"endpointUrl,omitempty"`
 	AuthMechanism       *AuthMechanism    `json:"authMechanism,omitempty"`
 	CredentialSecretRef string            `json:"credentialSecretRef,omitempty"`
+	Provider            string            `json:"provider,omitempty"`
 	Config              map[string]string `json:"config,omitempty"`
 }

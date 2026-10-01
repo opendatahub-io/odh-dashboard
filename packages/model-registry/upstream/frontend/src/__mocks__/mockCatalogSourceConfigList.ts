@@ -29,7 +29,7 @@ export const mockHuggingFaceCatalogSourceConfig = (
   excludedModels: [],
   isDefault: false,
   allowedOrganization: 'org1',
-  apiKey: 'apikey',
+  hasConfiguredApiKey: true,
   ...partial,
 });
 

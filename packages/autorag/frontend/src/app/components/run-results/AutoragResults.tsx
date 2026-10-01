@@ -1,24 +1,20 @@
 import { Alert, AlertActionCloseButton, Stack, StackItem } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
+import { useFetchS3File } from '@odh-dashboard/autox-core/ui/hooks';
+import { isRunInTerminalState } from '~/app/types/pipeline';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { isTaskSucceeded } from '~/app/hooks/useComponentStageMap';
-import { useCreateIndexingPipelineRunMutation } from '~/app/hooks/mutations';
+import { useCreateIndexingPipelineRunMutation } from '~/app/hooks/useCreateIndexingPipelineRunMutation';
 import { useNotification } from '~/app/hooks/useNotification';
-import { fetchS3File, useManagedPipelinesQuery } from '~/app/hooks/queries';
+import { useManagedPipelinesQuery } from '~/app/hooks/useManagedPipelinesQuery';
 import { useTreeViewData } from '~/app/topology/tree-view';
 import { transformPipelineData } from '~/app/topology/tree-view/transformPipelineData';
 import { useAutoragTaskTopology } from '~/app/topology/useAutoragTaskTopology';
 import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
 import type { RunDetailsKF } from '~/app/types/pipeline';
-import {
-  computePatternRankMap,
-  downloadBlob,
-  getOptimizedMetricForRAG,
-  isRunInTerminalState,
-  normalizePipelineRunState,
-  sanitizeFilename,
-} from '~/app/utilities/utils';
+import { downloadBlob, normalizePipelineRunState, sanitizeFilename } from '~/app/utilities/utils';
+import { computePatternRankMap } from '~/app/utilities/metricUtils';
 import { buildIndexingPipelineRunRequest } from '~/app/utilities/indexingPipeline';
 import {
   fireAutoragNotebookDownloaded,
@@ -26,7 +22,10 @@ import {
   type PlaygroundOpenedSource,
   type ViewCodeEntrySource,
 } from '~/app/utilities/tracking';
-import type { PipelineTreeLoadingMode } from './pipelineStatusLabels';
+import {
+  shouldShowStageMapUnavailableNotice,
+  type PipelineTreeLoadingMode,
+} from './pipelineStatusLabels';
 import AutoragLeaderboard from './AutoragLeaderboard';
 import AutoragPipelineVisualization from './AutoragPipelineVisualization';
 import RunIndexingPipelineModal from './RunIndexingPipelineModal';
@@ -40,6 +39,7 @@ type AutoragResultsProps = {
 };
 
 function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): React.JSX.Element {
+  const fetchS3File = useFetchS3File();
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
   const notification = useNotification();
@@ -53,6 +53,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
     componentStageMapError,
     parameters,
     bestPatternKey,
+    optimizationMetric,
   } = useAutoragResultsContext();
   const [selectedPatternKey, setSelectedPatternKey] = React.useState<string | null>(null);
   const [runIndexingPatternName, setRunIndexingPatternName] = React.useState<string | null>(null);
@@ -187,11 +188,9 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
     runId,
   ]);
 
-  const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
-
   const rankMap = React.useMemo(
-    () => computePatternRankMap(patterns, optimizedMetric),
-    [patterns, optimizedMetric],
+    () => computePatternRankMap(patterns, optimizationMetric),
+    [patterns, optimizationMetric],
   );
 
   const patternKeys = React.useMemo(() => Object.keys(patterns), [patterns]);
@@ -317,7 +316,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
         });
       }
     },
-    [namespace, ragPatternsBasePath, pipelineRun?.display_name],
+    [fetchS3File, namespace, ragPatternsBasePath, pipelineRun?.display_name],
   );
 
   const runIndexingHandler = indexingPipelineAvailable ? handleOpenRunIndexing : undefined;
@@ -347,6 +346,13 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
             treeLoadingMode={treeLoadingMode}
             componentStageMap={componentStageMap}
             pipelineRun={pipelineRun}
+            showStageMapUnavailableNotice={shouldShowStageMapUnavailableNotice({
+              hasStageMapTask,
+              hasComponentStageMap: Boolean(componentStageMap),
+              componentStageMapLoading: Boolean(componentStageMapLoading),
+              treeLoadingMode,
+              runIsTerminal,
+            })}
           />
         </StackItem>
         <StackItem>
@@ -372,7 +378,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
             patternKeys={patternKeys}
             selectedIndex={selectedIndex}
             rank={rankMap[patternKeys[selectedIndex]]}
-            optimizedMetric={optimizedMetric}
+            optimizationMetric={optimizationMetric}
             onPatternChange={(index) => setSelectedPatternKey(patternKeys[index] ?? null)}
             namespace={namespace}
             ragPatternsBasePath={ragPatternsBasePath}

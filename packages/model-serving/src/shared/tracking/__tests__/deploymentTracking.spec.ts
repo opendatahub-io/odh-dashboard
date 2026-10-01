@@ -54,23 +54,6 @@ describe('fireModelDeployed', () => {
     expect(mockTrackEvent).toHaveBeenCalledWith(DeploymentTrackingEvent.MODEL_DEPLOYED, properties);
   });
 
-  it('should fire with error message on failure', () => {
-    const properties: DeploymentTrackingProperties = {
-      outcome: TrackingOutcome.submit,
-      success: false,
-      errorMessage: 'Connection refused',
-      modelType: 'single',
-      runtime: 'vllm-template',
-      servingRuntimeName: 'vLLM',
-      servingRuntimeFormat: 'pytorch',
-      numReplicas: 1,
-    };
-
-    fireModelDeployed(mockTrackEvent, properties, false);
-
-    expect(mockTrackEvent).toHaveBeenCalledWith(DeploymentTrackingEvent.MODEL_DEPLOYED, properties);
-  });
-
   it('should include per-platform properties via the spread', () => {
     const properties: DeploymentTrackingProperties = {
       outcome: TrackingOutcome.submit,

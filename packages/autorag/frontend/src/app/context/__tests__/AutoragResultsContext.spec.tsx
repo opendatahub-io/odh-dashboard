@@ -90,7 +90,7 @@ const createMockPipelineRun = (parameters?: Record<string, unknown>): PipelineRu
 describe('getAutoragContext', () => {
   describe('basic functionality', () => {
     it('should create context with all provided values', () => {
-      const pipelineRun = createMockPipelineRun({ optimization_metric: 'faithfulness' });
+      const pipelineRun = createMockPipelineRun({ optimization_metric: 'unitxt:faithfulness' });
       const patterns = mockPatterns;
 
       const context = getAutoragContext({
@@ -100,15 +100,18 @@ describe('getAutoragContext', () => {
         patternsLoading: false,
       });
 
-      expect(context).toEqual({
-        pipelineRun,
-        pipelineRunLoading: true,
-        patterns,
-        patternsLoading: false,
-        parameters: { optimization_metric: 'faithfulness' },
-        ragPatternsBasePath: undefined,
-        bestPatternKey: 'pattern-1',
-      });
+      expect(context).toEqual(
+        expect.objectContaining({
+          pipelineRun,
+          pipelineRunLoading: true,
+          patterns,
+          patternsLoading: false,
+          parameters: { optimization_metric: 'unitxt:faithfulness' },
+          ragPatternsBasePath: undefined,
+          bestPatternKey: 'pattern-1',
+          optimizationMetric: { name: 'faithfulness', evaluator: 'unitxt' },
+        }),
+      );
     });
 
     it('should handle undefined pipelineRun', () => {
@@ -117,15 +120,18 @@ describe('getAutoragContext', () => {
         patterns: mockPatterns,
       });
 
-      expect(context).toEqual({
-        pipelineRun: undefined,
-        pipelineRunLoading: undefined,
-        patterns: mockPatterns,
-        patternsLoading: undefined,
-        parameters: undefined,
-        ragPatternsBasePath: undefined,
-        bestPatternKey: 'pattern-1',
-      });
+      expect(context).toEqual(
+        expect.objectContaining({
+          pipelineRun: undefined,
+          pipelineRunLoading: undefined,
+          patterns: mockPatterns,
+          patternsLoading: undefined,
+          parameters: undefined,
+          ragPatternsBasePath: undefined,
+          bestPatternKey: 'pattern-1',
+          optimizationMetric: { name: 'overall_score', evaluator: 'custom' },
+        }),
+      );
     });
 
     it('should handle empty patterns object', () => {
@@ -164,8 +170,8 @@ describe('getAutoragContext', () => {
         ogx_secret_name: 'ogx-secret',
         generation_models: ['llama-3', 'gpt-4'],
         embedding_models: ['text-embedding-3'],
-        optimization_metric: 'faithfulness',
-        optimization_max_rag_patterns: 12,
+        optimization_metric: 'unitxt:faithfulness',
+        optimization_max_rag_patterns: 9,
       });
 
       const context = getAutoragContext({
@@ -188,6 +194,28 @@ describe('getAutoragContext', () => {
       const context = getAutoragContext({ pipelineRun: createMockPipelineRun(parameters) });
 
       expect(context.parameters).toEqual(parameters);
+    });
+
+    it('should still parse a legacy run whose optimization_max_rag_patterns exceeds the current maximum', () => {
+      const pipelineRun = createMockPipelineRun({
+        display_name: 'Legacy Run',
+        input_data_secret_name: 'my-secret',
+        input_data_bucket_name: 'my-bucket',
+        input_data_key: 'input.csv',
+        test_data_secret_name: 'test-secret',
+        test_data_bucket_name: 'test-bucket',
+        test_data_key: 'test.csv',
+        ogx_secret_name: 'ogx-secret',
+        optimization_metric: 'faithfulness',
+        // Created before MAX_RAG_PATTERNS was lowered from 20 to 10.
+        optimization_max_rag_patterns: 20,
+      });
+
+      const context = getAutoragContext({
+        pipelineRun,
+      });
+
+      expect(context.parameters?.optimization_max_rag_patterns).toBe(20);
     });
 
     it('should extract detected language metadata from runtime_config parameters', () => {
@@ -231,6 +259,39 @@ describe('getAutoragContext', () => {
   });
 
   describe('optimization_metric handling', () => {
+    it.each([
+      ['unitxt:faithfulness', 'unitxt'],
+      ['ragas:faithfulness', 'ragas'],
+    ])('should resolve qualified %s to the matching evaluator', (runtimeMetric, evaluator) => {
+      const pattern = createMockPattern('Pattern 1', { faithfulness: 0.95 });
+      pattern.evaluation.metrics = [
+        {
+          evaluator: 'unitxt',
+          name: 'faithfulness',
+          scores: { mean: 0.95, ci_high: 1, ci_low: 0.9 },
+        },
+        {
+          evaluator: 'ragas',
+          name: 'faithfulness',
+          scores: { mean: 0.85, ci_high: 0.9, ci_low: 0.8 },
+        },
+        {
+          evaluator: 'custom',
+          name: 'overall_score',
+          scores: { mean: 0.9, ci_high: null, ci_low: null },
+          optimization_metric: true,
+        },
+      ];
+
+      const context = getAutoragContext({
+        pipelineRun: createMockPipelineRun({ optimization_metric: runtimeMetric }),
+        patterns: { 'pattern-1': pattern },
+      });
+
+      expect(context.optimizationMetric).toEqual({ name: 'faithfulness', evaluator });
+      expect(context.bestPatternKey).toBe('pattern-1');
+    });
+
     it('should preserve optimization_metric when provided', () => {
       const metrics = ['faithfulness', 'answer_correctness', 'context_correctness'] as const;
 
@@ -400,7 +461,7 @@ describe('AutoragResultsContext and useAutoragResultsContext', () => {
       };
 
       const contextValue = getAutoragContext({
-        pipelineRun: createMockPipelineRun({ optimization_metric: 'faithfulness' }),
+        pipelineRun: createMockPipelineRun({ optimization_metric: 'unitxt:faithfulness' }),
         patterns: mockPatterns,
         pipelineRunLoading: true,
         patternsLoading: false,
@@ -416,7 +477,7 @@ describe('AutoragResultsContext and useAutoragResultsContext', () => {
       expect(screen.getByTestId('patterns-count')).toHaveTextContent('2');
       expect(screen.getByTestId('pipeline-loading')).toHaveTextContent('true');
       expect(screen.getByTestId('patterns-loading')).toHaveTextContent('false');
-      expect(screen.getByTestId('optimization-metric')).toHaveTextContent('faithfulness');
+      expect(screen.getByTestId('optimization-metric')).toHaveTextContent('unitxt:faithfulness');
     });
 
     it('should handle empty context values', () => {
@@ -460,7 +521,7 @@ describe('AutoragResultsContext and useAutoragResultsContext', () => {
       };
 
       const initialContext = getAutoragContext({
-        pipelineRun: createMockPipelineRun({ optimization_metric: 'faithfulness' }),
+        pipelineRun: createMockPipelineRun({ optimization_metric: 'unitxt:faithfulness' }),
       });
 
       const { rerender } = render(
@@ -469,11 +530,11 @@ describe('AutoragResultsContext and useAutoragResultsContext', () => {
         </AutoragResultsContext.Provider>,
       );
 
-      expect(screen.getByTestId('optimization-metric')).toHaveTextContent('faithfulness');
+      expect(screen.getByTestId('optimization-metric')).toHaveTextContent('unitxt:faithfulness');
 
       // Update context
       const updatedContext = getAutoragContext({
-        pipelineRun: createMockPipelineRun({ optimization_metric: 'answer_correctness' }),
+        pipelineRun: createMockPipelineRun({ optimization_metric: 'unitxt:answer_correctness' }),
       });
 
       rerender(

@@ -141,26 +141,57 @@
       "dispatch": "always",
       "runner": "scripts/fetch-jira-context.sh",
       "producer_file": ".run/jira.json",
+      "host": {
+        "execution": "workflow",
+        "artifact_name": "fullsend-jira-context-{pr_number}",
+        "artifact_file": "jira.json",
+        "checkout_pr": false,
+        "setup_runner": "",
+        "credentials": {
+          "url_secret": "JIRA_URL",
+          "username_secret": "JIRA_USERNAME",
+          "token_secret": "JIRA_API_TOKEN"
+        }
+      },
       "failure_severity": "info",
       "notes": "Trusted host snapshot of the linked issue. It contains context only and never enters challenger synthesis directly."
     },
     {
-      "id": "jira-pr-review",
+      "id": "coderabbit",
+      "kind": "cli-adapter",
+      "output": "findings",
+      "dispatch": "always",
+      "runner": "scripts/fetch-coderabbit-context.sh",
+      "producer_file": ".run/coderabbit.json",
+      "host": {
+        "execution": "workflow",
+        "artifact_name": "fullsend-coderabbit-context-{pr_number}",
+        "artifact_file": "coderabbit.json",
+        "checkout_pr": false,
+        "setup_runner": "scripts/setup-coderabbit-cli.sh",
+        "credentials": {
+          "url_secret": "FULLSEND_UNUSED",
+          "username_secret": "FULLSEND_UNUSED",
+          "token_secret": "CODERABBIT_API_KEY"
+        }
+      },
+      "failure_severity": "info",
+      "categories": ["coderabbit"],
+      "notes": "Host-side CodeRabbit CLI output, normalized without credentials before challenger synthesis. The transport is trusted; finding text is external review evidence that must be verified against repository source."
+    },
+    {
+      "id": "product-ask-review",
       "kind": "llm-skill",
       "output": "section:product_ask",
-      "result_fields": ["product_ask", "jira_criteria"],
+      "result_fields": ["product_ask"],
       "dispatch": "always",
-      "definition": "skills/pr-review/sub-agents/jira-pr-review/SKILL.md",
+      "definition": "skills/pr-review/sub-agents/product-ask-review/SKILL.md",
       "meta_prompt": "meta-prompts/section-output.md",
       "context_file": "/sandbox/workspace/.fullsend/.run/jira.json",
-      "include_findings": true,
+      "include_findings": false,
       "failure_severity": "info",
       "re_review": "full",
-      "categories": [
-        "jira-criterion-partial", "jira-criterion-missing", "jira-criterion-stale",
-        "jira-eval-unavailable"
-      ],
-      "notes": "Canonical Jira review compares the PR description with trusted Jira context and evaluates explicit acceptance criteria against the diff. product_ask and jira_criteria stay out of challenger synthesis; findings enter it."
+      "notes": "Evaluates whether the PR's stated work fulfills the current Jira product ask. Section producer only — no findings, no challenger input. A disconnect floors confidence via host rating-policy."
     },
     {
       "id": "test-impact-review",
@@ -184,7 +215,7 @@
       "failure_severity": "info",
       "budget_priority": 4,
       "re_review": "full",
-      "notes": "Checks the pull request template and description readiness independently of code findings."
+      "notes": "Scores the PR body for substance independently of code findings."
     }
   ]
 }

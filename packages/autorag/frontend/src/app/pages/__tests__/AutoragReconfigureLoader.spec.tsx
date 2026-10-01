@@ -7,7 +7,6 @@ import AutoragReconfigureLoader from '~/app/pages/AutoragReconfigureLoader';
 import type { PipelineRun } from '~/app/types';
 
 const mockUseParams = jest.fn();
-const mockUsePipelineRunQuery = jest.fn();
 const mockGetSecrets = jest.fn();
 const mockWarning = jest.fn();
 let capturedProps: Record<string, unknown> = {};
@@ -29,12 +28,20 @@ jest.mock('mod-arch-core', () => ({
   }),
 }));
 
-jest.mock('~/app/hooks/queries', () => ({
+const mockUsePipelineRunQuery = jest.fn();
+jest.mock('~/app/hooks/usePipelineRunQuery', () => ({
   usePipelineRunQuery: (...args: unknown[]) => mockUsePipelineRunQuery(...args),
 }));
 
-jest.mock('~/app/api/k8s', () => ({
-  getSecrets: () => (_namespace: string, type: string) => () => mockGetSecrets(type),
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
+  useSecretsQuery: (namespace?: string, type?: string) =>
+    jest.requireActual('@tanstack/react-query').useQuery({
+      queryKey: ['secrets', namespace, type],
+      queryFn: () => mockGetSecrets(type),
+      enabled: Boolean(namespace),
+      retry: false,
+    }),
 }));
 
 jest.mock('~/app/hooks/useNotification', () => ({
@@ -46,6 +53,15 @@ jest.mock('~/app/components/common/AutoragHeader/AutoragHeader', () => ({
   default: () => <span>AutoRAG</span>,
 }));
 
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/components/feature'),
+  InvalidPipelineRun: () => <div data-testid="invalid-run">Invalid Run</div>,
+}));
+
+jest.mock('~/app/components/empty-states/InvalidProject', () => ({
+  __esModule: true,
+  default: () => <div data-testid="invalid-project">Invalid Project</div>,
+}));
 jest.mock('~/app/pages/AutoragConfigurePage', () => ({
   __esModule: true,
   default: (props: Record<string, unknown>) => {
@@ -187,6 +203,91 @@ describe('AutoragReconfigureLoader', () => {
     });
     expect(capturedProps.initialMaaSSecret).toMatchObject({ name: 'maas' });
     expect(capturedProps.initialVectorDbSecret).toMatchObject({ name: 'vector-db' });
+  });
+
+  it('should normalize legacy optimization metrics using the restored preset', async () => {
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/a.pdf'],
+        maas_secret_name: 'maas',
+        vector_db_secret_name: 'vector-db',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+        preset: 'balanced',
+        optimization_metric: 'faithfulness',
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(capturedProps.initialValues).toMatchObject({
+      preset: 'balanced',
+      optimization_metric: 'ragas:faithfulness',
+    });
+    expect(mockWarning).not.toHaveBeenCalledWith(
+      'Unable to restore all settings',
+      'Some parameters from the previous run could not be parsed. Default values will be used instead.',
+    );
+  });
+
+  it.each([
+    ['answer_correctness', 'unitxt:answer_correctness'],
+    ['overall_score', 'custom:overall_score'],
+  ])('should restore the historical %s alias without warning', async (metric, expected) => {
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/a.pdf'],
+        maas_secret_name: 'maas',
+        vector_db_secret_name: 'vector-db',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+        optimization_metric: metric,
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(capturedProps.initialValues).toMatchObject({ optimization_metric: expected });
+    expect(mockWarning).not.toHaveBeenCalledWith(
+      'Unable to restore all settings',
+      'Some parameters from the previous run could not be parsed. Default values will be used instead.',
+    );
+  });
+
+  it('should fall back and warn for an invalid or preset-incompatible stored metric', async () => {
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/a.pdf'],
+        maas_secret_name: 'maas',
+        vector_db_secret_name: 'vector-db',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+        preset: 'speed',
+        optimization_metric: 'ragas:faithfulness',
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(capturedProps.initialValues).toMatchObject({
+      optimization_metric: 'custom:overall_score',
+    });
+    expect(mockWarning).toHaveBeenCalledWith(
+      'Unable to restore all settings',
+      'Some parameters from the previous run could not be parsed. Default values will be used instead.',
+    );
   });
 
   it('should resolve restored model overlap in favor of generation models without warning', async () => {

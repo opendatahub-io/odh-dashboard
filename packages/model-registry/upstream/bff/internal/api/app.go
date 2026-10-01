@@ -87,6 +87,14 @@ const (
 	ModelTransferJobPath       = ModelTransferJobListPath + "/:" + ModelTransferJobName
 	ModelTransferJobEventsPath = ModelTransferJobPath + "/events"
 
+	// Serving runtime catalog (downstream-only implementations)
+	ServingRuntimeID                = "id"
+	ServingRuntimeCatalogPathPrefix = ApiPathPrefix + "/serving_runtime_catalog"
+	ServingRuntimeListPath          = ServingRuntimeCatalogPathPrefix + "/serving_runtimes"
+	ServingRuntimeFilterOptionsPath = ServingRuntimeListPath + "_filter_options"
+	ServingRuntimePath              = ServingRuntimeListPath + "/:" + ServingRuntimeID
+	ServingRuntimeVersionsPath      = ServingRuntimePath + "/versions"
+
 	// Agent catalog
 	AgentId                   = "agent_id"
 	AgentCatalogPathPrefix    = ApiPathPrefix + "/agent_catalog"
@@ -133,6 +141,12 @@ const (
 
 	// Kubernetes resource handlers - these have no upstream implementation and must be overridden downstream
 	handlerKubernetesServicesListID HandlerID = "kubernetes:services:list"
+
+	// Serving runtime catalog handlers - downstream-only
+	handlerServingRuntimeListID          HandlerID = "servingRuntimeCatalog:list"
+	handlerServingRuntimeFilterOptionsID HandlerID = "servingRuntimeCatalog:filterOptions"
+	handlerServingRuntimeGetID           HandlerID = "servingRuntimeCatalog:get"
+	handlerServingRuntimeVersionsID      HandlerID = "servingRuntimeCatalog:versions"
 
 	// MCPServer deployment handlers - downstream-only
 	handlerMcpDeploymentListID     HandlerID = "mcpDeployment:list"
@@ -477,6 +491,20 @@ func (app *App) Routes() http.Handler {
 		apiRouter.DELETE(ModelCatalogSettingsSourceConfigPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.DeleteCatalogSourceConfigHandler)))
 		apiRouter.DELETE(ModelCatalogSettingsSourceConfigCredentialsPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.ClearCatalogSourceCredentialsHandler)))
 		apiRouter.POST(CatalogSourcePreviewPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(app.CreateCatalogSourcePreviewHandler))))
+
+		// Serving runtime catalog endpoints - downstream extensions, mock-only for now.
+		apiRouter.GET(ServingRuntimeListPath, app.handlerWithOverride(handlerServingRuntimeListID, func() httprouter.Handle {
+			return app.AttachNamespace(app.EndpointNotImplementedHandler("Serving runtime catalog list"))
+		}))
+		apiRouter.GET(ServingRuntimeFilterOptionsPath, app.handlerWithOverride(handlerServingRuntimeFilterOptionsID, func() httprouter.Handle {
+			return app.AttachNamespace(app.EndpointNotImplementedHandler("Serving runtime catalog filter options"))
+		}))
+		apiRouter.GET(ServingRuntimePath, app.handlerWithOverride(handlerServingRuntimeGetID, func() httprouter.Handle {
+			return app.AttachNamespace(app.EndpointNotImplementedHandler("Serving runtime catalog get"))
+		}))
+		apiRouter.GET(ServingRuntimeVersionsPath, app.handlerWithOverride(handlerServingRuntimeVersionsID, func() httprouter.Handle {
+			return app.AttachNamespace(app.EndpointNotImplementedHandler("Serving runtime catalog versions"))
+		}))
 
 		// Agent catalog endpoints
 		apiRouter.GET(AgentListPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetAllAgentsHandler)))

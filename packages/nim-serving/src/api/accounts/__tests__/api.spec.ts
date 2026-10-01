@@ -12,7 +12,7 @@ import {
   replaceNIMSecret,
 } from '../k8s';
 import { createNIMResources, deleteNIMResources } from '../api';
-import { NIM_SECRET_NAME } from '../constants';
+import { NGC_API_KEY_DATA_KEY, NIM_API_KEY_DATA_KEY, NIM_SECRET_NAME } from '../constants';
 
 jest.mock('../k8s', () => ({
   ...jest.requireActual('../k8s'),
@@ -88,7 +88,12 @@ describe('createNIMResources', () => {
     const existingSecret: SecretKind = {
       apiVersion: 'v1',
       kind: 'Secret',
-      metadata: { name: NIM_SECRET_NAME, namespace: 'test-ns', resourceVersion: '999' },
+      metadata: {
+        name: NIM_SECRET_NAME,
+        namespace: 'test-ns',
+        resourceVersion: '999',
+        labels: { 'legacy-label': 'true' },
+      },
       type: 'Opaque',
       data: { [NIM_SECRET_NAME]: btoa('old-key') },
     };
@@ -106,8 +111,39 @@ describe('createNIMResources', () => {
 
     expect(mockFetchExistingSecret).toHaveBeenCalledWith('test-ns', NIM_SECRET_NAME);
     expect(mockReplaceNIMSecret).toHaveBeenCalledTimes(2);
-    expect(mockReplaceNIMSecret).toHaveBeenNthCalledWith(1, expect.any(Object), true);
-    expect(mockReplaceNIMSecret).toHaveBeenNthCalledWith(2, expect.any(Object));
+    expect(mockReplaceNIMSecret).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          resourceVersion: '999',
+          labels: {
+            'legacy-label': 'true',
+            'opendatahub.io/managed': 'true',
+          },
+        }),
+        stringData: {
+          [NIM_API_KEY_DATA_KEY]: 'nvapi-key',
+          [NGC_API_KEY_DATA_KEY]: 'nvapi-key',
+        },
+      }),
+      true,
+    );
+    expect(mockReplaceNIMSecret).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          resourceVersion: '999',
+          labels: {
+            'legacy-label': 'true',
+            'opendatahub.io/managed': 'true',
+          },
+        }),
+        stringData: {
+          [NIM_API_KEY_DATA_KEY]: 'nvapi-key',
+          [NGC_API_KEY_DATA_KEY]: 'nvapi-key',
+        },
+      }),
+    );
     expect(result).toBe(createdAccount);
   });
 

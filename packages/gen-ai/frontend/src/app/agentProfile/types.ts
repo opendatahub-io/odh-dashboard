@@ -127,3 +127,22 @@ export type AgentProfileUpdateResponse = {
   namespace: string;
   resourceVersion: string;
 };
+
+export type AgentDeploymentState = 'ready' | 'creating' | 'failed';
+
+export type AgentDeploymentSummary = {
+  name: string;
+  namespace: string;
+  agentProfileId: string;
+  routeUrl?: string;
+  createdAt: string;
+  state: AgentDeploymentState;
+  lastError?: string;
+  /** Present only when the deployment detail endpoint can reach the Sandbox. */
+  config?: AgentProfile;
+};
+
+export type AgentDeploymentListResponse = {
+  deployments: AgentDeploymentSummary[];
+  totalCount: number;
+};

@@ -18,9 +18,12 @@ package helper
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -256,7 +259,7 @@ func ValidateKubernetesStorageClassIsUsable(ctx context.Context, k8sClient clien
 
 // ValidateFieldIsDNS1123Label validates a field contains an RCF 1123 DNS label.
 // USED FOR:
-//   - names of: Namespaces, Services, etc.
+//   - names of: Namespaces, Services, Containers, etc.
 func ValidateFieldIsDNS1123Label(path *field.Path, value string) field.ErrorList {
 	var errs field.ErrorList
 
@@ -282,6 +285,11 @@ func ValidateKubernetesServicesName(path *field.Path, value string) field.ErrorL
 	return ValidateFieldIsDNS1123Label(path, value)
 }
 
+// ValidateKubernetesContainersName validates a field contains a valid Kubernetes container name.
+func ValidateKubernetesContainersName(path *field.Path, value string) field.ErrorList {
+	return ValidateFieldIsDNS1123Label(path, value)
+}
+
 // ValidateKubernetesAnnotations validates a map of Kubernetes annotations.
 func ValidateKubernetesAnnotations(path *field.Path, annotations map[string]string) field.ErrorList {
 	return apivalidation.ValidateAnnotations(annotations, path)
@@ -295,17 +303,70 @@ func ValidateKubernetesLabels(path *field.Path, labels map[string]string) field.
 // ValidateFieldIsConfigMapKey validates a field contains a valid key name.
 // USED FOR:
 //   - keys of: Secrets, ConfigMaps
-func ValidateFieldIsConfigMapKey(path *field.Path, value string) field.ErrorList {
-	var errs field.ErrorList
+func ValidateFieldIsConfigMapKey(path *field.Path, keyName string) field.ErrorList {
+	var errs field.ErrorList //nolint:prealloc
 
-	if value == "" {
-		errs = append(errs, field.Required(path, ""))
-	} else {
-		failures := validation.IsConfigMapKey(value)
-		if len(failures) > 0 {
-			errs = append(errs, field.Invalid(path, value, strings.Join(failures, "; ")))
-		}
+	failures := validation.IsConfigMapKey(keyName)
+	for _, failureMsg := range failures {
+		errs = append(errs, field.Invalid(path, keyName, fmt.Sprintf("invalid key name: %s", failureMsg)))
 	}
 
 	return errs
+}
+
+// ValidateFieldIsSecretBase64Value validates a field contains a base64-encoded string which decodes to valid binary secret data.
+// USED FOR:
+//   - values of: Secrets.data, ConfigMaps.binaryData
+func ValidateFieldIsSecretBase64Value(path *field.Path, value string) field.ErrorList {
+	var errs field.ErrorList
+
+	_, err := base64.StdEncoding.DecodeString(value)
+	if err != nil {
+		errs = append(errs, field.Invalid(path, value, err.Error()))
+	}
+
+	return errs
+}
+
+// ValidateFieldIsPositiveInt64 parses value as a base-10 int64 and validates it
+// is a positive integer (> 0). On success it returns the parsed value and a nil
+// error list.
+func ValidateFieldIsPositiveInt64(path *field.Path, value string) (int64, field.ErrorList) {
+	var errs field.ErrorList
+
+	parsed, err := strconv.ParseInt(value, 10, 64)
+	if err != nil || parsed <= 0 {
+		errs = append(errs, field.Invalid(path, value, "must be a positive integer"))
+		return 0, errs
+	}
+
+	return parsed, errs
+}
+
+// ValidateFieldIsBool parses value as a boolean. On success it returns the parsed
+// value and a nil error list.
+func ValidateFieldIsBool(path *field.Path, value string) (bool, field.ErrorList) {
+	var errs field.ErrorList
+
+	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		errs = append(errs, field.Invalid(path, value, "must be a boolean"))
+		return false, errs
+	}
+
+	return parsed, errs
+}
+
+// ValidateFieldIsRFC3339Time parses value as an RFC3339 timestamp. On success it
+// returns the parsed value and a nil error list.
+func ValidateFieldIsRFC3339Time(path *field.Path, value string) (metav1.Time, field.ErrorList) {
+	var errs field.ErrorList
+
+	parsed, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		errs = append(errs, field.Invalid(path, value, "must be a valid RFC3339 timestamp"))
+		return metav1.Time{}, errs
+	}
+
+	return metav1.NewTime(parsed), errs
 }

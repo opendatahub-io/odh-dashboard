@@ -40,7 +40,12 @@ const (
 	EvaluationJobByIDPath          = ApiPathPrefix + "/evaluations/jobs/:id"
 	CollectionsPath                = ApiPathPrefix + "/evaluations/collections"
 	CollectionByIDPath             = ApiPathPrefix + "/evaluations/collections/*id"
+	CollectionClonePath            = ApiPathPrefix + "/evaluations/collections/*id"
 	ProvidersPath                  = ApiPathPrefix + "/evaluations/providers"
+	KueueAvailabilityPath          = ApiPathPrefix + "/kueue/availability"
+	KueueWorkloadStatusesPath      = ApiPathPrefix + "/kueue/workloads"
+	HardwareProfilesPath           = ApiPathPrefix + "/hardwareprofiles"
+	HardwareProfileValidationPath  = ApiPathPrefix + "/hardwareprofiles/validate"
 	EvaluationJobLogsPath          = ApiPathPrefix + "/evaluations/jobs/:id/logs"
 	EvaluationJobBenchmarkLogsPath = ApiPathPrefix + "/evaluations/jobs/:id/benchmarks/:benchmark_index/logs"
 	EvalHubCRStatusPath            = ApiPathPrefix + "/evalhub/status"
@@ -82,6 +87,7 @@ type App struct {
 	kubernetesClientFactory k8s.KubernetesClientFactory
 	evalHubClientFactory    evalhub.EvalHubClientFactory
 	bffClientFactory        bffclient.BFFClientFactory
+	portForwardManager      *k8s.PortForwardManager
 	repositories            *repositories.Repositories
 	testEnv                 *envtest.Environment
 	rootCAs                 *x509.CertPool
@@ -163,12 +169,32 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 	logger.Info("Detected dashboard namespace", slog.String("namespace", dashboardNamespace))
 
+	var portForwardManager *k8s.PortForwardManager
+	if cfg.DevMode && !cfg.MockK8Client {
+		restConfig, err := helper.GetKubeconfig()
+		if err != nil {
+			logger.Warn("failed to initialize dynamic port-forwarding", "error", err)
+		} else {
+			clientset, err := kubernetes.NewForConfig(restConfig)
+			if err != nil {
+				logger.Warn("failed to initialize dynamic port-forwarding", "error", err)
+			} else {
+				portForwardManager = k8s.NewPortForwardManager(restConfig, clientset, logger)
+				logger.Info("dynamic port-forwarding enabled for in-cluster service URLs")
+			}
+		}
+	}
+
 	var ehFactory evalhub.EvalHubClientFactory
 	if cfg.MockEvalHubClient {
 		ehFactory = ehmocks.NewMockClientFactory()
 		logger.Info("Using mock EvalHub client")
 	} else {
-		ehFactory = evalhub.NewRealClientFactory()
+		var wrapTransport func(http.RoundTripper) http.RoundTripper
+		if portForwardManager != nil {
+			wrapTransport = k8s.PortForwardWrapTransport(portForwardManager, logger)
+		}
+		ehFactory = evalhub.NewRealClientFactoryWithTransport(wrapTransport)
 	}
 
 	// Inter-BFF client factory (model-catalog BFF)
@@ -217,6 +243,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		kubernetesClientFactory: k8sFactory,
 		evalHubClientFactory:    ehFactory,
 		bffClientFactory:        bffFactory,
+		portForwardManager:      portForwardManager,
 		repositories:            repositories.NewRepositories(),
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
@@ -228,6 +255,9 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 func (app *App) Shutdown() error {
 	app.logger.Info("shutting down app...")
+	if app.portForwardManager != nil {
+		app.portForwardManager.Close()
+	}
 	if app.testEnv == nil {
 		return nil
 	}
@@ -259,8 +289,16 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(EvaluationJobLogsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetEvaluationJobLogsHandler))))
 	apiRouter.GET(EvaluationJobBenchmarkLogsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetEvaluationJobBenchmarkLogsHandler))))
 	apiRouter.GET(CollectionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CollectionsHandler))))
+	apiRouter.POST(CollectionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CreateCollectionHandler))))
 	apiRouter.GET(CollectionByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetCollectionHandler))))
+	apiRouter.PATCH(CollectionByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.PatchCollectionHandler))))
+	apiRouter.DELETE(CollectionByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.DeleteCollectionHandler))))
+	apiRouter.POST(CollectionClonePath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CloneCollectionHandler))))
 	apiRouter.GET(ProvidersPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ProvidersHandler))))
+	apiRouter.GET(KueueAvailabilityPath, app.AttachNamespace(app.RequireAccessToService(app.KueueAvailabilityHandler)))
+	apiRouter.GET(KueueWorkloadStatusesPath, app.AttachNamespace(app.RequireAccessToService(app.KueueWorkloadStatusesHandler)))
+	apiRouter.POST(HardwareProfileValidationPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ValidateHardwareProfilesHandler))))
+	apiRouter.GET(HardwareProfilesPath, app.AttachNamespace(app.RequireAccessToService(app.HardwareProfilesHandler)))
 
 	// InferenceService listing (user-token dynamic client, no EvalHub REST client needed)
 	apiRouter.GET(InferenceServicesPath, app.AttachNamespace(app.RequireAccessToService(app.InferenceServicesHandler)))

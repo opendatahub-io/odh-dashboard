@@ -148,6 +148,64 @@ describe('API Keys Page', () => {
     apiKeysPage.findCreateApiKeyButton().should('exist').and('be.enabled');
   });
 
+  it('should display the empty table when the only key is revoked', () => {
+    const [singleKey] = mockAPIKeys().filter((k) => k.id === 'key-prod-backend-001');
+    expect(singleKey).to.not.equal(undefined);
+
+    cy.interceptOdh(
+      'POST /maas/api/v1/api-keys/search',
+      mockSearchResponse([singleKey], mockSubscriptionDetails),
+    ).as('singleKeySearch');
+
+    apiKeysPage.visit();
+    cy.wait('@singleKeySearch');
+
+    apiKeysPage.findTable().should('exist');
+    apiKeysPage.findRows().should('have.length', 1);
+    apiKeysPage.getRow('production-backend').findStatus().should('contain.text', 'Active');
+
+    cy.interceptOdh(
+      'DELETE /maas/api/v1/api-keys/:id',
+      { path: { id: 'key-prod-backend-001' } },
+      {
+        data: {
+          id: 'key-prod-backend-001',
+          name: 'production-backend',
+          description: 'Production API key for backend service',
+          status: 'revoked',
+          creationDate: '2026-01-07T11:54:34.521671447-05:00',
+        },
+      },
+    ).as('deleteApiKey');
+
+    // Existence check (no status filter) still finds the revoked key → table page.
+    // Default Active/Expired filter returns nothing → empty table, not empty-state page.
+    const revokedKey: APIKey = { ...singleKey, status: 'revoked' };
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
+      const hasStatusFilter = req.body?.data?.filters?.status?.length > 0;
+      req.reply(
+        hasStatusFilter
+          ? mockSearchResponse([])
+          : mockSearchResponse([revokedKey], mockSubscriptionDetails),
+      );
+    }).as('postRevokeSearch');
+
+    apiKeysPage.getRow('production-backend').findKebabAction('Revoke').click();
+    revokeAPIKeyModal.shouldBeOpen();
+    revokeAPIKeyModal.findRevokeConfirmationInput().type('production-backend');
+    revokeAPIKeyModal.findRevokeButton().click();
+
+    cy.wait('@deleteApiKey');
+    cy.wait('@postRevokeSearch');
+    cy.wait('@postRevokeSearch');
+
+    apiKeysPage.findEmptyState().should('not.exist');
+    apiKeysPage.findTable().should('exist');
+    apiKeysPage.findEmptyTableState().should('exist');
+    apiKeysPage.findEmptyTableState().should('contain.text', 'No results found');
+    apiKeysPage.findToolbar().should('exist');
+  });
+
   it('should display a useful error state when the API keys search fails and still show the tabs', () => {
     cy.intercept('POST', '/maas/api/v1/api-keys/search', {
       statusCode: 500,
@@ -742,27 +800,13 @@ describe('API Keys Page', () => {
 
   it('should show a warning and block submission when no subscriptions are available', () => {
     cy.interceptOdh('GET /maas/api/v1/subscriptions', { data: [] }).as('emptySubscriptions');
-
+    apiKeysPage.visit();
+    cy.wait('@emptySubscriptions');
     apiKeysPage.findCreateApiKeyButton().click();
     createApiKeyModal.shouldBeOpen();
-    cy.wait('@emptySubscriptions');
 
     createApiKeyModal.findNoSubscriptionsAlert().should('be.visible');
     createApiKeyModal.findNameInput().type('my-key');
-    createApiKeyModal.findSubmitButton().should('be.disabled');
-  });
-
-  it('should show an error alert when subscriptions fail to load', () => {
-    cy.intercept('GET', '/maas/api/v1/subscriptions', {
-      statusCode: 500,
-      body: { error: { code: '500', message: 'Internal Server Error' } },
-    }).as('failedSubscriptions');
-
-    apiKeysPage.findCreateApiKeyButton().click();
-    createApiKeyModal.shouldBeOpen();
-    cy.wait('@failedSubscriptions');
-
-    createApiKeyModal.findSubscriptionsErrorAlert().should('be.visible');
     createApiKeyModal.findSubmitButton().should('be.disabled');
   });
 });

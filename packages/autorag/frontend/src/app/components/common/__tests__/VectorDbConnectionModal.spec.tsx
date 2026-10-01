@@ -1,14 +1,15 @@
-import * as secretsApi from '@odh-dashboard/k8s-core/api/secrets';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import React, { act } from 'react';
+import { useCreateSecretMutation } from '@odh-dashboard/autox-core/ui/hooks';
 import VectorDbConnectionModal from '~/app/components/common/VectorDbConnectionModal';
 
-jest.mock('@odh-dashboard/k8s-core/api/secrets', () => ({
-  createSecret: jest.fn(),
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  useCreateSecretMutation: jest.fn(),
 }));
 
-const createSecretMock = jest.mocked(secretsApi.createSecret);
+const createSecretMock = jest.fn();
+const useCreateSecretMutationMock = jest.mocked(useCreateSecretMutation);
 
 describe('VectorDbConnectionModal', () => {
   const onClose = jest.fn();
@@ -16,7 +17,8 @@ describe('VectorDbConnectionModal', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    createSecretMock.mockResolvedValue({} as Awaited<ReturnType<typeof createSecretMock>>);
+    createSecretMock.mockResolvedValue({});
+    useCreateSecretMutationMock.mockReturnValue({ mutateAsync: createSecretMock } as never);
   });
 
   const renderModal = () =>

@@ -1,0 +1,3 @@
+globalPrompt:
+  template: 'You are a global template for summarization tasks.'
+  commitMessage: 'Initial global prompt version'

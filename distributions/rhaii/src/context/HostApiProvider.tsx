@@ -8,7 +8,7 @@ import {
   type HostApiInfraServices,
   type HostApiServices,
   type ClusterSettingsType,
-} from '@odh-dashboard/plugin-core';
+} from '@odh-dashboard/plugin-core/host-api';
 import {
   createSecret,
   deleteSecret,

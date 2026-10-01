@@ -73,6 +73,8 @@ export const useNavigateToDeploymentWizardWithData = (
       },
       validatedConfigurations: deployPrefillData.validatedConfigurations,
       selectedValidatedConfigurations: deployPrefillData.selectedValidatedConfigurations,
+      requiresHuggingFaceApiKey: deployPrefillData.requiresHuggingFaceApiKey,
+      huggingFaceApiKeyAlertText: deployPrefillData.huggingFaceApiKeyAlertText,
     }),
     [deployPrefillData, connectionTypeObject, resourceName, maxLength],
   );

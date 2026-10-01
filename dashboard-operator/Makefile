@@ -1,4 +1,5 @@
 IMG ?= quay.io/opendatahub/odh-dashboard-operator:latest
+LOCALBIN ?= $(shell pwd)/bin
 
 .PHONY: all
 all: build
@@ -34,11 +35,22 @@ test-integration: setup-envtest ## Run integration tests with envtest.
 	KUBEBUILDER_ASSETS="$$($(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN)/k8s -p path)" go test -v -race -tags=integration -count=1 ./internal/controller/...
 
 .PHONY: test-e2e
-test-e2e: ## Run real-cluster E2E tests (requires KUBECONFIG and TEST_NAMESPACE).
+test-e2e: ## Run real-cluster E2E tests (requires KUBECONFIG, TEST_NAMESPACE, and TEST_GATEWAY_DOMAIN).
 	@test -n "$$KUBECONFIG" || (echo "KUBECONFIG must point to a kubeconfig file." && exit 1)
 	@test -n "$$TEST_NAMESPACE" || (echo "TEST_NAMESPACE must name an existing namespace." && exit 1)
+	@test -n "$$TEST_GATEWAY_DOMAIN" || (echo "TEST_GATEWAY_DOMAIN must name the externally reachable Dashboard gateway host." && exit 1)
 	@test -f "$$KUBECONFIG" || (echo "KUBECONFIG must point to a regular file." && exit 1)
 	go test -v -count=1 -tags=e2e -timeout=30m $(E2E_TEST_ARGS) ./test/e2e/...
+
+.PHONY: test-e2e-chaos
+test-e2e-chaos: chaos-validate ## Run destructive operator-chaos E2E scenarios serially.
+	@test "$$TEST_ENABLE_CHAOS" = "true" || (echo "TEST_ENABLE_CHAOS=true is required." && exit 1)
+	@test -n "$$KUBECONFIG" || (echo "KUBECONFIG must point to a kubeconfig file." && exit 1)
+	@test -n "$$TEST_NAMESPACE" || (echo "TEST_NAMESPACE must name an existing namespace." && exit 1)
+	@test -n "$$TEST_GATEWAY_DOMAIN" || (echo "TEST_GATEWAY_DOMAIN must name the externally reachable Dashboard gateway host." && exit 1)
+	@test -n "$$TEST_OPERATOR_NAMESPACE" || (echo "TEST_OPERATOR_NAMESPACE must name the namespace containing dashboard-operator." && exit 1)
+	@test -f "$$KUBECONFIG" || (echo "KUBECONFIG must point to a regular file." && exit 1)
+	go test -v -count=1 -tags=e2e -timeout=45m -parallel=1 -run '^TestE2EOperatorChaos$$' ./test/e2e/...
 
 ##@ Build
 
@@ -110,6 +122,16 @@ docker-build: ## Build container image (run from repo root).
 docker-push: ## Push container image.
 	docker push $(IMG)
 
+E2E_IMG ?= quay.io/opendatahub/odh-dashboard-operator-e2e:latest
+
+.PHONY: e2e-image
+e2e-image: ## Build the containerized E2E test image for the early-gate shiftleft runner.
+	docker build -t "$(E2E_IMG)" -f Dockerfile.e2e ..
+
+.PHONY: e2e-image-push
+e2e-image-push: ## Push the containerized E2E test image.
+	docker push "$(E2E_IMG)"
+
 ##@ Chaos
 
 OPERATOR_CHAOS_VERSION ?= v0.0.0-20260521100204-4dab974d613c
@@ -134,7 +156,6 @@ chaos-validate: operator-chaos ## Validate chaos knowledge model and experiments
 
 ##@ Dependencies
 
-LOCALBIN ?= $(shell pwd)/bin
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
 

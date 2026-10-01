@@ -13,13 +13,14 @@ import {
 } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun } from '~/app/types';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
-import * as queries from '~/app/hooks/queries';
 import * as treeView from '~/app/topology/tree-view';
 import * as transformPipelineDataModule from '~/app/topology/tree-view/transformPipelineData';
 import * as buildStageMapTopologyModule from '~/app/topology/buildStageMapTopology';
 import * as useAutomlTaskTopologyModule from '~/app/topology/useAutomlTaskTopology';
 import * as utils from '~/app/utilities/utils';
 import { AUTOML_EVENTS } from '~/app/utilities/tracking';
+
+const mockFetchS3File = jest.fn();
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
@@ -54,16 +55,19 @@ jest.mock('~/app/components/run-results/AutomlPipelineVisualization', () => ({
     runTitle,
     runState,
     treeLoadingMode,
+    showStageMapUnavailableNotice,
   }: {
     runTitle: string;
     runState?: string;
     treeLoadingMode?: string;
+    showStageMapUnavailableNotice?: boolean;
   }) => (
     <div
       data-testid="automl-pipeline-visualization"
       data-run-title={runTitle}
       data-run-state={runState}
       data-tree-loading-mode={treeLoadingMode ?? 'none'}
+      data-stage-map-unavailable={showStageMapUnavailableNotice ? 'true' : 'false'}
     />
   ),
 }));
@@ -81,9 +85,9 @@ jest.mock('~/app/utilities/utils', () => ({
   downloadBlob: jest.fn(),
 }));
 
-jest.mock('~/app/hooks/queries', () => ({
-  ...jest.requireActual('~/app/hooks/queries'),
-  fetchS3File: jest.fn(),
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
+  useFetchS3File: jest.fn(() => mockFetchS3File),
 }));
 
 const mockPipelineRun: PipelineRun = {
@@ -106,7 +110,7 @@ const createMockModel = (modelName: string): AutomlModel => ({
 });
 
 const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
-const fetchS3FileMock = jest.mocked(queries.fetchS3File);
+const fetchS3FileMock = jest.mocked(mockFetchS3File);
 const downloadBlobMock = jest.mocked(utils.downloadBlob);
 const useTreeViewDataMock = jest.mocked(treeView.useTreeViewData);
 const transformPipelineDataMock = jest.mocked(transformPipelineDataModule.transformPipelineData);
@@ -662,6 +666,44 @@ describe('AutomlResults', () => {
 
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(getPipelineVisualization()).toHaveAttribute('data-run-state', 'SUCCEEDED');
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'true');
+    });
+
+    it('should show a pipeline view notice when a failed run has no stage map', () => {
+      const failedStageMapRun: PipelineRun = {
+        ...stageMapRun,
+        state: 'FAILED',
+      };
+      renderWithContext(failedStageMapRun, {}, 'test-namespace', {
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'true');
+    });
+
+    it('should not show a pipeline view notice while the run is still preparing', () => {
+      renderWithContext(stageMapRun, {}, 'test-namespace', {
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'false');
+    });
+
+    it('should not show a pipeline view notice when the stage map is available', () => {
+      renderWithContext({ ...stageMapRun, state: 'FAILED' }, {}, 'test-namespace', {
+        componentStageMap: mockComponentStageMap,
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'false');
+    });
+
+    it('should not show a pipeline view notice for pipelines without a stage map task', () => {
+      renderWithContext({ ...noStageMapRun, state: 'FAILED' }, {}, 'test-namespace', {
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'false');
     });
   });
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"sort"
 
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/google/uuid"
@@ -2734,11 +2735,30 @@ func GetModelsWithInclusionStatusListMocks() []models.CatalogSourcePreviewModel 
 	return allModels
 }
 
+func GetModelsWithInclusionStatusListMocksWithoutGated() []models.CatalogSourcePreviewModel {
+	return []models.CatalogSourcePreviewModel{
+		hfPreviewModel("hf-mock/public-model", true, "public"),
+		hfPreviewModel("my-org/private-model", true, "private"),
+		{Name: "sample-source/included-model-1", Included: true},
+		{Name: "sample-source/excluded-model-1", Included: false},
+	}
+}
+
 func GetCatalogSourcePreviewSummaryMock() models.CatalogSourcePreviewSummary {
 	return models.CatalogSourcePreviewSummary{
-		TotalModels:    70,
-		IncludedModels: 45,
-		ExcludedModels: 25,
+		TotalModels:                70,
+		IncludedModels:             45,
+		ExcludedModels:             25,
+		HasGatedAccessDeniedModels: true,
+	}
+}
+
+func GetCatalogSourcePreviewSummaryMockWithoutGated() models.CatalogSourcePreviewSummary {
+	return models.CatalogSourcePreviewSummary{
+		TotalModels:                4,
+		IncludedModels:             3,
+		ExcludedModels:             1,
+		HasGatedAccessDeniedModels: false,
 	}
 }
 
@@ -2796,7 +2816,23 @@ func filterAndPaginatePreviewItems(allItems []models.CatalogSourcePreviewModel, 
 }
 
 func CreateCatalogSourcePreviewMockWithFilter(filterStatus string, pageSize int, nextPageToken string) models.CatalogSourcePreviewResult {
-	return filterAndPaginatePreviewItems(GetModelsWithInclusionStatusListMocks(), GetCatalogSourcePreviewSummaryMock(), filterStatus, pageSize, nextPageToken)
+	return filterAndPaginatePreviewItems(
+		GetModelsWithInclusionStatusListMocks(),
+		GetCatalogSourcePreviewSummaryMock(),
+		filterStatus,
+		pageSize,
+		nextPageToken,
+	)
+}
+
+func CreateCatalogSourcePreviewMockWithoutGatedWithFilter(filterStatus string, pageSize int, nextPageToken string) models.CatalogSourcePreviewResult {
+	return filterAndPaginatePreviewItems(
+		GetModelsWithInclusionStatusListMocksWithoutGated(),
+		GetCatalogSourcePreviewSummaryMockWithoutGated(),
+		filterStatus,
+		pageSize,
+		nextPageToken,
+	)
 }
 
 func GetMcpServersWithInclusionStatusListMocks() []models.CatalogSourcePreviewModel {
@@ -4250,4 +4286,193 @@ func GetAgentCatalogLabelListMock() models.CatalogLabelList {
 		PageSize:      int32(10),
 		NextPageToken: "",
 	}
+}
+
+func GetServingRuntimeCatalogSourceListMock() models.CatalogSourceList {
+	enabled := true
+	status := "available"
+	sources := []models.CatalogSource{
+		{Id: "redhat-runtimes", Name: "Red Hat runtimes", Enabled: &enabled, Status: &status, Labels: []string{"Red Hat"}},
+		{Id: "community-runtimes", Name: "Community runtimes", Enabled: &enabled, Status: &status, Labels: []string{}},
+	}
+	return models.CatalogSourceList{
+		Items: sources, Size: int32(len(sources)), PageSize: 10, NextPageToken: "",
+	}
+}
+
+// GetServingRuntimeMocks returns illustrative catalog families for UI development.
+func GetServingRuntimeMocks() []models.ServingRuntime {
+	gpu, cpu := true, false
+	two, one := int32(2), int32(1)
+	customProperties := map[string]openapi.MetadataValue{
+		"maintainer": {MetadataStringValue: &openapi.MetadataStringValue{StringValue: "Mock catalog team", MetadataType: "MetadataStringValue"}},
+	}
+	return []models.ServingRuntime{
+		{
+			CustomProperties:         &customProperties,
+			ExternalID:               stringToPointer("mock-runtime-vllm"),
+			CreateTimeSinceEpoch:     stringToPointer("1706745600000"),
+			LastUpdateTimeSinceEpoch: stringToPointer("1709424000000"),
+			Logo:                     stringToPointer("https://example.com/mock/vllm-logo.svg"),
+			LicenseLink:              stringToPointer("https://example.com/mock/vllm/LICENSE"),
+			DocumentationURL:         stringToPointer("https://example.com/mock/vllm/docs"),
+			RepositoryURL:            stringToPointer("https://example.com/mock/vllm/repository"),
+			PublishedDate:            stringToPointer("2024-02-01T00:00:00Z"),
+			LastUpdated:              stringToPointer("2024-03-03T00:00:00Z"),
+			ID:                       stringToPointer("1"), Name: stringToPointer("vllm"), DisplayName: stringToPointer("vLLM"),
+			SourceID: stringToPointer("redhat-runtimes"), Provider: stringToPointer("Red Hat"),
+			Description: stringToPointer("GPU-accelerated serving for large language models."),
+			Readme:      stringToPointer("# vLLM\n\nMock serving runtime for large language models."),
+			License:     stringToPointer("apache-2.0"), Tags: []string{"llm", "gpu"},
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors", Version: stringToPointer("1"), AutoSelect: &gpu, Priority: &one}, {Name: "huggingface"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &gpu, SupportedAccelerators: []string{"nvidia.com/gpu"}, MultiModel: &cpu},
+			VersionCount:          &two,
+		},
+		{
+			ID: stringToPointer("2"), Name: stringToPointer("ovms"), DisplayName: stringToPointer("OpenVINO Model Server"),
+			SourceID: stringToPointer("redhat-runtimes"), Provider: stringToPointer("Red Hat"),
+			Description: stringToPointer("Model serving with OpenVINO."),
+			Readme:      stringToPointer("# OpenVINO Model Server\n\nMock runtime for OpenVINO models."),
+			License:     stringToPointer("apache-2.0"), Tags: []string{"predictive-ai", "cpu"},
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "openvino_ir"}, {Name: "onnx"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &cpu}, VersionCount: &one,
+		},
+		{
+			ID: stringToPointer("3"), Name: stringToPointer("mlserver"), DisplayName: stringToPointer("MLServer"),
+			SourceID: stringToPointer("community-runtimes"), Provider: stringToPointer("Seldon"),
+			Description: stringToPointer("Python-based inference server for machine learning models."),
+			Readme:      stringToPointer("# MLServer\n\nMock community runtime."),
+			License:     stringToPointer("apache-2.0"), Tags: []string{"predictive-ai", "cpu"},
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "sklearn"}, {Name: "xgboost"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &cpu, MultiModel: &gpu}, VersionCount: &one,
+		},
+		{
+			ID: stringToPointer("4"), Name: stringToPointer("triton"), DisplayName: stringToPointer("Triton Inference Server"),
+			SourceID: stringToPointer("community-runtimes"), Provider: stringToPointer("NVIDIA"),
+			Description: stringToPointer("Mock inference runtime for multiple model frameworks."),
+			Readme:      stringToPointer("# Triton Inference Server\n\nMock community runtime with GPU support."),
+			License:     stringToPointer("bsd-3-clause"), Tags: []string{"predictive-ai", "gpu", "cpu-or-gpu"},
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "onnx"}, {Name: "tensorrt"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &cpu, SupportedAccelerators: []string{"nvidia.com/gpu"}, MultiModel: &gpu}, VersionCount: &one,
+		},
+		{
+			ID: stringToPointer("5"), Name: stringToPointer("tensorflow-serving"), DisplayName: stringToPointer("TensorFlow Serving"),
+			SourceID: stringToPointer("community-runtimes"), Provider: stringToPointer("TensorFlow"),
+			Description: stringToPointer("Mock runtime for TensorFlow SavedModel inference."),
+			Readme:      stringToPointer("# TensorFlow Serving\n\nMock community runtime for TensorFlow models."),
+			License:     stringToPointer("apache-2.0"), Tags: []string{"predictive-ai", "cpu"},
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "tensorflow"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &cpu}, VersionCount: &one,
+		},
+		{
+			ID: stringToPointer("6"), Name: stringToPointer("sample-amd"), DisplayName: stringToPointer("AMD GPU sample runtime"),
+			SourceID:              stringToPointer("community-runtimes"),
+			Description:           stringToPointer("Illustrative mock runtime for hardware filtering; not a deployable runtime."),
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &gpu, SupportedAccelerators: []string{"amd.com/gpu"}},
+			VersionCount:          &one,
+		},
+		{
+			ID: stringToPointer("7"), Name: stringToPointer("sample-spyre"), DisplayName: stringToPointer("IBM Spyre sample runtime"),
+			SourceID:              stringToPointer("community-runtimes"),
+			Description:           stringToPointer("Illustrative mock runtime for hardware filtering; not a deployable runtime."),
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &gpu, SupportedAccelerators: []string{"ibm.com/spyre"}},
+			VersionCount:          &one,
+		},
+		{
+			ID: stringToPointer("8"), Name: stringToPointer("sample-gaudi"), DisplayName: stringToPointer("Intel Gaudi sample runtime"),
+			SourceID:              stringToPointer("community-runtimes"),
+			Description:           stringToPointer("Illustrative mock runtime for hardware filtering; not a deployable runtime."),
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &gpu, SupportedAccelerators: []string{"habana.ai/gaudi"}},
+			VersionCount:          &one,
+		},
+	}
+}
+
+// GetServingRuntimeVersionMocks returns sample metadata, not deployable cluster resources.
+func GetServingRuntimeVersionMocks(runtimeID string) []models.ServingRuntimeVersion {
+	supported, preview, community := models.ServingRuntimeSupportLevelSupported, models.ServingRuntimeSupportLevelTechPreview, models.ServingRuntimeSupportLevelCommunity
+	priority := int32(1)
+	customProperties := map[string]openapi.MetadataValue{
+		"releaseNotes": {MetadataStringValue: &openapi.MetadataStringValue{StringValue: "Complete mock version for UI development", MetadataType: "MetadataStringValue"}},
+	}
+	versions := map[string][]models.ServingRuntimeVersion{
+		"1": {
+			{
+				ID: stringToPointer("101"), Name: stringToPointer("vllm-0.5.0"),
+				CustomProperties:         &customProperties,
+				Description:              stringToPointer("Complete mock vLLM version with all optional metadata."),
+				ExternalID:               stringToPointer("mock-runtime-vllm-0.5.0"),
+				CreateTimeSinceEpoch:     stringToPointer("1706745600000"),
+				LastUpdateTimeSinceEpoch: stringToPointer("1709424000000"),
+				ArtifactType:             "serving-runtime-version", Version: "0.5.0", Image: "registry.example.com/mock/vllm:0.5.0", SupportLevel: &supported,
+				SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors", Version: stringToPointer("1"), AutoSelect: boolToPointer(true), Priority: &priority}, {Name: "huggingface"}},
+				ProtocolVersions:      []string{"v2"}, DefaultArgs: []string{"--max-model-len", "4096"},
+				RecommendedResources: &models.ServingRuntimeResourceRecommendation{
+					Minimal:     &models.ResourceTier{CPU: stringToPointer("2"), Memory: stringToPointer("8Gi"), Accelerator: &map[string]string{"nvidia.com/gpu": "1"}},
+					Recommended: &models.ResourceTier{CPU: stringToPointer("4"), Memory: stringToPointer("16Gi"), Accelerator: &map[string]string{"nvidia.com/gpu": "1"}},
+					High:        &models.ResourceTier{CPU: stringToPointer("8"), Memory: stringToPointer("32Gi"), Accelerator: &map[string]string{"nvidia.com/gpu": "2"}},
+				},
+				Env: []models.ServingRuntimeEnvVar{
+					{Name: "LOG_LEVEL", Description: stringToPointer("Runtime logging verbosity"), Required: boolToPointer(false), DefaultValue: stringToPointer("info"), Secret: boolToPointer(false)},
+					{Name: "HF_TOKEN", Description: stringToPointer("Token for gated models"), Required: boolToPointer(false), Secret: boolToPointer(true)},
+				},
+				Template:   stringToPointer(`{"apiVersion":"serving.kserve.io/v1alpha1","kind":"ServingRuntime","metadata":{"name":"mock-vllm"},"spec":{"supportedModelFormats":[{"name":"safetensors","version":"1","autoSelect":true,"priority":1}],"protocolVersions":["v2"],"multiModel":false,"containers":[{"name":"kserve-container","image":"registry.example.com/mock/vllm:0.5.0","args":["--max-model-len","4096"],"env":[{"name":"LOG_LEVEL","value":"info"}],"resources":{"requests":{"cpu":"4","memory":"16Gi","nvidia.com/gpu":"1"},"limits":{"nvidia.com/gpu":"1"}}}]}}`),
+				Deprecated: boolToPointer(false), PublishedDate: stringToPointer("2024-02-01T00:00:00Z"),
+			},
+			{ID: stringToPointer("102"), Name: stringToPointer("vllm-0.6.0"), ArtifactType: "serving-runtime-version", Version: "0.6.0", Image: "registry.example.com/mock/vllm:0.6.0", SupportLevel: &preview, SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}}, ProtocolVersions: []string{"v2"}},
+		},
+		"2": {{ID: stringToPointer("201"), Name: stringToPointer("ovms-2024.1"), ArtifactType: "serving-runtime-version", Version: "2024.1", Image: "registry.example.com/mock/ovms:2024.1", SupportLevel: &supported, SupportedModelFormats: []models.SupportedModelFormat{{Name: "openvino_ir"}, {Name: "onnx"}}, ProtocolVersions: []string{"v2", "grpc-v2"}}},
+		"3": {{ID: stringToPointer("301"), Name: stringToPointer("mlserver-1.6.0"), ArtifactType: "serving-runtime-version", Version: "1.6.0", Image: "registry.example.com/mock/mlserver:1.6.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "sklearn"}, {Name: "xgboost"}}, ProtocolVersions: []string{"v2"}}},
+		"4": {{ID: stringToPointer("401"), Name: stringToPointer("triton-24.02"), ArtifactType: "serving-runtime-version", Version: "24.02", Image: "registry.example.com/mock/triton:24.02", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "onnx"}, {Name: "tensorrt"}}, ProtocolVersions: []string{"v2", "grpc-v2"}}},
+		"5": {{ID: stringToPointer("501"), Name: stringToPointer("tensorflow-serving-2.15.0"), ArtifactType: "serving-runtime-version", Version: "2.15.0", Image: "registry.example.com/mock/tensorflow-serving:2.15.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "tensorflow"}}, ProtocolVersions: []string{"v1"}}},
+		"6": {{ID: stringToPointer("601"), Name: stringToPointer("sample-amd-1.0.0"), ArtifactType: "serving-runtime-version", Version: "1.0.0", Image: "registry.example.com/mock/sample-amd:1.0.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}}}},
+		"7": {{ID: stringToPointer("701"), Name: stringToPointer("sample-spyre-1.0.0"), ArtifactType: "serving-runtime-version", Version: "1.0.0", Image: "registry.example.com/mock/sample-spyre:1.0.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}}}},
+		"8": {{ID: stringToPointer("801"), Name: stringToPointer("sample-gaudi-1.0.0"), ArtifactType: "serving-runtime-version", Version: "1.0.0", Image: "registry.example.com/mock/sample-gaudi:1.0.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}}}},
+	}
+	if items, ok := versions[runtimeID]; ok {
+		return items
+	}
+	return []models.ServingRuntimeVersion{}
+}
+
+func servingRuntimeMockHardware(runtime models.ServingRuntime) []string {
+	values := []string{}
+	for _, tag := range runtime.Tags {
+		if tag == "cpu" || tag == "cpu-or-gpu" {
+			values = append(values, tag)
+		}
+	}
+	if runtime.Capabilities != nil {
+		values = append(values, runtime.Capabilities.SupportedAccelerators...)
+	}
+	return values
+}
+
+func GetServingRuntimeFilterOptionsListMock() models.FilterOptionsList {
+	values := map[string]map[string]bool{"hardware": {}, "modelFormat": {}}
+	for _, runtime := range GetServingRuntimeMocks() {
+		for _, hardware := range servingRuntimeMockHardware(runtime) {
+			values["hardware"][hardware] = true
+		}
+		for _, format := range runtime.SupportedModelFormats {
+			values["modelFormat"][format.Name] = true
+		}
+	}
+	filters := make(map[string]models.FilterOption, len(values))
+	for field, unique := range values {
+		names := make([]string, 0, len(unique))
+		for value := range unique {
+			names = append(names, value)
+		}
+		sort.Strings(names)
+		options := make([]interface{}, 0, len(names))
+		for _, name := range names {
+			options = append(options, name)
+		}
+		filters[field] = models.FilterOption{Type: FilterOptionTypeString, Values: options}
+	}
+	return models.FilterOptionsList{Filters: &filters}
 }

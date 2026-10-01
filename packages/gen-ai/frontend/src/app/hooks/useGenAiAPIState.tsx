@@ -16,6 +16,7 @@ import {
   listVectorStoreFiles,
   deleteVectorStoreFile,
   uploadSource,
+  uploadDocument,
   getFileUploadStatus,
   getMCPServerTools,
   getMCPServers,
@@ -35,6 +36,8 @@ import {
   updateAgentProfile,
   deleteAgentProfile,
   createAgentProfile,
+  getAgentDeployment,
+  listAgentDeployments,
 } from '~/app/services/llamaStackService';
 
 export type GenAiAPIState = APIState<GenAiAPIs>;
@@ -50,6 +53,7 @@ const useGenAiAPIState = (
       deleteVectorStoreFile: deleteVectorStoreFile(path, queryParameters),
       createVectorStore: createVectorStore(path, queryParameters),
       uploadSource: uploadSource(path, queryParameters),
+      uploadDocument: uploadDocument(path, queryParameters),
       getFileUploadStatus: getFileUploadStatus(path, queryParameters),
       getLSDModels: getLSDModels(path, queryParameters),
       exportCode: exportCode(path, queryParameters),
@@ -78,6 +82,8 @@ const useGenAiAPIState = (
       updateAgentProfile: updateAgentProfile(path, queryParameters),
       deleteAgentProfile: deleteAgentProfile(path, queryParameters),
       createAgentProfile: createAgentProfile(path, queryParameters),
+      listAgentDeployments: listAgentDeployments(path, queryParameters),
+      getAgentDeployment: getAgentDeployment(path, queryParameters),
     }),
     [queryParameters],
   );

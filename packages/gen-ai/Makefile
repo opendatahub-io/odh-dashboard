@@ -25,6 +25,23 @@ else
 DEV_BFF_MLFLOW_ARGS := MLFLOW_URL="$(MLFLOW_URL)"
 endif
 
+# Resolve the public Data Science Gateway used by an in-cluster OGXServer to call the Gen AI BFF.
+# A user-supplied GATEWAY_DOMAIN always takes precedence over discovery from the active oc context.
+define with_gateway_domain
+gateway_domain="$(GATEWAY_DOMAIN)"; \
+if [ -z "$$gateway_domain" ]; then \
+	gateway_domain="$$(oc get gatewayconfigs.services.platform.opendatahub.io default-gateway -o jsonpath='{.status.domain}' 2>/dev/null)"; \
+fi; \
+if [ -z "$$gateway_domain" ]; then \
+	gateway_domain="$$(oc get gateway.gateway.networking.k8s.io data-science-gateway -n openshift-ingress -o jsonpath='{.spec.listeners[0].hostname}' 2>/dev/null)"; \
+fi; \
+if [ -z "$$gateway_domain" ]; then \
+	echo "Unable to discover GATEWAY_DOMAIN from the current oc context. Set GATEWAY_DOMAIN to the public Data Science Gateway hostname and retry." >&2; \
+	exit 1; \
+fi; \
+echo "Using Data Science Gateway: $$gateway_domain";
+endef
+
 .PHONY: help dev-install-dependencies dev-frontend dev-bff dev-start dev-start-no-portforward dev-portforward dev-start-maas dev-maas-bff dev-bff-maas dev-bff-mlflow dev-start-mlflow deploy-k8s-mcp clean clean-all
 
 help: ## Display this help message
@@ -33,7 +50,7 @@ help: ## Display this help message
 
 .PHONY: dev-install-dependencies
 dev-install-dependencies: ## Install dependencies for frontend
-	cd frontend && npm install
+	@echo "Dependencies are installed by pnpm install at the repository root."
 
 .PHONY: dev-bff-mock
 dev-bff-mock: ## Run BFF with all mocks enabled (K8s, LlamaStack, MCP, MLflow, BFF clients)
@@ -47,7 +64,8 @@ endif
 ifndef LLAMA_STACK_URL
 	$(error LLAMA_STACK_URL is not set. Use 'make dev-bff-mock' for mock mode or set LLAMA_STACK_URL environment variable)
 endif
-	cd bff && make run LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist MAAS_URL=$(MAAS_URL) LLAMA_STACK_URL=$(LLAMA_STACK_URL) ASR_MODEL_URL=$(ASR_MODEL_URL) DISTRIBUTION_NAME=$(DISTRIBUTION_NAME) AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " $(DEV_BFF_MLFLOW_ARGS)
+	@$(with_gateway_domain) \
+	cd bff && GATEWAY_DOMAIN="$$gateway_domain" make run LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist MAAS_URL=$(MAAS_URL) LLAMA_STACK_URL=$(LLAMA_STACK_URL) ASR_MODEL_URL=$(ASR_MODEL_URL) DISTRIBUTION_NAME=$(DISTRIBUTION_NAME) AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " $(DEV_BFF_MLFLOW_ARGS)
 
 .PHONY: dev-bff-inter-bff
 dev-bff-inter-bff: ## Run MLflow BFF + gen-ai BFF for MaaS inter-BFF testing (full MLflow stack, real HTTP to MaaS BFF on port 8081)
@@ -65,11 +83,12 @@ endif
 ifndef LLAMA_STACK_URL
 	$(error LLAMA_STACK_URL is not set. Use 'make dev-bff-mock-debug' for mock mode or set LLAMA_STACK_URL environment variable)
 endif
-	cd bff && make debug LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist MAAS_URL=$(MAAS_URL) LLAMA_STACK_URL=$(LLAMA_STACK_URL) ASR_MODEL_URL=$(ASR_MODEL_URL) DISTRIBUTION_NAME=$(DISTRIBUTION_NAME) AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " $(DEV_BFF_MLFLOW_ARGS)
+	@$(with_gateway_domain) \
+	cd bff && GATEWAY_DOMAIN="$$gateway_domain" make debug LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist MAAS_URL=$(MAAS_URL) LLAMA_STACK_URL=$(LLAMA_STACK_URL) ASR_MODEL_URL=$(ASR_MODEL_URL) DISTRIBUTION_NAME=$(DISTRIBUTION_NAME) AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " $(DEV_BFF_MLFLOW_ARGS)
 
 .PHONY: dev-frontend
 dev-frontend: ## Run only the frontend in development mode
-	cd frontend && npm run start:dev
+	cd frontend && pnpm run start:dev
 
 .PHONY: dev-mlflow-up
 dev-mlflow-up: ## Start local MLflow tracking server for development
@@ -172,7 +191,8 @@ dev-bff-maas: ## Run gen-ai BFF connected to local MaaS BFF (inter-BFF mode)
 ifndef LLAMA_STACK_URL
 	$(error LLAMA_STACK_URL is not set. Set it in .env.local)
 endif
-	cd bff && make run LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist \
+	@$(with_gateway_domain) \
+	cd bff && GATEWAY_DOMAIN="$$gateway_domain" make run LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist \
 		MAAS_URL=$${MAAS_URL:-http://localhost:8081} \
 		LLAMA_STACK_URL=$(LLAMA_STACK_URL) \
 		ASR_MODEL_URL=$(ASR_MODEL_URL) \
@@ -186,7 +206,8 @@ dev-bff-mlflow: ## Run gen-ai BFF connected to local MLflow BFF (real cluster + 
 ifndef LLAMA_STACK_URL
 	$(error LLAMA_STACK_URL is not set. Set it in .env.local)
 endif
-	cd bff && make run LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist \
+	@$(with_gateway_domain) \
+	cd bff && GATEWAY_DOMAIN="$$gateway_domain" make run LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist \
 		MAAS_URL=$(MAAS_URL) \
 		LLAMA_STACK_URL=$(LLAMA_STACK_URL) \
 		ASR_MODEL_URL=$(ASR_MODEL_URL) \
@@ -220,9 +241,9 @@ deploy-k8s-mcp: ## Deploy Kubernetes MCP server to mcp-servers namespace
 
 clean: ## Clean build artifacts and node_modules
 	@echo "Cleaning root dist..."
-	npm run clean 2>/dev/null || true
+	pnpm run clean 2>/dev/null || true
 	@echo "Cleaning frontend dist..."
-	cd frontend && npm run clean 2>/dev/null || true
+	cd frontend && pnpm run clean 2>/dev/null || true
 	@echo "Cleaning bff..."
 	cd bff && make clean 2>/dev/null || true
 	@echo "Clean complete!"

@@ -5,7 +5,7 @@ import ViewCodeModal from '~/app/Chatbot/components/ViewCodeModal';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
-import { FileModel } from '~/app/types';
+import { FileModel, MCPServerFromAPI } from '~/app/types';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 import { useChatbotConfigStore, ChatbotConfigStore, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 
@@ -242,7 +242,7 @@ describe('ViewCodeModal', () => {
   });
 
   it('includes MCP servers in request when selected', async () => {
-    const mockServer = {
+    const mockServer: MCPServerFromAPI = {
       url: 'http://test-server',
       name: 'Test Server',
       transport: 'sse' as const,
@@ -279,7 +279,7 @@ describe('ViewCodeModal', () => {
   });
 
   it('includes allowed_tools in MCP server config when toolSelections returns tools', async () => {
-    const mockServer = {
+    const mockServer: MCPServerFromAPI = {
       url: 'http://test-server',
       name: 'Test Server',
       transport: 'sse' as const,
@@ -334,7 +334,7 @@ describe('ViewCodeModal', () => {
   });
 
   it('does not include allowed_tools when toolSelections returns undefined', async () => {
-    const mockServer = {
+    const mockServer: MCPServerFromAPI = {
       url: 'http://test-server',
       name: 'Test Server',
       transport: 'sse' as const,
@@ -383,7 +383,7 @@ describe('ViewCodeModal', () => {
   });
 
   it('includes empty allowed_tools array when toolSelections returns empty array', async () => {
-    const mockServer = {
+    const mockServer: MCPServerFromAPI = {
       url: 'http://test-server',
       name: 'Test Server',
       transport: 'sse' as const,

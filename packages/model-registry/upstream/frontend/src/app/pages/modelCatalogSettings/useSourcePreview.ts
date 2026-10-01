@@ -17,6 +17,11 @@ import {
   DEFAULT_PREVIEW_PAGE_SIZE,
 } from '~/app/shared/catalogSettings/hooks/previewTypes';
 import { useCatalogSourcePreviewCore } from '~/app/shared/catalogSettings/hooks/useCatalogSourcePreviewCore';
+import { useUserInteraction } from '~/concepts/userInteraction';
+import {
+  MODEL_CATALOG_SOURCE_EVENTS,
+  buildAccessTokenValidatedTrackingProperties,
+} from '~/app/pages/modelCatalogSettings/tracking/modelCatalogSourcesTracking';
 import { TOOLTIP_MESSAGES } from './constants';
 import { ManageSourceFormData } from './useManageSourceData';
 
@@ -104,6 +109,7 @@ export const useSourcePreview = ({
   isEditMode,
   hasExistingApiKey = false,
 }: UseSourcePreviewOptions): UseSourcePreviewResult => {
+  const { trackSimpleEvent } = useUserInteraction();
   const [credentialsValidationStatus, setCredentialsValidationStatus] =
     React.useState<CredentialsValidationStatus>('unknown');
   const [isValidating, setIsValidating] = React.useState(false);
@@ -190,9 +196,16 @@ export const useSourcePreview = ({
   }, [handlePreviewInternal]);
 
   const handleValidate = React.useCallback(async () => {
+    const hasOrganization = formData.organization.trim().length > 0;
+
     if (!apiState.apiAvailable) {
-      setValidationError(new Error('API is not available'));
+      const apiError = new Error('API is not available');
+      setValidationError(apiError);
       setCredentialsValidationStatus('invalid');
+      trackSimpleEvent(
+        MODEL_CATALOG_SOURCE_EVENTS.ACCESS_TOKEN_VALIDATED,
+        buildAccessTokenValidatedTrackingProperties(false, hasOrganization, apiError.message),
+      );
       return;
     }
 
@@ -206,14 +219,28 @@ export const useSourcePreview = ({
         pageSize: DEFAULT_PREVIEW_PAGE_SIZE,
       });
       setCredentialsValidationStatus('valid');
+      trackSimpleEvent(
+        MODEL_CATALOG_SOURCE_EVENTS.ACCESS_TOKEN_VALIDATED,
+        buildAccessTokenValidatedTrackingProperties(true, hasOrganization),
+      );
     } catch (error) {
       const err = error instanceof Error ? error : new Error('Failed to validate credentials');
       setValidationError(err);
       setCredentialsValidationStatus('invalid');
+      trackSimpleEvent(
+        MODEL_CATALOG_SOURCE_EVENTS.ACCESS_TOKEN_VALIDATED,
+        buildAccessTokenValidatedTrackingProperties(false, hasOrganization, err.message),
+      );
     } finally {
       setIsValidating(false);
     }
-  }, [apiState.apiAvailable, buildPreviewRequest, previewApi]);
+  }, [
+    apiState.apiAvailable,
+    buildPreviewRequest,
+    formData.organization,
+    previewApi,
+    trackSimpleEvent,
+  ]);
 
   const clearValidationSuccess = React.useCallback(() => {
     setResultDismissed(true);

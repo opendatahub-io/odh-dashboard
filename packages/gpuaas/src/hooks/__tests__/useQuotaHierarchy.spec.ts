@@ -81,4 +81,47 @@ describe('useQuotaHierarchy', () => {
     expect(listClusterQueuesMock).toHaveBeenCalledTimes(1);
     expect(buildQuotaHierarchyTreeMock).toHaveBeenCalledWith(mockCohorts, mockClusterQueues);
   });
+
+  it('should set lastRefreshed once and preserve it during automatic data refresh', () => {
+    useFetchMock.mockReturnValue({
+      data: { tree: mockTree },
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
+
+    const renderResult = testHook(useQuotaHierarchy)();
+    const initialLastRefreshed = renderResult.result.current.lastRefreshed;
+    expect(initialLastRefreshed).toEqual(expect.any(Date));
+
+    useFetchMock.mockReturnValue({
+      data: { tree: [] },
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
+    renderResult.rerender();
+
+    expect(renderResult.result.current.lastRefreshed).toBe(initialLastRefreshed);
+  });
+
+  it('should update lastRefreshed after manual refresh succeeds', async () => {
+    const refresh = jest.fn().mockResolvedValue({ tree: mockTree });
+    useFetchMock.mockReturnValue({
+      data: { tree: mockTree },
+      loaded: true,
+      error: undefined,
+      refresh,
+    });
+
+    const renderResult = testHook(useQuotaHierarchy)();
+    const initialLastRefreshed = renderResult.result.current.lastRefreshed;
+
+    const refreshPromise = renderResult.result.current.refresh();
+    await renderResult.waitForNextUpdate();
+    await refreshPromise;
+
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(renderResult.result.current.lastRefreshed).not.toBe(initialLastRefreshed);
+  });
 });

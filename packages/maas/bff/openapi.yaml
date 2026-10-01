@@ -190,6 +190,37 @@ paths:
               example:
                 error: Failed to retrieve LLM models
 
+  /api/v1/gateway-url:
+    get:
+      tags:
+        - gateway
+      summary: Get MaaS gateway URL
+      operationId: getMaaSGatewayURL
+      description: >
+        Returns the externally reachable MaaS API base URL discovered from the
+        maas-default-gateway tenant. The URL includes the /maas-api path.
+      responses:
+        '200':
+          description: MaaS gateway URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MaaSGatewayURL'
+                required:
+                  - data
+              example:
+                data:
+                  url: https://maas.apps.example.com/maas-api
+        '503':
+          description: MaaS gateway discovery is not complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/v1/all-maas-models:
     get:
       tags:
@@ -1887,9 +1918,9 @@ paths:
   /api/v1/secrets:
     get:
       tags: [secrets]
-      summary: List BBR-managed Secret names
+      summary: List IPP-managed Secret names
       operationId: listSecrets
-      description: Returns Secret names labeled inference.networking.k8s.io/bbr-managed=true. Values are never returned.
+      description: Returns Secret names labeled inference.llm-d.ai/ipp-managed=true. Values are never returned.
       parameters:
         - in: query
           name: namespace
@@ -1964,6 +1995,17 @@ components:
           type: string
         displayName:
           type: string
+
+    MaaSGatewayURL:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+          description: Externally reachable MaaS API base URL, including /maas-api.
+          example: https://maas.apps.example.com/maas-api
 
     ModelDetails:
       type: object
@@ -3091,6 +3133,12 @@ components:
           enum: [apikey, sigv4, oauth2]
         credentialSecretRef:
           type: string
+        provider:
+          type: string
+          minLength: 1
+          maxLength: 63
+          pattern: '^\S(?:.*\S)?$'
+          description: Provider identifier (spec.provider)
         config:
           type: object
           additionalProperties:

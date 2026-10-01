@@ -57,11 +57,11 @@ export type DashboardConfig = K8sResourceCommon & {
       automl: boolean;
       autorag: boolean;
       modelAsService: boolean;
-      externalModels: boolean;
       mlflow: boolean;
       workbenchesV2: boolean;
       mcpCatalog: boolean;
       mcpRegistry: boolean;
+      genAiMcpRegistryServers: boolean;
       agentOps: boolean;
       agentsCatalog: boolean;
       toolCalling: boolean;
@@ -79,7 +79,9 @@ export type DashboardConfig = K8sResourceCommon & {
       gpuaas: boolean;
       connectionTest: boolean;
       modelCapabilities: boolean;
+      runtimeCatalog: boolean;
       observabilityDashboard: boolean;
+      nimWizard: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
     // groupsConfig?: {

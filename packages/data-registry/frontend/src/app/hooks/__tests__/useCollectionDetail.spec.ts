@@ -2,6 +2,8 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useCollectionDetail } from '~/app/hooks/useCollectionDetail';
 import * as dataRegistryApi from '~/app/api/dataRegistry';
+import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
+import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
 
 jest.mock('~/app/api/dataRegistry');
 jest.mock('~/app/utilities/collectionUtils', () => ({
@@ -31,11 +33,11 @@ describe('useCollectionDetail', () => {
     jest.clearAllMocks();
   });
 
-  it('should return null when project or collection is undefined', () => {
+  it('should return null when project or collection is undefined', async () => {
     const { result } = renderHook(() => useCollectionDetail(undefined, undefined));
 
     expect(result.current[0]).toBeNull();
-    expect(result.current[1]).toBe(true);
+    await waitFor(() => expect(result.current[1]).toBe(true));
     expect(result.current[2]).toBeUndefined();
   });
 
@@ -52,30 +54,19 @@ describe('useCollectionDetail', () => {
 
     mockFetchAssets.mockResolvedValue({
       assets: [
-        {
-          name: 'table1',
-          asset_type: 'table',
-          format: 'iceberg',
-          collection: 'default',
-        },
-        {
-          name: 'table2',
-          asset_type: 'table',
-          format: 'delta',
-          collection: 'default',
-        },
+        mockAssetResponse({ name: 'table1', format: 'iceberg', collection: 'default' }),
+        mockAssetResponse({ name: 'table2', format: 'delta', collection: 'default' }),
       ],
     });
 
     mockFetchVolumes.mockResolvedValue({
       volumes: [
-        {
+        mockVolumeInfo({
           name: 'volume1',
-          'catalog-name': 'demo-user-1',
-          'schema-name': 'default',
-          'volume-type': 'external',
-          'storage-location': 's3://bucket/path',
-        },
+          format: 'other',
+          collection: 'default',
+          storage_location: 's3://bucket/path',
+        }),
       ],
     });
 
@@ -98,7 +89,7 @@ describe('useCollectionDetail', () => {
       assets: [
         { name: 'table1', assetType: 'table', format: 'iceberg' },
         { name: 'table2', assetType: 'table', format: 'delta' },
-        { name: 'volume1', assetType: 'volume', format: 'external' },
+        { name: 'volume1', assetType: 'volume', format: 'other' },
       ],
     });
   });
@@ -154,10 +145,10 @@ describe('useCollectionDetail', () => {
 
     const { result } = renderHook(() => useCollectionDetail('demo-user-1', 'default'));
 
-    await waitFor(() => expect(result.current[1]).toBe(true));
+    await waitFor(() => expect(result.current[2]).toBeDefined());
 
     const [detail, loaded, apiError] = result.current;
-    expect(loaded).toBe(true);
+    expect(loaded).toBe(false);
     expect(detail).toBeNull();
     expect(apiError).toBe(error);
   });

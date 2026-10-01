@@ -1,6 +1,9 @@
 import { ExternalProvider, ProviderRef } from '~/app/types/external-models';
-import { ConfigPair } from './CreateExternalModel/ModelConfigPairsEditor';
+import { ConfigPair, recordToConfigPairs } from '~/app/utilities/configPairs';
 import { PROVIDER_REFERENCE_API_FORMATS, ProviderReferenceApiFormat } from './const';
+
+export { recordToConfigPairs };
+export type { ConfigPair };
 
 export type { ProviderReferenceApiFormat };
 
@@ -59,9 +62,6 @@ export const formatProviderRefWeightPercentage = (
 
   return `${prefix}${percentage}%`;
 };
-
-export const recordToConfigPairs = (config?: Record<string, string>): ConfigPair[] =>
-  config ? Object.entries(config).map(([key, value]) => ({ key, value })) : [];
 
 export const getProviderDisplayName = (providerName: string, provider?: ExternalProvider): string =>
   provider?.displayName ?? providerName;

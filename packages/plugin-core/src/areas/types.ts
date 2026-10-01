@@ -69,7 +69,6 @@ export enum SupportedArea {
   VLLM_ON_MAAS = 'vllm-on-maas',
   LLMD_GATEWAY_FIELD = 'llmd-gateway-field',
   MY_SUBSCRIPTIONS = 'my-subscriptions',
-  EXTERNAL_MODELS = 'external-models',
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',
@@ -133,6 +132,9 @@ export enum SupportedArea {
 
   /* Guided tour (What's New) — hidden until tour content matches the installed version */
   GUIDED_TOUR = 'guided-tour',
+
+  /* Runtime Catalog */
+  RUNTIME_CATALOG = 'runtime-catalog',
 }
 
 export type SupportedAreaType = SupportedArea | string;

@@ -198,6 +198,42 @@ var _ = Describe("GenAIProxyNSChatCompletionsHandler", func() {
 		assert.Equal(t, "llama-32-3b-instruct", receivedModel)
 	})
 
+	It("should preserve slash-delimited custom endpoint model IDs after passthrough prefix", func() {
+		t := GinkgoT()
+
+		var receivedModel string
+		upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			reqBody, _ := io.ReadAll(r.Body)
+			var parsed map[string]interface{}
+			_ = json.Unmarshal(reqBody, &parsed)
+			receivedModel, _ = parsed["model"].(string)
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprint(w, `{"id":"chatcmpl-1","object":"chat.completion","choices":[]}`)
+		}))
+		defer upstream.Close()
+
+		app.kubernetesClientFactory = &proxyCredentialsK8sFactory{client: &proxyCredentialsK8sClient{
+			externalModelsConfig: customEndpointConfig(upstream.URL, "endpoint-gemini-custom", "gemini/gemini-2.5-flash-lite", "", ""),
+		}}
+		app.httpClient = upstream.Client()
+
+		body := `{"model":"genai-bff-proxy/gemini/gemini-2.5-flash-lite","messages":[{"role":"user","content":"hi"}]}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/genai-proxy/ns/test-ns/v1/chat/completions", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		identity := &integrations.RequestIdentity{Token: "test-token"}
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-ns")
+		req = req.WithContext(ctx)
+
+		params := httprouter.Params{{Key: "namespace", Value: "test-ns"}}
+		rr := httptest.NewRecorder()
+		app.GenAIProxyNSChatCompletionsHandler(rr, req, params)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, "gemini/gemini-2.5-flash-lite", receivedModel)
+	})
+
 	It("should return 404 when model is not found", func() {
 		t := GinkgoT()
 		body := `{"model":"nonexistent-model","messages":[{"role":"user","content":"hi"}]}`

@@ -42,15 +42,20 @@ const patternWithSpec: AutoragPattern = {
     pipeline_spec: {
       pipeline_name: 'documents-indexing-pipeline',
       parameters: {
+        batch_size: 20,
+        chunk_overlap: 50,
+        chunk_size: 512,
+        chunking_method: 'recursive',
+        collection_name: 'existing-collection',
         embedding_model_id: 'embedding-model',
+        embedding_params: { embedding_dimension: 768 },
         input_data_secret_name: 'data-connection',
         input_data_bucket_name: 'bucket',
-        input_data_key: 'docs/',
-        ogx_secret_name: 'ogx',
-        vector_io_provider_id: 'milvus',
-        chunk_size: 512,
-        chunk_overlap: 50,
-        chunking_method: 'recursive',
+        input_data_keys: ['docs/'],
+        maas_secret_name: 'maas-connection',
+        vector_db_secret_name: 'vector-db-connection',
+        provider_type: 'milvus',
+        unsupported_parameter: 'ignored',
       },
       overrides_allowed: ['chunk_size'],
     },
@@ -99,7 +104,7 @@ describe('indexingPipeline utilities', () => {
     expect(patternHasIndexingPipelineSpec(basePattern)).toBe(false);
   });
 
-  it('maps indexing.pipeline_spec.parameters into the create request', () => {
+  it('preserves the full parameter set for BFF-side pipeline filtering', () => {
     const result = buildIndexingPipelineRunRequest(patternWithSpec, 'My indexing run');
 
     expect(result).toEqual({

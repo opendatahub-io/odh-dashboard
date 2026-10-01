@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import ChatbotFileSearchResults from '~/app/Chatbot/ChatbotFileSearchResults';
 import { ChatbotMessages } from '~/app/Chatbot/ChatbotMessagesList';
 import type { ChatbotMessageProps } from '~/app/Chatbot/hooks/useChatbotMessages';
 
@@ -26,21 +27,86 @@ jest.mock('../components/ChatbotErrorAlert', () => ({
 }));
 
 jest.mock('../ChatbotMessagesMetrics', () => ({
-  ChatbotMessagesMetrics: jest.fn(({ metrics }) => (
-    <div data-testid="metrics">
-      <span>{metrics.usage?.input_tokens}</span>
-    </div>
-  )),
+  ChatbotMessagesMetrics: jest.fn(
+    ({
+      metrics,
+      isDisabled,
+      isExpanded,
+      onExpandedChange,
+      showToggle = true,
+      toggleId,
+      contentId,
+    }) =>
+      showToggle ? (
+        <div data-testid="metrics">
+          <button
+            aria-controls={contentId}
+            disabled={isDisabled}
+            id={toggleId}
+            onClick={() => onExpandedChange?.(!isExpanded)}
+          >
+            Response metrics
+          </button>
+          <span>{metrics.usage?.input_tokens}</span>
+        </div>
+      ) : (
+        <div aria-labelledby={toggleId} data-testid="metrics-content" id={contentId} />
+      ),
+  ),
 }));
 
 jest.mock('../ChatbotFileSearchResults', () => ({
   __esModule: true,
-  default: jest.fn(({ fileSearchData, citationMap }) => (
-    <div data-testid="file-search-results">
-      <span data-testid="file-search-result-count">{fileSearchData.results.length}</span>
-      {citationMap && <span data-testid="file-search-citation-count">{citationMap.size}</span>}
-    </div>
-  )),
+  default: jest.fn(
+    ({
+      fileSearchData,
+      citationMap,
+      isDisabled,
+      isExpanded,
+      onExpandedChange,
+      showToggle = true,
+      toggleId,
+      contentId,
+    }) =>
+      showToggle ? (
+        <div data-testid="file-search-results">
+          <button
+            aria-controls={contentId}
+            disabled={isDisabled}
+            id={toggleId}
+            onClick={() => onExpandedChange?.(!isExpanded)}
+          >
+            File search results
+          </button>
+          <span data-testid="file-search-result-count">{fileSearchData.results.length}</span>
+          {citationMap && <span data-testid="file-search-citation-count">{citationMap.size}</span>}
+        </div>
+      ) : (
+        <div aria-labelledby={toggleId} data-testid="file-search-results-content" id={contentId} />
+      ),
+  ),
+}));
+
+jest.mock('../ChatbotToolCalls', () => ({
+  __esModule: true,
+  default: jest.fn(
+    ({ toolCalls, isExpanded, onExpandedChange, showToggle = true, toggleId, contentId }) =>
+      showToggle ? (
+        <button
+          aria-controls={contentId}
+          data-expanded={isExpanded}
+          data-testid="tool-calls"
+          id={toggleId}
+          onClick={() => onExpandedChange?.(!isExpanded)}
+        >
+          {toolCalls.length} tools
+        </button>
+      ) : (
+        <div aria-labelledby={toggleId} data-testid="tool-calls-content" id={contentId}>
+          {toolCalls.length} tools
+        </div>
+      ),
+  ),
 }));
 
 jest.mock('@patternfly/chatbot', () => ({
@@ -50,6 +116,7 @@ jest.mock('@patternfly/chatbot', () => ({
       content,
       error,
       extraContent,
+      attachments,
       'data-testid': dataTestId,
     }: {
       role: string;
@@ -60,10 +127,14 @@ jest.mock('@patternfly/chatbot', () => ({
         afterMainContent?: React.ReactNode;
         endContent?: React.ReactNode;
       };
+      attachments?: { id?: string; name: string; onClick?: () => void }[];
       'data-testid'?: string;
     }) => (
       <div data-testid={dataTestId}>
         <div data-testid="message-role">{role}</div>
+        {extraContent?.beforeMainContent && (
+          <div data-testid="before-main-content">{extraContent.beforeMainContent}</div>
+        )}
         {error ? (
           <div data-testid="message-error">
             <div data-testid="error-variant">{error.variant}</div>
@@ -73,13 +144,19 @@ jest.mock('@patternfly/chatbot', () => ({
         ) : (
           <div data-testid="message-content">{content}</div>
         )}
-        {extraContent?.beforeMainContent && (
-          <div data-testid="before-main-content">{extraContent.beforeMainContent}</div>
-        )}
         {extraContent?.afterMainContent && (
           <div data-testid="after-main-content">{extraContent.afterMainContent}</div>
         )}
         {extraContent?.endContent && <div data-testid="end-content">{extraContent.endContent}</div>}
+        {attachments?.map((attachment) => (
+          <button
+            key={attachment.id ?? attachment.name}
+            data-testid={`attachment-${attachment.id ?? attachment.name}`}
+            onClick={attachment.onClick}
+          >
+            {attachment.name}
+          </button>
+        ))}
       </div>
     ),
   ),
@@ -91,6 +168,182 @@ describe('ChatbotMessages', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('Tool call visibility', () => {
+    const toolCalls = [
+      {
+        id: 'call-1',
+        type: 'file_search_call',
+        name: 'file_search',
+        category: 'RAG' as const,
+        status: 'in_progress' as const,
+        startedAt: 0,
+      },
+    ];
+
+    it('should display tool calls before answer text starts streaming', () => {
+      render(
+        <ChatbotMessages
+          messageList={[
+            {
+              id: 'msg-1',
+              role: 'bot',
+              content: '',
+              toolCalls,
+              // eslint-disable-next-line camelcase
+              metrics: { latency_ms: 0 },
+            },
+          ]}
+          scrollRef={scrollRef}
+          isLoading
+        />,
+      );
+
+      expect(screen.getByTestId('tool-calls')).toBeInTheDocument();
+      expect(screen.getByTestId('tool-calls')).toHaveAttribute('data-expanded', 'true');
+      expect(screen.getByRole('button', { name: 'Response metrics' })).toBeDisabled();
+    });
+
+    it('should collapse tool calls while answer text is streaming', () => {
+      render(
+        <ChatbotMessages
+          messageList={[
+            { id: 'msg-1', role: 'bot', content: 'Answer', toolCalls, isTextStreaming: true },
+          ]}
+          scrollRef={scrollRef}
+          isLoading
+        />,
+      );
+
+      expect(screen.getByTestId('tool-calls')).toBeInTheDocument();
+      expect(screen.getByTestId('tool-calls')).toHaveAttribute('data-expanded', 'false');
+    });
+
+    it('should only apply loading state to the latest message', () => {
+      render(
+        <ChatbotMessages
+          messageList={[
+            { id: 'msg-1', role: 'bot', content: 'First answer', toolCalls },
+            { id: 'msg-2', role: 'bot', content: '', toolCalls },
+          ]}
+          scrollRef={scrollRef}
+          isLoading
+        />,
+      );
+
+      const toolCallToggles = screen.getAllByTestId('tool-calls');
+      expect(toolCallToggles[0]).toHaveAttribute('data-expanded', 'false');
+      expect(toolCallToggles[1]).toHaveAttribute('data-expanded', 'true');
+    });
+
+    it('should display tool calls after answer text finishes streaming', () => {
+      render(
+        <ChatbotMessages
+          messageList={[
+            { id: 'msg-1', role: 'bot', content: 'Answer', toolCalls, isTextStreaming: false },
+          ]}
+          scrollRef={scrollRef}
+          isLoading={false}
+        />,
+      );
+
+      expect(screen.getByTestId('tool-calls')).toBeInTheDocument();
+    });
+
+    it('should connect each response detail toggle to its detached content', () => {
+      render(
+        <ChatbotMessages
+          messageList={[
+            {
+              id: 'msg-1',
+              role: 'bot',
+              content: 'Answer',
+              toolCalls,
+              // eslint-disable-next-line camelcase
+              metrics: { latency_ms: 0 },
+              fileSearchData: { queries: [], results: [] },
+            },
+          ]}
+          scrollRef={scrollRef}
+          isLoading={false}
+        />,
+      );
+
+      const toolCallsToggle = screen.getByTestId('tool-calls');
+      fireEvent.click(toolCallsToggle);
+      expect(toolCallsToggle).toHaveAttribute(
+        'aria-controls',
+        'response-detail-msg-1-tools-content',
+      );
+      expect(screen.getByTestId('tool-calls-content')).toHaveAttribute(
+        'id',
+        'response-detail-msg-1-tools-content',
+      );
+
+      const metricsToggle = screen.getByRole('button', { name: 'Response metrics' });
+      fireEvent.click(metricsToggle);
+      expect(metricsToggle).toHaveAttribute(
+        'aria-controls',
+        'response-detail-msg-1-metrics-content',
+      );
+      expect(screen.getByTestId('metrics-content')).toHaveAttribute(
+        'id',
+        'response-detail-msg-1-metrics-content',
+      );
+
+      const fileSearchToggle = screen.getByRole('button', { name: 'File search results' });
+      fireEvent.click(fileSearchToggle);
+      expect(fileSearchToggle).toHaveAttribute(
+        'aria-controls',
+        'response-detail-msg-1-citations-content',
+      );
+      expect(screen.getByTestId('file-search-results-content')).toHaveAttribute(
+        'id',
+        'response-detail-msg-1-citations-content',
+      );
+    });
+  });
+
+  it('should render sent documents before the prompt and open the extracted text viewer', () => {
+    const attachment = {
+      // eslint-disable-next-line camelcase -- matches the document-attachment API contract
+      file_id: 'file-1',
+      filename: 'policy.pdf',
+      // eslint-disable-next-line camelcase -- matches the document-attachment API contract
+      content_type: 'application/pdf',
+      size: 1024,
+      text: 'Extracted policy text',
+    };
+    const onViewDocument = jest.fn();
+
+    render(
+      <ChatbotMessages
+        messageList={[
+          {
+            id: 'message-1',
+            role: 'user',
+            content: 'Summarize this policy',
+            attachments: [{ id: attachment.file_id, name: attachment.filename }],
+            documentAttachments: [attachment],
+          },
+        ]}
+        scrollRef={scrollRef}
+        isLoading={false}
+        onViewDocument={onViewDocument}
+      />,
+    );
+
+    const sentAttachment = screen.getByTestId('sent-document-attachment-file-1');
+    expect(sentAttachment).toHaveTextContent('PDF');
+    const attachmentContainer = screen.getByTestId('before-main-content');
+    expect(attachmentContainer).toContainElement(sentAttachment);
+    expect(attachmentContainer.compareDocumentPosition(screen.getByTestId('message-content'))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /policy\.pdf/i }));
+
+    expect(onViewDocument).toHaveBeenCalledWith(attachment);
   });
 
   describe('Full Failure Error Pattern', () => {
@@ -595,6 +848,31 @@ describe('ChatbotMessages', () => {
       render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
 
       expect(screen.getByTestId('file-search-citation-count')).toHaveTextContent('1');
+    });
+
+    it('should only clear an expanded citation after its content renders', () => {
+      render(
+        <ChatbotMessages
+          messageList={[
+            {
+              id: 'msg-1',
+              role: 'bot',
+              content: 'Response.',
+              fileSearchData: { queries: [], results: [] },
+            },
+          ]}
+          scrollRef={scrollRef}
+          isLoading={false}
+        />,
+      );
+
+      const fileSearchCalls = jest.mocked(ChatbotFileSearchResults).mock.calls;
+      expect(fileSearchCalls[0][0].showContent).toBe(false);
+      expect(fileSearchCalls[0][0].onCitationExpanded).toBeUndefined();
+
+      fireEvent.click(screen.getByRole('button', { name: 'File search results' }));
+      const contentCall = fileSearchCalls.find(([props]) => props.showToggle === false);
+      expect(contentCall?.[0].onCitationExpanded).toEqual(expect.any(Function));
     });
 
     it('should render both file search results and metrics together', () => {

@@ -6,7 +6,7 @@ import {
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
-import { PodModel } from '@odh-dashboard/internal/api/models/k8s';
+import { PodModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   applyK8sAPIOptions,
   isValidK8sName,
