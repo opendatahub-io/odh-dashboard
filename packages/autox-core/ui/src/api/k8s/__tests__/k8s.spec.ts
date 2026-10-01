@@ -116,6 +116,21 @@ describe('createK8sApi', () => {
       );
     });
 
+    it('should include provider in query params when provided', async () => {
+      mockRestGET.mockResolvedValue({ data: [] });
+      mockIsModArchResponse.mockReturnValue(true);
+
+      const opts = { signal: new AbortController().signal };
+      await getSecrets('')('test-ns', 'database', 'neo4j')(opts);
+
+      expect(mockRestGET).toHaveBeenCalledWith(
+        '',
+        '/test-product/api/v1/secrets',
+        { namespace: 'test-ns', type: 'database', provider: 'neo4j' },
+        opts,
+      );
+    });
+
     it('should accept any product-defined secret type string', async () => {
       mockRestGET.mockResolvedValue({ data: [] });
       mockIsModArchResponse.mockReturnValue(true);

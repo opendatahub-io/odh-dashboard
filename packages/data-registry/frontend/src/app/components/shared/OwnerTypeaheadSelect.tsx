@@ -19,6 +19,14 @@ const OwnerTypeaheadSelect: React.FC<OwnerTypeaheadSelectProps> = ({
 }) => {
   const { userSettings } = useSettings();
   const userId = typeof userSettings?.userId === 'string' ? userSettings.userId : '';
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [renderedUserId, setRenderedUserId] = React.useState(userId);
+
+  React.useEffect(() => {
+    if (!isOpen && renderedUserId !== userId) {
+      setRenderedUserId(userId);
+    }
+  }, [isOpen, renderedUserId, userId]);
 
   const ownerOptions = React.useMemo(() => {
     const options = [{ content: UNASSIGNED, value: UNASSIGNED, selected: value === UNASSIGNED }];
@@ -33,10 +41,11 @@ const OwnerTypeaheadSelect: React.FC<OwnerTypeaheadSelectProps> = ({
 
   return (
     <TypeaheadSelect
-      key={userId}
+      key={renderedUserId}
       id={id}
       placeholder="Select or type owner"
       initialOptions={ownerOptions}
+      onToggle={setIsOpen}
       onSelect={(_event, selectedValue) => {
         onChange(String(selectedValue));
       }}

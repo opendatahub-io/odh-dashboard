@@ -33,8 +33,22 @@ const LEGACY_WARNING_BODY =
 const hasNonEmptyString = (value: unknown): value is string =>
   typeof value === 'string' && value.trim() !== '';
 
+const getDatabaseSecretName = (params?: Record<string, unknown>): string | undefined => {
+  if (!params) {
+    return undefined;
+  }
+  if (hasNonEmptyString(params.db_secret_name)) {
+    return params.db_secret_name;
+  }
+  if (hasNonEmptyString(params.vector_db_secret_name)) {
+    return params.vector_db_secret_name;
+  }
+  return undefined;
+};
+
 const hasCurrentConnectionParameters = (params: Record<string, unknown>): boolean =>
-  hasNonEmptyString(params.maas_secret_name) && hasNonEmptyString(params.vector_db_secret_name);
+  hasNonEmptyString(params.maas_secret_name) &&
+  (hasNonEmptyString(params.db_secret_name) || hasNonEmptyString(params.vector_db_secret_name));
 
 const hasCurrentRuntimeShape = (params: Record<string, unknown>): boolean =>
   hasCurrentConnectionParameters(params) &&
@@ -70,6 +84,7 @@ const RECONFIGURE_FIELDS = [
   'test_data_key',
   'preset',
   'maas_secret_name',
+  'db_secret_name',
   'vector_db_secret_name',
   'generation_models',
   'embedding_models',
@@ -99,7 +114,24 @@ const parseReconfigureParameters = (params: Record<string, unknown>): Reconfigur
   );
 
   for (const key of RECONFIGURE_FIELDS) {
-    if (!(key in params)) {
+    if (key === 'db_secret_name') {
+      const databaseSecretName = getDatabaseSecretName(params);
+      if (databaseSecretName === undefined) {
+        const sourceValue =
+          'db_secret_name' in params ? params.db_secret_name : params.vector_db_secret_name;
+        if (sourceValue !== undefined) {
+          const result = configureBase.shape.db_secret_name.safeParse(sourceValue);
+          if (!result.success) {
+            hasInvalidFields = true;
+          }
+        }
+      } else {
+        // eslint-disable-next-line camelcase
+        data.db_secret_name = databaseSecretName;
+      }
+      continue;
+    }
+    if (!(key in params) || key === 'vector_db_secret_name') {
       continue;
     }
     const result = configureBase.shape[key].safeParse(
@@ -150,22 +182,43 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   const notification = useNotification();
   const params = pipelineRun?.runtime_config?.parameters;
   const isLegacyRun = hasLegacyRuntimeParameters(params);
+  const needsLegacyVectorDbLookup =
+    !!params &&
+    !hasNonEmptyString(params.db_secret_name) &&
+    hasNonEmptyString(params.vector_db_secret_name);
 
   const {
     data: storageSecrets,
     isPending: storageSecretsPending,
     isError: storageSecretsError,
+    isFetching: storageSecretsFetching,
   } = useSecretsQuery(namespace, 'storage');
   const {
     data: maasSecrets,
     isPending: maasSecretsPending,
     isError: maasSecretsError,
+    isFetching: maasSecretsFetching,
   } = useSecretsQuery(!isLegacyRun ? namespace : undefined, 'maas');
+  const {
+    data: legacyVectorDbSecrets,
+    isPending: legacyVectorDbSecretsPending,
+    isFetching: legacyVectorDbSecretsFetching,
+    isError: legacyVectorDbSecretsError,
+  } = useSecretsQuery(
+    !isLegacyRun && needsLegacyVectorDbLookup ? namespace : undefined,
+    'vector-db',
+  );
+
   const {
     data: vectorDbSecrets,
     isPending: vectorDbSecretsPending,
+    isFetching: vectorDbSecretsFetching,
     isError: vectorDbSecretsError,
-  } = useSecretsQuery(!isLegacyRun ? namespace : undefined, 'vector-db');
+  } = useSecretsQuery(!isLegacyRun ? namespace : undefined, 'database');
+  const databaseSecrets = React.useMemo(
+    () => [...(vectorDbSecrets ?? []), ...(legacyVectorDbSecrets ?? [])],
+    [legacyVectorDbSecrets, vectorDbSecrets],
+  );
 
   const parsedParams = React.useMemo(
     () => (params == null ? undefined : parseReconfigureParameters(params)),
@@ -176,12 +229,23 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     parseError: false,
     storageMissing: false,
     maasMissing: false,
-    vectorDbMissing: false,
+    databaseMissing: false,
   });
 
   React.useEffect(() => {
     if (
-      (storageSecretsError || (!isLegacyRun && (maasSecretsError || vectorDbSecretsError))) &&
+      !isLegacyRun &&
+      (storageSecretsFetching ||
+        maasSecretsFetching ||
+        vectorDbSecretsFetching ||
+        (needsLegacyVectorDbLookup && legacyVectorDbSecretsFetching))
+    ) {
+      return;
+    }
+    if (
+      (storageSecretsError ||
+        (!isLegacyRun &&
+          (maasSecretsError || vectorDbSecretsError || legacyVectorDbSecretsError))) &&
       !shownWarnings.current.secretsLoadError
     ) {
       shownWarnings.current.secretsLoadError = true;
@@ -190,7 +254,19 @@ function AutoragReconfigureLoader(): React.JSX.Element {
         'The previously used connection secrets could not be loaded. You will need to manually select connection secrets.',
       );
     }
-  }, [isLegacyRun, storageSecretsError, maasSecretsError, vectorDbSecretsError, notification]);
+  }, [
+    isLegacyRun,
+    legacyVectorDbSecretsError,
+    legacyVectorDbSecretsFetching,
+    maasSecretsFetching,
+    maasSecretsError,
+    needsLegacyVectorDbLookup,
+    notification,
+    storageSecretsFetching,
+    storageSecretsError,
+    vectorDbSecretsFetching,
+    vectorDbSecretsError,
+  ]);
 
   React.useEffect(() => {
     if ((isLegacyRun || parsedParams?.hasInvalidFields) && !shownWarnings.current.parseError) {
@@ -203,7 +279,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     (
       name: unknown,
       secrets: SecretSelection[] | undefined,
-      key: 'storageMissing' | 'maasMissing' | 'vectorDbMissing',
+      key: 'storageMissing' | 'maasMissing' | 'databaseMissing',
       label: string,
     ) => {
       if (
@@ -223,6 +299,15 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   );
 
   React.useEffect(() => {
+    if (
+      !isLegacyRun &&
+      (storageSecretsFetching ||
+        maasSecretsFetching ||
+        vectorDbSecretsFetching ||
+        (needsLegacyVectorDbLookup && legacyVectorDbSecretsFetching))
+    ) {
+      return;
+    }
     if (!isLegacyRun) {
       warnMissingSecret(
         params?.input_data_secret_name,
@@ -232,13 +317,25 @@ function AutoragReconfigureLoader(): React.JSX.Element {
       );
       warnMissingSecret(params?.maas_secret_name, maasSecrets, 'maasMissing', 'MaaS');
       warnMissingSecret(
-        params?.vector_db_secret_name,
-        vectorDbSecrets,
-        'vectorDbMissing',
-        'vector database',
+        getDatabaseSecretName(params),
+        databaseSecrets,
+        'databaseMissing',
+        'database',
       );
     }
-  }, [isLegacyRun, params, storageSecrets, maasSecrets, vectorDbSecrets, warnMissingSecret]);
+  }, [
+    databaseSecrets,
+    isLegacyRun,
+    legacyVectorDbSecretsFetching,
+    maasSecretsFetching,
+    maasSecrets,
+    needsLegacyVectorDbLookup,
+    params,
+    storageSecretsFetching,
+    storageSecrets,
+    vectorDbSecretsFetching,
+    warnMissingSecret,
+  ]);
 
   const invalidPipelineRunId =
     pipelineRunError &&
@@ -278,7 +375,10 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     !namespacesLoaded ||
     pipelineRunPending ||
     storageSecretsPending ||
-    (!isLegacyRun && (maasSecretsPending || vectorDbSecretsPending))
+    (!isLegacyRun &&
+      (maasSecretsPending ||
+        vectorDbSecretsPending ||
+        (needsLegacyVectorDbLookup && legacyVectorDbSecretsPending)))
   ) {
     return (
       <Bullseye>
@@ -289,7 +389,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
 
   const inputSecretName = params?.input_data_secret_name;
   const maasSecretName = params?.maas_secret_name;
-  const vectorDbSecretName = params?.vector_db_secret_name;
+  const databaseSecretName = getDatabaseSecretName(params);
   const initialInputDataSecret =
     typeof inputSecretName === 'string'
       ? storageSecrets?.find((secret) => secret.name === inputSecretName)
@@ -298,9 +398,9 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     typeof maasSecretName === 'string'
       ? maasSecrets?.find((secret) => secret.name === maasSecretName)
       : undefined;
-  const initialVectorDbSecret =
-    typeof vectorDbSecretName === 'string'
-      ? vectorDbSecrets?.find((secret) => secret.name === vectorDbSecretName)
+  const initialDatabaseSecret =
+    typeof databaseSecretName === 'string'
+      ? databaseSecrets.find((secret) => secret.name === databaseSecretName)
       : undefined;
 
   const resolvedInputSecret = initialInputDataSecret
@@ -325,7 +425,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     generation_models: parsedParams?.data.generation_models ?? [],
     embedding_models: parsedParams?.data.embedding_models ?? [],
     maas_secret_name: parsedParams?.data.maas_secret_name ?? '',
-    vector_db_secret_name: parsedParams?.data.vector_db_secret_name ?? '',
+    db_secret_name: parsedParams?.data.db_secret_name ?? '',
     display_name: generateReconfigureName(pipelineRun.display_name),
   };
 
@@ -338,7 +438,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     initialValues.generation_models = [];
     initialValues.embedding_models = [];
     initialValues.maas_secret_name = '';
-    initialValues.vector_db_secret_name = '';
+    initialValues.db_secret_name = '';
   }
   /* eslint-enable camelcase */
 
@@ -347,9 +447,10 @@ function AutoragReconfigureLoader(): React.JSX.Element {
       initialValues={initialValues}
       initialInputDataSecret={resolvedInputSecret}
       initialMaaSSecret={initialMaaSSecret ? { ...initialMaaSSecret, invalid: false } : undefined}
-      initialVectorDbSecret={
-        initialVectorDbSecret ? { ...initialVectorDbSecret, invalid: false } : undefined
+      initialDatabaseSecret={
+        initialDatabaseSecret ? { ...initialDatabaseSecret, invalid: false } : undefined
       }
+      preserveInitialDatabaseSecret={needsLegacyVectorDbLookup}
       sourceRunId={runId}
       sourceRunName={pipelineRun.display_name}
     />
