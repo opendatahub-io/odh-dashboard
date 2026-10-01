@@ -205,6 +205,19 @@ export const waitForModelInLSD = (
 };
 
 /**
+ * Wait for the namespace's NemoGuardrails instance, deployment, and service endpoint to become ready.
+ * The custom resource can report Ready before the separately provisioned workload is available.
+ *
+ * @param namespace - Namespace containing the NemoGuardrails custom resource.
+ */
+export const waitForNemoGuardrailsReady = (namespace: string): Cypress.Chainable<Cypress.Exec> =>
+  pollUntilSuccess(
+    `oc get nemoguardrails nemoguardrails -n ${namespace} -o json | jq -e '.status.phase == "Ready"' && oc get deployment nemoguardrails -n ${namespace} -o json | jq -e '.status.availableReplicas != null and .status.availableReplicas == .spec.replicas' && oc get endpoints nemoguardrails -n ${namespace} -o json | jq -e '[.subsets[]?.addresses[]?] | length > 0'`,
+    `NemoGuardrails to be Ready in namespace ${namespace}`,
+    { maxAttempts: 60, pollIntervalMs: 5000 },
+  );
+
+/**
  * Create a prompt via the Gen AI BFF MLflow prompts API.
  *
  * @param namespace - The workspace/namespace for the prompt.

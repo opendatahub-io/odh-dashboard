@@ -9,7 +9,8 @@ import { FormProvider, useForm, type UseFormReturn } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplorer/types';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
+import type { ConnectionModalProps } from '@odh-dashboard/autox-core/ui/components/feature';
+import { UIErrorHandler } from '@odh-dashboard/autox-core/ui/components/primitive';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import { useMaaSModelsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/configure.schema';
@@ -37,8 +38,10 @@ const mockNotificationError = jest.fn();
 const mockNotificationWarning = jest.fn();
 
 const mockS3MutateAsync = jest.fn().mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
+let mockConnectionModalProps: ConnectionModalProps | undefined;
 
-jest.mock('~/app/hooks/mutations', () => ({
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
   __esModule: true,
   useS3FileUploadMutation: jest.fn(() => ({
     mutateAsync: mockS3MutateAsync,
@@ -135,7 +138,7 @@ jest.mock('~/app/hooks/queries', () => ({
 
 // Mock SecretSelector — simplified stand-in for TypeaheadSelect secret picks (see component tests for SecretSelector).
 // Renders the current selection with the same label the real selector shows (`displayName || name` in options).
-jest.mock('~/app/components/common/SecretSelector', () => {
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => {
   const MOCK_UUID_TO_DISPLAY_LABEL: Record<string, string> = {
     'secret-1': 'Test Secret 1',
     'secret-2': 'Test Secret 2',
@@ -144,7 +147,11 @@ jest.mock('~/app/components/common/SecretSelector', () => {
 
   return {
     __esModule: true,
-    default: ({
+    ConnectionModal: (props: ConnectionModalProps) => {
+      mockConnectionModalProps = props;
+      return null;
+    },
+    SecretSelector: ({
       onChange,
       value,
       dataTestId,
@@ -415,6 +422,7 @@ function dropFilesOnKnowledgeUploadZone(files: File[]): void {
 describe('AutoragConfigure', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockConnectionModalProps = undefined;
     mockNotificationError.mockClear();
     mockNotificationWarning.mockClear();
     mockUseNavigate.mockReturnValue(jest.fn());
@@ -621,6 +629,22 @@ describe('AutoragConfigure', () => {
   });
 
   describe('initial state - no secret selected', () => {
+    it('should provide AutoRAG error mapping and retry wording to the shared modal', () => {
+      renderComponent();
+      fireEvent.click(screen.getByRole('button', { name: 'Add new connection' }));
+
+      const props = mockConnectionModalProps;
+      expect(props?.retryAlertTitle).toBe(
+        'This connection was created. Retry saving it, or cancel to discard it.',
+      );
+      expect(props?.getCreateError(new Error('backend detail')).message).toBe(
+        'Failed to create the S3 connection. Please check your connection details and try again.',
+      );
+      expect(props?.getSubmitError(new Error('backend detail')).message).toBe(
+        'The connection was created, but AutoRAG could not select it. Retry saving it.',
+      );
+    });
+
     it('should display an empty state when no secret is selected', () => {
       renderComponent();
 

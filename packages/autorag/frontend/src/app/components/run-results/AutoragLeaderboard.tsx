@@ -33,10 +33,16 @@ import {
 import React from 'react';
 import { Link, useParams } from 'react-router';
 import type { ColumnManagementModalColumn } from '@patternfly/react-component-groups';
-import AutoragRunInProgress from '~/app/components/empty-states/AutoragRunInProgress';
+import { RunInProgress } from '@odh-dashboard/autox-core/ui/components/feature';
+import {
+  ManageColumnsModal,
+  type ColumnPreset,
+} from '@odh-dashboard/autox-core/ui/components/primitive';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import type { AutoragPattern, MetricReference } from '~/app/types/autoragPattern';
+import emptyStateImage from '~/app/bgimages/empty-state.svg';
 import { RuntimeStateKF } from '~/app/types/pipeline';
+import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { formatPatternName, isRunInProgress } from '~/app/utilities/utils';
 import {
   findMetric,
@@ -59,8 +65,9 @@ import {
   type ResultsColumnName,
   type LeaderboardPresetType,
 } from '~/app/utilities/tracking';
-import ManageColumnsModal, { type ColumnPreset } from './ManageColumnsModal';
 import './AutoragLeaderboard.scss';
+
+const RunInProgressIcon = () => <img src={emptyStateImage} alt="Run in progress" />;
 
 type LeaderboardEntry = {
   rank?: number;
@@ -990,7 +997,14 @@ function AutoragLeaderboard({
     if (!namespace) {
       return null;
     }
-    return <AutoragRunInProgress namespace={namespace} />;
+    return (
+      <RunInProgress
+        productName="AutoRAG"
+        icon={RunInProgressIcon}
+        viewRunsRoute={`${autoragExperimentsPathname}/${namespace}`}
+        data-testid="autorag-run-in-progress"
+      />
+    );
   }
 
   // Show loading state with 5 rows and 14 columns
@@ -1045,7 +1059,10 @@ function AutoragLeaderboard({
           <EmptyStateBody>An error occurred while loading pattern results.</EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>
-              <Button variant="link" onClick={onRetryPatterns}>
+              <Button
+                variant="link"
+                onClick={() => void Promise.resolve(onRetryPatterns?.()).catch(() => undefined)}
+              >
                 Retry
               </Button>
             </EmptyStateActions>

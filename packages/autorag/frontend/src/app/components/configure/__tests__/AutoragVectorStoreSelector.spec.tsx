@@ -23,9 +23,9 @@ jest.mock('react-router', () => ({
   useParams: jest.fn(),
 }));
 
-jest.mock('~/app/components/common/SecretSelector', () => ({
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
   __esModule: true,
-  default: ({
+  SecretSelector: ({
     onChange,
     dataTestId,
     type,

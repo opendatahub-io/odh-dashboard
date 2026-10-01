@@ -7,7 +7,6 @@ import AutoragReconfigureLoader from '~/app/pages/AutoragReconfigureLoader';
 import type { PipelineRun } from '~/app/types';
 
 const mockUseParams = jest.fn();
-const mockUsePipelineRunQuery = jest.fn();
 const mockGetSecrets = jest.fn();
 const mockWarning = jest.fn();
 let capturedProps: Record<string, unknown> = {};
@@ -29,12 +28,20 @@ jest.mock('mod-arch-core', () => ({
   }),
 }));
 
-jest.mock('~/app/hooks/queries', () => ({
+const mockUsePipelineRunQuery = jest.fn();
+jest.mock('~/app/hooks/usePipelineRunQuery', () => ({
   usePipelineRunQuery: (...args: unknown[]) => mockUsePipelineRunQuery(...args),
 }));
 
-jest.mock('~/app/api/k8s', () => ({
-  getSecrets: () => (_namespace: string, type: string) => () => mockGetSecrets(type),
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
+  useSecretsQuery: (namespace?: string, type?: string) =>
+    jest.requireActual('@tanstack/react-query').useQuery({
+      queryKey: ['secrets', namespace, type],
+      queryFn: () => mockGetSecrets(type),
+      enabled: Boolean(namespace),
+      retry: false,
+    }),
 }));
 
 jest.mock('~/app/hooks/useNotification', () => ({
@@ -46,6 +53,15 @@ jest.mock('~/app/components/common/AutoragHeader/AutoragHeader', () => ({
   default: () => <span>AutoRAG</span>,
 }));
 
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/components/feature'),
+  InvalidPipelineRun: () => <div data-testid="invalid-run">Invalid Run</div>,
+}));
+
+jest.mock('~/app/components/empty-states/InvalidProject', () => ({
+  __esModule: true,
+  default: () => <div data-testid="invalid-project">Invalid Project</div>,
+}));
 jest.mock('~/app/pages/AutoragConfigurePage', () => ({
   __esModule: true,
   default: (props: Record<string, unknown>) => {

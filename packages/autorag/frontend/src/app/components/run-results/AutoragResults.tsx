@@ -1,22 +1,19 @@
 import { Alert, AlertActionCloseButton, Stack, StackItem } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
+import { useFetchS3File } from '@odh-dashboard/autox-core/ui/hooks';
+import { isRunInTerminalState } from '~/app/types/pipeline';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { isTaskSucceeded } from '~/app/hooks/useComponentStageMap';
-import { useCreateIndexingPipelineRunMutation } from '~/app/hooks/mutations';
+import { useCreateIndexingPipelineRunMutation } from '~/app/hooks/useCreateIndexingPipelineRunMutation';
 import { useNotification } from '~/app/hooks/useNotification';
-import { fetchS3File, useManagedPipelinesQuery } from '~/app/hooks/queries';
+import { useManagedPipelinesQuery } from '~/app/hooks/useManagedPipelinesQuery';
 import { useTreeViewData } from '~/app/topology/tree-view';
 import { transformPipelineData } from '~/app/topology/tree-view/transformPipelineData';
 import { useAutoragTaskTopology } from '~/app/topology/useAutoragTaskTopology';
 import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
 import type { RunDetailsKF } from '~/app/types/pipeline';
-import {
-  downloadBlob,
-  isRunInTerminalState,
-  normalizePipelineRunState,
-  sanitizeFilename,
-} from '~/app/utilities/utils';
+import { downloadBlob, normalizePipelineRunState, sanitizeFilename } from '~/app/utilities/utils';
 import { computePatternRankMap } from '~/app/utilities/metricUtils';
 import { buildIndexingPipelineRunRequest } from '~/app/utilities/indexingPipeline';
 import {
@@ -42,6 +39,7 @@ type AutoragResultsProps = {
 };
 
 function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): React.JSX.Element {
+  const fetchS3File = useFetchS3File();
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
   const notification = useNotification();
@@ -318,7 +316,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
         });
       }
     },
-    [namespace, ragPatternsBasePath, pipelineRun?.display_name],
+    [fetchS3File, namespace, ragPatternsBasePath, pipelineRun?.display_name],
   );
 
   const runIndexingHandler = indexingPipelineAvailable ? handleOpenRunIndexing : undefined;
