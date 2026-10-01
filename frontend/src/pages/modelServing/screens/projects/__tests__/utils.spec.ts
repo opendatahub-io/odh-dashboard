@@ -228,7 +228,7 @@ describe('createNIMSecret', () => {
 
     const result = await createNIMSecret(projectName, 'ngc-secret', true, dryRun);
 
-    expect(getNIMData).toHaveBeenCalledWith('ngc-secret', true);
+    expect(getNIMData).toHaveBeenCalledWith('ngc-secret', true, projectName);
     expect(createSecret).toHaveBeenCalledWith(
       {
         apiVersion: 'v1',
@@ -251,7 +251,7 @@ describe('createNIMSecret', () => {
 
     const result = await createNIMSecret(projectName, 'nvidia-nim-secrets', false, dryRun);
 
-    expect(getNIMData).toHaveBeenCalledWith('nvidia-nim-secrets', false);
+    expect(getNIMData).toHaveBeenCalledWith('nvidia-nim-secrets', false, projectName);
     expect(createSecret).toHaveBeenCalledWith(
       {
         apiVersion: 'v1',

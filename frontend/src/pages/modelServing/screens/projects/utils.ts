@@ -562,7 +562,7 @@ export const createNIMSecret = async (
   dryRun: boolean,
 ): Promise<SecretKind> => {
   try {
-    const data = await getNIMData(secretKey, isNGC);
+    const data = await getNIMData(secretKey, isNGC, projectName);
 
     const newSecret = {
       apiVersion: 'v1',
