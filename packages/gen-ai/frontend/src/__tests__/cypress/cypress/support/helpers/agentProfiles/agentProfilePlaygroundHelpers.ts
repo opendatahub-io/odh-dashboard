@@ -8,7 +8,7 @@ import {
   mockEmptyList,
   mockStatus,
 } from '~/__tests__/cypress/cypress/__mocks__';
-import type { AgentProfileSummary } from '~/app/agentProfile/types';
+import type { AgentProfile, AgentProfileSummary } from '~/app/agentProfile/types';
 
 // ---------------------------------------------------------------------------
 // Base playground intercepts (no E2E MCP config required)
@@ -25,7 +25,9 @@ export const setupPlaygroundBase = (namespace: string): void => {
   ];
   cy.interceptGenAi('GET /api/v1/namespaces', { data: namespacesData });
   cy.interceptGenAi('GET /api/v1/user', { data: { username: 'test-user' } });
-  cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } });
+  cy.interceptGenAi('GET /api/v1/config', {
+    data: { isCustomLSD: false, sandboxesAvailable: true },
+  });
   cy.interceptGenAi('GET /api/v1/lsd/status', { query: { namespace } }, mockStatus('Ready'));
   // Include the model used in makeProfileResponse so validation warnings don't fire
   // and the Edit button stays enabled in tests that expect it to be clickable.
@@ -64,6 +66,7 @@ export const makeProfileResponse = (
     promptName: string;
     promptVersion: number;
     namespace: string;
+    mcpServers: AgentProfile['spec']['mcpServers'];
   }> = {},
 ): Record<string, unknown> => ({
   data: {
@@ -87,6 +90,7 @@ export const makeProfileResponse = (
           version: String(overrides.promptVersion ?? 1),
         },
       }),
+      ...(overrides.mcpServers && { mcpServers: overrides.mcpServers }),
     },
   },
 });
@@ -123,7 +127,11 @@ export const interceptExistingAgentProfile = (
   profileId: string,
   displayName: string,
   namespace: string,
-  opts: { promptName?: string; promptVersion?: number } = {},
+  opts: {
+    promptName?: string;
+    promptVersion?: number;
+    mcpServers?: AgentProfile['spec']['mcpServers'];
+  } = {},
 ): void => {
   cy.interceptGenAi(
     'GET /api/v1/agent-profiles/*',

@@ -1,4 +1,4 @@
-# Findings output contract
+## Output format
 
 Return only a JSON array. Each item must be:
 
@@ -15,5 +15,4 @@ Return only a JSON array. Each item must be:
 }
 ```
 
-Omit optional fields instead of guessing. Return `[]` when no finding belongs
-to this dimension.
+Include `actionable: true` when a low or info finding is concrete follow-up work. Otherwise omit `actionable`. Omit `line` when it cannot be verified. Omit other optional fields instead of guessing. Return `[]` when no finding belongs to this dimension.

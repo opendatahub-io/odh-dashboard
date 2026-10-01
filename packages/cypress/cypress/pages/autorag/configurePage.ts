@@ -167,17 +167,25 @@ class AutoragConfigurePage {
     return cy.findByTestId('experiment-settings-save');
   }
 
-  // Step 2 - Vector database secret
-  findVectorStoreSelector(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
-    return cy.findByTestId('vector-db-secret-selector', options);
+  // Step 2 - Database connection
+  findSimpleRagRadio() {
+    return cy.findByTestId('autorag-rag-mode-simple');
   }
 
-  findAddVectorDbConnectionButton() {
-    return cy.findByTestId('add-vector-db-connection-button');
+  findGraphRagRadio() {
+    return cy.findByTestId('autorag-rag-mode-graph');
   }
 
-  findAddVectorDbDropdownToggle() {
-    return cy.findByTestId('add-vector-db-dropdown-toggle');
+  findDatabaseSelector(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
+    return cy.findByTestId('database-secret-selector', options);
+  }
+
+  findAddDatabaseConnectionButton() {
+    return cy.findByTestId('add-database-connection-button');
+  }
+
+  findAddDatabaseDropdownToggle() {
+    return cy.findByTestId('add-database-dropdown-toggle');
   }
 
   findAddPgvectorConnectionOption() {

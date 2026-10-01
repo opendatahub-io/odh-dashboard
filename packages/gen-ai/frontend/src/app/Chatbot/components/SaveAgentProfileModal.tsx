@@ -22,7 +22,6 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useFetchAAEVectorStores from '~/app/hooks/useFetchAAEVectorStores';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
-import { GenAiContext } from '~/app/context/GenAiContext';
 import { DEFAULT_CONFIG_ID, useChatbotConfigStore } from '~/app/Chatbot/store';
 import { convertMaaSModelToAIModel, isPlaygroundModelMatchForAIModel } from '~/app/utilities/utils';
 import { serializeToAgentProfileSpec } from '~/app/agentProfile/serialize';
@@ -56,13 +55,13 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
 }) => {
   const { api, apiAvailable } = useGenAiAPI();
   const { aiModels, maasModels, models: playgroundModels } = React.useContext(ChatbotContext);
-  const { namespace } = React.useContext(GenAiContext);
 
   const config = useChatbotConfigStore((s) => s.configurations[DEFAULT_CONFIG_ID]);
   const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
   const loadedProfileDisplayName = useChatbotConfigStore((s) => s.loadedProfileDisplayName);
   const loadedResourceVersion = useChatbotConfigStore((s) => s.loadedResourceVersion);
   const loadedProfileDescription = useChatbotConfigStore((s) => s.loadedProfileDescription);
+  const loadedProfileSpec = useChatbotConfigStore((s) => s.loadedProfileSpec);
 
   const { data: externalVectorStores = [] } = useFetchAAEVectorStores();
 
@@ -112,6 +111,14 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
     return null;
   }, [config, externalVectorStores]);
 
+  const serializationContext = {
+    model: aiModel,
+    asrModel,
+    mcpServers,
+    previousMcpServers: loadedProfileSpec?.mcpServers,
+    mcpConfigMapName: mcpConfigMapName ?? MCP_CONFIG_MAP_NAME_FALLBACK,
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setNameTouched(true);
@@ -147,12 +154,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
         freshConfig,
         name.trim(),
         description.trim() || undefined,
-        {
-          model: aiModel,
-          asrModel,
-          mcpServers,
-          mcpConfigMapName: mcpConfigMapName ?? MCP_CONFIG_MAP_NAME_FALLBACK,
-        },
+        serializationContext,
       );
 
       if (mode === 'save-as' || !loadedProfileId) {
@@ -213,7 +215,14 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
   // usePromptEdited compares systemInstruction against the loaded prompt's template —
   // true only when the user has actually edited the content after loading.
   const isPromptDirty = usePromptEdited(DEFAULT_CONFIG_ID);
-  const hasMcpServers = (config?.selectedMcpServerIds.length ?? 0) > 0;
+  const previewMcpServers = config
+    ? (serializeToAgentProfileSpec(
+        config,
+        name.trim(),
+        description.trim() || undefined,
+        serializationContext,
+      ).mcpServers ?? [])
+    : [];
 
   // Stable auto-generated prompt name for new/instruction-only prompts
   const autoPromptName = React.useRef(`agent-prompt-${Math.random().toString(36).slice(2, 6)}`);
@@ -424,17 +433,30 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
 
           {/* MCP Servers */}
           <FormGroup label="MCP servers" fieldId="detail-mcp">
-            {hasMcpServers ? (
+            {previewMcpServers.length > 0 ? (
               <LabelGroup>
-                {config?.selectedMcpServerIds.map((serverId) => {
-                  const server = mcpServers.find((s) => s.url === serverId);
-                  const nsSelections = config.mcpToolSelections[namespace?.name ?? ''];
-                  const toolSelections = nsSelections?.[serverId];
-                  const toolCount = toolSelections !== undefined ? toolSelections.length : null;
+                {previewMcpServers.map((saved, index) => {
+                  const serverName =
+                    'serverRef' in saved
+                      ? (saved.serverRef.key ?? saved.serverRef.name)
+                      : saved.name;
+                  const isAvailable = mcpServers.some(
+                    (server) =>
+                      server.name === serverName &&
+                      ('serverRef' in saved
+                        ? saved.serverRef.kind !== 'ConfigMap' || server.source === 'configmap'
+                        : server.source === 'registry'),
+                  );
+                  const toolCount = saved.allowedTools?.length;
                   return (
-                    <Label key={serverId} variant="outline">
-                      {server?.name ?? serverId}
-                      {toolCount !== null && (
+                    <Label key={`${serverName}-${index}`} variant="outline">
+                      {serverName}
+                      {!isAvailable && (
+                        <Label isCompact color="orange" className="pf-v6-u-ml-xs">
+                          Unavailable
+                        </Label>
+                      )}
+                      {toolCount !== undefined && (
                         <Label isCompact color="grey" className="pf-v6-u-ml-xs">
                           {toolCount} tool{toolCount !== 1 ? 's' : ''}
                         </Label>

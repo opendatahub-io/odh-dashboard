@@ -188,4 +188,144 @@ describe('VectorDbConnectionModal', () => {
     fireEvent.change(screen.getByTestId('pgvector-port-input'), { target: { value: '5432' } });
     expect(screen.getByRole('button', { name: 'Add connection' })).toBeEnabled();
   });
+
+  it('should create a generic Neo4j database Secret with optional fields', async () => {
+    render(
+      <VectorDbConnectionModal
+        namespace="test-namespace"
+        initialProvider="neo4j"
+        onClose={onClose}
+        onSubmit={onSubmit}
+      />,
+    );
+    fillName();
+    fireEvent.change(screen.getByTestId('neo4j-uri-input'), {
+      target: { value: 'neo4j://neo4j.example.com:7687' },
+    });
+    fireEvent.change(screen.getByTestId('neo4j-username-input'), { target: { value: 'neo4j' } });
+    fireEvent.change(screen.getByTestId('neo4j-password-input'), { target: { value: 'secret' } });
+    fireEvent.change(screen.getByTestId('neo4j-database-input'), { target: { value: 'graph' } });
+
+    await act(async () => {
+      screen.getByRole('button', { name: 'Add connection' }).click();
+    });
+
+    expect(createSecretMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          annotations: expect.objectContaining({
+            'opendatahub.io/connection-type': 'database',
+            'opendatahub.io/database-provider': 'neo4j',
+          }),
+        }),
+        stringData: {
+          NEO4J_URI: 'neo4j://neo4j.example.com:7687',
+          NEO4J_USERNAME: 'neo4j',
+          NEO4J_PASSWORD: 'secret',
+          NEO4J_DATABASE: 'graph',
+        },
+      }),
+    );
+  });
+
+  it('should omit the provider selector when Neo4j is the only allowed provider', () => {
+    render(
+      <VectorDbConnectionModal
+        namespace="test-namespace"
+        initialProvider="neo4j"
+        allowedProviders={['neo4j']}
+        onClose={onClose}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    expect(screen.queryByTestId('vector-db-provider-neo4j')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('vector-db-provider-milvus')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('vector-db-provider-pgvector')).not.toBeInTheDocument();
+    expect(screen.queryByText('Vector database type')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Add Neo4j connection' })).toBeInTheDocument();
+    expect(screen.getByTestId('neo4j-uri-input')).toBeInTheDocument();
+  });
+
+  it('should reject Neo4j URIs without a hostname', () => {
+    render(
+      <VectorDbConnectionModal
+        namespace="test-namespace"
+        initialProvider="neo4j"
+        onClose={onClose}
+        onSubmit={onSubmit}
+      />,
+    );
+    fillName();
+    fireEvent.change(screen.getByTestId('neo4j-uri-input'), { target: { value: 'neo4j:///' } });
+    expect(screen.getByRole('button', { name: 'Add connection' })).toBeDisabled();
+  });
+
+  it.each([
+    'neo4j://neo4j.example.com:7687',
+    'neo4j+s://neo4j.example.com:7687',
+    'bolt://neo4j.example.com:7687',
+    'bolt+s://neo4j.example.com:7687',
+  ])('should accept Neo4j URI %s', (value) => {
+    render(
+      <VectorDbConnectionModal
+        namespace="test-namespace"
+        initialProvider="neo4j"
+        onClose={onClose}
+        onSubmit={onSubmit}
+      />,
+    );
+    fillName();
+    fireEvent.change(screen.getByTestId('neo4j-uri-input'), { target: { value } });
+
+    expect(screen.getByRole('button', { name: 'Add connection' })).toBeEnabled();
+  });
+
+  it.each([
+    'neo4j:///',
+    'neo4j+s:///',
+    'bolt:///',
+    'bolt+s:///',
+    'neo4j://[',
+    'https://neo4j.example.com',
+  ])('should reject invalid Neo4j URI %s', (value) => {
+    render(
+      <VectorDbConnectionModal
+        namespace="test-namespace"
+        initialProvider="neo4j"
+        onClose={onClose}
+        onSubmit={onSubmit}
+      />,
+    );
+    fillName();
+    fireEvent.change(screen.getByTestId('neo4j-uri-input'), { target: { value } });
+
+    expect(screen.getByRole('button', { name: 'Add connection' })).toBeDisabled();
+  });
+
+  it('should preserve whitespace in a non-empty Neo4j password', async () => {
+    render(
+      <VectorDbConnectionModal
+        namespace="test-namespace"
+        initialProvider="neo4j"
+        onClose={onClose}
+        onSubmit={onSubmit}
+      />,
+    );
+    fillName();
+    fireEvent.change(screen.getByTestId('neo4j-uri-input'), {
+      target: { value: 'neo4j://neo4j.example.com:7687' },
+    });
+    fireEvent.change(screen.getByTestId('neo4j-password-input'), {
+      target: { value: ' secret ' },
+    });
+
+    await act(async () => {
+      screen.getByRole('button', { name: 'Add connection' }).click();
+    });
+
+    expect(createSecretMock.mock.calls[0][0].stringData).toMatchObject({
+      NEO4J_PASSWORD: ' secret ',
+    });
+  });
 });

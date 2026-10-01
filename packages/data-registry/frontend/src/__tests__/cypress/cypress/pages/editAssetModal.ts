@@ -80,6 +80,18 @@ class EditAssetModal extends Modal {
     return cy.findByTestId('data-pii-toggle');
   }
 
+  findClearLicenseOption() {
+    return cy.findByTestId('data-license-toggle-clear');
+  }
+
+  findClearMaturityOption() {
+    return cy.findByTestId('data-maturity-toggle-clear');
+  }
+
+  findClearPiiOption() {
+    return cy.findByTestId('data-pii-toggle-clear');
+  }
+
   // Custom properties section
   findAddCustomPropertyButton() {
     return cy.findByTestId('data-add-custom-property');
