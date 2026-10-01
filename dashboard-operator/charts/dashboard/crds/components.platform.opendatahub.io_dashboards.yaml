@@ -110,6 +110,22 @@ spec:
                     - Removed
                     type: string
                 type: object
+              maasPortal:
+                description: MaaSPortal configures the MaaS Portal.
+                properties:
+                  managementState:
+                    default: Removed
+                    description: |-
+                      ManagementState controls whether the portal is deployed.
+                      "Managed" deploys the portal (requires Gateway.Domain to be set,
+                      since the portal host is derived from it); "Removed" tears it down.
+                      This mirrors the shape the ODH Operator projects from
+                      dashboard.maasPortal.managementState.
+                    enum:
+                    - Managed
+                    - Removed
+                    type: string
+                type: object
               managementState:
                 default: Managed
                 description: |-
@@ -268,6 +284,9 @@ spec:
                 description: |-
                   MaaSConsumerPortalURL is the externally-reachable MaaS Consumer Portal URL (last known good).
                   It is cleared when the portal operand is removed.
+                type: string
+              maasPortalUrl:
+                description: MaaSPortalURL is the externally-reachable MaaS Portal URL (last known good).
                 type: string
               moduleStatuses:
                 additionalProperties:

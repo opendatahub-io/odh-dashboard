@@ -110,6 +110,11 @@ func (in *DashboardSpec) DeepCopyInto(out *DashboardSpec) {
 		*out = new(ObservabilitySpec)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.MaaSPortal != nil {
+		in, out := &in.MaaSPortal, &out.MaaSPortal
+		*out = new(MaaSPortalSpec)
+		**out = **in
+	}
 	if in.MaaSConsumerPortal != nil {
 		in, out := &in.MaaSConsumerPortal, &out.MaaSConsumerPortal
 		*out = new(MaaSConsumerPortalSpec)

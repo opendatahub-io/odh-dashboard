@@ -253,7 +253,8 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			conditions.WithReason("Removed"),
 			conditions.WithMessage("Dashboard has been removed"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
-		if dashboard.Spec.MaaSConsumerPortal == nil || dashboard.Spec.MaaSConsumerPortal.ManagementState != "Managed" {
+		portal := effectiveMaaSPortal(dashboard.Spec)
+		if portal == nil || portal.ManagementState != "Managed" {
 			// With neither operand managed, retain the established Removed state.
 			cm.MarkFalse(string(common.ConditionTypeReady),
 				conditions.WithReason("Removed"),
