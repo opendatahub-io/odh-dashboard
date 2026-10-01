@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -553,10 +554,9 @@ func (app *App) resolveSandboxMCPServers(
 	}
 
 	configMapServers := make(map[string]models.MCPServerConfig)
-	for _, selected := range profile.Spec.MCPServers {
-		if selected.ServerRef == nil {
-			continue
-		}
+	if slices.ContainsFunc(profile.Spec.MCPServers, func(selected models.MCPServerReference) bool {
+		return selected.ServerRef != nil
+	}) {
 		registryServers, err := app.repositories.MCPClient.GetMCPServersFromDashboardConfig(
 			k8sClient, ctx, app.dashboardNamespace, constants.MCPServerName,
 		)
@@ -566,7 +566,6 @@ func (app *App) resolveSandboxMCPServers(
 		for _, server := range registryServers {
 			configMapServers[server.Name] = server.Config
 		}
-		break
 	}
 
 	selectedIDs := make(map[string]struct{}, len(profile.Spec.MCPServers))

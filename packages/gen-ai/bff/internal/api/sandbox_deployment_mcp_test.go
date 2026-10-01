@@ -105,6 +105,7 @@ func TestResolveSandboxMCPServersUsesConfigMapAndRegistryReferences(t *testing.T
 		return json.Unmarshal([]byte(`{
 			"data": {
 				"name": "com.example/github",
+				"status": "active",
 				"access_endpoints": [{
 					"endpoint_url": "https://registry.example.com/mcp",
 					"transport_type": "streamable-http"
@@ -124,6 +125,7 @@ func TestResolveSandboxMCPServersUsesConfigMapAndRegistryReferences(t *testing.T
 	require.NoError(t, resolveErr)
 	require.Len(t, servers, 2)
 	require.Equal(t, "GitHub-MCP-Server", servers[0].ServerLabel)
+	require.Empty(t, servers[0].AuthorizationEnvVar)
 	require.Equal(t, "com.example/github", servers[1].ServerLabel)
 	require.Equal(t, "https://registry.example.com/mcp", servers[1].ServerURL)
 	require.Equal(t, []string{"search_repositories"}, *servers[1].AllowedTools)
