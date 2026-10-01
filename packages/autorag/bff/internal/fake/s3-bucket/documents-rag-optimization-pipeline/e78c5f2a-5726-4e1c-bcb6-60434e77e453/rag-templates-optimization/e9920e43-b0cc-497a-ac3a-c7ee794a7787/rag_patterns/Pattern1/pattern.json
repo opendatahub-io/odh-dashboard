@@ -34,7 +34,7 @@
   },
   "duration_seconds": 7,
   "settings": {
-    "vector_store_binding": {
+    "store_binding": {
       "provider_type": "milvus",
       "collection_name": "vs_8a3b896e-c894-4796-8a20-1c81a7786667"
     },
@@ -124,7 +124,7 @@
         "input_data_bucket_name": "my-bucket",
         "input_data_key": "docs/",
         "maas_secret_name": "maas-connection",
-        "vector_db_secret_name": "vector-db-connection",
+        "db_secret_name": "database-connection",
         "chunk_size": 512,
         "chunk_overlap": 32,
         "chunking_method": "recursive"
