@@ -106,20 +106,23 @@ export const checkHfServiceAccountOwnerRefs = (
 };
 
 /**
- * One-shot: is there a dashboard-labeled Secret with HF_TOKEN owned by the deployment?
+ * One-shot: is there a dashboard-labeled Secret with HF_TOKEN owned by the deployment,
+ * and does the HF ServiceAccount reference that Secret?
  */
 export const checkHfTokenSecretOwnerRefs = (
   deploymentName: string,
   namespace: string,
   kind: HfTokenDeploymentKind,
 ): Cypress.Chainable<SecretCheck> => {
+  const saName = `${deploymentName}-hf-sa`;
   const secretListCmd = `oc get secret -n ${namespace} -l opendatahub.io/dashboard=true -o json`;
 
-  return execWithOutput(secretListCmd, 30).then((secretListResult): SecretCheck => {
+  return execWithOutput(secretListCmd, 30).then((secretListResult) => {
     if (secretListResult.exitCode !== 0) {
-      return { ok: false };
+      return cy.wrap({ ok: false } satisfies SecretCheck);
     }
 
+    let secretName = '';
     try {
       const parsed = JSON.parse(secretListResult.stdout) as {
         items?: Array<{
@@ -134,14 +137,34 @@ export const checkHfTokenSecretOwnerRefs = (
         const ownedByDeployment = hasOwnerRef(item.metadata?.ownerReferences, kind, deploymentName);
         return ownedByDeployment && Boolean(item.data?.HF_TOKEN);
       });
-      const secretName = match?.metadata?.name ?? '';
-      if (secretName) {
-        return { ok: true, secretName };
-      }
+      secretName = match?.metadata?.name ?? '';
     } catch {
-      // fall through
+      return cy.wrap({ ok: false } satisfies SecretCheck);
     }
-    return { ok: false };
+
+    if (!secretName) {
+      return cy.wrap({ ok: false } satisfies SecretCheck);
+    }
+
+    const saCmd = `oc get sa ${saName} -n ${namespace} -o json`;
+    return execWithOutput(saCmd, 30).then((saResult): SecretCheck => {
+      if (saResult.exitCode !== 0) {
+        return { ok: false };
+      }
+
+      try {
+        const sa = JSON.parse(saResult.stdout) as {
+          secrets?: Array<{ name?: string }>;
+        };
+        const referenced = (sa.secrets ?? []).some((ref) => ref.name === secretName);
+        if (referenced) {
+          return { ok: true, secretName };
+        }
+      } catch {
+        // fall through
+      }
+      return { ok: false };
+    });
   });
 };
 
@@ -171,7 +194,8 @@ export const verifyNoHfTokenContainerEnv = (
  * Verifies Hugging Face API key wiring after deploy:
  * - Deployment uses `{name}-hf-sa`
  * - Dashboard-managed ServiceAccount has ownerRef to the deployment
- * - A dashboard-labeled Secret with HF_TOKEN is owned by the deployment
+ * - A dashboard-labeled Secret with HF_TOKEN is owned by the deployment and
+ *   referenced by the HF ServiceAccount
  * - Model/main container does not inject HF_TOKEN via container env
  *
  * Does not wait for Ready (model download may fail without GPU / with rate limits).
@@ -221,7 +245,7 @@ export const verifyHfTokenServiceAccountWiring = (
           if (!secretCheck.ok) {
             if (attempts >= DEFAULT_MAX_ATTEMPTS) {
               throw new Error(
-                `HF Secret wiring incomplete for ${deploymentName}: no dashboard Secret with HF_TOKEN owned by ${kind}/${deploymentName}`,
+                `HF Secret wiring incomplete for ${deploymentName}: no dashboard Secret with HF_TOKEN owned by ${kind}/${deploymentName} and referenced by SA ${saName}`,
               );
             }
             // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for Secret create/ownerRef
