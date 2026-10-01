@@ -597,19 +597,34 @@ type ExternalModelDoc = {
   };
 };
 
-const assertExternalModelDocMatches = (
+const parseExternalModelDoc = (resourceName: string, stdout: string): ExternalModelDoc => {
+  try {
+    return JSON.parse(stdout) as ExternalModelDoc;
+  } catch {
+    throw new Error(`Failed to parse ExternalModel JSON for ${resourceName}`);
+  }
+};
+
+const externalModelOptionsMet = (
   doc: ExternalModelDoc,
-  resourceName: string,
   options: CheckExternalModelOptions,
-): void => {
+): MaaSOptionsCheckResult => {
+  if (options.phase && doc.status?.phase !== options.phase) {
+    return {
+      met: false,
+      reason: `phase: expected ${options.phase}, got ${doc.status?.phase ?? 'Unknown'}`,
+      retryable: true,
+    };
+  }
+
   if (options.modelName !== undefined) {
     const actual = doc.spec?.modelName;
     if (actual !== options.modelName) {
-      throw new Error(
-        `ExternalModel ${resourceName} spec.modelName mismatch: expected '${
-          options.modelName
-        }', got '${actual ?? 'undefined'}'`,
-      );
+      return {
+        met: false,
+        reason: `modelName: expected '${options.modelName}', got '${actual ?? 'undefined'}'`,
+        retryable: true,
+      };
     }
   }
 
@@ -618,127 +633,66 @@ const assertExternalModelDocMatches = (
       (ref) => ref.ref?.name ?? 'undefined',
     );
     const expectedNames = options.externalProviderRefs;
-
     if (actualNames.length !== expectedNames.length) {
-      throw new Error(
-        `ExternalModel ${resourceName} externalProviderRefs length mismatch: expected ${expectedNames.length}, got ${actualNames.length}`,
-      );
+      return {
+        met: false,
+        reason: `externalProviderRefs length: expected ${expectedNames.length}, got ${actualNames.length}`,
+        retryable: true,
+      };
     }
-
     for (const expectedName of expectedNames) {
       if (!actualNames.includes(expectedName)) {
-        throw new Error(
-          `ExternalModel ${resourceName} missing externalProviderRef name=${expectedName}. Actual names: ${actualNames.join(
+        return {
+          met: false,
+          reason: `missing externalProviderRef name=${expectedName}. Actual names: ${actualNames.join(
             ', ',
           )}`,
-        );
+          retryable: true,
+        };
       }
     }
   }
+
+  return { met: true };
 };
 
 /**
  * Verifies an ExternalModel exists and reaches the expected status phase (default: Ready),
  * optionally matching `spec.modelName` / `spec.externalProviderRefs`,
  * or is absent when `expectDeleted` is true.
- * Polls until the condition is met or throws on Failed / timeout.
  */
 export const checkExternalModelExists = (
   projectName: string,
   resourceName: string,
   options: CheckExternalModelOptions = {},
 ): Cypress.Chainable<CommandLineResult> => {
-  const expectDeleted = options.expectDeleted === true;
-  const expectedPhase = options.phase ?? 'Ready';
-  const maxAttempts = options.maxAttempts ?? MAAS_STATE_DEFAULT_MAX_ATTEMPTS;
-  const retryIntervalMs = options.retryIntervalMs ?? MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS;
   const name = assertValidK8sLabel(resourceName, 'ExternalModel name');
   const ns = assertValidK8sNamespace(projectName);
   const ocCommand = `oc get externalmodel ${quoteShellArg(name)} -n ${quoteShellArg(ns)} -o json`;
-  let attempts = 0;
+  const resourceLabel = `ExternalModel ${name} in namespace ${ns}`;
 
-  const checkState = (): Cypress.Chainable<CommandLineResult> =>
-    cy
-      .exec(ocCommand, { failOnNonZeroExit: false })
-      .then((result: CommandLineResult): Cypress.Chainable<CommandLineResult> => {
-        attempts++;
+  if (options.expectDeleted === true) {
+    cy.log(`Checking ExternalModel is absent: ${name} in namespace ${ns}`);
+    return assertMaaSResourceDeleted(resourceLabel, ocCommand, options);
+  }
 
-        if (expectDeleted) {
-          if (result.exitCode !== 0 && ocGetIndicatesResourceNotFound(result)) {
-            cy.log(`✅ ExternalModel ${name} does not exist in namespace ${ns}`);
-            return cy.wrap(result);
-          }
+  const checkOptions: CheckExternalModelOptions = {
+    ...options,
+    phase: options.phase ?? 'Ready',
+  };
+  cy.log(`Checking ExternalModel exists: ${name} in namespace ${ns}`);
 
-          if (result.exitCode === 0 && attempts < maxAttempts) {
-            cy.log(
-              `ExternalModel ${name} still exists, waiting for deletion (attempt ${attempts}/${maxAttempts})`,
-            );
-            // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
-            return cy.wait(retryIntervalMs).then(() => checkState());
-          }
-
-          if (result.exitCode === 0) {
-            throw new Error(
-              `ExternalModel ${name} still exists in namespace ${ns} after ${maxAttempts} attempts`,
-            );
-          }
-
-          throw new Error(
-            `Unexpected oc error while verifying ExternalModel deletion: ${
-              result.stderr || result.stdout
-            }`,
-          );
-        }
-
-        if (result.exitCode !== 0) {
-          if (attempts < maxAttempts) {
-            cy.log(`ExternalModel ${name} not found yet (attempt ${attempts}/${maxAttempts})`);
-            // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
-            return cy.wait(retryIntervalMs).then(() => checkState());
-          }
-          throw new Error(
-            `ExternalModel ${name} does not exist in namespace ${ns}: ${
-              result.stderr || result.stdout
-            }`,
-          );
-        }
-
-        let doc: ExternalModelDoc;
-        try {
-          doc = JSON.parse(result.stdout) as ExternalModelDoc;
-        } catch {
-          throw new Error(`Failed to parse ExternalModel JSON for ${name}`);
-        }
-
-        const phase = doc.status?.phase;
-        if (phase === expectedPhase) {
-          assertExternalModelDocMatches(doc, name, options);
-          cy.log(`✅ ExternalModel ${name} exists with phase ${expectedPhase}`);
-          return cy.wrap(result);
-        }
-
-        if (phase === 'Failed') {
-          throw new Error(`ExternalModel ${name} is in Failed phase in namespace ${ns}`);
-        }
-
-        if (attempts < maxAttempts) {
-          cy.log(
-            `ExternalModel ${name} phase is ${
-              phase ?? 'Unknown'
-            }, expected ${expectedPhase} (attempt ${attempts}/${maxAttempts})`,
-          );
-          // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
-          return cy.wait(retryIntervalMs).then(() => checkState());
-        }
-
-        throw new Error(
-          `ExternalModel ${name} did not reach phase ${expectedPhase} in namespace ${ns}. Current phase: ${
-            phase ?? 'Unknown'
-          }`,
-        );
-      });
-
-  return checkState();
+  return pollMaaSResourceState(
+    resourceLabel,
+    'ExternalModel',
+    name,
+    ns,
+    ocCommand,
+    (stdout) => parseExternalModelDoc(name, stdout),
+    externalModelOptionsMet,
+    checkOptions,
+    true,
+  );
 };
 
 type CheckMaaSModelRefOptions = {
@@ -753,139 +707,104 @@ type CheckMaaSModelRefOptions = {
   retryIntervalMs?: number;
 };
 
-const assertMaaSModelRefDocMatches = (
+const parseMaaSModelRefDoc = (
+  resourceName: string,
+  stdout: string,
+): {
+  metadata?: { annotations?: Record<string, string> };
+  spec?: { modelRef?: { kind?: string; name?: string } };
+} => {
+  try {
+    return JSON.parse(stdout) as {
+      metadata?: { annotations?: Record<string, string> };
+      spec?: { modelRef?: { kind?: string; name?: string } };
+    };
+  } catch {
+    throw new Error(`Failed to parse MaaSModelRef JSON for ${resourceName}`);
+  }
+};
+
+const maaSModelRefOptionsMet = (
   doc: {
     metadata?: { annotations?: Record<string, string> };
     spec?: { modelRef?: { kind?: string; name?: string } };
   },
-  resourceName: string,
-  options: CheckMaaSModelRefOptions,
-): void => {
+  options: CheckMaaSModelRefOptions & { resourceName: string },
+): MaaSOptionsCheckResult => {
   if (options.modelRef) {
     const expectedKind = options.modelRef.kind;
-    const expectedName = options.modelRef.name ?? resourceName;
+    const expectedName = options.modelRef.name ?? options.resourceName;
     const actualKind = doc.spec?.modelRef?.kind;
     const actualName = doc.spec?.modelRef?.name;
     if (actualKind !== expectedKind || actualName !== expectedName) {
-      throw new Error(
-        `MaaSModelRef ${resourceName} spec.modelRef mismatch: expected kind=${expectedKind} name=${expectedName}, got kind=${
+      return {
+        met: false,
+        reason: `spec.modelRef: expected kind=${expectedKind} name=${expectedName}, got kind=${
           actualKind ?? 'undefined'
         } name=${actualName ?? 'undefined'}`,
-      );
+        retryable: true,
+      };
     }
   }
 
   if (options.displayName !== undefined) {
     const actual = doc.metadata?.annotations?.['openshift.io/display-name'];
     if (actual !== options.displayName) {
-      throw new Error(
-        `MaaSModelRef ${resourceName} display-name mismatch: expected '${
-          options.displayName
-        }', got '${actual ?? 'undefined'}'`,
-      );
+      return {
+        met: false,
+        reason: `display-name: expected '${options.displayName}', got '${actual ?? 'undefined'}'`,
+        retryable: true,
+      };
     }
   }
 
   if (options.description !== undefined) {
     const actual = doc.metadata?.annotations?.['openshift.io/description'];
     if (actual !== options.description) {
-      throw new Error(
-        `MaaSModelRef ${resourceName} description mismatch: expected '${
-          options.description
-        }', got '${actual ?? 'undefined'}'`,
-      );
+      return {
+        met: false,
+        reason: `description: expected '${options.description}', got '${actual ?? 'undefined'}'`,
+        retryable: true,
+      };
     }
   }
+
+  return { met: true };
 };
 
 /**
  * Verifies a MaaSModelRef exists (optionally matching `spec.modelRef` / OpenShift annotations),
  * or is absent when `expectDeleted` is true.
- * Polls until the condition is met or times out.
  */
 export const checkMaaSModelRefExists = (
   projectName: string,
   resourceName: string,
   options: CheckMaaSModelRefOptions = {},
 ): Cypress.Chainable<CommandLineResult> => {
-  const expectDeleted = options.expectDeleted === true;
-  const maxAttempts = options.maxAttempts ?? MAAS_STATE_DEFAULT_MAX_ATTEMPTS;
-  const retryIntervalMs = options.retryIntervalMs ?? MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS;
-  const needsJson =
-    !expectDeleted &&
-    !!(options.modelRef || options.displayName !== undefined || options.description !== undefined);
   const name = assertValidK8sLabel(resourceName, 'MaaSModelRef name');
   const ns = assertValidK8sNamespace(projectName);
-  const ocCommand = needsJson
-    ? `oc get MaaSModelRef ${quoteShellArg(name)} -n ${quoteShellArg(ns)} -o json`
-    : `oc get MaaSModelRef ${quoteShellArg(name)} -n ${quoteShellArg(ns)}`;
-  let attempts = 0;
+  const ocCommand = `oc get MaaSModelRef ${quoteShellArg(name)} -n ${quoteShellArg(ns)} -o json`;
+  const resourceLabel = `MaaSModelRef ${name} in namespace ${ns}`;
 
-  const checkState = (): Cypress.Chainable<CommandLineResult> =>
-    cy
-      .exec(ocCommand, { failOnNonZeroExit: false })
-      .then((result: CommandLineResult): Cypress.Chainable<CommandLineResult> => {
-        attempts++;
+  if (options.expectDeleted === true) {
+    cy.log(`Checking MaaSModelRef is absent: ${name} in namespace ${ns}`);
+    return assertMaaSResourceDeleted(resourceLabel, ocCommand, options);
+  }
 
-        if (expectDeleted) {
-          if (result.exitCode !== 0 && ocGetIndicatesResourceNotFound(result)) {
-            cy.log(`✅ MaaSModelRef ${name} does not exist in namespace ${ns}`);
-            return cy.wrap(result);
-          }
+  cy.log(`Checking MaaSModelRef exists: ${name} in namespace ${ns}`);
+  const checkOptions = { ...options, resourceName: name };
 
-          if (result.exitCode === 0 && attempts < maxAttempts) {
-            cy.log(
-              `MaaSModelRef ${name} still exists, waiting for deletion (attempt ${attempts}/${maxAttempts})`,
-            );
-            // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
-            return cy.wait(retryIntervalMs).then(() => checkState());
-          }
-
-          if (result.exitCode === 0) {
-            throw new Error(
-              `MaaSModelRef ${name} still exists in namespace ${ns} after ${maxAttempts} attempts`,
-            );
-          }
-
-          throw new Error(
-            `Unexpected oc error while verifying MaaSModelRef deletion: ${
-              result.stderr || result.stdout
-            }`,
-          );
-        }
-
-        if (result.exitCode !== 0) {
-          if (attempts < maxAttempts) {
-            cy.log(`MaaSModelRef ${name} not found yet (attempt ${attempts}/${maxAttempts})`);
-            // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
-            return cy.wait(retryIntervalMs).then(() => checkState());
-          }
-
-          throw new Error(
-            `MaaSModelRef ${name} does not exist in namespace ${ns}: ${
-              result.stderr || result.stdout
-            }`,
-          );
-        }
-
-        if (needsJson) {
-          let doc: {
-            metadata?: { annotations?: Record<string, string> };
-            spec?: { modelRef?: { kind?: string; name?: string } };
-          };
-          try {
-            doc = JSON.parse(result.stdout) as typeof doc;
-          } catch {
-            throw new Error(`Failed to parse MaaSModelRef JSON for ${name}`);
-          }
-          assertMaaSModelRefDocMatches(doc, name, options);
-        }
-
-        cy.log(`✅ MaaSModelRef ${name} exists in namespace ${ns}`);
-        return cy.wrap(result);
-      });
-
-  return checkState();
+  return pollMaaSResourceState(
+    resourceLabel,
+    'MaaSModelRef',
+    name,
+    ns,
+    ocCommand,
+    (stdout) => parseMaaSModelRefDoc(name, stdout),
+    maaSModelRefOptionsMet,
+    checkOptions,
+    true,
+  );
 };
 
 export const createExternalProvider = (
@@ -1138,7 +1057,13 @@ const authPolicyOptionsMet = (
 const shouldPollMaaSState = (options: CheckMaaSOptions): boolean =>
   !!(options.phase || options.models || options.groups);
 
-const getMaaSWaitTimeoutSeconds = (options: CheckMaaSOptions, pollForState: boolean): number => {
+type MaaSPollOptions = {
+  phase?: string;
+  maxAttempts?: number;
+  retryIntervalMs?: number;
+};
+
+const getMaaSWaitTimeoutSeconds = (options: MaaSPollOptions, pollForState: boolean): number => {
   const maxAttempts = pollForState ? options.maxAttempts ?? MAAS_STATE_DEFAULT_MAX_ATTEMPTS : 1;
   const retryIntervalMs = options.retryIntervalMs ?? MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS;
   return Math.max(1, Math.ceil((maxAttempts * retryIntervalMs) / 1000));
@@ -1174,22 +1099,44 @@ const waitForMaaSPhase = (
     });
 };
 
-const pollMaaSResourceState = <T>(
+/**
+ * Shared poll helper for MaaS CRs:
+ * - when `phase` is set and `pollForState` is true, `oc wait` for phase then verify options
+ * - otherwise get + verify (retrying while `pollForState` until timeout)
+ */
+const pollMaaSResourceState = <TDoc, TOptions extends MaaSPollOptions>(
   resourceLabel: string,
   kind: string,
   name: string,
   namespace: string,
   ocCommand: string,
-  parseDoc: (stdout: string) => T,
-  optionsMet: (doc: T, options: CheckMaaSOptions) => MaaSOptionsCheckResult,
-  options: CheckMaaSOptions,
+  parseDoc: (stdout: string) => TDoc,
+  optionsMet: (doc: TDoc, options: TOptions) => MaaSOptionsCheckResult,
+  options: TOptions,
   pollForState: boolean,
 ): Cypress.Chainable<CommandLineResult> => {
-  const getAndCheck = (): Cypress.Chainable<CommandLineResult> =>
-    cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
+  const maxAttempts = pollForState ? options.maxAttempts ?? MAAS_STATE_DEFAULT_MAX_ATTEMPTS : 1;
+  const retryIntervalMs = options.retryIntervalMs ?? MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS;
+
+  const getAndCheck = (attempt = 1): Cypress.Chainable<CommandLineResult> =>
+    cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+      if (result.exitCode !== 0) {
+        if (attempt < maxAttempts) {
+          cy.log(`⏳ ${resourceLabel} not found yet (attempt ${attempt}/${maxAttempts})`);
+          // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
+          return cy.wait(retryIntervalMs).then(() => getAndCheck(attempt + 1));
+        }
+        throw new Error(`${resourceLabel} not found: ${result.stderr || result.stdout}`);
+      }
+
       const doc = parseDoc(result.stdout);
       const checkResult = optionsMet(doc, options);
       if (!checkResult.met) {
+        if (checkResult.retryable && attempt < maxAttempts) {
+          cy.log(`⏳ ${resourceLabel}: ${checkResult.reason} (attempt ${attempt}/${maxAttempts})`);
+          // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
+          return cy.wait(retryIntervalMs).then(() => getAndCheck(attempt + 1));
+        }
         throw new Error(`${resourceLabel} did not meet expected state. ${checkResult.reason}`);
       }
       cy.log(`✅ ${resourceLabel} conditions met`);
@@ -1207,6 +1154,42 @@ const pollMaaSResourceState = <T>(
   }
 
   return getAndCheck();
+};
+
+const assertMaaSResourceDeleted = (
+  resourceLabel: string,
+  ocCommand: string,
+  options: { maxAttempts?: number; retryIntervalMs?: number } = {},
+): Cypress.Chainable<CommandLineResult> => {
+  const maxAttempts = options.maxAttempts ?? MAAS_STATE_DEFAULT_MAX_ATTEMPTS;
+  const retryIntervalMs = options.retryIntervalMs ?? MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS;
+  let attempts = 0;
+
+  const checkDeleted = (): Cypress.Chainable<CommandLineResult> =>
+    cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+      attempts++;
+      if (result.exitCode !== 0 && ocGetIndicatesResourceNotFound(result)) {
+        cy.log(`✅ ${resourceLabel} does not exist`);
+        return cy.wrap(result);
+      }
+      if (result.exitCode === 0 && attempts < maxAttempts) {
+        cy.log(
+          `⏳ ${resourceLabel} still exists, waiting for deletion (attempt ${attempts}/${maxAttempts})`,
+        );
+        // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
+        return cy.wait(retryIntervalMs).then(() => checkDeleted());
+      }
+      if (result.exitCode === 0) {
+        throw new Error(`${resourceLabel} still exists after ${maxAttempts} attempts`);
+      }
+      throw new Error(
+        `Unexpected oc error while verifying deletion of ${resourceLabel}: ${
+          result.stderr || result.stdout
+        }`,
+      );
+    });
+
+  return checkDeleted();
 };
 
 const getAuthPolicyGroupNames = (doc: MaaSAuthPolicyState): string[] => {
