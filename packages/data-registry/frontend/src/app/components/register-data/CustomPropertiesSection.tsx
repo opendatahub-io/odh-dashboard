@@ -8,18 +8,12 @@ import {
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
-import { PlusCircleIcon } from '@patternfly/react-icons';
+import { PlusCircleIcon, TrashIcon } from '@patternfly/react-icons';
 import { useFieldArray, useFormContext } from 'react-hook-form';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
 import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
 
-type CustomPropertiesSectionProps = {
-  isEditMode?: boolean;
-};
-
-const CustomPropertiesSection: React.FC<CustomPropertiesSectionProps> = ({
-  isEditMode = false,
-}) => {
+const CustomPropertiesSection: React.FC = () => {
   const { control, register } = useFormContext<RegisterDataFormData | EditAssetFormData>();
   const { fields, append, remove } = useFieldArray({ control, name: 'customProperties' });
 
@@ -57,11 +51,10 @@ const CustomPropertiesSection: React.FC<CustomPropertiesSectionProps> = ({
               <Button
                 variant="plain"
                 onClick={() => remove(index)}
-                isDisabled={isEditMode}
                 aria-label="Remove property"
                 data-testid={`data-custom-property-remove-${index}`}
               >
-                Remove
+                <TrashIcon />
               </Button>
             </FlexItem>
           </Flex>
