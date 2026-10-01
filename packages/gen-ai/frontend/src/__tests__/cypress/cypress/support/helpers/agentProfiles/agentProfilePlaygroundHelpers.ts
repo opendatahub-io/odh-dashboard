@@ -25,7 +25,9 @@ export const setupPlaygroundBase = (namespace: string): void => {
   ];
   cy.interceptGenAi('GET /api/v1/namespaces', { data: namespacesData });
   cy.interceptGenAi('GET /api/v1/user', { data: { username: 'test-user' } });
-  cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } });
+  cy.interceptGenAi('GET /api/v1/config', {
+    data: { isCustomLSD: false, sandboxesAvailable: true },
+  });
   cy.interceptGenAi('GET /api/v1/lsd/status', { query: { namespace } }, mockStatus('Ready'));
   // Include the model used in makeProfileResponse so validation warnings don't fire
   // and the Edit button stays enabled in tests that expect it to be clickable.
