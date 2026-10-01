@@ -315,6 +315,18 @@ func TestConnectionEndpointAuthorization(t *testing.T) {
 			},
 		},
 		{
+			name:             "test credentials",
+			method:           http.MethodPost,
+			path:             "/api/v1/test/credentials?namespace=test-project",
+			expectedVerb:     "get",
+			expectedResource: "data-connections",
+			expectedStatus:   http.StatusNoContent,
+			invoke: func(app *App, w *httptest.ResponseRecorder, r *http.Request, p httprouter.Params) {
+				r.Body = io.NopCloser(bytes.NewBufferString(`{"data_connection_type_id":"postgresql","credentials":{"URI":"postgres://example"}}`))
+				app.TestCredentialsHandler(w, r, p)
+			},
+		},
+		{
 			name:             "delete",
 			method:           http.MethodDelete,
 			path:             "/api/v1/connections/id?namespace=test-project",

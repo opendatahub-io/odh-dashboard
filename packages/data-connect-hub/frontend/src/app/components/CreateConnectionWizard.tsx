@@ -28,6 +28,8 @@ import {
   Select,
   SelectList,
   SelectOption,
+  Stack,
+  StackItem,
   Spinner,
   TextInput,
   Wizard,
@@ -69,6 +71,20 @@ const INITIAL_FORM_DATA: CreateConnectionFormData = {
   properties: {},
 };
 
+const StepHeader: React.FC<{ title: string; description: React.ReactNode }> = ({
+  title,
+  description,
+}) => (
+  <Stack hasGutter style={{ gap: 'var(--pf-t--global--spacer--sm)' }}>
+    <StackItem>
+      <Content component={ContentVariants.h2}>{title}</Content>
+    </StackItem>
+    <StackItem>
+      <Content component={ContentVariants.p}>{description}</Content>
+    </StackItem>
+  </Stack>
+);
+
 const K8S_NAME_MAX_LENGTH = 63;
 const K8S_NAME_PATTERN = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 
@@ -93,13 +109,10 @@ const ConnectionTypeStep: React.FC<ConnectionTypeStepProps> = ({
   onConnectionTypeChange,
 }) => (
   <Form>
-    <div>
-      <Content component={ContentVariants.h2}>Connection type</Content>
-      <Content component={ContentVariants.p}>
-        Select the type of external resource you want to connect to. Compare options below before
-        continuing.
-      </Content>
-    </div>
+    <StepHeader
+      title="Connection type"
+      description="Select the type of external resource you want to connect to. Compare options below before continuing."
+    />
     {connectionTypesError ? (
       <Alert variant="danger" isInline title="Unable to load connection types">
         {connectionTypesError.message}
@@ -152,12 +165,10 @@ const ConnectionDetailsStep: React.FC<ConnectionDetailsStepProps> = ({
 
   return (
     <Form>
-      <div>
-        <Content component={ContentVariants.h2}>Connection details</Content>
-        <Content component={ContentVariants.p}>
-          Choose the project and provide a name for this connection.
-        </Content>
-      </div>
+      <StepHeader
+        title="Connection details"
+        description="Choose the project and provide a name for this connection."
+      />
       {namespacesError ? (
         <Alert variant="danger" isInline title="Unable to load projects">
           {namespacesError.message}
@@ -370,13 +381,15 @@ const ConfigurationStep: React.FC<ConfigurationStepProps> = (props) => {
 
   return (
     <Form>
-      <div>
-        <Content component={ContentVariants.h2}>Configuration</Content>
-        <Content component={ContentVariants.p}>
-          Configure credentials and connection parameters for{' '}
-          <strong>{connectionType?.resource.name ?? 'the selected connection type'}</strong>.
-        </Content>
-      </div>
+      <StepHeader
+        title="Configuration"
+        description={
+          <>
+            Configure credentials and connection parameters for{' '}
+            <strong>{connectionType?.resource.name ?? 'the selected connection type'}</strong>.
+          </>
+        }
+      />
       {fields.map((field) => (
         <CredentialField
           key={field.name}
@@ -439,11 +452,10 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
 
   return (
     <>
-      <Content component={ContentVariants.h2}>Review</Content>
-      <Content component={ContentVariants.p}>
-        Review the information below and click Create connection to complete. Use the Back button to
-        make changes.
-      </Content>
+      <StepHeader
+        title="Review"
+        description="Review the information below and click Create connection to complete. Use the Back button to make changes."
+      />
       <Content component={ContentVariants.h3}>Summary</Content>
       <DescriptionList
         isHorizontal
@@ -523,11 +535,13 @@ const PropertiesStep: React.FC<PropertiesStepProps> = ({
   onChange,
   onRemove,
 }) => (
-  <div>
-    <Content component={ContentVariants.p}>
-      Optionally define metadata to help discover and govern this connection in Data Connect Hub.
-    </Content>
-    <div>
+  <Stack hasGutter>
+    <StackItem>
+      <Content component={ContentVariants.p}>
+        Optionally define metadata to help discover and govern this connection in Data Connect Hub.
+      </Content>
+    </StackItem>
+    <StackItem>
       {properties.length > 0 ? (
         <Grid hasGutter className="pf-v6-u-mb-sm">
           <GridItem span={5}>Key</GridItem>
@@ -569,8 +583,8 @@ const PropertiesStep: React.FC<PropertiesStepProps> = ({
       <Button variant="link" isInline icon={<PlusCircleIcon />} onClick={onAdd}>
         Add key-value pair
       </Button>
-    </div>
-  </div>
+    </StackItem>
+  </Stack>
 );
 
 type CreateConnectionWizardFooterProps = {
@@ -802,7 +816,11 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
       }
       setIsVerified(true);
     } catch (error) {
-      if (requestId !== verificationRequestRef.current || abortController.signal.aborted) {
+      if (
+        requestId !== verificationRequestRef.current ||
+        abortController.signal.aborted ||
+        (error instanceof Error && error.name === 'AbortError')
+      ) {
         return;
       }
       setVerificationError(

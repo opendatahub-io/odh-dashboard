@@ -374,7 +374,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
       {connections.length === 0 ? (
         <EmptyState
           headingLevel="h3"
-          icon={() => <img src={emptyStateImage} alt="" width="320px" height="320px" />}
+          icon={() => <img src={emptyStateImage} alt="" width={320} height={320} />}
           titleText="Get started with data connections"
         >
           <EmptyStateBody>

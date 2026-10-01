@@ -30,7 +30,7 @@ func (app *App) TestCredentialsHandler(w http.ResponseWriter, r *http.Request, _
 		app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
 		return
 	}
-	if !app.authorizeNamespace(w, r, namespace, identity, "create", "data-connections") {
+	if !app.authorizeNamespace(w, r, namespace, identity, "get", "data-connections") {
 		return
 	}
 

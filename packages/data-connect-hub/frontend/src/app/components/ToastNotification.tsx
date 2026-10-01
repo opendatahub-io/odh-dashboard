@@ -19,7 +19,7 @@ const ToastNotification: React.FC<{ notification: Notification }> = ({ notificat
     startRef.current = Date.now();
     const timeout = window.setTimeout(
       () => notifications.remove(notification.id),
-      remainingRef.current,
+      Math.max(0, remainingRef.current),
     );
 
     return () => {
