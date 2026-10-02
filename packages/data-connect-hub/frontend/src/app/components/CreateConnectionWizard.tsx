@@ -775,6 +775,8 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const hasNamespacesReady = namespacesLoaded && !namespacesError;
   const hasValidDetails =
     hasConnectionType &&
+    hasConnectionTypesReady &&
+    Boolean(selectedConnectionType) &&
     hasNamespacesReady &&
     Boolean(selectedNamespace) &&
     isValidConnectionName(formData.name);
@@ -936,6 +938,10 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   }, [isCreating, onClose, resetForm]);
 
   const handleCreate = async () => {
+    if (!hasValidConfiguration) {
+      return;
+    }
+
     if (!onCreate) {
       resetForm();
       onClose();
