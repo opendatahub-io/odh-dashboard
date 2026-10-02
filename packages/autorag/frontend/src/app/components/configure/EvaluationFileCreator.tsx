@@ -235,7 +235,7 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
         isOpen={isOpen}
         onClose={handleClose}
         aria-label="Create an evaluation source"
-        data-testid="evaluation-creator-modal"
+        data-testid="evaluation-creator-tearsheet"
       >
         <TearsheetHeader
           title="Create an evaluation source"
