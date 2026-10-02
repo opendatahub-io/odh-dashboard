@@ -492,6 +492,35 @@ class CopyApiKeyModal extends Modal {
   findCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('close-api-key-button');
   }
+
+  findModelDocumentation(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('input[aria-label="Model documentation"]');
+  }
+
+  findAvailableModelsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-available-models-toggle');
+  }
+
+  findAvailableModelsOption(value: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`api-key-available-models-option-${value}`);
+  }
+
+  selectAvailableModel(value: string): void {
+    this.findAvailableModelsToggle().click();
+    this.findAvailableModelsOption(value).click();
+  }
+
+  findSubscriptionID(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('input[aria-label="Subscription ID"]');
+  }
+
+  findModelID(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('input[aria-label="Model ID"]');
+  }
+
+  findBaseURL(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('input[aria-label="Base URL"]');
+  }
 }
 
 class AdminBulkRevokeAPIKeyModal extends Modal {

@@ -1,4 +1,8 @@
 // From packages/maas/bff/internal/models/model.go
+export type MaaSGatewayURL = {
+  url: string;
+};
+
 export type MaaSModelDetails = {
   displayName?: string;
   description?: string;
