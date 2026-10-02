@@ -200,7 +200,7 @@ describe('ModelTabContent', () => {
     expect(screen.getByTestId('transcription-model-section')).toBeInTheDocument();
   });
 
-  it('clears ASR store state when capabilities are ready and no ASR models exist', () => {
+  it('keeps the selected transcription model when no models are tagged', () => {
     mockWorkspaceCapabilities.hasASRModel = false;
     mockWorkspaceCapabilities.capabilitiesReady = true;
     mockWorkspaceCapabilities.capabilitiesError = false;
@@ -215,8 +215,10 @@ describe('ModelTabContent', () => {
 
     render(<ModelTabContent {...defaultProps} configId="default" />);
 
-    expect(useChatbotConfigStore.getState().configurations.default?.isAsrModelEnabled).toBe(false);
-    expect(useChatbotConfigStore.getState().configurations.default?.selectedAsrModel).toBe('');
+    expect(useChatbotConfigStore.getState().configurations.default?.isAsrModelEnabled).toBe(true);
+    expect(useChatbotConfigStore.getState().configurations.default?.selectedAsrModel).toBe(
+      'whisper-large-v3',
+    );
   });
 
   it('does not clear ASR store state when capabilities errored', () => {
