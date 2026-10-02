@@ -289,7 +289,6 @@ spec:
                   MaaSConsumerPortalURL is the pre-DSC-v3 spelling retained for status
                   compatibility. New consumers should use MaaSPortalURL.
                   Deprecated: use MaaSPortalURL.
-                maxLength: 2048
                 type: string
               maasPortalUrl:
                 description: |-

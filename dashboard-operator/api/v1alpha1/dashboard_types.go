@@ -233,7 +233,6 @@ type DashboardStatus struct {
 
 	// MaaSConsumerPortalURL is the pre-DSC-v3 spelling retained for status
 	// compatibility. New consumers should use MaaSPortalURL.
-	// +kubebuilder:validation:MaxLength=2048
 	// +optional
 	// Deprecated: use MaaSPortalURL.
 	MaaSConsumerPortalURL string `json:"maasConsumerPortalUrl,omitempty"`

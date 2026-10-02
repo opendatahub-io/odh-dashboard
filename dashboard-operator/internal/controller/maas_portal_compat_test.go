@@ -13,6 +13,7 @@ func TestEffectiveMaaSPortal(t *testing.T) {
 	current := &v1alpha1.MaaSPortalSpec{ManagementState: "Removed"}
 
 	require.Equal(t, legacy, effectiveMaaSPortal(v1alpha1.DashboardSpec{MaaSConsumerPortal: legacy}))
+	require.Equal(t, current, effectiveMaaSPortal(v1alpha1.DashboardSpec{MaaSPortal: current}))
 	require.Equal(t, current, effectiveMaaSPortal(v1alpha1.DashboardSpec{
 		MaaSPortal:         current,
 		MaaSConsumerPortal: legacy,

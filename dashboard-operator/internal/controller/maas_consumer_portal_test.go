@@ -146,7 +146,7 @@ func TestReconcileMaaSConsumerPortal_MissingGatewayDomainRetries(t *testing.T) {
 	s := maasConsumerPortalScheme(t)
 	dashboard := &v1alpha1.Dashboard{
 		Spec: v1alpha1.DashboardSpec{
-			MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
+			MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
 		},
 		Status: v1alpha1.DashboardStatus{MaaSConsumerPortalURL: "https://previous.example.com/"},
 	}
@@ -177,8 +177,8 @@ func TestReconcileMaaSConsumerPortal_DeployFailurePreservesURL(t *testing.T) {
 	dashboard := &v1alpha1.Dashboard{
 		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName},
 		Spec: v1alpha1.DashboardSpec{
-			Gateway:            &v1alpha1.GatewaySpec{Domain: "apps.example.com"},
-			MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
+			Gateway:    &v1alpha1.GatewaySpec{Domain: "apps.example.com"},
+			MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
 		},
 		Status: v1alpha1.DashboardStatus{MaaSConsumerPortalURL: "https://previous.example.com/"},
 	}
