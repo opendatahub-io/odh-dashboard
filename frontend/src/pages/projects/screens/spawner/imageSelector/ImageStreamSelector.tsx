@@ -1,8 +1,18 @@
-import { Divider, FormGroup, MenuItem } from '@patternfly/react-core';
+import {
+  Divider,
+  FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  MenuItem,
+} from '@patternfly/react-core';
 import * as React from 'react';
 import { upperFirst } from 'lodash-es';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
-import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
+import TypeaheadSelect, {
+  TypeaheadSelectOption,
+} from '@odh-dashboard/ui-core/components/TypeaheadSelect';
+import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
 import ProjectScopedPopover from '@odh-dashboard/ui-core/components/ProjectScopedPopover';
 import ProjectScopedIcon from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedIcon';
 import {
@@ -44,16 +54,16 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const [searchImageStreamName, setSearchImageStreamName] = React.useState('');
 
+  const matchesSearch = (imageStream: ImageStreamKind) =>
+    [
+      imageStream.metadata.name,
+      getImageStreamDisplayName(imageStream),
+      getImageStreamTier(imageStream),
+    ].some((value) => value.toLowerCase().includes(searchImageStreamName.trim().toLowerCase()));
   const filteredCurrentImageStreams =
-    currentProjectStreams
-      ?.toSorted(compareImageStreamTier)
-      .filter((imageStream) =>
-        imageStream.metadata.name.toLowerCase().includes(searchImageStreamName.toLowerCase()),
-      ) || [];
+    currentProjectStreams?.toSorted(compareImageStreamTier).filter(matchesSearch) || [];
   const sortedImageStreams = imageStreams.toSorted(compareImageStreamTier);
-  const filteredImageStreams = sortedImageStreams.filter((imageStream) =>
-    imageStream.metadata.name.toLowerCase().includes(searchImageStreamName.toLowerCase()),
-  );
+  const filteredImageStreams = sortedImageStreams.filter(matchesSearch);
 
   const renderMenuItem = (
     imageStream: ImageStreamKind,
@@ -93,34 +103,29 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
     );
   };
 
-  const tiers = Array.from(new Set(sortedImageStreams.map(getImageStreamTier)));
-  const groupedOptions = tiers.map((tier) => ({
-    key: tier,
-    label: upperFirst(tier),
-    options: sortedImageStreams
-      .filter((imageStream) => getImageStreamTier(imageStream) === tier)
-      .map((imageStream): SimpleSelectOption => {
-        const description = getRelatedVersionDescription(imageStream);
-        const displayName = getImageStreamDisplayName(imageStream);
-        const compatible = !!compatibleIdentifiers?.some((identifier) =>
-          isCompatibleWithIdentifier(identifier, imageStream),
-        );
-        return {
-          key: imageStream.metadata.name,
-          label: displayName,
-          description,
-          isDisabled: !checkImageStreamAvailability(imageStream, buildStatuses),
-          dropdownLabel: (
-            <ImageStreamDropdownLabel
-              displayName={displayName}
-              tier={tier}
-              compatible={compatible}
-              content="hardware profile"
-            />
-          ),
-        };
-      }),
+  const options: TypeaheadSelectOption[] = sortedImageStreams.map((imageStream) => ({
+    value: imageStream.metadata.name,
+    content: getImageStreamDisplayName(imageStream),
+    group: upperFirst(getImageStreamTier(imageStream)),
+    description: getRelatedVersionDescription(imageStream),
+    isDisabled: !checkImageStreamAvailability(imageStream, buildStatuses),
+    'data-testid': imageStream.metadata.name,
+    dropdownLabel: (
+      <ImageStreamDropdownLabel
+        tier={getImageStreamTier(imageStream)}
+        compatible={
+          !!compatibleIdentifiers?.some((identifier) =>
+            isCompatibleWithIdentifier(identifier, imageStream),
+          )
+        }
+        content="hardware profile"
+      />
+    ),
   }));
+  const selectedOption =
+    selectedImageStream?.metadata.namespace !== currentProject
+      ? options.find((option) => option.value === selectedImageStream?.metadata.name)
+      : undefined;
 
   return (
     <FormGroup
@@ -139,6 +144,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
           globalScopedItems={filteredImageStreams}
           renderMenuItem={renderMenuItem}
           searchValue={searchImageStreamName}
+          searchFocusOnOpen
           onSearchChange={setSearchImageStreamName}
           onSearchClear={() => setSearchImageStreamName('')}
           toggleContent={
@@ -170,29 +176,45 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
           isFullWidth
         />
       ) : (
-        <SimpleSelect
-          isScrollable
-          isFullWidth
-          id="workbench-image-stream-selection"
-          dataTestId="workbench-image-stream-selection"
-          aria-label="Select an image"
-          groupedOptions={groupedOptions}
-          placeholder="Select one"
-          value={
-            selectedImageStream?.metadata.namespace !== currentProject
-              ? selectedImageStream?.metadata.name
-              : ''
-          }
-          popperProps={{ appendTo: 'inline' }}
-          onChange={(key) => {
-            const imageStream = imageStreams.find(
-              (currentImageStream) => currentImageStream.metadata.name === key,
-            );
-            if (imageStream) {
-              onImageStreamSelect(imageStream);
+        <>
+          <TypeaheadSelect
+            isScrollable
+            id="workbench-image-stream-selection"
+            dataTestId="workbench-image-stream-selection"
+            aria-label="Select an image"
+            selectOptions={options}
+            selected={selectedOption?.value}
+            placeholder="Select one"
+            previewDescription={false}
+            filterFunction={(query, selectOptions) =>
+              selectOptions.filter((option) =>
+                [option.content, option.value, option.group].some((text) =>
+                  String(text ?? '')
+                    .toLowerCase()
+                    .includes(query.trim().toLowerCase()),
+                ),
+              )
             }
-          }}
-        />
+            popperProps={{ appendTo: 'inline' }}
+            onSelect={(_event, key) => {
+              const imageStream = imageStreams.find(
+                (currentImageStream) => currentImageStream.metadata.name === key,
+              );
+              if (imageStream) {
+                onImageStreamSelect(imageStream);
+              }
+            }}
+          />
+          {selectedOption?.description ? (
+            <FormHelperText>
+              <HelperText isLiveRegion>
+                <HelperTextItem>
+                  <TruncatedText maxLines={2} content={selectedOption.description} />
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          ) : null}
+        </>
       )}
     </FormGroup>
   );
