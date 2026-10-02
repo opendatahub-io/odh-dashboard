@@ -1664,8 +1664,8 @@ func (f *guardrailTestK8sFactory) ValidateRequestIdentity(_ *integrations.Reques
 
 // TestGetGuardrailModelEndpointAndKey_MaaS verifies that both the explicit
 // (guardrail_model_source_type: "maas") and auto-detect paths resolve the NeMo
-// base_url to the model-specific inference URL from the live MaaS catalog,
-// not to the MaaS management API (resolveMaaSBaseURL).
+// base_url to the model-specific inference URL from the live MaaS catalog.
+// MaaS availability is discovered through the MaaS BFF gateway endpoint.
 func TestGetGuardrailModelEndpointAndKey_MaaS(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	llamaStackClientFactory := lsmocks.NewMockClientFactory()
@@ -1678,16 +1678,12 @@ func TestGetGuardrailModelEndpointAndKey_MaaS(t *testing.T) {
 		maasModelID         = "llama-2-7b-chat"
 		maasModelCatalogURL = "https://llama-2-7b-chat.apps.example.openshift.com/v1"
 		staleConfigmapURL   = "https://stale-configmap.example.com/v1"
-		maasControllerURL   = "https://maas.example.com/maas-api"
 	)
 
 	newApp := func() *App {
 		k8sClient := &guardrailTestK8sClient{providerInfoURL: staleConfigmapURL}
 		return &App{
-			config: config.EnvConfig{
-				Port:    4000,
-				MaaSURL: maasControllerURL,
-			},
+			config:                  config.EnvConfig{Port: 4000},
 			logger:                  logger,
 			llamaStackClientFactory: llamaStackClientFactory,
 			repositories:            repositories.NewRepositories(),
@@ -1717,7 +1713,6 @@ func TestGetGuardrailModelEndpointAndKey_MaaS(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, maasModelCatalogURL, baseURL, "should use MaaS catalog URL, not the management API URL")
 		assert.NotEmpty(t, apiKey, "ephemeral token should be populated")
-		assert.NotEqual(t, maasControllerURL, baseURL, "must not return the MaaS management API URL")
 	})
 
 	t.Run("explicit maas source type with bare model ID resolves inference URL", func(t *testing.T) {
@@ -1770,6 +1765,9 @@ func TestGetGuardrailModelEndpointAndKey_MaaS(t *testing.T) {
 		mockMaaSClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
 		mockMaaSClient.CallHandler = func(_ context.Context, method, path string, _ interface{}, response interface{}) error {
 			switch {
+			case method == "GET" && path == "/gateway-url":
+				response.(*models.MaaSBFFGatewayURLResponse).Data.URL = "https://maas.apps.example.com/maas-api"
+				return nil
 			case method == "GET" && path == "/models":
 				*response.(*models.MaaSBFFModelsResponse) = models.MaaSBFFModelsResponse{
 					Data: models.MaaSBFFModelsData{
