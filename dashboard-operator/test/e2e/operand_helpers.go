@@ -279,6 +279,40 @@ func findCoreDeployment(deployments []appsv1.Deployment) (*appsv1.Deployment, er
 	return nil, fmt.Errorf("owned core Dashboard Deployment was not found")
 }
 
+func selectCoreOperandInventory(inventory operandInventory, platform string) (operandInventory, error) {
+	coreName := map[string]string{
+		platformODH:   "odh-dashboard",
+		platformRHOAI: "rhods-dashboard",
+	}[platform]
+	if coreName == "" {
+		return operandInventory{}, fmt.Errorf("unsupported platform %q", platform)
+	}
+
+	selected := operandInventory{}
+	for i := range inventory.deployments {
+		if inventory.deployments[i].Name == coreName {
+			selected.deployments = append(selected.deployments, inventory.deployments[i])
+		}
+	}
+	for i := range inventory.services {
+		if inventory.services[i].Name == coreName {
+			selected.services = append(selected.services, inventory.services[i])
+		}
+	}
+
+	missing := make([]string, 0, 2)
+	if len(selected.deployments) == 0 {
+		missing = append(missing, "Deployment/"+coreName)
+	}
+	if len(selected.services) == 0 {
+		missing = append(missing, "Service/"+coreName)
+	}
+	if len(missing) > 0 {
+		return operandInventory{}, fmt.Errorf("missing core operand resources: %s", strings.Join(missing, ", "))
+	}
+	return selected, nil
+}
+
 func anyReadyPod(pods []corev1.Pod) bool {
 	for i := range pods {
 		for _, condition := range pods[i].Status.Conditions {

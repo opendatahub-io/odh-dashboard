@@ -287,6 +287,7 @@ describe('External Models Page', () => {
 
       createExternalModelPage.findTitle().should('contain.text', 'Add external model');
       createExternalModelPage.findProjectInput().should('have.value', TEST_PROJECT);
+      createExternalModelPage.findAdditionalConfigurationRequiredAlert().should('exist');
       createExternalModelPage.findCreateButton().should('be.disabled');
     });
 
