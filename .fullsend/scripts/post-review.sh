@@ -16,6 +16,9 @@
 #      (fallback: registry id). Machine matching still uses `id`.
 #   6. Producers table columns: Producer | Type | Ran | Result (kind-aware;
 #      Type from registry output, else adapter envelope output).
+#   7. Absolutize FULLSEND_CONFIG_DIR when FULLSEND_DIR is relative — post_script
+#      CWD is runDir, so a bare ".fullsend" would miss dimensions.json and
+#      .run/collected.json (labels → ids, Type/Result → —, adapter envelopes lost).
 
 #
 # Harness may fetch this script with sibling files in scripts/.
@@ -49,8 +52,27 @@
 set -euo pipefail
 
 REVIEW_STICKY_MARKER='<!-- fullsend:review-agent -->'
-_FULLSEND_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-FULLSEND_CONFIG_DIR="${FULLSEND_DIR:-${_FULLSEND_DIR}}"
+
+# Resolve the config directory to an absolute path. The harness sets
+# FULLSEND_DIR=.fullsend (relative) and runs post_script with CWD=runDir, so a
+# bare relative value cannot find dimensions.json or .run/collected.json.
+resolve_fullsend_config_dir() {
+  local script_dir candidate
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  candidate="${FULLSEND_DIR:-${script_dir}}"
+  if [[ "${candidate}" != /* ]]; then
+    if [[ -d "${candidate}" ]]; then
+      candidate="$(cd "${candidate}" && pwd)"
+    elif [[ -n "${GITHUB_WORKSPACE:-}" && -d "${GITHUB_WORKSPACE}/${candidate}" ]]; then
+      candidate="$(cd "${GITHUB_WORKSPACE}/${candidate}" && pwd)"
+    else
+      candidate="${script_dir}"
+    fi
+  fi
+  printf '%s' "${candidate}"
+}
+
+FULLSEND_CONFIG_DIR="$(resolve_fullsend_config_dir)"
 export FULLSEND_CONFIG_DIR
 
 # $1 = path to agent-result.json. Writes transformed JSON to stdout.
@@ -1026,6 +1048,37 @@ run_self_test() {
   tmp=$(mktemp -d)
   cleanup_self_test() { rm -rf "${tmp}"; }
   trap cleanup_self_test EXIT
+
+  # Relative FULLSEND_DIR must still resolve when CWD is not the workspace
+  # (post_script runs in runDir). Without this, labels/Type/Result collapse.
+  local resolved_from_rundir
+  resolved_from_rundir="$(
+    cd "${tmp}"
+    FULLSEND_DIR=".fullsend"
+    unset GITHUB_WORKSPACE
+    resolve_fullsend_config_dir
+  )"
+  if [[ "${resolved_from_rundir}" != /* ]] || [[ ! -f "${resolved_from_rundir}/dimensions.json" ]]; then
+    echo "FAIL config-dir: relative FULLSEND_DIR from runDir did not resolve to dimensions.json (${resolved_from_rundir})" >&2
+    fail=1
+  else
+    echo "PASS relative FULLSEND_DIR resolves from runDir to ${resolved_from_rundir}"
+  fi
+
+  local resolved_via_workspace
+  resolved_via_workspace="$(
+    cd "${tmp}"
+    FULLSEND_DIR=".fullsend"
+    # BASH_SOURCE[0] is this script (.fullsend/scripts/post-review.sh).
+    GITHUB_WORKSPACE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+    resolve_fullsend_config_dir
+  )"
+  if [[ ! -f "${resolved_via_workspace}/dimensions.json" ]]; then
+    echo "FAIL config-dir: GITHUB_WORKSPACE-relative FULLSEND_DIR missed dimensions.json (${resolved_via_workspace})" >&2
+    fail=1
+  else
+    echo "PASS GITHUB_WORKSPACE-relative FULLSEND_DIR resolves to ${resolved_via_workspace}"
+  fi
 
   render_fixture() {
     local name="$1" want_action="$2" json="$3" body
