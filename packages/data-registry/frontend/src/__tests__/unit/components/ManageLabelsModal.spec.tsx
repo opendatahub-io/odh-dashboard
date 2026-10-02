@@ -73,14 +73,9 @@ describe('ManageLabelsModal', () => {
     expect(screen.getByText('Manage labels')).toBeTruthy();
     expect(
       screen.getByText(
-        'Create and delete labels to manage how assets are organized across this project.',
+        'View and manage this project’s labels. Optionally use labels to organize and filter your data assets.',
       ),
     ).toBeTruthy();
-  });
-
-  it('should render info alert', () => {
-    renderModal();
-    expect(screen.getByText('Changes affect all project assets')).toBeTruthy();
   });
 
   it('should render all labels with outline variant', () => {

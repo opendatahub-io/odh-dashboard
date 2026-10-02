@@ -58,7 +58,7 @@ const getOrderedProperties = (properties: Record<string, string>) => {
 
 const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => {
   const isUnstructured = asset.asset_type === 'volume';
-  const formatBadge = getFormatBadge(asset.format, asset.asset_type);
+  const formatBadge = getFormatBadge(asset.format);
   const assetTypeLabel = isUnstructured ? 'Unstructured' : 'Structured';
   const formatLabel = isUnstructured
     ? getUnstructuredFormatLabel(asset.format)
@@ -95,13 +95,19 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
         <Stack hasGutter>
           <StackItem>
             <Card data-testid="data-details-card">
-              <CardTitle>Data details</CardTitle>
+              <CardTitle>Data asset details</CardTitle>
               <CardBody>
                 <DescriptionList
                   data-testid="table-detail-description-list"
                   columnModifier={{ default: '2Col' }}
                 >
-                  {/* Description - always first (left column) */}
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Name</DescriptionListTerm>
+                    <DescriptionListDescription data-testid="asset-name">
+                      {asset.name || '-'}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+
                   <DescriptionListGroup>
                     <DescriptionListTerm>Description</DescriptionListTerm>
                     <DescriptionListDescription data-testid="asset-description">

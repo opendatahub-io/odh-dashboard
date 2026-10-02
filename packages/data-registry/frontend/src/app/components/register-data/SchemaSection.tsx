@@ -23,16 +23,16 @@ import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
 import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
 
 const COLUMN_TYPE_OPTIONS = [
-  { key: 'string', label: 'string' },
-  { key: 'integer', label: 'integer' },
-  { key: 'long', label: 'long' },
-  { key: 'float', label: 'float' },
-  { key: 'double', label: 'double' },
-  { key: 'boolean', label: 'boolean' },
-  { key: 'date', label: 'date' },
-  { key: 'timestamp', label: 'timestamp' },
-  { key: 'binary', label: 'binary' },
-  { key: 'decimal', label: 'decimal' },
+  { key: 'string', label: 'String' },
+  { key: 'integer', label: 'Integer' },
+  { key: 'long', label: 'Long' },
+  { key: 'float', label: 'Float' },
+  { key: 'double', label: 'Double' },
+  { key: 'boolean', label: 'Boolean' },
+  { key: 'date', label: 'Date' },
+  { key: 'timestamp', label: 'Timestamp' },
+  { key: 'binary', label: 'Binary' },
+  { key: 'decimal', label: 'Decimal' },
 ];
 
 const SchemaSection: React.FC = () => {
@@ -62,7 +62,7 @@ const SchemaSection: React.FC = () => {
               </FlexItem>
               <FlexItem style={{ flex: 1 }}>
                 <Content component="small">
-                  <strong>Type *</strong>
+                  <strong>Value type *</strong>
                 </Content>
               </FlexItem>
               <FlexItem style={{ flex: 2 }}>
@@ -83,7 +83,6 @@ const SchemaSection: React.FC = () => {
                 <FlexItem style={{ flex: 2 }}>
                   <TextInput
                     {...register(`schemaFields.${index}.name`)}
-                    placeholder="e.g. claim_id"
                     isRequired
                     validated={errors.schemaFields?.[index]?.name ? 'error' : 'default'}
                     aria-label={`Column ${index + 1} name`}
@@ -122,7 +121,10 @@ const SchemaSection: React.FC = () => {
                             isFullWidth
                             data-testid={`schema-column-type-${index}`}
                           >
-                            {typeField.value || 'Select type'}
+                            {COLUMN_TYPE_OPTIONS.find((opt) => opt.key === typeField.value)
+                              ?.label ||
+                              typeField.value ||
+                              'Select value type'}
                           </MenuToggle>
                         )}
                       >
@@ -140,7 +142,6 @@ const SchemaSection: React.FC = () => {
                 <FlexItem style={{ flex: 2 }}>
                   <TextInput
                     {...register(`schemaFields.${index}.description`)}
-                    placeholder="e.g. Unique claim identifier"
                     aria-label={`Column ${index + 1} description`}
                     data-testid={`schema-column-description-${index}`}
                   />

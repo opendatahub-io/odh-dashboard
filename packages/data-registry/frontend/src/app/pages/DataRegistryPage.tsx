@@ -316,18 +316,11 @@ const DataRegistryPage: React.FC = () => {
         </PageSection>
       ) : (
         <>
-          <PageSection hasBodyWrapper={false} className="odh-data-registry__header">
-            <span className="odh-data-registry__tab">Registry</span>
+          <PageSection hasBodyWrapper={false}>
+            <Content component="p">
+              View and manage this project’s data assets where information is located.
+            </Content>
           </PageSection>
-          {assets.length > 0 ? (
-            <PageSection hasBodyWrapper={false}>
-              <Content component="p">
-                View and manage data assets registered in the selected project. The data registry
-                provides a structured and organized way to discover, share, version, and connect
-                schemas, datasets, and data sources.
-              </Content>
-            </PageSection>
-          ) : null}
           <RegistryTable
             assets={assets}
             loaded={assetsLoaded && collectionsLoaded}

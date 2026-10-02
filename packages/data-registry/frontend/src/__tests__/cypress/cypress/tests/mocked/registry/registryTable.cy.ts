@@ -728,12 +728,12 @@ describe('Register Table', () => {
     cy.findByTestId('add-schema-column').click();
     cy.findByTestId('schema-column-name-0').type('claim_id');
     cy.findByTestId('schema-column-type-0').click();
-    cy.contains('integer').click();
+    cy.contains('Integer').click();
 
     cy.findByTestId('add-schema-column').click();
     cy.findByTestId('schema-column-name-1').type('amount');
     cy.findByTestId('schema-column-type-1').click();
-    cy.contains('double').click();
+    cy.contains('Double').click();
 
     cy.findByTestId('register-data-submit').click();
 

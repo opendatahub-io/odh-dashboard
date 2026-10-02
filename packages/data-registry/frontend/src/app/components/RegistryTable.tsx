@@ -749,7 +749,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
               </Tr>
             ) : (
               paginatedAssets.map((asset) => {
-                const badge = getFormatBadge(asset.format, asset.assetType);
+                const badge = getFormatBadge(asset.format);
                 const assetKey = JSON.stringify([asset.assetType, asset.collection, asset.name]);
                 const connectionType = connections.find(
                   (connection) => connection.name === asset.connectionRef,
@@ -786,8 +786,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                           (option) =>
                             option.value === asset.format && option.assetType === asset.assetType,
                         )?.label || asset.format}
-                      </Label>{' '}
-                      <Content component="small">{badge.text}</Content>
+                      </Label>
                     </Td>
                     <Td dataLabel="Asset location">
                       {asset.rawAsset?.connection_ref ? (
