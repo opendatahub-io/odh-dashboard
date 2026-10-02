@@ -31,7 +31,7 @@ export const interceptAgentSources = (sources: CatalogSource[]): void => {
     `GET /api/:apiVersion/model_catalog/sources`,
     { path: { apiVersion: MODEL_CATALOG_API_VERSION }, query: { assetType: 'agents' } },
     mockCatalogSourceList({ items: sources }),
-  );
+  ).as('getAgentSources');
 };
 
 export const interceptAgentLabels = (): void => {

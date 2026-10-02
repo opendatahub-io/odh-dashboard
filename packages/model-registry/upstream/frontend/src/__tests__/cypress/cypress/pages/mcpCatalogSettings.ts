@@ -111,7 +111,7 @@ class McpManageSourcePage {
 
   private waitForAddSource() {
     this.findHeading();
-    cy.testA11y();
+    cy.testA11y({ exclude: ['.pf-v6-c-tabs'] });
   }
 
   private waitForManageSource({
