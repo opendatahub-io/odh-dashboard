@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
 import {
@@ -97,6 +97,7 @@ const renderComponent = (
   allowExistingSettings = false,
   localQueuesOverride?: LocalQueuesContextType['localQueues'],
   initialHardwareProfile?: HardwareProfileKind,
+  selectedProfile?: HardwareProfileKind,
 ) => {
   // Mock useKueueConfiguration to return the specified filtering state
   useKueueConfigurationMock.mockReturnValue({
@@ -110,6 +111,7 @@ const renderComponent = (
     formData: {
       useExistingSettings: false,
     },
+    selectedProfile,
     useExistingSettings: false,
     setFormData: () => null,
     resetFormData: () => null,
@@ -311,6 +313,65 @@ describe('HardwareProfileSelect', () => {
 });
 
 describe('HardwareProfileSelect - Use existing settings', () => {
+  it('should keep a DRA profile in the options while it is still the selected profile', async () => {
+    const draProfile = mockHardwareProfile({
+      name: 'dra-profile',
+      displayName: 'DRA Profile',
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+    const otherProfile = mockHardwareProfile({
+      name: 'other-profile',
+      displayName: 'Other Profile',
+    });
+    const project = mockProjectK8sResource({});
+
+    renderComponent(
+      [otherProfile],
+      project,
+      KueueFilteringState.ONLY_NON_KUEUE_PROFILES,
+      [],
+      undefined,
+      true,
+      undefined,
+      draProfile,
+      draProfile,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+    expect(within(screen.getByRole('listbox')).getByText('DRA Profile')).toBeInTheDocument();
+  });
+
+  it('should drop a DRA profile from the options once another profile is selected', async () => {
+    const draProfile = mockHardwareProfile({
+      name: 'dra-profile',
+      displayName: 'DRA Profile',
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+    const otherProfile = mockHardwareProfile({
+      name: 'other-profile',
+      displayName: 'Other Profile',
+    });
+    const project = mockProjectK8sResource({});
+
+    renderComponent(
+      [otherProfile],
+      project,
+      KueueFilteringState.ONLY_NON_KUEUE_PROFILES,
+      [],
+      undefined,
+      true,
+      undefined,
+      draProfile,
+      otherProfile,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+    expect(within(screen.getByRole('listbox')).queryByText('DRA Profile')).not.toBeInTheDocument();
+    expect(within(screen.getByRole('listbox')).getByText('Other Profile')).toBeInTheDocument();
+  });
+
   it('should not show "Use existing settings" as the first option when allowExistingSettings is false', async () => {
     const project = mockProjectK8sResource({});
     renderComponent(
@@ -651,11 +712,13 @@ describe('HardwareProfileSelect - Project-scoped preview description', () => {
     previewDescription = true,
     useExistingSettings = false,
     allowExistingSettings = false,
+    projectProfiles: projectProfilesOverride,
   }: {
     selectedProfile?: HardwareProfileKind;
     previewDescription?: boolean;
     useExistingSettings?: boolean;
     allowExistingSettings?: boolean;
+    projectProfiles?: HardwareProfileKind[];
   }) => {
     const project = mockProjectK8sResource({ k8sName: 'test-project' });
 
@@ -682,7 +745,9 @@ describe('HardwareProfileSelect - Project-scoped preview description', () => {
       initialHardwareProfile: undefined,
     });
 
-    const projectProfiles = selectedProfile ? [selectedProfile] : [profileWithDescriptionAndKueue];
+    const projectProfiles =
+      projectProfilesOverride ??
+      (selectedProfile ? [selectedProfile] : [profileWithDescriptionAndKueue]);
 
     return render(
       <CurrentProjectContext.Provider value={{ currentProject: project }}>
@@ -767,5 +832,15 @@ describe('HardwareProfileSelect - Project-scoped preview description', () => {
     expect(
       screen.getByText('Use existing resource requests/limits, tolerations, and node selectors.'),
     ).toBeInTheDocument();
+  });
+
+  it('should use the project-scoped dropdown for a selected project-scoped profile missing from the project list', () => {
+    renderProjectScopedPreview({
+      selectedProfile: profileWithDescriptionAndKueue,
+      projectProfiles: [],
+    });
+
+    expect(screen.getByTestId('hardware-profile-selection-toggle')).toBeInTheDocument();
+    expect(screen.queryByTestId('hardware-profile-select')).not.toBeInTheDocument();
   });
 });

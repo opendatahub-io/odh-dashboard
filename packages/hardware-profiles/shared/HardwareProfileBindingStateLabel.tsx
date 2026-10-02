@@ -19,6 +19,7 @@ type HardwareProfileBindingStateLabelProps = {
   hardwareProfileName: string;
   resourceType: ResourceType;
   isRunning?: boolean;
+  isDRA?: boolean;
 };
 
 const HardwareProfileBindingStateLabel: React.FC<HardwareProfileBindingStateLabelProps> = ({
@@ -26,11 +27,17 @@ const HardwareProfileBindingStateLabel: React.FC<HardwareProfileBindingStateLabe
   hardwareProfileName,
   resourceType,
   isRunning = false,
+  isDRA = false,
 }) => {
   const [isPopoverVisible, setIsPopoverVisible] = React.useState(false);
   const config = HARDWARE_PROFILE_BINDING_CONFIG[hardwareProfileBindingState];
   const icon = HARDWARE_PROFILE_BINDING_ICONS[hardwareProfileBindingState];
-  const bodyText = config.getBodyText({ name: hardwareProfileName, resourceType, isRunning });
+  const bodyText = config.getBodyText({
+    name: hardwareProfileName,
+    resourceType,
+    isRunning,
+    isDRA,
+  });
 
   return (
     <Popover
