@@ -1,0 +1,67 @@
+.gpuaas-workload-overview {
+  --pf-v6-c-accordion--m-plain__item--m-expanded__toggle--BackgroundColor: var(
+    --pf-t--global--background--color--action--plain--clicked
+  );
+
+  &__toggle {
+    width: fit-content;
+    --pf-v6-c-accordion__toggle--BackgroundColor: var(
+      --pf-t--global--background--color--action--plain--clicked
+    );
+    --pf-v6-c-accordion__toggle--hover--BackgroundColor: var(
+      --pf-t--global--background--color--action--plain--clicked
+    );
+  }
+
+  &__status {
+    padding-block-start: var(--pf-t--global--spacer--lg);
+  }
+  &__counts {
+    padding-block: var(--pf-t--global--spacer--lg);
+  }
+  &__total {
+    flex: 1;
+    text-align: center;
+    border-inline-end: var(--pf-t--global--border--width--regular) solid
+      var(--pf-t--global--border--color--default);
+  }
+  &__count {
+    flex: 1;
+    text-align: center;
+  }
+  &__bar {
+    display: flex;
+    width: 100%;
+    min-height: 3rem;
+    margin-block: var(--pf-t--global--spacer--lg);
+  }
+  &__bar-item {
+    flex-basis: 0;
+    min-width: 0;
+    display: flex;
+  }
+  &__segment {
+    width: 100%;
+    border: 0;
+    color: var(--pf-t--global--text--color--on-brand--default);
+    cursor: pointer;
+    &[data-status='waiting'] {
+      color: var(--pf-t--global--text--color--regular);
+    }
+  }
+  &__segment:focus-visible {
+    outline: var(--pf-t--global--border--width--strong) solid
+      var(--pf-t--global--color--brand--default);
+    outline-offset: 2px;
+    z-index: 1;
+  }
+  &__legend {
+    padding-block-end: var(--pf-t--global--spacer--sm);
+  }
+  &__swatch {
+    display: inline-block;
+    width: var(--pf-t--global--spacer--sm);
+    height: var(--pf-t--global--spacer--sm);
+    margin-inline-end: var(--pf-t--global--spacer--sm);
+  }
+}
