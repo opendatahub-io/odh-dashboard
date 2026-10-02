@@ -33,6 +33,8 @@ import { createCleanProject } from '../../../utils/projectChecker';
 import { genAiPlayground } from '../../../pages/genAiPlayground';
 
 const ALLOWED_ENDPOINT_HOSTS = ['generativelanguage.googleapis.com'];
+const GENAI_TRACING_COLLECTOR = 'gen-ai-trace-collector-collector';
+const GENAI_TRACING_COLLECTOR_PORT = 4318;
 
 describe('Verify tracing and observability in Gen AI Playground', { testIsolation: false }, () => {
   let testData: GenAiTracingTestData;
@@ -186,7 +188,7 @@ describe('Verify tracing and observability in Gen AI Playground', { testIsolatio
       waitForPodReady(testData.lsdPodPrefix, testData.lsdPodReadyTimeout, projectName);
 
       cy.step('Start port-forward for LSD service');
-      startPortForward(projectName, testData.lsdServiceName, 8321, 3000, true).then((handle) => {
+      startPortForward(projectName, testData.lsdServiceName, 8321, 3000).then((handle) => {
         playgroundPortForwardHandle = handle;
       });
 
@@ -197,11 +199,13 @@ describe('Verify tracing and observability in Gen AI Playground', { testIsolatio
       verifyPlaygroundTracingEnabledViaAPI(projectName);
 
       cy.step('Start port-forward for tracing service');
-      startPortForward('redhat-ods-monitoring', 'gen-ai-trace-collector-collector', 4318).then(
-        (handle) => {
-          traceCollectorPortForwardHandle = handle;
-        },
-      );
+      startPortForward(
+        Cypress.env('APPLICATIONS_NAMESPACE'),
+        GENAI_TRACING_COLLECTOR,
+        GENAI_TRACING_COLLECTOR_PORT,
+      ).then((handle) => {
+        traceCollectorPortForwardHandle = handle;
+      });
 
       cy.step('Navigate to Playground with tracing enabled');
       genAiPlayground.navigateToPlaygroundWithTracing(projectName);

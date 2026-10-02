@@ -390,7 +390,6 @@ export type PortForwardHandle = {
  * @param serviceName The name of the service to port-forward.
  * @param port The port to forward (used as both the local and remote port).
  * @param waitTimeMs Time to wait after starting the port-forward for the tunnel to establish (default 3000ms).
- * @param replaceExisting Kill an existing local listener on the same port before starting the port-forward.
  * @returns A Cypress chainable resolving to a handle for cleanup, or `null` if the port-forward was skipped.
  */
 export const startPortForward = (
@@ -398,7 +397,6 @@ export const startPortForward = (
   serviceName: string,
   port: number,
   waitTimeMs = 3000,
-  replaceExisting = false,
 ): Cypress.Chainable<PortForwardHandle | null> => {
   const baseUrl = Cypress.config('baseUrl') || '';
   if (!baseUrl.includes('localhost')) {
@@ -407,13 +405,10 @@ export const startPortForward = (
   }
 
   const logFile = `/tmp/port-forward-${serviceName}-${port}-${Date.now()}.log`;
-  const replaceExistingCommand = replaceExisting
-    ? `existing_pids=$(lsof -tiTCP:${port} -sTCP:LISTEN || true); if [ -n "$existing_pids" ]; then kill $existing_pids || true; sleep 1; fi; `
-    : '';
 
   return cy
     .exec(
-      `${replaceExistingCommand}nohup oc port-forward -n ${namespace} svc/${serviceName} ${port}:${port} > ${logFile} 2>&1 & echo $!`,
+      `nohup oc port-forward -n ${namespace} svc/${serviceName} ${port}:${port} > ${logFile} 2>&1 & echo $!`,
       { failOnNonZeroExit: false },
     )
     .then((result: CommandLineResult): Cypress.Chainable<PortForwardHandle | null> => {
