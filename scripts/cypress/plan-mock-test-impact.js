@@ -72,7 +72,7 @@ const main = () => {
   const options = parseArgs(process.argv.slice(2));
   const head = options.head || 'HEAD';
   const base = options.base || `${head}^`;
-  const groups = generateTestGroups();
+  const groups = generateTestGroups(root);
   const specs = [...new Set(groups.flatMap((group) => group.files))];
 
   let plan;

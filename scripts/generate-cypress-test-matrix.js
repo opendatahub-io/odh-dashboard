@@ -13,6 +13,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const WORKSPACE_QUERY_SCRIPT = path.join(__dirname, 'query-workspace-packages.js');
+const DEFAULT_ROOT = path.resolve(__dirname, '..');
 
 // Configuration
 const TESTS_DIR = 'packages/cypress/cypress/tests/mocked';
@@ -54,7 +55,7 @@ function validateSafePath(input, fieldName) {
 /**
  * Recursively find all directories containing .cy.ts files
  */
-function getTestDirectories(baseDir = TESTS_DIR, relativePath = '') {
+function getTestDirectories(baseDir, relativePath = '') {
   if (!fs.existsSync(baseDir)) {
     console.error(`Error: ${baseDir} not found`);
     return [];
@@ -86,8 +87,8 @@ function getTestDirectories(baseDir = TESTS_DIR, relativePath = '') {
 /**
  * Get all .cy.ts files in a directory with their sizes
  */
-function getTestFiles(dir) {
-  const dirPath = path.join(TESTS_DIR, dir);
+function getTestFiles(root, dir) {
+  const dirPath = path.join(root, TESTS_DIR, dir);
 
   if (!fs.existsSync(dirPath)) {
     return [];
@@ -152,12 +153,12 @@ function createGroupedEntry(dir, files, suffix) {
 /**
  * Generate test groups for central mock tests
  */
-function generateCentralTestGroups() {
-  const directories = getTestDirectories();
+function generateCentralTestGroups(root = DEFAULT_ROOT) {
+  const directories = getTestDirectories(path.join(root, TESTS_DIR));
   const groups = [];
 
   for (const dir of directories) {
-    const testFiles = getTestFiles(dir);
+    const testFiles = getTestFiles(root, dir);
 
     if (testFiles.length === 0) {
       continue;
@@ -202,9 +203,10 @@ function generateCentralTestGroups() {
 /**
  * Discover package-based cypress tests using the pnpm workspace and split by file size
  */
-function generatePackageTestGroups() {
+function generatePackageTestGroups(root = DEFAULT_ROOT) {
   try {
     const output = execSync(`node "${WORKSPACE_QUERY_SCRIPT}"`, {
+      cwd: root,
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'ignore'], // Suppress stderr
     });
@@ -228,7 +230,7 @@ function generatePackageTestGroups() {
         continue;
       }
 
-      const testPath = path.join('packages', pkgRelPath);
+      const testPath = path.join(root, 'packages', pkgRelPath);
 
       // Verify tests actually exist
       if (!fs.existsSync(testPath)) {
@@ -239,7 +241,7 @@ function generatePackageTestGroups() {
       const mockedPattern = pkg.cypress.mocked;
       // Extract test base dir from glob: "tests/mocked/**/*.cy.ts" -> "tests/mocked"
       const testBaseDir = mockedPattern.replace(/\/?\*\*\/\*\.cy\.ts$/, '');
-      const fullTestBaseDir = path.join('packages', pkgRelPath, testBaseDir);
+      const fullTestBaseDir = path.join(root, 'packages', pkgRelPath, testBaseDir);
 
       const testFilePaths = findTestFiles(fullTestBaseDir);
 
@@ -255,7 +257,7 @@ function generatePackageTestGroups() {
           name: path.basename(filePath, '.cy.ts'),
           size: stats.size,
           relPath,
-          repoPath: path.relative(process.cwd(), filePath),
+          repoPath: path.relative(root, filePath),
           dir: path.dirname(relPath),
         };
       });
@@ -381,16 +383,16 @@ function findTestFiles(dir) {
 /**
  * Main function
  */
-function generateTestGroups() {
-  const centralGroups = generateCentralTestGroups();
-  const packageGroups = generatePackageTestGroups();
+function generateTestGroups(root = DEFAULT_ROOT) {
+  const centralGroups = generateCentralTestGroups(root);
+  const packageGroups = generatePackageTestGroups(root);
   const allGroups = [...centralGroups, ...packageGroups];
 
   if (allGroups.length === 0) {
     allGroups.push({
       name: 'default',
       spec: 'cypress/cypress/tests/mocked/**/*.cy.ts',
-      files: findTestFiles(TESTS_DIR).map((file) => path.relative(process.cwd(), file)),
+      files: findTestFiles(path.join(root, TESTS_DIR)).map((file) => path.relative(root, file)),
     });
   }
 

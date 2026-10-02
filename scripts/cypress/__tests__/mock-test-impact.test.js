@@ -1,7 +1,10 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 
-const { planMockTestImpact } = require('../lib/mock-test-impact');
+const { buildDependencyIndex, planMockTestImpact } = require('../lib/mock-test-impact');
 const { createTestMatrix, parseArgs, sanitizeLogText } = require('../plan-mock-test-impact');
 
 const groups = [
@@ -25,6 +28,63 @@ const dependencyIndex = {
 
 const plan = (changes, index = dependencyIndex) =>
   planMockTestImpact({ groups, changes, dependencyIndex: index });
+
+const createGraphFixture = (t, files) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cypress-impact-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  for (const [relativePath, contents] of Object.entries(files)) {
+    const absolutePath = path.join(root, relativePath);
+    fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+    fs.writeFileSync(absolutePath, contents);
+  }
+  return root;
+};
+
+describe('buildDependencyIndex', () => {
+  it('maps transitive helpers and support dependencies to every consuming spec', (t) => {
+    const root = createGraphFixture(t, {
+      'tests/one.cy.ts': "import '../pages/one';\n",
+      'tests/two.cy.ts': "import '../pages/two';\n",
+      'pages/one.ts': "export { value } from '../shared/transitive';\n",
+      'pages/two.ts': 'export const two = true;\n',
+      'shared/transitive.ts': 'export const value = true;\n',
+      'support/e2e.ts': "import '../shared/global';\n",
+      'shared/global.ts': 'export const global = true;\n',
+    });
+
+    const index = buildDependencyIndex({
+      root,
+      specs: ['tests/one.cy.ts', 'tests/two.cy.ts'],
+      supportFile: 'support/e2e.ts',
+    });
+
+    assert.deepEqual(index.consumers['shared/transitive.ts'], ['tests/one.cy.ts']);
+    assert.deepEqual(index.consumers['shared/global.ts'], ['tests/one.cy.ts', 'tests/two.cy.ts']);
+    assert.deepEqual(index.unresolvedCode, []);
+    assert.deepEqual(index.dynamicImports, []);
+  });
+
+  it('reports unresolved and nonliteral dynamic imports for fail-full planning', (t) => {
+    const root = createGraphFixture(t, {
+      'tests/example.cy.ts': [
+        "import './missing';",
+        "const helper = './helper';",
+        'void import(helper);',
+      ].join('\n'),
+      'support/e2e.ts': '',
+    });
+
+    const index = buildDependencyIndex({
+      root,
+      specs: ['tests/example.cy.ts'],
+      supportFile: 'support/e2e.ts',
+    });
+
+    assert.deepEqual(index.unresolvedCode, ['tests/example.cy.ts: ./missing']);
+    assert.equal(index.dynamicImports.length, 1);
+    assert.match(index.dynamicImports[0], /tests\/example\.cy\.ts: import\(helper\)/);
+  });
+});
 
 describe('planMockTestImpact', () => {
   it('proposes no groups for documentation-only changes', () => {

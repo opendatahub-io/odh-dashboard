@@ -155,7 +155,8 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           persist-credentials: false
-          # The impact planner compares the PR/push base with this revision.
+          # Keep GitHub's merge checkout so the graph matches the code under test.
+          # IMPACT_HEAD below scopes the diff to PR-authored changes instead of base-branch changes.
           fetch-depth: 0
       - name: Setup pnpm and install dependencies
         uses: ./.github/actions/pnpm-setup
