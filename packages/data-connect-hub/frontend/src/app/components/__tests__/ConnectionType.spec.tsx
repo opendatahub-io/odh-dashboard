@@ -7,7 +7,6 @@ import {
   ConnectionTypeCardIdentifier,
   ConnectionTypeIcon,
   ConnectionTypeValues,
-  KnownConnectionTypes,
 } from '~/app/components/ConnectionType';
 
 jest.mock('@odh-dashboard/ui-core/components/TruncatedText', () => ({
@@ -18,13 +17,6 @@ jest.mock('@odh-dashboard/ui-core/components/TruncatedText', () => ({
 describe('ConnectionType', () => {
   afterEach(() => {
     jest.restoreAllMocks();
-  });
-
-  it('should map supported providers to the expected groups', () => {
-    expect(KnownConnectionTypes.s3.group).toBe('red_hat');
-    expect(KnownConnectionTypes['uri-v1'].group).toBe('red_hat');
-    expect(KnownConnectionTypes.postgres.group).toBe('other');
-    expect(KnownConnectionTypes.huggingface.id).toBe('huggingface');
   });
 
   it('should render known and fallback provider icons', () => {

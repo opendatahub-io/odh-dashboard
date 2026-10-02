@@ -58,7 +58,7 @@ export type Connection = {
   };
 };
 
-export type ConnectionTypeGroup = 'all' | 'red_hat' | 'partner' | 'other';
+export type ConnectionTypeGroup = 'full_integration' | 'credentials';
 
 type ConnectionTypeEnumValue = Labelled<string> & Valued<string>;
 

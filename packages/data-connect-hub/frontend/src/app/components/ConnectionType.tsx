@@ -17,14 +17,7 @@ import {
 import type { IconComponentProps } from '@patternfly/react-core';
 import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
 import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
-import type {
-  Identified,
-  Iconed,
-  ConnectionType,
-  ConnectionTypeGroup,
-  Labelled,
-  Valued,
-} from '~/app/types';
+import type { Identified, Iconed, ConnectionType, Labelled, Valued } from '~/app/types';
 
 import DataSourceIcon from '@patternfly/react-icons/dist/esm/icons/data-source-icon';
 import LinkIcon from '@patternfly/react-icons/dist/esm/icons/link-icon';
@@ -35,10 +28,7 @@ import RhUiStorageIcon from '@patternfly/react-icons/dist/esm/icons/rh-ui-storag
 
 // Types ---------------------------------------------------------------------->
 
-type KnownConnectionType = Identified<string> &
-  Iconed<React.ReactNode> & {
-    group: ConnectionTypeGroup;
-  };
+type KnownConnectionType = Identified<string> & Iconed<React.ReactNode>;
 
 type ValueRenderer = (c: ConnectionType) => React.ReactNode;
 
@@ -54,52 +44,42 @@ const KnownConnectionTypes: Record<string, KnownConnectionType> = {
   elasticsearch: {
     id: 'elasticsearch',
     icon: <RhUiSearchIcon />,
-    group: 'other',
   },
   huggingface: {
     id: 'huggingface',
     icon: <RhUiAiExperienceIcon />,
-    group: 'other',
   },
   milvus: {
     id: 'milvus',
     icon: <RhUiStorageIcon />,
-    group: 'other',
   },
   neo4j: {
     id: 'neo4j',
     icon: <RhUiStorageIcon />,
-    group: 'other',
   },
   'oci-v1': {
     id: 'oci-v1',
     icon: <RhUiContainerIcon />,
-    group: 'other',
   },
   postgres: {
     id: 'postgres',
     icon: <RhUiStorageIcon />,
-    group: 'other',
   },
   s3: {
     id: 's3',
     icon: <RhUiStorageIcon />,
-    group: 'red_hat',
   },
   sqlite: {
     id: 'sqlite',
     icon: <RhUiStorageIcon />,
-    group: 'other',
   },
   'uri-v1': {
     id: 'uri-v1',
     icon: <LinkIcon />,
-    group: 'red_hat',
   },
   uri: {
     id: 'uri',
     icon: <LinkIcon />,
-    group: 'red_hat',
   },
 };
 
