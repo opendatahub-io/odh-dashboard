@@ -19,7 +19,7 @@ import {
 } from '~/app/tracking/evalhubTrackingConstants';
 import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
-import { getUrlValidationError } from '~/app/utils/validationUtils';
+import { getUrlValidationError, parseS3Url } from '~/app/utils/validationUtils';
 import getErrorTitle from '~/app/utils/getErrorTitle';
 import {
   getThresholdInputValue,
@@ -475,8 +475,18 @@ export function useStartEvaluationRunForm({
     if (datasetUrl.trim() === '') {
       return 'Dataset URL is required.';
     }
+    if (!parseS3Url(datasetUrl.trim())) {
+      return 'Dataset URL must use the s3://bucket/key format.';
+    }
     return undefined;
   }, [sourceMode, datasetUrl]);
+
+  const accessTokenError = React.useMemo((): string | undefined => {
+    if (sourceMode !== 'prerecorded' || accessToken.trim() !== '') {
+      return undefined;
+    }
+    return 'S3 secret name is required.';
+  }, [sourceMode, accessToken]);
 
   const hasExperiment =
     (experimentMode === 'existing' && !!selectedExperimentName?.trim()) ||
@@ -521,7 +531,7 @@ export function useStartEvaluationRunForm({
       return agentName.trim() !== '' && !endpointUrlError;
     }
 
-    return sourceName.trim() !== '' && !datasetUrlError;
+    return sourceName.trim() !== '' && !datasetUrlError && !accessTokenError;
   }, [
     evaluationName,
     hasBenchmarks,
@@ -532,6 +542,7 @@ export function useStartEvaluationRunForm({
     agentName,
     endpointUrlError,
     datasetUrlError,
+    accessTokenError,
     sourceName,
     selectedInferenceServiceName,
     hardwareProfilesLoaded,
@@ -952,6 +963,7 @@ export function useStartEvaluationRunForm({
     markTouched,
     endpointUrlError,
     datasetUrlError,
+    accessTokenError,
     connectionValidation,
     handleVerifyConnection,
     canVerifyConnection,

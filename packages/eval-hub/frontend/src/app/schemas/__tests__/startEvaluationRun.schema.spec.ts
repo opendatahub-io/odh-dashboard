@@ -116,7 +116,8 @@ describe('startEvaluationRunSchema', () => {
         sourceMode: 'prerecorded',
         selectedInferenceServiceName: undefined,
         sourceName: 'Recorded responses',
-        datasetUrl: 'not-required-to-be-a-url-by-this-form',
+        datasetUrl: 's3://bucket/data.jsonl',
+        accessToken: 's3-credentials',
       }).success,
     ).toBe(true);
   });

@@ -1,5 +1,5 @@
 import * as z from 'zod';
-import { getUrlValidationError } from '~/app/utils/validationUtils';
+import { getUrlValidationError, parseS3Url } from '~/app/utils/validationUtils';
 
 export const SOURCE_MODES = ['model', 'agent', 'prerecorded'] as const;
 export const MODEL_SELECTIONS = ['cluster', 'external'] as const;
@@ -105,6 +105,20 @@ export const startEvaluationRunSchema = z
         code: 'custom',
         message: 'Dataset URL is required.',
         path: ['datasetUrl'],
+      });
+    } else if (!parseS3Url(data.datasetUrl.trim())) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Dataset URL must use the s3://bucket/key format.',
+        path: ['datasetUrl'],
+      });
+    }
+
+    if (data.accessToken.trim() === '') {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'S3 secret name is required.',
+        path: ['accessToken'],
       });
     }
   });
