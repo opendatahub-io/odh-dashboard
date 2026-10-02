@@ -13,6 +13,8 @@ import {
   MenuToggleElement,
   EmptyState,
   EmptyStateBody,
+  EmptyStateFooter,
+  EmptyStateActions,
   EmptyStateVariant,
   Spinner,
   Flex,
@@ -42,6 +44,7 @@ import { getFormatBadge, FORMAT_OPTIONS } from '~/app/utilities/formatUtils';
 import AccessDeniedError from '~/app/components/errors/AccessDeniedError';
 import ConnectionError from '~/app/components/errors/ConnectionError';
 import ServiceUnavailableError from '~/app/components/errors/ServiceUnavailableError';
+import noAssetsImage from '~/images/no-assets.png';
 import DeleteAssetModal from './DeleteAssetModal';
 
 type RegistryTableProps = {
@@ -93,6 +96,22 @@ const CATEGORY_LABELS: Record<FilterCategory, string> = {
   assetType: 'Asset type',
   format: 'Format',
 };
+
+const EMPTY_REGISTRY_DESCRIPTION =
+  'Data assets point to the exact location within a connection where information is located, and can be used across workbenches and pipelines in your project. To get started, create a data asset.';
+
+const EmptyRegistryStateIcon: React.FC<React.ImgHTMLAttributes<HTMLImageElement>> = ({
+  className,
+  ...props
+}) => (
+  <img
+    {...props}
+    className={`odh-data-registry__empty-state-image ${className ?? ''}`}
+    src={noAssetsImage}
+    alt=""
+    data-testid="registry-empty-state-image"
+  />
+);
 
 const RegistryTable: React.FC<RegistryTableProps> = ({
   assets,
@@ -380,7 +399,10 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   return (
     <>
       <PageSection hasBodyWrapper={false}>
-        <Toolbar>
+        <Toolbar
+          className={assets.length === 0 ? 'pf-v6-u-display-none' : undefined}
+          data-testid="registry-toolbar"
+        >
           <ToolbarContent>
             {/* Category selector */}
             <ToolbarItem style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }}>
@@ -435,16 +457,18 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
               />
             </ToolbarItem>
             {/* Register data button */}
-            <ToolbarItem>
-              <Button
-                variant="primary"
-                onClick={onRegisterData}
-                isDisabled={!hasWriteAccess}
-                data-testid="register-data-button"
-              >
-                Register data
-              </Button>
-            </ToolbarItem>
+            {assets.length > 0 ? (
+              <ToolbarItem>
+                <Button
+                  variant="primary"
+                  onClick={onRegisterData}
+                  isDisabled={!hasWriteAccess}
+                  data-testid="register-data-button"
+                >
+                  Register data
+                </Button>
+              </ToolbarItem>
+            ) : null}
             {/* Kebab */}
             <ToolbarItem>
               <Dropdown
@@ -488,7 +512,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
         </Toolbar>
 
         {/* Active filter chips */}
-        {hasActiveFilters ? (
+        {assets.length > 0 && hasActiveFilters ? (
           <>
             <Flex
               spaceItems={{ default: 'spaceItemsMd' }}
@@ -546,7 +570,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
           </>
         ) : null}
 
-        {filteredAssets.length > 0 ? (
+        {assets.length > 0 && filteredAssets.length > 0 ? (
           <Pagination
             itemCount={filteredAssets.length}
             perPage={perPage}
@@ -566,29 +590,57 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
           />
         ) : null}
         <Table aria-label="Registry assets" data-testid="registry-table">
-          <Thead>
-            <Tr>
-              <Th sort={getSortParams(0)}>Name</Th>
-              <Th sort={getSortParams(1)}>Format</Th>
-              <Th sort={getSortParams(2)}>Asset location</Th>
-              <Th>Labels</Th>
-              <Th screenReaderText="Actions" />
-            </Tr>
-          </Thead>
+          {assets.length > 0 ? (
+            <Thead>
+              <Tr>
+                <Th sort={getSortParams(0)}>Name</Th>
+                <Th sort={getSortParams(1)}>Format</Th>
+                <Th sort={getSortParams(2)}>Asset location</Th>
+                <Th>Labels</Th>
+                <Th screenReaderText="Actions" />
+              </Tr>
+            </Thead>
+          ) : null}
           <Tbody>
             {filteredAssets.length === 0 ? (
               <Tr>
                 <Td colSpan={5}>
                   <EmptyState
                     headingLevel="h3"
-                    titleText="No assets found"
-                    variant={EmptyStateVariant.sm}
+                    icon={
+                      hasActiveFilters && assets.length > 0 ? undefined : EmptyRegistryStateIcon
+                    }
+                    titleText={
+                      hasActiveFilters && assets.length > 0 ? 'No assets found' : undefined
+                    }
+                    variant={
+                      hasActiveFilters && assets.length > 0
+                        ? EmptyStateVariant.sm
+                        : EmptyStateVariant.lg
+                    }
+                    data-testid="registry-empty-state"
                   >
-                    <EmptyStateBody>
-                      {hasActiveFilters
-                        ? 'Try adjusting your filters.'
-                        : 'No data assets have been registered in this project yet.'}
-                    </EmptyStateBody>
+                    {hasActiveFilters && assets.length > 0 ? (
+                      <EmptyStateBody>Try adjusting your filters.</EmptyStateBody>
+                    ) : (
+                      <>
+                        <EmptyStateBody data-testid="registry-empty-state-description">
+                          {EMPTY_REGISTRY_DESCRIPTION}
+                        </EmptyStateBody>
+                        <EmptyStateFooter>
+                          <EmptyStateActions>
+                            <Button
+                              variant="primary"
+                              onClick={onRegisterData}
+                              isDisabled={!hasWriteAccess}
+                              data-testid="empty-register-data-button"
+                            >
+                              Register data
+                            </Button>
+                          </EmptyStateActions>
+                        </EmptyStateFooter>
+                      </>
+                    )}
                   </EmptyState>
                 </Td>
               </Tr>

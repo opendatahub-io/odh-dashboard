@@ -79,9 +79,27 @@ describe('RegistryTable', () => {
     expect(screen.getByText('Error loading assets')).toBeTruthy();
   });
 
-  it('should show empty state when no assets', () => {
+  it('should show the empty state image, description, and register action when no assets', () => {
     renderTable({ assets: [] });
+    expect(screen.getByTestId('registry-empty-state')).toBeTruthy();
+    expect(screen.getByTestId('registry-empty-state-image')).toBeTruthy();
+    expect(screen.getByTestId('registry-empty-state-description')).toHaveTextContent(
+      'Data assets point to the exact location within a connection where information is located, and can be used across workbenches and pipelines in your project. To get started, create a data asset.',
+    );
+    expect(screen.getByTestId('registry-toolbar')).toHaveClass('pf-v6-u-display-none');
+    expect(screen.queryByRole('columnheader', { name: 'Name' })).toBeNull();
+    expect(screen.getByTestId('empty-register-data-button')).toBeTruthy();
+  });
+
+  it('should show the filtered empty state when filters match no assets', () => {
+    renderTable();
+    fireEvent.change(screen.getByTestId('asset-search').querySelector('input')!, {
+      target: { value: 'missing' },
+    });
+
     expect(screen.getByText('No assets found')).toBeTruthy();
+    expect(screen.getByText('Try adjusting your filters.')).toBeTruthy();
+    expect(screen.queryByTestId('registry-empty-state-description')).toBeNull();
   });
 
   it('should render filter dropdowns', () => {
@@ -89,6 +107,7 @@ describe('RegistryTable', () => {
     expect(screen.getByTestId('filter-category')).toBeTruthy();
     expect(screen.getByTestId('filter-value')).toBeTruthy();
     expect(screen.getByTestId('asset-search')).toBeTruthy();
+    expect(screen.getByTestId('register-data-button')).toBeTruthy();
   });
 
   it('should filter assets by property key and value', () => {
