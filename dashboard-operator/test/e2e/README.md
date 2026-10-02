@@ -4,10 +4,11 @@ This package provides shared helpers for dashboard-operator tests that require a
 running Kubernetes or OpenShift cluster. It complements the envtest suite in
 `internal/controller`; it does not replace it.
 
-The Dashboard API is cluster-scoped and permits only the
-`default-dashboard` instance. Run these tests on an isolated early-gate cluster,
-not on a shared Cypress or development cluster. Future scenarios can change or
-delete that singleton resource.
+The Dashboard API is cluster-scoped and permits only the `default-dashboard`
+instance. The early-gate smoke profile uses that installed singleton in
+`existing` fixture mode and never deletes or replaces it. Suites that mutate
+the Dashboard require the explicit `managed` fixture mode and an isolated
+cluster.
 
 ## Prerequisites
 
@@ -15,10 +16,11 @@ delete that singleton resource.
 - For platform-contract conformance, the dashboard-operator validating webhook
   must be enabled with valid TLS, a populated CA bundle, and ready Service
   endpoints.
-- The platform controller that normally creates `default-dashboard` scaled down
-  for lifecycle scenarios, so it cannot recreate the singleton during cleanup.
-- No existing `default-dashboard` for the lifecycle scenario. The create helper
-  refuses to adopt or modify an existing singleton.
+- For `existing` fixture mode, an installed `default-dashboard` with
+  `managementState: Managed` and a populated `status.url`.
+- For `managed` fixture mode, the platform controller that normally creates
+  `default-dashboard` scaled down and no existing singleton. The create helper
+  refuses to adopt or modify an existing Dashboard.
 - A dedicated, existing applications namespace configured on the
   dashboard-operator for namespaced operand resources.
 - A kubeconfig stored in one file with a bearer token accepted by the Gateway.
@@ -41,32 +43,39 @@ operator namespace; create the `pods/eviction` subresource; and patch operand
 Deployments in the test namespace. The cluster CNI must enforce Kubernetes
 NetworkPolicy.
 
-Set the required environment variables:
+Choose the fixture mode and set the inputs it requires:
 
 ```bash
 export KUBECONFIG=/absolute/path/to/kubeconfig
+# Use either namespace input. If both are set, they must match.
 export TEST_NAMESPACE=dashboard-operator-e2e
+# export E2E_TEST_APPLICATIONS_NAMESPACE=redhat-ods-applications
+
+# make test-e2e defaults to managed; the compiled binary and image default to existing.
+export E2E_FIXTURE_MODE=managed
+# Required only in managed mode; existing mode falls back to Dashboard.status.url.
 export TEST_GATEWAY_DOMAIN=dashboard.example.com
 # Optional for gateways signed by a CA outside the host's system trust bundle:
 export TEST_GATEWAY_CA_BUNDLE=/absolute/path/to/gateway-ca.pem
+# Optional; otherwise inferred from the installed odh-dashboard/rhods-dashboard Service.
 export TEST_PLATFORM=odh # or rhoai
 export TEST_OPERATOR_DEPLOYMENT=dashboard-operator # optional; this is the default
 ```
 
-`TEST_GATEWAY_DOMAIN` and `TEST_PLATFORM` are required by the module lifecycle
-suite. `TEST_NAMESPACE` must be the dashboard-operator applications namespace,
-because the suite verifies the operands reconciled there. Run the platform
-service-name cases once for each distribution; `TEST_PLATFORM` prevents a run
-against one distribution from accidentally claiming coverage for the other.
-The degraded-image case temporarily rolls the dashboard-operator Deployment;
-set `TEST_OPERATOR_DEPLOYMENT` when it has a non-default name.
+The runner accepts `TEST_NAMESPACE` or the shift-left
+`E2E_TEST_APPLICATIONS_NAMESPACE` value and rejects conflicting values. In `existing` mode,
+`TEST_GATEWAY_DOMAIN` falls back to the hostname in `Dashboard.status.url` and
+`TEST_PLATFORM` falls back to the installed `odh-dashboard` or
+`rhods-dashboard` Service. Managed mode still requires
+`TEST_GATEWAY_DOMAIN` because it is needed to create the fixture.
 
-`TestMain` verifies connectivity, the namespace, the gateway domain, the
-Dashboard CRD, and its served API version. It then creates one E2E-owned
-`default-dashboard` with `managementState: Managed`, waits for the operator to
-apply its resources, and shares that fixture across the package. After the test
-run, it deletes only that exact UID and reports cleanup failures. The framework
-verifies the CRD but never installs it.
+`TestMain` verifies connectivity, the applications namespace, the Dashboard
+CRD, and its served API version. In the default `existing` mode it loads the
+installed singleton and records its UID without changing it. In `managed` mode
+it creates one E2E-owned singleton, waits for reconciliation, and deletes only
+that exact UID after the run. Mutation helpers fail unless managed mode owns the
+fixture. The framework verifies the installed CRD and operator; it never
+installs them.
 
 The contract scenario additionally requires `status.releases` to report
 semantic versions for both `dashboard` and `platform`. Build the operator image
@@ -82,6 +91,10 @@ From `dashboard-operator`:
 ```bash
 make test-e2e
 ```
+
+This local target explicitly selects `managed` fixture mode. Use only an
+isolated cluster with no existing `default-dashboard`. Override
+`E2E_FIXTURE_MODE=existing` only with a read-only `E2E_TEST_ARGS` selection.
 
 Pass standard `go test` options through `E2E_TEST_ARGS`, including a selective
 test run:
@@ -114,7 +127,15 @@ make test-e2e E2E_TEST_ARGS='-run ^TestE2E_PlatformContractConformance$'
 The equivalent direct command is:
 
 ```bash
-go test -v -count=1 -tags=e2e -timeout=30m -run TestE2E_BFFHealthchecks ./test/e2e/...
+go test -v -count=1 -tags=e2e -timeout=30m -run TestE2E_BFFHealthchecks \
+  ./test/e2e/... -args -fixture-mode=managed
+```
+
+When invoking the compiled binary directly, pass fixture selection as a binary
+flag:
+
+```bash
+./bin/e2e.test -test.v -fixture-mode=existing -test.run '^TestE2ESmoke_FrameworkPreflight$'
 ```
 
 ## Operator Chaos Scenarios
@@ -177,7 +198,7 @@ kubeconfig, set the environment variables required by the selected suite, and
 run it with standard testing flags:
 
 ```bash
-./bin/e2e.test -test.v -test.run TestE2E_BFFHealthchecks
+./bin/e2e.test -test.v -fixture-mode=managed -test.run TestE2E_BFFHealthchecks
 ```
 
 Embed small fixtures with `//go:embed`, or mount them at a path supplied by an
@@ -195,17 +216,34 @@ make e2e-image                       # docker build -f Dockerfile.e2e ..
 make e2e-image E2E_IMG=quay.io/<you>/odh-dashboard-operator-e2e:dev
 ```
 
-The image contains the compiled `e2e.test` binary, `oc` + `kubectl`, and the
-Dashboard CRD under `/opt/e2e/crd/`. Run it against a cluster by mounting a
-kubeconfig and supplying the required env vars:
+The image contains the compiled test binary plus pinned `gotestsum` and
+`test2json` executables. It runs non-root, writes JUnit XML to
+`/e2e/results/xunit_report.xml`, and preserves the test binary's exit status.
+It contains no `oc`, `kubectl`, operator, or CRD installer. Run its safe default
+smoke profile against an installed Dashboard by mounting a kubeconfig:
 
 ```bash
+mkdir -p results
+chmod 0770 results
 docker run --rm \
+  --user "$(id -u):$(id -g)" \
   -v "$KUBECONFIG:/kubeconfig:ro" -e KUBECONFIG=/kubeconfig \
-  -e TEST_NAMESPACE=dashboard-operator-e2e \
-  quay.io/opendatahub/odh-dashboard-operator-e2e:latest \
-  -test.v -test.run TestE2EDashboardLifecycle
+  -e E2E_TEST_APPLICATIONS_NAMESPACE=redhat-ods-applications \
+  -v "$PWD/results:/e2e/results" \
+  quay.io/opendatahub/odh-dashboard-operator-e2e:odh-stable
 ```
+
+The safe smoke selection is:
+
+```text
+-fixture-mode=existing -test.run=^TestE2ESmoke_
+```
+
+Lifecycle, optional-module, MaaS, and operator-chaos scenarios are deliberately
+excluded. The operand checks require only the platform's core Dashboard
+Deployment and Service, so intentionally disabled optional modules do not fail
+the smoke profile. The image uses this selection as its fallback `CMD`; the
+component registry should set it explicitly as the smoke quality gate.
 
 ### CI flow
 
@@ -227,26 +265,31 @@ docker run --rm \
   because the dashboard-operator ships as a module via the platform operator/DSC
   rather than as its own OLM bundle.
 
-### Shiftleft contract (what the runner provides / expects)
+### Shift-left contract
 
-- A single-file `KUBECONFIG` for the provisioned cluster and a `TEST_NAMESPACE`.
+- The pipeline provides a single-file `KUBECONFIG` and
+  `E2E_TEST_APPLICATIONS_NAMESPACE` for the provisioned cluster.
 - Cluster RBAC (ServiceAccount + ClusterRole) covering the verbs listed under
   [Prerequisites](#prerequisites).
-- JUnit XML results (e.g. run with `gotestsum`/`-test.v` and convert) surfaced
-  back to the PR as a status check.
+- The image works from `/e2e` and writes xUnit XML under `/e2e/results` for
+  Jenkins collection and PR reporting.
+- Component quality-gate arguments are appended to the image entrypoint.
 
 ### DevOps handoff (owned outside this repo)
 
-These remain to be configured by DevTestOps before early-gate E2E is live:
+These remain to be configured under RHOAIENG-96237 before early-gate E2E is
+live:
 
-1. Per-component config in `red-hat-data-services/rhods-devops-infra`
-   (`resources/configs/components-testing/components/<name>/main.yaml`):
-   `metadata.earlyGateTestRunner: shiftleft`, the `image` reference
-   (`odh-dashboard-operator-e2e`), `image.args`, and
-   `qualityGatesMap.default.early-gate`.
+1. Add `resources/configs/components-testing/components/dashboard-operator/main.yaml`
+   in `ods/jenkins` with `metadata.earlyGateTestRunner: shiftleft`, image
+   `quay.io/opendatahub/odh-dashboard-operator-e2e:odh-stable`,
+   `workingDir: /e2e`, `resultsDir: /e2e/results`, and the smoke arguments above
+   under `qualityGatesMap.default`.
 2. Konflux tenant registration of the `odh-dashboard-operator-e2e-ci` Component
    (and its `build-pipeline-odh-dashboard-operator-e2e-ci` ServiceAccount) so the
-   `.tekton` E2E build PipelineRuns above actually run.
+   `.tekton` E2E build PipelineRuns above can run. After registration, remove
+   the temporary `false` guard from both PipelineRun CEL expressions to enable
+   pull-request and stable-image builds.
 3. ROSA HCP cluster-pool / Jenkins access for the component.
 
 ## Authoring Scenarios
@@ -266,15 +309,23 @@ them. Reuse the shared helpers for:
 - matching unstructured Kubernetes data with JQ expressions; and
 - validating the Dashboard platform contract.
 
-The create helper atomically creates the singleton and fails if it already
-exists. It returns the API-assigned UID; cleanup requires that UID and refuses
-to delete a different or unlabeled object. `TestMain` owns this lifecycle so
-every top-level E2E test can run independently with `-run` while a full package
-run performs only one operand rollout.
+The create helper is available only in managed mode. It atomically creates the
+singleton and fails if one already exists. Cleanup requires the API-assigned UID
+and refuses to delete a different or unlabeled object. Existing mode never
+registers singleton cleanup. Managed mode requires exclusive use of an isolated
+cluster. If a terminated run leaves `default-dashboard` behind, verify that it
+has `app.kubernetes.io/managed-by=dashboard-operator-e2e` before deleting it and
+retrying; the runner intentionally never adopts an existing singleton.
 
 Keep each scenario independent and runnable with `-run`. Tests must wait for
 observable conditions instead of sleeping, clean up resources they own, and
-avoid relying on execution order.
+avoid relying on execution order. Do not call `t.Parallel` in scenarios that
+mutate the shared managed fixture.
+
+The runtime image intentionally has no cluster CLI. For authoring or diagnostics,
+run `oc` or `kubectl` on the host with the same mounted kubeconfig. The early-gate
+target is OpenShift and requires its `openshift-service-ca.crt` ConfigMap; a
+missing or malformed Service CA is a preflight failure, not a skipped check.
 
 ## Operand Health Scenarios
 
