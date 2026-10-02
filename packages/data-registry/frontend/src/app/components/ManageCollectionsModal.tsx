@@ -160,11 +160,12 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
         </ModalBody>
         <ModalFooter>
           <Button
-            variant="link"
+            variant="secondary"
             onClick={() => {
               setFilterText('');
               onClose();
             }}
+            data-testid="manage-collections-close-button"
           >
             Close
           </Button>
