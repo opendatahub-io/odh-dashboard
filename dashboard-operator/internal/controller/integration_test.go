@@ -218,8 +218,11 @@ func TestIntegration_MaaSPortalAPICompatibility(t *testing.T) {
 		MaaSConsumerPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
 	})
 	require.NoError(t, k8sClient.Create(ctx, legacyOnly))
+	t.Cleanup(func() { deleteDashboard(t) })
 	fetched := getDashboard(t)
 	assert.Nil(t, fetched.Spec.MaaSPortal, "legacy-only resources must not gain the new field")
+	require.NotNil(t, fetched.Spec.MaaSConsumerPortal)
+	assert.Equal(t, "Managed", fetched.Spec.MaaSConsumerPortal.ManagementState)
 	deleteDashboard(t)
 
 	manifests := createIntegrationManifests(t, []string{"maas"})
@@ -238,10 +241,14 @@ func TestIntegration_MaaSPortalAPICompatibility(t *testing.T) {
 	})
 
 	fetched = getDashboard(t)
+	require.NotNil(t, fetched.Spec.MaaSPortal)
 	assert.Equal(t, "Removed", fetched.Spec.MaaSPortal.ManagementState,
 		"the API server should default the new field to Removed")
+	require.NotNil(t, fetched.Spec.MaaSConsumerPortal)
+	assert.Equal(t, "Managed", fetched.Spec.MaaSConsumerPortal.ManagementState)
 
 	r := newManifestReconciler(manifests)
+	r.Platform = cluster.SelfManagedRhoai
 	reconcile(t, r)
 	reconcile(t, r)
 	assert.Empty(t, listDeployments(t, "maas"),
@@ -270,15 +277,20 @@ func TestIntegration_MaaSPortalURLMigrationOnEarlyFailure(t *testing.T) {
 	dashboard = getDashboard(t)
 	dashboard.Status.MaaSConsumerPortalURL = "https://previous.example.com/"
 	require.NoError(t, k8sClient.Status().Update(ctx, dashboard))
+	seeded := getDashboard(t)
+	assert.Equal(t, "https://previous.example.com/", seeded.Status.MaaSConsumerPortalURL)
+	assert.Empty(t, seeded.Status.MaaSPortalURL)
 
 	r := newManifestReconciler(manifests)
+	r.Platform = cluster.SelfManagedRhoai
 	reconcile(t, r)
 	_, err := r.Reconcile(ctx, ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
 	})
-	require.Error(t, err)
+	require.ErrorContains(t, err, "failed to reconcile MaaS Consumer Portal-required modules")
 
 	fetched := getDashboard(t)
+	assert.Equal(t, "ModuleDeployFailed", conditionReason(fetched, string(common.ConditionTypeProvisioningSucceeded)))
 	assert.Equal(t, "https://previous.example.com/", fetched.Status.MaaSConsumerPortalURL)
 	assert.Equal(t, "https://previous.example.com/", fetched.Status.MaaSPortalURL)
 }
