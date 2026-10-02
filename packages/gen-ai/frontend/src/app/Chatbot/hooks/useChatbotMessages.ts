@@ -460,12 +460,15 @@ const useChatbotMessages = ({
       audioFileUrlRef.current.set(audioFile, audioPreviewUrl);
     }
     if (audioFile && audioPreviewUrl) {
-      extraContent.afterMainContent = React.createElement(AudioAttachmentTile, {
+      const audioTile = React.createElement(AudioAttachmentTile, {
         fileName: audioFile.name,
         src: audioPreviewUrl,
         testId: 'sent-audio-tile',
         playerTestId: 'sent-audio-player',
       });
+      extraContent.beforeMainContent = extraContent.beforeMainContent
+        ? React.createElement(React.Fragment, null, extraContent.beforeMainContent, audioTile)
+        : audioTile;
     }
     const userMessage: ChatbotMessageProps = {
       id: getId(),

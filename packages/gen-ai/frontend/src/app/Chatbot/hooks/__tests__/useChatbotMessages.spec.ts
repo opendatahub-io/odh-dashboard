@@ -1141,7 +1141,7 @@ describe('useChatbotMessages', () => {
       });
 
       const userMessage = result.current.messages[0];
-      const player = userMessage.extraContent?.afterMainContent as React.ReactElement<{
+      const player = userMessage.extraContent?.beforeMainContent as React.ReactElement<{
         src: string;
       }>;
       expect(userMessage.content).toBe('Audio transcription:\nTranscribed speech');
@@ -1166,7 +1166,7 @@ describe('useChatbotMessages', () => {
       expect(revokeObjectURL).toHaveBeenCalledWith('blob:audio-preview');
     });
 
-    it('should keep document attachments alongside the audio tile', async () => {
+    it('should keep document and image attachments alongside the audio tile', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
       const document: DocumentAttachment = {
         file_id: 'file-document-1',
@@ -1184,8 +1184,8 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend(
           'Transcribed speech',
           undefined,
-          undefined,
-          undefined,
+          'file-image-1',
+          { previewUrl: 'blob:image-preview', fileName: 'photo.png' },
           file,
         );
       });
@@ -1193,7 +1193,9 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages[0].attachments).toEqual([
         { id: document.file_id, name: document.filename },
       ]);
-      expect(result.current.messages[0].extraContent?.afterMainContent).toBeDefined();
+      render(result.current.messages[0].extraContent?.beforeMainContent);
+      expect(screen.getByRole('img', { name: 'photo.png' })).toBeInTheDocument();
+      expect(screen.getByTestId('sent-audio-tile')).toBeInTheDocument();
       expect(result.current.messages[0].documentAttachments).toEqual([document]);
       act(() => result.current.clearConversation());
     });
