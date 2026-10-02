@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/x509"
 	"errors"
+	"flag"
 	"fmt"
 	"os"
 	"testing"
@@ -18,7 +19,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	k8svalidation "k8s.io/apimachinery/pkg/util/validation"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -35,32 +35,96 @@ const (
 )
 
 var (
+	fixtureModeFlag   = flag.String("fixture-mode", string(fixtureModeExisting), "Dashboard fixture mode: existing or managed")
 	k8sClient         client.Client
 	restConfig        *rest.Config
 	testNamespace     string
 	testGatewayDomain string
+	testPlatform      string
+	testFixtureMode   fixtureMode
+	e2eOwnsFixture    bool
 	dashboardUID      types.UID
 	gatewayCARoots    *x509.CertPool
 	serviceCARoots    *x509.CertPool
 )
 
 func TestMain(m *testing.M) {
+	flag.Parse()
+
+	mode, err := parseFixtureMode(*fixtureModeFlag)
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "E2E configuration failed: %v\n", err)
+		os.Exit(1)
+	}
+	testFixtureMode = mode
+
 	if err := initializeE2E(); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "E2E preflight failed: %v\n", err)
 		os.Exit(1)
 	}
 
-	uid, err := createDashboardCR(k8sClient, dashboardv1alpha1.DashboardSpec{
-		ManagementSpec: common.ManagementSpec{ManagementState: common.Managed},
-		Gateway: &dashboardv1alpha1.GatewaySpec{
-			Domain: testGatewayDomain,
-		},
-	})
+	managedGatewayDomain, err := setupE2EFixture()
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "E2E fixture setup failed: %v\n", err)
+		if e2eOwnsFixture {
+			if cleanupErr := cleanupE2EFixture(); cleanupErr != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "E2E fixture cleanup also failed: %v\n", cleanupErr)
+			}
+		}
 		os.Exit(1)
 	}
-	dashboardUID = uid
+	if err := resolveRuntimeConfig(managedGatewayDomain); err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "E2E runtime configuration failed: %v\n", err)
+		if e2eOwnsFixture {
+			if cleanupErr := cleanupE2EFixture(); cleanupErr != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "E2E fixture cleanup also failed: %v\n", cleanupErr)
+			}
+		}
+		os.Exit(1)
+	}
+
+	exitCode := m.Run()
+	if e2eOwnsFixture {
+		if err := cleanupE2EFixture(); err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "E2E fixture cleanup failed: %v\n", err)
+			exitCode = 1
+		}
+	}
+	os.Exit(exitCode)
+}
+
+func setupE2EFixture() (string, error) {
+	managedGatewayDomain := ""
+	if testFixtureMode == fixtureModeManaged {
+		gatewayDomain, err := resolveManagedGatewayDomain(os.Getenv("TEST_GATEWAY_DOMAIN"))
+		if err != nil {
+			return "", fmt.Errorf("configure managed Dashboard fixture: %w", err)
+		}
+		managedGatewayDomain = gatewayDomain
+		uid, err := createDashboardCR(k8sClient, dashboardv1alpha1.DashboardSpec{
+			ManagementSpec: common.ManagementSpec{ManagementState: common.Managed},
+			Gateway: &dashboardv1alpha1.GatewaySpec{
+				Domain: gatewayDomain,
+			},
+		})
+		if err != nil {
+			return "", err
+		}
+		dashboardUID = uid
+		e2eOwnsFixture = true
+	} else {
+		ctx, cancel := context.WithTimeout(context.Background(), preflightTimeout)
+		defer cancel()
+
+		dashboard := &dashboardv1alpha1.Dashboard{}
+		if err := k8sClient.Get(ctx, client.ObjectKey{Name: dashboardv1alpha1.DashboardInstanceName}, dashboard); err != nil {
+			return "", fmt.Errorf("get installed Dashboard %q: %w", dashboardv1alpha1.DashboardInstanceName, err)
+		}
+		if err := validateInstalledDashboard(dashboard); err != nil {
+			return "", err
+		}
+		dashboardUID = dashboard.UID
+	}
 
 	if err := waitForCondition(
 		k8sClient,
@@ -69,19 +133,45 @@ func TestMain(m *testing.M) {
 		metav1.ConditionTrue,
 		fixtureReadyTimeout,
 	); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "E2E fixture readiness failed: %v\n", err)
-		if cleanupErr := cleanupE2EFixture(); cleanupErr != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "E2E fixture cleanup also failed: %v\n", cleanupErr)
+		return "", fmt.Errorf("wait for Dashboard fixture readiness: %w", err)
+	}
+	return managedGatewayDomain, nil
+}
+
+func resolveRuntimeConfig(managedGatewayDomain string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), preflightTimeout)
+	defer cancel()
+
+	dashboard := &dashboardv1alpha1.Dashboard{}
+	if err := k8sClient.Get(ctx, client.ObjectKey{Name: dashboardv1alpha1.DashboardInstanceName}, dashboard); err != nil {
+		return fmt.Errorf("get ready Dashboard %q: %w", dashboardv1alpha1.DashboardInstanceName, err)
+	}
+	gatewayDomain := managedGatewayDomain
+	if gatewayDomain == "" {
+		var err error
+		gatewayDomain, err = resolveGatewayDomain(os.Getenv("TEST_GATEWAY_DOMAIN"), dashboard.Status.URL)
+		if err != nil {
+			return err
 		}
-		os.Exit(1)
+	}
+	platform, err := discoverPlatform(ctx, k8sClient, testNamespace, os.Getenv("TEST_PLATFORM"))
+	if err != nil {
+		return err
+	}
+	gatewayRoots, err := loadGatewayCARoots(os.Getenv("TEST_GATEWAY_CA_BUNDLE"))
+	if err != nil {
+		return err
+	}
+	serviceRoots, err := loadServiceCARoots(ctx, k8sClient, testNamespace)
+	if err != nil {
+		return err
 	}
 
-	exitCode := m.Run()
-	if err := cleanupE2EFixture(); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "E2E fixture cleanup failed: %v\n", err)
-		exitCode = 1
-	}
-	os.Exit(exitCode)
+	testGatewayDomain = gatewayDomain
+	testPlatform = platform
+	gatewayCARoots = gatewayRoots
+	serviceCARoots = serviceRoots
+	return nil
 }
 
 func cleanupE2EFixture() error {
@@ -91,7 +181,7 @@ func cleanupE2EFixture() error {
 	return waitForOwnedOperandDeletion(k8sClient, testNamespace, dashboardUID, e2eCleanupTimeout)
 }
 
-func TestE2EFrameworkPreflight(t *testing.T) {
+func TestE2ESmoke_FrameworkPreflight(t *testing.T) {
 	if k8sClient == nil {
 		t.Fatal("controller-runtime client was not initialized")
 	}
@@ -100,6 +190,9 @@ func TestE2EFrameworkPreflight(t *testing.T) {
 	}
 	if testGatewayDomain == "" {
 		t.Fatal("test gateway domain was not initialized")
+	}
+	if testPlatform == "" {
+		t.Fatal("test platform was not initialized")
 	}
 	if dashboardUID == "" {
 		t.Fatal("Dashboard fixture UID was not initialized")
@@ -120,20 +213,9 @@ func initializeE2E() error {
 		return errors.New("KUBECONFIG must point to a regular file")
 	}
 
-	namespace := os.Getenv("TEST_NAMESPACE")
-	if namespace == "" {
-		return errors.New("TEST_NAMESPACE must name an existing namespace")
-	}
-	if problems := k8svalidation.IsDNS1123Label(namespace); len(problems) > 0 {
-		return fmt.Errorf("TEST_NAMESPACE %q is invalid: %v", namespace, problems)
-	}
-
-	gatewayDomain := os.Getenv("TEST_GATEWAY_DOMAIN")
-	if gatewayDomain == "" {
-		return errors.New("TEST_GATEWAY_DOMAIN must name the externally reachable Dashboard gateway host")
-	}
-	if problems := k8svalidation.IsDNS1123Subdomain(gatewayDomain); len(problems) > 0 {
-		return fmt.Errorf("TEST_GATEWAY_DOMAIN %q is invalid: %v", gatewayDomain, problems)
+	namespace, err := resolveTestNamespace(os.Getenv("TEST_NAMESPACE"), os.Getenv("E2E_TEST_APPLICATIONS_NAMESPACE"))
+	if err != nil {
+		return err
 	}
 
 	scheme, err := newE2EScheme()
@@ -155,7 +237,7 @@ func initializeE2E() error {
 	defer cancel()
 
 	if err := c.Get(ctx, client.ObjectKey{Name: namespace}, &corev1.Namespace{}); err != nil {
-		return fmt.Errorf("verify cluster connectivity and TEST_NAMESPACE %q: %w", namespace, err)
+		return fmt.Errorf("verify cluster connectivity and applications namespace %q: %w", namespace, err)
 	}
 
 	crd := &apiextensionsv1.CustomResourceDefinition{}
@@ -178,21 +260,9 @@ func initializeE2E() error {
 		)
 	}
 
-	gatewayRoots, err := loadGatewayCARoots(os.Getenv("TEST_GATEWAY_CA_BUNDLE"))
-	if err != nil {
-		return err
-	}
-	serviceRoots, err := loadServiceCARoots(ctx, c, namespace)
-	if err != nil {
-		return err
-	}
-
 	k8sClient = c
 	restConfig = config
 	testNamespace = namespace
-	testGatewayDomain = gatewayDomain
-	gatewayCARoots = gatewayRoots
-	serviceCARoots = serviceRoots
 
 	return nil
 }
