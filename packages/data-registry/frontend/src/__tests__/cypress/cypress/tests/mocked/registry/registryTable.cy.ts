@@ -2,7 +2,6 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
-import { createCollectionModal } from '~/__tests__/cypress/cypress/pages/createCollectionModal';
 
 const REGISTRY_API = '/data-registry/api/v1';
 const MAIN_API = '/data-registry/api/v1';
@@ -964,12 +963,12 @@ describe('Connection Selector', () => {
   });
 });
 
-describe('Create Collection with Owner', () => {
+describe('Create Collection', () => {
   beforeEach(() => {
     initIntercepts();
   });
 
-  it('should include owner field when creating collection', () => {
+  it('should use the creator as owner without displaying an owner field', () => {
     cy.intercept('POST', `${REGISTRY_API}/test-project/namespaces`, {
       statusCode: 200,
       body: {
@@ -993,41 +992,6 @@ describe('Create Collection with Owner', () => {
       });
       expect(interception.request.body.properties).to.include({
         owner: 'test-user',
-      });
-    });
-  });
-
-  it('should allow selecting Unassigned as collection owner', () => {
-    cy.intercept('POST', `${REGISTRY_API}/test-project/namespaces`, {
-      statusCode: 200,
-      body: {
-        namespace: ['unassigned-collection'],
-        properties: {},
-      },
-    }).as('createCollection');
-
-    visitWithData();
-    cy.findByTestId('registry-kebab').click();
-    cy.findByTestId('manage-collections-action').click();
-    cy.findByTestId('create-collection-button').click();
-
-    cy.findByTestId('collection-name-input').type('unassigned-collection');
-
-    // Ensure form is ready and owner field is visible
-    cy.findByTestId('collection-name-input').scrollIntoView();
-
-    cy.findByPlaceholderText('Select or type owner', { timeout: 10000 }).should('be.visible');
-    createCollectionModal.findOwnerToggle().click();
-    createCollectionModal.findOwnerOption('Unassigned').click();
-
-    cy.findByTestId('create-collection-submit').click();
-
-    cy.wait('@createCollection').then((interception) => {
-      expect(interception.request.body).to.deep.include({
-        namespace: ['unassigned-collection'],
-      });
-      expect(interception.request.body.properties).to.include({
-        owner: 'Unassigned',
       });
     });
   });
