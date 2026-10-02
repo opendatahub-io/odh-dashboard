@@ -353,7 +353,7 @@ describe('Register Volume', () => {
     cy.findByTestId('register-data-modal').should('exist');
     cy.contains('Register data').should('exist');
     cy.contains(
-      'Create a new data asset and configure its source location, metadata, and schema.',
+      'A data asset points to the exact location within a connection where the information is located. It can also record information about the structure of the data.',
     ).should('exist');
   });
 
@@ -497,9 +497,9 @@ describe('Manage Labels', () => {
     cy.findByTestId('manage-labels-modal').should('exist');
     cy.contains('Manage labels').should('exist');
     cy.contains(
-      'Create and delete labels to manage how assets are organized across this project.',
+      'View and manage this project’s labels. Optionally use labels to organize and filter your data assets.',
     ).should('exist');
-    cy.contains('Changes affect all project assets').should('exist');
+    cy.contains('Changes affect all project assets').should('not.exist');
   });
 
   it('should display labels with associated assets', () => {
@@ -844,7 +844,7 @@ describe('Connection Selector', () => {
     cy.findByTestId('register-data-button').click();
 
     cy.findByTestId('data-connection-toggle').click();
-    cy.contains('No connections available').should('exist');
+    cy.findByTestId('register-new-connection-option').should('exist');
   });
 
   it('should include connection_ref in volume creation request', () => {
