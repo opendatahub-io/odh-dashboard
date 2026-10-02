@@ -67,7 +67,7 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
   return (
     <>
       <Modal
-        isOpen={isOpen}
+        isOpen={isOpen && !isCreateOpen}
         onClose={() => {
           setFilterText('');
           onClose();
@@ -173,7 +173,7 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
       </Modal>
 
       <CreateCollectionModal
-        isOpen={isCreateOpen}
+        isOpen={isOpen && isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         project={project}
         onCreated={handleRefresh}
