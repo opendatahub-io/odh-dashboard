@@ -97,6 +97,7 @@ const main = () => {
 
   const matrix = createTestMatrix(groups, plan.selectedGroups);
   writeFile(options.matrix, `${JSON.stringify(matrix, null, 2)}\n`);
+  writeFile(options.scope, `${plan.scope}\n`);
   process.stdout.write(
     `Cypress mock selection: ${matrix.length}/${groups.length} groups (${
       plan.scope

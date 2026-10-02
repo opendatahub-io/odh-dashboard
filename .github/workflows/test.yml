@@ -155,8 +155,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           persist-credentials: false
-          # Keep GitHub's merge checkout so the graph matches the code under test.
-          # IMPACT_HEAD below scopes the diff to PR-authored changes instead of base-branch changes.
+          # Keep GitHub's merge checkout so the diff and graph match the code under test.
           fetch-depth: 0
       - name: Setup pnpm and install dependencies
         uses: ./.github/actions/pnpm-setup
@@ -167,18 +166,18 @@ jobs:
         shell: bash
         env:
           IMPACT_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
-          IMPACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          IMPACT_HEAD: ${{ github.sha }}
         run: |
           node scripts/cypress/plan-mock-test-impact.js \
             --base "$IMPACT_BASE" \
             --head "$IMPACT_HEAD" \
-            --matrix "$RUNNER_TEMP/cypress-mock-matrix.json"
+            --matrix "$RUNNER_TEMP/cypress-mock-matrix.json" \
+            --scope "$RUNNER_TEMP/cypress-mock-scope.txt"
 
           TEST_GROUPS=$(jq -c . "$RUNNER_TEMP/cypress-mock-matrix.json")
-          TOTAL_GROUPS=$(node scripts/generate-cypress-test-matrix.js | jq 'length')
           SELECTED_GROUPS=$(jq 'length' "$RUNNER_TEMP/cypress-mock-matrix.json")
           HAS_TESTS=$([[ "$SELECTED_GROUPS" -gt 0 ]] && echo true || echo false)
-          FULL_MATRIX=$([[ "$SELECTED_GROUPS" -eq "$TOTAL_GROUPS" ]] && echo true || echo false)
+          FULL_MATRIX=$([[ "$(cat "$RUNNER_TEMP/cypress-mock-scope.txt")" == "full" ]] && echo true || echo false)
 
           # GitHub rejects an empty matrix. A no-op entry keeps the aggregate jobs successful.
           if [[ "$HAS_TESTS" != "true" ]]; then
