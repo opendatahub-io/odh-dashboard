@@ -671,6 +671,7 @@ export type GenAiAPIs = {
   listAgentDeployments: ListAgentDeployments;
   createAgentDeployment: CreateAgentDeployment;
   getAgentDeployment: GetAgentDeployment;
+  deleteAgentDeployment: DeleteAgentDeployment;
 };
 
 export interface SubscriptionInfo {
@@ -781,6 +782,7 @@ type CreateAgentDeployment = ModArchRestCREATE<
   import('./agentProfile/types').AgentDeploymentCreateRequest
 >;
 type GetAgentDeployment = ModArchRestGET<import('./agentProfile/types').AgentDeploymentSummary>;
+type DeleteAgentDeployment = ModArchRestDELETE<void, { id: string }>;
 
 export type ErrorPattern = 'full-failure' | 'partial-failure' | 'streaming-interruption';
 export type ErrorVariant = 'danger' | 'warning';

@@ -158,6 +158,7 @@ export type AgentDeploymentCreateResponse = {
 
 export type AgentDeploymentSummary = {
   name: string;
+  displayName?: string;
   namespace: string;
   agentProfileId: string;
   routeUrl?: string;

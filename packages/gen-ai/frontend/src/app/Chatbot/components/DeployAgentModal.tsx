@@ -2,7 +2,6 @@ import * as React from 'react';
 import {
   Alert,
   Button,
-  ExpandableSection,
   Form,
   FormGroup,
   FormHelperText,
@@ -39,15 +38,6 @@ const toDNS1035Name = (value: string, maxLength: number): string => {
   return withLeadingLetter.slice(0, maxLength).replace(/-+$/g, '') || 'agent';
 };
 
-const getAppsDomain = (): string | undefined => {
-  if (typeof window === 'undefined') {
-    return undefined;
-  }
-
-  const hostParts = window.location.hostname.split('.');
-  return hostParts.length > 1 ? hostParts.slice(1).join('.') : undefined;
-};
-
 const DeployAgentModal: React.FC<DeployAgentModalProps> = ({
   profile,
   namespace,
@@ -62,18 +52,9 @@ const DeployAgentModal: React.FC<DeployAgentModalProps> = ({
     [profile, maxNameLength],
   );
   const [name, setName] = React.useState(defaultName);
-  const [servingName, setServingName] = React.useState(defaultName);
   const [nameTouched, setNameTouched] = React.useState(false);
-  const [servingNameTouched, setServingNameTouched] = React.useState(false);
-  const [showAdvanced, setShowAdvanced] = React.useState(false);
 
   const nameIsValid = /^[a-z]([-a-z0-9]*[a-z0-9])?$/.test(name) && name.length <= maxNameLength;
-  const servingNameIsValid =
-    /^[a-z]([-a-z0-9]*[a-z0-9])?$/.test(servingName) && servingName.length <= maxNameLength;
-  const appsDomain = getAppsDomain();
-  const routePreview = appsDomain
-    ? `https://${servingName}-${namespace}.${appsDomain}`
-    : `https://${servingName}-${namespace}.apps.<cluster-domain>`;
 
   return (
     <Modal
@@ -101,46 +82,11 @@ const DeployAgentModal: React.FC<DeployAgentModalProps> = ({
                 <HelperTextItem variant={nameTouched && !nameIsValid ? 'error' : 'default'}>
                   {nameTouched && !nameIsValid
                     ? `Use lowercase letters, numbers, and hyphens. The name must start with a letter and be at most ${maxNameLength} characters.`
-                    : `Endpoint: ${routePreview}/v1/responses`}
+                    : 'The deployment endpoint will be available when creation completes.'}
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
           </FormGroup>
-
-          <ExpandableSection
-            toggleText={
-              showAdvanced ? 'Hide advanced options' : 'Advanced: use a different serving name'
-            }
-            isExpanded={showAdvanced}
-            onToggle={(_event, isExpanded) => setShowAdvanced(isExpanded)}
-            data-testid="deploy-agent-advanced-options"
-          >
-            <FormGroup label="Serving name" isRequired fieldId="deploy-agent-serving-name">
-              <TextInput
-                id="deploy-agent-serving-name"
-                value={servingName}
-                onChange={(_event, value) => {
-                  setServingName(value);
-                  setServingNameTouched(true);
-                }}
-                onBlur={() => setServingNameTouched(true)}
-                validated={servingNameTouched && !servingNameIsValid ? 'error' : 'default'}
-                isRequired
-                data-testid="deploy-agent-serving-name-input"
-              />
-              <FormHelperText>
-                <HelperText>
-                  <HelperTextItem
-                    variant={servingNameTouched && !servingNameIsValid ? 'error' : 'default'}
-                  >
-                    {servingNameTouched && !servingNameIsValid
-                      ? `Use lowercase letters, numbers, and hyphens. The serving name must start with a letter and be at most ${maxNameLength} characters.`
-                      : `Public route: ${routePreview}/v1/responses`}
-                  </HelperTextItem>
-                </HelperText>
-              </FormHelperText>
-            </FormGroup>
-          </ExpandableSection>
 
           <p>This creates an immutable snapshot of the current agent as a deployed endpoint.</p>
           {missingMCPServerAuth.length > 0 && (
@@ -164,11 +110,9 @@ const DeployAgentModal: React.FC<DeployAgentModalProps> = ({
       <ModalFooter>
         <Button
           variant="primary"
-          onClick={() => onDeploy(showAdvanced ? servingName : name)}
+          onClick={() => onDeploy(name)}
           isLoading={isDeploying}
-          isDisabled={
-            isDeploying || !nameIsValid || !servingNameIsValid || missingMCPServerAuth.length > 0
-          }
+          isDisabled={isDeploying || !nameIsValid || missingMCPServerAuth.length > 0}
           data-testid="deploy-agent-submit-button"
         >
           Deploy

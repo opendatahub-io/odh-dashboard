@@ -37,6 +37,7 @@ import {
   deleteAgentProfile,
   createAgentProfile,
   createAgentDeployment,
+  deleteAgentDeployment,
   getAgentDeployment,
   listAgentDeployments,
 } from '~/app/services/llamaStackService';
@@ -85,6 +86,7 @@ const useGenAiAPIState = (
       createAgentProfile: createAgentProfile(path, queryParameters),
       listAgentDeployments: listAgentDeployments(path, queryParameters),
       createAgentDeployment: createAgentDeployment(path, queryParameters),
+      deleteAgentDeployment: deleteAgentDeployment(path, queryParameters),
       getAgentDeployment: getAgentDeployment(path, queryParameters),
     }),
     [queryParameters],

@@ -33,6 +33,7 @@ describe('useAgentDeploymentPolling', () => {
   };
   const onStarted = jest.fn();
   const onComplete = jest.fn();
+  const onCreated = jest.fn();
 
   beforeEach(() => {
     jest.useFakeTimers();
@@ -48,6 +49,7 @@ describe('useAgentDeploymentPolling', () => {
     name: 'hr-chatbot',
     agentProfileId: 'profile-id',
     namespace: 'my-project',
+    onCreated,
     onStarted,
     onComplete,
   };
@@ -76,6 +78,7 @@ describe('useAgentDeploymentPolling', () => {
       agentProfileId: 'profile-id',
     });
     expect(getAgentDeployment).toHaveBeenCalledWith({ id: createResponse.sandboxName });
+    expect(onCreated).toHaveBeenCalledTimes(1);
     expect(notification.success).toHaveBeenCalledWith('hr-chatbot deployed successfully');
     expect(onComplete).toHaveBeenCalledTimes(1);
     expect(onStarted).not.toHaveBeenCalled();

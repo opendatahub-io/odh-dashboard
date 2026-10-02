@@ -11,6 +11,7 @@ type StartAgentDeploymentOptions = {
   agentProfileId: string;
   namespace: string;
   mcpServerAuth?: Record<string, string>;
+  onCreated?: () => void;
   onStarted: () => void;
   onComplete: () => void;
 };
@@ -46,6 +47,7 @@ const useAgentDeploymentPolling = (): UseAgentDeploymentPollingReturn => {
       agentProfileId,
       namespace,
       mcpServerAuth,
+      onCreated,
       onStarted,
       onComplete,
     }: StartAgentDeploymentOptions) => {
@@ -72,6 +74,8 @@ const useAgentDeploymentPolling = (): UseAgentDeploymentPollingReturn => {
         onComplete();
         return;
       }
+
+      onCreated?.();
 
       const poll = async (attempt: number, notifiedStarted: boolean): Promise<void> => {
         let deploymentStatus: AgentDeploymentSummary | undefined;

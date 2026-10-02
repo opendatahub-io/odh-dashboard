@@ -53,12 +53,15 @@ const useServerTokens = ({
     [serverTokens],
   );
 
-  return {
-    serverTokens,
-    updateToken,
-    removeToken,
-    getToken,
-  };
+  return React.useMemo(
+    () => ({
+      serverTokens,
+      updateToken,
+      removeToken,
+      getToken,
+    }),
+    [serverTokens, updateToken, removeToken, getToken],
+  );
 };
 
 export default useServerTokens;

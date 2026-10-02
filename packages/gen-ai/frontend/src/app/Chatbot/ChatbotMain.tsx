@@ -29,6 +29,7 @@ import { deserializeAgentProfile } from '~/app/agentProfile/deserialize';
 import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
 import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
 import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlocker';
+import useFetchAgentDeployments from '~/app/AIAssets/hooks/useFetchAgentDeployments';
 import ChatbotHeader from './ChatbotHeader';
 import ChatbotPlayground from './ChatbotPlayground';
 import ChatbotHeaderActions from './ChatbotHeaderActions';
@@ -45,6 +46,7 @@ import { usePlaygroundStore } from './store/usePlaygroundStore';
 import PromptManagementModal from './components/promptManagementModal';
 import useAgentDeploymentPolling from './hooks/useAgentDeploymentPolling';
 import useSaveAgentProfile from './hooks/useSaveAgentProfile';
+import AgentDeploymentsModal from './components/AgentDeploymentsModal';
 
 const ChatbotMain: React.FunctionComponent = () => {
   const {
@@ -116,6 +118,23 @@ const ChatbotMain: React.FunctionComponent = () => {
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
   const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
   const loadedProfileSpec = useChatbotConfigStore((s) => s.loadedProfileSpec);
+  const { data: deployments = [], refresh: refreshDeployments } = useFetchAgentDeployments(
+    loadedProfileId ?? undefined,
+  );
+  const refreshedDeploymentProfileId = React.useRef<string | null>(null);
+
+  React.useEffect(() => {
+    if (!profileApplied || !loadedProfileId) {
+      refreshedDeploymentProfileId.current = null;
+      return;
+    }
+    if (refreshedDeploymentProfileId.current === loadedProfileId) {
+      return;
+    }
+
+    refreshedDeploymentProfileId.current = loadedProfileId;
+    refreshDeployments();
+  }, [loadedProfileId, profileApplied, refreshDeployments]);
   // Ready when: no profile to load, fetch errored, or profile fully applied (async assets settled)
   const profileReady =
     !agentProfileId ||
@@ -145,9 +164,18 @@ const ChatbotMain: React.FunctionComponent = () => {
   const [saveModalMode, setSaveModalMode] = React.useState<'save' | 'save-as' | null>(null);
   const [loadModalOpen, setLoadModalOpen] = React.useState(false);
   const [deployModalOpen, setDeployModalOpen] = React.useState(false);
+  const [selectedDeploymentName, setSelectedDeploymentName] = React.useState<string | null>(null);
   const [isSavingForDeployment, setIsSavingForDeployment] = React.useState(false);
   const [mcpServerTokens, setMcpServerTokens] = React.useState<Map<string, TokenInfo>>(new Map());
   const [mcpServersMissingAuth, setMcpServersMissingAuth] = React.useState<string[]>([]);
+  const handleMcpMissingAuthServersChange = React.useCallback((serverNames: string[]) => {
+    setMcpServersMissingAuth((currentServerNames) =>
+      currentServerNames.length === serverNames.length &&
+      currentServerNames.every((serverName, index) => serverName === serverNames[index])
+        ? currentServerNames
+        : serverNames,
+    );
+  }, []);
   const { isDeploying, startAgentDeployment, resetDeploymentLoading } = useAgentDeploymentPolling();
   const { saveAgentProfile } = useSaveAgentProfile(availableMcpServers, mcpConfigMapName);
   const notification = useNotification();
@@ -289,6 +317,7 @@ const ChatbotMain: React.FunctionComponent = () => {
           agentProfileId: savedProfile.profileId,
           namespace: namespace.name,
           mcpServerAuth: getMCPServerAuth(savedProfile.spec, availableMcpServers, mcpServerTokens),
+          onCreated: refreshDeployments,
           onStarted: handleCloseDeployModal,
           onComplete: handleCloseDeployModal,
         });
@@ -309,6 +338,7 @@ const ChatbotMain: React.FunctionComponent = () => {
       namespace?.name,
       notification,
       handleCloseDeployModal,
+      refreshDeployments,
       saveAgentProfile,
       startAgentDeployment,
     ],
@@ -402,6 +432,8 @@ const ChatbotMain: React.FunctionComponent = () => {
               onLoad={handleOpenLoad}
               onNew={handleNewAgentConfiguration}
               onDeploy={() => setDeployModalOpen(true)}
+              deployments={deployments}
+              onDeploymentSelect={setSelectedDeploymentName}
               onViewCode={() => {
                 setIsViewCodeModalOpen(true);
                 fireSimpleTrackingEvent('Playground View Code Selected');
@@ -491,7 +523,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               mcpServerStatuses={mcpServerStatuses}
               checkMcpServerStatus={checkMcpServerStatus}
               onMcpServerTokensChange={setMcpServerTokens}
-              onMcpMissingAuthServersChange={setMcpServersMissingAuth}
+              onMcpMissingAuthServersChange={handleMcpMissingAuthServersChange}
             />
           )
         ) : lsdStatus?.phase === 'Failed' ? (
@@ -557,6 +589,18 @@ const ChatbotMain: React.FunctionComponent = () => {
           missingMCPServerAuth={mcpServersMissingAuth}
           onDeploy={(name) => void handleDeploy(name)}
           onClose={handleCloseDeployModal}
+        />
+      )}
+      {selectedDeploymentName && loadedProfileSpec && (
+        <AgentDeploymentsModal
+          agentName={loadedProfileSpec.displayName}
+          deployments={deployments}
+          initialDeploymentName={selectedDeploymentName}
+          onClose={() => setSelectedDeploymentName(null)}
+          onDeleted={() => {
+            setSelectedDeploymentName(null);
+            refreshDeployments();
+          }}
         />
       )}
       {isProfileDirty && <SafeNavigationBlocker hasUnsavedChanges={isProfileDirty} />}

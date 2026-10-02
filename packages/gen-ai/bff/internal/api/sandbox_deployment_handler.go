@@ -368,6 +368,7 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 	// Build Sandbox CR options from the profile snapshot and BFF config.
 	sandboxOpts := kubernetes.SandboxCROptions{
 		Name:                    sandboxName,
+		DisplayName:             req.Name,
 		ProfileID:               req.AgentProfileID,
 		LlamaStackConfigMapName: lsCM.Name,
 		WrapperAppConfigMapName: waCM.Name,

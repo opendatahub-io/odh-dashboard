@@ -112,8 +112,13 @@ func (kc *TokenKubernetesClient) sandboxDeploymentSummary(
 	if err != nil {
 		return nil, err
 	}
+	displayName := sandbox.GetAnnotations()[deploymentDisplayNameAnnotation]
+	if displayName == "" {
+		displayName = sandbox.GetName()
+	}
 	return &models.AgentDeploymentSummary{
 		Name:           sandbox.GetName(),
+		DisplayName:    displayName,
 		Namespace:      namespace,
 		AgentProfileID: sandbox.GetLabels()[agentProfileIDLabel],
 		RouteURL:       routeURL,

@@ -16,7 +16,16 @@ import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { AGENT_CONFIG_MANAGEMENT } from '~/odh/extensions';
 import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
+import { AgentDeploymentSummary } from '~/app/agentProfile/types';
 import { useChatbotConfigStore, selectSelectedModel, selectConfigIds } from './store';
+
+const formatDeploymentDate = (createdAt: string): string =>
+  new Date(createdAt).toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 
 type ChatbotHeaderActionsProps = {
   onViewCode: () => void;
@@ -29,6 +38,8 @@ type ChatbotHeaderActionsProps = {
   onLoad: () => void;
   onNew: () => void;
   onDeploy?: () => void;
+  deployments?: AgentDeploymentSummary[];
+  onDeploymentSelect?: (deploymentName: string) => void;
   onSettingsClick: () => void;
   isSettingsOpen: boolean;
   isCompareMode: boolean;
@@ -45,6 +56,8 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   onLoad,
   onNew,
   onDeploy = () => undefined,
+  deployments = [],
+  onDeploymentSelect = () => undefined,
   onSettingsClick,
   isSettingsOpen,
   isCompareMode,
@@ -227,6 +240,27 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                 >
                   Deploy agent
                 </DropdownItem>
+              )}
+              {agentDeploymentsEnabled && profileApplied && deployments.length > 0 && (
+                <>
+                  <Divider key="deployments-divider" />
+                  <DropdownItem key="deployments-heading" isAriaDisabled>
+                    Deployments ({deployments.length})
+                  </DropdownItem>
+                  {deployments.map((deployment) => (
+                    <DropdownItem
+                      key={deployment.name}
+                      onClick={
+                        !isCompareMode ? () => onDeploymentSelect(deployment.name) : undefined
+                      }
+                      isAriaDisabled={isCompareMode}
+                      description={formatDeploymentDate(deployment.createdAt)}
+                      data-testid={`agent-deployment-menu-item-${deployment.name}`}
+                    >
+                      {deployment.displayName || deployment.name}
+                    </DropdownItem>
+                  ))}
+                </>
               )}
               {agentConfigManagementEnabled && <Divider key="agent-divider" />}
               <DropdownItem

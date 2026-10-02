@@ -113,6 +113,56 @@ describe('ChatbotHeaderActions', () => {
 
       expect(onDeploy).toHaveBeenCalledTimes(1);
     });
+
+    it('lists existing deployments and opens the selected deployment', async () => {
+      const user = userEvent.setup();
+      const onDeploymentSelect = jest.fn();
+      mockUseGenAiAgentDeploymentEnabled.mockReturnValue({ enabled: true, loaded: true });
+      mockUseChatbotConfigStore.mockImplementation((selector: unknown) => {
+        if (typeof selector === 'function') {
+          return selector({
+            configurations: { default: { selectedModel: 'test-model' } },
+            configIds: ['default'],
+            profileApplied: true,
+          });
+        }
+        return undefined;
+      });
+
+      render(
+        <TestWrapper contextValue={createContextValue()}>
+          <ChatbotHeaderActions
+            {...defaultProps}
+            deployments={[
+              {
+                name: 'hr-chatbot',
+                displayName: 'HR Chatbot',
+                createdAt: '2026-10-02T20:33:00Z',
+                namespace: '',
+                agentProfileId: '',
+                state: 'ready',
+              },
+              {
+                name: 'hr-chatbot-v2',
+                displayName: 'HR Chatbot v2',
+                createdAt: '2026-10-02T20:34:00Z',
+                namespace: '',
+                agentProfileId: '',
+                state: 'ready',
+              },
+            ]}
+            onDeploymentSelect={onDeploymentSelect}
+          />
+        </TestWrapper>,
+      );
+
+      await user.click(screen.getByTestId('header-kebab-menu-toggle'));
+
+      expect(screen.getByText('Deployments (2)')).toBeInTheDocument();
+      expect(screen.getAllByText(/Oct 2/)).toHaveLength(2);
+      await user.click(screen.getByText('HR Chatbot v2'));
+      expect(onDeploymentSelect).toHaveBeenCalledWith('hr-chatbot-v2');
+    });
   });
 
   describe('Compare Chat button', () => {
