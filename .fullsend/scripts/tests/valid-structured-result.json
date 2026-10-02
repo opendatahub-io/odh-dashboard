@@ -5,14 +5,6 @@
   "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "change_summary": "A small isolated change.",
   "findings": [],
-  "jira_criteria": [
-    {
-      "criterion": "The new route is gated by the expected permission.",
-      "verdict": "PASS",
-      "evidence": "The changed route checks the permission before rendering.",
-      "stale_comment": false
-    }
-  ],
   "checks": [
     {
       "id": "test-impact-review",
@@ -20,9 +12,7 @@
       "summary": "Tests cover the changed behavior."
     }
   ],
+  "todo": ["Address the readiness note if the author agrees it still applies."],
   "risk": { "level": "low", "why": "The change is narrowly scoped." },
-  "confidence": { "level": "high", "why": "All configured producers returned evidence." },
-  "verification": [
-    { "id": "description-vs-code", "label": "Description vs code", "result": "pass" }
-  ]
+  "confidence": { "level": "high", "why": "All configured producers returned evidence." }
 }

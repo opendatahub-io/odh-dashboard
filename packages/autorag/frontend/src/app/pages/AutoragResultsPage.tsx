@@ -127,7 +127,6 @@ export const normalizeResponsesTemplate = (template: ResponsesTemplate): Respons
   }),
 });
 /* eslint-enable camelcase */
-
 function AutoragResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
   const location = useLocation();

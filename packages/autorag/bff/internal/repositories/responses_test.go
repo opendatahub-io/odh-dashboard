@@ -41,11 +41,32 @@ func TestResponsesRepositoryResolveMaasClientUsesInjectedFactory(t *testing.T) {
 	assert.Equal(t, "secret-key", gotAPIKey)
 }
 
+func TestResponsesRepositoryResolveMaasClientRequiresAPIKey(t *testing.T) {
+	factoryCalled := false
+	repo := NewResponsesRepositoryWithMaaSClientFactory(nil, &mockK8sService{
+		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+			return &v1.Secret{Data: map[string][]byte{
+				"MAAS_BASE_URL": []byte("https://maas.example"),
+				"MAAS_API_KEY":  []byte("  "),
+			}}, nil
+		},
+	}, func(string, string) (*maas.Client, error) {
+		factoryCalled = true
+		return &maas.Client{}, nil
+	})
+
+	_, err := repo.resolveMaasClient(context.Background(), "test-ns", "maas")
+
+	require.EqualError(t, err, `MaaS secret "maas" missing MAAS_API_KEY`)
+	assert.False(t, factoryCalled)
+}
+
 func TestResponsesRepositoryResolveMaasClientRequiresInjectedFactory(t *testing.T) {
 	repo := NewResponsesRepository(nil, &mockK8sService{
 		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
 			return &v1.Secret{Data: map[string][]byte{
 				"MAAS_BASE_URL": []byte("https://maas.example"),
+				"MAAS_API_KEY":  []byte("test-key"),
 			}}, nil
 		},
 	})

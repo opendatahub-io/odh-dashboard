@@ -44,8 +44,6 @@ type PatternDetailsModalHeaderProps = {
   comparisonPatternIndex?: number | null;
 };
 
-const VIEW_CODE_ACTION_ENABLED = true;
-
 const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
   patterns,
   selectedIndex,
@@ -208,18 +206,15 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
                       Try this pattern
                     </DropdownItem>
                   )}
-                  {VIEW_CODE_ACTION_ENABLED &&
-                    canViewCode &&
-                    data.inference?.responses_template &&
-                    onViewCode && (
-                      <DropdownItem
-                        key="view-code"
-                        value="view-code"
-                        data-testid="pattern-details-view-code"
-                      >
-                        View code
-                      </DropdownItem>
-                    )}
+                  {canViewCode && data.inference?.responses_template && onViewCode && (
+                    <DropdownItem
+                      key="view-code"
+                      value="view-code"
+                      data-testid="pattern-details-view-code"
+                    >
+                      View code
+                    </DropdownItem>
+                  )}
                   {/* eslint-enable @typescript-eslint/no-unnecessary-condition */}
                   {onRunIndexingPipeline && patternHasIndexingPipelineSpec(data) && (
                     <DropdownItem

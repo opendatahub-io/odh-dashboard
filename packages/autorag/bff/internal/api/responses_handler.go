@@ -135,6 +135,12 @@ func validateResponsesRequest(req *models.ResponsesRequest) error {
 	if !req.HasInput() {
 		return errors.New("input is required")
 	}
+	if len(req.Input) == 0 {
+		return errors.New("input must contain at least one message")
+	}
+	if req.Input[len(req.Input)-1].Role != "user" {
+		return errors.New("input must end with a user message")
+	}
 	if req.MaxOutputTokens < 0 {
 		return errors.New("max_output_tokens must be nonnegative")
 	}

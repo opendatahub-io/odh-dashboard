@@ -108,7 +108,6 @@ func newMilvusFromSecretWithTimeoutPolicy(
 	cfg.DialOptions = append(cfg.DialOptions, grpc.WithContextDialer(func(connectCtx context.Context, address string) (net.Conn, error) {
 		return safeDial(connectCtx, "tcp", address)
 	}))
-
 	if len(certPEM) > 0 {
 		pool, err := certificates.SystemCertPoolWithPEM(certPEM, "MILVUS_SERVER_CERT")
 		if err != nil {

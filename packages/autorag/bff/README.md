@@ -80,7 +80,7 @@ TLS: If both `cert-file` and `key-file` are provided the server starts with HTTP
 The BFF directory uses golangci-lint to combine multiple linters for a more comprehensive linting process. To install and run simply use:
 
 ```shell
-cd clients/ui/bff
+cd packages/autorag/bff
 make lint
 ```
 
@@ -193,7 +193,7 @@ Executes a RAG query and streams the answer back as [OpenAI Responses API](https
 - `metadata.embedding_model` — required; model used for query embedding
 - `metadata.context_template_text` — optional; template for each retrieved chunk (`{document}`, `{doc_number}` placeholders)
 - `metadata.user_message_text` — optional; wraps context + question (`{reference_documents}`, `{question}` placeholders)
-- `stream: true` — must be `true`; non-streaming (`stream: false`) is also supported
+- `stream` — when `true`, returns the answer as Responses API SSE events; when `false` or omitted, returns a single JSON response with the answer and retrieved sources
 - `max_output_tokens` — nonnegative; zero uses the 2048-token default and explicit values are capped at 4096. Requests run for at most two minutes, and request input, retrieved context, and accumulated streamed output are bounded.
 - Request safety limits — the raw body is capped at 10 MiB, strings at 1 MiB, input messages at 1,000, content parts at 1,000 per message and 2,000 cumulatively, tools at 100, vector store IDs at 100 per tool and 200 cumulatively, include items at 100, and metadata entries at 100. Input message, content, tool, ranking-options, and tool-choice objects are limited to the documented contract properties. MaaS response bodies are capped at 4 MiB before SDK parsing; embedding responses are limited to 16 vectors of at most 16,384 dimensions.
 

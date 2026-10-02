@@ -796,6 +796,31 @@ func TestValidateResponsesRequestOutputTokenAndInputBounds(t *testing.T) {
 	}
 }
 
+func TestHandleResponsesEndpointRejectsAssistantFinalTurnBeforeStreaming(t *testing.T) {
+	h, repo := newTestResponsesHandler()
+	body := strings.Replace(
+		validResponsesBody,
+		`"role":"user"`,
+		`"role":"assistant"`,
+		1,
+	)
+	body = strings.Replace(body, `"metadata":`, `"stream":true,"metadata":`, 1)
+	req := responsesRequestWithNamespace(
+		http.MethodPost,
+		"/api/v1/responses?dbSecretName=milvus&maasSecretName=maas-secret",
+		body,
+		"test-ns",
+	)
+	rr := httptest.NewRecorder()
+
+	h.HandleResponsesEndpoint(rr, req, httprouter.Params{})
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	assert.NotEqual(t, "text/event-stream", rr.Header().Get("Content-Type"))
+	assert.Contains(t, rr.Body.String(), "input must end with a user message")
+	repo.AssertExpectations(t)
+}
+
 func TestPreflightResponsesJSONRejectsNestedCardinalityBeforeUnmarshal(t *testing.T) {
 	content := `{"type":"input_text","text":"x"}`
 	body := `{"model":"test","input":[{"type":"message","role":"user","content":[` + strings.TrimSuffix(strings.Repeat(content+",", maxResponsesContentItems+1), ",") + `]}]}`
