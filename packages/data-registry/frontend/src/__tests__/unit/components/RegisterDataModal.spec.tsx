@@ -81,6 +81,51 @@ describe('RegisterDataModal', () => {
     expect(assetTypeToggle.className).not.toContain('pf-m-disabled');
   });
 
+  it('should track explicit create-form selections and deduplicate labels case-insensitively', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('asset-type-toggle'));
+    await user.click(screen.getByText('Structured'));
+    await user.click(screen.getByTestId('data-format-toggle'));
+    await user.click(screen.getByText('Apache Parquet'));
+    await user.click(screen.getByTestId('data-collection-toggle'));
+    await user.click(screen.getByText('collection-1'));
+    await user.click(screen.getByTestId('data-connection-toggle'));
+    await user.click(screen.getByText('My S3 Connection'));
+
+    await user.click(screen.getByTestId('data-add-label-button'));
+    await user.type(screen.getByTestId('data-labels-input'), 'Finance');
+    await user.keyboard('{Enter}');
+    await user.click(screen.getByTestId('data-add-label-button'));
+    await user.type(screen.getByTestId('data-labels-input'), 'finance');
+    await user.keyboard('{Enter}');
+
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Asset Type Selected',
+      properties: { assetType: 'structured', project: 'test-project' },
+    });
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Format Selected',
+      properties: { format: 'parquet', project: 'test-project' },
+    });
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Collection Selection Changed',
+      properties: {
+        initialCollection: 'none',
+        selectedCollection: 'custom',
+        project: 'test-project',
+      },
+    });
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Connection Selected',
+      properties: { project: 'test-project' },
+    });
+    expect(
+      mockTrackEvent.mock.calls.filter(([event]) => event.eventName === 'Data Label Added'),
+    ).toHaveLength(1);
+  });
+
   it('should not show schema section for unstructured type', () => {
     render(<RegisterDataModal {...defaultProps} />);
 
@@ -168,6 +213,18 @@ describe('RegisterDataModal', () => {
     expect(mockCreateGenericTable).not.toHaveBeenCalled();
     expect(defaultProps.onCreated).toHaveBeenCalled();
     expect(defaultProps.onClose).toHaveBeenCalled();
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Registered',
+      properties: {
+        success: true,
+        assetType: 'unstructured',
+        format: 'other',
+        hasConnection: false,
+        hasCollection: true,
+        labelCount: 0,
+        project: 'test-project',
+      },
+    });
   });
 
   it('should submit as generic table when asset type is structured', async () => {
@@ -217,6 +274,19 @@ describe('RegisterDataModal', () => {
 
     expect(defaultProps.onCreated).not.toHaveBeenCalled();
     expect(defaultProps.onClose).not.toHaveBeenCalled();
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Registered',
+      properties: {
+        success: false,
+        assetType: 'unstructured',
+        format: 'other',
+        hasConnection: false,
+        hasCollection: true,
+        labelCount: 0,
+        project: 'test-project',
+        error: 'unknown_error',
+      },
+    });
   });
 
   it('should reset form fields on close', async () => {
@@ -227,6 +297,10 @@ describe('RegisterDataModal', () => {
 
     await user.click(screen.getByText('Cancel'));
     expect(defaultProps.onClose).toHaveBeenCalled();
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Registration Canceled',
+      properties: { cancelMethod: 'cancel_button', project: 'test-project' },
+    });
   });
 
   it('should show "Create new collection" in collection dropdown', async () => {

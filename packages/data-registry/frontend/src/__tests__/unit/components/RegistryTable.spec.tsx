@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import RegistryTable from '~/app/components/RegistryTable';
 import { RegistryAsset } from '~/app/hooks/useAssets';
@@ -65,6 +66,11 @@ const renderTable = (props?: Partial<React.ComponentProps<typeof RegistryTable>>
   );
 
 describe('RegistryTable', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.mocked(trackingHook.useDataRegistryTrackEvent).mockReturnValue(mockTrackEvent);
+  });
+
   it('should render asset names', () => {
     renderTable();
     expect(screen.getByText('claims-data')).toBeTruthy();
