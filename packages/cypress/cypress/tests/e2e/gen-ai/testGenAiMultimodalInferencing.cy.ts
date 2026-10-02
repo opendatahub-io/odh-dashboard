@@ -25,6 +25,15 @@ import { createCleanProject } from '../../../utils/projectChecker';
 import { genAiPlayground } from '../../../pages/genAiPlayground';
 
 type MultimodalTestData = {
+  audio: {
+    fileName: string;
+    base64Content: string;
+    mimeType: string;
+    asrDisplayName: string;
+    prompt: string;
+    expectedTranscriptKeywords: string[];
+    expectedResponseKeywords: string[];
+  };
   image: {
     fileName: string;
     base64Content: string;
@@ -94,6 +103,24 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       )
         .its('status')
         .should('be.oneOf', [200, 201]);
+
+      const asrEndpointUrl = Cypress.env('ASR_ENDPOINT_URL');
+      const asrModelId = Cypress.env('ASR_MODEL_ID');
+      const asrApiKey = Cypress.env('ASR_API_KEY');
+      if (asrEndpointUrl && asrModelId && asrApiKey) {
+        cy.step('Create external audio transcription endpoint via API');
+        createExternalModelViaAPI(
+          projectName,
+          asrModelId,
+          testData.audio.asrDisplayName,
+          asrEndpointUrl,
+          asrApiKey,
+          'transcription',
+          ['audio-transcription'],
+        )
+          .its('status')
+          .should('be.oneOf', [200, 201]);
+      }
 
       cy.step('Navigate to AI assets and add model to playground');
       genAiPlayground.navigateToAssetsWithCustomEndpoints(projectName);
@@ -216,6 +243,166 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
           });
         });
       genAiPlayground.findChatbotErrorAlerts().should('not.exist');
+    },
+  );
+
+  it(
+    'Send a message with attached audio to test transcription and inference',
+    {
+      tags: [
+        '@GenAI',
+        '@Playground',
+        '@Multimodal',
+        '@Inference',
+        '@Audio',
+        '@FeatureFlagged',
+        '@NonConcurrent',
+      ],
+    },
+    () => {
+      const asrEndpointUrl = Cypress.env('ASR_ENDPOINT_URL');
+      const asrModelId = Cypress.env('ASR_MODEL_ID');
+      const asrApiKey = Cypress.env('ASR_API_KEY');
+      if (!asrEndpointUrl || !asrModelId || !asrApiKey) {
+        throw new Error(
+          'ASR_ENDPOINT_URL, ASR_MODEL_ID, and ASR_API_KEY must be set in test-variables.yml for the audio E2E test',
+        );
+      }
+
+      cy.intercept('GET', '**/lsd/models*').as('playgroundModels');
+      cy.intercept('GET', '**/aaa/models*').as('assetModels');
+
+      cy.step('Open a fresh Playground conversation with the Gemini chat model');
+      genAiPlayground.navigateWithCustomEndpoints(projectName);
+      genAiPlayground.findMessageInput({ timeout: 30000 }).should('be.visible');
+
+      cy.wait('@playgroundModels').then(({ request, response }) => {
+        expect(new URL(request.url).searchParams.get('namespace')).to.equal(projectName);
+        const body = response?.body as { data?: { id?: string }[] } | undefined;
+        const modelIds = (body?.data ?? []).map((model) => model.id ?? '');
+        expect(
+          modelIds.some((id) => id.includes(testData.model.modelId)),
+          `Playground models: ${modelIds.join(', ')}`,
+        ).to.equal(true);
+      });
+      cy.wait('@assetModels').then(({ request, response }) => {
+        expect(new URL(request.url).searchParams.get('namespace')).to.equal(projectName);
+        const body = response?.body as { data?: { model_id?: string }[] } | undefined;
+        const modelIds = (body?.data ?? []).map((model) => model.model_id ?? '');
+        expect(modelIds, `AI Asset models: ${modelIds.join(', ')}`).to.include(
+          testData.model.modelId,
+        );
+      });
+
+      cy.step('Enable audio transcription and select the registered ASR model');
+      genAiPlayground.ensureSettingsPanelOpen();
+      genAiPlayground.selectModelFromDropdown(testData.model.displayName);
+      genAiPlayground.verifyModelIsSelected(testData.model.displayName);
+      genAiPlayground
+        .findAddTranscriptionModelButton()
+        .should('be.visible')
+        .and('not.have.attr', 'aria-disabled', 'true')
+        .click();
+      genAiPlayground.findAsrModelToggle().should('be.visible').click();
+      genAiPlayground.findAsrModelOption(asrModelId).should('be.visible').click();
+      genAiPlayground.findAsrModelToggle().should('contain', testData.audio.asrDisplayName);
+      genAiPlayground.findCloseSettingsButton().click();
+
+      cy.intercept('POST', '**/api/v1/lsd/files/media**').as('uploadAudio');
+      cy.intercept('POST', '**/api/v1/lsd/audio/transcriptions**').as('transcribeAudio');
+      let chatRequestCount = 0;
+      cy.intercept('POST', '**/api/v1/lsd/responses**', (request) => {
+        chatRequestCount += 1;
+        request.continue();
+      }).as('createAudioResponse');
+
+      cy.step('Upload the JFK WAV through the attachment menu');
+      genAiPlayground.findAttachmentButton().click();
+      genAiPlayground
+        .findAudioUploadMenuItem()
+        .should('be.visible')
+        .and('not.have.attr', 'aria-disabled', 'true')
+        .click();
+      genAiPlayground.findAudioFileInput().selectFile(
+        {
+          contents: Cypress.Buffer.from(testData.audio.base64Content, 'base64'),
+          fileName: testData.audio.fileName,
+          mimeType: testData.audio.mimeType,
+        },
+        { force: true },
+      );
+
+      let uploadedFileId = '';
+      let transcribedText = '';
+
+      cy.step('Verify the real media upload returns a file ID');
+      cy.wait('@uploadAudio', { responseTimeout: 120000 }).then(({ request, response }) => {
+        expect(new URL(request.url).searchParams.get('namespace')).to.equal(projectName);
+        expect(response?.statusCode).to.be.oneOf([200, 201]);
+        const body = response?.body as { data?: { id?: string } };
+        expect(body.data?.id).to.be.a('string');
+        expect((body.data?.id ?? '').length).to.be.greaterThan(0);
+        uploadedFileId = body.data?.id ?? '';
+      });
+
+      cy.step('Verify transcription uses that file, selected ASR model, and namespace');
+      cy.wait('@transcribeAudio', { responseTimeout: 120000 }).then(({ request, response }) => {
+        expect(new URL(request.url).searchParams.get('namespace')).to.equal(projectName);
+        const body = request.body as { file_id?: string; asr_model_id?: string };
+        expect(body.file_id).to.equal(uploadedFileId);
+        expect(body.asr_model_id).to.equal(asrModelId);
+        expect(response?.statusCode).to.equal(200);
+        const transcription = response?.body as { text?: string };
+        expect(transcription.text).to.be.a('string');
+        expect((transcription.text ?? '').length).to.be.greaterThan(0);
+        transcribedText = transcription.text ?? '';
+        const normalizedTranscript = transcribedText.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ');
+        testData.audio.expectedTranscriptKeywords.forEach((keyword) => {
+          expect(normalizedTranscript).to.contain(keyword.toLowerCase());
+        });
+      });
+
+      cy.step('Verify audio is ready without submitting a chat request');
+      genAiPlayground
+        .findAudioFileChip()
+        .should('be.visible')
+        .and('contain', testData.audio.fileName.replace(/\.[^.]+$/, ''));
+      genAiPlayground.findAudioTranscriptionError().should('not.exist');
+      genAiPlayground.findMessageInput().should('have.value', '');
+      cy.then(() => expect(chatRequestCount).to.equal(0));
+
+      cy.step('Send a prompt and verify the exact transcript-to-chat payload');
+      genAiPlayground.findMessageInput().type(testData.audio.prompt);
+      genAiPlayground.findSendButton().should('be.enabled').click();
+      cy.wait('@createAudioResponse', { responseTimeout: 120000 }).then(({ request, response }) => {
+        expect(new URL(request.url).searchParams.get('namespace')).to.equal(projectName);
+        expect(request.body.input).to.equal(`${transcribedText}\n\n${testData.audio.prompt}`);
+        expect(response?.statusCode).to.equal(200);
+        expect(chatRequestCount).to.equal(1);
+      });
+
+      cy.step('Verify the submitted message and completed assistant answer');
+      genAiPlayground
+        .findAllUserMessages()
+        .last()
+        .should(($message) => {
+          expect($message.text()).to.contain(transcribedText.trim());
+          expect($message.text()).to.contain(testData.audio.prompt);
+        });
+      genAiPlayground
+        .findAllAssistantMessages({ timeout: 120000 })
+        .last()
+        .invoke('text')
+        .should('match', /\S/)
+        .and((answer) => {
+          const normalizedAnswer = answer.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ');
+          testData.audio.expectedResponseKeywords.forEach((keyword) => {
+            expect(normalizedAnswer).to.contain(keyword.toLowerCase());
+          });
+        });
+      genAiPlayground.findStopButton().should('not.exist');
+      genAiPlayground.findChatbotErrorAlerts().should('not.exist');
+      genAiPlayground.findAudioFileChip().should('not.exist');
     },
   );
 });
