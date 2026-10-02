@@ -1115,6 +1115,36 @@ func TestMediaFileUploadHandler_PerTypeSizeExceeded(t *testing.T) {
 	assert.Equal(t, http.StatusRequestEntityTooLarge, rr.Code)
 }
 
+func TestMediaFileUploadHandler_WAVMimeVariants(t *testing.T) {
+	app := &App{
+		config: config.EnvConfig{APIPathPrefix: "/api/v1", AuthMethod: config.AuthMethodDisabled},
+		logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+	}
+
+	for _, mimeType := range []string{"audio/wave", "audio/x-wav", "audio/x-pn-wav"} {
+		t.Run(mimeType, func(t *testing.T) {
+			var body bytes.Buffer
+			writer := multipart.NewWriter(&body)
+			require.NoError(t, writer.WriteField("type", "audio"))
+			header := make(textproto.MIMEHeader)
+			header.Set("Content-Disposition", `form-data; name="file"; filename="recording.wav"`)
+			header.Set("Content-Type", mimeType)
+			part, err := writer.CreatePart(header)
+			require.NoError(t, err)
+			_, err = part.Write([]byte("RIFF\x00\x00\x00\x00WAVEfmt "))
+			require.NoError(t, err)
+			require.NoError(t, writer.Close())
+
+			req := httptest.NewRequest(http.MethodPost, constants.MediaFilesUploadPath+"?namespace=default", &body)
+			req.Header.Set("Content-Type", writer.FormDataContentType())
+			req = req.WithContext(context.WithValue(req.Context(), constants.LlamaStackClientKey, lsmocks.NewMockLlamaStackClient()))
+			rr := httptest.NewRecorder()
+			app.LlamaStackMediaFileUploadHandler(rr, req, nil)
+			assert.Equal(t, http.StatusOK, rr.Code)
+		})
+	}
+}
+
 func TestLlamaStackDocumentUploadHandler(t *testing.T) {
 	newRequest := func(t *testing.T, filename, contentType, contents string) (*http.Request, *lsmocks.MockLlamaStackClient) {
 		t.Helper()

@@ -1022,23 +1022,26 @@ describe('ChatbotMessageInput', () => {
       clickSpy.mockRestore();
     });
 
-    it('calls onAudioUpload with valid WAV file', () => {
-      const mockOnAudioUpload = jest.fn();
-      render(
-        <ChatbotMessageInput
-          {...defaultProps}
-          isAudioUploadDisabled={false}
-          onAudioUpload={mockOnAudioUpload}
-          audioTranscriptionState={defaultAudioState}
-        />,
-      );
+    it.each(['audio/wav', 'audio/wave', 'audio/x-wav', 'audio/x-pn-wav'])(
+      'calls onAudioUpload with a WAV file reported as %s',
+      (mimeType) => {
+        const mockOnAudioUpload = jest.fn();
+        render(
+          <ChatbotMessageInput
+            {...defaultProps}
+            isAudioUploadDisabled={false}
+            onAudioUpload={mockOnAudioUpload}
+            audioTranscriptionState={defaultAudioState}
+          />,
+        );
 
-      const fileInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
-      const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
-      fireEvent.change(fileInput, { target: { files: [file] } });
+        const fileInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
+        const file = new File(['audio-data'], 'recording.wav', { type: mimeType });
+        fireEvent.change(fileInput, { target: { files: [file] } });
 
-      expect(mockOnAudioUpload).toHaveBeenCalledWith(file);
-    });
+        expect(mockOnAudioUpload).toHaveBeenCalledWith(file);
+      },
+    );
 
     it('calls onAudioUpload with valid MP3 file', () => {
       const mockOnAudioUpload = jest.fn();
