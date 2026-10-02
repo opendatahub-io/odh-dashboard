@@ -31,6 +31,7 @@
     "./extensions": "./extensions/index.ts",
     "./extension-points": "./extension-points/index.ts",
     "./extension-points/deployment-wizard": "./extension-points/deployment-wizard.ts",
+    "./extension-points/runtime-image-install-target": "./extension-points/runtime-image-install-target.ts",
     "./shared/types/deploy-prefill": "./src/shared/types/deploy-prefill.ts",
     "./shared/hfTokenConstants": "./src/shared/hfTokenConstants.ts",
     "./shared/hfTokenSecret": "./src/shared/hfTokenSecret.ts",
