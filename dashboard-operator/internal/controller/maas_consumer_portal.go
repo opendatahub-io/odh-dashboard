@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -32,12 +33,14 @@ import (
 )
 
 const conditionMaaSConsumerPortalAvailable = "MaaSConsumerPortalAvailable"
+const maasConsumerPortalRetryInterval = time.Minute
 
 const (
-	maasConsumerPortalDeploymentName = "maas-consumer-portal"
-	maasConsumerPortalPartOf         = maasConsumerPortalDeploymentName
-	maasConsumerPortalGatewayName    = "data-science-gateway"
-	maasConsumerPortalBasePath       = "/maas-consumer-portal/"
+	maasConsumerPortalDeploymentName      = "maas-consumer-portal"
+	maasConsumerPortalParamsConfigMapName = "maas-consumer-portal-params"
+	maasConsumerPortalPartOf              = maasConsumerPortalDeploymentName
+	maasConsumerPortalGatewayName         = "data-science-gateway"
+	maasConsumerPortalBasePath            = "/maas-consumer-portal/"
 )
 
 var ErrMaaSConsumerPortalUnsupportedPlatform = errors.New("maas consumer portal is supported only on RHOAI")
@@ -55,6 +58,21 @@ func maasConsumerPortalURL(domain string) (string, bool) {
 		return "", false
 	}
 	return fmt.Sprintf("https://%s%s", domain, maasConsumerPortalBasePath), true
+}
+
+// reconcileMaaSConsumerPortalOperand applies federation configuration before
+// reconciling the portal bundle and availability in either core management state.
+func (r *DashboardReconciler) reconcileMaaSConsumerPortalOperand(
+	ctx context.Context,
+	dashboard *v1alpha1.Dashboard,
+	cm *conditions.Manager,
+	statuses map[string]v1alpha1.ModuleStatus,
+) time.Duration {
+	if err := r.deployMaaSConsumerPortalFederationConfigMap(ctx, dashboard, statuses); err != nil {
+		r.markMaaSConsumerPortalFederationConfigMapFailed(cm, err)
+		log.FromContext(ctx).Error(err, "Failed to deploy MaaS Consumer Portal federation ConfigMap")
+	}
+	return r.reconcileMaaSConsumerPortal(ctx, dashboard, cm, statuses)
 }
 
 // reconcileMaaSConsumerPortal independently manages the portal bundle. Its resources
@@ -160,6 +178,12 @@ func maasConsumerPortalSupportedPlatform(platform cluster.Platform) bool {
 	return platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai
 }
 
+func (r *DashboardReconciler) maasConsumerPortalManaged(dashboard *v1alpha1.Dashboard) bool {
+	return dashboard.Spec.MaaSConsumerPortal != nil &&
+		dashboard.Spec.MaaSConsumerPortal.ManagementState == "Managed" &&
+		maasConsumerPortalSupportedPlatform(r.Platform)
+}
+
 func portalGatewayDomain(d *v1alpha1.Dashboard) string {
 	if d.Spec.Gateway != nil {
 		return d.Spec.Gateway.Domain
@@ -201,6 +225,8 @@ func (r *DashboardReconciler) deployMaaSConsumerPortalBundle(ctx context.Context
 	params := readExistingParams(filepath.Join(m.String(), "params.env"))
 	maps.Copy(params, resolveImageParams())
 	params["dashboard-namespace"] = r.ApplicationsNamespace
+	params["operator-namespace"] = r.Namespace
+	params["perses-namespace"] = r.maasConsumerPortalPersesNamespace(dashboard)
 	params["gateway-name"] = maasConsumerPortalGatewayName
 	params["maas-consumer-portal-federation-config"] = maasConsumerPortalFederationConfigMapName
 	if err := writeParamsEnv(m.String(), params); err != nil {
@@ -210,12 +236,12 @@ func (r *DashboardReconciler) deployMaaSConsumerPortalBundle(ctx context.Context
 	if err != nil {
 		return fmt.Errorf("rendering MaaS Consumer Portal bundle: %w", err)
 	}
-	resources := make([]unstructured.Unstructured, 0, len(rendered))
-	for i := range rendered {
-		if rendered[i].GetKind() != "ConfigMap" || rendered[i].GetName() != "maas-consumer-portal-params" {
-			resources = append(resources, rendered[i])
-		}
+	operatorNamespaces, err := r.existingMaaSConsumerPortalOperatorNamespaces(ctx)
+	if err != nil {
+		return fmt.Errorf("getting operator namespaces: %w", err)
 	}
+	rendered = setMaaSConsumerPortalOperatorSubscriptionNamespaces(rendered, r.Namespace)
+	resources := filterMaaSConsumerPortalResources(rendered, operatorNamespaces)
 	if err := deploy.NewDeployer(deploy.WithFieldOwner("dashboard-operator"), deploy.WithLabel(labels.PlatformPartOf, maasConsumerPortalPartOf), deploy.WithApplyOrder()).Deploy(ctx, deploy.DeployInput{Client: r.Client, Owner: dashboard, Release: deploy.ReleaseInfo{Type: string(r.Platform)}, Resources: resources}); err != nil {
 		return fmt.Errorf("deploying MaaS Consumer Portal bundle: %w", err)
 	}
@@ -230,6 +256,50 @@ func (r *DashboardReconciler) deployMaaSConsumerPortalBundle(ctx context.Context
 	}
 	if err := r.patchMaaSConsumerPortalDeploymentFederationHash(ctx, cm.Data[federationConfigKey]); err != nil {
 		return err
+	}
+	return nil
+}
+
+func (r *DashboardReconciler) maasConsumerPortalPersesNamespace(dashboard *v1alpha1.Dashboard) string {
+	if dashboard.Spec.Observability != nil && dashboard.Spec.Observability.PersesService != nil &&
+		dashboard.Spec.Observability.PersesService.Namespace != "" {
+		return dashboard.Spec.Observability.PersesService.Namespace
+	}
+
+	return r.monitoringNamespace()
+}
+
+// setMaaSConsumerPortalPersesIngressNamespace updates only the portal peer;
+// the policy itself remains in the Perses namespace.
+func setMaaSConsumerPortalPersesIngressNamespace(resources []unstructured.Unstructured, applicationsNamespace string) error {
+	if applicationsNamespace == "" {
+		return fmt.Errorf("observability applications namespace must not be empty")
+	}
+	for i := range resources {
+		resource := &resources[i]
+		if resource.GetKind() != "NetworkPolicy" || resource.GetName() != "dashboard-perses-access" {
+			continue
+		}
+		var policy networkingv1.NetworkPolicy
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(resource.Object, &policy); err != nil {
+			return err
+		}
+		for _, ingress := range policy.Spec.Ingress {
+			for _, peer := range ingress.From {
+				if peer.PodSelector != nil && peer.NamespaceSelector != nil &&
+					peer.PodSelector.MatchLabels["app.kubernetes.io/part-of"] == maasConsumerPortalDeploymentName {
+					if peer.NamespaceSelector.MatchLabels == nil {
+						peer.NamespaceSelector.MatchLabels = make(map[string]string)
+					}
+					peer.NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"] = applicationsNamespace
+				}
+			}
+		}
+		object, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&policy)
+		if err != nil {
+			return err
+		}
+		resource.Object = object
 	}
 	return nil
 }
@@ -260,6 +330,7 @@ func (r *DashboardReconciler) deleteLabeledMaaSConsumerPortalRBACResources(ctx c
 	return errors.Join(
 		r.deleteLabeledMaaSConsumerPortalResourceList(ctx, &rbacv1.ClusterRoleList{}),
 		r.deleteLabeledMaaSConsumerPortalResourceList(ctx, &rbacv1.ClusterRoleBindingList{}),
+		r.deleteLabeledMaaSConsumerPortalOperatorSubscriptionRBACResources(ctx),
 	)
 }
 

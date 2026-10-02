@@ -47,6 +47,7 @@ import type {
   DataScienceClusterKindStatus,
   NotebookKind,
   OdhApplication,
+  OperatorSubscriptionStatus,
   RoleBindingKind,
   SecretKind,
   TemplateKind,
@@ -72,7 +73,6 @@ import type {
   OdhDocument,
   PrometheusQueryResponse,
   ResponseStatus,
-  SubscriptionStatusData,
 } from '@odh-dashboard/internal/types';
 import type { ClusterSettingsType } from '@odh-dashboard/plugin-core/host-api';
 import type { PrometheusQueryRangeResponse } from '@odh-dashboard/ui-core/types/metrics';
@@ -277,7 +277,7 @@ declare global {
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/operator-subscription-status',
-          response: OdhResponse<SubscriptionStatusData>,
+          response: OdhResponse<OperatorSubscriptionStatus>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/status/openshift-ai-notebooks/allowedUsers',

@@ -52,7 +52,7 @@ The controller follows a sequential pipeline on each reconcile:
 ```text
 1. Fetch CR            -> return nil for NotFound (deleted)
 2. Handle deletion     -> finalizer + cross-namespace cleanup
-3. Handle Removed      -> tear down all labeled resources
+3. Handle Removed      -> tear down core resources, retain portal dependencies
 4. Deploy:
    -> Clean up legacy sidecar resources (upgrade path)
    -> Render overlay (odh or rhoai)
@@ -71,19 +71,20 @@ The controller follows a sequential pipeline on each reconcile:
 
 The controller supports `managementState: Removed` on the Dashboard CR. When set:
 
-1. All resources labeled `platform.opendatahub.io/part-of: dashboard` in the applications namespace are deleted (Deployments, Services, ConfigMaps, ServiceAccounts, Secrets, NetworkPolicies, Roles, RoleBindings) plus cluster-scoped ClusterRoles and ClusterRoleBindings
-2. Cross-namespace resources (e.g., Perses proxy in observability namespace) are cleaned up
+1. Resources labeled `platform.opendatahub.io/part-of: dashboard` in the applications namespace are deleted (Deployments, Services, ConfigMaps, ServiceAccounts, Secrets, NetworkPolicies, Roles, RoleBindings) plus cluster-scoped ClusterRoles and ClusterRoleBindings, except shared resources still needed by a managed MaaS Consumer Portal
+2. Enabled observability resources are retained while the portal is managed, including resources in a separate monitoring namespace; otherwise they are cleaned up
 3. Core-dashboard conditions are updated with reason `Removed` and informational severity. If no MaaS Consumer Portal is managed, status remains `phase: NotReady`; if a MaaS Consumer Portal is managed, its health determines the aggregate `Ready` condition and `phase`.
 4. `status.url` and distribution status are cleared; `status.moduleStatuses` continues to reflect aggregate module demand
-5. The controller requeues while a managed MaaS Consumer Portal is awaiting readiness or retrying a transient failure
+5. The controller requeues while a managed MaaS Consumer Portal is awaiting readiness or retrying a transient failure. If the portal is managed, `spec.observability` is unset, and Perses remains undetected, it schedules a five-minute retry when no other retry is pending. Successful detection does not schedule this periodic retry, even though `spec.observability` remains unset in the stored CR.
 
 **The MaaS Consumer Portal is an independent RHOAI-only operand, decoupled from the core dashboard's `managementState`.** It is gated by `spec.maasConsumerPortal.managementState`, not the core dashboard lifecycle:
 
 - Namespaced resources are rendered into `APPLICATIONS_NAMESPACE`; portal resources carry `platform.opendatahub.io/part-of: maas-consumer-portal`, so core teardown (`part-of: dashboard`) never matches them.
 - The shared MaaS and GenAI BFFs remain aggregate-demand resources. Portal-only operation retains them on RHOAI unless an explicit module disable overrides demand.
+- Observability is shared by both operands. Portal-only operation auto-detects Perses and deploys its dashboard resources and access policy; `ObservabilityAvailable` continues to report their state after core removal.
 - On non-RHOAI platforms the controller removes stale portal resources and reports an informational `UnsupportedPlatform` condition without creating portal demand.
 
-Consequently, core `managementState: Removed` with `maasConsumerPortal.managementState: Managed` retains the portal operand and its aggregate MaaS/GenAI demand. When the portal is removed, the controller deletes only portal-owned resources, including the serving-certificate Secret that does not use owner-reference garbage collection. Dashboard CR deletion cleans up all portal resources.
+Consequently, core `managementState: Removed` with `maasConsumerPortal.managementState: Managed` retains the portal operand and its aggregate MaaS/GenAI demand. When the portal is removed, the controller deletes portal-owned resources, including the serving-certificate Secret that does not use owner-reference garbage collection. If the core dashboard is already `Removed`, removing the remaining portal also cleans up shared observability resources. Dashboard CR deletion cleans up all portal resources.
 
 The finalizer handles a separate concern: cleanup on CR **deletion** (when `DeletionTimestamp` is set). `Removed` is a "soft stop" that preserves the CR while removing the operand.
 
@@ -145,6 +146,8 @@ When `spec.maasConsumerPortal.managementState` is `Managed` on RHOAI and `spec.g
 - **Authentication and migration**: gateway-owned `/oauth2/sign_out` and `/oauth2/callback` remain unchanged. Login returns to the requested portal deep link. Existing derived-hostname bookmarks are retired and are not redirected, because the operator does not own external hostname exposure. After portal removal, portal-prefixed URLs are handled by the remaining Dashboard catch-all (typically its normal not-found behavior); they no longer serve the portal.
 - **Proxy response paths**: the portal's current Core-BFF handlers and module proxy configuration were inspected for browser-visible redirects. The proxy preserves relative upstream `Location` headers and validates absolute redirect targets for SSRF; no portal-reachable redirect requiring prefix rewriting was found, so no `X-Forwarded-Prefix` contract is configured.
 - **Federation**: the portal-owned `maas-consumer-portal-federation-config` ConfigMap is mounted into the Deployment. Its content hash is patched onto the Deployment template after every successful bundle apply to trigger configuration rollouts.
+- **Observability**: when enabled, the portal federation config includes Perses. Custom services must satisfy the [Perses service requirements](#perses-service-requirements).
+- **Subscription access**: scoped Roles and RoleBindings are deployed in existing `redhat-ods-operator`, `opendatahub-operator`, and `openshift-operators` namespaces, plus the controller's configured operator namespace. The portal BFF tries the configured namespace first, then the platform defaults, using named Subscription reads only. Namespace creation triggers reconciliation, and owned Role/RoleBinding watches repair deleted or modified grants.
 - **Availability**: `MaaSConsumerPortalAvailable` requires the MaaS and GenAI dependencies, federation ConfigMap reconciliation, an available Deployment, and an accepted/resolved HTTPRoute.
 - **Cleanup**: removal explicitly deletes the serving-certificate Secret `maas-consumer-portal-tls`, HTTPRoute, RBAC, and other portal-owned resources. Core-dashboard removal does not delete them while the portal remains Managed.
 
@@ -204,6 +207,12 @@ The ConfigMap also includes:
 - An `mlflowEmbedded` entry if the mlflow module is deployed (routes to the embedded MLflow UI)
 
 After deploying the ConfigMap, the operator patches the main Deployment with a content hash annotation (`dashboard.opendatahub.io/federation-config-hash`) to trigger a rolling restart whenever the federation configuration changes. The hash is computed as SHA-256 of the ConfigMap data, and the patch is skipped if the hash has not changed.
+
+### Perses Service Requirements
+
+When `spec.observability` is unset, the controller looks for `data-science-perses:8080` in the platform monitoring namespace (`redhat-ods-monitoring` on RHOAI). Auto-detection runs when either the core dashboard or the MaaS Consumer Portal is managed. It configures observability in memory and reports its state through `ObservabilityAvailable`; it does not write `spec.observability` back to the CR or install the Perses server. Set `spec.observability.enabled: false` to disable it explicitly.
+
+`spec.observability.persesService` can override the HTTP service name, namespace, and service port. The managed network policies require the backing pods to have `app.kubernetes.io/managed-by: perses-operator` and listen on TCP port `8080`. A different **service port** must still forward to pod port `8080`. Other pod labels or listening ports require deployment-specific network policies; configuring the service target alone does not support those topologies.
 
 ## Operator ConfigMap
 
@@ -308,12 +317,13 @@ This behavior is built into the `odh-platform-utilities/pkg/deploy` package, whi
 
 ### Cross-Namespace Cleanup
 
-OwnerReference garbage collection only works within the same namespace (or for cluster-scoped owners referencing cluster-scoped children). The Dashboard CR is cluster-scoped, so namespaced resources in the applications namespace are covered. However, Perses proxy resources may be deployed to a separate observability namespace (`spec.observability.persesService.namespace`).
+The cluster-scoped Dashboard CR can own resources in any namespace. Explicit cleanup also handles soft removal, where the CR remains present and owner-reference garbage collection does not run. Perses resources may be deployed to a separate observability namespace (`spec.observability.persesService.namespace`).
 
-On Dashboard CR deletion, the controller's finalizer explicitly cleans up cross-namespace resources:
-- Lists Services, ConfigMaps, NetworkPolicies, and PersesDashboards in the observability namespace labeled `platform.opendatahub.io/part-of: dashboard`
+On Dashboard CR deletion, or core soft removal when the portal no longer needs observability, the controller explicitly cleans up observability resources:
+
+- Lists Services, ConfigMaps, NetworkPolicies, and PersesDashboards across all namespaces using both `platform.opendatahub.io/part-of: dashboard` and `app.kubernetes.io/component: observability`
+- Also cleans up legacy resources labeled `platform.opendatahub.io/part-of: dashboard` without a component label in the configured observability namespace, or the platform monitoring namespace when none is configured. This fallback is skipped when that namespace matches the applications namespace to avoid deleting unrelated resources.
 - Deletes each resource, ignoring NotFound errors for idempotency
-- Skips cleanup when the observability namespace matches the applications namespace (ownerReference GC handles it)
 
 ### Labels
 
