@@ -49,20 +49,20 @@ if [ -z "$$ogx_core_image" ] || [ -z "$$postgresql_16_image" ]; then \
 		rhoai_subscription_namespace="$(RHOAI_OPERATOR_NAMESPACE)"; \
 	fi; \
 	if [ -z "$$rhoai_subscription_namespace" ]; then \
-		rhoai_subscription_namespace="$$(oc get subscription -A -o jsonpath='{.items[?(@.spec.name=="$(RHOAI_SUBSCRIPTION_PACKAGE)")].metadata.namespace}' 2>/dev/null | head -n 1)"; \
+		rhoai_subscription_namespace="$$(oc get subscription -A -o jsonpath='{range .items[?(@.spec.name=="$(RHOAI_SUBSCRIPTION_PACKAGE)")]}{.metadata.namespace}{"\\n"}{end}' 2>/dev/null | head -n 1)"; \
 	fi; \
 	if [ -z "$$rhoai_subscription_namespace" ]; then \
-		echo "Unable to discover the RHOAI Subscription namespace. Set RHOAI_SUBSCRIPTION_NAMESPACE and retry." >&2; \
+		echo "Unable to discover the RHOAI Subscription namespace. Set RHOAI_SUBSCRIPTION_NAMESPACE (or RHOAI_OPERATOR_NAMESPACE) and retry." >&2; \
 		exit 1; \
 	fi; \
-	rhoai_subscription_name="$$(oc get subscription -n "$$rhoai_subscription_namespace" -o jsonpath='{.items[?(@.spec.name=="$(RHOAI_SUBSCRIPTION_PACKAGE)")].metadata.name}' 2>/dev/null | head -n 1)"; \
+	rhoai_subscription_name="$$(oc get subscription -n "$$rhoai_subscription_namespace" -o jsonpath='{range .items[?(@.spec.name=="$(RHOAI_SUBSCRIPTION_PACKAGE)")]}{.metadata.name}{"\\n"}{end}' 2>/dev/null | head -n 1)"; \
 	if [ -z "$$rhoai_subscription_name" ]; then \
 		echo "Unable to discover the RHOAI Subscription name. Set RHOAI_SUBSCRIPTION_NAMESPACE and RHOAI_SUBSCRIPTION_PACKAGE and retry." >&2; \
 		exit 1; \
 	fi; \
 	rhoai_csv="$$(oc get subscription "$$rhoai_subscription_name" -n "$$rhoai_subscription_namespace" -o jsonpath='{.status.installedCSV}' 2>/dev/null)"; \
 	if [ -z "$$rhoai_csv" ]; then \
-		echo "Unable to discover the installed RHOAI CSV. Set RHOAI_SUBSCRIPTION_NAMESPACE or both related-image variables explicitly and retry." >&2; \
+		echo "Unable to discover the installed RHOAI CSV. Set RHOAI_SUBSCRIPTION_NAMESPACE and RHOAI_SUBSCRIPTION_PACKAGE, or set related-image variables explicitly and retry." >&2; \
 		exit 1; \
 	fi; \
 	if [ -z "$$ogx_core_image" ]; then \
@@ -73,7 +73,7 @@ if [ -z "$$ogx_core_image" ] || [ -z "$$postgresql_16_image" ]; then \
 	fi; \
 fi; \
 if [ -z "$$ogx_core_image" ] || [ -z "$$postgresql_16_image" ]; then \
-	echo "Unable to discover required RHOAI related images from the installed CSV. Set RELATED_IMAGE_ODH_OGX_CORE_IMAGE and RELATED_IMAGE_POSTGRESQL_16_IMAGE explicitly and retry." >&2; \
+	echo "Unable to discover required RHOAI related images from the installed CSV. Set RELATED_IMAGE_ODH_OGX_CORE_IMAGE and/or RELATED_IMAGE_POSTGRESQL_16_IMAGE explicitly and retry." >&2; \
 	exit 1; \
 fi; \
 echo "Using Data Science Gateway: $$gateway_domain"; \
