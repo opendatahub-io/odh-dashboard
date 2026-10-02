@@ -57,11 +57,7 @@ describe('Verify HF private deploy uses ServiceAccount and Secret', () => {
         hfApiKey = requireHuggingFaceApiKey();
         verifyModelCatalogBackend();
         ensureAdminOcSession();
-        provisionProjectForModelServing(
-          projectName,
-          testData.awsBucket as 'BUCKET_1' | 'BUCKET_3',
-          'resources/yaml/data_connection_model_serving.yaml',
-        );
+        createCleanProject(projectName)
       });
   });
 
