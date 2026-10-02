@@ -209,7 +209,7 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
           )}
         </ToolbarGroup>
       </ToolbarToggleGroup>
-      <ToolbarGroup align={{ default: 'alignEnd' }}>
+      <ToolbarGroup>
         <ToolbarItem>
           <Button
             variant="primary"
