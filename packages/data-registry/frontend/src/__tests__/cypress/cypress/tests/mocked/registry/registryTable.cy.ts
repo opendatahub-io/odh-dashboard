@@ -206,21 +206,11 @@ describe('Registry Table', () => {
     cy.findByTestId('delete-asset-modal').should('not.exist');
   });
 
-  it('should navigate to the asset detail view to edit a table', () => {
-    cy.intercept(
-      'GET',
-      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/claims-data`,
-      { body: mockAssetsResponse.assets[0] },
-    ).as('getTable');
-
+  it('should open the edit modal from the browse view without navigating', () => {
     visitWithData();
     cy.findByTestId('asset-actions-table-analytics-claims-data').click();
     cy.findByTestId('asset-edit-table-analytics-claims-data').click();
-    cy.url().should(
-      'include',
-      '/ai-hub/data/browse/assets/table/test-project/analytics/claims-data?edit=true',
-    );
-    cy.wait('@getTable');
+    cy.url().should('include', '/ai-hub/data/browse?project=test-project');
     cy.findByTestId('edit-asset-modal').should('exist');
   });
 

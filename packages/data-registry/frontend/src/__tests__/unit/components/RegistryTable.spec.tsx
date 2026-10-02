@@ -110,6 +110,73 @@ describe('RegistryTable', () => {
     expect(screen.getByTestId('register-data-button')).toBeTruthy();
   });
 
+  it('should show a disabled empty state when no labels are available', () => {
+    renderTable({ labels: [] });
+
+    fireEvent.click(screen.getByTestId('filter-value'));
+
+    const emptyOption = screen.getByRole('option', { name: 'No labels found.' });
+    expect(emptyOption).toBeDisabled();
+  });
+
+  it('should allow selecting multiple formats', () => {
+    renderTable();
+
+    fireEvent.click(screen.getByTestId('filter-category'));
+    fireEvent.click(screen.getByRole('option', { name: 'Format' }));
+    fireEvent.click(screen.getByTestId('filter-value'));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Apache Parquet' }));
+
+    expect(screen.getByText('claims-data')).toBeInTheDocument();
+    expect(screen.queryByText('raw-documents')).toBeNull();
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Documents' }));
+
+    expect(screen.getByText('claims-data')).toBeInTheDocument();
+    expect(screen.getByText('raw-documents')).toBeInTheDocument();
+    expect(screen.getByTestId('filter-value')).toHaveTextContent('2');
+  });
+
+  it('should use OR within categories and AND across categories', () => {
+    renderTable();
+
+    // Labels use OR: either selected label matches.
+    fireEvent.click(screen.getByTestId('filter-value'));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'production' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'source-docs' }));
+    expect(screen.getByText('claims-data')).toBeInTheDocument();
+    expect(screen.getByText('raw-documents')).toBeInTheDocument();
+
+    // Asset type uses OR: either selected type matches.
+    fireEvent.click(screen.getByTestId('filter-value'));
+    fireEvent.click(screen.getByTestId('filter-category'));
+    fireEvent.click(screen.getByRole('option', { name: 'Asset type' }));
+    fireEvent.click(screen.getByTestId('filter-value'));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Structured' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Unstructured' }));
+    expect(screen.getByText('claims-data')).toBeInTheDocument();
+    expect(screen.getByText('raw-documents')).toBeInTheDocument();
+
+    // Categories use AND: the remaining source-docs label narrows both asset types.
+    fireEvent.click(screen.getByTestId('filter-value'));
+    fireEvent.click(screen.getByTestId('filter-category'));
+    fireEvent.click(screen.getByRole('option', { name: 'Labels' }));
+    fireEvent.click(screen.getByTestId('filter-value'));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'production' }));
+    expect(screen.queryByText('claims-data')).toBeNull();
+    expect(screen.getByText('raw-documents')).toBeInTheDocument();
+
+    // Formats use OR while remaining combined with the label and asset type filters.
+    fireEvent.click(screen.getByTestId('filter-value'));
+    fireEvent.click(screen.getByTestId('filter-category'));
+    fireEvent.click(screen.getByRole('option', { name: 'Format' }));
+    fireEvent.click(screen.getByTestId('filter-value'));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Apache Parquet' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Documents' }));
+    expect(screen.queryByText('claims-data')).toBeNull();
+    expect(screen.getByText('raw-documents')).toBeInTheDocument();
+  });
+
   it('should filter assets by property key and value', () => {
     renderTable();
 
