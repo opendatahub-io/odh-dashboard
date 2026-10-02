@@ -206,7 +206,8 @@ const createMaaSConnection = (testData: AutoragTestData, maasFixture: AutoragMaa
 };
 
 const createVectorDbConnection = (testData: AutoragTestData): void => {
-  autoragConfigurePage.findAddVectorDbDropdownToggle().click();
+  autoragConfigurePage.findSimpleRagRadio().click();
+  autoragConfigurePage.findAddDatabaseDropdownToggle().click();
   autoragConfigurePage.findAddPgvectorConnectionOption().click();
   const connection = getVectorDatabaseConnection();
   autoragConfigurePage.findPgvectorConnectionNameInput().clear().type(testData.vectorDbSecretName);
@@ -248,11 +249,11 @@ export const createAutoragConnections = (
 
   cy.step('Create PGVector connection through the dashboard');
   autoragConfigurePage.findNextButton().click();
-  autoragConfigurePage.findVectorStoreSelector({ timeout: 60000 }).should('not.be.disabled');
+  autoragConfigurePage.findDatabaseSelector({ timeout: 60000 }).should('not.be.disabled');
   createVectorDbConnection(testData);
   connectionOwnership.vectorDbSecretCreated = true;
   autoragConfigurePage
-    .findVectorStoreSelector()
+    .findDatabaseSelector()
     .find('input')
     .should('have.value', testData.vectorDbSecretName);
 };
@@ -263,7 +264,7 @@ export const createAutoragConnections = (
  * Handles: login, wait for DSPA, navigate to experiments, create run,
  * fill name/description, select MaaS secret, select S3 connection,
  * upload document, browse and select it, upload evaluation dataset,
- * and select the vector database secret.
+ * and select the Simple RAG database connection.
  *
  * After this, optionally configure metric/patterns, then call `submitAutoragRun()`.
  */
@@ -388,7 +389,7 @@ export const configureAutoragRun = (
   cy.step('Wait for evaluation file upload to complete');
   autoragConfigurePage.findEvaluationFileValue().invoke('val').should('not.be.empty');
 
-  cy.step('Select vector database secret');
+  cy.step('Select Simple RAG database connection');
   if (options.createConnections) {
     cy.step('Create PGVector connection through the dashboard');
     createVectorDbConnection(testData);
@@ -396,16 +397,16 @@ export const configureAutoragRun = (
       connectionOwnership.vectorDbSecretCreated = true;
     }
   }
-  autoragConfigurePage.findVectorStoreSelector({ timeout: 60000 }).should('not.be.disabled');
+  autoragConfigurePage.findDatabaseSelector({ timeout: 60000 }).should('not.be.disabled');
   if (options.createConnections) {
     autoragConfigurePage
-      .findVectorStoreSelector()
+      .findDatabaseSelector()
       .find('input')
       .should('have.value', testData.vectorDbSecretName);
   } else {
-    autoragConfigurePage.findVectorStoreSelector().click();
+    autoragConfigurePage.findDatabaseSelector().click();
     autoragConfigurePage
-      .findVectorStoreSelector()
+      .findDatabaseSelector()
       .find('input')
       .clear()
       .type(testData.vectorDbSecretName);
@@ -464,7 +465,7 @@ export const submitAutoragRun = (
       const body = request.body as Record<string, unknown>;
       expect(body.input_data_keys).to.deep.equal([inputDataKey]);
       expect(body.maas_secret_name).to.equal(testData.maasSecretName);
-      expect(body.vector_db_secret_name).to.equal(testData.vectorDbSecretName);
+      expect(body.db_secret_name).to.equal(testData.vectorDbSecretName);
       expect(body.generation_models).to.deep.equal([maasFixture.generationModelId]);
       expect(body.embedding_models).to.deep.equal([maasFixture.embeddingModelId]);
       expect(body.optimization_metric).to.equal(

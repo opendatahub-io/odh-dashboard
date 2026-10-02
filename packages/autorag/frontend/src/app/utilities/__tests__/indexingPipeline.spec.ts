@@ -53,7 +53,7 @@ const patternWithSpec: AutoragPattern = {
         input_data_bucket_name: 'bucket',
         input_data_keys: ['docs/'],
         maas_secret_name: 'maas-connection',
-        vector_db_secret_name: 'vector-db-connection',
+        db_secret_name: 'database-connection',
         provider_type: 'milvus',
         unsupported_parameter: 'ignored',
       },

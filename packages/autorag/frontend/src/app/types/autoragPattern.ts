@@ -94,10 +94,16 @@ export type AutoragLegacyVectorStoreBinding = {
   vector_store_id: string | null;
 };
 
-export type AutoragVectorStoreBinding = {
-  provider_type: string;
-  collection_name: string;
+export type AutoragProviderType = 'milvus' | 'pgvector' | 'neo4j';
+
+export type AutoragStoreBinding = {
+  provider_type: AutoragProviderType;
+  collection_name?: string;
+  [key: string]: unknown;
 };
+
+/** @deprecated Historical canonical artifacts used this vector-specific name. */
+export type AutoragVectorStoreBinding = AutoragStoreBinding;
 
 export type AutoragEvaluationMetric = MetricReference & {
   evaluator: string;
@@ -120,7 +126,9 @@ export type AutoragIndexingPipelineSpec = {
 };
 
 export type AutoragPatternSettings = {
-  vector_store_binding?: AutoragVectorStoreBinding;
+  store_binding?: AutoragStoreBinding;
+  /** @deprecated Historical canonical artifacts used this vector-specific name. */
+  vector_store_binding?: AutoragStoreBinding;
   chunking: {
     method: string;
     chunk_size: number;

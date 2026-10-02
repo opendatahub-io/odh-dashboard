@@ -26,7 +26,7 @@ const mockPattern: AutoragPattern = {
   max_combinations: 20,
   duration_seconds: 120,
   settings: {
-    vector_store_binding: {
+    store_binding: {
       provider_type: 'milvus',
       collection_name: 'vs_collection0',
     },
@@ -204,7 +204,7 @@ describe('PatternDetailsModal', () => {
     render(<PatternDetailsModal {...defaultProps} />);
 
     expect(screen.getByTestId('tab-pattern_information')).toBeInTheDocument();
-    expect(screen.getByTestId('tab-vector_store_binding')).toBeInTheDocument();
+    expect(screen.getByTestId('tab-store_binding')).toBeInTheDocument();
     expect(screen.getByTestId('tab-chunking')).toBeInTheDocument();
     expect(screen.getByTestId('tab-embedding')).toBeInTheDocument();
     expect(screen.getByTestId('tab-retrieval')).toBeInTheDocument();
@@ -299,7 +299,7 @@ describe('PatternDetailsModal', () => {
       const user = userEvent.setup();
       render(<PatternDetailsModal {...defaultProps} />);
 
-      await user.click(screen.getByTestId('tab-vector_store_binding'));
+      await user.click(screen.getByTestId('tab-store_binding'));
 
       expect(screen.getByText('Provider Type')).toBeInTheDocument();
       expect(screen.getByText('milvus')).toBeInTheDocument();
