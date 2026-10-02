@@ -62,10 +62,10 @@ func maasConsumerPortalURL(domain string) (string, bool) {
 // a portal that remains desired.
 func (r *DashboardReconciler) reconcileMaaSConsumerPortal(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager, statuses map[string]v1alpha1.ModuleStatus) time.Duration {
 	portal := effectiveMaaSPortal(dashboard.Spec)
+	backfillMaaSPortalURL(&dashboard.Status)
 	if portal == nil || portal.ManagementState != "Managed" {
 		return r.reconcileRemovedMaaSConsumerPortal(ctx, dashboard, cm)
 	}
-	backfillMaaSPortalURL(&dashboard.Status)
 	if !maasConsumerPortalSupportedPlatform(r.Platform) {
 		return r.reconcileUnsupportedMaaSConsumerPortal(ctx, dashboard, cm)
 	}
@@ -98,6 +98,7 @@ func (r *DashboardReconciler) reconcileMaaSConsumerPortal(ctx context.Context, d
 }
 
 func (r *DashboardReconciler) reconcileRemovedMaaSConsumerPortal(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager) time.Duration {
+	backfillMaaSPortalURL(&dashboard.Status)
 	if err := r.deleteMaaSConsumerPortalResources(ctx); err != nil {
 		cm.MarkFalse(conditionMaaSConsumerPortalAvailable,
 			conditions.WithReason("MaaSConsumerPortalCleanupFailed"),
@@ -111,6 +112,7 @@ func (r *DashboardReconciler) reconcileRemovedMaaSConsumerPortal(ctx context.Con
 }
 
 func (r *DashboardReconciler) reconcileUnsupportedMaaSConsumerPortal(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager) time.Duration {
+	backfillMaaSPortalURL(&dashboard.Status)
 	if err := r.deleteMaaSConsumerPortalResources(ctx); err != nil {
 		cm.MarkFalse(conditionMaaSConsumerPortalAvailable,
 			conditions.WithReason("MaaSConsumerPortalCleanupFailed"),

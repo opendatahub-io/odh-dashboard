@@ -117,7 +117,7 @@ func (in *DashboardSpec) DeepCopyInto(out *DashboardSpec) {
 	}
 	if in.MaaSConsumerPortal != nil {
 		in, out := &in.MaaSConsumerPortal, &out.MaaSConsumerPortal
-		*out = new(MaaSConsumerPortalSpec)
+		*out = new(MaaSPortalSpec)
 		**out = **in
 	}
 }

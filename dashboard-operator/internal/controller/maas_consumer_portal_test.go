@@ -292,6 +292,7 @@ func TestReconcileRemovedMaaSConsumerPortal_CleanupFailureRetries(t *testing.T) 
 	assert.Equal(t, "MaaSConsumerPortalCleanupFailed", condition.Reason)
 	assert.Equal(t, common.ConditionSeverityInfo, condition.Severity)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSConsumerPortalURL)
+	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
 }
 
 func TestReconcileUnsupportedMaaSConsumerPortal_CleanupFailurePreservesURL(t *testing.T) {
@@ -308,6 +309,7 @@ func TestReconcileUnsupportedMaaSConsumerPortal_CleanupFailurePreservesURL(t *te
 	assert.Equal(t, maasConsumerPortalRetryInterval, r.reconcileUnsupportedMaaSConsumerPortal(context.Background(), dashboard, cm))
 	assert.Equal(t, "MaaSConsumerPortalCleanupFailed", cm.GetCondition(conditionMaaSConsumerPortalAvailable).Reason)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSConsumerPortalURL)
+	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
 }
 
 func TestReconcileDeletion_CleansMaaSConsumerPortalResources(t *testing.T) {
