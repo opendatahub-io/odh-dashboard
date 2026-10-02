@@ -1095,14 +1095,15 @@ describe('ChatbotPlayground — audio transcription', () => {
       });
     });
     await act(async () => {
-      fireEvent.click(screen.getByTestId('send-button'));
+      fireEvent.click(screen.getByTestId('send-empty-button'));
     });
     expect(mockHandleMessageSend).toHaveBeenCalledWith(
-      expect.stringContaining('Hello world'),
+      'Analyze the following transcription.\n\nHello world',
       '',
       undefined,
       undefined,
       file,
+      'Audio transcription:\nHello world',
     );
 
     // Now a new audio upload should work (no per-message modal)
@@ -1112,6 +1113,18 @@ describe('ChatbotPlayground — audio transcription', () => {
     });
 
     expect(screen.queryByTestId('audio-per-message-modal')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('send-button')).not.toBeDisabled());
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('send-button'));
+    });
+    expect(mockHandleMessageSend).toHaveBeenLastCalledWith(
+      'Hello world\n\ntest msg',
+      '',
+      undefined,
+      undefined,
+      file2,
+      'Audio transcription:\nHello world\n\nYour message:\ntest msg',
+    );
   });
 
   it('audio chip is visible in ready state after transcription completes', async () => {

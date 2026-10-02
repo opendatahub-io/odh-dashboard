@@ -707,6 +707,7 @@ describe('useChatbotMessages - Error Handling', () => {
             undefined,
             undefined,
             file,
+            'Audio transcription:\nTranscribed speech',
           );
         });
         expect(result.current.messages[1].onRetryError).toBeDefined();
@@ -715,6 +716,14 @@ describe('useChatbotMessages - Error Handling', () => {
         await waitFor(() => expect(mockCreateResponse).toHaveBeenCalledTimes(2));
         expect(createObjectURL).toHaveBeenCalledTimes(1);
         expect(createObjectURL).toHaveBeenCalledWith(file);
+        expect(
+          result.current.messages
+            .filter((message) => message.role === 'user')
+            .map((message) => message.content),
+        ).toEqual([
+          'Audio transcription:\nTranscribed speech',
+          'Audio transcription:\nTranscribed speech',
+        ]);
         expect(
           result.current.messages
             .filter((message) => message.role === 'user')

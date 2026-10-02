@@ -511,6 +511,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           audioTranscription.state.phase === 'ready'
             ? (audioTranscription.state.file ?? undefined)
             : undefined,
+          pendingTranscription
+            ? `Audio transcription:\n${pendingTranscription}${message.trim() ? `\n\nYour message:\n${message}` : ''}`
+            : undefined,
         ),
       );
       setLastInput(

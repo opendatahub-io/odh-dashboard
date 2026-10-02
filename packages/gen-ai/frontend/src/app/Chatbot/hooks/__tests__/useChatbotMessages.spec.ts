@@ -1135,6 +1135,7 @@ describe('useChatbotMessages', () => {
           undefined,
           undefined,
           file,
+          'Audio transcription:\nTranscribed speech',
         );
       });
 
@@ -1145,6 +1146,7 @@ describe('useChatbotMessages', () => {
         'aria-label': string;
         style: React.CSSProperties;
       }>;
+      expect(userMessage.content).toBe('Audio transcription:\nTranscribed speech');
       expect(userMessage.attachments).toEqual([{ name: 'recording.wav' }]);
       expect(player.type).toBe('audio');
       expect(player.props).toEqual(

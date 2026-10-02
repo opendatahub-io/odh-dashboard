@@ -88,6 +88,7 @@ export interface UseChatbotMessagesReturn {
     fileId?: string,
     imagePreview?: { previewUrl: string; fileName: string },
     audioFile?: File,
+    displayMessage?: string,
   ) => Promise<void>;
   handleStopStreaming: () => void;
   clearConversation: () => void;
@@ -190,6 +191,7 @@ const useChatbotMessages = ({
         fileId?: string,
         imagePreview?: { previewUrl: string; fileName: string },
         audioFile?: File,
+        displayMessage?: string,
       ) => Promise<void>)
     | null
   >(null);
@@ -428,6 +430,7 @@ const useChatbotMessages = ({
     fileId?: string,
     imagePreview?: { previewUrl: string; fileName: string },
     audioFile?: File,
+    displayMessage?: string,
   ) => {
     // Reset streaming content tracker for new message
     streamingReceivedRef.current = false;
@@ -467,7 +470,7 @@ const useChatbotMessages = ({
     const userMessage: ChatbotMessageProps = {
       id: getId(),
       role: 'user',
-      content: message,
+      content: displayMessage ?? message,
       name: username || 'User',
       avatar: userAvatar,
       timestamp: new Date().toLocaleString(),
@@ -1037,7 +1040,14 @@ const useChatbotMessages = ({
 
         setTimeout(() => {
           if (!isClearingRef.current && handleMessageSendRef.current) {
-            handleMessageSendRef.current(message, compareID, fileId, imagePreview, audioFile);
+            handleMessageSendRef.current(
+              message,
+              compareID,
+              fileId,
+              imagePreview,
+              audioFile,
+              displayMessage,
+            );
           }
         }, 0);
       };
