@@ -21,7 +21,7 @@ rules:
   # SECTION 1: GENERIC SECRETS DETECTION — Applies to all file types
   # ==========================================================================
 
-  - id: generic-hardcoded-secret
+  - id: generic-hardcoded-secret  # pragma: allowlist secret
     languages: [generic]
     severity: ERROR
     message: |
@@ -77,7 +77,7 @@ rules:
       cwe: "CWE-798"
       category: "security"
 
-  - id: generic-aws-secret-access-key
+  - id: generic-aws-secret-access-key  # pragma: allowlist secret
     languages: [generic]
     severity: ERROR
     message: |
@@ -361,7 +361,7 @@ rules:
       category: "security"
       note: "Not necessarily dangerous, but aggregated roles can accumulate unexpected permissions if selectors are too broad"
 
-  - id: k8s-rbac-secrets-cluster-access
+  - id: k8s-rbac-secrets-cluster-access  # pragma: allowlist secret
     languages: [yaml]
     severity: WARNING
     message: |
@@ -498,7 +498,7 @@ rules:
       cwe: "CWE-653"
       category: "security"
 
-  - id: k8s-secret-in-configmap
+  - id: k8s-secret-in-configmap  # pragma: allowlist secret
     languages: [yaml]
     severity: ERROR
     message: |
@@ -541,7 +541,7 @@ rules:
       cwe: "CWE-522"
       category: "security"
 
-  - id: yaml-hardcoded-secret
+  - id: yaml-hardcoded-secret  # pragma: allowlist secret
     languages: [yaml]
     severity: WARNING
     message: |
@@ -744,10 +744,10 @@ rules:
   # SECTION 4: GITHUB ACTIONS SECURITY — Workflow files
   # ==========================================================================
 
-  - id: github-actions-hardcoded-secret
+  - id: github-actions-hardcoded-secret  # pragma: allowlist secret
     languages: [yaml]
     severity: ERROR
-    message: |
+    message: |  # pragma: allowlist secret
       Hardcoded secret in GitHub Actions workflow.
 
       Security Risk: Secrets in workflows are visible in git history and to all collaborators.
@@ -810,7 +810,7 @@ rules:
           env:
             TITLE: ${{ github.event.pull_request.title }}
     patterns:
-      - pattern-regex: 'run:\s*(?:[|>][-+]?)?[\s\S]*?\$\{\{\s*github\.(head_ref|event\.(issue|pull_request|discussion|review|review_comment|comment)\.(title|body|head\.ref|head\.label)|event\.head_commit\.message|event\.commits\[\d+\]\.message)\s*\}\}'
+      - pattern-regex: 'run:\s*(?:[|>][-+]?\n(?:[ \t]+[^\n]*\n)*|[^\n]*)\$\{\{\s*github\.(head_ref|event\.(issue|pull_request|discussion|review|review_comment|comment)\.(title|body|head\.ref|head\.label)|event\.head_commit\.message|event\.commits\[\d+\]\.message)\s*\}\}'
     paths:
       include:
         - "**/.github/workflows/*.yml"
@@ -848,7 +848,7 @@ rules:
         - If checkout is needed, use merge commit: refs/pull/${{ github.event.number }}/merge
         - Add persist-credentials: false to limit token scope
     patterns:
-      - pattern-regex: 'pull_request_target[\s\S]*?uses:\s*actions/checkout@[^\n]*\n(\s+\w+:.*\n)*\s+ref:\s*\$\{\{[^\}]*pull_request\.head\.(sha|ref)\s*\}\}'
+      - pattern-regex: 'pull_request_target[\s\S]*?uses:\s*actions/checkout@[^\n]*\n(\s+[\w-]+:.*\n)*\s+ref:\s*\$\{\{[^\}]*pull_request\.head\.(sha|ref)\s*\}\}'
     paths:
       include:
         - "**/.github/workflows/*.yml"
@@ -1066,8 +1066,6 @@ rules:
           $VAR := os.Getenv("...")
       - pattern-not: |
           var $VAR = os.Getenv("...")
-      - pattern-not: |
-          const $VAR = os.Getenv("...")
       - pattern-not: |
           $VAR, $_ := os.LookupEnv("...")
     metadata:
@@ -1816,7 +1814,7 @@ rules:
     metadata:
       category: "security"
 
-  - id: dockerfile-secret-in-env
+  - id: dockerfile-secret-in-env  # pragma: allowlist secret
     languages: [dockerfile]
     severity: ERROR
     message: |
@@ -1869,7 +1867,7 @@ rules:
       Remediation: Always quote variables in file operations:
         rm "$FILE"         # correct
         rm $FILE           # dangerous
-    pattern-regex: '(rm|cp|mv|eval|chmod|chown|kill|pkill)\s+[^|;]*(?<!["''\\])\$[A-Za-z_][A-Za-z0-9_]*'
+    pattern-regex: '(rm|cp|mv|eval|chmod|chown|kill|pkill)\s+[^|;]*(?<!["''\\])\$(?:\{[A-Za-z_][A-Za-z0-9_]*(?:[:\-\+\?=][^}]*)?\}|[A-Za-z_][A-Za-z0-9_]*)'
     metadata:
       cwe: "CWE-78"
       category: "security"
