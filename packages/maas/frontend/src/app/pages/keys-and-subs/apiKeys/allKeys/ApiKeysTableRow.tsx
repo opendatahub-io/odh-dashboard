@@ -77,8 +77,8 @@ type ApiKeysTableRowProps = {
   apiKey: APIKey;
   columns: ApiKeyColumn[];
   subscriptionDetail?: SubscriptionDetail;
-  subscriptionLinkable: boolean;
-  isMaasAdmin: boolean;
+  subscriptionLinkable?: boolean;
+  isMaasAdmin?: boolean;
   isInactive: boolean;
   onRevokeApiKey: (apiKey: APIKey) => void;
 };
@@ -87,8 +87,8 @@ const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({
   apiKey,
   columns,
   subscriptionDetail,
-  subscriptionLinkable,
-  isMaasAdmin,
+  subscriptionLinkable = false,
+  isMaasAdmin = false,
   isInactive,
   onRevokeApiKey,
 }) => {
