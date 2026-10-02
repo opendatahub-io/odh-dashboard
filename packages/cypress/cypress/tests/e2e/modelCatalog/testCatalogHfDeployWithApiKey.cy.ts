@@ -13,13 +13,11 @@ import {
 } from '../../../utils/modelServingConstants';
 import { requireHuggingFaceApiKey } from '../../../utils/catalogHuggingFace';
 import { verifyModelCatalogBackend } from '../../../utils/oc_commands/modelCatalog';
-import {
-  provisionProjectForModelServing,
-  cleanupLLMInferenceService,
-} from '../../../utils/oc_commands/modelServing';
+import { cleanupLLMInferenceService } from '../../../utils/oc_commands/modelServing';
 import { verifyHfTokenServiceAccountWiring } from '../../../utils/oc_commands/hfTokenServiceAccount';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
+import { createCleanProject } from '../../../utils/projectChecker';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 
@@ -57,7 +55,7 @@ describe('Verify HF private deploy uses ServiceAccount and Secret', () => {
         hfApiKey = requireHuggingFaceApiKey();
         verifyModelCatalogBackend();
         ensureAdminOcSession();
-        createCleanProject(projectName)
+        createCleanProject(projectName);
       });
   });
 
