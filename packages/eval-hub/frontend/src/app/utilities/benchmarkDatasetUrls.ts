@@ -156,7 +156,7 @@ const EXACT_BENCHMARK_DATASETS: Record<string, string> = {
   // Inspect AI benchmark datasets
   'inspect/agentharm': 'https://huggingface.co/datasets/ai-safety-institute/AgentHarm',
   'inspect/aime2024': 'https://huggingface.co/datasets/HuggingFaceH4/aime_2024',
-  'inspect/aime2025': 'https://huggingface.co/datasets/yentinglin/aime_2025',
+  'inspect/aime2025': 'https://huggingface.co/datasets/math-ai/aime25',
   'inspect/arc': 'https://huggingface.co/datasets/allenai/ai2_arc',
   'inspect/bbh': 'https://huggingface.co/datasets/lukaemon/bbh',
   'inspect/bfcl':
@@ -174,7 +174,7 @@ const EXACT_BENCHMARK_DATASETS: Record<string, string> = {
   'inspect/mmlu-pro': 'https://huggingface.co/datasets/TIGER-Lab/MMLU-Pro',
   'inspect/simpleqa': 'https://huggingface.co/datasets/OpenEvals/SimpleQA',
   'inspect/strong-reject': 'https://huggingface.co/datasets/walledai/StrongREJECT',
-  'inspect/swe-bench': 'https://huggingface.co/datasets/princeton-nlp/SWE-bench',
+  'inspect/swe-bench': 'https://huggingface.co/datasets/princeton-nlp/SWE-bench_Verified',
   'inspect/truthfulqa': 'https://huggingface.co/datasets/truthfulqa/truthful_qa',
   'inspect/winogrande': 'https://huggingface.co/datasets/allenai/winogrande',
   'inspect/wmdp': 'https://huggingface.co/datasets/cais/wmdp',
