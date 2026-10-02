@@ -313,17 +313,16 @@ describe('Registry Table', () => {
     });
   });
 
-  it('should block delete when collection has assets', () => {
+  it('should disable delete when collection has assets', () => {
     visitWithData();
     cy.findByTestId('registry-kebab').click();
     cy.findByTestId('manage-collections-action').click();
-    cy.findByTestId('collection-delete-analytics').click();
-    cy.findByTestId('delete-collection-modal').should('exist');
-    cy.contains('Collection is not empty').should('exist');
-    cy.findByTestId('confirm-delete-button').should('be.disabled');
+    cy.findByTestId('collection-delete-analytics').should('be.disabled');
+    cy.findByTestId('manage-collections-modal').should('exist');
+    cy.findByTestId('delete-collection-modal').should('not.exist');
   });
 
-  it('should delete an empty collection with confirmation', () => {
+  it('should delete an empty collection without confirmation text', () => {
     cy.intercept('DELETE', `${REGISTRY_API}/test-project/namespaces/empty-collection`, {
       statusCode: 204,
     }).as('deleteCollection');
@@ -345,8 +344,10 @@ describe('Registry Table', () => {
     cy.findByTestId('manage-collections-action').click();
     cy.findByTestId('collection-delete-empty-collection').click();
     cy.findByTestId('delete-collection-modal').should('exist');
-    cy.contains('Collection is not empty').should('not.exist');
-    cy.findByTestId('confirm-delete-input').type('empty-collection');
+    cy.findByTestId('manage-collections-modal').should('not.exist');
+    cy.contains(
+      'The empty-collection collection will be deleted. It contains no data assets.',
+    ).should('exist');
     cy.findByTestId('confirm-delete-button').should('be.enabled').click();
     cy.wait('@deleteCollection');
   });
