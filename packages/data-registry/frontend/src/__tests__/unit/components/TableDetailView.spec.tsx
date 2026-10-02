@@ -7,10 +7,14 @@ import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
 import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
 import type { AssetResponse } from '~/app/types';
 
-const renderView = (asset: AssetResponse, project = 'test-project') =>
+const renderView = (
+  asset: AssetResponse,
+  project = 'test-project',
+  connections: { name: string; connectionType?: string }[] = [],
+) =>
   render(
     <MemoryRouter>
-      <TableDetailView asset={asset} project={project} />
+      <TableDetailView asset={asset} project={project} connections={connections} />
     </MemoryRouter>,
   );
 
@@ -49,6 +53,13 @@ describe('TableDetailView', () => {
     const el = screen.getByTestId('connection-ref-link');
     expect(el).toHaveTextContent('my-s3-connection');
     expect(el).toHaveAttribute('href', '/projects/test-project?section=connections');
+  });
+
+  it('should render the connection type below the connection name', () => {
+    const asset = mockAssetResponse();
+    renderView(asset, 'test-project', [{ name: 'my-s3-connection', connectionType: 's3' }]);
+
+    expect(screen.getByTestId('connection-type')).toHaveTextContent('s3');
   });
 
   it('should render a location without a link when no connection is specified', () => {

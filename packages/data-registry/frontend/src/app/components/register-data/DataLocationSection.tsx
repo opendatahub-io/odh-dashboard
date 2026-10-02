@@ -11,9 +11,7 @@ import {
   MenuToggleElement,
   Content,
   Spinner,
-  Button,
 } from '@patternfly/react-core';
-import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Controller, useFormContext } from 'react-hook-form';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
 import { ConnectionModel } from '~/app/types';
@@ -23,20 +21,16 @@ type DataLocationSectionProps = {
   connections?: ConnectionModel[];
   connectionsLoaded?: boolean;
   connectionsError?: Error;
-  onRegisterNewConnection?: () => void;
   pathLabel?: string;
   showConnection?: boolean;
   isConnectionReadOnly?: boolean;
 };
-
-const REGISTER_NEW_CONNECTION_VALUE = '__register-new-connection__';
 
 const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
   const {
     connections = [],
     connectionsLoaded = true,
     connectionsError,
-    onRegisterNewConnection,
     pathLabel = 'Path',
     showConnection = false,
     isConnectionReadOnly = false,
@@ -74,20 +68,13 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
           render={({ field }) => (
             <FormGroup label="Connection" fieldId="data-connection">
               <Content component="p">
-                Select the connection in this project where the data is located, or create a new
-                connection.
+                Select the connection in this project where the data is located.
               </Content>
               <Select
                 isOpen={isConnectionOpen}
                 selected={field.value}
                 onSelect={(_event, value) => {
-                  const selectedValue = String(value);
-                  if (selectedValue === REGISTER_NEW_CONNECTION_VALUE && onRegisterNewConnection) {
-                    setIsConnectionOpen(false);
-                    onRegisterNewConnection();
-                    return;
-                  }
-                  field.onChange(selectedValue);
+                  field.onChange(String(value));
                   setIsConnectionOpen(false);
                 }}
                 onOpenChange={setIsConnectionOpen}
@@ -105,7 +92,7 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
                 )}
               >
                 <SelectList>
-                  {connections.length === 0 && !onRegisterNewConnection ? (
+                  {connections.length === 0 ? (
                     <SelectOption value="" isDisabled>
                       No connections available
                     </SelectOption>
@@ -120,18 +107,6 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
                       {conn.displayName || conn.name}
                     </SelectOption>
                   ))}
-                  {onRegisterNewConnection ? (
-                    <SelectOption value={REGISTER_NEW_CONNECTION_VALUE}>
-                      <Button
-                        variant="link"
-                        isInline
-                        icon={<PlusCircleIcon />}
-                        data-testid="register-new-connection-option"
-                      >
-                        Register new connection
-                      </Button>
-                    </SelectOption>
-                  ) : null}
                 </SelectList>
               </Select>
             </FormGroup>

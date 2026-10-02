@@ -30,6 +30,7 @@ import {
   RegistrationIdentitySection,
   RegistrationOrganizationSection,
 } from './register-data/RegistrationAssetSections';
+import './register-data/RegistrationForm.scss';
 
 type EditAssetModalProps = {
   asset: AssetResponse;
@@ -289,7 +290,7 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
           </Alert>
         ) : null}
         <FormProvider {...form}>
-          <Form>
+          <Form className="odh-data-registry-registration-form">
             <RegistrationIdentitySection isEditMode />
             <DataLocationSection
               showConnection

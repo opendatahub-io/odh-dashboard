@@ -26,6 +26,7 @@ import { EllipsisVIcon, SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '~/app/components/ApplicationsPage';
 import { useGenericTable } from '~/app/hooks/useGenericTable';
 import { useVolume } from '~/app/hooks/useVolume';
+import { useConnections } from '~/app/hooks/useConnections';
 import { deleteGenericTable, deleteVolume } from '~/app/api/dataRegistry';
 import { browseUrl } from '~/app/utilities/routes';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -56,6 +57,7 @@ const TableDetailPage: React.FC = () => {
     isVolume ? collection : undefined,
     isVolume ? name : undefined,
   );
+  const [connections] = useConnections(project || '');
 
   const asset = React.useMemo(
     () => (isVolume ? volume : genericTable),
@@ -260,7 +262,9 @@ const TableDetailPage: React.FC = () => {
       <Tabs defaultActiveKey={0} data-testid="detail-tabs">
         <Tab eventKey={0} title={<TabTitleText>Overview</TabTitleText>}>
           <TabContent id="overview-tab">
-            {asset ? <TableDetailView asset={asset} project={project} /> : null}
+            {asset ? (
+              <TableDetailView asset={asset} project={project} connections={connections} />
+            ) : null}
           </TabContent>
         </Tab>
       </Tabs>

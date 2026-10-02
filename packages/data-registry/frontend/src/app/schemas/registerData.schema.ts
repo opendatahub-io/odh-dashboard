@@ -68,8 +68,6 @@ export const registerDataSchema = registerDataBaseSchema.superRefine((data, ctx)
   }
 });
 
-export const registerDataDraftSchema = registerDataBaseSchema.partial();
-
 export type RegisterDataFormData = z.infer<typeof registerDataSchema>;
 
 export const registerDataDefaults: RegisterDataFormData = {

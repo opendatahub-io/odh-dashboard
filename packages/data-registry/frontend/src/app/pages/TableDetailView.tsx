@@ -4,6 +4,7 @@ import {
   Card,
   CardBody,
   CardTitle,
+  Content,
   DescriptionList,
   DescriptionListGroup,
   DescriptionListTerm,
@@ -19,7 +20,7 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
-import { AssetResponse } from '~/app/types';
+import { AssetResponse, ConnectionModel } from '~/app/types';
 import SchemaColumnsTable from '~/app/components/SchemaColumnsTable';
 import ConnectionRefLink from '~/app/components/ConnectionRefLink';
 import { collectionDetailUrl, projectConnectionsUrl } from '~/app/utilities/routes';
@@ -32,6 +33,7 @@ import {
 type TableDetailViewProps = {
   asset: AssetResponse;
   project?: string;
+  connections?: ConnectionModel[];
 };
 
 const WELL_KNOWN_PROPERTY_LABELS: Record<string, string> = {
@@ -56,7 +58,7 @@ const getOrderedProperties = (properties: Record<string, string>) => {
   return [...wellKnownProperties, ...customProperties];
 };
 
-const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => {
+const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project, connections = [] }) => {
   const isUnstructured = asset.asset_type === 'volume';
   const formatBadge = getFormatBadge(asset.format);
   const assetTypeLabel = isUnstructured ? 'Unstructured' : 'Structured';
@@ -66,6 +68,14 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
         (option) => option.value === asset.format && option.assetType === asset.asset_type,
       )?.label || asset.format;
   const orderedProperties = asset.properties ? getOrderedProperties(asset.properties) : [];
+  const connectionName = asset.connection_ref
+    ? asset.connection_ref.type === 'rhai'
+      ? asset.connection_ref.secret_name
+      : asset.connection_ref.id
+    : undefined;
+  const connectionType = connections.find(
+    (connection) => connection.name === connectionName,
+  )?.connectionType;
 
   const renderTimestamp = (timestamp: string | null | undefined) => {
     if (!timestamp) {
@@ -182,6 +192,11 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
                         connectionRef={asset.connection_ref}
                         linkTo={project ? projectConnectionsUrl(project) : undefined}
                       />
+                      {connectionType ? (
+                        <Content component="small" data-testid="connection-type">
+                          {connectionType}
+                        </Content>
+                      ) : null}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 

@@ -54,6 +54,11 @@ const initIntercepts = () => {
   cy.intercept('GET', `${MAIN_API}/namespaces`, {
     body: mockModArchResponse([mockNamespace({ name: 'test-project' })]),
   });
+  cy.intercept('GET', `${MAIN_API}/connections/test-project`, {
+    body: mockModArchResponse([
+      { name: 'my-s3-connection', displayName: 'My S3 Connection', connectionType: 's3' },
+    ]),
+  });
 };
 
 describe('Table Detail View', () => {
@@ -78,6 +83,7 @@ describe('Table Detail View', () => {
     cy.findByTestId('asset-location').should('contain.text', 's3://bucket/claims');
     cy.findByTestId('asset-owner').should('contain.text', 'data-team');
     cy.findByTestId('connection-ref-link').should('contain.text', 'my-s3-connection');
+    cy.findByTestId('connection-type').should('contain.text', 's3');
   });
 
   it('should display asset type badge and Overview tab', () => {
