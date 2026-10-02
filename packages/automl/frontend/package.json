@@ -105,7 +105,7 @@
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@openshift/dynamic-plugin-sdk-utils": "^5.0.1",
     "@patternfly/patternfly": "~6.6.1",
-    "@patternfly/react-component-groups": "~6.5.0",
+    "@patternfly/react-component-groups": "~6.7.0",
     "@patternfly/react-charts": "~8.6.1",
     "@patternfly/react-core": "~6.6.1",
     "@patternfly/react-drag-drop": "~6.6.1",
