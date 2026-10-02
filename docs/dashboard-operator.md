@@ -205,6 +205,18 @@ The ConfigMap also includes:
 
 After deploying the ConfigMap, the operator patches the main Deployment with a content hash annotation (`dashboard.opendatahub.io/federation-config-hash`) to trigger a rolling restart whenever the federation configuration changes. The hash is computed as SHA-256 of the ConfigMap data, and the patch is skipped if the hash has not changed.
 
+### Community Plugin Entries
+
+During an existing reconciliation, the operator also samples the optional,
+installer-owned `community-plugins-config` ConfigMap from
+`ApplicationsNamespace`. Accepted entries are merged into the generated
+`federation-config`; Dashboard derives their public proxy paths under
+`/community-plugins/<remote-name>/` and uses the same hash-based rollout.
+
+See [Community Plugin Registration](community-plugin-registration.md) for the
+source schema, validation rules, ownership boundary, and reconciliation trigger
+contract.
+
 ## Operator ConfigMap
 
 The controller reads an optional `dashboard-operator-config` ConfigMap for internal flags:

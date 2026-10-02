@@ -357,6 +357,156 @@ func TestBuildFederationConfigMap_NamespaceValues(t *testing.T) {
 	require.True(t, seen["coreBff"], "coreBff entry must be present")
 }
 
+func TestBuildFederationConfigMap_CommunityPluginsAbsentOrEmptyPreservesExistingOutput(t *testing.T) {
+	s := testScheme(t)
+	statuses := allDeployedStatuses()
+	dashboard := &v1alpha1.Dashboard{}
+
+	withoutSource := &ctrlpkg.DashboardReconciler{
+		Client:                fake.NewClientBuilder().WithScheme(s).Build(),
+		Scheme:                s,
+		Platform:              cluster.OpenDataHub,
+		ApplicationsNamespace: testNamespace,
+	}
+	baseline, err := ctrlpkg.BuildFederationConfigMap(withoutSource, statuses, dashboard)
+	require.NoError(t, err)
+
+	emptySource := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: "community-plugins-config", Namespace: testNamespace},
+	}
+	withEmptySource := &ctrlpkg.DashboardReconciler{
+		Client:                fake.NewClientBuilder().WithScheme(s).WithObjects(emptySource).Build(),
+		Scheme:                s,
+		Platform:              cluster.OpenDataHub,
+		ApplicationsNamespace: testNamespace,
+	}
+	empty, err := ctrlpkg.BuildFederationConfigMap(withEmptySource, statuses, dashboard)
+	require.NoError(t, err)
+
+	assert.Equal(t, baseline.Data["module-federation-config.json"], empty.Data["module-federation-config.json"])
+}
+
+func TestBuildFederationConfigMap_MergesNestedCommunityPluginWithoutChangingLegacyEntries(t *testing.T) {
+	s := testScheme(t)
+	statuses := allDeployedStatuses()
+	communitySource := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: "community-plugins-config", Namespace: testNamespace},
+		Data: map[string]string{
+			"communityPluginsAdmin": `{
+  "backend": {
+    "remoteEntry": "/remoteEntry.js",
+    "authorize": false,
+    "tls": false,
+    "service": {"name": "community-plugins-admin-ui", "namespace": "cai-plugin-system", "port": 8080}
+  },
+  "proxyService": [{
+    "pathSuffix": "api",
+    "pathRewrite": "/api",
+    "authorize": true,
+    "tls": false,
+    "service": {"name": "community-plugins-admin-bff", "namespace": "cai-plugin-system", "port": 3000}
+  }]
+}`,
+		},
+	}
+	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(communitySource).Build()
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		Platform:              cluster.OpenDataHub,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	cm, err := ctrlpkg.BuildFederationConfigMap(r, statuses, &v1alpha1.Dashboard{})
+	require.NoError(t, err)
+
+	var entries []map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(cm.Data["module-federation-config.json"]), &entries))
+	var community map[string]interface{}
+	var legacyModule map[string]interface{}
+	for _, entry := range entries {
+		switch entry["name"] {
+		case "communityPluginsAdmin":
+			community = entry
+		case "modelRegistry":
+			legacyModule = entry
+		}
+	}
+	require.NotNil(t, community)
+	require.NotNil(t, legacyModule)
+	assert.NotContains(t, community, "remoteEntry")
+	assert.NotContains(t, community, "service")
+	assert.NotContains(t, community, "proxy")
+	assert.Contains(t, community, "backend")
+	assert.Contains(t, community, "proxyService")
+	assert.Equal(t, "/remoteEntry.js", community["backend"].(map[string]interface{})["remoteEntry"])
+	proxy := community["proxyService"].([]interface{})[0].(map[string]interface{})
+	assert.Equal(t, "/community-plugins/communityPluginsAdmin/api", proxy["path"])
+	assert.Equal(t, "community-plugins-admin-bff", proxy["service"].(map[string]interface{})["name"])
+	assert.Equal(t, "cai-plugin-system", proxy["service"].(map[string]interface{})["namespace"])
+
+	assert.Contains(t, legacyModule, "remoteEntry")
+	assert.Contains(t, legacyModule, "service")
+	assert.NotContains(t, legacyModule, "backend")
+
+	require.NoError(t, cli.Delete(context.Background(), communitySource))
+	withoutCommunity, err := ctrlpkg.BuildFederationConfigMap(r, statuses, &v1alpha1.Dashboard{})
+	require.NoError(t, err)
+
+	baselineReconciler := &ctrlpkg.DashboardReconciler{
+		Client:                fake.NewClientBuilder().WithScheme(s).Build(),
+		Scheme:                s,
+		Platform:              cluster.OpenDataHub,
+		ApplicationsNamespace: testNamespace,
+	}
+	baseline, err := ctrlpkg.BuildFederationConfigMap(baselineReconciler, statuses, &v1alpha1.Dashboard{})
+	require.NoError(t, err)
+	assert.Equal(t, baseline.Data["module-federation-config.json"], withoutCommunity.Data["module-federation-config.json"])
+}
+
+func TestBuildFederationConfigMap_RejectsInvalidCommunityPlugins(t *testing.T) {
+	s := testScheme(t)
+	communitySource := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: "community-plugins-config", Namespace: testNamespace},
+		Data: map[string]string{
+			"invalid-name":         `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"malformed":            `{`,
+			"modelRegistry":        `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"invalidRemoteEntry":   `{"backend":{"remoteEntry":"/../remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"encodedRemoteEntry":   `{"backend":{"remoteEntry":"/%2e%2e/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"invalidSuffix":        `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"pathSuffix":"../core-bff/api","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
+			"unsupportedPathField": `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"path":"/","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
+			"unexpected":           `{"name":"anotherRemote","backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"validRemote":          `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+		},
+	}
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                fake.NewClientBuilder().WithScheme(s).WithObjects(communitySource).Build(),
+		Scheme:                s,
+		Platform:              cluster.OpenDataHub,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	cm, err := ctrlpkg.BuildFederationConfigMap(r, allDeployedStatuses(), &v1alpha1.Dashboard{})
+	require.NoError(t, err)
+
+	var entries []map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(cm.Data["module-federation-config.json"]), &entries))
+	names := make(map[string]struct{}, len(entries))
+	for _, entry := range entries {
+		names[entry["name"].(string)] = struct{}{}
+	}
+	assert.Contains(t, names, "validRemote")
+	assert.Contains(t, names, "modelRegistry", "built-in entries must remain")
+	assert.NotContains(t, names, "invalid-name")
+	assert.NotContains(t, names, "malformed")
+	assert.NotContains(t, names, "invalidRemoteEntry")
+	assert.NotContains(t, names, "encodedRemoteEntry")
+	assert.NotContains(t, names, "invalidSuffix")
+	assert.NotContains(t, names, "unsupportedPathField")
+	assert.NotContains(t, names, "unexpected")
+}
+
 func TestPatchDeploymentFederationHash_CreatesAnnotation(t *testing.T) {
 	s := testScheme(t)
 

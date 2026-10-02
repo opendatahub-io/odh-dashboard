@@ -21,6 +21,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [Architecture](docs/architecture.md) | Overall system architecture |
 | [Architecture Decisions](docs/architecture-decisions.md) | Key architecture decisions (monorepo, Module Federation, Turbo) |
 | [Module Federation](docs/module-federation.md) | Module Federation implementation |
+| [Community Plugin Registration](docs/community-plugin-registration.md) | Fixed ConfigMap contract for installer-owned community federation entries |
 | [Extensibility](docs/extensibility.md) | Plugin/extension system |
 | [Quality Gates](docs/modular-architecture-quality-gates.md) | Modular architecture quality standards |
 
