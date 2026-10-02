@@ -227,11 +227,6 @@ const DataRegistryPage: React.FC = () => {
     }
   }, [handleProjectCreated, projectCreationFailure]);
 
-  const handleRegisterNewConnection = React.useCallback(() => {
-    setIsRegisterModalOpen(false);
-    navigate(`/projects/${encodeURIComponent(selectedProject)}?section=connections`);
-  }, [navigate, selectedProject]);
-
   if (projectCreationFailure) {
     return (
       <ProjectCreationErrorPage
@@ -294,6 +289,9 @@ const DataRegistryPage: React.FC = () => {
   return (
     <>
       <PageSection hasBodyWrapper={false}>
+        <Content component="p" className="pf-v6-u-mb-xs">
+          View and manage this project’s data assets where information is located.
+        </Content>
         <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsMd' }}>
           <FlexItem>
             <ProjectSelector
@@ -316,11 +314,6 @@ const DataRegistryPage: React.FC = () => {
         </PageSection>
       ) : (
         <>
-          <PageSection hasBodyWrapper={false}>
-            <Content component="p">
-              View and manage this project’s data assets where information is located.
-            </Content>
-          </PageSection>
           <RegistryTable
             assets={assets}
             loaded={assetsLoaded && collectionsLoaded}
@@ -362,7 +355,6 @@ const DataRegistryPage: React.FC = () => {
               setIsRegisterModalOpen(false);
               setIsCollectionsModalOpen(true);
             }}
-            onRegisterNewConnection={handleRegisterNewConnection}
           />
         </>
       )}

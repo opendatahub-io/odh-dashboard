@@ -844,7 +844,7 @@ describe('Connection Selector', () => {
     cy.findByTestId('register-data-button').click();
 
     cy.findByTestId('data-connection-toggle').click();
-    cy.findByTestId('register-new-connection-option').should('exist');
+    cy.contains('No connections available').should('exist');
   });
 
   it('should include connection_ref in volume creation request', () => {

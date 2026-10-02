@@ -28,12 +28,10 @@ describe('RegisterDataModal', () => {
     collections: ['collection-1', 'collection-2'],
     onCreated: jest.fn(),
     onManageCollections: jest.fn(),
-    onRegisterNewConnection: jest.fn(),
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    sessionStorage.clear();
     mockUseConnections.mockReturnValue([mockConnections, true, undefined]);
   });
 
@@ -244,43 +242,6 @@ describe('RegisterDataModal', () => {
     await user.click(screen.getByTestId('data-connection-toggle'));
     expect(screen.getByText('My S3 Connection')).toBeTruthy();
     expect(screen.getByText('My URI Connection')).toBeTruthy();
-    expect(screen.getByText('Register new connection')).toBeTruthy();
-  });
-
-  it('should offer to register a new connection when none are available', async () => {
-    mockUseConnections.mockReturnValue([[], true, undefined]);
-    const user = userEvent.setup();
-    render(<RegisterDataModal {...defaultProps} />);
-
-    await user.click(screen.getByTestId('data-connection-toggle'));
-    await user.click(screen.getByText('Register new connection'));
-    expect(defaultProps.onRegisterNewConnection).toHaveBeenCalled();
-    expect(defaultProps.onClose).toHaveBeenCalled();
-  });
-
-  it('should persist the form draft before opening the connection creator', async () => {
-    const user = userEvent.setup();
-    render(<RegisterDataModal {...defaultProps} />);
-
-    await user.type(screen.getByTestId('data-name-input'), 'draft-asset');
-    await user.click(screen.getByTestId('data-connection-toggle'));
-    await user.click(screen.getByText('Register new connection'));
-
-    expect(
-      JSON.parse(sessionStorage.getItem('odh-data-registry.register-data-draft:test-project')!),
-    ).toEqual(expect.objectContaining({ name: 'draft-asset' }));
-  });
-
-  it('should restore a saved form draft when reopened', () => {
-    sessionStorage.setItem(
-      'odh-data-registry.register-data-draft:test-project',
-      JSON.stringify({ name: 'draft-asset', description: 'Saved description' }),
-    );
-
-    render(<RegisterDataModal {...defaultProps} />);
-
-    expect(screen.getByTestId('data-name-input')).toHaveValue('draft-asset');
-    expect(screen.getByTestId('data-description-input')).toHaveValue('Saved description');
   });
 
   it('should include connection_ref when connection is selected for volume', async () => {
