@@ -49,13 +49,13 @@ if [ -z "$$ogx_core_image" ] || [ -z "$$postgresql_16_image" ]; then \
 		rhoai_subscription_namespace="$(RHOAI_OPERATOR_NAMESPACE)"; \
 	fi; \
 	if [ -z "$$rhoai_subscription_namespace" ]; then \
-		rhoai_subscription_namespace="$$(oc get subscription -A -o jsonpath='{range .items[?(@.spec.name=="$(RHOAI_SUBSCRIPTION_PACKAGE)")]}{.metadata.namespace}{"\\n"}{end}' 2>/dev/null | head -n 1)"; \
+		rhoai_subscription_namespace="$$(oc get subscription -A -o jsonpath='{range .items[?(@.spec.name=="$(RHOAI_SUBSCRIPTION_PACKAGE)")]}{.metadata.namespace}{"\n"}{end}' 2>/dev/null | head -n 1)"; \
 	fi; \
 	if [ -z "$$rhoai_subscription_namespace" ]; then \
 		echo "Unable to discover the RHOAI Subscription namespace. Set RHOAI_SUBSCRIPTION_NAMESPACE (or RHOAI_OPERATOR_NAMESPACE) and retry." >&2; \
 		exit 1; \
 	fi; \
-	rhoai_subscription_name="$$(oc get subscription -n "$$rhoai_subscription_namespace" -o jsonpath='{range .items[?(@.spec.name=="$(RHOAI_SUBSCRIPTION_PACKAGE)")]}{.metadata.name}{"\\n"}{end}' 2>/dev/null | head -n 1)"; \
+	rhoai_subscription_name="$$(oc get subscription -n "$$rhoai_subscription_namespace" -o jsonpath='{range .items[?(@.spec.name=="$(RHOAI_SUBSCRIPTION_PACKAGE)")]}{.metadata.name}{"\n"}{end}' 2>/dev/null | head -n 1)"; \
 	if [ -z "$$rhoai_subscription_name" ]; then \
 		echo "Unable to discover the RHOAI Subscription name. Set RHOAI_SUBSCRIPTION_NAMESPACE and RHOAI_SUBSCRIPTION_PACKAGE and retry." >&2; \
 		exit 1; \
