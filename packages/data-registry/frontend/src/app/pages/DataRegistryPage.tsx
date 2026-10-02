@@ -20,8 +20,8 @@ import NewProjectButton from '~/app/components/NewProjectButton';
 import './DataRegistryPage.scss';
 import { useCollections } from '~/app/hooks/useCollections';
 import { useAssets } from '~/app/hooks/useAssets';
-import { useLabels } from '~/app/hooks/useLabels';
 import { useConnections } from '~/app/hooks/useConnections';
+import { useLabels } from '~/app/hooks/useLabels';
 import { is503Error, is403Error, isConnectionError } from '~/app/api/dataRegistry';
 import { hasDataRegistryWriteAccess } from '~/app/utilities/access';
 import RegistryTable from '~/app/components/RegistryTable';
@@ -176,13 +176,13 @@ const DataRegistryPage: React.FC = () => {
 
   const [assets, assetsLoaded, assetsError, assetsRefresh, collectionNames] =
     useAssets(selectedProject);
+  const [connections] = useConnections(selectedProject);
   const [, collectionsLoaded, collectionsError, collectionsRefresh] = useCollections(
     selectedProject,
     assets,
     collectionNames,
   );
   const [labels, , , labelsRefresh] = useLabels(selectedProject);
-  const [connections] = useConnections(selectedProject);
 
   const hasWriteAccess = hasDataRegistryWriteAccess(assetsError, collectionsError);
 
@@ -346,8 +346,8 @@ const DataRegistryPage: React.FC = () => {
             loaded={assetsLoaded && collectionsLoaded}
             error={assetsError ?? collectionsError}
             labels={labels}
-            project={selectedProject}
             connections={connections}
+            project={selectedProject}
             onManageCollections={(onReturnToEdit) => {
               setReturnToRegisterData(false);
               if (!collectionsError) {
@@ -384,6 +384,7 @@ const DataRegistryPage: React.FC = () => {
             onRefresh={handleRefresh}
           />
           <RegisterDataModal
+            key={selectedProject}
             isOpen={isRegisterModalOpen}
             onClose={() => setIsRegisterModalOpen(false)}
             project={selectedProject}

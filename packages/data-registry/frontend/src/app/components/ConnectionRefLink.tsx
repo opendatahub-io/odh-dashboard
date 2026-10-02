@@ -6,19 +6,28 @@ import { getConnectionDisplayName } from '~/app/utilities/connectionUtils';
 type ConnectionRefLinkProps = {
   connectionRef?: ConnectionRef | string | null;
   connections?: ConnectionModel[];
+  connectionsLoaded?: boolean;
+  connectionsError?: Error;
   linkTo?: string;
 };
 
 const ConnectionRefLink: React.FC<ConnectionRefLinkProps> = ({
   connectionRef,
   connections = [],
+  connectionsLoaded = false,
+  connectionsError,
   linkTo,
 }) => {
   if (!connectionRef) {
     return <>-</>;
   }
 
-  const label = getConnectionDisplayName(connectionRef, connections);
+  const label = getConnectionDisplayName(
+    connectionRef,
+    connections,
+    connectionsLoaded,
+    connectionsError,
+  );
 
   if (linkTo && typeof connectionRef !== 'string') {
     return (

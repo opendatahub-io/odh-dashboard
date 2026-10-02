@@ -11,6 +11,9 @@ const REGISTRY_API = '/data-registry/api/v1';
 const MAIN_API = '/data-registry/api/v1';
 
 const initIntercepts = () => {
+  cy.intercept('GET', `${MAIN_API}/connections/test-project`, { body: { data: [] } }).as(
+    'getConnections',
+  );
   cy.intercept('GET', `${MAIN_API}/user`, {
     body: mockModArchResponse(mockUserSettings({ userId: 'test-user' })),
   });

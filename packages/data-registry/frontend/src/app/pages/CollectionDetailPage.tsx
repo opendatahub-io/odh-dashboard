@@ -196,6 +196,7 @@ const CollectionDetailPage: React.FC = () => {
       ) : null}
       {project && collection ? (
         <RegisterDataModal
+          key={project}
           isOpen={isRegisterDataOpen}
           project={project}
           collections={collectionNames}

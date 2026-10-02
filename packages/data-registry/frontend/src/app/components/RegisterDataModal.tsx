@@ -21,10 +21,10 @@ import {
 import {
   CreateVolumeRequest,
   CreateGenericTableRequest,
-  ConnectionModel,
   ConnectionRef,
 } from '~/app/types';
 import { useConnections } from '~/app/hooks/useConnections';
+import { confirmConnection } from '~/app/utilities/connectionUtils';
 import { isStructuredFormat, isUnstructuredFormat } from '~/app/utilities/formatUtils';
 import {
   registerDataSchema,
@@ -51,18 +51,6 @@ type RegisterDataModalProps = {
   onManageLabels?: () => void;
 };
 
-const getConnectionRef = (
-  connection: string,
-  connections: ConnectionModel[],
-): ConnectionRef | undefined => {
-  if (!connection) {
-    return undefined;
-  }
-  const selectedConnection = connections.find((c) => c.name === connection);
-  const isDch = selectedConnection?.connectionType?.toLowerCase() === 'dch';
-  return isDch ? { type: 'dch', id: connection } : { type: 'rhai', secret_name: connection };
-};
-
 type SharedCreateAssetRequest = Omit<CreateVolumeRequest, 'format'> & { format: string };
 
 const getValidLabels = (labels: string[]): string[] => [
@@ -71,7 +59,7 @@ const getValidLabels = (labels: string[]): string[] => [
 
 const buildSharedAssetRequest = (
   data: RegisterDataFormData,
-  connections: ConnectionModel[],
+  connectionRef?: ConnectionRef,
 ): SharedCreateAssetRequest => {
   const request: SharedCreateAssetRequest = {
     name: data.name.trim(),
@@ -83,8 +71,8 @@ const buildSharedAssetRequest = (
   if (data.path && data.path !== '/') {
     request.storage_location = data.path;
   }
-  if (data.connection) {
-    request.connection_ref = getConnectionRef(data.connection, connections);
+  if (connectionRef) {
+    request.connection_ref = connectionRef;
   }
   const labels = getValidLabels(data.labels);
   if (labels.length > 0) {
@@ -119,18 +107,18 @@ const buildSharedAssetRequest = (
 
 const buildVolumeRequest = (
   data: RegisterDataFormData,
-  connections: ConnectionModel[],
+  connectionRef?: ConnectionRef,
 ): CreateVolumeRequest => {
   const format = isUnstructuredFormat(data.format) ? data.format : 'other';
-  return { ...buildSharedAssetRequest(data, connections), format };
+  return { ...buildSharedAssetRequest(data, connectionRef), format };
 };
 
 const buildTableRequest = (
   data: RegisterDataFormData,
-  connections: ConnectionModel[],
+  connectionRef?: ConnectionRef,
 ): CreateGenericTableRequest => {
   const request: CreateGenericTableRequest = {
-    ...buildSharedAssetRequest(data, connections),
+    ...buildSharedAssetRequest(data, connectionRef),
     format: isStructuredFormat(data.format) ? data.format : 'other',
   };
 
@@ -157,7 +145,13 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
   onManageCollections,
   onManageLabels,
 }) => {
-  const [connections, connectionsLoaded, connectionsError] = useConnections(project);
+  const [
+    connections,
+    connectionsLoaded,
+    connectionsError,
+    refreshConnections,
+    connectionWarnings,
+  ] = useConnections(project, isOpen);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
 
@@ -183,6 +177,9 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
       setIsSubmitting(true);
       setError('');
       try {
+        const connectionRef = data.connection
+          ? await confirmConnection(data.connection, refreshConnections)
+          : undefined;
         const labels = getValidLabels(data.labels);
         if (labels.length > 0) {
           await Promise.all(
@@ -197,9 +194,9 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
           );
         }
         if (data.assetType === 'unstructured') {
-          await createVolume(project, data.collection, buildVolumeRequest(data, connections));
+          await createVolume(project, data.collection, buildVolumeRequest(data, connectionRef));
         } else {
-          await createGenericTable(project, data.collection, buildTableRequest(data, connections));
+          await createGenericTable(project, data.collection, buildTableRequest(data, connectionRef));
         }
         form.reset(registerDataDefaults);
         onCreated();
@@ -210,7 +207,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
         setIsSubmitting(false);
       }
     },
-    [project, form, onCreated, onClose, connections],
+    [project, form, onCreated, onClose, refreshConnections],
   );
 
   const assetType = form.watch('assetType');
@@ -239,7 +236,8 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
               connections={connections}
               connectionsLoaded={connectionsLoaded}
               connectionsError={connectionsError}
-              showConnection
+              connectionWarnings={connectionWarnings}
+              isConnectionDisabled={isSubmitting}
             />
             <RegistrationAssetFormatSection />
             {assetType === 'structured' ? <SchemaSection /> : null}

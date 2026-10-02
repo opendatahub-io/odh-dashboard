@@ -46,6 +46,7 @@ import AccessDeniedError from '~/app/components/errors/AccessDeniedError';
 import ConnectionError from '~/app/components/errors/ConnectionError';
 import ConnectionRefLink from '~/app/components/ConnectionRefLink';
 import { ConnectionModel } from '~/app/types';
+import { getConnectionKey } from '~/app/utilities/connectionUtils';
 import ServiceUnavailableError from '~/app/components/errors/ServiceUnavailableError';
 import noAssetsImage from '~/images/no-assets.png';
 import DeleteAssetModal from './DeleteAssetModal';
@@ -59,6 +60,8 @@ type RegistryTableProps = {
   labels: string[];
   project: string;
   connections?: ConnectionModel[];
+  connectionsLoaded?: boolean;
+  connectionsError?: Error;
   onManageCollections: (onReturnToEdit?: () => void) => void;
   onManageLabels: (onReturnToEdit?: () => void) => void;
   onRegisterData: () => void;
@@ -126,6 +129,8 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   labels,
   project,
   connections = [],
+  connectionsLoaded = false,
+  connectionsError,
   onManageCollections,
   onManageLabels,
   onRegisterData,
@@ -759,9 +764,12 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
               paginatedAssets.map((asset) => {
                 const badge = getFormatBadge(asset.format);
                 const assetKey = JSON.stringify([asset.assetType, asset.collection, asset.name]);
-                const connectionType = connections.find(
-                  (connection) => connection.name === asset.connectionRef,
-                )?.connectionType;
+                const connectionRef = asset.rawAsset?.connection_ref;
+                const connectionType = connectionRef
+                  ? connections.find(
+                      (connection) => getConnectionKey(connection) === getConnectionKey(connectionRef),
+                    )?.connectionType
+                  : undefined;
                 const assetTestId = (prefix: string) =>
                   `${prefix}-${asset.assetType}-${asset.collection}-${asset.name}`;
                 return (
@@ -797,11 +805,13 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                       </Label>
                     </Td>
                     <Td dataLabel="Asset location">
-                      {asset.rawAsset?.connection_ref ? (
+                      {asset.connectionRef ? (
                         <>
                           <ConnectionRefLink
-                            connectionRef={asset.rawAsset.connection_ref}
+                            connectionRef={asset.rawAsset?.connection_ref ?? asset.connectionRef}
                             connections={connections}
+                            connectionsLoaded={connectionsLoaded}
+                            connectionsError={connectionsError}
                             linkTo={projectConnectionsUrl(project)}
                           />
                           {connectionType ? (
@@ -811,7 +821,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                           ) : null}
                         </>
                       ) : (
-                        asset.connectionRef || asset.location
+                        asset.location
                       )}
                     </Td>
                     <Td dataLabel="Labels">
