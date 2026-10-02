@@ -1,9 +1,14 @@
 import { APIOptions, FetchStateCallbackPromise, POLL_INTERVAL, useFetchState } from 'mod-arch-core';
 import React from 'react';
 import { UserSubscription } from '~/app/types/subscriptions';
-import { listUserSubscriptions } from '~/app/api/subscriptions';
+import { listSubscriptions, listUserSubscriptions } from '~/app/api/subscriptions';
 import { getIsMaasAdmin } from '~/app/api/k8s';
 import { searchApiKeys } from '~/app/api/api-keys';
+import type { SubscriptionDetail } from '~/app/types/api-key';
+import {
+  subscriptionDetailsFromMaaSSubscriptions,
+  subscriptionDetailsFromUserSubscriptions,
+} from '~/app/utilities/apiKeys';
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
 export const KeysAndSubsContext = React.createContext({} as KeysAndSubsContextType);
@@ -18,6 +23,13 @@ type KeysAndSubsContextType = {
   hasAnyApiKeys: boolean; // from a single existence-check search (limit 1)
   hasAnyApiKeysLoaded: boolean;
   hasAnyApiKeysError: Error | undefined;
+  /**
+   * Subscription existence map for API key active/inactive + row enrichment.
+   * Admin: GET /all-subscriptions (K8s). Non-admin: same as `subscriptions` (MaaS API).
+   */
+  statusSubscriptionDetails: Record<string, SubscriptionDetail> | undefined;
+  statusSubscriptionDetailsLoaded: boolean;
+  statusSubscriptionDetailsError: Error | undefined;
   refresh: () => void;
 };
 
@@ -54,11 +66,38 @@ export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ childr
   const [hasAnyApiKeys, hasAnyApiKeysLoaded, hasAnyApiKeysError, refreshHasAnyApiKeys] =
     useFetchState(hasAnyApiKeysCallback, false, { refreshRate: POLL_INTERVAL });
 
+  // Admin: all K8s subscriptions. Non-admin: MaaS /subscriptions (same scope as create-key list).
+  // Resolves admin itself so we never classify inactive against an empty/stale map.
+  const statusSubscriptionDetailsCallback = React.useCallback<
+    FetchStateCallbackPromise<Record<string, SubscriptionDetail>>
+  >(async (opts: APIOptions) => {
+    const { allowed } = await getIsMaasAdmin()(opts);
+    if (allowed) {
+      const allSubs = await listSubscriptions()(opts);
+      return subscriptionDetailsFromMaaSSubscriptions(allSubs);
+    }
+    const userSubs = await listUserSubscriptions()(opts);
+    return subscriptionDetailsFromUserSubscriptions(userSubs);
+  }, []);
+
+  const [
+    statusSubscriptionDetails,
+    statusSubscriptionDetailsLoaded,
+    statusSubscriptionDetailsError,
+    refreshStatusSubscriptionDetails,
+  ] = useFetchState(statusSubscriptionDetailsCallback, {}, { refreshRate: POLL_INTERVAL });
+
   const refresh = React.useCallback(() => {
     refreshSubscriptions();
     refreshIsMaasAdmin();
     refreshHasAnyApiKeys();
-  }, [refreshSubscriptions, refreshIsMaasAdmin, refreshHasAnyApiKeys]);
+    refreshStatusSubscriptionDetails();
+  }, [
+    refreshSubscriptions,
+    refreshIsMaasAdmin,
+    refreshHasAnyApiKeys,
+    refreshStatusSubscriptionDetails,
+  ]);
 
   const value = React.useMemo(
     () => ({
@@ -71,6 +110,11 @@ export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ childr
       hasAnyApiKeys,
       hasAnyApiKeysLoaded,
       hasAnyApiKeysError,
+      statusSubscriptionDetails: statusSubscriptionDetailsLoaded
+        ? statusSubscriptionDetails
+        : undefined,
+      statusSubscriptionDetailsLoaded,
+      statusSubscriptionDetailsError,
       refresh,
     }),
     [
@@ -83,6 +127,9 @@ export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ childr
       hasAnyApiKeys,
       hasAnyApiKeysLoaded,
       hasAnyApiKeysError,
+      statusSubscriptionDetails,
+      statusSubscriptionDetailsLoaded,
+      statusSubscriptionDetailsError,
       refresh,
     ],
   );

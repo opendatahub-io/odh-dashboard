@@ -23,14 +23,22 @@ export const useApiKeysPageLoad = (): UseApiKeysPageLoadReturn => {
     hasAnyApiKeys,
     hasAnyApiKeysLoaded,
     hasAnyApiKeysError,
+    statusSubscriptionDetailsLoaded,
+    statusSubscriptionDetailsError,
     refresh,
     subscriptions,
   } = useKeysAndSubsContext();
   const tableState = useApiKeysTableState();
 
-  const loadError = hasAnyApiKeysError ?? isMaasAdminError ?? tableState.error;
+  const loadError =
+    hasAnyApiKeysError ?? isMaasAdminError ?? statusSubscriptionDetailsError ?? tableState.error;
 
-  const loaded = hasAnyApiKeysLoaded && isMaasAdminLoaded && tableState.loaded && !loadError;
+  const loaded =
+    hasAnyApiKeysLoaded &&
+    isMaasAdminLoaded &&
+    statusSubscriptionDetailsLoaded &&
+    tableState.loaded &&
+    !loadError;
 
   const refreshAll = React.useCallback(() => {
     tableState.refresh();

@@ -262,6 +262,7 @@ describe('API Keys Page', () => {
 
     deletedSubscriptionRow.findSubscription().should('contain.text', 'deleted-sub');
     deletedSubscriptionRow.findSubscriptionDetailLink().should('not.exist');
+    deletedSubscriptionRow.findSubscriptionGovernanceLink().should('not.exist');
   });
 
   it('should display all API keys when the status filter is cleared', () => {
@@ -302,6 +303,77 @@ describe('API Keys Page', () => {
       .findSubscriptionDetailLink()
       .should('have.attr', 'href')
       .and('include', '/maas/keys-and-subs/subscriptions/premium-team-sub');
+  });
+
+  it('should show View in MaaS governance under the subscription for admins when the CR exists', () => {
+    const prodRow = apiKeysPage.getRow('production-backend');
+    prodRow
+      .findSubscriptionGovernanceLink()
+      .should('contain.text', 'View in MaaS governance')
+      .and('have.attr', 'href')
+      .and('include', '/maas/maas-governance/subscriptions/view/premium-team-sub');
+  });
+
+  it('should not link My Subscriptions for a sub the admin cannot access, but still show governance link', () => {
+    const inaccessibleSubKey: APIKey = {
+      id: 'key-inaccessible-sub-001',
+      name: 'other-user-inaccessible-sub-key',
+      description: 'Key on a subscription the admin does not have in My Subscriptions',
+      creationDate: '2026-01-10T10:00:00Z',
+      status: 'active',
+      username: 'other-user',
+      subscription: 'negative-priority-sub',
+    };
+
+    cy.interceptOdh(
+      'POST /maas/api/v1/api-keys/search',
+      mockSearchResponse([inaccessibleSubKey], mockSubscriptionDetails),
+    ).as('searchInaccessibleSub');
+    // My Subscriptions: only premium/basic — not negative-priority-sub
+    cy.interceptOdh('GET /maas/api/v1/subscriptions', {
+      data: mockSubscriptionListItems(),
+    });
+    // all-subscriptions still includes negative-priority-sub
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
+      data: mockSubscriptions(),
+    });
+
+    apiKeysPage.visit();
+    cy.wait('@searchInaccessibleSub');
+
+    const row = apiKeysPage.getRow('other-user-inaccessible-sub-key');
+    row.findStatus().should('contain.text', 'Active');
+    row.findSubscription().should('contain.text', 'negative-priority-sub');
+    row.findSubscriptionDetailLink().should('not.exist');
+    row
+      .findSubscriptionGovernanceLink()
+      .should('have.attr', 'href')
+      .and('include', '/maas/maas-governance/subscriptions/view/negative-priority-sub');
+  });
+
+  it('should not show View in MaaS governance for non-admin users', () => {
+    asProjectAdminUser();
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
+    cy.interceptOdh(
+      'POST /maas/api/v1/api-keys/search',
+      mockSearchResponse(
+        mockAPIKeys().filter((k) => k.status === 'active' || k.status === 'expired'),
+        mockSubscriptionDetails,
+      ),
+    ).as('userSearch');
+    cy.interceptOdh('GET /maas/api/v1/subscriptions', {
+      data: mockSubscriptionListItems(),
+    });
+
+    apiKeysPage.visit();
+    cy.wait('@userSearch');
+
+    const prodRow = apiKeysPage.getRow('production-backend');
+    prodRow
+      .findSubscriptionDetailLink()
+      .should('have.attr', 'href')
+      .and('include', '/maas/keys-and-subs/subscriptions/premium-team-sub');
+    prodRow.findSubscriptionGovernanceLink().should('not.exist');
   });
 
   it('should filter api keys by subscription and clear the filter', () => {

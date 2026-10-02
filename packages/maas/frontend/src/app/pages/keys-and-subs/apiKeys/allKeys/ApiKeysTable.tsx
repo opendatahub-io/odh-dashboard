@@ -11,6 +11,8 @@ type SortDirection = 'asc' | 'desc';
 type ApiKeysTableProps = {
   apiKeys: APIKey[];
   subscriptionDetails?: Record<string, SubscriptionDetail>;
+  /** Subs the viewer can open; controls whether the subscription cell is a link. */
+  accessibleSubscriptionDetails?: Record<string, SubscriptionDetail>;
   isKeyInactive: (key: APIKey) => boolean;
   hasMore: boolean;
   page: number;
@@ -30,6 +32,7 @@ type ApiKeysTableProps = {
 const ApiKeysTable: React.FC<ApiKeysTableProps> = ({
   apiKeys,
   subscriptionDetails,
+  accessibleSubscriptionDetails,
   isKeyInactive,
   hasMore,
   page,
@@ -147,6 +150,12 @@ const ApiKeysTable: React.FC<ApiKeysTableProps> = ({
                   subscriptionDetail={
                     apiKey.subscription ? subscriptionDetails?.[apiKey.subscription] : undefined
                   }
+                  subscriptionLinkable={
+                    !!apiKey.subscription &&
+                    !!accessibleSubscriptionDetails &&
+                    apiKey.subscription in accessibleSubscriptionDetails
+                  }
+                  isMaasAdmin={isMaasAdmin}
                   isInactive={isKeyInactive(apiKey)}
                   onRevokeApiKey={onRevokeApiKey}
                 />
