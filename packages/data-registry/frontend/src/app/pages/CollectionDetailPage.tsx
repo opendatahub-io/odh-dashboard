@@ -225,7 +225,11 @@ const CollectionDetailPage: React.FC = () => {
         <Tab eventKey={0} title={<TabTitleText>Overview</TabTitleText>}>
           <TabContent id="overview-tab">
             {collectionDetail ? (
-              <CollectionDetailView collection={collectionDetail} project={project} />
+              <CollectionDetailView
+                collection={collectionDetail}
+                project={project}
+                onRegisterData={() => setIsRegisterDataOpen(true)}
+              />
             ) : null}
           </TabContent>
         </Tab>
