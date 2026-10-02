@@ -23,7 +23,10 @@ repo_root = os.path.join(tilt_root, "../../..")
 
 # ── Federated model serving ──────────────────────────────────────────────────
 
-build_args = {"MODEL_SERVING_REMOTE_ENTRY": "http://localhost:9109/remoteEntry.js"}
+build_args = {
+    "MODEL_SERVING_REMOTE_ENTRY": "http://localhost:9109/remoteEntry.js",
+    "RHAII_TILT_FIXTURES": "true",
+}
 
 # ── RHAII Dashboard ───────────────────────────────────────────────────────────
 

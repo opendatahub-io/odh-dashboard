@@ -54,6 +54,9 @@ module.exports = (overrides = {}) =>
           'process.env.MODEL_SERVING_REMOTE_ENTRY': JSON.stringify(
             process.env.MODEL_SERVING_REMOTE_ENTRY || '',
           ),
+          'process.env.RHAII_TILT_FIXTURES': JSON.stringify(
+            process.env.RHAII_TILT_FIXTURES || 'false',
+          ),
         }),
         new GenerateDistributionExtensionsPlugin({
           configPath: path.resolve(__dirname, '../distribution.yaml'),
