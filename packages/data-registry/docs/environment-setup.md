@@ -97,14 +97,19 @@ oc port-forward -n "$REGISTRY_NAMESPACE" \
 Verify the API before starting the dashboard:
 
 ```bash
-curl --fail --insecure \
-  -H "Authorization: Bearer $(oc whoami -t)" \
-  https://127.0.0.1:8443/v1/config
+oc whoami -t |
+  sed 's/^/header = "Authorization: Bearer /; s/$/"/' |
+  curl --config - --fail --insecure \
+    https://127.0.0.1:8443/v1/config
 ```
 
 This uses the in-cluster `kube-rbac-proxy`, so requests require the developer's
 OpenShift token. `--insecure` is limited to the local port-forward because the
 development certificate is not normally trusted by the host.
+
+> **Security follow-up:** This local workflow currently disables TLS certificate
+> verification for the port-forward. CA-bundle support for the Data Registry BFF
+> reverse proxy will be addressed in a follow-up security issue.
 
 ## 3. Start the Local Services
 
@@ -173,9 +178,10 @@ Check each local service:
 curl --fail http://localhost:4010/api/config
 curl --fail http://localhost:8080/healthcheck
 curl --fail http://localhost:9103/
-curl --fail --insecure \
-  -H "Authorization: Bearer $(oc whoami -t)" \
-  https://127.0.0.1:8443/v1/config
+oc whoami -t |
+  sed 's/^/header = "Authorization: Bearer /; s/$/"/' |
+  curl --config - --fail --insecure \
+    https://127.0.0.1:8443/v1/config
 ```
 
 Open the dashboard with the feature flag enabled:
