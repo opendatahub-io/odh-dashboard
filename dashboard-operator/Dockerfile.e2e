@@ -5,8 +5,8 @@
 
 FROM golang:1.26.5 AS builder
 
-ARG TARGETOS=linux
-ARG TARGETARCH=amd64
+ARG TARGETOS
+ARG TARGETARCH
 ARG GOTESTSUM_VERSION=v1.13.0
 
 WORKDIR /usr/src/app
@@ -17,7 +17,7 @@ RUN go mod download
 COPY dashboard-operator/api/ api/
 COPY dashboard-operator/test/ test/
 
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} \
     go test -c -tags=e2e -o /tmp/e2e.test ./test/e2e
 RUN CGO_ENABLED=0 GOBIN=/tmp/bin \
     go install gotest.tools/gotestsum@${GOTESTSUM_VERSION}

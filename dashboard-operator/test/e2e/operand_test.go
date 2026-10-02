@@ -25,7 +25,7 @@ import (
 const httpRequestTimeout = 30 * time.Second
 
 func TestE2ESmoke_OperandDeploymentsReachAvailable(t *testing.T) {
-	inventory, err := waitForOperandInventory(k8sClient, testNamespace, dashboardUID, operandReadyTimeout)
+	inventory, err := waitForCoreOperandInventory(k8sClient, testNamespace, dashboardUID, testPlatform, operandReadyTimeout)
 	require.NoError(t, err)
 
 	sort.Slice(inventory.deployments, func(i, j int) bool {
@@ -45,7 +45,7 @@ func TestE2ESmoke_OperandDeploymentsReachAvailable(t *testing.T) {
 }
 
 func TestE2ESmoke_OperandServicesReachable(t *testing.T) {
-	inventory, err := waitForOperandInventory(k8sClient, testNamespace, dashboardUID, operandReadyTimeout)
+	inventory, err := waitForCoreOperandInventory(k8sClient, testNamespace, dashboardUID, testPlatform, operandReadyTimeout)
 	require.NoError(t, err)
 
 	sort.Slice(inventory.services, func(i, j int) bool {
@@ -138,7 +138,7 @@ func TestE2E_BFFHealthchecks(t *testing.T) {
 }
 
 func TestE2ESmoke_PodDisruptionBudgetCreated(t *testing.T) {
-	inventory, err := waitForOperandInventory(k8sClient, testNamespace, dashboardUID, operandReadyTimeout)
+	inventory, err := waitForCoreOperandInventory(k8sClient, testNamespace, dashboardUID, testPlatform, operandReadyTimeout)
 	require.NoError(t, err)
 	coreDeployment, err := findCoreDeployment(inventory.deployments)
 	require.NoError(t, err)

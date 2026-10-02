@@ -240,8 +240,10 @@ The safe smoke selection is:
 ```
 
 Lifecycle, optional-module, MaaS, and operator-chaos scenarios are deliberately
-excluded. The image uses this selection as its fallback `CMD`; the component
-registry should set it explicitly as the smoke quality gate.
+excluded. The operand checks require only the platform's core Dashboard
+Deployment and Service, so intentionally disabled optional modules do not fail
+the smoke profile. The image uses this selection as its fallback `CMD`; the
+component registry should set it explicitly as the smoke quality gate.
 
 ### CI flow
 
