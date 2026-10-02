@@ -529,6 +529,35 @@ def table_cell(text):
     `<` would let a cell close the surrounding `<details>` block."""
     return clean(text).replace("|", "\\|").replace("\n", " ").replace("<", "&lt;")
 
+def check_details_cell(check):
+    """Checks-table Details cell: summary, blank line, then details[] lines.
+
+    GitHub markdown tables need `<br>` for line breaks. User text is escaped
+    the same way as `table_cell`; the `<br>` separators are intentional HTML."""
+    summary = clean(check.get("summary") or "")
+    raw = check.get("details")
+    detail_lines = []
+    if isinstance(raw, list):
+        for item in raw:
+            if isinstance(item, str):
+                line = clean(item)
+                if line:
+                    detail_lines.append(line)
+    elif isinstance(raw, str):
+        line = clean(raw)
+        if line:
+            detail_lines.append(line)
+    if not summary and not detail_lines:
+        return "—"
+    parts = []
+    if summary:
+        parts.append(table_cell(summary))
+    if detail_lines:
+        if parts:
+            parts.append("")  # summary<br><br>details ≈ a couple of newlines
+        parts.extend(table_cell(line) for line in detail_lines)
+    return "<br>".join(parts)
+
 def render_header(result, action):
     sha = result.get("head_sha") or ""
     short = sha[:7] if sha else "unknown"
@@ -838,12 +867,12 @@ def render_checks_table(result):
     rows = checks(result)
     if not rows:
         return []
-    lines = ["", "### Checks", "", "| Check | Status | Summary |", "| --- | --- | --- |"]
+    lines = ["", "### Checks", "", "| Check | Status | Details |", "| --- | --- | --- |"]
     for check in rows:
         status = check.get("status") or ""
         lines.append(
             f"| {table_cell(dimension_label(check.get('id')))} | {mark(STATUS_MARK, status)} {table_cell(status)} "
-            f"| {table_cell(check.get('summary'))} |")
+            f"| {check_details_cell(check)} |")
     return lines
 
 def render_todo_section(result):
@@ -1095,7 +1124,9 @@ run_self_test() {
   body=$(jq -r .body "${tmp}/structured-out.json")
   if [[ "$(jq -r .action "${tmp}/structured-out.json")" != "approve" ]] ||
      ! grep -q '### Checks' <<<"${body}" ||
+     ! grep -q '| Check | Status | Details |' <<<"${body}" ||
      ! grep -q 'Test impact' <<<"${body}" ||
+     ! grep -Fq 'No targeted tests were changed.<br><br>PR body explains manual verification only.' <<<"${body}" ||
      ! grep -q '## TODO' <<<"${body}" ||
      grep -q '### Verification' <<<"${body}" ||
      grep -q '### Jira acceptance criteria' <<<"${body}" ||
