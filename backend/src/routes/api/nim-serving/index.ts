@@ -36,7 +36,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         }
         ensureNIMFeatureFlagEnabled(); // Synchronous, OdhDashboardConfig is already in memory
         await ensureEditNamespacePermission(fastify, request, projectNamespace);
-        await ensureProjectNIMAnnotation(fastify, projectNamespace);
+        await ensureProjectNIMAnnotation(fastify, request, projectNamespace);
       }
 
       // Fetch the Account CR to determine the actual resource name dynamically
