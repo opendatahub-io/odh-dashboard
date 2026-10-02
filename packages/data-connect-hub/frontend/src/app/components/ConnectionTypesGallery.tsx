@@ -1,5 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable no-console */
+
+// Modules -------------------------------------------------------------------->
+
 import React from 'react';
 import {
+  Button,
   Checkbox,
   Content,
   EmptyState,
@@ -11,17 +17,18 @@ import {
   SidebarPanel,
   Stack,
   StackItem,
-  Switch,
   Title,
-  ToggleGroup,
-  ToggleGroupItem,
+  Toolbar,
+  ToolbarContent,
+  ToolbarItem,
 } from '@patternfly/react-core';
-import emptyStateImage from '~/images/RHOAI-Noconnections-RGB.svg';
+import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import {
-  KnownConnectionTypes,
-  ConnectionTypeCard,
-  ConnectionTypeCardIdentifier,
-} from '~/app/components/ConnectionType';
+  MultiSelection,
+  type SelectionOptions,
+} from '@odh-dashboard/ui-core/components/MultiSelection';
+
+import { ConnectionTypeCard, ConnectionTypeCardIdentifier } from '~/app/components/ConnectionType';
 import type {
   Identified,
   Labelled,
@@ -29,6 +36,10 @@ import type {
   ConnectionType,
   ConnectionTypeGroup,
 } from '~/app/types';
+
+import emptyStateImage from '~/images/RHOAI-Noconnections-RGB.svg';
+
+// Types ---------------------------------------------------------------------->
 
 type FilterItem = Identified<string> & Labelled<string>;
 
@@ -41,6 +52,19 @@ type ConnectionGroup = Identified<ConnectionTypeGroup> &
   Described<string> & {
     renderGroupSection?: boolean;
   };
+
+type FilterOptionRenders = {
+  onChange: (value?: string, label?: string) => void;
+  value?: string;
+  label?: string;
+};
+
+// Globals -------------------------------------------------------------------->
+
+const FILTER_OPTIONS = {
+  term: 'Term',
+  value: 'Value',
+};
 
 const categoriesFilter: FilterItems = {
   data_warehouse: { id: 'data_warehouse', label: 'Data warehouse' },
@@ -58,31 +82,20 @@ const licensesFilter: FilterItems = {
 };
 
 const connectionGroups: Record<ConnectionTypeGroup, ConnectionGroup> = {
-  all: {
-    id: 'all',
-    label: 'All connections',
-    description: 'All connections',
-    renderGroupSection: false,
+  full_integration: {
+    id: 'full_integration',
+    label: 'Full integration',
+    description: 'Connection types with credential management and data ingestion support.',
   },
-  red_hat: {
-    id: 'red_hat',
-    label: 'Red Hat connections',
-    description: 'Official Red Hat connection types with full support.',
-  },
-  partner: {
-    id: 'partner',
-    label: 'Red Hat partner connections',
-    description: 'A collection of Red Hat partner connection types.',
-  },
-  other: {
-    id: 'other',
-    label: 'Other connections',
-    description: 'A broad collection of community and third-party connection types.',
+  credentials: {
+    id: 'credentials',
+    label: 'Credentials only',
+    description:
+      'Connection types that store credentials for authentication without built-in ingestion.',
   },
 };
 
 const localFeatureFlags = {
-  showOnlyInstalled: false,
   filters: false,
 };
 
@@ -98,13 +111,16 @@ const defaults = {
   },
 };
 
+// Private -------------------------------------------------------------------->
+
+// Components ----------------------------------------------------------------->
+
 type ConnectionTypesGalleryProps = {
   connectionTypes: ConnectionType[];
   onConnectionTypeClick: (connectionType: ConnectionType) => void;
   isSelectable?: boolean;
   selectedConnectionTypeId?: string;
 };
-
 const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
   connectionTypes,
   onConnectionTypeClick,
@@ -120,10 +136,12 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
   );
   const [selectedFilters, setSelectedFilters] = React.useState(initialSelectedFilters);
   const [searchTerm, setSearchTerm] = React.useState('');
-  const [showOnlyInstalledToggle, setShowOnlyInstalledToggle] = React.useState(false);
-  const [selectedConnectionGroup, setSelectedConnectionGroup] = React.useState<ConnectionTypeGroup>(
-    defaults.toolbar.groups.all.id,
-  );
+  const [selectedConnectionGroup, setSelectedConnectionGroup] =
+    React.useState<ConnectionTypeGroup | null>(null);
+  const [toolbarFilters, setToolbarFilters] = React.useState({
+    term: null,
+    values: [],
+  });
 
   const shouldShowConnectionType = React.useCallback(
     (connectionType: ConnectionType) => {
@@ -145,16 +163,16 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
     Record<ConnectionTypeGroup, ConnectionType[]>
   >(() => {
     const groupedConnectionTypes: Record<ConnectionTypeGroup, ConnectionType[]> = {
-      all: [...connectionTypes],
-      red_hat: [],
-      partner: [],
-      other: [],
+      full_integration: [],
+      credentials: [],
     };
 
     connectionTypes.forEach((connectionType) => {
-      const knownConnection = KnownConnectionTypes[connectionType.resource.provider];
-      const group = knownConnection?.group ?? 'other';
-      groupedConnectionTypes[group].push(connectionType);
+      if (connectionType.status?.capabilities.flight) {
+        groupedConnectionTypes.full_integration.push(connectionType);
+      } else {
+        groupedConnectionTypes.credentials.push(connectionType);
+      }
     });
 
     return groupedConnectionTypes;
@@ -164,10 +182,8 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
     Record<ConnectionTypeGroup, ConnectionType[]>
   >(() => {
     const filteredConnectionTypes: Record<ConnectionTypeGroup, ConnectionType[]> = {
-      all: [],
-      red_hat: [],
-      partner: [],
-      other: [],
+      full_integration: [],
+      credentials: [],
     };
     Object.values(connectionGroups).forEach(({ id: connectionTypeGroup }) => {
       filteredConnectionTypes[connectionTypeGroup] =
@@ -181,6 +197,53 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
     Object.values(connectionTypesByGroupToRender).every(
       (renderedConnectionTypes) => renderedConnectionTypes.length === 0,
     );
+
+  const handleFilterChange = (filter: string, selections: SelectionOptions[]) => null;
+
+  const filterOptionRenders: Record<string, (props: FilterOptionRenders) => React.ReactNode> = {
+    term: () => (
+      <MultiSelection
+        value={[
+          {
+            id: 'capability',
+            name: 'Capability',
+          },
+          {
+            id: 'labels',
+            name: 'Labels',
+          },
+        ]}
+        setValue={(selections: SelectionOptions[]) => handleFilterChange('term', selections)}
+        placeholder={'Select the term'}
+        ariaLabel="Connection type filter term"
+        isDisabled={false}
+      />
+    ),
+    value: () => (
+      <MultiSelection
+        value={[
+          {
+            id: 'capability',
+            name: 'Capability',
+          },
+          {
+            id: 'labels',
+            name: 'Labels',
+          },
+        ]}
+        setValue={(selections: SelectionOptions[]) => handleFilterChange('value', selections)}
+        placeholder={'Select the value'}
+        ariaLabel="Connection type filter value"
+        isDisabled={false}
+      />
+    ),
+  };
+  const searchFilters: Record<string, string[]> = {};
+  const filterData = {
+    term: searchFilters.term?.join(', '),
+    value: searchFilters.value?.join(', '),
+  };
+  const currentFilterType = 'term';
 
   const sidebarPanel = (
     <SidebarPanel>
@@ -225,57 +288,54 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
         {localFeatureFlags.filters ? sidebarPanel : null}
         <SidebarContent>
           <Stack>
-            <Stack>
-              <StackItem className="pf-v6-u-mb-md">
-                <SearchInput
-                  name="ConnectionTypesGallery-toolbar-search"
-                  aria-label="Search data connection types by name"
-                  placeholder="Search by name or description..."
-                  value={searchTerm}
-                  onChange={(_event, value) => setSearchTerm(value)}
-                  onSearch={(_event, value) => setSearchTerm(value)}
-                  onClear={() => setSearchTerm('')}
+            <Toolbar
+              id="ConnectionTypesGallery-toolbar"
+              className="pf-m-toggle-group-container"
+              collapseListedFiltersBreakpoint="xl"
+              customLabelGroupContent={
+                <>
+                  <ToolbarItem>
+                    <Button
+                      variant="link"
+                      isInline
+                      onClick={() => {
+                        console.log('Implement Clear all filters');
+                      }}
+                    >
+                      Clear all filters
+                    </Button>
+                  </ToolbarItem>
+                </>
+              }
+            >
+              <ToolbarContent>
+                <FilterToolbar
+                  key="lineage-filters"
+                  filterOptions={FILTER_OPTIONS}
+                  filterOptionRenders={filterOptionRenders}
+                  filterData={filterData}
+                  onFilterUpdate={() => null}
+                  currentFilterType={currentFilterType}
+                  onFilterTypeChange={() => null}
+                  testId="lineage-search-filter"
                 />
-                {localFeatureFlags.showOnlyInstalled ? (
-                  <Switch
-                    className="pf-v6-u-ml-sm"
-                    id="ConnectionTypesGallery-show-only-installed"
-                    label="Show only installed"
-                    isChecked={showOnlyInstalledToggle}
-                    onChange={(_event: React.FormEvent<HTMLInputElement>, checked: boolean) =>
-                      setShowOnlyInstalledToggle(checked)
-                    }
-                    ouiaId="ShowOnlyInstalledSwitch"
+                <ToolbarItem>
+                  <SearchInput
+                    name="ConnectionTypesGallery-toolbar-search"
+                    aria-label="Search data connection types by name"
+                    placeholder="Search by name or description..."
+                    value={searchTerm}
+                    onChange={(_event, value) => setSearchTerm(value)}
+                    onClear={() => setSearchTerm('')}
                   />
-                ) : null}
-              </StackItem>
-              <StackItem className="pf-v6-u-mb-md">
-                <ToggleGroup aria-label="Connection groups">
-                  {Object.values(defaults.toolbar.groups)
-                    .filter((group) => connectionTypesByGroup[group.id].length)
-                    .map((group) => (
-                      <ToggleGroupItem
-                        key={`ConnectionTypesGallery-toolbar-group-item--${group.id}`}
-                        buttonId={`ConnectionTypesGallery-toolbar-group-item--${group.id}`}
-                        text={group.label}
-                        isSelected={selectedConnectionGroup === group.id}
-                        onChange={(_event, isSelected: boolean) => {
-                          setSelectedConnectionGroup(
-                            isSelected ? group.id : defaults.toolbar.groups.all.id,
-                          );
-                        }}
-                      />
-                    ))}
-                </ToggleGroup>
-              </StackItem>
-            </Stack>
+                </ToolbarItem>
+              </ToolbarContent>
+            </Toolbar>
+
             {Object.values(defaults.toolbar.groups)
               .filter((group) => group.renderGroupSection !== false)
               .filter((group) => connectionTypesByGroupToRender[group.id].length)
-              .filter(
-                (group) =>
-                  selectedConnectionGroup === 'all' || group.id === selectedConnectionGroup,
-              )
+              .filter((group) => !selectedConnectionGroup || group.id === selectedConnectionGroup)
               .map((group) => (
                 <React.Fragment key={group.id}>
                   <Title headingLevel="h3">{group.label}</Title>
@@ -298,7 +358,7 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
           </Stack>
         </SidebarContent>
       </Sidebar>
-      {shouldRenderEmptySearchState ? (
+      {shouldRenderEmptySearchState && (
         <EmptyState
           headingLevel="h3"
           icon={() => <img src={emptyStateImage} alt="" width={108} height={108} />}
@@ -306,9 +366,11 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
         >
           <EmptyStateBody>No data connection types match your search or filter</EmptyStateBody>
         </EmptyState>
-      ) : null}
+      )}
     </>
   );
 };
+
+// Public --------------------------------------------------------------------->
 
 export default ConnectionTypesGallery;
