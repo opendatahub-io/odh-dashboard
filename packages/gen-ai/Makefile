@@ -27,7 +27,7 @@ endif
 
 # Resolve the cluster configuration required by an in-cluster OGXServer to call the Gen AI BFF.
 # User-supplied values always take precedence over discovery from the active oc context.
-RHOAI_SUBSCRIPTION_NAME ?= rhods-operator
+RHOAI_SUBSCRIPTION_PACKAGE ?= rhods-operator
 
 define with_cluster_configuration
 gateway_domain="$(GATEWAY_DOMAIN)"; \
@@ -49,13 +49,18 @@ if [ -z "$$ogx_core_image" ] || [ -z "$$postgresql_16_image" ]; then \
 		rhoai_subscription_namespace="$(RHOAI_OPERATOR_NAMESPACE)"; \
 	fi; \
 	if [ -z "$$rhoai_subscription_namespace" ]; then \
-		rhoai_subscription_namespace="$$(oc get subscription -A -o jsonpath='{.items[?(@.spec.name=="$(RHOAI_SUBSCRIPTION_NAME)")].metadata.namespace}' 2>/dev/null)"; \
+		rhoai_subscription_namespace="$$(oc get subscription -A -o jsonpath='{.items[?(@.spec.name=="$(RHOAI_SUBSCRIPTION_PACKAGE)")].metadata.namespace}' 2>/dev/null | head -n 1)"; \
 	fi; \
 	if [ -z "$$rhoai_subscription_namespace" ]; then \
 		echo "Unable to discover the RHOAI Subscription namespace. Set RHOAI_SUBSCRIPTION_NAMESPACE and retry." >&2; \
 		exit 1; \
 	fi; \
-	rhoai_csv="$$(oc get subscription $(RHOAI_SUBSCRIPTION_NAME) -n "$$rhoai_subscription_namespace" -o jsonpath='{.status.installedCSV}' 2>/dev/null)"; \
+	rhoai_subscription_name="$$(oc get subscription -n "$$rhoai_subscription_namespace" -o jsonpath='{.items[?(@.spec.name=="$(RHOAI_SUBSCRIPTION_PACKAGE)")].metadata.name}' 2>/dev/null | head -n 1)"; \
+	if [ -z "$$rhoai_subscription_name" ]; then \
+		echo "Unable to discover the RHOAI Subscription name. Set RHOAI_SUBSCRIPTION_NAMESPACE and RHOAI_SUBSCRIPTION_PACKAGE and retry." >&2; \
+		exit 1; \
+	fi; \
+	rhoai_csv="$$(oc get subscription "$$rhoai_subscription_name" -n "$$rhoai_subscription_namespace" -o jsonpath='{.status.installedCSV}' 2>/dev/null)"; \
 	if [ -z "$$rhoai_csv" ]; then \
 		echo "Unable to discover the installed RHOAI CSV. Set RHOAI_SUBSCRIPTION_NAMESPACE or both related-image variables explicitly and retry." >&2; \
 		exit 1; \
