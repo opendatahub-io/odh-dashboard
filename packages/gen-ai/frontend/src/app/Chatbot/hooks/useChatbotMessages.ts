@@ -196,7 +196,7 @@ const useChatbotMessages = ({
       ) => Promise<void>)
     | null
   >(null);
-  const multimodalContentRef = React.useRef<Map<string, InputContentPart[]>>(new Map());
+  const multimodalContentRef = React.useRef<Map<string, string | InputContentPart[]>>(new Map());
   const imagePreviewRef = React.useRef<Map<string, { previewUrl: string; fileName: string }>>(
     new Map(),
   );
@@ -503,6 +503,9 @@ const useChatbotMessages = ({
       input = parts;
       multimodalContentRef.current.set(userMessage.id!, parts);
     }
+    if (audioFile && !fileId) {
+      multimodalContentRef.current.set(userMessage.id!, input);
+    }
 
     setMessages((prev) => [...prev, userMessage]);
     setIsMessageSendButtonDisabled(true);
@@ -554,7 +557,11 @@ const useChatbotMessages = ({
             vector_store_ids: [currentVectorStoreId],
           }),
         chat_context: messages
-          .filter((msg) => msg.content && !msg.errorClassification)
+          .filter(
+            (msg) =>
+              (msg.content || multimodalContentRef.current.has(msg.id!)) &&
+              !msg.errorClassification,
+          )
           .map((msg) => {
             const content = multimodalContentRef.current.get(msg.id!) || msg.content || '';
             const attachmentText = msg.documentAttachments

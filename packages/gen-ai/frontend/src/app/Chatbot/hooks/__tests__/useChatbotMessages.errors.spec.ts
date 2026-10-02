@@ -707,7 +707,7 @@ describe('useChatbotMessages - Error Handling', () => {
             undefined,
             undefined,
             file,
-            'Audio transcription:\nTranscribed speech',
+            '',
           );
         });
         expect(result.current.messages[1].onRetryError).toBeDefined();
@@ -720,16 +720,13 @@ describe('useChatbotMessages - Error Handling', () => {
           result.current.messages
             .filter((message) => message.role === 'user')
             .map((message) => message.content),
-        ).toEqual([
-          'Audio transcription:\nTranscribed speech',
-          'Audio transcription:\nTranscribed speech',
-        ]);
+        ).toEqual(['', '']);
         expect(
           result.current.messages
             .filter((message) => message.role === 'user')
             .map(
               (message) =>
-                (message.extraContent?.afterMainContent as React.ReactElement<{ src: string }>)
+                (message.extraContent?.beforeMainContent as React.ReactElement<{ src: string }>)
                   .props.src,
             ),
         ).toEqual(['blob:audio-preview', 'blob:audio-preview']);

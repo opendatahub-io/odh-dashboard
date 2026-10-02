@@ -1104,7 +1104,7 @@ describe('ChatbotPlayground — audio transcription', () => {
       undefined,
       undefined,
       file,
-      'Audio transcription:\nHello world',
+      '',
     );
 
     // Now a new audio upload should work (no per-message modal)
@@ -1124,7 +1124,7 @@ describe('ChatbotPlayground — audio transcription', () => {
       undefined,
       undefined,
       file2,
-      'Audio transcription:\nHello world\n\nYour message:\ntest msg',
+      'test msg',
     );
   });
 

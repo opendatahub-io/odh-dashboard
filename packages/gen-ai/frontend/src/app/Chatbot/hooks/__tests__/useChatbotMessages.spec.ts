@@ -1124,8 +1124,8 @@ describe('useChatbotMessages', () => {
       URL.revokeObjectURL = originalRevokeObjectURL;
     });
 
-    it('should show a playable audio attachment while sending only the transcription', async () => {
-      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+    it('should show audio without transcript text and keep the transcript in later context', async () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
       const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
       const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
 
@@ -1136,7 +1136,7 @@ describe('useChatbotMessages', () => {
           undefined,
           undefined,
           file,
-          'Audio transcription:\nTranscribed speech',
+          '',
         );
       });
 
@@ -1144,7 +1144,7 @@ describe('useChatbotMessages', () => {
       const player = userMessage.extraContent?.beforeMainContent as React.ReactElement<{
         src: string;
       }>;
-      expect(userMessage.content).toBe('Audio transcription:\nTranscribed speech');
+      expect(userMessage.content).toBe('');
       expect(userMessage.attachments).toBeUndefined();
       expect(player.type).toBe(AudioAttachmentTile);
       render(player);
@@ -1162,8 +1162,46 @@ describe('useChatbotMessages', () => {
       expect(createObjectURL).toHaveBeenCalledWith(file);
       expect(mockCreateResponse.mock.calls[0][0].input).toBe('Transcribed speech');
 
+      await act(async () => {
+        await result.current.handleMessageSend('What sound was that?');
+      });
+      expect(mockCreateResponse.mock.calls[1][0].chat_context).toEqual([
+        { role: 'user', content: 'Transcribed speech' },
+        { role: 'assistant', content: 'This is a bot response' },
+      ]);
+
       act(() => result.current.clearConversation());
       expect(revokeObjectURL).toHaveBeenCalledWith('blob:audio-preview');
+    });
+
+    it('should show only the typed question while keeping audio transcription in the request', async () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
+
+      await act(async () => {
+        await result.current.handleMessageSend(
+          'Transcribed speech\n\nWhat sound was that?',
+          undefined,
+          undefined,
+          undefined,
+          file,
+          'What sound was that?',
+        );
+      });
+
+      expect(result.current.messages[0].content).toBe('What sound was that?');
+      expect(mockCreateResponse.mock.calls[0][0].input).toBe(
+        'Transcribed speech\n\nWhat sound was that?',
+      );
+      await act(async () => {
+        await result.current.handleMessageSend('Tell me more');
+      });
+      expect(mockCreateResponse.mock.calls[1][0].chat_context?.[0]).toEqual({
+        role: 'user',
+        content: 'Transcribed speech\n\nWhat sound was that?',
+      });
+      act(() => result.current.clearConversation());
     });
 
     it('should keep document and image attachments alongside the audio tile', async () => {
