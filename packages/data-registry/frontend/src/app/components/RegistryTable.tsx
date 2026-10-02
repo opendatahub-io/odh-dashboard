@@ -25,11 +25,12 @@ import {
   DropdownItem,
   Toolbar,
   ToolbarContent,
+  ToolbarGroup,
   ToolbarItem,
 } from '@patternfly/react-core';
 import { FilterIcon, EllipsisVIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td, ThProps } from '@patternfly/react-table';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { RegistryAsset } from '~/app/hooks/useAssets';
 import {
   deleteGenericTable,
@@ -46,6 +47,7 @@ import ConnectionError from '~/app/components/errors/ConnectionError';
 import ServiceUnavailableError from '~/app/components/errors/ServiceUnavailableError';
 import noAssetsImage from '~/images/no-assets.png';
 import DeleteAssetModal from './DeleteAssetModal';
+import EditAssetModal from './EditAssetModal';
 
 type RegistryTableProps = {
   assets: RegistryAsset[];
@@ -125,30 +127,33 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   onRetry,
   hasWriteAccess = true,
 }) => {
-  const navigate = useNavigate();
   const notification = useNotification();
   const [searchText, setSearchText] = React.useState('');
   const [filterCategory, setFilterCategory] = React.useState<FilterCategory>('labels');
   const [isCategoryOpen, setIsCategoryOpen] = React.useState(false);
   const [isValueOpen, setIsValueOpen] = React.useState(false);
   const [selectedLabels, setSelectedLabels] = React.useState<string[]>([]);
-  const [selectedAssetType, setSelectedAssetType] = React.useState('');
-  const [selectedFormat, setSelectedFormat] = React.useState('');
+  const [selectedAssetTypes, setSelectedAssetTypes] = React.useState<string[]>([]);
+  const [selectedFormats, setSelectedFormats] = React.useState<string[]>([]);
   const [isKebabOpen, setIsKebabOpen] = React.useState(false);
   const [activeActionsAsset, setActiveActionsAsset] = React.useState<string>();
   const [deleteAsset, setDeleteAsset] = React.useState<RegistryAsset | null>(null);
+  const [editAsset, setEditAsset] = React.useState<RegistryAsset | null>(null);
   const [activeSortIndex, setActiveSortIndex] = React.useState<number | undefined>(undefined);
   const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc'>('asc');
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(10);
 
   const hasActiveFilters =
-    selectedLabels.length > 0 || !!selectedAssetType || !!selectedFormat || !!searchText;
+    selectedLabels.length > 0 ||
+    selectedAssetTypes.length > 0 ||
+    selectedFormats.length > 0 ||
+    !!searchText;
 
   const clearAllFilters = React.useCallback(() => {
     setSelectedLabels([]);
-    setSelectedAssetType('');
-    setSelectedFormat('');
+    setSelectedAssetTypes([]);
+    setSelectedFormats([]);
     setSearchText('');
     setPage(1);
   }, []);
@@ -160,19 +165,24 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
       result = result.filter((a) => getSearchableAssetText(a).includes(lower));
     }
     if (selectedLabels.length > 0) {
-      result = result.filter((a) => selectedLabels.every((l) => a.labels.includes(l)));
+      result = result.filter((a) => selectedLabels.some((l) => a.labels.includes(l)));
     }
-    if (selectedAssetType) {
+    if (selectedAssetTypes.length > 0) {
       result = result.filter((a) =>
-        selectedAssetType === 'Structured' ? a.assetType === 'table' : a.assetType === 'volume',
+        selectedAssetTypes.some((selectedAssetType) =>
+          selectedAssetType === 'Structured' ? a.assetType === 'table' : a.assetType === 'volume',
+        ),
       );
     }
-    if (selectedFormat) {
-      const selectedOption = FORMAT_OPTIONS.find((option) => option.key === selectedFormat);
-      result = result.filter(
-        (a) =>
-          a.format.toLowerCase() === (selectedOption?.value ?? selectedFormat).toLowerCase() &&
-          (!selectedOption || a.assetType === selectedOption.assetType),
+    if (selectedFormats.length > 0) {
+      result = result.filter((a) =>
+        selectedFormats.some((selectedFormat) => {
+          const selectedOption = FORMAT_OPTIONS.find((option) => option.key === selectedFormat);
+          return (
+            a.format.toLowerCase() === (selectedOption?.value ?? selectedFormat).toLowerCase() &&
+            (!selectedOption || a.assetType === selectedOption.assetType)
+          );
+        }),
       );
     }
     if (activeSortIndex !== undefined) {
@@ -196,8 +206,8 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
     assets,
     searchText,
     selectedLabels,
-    selectedAssetType,
-    selectedFormat,
+    selectedAssetTypes,
+    selectedFormats,
     activeSortIndex,
     activeSortDirection,
   ]);
@@ -236,6 +246,11 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
     [notification, onRetry, project],
   );
 
+  const handleEditSaved = React.useCallback(() => {
+    setEditAsset(null);
+    onRetry();
+  }, [onRetry]);
+
   // Value dropdown content based on category
   const renderValueDropdown = () => {
     if (filterCategory === 'labels') {
@@ -269,16 +284,22 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
           )}
         >
           <SelectList>
-            {labels.map((label) => (
-              <SelectOption
-                key={label}
-                value={label}
-                hasCheckbox
-                isSelected={selectedLabels.includes(label)}
-              >
-                {label}
+            {labels.length > 0 ? (
+              labels.map((label) => (
+                <SelectOption
+                  key={label}
+                  value={label}
+                  hasCheckbox
+                  isSelected={selectedLabels.includes(label)}
+                >
+                  {label}
+                </SelectOption>
+              ))
+            ) : (
+              <SelectOption value="no-labels" isDisabled>
+                No labels found.
               </SelectOption>
-            ))}
+            )}
           </SelectList>
         </Select>
       );
@@ -288,10 +309,14 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
       return (
         <Select
           isOpen={isValueOpen}
-          selected={selectedAssetType}
+          selected={selectedAssetTypes}
           onSelect={(_event, value) => {
-            setSelectedAssetType(value === selectedAssetType ? '' : String(value));
-            setIsValueOpen(false);
+            const assetType = String(value);
+            setSelectedAssetTypes((prev) =>
+              prev.includes(assetType)
+                ? prev.filter((item) => item !== assetType)
+                : [...prev, assetType],
+            );
             setPage(1);
           }}
           onOpenChange={setIsValueOpen}
@@ -303,13 +328,30 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
               data-testid="filter-value"
               style={{ minWidth: '180px' }}
             >
-              {selectedAssetType || 'All asset types'}
+              All asset types{' '}
+              {selectedAssetTypes.length > 0 ? (
+                <Label isCompact color="blue">
+                  {selectedAssetTypes.length}
+                </Label>
+              ) : null}
             </MenuToggle>
           )}
         >
           <SelectList>
-            <SelectOption value="Structured">Structured</SelectOption>
-            <SelectOption value="Unstructured">Unstructured</SelectOption>
+            <SelectOption
+              value="Structured"
+              hasCheckbox
+              isSelected={selectedAssetTypes.includes('Structured')}
+            >
+              Structured
+            </SelectOption>
+            <SelectOption
+              value="Unstructured"
+              hasCheckbox
+              isSelected={selectedAssetTypes.includes('Unstructured')}
+            >
+              Unstructured
+            </SelectOption>
           </SelectList>
         </Select>
       );
@@ -318,11 +360,13 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
     return (
       <Select
         isOpen={isValueOpen}
-        selected={selectedFormat}
+        selected={selectedFormats}
         maxMenuHeight="300px"
         onSelect={(_event, value) => {
-          setSelectedFormat(value === selectedFormat ? '' : String(value));
-          setIsValueOpen(false);
+          const format = String(value);
+          setSelectedFormats((prev) =>
+            prev.includes(format) ? prev.filter((item) => item !== format) : [...prev, format],
+          );
           setPage(1);
         }}
         onOpenChange={setIsValueOpen}
@@ -334,15 +378,23 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
             data-testid="filter-value"
             style={{ minWidth: '180px' }}
           >
-            {selectedFormat
-              ? FORMAT_OPTIONS.find((f) => f.key === selectedFormat)?.label || selectedFormat
-              : 'All formats'}
+            All formats{' '}
+            {selectedFormats.length > 0 ? (
+              <Label isCompact color="blue">
+                {selectedFormats.length}
+              </Label>
+            ) : null}
           </MenuToggle>
         )}
       >
         <SelectList>
           {FORMAT_OPTIONS.map((f) => (
-            <SelectOption key={f.key} value={f.key}>
+            <SelectOption
+              key={f.key}
+              value={f.key}
+              hasCheckbox
+              isSelected={selectedFormats.includes(f.key)}
+            >
               {f.label}
             </SelectOption>
           ))}
@@ -404,171 +456,214 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
           data-testid="registry-toolbar"
         >
           <ToolbarContent>
-            {/* Category selector */}
-            <ToolbarItem style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }}>
-              <Select
-                isOpen={isCategoryOpen}
-                selected={filterCategory}
-                onSelect={(_event, value) => {
-                  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-                  setFilterCategory(value as FilterCategory);
-                  setIsCategoryOpen(false);
-                  setIsValueOpen(false);
-                }}
-                onOpenChange={setIsCategoryOpen}
-                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    onClick={() => setIsCategoryOpen((prev) => !prev)}
-                    isExpanded={isCategoryOpen}
-                    data-testid="filter-category"
-                    style={{ minWidth: '150px' }}
-                  >
-                    <FilterIcon /> {CATEGORY_LABELS[filterCategory]}
-                  </MenuToggle>
-                )}
-              >
-                <SelectList>
-                  <SelectOption value="labels">Labels</SelectOption>
-                  <SelectOption value="assetType">Asset type</SelectOption>
-                  <SelectOption value="format">Format</SelectOption>
-                </SelectList>
-              </Select>
-            </ToolbarItem>
-            {/* Value selector */}
-            <ToolbarItem style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }}>
-              {renderValueDropdown()}
-            </ToolbarItem>
-            {/* Search */}
-            <ToolbarItem style={{ marginRight: 'var(--pf-t--global--spacer--md)' }}>
-              <SearchInput
-                placeholder="Filter by name, description, properties or labels"
-                value={searchText}
-                onChange={(_event, value) => {
-                  setSearchText(value);
-                  setPage(1);
-                }}
-                onClear={() => {
-                  setSearchText('');
-                  setPage(1);
-                }}
-                data-testid="asset-search"
-                style={{ minWidth: '340px' }}
-              />
-            </ToolbarItem>
+            <ToolbarGroup variant="filter-group">
+              {/* Category selector */}
+              <ToolbarItem>
+                <Select
+                  isOpen={isCategoryOpen}
+                  selected={filterCategory}
+                  onSelect={(_event, value) => {
+                    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                    setFilterCategory(value as FilterCategory);
+                    setIsCategoryOpen(false);
+                    setIsValueOpen(false);
+                  }}
+                  onOpenChange={setIsCategoryOpen}
+                  toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      onClick={() => setIsCategoryOpen((prev) => !prev)}
+                      isExpanded={isCategoryOpen}
+                      data-testid="filter-category"
+                      icon={<FilterIcon />}
+                      style={{ minWidth: '150px' }}
+                    >
+                      {CATEGORY_LABELS[filterCategory]}
+                    </MenuToggle>
+                  )}
+                >
+                  <SelectList>
+                    <SelectOption value="labels">Labels</SelectOption>
+                    <SelectOption value="assetType">Asset type</SelectOption>
+                    <SelectOption value="format">Format</SelectOption>
+                  </SelectList>
+                </Select>
+              </ToolbarItem>
+              {/* Value selector */}
+              <ToolbarItem>{renderValueDropdown()}</ToolbarItem>
+              {/* Search */}
+              <ToolbarItem>
+                <SearchInput
+                  placeholder="Filter by name, description, properties or labels"
+                  value={searchText}
+                  onChange={(_event, value) => {
+                    setSearchText(value);
+                    setPage(1);
+                  }}
+                  onClear={() => {
+                    setSearchText('');
+                    setPage(1);
+                  }}
+                  data-testid="asset-search"
+                  style={{ minWidth: '340px' }}
+                />
+              </ToolbarItem>
+            </ToolbarGroup>
             {/* Register data button */}
             {assets.length > 0 ? (
-              <ToolbarItem>
-                <Button
-                  variant="primary"
-                  onClick={onRegisterData}
-                  isDisabled={!hasWriteAccess}
-                  data-testid="register-data-button"
-                >
-                  Register data
-                </Button>
-              </ToolbarItem>
+              <ToolbarGroup variant="action-group-plain">
+                <ToolbarItem>
+                  <Button
+                    variant="primary"
+                    onClick={onRegisterData}
+                    isDisabled={!hasWriteAccess}
+                    data-testid="register-data-button"
+                  >
+                    Register data
+                  </Button>
+                </ToolbarItem>
+              </ToolbarGroup>
             ) : null}
             {/* Kebab */}
-            <ToolbarItem>
-              <Dropdown
-                isOpen={isKebabOpen}
-                onSelect={() => setIsKebabOpen(false)}
-                onOpenChange={setIsKebabOpen}
-                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    onClick={() => setIsKebabOpen((prev) => !prev)}
-                    isExpanded={isKebabOpen}
-                    variant="plain"
-                    aria-label="Actions"
-                    data-testid="registry-kebab"
-                  >
-                    <EllipsisVIcon />
-                  </MenuToggle>
-                )}
-              >
-                <DropdownList>
-                  <DropdownItem
-                    key="manage-collections"
-                    onClick={onManageCollections}
-                    isDisabled={!hasWriteAccess}
-                    data-testid="manage-collections-action"
-                  >
-                    Manage collections
-                  </DropdownItem>
-                  <DropdownItem
-                    key="manage-labels"
-                    onClick={onManageLabels}
-                    isDisabled={!hasWriteAccess}
-                    data-testid="manage-labels-action"
-                  >
-                    Manage labels
-                  </DropdownItem>
-                </DropdownList>
-              </Dropdown>
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
-
-        {/* Active filter chips */}
-        {assets.length > 0 && hasActiveFilters ? (
-          <>
-            <Flex
-              spaceItems={{ default: 'spaceItemsMd' }}
-              style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
-            >
-              {selectedLabels.length > 0 ? (
-                <FlexItem>
-                  <div className="pf-v6-u-display-inline-flex">
-                    <LabelGroup
-                      categoryName="Labels"
-                      numLabels={3}
-                      expandedText="Show less"
-                      collapsedText={`${selectedLabels.length - 3} more`}
+            <ToolbarGroup variant="action-group-plain">
+              <ToolbarItem>
+                <Dropdown
+                  isOpen={isKebabOpen}
+                  onSelect={() => setIsKebabOpen(false)}
+                  onOpenChange={setIsKebabOpen}
+                  toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      onClick={() => setIsKebabOpen((prev) => !prev)}
+                      isExpanded={isKebabOpen}
+                      variant="plain"
+                      aria-label="Actions"
+                      data-testid="registry-kebab"
                     >
-                      {selectedLabels.map((l) => (
-                        <Label
-                          key={l}
-                          variant="outline"
-                          onClose={() => setSelectedLabels((prev) => prev.filter((x) => x !== l))}
-                        >
-                          {l}
-                        </Label>
-                      ))}
-                    </LabelGroup>
-                  </div>
-                </FlexItem>
-              ) : null}
-              {selectedAssetType ? (
-                <FlexItem>
-                  <div className="pf-v6-u-display-inline-flex">
-                    <LabelGroup categoryName="Asset type">
-                      <Label variant="outline" onClose={() => setSelectedAssetType('')}>
-                        {selectedAssetType}
-                      </Label>
-                    </LabelGroup>
-                  </div>
-                </FlexItem>
-              ) : null}
-              {selectedFormat ? (
-                <FlexItem>
-                  <div className="pf-v6-u-display-inline-flex">
-                    <LabelGroup categoryName="Format">
-                      <Label variant="outline" onClose={() => setSelectedFormat('')}>
-                        {FORMAT_OPTIONS.find((f) => f.key === selectedFormat)?.label ||
-                          selectedFormat}
-                      </Label>
-                    </LabelGroup>
-                  </div>
-                </FlexItem>
-              ) : null}
-            </Flex>
-            <Button variant="link" isInline onClick={clearAllFilters}>
-              Clear all filters
-            </Button>
-          </>
-        ) : null}
+                      <EllipsisVIcon />
+                    </MenuToggle>
+                  )}
+                >
+                  <DropdownList>
+                    <DropdownItem
+                      key="manage-collections"
+                      onClick={onManageCollections}
+                      isDisabled={!hasWriteAccess}
+                      data-testid="manage-collections-action"
+                    >
+                      Manage collections
+                    </DropdownItem>
+                    <DropdownItem
+                      key="manage-labels"
+                      onClick={onManageLabels}
+                      isDisabled={!hasWriteAccess}
+                      data-testid="manage-labels-action"
+                    >
+                      Manage labels
+                    </DropdownItem>
+                  </DropdownList>
+                </Dropdown>
+              </ToolbarItem>
+            </ToolbarGroup>
+          </ToolbarContent>
+
+          {assets.length > 0 && hasActiveFilters ? (
+            <ToolbarContent>
+              <ToolbarGroup>
+                <ToolbarItem>
+                  <Flex
+                    gap={{ default: 'gapSm' }}
+                    wrap="wrap"
+                    alignItems={{ default: 'alignItemsCenter' }}
+                  >
+                    {selectedLabels.length > 0 ? (
+                      <FlexItem>
+                        <div className="pf-v6-u-display-inline-flex">
+                          <LabelGroup
+                            categoryName="Labels"
+                            numLabels={3}
+                            expandedText="Show less"
+                            collapsedText={`${selectedLabels.length - 3} more`}
+                          >
+                            {selectedLabels.map((l) => (
+                              <Label
+                                key={l}
+                                variant="outline"
+                                onClose={() =>
+                                  setSelectedLabels((prev) => prev.filter((x) => x !== l))
+                                }
+                              >
+                                {l}
+                              </Label>
+                            ))}
+                          </LabelGroup>
+                        </div>
+                      </FlexItem>
+                    ) : null}
+                    {selectedAssetTypes.length > 0 ? (
+                      <FlexItem>
+                        <div className="pf-v6-u-display-inline-flex">
+                          <LabelGroup
+                            categoryName="Asset type"
+                            numLabels={3}
+                            expandedText="Show less"
+                            collapsedText={`${selectedAssetTypes.length - 3} more`}
+                          >
+                            {selectedAssetTypes.map((selectedAssetType) => (
+                              <Label
+                                key={selectedAssetType}
+                                variant="outline"
+                                onClose={() =>
+                                  setSelectedAssetTypes((prev) =>
+                                    prev.filter((assetType) => assetType !== selectedAssetType),
+                                  )
+                                }
+                              >
+                                {selectedAssetType}
+                              </Label>
+                            ))}
+                          </LabelGroup>
+                        </div>
+                      </FlexItem>
+                    ) : null}
+                    {selectedFormats.length > 0 ? (
+                      <FlexItem>
+                        <div className="pf-v6-u-display-inline-flex">
+                          <LabelGroup
+                            categoryName="Format"
+                            numLabels={3}
+                            expandedText="Show less"
+                            collapsedText={`${selectedFormats.length - 3} more`}
+                          >
+                            {selectedFormats.map((selectedFormat) => (
+                              <Label
+                                key={selectedFormat}
+                                variant="outline"
+                                onClose={() =>
+                                  setSelectedFormats((prev) =>
+                                    prev.filter((format) => format !== selectedFormat),
+                                  )
+                                }
+                              >
+                                {FORMAT_OPTIONS.find((f) => f.key === selectedFormat)?.label ||
+                                  selectedFormat}
+                              </Label>
+                            ))}
+                          </LabelGroup>
+                        </div>
+                      </FlexItem>
+                    ) : null}
+                    <FlexItem>
+                      <Button variant="link" isInline onClick={clearAllFilters}>
+                        Clear all filters
+                      </Button>
+                    </FlexItem>
+                  </Flex>
+                </ToolbarItem>
+              </ToolbarGroup>
+            </ToolbarContent>
+          ) : null}
+        </Toolbar>
 
         {assets.length > 0 && filteredAssets.length > 0 ? (
           <Pagination
@@ -688,7 +783,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                       {asset.labels.length > 0 ? (
                         <LabelGroup>
                           {asset.labels.map((label) => (
-                            <Label key={label} isCompact>
+                            <Label key={label} variant="outline" isCompact>
                               {label}
                             </Label>
                           ))}
@@ -723,16 +818,11 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                         <DropdownList>
                           <DropdownItem
                             key="edit"
-                            onClick={() =>
-                              navigate(
-                                `${assetDetailUrl(
-                                  project,
-                                  asset.collection,
-                                  asset.name,
-                                  asset.assetType,
-                                )}?edit=true`,
-                              )
-                            }
+                            onClick={() => {
+                              if (asset.rawAsset) {
+                                setEditAsset(asset);
+                              }
+                            }}
                             data-testid={assetTestId('asset-edit')}
                           >
                             Edit
@@ -760,6 +850,17 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
           assetType={deleteAsset.assetType}
           onDelete={() => handleDelete(deleteAsset)}
           onClose={() => setDeleteAsset(null)}
+        />
+      ) : null}
+      {editAsset?.rawAsset ? (
+        <EditAssetModal
+          asset={editAsset.rawAsset}
+          assetKind={editAsset.assetType}
+          project={project}
+          collection={editAsset.collection}
+          name={editAsset.name}
+          onClose={() => setEditAsset(null)}
+          onSaved={handleEditSaved}
         />
       ) : null}
     </>
