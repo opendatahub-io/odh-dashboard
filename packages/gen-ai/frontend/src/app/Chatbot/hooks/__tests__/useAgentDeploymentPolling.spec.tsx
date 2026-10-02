@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { act, renderHook } from '@testing-library/react';
 import useAgentDeploymentPolling from '~/app/Chatbot/hooks/useAgentDeploymentPolling';
 import type { AgentDeploymentSummary } from '~/app/agentProfile/types';
@@ -84,6 +85,32 @@ describe('useAgentDeploymentPolling', () => {
     expect(notification.success).toHaveBeenCalledWith('hr-chatbot deployed successfully');
     expect(onComplete).toHaveBeenCalledTimes(1);
     expect(onStarted).not.toHaveBeenCalled();
+  });
+
+  it('should poll when mounted in Strict Mode', async () => {
+    const createAgentDeployment = jest.fn().mockResolvedValue(createResponse);
+    const getAgentDeployment = jest.fn().mockResolvedValue({
+      name: createResponse.sandboxName,
+      namespace: 'my-project',
+      agentProfileId: 'profile-id',
+      state: 'ready',
+      routeUrl: createResponse.routeUrl,
+      createdAt: '2026-10-02T00:00:00Z',
+    });
+    mockUseGenAiAPI.mockReturnValue({
+      apiAvailable: true,
+      api: { createAgentDeployment, getAgentDeployment },
+      refreshAllAPI: jest.fn(),
+    } as unknown as ReturnType<typeof useGenAiAPI>);
+
+    const wrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+      <React.StrictMode>{children}</React.StrictMode>
+    );
+    const { result } = renderHook(() => useAgentDeploymentPolling(), { wrapper });
+    await act(async () => result.current.startAgentDeployment(startOptions));
+
+    expect(getAgentDeployment).toHaveBeenCalledTimes(1);
+    expect(notification.success).toHaveBeenCalledWith('hr-chatbot deployed successfully');
   });
 
   it('should close the modal and notify started after three creating polls', async () => {

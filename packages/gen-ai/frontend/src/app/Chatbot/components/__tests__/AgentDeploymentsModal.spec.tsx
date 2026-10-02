@@ -118,6 +118,7 @@ describe('AgentDeploymentsModal', () => {
     );
 
     await user.click(screen.getByTestId('delete-agent-deployment-button'));
+    expect(screen.getByTestId('delete-modal')).toHaveTextContent('HR Chatbot');
     await user.click(
       screen.getByTestId('delete-modal').querySelector('button') as HTMLButtonElement,
     );

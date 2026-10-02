@@ -34,14 +34,15 @@ const useAgentDeploymentPolling = (): UseAgentDeploymentPollingReturn => {
   const timeoutIdsRef = React.useRef<ReturnType<typeof setTimeout>[]>([]);
   const isUnmountedRef = React.useRef(false);
 
-  React.useEffect(
-    () => () => {
+  React.useEffect(() => {
+    isUnmountedRef.current = false;
+
+    return () => {
       isUnmountedRef.current = true;
       timeoutIdsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
       timeoutIdsRef.current = [];
-    },
-    [],
-  );
+    };
+  }, []);
 
   const startAgentDeployment = React.useCallback(
     async ({

@@ -235,7 +235,7 @@ const AgentDeploymentsModal: React.FC<AgentDeploymentsModalProps> = ({
           }}
           deleting={isDeleting}
           onDelete={() => void handleDelete()}
-          deleteName={activeDeployment.name}
+          deleteName={activeDeployment.displayName || activeDeployment.name}
           submitButtonLabel="Delete deployment"
           error={deleteError}
         >
