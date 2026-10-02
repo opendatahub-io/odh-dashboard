@@ -81,19 +81,32 @@ describe('TableDetailView', () => {
     expect(screen.getByTestId('asset-labels')).toHaveTextContent('No labels');
   });
 
-  it('should render properties card with key:value labels', () => {
-    const asset = mockAssetResponse();
-    renderView(asset);
+  it('should render properties below data details with well-known properties first', () => {
+    renderView(
+      mockAssetResponse({
+        properties: {
+          source: 'etl-pipeline',
+          purpose: 'ML training',
+          'data.quality': 'verified',
+        },
+      }),
+    );
     expect(screen.getByTestId('properties-card')).toBeTruthy();
-    expect(screen.getByText('data.quality: verified')).toBeTruthy();
-    expect(screen.getByText('source: etl-pipeline')).toBeTruthy();
+    expect(screen.getByTestId('asset-property-purpose')).toHaveTextContent('PurposeML training');
+    expect(screen.getByTestId('asset-property-data.quality')).toHaveTextContent('verified');
+    expect(screen.getByTestId('asset-property-source')).toHaveTextContent('etl-pipeline');
+
+    const propertyGroups = Array.from(
+      screen.getByTestId('asset-properties').querySelectorAll('dt'),
+    ).map((term) => term.textContent);
+    expect(propertyGroups).toEqual(['Purpose', 'source', 'data.quality']);
   });
 
-  it('should render schema card with column count and columns table', () => {
+  it('should render schema card with columns table', () => {
     const asset = mockAssetResponse();
     renderView(asset);
     expect(screen.getByTestId('schema-card')).toBeTruthy();
-    expect(screen.getByTestId('schema-column-count')).toHaveTextContent('3 columns');
+    expect(screen.queryByTestId('schema-column-count')).not.toBeInTheDocument();
     expect(screen.getByTestId('schema-columns-table')).toBeTruthy();
     expect(screen.getByTestId('schema-column-name-id')).toHaveTextContent('id');
   });
@@ -115,8 +128,8 @@ describe('TableDetailView', () => {
 
     expect(screen.getByTestId('asset-type')).toHaveTextContent('Unstructured');
     expect(screen.getByTestId('asset-format')).toHaveTextContent('Documents');
-    expect(screen.getByTestId('properties-card')).toHaveTextContent(
-      'content-type: application/pdf',
+    expect(screen.getByTestId('asset-property-content-type')).toHaveTextContent(
+      'content-typeapplication/pdf',
     );
     expect(screen.queryByTestId('schema-card')).not.toBeInTheDocument();
     expect(screen.getAllByText('Created')).toHaveLength(1);
