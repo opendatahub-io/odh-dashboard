@@ -254,7 +254,7 @@ const ManageLabelsModal: React.FC<ManageLabelsModalProps> = ({
         </Table>
       </ModalBody>
       <ModalFooter>
-        <Button variant="link" onClick={handleClose}>
+        <Button variant="secondary" onClick={handleClose} data-testid="manage-labels-close-button">
           Close
         </Button>
       </ModalFooter>
