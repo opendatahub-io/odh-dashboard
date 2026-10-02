@@ -20,8 +20,8 @@ import CreateModal from './CreateModal';
 import useModelRegistryRoleBindings from './useModelRegistryRoleBindings';
 
 const ModelRegistrySettings: React.FC = () => {
-  const { dscStatus } = React.useContext(AreaContext);
-  const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace;
+  const { aiHub, aiHubError } = React.useContext(AreaContext);
+  const modelRegistryNamespace = aiHub?.spec.instancesNamespace;
   const [createModalOpen, setCreateModalOpen] = React.useState(false);
 
   const [modelRegistries, mrloaded, loadError, refreshModelRegistries] =
@@ -36,7 +36,7 @@ const ModelRegistrySettings: React.FC = () => {
   );
 
   const error = !modelRegistryNamespace
-    ? new Error('No registries namespace could be found')
+    ? aiHubError || new Error('No registries namespace could be found')
     : null;
 
   if (!modelRegistryNamespace) {

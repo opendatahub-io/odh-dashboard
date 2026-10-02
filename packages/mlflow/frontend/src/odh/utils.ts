@@ -177,7 +177,8 @@ const blocked = (tooltip: string): ActionButtonCheck => ({ tooltip });
 type RegisterButtonStateArgs = {
   serverSettled: boolean;
   hasServerData: boolean;
-  dscSettled: boolean;
+  aihubSettled: boolean;
+  aihubError?: Error;
   registriesNamespace: string;
   mlflowLoaded: boolean;
   mlflowUnreachable: boolean;
@@ -188,7 +189,8 @@ type RegisterButtonStateArgs = {
 export const getRegisterButtonState = ({
   serverSettled,
   hasServerData,
-  dscSettled,
+  aihubSettled,
+  aihubError,
   registriesNamespace,
   mlflowLoaded,
   mlflowUnreachable,
@@ -198,7 +200,8 @@ export const getRegisterButtonState = ({
   resolveActionButtonState([
     !serverSettled && loading(REGISTER_BUTTON_TOOLTIP.LOADING_SERVER),
     !hasServerData && blocked(REGISTER_BUTTON_TOOLTIP.UNABLE_TO_LOAD_SERVER),
-    !dscSettled && loading(REGISTER_BUTTON_TOOLTIP.LOADING_CATALOG),
+    !aihubSettled && loading(REGISTER_BUTTON_TOOLTIP.LOADING_CATALOG),
+    aihubError && blocked(aihubError.message),
     !registriesNamespace && blocked(REGISTER_BUTTON_TOOLTIP.NAMESPACE_NOT_CONFIGURED),
     !mlflowLoaded && loading(REGISTER_BUTTON_TOOLTIP.CHECKING_MLFLOW),
     mlflowUnreachable && blocked(REGISTER_BUTTON_TOOLTIP.MLFLOW_UNREACHABLE),
@@ -294,7 +297,9 @@ export const withDeploySpecMeta = (
 };
 
 export const getMcpServerLogoEndpoint = (serverId: string, namespace: string): string => {
-  const path = `${MODEL_REGISTRY_BFF_API}/mcp_catalog/mcp_servers/${encodeURIComponent(serverId)}/logo?namespace=${encodeURIComponent(namespace)}`;
+  const path = `${MODEL_REGISTRY_BFF_API}/mcp_catalog/mcp_servers/${encodeURIComponent(
+    serverId,
+  )}/logo?namespace=${encodeURIComponent(namespace)}`;
   if (typeof window !== 'undefined' && window.location.origin) {
     return `${window.location.origin}${path}`;
   }
@@ -408,7 +413,9 @@ export const registerMcpServer = async (
   let tagsError: Error | undefined;
   if (result.failed_tag_keys?.length) {
     tagsError = new Error(
-      `Failed to set tag${result.failed_tag_keys.length > 1 ? 's' : ''}: ${result.failed_tag_keys.join(', ')}`,
+      `Failed to set tag${
+        result.failed_tag_keys.length > 1 ? 's' : ''
+      }: ${result.failed_tag_keys.join(', ')}`,
     );
   }
 

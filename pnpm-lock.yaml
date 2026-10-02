@@ -183,6 +183,9 @@ importers:
       '@odh-dashboard/foundation':
         specifier: workspace:*
         version: link:../packages/foundation
+      '@odh-dashboard/k8s-core':
+        specifier: workspace:*
+        version: link:../packages/k8s-core
       dotenv:
         specifier: ^16.6.1
         version: 16.6.1
