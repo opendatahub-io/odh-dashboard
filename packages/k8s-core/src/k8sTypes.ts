@@ -321,7 +321,6 @@ export type DashboardCommonConfig = {
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
-  connectionTest?: boolean;
   modelCapabilities?: boolean;
   runtimeCatalog?: boolean;
   workbenchesV2?: boolean;
