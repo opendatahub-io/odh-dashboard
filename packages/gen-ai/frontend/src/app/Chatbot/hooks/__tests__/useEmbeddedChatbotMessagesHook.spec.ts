@@ -39,10 +39,8 @@ const mockTemplate: ResponsesTemplate = {
       vector_store_ids: ['vs-1'],
       max_num_results: 5,
       ranking_options: {
-        search_mode: 'hybrid',
-        ranker_strategy: 'rrf',
-        ranker_k: 60,
-        ranker_alpha: 0.5,
+        ranker: 'rrf',
+        alpha: 0.5,
       },
     },
   ],
