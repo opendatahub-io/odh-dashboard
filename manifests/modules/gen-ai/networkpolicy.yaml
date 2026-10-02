@@ -1,3 +1,5 @@
+# Operand NetworkPolicy for the Gen AI BFF/UI. Least-privilege ingress/egress per
+# HPSTRAT-104 / operand contract RHOAIENG-90747 (R3-R5).
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -10,6 +12,7 @@ spec:
     - Ingress
     - Egress
   ingress:
+    # Gateway / router and the MaaS consumer portal -> Gen AI UI.
     - ports:
         - port: 8143
           protocol: TCP
@@ -21,6 +24,7 @@ spec:
             matchLabels:
               deployment: maas-consumer-portal
   egress:
+    # Cluster DNS resolution.
     - to:
         - namespaceSelector:
             matchLabels:
@@ -30,28 +34,47 @@ spec:
           protocol: UDP
         - port: 5353
           protocol: TCP
-    - to:
-        - podSelector:
-            matchLabels:
-              deployment: maas-ui
-      ports:
-        - port: 8243
-          protocol: TCP
-    - to:
-        - podSelector:
-            matchLabels:
-              deployment: mlflow-ui
-      ports:
-        - port: 8343
-          protocol: TCP
+    # KNOWN LIMITATION (RHOAIENG-93715): Gen AI egress cannot yet be scoped to
+    # specific peers. The Playground and AAE features require the BFF to reach MCP
+    # servers that are deployed in OTHER, user-chosen namespaces (cross-namespace),
+    # plus MaaS model-serving / inference endpoints — destinations that are dynamic
+    # and not currently expressible as stable NetworkPolicy peers. Scoping this
+    # requires dynamic routing support for MCP servers, which is not yet in place.
+    # Until then, allow broad in-cluster egress as a documented reduced-posture
+    # exception per operand contract R5. A platform-team exception has been requested
+    # for this case (see PR #9766 discussion).
+    # TODO(gen-ai): once dynamic MCP routing lands, replace this with least-privilege
+    # peers (tracked in RHOAIENG-93715).
     - to:
         - namespaceSelector: {}
+    # Scoped peer BFFs consumed by Gen AI (MaaS, MLflow) — kept for reference.
+    # These do not cover the MCP-server / cross-namespace need above, so they cannot
+    # be the sole egress today; they are part of the intended least-privilege
+    # replacement once Gen AI egress destinations (incl. MCP routing) are stabilized.
+    # - to:
+    #     - podSelector:
+    #         matchLabels:
+    #           deployment: maas-ui
+    #   ports:
+    #     - port: 8243
+    #       protocol: TCP
+    # - to:
+    #     - podSelector:
+    #         matchLabels:
+    #           deployment: mlflow-ui
+    #   ports:
+    #     - port: 8343
+    #       protocol: TCP
+    # Kubernetes API server. NetworkPolicy cannot select the API server endpoints
+    # (host-networked, dynamic IP/port); documented R5 limitation.
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0
       ports:
         - port: 6443
           protocol: TCP
+    # External / off-cluster HTTP(S) to user-configurable, hostname-based model
+    # endpoints that cannot be expressed as NetworkPolicy peers; documented R5 limitation.
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0
