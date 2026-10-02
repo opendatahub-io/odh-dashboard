@@ -22,6 +22,7 @@ type DeployAgentModalProps = {
   namespace: string;
   isDeploying: boolean;
   missingMCPServerAuth: string[];
+  existingDeploymentNames: string[];
   onDeploy: (name: string) => void;
   onClose: () => void;
 };
@@ -38,23 +39,51 @@ const toDNS1035Name = (value: string, maxLength: number): string => {
   return withLeadingLetter.slice(0, maxLength).replace(/-+$/g, '') || 'agent';
 };
 
+const getNextDeploymentName = (
+  displayName: string,
+  maxLength: number,
+  existingDeploymentNames: string[],
+): string => {
+  const existingNames = new Set(existingDeploymentNames);
+
+  for (let suffix = 1; ; suffix += 1) {
+    const suffixValue = `-${suffix}`;
+    const baseName = toDNS1035Name(displayName, maxLength - suffixValue.length);
+    const candidate = `${baseName}${suffixValue}`;
+    if (!existingNames.has(candidate)) {
+      return candidate;
+    }
+  }
+};
+
 const DeployAgentModal: React.FC<DeployAgentModalProps> = ({
   profile,
   namespace,
   isDeploying,
   missingMCPServerAuth,
+  existingDeploymentNames,
   onDeploy,
   onClose,
 }) => {
   const maxNameLength = getMaxDeploymentNameLength(namespace);
   const defaultName = React.useMemo(
-    () => toDNS1035Name(profile.spec.displayName, maxNameLength),
-    [profile, maxNameLength],
+    () => getNextDeploymentName(profile.spec.displayName, maxNameLength, existingDeploymentNames),
+    [profile.spec.displayName, maxNameLength, existingDeploymentNames],
   );
   const [name, setName] = React.useState(defaultName);
   const [nameTouched, setNameTouched] = React.useState(false);
 
   const nameIsValid = /^[a-z]([-a-z0-9]*[a-z0-9])?$/.test(name) && name.length <= maxNameLength;
+  // The deployment list refreshes as soon as creation starts. Ignore the newly-created
+  // deployment while this modal is polling it so its own name is not shown as a duplicate.
+  const nameIsUnique = isDeploying || !existingDeploymentNames.includes(name);
+  const hasNameError = nameTouched && (!nameIsValid || !nameIsUnique);
+  const nameHelperText =
+    nameTouched && !nameIsValid
+      ? `Use lowercase letters, numbers, and hyphens. The name must start with a letter and be at most ${maxNameLength} characters.`
+      : nameTouched && !nameIsUnique
+        ? 'An agent deployment with this name already exists. Choose a different name.'
+        : 'The deployment endpoint will be available when creation completes.';
 
   return (
     <Modal
@@ -73,16 +102,14 @@ const DeployAgentModal: React.FC<DeployAgentModalProps> = ({
               value={name}
               onChange={(_event, value) => setName(value)}
               onBlur={() => setNameTouched(true)}
-              validated={nameTouched && !nameIsValid ? 'error' : 'default'}
+              validated={hasNameError ? 'error' : 'default'}
               isRequired
               data-testid="deploy-agent-name-input"
             />
             <FormHelperText>
               <HelperText>
-                <HelperTextItem variant={nameTouched && !nameIsValid ? 'error' : 'default'}>
-                  {nameTouched && !nameIsValid
-                    ? `Use lowercase letters, numbers, and hyphens. The name must start with a letter and be at most ${maxNameLength} characters.`
-                    : 'The deployment endpoint will be available when creation completes.'}
+                <HelperTextItem variant={hasNameError ? 'error' : 'default'}>
+                  {nameHelperText}
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
@@ -112,7 +139,9 @@ const DeployAgentModal: React.FC<DeployAgentModalProps> = ({
           variant="primary"
           onClick={() => onDeploy(name)}
           isLoading={isDeploying}
-          isDisabled={isDeploying || !nameIsValid || missingMCPServerAuth.length > 0}
+          isDisabled={
+            isDeploying || !nameIsValid || !nameIsUnique || missingMCPServerAuth.length > 0
+          }
           data-testid="deploy-agent-submit-button"
         >
           Deploy

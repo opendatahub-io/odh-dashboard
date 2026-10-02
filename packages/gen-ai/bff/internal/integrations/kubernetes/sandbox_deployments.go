@@ -65,6 +65,39 @@ func (kc *TokenKubernetesClient) ListAgentDeployments(
 	return &models.AgentDeploymentListResponse{Deployments: deployments, TotalCount: len(deployments)}, nil
 }
 
+// IsAgentDeploymentDisplayNameTaken reports whether an active dashboard-created
+// Sandbox already uses the supplied display name in the namespace.
+func (kc *TokenKubernetesClient) IsAgentDeploymentDisplayNameTaken(
+	ctx context.Context,
+	namespace, displayName string,
+) (bool, error) {
+	sandboxes := &unstructured.UnstructuredList{}
+	sandboxes.SetGroupVersionKind(schema.GroupVersionKind{
+		Group: sandboxGroup, Version: sandboxVersion, Kind: sandboxKind + "List",
+	})
+	if err := kc.Client.List(ctx, sandboxes, client.InNamespace(namespace), client.MatchingLabels(map[string]string{
+		dashboardLabel: "true",
+	})); err != nil {
+		return false, sandboxDeploymentListError(err, namespace)
+	}
+
+	for i := range sandboxes.Items {
+		sandbox := &sandboxes.Items[i]
+		if !sandbox.GetDeletionTimestamp().IsZero() {
+			continue
+		}
+		deploymentDisplayName := sandbox.GetAnnotations()[deploymentDisplayNameAnnotation]
+		if deploymentDisplayName == "" {
+			deploymentDisplayName = sandbox.GetName()
+		}
+		if deploymentDisplayName == displayName {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 // GetAgentDeployment returns one dashboard-created Sandbox deployment by its name.
 func (kc *TokenKubernetesClient) GetAgentDeployment(
 	ctx context.Context,

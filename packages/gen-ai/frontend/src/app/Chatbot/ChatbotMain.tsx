@@ -122,6 +122,10 @@ const ChatbotMain: React.FunctionComponent = () => {
   const { data: deployments = [], refresh: refreshDeployments } = useFetchAgentDeployments(
     loadedProfileId ?? undefined,
   );
+  const { data: allDeployments = [], refresh: refreshAllDeployments } = useFetchAgentDeployments(
+    undefined,
+    { includeAll: profileApplied },
+  );
   const sortedDeployments = React.useMemo(
     () => sortDeploymentsByMostRecent(deployments),
     [deployments],
@@ -322,7 +326,10 @@ const ChatbotMain: React.FunctionComponent = () => {
           agentProfileId: savedProfile.profileId,
           namespace: namespace.name,
           mcpServerAuth: getMCPServerAuth(savedProfile.spec, availableMcpServers, mcpServerTokens),
-          onCreated: refreshDeployments,
+          onCreated: () => {
+            void refreshDeployments();
+            void refreshAllDeployments();
+          },
           onStarted: handleCloseDeployModal,
           onComplete: handleCloseDeployModal,
         });
@@ -344,6 +351,7 @@ const ChatbotMain: React.FunctionComponent = () => {
       notification,
       handleCloseDeployModal,
       refreshDeployments,
+      refreshAllDeployments,
       saveAgentProfile,
       startAgentDeployment,
     ],
@@ -596,6 +604,9 @@ const ChatbotMain: React.FunctionComponent = () => {
           namespace={namespace.name}
           isDeploying={isDeploying || isSavingForDeployment}
           missingMCPServerAuth={mcpServersMissingAuth}
+          existingDeploymentNames={allDeployments.map(
+            (deployment) => deployment.displayName ?? deployment.name,
+          )}
           onDeploy={(name) => void handleDeploy(name)}
           onClose={handleCloseDeployModal}
         />
@@ -608,7 +619,8 @@ const ChatbotMain: React.FunctionComponent = () => {
           onClose={() => setSelectedDeploymentName(null)}
           onDeleted={() => {
             setSelectedDeploymentName(null);
-            refreshDeployments();
+            void refreshDeployments();
+            void refreshAllDeployments();
           }}
         />
       )}

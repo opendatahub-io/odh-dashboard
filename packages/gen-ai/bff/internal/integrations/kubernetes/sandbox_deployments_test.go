@@ -88,6 +88,14 @@ func TestListAgentDeployments(t *testing.T) {
 	assert.Equal(t, agentDeploymentStateFailed, response.Deployments[2].State)
 	assert.Equal(t, "ImagePullBackOff", response.Deployments[2].LastError)
 
+	displayNameTaken, err := kc.IsAgentDeploymentDisplayNameTaken(context.Background(), namespace, "Ready agent")
+	require.NoError(t, err)
+	assert.True(t, displayNameTaken)
+
+	displayNameTaken, err = kc.IsAgentDeploymentDisplayNameTaken(context.Background(), namespace, "terminating-agent")
+	require.NoError(t, err)
+	assert.False(t, displayNameTaken)
+
 	filtered, err := kc.ListAgentDeployments(context.Background(), namespace, profileTwo)
 	require.NoError(t, err)
 	require.Len(t, filtered.Deployments, 1)
