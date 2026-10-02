@@ -31,6 +31,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | Doc | Description |
 |-----|-------------|
 | [PR Review Guidelines](docs/pr-review-guidelines.md) | PR review process |
+| [Tide Merge Gating](docs/tide-merge-gating.md) | Tide requirements, GitHub rulesets, and stalled-pool troubleshooting |
 | [Pre-Commit Hooks](docs/PRE-COMMIT.md) | Pre-commit hook details |
 | [Best Practices](docs/best-practices.md) | Coding best practices |
 | [Code Examples](docs/code_examples.md) | Code examples and patterns |
