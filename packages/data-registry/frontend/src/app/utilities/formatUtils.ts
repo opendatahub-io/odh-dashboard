@@ -1,5 +1,4 @@
 type FormatBadge = {
-  text: string;
   color: 'blue' | 'green' | 'orange' | 'purple' | 'red' | 'grey' | 'teal' | 'orangered' | 'yellow';
 };
 
@@ -28,17 +27,17 @@ const UNSTRUCTURED_FORMAT_LABELS: Record<string, string> = {
 };
 
 const FORMAT_BADGES: Record<string, FormatBadge> = {
-  iceberg: { text: 'Structured', color: 'yellow' },
-  parquet: { text: 'Structured', color: 'teal' },
-  csv: { text: 'Structured', color: 'grey' },
-  postgresql: { text: 'Structured', color: 'grey' },
-  milvus: { text: 'Structured', color: 'grey' },
-  delta: { text: 'Structured', color: 'grey' },
-  documents: { text: 'Unstructured', color: 'grey' },
-  images: { text: 'Unstructured', color: 'grey' },
-  audio: { text: 'Unstructured', color: 'grey' },
-  video: { text: 'Unstructured', color: 'grey' },
-  binary: { text: 'Unstructured', color: 'grey' },
+  iceberg: { color: 'yellow' },
+  parquet: { color: 'teal' },
+  csv: { color: 'grey' },
+  postgresql: { color: 'grey' },
+  milvus: { color: 'grey' },
+  delta: { color: 'grey' },
+  documents: { color: 'grey' },
+  images: { color: 'grey' },
+  audio: { color: 'grey' },
+  video: { color: 'grey' },
+  binary: { color: 'grey' },
 };
 
 export type FormatOption = {
@@ -64,14 +63,8 @@ export const FORMAT_OPTIONS: FormatOption[] = [
   { key: 'other-unstructured', value: 'other', label: 'Other unstructured', assetType: 'volume' },
 ];
 
-export const getFormatBadge = (format: string, assetType?: AssetType): FormatBadge => {
-  if (format.toLowerCase() === 'other') {
-    return assetType === 'volume'
-      ? { text: 'Unstructured', color: 'grey' }
-      : { text: 'Structured', color: 'grey' };
-  }
-  return FORMAT_BADGES[format.toLowerCase()] ?? { text: 'Unknown', color: 'grey' };
-};
+export const getFormatBadge = (format: string): FormatBadge =>
+  FORMAT_BADGES[format.toLowerCase()] ?? { color: 'grey' };
 
 export const normalizeUnstructuredFormat = (format?: string): string => {
   const normalizedFormat = format?.toLowerCase();

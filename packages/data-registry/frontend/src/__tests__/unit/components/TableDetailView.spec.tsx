@@ -7,10 +7,14 @@ import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
 import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
 import type { AssetResponse } from '~/app/types';
 
-const renderView = (asset: AssetResponse, project = 'test-project') =>
+const renderView = (
+  asset: AssetResponse,
+  project = 'test-project',
+  connections: { name: string; connectionType?: string }[] = [],
+) =>
   render(
     <MemoryRouter>
-      <TableDetailView asset={asset} project={project} />
+      <TableDetailView asset={asset} project={project} connections={connections} />
     </MemoryRouter>,
   );
 
@@ -20,6 +24,7 @@ describe('TableDetailView', () => {
     renderView(asset);
 
     expect(screen.getByTestId('data-details-card')).toBeTruthy();
+    expect(screen.getByTestId('asset-name')).toHaveTextContent('test-table');
     expect(screen.getByTestId('asset-description')).toHaveTextContent(
       'A test table for unit testing',
     );
@@ -42,11 +47,31 @@ describe('TableDetailView', () => {
     expect(link).toHaveTextContent('default');
   });
 
-  it('should render connection name', () => {
+  it('should render connection name as a link to project connections', () => {
     const asset = mockAssetResponse();
     renderView(asset);
-    const el = screen.getByTestId('connection-ref-label');
+    const el = screen.getByTestId('connection-ref-link');
     expect(el).toHaveTextContent('my-s3-connection');
+    expect(el).toHaveAttribute('href', '/projects/test-project?section=connections');
+  });
+
+  it('should render the connection type below the connection name', () => {
+    const asset = mockAssetResponse();
+    renderView(asset, 'test-project', [{ name: 'my-s3-connection', connectionType: 's3' }]);
+
+    expect(screen.getByTestId('connection-type')).toHaveTextContent('s3');
+  });
+
+  it('should render a location without a link when no connection is specified', () => {
+    const asset = mockAssetResponse({
+      connection_ref: null,
+      storage_location: 's3://bucket/path',
+    });
+    renderView(asset);
+
+    expect(screen.getByTestId('asset-connection')).toHaveTextContent('-');
+    expect(screen.getByTestId('asset-location')).toHaveTextContent('s3://bucket/path');
+    expect(screen.queryByTestId('connection-ref-link')).not.toBeInTheDocument();
   });
 
   it('should render relative created and last modified timestamps with hover details', () => {
@@ -81,19 +106,32 @@ describe('TableDetailView', () => {
     expect(screen.getByTestId('asset-labels')).toHaveTextContent('No labels');
   });
 
-  it('should render properties card with key:value labels', () => {
-    const asset = mockAssetResponse();
-    renderView(asset);
+  it('should render properties below data details with well-known properties first', () => {
+    renderView(
+      mockAssetResponse({
+        properties: {
+          source: 'etl-pipeline',
+          purpose: 'ML training',
+          'data.quality': 'verified',
+        },
+      }),
+    );
     expect(screen.getByTestId('properties-card')).toBeTruthy();
-    expect(screen.getByText('data.quality: verified')).toBeTruthy();
-    expect(screen.getByText('source: etl-pipeline')).toBeTruthy();
+    expect(screen.getByTestId('asset-property-purpose')).toHaveTextContent('PurposeML training');
+    expect(screen.getByTestId('asset-property-data.quality')).toHaveTextContent('verified');
+    expect(screen.getByTestId('asset-property-source')).toHaveTextContent('etl-pipeline');
+
+    const propertyGroups = Array.from(
+      screen.getByTestId('asset-properties').querySelectorAll('dt'),
+    ).map((term) => term.textContent);
+    expect(propertyGroups).toEqual(['Purpose', 'source', 'data.quality']);
   });
 
-  it('should render schema card with column count and columns table', () => {
+  it('should render schema card with columns table', () => {
     const asset = mockAssetResponse();
     renderView(asset);
     expect(screen.getByTestId('schema-card')).toBeTruthy();
-    expect(screen.getByTestId('schema-column-count')).toHaveTextContent('3 columns');
+    expect(screen.queryByTestId('schema-column-count')).not.toBeInTheDocument();
     expect(screen.getByTestId('schema-columns-table')).toBeTruthy();
     expect(screen.getByTestId('schema-column-name-id')).toHaveTextContent('id');
   });
@@ -115,8 +153,8 @@ describe('TableDetailView', () => {
 
     expect(screen.getByTestId('asset-type')).toHaveTextContent('Unstructured');
     expect(screen.getByTestId('asset-format')).toHaveTextContent('Documents');
-    expect(screen.getByTestId('properties-card')).toHaveTextContent(
-      'content-type: application/pdf',
+    expect(screen.getByTestId('asset-property-content-type')).toHaveTextContent(
+      'content-typeapplication/pdf',
     );
     expect(screen.queryByTestId('schema-card')).not.toBeInTheDocument();
     expect(screen.getAllByText('Created')).toHaveLength(1);

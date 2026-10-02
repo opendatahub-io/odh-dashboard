@@ -21,6 +21,7 @@ import './DataRegistryPage.scss';
 import { useCollections } from '~/app/hooks/useCollections';
 import { useAssets } from '~/app/hooks/useAssets';
 import { useLabels } from '~/app/hooks/useLabels';
+import { useConnections } from '~/app/hooks/useConnections';
 import { is503Error, is403Error, isConnectionError } from '~/app/api/dataRegistry';
 import RegistryTable from '~/app/components/RegistryTable';
 import ManageCollectionsModal from '~/app/components/ManageCollectionsModal';
@@ -178,6 +179,7 @@ const DataRegistryPage: React.FC = () => {
     collectionNames,
   );
   const [labels, , , labelsRefresh] = useLabels(selectedProject);
+  const [connections] = useConnections(selectedProject);
 
   const hasWriteAccess = !is403Error(assetsError) && !is403Error(collectionsError);
 
@@ -287,6 +289,9 @@ const DataRegistryPage: React.FC = () => {
   return (
     <>
       <PageSection hasBodyWrapper={false}>
+        <Content component="p" className="pf-v6-u-mb-xs">
+          View and manage this project’s data assets where information is located.
+        </Content>
         <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsMd' }}>
           <FlexItem>
             <ProjectSelector
@@ -309,22 +314,13 @@ const DataRegistryPage: React.FC = () => {
         </PageSection>
       ) : (
         <>
-          <PageSection hasBodyWrapper={false} className="odh-data-registry__header">
-            <span className="odh-data-registry__tab">Registry</span>
-          </PageSection>
-          <PageSection hasBodyWrapper={false}>
-            <Content component="p">
-              View and manage data assets registered in the selected project. The data registry
-              provides a structured and organized way to discover, share, version, and connect
-              schemas, datasets, and data sources.
-            </Content>
-          </PageSection>
           <RegistryTable
             assets={assets}
             loaded={assetsLoaded && collectionsLoaded}
             error={assetsError ?? collectionsError}
             labels={labels}
             project={selectedProject}
+            connections={connections}
             onManageCollections={() => {
               if (!collectionsError) {
                 setIsCollectionsModalOpen(true);

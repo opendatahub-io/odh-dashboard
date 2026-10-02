@@ -4,6 +4,7 @@ import {
   Card,
   CardBody,
   CardTitle,
+  Content,
   DescriptionList,
   DescriptionListGroup,
   DescriptionListTerm,
@@ -19,10 +20,10 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
-import { AssetResponse } from '~/app/types';
+import { AssetResponse, ConnectionModel } from '~/app/types';
 import SchemaColumnsTable from '~/app/components/SchemaColumnsTable';
 import ConnectionRefLink from '~/app/components/ConnectionRefLink';
-import { collectionDetailUrl } from '~/app/utilities/routes';
+import { collectionDetailUrl, projectConnectionsUrl } from '~/app/utilities/routes';
 import {
   getFormatBadge,
   getUnstructuredFormatLabel,
@@ -32,17 +33,49 @@ import {
 type TableDetailViewProps = {
   asset: AssetResponse;
   project?: string;
+  connections?: ConnectionModel[];
 };
 
-const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => {
+const WELL_KNOWN_PROPERTY_LABELS: Record<string, string> = {
+  pii: 'Pii',
+  purpose: 'Purpose',
+  maturity: 'Maturity',
+  license: 'License',
+  domain: 'Domain',
+};
+
+const getOrderedProperties = (properties: Record<string, string>) => {
+  const entries = Object.entries(properties);
+  const wellKnownProperties = Object.keys(WELL_KNOWN_PROPERTY_LABELS).flatMap((key) => {
+    if (!Object.prototype.hasOwnProperty.call(properties, key)) {
+      return [];
+    }
+    const value = properties[key];
+    return [[key, value] as const];
+  });
+  const customProperties = entries.filter(([key]) => !WELL_KNOWN_PROPERTY_LABELS[key]);
+
+  return [...wellKnownProperties, ...customProperties];
+};
+
+const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project, connections = [] }) => {
   const isUnstructured = asset.asset_type === 'volume';
-  const formatBadge = getFormatBadge(asset.format, asset.asset_type);
+  const formatBadge = getFormatBadge(asset.format);
   const assetTypeLabel = isUnstructured ? 'Unstructured' : 'Structured';
   const formatLabel = isUnstructured
     ? getUnstructuredFormatLabel(asset.format)
     : FORMAT_OPTIONS.find(
         (option) => option.value === asset.format && option.assetType === asset.asset_type,
       )?.label || asset.format;
+  const orderedProperties = asset.properties ? getOrderedProperties(asset.properties) : [];
+  const connectionName = asset.connection_ref
+    ? asset.connection_ref.type === 'rhai'
+      ? asset.connection_ref.secret_name
+      : asset.connection_ref.id
+    : undefined;
+  const connectionType = connections.find(
+    (connection) => connection.name === connectionName,
+  )?.connectionType;
 
   const renderTimestamp = (timestamp: string | null | undefined) => {
     if (!timestamp) {
@@ -69,128 +102,169 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
   return (
     <Grid hasGutter>
       <GridItem md={7}>
-        <Card data-testid="data-details-card">
-          <CardTitle>Data details</CardTitle>
-          <CardBody>
-            <DescriptionList
-              data-testid="table-detail-description-list"
-              columnModifier={{ default: '2Col' }}
-            >
-              {/* Description - always first (left column) */}
-              <DescriptionListGroup>
-                <DescriptionListTerm>Description</DescriptionListTerm>
-                <DescriptionListDescription data-testid="asset-description">
-                  {asset.description || '-'}
-                </DescriptionListDescription>
-              </DescriptionListGroup>
+        <Stack hasGutter>
+          <StackItem>
+            <Card data-testid="data-details-card">
+              <CardTitle>Data asset details</CardTitle>
+              <CardBody>
+                <DescriptionList
+                  data-testid="table-detail-description-list"
+                  columnModifier={{ default: '2Col' }}
+                >
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Name</DescriptionListTerm>
+                    <DescriptionListDescription data-testid="asset-name">
+                      {asset.name || '-'}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
 
-              {/* Asset type - second for unstructured (right column), fourth for structured */}
-              {isUnstructured ? (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Asset type</DescriptionListTerm>
-                  <DescriptionListDescription data-testid="asset-type">
-                    {assetTypeLabel}
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              ) : (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Format</DescriptionListTerm>
-                  <DescriptionListDescription data-testid="asset-format">
-                    <Label isCompact variant="outline" color={formatBadge.color}>
-                      {formatLabel}
-                    </Label>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              )}
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Description</DescriptionListTerm>
+                    <DescriptionListDescription data-testid="asset-description">
+                      {asset.description || '-'}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
 
-              {/* Collection - third for unstructured (left column), third for structured */}
-              <DescriptionListGroup>
-                <DescriptionListTerm>Collection</DescriptionListTerm>
-                <DescriptionListDescription data-testid="asset-collection">
-                  {asset.collection ? (
-                    project ? (
-                      <Link to={collectionDetailUrl(project, asset.collection)}>
-                        {asset.collection}
-                      </Link>
-                    ) : (
-                      asset.collection
-                    )
+                  {/* Asset type - second for unstructured (right column), fourth for structured */}
+                  {isUnstructured ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Asset type</DescriptionListTerm>
+                      <DescriptionListDescription data-testid="asset-type">
+                        {assetTypeLabel}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
                   ) : (
-                    '-'
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Format</DescriptionListTerm>
+                      <DescriptionListDescription data-testid="asset-format">
+                        <Label isCompact variant="outline" color={formatBadge.color}>
+                          {formatLabel}
+                        </Label>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
                   )}
-                </DescriptionListDescription>
-              </DescriptionListGroup>
 
-              {/* Format - fourth for unstructured (right column) */}
-              {isUnstructured ? (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Format</DescriptionListTerm>
-                  <DescriptionListDescription data-testid="asset-format">
-                    <Label isCompact variant="outline" color={formatBadge.color}>
-                      {formatLabel}
-                    </Label>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              ) : null}
+                  {/* Collection - third for unstructured (left column), third for structured */}
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Collection</DescriptionListTerm>
+                    <DescriptionListDescription data-testid="asset-collection">
+                      {asset.collection ? (
+                        project ? (
+                          <Link to={collectionDetailUrl(project, asset.collection)}>
+                            {asset.collection}
+                          </Link>
+                        ) : (
+                          asset.collection
+                        )
+                      ) : (
+                        '-'
+                      )}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
 
-              {/* Asset type - for structured only (right column after Collection) */}
-              {!isUnstructured ? (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Asset type</DescriptionListTerm>
-                  <DescriptionListDescription data-testid="asset-type">
-                    {assetTypeLabel}
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              ) : null}
+                  {/* Format - fourth for unstructured (right column) */}
+                  {isUnstructured ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Format</DescriptionListTerm>
+                      <DescriptionListDescription data-testid="asset-format">
+                        <Label isCompact variant="outline" color={formatBadge.color}>
+                          {formatLabel}
+                        </Label>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ) : null}
 
-              {/* Connection - fifth for unstructured (left column), fifth for structured */}
-              <DescriptionListGroup>
-                <DescriptionListTerm>Connection</DescriptionListTerm>
-                <DescriptionListDescription data-testid="asset-connection">
-                  <ConnectionRefLink connectionRef={asset.connection_ref} />
-                </DescriptionListDescription>
-              </DescriptionListGroup>
+                  {/* Asset type - for structured only (right column after Collection) */}
+                  {!isUnstructured ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Asset type</DescriptionListTerm>
+                      <DescriptionListDescription data-testid="asset-type">
+                        {assetTypeLabel}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ) : null}
 
-              {/* Owner - sixth for both asset types (right column) */}
-              <DescriptionListGroup>
-                <DescriptionListTerm>Owner</DescriptionListTerm>
-                <DescriptionListDescription data-testid="asset-owner">
-                  {asset.owner || '-'}
-                </DescriptionListDescription>
-              </DescriptionListGroup>
+                  {/* Connection - fifth for unstructured (left column), fifth for structured */}
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Connection</DescriptionListTerm>
+                    <DescriptionListDescription data-testid="asset-connection">
+                      <ConnectionRefLink
+                        connectionRef={asset.connection_ref}
+                        linkTo={project ? projectConnectionsUrl(project) : undefined}
+                      />
+                      {connectionType ? (
+                        <Content component="small" data-testid="connection-type">
+                          {connectionType}
+                        </Content>
+                      ) : null}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
 
-              {/* Path - seventh for unstructured (left column), seventh for structured */}
-              <DescriptionListGroup>
-                <DescriptionListTerm>Path</DescriptionListTerm>
-                <DescriptionListDescription data-testid="asset-location">
-                  {asset.storage_location || '-'}
-                </DescriptionListDescription>
-              </DescriptionListGroup>
+                  {/* Owner - sixth for both asset types (right column) */}
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Owner</DescriptionListTerm>
+                    <DescriptionListDescription data-testid="asset-owner">
+                      {asset.owner || '-'}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
 
-              {/* Created - eighth for both (right column) */}
-              <DescriptionListGroup>
-                <DescriptionListTerm>Created</DescriptionListTerm>
-                <DescriptionListDescription data-testid="asset-created-at">
-                  {renderTimestamp(asset.created_at)}
-                </DescriptionListDescription>
-              </DescriptionListGroup>
+                  {/* Path - seventh for unstructured (left column), seventh for structured */}
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Path</DescriptionListTerm>
+                    <DescriptionListDescription data-testid="asset-location">
+                      {asset.storage_location || '-'}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
 
-              {/* Empty placeholder - pushes Last modified below Created in the right column */}
-              <DescriptionListGroup>
-                <DescriptionListTerm>&nbsp;</DescriptionListTerm>
-                <DescriptionListDescription>&nbsp;</DescriptionListDescription>
-              </DescriptionListGroup>
+                  {/* Created - eighth for both (right column) */}
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Created</DescriptionListTerm>
+                    <DescriptionListDescription data-testid="asset-created-at">
+                      {renderTimestamp(asset.created_at)}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
 
-              {/* Last modified - tenth for both asset types (right column) */}
-              <DescriptionListGroup>
-                <DescriptionListTerm>Last modified</DescriptionListTerm>
-                <DescriptionListDescription data-testid="asset-updated-at">
-                  {renderTimestamp(asset.updated_at)}
-                </DescriptionListDescription>
-              </DescriptionListGroup>
-            </DescriptionList>
-          </CardBody>
-        </Card>
+                  {/* Empty placeholder - pushes Last modified below Created in the right column */}
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>&nbsp;</DescriptionListTerm>
+                    <DescriptionListDescription>&nbsp;</DescriptionListDescription>
+                  </DescriptionListGroup>
+
+                  {/* Last modified - tenth for both asset types (right column) */}
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Last modified</DescriptionListTerm>
+                    <DescriptionListDescription data-testid="asset-updated-at">
+                      {renderTimestamp(asset.updated_at)}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                </DescriptionList>
+              </CardBody>
+            </Card>
+          </StackItem>
+
+          {orderedProperties.length > 0 ? (
+            <StackItem>
+              <Card data-testid="properties-card">
+                <CardTitle>Properties</CardTitle>
+                <CardBody>
+                  <DescriptionList
+                    data-testid="asset-properties"
+                    columnModifier={{ default: '2Col' }}
+                  >
+                    {orderedProperties.map(([key, value]) => (
+                      <DescriptionListGroup key={key} data-testid={`asset-property-${key}`}>
+                        <DescriptionListTerm>
+                          {WELL_KNOWN_PROPERTY_LABELS[key] || key}
+                        </DescriptionListTerm>
+                        <DescriptionListDescription>{value || '-'}</DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ))}
+                  </DescriptionList>
+                </CardBody>
+              </Card>
+            </StackItem>
+          ) : null}
+        </Stack>
       </GridItem>
 
       <GridItem md={5}>
@@ -214,29 +288,11 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
             </Card>
           </StackItem>
 
-          {asset.properties && Object.keys(asset.properties).length > 0 ? (
-            <StackItem>
-              <Card data-testid="properties-card">
-                <CardTitle>Properties</CardTitle>
-                <CardBody>
-                  <LabelGroup data-testid="asset-properties" numLabels={5}>
-                    {Object.entries(asset.properties).map(([key, value]) => (
-                      <Label key={key} isCompact variant="outline">
-                        {key}: {value}
-                      </Label>
-                    ))}
-                  </LabelGroup>
-                </CardBody>
-              </Card>
-            </StackItem>
-          ) : null}
-
           {(asset.columns?.length ?? 0) > 0 ? (
             <StackItem>
               <Card data-testid="schema-card">
                 <CardTitle>Schema</CardTitle>
                 <CardBody>
-                  <span data-testid="schema-column-count">{asset.columns?.length} columns</span>
                   <SchemaColumnsTable columns={asset.columns ?? []} />
                 </CardBody>
               </Card>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { ProjectObjectType, TitleWithIcon } from '@odh-dashboard/ui-core';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import {
   Breadcrumb,
@@ -15,6 +16,7 @@ import {
   FlexItem,
   Label,
   MenuToggle,
+  Divider,
   Tab,
   Tabs,
   TabContent,
@@ -24,8 +26,9 @@ import { EllipsisVIcon, SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '~/app/components/ApplicationsPage';
 import { useGenericTable } from '~/app/hooks/useGenericTable';
 import { useVolume } from '~/app/hooks/useVolume';
+import { useConnections } from '~/app/hooks/useConnections';
 import { deleteGenericTable, deleteVolume } from '~/app/api/dataRegistry';
-import { browseUrl, collectionDetailUrl } from '~/app/utilities/routes';
+import { browseUrl } from '~/app/utilities/routes';
 import { useNotification } from '~/app/hooks/useNotification';
 import DeleteAssetModal from '~/app/components/DeleteAssetModal';
 import EditAssetModal from '~/app/components/EditAssetModal';
@@ -54,6 +57,7 @@ const TableDetailPage: React.FC = () => {
     isVolume ? collection : undefined,
     isVolume ? name : undefined,
   );
+  const [connections] = useConnections(project || '');
 
   const asset = React.useMemo(
     () => (isVolume ? volume : genericTable),
@@ -108,19 +112,10 @@ const TableDetailPage: React.FC = () => {
       <BreadcrumbItem
         render={({ className }) => (
           <Link className={className} to={browseUrl(project)}>
-            Data
+            Data Registry – {project || ''}
           </Link>
         )}
       />
-      {collection && project ? (
-        <BreadcrumbItem
-          render={({ className }) => (
-            <Link className={className} to={collectionDetailUrl(project, collection)}>
-              {collection}
-            </Link>
-          )}
-        />
-      ) : null}
       <BreadcrumbItem isActive>{displayName}</BreadcrumbItem>
     </Breadcrumb>
   );
@@ -183,9 +178,11 @@ const TableDetailPage: React.FC = () => {
           >
             Edit
           </DropdownItem>
+          <Divider component="li" />
           <DropdownItem
             key="delete"
             onClick={() => setIsDeleteModalOpen(true)}
+            isDanger
             data-testid="asset-action-delete"
           >
             Delete
@@ -205,14 +202,20 @@ const TableDetailPage: React.FC = () => {
   );
 
   const title = (
-    <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-      <FlexItem>{displayName}</FlexItem>
-      <FlexItem>
-        <Label isCompact variant="outline" data-testid="asset-type-badge">
-          Data asset
-        </Label>
-      </FlexItem>
-    </Flex>
+    <TitleWithIcon
+      objectType={ProjectObjectType.dataRegistry}
+      iconSize={32}
+      title={
+        <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+          <FlexItem>{displayName}</FlexItem>
+          <FlexItem>
+            <Label isCompact variant="outline" data-testid="asset-type-badge">
+              Data asset
+            </Label>
+          </FlexItem>
+        </Flex>
+      }
+    />
   );
 
   const refresh = React.useCallback(() => {
@@ -259,7 +262,9 @@ const TableDetailPage: React.FC = () => {
       <Tabs defaultActiveKey={0} data-testid="detail-tabs">
         <Tab eventKey={0} title={<TabTitleText>Overview</TabTitleText>}>
           <TabContent id="overview-tab">
-            {asset ? <TableDetailView asset={asset} project={project} /> : null}
+            {asset ? (
+              <TableDetailView asset={asset} project={project} connections={connections} />
+            ) : null}
           </TabContent>
         </Tab>
       </Tabs>

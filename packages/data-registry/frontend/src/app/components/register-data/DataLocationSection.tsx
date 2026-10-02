@@ -47,10 +47,8 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
   };
 
   return (
-    <FormSection title="Data location" titleElement="h2">
-      <Content component="p">
-        Specify where the data is stored by selecting a connection or providing path details.
-      </Content>
+    <FormSection title="Asset location" titleElement="h2">
+      <Content component="p">Specify where the data is stored within a connection.</Content>
 
       {connectionsError ? (
         <Alert
@@ -69,6 +67,9 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
           control={control}
           render={({ field }) => (
             <FormGroup label="Connection" fieldId="data-connection">
+              <Content component="p">
+                Select the connection in this project where the data is located.
+              </Content>
               <Select
                 isOpen={isConnectionOpen}
                 selected={field.value}
@@ -95,18 +96,17 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
                     <SelectOption value="" isDisabled>
                       No connections available
                     </SelectOption>
-                  ) : (
-                    connections.map((conn) => (
-                      <SelectOption
-                        key={conn.name}
-                        value={conn.name}
-                        description={conn.connectionType}
-                        data-testid={`connection-option-${conn.name}`}
-                      >
-                        {conn.displayName || conn.name}
-                      </SelectOption>
-                    ))
-                  )}
+                  ) : null}
+                  {connections.map((conn) => (
+                    <SelectOption
+                      key={conn.name}
+                      value={conn.name}
+                      description={conn.connectionType}
+                      data-testid={`connection-option-${conn.name}`}
+                    >
+                      {conn.displayName || conn.name}
+                    </SelectOption>
+                  ))}
                 </SelectList>
               </Select>
             </FormGroup>

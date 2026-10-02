@@ -21,7 +21,7 @@ const ConnectionRefLink: React.FC<ConnectionRefLinkProps> = ({ connectionRef, li
 
   const label = getLabel(connectionRef);
 
-  if (linkTo) {
+  if (linkTo && typeof connectionRef !== 'string') {
     return (
       <Link to={linkTo} data-testid="connection-ref-link">
         {label}
