@@ -6,8 +6,6 @@ import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   AssetResponse,
-  ConnectionModel,
-  ConnectionRef,
   StructuredFormat,
   UnstructuredFormat,
   LICENSE_VALUES,
@@ -21,6 +19,7 @@ import {
   updateVolume,
 } from '~/app/api/dataRegistry';
 import { useConnections } from '~/app/hooks/useConnections';
+import { confirmConnection, getConnectionKey } from '~/app/utilities/connectionUtils';
 import { editAssetSchema, EditAssetFormData } from '~/app/schemas/editAsset.schema';
 import AssetDetailsSection from './register-data/AssetDetailsSection';
 import DataLocationSection from './register-data/DataLocationSection';
@@ -70,26 +69,6 @@ const getEnumPropertyValue = <T extends string>(
   values: readonly T[],
 ): T | '' => values.find((option) => option === value) ?? '';
 
-const getConnectionDisplayValue = (connectionRef?: ConnectionRef | null): string => {
-  if (!connectionRef) {
-    return '';
-  }
-  return connectionRef.type === 'rhai' ? connectionRef.secret_name : connectionRef.id;
-};
-
-const getConnectionRef = (
-  connection: string,
-  connections: ConnectionModel[],
-): ConnectionRef | null => {
-  if (!connection) {
-    return null;
-  }
-  const selectedConnection = connections.find((item) => item.name === connection);
-  return selectedConnection?.connectionType?.toLowerCase() === 'dch'
-    ? { type: 'dch', id: connection }
-    : { type: 'rhai', secret_name: connection };
-};
-
 const buildFormDefaults = (props: EditAssetModalProps, idStart: number): EditAssetFormData => {
   const { asset, assetKind, collection } = props;
   const properties = asset.properties ?? {};
@@ -104,7 +83,7 @@ const buildFormDefaults = (props: EditAssetModalProps, idStart: number): EditAss
     format: asset.format,
     collection,
     labels: asset.labels ?? [],
-    connection: getConnectionDisplayValue(asset.connection_ref),
+    connection: asset.connection_ref ? getConnectionKey(asset.connection_ref) : '',
     path: asset.storage_location ?? '',
     purpose: properties.purpose || '',
     license: getEnumPropertyValue(properties.license, LICENSE_VALUES),
@@ -135,7 +114,9 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
   onSaved,
 }) => {
   const isTable = assetKind === 'table';
-  const [connections, connectionsLoaded, connectionsError] = useConnections(project);
+  const [connections, connectionsLoaded, connectionsError, refreshConnections, connectionWarnings] =
+    useConnections(project);
+  const originalConnectionKey = asset.connection_ref ? getConnectionKey(asset.connection_ref) : '';
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
   const idRef = React.useRef(0);
@@ -188,28 +169,31 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
           !incompleteCustomPropertyKeys.has(key),
       );
 
-      const originalConnection = getConnectionDisplayValue(asset.connection_ref);
-      const connectionUpdate =
-        data.connection !== originalConnection
-          ? { connection_ref: getConnectionRef(data.connection, connections) }
-          : {};
-
-      const commonUpdate = {
-        description: data.description,
-        storage_location: data.path || null,
-        ...connectionUpdate,
-        ...(data.purpose !== defaults.purpose ? { purpose: data.purpose || null } : {}),
-        ...(data.license !== defaults.license ? { license: data.license || null } : {}),
-        ...(data.maturity !== defaults.maturity ? { maturity: data.maturity || null } : {}),
-        ...(data.domain !== defaults.domain ? { domain: data.domain || null } : {}),
-        ...(data.piiStatus !== defaults.piiStatus ? { pii: data.piiStatus || null } : {}),
-        ...(addLabels.length > 0 ? { add_labels: addLabels } : {}),
-        ...(removeLabels.length > 0 ? { remove_labels: removeLabels } : {}),
-        ...(removeProperties.length > 0 ? { remove_properties: removeProperties } : {}),
-        properties: customProperties,
-      };
-
       try {
+        const connectionUpdate =
+          data.connection !== originalConnectionKey
+            ? {
+                connection_ref: data.connection
+                  ? await confirmConnection(data.connection, refreshConnections)
+                  : null,
+              }
+            : {};
+
+        const commonUpdate = {
+          description: data.description,
+          storage_location: data.path || null,
+          ...connectionUpdate,
+          ...(data.purpose !== defaults.purpose ? { purpose: data.purpose || null } : {}),
+          ...(data.license !== defaults.license ? { license: data.license || null } : {}),
+          ...(data.maturity !== defaults.maturity ? { maturity: data.maturity || null } : {}),
+          ...(data.domain !== defaults.domain ? { domain: data.domain || null } : {}),
+          ...(data.piiStatus !== defaults.piiStatus ? { pii: data.piiStatus || null } : {}),
+          ...(addLabels.length > 0 ? { add_labels: addLabels } : {}),
+          ...(removeLabels.length > 0 ? { remove_labels: removeLabels } : {}),
+          ...(removeProperties.length > 0 ? { remove_properties: removeProperties } : {}),
+          properties: customProperties,
+        };
+
         if (addLabels.length > 0) {
           await Promise.all(
             addLabels.map((label) =>
@@ -248,16 +232,16 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
       }
     },
     [
-      asset.connection_ref,
       collection,
-      connections,
       defaults,
       isTable,
       name,
       onSaved,
       originalLabels,
+      originalConnectionKey,
       project,
       asset.properties,
+      refreshConnections,
     ],
   );
 
@@ -285,10 +269,12 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
             <AssetDetailsSection isEditMode />
             <DataLocationSection
               pathLabel="Storage location"
-              showConnection
               connections={connections}
               connectionsLoaded={connectionsLoaded}
               connectionsError={connectionsError}
+              connectionWarnings={connectionWarnings}
+              currentConnection={asset.connection_ref}
+              isConnectionDisabled={isSubmitting}
             />
             <PropertiesSection />
             <CustomPropertiesSection />

@@ -9,6 +9,7 @@ import (
 type BFFTarget string
 
 const (
+	BFFTargetDCH           BFFTarget = "data-connect-hub"
 	BFFTargetMaaS          BFFTarget = "maas"
 	BFFTargetGenAI         BFFTarget = "gen-ai"
 	BFFTargetModelRegistry BFFTarget = "model-registry"

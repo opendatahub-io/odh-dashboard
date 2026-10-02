@@ -53,6 +53,15 @@ func main() {
 		"Enable mock BFF clients (no real HTTP calls to other BFFs)")
 
 	// ─── Data Registry API ────────────────────────────────────────
+	flag.StringVar(&cfg.BFFDCHServiceName, "bff-dch-service-name", getEnvAsString("BFF_DCH_SERVICE_NAME", ""), "DCH BFF service name; empty disables DCH")
+	flag.StringVar(&cfg.BFFDCHServiceNamespace, "bff-dch-service-namespace", getEnvAsString("BFF_DCH_SERVICE_NAMESPACE", ""), "DCH BFF namespace; defaults to this pod's namespace")
+	flag.IntVar(&cfg.BFFDCHServicePort, "bff-dch-service-port", getEnvAsInt("BFF_DCH_SERVICE_PORT", 9243), "DCH BFF service port")
+	flag.BoolVar(&cfg.BFFDCHTLSEnabled, "bff-dch-tls-enabled", getEnvAsBool("BFF_DCH_TLS_ENABLED", true), "Use HTTPS for the DCH BFF")
+	flag.StringVar(&cfg.BFFDCHAuthTokenHeader, "bff-dch-auth-token-header", getEnvAsString("BFF_DCH_AUTH_TOKEN_HEADER", "x-forwarded-access-token"), "User-token header expected by the DCH BFF")
+	flag.StringVar(&cfg.BFFDCHAuthTokenPrefix, "bff-dch-auth-token-prefix", getEnvAsString("BFF_DCH_AUTH_TOKEN_PREFIX", ""), "User-token prefix expected by the DCH BFF")
+	flag.StringVar(&cfg.BFFDCHDevURL, "bff-dch-dev-url", getEnvAsString("BFF_DCH_DEV_URL", ""), "Local DCH BFF URL override, including /api/v1")
+	flag.IntVar(&cfg.BFFDCHTimeoutSeconds, "bff-dch-timeout-seconds", getEnvAsInt("BFF_DCH_TIMEOUT_SECONDS", 5), "Deadline for both DCH lookups, before Secret fallback")
+
 	flag.StringVar(&cfg.DataRegistryAPIURL, "data-registry-api-url", getEnvAsString("DATA_REGISTRY_API_URL", ""),
 		"Base URL of the upstream Data Registry API. Overrides the ConfigMap lookup when set (primarily for local dev/tests)")
 	flag.StringVar(&cfg.DataRegistryConfigMapName, "data-registry-configmap-name", getEnvAsString("DATA_REGISTRY_CONFIGMAP_NAME", config.DefaultDataRegistryConfigMapName),
@@ -94,6 +103,10 @@ func main() {
 
 	// Only use for logging errors about logging configuration.
 	slog.SetDefault(logger)
+	if cfg.BFFDCHServiceName != "" && (cfg.BFFDCHTimeoutSeconds <= 0 || cfg.BFFDCHServicePort <= 0 || cfg.BFFDCHServicePort > 65535) {
+		logger.Error("DCH requires a positive timeout and a valid service port")
+		os.Exit(1)
+	}
 
 	app, err := api.NewApp(cfg, slog.New(logger.Handler()))
 	if err != nil {

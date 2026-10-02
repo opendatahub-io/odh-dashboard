@@ -24,6 +24,7 @@ import { EllipsisVIcon, SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '~/app/components/ApplicationsPage';
 import { useGenericTable } from '~/app/hooks/useGenericTable';
 import { useVolume } from '~/app/hooks/useVolume';
+import { useConnections } from '~/app/hooks/useConnections';
 import { deleteGenericTable, deleteVolume } from '~/app/api/dataRegistry';
 import { browseUrl, collectionDetailUrl } from '~/app/utilities/routes';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -61,6 +62,10 @@ const TableDetailPage: React.FC = () => {
   );
 
   const loaded = isVolume ? volumeLoaded : genericLoaded;
+  const [connections, , connectionsError, , connectionWarnings] = useConnections(
+    project ?? '',
+    !!asset?.connection_ref,
+  );
   const loadError = isVolume ? volumeError : genericError;
 
   const [isActionsOpen, setIsActionsOpen] = React.useState(false);
@@ -259,7 +264,15 @@ const TableDetailPage: React.FC = () => {
       <Tabs defaultActiveKey={0} data-testid="detail-tabs">
         <Tab eventKey={0} title={<TabTitleText>Overview</TabTitleText>}>
           <TabContent id="overview-tab">
-            {asset ? <TableDetailView asset={asset} project={project} /> : null}
+            {asset ? (
+              <TableDetailView
+                asset={asset}
+                project={project}
+                connections={connections}
+                connectionsError={connectionsError}
+                connectionWarnings={connectionWarnings}
+              />
+            ) : null}
           </TabContent>
         </Tab>
       </Tabs>

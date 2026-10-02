@@ -1,25 +1,32 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ConnectionRef } from '~/app/types';
+import { getConnectionIdentifier, getConnectionKey } from '~/app/utilities/connectionUtils';
 
 type ConnectionRefLinkProps = {
   connectionRef?: ConnectionRef | string | null;
   linkTo?: string;
+  connections?: ConnectionRef[];
 };
 
-const getLabel = (ref: ConnectionRef | string): string => {
-  if (typeof ref === 'string') {
-    return ref;
-  }
-  return ref.type === 'rhai' ? ref.secret_name : ref.id;
-};
-
-const ConnectionRefLink: React.FC<ConnectionRefLinkProps> = ({ connectionRef, linkTo }) => {
+const ConnectionRefLink: React.FC<ConnectionRefLinkProps> = ({
+  connectionRef,
+  linkTo,
+  connections = [],
+}) => {
   if (!connectionRef) {
     return <>-</>;
   }
 
-  const label = getLabel(connectionRef);
+  const resolved =
+    typeof connectionRef === 'string'
+      ? undefined
+      : connections.find(
+          (connection) => getConnectionKey(connection) === getConnectionKey(connectionRef),
+        );
+  const label =
+    resolved?.name ||
+    (typeof connectionRef === 'string' ? connectionRef : getConnectionIdentifier(connectionRef));
 
   if (linkTo) {
     return (

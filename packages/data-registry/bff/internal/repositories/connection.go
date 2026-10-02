@@ -23,11 +23,15 @@ func (r *ConnectionRepository) GetConnections(client k8s.KubernetesClientInterfa
 	connectionModels := make([]models.ConnectionModel, 0, len(secrets))
 	for _, secret := range secrets {
 		model := models.ConnectionModel{
-			Name: secret.Name,
+			Type:       "rhai",
+			SecretName: secret.Name,
+			Name:       secret.Name,
 		}
 		if secret.Annotations != nil {
 			if displayName, ok := secret.Annotations["openshift.io/display-name"]; ok {
-				model.DisplayName = &displayName
+				if displayName != "" {
+					model.Name = displayName
+				}
 			}
 			if connType, ok := secret.Annotations["opendatahub.io/connection-type-ref"]; ok {
 				model.ConnectionType = &connType

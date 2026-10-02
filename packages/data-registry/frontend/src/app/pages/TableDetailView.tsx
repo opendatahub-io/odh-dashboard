@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import React from 'react';
 import {
+  Alert,
   Card,
   CardBody,
   CardTitle,
@@ -19,7 +20,7 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
-import { AssetResponse } from '~/app/types';
+import { AssetResponse, ConnectionRef, ConnectionWarning } from '~/app/types';
 import SchemaColumnsTable from '~/app/components/SchemaColumnsTable';
 import ConnectionRefLink from '~/app/components/ConnectionRefLink';
 import { collectionDetailUrl } from '~/app/utilities/routes';
@@ -32,9 +33,18 @@ import {
 type TableDetailViewProps = {
   asset: AssetResponse;
   project?: string;
+  connections?: ConnectionRef[];
+  connectionsError?: Error;
+  connectionWarnings?: ConnectionWarning[];
 };
 
-const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => {
+const TableDetailView: React.FC<TableDetailViewProps> = ({
+  asset,
+  project,
+  connections,
+  connectionsError,
+  connectionWarnings = [],
+}) => {
   const isUnstructured = asset.asset_type === 'volume';
   const formatBadge = getFormatBadge(asset.format, asset.asset_type);
   const assetTypeLabel = isUnstructured ? 'Unstructured' : 'Structured';
@@ -147,7 +157,18 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
               <DescriptionListGroup>
                 <DescriptionListTerm>Connection</DescriptionListTerm>
                 <DescriptionListDescription data-testid="asset-connection">
-                  <ConnectionRefLink connectionRef={asset.connection_ref} />
+                  <ConnectionRefLink
+                    connectionRef={asset.connection_ref}
+                    connections={connections}
+                  />
+                  {connectionsError ? (
+                    <Alert isInline variant="warning" title="Unable to load connection details">
+                      {connectionsError.message}
+                    </Alert>
+                  ) : null}
+                  {connectionWarnings.map((warning) => (
+                    <Alert key={warning.code} isInline variant="warning" title={warning.message} />
+                  ))}
                 </DescriptionListDescription>
               </DescriptionListGroup>
 
