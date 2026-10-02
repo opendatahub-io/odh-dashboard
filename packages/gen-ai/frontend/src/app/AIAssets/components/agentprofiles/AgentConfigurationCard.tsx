@@ -14,7 +14,7 @@ import { AgentProfile, AgentProfileMcpServer } from '~/app/agentProfile/types';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
 
 type AgentConfigurationCardProps = {
-  profile: AgentProfile;
+  profile: Pick<AgentProfile, 'spec'>;
   title: string;
   lastModified?: string;
   isSavedConfiguration?: boolean;

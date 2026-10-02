@@ -15,6 +15,7 @@ import { CodeIcon, ColumnsIcon, CogIcon, EllipsisVIcon, PlusIcon } from '@patter
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { AGENT_CONFIG_MANAGEMENT } from '~/odh/extensions';
+import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
 import { useChatbotConfigStore, selectSelectedModel, selectConfigIds } from './store';
 
 type ChatbotHeaderActionsProps = {
@@ -27,6 +28,7 @@ type ChatbotHeaderActionsProps = {
   onSaveAs: () => void;
   onLoad: () => void;
   onNew: () => void;
+  onDeploy?: () => void;
   onSettingsClick: () => void;
   isSettingsOpen: boolean;
   isCompareMode: boolean;
@@ -42,6 +44,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   onSaveAs,
   onLoad,
   onNew,
+  onDeploy = () => undefined,
   onSettingsClick,
   isSettingsOpen,
   isCompareMode,
@@ -53,6 +56,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   const [isDropdownOpen, setDropdownOpen] = React.useState(false);
   const [agentConfigManagementEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
+  const { enabled: agentDeploymentsEnabled } = useGenAiAgentDeploymentEnabled();
 
   const getDisabledReason = () => {
     if (!lastInput && !selectedModel) {
@@ -211,6 +215,17 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                   data-testid="new-agent-configuration-button"
                 >
                   Clear agent
+                </DropdownItem>
+              )}
+              {agentDeploymentsEnabled && profileApplied && (
+                <DropdownItem
+                  onClick={!isCompareMode ? onDeploy : undefined}
+                  isAriaDisabled={isCompareMode}
+                  key="deploy-agent"
+                  description="Create an API endpoint from this agent"
+                  data-testid="deploy-agent-menu-item"
+                >
+                  Deploy agent
                 </DropdownItem>
               )}
               {agentConfigManagementEnabled && <Divider key="agent-divider" />}

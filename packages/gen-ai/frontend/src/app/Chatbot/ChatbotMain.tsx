@@ -31,6 +31,7 @@ import ChatbotPlayground from './ChatbotPlayground';
 import ChatbotHeaderActions from './ChatbotHeaderActions';
 import SaveAgentProfileModal from './components/SaveAgentProfileModal';
 import LoadAgentProfileModal from './components/LoadAgentProfileModal';
+import DeployAgentModal from './components/DeployAgentModal';
 import {
   useChatbotConfigStore,
   selectConfigIds,
@@ -109,6 +110,7 @@ const ChatbotMain: React.FunctionComponent = () => {
   });
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
   const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
+  const loadedProfileSpec = useChatbotConfigStore((s) => s.loadedProfileSpec);
   // Ready when: no profile to load, fetch errored, or profile fully applied (async assets settled)
   const profileReady =
     !agentProfileId ||
@@ -137,6 +139,7 @@ const ChatbotMain: React.FunctionComponent = () => {
 
   const [saveModalMode, setSaveModalMode] = React.useState<'save' | 'save-as' | null>(null);
   const [loadModalOpen, setLoadModalOpen] = React.useState(false);
+  const [deployModalOpen, setDeployModalOpen] = React.useState(false);
 
   const handleOpenSave = React.useCallback(() => setSaveModalMode('save'), []);
   const handleOpenSaveAs = React.useCallback(() => setSaveModalMode('save-as'), []);
@@ -332,6 +335,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               onSaveAs={handleOpenSaveAs}
               onLoad={handleOpenLoad}
               onNew={handleNewAgentConfiguration}
+              onDeploy={() => setDeployModalOpen(true)}
               onViewCode={() => {
                 setIsViewCodeModalOpen(true);
                 fireSimpleTrackingEvent('Playground View Code Selected');
@@ -475,6 +479,13 @@ const ChatbotMain: React.FunctionComponent = () => {
         <LoadAgentProfileModal
           onClose={() => setLoadModalOpen(false)}
           onSelect={handleProfileSelected}
+        />
+      )}
+      {deployModalOpen && loadedProfileId && loadedProfileSpec && namespace?.name && (
+        <DeployAgentModal
+          profile={{ spec: loadedProfileSpec }}
+          namespace={namespace.name}
+          onClose={() => setDeployModalOpen(false)}
         />
       )}
       {isProfileDirty && <SafeNavigationBlocker hasUnsavedChanges={isProfileDirty} />}

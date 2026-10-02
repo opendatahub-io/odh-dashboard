@@ -4,9 +4,15 @@ import userEvent from '@testing-library/user-event';
 import ChatbotHeaderActions from '~/app/Chatbot/ChatbotHeaderActions';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
+import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
 
 jest.mock('@openshift/dynamic-plugin-sdk', () => ({
   useFeatureFlag: jest.fn(() => [false]),
+}));
+
+jest.mock('~/app/hooks/useGenAiAgentDeploymentEnabled', () => ({
+  __esModule: true,
+  default: jest.fn(),
 }));
 
 // Mock the store
@@ -17,6 +23,7 @@ jest.mock('~/app/Chatbot/store', () => ({
 }));
 
 const mockUseChatbotConfigStore = jest.mocked(useChatbotConfigStore);
+const mockUseGenAiAgentDeploymentEnabled = jest.mocked(useGenAiAgentDeploymentEnabled);
 
 const createContextValue = (overrides = {}) => ({
   models: [],
@@ -66,6 +73,7 @@ describe('ChatbotHeaderActions', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseGenAiAgentDeploymentEnabled.mockReturnValue({ enabled: false, loaded: true });
     mockUseChatbotConfigStore.mockImplementation((selector: unknown) => {
       if (typeof selector === 'function') {
         // Return test values based on what the selector is asking for
@@ -75,6 +83,35 @@ describe('ChatbotHeaderActions', () => {
         });
       }
       return undefined;
+    });
+  });
+
+  describe('Deploy agent menu item', () => {
+    it('only renders for a loaded profile when agent deployments are enabled', async () => {
+      const user = userEvent.setup();
+      const onDeploy = jest.fn();
+      mockUseGenAiAgentDeploymentEnabled.mockReturnValue({ enabled: true, loaded: true });
+      mockUseChatbotConfigStore.mockImplementation((selector: unknown) => {
+        if (typeof selector === 'function') {
+          return selector({
+            configurations: { default: { selectedModel: 'test-model' } },
+            configIds: ['default'],
+            profileApplied: true,
+          });
+        }
+        return undefined;
+      });
+
+      render(
+        <TestWrapper contextValue={createContextValue()}>
+          <ChatbotHeaderActions {...defaultProps} onDeploy={onDeploy} />
+        </TestWrapper>,
+      );
+
+      await user.click(screen.getByTestId('header-kebab-menu-toggle'));
+      await user.click(screen.getByText('Deploy agent'));
+
+      expect(onDeploy).toHaveBeenCalledTimes(1);
     });
   });
 
