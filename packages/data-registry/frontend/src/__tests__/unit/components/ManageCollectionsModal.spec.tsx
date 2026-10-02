@@ -41,6 +41,13 @@ describe('ManageCollectionsModal', () => {
           tableCount: 0,
           volumeCount: 0,
         },
+        {
+          name: 'with-assets',
+          description: '',
+          assetNames: ['asset-1'],
+          tableCount: 1,
+          volumeCount: 0,
+        },
       ],
       true,
       undefined,
@@ -73,5 +80,37 @@ describe('ManageCollectionsModal', () => {
 
     expect(screen.getByTestId('manage-collections-modal')).toBeInTheDocument();
     expect(screen.queryByTestId('create-collection-modal')).not.toBeInTheDocument();
+  });
+
+  it('replaces the manage modal with the delete modal', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <ManageCollectionsModal {...defaultProps} />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByTestId('collection-delete-default'));
+
+    expect(screen.queryByTestId('manage-collections-modal')).not.toBeInTheDocument();
+    expect(screen.getByTestId('delete-collection-modal')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('modal-cancel-button'));
+
+    expect(screen.getByTestId('manage-collections-modal')).toBeInTheDocument();
+    expect(screen.queryByTestId('delete-collection-modal')).not.toBeInTheDocument();
+  });
+
+  it('disables deletion for collections with assets', () => {
+    render(
+      <MemoryRouter>
+        <ManageCollectionsModal {...defaultProps} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('collection-delete-with-assets')).toBeDisabled();
+    expect(
+      screen.getByText('Remove all associated assets to delete a collection.'),
+    ).toBeInTheDocument();
   });
 });
