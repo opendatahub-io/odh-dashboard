@@ -211,6 +211,78 @@ func newDashboard(spec v1alpha1.DashboardSpec) *v1alpha1.Dashboard {
 	}
 }
 
+func TestIntegration_MaaSPortalAPICompatibility(t *testing.T) {
+	ctx := context.Background()
+
+	legacyOnly := newDashboard(v1alpha1.DashboardSpec{
+		MaaSConsumerPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
+	})
+	require.NoError(t, k8sClient.Create(ctx, legacyOnly))
+	fetched := getDashboard(t)
+	assert.Nil(t, fetched.Spec.MaaSPortal, "legacy-only resources must not gain the new field")
+	deleteDashboard(t)
+
+	manifests := createIntegrationManifests(t, []string{"maas"})
+	dashboard := newDashboard(v1alpha1.DashboardSpec{
+		ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
+		Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+		MaaSPortal:     &v1alpha1.MaaSPortalSpec{},
+		MaaSConsumerPortal: &v1alpha1.MaaSPortalSpec{
+			ManagementState: "Managed",
+		},
+	})
+	require.NoError(t, k8sClient.Create(ctx, dashboard))
+	t.Cleanup(func() {
+		deleteDashboard(t)
+		cleanupModuleResources(t)
+	})
+
+	fetched = getDashboard(t)
+	assert.Equal(t, "Removed", fetched.Spec.MaaSPortal.ManagementState,
+		"the API server should default the new field to Removed")
+
+	r := newManifestReconciler(manifests)
+	reconcile(t, r)
+	reconcile(t, r)
+	assert.Empty(t, listDeployments(t, "maas"),
+		"the defaulted new field must take precedence over the legacy Managed field")
+}
+
+func TestIntegration_MaaSPortalURLMigrationOnEarlyFailure(t *testing.T) {
+	manifests := createIntegrationManifests(t, []string{"maas"})
+	require.NoError(t, os.WriteFile(
+		filepath.Join(manifests, "modules", "maas", "kustomization.yaml"),
+		[]byte("invalid: ["),
+		0644,
+	))
+
+	dashboard := newDashboard(v1alpha1.DashboardSpec{
+		ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
+		MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
+	})
+	ctx := context.Background()
+	require.NoError(t, k8sClient.Create(ctx, dashboard))
+	t.Cleanup(func() {
+		deleteDashboard(t)
+		cleanupModuleResources(t)
+	})
+
+	dashboard = getDashboard(t)
+	dashboard.Status.MaaSConsumerPortalURL = "https://previous.example.com/"
+	require.NoError(t, k8sClient.Status().Update(ctx, dashboard))
+
+	r := newManifestReconciler(manifests)
+	reconcile(t, r)
+	_, err := r.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	})
+	require.Error(t, err)
+
+	fetched := getDashboard(t)
+	assert.Equal(t, "https://previous.example.com/", fetched.Status.MaaSConsumerPortalURL)
+	assert.Equal(t, "https://previous.example.com/", fetched.Status.MaaSPortalURL)
+}
+
 func reconcile(t *testing.T, r *ctrlpkg.DashboardReconciler) ctrl.Result {
 	t.Helper()
 	ctx := context.Background()
