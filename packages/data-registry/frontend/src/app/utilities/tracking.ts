@@ -14,6 +14,9 @@ export const DATA_REGISTRY_EVENT_NAMES = {
   assetDeleteInitiated: 'Data Asset Delete Initiated',
 } as const;
 
+export const DATA_REGISTRY_CYPRESS_TRACK_EVENT = 'data-registry-track-event';
+export const DATA_REGISTRY_CYPRESS_TRACKING_QUERY = 'dataRegistryTrackingTest';
+
 export type DataRegistryAssetType = 'structured' | 'unstructured';
 export type DataRegistryCollectionBucket = 'default' | 'custom';
 
@@ -117,6 +120,16 @@ export const toDataRegistryTrackEvent = (
   trackEvent: DataRegistryTrackEvent,
   event: DataRegistryEvent,
 ): void => {
+  // The standalone mocked Cypress app has no dashboard host analytics provider. Expose the
+  // already-sanitized event contract only when explicitly opted in by the Cypress URL so UI tests
+  // can verify real interactions without sending telemetry or depending on Segment.
+  if (
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get(DATA_REGISTRY_CYPRESS_TRACKING_QUERY) === 'true'
+  ) {
+    window.dispatchEvent(new CustomEvent(DATA_REGISTRY_CYPRESS_TRACK_EVENT, { detail: event }));
+  }
+
   try {
     trackEvent(event.eventName, event.properties);
   } catch {
