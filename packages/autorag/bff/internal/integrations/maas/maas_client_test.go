@@ -41,6 +41,35 @@ func TestClientFactoryUsesConfiguredTLSAndTransport(t *testing.T) {
 	assert.True(t, wrapped)
 }
 
+func TestDefaultHTTPClientUsesConfiguredRootCAForActualRequest(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = io.WriteString(w, "ok")
+	}))
+	t.Cleanup(server.Close)
+
+	rootCAs := x509.NewCertPool()
+	rootCAs.AddCert(server.Certificate())
+	response, err := NewDefaultHTTPClient(MaaSClientConfig{
+		RootCAs: rootCAs,
+		WrapTransport: func(rt http.RoundTripper) http.RoundTripper {
+			transport := rt.(*http.Transport).Clone()
+			transport.DialContext = (&net.Dialer{}).DialContext
+			return transport
+		},
+	}).Get(server.URL)
+	require.NoError(t, err)
+	defer response.Body.Close()
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+}
+
+func TestDefaultHTTPClientRejectsActualRequestWithoutConfiguredRootCA(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	t.Cleanup(server.Close)
+
+	_, err := NewDefaultHTTPClient(MaaSClientConfig{}).Get(server.URL)
+	require.Error(t, err)
+}
+
 func TestClientFactoryDevInsecureTLSReachesResponsesClient(t *testing.T) {
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -51,6 +80,25 @@ func TestClientFactoryDevInsecureTLSReachesResponsesClient(t *testing.T) {
 	client, err := NewClientFactory(MaaSClientConfig{InsecureSkipVerify: true})("https://maas.apps.cluster", "response-key")
 	require.NoError(t, err)
 	require.NotNil(t, client)
+}
+
+func TestDefaultHTTPClientAllowsExplicitInsecureRequest(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = io.WriteString(w, "ok")
+	}))
+	t.Cleanup(server.Close)
+
+	response, err := NewDefaultHTTPClient(MaaSClientConfig{
+		InsecureSkipVerify: true,
+		WrapTransport: func(rt http.RoundTripper) http.RoundTripper {
+			transport := rt.(*http.Transport).Clone()
+			transport.DialContext = (&net.Dialer{}).DialContext
+			return transport
+		},
+	}).Get(server.URL)
+	require.NoError(t, err)
+	defer response.Body.Close()
+	assert.Equal(t, http.StatusOK, response.StatusCode)
 }
 
 func TestClientFactoryDefaultsToCertificateVerification(t *testing.T) {
@@ -211,6 +259,13 @@ func TestAppendStreamOutputBoundsAccumulation(t *testing.T) {
 	err := appendStreamOutput(&output, "x")
 	require.ErrorIs(t, err, ErrStreamOutputLimit)
 	assert.Len(t, output.String(), maxStreamOutputBytes)
+}
+
+func TestChatParamsPreservesExplicitZeroTemperature(t *testing.T) {
+	zero := float32(0)
+	encoded, err := json.Marshal(chatParams(ChatRequest{Model: "model", Temperature: &zero}))
+	require.NoError(t, err)
+	assert.Contains(t, string(encoded), `"temperature":0`)
 }
 
 func TestMaaSResponseBodyLimitRejectsOversizedBody(t *testing.T) {

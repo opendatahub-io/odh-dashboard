@@ -105,6 +105,10 @@ func (h *ResponsesHandler) HandleResponsesEndpoint(w http.ResponseWriter, r *htt
 		badRequestResponse(h.logger, w, r, err.Error())
 		return
 	}
+	if err := repositories.ValidateResponsesRequest(&req); err != nil {
+		badRequestResponse(h.logger, w, r, err.Error())
+		return
+	}
 
 	executionCtx, cancel := context.WithTimeout(r.Context(), repositories.ResponsesExecutionTimeout)
 	defer cancel()
@@ -140,6 +144,9 @@ func validateResponsesRequest(req *models.ResponsesRequest) error {
 	}
 	if req.MaxOutputTokens > maxResponsesOutputTokens {
 		return fmt.Errorf("max_output_tokens must not exceed %d", maxResponsesOutputTokens)
+	}
+	if req.Temperature != nil && (math.IsNaN(*req.Temperature) || math.IsInf(*req.Temperature, 0) || *req.Temperature < 0 || *req.Temperature > 2) {
+		return errors.New("temperature must be between 0 and 2")
 	}
 	requestSize := responseRequestSize{}
 	if err := requestSize.addString("model", req.Model); err != nil {
@@ -558,6 +565,26 @@ func (h *ResponsesHandler) mapError(w http.ResponseWriter, r *http.Request, err 
 	}
 	if errors.Is(err, vectordb.ErrDatabaseUnavailable) {
 		serviceUnavailableResponseWithMessage(h.logger, w, r, err, vectorDBUnavailableMessage)
+		return
+	}
+	var maaSErr *maas.MaaSError
+	if errors.As(err, &maaSErr) {
+		switch maaSErr.Code {
+		case maas.ErrCodeInvalidRequest:
+			badRequestResponse(h.logger, w, r, "MaaS rejected the request")
+		case maas.ErrCodeUnauthorized:
+			unauthorizedResponse(h.logger, w, r, "MaaS authorization failed")
+		case maas.ErrCodeForbidden:
+			forbiddenResponse(h.logger, w, r, "MaaS access was forbidden")
+		case maas.ErrCodeNotFound:
+			notFoundResponse(h.logger, w, r)
+		case maas.ErrCodeTimeout:
+			serviceUnavailableResponseWithMessage(h.logger, w, r, err, "MaaS request timed out")
+		case maas.ErrCodeServerUnavailable:
+			serviceUnavailableResponseWithMessage(h.logger, w, r, err, "MaaS service temporarily unavailable")
+		default:
+			badGatewayResponseWithMessage(h.logger, w, r, err, "MaaS service returned an invalid response")
+		}
 		return
 	}
 	if errors.Is(err, context.DeadlineExceeded) {

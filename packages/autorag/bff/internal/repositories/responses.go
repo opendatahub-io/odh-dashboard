@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -26,6 +27,8 @@ const (
 	maxRAGContextBytes           = 4 << 20
 	defaultResponsesOutputTokens = 2048
 )
+
+var ErrInvalidResponsesRequest = errors.New("invalid Responses API request")
 
 // validVectorStoreID accepts logical vector store IDs. Hyphens and dots are
 // canonicalized before they reach a vector DB adapter. Logical names that
@@ -410,6 +413,9 @@ func parseFileSearchTool(req *models.ResponsesRequest) (collection string, topK 
 			continue
 		}
 		collection = tool.VectorStoreIDs[0]
+		if tool.MaxNumResults < 0 {
+			return "", 0, 0, false, fmt.Errorf("max_num_results %d must be between 0 and %d", tool.MaxNumResults, maxTopK)
+		}
 		if tool.MaxNumResults > 0 {
 			if tool.MaxNumResults > maxTopK {
 				return "", 0, 0, false, fmt.Errorf("max_num_results %d exceeds maximum of %d", tool.MaxNumResults, maxTopK)
@@ -439,6 +445,23 @@ func parseFileSearchTool(req *models.ResponsesRequest) (collection string, topK 
 		return "", 0, 0, false, fmt.Errorf("invalid vector_store_ids value %q: must match %s", collection, validVectorStoreID.String())
 	}
 	return sanitizeCollection(collection), topK, alpha, hybrid, nil
+}
+
+// ValidateResponsesRequest contains only caller-controlled validation. It is
+// safe to run before resolving credentials or contacting external services.
+func ValidateResponsesRequest(req *models.ResponsesRequest) error {
+	if strings.TrimSpace(req.Metadata["embedding_model"]) == "" {
+		return fmt.Errorf("%w: metadata.embedding_model is required", ErrInvalidResponsesRequest)
+	}
+	if _, _, _, _, err := parseFileSearchTool(req); err != nil {
+		return fmt.Errorf("%w: %s", ErrInvalidResponsesRequest, err)
+	}
+	if req.Temperature != nil {
+		if math.IsNaN(*req.Temperature) || math.IsInf(*req.Temperature, 0) || *req.Temperature < 0 || *req.Temperature > 2 {
+			return fmt.Errorf("%w: temperature must be between 0 and 2", ErrInvalidResponsesRequest)
+		}
+	}
+	return nil
 }
 
 // prepareRAGContext resolves credentials, does vector search, and assembles the chat messages.
@@ -496,10 +519,16 @@ func (r *ResponsesRepository) prepareRAGContext(ctx context.Context, params Resp
 		sources:    sources,
 		msgs:       msgs,
 		chatReq: maas.ChatRequest{
-			Model:       req.Model,
-			Messages:    msgs,
-			Temperature: float32(req.Temperature),
-			MaxTokens:   maxTokens,
+			Model:    req.Model,
+			Messages: msgs,
+			Temperature: func() *float32 {
+				if req.Temperature == nil {
+					return nil
+				}
+				value := float32(*req.Temperature)
+				return &value
+			}(),
+			MaxTokens: maxTokens,
 		},
 	}, nil
 }

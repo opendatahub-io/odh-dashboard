@@ -799,6 +799,16 @@ func TestParseFileSearchTool_RejectsExcessiveMaxNumResults(t *testing.T) {
 	assert.Contains(t, err.Error(), "exceeds maximum")
 }
 
+func TestParseFileSearchTool_RejectsNegativeMaxNumResults(t *testing.T) {
+	_, _, _, _, err := parseFileSearchTool(fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"vs_abc_123"},
+		MaxNumResults:  -1,
+	}))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "must be between 0 and 100")
+}
+
 func TestParseFileSearchTool_AllowsMaxNumResultsAtLimit(t *testing.T) {
 	_, topK, _, _, err := parseFileSearchTool(fileSearchRequest(models.FileSearchTool{
 		Type:           "file_search",

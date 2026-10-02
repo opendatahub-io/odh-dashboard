@@ -125,6 +125,9 @@ func parsePgvectorEndpoint(host string, port int, sslMode string) (vectorEndpoin
 	if port < 1 || port > 65535 {
 		return vectorEndpoint{}, fmt.Errorf("pgvector port must be between 1 and 65535")
 	}
+	if !inCluster && sslMode == "require" {
+		return vectorEndpoint{}, fmt.Errorf("pgvector external endpoints must use verify-ca or verify-full")
+	}
 	useTLS := sslMode == "require" || sslMode == "verify-ca" || sslMode == "verify-full"
 	if !inCluster && !useTLS {
 		return vectorEndpoint{}, fmt.Errorf("pgvector external endpoints must use TLS")

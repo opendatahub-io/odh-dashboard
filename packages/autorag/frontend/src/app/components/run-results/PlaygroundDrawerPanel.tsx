@@ -36,6 +36,7 @@ import {
   isResponsesProvider,
   resolveDatabaseSecretName,
   resolveMaaSSecretName,
+  canUseResponsesForPattern,
 } from '~/app/utilities/responses';
 import './PlaygroundDrawerPanel.scss';
 
@@ -71,9 +72,10 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
   const [isPatternSelectOpen, setIsPatternSelectOpen] = React.useState(false);
 
   const databaseSecretName = resolveDatabaseSecretName(parameters);
-  const provider = getPatternStoreProvider(patterns[patternInfo.patternName]);
+  const pattern = patterns[patternInfo.patternName];
+  const provider = getPatternStoreProvider(pattern);
   const responsesProviderSupported = isResponsesProvider(provider);
-  const responsesReady = Boolean(databaseSecretName && secretName && responsesProviderSupported);
+  const responsesReady = canUseResponsesForPattern(parameters, pattern);
   const responsesEndpointUrl = React.useMemo(() => {
     if (!databaseSecretName || !secretName || !responsesProviderSupported) {
       return undefined;
@@ -88,7 +90,11 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
   }, [databaseSecretName, namespace, responsesProviderSupported, secretName]);
 
   const additionalMetadata = React.useMemo(() => {
-    const { settings } = patterns[patternInfo.patternName];
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (!pattern) {
+      return undefined;
+    }
+    const { settings } = pattern;
     return {
       /* eslint-disable camelcase */
       embedding_model: settings.embedding.model_id,
@@ -97,7 +103,7 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
       user_message_text: settings.generation.user_message_text ?? '',
       /* eslint-enable camelcase */
     };
-  }, [patterns, patternInfo.patternName]);
+  }, [pattern]);
 
   return (
     <DrawerPanelContent defaultSize="50%" minSize="400px" data-testid="playground-drawer-panel">

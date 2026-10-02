@@ -1800,6 +1800,8 @@ describe('llamaStackService', () => {
       await expect(
         createPassthroughResponse('/gen-ai/api/v1', 'ns', 'secret', mockBody, jest.fn()),
       ).rejects.toThrow('tool_choice requires --tool-call-parser');
+      expect(mockReader.cancel).toHaveBeenCalledWith('Streaming error');
+      expect(mockReader.releaseLock).toHaveBeenCalled();
     });
 
     it('should reject on an OpenAI-style error event', async () => {
@@ -1821,6 +1823,28 @@ describe('llamaStackService', () => {
       await expect(
         createPassthroughResponse('/gen-ai/api/v1', 'ns', 'secret', mockBody, jest.fn()),
       ).rejects.toThrow('embedding failed: path_not_found');
+      expect(mockReader.cancel).toHaveBeenCalledWith('Streaming error');
+      expect(mockReader.releaseLock).toHaveBeenCalled();
+    });
+
+    it('should preserve structured errors from an overridden AutoRAG endpoint', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: () => Promise.resolve('{"error":{"code":"400","message":"invalid RAG input"}}'),
+      });
+
+      await expect(
+        createPassthroughResponse(
+          '/gen-ai/api/v1',
+          'ns',
+          'secret',
+          mockBody,
+          jest.fn(),
+          undefined,
+          '/autorag/api/v1/responses?dbSecretName=db&maasSecretName=maas',
+        ),
+      ).rejects.toMatchObject({ message: 'invalid RAG input' });
     });
 
     it('should reject with "Response stopped by user" on AbortError', async () => {

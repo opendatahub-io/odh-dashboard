@@ -42,6 +42,7 @@ func TestParseVectorEndpoints(t *testing.T) {
 		{name: "pg service plaintext", pgHost: "postgres.team-a.svc.cluster.local", sslMode: "disable"},
 		{name: "external milvus plaintext", milvus: "http://milvus.example.com:19530", wantErr: true},
 		{name: "external pg plaintext", pgHost: "db.example.com", sslMode: "disable", wantErr: true},
+		{name: "external pg require without certificate verification", pgHost: "db.example.com", sslMode: "require", wantErr: true},
 		{name: "literal milvus IP", milvus: "https://10.0.0.1:19530", wantErr: true},
 		{name: "userinfo", milvus: "https://user:pass@milvus.example.com:19530", wantErr: true},
 		{name: "query", milvus: "https://milvus.example.com:19530?token=secret", wantErr: true},
@@ -59,6 +60,12 @@ func TestParseVectorEndpoints(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestParsePgvectorEndpointRejectsExternalRequire(t *testing.T) {
+	_, err := parsePgvectorEndpoint("db.example.com", 5432, "require")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "verify-ca or verify-full")
 }
 
 func TestValidateForwardedMilvusEndpointDoesNotRelaxSecretValidation(t *testing.T) {

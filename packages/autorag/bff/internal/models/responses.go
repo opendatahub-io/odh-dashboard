@@ -53,7 +53,7 @@ type ResponsesRequest struct {
 	Instructions    string            `json:"instructions,omitempty"`
 	Tools           []FileSearchTool  `json:"tools,omitempty"`
 	ToolChoice      *ToolChoice       `json:"tool_choice,omitempty"`
-	Temperature     float64           `json:"temperature,omitempty"`
+	Temperature     *float64          `json:"temperature,omitempty"`
 	MaxOutputTokens int               `json:"max_output_tokens,omitempty"`
 	Stream          bool              `json:"stream,omitempty"`
 	Store           bool              `json:"store,omitempty"`

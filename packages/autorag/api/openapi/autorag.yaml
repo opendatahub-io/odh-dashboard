@@ -1921,11 +1921,15 @@ components:
           maxLength: 1048576
         tools:
           type: array
+          minItems: 1
           maxItems: 100
           items:
             type: object
             maxProperties: 5
             additionalProperties: false
+            required:
+              - type
+              - vector_store_ids
             properties:
               type:
                 type: string
@@ -1938,6 +1942,8 @@ components:
                   maxLength: 1048576
               max_num_results:
                 type: integer
+                minimum: 0
+                maximum: 100
               ranking_options:
                 type: object
                 maxProperties: 2
@@ -1973,14 +1979,23 @@ components:
             enum: [file_search_call.results, file_search_call.output]
         metadata:
           type: object
+          required:
+            - embedding_model
           maxProperties: 100
           additionalProperties:
             type: string
             maxLength: 1048576
+          properties:
+            embedding_model:
+              type: string
+              minLength: 1
+              pattern: '\S'
         stream:
           type: boolean
         temperature:
           type: number
+          minimum: 0
+          maximum: 2
         max_output_tokens:
           type: integer
           minimum: 0
