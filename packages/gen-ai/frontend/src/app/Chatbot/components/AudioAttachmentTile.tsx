@@ -27,7 +27,7 @@ const AudioAttachmentTile: React.FunctionComponent<AudioAttachmentTileProps> = (
   testId,
   playerTestId,
 }) => (
-  <Card isCompact className="pf-v6-u-display-inline-block" data-testid={testId}>
+  <Card isCompact style={{ width: '18.75rem', maxWidth: '100%' }} data-testid={testId}>
     <CardHeader
       actions={
         onRemove
@@ -46,7 +46,21 @@ const AudioAttachmentTile: React.FunctionComponent<AudioAttachmentTileProps> = (
     >
       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
         <FlexItem>
-          <VolumeUpIcon aria-hidden />
+          <span
+            data-testid="audio-file-icon"
+            style={{
+              alignItems: 'center',
+              backgroundColor: 'var(--pf-t--global--icon--color--status--custom--default)',
+              borderRadius: 'var(--pf-t--global--border--radius--small)',
+              color: 'var(--pf-t--global--icon--color--on-brand--default)',
+              display: 'inline-flex',
+              height: '1.5rem',
+              justifyContent: 'center',
+              width: '1.5rem',
+            }}
+          >
+            <VolumeUpIcon aria-hidden />
+          </span>
         </FlexItem>
         <FlexItem>
           <span className="gen-ai-chatbot-details">
@@ -70,7 +84,7 @@ const AudioAttachmentTile: React.FunctionComponent<AudioAttachmentTileProps> = (
           preload: 'metadata',
           src,
           'aria-label': `Play ${fileName}`,
-          style: { minHeight: 'var(--pf-t--global--spacer--2xl)' },
+          style: { minHeight: 'var(--pf-t--global--spacer--2xl)', width: '100%' },
           'data-testid': playerTestId,
         })}
       </CardBody>

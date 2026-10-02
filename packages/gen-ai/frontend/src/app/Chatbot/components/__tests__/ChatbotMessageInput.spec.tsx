@@ -957,6 +957,13 @@ describe('ChatbotMessageInput', () => {
 
         expect(URL.createObjectURL).toHaveBeenCalledWith(file);
         const tile = screen.getByTestId('audio-file-chip');
+        expect(tile).toHaveStyle({ width: '18.75rem', maxWidth: '100%' });
+        expect(tile).not.toHaveClass('pf-v6-u-display-inline-block');
+        expect(within(tile).getByTestId('audio-file-icon')).toHaveStyle({
+          backgroundColor: 'var(--pf-t--global--icon--color--status--custom--default)',
+          width: '1.5rem',
+          height: '1.5rem',
+        });
         expect(within(tile).getByText(fileName)).toBeInTheDocument();
         expect(within(tile).getByText(typeLabel)).toBeInTheDocument();
         expect(within(tile).getByTestId('pending-audio-player')).toHaveAttribute(
@@ -966,6 +973,7 @@ describe('ChatbotMessageInput', () => {
         expect(within(tile).getByLabelText(`Play ${fileName}`)).toHaveAttribute('controls');
         expect(within(tile).getByTestId('pending-audio-player')).toHaveStyle({
           minHeight: 'var(--pf-t--global--spacer--2xl)',
+          width: '100%',
         });
 
         rerender(

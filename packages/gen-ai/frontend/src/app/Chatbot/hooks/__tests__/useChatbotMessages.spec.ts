@@ -1149,6 +1149,7 @@ describe('useChatbotMessages', () => {
       expect(player.type).toBe(AudioAttachmentTile);
       render(player);
       const tile = screen.getByTestId('sent-audio-tile');
+      expect(tile).toHaveStyle({ width: '18.75rem', maxWidth: '100%' });
       expect(within(tile).getByText('recording.wav')).toBeInTheDocument();
       expect(within(tile).getByText('WAV')).toBeInTheDocument();
       expect(within(tile).getByTestId('sent-audio-player')).toHaveAttribute(
@@ -1156,6 +1157,7 @@ describe('useChatbotMessages', () => {
         'blob:audio-preview',
       );
       expect(within(tile).getByLabelText('Play recording.wav')).toHaveAttribute('controls');
+      expect(within(tile).getByTestId('sent-audio-player')).toHaveStyle({ width: '100%' });
       expect(within(tile).queryByRole('button', { name: /remove/i })).not.toBeInTheDocument();
       expect(createObjectURL).toHaveBeenCalledWith(file);
       expect(mockCreateResponse.mock.calls[0][0].input).toBe('Transcribed speech');
