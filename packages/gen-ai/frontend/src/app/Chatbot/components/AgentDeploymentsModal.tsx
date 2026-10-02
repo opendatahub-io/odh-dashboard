@@ -21,7 +21,11 @@ import {
 } from '@patternfly/react-core';
 import AgentConfigurationCard from '~/app/AIAssets/components/agentprofiles/AgentConfigurationCard';
 import { AgentDeploymentSummary } from '~/app/agentProfile/types';
-import { buildResponseAPICurl, responseAPIURL } from '~/app/agentProfile/deploymentUtils';
+import {
+  buildResponseAPICurl,
+  responseAPIURL,
+  sortDeploymentsByMostRecent,
+} from '~/app/agentProfile/deploymentUtils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import DeleteModal from '~/app/shared/DeleteModal';
 
@@ -48,8 +52,12 @@ const AgentDeploymentsModal: React.FC<AgentDeploymentsModalProps> = ({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<Error | undefined>();
+  const sortedDeployments = React.useMemo(
+    () => sortDeploymentsByMostRecent(deployments),
+    [deployments],
+  );
 
-  const activeDeployment = deployments.find(
+  const activeDeployment = sortedDeployments.find(
     (deployment) => deployment.name === activeDeploymentName,
   );
   const deploymentDetails = activeDeployment ? details[activeDeployment.name] : undefined;
@@ -138,7 +146,7 @@ const AgentDeploymentsModal: React.FC<AgentDeploymentsModalProps> = ({
             activeKey={activeDeploymentName}
             onSelect={(_event, key) => setActiveDeploymentName(String(key))}
           >
-            {deployments.map((deployment) => (
+            {sortedDeployments.map((deployment) => (
               <Tab
                 key={deployment.name}
                 eventKey={deployment.name}
@@ -196,6 +204,7 @@ const AgentDeploymentsModal: React.FC<AgentDeploymentsModalProps> = ({
                         <AgentConfigurationCard
                           profile={deploymentDetails.config}
                           title="Configuration snapshot"
+                          deployedAt={deployment.createdAt}
                         />
                       </StackItem>
                     )}

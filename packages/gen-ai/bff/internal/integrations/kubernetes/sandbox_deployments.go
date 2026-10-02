@@ -45,6 +45,10 @@ func (kc *TokenKubernetesClient) ListAgentDeployments(
 
 	deployments := make([]models.AgentDeploymentSummary, 0, len(sandboxes.Items))
 	for i := range sandboxes.Items {
+		if !sandboxes.Items[i].GetDeletionTimestamp().IsZero() {
+			continue
+		}
+
 		deployment, err := kc.sandboxDeploymentSummary(ctx, namespace, &sandboxes.Items[i])
 		if err != nil {
 			return nil, err

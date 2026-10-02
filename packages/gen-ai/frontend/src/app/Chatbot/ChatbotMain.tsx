@@ -27,6 +27,7 @@ import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import useAgentProfileUrlParam from '~/app/agentProfile/useAgentProfileUrlParam';
 import { deserializeAgentProfile } from '~/app/agentProfile/deserialize';
 import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
+import { sortDeploymentsByMostRecent } from '~/app/agentProfile/deploymentUtils';
 import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
 import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlocker';
 import useFetchAgentDeployments from '~/app/AIAssets/hooks/useFetchAgentDeployments';
@@ -120,6 +121,10 @@ const ChatbotMain: React.FunctionComponent = () => {
   const loadedProfileSpec = useChatbotConfigStore((s) => s.loadedProfileSpec);
   const { data: deployments = [], refresh: refreshDeployments } = useFetchAgentDeployments(
     loadedProfileId ?? undefined,
+  );
+  const sortedDeployments = React.useMemo(
+    () => sortDeploymentsByMostRecent(deployments),
+    [deployments],
   );
   const refreshedDeploymentProfileId = React.useRef<string | null>(null);
 
@@ -432,7 +437,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               onLoad={handleOpenLoad}
               onNew={handleNewAgentConfiguration}
               onDeploy={() => setDeployModalOpen(true)}
-              deployments={deployments}
+              deployments={sortedDeployments}
               onDeploymentSelect={setSelectedDeploymentName}
               onViewCode={() => {
                 setIsViewCodeModalOpen(true);
@@ -524,6 +529,10 @@ const ChatbotMain: React.FunctionComponent = () => {
               checkMcpServerStatus={checkMcpServerStatus}
               onMcpServerTokensChange={setMcpServerTokens}
               onMcpMissingAuthServersChange={handleMcpMissingAuthServersChange}
+              deploymentCount={sortedDeployments.length}
+              onDeploymentClick={() => {
+                setSelectedDeploymentName(sortedDeployments[0].name);
+              }}
             />
           )
         ) : lsdStatus?.phase === 'Failed' ? (
@@ -594,7 +603,7 @@ const ChatbotMain: React.FunctionComponent = () => {
       {selectedDeploymentName && loadedProfileSpec && (
         <AgentDeploymentsModal
           agentName={loadedProfileSpec.displayName}
-          deployments={deployments}
+          deployments={sortedDeployments}
           initialDeploymentName={selectedDeploymentName}
           onClose={() => setSelectedDeploymentName(null)}
           onDeleted={() => {

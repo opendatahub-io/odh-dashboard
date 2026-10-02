@@ -38,6 +38,11 @@ func TestListAgentDeployments(t *testing.T) {
 		dashboardLabel: dashboardLabelValue, agentProfileIDLabel: profileTwo,
 	}, "agents.x-k8s.io/sandbox-name-hash=failed")
 	failedSandbox.SetCreationTimestamp(metav1.NewTime(time.Date(2026, time.July, 28, 6, 30, 0, 0, time.UTC)))
+	terminatingSandbox := testSandbox(namespace, "terminating-agent", map[string]string{
+		dashboardLabel: dashboardLabelValue, agentProfileIDLabel: profileOne,
+	}, "agents.x-k8s.io/sandbox-name-hash=terminating")
+	terminatingSandbox.SetFinalizers([]string{"agents.x-k8s.io/sandbox-cleanup"})
+	terminatingSandbox.SetDeletionTimestamp(&metav1.Time{Time: time.Date(2026, time.July, 31, 6, 30, 0, 0, time.UTC)})
 	legacySandbox := testSandbox(namespace, "legacy-agent", map[string]string{
 		dashboardLabel: dashboardLabelValue,
 	}, "agents.x-k8s.io/sandbox-name-hash=legacy")
@@ -50,6 +55,7 @@ func TestListAgentDeployments(t *testing.T) {
 	objects := []client.Object{
 		readySandbox,
 		failedSandbox,
+		terminatingSandbox,
 		legacySandbox,
 		nonDashboardSandbox,
 		otherNamespaceSandbox,

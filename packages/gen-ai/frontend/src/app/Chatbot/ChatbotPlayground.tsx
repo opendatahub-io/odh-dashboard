@@ -204,6 +204,8 @@ type ChatbotPlaygroundProps = {
   checkMcpServerStatus?: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
   onMcpServerTokensChange?: (tokens: Map<string, TokenInfo>) => void;
   onMcpMissingAuthServersChange?: (serverNames: string[]) => void;
+  deploymentCount?: number;
+  onDeploymentClick?: () => void;
 };
 
 const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
@@ -235,6 +237,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   checkMcpServerStatus = checkMcpServerStatusUnavailable,
   onMcpServerTokensChange,
   onMcpMissingAuthServersChange,
+  deploymentCount = 0,
+  onDeploymentClick,
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
@@ -1300,6 +1304,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                     agentName={profileApplied ? (loadedProfileDisplayName ?? undefined) : undefined}
                     isProfileDirty={isProfileDirty}
                     onClearAgent={onClearAgent}
+                    deploymentCount={deploymentCount}
+                    onDeploymentClick={onDeploymentClick}
                   />
                 )}
 

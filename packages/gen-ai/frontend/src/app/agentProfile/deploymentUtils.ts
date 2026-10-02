@@ -1,3 +1,21 @@
+import { AgentDeploymentSummary } from './types';
+
+export const sortDeploymentsByMostRecent = (
+  deployments: AgentDeploymentSummary[],
+): AgentDeploymentSummary[] =>
+  deployments.toSorted((first, second) => {
+    const firstCreatedAt = Date.parse(first.createdAt);
+    const secondCreatedAt = Date.parse(second.createdAt);
+
+    if (Number.isNaN(firstCreatedAt)) {
+      return Number.isNaN(secondCreatedAt) ? 0 : 1;
+    }
+    if (Number.isNaN(secondCreatedAt)) {
+      return -1;
+    }
+    return secondCreatedAt - firstCreatedAt;
+  });
+
 export const buildResponseAPICurl = (routeUrl?: string): string => {
   if (!routeUrl) {
     return '';

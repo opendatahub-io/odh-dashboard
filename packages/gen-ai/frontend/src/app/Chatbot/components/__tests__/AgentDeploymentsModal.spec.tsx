@@ -7,7 +7,12 @@ import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/AIAssets/components/agentprofiles/AgentConfigurationCard', () => ({
   __esModule: true,
-  default: ({ title }: { title: string }) => <div>{title}</div>,
+  default: ({ title, deployedAt }: { title: string; deployedAt?: string }) => (
+    <div>
+      {title}
+      {deployedAt && <span data-testid="deployment-snapshot-date">{deployedAt}</span>}
+    </div>
+  ),
 }));
 jest.mock('~/app/shared/DeleteModal', () => ({
   __esModule: true,
@@ -81,11 +86,18 @@ describe('AgentDeploymentsModal', () => {
     );
 
     expect(screen.getByText('HR Chatbot Deployments')).toBeInTheDocument();
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
+      'HR Chatbot v2',
+      'HR Chatbot',
+    ]);
     expect(screen.getByRole('tab', { name: 'HR Chatbot v2' })).toBeInTheDocument();
     expect(
       screen.getByDisplayValue('https://hr-chatbot.apps.example.com/v1/responses'),
     ).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('Configuration snapshot')).toBeInTheDocument());
+    expect(screen.getByTestId('deployment-snapshot-date')).toHaveTextContent(
+      '2026-10-02T13:33:00Z',
+    );
 
     await user.click(screen.getByRole('tab', { name: 'HR Chatbot v2' }));
     expect(
