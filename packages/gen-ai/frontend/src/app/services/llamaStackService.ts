@@ -16,6 +16,8 @@ import {
   AgentProfileListResponse,
   AgentProfileUpdateRequest,
   AgentProfileUpdateResponse,
+  AgentDeploymentCreateRequest,
+  AgentDeploymentCreateResponse,
   AgentDeploymentListResponse,
   AgentDeploymentSummary,
 } from '~/app/agentProfile/types';
@@ -1457,6 +1459,11 @@ export const getAgentProfile =
 
 export const listAgentDeployments =
   modArchRestGET<AgentDeploymentListResponse>('/agent-deployments');
+
+export const createAgentDeployment = modArchRestCREATE<
+  AgentDeploymentCreateResponse,
+  AgentDeploymentCreateRequest
+>('/agent-deployments');
 
 export const getAgentDeployment =
   (

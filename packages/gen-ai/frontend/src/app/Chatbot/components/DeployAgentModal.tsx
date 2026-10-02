@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Alert,
   Button,
   ExpandableSection,
   Form,
@@ -15,10 +16,14 @@ import {
 } from '@patternfly/react-core';
 import AgentConfigurationCard from '~/app/AIAssets/components/agentprofiles/AgentConfigurationCard';
 import type { AgentProfile } from '~/app/agentProfile/types';
+import './DeployAgentModal.scss';
 
 type DeployAgentModalProps = {
   profile: Pick<AgentProfile, 'spec'>;
   namespace: string;
+  isDeploying: boolean;
+  missingMCPServerAuth: string[];
+  onDeploy: (name: string) => void;
   onClose: () => void;
 };
 
@@ -43,7 +48,14 @@ const getAppsDomain = (): string | undefined => {
   return hostParts.length > 1 ? hostParts.slice(1).join('.') : undefined;
 };
 
-const DeployAgentModal: React.FC<DeployAgentModalProps> = ({ profile, namespace, onClose }) => {
+const DeployAgentModal: React.FC<DeployAgentModalProps> = ({
+  profile,
+  namespace,
+  isDeploying,
+  missingMCPServerAuth,
+  onDeploy,
+  onClose,
+}) => {
   const maxNameLength = getMaxDeploymentNameLength(namespace);
   const defaultName = React.useMemo(
     () => toDNS1035Name(profile.spec.displayName, maxNameLength),
@@ -73,7 +85,7 @@ const DeployAgentModal: React.FC<DeployAgentModalProps> = ({ profile, namespace,
     >
       <ModalHeader title="Deploy agent" labelId="deploy-agent-modal-title" />
       <ModalBody>
-        <Form>
+        <Form className="gen-ai-deploy-agent-modal__form">
           <FormGroup label="Name" isRequired fieldId="deploy-agent-name">
             <TextInput
               id="deploy-agent-name"
@@ -87,8 +99,9 @@ const DeployAgentModal: React.FC<DeployAgentModalProps> = ({ profile, namespace,
             <FormHelperText>
               <HelperText>
                 <HelperTextItem variant={nameTouched && !nameIsValid ? 'error' : 'default'}>
-                  Use lowercase letters, numbers, and hyphens. The name must start with a letter and
-                  be at most {maxNameLength} characters.
+                  {nameTouched && !nameIsValid
+                    ? `Use lowercase letters, numbers, and hyphens. The name must start with a letter and be at most ${maxNameLength} characters.`
+                    : `Endpoint: ${routePreview}/v1/responses`}
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
@@ -100,7 +113,6 @@ const DeployAgentModal: React.FC<DeployAgentModalProps> = ({ profile, namespace,
             }
             isExpanded={showAdvanced}
             onToggle={(_event, isExpanded) => setShowAdvanced(isExpanded)}
-            className="pf-v6-u-mb-lg"
             data-testid="deploy-agent-advanced-options"
           >
             <FormGroup label="Serving name" isRequired fieldId="deploy-agent-serving-name">
@@ -123,16 +135,25 @@ const DeployAgentModal: React.FC<DeployAgentModalProps> = ({ profile, namespace,
                   >
                     {servingNameTouched && !servingNameIsValid
                       ? `Use lowercase letters, numbers, and hyphens. The serving name must start with a letter and be at most ${maxNameLength} characters.`
-                      : `Public route: ${routePreview}`}
+                      : `Public route: ${routePreview}/v1/responses`}
                   </HelperTextItem>
                 </HelperText>
               </FormHelperText>
             </FormGroup>
           </ExpandableSection>
 
-          <p className="pf-v6-u-mb-lg">
-            This creates an immutable snapshot of the current agent as a deployed endpoint.
-          </p>
+          <p>This creates an immutable snapshot of the current agent as a deployed endpoint.</p>
+          {missingMCPServerAuth.length > 0 && (
+            <Alert
+              isInline
+              variant="warning"
+              title="MCP server authentication is required"
+              data-testid="deploy-agent-mcp-auth-warning"
+            >
+              Connect {missingMCPServerAuth.join(', ')} in the MCP servers tab before deploying so
+              the deployment can use its selected tools.
+            </Alert>
+          )}
           <AgentConfigurationCard
             profile={profile}
             title="Configuration snapshot"
@@ -143,12 +164,21 @@ const DeployAgentModal: React.FC<DeployAgentModalProps> = ({ profile, namespace,
       <ModalFooter>
         <Button
           variant="primary"
-          isDisabled={!nameIsValid || !servingNameIsValid}
+          onClick={() => onDeploy(showAdvanced ? servingName : name)}
+          isLoading={isDeploying}
+          isDisabled={
+            isDeploying || !nameIsValid || !servingNameIsValid || missingMCPServerAuth.length > 0
+          }
           data-testid="deploy-agent-submit-button"
         >
           Deploy
         </Button>
-        <Button variant="link" onClick={onClose} data-testid="deploy-agent-cancel-button">
+        <Button
+          variant="link"
+          onClick={onClose}
+          isDisabled={isDeploying}
+          data-testid="deploy-agent-cancel-button"
+        >
           Cancel
         </Button>
       </ModalFooter>

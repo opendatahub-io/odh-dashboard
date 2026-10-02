@@ -669,6 +669,7 @@ export type GenAiAPIs = {
   deleteAgentProfile: DeleteAgentProfile;
   createAgentProfile: CreateAgentProfile;
   listAgentDeployments: ListAgentDeployments;
+  createAgentDeployment: CreateAgentDeployment;
   getAgentDeployment: GetAgentDeployment;
 };
 
@@ -774,6 +775,10 @@ type CreateAgentProfile = ModArchRestCREATE<
 >;
 type ListAgentDeployments = ModArchRestGET<
   import('./agentProfile/types').AgentDeploymentListResponse
+>;
+type CreateAgentDeployment = ModArchRestCREATE<
+  import('./agentProfile/types').AgentDeploymentCreateResponse,
+  import('./agentProfile/types').AgentDeploymentCreateRequest
 >;
 type GetAgentDeployment = ModArchRestGET<import('./agentProfile/types').AgentDeploymentSummary>;
 

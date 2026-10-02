@@ -202,6 +202,8 @@ type ChatbotPlaygroundProps = {
   mcpServersLoadError?: Error;
   mcpServerStatuses?: Map<string, ServerStatusInfo>;
   checkMcpServerStatus?: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
+  onMcpServerTokensChange?: (tokens: Map<string, TokenInfo>) => void;
+  onMcpMissingAuthServersChange?: (serverNames: string[]) => void;
 };
 
 const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
@@ -231,6 +233,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   mcpServersLoadError,
   mcpServerStatuses = EMPTY_MCP_SERVER_STATUSES,
   checkMcpServerStatus = checkMcpServerStatusUnavailable,
+  onMcpServerTokensChange,
+  onMcpMissingAuthServersChange,
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
@@ -340,6 +344,13 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     [mcpServers, mcpServerStatuses],
   );
   const [mcpServerTokens, setMcpServerTokens] = React.useState<Map<string, TokenInfo>>(new Map());
+  const handleMcpServerTokensChange = React.useCallback(
+    (tokens: Map<string, TokenInfo>) => {
+      setMcpServerTokens(tokens);
+      onMcpServerTokensChange?.(tokens);
+    },
+    [onMcpServerTokensChange],
+  );
 
   // UI state — can be controlled externally (e.g. from header Settings button)
   const [isDrawerExpandedInternal, setIsDrawerExpandedInternal] = React.useState(true);
@@ -1252,7 +1263,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 mcpServersLoadError={mcpServersLoadError}
                 mcpRegistryAvailable={mcpRegistryAvailable}
                 mcpServerTokens={mcpServerTokens}
-                onMcpServerTokensChange={setMcpServerTokens}
+                onMcpServerTokensChange={handleMcpServerTokensChange}
+                onMcpMissingAuthServersChange={onMcpMissingAuthServersChange}
                 checkMcpServerStatus={checkMcpServerStatus}
                 onCloseClick={() => setIsDrawerExpanded(false)}
                 onActiveConfigChange={setActivePaneConfigId}

@@ -65,6 +65,7 @@ export const mockGenAiContextValue: React.ContextType<typeof GenAiContext> = {
       deleteAgentProfile: jest.fn().mockResolvedValue(undefined),
       createAgentProfile: jest.fn().mockResolvedValue({ data: null }),
       listAgentDeployments: jest.fn().mockResolvedValue({ deployments: [], totalCount: 0 }),
+      createAgentDeployment: jest.fn().mockResolvedValue({ data: null }),
       getAgentDeployment: jest.fn().mockResolvedValue({ data: null }),
     },
   },

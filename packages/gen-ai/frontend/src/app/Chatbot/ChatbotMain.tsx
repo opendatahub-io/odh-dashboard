@@ -16,6 +16,9 @@ import { filterUnavailableMCPServers } from '~/app/utilities/mcp';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import useFetchAAEVectorStores from '~/app/hooks/useFetchAAEVectorStores';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
+import { useNotification } from '~/app/hooks/useNotification';
+import { TokenInfo } from '~/app/types';
+import { getMCPServerAuth } from '~/app/agentProfile/mcpServerAuth';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import DeletePlaygroundModal from '~/app/Chatbot/components/DeletePlaygroundModal';
 import ChatModal from '~/app/Chatbot/components/ChatModal';
@@ -40,6 +43,8 @@ import {
 } from './store';
 import { usePlaygroundStore } from './store/usePlaygroundStore';
 import PromptManagementModal from './components/promptManagementModal';
+import useAgentDeploymentPolling from './hooks/useAgentDeploymentPolling';
+import useSaveAgentProfile from './hooks/useSaveAgentProfile';
 
 const ChatbotMain: React.FunctionComponent = () => {
   const {
@@ -140,6 +145,12 @@ const ChatbotMain: React.FunctionComponent = () => {
   const [saveModalMode, setSaveModalMode] = React.useState<'save' | 'save-as' | null>(null);
   const [loadModalOpen, setLoadModalOpen] = React.useState(false);
   const [deployModalOpen, setDeployModalOpen] = React.useState(false);
+  const [isSavingForDeployment, setIsSavingForDeployment] = React.useState(false);
+  const [mcpServerTokens, setMcpServerTokens] = React.useState<Map<string, TokenInfo>>(new Map());
+  const [mcpServersMissingAuth, setMcpServersMissingAuth] = React.useState<string[]>([]);
+  const { isDeploying, startAgentDeployment, resetDeploymentLoading } = useAgentDeploymentPolling();
+  const { saveAgentProfile } = useSaveAgentProfile(availableMcpServers, mcpConfigMapName);
+  const notification = useNotification();
 
   const handleOpenSave = React.useCallback(() => setSaveModalMode('save'), []);
   const handleOpenSaveAs = React.useCallback(() => setSaveModalMode('save-as'), []);
@@ -246,6 +257,61 @@ const ChatbotMain: React.FunctionComponent = () => {
       );
     },
     [primaryConfigId, setSearchParams],
+  );
+
+  const handleCloseDeployModal = React.useCallback(() => {
+    setDeployModalOpen(false);
+    setIsSavingForDeployment(false);
+    resetDeploymentLoading();
+  }, [resetDeploymentLoading]);
+
+  const handleDeploy = React.useCallback(
+    async (name: string) => {
+      if (!loadedProfileId || !loadedProfileSpec || !namespace?.name) {
+        return;
+      }
+
+      setIsSavingForDeployment(true);
+      try {
+        // Deployments consume an immutable AgentProfile snapshot, so persist the
+        // current Playground configuration (including a changed prompt) before
+        // asking the BFF to create the Sandbox.
+        const savedProfile = await saveAgentProfile({
+          mode: 'save',
+          name: loadedProfileSpec.displayName,
+          description: loadedProfileSpec.description,
+        });
+        useChatbotConfigStore.getState().setLoadedResourceVersion(savedProfile.resourceVersion);
+        useChatbotConfigStore.getState().setLoadedProfileSpec(savedProfile.spec);
+
+        await startAgentDeployment({
+          name,
+          agentProfileId: savedProfile.profileId,
+          namespace: namespace.name,
+          mcpServerAuth: getMCPServerAuth(savedProfile.spec, availableMcpServers, mcpServerTokens),
+          onStarted: handleCloseDeployModal,
+          onComplete: handleCloseDeployModal,
+        });
+      } catch (error) {
+        notification.error(
+          `Unable to deploy ${name}`,
+          error instanceof Error ? error.message : 'The agent profile could not be saved.',
+        );
+      } finally {
+        setIsSavingForDeployment(false);
+      }
+    },
+    [
+      loadedProfileId,
+      loadedProfileSpec,
+      availableMcpServers,
+      mcpServerTokens,
+      namespace?.name,
+      notification,
+      handleCloseDeployModal,
+      saveAgentProfile,
+      startAgentDeployment,
+    ],
   );
 
   // Handle compare chat confirmation - clears messages and enters compare mode
@@ -424,6 +490,8 @@ const ChatbotMain: React.FunctionComponent = () => {
               mcpServersLoadError={mcpServersLoadError}
               mcpServerStatuses={mcpServerStatuses}
               checkMcpServerStatus={checkMcpServerStatus}
+              onMcpServerTokensChange={setMcpServerTokens}
+              onMcpMissingAuthServersChange={setMcpServersMissingAuth}
             />
           )
         ) : lsdStatus?.phase === 'Failed' ? (
@@ -485,7 +553,10 @@ const ChatbotMain: React.FunctionComponent = () => {
         <DeployAgentModal
           profile={{ spec: loadedProfileSpec }}
           namespace={namespace.name}
-          onClose={() => setDeployModalOpen(false)}
+          isDeploying={isDeploying || isSavingForDeployment}
+          missingMCPServerAuth={mcpServersMissingAuth}
+          onDeploy={(name) => void handleDeploy(name)}
+          onClose={handleCloseDeployModal}
         />
       )}
       {isProfileDirty && <SafeNavigationBlocker hasUnsavedChanges={isProfileDirty} />}
