@@ -1,10 +1,7 @@
 package helper
 
 import (
-	"bytes"
 	"context"
-	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -65,52 +62,22 @@ func (h HeaderLogValuer) LogValue() slog.Value {
 	return slog.GroupValue(values...)
 }
 
-const maxBodySize = 10 * 1024 * 1024 // 10 MB
-
-func CloneBody(r *http.Request) ([]byte, error) {
-	if r.Body == nil {
-		return nil, fmt.Errorf("no body provided")
-	}
-	// Read one byte beyond the limit so we can distinguish "exactly at limit"
-	// from "over limit" without consuming an unbounded stream.
-	buf, err := io.ReadAll(io.LimitReader(r.Body, maxBodySize+1))
-	if err != nil {
-		// Restore whatever was read so downstream handlers are not left with a drained body.
-		r.Body = io.NopCloser(bytes.NewBuffer(buf))
-		return nil, fmt.Errorf("reading request body: %w", err)
-	}
-	if int64(len(buf)) > maxBodySize {
-		// Restore the partially-read bytes before returning so downstream handlers
-		// can still inspect the body (e.g., to emit a 413 response).
-		r.Body = io.NopCloser(bytes.NewBuffer(buf))
-		return nil, fmt.Errorf("request body too large: exceeds %d bytes", maxBodySize)
-	}
-	// Restore r.Body with the full, untruncated content for downstream handlers.
-	r.Body = io.NopCloser(bytes.NewBuffer(buf))
-	return buf, nil
-}
-
+// RequestLogValuer provides request metadata without logging request contents.
 type RequestLogValuer struct {
 	Request *http.Request
 }
 
 func (r RequestLogValuer) LogValue() slog.Value {
-	body := ""
-
-	if r.Request.Body != nil {
-		cloneBody, err := CloneBody(r.Request)
-		if err != nil {
-			body = fmt.Sprintf("error: %v", err)
-		} else {
-			body = string(cloneBody)
-		}
+	if r.Request == nil {
+		return slog.GroupValue()
 	}
 
+	requestID, _ := r.Request.Context().Value(constants.TraceIdKey).(string)
 	return slog.GroupValue(
 		slog.String("method", r.Request.Method),
-		slog.String("url", r.Request.URL.String()),
-		slog.String("body", body),
-		slog.Any("headers", HeaderLogValuer{Header: r.Request.Header}))
+		slog.String("path", r.Request.URL.Path),
+		slog.Int64("content_length", r.Request.ContentLength),
+		slog.String("request_id", requestID))
 }
 
 type ResponseLogValuer struct {

@@ -159,3 +159,15 @@ type EnvConfig struct {
 	StandaloneMode    bool
 	FederatedPlatform bool
 }
+
+// Validate enforces configuration combinations that would weaken production
+// authentication or transport security.
+func (c EnvConfig) Validate() error {
+	if c.AuthMethod == AuthMethodDisabled && !c.DevMode {
+		return fmt.Errorf("disabled authentication is only permitted when development mode is enabled")
+	}
+	if c.InsecureSkipVerify && !c.DevMode {
+		return fmt.Errorf("insecure-skip-verify can only be enabled in development mode")
+	}
+	return nil
+}

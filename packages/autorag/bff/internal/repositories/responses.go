@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/openai/openai-go"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/maas"
@@ -19,6 +20,12 @@ import (
 // maxTopK bounds max_num_results so a caller-controlled value can't drive an
 // unbounded LIMIT/allocation in the vector DB search.
 const maxTopK = 100
+
+const (
+	ResponsesExecutionTimeout    = 2 * time.Minute
+	maxRAGContextBytes           = 4 << 20
+	defaultResponsesOutputTokens = 2048
+)
 
 // validVectorStoreID accepts logical vector store IDs. Hyphens and dots are
 // canonicalized before they reach a vector DB adapter. Logical names that
@@ -44,7 +51,7 @@ type ResponsesRepository struct {
 // URLForwarder rewrites a URL to a locally forwarded endpoint when applicable.
 // The concrete implementation is only supplied for local development.
 type URLForwarder interface {
-	ForwardURL(context.Context, string) (string, error)
+	ForwardURL(context.Context, string, string) (string, error)
 }
 
 func NewResponsesRepository(logger *slog.Logger, k8sService kubernetes.Service, forwarders ...URLForwarder) *ResponsesRepository {
@@ -79,7 +86,7 @@ func classifyForwardingError(requestCtx, operationCtx context.Context, err error
 	return err
 }
 
-func (r *ResponsesRepository) forwardVectorDBEndpoint(requestCtx, operationCtx context.Context, data map[string][]byte) (map[string][]byte, error) {
+func (r *ResponsesRepository) forwardVectorDBEndpoint(requestCtx, operationCtx context.Context, namespace string, data map[string][]byte) (map[string][]byte, error) {
 	if r.urlForwarder == nil {
 		return data, nil
 	}
@@ -89,7 +96,7 @@ func (r *ResponsesRepository) forwardVectorDBEndpoint(requestCtx, operationCtx c
 	}
 
 	uri := strings.TrimSpace(string(rawURI))
-	forwardedURI, err := r.urlForwarder.ForwardURL(operationCtx, uri)
+	forwardedURI, err := r.urlForwarder.ForwardURL(operationCtx, namespace, uri)
 	if err != nil {
 		return nil, fmt.Errorf("failed to forward Milvus endpoint: %w", classifyForwardingError(requestCtx, operationCtx, err))
 	}
@@ -141,7 +148,7 @@ func (r *ResponsesRepository) resolveVectorDB(ctx context.Context, namespace, se
 	if _, isMilvus := secret.Data["MILVUS_URI"]; isMilvus {
 		operationCtx, cancel := context.WithTimeout(ctx, vectordb.MilvusOperationTimeout)
 		defer cancel()
-		secretData, err := r.forwardVectorDBEndpoint(ctx, operationCtx, secret.Data)
+		secretData, err := r.forwardVectorDBEndpoint(ctx, operationCtx, namespace, secret.Data)
 		if err != nil {
 			return nil, err
 		}
@@ -159,7 +166,7 @@ func (r *ResponsesRepository) resolveVectorDB(ctx context.Context, namespace, se
 		return db, nil
 	}
 
-	secretData, err := r.forwardVectorDBEndpoint(ctx, ctx, secret.Data)
+	secretData, err := r.forwardVectorDBEndpoint(ctx, ctx, namespace, secret.Data)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +208,12 @@ func (r *ResponsesRepository) ragSearch(
 	}
 
 	chunks := make([]models.SourceChunk, 0, len(results))
+	contextBytes := 0
 	for _, res := range results {
+		contextBytes += len(res.Text)
+		if contextBytes > maxRAGContextBytes {
+			return nil, errors.New("retrieved context exceeds the maximum supported size")
+		}
 		chunks = append(chunks, models.SourceChunk{Text: res.Text, Score: res.Score, FileID: res.ID})
 	}
 	return chunks, nil
@@ -217,32 +229,53 @@ func buildMessages(
 	history []openai.ChatCompletionMessageParamUnion,
 	question string,
 	sources []models.SourceChunk,
-) []openai.ChatCompletionMessageParamUnion {
-	var contextParts []string
+) ([]openai.ChatCompletionMessageParamUnion, error) {
+	var contextBuilder strings.Builder
 	for i, s := range sources {
+		if contextBuilder.Len() > 0 {
+			if err := appendBoundedString(&contextBuilder, "\n", maxRAGContextBytes); err != nil {
+				return nil, err
+			}
+		}
 		if contextTemplate != "" {
-			part := strings.NewReplacer(
-				"{document}", s.Text,
-				"{doc_number}", strconv.Itoa(i+1),
-			).Replace(contextTemplate)
-			contextParts = append(contextParts, part)
+			if err := appendBoundedTemplate(&contextBuilder, contextTemplate, map[string]string{
+				"{document}":   s.Text,
+				"{doc_number}": strconv.Itoa(i + 1),
+			}, maxRAGContextBytes); err != nil {
+				return nil, errors.New("assembled retrieval context exceeds the maximum supported size")
+			}
 		} else {
-			contextParts = append(contextParts, fmt.Sprintf("Document %d:\n%s", i+1, s.Text))
+			if err := appendBoundedTemplate(&contextBuilder, fmt.Sprintf("Document %d:\n", i+1), nil, maxRAGContextBytes); err != nil {
+				return nil, errors.New("assembled retrieval context exceeds the maximum supported size")
+			}
+			if err := appendBoundedTemplate(&contextBuilder, s.Text, nil, maxRAGContextBytes); err != nil {
+				return nil, errors.New("assembled retrieval context exceeds the maximum supported size")
+			}
 		}
 	}
-	context := strings.Join(contextParts, "\n")
+	context := contextBuilder.String()
 
-	var userContent string
+	var userBuilder strings.Builder
 	if userTemplate != "" {
-		userContent = strings.NewReplacer(
-			"{reference_documents}", context,
-			"{question}", question,
-		).Replace(userTemplate)
+		if err := appendBoundedTemplate(&userBuilder, userTemplate, map[string]string{
+			"{reference_documents}": context,
+			"{question}":            question,
+		}, maxRAGContextBytes); err != nil {
+			return nil, errors.New("assembled user context exceeds the maximum supported size")
+		}
 	} else if context != "" {
-		userContent = context + "\n" + question
+		if err := appendBoundedTemplate(&userBuilder, context+"\n", nil, maxRAGContextBytes); err != nil {
+			return nil, errors.New("assembled user context exceeds the maximum supported size")
+		}
+		if err := appendBoundedTemplate(&userBuilder, question, nil, maxRAGContextBytes); err != nil {
+			return nil, errors.New("assembled user context exceeds the maximum supported size")
+		}
 	} else {
-		userContent = question
+		if err := appendBoundedTemplate(&userBuilder, question, nil, maxRAGContextBytes); err != nil {
+			return nil, errors.New("assembled user context exceeds the maximum supported size")
+		}
 	}
+	userContent := userBuilder.String()
 
 	msgs := make([]openai.ChatCompletionMessageParamUnion, 0, len(history)+2)
 
@@ -254,7 +287,41 @@ func buildMessages(
 
 	msgs = append(msgs, openai.UserMessage(userContent))
 
-	return msgs
+	return msgs, nil
+}
+
+func appendBoundedString(builder *strings.Builder, value string, limit int) error {
+	if len(value) > limit-builder.Len() {
+		return errors.New("bounded string exceeds limit")
+	}
+	builder.WriteString(value)
+	return nil
+}
+
+// appendBoundedTemplate substitutes one placeholder at a time so repeated
+// placeholders cannot allocate an oversized intermediate string.
+func appendBoundedTemplate(builder *strings.Builder, template string, substitutions map[string]string, limit int) error {
+	for len(template) > 0 {
+		matchStart := len(template)
+		match := ""
+		for placeholder := range substitutions {
+			if index := strings.Index(template, placeholder); index >= 0 && index < matchStart {
+				matchStart = index
+				match = placeholder
+			}
+		}
+		if match == "" {
+			return appendBoundedString(builder, template, limit)
+		}
+		if err := appendBoundedString(builder, template[:matchStart], limit); err != nil {
+			return err
+		}
+		if err := appendBoundedString(builder, substitutions[match], limit); err != nil {
+			return err
+		}
+		template = template[matchStart+len(match):]
+	}
+	return nil
 }
 
 // extractHistoryAndQuestion converts the Responses API input into system prompt, history, and last user question.
@@ -391,7 +458,7 @@ func (r *ResponsesRepository) prepareRAGContext(ctx context.Context, params Resp
 		return nil, err
 	}
 
-	msgs := buildMessages(
+	msgs, err := buildMessages(
 		systemPrompt,
 		req.Metadata["context_template_text"],
 		req.Metadata["user_message_text"],
@@ -399,10 +466,13 @@ func (r *ResponsesRepository) prepareRAGContext(ctx context.Context, params Resp
 		question,
 		sources,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	maxTokens := req.MaxOutputTokens
 	if maxTokens == 0 {
-		maxTokens = 2048
+		maxTokens = defaultResponsesOutputTokens
 	}
 
 	return &ragContext{
@@ -437,7 +507,7 @@ func (r *ResponsesRepository) ValidateResponses(ctx context.Context, params Resp
 		validationCtx, cancel = context.WithTimeout(ctx, vectordb.MilvusOperationTimeout)
 		defer cancel()
 	}
-	secretData, err := r.forwardVectorDBEndpoint(ctx, validationCtx, secret.Data)
+	secretData, err := r.forwardVectorDBEndpoint(ctx, validationCtx, params.Namespace, secret.Data)
 	if err != nil {
 		return err
 	}

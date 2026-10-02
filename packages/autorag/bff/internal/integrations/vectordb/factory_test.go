@@ -18,7 +18,7 @@ func TestNewFromSecretData_DispatchesToMilvus(t *testing.T) {
 		"MILVUS_URI": []byte("http://milvus.apps.example.com:19530"),
 	})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "plaintext (http://) is only allowed")
+	assert.Contains(t, err.Error(), "external endpoints must use https")
 }
 
 func TestNewFromSecretData_DispatchesToPgvector(t *testing.T) {
@@ -28,5 +28,5 @@ func TestNewFromSecretData_DispatchesToPgvector(t *testing.T) {
 		"PGVECTOR_USER": []byte("user"),
 	})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "sslmode=disable is only allowed")
+	assert.Contains(t, err.Error(), "external endpoints must use TLS")
 }

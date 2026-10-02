@@ -47,6 +47,9 @@ describe('AutoRAG API Contract Tests', () => {
       expect(properties.model).toEqual(
         expect.objectContaining({ type: 'string', minLength: 1, pattern: '\\S' }),
       );
+      expect(properties.max_output_tokens).toEqual(
+        expect.objectContaining({ type: 'integer', minimum: 0, maximum: 4096, default: 2048 }),
+      );
 
       const modelSchemaValidator = new ContractSchemaValidator();
       modelSchemaValidator.loadSchema(
@@ -118,6 +121,15 @@ describe('AutoRAG API Contract Tests', () => {
       const result = await apiClient.post(
         `/api/v1/responses?namespace=${NS}&dbSecretName=${SECRET}&maasSecretName=${MAAS_SECRET}`,
         { ...request, input: null },
+      );
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+    });
+
+    it('should reject max_output_tokens above the documented cap', async () => {
+      const result = await apiClient.post(
+        `/api/v1/responses?namespace=${NS}&dbSecretName=${SECRET}&maasSecretName=${MAAS_SECRET}`,
+        { ...request, max_output_tokens: 4097 },
       );
       expect(result.success).toBe(false);
       expect(result.error?.status).toBe(400);

@@ -13,6 +13,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
@@ -23,6 +24,7 @@ import (
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func newTestResponsesHandler() (*ResponsesHandler, *mockResponsesRepo) {
@@ -260,6 +262,14 @@ func TestHandleResponsesEndpoint_NonStreaming(t *testing.T) {
 			repoResult:     nil,
 			repoErr:        fmt.Errorf("chat: %w", maas.ErrMaasUnavailable),
 			wantStatusCode: http.StatusBadGateway,
+		},
+		{
+			name:           "oversized maas response returns 503 with safe message",
+			body:           validResponsesBody,
+			repoResult:     nil,
+			repoErr:        fmt.Errorf("chat: %w", maas.ErrMaaSResponseBodyLimit),
+			wantStatusCode: http.StatusServiceUnavailable,
+			wantBodySubstr: "MaaS response exceeded the supported size",
 		},
 		{
 			name:           "generic error returns 500",
@@ -720,6 +730,145 @@ func TestHandleResponsesEndpoint_StreamingCancellationBeforeDoneIsSilent(t *test
 	assert.NotContains(t, body, "response.metrics")
 	assert.NotContains(t, body, "[DONE]")
 	assert.Empty(t, logs.String())
+	repo.AssertExpectations(t)
+}
+
+func TestValidateResponsesRequestOutputTokenAndInputBounds(t *testing.T) {
+	tests := []struct {
+		name    string
+		mutate  func(*models.ResponsesRequest)
+		wantErr string
+	}{
+		{name: "zero uses default", mutate: func(req *models.ResponsesRequest) { req.MaxOutputTokens = 0 }},
+		{name: "negative rejected", mutate: func(req *models.ResponsesRequest) { req.MaxOutputTokens = -1 }, wantErr: "nonnegative"},
+		{name: "above cap rejected", mutate: func(req *models.ResponsesRequest) { req.MaxOutputTokens = 4097 }, wantErr: "4096"},
+		{name: "input cap rejected", mutate: func(req *models.ResponsesRequest) {
+			req.Input[0].Content[0].Text = strings.Repeat("x", maxResponsesInputBytes+1)
+		}, wantErr: "maximum supported size"},
+		{name: "tool vector store ID cap rejected", mutate: func(req *models.ResponsesRequest) {
+			req.Tools = []models.FileSearchTool{{VectorStoreIDs: []string{strings.Repeat("x", maxResponsesStringBytes+1)}}}
+		}, wantErr: "maximum supported size"},
+		{name: "tool choice cap rejected", mutate: func(req *models.ResponsesRequest) {
+			req.ToolChoice = &models.ToolChoice{Type: strings.Repeat("x", maxResponsesStringBytes+1)}
+		}, wantErr: "maximum supported size"},
+		{name: "include item cap rejected", mutate: func(req *models.ResponsesRequest) {
+			req.Include = []string{strings.Repeat("x", maxResponsesStringBytes+1)}
+		}, wantErr: "maximum supported size"},
+		{name: "metadata value cap rejected", mutate: func(req *models.ResponsesRequest) {
+			req.Metadata = map[string]string{"credential": strings.Repeat("x", maxResponsesStringBytes+1)}
+		}, wantErr: "maximum supported size"},
+		{name: "ranking option cap rejected", mutate: func(req *models.ResponsesRequest) {
+			req.Tools = []models.FileSearchTool{{RankingOptions: models.RankingOptions{Ranker: strings.Repeat("x", maxResponsesStringBytes+1)}}}
+		}, wantErr: "maximum supported size"},
+		{name: "too many tools rejected", mutate: func(req *models.ResponsesRequest) {
+			req.Tools = make([]models.FileSearchTool, maxResponsesTools+1)
+		}, wantErr: "tools must not contain"},
+		{name: "too many vector store IDs rejected", mutate: func(req *models.ResponsesRequest) {
+			req.Tools = []models.FileSearchTool{{VectorStoreIDs: make([]string, maxResponsesVectorStoreIDs+1)}}
+		}, wantErr: "vector_store_ids must not contain"},
+		{name: "too many include items rejected", mutate: func(req *models.ResponsesRequest) {
+			req.Include = make([]string, maxResponsesIncludeItems+1)
+		}, wantErr: "include must not contain"},
+		{name: "too many metadata entries rejected", mutate: func(req *models.ResponsesRequest) {
+			req.Metadata = make(map[string]string, maxResponsesMetadataItems+1)
+			for i := 0; i <= maxResponsesMetadataItems; i++ {
+				req.Metadata[fmt.Sprintf("key-%d", i)] = "value"
+			}
+		}, wantErr: "metadata must not contain"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var req models.ResponsesRequest
+			require.NoError(t, json.Unmarshal([]byte(`{"model":"model","input":[{"role":"user","content":[{"type":"input_text","text":"question"}]}]}`), &req))
+			reqPtr := &req
+			tt.mutate(reqPtr)
+			err := validateResponsesRequest(reqPtr)
+			if tt.wantErr == "" {
+				if err != nil {
+					t.Fatalf("validateResponsesRequest() error = %v", err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("validateResponsesRequest() error = %v, want %q", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestPreflightResponsesJSONRejectsNestedCardinalityBeforeUnmarshal(t *testing.T) {
+	content := `{"type":"input_text","text":"x"}`
+	body := `{"model":"test","input":[{"type":"message","role":"user","content":[` + strings.TrimSuffix(strings.Repeat(content+",", maxResponsesContentItems+1), ",") + `]}]}`
+
+	err := preflightResponsesJSON([]byte(body))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "content must not contain more than")
+}
+
+func TestPreflightResponsesJSONEnforcesCumulativeLimitsAtBoundary(t *testing.T) {
+	message := `{"type":"message","role":"user","content":[{"type":"input_text","text":"x"},{"type":"input_text","text":"y"}]}`
+	body := `{"model":"test","input":[` + strings.TrimSuffix(strings.Repeat(message+",", maxResponsesInputMessages), ",") + `]}`
+	require.NoError(t, preflightResponsesJSON([]byte(body)))
+
+	messageWithExtraContent := `{"type":"message","role":"user","content":[{"type":"input_text","text":"x"},{"type":"input_text","text":"y"},{"type":"input_text","text":"z"}]}`
+	tooMany := `{"model":"test","input":[` + messageWithExtraContent + `,` + strings.TrimSuffix(strings.Repeat(message+",", maxResponsesInputMessages-1), ",") + `]}`
+	err := preflightResponsesJSON([]byte(tooMany))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "input content must not contain more than")
+}
+
+func TestHandleResponsesEndpointRejectsCardinalityBeforeRepository(t *testing.T) {
+	h, repo := newTestResponsesHandler()
+	content := `{"type":"input_text","text":"x"}`
+	message := `{"type":"message","role":"user","content":[` + strings.TrimSuffix(strings.Repeat(content+",", maxResponsesContentItems+1), ",") + `]}`
+	body := `{"model":"test","input":[` + message + `]}`
+	req := responsesRequestWithNamespace(http.MethodPost, "/api/v1/responses?dbSecretName=milvus&maasSecretName=maas-secret", body, "test-ns")
+	rr := httptest.NewRecorder()
+
+	h.HandleResponsesEndpoint(rr, req, httprouter.Params{})
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	repo.AssertNotCalled(t, "HandleResponses", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestPreflightResponsesJSONPreservesMalformedJSONErrors(t *testing.T) {
+	err := preflightResponsesJSON([]byte(`{"model":`))
+	require.Error(t, err)
+}
+
+func TestPreflightResponsesJSONRejectsCaseVariantsAndDuplicates(t *testing.T) {
+	for _, body := range []string{
+		`{"MODEL":"test","input":[]}`,
+		`{"model":"test","INPUT":[]}`,
+		`{"model":"test","input":[{"type":"message","role":"user","CONTENT":[]}]}`,
+		`{"model":"test","input":[{"type":"message","role":"user","content":[{"type":"input_text","TEXT":"x"}]}]}`,
+		`{"model":"test","input":[],"input":[]}`,
+		`{"model":"test","tools":[{"type":"file_search","VECTOR_STORE_IDS":[]}]}`,
+		`{"model":"test","tool_choice":{"TYPE":"auto"}}`,
+		`{"model":"test","tools":[{"type":"file_search","ranking_options":{"RANKER":"rrf"}}]}`,
+		`{"model":"test","tools":[{"type":"file_search","ranking_options":{"ranker":"rrf","ranker":"rrf"}}]}`,
+	} {
+		t.Run(body, func(t *testing.T) {
+			require.Error(t, preflightResponsesJSON([]byte(body)))
+		})
+	}
+}
+
+func TestHandleResponsesEndpointAppliesExecutionDeadline(t *testing.T) {
+	h, repo := newTestResponsesHandler()
+	var observedDeadline time.Time
+	repo.On("HandleResponses", mock.Anything, validParams, mock.Anything).
+		Run(func(args mock.Arguments) {
+			observedDeadline, _ = args.Get(0).(context.Context).Deadline()
+		}).Return(&models.RAGResponse{Answer: "answer"}, nil)
+
+	req := responsesRequestWithNamespace(http.MethodPost,
+		"/api/v1/responses?dbSecretName=milvus&maasSecretName=maas-secret", validResponsesBody, "test-ns")
+	rr := httptest.NewRecorder()
+	h.HandleResponsesEndpoint(rr, req, httprouter.Params{})
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.WithinDuration(t, time.Now().Add(repositories.ResponsesExecutionTimeout), observedDeadline, time.Second)
 	repo.AssertExpectations(t)
 }
 
