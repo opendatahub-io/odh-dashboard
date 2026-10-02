@@ -10,7 +10,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 
 const WORKSPACE_QUERY_SCRIPT = path.join(__dirname, 'query-workspace-packages.js');
 const DEFAULT_ROOT = path.resolve(__dirname, '..');
@@ -205,7 +205,7 @@ function generateCentralTestGroups(root = DEFAULT_ROOT) {
  */
 function generatePackageTestGroups(root = DEFAULT_ROOT) {
   try {
-    const output = execSync(`node "${WORKSPACE_QUERY_SCRIPT}"`, {
+    const output = execFileSync(process.execPath, [WORKSPACE_QUERY_SCRIPT], {
       cwd: root,
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'ignore'], // Suppress stderr
