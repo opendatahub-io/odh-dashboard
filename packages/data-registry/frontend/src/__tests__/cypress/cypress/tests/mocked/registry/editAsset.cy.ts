@@ -346,7 +346,7 @@ describe('Edit Table Asset', () => {
     editAssetModal.shouldBeOpen();
 
     editAssetModal.findSchemaColumnName(0).should('have.value', 'id');
-    editAssetModal.findSchemaColumnTypeToggle(0).should('contain.text', 'integer');
+    editAssetModal.findSchemaColumnTypeToggle(0).should('contain.text', 'Integer');
     editAssetModal.findSchemaColumnName(1).should('have.value', 'amount');
 
     editAssetModal.findAddColumnButton().click();
