@@ -1165,5 +1165,108 @@ describe('PatternDetailsModal', () => {
       expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
       expect(screen.queryByText('View code')).not.toBeInTheDocument();
     });
+
+    it('should not expose View code for Neo4j even when a template and database secret exist', async () => {
+      const user = userEvent.setup();
+      const neo4jPattern: AutoragPattern = {
+        ...mockPattern,
+        settings: {
+          ...mockPattern.settings,
+          store_binding: { ...mockPattern.settings.store_binding, provider_type: 'neo4j' },
+        },
+        inference: {
+          responses_template: {
+            model: 'test-model',
+            stream: false,
+            store: true,
+            input: 'question',
+            metadata: { autorag_run_id: 'run-1', rag_pattern_name: 'pattern0' },
+            instructions: 'Answer the question.',
+            tools: [
+              {
+                type: 'file_search',
+                vector_store_ids: ['vs-1'],
+                max_num_results: 5,
+              },
+            ],
+            tool_choice: { type: 'file_search' },
+            include: ['file_search_call.results'],
+          },
+        },
+      };
+
+      render(
+        <PatternDetailsModal
+          {...defaultProps}
+          patterns={[neo4jPattern]}
+          databaseSecretName="neo4j"
+          onViewCode={jest.fn()}
+        />,
+      );
+
+      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
+      expect(screen.queryByTestId('pattern-details-view-code')).not.toBeInTheDocument();
+    });
+
+    it('should not expose View code when the database secret is missing', async () => {
+      const user = userEvent.setup();
+      render(<PatternDetailsModal {...defaultProps} onViewCode={jest.fn()} />);
+
+      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
+      expect(screen.queryByTestId('pattern-details-view-code')).not.toBeInTheDocument();
+    });
+
+    it('should expose View code for a supported provider with a template and database secret', async () => {
+      const user = userEvent.setup();
+      const supportedPattern: AutoragPattern = {
+        ...mockPattern,
+        inference: {
+          responses_template: {
+            model: 'test-model',
+            stream: false,
+            store: true,
+            input: 'question',
+            metadata: { autorag_run_id: 'run-1', rag_pattern_name: 'pattern0' },
+            instructions: 'Answer the question.',
+            tools: [
+              {
+                type: 'file_search',
+                vector_store_ids: ['vs-1'],
+                max_num_results: 5,
+              },
+            ],
+            tool_choice: { type: 'file_search' },
+            include: ['file_search_call.results'],
+          },
+        },
+      };
+
+      render(
+        <PatternDetailsModal
+          {...defaultProps}
+          patterns={[supportedPattern]}
+          databaseSecretName="milvus"
+          maasSecretName="maas"
+          onViewCode={jest.fn()}
+        />,
+      );
+
+      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
+      expect(screen.getByTestId('pattern-details-view-code')).toBeInTheDocument();
+    });
+
+    it('should not expose View code when the MaaS secret is missing', async () => {
+      const user = userEvent.setup();
+      render(
+        <PatternDetailsModal
+          {...defaultProps}
+          databaseSecretName="milvus"
+          onViewCode={jest.fn()}
+        />,
+      );
+
+      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
+      expect(screen.queryByTestId('pattern-details-view-code')).not.toBeInTheDocument();
+    });
   });
 });

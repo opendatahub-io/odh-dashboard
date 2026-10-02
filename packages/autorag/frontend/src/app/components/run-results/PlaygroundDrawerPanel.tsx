@@ -31,6 +31,12 @@ import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { formatPatternName } from '~/app/utilities/utils';
 import { formatMetricValue } from '~/app/utilities/metricUtils';
+import {
+  getPatternStoreProvider,
+  isResponsesProvider,
+  resolveDatabaseSecretName,
+  resolveMaaSSecretName,
+} from '~/app/utilities/responses';
 import './PlaygroundDrawerPanel.scss';
 
 const EmbeddedPlayground = React.lazy(() => import('~/app/components/EmbeddedPlayground'));
@@ -61,27 +67,25 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
   onViewCode,
 }) => {
   const { parameters, patterns } = useAutoragResultsContext();
-  const secretName =
-    typeof parameters?.maas_secret_name === 'string' ? parameters.maas_secret_name : '';
+  const secretName = resolveMaaSSecretName(parameters) ?? '';
   const [isPatternSelectOpen, setIsPatternSelectOpen] = React.useState(false);
 
-  const vectorDbSecretNameParameter = parameters?.vector_db_secret_name;
-  const vectorDbSecretName =
-    typeof vectorDbSecretNameParameter === 'string' && vectorDbSecretNameParameter.trim()
-      ? vectorDbSecretNameParameter.trim()
-      : '';
+  const databaseSecretName = resolveDatabaseSecretName(parameters);
+  const provider = getPatternStoreProvider(patterns[patternInfo.patternName]);
+  const responsesProviderSupported = isResponsesProvider(provider);
+  const responsesReady = Boolean(databaseSecretName && secretName && responsesProviderSupported);
   const responsesEndpointUrl = React.useMemo(() => {
-    if (!vectorDbSecretName) {
+    if (!databaseSecretName || !secretName || !responsesProviderSupported) {
       return undefined;
     }
 
     const query = new URLSearchParams({ namespace });
-    query.set('vectorDbSecretName', vectorDbSecretName);
+    query.set('dbSecretName', databaseSecretName);
     if (secretName) {
       query.set('maasSecretName', secretName);
     }
     return `/autorag/api/v1/responses?${query.toString()}`;
-  }, [namespace, vectorDbSecretName, secretName]);
+  }, [databaseSecretName, namespace, responsesProviderSupported, secretName]);
 
   const additionalMetadata = React.useMemo(() => {
     const { settings } = patterns[patternInfo.patternName];
@@ -140,7 +144,7 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
               alignItems={{ default: 'alignItemsCenter' }}
               spaceItems={{ default: 'spaceItemsSm' }}
             >
-              {vectorDbSecretName ? (
+              {responsesReady ? (
                 <Button
                   variant="secondary"
                   icon={<CodeIcon />}
@@ -192,7 +196,7 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
           </Card>
         </div>
         <div className="autorag-playground-drawer__chatbot-container">
-          {vectorDbSecretName ? (
+          {responsesReady ? (
             <React.Suspense
               fallback={
                 <Bullseye>
@@ -224,16 +228,31 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
           ) : (
             <Bullseye>
               <EmptyState
-                data-testid="playground-vector-db-unavailable"
+                data-testid={
+                  provider === 'neo4j'
+                    ? 'playground-neo4j-unavailable'
+                    : !databaseSecretName
+                      ? 'playground-vector-db-unavailable'
+                      : 'playground-maas-unavailable'
+                }
                 headingLevel="h2"
                 icon={ExclamationCircleIcon}
-                titleText="Playground unavailable"
+                titleText={
+                  provider === 'neo4j'
+                    ? 'GraphRAG playground unavailable'
+                    : !databaseSecretName
+                      ? 'Playground unavailable'
+                      : 'MaaS connection unavailable'
+                }
                 variant={EmptyStateVariant.sm}
                 status="warning"
               >
                 <EmptyStateBody>
-                  The vector database connection is unavailable for this historical run. Rerun or
-                  configure the run with its vector database connection to use the playground.
+                  {provider === 'neo4j'
+                    ? 'GraphRAG runs using Neo4j are not supported by the Responses playground. Use the run results and pattern details instead.'
+                    : !databaseSecretName
+                      ? 'The database connection is unavailable for this historical run. Rerun or configure the run with its database connection to use the playground.'
+                      : 'A MaaS connection is required to use the playground. Configure the run with a MaaS secret and try again.'}
                 </EmptyStateBody>
               </EmptyState>
             </Bullseye>

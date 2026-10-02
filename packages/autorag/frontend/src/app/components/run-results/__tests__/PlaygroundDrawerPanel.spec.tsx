@@ -58,6 +58,7 @@ const mockPatternInfo: PlaygroundPatternInfo = {
 };
 
 const mockPatternSettings: AutoragPattern['settings'] = {
+  store_binding: { provider_type: 'milvus', collection_name: 'vs-1' },
   chunking: { method: 'semantic', chunk_size: 512, chunk_overlap: 0 },
   embedding: { model_id: 'embedding-model', embedding_params: { embedding_dimension: 384 } },
   retrieval: { method: 'similarity', number_of_chunks: 5 },
@@ -141,7 +142,7 @@ describe('PlaygroundDrawerPanel', () => {
 
     expect(screen.getByTestId('mock-embedded-playground')).toHaveAttribute(
       'data-endpoint',
-      '/autorag/api/v1/responses?namespace=test-ns&vectorDbSecretName=milvus&maasSecretName=test-secret',
+      '/autorag/api/v1/responses?namespace=test-ns&dbSecretName=milvus&maasSecretName=test-secret',
     );
   });
 
@@ -164,10 +165,30 @@ describe('PlaygroundDrawerPanel', () => {
     expect(screen.queryByTestId('mock-embedded-playground')).not.toBeInTheDocument();
     expect(screen.queryByTestId('playground-view-code-button')).not.toBeInTheDocument();
     expect(screen.getByTestId('playground-vector-db-unavailable')).toHaveTextContent(
-      'The vector database connection is unavailable for this historical run.',
+      'The database connection is unavailable for this historical run.',
     );
     expect(screen.getByTestId('playground-vector-db-unavailable')).toHaveTextContent(
-      'Rerun or configure the run with its vector database connection',
+      'Rerun or configure the run with its database connection',
+    );
+  });
+
+  it('should disable the playground when the MaaS secret is unavailable', () => {
+    render(
+      <AutoragResultsContext.Provider
+        value={{ ...mockContextValue, parameters: { db_secret_name: 'milvus' } }}
+      >
+        <Drawer isExpanded>
+          <DrawerContent panelContent={<PlaygroundDrawerPanel {...defaultProps} />}>
+            <div>Main content</div>
+          </DrawerContent>
+        </Drawer>
+      </AutoragResultsContext.Provider>,
+    );
+
+    expect(screen.queryByTestId('mock-embedded-playground')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('playground-view-code-button')).not.toBeInTheDocument();
+    expect(screen.getByTestId('playground-maas-unavailable')).toHaveTextContent(
+      'A MaaS connection is required to use the playground.',
     );
   });
 
@@ -185,7 +206,7 @@ describe('PlaygroundDrawerPanel', () => {
     expect(screen.queryByTestId('mock-embedded-playground')).not.toBeInTheDocument();
     expect(screen.queryByTestId('playground-view-code-button')).not.toBeInTheDocument();
     expect(screen.getByTestId('playground-vector-db-unavailable')).toHaveTextContent(
-      'The vector database connection is unavailable for this historical run.',
+      'The database connection is unavailable for this historical run.',
     );
   });
 
@@ -203,7 +224,7 @@ describe('PlaygroundDrawerPanel', () => {
     expect(screen.queryByTestId('mock-embedded-playground')).not.toBeInTheDocument();
     expect(screen.queryByTestId('playground-view-code-button')).not.toBeInTheDocument();
     expect(screen.getByTestId('playground-vector-db-unavailable')).toHaveTextContent(
-      'The vector database connection is unavailable for this historical run.',
+      'The database connection is unavailable for this historical run.',
     );
   });
 
@@ -219,6 +240,38 @@ describe('PlaygroundDrawerPanel', () => {
 
     fireEvent.click(screen.getByTestId('playground-view-code-button'));
     expect(defaultProps.onViewCode).toHaveBeenCalledWith('pattern_a');
+  });
+
+  it('should disable playground and View Code for Neo4j patterns', () => {
+    const neo4jPattern = {
+      ...mockPatterns.pattern_a,
+      name: 'neo4j-pattern',
+      settings: { ...mockPatternSettings, store_binding: { provider_type: 'neo4j' } },
+    } as AutoragPattern;
+    render(
+      <AutoragResultsContext.Provider
+        value={{ ...mockContextValue, patterns: { 'neo4j-pattern': neo4jPattern } }}
+      >
+        <Drawer isExpanded>
+          <DrawerContent
+            panelContent={
+              <PlaygroundDrawerPanel
+                {...defaultProps}
+                patternInfo={{ ...mockPatternInfo, patternName: 'neo4j-pattern' }}
+              />
+            }
+          >
+            <div>Main content</div>
+          </DrawerContent>
+        </Drawer>
+      </AutoragResultsContext.Provider>,
+    );
+
+    expect(screen.queryByTestId('mock-embedded-playground')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('playground-view-code-button')).not.toBeInTheDocument();
+    expect(screen.getByTestId('playground-neo4j-unavailable')).toHaveTextContent(
+      'GraphRAG runs using Neo4j are not supported',
+    );
   });
 
   it('should render the pattern select toggle', () => {

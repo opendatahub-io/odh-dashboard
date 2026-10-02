@@ -133,14 +133,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.Port),
-		Handler:      app.Routes(),
-		IdleTimeout:  time.Minute,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
-		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
-	}
+	srv := newHTTPServer(cfg.Port, app.Routes(), logger)
 
 	if certFile != "" && keyFile != "" {
 		tlsCfg, err := tlsprofile.ServerTLSConfig(context.Background(), logger)
@@ -189,4 +182,31 @@ func main() {
 
 	logger.Info("server stopped")
 	os.Exit(0)
+}
+
+func newHTTPServer(port int, handler http.Handler, logger *slog.Logger) *http.Server {
+	return newHTTPServerWithWriteTimeout(port, handler, logger, nonStreamingWriteTimeout)
+}
+
+const nonStreamingWriteTimeout = 30 * time.Second
+
+func newHTTPServerWithWriteTimeout(port int, handler http.Handler, logger *slog.Logger, writeTimeout time.Duration) *http.Server {
+	return &http.Server{
+		Addr:    fmt.Sprintf(":%d", port),
+		Handler: withWriteDeadline(handler, writeTimeout),
+		// A per-request deadline protects non-streaming responses. Streaming handlers
+		// clear it before sending their first event so live SSE streams remain open.
+		IdleTimeout: time.Minute,
+		ReadTimeout: 30 * time.Second,
+		ErrorLog:    slog.NewLogLogger(logger.Handler(), slog.LevelError),
+	}
+}
+
+func withWriteDeadline(handler http.Handler, timeout time.Duration) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if timeout > 0 {
+			_ = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(timeout))
+		}
+		handler.ServeHTTP(w, r)
+	})
 }

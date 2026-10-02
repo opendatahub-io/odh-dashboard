@@ -7,7 +7,10 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
+	"regexp"
 	"slices"
+	"strings"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 )
@@ -121,4 +124,58 @@ func (r ResponseLogValuer) LogValue() slog.Value {
 		slog.String("status", r.Response.Status),
 		slog.Any("body", r.Body),
 		slog.Any("headers", HeaderLogValuer{Header: r.Response.Header}))
+}
+
+var (
+	// URL-shaped values are sanitized conservatively so ordinary error text is not
+	// rewritten. The second pattern handles endpoint forms without a scheme, which
+	// are used by some Milvus clients.
+	schemedURLPattern   = regexp.MustCompile(`(?i)\b[a-z][a-z0-9+.-]*://[^\s"'<>]+`)
+	unschemedURLPattern = regexp.MustCompile(`(?i)(?:[^\s"'<>/@]+@)?(?:\[[0-9a-f:.]+\]|[a-z0-9](?:[a-z0-9.-]*[a-z0-9])):\d+(?:[/?#][^\s"'<>]*)?`)
+)
+
+// SafeErrorForLog removes URL credentials and endpoint details that may contain
+// tokens from an error before it is written to logs. It preserves only the
+// scheme, host, and port for URL-shaped values.
+func SafeErrorForLog(err error) string {
+	if err == nil {
+		return ""
+	}
+
+	safe := schemedURLPattern.ReplaceAllStringFunc(err.Error(), sanitizeURLMatch)
+	return unschemedURLPattern.ReplaceAllStringFunc(safe, sanitizeURLMatch)
+}
+
+// SafeURLForLog preserves only the scheme, host, and port of a URL.
+func SafeURLForLog(rawURL string) string {
+	parsed, err := url.Parse(rawURL)
+	if err != nil || parsed.Scheme == "" || parsed.Hostname() == "" {
+		return "<invalid URL>"
+	}
+	return parsed.Scheme + "://" + parsed.Host
+}
+
+func sanitizeURLMatch(match string) string {
+	trailing := strings.TrimRight(match, ".,;:!?)]}")
+	punctuation := match[len(trailing):]
+	if trailing == "" {
+		return match
+	}
+
+	parsed, err := url.Parse(trailing)
+	if !strings.Contains(trailing, "://") {
+		parsed, err = url.Parse("//" + trailing)
+	}
+	if err != nil || parsed.Hostname() == "" {
+		return match
+	}
+
+	userinfo := ""
+	if parsed.User != nil {
+		userinfo = "<redacted>@"
+	}
+	if parsed.Scheme != "" {
+		return parsed.Scheme + "://" + userinfo + parsed.Host + punctuation
+	}
+	return userinfo + parsed.Host + punctuation
 }

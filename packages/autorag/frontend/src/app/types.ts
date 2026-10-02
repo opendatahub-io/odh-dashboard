@@ -84,6 +84,7 @@ export type AutoragRuntimeParameters = Record<string, unknown> & {
   embedding_models?: unknown;
   input_data_keys?: unknown;
   maas_secret_name?: unknown;
+  db_secret_name?: unknown;
   vector_db_secret_name?: unknown;
   input_data_key?: unknown;
   ogx_secret_name?: unknown;

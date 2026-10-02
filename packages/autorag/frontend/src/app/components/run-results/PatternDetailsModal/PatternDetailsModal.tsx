@@ -60,6 +60,8 @@ export type PatternDetailsModalProps = {
   onPatternChange: (index: number) => void;
   namespace?: string;
   ragPatternsBasePath?: string;
+  databaseSecretName?: string;
+  maasSecretName?: string;
   onSaveNotebook?: (patternName: string, notebookType: 'indexing' | 'inference') => void;
   onTryPattern?: (patternName: string) => void;
   onViewCode?: (patternName: string) => void;
@@ -88,6 +90,8 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   onPatternChange,
   namespace,
   ragPatternsBasePath,
+  databaseSecretName,
+  maasSecretName,
   onSaveNotebook,
   onTryPattern,
   onViewCode,
@@ -269,6 +273,8 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                   }
                 : undefined
             }
+            databaseSecretName={databaseSecretName}
+            maasSecretName={maasSecretName}
             comparisonEnabled={comparisonEnabled}
             comparisonPatternIndex={comparisonPatternIndex}
           />

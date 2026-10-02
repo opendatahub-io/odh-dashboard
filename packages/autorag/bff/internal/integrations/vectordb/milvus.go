@@ -3,9 +3,11 @@ package vectordb
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	milvusclient "github.com/milvus-io/milvus-sdk-go/v2/client"
 	"github.com/milvus-io/milvus-sdk-go/v2/entity"
@@ -18,13 +20,42 @@ const (
 	milvusTextField        = "content"
 	milvusDenseVectorField = "vector"
 	milvusSparseField      = "sparse"
+	MilvusOperationTimeout = 15 * time.Second
 )
 
 type milvusDB struct {
-	client milvusclient.Client
+	client           milvusClient
+	operationTimeout time.Duration
+}
+
+type milvusClient interface {
+	Close() error
+	Search(context.Context, string, []string, string, []string, []entity.Vector, string, entity.MetricType, int, entity.SearchParam, ...milvusclient.SearchQueryOptionFunc) ([]milvusclient.SearchResult, error)
+}
+
+func classifyMilvusError(parentCtx, operationCtx context.Context, err error) error {
+	if parentErr := parentCtx.Err(); parentErr != nil {
+		return fmt.Errorf("%w: %w", parentErr, err)
+	}
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(operationCtx.Err(), context.DeadlineExceeded) {
+		return fmt.Errorf("%w: %w", ErrDatabaseTimeout, err)
+	}
+	return fmt.Errorf("%w: %w", ErrDatabaseUnavailable, err)
 }
 
 func newMilvusFromSecret(ctx context.Context, data map[string][]byte) (VectorDB, error) {
+	return newMilvusFromSecretWithTimeout(ctx, data, MilvusOperationTimeout, func(connectCtx context.Context, cfg milvusclient.Config) (milvusClient, error) {
+		client, err := milvusclient.NewClient(connectCtx, cfg)
+		return client, err
+	})
+}
+
+func newMilvusFromSecretWithTimeout(
+	ctx context.Context,
+	data map[string][]byte,
+	timeout time.Duration,
+	newClient func(context.Context, milvusclient.Config) (milvusClient, error),
+) (VectorDB, error) {
 	uri := strings.TrimSpace(string(data["MILVUS_URI"]))
 	token := strings.TrimSpace(string(data["MILVUS_TOKEN"]))
 	certPEM := data["MILVUS_SERVER_CERT"]
@@ -70,9 +101,11 @@ func newMilvusFromSecret(ctx context.Context, data map[string][]byte) (VectorDB,
 		cfg.EnableTLSAuth = false
 	}
 
-	c, err := milvusclient.NewClient(ctx, cfg)
+	operationCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	c, err := newClient(operationCtx, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("milvus connect: %w", err)
+		return nil, fmt.Errorf("milvus connect: %w", classifyMilvusError(ctx, operationCtx, err))
 	}
 	return &milvusDB{client: c}, nil
 }
@@ -83,10 +116,16 @@ func (m *milvusDB) Search(ctx context.Context, collection string, queryVec []flo
 	}
 	sp, _ := entity.NewIndexFlatSearchParam()
 
-	results, err := m.client.Search(ctx, collection, nil, "", []string{milvusTextField},
+	timeout := m.operationTimeout
+	if timeout <= 0 {
+		timeout = MilvusOperationTimeout
+	}
+	operationCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	results, err := m.client.Search(operationCtx, collection, nil, "", []string{milvusTextField},
 		[]entity.Vector{entity.FloatVector(queryVec)}, milvusDenseVectorField, entity.COSINE, topK, sp)
 	if err != nil {
-		return nil, fmt.Errorf("milvus dense search: %w", err)
+		return nil, fmt.Errorf("milvus dense search: %w", classifyMilvusError(ctx, operationCtx, err))
 	}
 	return extractMilvusResults(results, topK), nil
 }

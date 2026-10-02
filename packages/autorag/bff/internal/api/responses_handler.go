@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"math"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
@@ -37,7 +38,14 @@ const maxFileSearchResults = 100
 
 const genericStreamingErrorMessage = "The response could not be completed."
 
-// ResponsesHandler handles POST /api/v1/pipeline-runs/:runId/patterns/:patternName/responses
+const (
+	vectorDBUnavailableMessage = "The vector database is unavailable."
+	vectorDBTimeoutMessage     = "The vector database request timed out."
+	vectorDBUnavailableCode    = "vector_database_unavailable"
+	vectorDBTimeoutCode        = "vector_database_timeout"
+)
+
+// ResponsesHandler handles POST /api/v1/responses.
 func (h *ResponsesHandler) HandleResponsesEndpoint(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	params, ok := h.extractParams(w, r)
 	if !ok {
@@ -76,6 +84,12 @@ func (h *ResponsesHandler) HandleResponsesEndpoint(w http.ResponseWriter, r *htt
 }
 
 func validateResponsesRequest(req *models.ResponsesRequest) error {
+	if strings.TrimSpace(req.Model) == "" {
+		return errors.New("model is required")
+	}
+	if !req.HasInput() {
+		return errors.New("input is required")
+	}
 	for _, tool := range req.Tools {
 		if tool.Type != "file_search" {
 			continue
@@ -104,13 +118,13 @@ func (h *ResponsesHandler) extractParams(w http.ResponseWriter, r *http.Request)
 		return repositories.ResponsesParams{}, false
 	}
 
-	vectorDbSecretName := r.URL.Query().Get("vectorDbSecretName")
-	if vectorDbSecretName == "" {
-		badRequestResponse(h.logger, w, r, "missing required query parameter: vectorDbSecretName")
+	dbSecretName := r.URL.Query().Get("dbSecretName")
+	if dbSecretName == "" {
+		badRequestResponse(h.logger, w, r, "missing required query parameter: dbSecretName")
 		return repositories.ResponsesParams{}, false
 	}
-	if err := kubernetes.ValidateResourceName("vectorDbSecretName", vectorDbSecretName); err != nil {
-		badRequestResponse(h.logger, w, r, "invalid vectorDbSecretName: must be a valid Kubernetes resource name")
+	if err := kubernetes.ValidateResourceName("dbSecretName", dbSecretName); err != nil {
+		badRequestResponse(h.logger, w, r, "invalid dbSecretName: must be a valid Kubernetes resource name")
 		return repositories.ResponsesParams{}, false
 	}
 
@@ -125,9 +139,9 @@ func (h *ResponsesHandler) extractParams(w http.ResponseWriter, r *http.Request)
 	}
 
 	return repositories.ResponsesParams{
-		Namespace:          namespace,
-		VectorDbSecretName: vectorDbSecretName,
-		MaasSecretName:     maasSecretName,
+		Namespace:      namespace,
+		DBSecretName:   dbSecretName,
+		MaasSecretName: maasSecretName,
 	}, true
 }
 
@@ -137,16 +151,45 @@ func newID(prefix string) string {
 	return fmt.Sprintf("%s_%x-%x-%x-%x-%x", prefix, b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 }
 
-func sseData(w http.ResponseWriter, flusher http.Flusher, v any) {
-	js, _ := json.Marshal(v)
-	fmt.Fprintf(w, "data: %s\n\n", js)
-	if flusher != nil {
-		flusher.Flush()
+func sseData(w http.ResponseWriter, flusher http.Flusher, v any) error {
+	js, err := json.Marshal(v)
+	if err != nil {
+		return err
 	}
+	if _, err := fmt.Fprintf(w, "data: %s\n\n", js); err != nil {
+		return err
+	}
+	return flushSSE(w, flusher)
+}
+
+func flushSSE(w http.ResponseWriter, flusher http.Flusher) error {
+	if flusher == nil {
+		return nil
+	}
+	if flushErrer, ok := flusher.(interface{ FlushError() error }); ok {
+		return flushErrer.FlushError()
+	}
+	if err := http.NewResponseController(w).Flush(); err == nil {
+		return nil
+	} else if !errors.Is(err, http.ErrNotSupported) {
+		return err
+	}
+	flusher.Flush()
+	return nil
+}
+
+func sseDone(w http.ResponseWriter, flusher http.Flusher) error {
+	if _, err := fmt.Fprint(w, "data: [DONE]\n\n"); err != nil {
+		return err
+	}
+	return flushSSE(w, flusher)
 }
 
 // handleStreamingResponse streams a RAG response using the OpenAI Responses API SSE event format.
 func (h *ResponsesHandler) handleStreamingResponse(w http.ResponseWriter, r *http.Request, params repositories.ResponsesParams, req *models.ResponsesRequest) {
+	// The server applies a bounded deadline to ordinary responses. SSE is a live
+	// stream, so remove that deadline before committing the streaming response.
+	_ = http.NewResponseController(w).SetWriteDeadline(time.Time{})
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("X-Accel-Buffering", "no")
@@ -161,6 +204,37 @@ func (h *ResponsesHandler) handleStreamingResponse(w http.ResponseWriter, r *htt
 
 	seq := 0
 	next := func() int { n := seq; seq++; return n }
+	streamCtx, cancel := context.WithCancel(r.Context())
+	defer cancel()
+	var streamWriteErr error
+	writeEvent := func(v any) bool {
+		if streamCtx.Err() != nil {
+			return false
+		}
+		if streamWriteErr != nil {
+			return false
+		}
+		if err := sseData(w, flusher, v); err != nil {
+			streamWriteErr = err
+			cancel()
+			return false
+		}
+		return true
+	}
+	writeDone := func() bool {
+		if streamCtx.Err() != nil {
+			return false
+		}
+		if streamWriteErr != nil {
+			return false
+		}
+		if err := sseDone(w, flusher); err != nil {
+			streamWriteErr = err
+			cancel()
+			return false
+		}
+		return true
+	}
 
 	emptyResp := map[string]any{"id": "", "model": "", "status": "", "created_at": 0}
 
@@ -176,7 +250,7 @@ func (h *ResponsesHandler) handleStreamingResponse(w http.ResponseWriter, r *htt
 		}
 	}
 
-	sseData(w, flusher, map[string]any{
+	if !writeEvent(map[string]any{
 		"type":            "response.created",
 		"sequence_number": next(),
 		"output_index":    0,
@@ -184,18 +258,22 @@ func (h *ResponsesHandler) handleStreamingResponse(w http.ResponseWriter, r *htt
 			"id": responseID, "model": req.Model,
 			"status": "in_progress", "created_at": createdAt,
 		},
-	})
+	}) {
+		return
+	}
 
-	sseData(w, flusher, map[string]any{
+	if !writeEvent(map[string]any{
 		"type":            "response.content_part.added",
 		"sequence_number": next(),
 		"item_id":         msgID,
 		"output_index":    1,
 		"response":        emptyResp,
-	})
+	}) {
+		return
+	}
 
-	result, err := h.repo.HandleResponsesStream(r.Context(), params, req, func(delta string) {
-		sseData(w, flusher, map[string]any{
+	result, err := h.repo.HandleResponsesStream(streamCtx, params, req, func(delta string) {
+		writeEvent(map[string]any{
 			"type":            "response.output_text.delta",
 			"sequence_number": next(),
 			"item_id":         msgID,
@@ -204,31 +282,48 @@ func (h *ResponsesHandler) handleStreamingResponse(w http.ResponseWriter, r *htt
 			"response":        emptyResp,
 		})
 	})
+	if streamWriteErr != nil {
+		return
+	}
 
 	if err != nil {
+		if streamCtx.Err() != nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return
+		}
 		h.logger.Error("RAG streaming response failed",
 			"namespace", params.Namespace,
-			"vector_db_secret_name", params.VectorDbSecretName,
+			"db_secret_name", params.DBSecretName,
 			"maas_secret_name", params.MaasSecretName,
-			"error", err,
+			"error", sanitizeErrorForLog(err),
 		)
-		sseData(w, flusher, map[string]any{"type": "error", "sequence_number": next(), "message": genericStreamingErrorMessage})
-		fmt.Fprintf(w, "data: [DONE]\n\n")
-		if flusher != nil {
-			flusher.Flush()
+		errorEvent := map[string]any{"type": "error", "sequence_number": next(), "message": genericStreamingErrorMessage}
+		if errors.Is(err, vectordb.ErrDatabaseTimeout) {
+			errorEvent["code"] = vectorDBTimeoutCode
+			errorEvent["message"] = vectorDBTimeoutMessage
+		} else if errors.Is(err, vectordb.ErrDatabaseUnavailable) {
+			errorEvent["code"] = vectorDBUnavailableCode
+			errorEvent["message"] = vectorDBUnavailableMessage
+		}
+		if !writeEvent(errorEvent) {
+			return
+		}
+		if !writeDone() {
+			return
 		}
 		return
 	}
 
-	sseData(w, flusher, map[string]any{
+	if !writeEvent(map[string]any{
 		"type":            "response.content_part.done",
 		"sequence_number": next(),
 		"item_id":         msgID,
 		"output_index":    1,
 		"response":        emptyResp,
-	})
+	}) {
+		return
+	}
 
-	sseData(w, flusher, map[string]any{
+	if !writeEvent(map[string]any{
 		"type":            "response.completed",
 		"sequence_number": next(),
 		"output_index":    0,
@@ -251,9 +346,11 @@ func (h *ResponsesHandler) handleStreamingResponse(w http.ResponseWriter, r *htt
 				},
 			},
 		},
-	})
+	}) {
+		return
+	}
 
-	sseData(w, flusher, map[string]any{
+	if !writeEvent(map[string]any{
 		"type":            "response.metrics",
 		"sequence_number": next(),
 		"metrics": map[string]any{
@@ -265,11 +362,12 @@ func (h *ResponsesHandler) handleStreamingResponse(w http.ResponseWriter, r *htt
 				"total_tokens":  result.InputTokens + result.OutputTokens,
 			},
 		},
-	})
+	}) {
+		return
+	}
 
-	fmt.Fprintf(w, "data: [DONE]\n\n")
-	if flusher != nil {
-		flusher.Flush()
+	if !writeDone() {
+		return
 	}
 }
 
@@ -292,6 +390,18 @@ func (h *ResponsesHandler) mapError(w http.ResponseWriter, r *http.Request, err 
 	}
 	if errors.Is(err, vectordb.ErrUnsupportedSearch) {
 		badRequestResponse(h.logger, w, r, err.Error())
+		return
+	}
+	if errors.Is(err, vectordb.ErrUnsupportedVectorDB) {
+		badRequestResponse(h.logger, w, r, err.Error())
+		return
+	}
+	if errors.Is(err, vectordb.ErrDatabaseTimeout) {
+		serviceUnavailableResponseWithMessage(h.logger, w, r, err, vectorDBTimeoutMessage)
+		return
+	}
+	if errors.Is(err, vectordb.ErrDatabaseUnavailable) {
+		serviceUnavailableResponseWithMessage(h.logger, w, r, err, vectorDBUnavailableMessage)
 		return
 	}
 	serverErrorResponse(h.logger, w, r, err)

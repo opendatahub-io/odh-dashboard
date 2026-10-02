@@ -25,6 +25,7 @@ import {
   metricLabel,
 } from '~/app/utilities/metricUtils';
 import { patternHasIndexingPipelineSpec } from '~/app/utilities/indexingPipeline';
+import { getPatternStoreProvider, isResponsesProvider } from '~/app/utilities/responses';
 
 type PatternDetailsModalHeaderProps = {
   patterns: AutoragPattern[];
@@ -37,12 +38,13 @@ type PatternDetailsModalHeaderProps = {
   onTryPattern?: (patternName: string) => void;
   onViewCode?: (patternName: string) => void;
   onRunIndexingPipeline?: (patternName: string) => void;
+  databaseSecretName?: string;
+  maasSecretName?: string;
   comparisonEnabled?: boolean;
   comparisonPatternIndex?: number | null;
 };
 
-// Code snippets remain unavailable while the Responses API's chat workflow is rolled out.
-const VIEW_CODE_ACTION_ENABLED = false;
+const VIEW_CODE_ACTION_ENABLED = true;
 
 const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
   patterns,
@@ -57,11 +59,18 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
   onRunIndexingPipeline,
   comparisonEnabled,
   comparisonPatternIndex,
+  databaseSecretName,
+  maasSecretName,
 }) => {
   const [isPatternDropdownOpen, setIsPatternDropdownOpen] = React.useState(false);
   const [isActionsDropdownOpen, setIsActionsDropdownOpen] = React.useState(false);
 
   const data = patterns[selectedIndex];
+  const canViewCode = Boolean(
+    databaseSecretName?.trim() &&
+    maasSecretName?.trim() &&
+    isResponsesProvider(getPatternStoreProvider(data)),
+  );
 
   return (
     <>
@@ -199,15 +208,18 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
                       Try this pattern
                     </DropdownItem>
                   )}
-                  {VIEW_CODE_ACTION_ENABLED && data.inference?.responses_template && onViewCode && (
-                    <DropdownItem
-                      key="view-code"
-                      value="view-code"
-                      data-testid="pattern-details-view-code"
-                    >
-                      View code
-                    </DropdownItem>
-                  )}
+                  {VIEW_CODE_ACTION_ENABLED &&
+                    canViewCode &&
+                    data.inference?.responses_template &&
+                    onViewCode && (
+                      <DropdownItem
+                        key="view-code"
+                        value="view-code"
+                        data-testid="pattern-details-view-code"
+                      >
+                        View code
+                      </DropdownItem>
+                    )}
                   {/* eslint-enable @typescript-eslint/no-unnecessary-condition */}
                   {onRunIndexingPipeline && patternHasIndexingPipelineSpec(data) && (
                     <DropdownItem

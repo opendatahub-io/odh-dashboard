@@ -3,7 +3,7 @@ import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 export type SnippetParams = {
   template: ResponsesTemplate;
   namespace: string;
-  vectorDbSecretName: string;
+  dbSecretName: string;
   maasSecretName: string;
 };
 
@@ -11,10 +11,10 @@ const dashboardTokenPlaceholder = '<DASHBOARD_TOKEN>';
 
 const buildResponsesEndpoint = ({
   namespace,
-  vectorDbSecretName,
+  dbSecretName,
   maasSecretName,
 }: SnippetParams): string => {
-  const query = new URLSearchParams({ namespace, vectorDbSecretName, maasSecretName });
+  const query = new URLSearchParams({ namespace, dbSecretName, maasSecretName });
   return `/autorag/api/v1/responses?${query.toString()}`;
 };
 
