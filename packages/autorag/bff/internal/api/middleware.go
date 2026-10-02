@@ -14,6 +14,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
+	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	"github.com/rs/cors"
 )
@@ -90,6 +91,7 @@ func (mw *Middleware) AttachNamespace(next func(http.ResponseWriter, *http.Reque
 		}
 
 		ctx := context.WithValue(r.Context(), constants.NamespaceHeaderParameterKey, namespace)
+		ctx = context.WithValue(ctx, k8s.RequestNamespaceKey, namespace)
 		r = r.WithContext(ctx)
 
 		next(w, r, ps)

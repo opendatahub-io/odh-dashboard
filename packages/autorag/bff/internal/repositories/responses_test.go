@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -105,7 +106,7 @@ type mockURLForwarder struct {
 	forwardURL func(context.Context, string) (string, error)
 }
 
-func (m *mockURLForwarder) ForwardURL(ctx context.Context, rawURL string) (string, error) {
+func (m *mockURLForwarder) ForwardURL(ctx context.Context, _ string, rawURL string) (string, error) {
 	return m.forwardURL(ctx, rawURL)
 }
 
@@ -576,7 +577,8 @@ func TestBuildMessages(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			msgs := buildMessages(tt.systemPrompt, tt.contextTemplate, tt.userTemplate, tt.history, tt.question, tt.sources)
+			msgs, err := buildMessages(tt.systemPrompt, tt.contextTemplate, tt.userTemplate, tt.history, tt.question, tt.sources)
+			require.NoError(t, err)
 
 			assert.Len(t, msgs, tt.wantMsgCount)
 			if tt.wantFirstRole != "" {
@@ -590,6 +592,18 @@ func TestBuildMessages(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBuildMessagesRejectsRepeatedTemplateExpansionWithoutIntermediateAllocation(t *testing.T) {
+	_, err := buildMessages("", strings.Repeat("{document}", 2), "", nil, "question", []models.SourceChunk{{Text: strings.Repeat("x", maxRAGContextBytes/2)}})
+	assert.Error(t, err)
+}
+
+func TestBuildMessagesAcceptsExactContextBoundary(t *testing.T) {
+	text := strings.Repeat("x", maxRAGContextBytes-len("Document 1:\n")-1)
+	msgs, err := buildMessages("", "", "", nil, "", []models.SourceChunk{{Text: text}})
+	require.NoError(t, err)
+	assert.Len(t, msgs, 1)
 }
 
 // ---------- capHistory ----------

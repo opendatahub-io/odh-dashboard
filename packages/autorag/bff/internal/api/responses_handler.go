@@ -1,11 +1,13 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"math"
 	"net/http"
@@ -34,7 +36,31 @@ type ResponsesHandler struct {
 
 type RAGResponseEnvelope Envelope[*models.RAGResponse, None]
 
-const maxFileSearchResults = 100
+const (
+	maxFileSearchResults = 100
+	// maxResponsesOutputTokens matches the public API contract and bounds MaaS work.
+	maxResponsesOutputTokens = 4096
+	// Keep decoded request strings below the 10 MiB HTTP body limit to leave room for JSON overhead.
+	maxResponsesInputBytes         = 1 << 20
+	maxResponsesStringBytes        = maxResponsesInputBytes
+	maxResponsesInputMessages      = 1000
+	maxResponsesContentItems       = 1000
+	maxResponsesTotalContent       = 2000
+	maxResponsesTotalInputMessages = 1000
+	maxResponsesTools              = 100
+	maxResponsesTotalTools         = 100
+	maxResponsesVectorStoreIDs     = 100
+	maxResponsesTotalVectorIDs     = 200
+	maxResponsesIncludeItems       = 100
+	maxResponsesTotalIncludeItems  = 100
+	maxResponsesMetadataItems      = 100
+	maxResponsesRootProperties     = 16
+	maxResponsesMessageFields      = 3
+	maxResponsesContentFields      = 2
+	maxResponsesToolFields         = 5
+	maxResponsesToolChoiceFields   = 1
+	maxResponsesRankingFields      = 2
+)
 
 const genericStreamingErrorMessage = "The response could not be completed."
 
@@ -53,8 +79,25 @@ func (h *ResponsesHandler) HandleResponsesEndpoint(w http.ResponseWriter, r *htt
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		badRequestResponse(h.logger, w, r, fmt.Sprintf("invalid request body: %s", err))
+		return
+	}
+	if err := preflightResponsesJSON(body); err != nil {
+		badRequestResponse(h.logger, w, r, fmt.Sprintf("invalid request body: %s", err))
+		return
+	}
 	var req models.ResponsesRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	if err := decoder.Decode(&req); err != nil {
+		badRequestResponse(h.logger, w, r, fmt.Sprintf("invalid request body: %s", err))
+		return
+	}
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		if err == nil {
+			err = errors.New("body must only contain a single JSON value")
+		}
 		badRequestResponse(h.logger, w, r, fmt.Sprintf("invalid request body: %s", err))
 		return
 	}
@@ -63,16 +106,18 @@ func (h *ResponsesHandler) HandleResponsesEndpoint(w http.ResponseWriter, r *htt
 		return
 	}
 
+	executionCtx, cancel := context.WithTimeout(r.Context(), repositories.ResponsesExecutionTimeout)
+	defer cancel()
 	if req.Stream {
-		if err := h.repo.ValidateResponses(r.Context(), params, &req); err != nil {
+		if err := h.repo.ValidateResponses(executionCtx, params, &req); err != nil {
 			h.mapError(w, r, err)
 			return
 		}
-		h.handleStreamingResponse(w, r, params, &req)
+		h.handleStreamingResponse(w, r.WithContext(executionCtx), params, &req)
 		return
 	}
 
-	result, err := h.repo.HandleResponses(r.Context(), params, &req)
+	result, err := h.repo.HandleResponses(executionCtx, params, &req)
 	if err != nil {
 		h.mapError(w, r, err)
 		return
@@ -89,6 +134,87 @@ func validateResponsesRequest(req *models.ResponsesRequest) error {
 	}
 	if !req.HasInput() {
 		return errors.New("input is required")
+	}
+	if req.MaxOutputTokens < 0 {
+		return errors.New("max_output_tokens must be nonnegative")
+	}
+	if req.MaxOutputTokens > maxResponsesOutputTokens {
+		return fmt.Errorf("max_output_tokens must not exceed %d", maxResponsesOutputTokens)
+	}
+	requestSize := responseRequestSize{}
+	if err := requestSize.addString("model", req.Model); err != nil {
+		return err
+	}
+	if err := requestSize.addString("instructions", req.Instructions); err != nil {
+		return err
+	}
+	if len(req.Input) > maxResponsesInputMessages {
+		return fmt.Errorf("input must not contain more than %d messages", maxResponsesInputMessages)
+	}
+	for _, msg := range req.Input {
+		if err := requestSize.addString("input message type", msg.Type); err != nil {
+			return err
+		}
+		if err := requestSize.addString("input message role", msg.Role); err != nil {
+			return err
+		}
+		if len(msg.Content) > maxResponsesContentItems {
+			return fmt.Errorf("input message content must not contain more than %d items", maxResponsesContentItems)
+		}
+		for _, content := range msg.Content {
+			if err := requestSize.addString("input content type", content.Type); err != nil {
+				return err
+			}
+			if err := requestSize.addString("input content text", content.Text); err != nil {
+				return err
+			}
+		}
+	}
+	if len(req.Tools) > maxResponsesTools {
+		return fmt.Errorf("tools must not contain more than %d items", maxResponsesTools)
+	}
+	for _, tool := range req.Tools {
+		if err := requestSize.addString("tool type", tool.Type); err != nil {
+			return err
+		}
+		if len(tool.VectorStoreIDs) > maxResponsesVectorStoreIDs {
+			return fmt.Errorf("file_search vector_store_ids must not contain more than %d items", maxResponsesVectorStoreIDs)
+		}
+		for _, id := range tool.VectorStoreIDs {
+			if err := requestSize.addString("vector_store_id", id); err != nil {
+				return err
+			}
+		}
+		if err := requestSize.addString("file_search ranking_options.ranker", tool.RankingOptions.Ranker); err != nil {
+			return err
+		}
+	}
+	if req.ToolChoice != nil {
+		if err := requestSize.addString("tool_choice.type", req.ToolChoice.Type); err != nil {
+			return err
+		}
+	}
+	if len(req.Include) > maxResponsesIncludeItems {
+		return fmt.Errorf("include must not contain more than %d items", maxResponsesIncludeItems)
+	}
+	for _, value := range req.Include {
+		if err := requestSize.addString("include", value); err != nil {
+			return err
+		}
+	}
+	if len(req.Metadata) > maxResponsesMetadataItems {
+		return fmt.Errorf("metadata must not contain more than %d entries", maxResponsesMetadataItems)
+	}
+	for key, value := range req.Metadata {
+		if err := requestSize.addString("metadata key", key); err != nil {
+			return err
+		}
+		if err := requestSize.addString("metadata value", value); err != nil {
+			return err
+		}
+	}
+	if requestSize.total > maxResponsesInputBytes {
+		return fmt.Errorf("request input exceeds the maximum supported size of %d bytes", maxResponsesInputBytes)
 	}
 	for _, tool := range req.Tools {
 		if tool.Type != "file_search" {
@@ -107,6 +233,21 @@ func validateResponsesRequest(req *models.ResponsesRequest) error {
 			return fmt.Errorf("file_search ranking_options.alpha requires ranking_options.ranker")
 		}
 	}
+	return nil
+}
+
+type responseRequestSize struct {
+	total int
+}
+
+func (s *responseRequestSize) addString(field, value string) error {
+	if len(value) > maxResponsesStringBytes {
+		return fmt.Errorf("%s exceeds the maximum supported size of %d bytes", field, maxResponsesStringBytes)
+	}
+	if len(value) > maxResponsesInputBytes-s.total {
+		return fmt.Errorf("request input exceeds the maximum supported size of %d bytes", maxResponsesInputBytes)
+	}
+	s.total += len(value)
 	return nil
 }
 
@@ -287,7 +428,14 @@ func (h *ResponsesHandler) handleStreamingResponse(w http.ResponseWriter, r *htt
 	}
 
 	if err != nil {
-		if streamCtx.Err() != nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(streamCtx.Err(), context.DeadlineExceeded) {
+			if streamWriteErr == nil {
+				_ = sseData(w, flusher, map[string]any{"type": "error", "sequence_number": next(), "message": genericStreamingErrorMessage})
+				_ = sseDone(w, flusher)
+			}
+			return
+		}
+		if streamCtx.Err() != nil || errors.Is(err, context.Canceled) {
 			return
 		}
 		h.logger.Error("RAG streaming response failed",
@@ -388,6 +536,10 @@ func (h *ResponsesHandler) mapError(w http.ResponseWriter, r *http.Request, err 
 		badGatewayResponseWithMessage(h.logger, w, r, err, "MaaS service unavailable")
 		return
 	}
+	if errors.Is(err, maas.ErrMaaSResponseBodyLimit) {
+		serviceUnavailableResponseWithMessage(h.logger, w, r, err, "MaaS response exceeded the supported size")
+		return
+	}
 	if errors.Is(err, vectordb.ErrUnsupportedSearch) {
 		badRequestResponse(h.logger, w, r, err.Error())
 		return
@@ -396,12 +548,20 @@ func (h *ResponsesHandler) mapError(w http.ResponseWriter, r *http.Request, err 
 		badRequestResponse(h.logger, w, r, err.Error())
 		return
 	}
+	if errors.Is(err, vectordb.ErrResultContentLimit) {
+		serviceUnavailableResponseWithMessage(h.logger, w, r, err, "vector search results exceeded the supported size")
+		return
+	}
 	if errors.Is(err, vectordb.ErrDatabaseTimeout) {
 		serviceUnavailableResponseWithMessage(h.logger, w, r, err, vectorDBTimeoutMessage)
 		return
 	}
 	if errors.Is(err, vectordb.ErrDatabaseUnavailable) {
 		serviceUnavailableResponseWithMessage(h.logger, w, r, err, vectorDBUnavailableMessage)
+		return
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		serviceUnavailableResponseWithMessage(h.logger, w, r, err, genericStreamingErrorMessage)
 		return
 	}
 	serverErrorResponse(h.logger, w, r, err)

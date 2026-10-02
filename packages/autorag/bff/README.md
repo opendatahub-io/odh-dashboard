@@ -194,6 +194,8 @@ Executes a RAG query and streams the answer back as [OpenAI Responses API](https
 - `metadata.context_template_text` — optional; template for each retrieved chunk (`{document}`, `{doc_number}` placeholders)
 - `metadata.user_message_text` — optional; wraps context + question (`{reference_documents}`, `{question}` placeholders)
 - `stream: true` — must be `true`; non-streaming (`stream: false`) is also supported
+- `max_output_tokens` — nonnegative; zero uses the 2048-token default and explicit values are capped at 4096. Requests run for at most two minutes, and request input, retrieved context, and accumulated streamed output are bounded.
+- Request safety limits — the raw body is capped at 10 MiB, strings at 1 MiB, input messages at 1,000, content parts at 1,000 per message and 2,000 cumulatively, tools at 100, vector store IDs at 100 per tool and 200 cumulatively, include items at 100, and metadata entries at 100. Input message, content, tool, ranking-options, and tool-choice objects are limited to the documented contract properties. MaaS response bodies are capped at 4 MiB before SDK parsing; embedding responses are limited to 16 vectors of at most 16,384 dimensions.
 
 **SSE event sequence (streaming):**
 
@@ -218,6 +220,12 @@ The `response.completed` event includes a `file_search_call` output item with th
 data: {"type":"error","sequence_number":N,"code":"vector_database_timeout","message":"The vector database request timed out."}
 data: [DONE]
 ```
+
+Vector database destinations are restricted to either an exact Kubernetes Service FQDN
+(`service.namespace.svc.cluster.local`, where plaintext is allowed for the in-cluster adapter
+contract) or a public DNS name using TLS. Userinfo, queries, fragments, unsafe paths, and literal
+IP addresses are rejected. External DNS results are checked again at connection time and private,
+loopback, link-local, multicast, unspecified, and metadata-style addresses are not dialed.
 
 **Sample call (streaming):**
 

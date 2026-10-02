@@ -1860,8 +1860,14 @@ components:
         error:
           $ref: '#/components/schemas/Error'
     ResponsesRequest:
-      description: OpenAI Responses API-compatible request accepted by the AutoRAG BFF.
+      description: >-
+        OpenAI Responses API-compatible request accepted by the AutoRAG BFF. The raw request body
+        is limited to 10 MiB; array and object cardinality limits below are enforced before request
+        decoding. Individual request strings are limited to 1 MiB, and cumulative input content is
+        limited to 2,000 items and cumulative vector store IDs to 200 items.
       type: object
+      maxProperties: 16
+      additionalProperties: false
       required:
         - model
         - input
@@ -1869,14 +1875,19 @@ components:
         model:
           type: string
           minLength: 1
+          maxLength: 1048576
           pattern: '\S'
         input:
           description: A prompt string or an array of Responses API input messages.
           anyOf:
             - type: string
+              maxLength: 1048576
             - type: array
+              maxItems: 1000
               items:
                 type: object
+                maxProperties: 3
+                additionalProperties: false
                 required:
                   - type
                   - role
@@ -1884,40 +1895,57 @@ components:
                 properties:
                   type:
                     type: string
+                    maxLength: 1048576
                   role:
                     type: string
+                    maxLength: 1048576
                   content:
                     type: array
+                    maxItems: 1000
                     items:
                       type: object
+                      maxProperties: 2
+                      additionalProperties: false
                       required:
                         - type
                         - text
                       properties:
                         type:
                           type: string
+                          maxLength: 1048576
                         text:
                           type: string
+                          maxLength: 1048576
         instructions:
           type: string
+          maxLength: 1048576
         tools:
           type: array
+          maxItems: 100
           items:
             type: object
+            maxProperties: 5
+            additionalProperties: false
             properties:
               type:
                 type: string
+                maxLength: 1048576
               vector_store_ids:
                 type: array
+                maxItems: 100
                 items:
                   type: string
+                  maxLength: 1048576
               max_num_results:
                 type: integer
               ranking_options:
                 type: object
+                maxProperties: 2
+                additionalProperties: false
                 properties:
                   ranker:
                     type: string
+                    maxLength: 1048576
                     enum: [rrf]
                   alpha:
                     type: number
@@ -1925,29 +1953,40 @@ components:
                     maximum: 1
         tool_choice:
           type: object
+          maxProperties: 1
+          additionalProperties: false
           required:
             - type
           properties:
             type:
               type: string
+              maxLength: 1048576
               enum: [auto, required, none, file_search]
         store:
           type: boolean
         include:
           type: array
+          maxItems: 100
           items:
             type: string
+            maxLength: 1048576
             enum: [file_search_call.results, file_search_call.output]
         metadata:
           type: object
+          maxProperties: 100
           additionalProperties:
             type: string
+            maxLength: 1048576
         stream:
           type: boolean
         temperature:
           type: number
         max_output_tokens:
           type: integer
+          minimum: 0
+          maximum: 4096
+          default: 2048
+          description: Maximum generated tokens. Zero uses the default of 2048; explicit values above 4096 are rejected.
     RAGResponseEnvelope:
       type: object
       required:

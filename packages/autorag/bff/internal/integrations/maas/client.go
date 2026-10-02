@@ -1,7 +1,9 @@
 package maas
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -14,10 +16,31 @@ import (
 
 var ErrMaasUnavailable = errors.New("MaaS service unavailable")
 
+// ErrStreamOutputLimit prevents a provider from making the BFF accumulate an
+// unbounded answer, even when the provider ignores max_tokens.
+var ErrStreamOutputLimit = errors.New("stream output limit exceeded")
+
+const maxStreamOutputBytes = 4 << 20
+
+const (
+	maxEmbeddingResults          = 16
+	maxEmbeddingVectorDimensions = 16384
+)
+
+func appendStreamOutput(builder *strings.Builder, delta string) error {
+	if builder.Len()+len(delta) > maxStreamOutputBytes {
+		return ErrStreamOutputLimit
+	}
+	builder.WriteString(delta)
+	return nil
+}
+
 // Client wraps the official OpenAI client configured for a MaaS endpoint.
 type Client struct {
 	oai     openai.Client
 	baseURL string
+	http    *http.Client
+	apiKey  string
 }
 
 // ClientFactory creates a MaaS client with per-secret credentials and a shared
@@ -53,6 +76,9 @@ func NewClientWithHTTPClient(baseURL, apiKey string, httpClient *http.Client) (*
 	if err != nil {
 		return nil, fmt.Errorf("maas: %w", err)
 	}
+	clientCopy := *httpClient
+	clientCopy.Transport = limitMaaSResponseBody(httpClient.Transport)
+	httpClient = &clientCopy
 
 	base := strings.TrimSuffix(strings.TrimRight(parsed.String(), "/"), "/v1")
 	options := []option.RequestOption{
@@ -64,27 +90,40 @@ func NewClientWithHTTPClient(baseURL, apiKey string, httpClient *http.Client) (*
 	return &Client{
 		oai:     openai.NewClient(options...),
 		baseURL: base,
+		http:    httpClient,
+		apiKey:  apiKey,
 	}, nil
 }
 
 // Embed returns the embedding vector for text using the given model.
 func (c *Client) Embed(ctx context.Context, model, text string) ([]float32, error) {
-	resp, err := c.oai.Embeddings.New(ctx, openai.EmbeddingNewParams{
-		Input: openai.EmbeddingNewParamsInputUnion{OfString: openai.String(text)},
-		Model: openai.EmbeddingModel(model),
-	})
+	body, err := json.Marshal(map[string]string{"input": text, "model": model})
+	if err != nil {
+		return nil, fmt.Errorf("maas embed request: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/v1/embeddings", bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("maas embed request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	setAuthHeader(req, c.apiKey)
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("maas embed: %w", wrapMaaSClientError(err))
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return nil, fmt.Errorf("maas embed: %w", mapHTTPStatusToError(resp.StatusCode))
+	}
+	vecs, err := decodeEmbeddingResponse(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("maas embed: %w", err)
 	}
-	if len(resp.Data) == 0 {
+	if len(vecs) == 0 {
 		return nil, fmt.Errorf("maas embed: empty response")
 	}
-	raw := resp.Data[0].Embedding
-	vec := make([]float32, len(raw))
-	for i, v := range raw {
-		vec[i] = float32(v)
-	}
-	return vec, nil
+	return vecs[0], nil
 }
 
 // ChatRequest holds parameters for a chat completion call.
@@ -123,6 +162,9 @@ func (c *Client) ChatComplete(ctx context.Context, req ChatRequest) (*ChatRespon
 	}
 	if len(resp.Choices) == 0 {
 		return nil, fmt.Errorf("maas chat: empty choices")
+	}
+	if len(resp.Choices[0].Message.Content) > maxStreamOutputBytes {
+		return nil, ErrStreamOutputLimit
 	}
 	return &ChatResponse{Answer: resp.Choices[0].Message.Content}, nil
 }
@@ -168,7 +210,9 @@ func (c *Client) ChatCompleteStreamWithCallback(ctx context.Context, req ChatReq
 		if firstTokenMs == 0 {
 			firstTokenMs = time.Since(start).Milliseconds()
 		}
-		fullAnswer.WriteString(delta)
+		if err := appendStreamOutput(&fullAnswer, delta); err != nil {
+			return nil, err
+		}
 		onDelta(delta)
 	}
 	if err := stream.Err(); err != nil {

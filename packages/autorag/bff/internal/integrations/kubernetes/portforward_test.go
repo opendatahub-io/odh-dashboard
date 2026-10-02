@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -59,7 +60,7 @@ func TestForwardURL_RewritesExactServiceFQDNAndResolvesNamespace(t *testing.T) {
 		return &activeForward{localPort: 4567, stopChan: make(chan struct{}), errChan: make(chan error, 1)}, nil
 	}
 
-	got, err := manager.ForwardURL(context.Background(), "http://milvus.team-a.svc.cluster.local:19530/v1?x=1")
+	got, err := manager.ForwardURL(context.Background(), "team-a", "http://milvus.team-a.svc.cluster.local:19530/v1?x=1")
 	if err != nil {
 		t.Fatalf("ForwardURL() error = %v", err)
 	}
@@ -75,13 +76,13 @@ func TestForwardURL_DoesNotRewriteUnsupportedHostsOrUserinfo(t *testing.T) {
 		"http://milvus.team-a.svc.cluster.local.example.com:19530/v1",
 		"http://example.com:19530/v1",
 	} {
-		got, err := manager.ForwardURL(context.Background(), rawURL)
+		got, err := manager.ForwardURL(context.Background(), "team-a", rawURL)
 		if err != nil || got != rawURL {
 			t.Fatalf("ForwardURL(%q) = %q, %v; want unchanged and no error", rawURL, got, err)
 		}
 	}
 
-	got, err := manager.ForwardURL(context.Background(), "http://user:password@milvus.team-a.svc.cluster.local:19530/v1")
+	got, err := manager.ForwardURL(context.Background(), "team-a", "http://user:password@milvus.team-a.svc.cluster.local:19530/v1")
 	if err == nil || got != "" {
 		t.Fatalf("userinfo URL = %q, %v; want rejected", got, err)
 	}
@@ -576,12 +577,12 @@ func TestPortForwardManager_CloseDuringCreationDoesNotInsertForward(t *testing.T
 
 	results := make(chan error, 2)
 	go func() {
-		_, err := manager.ForwardURL(context.Background(), "http://milvus.team-a.svc.cluster.local:19530")
+		_, err := manager.ForwardURL(context.Background(), "team-a", "http://milvus.team-a.svc.cluster.local:19530")
 		results <- err
 	}()
 	<-started
 	go func() {
-		_, err := manager.ForwardURL(context.Background(), "http://milvus.team-a.svc.cluster.local:19530")
+		_, err := manager.ForwardURL(context.Background(), "team-a", "http://milvus.team-a.svc.cluster.local:19530")
 		results <- err
 	}()
 
@@ -644,7 +645,7 @@ func TestPortForwardManager_RejectsRequestsAfterClose(t *testing.T) {
 	manager := newTestPortForwardManager(k8sfake.NewSimpleClientset())
 	manager.Close()
 
-	got, err := manager.ForwardURL(context.Background(), "http://milvus.team-a.svc.cluster.local:19530")
+	got, err := manager.ForwardURL(context.Background(), "team-a", "http://milvus.team-a.svc.cluster.local:19530")
 	if got != "" || err == nil || err.Error() != "port-forward manager is closed" {
 		t.Fatalf("ForwardURL() = %q, %v; want closed manager rejection", got, err)
 	}
@@ -654,4 +655,68 @@ func TestPortForwardManager_CloseIsIdempotent(t *testing.T) {
 	manager := newTestPortForwardManager(k8sfake.NewSimpleClientset())
 	manager.Close()
 	manager.Close()
+}
+
+func TestPortForwardManager_RejectsCrossNamespaceBeforeLookup(t *testing.T) {
+	manager := newTestPortForwardManager(k8sfake.NewSimpleClientset())
+	manager.createForwardFn = func(context.Context, string, string, int) (*activeForward, error) {
+		t.Fatal("forward creation must not start for a namespace mismatch")
+		return nil, nil
+	}
+
+	got, err := manager.ForwardURL(context.Background(), "team-b", "http://milvus.team-a.svc.cluster.local:19530")
+	if got != "" || err == nil || !strings.Contains(err.Error(), "namespace does not match") {
+		t.Fatalf("ForwardURL() = %q, %v; want namespace mismatch", got, err)
+	}
+}
+
+func TestPortForwardManager_BoundsCachedForwards(t *testing.T) {
+	manager := newTestPortForwardManager(k8sfake.NewSimpleClientset())
+	for i := 0; i < maxCachedForwards; i++ {
+		manager.forwards[fmt.Sprintf("team-a/service-%d:19530", i)] = &activeForward{
+			localPort: uint16(4000 + i),
+			stopChan:  make(chan struct{}),
+			errChan:   make(chan error, 1),
+			lastUsed:  time.Now(),
+		}
+	}
+	manager.createForwardFn = func(context.Context, string, string, int) (*activeForward, error) {
+		t.Fatal("cache capacity must reject creation")
+		return nil, nil
+	}
+
+	_, err := manager.getOrCreateForward(context.Background(), "team-a", "new-service", 19530)
+	if err == nil || !strings.Contains(err.Error(), "cache capacity") {
+		t.Fatalf("getOrCreateForward() error = %v, want capacity error", err)
+	}
+}
+
+func TestPortForwardManager_EvictsIdleForwardAndStopsTunnel(t *testing.T) {
+	manager := newTestPortForwardManager(k8sfake.NewSimpleClientset())
+	forward := &activeForward{
+		localPort: 4567,
+		stopChan:  make(chan struct{}),
+		errChan:   make(chan error, 1),
+		done:      make(chan struct{}),
+		lastUsed:  time.Now().Add(-forwardIdleTTL - time.Second),
+	}
+	close(forward.done)
+	manager.forwards["team-a/milvus:19530"] = forward
+	manager.createForwardFn = func(context.Context, string, string, int) (*activeForward, error) {
+		return &activeForward{localPort: 4568, stopChan: make(chan struct{}), errChan: make(chan error, 1)}, nil
+	}
+
+	manager.clientset = k8sfake.NewSimpleClientset(testPortForwardEndpoints())
+	port, err := manager.getOrCreateForward(context.Background(), "team-a", "milvus", 19530)
+	if err != nil || port != 4568 {
+		t.Fatalf("getOrCreateForward() = %d, %v; want replacement", port, err)
+	}
+	select {
+	case <-forward.stopChan:
+	default:
+		t.Fatal("idle forward was not stopped")
+	}
+	if got := manager.forwards["team-a/milvus:19530"]; got == forward {
+		t.Fatal("idle forward remained cached")
+	}
 }

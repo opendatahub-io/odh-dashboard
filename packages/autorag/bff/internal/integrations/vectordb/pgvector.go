@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 
@@ -56,9 +57,9 @@ func newPgvectorFromSecret(ctx context.Context, data map[string][]byte) (VectorD
 	default:
 		return nil, fmt.Errorf("pgvector invalid PGVECTOR_SSLMODE: %q", sslMode)
 	}
-	if sslMode == "disable" && !isLocalNetworkHost(host) {
-		return nil, fmt.Errorf(
-			"pgvector: sslmode=disable is only allowed for localhost or *.cluster.local hosts, got %q — set PGVECTOR_SSLMODE or provide PGVECTOR_SERVER_CERT", host)
+	endpoint, err := parsePgvectorEndpoint(host, port, sslMode)
+	if err != nil {
+		return nil, fmt.Errorf("pgvector: %w", err)
 	}
 
 	// Build the connection config from an sslmode-only DSN, then assign
@@ -69,11 +70,16 @@ func newPgvectorFromSecret(ctx context.Context, data map[string][]byte) (VectorD
 	if err != nil {
 		return nil, fmt.Errorf("pgvector parse config: %w", err)
 	}
-	connConfig.Host = host
+	connConfig.Host = endpoint.host
 	connConfig.Port = uint16(port)
 	connConfig.Database = db
 	connConfig.User = user
 	connConfig.Password = password
+	lookupIP := func(connectCtx context.Context, lookupHost string) ([]net.IP, error) {
+		return net.DefaultResolver.LookupIP(connectCtx, "ip", lookupHost)
+	}
+	dialer := &net.Dialer{}
+	connConfig.DialFunc = vectorSafeDialContext(dialer.DialContext, lookupIP, endpoint.inCluster)
 
 	if len(certPEM) > 0 {
 		pool, err := certificates.SystemCertPoolWithPEM(certPEM, "PGVECTOR_SERVER_CERT")
@@ -117,12 +123,14 @@ WITH vector_ranked AS (
     SELECT id, content_text,
            ROW_NUMBER() OVER (ORDER BY embedding <=> $1) AS rank
     FROM %s
+    WHERE octet_length(content_text) <= $5
 ),
 text_ranked AS (
     SELECT id, content_text,
            ROW_NUMBER() OVER (ORDER BY ts_rank(tokenized_content, plainto_tsquery('english', $2)) DESC) AS rank
     FROM %s
     WHERE tokenized_content @@ plainto_tsquery('english', $2)
+      AND octet_length(content_text) <= $5
 ),
 combined AS (
     SELECT COALESCE(vr.id, tr.id) AS id,
@@ -134,17 +142,18 @@ combined AS (
 SELECT id, content_text, score
 FROM combined
 ORDER BY score DESC
-LIMIT $5`, table, table)
+LIMIT $6`, table, table)
 
-		rows, err = p.conn.Query(ctx, sql, vec, query, alpha, 1-alpha, topK)
+		rows, err = p.conn.Query(ctx, sql, vec, query, alpha, 1-alpha, MaxVectorResultBytes, topK)
 	} else {
 		sql := fmt.Sprintf(`
 SELECT id, content_text, 1 - (embedding <=> $1) AS score
 FROM %s
+WHERE octet_length(content_text) <= $3
 ORDER BY embedding <=> $1
 LIMIT $2`, table)
 
-		rows, err = p.conn.Query(ctx, sql, vec, topK)
+		rows, err = p.conn.Query(ctx, sql, vec, topK, MaxVectorResultBytes)
 	}
 
 	if err != nil {
@@ -153,11 +162,17 @@ LIMIT $2`, table)
 	defer rows.Close()
 
 	var out []SearchResult
+	totalBytes := 0
 	for rows.Next() {
 		var id, content string
 		var score float32
 		if scanErr := rows.Scan(&id, &content, &score); scanErr != nil {
 			return nil, fmt.Errorf("pgvector scan: %w", scanErr)
+		}
+		var sizeErr error
+		totalBytes, sizeErr = validateResultTextSize(totalBytes, content)
+		if sizeErr != nil {
+			return nil, sizeErr
 		}
 		out = append(out, SearchResult{ID: id, Text: content, Score: score})
 	}

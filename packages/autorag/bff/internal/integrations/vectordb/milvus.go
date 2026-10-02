@@ -70,19 +70,12 @@ func newMilvusFromSecretWithTimeout(
 		password = parts[1]
 	}
 
-	addr := strings.TrimPrefix(strings.TrimPrefix(uri, "https://"), "http://")
-	useTLS := strings.HasPrefix(uri, "https://")
-
-	if !useTLS {
-		host := addr
-		if h, _, err := net.SplitHostPort(addr); err == nil {
-			host = h
-		}
-		if !isLocalNetworkHost(host) {
-			return nil, fmt.Errorf(
-				"milvus: plaintext (http://) is only allowed for localhost or *.cluster.local hosts, got %q — use https:// with MILVUS_SERVER_CERT", host)
-		}
+	endpoint, err := parseMilvusEndpoint(uri)
+	if err != nil {
+		return nil, fmt.Errorf("milvus: %w", err)
 	}
+	addr := endpoint.address
+	useTLS := endpoint.useTLS
 
 	cfg := milvusclient.Config{
 		Address:       addr,
@@ -90,6 +83,15 @@ func newMilvusFromSecretWithTimeout(
 		Password:      password,
 		EnableTLSAuth: useTLS,
 	}
+
+	lookupIP := func(connectCtx context.Context, host string) ([]net.IP, error) {
+		return net.DefaultResolver.LookupIP(connectCtx, "ip", host)
+	}
+	dialer := &net.Dialer{}
+	safeDial := vectorSafeDialContext(dialer.DialContext, lookupIP, endpoint.inCluster)
+	cfg.DialOptions = append(cfg.DialOptions, grpc.WithContextDialer(func(connectCtx context.Context, address string) (net.Conn, error) {
+		return safeDial(connectCtx, "tcp", address)
+	}))
 
 	if len(certPEM) > 0 {
 		pool, err := certificates.SystemCertPoolWithPEM(certPEM, "MILVUS_SERVER_CERT")
@@ -127,17 +129,27 @@ func (m *milvusDB) Search(ctx context.Context, collection string, queryVec []flo
 	if err != nil {
 		return nil, fmt.Errorf("milvus dense search: %w", classifyMilvusError(ctx, operationCtx, err))
 	}
-	return extractMilvusResults(results, topK), nil
+	parsed, err := extractMilvusResults(results, topK)
+	if err != nil {
+		return nil, err
+	}
+	return parsed, nil
 }
 
-func extractMilvusResults(results []milvusclient.SearchResult, topK int) []SearchResult {
+func extractMilvusResults(results []milvusclient.SearchResult, topK int) ([]SearchResult, error) {
 	out := make([]SearchResult, 0, topK)
+	totalBytes := 0
 	for _, r := range results {
 		for i := range r.Scores {
 			text := ""
 			for _, col := range r.Fields {
 				if col.Name() == milvusTextField && i < col.Len() {
 					if v, colErr := col.GetAsString(i); colErr == nil {
+						var sizeErr error
+						totalBytes, sizeErr = validateResultTextSize(totalBytes, v)
+						if sizeErr != nil {
+							return nil, sizeErr
+						}
 						text = v
 					}
 				}
@@ -155,7 +167,7 @@ func extractMilvusResults(results []milvusclient.SearchResult, topK int) []Searc
 			})
 		}
 	}
-	return out
+	return out, nil
 }
 
 func (m *milvusDB) Close() error {

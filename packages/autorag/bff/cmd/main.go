@@ -62,6 +62,11 @@ func main() {
 
 	flag.Parse()
 
+	if err := cfg.Validate(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: cfg.LogLevel,
 	}))
@@ -93,11 +98,6 @@ func main() {
 
 	// Prevent disabling TLS verification in production — all authenticated outbound
 	// clients (pipelines and S3) send bearer or SA tokens over TLS.
-	if cfg.InsecureSkipVerify && !cfg.DevMode {
-		logger.Error("insecure-skip-verify can only be enabled in development mode (set -dev-mode flag)")
-		os.Exit(1)
-	}
-
 	// In dev mode, auto-disable auth when any mock client is active for testing convenience.
 	if cfg.DevMode &&
 		(cfg.MockK8sClient || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockMaaSClient) &&

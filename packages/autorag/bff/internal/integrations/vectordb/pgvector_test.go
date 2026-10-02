@@ -2,10 +2,7 @@ package vectordb
 
 import (
 	"context"
-	"net"
-	"strconv"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -61,7 +58,7 @@ func TestNewPgvectorFromSecret_DisableRejectedForRemoteHost(t *testing.T) {
 		"PGVECTOR_SSLMODE": []byte("disable"),
 	})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "sslmode=disable is only allowed")
+	assert.Contains(t, err.Error(), "external endpoints must use TLS")
 }
 
 func TestNewPgvectorFromSecret_DisableDefaultRejectedForRemoteHostWithoutCert(t *testing.T) {
@@ -71,12 +68,12 @@ func TestNewPgvectorFromSecret_DisableDefaultRejectedForRemoteHostWithoutCert(t 
 		"PGVECTOR_USER": []byte("user"),
 	})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "sslmode=disable is only allowed")
+	assert.Contains(t, err.Error(), "external endpoints must use TLS")
 }
 
 func TestNewPgvectorFromSecret_MalformedServerCert(t *testing.T) {
 	_, err := newPgvectorFromSecret(context.Background(), map[string][]byte{
-		"PGVECTOR_HOST":        []byte("localhost"),
+		"PGVECTOR_HOST":        []byte("postgres.team-a.svc.cluster.local"),
 		"PGVECTOR_DB":          []byte("db"),
 		"PGVECTOR_USER":        []byte("user"),
 		"PGVECTOR_SERVER_CERT": []byte("not a certificate"),
@@ -91,29 +88,14 @@ func TestNewPgvectorFromSecret_MalformedServerCert(t *testing.T) {
 // listener that speaks no Postgres wire protocol, so pgx is guaranteed to fail
 // the handshake — the assertion is only that the failure is not the
 // "sslmode=disable ... only allowed" validation error.
-func TestNewPgvectorFromSecret_DisableAllowedForLocalhost(t *testing.T) {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-	defer ln.Close()
-	go acceptAndCloseForever(ln)
-
-	_, portStr, err := net.SplitHostPort(ln.Addr().String())
-	require.NoError(t, err)
-	_, err = strconv.Atoi(portStr)
-	require.NoError(t, err)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	_, err = newPgvectorFromSecret(ctx, map[string][]byte{
+func TestNewPgvectorFromSecret_RejectsLiteralIP(t *testing.T) {
+	_, err := newPgvectorFromSecret(context.Background(), map[string][]byte{
 		"PGVECTOR_HOST": []byte("127.0.0.1"),
-		"PGVECTOR_PORT": []byte(portStr),
 		"PGVECTOR_DB":   []byte("db"),
 		"PGVECTOR_USER": []byte("user"),
 	})
-	require.Error(t, err, "dummy listener speaks no Postgres protocol, connection must fail")
-	assert.NotContains(t, err.Error(), "sslmode=disable is only allowed",
-		"localhost should pass the sslmode validation gate")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "literal IP")
 }
 
 func TestSanitizeIdentifier(t *testing.T) {

@@ -205,6 +205,108 @@ func TestListModelsMapsUpstreamErrors(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, maaSErr.StatusCode)
 }
 
+func TestAppendStreamOutputBoundsAccumulation(t *testing.T) {
+	var output strings.Builder
+	require.NoError(t, appendStreamOutput(&output, strings.Repeat("x", maxStreamOutputBytes)))
+	err := appendStreamOutput(&output, "x")
+	require.ErrorIs(t, err, ErrStreamOutputLimit)
+	assert.Len(t, output.String(), maxStreamOutputBytes)
+}
+
+func TestMaaSResponseBodyLimitRejectsOversizedBody(t *testing.T) {
+	client := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(strings.Repeat("x", maxMaaSResponseBodyBytes+1))),
+		}, nil
+	})}
+	resp, err := limitMaaSResponseBody(client.Transport).RoundTrip(httptest.NewRequest(http.MethodGet, "https://maas.example", nil))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	_, err = io.ReadAll(resp.Body)
+	require.ErrorIs(t, err, ErrMaaSResponseBodyLimit)
+}
+
+func TestMaaSResponseBodyLimitComposesWithConfiguredWrapper(t *testing.T) {
+	wrapped := false
+	client := NewDefaultHTTPClient(MaaSClientConfig{
+		WrapTransport: func(base http.RoundTripper) http.RoundTripper {
+			wrapped = true
+			return roundTripFunc(func(req *http.Request) (*http.Response, error) {
+				return base.RoundTrip(req)
+			})
+		},
+	})
+	assert.True(t, wrapped)
+
+	// The configured wrapper remains in the request path while the response
+	// limiter is the outermost transport.
+	assert.IsType(t, &limitedResponseBodyRoundTripper{}, client.Transport)
+}
+
+func TestEmbedRejectsOversizedVectorBeforeConversion(t *testing.T) {
+	values := strings.TrimSuffix(strings.Repeat("1,", maxEmbeddingVectorDimensions+1), ",")
+	client, err := NewClientWithHTTPClient("https://maas.example", "key", &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		body := `{"data":[{"embedding":[` + values + `]}]}`
+		return &http.Response{StatusCode: http.StatusOK, Header: http.Header{"Content-Type": []string{"application/json"}}, Body: io.NopCloser(strings.NewReader(body))}, nil
+	})})
+	require.NoError(t, err)
+
+	_, err = clientEmbed(client, context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "vector exceeds")
+}
+
+func TestEmbedRejectsTooManyVectors(t *testing.T) {
+	vector := `{"embedding":[1]}`
+	body := `{"data":[` + strings.TrimSuffix(strings.Repeat(vector+",", maxEmbeddingResults+1), ",") + `]}`
+	client, err := NewClientWithHTTPClient("https://maas.example", "key", &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusOK, Header: http.Header{"Content-Type": []string{"application/json"}}, Body: io.NopCloser(strings.NewReader(body))}, nil
+	})})
+	require.NoError(t, err)
+
+	_, err = clientEmbed(client, context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "more than")
+}
+
+func TestChatResponseBodyLimitAppliesToNonStreamingAndStreaming(t *testing.T) {
+	largeContent := strings.Repeat("x", maxMaaSResponseBodyBytes)
+	nonStreaming := `{"choices":[{"message":{"content":"` + largeContent + `x"}}]}`
+	client, err := NewClientWithHTTPClient("https://maas.example", "key", &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusOK, Header: http.Header{"Content-Type": []string{"application/json"}}, Body: io.NopCloser(strings.NewReader(nonStreaming))}, nil
+	})})
+	require.NoError(t, err)
+	_, err = client.ChatComplete(context.Background(), ChatRequest{Model: "model"})
+	require.ErrorIs(t, err, ErrMaaSResponseBodyLimit)
+
+	streamBody := strings.Repeat("data: {\"choices\":[{\"delta\":{\"content\":\"x\"}}]}\n\n", maxMaaSResponseBodyBytes/40)
+	streamClient, err := NewClientWithHTTPClient("https://maas.example", "key", &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusOK, Header: http.Header{"Content-Type": []string{"text/event-stream"}}, Body: io.NopCloser(strings.NewReader(streamBody))}, nil
+	})})
+	require.NoError(t, err)
+	_, err = streamClient.ChatCompleteStreamWithCallback(context.Background(), ChatRequest{Model: "model"}, func(string) {})
+	require.ErrorIs(t, err, ErrMaaSResponseBodyLimit)
+}
+
+func clientEmbed(client *Client, ctx context.Context) ([]float32, error) {
+	return client.Embed(ctx, "embedding-model", "text")
+}
+
+func TestEmbedPreservesNormalResponseSemantics(t *testing.T) {
+	client, err := NewClientWithHTTPClient("https://maas.example", "key", &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/v1/embeddings", r.URL.Path)
+		assert.Equal(t, "Bearer key", r.Header.Get("Authorization"))
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(`{"data":[{"embedding":[1.5,2]}]}`))}, nil
+	})})
+	require.NoError(t, err)
+	got, err := clientEmbed(client, context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, []float32{1.5, 2}, got)
+}
+
 func TestMaaSSafeDialContextRejectsUnsafeResolvedAddress(t *testing.T) {
 	baseDialed := false
 	dial := maaSSafeDialContext(

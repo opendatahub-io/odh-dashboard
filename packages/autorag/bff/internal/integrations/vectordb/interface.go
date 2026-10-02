@@ -14,6 +14,20 @@ var ErrDatabaseUnavailable = errors.New("vector database unavailable")
 
 var ErrDatabaseTimeout = errors.New("vector database operation timed out")
 
+var ErrResultContentLimit = errors.New("vector result content limit exceeded")
+
+const (
+	MaxVectorResultBytes      = 1 << 20
+	MaxVectorResultTotalBytes = 4 << 20
+)
+
+func validateResultTextSize(totalBytes int, text string) (int, error) {
+	if len(text) > MaxVectorResultBytes || totalBytes > MaxVectorResultTotalBytes-len(text) {
+		return totalBytes, ErrResultContentLimit
+	}
+	return totalBytes + len(text), nil
+}
+
 // ValidateSearchOptions rejects combinations that the selected backend cannot support.
 func ValidateSearchOptions(data map[string][]byte, hybrid bool) error {
 	if _, milvus := data["MILVUS_URI"]; !milvus {

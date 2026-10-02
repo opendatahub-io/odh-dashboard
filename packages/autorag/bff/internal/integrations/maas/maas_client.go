@@ -58,6 +58,7 @@ func NewDefaultHTTPClient(cfg MaaSClientConfig) *http.Client {
 	if cfg.WrapTransport != nil {
 		rt = cfg.WrapTransport(rt)
 	}
+	rt = limitMaaSResponseBody(rt)
 	return &http.Client{
 		Transport: rt,
 		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
@@ -67,6 +68,11 @@ func NewDefaultHTTPClient(cfg MaaSClientConfig) *http.Client {
 }
 
 func NewMaaSClient(httpClient httpClientInterface) *MaaSClient {
+	if client, ok := httpClient.(*http.Client); ok {
+		clone := *client
+		clone.Transport = limitMaaSResponseBody(client.Transport)
+		httpClient = &clone
+	}
 	return &MaaSClient{httpClient: httpClient}
 }
 

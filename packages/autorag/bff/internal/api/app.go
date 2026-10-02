@@ -116,8 +116,8 @@ type App struct {
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
-	if cfg.InsecureSkipVerify && !cfg.DevMode {
-		return nil, fmt.Errorf("insecure-skip-verify can only be enabled in development mode")
+	if err := cfg.Validate(); err != nil {
+		return nil, err
 	}
 	logger.Debug("Initializing app with config", slog.Any("config", cfg))
 	var err error

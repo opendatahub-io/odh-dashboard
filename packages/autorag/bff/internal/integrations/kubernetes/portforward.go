@@ -22,7 +22,16 @@ import (
 	"k8s.io/client-go/transport/spdy"
 )
 
-const portForwardStartupTimeout = 30 * time.Second
+const (
+	portForwardStartupTimeout = 30 * time.Second
+	maxCachedForwards         = 32
+	forwardIdleTTL            = 5 * time.Minute
+)
+
+type requestNamespaceContextKey struct{}
+
+// RequestNamespaceKey is populated by namespace-aware HTTP middleware.
+var RequestNamespaceKey requestNamespaceContextKey
 
 // PortForwardManager manages on-demand port-forwards to in-cluster services.
 //
@@ -59,6 +68,7 @@ type activeForward struct {
 	terminalMu  sync.RWMutex
 	terminalErr error
 	terminated  bool
+	lastUsed    time.Time
 }
 
 type forwardCreation struct {
@@ -165,7 +175,7 @@ func NewPortForwardManager(restConfig *rest.Config, clientset kubernetes.Interfa
 // If the URL is not a *.svc.cluster.local address, it is returned unchanged.
 // On the first call for a given service, a port-forward is established.
 // Subsequent calls return the cached local port.
-func (m *PortForwardManager) ForwardURL(ctx context.Context, rawURL string) (string, error) {
+func (m *PortForwardManager) ForwardURL(ctx context.Context, requestNamespace, rawURL string) (string, error) {
 	parsed, err := url.Parse(rawURL)
 	if err != nil {
 		return rawURL, nil
@@ -179,11 +189,24 @@ func (m *PortForwardManager) ForwardURL(ctx context.Context, rawURL string) (str
 		labels[2] != "svc" || labels[3] != "cluster" || labels[4] != "local" {
 		return rawURL, nil
 	}
+	for _, label := range labels[:2] {
+		if len(label) > 63 || strings.HasPrefix(label, "-") || strings.HasSuffix(label, "-") {
+			return rawURL, nil
+		}
+		for _, r := range label {
+			if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' {
+				return rawURL, nil
+			}
+		}
+	}
 	if parsed.User != nil {
 		return "", errors.New("service URL userinfo is not supported")
 	}
 	serviceName := labels[0]
 	namespace := labels[1]
+	if requestNamespace == "" || namespace != requestNamespace {
+		return "", fmt.Errorf("service URL namespace does not match request namespace")
+	}
 
 	portStr := parsed.Port()
 	if portStr == "" {
@@ -221,6 +244,7 @@ func (m *PortForwardManager) getOrCreateForward(ctx context.Context, namespace, 
 	if m.creationLookupHook != nil {
 		m.creationLookupHook()
 	}
+	m.evictIdleForwards(time.Now())
 
 	// Fast path: check cache under lock.
 	m.mu.Lock()
@@ -236,6 +260,7 @@ func (m *PortForwardManager) getOrCreateForward(ctx context.Context, namespace, 
 			}
 			delete(m.forwards, key)
 		} else {
+			fwd.lastUsed = time.Now()
 			m.mu.Unlock()
 			return fwd.localPort, nil
 		}
@@ -253,6 +278,10 @@ func (m *PortForwardManager) getOrCreateForward(ctx context.Context, namespace, 
 	}
 	startCreation := false
 	if !ok {
+		if len(m.forwards)+len(m.creations) >= maxCachedForwards {
+			m.mu.Unlock()
+			return 0, errors.New("port-forward cache capacity reached")
+		}
 		creationCtx := lifecycleCtx
 		if creationCtx == nil {
 			creationCtx = context.Background()
@@ -343,6 +372,7 @@ func (m *PortForwardManager) runCreation(key, namespace, serviceName string, rem
 		fwd = nil
 	}
 	if err == nil && fwd != nil && m.forwards[key] == nil {
+		fwd.lastUsed = time.Now()
 		m.forwards[key] = fwd
 	}
 	if err == nil && fwd != nil {
@@ -371,6 +401,22 @@ func (m *PortForwardManager) runCreation(key, namespace, serviceName string, rem
 		close(creation.done)
 	}
 	m.mu.Unlock()
+}
+
+func (m *PortForwardManager) evictIdleForwards(now time.Time) {
+	var evicted []*activeForward
+	m.mu.Lock()
+	for key, fwd := range m.forwards {
+		if !fwd.lastUsed.IsZero() && now.Sub(fwd.lastUsed) >= forwardIdleTTL {
+			fwd.stop()
+			delete(m.forwards, key)
+			evicted = append(evicted, fwd)
+		}
+	}
+	m.mu.Unlock()
+	for _, fwd := range evicted {
+		fwd.wait()
+	}
 }
 
 func (m *PortForwardManager) releaseCreationWaiter(key string, creation *forwardCreation) {
