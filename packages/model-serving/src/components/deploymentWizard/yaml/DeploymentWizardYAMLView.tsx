@@ -82,7 +82,7 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
       <StackItem isFilled data-testid="yaml-editor">
         <CodeEditor
           emptyState={
-            viewMode === 'yaml-preview' ? (
+            viewMode === 'yaml-preview' || !canEnterYAMLEditMode ? (
               <Bullseye>
                 <EmptyState
                   icon={CodeIcon}
@@ -91,9 +91,9 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
                   data-testid="yaml-editor-empty-state"
                 >
                   <EmptyStateBody>
-                    YAML generation is currently supported only for the LLM-d serving runtime.
-                    Select the LLM-d runtime to generate a preview, or manually enter your YAML
-                    configuration.
+                    YAML generation is currently supported only for LLM inference service deployment
+                    methods. Select an LLM inference service to generate a preview, or manually
+                    enter your YAML configuration.
                   </EmptyStateBody>
                 </EmptyState>
               </Bullseye>
@@ -108,7 +108,7 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
           isReadOnly={viewMode === 'yaml-preview'}
           isCopyEnabled
           isDownloadEnabled
-          isUploadEnabled={viewMode === 'yaml-edit'}
+          isUploadEnabled={viewMode === 'yaml-edit' && canEnterYAMLEditMode}
           onEditorDidMount={(editor) => {
             editor.focus();
           }}
