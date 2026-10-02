@@ -258,6 +258,32 @@ func TestFindCoreDeployment(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestSelectCoreOperandInventory(t *testing.T) {
+	inventory := operandInventory{
+		deployments: []appsv1.Deployment{
+			{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard"}},
+			{ObjectMeta: metav1.ObjectMeta{Name: "optional-module"}},
+		},
+		services: []corev1.Service{
+			{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard"}},
+			{ObjectMeta: metav1.ObjectMeta{Name: "optional-module"}},
+		},
+	}
+
+	selected, err := selectCoreOperandInventory(inventory, platformODH)
+	require.NoError(t, err)
+	require.Len(t, selected.deployments, 1)
+	require.Equal(t, "odh-dashboard", selected.deployments[0].Name)
+	require.Len(t, selected.services, 1)
+	require.Equal(t, "odh-dashboard", selected.services[0].Name)
+
+	_, err = selectCoreOperandInventory(inventory, platformRHOAI)
+	require.ErrorContains(t, err, "rhods-dashboard")
+
+	_, err = selectCoreOperandInventory(inventory, "unknown")
+	require.ErrorContains(t, err, "unsupported platform")
+}
+
 func TestAnyReadyPod(t *testing.T) {
 	notReady := corev1.Pod{Status: corev1.PodStatus{Conditions: []corev1.PodCondition{{Type: corev1.PodReady, Status: corev1.ConditionFalse}}}}
 	ready := corev1.Pod{Status: corev1.PodStatus{Conditions: []corev1.PodCondition{{Type: corev1.PodReady, Status: corev1.ConditionTrue}}}}
