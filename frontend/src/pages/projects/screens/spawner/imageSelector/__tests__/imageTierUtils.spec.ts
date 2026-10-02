@@ -3,7 +3,22 @@ import { ImageStreamAnnotation } from '#~/types';
 import {
   compareImageStreamTier,
   getImageStreamTier,
+  getImageTierColor,
 } from '#~/pages/projects/screens/spawner/imageSelector/imageTierUtils';
+
+describe('getImageTierColor', () => {
+  it.each([
+    ['secure', 'blue'],
+    ['Secure', 'blue'],
+    ['community', 'green'],
+    ['custom', 'purple'],
+    ['unknown', 'grey'],
+    ['toString', 'grey'],
+    ['', 'grey'],
+  ])('should use %s tier text to select %s', (tier, color) => {
+    expect(getImageTierColor(tier)).toBe(color);
+  });
+});
 
 describe('getImageStreamTier', () => {
   it.each([

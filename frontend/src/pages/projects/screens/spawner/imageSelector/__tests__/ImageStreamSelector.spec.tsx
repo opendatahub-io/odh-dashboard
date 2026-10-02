@@ -29,7 +29,7 @@ const createImages = (namespace = 'dashboard') =>
     }),
   );
 
-const expectedLabels = ['Image 1community', 'Image 0custom', 'Image 2secure', 'Image 3unknown'];
+const expectedLabels = ['Image 1Community', 'Image 0Custom', 'Image 2Secure', 'Image 3Unknown'];
 
 describe('ImageStreamSelector', () => {
   beforeEach(() => {
@@ -61,10 +61,10 @@ describe('ImageStreamSelector', () => {
     fireEvent.click(toggle);
 
     expect(screen.getAllByRole('heading').map((heading) => heading.textContent)).toEqual([
-      'community',
-      'custom',
-      'secure',
-      'unknown',
+      'Community',
+      'Custom',
+      'Secure',
+      'Unknown',
     ]);
     screen.getAllByRole('option').forEach((option, index) => {
       expect(option).toHaveTextContent(expectedLabels[index]);
@@ -90,7 +90,7 @@ describe('ImageStreamSelector', () => {
     fireEvent.click(screen.getByTestId('workbench-image-stream-selection'));
     const unavailable = within(screen.getByTestId('image-2')).getByRole('option');
     expect(unavailable).toBeDisabled();
-    expect(unavailable).toHaveTextContent('secure');
+    expect(unavailable).toHaveTextContent('Secure');
     expect(unavailable).toHaveTextContent('hardware profile');
     fireEvent.click(unavailable);
     expect(onSelect).not.toHaveBeenCalled();

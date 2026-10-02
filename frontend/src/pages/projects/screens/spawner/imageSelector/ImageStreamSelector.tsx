@@ -1,5 +1,6 @@
 import { Divider, FormGroup, MenuItem } from '@patternfly/react-core';
 import * as React from 'react';
+import { upperFirst } from 'lodash-es';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import ProjectScopedPopover from '@odh-dashboard/ui-core/components/ProjectScopedPopover';
@@ -95,7 +96,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
   const tiers = Array.from(new Set(sortedImageStreams.map(getImageStreamTier)));
   const groupedOptions = tiers.map((tier) => ({
     key: tier,
-    label: tier,
+    label: upperFirst(tier),
     options: sortedImageStreams
       .filter((imageStream) => getImageStreamTier(imageStream) === tier)
       .map((imageStream): SimpleSelectOption => {

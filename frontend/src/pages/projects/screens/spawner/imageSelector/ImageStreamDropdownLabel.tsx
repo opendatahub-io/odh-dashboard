@@ -1,5 +1,7 @@
 import * as React from 'react';
 import { Split, SplitItem, Label, Flex, FlexItem } from '@patternfly/react-core';
+import { upperFirst } from 'lodash-es';
+import { getImageTierColor } from './imageTierUtils';
 
 export type ImageStreamDropdownLabelProps = {
   displayName: string;
@@ -20,7 +22,7 @@ export const ImageStreamDropdownLabel: React.FC<ImageStreamDropdownLabelProps> =
     <SplitItem>
       <Flex spaceItems={{ default: 'spaceItemsSm' }}>
         <FlexItem>
-          <Label>{tier}</Label>
+          <Label color={getImageTierColor(tier)}>{upperFirst(tier)}</Label>
         </FlexItem>
         {compatible ? (
           <FlexItem>
