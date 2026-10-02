@@ -30,3 +30,40 @@ func TestNewFromSecretData_DispatchesToPgvector(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "external endpoints must use TLS")
 }
+
+func TestNewFromSecretData_RejectsDirectLocalhost(t *testing.T) {
+	_, err := NewFromSecretData(context.Background(), map[string][]byte{
+		"MILVUS_URI": []byte("http://localhost:4321"),
+	})
+	require.Error(t, err)
+}
+
+func TestNewFromSecretDataWithForwarderValidatesBeforeCallingForwarder(t *testing.T) {
+	called := false
+	_, err := NewFromSecretDataWithForwarder(context.Background(), map[string][]byte{
+		"MILVUS_URI": []byte("http://localhost:19530"),
+	}, func(context.Context, string) (string, error) {
+		called = true
+		return "http://localhost:4321", nil
+	})
+	require.Error(t, err)
+	assert.False(t, called)
+}
+
+func TestNewFromSecretDataWithForwarderRejectsUntrustedDestinations(t *testing.T) {
+	for _, forwarded := range []string{
+		"http://public.example.com:4321",
+		"https://localhost:4321",
+		"http://localhost:80",
+		"http://127.0.0.1:4321",
+	} {
+		t.Run(forwarded, func(t *testing.T) {
+			_, err := NewFromSecretDataWithForwarder(context.Background(), map[string][]byte{
+				"MILVUS_URI": []byte("http://milvus.milvus.svc.cluster.local:19530"),
+			}, func(context.Context, string) (string, error) {
+				return forwarded, nil
+			})
+			require.Error(t, err)
+		})
+	}
+}

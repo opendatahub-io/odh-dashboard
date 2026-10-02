@@ -154,3 +154,16 @@ func TestNewMilvusFromSecret_RejectsLiteralIP(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "literal IP")
 }
+
+func TestNewMilvusFromForwardedSecret_AllowsLocalhost(t *testing.T) {
+	var gotAddress string
+	_, err := newMilvusFromSecretWithTimeoutPolicy(context.Background(), map[string][]byte{
+		"MILVUS_URI": []byte("http://localhost:4321"),
+	}, true, 10*time.Millisecond, func(ctx context.Context, cfg milvusclient.Config) (milvusClient, error) {
+		gotAddress = cfg.Address
+		return nil, context.DeadlineExceeded
+	})
+
+	require.Error(t, err)
+	assert.Equal(t, "localhost:4321", gotAddress)
+}

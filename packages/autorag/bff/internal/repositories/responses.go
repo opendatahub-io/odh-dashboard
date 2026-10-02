@@ -45,13 +45,17 @@ type ResponsesRepository struct {
 	k8sService    kubernetes.Service
 	urlForwarder  URLForwarder
 	newMaaSClient maas.ClientFactory
-	newVectorDB   func(context.Context, map[string][]byte) (vectordb.VectorDB, error)
+	newVectorDB   func(context.Context, map[string][]byte, func(context.Context, string) (string, error)) (vectordb.VectorDB, error)
 }
 
 // URLForwarder rewrites a URL to a locally forwarded endpoint when applicable.
 // The concrete implementation is only supplied for local development.
 type URLForwarder interface {
 	ForwardURL(context.Context, string, string) (string, error)
+}
+
+type forwardedVectorDBData struct {
+	data map[string][]byte
 }
 
 func NewResponsesRepository(logger *slog.Logger, k8sService kubernetes.Service, forwarders ...URLForwarder) *ResponsesRepository {
@@ -74,7 +78,7 @@ func newResponsesRepository(logger *slog.Logger, k8sService kubernetes.Service, 
 		k8sService:    k8sService,
 		urlForwarder:  urlForwarder,
 		newMaaSClient: newMaaSClient,
-		newVectorDB:   vectordb.NewFromSecretData,
+		newVectorDB:   vectordb.NewFromSecretDataWithForwarder,
 	}
 }
 
@@ -86,22 +90,28 @@ func classifyForwardingError(requestCtx, operationCtx context.Context, err error
 	return err
 }
 
-func (r *ResponsesRepository) forwardVectorDBEndpoint(requestCtx, operationCtx context.Context, namespace string, data map[string][]byte) (map[string][]byte, error) {
-	if r.urlForwarder == nil {
-		return data, nil
-	}
+func (r *ResponsesRepository) forwardVectorDBEndpoint(requestCtx, operationCtx context.Context, namespace string, data map[string][]byte) (forwardedVectorDBData, error) {
 	rawURI, ok := data["MILVUS_URI"]
 	if !ok || strings.TrimSpace(string(rawURI)) == "" {
-		return data, nil
+		return forwardedVectorDBData{data: data}, nil
 	}
 
 	uri := strings.TrimSpace(string(rawURI))
+	if err := vectordb.ValidateMilvusEndpoint(uri); err != nil {
+		return forwardedVectorDBData{}, fmt.Errorf("invalid Milvus endpoint: %w", err)
+	}
+	if r.urlForwarder == nil {
+		return forwardedVectorDBData{data: data}, nil
+	}
 	forwardedURI, err := r.urlForwarder.ForwardURL(operationCtx, namespace, uri)
 	if err != nil {
-		return nil, fmt.Errorf("failed to forward Milvus endpoint: %w", classifyForwardingError(requestCtx, operationCtx, err))
+		return forwardedVectorDBData{}, fmt.Errorf("failed to forward Milvus endpoint: %w", classifyForwardingError(requestCtx, operationCtx, err))
 	}
 	if forwardedURI == uri {
-		return data, nil
+		return forwardedVectorDBData{data: data}, nil
+	}
+	if err := vectordb.ValidateForwardedMilvusEndpoint(uri, forwardedURI); err != nil {
+		return forwardedVectorDBData{}, fmt.Errorf("invalid forwarded Milvus endpoint: %w", err)
 	}
 
 	forwardedData := make(map[string][]byte, len(data))
@@ -109,7 +119,7 @@ func (r *ResponsesRepository) forwardVectorDBEndpoint(requestCtx, operationCtx c
 		forwardedData[key] = value
 	}
 	forwardedData["MILVUS_URI"] = []byte(forwardedURI)
-	return forwardedData, nil
+	return forwardedVectorDBData{data: forwardedData}, nil
 }
 
 // resolveMaasClient fetches MaaS credentials from K8s and returns a configured client.
@@ -148,34 +158,40 @@ func (r *ResponsesRepository) resolveVectorDB(ctx context.Context, namespace, se
 	if _, isMilvus := secret.Data["MILVUS_URI"]; isMilvus {
 		operationCtx, cancel := context.WithTimeout(ctx, vectordb.MilvusOperationTimeout)
 		defer cancel()
-		secretData, err := r.forwardVectorDBEndpoint(ctx, operationCtx, namespace, secret.Data)
-		if err != nil {
-			return nil, err
-		}
 		newVectorDB := r.newVectorDB
 		if newVectorDB == nil {
-			newVectorDB = vectordb.NewFromSecretData
+			newVectorDB = vectordb.NewFromSecretDataWithForwarder
+		}
+		var forwardURL func(context.Context, string) (string, error)
+		if r.urlForwarder != nil {
+			forwardURL = func(forwardCtx context.Context, uri string) (string, error) {
+				forwardedURI, forwardErr := r.urlForwarder.ForwardURL(forwardCtx, namespace, uri)
+				if forwardErr != nil {
+					return "", fmt.Errorf("failed to forward Milvus endpoint: %w", classifyForwardingError(ctx, operationCtx, forwardErr))
+				}
+				return forwardedURI, nil
+			}
 		}
 		// The Milvus adapter owns the connection timeout. Passing the request
 		// context here avoids nesting an equal deadline and misclassifying the
 		// adapter's timeout as request cancellation.
-		db, err := newVectorDB(ctx, secretData)
+		db, err := newVectorDB(ctx, secret.Data, forwardURL)
 		if err != nil {
 			return nil, fmt.Errorf("failed to connect to vector DB from secret %q: %w", secretName, err)
 		}
 		return db, nil
 	}
 
-	secretData, err := r.forwardVectorDBEndpoint(ctx, ctx, namespace, secret.Data)
+	forwarded, err := r.forwardVectorDBEndpoint(ctx, ctx, namespace, secret.Data)
 	if err != nil {
 		return nil, err
 	}
 
 	newVectorDB := r.newVectorDB
 	if newVectorDB == nil {
-		newVectorDB = vectordb.NewFromSecretData
+		newVectorDB = vectordb.NewFromSecretDataWithForwarder
 	}
-	db, err := newVectorDB(ctx, secretData)
+	db, err := newVectorDB(ctx, forwarded.data, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to vector DB from secret %q: %w", secretName, err)
 	}
@@ -507,11 +523,11 @@ func (r *ResponsesRepository) ValidateResponses(ctx context.Context, params Resp
 		validationCtx, cancel = context.WithTimeout(ctx, vectordb.MilvusOperationTimeout)
 		defer cancel()
 	}
-	secretData, err := r.forwardVectorDBEndpoint(ctx, validationCtx, params.Namespace, secret.Data)
+	forwarded, err := r.forwardVectorDBEndpoint(ctx, validationCtx, params.Namespace, secret.Data)
 	if err != nil {
 		return err
 	}
-	return vectordb.ValidateSearchOptions(secretData, hybrid)
+	return vectordb.ValidateSearchOptions(forwarded.data, hybrid)
 }
 
 // HandleResponses processes a non-streaming RAG request.

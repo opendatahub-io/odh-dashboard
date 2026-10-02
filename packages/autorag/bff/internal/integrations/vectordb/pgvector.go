@@ -79,7 +79,7 @@ func newPgvectorFromSecret(ctx context.Context, data map[string][]byte) (VectorD
 		return net.DefaultResolver.LookupIP(connectCtx, "ip", lookupHost)
 	}
 	dialer := &net.Dialer{}
-	connConfig.DialFunc = vectorSafeDialContext(dialer.DialContext, lookupIP, endpoint.inCluster)
+	connConfig.DialFunc = vectorSafeDialContext(dialer.DialContext, lookupIP, endpoint.inCluster, false)
 
 	if len(certPEM) > 0 {
 		pool, err := certificates.SystemCertPoolWithPEM(certPEM, "PGVECTOR_SERVER_CERT")

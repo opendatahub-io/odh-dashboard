@@ -61,6 +61,21 @@ func TestParseVectorEndpoints(t *testing.T) {
 	}
 }
 
+func TestValidateForwardedMilvusEndpointDoesNotRelaxSecretValidation(t *testing.T) {
+	assert.Error(t, ValidateMilvusEndpoint("http://localhost:4321"))
+	assert.Error(t, ValidateMilvusEndpoint("http://10.0.0.1:4321"))
+	assert.NoError(t, ValidateMilvusEndpoint("http://milvus.team-a.svc.cluster.local:19530"))
+
+	err := ValidateForwardedMilvusEndpoint("http://milvus.team-a.svc.cluster.local:19530", "http://localhost:4321")
+	assert.NoError(t, err)
+	err = ValidateForwardedMilvusEndpoint("http://milvus.example.com:19530", "http://localhost:4321")
+	assert.Error(t, err)
+	err = ValidateForwardedMilvusEndpoint("http://milvus.team-a.svc.cluster.local:19530", "http://127.0.0.1:4321")
+	assert.Error(t, err)
+	err = ValidateForwardedMilvusEndpoint("http://milvus.team-a.svc.cluster.local:19530", "https://localhost:4321")
+	assert.Error(t, err)
+}
+
 func TestVectorSafeDialContextRejectsDNSRebindingToPrivateAddress(t *testing.T) {
 	dialed := false
 	dial := vectorSafeDialContext(
@@ -70,6 +85,7 @@ func TestVectorSafeDialContextRejectsDNSRebindingToPrivateAddress(t *testing.T) 
 		},
 		func(context.Context, string) ([]net.IP, error) { return []net.IP{net.ParseIP("127.0.0.1")}, nil },
 		false,
+		false,
 	)
 	if _, err := dial(context.Background(), "tcp", "public.example:443"); err == nil {
 		t.Fatal("expected private resolved address to be rejected")
@@ -77,4 +93,34 @@ func TestVectorSafeDialContextRejectsDNSRebindingToPrivateAddress(t *testing.T) 
 	if dialed {
 		t.Fatal("unsafe address reached dialer")
 	}
+}
+
+func TestVectorSafeDialContextAllowsOnlyLoopbackForForwardedEndpoint(t *testing.T) {
+	dialed := false
+	dial := vectorSafeDialContext(
+		func(context.Context, string, string) (net.Conn, error) {
+			dialed = true
+			return nil, fmt.Errorf("dial attempted")
+		},
+		func(context.Context, string) ([]net.IP, error) { return []net.IP{net.ParseIP("127.0.0.1")}, nil },
+		false,
+		true,
+	)
+	_, err := dial(context.Background(), "tcp", "localhost:4321")
+	assert.Error(t, err)
+	assert.True(t, dialed)
+
+	dialed = false
+	dial = vectorSafeDialContext(
+		func(context.Context, string, string) (net.Conn, error) {
+			dialed = true
+			return nil, fmt.Errorf("dial attempted")
+		},
+		func(context.Context, string) ([]net.IP, error) { return []net.IP{net.ParseIP("10.0.0.1")}, nil },
+		false,
+		true,
+	)
+	_, err = dial(context.Background(), "tcp", "localhost:4321")
+	assert.Error(t, err)
+	assert.False(t, dialed)
 }
