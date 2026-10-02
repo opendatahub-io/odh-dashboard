@@ -1216,6 +1216,31 @@ describe('PatternDetailsModal', () => {
       expect(screen.queryByTestId('pattern-details-view-code')).not.toBeInTheDocument();
     });
 
+    it('should not expose Try this pattern when the embedding model is missing', async () => {
+      const user = userEvent.setup();
+      const patternWithoutEmbeddingModel = {
+        ...mockPattern,
+        settings: {
+          ...mockPattern.settings,
+          embedding: { ...mockPattern.settings.embedding, model_id: '  ' },
+        },
+      };
+
+      render(
+        <PatternDetailsModal
+          {...defaultProps}
+          patterns={[patternWithoutEmbeddingModel]}
+          databaseSecretName="milvus"
+          maasSecretName="maas"
+          onTryPattern={jest.fn()}
+        />,
+      );
+
+      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
+      expect(screen.queryByTestId('pattern-details-try-pattern')).not.toBeInTheDocument();
+      expect(screen.getByTestId('pattern-details-content')).toBeInTheDocument();
+    });
+
     it('should expose View code for a supported provider with a template and database secret', async () => {
       const user = userEvent.setup();
       const supportedPattern: AutoragPattern = {

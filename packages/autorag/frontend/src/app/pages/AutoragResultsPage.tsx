@@ -64,7 +64,11 @@ import {
   TrackingOutcome,
 } from '~/app/utilities/tracking';
 import type { PlaygroundOpenedSource, ViewCodeEntrySource } from '~/app/utilities/tracking';
-import { canUseResponsesForPattern, getPatternCollectionName } from '~/app/utilities/responses';
+import {
+  canUseResponsesForPattern,
+  getPatternCollectionName,
+  getPatternEmbeddingModel,
+} from '~/app/utilities/responses';
 
 type DrawerContentType =
   | { type: 'run-details' }
@@ -90,6 +94,7 @@ export const buildResponsesTemplate = (
 ): ResponsesTemplate => {
   const { generation, retrieval } = pattern.settings;
   const collectionName = getPatternCollectionName(pattern);
+  const embeddingModel = getPatternEmbeddingModel(pattern);
   const isHybrid = retrieval.search_mode === 'hybrid';
 
   return {
@@ -107,6 +112,7 @@ export const buildResponsesTemplate = (
     metadata: {
       ...(runId?.trim() ? { autorag_run_id: runId.trim() } : {}),
       rag_pattern_name: pattern.name,
+      ...(embeddingModel ? { embedding_model: embeddingModel } : {}),
     },
     instructions: '',
     tools: [
@@ -479,8 +485,20 @@ function AutoragResultsPage(): React.JSX.Element {
         return false;
       }
       const responsesTemplate = normalizeResponsesTemplate(
-        pattern.inference?.responses_template ??
-          buildResponsesTemplate(pattern, pipelineRun?.run_id),
+        pattern.inference?.responses_template
+          ? {
+              ...pattern.inference.responses_template,
+              metadata: {
+                ...pattern.inference.responses_template.metadata,
+                ...(getPatternEmbeddingModel(pattern)
+                  ? {
+                      // eslint-disable-next-line camelcase
+                      embedding_model: getPatternEmbeddingModel(pattern),
+                    }
+                  : {}),
+              },
+            }
+          : buildResponsesTemplate(pattern, pipelineRun?.run_id),
       );
 
       const metricMean = getObjectiveMetric(pattern, contextValue.optimizationMetric)?.scores.mean;
@@ -525,7 +543,18 @@ function AutoragResultsPage(): React.JSX.Element {
       }
       const persistedTemplate = pattern.inference?.responses_template;
       const responsesTemplate = persistedTemplate
-        ? normalizeResponsesTemplate(persistedTemplate)
+        ? normalizeResponsesTemplate({
+            ...persistedTemplate,
+            metadata: {
+              ...persistedTemplate.metadata,
+              ...(getPatternEmbeddingModel(pattern)
+                ? {
+                    // eslint-disable-next-line camelcase
+                    embedding_model: getPatternEmbeddingModel(pattern),
+                  }
+                : {}),
+            },
+          })
         : normalizeResponsesTemplate(buildResponsesTemplate(pattern, pipelineRun?.run_id));
       setViewCodePattern({ patternName, responsesTemplate });
       fireAutoragCodeSnippetsExported('viewed', source);

@@ -2,11 +2,40 @@ package vectordb
 
 import (
 	"context"
+	"math"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestHybridCandidateLimit(t *testing.T) {
+	assert.Equal(t, 50, hybridCandidateLimit(5))
+	assert.Equal(t, maxHybridCandidates, hybridCandidateLimit(100))
+	assert.Equal(t, maxHybridCandidates, hybridCandidateLimit(math.MaxInt))
+}
+
+func TestHybridSearchSQLCandidateLimits(t *testing.T) {
+	sql := pgvectorHybridSearchSQL("documents")
+	vectorCandidatesStart := strings.Index(sql, "vector_candidates")
+	vectorRankedStart := strings.Index(sql, "vector_ranked AS")
+	textCandidatesStart := strings.Index(sql, "text_candidates")
+	textRankedStart := strings.Index(sql, "text_ranked AS")
+	require.GreaterOrEqual(t, vectorCandidatesStart, 0)
+	require.Greater(t, vectorRankedStart, vectorCandidatesStart)
+	require.GreaterOrEqual(t, textCandidatesStart, 0)
+	require.Greater(t, textRankedStart, textCandidatesStart)
+	vectorCandidateSQL := sql[vectorCandidatesStart:vectorRankedStart]
+	textCandidateSQL := sql[textCandidatesStart:textRankedStart]
+	assert.Contains(t, vectorCandidateSQL, "LIMIT $6")
+	assert.Contains(t, textCandidateSQL, "LIMIT $6")
+	assert.NotContains(t, vectorCandidateSQL, "ROW_NUMBER")
+	assert.NotContains(t, textCandidateSQL, "ROW_NUMBER")
+	assert.Equal(t, 2, strings.Count(sql, "LIMIT $6"))
+	assert.Contains(t, sql, "LIMIT $7")
+	assert.Contains(t, sql, "FROM documents")
+}
 
 func TestNewPgvectorFromSecret_MissingRequiredFields(t *testing.T) {
 	_, err := newPgvectorFromSecret(context.Background(), map[string][]byte{

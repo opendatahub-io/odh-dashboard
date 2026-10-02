@@ -482,6 +482,24 @@ func TestHandleResponsesEndpoint_Streaming(t *testing.T) {
 		repo.AssertExpectations(t)
 	})
 
+	t.Run("streaming file search queries contain only the final user input text", func(t *testing.T) {
+		h, repo := newTestResponsesHandler()
+		repo.On("HandleResponsesStream", mock.Anything, validParams, mock.Anything, mock.AnythingOfType("func(string)")).
+			Return(&models.RAGStreamResult{Answer: "answer"}, nil)
+		repo.On("ValidateResponses", mock.Anything, validParams, mock.Anything).Return(nil)
+
+		body := strings.Replace(streamingResponsesBody,
+			`[{"type":"message","role":"user","content":[{"type":"input_text","text":"hello"}]}]`,
+			`[{"type":"message","role":"user","content":[{"type":"input_text","text":"old question"}]},{"type":"message","role":"assistant","content":[{"type":"input_text","text":"old answer"}]},{"type":"message","role":"user","content":[{"type":"input_text","text":"final question"},{"type":"input_text","text":" with details"}]}]`, 1)
+		req := responsesRequestWithNamespace(http.MethodPost, url, body, ns)
+		rr := httptest.NewRecorder()
+		h.HandleResponsesEndpoint(rr, req, httprouter.Params{})
+
+		assert.Contains(t, rr.Body.String(), `"queries":["final question with details"]`)
+		assert.NotContains(t, rr.Body.String(), `old question`)
+		repo.AssertExpectations(t)
+	})
+
 	t.Run("streaming error emits error event then DONE", func(t *testing.T) {
 		h, repo := newTestResponsesHandler()
 

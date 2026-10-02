@@ -47,6 +47,11 @@ export const getPatternCollectionName = (pattern?: AutoragPattern): string | und
   return typeof collection === 'string' && collection.trim() !== '' ? collection.trim() : undefined;
 };
 
+export const getPatternEmbeddingModel = (pattern?: AutoragPattern): string | undefined => {
+  const model = pattern?.settings.embedding.model_id;
+  return typeof model === 'string' && model.trim() !== '' ? model.trim() : undefined;
+};
+
 export const isResponsesProvider = (provider?: AutoragProviderType): boolean =>
   provider === 'milvus' || provider === 'pgvector';
 
@@ -58,5 +63,6 @@ export const canUseResponsesForPattern = (
     resolveDatabaseSecretName(parameters) &&
     resolveMaaSSecretName(parameters) &&
     isResponsesProvider(getPatternStoreProvider(pattern)) &&
-    getPatternCollectionName(pattern),
+    getPatternCollectionName(pattern) &&
+    getPatternEmbeddingModel(pattern),
   );

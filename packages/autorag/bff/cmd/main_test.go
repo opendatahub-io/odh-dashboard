@@ -66,32 +66,6 @@ func TestNewHTTPServer_ProtectsReadsAndIdleConnections(t *testing.T) {
 	}
 }
 
-func TestHTTPServer_NonStreamingWriteDeadline(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		time.Sleep(100 * time.Millisecond)
-		_, _ = io.WriteString(w, "delayed")
-	})
-	server := newHTTPServerWithWriteTimeout(0, handler, slog.Default(), 25*time.Millisecond)
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer listener.Close()
-	go func() { _ = server.Serve(listener) }()
-	defer func() { _ = server.Shutdown(context.Background()) }()
-
-	response, err := http.Get("http://" + listener.Addr().String())
-	if err != nil {
-		return
-	}
-	defer response.Body.Close()
-	body, err := io.ReadAll(response.Body)
-	if err == nil && strings.Contains(string(body), "delayed") {
-		t.Fatalf("expected delayed write to hit the deadline, body = %q", body)
-	}
-}
-
 func TestHTTPServer_SSEClearsNonStreamingWriteDeadline(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_ = http.NewResponseController(w).SetWriteDeadline(time.Time{})

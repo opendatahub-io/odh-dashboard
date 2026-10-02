@@ -41,6 +41,51 @@ func TestClientFactoryUsesConfiguredTLSAndTransport(t *testing.T) {
 	assert.True(t, wrapped)
 }
 
+func testTLSFactoryClient(t *testing.T, server *httptest.Server, rootCAs *x509.CertPool, insecure bool) *Client {
+	t.Helper()
+	_, port, err := net.SplitHostPort(strings.TrimPrefix(server.URL, "https://"))
+	require.NoError(t, err)
+	client, err := NewClientFactory(MaaSClientConfig{
+		RootCAs:            rootCAs,
+		InsecureSkipVerify: insecure,
+		WrapTransport: func(rt http.RoundTripper) http.RoundTripper {
+			transport := rt.(*http.Transport).Clone()
+			transport.TLSClientConfig = transport.TLSClientConfig.Clone()
+			transport.TLSClientConfig.ServerName = "127.0.0.1"
+			transport.DialContext = func(ctx context.Context, network, _ string) (net.Conn, error) {
+				return (&net.Dialer{}).DialContext(ctx, network, server.Listener.Addr().String())
+			}
+			return transport
+		},
+	})("https://maas.apps.cluster:"+port, "test-key")
+	require.NoError(t, err)
+	return client
+}
+
+func TestClientFactoryUsesConfiguredTLSForActualEmbeddingRequest(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/v1/embeddings", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"data":[{"embedding":[1,2]}]}`)
+	}))
+	t.Cleanup(server.Close)
+	rootCAs := x509.NewCertPool()
+	rootCAs.AddCert(server.Certificate())
+
+	client := testTLSFactoryClient(t, server, rootCAs, false)
+	_, err := client.Embed(context.Background(), "embedding-model", "text")
+	require.NoError(t, err)
+}
+
+func TestClientFactoryRejectsActualRequestWithoutTrustedCA(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	t.Cleanup(server.Close)
+
+	client := testTLSFactoryClient(t, server, nil, false)
+	_, err := client.Embed(context.Background(), "embedding-model", "text")
+	require.Error(t, err)
+}
+
 func TestDefaultHTTPClientUsesConfiguredRootCAForActualRequest(t *testing.T) {
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = io.WriteString(w, "ok")
@@ -77,9 +122,9 @@ func TestClientFactoryDevInsecureTLSReachesResponsesClient(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 
-	client, err := NewClientFactory(MaaSClientConfig{InsecureSkipVerify: true})("https://maas.apps.cluster", "response-key")
+	client := testTLSFactoryClient(t, server, nil, true)
+	_, err := client.Embed(context.Background(), "embedding-model", "text")
 	require.NoError(t, err)
-	require.NotNil(t, client)
 }
 
 func TestDefaultHTTPClientAllowsExplicitInsecureRequest(t *testing.T) {
