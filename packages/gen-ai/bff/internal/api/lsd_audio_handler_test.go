@@ -312,6 +312,27 @@ func TestAudioTranscription_EmptyBody(t *testing.T) {
 
 // --- Model Resolution Tests ---
 
+func TestAudioTranscription_MockAudioNamespace(t *testing.T) {
+	for _, modelID := range []string{"whisper-large-v3", "whisper-small"} {
+		t.Run(modelID, func(t *testing.T) {
+			model := asrModel("mock-audio-namespace")
+			model.ModelID = modelID
+			model.ModelName = modelID
+			app := newTestAppForASR(t, []models.AAModel{model})
+			req := buildAudioRequest(t, AudioTranscriptionRequest{FileID: "file-abc123", ASRModelID: modelID}, mockLSWithAudio(wavBytes(), "audio/wav"))
+			req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "mock-audio-namespace"))
+
+			rr := httptest.NewRecorder()
+			app.LlamaStackAudioTranscriptionHandler(rr, req, nil)
+
+			require.Equal(t, http.StatusOK, rr.Code)
+			var response AudioTranscriptionResponse
+			require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+			assert.Equal(t, "This is a mock audio transcription.", response.Text)
+		})
+	}
+}
+
 func TestAudioTranscription_ModelNotFound(t *testing.T) {
 	app := newTestAppForASR(t, []models.AAModel{})
 	lsClient := mockLSWithAudio(wavBytes(), "audio/wav")
@@ -325,24 +346,6 @@ func TestAudioTranscription_ModelNotFound(t *testing.T) {
 	assert.Equal(t, "asr", fe.Error.Component)
 	assert.Equal(t, constants.ASRCodeModelNotFound, fe.Error.Code)
 	assert.Contains(t, fe.Error.Message, "not found")
-	assert.False(t, fe.Error.Retriable)
-}
-
-func TestAudioTranscription_ModelLacksCapability(t *testing.T) {
-	model := asrModel("test-ns")
-	model.Capabilities = []string{constants.CapabilityTextGeneration}
-	app := newTestAppForASR(t, []models.AAModel{model})
-	lsClient := mockLSWithAudio(wavBytes(), "audio/wav")
-
-	req := buildAudioRequest(t, AudioTranscriptionRequest{FileID: "file-abc123", ASRModelID: "whisper-asr"}, lsClient)
-	rr := httptest.NewRecorder()
-	app.LlamaStackAudioTranscriptionHandler(rr, req, nil)
-
-	assert.Equal(t, http.StatusNotFound, rr.Code)
-	fe := parseFrontendError(t, rr.Body.Bytes())
-	assert.Equal(t, "asr", fe.Error.Component)
-	assert.Equal(t, constants.ASRCodeModelInvalid, fe.Error.Code)
-	assert.Contains(t, fe.Error.Message, "does not have audio-transcription capability")
 	assert.False(t, fe.Error.Retriable)
 }
 
@@ -608,7 +611,7 @@ func TestAudioTranscription_InvalidAudioFormat(t *testing.T) {
 
 // --- Success Tests ---
 
-func TestAudioTranscription_Success_WAV(t *testing.T) {
+func TestAudioTranscription_Success_UntaggedWAV(t *testing.T) {
 	asrServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.True(t, strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data"))
@@ -621,6 +624,7 @@ func TestAudioTranscription_Success_WAV(t *testing.T) {
 	defer asrServer.Close()
 
 	model := asrModel("test-ns")
+	model.Capabilities = []string{constants.CapabilityTextGeneration}
 	model.Endpoints = []string{"internal: " + asrServer.URL}
 	app := newTestAppForASR(t, []models.AAModel{model})
 	lsClient := mockLSWithAudio(wavBytes(), "audio/wav")

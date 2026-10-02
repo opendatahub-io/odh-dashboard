@@ -1,7 +1,8 @@
 /* eslint-disable camelcase, @typescript-eslint/no-require-imports */
 import * as React from 'react';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, render, screen, within, act } from '@testing-library/react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
+import AudioAttachmentTile from '~/app/Chatbot/components/AudioAttachmentTile';
 import { CreateResponseRequest, DocumentAttachment, SimplifiedResponseData } from '~/app/types';
 import {
   mockModelId,
@@ -1104,6 +1105,171 @@ describe('useChatbotMessages', () => {
       const userMessage = result.current.messages[0];
       expect(userMessage.content).toBe('Hello, bot!');
       expect(userMessage.extraContent).toBeUndefined();
+    });
+  });
+
+  describe('inline audio playback', () => {
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+    const createObjectURL = jest.fn(() => 'blob:audio-preview');
+    const revokeObjectURL = jest.fn();
+
+    beforeEach(() => {
+      URL.createObjectURL = createObjectURL;
+      URL.revokeObjectURL = revokeObjectURL;
+    });
+
+    afterEach(() => {
+      URL.createObjectURL = originalCreateObjectURL;
+      URL.revokeObjectURL = originalRevokeObjectURL;
+    });
+
+    it('should show audio without transcript text and keep the transcript in later context', async () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
+
+      await act(async () => {
+        await result.current.handleMessageSend(
+          'Transcribed speech',
+          undefined,
+          undefined,
+          undefined,
+          file,
+          '',
+        );
+      });
+
+      const userMessage = result.current.messages[0];
+      const player = userMessage.extraContent?.beforeMainContent as React.ReactElement<{
+        src: string;
+      }>;
+      expect(userMessage.content).toBe('');
+      expect(userMessage.attachments).toBeUndefined();
+      expect(player.type).toBe(AudioAttachmentTile);
+      render(player);
+      const tile = screen.getByTestId('sent-audio-tile');
+      expect(tile).toHaveStyle({ width: '18.75rem', maxWidth: '100%' });
+      expect(within(tile).getByText('recording.wav')).toBeInTheDocument();
+      expect(within(tile).getByText('WAV')).toBeInTheDocument();
+      expect(within(tile).getByTestId('sent-audio-player')).toHaveAttribute(
+        'src',
+        'blob:audio-preview',
+      );
+      expect(within(tile).getByLabelText('Play recording.wav')).toHaveAttribute('controls');
+      expect(within(tile).getByTestId('sent-audio-player')).toHaveStyle({ width: '100%' });
+      expect(within(tile).queryByRole('button', { name: /remove/i })).not.toBeInTheDocument();
+      expect(createObjectURL).toHaveBeenCalledWith(file);
+      expect(mockCreateResponse.mock.calls[0][0].input).toBe('Transcribed speech');
+
+      await act(async () => {
+        await result.current.handleMessageSend('What sound was that?');
+      });
+      expect(mockCreateResponse.mock.calls[1][0].chat_context).toEqual([
+        { role: 'user', content: 'Transcribed speech' },
+        { role: 'assistant', content: 'This is a bot response' },
+      ]);
+
+      act(() => result.current.clearConversation());
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:audio-preview');
+    });
+
+    it('should show only the typed question while keeping audio transcription in the request', async () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
+
+      await act(async () => {
+        await result.current.handleMessageSend(
+          'Transcribed speech\n\nWhat sound was that?',
+          undefined,
+          undefined,
+          undefined,
+          file,
+          'What sound was that?',
+        );
+      });
+
+      expect(result.current.messages[0].content).toBe('What sound was that?');
+      expect(mockCreateResponse.mock.calls[0][0].input).toBe(
+        'Transcribed speech\n\nWhat sound was that?',
+      );
+      await act(async () => {
+        await result.current.handleMessageSend('Tell me more');
+      });
+      expect(mockCreateResponse.mock.calls[1][0].chat_context?.[0]).toEqual({
+        role: 'user',
+        content: 'Transcribed speech\n\nWhat sound was that?',
+      });
+      act(() => result.current.clearConversation());
+    });
+
+    it('should keep document and image attachments alongside the audio tile', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+      const document: DocumentAttachment = {
+        file_id: 'file-document-1',
+        filename: 'notes.txt',
+        text: 'Notes',
+        content_type: 'text/plain',
+        size: 5,
+      };
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ documentAttachments: [document] })),
+      );
+      const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
+
+      await act(async () => {
+        await result.current.handleMessageSend(
+          'Transcribed speech',
+          undefined,
+          'file-image-1',
+          { previewUrl: 'blob:image-preview', fileName: 'photo.png' },
+          file,
+        );
+      });
+
+      expect(result.current.messages[0].attachments).toEqual([
+        { id: document.file_id, name: document.filename },
+      ]);
+      render(result.current.messages[0].extraContent?.beforeMainContent);
+      expect(screen.getByRole('img', { name: 'photo.png' })).toBeInTheDocument();
+      expect(screen.getByTestId('sent-audio-tile')).toBeInTheDocument();
+      expect(result.current.messages[0].documentAttachments).toEqual([document]);
+      act(() => result.current.clearConversation());
+    });
+
+    it('should keep each pane audio URL until that pane unmounts', async () => {
+      createObjectURL
+        .mockReturnValueOnce('blob:first-pane')
+        .mockReturnValueOnce('blob:second-pane');
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+      const firstPane = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const secondPane = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const file = new File(['audio-data'], 'recording.mp3', { type: 'audio/mpeg' });
+
+      await act(async () => {
+        await firstPane.result.current.handleMessageSend(
+          'Speech',
+          undefined,
+          undefined,
+          undefined,
+          file,
+        );
+        await secondPane.result.current.handleMessageSend(
+          'Speech',
+          undefined,
+          undefined,
+          undefined,
+          file,
+        );
+      });
+
+      firstPane.unmount();
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:first-pane');
+      expect(revokeObjectURL).not.toHaveBeenCalledWith('blob:second-pane');
+
+      secondPane.unmount();
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:second-pane');
     });
   });
 

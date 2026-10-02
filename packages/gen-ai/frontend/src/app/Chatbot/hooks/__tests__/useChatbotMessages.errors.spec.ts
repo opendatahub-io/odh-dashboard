@@ -669,6 +669,77 @@ describe('useChatbotMessages - Error Handling', () => {
       });
     });
 
+    it('should reuse and revoke one audio URL when retrying the same file', async () => {
+      mockClassifyError.mockImplementation(() => ({
+        pattern: 'full-failure',
+        variant: 'danger',
+        isRetriable: true,
+        title: 'Retriable error',
+        description: 'Can retry',
+        details: { component: 'Unknown', errorCode: '', rawMessage: 'Error' },
+      }));
+      const createObjectURL = jest.fn(() => 'blob:audio-preview');
+      const revokeObjectURL = jest.fn();
+      const originalCreateObjectURL = URL.createObjectURL;
+      const originalRevokeObjectURL = URL.revokeObjectURL;
+      URL.createObjectURL = createObjectURL;
+      URL.revokeObjectURL = revokeObjectURL;
+
+      try {
+        const mockCreateResponse = jest
+          .fn()
+          .mockRejectedValueOnce(new Error('Retry'))
+          .mockResolvedValueOnce({
+            content: 'Success on retry',
+            metadata: {},
+          });
+        mockUseGenAiAPI.mockReturnValue({
+          api: { createResponse: mockCreateResponse },
+          apiAvailable: true,
+        } as unknown as ReturnType<typeof useGenAiAPI>);
+        const { result } = renderHook(() => useChatbotMessages(defaultProps));
+        const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
+
+        await act(async () => {
+          await result.current.handleMessageSend(
+            'Transcribed speech',
+            undefined,
+            undefined,
+            undefined,
+            file,
+            '',
+          );
+        });
+        expect(result.current.messages[1].onRetryError).toBeDefined();
+        act(() => result.current.messages[1].onRetryError?.());
+
+        await waitFor(() => expect(mockCreateResponse).toHaveBeenCalledTimes(2));
+        expect(createObjectURL).toHaveBeenCalledTimes(1);
+        expect(createObjectURL).toHaveBeenCalledWith(file);
+        expect(
+          result.current.messages
+            .filter((message) => message.role === 'user')
+            .map((message) => message.content),
+        ).toEqual(['', '']);
+        expect(
+          result.current.messages
+            .filter((message) => message.role === 'user')
+            .map(
+              (message) =>
+                (message.extraContent?.beforeMainContent as React.ReactElement<{ src: string }>)
+                  .props.src,
+            ),
+        ).toEqual(['blob:audio-preview', 'blob:audio-preview']);
+
+        act(() => result.current.clearConversation());
+        expect(revokeObjectURL).toHaveBeenCalledTimes(1);
+        expect(revokeObjectURL).toHaveBeenCalledWith('blob:audio-preview');
+      } finally {
+        URL.createObjectURL = originalCreateObjectURL;
+        URL.revokeObjectURL = originalRevokeObjectURL;
+      }
+    });
+
     it('should remove failed bot message before retry', async () => {
       mockClassifyError.mockImplementation(() => ({
         pattern: 'full-failure',
