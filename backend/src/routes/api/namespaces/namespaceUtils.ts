@@ -2,7 +2,7 @@ import { PatchUtils, V1Namespace, V1SelfSubjectAccessReview } from '@kubernetes/
 import { NamespaceApplicationCase } from './const';
 import { K8sStatus, KnownLabels, KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { createCustomError } from '../../../utils/requestUtils';
-import { isK8sStatus } from '../../../utils/pass-through';
+import { isK8sStatus, passThroughResource } from '../../../utils/pass-through';
 import { getDashboardConfig } from '../../../utils/resourceUtils';
 import { createSelfSubjectAccessReview } from '../../../utils/authUtils';
 
