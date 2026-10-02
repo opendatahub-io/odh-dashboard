@@ -312,6 +312,27 @@ func TestAudioTranscription_EmptyBody(t *testing.T) {
 
 // --- Model Resolution Tests ---
 
+func TestAudioTranscription_MockAudioNamespace(t *testing.T) {
+	for _, modelID := range []string{"whisper-large-v3", "whisper-small"} {
+		t.Run(modelID, func(t *testing.T) {
+			model := asrModel("mock-audio-namespace")
+			model.ModelID = modelID
+			model.ModelName = modelID
+			app := newTestAppForASR(t, []models.AAModel{model})
+			req := buildAudioRequest(t, AudioTranscriptionRequest{FileID: "file-abc123", ASRModelID: modelID}, mockLSWithAudio(wavBytes(), "audio/wav"))
+			req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "mock-audio-namespace"))
+
+			rr := httptest.NewRecorder()
+			app.LlamaStackAudioTranscriptionHandler(rr, req, nil)
+
+			require.Equal(t, http.StatusOK, rr.Code)
+			var response AudioTranscriptionResponse
+			require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+			assert.Equal(t, "This is a mock audio transcription.", response.Text)
+		})
+	}
+}
+
 func TestAudioTranscription_ModelNotFound(t *testing.T) {
 	app := newTestAppForASR(t, []models.AAModel{})
 	lsClient := mockLSWithAudio(wavBytes(), "audio/wav")

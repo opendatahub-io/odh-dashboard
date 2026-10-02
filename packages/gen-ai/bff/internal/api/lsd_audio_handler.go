@@ -101,6 +101,13 @@ func (app *App) LlamaStackAudioTranscriptionHandler(w http.ResponseWriter, r *ht
 		app.writeASRError(w, r, http.StatusBadRequest, constants.ASRCodeInvalidFormat, err.Error(), false)
 		return
 	}
+	if app.config.MockLSClient && app.config.MockK8sClient && app.config.AsrModelURL == "" && namespace == "mock-audio-namespace" &&
+		(req.ASRModelID == "whisper-large-v3" || req.ASRModelID == "whisper-small") {
+		if err := app.WriteJSON(w, http.StatusOK, AudioTranscriptionResponse{Text: "This is a mock audio transcription."}, nil); err != nil {
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
 
 	text, err := app.transcribeAudio(transcriptionCtx, endpoint, modelName, authToken, validatedReader, contentType)
 	if err != nil {
