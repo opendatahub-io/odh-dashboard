@@ -40,7 +40,7 @@ describe('RegisterDataModal', () => {
   it('should render modal with all form fields', () => {
     render(<RegisterDataModal {...defaultProps} />);
 
-    expect(screen.getByText('Register data')).toBeTruthy();
+    expect(screen.getByText('Create data asset')).toBeTruthy();
     expect(screen.getByTestId('data-name-input')).toBeTruthy();
     expect(screen.getByTestId('data-description-input')).toBeTruthy();
     expect(screen.getByTestId('asset-type-toggle')).toBeTruthy();
@@ -211,6 +211,30 @@ describe('RegisterDataModal', () => {
 
     await user.click(screen.getByTestId('data-collection-toggle'));
     expect(screen.getByText('Create new collection')).toBeTruthy();
+  });
+
+  it('should keep added labels as editable rows with remove controls', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('data-add-label-button'));
+    const labelInput = screen.getByTestId('data-labels-input-0');
+    await user.type(labelInput, 'production');
+
+    expect(labelInput).toHaveValue('production');
+    expect(screen.getByTestId('data-label-remove-0')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('data-label-remove-0'));
+    expect(screen.queryByTestId('data-labels-input-0')).not.toBeInTheDocument();
+  });
+
+  it('should use a minus control for custom property rows', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('data-add-custom-property'));
+
+    expect(screen.getByTestId('data-custom-property-remove-0')).toBeInTheDocument();
   });
 
   it('should display available connections in dropdown', async () => {

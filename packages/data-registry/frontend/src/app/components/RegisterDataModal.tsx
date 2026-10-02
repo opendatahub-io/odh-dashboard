@@ -33,11 +33,14 @@ import {
   registerDataDefaults,
   RegisterDataFormData,
 } from '~/app/schemas/registerData.schema';
-import AssetDetailsSection from './register-data/AssetDetailsSection';
 import DataLocationSection from './register-data/DataLocationSection';
 import PropertiesSection from './register-data/PropertiesSection';
-import CustomPropertiesSection from './register-data/CustomPropertiesSection';
 import SchemaSection from './register-data/SchemaSection';
+import {
+  RegistrationAssetFormatSection,
+  RegistrationIdentitySection,
+  RegistrationOrganizationSection,
+} from './register-data/RegistrationAssetSections';
 
 type RegisterDataModalProps = {
   isOpen: boolean;
@@ -123,6 +126,10 @@ const isUnstructuredFormat = (format: string): format is UnstructuredFormat =>
 const isStructuredFormat = (format: string): format is StructuredFormat =>
   STRUCTURED_FORMAT_VALUES.some((value) => value === format);
 
+const getValidLabels = (labels: string[]): string[] => [
+  ...new Set(labels.map((label) => label.trim()).filter(Boolean)),
+];
+
 const buildSharedAssetRequest = (
   data: RegisterDataFormData,
   connections: ConnectionModel[],
@@ -140,8 +147,9 @@ const buildSharedAssetRequest = (
   if (data.connection) {
     request.connection_ref = getConnectionRef(data.connection, connections);
   }
-  if (data.labels.length > 0) {
-    request.labels = data.labels;
+  const labels = getValidLabels(data.labels);
+  if (labels.length > 0) {
+    request.labels = labels;
   }
   const properties: Record<string, string> = {};
   if (data.purpose) {
@@ -259,9 +267,10 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
       setIsSubmitting(true);
       setError('');
       try {
-        if (data.labels.length > 0) {
+        const labels = getValidLabels(data.labels);
+        if (labels.length > 0) {
           await Promise.all(
-            data.labels.map((label) =>
+            labels.map((label) =>
               createLabel(project, { name: label }).catch((err) => {
                 if (isConflictError(err)) {
                   return;
@@ -294,10 +303,11 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={handleClose} variant="medium" data-testid="register-data-modal">
       <ModalHeader
-        title="Register data"
+        title="Create data asset"
         description={
           <Content component="p">
-            Create a new data asset and configure its source location, metadata, and schema.
+            A data asset points to the exact location within a connection where the information is
+            located. It can also record information about the structure of the data.
           </Content>
         }
       />
@@ -309,10 +319,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
         ) : null}
         <FormProvider {...form}>
           <Form>
-            <AssetDetailsSection
-              collections={collections}
-              onManageCollections={onManageCollections}
-            />
+            <RegistrationIdentitySection />
             <DataLocationSection
               connections={connections}
               connectionsLoaded={connectionsLoaded}
@@ -320,9 +327,13 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
               onRegisterNewConnection={handleRegisterNewConnection}
               showConnection
             />
-            <PropertiesSection />
-            <CustomPropertiesSection />
+            <RegistrationAssetFormatSection />
             {assetType === 'structured' ? <SchemaSection /> : null}
+            <RegistrationOrganizationSection
+              collections={collections}
+              onManageCollections={onManageCollections}
+            />
+            <PropertiesSection />
           </Form>
         </FormProvider>
       </ModalBody>

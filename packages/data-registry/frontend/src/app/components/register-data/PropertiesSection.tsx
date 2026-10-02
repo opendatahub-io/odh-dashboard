@@ -24,6 +24,7 @@ import {
   MaturityType,
   PiiStatus,
 } from '~/app/types';
+import CustomPropertiesSection from './CustomPropertiesSection';
 
 const LICENSE_LABELS: Record<LicenseType, string> = {
   'internal-use': 'Internal use',
@@ -95,7 +96,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
                 isFullWidth
                 data-testid={testId}
               >
-                {options.find((o) => o.key === field.value)?.label || placeholder}
+                {options.find((option) => option.key === field.value)?.label || placeholder}
               </MenuToggle>
             )}
           >
@@ -103,9 +104,9 @@ const SelectField: React.FC<SelectFieldProps> = ({
               <SelectOption value="" data-testid={`${testId}-clear`}>
                 Not set
               </SelectOption>
-              {options.map((o) => (
-                <SelectOption key={o.key} value={o.key}>
-                  {o.label}
+              {options.map((option) => (
+                <SelectOption key={option.key} value={option.key}>
+                  {option.label}
                 </SelectOption>
               ))}
             </SelectList>
@@ -192,6 +193,8 @@ const PropertiesSection: React.FC = () => {
         options={PII_OPTIONS}
         placeholder="Select PII status"
       />
+
+      <CustomPropertiesSection description="Optionally define custom properties using key-value pairs." />
     </FormSection>
   );
 };
