@@ -1,6 +1,5 @@
 import { PatchUtils, V1Namespace, V1SelfSubjectAccessReview } from '@kubernetes/client-node';
 import { NamespaceApplicationCase } from './const';
-import { isHttpError } from '../../../utils';
 import { K8sStatus, KnownLabels, KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { createCustomError } from '../../../utils/requestUtils';
 import { isK8sStatus } from '../../../utils/pass-through';
@@ -62,20 +61,21 @@ export const ensureNIMFeatureFlagEnabled = (): void => {
 
 export const ensureProjectNIMAnnotation = async (
   fastify: KubeFastifyInstance,
+  request: OauthFastifyRequest,
   projectNamespace: string,
 ): Promise<void> => {
-  let namespaceResource: V1Namespace;
+  const cluster = fastify.kube.config.getCurrentCluster();
+  let namespaceResource: V1Namespace | K8sStatus;
   try {
-    namespaceResource = (await fastify.kube.coreV1Api.readNamespace(projectNamespace)).body;
+    namespaceResource = await passThroughResource<V1Namespace>(fastify, request, {
+      url: `${cluster.server}/api/v1/namespaces/${projectNamespace}`,
+      method: 'GET',
+    });
   } catch (e) {
-    if (isHttpError(e) && typeof e.response.statusCode === 'number') {
-      throw createCustomError(
-        'Failed',
-        'Failed to check project NIM promotion status',
-        e.response.statusCode,
-      );
-    }
-    throw e;
+    throw createCustomError('Failed', 'Failed to check project NIM promotion status', 500);
+  }
+  if (isK8sStatus(namespaceResource)) {
+    throw createCustomError('Failed', 'Failed to check project NIM promotion status', 500);
   }
   if (namespaceResource.metadata?.annotations?.['opendatahub.io/nim-support'] !== 'true') {
     throw createCustomError('Forbidden', 'NIM model serving is not enabled for this project.', 403);
