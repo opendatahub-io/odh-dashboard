@@ -15,6 +15,55 @@ import (
 	pgxvec "github.com/pgvector/pgvector-go/pgx"
 )
 
+const maxHybridCandidates = 1000
+
+func hybridCandidateLimit(topK int) int {
+	if topK <= 0 || topK > maxHybridCandidates/10 {
+		return maxHybridCandidates
+	}
+	return topK * 10
+}
+
+func pgvectorHybridSearchSQL(table string) string {
+	return fmt.Sprintf(`
+WITH vector_candidates AS (
+    SELECT id, content_text, embedding
+    FROM %s
+    WHERE octet_length(content_text) <= $5
+    ORDER BY embedding <=> $1
+    LIMIT $6
+),
+vector_ranked AS (
+    SELECT id, content_text,
+           ROW_NUMBER() OVER (ORDER BY embedding <=> $1) AS rank
+    FROM vector_candidates
+),
+text_candidates AS (
+    SELECT id, content_text, tokenized_content
+    FROM %s
+    WHERE tokenized_content @@ plainto_tsquery('english', $2)
+      AND octet_length(content_text) <= $5
+    ORDER BY ts_rank(tokenized_content, plainto_tsquery('english', $2)) DESC
+    LIMIT $6
+),
+text_ranked AS (
+    SELECT id, content_text,
+           ROW_NUMBER() OVER (ORDER BY ts_rank(tokenized_content, plainto_tsquery('english', $2)) DESC) AS rank
+    FROM text_candidates
+),
+combined AS (
+    SELECT COALESCE(vr.id, tr.id) AS id,
+           COALESCE(vr.content_text, tr.content_text) AS content_text,
+           COALESCE(1.0 / (60 + vr.rank), 0) * $3 + COALESCE(1.0 / (60 + tr.rank), 0) * $4 AS score
+    FROM vector_ranked vr
+    FULL OUTER JOIN text_ranked tr ON vr.id = tr.id
+)
+SELECT id, content_text, score
+FROM combined
+ORDER BY score DESC
+LIMIT $7`, table, table)
+}
+
 type pgvectorDB struct {
 	conn *pgx.Conn
 }
@@ -118,33 +167,9 @@ func (p *pgvectorDB) Search(ctx context.Context, collection string, queryVec []f
 	if hybrid {
 		// RRF combining cosine similarity and pre-computed tokenized_content tsvector.
 		// Each sub-rank uses RRF formula: 1/(k + rank). k=60 is standard.
-		sql := fmt.Sprintf(`
-WITH vector_ranked AS (
-    SELECT id, content_text,
-           ROW_NUMBER() OVER (ORDER BY embedding <=> $1) AS rank
-    FROM %s
-    WHERE octet_length(content_text) <= $5
-),
-text_ranked AS (
-    SELECT id, content_text,
-           ROW_NUMBER() OVER (ORDER BY ts_rank(tokenized_content, plainto_tsquery('english', $2)) DESC) AS rank
-    FROM %s
-    WHERE tokenized_content @@ plainto_tsquery('english', $2)
-      AND octet_length(content_text) <= $5
-),
-combined AS (
-    SELECT COALESCE(vr.id, tr.id) AS id,
-           COALESCE(vr.content_text, tr.content_text) AS content_text,
-           COALESCE(1.0 / (60 + vr.rank), 0) * $3 + COALESCE(1.0 / (60 + tr.rank), 0) * $4 AS score
-    FROM vector_ranked vr
-    FULL OUTER JOIN text_ranked tr ON vr.id = tr.id
-)
-SELECT id, content_text, score
-FROM combined
-ORDER BY score DESC
-LIMIT $6`, table, table)
+		sql := pgvectorHybridSearchSQL(table)
 
-		rows, err = p.conn.Query(ctx, sql, vec, query, alpha, 1-alpha, MaxVectorResultBytes, topK)
+		rows, err = p.conn.Query(ctx, sql, vec, query, alpha, 1-alpha, MaxVectorResultBytes, hybridCandidateLimit(topK), topK)
 	} else {
 		sql := fmt.Sprintf(`
 SELECT id, content_text, 1 - (embedding <=> $1) AS score

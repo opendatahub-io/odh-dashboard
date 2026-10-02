@@ -50,6 +50,11 @@ describe('AutoRAG API Contract Tests', () => {
       expect(properties.max_output_tokens).toEqual(
         expect.objectContaining({ type: 'integer', minimum: 0, maximum: 4096, default: 2048 }),
       );
+      expect(responsesRequest.required).toEqual(
+        expect.arrayContaining(['model', 'input', 'tools', 'metadata']),
+      );
+      expect((properties.metadata as { required: string[] }).required).toContain('embedding_model');
+      expect((properties.tools as { minItems: number }).minItems).toBe(1);
 
       const modelSchemaValidator = new ContractSchemaValidator();
       modelSchemaValidator.loadSchema(
@@ -86,6 +91,8 @@ describe('AutoRAG API Contract Tests', () => {
           content: [{ type: 'input_text', text: 'What is RAG?' }],
         },
       ],
+      tools: [{ type: 'file_search', vector_store_ids: ['vs-test'] }],
+      metadata: { embedding_model: 'embedding-model' },
     };
 
     it('should reject a request without the canonical database secret query parameter', async () => {

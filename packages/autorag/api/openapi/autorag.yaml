@@ -1871,6 +1871,8 @@ components:
       required:
         - model
         - input
+        - tools
+        - metadata
       properties:
         model:
           type: string
@@ -1934,8 +1936,10 @@ components:
               type:
                 type: string
                 maxLength: 1048576
+                enum: [file_search]
               vector_store_ids:
                 type: array
+                minItems: 1
                 maxItems: 100
                 items:
                   type: string

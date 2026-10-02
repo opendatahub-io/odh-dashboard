@@ -392,17 +392,8 @@ func (h *ResponsesHandler) handleStreamingResponse(w http.ResponseWriter, r *htt
 
 	emptyResp := map[string]any{"id": "", "model": "", "status": "", "created_at": 0}
 
-	// Extract last user question for file_search_call.queries
-	var question string
-	for _, msg := range req.Input {
-		if msg.Role == "user" {
-			for _, c := range msg.Content {
-				if c.Type == "input_text" {
-					question += c.Text
-				}
-			}
-		}
-	}
+	// Extract only the final user question for file_search_call.queries.
+	question := finalUserInputText(req.Input)
 
 	if !writeEvent(map[string]any{
 		"type":            "response.created",
@@ -530,6 +521,22 @@ func (h *ResponsesHandler) handleStreamingResponse(w http.ResponseWriter, r *htt
 	if !writeDone() {
 		return
 	}
+}
+
+func finalUserInputText(input []models.InputMessage) string {
+	for i := len(input) - 1; i >= 0; i-- {
+		if input[i].Role != "user" {
+			continue
+		}
+		var question strings.Builder
+		for _, content := range input[i].Content {
+			if content.Type == "input_text" {
+				question.WriteString(content.Text)
+			}
+		}
+		return question.String()
+	}
+	return ""
 }
 
 func (h *ResponsesHandler) mapError(w http.ResponseWriter, r *http.Request, err error) {

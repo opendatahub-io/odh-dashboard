@@ -207,7 +207,7 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
               >
                 <DropdownList>
                   {/* eslint-disable @typescript-eslint/no-unnecessary-condition */}
-                  {onTryPattern && (
+                  {onTryPattern && canViewCode && (
                     <DropdownItem
                       key="try-pattern"
                       value="try-pattern"

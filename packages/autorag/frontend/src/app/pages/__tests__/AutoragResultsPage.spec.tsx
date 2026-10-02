@@ -13,6 +13,7 @@ import AutoragResultsPage, {
 import type { AutoragPattern, ResponsesTemplate } from '~/app/types/autoragPattern';
 import type { AutoragRuntimeParameters, PipelineRun } from '~/app/types';
 import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
+import { canUseResponsesForPattern } from '~/app/utilities/responses';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
@@ -269,6 +270,29 @@ describe('buildResponsesTemplate', () => {
     const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
 
     expect(template.tools[0].ranking_options).toBeUndefined();
+  });
+
+  it('should include the configured embedding model in request metadata', () => {
+    const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+
+    expect(template.metadata.embedding_model).toBe('text-embedding-3');
+  });
+
+  it('should keep Responses actions unavailable when the embedding model is missing', () => {
+    const pattern = {
+      ...mockPatterns['pattern-1'],
+      settings: {
+        ...mockPatterns['pattern-1'].settings,
+        embedding: { ...mockPatterns['pattern-1'].settings.embedding, model_id: '  ' },
+      },
+    };
+
+    expect(
+      canUseResponsesForPattern(
+        { db_secret_name: 'db-secret', maas_secret_name: 'maas-secret' },
+        pattern,
+      ),
+    ).toBe(false);
   });
 
   it('should emit the supported RRF ranking shape for hybrid retrieval', () => {

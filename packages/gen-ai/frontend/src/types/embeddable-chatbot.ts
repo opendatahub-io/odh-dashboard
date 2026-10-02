@@ -21,6 +21,7 @@ type ResponsesTemplate = {
   metadata: {
     autorag_run_id?: string;
     rag_pattern_name: string;
+    embedding_model?: string;
   };
   instructions: string;
   tools: Array<{
