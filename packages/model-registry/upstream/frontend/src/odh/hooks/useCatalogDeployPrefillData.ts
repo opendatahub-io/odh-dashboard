@@ -6,10 +6,14 @@ import type {
 import { CatalogArtifactList, CatalogModel } from '~/app/modelCatalogTypes';
 import { getCatalogModelDetailsRoute } from '~/app/routes/modelCatalog/catalogModelDetails';
 import {
+  getHfAccessType,
   getModelArtifactUri,
   getValidatedConfigurationsForModel,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
-import { getCustomPropString } from '~/app/pages/modelRegistry/screens/utils';
+import {
+  getModelCatalogIsAccessGranted,
+  getModelCatalogTrackingHfAccessType,
+} from '~/app/pages/modelCatalog/tracking/modelCatalogEngagementTracking';
 import useModelRegistryDashboardConfig from '~/app/hooks/useModelRegistryDashboardConfig';
 
 const useCatalogDeployPrefillData = (
@@ -35,7 +39,7 @@ const useCatalogDeployPrefillData = (
       };
     }
 
-    const hfAccessType = getCustomPropString(model.customProperties || {}, 'hf_access_type');
+    const hfAccessType = getHfAccessType(model);
     const requiresHuggingFaceApiKey =
       !!hfAccessType && (hfAccessType === 'private' || hfAccessType.startsWith('gated_'));
     const isGatedHuggingFace = !!hfAccessType && hfAccessType.startsWith('gated_');
@@ -44,6 +48,8 @@ const useCatalogDeployPrefillData = (
       modelName: model.name,
       modelUri: uri,
       catalogModelId: [sourceId || model.source_id, model.name].filter(Boolean).join('/'),
+      hfAccessType: getModelCatalogTrackingHfAccessType(model),
+      isAccessGranted: getModelCatalogIsAccessGranted(model),
       returnRouteValue: '/ai-hub/models/deployments/',
       cancelReturnRouteValue: cancelReturnRoute,
       wizardStartIndex: 1,

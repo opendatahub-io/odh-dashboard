@@ -463,6 +463,7 @@ const completeWizardFromModelSource = () => {
 describe('Hugging Face API key in catalog deployment wizard', () => {
   it('should require an API key and show gated alert for gated catalog models', () => {
     openWizardFromCatalog('gated_auto');
+    initDeployIntercepts();
     navigateToModelSourceStep();
 
     modelServingWizard.findHfApiKeyField().should('be.visible');
@@ -480,6 +481,28 @@ describe('Hugging Face API key in catalog deployment wizard', () => {
       cy.contains('Hugging Face API key').should('exist');
       cy.contains('Provided').should('exist');
     });
+
+    cy.window().then((win) => {
+      Object.defineProperty(win, 'analytics', {
+        value: { track: cy.stub().as('analyticsTrack') },
+        writable: true,
+        configurable: true,
+      });
+    });
+
+    modelServingWizard.findSubmitButton().click();
+    cy.wait('@createInferenceService');
+    cy.wait('@createInferenceService');
+    cy.get('@analyticsTrack').should(
+      'be.calledWithMatch',
+      'Model Deployed',
+      Cypress.sinon.match({
+        outcome: 'submit',
+        success: true,
+        hfAccessType: 'gated_auto',
+        isAccessGranted: true,
+      }),
+    );
   });
 
   it('should require an API key without gated alert for private catalog models', () => {
@@ -511,7 +534,28 @@ describe('Hugging Face API key in catalog deployment wizard', () => {
     modelServingWizard.findHfApiKeyInput().type(HF_API_KEY);
     completeWizardFromModelSource();
 
+    cy.window().then((win) => {
+      Object.defineProperty(win, 'analytics', {
+        value: { track: cy.stub().as('analyticsTrack') },
+        writable: true,
+        configurable: true,
+      });
+    });
+
     modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+    cy.wait('@createInferenceService');
+    cy.wait('@createInferenceService');
+    cy.get('@analyticsTrack').should(
+      'be.calledWithMatch',
+      'Model Deployed',
+      Cypress.sinon.match({
+        outcome: 'submit',
+        success: true,
+        hfAccessType: 'private',
+        isAccessGranted: true,
+      }),
+    );
 
     // Retry until both HF token Secret creates are present (other secrets may
     // also be POSTed during deploy, so do not assert on @createSecret order).
