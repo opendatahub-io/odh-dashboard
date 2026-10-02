@@ -482,7 +482,7 @@ describe('ManagePipelineServerModal', () => {
       expect(mockUpdatePipelineSettings).toHaveBeenCalledWith(
         'test-project',
         {
-          managedPipelines: {},
+          managedPipelines: { pipelines: [] },
         },
         'dspa',
       );
@@ -507,7 +507,7 @@ describe('ManagePipelineServerModal', () => {
         'test-project',
         {
           cacheEnabled: false,
-          managedPipelines: {},
+          managedPipelines: { pipelines: [] },
         },
         'dspa',
       );
