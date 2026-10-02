@@ -42,11 +42,24 @@ describe('TableDetailView', () => {
     expect(link).toHaveTextContent('default');
   });
 
-  it('should render connection name', () => {
+  it('should render connection name as a link to project connections', () => {
     const asset = mockAssetResponse();
     renderView(asset);
-    const el = screen.getByTestId('connection-ref-label');
+    const el = screen.getByTestId('connection-ref-link');
     expect(el).toHaveTextContent('my-s3-connection');
+    expect(el).toHaveAttribute('href', '/projects/test-project?section=connections');
+  });
+
+  it('should render a location without a link when no connection is specified', () => {
+    const asset = mockAssetResponse({
+      connection_ref: null,
+      storage_location: 's3://bucket/path',
+    });
+    renderView(asset);
+
+    expect(screen.getByTestId('asset-connection')).toHaveTextContent('-');
+    expect(screen.getByTestId('asset-location')).toHaveTextContent('s3://bucket/path');
+    expect(screen.queryByTestId('connection-ref-link')).not.toBeInTheDocument();
   });
 
   it('should render relative created and last modified timestamps with hover details', () => {

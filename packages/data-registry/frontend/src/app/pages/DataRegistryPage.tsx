@@ -225,6 +225,11 @@ const DataRegistryPage: React.FC = () => {
     }
   }, [handleProjectCreated, projectCreationFailure]);
 
+  const handleRegisterNewConnection = React.useCallback(() => {
+    setIsRegisterModalOpen(false);
+    navigate(`/projects/${encodeURIComponent(selectedProject)}?section=connections`);
+  }, [navigate, selectedProject]);
+
   if (projectCreationFailure) {
     return (
       <ProjectCreationErrorPage
@@ -361,6 +366,7 @@ const DataRegistryPage: React.FC = () => {
               setIsRegisterModalOpen(false);
               setIsCollectionsModalOpen(true);
             }}
+            onRegisterNewConnection={handleRegisterNewConnection}
           />
         </>
       )}

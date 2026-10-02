@@ -29,6 +29,7 @@ import {
 import { useConnections } from '~/app/hooks/useConnections';
 import {
   registerDataSchema,
+  registerDataDraftSchema,
   registerDataDefaults,
   RegisterDataFormData,
 } from '~/app/schemas/registerData.schema';
@@ -45,6 +46,42 @@ type RegisterDataModalProps = {
   collections: string[];
   onCreated: () => void;
   onManageCollections: () => void;
+  onRegisterNewConnection?: () => void;
+};
+
+const REGISTER_DATA_DRAFT_STORAGE_PREFIX = 'odh-data-registry.register-data-draft';
+
+const getDraftStorageKey = (project: string): string =>
+  `${REGISTER_DATA_DRAFT_STORAGE_PREFIX}:${encodeURIComponent(project)}`;
+
+const saveRegisterDataDraft = (project: string, data: RegisterDataFormData): void => {
+  try {
+    sessionStorage.setItem(getDraftStorageKey(project), JSON.stringify(data));
+  } catch {
+    // Ignore storage failures so registration still works when storage is unavailable.
+  }
+};
+
+const loadRegisterDataDraft = (project: string): Partial<RegisterDataFormData> | undefined => {
+  try {
+    const storedDraft = sessionStorage.getItem(getDraftStorageKey(project));
+    if (!storedDraft) {
+      return undefined;
+    }
+
+    const result = registerDataDraftSchema.safeParse(JSON.parse(storedDraft));
+    return result.success ? result.data : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const clearRegisterDataDraft = (project: string): void => {
+  try {
+    sessionStorage.removeItem(getDraftStorageKey(project));
+  } catch {
+    // Ignore storage failures so closing the modal still works when storage is unavailable.
+  }
 };
 
 const getConnectionRef = (
@@ -171,6 +208,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
   collections,
   onCreated,
   onManageCollections,
+  onRegisterNewConnection,
 }) => {
   const [connections, connectionsLoaded, connectionsError] = useConnections(project);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -182,12 +220,39 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
     mode: 'onBlur',
   });
 
+  React.useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const draft = loadRegisterDataDraft(project);
+    if (draft) {
+      form.reset({ ...registerDataDefaults, ...draft });
+    }
+  }, [form, isOpen, project]);
+
+  const resetAndClose = React.useCallback(
+    (preserveDraft = false) => {
+      if (!preserveDraft) {
+        clearRegisterDataDraft(project);
+      }
+      form.reset(registerDataDefaults);
+      setIsSubmitting(false);
+      setError('');
+      onClose();
+    },
+    [form, onClose, project],
+  );
+
   const handleClose = React.useCallback(() => {
-    form.reset(registerDataDefaults);
-    setIsSubmitting(false);
-    setError('');
-    onClose();
-  }, [form, onClose]);
+    resetAndClose();
+  }, [resetAndClose]);
+
+  const handleRegisterNewConnection = React.useCallback(() => {
+    saveRegisterDataDraft(project, form.getValues());
+    resetAndClose(true);
+    onRegisterNewConnection?.();
+  }, [form, onRegisterNewConnection, project, resetAndClose]);
 
   const handleSubmit = React.useCallback(
     async (data: RegisterDataFormData) => {
@@ -212,6 +277,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
           await createGenericTable(project, data.collection, buildTableRequest(data, connections));
         }
         form.reset(registerDataDefaults);
+        clearRegisterDataDraft(project);
         onCreated();
         onClose();
       } catch (err) {
@@ -251,6 +317,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
               connections={connections}
               connectionsLoaded={connectionsLoaded}
               connectionsError={connectionsError}
+              onRegisterNewConnection={handleRegisterNewConnection}
               showConnection
             />
             <PropertiesSection />

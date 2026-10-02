@@ -37,6 +37,16 @@ describe('ConnectionRefLink', () => {
     expect(screen.getByTestId('connection-ref-label')).toHaveTextContent('my-s3-connection');
   });
 
+  it('should not link a plain string even when linkTo is provided', () => {
+    render(
+      <MemoryRouter>
+        <ConnectionRefLink connectionRef="s3://bucket/path" linkTo="/connections" />
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId('connection-ref-label')).toHaveTextContent('s3://bucket/path');
+    expect(screen.queryByTestId('connection-ref-link')).not.toBeInTheDocument();
+  });
+
   it('should render dash when connectionRef is null', () => {
     const { container } = render(<ConnectionRefLink connectionRef={null} />);
     expect(container).toHaveTextContent('-');

@@ -40,10 +40,11 @@ import {
   isConnectionError,
 } from '~/app/api/dataRegistry';
 import { useNotification } from '~/app/hooks/useNotification';
-import { assetDetailUrl } from '~/app/utilities/routes';
+import { assetDetailUrl, projectConnectionsUrl } from '~/app/utilities/routes';
 import { getFormatBadge, FORMAT_OPTIONS } from '~/app/utilities/formatUtils';
 import AccessDeniedError from '~/app/components/errors/AccessDeniedError';
 import ConnectionError from '~/app/components/errors/ConnectionError';
+import ConnectionRefLink from '~/app/components/ConnectionRefLink';
 import ServiceUnavailableError from '~/app/components/errors/ServiceUnavailableError';
 import noAssetsImage from '~/images/no-assets.png';
 import DeleteAssetModal from './DeleteAssetModal';
@@ -778,7 +779,16 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                       </Label>{' '}
                       <Content component="small">{badge.text}</Content>
                     </Td>
-                    <Td dataLabel="Asset location">{asset.connectionRef || asset.location}</Td>
+                    <Td dataLabel="Asset location">
+                      {asset.rawAsset?.connection_ref ? (
+                        <ConnectionRefLink
+                          connectionRef={asset.rawAsset.connection_ref}
+                          linkTo={projectConnectionsUrl(project)}
+                        />
+                      ) : (
+                        asset.connectionRef || asset.location
+                      )}
+                    </Td>
                     <Td dataLabel="Labels">
                       {asset.labels.length > 0 ? (
                         <LabelGroup>
