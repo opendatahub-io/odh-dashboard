@@ -28,7 +28,7 @@ tilt-up: check-tilt setup-kserve ## Start the full RHAII stack, including model 
 	@tilt up --port "$(TILT_PORT)"
 
 .PHONY: setup-kserve
-setup-kserve: setup-kind ## Install KServe + cert-manager into the Kind cluster (idempotent)
+setup-kserve: setup-kind ## Install KServe + LLMInferenceService dependencies into Kind (idempotent)
 	@bash scripts/setup-kserve.sh
 
 .PHONY: tilt-down

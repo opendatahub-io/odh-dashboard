@@ -6,11 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
@@ -24,8 +26,6 @@ type AgentDeploymentCreateEnvelope = Envelope[models.AgentDeploymentCreateRespon
 
 const sandboxRollbackTimeout = 30 * time.Second
 
-const mockSandboxOGXImage = "example.com/ogx:mock"
-
 var errSandboxMCPDashboardConfigRead = errors.New("failed to read dashboard MCP server ConfigMap")
 
 const (
@@ -33,6 +33,20 @@ const (
 	sandboxServiceSuffixLength = len("-ext")
 	dnsLabelMaxLength          = 63
 )
+
+func resolveSandboxOGXImage(cfg config.EnvConfig) (string, error) {
+	if cfg.OGXCoreImage != "" || cfg.MockK8sClient {
+		return cfg.OGXCoreImage, nil
+	}
+
+	return "", &integrations.HTTPError{
+		StatusCode: 500,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    "missing_image",
+			Message: "OGX core image not configured; set RELATED_IMAGE_ODH_OGX_CORE_IMAGE or --ogx-core-image",
+		},
+	}
+}
 
 // CreateAgentDeploymentHandler handles POST /api/v1/agent-deployments.
 // It loads the agent profile, builds the llama-stack-config ConfigMap from the profile's
@@ -138,6 +152,15 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	maasGatewayURL := ""
+	if profile.Spec.Model.SourceType == string(models.ModelSourceTypeMaaS) {
+		maasGatewayURL, err = resolveMaaSGatewayURL(ctx)
+		if err != nil {
+			app.handleBFFClientError(w, r, err)
+			return
+		}
+	}
+
 	// Custom endpoint credentials belong to the dashboard-managed provider record.
 	// Resolve that record before building the OGX configuration so the credential can
 	// only ever be sent to the provider URL it was configured for, never a URI from
@@ -198,10 +221,23 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	mcpServers, err := app.resolveSandboxMCPServers(ctx, k8sClient, profile, mcpServerAuth)
+	mcpServers, err := app.resolveSandboxMCPServers(ctx, namespace, k8sClient, profile, mcpServerAuth)
 	if err != nil {
 		if errors.Is(err, errSandboxMCPDashboardConfigRead) {
 			app.serverErrorResponse(w, r, err)
+			return
+		}
+		var bffErr *bffclient.BFFClientError
+		if errors.As(err, &bffErr) {
+			app.handleBFFClientError(w, r, err)
+			return
+		}
+		if errors.Is(err, ErrRegistryMCPServerNotFound) {
+			app.notFoundResponse(w, r)
+			return
+		}
+		if errors.Is(err, ErrRegistryMCPClientUnavailable) {
+			app.serviceUnavailableResponse(w, r, err)
 			return
 		}
 		app.badRequestResponse(w, r, err)
@@ -259,21 +295,10 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 	resources.WrapperAppConfigMapName = waCM.Name
 
 	// Require the OGX core image — injected by the operator via RELATED_IMAGE_ODH_OGX_CORE_IMAGE.
-	ogxImage := app.config.OGXCoreImage
-	if ogxImage == "" && app.config.MockK8sClient {
-		// Mock mode persists a simulated Sandbox but never starts a pod, so it does
-		// not receive the operator-injected RELATED_IMAGE_ODH_OGX_CORE_IMAGE environment value.
-		ogxImage = mockSandboxOGXImage
-	}
-	if ogxImage == "" {
+	ogxImage, imageErr := resolveSandboxOGXImage(app.config)
+	if imageErr != nil {
 		rollback()
-		app.serverErrorResponse(w, r, &integrations.HTTPError{
-			StatusCode: 500,
-			ErrorResponse: integrations.ErrorResponse{
-				Code:    "missing_image",
-				Message: "OGX core image not configured; set RELATED_IMAGE_ODH_OGX_CORE_IMAGE or --ogx-core-image",
-			},
-		})
+		app.serverErrorResponse(w, r, imageErr)
 		return
 	}
 
@@ -347,20 +372,17 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		LlamaStackConfigMapName: lsCM.Name,
 		WrapperAppConfigMapName: waCM.Name,
 		Image:                   ogxImage,
-		// Use the configured MaaS URL when present, otherwise derive the current
-		// cluster's MaaS gateway URL. This keeps deployed Sandboxes usable when
-		// MAAS_URL is not injected into the Gen AI BFF deployment.
-		MaaSGatewayURL:     app.resolveMaaSBaseURL(),
-		AgentConfigJSON:    string(agentConfigJSON),
-		OGXModelID:         kubernetes.SandboxOGXModelID(profile.Spec.Model.ID),
-		ModelSourceType:    profile.Spec.Model.SourceType,
-		SystemPrompt:       systemPrompt,
-		MCPServersJSON:     string(mcpServersJSON),
-		VectorStoreIDsJSON: string(vectorStoreIDsJSON),
-		MCPAuthSecrets:     mcpAuthSecrets,
-		ModelAuthSecret:    modelAuthSecret,
-		PgvectorHost:       app.config.PgvectorHost,
-		PgvectorSecretName: app.config.PgvectorPasswordSecretName,
+		MaaSGatewayURL:          maasGatewayURL,
+		AgentConfigJSON:         string(agentConfigJSON),
+		OGXModelID:              kubernetes.SandboxOGXModelID(profile.Spec.Model.ID),
+		ModelSourceType:         profile.Spec.Model.SourceType,
+		SystemPrompt:            systemPrompt,
+		MCPServersJSON:          string(mcpServersJSON),
+		VectorStoreIDsJSON:      string(vectorStoreIDsJSON),
+		MCPAuthSecrets:          mcpAuthSecrets,
+		ModelAuthSecret:         modelAuthSecret,
+		PgvectorHost:            app.config.PgvectorHost,
+		PgvectorSecretName:      app.config.PgvectorPasswordSecretName,
 	}
 	if profile.Spec.Model.Authorization != nil {
 		sandboxOpts.MaaSSubscription = profile.Spec.Model.Authorization.MaaSSubscription
@@ -386,7 +408,7 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 	resources.SandboxName = sandboxName
 
 	// The ConfigMaps are created before the Sandbox, so attach their owner references now.
-	// The Service, Route, and optional RoleBinding receive the same owner at creation time.
+	// The Service and Route receive the same owner reference at creation time.
 	if err := k8sClient.SetSandboxConfigMapsOwner(ctx, namespace, sandboxName, lsCM.Name, waCM.Name); err != nil {
 		rollback()
 		if httpErr, ok := err.(*integrations.HTTPError); ok && httpErr.StatusCode == http.StatusForbidden {
@@ -423,7 +445,7 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 	}
 	resources.ServiceName = sandboxName + "-ext"
 
-	// Create the OpenShift Route with TLS edge termination and an explicit host.
+	// Create the OpenShift Route with TLS edge termination. OpenShift assigns its host.
 	routeURL, err := k8sClient.CreateSandboxRoute(ctx, namespace, sandboxName)
 	if err != nil {
 		rollback()
@@ -519,6 +541,7 @@ func normalizeMCPServerAuth(authorizations map[string]string) (map[string]string
 
 func (app *App) resolveSandboxMCPServers(
 	ctx context.Context,
+	namespace string,
 	k8sClient kubernetes.KubernetesClientInterface,
 	profile *models.AgentProfile,
 	authorizations map[string]string,
@@ -530,32 +553,54 @@ func (app *App) resolveSandboxMCPServers(
 		return nil, nil
 	}
 
-	registryServers, err := app.repositories.MCPClient.GetMCPServersFromDashboardConfig(
-		k8sClient, ctx, app.dashboardNamespace, constants.MCPServerName,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", errSandboxMCPDashboardConfigRead, err)
-	}
-	registryByID := make(map[string]models.MCPServerConfig, len(registryServers))
-	for _, server := range registryServers {
-		registryByID[server.Name] = server.Config
+	configMapServers := make(map[string]models.MCPServerConfig)
+	if slices.ContainsFunc(profile.Spec.MCPServers, func(selected models.MCPServerReference) bool {
+		return selected.ServerRef != nil
+	}) {
+		registryServers, err := app.repositories.MCPClient.GetMCPServersFromDashboardConfig(
+			k8sClient, ctx, app.dashboardNamespace, constants.MCPServerName,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %w", errSandboxMCPDashboardConfigRead, err)
+		}
+		for _, server := range registryServers {
+			configMapServers[server.Name] = server.Config
+		}
 	}
 
 	selectedIDs := make(map[string]struct{}, len(profile.Spec.MCPServers))
 	servers := make([]kubernetes.SandboxMCPServer, 0, len(profile.Spec.MCPServers))
+	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
 	for i, selected := range profile.Spec.MCPServers {
-		if selected.ServerRef.Kind != "ConfigMap" || selected.ServerRef.Name != constants.MCPServerName {
-			return nil, fmt.Errorf("spec.mcpServers[%d] must reference ConfigMap %q", i, constants.MCPServerName)
-		}
-		serverID := selected.ServerRef.Key
-		config, found := registryByID[serverID]
-		if !found || config.URL == "" {
-			return nil, fmt.Errorf("MCP server %q was not found in dashboard ConfigMap %q", serverID, constants.MCPServerName)
+		var (
+			serverID string
+			config   models.MCPServerConfig
+		)
+		if selected.ServerRef != nil {
+			if selected.ServerRef.Kind != "ConfigMap" || selected.ServerRef.Name != constants.MCPServerName {
+				return nil, fmt.Errorf("spec.mcpServers[%d] must reference ConfigMap %q", i, constants.MCPServerName)
+			}
+			serverID = selected.ServerRef.Key
+			var found bool
+			config, found = configMapServers[serverID]
+			if !found || config.URL == "" {
+				return nil, fmt.Errorf("MCP server %q was not found in dashboard ConfigMap %q", serverID, constants.MCPServerName)
+			}
+		} else {
+			if selected.Source != "mlflow" || selected.Name == "" {
+				return nil, fmt.Errorf("spec.mcpServers[%d] must reference a ConfigMap server or an MLflow registry server", i)
+			}
+			serverID = selected.Name
+			var resolveErr error
+			config, resolveErr = app.resolveRegistryServerConfig(ctx, namespace, serverID, mlflowClient)
+			if resolveErr != nil {
+				return nil, fmt.Errorf("resolve registry MCP server %q: %w", serverID, resolveErr)
+			}
 		}
 		selectedIDs[serverID] = struct{}{}
 		server := kubernetes.SandboxMCPServer{ServerLabel: serverID, ServerURL: config.URL}
 		if selected.AllowedTools != nil {
-			server.AllowedTools = &selected.AllowedTools
+			server.AllowedTools = selected.AllowedTools
 		}
 		if authorization, found := authorizations[serverID]; found {
 			if strings.TrimSpace(authorization) == "" {

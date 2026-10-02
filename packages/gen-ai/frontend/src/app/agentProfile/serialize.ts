@@ -10,25 +10,32 @@ export type AgentProfileSerializationContext = {
   asrModel?: AIModel | undefined;
   /** Available MCP servers, used to resolve server name → URL for tool lookup */
   mcpServers: MCPServerFromAPI[];
+  /** Saved references to keep when a previously selected server is currently unavailable. */
+  previousMcpServers?: AgentProfileMcpServer[];
   /**
    * Name of the ConfigMap that holds all MCP server configs.
    * From MCPServersResponse.config_map_info.name.
-   * When absent, MCP servers are omitted from the output.
+   * When absent, ConfigMap-backed servers are omitted; registry servers can still be saved.
    */
   mcpConfigMapName?: string;
 };
 
 /** Collect all tool names for a given server URL across all namespaces */
-const getToolsForServer = (toolSelections: McpToolSelectionsMap, serverUrl: string): string[] => {
+const getToolsForServer = (
+  toolSelections: McpToolSelectionsMap,
+  serverUrl: string,
+): string[] | undefined => {
   const tools: string[] = [];
+  let hasSelection = false;
   for (const nsMap of Object.values(toolSelections)) {
     const serverMap: Record<string, string[]> | undefined = nsMap;
     const serverTools = serverMap?.[serverUrl];
-    if (serverTools) {
+    if (serverTools !== undefined) {
+      hasSelection = true;
       tools.push(...serverTools);
     }
   }
-  return tools;
+  return hasSelection ? tools : undefined;
 };
 
 /**
@@ -41,7 +48,13 @@ export const serializeToAgentProfileSpec = (
   description: string | undefined,
   context: AgentProfileSerializationContext,
 ): AgentProfileSpec => {
-  const { model, asrModel, mcpServers: availableServers, mcpConfigMapName } = context;
+  const {
+    model,
+    asrModel,
+    mcpServers: availableServers,
+    previousMcpServers,
+    mcpConfigMapName,
+  } = context;
 
   const spec: AgentProfileSpec = {
     displayName,
@@ -116,8 +129,9 @@ export const serializeToAgentProfileSpec = (
     }
   }
 
-  // MCP servers: each selected server name maps to its key in the shared ConfigMap
-  if (config.selectedMcpServerIds.length > 0 && mcpConfigMapName) {
+  // ConfigMap servers are stored as resource references; registry servers retain their
+  // MLflow identity so they are not coupled to the dashboard ConfigMap.
+  if (config.selectedMcpServerIds.length > 0 || previousMcpServers?.length) {
     const entries: AgentProfileMcpServer[] = [];
     for (const serverId of config.selectedMcpServerIds) {
       const server = availableServers.find((s) => s.url === serverId);
@@ -125,11 +139,37 @@ export const serializeToAgentProfileSpec = (
         continue;
       }
       const allowedTools = getToolsForServer(config.mcpToolSelections, server.url);
-      entries.push({
-        serverRef: { kind: 'ConfigMap', name: mcpConfigMapName, key: server.name },
-        allowedTools: allowedTools.length > 0 ? allowedTools : undefined,
-      });
+      if (server.source === 'registry') {
+        entries.push({
+          name: server.name,
+          source: 'mlflow',
+          version: server.version || undefined,
+          allowedTools,
+        });
+      } else if (mcpConfigMapName) {
+        entries.push({
+          serverRef: { kind: 'ConfigMap', name: mcpConfigMapName, key: server.name },
+          allowedTools,
+        });
+      }
     }
+    // The Playground omits unreachable servers from its picker. Keep their saved
+    // references unchanged so editing another profile field cannot silently erase them.
+    previousMcpServers?.forEach((saved) => {
+      const available = availableServers.some((server) => {
+        if ('serverRef' in saved) {
+          const name = saved.serverRef.key ?? saved.serverRef.name;
+          return (
+            server.name === name &&
+            (saved.serverRef.kind !== 'ConfigMap' || server.source === 'configmap')
+          );
+        }
+        return server.name === saved.name && server.source === 'registry';
+      });
+      if (!available) {
+        entries.push(saved);
+      }
+    });
     if (entries.length > 0) {
       spec.mcpServers = entries;
     }

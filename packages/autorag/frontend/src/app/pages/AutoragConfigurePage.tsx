@@ -16,15 +16,18 @@ import { ApplicationsPage } from 'mod-arch-shared';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import {
+  ContextBreadcrumb,
+  useCatchUIError,
+} from '@odh-dashboard/autox-core/ui/components/primitive';
+import type { SecretSelection } from '@odh-dashboard/autox-core/ui/components/feature';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
-import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
 import AutoragCreate from '~/app/components/create/AutoragCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
-import { useCreatePipelineRunMutation } from '~/app/hooks/mutations';
+import { useCreatePipelineRunMutation } from '~/app/hooks/useCreatePipelineRunMutation';
 import { useNotification } from '~/app/hooks/useNotification';
-import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilities/routes';
 import {
@@ -34,7 +37,9 @@ import {
   fireAutoragFlowExited,
   fireAutoragRunReconfigured,
   fireAutoragRunTriggered,
+  getVectorStoreProviderTypeFromSecretData,
   mapOptimizationMetric,
+  mapOptimizationMetricEvaluator,
   TrackingOutcome,
   type AutoragExitDestination,
   type AutoragFunnelStep,
@@ -46,7 +51,6 @@ import {
   RunTriggeredTrackingContext,
   type RunTriggeredTrackingContextProps,
 } from '~/app/context/RunTriggeredTrackingContext';
-import { useCatchUIError } from '~/app/components/common/UIError/UIErrorHandler.tsx';
 
 const configureSchema = createConfigureSchema();
 type ConfigureInitialValues = Partial<ConfigureSchema> & Record<string, unknown>;
@@ -69,18 +73,22 @@ type AutoragConfigurePageProps = {
   /** Pre-resolved S3 connection secret for reconfigure flows. */
   initialInputDataSecret?: SecretSelection;
   initialMaaSSecret?: SecretSelection;
-  initialVectorDbSecret?: SecretSelection;
+  initialDatabaseSecret?: SecretSelection;
+  preserveInitialDatabaseSecret?: boolean;
   /** When reconfiguring, the run ID of the source run (used for cancel navigation). */
   sourceRunId?: string;
   /** When reconfiguring, the display name of the source run (used in the page title and breadcrumb). */
   sourceRunName?: string;
 };
 
+type RagMode = 'simple' | 'graph';
+
 function AutoragConfigurePage({
   initialValues,
   initialInputDataSecret,
   initialMaaSSecret,
-  initialVectorDbSecret,
+  initialDatabaseSecret,
+  preserveInitialDatabaseSecret,
   sourceRunId,
   sourceRunName,
 }: AutoragConfigurePageProps): React.JSX.Element {
@@ -142,6 +150,14 @@ function AutoragConfigurePage({
 
   const [step, setStep] = useState<'create' | 'configure'>('create');
   const [maasModelsReady, setMaaSModelsReady] = useState(false);
+  const [ragMode, setRagMode] = useState<RagMode>(() =>
+    getVectorStoreProviderTypeFromSecretData(initialDatabaseSecret?.data) === 'neo4j'
+      ? 'graph'
+      : 'simple',
+  );
+  const [databaseSecret, setDatabaseSecret] = useState<SecretSelection | undefined>(
+    initialDatabaseSecret,
+  );
   // Populated by the Knowledge/Evaluation/Vector-store selectors via RunTriggeredTrackingContext
   // when the user actually (re)selects a source/provider in this session — see the context's
   // doc comment for why this can't be safely derived from form data alone. Read at submit time
@@ -169,6 +185,7 @@ function AutoragConfigurePage({
         knowledgeSourceType: knowledgeSourceTypeRef.current,
         evaluationSourceType: evaluationSourceTypeRef.current,
         optimizationMetric: mapOptimizationMetric(values.optimization_metric),
+        optimizationMetricEvaluator: mapOptimizationMetricEvaluator(values.optimization_metric),
         vectorDatabase: vectorDatabaseRef.current,
         countOfFoundationModels: values.generation_models.length,
         countOfEmbeddingModels: values.embedding_models.length,
@@ -422,12 +439,14 @@ function AutoragConfigurePage({
       breadcrumb={
         (step === 'configure' || sourceRunId) &&
         namespace && (
-          <ExperimentContextBreadcrumb
+          <ContextBreadcrumb
             pageName="AutoRAG"
-            namespace={namespace}
             projectDisplayName={projectDisplayName}
             homePath={getRedirectPath(namespace)}
+            projectHomePath={`/projects/${namespace}`}
             onHomeNavigate={handleHomeNavigate}
+            homeTestId="experiment-breadcrumb-home"
+            projectLinkTestId="project-navigator-link-in-breadcrumb"
           >
             {fromResultsPage && sourceRunId && sourceRunName && (
               <BreadcrumbItem data-testid="configure-breadcrumb-source-run">
@@ -444,7 +463,7 @@ function AutoragConfigurePage({
             <BreadcrumbItem isActive data-testid="configure-breadcrumb-name">
               {sourceRunId ? 'Reconfigure' : 'Run configurations'}
             </BreadcrumbItem>
-          </ExperimentContextBreadcrumb>
+          </ContextBreadcrumb>
         )
       }
       empty={noNamespaces || invalidNamespace}
@@ -486,6 +505,9 @@ function AutoragConfigurePage({
                     knowledgeSourceType: knowledgeSourceTypeRef.current,
                     evaluationSourceType: evaluationSourceTypeRef.current,
                     optimizationMetric: mapOptimizationMetric(data.optimization_metric),
+                    optimizationMetricEvaluator: mapOptimizationMetricEvaluator(
+                      data.optimization_metric,
+                    ),
                     vectorDatabase: vectorDatabaseRef.current,
                     countOfModels: data.generation_models.length + data.embedding_models.length,
                     countOfKnowledgeDocuments: data.input_data_keys.length,
@@ -565,8 +587,13 @@ function AutoragConfigurePage({
                   <AutoragConfigure
                     initialValues={initialValues}
                     initialInputDataSecret={initialInputDataSecret}
-                    initialVectorDbSecret={initialVectorDbSecret}
+                    initialDatabaseSecret={initialDatabaseSecret}
+                    preserveInitialDatabaseSecret={preserveInitialDatabaseSecret}
                     isReconfigure={!!sourceRunId}
+                    ragMode={ragMode}
+                    selectedDatabaseSecret={databaseSecret}
+                    onRagModeChange={setRagMode}
+                    onDatabaseSecretChange={setDatabaseSecret}
                     onMaaSModelsReady={setMaaSModelsReady}
                   />
                 )}

@@ -15,7 +15,6 @@ import {
   TimestampTooltipVariant,
 } from '@patternfly/react-core';
 import type { IconComponentProps } from '@patternfly/react-core';
-import { useLinkClickHandler, useLocation } from 'react-router-dom';
 import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
 import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
 import type {
@@ -188,21 +187,18 @@ const ConnectionTypeIcon: React.FC<ConnectionTypeIconProps> = ({ connectionType,
 };
 
 const ConnectionTypeCardIdentifier = (id: string) => `${id}--ConnectionTypeCard`;
-type ConnectionTypeCardProps = { connectionType: ConnectionType };
-const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({ connectionType }) => {
-  const { pathname, search } = useLocation();
+type ConnectionTypeCardProps = {
+  connectionType: ConnectionType;
+  onClick: () => void;
+};
+const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({ connectionType, onClick }) => {
   const rootId = ConnectionTypeCardIdentifier(connectionType.metadata.id);
-  const detailsPath = `${pathname.replace(/\/$/, '')}/${encodeURIComponent(
-    connectionType.metadata.id,
-  )}${search}`;
-  const handleClick = useLinkClickHandler(detailsPath);
   return (
     <Card id={rootId} data-testid={rootId} isClickable style={{ aspectRatio: '4 / 3' }}>
       <CardHeader
         selectableActions={{
-          to: detailsPath,
-          selectableActionProps: { onClick: handleClick },
-          selectableActionAriaLabelledby: `${rootId}-card-title`,
+          onClickAction: onClick,
+          selectableActionAriaLabel: connectionType.resource.name,
         }}
       >
         <ConnectionTypeIcon connectionType={connectionType} iconProps={{ size: 'xl' }} />

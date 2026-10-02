@@ -79,6 +79,44 @@ func TestEvalHubClient_HealthCheck_ServerError(t *testing.T) {
 	assert.Equal(t, ErrCodeInternalError, ehErr.Code)
 }
 
+func TestProviderK8sRuntimeUnmarshalJSONSupportsEvalHubResourceFields(t *testing.T) {
+	var response ProvidersResponse
+	err := json.Unmarshal([]byte(`{
+		"items": [{
+			"name": "lm-evaluation-harness",
+			"runtime": {
+				"k8s": {
+					"Image": "registry.example.com/evaluator:latest",
+					"CPURequest": "100m",
+					"MemoryRequest": "128Mi",
+					"CPULimit": "500m",
+					"MemoryLimit": "4Gi"
+				}
+			}
+		}]
+	}`), &response)
+	require.NoError(t, err)
+	require.Len(t, response.Items, 1)
+	require.NotNil(t, response.Items[0].Runtime)
+	require.NotNil(t, response.Items[0].Runtime.K8s)
+
+	runtime := response.Items[0].Runtime.K8s
+	assert.Equal(t, "100m", runtime.CPURequest)
+	assert.Equal(t, "128Mi", runtime.MemoryRequest)
+	assert.Equal(t, "500m", runtime.CPULimit)
+	assert.Equal(t, "4Gi", runtime.MemoryLimit)
+
+	payload, err := json.Marshal(runtime)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{
+		"image": "registry.example.com/evaluator:latest",
+		"cpu_request": "100m",
+		"memory_request": "128Mi",
+		"cpu_limit": "500m",
+		"memory_limit": "4Gi"
+	}`, string(payload))
+}
+
 func TestEvalHubClient_ListEvaluationJobs(t *testing.T) {
 	resp := EvaluationJobsResponse{
 		TotalCount: 2,
@@ -717,6 +755,92 @@ func TestEvalHubClient_CreateEvaluationJob_WithCollectionBenchmarks(t *testing.T
 	assert.Equal(t, "collection-001-clone", result.Collection.ID)
 	require.Len(t, result.Collection.Benchmarks, 1)
 	assert.Equal(t, "arc_challenge", result.Collection.Benchmarks[0].ID)
+}
+
+func TestEvalHubClient_CreateEvaluationJob_WithHardwareConfig(t *testing.T) {
+	request := CreateEvaluationJobRequest{
+		Name: "Hardware profile evaluation",
+		Model: JobModel{
+			URL:  "http://model.example.test/v1",
+			Name: "test-model",
+		},
+		Benchmarks: []JobBenchmark{{
+			ID:         "arc_challenge",
+			ProviderID: "lm_evaluation_harness",
+		}},
+		HardwareConfig: &HardwareConfig{HardwareProfileName: "gpu-small"},
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		assert.JSONEq(t, `{
+			"name": "Hardware profile evaluation",
+			"model": {"url": "http://model.example.test/v1", "name": "test-model"},
+			"benchmarks": [{
+				"id": "arc_challenge",
+				"provider_id": "lm_evaluation_harness"
+			}],
+			"hardware_config": {"hardware_profile_name": "gpu-small"}
+		}`, string(body))
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(EvaluationJob{
+			Resource: JobResource{ID: "job-1"},
+			Status:   JobStatus{State: "pending"},
+			Results:  JobResults{},
+			Model:    request.Model,
+		})
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "test-token", false, nil, "/api/v1")
+	_, err := client.CreateEvaluationJob(context.Background(), "my-ns", request)
+
+	require.NoError(t, err)
+}
+
+func TestEvalHubClient_CreateEvaluationJob_WithDeprecatedQueueObject(t *testing.T) {
+	request := CreateEvaluationJobRequest{
+		Name: "Legacy queue evaluation",
+		Model: JobModel{
+			URL:  "http://model.example.test/v1",
+			Name: "test-model",
+		},
+		Benchmarks: []JobBenchmark{{
+			ID:         "arc_challenge",
+			ProviderID: "lm_evaluation_harness",
+		}},
+		Queue: &HardwareQueueConfig{Kind: "kueue", Name: "gpu-default"},
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		assert.JSONEq(t, `{
+			"name": "Legacy queue evaluation",
+			"model": {"url": "http://model.example.test/v1", "name": "test-model"},
+			"benchmarks": [{
+				"id": "arc_challenge",
+				"provider_id": "lm_evaluation_harness"
+			}],
+			"queue": {"kind": "kueue", "name": "gpu-default"}
+		}`, string(body))
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(EvaluationJob{
+			Resource: JobResource{ID: "job-legacy-queue"},
+			Status:   JobStatus{State: "pending"},
+			Results:  JobResults{},
+			Model:    request.Model,
+		})
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	_, err := client.CreateEvaluationJob(context.Background(), "my-ns", request)
+
+	require.NoError(t, err)
 }
 
 func TestEvalHubClient_GetEvaluationJobLogs_RejectsOversizedResponse(t *testing.T) {

@@ -24,8 +24,8 @@ import (
 
 const httpRequestTimeout = 30 * time.Second
 
-func TestE2E_OperandDeployments_ReachAvailable(t *testing.T) {
-	inventory, err := waitForOperandInventory(k8sClient, testNamespace, dashboardUID, operandReadyTimeout)
+func TestE2ESmoke_OperandDeploymentsReachAvailable(t *testing.T) {
+	inventory, err := waitForCoreOperandInventory(k8sClient, testNamespace, dashboardUID, testPlatform, operandReadyTimeout)
 	require.NoError(t, err)
 
 	sort.Slice(inventory.deployments, func(i, j int) bool {
@@ -44,8 +44,8 @@ func TestE2E_OperandDeployments_ReachAvailable(t *testing.T) {
 	}
 }
 
-func TestE2E_OperandServices_Reachable(t *testing.T) {
-	inventory, err := waitForOperandInventory(k8sClient, testNamespace, dashboardUID, operandReadyTimeout)
+func TestE2ESmoke_OperandServicesReachable(t *testing.T) {
+	inventory, err := waitForCoreOperandInventory(k8sClient, testNamespace, dashboardUID, testPlatform, operandReadyTimeout)
 	require.NoError(t, err)
 
 	sort.Slice(inventory.services, func(i, j int) bool {
@@ -66,7 +66,7 @@ func TestE2E_OperandServices_Reachable(t *testing.T) {
 	}
 }
 
-func TestE2E_DashboardRoute_Admitted(t *testing.T) {
+func TestE2ESmoke_DashboardRouteAdmitted(t *testing.T) {
 	route, err := waitForAdmittedHTTPRoute(k8sClient, testNamespace, dashboardUID, operandReadyTimeout)
 	require.NoError(t, err)
 	require.Contains(t, []string{"odh-dashboard", "rhods-dashboard"}, route.Name)
@@ -137,8 +137,8 @@ func TestE2E_BFFHealthchecks(t *testing.T) {
 	}
 }
 
-func TestE2E_PodDisruptionBudget_Created(t *testing.T) {
-	inventory, err := waitForOperandInventory(k8sClient, testNamespace, dashboardUID, operandReadyTimeout)
+func TestE2ESmoke_PodDisruptionBudgetCreated(t *testing.T) {
+	inventory, err := waitForCoreOperandInventory(k8sClient, testNamespace, dashboardUID, testPlatform, operandReadyTimeout)
 	require.NoError(t, err)
 	coreDeployment, err := findCoreDeployment(inventory.deployments)
 	require.NoError(t, err)

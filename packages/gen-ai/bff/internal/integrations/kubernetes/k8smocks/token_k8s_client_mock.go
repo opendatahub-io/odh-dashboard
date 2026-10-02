@@ -441,8 +441,8 @@ providers:
         namespace: vector_io::faiss
         backend: kv_default
   file_processors:
-  - provider_id: pypdf
-    provider_type: inline::pypdf
+  - provider_id: auto
+    provider_type: inline::auto
     config: {}
   responses:
   - provider_id: builtin
@@ -548,7 +548,7 @@ server:
 			},
 		},
 		Spec: ogxapi.OGXServerSpec{
-			Distribution: ogxapi.DistributionSpec{Name: "rh-dev"},
+			Distribution: ogxapi.DistributionSpec{Name: "rh"},
 			OverrideConfig: &ogxapi.ConfigMapKeyRef{
 				Name: "llama-stack-config",
 				Key:  constants.LlamaStackConfigYAMLKey,
@@ -898,6 +898,27 @@ func (m *TokenKubernetesClientMock) CreateSandboxModelAuthSecret(ctx context.Con
 
 func (m *TokenKubernetesClientMock) SetSandboxMCPAuthSecretsOwner(ctx context.Context, namespace, sandboxName string, secretNames ...string) error {
 	return m.TokenKubernetesClient.SetSandboxMCPAuthSecretsOwner(ctx, namespace, sandboxName, secretNames...)
+}
+
+// DeleteAgentDeployment deletes the mock Sandbox immediately. The controller-runtime
+// fake client does not implement foreground garbage collection, so using the production
+// implementation would leave a deleting Sandbox visible to a following GET request.
+func (m *TokenKubernetesClientMock) DeleteAgentDeployment(ctx context.Context, namespace, name string) error {
+	sandbox := mockSandbox(namespace, name)
+	if err := m.Client.Get(ctx, client.ObjectKeyFromObject(sandbox), sandbox); err != nil {
+		if errors.IsNotFound(err) {
+			return &integrations.HTTPError{StatusCode: 404, ErrorResponse: integrations.ErrorResponse{
+				Code: "not_found", Message: "agent deployment not found",
+			}}
+		}
+		return err
+	}
+	if sandbox.GetLabels()["opendatahub.io/dashboard"] != "true" {
+		return &integrations.HTTPError{StatusCode: 404, ErrorResponse: integrations.ErrorResponse{
+			Code: "not_found", Message: "agent deployment not found",
+		}}
+	}
+	return m.Client.Delete(ctx, sandbox)
 }
 
 func (m *TokenKubernetesClientMock) RollbackSandboxDeployment(ctx context.Context, namespace string, resources k8s.SandboxDeploymentResources) {

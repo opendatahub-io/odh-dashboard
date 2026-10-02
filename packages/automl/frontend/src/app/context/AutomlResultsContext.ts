@@ -30,7 +30,7 @@ export type AutomlResultsContextProps = {
   modelsLoading?: boolean;
   modelsError?: boolean;
   modelsLoadError?: Error;
-  onRetryModels?: () => void;
+  onRetryModels?: () => Promise<void>;
   parameters?: Partial<ConfigureSchema>;
   modelsBasePath?: string;
   componentStageMap?: ComponentStageMap;
@@ -74,7 +74,7 @@ export function getAutomlContext({
   modelsBasePath?: string;
   modelsError?: boolean;
   modelsLoadError?: Error;
-  onRetryModels?: () => void;
+  onRetryModels?: () => Promise<void>;
   componentStageMap?: ComponentStageMap;
   componentStageMapLoading?: boolean;
   componentStageMapError?: boolean;

@@ -30,6 +30,10 @@ class EditAssetModal extends Modal {
     return cy.findByTestId('data-format-toggle');
   }
 
+  findFormatOption(format: string) {
+    return cy.findByTestId(`data-format-option-${format}`);
+  }
+
   findCollectionInput() {
     return cy.findByTestId('data-collection-toggle');
   }
@@ -74,6 +78,18 @@ class EditAssetModal extends Modal {
 
   findPiiToggle() {
     return cy.findByTestId('data-pii-toggle');
+  }
+
+  findClearLicenseOption() {
+    return cy.findByTestId('data-license-toggle-clear');
+  }
+
+  findClearMaturityOption() {
+    return cy.findByTestId('data-maturity-toggle-clear');
+  }
+
+  findClearPiiOption() {
+    return cy.findByTestId('data-pii-toggle-clear');
   }
 
   // Custom properties section

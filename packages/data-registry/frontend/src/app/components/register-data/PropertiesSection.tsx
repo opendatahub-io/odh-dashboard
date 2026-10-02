@@ -16,28 +16,42 @@ import {
 import { Controller, useFormContext } from 'react-hook-form';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
 import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
+import {
+  LICENSE_VALUES,
+  MATURITY_VALUES,
+  PII_STATUS_VALUES,
+  LicenseType,
+  MaturityType,
+  PiiStatus,
+} from '~/app/types';
 
-const LICENSE_OPTIONS = [
-  { key: 'internal-use', label: 'Internal use' },
-  { key: 'cc-by-4.0', label: 'CC BY 4.0' },
-  { key: 'apache-2.0', label: 'Apache 2.0' },
-  { key: 'proprietary', label: 'Proprietary' },
-  { key: 'restricted', label: 'Restricted' },
-];
+const LICENSE_LABELS: Record<LicenseType, string> = {
+  'internal-use': 'Internal use',
+  'cc-by-4.0': 'CC BY 4.0',
+  'apache-2.0': 'Apache 2.0',
+  proprietary: 'Proprietary',
+  restricted: 'Restricted',
+};
 
-const MATURITY_OPTIONS = [
-  { key: 'experimental', label: 'Experimental' },
-  { key: 'staging', label: 'Staging' },
-  { key: 'production', label: 'Production' },
-  { key: 'deprecated', label: 'Deprecated' },
-];
+const LICENSE_OPTIONS = LICENSE_VALUES.map((key) => ({ key, label: LICENSE_LABELS[key] }));
 
-const PII_OPTIONS = [
-  { key: 'none', label: 'None' },
-  { key: 'contains-pii', label: 'Contains PII' },
-  { key: 'contains-sensitive', label: 'Contains sensitive' },
-  { key: 'anonymized', label: 'Anonymized' },
-];
+const MATURITY_LABELS: Record<MaturityType, string> = {
+  experimental: 'Experimental',
+  staging: 'Staging',
+  production: 'Production',
+  deprecated: 'Deprecated',
+};
+
+const MATURITY_OPTIONS = MATURITY_VALUES.map((key) => ({ key, label: MATURITY_LABELS[key] }));
+
+const PII_LABELS: Record<PiiStatus, string> = {
+  none: 'None',
+  'contains-pii': 'Contains PII',
+  'contains-sensitive': 'Contains sensitive',
+  anonymized: 'Anonymized',
+};
+
+const PII_OPTIONS = PII_STATUS_VALUES.map((key) => ({ key, label: PII_LABELS[key] }));
 
 type SelectFieldProps = {
   name: 'license' | 'maturity' | 'piiStatus';
@@ -86,6 +100,9 @@ const SelectField: React.FC<SelectFieldProps> = ({
             )}
           >
             <SelectList>
+              <SelectOption value="" data-testid={`${testId}-clear`}>
+                Not set
+              </SelectOption>
               {options.map((o) => (
                 <SelectOption key={o.key} value={o.key}>
                   {o.label}
@@ -130,6 +147,21 @@ const PropertiesSection: React.FC = () => {
                 </HelperText>
               </FormHelperText>
             ) : null}
+          </FormGroup>
+        )}
+      />
+
+      <Controller
+        name="domain"
+        control={control}
+        render={({ field }) => (
+          <FormGroup label="Domain" fieldId="data-domain">
+            <TextInput
+              id="data-domain"
+              {...field}
+              placeholder="e.g. Finance, Healthcare"
+              data-testid="data-domain-input"
+            />
           </FormGroup>
         )}
       />
