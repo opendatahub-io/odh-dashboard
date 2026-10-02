@@ -42,6 +42,22 @@ const persistTab = (pageId: string, tabId: string): void => {
   }
 };
 
+const isPageTitleHidden = (
+  pathname: string,
+  basePath: string,
+  hiddenPathPrefixes: string[] | undefined,
+): boolean => {
+  if (!hiddenPathPrefixes?.length || !pathname.startsWith(basePath)) {
+    return false;
+  }
+
+  const relativePath = pathname.slice(basePath.length).replace(/^\//, '');
+  return hiddenPathPrefixes.some((prefix) => {
+    const normalizedPrefix = prefix.replace(/^\/+|\/+$/g, '');
+    return relativePath === normalizedPrefix || relativePath.startsWith(`${normalizedPrefix}/`);
+  });
+};
+
 /**
  * Resolves the default tab for a page when no tab segment is in the URL.
  * Uses the persisted tab if it exists and is valid, otherwise falls back to the first tab.
@@ -177,8 +193,13 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
   const resolvedObjectType =
     (tabObjectTypeStr && isProjectObjectType(tabObjectTypeStr) ? tabObjectTypeStr : undefined) ??
     objectType;
+  const hidePageTitle = isPageTitleHidden(
+    location.pathname,
+    extension.properties.href,
+    extension.properties.hidePageTitleOnPaths,
+  );
 
-  const pageTitle = (
+  const pageTitle = hidePageTitle ? null : (
     <PageSection hasBodyWrapper={false}>
       <Content component="h1" data-testid="app-tab-page-title">
         {resolvedObjectType ? (
