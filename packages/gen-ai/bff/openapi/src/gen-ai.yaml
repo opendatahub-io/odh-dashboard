@@ -6047,7 +6047,14 @@ components:
           description: Key within ConfigMap
 
     MCPServerReference:
+      oneOf:
+        - $ref: '#/components/schemas/MCPServerResourceReference'
+        - $ref: '#/components/schemas/MCPRegistryServerReference'
+      description: Either a Kubernetes resource reference or an MLflow MCP Registry reference.
+
+    MCPServerResourceReference:
       type: object
+      additionalProperties: false
       required:
         - serverRef
       properties:
@@ -6060,6 +6067,34 @@ components:
           items:
             type: string
           example: ['search', 'retrieve']
+          description: Optional list of allowed tool names
+
+    MCPRegistryServerReference:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - source
+      properties:
+        name:
+          type: string
+          minLength: 1
+          example: 'com.example/jira'
+          description: MCP Registry server name
+        source:
+          type: string
+          enum: ['mlflow']
+          example: 'mlflow'
+          description: Registry backing the MCP server
+        version:
+          type: string
+          example: '3'
+          description: Resolved registry version when available
+        allowedTools:
+          type: array
+          items:
+            type: string
+          example: ['search_issues', 'get_issue']
           description: Optional list of allowed tool names
 
     MCPServerRef:

@@ -29,6 +29,7 @@ const useServerSelection = ({
   const [isInitialLoadComplete, setIsInitialLoadComplete] = React.useState(false);
   const hasProcessedInitialSelection = React.useRef(false);
   const hasReceivedInitialSelection = React.useRef(false);
+  const unavailableSelectedIds = React.useRef(new Set<string>());
 
   // Handle initial selection from route state
   React.useEffect(() => {
@@ -44,6 +45,10 @@ const useServerSelection = ({
 
     if (initialSelectedServerIds && initialSelectedServerIds.length > 0) {
       hasReceivedInitialSelection.current = true;
+      const visibleIds = new Set(transformedServers.map((server) => server.id));
+      unavailableSelectedIds.current = new Set(
+        initialSelectedServerIds.filter((id) => !visibleIds.has(id)),
+      );
       const serversToSelect = transformedServers.filter((server) =>
         initialSelectedServerIds.includes(server.id),
       );
@@ -68,14 +73,44 @@ const useServerSelection = ({
     }
   }, [transformedServers, initialSelectedServerIds, selectedServers]);
 
+  // A selected server can disappear from the usable list while it is unreachable.
+  // Keep its ID until it returns, without displaying a stale row in the picker.
+  React.useEffect(() => {
+    if (!isInitialLoadComplete) {
+      return;
+    }
+
+    const visibleIds = new Set(transformedServers.map((server) => server.id));
+    const stillVisible = selectedServers.filter((server) => visibleIds.has(server.id));
+    selectedServers
+      .filter((server) => !visibleIds.has(server.id))
+      .forEach((server) => unavailableSelectedIds.current.add(server.id));
+
+    const restored = transformedServers.filter((server) =>
+      unavailableSelectedIds.current.has(server.id),
+    );
+    const stillVisibleIds = new Set(stillVisible.map((server) => server.id));
+    const newlyRestored = restored.filter((server) => !stillVisibleIds.has(server.id));
+    if (stillVisible.length !== selectedServers.length || newlyRestored.length > 0) {
+      setSelectedServers([...stillVisible, ...newlyRestored]);
+    } else {
+      restored.forEach((server) => unavailableSelectedIds.current.delete(server.id));
+    }
+  }, [isInitialLoadComplete, selectedServers, transformedServers]);
+
   // Notify parent of selection changes
   React.useEffect(() => {
-    const selectedConnectionUrls = selectedServers.map((server) => server.id);
+    const selectedConnectionUrls = [
+      ...new Set([
+        ...selectedServers.map((server) => server.id),
+        ...unavailableSelectedIds.current,
+      ]),
+    ];
 
     if (isInitialLoadComplete && transformedServers.length > 0) {
       onSelectionChange?.(selectedConnectionUrls);
     }
-  }, [isInitialLoadComplete, selectedServers, onSelectionChange, transformedServers.length]);
+  }, [isInitialLoadComplete, selectedServers, onSelectionChange, transformedServers]);
 
   return {
     selectedServers,

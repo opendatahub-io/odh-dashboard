@@ -12,6 +12,11 @@ import {
 } from '~/app/routes/modelCatalogSettings/modelCatalogSettings';
 import { mcpCatalogSettingsUrl } from '~/app/routes/mcpCatalogSettings/mcpCatalogSettings';
 import { mcpCatalogUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
+import {
+  RUNTIME_CATALOG_TAB_ID,
+  RUNTIME_CATALOG_TAB_PATH,
+  RUNTIME_CATALOG_TAB_TITLE,
+} from '~/odh/routes/runtimeCatalog/runtimeCatalog';
 
 const reliantAreas = ['model-registry'];
 const PLUGIN_MODEL_REGISTRY = 'model-registry-plugin';
@@ -101,6 +106,35 @@ const extensions: (
       objectType: 'agents-catalog',
       component: () => import('./AgentsCatalogWrapper'),
       group: '1_catalog',
+    },
+  },
+  // Runtime image library tab on the Model deployment settings page
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [SupportedArea.RUNTIME_CATALOG, ADMIN_USER],
+    },
+    properties: {
+      pageId: 'model-deployment-settings',
+      id: RUNTIME_CATALOG_TAB_ID,
+      title: RUNTIME_CATALOG_TAB_TITLE,
+      component: () => import('./RuntimeCatalogWrapper'),
+      group: '1b_runtime-catalog',
+    },
+  },
+  // Full-page breakout route for the runtime catalog details page, gated
+  // identically to the tab so it only exists when the tab does.
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.RUNTIME_CATALOG, ADMIN_USER],
+    },
+    properties: {
+      path: `${RUNTIME_CATALOG_TAB_PATH}/:runtimeName`,
+      component: () =>
+        import('./RuntimeCatalogWrapper').then((module) => ({
+          default: module.RuntimeCatalogDetailsWrapper,
+        })),
     },
   },
   // KF plugin nav items (kept as-is, these are dev-flag-gated)

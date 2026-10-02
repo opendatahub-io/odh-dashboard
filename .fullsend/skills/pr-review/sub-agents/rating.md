@@ -12,7 +12,7 @@ background: false
 # Rating
 
 You assign **risk** and **confidence** for this PR head after findings are
-final. Return exactly the shape in `meta-prompts/rating-output.md`.
+final. Return exactly the shape in `meta-prompts/signal-output.md`.
 
 **Own:** Blast-radius risk (change shape) and confidence that the change
 fulfills its stated intent with credible proof.

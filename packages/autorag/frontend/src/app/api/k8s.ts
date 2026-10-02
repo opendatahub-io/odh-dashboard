@@ -1,7 +1,7 @@
 import { APIOptions, handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
 import * as z from 'zod';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { MaaSModelsResponse } from '~/app/types';
+import type { MaaSModelsResponse } from '~/app/types';
 
 const MaaSModelsResponseSchema = z.object({
   /* eslint-disable camelcase */
@@ -43,10 +43,7 @@ export const getMaaSModels =
       restGET(
         hostPath,
         `${URL_PREFIX}/api/${BFF_API_VERSION}/maas/models`,
-        {
-          namespace,
-          secretName,
-        },
+        { namespace, secretName },
         opts,
       ),
     ).then((response) => {

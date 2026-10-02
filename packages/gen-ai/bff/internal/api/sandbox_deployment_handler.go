@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -220,10 +221,23 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	mcpServers, err := app.resolveSandboxMCPServers(ctx, k8sClient, profile, mcpServerAuth)
+	mcpServers, err := app.resolveSandboxMCPServers(ctx, namespace, k8sClient, profile, mcpServerAuth)
 	if err != nil {
 		if errors.Is(err, errSandboxMCPDashboardConfigRead) {
 			app.serverErrorResponse(w, r, err)
+			return
+		}
+		var bffErr *bffclient.BFFClientError
+		if errors.As(err, &bffErr) {
+			app.handleBFFClientError(w, r, err)
+			return
+		}
+		if errors.Is(err, ErrRegistryMCPServerNotFound) {
+			app.notFoundResponse(w, r)
+			return
+		}
+		if errors.Is(err, ErrRegistryMCPClientUnavailable) {
+			app.serviceUnavailableResponse(w, r, err)
 			return
 		}
 		app.badRequestResponse(w, r, err)
@@ -527,6 +541,7 @@ func normalizeMCPServerAuth(authorizations map[string]string) (map[string]string
 
 func (app *App) resolveSandboxMCPServers(
 	ctx context.Context,
+	namespace string,
 	k8sClient kubernetes.KubernetesClientInterface,
 	profile *models.AgentProfile,
 	authorizations map[string]string,
@@ -538,32 +553,54 @@ func (app *App) resolveSandboxMCPServers(
 		return nil, nil
 	}
 
-	registryServers, err := app.repositories.MCPClient.GetMCPServersFromDashboardConfig(
-		k8sClient, ctx, app.dashboardNamespace, constants.MCPServerName,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", errSandboxMCPDashboardConfigRead, err)
-	}
-	registryByID := make(map[string]models.MCPServerConfig, len(registryServers))
-	for _, server := range registryServers {
-		registryByID[server.Name] = server.Config
+	configMapServers := make(map[string]models.MCPServerConfig)
+	if slices.ContainsFunc(profile.Spec.MCPServers, func(selected models.MCPServerReference) bool {
+		return selected.ServerRef != nil
+	}) {
+		registryServers, err := app.repositories.MCPClient.GetMCPServersFromDashboardConfig(
+			k8sClient, ctx, app.dashboardNamespace, constants.MCPServerName,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %w", errSandboxMCPDashboardConfigRead, err)
+		}
+		for _, server := range registryServers {
+			configMapServers[server.Name] = server.Config
+		}
 	}
 
 	selectedIDs := make(map[string]struct{}, len(profile.Spec.MCPServers))
 	servers := make([]kubernetes.SandboxMCPServer, 0, len(profile.Spec.MCPServers))
+	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
 	for i, selected := range profile.Spec.MCPServers {
-		if selected.ServerRef.Kind != "ConfigMap" || selected.ServerRef.Name != constants.MCPServerName {
-			return nil, fmt.Errorf("spec.mcpServers[%d] must reference ConfigMap %q", i, constants.MCPServerName)
-		}
-		serverID := selected.ServerRef.Key
-		config, found := registryByID[serverID]
-		if !found || config.URL == "" {
-			return nil, fmt.Errorf("MCP server %q was not found in dashboard ConfigMap %q", serverID, constants.MCPServerName)
+		var (
+			serverID string
+			config   models.MCPServerConfig
+		)
+		if selected.ServerRef != nil {
+			if selected.ServerRef.Kind != "ConfigMap" || selected.ServerRef.Name != constants.MCPServerName {
+				return nil, fmt.Errorf("spec.mcpServers[%d] must reference ConfigMap %q", i, constants.MCPServerName)
+			}
+			serverID = selected.ServerRef.Key
+			var found bool
+			config, found = configMapServers[serverID]
+			if !found || config.URL == "" {
+				return nil, fmt.Errorf("MCP server %q was not found in dashboard ConfigMap %q", serverID, constants.MCPServerName)
+			}
+		} else {
+			if selected.Source != "mlflow" || selected.Name == "" {
+				return nil, fmt.Errorf("spec.mcpServers[%d] must reference a ConfigMap server or an MLflow registry server", i)
+			}
+			serverID = selected.Name
+			var resolveErr error
+			config, resolveErr = app.resolveRegistryServerConfig(ctx, namespace, serverID, mlflowClient)
+			if resolveErr != nil {
+				return nil, fmt.Errorf("resolve registry MCP server %q: %w", serverID, resolveErr)
+			}
 		}
 		selectedIDs[serverID] = struct{}{}
 		server := kubernetes.SandboxMCPServer{ServerLabel: serverID, ServerURL: config.URL}
 		if selected.AllowedTools != nil {
-			server.AllowedTools = &selected.AllowedTools
+			server.AllowedTools = selected.AllowedTools
 		}
 		if authorization, found := authorizations[serverID]; found {
 			if strings.TrimSpace(authorization) == "" {
