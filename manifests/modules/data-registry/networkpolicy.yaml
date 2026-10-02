@@ -19,6 +19,13 @@ spec:
               network.openshift.io/policy-group: ingress
   egress:
     - to:
+        - podSelector:
+            matchLabels:
+              deployment: data-connect-hub-ui
+      ports:
+        - port: 9243
+          protocol: TCP
+    - to:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: openshift-dns

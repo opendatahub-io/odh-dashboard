@@ -63,7 +63,6 @@ const TableDetailPage: React.FC = () => {
     isVolume ? collection : undefined,
     isVolume ? name : undefined,
   );
-  const [connections] = useConnections(project || '');
   const [assets, , assetsError, assetsRefresh, collectionNames] = useAssets(project || '');
   const [, , collectionsError] = useCollections(project || '', assets, collectionNames);
   const [labels, , , labelsRefresh] = useLabels(project || '');
@@ -72,6 +71,11 @@ const TableDetailPage: React.FC = () => {
   const asset = React.useMemo(
     () => (isVolume ? volume : genericTable),
     [isVolume, volume, genericTable],
+  );
+
+  const [connections, connectionsLoaded, connectionsError, , connectionWarnings] = useConnections(
+    project ?? '',
+    !!asset?.connection_ref,
   );
 
   const loaded = isVolume ? volumeLoaded : genericLoaded;
@@ -329,7 +333,14 @@ const TableDetailPage: React.FC = () => {
         <Tab eventKey={0} title={<TabTitleText>Overview</TabTitleText>}>
           <TabContent id="overview-tab">
             {asset ? (
-              <TableDetailView asset={asset} project={project} connections={connections} />
+              <TableDetailView
+                asset={asset}
+                project={project}
+                connections={connections}
+                connectionsLoaded={connectionsLoaded}
+                connectionsError={connectionsError}
+                connectionWarnings={connectionWarnings}
+              />
             ) : null}
           </TabContent>
         </Tab>

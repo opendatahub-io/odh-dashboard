@@ -1,13 +1,13 @@
 openapi: 3.1.0
 info:
   title: Data Registry BFF API
-  version: 1.0.0
+  version: 1.1.0
   description: |
     REST API for the Data Registry Backend-for-Frontend (BFF).
 
     This is the BFF's own contract, covering:
 
-    - **BFF-native endpoints** (`/healthcheck`, `/api/v1/user`, `/api/v1/namespaces`) — served
+    - **BFF-native endpoints** (`/healthcheck`, `/api/v1/user`, `/api/v1/namespaces`, `/api/v1/connections/{namespace}`) — served
       directly by the BFF from Kubernetes.
     - **Data Registry proxy routes** (everything else under `/api/v1/*`) — the BFF is a pure
       pass-through ("dumb") reverse proxy to the upstream Data Registry API. It performs no
@@ -113,6 +113,50 @@ paths:
   # ===========================================================================
   # Data Registry proxy routes — discovery
   # ===========================================================================
+  /api/v1/connections/{namespace}:
+    get:
+      tags: [K8SOperation]
+      operationId: getConnections
+      summary: List project connections for asset registration and display
+      description: |
+        Calls the DCH BFF connections and connection-types endpoints using the current
+        user's token. Resolves connector type IDs to provider labels. Returns DCH connections
+        only on success, including an empty list. Falls back to RHOAI Secrets only
+        when DCH is unconfigured, unreachable, times out, or returns an upstream 5xx.
+        Authorization errors, other 4xx responses and invalid response contracts do
+        not trigger fallback. Unresolved type IDs omit the affected connections and
+        produce metadata.warnings. Lookup failures never modify saved asset references.
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 63
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+      responses:
+        "200":
+          $ref: "#/components/responses/ConnectionsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: The user cannot access connections or connection types in this project.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BffErrorEnvelope"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          description: DCH returned an invalid contract or rejected the integration request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BffErrorEnvelope"
+
   /api/v1/config:
     get:
       tags: [discovery]
@@ -1127,6 +1171,82 @@ paths:
 
 components:
   schemas:
+    ConnectionsResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConnectionRef"
+        metadata:
+          type: object
+          properties:
+            warnings:
+              type: array
+              items:
+                type: object
+                required: [code, message]
+                properties:
+                  code:
+                    type: string
+                    enum: [UNRESOLVED_CONNECTION_TYPE]
+                  message:
+                    type: string
+      examples:
+        - data:
+            - type: dch
+              id: 550e8400-e29b-41d4-a716-446655440000
+              name: Production data
+              connectionType: s3
+        - data:
+            - type: rhai
+              secret_name: production-data
+              name: Production data
+              connectionType: s3
+        - data: []
+          metadata:
+            warnings:
+              - code: UNRESOLVED_CONNECTION_TYPE
+                message: Some connections could not be loaded because their connector types are unavailable.
+    ConnectionRef:
+      description: Stable RHOAI Secret or DCH connection identifier, with display-only fields.
+      oneOf:
+        - $ref: "#/components/schemas/DchConnectionRef"
+        - $ref: "#/components/schemas/RhaiConnectionRef"
+      discriminator:
+        propertyName: type
+    DchConnectionRef:
+      type: object
+      required: [type, id]
+      properties:
+        type:
+          type: string
+          enum: [dch]
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          readOnly: true
+        connectionType:
+          type: string
+          readOnly: true
+    RhaiConnectionRef:
+      type: object
+      required: [type, secret_name]
+      properties:
+        type:
+          type: string
+          enum: [rhai]
+        secret_name:
+          type: string
+        name:
+          type: string
+          readOnly: true
+        connectionType:
+          type: string
+          readOnly: true
     Config:
       description: Authenticated user information returned by `/api/v1/user`.
       required:
@@ -1198,6 +1318,12 @@ components:
         error:
           $ref: "#/components/schemas/BffError"
   responses:
+    ConnectionsResponse:
+      description: Connections from the active source, with optional partial-result warnings.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ConnectionsResponse"
     HealthCheckResponse:
       description: BFF service health status
       content:
