@@ -8,11 +8,25 @@
     "type-check": "tsc --noEmit",
     "update-subtree": "package-subtree --package=@odh-dashboard/notebooks",
     "update-subtree-local": "package-subtree-local --package=@odh-dashboard/notebooks",
-    "install:module": "npm install --prefix upstream/workspaces/frontend",
     "test:contract": "BFF_GO_BUILD_TAGS=mockk8s BFF_MOCK_FLAGS=--mock-k8s-client ENVTEST_K8S_VER=1.31.0 CONTRACT_MOCK_BFF_HEALTH_ENDPOINT=/api/v1/healthcheck odh-ct-bff-consumer --bff-dir upstream/workspaces/backend",
+    "install:module": "if [ \"$MODULE_CACHE_HIT\" = \"true\" ] && [ -d upstream/workspaces/frontend/node_modules ]; then echo 'Using cached notebooks upstream dependencies'; else npm install --prefix upstream/workspaces/frontend --no-audit --no-fund; fi",
     "start:dev": "cd upstream/workspaces/frontend && PORT=9105 DEPLOYMENT_MODE=federated npm run start:dev",
     "start:dev:ext": "cd upstream/workspaces/frontend && DEPLOYMENT_MODE=federated PORT=9105 npm run start:dev",
-    "start:dev:wait": "wait-on -i 1000 http://localhost:9105"
+    "start:dev:wait": "wait-on -i 1000 http://localhost:9105",
+    "prepare:e2e": "cd upstream/workspaces/backend && go mod download",
+    "cypress:server:build": "npm run install:module && cd upstream/workspaces/frontend && DIST_DIR=./public-cypress DEPLOYMENT_MODE=federated npm run build",
+    "cypress:server:build:coverage": "COVERAGE=true pnpm run cypress:server:build",
+    "cypress:server": "cd upstream/workspaces/frontend && serve ./public-cypress -p 9105 -s -L",
+    "cypress:server:wait": "wait-on -i 1000 http-get://localhost:9105/api/v1/healthcheck",
+    "cypress:server:e2e:wait": "pnpm run cypress:server:wait",
+    "cypress:server:e2e": "STATIC_ASSETS_DIR=../frontend/public-cypress make dev-bff-e2e-cluster E2E_BFF_PORT=9105"
+  },
+  "e2eCiTags": ["@NotebooksCI"],
+  "bffConfig": {
+    "enabled": true,
+    "port": 4000,
+    "healthEndpoint": "/api/v1/healthcheck",
+    "startCommand": "make dev-bff-e2e-mock"
   },
   "subtree": {
     "repo": "https://github.com/opendatahub-io/workbenches.git",
