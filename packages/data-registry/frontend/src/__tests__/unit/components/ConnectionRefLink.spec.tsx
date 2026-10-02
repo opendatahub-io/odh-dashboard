@@ -2,6 +2,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { mockDchConnection, mockRhaiConnection } from '~/__mocks__/mockConnection';
 import ConnectionRefLink from '~/app/components/ConnectionRefLink';
 
 describe('ConnectionRefLink', () => {
@@ -45,5 +46,34 @@ describe('ConnectionRefLink', () => {
   it('should render dash when connectionRef is undefined', () => {
     const { container } = render(<ConnectionRefLink />);
     expect(container).toHaveTextContent('-');
+  });
+  it('should resolve a renamed connection by UUID without adding its provider to the label', () => {
+    const connection = mockDchConnection();
+    const ref = { type: 'dch' as const, id: connection.id };
+    const { rerender } = render(
+      <ConnectionRefLink connectionRef={ref} connections={[connection]} />,
+    );
+    expect(screen.getByTestId('connection-ref-label')).toHaveTextContent('Production data');
+    rerender(
+      <ConnectionRefLink
+        connectionRef={ref}
+        connections={[{ ...connection, name: 'Archive data' }]}
+      />,
+    );
+    expect(screen.getByTestId('connection-ref-label')).toHaveTextContent('Archive data');
+    rerender(<ConnectionRefLink connectionRef={ref} connections={[]} />);
+    expect(screen.getByTestId('connection-ref-label')).toHaveTextContent(connection.id);
+  });
+
+  it('should preserve an unresolved Secret reference without matching a DCH name', () => {
+    const saved = mockRhaiConnection();
+    render(
+      <ConnectionRefLink
+        connectionRef={saved}
+        connections={[mockDchConnection({ name: saved.secret_name })]}
+      />,
+    );
+    expect(screen.getByTestId('connection-ref-label')).toHaveTextContent(saved.secret_name);
+    expect(screen.getByTestId('connection-ref-label')).not.toHaveTextContent('(s3)');
   });
 });

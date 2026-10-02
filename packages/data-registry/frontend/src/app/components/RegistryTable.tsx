@@ -39,9 +39,11 @@ import {
 import { useNotification } from '~/app/hooks/useNotification';
 import { assetDetailUrl } from '~/app/utilities/routes';
 import { getFormatBadge, FORMAT_OPTIONS } from '~/app/utilities/formatUtils';
+import type { ConnectionRef } from '~/app/types';
 import AccessDeniedError from '~/app/components/errors/AccessDeniedError';
 import ConnectionError from '~/app/components/errors/ConnectionError';
 import ServiceUnavailableError from '~/app/components/errors/ServiceUnavailableError';
+import ConnectionRefLink from './ConnectionRefLink';
 import DeleteAssetModal from './DeleteAssetModal';
 
 type RegistryTableProps = {
@@ -49,6 +51,7 @@ type RegistryTableProps = {
   loaded: boolean;
   error: Error | undefined;
   labels: string[];
+  connections?: ConnectionRef[];
   project: string;
   onManageCollections: () => void;
   onManageLabels: () => void;
@@ -99,6 +102,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   loaded,
   error,
   labels,
+  connections = [],
   project,
   onManageCollections,
   onManageLabels,
@@ -631,7 +635,16 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                       </Label>{' '}
                       <Content component="small">{badge.text}</Content>
                     </Td>
-                    <Td dataLabel="Asset location">{asset.connectionRef || asset.location}</Td>
+                    <Td dataLabel="Asset location">
+                      {asset.connectionRef ? (
+                        <ConnectionRefLink
+                          connectionRef={asset.rawAsset?.connection_ref ?? asset.connectionRef}
+                          connections={connections}
+                        />
+                      ) : (
+                        asset.location
+                      )}
+                    </Td>
                     <Td dataLabel="Labels">
                       {asset.labels.length > 0 ? (
                         <LabelGroup>

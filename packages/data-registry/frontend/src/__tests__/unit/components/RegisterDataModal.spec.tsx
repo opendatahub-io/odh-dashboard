@@ -1,9 +1,10 @@
 /* eslint-disable camelcase */
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import RegisterDataModal from '~/app/components/RegisterDataModal';
 import * as dataRegistryApi from '~/app/api/dataRegistry';
+import { mockDchConnection, mockRhaiConnection } from '~/__mocks__/mockConnection';
 import * as connectionsHook from '~/app/hooks/useConnections';
 import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
 import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
@@ -16,9 +17,15 @@ const mockCreateGenericTable = jest.mocked(dataRegistryApi.createGenericTable);
 const mockUseConnections = jest.mocked(connectionsHook.useConnections);
 
 const mockConnections = [
-  { name: 'my-s3-connection', displayName: 'My S3 Connection', connectionType: 's3' },
-  { name: 'my-uri-connection', displayName: 'My URI Connection', connectionType: 'uri' },
+  mockRhaiConnection(),
+  mockRhaiConnection({
+    // eslint-disable-next-line camelcase
+    secret_name: 'my-uri-connection',
+    name: 'My URI Connection',
+    connectionType: 'uri',
+  }),
 ];
+const mockRefreshConnections = jest.fn();
 
 describe('RegisterDataModal', () => {
   const defaultProps = {
@@ -32,7 +39,14 @@ describe('RegisterDataModal', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseConnections.mockReturnValue([mockConnections, true, undefined]);
+    mockRefreshConnections.mockResolvedValue(mockConnections);
+    mockUseConnections.mockReturnValue([
+      mockConnections,
+      true,
+      undefined,
+      mockRefreshConnections,
+      [],
+    ]);
   });
 
   it('should render modal with all form fields', () => {
@@ -221,7 +235,7 @@ describe('RegisterDataModal', () => {
   });
 
   it('should show empty state when no connections available', async () => {
-    mockUseConnections.mockReturnValue([[], true, undefined]);
+    mockUseConnections.mockReturnValue([[], true, undefined, mockRefreshConnections, []]);
     const user = userEvent.setup();
     render(<RegisterDataModal {...defaultProps} />);
 
@@ -301,5 +315,60 @@ describe('RegisterDataModal', () => {
         format: 'other',
       });
     });
+  });
+
+  it.each(['volume', 'table'])(
+    'should submit the selected DCH UUID for a %s with duplicate labels',
+    async (kind) => {
+      const user = userEvent.setup();
+      const first = mockDchConnection();
+      const second = mockDchConnection({ id: '550e8400-e29b-41d4-a716-446655440002' });
+      mockUseConnections.mockReturnValue([
+        [first, second],
+        true,
+        undefined,
+        mockRefreshConnections,
+        [],
+      ]);
+      mockRefreshConnections.mockResolvedValue([first, { ...second, name: 'Renamed data' }]);
+
+      render(<RegisterDataModal {...defaultProps} />);
+      await user.type(screen.getByTestId('data-name-input'), 'dch-asset');
+      await user.click(screen.getByTestId('data-collection-toggle'));
+      await user.click(screen.getByText('collection-1'));
+      if (kind === 'table') {
+        await user.click(screen.getByTestId('asset-type-toggle'));
+        await user.click(screen.getByText('Structured'));
+      }
+      await user.click(screen.getByTestId('data-connection-toggle'));
+      expect(screen.getAllByText('Production data')).toHaveLength(2);
+      await user.click(
+        within(screen.getByTestId(`connection-option-dch:${second.id}`)).getByRole('option'),
+      );
+      await user.click(screen.getByTestId('register-data-submit'));
+
+      const create = kind === 'table' ? mockCreateGenericTable : mockCreateVolume;
+      await waitFor(() => expect(create).toHaveBeenCalled());
+      expect(create.mock.calls[0][2].connection_ref).toEqual({ type: 'dch', id: second.id });
+      expect(mockRefreshConnections).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('should prevent creation when refresh cannot confirm the selected connection', async () => {
+    const user = userEvent.setup();
+    mockRefreshConnections.mockResolvedValue([]);
+    render(<RegisterDataModal {...defaultProps} />);
+    await user.type(screen.getByTestId('data-name-input'), 'stale-asset');
+    await user.click(screen.getByTestId('data-collection-toggle'));
+    await user.click(screen.getByText('collection-1'));
+    await user.click(screen.getByTestId('data-connection-toggle'));
+    await user.click(screen.getByText('My S3 Connection'));
+    await user.click(screen.getByTestId('register-data-submit'));
+
+    await waitFor(() =>
+      expect(screen.getByText(/selected connection could not be confirmed/)).toBeTruthy(),
+    );
+    expect(mockCreateVolume).not.toHaveBeenCalled();
+    expect(mockCreateGenericTable).not.toHaveBeenCalled();
   });
 });

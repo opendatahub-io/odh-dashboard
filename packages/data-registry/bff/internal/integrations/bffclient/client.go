@@ -132,7 +132,7 @@ func (c *HTTPBFFClient) Call(ctx context.Context, method, path string, body inte
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return NewInvalidResponseError(c.target, fmt.Sprintf("failed to read response body: %v", err))
+		return NewConnectionError(c.target, "failed to read response body")
 	}
 
 	// Handle error status codes
@@ -143,12 +143,7 @@ func (c *HTTPBFFClient) Call(ctx context.Context, method, path string, body inte
 	// Decode response body if response pointer provided
 	if response != nil && len(respBody) > 0 {
 		if err := json.Unmarshal(respBody, response); err != nil {
-			// Include truncated body in error for debugging
-			bodyPreview := string(respBody)
-			if len(bodyPreview) > 200 {
-				bodyPreview = bodyPreview[:200] + "..."
-			}
-			return NewInvalidResponseError(c.target, fmt.Sprintf("failed to unmarshal response: %v (body: %q)", err, bodyPreview))
+			return NewInvalidResponseError(c.target, "failed to decode BFF response")
 		}
 	}
 

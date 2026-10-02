@@ -20,6 +20,7 @@ import NewProjectButton from '~/app/components/NewProjectButton';
 import './DataRegistryPage.scss';
 import { useCollections } from '~/app/hooks/useCollections';
 import { useAssets } from '~/app/hooks/useAssets';
+import { useConnections } from '~/app/hooks/useConnections';
 import { useLabels } from '~/app/hooks/useLabels';
 import { is503Error, is403Error, isConnectionError } from '~/app/api/dataRegistry';
 import RegistryTable from '~/app/components/RegistryTable';
@@ -172,6 +173,7 @@ const DataRegistryPage: React.FC = () => {
 
   const [assets, assetsLoaded, assetsError, assetsRefresh, collectionNames] =
     useAssets(selectedProject);
+  const [connections] = useConnections(selectedProject);
   const [, collectionsLoaded, collectionsError, collectionsRefresh] = useCollections(
     selectedProject,
     assets,
@@ -324,6 +326,7 @@ const DataRegistryPage: React.FC = () => {
             loaded={assetsLoaded && collectionsLoaded}
             error={assetsError ?? collectionsError}
             labels={labels}
+            connections={connections}
             project={selectedProject}
             onManageCollections={() => {
               if (!collectionsError) {
@@ -350,6 +353,7 @@ const DataRegistryPage: React.FC = () => {
             onRefresh={handleRefresh}
           />
           <RegisterDataModal
+            key={selectedProject}
             isOpen={isRegisterModalOpen}
             onClose={() => setIsRegisterModalOpen(false)}
             project={selectedProject}

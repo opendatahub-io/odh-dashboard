@@ -1,7 +1,11 @@
+# Vendored from the Data Registry backend's API contract.
+# Source: https://gitlab.cee.redhat.com/data-strategy/data-registry-production/-/blob/main/api-contract/data-registry-api.yaml
+# This file is manually synced — re-fetch from the source above when the backend contract changes.
+# Do not hand-edit paths/schemas here without updating the upstream source of truth first (RHAI-415).
 openapi: 3.1.0
 info:
   title: RHOAI Data Registry API
-  version: 0.8.2
+  version: 0.9.0
   description: |
     The RHOAI Data Registry exposes an **Iceberg REST-compatible API** for
     registering, discovering, and managing data assets across OpenShift AI projects.
@@ -846,66 +850,17 @@ paths:
   /v1/{project}/search:
     get:
       operationId: searchDataRegistry
-      summary: Search data assets within a project
+      summary: Full-text search with relevance scoring
       description: |
-        Search registered tables, volumes, and collections **inside the Kubernetes
-        project named by `{project}`**. Path `{project}` is an exact, case-sensitive
-        Kubernetes namespace (`SavedDataset.namespace`).
+        Searches Data Registry assets within a single RHOAI project. The Data Registry
+        implementation may delegate internally to Feast's global search capability while
+        applying the project scope from the path.
 
-        **Query text (`query`).** Case-insensitive. Empty or omitted includes every
-        in-scope asset that passes filters, each with `score` `0`.
+        **Scoring tiers:** exact name match (100), name substring (90),
+        description match (80), property value match (60), fuzzy match (40).
 
-        Scoring (first matching bucket wins; integer scores only):
-        - `100` — exact match on name
-        - `90` — name contains the query
-        - `80` — description contains the query
-        - `60` — a searchable **value** contains the query: first-class metadata
-          (`description` is scored at 80; otherwise `owner`, `format`, labels,
-          collection properties, user `properties` values — not keys), schema
-          column name / type / description, or `storage_location` URI
-        - `40` — fuzzy name match (Jaccard ≥ 0.75, query length ≥ 3)
-
-        Non-matching rows are omitted. Hits are slim: `type`, `namespace`
-        (one-element collection array), `name`, `description`, `properties`,
-        `score`. Clients that need `format`, `owner`, `labels`, or storage
-        should GET the asset.
-
-        **Type filter (`asset_type` only).** There is no `type` query parameter.
-        Case-insensitive. Aliases: `dataset` → tables; `iceberg_table` → tables
-        whose format is `iceberg`. Unknown `asset_type` values return HTTP 200
-        with `results: []` (not 400). Result `type` is only `table`, `volume`,
-        or `collection`.
-
-        **Collection filter.** `namespace` and `namespaces` are aliases for
-        SavedDataset `collection`. Case-insensitive exact match. Omitted or
-        empty means all collections, including the implicit `default`
-        collection. When a collection filter is set, collection rows are
-        omitted from `results`.
-
-        **Label filter.** Single `label` query parameter: case-insensitive
-        **substring** on asset labels. Collection rows are omitted when
-        `label` is set. This is not generic-table `GET .../generic-tables?label=`
-        (exact membership).
-
-        **Property filter.** Repeat `properties=key:value`. AND across pairs.
-        Case-insensitive substring on values. Missing `:`, empty key, or empty
-        value → 400. A colon inside the key (`properties.a:b=x`) is 400.
-
-        **Pagination / sort.** `page` (1-based, default 1). `limit` (default 50,
-        max 500). `page_size` is an alias of `limit`; when both are sent,
-        `page_size` wins. `sort_by` is `score` (default) or `name`. `sort_order`
-        is `asc` or `desc`; when omitted, `desc` for `score` and `asc` for
-        `name`. Name sort is case-insensitive.
-
-        **Pagination object.** Nested Feast `paginate_and_sort` shape: `page`,
-        `limit`, and when there is at least one hit `totalCount` / `totalPages`.
-        `hasNext` / `hasPrevious` appear only when true. Zero hits omit
-        `totalCount` (and typically `totalPages`). `page` below 1, `page` past
-        `totalPages` when hits exist, or `page>1` when there are zero hits →
-        400. `limit` / `page_size` above 500 → 400.
-
-        **Errors.** Validation failures use Iceberg `ErrorResponse`
-        `{error: {message, type, code}}`.
+        When no `namespace` filter is set, collections themselves are included
+        in search results alongside tables and volumes.
       tags: [search]
       x-rhoai-extension: true
       parameters:
@@ -915,17 +870,12 @@ paths:
           schema:
             type: string
             default: ''
-          description: |
-            Text search across name, description, metadata values, schema
-            fields, and storage URI. Empty returns all in-scope assets at
-            score 0.
+          description: Text search across name, description, and properties. Empty returns all.
         - name: namespace
           in: query
           schema:
             type: string
-          description: |
-            Filter to a single collection (SavedDataset.collection). Tables
-            and volumes only — collection rows are excluded from results.
+          description: Filter to a single collection (Level 3 — tables and volumes only, no collections in results)
         - name: namespaces
           in: query
           schema:
@@ -934,16 +884,19 @@ paths:
               type: string
           style: form
           explode: true
-          description: Filter to multiple collections (union). Same semantics as `namespace`.
+          description: Filter to multiple collections
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/SearchAssetType'
+          description: |
+            Filter by asset type. Values: `table`, `volume`, `collection`,
+            `iceberg_table`, `document_collection`, `vector_index`, `dataset`
         - name: asset_type
           in: query
           schema:
-            type: string
-          description: |
-            Optional type filter. Not a closed enum. Known values: `table`,
-            `volume`, `collection`, `dataset` (alias of `table`),
-            `iceberg_table` (tables with format `iceberg`). Unknown values
-            yield HTTP 200 and an empty `results` list.
+            $ref: '#/components/schemas/SearchAssetType'
+          description: Alternative to `type` parameter (same values accepted)
         - name: properties
           in: query
           schema:
@@ -952,31 +905,19 @@ paths:
               type: string
           style: form
           explode: true
-          description: |
-            Property filters as `key:value` pairs. All pairs must match
-            (AND). Values are case-insensitive substrings.
+          description: Property filters as `key:value` pairs (all must match)
         - name: label
           in: query
           schema:
             type: string
-          description: |
-            Case-insensitive substring match on an asset label. A single
-            parameter (not repeated AND).
+          description: Filter results to assets that have this label
         - name: sort_by
           in: query
           schema:
             type: string
             enum: [score, name]
             default: score
-          description: Sort by score or alphabetical name
-        - name: sort_order
-          in: query
-          schema:
-            type: string
-            enum: [asc, desc]
-          description: |
-            Sort direction. When omitted: `desc` if `sort_by=score`, `asc`
-            if `sort_by=name`.
+          description: Sort by relevance or alphabetical
         - name: page
           in: query
           schema:
@@ -990,9 +931,7 @@ paths:
             type: integer
             minimum: 1
             maximum: 500
-          description: |
-            Results per page. When both `page_size` and `limit` are sent,
-            `page_size` wins.
+          description: Results per page (alternative to `limit`)
         - name: limit
           in: query
           schema:
@@ -1000,16 +939,14 @@ paths:
             minimum: 1
             maximum: 500
             default: 50
-          description: Results per page when `page_size` is omitted
+          description: Results per page (used when `page_size` is not specified)
       responses:
-        '400':
-          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '200':
-          description: Search results with nested pagination
+          description: Search results with scoring
           content:
             application/json:
               schema:
@@ -1078,13 +1015,6 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
 
-    BadRequest:
-      description: Invalid request parameters
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-
     Unauthorized:
       description: Missing or invalid authentication token
       content:
@@ -1104,6 +1034,11 @@ components:
 
     ConnectionRef:
       type: object
+      description: |
+        Stable connection reference. Asset writes persist only type and id (DCH), or
+        type and secret_name (RHOAI). Servers must discard response-only name and
+        connectionType fields supplied by clients. Display fields are resolved by
+        the Dashboard connection-list endpoint and are not stored with assets.
       discriminator:
         propertyName: type
       oneOf:
@@ -1121,6 +1056,14 @@ components:
           type: string
           format: uuid
           description: The UUID of the DCH DataConnection
+        name:
+          type: string
+          readOnly: true
+          description: Current display name, resolved at lookup time; never persisted with assets.
+        connectionType:
+          type: string
+          readOnly: true
+          description: Connector provider label, such as s3 or postgres; never persisted with assets.
 
     RhaiConnectionRef:
       type: object
@@ -1132,6 +1075,14 @@ components:
         secret_name:
           type: string
           description: The name of the RHAI Connection Secret
+        name:
+          type: string
+          readOnly: true
+          description: Current display name, resolved at lookup time; never persisted with assets.
+        connectionType:
+          type: string
+          readOnly: true
+          description: Connector provider label, such as s3 or postgres; never persisted with assets.
 
     # ----- Error Schemas -----
 
@@ -1483,27 +1434,13 @@ components:
         Supported format for a structured asset. UI labels are Apache Iceberg, Parquet, CSV,
         Delta Lake, PostgreSQL, Milvus, and Other.
 
-    LicenseType:
-      type: string
-      enum: [internal-use, cc-by-4.0, apache-2.0, proprietary, restricted]
-      description: Allowed data license values.
-
-    MaturityType:
-      type: string
-      enum: [experimental, staging, production, deprecated]
-      description: Asset lifecycle stage.
-
-    PiiStatus:
-      type: string
-      enum: [none, contains-pii, contains-sensitive, anonymized]
-      description: PII classification for an asset.
-
     CreateAssetRequest:
       description: |
         Request model for registering an asset. Storage references are optional: metadata-only
         assets are valid, and an asset may use `connection_ref` instead of `storage_location`.
         The owner is assigned by the server from the authenticated creator identity and must
-        not be included in the request.
+        not be included in the request. The collection is supplied by the required path
+        parameter and is not part of the request body.
       type: object
       required: [name, format]
       properties:
@@ -1521,27 +1458,22 @@ components:
             - type: 'null'
           description: Optional connection reference. Metadata-only assets may omit both storage references.
         description:
-          type: string
+          type: ['string', 'null']
+          description: Optional description. A null value leaves the asset without a description.
         purpose:
-          type: string
+          type: ['string', 'null']
           description: Intended use of the data. Round-trips as `properties.purpose`.
         license:
-          anyOf:
-            - $ref: '#/components/schemas/LicenseType'
-            - type: 'null'
+          type: ['string', 'null']
           description: Data license or usage terms. Round-trips as `properties.license`.
         maturity:
-          anyOf:
-            - $ref: '#/components/schemas/MaturityType'
-            - type: 'null'
+          type: ['string', 'null']
           description: "Lifecycle stage (e.g. experimental, staging, production, deprecated). Round-trips as `properties.maturity`."
         domain:
-          type: string
+          type: ['string', 'null']
           description: Business domain. Round-trips as `properties.domain`.
         pii:
-          anyOf:
-            - $ref: '#/components/schemas/PiiStatus'
-            - type: 'null'
+          type: ['string', 'null']
           description: PII classification. Round-trips as `properties.pii`.
         labels:
           type: array
@@ -1571,6 +1503,11 @@ components:
       description: |
         Partial update for an asset. Only provided fields are updated. The owner is immutable,
         assigned at creation from the authenticated creator identity, and cannot be updated.
+        The collection is part of the resource path and cannot be changed by these operations.
+        The asset name, format, and server-managed identity fields cannot be cleared. Send null
+        to clear a nullable field. Use `remove_labels` to remove labels and `remove_properties`
+        to remove custom property keys. If a property key is present in both `properties` and
+        `remove_properties`, removal takes precedence.
       properties:
         format:
           type: string
@@ -1582,30 +1519,28 @@ components:
           anyOf:
             - $ref: '#/components/schemas/ConnectionRef'
             - type: 'null'
-          description: Optional connection reference. A null value clears it; metadata-only assets may omit it.
+          description: |
+            Optional connection reference. A valid reference replaces the association; omission
+            preserves the existing association. A null value clears it. Only the stable reference
+            fields are persisted; response-only display fields are discarded.
         description:
-          type: string
+          type: ['string', 'null']
+          description: Asset description. A null value clears it.
         purpose:
           type: ['string', 'null']
-          description: Intended use of the data. Updates `properties.purpose` when supplied. Null clears.
+          description: Intended use of the data. Updates `properties.purpose` when supplied; null removes it.
         license:
-          anyOf:
-            - $ref: '#/components/schemas/LicenseType'
-            - type: 'null'
-          description: Data license or usage terms. Updates `properties.license` when supplied. Null clears.
+          type: ['string', 'null']
+          description: Data license or usage terms. Updates `properties.license` when supplied; null removes it.
         maturity:
-          anyOf:
-            - $ref: '#/components/schemas/MaturityType'
-            - type: 'null'
-          description: "Lifecycle stage. Updates `properties.maturity` when supplied. Null clears."
+          type: ['string', 'null']
+          description: "Lifecycle stage (e.g. experimental, staging, production, deprecated). Updates `properties.maturity` when supplied; null removes it."
         domain:
           type: ['string', 'null']
-          description: Business domain. Updates `properties.domain` when supplied. Null clears.
+          description: Business domain. Updates `properties.domain` when supplied; null removes it.
         pii:
-          anyOf:
-            - $ref: '#/components/schemas/PiiStatus'
-            - type: 'null'
-          description: PII classification. Updates `properties.pii` when supplied. Null clears.
+          type: ['string', 'null']
+          description: PII classification. Updates `properties.pii` when supplied; null removes it.
         add_labels:
           type: array
           items:
@@ -1616,24 +1551,24 @@ components:
           items:
             type: string
           description: Labels to remove from this asset.
-        remove_properties:
-          type: array
-          items:
-            type: string
-          description: |
-            Property keys to remove from the asset. Only user-defined (custom)
-            keys may be removed. Governance keys (purpose, license, maturity,
-            domain, pii) are rejected with 400. Keys in both properties and
-            remove_properties are rejected with 400.
         properties:
           type: object
           additionalProperties:
             type: string
           description: |
-            Arbitrary metadata updates. Keys are merged into the existing
-            property map; omitted keys remain unchanged. To remove a key,
-            use remove_properties. Governance keys use purpose, license,
-            maturity, domain, and pii.
+            Custom metadata updates. Keys are merged into the existing property map;
+            omitted keys remain unchanged. Governance keys use `purpose`, `license`,
+            `maturity`, `domain`, and `pii`.
+        remove_properties:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+          description: |
+            Custom property keys to remove from the asset. Missing keys are ignored. Governance
+            properties are cleared with their corresponding nullable top-level fields. The
+            removals are applied after `properties` updates, so removal takes precedence for
+            duplicate keys.
 
     UpdateVolumeRequest:
       description: Partial update for an unstructured asset.
@@ -1702,7 +1637,7 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/SchemaField'
-              description: Replaces the entire schema. Omit to leave schema unchanged.
+              description: Replaces the entire schema. Omit to leave schema unchanged; provide an empty array to remove all schema fields.
 
     AssetResponseBase:
       type: object
@@ -1820,79 +1755,51 @@ components:
 
     # ----- Search -----
 
-    SearchResultType:
+    SearchAssetType:
       type: string
-      enum: [table, volume, collection]
-      description: |
-        Asset class on a search hit after alias resolution. Never `dataset`,
-        `iceberg_table`, `document_collection`, or `vector_index`.
+      enum: [table, volume, collection, iceberg_table, document_collection, vector_index, dataset]
+      description: Canonical asset type accepted by search filters and returned in search results.
 
     SearchResult:
       type: object
-      required: [type, namespace, name, score]
+      required: [type, namespace, name]
       properties:
         type:
-          $ref: '#/components/schemas/SearchResultType'
+          $ref: '#/components/schemas/SearchAssetType'
         namespace:
           type: array
           minItems: 1
           maxItems: 1
           items:
             type: string
-          description: |
-            Collection name (SavedDataset.collection) as a one-element array.
-            Implicit `default` when the asset has no collection.
         name:
           type: string
-          description: Unscoped asset name (not `project/collection/name`)
         description:
           type: ['string', 'null']
         properties:
           type: object
           additionalProperties:
             type: string
-          description: |
-            User tags plus note keys (`purpose`, `license`, `maturity`,
-            `domain`, `pii`). Does not include `format`, `owner`, or labels.
         score:
           type: integer
-          description: Relevance 100, 90, 80, 60, 40, or 0 (empty query)
-
-    SearchPagination:
-      type: object
-      required: [page, limit]
-      properties:
-        page:
-          type: integer
-          minimum: 1
-        limit:
-          type: integer
-          minimum: 1
-        totalCount:
-          type: integer
-          minimum: 0
-          description: Omitted when there are zero hits
-        totalPages:
-          type: integer
-          minimum: 0
-          description: Omitted when there are zero hits
-        hasNext:
-          type: boolean
-          description: Present only when true
-        hasPrevious:
-          type: boolean
-          description: Present only when true
+          default: 0
 
     SearchResponse:
       type: object
-      required: [query, results, pagination]
+      required: [query, results]
       properties:
         query:
           type: string
-          description: Echo of the request `query` parameter
         results:
           type: array
           items:
             $ref: '#/components/schemas/SearchResult'
-        pagination:
-          $ref: '#/components/schemas/SearchPagination'
+        total:
+          type: integer
+          default: 0
+        page:
+          type: integer
+          default: 1
+        limit:
+          type: integer
+          default: 50
