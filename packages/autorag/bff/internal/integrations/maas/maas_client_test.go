@@ -2,6 +2,7 @@ package maas
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,6 +16,54 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestClientFactoryUsesConfiguredTLSAndTransport(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/v1/embeddings", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"data":[{"embedding":[1,2]}]}`)
+	}))
+	t.Cleanup(server.Close)
+
+	rootCAs := x509.NewCertPool()
+	rootCAs.AddCert(server.Certificate())
+	wrapped := false
+	factory := NewClientFactory(MaaSClientConfig{
+		RootCAs: rootCAs,
+		WrapTransport: func(rt http.RoundTripper) http.RoundTripper {
+			wrapped = true
+			return rt
+		},
+	})
+	client, err := factory("https://maas.apps.cluster", "response-key")
+	require.NoError(t, err)
+	require.NotNil(t, client)
+	assert.True(t, wrapped)
+}
+
+func TestClientFactoryDevInsecureTLSReachesResponsesClient(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"data":[{"embedding":[1]}]}`)
+	}))
+	t.Cleanup(server.Close)
+
+	client, err := NewClientFactory(MaaSClientConfig{InsecureSkipVerify: true})("https://maas.apps.cluster", "response-key")
+	require.NoError(t, err)
+	require.NotNil(t, client)
+}
+
+func TestClientFactoryDefaultsToCertificateVerification(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"data":[{"embedding":[1]}]}`)
+	}))
+	t.Cleanup(server.Close)
+
+	client, err := NewClientFactory(MaaSClientConfig{})("https://maas.apps.cluster", "response-key")
+	require.NoError(t, err)
+	require.NotNil(t, client)
+}
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
@@ -60,25 +109,14 @@ func TestListModelsRejectsRemoteHTTPBeforeOutboundRequest(t *testing.T) {
 	assert.False(t, outbound, "rejected remote HTTP URL must not make an outbound request")
 }
 
-func TestListModelsAllowsLocalHTTPAndForwardsBearer(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/v1/models", r.URL.Path)
-		assert.Equal(t, "Bearer local-key", r.Header.Get("Authorization"))
-		w.Header().Set("Content-Type", "application/json")
-		if _, err := io.WriteString(w, `{"object":"list","data":[]}`); err != nil {
-			t.Errorf("failed to write response: %v", err)
-		}
-	}))
-	t.Cleanup(server.Close)
-
-	client := NewDefaultMaaSClient(MaaSClientConfig{
-		LookupIP: func(context.Context, string) ([]net.IP, error) {
-			return []net.IP{net.ParseIP("127.0.0.1")}, nil
-		},
-	})
-	port := server.Listener.Addr().(*net.TCPAddr).Port
-	_, err := client.ListModels(context.Background(), fmt.Sprintf("http://localhost:%d", port), "local-key")
-	require.NoError(t, err)
+func TestListModelsRejectsLocalHTTP(t *testing.T) {
+	client := NewMaaSClient(&http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return nil, fmt.Errorf("unexpected outbound request")
+	})})
+	_, err := client.ListModels(context.Background(), "https://localhost:8080", "local-key")
+	var maaSErr *MaaSError
+	require.ErrorAs(t, err, &maaSErr)
+	assert.Equal(t, ErrCodeInvalidRequest, maaSErr.Code)
 }
 
 func TestBuildModelsURL(t *testing.T) {
@@ -90,15 +128,20 @@ func TestBuildModelsURL(t *testing.T) {
 	}{
 		{name: "root base", baseURL: "https://maas.apps.cluster/", want: "https://maas.apps.cluster/v1/models"},
 		{name: "path base", baseURL: "https://maas.apps.cluster/maas-api/", want: "https://maas.apps.cluster/maas-api/v1/models"},
-		{name: "private cluster address allowed", baseURL: "https://10.0.0.15/", want: "https://10.0.0.15/v1/models"},
+		{name: "private cluster address rejected", baseURL: "https://10.0.0.15/", wantErr: true},
 		{name: "remote HTTP rejected", baseURL: "http://maas.apps.cluster/", wantErr: true},
 		{name: "in-cluster HTTP rejected", baseURL: "http://maas-api.namespace.svc.cluster.local/", wantErr: true},
-		{name: "localhost HTTP allowed", baseURL: "http://localhost:8080/", want: "http://localhost:8080/v1/models"},
-		{name: "IPv4 loopback HTTP allowed", baseURL: "http://127.0.0.1:8080/", want: "http://127.0.0.1:8080/v1/models"},
-		{name: "IPv6 loopback HTTP allowed", baseURL: "http://[::1]:8080/", want: "http://[::1]:8080/v1/models"},
+		{name: "localhost rejected", baseURL: "https://localhost:8080/", wantErr: true},
+		{name: "IPv4 loopback rejected", baseURL: "https://127.0.0.1:8080/", wantErr: true},
+		{name: "IPv6 loopback rejected", baseURL: "https://[::1]:8080/", wantErr: true},
+		{name: "IPv4 link-local rejected", baseURL: "https://169.254.1.1/", wantErr: true},
+		{name: "IPv6 link-local rejected", baseURL: "https://[fe80::1]/", wantErr: true},
+		{name: "IPv6 private rejected", baseURL: "https://[fd00::1]/", wantErr: true},
 		{name: "credentials rejected", baseURL: "https://user:pass@maas.apps.cluster", wantErr: true},
 		{name: "query rejected", baseURL: "https://maas.apps.cluster?token=secret", wantErr: true},
 		{name: "fragment rejected", baseURL: "https://maas.apps.cluster#models", wantErr: true},
+		{name: "invalid port rejected", baseURL: "https://maas.apps.cluster:not-a-port", wantErr: true},
+		{name: "traversal path rejected", baseURL: "https://maas.apps.cluster/../internal", wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -109,6 +152,44 @@ func TestBuildModelsURL(t *testing.T) {
 			}
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestMaaSURLValidationParityBetweenDiscoveryAndResponsesFactory(t *testing.T) {
+	tests := []struct {
+		name    string
+		baseURL string
+		wantErr bool
+	}{
+		{name: "external route", baseURL: "https://maas.apps.cluster/maas-api/"},
+		{name: "localhost", baseURL: "https://localhost", wantErr: true},
+		{name: "IPv4 loopback", baseURL: "https://127.0.0.1", wantErr: true},
+		{name: "IPv4 private", baseURL: "https://10.0.0.1", wantErr: true},
+		{name: "IPv4 link-local", baseURL: "https://169.254.1.1", wantErr: true},
+		{name: "IPv6 loopback", baseURL: "https://[::1]", wantErr: true},
+		{name: "IPv6 private", baseURL: "https://[fd00::1]", wantErr: true},
+		{name: "IPv6 link-local", baseURL: "https://[fe80::1]", wantErr: true},
+		{name: "userinfo", baseURL: "https://user:secret@maas.apps.cluster?token=secret#fragment", wantErr: true},
+		{name: "query", baseURL: "https://maas.apps.cluster?token=secret", wantErr: true},
+		{name: "fragment", baseURL: "https://maas.apps.cluster#fragment", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, discoveryErr := buildModelsURL(tt.baseURL)
+			_, factoryErr := NewClientFactoryWithHTTPClient(&http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+				return nil, fmt.Errorf("unexpected outbound request")
+			})})(tt.baseURL, "key")
+			assert.Equal(t, tt.wantErr, discoveryErr != nil)
+			assert.Equal(t, tt.wantErr, factoryErr != nil)
+			if tt.wantErr {
+				require.Error(t, discoveryErr)
+				require.Error(t, factoryErr)
+				assert.NotContains(t, discoveryErr.Error(), "secret")
+				assert.NotContains(t, discoveryErr.Error(), "token")
+				assert.NotContains(t, factoryErr.Error(), "secret")
+				assert.NotContains(t, factoryErr.Error(), "token")
+			}
 		})
 	}
 }
@@ -140,6 +221,26 @@ func TestMaaSSafeDialContextRejectsUnsafeResolvedAddress(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "blocked")
 	assert.False(t, baseDialed, "unsafe resolved address must not reach the dialer")
+}
+
+func TestMaaSSafeDialContextRejectsPrivateAndLinkLocalResolvedAddresses(t *testing.T) {
+	for _, address := range []string{"10.0.0.1", "169.254.1.1", "fd00::1", "fe80::1"} {
+		t.Run(address, func(t *testing.T) {
+			baseDialed := false
+			dial := maaSSafeDialContext(
+				func(context.Context, string, string) (net.Conn, error) {
+					baseDialed = true
+					return nil, fmt.Errorf("unexpected dial")
+				},
+				func(context.Context, string) ([]net.IP, error) {
+					return []net.IP{net.ParseIP(address)}, nil
+				},
+			)
+			_, err := dial(context.Background(), "tcp", "maas.example:443")
+			require.Error(t, err)
+			assert.False(t, baseDialed)
+		})
+	}
 }
 
 func TestMaaSSafeDialContextRejectsNonLoopbackLocalhost(t *testing.T) {

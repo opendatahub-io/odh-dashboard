@@ -2,7 +2,11 @@
 /**
  * @jest-environment node
  */
-import { ContractApiClient, loadOpenAPISchema } from '@odh-dashboard/contract-tests';
+import {
+  ContractApiClient,
+  ContractSchemaValidator,
+  loadOpenAPISchema,
+} from '@odh-dashboard/contract-tests';
 
 describe('AutoRAG API Contract Tests', () => {
   const baseUrl = process.env.CONTRACT_MOCK_BFF_URL || 'http://localhost:8080';
@@ -24,6 +28,41 @@ describe('AutoRAG API Contract Tests', () => {
 
   const SUCCEEDED_RUN = 'e78c5f2a-5726-4e1c-bcb6-60434e77e453';
 
+  describe('OpenAPI schema', () => {
+    it('documents string and message-array input values, but not null', () => {
+      const components = apiSchema.components as Record<string, unknown>;
+      const schemas = components.schemas as Record<string, unknown>;
+      const responsesRequest = schemas.ResponsesRequest as Record<string, unknown>;
+      const properties = responsesRequest.properties as Record<string, unknown>;
+      const input = properties.input as Record<string, unknown>;
+      const inputVariants = input.anyOf as Array<Record<string, unknown>>;
+
+      expect(inputVariants).toHaveLength(2);
+      expect(inputVariants).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: 'string' }),
+          expect.objectContaining({ type: 'array' }),
+        ]),
+      );
+      expect(properties.model).toEqual(
+        expect.objectContaining({ type: 'string', minLength: 1, pattern: '\\S' }),
+      );
+
+      const modelSchemaValidator = new ContractSchemaValidator();
+      modelSchemaValidator.loadSchema(
+        'ResponsesRequestModel',
+        properties.model as Record<string, unknown>,
+      );
+
+      expect(modelSchemaValidator.validateResponse('   ', 'ResponsesRequestModel').valid).toBe(
+        false,
+      );
+      expect(
+        modelSchemaValidator.validateResponse('test-model', 'ResponsesRequestModel').valid,
+      ).toBe(true);
+    });
+  });
+
   describe('Health Check Endpoint', () => {
     it('should return health status', async () => {
       const result = await apiClient.get('/healthcheck');
@@ -31,6 +70,57 @@ describe('AutoRAG API Contract Tests', () => {
       if (result.success) {
         expect(result.response.status).toBe(200);
       }
+    });
+  });
+
+  describe('Responses Endpoint', () => {
+    const request = {
+      model: 'test-model',
+      input: [
+        {
+          type: 'message',
+          role: 'user',
+          content: [{ type: 'input_text', text: 'What is RAG?' }],
+        },
+      ],
+    };
+
+    it('should reject a request without the canonical database secret query parameter', async () => {
+      const result = await apiClient.post(
+        `/api/v1/responses?namespace=${NS}&vectorDbSecretName=legacy&maasSecretName=${MAAS_SECRET}`,
+        request,
+      );
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+    });
+
+    it('should reject a request missing the database secret query parameter', async () => {
+      const result = await apiClient.post(
+        `/api/v1/responses?namespace=${NS}&maasSecretName=${MAAS_SECRET}`,
+        request,
+      );
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+    });
+
+    it('should reject a request missing the model', async () => {
+      const requestWithoutModel = { ...request };
+      delete (requestWithoutModel as { model?: string }).model;
+      const result = await apiClient.post(
+        `/api/v1/responses?namespace=${NS}&dbSecretName=${SECRET}&maasSecretName=${MAAS_SECRET}`,
+        requestWithoutModel,
+      );
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+    });
+
+    it('should reject an explicit null input', async () => {
+      const result = await apiClient.post(
+        `/api/v1/responses?namespace=${NS}&dbSecretName=${SECRET}&maasSecretName=${MAAS_SECRET}`,
+        { ...request, input: null },
+      );
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
     });
   });
 

@@ -59,6 +59,48 @@ type ResponsesRequest struct {
 	Store           bool              `json:"store,omitempty"`
 	Include         []string          `json:"include,omitempty"`
 	Metadata        map[string]string `json:"metadata,omitempty"`
+	inputPresent    bool
+}
+
+// HasInput reports whether the request included a non-null input property.
+func (r *ResponsesRequest) HasInput() bool {
+	return r.inputPresent && r.Input != nil
+}
+
+// UnmarshalJSON accepts the Responses API input union and normalizes string
+// input to the canonical user-message representation used by the BFF.
+func (r *ResponsesRequest) UnmarshalJSON(data []byte) error {
+	type responsesRequest ResponsesRequest
+	var raw struct {
+		Input json.RawMessage `json:"input"`
+		*responsesRequest
+	}
+	raw.responsesRequest = (*responsesRequest)(r)
+	r.inputPresent = false
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	if raw.Input == nil {
+		r.Input = nil
+		return nil
+	}
+	r.inputPresent = true
+
+	var text *string
+	if err := json.Unmarshal(raw.Input, &text); err == nil && text != nil {
+		r.Input = []InputMessage{{
+			Type: "message",
+			Role: "user",
+			Content: []InputContent{{
+				Type: "input_text",
+				Text: *text,
+			}},
+		}}
+		return nil
+	}
+
+	return json.Unmarshal(raw.Input, &r.Input)
 }
 
 // --- RAG response ---

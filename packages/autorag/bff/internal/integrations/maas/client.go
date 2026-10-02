@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
+	"net/http"
 	"strings"
 	"time"
 
@@ -20,16 +20,38 @@ type Client struct {
 	baseURL string
 }
 
+// ClientFactory creates a MaaS client with per-secret credentials and a shared
+// configured HTTP transport.
+type ClientFactory func(baseURL, apiKey string) (*Client, error)
+
+// NewClientFactory creates per-secret clients using the configured MaaS
+// transport policy.
+func NewClientFactory(cfg MaaSClientConfig) ClientFactory {
+	return NewClientFactoryWithHTTPClient(NewDefaultHTTPClient(cfg))
+}
+
 // NewClient creates a MaaS client. baseURL should be the base without /v1
 // (the client appends /v1 automatically). If baseURL already ends with /v1,
 // it is stripped here.
 func NewClient(baseURL, apiKey string) (*Client, error) {
-	parsed, err := url.Parse(strings.TrimSpace(baseURL))
-	if err != nil {
-		return nil, fmt.Errorf("maas: invalid base URL: %w", err)
+	return NewClientWithHTTPClient(baseURL, apiKey, http.DefaultClient)
+}
+
+// NewClientFactoryWithHTTPClient creates a factory that reuses the supplied
+// transport while allowing each request to provide its own MaaS credentials.
+func NewClientFactoryWithHTTPClient(httpClient *http.Client) ClientFactory {
+	return func(baseURL, apiKey string) (*Client, error) {
+		return NewClientWithHTTPClient(baseURL, apiKey, httpClient)
 	}
-	if parsed.Scheme != "https" || parsed.Host == "" {
-		return nil, fmt.Errorf("maas: base URL must use HTTPS and include a host")
+}
+
+// NewClientWithHTTPClient creates a MaaS client using the supplied HTTP client.
+// The HTTP client owns TLS policy; this function only configures the endpoint
+// and credentials for the new OpenAI client.
+func NewClientWithHTTPClient(baseURL, apiKey string, httpClient *http.Client) (*Client, error) {
+	parsed, err := ValidateBaseURL(baseURL)
+	if err != nil {
+		return nil, fmt.Errorf("maas: %w", err)
 	}
 
 	base := strings.TrimSuffix(strings.TrimRight(parsed.String(), "/"), "/v1")
@@ -37,6 +59,7 @@ func NewClient(baseURL, apiKey string) (*Client, error) {
 		option.WithAPIKey(apiKey),
 		option.WithBaseURL(base + "/v1"),
 		option.WithRequestTimeout(2 * time.Minute),
+		option.WithHTTPClient(httpClient),
 	}
 	return &Client{
 		oai:     openai.NewClient(options...),

@@ -478,7 +478,10 @@ describe('AutoragResultsPage', () => {
         ...mockPatterns['pattern-1'],
         inference: { responses_template: legacyTemplate },
       };
-      const mockPipelineRun = createMockPipelineRun();
+      const mockPipelineRun = createMockPipelineRun(undefined, {
+        maas_secret_name: 'maas-secret',
+        db_secret_name: 'database-secret',
+      });
 
       mockUsePipelineRunQuery.mockReturnValue({
         data: mockPipelineRun,

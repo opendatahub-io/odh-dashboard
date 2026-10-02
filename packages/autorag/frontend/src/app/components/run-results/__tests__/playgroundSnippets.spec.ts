@@ -30,7 +30,7 @@ const mockTemplate: ResponsesTemplate = {
 const mockParams: SnippetParams = {
   template: mockTemplate,
   namespace: 'test-ns',
-  vectorDbSecretName: 'vector-db-secret',
+  dbSecretName: 'vector-db-secret',
   maasSecretName: 'maas-secret',
 };
 
@@ -47,7 +47,7 @@ describe('playground snippets', () => {
 
     expect(result).toContain('/autorag/api/v1/responses');
     expect(result).toContain('namespace=test-ns');
-    expect(result).toContain('vectorDbSecretName=vector-db-secret');
+    expect(result).toContain('dbSecretName=vector-db-secret');
     expect(result).toContain('maasSecretName=maas-secret');
     expect(result).toContain('https://<DASHBOARD_HOST>');
     expect(result).toContain('DASHBOARD_URL');

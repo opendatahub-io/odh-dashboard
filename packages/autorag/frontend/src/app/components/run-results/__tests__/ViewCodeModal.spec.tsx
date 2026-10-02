@@ -18,14 +18,13 @@ jest.mock('react-router', () => ({
   useParams: () => ({ namespace: 'test-ns' }),
 }));
 
+let mockViewCodeParameters: Record<string, string> = {
+  vector_db_secret_name: 'vector-db-secret',
+  maas_secret_name: 'maas-secret',
+};
+
 jest.mock('~/app/context/AutoragResultsContext', () => ({
-  useAutoragResultsContext: () => ({
-    parameters: {
-      vector_db_secret_name: 'vector-db-secret',
-      maas_secret_name: 'maas-secret',
-    },
-    patterns: {},
-  }),
+  useAutoragResultsContext: () => ({ parameters: mockViewCodeParameters, patterns: {} }),
 }));
 
 const mockTemplate: ResponsesTemplate = {
@@ -63,6 +62,10 @@ const defaultProps = {
 describe('ViewCodeModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockViewCodeParameters = {
+      vector_db_secret_name: 'vector-db-secret',
+      maas_secret_name: 'maas-secret',
+    };
   });
 
   it('should render the modal and all four language tabs', () => {
@@ -87,9 +90,19 @@ describe('ViewCodeModal', () => {
     expect(
       screen.getAllByText(/\/autorag\/api\/v1\/responses\?namespace=test-ns/),
     ).not.toHaveLength(0);
-    expect(screen.getAllByText(/vectorDbSecretName=vector-db-secret/)).not.toHaveLength(0);
+    expect(screen.getAllByText(/dbSecretName=vector-db-secret/)).not.toHaveLength(0);
     expect(screen.getAllByText(/maasSecretName=maas-secret/)).not.toHaveLength(0);
     expect(screen.getAllByText(/DASHBOARD_TOKEN/)).not.toHaveLength(0);
+  });
+
+  it('should show an unavailable state when the MaaS secret is missing', () => {
+    mockViewCodeParameters = { vector_db_secret_name: 'vector-db-secret' };
+    render(<ViewCodeModal {...defaultProps} />);
+
+    expect(
+      screen.getByText(/A MaaS connection is required to generate code snippets/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Copy curl snippet')).not.toBeInTheDocument();
   });
 
   it('should call onClose when the modal is closed', () => {

@@ -46,6 +46,12 @@ import {
   TrackingOutcome,
 } from '~/app/utilities/tracking';
 import type { PlaygroundOpenedSource, ViewCodeEntrySource } from '~/app/utilities/tracking';
+import {
+  getPatternStoreProvider,
+  isResponsesProvider,
+  resolveDatabaseSecretName,
+  resolveMaaSSecretName,
+} from '~/app/utilities/responses';
 
 type DrawerContentType =
   | { type: 'run-details' }
@@ -55,31 +61,15 @@ type DrawerContentType =
       patternInfo: PlaygroundPatternInfo;
     };
 
-// ai4rag >= 0.18.0 renamed the pattern payload's `vector_store_binding` settings
-// field to `store_binding` (backend-agnostic naming). It isn't declared on
-// AutoragPatternSettings — zod's `.passthrough()` still preserves it on the raw
-// object — so read it defensively here until pattern parsing itself is updated
-// to normalize both names.
-type PatternSettingsWithStoreBindingFallback = {
-  store_binding?: { provider_type?: string; collection_name?: string };
-};
-
-const hasStoreBindingFallback = (
-  settings: unknown,
-): settings is PatternSettingsWithStoreBindingFallback =>
-  typeof settings === 'object' && settings !== null && 'store_binding' in settings;
-
+// Prefer the backend-agnostic binding name while keeping historical artifacts readable.
 export const buildResponsesTemplate = (
   pattern: AutoragPattern,
   runId: string | undefined,
 ): ResponsesTemplate => {
-  const { generation, retrieval, vector_store_binding: vectorStoreBinding } = pattern.settings;
+  const { generation, retrieval } = pattern.settings;
   const { settings } = pattern;
-  const storeBindingFallback = hasStoreBindingFallback(settings)
-    ? settings.store_binding
-    : undefined;
-  const collectionName =
-    vectorStoreBinding?.collection_name ?? storeBindingFallback?.collection_name;
+  const storeBinding = settings.store_binding ?? settings.vector_store_binding;
+  const collectionName = storeBinding?.collection_name;
   const isHybrid = retrieval.search_mode === 'hybrid';
 
   return {
@@ -347,7 +337,7 @@ function AutoragResultsPage(): React.JSX.Element {
   // (see `onSelectPattern` below), which is not a new "open".
   const openPlaygroundForPattern = React.useCallback(
     (patternName: string): boolean => {
-      const pattern = patterns?.[patternName];
+      const pattern = patterns[patternName];
       if (!pattern) {
         return false;
       }
@@ -391,8 +381,15 @@ function AutoragResultsPage(): React.JSX.Element {
 
   const handleViewCode = React.useCallback(
     (patternName: string, source: ViewCodeEntrySource) => {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      const persistedTemplate = patterns?.[patternName]?.inference?.responses_template;
+      const pattern = patterns[patternName];
+      if (
+        !resolveDatabaseSecretName(contextValue.parameters) ||
+        !resolveMaaSSecretName(contextValue.parameters) ||
+        !isResponsesProvider(getPatternStoreProvider(pattern))
+      ) {
+        return;
+      }
+      const persistedTemplate = pattern.inference?.responses_template;
       const responsesTemplate = persistedTemplate
         ? normalizeResponsesTemplate(persistedTemplate)
         : undefined;
@@ -401,7 +398,7 @@ function AutoragResultsPage(): React.JSX.Element {
         fireAutoragCodeSnippetsExported('viewed', source);
       }
     },
-    [patterns],
+    [contextValue.parameters, patterns],
   );
 
   return (

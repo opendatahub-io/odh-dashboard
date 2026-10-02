@@ -42,6 +42,7 @@ import {
 } from '~/app/utilities/detectedLanguageFromPatterns';
 import { isRunCompleted } from '~/app/utilities/utils';
 import { metricLabel } from '~/app/utilities/metricUtils';
+import { resolveDatabaseSecretName } from '~/app/utilities/responses';
 import './AutoragInputParametersPanel.scss';
 
 /** Keys that are handled by the special "Model configuration" entry. */
@@ -248,6 +249,11 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
 
   const displayParameters = React.useMemo((): DisplayParameters => {
     const merged: DisplayParameters = { ...parameters };
+    const databaseSecretName = resolveDatabaseSecretName(parameters);
+    if (databaseSecretName) {
+      merged.db_secret_name = databaseSecretName;
+      delete merged.vector_db_secret_name;
+    }
     if (isEmptyValue(merged.detected_language)) {
       const fromPatterns = getDetectedLanguageFromPatterns(patterns);
       if (fromPatterns) {

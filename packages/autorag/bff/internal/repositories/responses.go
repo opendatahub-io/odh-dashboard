@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"regexp"
@@ -26,22 +27,82 @@ var validVectorStoreID = regexp.MustCompile(`^[A-Za-z0-9_.-]+$`)
 
 // ResponsesParams holds the per-request parameters for the responses endpoint.
 type ResponsesParams struct {
-	Namespace          string
-	VectorDbSecretName string
-	MaasSecretName     string
+	Namespace      string
+	DBSecretName   string
+	MaasSecretName string
 }
 
 // ResponsesRepository handles RAG query execution for the responses endpoint.
 type ResponsesRepository struct {
-	logger     *slog.Logger
-	k8sService kubernetes.Service
+	logger        *slog.Logger
+	k8sService    kubernetes.Service
+	urlForwarder  URLForwarder
+	newMaaSClient maas.ClientFactory
+	newVectorDB   func(context.Context, map[string][]byte) (vectordb.VectorDB, error)
 }
 
-func NewResponsesRepository(logger *slog.Logger, k8sService kubernetes.Service) *ResponsesRepository {
-	return &ResponsesRepository{
-		logger:     logger,
-		k8sService: k8sService,
+// URLForwarder rewrites a URL to a locally forwarded endpoint when applicable.
+// The concrete implementation is only supplied for local development.
+type URLForwarder interface {
+	ForwardURL(context.Context, string) (string, error)
+}
+
+func NewResponsesRepository(logger *slog.Logger, k8sService kubernetes.Service, forwarders ...URLForwarder) *ResponsesRepository {
+	return newResponsesRepository(logger, k8sService, nil, forwarders...)
+}
+
+// NewResponsesRepositoryWithMaaSClientFactory injects the configured MaaS
+// client factory used by the application for per-secret Responses requests.
+func NewResponsesRepositoryWithMaaSClientFactory(logger *slog.Logger, k8sService kubernetes.Service, newMaaSClient maas.ClientFactory, forwarders ...URLForwarder) *ResponsesRepository {
+	return newResponsesRepository(logger, k8sService, newMaaSClient, forwarders...)
+}
+
+func newResponsesRepository(logger *slog.Logger, k8sService kubernetes.Service, newMaaSClient maas.ClientFactory, forwarders ...URLForwarder) *ResponsesRepository {
+	var urlForwarder URLForwarder
+	if len(forwarders) > 0 {
+		urlForwarder = forwarders[0]
 	}
+	return &ResponsesRepository{
+		logger:        logger,
+		k8sService:    k8sService,
+		urlForwarder:  urlForwarder,
+		newMaaSClient: newMaaSClient,
+		newVectorDB:   vectordb.NewFromSecretData,
+	}
+}
+
+func classifyForwardingError(requestCtx, operationCtx context.Context, err error) error {
+	_, hasOperationDeadline := operationCtx.Deadline()
+	if errors.Is(err, context.DeadlineExceeded) && requestCtx.Err() == nil && hasOperationDeadline {
+		return fmt.Errorf("%w: %w", vectordb.ErrDatabaseTimeout, err)
+	}
+	return err
+}
+
+func (r *ResponsesRepository) forwardVectorDBEndpoint(requestCtx, operationCtx context.Context, data map[string][]byte) (map[string][]byte, error) {
+	if r.urlForwarder == nil {
+		return data, nil
+	}
+	rawURI, ok := data["MILVUS_URI"]
+	if !ok || strings.TrimSpace(string(rawURI)) == "" {
+		return data, nil
+	}
+
+	uri := strings.TrimSpace(string(rawURI))
+	forwardedURI, err := r.urlForwarder.ForwardURL(operationCtx, uri)
+	if err != nil {
+		return nil, fmt.Errorf("failed to forward Milvus endpoint: %w", classifyForwardingError(requestCtx, operationCtx, err))
+	}
+	if forwardedURI == uri {
+		return data, nil
+	}
+
+	forwardedData := make(map[string][]byte, len(data))
+	for key, value := range data {
+		forwardedData[key] = value
+	}
+	forwardedData["MILVUS_URI"] = []byte(forwardedURI)
+	return forwardedData, nil
 }
 
 // resolveMaasClient fetches MaaS credentials from K8s and returns a configured client.
@@ -55,7 +116,14 @@ func (r *ResponsesRepository) resolveMaasClient(ctx context.Context, namespace, 
 	if baseURL == "" {
 		return nil, fmt.Errorf("MaaS secret %q missing MAAS_BASE_URL", secretName)
 	}
-	client, err := maas.NewClient(baseURL, apiKey)
+	validatedURL, err := maas.ValidateBaseURL(baseURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid MaaS base URL: %w", err)
+	}
+	if r.newMaaSClient == nil {
+		return nil, errors.New("MaaS client factory is not configured")
+	}
+	client, err := r.newMaaSClient(validatedURL.String(), apiKey)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +137,38 @@ func (r *ResponsesRepository) resolveVectorDB(ctx context.Context, namespace, se
 	if err != nil {
 		return nil, fmt.Errorf("failed to get vector DB secret %q: %w", secretName, err)
 	}
-	db, err := vectordb.NewFromSecretData(ctx, secret.Data)
+
+	if _, isMilvus := secret.Data["MILVUS_URI"]; isMilvus {
+		operationCtx, cancel := context.WithTimeout(ctx, vectordb.MilvusOperationTimeout)
+		defer cancel()
+		secretData, err := r.forwardVectorDBEndpoint(ctx, operationCtx, secret.Data)
+		if err != nil {
+			return nil, err
+		}
+		newVectorDB := r.newVectorDB
+		if newVectorDB == nil {
+			newVectorDB = vectordb.NewFromSecretData
+		}
+		// The Milvus adapter owns the connection timeout. Passing the request
+		// context here avoids nesting an equal deadline and misclassifying the
+		// adapter's timeout as request cancellation.
+		db, err := newVectorDB(ctx, secretData)
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to vector DB from secret %q: %w", secretName, err)
+		}
+		return db, nil
+	}
+
+	secretData, err := r.forwardVectorDBEndpoint(ctx, ctx, secret.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	newVectorDB := r.newVectorDB
+	if newVectorDB == nil {
+		newVectorDB = vectordb.NewFromSecretData
+	}
+	db, err := newVectorDB(ctx, secretData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to vector DB from secret %q: %w", secretName, err)
 	}
@@ -281,7 +380,7 @@ func (r *ResponsesRepository) prepareRAGContext(ctx context.Context, params Resp
 		return nil, err
 	}
 
-	db, err := r.resolveVectorDB(ctx, params.Namespace, params.VectorDbSecretName)
+	db, err := r.resolveVectorDB(ctx, params.Namespace, params.DBSecretName)
 	if err != nil {
 		return nil, err
 	}
@@ -321,17 +420,28 @@ func (r *ResponsesRepository) prepareRAGContext(ctx context.Context, params Resp
 
 // ValidateResponses checks backend capabilities before a streaming response commits its SSE headers.
 // It deliberately does not resolve MaaS, connect to a vector DB, or execute a search.
+// In local development it may establish a cached port-forward for Milvus.
 func (r *ResponsesRepository) ValidateResponses(ctx context.Context, params ResponsesParams, req *models.ResponsesRequest) error {
 	_, _, _, hybrid, err := parseFileSearchTool(req)
-	if err != nil || !hybrid {
+	if err != nil {
 		return err
 	}
 
-	secret, err := r.k8sService.GetSecret(ctx, params.Namespace, params.VectorDbSecretName)
+	secret, err := r.k8sService.GetSecret(ctx, params.Namespace, params.DBSecretName)
 	if err != nil {
-		return fmt.Errorf("failed to get vector DB secret %q: %w", params.VectorDbSecretName, err)
+		return fmt.Errorf("failed to get database secret %q: %w", params.DBSecretName, err)
 	}
-	return vectordb.ValidateSearchOptions(secret.Data, hybrid)
+	validationCtx := ctx
+	if _, isMilvus := secret.Data["MILVUS_URI"]; isMilvus {
+		var cancel context.CancelFunc
+		validationCtx, cancel = context.WithTimeout(ctx, vectordb.MilvusOperationTimeout)
+		defer cancel()
+	}
+	secretData, err := r.forwardVectorDBEndpoint(ctx, validationCtx, secret.Data)
+	if err != nil {
+		return err
+	}
+	return vectordb.ValidateSearchOptions(secretData, hybrid)
 }
 
 // HandleResponses processes a non-streaming RAG request.

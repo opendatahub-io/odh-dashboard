@@ -1,14 +1,348 @@
 package repositories
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/openai/openai-go"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/maas"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/vectordb"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	v1 "k8s.io/api/core/v1"
 )
+
+func TestResponsesRepositoryResolveMaasClientUsesInjectedFactory(t *testing.T) {
+	var gotBaseURL, gotAPIKey string
+	wantClient := &maas.Client{}
+	repo := NewResponsesRepositoryWithMaaSClientFactory(nil, &mockK8sService{
+		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+			return &v1.Secret{Data: map[string][]byte{
+				"MAAS_BASE_URL": []byte("https://maas.example"),
+				"MAAS_API_KEY":  []byte("secret-key"),
+			}}, nil
+		},
+	}, func(baseURL, apiKey string) (*maas.Client, error) {
+		gotBaseURL, gotAPIKey = baseURL, apiKey
+		return wantClient, nil
+	})
+
+	got, err := repo.resolveMaasClient(context.Background(), "test-ns", "maas")
+
+	require.NoError(t, err)
+	assert.Same(t, wantClient, got)
+	assert.Equal(t, "https://maas.example", gotBaseURL)
+	assert.Equal(t, "secret-key", gotAPIKey)
+}
+
+func TestResponsesRepositoryResolveMaasClientRequiresInjectedFactory(t *testing.T) {
+	repo := NewResponsesRepository(nil, &mockK8sService{
+		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+			return &v1.Secret{Data: map[string][]byte{
+				"MAAS_BASE_URL": []byte("https://maas.example"),
+			}}, nil
+		},
+	})
+
+	_, err := repo.resolveMaasClient(context.Background(), "test-ns", "maas")
+
+	require.EqualError(t, err, "MaaS client factory is not configured")
+}
+
+func TestResponsesRepositoryResolveMaasClientRejectsUnsafeURLsBeforeFactory(t *testing.T) {
+	tests := []struct {
+		name    string
+		baseURL string
+	}{
+		{name: "localhost", baseURL: "https://localhost"},
+		{name: "private IP", baseURL: "https://10.0.0.1"},
+		{name: "userinfo", baseURL: "https://user:secret@maas.example?token=secret#fragment"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			factoryCalled := false
+			repo := NewResponsesRepositoryWithMaaSClientFactory(nil, &mockK8sService{
+				getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+					return &v1.Secret{Data: map[string][]byte{
+						"MAAS_BASE_URL": []byte(tt.baseURL),
+						"MAAS_API_KEY":  []byte("secret-key"),
+					}}, nil
+				},
+			}, func(string, string) (*maas.Client, error) {
+				factoryCalled = true
+				return &maas.Client{}, nil
+			})
+
+			_, err := repo.resolveMaasClient(context.Background(), "test-ns", "maas")
+
+			require.Error(t, err)
+			assert.False(t, factoryCalled)
+			assert.NotContains(t, err.Error(), "secret")
+			assert.NotContains(t, err.Error(), "token")
+		})
+	}
+}
+
+func TestResponsesRepositoryResolveVectorDBRejectsUnsupportedSecret(t *testing.T) {
+	repo := NewResponsesRepository(nil, &mockK8sService{
+		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+			return &v1.Secret{Data: map[string][]byte{"NEO4J_URI": []byte("neo4j://example:7687")}}, nil
+		},
+	})
+
+	_, err := repo.resolveVectorDB(context.Background(), "test-ns", "neo4j")
+
+	require.Error(t, err)
+	assert.ErrorIs(t, err, vectordb.ErrUnsupportedVectorDB)
+}
+
+type mockURLForwarder struct {
+	forwardURL func(context.Context, string) (string, error)
+}
+
+func (m *mockURLForwarder) ForwardURL(ctx context.Context, rawURL string) (string, error) {
+	return m.forwardURL(ctx, rawURL)
+}
+
+type mockVectorDB struct{}
+
+func (m *mockVectorDB) Search(context.Context, string, []float32, string, int, float32, bool) ([]vectordb.SearchResult, error) {
+	return nil, nil
+}
+
+func (m *mockVectorDB) Close() error { return nil }
+
+func TestResponsesRepositoryResolveVectorDBForwardsMilvusURIWithoutMutatingSecret(t *testing.T) {
+	originalURI := "http://milvus.milvus.svc.cluster.local:19530?token=secret"
+	secretData := map[string][]byte{
+		"MILVUS_URI":   []byte(originalURI),
+		"MILVUS_TOKEN": []byte("user:password"),
+	}
+	var constructedData map[string][]byte
+	repo := NewResponsesRepository(nil, &mockK8sService{
+		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+			return &v1.Secret{Data: secretData}, nil
+		},
+	}, &mockURLForwarder{
+		forwardURL: func(_ context.Context, rawURL string) (string, error) {
+			assert.Equal(t, originalURI, rawURL)
+			return "http://localhost:4321", nil
+		},
+	})
+	repo.newVectorDB = func(_ context.Context, data map[string][]byte) (vectordb.VectorDB, error) {
+		constructedData = data
+		return &mockVectorDB{}, nil
+	}
+
+	db, err := repo.resolveVectorDB(context.Background(), "run-ns", "database")
+
+	require.NoError(t, err)
+	require.NotNil(t, db)
+	assert.Equal(t, "http://localhost:4321", string(constructedData["MILVUS_URI"]))
+	assert.Equal(t, originalURI, string(secretData["MILVUS_URI"]))
+}
+
+func TestResponsesRepositoryResolveVectorDBWithoutForwarderPreservesURI(t *testing.T) {
+	originalURI := "http://milvus.milvus.svc.cluster.local:19530"
+	secretData := map[string][]byte{"MILVUS_URI": []byte(originalURI)}
+	var constructedData map[string][]byte
+	repo := NewResponsesRepository(nil, &mockK8sService{
+		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+			return &v1.Secret{Data: secretData}, nil
+		},
+	})
+	repo.newVectorDB = func(_ context.Context, data map[string][]byte) (vectordb.VectorDB, error) {
+		constructedData = data
+		return &mockVectorDB{}, nil
+	}
+
+	_, err := repo.resolveVectorDB(context.Background(), "run-ns", "database")
+
+	require.NoError(t, err)
+	assert.Equal(t, originalURI, string(constructedData["MILVUS_URI"]))
+	assert.Equal(t, originalURI, string(secretData["MILVUS_URI"]))
+}
+
+func TestResponsesRepositoryResolveVectorDBPassesRequestContextToMilvusFactory(t *testing.T) {
+	secretData := map[string][]byte{"MILVUS_URI": []byte("http://milvus.milvus.svc.cluster.local:19530")}
+	var factoryContext context.Context
+	repo := NewResponsesRepository(nil, &mockK8sService{
+		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+			return &v1.Secret{Data: secretData}, nil
+		},
+	})
+	repo.newVectorDB = func(ctx context.Context, _ map[string][]byte) (vectordb.VectorDB, error) {
+		factoryContext = ctx
+		return &mockVectorDB{}, nil
+	}
+
+	requestCtx := context.Background()
+	_, err := repo.resolveVectorDB(requestCtx, "run-ns", "database")
+
+	require.NoError(t, err)
+	require.NotNil(t, factoryContext)
+	_, hasDeadline := factoryContext.Deadline()
+	assert.False(t, hasDeadline, "the Milvus adapter must own the connection deadline")
+}
+
+func TestResponsesRepositoryResolveVectorDBReturnsForwardingErrorSafely(t *testing.T) {
+	secretData := map[string][]byte{"MILVUS_URI": []byte("http://milvus.milvus.svc.cluster.local:19530?token=secret")}
+	forwardErr := errors.New("no ready pods")
+	repo := NewResponsesRepository(nil, &mockK8sService{
+		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+			return &v1.Secret{Data: secretData}, nil
+		},
+	}, &mockURLForwarder{
+		forwardURL: func(context.Context, string) (string, error) { return "", forwardErr },
+	})
+
+	_, err := repo.resolveVectorDB(context.Background(), "run-ns", "database")
+
+	require.ErrorIs(t, err, forwardErr)
+	assert.Contains(t, err.Error(), "failed to forward Milvus endpoint")
+	assert.NotContains(t, err.Error(), "token=secret")
+}
+
+func TestClassifyForwardingErrorMarksInternalDeadlineAsDatabaseTimeout(t *testing.T) {
+	requestCtx := context.Background()
+	operationCtx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+	defer cancel()
+
+	err := classifyForwardingError(requestCtx, operationCtx, fmt.Errorf("port-forward startup: %w", context.DeadlineExceeded))
+
+	require.ErrorIs(t, err, vectordb.ErrDatabaseTimeout)
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.NotContains(t, err.Error(), "https://user:password@milvus.example:19530")
+}
+
+func TestClassifyForwardingErrorPreservesRequestCancellation(t *testing.T) {
+	requestCtx, requestCancel := context.WithCancel(context.Background())
+	requestCancel()
+	operationCtx, operationCancel := context.WithCancel(requestCtx)
+	operationCancel()
+
+	err := classifyForwardingError(requestCtx, operationCtx, fmt.Errorf("port-forward startup: %w", context.DeadlineExceeded))
+
+	assert.NotErrorIs(t, err, vectordb.ErrDatabaseTimeout)
+}
+
+func TestResponsesRepositoryResolveVectorDBClassifiesForwardingDeadline(t *testing.T) {
+	repo := NewResponsesRepository(nil, &mockK8sService{
+		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+			return &v1.Secret{Data: map[string][]byte{
+				"MILVUS_URI":   []byte("http://milvus.milvus.svc.cluster.local:19530?token=secret"),
+				"MILVUS_TOKEN": []byte("user:password"),
+			}}, nil
+		},
+	}, &mockURLForwarder{
+		forwardURL: func(context.Context, string) (string, error) {
+			return "", fmt.Errorf("port-forward startup: %w", context.DeadlineExceeded)
+		},
+	})
+
+	_, err := repo.resolveVectorDB(context.Background(), "run-ns", "database")
+
+	require.ErrorIs(t, err, vectordb.ErrDatabaseTimeout)
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.NotContains(t, err.Error(), "password")
+}
+
+func TestResponsesRepositoryValidateResponsesClassifiesForwardingDeadline(t *testing.T) {
+	repo := NewResponsesRepository(nil, &mockK8sService{
+		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+			return &v1.Secret{Data: map[string][]byte{
+				"MILVUS_URI": []byte("http://milvus.milvus.svc.cluster.local:19530?token=secret"),
+			}}, nil
+		},
+	}, &mockURLForwarder{
+		forwardURL: func(context.Context, string) (string, error) {
+			return "", fmt.Errorf("port-forward startup: %w", context.DeadlineExceeded)
+		},
+	})
+
+	err := repo.ValidateResponses(context.Background(), ResponsesParams{
+		Namespace: "run-ns", DBSecretName: "database",
+	}, fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"collection"},
+	}))
+
+	require.ErrorIs(t, err, vectordb.ErrDatabaseTimeout)
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.NotContains(t, err.Error(), "secret")
+}
+
+func TestResponsesRepositoryValidateResponsesChecksDatabaseProviderForAllSearchModes(t *testing.T) {
+	request := fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"collection"},
+	})
+
+	tests := []struct {
+		name       string
+		secretData map[string][]byte
+		wantErr    error
+	}{
+		{
+			name:       "unsupported provider",
+			secretData: map[string][]byte{"NEO4J_URI": []byte("neo4j://example:7687")},
+			wantErr:    vectordb.ErrUnsupportedVectorDB,
+		},
+		{
+			name:       "supported provider",
+			secretData: map[string][]byte{"PGVECTOR_HOST": []byte("db.example.com")},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := NewResponsesRepository(nil, &mockK8sService{
+				getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+					return &v1.Secret{Data: tt.secretData}, nil
+				},
+			})
+
+			err := repo.ValidateResponses(context.Background(), ResponsesParams{
+				Namespace: "test-ns", DBSecretName: "database",
+			}, request)
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestResponsesRepositoryValidateResponsesBoundsMilvusForwarding(t *testing.T) {
+	request := fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"collection"},
+	})
+	var observedDeadline time.Time
+	repo := NewResponsesRepository(nil, &mockK8sService{
+		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+			return &v1.Secret{Data: map[string][]byte{"MILVUS_URI": []byte("http://milvus.milvus.svc.cluster.local:19530")}}, nil
+		},
+	}, &mockURLForwarder{
+		forwardURL: func(ctx context.Context, rawURL string) (string, error) {
+			var ok bool
+			observedDeadline, ok = ctx.Deadline()
+			assert.True(t, ok)
+			return rawURL, nil
+		},
+	})
+
+	require.NoError(t, repo.ValidateResponses(context.Background(), ResponsesParams{
+		Namespace: "test-ns", DBSecretName: "database",
+	}, request))
+	assert.LessOrEqual(t, time.Until(observedDeadline), vectordb.MilvusOperationTimeout)
+}
 
 // msgRole returns the role of a chat message param union, or "" if unset.
 // Role constants marshal lazily (their in-memory zero value is ""), so this
@@ -127,6 +461,17 @@ func TestExtractHistoryAndQuestion(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestExtractHistoryAndQuestion_NormalizedStringInput(t *testing.T) {
+	var req models.ResponsesRequest
+	require.NoError(t, json.Unmarshal([]byte(`{"input":"what is RAG?"}`), &req))
+
+	systemPrompt, history, question := extractHistoryAndQuestion(req.Input)
+
+	assert.Empty(t, systemPrompt)
+	assert.Empty(t, history)
+	assert.Equal(t, "what is RAG?", question)
 }
 
 // ---------- buildMessages ----------

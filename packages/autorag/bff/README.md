@@ -116,7 +116,7 @@ GET  /api/v1/maas/models             (requires namespace and secretName paramete
 GET  /api/v1/pipeline-runs          (requires namespace parameter)
 GET  /api/v1/pipeline-runs/:runId   (requires namespace parameter)
 POST /api/v1/pipeline-runs          (requires namespace parameter)
-POST /api/v1/responses              (requires namespace, vectorDbSecretName, maasSecretName query params)
+POST /api/v1/responses              (requires namespace, dbSecretName, maasSecretName query params)
 ```
 
 ### Authentication modes
@@ -154,7 +154,7 @@ Executes a RAG query and streams the answer back as [OpenAI Responses API](https
 | Parameter | Description |
 |---|---|
 | `namespace` | Kubernetes namespace where the secrets live |
-| `vectorDbSecretName` | Name of the K8s secret with vector DB credentials (auto-detected: Milvus or pgvector) |
+| `dbSecretName` | Name of the K8s secret with database credentials (auto-detected: Milvus or pgvector) |
 | `maasSecretName` | Name of the K8s secret with MaaS credentials (`MAAS_BASE_URL`, `MAAS_API_KEY`) |
 
 **Request body** — OpenAI Responses API format. The `ranking_options` shown below requests hybrid RRF, which is supported by the pgvector adapter only:
@@ -204,21 +204,26 @@ data: {"type":"response.output_text.delta",   "sequence_number":2, "response":{}
 ... (one event per token)
 data: {"type":"response.content_part.done",   "sequence_number":N, "response":{...}, "output_index":1, ...}
 data: {"type":"response.completed",     "sequence_number":N+1, "response":{...}}
-data: {"type":"response.metrics",       "sequence_number":N+2, "response":{...}}
+data: {"type":"response.metrics",       "sequence_number":N+2, "metrics":{"latency_ms":100,"time_to_first_token_ms":20,"usage":{"input_tokens":10,"output_tokens":5,"total_tokens":15}}}
 data: [DONE]
 ```
 
-The `response.completed` event includes a `file_search_call` output item with the retrieved source chunks and a `message` output item with the full answer text. Each source result contains `text`, `score`, and `file_id` when the adapter returned an ID:
+The `response.completed` event includes a `file_search_call` output item with the retrieved source chunks and a `message` output item with the full answer text. The `response.metrics` event contains top-level `metrics` fields; it does not contain a `response` field. Each source result contains `text`, `score`, and `file_id` when the adapter returned an ID. On an unrelated streaming failure, the completion events are replaced by an `error` event with the safe message `The response could not be completed.`, followed by `data: [DONE]`. Milvus connection failures and operation timeouts use the same event shape with safe `code` values `vector_database_unavailable` or `vector_database_timeout` and corresponding safe messages. Non-streaming Milvus failures return HTTP 503 with the same safe error classification. No endpoint, credential, or raw network details are exposed:
 
 ```json
 {"type":"file_search_call","results":[{"text":"retrieved chunk","score":0.9,"file_id":"document-1"}]}
+```
+
+```text
+data: {"type":"error","sequence_number":N,"code":"vector_database_timeout","message":"The vector database request timed out."}
+data: [DONE]
 ```
 
 **Sample call (streaming):**
 
 ```shell
 curl -N -X POST \
-  "http://localhost:4000/api/v1/responses?namespace=my-namespace&vectorDbSecretName=milvus-secret&maasSecretName=maas-secret" \
+  "http://localhost:4000/api/v1/responses?namespace=my-namespace&dbSecretName=milvus-secret&maasSecretName=maas-secret" \
   -H "Authorization: Bearer $(oc whoami -t)" \
   -H "Content-Type: application/json" \
   -d '{

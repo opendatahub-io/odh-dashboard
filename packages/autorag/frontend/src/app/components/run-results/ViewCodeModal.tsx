@@ -5,6 +5,9 @@ import {
   CodeBlockCode,
   Content,
   ContentVariants,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
   Modal,
   ModalBody,
   ModalHeader,
@@ -12,12 +15,14 @@ import {
   Tabs,
   TabTitleText,
 } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { useParams } from 'react-router';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { fireAutoragCodeSnippetsExported } from '~/app/utilities/tracking';
 import { formatPatternName } from '~/app/utilities/utils';
+import { resolveDatabaseSecretName, resolveMaaSSecretName } from '~/app/utilities/responses';
 import {
   generateCurlSnippet,
   generateGoSnippet,
@@ -68,19 +73,17 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
 }) => {
   const { namespace } = useParams();
   const { parameters } = useAutoragResultsContext();
-  const vectorDbSecretName =
-    typeof parameters?.vector_db_secret_name === 'string' ? parameters.vector_db_secret_name : '';
-  const maasSecretName =
-    typeof parameters?.maas_secret_name === 'string' ? parameters.maas_secret_name : '';
+  const dbSecretName = resolveDatabaseSecretName(parameters);
+  const maasSecretName = resolveMaaSSecretName(parameters) ?? '';
 
   const snippetParams: SnippetParams = React.useMemo(
     () => ({
       template: responsesTemplate,
       namespace: namespace ?? '',
-      vectorDbSecretName,
+      dbSecretName: dbSecretName ?? '',
       maasSecretName,
     }),
-    [responsesTemplate, namespace, vectorDbSecretName, maasSecretName],
+    [responsesTemplate, namespace, dbSecretName, maasSecretName],
   );
 
   const [activeCodeTab, setActiveCodeTab] = React.useState(0);
@@ -108,40 +111,56 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
     >
       <ModalHeader title={`${formatPatternName(patternName)} — Response payload`} />
       <ModalBody className="autorag-view-code-modal__body">
-        <Content component={ContentVariants.p} className="pf-v6-u-mb-md">
-          Use these code snippets to query this pattern programmatically through the AutoRAG BFF.
-          Set <code>DASHBOARD_URL</code> to the dashboard origin and <code>DASHBOARD_TOKEN</code> to
-          a dashboard-authenticated token before running a snippet.
-        </Content>
-        <div className="autorag-view-code-modal__tabs-container">
-          <Tabs
-            activeKey={activeCodeTab}
-            onSelect={(_e, key) => setActiveCodeTab(Number(key))}
-            data-testid="view-code-tabs"
-          >
-            {snippetTabs.map((tab, index) => (
-              <Tab key={tab.id} eventKey={index} title={<TabTitleText>{tab.label}</TabTitleText>}>
-                <CodeBlock
-                  className="pf-v6-u-mt-md autorag-view-code-modal__code-block"
-                  actions={
-                    <CodeBlockAction>
-                      <ClipboardCopyButton
-                        id={tab.id}
-                        aria-label={tab.ariaLabel}
-                        onClick={() => handleCopy(tab.generator(snippetParams), index)}
-                        variant="plain"
-                      >
-                        {copiedTab === index ? 'Copied' : 'Copy'}
-                      </ClipboardCopyButton>
-                    </CodeBlockAction>
-                  }
-                >
-                  <CodeBlockCode>{tab.generator(snippetParams)}</CodeBlockCode>
-                </CodeBlock>
-              </Tab>
-            ))}
-          </Tabs>
-        </div>
+        {!maasSecretName ? (
+          <EmptyState variant={EmptyStateVariant.sm} status="warning" icon={ExclamationCircleIcon}>
+            <EmptyStateBody>
+              A MaaS connection is required to generate code snippets. Configure the run with a MaaS
+              secret and try again.
+            </EmptyStateBody>
+          </EmptyState>
+        ) : (
+          <>
+            <Content component={ContentVariants.p} className="pf-v6-u-mb-md">
+              Use these code snippets to query this pattern programmatically through the AutoRAG
+              BFF. Set <code>DASHBOARD_URL</code> to the dashboard origin and{' '}
+              <code>DASHBOARD_TOKEN</code> to a dashboard-authenticated token before running a
+              snippet.
+            </Content>
+            <div className="autorag-view-code-modal__tabs-container">
+              <Tabs
+                activeKey={activeCodeTab}
+                onSelect={(_e, key) => setActiveCodeTab(Number(key))}
+                data-testid="view-code-tabs"
+              >
+                {snippetTabs.map((tab, index) => (
+                  <Tab
+                    key={tab.id}
+                    eventKey={index}
+                    title={<TabTitleText>{tab.label}</TabTitleText>}
+                  >
+                    <CodeBlock
+                      className="pf-v6-u-mt-md autorag-view-code-modal__code-block"
+                      actions={
+                        <CodeBlockAction>
+                          <ClipboardCopyButton
+                            id={tab.id}
+                            aria-label={tab.ariaLabel}
+                            onClick={() => handleCopy(tab.generator(snippetParams), index)}
+                            variant="plain"
+                          >
+                            {copiedTab === index ? 'Copied' : 'Copy'}
+                          </ClipboardCopyButton>
+                        </CodeBlockAction>
+                      }
+                    >
+                      <CodeBlockCode>{tab.generator(snippetParams)}</CodeBlockCode>
+                    </CodeBlock>
+                  </Tab>
+                ))}
+              </Tabs>
+            </div>
+          </>
+        )}
       </ModalBody>
     </Modal>
   );
