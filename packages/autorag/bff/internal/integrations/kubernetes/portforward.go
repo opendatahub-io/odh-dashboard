@@ -40,7 +40,7 @@ var RequestNamespaceKey requestNamespaceContextKey
 // deployments do not set DevMode, so portForwardManager remains nil and all
 // ForwardURL call sites (guarded by nil checks) are no-ops.
 //
-// Port-forwards are cached by namespace/service/port and reused across requests.
+// Port-forwards are cached by the URL's namespace/service/port and reused across requests.
 // If a forward dies (pod restart, network blip), the next call to ForwardURL
 // detects the failure and re-establishes the forward transparently.
 type PortForwardManager struct {
@@ -175,7 +175,7 @@ func NewPortForwardManager(restConfig *rest.Config, clientset kubernetes.Interfa
 // If the URL is not a *.svc.cluster.local address, it is returned unchanged.
 // On the first call for a given service, a port-forward is established.
 // Subsequent calls return the cached local port.
-func (m *PortForwardManager) ForwardURL(ctx context.Context, requestNamespace, rawURL string) (string, error) {
+func (m *PortForwardManager) ForwardURL(ctx context.Context, _ string, rawURL string) (string, error) {
 	parsed, err := url.Parse(rawURL)
 	if err != nil {
 		return rawURL, nil
@@ -204,9 +204,6 @@ func (m *PortForwardManager) ForwardURL(ctx context.Context, requestNamespace, r
 	}
 	serviceName := labels[0]
 	namespace := labels[1]
-	if requestNamespace == "" || namespace != requestNamespace {
-		return "", fmt.Errorf("service URL namespace does not match request namespace")
-	}
 
 	portStr := parsed.Port()
 	if portStr == "" {
