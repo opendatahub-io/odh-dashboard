@@ -227,11 +227,13 @@ type DashboardStatus struct {
 
 	// MaaSPortalURL is the externally-reachable MaaS Portal URL (last known good).
 	// It is cleared when the portal operand is removed.
+	// +kubebuilder:validation:MaxLength=2048
 	// +optional
 	MaaSPortalURL string `json:"maasPortalUrl,omitempty"`
 
 	// MaaSConsumerPortalURL is the pre-DSC-v3 spelling retained for status
 	// compatibility. New consumers should use MaaSPortalURL.
+	// +kubebuilder:validation:MaxLength=2048
 	// +optional
 	// Deprecated: use MaaSPortalURL.
 	MaaSConsumerPortalURL string `json:"maasConsumerPortalUrl,omitempty"`

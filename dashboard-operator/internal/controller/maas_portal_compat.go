@@ -16,3 +16,11 @@ func setMaaSPortalURL(status *v1alpha1.DashboardStatus, url string) {
 	// Keep the legacy status field synchronized during the compatibility period.
 	status.MaaSConsumerPortalURL = url
 }
+
+// backfillMaaSPortalURL preserves a legacy last-known-good URL while the
+// controller is still reconciling the portal or waiting for it to become ready.
+func backfillMaaSPortalURL(status *v1alpha1.DashboardStatus) {
+	if status.MaaSPortalURL == "" && status.MaaSConsumerPortalURL != "" {
+		status.MaaSPortalURL = status.MaaSConsumerPortalURL
+	}
+}

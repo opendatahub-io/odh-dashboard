@@ -65,6 +65,7 @@ func (r *DashboardReconciler) reconcileMaaSConsumerPortal(ctx context.Context, d
 	if portal == nil || portal.ManagementState != "Managed" {
 		return r.reconcileRemovedMaaSConsumerPortal(ctx, dashboard, cm)
 	}
+	backfillMaaSPortalURL(&dashboard.Status)
 	if !maasConsumerPortalSupportedPlatform(r.Platform) {
 		return r.reconcileUnsupportedMaaSConsumerPortal(ctx, dashboard, cm)
 	}

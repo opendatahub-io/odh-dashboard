@@ -26,3 +26,29 @@ func TestSetMaaSPortalURLKeepsLegacyStatusSynchronized(t *testing.T) {
 	require.Equal(t, "https://portal.example.com/", status.MaaSPortalURL)
 	require.Equal(t, status.MaaSPortalURL, status.MaaSConsumerPortalURL)
 }
+
+func TestBackfillMaaSPortalURLFromLegacyStatus(t *testing.T) {
+	tests := []struct {
+		name         string
+		canonicalURL string
+		legacyURL    string
+		expectedURL  string
+	}{
+		{name: "legacy URL is backfilled", legacyURL: "https://legacy.example.com/", expectedURL: "https://legacy.example.com/"},
+		{name: "canonical URL wins", canonicalURL: "https://portal.example.com/", legacyURL: "https://legacy.example.com/", expectedURL: "https://portal.example.com/"},
+		{name: "no URL remains empty", expectedURL: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			status := &v1alpha1.DashboardStatus{
+				MaaSPortalURL:         tt.canonicalURL,
+				MaaSConsumerPortalURL: tt.legacyURL,
+			}
+
+			backfillMaaSPortalURL(status)
+
+			require.Equal(t, tt.expectedURL, status.MaaSPortalURL)
+		})
+	}
+}

@@ -158,6 +158,7 @@ func TestReconcileMaaSConsumerPortal_MissingGatewayDomainRetries(t *testing.T) {
 	require.NotNil(t, condition)
 	assert.Equal(t, "MaaSConsumerPortalDomainRequired", condition.Reason)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSConsumerPortalURL)
+	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
 }
 
 func maasConsumerPortalScheme(t *testing.T) *runtime.Scheme {
@@ -193,6 +194,7 @@ func TestReconcileMaaSConsumerPortal_DeployFailurePreservesURL(t *testing.T) {
 	assert.Equal(t, "MaaSConsumerPortalDeployFailed", condition.Reason)
 	assert.Equal(t, maasConsumerPortalRetryInterval, retryAfter)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSConsumerPortalURL)
+	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
 }
 
 func TestReconcileMaaSConsumerPortal_PreservesEarlierFailure(t *testing.T) {
