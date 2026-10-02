@@ -675,12 +675,20 @@ const CreateConnectionWizardFooter: React.FC<CreateConnectionWizardFooterProps> 
   const { activeStep, steps, goToNextStep, goToPrevStep, close } = useWizardContext();
   const isFirstStep = activeStep.index === 1;
   const isLastStep = activeStep.index === steps.length;
-  const isNextDisabled =
-    activeStep.index === 1
-      ? !hasConnectionType || !hasConnectionTypesReady
-      : activeStep.index === 2
-        ? !hasValidDetails
-        : !hasValidConfiguration;
+  const isNextDisabled = (() => {
+    switch (activeStep.index) {
+      case 1:
+        return !hasConnectionType || !hasConnectionTypesReady;
+      case 2:
+        return !hasValidDetails;
+      case 3:
+        return !hasValidConfiguration;
+      case 4:
+        return true;
+      default:
+        return true;
+    }
+  })();
 
   return (
     <WizardFooterWrapper>
@@ -846,7 +854,6 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
         properties: { ...current.credentials.properties, [name]: value },
       },
     }));
-    setConnectionTypeWarning(undefined);
   };
   const updateProperties = (rows: PropertyRow[]) => {
     setPropertyRows(rows);

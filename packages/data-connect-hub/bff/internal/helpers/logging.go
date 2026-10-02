@@ -83,7 +83,7 @@ type RequestLogValuer struct {
 }
 
 func shouldRedactRequestBody(r *http.Request) bool {
-	if r == nil || r.URL == nil {
+	if r == nil || r.URL == nil || r.Method != http.MethodPost {
 		return false
 	}
 	path := strings.ToLower(strings.TrimRight(r.URL.Path, "/"))

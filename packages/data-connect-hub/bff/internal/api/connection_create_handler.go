@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/data-connect-hub/bff/internal/constants"
@@ -109,9 +110,24 @@ func (app *App) CreateConnectionHandler(w http.ResponseWriter, r *http.Request, 
 }
 
 func validateCreateConnectionRequest(request CreateConnectionRequest) error {
-	if request.Name == "" || request.DataConnectionTypeID == "" || request.Credentials.Secret == "" ||
-		request.Credentials.Properties == nil || request.Properties == nil {
-		return fmt.Errorf("name, data_connection_type_id, credentials, and properties are required")
+	missing := make([]string, 0, 5)
+	if request.Name == "" {
+		missing = append(missing, "name")
+	}
+	if request.DataConnectionTypeID == "" {
+		missing = append(missing, "data_connection_type_id")
+	}
+	if request.Credentials.Secret == "" {
+		missing = append(missing, "credentials.secret")
+	}
+	if request.Credentials.Properties == nil {
+		missing = append(missing, "credentials.properties")
+	}
+	if request.Properties == nil {
+		missing = append(missing, "properties")
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("missing required fields: %s", strings.Join(missing, ", "))
 	}
 	if request.Format != "tabular" && request.Format != "binary" {
 		return fmt.Errorf("format must be either tabular or binary")
