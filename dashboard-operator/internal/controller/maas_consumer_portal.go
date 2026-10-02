@@ -61,7 +61,9 @@ func maasConsumerPortalURL(domain string) (string, bool) {
 // are deliberately labeled separately from the dashboard so core teardown cannot prune
 // a portal that remains desired.
 func (r *DashboardReconciler) reconcileMaaSConsumerPortal(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager, statuses map[string]v1alpha1.ModuleStatus) time.Duration {
-	if dashboard.Spec.MaaSConsumerPortal == nil || dashboard.Spec.MaaSConsumerPortal.ManagementState != "Managed" {
+	portal := effectiveMaaSPortal(dashboard.Spec)
+	backfillMaaSPortalURL(&dashboard.Status)
+	if portal == nil || portal.ManagementState != "Managed" {
 		return r.reconcileRemovedMaaSConsumerPortal(ctx, dashboard, cm)
 	}
 	if !maasConsumerPortalSupportedPlatform(r.Platform) {
@@ -90,12 +92,13 @@ func (r *DashboardReconciler) reconcileMaaSConsumerPortal(ctx context.Context, d
 	// This preserves the previous endpoint while an update is still unavailable.
 	retryAfter := r.reconcileMaaSConsumerPortalAvailability(ctx, dashboard, cm, statuses)
 	if retryAfter == 0 {
-		dashboard.Status.MaaSConsumerPortalURL = url
+		setMaaSPortalURL(&dashboard.Status, url)
 	}
 	return retryAfter
 }
 
 func (r *DashboardReconciler) reconcileRemovedMaaSConsumerPortal(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager) time.Duration {
+	backfillMaaSPortalURL(&dashboard.Status)
 	if err := r.deleteMaaSConsumerPortalResources(ctx); err != nil {
 		cm.MarkFalse(conditionMaaSConsumerPortalAvailable,
 			conditions.WithReason("MaaSConsumerPortalCleanupFailed"),
@@ -103,12 +106,13 @@ func (r *DashboardReconciler) reconcileRemovedMaaSConsumerPortal(ctx context.Con
 			conditions.WithSeverity(common.ConditionSeverityInfo))
 		return maasConsumerPortalRetryInterval
 	}
-	dashboard.Status.MaaSConsumerPortalURL = ""
+	setMaaSPortalURL(&dashboard.Status, "")
 	cm.MarkFalse(conditionMaaSConsumerPortalAvailable, conditions.WithReason("Disabled"), conditions.WithMessage("MaaS Consumer Portal is not enabled"), conditions.WithSeverity(common.ConditionSeverityInfo))
 	return 0
 }
 
 func (r *DashboardReconciler) reconcileUnsupportedMaaSConsumerPortal(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager) time.Duration {
+	backfillMaaSPortalURL(&dashboard.Status)
 	if err := r.deleteMaaSConsumerPortalResources(ctx); err != nil {
 		cm.MarkFalse(conditionMaaSConsumerPortalAvailable,
 			conditions.WithReason("MaaSConsumerPortalCleanupFailed"),
@@ -116,7 +120,7 @@ func (r *DashboardReconciler) reconcileUnsupportedMaaSConsumerPortal(ctx context
 			conditions.WithSeverity(common.ConditionSeverityInfo))
 		return maasConsumerPortalRetryInterval
 	}
-	dashboard.Status.MaaSConsumerPortalURL = ""
+	setMaaSPortalURL(&dashboard.Status, "")
 	cm.MarkFalse(conditionMaaSConsumerPortalAvailable,
 		conditions.WithReason("UnsupportedPlatform"),
 		conditions.WithMessage("%s", ErrMaaSConsumerPortalUnsupportedPlatform),
@@ -328,7 +332,8 @@ func (r *DashboardReconciler) setMaaSConsumerPortalModuleCondition(
 	dashboard *v1alpha1.Dashboard,
 	statuses map[string]v1alpha1.ModuleStatus,
 ) {
-	if dashboard.Spec.MaaSConsumerPortal == nil || dashboard.Spec.MaaSConsumerPortal.ManagementState != "Managed" {
+	portal := effectiveMaaSPortal(dashboard.Spec)
+	if portal == nil || portal.ManagementState != "Managed" {
 		return
 	}
 	if maasConsumerPortalUnavailable(cm) {
