@@ -126,7 +126,7 @@ func validateInstalledDashboard(dashboard *dashboardv1alpha1.Dashboard) error {
 }
 
 func discoverPlatform(ctx context.Context, c client.Client, namespace, explicit string) (string, error) {
-	if explicit != "" {
+	if strings.TrimSpace(explicit) != "" {
 		return resolvePlatform(explicit, false, false)
 	}
 	hasODHService, err := serviceExists(ctx, c, namespace, "odh-dashboard")

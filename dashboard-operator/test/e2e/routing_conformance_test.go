@@ -70,6 +70,7 @@ func TestE2E_GatewaySubPathRoutingConformance(t *testing.T) {
 }
 
 func TestE2E_MaaSConsumerPortalRoutingConformance(t *testing.T) {
+	requireManagedFixture(t)
 	if requiredPlatform(t) != platformRHOAI {
 		t.Skip("MaaS Consumer Portal is supported only on RHOAI")
 	}

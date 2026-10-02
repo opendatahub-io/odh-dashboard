@@ -106,6 +106,7 @@ func TestDiscoverPlatform(t *testing.T) {
 		wantErr  string
 	}{
 		{name: "explicit", explicit: "RHOAI", want: platformRHOAI},
+		{name: "whitespace explicit uses discovery", explicit: "  ", services: []string{"odh-dashboard"}, want: platformODH},
 		{name: "ODH service", services: []string{"odh-dashboard"}, want: platformODH},
 		{name: "RHOAI service", services: []string{"rhods-dashboard"}, want: platformRHOAI},
 		{name: "both services", services: []string{"odh-dashboard", "rhods-dashboard"}, wantErr: "both"},

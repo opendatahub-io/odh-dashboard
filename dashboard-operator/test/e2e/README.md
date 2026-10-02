@@ -224,9 +224,9 @@ smoke profile against an installed Dashboard by mounting a kubeconfig:
 
 ```bash
 mkdir -p results
-# This disposable local output directory must be writable by container UID 65532.
-chmod 0777 results
+chmod 0770 results
 docker run --rm \
+  --user "$(id -u):$(id -g)" \
   -v "$KUBECONFIG:/kubeconfig:ro" -e KUBECONFIG=/kubeconfig \
   -e E2E_TEST_APPLICATIONS_NAMESPACE=redhat-ods-applications \
   -v "$PWD/results:/e2e/results" \
