@@ -964,6 +964,9 @@ describe('ChatbotMessageInput', () => {
           'blob:pending-audio',
         );
         expect(within(tile).getByLabelText(`Play ${fileName}`)).toHaveAttribute('controls');
+        expect(within(tile).getByTestId('pending-audio-player')).toHaveStyle({
+          minHeight: 'var(--pf-t--global--spacer--2xl)',
+        });
 
         rerender(
           <ChatbotMessageInput

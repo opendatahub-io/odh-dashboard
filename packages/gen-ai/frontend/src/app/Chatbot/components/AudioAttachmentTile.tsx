@@ -70,6 +70,7 @@ const AudioAttachmentTile: React.FunctionComponent<AudioAttachmentTileProps> = (
           preload: 'metadata',
           src,
           'aria-label': `Play ${fileName}`,
+          style: { minHeight: 'var(--pf-t--global--spacer--2xl)' },
           'data-testid': playerTestId,
         })}
       </CardBody>
