@@ -702,7 +702,7 @@ describe('API Keys Page', () => {
     cy.wait('@getSubscriptions');
 
     createApiKeyModal.selectExpirationMode('after');
-    createApiKeyModal.findExpirationDateInput().should('not.exist');
+    createApiKeyModal.findExpirationDatePicker().should('not.exist');
     createApiKeyModal.findAfterDaysInput().should('have.value', '1');
     createApiKeyModal.findExpirationHelper().should('contain.text', 'Enter a value between 1 and');
     createApiKeyModal.setAfterDays(45);
@@ -731,7 +731,7 @@ describe('API Keys Page', () => {
     cy.wait('@getSubscriptions');
 
     createApiKeyModal.selectExpirationMode('max');
-    createApiKeyModal.findExpirationDateInput().should('not.exist');
+    createApiKeyModal.findExpirationDatePicker().should('not.exist');
     createApiKeyModal.findAfterDaysInput().should('not.exist');
     createApiKeyModal
       .findExpirationModeToggle()

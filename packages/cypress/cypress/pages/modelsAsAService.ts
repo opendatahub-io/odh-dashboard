@@ -343,12 +343,17 @@ class CreateApiKeyModal extends Modal {
     this.findExpirationModeOption(mode).click();
   }
 
+  // Use .find() (not findByTestId) so .should('not.exist') works after leaving on-date mode.
+  findExpirationDatePicker(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-testid="api-key-expiration-date-picker"]');
+  }
+
   findExpirationDateInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
-    return this.find().findByTestId('api-key-expiration-date-picker').find('input');
+    return this.findExpirationDatePicker().find('input');
   }
 
   findAfterDaysInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('api-key-expiration-after-days-input');
+    return this.find().find('[data-testid="api-key-expiration-after-days-input"]');
   }
 
   findExpirationHelper(): Cypress.Chainable<JQuery<HTMLElement>> {
