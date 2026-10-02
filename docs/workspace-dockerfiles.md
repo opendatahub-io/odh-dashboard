@@ -30,16 +30,17 @@ Workspace-aware Dockerfiles solve this problem by:
 1. **Building from the repository root** - Provides access to all workspace packages (root, frontend, backend, and module packages)
 2. **Installing workspace dependencies first** - `pnpm install` at the repo root resolves `@odh-dashboard/*` workspace packages
 3. **Copying shared packages** - Ensures workspace packages are available during build
-4. **Installing module frontend dependencies** - First-party modules use pnpm; upstream subtrees use npm (see below)
+4. **Bootstrapping pnpm from prefetched npm metadata** - Avoids an untracked network download and lets Konflux build the CLI offline
+5. **Installing module frontend dependencies** - First-party modules use pnpm; upstream subtrees use npm (see below)
 
 ## First-Party vs Upstream Module Frontends
 
 Modules fall into two categories after the pnpm migration:
 
-| Category | Examples | Frontend path | Package manager in Docker |
-|----------|----------|---------------|---------------------------|
-| **First-party** | gen-ai, automl, autorag, maas | `packages/<module>/frontend` | pnpm only (`pnpm run build:prod`) |
-| **Upstream subtree** | model-registry, notebooks | `packages/<module>/upstream/.../frontend` | **Hybrid**: pnpm at root + npm in upstream |
+| Category             | Examples                      | Frontend path                             | Package manager in Docker                  |
+| -------------------- | ----------------------------- | ----------------------------------------- | ------------------------------------------ |
+| **First-party**      | gen-ai, automl, autorag, maas | `packages/<module>/frontend`              | pnpm only (`pnpm run build:prod`)          |
+| **Upstream subtree** | model-registry, notebooks     | `packages/<module>/upstream/.../frontend` | **Hybrid**: pnpm at root + npm in upstream |
 
 Upstream frontends are synced from external repositories via git subtree. They keep their own
 `package-lock.json` and are **not** members of `pnpm-workspace.yaml`. Do not migrate them to
@@ -47,9 +48,11 @@ pnpm in odh-dashboard — changes would be overwritten on the next subtree sync.
 
 The hybrid Docker pattern:
 
-1. `pnpm install --frozen-lockfile` at repo root → `@odh-dashboard/plugin-core`, `@odh-dashboard/internal`, etc.
-2. `npm ci --omit=optional` in the upstream frontend directory → webpack, loaders, upstream-only deps
+1. `pnpm install --frozen-lockfile --prefer-offline` at repo root → `@odh-dashboard/plugin-core`, `@odh-dashboard/internal`, etc.
+2. `npm ci --prefer-offline --ignore-scripts` in the upstream frontend directory → webpack, loaders, upstream-only deps
 3. `npm run build:prod` in the upstream frontend directory
+
+Set `hermetic: true` on each PipelineRun; the shared pipeline defaults to network-enabled. In `prefetch-input`, declare `.` as a `pnpm` input and `prefetch/pnpm` as an `npm` input. This lets Hermeto cache the pnpm CLI as a normal npm dependency instead of a generic artifact. Hermeto also injects a root `.npmrc` that points pnpm to prefetched tarballs. Since workspace Dockerfiles copy files selectively, copy `.npmrc` alongside the root manifests; otherwise pnpm falls back to the public registry, which is unavailable in hermetic builds. Keep `prefetch/pnpm/***` in path-change filters so changes to the bootstrap package trigger builds.
 
 ## Dockerfile Structure
 
@@ -65,13 +68,17 @@ ARG UI_SOURCE_CODE=./packages/${MODULE_NAME}/frontend
 FROM node-base AS ui-builder
 WORKDIR /usr/src/workspace
 
+COPY prefetch/pnpm/package.json prefetch/pnpm/package-lock.json ./prefetch/pnpm/
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY .npmrc ./
 COPY packages/plugin-core/ ./packages/plugin-core/
 # ... other shared workspace packages ...
 COPY ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
 
-RUN npm install -g pnpm@11.22.0
-RUN pnpm install --frozen-lockfile
+ENV PATH="/usr/src/workspace/prefetch/pnpm/node_modules/.bin:${PATH}"
+RUN npm ci --prefix ./prefetch/pnpm --prefer-offline --ignore-scripts --no-audit --no-fund --no-progress \
+    && test "$(pnpm --version)" = "11.22.0"
+RUN pnpm install --frozen-lockfile --prefer-offline
 
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
 RUN pnpm run build:prod
@@ -88,16 +95,20 @@ ARG UI_SOURCE_CODE=./packages/${MODULE_NAME}/upstream/frontend
 FROM node-base AS ui-builder
 WORKDIR /usr/src/workspace
 
+COPY prefetch/pnpm/package.json prefetch/pnpm/package-lock.json ./prefetch/pnpm/
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY .npmrc ./
 COPY packages/plugin-core/ ./packages/plugin-core/
 # ... other shared workspace packages ...
 COPY ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}   # includes upstream package-lock.json
 
-RUN npm install -g pnpm@11.22.0
-RUN pnpm install --frozen-lockfile            # @odh-dashboard/* workspace packages
+ENV PATH="/usr/src/workspace/prefetch/pnpm/node_modules/.bin:${PATH}"
+RUN npm ci --prefix ./prefetch/pnpm --prefer-offline --ignore-scripts --no-audit --no-fund --no-progress \
+    && test "$(pnpm --version)" = "11.22.0"
+RUN pnpm install --frozen-lockfile --prefer-offline  # @odh-dashboard/* workspace packages
 
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
-RUN npm ci --omit=optional                    # upstream webpack toolchain
+RUN npm ci --prefer-offline --ignore-scripts         # upstream webpack toolchain
 RUN npm run build:prod                        # upstream is an npm island
 ```
 
@@ -108,14 +119,14 @@ For notebooks, the default `UI_SOURCE_CODE` is
 
 Workspace Dockerfiles support parameterization through build arguments:
 
-| Argument | Description | Default |
-|----------|-------------|---------|
-| `MODULE_NAME` | Name of the module to build | `template` |
-| `UI_SOURCE_CODE` | Path to UI source relative to repo root | `./packages/${MODULE_NAME}/upstream/frontend` |
-| `BFF_SOURCE_CODE` | Path to BFF source relative to repo root | `./packages/${MODULE_NAME}/upstream/bff` |
-| `NODE_BASE_IMAGE` | Base image for Node.js build stage | `registry.access.redhat.com/ubi9/nodejs-22:latest` |
-| `GOLANG_BASE_IMAGE` | Base image for Go build stage | `registry.access.redhat.com/ubi9/go-toolset:1.26` |
-| `DISTROLESS_BASE_IMAGE` | Base image for final runtime stage | `registry.access.redhat.com/ubi9-minimal:latest` |
+| Argument                | Description                              | Default                                            |
+| ----------------------- | ---------------------------------------- | -------------------------------------------------- |
+| `MODULE_NAME`           | Name of the module to build              | `template`                                         |
+| `UI_SOURCE_CODE`        | Path to UI source relative to repo root  | `./packages/${MODULE_NAME}/upstream/frontend`      |
+| `BFF_SOURCE_CODE`       | Path to BFF source relative to repo root | `./packages/${MODULE_NAME}/upstream/bff`           |
+| `NODE_BASE_IMAGE`       | Base image for Node.js build stage       | `registry.access.redhat.com/ubi9/nodejs-22:latest` |
+| `GOLANG_BASE_IMAGE`     | Base image for Go build stage            | `registry.access.redhat.com/ubi9/go-toolset:1.26`  |
+| `DISTROLESS_BASE_IMAGE` | Base image for final runtime stage       | `registry.access.redhat.com/ubi9-minimal:latest`   |
 
 ## Usage Examples
 
@@ -226,7 +237,7 @@ COPY ./packages/model-registry/upstream/frontend ./ui-source
 **First-party modules** (`packages/<module>/frontend`):
 
 ```dockerfile
-RUN pnpm install --frozen-lockfile   # at repo root
+RUN pnpm install --frozen-lockfile --prefer-offline   # at repo root
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
 RUN pnpm run build:prod
 ```
@@ -234,9 +245,9 @@ RUN pnpm run build:prod
 **Upstream subtree modules** (`packages/<module>/upstream/.../frontend`):
 
 ```dockerfile
-RUN pnpm install --frozen-lockfile   # at repo root — @odh-dashboard/* only
+RUN pnpm install --frozen-lockfile --prefer-offline   # at repo root — @odh-dashboard/* only
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
-RUN npm ci --omit=optional           # upstream npm island (package-lock.json)
+RUN npm ci --prefer-offline --ignore-scripts # upstream npm island (package-lock.json)
 RUN npm run build:prod
 ```
 
