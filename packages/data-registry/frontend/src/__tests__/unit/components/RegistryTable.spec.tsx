@@ -1,8 +1,10 @@
+/* eslint-disable camelcase */
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import RegistryTable from '~/app/components/RegistryTable';
 import { RegistryAsset } from '~/app/hooks/useAssets';
+import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
 
 const mockAssets: RegistryAsset[] = [
   {
@@ -15,6 +17,10 @@ const mockAssets: RegistryAsset[] = [
     labels: ['production', 'claims'],
     collection: 'analytics',
     properties: { 'data-domain': 'claims' },
+    rawAsset: mockAssetResponse({
+      name: 'claims-data',
+      connection_ref: { type: 'rhai', secret_name: 'minio-connection' },
+    }),
   },
   {
     name: 'raw-documents',
@@ -67,6 +73,19 @@ describe('RegistryTable', () => {
     expect(screen.getByText('production')).toBeTruthy();
     expect(screen.getByText('claims')).toBeTruthy();
     expect(screen.getByText('source-docs')).toBeTruthy();
+  });
+
+  it('should link a connection reference to project connections', () => {
+    renderTable();
+
+    const connectionLink = screen.getByRole('link', { name: 'minio-connection' });
+    expect(connectionLink).toHaveAttribute('href', '/projects/test-project?section=connections');
+  });
+
+  it('should keep a location-only asset location as plain text', () => {
+    renderTable();
+
+    expect(screen.getByText('s3://bucket/docs')).not.toHaveAttribute('href');
   });
 
   it('should show loading state', () => {

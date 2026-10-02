@@ -11,7 +11,9 @@ import {
   MenuToggleElement,
   Content,
   Spinner,
+  Button,
 } from '@patternfly/react-core';
+import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Controller, useFormContext } from 'react-hook-form';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
 import { ConnectionModel } from '~/app/types';
@@ -21,16 +23,20 @@ type DataLocationSectionProps = {
   connections?: ConnectionModel[];
   connectionsLoaded?: boolean;
   connectionsError?: Error;
+  onRegisterNewConnection?: () => void;
   pathLabel?: string;
   showConnection?: boolean;
   isConnectionReadOnly?: boolean;
 };
+
+const REGISTER_NEW_CONNECTION_VALUE = '__register-new-connection__';
 
 const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
   const {
     connections = [],
     connectionsLoaded = true,
     connectionsError,
+    onRegisterNewConnection,
     pathLabel = 'Path',
     showConnection = false,
     isConnectionReadOnly = false,
@@ -73,7 +79,13 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
                 isOpen={isConnectionOpen}
                 selected={field.value}
                 onSelect={(_event, value) => {
-                  field.onChange(String(value));
+                  const selectedValue = String(value);
+                  if (selectedValue === REGISTER_NEW_CONNECTION_VALUE && onRegisterNewConnection) {
+                    setIsConnectionOpen(false);
+                    onRegisterNewConnection();
+                    return;
+                  }
+                  field.onChange(selectedValue);
                   setIsConnectionOpen(false);
                 }}
                 onOpenChange={setIsConnectionOpen}
@@ -91,22 +103,33 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
                 )}
               >
                 <SelectList>
-                  {connections.length === 0 ? (
+                  {connections.length === 0 && !onRegisterNewConnection ? (
                     <SelectOption value="" isDisabled>
                       No connections available
                     </SelectOption>
-                  ) : (
-                    connections.map((conn) => (
-                      <SelectOption
-                        key={conn.name}
-                        value={conn.name}
-                        description={conn.connectionType}
-                        data-testid={`connection-option-${conn.name}`}
+                  ) : null}
+                  {connections.map((conn) => (
+                    <SelectOption
+                      key={conn.name}
+                      value={conn.name}
+                      description={conn.connectionType}
+                      data-testid={`connection-option-${conn.name}`}
+                    >
+                      {conn.displayName || conn.name}
+                    </SelectOption>
+                  ))}
+                  {onRegisterNewConnection ? (
+                    <SelectOption value={REGISTER_NEW_CONNECTION_VALUE}>
+                      <Button
+                        variant="link"
+                        isInline
+                        icon={<PlusCircleIcon />}
+                        data-testid="register-new-connection-option"
                       >
-                        {conn.displayName || conn.name}
-                      </SelectOption>
-                    ))
-                  )}
+                        Register new connection
+                      </Button>
+                    </SelectOption>
+                  ) : null}
                 </SelectList>
               </Select>
             </FormGroup>

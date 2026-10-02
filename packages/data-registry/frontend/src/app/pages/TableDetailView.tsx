@@ -22,7 +22,7 @@ import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
 import { AssetResponse } from '~/app/types';
 import SchemaColumnsTable from '~/app/components/SchemaColumnsTable';
 import ConnectionRefLink from '~/app/components/ConnectionRefLink';
-import { collectionDetailUrl } from '~/app/utilities/routes';
+import { collectionDetailUrl, projectConnectionsUrl } from '~/app/utilities/routes';
 import {
   getFormatBadge,
   getUnstructuredFormatLabel,
@@ -172,7 +172,10 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
                   <DescriptionListGroup>
                     <DescriptionListTerm>Connection</DescriptionListTerm>
                     <DescriptionListDescription data-testid="asset-connection">
-                      <ConnectionRefLink connectionRef={asset.connection_ref} />
+                      <ConnectionRefLink
+                        connectionRef={asset.connection_ref}
+                        linkTo={project ? projectConnectionsUrl(project) : undefined}
+                      />
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
