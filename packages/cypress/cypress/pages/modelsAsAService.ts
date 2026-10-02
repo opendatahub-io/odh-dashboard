@@ -1868,6 +1868,14 @@ class ExternalModelsPage {
   findAddExternalModelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('add-external-model-button');
   }
+
+  findMaaSPublishedPostDeployAlert() {
+    return cy.findByTestId('maas-published-post-deploy-alert');
+  }
+
+  findMaaSPublishedPostDeployAlertLink() {
+    return cy.findByTestId('maas-published-post-deploy-alert-link');
+  }
 }
 
 class ProviderRefTableRow extends Contextual<HTMLElement> {
