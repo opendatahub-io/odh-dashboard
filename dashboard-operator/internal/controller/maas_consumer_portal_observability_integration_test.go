@@ -129,6 +129,40 @@ func TestIntegration_MaaSConsumerPortalObservabilityLifecycle(t *testing.T) {
 			if tt.autoDetect {
 				assert.Nil(t, dashboard.Spec.Observability, "auto-detection must remain in memory")
 			}
+			if tt.initialCore == "Managed" {
+				// Disable without a service reference while both consumers remain managed.
+				configuredObservability := dashboard.Spec.Observability
+				coreConfig := getConfigMap(t, "dashboard-core-config")
+				portal := &appsv1.Deployment{}
+				require.NoError(t, persesClient.Get(ctx, client.ObjectKey{Name: "maas-consumer-portal", Namespace: integrationNamespace}, portal))
+				portalUID := portal.UID
+				dashboard.Spec.Observability = &v1alpha1.ObservabilitySpec{Enabled: false}
+				require.NoError(t, persesClient.Update(ctx, dashboard))
+				reconcile(t, r)
+				reconcile(t, r) // Cleanup must also succeed when resources are already absent.
+				for _, resource := range resources {
+					assert.True(t, apierrors.IsNotFound(persesClient.Get(ctx, client.ObjectKeyFromObject(resource), resource)), resource.GetName())
+				}
+				assert.Equal(t, coreConfig.UID, getConfigMap(t, coreConfig.Name).UID)
+				require.NoError(t, persesClient.Get(ctx, client.ObjectKeyFromObject(portal), portal))
+				assert.Equal(t, portalUID, portal.UID)
+				require.NoError(t, persesClient.Get(ctx, client.ObjectKeyFromObject(service), &corev1.Service{}))
+				assert.Equal(t, "Disabled", conditionReason(getDashboard(t), conditionObservabilityAvailable))
+				for _, configMap := range []string{"federation-config", "maas-consumer-portal-federation-config"} {
+					assert.Nil(t, findFederationEntry(parseFederationEntries(t, getConfigMap(t, configMap)), "perses"))
+				}
+				dashboard = getDashboard(t)
+				assert.Equal(t, common.ManagementState("Managed"), dashboard.Spec.ManagementState)
+				assert.Equal(t, "Managed", dashboard.Spec.MaaSConsumerPortal.ManagementState)
+				dashboard.Spec.Observability = configuredObservability
+				require.NoError(t, persesClient.Update(ctx, dashboard))
+				reconcile(t, r)
+				for i, resource := range resources {
+					require.NoError(t, persesClient.Get(ctx, client.ObjectKeyFromObject(resource), resource))
+					originalUIDs[i] = resource.GetUID()
+				}
+				dashboard = getDashboard(t)
+			}
 			dashboard.Spec.ManagementState = "Removed"
 			require.NoError(t, persesClient.Update(ctx, dashboard))
 			reconcile(t, r)

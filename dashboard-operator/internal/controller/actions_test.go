@@ -736,6 +736,51 @@ func TestReconcileObservability_APIFailuresRetry(t *testing.T) {
 	}
 }
 
+func TestReconcileObservability_CleanupFailuresRetry(t *testing.T) {
+	for _, operation := range []string{"list", "delete"} {
+		t.Run(operation, func(t *testing.T) {
+			scheme := maasConsumerPortalScheme(t)
+			service := &corev1.Service{ObjectMeta: metav1.ObjectMeta{
+				Name: "managed-observability", Namespace: "monitoring",
+				Labels: map[string]string{labels.PlatformPartOf: "dashboard", moduleComponentLabel: observabilityComponent},
+			}}
+			failCleanup := true
+			cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(service).
+				WithInterceptorFuncs(interceptor.Funcs{
+					List: func(ctx context.Context, delegate client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+						if failCleanup && operation == "list" {
+							return assert.AnError
+						}
+						return delegate.List(ctx, list, opts...)
+					},
+					Delete: func(ctx context.Context, delegate client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
+						if failCleanup && operation == "delete" {
+							return assert.AnError
+						}
+						return delegate.Delete(ctx, obj, opts...)
+					},
+				}).Build()
+			r := &DashboardReconciler{Client: cli, Scheme: scheme}
+			dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{
+				Observability: &v1alpha1.ObservabilitySpec{Enabled: false},
+			}}
+			cm := maasConsumerPortalTestManager(t, dashboard)
+			ctx := context.Background()
+			assert.Equal(t, observabilityRetryInterval, r.reconcileObservability(ctx, dashboard, cm))
+			condition := cm.GetCondition(conditionObservabilityAvailable)
+			require.NotNil(t, condition)
+			assert.Equal(t, "CleanupFailed", condition.Reason)
+			assert.Contains(t, condition.Message, assert.AnError.Error())
+			require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(service), &corev1.Service{}))
+
+			failCleanup = false
+			assert.Zero(t, r.reconcileObservability(ctx, dashboard, cm))
+			assert.Equal(t, "Disabled", cm.GetCondition(conditionObservabilityAvailable).Reason)
+			assert.True(t, apierrors.IsNotFound(cli.Get(ctx, client.ObjectKeyFromObject(service), &corev1.Service{})))
+		})
+	}
+}
+
 func TestAutoDetectObservability_NonNotFoundError(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))

@@ -603,6 +603,13 @@ func (r *DashboardReconciler) reconcileObservability(
 			conditions.WithReason("Deployed"),
 			conditions.WithMessage("Observability manifests applied successfully"))
 	case errors.Is(obsErr, ErrObservabilityDisabled):
+		if err := r.cleanupManagedObservability(ctx, dashboard); err != nil {
+			cm.MarkFalse(conditionObservabilityAvailable,
+				conditions.WithError(err),
+				conditions.WithReason("CleanupFailed"))
+			logger.Error(err, "Failed to clean up disabled observability resources")
+			return observabilityRetryInterval
+		}
 		cm.MarkFalse(conditionObservabilityAvailable,
 			conditions.WithReason("Disabled"),
 			conditions.WithMessage("Observability is not enabled"),
@@ -734,7 +741,10 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 	if preserveObservability {
 		return nil
 	}
+	return r.cleanupManagedObservability(ctx, dashboard)
+}
 
+func (r *DashboardReconciler) cleanupManagedObservability(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
 	// The service reference may be removed when observability is disabled. Find
 	// labeled resources across namespaces without relying on the current spec.
 	if err := r.cleanupObservabilityResources(ctx, client.MatchingLabels{
