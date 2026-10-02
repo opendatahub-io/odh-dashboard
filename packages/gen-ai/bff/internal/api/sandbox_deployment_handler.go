@@ -154,7 +154,7 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 
 	maasGatewayURL := ""
 	if profile.Spec.Model.SourceType == string(models.ModelSourceTypeMaaS) {
-		maasGatewayURL, err = resolveSandboxMaaSGatewayURL(ctx)
+		maasGatewayURL, err = resolveMaaSGatewayURL(ctx)
 		if err != nil {
 			app.handleBFFClientError(w, r, err)
 			return
