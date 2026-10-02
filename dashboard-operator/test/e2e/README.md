@@ -275,10 +275,10 @@ component registry should set it explicitly as the smoke quality gate.
   Jenkins collection and PR reporting.
 - Component quality-gate arguments are appended to the image entrypoint.
 
-### DevOps handoff (owned outside this repo)
+### Activation prerequisites
 
-These remain to be configured under RHOAIENG-96237 before early-gate E2E is
-live:
+Complete the external registry and tenant setup before merging the PipelineRun
+activation under RHOAIENG-96237:
 
 1. Add `resources/configs/components-testing/components/dashboard-operator/main.yaml`
    in `ods/jenkins` with `metadata.earlyGateTestRunner: shiftleft`, image
@@ -286,10 +286,9 @@ live:
    `workingDir: /e2e`, `resultsDir: /e2e/results`, and the smoke arguments above
    under `qualityGatesMap.default`.
 2. Konflux tenant registration of the `odh-dashboard-operator-e2e-ci` Component
-   (and its `build-pipeline-odh-dashboard-operator-e2e-ci` ServiceAccount) so the
-   `.tekton` E2E build PipelineRuns above can run. After registration, remove
-   the temporary `false` guard from both PipelineRun CEL expressions to enable
-   pull-request and stable-image builds.
+   (and its `build-pipeline-odh-dashboard-operator-e2e-ci` ServiceAccount), plus
+   image push credentials, so the `.tekton` E2E build PipelineRuns above can
+   publish pull-request and stable-image builds.
 3. ROSA HCP cluster-pool / Jenkins access for the component.
 
 ## Authoring Scenarios
