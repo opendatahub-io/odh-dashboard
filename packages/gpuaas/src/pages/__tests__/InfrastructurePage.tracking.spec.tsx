@@ -66,7 +66,7 @@ let mockCurrentMetrics = { ...mockMetrics };
 
 jest.mock('../../hooks/useInfrastructureMetrics', () => ({
   __esModule: true,
-  default: () => mockCurrentMetrics,
+  default: jest.fn(() => mockCurrentMetrics),
 }));
 
 jest.mock('../../components/ClusterSummaryCards', () => ({
@@ -95,12 +95,12 @@ jest.mock('../../components/BorrowingLendingSection', () => ({
 
 jest.mock('../../hooks/useQuotaHierarchy', () => ({
   __esModule: true,
-  default: () => ({
+  default: jest.fn(() => ({
     data: { tree: [] },
     loaded: true,
     lastRefreshed: new Date(),
     refresh: mockQuotaRefresh,
-  }),
+  })),
 }));
 
 jest.mock('../../components/QuotaUsageSection', () => ({
@@ -111,6 +111,10 @@ jest.mock('../../components/QuotaUsageSection', () => ({
 const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
 const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
 const mockUseAccessAllowed = jest.mocked(useAccessAllowed);
+const mockUseInfrastructureMetrics = jest.requireMock('../../hooks/useInfrastructureMetrics')
+  .default as jest.Mock;
+const mockUseQuotaHierarchy = jest.requireMock('../../hooks/useQuotaHierarchy')
+  .default as jest.Mock;
 
 describe('InfrastructurePage - Tracking Events', () => {
   beforeEach(() => {
@@ -183,6 +187,29 @@ describe('InfrastructurePage - Tracking Events', () => {
       render(<InfrastructurePage />);
 
       expect(mockFireMisc).not.toHaveBeenCalledWith(GPUAAS_EVENTS.PAGE_VIEWED, expect.anything());
+    });
+  });
+
+  describe('Infrastructure access failures', () => {
+    it('passes access loading state to quota hierarchy', () => {
+      mockUseAccessAllowed.mockReturnValue([false, false]);
+
+      render(<InfrastructurePage />);
+
+      expect(mockUseInfrastructureMetrics).toHaveBeenCalledWith(false);
+      expect(mockUseQuotaHierarchy).toHaveBeenCalledWith(false, false);
+    });
+
+    it('keeps admin content disabled when access is denied', () => {
+      mockUseAccessAllowed.mockReturnValue([false, true]);
+
+      render(<InfrastructurePage />);
+
+      expect(screen.getByTestId('infrastructure-tab-workloads')).toBeInTheDocument();
+      expect(screen.queryByTestId('infrastructure-tab-utilization')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('infrastructure-tab-quota-usage')).not.toBeInTheDocument();
+      expect(mockUseInfrastructureMetrics).toHaveBeenCalledWith(false);
+      expect(mockUseQuotaHierarchy).toHaveBeenCalledWith(false, true);
     });
   });
 
