@@ -1,11 +1,17 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
 
+	dashboardv1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
+	"github.com/opendatahub-io/odh-platform-utilities/api/common"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8svalidation "k8s.io/apimachinery/pkg/util/validation"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type fixtureMode string
@@ -13,6 +19,8 @@ type fixtureMode string
 const (
 	fixtureModeExisting fixtureMode = "existing"
 	fixtureModeManaged  fixtureMode = "managed"
+	platformODH                     = "odh"
+	platformRHOAI                   = "rhoai"
 )
 
 func parseFixtureMode(value string) (fixtureMode, error) {
@@ -26,10 +34,20 @@ func parseFixtureMode(value string) (fixtureMode, error) {
 }
 
 func resolveTestNamespace(testNamespace, applicationsNamespace string) (string, error) {
-	namespace := strings.TrimSpace(testNamespace)
+	explicitNamespace := strings.TrimSpace(testNamespace)
+	shiftLeftNamespace := strings.TrimSpace(applicationsNamespace)
+	if explicitNamespace != "" && shiftLeftNamespace != "" && explicitNamespace != shiftLeftNamespace {
+		return "", fmt.Errorf(
+			"TEST_NAMESPACE %q conflicts with E2E_TEST_APPLICATIONS_NAMESPACE %q; set only one or use the same value",
+			explicitNamespace,
+			shiftLeftNamespace,
+		)
+	}
+
+	namespace := explicitNamespace
 	source := "TEST_NAMESPACE"
 	if namespace == "" {
-		namespace = strings.TrimSpace(applicationsNamespace)
+		namespace = shiftLeftNamespace
 		source = "E2E_TEST_APPLICATIONS_NAMESPACE"
 	}
 	if namespace == "" {
@@ -51,10 +69,10 @@ func resolveGatewayDomain(explicitDomain, dashboardURL string) (string, error) {
 		}
 		parsed, err := url.Parse(dashboardURL)
 		if err != nil {
-			return "", fmt.Errorf("parse Dashboard status.url %q: %w", dashboardURL, err)
+			return "", fmt.Errorf("parse Dashboard status.url: %w", err)
 		}
 		if parsed.Scheme != "https" || parsed.Hostname() == "" {
-			return "", fmt.Errorf("dashboard status.url %q must be an HTTPS URL with a hostname", dashboardURL)
+			return "", fmt.Errorf("dashboard status.url must be an HTTPS URL with a hostname")
 		}
 		domain = parsed.Hostname()
 	}
@@ -74,7 +92,7 @@ func resolveManagedGatewayDomain(explicitDomain string) (string, error) {
 func resolvePlatform(explicitPlatform string, hasODHService, hasRHOAIService bool) (string, error) {
 	platform := strings.ToLower(strings.TrimSpace(explicitPlatform))
 	if platform != "" {
-		if platform != "odh" && platform != "rhoai" {
+		if platform != platformODH && platform != platformRHOAI {
 			return "", fmt.Errorf("TEST_PLATFORM must be odh or rhoai, got %q", explicitPlatform)
 		}
 		return platform, nil
@@ -82,12 +100,55 @@ func resolvePlatform(explicitPlatform string, hasODHService, hasRHOAIService boo
 
 	switch {
 	case hasODHService && !hasRHOAIService:
-		return "odh", nil
+		return platformODH, nil
 	case hasRHOAIService && !hasODHService:
-		return "rhoai", nil
+		return platformRHOAI, nil
 	case hasODHService && hasRHOAIService:
 		return "", fmt.Errorf("cannot infer platform: both odh-dashboard and rhods-dashboard Services exist")
 	default:
-		return "", fmt.Errorf("cannot infer platform: neither odh-dashboard nor rhods-dashboard Service exists")
+		return "", fmt.Errorf("cannot infer platform: neither odh-dashboard nor rhods-dashboard Service exists; set TEST_PLATFORM to override discovery")
+	}
+}
+
+func validateInstalledDashboard(dashboard *dashboardv1alpha1.Dashboard) error {
+	if dashboard.UID == "" {
+		return fmt.Errorf("installed Dashboard %q has no UID", dashboard.Name)
+	}
+	if dashboard.Spec.ManagementState != common.Managed {
+		return fmt.Errorf(
+			"installed Dashboard %q must have managementState %q, got %q",
+			dashboard.Name,
+			common.Managed,
+			dashboard.Spec.ManagementState,
+		)
+	}
+	return nil
+}
+
+func discoverPlatform(ctx context.Context, c client.Client, namespace, explicit string) (string, error) {
+	if explicit != "" {
+		return resolvePlatform(explicit, false, false)
+	}
+	hasODHService, err := serviceExists(ctx, c, namespace, "odh-dashboard")
+	if err != nil {
+		return "", err
+	}
+	hasRHOAIService, err := serviceExists(ctx, c, namespace, "rhods-dashboard")
+	if err != nil {
+		return "", err
+	}
+	return resolvePlatform("", hasODHService, hasRHOAIService)
+}
+
+func serviceExists(ctx context.Context, c client.Client, namespace, name string) (bool, error) {
+	service := &corev1.Service{}
+	err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, service)
+	switch {
+	case err == nil:
+		return true, nil
+	case apierrors.IsNotFound(err):
+		return false, nil
+	default:
+		return false, fmt.Errorf("discover platform from Service %s/%s: %w", namespace, name, err)
 	}
 }

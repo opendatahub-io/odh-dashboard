@@ -43,20 +43,27 @@ operator namespace; create the `pods/eviction` subresource; and patch operand
 Deployments in the test namespace. The cluster CNI must enforce Kubernetes
 NetworkPolicy.
 
-Set the required environment variables:
+Choose the fixture mode and set the inputs it requires:
 
 ```bash
 export KUBECONFIG=/absolute/path/to/kubeconfig
+# Use either namespace input. If both are set, they must match.
 export TEST_NAMESPACE=dashboard-operator-e2e
+# export E2E_TEST_APPLICATIONS_NAMESPACE=redhat-ods-applications
+
+# make test-e2e defaults to managed; the compiled binary and image default to existing.
+export E2E_FIXTURE_MODE=managed
+# Required only in managed mode; existing mode falls back to Dashboard.status.url.
 export TEST_GATEWAY_DOMAIN=dashboard.example.com
 # Optional for gateways signed by a CA outside the host's system trust bundle:
 export TEST_GATEWAY_CA_BUNDLE=/absolute/path/to/gateway-ca.pem
+# Optional; otherwise inferred from the installed odh-dashboard/rhods-dashboard Service.
 export TEST_PLATFORM=odh # or rhoai
 export TEST_OPERATOR_DEPLOYMENT=dashboard-operator # optional; this is the default
 ```
 
-`TEST_NAMESPACE` takes precedence when set; otherwise the runner uses the
-shift-left `E2E_TEST_APPLICATIONS_NAMESPACE` value. In `existing` mode,
+The runner accepts `TEST_NAMESPACE` or the shift-left
+`E2E_TEST_APPLICATIONS_NAMESPACE` value and rejects conflicting values. In `existing` mode,
 `TEST_GATEWAY_DOMAIN` falls back to the hostname in `Dashboard.status.url` and
 `TEST_PLATFORM` falls back to the installed `odh-dashboard` or
 `rhods-dashboard` Service. Managed mode still requires
@@ -120,14 +127,15 @@ make test-e2e E2E_TEST_ARGS='-run ^TestE2E_PlatformContractConformance$'
 The equivalent direct command is:
 
 ```bash
-go test -v -count=1 -tags=e2e -timeout=30m -run TestE2E_BFFHealthchecks ./test/e2e/...
+go test -v -count=1 -tags=e2e -timeout=30m -run TestE2E_BFFHealthchecks \
+  ./test/e2e/... -args -fixture-mode=managed
 ```
 
 When invoking the compiled binary directly, pass fixture selection as a binary
 flag:
 
 ```bash
-./bin/e2e.test -test.v -fixture-mode=existing -test.run '^TestE2EFrameworkPreflight$'
+./bin/e2e.test -test.v -fixture-mode=existing -test.run '^TestE2ESmoke_FrameworkPreflight$'
 ```
 
 ## Operator Chaos Scenarios
@@ -190,7 +198,7 @@ kubeconfig, set the environment variables required by the selected suite, and
 run it with standard testing flags:
 
 ```bash
-./bin/e2e.test -test.v -test.run TestE2E_BFFHealthchecks
+./bin/e2e.test -test.v -fixture-mode=managed -test.run TestE2E_BFFHealthchecks
 ```
 
 Embed small fixtures with `//go:embed`, or mount them at a path supplied by an
@@ -215,6 +223,9 @@ It contains no `oc`, `kubectl`, operator, or CRD installer. Run its safe default
 smoke profile against an installed Dashboard by mounting a kubeconfig:
 
 ```bash
+mkdir -p results
+# This disposable local output directory must be writable by container UID 65532.
+chmod 0777 results
 docker run --rm \
   -v "$KUBECONFIG:/kubeconfig:ro" -e KUBECONFIG=/kubeconfig \
   -e E2E_TEST_APPLICATIONS_NAMESPACE=redhat-ods-applications \
@@ -225,7 +236,7 @@ docker run --rm \
 The safe smoke selection is:
 
 ```text
--fixture-mode=existing -test.run=^(TestE2EFrameworkPreflight|TestE2E_OperandDeployments_ReachAvailable|TestE2E_OperandServices_Reachable|TestE2E_DashboardRoute_Admitted|TestE2E_PodDisruptionBudget_Created)$
+-fixture-mode=existing -test.run=^TestE2ESmoke_
 ```
 
 Lifecycle, optional-module, MaaS, and operator-chaos scenarios are deliberately
@@ -299,11 +310,20 @@ them. Reuse the shared helpers for:
 The create helper is available only in managed mode. It atomically creates the
 singleton and fails if one already exists. Cleanup requires the API-assigned UID
 and refuses to delete a different or unlabeled object. Existing mode never
-registers singleton cleanup.
+registers singleton cleanup. Managed mode requires exclusive use of an isolated
+cluster. If a terminated run leaves `default-dashboard` behind, verify that it
+has `app.kubernetes.io/managed-by=dashboard-operator-e2e` before deleting it and
+retrying; the runner intentionally never adopts an existing singleton.
 
 Keep each scenario independent and runnable with `-run`. Tests must wait for
 observable conditions instead of sleeping, clean up resources they own, and
-avoid relying on execution order.
+avoid relying on execution order. Do not call `t.Parallel` in scenarios that
+mutate the shared managed fixture.
+
+The runtime image intentionally has no cluster CLI. For authoring or diagnostics,
+run `oc` or `kubectl` on the host with the same mounted kubeconfig. The early-gate
+target is OpenShift and requires its `openshift-service-ca.crt` ConfigMap; a
+missing or malformed Service CA is a preflight failure, not a skipped check.
 
 ## Operand Health Scenarios
 

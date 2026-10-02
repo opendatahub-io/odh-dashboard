@@ -40,9 +40,6 @@ E2E_FIXTURE_MODE ?= managed
 test-e2e: ## Run real-cluster E2E tests with an isolated, E2E-owned Dashboard fixture.
 	@test -n "$$KUBECONFIG" || (echo "KUBECONFIG must point to a kubeconfig file." && exit 1)
 	@test -n "$$TEST_NAMESPACE$$E2E_TEST_APPLICATIONS_NAMESPACE" || (echo "TEST_NAMESPACE or E2E_TEST_APPLICATIONS_NAMESPACE must name an existing namespace." && exit 1)
-	@if [ "$(E2E_FIXTURE_MODE)" = "managed" ]; then \
-		test -n "$$TEST_GATEWAY_DOMAIN" || (echo "TEST_GATEWAY_DOMAIN is required for a managed Dashboard fixture." && exit 1); \
-	fi
 	@test -f "$$KUBECONFIG" || (echo "KUBECONFIG must point to a regular file." && exit 1)
 	go test -v -count=1 -tags=e2e -timeout=30m $(E2E_TEST_ARGS) ./test/e2e/... -args -fixture-mode="$(E2E_FIXTURE_MODE)"
 

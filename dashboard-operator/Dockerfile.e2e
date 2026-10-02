@@ -26,6 +26,7 @@ RUN CGO_ENABLED=0 \
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:9.3
 
+# Build provenance consumed by image scanners; the runtime contains no Go toolchain.
 ENV GOVERSION=go1.26.5
 
 WORKDIR /e2e
@@ -47,4 +48,4 @@ ENTRYPOINT ["/usr/local/bin/gotestsum", "--format=standard-verbose", "--junitfil
 
 # Safe fallback when the image is run without component-specific arguments.
 # Mutation, optional-module, MaaS, and operator-chaos scenarios are excluded.
-CMD ["-fixture-mode=existing", "-test.run=^(TestE2EFrameworkPreflight|TestE2E_OperandDeployments_ReachAvailable|TestE2E_OperandServices_Reachable|TestE2E_DashboardRoute_Admitted|TestE2E_PodDisruptionBudget_Created)$"]
+CMD ["-fixture-mode=existing", "-test.run=^TestE2ESmoke_"]

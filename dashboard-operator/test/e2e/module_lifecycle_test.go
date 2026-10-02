@@ -242,7 +242,7 @@ func TestE2EModuleOperands(t *testing.T) {
 	t.Run("TS6_01_core_service_matches_distribution", func(t *testing.T) {
 		uid := createManagedDashboard(t)
 		platform := requiredPlatform(t)
-		name := map[string]string{"odh": "odh-dashboard", "rhoai": "rhods-dashboard"}[platform]
+		name := map[string]string{platformODH: "odh-dashboard", platformRHOAI: "rhods-dashboard"}[platform]
 		waitForService(t, uid, name)
 	})
 	t.Run("TS6_02_module_service_uses_stable_prefix", func(t *testing.T) {
@@ -699,11 +699,7 @@ func waitForObjectAbsent(t *testing.T, object client.Object, name string) {
 
 func requiredPlatform(t *testing.T) string {
 	t.Helper()
-	platform := testPlatform
-	if platform != "odh" && platform != "rhoai" {
-		t.Fatalf("test platform must be odh or rhoai, got %q", platform)
-	}
-	return platform
+	return testPlatform
 }
 
 func disabledModules(names ...string) map[string]dashboardv1alpha1.ModuleOverride {
