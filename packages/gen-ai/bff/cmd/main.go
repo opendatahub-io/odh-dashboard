@@ -23,6 +23,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
+func distributionNameDefault() string {
+	return getEnvAsString("DISTRIBUTION_NAME", "rh")
+}
+
 func main() {
 	var cfg config.EnvConfig
 	var certFile, keyFile string
@@ -43,7 +47,7 @@ func main() {
 	flag.StringVar(&cfg.AuthTokenPrefix, "auth-token-prefix", getEnvAsString("AUTH_TOKEN_PREFIX", config.DefaultAuthTokenPrefix), "Prefix used in the token header (e.g., 'Bearer ')")
 	flag.StringVar(&cfg.APIPathPrefix, "api-path-prefix", getEnvAsString("API_PATH_PREFIX", "/api/v1"), "API path prefix for BFF endpoints (e.g., /api/v1)")
 	flag.StringVar(&cfg.PathPrefix, "path-prefix", getEnvAsString("PATH_PREFIX", "/gen-ai"), "Path prefix for BFF endpoints (e.g., /gen-ai)")
-	flag.StringVar(&cfg.DistributionName, "distribution-name", getEnvAsString("DISTRIBUTION_NAME", "rh-dev"), "Custom distribution name/image")
+	flag.StringVar(&cfg.DistributionName, "distribution-name", distributionNameDefault(), "Custom distribution name/image")
 
 	// Llama Stack configuration
 	flag.StringVar(&cfg.LlamaStackURL, "llama-stack-url", getEnvAsString("LLAMA_STACK_URL", ""), "Llama Stack server URL for proxying requests")
