@@ -247,7 +247,6 @@
   fill: var(--pf-t--global--color--status--info--default);
   stroke: var(--pf-t--global--background--color--primary--default);
   stroke-width: 2px;
-  animation: automl-tree-node-active-core 1.6s ease-in-out infinite;
 }
 
 .automl-tree-node__active-badge-icon {
@@ -503,11 +502,6 @@
   }
 
   .automl-tree-node__active-corridor-core {
-    animation: none;
-    fill: var(--pf-t--global--color--status--info--default);
-  }
-
-  .automl-tree-node__active-badge-disc {
     animation: none;
     fill: var(--pf-t--global--color--status--info--default);
   }
