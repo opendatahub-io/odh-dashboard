@@ -25,6 +25,7 @@ import {
 import { DocumentAttachment } from '~/app/types';
 import { AudioTranscriptionState } from '~/app/Chatbot/hooks/useAudioTranscription';
 import { getDocumentAttachmentTypeLabel } from '~/app/Chatbot/documentAttachmentUtils';
+import AudioAttachmentTile from '~/app/Chatbot/components/AudioAttachmentTile';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 import RhUiResourceIcon from '~/app/bgimages/rh-ui-resource-icon.svg';
 import './ChatbotMessageInput.scss';
@@ -453,28 +454,21 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
             />
           )}
           {showAudioChip && audioTranscriptionState && (
-            <FileDetailsLabel
+            <AudioAttachmentTile
               fileName={audioTranscriptionState.fileName}
+              src={
+                previewAudioFile && audioPreview?.file === previewAudioFile
+                  ? audioPreview.url
+                  : undefined
+              }
               isLoading={isAudioActive}
-              onClose={audioPhase === 'ready' ? onAudioDiscard : onAudioCancel}
-              hasTruncation
-              variant="outline"
-              data-testid="audio-file-chip"
+              onRemove={audioPhase === 'ready' ? onAudioDiscard : onAudioCancel}
+              testId="audio-file-chip"
+              playerTestId="pending-audio-player"
             />
           )}
         </div>
       )}
-      {previewAudioFile &&
-        audioPreview?.file === previewAudioFile &&
-        React.createElement('audio', {
-          controls: true,
-          preload: 'metadata',
-          src: audioPreview.url,
-          'aria-label': `Play ${previewAudioFile.name}`,
-          className: 'pf-v6-u-mb-sm',
-          style: { minHeight: 'var(--pf-t--global--spacer--2xl)' },
-          'data-testid': 'pending-audio-player',
-        })}
       {imageUploadState.fileName && showImageCapabilityAlert && !hideImageCapabilityAlert && (
         <Alert
           variant="info"

@@ -163,6 +163,7 @@ jest.mock('@patternfly/react-icons', () => ({
   OutlinedFileImageIcon: () => <span data-testid="icon-image" />,
   VolumeUpIcon: () => <span data-testid="icon-audio" />,
   OutlinedFileAltIcon: () => <span data-testid="icon-document" />,
+  TimesIcon: () => <span data-testid="icon-remove" />,
 }));
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
@@ -935,50 +936,59 @@ describe('ChatbotMessageInput', () => {
       transcribedText: '',
     };
 
-    it('previews pending audio before sending and releases the preview when cleared', () => {
-      const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
-      const { rerender } = render(
-        <ChatbotMessageInput
-          {...defaultProps}
-          audioTranscriptionState={{
-            ...defaultAudioState,
-            phase: 'waiting-for-model',
-            previewFile: file,
-            fileName: file.name,
-          }}
-        />,
-      );
+    it.each([
+      ['recording.wav', 'audio/wav', 'WAV'],
+      ['recording.mp3', 'audio/mpeg', 'MP3'],
+    ])(
+      'keeps the %s title, type, and player in one pending tile',
+      (fileName, mimeType, typeLabel) => {
+        const file = new File(['audio-data'], fileName, { type: mimeType });
+        const { rerender } = render(
+          <ChatbotMessageInput
+            {...defaultProps}
+            audioTranscriptionState={{
+              ...defaultAudioState,
+              phase: 'waiting-for-model',
+              previewFile: file,
+              fileName: file.name,
+            }}
+          />,
+        );
 
-      expect(URL.createObjectURL).toHaveBeenCalledWith(file);
-      expect(screen.getByTestId('pending-audio-player')).toHaveAttribute(
-        'src',
-        'blob:pending-audio',
-      );
-      expect(screen.getByLabelText('Play recording.wav')).toHaveAttribute('controls');
+        expect(URL.createObjectURL).toHaveBeenCalledWith(file);
+        const tile = screen.getByTestId('audio-file-chip');
+        expect(within(tile).getByText(fileName)).toBeInTheDocument();
+        expect(within(tile).getByText(typeLabel)).toBeInTheDocument();
+        expect(within(tile).getByTestId('pending-audio-player')).toHaveAttribute(
+          'src',
+          'blob:pending-audio',
+        );
+        expect(within(tile).getByLabelText(`Play ${fileName}`)).toHaveAttribute('controls');
 
-      rerender(
-        <ChatbotMessageInput
-          {...defaultProps}
-          audioTranscriptionState={{
-            ...defaultAudioState,
-            phase: 'ready',
-            file,
-            previewFile: file,
-            fileName: file.name,
-          }}
-        />,
-      );
+        rerender(
+          <ChatbotMessageInput
+            {...defaultProps}
+            audioTranscriptionState={{
+              ...defaultAudioState,
+              phase: 'ready',
+              file,
+              previewFile: file,
+              fileName: file.name,
+            }}
+          />,
+        );
 
-      expect(screen.getByTestId('pending-audio-player')).toBeInTheDocument();
-      expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+        expect(screen.getByTestId('pending-audio-player')).toBeInTheDocument();
+        expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
 
-      rerender(
-        <ChatbotMessageInput {...defaultProps} audioTranscriptionState={defaultAudioState} />,
-      );
+        rerender(
+          <ChatbotMessageInput {...defaultProps} audioTranscriptionState={defaultAudioState} />,
+        );
 
-      expect(screen.queryByTestId('pending-audio-player')).not.toBeInTheDocument();
-      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:pending-audio');
-    });
+        expect(screen.queryByTestId('pending-audio-player')).not.toBeInTheDocument();
+        expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:pending-audio');
+      },
+    );
 
     it('explains where to select a model when audio is waiting for one', () => {
       render(

@@ -419,6 +419,7 @@ jest.mock('@patternfly/react-icons', () => {
   return {
     OutlinedFileImageIcon: () => React.createElement('span'),
     VolumeUpIcon: () => React.createElement('span'),
+    TimesIcon: () => React.createElement('span'),
     OutlinedFileAltIcon: () => React.createElement('span'),
   };
 });
@@ -990,7 +991,7 @@ describe('ChatbotPlayground — audio transcription', () => {
     expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
 
     await act(async () => {
-      fireEvent.click(screen.getByTestId('chip-close'));
+      fireEvent.click(screen.getByRole('button', { name: 'Remove test.wav' }));
     });
     expect(screen.queryByTestId('audio-file-chip')).not.toBeInTheDocument();
     expect(screen.queryByTestId('audio-model-needed-alert')).not.toBeInTheDocument();

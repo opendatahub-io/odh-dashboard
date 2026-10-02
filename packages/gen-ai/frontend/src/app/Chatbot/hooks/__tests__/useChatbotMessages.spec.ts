@@ -1,7 +1,8 @@
 /* eslint-disable camelcase, @typescript-eslint/no-require-imports */
 import * as React from 'react';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, render, screen, within, act } from '@testing-library/react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
+import AudioAttachmentTile from '~/app/Chatbot/components/AudioAttachmentTile';
 import { CreateResponseRequest, DocumentAttachment, SimplifiedResponseData } from '~/app/types';
 import {
   mockModelId,
@@ -1142,21 +1143,20 @@ describe('useChatbotMessages', () => {
       const userMessage = result.current.messages[0];
       const player = userMessage.extraContent?.afterMainContent as React.ReactElement<{
         src: string;
-        controls: boolean;
-        'aria-label': string;
-        style: React.CSSProperties;
       }>;
       expect(userMessage.content).toBe('Audio transcription:\nTranscribed speech');
-      expect(userMessage.attachments).toEqual([{ name: 'recording.wav' }]);
-      expect(player.type).toBe('audio');
-      expect(player.props).toEqual(
-        expect.objectContaining({
-          src: 'blob:audio-preview',
-          controls: true,
-          'aria-label': 'Play recording.wav',
-          style: { minHeight: 'var(--pf-t--global--spacer--2xl)' },
-        }),
+      expect(userMessage.attachments).toBeUndefined();
+      expect(player.type).toBe(AudioAttachmentTile);
+      render(player);
+      const tile = screen.getByTestId('sent-audio-tile');
+      expect(within(tile).getByText('recording.wav')).toBeInTheDocument();
+      expect(within(tile).getByText('WAV')).toBeInTheDocument();
+      expect(within(tile).getByTestId('sent-audio-player')).toHaveAttribute(
+        'src',
+        'blob:audio-preview',
       );
+      expect(within(tile).getByLabelText('Play recording.wav')).toHaveAttribute('controls');
+      expect(within(tile).queryByRole('button', { name: /remove/i })).not.toBeInTheDocument();
       expect(createObjectURL).toHaveBeenCalledWith(file);
       expect(mockCreateResponse.mock.calls[0][0].input).toBe('Transcribed speech');
 
@@ -1164,7 +1164,7 @@ describe('useChatbotMessages', () => {
       expect(revokeObjectURL).toHaveBeenCalledWith('blob:audio-preview');
     });
 
-    it('should keep document and audio attachments in the same message', async () => {
+    it('should keep document attachments alongside the audio tile', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
       const document: DocumentAttachment = {
         file_id: 'file-document-1',
@@ -1190,8 +1190,8 @@ describe('useChatbotMessages', () => {
 
       expect(result.current.messages[0].attachments).toEqual([
         { id: document.file_id, name: document.filename },
-        { name: file.name },
       ]);
+      expect(result.current.messages[0].extraContent?.afterMainContent).toBeDefined();
       expect(result.current.messages[0].documentAttachments).toEqual([document]);
       act(() => result.current.clearConversation());
     });

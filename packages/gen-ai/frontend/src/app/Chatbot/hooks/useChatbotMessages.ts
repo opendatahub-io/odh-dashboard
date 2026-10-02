@@ -37,6 +37,7 @@ import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
 import { StreamingThinkingSection } from '~/app/Chatbot/components/StreamingThinkingSection';
+import AudioAttachmentTile from '~/app/Chatbot/components/AudioAttachmentTile';
 import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 
 export type GuardrailsConfig = {
@@ -459,12 +460,11 @@ const useChatbotMessages = ({
       audioFileUrlRef.current.set(audioFile, audioPreviewUrl);
     }
     if (audioFile && audioPreviewUrl) {
-      extraContent.afterMainContent = React.createElement('audio', {
+      extraContent.afterMainContent = React.createElement(AudioAttachmentTile, {
+        fileName: audioFile.name,
         src: audioPreviewUrl,
-        controls: true,
-        preload: 'metadata',
-        'aria-label': `Play ${audioFile.name}`,
-        style: { minHeight: 'var(--pf-t--global--spacer--2xl)' },
+        testId: 'sent-audio-tile',
+        playerTestId: 'sent-audio-player',
       });
     }
     const userMessage: ChatbotMessageProps = {
@@ -475,11 +475,11 @@ const useChatbotMessages = ({
       avatar: userAvatar,
       timestamp: new Date().toLocaleString(),
       ...(documentAttachments.length > 0 && { documentAttachments }),
-      ...((documentAttachments.length > 0 || audioFile) && {
-        attachments: [
-          ...documentAttachments.map(({ file_id, filename }) => ({ id: file_id, name: filename })),
-          ...(audioFile ? [{ name: audioFile.name }] : []),
-        ],
+      ...(documentAttachments.length > 0 && {
+        attachments: documentAttachments.map(({ file_id, filename }) => ({
+          id: file_id,
+          name: filename,
+        })),
       }),
       ...(Object.keys(extraContent).length > 0 && { extraContent }),
     };
