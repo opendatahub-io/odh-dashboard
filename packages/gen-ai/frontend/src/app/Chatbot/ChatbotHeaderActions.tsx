@@ -230,7 +230,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                   Clear agent
                 </DropdownItem>
               )}
-              {agentDeploymentsEnabled && profileApplied && (
+              {agentConfigManagementEnabled && agentDeploymentsEnabled && profileApplied && (
                 <DropdownItem
                   onClick={!isCompareMode ? onDeploy : undefined}
                   isAriaDisabled={isCompareMode}

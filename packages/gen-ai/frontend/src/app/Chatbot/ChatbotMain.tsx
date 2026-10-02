@@ -31,6 +31,7 @@ import { sortDeploymentsByMostRecent } from '~/app/agentProfile/deploymentUtils'
 import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
 import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlocker';
 import useFetchAgentDeployments from '~/app/AIAssets/hooks/useFetchAgentDeployments';
+import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
 import ChatbotHeader from './ChatbotHeader';
 import ChatbotPlayground from './ChatbotPlayground';
 import ChatbotHeaderActions from './ChatbotHeaderActions';
@@ -119,12 +120,13 @@ const ChatbotMain: React.FunctionComponent = () => {
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
   const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
   const loadedProfileSpec = useChatbotConfigStore((s) => s.loadedProfileSpec);
+  const { enabled: agentDeploymentsEnabled } = useGenAiAgentDeploymentEnabled();
   const { data: deployments = [], refresh: refreshDeployments } = useFetchAgentDeployments(
-    loadedProfileId ?? undefined,
+    agentDeploymentsEnabled ? (loadedProfileId ?? undefined) : undefined,
   );
   const { data: allDeployments = [], refresh: refreshAllDeployments } = useFetchAgentDeployments(
     undefined,
-    { includeAll: profileApplied },
+    { includeAll: agentDeploymentsEnabled && profileApplied },
   );
   const sortedDeployments = React.useMemo(
     () => sortDeploymentsByMostRecent(deployments),
@@ -133,7 +135,7 @@ const ChatbotMain: React.FunctionComponent = () => {
   const refreshedDeploymentProfileId = React.useRef<string | null>(null);
 
   React.useEffect(() => {
-    if (!profileApplied || !loadedProfileId) {
+    if (!agentDeploymentsEnabled || !profileApplied || !loadedProfileId) {
       refreshedDeploymentProfileId.current = null;
       return;
     }
@@ -143,7 +145,7 @@ const ChatbotMain: React.FunctionComponent = () => {
 
     refreshedDeploymentProfileId.current = loadedProfileId;
     refreshDeployments();
-  }, [loadedProfileId, profileApplied, refreshDeployments]);
+  }, [agentDeploymentsEnabled, loadedProfileId, profileApplied, refreshDeployments]);
   // Ready when: no profile to load, fetch errored, or profile fully applied (async assets settled)
   const profileReady =
     !agentProfileId ||
@@ -445,7 +447,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               onLoad={handleOpenLoad}
               onNew={handleNewAgentConfiguration}
               onDeploy={() => setDeployModalOpen(true)}
-              deployments={sortedDeployments}
+              deployments={agentDeploymentsEnabled ? sortedDeployments : []}
               onDeploymentSelect={setSelectedDeploymentName}
               onViewCode={() => {
                 setIsViewCodeModalOpen(true);
@@ -537,7 +539,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               checkMcpServerStatus={checkMcpServerStatus}
               onMcpServerTokensChange={setMcpServerTokens}
               onMcpMissingAuthServersChange={handleMcpMissingAuthServersChange}
-              deploymentCount={sortedDeployments.length}
+              deploymentCount={agentDeploymentsEnabled ? sortedDeployments.length : 0}
               onDeploymentClick={() => {
                 setSelectedDeploymentName(sortedDeployments[0].name);
               }}
@@ -598,20 +600,24 @@ const ChatbotMain: React.FunctionComponent = () => {
           onSelect={handleProfileSelected}
         />
       )}
-      {deployModalOpen && loadedProfileId && loadedProfileSpec && namespace?.name && (
-        <DeployAgentModal
-          profile={{ spec: loadedProfileSpec }}
-          namespace={namespace.name}
-          isDeploying={isDeploying || isSavingForDeployment}
-          missingMCPServerAuth={mcpServersMissingAuth}
-          existingDeploymentNames={allDeployments.map(
-            (deployment) => deployment.displayName ?? deployment.name,
-          )}
-          onDeploy={(name) => void handleDeploy(name)}
-          onClose={handleCloseDeployModal}
-        />
-      )}
-      {selectedDeploymentName && loadedProfileSpec && (
+      {agentDeploymentsEnabled &&
+        deployModalOpen &&
+        loadedProfileId &&
+        loadedProfileSpec &&
+        namespace?.name && (
+          <DeployAgentModal
+            profile={{ spec: loadedProfileSpec }}
+            namespace={namespace.name}
+            isDeploying={isDeploying || isSavingForDeployment}
+            missingMCPServerAuth={mcpServersMissingAuth}
+            existingDeploymentNames={allDeployments.map(
+              (deployment) => deployment.displayName ?? deployment.name,
+            )}
+            onDeploy={(name) => void handleDeploy(name)}
+            onClose={handleCloseDeployModal}
+          />
+        )}
+      {agentDeploymentsEnabled && selectedDeploymentName && loadedProfileSpec && (
         <AgentDeploymentsModal
           agentName={loadedProfileSpec.displayName}
           deployments={sortedDeployments}
