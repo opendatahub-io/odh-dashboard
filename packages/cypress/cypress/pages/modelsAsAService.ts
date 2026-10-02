@@ -1962,6 +1962,14 @@ class CreateExternalModelPage {
     return cy.findByTestId('provider-refs-required-info');
   }
 
+  findAdditionalConfigurationRequiredAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('additional-configuration-required-alert');
+  }
+
+  findProviderRefEditButton(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`provider-ref-edit-${index}`);
+  }
+
   findProviderRefRow(index: number): ProviderRefTableRow {
     return new ProviderRefTableRow(() => cy.findByTestId(`provider-ref-row-${index}`));
   }
