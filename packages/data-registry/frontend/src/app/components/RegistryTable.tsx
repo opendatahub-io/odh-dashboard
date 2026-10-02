@@ -45,6 +45,7 @@ import { getFormatBadge, FORMAT_OPTIONS } from '~/app/utilities/formatUtils';
 import AccessDeniedError from '~/app/components/errors/AccessDeniedError';
 import ConnectionError from '~/app/components/errors/ConnectionError';
 import ConnectionRefLink from '~/app/components/ConnectionRefLink';
+import { ConnectionModel } from '~/app/types';
 import ServiceUnavailableError from '~/app/components/errors/ServiceUnavailableError';
 import noAssetsImage from '~/images/no-assets.png';
 import DeleteAssetModal from './DeleteAssetModal';
@@ -56,6 +57,7 @@ type RegistryTableProps = {
   error: Error | undefined;
   labels: string[];
   project: string;
+  connections?: ConnectionModel[];
   onManageCollections: () => void;
   onManageLabels: () => void;
   onRegisterData: () => void;
@@ -122,6 +124,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   error,
   labels,
   project,
+  connections = [],
   onManageCollections,
   onManageLabels,
   onRegisterData,
@@ -566,6 +569,29 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                 </Dropdown>
               </ToolbarItem>
             </ToolbarGroup>
+            {assets.length > 0 && filteredAssets.length > 0 ? (
+              <ToolbarGroup align={{ default: 'alignEnd' }}>
+                <ToolbarItem>
+                  <Pagination
+                    itemCount={filteredAssets.length}
+                    perPage={perPage}
+                    page={currentPage}
+                    onSetPage={(_event, p) => setPage(p)}
+                    onPerPageSelect={(_event, pp) => {
+                      setPerPage(pp);
+                      setPage(1);
+                    }}
+                    perPageOptions={[
+                      { title: '10', value: 10 },
+                      { title: '20', value: 20 },
+                      { title: '50', value: 50 },
+                      { title: '100', value: 100 },
+                    ]}
+                    data-testid="registry-pagination"
+                  />
+                </ToolbarItem>
+              </ToolbarGroup>
+            ) : null}
           </ToolbarContent>
 
           {assets.length > 0 && hasActiveFilters ? (
@@ -666,25 +692,6 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
           ) : null}
         </Toolbar>
 
-        {assets.length > 0 && filteredAssets.length > 0 ? (
-          <Pagination
-            itemCount={filteredAssets.length}
-            perPage={perPage}
-            page={currentPage}
-            onSetPage={(_event, p) => setPage(p)}
-            onPerPageSelect={(_event, pp) => {
-              setPerPage(pp);
-              setPage(1);
-            }}
-            perPageOptions={[
-              { title: '10', value: 10 },
-              { title: '20', value: 20 },
-              { title: '50', value: 50 },
-              { title: '100', value: 100 },
-            ]}
-            data-testid="registry-pagination"
-          />
-        ) : null}
         <Table aria-label="Registry assets" data-testid="registry-table">
           {assets.length > 0 ? (
             <Thead>
@@ -744,6 +751,9 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
               paginatedAssets.map((asset) => {
                 const badge = getFormatBadge(asset.format, asset.assetType);
                 const assetKey = JSON.stringify([asset.assetType, asset.collection, asset.name]);
+                const connectionType = connections.find(
+                  (connection) => connection.name === asset.connectionRef,
+                )?.connectionType;
                 const assetTestId = (prefix: string) =>
                   `${prefix}-${asset.assetType}-${asset.collection}-${asset.name}`;
                 return (
@@ -781,10 +791,17 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                     </Td>
                     <Td dataLabel="Asset location">
                       {asset.rawAsset?.connection_ref ? (
-                        <ConnectionRefLink
-                          connectionRef={asset.rawAsset.connection_ref}
-                          linkTo={projectConnectionsUrl(project)}
-                        />
+                        <>
+                          <ConnectionRefLink
+                            connectionRef={asset.rawAsset.connection_ref}
+                            linkTo={projectConnectionsUrl(project)}
+                          />
+                          {connectionType ? (
+                            <Content component="small" data-testid="connection-type">
+                              {connectionType}
+                            </Content>
+                          ) : null}
+                        </>
                       ) : (
                         asset.connectionRef || asset.location
                       )}
