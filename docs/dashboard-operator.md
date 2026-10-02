@@ -34,12 +34,12 @@ As part of the modular architecture initiative (RHAISTRAT-1064), each component 
 | `observedGeneration` | `int64` | Last processed spec generation |
 | `url` | `string` | Externally-reachable dashboard URL |
 | `maasPortalUrl` | `string` | Last known good MaaS Portal URL; cleared when the operand is removed |
+| `moduleStatuses` | `map[string]ModuleStatus` | Per-module deployment state |
+| `releases` | `[]ComponentRelease` | Deployed component versions |
 
 The pre-DSC-v3 `maasConsumerPortal` spec and status URL fields remain accepted
 for compatibility with existing Dashboard resources. When both spellings are
 present, the DSC-v3 `maasPortal` field takes precedence.
-| `moduleStatuses` | `map[string]ModuleStatus` | Per-module deployment state |
-| `releases` | `[]ComponentRelease` | Deployed component versions |
 
 ### Platform Utilities Integration
 
