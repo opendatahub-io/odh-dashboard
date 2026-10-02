@@ -22,11 +22,14 @@ import {
 } from '~/app/api/dataRegistry';
 import { useConnections } from '~/app/hooks/useConnections';
 import { editAssetSchema, EditAssetFormData } from '~/app/schemas/editAsset.schema';
-import AssetDetailsSection from './register-data/AssetDetailsSection';
 import DataLocationSection from './register-data/DataLocationSection';
 import PropertiesSection from './register-data/PropertiesSection';
-import CustomPropertiesSection from './register-data/CustomPropertiesSection';
 import SchemaSection from './register-data/SchemaSection';
+import {
+  RegistrationAssetFormatSection,
+  RegistrationIdentitySection,
+  RegistrationOrganizationSection,
+} from './register-data/RegistrationAssetSections';
 
 type EditAssetModalProps = {
   asset: AssetResponse;
@@ -70,6 +73,10 @@ const getEnumPropertyValue = <T extends string>(
   values: readonly T[],
 ): T | '' => values.find((option) => option === value) ?? '';
 
+const getValidLabels = (labels: string[]): string[] => [
+  ...new Set(labels.map((label) => label.trim()).filter(Boolean)),
+];
+
 const getConnectionDisplayValue = (connectionRef?: ConnectionRef | null): string => {
   if (!connectionRef) {
     return '';
@@ -103,7 +110,7 @@ const buildFormDefaults = (props: EditAssetModalProps, idStart: number): EditAss
     description: asset.description ?? '',
     format: asset.format,
     collection,
-    labels: asset.labels ?? [],
+    labels: getValidLabels(asset.labels ?? []),
     connection: getConnectionDisplayValue(asset.connection_ref),
     path: asset.storage_location ?? '',
     purpose: properties.purpose || '',
@@ -149,7 +156,7 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
     return result;
   }, [asset, assetKind, collection, name, onClose, onSaved, project]);
 
-  const originalLabels = React.useMemo(() => asset.labels ?? [], [asset.labels]);
+  const originalLabels = React.useMemo(() => getValidLabels(asset.labels ?? []), [asset.labels]);
 
   const form = useForm<EditAssetFormData>({
     resolver: zodResolver(editAssetSchema),
@@ -166,8 +173,9 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
       setIsSubmitting(true);
       setError('');
 
-      const addLabels = data.labels.filter((label) => !originalLabels.includes(label));
-      const removeLabels = originalLabels.filter((label) => !data.labels.includes(label));
+      const labels = getValidLabels(data.labels);
+      const addLabels = labels.filter((label) => !originalLabels.includes(label));
+      const removeLabels = originalLabels.filter((label) => !labels.includes(label));
       const customProperties: Record<string, string> = {};
       data.customProperties.forEach((property) => {
         if (property.key && property.value) {
@@ -282,17 +290,17 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
         ) : null}
         <FormProvider {...form}>
           <Form>
-            <AssetDetailsSection isEditMode />
+            <RegistrationIdentitySection isEditMode />
             <DataLocationSection
-              pathLabel="Storage location"
               showConnection
               connections={connections}
               connectionsLoaded={connectionsLoaded}
               connectionsError={connectionsError}
             />
-            <PropertiesSection />
-            <CustomPropertiesSection />
+            <RegistrationAssetFormatSection isEditMode />
             {isTable ? <SchemaSection /> : null}
+            <RegistrationOrganizationSection isEditMode />
+            <PropertiesSection />
           </Form>
         </FormProvider>
       </ModalBody>
