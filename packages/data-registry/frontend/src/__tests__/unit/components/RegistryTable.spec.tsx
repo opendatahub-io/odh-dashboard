@@ -46,6 +46,13 @@ const renderTable = (props?: Partial<React.ComponentProps<typeof RegistryTable>>
         error={undefined}
         labels={mockLabels}
         project="test-project"
+        connections={[
+          {
+            name: 'minio-connection',
+            displayName: 'Minio connection',
+            connectionType: 's3',
+          },
+        ]}
         onManageCollections={jest.fn()}
         onManageLabels={jest.fn()}
         onRegisterData={jest.fn()}
@@ -80,6 +87,7 @@ describe('RegistryTable', () => {
 
     const connectionLink = screen.getByRole('link', { name: 'minio-connection' });
     expect(connectionLink).toHaveAttribute('href', '/projects/test-project?section=connections');
+    expect(screen.getByTestId('connection-type')).toHaveTextContent('s3');
   });
 
   it('should keep a location-only asset location as plain text', () => {
@@ -127,6 +135,9 @@ describe('RegistryTable', () => {
     expect(screen.getByTestId('filter-value')).toBeTruthy();
     expect(screen.getByTestId('asset-search')).toBeTruthy();
     expect(screen.getByTestId('register-data-button')).toBeTruthy();
+    expect(screen.getByTestId('registry-toolbar')).toContainElement(
+      screen.getByTestId('registry-pagination'),
+    );
   });
 
   it('should show a disabled empty state when no labels are available', () => {

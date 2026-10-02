@@ -21,6 +21,7 @@ import './DataRegistryPage.scss';
 import { useCollections } from '~/app/hooks/useCollections';
 import { useAssets } from '~/app/hooks/useAssets';
 import { useLabels } from '~/app/hooks/useLabels';
+import { useConnections } from '~/app/hooks/useConnections';
 import { is503Error, is403Error, isConnectionError } from '~/app/api/dataRegistry';
 import RegistryTable from '~/app/components/RegistryTable';
 import ManageCollectionsModal from '~/app/components/ManageCollectionsModal';
@@ -178,6 +179,7 @@ const DataRegistryPage: React.FC = () => {
     collectionNames,
   );
   const [labels, , , labelsRefresh] = useLabels(selectedProject);
+  const [connections] = useConnections(selectedProject);
 
   const hasWriteAccess = !is403Error(assetsError) && !is403Error(collectionsError);
 
@@ -332,6 +334,7 @@ const DataRegistryPage: React.FC = () => {
             error={assetsError ?? collectionsError}
             labels={labels}
             project={selectedProject}
+            connections={connections}
             onManageCollections={() => {
               if (!collectionsError) {
                 setIsCollectionsModalOpen(true);
