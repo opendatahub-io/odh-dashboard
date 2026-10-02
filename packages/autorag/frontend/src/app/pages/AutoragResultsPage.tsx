@@ -46,12 +46,7 @@ import {
   TrackingOutcome,
 } from '~/app/utilities/tracking';
 import type { PlaygroundOpenedSource, ViewCodeEntrySource } from '~/app/utilities/tracking';
-import {
-  getPatternStoreProvider,
-  isResponsesProvider,
-  resolveDatabaseSecretName,
-  resolveMaaSSecretName,
-} from '~/app/utilities/responses';
+import { canUseResponsesForPattern, getPatternCollectionName } from '~/app/utilities/responses';
 
 type DrawerContentType =
   | { type: 'run-details' }
@@ -67,9 +62,7 @@ export const buildResponsesTemplate = (
   runId: string | undefined,
 ): ResponsesTemplate => {
   const { generation, retrieval } = pattern.settings;
-  const { settings } = pattern;
-  const storeBinding = settings.store_binding ?? settings.vector_store_binding;
-  const collectionName = storeBinding?.collection_name;
+  const collectionName = getPatternCollectionName(pattern);
   const isHybrid = retrieval.search_mode === 'hybrid';
 
   return {
@@ -85,7 +78,7 @@ export const buildResponsesTemplate = (
       },
     ],
     metadata: {
-      autorag_run_id: runId ?? '',
+      ...(runId?.trim() ? { autorag_run_id: runId.trim() } : {}),
       rag_pattern_name: pattern.name,
     },
     instructions: '',
@@ -111,21 +104,28 @@ export const buildResponsesTemplate = (
 };
 
 /* eslint-disable camelcase */
-export const normalizeResponsesTemplate = (template: ResponsesTemplate): ResponsesTemplate => ({
-  ...template,
-  tools: template.tools.map((tool) => {
-    if (!tool.ranking_options) {
-      return tool;
-    }
-    return {
-      ...tool,
-      ranking_options: {
-        ranker: 'rrf',
-        alpha: Number.isFinite(tool.ranking_options.alpha) ? tool.ranking_options.alpha : 0.5,
-      },
-    };
-  }),
-});
+export const normalizeResponsesTemplate = (template: ResponsesTemplate): ResponsesTemplate => {
+  const { autorag_run_id: runId, ...metadata } = template.metadata;
+  return {
+    ...template,
+    metadata: {
+      ...metadata,
+      ...(runId?.trim() ? { autorag_run_id: runId.trim() } : {}),
+    },
+    tools: template.tools.map((tool) => {
+      if (!tool.ranking_options) {
+        return tool;
+      }
+      return {
+        ...tool,
+        ranking_options: {
+          ranker: 'rrf',
+          alpha: Number.isFinite(tool.ranking_options.alpha) ? tool.ranking_options.alpha : 0.5,
+        },
+      };
+    }),
+  };
+};
 /* eslint-enable camelcase */
 function AutoragResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
@@ -337,7 +337,7 @@ function AutoragResultsPage(): React.JSX.Element {
   const openPlaygroundForPattern = React.useCallback(
     (patternName: string): boolean => {
       const pattern = patterns[patternName];
-      if (!pattern) {
+      if (!pattern || !canUseResponsesForPattern(contextValue.parameters, pattern)) {
         return false;
       }
       const responsesTemplate = normalizeResponsesTemplate(
@@ -360,7 +360,7 @@ function AutoragResultsPage(): React.JSX.Element {
       });
       return true;
     },
-    [contextValue.optimizationMetric, patterns, pipelineRun?.run_id],
+    [contextValue.optimizationMetric, contextValue.parameters, patterns, pipelineRun?.run_id],
   );
   /* eslint-enable @typescript-eslint/no-unnecessary-condition */
 
@@ -381,23 +381,18 @@ function AutoragResultsPage(): React.JSX.Element {
   const handleViewCode = React.useCallback(
     (patternName: string, source: ViewCodeEntrySource) => {
       const pattern = patterns[patternName];
-      if (
-        !resolveDatabaseSecretName(contextValue.parameters) ||
-        !resolveMaaSSecretName(contextValue.parameters) ||
-        !isResponsesProvider(getPatternStoreProvider(pattern))
-      ) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (!pattern || !canUseResponsesForPattern(contextValue.parameters, pattern)) {
         return;
       }
       const persistedTemplate = pattern.inference?.responses_template;
       const responsesTemplate = persistedTemplate
         ? normalizeResponsesTemplate(persistedTemplate)
-        : undefined;
-      if (responsesTemplate) {
-        setViewCodePattern({ patternName, responsesTemplate });
-        fireAutoragCodeSnippetsExported('viewed', source);
-      }
+        : normalizeResponsesTemplate(buildResponsesTemplate(pattern, pipelineRun?.run_id));
+      setViewCodePattern({ patternName, responsesTemplate });
+      fireAutoragCodeSnippetsExported('viewed', source);
     },
-    [contextValue.parameters, patterns],
+    [contextValue.parameters, patterns, pipelineRun?.run_id],
   );
 
   return (

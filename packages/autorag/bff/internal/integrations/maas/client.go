@@ -130,7 +130,7 @@ func (c *Client) Embed(ctx context.Context, model, text string) ([]float32, erro
 type ChatRequest struct {
 	Model       string
 	Messages    []openai.ChatCompletionMessageParamUnion
-	Temperature float32
+	Temperature *float32
 	MaxTokens   int
 	Stream      bool
 }
@@ -145,8 +145,8 @@ func chatParams(req ChatRequest) openai.ChatCompletionNewParams {
 		Model:    req.Model,
 		Messages: req.Messages,
 	}
-	if req.Temperature != 0 {
-		params.Temperature = openai.Float(float64(req.Temperature))
+	if req.Temperature != nil {
+		params.Temperature = openai.Float(float64(*req.Temperature))
 	}
 	if req.MaxTokens != 0 {
 		params.MaxTokens = openai.Int(int64(req.MaxTokens))

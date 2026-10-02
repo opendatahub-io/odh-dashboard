@@ -19,7 +19,7 @@ type ResponsesTemplate = {
         }>;
       }>;
   metadata: {
-    autorag_run_id: string;
+    autorag_run_id?: string;
     rag_pattern_name: string;
   };
   instructions: string;

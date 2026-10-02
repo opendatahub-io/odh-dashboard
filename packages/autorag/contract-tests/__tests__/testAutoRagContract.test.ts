@@ -95,6 +95,11 @@ describe('AutoRAG API Contract Tests', () => {
       );
       expect(result.success).toBe(false);
       expect(result.error?.status).toBe(400);
+      expect(result.error?.data).toEqual(
+        expect.objectContaining({
+          error: expect.objectContaining({ code: '400', message: expect.any(String) }),
+        }),
+      );
     });
 
     it('should reject a request missing the database secret query parameter', async () => {
@@ -104,6 +109,11 @@ describe('AutoRAG API Contract Tests', () => {
       );
       expect(result.success).toBe(false);
       expect(result.error?.status).toBe(400);
+      expect(result.error?.data).toEqual(
+        expect.objectContaining({
+          error: expect.objectContaining({ code: '400', message: expect.any(String) }),
+        }),
+      );
     });
 
     it('should reject a request missing the model', async () => {
@@ -115,6 +125,11 @@ describe('AutoRAG API Contract Tests', () => {
       );
       expect(result.success).toBe(false);
       expect(result.error?.status).toBe(400);
+      expect(result.error?.data).toEqual(
+        expect.objectContaining({
+          error: expect.objectContaining({ code: '400', message: expect.any(String) }),
+        }),
+      );
     });
 
     it('should reject an explicit null input', async () => {
@@ -124,6 +139,11 @@ describe('AutoRAG API Contract Tests', () => {
       );
       expect(result.success).toBe(false);
       expect(result.error?.status).toBe(400);
+      expect(result.error?.data).toEqual(
+        expect.objectContaining({
+          error: expect.objectContaining({ code: '400', message: expect.any(String) }),
+        }),
+      );
     });
 
     it('should reject max_output_tokens above the documented cap', async () => {
@@ -133,6 +153,11 @@ describe('AutoRAG API Contract Tests', () => {
       );
       expect(result.success).toBe(false);
       expect(result.error?.status).toBe(400);
+      expect(result.error?.data).toEqual(
+        expect.objectContaining({
+          error: expect.objectContaining({ code: '400', message: expect.any(String) }),
+        }),
+      );
     });
   });
 

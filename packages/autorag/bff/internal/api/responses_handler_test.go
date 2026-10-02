@@ -236,6 +236,30 @@ func TestHandleResponsesEndpoint_NonStreaming(t *testing.T) {
 			wantBodySubstr: "requires ranking_options.ranker",
 		},
 		{
+			name:           "missing embedding model returns 400 without calling repository",
+			body:           strings.Replace(validResponsesBody, `"embedding_model": "emb-model"`, "", 1),
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "metadata.embedding_model is required",
+		},
+		{
+			name:           "missing file search configuration returns 400 without calling repository",
+			body:           strings.Replace(validResponsesBody, `"tools": [{"type":"file_search","vector_store_ids":["col1"]}],`, "", 1),
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "no file_search tool",
+		},
+		{
+			name:           "negative max_num_results returns 400 without calling repository",
+			body:           strings.Replace(validResponsesBody, `"vector_store_ids":["col1"]`, `"vector_store_ids":["col1"],"max_num_results":-1`, 1),
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "between 0 and 100",
+		},
+		{
+			name:           "out of range temperature returns 400 without calling repository",
+			body:           strings.Replace(validResponsesBody, `"model": "test-model",`, `"model": "test-model", "temperature": 2.1,`, 1),
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "temperature must be between 0 and 2",
+		},
+		{
 			name:           "k8s not found returns 404",
 			body:           validResponsesBody,
 			repoResult:     nil,
@@ -262,6 +286,14 @@ func TestHandleResponsesEndpoint_NonStreaming(t *testing.T) {
 			repoResult:     nil,
 			repoErr:        fmt.Errorf("chat: %w", maas.ErrMaasUnavailable),
 			wantStatusCode: http.StatusBadGateway,
+		},
+		{
+			name:           "typed maas upstream error is safe",
+			body:           validResponsesBody,
+			repoResult:     nil,
+			repoErr:        fmt.Errorf("provider https://secret.example/key: %w", maas.NewMaaSError(maas.ErrCodeServerUnavailable, "provider response body", http.StatusServiceUnavailable)),
+			wantStatusCode: http.StatusServiceUnavailable,
+			wantBodySubstr: "MaaS service temporarily unavailable",
 		},
 		{
 			name:           "oversized maas response returns 503 with safe message",

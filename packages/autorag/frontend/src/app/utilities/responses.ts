@@ -41,5 +41,22 @@ export const getPatternStoreProvider = (
   return normalizeStoreBindingProviderType(binding?.provider_type);
 };
 
+export const getPatternCollectionName = (pattern?: AutoragPattern): string | undefined => {
+  const binding = pattern?.settings.store_binding ?? pattern?.settings.vector_store_binding;
+  const collection = binding?.collection_name;
+  return typeof collection === 'string' && collection.trim() !== '' ? collection.trim() : undefined;
+};
+
 export const isResponsesProvider = (provider?: AutoragProviderType): boolean =>
   provider === 'milvus' || provider === 'pgvector';
+
+export const canUseResponsesForPattern = (
+  parameters: Record<string, unknown> | undefined,
+  pattern?: AutoragPattern,
+): boolean =>
+  Boolean(
+    resolveDatabaseSecretName(parameters) &&
+    resolveMaaSSecretName(parameters) &&
+    isResponsesProvider(getPatternStoreProvider(pattern)) &&
+    getPatternCollectionName(pattern),
+  );

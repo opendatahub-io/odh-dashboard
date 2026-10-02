@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -62,11 +63,10 @@ func newPgvectorFromSecret(ctx context.Context, data map[string][]byte) (VectorD
 		return nil, fmt.Errorf("pgvector: %w", err)
 	}
 
-	// Build the connection config from an sslmode-only DSN, then assign
-	// user-controlled values (host, credentials) as struct fields directly.
-	// Avoids DSN string interpolation, which a password containing spaces,
-	// quotes, or backslashes can break or use to inject extra keywords.
-	connConfig, err := pgx.ParseConfig("sslmode=" + sslMode)
+	// Parse the config with the validated endpoint already present so pgx can
+	// derive host-dependent TLS behavior from the real destination. Credentials
+	// are still assigned as fields to avoid DSN interpolation.
+	connConfig, err := pgx.ParseConfig("postgres://" + net.JoinHostPort(endpoint.host, endpoint.port) + "/?sslmode=" + url.QueryEscape(sslMode))
 	if err != nil {
 		return nil, fmt.Errorf("pgvector parse config: %w", err)
 	}
@@ -88,7 +88,7 @@ func newPgvectorFromSecret(ctx context.Context, data map[string][]byte) (VectorD
 		}
 		connConfig.TLSConfig = &tls.Config{
 			RootCAs:    pool,
-			ServerName: host,
+			ServerName: endpoint.host,
 			MinVersion: tls.VersionTLS12,
 		}
 	}
