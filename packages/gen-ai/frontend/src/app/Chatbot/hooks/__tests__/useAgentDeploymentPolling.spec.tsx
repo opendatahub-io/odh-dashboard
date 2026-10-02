@@ -1,7 +1,9 @@
 import { act, renderHook } from '@testing-library/react';
 import useAgentDeploymentPolling from '~/app/Chatbot/hooks/useAgentDeploymentPolling';
+import type { AgentDeploymentSummary } from '~/app/agentProfile/types';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { useNotification } from '~/app/hooks/useNotification';
+import { ApiErrorClass } from '~/app/types';
 
 jest.mock('~/app/hooks/useGenAiAPI', () => ({
   useGenAiAPI: jest.fn(),
@@ -159,5 +161,95 @@ describe('useAgentDeploymentPolling', () => {
 
     await act(async () => jest.advanceTimersByTimeAsync(3000));
     expect(getAgentDeployment).toHaveBeenCalledTimes(2);
+  });
+
+  it('should stop polling when the deployment is not found', async () => {
+    const createAgentDeployment = jest.fn().mockResolvedValue(createResponse);
+    const getAgentDeployment = jest.fn().mockRejectedValue(
+      new ApiErrorClass({
+        component: 'bff',
+        code: 'not_found',
+        message: 'agent deployment not found',
+        retriable: false,
+      }),
+    );
+    mockUseGenAiAPI.mockReturnValue({
+      apiAvailable: true,
+      api: { createAgentDeployment, getAgentDeployment },
+      refreshAllAPI: jest.fn(),
+    } as unknown as ReturnType<typeof useGenAiAPI>);
+
+    const { result } = renderHook(() => useAgentDeploymentPolling());
+    await act(async () => result.current.startAgentDeployment(startOptions));
+
+    expect(getAgentDeployment).toHaveBeenCalledTimes(1);
+    expect(notification.error).toHaveBeenCalledWith(
+      'hr-chatbot failed to deploy',
+      'The deployment could not be found. It may have been deleted.',
+    );
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it('should stop polling and warn after 100 attempts', async () => {
+    const createAgentDeployment = jest.fn().mockResolvedValue(createResponse);
+    const getAgentDeployment = jest.fn().mockResolvedValue({
+      name: createResponse.sandboxName,
+      namespace: 'my-project',
+      agentProfileId: 'profile-id',
+      state: 'creating',
+      createdAt: '2026-10-02T00:00:00Z',
+    });
+    mockUseGenAiAPI.mockReturnValue({
+      apiAvailable: true,
+      api: { createAgentDeployment, getAgentDeployment },
+      refreshAllAPI: jest.fn(),
+    } as unknown as ReturnType<typeof useGenAiAPI>);
+
+    const { result } = renderHook(() => useAgentDeploymentPolling());
+    await act(async () => result.current.startAgentDeployment(startOptions));
+    await act(async () => jest.advanceTimersByTimeAsync(99 * 3000));
+
+    expect(getAgentDeployment).toHaveBeenCalledTimes(100);
+    expect(notification.warning).toHaveBeenCalledWith(
+      'hr-chatbot is still deploying',
+      'Check the deployment status later.',
+    );
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it('should not restart polling when an in-flight request resolves after unmount', async () => {
+    const createAgentDeployment = jest.fn().mockResolvedValue(createResponse);
+    let resolveDeployment: (deployment: AgentDeploymentSummary) => void = () => undefined;
+    const deploymentRequest = new Promise<AgentDeploymentSummary>((resolve) => {
+      resolveDeployment = resolve;
+    });
+    const getAgentDeployment = jest.fn().mockReturnValue(deploymentRequest);
+    mockUseGenAiAPI.mockReturnValue({
+      apiAvailable: true,
+      api: { createAgentDeployment, getAgentDeployment },
+      refreshAllAPI: jest.fn(),
+    } as unknown as ReturnType<typeof useGenAiAPI>);
+
+    const { result, unmount } = renderHook(() => useAgentDeploymentPolling());
+    let startDeployment: Promise<void> = Promise.resolve();
+    await act(async () => {
+      startDeployment = result.current.startAgentDeployment(startOptions);
+      await Promise.resolve();
+    });
+
+    unmount();
+    resolveDeployment({
+      name: createResponse.sandboxName,
+      namespace: 'my-project',
+      agentProfileId: 'profile-id',
+      state: 'creating',
+      createdAt: '2026-10-02T00:00:00Z',
+    });
+    await act(async () => startDeployment);
+
+    expect(jest.getTimerCount()).toBe(0);
+    expect(notification.info).not.toHaveBeenCalled();
   });
 });

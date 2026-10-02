@@ -2,9 +2,11 @@ import * as React from 'react';
 import { AgentDeploymentCreateResponse, AgentDeploymentSummary } from '~/app/agentProfile/types';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { useNotification } from '~/app/hooks/useNotification';
+import { isApiError } from '~/app/types';
 
 const POLL_INTERVAL_MS = 3000;
 const INITIAL_POLL_ATTEMPTS = 3;
+const MAX_POLL_ATTEMPTS = 100;
 
 type StartAgentDeploymentOptions = {
   name: string;
@@ -75,21 +77,38 @@ const useAgentDeploymentPolling = (): UseAgentDeploymentPollingReturn => {
         return;
       }
 
+      if (isUnmountedRef.current) {
+        return;
+      }
+
       onCreated?.();
 
       const poll = async (attempt: number, notifiedStarted: boolean): Promise<void> => {
         let deploymentStatus: AgentDeploymentSummary | undefined;
         try {
           deploymentStatus = await api.getAgentDeployment({ id: deployment.sandboxName });
-        } catch {
+        } catch (error) {
+          if (isApiError(error) && error.error.code === 'not_found') {
+            notification.error(
+              `${name} failed to deploy`,
+              'The deployment could not be found. It may have been deleted.',
+            );
+            if (!isUnmountedRef.current) {
+              setIsDeploying(false);
+            }
+            onComplete();
+            return;
+          }
           // A transient GET failure should not stop creation monitoring. The next poll may succeed.
+        }
+
+        if (isUnmountedRef.current) {
+          return;
         }
 
         if (deploymentStatus?.state === 'ready') {
           notification.success(`${name} deployed successfully`);
-          if (!isUnmountedRef.current) {
-            setIsDeploying(false);
-          }
+          setIsDeploying(false);
           onComplete();
           return;
         }
@@ -99,9 +118,14 @@ const useAgentDeploymentPolling = (): UseAgentDeploymentPollingReturn => {
             `${name} failed to deploy`,
             deploymentStatus.lastError ?? 'The deployment could not be created.',
           );
-          if (!isUnmountedRef.current) {
-            setIsDeploying(false);
-          }
+          setIsDeploying(false);
+          onComplete();
+          return;
+        }
+
+        if (attempt >= MAX_POLL_ATTEMPTS) {
+          notification.warning(`${name} is still deploying`, 'Check the deployment status later.');
+          setIsDeploying(false);
           onComplete();
           return;
         }
@@ -109,17 +133,21 @@ const useAgentDeploymentPolling = (): UseAgentDeploymentPollingReturn => {
         const shouldNotifyStarted = !notifiedStarted && attempt >= INITIAL_POLL_ATTEMPTS;
         if (shouldNotifyStarted) {
           notification.info(`Deploying ${name} to ${namespace}...`);
-          if (!isUnmountedRef.current) {
-            setIsDeploying(false);
-          }
+          setIsDeploying(false);
           onStarted();
         }
 
-        const timeoutId = setTimeout(() => {
-          timeoutIdsRef.current = timeoutIdsRef.current.filter((id) => id !== timeoutId);
-          void poll(attempt + 1, notifiedStarted || shouldNotifyStarted);
-        }, POLL_INTERVAL_MS);
-        timeoutIdsRef.current.push(timeoutId);
+        const scheduleNextPoll = () => {
+          if (isUnmountedRef.current) {
+            return;
+          }
+          const timeoutId = setTimeout(() => {
+            timeoutIdsRef.current = timeoutIdsRef.current.filter((id) => id !== timeoutId);
+            void poll(attempt + 1, notifiedStarted || shouldNotifyStarted);
+          }, POLL_INTERVAL_MS);
+          timeoutIdsRef.current.push(timeoutId);
+        };
+        scheduleNextPoll();
       };
 
       await poll(1, false);
