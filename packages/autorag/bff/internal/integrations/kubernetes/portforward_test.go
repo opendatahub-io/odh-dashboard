@@ -657,16 +657,23 @@ func TestPortForwardManager_CloseIsIdempotent(t *testing.T) {
 	manager.Close()
 }
 
-func TestPortForwardManager_RejectsCrossNamespaceBeforeLookup(t *testing.T) {
-	manager := newTestPortForwardManager(k8sfake.NewSimpleClientset())
+func TestPortForwardManager_AllowsCrossNamespaceServiceForwarding(t *testing.T) {
+	// The request namespace owns the database Secret, while the service can be
+	// shared from another namespace during local development.
+	//nolint:staticcheck // The production resolver currently reads the Endpoints API.
+	clientset := k8sfake.NewSimpleClientset(&corev1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{Name: "milvus", Namespace: "milvus"},
+		//nolint:staticcheck // The production resolver currently reads the Endpoints API.
+		Subsets: []corev1.EndpointSubset{{Addresses: []corev1.EndpointAddress{{TargetRef: &corev1.ObjectReference{Kind: "Pod", Name: "milvus-0"}}}}},
+	})
+	manager := newTestPortForwardManager(clientset)
 	manager.createForwardFn = func(context.Context, string, string, int) (*activeForward, error) {
-		t.Fatal("forward creation must not start for a namespace mismatch")
-		return nil, nil
+		return &activeForward{localPort: 4567, stopChan: make(chan struct{}), errChan: make(chan error, 1)}, nil
 	}
 
-	got, err := manager.ForwardURL(context.Background(), "team-b", "http://milvus.team-a.svc.cluster.local:19530")
-	if got != "" || err == nil || !strings.Contains(err.Error(), "namespace does not match") {
-		t.Fatalf("ForwardURL() = %q, %v; want namespace mismatch", got, err)
+	got, err := manager.ForwardURL(context.Background(), "dduong-36-ga", "http://milvus.milvus.svc.cluster.local:19530")
+	if err != nil || got != "http://localhost:4567" {
+		t.Fatalf("ForwardURL() = %q, %v; want cross-namespace forwarding", got, err)
 	}
 }
 

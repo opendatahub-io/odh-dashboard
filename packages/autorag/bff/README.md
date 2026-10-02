@@ -292,6 +292,8 @@ When running in dev mode (via `make dev-start-federated`), the BFF uses **dynami
 
 Under the covers, the BFF discovers the DSPipelineApplication (DSPA) in the target namespace, identifies the pipeline server and any managed MinIO services, and sets up local port-forwards on-demand. The forwarded connections are managed for the lifetime of the BFF process and cleaned up automatically on shutdown.
 
+In local DevMode only, a database Secret selected in the request namespace may refer to a Kubernetes Service in another namespace, such as `milvus.milvus.svc.cluster.local` for a request in `dduong-36-ga`. The developer-kubeconfig credentials used by the BFF must be authorized to read the request namespace Secret and create the required Kubernetes port-forward. This cross-namespace forwarding is not enabled or used by production BFF deployments.
+
 This means you can simply start the BFF in dev mode and it will handle all service connectivity transparently using your current kubeconfig context.
 
 ### Enabling CORS
