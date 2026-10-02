@@ -1,23 +1,16 @@
 import React from 'react';
-import { FormGroup, TextInput, Button, Content, Flex, FlexItem } from '@patternfly/react-core';
+import { FormGroup, TextInput, Button, Flex, FlexItem } from '@patternfly/react-core';
 import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { useFieldArray, useFormContext } from 'react-hook-form';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
 import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
 
-type CustomPropertiesSectionProps = {
-  description?: string;
-};
-
-const CustomPropertiesSection: React.FC<CustomPropertiesSectionProps> = ({
-  description = 'Add key/value pair annotations to attach metadata to this asset.',
-}) => {
+const CustomPropertiesSection: React.FC = () => {
   const { control, register } = useFormContext<RegisterDataFormData | EditAssetFormData>();
   const { fields, append, remove } = useFieldArray({ control, name: 'customProperties' });
 
   const content = (
     <FormGroup fieldId="data-custom-properties">
-      <Content component="p">{description}</Content>
       {fields.map((field, index) => (
         <Flex key={field.id} gap={{ default: 'gapMd' }} className="pf-v6-u-mb-xs">
           <FlexItem grow={{ default: 'grow' }}>
@@ -52,7 +45,7 @@ const CustomPropertiesSection: React.FC<CustomPropertiesSectionProps> = ({
         onClick={() => append({ id: Date.now(), key: '', value: '' })}
         data-testid="data-add-custom-property"
       >
-        Add key/value pair
+        Add key-value pair
       </Button>
     </FormGroup>
   );

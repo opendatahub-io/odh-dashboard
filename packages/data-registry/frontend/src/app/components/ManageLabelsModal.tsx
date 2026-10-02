@@ -114,17 +114,9 @@ const ManageLabelsModal: React.FC<ManageLabelsModalProps> = ({
     <Modal isOpen={isOpen} onClose={handleClose} variant="large" data-testid="manage-labels-modal">
       <ModalHeader
         title="Manage labels"
-        description="Create and delete labels to manage how assets are organized across this project."
+        description="View and manage this project’s labels. Optionally use labels to organize and filter your data assets."
       />
       <ModalBody>
-        <Alert
-          variant="info"
-          isInline
-          title="Changes affect all project assets"
-          className="pf-v6-u-mb-md"
-        >
-          Deleting a label removes it from every asset using it within this project.
-        </Alert>
         {actionError ? (
           <Alert
             variant="danger"
@@ -164,7 +156,7 @@ const ManageLabelsModal: React.FC<ManageLabelsModalProps> = ({
           <Thead>
             <Tr>
               <Th>Label</Th>
-              <Th>Assets</Th>
+              <Th>Data assets</Th>
               <Th screenReaderText="Actions" />
             </Tr>
           </Thead>
@@ -180,7 +172,7 @@ const ManageLabelsModal: React.FC<ManageLabelsModalProps> = ({
                       <TextInput
                         value={newLabelName}
                         onChange={(_event, value) => setNewLabelName(value)}
-                        placeholder="Enter label name"
+                        placeholder="New label"
                         aria-label="New label name"
                         isDisabled={isSubmitting}
                         onKeyDown={(e) => {
@@ -234,7 +226,7 @@ const ManageLabelsModal: React.FC<ManageLabelsModalProps> = ({
                     {labelInfo.name}
                   </Label>
                 </Td>
-                <Td dataLabel="Assets">
+                <Td dataLabel="Data assets">
                   {labelInfo.assetNames.length > 0 ? labelInfo.assetNames.join(', ') : '–'}
                 </Td>
                 <Td isActionCell>

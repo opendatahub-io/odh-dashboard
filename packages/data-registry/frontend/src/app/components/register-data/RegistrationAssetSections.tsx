@@ -31,22 +31,22 @@ import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
 type AssetFormData = RegisterDataFormData | EditAssetFormData;
 
 const UNSTRUCTURED_FORMATS = [
-  { key: 'documents', label: 'Documents', description: 'Text, PDFs, and office files' },
-  { key: 'images', label: 'Images', description: 'Photos, graphics, and medical scans' },
-  { key: 'audio', label: 'Audio', description: 'Speech, music, and sound recordings' },
-  { key: 'video', label: 'Video', description: 'Clips, recordings, and video streams' },
-  { key: 'binary', label: 'Binary', description: 'Models, code, and compressed archives' },
-  { key: 'other', label: 'Other unstructured', description: 'Custom or uncategorized formats' },
+  { key: 'documents', label: 'Documents' },
+  { key: 'images', label: 'Images' },
+  { key: 'audio', label: 'Audio' },
+  { key: 'video', label: 'Video' },
+  { key: 'binary', label: 'Binary' },
+  { key: 'other', label: 'Other unstructured' },
 ];
 
 const STRUCTURED_FORMATS = [
-  { key: 'iceberg', label: 'Apache Iceberg', description: 'Iceberg table with metadata catalog' },
-  { key: 'parquet', label: 'Apache Parquet', description: 'Raw columnar data files' },
-  { key: 'csv', label: 'CSV', description: 'Structured delimited text files' },
-  { key: 'delta', label: 'Delta Lake', description: 'Delta table with transaction log' },
-  { key: 'postgresql', label: 'PostgreSQL', description: 'Relational database table or view' },
-  { key: 'milvus', label: 'Milvus', description: 'Vector database collection' },
-  { key: 'other', label: 'Other structured', description: 'Custom or uncategorized formats' },
+  { key: 'iceberg', label: 'Apache Iceberg' },
+  { key: 'parquet', label: 'Apache Parquet' },
+  { key: 'csv', label: 'CSV' },
+  { key: 'delta', label: 'Delta Lake' },
+  { key: 'postgresql', label: 'PostgreSQL' },
+  { key: 'milvus', label: 'Milvus' },
+  { key: 'other', label: 'Other structured' },
 ];
 
 const DEFAULT_FORMATS: Record<string, string> = {
@@ -143,7 +143,7 @@ export const RegistrationAssetFormatSection: React.FC<EditModeProps> = ({ isEdit
         fieldId="asset-type"
         labelHelp={
           isEditMode ? undefined : (
-            <Popover bodyContent="Unstructured assets are file-based volumes. Structured assets represent tabular data with defined columns and types.">
+            <Popover bodyContent="Structured formats such as iceberg, parquet, and SQL databases have a defined schema. Unstructured formats such as PDFs and images represent raw data.">
               <Icon aria-label="Asset type info" role="button">
                 <OutlinedQuestionCircleIcon />
               </Icon>
@@ -236,15 +236,12 @@ export const RegistrationAssetFormatSection: React.FC<EditModeProps> = ({ isEdit
             >
               <SelectList>
                 {isEditMode && !formatOptions.some((format) => format.key === field.value) ? (
-                  <SelectOption value={field.value} description="Current value">
-                    {field.value}
-                  </SelectOption>
+                  <SelectOption value={field.value}>{field.value}</SelectOption>
                 ) : null}
                 {formatOptions.map((option) => (
                   <SelectOption
                     key={option.key}
                     value={option.key}
-                    description={option.description}
                     data-testid={`data-format-option-${option.key}`}
                   >
                     {option.label}

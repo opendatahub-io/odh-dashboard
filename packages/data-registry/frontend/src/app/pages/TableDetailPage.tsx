@@ -16,6 +16,7 @@ import {
   FlexItem,
   Label,
   MenuToggle,
+  Divider,
   Tab,
   Tabs,
   TabContent,
@@ -175,9 +176,11 @@ const TableDetailPage: React.FC = () => {
           >
             Edit
           </DropdownItem>
+          <Divider component="li" />
           <DropdownItem
             key="delete"
             onClick={() => setIsDeleteModalOpen(true)}
+            isDanger
             data-testid="asset-action-delete"
           >
             Delete

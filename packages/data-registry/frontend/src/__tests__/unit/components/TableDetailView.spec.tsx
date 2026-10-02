@@ -20,6 +20,7 @@ describe('TableDetailView', () => {
     renderView(asset);
 
     expect(screen.getByTestId('data-details-card')).toBeTruthy();
+    expect(screen.getByTestId('asset-name')).toHaveTextContent('test-table');
     expect(screen.getByTestId('asset-description')).toHaveTextContent(
       'A test table for unit testing',
     );
