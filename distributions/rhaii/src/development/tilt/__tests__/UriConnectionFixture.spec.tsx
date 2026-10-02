@@ -39,4 +39,24 @@ describe('UriConnectionFixture', () => {
       'oci://registry.example.test/model',
     );
   });
+
+  it('trims the URI on blur', () => {
+    const onChange = jest.fn();
+    const connectionType = createTiltUriConnectionType('opendatahub');
+
+    render(
+      <UriConnectionFormFields
+        fields={connectionType.data?.fields}
+        onChange={onChange}
+        connectionValues={{ URI: '  oci://registry.example.test/model  ' }}
+      />,
+    );
+
+    fireEvent.blur(screen.getByTestId('rhaii-tilt-model-uri'));
+
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ envVar: 'URI' }),
+      'oci://registry.example.test/model',
+    );
+  });
 });

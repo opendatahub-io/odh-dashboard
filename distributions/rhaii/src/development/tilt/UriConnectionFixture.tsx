@@ -5,6 +5,7 @@ import {
   type ConnectionTypeConfigMapObj,
 } from '@odh-dashboard/k8s-core';
 import type { HostApiServices } from '@odh-dashboard/plugin-core/host-api';
+import { trimInputOnBlur, trimInputOnPaste } from '@odh-dashboard/ui-core/utilities';
 
 export const createTiltUriConnectionType = (namespace: string): ConnectionTypeConfigMapObj => ({
   apiVersion: 'v1',
@@ -51,16 +52,21 @@ const UriConnectionFormFields: HostApiServices['ConnectionTypeFormFields'] = ({
   }
 
   const currentValue = connectionValues?.[uriField.envVar];
+  const stringValue = typeof currentValue === 'string' ? currentValue : '';
+  const handleChange = (value: string) => onChange?.(uriField, value);
 
   return (
     <FormGroup label={uriField.name} fieldId="rhaii-tilt-model-uri" isRequired={uriField.required}>
       <TextInput
+        autoComplete="off"
         id="rhaii-tilt-model-uri"
         data-testid="rhaii-tilt-model-uri"
-        value={typeof currentValue === 'string' ? currentValue : ''}
+        value={stringValue}
         isDisabled={isDisabled}
         isRequired={uriField.required}
-        onChange={(_event, value) => onChange?.(uriField, value)}
+        onChange={(_event, value) => handleChange(value)}
+        onBlur={trimInputOnBlur(stringValue, handleChange)}
+        onPaste={trimInputOnPaste(handleChange)}
       />
     </FormGroup>
   );
