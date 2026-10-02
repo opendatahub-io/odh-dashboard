@@ -5,6 +5,7 @@
  *   /develop-train/mlflow — redirects to experiments
  *   /develop-train/mlflow/experiments — Experiments list / detail
  *   /gen-ai-studio/prompts — Prompt management
+ *   /observe-and-monitor/agent-observability — Agent observability list / detail
  */
 
 export const mlflowRootPath = '/develop-train/mlflow';
@@ -50,6 +51,15 @@ export const globPromptManagementAll = `${promptManagementPath}/*`;
 
 export const mlflowPromptManagementBaseRoute = (namespace?: string): string =>
   withWorkspace(promptManagementPath, namespace);
+
+export const mlflowPromptRoute = (promptName: string, namespace?: string): string =>
+  withWorkspace(`${promptManagementPath}/prompts/${encodeURIComponent(promptName)}`, namespace);
+
+export const agentObservabilityPath = '/observe-and-monitor/agent-observability';
+export const globAgentObservabilityAll = `${agentObservabilityPath}/*`;
+
+export const agentObservabilityBaseRoute = (namespace?: string): string =>
+  withWorkspace(agentObservabilityPath, namespace);
 
 export const mlflowCompareRunsRoute = (
   namespace: string,
