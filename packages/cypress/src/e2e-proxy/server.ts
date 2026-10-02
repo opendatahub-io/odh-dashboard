@@ -2,6 +2,7 @@ import http from 'http';
 import type { Socket } from 'net';
 import { execFileSync } from 'child_process';
 import httpProxy from 'http-proxy';
+import { getHttpsProxyAgent, redactProxyDetails } from './proxyAgent';
 import type { ProxyRoute, RoutingTable } from './routes';
 import { getOcpApiUrl } from './routes';
 
@@ -9,6 +10,7 @@ const isSocket = (obj: unknown): obj is Socket =>
   obj != null && typeof obj === 'object' && !('writeHead' in obj);
 
 const TMP_KUBECONFIG = '/tmp/cypress-e2e.kubeconfig';
+const MAAS_PROXY_PATH = '/__e2e/maas-api';
 
 type LogLevel = 'error' | 'info' | 'debug';
 const LOG_LEVELS: Record<LogLevel, number> = { error: 0, info: 1, debug: 2 };
@@ -136,6 +138,15 @@ function handleE2eLogin(body: string, res: http.ServerResponse): void {
 }
 
 export function createProxyServer(routingTable: RoutingTable, port: number): http.Server {
+  // The E2E MaaS BFF uses this loopback route so its upstream requests can use
+  // the same Squid-aware agent as the dashboard's cluster-bound requests.
+  const maasTarget = process.env.MAAS_API_URL;
+  const maasAgent = maasTarget ? getHttpsProxyAgent(maasTarget) : undefined;
+  const proxyAgents = new Map(
+    [routingTable.defaultTarget, ...routingTable.clusterRoutes.map(({ target }) => target)].map(
+      (target) => [target, getHttpsProxyAgent(target)] as const,
+    ),
+  );
   const proxy = httpProxy.createProxyServer({
     changeOrigin: true,
     secure: false,
@@ -167,7 +178,7 @@ export function createProxyServer(routingTable: RoutingTable, port: number): htt
   });
 
   proxy.on('error', (err, req, res) => {
-    const errorMessage = err.message || String(err) || 'Unknown proxy error';
+    const errorMessage = redactProxyDetails(err.message || String(err) || 'Unknown proxy error');
     log.error(`Proxy error for ${req.url ?? '/'}: ${errorMessage}`);
     if (isSocket(res)) {
       // WebSocket proxy error — destroy the client socket so the browser gets a clean close
@@ -210,13 +221,20 @@ export function createProxyServer(routingTable: RoutingTable, port: number): htt
       return;
     }
 
+    if (maasTarget && url.startsWith(`${MAAS_PROXY_PATH}/`)) {
+      // Keep the BFF's Authorization header; the normal cluster routes replace it.
+      const target = `${maasTarget.replace(/\/+$/, '')}${url.slice(MAAS_PROXY_PATH.length)}`;
+      proxy.web(req, res, { target, agent: maasAgent, ignorePath: true });
+      return;
+    }
+
     const clusterRoute = matchClusterRoute(url, routingTable.clusterRoutes);
     const target = clusterRoute?.target ?? routingTable.defaultTarget;
 
     log.debug(`${req.method ?? ''} ${url} → ${clusterRoute ? 'cluster' : 'backend'} (${target})`);
 
     injectAuth(req, clusterRoute);
-    proxy.web(req, res, { target });
+    proxy.web(req, res, { target, agent: proxyAgents.get(target) });
   });
 
   server.on('upgrade', (req: http.IncomingMessage, socket: Socket, head: Buffer) => {
@@ -231,7 +249,7 @@ export function createProxyServer(routingTable: RoutingTable, port: number): htt
     });
 
     injectAuth(req, clusterRoute);
-    proxy.ws(req, socket, head, { target });
+    proxy.ws(req, socket, head, { target, agent: proxyAgents.get(target) });
   });
 
   server.listen(port, '127.0.0.1', () => {

@@ -109,10 +109,15 @@ jobs:
       github.event_name == 'workflow_dispatch' || 
       (github.event.workflow_run.event == 'pull_request' && 
        github.event.workflow_run.conclusion == 'success')
-    runs-on: self-hosted
+    runs-on: [self-hosted, itup]
     outputs:
       cluster_name: ${{ steps.select.outputs.cluster_name }}
     steps:
+      - name: Register runner proxy URL for log redaction
+        env:
+          RUNNER_PROXY_MASK: ${{ secrets.ITUP_PROXY_URL }}
+        run: test -n "$RUNNER_PROXY_MASK"
+
       - name: Download test credentials
         run: |
           echo "🔧 Downloading test credentials for cluster health check..."
@@ -231,11 +236,16 @@ jobs:
   # ---------------------------------------------------------------------------
   cleanup-old-resources:
     needs: [select-cluster]
-    runs-on: self-hosted
+    runs-on: [self-hosted, itup]
     continue-on-error: true  # Don't fail the entire workflow if cleanup fails
     env:
       CLUSTER_NAME: ${{ needs.select-cluster.outputs.cluster_name }}
     steps:
+      - name: Register runner proxy URL for log redaction
+        env:
+          RUNNER_PROXY_MASK: ${{ secrets.ITUP_PROXY_URL }}
+        run: test -n "$RUNNER_PROXY_MASK"
+
       - name: Download test credentials
         run: |
           echo "🔧 Downloading test credentials for cleanup..."
@@ -791,7 +801,7 @@ jobs:
     if: >-
       !cancelled() && !failure() &&
       needs.select-cluster.result == 'success'
-    runs-on: self-hosted
+    runs-on: [self-hosted, itup]
     timeout-minutes: ${{ matrix.timeout }}
     strategy:
       fail-fast: false
@@ -801,6 +811,11 @@ jobs:
       CLUSTER_NAME: ${{ needs.select-cluster.outputs.cluster_name }}
       MATRIX_TAG: ${{ matrix.tag }}
     steps:
+      - name: Register runner proxy URL for log redaction
+        env:
+          RUNNER_PROXY_MASK: ${{ secrets.ITUP_PROXY_URL }}
+        run: test -n "$RUNNER_PROXY_MASK"
+
       - name: Validate tag format
         run: |
           if [[ -z "$MATRIX_TAG" ]]; then
@@ -1069,7 +1084,14 @@ jobs:
 
           # Fix read-only envtest binaries and directories from previous BFF runs
           # (setup-envtest downloads k8s binaries with 0555 permissions, which blocks actions/checkout cleanup)
-          chmod -R u+w ${{ github.workspace }}/packages/*/bff/bin ${{ github.workspace }}/packages/*/upstream/bff/bin 2>/dev/null || true
+          chmod -R u+w ${{ github.workspace }}/packages/*/bff/bin ${{ github.workspace }}/packages/*/upstream/bff/bin ${{ github.workspace }}/distributions/*/bff/bin 2>/dev/null || true
+
+          # Ensure .git exists — checkout action fails at "Removing auth" if a
+          # previous run deleted the directory contents (self-hosted runner issue)
+          if [ ! -d "${{ github.workspace }}/.git" ]; then
+            echo "⚠️ .git directory missing — re-initializing for checkout"
+            git init "${{ github.workspace }}"
+          fi
 
           echo "✅ Cleanup complete (non-critical, continued on any errors)"
 
@@ -1273,12 +1295,79 @@ jobs:
           github-token: ${{ github.token }}
 
       - name: Setup Go
-        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        # v6 uses the Node 24 action runtime, which is unsupported by runner 2.319.1.
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: '1.26.x'
 
       - name: Prepare E2E dependencies
         run: pnpm run prepare:e2e
+
+      - name: Pre-install Go BFF tooling
+        run: |
+          echo "📦 Pre-installing setup-envtest and downloading K8s API binaries..."
+          # All Go BFFs download setup-envtest + K8s binaries on first start.
+          # Do it once here so `cypress:server:e2e` starts don't race/timeout.
+          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@v0.24.1
+          setup-envtest use 1.29.3 --bin-dir /tmp/envtest-bins
+
+          # Pre-populate each BFF's local bin so `make run` skips the download.
+          for bff_dir in packages/*/bff distributions/*/bff; do
+            [ -f "$bff_dir/Makefile" ] || continue
+            mkdir -p "$bff_dir/bin"
+            # Link the setup-envtest binary with the versioned name each Makefile expects
+            for version in release-0.19 v0.24.1; do
+              target="$bff_dir/bin/setup-envtest-${version}"
+              [ -f "$target" ] || cp "$(which setup-envtest)" "$target"
+            done
+            # Pre-run setup-envtest into this BFF's bin dir so $(shell ...) in Makefile finds binaries
+            "$bff_dir/bin/setup-envtest-release-0.19" use 1.29.3 --bin-dir "$bff_dir/bin" 2>/dev/null || true
+          done
+          echo "✅ setup-envtest and K8s 1.29.3 binaries ready"
+
+          # Pre-download Go toolchain if BFF Makefiles request a different version
+          # Makefiles set GOTOOLCHAIN=go<version-from-go.mod>; pre-fetch so make run doesn't stall
+          GO_MOD_VERSION=$(sed -n 's/^go //p' packages/gen-ai/bff/go.mod | head -1)
+          INSTALLED_VERSION=$(go env GOVERSION | sed 's/^go//')
+          if [ "$GO_MOD_VERSION" != "$INSTALLED_VERSION" ]; then
+            echo "⚠️ go.mod wants $GO_MOD_VERSION but installed is $INSTALLED_VERSION"
+            echo "Pre-fetching toolchain go${GO_MOD_VERSION}..."
+            GOTOOLCHAIN="go${GO_MOD_VERSION}" go version 2>&1 || echo "⚠️ Toolchain fetch failed — BFFs may fall back to $INSTALLED_VERSION"
+          fi
+
+          # Warm up Go module cache for one BFF so shared deps are cached for all
+          echo "📦 Warming Go module cache..."
+          (cd packages/gen-ai/bff && go mod download 2>&1) || echo "⚠️ go mod download had errors"
+
+          # Set MAAS_API_URL from cluster domain so maas BFF skips oc auto-detection
+          CLUSTER_DOMAIN=$(oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}' 2>/dev/null || true)
+          if [ -n "$CLUSTER_DOMAIN" ]; then
+            echo "MAAS_API_URL=https://maas.${CLUSTER_DOMAIN}/maas-api" >> $GITHUB_ENV
+            echo "✅ MAAS_API_URL set from cluster domain: $CLUSTER_DOMAIN"
+          else
+            echo "⚠️ Could not detect cluster domain — maas BFF will attempt auto-detection"
+          fi
+
+      - name: Kill stale processes from previous runs
+        run: |
+          echo "🧹 Cleaning up stale processes on E2E ports..."
+          # E2E proxy port + all BFF ports
+          for port in 4040 9100 9101 9102 9103 9104 9105 9106 9107 9108 9109 9110 9111 9112 9113; do
+            PIDS=$(lsof -ti :$port 2>/dev/null || true)
+            if [ -n "$PIDS" ]; then
+              echo "  Killing stale process on port $port (PIDs: $PIDS)"
+              echo "$PIDS" | xargs kill -9 2>/dev/null || true
+            fi
+          done
+          # Also kill any orphaned envtest processes (kube-apiserver, etcd)
+          pkill -9 -f "kube-apiserver.*--etcd-servers" 2>/dev/null || true
+          pkill -9 -f "etcd.*--listen-client" 2>/dev/null || true
+          # Headless Chrome can survive a failed Cypress run without holding an E2E port.
+          # Clear only this runner user's Cypress-managed browser processes.
+          pkill -9 -u "$(id -u)" -f '/\.config/Cypress/.*/browsers/' 2>/dev/null || true
+          pkill -9 -u "$(id -u)" -f '/Cypress/Cypress' 2>/dev/null || true
+          sleep 1
+          echo "✅ Port cleanup complete"
 
       - name: Run E2E Tests
         env:
@@ -1327,7 +1416,17 @@ jobs:
             echo "Running in non-admin mode - admin setup hooks will be skipped"
           fi
 
-          pnpm run test:cypress:e2e
+          # Final port cleanup right before server start (minimizes race window with concurrent jobs)
+          for port in 4040 4000 9100 9102 9104 9106 9107 9108 9109 9110 9111 9112 9113; do
+            fuser -k $port/tcp 2>/dev/null || true
+          done
+          sleep 0.5
+
+          # Keep backend request logs out of the Actions output; Cypress remains visible as process 1.
+          npx concurrently -P -k -s first --hide 0 \
+            "pnpm cypress:server:e2e" \
+            "pnpm cypress:server:e2e:wait && cross-env CYPRESS_E2E_PROXY=true pnpm --filter odh-dashboard-frontend cypress:run:chrome" \
+            --
 
       - name: Upload test results
         if: always()
@@ -1406,9 +1505,14 @@ jobs:
   # ---------------------------------------------------------------------------
   cleanup:
     needs: [e2e-tests]
-    runs-on: self-hosted
+    runs-on: [self-hosted, itup]
     if: ${{ always() && (github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success')) }}
     steps:
+      - name: Register runner proxy URL for log redaction
+        env:
+          RUNNER_PROXY_MASK: ${{ secrets.ITUP_PROXY_URL }}
+        run: test -n "$RUNNER_PROXY_MASK"
+
       - name: Fix envtest binary permissions
         run: |
           chmod -R u+w ${{ github.workspace }}/packages/*/bff/bin ${{ github.workspace }}/packages/*/upstream/bff/bin 2>/dev/null || true

@@ -173,6 +173,9 @@ dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
 .PHONY: dev-bff-e2e-cluster
 dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to cluster)
 	@$(resolve_maas_api_url) \
+	if [ -n "$${MAAS_API_URL}" ]; then \
+		MAAS_URL="http://127.0.0.1:$${PROXY_PORT:-4040}/__e2e/maas-api"; \
+	fi; \
 	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " INSECURE_SKIP_VERIFY=true MAAS_API_URL="$$MAAS_URL"
 
 ############ Build ############
@@ -245,5 +248,4 @@ build: frontend-build bff-build
 .PHONY: run-local-mocked
 run-local-mocked: frontend-build-standalone bff-build
 	rm -r ./bff/static-local-run && cp -r ./frontend/dist/ ./bff/static-local-run/ && cd bff && make run STATIC_ASSETS_DIR=./static-local-run MOCK_K8S_CLIENT=true DEV_MODE=true
-
 
