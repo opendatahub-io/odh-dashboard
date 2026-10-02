@@ -56,6 +56,16 @@ func newMilvusFromSecretWithTimeout(
 	timeout time.Duration,
 	newClient func(context.Context, milvusclient.Config) (milvusClient, error),
 ) (VectorDB, error) {
+	return newMilvusFromSecretWithTimeoutPolicy(ctx, data, false, timeout, newClient)
+}
+
+func newMilvusFromSecretWithTimeoutPolicy(
+	ctx context.Context,
+	data map[string][]byte,
+	allowLoopback bool,
+	timeout time.Duration,
+	newClient func(context.Context, milvusclient.Config) (milvusClient, error),
+) (VectorDB, error) {
 	uri := strings.TrimSpace(string(data["MILVUS_URI"]))
 	token := strings.TrimSpace(string(data["MILVUS_TOKEN"]))
 	certPEM := data["MILVUS_SERVER_CERT"]
@@ -70,7 +80,13 @@ func newMilvusFromSecretWithTimeout(
 		password = parts[1]
 	}
 
-	endpoint, err := parseMilvusEndpoint(uri)
+	var endpoint vectorEndpoint
+	var err error
+	if allowLoopback {
+		endpoint, err = parseMilvusEndpointWithLoopback(uri, true)
+	} else {
+		endpoint, err = parseMilvusEndpoint(uri)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("milvus: %w", err)
 	}
@@ -88,7 +104,7 @@ func newMilvusFromSecretWithTimeout(
 		return net.DefaultResolver.LookupIP(connectCtx, "ip", host)
 	}
 	dialer := &net.Dialer{}
-	safeDial := vectorSafeDialContext(dialer.DialContext, lookupIP, endpoint.inCluster)
+	safeDial := vectorSafeDialContext(dialer.DialContext, lookupIP, endpoint.inCluster, allowLoopback)
 	cfg.DialOptions = append(cfg.DialOptions, grpc.WithContextDialer(func(connectCtx context.Context, address string) (net.Conn, error) {
 		return safeDial(connectCtx, "tcp", address)
 	}))

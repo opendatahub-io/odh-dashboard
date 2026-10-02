@@ -52,6 +52,10 @@ func validateVectorHost(host string) (bool, error) {
 }
 
 func parseMilvusEndpoint(raw string) (vectorEndpoint, error) {
+	return parseMilvusEndpointWithLoopback(raw, false)
+}
+
+func parseMilvusEndpointWithLoopback(raw string, allowLoopback bool) (vectorEndpoint, error) {
 	parsed, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
 		return vectorEndpoint{}, fmt.Errorf("milvus URI must use http or https with a host")
@@ -60,12 +64,24 @@ func parseMilvusEndpoint(raw string) (vectorEndpoint, error) {
 		return vectorEndpoint{}, fmt.Errorf("milvus URI contains unsupported credentials, query, fragment, or path")
 	}
 	host := parsed.Hostname()
-	inCluster, err := validateVectorHost(host)
-	if err != nil {
-		return vectorEndpoint{}, err
-	}
-	if !inCluster && parsed.Scheme != "https" {
-		return vectorEndpoint{}, fmt.Errorf("milvus external endpoints must use https")
+	inCluster := false
+	if allowLoopback && strings.EqualFold(host, "localhost") {
+		port := parsed.Port()
+		if parsed.Scheme != "http" || port == "" {
+			return vectorEndpoint{}, fmt.Errorf("forwarded Milvus endpoint must use http")
+		}
+		portNumber, portErr := strconv.Atoi(port)
+		if portErr != nil || portNumber < 1024 || portNumber > 65535 {
+			return vectorEndpoint{}, fmt.Errorf("forwarded Milvus endpoint must use a valid ephemeral port")
+		}
+	} else {
+		inCluster, err = validateVectorHost(host)
+		if err != nil {
+			return vectorEndpoint{}, err
+		}
+		if !inCluster && parsed.Scheme != "https" {
+			return vectorEndpoint{}, fmt.Errorf("milvus external endpoints must use https")
+		}
 	}
 	port := parsed.Port()
 	if port == "" {
@@ -75,6 +91,29 @@ func parseMilvusEndpoint(raw string) (vectorEndpoint, error) {
 		return vectorEndpoint{}, fmt.Errorf("milvus URI contains an invalid port")
 	}
 	return vectorEndpoint{host: host, port: port, address: net.JoinHostPort(host, port), inCluster: inCluster, useTLS: parsed.Scheme == "https"}, nil
+}
+
+// ValidateMilvusEndpoint applies the normal caller-controlled endpoint policy.
+func ValidateMilvusEndpoint(raw string) error {
+	_, err := parseMilvusEndpoint(raw)
+	return err
+}
+
+// ValidateForwardedMilvusEndpoint validates both sides of a dev port-forward.
+// It returns no capability, so callers cannot mint a trusted endpoint for a
+// later connection outside the forwarding-aware factory.
+func ValidateForwardedMilvusEndpoint(original, forwarded string) error {
+	originalEndpoint, err := parseMilvusEndpoint(original)
+	if err != nil {
+		return err
+	}
+	if !originalEndpoint.inCluster {
+		return fmt.Errorf("original Milvus endpoint is not an in-cluster service")
+	}
+	if _, err := parseMilvusEndpointWithLoopback(forwarded, true); err != nil {
+		return err
+	}
+	return nil
 }
 
 func parsePgvectorEndpoint(host string, port int, sslMode string) (vectorEndpoint, error) {
@@ -99,7 +138,7 @@ func isBlockedVectorIP(ip net.IP) bool {
 
 // vectorSafeDialContext resolves once and dials only the validated addresses,
 // preventing DNS rebinding between validation and connection establishment.
-func vectorSafeDialContext(baseDialContext func(context.Context, string, string) (net.Conn, error), lookupIP func(context.Context, string) ([]net.IP, error), allowClusterService bool) func(context.Context, string, string) (net.Conn, error) {
+func vectorSafeDialContext(baseDialContext func(context.Context, string, string) (net.Conn, error), lookupIP func(context.Context, string) ([]net.IP, error), allowClusterService, allowLoopback bool) func(context.Context, string, string) (net.Conn, error) {
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
 		host, port, err := net.SplitHostPort(addr)
 		if err != nil {
@@ -118,7 +157,7 @@ func vectorSafeDialContext(baseDialContext func(context.Context, string, string)
 		}
 		var lastErr error
 		for _, ip := range ips {
-			if !clusterHost && isBlockedVectorIP(ip) {
+			if !clusterHost && isBlockedVectorIP(ip) && (!allowLoopback || !ip.IsLoopback()) {
 				return nil, fmt.Errorf("vector database host resolved to a blocked address")
 			}
 			conn, dialErr := baseDialContext(ctx, network, net.JoinHostPort(ip.String(), port))

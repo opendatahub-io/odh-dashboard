@@ -119,7 +119,7 @@ func (m *mockVectorDB) Search(context.Context, string, []float32, string, int, f
 func (m *mockVectorDB) Close() error { return nil }
 
 func TestResponsesRepositoryResolveVectorDBForwardsMilvusURIWithoutMutatingSecret(t *testing.T) {
-	originalURI := "http://milvus.milvus.svc.cluster.local:19530?token=secret"
+	originalURI := "http://milvus.milvus.svc.cluster.local:19530"
 	secretData := map[string][]byte{
 		"MILVUS_URI":   []byte(originalURI),
 		"MILVUS_TOKEN": []byte("user:password"),
@@ -135,8 +135,16 @@ func TestResponsesRepositoryResolveVectorDBForwardsMilvusURIWithoutMutatingSecre
 			return "http://localhost:4321", nil
 		},
 	})
-	repo.newVectorDB = func(_ context.Context, data map[string][]byte) (vectordb.VectorDB, error) {
-		constructedData = data
+	repo.newVectorDB = func(ctx context.Context, data map[string][]byte, forwardURL func(context.Context, string) (string, error)) (vectordb.VectorDB, error) {
+		forwarded, err := forwardURL(ctx, string(data["MILVUS_URI"]))
+		if err != nil {
+			return nil, err
+		}
+		constructedData = make(map[string][]byte, len(data))
+		for key, value := range data {
+			constructedData[key] = value
+		}
+		constructedData["MILVUS_URI"] = []byte(forwarded)
 		return &mockVectorDB{}, nil
 	}
 
@@ -157,7 +165,7 @@ func TestResponsesRepositoryResolveVectorDBWithoutForwarderPreservesURI(t *testi
 			return &v1.Secret{Data: secretData}, nil
 		},
 	})
-	repo.newVectorDB = func(_ context.Context, data map[string][]byte) (vectordb.VectorDB, error) {
+	repo.newVectorDB = func(_ context.Context, data map[string][]byte, _ func(context.Context, string) (string, error)) (vectordb.VectorDB, error) {
 		constructedData = data
 		return &mockVectorDB{}, nil
 	}
@@ -169,6 +177,27 @@ func TestResponsesRepositoryResolveVectorDBWithoutForwarderPreservesURI(t *testi
 	assert.Equal(t, originalURI, string(secretData["MILVUS_URI"]))
 }
 
+func TestResponsesRepositoryRejectsUnvalidatedURIBeforeForwarding(t *testing.T) {
+	forwarderCalled := false
+	repo := NewResponsesRepository(nil, &mockK8sService{
+		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+			return &v1.Secret{Data: map[string][]byte{
+				"MILVUS_URI": []byte("http://localhost:19530"),
+			}}, nil
+		},
+	}, &mockURLForwarder{
+		forwardURL: func(context.Context, string) (string, error) {
+			forwarderCalled = true
+			return "http://localhost:4321", nil
+		},
+	})
+
+	_, err := repo.resolveVectorDB(context.Background(), "run-ns", "database")
+
+	require.Error(t, err)
+	assert.False(t, forwarderCalled)
+}
+
 func TestResponsesRepositoryResolveVectorDBPassesRequestContextToMilvusFactory(t *testing.T) {
 	secretData := map[string][]byte{"MILVUS_URI": []byte("http://milvus.milvus.svc.cluster.local:19530")}
 	var factoryContext context.Context
@@ -177,7 +206,7 @@ func TestResponsesRepositoryResolveVectorDBPassesRequestContextToMilvusFactory(t
 			return &v1.Secret{Data: secretData}, nil
 		},
 	})
-	repo.newVectorDB = func(ctx context.Context, _ map[string][]byte) (vectordb.VectorDB, error) {
+	repo.newVectorDB = func(ctx context.Context, _ map[string][]byte, _ func(context.Context, string) (string, error)) (vectordb.VectorDB, error) {
 		factoryContext = ctx
 		return &mockVectorDB{}, nil
 	}
@@ -192,7 +221,7 @@ func TestResponsesRepositoryResolveVectorDBPassesRequestContextToMilvusFactory(t
 }
 
 func TestResponsesRepositoryResolveVectorDBReturnsForwardingErrorSafely(t *testing.T) {
-	secretData := map[string][]byte{"MILVUS_URI": []byte("http://milvus.milvus.svc.cluster.local:19530?token=secret")}
+	secretData := map[string][]byte{"MILVUS_URI": []byte("http://milvus.milvus.svc.cluster.local:19530")}
 	forwardErr := errors.New("no ready pods")
 	repo := NewResponsesRepository(nil, &mockK8sService{
 		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
@@ -236,7 +265,7 @@ func TestResponsesRepositoryResolveVectorDBClassifiesForwardingDeadline(t *testi
 	repo := NewResponsesRepository(nil, &mockK8sService{
 		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
 			return &v1.Secret{Data: map[string][]byte{
-				"MILVUS_URI":   []byte("http://milvus.milvus.svc.cluster.local:19530?token=secret"),
+				"MILVUS_URI":   []byte("http://milvus.milvus.svc.cluster.local:19530"),
 				"MILVUS_TOKEN": []byte("user:password"),
 			}}, nil
 		},
@@ -257,7 +286,7 @@ func TestResponsesRepositoryValidateResponsesClassifiesForwardingDeadline(t *tes
 	repo := NewResponsesRepository(nil, &mockK8sService{
 		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
 			return &v1.Secret{Data: map[string][]byte{
-				"MILVUS_URI": []byte("http://milvus.milvus.svc.cluster.local:19530?token=secret"),
+				"MILVUS_URI": []byte("http://milvus.milvus.svc.cluster.local:19530"),
 			}}, nil
 		},
 	}, &mockURLForwarder{
