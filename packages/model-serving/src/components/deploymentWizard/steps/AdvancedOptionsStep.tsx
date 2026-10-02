@@ -17,7 +17,6 @@ import {
   isServingRuntimeKind,
   isTemplateKind,
 } from '@odh-dashboard/model-serving/shared';
-import { findTemplateForSelection } from '../../../concepts/servingRuntimeTemplates/templateUtils';
 import { ExternalRouteField } from '../fields/ExternalRouteField';
 import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
 import { RuntimeArgsField } from '../fields/RuntimeArgsField';
@@ -56,15 +55,15 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
       return undefined;
     }
 
-    // Prefer the template attached to the selection (loaded via kserve WizardField
-    // externalDataHook). Fall back to modelFormatState templates for predictive flows.
+    // Prefer Template attached to the shared model-server selection; fall back to
+    // modelFormatState (existing tech debt) for predictive flows before hydration.
     const templateFromSelection =
       selection.template && isTemplateKind(selection.template) ? selection.template : undefined;
-    const templateFromFormatState = findTemplateForSelection(
-      wizardState.state.modelFormatState.templatesFilteredForModelType ?? [],
-      selection,
-    );
-    const template = templateFromSelection ?? templateFromFormatState;
+    const template =
+      templateFromSelection ??
+      wizardState.state.modelFormatState.templatesFilteredForModelType?.find(
+        (tmpl) => tmpl.metadata.name === selection.name,
+      );
 
     return template?.objects[0];
   }, [

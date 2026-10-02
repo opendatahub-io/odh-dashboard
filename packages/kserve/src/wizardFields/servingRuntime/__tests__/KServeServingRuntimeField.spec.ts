@@ -158,7 +158,22 @@ describe('useKServeServingRuntimeExternalData', () => {
     mockUseWizardFieldOverrides.mockReturnValue([]);
   });
 
-  it('should load global serving runtime templates', () => {
+  it('should reuse ModelFormat templates for predictive models without fetching', () => {
+    const template = mockServingRuntimeTemplateK8sResource({});
+
+    const renderResult = testHook(useKServeServingRuntimeExternalData)({
+      modelType: { type: ServingRuntimeModelType.PREDICTIVE },
+      templatesFromModelFormat: [template],
+      modelFormatLoaded: true,
+    });
+
+    expect(mockUseServingRuntimeTemplates).toHaveBeenCalledWith(undefined, false);
+    expect(mockUseServingRuntimeTemplates).toHaveBeenCalledWith(undefined, false);
+    expect(renderResult.result.current.data.templates).toEqual([template]);
+    expect(renderResult.result.current.loaded).toBe(true);
+  });
+
+  it('should fetch templates for generative legacy without duplicating ModelFormat watches', () => {
     const template = mockServingRuntimeTemplateK8sResource({});
     mockUseServingRuntimeTemplates.mockImplementation((namespace?: string, enabled = true) => {
       if (!enabled) {
@@ -168,16 +183,17 @@ describe('useKServeServingRuntimeExternalData', () => {
     });
 
     const renderResult = testHook(useKServeServingRuntimeExternalData)({
-      modelType: { type: ServingRuntimeModelType.PREDICTIVE },
+      modelType: { type: ServingRuntimeModelType.GENERATIVE },
+      deploymentMethod: LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY,
     });
 
-    expect(mockUseServingRuntimeTemplates).toHaveBeenCalledWith();
+    expect(mockUseServingRuntimeTemplates).toHaveBeenCalledWith(undefined, true);
     expect(mockUseServingRuntimeTemplates).toHaveBeenCalledWith(undefined, false);
     expect(renderResult.result.current.data.templates).toEqual([template]);
     expect(renderResult.result.current.loaded).toBe(true);
   });
 
-  it('should also load project-scoped templates when project differs from dashboard namespace', () => {
+  it('should also load project-scoped templates when generative and project differs', () => {
     const globalTemplate = mockServingRuntimeTemplateK8sResource({ name: 'global-sr' });
     const projectTemplate = mockServingRuntimeTemplateK8sResource({ name: 'project-sr' });
     mockUseServingRuntimeTemplates.mockImplementation((namespace?: string, enabled = true) => {
@@ -191,7 +207,8 @@ describe('useKServeServingRuntimeExternalData', () => {
     });
 
     const renderResult = testHook(useKServeServingRuntimeExternalData)({
-      modelType: { type: ServingRuntimeModelType.PREDICTIVE },
+      modelType: { type: ServingRuntimeModelType.GENERATIVE },
+      deploymentMethod: LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY,
       projectName: 'my-project',
     });
 
@@ -210,6 +227,8 @@ describe('useKServeServingRuntimeExternalData', () => {
 
     const renderResult = testHook(useKServeServingRuntimeExternalData)({
       modelType: { type: ServingRuntimeModelType.PREDICTIVE },
+      templatesFromModelFormat: [],
+      modelFormatLoaded: true,
     });
 
     expect(renderResult.result.current.loadError).toBe(clusterError);

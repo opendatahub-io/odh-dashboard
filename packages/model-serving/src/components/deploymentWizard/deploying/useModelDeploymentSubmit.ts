@@ -1,12 +1,10 @@
 import React from 'react';
 import { useSecretOps } from '@odh-dashboard/plugin-core';
 import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
-import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import { getServingRuntimeFromTemplate, isTemplateKind } from '@odh-dashboard/model-serving/shared';
 import { useDeployMethod } from './useDeployMethod';
 import { useWizardFieldPreDeploy } from './useWizardFieldPreDeploy';
 import { useWizardFieldPostDeploy } from './useWizardFieldPostDeploy';
-import { findTemplateForSelection } from '../../../concepts/servingRuntimeTemplates/templateUtils';
 import { ModelDeploymentWizardValidation } from '../useDeploymentWizardValidation';
 import { useWizardFieldApply } from '../useWizardFieldApply';
 import { deployModel } from '../utils';
@@ -99,22 +97,20 @@ export const useModelDeploymentSubmit = (
           );
         }
 
+        // Prefer the Template on the shared model-server selection (spokes attach it).
+        // Fall back to modelFormatState lookup — existing tech debt for predictive flows.
         const selection = formState.modelServer?.data?.selection;
         const serverResourceTemplateName = selection?.name;
-        const selectionTemplate = selection?.template;
         const templateFromSelection =
-          selectionTemplate && isTemplateKind(selectionTemplate) ? selectionTemplate : undefined;
-        const matchedTemplate: TemplateKind | undefined =
+          selection?.template && isTemplateKind(selection.template)
+            ? selection.template
+            : undefined;
+        const serverResource = getServingRuntimeFromTemplate(
           templateFromSelection ??
-          (selection
-            ? findTemplateForSelection(
-                formState.modelFormatState.templatesFilteredForModelType ?? [],
-                selection,
-              )
-            : undefined);
-        const serverResource = matchedTemplate
-          ? getServingRuntimeFromTemplate(matchedTemplate)
-          : undefined;
+            formState.modelFormatState.templatesFilteredForModelType?.find(
+              (template) => template.metadata.name === serverResourceTemplateName,
+            ),
+        );
 
         await deployModel(
           formState,

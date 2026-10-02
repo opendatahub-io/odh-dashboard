@@ -53,8 +53,8 @@ export const useModelFormatField = (
 ): ModelFormatState => {
   const { dashboardNamespace } = useDashboardNamespace();
   // Model format options are only needed for predictive models. Defer Template
-  // watches until then — generative / llm-d paths load templates via the kserve
-  // WizardField externalDataHook only when the legacy serving-runtime path is active.
+  // watches until then. The kserve WizardField reuses these templates when
+  // predictive; generative + legacy fetches its own via externalDataHook.
   const shouldLoadTemplates = modelType?.type === ServingRuntimeModelType.PREDICTIVE;
 
   const [servingRuntimeTemplates, servingRuntimeTemplatesLoaded, servingRuntimeTemplatesError] =

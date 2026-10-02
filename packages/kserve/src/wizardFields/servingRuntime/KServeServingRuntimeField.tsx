@@ -47,6 +47,9 @@ type KServeServingRuntimeDependencies = {
   vLLMDeploymentOnMaaS?: boolean;
   deploymentMethod?: string;
   projectName?: string;
+  /** When predictive, reuse ModelFormatField's already-fetched templates to avoid duplicate watches. */
+  templatesFromModelFormat?: TemplateKind[];
+  modelFormatLoaded?: boolean;
 };
 
 export type KServeServingRuntimeExternalData = {
@@ -168,25 +171,39 @@ export const useKServeServingRuntimeExternalData = (
   const { dashboardNamespace } = useDashboardNamespace();
   const projectName = dependencies?.projectName;
   const hasDistinctProjectNamespace = !!projectName && projectName !== dashboardNamespace;
+  // Predictive already watches Templates in ModelFormatField — reuse those results.
+  // Generative + legacy is the only path that must fetch here.
+  const shouldFetchTemplates = dependencies?.modelType?.type === ServingRuntimeModelType.GENERATIVE;
 
-  const [globalTemplates, globalLoaded, globalError] = useServingRuntimeTemplates();
+  const [globalTemplates, globalLoaded, globalError] = useServingRuntimeTemplates(
+    undefined,
+    shouldFetchTemplates,
+  );
   const [projectTemplates, projectLoaded, projectError] = useServingRuntimeTemplates(
     hasDistinctProjectNamespace ? projectName : undefined,
-    hasDistinctProjectNamespace,
+    shouldFetchTemplates && hasDistinctProjectNamespace,
   );
 
-  const templates = React.useMemo(
-    () =>
-      filterTemplatesByModelType(
-        mergeProjectAndGlobalTemplates(
-          globalTemplates,
-          projectTemplates,
-          hasDistinctProjectNamespace,
-        ),
-        dependencies?.modelType?.type,
+  const templates = React.useMemo(() => {
+    if (!shouldFetchTemplates) {
+      return dependencies?.templatesFromModelFormat ?? [];
+    }
+    return filterTemplatesByModelType(
+      mergeProjectAndGlobalTemplates(
+        globalTemplates,
+        projectTemplates,
+        hasDistinctProjectNamespace,
       ),
-    [globalTemplates, projectTemplates, hasDistinctProjectNamespace, dependencies?.modelType?.type],
-  );
+      dependencies.modelType?.type,
+    );
+  }, [
+    shouldFetchTemplates,
+    dependencies?.templatesFromModelFormat,
+    globalTemplates,
+    projectTemplates,
+    hasDistinctProjectNamespace,
+    dependencies?.modelType?.type,
+  ]);
 
   const {
     data: modelServingClusterSettings,
@@ -207,6 +224,10 @@ export const useKServeServingRuntimeExternalData = (
     formData,
   );
 
+  const templatesLoaded = shouldFetchTemplates
+    ? globalLoaded && projectLoaded
+    : dependencies?.modelFormatLoaded ?? false;
+
   return React.useMemo(() => {
     const extraOptions = modelServerOverrides.flatMap((override) => override.extraOptions ?? []);
     const suggestion = modelServerOverrides.reduce<ModelServerOption | undefined>(
@@ -216,15 +237,14 @@ export const useKServeServingRuntimeExternalData = (
 
     return {
       data: { templates, extraOptions, suggestion },
-      loaded: globalLoaded && projectLoaded && clusterSettingsLoaded,
+      loaded: templatesLoaded && clusterSettingsLoaded,
       loadError: globalError || projectError || clusterSettingsError,
     };
   }, [
     templates,
     modelServerOverrides,
     modelServingClusterSettings,
-    globalLoaded,
-    projectLoaded,
+    templatesLoaded,
     clusterSettingsLoaded,
     globalError,
     projectError,
@@ -337,6 +357,8 @@ export const KServeServingRuntimeFieldWizardField: KServeServingRuntimeFieldType
       vLLMDeploymentOnMaaS: formData.devFeatureFlags?.vLLMDeploymentOnMaaS,
       deploymentMethod: formData.deploymentMethod?.method,
       projectName: formData.project.projectName,
+      templatesFromModelFormat: formData.modelFormatState.templatesFilteredForModelType,
+      modelFormatLoaded: formData.modelFormatState.loaded,
     }),
     setFieldData: (value: KServeServingRuntimeFieldValue) => value,
     getInitialFieldData: resolveInitialModelServerFieldData,
