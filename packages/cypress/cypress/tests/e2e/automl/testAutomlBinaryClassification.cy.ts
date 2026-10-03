@@ -1,7 +1,5 @@
 import yaml from 'js-yaml';
-import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
-import { deleteS3TestFiles } from '../../../utils/oc_commands/s3Cleanup';
-import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
+import { cleanupAutomlResources, setupAutomlProject } from '../../../utils/automlCleanup';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutomlTestData } from '../../../types';
@@ -25,16 +23,15 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
       .fixture('e2e/automl/testAutomlBinaryClassification.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as AutomlTestData;
-        projectName = `${testData.projectNamePrefix}-${uuid}`;
       })
-      .then(() => {
-        provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+      .then(() => setupAutomlProject(testData, uuid))
+      .then((namespace) => {
+        projectName = namespace;
       }),
   );
 
   after(() => {
-    deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    cleanupAutomlResources();
   });
 
   it(
@@ -62,7 +59,7 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
         testData.changedMetricLabel as string,
       );
 
-      submitAutomlRun();
+      submitAutomlRun(testData, projectName);
     },
   );
 

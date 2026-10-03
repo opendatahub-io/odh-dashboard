@@ -1,8 +1,7 @@
 import yaml from 'js-yaml';
-import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
-import { deleteS3TestFiles } from '../../../utils/oc_commands/s3Cleanup';
+import { cleanupAutomlResources, setupAutomlProject } from '../../../utils/automlCleanup';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
-import { provisionProjectForAutoX, waitForManagedPipelines } from '../../../utils/autoXPipelines';
+import { waitForManagedPipelines } from '../../../utils/autoXPipelines';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutomlTestData } from '../../../types';
@@ -26,16 +25,15 @@ describe('AutoML Experiments List and Run Management E2E', { testIsolation: fals
       .fixture('e2e/automl/testAutomlExperimentsAndRunManagement.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as AutomlTestData;
-        projectName = `${testData.projectNamePrefix}-${uuid}`;
       })
-      .then(() => {
-        provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+      .then(() => setupAutomlProject(testData, uuid))
+      .then((namespace) => {
+        projectName = namespace;
       }),
   );
 
   after(() => {
-    deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    cleanupAutomlResources();
   });
 
   it(
@@ -75,7 +73,7 @@ describe('AutoML Experiments List and Run Management E2E', { testIsolation: fals
       cy.step('Set top N models to minimize run time');
       automlConfigurePage.findTopNInputField().type(`{selectall}${testData.topN as number}`);
 
-      submitAutomlRun();
+      submitAutomlRun(testData, projectName);
 
       verifyAutomlRunSubmitted(projectName, testData.runName);
 
