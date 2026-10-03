@@ -102,6 +102,37 @@ func TestVectorSafeDialContextRejectsDNSRebindingToPrivateAddress(t *testing.T) 
 	}
 }
 
+func TestIsBlockedVectorIPRejectsSpecialUseDestinations(t *testing.T) {
+	for _, raw := range []string{
+		"100.64.0.1", "192.0.0.1", "192.0.2.1", "198.18.0.1", "203.0.113.1",
+		"2001:2::1", "2001:db8::1", "fc00::1", "ff02::1",
+	} {
+		assert.True(t, isBlockedVectorIP(net.ParseIP(raw)), raw)
+	}
+}
+
+func TestVectorSafeDialContextRejectsNewIPv6SpecialUseAddressesBeforeDial(t *testing.T) {
+	for _, raw := range []string{
+		"100::1", "2001::1", "2001:3::1", "2001:4:112::1", "2001:20::1", "3fff::1",
+	} {
+		t.Run(raw, func(t *testing.T) {
+			dialed := false
+			dial := vectorSafeDialContext(
+				func(context.Context, string, string) (net.Conn, error) {
+					dialed = true
+					return nil, fmt.Errorf("unexpected dial")
+				},
+				func(context.Context, string) ([]net.IP, error) { return []net.IP{net.ParseIP(raw)}, nil },
+				false,
+				false,
+			)
+			_, err := dial(context.Background(), "tcp", "public.example:443")
+			assert.Error(t, err)
+			assert.False(t, dialed)
+		})
+	}
+}
+
 func TestVectorSafeDialContextAllowsOnlyLoopbackForForwardedEndpoint(t *testing.T) {
 	dialed := false
 	dial := vectorSafeDialContext(

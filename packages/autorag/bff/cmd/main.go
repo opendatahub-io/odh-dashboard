@@ -188,14 +188,13 @@ func newHTTPServer(port int, handler http.Handler, logger *slog.Logger) *http.Se
 	return newHTTPServerWithWriteTimeout(port, handler, logger, nonStreamingWriteTimeout)
 }
 
-const nonStreamingWriteTimeout = 30 * time.Second
+const nonStreamingWriteTimeout = 130 * time.Second
 
 func newHTTPServerWithWriteTimeout(port int, handler http.Handler, logger *slog.Logger, writeTimeout time.Duration) *http.Server {
 	return &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
 		Handler: withWriteDeadline(handler, writeTimeout),
-		// A per-request deadline protects non-streaming responses. Streaming handlers
-		// clear it before sending their first event so live SSE streams remain open.
+		// A finite per-request deadline protects both ordinary and streaming responses.
 		IdleTimeout: time.Minute,
 		ReadTimeout: 30 * time.Second,
 		ErrorLog:    slog.NewLogLogger(logger.Handler(), slog.LevelError),

@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -48,9 +49,6 @@ func TestNewHTTPServer_AllowsDelayedSSEWrites(t *testing.T) {
 	if !strings.Contains(serverEvent, "data: delayed") {
 		t.Fatalf("response = %q, want delayed SSE event", serverEvent)
 	}
-	if server.WriteTimeout != 0 {
-		t.Fatalf("WriteTimeout = %s, want disabled for SSE", server.WriteTimeout)
-	}
 }
 
 func TestNewHTTPServer_ProtectsReadsAndIdleConnections(t *testing.T) {
@@ -66,9 +64,8 @@ func TestNewHTTPServer_ProtectsReadsAndIdleConnections(t *testing.T) {
 	}
 }
 
-func TestHTTPServer_SSEClearsNonStreamingWriteDeadline(t *testing.T) {
+func TestHTTPServer_SSEWriteDeadlineIsFinite(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_ = http.NewResponseController(w).SetWriteDeadline(time.Time{})
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.WriteHeader(http.StatusOK)
 		if flusher, ok := w.(http.Flusher); ok {
@@ -92,10 +89,10 @@ func TestHTTPServer_SSEClearsNonStreamingWriteDeadline(t *testing.T) {
 	}
 	defer response.Body.Close()
 	body, err := io.ReadAll(response.Body)
-	if err != nil {
+	if err != nil && !errors.Is(err, io.ErrUnexpectedEOF) {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(body), "data: delayed") {
-		t.Fatalf("body = %q, want delayed SSE event", body)
+	if strings.Contains(string(body), "data: delayed") {
+		t.Fatalf("body = %q, write deadline was not enforced", body)
 	}
 }

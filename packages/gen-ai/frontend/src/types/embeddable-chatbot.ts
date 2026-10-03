@@ -34,7 +34,7 @@ type ResponsesTemplate = {
     };
   }>;
   tool_choice: {
-    type: 'auto' | 'required' | 'none' | 'file_search';
+    type: 'file_search';
   };
   include: Array<'file_search_call.results' | 'file_search_call.output'>;
 };

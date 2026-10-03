@@ -521,6 +521,45 @@ describe('AutoragResultsPage', () => {
   });
 
   describe('context integration', () => {
+    it.each([
+      {},
+      { metadata: null },
+      { tools: [] },
+      { input: [] },
+      { tools: [{ type: 'file_search', vector_store_ids: [123] }] },
+    ])('should fall back safely for malformed persisted Responses templates: %j', (template) => {
+      const pattern = {
+        ...mockPatterns['pattern-1'],
+        inference: { responses_template: template },
+      } as unknown as AutoragPattern;
+      const mockPipelineRun = createMockPipelineRun(undefined, {
+        maas_secret_name: 'maas-secret',
+        db_secret_name: 'database-secret',
+      });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+      mockUseAutoragResults.mockReturnValue({
+        patterns: { 'pattern-1': pattern },
+        failedPatterns: [],
+        isLoading: false,
+        isError: false,
+        ragPatternsBasePath: undefined,
+      });
+
+      renderPage();
+      fireEvent.click(screen.getByTestId('view-code-trigger'));
+
+      expect(capturedViewCodeTemplate).toEqual(
+        buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123'),
+      );
+    });
+
     it('should normalize legacy ranking fields before opening View Code', () => {
       const legacyTemplate = {
         ...buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123'),

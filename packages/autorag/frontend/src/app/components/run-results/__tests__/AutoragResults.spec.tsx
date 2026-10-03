@@ -1089,9 +1089,13 @@ describe('AutoragResults', () => {
     it('should expose Try this pattern from the pattern details modal action', async () => {
       const user = userEvent.setup();
       const onTryPattern = jest.fn();
-      renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, {
-        onTryPattern,
-      });
+      renderWithContext(
+        mockPipelineRun,
+        patterns,
+        'test-namespace',
+        { parameters: { db_secret_name: 'milvus', maas_secret_name: 'maas' } },
+        { onTryPattern },
+      );
 
       const row = screen.getByTestId('leaderboard-row-1');
       await user.click(within(row).getByRole('button', { name: /kebab toggle/i }));

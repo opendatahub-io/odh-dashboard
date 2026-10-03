@@ -161,6 +161,61 @@ export const normalizeResponsesTemplate = (template: ResponsesTemplate): Respons
 };
 /* eslint-enable camelcase */
 
+const isUsableResponsesTemplate = (value: unknown): value is ResponsesTemplate => {
+  const isRecord = (entry: unknown): entry is Record<string, unknown> =>
+    typeof entry === 'object' && entry !== null;
+  if (!isRecord(value)) {
+    return false;
+  }
+  if (typeof value.model !== 'string' || value.model.trim() === '') {
+    return false;
+  }
+  if (!isRecord(value.metadata)) {
+    return false;
+  }
+  if (
+    typeof value.metadata.embedding_model !== 'string' ||
+    value.metadata.embedding_model.trim() === ''
+  ) {
+    return false;
+  }
+  if (!(
+    (typeof value.input === 'string' && value.input.trim() !== '') ||
+    (Array.isArray(value.input) && value.input.length > 0)
+  )) {
+    return false;
+  }
+  if (!Array.isArray(value.tools) || value.tools.length === 0) {
+    return false;
+  }
+  if (
+    !value.tools.every((tool) => {
+      if (!isRecord(tool) || tool.type !== 'file_search' || !Array.isArray(tool.vector_store_ids)) {
+        return false;
+      }
+      return tool.vector_store_ids.every(
+        (id) => typeof id === 'string' && /^[A-Za-z0-9_.-]+$/.test(id),
+      );
+    })
+  ) {
+    return false;
+  }
+  return isRecord(value.tool_choice) && value.tool_choice.type === 'file_search';
+};
+
+/* eslint-disable camelcase */
+const unavailableResponsesTemplate = (patternName: string): ResponsesTemplate => ({
+  model: '',
+  stream: true,
+  store: false,
+  input: [],
+  metadata: { rag_pattern_name: patternName },
+  instructions: '',
+  tools: [{ type: 'file_search', vector_store_ids: [], max_num_results: 0 }],
+  tool_choice: { type: 'file_search' },
+  include: ['file_search_call.results'],
+});
+/* eslint-enable camelcase */
 function AutoragResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
   const location = useLocation();
@@ -481,15 +536,17 @@ function AutoragResultsPage(): React.JSX.Element {
   const openPlaygroundForPattern = React.useCallback(
     (patternName: string): boolean => {
       const pattern = patterns[patternName];
-      if (!pattern || !canUseResponsesForPattern(contextValue.parameters, pattern)) {
+      if (!pattern) {
         return false;
       }
-      const responsesTemplate = normalizeResponsesTemplate(
-        pattern.inference?.responses_template
+      let responsesTemplate: ResponsesTemplate;
+      try {
+        const persistedTemplate = pattern.inference?.responses_template;
+        const candidate = persistedTemplate
           ? {
-              ...pattern.inference.responses_template,
+              ...persistedTemplate,
               metadata: {
-                ...pattern.inference.responses_template.metadata,
+                ...(persistedTemplate.metadata || {}),
                 ...(getPatternEmbeddingModel(pattern)
                   ? {
                       // eslint-disable-next-line camelcase
@@ -498,8 +555,13 @@ function AutoragResultsPage(): React.JSX.Element {
                   : {}),
               },
             }
-          : buildResponsesTemplate(pattern, pipelineRun?.run_id),
-      );
+          : buildResponsesTemplate(pattern, pipelineRun?.run_id);
+        responsesTemplate = isUsableResponsesTemplate(candidate)
+          ? normalizeResponsesTemplate(candidate)
+          : buildResponsesTemplate(pattern, pipelineRun?.run_id);
+      } catch {
+        responsesTemplate = unavailableResponsesTemplate(patternName);
+      }
 
       const metricMean = getObjectiveMetric(pattern, contextValue.optimizationMetric)?.scores.mean;
       setDrawerContent({
@@ -516,7 +578,7 @@ function AutoragResultsPage(): React.JSX.Element {
       });
       return true;
     },
-    [contextValue.optimizationMetric, contextValue.parameters, patterns, pipelineRun?.run_id],
+    [contextValue.optimizationMetric, patterns, pipelineRun?.run_id],
   );
   /* eslint-enable @typescript-eslint/no-unnecessary-condition */
 
@@ -542,20 +604,28 @@ function AutoragResultsPage(): React.JSX.Element {
         return;
       }
       const persistedTemplate = pattern.inference?.responses_template;
-      const responsesTemplate = persistedTemplate
-        ? normalizeResponsesTemplate({
-            ...persistedTemplate,
-            metadata: {
-              ...persistedTemplate.metadata,
-              ...(getPatternEmbeddingModel(pattern)
-                ? {
-                    // eslint-disable-next-line camelcase
-                    embedding_model: getPatternEmbeddingModel(pattern),
-                  }
-                : {}),
-            },
-          })
-        : normalizeResponsesTemplate(buildResponsesTemplate(pattern, pipelineRun?.run_id));
+      let responsesTemplate: ResponsesTemplate;
+      try {
+        const candidate = persistedTemplate
+          ? {
+              ...persistedTemplate,
+              metadata: {
+                ...persistedTemplate.metadata,
+                ...(getPatternEmbeddingModel(pattern)
+                  ? {
+                      // eslint-disable-next-line camelcase
+                      embedding_model: getPatternEmbeddingModel(pattern),
+                    }
+                  : {}),
+              },
+            }
+          : buildResponsesTemplate(pattern, pipelineRun?.run_id);
+        responsesTemplate = isUsableResponsesTemplate(candidate)
+          ? normalizeResponsesTemplate(candidate)
+          : normalizeResponsesTemplate(buildResponsesTemplate(pattern, pipelineRun?.run_id));
+      } catch {
+        return;
+      }
       setViewCodePattern({ patternName, responsesTemplate });
       fireAutoragCodeSnippetsExported('viewed', source);
     },

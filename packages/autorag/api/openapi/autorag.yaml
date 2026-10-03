@@ -1944,6 +1944,7 @@ components:
                 items:
                   type: string
                   maxLength: 1048576
+                  pattern: '^[A-Za-z0-9_.-]+$'
               max_num_results:
                 type: integer
                 minimum: 0
@@ -1971,7 +1972,7 @@ components:
             type:
               type: string
               maxLength: 1048576
-              enum: [auto, required, none, file_search]
+              enum: [file_search]
         store:
           type: boolean
         include:

@@ -387,6 +387,9 @@ func (m *PortForwardManager) runCreation(key, namespace, serviceName string, rem
 	if stoppedForward != nil {
 		stoppedForward.wait()
 	}
+	// The creation context is only for startup and must not remain live after
+	// waiters receive the result, whether startup succeeded or failed.
+	creation.cancel()
 
 	m.mu.Lock()
 	if !creation.completed {

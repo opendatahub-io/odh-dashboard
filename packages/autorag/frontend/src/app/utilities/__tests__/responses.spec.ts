@@ -2,6 +2,7 @@
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import {
   getPatternStoreProvider,
+  getResponsesUnavailableReason,
   isResponsesProvider,
   normalizeStoreBindingProviderType,
   resolveDatabaseSecretName,
@@ -54,6 +55,43 @@ describe('store binding provider helpers', () => {
     expect(isResponsesProvider('pgvector')).toBe(true);
     expect(isResponsesProvider('neo4j')).toBe(false);
     expect(isResponsesProvider(undefined)).toBe(false);
+  });
+});
+
+describe('getResponsesUnavailableReason', () => {
+  const pattern = {
+    settings: {
+      store_binding: { provider_type: 'milvus', collection_name: 'collection' },
+      embedding: { model_id: 'embedding-model' },
+    },
+  } as AutoragPattern;
+
+  it.each([
+    [{}, 'database-secret'],
+    [{ db_secret_name: 'db' }, 'maas-secret'],
+  ])('reports missing runtime secret: %s', (parameters, reason) => {
+    expect(getResponsesUnavailableReason(parameters, pattern)).toBe(reason);
+  });
+
+  it('reports unsupported provider, collection, and embedding model', () => {
+    expect(
+      getResponsesUnavailableReason({ db_secret_name: 'db', maas_secret_name: 'maas' }, {
+        ...pattern,
+        settings: { ...pattern.settings, store_binding: { provider_type: 'neo4j' } },
+      } as AutoragPattern),
+    ).toBe('unsupported-provider');
+    expect(
+      getResponsesUnavailableReason({ db_secret_name: 'db', maas_secret_name: 'maas' }, {
+        ...pattern,
+        settings: { ...pattern.settings, store_binding: { provider_type: 'milvus' } },
+      } as AutoragPattern),
+    ).toBe('collection');
+    expect(
+      getResponsesUnavailableReason({ db_secret_name: 'db', maas_secret_name: 'maas' }, {
+        ...pattern,
+        settings: { ...pattern.settings, embedding: { model_id: ' ' } },
+      } as AutoragPattern),
+    ).toBe('embedding-model');
   });
 });
 /* eslint-enable camelcase */

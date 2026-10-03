@@ -128,6 +128,11 @@ func newPgvectorFromSecret(ctx context.Context, data map[string][]byte) (VectorD
 		return net.DefaultResolver.LookupIP(connectCtx, "ip", lookupHost)
 	}
 	dialer := &net.Dialer{}
+	// Keep pgx from resolving the hostname before DialFunc. The safe dialer must
+	// perform the authoritative lookup and validate every returned address.
+	connConfig.LookupFunc = func(_ context.Context, lookupHost string) ([]string, error) {
+		return []string{lookupHost}, nil
+	}
 	connConfig.DialFunc = vectorSafeDialContext(dialer.DialContext, lookupIP, endpoint.inCluster, false)
 
 	if len(certPEM) > 0 {
