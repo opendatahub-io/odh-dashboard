@@ -20,6 +20,7 @@ import { extractHttpsUrlsWithLocation } from './cypress/utils/urlExtractor';
 import { validateHttpsUrls } from './cypress/utils/urlValidator';
 import { logToConsole, LogLevel } from './cypress/utils/logger';
 import { getCypressTestPatterns } from './cypress/utils/discoverTestPatterns';
+import { createAutomlCleanupTasks } from './src/automlCleanupManifest';
 
 const getCyEnvVariables = (envVars: Record<string, string | undefined>) => {
   return Object.fromEntries(
@@ -73,6 +74,7 @@ export default defineConfig({
     },
     ODH_PRODUCT_NAME: env.ODH_PRODUCT_NAME,
     BUILD_NUMBER: env.BUILD_NUMBER || '',
+    JOB_NAME: env.JOB_NAME || env.GITHUB_WORKFLOW || '',
     GITHUB_RUN_ID: env.GITHUB_RUN_ID || '',
     resolution: 'high',
     grepFilterSpecs: true,
@@ -121,6 +123,14 @@ export default defineConfig({
       );
       /* eslint-enable @typescript-eslint/consistent-type-assertions */
       setupWebsockets(on, config);
+      on(
+        'task',
+        createAutomlCleanupTasks(
+          path.resolve(__dirname, resultsDir),
+          env.JOB_NAME || env.GITHUB_WORKFLOW || '',
+          env.BUILD_NUMBER || env.GITHUB_RUN_ID || '',
+        ),
+      );
 
       on('before:browser:launch', (browser, launchOptions) => {
         if (browser.family === 'chromium' && isCI) {

@@ -1,14 +1,11 @@
 import { applyOpenShiftYaml } from './baseCommands';
+import { DEFAULT_AWS_CLI_IMAGE } from '../../../src/automlCleanupCommands';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
-import type { AWSS3Buckets } from '../../types';
+import type { AWSS3Buckets, CommandLineResult } from '../../types';
 import { AWS_BUCKETS } from '../s3Buckets';
 
 /** Shell-escape a value by wrapping in single quotes (handles embedded quotes). */
 const shQuote = (value: string): string => `'${value.replace(/'/g, "'\\''")}'`;
-
-/** Pinned AWS CLI image so the cleanup pod cannot drift to a mutated :latest tag. */
-const AWS_CLI_IMAGE =
-  'amazon/aws-cli:2.27.50@sha256:48c3d4212e2f5b0e24bdc6af7708f9412ce65425a79575e0f78b8f8c0dcd70ab';
 
 const K8S_DNS_LABEL = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
 
@@ -26,6 +23,7 @@ type AwsCliPodOptions = {
   podName: string;
   region: string;
   awsCliArgs: string[];
+  command?: string[];
   failOnNonZeroExit?: boolean;
   timeout?: number;
 };
@@ -36,16 +34,18 @@ type AwsCliPodOptions = {
  * Credentials are mounted from a temporary Secret via `--overrides`
  * (`envFrom.secretRef`), so the `oc run` argv (and therefore Cypress `[EXEC]`
  * logs) never contain the keys.
- * The Secret is deleted after the pod exits, including when `oc run` fails.
+ * The pod is retained until startup failures can be described, then the pod
+ * and Secret are deleted even when `oc run` exits unsuccessfully.
  */
 export const runAwsCliInCluster = ({
   namespace,
   podName,
   region,
   awsCliArgs,
+  command,
   failOnNonZeroExit = false,
-  timeout = 120000,
-}: AwsCliPodOptions): void => {
+  timeout = 420000,
+}: AwsCliPodOptions): Cypress.Chainable<CommandLineResult> => {
   assertK8sDnsLabel('namespace', namespace);
   assertK8sDnsLabel('pod name', podName);
 
@@ -53,6 +53,7 @@ export const runAwsCliInCluster = ({
   assertK8sDnsLabel('secret name', secretName);
 
   const buckets = getAwsPipelines();
+  const image = (Cypress.env('CY_S3_CLEANUP_IMAGE') as string | undefined) || DEFAULT_AWS_CLI_IMAGE;
   const secretManifest = JSON.stringify({
     apiVersion: 'v1',
     kind: 'Secret',
@@ -79,7 +80,8 @@ export const runAwsCliInCluster = ({
       containers: [
         {
           name: podName,
-          image: AWS_CLI_IMAGE,
+          image,
+          ...(command ? { command } : {}),
           args: awsCliArgs,
           envFrom: [{ secretRef: { name: secretName } }],
           securityContext: {
@@ -95,34 +97,91 @@ export const runAwsCliInCluster = ({
     },
   });
 
-  applyOpenShiftYaml(secretManifest).then(() => {
+  return applyOpenShiftYaml(secretManifest).then((secretResult) => {
+    if (secretResult.exitCode !== 0) {
+      return deleteCredentials().then((secretDelete) => {
+        const cleanupError =
+          secretDelete.exitCode === 0
+            ? ''
+            : `Could not delete credential Secret ${secretName}: ${secretDelete.stderr}`;
+        const detail = maskSensitiveInfo(
+          [secretResult.stderr || secretResult.stdout, cleanupError].filter(Boolean).join('\n'),
+        );
+        if (failOnNonZeroExit) {
+          throw new Error(`Could not create credentials for AWS CLI pod ${podName}: ${detail}`);
+        }
+        return cy
+          .log(`WARNING: Could not create credentials for AWS CLI pod ${podName}: ${detail}`)
+          .then(
+            (): CommandLineResult => ({
+              ...secretResult,
+              stderr: detail,
+            }),
+          );
+      });
+    }
     // failOnNonZeroExit must be false so Cypress still runs Secret cleanup after a
     // non-zero oc run. Re-throw after deletion when the caller asked to fail.
     return cy
       .exec(
         `oc run ${shQuote(podName)} -n ${shQuote(namespace)} ` +
-          `--image=${shQuote(AWS_CLI_IMAGE)} ` +
-          `--restart=Never --rm --attach --tty=false ` +
+          `--image=${shQuote(image)} ` +
+          `--restart=Never --attach --tty=false --pod-running-timeout=300s ` +
           `--overrides=${shQuote(podOverrides)}`,
         { failOnNonZeroExit: false, log: false, timeout },
       )
-      .then((result) =>
-        deleteCredentials().then(() => {
-          if (result.exitCode === 0) {
-            return;
-          }
-          const maskedStderr = maskSensitiveInfo(result.stderr);
-          if (failOnNonZeroExit) {
-            throw new Error(
-              `AWS CLI pod ${podName} exited with code ${result.exitCode}: ${maskedStderr}`,
-            );
-          }
-          cy.log(
-            `WARNING: AWS CLI pod ${podName} exited with code ${result.exitCode}; ` +
-              `S3 objects may have been left behind: ${maskedStderr}`,
-          );
-        }),
-      );
+      .then((result) => {
+        const diagnostics =
+          result.exitCode === 0
+            ? cy.wrap('', { log: false })
+            : cy
+                .exec(`oc describe pod ${shQuote(podName)} -n ${shQuote(namespace)}`, {
+                  failOnNonZeroExit: false,
+                  log: false,
+                })
+                .then((description) => description.stdout || description.stderr);
+        return diagnostics.then((description) =>
+          cy
+            .exec(
+              `oc delete pod ${shQuote(podName)} -n ${shQuote(
+                namespace,
+              )} --wait=false --ignore-not-found`,
+              { failOnNonZeroExit: false, log: false },
+            )
+            .then((podDelete) =>
+              deleteCredentials().then((secretDelete) => {
+                const cleanupErrors = [
+                  podDelete.exitCode === 0
+                    ? ''
+                    : `Could not delete AWS CLI pod ${podName}: ${podDelete.stderr}`,
+                  secretDelete.exitCode === 0
+                    ? ''
+                    : `Could not delete credential Secret ${secretName}: ${secretDelete.stderr}`,
+                ].filter(Boolean);
+                const finalResult: CommandLineResult = {
+                  ...result,
+                  exitCode: result.exitCode || (cleanupErrors.length > 0 ? 1 : 0),
+                  stderr: [result.stderr, ...cleanupErrors].filter(Boolean).join('\n'),
+                };
+                if (finalResult.exitCode !== 0) {
+                  const detail = maskSensitiveInfo(
+                    `${finalResult.stderr}\n${result.stdout}\n${description}`.slice(0, 6000),
+                  );
+                  if (failOnNonZeroExit) {
+                    throw new Error(`AWS CLI pod ${podName} or its cleanup failed: ${detail}`);
+                  }
+                  return cy
+                    .log(
+                      `WARNING: AWS CLI pod ${podName} or its cleanup failed; ` +
+                        `S3 objects or temporary resources may remain. Pod diagnostics: ${detail}`,
+                    )
+                    .then(() => finalResult);
+                }
+                return finalResult;
+              }),
+            ),
+        );
+      });
   });
 };
 
@@ -130,7 +189,8 @@ export const runAwsCliInCluster = ({
  * Delete S3 objects whose keys match a given prefix pattern.
  *
  * Runs an ephemeral pod with the AWS CLI image to execute
- * `aws s3 rm --recursive`.  The pod is auto-removed via `--rm`.
+ * `aws s3 rm --recursive`. The helper removes the pod after collecting
+ * diagnostics when startup or deletion fails.
  *
  * Best-effort — failures are logged but do not fail the test run so
  * that project cleanup can still proceed.

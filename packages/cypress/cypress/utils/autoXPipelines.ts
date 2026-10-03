@@ -1,7 +1,7 @@
 import { createDataConnection } from './oc_commands/dataConnection';
 import { createDSPASecret, createDSPA } from './oc_commands/dspa';
 import { AWS_BUCKETS } from './s3Buckets';
-import { createCleanProject } from './projectChecker';
+import { createAndVerifyProject, createCleanProject } from './projectChecker';
 import type {
   DataConnectionReplacements,
   DspaReplacements,
@@ -36,11 +36,13 @@ const parseS3Endpoint = (endpoint: string): { host: string; scheme: string } => 
  * @param projectName Project Name
  * @param dspaSecretName DSPA Secret Name
  * @param bucketKey Which S3 bucket config to use
+ * @param deleteExistingProject Whether to delete a same-named project before creation
  */
 export const provisionProjectForAutoX = (
   projectName: string,
   dspaSecretName: string,
   bucketKey: 'BUCKET_2' | 'BUCKET_3',
+  deleteExistingProject = true,
 ): void => {
   const bucketConfig = AWS_BUCKETS[bucketKey];
   // Use DSPA_S3_ENDPOINT env var for in-cluster DSPA connectivity (disconnected clusters),
@@ -49,7 +51,11 @@ export const provisionProjectForAutoX = (
   const dspaEndpoint = Cypress.env('DSPA_S3_ENDPOINT') as string | undefined;
   const { host, scheme } = parseS3Endpoint(dspaEndpoint ?? bucketConfig.ENDPOINT);
 
-  createCleanProject(projectName);
+  if (deleteExistingProject) {
+    createCleanProject(projectName);
+  } else {
+    createAndVerifyProject(projectName);
+  }
 
   const dataConnectionReplacements: DataConnectionReplacements = {
     NAMESPACE: projectName,
