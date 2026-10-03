@@ -55,14 +55,32 @@ export const getPatternEmbeddingModel = (pattern?: AutoragPattern): string | und
 export const isResponsesProvider = (provider?: AutoragProviderType): boolean =>
   provider === 'milvus' || provider === 'pgvector';
 
+export type ResponsesUnavailableReason =
+  'database-secret' | 'maas-secret' | 'unsupported-provider' | 'collection' | 'embedding-model';
+
+export const getResponsesUnavailableReason = (
+  parameters: Record<string, unknown> | undefined,
+  pattern?: AutoragPattern,
+): ResponsesUnavailableReason | undefined => {
+  if (!resolveDatabaseSecretName(parameters)) {
+    return 'database-secret';
+  }
+  if (!resolveMaaSSecretName(parameters)) {
+    return 'maas-secret';
+  }
+  if (!isResponsesProvider(getPatternStoreProvider(pattern))) {
+    return 'unsupported-provider';
+  }
+  if (!getPatternCollectionName(pattern)) {
+    return 'collection';
+  }
+  if (!getPatternEmbeddingModel(pattern)) {
+    return 'embedding-model';
+  }
+  return undefined;
+};
+
 export const canUseResponsesForPattern = (
   parameters: Record<string, unknown> | undefined,
   pattern?: AutoragPattern,
-): boolean =>
-  Boolean(
-    resolveDatabaseSecretName(parameters) &&
-    resolveMaaSSecretName(parameters) &&
-    isResponsesProvider(getPatternStoreProvider(pattern)) &&
-    getPatternCollectionName(pattern) &&
-    getPatternEmbeddingModel(pattern),
-  );
+): boolean => getResponsesUnavailableReason(parameters, pattern) === undefined;

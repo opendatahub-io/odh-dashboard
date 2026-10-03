@@ -51,6 +51,10 @@ func (p *responsesJSONPreflight) scanValue(decoder *json.Decoder, path []string)
 		if len(delimiter) > maxResponsesStringBytes {
 			return fmt.Errorf("%s exceeds the maximum supported size of %d bytes", responsePath(path), maxResponsesStringBytes)
 		}
+	case nil:
+		if responsePath(path) == "tool_choice" {
+			return errors.New("tool_choice must be an object when provided")
+		}
 	}
 	return nil
 }

@@ -57,6 +57,16 @@ describe('playground snippets', () => {
     expect(result).not.toContain('OGX_CLIENT_API_KEY');
   });
 
+  it('should provide valid Node.js ESM setup guidance without stray indentation', () => {
+    const result = generateNodeSnippet(mockParams);
+
+    expect(result).toContain(
+      'Save as response.mjs (or set "type": "module" in package.json) and run with Node.js 18+',
+    );
+    expect(result).toContain('\nconst dashboardUrl =');
+    expect(result).not.toContain('\n const dashboardUrl =');
+  });
+
   it('should preserve template content in each displayed language', () => {
     for (const { fn } of generators) {
       expect(fn(mockParams)).toContain('Be helpful.');

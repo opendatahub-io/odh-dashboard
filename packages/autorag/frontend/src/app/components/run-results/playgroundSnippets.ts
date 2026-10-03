@@ -42,8 +42,9 @@ export const generateNodeSnippet = ({ template, ...params }: SnippetParams): str
     .map((line, i) => (i === 0 ? line : `  ${line}`))
     .join('\n');
   const endpointPath = escapeDoubleQuotedString(buildResponsesEndpoint({ template, ...params }));
-  return `// Replace with a token that authenticates to the dashboard BFF
- const dashboardUrl = (process.env.DASHBOARD_URL ?? "https://<DASHBOARD_HOST>").replace(/\\/$/, "");
+  return `// Save as response.mjs (or set "type": "module" in package.json) and run with Node.js 18+.
+// Replace with a token that authenticates to the dashboard BFF
+const dashboardUrl = (process.env.DASHBOARD_URL ?? "https://<DASHBOARD_HOST>").replace(/\\/$/, "");
 const dashboardToken = process.env.DASHBOARD_TOKEN ?? "${dashboardTokenPlaceholder}";
 const endpointPath = "${endpointPath}";
 

@@ -37,6 +37,7 @@ import {
   resolveDatabaseSecretName,
   resolveMaaSSecretName,
   canUseResponsesForPattern,
+  getResponsesUnavailableReason,
 } from '~/app/utilities/responses';
 import './PlaygroundDrawerPanel.scss';
 
@@ -75,7 +76,11 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
   const pattern = patterns[patternInfo.patternName];
   const provider = getPatternStoreProvider(pattern);
   const responsesProviderSupported = isResponsesProvider(provider);
-  const responsesReady = canUseResponsesForPattern(parameters, pattern);
+  const responsesReady =
+    canUseResponsesForPattern(parameters, pattern) &&
+    responsesTemplate.model.trim() !== '' &&
+    responsesTemplate.tools.some((tool) => tool.vector_store_ids.length > 0);
+  const unavailableReason = getResponsesUnavailableReason(parameters, pattern);
   const responsesEndpointUrl = React.useMemo(() => {
     if (!databaseSecretName || !secretName || !responsesProviderSupported) {
       return undefined;
@@ -235,30 +240,46 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
             <Bullseye>
               <EmptyState
                 data-testid={
-                  provider === 'neo4j'
+                  unavailableReason === 'unsupported-provider'
                     ? 'playground-neo4j-unavailable'
-                    : !databaseSecretName
+                    : unavailableReason === 'database-secret' || unavailableReason === 'collection'
                       ? 'playground-vector-db-unavailable'
-                      : 'playground-maas-unavailable'
+                      : unavailableReason === 'maas-secret'
+                        ? 'playground-maas-unavailable'
+                        : `playground-${unavailableReason ?? 'template'}-unavailable`
                 }
                 headingLevel="h2"
                 icon={ExclamationCircleIcon}
                 titleText={
-                  provider === 'neo4j'
+                  unavailableReason === 'unsupported-provider'
                     ? 'GraphRAG playground unavailable'
-                    : !databaseSecretName
+                    : unavailableReason === 'database-secret'
                       ? 'Playground unavailable'
-                      : 'MaaS connection unavailable'
+                      : unavailableReason === 'maas-secret'
+                        ? 'MaaS connection unavailable'
+                        : unavailableReason === 'collection'
+                          ? 'Collection unavailable'
+                          : unavailableReason === 'embedding-model'
+                            ? 'Embedding model unavailable'
+                            : 'Playground unavailable'
                 }
                 variant={EmptyStateVariant.sm}
                 status="warning"
               >
                 <EmptyStateBody>
-                  {provider === 'neo4j'
-                    ? 'GraphRAG runs using Neo4j are not supported by the Responses playground. Use the run results and pattern details instead.'
-                    : !databaseSecretName
+                  {unavailableReason === 'unsupported-provider'
+                    ? provider === 'neo4j'
+                      ? 'GraphRAG runs using Neo4j are not supported by the Responses playground. Use the run results and pattern details instead.'
+                      : 'This vector store provider is not supported by the Responses playground. Use the run results and pattern details instead.'
+                    : unavailableReason === 'database-secret'
                       ? 'The database connection is unavailable for this historical run. Rerun or configure the run with its database connection to use the playground.'
-                      : 'A MaaS connection is required to use the playground. Configure the run with a MaaS secret and try again.'}
+                      : unavailableReason === 'maas-secret'
+                        ? 'A MaaS connection is required to use the playground. Configure the run with a MaaS secret and try again.'
+                        : unavailableReason === 'collection'
+                          ? 'The pattern has no vector store collection configured for the playground.'
+                          : unavailableReason === 'embedding-model'
+                            ? 'The pattern has no embedding model configured for the playground.'
+                            : 'The saved Responses configuration is unavailable for this pattern.'}
                 </EmptyStateBody>
               </EmptyState>
             </Bullseye>

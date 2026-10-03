@@ -2,6 +2,7 @@ package helper
 
 import (
 	"bytes"
+	"errors"
 	"log/slog"
 	"net/http/httptest"
 	"strings"
@@ -22,5 +23,25 @@ func TestRequestLogValuerDoesNotLogRequestBody(t *testing.T) {
 	}
 	if !strings.Contains(assertLog, "method=POST") || !strings.Contains(assertLog, "path=/api/v1/responses") || !strings.Contains(assertLog, "content_length=") {
 		t.Fatalf("debug log is missing safe request metadata: %s", assertLog)
+	}
+}
+
+func TestSafeErrorForLogRedactsMalformedURLMatches(t *testing.T) {
+	for _, raw := range []string{
+		`https://user:secret@[bad-host]:bad-port/path?token=secret#fragment`,
+		`https://user:secret@example.com:%zz/path?token=secret#fragment`,
+		`https://user:secret@example.com:bad%zz/path?token=secret#fragment`,
+	} {
+		t.Run(raw, func(t *testing.T) {
+			got := SafeErrorForLog(errors.New("upstream failed: " + raw))
+			for _, secret := range []string{"user", "secret", "path", "token", "fragment"} {
+				if strings.Contains(got, secret) {
+					t.Fatalf("SafeErrorForLog() = %q, contains %q", got, secret)
+				}
+			}
+			if !strings.Contains(got, "<redacted>") {
+				t.Fatalf("SafeErrorForLog() = %q, want redaction marker", got)
+			}
+		})
 	}
 }

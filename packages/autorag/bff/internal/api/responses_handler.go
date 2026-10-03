@@ -110,6 +110,7 @@ func (h *ResponsesHandler) HandleResponsesEndpoint(w http.ResponseWriter, r *htt
 		return
 	}
 
+	_ = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(repositories.ResponsesWriteTimeout))
 	executionCtx, cancel := context.WithTimeout(r.Context(), repositories.ResponsesExecutionTimeout)
 	defer cancel()
 	if req.Stream {
@@ -206,6 +207,9 @@ func validateResponsesRequest(req *models.ResponsesRequest) error {
 		if err := requestSize.addString("tool_choice.type", req.ToolChoice.Type); err != nil {
 			return err
 		}
+		if req.ToolChoice.Type != "file_search" {
+			return errors.New("tool_choice.type must be file_search when provided")
+		}
 	}
 	if len(req.Include) > maxResponsesIncludeItems {
 		return fmt.Errorf("include must not contain more than %d items", maxResponsesIncludeItems)
@@ -228,6 +232,16 @@ func validateResponsesRequest(req *models.ResponsesRequest) error {
 	}
 	if requestSize.total > maxResponsesInputBytes {
 		return fmt.Errorf("request input exceeds the maximum supported size of %d bytes", maxResponsesInputBytes)
+	}
+	for _, tool := range req.Tools {
+		if tool.Type != "file_search" {
+			return fmt.Errorf("unsupported tool type %q", tool.Type)
+		}
+		for _, id := range tool.VectorStoreIDs {
+			if !repositories.ValidVectorStoreID(id) {
+				return fmt.Errorf("invalid vector_store_ids value: must match %s", repositories.VectorStoreIDPattern())
+			}
+		}
 	}
 	for _, tool := range req.Tools {
 		if tool.Type != "file_search" {
@@ -341,9 +355,6 @@ func sseDone(w http.ResponseWriter, flusher http.Flusher) error {
 
 // handleStreamingResponse streams a RAG response using the OpenAI Responses API SSE event format.
 func (h *ResponsesHandler) handleStreamingResponse(w http.ResponseWriter, r *http.Request, params repositories.ResponsesParams, req *models.ResponsesRequest) {
-	// The server applies a bounded deadline to ordinary responses. SSE is a live
-	// stream, so remove that deadline before committing the streaming response.
-	_ = http.NewResponseController(w).SetWriteDeadline(time.Time{})
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("X-Accel-Buffering", "no")

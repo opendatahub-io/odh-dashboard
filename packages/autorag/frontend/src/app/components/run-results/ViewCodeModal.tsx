@@ -111,7 +111,14 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
     >
       <ModalHeader title={`${formatPatternName(patternName)} — Response payload`} />
       <ModalBody className="autorag-view-code-modal__body">
-        {!maasSecretName ? (
+        {!dbSecretName ? (
+          <EmptyState variant={EmptyStateVariant.sm} status="warning" icon={ExclamationCircleIcon}>
+            <EmptyStateBody>
+              The database connection is unavailable for this historical run. Rerun or configure the
+              run with its database connection to generate code snippets.
+            </EmptyStateBody>
+          </EmptyState>
+        ) : !maasSecretName ? (
           <EmptyState variant={EmptyStateVariant.sm} status="warning" icon={ExclamationCircleIcon}>
             <EmptyStateBody>
               A MaaS connection is required to generate code snippets. Configure the run with a MaaS

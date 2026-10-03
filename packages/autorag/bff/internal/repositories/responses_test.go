@@ -790,13 +790,7 @@ func TestParseFileSearchTool_RejectsInvalidVectorStoreID(t *testing.T) {
 				VectorStoreIDs: []string{id},
 			}))
 			require.Error(t, err)
-			if id != "" {
-				assert.Contains(t, err.Error(), "invalid vector_store_ids value")
-			} else {
-				// An empty ID never enters the loop's collection assignment path,
-				// so it surfaces as "no file_search tool" instead.
-				assert.Contains(t, err.Error(), "no file_search tool with vector_store_ids found")
-			}
+			assert.Contains(t, err.Error(), "invalid vector_store_ids value")
 		})
 	}
 }
@@ -808,6 +802,22 @@ func TestParseFileSearchTool_CanonicalizesVectorStoreID(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	assert.Equal(t, "vs_abc_123", collection)
+}
+
+func TestBuildMessagesPrependsRequestInstructionsToInputSystemMessage(t *testing.T) {
+	var req models.ResponsesRequest
+	require.NoError(t, json.Unmarshal([]byte(`{
+		"instructions":"request instructions",
+		"input":[
+			{"role":"system","content":[{"type":"input_text","text":"input system"}]},
+			{"role":"user","content":[{"type":"input_text","text":"question"}]}
+		]
+	}`), &req))
+	system, _, _ := extractHistoryAndQuestion(req.Input)
+	if req.Instructions != "" {
+		system = req.Instructions + responsesInstructionsSeparator + system
+	}
+	assert.Equal(t, "request instructions\n\ninput system", system)
 }
 
 func TestParseFileSearchTool_RejectsExcessiveMaxNumResults(t *testing.T) {

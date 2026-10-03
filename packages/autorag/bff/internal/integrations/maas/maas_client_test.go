@@ -111,8 +111,19 @@ func TestDefaultHTTPClientRejectsActualRequestWithoutConfiguredRootCA(t *testing
 	server := httptest.NewTLSServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
 	t.Cleanup(server.Close)
 
-	_, err := NewDefaultHTTPClient(MaaSClientConfig{}).Get(server.URL)
+	response, err := NewDefaultHTTPClient(MaaSClientConfig{
+		WrapTransport: func(rt http.RoundTripper) http.RoundTripper {
+			transport := rt.(*http.Transport).Clone()
+			transport.DialContext = (&net.Dialer{}).DialContext
+			return transport
+		},
+	}).Get(server.URL)
+	if response != nil {
+		defer response.Body.Close()
+	}
 	require.Error(t, err)
+	var unknownAuthority x509.UnknownAuthorityError
+	assert.ErrorAs(t, err, &unknownAuthority)
 }
 
 func TestClientFactoryDevInsecureTLSReachesResponsesClient(t *testing.T) {

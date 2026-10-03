@@ -24,9 +24,12 @@ const maxTopK = 100
 
 const (
 	ResponsesExecutionTimeout    = 2 * time.Minute
+	ResponsesWriteTimeout        = ResponsesExecutionTimeout + 10*time.Second
 	maxRAGContextBytes           = 4 << 20
 	defaultResponsesOutputTokens = 2048
 )
+
+const responsesInstructionsSeparator = "\n\n"
 
 var ErrInvalidResponsesRequest = errors.New("invalid Responses API request")
 
@@ -34,6 +37,10 @@ var ErrInvalidResponsesRequest = errors.New("invalid Responses API request")
 // canonicalized before they reach a vector DB adapter. Logical names that
 // canonicalize to the same ID cannot coexist.
 var validVectorStoreID = regexp.MustCompile(`^[A-Za-z0-9_.-]+$`)
+
+func ValidVectorStoreID(value string) bool { return validVectorStoreID.MatchString(value) }
+
+func VectorStoreIDPattern() string { return validVectorStoreID.String() }
 
 // ResponsesParams holds the per-request parameters for the responses endpoint.
 type ResponsesParams struct {
@@ -414,6 +421,11 @@ func parseFileSearchTool(req *models.ResponsesRequest) (collection string, topK 
 		if tool.Type != "file_search" || len(tool.VectorStoreIDs) == 0 {
 			continue
 		}
+		for _, id := range tool.VectorStoreIDs {
+			if !validVectorStoreID.MatchString(id) {
+				return "", 0, 0, false, fmt.Errorf("invalid vector_store_ids value %q: must match %s", id, validVectorStoreID.String())
+			}
+		}
 		collection = tool.VectorStoreIDs[0]
 		if tool.MaxNumResults < 0 {
 			return "", 0, 0, false, fmt.Errorf("max_num_results %d must be between 0 and %d", tool.MaxNumResults, maxTopK)
@@ -442,9 +454,6 @@ func parseFileSearchTool(req *models.ResponsesRequest) (collection string, topK 
 	}
 	if collection == "" {
 		return "", 0, 0, false, fmt.Errorf("no file_search tool with vector_store_ids found in request")
-	}
-	if !validVectorStoreID.MatchString(collection) {
-		return "", 0, 0, false, fmt.Errorf("invalid vector_store_ids value %q: must match %s", collection, validVectorStoreID.String())
 	}
 	return sanitizeCollection(collection), topK, alpha, hybrid, nil
 }
@@ -479,6 +488,13 @@ func (r *ResponsesRepository) prepareRAGContext(ctx context.Context, params Resp
 	}
 
 	systemPrompt, history, question := extractHistoryAndQuestion(req.Input)
+	if req.Instructions != "" {
+		if systemPrompt != "" {
+			systemPrompt = req.Instructions + responsesInstructionsSeparator + systemPrompt
+		} else {
+			systemPrompt = req.Instructions
+		}
+	}
 	if question == "" {
 		return nil, fmt.Errorf("no user message found in input")
 	}

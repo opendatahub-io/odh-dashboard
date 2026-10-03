@@ -134,7 +134,7 @@ func sanitizeURLMatch(match string) string {
 		parsed, err = url.Parse("//" + trailing)
 	}
 	if err != nil || parsed.Hostname() == "" {
-		return match
+		return "<redacted>" + punctuation
 	}
 
 	userinfo := ""

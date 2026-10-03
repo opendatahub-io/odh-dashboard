@@ -105,6 +105,16 @@ describe('ViewCodeModal', () => {
     expect(screen.queryByText('Copy curl snippet')).not.toBeInTheDocument();
   });
 
+  it('should show an unavailable state when the database secret is missing', () => {
+    mockViewCodeParameters = { maas_secret_name: 'maas-secret' };
+    render(<ViewCodeModal {...defaultProps} />);
+
+    expect(
+      screen.getByText(/The database connection is unavailable for this historical run/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Copy curl snippet')).not.toBeInTheDocument();
+  });
+
   it('should call onClose when the modal is closed', () => {
     render(<ViewCodeModal {...defaultProps} />);
     fireEvent.click(screen.getByLabelText('Close'));

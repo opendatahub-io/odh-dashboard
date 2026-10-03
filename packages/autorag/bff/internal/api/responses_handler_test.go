@@ -801,6 +801,9 @@ func TestValidateResponsesRequestOutputTokenAndInputBounds(t *testing.T) {
 		{name: "tool choice cap rejected", mutate: func(req *models.ResponsesRequest) {
 			req.ToolChoice = &models.ToolChoice{Type: strings.Repeat("x", maxResponsesStringBytes+1)}
 		}, wantErr: "maximum supported size"},
+		{name: "unsupported tool choice rejected", mutate: func(req *models.ResponsesRequest) {
+			req.ToolChoice = &models.ToolChoice{Type: "auto"}
+		}, wantErr: "tool_choice.type must be file_search"},
 		{name: "include item cap rejected", mutate: func(req *models.ResponsesRequest) {
 			req.Include = []string{strings.Repeat("x", maxResponsesStringBytes+1)}
 		}, wantErr: "maximum supported size"},
