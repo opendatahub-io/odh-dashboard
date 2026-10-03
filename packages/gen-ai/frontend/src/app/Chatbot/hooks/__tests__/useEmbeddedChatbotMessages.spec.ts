@@ -34,6 +34,19 @@ const mockTemplate: ResponsesTemplate = {
   include: ['file_search_call.results'],
 };
 
+const genericAutoToolChoiceTemplate: ResponsesTemplate = {
+  ...mockTemplate,
+  tools: [],
+  metadata: {},
+  tool_choice: { type: 'auto' },
+};
+
+describe('ResponsesTemplate generic boundary', () => {
+  it('accepts an inert generic auto tool choice template', () => {
+    expect(genericAutoToolChoiceTemplate.tool_choice).toEqual({ type: 'auto' });
+  });
+});
+
 describe('buildRequestBody', () => {
   it('should substitute the placeholder with the user query', () => {
     const result = buildRequestBody(mockTemplate, 'What is RAG?', []);

@@ -1,7 +1,7 @@
-import type { ResponsesTemplate } from '~/app/types/autoragPattern';
+import type { AutoRAGResponsesTemplate } from '~/app/types/autoragPattern';
 
 export type SnippetParams = {
-  template: ResponsesTemplate;
+  template: AutoRAGResponsesTemplate;
   namespace: string;
   dbSecretName: string;
   maasSecretName: string;

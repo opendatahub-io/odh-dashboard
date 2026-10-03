@@ -1,9 +1,6 @@
 import type React from 'react';
 
-/**
- * OpenAI Responses API template structure used by AutoRAG to define
- * how queries should be sent to the AutoRAG responses endpoint.
- */
+/** OpenAI Responses API template used by embedded and passthrough flows. */
 type ResponsesTemplate = {
   model: string;
   stream: boolean;
@@ -12,31 +9,19 @@ type ResponsesTemplate = {
     | string
     | Array<{
         type: 'message';
-        role: 'user';
+        role: 'user' | 'assistant' | 'system';
         content: Array<{
           type: 'input_text';
           text: string;
         }>;
       }>;
-  metadata: {
-    autorag_run_id?: string;
-    rag_pattern_name: string;
-    embedding_model?: string;
-  };
+  metadata: Record<string, string>;
   instructions: string;
-  tools: Array<{
-    type: 'file_search';
-    vector_store_ids: string[];
-    max_num_results: number;
-    ranking_options?: {
-      ranker: 'rrf';
-      alpha: number;
-    };
-  }>;
+  tools: Array<{ type: string; [key: string]: unknown }>;
   tool_choice: {
-    type: 'file_search';
+    type: 'auto' | 'required' | 'none' | 'file_search';
   };
-  include: Array<'file_search_call.results' | 'file_search_call.output'>;
+  include: string[];
 };
 
 /**

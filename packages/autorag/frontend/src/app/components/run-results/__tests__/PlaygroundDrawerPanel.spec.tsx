@@ -3,7 +3,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Drawer, DrawerContent } from '@patternfly/react-core';
 import PlaygroundDrawerPanel from '~/app/components/run-results/PlaygroundDrawerPanel';
-import type { AutoragPattern, ResponsesTemplate } from '~/app/types/autoragPattern';
+import type { AutoRAGResponsesTemplate, AutoragPattern } from '~/app/types/autoragPattern';
 import type { PlaygroundPatternInfo } from '~/app/components/run-results/PlaygroundDrawerPanel';
 import {
   AutoragResultsContext,
@@ -21,7 +21,7 @@ jest.mock('~/app/components/EmbeddedPlayground', () => {
   return { __esModule: true, default: MockPlayground };
 });
 
-const mockTemplate: ResponsesTemplate = {
+const mockTemplate: AutoRAGResponsesTemplate = {
   model: 'test-model',
   stream: true,
   store: false,
@@ -32,7 +32,11 @@ const mockTemplate: ResponsesTemplate = {
       content: [{ type: 'input_text', text: '<user_query_placeholder>' }],
     },
   ],
-  metadata: { autorag_run_id: 'run-1', rag_pattern_name: 'pattern_a' },
+  metadata: {
+    autorag_run_id: 'run-1',
+    rag_pattern_name: 'pattern_a',
+    embedding_model: 'embedding-model',
+  },
   instructions: 'Be helpful.',
   tools: [
     {

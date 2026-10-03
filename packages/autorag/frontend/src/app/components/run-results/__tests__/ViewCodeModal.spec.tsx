@@ -4,7 +4,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
-import type { ResponsesTemplate } from '~/app/types/autoragPattern';
+import type { AutoRAGResponsesTemplate } from '~/app/types/autoragPattern';
 import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
@@ -27,7 +27,7 @@ jest.mock('~/app/context/AutoragResultsContext', () => ({
   useAutoragResultsContext: () => ({ parameters: mockViewCodeParameters, patterns: {} }),
 }));
 
-const mockTemplate: ResponsesTemplate = {
+const mockTemplate: AutoRAGResponsesTemplate = {
   model: 'vllm/llama-3',
   stream: false,
   store: true,
@@ -38,7 +38,11 @@ const mockTemplate: ResponsesTemplate = {
       content: [{ type: 'input_text', text: '<user_query_placeholder>' }],
     },
   ],
-  metadata: { autorag_run_id: '123', rag_pattern_name: 'test_pattern' },
+  metadata: {
+    autorag_run_id: '123',
+    rag_pattern_name: 'test_pattern',
+    embedding_model: 'embedding-model',
+  },
   instructions: 'Answer from file_search results.',
   tools: [
     {

@@ -1041,7 +1041,11 @@ describe('AutoragResults', () => {
               content: [{ type: 'input_text', text: '<user_query_placeholder>' }],
             },
           ],
-          metadata: { autorag_run_id: 'run-123', rag_pattern_name: 'Pattern1' },
+          metadata: {
+            autorag_run_id: 'run-123',
+            rag_pattern_name: 'Pattern1',
+            embedding_model: 'embedding-model',
+          },
           instructions: 'Answer from file_search results.',
           tools: [
             {
@@ -1126,7 +1130,11 @@ describe('AutoragResults', () => {
               content: [{ type: 'input_text', text: '<user_query_placeholder>' }],
             },
           ],
-          metadata: { autorag_run_id: 'run-123', rag_pattern_name: 'Pattern1' },
+          metadata: {
+            autorag_run_id: 'run-123',
+            rag_pattern_name: 'Pattern1',
+            embedding_model: 'embedding-model',
+          },
           instructions: 'Answer from file_search results.',
           tools: [
             {

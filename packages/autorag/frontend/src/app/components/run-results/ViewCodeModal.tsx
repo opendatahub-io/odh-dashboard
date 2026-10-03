@@ -18,7 +18,7 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { useParams } from 'react-router';
-import type { ResponsesTemplate } from '~/app/types/autoragPattern';
+import type { AutoRAGResponsesTemplate } from '~/app/types/autoragPattern';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { fireAutoragCodeSnippetsExported } from '~/app/utilities/tracking';
 import { formatPatternName } from '~/app/utilities/utils';
@@ -35,7 +35,7 @@ type ViewCodeModalProps = {
   isOpen: boolean;
   onClose: () => void;
   patternName: string;
-  responsesTemplate: ResponsesTemplate;
+  responsesTemplate: AutoRAGResponsesTemplate;
 };
 
 const snippetTabs: {

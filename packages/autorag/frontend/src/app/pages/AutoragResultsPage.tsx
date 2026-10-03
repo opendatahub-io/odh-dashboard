@@ -53,7 +53,7 @@ import {
 } from '~/app/utilities/utils';
 import { getObjectiveMetric, metricLabel } from '~/app/utilities/metricUtils';
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
-import type { AutoragPattern, ResponsesTemplate } from '~/app/types/autoragPattern';
+import type { AutoRAGResponsesTemplate, AutoragPattern } from '~/app/types/autoragPattern';
 import {
   AUTORAG_EVENTS,
   fireAutoragCodeSnippetsExported,
@@ -74,7 +74,7 @@ type DrawerContentType =
   | { type: 'run-details' }
   | {
       type: 'playground';
-      responsesTemplate: ResponsesTemplate;
+      responsesTemplate: AutoRAGResponsesTemplate;
       patternInfo: PlaygroundPatternInfo;
     };
 
@@ -91,7 +91,7 @@ const isAbortError = (error: unknown): boolean =>
 export const buildResponsesTemplate = (
   pattern: AutoragPattern,
   runId: string | undefined,
-): ResponsesTemplate => {
+): AutoRAGResponsesTemplate => {
   const { generation, retrieval } = pattern.settings;
   const collectionName = getPatternCollectionName(pattern);
   const embeddingModel = getPatternEmbeddingModel(pattern);
@@ -112,7 +112,7 @@ export const buildResponsesTemplate = (
     metadata: {
       ...(runId?.trim() ? { autorag_run_id: runId.trim() } : {}),
       rag_pattern_name: pattern.name,
-      ...(embeddingModel ? { embedding_model: embeddingModel } : {}),
+      embedding_model: embeddingModel ?? '',
     },
     instructions: '',
     tools: [
@@ -137,7 +137,9 @@ export const buildResponsesTemplate = (
 };
 
 /* eslint-disable camelcase */
-export const normalizeResponsesTemplate = (template: ResponsesTemplate): ResponsesTemplate => {
+export const normalizeResponsesTemplate = (
+  template: AutoRAGResponsesTemplate,
+): AutoRAGResponsesTemplate => {
   const { autorag_run_id: runId, ...metadata } = template.metadata;
   return {
     ...template,
@@ -161,7 +163,7 @@ export const normalizeResponsesTemplate = (template: ResponsesTemplate): Respons
 };
 /* eslint-enable camelcase */
 
-const isUsableResponsesTemplate = (value: unknown): value is ResponsesTemplate => {
+const isUsableResponsesTemplate = (value: unknown): value is AutoRAGResponsesTemplate => {
   const isRecord = (entry: unknown): entry is Record<string, unknown> =>
     typeof entry === 'object' && entry !== null;
   if (!isRecord(value)) {
@@ -204,12 +206,12 @@ const isUsableResponsesTemplate = (value: unknown): value is ResponsesTemplate =
 };
 
 /* eslint-disable camelcase */
-const unavailableResponsesTemplate = (patternName: string): ResponsesTemplate => ({
+const unavailableResponsesTemplate = (patternName: string): AutoRAGResponsesTemplate => ({
   model: '',
   stream: true,
   store: false,
   input: [],
-  metadata: { rag_pattern_name: patternName },
+  metadata: { rag_pattern_name: patternName, embedding_model: '' },
   instructions: '',
   tools: [{ type: 'file_search', vector_store_ids: [], max_num_results: 0 }],
   tool_choice: { type: 'file_search' },
@@ -539,7 +541,7 @@ function AutoragResultsPage(): React.JSX.Element {
       if (!pattern) {
         return false;
       }
-      let responsesTemplate: ResponsesTemplate;
+      let responsesTemplate: AutoRAGResponsesTemplate;
       try {
         const persistedTemplate = pattern.inference?.responses_template;
         const candidate = persistedTemplate
@@ -593,7 +595,7 @@ function AutoragResultsPage(): React.JSX.Element {
 
   const [viewCodePattern, setViewCodePattern] = React.useState<{
     patternName: string;
-    responsesTemplate: ResponsesTemplate;
+    responsesTemplate: AutoRAGResponsesTemplate;
   } | null>(null);
 
   const handleViewCode = React.useCallback(
@@ -604,7 +606,7 @@ function AutoragResultsPage(): React.JSX.Element {
         return;
       }
       const persistedTemplate = pattern.inference?.responses_template;
-      let responsesTemplate: ResponsesTemplate;
+      let responsesTemplate: AutoRAGResponsesTemplate;
       try {
         const candidate = persistedTemplate
           ? {

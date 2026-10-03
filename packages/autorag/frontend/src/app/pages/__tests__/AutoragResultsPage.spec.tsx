@@ -10,7 +10,13 @@ import AutoragResultsPage, {
   buildResponsesTemplate,
   normalizeResponsesTemplate,
 } from '~/app/pages/AutoragResultsPage';
-import type { AutoragPattern, ResponsesTemplate } from '~/app/types/autoragPattern';
+import type { AutoRAGResponsesTemplate, AutoragPattern } from '~/app/types/autoragPattern';
+
+const invalidAutoRagToolChoice: AutoRAGResponsesTemplate['tool_choice'] =
+  // @ts-expect-error AutoRAG responses are statically file-search-only.
+  { type: 'auto' };
+
+void invalidAutoRagToolChoice;
 import type { AutoragRuntimeParameters, PipelineRun } from '~/app/types';
 import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
 import { downloadBlob } from '~/app/utilities/utils';
@@ -572,7 +578,7 @@ describe('AutoragResultsPage', () => {
             },
           },
         ],
-      } as unknown as ResponsesTemplate;
+      };
       const pattern = {
         ...mockPatterns['pattern-1'],
         inference: { responses_template: legacyTemplate },

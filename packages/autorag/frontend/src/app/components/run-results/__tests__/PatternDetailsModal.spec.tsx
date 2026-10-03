@@ -1180,7 +1180,11 @@ describe('PatternDetailsModal', () => {
             stream: false,
             store: true,
             input: 'question',
-            metadata: { autorag_run_id: 'run-1', rag_pattern_name: 'pattern0' },
+            metadata: {
+              autorag_run_id: 'run-1',
+              rag_pattern_name: 'pattern0',
+              embedding_model: 'embedding-model',
+            },
             instructions: 'Answer the question.',
             tools: [
               {
@@ -1251,7 +1255,11 @@ describe('PatternDetailsModal', () => {
             stream: false,
             store: true,
             input: 'question',
-            metadata: { autorag_run_id: 'run-1', rag_pattern_name: 'pattern0' },
+            metadata: {
+              autorag_run_id: 'run-1',
+              rag_pattern_name: 'pattern0',
+              embedding_model: 'embedding-model',
+            },
             instructions: 'Answer the question.',
             tools: [
               {

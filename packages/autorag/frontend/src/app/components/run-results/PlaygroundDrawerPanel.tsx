@@ -27,7 +27,7 @@ import {
 } from '@patternfly/react-core';
 import { CodeIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
-import type { ResponsesTemplate } from '~/app/types/autoragPattern';
+import type { AutoRAGResponsesTemplate } from '~/app/types/autoragPattern';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { formatPatternName } from '~/app/utilities/utils';
 import { formatMetricValue } from '~/app/utilities/metricUtils';
@@ -53,7 +53,7 @@ type PlaygroundPatternInfo = {
 
 type PlaygroundDrawerPanelProps = {
   namespace: string;
-  responsesTemplate: ResponsesTemplate;
+  responsesTemplate: AutoRAGResponsesTemplate;
   patternInfo: PlaygroundPatternInfo;
   onClose: () => void;
   onSelectPattern: (patternName: string) => void;

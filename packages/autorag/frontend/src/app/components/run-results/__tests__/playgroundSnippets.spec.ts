@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import type { ResponsesTemplate } from '~/app/types/autoragPattern';
+import type { AutoRAGResponsesTemplate } from '~/app/types/autoragPattern';
 import {
   generateCurlSnippet,
   generateGoSnippet,
@@ -8,12 +8,16 @@ import {
 } from '~/app/components/run-results/playgroundSnippets';
 import type { SnippetParams } from '~/app/components/run-results/playgroundSnippets';
 
-const mockTemplate: ResponsesTemplate = {
+const mockTemplate: AutoRAGResponsesTemplate = {
   model: 'test-model',
   stream: false,
   store: false,
   input: [{ type: 'message', role: 'user', content: [{ type: 'input_text', text: 'hello' }] }],
-  metadata: { autorag_run_id: '123', rag_pattern_name: 'Pattern1' },
+  metadata: {
+    autorag_run_id: '123',
+    rag_pattern_name: 'Pattern1',
+    embedding_model: 'embedding-model',
+  },
   instructions: 'Be helpful.',
   tools: [
     {
