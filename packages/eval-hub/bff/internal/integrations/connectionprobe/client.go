@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -21,6 +22,16 @@ import (
 const (
 	maxResponseBodySize = 10 * 1024 * 1024 // 10MB
 )
+
+// internalCABundlePaths lists PEM CA bundle files to load for TLS verification
+// against cluster-internal endpoints (KServe service-serving certificates).
+var internalCABundlePaths = []string{
+	"/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt",
+	"/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+	"/etc/pki/tls/certs/odh-ca-bundle.crt",
+	"/etc/pki/tls/certs/odh-trusted-ca-bundle.crt",
+	"/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",
+}
 
 // chatCompletionRequest represents an OpenAI-compatible chat completion request used for probing.
 type chatCompletionRequest struct {
@@ -145,6 +156,17 @@ func NewConnectionProbeClient(
 	}
 
 	internal := isInternalHost(baseURL)
+
+	// Auto-upgrade http:// to https:// for cluster-internal hosts — KServe endpoints
+	// use service-serving TLS certificates and reject plain HTTP connections.
+	if internal {
+		if parsedURL, err := url.Parse(baseURL); err == nil && parsedURL.Scheme == "http" {
+			parsedURL.Scheme = "https"
+			baseURL = parsedURL.String()
+			logger.Info("Auto-upgraded internal endpoint from http to https", slog.String("host", parsedURL.Host))
+		}
+	}
+
 	allowHTTP := opts.AllowHTTP || opts.SkipSSRFValidation || internal
 	if err := validateBaseURL(baseURL, allowHTTP); err != nil {
 		return nil, err
@@ -159,11 +181,27 @@ func NewConnectionProbeClient(
 		}
 	}
 
+	if internal {
+		if rootCAs == nil {
+			if pool, err := x509.SystemCertPool(); err == nil {
+				rootCAs = pool
+			} else {
+				rootCAs = x509.NewCertPool()
+			}
+		}
+		for _, p := range internalCABundlePaths {
+			if pemBytes, err := os.ReadFile(p); err == nil {
+				rootCAs.AppendCertsFromPEM(pemBytes)
+				logger.Debug("Loaded CA bundle for internal TLS", slog.String("path", p))
+			}
+		}
+	}
+
 	var transport http.RoundTripper
-	if opts.SkipTLSVerification || internal {
+	if opts.SkipTLSVerification {
 		transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true, //nolint:gosec // cluster-local services use self-signed certs
+				InsecureSkipVerify: true, //nolint:gosec // explicit opt-in for local dev
 				MinVersion:         tls.VersionTLS12,
 			},
 		}
