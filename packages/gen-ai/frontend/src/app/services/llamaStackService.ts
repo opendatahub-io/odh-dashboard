@@ -765,12 +765,18 @@ export const createPassthroughResponse = (
   body: Record<string, unknown>,
   onStreamData: (chunk: string, clearPrevious?: boolean) => void,
   abortSignal?: AbortSignal,
+  responsesEndpointUrl?: string,
 ): Promise<SimplifiedResponseData> => {
-  const trimmed = bffBasePath.replace(/\/+$/, '');
-  const base = trimmed.endsWith('/api/v1') ? trimmed : `${trimmed}/api/v1`;
-  const url = `${base}/lsd/responses/passthrough?namespace=${encodeURIComponent(
-    namespace,
-  )}&secretName=${encodeURIComponent(secretName)}`;
+  let url: string;
+  if (responsesEndpointUrl) {
+    url = responsesEndpointUrl;
+  } else {
+    const trimmed = bffBasePath.replace(/\/+$/, '');
+    const base = trimmed.endsWith('/api/v1') ? trimmed : `${trimmed}/api/v1`;
+    url = `${base}/lsd/responses/passthrough?namespace=${encodeURIComponent(
+      namespace,
+    )}&secretName=${encodeURIComponent(secretName)}`;
+  }
 
   return new Promise((resolve, reject) => {
     fetch(url, {
@@ -788,8 +794,14 @@ export const createPassthroughResponse = (
           try {
             const errorBody = await response.text();
             const errorData = JSON.parse(errorBody);
+            if (responsesEndpointUrl && errorData?.error && typeof errorData.error === 'object') {
+              throw new ApiErrorClass(errorData.error, errorData.trace_id);
+            }
             errorMessage = errorData?.error?.message || errorMessage;
-          } catch {
+          } catch (error) {
+            if (error instanceof ApiErrorClass) {
+              throw error;
+            }
             // ignore
           }
 
@@ -821,6 +833,14 @@ export const createPassthroughResponse = (
         let completeResponseData: BackendResponseData | null = null;
         let metricsData: ResponseMetrics | null = null;
         const decoder = new TextDecoder();
+        let readerCancelled = false;
+        let streamCompleted = false;
+        const cancelReader = async () => {
+          if (!readerCancelled) {
+            readerCancelled = true;
+            await reader.cancel('Streaming error');
+          }
+        };
 
         try {
           let done = false;
@@ -840,8 +860,13 @@ export const createPassthroughResponse = (
                     const data = JSON.parse(line.slice(6));
 
                     if (data.error) {
-                      await reader.cancel('Streaming error');
+                      await cancelReader();
                       reject(new ApiErrorClass(data.error, data.trace_id));
+                      return;
+                    }
+                    if (data.type === 'error' && typeof data.message === 'string') {
+                      await cancelReader();
+                      reject(new Error(data.message));
                       return;
                     }
 
@@ -888,7 +913,13 @@ export const createPassthroughResponse = (
                   const data = JSON.parse(line.slice(6));
 
                   if (data.error) {
+                    await cancelReader();
                     reject(new ApiErrorClass(data.error, data.trace_id));
+                    return;
+                  }
+                  if (data.type === 'error' && typeof data.message === 'string') {
+                    await cancelReader();
+                    reject(new Error(data.message));
                     return;
                   }
 
@@ -897,6 +928,7 @@ export const createPassthroughResponse = (
                     onStreamData(data.delta);
                   } else if (data.type === 'response.refusal.delta' && data.delta) {
                     if (fullContent.length > 0) {
+                      await cancelReader();
                       reject(
                         new ApiErrorClass({
                           code: GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION,
@@ -920,7 +952,11 @@ export const createPassthroughResponse = (
               }
             }
           }
+          streamCompleted = true;
         } finally {
+          if (!streamCompleted) {
+            await cancelReader();
+          }
           reader.releaseLock();
         }
 

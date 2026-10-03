@@ -2,7 +2,7 @@ import type React from 'react';
 
 /**
  * OpenAI Responses API template structure used by AutoRAG to define
- * how queries should be sent to the OGX (Open GenAI Stack) instance.
+ * how queries should be sent to the AutoRAG responses endpoint.
  */
 type ResponsesTemplate = {
   model: string;
@@ -19,23 +19,22 @@ type ResponsesTemplate = {
         }>;
       }>;
   metadata: {
-    autorag_run_id: string;
+    autorag_run_id?: string;
     rag_pattern_name: string;
+    embedding_model?: string;
   };
   instructions: string;
   tools: Array<{
     type: 'file_search';
     vector_store_ids: string[];
     max_num_results: number;
-    ranking_options: {
-      search_mode: 'hybrid' | 'keyword' | 'semantic';
-      ranker_strategy: 'rrf' | 'linear' | 'cross_encoder';
-      ranker_k: number;
-      ranker_alpha: number;
+    ranking_options?: {
+      ranker: 'rrf';
+      alpha: number;
     };
   }>;
   tool_choice: {
-    type: 'auto' | 'required' | 'none' | 'file_search';
+    type: 'file_search';
   };
   include: Array<'file_search_call.results' | 'file_search_call.output'>;
 };
@@ -51,6 +50,10 @@ type EmbeddableChatbotPlaygroundProps = {
   patternName?: string;
   /** Base path for the BFF API, e.g. '/gen-ai/api/v1'. No trailing slash. If '/api/v1' is omitted it is appended automatically. */
   bffBasePath: string;
+  /** Full URL override for the responses endpoint. When set, bffBasePath/secretName are ignored for request routing. */
+  responsesEndpointUrl?: string;
+  /** Additional key-value pairs merged into the request body's metadata field. */
+  additionalMetadata?: Record<string, string>;
   /** Custom content rendered in place of the default welcome prompt when no messages are present. */
   welcomeContent?: React.ReactNode;
   /** Custom text for the initial bot message. Pass empty string to hide it entirely. */

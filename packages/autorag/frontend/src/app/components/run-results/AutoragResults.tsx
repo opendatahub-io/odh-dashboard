@@ -16,6 +16,7 @@ import type { RunDetailsKF } from '~/app/types/pipeline';
 import { downloadBlob, normalizePipelineRunState, sanitizeFilename } from '~/app/utilities/utils';
 import { computePatternRankMap } from '~/app/utilities/metricUtils';
 import { buildIndexingPipelineRunRequest } from '~/app/utilities/indexingPipeline';
+import { resolveDatabaseSecretName, resolveMaaSSecretName } from '~/app/utilities/responses';
 import {
   fireAutoragNotebookDownloaded,
   fireAutoragPatternDetailsViewed,
@@ -382,6 +383,8 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
             onPatternChange={(index) => setSelectedPatternKey(patternKeys[index] ?? null)}
             namespace={namespace}
             ragPatternsBasePath={ragPatternsBasePath}
+            databaseSecretName={resolveDatabaseSecretName(parameters)}
+            maasSecretName={resolveMaaSSecretName(parameters)}
             onSaveNotebook={handleSaveNotebook}
             onTryPattern={
               onTryPattern
