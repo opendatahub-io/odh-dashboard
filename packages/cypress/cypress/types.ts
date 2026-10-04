@@ -545,6 +545,7 @@ export type ModelTolerationsTestData = {
   modelFilePath: string;
   modelFormat: string;
   servingRuntime: string;
+  clusterRole?: string;
   isS390x?: boolean;
   servingRuntimeName?: string;
   servingRuntimeYamlPath?: string;

@@ -1078,24 +1078,16 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('model-framework-select');
   }
 
-  findModelFormatSelectOption(name: string) {
-    return this.findModelFormatSelect().then(($el) => {
+  openModelFormatSelect() {
+    this.findModelFormatSelect().then(($el) => {
       if ($el.attr('aria-expanded') === 'false') {
         cy.wrap($el).click();
       }
-      // PF6 SelectOption renders a <li data-testid="..."><button>...</button></li>.
-      // Click the inner button; force:true bypasses any overlay intercepting the event.
-      return cy.get(`[data-testid="${name}"] button`).should('exist');
     });
   }
 
-  findModelFormatSelectOptionByTestId(testId: string) {
-    return this.findModelFormatSelect().then(($el) => {
-      if ($el.attr('aria-expanded') === 'false') {
-        cy.wrap($el).click();
-      }
-      return cy.findByRole('option', { name: new RegExp(`^${testId}`) }).click({ force: true });
-    });
+  findModelFormatSelectOption(name: string) {
+    return this.findModelFormatSelect().findSelectOption(name);
   }
 
   /** Selects the auto-select radio (works for both serving runtimes and model deployment configs). */

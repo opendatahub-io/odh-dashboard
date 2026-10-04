@@ -92,18 +92,20 @@ describe('Workbench Storage Classes Tests', () => {
       })
       .then(() => {
         cy.step('Provisioning storage class');
-        if (!isS390x) {
-          provisionDualAccessStorageClass(storageClassRWO);
-          // Only add if not already in the array (prevent duplicates on retry)
-          if (!createdStorageClasses.includes(storageClassRWO)) {
-            createdStorageClasses.push(storageClassRWO);
-          }
-        } else {
+        // On s390x the RWO StorageClass is pre-existing — skip provisioning.
+        if (isS390x) {
           cy.log(
             `s390x: skipping RWO StorageClass provisioning — using pre-existing: ${storageClassRWO}`,
           );
+        } else {
+          provisionDualAccessStorageClass(storageClassRWO);
+          // Guard against duplicates on retries
+          if (!createdStorageClasses.includes(storageClassRWO)) {
+            createdStorageClasses.push(storageClassRWO);
+          }
         }
         provisionMultiAccessStorageClass(storageClassMultiAccess);
+        // Guard against duplicates on retries
         if (!createdStorageClasses.includes(storageClassMultiAccess)) {
           createdStorageClasses.push(storageClassMultiAccess);
         }
@@ -165,24 +167,24 @@ describe('Workbench Storage Classes Tests', () => {
           createSpawnerPage.selectHardwareProfile(hardwareProfileName);
           cy.step('Attach RWO storage to workbench');
           createSpawnerPage.findAttachExistingStorageButton().click();
+          attachExistingStorageModal.selectExistingPersistentStorage(storageNameRWO);
           attachExistingStorageModal.findStandardPathInput().fill(mountPathA);
           attachExistingStorageModal.findAttachButton().click();
           createSpawnerPage.findSubmitButton().click();
 
           cy.step('Verify workbench is running with attached RWO storage');
           const notebookRow = workbenchPage.getNotebookRow(workbenchNameRWO);
+          notebookRow.find().should('exist');
 
           cy.step('Verify RWO storage details in workbench edit view');
           notebookRow.findKebab().click();
           workbenchActions.findEditWorkbenchAction().click();
 
+          cy.step('Verify storage access mode in table');
+          const storageTable = createSpawnerPage.getStorageTable();
           if (isS390x) {
-            cy.step('Navigate to Cluster storage tab to verify attachment');
-            cy.contains('button, a, li', 'Cluster storage').should('be.visible').scrollIntoView();
-            cy.contains('button, a, li', 'Cluster storage').click();
+            storageTable.verifyStorageAccessModeAfterNav(storageNameRWO, AccessMode.RWO, 15000);
           } else {
-            cy.step('Verify storage access mode in table');
-            const storageTable = createSpawnerPage.getStorageTable();
             storageTable.verifyStorageAccessMode(storageNameRWO, AccessMode.RWO);
           }
 

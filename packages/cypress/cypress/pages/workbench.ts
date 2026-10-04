@@ -414,10 +414,20 @@ class AttachExistingStorageModal extends Modal {
   }
 
   selectExistingPersistentStorage(name: string) {
+    // Wait for PVCs to finish loading — placeholder is 'Loading storages' until loaded=true.
     cy.findByTestId('persistent-storage-group')
-      .findByPlaceholderText('Select a persistent storage')
-      .click();
-    cy.findByTestId('persistent-storage-typeahead').contains(name).click();
+      .find('input', { timeout: 30000 })
+      .should('not.have.attr', 'placeholder', 'Loading storages');
+    cy.findByTestId('persistent-storage-group')
+      .find('[data-testid="typeahead-menu-toggle"]')
+      .then(($toggle) => {
+        if ($toggle.is(':disabled') || $toggle.hasClass('pf-m-disabled')) {
+          cy.findByTestId('persistent-storage-group').find('input').should('have.value', name);
+        } else {
+          cy.wrap($toggle).click();
+          cy.findByTestId('persistent-storage-typeahead').contains(name).click();
+        }
+      });
   }
 
   verifyPSDropdownIsDisabled(): void {
@@ -492,8 +502,8 @@ class StorageTableRow extends TableRow {
 }
 
 class StorageTable {
-  find() {
-    return cy.findByTestId('cluster-storage-table');
+  find(timeout?: number) {
+    return cy.findByTestId('cluster-storage-table', timeout !== undefined ? { timeout } : {});
   }
 
   getRowById(id: number) {
@@ -516,6 +526,22 @@ class StorageTable {
         cy.contains(accessMode).should('exist');
       });
     });
+  }
+
+  /**
+   * Navigate to the cluster-storage sidebar section then verify the access mode.
+   * Use when the storage table is not yet visible and requires a sidebar click first.
+   * @param storageName - The name of the storage row to find
+   * @param accessMode - The expected access mode label (e.g., 'ReadWriteOnce')
+   * @param timeout - Optional timeout (ms) for the table to appear
+   */
+  verifyStorageAccessModeAfterNav(storageName: string, accessMode: string, timeout?: number) {
+    cy.findByTestId('cluster-storage-jump-link').find('a').should('be.visible').click();
+    this.find(timeout)
+      .contains('tr', storageName)
+      .within(() => {
+        cy.contains(accessMode).should('exist');
+      });
   }
 
   /**

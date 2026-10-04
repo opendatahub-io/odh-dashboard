@@ -1,7 +1,15 @@
 import type { ModelTolerationsTestData } from '../../../../types';
 import { ModelLocationSelectOption, ModelTypeLabel } from '../../../../utils/modelServingConstants';
-import { addUserToProject, deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
-import { ensureAdminOcSession } from '../../../../utils/oc_commands/baseCommands';
+import {
+  addUserToProject,
+  addClusterRoleToUser,
+  removeClusterRoleFromUser,
+  deleteOpenShiftProject,
+} from '../../../../utils/oc_commands/project';
+import {
+  ensureAdminOcSession,
+  patchOpenShiftResource,
+} from '../../../../utils/oc_commands/baseCommands';
 import { loadModelTolerationsFixture } from '../../../../utils/dataLoader';
 import { LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
 import { projectListPage, projectDetails } from '../../../../pages/projects';
@@ -22,10 +30,8 @@ import {
   cleanupHardwareProfiles,
   createCleanHardwareProfile,
 } from '../../../../utils/oc_commands/hardwareProfiles';
-import {
-  cleanupServingRuntime,
-  createCleanServingRuntime,
-} from '../../../../utils/oc_commands/servingRuntimes';
+import { cleanupTemplates } from '../../../../utils/oc_commands/templates';
+import { createCustomResource } from '../../../../utils/oc_commands/customResources';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 
 let testData: ModelTolerationsTestData;
@@ -34,14 +40,13 @@ let resourceName: string;
 let contributor: string;
 let modelName: string;
 let modelFilePath: string;
-let hardwareProfileResourceName: string;
 let tolerationValue: string;
 let modelFormat: string;
 let servingRuntime: string;
 let isS390x: boolean;
 const awsBucket = 'BUCKET_3' as const;
 const projectUuid = generateTestUUID();
-const hardwareProfileUuid = generateTestUUID();
+const applicationNamespace: string = Cypress.env('APPLICATIONS_NAMESPACE');
 
 describe('ModelServing - tolerations tests', () => {
   retryableBefore(() => {
@@ -54,7 +59,6 @@ describe('ModelServing - tolerations tests', () => {
       contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
       modelName = testData.modelName;
       modelFilePath = testData.modelFilePath;
-      hardwareProfileResourceName = `${testData.hardwareProfileName}-${hardwareProfileUuid}`;
       tolerationValue = testData.tolerationValue;
       modelFormat = testData.modelFormat;
       servingRuntime = testData.servingRuntime;
@@ -64,16 +68,14 @@ describe('ModelServing - tolerations tests', () => {
         throw new Error('Project name is undefined or empty in the loaded fixture');
       }
       cy.log(`Loaded project name: ${projectName}`);
-
-      // Load Hardware Profile
-      cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
-      // Cleanup Hardware Profile if it already exists
       createCleanHardwareProfile(testData.resourceYamlPath);
 
-      // On s390x create the ServingRuntime in the applications namespace
       if (isS390x && testData.servingRuntimeName && testData.servingRuntimeYamlPath) {
         cy.log(`Creating ServingRuntime for s390x: ${testData.servingRuntimeName}`);
-        createCleanServingRuntime(testData.servingRuntimeName, testData.servingRuntimeYamlPath);
+        // Clean up any existing Template/ServingRuntime then apply fresh via Template resource.
+        cleanupTemplates(testData.servingRuntimeName).then(() => {
+          createCustomResource(applicationNamespace, testData.servingRuntimeYamlPath);
+        });
       }
 
       // Provision project with data connection (also handles project create/clean)
@@ -83,12 +85,9 @@ describe('ModelServing - tolerations tests', () => {
         'resources/yaml/data_connection_model_serving.yaml',
       );
       addUserToProject(projectName, contributor, 'edit');
-      // Grant the RHOAI rhods-users ClusterRole so ldap-user2 can list/get KServe CRDs
-      // (the standard 'edit' role does not cover serving.kserve.io resources)
-      cy.exec(
-        `oc adm policy add-cluster-role-to-user rhods-users ${contributor} -n ${projectName}`,
-        { failOnNonZeroExit: false },
-      );
+      if (testData.clusterRole) {
+        addClusterRoleToUser(testData.clusterRole, contributor, projectName);
+      }
     });
   });
 
@@ -97,20 +96,19 @@ describe('ModelServing - tolerations tests', () => {
     ensureAdminOcSession();
     // Use the actual hardware profile name from the YAML, not the variable with UUID
     cy.log(`Cleaning up Hardware Profile: ${testData.hardwareProfileName}`);
-
-    // Call cleanupHardwareProfiles with the actual name from the YAML file
-    return cleanupHardwareProfiles(testData.hardwareProfileName).then(() => {
-      // On s390x clean up the ServingRuntime
+    cleanupHardwareProfiles(testData.hardwareProfileName).then(() => {
+      if (testData.clusterRole) {
+        removeClusterRoleFromUser(testData.clusterRole, contributor, projectName);
+      }
       if (isS390x && testData.servingRuntimeName) {
         cy.log(`Cleaning up ServingRuntime: ${testData.servingRuntimeName}`);
-        cleanupServingRuntime(testData.servingRuntimeName);
+        cleanupTemplates(testData.servingRuntimeName);
       }
       // Delete provisioned Project
       if (projectName) {
         cy.log(`Deleting Project ${projectName} after the test has finished.`);
-        return deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+        deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
       }
-      return cy.wrap(null);
     });
   });
 
@@ -168,21 +166,14 @@ describe('ModelServing - tolerations tests', () => {
         .then((val) => {
           resourceName = val as string;
         });
+      inferenceServiceModal.selectPotentiallyDisabledProfile(
+        testData.hardwareProfileDeploymentSize,
+        testData.hardwareProfileName,
+      );
       if (isS390x) {
-        // On s390x the accessible name of hardware profile options includes Request/Limit text
-        // instead of Default/Max, so we match by partial name regex instead of exact string.
-        inferenceServiceModal.selectPotentiallyDisabledProfile(
-          testData.hardwareProfileDeploymentSize,
-          testData.hardwareProfileName,
-        );
-        // On s390x select the runtime first — format options are runtime-dependent
         modelServingWizard.selectServingRuntimeOption(servingRuntime);
         modelServingWizard.findModelFormatSelectOption(modelFormat).click({ force: true });
       } else {
-        inferenceServiceModal.selectPotentiallyDisabledProfile(
-          testData.hardwareProfileDeploymentSize,
-          testData.hardwareProfileName,
-        );
         modelServingWizard.findModelFormatSelectOption(modelFormat).click();
         modelServingWizard.selectServingRuntimeOption(servingRuntime);
       }
@@ -195,17 +186,13 @@ describe('ModelServing - tolerations tests', () => {
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(modelName);
 
-      // On s390x Cypress .type() does not trigger React synthetic onChange on the controlled
-      // path input, so storage.path is empty after form submission. Patch it directly via oc
-      // so the storage initializer can download the model and Triton can reach Ready state.
       if (isS390x) {
-        cy.exec(
-          `oc patch inferenceservice ${modelName} -n ${projectName} --type=merge ` +
-            `-p '{"spec":{"predictor":{"model":{"storage":{"path":"${modelFilePath}"}}}}}' `,
-          { failOnNonZeroExit: false },
-        ).then((result) => {
-          cy.log(`Patched storage path: exit=${result.exitCode}, out=${result.stdout}`);
-        });
+        patchOpenShiftResource(
+          'inferenceservice',
+          modelName,
+          `{"spec":{"predictor":{"model":{"storage":{"path":"${modelFilePath}"}}}}}`,
+          projectName,
+        );
       }
 
       //Verify the model created

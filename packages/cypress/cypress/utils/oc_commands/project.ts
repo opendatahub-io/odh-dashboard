@@ -1,4 +1,4 @@
-import { pollUntilSuccess, waitForNamespace } from './baseCommands';
+import { pollUntilSuccess } from './baseCommands';
 import type { CommandLineResult, DashboardConfig } from '../../types';
 import { handleOCCommandResult } from '../errorHandling';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
@@ -25,24 +25,15 @@ export const createOpenShiftProject = (
                 stderr: ${result.stderr}`);
       throw new Error(`Command failed with code ${result.exitCode}`);
     }
-    // Wait until the namespace is patchable, then require the dashboard label
-    // and Active phase so the A.I. projects filter can see it.
-    return waitForNamespace(projectName, 30, 1000).then(() => {
-      const labelCommand = `oc label namespace ${projectName} opendatahub.io/dashboard=true --overwrite`;
-      return cy.exec(labelCommand, { failOnNonZeroExit: false }).then((labelResult) => {
-        if (labelResult.exitCode !== 0) {
-          throw new Error(
-            `Failed to add dashboard label to ${projectName}: ${
-              labelResult.stderr || labelResult.stdout
-            }`,
-          );
-        }
-        return pollUntilSuccess(
-          `oc get project ${projectName} -o json | jq -e '.metadata.labels["opendatahub.io/dashboard"] == "true" and .status.phase == "Active"'`,
-          `project ${projectName} dashboard-ready`,
-          { maxAttempts: 15, pollIntervalMs: 1000 },
-        ).then(() => cy.wrap(result));
-      });
+    // Add dashboard label immediately after project creation
+    const labelCommand = `oc label namespace ${projectName} opendatahub.io/dashboard=true --overwrite`;
+    return cy.exec(labelCommand, { failOnNonZeroExit: false }).then((labelResult) => {
+      if (labelResult.exitCode !== 0) {
+        cy.log(`WARNING: Failed to add dashboard label to ${projectName}
+                  stdout: ${labelResult.stdout}
+                  stderr: ${labelResult.stderr}`);
+      }
+      return cy.wrap(result);
     });
   });
 };
@@ -83,47 +74,6 @@ export const deleteOpenShiftProject = (
   });
 };
 
-/** Deletes a project without waiting; logs failures but does not throw (for after hooks). */
-export const deleteOpenShiftProjectBestEffort = (
-  projectName: string,
-): Cypress.Chainable<CommandLineResult> =>
-  cy
-    .exec(`oc delete project ${projectName} --wait=false --ignore-not-found`, {
-      failOnNonZeroExit: false,
-    })
-    .then((result) => {
-      if (result.exitCode !== 0) {
-        cy.log(
-          `WARNING: best-effort delete of ${projectName} returned exit ${result.exitCode}: ${result.stderr}`,
-        );
-      }
-      return cy.wrap(result);
-    });
-
-/** Deletes any existing project, waits until it is gone, then creates a fresh one. */
-export const recreateOpenShiftProject = (
-  projectName: string,
-): Cypress.Chainable<CommandLineResult> => {
-  const waitUntilGone = (attempt = 1): Cypress.Chainable<void> =>
-    verifyOpenShiftProjectExists(projectName).then((exists): Cypress.Chainable<void> => {
-      if (!exists) {
-        return cy.wrap(undefined as void);
-      }
-      if (attempt >= 60) {
-        throw new Error(`Project ${projectName} still exists after cleanup`);
-      }
-      // eslint-disable-next-line cypress/no-unnecessary-waiting
-      return cy.wait(2000).then(() => waitUntilGone(attempt + 1));
-    });
-
-  return cy
-    .exec(`oc delete project ${projectName} --wait=false --ignore-not-found`, {
-      failOnNonZeroExit: false,
-    })
-    .then(() => waitUntilGone())
-    .then(() => createOpenShiftProject(projectName));
-};
-
 /**
  * Assign a role to a user for an specific Project
  *
@@ -144,6 +94,39 @@ export const addUserToProject = (
                 stdout: ${result.stdout}
                 stderr: ${result.stderr}`);
       throw new Error(`Command failed with code ${result.exitCode}`);
+    }
+    return result;
+  });
+};
+
+export const addClusterRoleToUser = (
+  clusterRole: string,
+  userName: string,
+  projectName: string,
+): Cypress.Chainable<CommandLineResult> => {
+  const ocCommand = `oc adm policy add-cluster-role-to-user ${clusterRole} ${userName} -n ${projectName}`;
+  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+    if (result.exitCode !== 0) {
+      cy.log(`ERROR adding cluster role ${clusterRole} to user *** in ${projectName}
+                stdout: ${result.stdout}
+                stderr: ${result.stderr}`);
+      throw new Error(`Command failed with code ${result.exitCode}`);
+    }
+    return result;
+  });
+};
+
+export const removeClusterRoleFromUser = (
+  clusterRole: string,
+  userName: string,
+  projectName: string,
+): Cypress.Chainable<CommandLineResult> => {
+  const ocCommand = `oc adm policy remove-cluster-role-from-user ${clusterRole} ${userName} -n ${projectName}`;
+  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+    if (result.exitCode !== 0) {
+      cy.log(`ERROR removing cluster role ${clusterRole} from user *** in ${projectName}
+                stdout: ${result.stdout}
+                stderr: ${result.stderr}`);
     }
     return result;
   });
@@ -209,7 +192,7 @@ export const waitForUserProjectAccess = (
   interval = 2000,
 ): Cypress.Chainable<Cypress.Exec> =>
   pollUntilSuccess(
-    `oc get projects --as=${user} -o name | grep -qxF 'project.project.openshift.io/${project}'`,
+    `oc get project ${project} --as=${user} -o name`,
     `${user} access to ${project}`,
     {
       maxAttempts: attempts,
@@ -296,16 +279,7 @@ export const getDashboardConfig = (key?: string): Cypress.Chainable<unknown> => 
       const maskedStderr = maskSensitiveInfo(result.stderr || '');
       throw new Error(`Failed to get DashboardConfig: ${maskedStderr}`);
     }
-    const trimmedOutput = result.stdout.trim();
-    if (!trimmedOutput) {
-      throw new Error('Failed to get DashboardConfig: command returned empty output');
-    }
-    let config: DashboardConfig;
-    try {
-      config = JSON.parse(trimmedOutput) as DashboardConfig;
-    } catch (error) {
-      throw new Error(`Failed to parse DashboardConfig JSON: ${trimmedOutput.slice(0, 200)}`);
-    }
+    const config = JSON.parse(result.stdout) as DashboardConfig;
 
     if (key) {
       // If a specific key is requested, return that value
@@ -331,24 +305,13 @@ export const getNotebookControllerConfig = (key?: string): Cypress.Chainable<unk
       throw new Error(`Failed to get Notebook Controller Config: ${maskedStderr}`);
     }
 
-    const trimmedOutput = result.stdout.trim();
-    if (!trimmedOutput) {
-      throw new Error('Failed to get Notebook Controller Config: command returned empty output');
-    }
-    let config: Record<string, unknown>;
-    try {
-      config = JSON.parse(trimmedOutput) as Record<string, unknown>;
-    } catch (error) {
-      throw new Error(
-        `Failed to parse Notebook Controller Config JSON: ${trimmedOutput.slice(0, 200)}`,
-      );
-    }
+    const config = JSON.parse(result.stdout) as Record<string, unknown>; // Adjust type as needed
 
     if (key) {
       return Cypress.Promise.resolve(getNestedProperty(config, key));
     }
 
-    return Cypress.Promise.resolve(config);
+    return Cypress.Promise.resolve(config); // Ensure this returns a promise
   });
 };
 
