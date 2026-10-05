@@ -1,17 +1,18 @@
 package api
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/repositories"
 )
 
 // GetOperatorSubscriptionStatusHandler returns the installed data science operator channel.
 func (app *App) GetOperatorSubscriptionStatusHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	status, err := app.repositories.OperatorSubscriptionStatus.GetOperatorSubscriptionStatus(r.Context())
 	if err != nil {
-		if apierrors.IsNotFound(err) {
+		if errors.Is(err, repositories.ErrOperatorSubscriptionUnavailable) {
 			app.notFoundResponse(w, r)
 			return
 		}

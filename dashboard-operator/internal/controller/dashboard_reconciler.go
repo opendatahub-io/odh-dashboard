@@ -247,9 +247,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			observabilityRetryAfter = r.reconcileObservability(ctx, dashboard, cm)
 		}
 		portalRetryAfter := r.reconcileMaaSConsumerPortalOperand(ctx, dashboard, cm, nextStatuses, observabilityDetectionErr == nil)
-		if observabilityRetryAfter > 0 && (portalRetryAfter == 0 || observabilityRetryAfter < portalRetryAfter) {
-			portalRetryAfter = observabilityRetryAfter
-		}
+		portalRetryAfter = minNonZeroDuration(portalRetryAfter, observabilityRetryAfter)
 
 		preserveObservability := maasPortalManaged && (observabilityDetectionErr != nil ||
 			(dashboard.Spec.Observability != nil && dashboard.Spec.Observability.Enabled))
@@ -594,12 +592,19 @@ func (r *DashboardReconciler) reconcileDeployment(
 		requeueAfter = cfg.ReconcileInterval
 	}
 
-	for _, retryAfter := range []time.Duration{portalRetryAfter, observabilityRetryAfter} {
-		if retryAfter > 0 && (requeueAfter == 0 || retryAfter < requeueAfter) {
-			requeueAfter = retryAfter
+	requeueAfter = minNonZeroDuration(requeueAfter, portalRetryAfter, observabilityRetryAfter)
+	return ctrl.Result{RequeueAfter: requeueAfter}, nil
+}
+
+// minNonZeroDuration returns the smallest positive duration, or zero if none exist.
+func minNonZeroDuration(durations ...time.Duration) time.Duration {
+	var minimum time.Duration
+	for _, duration := range durations {
+		if duration > 0 && (minimum == 0 || duration < minimum) {
+			minimum = duration
 		}
 	}
-	return ctrl.Result{RequeueAfter: requeueAfter}, nil
+	return minimum
 }
 
 func (r *DashboardReconciler) reconcileObservability(

@@ -61,22 +61,49 @@ func TestGetOperatorSubscriptionStatusHandler(t *testing.T) {
 }
 
 func TestGetOperatorSubscriptionStatusHandlerFailures(t *testing.T) {
+	forbidden := apierrors.NewForbidden(models.SubscriptionGVR.GroupResource(), "rhods-operator", errors.New("forbidden"))
+	notFound := apierrors.NewNotFound(models.SubscriptionGVR.GroupResource(), "rhods-operator")
+	unavailable := errors.New("Kubernetes unavailable")
 	for _, tt := range []struct {
 		name       string
 		err        error
+		getError   func(k8stesting.Action) error
+		listError  error
 		wantStatus int
 	}{
-		{name: "missing subscription", err: apierrors.NewNotFound(models.SubscriptionGVR.GroupResource(), "rhods-operator"), wantStatus: http.StatusNotFound},
-		{name: "service account forbidden", err: apierrors.NewForbidden(models.SubscriptionGVR.GroupResource(), "rhods-operator", errors.New("forbidden")), wantStatus: http.StatusInternalServerError},
-		{name: "upstream unavailable", err: errors.New("Kubernetes unavailable"), wantStatus: http.StatusInternalServerError},
+		{name: "missing subscription", err: notFound, wantStatus: http.StatusNotFound},
+		{name: "all subscription candidates forbidden", err: forbidden, wantStatus: http.StatusNotFound},
+		{name: "mixed forbidden and missing subscriptions", wantStatus: http.StatusNotFound, getError: func(action k8stesting.Action) error {
+			if action.GetNamespace() == "redhat-ods-operator" {
+				return forbidden
+			}
+			return notFound
+		}},
+		{name: "upstream unavailable", err: unavailable, wantStatus: http.StatusInternalServerError},
+		{name: "upstream failure after forbidden candidate", wantStatus: http.StatusInternalServerError, getError: func(action k8stesting.Action) error {
+			if action.GetNamespace() == "redhat-ods-operator" {
+				return forbidden
+			}
+			return unavailable
+		}},
+		{name: "DataScienceCluster lookup forbidden", listError: apierrors.NewForbidden(models.DataScienceClusterGVR.GroupResource(), "", errors.New("forbidden")), wantStatus: http.StatusInternalServerError},
+		{name: "DataScienceCluster API missing", listError: apierrors.NewNotFound(models.DataScienceClusterGVR.GroupResource(), ""), wantStatus: http.StatusInternalServerError},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			dynClient := fake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), map[schema.GroupVersionResource]string{
 				models.DataScienceClusterGVR: "DataScienceClusterList",
 			})
-			dynClient.PrependReactor("get", "subscriptions", func(k8stesting.Action) (bool, runtime.Object, error) {
+			dynClient.PrependReactor("get", "subscriptions", func(action k8stesting.Action) (bool, runtime.Object, error) {
+				if tt.getError != nil {
+					return true, nil, tt.getError(action)
+				}
 				return true, nil, tt.err
 			})
+			if tt.listError != nil {
+				dynClient.PrependReactor("list", "datascienceclusters", func(k8stesting.Action) (bool, runtime.Object, error) {
+					return true, nil, tt.listError
+				})
+			}
 			app := newTestApp(func(a *App) {
 				a.repositories.OperatorSubscriptionStatus = repositories.NewOperatorSubscriptionStatusRepository(dynClient, "")
 			})

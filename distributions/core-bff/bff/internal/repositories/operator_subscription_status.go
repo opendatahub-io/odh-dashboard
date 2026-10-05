@@ -17,6 +17,10 @@ import (
 const unknownOperatorChannel = "Unknown"
 const operatorSubscriptionQueryTimeout = 10 * time.Second
 
+// ErrOperatorSubscriptionUnavailable means all subscription candidates were
+// absent or inaccessible. Other upstream lookup failures are returned separately.
+var ErrOperatorSubscriptionUnavailable = errors.New("operator subscription metadata unavailable")
+
 const (
 	selfManagedRHOAIReleaseName = "OpenShift AI Self-Managed"
 	managedRHOAIReleaseName     = "OpenShift AI Cloud Service"
@@ -76,7 +80,7 @@ func (r *OperatorSubscriptionStatusRepository) GetOperatorSubscriptionStatus(ctx
 			LastUpdated: subscriptionLastUpdated(resource),
 		}, nil
 	}
-	return nil, errors.Join(lookupErrors...)
+	return nil, errors.Join(ErrOperatorSubscriptionUnavailable, errors.Join(lookupErrors...))
 }
 
 // Probe only known namespaces using named GETs; the portal needs no cluster-wide
