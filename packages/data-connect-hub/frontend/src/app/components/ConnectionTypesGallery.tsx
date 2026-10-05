@@ -3,7 +3,7 @@
 
 // Modules -------------------------------------------------------------------->
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   Button,
   Checkbox,
@@ -22,7 +22,10 @@ import {
   ToolbarContent,
   ToolbarItem,
 } from '@patternfly/react-core';
-import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
+import {
+  default as FilterToolbar,
+  type ToolbarFilterProps,
+} from '@odh-dashboard/ui-core/components/FilterToolbar';
 import {
   MultiSelection,
   type SelectionOptions,
@@ -33,6 +36,7 @@ import type {
   Identified,
   Labelled,
   Described,
+  Valued,
   ConnectionType,
   ConnectionTypeGroup,
 } from '~/app/types';
@@ -40,6 +44,8 @@ import type {
 import emptyStateImage from '~/images/RHOAI-Noconnections-RGB.svg';
 
 // Types ---------------------------------------------------------------------->
+
+type ValuedLabel = Valued<string> & Labelled<string>;
 
 type FilterItem = Identified<string> & Labelled<string>;
 
@@ -53,18 +59,48 @@ type ConnectionGroup = Identified<ConnectionTypeGroup> &
     renderGroupSection?: boolean;
   };
 
-type FilterOptionRenders = {
-  onChange: (value?: string, label?: string) => void;
-  value?: string;
-  label?: string;
-};
+type FilterOption = 'capability' | 'labels';
 
 // Globals -------------------------------------------------------------------->
 
-const FILTER_OPTIONS = {
-  term: 'Term',
-  value: 'Value',
+const filterOptions: Record<FilterOption, string> = {
+  capability: 'Capability',
+  labels: 'Labels',
 };
+
+const capabilityFilters = {
+  full_integration: {
+    value: 'full_integration',
+    label: 'Full integration',
+  },
+  credential: {
+    value: 'credential',
+    label: 'Credentials only',
+  },
+};
+
+const mockLabels = [
+  {
+    id: 'label-01',
+    name: 'Label 01',
+  },
+  {
+    id: 'label-02',
+    name: 'Label 02',
+  },
+  {
+    id: 'label-03',
+    name: 'Label 03',
+  },
+  {
+    id: 'label-04',
+    name: 'Label 04',
+  },
+  {
+    id: 'label-05',
+    name: 'Label 05',
+  },
+];
 
 const categoriesFilter: FilterItems = {
   data_warehouse: { id: 'data_warehouse', label: 'Data warehouse' },
@@ -113,6 +149,13 @@ const defaults = {
 
 // Private -------------------------------------------------------------------->
 
+function selectionOptionToValuedLabel(option: SelectionOptions): ValuedLabel {
+  return {
+    value: option.id as string,
+    label: option.name,
+  };
+}
+
 // Components ----------------------------------------------------------------->
 
 type ConnectionTypesGalleryProps = {
@@ -127,6 +170,8 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
   isSelectable = false,
   selectedConnectionTypeId,
 }) => {
+  // State -------------------------------------------------------------------->
+
   const initialSelectedFilters = Object.keys(defaults.filter.sections).reduce<SelectedFilters>(
     (acc, cur) => {
       acc[cur] = null;
@@ -138,10 +183,26 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
   const [searchTerm, setSearchTerm] = React.useState('');
   const [selectedConnectionGroup, setSelectedConnectionGroup] =
     React.useState<ConnectionTypeGroup | null>(null);
-  const [toolbarFilters, setToolbarFilters] = React.useState({
-    term: null,
-    values: [],
-  });
+  const [filterType, setFilterType] = React.useState<FilterOption>('capability');
+  const [capabilityFilterItems, setCapabilityFilterItems] = React.useState<SelectionOptions[]>(
+    Object.values(capabilityFilters).map((capability) => ({
+      id: capability.value,
+      name: capability.label,
+    })),
+  );
+  const [labelFilterItems, setLabelFilterItems] = React.useState<SelectionOptions[]>(mockLabels);
+
+  const filterData = React.useMemo<Record<FilterOption, ValuedLabel[]>>(
+    () => ({
+      capability: capabilityFilterItems
+        .filter((item) => item.checked)
+        .map(selectionOptionToValuedLabel),
+      labels: labelFilterItems.filter((item) => item.checked).map(selectionOptionToValuedLabel),
+    }),
+    [capabilityFilterItems, labelFilterItems],
+  );
+
+  // Callbacks ---------------------------------------------------------------->
 
   const shouldShowConnectionType = React.useCallback(
     (connectionType: ConnectionType) => {
@@ -158,6 +219,15 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
     },
     [searchTerm],
   );
+
+  const onFilterUpdate = useCallback<ToolbarFilterProps<FilterOption>['onFilterUpdate']>(
+    (type, value) => {
+      console.info(`Implement onFilterUpdate: type(${type}) value(${value})`);
+    },
+    [],
+  );
+
+  // Helpers ------------------------------------------------------------------>
 
   const connectionTypesByGroup = React.useMemo<
     Record<ConnectionTypeGroup, ConnectionType[]>
@@ -198,52 +268,28 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
       (renderedConnectionTypes) => renderedConnectionTypes.length === 0,
     );
 
-  const handleFilterChange = (filter: string, selections: SelectionOptions[]) => null;
+  const filterOptionRenders: ToolbarFilterProps<FilterOption>['filterOptionRenders'] = {
+    capability: () => (
+      <MultiSelection
+        value={capabilityFilterItems}
+        setValue={setCapabilityFilterItems}
+        placeholder={'Filter by capabilities'}
+        ariaLabel="Connection type capability filter"
+        isDisabled={false}
+      />
+    ),
+    labels: () => (
+      <MultiSelection
+        value={labelFilterItems}
+        setValue={setLabelFilterItems}
+        placeholder={'Filter by labels'}
+        ariaLabel="Connection type label filter"
+        isDisabled={false}
+      />
+    ),
+  };
 
-  const filterOptionRenders: Record<string, (props: FilterOptionRenders) => React.ReactNode> = {
-    term: () => (
-      <MultiSelection
-        value={[
-          {
-            id: 'capability',
-            name: 'Capability',
-          },
-          {
-            id: 'labels',
-            name: 'Labels',
-          },
-        ]}
-        setValue={(selections: SelectionOptions[]) => handleFilterChange('term', selections)}
-        placeholder={'Select the term'}
-        ariaLabel="Connection type filter term"
-        isDisabled={false}
-      />
-    ),
-    value: () => (
-      <MultiSelection
-        value={[
-          {
-            id: 'capability',
-            name: 'Capability',
-          },
-          {
-            id: 'labels',
-            name: 'Labels',
-          },
-        ]}
-        setValue={(selections: SelectionOptions[]) => handleFilterChange('value', selections)}
-        placeholder={'Select the value'}
-        ariaLabel="Connection type filter value"
-        isDisabled={false}
-      />
-    ),
-  };
-  const searchFilters: Record<string, string[]> = {};
-  const filterData = {
-    term: searchFilters.term?.join(', '),
-    value: searchFilters.value?.join(', '),
-  };
-  const currentFilterType = 'term';
+  // Rendering ---------------------------------------------------------------->
 
   const sidebarPanel = (
     <SidebarPanel>
@@ -282,91 +328,95 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
     </SidebarPanel>
   );
 
+  const toolbar = (
+    <Toolbar
+      id="ConnectionTypesGallery-toolbar"
+      className="pf-m-toggle-group-container"
+      collapseListedFiltersBreakpoint="xl"
+      customLabelGroupContent={
+        <ToolbarItem>
+          <Button
+            variant="link"
+            isInline
+            onClick={() => {
+              console.info(`Clear all filters`);
+            }}
+          >
+            Clear all filters
+          </Button>
+        </ToolbarItem>
+      }
+    >
+      <ToolbarContent>
+        <FilterToolbar
+          testId="ConnectionTypesGallery-filters"
+          filterOptions={filterOptions}
+          filterOptionRenders={filterOptionRenders}
+          filterData={filterData}
+          onFilterUpdate={onFilterUpdate}
+          currentFilterType={filterType}
+          onFilterTypeChange={setFilterType}
+        />
+        <ToolbarItem>
+          <SearchInput
+            name="ConnectionTypesGallery-toolbar-search"
+            aria-label="Search data connection types by name"
+            placeholder="Search by name or description..."
+            value={searchTerm}
+            onChange={(_event, value) => setSearchTerm(value)}
+            onClear={() => setSearchTerm('')}
+          />
+        </ToolbarItem>
+      </ToolbarContent>
+    </Toolbar>
+  );
+
+  const galleryCards = Object.values(defaults.toolbar.groups)
+    .filter((group) => group.renderGroupSection !== false)
+    .filter((group) => connectionTypesByGroupToRender[group.id].length)
+    .filter((group) => !selectedConnectionGroup || group.id === selectedConnectionGroup)
+    .map((group) => (
+      <React.Fragment key={group.id}>
+        <Title headingLevel="h3">{group.label}</Title>
+        <Content component="p" className="pf-v6-u-mb-sm pf-v6-u-mt-sm">
+          {group.description}
+        </Content>
+        <Gallery hasGutter maxWidths={{ default: '350px' }} className="pf-v6-u-mb-lg">
+          {connectionTypesByGroupToRender[group.id].map((connectionType) => (
+            <ConnectionTypeCard
+              key={ConnectionTypeCardIdentifier(connectionType.metadata.id)}
+              connectionType={connectionType}
+              isSelectable={isSelectable}
+              isSelected={connectionType.metadata.id === selectedConnectionTypeId}
+              onClick={() => onConnectionTypeClick(connectionType)}
+            />
+          ))}
+        </Gallery>
+      </React.Fragment>
+    ));
+
+  const emptyState = (
+    <EmptyState
+      headingLevel="h3"
+      icon={() => <img src={emptyStateImage} alt="" width={108} height={108} />}
+      titleText="No matching data connection types"
+    >
+      <EmptyStateBody>No data connection types match your search or filter</EmptyStateBody>
+    </EmptyState>
+  );
+
   return (
     <>
       <Sidebar hasBorder hasGutter>
         {localFeatureFlags.filters ? sidebarPanel : null}
         <SidebarContent>
           <Stack>
-            <Toolbar
-              id="ConnectionTypesGallery-toolbar"
-              className="pf-m-toggle-group-container"
-              collapseListedFiltersBreakpoint="xl"
-              customLabelGroupContent={
-                <>
-                  <ToolbarItem>
-                    <Button
-                      variant="link"
-                      isInline
-                      onClick={() => {
-                        console.log('Implement Clear all filters');
-                      }}
-                    >
-                      Clear all filters
-                    </Button>
-                  </ToolbarItem>
-                </>
-              }
-            >
-              <ToolbarContent>
-                <FilterToolbar
-                  key="lineage-filters"
-                  filterOptions={FILTER_OPTIONS}
-                  filterOptionRenders={filterOptionRenders}
-                  filterData={filterData}
-                  onFilterUpdate={() => null}
-                  currentFilterType={currentFilterType}
-                  onFilterTypeChange={() => null}
-                  testId="lineage-search-filter"
-                />
-                <ToolbarItem>
-                  <SearchInput
-                    name="ConnectionTypesGallery-toolbar-search"
-                    aria-label="Search data connection types by name"
-                    placeholder="Search by name or description..."
-                    value={searchTerm}
-                    onChange={(_event, value) => setSearchTerm(value)}
-                    onClear={() => setSearchTerm('')}
-                  />
-                </ToolbarItem>
-              </ToolbarContent>
-            </Toolbar>
-
-            {Object.values(defaults.toolbar.groups)
-              .filter((group) => group.renderGroupSection !== false)
-              .filter((group) => connectionTypesByGroupToRender[group.id].length)
-              .filter((group) => !selectedConnectionGroup || group.id === selectedConnectionGroup)
-              .map((group) => (
-                <React.Fragment key={group.id}>
-                  <Title headingLevel="h3">{group.label}</Title>
-                  <Content component="p" className="pf-v6-u-mb-sm pf-v6-u-mt-sm">
-                    {group.description}
-                  </Content>
-                  <Gallery hasGutter maxWidths={{ default: '350px' }} className="pf-v6-u-mb-lg">
-                    {connectionTypesByGroupToRender[group.id].map((connectionType) => (
-                      <ConnectionTypeCard
-                        key={ConnectionTypeCardIdentifier(connectionType.metadata.id)}
-                        connectionType={connectionType}
-                        isSelectable={isSelectable}
-                        isSelected={connectionType.metadata.id === selectedConnectionTypeId}
-                        onClick={() => onConnectionTypeClick(connectionType)}
-                      />
-                    ))}
-                  </Gallery>
-                </React.Fragment>
-              ))}
+            <StackItem>{toolbar}</StackItem>
+            <StackItem>{galleryCards}</StackItem>
           </Stack>
         </SidebarContent>
       </Sidebar>
-      {shouldRenderEmptySearchState && (
-        <EmptyState
-          headingLevel="h3"
-          icon={() => <img src={emptyStateImage} alt="" width={108} height={108} />}
-          titleText="No matching data connection types"
-        >
-          <EmptyStateBody>No data connection types match your search or filter</EmptyStateBody>
-        </EmptyState>
-      )}
+      {shouldRenderEmptySearchState && emptyState}
     </>
   );
 };

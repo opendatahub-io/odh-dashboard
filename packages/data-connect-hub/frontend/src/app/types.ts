@@ -58,6 +58,7 @@ export type Connection = {
   };
 };
 
+// TODO [ Gustavo ] Re-think type name after redesign
 export type ConnectionTypeGroup = 'full_integration' | 'credentials';
 
 type ConnectionTypeEnumValue = Labelled<string> & Valued<string>;
