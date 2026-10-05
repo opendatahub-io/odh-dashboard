@@ -101,11 +101,15 @@ const defaults = {
 type ConnectionTypesGalleryProps = {
   connectionTypes: ConnectionType[];
   onConnectionTypeClick: (connectionType: ConnectionType) => void;
+  isSelectable?: boolean;
+  selectedConnectionTypeId?: string;
 };
 
 const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
   connectionTypes,
   onConnectionTypeClick,
+  isSelectable = false,
+  selectedConnectionTypeId,
 }) => {
   const initialSelectedFilters = Object.keys(defaults.filter.sections).reduce<SelectedFilters>(
     (acc, cur) => {
@@ -283,6 +287,8 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
                       <ConnectionTypeCard
                         key={ConnectionTypeCardIdentifier(connectionType.metadata.id)}
                         connectionType={connectionType}
+                        isSelectable={isSelectable}
+                        isSelected={connectionType.metadata.id === selectedConnectionTypeId}
                         onClick={() => onConnectionTypeClick(connectionType)}
                       />
                     ))}

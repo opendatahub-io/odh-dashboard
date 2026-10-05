@@ -15,6 +15,8 @@ import (
 )
 
 func TestE2EDashboardLifecycle(t *testing.T) {
+	requireManagedFixture(t)
+
 	key := client.ObjectKey{Name: dashboardv1alpha1.DashboardInstanceName}
 	dashboard := &dashboardv1alpha1.Dashboard{}
 	require.NoError(t, k8sClient.Get(context.Background(), key, dashboard))
@@ -26,6 +28,8 @@ func TestE2EDashboardLifecycle(t *testing.T) {
 }
 
 func TestE2EDashboardRemovedState(t *testing.T) {
+	requireManagedFixture(t)
+
 	t.Cleanup(func() {
 		require.NoError(t, patchDashboardManagementState(common.Managed))
 		require.NoError(t, waitForCondition(

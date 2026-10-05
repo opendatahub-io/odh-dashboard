@@ -215,7 +215,7 @@
       "failure_severity": "info",
       "budget_priority": 3,
       "re_review": "full",
-      "notes": "Reports whether changed behavior has proportionate test coverage; this is a readiness check, not a fabricated code finding."
+      "notes": "Assurance-grade readiness check: Automation, Efficiency, Evidence depth. Overall status follows the applicable aspects. Check status may be fail → request-changes. Readiness check only; excluded from challenger input."
     },
     {
       "id": "pr-description-review",
