@@ -241,6 +241,20 @@ class GenAiPlayground {
     return cy.findByTestId('create-external-model-token-input');
   }
 
+  findAddCapabilityButton() {
+    return cy.findByTestId('add-capability-btn');
+  }
+
+  findCapabilityMenuItem(capability: string) {
+    // The test id is applied to the DropdownItem itself, which owns the menuitem role.
+    // Querying descendants skips that element and waits for a nested menuitem that does not exist.
+    return cy.findByTestId(`common-capability-${capability}`);
+  }
+
+  findSelectedCapability(capability: string) {
+    return cy.findByTestId(`selected-capability-${capability}`);
+  }
+
   findVerifyModelButton() {
     return cy.findByTestId('create-external-model-verify-button');
   }

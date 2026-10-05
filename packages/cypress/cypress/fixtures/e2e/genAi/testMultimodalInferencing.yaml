@@ -13,15 +13,18 @@ inference:
 model:
   modelId: 'gemini-2.5-flash'
   displayName: 'E2E Multimodal Vision Model'
-  endpointUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/'
+  endpointUrl: 'https://generativelanguage.googleapis.com/v1beta/openai'
   configMapName: 'llama-stack-config'
   lsdServiceName: 'lsd-genai-playground-service'
+  lsdPodPrefix: 'lsd-genai-playground'
+  lsdPodReadyTimeout: '120s'
 
 # Source: https://github.com/ggml-org/whisper.cpp/blob/6e4ab854f67f743900934a703d5603419384c961/samples/jfk.wav
 # SHA-256 of direct WAV bytes: 59dfb9a4acb36fe2a2affc14bacbee2920ff435cb13cc314a08c13f66ba7860e
 audio:
   fileName: 'jfk.wav'
   mimeType: 'audio/wav'
+  asrModelId: 'whisper-tiny'
   asrDisplayName: 'E2E Audio Transcription Model'
   prompt: 'How does the speaker address the audience at the start? Reply with the exact address.'
   expectedTranscriptKeywords:

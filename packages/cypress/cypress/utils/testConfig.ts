@@ -92,9 +92,6 @@ const PIP_INDEX_URL = testConfig?.PIP_INDEX_URL;
 const PIP_TRUSTED_HOST = testConfig?.PIP_TRUSTED_HOST;
 const NGC_API_KEY = testConfig?.NGC_API_KEY;
 const GEMINI_API_KEY = testConfig?.GEMINI_API_KEY;
-const ASR_ENDPOINT_URL = testConfig?.ASR_ENDPOINT_URL;
-const ASR_MODEL_ID = testConfig?.ASR_MODEL_ID;
-const ASR_API_KEY = testConfig?.ASR_API_KEY;
 const OCI_SECRET_VALUE = testConfig?.OCI_SECRET_VALUE;
 const OCI_MODEL_URI = testConfig?.OCI_MODEL_URI;
 const OCP_API_URL = testConfig?.OCP_API_URL;
@@ -125,9 +122,6 @@ export const cypressEnv = {
   PIP_TRUSTED_HOST,
   NGC_API_KEY,
   GEMINI_API_KEY,
-  ASR_ENDPOINT_URL,
-  ASR_MODEL_ID,
-  ASR_API_KEY,
   OCI_SECRET_VALUE,
   OCI_MODEL_URI,
   OCP_API_URL,

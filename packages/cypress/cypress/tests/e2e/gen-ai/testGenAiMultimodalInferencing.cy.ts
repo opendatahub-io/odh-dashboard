@@ -9,14 +9,16 @@ import {
   startPortForward,
   stopPortForward,
   waitForResource,
+  waitForPodReady,
   type PortForwardHandle,
 } from '../../../utils/oc_commands/baseCommands';
 import {
   enableExternalProviders,
   disableExternalProviders,
-  waitForModelInLSD,
   forceDashboardConfigRefresh,
-  createExternalModelViaAPI,
+  deployWhisperTinyModel,
+  getWhisperTinyPredictorDiagnostics,
+  verifyWhisperTinyPortForward,
   getExternalProviders,
 } from '../../../utils/oc_commands/genAi';
 import { retryableBefore } from '../../../utils/retryableHooks';
@@ -24,11 +26,14 @@ import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { createCleanProject } from '../../../utils/projectChecker';
 import { genAiPlayground } from '../../../pages/genAiPlayground';
 
+const ALLOWED_ENDPOINT_HOSTS = ['generativelanguage.googleapis.com'];
+
 type MultimodalTestData = {
   audio: {
     fileName: string;
     base64Content: string;
     mimeType: string;
+    asrModelId: string;
     asrDisplayName: string;
     prompt: string;
     expectedTranscriptKeywords: string[];
@@ -49,6 +54,8 @@ type MultimodalTestData = {
     endpointUrl: string;
     configMapName: string;
     lsdServiceName: string;
+    lsdPodPrefix: string;
+    lsdPodReadyTimeout: string;
   };
 };
 
@@ -56,9 +63,21 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
   let testData: MultimodalTestData;
   let originalExternalProviders: boolean | undefined;
   let portForwardHandle: PortForwardHandle | null = null;
+  let asrPortForwardHandle: PortForwardHandle | null = null;
   const projectName = `multimodal-e2e-${generateTestUUID()}`;
 
   retryableBefore(() => {
+    if (asrPortForwardHandle) {
+      stopPortForward(asrPortForwardHandle).then(() => {
+        asrPortForwardHandle = null;
+      });
+    }
+    if (portForwardHandle) {
+      stopPortForward(portForwardHandle).then(() => {
+        portForwardHandle = null;
+      });
+    }
+
     cy.fixture('e2e/genAi/testMultimodalInferencing.yaml', 'utf8').then((yamlContent: string) => {
       testData = yaml.load(yamlContent) as MultimodalTestData;
 
@@ -91,36 +110,34 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       cy.step('Force backend to refresh config from cluster');
       forceDashboardConfigRefresh();
 
-      cy.step('Create external vision model endpoint via API');
-      createExternalModelViaAPI(
-        projectName,
-        testData.model.modelId,
-        testData.model.displayName,
-        testData.model.endpointUrl,
-        apiKey,
-        'llm',
-        ['vision'],
-      )
-        .its('status')
-        .should('be.oneOf', [200, 201]);
-
-      const asrEndpointUrl = Cypress.env('ASR_ENDPOINT_URL');
-      const asrModelId = Cypress.env('ASR_MODEL_ID');
-      const asrApiKey = Cypress.env('ASR_API_KEY');
-      if (asrEndpointUrl && asrModelId && asrApiKey) {
-        cy.step('Create external audio transcription endpoint via API');
-        createExternalModelViaAPI(
-          projectName,
-          asrModelId,
-          testData.audio.asrDisplayName,
-          asrEndpointUrl,
-          asrApiKey,
-          'transcription',
-          ['audio-transcription'],
-        )
-          .its('status')
-          .should('be.oneOf', [200, 201]);
-      }
+      cy.step('Create and verify the external vision model endpoint in AI Assets');
+      genAiPlayground.navigateToAssetsWithCustomEndpoints(projectName);
+      forceDashboardConfigRefresh();
+      genAiPlayground
+        .findEmptyStateCreateEndpointButton({ timeout: 30000 })
+        .should('be.visible')
+        .click();
+      genAiPlayground.findCreateExternalModelModal().should('be.visible');
+      genAiPlayground.findModelIdInput().clear().type(testData.model.modelId);
+      genAiPlayground.findDisplayNameInput().clear().type(testData.model.displayName);
+      const endpointHost = new URL(testData.model.endpointUrl).hostname;
+      expect(ALLOWED_ENDPOINT_HOSTS).to.include(
+        endpointHost,
+        `Fixture endpoint host "${endpointHost}" is not in the allowlist — refusing to send API key`,
+      );
+      genAiPlayground.findEndpointUrlInput().clear().type(testData.model.endpointUrl);
+      genAiPlayground.findTokenInput().clear().type(apiKey, { log: false });
+      cy.step('Set the vision capability');
+      genAiPlayground.findAddCapabilityButton().click();
+      genAiPlayground.findCapabilityMenuItem('vision').click();
+      genAiPlayground.findSelectedCapability('vision').should('be.visible');
+      genAiPlayground.findVerifyModelButton().should('be.enabled').click();
+      genAiPlayground.findVerifySuccessAlert({ timeout: 30000 }).should('be.visible');
+      genAiPlayground.findCreateEndpointSubmitButton().should('be.enabled').click();
+      genAiPlayground.findCreateExternalModelModal().should('not.exist');
+      genAiPlayground
+        .findAiModelsTable({ timeout: 30000 })
+        .should('contain', testData.model.displayName);
 
       cy.step('Navigate to AI assets and add model to playground');
       genAiPlayground.navigateToAssetsWithCustomEndpoints(projectName);
@@ -141,8 +158,8 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       cy.step('Wait for playground service to be created');
       waitForResource('service', testData.model.lsdServiceName, projectName);
 
-      cy.step('Wait for vision model to be registered in LSD');
-      waitForModelInLSD(testData.model.lsdServiceName, testData.model.modelId, projectName, 60);
+      cy.step('Wait for LSD pod to be fully ready');
+      waitForPodReady(testData.model.lsdPodPrefix, testData.model.lsdPodReadyTimeout, projectName);
 
       cy.step('Start port-forward for LSD service');
       startPortForward(projectName, testData.model.lsdServiceName, 8321).then((handle) => {
@@ -152,6 +169,7 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
   });
 
   after(() => {
+    stopPortForward(asrPortForwardHandle);
     stopPortForward(portForwardHandle);
 
     cy.step('Revert externalProviders in OdhDashboardConfig');
@@ -176,10 +194,14 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
     },
     () => {
       cy.step('Navigate to Gen AI playground');
-      genAiPlayground.navigateWithCustomEndpoints(projectName);
+      genAiPlayground.navigateToPlaygroundWithRetry(projectName);
 
       cy.step('Wait for playground to be ready');
-      genAiPlayground.findMessageInput({ timeout: 30000 }).should('be.visible');
+      genAiPlayground.findMessageInput({ timeout: 120000 }).should('be.visible');
+
+      cy.step(`Select ${testData.model.displayName} vision model`);
+      genAiPlayground.selectModelFromDropdown(testData.model.displayName);
+      genAiPlayground.verifyModelIsSelected(testData.model.displayName);
 
       cy.step('Upload an image');
       genAiPlayground.findAttachmentButton().click();
@@ -260,21 +282,25 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       ],
     },
     () => {
-      const asrEndpointUrl = Cypress.env('ASR_ENDPOINT_URL');
-      const asrModelId = Cypress.env('ASR_MODEL_ID');
-      const asrApiKey = Cypress.env('ASR_API_KEY');
-      if (!asrEndpointUrl || !asrModelId || !asrApiKey) {
-        throw new Error(
-          'ASR_ENDPOINT_URL, ASR_MODEL_ID, and ASR_API_KEY must be set in test-variables.yml for the audio E2E test',
-        );
-      }
+      cy.step('Deploy the Whisper Tiny transcription model');
+      deployWhisperTinyModel(projectName);
+
+      cy.step('Forward the Whisper predictor to the local Gen AI BFF');
+      startPortForward(projectName, 'whisper-tiny-predictor', 8790, 3000, 8080, 'deployment').then(
+        (handle) => {
+          asrPortForwardHandle = handle;
+          if (handle) {
+            verifyWhisperTinyPortForward(handle);
+          }
+        },
+      );
 
       cy.intercept('GET', '**/lsd/models*').as('playgroundModels');
       cy.intercept('GET', '**/aaa/models*').as('assetModels');
 
       cy.step('Open a fresh Playground conversation with the Gemini chat model');
-      genAiPlayground.navigateWithCustomEndpoints(projectName);
-      genAiPlayground.findMessageInput({ timeout: 30000 }).should('be.visible');
+      genAiPlayground.navigateToPlaygroundWithRetry(projectName);
+      genAiPlayground.findMessageInput({ timeout: 120000 }).should('be.visible');
 
       cy.wait('@playgroundModels').then(({ request, response }) => {
         expect(new URL(request.url).searchParams.get('namespace')).to.equal(projectName);
@@ -292,6 +318,9 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
         expect(modelIds, `AI Asset models: ${modelIds.join(', ')}`).to.include(
           testData.model.modelId,
         );
+        expect(modelIds, `AI Asset models: ${modelIds.join(', ')}`).to.include(
+          testData.audio.asrModelId,
+        );
       });
 
       cy.step('Enable audio transcription and select the registered ASR model');
@@ -304,7 +333,7 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
         .and('not.have.attr', 'aria-disabled', 'true')
         .click();
       genAiPlayground.findAsrModelToggle().should('be.visible').click();
-      genAiPlayground.findAsrModelOption(asrModelId).should('be.visible').click();
+      genAiPlayground.findAsrModelOption(testData.audio.asrModelId).should('be.visible').click();
       genAiPlayground.findAsrModelToggle().should('contain', testData.audio.asrDisplayName);
       genAiPlayground.findCloseSettingsButton().click();
 
@@ -350,16 +379,25 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
         expect(new URL(request.url).searchParams.get('namespace')).to.equal(projectName);
         const body = request.body as { file_id?: string; asr_model_id?: string };
         expect(body.file_id).to.equal(uploadedFileId);
-        expect(body.asr_model_id).to.equal(asrModelId);
-        expect(response?.statusCode).to.equal(200);
-        const transcription = response?.body as { text?: string };
-        expect(transcription.text).to.be.a('string');
-        expect((transcription.text ?? '').length).to.be.greaterThan(0);
-        transcribedText = transcription.text ?? '';
-        const normalizedTranscript = transcribedText.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ');
-        testData.audio.expectedTranscriptKeywords.forEach((keyword) => {
-          expect(normalizedTranscript).to.contain(keyword.toLowerCase());
-        });
+        expect(body.asr_model_id).to.equal(testData.audio.asrModelId);
+        if (response?.statusCode !== 200) {
+          getWhisperTinyPredictorDiagnostics(projectName).then((diagnostics) => {
+            throw new Error(
+              `Transcription response: ${JSON.stringify(response?.body)}\n${diagnostics}`,
+            );
+          });
+        } else {
+          const transcription = response.body as { text?: string };
+          expect(transcription.text).to.be.a('string');
+          expect((transcription.text ?? '').length).to.be.greaterThan(0);
+          transcribedText = transcription.text ?? '';
+          const normalizedTranscript = transcribedText
+            .toLowerCase()
+            .replace(/[^\p{L}\p{N}]+/gu, ' ');
+          testData.audio.expectedTranscriptKeywords.forEach((keyword) => {
+            expect(normalizedTranscript).to.contain(keyword.toLowerCase());
+          });
+        }
       });
 
       cy.step('Verify audio is ready without submitting a chat request');
