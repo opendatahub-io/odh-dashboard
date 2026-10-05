@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -203,6 +204,40 @@ func TestCleanupLegacyLocalObservabilityOwnership(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestCleanupObservabilityPreservesOperatorResources(t *testing.T) {
+	for _, configName := range []string{"odh-dashboard-config", "perses-dashboard-config"} {
+		t.Run(configName, func(t *testing.T) {
+			t.Setenv("OPERATOR_CONFIGMAP_NAME", configName)
+			for _, componentLabel := range []bool{false, true} {
+				t.Run(fmt.Sprintf("component label %t", componentLabel), func(t *testing.T) {
+					scheme := maasConsumerPortalScheme(t)
+					ownership := map[string]string{labels.PlatformPartOf: "dashboard"}
+					if componentLabel {
+						ownership[moduleComponentLabel] = observabilityComponent
+					}
+					config := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: configName, Namespace: "operators", Labels: ownership}}
+					webhook := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: operatorDeploymentName + "-webhook", Namespace: "operators", Labels: ownership}}
+					legacy := &networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: "dashboard-perses-access", Namespace: "operators", Labels: ownership}}
+					unrelated := &networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: "operator-access", Namespace: "operators", Labels: map[string]string{labels.PlatformPartOf: "dashboard"}}}
+					cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(config, webhook, legacy, unrelated).Build()
+					r := &DashboardReconciler{Client: cli, Scheme: scheme, Namespace: "operators", ApplicationsNamespace: "applications"}
+					dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{Observability: &v1alpha1.ObservabilitySpec{
+						Enabled: false, PersesService: &v1alpha1.ServiceTarget{Name: persesServiceName, Namespace: "operators", Port: 8080},
+					}}}
+					ctx := context.Background()
+					for range 2 {
+						require.NoError(t, r.cleanupManagedObservability(ctx, dashboard))
+						for _, retained := range []client.Object{config, webhook, unrelated} {
+							require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(retained), retained.DeepCopyObject().(client.Object)))
+						}
+						assert.True(t, apierrors.IsNotFound(cli.Get(ctx, client.ObjectKeyFromObject(legacy), &networkingv1.NetworkPolicy{})))
+					}
+				})
+			}
+		})
 	}
 }
 

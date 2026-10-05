@@ -501,14 +501,14 @@ func TestReconcile_Deletion_WithCrossNamespaceResources(t *testing.T) {
 
 	crossNSSvc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "perses-proxy",
+			Name:      "data-science-perses",
 			Namespace: obsNS,
 			Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
 		},
 	}
 	crossNSCM := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "perses-config",
+			Name:      "perses-dashboard-config",
 			Namespace: obsNS,
 			Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
 		},

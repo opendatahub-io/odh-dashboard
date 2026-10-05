@@ -185,8 +185,8 @@ func maasConsumerPortalSupportedPlatform(platform cluster.Platform) bool {
 }
 
 func (r *DashboardReconciler) maasPortalManaged(dashboard *v1alpha1.Dashboard) bool {
-	return dashboard.Spec.MaaSConsumerPortal != nil &&
-		dashboard.Spec.MaaSConsumerPortal.ManagementState == "Managed" &&
+	portal := effectiveMaaSPortal(dashboard.Spec)
+	return portal != nil && portal.ManagementState == "Managed" &&
 		maasConsumerPortalSupportedPlatform(r.Platform)
 }
 

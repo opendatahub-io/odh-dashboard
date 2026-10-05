@@ -794,8 +794,9 @@ func (r *DashboardReconciler) cleanupManagedObservability(ctx context.Context, d
 		return nil
 	}
 
-	// Older observability resources have no component label. Limit this fallback
-	// to the known observability namespace and leave other components untouched.
+	// Older observability resources have no component label. The namespace may
+	// also contain the operator or other dashboard resources, so recognize legacy
+	// resources by kind and name just as in the applications namespace.
 	legacySelector, err := metav1.LabelSelectorAsSelector(&metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			labels.PlatformPartOf: strings.ToLower(v1alpha1.DashboardKind),
@@ -808,7 +809,7 @@ func (r *DashboardReconciler) cleanupManagedObservability(ctx context.Context, d
 	if err != nil {
 		return fmt.Errorf("creating legacy observability selector: %w", err)
 	}
-	return r.cleanupObservabilityResources(ctx, false, client.InNamespace(obsNS), client.MatchingLabelsSelector{Selector: legacySelector})
+	return r.cleanupObservabilityResources(ctx, true, client.InNamespace(obsNS), client.MatchingLabelsSelector{Selector: legacySelector})
 }
 
 // isLegacyObservabilityResource recognizes resources that predate the component
@@ -839,13 +840,22 @@ func isLegacyObservabilityResource(resource client.Object) bool {
 
 func (r *DashboardReconciler) cleanupObservabilityResources(ctx context.Context, legacyOnly bool, opts ...client.ListOption) error {
 	logger := log.FromContext(ctx)
+	operatorResources := operatorOwnedResources()
+	shouldDelete := func(resource client.Object, kind string) bool {
+		// Chart resource names are configurable and may overlap observability
+		// names. Never remove the operator's own resources, even if mislabeled.
+		if resource.GetNamespace() == r.Namespace && isOperatorOwned(operatorResources, kind, resource.GetName()) {
+			return false
+		}
+		return !legacyOnly || isLegacyObservabilityResource(resource)
+	}
 
 	var svcs corev1.ServiceList
 	if err := r.List(ctx, &svcs, opts...); err != nil {
 		return fmt.Errorf("listing observability services: %w", err)
 	}
 	for i := range svcs.Items {
-		if legacyOnly && !isLegacyObservabilityResource(&svcs.Items[i]) {
+		if !shouldDelete(&svcs.Items[i], "Service") {
 			continue
 		}
 		obsNS := svcs.Items[i].Namespace
@@ -860,7 +870,7 @@ func (r *DashboardReconciler) cleanupObservabilityResources(ctx context.Context,
 		return fmt.Errorf("listing observability configmaps: %w", err)
 	}
 	for i := range cms.Items {
-		if legacyOnly && !isLegacyObservabilityResource(&cms.Items[i]) {
+		if !shouldDelete(&cms.Items[i], "ConfigMap") {
 			continue
 		}
 		obsNS := cms.Items[i].Namespace
@@ -875,7 +885,7 @@ func (r *DashboardReconciler) cleanupObservabilityResources(ctx context.Context,
 		return fmt.Errorf("listing observability networkpolicies: %w", err)
 	}
 	for i := range netpols.Items {
-		if legacyOnly && !isLegacyObservabilityResource(&netpols.Items[i]) {
+		if !shouldDelete(&netpols.Items[i], "NetworkPolicy") {
 			continue
 		}
 		obsNS := netpols.Items[i].Namespace
@@ -893,7 +903,7 @@ func (r *DashboardReconciler) cleanupObservabilityResources(ctx context.Context,
 		}
 	} else {
 		for i := range persesList.Items {
-			if legacyOnly && !isLegacyObservabilityResource(&persesList.Items[i]) {
+			if !shouldDelete(&persesList.Items[i], "PersesDashboard") {
 				continue
 			}
 			obsNS := persesList.Items[i].GetNamespace()

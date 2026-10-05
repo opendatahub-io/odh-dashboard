@@ -34,10 +34,12 @@ func TestIntegration_MaaSConsumerPortalObservabilityLifecycle(t *testing.T) {
 		namespace   string
 		autoDetect  bool
 		initialCore common.ManagementState
+		legacy      bool
 	}{
 		{name: "portal only auto-detects Perses", namespace: "redhat-ods-monitoring", autoDetect: true, initialCore: "Removed"},
 		{name: "core removal preserves cross-namespace observability", namespace: "portal-observability-test", initialCore: "Managed"},
 		{name: "core removal preserves observability in applications namespace", namespace: integrationNamespace, initialCore: "Managed"},
+		{name: "legacy portal retains observability", namespace: "portal-observability-legacy-test", initialCore: "Managed", legacy: true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
@@ -67,11 +69,17 @@ func TestIntegration_MaaSConsumerPortalObservabilityLifecycle(t *testing.T) {
 				Platform: cluster.SelfManagedRhoai, Namespace: integrationNamespace, ApplicationsNamespace: integrationNamespace,
 			}
 			dashboard := newDashboard(v1alpha1.DashboardSpec{
-				ManagementSpec:     common.ManagementSpec{ManagementState: tt.initialCore},
-				Gateway:            &v1alpha1.GatewaySpec{Domain: "test.example.com"},
-				Modules:            disableAllModulesExcept("maas", "genAi"),
-				MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
+				ManagementSpec: common.ManagementSpec{ManagementState: tt.initialCore},
+				Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+				Modules:        disableAllModulesExcept("maas", "genAi"),
+				MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
+				// The canonical field must override this conflicting legacy state.
+				MaaSConsumerPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Removed"},
 			})
+			if tt.legacy {
+				dashboard.Spec.MaaSPortal = nil
+				dashboard.Spec.MaaSConsumerPortal.ManagementState = "Managed"
+			}
 			if !tt.autoDetect {
 				dashboard.Spec.Observability = &v1alpha1.ObservabilitySpec{
 					Enabled: true, PersesService: &v1alpha1.ServiceTarget{Name: service.Name, Namespace: service.Namespace, Port: 8080},
@@ -153,7 +161,12 @@ func TestIntegration_MaaSConsumerPortalObservabilityLifecycle(t *testing.T) {
 				}
 				dashboard = getDashboard(t)
 				assert.Equal(t, common.ManagementState("Managed"), dashboard.Spec.ManagementState)
-				assert.Equal(t, "Managed", dashboard.Spec.MaaSConsumerPortal.ManagementState)
+				if tt.legacy {
+					assert.Equal(t, "Managed", dashboard.Spec.MaaSConsumerPortal.ManagementState)
+				} else {
+					assert.Equal(t, "Managed", dashboard.Spec.MaaSPortal.ManagementState)
+					assert.Equal(t, "Removed", dashboard.Spec.MaaSConsumerPortal.ManagementState)
+				}
 				dashboard.Spec.Observability = configuredObservability
 				require.NoError(t, persesClient.Update(ctx, dashboard))
 				reconcile(t, r)
@@ -245,7 +258,13 @@ func TestIntegration_MaaSConsumerPortalObservabilityLifecycle(t *testing.T) {
 
 			// Removing the remaining consumer releases all shared observability resources.
 			dashboard = getDashboard(t)
-			dashboard.Spec.MaaSConsumerPortal.ManagementState = "Removed"
+			if tt.legacy {
+				dashboard.Spec.MaaSConsumerPortal.ManagementState = "Removed"
+			} else {
+				dashboard.Spec.MaaSPortal.ManagementState = "Removed"
+				// The legacy field must not retain observability after canonical removal.
+				dashboard.Spec.MaaSConsumerPortal.ManagementState = "Managed"
+			}
 			require.NoError(t, persesClient.Update(ctx, dashboard))
 			reconcile(t, r)
 			for _, resource := range resources {
@@ -254,7 +273,11 @@ func TestIntegration_MaaSConsumerPortalObservabilityLifecycle(t *testing.T) {
 
 			// CR deletion must clean up even while the portal is still desired.
 			dashboard = getDashboard(t)
-			dashboard.Spec.MaaSConsumerPortal.ManagementState = "Managed"
+			if tt.legacy {
+				dashboard.Spec.MaaSConsumerPortal.ManagementState = "Managed"
+			} else {
+				dashboard.Spec.MaaSPortal.ManagementState = "Managed"
+			}
 			require.NoError(t, persesClient.Update(ctx, dashboard))
 			reconcile(t, r)
 			for _, resource := range resources {
