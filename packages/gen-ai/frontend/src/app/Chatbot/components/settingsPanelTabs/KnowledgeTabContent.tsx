@@ -297,7 +297,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
 
   return (
     <TabContentWrapper
-      title="Knowledge"
+      title="RAG"
       headerActions={headerActions}
       titleTestId="knowledge-section-title"
     >

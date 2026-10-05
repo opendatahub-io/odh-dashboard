@@ -22,6 +22,7 @@ jest.mock('@patternfly/chatbot', () => ({
     isSendButtonDisabled,
     hasStopButton,
     attachMenuProps,
+    buttonProps,
     'data-testid': testId,
   }: {
     onSendMessage: (message: string) => void;
@@ -35,6 +36,7 @@ jest.mock('@patternfly/chatbot', () => ({
       attachMenuItems: React.ReactNode;
       onAttachMenuToggleClick: () => void;
     };
+    buttonProps?: { attach?: { tooltipContent?: string } };
     'data-testid': string;
   }) => (
     <div data-testid={testId}>
@@ -61,6 +63,7 @@ jest.mock('@patternfly/chatbot', () => ({
           <button
             data-testid="mock-attach-toggle"
             onClick={attachMenuProps.onAttachMenuToggleClick}
+            title={buttonProps?.attach?.tooltipContent}
             type="button"
           >
             Attach
@@ -242,7 +245,10 @@ describe('ChatbotMessageInput', () => {
   describe('attach menu', () => {
     it('renders attach menu toggle', () => {
       render(<ChatbotMessageInput {...defaultProps} />);
-      expect(screen.getByTestId('mock-attach-toggle')).toBeInTheDocument();
+      expect(screen.getByTestId('mock-attach-toggle')).toHaveAttribute(
+        'title',
+        'Attach files to this message',
+      );
     });
 
     it('opens attach menu on toggle click and shows three menu items', async () => {
