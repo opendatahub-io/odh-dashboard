@@ -146,7 +146,7 @@ func TestReconcileMaaSConsumerPortal_MissingGatewayDomainRetries(t *testing.T) {
 	s := maasConsumerPortalScheme(t)
 	dashboard := &v1alpha1.Dashboard{
 		Spec: v1alpha1.DashboardSpec{
-			MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
+			MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
 		},
 		Status: v1alpha1.DashboardStatus{MaaSConsumerPortalURL: "https://previous.example.com/"},
 	}
@@ -158,6 +158,7 @@ func TestReconcileMaaSConsumerPortal_MissingGatewayDomainRetries(t *testing.T) {
 	require.NotNil(t, condition)
 	assert.Equal(t, "MaaSConsumerPortalDomainRequired", condition.Reason)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSConsumerPortalURL)
+	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
 }
 
 func maasConsumerPortalScheme(t *testing.T) *runtime.Scheme {
@@ -176,8 +177,8 @@ func TestReconcileMaaSConsumerPortal_DeployFailurePreservesURL(t *testing.T) {
 	dashboard := &v1alpha1.Dashboard{
 		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName},
 		Spec: v1alpha1.DashboardSpec{
-			Gateway:            &v1alpha1.GatewaySpec{Domain: "apps.example.com"},
-			MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
+			Gateway:    &v1alpha1.GatewaySpec{Domain: "apps.example.com"},
+			MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
 		},
 		Status: v1alpha1.DashboardStatus{MaaSConsumerPortalURL: "https://previous.example.com/"},
 	}
@@ -193,6 +194,7 @@ func TestReconcileMaaSConsumerPortal_DeployFailurePreservesURL(t *testing.T) {
 	assert.Equal(t, "MaaSConsumerPortalDeployFailed", condition.Reason)
 	assert.Equal(t, maasConsumerPortalRetryInterval, retryAfter)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSConsumerPortalURL)
+	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
 }
 
 func TestReconcileMaaSConsumerPortal_PreservesEarlierFailure(t *testing.T) {
@@ -290,6 +292,7 @@ func TestReconcileRemovedMaaSConsumerPortal_CleanupFailureRetries(t *testing.T) 
 	assert.Equal(t, "MaaSConsumerPortalCleanupFailed", condition.Reason)
 	assert.Equal(t, common.ConditionSeverityInfo, condition.Severity)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSConsumerPortalURL)
+	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
 }
 
 func TestReconcileUnsupportedMaaSConsumerPortal_CleanupFailurePreservesURL(t *testing.T) {
@@ -306,6 +309,7 @@ func TestReconcileUnsupportedMaaSConsumerPortal_CleanupFailurePreservesURL(t *te
 	assert.Equal(t, maasConsumerPortalRetryInterval, r.reconcileUnsupportedMaaSConsumerPortal(context.Background(), dashboard, cm))
 	assert.Equal(t, "MaaSConsumerPortalCleanupFailed", cm.GetCondition(conditionMaaSConsumerPortalAvailable).Reason)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSConsumerPortalURL)
+	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
 }
 
 func TestReconcileDeletion_CleansMaaSConsumerPortalResources(t *testing.T) {
