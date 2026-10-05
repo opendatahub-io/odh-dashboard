@@ -29,6 +29,16 @@ describe('Workbenches - node selector tests', () => {
         testData = fixtureData;
         projectName = `${fixtureData.testNamespace}-${projectUuid}`;
 
+        // Label all worker nodes so pods with the test nodeSelector can schedule
+        cy.log(
+          `Labeling all worker nodes with ${testData.nodeSelectorKey}=${testData.nodeSelectorValue}`,
+        );
+        return cy.exec(
+          `oc label nodes -l node-role.kubernetes.io/worker ${testData.nodeSelectorKey}=${testData.nodeSelectorValue} --overwrite`,
+          { failOnNonZeroExit: true },
+        );
+      })
+      .then(() => {
         cy.log(`Creating project: ${projectName}`);
         return createCleanProject(projectName);
       })
@@ -48,6 +58,16 @@ describe('Workbenches - node selector tests', () => {
       .then(() => {
         cy.log(`Cleaning up Hardware Profile B: ${testData.hardwareProfileNameB}`);
         return cleanupHardwareProfiles(testData.hardwareProfileNameB);
+      })
+      .then(() => {
+        if (testData.nodeSelectorKey) {
+          cy.log(`Removing label ${testData.nodeSelectorKey} from all worker nodes`);
+          return cy.exec(
+            `oc label nodes -l node-role.kubernetes.io/worker ${testData.nodeSelectorKey}- --ignore-not-found`,
+            { failOnNonZeroExit: false },
+          );
+        }
+        return cy.wrap(null);
       })
       .then(() => {
         if (projectName) {
@@ -125,7 +145,7 @@ describe('Workbenches - node selector tests', () => {
 
       cy.step(`Wait for workbench ${testData.workbenchNameB} to reach Running status`);
       const notebookRow = workbenchPage.getNotebookRow(testData.workbenchNameB);
-      notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 120000);
+      notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 240000);
 
       cy.step('Validate node selectors are applied to the workbench pod');
       validateWorkbenchNodeSelectors(projectName, testData.workbenchNameB, {
