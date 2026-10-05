@@ -81,7 +81,7 @@ describe('getBenchmarkDatasetUrl', () => {
       ['inspect/mbpp', 'https://huggingface.co/datasets/google-research-datasets/mbpp'],
       ['inspect/mmlu', 'https://huggingface.co/datasets/cais/mmlu'],
       ['inspect/mmlu-pro', 'https://huggingface.co/datasets/TIGER-Lab/MMLU-Pro'],
-      ['inspect/simpleqa', 'https://huggingface.co/datasets/OpenEvals/SimpleQA'],
+      ['inspect/simpleqa', 'https://huggingface.co/datasets/basicv8vc/SimpleQA'],
       ['inspect/strong-reject', 'https://huggingface.co/datasets/walledai/StrongREJECT'],
       ['inspect/swe-bench', 'https://huggingface.co/datasets/princeton-nlp/SWE-bench_Verified'],
       ['inspect/truthfulqa', 'https://huggingface.co/datasets/truthfulqa/truthful_qa'],
