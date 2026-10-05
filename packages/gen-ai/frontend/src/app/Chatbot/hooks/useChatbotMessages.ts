@@ -193,6 +193,7 @@ const useChatbotMessages = ({
         imagePreview?: { previewUrl: string; fileName: string },
         audioFile?: File,
         displayMessage?: string,
+        retryMessageId?: string,
       ) => Promise<void>)
     | null
   >(null);
@@ -432,6 +433,7 @@ const useChatbotMessages = ({
     imagePreview?: { previewUrl: string; fileName: string },
     audioFile?: File,
     displayMessage?: string,
+    retryMessageId?: string,
   ) => {
     // Reset streaming content tracker for new message
     streamingReceivedRef.current = false;
@@ -560,7 +562,8 @@ const useChatbotMessages = ({
           .filter(
             (msg) =>
               (msg.content || multimodalContentRef.current.has(msg.id!)) &&
-              !msg.errorClassification,
+              !msg.errorClassification &&
+              msg.id !== retryMessageId,
           )
           .map((msg) => {
             const content = multimodalContentRef.current.get(msg.id!) || msg.content || '';
@@ -1057,6 +1060,7 @@ const useChatbotMessages = ({
               imagePreview,
               audioFile,
               displayMessage,
+              userMessage.id,
             );
           }
         }, 0);

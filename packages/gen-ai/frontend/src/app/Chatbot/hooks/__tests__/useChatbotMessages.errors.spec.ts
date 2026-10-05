@@ -666,7 +666,9 @@ describe('useChatbotMessages - Error Handling', () => {
         const secondCall = mockCreateResponse.mock.calls[1];
         // BFF expects input, not messages
         expect(secondCall[0].input).toBe('Original message');
+        expect(secondCall[0].chat_context).toEqual([]);
       });
+      expect(result.current.messages[0].content).toBe('Original message');
     });
 
     it('should reuse and revoke one audio URL when retrying the same file', async () => {
@@ -714,6 +716,7 @@ describe('useChatbotMessages - Error Handling', () => {
         act(() => result.current.messages[1].onRetryError?.());
 
         await waitFor(() => expect(mockCreateResponse).toHaveBeenCalledTimes(2));
+        expect(mockCreateResponse.mock.calls[1][0].chat_context).toEqual([]);
         expect(createObjectURL).toHaveBeenCalledTimes(1);
         expect(createObjectURL).toHaveBeenCalledWith(file);
         expect(
@@ -855,6 +858,10 @@ describe('useChatbotMessages - Error Handling', () => {
       await waitFor(() => {
         expect(mockCreateResponse).toHaveBeenCalledTimes(3);
         expect(mockCreateResponse.mock.calls[2][0].input).toBe('First message');
+        expect(mockCreateResponse.mock.calls[2][0].chat_context).toEqual([
+          { role: 'user', content: 'Second message' },
+          { role: 'assistant', content: 'Second response' },
+        ]);
       });
     });
 
