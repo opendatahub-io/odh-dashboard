@@ -4,12 +4,13 @@ import {
   HardwareProfileFeatureVisibility,
   type HardwareProfileKind,
 } from '@odh-dashboard/k8s-core';
-import { HardwareProfilesContext } from '@odh-dashboard/internal/concepts/hardwareProfiles/HardwareProfilesContext';
+import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
+import { HardwareProfilesContext } from '@odh-dashboard/ui-core/context/HardwareProfilesContext';
 import { ProjectHardwareProfilesContext } from '@odh-dashboard/ui-core/context/ProjectHardwareProfilesContext';
 import { mockHardwareProfile } from '../../__mocks__/mockHardwareProfile';
 import { useHardwareProfilesByFeatureVisibility } from '../useHardwareProfilesByFeatureVisibility';
 
-jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/HardwareProfilesContext', () => ({
+jest.mock('@odh-dashboard/ui-core/context/HardwareProfilesContext', () => ({
   HardwareProfilesContext: {
     _currentValue: null,
   },
@@ -36,6 +37,11 @@ const mockContexts = (
   projectOverrides?: Partial<React.ContextType<typeof ProjectHardwareProfilesContext>>,
 ) => {
   jest.spyOn(React, 'useContext').mockImplementation((context: React.Context<unknown>) => {
+    if (context === CurrentProjectContext) {
+      return {
+        currentProject: { apiVersion: 'v1', kind: 'Project', metadata: { name: '' } },
+      };
+    }
     if (context === HardwareProfilesContext) {
       return {
         globalHardwareProfiles: [globalProfiles, globalLoaded, globalError],
