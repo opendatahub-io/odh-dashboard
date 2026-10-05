@@ -143,7 +143,7 @@ importers:
         version: 6.1.3
       turbo:
         specifier: ^2.9.16
-        version: 2.10.12
+        version: 2.11.2
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -173,7 +173,7 @@ importers:
         version: 12.0.0
       '@fastify/websocket':
         specifier: ^11.3.0
-        version: 11.3.0
+        version: 11.3.1
       '@kubernetes/client-node':
         specifier: ^0.12.3
         version: 0.12.3
@@ -190,8 +190,8 @@ importers:
         specifier: ^3.1.10
         version: 3.1.10
       fastify:
-        specifier: ^5.11.2
-        version: 5.12.4
+        specifier: ^5.12.5
+        version: 5.12.5
       fastify-plugin:
         specifier: ^5.1.0
         version: 5.1.0
@@ -431,7 +431,7 @@ importers:
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.16
+        version: 3.4.15
       lodash-es:
         specifier: ^4.18.1
         version: 4.18.1
@@ -1017,7 +1017,7 @@ importers:
         version: 3.6.0
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.16
+        version: 3.4.15
       google-protobuf:
         specifier: ^3.21.4
         version: 3.21.4
@@ -1385,7 +1385,7 @@ importers:
         version: 1.20.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.16
+        version: 3.4.15
       marked:
         specifier: ^15.0.12
         version: 15.0.12
@@ -1471,7 +1471,7 @@ importers:
         version: 1.21.0(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
       openshell-dashboard:
         specifier: ^1.1.0
-        version: 1.1.0(@patternfly/react-code-editor@6.6.1(monaco-editor@0.52.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@patternfly/react-core@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@patternfly/react-icons@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@patternfly/react-log-viewer@6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@patternfly/react-table@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@tanstack/react-query@5.101.4(react@18.3.1))(i18next@26.4.2(typescript@5.9.3))(react-dom@18.3.1(react@18.3.1))(react-i18next@17.0.15(i18next@26.4.2(typescript@5.9.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3))(react-router-dom@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
+        version: 1.1.0(@patternfly/react-code-editor@6.6.1(monaco-editor@0.52.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@patternfly/react-core@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@patternfly/react-icons@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@patternfly/react-log-viewer@6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@patternfly/react-table@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@tanstack/react-query@5.101.4(react@18.3.1))(i18next@26.4.2(typescript@5.9.3))(react-dom@18.3.1(react@18.3.1))(react-i18next@17.0.14(i18next@26.4.2(typescript@5.9.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3))(react-router-dom@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       react:
         specifier: ^18
         version: 18.3.1
@@ -1480,7 +1480,7 @@ importers:
         version: 18.3.1(react@18.3.1)
       react-i18next:
         specifier: ^17.0.0
-        version: 17.0.15(i18next@26.4.2(typescript@5.9.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)
+        version: 17.0.14(i18next@26.4.2(typescript@5.9.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)
       react-router:
         specifier: ^7.18.3
         version: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1803,6 +1803,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
+      '@odh-dashboard/autox-core':
+        specifier: workspace:*
+        version: link:../../autox-core
       '@openshift/dynamic-plugin-sdk':
         specifier: ^5.0.1
         version: 5.0.1(react@18.3.1)
@@ -1816,8 +1819,8 @@ importers:
         specifier: ~8.6.1
         version: 8.6.1(echarts@5.6.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(victory-area@37.3.6(react@18.3.1))(victory-axis@37.3.6(react@18.3.1))(victory-bar@37.3.6(react@18.3.1))(victory-box-plot@37.3.6(react@18.3.1))(victory-chart@37.3.6(react@18.3.1))(victory-core@37.3.6(react@18.3.1))(victory-create-container@37.3.6(react@18.3.1))(victory-cursor-container@37.3.6(react@18.3.1))(victory-group@37.3.6(react@18.3.1))(victory-legend@37.3.6(react@18.3.1))(victory-line@37.3.6(react@18.3.1))(victory-pie@37.3.6(react@18.3.1))(victory-scatter@37.3.6(react@18.3.1))(victory-stack@37.3.6(react@18.3.1))(victory-tooltip@37.3.6(react@18.3.1))(victory-voronoi-container@37.3.6(react@18.3.1))(victory-zoom-container@37.3.6(react@18.3.1))
       '@patternfly/react-component-groups':
-        specifier: ~6.5.0
-        version: 6.5.0(@patternfly/react-drag-drop@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.7.0
+        version: 6.7.0(@patternfly/react-drag-drop@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
         specifier: 6.6.1
         version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1850,7 +1853,7 @@ importers:
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.16
+        version: 3.4.15
       es-toolkit:
         specifier: ^1.44.0
         version: 1.51.0
@@ -2181,6 +2184,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
+      '@odh-dashboard/autox-core':
+        specifier: workspace:*
+        version: link:../../autox-core
       '@openshift/dynamic-plugin-sdk':
         specifier: ^5.0.1
         version: 5.0.1(react@18.3.1)
@@ -2194,8 +2200,8 @@ importers:
         specifier: ~8.6.1
         version: 8.6.1(echarts@5.6.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(victory-area@37.3.6(react@18.3.1))(victory-axis@37.3.6(react@18.3.1))(victory-bar@37.3.6(react@18.3.1))(victory-box-plot@37.3.6(react@18.3.1))(victory-chart@37.3.6(react@18.3.1))(victory-core@37.3.6(react@18.3.1))(victory-create-container@37.3.6(react@18.3.1))(victory-cursor-container@37.3.6(react@18.3.1))(victory-group@37.3.6(react@18.3.1))(victory-legend@37.3.6(react@18.3.1))(victory-line@37.3.6(react@18.3.1))(victory-pie@37.3.6(react@18.3.1))(victory-scatter@37.3.6(react@18.3.1))(victory-stack@37.3.6(react@18.3.1))(victory-tooltip@37.3.6(react@18.3.1))(victory-voronoi-container@37.3.6(react@18.3.1))(victory-zoom-container@37.3.6(react@18.3.1))
       '@patternfly/react-component-groups':
-        specifier: ~6.5.0
-        version: 6.5.0(@patternfly/react-drag-drop@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.7.0
+        version: 6.7.0(@patternfly/react-drag-drop@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
         specifier: 6.6.1
         version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -2228,7 +2234,7 @@ importers:
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.16
+        version: 3.4.15
       echarts:
         specifier: ^5.6.0
         version: 5.6.0
@@ -2522,29 +2528,22 @@ importers:
       '@odh-dashboard/internal':
         specifier: workspace:*
         version: link:../../frontend/src
+      '@odh-dashboard/k8s-core':
+        specifier: workspace:*
+        version: link:../k8s-core
       '@odh-dashboard/plugin-core':
         specifier: workspace:*
         version: link:../plugin-core
-    devDependencies:
-      '@odh-dashboard/eslint-config':
+      '@odh-dashboard/ui-core':
         specifier: workspace:*
-        version: link:../eslint-config
-      '@odh-dashboard/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
-
-  packages/autox-core/ui:
-    dependencies:
-      '@hookform/resolvers':
-        specifier: ^5.2.2
-        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
-      '@patternfly/patternfly':
-        specifier: 6.6.1
-        version: 6.6.1
+        version: link:../ui-core
       '@patternfly/react-component-groups':
-        specifier: ~6.5.0
-        version: 6.5.0(@patternfly/react-drag-drop@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.7.0
+        version: 6.7.0(@patternfly/react-drag-drop@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-drag-drop':
         specifier: 6.6.1
         version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
@@ -2556,24 +2555,18 @@ importers:
       '@patternfly/react-table':
         specifier: 6.6.1
         version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-templates':
-        specifier: 6.6.1
-        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-topology':
-        specifier: ~6.6.0
+        specifier: ^6
         version: 6.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@tanstack/react-query':
-        specifier: ^5.90.20
-        version: 5.101.4(react@18.3.1)
       classnames:
-        specifier: ^2.2.6
+        specifier: ^2.5.1
         version: 2.5.1
       es-toolkit:
         specifier: ^1.44.0
-        version: 1.51.0
-      lodash-es:
-        specifier: ^4.17.15
-        version: 4.18.1
+        version: 1.52.0
+      mod-arch-core:
+        specifier: ^1.15.4
+        version: 1.21.0(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
       react:
         specifier: ^18
         version: 18.3.1
@@ -2589,13 +2582,19 @@ importers:
       react-router-dom:
         specifier: ^7.18.3
         version: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      zod:
-        specifier: ^4.3.6
-        version: 4.4.3
     devDependencies:
+      '@odh-dashboard/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
       '@odh-dashboard/jest-config':
         specifier: workspace:*
-        version: link:../../jest-config
+        version: link:../jest-config
+      '@odh-dashboard/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@tanstack/react-query':
+        specifier: 5.101.4
+        version: 5.101.4(react@18.3.1)
       '@testing-library/jest-dom':
         specifier: ^6.6.2
         version: 6.10.0(@testing-library/dom@10.4.1)
@@ -2608,9 +2607,9 @@ importers:
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
-      '@types/lodash-es':
-        specifier: ^4.17.8
-        version: 4.17.12
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
       '@types/react-dom':
         specifier: ^18.3.1
         version: 18.3.7(@types/react@18.3.31)
@@ -2619,19 +2618,13 @@ importers:
         version: 30.4.1
       jest:
         specifier: ^30.2.0
-        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.2.0
         version: 30.4.1(supports-color@8.1.1)
-      prettier:
-        specifier: ^3.3.3
-        version: 3.9.6
-      tslib:
-        specifier: ^2.7.0
-        version: 2.8.1
-      typescript:
-        specifier: ^5.8.2
-        version: 5.9.3
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
 
   packages/connection-types:
     dependencies:
@@ -2872,6 +2865,9 @@ importers:
       '@patternfly/patternfly':
         specifier: 6.6.1
         version: 6.6.1
+      '@patternfly/react-component-groups':
+        specifier: ~6.7.0
+        version: 6.7.0(@patternfly/react-drag-drop@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
         specifier: 6.6.1
         version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -3566,7 +3562,7 @@ importers:
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.16
+        version: 3.4.15
       lodash-es:
         specifier: ^4.17.15
         version: 4.18.1
@@ -4620,7 +4616,7 @@ importers:
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.16
+        version: 3.4.15
       lodash-es:
         specifier: ^4.17.15
         version: 4.18.1
@@ -5002,7 +4998,7 @@ importers:
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.16
+        version: 3.4.15
       lodash-es:
         specifier: ^4.17.15
         version: 4.18.1
@@ -5789,6 +5785,9 @@ importers:
       '@odh-dashboard/app-config':
         specifier: workspace:*
         version: link:../app-config
+      '@odh-dashboard/contract-tests':
+        specifier: workspace:*
+        version: link:../contract-tests
       '@odh-dashboard/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
@@ -7313,8 +7312,8 @@ packages:
   '@fastify/merge-json-schemas@0.2.1':
     resolution: {integrity: sha512-OA3KGBCy6KtIvLf8DINC5880o5iBlDX4SxzLQS8HorJAbqluzLRn80UXU0bxZn7UOFhFgpRJDasfwn9nG4FG4A==}
 
-  '@fastify/proxy-addr@5.1.0':
-    resolution: {integrity: sha512-INS+6gh91cLUjB+PVHfu1UqcB76Sqtpyp7bnL+FYojhjygvOPA9ctiD/JDKsyD9Xgu4hUhCSJBPig/w7duNajw==}
+  '@fastify/proxy-addr@5.1.1':
+    resolution: {integrity: sha512-zv07Y9GEuDsJPegZoDFd4SDWaZOW8N2pa0GSrYmKpId/tjt1Hgo3BjZBVjdVpfVrHaA+Qv5jawtS2O50J5xM9g==}
 
   '@fastify/reply-from@12.6.5':
     resolution: {integrity: sha512-/4MP+iF6T2+UBEmVYveMU2Tbx3lR1Q7xsDo8GAGjNeQrLF/JqNRlOMhOksh8fXBA47KI8ifsIlUXYdMOUXGZNQ==}
@@ -7331,8 +7330,8 @@ packages:
   '@fastify/view@12.0.0':
     resolution: {integrity: sha512-Prcoim4yTwG6vPnIyGrWViDx6FFnchV0GQWeBgAgywlL1JflGhTLDhIsyd7EkOreYHyqALqxnmhhJhD4NrJTWw==}
 
-  '@fastify/websocket@11.3.0':
-    resolution: {integrity: sha512-g89ag4BCcD9YP5wBZXixzoLnuf5j89p/sXFcfpCiv2pdEkYYukBEoK3heVzqsp0EAtszVDc2BBZG0KZqeAShIA==}
+  '@fastify/websocket@11.3.1':
+    resolution: {integrity: sha512-3117Fteg0MC9zRl0ilNAQelRb+PNDvNuWe0yJ+jnLthaPPZnlml+GraGpesNUEQvLl8+3C+W4aKZz10XmQ10Mg==}
 
   '@fontsource/inter@5.3.0':
     resolution: {integrity: sha512-RofMylZmjlJEfELXeNHFWBRcSs75rGU/6bV2S2jfnvv/3rPXPGe0LgUJTklcHZ9lM4OZmAVFhcJPnACfb91A3g==}
@@ -8556,8 +8555,8 @@ packages:
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
 
-  '@patternfly/react-component-groups@6.5.0':
-    resolution: {integrity: sha512-uvrAuUixZW618gsQY06nOcQWZclsCtOa5mixi6KQKOyrpH9GgtrihJ/fVJsA1a5HcZzC4SKIdd3wkXArs/vxEg==}
+  '@patternfly/react-component-groups@6.7.0':
+    resolution: {integrity: sha512-uBxJel7Vi7gV/yRgxCfDMI3ztnK8L0SHUU2AVYomAjCs/zEXu9B9thqlYJaRgCTxD3B29Ne43cAx3Ysux33+qQ==}
     peerDependencies:
       '@patternfly/react-drag-drop': 6.6.1
       react: ^17 || ^18 || ^19
@@ -9424,33 +9423,33 @@ packages:
   '@tsconfig/node16@1.0.4':
     resolution: {integrity: sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA==}
 
-  '@turbo/darwin-64@2.10.12':
-    resolution: {integrity: sha512-9nKgKoF6ZOUsM+or0OtNf+TTJSfGvDNP7ZFv/ZGWVwOSCkumyctQiTeHwB4UNljHTnC41AqylgbunLDHoccNrA==}
+  '@turbo/darwin-64@2.11.2':
+    resolution: {integrity: sha512-0pGfE4Lpxrbd+6gUD9z025Tn4z9uMaSNZ3VX0H/hkUPZkjY5xrCa1NfTqocs09NM5NiYE3wEVcoYBadrhayRCA==}
     cpu: [x64]
     os: [darwin]
 
-  '@turbo/darwin-arm64@2.10.12':
-    resolution: {integrity: sha512-H4Elb1jqTZVeIC9bbcNwjSzemZ6RegoTOVHeuV5Osirt2Z8UguTyisMEkvZjPVZgMeN9J4ERZBFad40tFnkb7w==}
+  '@turbo/darwin-arm64@2.11.2':
+    resolution: {integrity: sha512-Ub7hTbu0bPSiW156ciuLCexG5/SfuZM/QWeBBh9o8P4XyKiZwKqubT6Y9DdJjdp4ZY2wS47Prdl06Xxzt0q6zw==}
     cpu: [arm64]
     os: [darwin]
 
-  '@turbo/linux-64@2.10.12':
-    resolution: {integrity: sha512-lr7KIotukvjZwEXiFSYAeOH3BWzjFVBbSzTbv0fuGFsNukYyH0+g1hB5ecqnJkgkYU+KHEMG1edOhnjiKON1wQ==}
+  '@turbo/linux-64@2.11.2':
+    resolution: {integrity: sha512-8ipdmgmvSomfQ8E9afUsefO+BLO6QMW7srrHqMOCXD3BPX4FlYqqWAJY1GvbQotZMWKzNohdVkevrUYM6ZzYKA==}
     cpu: [x64]
     os: [android, linux]
 
-  '@turbo/linux-arm64@2.10.12':
-    resolution: {integrity: sha512-f0pZDTtvzB5SuNwuXBaKbZHUCMCukgc8nMlHEuvLmj91Fzec+MEbr3cAvGNor5htEDqZnO6Lxt9N/GPI/77oGA==}
+  '@turbo/linux-arm64@2.11.2':
+    resolution: {integrity: sha512-tsftYXAzgc+GdosqyRP8+Zzk2evJ8ej7Otal7/DU+6GVekVZ3kqM/z7zlGuF4TSHeetWxX04KN1I64LkmvYzgg==}
     cpu: [arm64]
     os: [android, linux]
 
-  '@turbo/windows-64@2.10.12':
-    resolution: {integrity: sha512-SDOueJRjS/QcykWf2KCRtTLmIl5YMKsLbXkXQGhDwcTXvKXZiS5ih5lBl/gkwZIpYFjqA/rAlfMzlAFcVHNe0g==}
+  '@turbo/windows-64@2.11.2':
+    resolution: {integrity: sha512-p5LDVcGmC8W6FCrJPehr1t0ZvYqM8xvG3Va+LkwtDMK3Rl0NhSsJOYbYZVBfMbkm+9RKcCvekFCbSVtQ9Eyuqg==}
     cpu: [x64]
     os: [win32]
 
-  '@turbo/windows-arm64@2.10.12':
-    resolution: {integrity: sha512-0i0mVUa4kKk+/B3RwEwPMf9CB+T7ul56hn5FFHNA4VUNTOoLBEd6aNf3FaKfCatDNZ6cicCEf6if9QUTVyzzcA==}
+  '@turbo/windows-arm64@2.11.2':
+    resolution: {integrity: sha512-u0M3m1aXo9lpDM/2iQhxlGzgWjHFq/MC4TqHn1YAvxk8g1wGtzRB2QBx/SLqRChhPhC29mzaB8eLcxKh/pcM1g==}
     cpu: [arm64]
     os: [win32]
 
@@ -11760,9 +11759,6 @@ packages:
   dompurify@3.4.15:
     resolution: {integrity: sha512-EUBjM+B+lkDE41iE82DDSCfkoPGfXx8IxFxPMjNzm/Uk4xDet77rTN9wqlxlVg71kK7XGuUMv6wUxJUwwv+Xyw==}
 
-  dompurify@3.4.16:
-    resolution: {integrity: sha512-sqo+pNp3qRhCIpbgRi1y8Tgk27Bo2Ry7w0dC1NBeNTdZChWjz9Xb/KOoZbRP/R6pQZ80Qw8YhXw13hWWBbMRnQ==}
-
   domutils@2.8.0:
     resolution: {integrity: sha512-w96Cjofp72M5IIhpjgobBimYEfoPjx1Vx0BSX9P30WBdZW2WIKU0T1Bd0kz2eNZ9ikjKgHbEyKx8BB6H1L3h3A==}
 
@@ -12394,6 +12390,9 @@ packages:
   fast-uri@3.1.7:
     resolution: {integrity: sha512-dOvZVzjdZdz7phd9v6jCbwxrBW3fK6n8Rc0CtdmM4bumzMnxywBYhuph6J819RRw/ku+rLbelwfMunktuzVVHg==}
 
+  fast-uri@3.1.8:
+    resolution: {integrity: sha512-GZMtZUTNRpOVIECoXwLNZS5xUGE+mVNbTB8h/7Rwh2TFWcBQiPzTgyZi05BF9UMZKkLJv8XBRJTlU7zg8+ZfMg==}
+
   fastest-levenshtein@1.0.16:
     resolution: {integrity: sha512-eRnCtTTtGZFpQCwhJiUOuxPQWRXVKYDn0b2PeHfXL6/Zi53SLAzAHfVhVWK2AryC/WH05kGfxhFIPvTF0SXQzg==}
     engines: {node: '>= 4.9.1'}
@@ -12404,8 +12403,8 @@ packages:
   fastify-plugin@6.0.0:
     resolution: {integrity: sha512-fZOty7z3O7vOliF6d8bHE3wiEh1KcNnKEQensSgTk9C1DvN6nRLS++XVd86v33Hw/8u9Un8A1zDrQ8ujcQDHEg==}
 
-  fastify@5.12.4:
-    resolution: {integrity: sha512-zATD676fP6tBMsn+jQ7Q5/cO/Qo+149TXH0dUqUKel+1/hcZxwIbnflqtPa9EjlrvpY8eCZcL3M1UYrMc31Y7g==}
+  fastify@5.12.5:
+    resolution: {integrity: sha512-OB2k1dlxs5/NAABqeKV2FUHkSD2BbENsCak8yULVcymn3fHIPDVa9TI3SDnJSWYSllZmSYuZXy2gTnsT+Sut1A==}
 
   fastq@1.20.1:
     resolution: {integrity: sha512-GGToxJ/w1x32s/D2EKND7kTil4n8OVk/9mycTc4VDza13lOvpUZTGX3mFSCtV9ksdGBVzvsyAVLM6mHFThxXxw==}
@@ -15537,8 +15536,8 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17 || ^18 || ^19
 
-  react-i18next@17.0.15:
-    resolution: {integrity: sha512-7uYpx/oBkesLto7cOzOmfITlUBaXHCAcFahmgETMfWr8nbbWRRnVGvz8wsH/xpbNcyoH+NpCcnOQEqWPMO6/hw==}
+  react-i18next@17.0.14:
+    resolution: {integrity: sha512-ZpMBfJL3BiXPuYHj5QMY1GwvKJNhE1vCxOJQ8BoMBdHP5XONTfi/Qss1nuRlnFdIl72PKo2jPmw+fxuLjRFgaQ==}
     peerDependencies:
       i18next: '>= 26.2.0'
       react: '>= 16.8.0'
@@ -16789,8 +16788,8 @@ packages:
   tunnel-agent@0.6.0:
     resolution: {integrity: sha512-McnNiV1l8RYeY8tBgEpuodCC1mLUdbSN+CYBL7kJsJNInOP8UjDDEwdk6Mw60vdLLrr5NHKZhMAOSrR2NZuQ+w==}
 
-  turbo@2.10.12:
-    resolution: {integrity: sha512-AswgMPnpOoaVZHrrSBejETzEbuIA69OVGwfkHwfrY0A23VjWXBANzgq9+OymWOHAIArB7D1+1z498WY8fGg1Jw==}
+  turbo@2.11.2:
+    resolution: {integrity: sha512-s0GhnWXlAAN+wb2GRMQxnZgFweRWTAceRWW/4Lk9iHj7QuLZMjDxQQqu+Xoh7Nckuy8UiSim520w6yqP2+ertw==}
     hasBin: true
 
   tweetnacl@0.14.5:
@@ -19095,7 +19094,7 @@ snapshots:
     dependencies:
       ajv: 8.20.0
       ajv-formats: 3.0.1(ajv@8.20.0)
-      fast-uri: 3.1.7
+      fast-uri: 3.1.8
 
   '@fastify/error@4.2.0': {}
 
@@ -19119,7 +19118,7 @@ snapshots:
     dependencies:
       dequal: 2.0.3
 
-  '@fastify/proxy-addr@5.1.0':
+  '@fastify/proxy-addr@5.1.1':
     dependencies:
       '@fastify/forwarded': 3.0.2
       ipaddr.js: 2.5.0
@@ -19167,7 +19166,7 @@ snapshots:
       fastify-plugin: 5.1.0
       toad-cache: 3.7.4
 
-  '@fastify/websocket@11.3.0':
+  '@fastify/websocket@11.3.1':
     dependencies:
       duplexify: 4.1.3
       fastify-plugin: 6.0.0
@@ -20646,7 +20645,7 @@ snapshots:
   '@patternfly/quickstarts@6.6.0(@patternfly/react-core@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(marked@15.0.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@patternfly/react-core': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      dompurify: 3.4.16
+      dompurify: 3.4.15
       history: 5.3.0
       marked: 15.0.12
       react: 18.3.1
@@ -20743,7 +20742,7 @@ snapshots:
     transitivePeerDependencies:
       - monaco-editor
 
-  '@patternfly/react-component-groups@6.5.0(@patternfly/react-drag-drop@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@patternfly/react-component-groups@6.7.0(@patternfly/react-drag-drop@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@patternfly/react-core': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-drag-drop': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -22021,22 +22020,22 @@ snapshots:
 
   '@tsconfig/node16@1.0.4': {}
 
-  '@turbo/darwin-64@2.10.12':
+  '@turbo/darwin-64@2.11.2':
     optional: true
 
-  '@turbo/darwin-arm64@2.10.12':
+  '@turbo/darwin-arm64@2.11.2':
     optional: true
 
-  '@turbo/linux-64@2.10.12':
+  '@turbo/linux-64@2.11.2':
     optional: true
 
-  '@turbo/linux-arm64@2.10.12':
+  '@turbo/linux-arm64@2.11.2':
     optional: true
 
-  '@turbo/windows-64@2.10.12':
+  '@turbo/windows-64@2.11.2':
     optional: true
 
-  '@turbo/windows-arm64@2.10.12':
+  '@turbo/windows-arm64@2.11.2':
     optional: true
 
   '@tybys/wasm-util@0.10.3':
@@ -22236,7 +22235,7 @@ snapshots:
 
   '@types/dompurify@3.2.0':
     dependencies:
-      dompurify: 3.4.16
+      dompurify: 3.4.15
 
   '@types/ejs@3.1.5': {}
 
@@ -23010,7 +23009,7 @@ snapshots:
   ajv@8.20.0:
     dependencies:
       fast-deep-equal: 3.1.3
-      fast-uri: 3.1.7
+      fast-uri: 3.1.8
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
 
@@ -24728,10 +24727,6 @@ snapshots:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
-  dompurify@3.4.16:
-    optionalDependencies:
-      '@types/trusted-types': 2.0.7
-
   domutils@2.8.0:
     dependencies:
       dom-serializer: 1.4.1
@@ -25888,7 +25883,7 @@ snapshots:
       '@fastify/merge-json-schemas': 0.2.1
       ajv: 8.20.0
       ajv-formats: 3.0.1(ajv@8.20.0)
-      fast-uri: 3.1.7
+      fast-uri: 3.1.8
       json-schema-ref-resolver: 3.0.0
       rfdc: 1.4.1
 
@@ -25900,7 +25895,10 @@ snapshots:
 
   fast-safe-stringify@2.1.1: {}
 
-  fast-uri@3.1.7: {}
+  fast-uri@3.1.7:
+    optional: true
+
+  fast-uri@3.1.8: {}
 
   fastest-levenshtein@1.0.16: {}
 
@@ -25908,12 +25906,12 @@ snapshots:
 
   fastify-plugin@6.0.0: {}
 
-  fastify@5.12.4:
+  fastify@5.12.5:
     dependencies:
       '@fastify/ajv-compiler': 4.0.6
       '@fastify/error': 4.2.0
       '@fastify/fast-json-stringify-compiler': 5.1.0
-      '@fastify/proxy-addr': 5.1.0
+      '@fastify/proxy-addr': 5.1.1
       abstract-logging: 2.0.1
       avvio: 9.3.0
       fast-json-stringify: 7.0.1
@@ -29304,7 +29302,7 @@ snapshots:
 
   monaco-editor@0.54.0:
     dependencies:
-      dompurify: 3.4.16
+      dompurify: 3.4.15
       marked: 14.0.0
 
   mrmime@2.0.1: {}
@@ -29589,7 +29587,7 @@ snapshots:
       object-hash: 2.2.0
       oidc-token-hash: 5.2.0
 
-  openshell-dashboard@1.1.0(@patternfly/react-code-editor@6.6.1(monaco-editor@0.52.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@patternfly/react-core@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@patternfly/react-icons@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@patternfly/react-log-viewer@6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@patternfly/react-table@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@tanstack/react-query@5.101.4(react@18.3.1))(i18next@26.4.2(typescript@5.9.3))(react-dom@18.3.1(react@18.3.1))(react-i18next@17.0.15(i18next@26.4.2(typescript@5.9.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3))(react-router-dom@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1):
+  openshell-dashboard@1.1.0(@patternfly/react-code-editor@6.6.1(monaco-editor@0.52.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@patternfly/react-core@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@patternfly/react-icons@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@patternfly/react-log-viewer@6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@patternfly/react-table@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@tanstack/react-query@5.101.4(react@18.3.1))(i18next@26.4.2(typescript@5.9.3))(react-dom@18.3.1(react@18.3.1))(react-i18next@17.0.14(i18next@26.4.2(typescript@5.9.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3))(react-router-dom@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1):
     dependencies:
       '@monaco-editor/react': 4.7.0(monaco-editor@0.52.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-code-editor': 6.6.1(monaco-editor@0.52.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -29605,7 +29603,7 @@ snapshots:
       monaco-editor: 0.52.2
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      react-i18next: 17.0.15(i18next@26.4.2(typescript@5.9.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)
+      react-i18next: 17.0.14(i18next@26.4.2(typescript@5.9.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)
       react-router-dom: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
   optionator@0.9.4:
@@ -30248,7 +30246,7 @@ snapshots:
       '@posthog/core': 1.48.2
       '@posthog/types': 1.404.1
       core-js: 3.50.0
-      dompurify: 3.4.16
+      dompurify: 3.4.15
       fflate: 0.4.9
       preact: 10.29.8
       query-selector-shadow-dom: 1.0.1
@@ -30480,7 +30478,7 @@ snapshots:
     dependencies:
       react: 18.3.1
 
-  react-i18next@17.0.15(i18next@26.4.2(typescript@5.9.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3):
+  react-i18next@17.0.14(i18next@26.4.2(typescript@5.9.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3):
     dependencies:
       '@babel/runtime': 7.29.7
       html-parse-stringify: 4.0.1
@@ -32083,14 +32081,14 @@ snapshots:
     dependencies:
       safe-buffer: 5.2.1
 
-  turbo@2.10.12:
+  turbo@2.11.2:
     optionalDependencies:
-      '@turbo/darwin-64': 2.10.12
-      '@turbo/darwin-arm64': 2.10.12
-      '@turbo/linux-64': 2.10.12
-      '@turbo/linux-arm64': 2.10.12
-      '@turbo/windows-64': 2.10.12
-      '@turbo/windows-arm64': 2.10.12
+      '@turbo/darwin-64': 2.11.2
+      '@turbo/darwin-arm64': 2.11.2
+      '@turbo/linux-64': 2.11.2
+      '@turbo/linux-arm64': 2.11.2
+      '@turbo/windows-64': 2.11.2
+      '@turbo/windows-arm64': 2.11.2
 
   tweetnacl@0.14.5: {}
 

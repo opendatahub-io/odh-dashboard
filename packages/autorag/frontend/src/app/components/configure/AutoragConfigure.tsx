@@ -64,15 +64,21 @@ import { Controller, useFormContext, useWatch, Watch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
 import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
 import type { ExplorerFile } from '@odh-dashboard/internal/concepts/fileExplorer/types';
-import { useUIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
-import { isUIError } from '~/app/components/common/UIError/util';
-import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
-import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
-import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
-import InlineTooltip from '~/app/components/InlineTooltip';
+import {
+  ConfigureFormGroup,
+  useUIErrorHandler,
+  isUIError,
+} from '@odh-dashboard/autox-core/ui/components/primitive';
+import { ConnectionModal } from '@odh-dashboard/autox-core/ui/components/feature';
+import { useS3FileUploadMutation } from '@odh-dashboard/autox-core/ui/hooks';
+import {
+  SecretSelector,
+  type SecretSelection,
+} from '@odh-dashboard/autox-core/ui/components/feature';
+import { getMissingRequiredKeys } from '@odh-dashboard/autox-core/ui/utils';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
-import { useS3FileUploadMutation } from '~/app/hooks/mutations';
+import InlineTooltip from '~/app/components/InlineTooltip';
 import { useMaaSModelsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
@@ -92,7 +98,6 @@ import {
 import { metricDomId, parseMetricReference } from '~/app/utilities/metricUtils';
 import type { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
-import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import { getMetricDescription } from '~/app/utilities/metricDisplay';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
@@ -103,6 +108,7 @@ import {
 } from '~/app/utilities/dropzoneFileUpload';
 import {
   AUTORAG_FAILURE_CATEGORY,
+  fireAutoragS3ConnectionCreated,
   fireAutoragKnowledgeSourceConfigured,
   TrackingOutcome,
 } from '~/app/utilities/tracking';
@@ -146,8 +152,13 @@ const getSelectedInputDataFile = (inputDataKey: string): ExplorerFile => {
 type AutoragConfigureProps = {
   initialValues?: Partial<ConfigureSchema> & Record<string, unknown>;
   initialInputDataSecret?: SecretSelection;
-  initialVectorDbSecret?: SecretSelection;
+  initialDatabaseSecret?: SecretSelection;
+  preserveInitialDatabaseSecret?: boolean;
   isReconfigure?: boolean;
+  ragMode?: 'simple' | 'graph';
+  selectedDatabaseSecret?: SecretSelection;
+  onRagModeChange?: (mode: 'simple' | 'graph') => void;
+  onDatabaseSecretChange?: (secret: SecretSelection | undefined) => void;
   onMaaSModelsReady?: (ready: boolean) => void;
 };
 
@@ -160,8 +171,13 @@ const MODEL_RESTORE_WARNING_MESSAGE =
 function AutoragConfigure({
   initialValues,
   initialInputDataSecret,
-  initialVectorDbSecret,
+  initialDatabaseSecret,
+  preserveInitialDatabaseSecret,
   isReconfigure = false,
+  ragMode,
+  selectedDatabaseSecret,
+  onRagModeChange,
+  onDatabaseSecretChange,
   onMaaSModelsReady,
 }: AutoragConfigureProps): React.JSX.Element {
   const { namespace } = useParams();
@@ -854,11 +870,18 @@ function AutoragConfigure({
                   <Flex direction={{ default: 'column' }} gap={{ default: 'gapXl' }}>
                     <FlexItem>
                       <ConfigureFormGroup
-                        label="Vector database connection"
-                        description="Provide connection details for a vector database."
+                        label="Database connection"
+                        description="Provide connection details for the selected RAG template."
                         isRequired
                       >
-                        <AutoragVectorStoreSelector initialSecret={initialVectorDbSecret} />
+                        <AutoragVectorStoreSelector
+                          initialSecret={initialDatabaseSecret}
+                          preserveInitialSelection={preserveInitialDatabaseSecret}
+                          mode={ragMode}
+                          selectedSecret={selectedDatabaseSecret}
+                          onModeChange={onRagModeChange}
+                          onSelectedSecretChange={onDatabaseSecretChange}
+                        />
                       </ConfigureFormGroup>
                     </FlexItem>
 
@@ -1271,7 +1294,7 @@ function AutoragConfigure({
       </Grid>
 
       {isConnectionModalOpen && (
-        <AutoragConnectionModal
+        <ConnectionModal
           connectionTypes={autoragConnectionTypes}
           project={namespace}
           onClose={() => {
@@ -1295,6 +1318,25 @@ function AutoragConfigure({
               });
             }
           }}
+          onOutcome={(outcome) =>
+            fireAutoragS3ConnectionCreated({
+              outcome:
+                outcome.outcome === 'submit' ? TrackingOutcome.submit : TrackingOutcome.cancel,
+              ...(outcome.success === false && { error: 'actionFailed' }),
+              ...(outcome.success !== undefined && { success: outcome.success }),
+            })
+          }
+          getCreateError={() =>
+            new Error(
+              'Failed to create the S3 connection. Please check your connection details and try again.',
+            )
+          }
+          getSubmitError={() =>
+            new Error(
+              'The connection was created, but AutoRAG could not select it. Retry saving it.',
+            )
+          }
+          retryAlertTitle="This connection was created. Retry saving it, or cancel to discard it."
         />
       )}
       <S3FileExplorer

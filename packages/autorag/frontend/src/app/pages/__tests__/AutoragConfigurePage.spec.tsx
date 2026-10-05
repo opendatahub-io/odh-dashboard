@@ -9,7 +9,7 @@ import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
+import { UIErrorHandler } from '@odh-dashboard/autox-core/ui/components/primitive';
 import { useMaaSModelsQuery } from '~/app/hooks/queries';
 import AutoragConfigurePage from '~/app/pages/AutoragConfigurePage';
 import { AUTORAG_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
@@ -18,7 +18,6 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
   fireFormTrackingEvent: jest.fn(),
   fireMiscTrackingEvent: jest.fn(),
 }));
-
 const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
 const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
@@ -85,16 +84,21 @@ jest.mock('mod-arch-core', () => ({
   DeploymentMode: { Federated: 'federated', Standalone: 'standalone', Kubeflow: 'kubeflow' },
 }));
 
-jest.mock('~/app/hooks/mutations', () => ({
+jest.mock('~/app/hooks/useCreatePipelineRunMutation', () => ({
   useCreatePipelineRunMutation: jest.fn(() => ({
     mutateAsync: mockMutateAsync,
   })),
+}));
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
   useS3FileUploadMutation: jest.fn(() => ({
     mutateAsync: mockS3UploadMutateAsync,
     isPending: false,
     reset: jest.fn(),
     variables: undefined,
   })),
+}));
+jest.mock('~/app/hooks/useUploadToStorageMutation', () => ({
   useUploadToStorageMutation: jest.fn(() => ({
     mutateAsync: jest.fn().mockResolvedValue({ uploaded: true, key: 'test-file.json' }),
     mutate: jest.fn(),
@@ -165,7 +169,7 @@ jest.mock('~/app/components/configure/AutoragVectorStoreSelector', () => {
 
   const MockVectorStoreSelector = () => {
     const { setValue, watch } = useFormContext();
-    const currentValue = watch('vector_db_secret_name');
+    const currentValue = watch('db_secret_name');
     const generationModels = watch('generation_models');
     const embeddingModels = watch('embedding_models');
     const testDataSecretName = watch('test_data_secret_name');
@@ -174,7 +178,7 @@ jest.mock('~/app/components/configure/AutoragVectorStoreSelector', () => {
     ReactMock.useEffect(() => {
       // Only set a default when the field is empty (new configure flow).
       if (!currentValue) {
-        setValue('vector_db_secret_name', 'vector-db-secret', { shouldValidate: true });
+        setValue('db_secret_name', 'vector-db-secret', { shouldValidate: true });
       }
       if (!generationModels?.length) {
         setValue('generation_models', ['llama-3-8b'], { shouldValidate: true });
@@ -225,7 +229,7 @@ jest.mock('~/app/components/configure/AutoragExperimentSettingsModelSelection', 
     const embeddingModels = watch('embedding_models');
     const maasSecretName = watch('maas_secret_name');
     const inputDataKeys = watch('input_data_keys');
-    const vectorDbSecretName = watch('vector_db_secret_name');
+    const vectorDbSecretName = watch('db_secret_name');
     const inputDataSecretName = watch('input_data_secret_name');
     const inputDataBucketName = watch('input_data_bucket_name');
     const testDataSecretName = watch('test_data_secret_name');
@@ -248,7 +252,7 @@ jest.mock('~/app/components/configure/AutoragExperimentSettingsModelSelection', 
         setValue('input_data_keys', ['test-file.txt'], { shouldValidate: true });
       }
       if (!vectorDbSecretName) {
-        setValue('vector_db_secret_name', 'vector-db-secret', { shouldValidate: true });
+        setValue('db_secret_name', 'vector-db-secret', { shouldValidate: true });
       }
       if (!generationModels?.length) {
         setValue('generation_models', ['llama-3-8b'], { shouldValidate: true });
@@ -379,9 +383,9 @@ jest.mock('~/app/components/empty-states/InvalidProject', () => ({
 }));
 
 // Mock SecretSelector component
-jest.mock('~/app/components/common/SecretSelector', () => ({
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
   __esModule: true,
-  default: ({
+  SecretSelector: ({
     onChange,
     value,
     dataTestId,
@@ -1343,7 +1347,7 @@ describe('AutoragConfigurePage', () => {
     const noChangeReconfigureInitialValues = {
       display_name: 'Original Run - 1',
       maas_secret_name: 'Test MaaS Secret',
-      vector_db_secret_name: 'chromadb',
+      db_secret_name: 'chromadb',
       input_data_secret_name: 'Test AWS Secret',
       input_data_bucket_name: 'test-bucket',
       input_data_keys: ['my-data/input.pdf'],
@@ -1408,7 +1412,7 @@ describe('AutoragConfigurePage', () => {
         expect(mockMutateAsync).toHaveBeenCalledWith(
           expect.objectContaining({
             maas_secret_name: 'Test MaaS Secret',
-            vector_db_secret_name: 'chromadb',
+            db_secret_name: 'chromadb',
             generation_models: ['llama-3-8b', 'llama-3-70b'],
             embedding_models: ['text-embedding-ada-002'],
           }),
@@ -1442,7 +1446,7 @@ describe('AutoragConfigurePage', () => {
         expect(mockMutateAsync).toHaveBeenCalledWith(
           expect.objectContaining({
             maas_secret_name: 'Test MaaS Secret',
-            vector_db_secret_name: 'chromadb',
+            db_secret_name: 'chromadb',
             generation_models: ['llama-3-8b', 'llama-3-70b'],
             embedding_models: ['text-embedding-ada-002'],
           }),
@@ -2095,7 +2099,7 @@ describe('AutoragConfigurePage', () => {
             test_data_bucket_name: 'test-bucket',
             test_data_key: 'evaluation-dataset.json',
             maas_secret_name: 'maas-secret',
-            vector_db_secret_name: 'vector-db-secret',
+            db_secret_name: 'vector-db-secret',
             generation_models: ['llama-3-8b'],
             embedding_models: ['llama-3-8b'],
           }}
@@ -2325,7 +2329,7 @@ describe('AutoragConfigurePage', () => {
         display_name: 'Reconfigured Run',
         description: 'A reconfigured experiment',
         maas_secret_name: 'Test MaaS Secret',
-        vector_db_secret_name: 'chromadb',
+        db_secret_name: 'chromadb',
         input_data_secret_name: 'Test AWS Secret',
         input_data_bucket_name: 'test-bucket',
         input_data_keys: ['my-data/input.pdf'],

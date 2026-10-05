@@ -1,13 +1,17 @@
 import { handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
+import { describe, expect, it, jest } from '@jest/globals';
 import { mockConnectionType } from '~/__mocks__/mockConnectionType';
-import { getConnectionType } from '~/app/api/dch';
+import { getConnectionType, testCredentials } from '~/app/api/dch';
 
-jest.mock('mod-arch-core', () => ({
-  ...jest.requireActual('mod-arch-core'),
-  handleRestFailures: jest.fn((request: Promise<unknown>) => request),
-  isModArchResponse: jest.fn(),
-  restGET: jest.fn(),
-}));
+jest.mock('mod-arch-core', () => {
+  const { jest: jestMock } = require('@jest/globals') as typeof import('@jest/globals');
+  return {
+    ...jestMock.requireActual<typeof import('mod-arch-core')>('mod-arch-core'),
+    handleRestFailures: jestMock.fn((request: Promise<unknown>) => request),
+    isModArchResponse: jestMock.fn(),
+    restGET: jestMock.fn(),
+  };
+});
 
 const mockHandleRestFailures = jest.mocked(handleRestFailures);
 const mockIsModArchResponse = jest.mocked(isModArchResponse);
@@ -16,6 +20,7 @@ const mockRestGET = jest.mocked(restGET);
 describe('getConnectionType', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockHandleRestFailures.mockImplementation((request) => request);
     mockIsModArchResponse.mockReturnValue(true);
   });
 
@@ -62,5 +67,49 @@ describe('getConnectionType', () => {
     await expect(getConnectionType('')({}, 'test-project', 'postgresql')).rejects.toThrow(
       'request failed',
     );
+  });
+});
+
+const response = (status: number, body = '') =>
+  ({ status, text: () => Promise.resolve(body) }) as Response;
+
+describe('testCredentials', () => {
+  it('rejects when the DCH endpoint does not return 204', async () => {
+    const fetchMock = jest
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(
+        response(
+          404,
+          '{"error":{"code":"connection_check_failed","message":"AWS_S3_BUCKET is required"}}',
+        ),
+      );
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
+
+    await expect(
+      testCredentials('')({}, 'test-project', {
+        data_connection_type_id: 'postgresql',
+        credentials: { URI: 'invalid' },
+      }),
+    ).rejects.toThrow('AWS_S3_BUCKET is required');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/data-connect-hub/api/v1/test/credentials?namespace=test-project',
+      expect.objectContaining({ method: 'POST' }),
+    );
+    delete (globalThis as { fetch?: typeof fetch }).fetch;
+  });
+
+  it('resolves when the DCH endpoint returns 204', async () => {
+    const fetchMock = jest
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(response(204));
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
+
+    await expect(
+      testCredentials('')({}, 'test-project', {
+        data_connection_type_id: 'postgresql',
+        credentials: { URI: 'valid' },
+      }),
+    ).resolves.toBeUndefined();
+    delete (globalThis as { fetch?: typeof fetch }).fetch;
   });
 });

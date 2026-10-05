@@ -28,6 +28,7 @@ type AgentDeploymentSummary struct {
 	Namespace      string        `json:"namespace"`
 	AgentProfileID string        `json:"agentProfileId"`
 	RouteURL       string        `json:"routeUrl,omitempty"`
+	CreatedAt      string        `json:"createdAt"`
 	State          string        `json:"state"`
 	LastError      string        `json:"lastError,omitempty"`
 	Config         *AgentProfile `json:"config,omitempty"`

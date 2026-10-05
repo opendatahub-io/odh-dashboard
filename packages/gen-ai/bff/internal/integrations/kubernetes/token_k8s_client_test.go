@@ -1479,6 +1479,40 @@ registered_resources:
 		assert.Equal(t, []string{constants.CapabilityTextGeneration}, result[0].Capabilities)
 	})
 
+	t.Run("custom transcription endpoint retains type and ASR capability", func(t *testing.T) {
+		cm := makeConfigMap(`providers:
+  inference:
+    - provider_id: groq-asr
+      provider_type: remote::openai
+      config:
+        base_url: https://api.groq.com/openai/v1
+registered_resources:
+  models:
+    - provider_id: groq-asr
+      model_id: whisper-large-v3
+      model_type: transcription
+      metadata:
+        display_name: Groq Whisper
+        capabilities:
+          - audio-transcription`)
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(cm).
+			Build()
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.GetAAModelsFromExternalModels(context.Background(), identity, "test-ns")
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, result[0].ModelSourceType)
+		assert.Equal(t, models.ModelTypeTranscription, result[0].ModelType)
+		assert.Equal(t, []string{constants.CapabilityAudioTranscription}, result[0].Capabilities)
+	})
+
 	t.Run("explicit capabilities in YAML are passed through", func(t *testing.T) {
 		cm := makeConfigMap(`providers:
   inference:
@@ -2500,7 +2534,7 @@ func TestGetAAModelsFromInferenceServiceCapabilities(t *testing.T) {
 		assert.Equal(t, []string{constants.CapabilityTextGeneration}, result[0].Capabilities)
 	})
 
-	t.Run("annotation populates Capabilities with text-generation prepended", func(t *testing.T) {
+	t.Run("hosted transcription annotation retains ASR-only capabilities and type", func(t *testing.T) {
 		isvc := &kservev1beta1.InferenceService{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "whisper-isvc",
@@ -2527,6 +2561,8 @@ func TestGetAAModelsFromInferenceServiceCapabilities(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, result, 1)
 		assert.Equal(t, []string{constants.CapabilityAudioTranscription}, result[0].Capabilities)
+		assert.Equal(t, models.ModelSourceTypeNamespace, result[0].ModelSourceType)
+		assert.Equal(t, models.ModelTypeTranscription, result[0].ModelType)
 	})
 
 	t.Run("custom capabilities in annotation pass through", func(t *testing.T) {
@@ -2762,6 +2798,28 @@ func TestInstallOGXServer_ZeroRestartPath(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "already exists", "stale URL must fall through to legacy error, not zero-restart")
 	})
+}
+
+func TestInstallOGXServer_UsesConfiguredDistribution(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+	require.NoError(t, ogxapi.AddToScheme(scheme))
+
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
+	kc := &TokenKubernetesClient{
+		Logger:    slog.Default(),
+		Client:    fakeClient,
+		EnvConfig: config.EnvConfig{DistributionName: "rh"},
+	}
+	_, err := kc.InstallOGXServer(context.Background(), &integrations.RequestIdentity{Token: "test-token"},
+		"test-ns", nil, nil, false, nil)
+	require.NoError(t, err)
+
+	server := &ogxapi.OGXServer{}
+	require.NoError(t, fakeClient.Get(context.Background(), types.NamespacedName{
+		Name: lsdName, Namespace: "test-ns",
+	}, server))
+	assert.Equal(t, "rh", server.Spec.Distribution.Name)
 }
 
 func TestOfficeMIMETypesWorkloadOverrides(t *testing.T) {

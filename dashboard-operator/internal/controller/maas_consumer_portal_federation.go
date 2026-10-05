@@ -46,7 +46,8 @@ func maasConsumerPortalRequiredModuleNames() []string {
 
 func maasConsumerPortalRequiredModuleSlugs(spec *v1alpha1.DashboardSpec, statuses map[string]v1alpha1.ModuleStatus) map[string]bool {
 	requiredModules := make(map[string]bool)
-	if spec.MaaSConsumerPortal == nil || spec.MaaSConsumerPortal.ManagementState != "Managed" {
+	portal := effectiveMaaSPortal(*spec)
+	if portal == nil || portal.ManagementState != "Managed" {
 		return requiredModules
 	}
 
@@ -118,7 +119,8 @@ func (r *DashboardReconciler) buildMaaSConsumerPortalFederationConfigMap(
 }
 
 func (r *DashboardReconciler) deployMaaSConsumerPortalFederationConfigMap(ctx context.Context, dashboard *v1alpha1.Dashboard, statuses map[string]v1alpha1.ModuleStatus) error {
-	if dashboard.Spec.MaaSConsumerPortal == nil || dashboard.Spec.MaaSConsumerPortal.ManagementState != "Managed" || !maasConsumerPortalSupportedPlatform(r.Platform) {
+	portal := effectiveMaaSPortal(dashboard.Spec)
+	if portal == nil || portal.ManagementState != "Managed" || !maasConsumerPortalSupportedPlatform(r.Platform) {
 		configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalFederationConfigMapName, Namespace: r.ApplicationsNamespace}}
 		if err := r.Delete(ctx, configMap); client.IgnoreNotFound(err) != nil {
 			return fmt.Errorf("deleting MaaS Consumer Portal federation ConfigMap: %w", err)

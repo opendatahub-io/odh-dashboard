@@ -1707,10 +1707,40 @@ describe('HuggingFace Credentials Validation', () => {
     });
   });
 
-  describe('Edit flow - existing access token (hasApiKey)', () => {
-    it('should show locked access token field when hasApiKey is true', () => {
+  describe('Edit flow - configured access token', () => {
+    it('reopens a newly created source before runtime reports it', () => {
+      setupMocks([], { catalogs: [] });
+      const created = mockHuggingFaceCatalogSourceConfig({
+        id: 'fresh_source',
+        name: 'Fresh Source',
+        enabled: false,
+        hasConfiguredApiKey: true,
+      });
+      cy.intercept('POST', '/model-registry/api/v1/settings/model_catalog/source_configs', {
+        data: created,
+      }).as('createConfiguredSource');
+      cy.intercept(
+        'GET',
+        '/model-registry/api/v1/settings/model_catalog/source_configs/fresh_source*',
+        { data: created },
+      );
+      manageSourcePage.visitAddSource();
+      manageSourcePage.fillSourceName('Fresh Source');
+      manageSourcePage.fillOrganization('org1');
+      manageSourcePage.fillAccessToken('hf_new_token');
+      manageSourcePage.findSubmitButton().click();
+      cy.wait('@createConfiguredSource');
+
+      manageSourcePage.visitManageSource('fresh_source');
+      manageSourcePage.findAccessTokenInput().should('be.disabled');
+      manageSourcePage.findCredentialsSection().within(() => {
+        cy.findByRole('button', { name: 'Clear' }).should('exist');
+      });
+    });
+
+    it('uses configuration even when runtime reports no credential', () => {
       setupMocks(
-        [mockCatalogSource({ id: 'hf-edit-locked', name: 'HF Edit Locked', hasApiKey: true })],
+        [mockCatalogSource({ id: 'hf-edit-locked', name: 'HF Edit Locked', hasApiKey: false })],
         mockCatalogSourceConfigList({}),
       );
 
@@ -1720,6 +1750,7 @@ describe('HuggingFace Credentials Validation', () => {
           name: 'HF Edit Locked',
           allowedOrganization: 'org1',
           isDefault: false,
+          hasConfiguredApiKey: true,
         }),
       });
 
@@ -1732,9 +1763,38 @@ describe('HuggingFace Credentials Validation', () => {
         cy.findByRole('button', { name: 'Clear' }).should('exist');
         cy.findByRole('button', { name: 'Validate' }).should('not.exist');
       });
+
+      cy.intercept('POST', '/model-registry/api/v1/settings/model_catalog/source_preview*', {
+        statusCode: 200,
+        body: previewSuccessResponse,
+      }).as('savedCredentialPreview');
+      manageSourcePage.findPreviewButton().click();
+      cy.wait('@savedCredentialPreview').then((interception) => {
+        expect(interception.request.body.data.properties).not.to.have.property('apiKey');
+      });
     });
 
-    it('should unlock access token field after clearing when hasApiKey is true', () => {
+    it('locks a disabled source on reload while runtime has no credential status', () => {
+      setupMocks(
+        [
+          mockCatalogSource({
+            id: 'hf-disabled-key',
+            name: 'HF Disabled Key',
+            status: CatalogSourceStatus.DISABLED,
+          }),
+        ],
+        mockCatalogSourceConfigList({}),
+      );
+      cy.intercept('GET', '/model-registry/api/v1/settings/model_catalog/source_configs/**', {
+        data: mockHuggingFaceCatalogSourceConfig({ id: 'hf-disabled-key', enabled: false }),
+      });
+      manageSourcePage.visitManageSource('hf-disabled-key');
+      manageSourcePage.findAccessTokenInput().should('be.disabled');
+      cy.reload();
+      manageSourcePage.findAccessTokenInput().should('be.disabled');
+    });
+
+    it('unlocks after clearing and stays unlocked on reopen despite stale runtime status', () => {
       setupMocks(
         [
           mockCatalogSource({
@@ -1746,14 +1806,30 @@ describe('HuggingFace Credentials Validation', () => {
         mockCatalogSourceConfigList({}),
       );
 
-      cy.intercept('GET', '/model-registry/api/v1/settings/model_catalog/source_configs/**', {
-        data: mockHuggingFaceCatalogSourceConfig({
-          id: 'hf-edit-clear-flow',
-          name: 'HF Edit Clear Flow',
-          allowedOrganization: 'org1',
-          isDefault: false,
-        }),
-      });
+      let cleared = false;
+      cy.intercept(
+        'GET',
+        '/model-registry/api/v1/settings/model_catalog/source_configs/**',
+        (request) => {
+          request.reply({
+            data: mockHuggingFaceCatalogSourceConfig({
+              id: 'hf-edit-clear-flow',
+              name: 'HF Edit Clear Flow',
+              allowedOrganization: 'org1',
+              isDefault: false,
+              hasConfiguredApiKey: !cleared,
+            }),
+          });
+        },
+      );
+      cy.intercept(
+        'DELETE',
+        '/model-registry/api/v1/settings/model_catalog/source_configs/*/credentials',
+        (request) => {
+          cleared = true;
+          request.reply({ statusCode: 200, body: {} });
+        },
+      ).as('clearCredentials');
 
       manageSourcePage.visitManageSource('hf-edit-clear-flow');
 
@@ -1762,6 +1838,7 @@ describe('HuggingFace Credentials Validation', () => {
       });
       manageSourcePage.findClearAccessTokenModal().should('exist');
       manageSourcePage.findClearAccessTokenConfirmButton().click();
+      cy.wait('@clearCredentials');
       manageSourcePage.findClearAccessTokenModal().should('not.exist');
 
       manageSourcePage.findAccessTokenInput().should('not.be.disabled');
@@ -1770,15 +1847,42 @@ describe('HuggingFace Credentials Validation', () => {
       manageSourcePage.findCredentialsSection().within(() => {
         cy.findByRole('button', { name: 'Validate' }).should('exist');
       });
+
+      manageSourcePage.visitManageSource('hf-edit-clear-flow');
+      manageSourcePage.findAccessTokenInput().should('not.be.disabled');
+      manageSourcePage.findCredentialsSection().within(() => {
+        cy.findByRole('button', { name: 'Clear' }).should('not.exist');
+      });
     });
 
-    it('should show editable access token field when hasApiKey is false', () => {
+    it('keeps a configured credential locked after a failed clear', () => {
+      setupMocks([], mockCatalogSourceConfigList({}));
+      cy.intercept('GET', '/model-registry/api/v1/settings/model_catalog/source_configs/**', {
+        data: mockHuggingFaceCatalogSourceConfig({ id: 'hf-clear-fails' }),
+      });
+      cy.intercept(
+        'DELETE',
+        '/model-registry/api/v1/settings/model_catalog/source_configs/*/credentials',
+        { statusCode: 403, body: { error: { message: 'forbidden' } } },
+      ).as('clearCredentialsFails');
+      manageSourcePage.visitManageSource('hf-clear-fails');
+      manageSourcePage.clickClearAccessToken();
+      manageSourcePage.findClearAccessTokenConfirmButton().click();
+      cy.wait('@clearCredentialsFails');
+      manageSourcePage
+        .findClearAccessTokenModal()
+        .contains('Failed to clear access token')
+        .should('exist');
+      manageSourcePage.findAccessTokenInput().should('be.disabled');
+    });
+
+    it('uses an unconfigured response even when runtime still reports a credential', () => {
       setupMocks(
         [
           mockCatalogSource({
             id: 'hf-edit-no-key',
             name: 'HF Edit No Key',
-            hasApiKey: false,
+            hasApiKey: true,
           }),
         ],
         mockCatalogSourceConfigList({}),
@@ -1790,6 +1894,7 @@ describe('HuggingFace Credentials Validation', () => {
           name: 'HF Edit No Key',
           allowedOrganization: 'org1',
           isDefault: false,
+          hasConfiguredApiKey: false,
         }),
       });
 

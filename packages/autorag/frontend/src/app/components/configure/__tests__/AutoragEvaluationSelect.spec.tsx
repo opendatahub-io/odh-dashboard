@@ -8,7 +8,7 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { useParams } from 'react-router';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutoragEvaluationSelect from '~/app/components/configure/AutoragEvaluationSelect';
-import { useUploadToStorageMutation } from '~/app/hooks/mutations';
+import { useUploadToStorageMutation } from '~/app/hooks/useUploadToStorageMutation';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
@@ -31,8 +31,8 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
   fireMiscTrackingEvent: jest.fn(),
 }));
 
-jest.mock('~/app/hooks/mutations', () => ({
-  ...jest.requireActual('~/app/hooks/mutations'),
+jest.mock('~/app/hooks/useUploadToStorageMutation', () => ({
+  ...jest.requireActual('~/app/hooks/useUploadToStorageMutation'),
   useUploadToStorageMutation: jest.fn(),
 }));
 
@@ -60,7 +60,7 @@ jest.mock('~/app/components/configure/EvaluationFileCreator', () => ({
     onCreated: (key: string) => void;
   }) =>
     isOpen ? (
-      <div data-testid="evaluation-creator-modal">
+      <div data-testid="evaluation-creator-tearsheet">
         <button data-testid="creator-close" onClick={onClose}>
           Close
         </button>
@@ -633,11 +633,11 @@ describe('AutoragEvaluationSelect', () => {
       defaultValues: { test_data_secret_name: 'test-secret-1' },
     });
 
-    expect(screen.queryByTestId('evaluation-creator-modal')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('evaluation-creator-tearsheet')).not.toBeInTheDocument();
 
     await user.click(screen.getByTestId('evaluation-create-button'));
 
-    expect(screen.getByTestId('evaluation-creator-modal')).toBeInTheDocument();
+    expect(screen.getByTestId('evaluation-creator-tearsheet')).toBeInTheDocument();
   });
 
   it('should close EvaluationFileCreator when close is triggered', async () => {
@@ -649,10 +649,10 @@ describe('AutoragEvaluationSelect', () => {
     });
 
     await user.click(screen.getByTestId('evaluation-create-button'));
-    expect(screen.getByTestId('evaluation-creator-modal')).toBeInTheDocument();
+    expect(screen.getByTestId('evaluation-creator-tearsheet')).toBeInTheDocument();
 
     await user.click(screen.getByTestId('creator-close'));
-    expect(screen.queryByTestId('evaluation-creator-modal')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('evaluation-creator-tearsheet')).not.toBeInTheDocument();
   });
 
   it('should update form field when EvaluationFileCreator creates a file', async () => {

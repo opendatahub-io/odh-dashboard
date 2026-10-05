@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"testing"
 
 	"github.com/julienschmidt/httprouter"
 	. "github.com/onsi/ginkgo/v2"
@@ -15,6 +16,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
 	k8smocks "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -196,3 +198,94 @@ var _ = Describe("GenAIProxyNSModelsHandler", func() {
 		assert.True(t, modelIDs["llm-d-deepseek-coder-33b"], "expected namespace model llm-d-deepseek-coder-33b")
 	})
 })
+
+func TestGenAIProxyNSModelsHandlerExcludesTranscriptionTypedAndASROnlyModels(t *testing.T) {
+	aaModels := []models.AAModel{
+		{
+			ModelID:         "gemini-2.5-flash",
+			ModelType:       models.ModelTypeLLM,
+			Capabilities:    []string{constants.CapabilityTextGeneration, constants.CapabilityVision},
+			Status:          models.ModelStatusUnknown,
+			ModelSourceType: models.ModelSourceTypeCustomEndpoint,
+		},
+		{
+			ModelID:         "whisper-large-v3",
+			ModelType:       models.ModelTypeTranscription,
+			Capabilities:    []string{constants.CapabilityAudioTranscription},
+			Status:          models.ModelStatusUnknown,
+			ModelSourceType: models.ModelSourceTypeCustomEndpoint,
+		},
+		{
+			ModelID:         "whisper-namespace-model",
+			ModelType:       models.ModelTypeTranscription,
+			Capabilities:    []string{constants.CapabilityAudioTranscription},
+			Status:          models.ModelStatusRunning,
+			ModelSourceType: models.ModelSourceTypeNamespace,
+		},
+		{
+			ModelID:         "asr-with-legacy-type",
+			ModelType:       models.ModelTypeLLM,
+			Capabilities:    []string{constants.CapabilityAudioTranscription},
+			Status:          models.ModelStatusUnknown,
+			ModelSourceType: models.ModelSourceTypeCustomEndpoint,
+		},
+		{
+			ModelID:         "transcription-type-with-text-capability",
+			ModelType:       models.ModelTypeTranscription,
+			Capabilities:    []string{constants.CapabilityTextGeneration, constants.CapabilityAudioTranscription},
+			Status:          models.ModelStatusRunning,
+			ModelSourceType: models.ModelSourceTypeMaaS,
+		},
+		{
+			ModelID:         "combined-model",
+			ModelType:       models.ModelTypeLLM,
+			Capabilities:    []string{constants.CapabilityTextGeneration, constants.CapabilityAudioTranscription},
+			Status:          models.ModelStatusRunning,
+			ModelSourceType: models.ModelSourceTypeNamespace,
+		},
+		{
+			ModelID:         "embedding-model",
+			ModelType:       models.ModelTypeEmbedding,
+			Status:          models.ModelStatusRunning,
+			ModelSourceType: models.ModelSourceTypeNamespace,
+		},
+		{
+			ModelID:         "embedding-model-with-asr-capability",
+			ModelType:       models.ModelTypeEmbedding,
+			Capabilities:    []string{constants.CapabilityAudioTranscription},
+			Status:          models.ModelStatusRunning,
+			ModelSourceType: models.ModelSourceTypeMaaS,
+		},
+		{
+			ModelID:         "stopped-model",
+			ModelType:       models.ModelTypeLLM,
+			Capabilities:    []string{constants.CapabilityTextGeneration},
+			Status:          models.ModelStatusStop,
+			ModelSourceType: models.ModelSourceTypeNamespace,
+		},
+	}
+	app := App{
+		logger:                  slog.Default(),
+		kubernetesClientFactory: &mockK8sFactoryForASR{client: &mockK8sClientForASR{models: aaModels}},
+		repositories:            repositories.NewRepositories(),
+	}
+	req := httptest.NewRequest(http.MethodGet, "/gen-ai/api/v1/genai-proxy/ns/test-ns/v1/models", nil)
+	identity := &integrations.RequestIdentity{Token: "test-token"}
+	req = req.WithContext(context.WithValue(req.Context(), constants.RequestIdentityKey, identity))
+	rr := httptest.NewRecorder()
+	app.GenAIProxyNSModelsHandler(rr, req, httprouter.Params{{Key: "namespace", Value: "test-ns"}})
+
+	require.Equal(t, http.StatusOK, rr.Code)
+	var list openAIModelList
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &list))
+
+	require.Equal(t, "list", list.Object)
+	require.Len(t, list.Data, 4)
+	assert.Equal(t, "gemini-2.5-flash", list.Data[0].ID)
+	assert.Equal(t, "llm", list.Data[0].CustomMetadata["model_type"])
+	assert.Equal(t, "combined-model", list.Data[1].ID)
+	assert.Equal(t, "embedding-model", list.Data[2].ID)
+	assert.Equal(t, "embedding", list.Data[2].CustomMetadata["model_type"])
+	assert.Equal(t, "embedding-model-with-asr-capability", list.Data[3].ID)
+	assert.Equal(t, "embedding", list.Data[3].CustomMetadata["model_type"])
+}

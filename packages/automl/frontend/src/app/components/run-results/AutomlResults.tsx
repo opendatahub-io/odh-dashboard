@@ -1,19 +1,16 @@
 import { Alert, AlertActionCloseButton, Stack, StackItem } from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
+import { useFetchS3File } from '@odh-dashboard/autox-core/ui/hooks';
+import { isRunInTerminalState } from '~/app/types/pipeline';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { isTaskSucceeded } from '~/app/hooks/useComponentStageMap';
-import { fetchS3File } from '~/app/hooks/queries';
 import { useTreeViewData } from '~/app/topology/tree-view';
 import { transformPipelineData } from '~/app/topology/tree-view/transformPipelineData';
 import { useAutomlTaskTopology } from '~/app/topology/useAutomlTaskTopology';
 import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
 import type { RunDetailsKF } from '~/app/types/pipeline';
-import {
-  downloadBlob,
-  isRunInTerminalState,
-  normalizePipelineRunState,
-} from '~/app/utilities/utils';
+import { downloadBlob, normalizePipelineRunState } from '~/app/utilities/utils';
 import {
   fireAutomlModelDetailsViewed,
   fireAutomlNotebookDownloaded,
@@ -46,6 +43,7 @@ type NotebookDownloadError = {
 };
 
 function AutomlResults(): React.JSX.Element {
+  const fetchS3File = useFetchS3File();
   const {
     pipelineRun,
     models,
@@ -231,7 +229,7 @@ function AutomlResults(): React.JSX.Element {
         });
       }
     },
-    [namespace, models, pipelineRun?.display_name],
+    [fetchS3File, namespace, models, pipelineRun?.display_name],
   );
 
   return (
