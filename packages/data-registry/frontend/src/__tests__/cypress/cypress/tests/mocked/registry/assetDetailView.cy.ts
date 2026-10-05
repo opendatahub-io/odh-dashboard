@@ -82,7 +82,7 @@ describe('Table Detail View', () => {
     cy.findByTestId('asset-type').should('contain.text', 'Structured');
     cy.findByTestId('asset-location').should('contain.text', 's3://bucket/claims');
     cy.findByTestId('asset-owner').should('contain.text', 'data-team');
-    cy.findByTestId('connection-ref-link').should('contain.text', 'my-s3-connection');
+    cy.findByTestId('connection-ref-link').should('contain.text', 'My S3 Connection');
     cy.findByTestId('connection-type').should('contain.text', 's3');
   });
 

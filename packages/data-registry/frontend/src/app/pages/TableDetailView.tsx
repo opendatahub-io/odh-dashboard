@@ -44,6 +44,12 @@ const WELL_KNOWN_PROPERTY_LABELS: Record<string, string> = {
   domain: 'Domain',
 };
 
+const hasWellKnownPropertyLabel = (key: string): boolean =>
+  Object.prototype.hasOwnProperty.call(WELL_KNOWN_PROPERTY_LABELS, key);
+
+const getPropertyLabel = (key: string): string =>
+  hasWellKnownPropertyLabel(key) ? WELL_KNOWN_PROPERTY_LABELS[key] : key;
+
 const getOrderedProperties = (properties: Record<string, string>) => {
   const entries = Object.entries(properties);
   const wellKnownProperties = Object.keys(WELL_KNOWN_PROPERTY_LABELS).flatMap((key) => {
@@ -53,7 +59,7 @@ const getOrderedProperties = (properties: Record<string, string>) => {
     const value = properties[key];
     return [[key, value] as const];
   });
-  const customProperties = entries.filter(([key]) => !WELL_KNOWN_PROPERTY_LABELS[key]);
+  const customProperties = entries.filter(([key]) => !hasWellKnownPropertyLabel(key));
 
   return [...wellKnownProperties, ...customProperties];
 };
@@ -254,9 +260,7 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project, conne
                   >
                     {orderedProperties.map(([key, value]) => (
                       <DescriptionListGroup key={key} data-testid={`asset-property-${key}`}>
-                        <DescriptionListTerm>
-                          {WELL_KNOWN_PROPERTY_LABELS[key] || key}
-                        </DescriptionListTerm>
+                        <DescriptionListTerm>{getPropertyLabel(key)}</DescriptionListTerm>
                         <DescriptionListDescription>{value || '-'}</DescriptionListDescription>
                       </DescriptionListGroup>
                     ))}

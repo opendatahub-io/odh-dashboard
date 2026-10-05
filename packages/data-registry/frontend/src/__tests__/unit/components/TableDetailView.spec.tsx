@@ -136,6 +136,21 @@ describe('TableDetailView', () => {
     expect(propertyGroups).toEqual(['Purpose', 'source', 'data.quality']);
   });
 
+  it('should render custom properties whose names match Object prototype keys', () => {
+    const properties = JSON.parse(
+      '{"constructor":"constructor value","toString":"toString value","purpose":"ML training"}',
+    ) as Record<string, string>;
+    renderView(mockAssetResponse({ properties }));
+
+    expect(screen.getByTestId('asset-property-purpose')).toHaveTextContent('PurposeML training');
+    expect(screen.getByTestId('asset-property-constructor')).toHaveTextContent(
+      'constructorconstructor value',
+    );
+    expect(screen.getByTestId('asset-property-toString')).toHaveTextContent(
+      'toStringtoString value',
+    );
+  });
+
   it('should render schema card with columns table', () => {
     const asset = mockAssetResponse();
     renderView(asset);
