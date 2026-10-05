@@ -28,6 +28,8 @@ type CommandResult = { exitCode: number; stdout: string; stderr: string };
 const NAMESPACE = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
 const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED', 'CACHED']);
 const TERMINATABLE_STATES = new Set(['PENDING', 'RUNNING', 'PAUSED']);
+const S3_CLEANUP_TIMEOUT_MS = 900000;
+const CLEANUP_POD_HEADROOM_SECONDS = 120;
 let cleanupOcContext = '';
 
 const parseOptions = (): CliOptions => {
@@ -91,13 +93,15 @@ const runOc = (args: string[], input?: string, timeout = 30000): CommandResult =
   };
 };
 
-const namespaceStatus = (namespace: string): { exists: boolean; finalizers: string[] } => {
+const namespaceStatus = (
+  namespace: string,
+): { exists: boolean; finalizers: string[]; phase: string | null } => {
   const result = runOc(['get', 'namespace', namespace, '-o', 'json', '--ignore-not-found']);
   if (result.exitCode !== 0) {
     throw new Error(`Could not inspect namespace ${namespace}: ${result.stderr}`);
   }
   if (!result.stdout.trim()) {
-    return { exists: false, finalizers: [] };
+    return { exists: false, finalizers: [], phase: null };
   }
   const response: unknown = JSON.parse(result.stdout);
   if (
@@ -128,7 +132,32 @@ const namespaceStatus = (namespace: string): { exists: boolean; finalizers: stri
       ),
     );
   }
-  return { exists: true, finalizers };
+  const phase =
+    'status' in response &&
+    typeof response.status === 'object' &&
+    response.status !== null &&
+    'phase' in response.status &&
+    typeof response.status.phase === 'string'
+      ? response.status.phase
+      : null;
+  return { exists: true, finalizers, phase };
+};
+
+const namespacePodCount = (namespace: string): number => {
+  const result = runOc(['get', 'pods', '-n', namespace, '-o', 'json']);
+  if (result.exitCode !== 0) {
+    throw new Error(`Could not list pods in namespace ${namespace}: ${result.stderr}`);
+  }
+  const response: unknown = JSON.parse(result.stdout);
+  if (
+    typeof response !== 'object' ||
+    response === null ||
+    !('items' in response) ||
+    !Array.isArray(response.items)
+  ) {
+    throw new Error(`Invalid pod list response for namespace ${namespace}`);
+  }
+  return response.items.length;
 };
 
 const getRunState = (namespace: string, runId: string): string | null => {
@@ -230,6 +259,7 @@ const runS3Cleanup = (
   };
   const podOverrides = {
     spec: {
+      activeDeadlineSeconds: Math.ceil(S3_CLEANUP_TIMEOUT_MS / 1000) + CLEANUP_POD_HEADROOM_SECONDS,
       containers: [
         {
           name: podName,
@@ -283,7 +313,7 @@ const runS3Cleanup = (
         `--overrides=${JSON.stringify(podOverrides)}`,
       ],
       undefined,
-      900000,
+      S3_CLEANUP_TIMEOUT_MS,
     );
     if (result.exitCode !== 0) {
       const describe = runOc(['describe', 'pod', podName, '-n', options.executorNamespace]);
@@ -356,11 +386,20 @@ const applyManifest = async (
       const status = namespaceStatus(project.namespace);
       runsTerminal = !status.exists;
       if (status.exists) {
-        runsTerminal = true;
-        for (const run of project.runs) {
-          if (!(await settleRun(project.namespace, run.id))) {
-            errors.push(`KFP run ${run.id} was not confirmed terminal`);
-            runsTerminal = false;
+        const terminatingWithoutPods =
+          status.phase === 'Terminating' && namespacePodCount(project.namespace) === 0;
+        if (terminatingWithoutPods) {
+          runsTerminal = true;
+          process.stdout.write(
+            `${project.namespace}: terminating with no pods; treating recorded runs as settled\n`,
+          );
+        } else {
+          runsTerminal = true;
+          for (const run of project.runs) {
+            if (!(await settleRun(project.namespace, run.id))) {
+              errors.push(`KFP run ${run.id} was not confirmed terminal`);
+              runsTerminal = false;
+            }
           }
         }
       }

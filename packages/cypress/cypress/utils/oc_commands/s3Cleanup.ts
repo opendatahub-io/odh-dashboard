@@ -54,6 +54,9 @@ export const runAwsCliInCluster = ({
 
   const buckets = getAwsPipelines();
   const image = (Cypress.env('CY_S3_CLEANUP_IMAGE') as string | undefined) || DEFAULT_AWS_CLI_IMAGE;
+  // Keep the pod alive slightly past the client timeout so Cypress has time to
+  // describe and delete it, but make sure it still expires if the client dies.
+  const activeDeadlineSeconds = Math.ceil(timeout / 1000) + 120;
   const secretManifest = JSON.stringify({
     apiVersion: 'v1',
     kind: 'Secret',
@@ -77,6 +80,7 @@ export const runAwsCliInCluster = ({
   // `--overrides` replaces `spec.containers` wholesale, so it must carry image and args.
   const podOverrides = JSON.stringify({
     spec: {
+      activeDeadlineSeconds,
       containers: [
         {
           name: podName,

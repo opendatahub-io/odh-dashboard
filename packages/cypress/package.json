@@ -10,6 +10,8 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "test-unit": "jest --silent",
+    "test-unit-coverage": "jest --silent --coverage",
     "type-check": "tsc --noEmit",
     "cleanup:automl": "node --import tsx scripts/cleanup-automl.ts",
     "open:mock": "cross-env CY_MOCK=1 CY_WS_PORT=9002 cypress open",
@@ -28,11 +30,13 @@
   "devDependencies": {
     "@cypress/code-coverage": "^3.12.34",
     "@cypress/grep": "^4.1.0",
+    "@jest/globals": "^29.7.0",
     "@odh-dashboard/app-config": "workspace:*",
     "@odh-dashboard/eslint-config": "workspace:*",
     "@odh-dashboard/feature-store": "workspace:*",
     "@odh-dashboard/hardware-profiles": "workspace:*",
     "@odh-dashboard/internal": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
     "@odh-dashboard/k8s-core": "workspace:*",
     "@odh-dashboard/llmd-serving": "workspace:*",
     "@odh-dashboard/maas": "workspace:*",
