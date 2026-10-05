@@ -65,6 +65,53 @@ export const validateWorkbenchEnvironmentVariables = (
  * @param expectPodRunning Whether the pod is expected to be running
  * @returns Cypress.Chainable<string> that resolves to the result of the validation or pod name
  */
+export const validateWorkbenchNodeSelectors = (
+  namespace: string,
+  workbenchPrefix: string,
+  expectedNodeSelector: Record<string, string>,
+): Cypress.Chainable<string> => {
+  const getPodNameCommand = `oc get pods -n ${namespace} -o custom-columns=NAME:.metadata.name --no-headers | grep ^${workbenchPrefix}`;
+  cy.log(`Executing command: ${getPodNameCommand}`);
+
+  return cy.exec(getPodNameCommand, { failOnNonZeroExit: false }).then((result) => {
+    const workbenchPodName = result.stdout.trim();
+
+    if (!workbenchPodName) {
+      throw new Error(
+        `No matching pod found for prefix "${workbenchPrefix}" in namespace "${namespace}".`,
+      );
+    }
+
+    cy.log(`Workbench pod found: ${workbenchPodName}. Proceeding to validate node selectors.`);
+
+    const getNodeSelectorCommand = `oc get pod ${workbenchPodName} -n ${namespace} -o jsonpath='{.spec.nodeSelector}'`;
+    cy.log(`Executing command: ${getNodeSelectorCommand}`);
+
+    return cy.exec(getNodeSelectorCommand, { failOnNonZeroExit: false }).then((nsResult) => {
+      if (nsResult.exitCode !== 0) {
+        throw new Error(
+          `Failed to get node selectors for pod "${workbenchPodName}": ${nsResult.stderr}`,
+        );
+      }
+
+      const nodeSelector = JSON.parse(nsResult.stdout) as Record<string, string>;
+      cy.log(`Pod node selectors: ${JSON.stringify(nodeSelector)}`);
+
+      for (const [key, value] of Object.entries(expectedNodeSelector)) {
+        if (nodeSelector[key] !== value) {
+          throw new Error(
+            `Expected node selector "${key}=${value}" not found on pod "${workbenchPodName}". ` +
+              `Actual node selectors: ${JSON.stringify(nodeSelector)}`,
+          );
+        }
+        cy.log(`Node selector "${key}=${value}" found as expected on pod "${workbenchPodName}".`);
+      }
+
+      return cy.wrap(workbenchPodName);
+    });
+  });
+};
+
 export const validateWorkbenchTolerations = (
   namespace: string,
   workbenchPrefix: string,
