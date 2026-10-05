@@ -135,6 +135,19 @@ jest.mock('~/app/Chatbot/hooks/useGuardrailsEnabled', () => ({
   default: jest.fn(() => false),
 }));
 
+jest.mock('~/app/Chatbot/components/settingsPanelTabs/MCPTabContent', () => ({
+  __esModule: true,
+  default: ({ onToolsWarningChange }: { onToolsWarningChange: (show: boolean) => void }) => (
+    <button
+      type="button"
+      data-testid="trigger-tools-warning"
+      onClick={() => onToolsWarningChange(true)}
+    >
+      Show tools warning
+    </button>
+  ),
+}));
+
 const mockUseGuardrailsEnabled = jest.mocked(useGuardrailsEnabled);
 
 jest.mock('@openshift/dynamic-plugin-sdk', () => ({
@@ -686,6 +699,29 @@ describe('ChatbotSettingsPanel', () => {
       render(<ChatbotSettingsPanel {...defaultProps} />);
 
       expect(screen.getByRole('tab', { name: 'Model' })).not.toHaveTextContent('Model');
+    });
+
+    it('shows enabled RAG and selected MCP server status in compact tabs', () => {
+      useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
+      useChatbotConfigStore
+        .getState()
+        .updateSelectedMcpServerIds(DEFAULT_CONFIG_ID, ['server-one']);
+      sessionStorage.setItem(SETTINGS_PANEL_WIDTH, '300px');
+      render(<ChatbotSettingsPanel {...defaultProps} />);
+
+      expect(screen.getByTestId('knowledge-status-badge')).toHaveTextContent('On');
+      expect(screen.getByRole('tab', { name: 'MCP' })).toHaveTextContent('1');
+    });
+
+    it('keeps the MCP tools warning visible in the compact tab', async () => {
+      const user = userEvent.setup();
+      sessionStorage.setItem(SETTINGS_PANEL_WIDTH, '300px');
+      render(<ChatbotSettingsPanel {...defaultProps} />);
+
+      await user.click(screen.getByRole('tab', { name: 'MCP' }));
+      await user.click(screen.getByTestId('trigger-tools-warning'));
+
+      expect(screen.getByTestId('mcp-tools-warning-icon')).toBeInTheDocument();
     });
 
     it('shows a compact tab label on keyboard focus and restores visible labels when widened', async () => {
