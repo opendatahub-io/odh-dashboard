@@ -25,9 +25,11 @@ else
 DEV_BFF_MLFLOW_ARGS := MLFLOW_URL="$(MLFLOW_URL)"
 endif
 
-# Resolve the public Data Science Gateway used by an in-cluster OGXServer to call the Gen AI BFF.
-# A user-supplied GATEWAY_DOMAIN always takes precedence over discovery from the active oc context.
-define with_gateway_domain
+# Resolve the cluster configuration required by an in-cluster OGXServer to call the Gen AI BFF.
+# User-supplied values always take precedence over discovery from the active oc context.
+RHOAI_SUBSCRIPTION_PACKAGE ?= rhods-operator
+
+define with_cluster_configuration
 gateway_domain="$(GATEWAY_DOMAIN)"; \
 if [ -z "$$gateway_domain" ]; then \
 	gateway_domain="$$(oc get gatewayconfigs.services.platform.opendatahub.io default-gateway -o jsonpath='{.status.domain}' 2>/dev/null)"; \
@@ -39,7 +41,45 @@ if [ -z "$$gateway_domain" ]; then \
 	echo "Unable to discover GATEWAY_DOMAIN from the current oc context. Set GATEWAY_DOMAIN to the public Data Science Gateway hostname and retry." >&2; \
 	exit 1; \
 fi; \
-echo "Using Data Science Gateway: $$gateway_domain";
+ogx_core_image="$(RELATED_IMAGE_ODH_OGX_CORE_IMAGE)"; \
+postgresql_16_image="$(RELATED_IMAGE_POSTGRESQL_16_IMAGE)"; \
+if [ -z "$$ogx_core_image" ] || [ -z "$$postgresql_16_image" ]; then \
+	rhoai_subscription_namespace="$(RHOAI_SUBSCRIPTION_NAMESPACE)"; \
+	if [ -z "$$rhoai_subscription_namespace" ]; then \
+		rhoai_subscription_namespace="$(RHOAI_OPERATOR_NAMESPACE)"; \
+	fi; \
+	if [ -z "$$rhoai_subscription_namespace" ]; then \
+		rhoai_subscription_namespace="$$(oc get subscription -A -o jsonpath='{range .items[?(@.spec.name=="$(RHOAI_SUBSCRIPTION_PACKAGE)")]}{.metadata.namespace}{"\n"}{end}' 2>/dev/null | head -n 1)"; \
+	fi; \
+	if [ -z "$$rhoai_subscription_namespace" ]; then \
+		echo "Unable to discover the RHOAI Subscription namespace. Set RHOAI_SUBSCRIPTION_NAMESPACE (or RHOAI_OPERATOR_NAMESPACE) and retry." >&2; \
+		exit 1; \
+	fi; \
+	rhoai_subscription_name="$$(oc get subscription -n "$$rhoai_subscription_namespace" -o jsonpath='{range .items[?(@.spec.name=="$(RHOAI_SUBSCRIPTION_PACKAGE)")]}{.metadata.name}{"\n"}{end}' 2>/dev/null | head -n 1)"; \
+	if [ -z "$$rhoai_subscription_name" ]; then \
+		echo "Unable to discover the RHOAI Subscription name. Set RHOAI_SUBSCRIPTION_NAMESPACE and RHOAI_SUBSCRIPTION_PACKAGE and retry." >&2; \
+		exit 1; \
+	fi; \
+	rhoai_csv="$$(oc get subscription "$$rhoai_subscription_name" -n "$$rhoai_subscription_namespace" -o jsonpath='{.status.installedCSV}' 2>/dev/null)"; \
+	if [ -z "$$rhoai_csv" ]; then \
+		echo "Unable to discover the installed RHOAI CSV. Set RHOAI_SUBSCRIPTION_NAMESPACE and RHOAI_SUBSCRIPTION_PACKAGE, or set related-image variables explicitly and retry." >&2; \
+		exit 1; \
+	fi; \
+	if [ -z "$$ogx_core_image" ]; then \
+		ogx_core_image="$$(oc get csv "$$rhoai_csv" -n "$$rhoai_subscription_namespace" -o jsonpath='{.spec.relatedImages[?(@.name=="odh_ogx_core_image")].image}' 2>/dev/null)"; \
+	fi; \
+	if [ -z "$$postgresql_16_image" ]; then \
+		postgresql_16_image="$$(oc get csv "$$rhoai_csv" -n "$$rhoai_subscription_namespace" -o jsonpath='{.spec.relatedImages[?(@.name=="postgresql_16_image")].image}' 2>/dev/null)"; \
+	fi; \
+fi; \
+if [ -z "$$ogx_core_image" ] || [ -z "$$postgresql_16_image" ]; then \
+	echo "Unable to discover required RHOAI related images from the installed CSV. Set RELATED_IMAGE_ODH_OGX_CORE_IMAGE and/or RELATED_IMAGE_POSTGRESQL_16_IMAGE explicitly and retry." >&2; \
+	exit 1; \
+fi; \
+echo "Using Data Science Gateway: $$gateway_domain"; \
+echo "Using RHOAI related images from $${rhoai_csv:-environment overrides}"; \
+echo "Using ODH OGX core image: $$ogx_core_image"; \
+echo "Using PostgreSQL 16 image: $$postgresql_16_image";
 endef
 
 .PHONY: help dev-install-dependencies dev-frontend dev-bff dev-start dev-start-no-portforward dev-portforward dev-start-maas dev-maas-bff dev-bff-maas dev-bff-mlflow dev-start-mlflow deploy-k8s-mcp clean clean-all
@@ -54,18 +94,15 @@ dev-install-dependencies: ## Install dependencies for frontend
 
 .PHONY: dev-bff-mock
 dev-bff-mock: ## Run BFF with all mocks enabled (K8s, LlamaStack, MCP, MLflow, BFF clients)
-	cd bff && make run LOG_LEVEL=debug MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true MOCK_BFF_CLIENTS=true AUTH_METHOD=disabled LLAMA_STACK_URL="" MAAS_URL="" DISTRIBUTION_NAME="mock-dev" $(MLFLOW_MOCK_BFF_ARGS)
+	cd bff && make run LOG_LEVEL=debug MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true MOCK_BFF_CLIENTS=true AUTH_METHOD=disabled LLAMA_STACK_URL="" DISTRIBUTION_NAME="mock-dev" $(MLFLOW_MOCK_BFF_ARGS)
 
 .PHONY: dev-bff
-dev-bff: ## Run BFF (requires env vars: MAAS_URL, LLAMA_STACK_URL, or use dev-bff-mock for mock mode)
-ifndef MAAS_URL
-	$(error MAAS_URL is not set. Use 'make dev-bff-mock' for mock mode or set MAAS_URL environment variable)
-endif
+dev-bff: ## Run BFF (requires LLAMA_STACK_URL, or use dev-bff-mock for mock mode)
 ifndef LLAMA_STACK_URL
 	$(error LLAMA_STACK_URL is not set. Use 'make dev-bff-mock' for mock mode or set LLAMA_STACK_URL environment variable)
 endif
-	@$(with_gateway_domain) \
-	cd bff && GATEWAY_DOMAIN="$$gateway_domain" make run LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist MAAS_URL=$(MAAS_URL) LLAMA_STACK_URL=$(LLAMA_STACK_URL) ASR_MODEL_URL=$(ASR_MODEL_URL) DISTRIBUTION_NAME=$(DISTRIBUTION_NAME) AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " $(DEV_BFF_MLFLOW_ARGS)
+	@$(with_cluster_configuration) \
+	cd bff && GATEWAY_DOMAIN="$$gateway_domain" RELATED_IMAGE_ODH_OGX_CORE_IMAGE="$$ogx_core_image" RELATED_IMAGE_POSTGRESQL_16_IMAGE="$$postgresql_16_image" make run LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist LLAMA_STACK_URL=$(LLAMA_STACK_URL) ASR_MODEL_URL=$(ASR_MODEL_URL) DISTRIBUTION_NAME=$(DISTRIBUTION_NAME) AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " $(DEV_BFF_MLFLOW_ARGS)
 
 .PHONY: dev-bff-inter-bff
 dev-bff-inter-bff: ## Run MLflow BFF + gen-ai BFF for MaaS inter-BFF testing (full MLflow stack, real HTTP to MaaS BFF on port 8081)
@@ -73,18 +110,15 @@ dev-bff-inter-bff: ## Run MLflow BFF + gen-ai BFF for MaaS inter-BFF testing (fu
 
 .PHONY: dev-bff-inter-bff-run
 dev-bff-inter-bff-run:
-	cd bff && make run LOG_LEVEL=debug MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true AUTH_METHOD=user_token LLAMA_STACK_URL="" MAAS_URL="" DISTRIBUTION_NAME="mock-dev" BFF_MAAS_DEV_URL=http://localhost:$${MAAS_LOCAL_PORT:-8081}/api/v1 $(MLFLOW_MOCK_BFF_ARGS)
+	cd bff && make run LOG_LEVEL=debug MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true AUTH_METHOD=user_token LLAMA_STACK_URL="" DISTRIBUTION_NAME="mock-dev" BFF_MAAS_DEV_URL=http://localhost:$${MAAS_LOCAL_PORT:-8081}/api/v1 $(MLFLOW_MOCK_BFF_ARGS)
 
 .PHONY: dev-bff-debug
 dev-bff-debug: ## Run BFF with Delve debugger (VSCode can attach - requires Delve installation, see readme)
-ifndef MAAS_URL
-	$(error MAAS_URL is not set. Use 'make dev-bff-mock-debug' for mock mode or set MAAS_URL environment variable)
-endif
 ifndef LLAMA_STACK_URL
 	$(error LLAMA_STACK_URL is not set. Use 'make dev-bff-mock-debug' for mock mode or set LLAMA_STACK_URL environment variable)
 endif
-	@$(with_gateway_domain) \
-	cd bff && GATEWAY_DOMAIN="$$gateway_domain" make debug LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist MAAS_URL=$(MAAS_URL) LLAMA_STACK_URL=$(LLAMA_STACK_URL) ASR_MODEL_URL=$(ASR_MODEL_URL) DISTRIBUTION_NAME=$(DISTRIBUTION_NAME) AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " $(DEV_BFF_MLFLOW_ARGS)
+	@$(with_cluster_configuration) \
+	cd bff && GATEWAY_DOMAIN="$$gateway_domain" RELATED_IMAGE_ODH_OGX_CORE_IMAGE="$$ogx_core_image" RELATED_IMAGE_POSTGRESQL_16_IMAGE="$$postgresql_16_image" make debug LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist LLAMA_STACK_URL=$(LLAMA_STACK_URL) ASR_MODEL_URL=$(ASR_MODEL_URL) DISTRIBUTION_NAME=$(DISTRIBUTION_NAME) AUTH_TOKEN=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " $(DEV_BFF_MLFLOW_ARGS)
 
 .PHONY: dev-frontend
 dev-frontend: ## Run only the frontend in development mode
@@ -96,7 +130,7 @@ dev-mlflow-up: ## Start local MLflow tracking server for development
 
 .PHONY: dev-bff-mock-debug
 dev-bff-mock-debug: ## Run BFF with all mocks and Delve debugger on port 2345
-	cd bff && make debug LOG_LEVEL=debug MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true MOCK_BFF_CLIENTS=true AUTH_METHOD=disabled LLAMA_STACK_URL="" MAAS_URL="" DISTRIBUTION_NAME="mock-dev" $(MLFLOW_MOCK_BFF_ARGS)
+	cd bff && make debug LOG_LEVEL=debug MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true MOCK_BFF_CLIENTS=true AUTH_METHOD=disabled LLAMA_STACK_URL="" DISTRIBUTION_NAME="mock-dev" $(MLFLOW_MOCK_BFF_ARGS)
 
 export GOTMPDIR ?= /tmp/go-tmp
 
@@ -118,12 +152,12 @@ E2E_BFF_PORT ?= 8080
 .PHONY: dev-bff-e2e-mock
 dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
 	@mkdir -p "$(GOTMPDIR)"
-	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true MOCK_BFF_CLIENTS=true AUTH_TOKEN=FAKE_BEARER_TOKEN LLAMA_STACK_URL="" MAAS_URL="" MLFLOW_URL="" DISTRIBUTION_NAME="rh-dev"
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true MOCK_BFF_CLIENTS=true AUTH_TOKEN=FAKE_BEARER_TOKEN LLAMA_STACK_URL="" MLFLOW_URL="" DISTRIBUTION_NAME="rh"
 
 .PHONY: dev-bff-e2e-cluster
 dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to cluster)
 	@mkdir -p "$(GOTMPDIR)"
-	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_LS_CLIENT=false MOCK_K8S_CLIENT=false MOCK_MCP_CLIENT=false MOCK_MLFLOW_CLIENT=false AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " LLAMA_STACK_URL=$(LLAMA_STACK_URL) GATEWAY_DOMAIN=$(GATEWAY_DOMAIN) NEMO_GUARDRAILS_URL=$(NEMO_GUARDRAILS_URL) MAAS_URL="" MLFLOW_URL="" DISTRIBUTION_NAME="rh-dev"
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_LS_CLIENT=false MOCK_K8S_CLIENT=false MOCK_MCP_CLIENT=false MOCK_MLFLOW_CLIENT=false AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " LLAMA_STACK_URL=$(LLAMA_STACK_URL) GATEWAY_DOMAIN=$(GATEWAY_DOMAIN) NEMO_GUARDRAILS_URL=$(NEMO_GUARDRAILS_URL) MLFLOW_URL="" DISTRIBUTION_NAME="rh"
 
 .PHONY: dev-start-mock-debug
 dev-start-mock-debug: ## Run frontend, gen-ai BFF (mocks + debugger), and MLflow BFF with real inter-BFF
@@ -179,13 +213,10 @@ endif
 ############ MaaS Development (Inter-BFF Architecture) ############
 # gen-ai BFF communicates with MaaS exclusively through the MaaS BFF.
 # These targets start the MaaS BFF locally alongside gen-ai BFF + frontend.
-# Requires MAAS_URL in .env.local (Kuadrant gateway or direct maas-api URL).
+# MAAS_URL optionally overrides the MaaS BFF's cluster URL auto-discovery.
 
 .PHONY: dev-maas-bff
-dev-maas-bff: ## Run MaaS BFF in federated mode (uses MAAS_URL from .env.local)
-ifndef MAAS_URL
-	$(error MAAS_URL is not set. Set it in .env.local to your cluster MaaS gateway URL)
-endif
+dev-maas-bff: ## Run MaaS BFF in federated mode (auto-discovers its MaaS API URL)
 	cd ../maas && make dev-bff-federated MAAS_API_URL=$(MAAS_URL)
 
 .PHONY: dev-bff-maas
@@ -193,9 +224,8 @@ dev-bff-maas: ## Run gen-ai BFF connected to local MaaS BFF (inter-BFF mode)
 ifndef LLAMA_STACK_URL
 	$(error LLAMA_STACK_URL is not set. Set it in .env.local)
 endif
-	@$(with_gateway_domain) \
-	cd bff && GATEWAY_DOMAIN="$$gateway_domain" make run LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist \
-		MAAS_URL=$${MAAS_URL:-http://localhost:8081} \
+	@$(with_cluster_configuration) \
+	cd bff && GATEWAY_DOMAIN="$$gateway_domain" RELATED_IMAGE_ODH_OGX_CORE_IMAGE="$$ogx_core_image" RELATED_IMAGE_POSTGRESQL_16_IMAGE="$$postgresql_16_image" make run LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist \
 		LLAMA_STACK_URL=$(LLAMA_STACK_URL) \
 		ASR_MODEL_URL=$(ASR_MODEL_URL) \
 		MLFLOW_URL=$(MLFLOW_URL) \
@@ -208,9 +238,8 @@ dev-bff-mlflow: ## Run gen-ai BFF connected to local MLflow BFF (real cluster + 
 ifndef LLAMA_STACK_URL
 	$(error LLAMA_STACK_URL is not set. Set it in .env.local)
 endif
-	@$(with_gateway_domain) \
-	cd bff && GATEWAY_DOMAIN="$$gateway_domain" make run LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist \
-		MAAS_URL=$(MAAS_URL) \
+	@$(with_cluster_configuration) \
+	cd bff && GATEWAY_DOMAIN="$$gateway_domain" RELATED_IMAGE_ODH_OGX_CORE_IMAGE="$$ogx_core_image" RELATED_IMAGE_POSTGRESQL_16_IMAGE="$$postgresql_16_image" make run LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist \
 		LLAMA_STACK_URL=$(LLAMA_STACK_URL) \
 		ASR_MODEL_URL=$(ASR_MODEL_URL) \
 		DISTRIBUTION_NAME=$(DISTRIBUTION_NAME) \

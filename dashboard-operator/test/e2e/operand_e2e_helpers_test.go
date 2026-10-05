@@ -67,6 +67,42 @@ func waitForOperandInventory(
 	return inventory, nil
 }
 
+func waitForCoreOperandInventory(
+	c client.Client,
+	namespace string,
+	ownerUID types.UID,
+	platform string,
+	timeout time.Duration,
+) (operandInventory, error) {
+	var inventory operandInventory
+	var selectionErr error
+	err := wait.PollUntilContextTimeout(
+		context.Background(),
+		e2ePollInterval,
+		timeout,
+		true,
+		func(ctx context.Context) (bool, error) {
+			deployments, err := listOwnedDeployments(ctx, c, namespace, ownerUID)
+			if err != nil {
+				return false, err
+			}
+			services, err := listOwnedServices(ctx, c, namespace, ownerUID)
+			if err != nil {
+				return false, err
+			}
+			inventory, selectionErr = selectCoreOperandInventory(
+				operandInventory{deployments: deployments, services: services},
+				platform,
+			)
+			return selectionErr == nil, nil
+		},
+	)
+	if err != nil {
+		return operandInventory{}, fmt.Errorf("wait for core operand inventory (%v): %w", selectionErr, err)
+	}
+	return inventory, nil
+}
+
 func listOwnedDeployments(ctx context.Context, c client.Client, namespace string, ownerUID types.UID) ([]appsv1.Deployment, error) {
 	list := &appsv1.DeploymentList{}
 	if err := c.List(ctx, list,

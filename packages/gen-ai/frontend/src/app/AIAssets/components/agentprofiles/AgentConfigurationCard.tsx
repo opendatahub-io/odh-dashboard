@@ -10,7 +10,7 @@ import {
   Label,
   LabelGroup,
 } from '@patternfly/react-core';
-import { AgentProfile } from '~/app/agentProfile/types';
+import { AgentProfile, AgentProfileMcpServer } from '~/app/agentProfile/types';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
 
 type AgentConfigurationCardProps = {
@@ -32,6 +32,9 @@ const formatDate = (value: string): string => {
         minute: '2-digit',
       });
 };
+
+const getMcpServerName = (server: AgentProfileMcpServer): string =>
+  'serverRef' in server ? (server.serverRef.key ?? server.serverRef.name) : server.name;
 
 const AgentConfigurationCard: React.FC<AgentConfigurationCardProps> = ({
   profile,
@@ -106,11 +109,15 @@ const AgentConfigurationCard: React.FC<AgentConfigurationCardProps> = ({
             <FlexItem component="dd" className="pf-v6-u-m-0">
               {tools.length > 0 ? (
                 <Flex gap={{ default: 'gapSm' }}>
-                  {tools.map((tool) => (
-                    <FlexItem key={tool.serverRef.key ?? tool.serverRef.name}>
-                      <Label isCompact>{tool.serverRef.key ?? tool.serverRef.name}</Label>
-                    </FlexItem>
-                  ))}
+                  {tools.map((tool) => {
+                    const toolName = getMcpServerName(tool);
+
+                    return (
+                      <FlexItem key={toolName}>
+                        <Label isCompact>{toolName}</Label>
+                      </FlexItem>
+                    );
+                  })}
                 </Flex>
               ) : (
                 'No tools selected'
