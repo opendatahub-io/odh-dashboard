@@ -342,6 +342,54 @@ describe('Registry Table', () => {
   });
 });
 
+describe('Registration collection management', () => {
+  beforeEach(() => {
+    initIntercepts();
+  });
+
+  it('should include a newly created collection when returning to registration', () => {
+    let namespaces = [['analytics'], ['default']];
+
+    cy.intercept('GET', `${REGISTRY_API}/test-project/namespaces`, (request) => {
+      request.reply({ body: { namespaces } });
+    }).as('getCollectionsForRegistration');
+    cy.intercept('POST', `${REGISTRY_API}/test-project/namespaces`, (request) => {
+      namespaces = [...namespaces, ['new-collection']];
+      request.reply({
+        statusCode: 200,
+        body: { namespace: ['new-collection'], properties: { description: 'Test' } },
+      });
+    }).as('createCollectionFromRegistration');
+    cy.intercept('GET', `${REGISTRY_API}/test-project/namespaces/new-collection`, {
+      body: { namespace: ['new-collection'], properties: { description: 'Test' } },
+    });
+    cy.intercept('GET', `${REGISTRY_API}/test-project/namespaces/new-collection/generic-tables`, {
+      body: { assets: [] },
+    });
+    cy.intercept('GET', `${REGISTRY_API}/test-project/namespaces/new-collection/volumes`, {
+      body: { volumes: [] },
+    });
+
+    cy.visit('/ai-hub/data/browse/collections/test-project/analytics');
+    cy.findByTestId('collection-actions-toggle').click();
+    cy.findByTestId('collection-action-register-data').click();
+    cy.findByTestId('register-data-modal').should('exist');
+
+    cy.findByRole('button', { name: 'Manage collections' }).click();
+    cy.findByTestId('create-collection-button').click();
+    cy.findByTestId('collection-name-input').type('new-collection');
+    cy.findByTestId('create-collection-submit').click();
+    cy.wait('@createCollectionFromRegistration');
+    cy.findByTestId('create-collection-modal').should('not.exist');
+
+    cy.findByTestId('manage-collections-close-button').click();
+    cy.findByTestId('register-data-modal').should('exist');
+    cy.findByTestId('data-collection-toggle').click();
+    cy.findByText('new-collection').click();
+    cy.findByTestId('data-collection-toggle').should('contain.text', 'new-collection');
+  });
+});
+
 describe('Register Volume', () => {
   beforeEach(() => {
     initIntercepts();

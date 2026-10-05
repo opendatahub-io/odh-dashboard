@@ -186,15 +186,14 @@ const DataRegistryPage: React.FC = () => {
 
   const hasWriteAccess = hasDataRegistryWriteAccess(assetsError, collectionsError);
 
-  const handleRefresh = React.useCallback(() => {
-    assetsRefresh();
-    collectionsRefresh();
-    labelsRefresh();
+  const handleRefresh = React.useCallback(async () => {
+    await Promise.all([assetsRefresh(), collectionsRefresh(), labelsRefresh()]);
   }, [assetsRefresh, collectionsRefresh, labelsRefresh]);
 
-  const handleCollectionsModalClose = React.useCallback(() => {
+  const handleCollectionsModalClose = React.useCallback(async () => {
     setIsCollectionsModalOpen(false);
     if (returnToRegisterData) {
+      await assetsRefresh();
       setReturnToRegisterData(false);
       setIsRegisterModalOpen(true);
       return;
@@ -202,7 +201,7 @@ const DataRegistryPage: React.FC = () => {
     const returnToEdit = returnToEditRef.current;
     returnToEditRef.current = undefined;
     returnToEdit?.();
-  }, [returnToRegisterData]);
+  }, [assetsRefresh, returnToRegisterData]);
 
   const handleLabelsModalClose = React.useCallback(() => {
     setIsLabelsModalOpen(false);

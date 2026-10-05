@@ -57,19 +57,18 @@ const CollectionDetailPage: React.FC = () => {
 
   const hasWriteAccess = hasDataRegistryWriteAccess(assetsError, loadError, collectionsError);
 
-  const handleRefresh = React.useCallback(() => {
-    refresh();
-    assetsRefresh();
-    labelsRefresh();
+  const handleRefresh = React.useCallback(async () => {
+    await Promise.all([refresh(), assetsRefresh(), labelsRefresh()]);
   }, [assetsRefresh, labelsRefresh, refresh]);
 
-  const handleCollectionsModalClose = React.useCallback(() => {
+  const handleCollectionsModalClose = React.useCallback(async () => {
     setIsManageCollectionsOpen(false);
     if (returnToRegisterData) {
+      await assetsRefresh();
       setReturnToRegisterData(false);
       setIsRegisterDataOpen(true);
     }
-  }, [returnToRegisterData]);
+  }, [assetsRefresh, returnToRegisterData]);
 
   const handleLabelsModalClose = React.useCallback(() => {
     setIsManageLabelsOpen(false);
@@ -199,7 +198,7 @@ const CollectionDetailPage: React.FC = () => {
         <RegisterDataModal
           isOpen={isRegisterDataOpen}
           project={project}
-          collections={[collection]}
+          collections={collectionNames}
           onCreated={handleRefresh}
           onManageCollections={() => {
             setIsRegisterDataOpen(false);

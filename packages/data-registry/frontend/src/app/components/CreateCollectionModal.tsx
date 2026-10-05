@@ -21,7 +21,7 @@ type CreateCollectionModalProps = {
   isOpen: boolean;
   onClose: () => void;
   project: string;
-  onCreated: () => void;
+  onCreated: () => void | Promise<void>;
 };
 
 const COLLECTION_NAME_REGEX = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
@@ -73,7 +73,7 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
       });
       setName('');
       setDescription('');
-      onCreated();
+      await onCreated();
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create collection');

@@ -27,7 +27,7 @@ type ManageCollectionsModalProps = {
   isOpen: boolean;
   onClose: () => void;
   project: string;
-  onRefresh: () => void;
+  onRefresh: () => void | Promise<void>;
 };
 
 const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
@@ -43,10 +43,8 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
     collectionNames,
   );
 
-  const handleRefresh = React.useCallback(() => {
-    assetsRefresh();
-    collectionsRefresh();
-    onRefresh();
+  const handleRefresh = React.useCallback(async () => {
+    await Promise.all([assetsRefresh(), collectionsRefresh(), onRefresh()]);
   }, [assetsRefresh, collectionsRefresh, onRefresh]);
   const [filterText, setFilterText] = React.useState('');
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
