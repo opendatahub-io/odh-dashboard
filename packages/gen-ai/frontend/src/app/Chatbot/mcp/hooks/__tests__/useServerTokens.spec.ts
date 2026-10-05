@@ -159,4 +159,17 @@ describe('useServerTokens', () => {
     expect(typeof result.current.removeToken).toBe('function');
     expect(typeof result.current.getToken).toBe('function');
   });
+
+  it('should preserve the returned object when tokens have not changed', () => {
+    const { result, rerender } = renderHook(() =>
+      useServerTokens({
+        onServerTokensChange: mockOnServerTokensChange,
+      }),
+    );
+    const initialResult = result.current;
+
+    rerender();
+
+    expect(result.current).toBe(initialResult);
+  });
 });
