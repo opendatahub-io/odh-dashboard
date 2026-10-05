@@ -113,6 +113,80 @@ func TestReconcile_NotFound(t *testing.T) {
 	assert.Equal(t, ctrl.Result{}, result)
 }
 
+func TestReconcile_DisabledObservabilityCleanupFailureDoesNotBlockCore(t *testing.T) {
+	for _, explicit := range []bool{false, true} {
+		for _, operation := range []string{"list", "delete"} {
+			name := "auto-detection/" + operation
+			if explicit {
+				name = "explicit-disable/" + operation
+			}
+			t.Run(name, func(t *testing.T) {
+				scheme := testScheme(t)
+				dashboard := &v1alpha1.Dashboard{
+					ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName, Finalizers: []string{"components.platform.opendatahub.io/cleanup"}},
+					Spec: v1alpha1.DashboardSpec{
+						ManagementSpec: common.ManagementSpec{ManagementState: "Managed"},
+						Gateway:        &v1alpha1.GatewaySpec{Domain: "apps.example.com"},
+					},
+				}
+				if explicit {
+					dashboard.Spec.Observability = &v1alpha1.ObservabilitySpec{Enabled: false}
+				}
+				stale := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+					Name: "perses-dashboard-config", Namespace: testNamespace,
+					Labels: map[string]string{labels.PlatformPartOf: "dashboard", "app.kubernetes.io/component": "observability"},
+				}}
+				failCleanup := true
+				cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(dashboard, stale).
+					WithStatusSubresource(dashboard).WithInterceptorFuncs(interceptor.Funcs{
+					List: func(ctx context.Context, delegate client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+						if failCleanup && operation == "list" && list.GetObjectKind().GroupVersionKind().Kind == "PersesDashboardList" {
+							return k8serrors.NewServiceUnavailable("Perses API temporarily unavailable")
+						}
+						return delegate.List(ctx, list, opts...)
+					},
+					Delete: func(ctx context.Context, delegate client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
+						if failCleanup && operation == "delete" && client.ObjectKeyFromObject(obj) == client.ObjectKeyFromObject(stale) {
+							return assert.AnError
+						}
+						return delegate.Delete(ctx, obj, opts...)
+					},
+				}).Build()
+				r := &ctrlpkg.DashboardReconciler{Client: cli, Scheme: scheme, ManifestsBasePath: createMinimalManifests(t),
+					Platform: cluster.OpenDataHub, Namespace: testNamespace, ApplicationsNamespace: testNamespace}
+				ctx := context.Background()
+				req := ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)}
+				result, err := r.Reconcile(ctx, req)
+				require.NoError(t, err)
+				assert.Equal(t, ctrlpkg.ObservabilityRetryInterval, result.RequeueAfter)
+				updated := &v1alpha1.Dashboard{}
+				require.NoError(t, cli.Get(ctx, req.NamespacedName, updated))
+				condition := conditions.FindStatusCondition(updated, "ObservabilityAvailable")
+				require.NotNil(t, condition)
+				assert.Equal(t, "CleanupFailed", condition.Reason)
+				assert.Equal(t, common.ConditionSeverityInfo, condition.Severity)
+				assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeProvisioningSucceeded)))
+				assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeReady)))
+				assert.Equal(t, common.PhaseReady, updated.Status.Phase)
+				core := &corev1.ConfigMap{}
+				require.NoError(t, cli.Get(ctx, client.ObjectKey{Name: "test-config", Namespace: testNamespace}, core))
+				assert.Equal(t, "value", core.Data["key"])
+
+				failCleanup = false
+				_, err = r.Reconcile(ctx, req)
+				require.NoError(t, err)
+				require.NoError(t, cli.Get(ctx, req.NamespacedName, updated))
+				assert.Equal(t, "Disabled", conditions.FindStatusCondition(updated, "ObservabilityAvailable").Reason)
+				assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeReady)))
+				assert.Equal(t, common.PhaseReady, updated.Status.Phase)
+				assert.True(t, k8serrors.IsNotFound(cli.Get(ctx, client.ObjectKeyFromObject(stale), &corev1.ConfigMap{})))
+				require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(core), core))
+				assert.Equal(t, "value", core.Data["key"])
+			})
+		}
+	}
+}
+
 func TestReconcile_ObservabilityDetectionFailureDoesNotBlockCore(t *testing.T) {
 	scheme := testScheme(t)
 	dashboard := &v1alpha1.Dashboard{

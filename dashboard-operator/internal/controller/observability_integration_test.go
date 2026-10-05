@@ -312,7 +312,12 @@ func installPersesCRD(t *testing.T) {
 	}
 
 	require.NoError(t, k8sClient.Create(ctx, crd))
-	t.Cleanup(func() { deleteIgnoreNotFound(t, crd) })
+	t.Cleanup(func() {
+		require.NoError(t, client.IgnoreNotFound(k8sClient.Delete(ctx, crd)))
+		require.Eventually(t, func() bool {
+			return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(crd), &apiextensionsv1.CustomResourceDefinition{}))
+		}, 30*time.Second, 200*time.Millisecond, "PersesDashboard CRD must be deleted before another test installs it")
+	})
 
 	require.Eventually(t, func() bool {
 		got := &apiextensionsv1.CustomResourceDefinition{}

@@ -800,7 +800,8 @@ func TestReconcileObservability_CleanupFailuresRetry(t *testing.T) {
 				}).Build()
 			r := &DashboardReconciler{Client: cli, Scheme: scheme}
 			dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{
-				Observability: &v1alpha1.ObservabilitySpec{Enabled: false},
+				ManagementSpec: common.ManagementSpec{ManagementState: "Managed"},
+				Observability:  &v1alpha1.ObservabilitySpec{Enabled: false},
 			}}
 			cm := maasConsumerPortalTestManager(t, dashboard)
 			ctx := context.Background()
@@ -808,8 +809,14 @@ func TestReconcileObservability_CleanupFailuresRetry(t *testing.T) {
 			condition := cm.GetCondition(conditionObservabilityAvailable)
 			require.NotNil(t, condition)
 			assert.Equal(t, "CleanupFailed", condition.Reason)
+			assert.Equal(t, common.ConditionSeverityInfo, condition.Severity)
 			assert.Contains(t, condition.Message, assert.AnError.Error())
 			require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(service), &corev1.Service{}))
+
+			// Without a managed core, cleanup failures must still be errors.
+			dashboard.Spec.ManagementState = "Removed"
+			assert.Equal(t, observabilityRetryInterval, r.reconcileObservability(ctx, dashboard, cm))
+			assert.Equal(t, common.ConditionSeverityError, cm.GetCondition(conditionObservabilityAvailable).Severity)
 
 			failCleanup = false
 			assert.Zero(t, r.reconcileObservability(ctx, dashboard, cm))

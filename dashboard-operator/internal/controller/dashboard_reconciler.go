@@ -627,9 +627,16 @@ func (r *DashboardReconciler) reconcileObservability(
 			conditions.WithMessage("Observability manifests applied successfully"))
 	case errors.Is(obsErr, ErrObservabilityDisabled):
 		if err := r.cleanupManagedObservability(ctx, dashboard); err != nil {
+			severity := common.ConditionSeverityError
+			if dashboard.Spec.ManagementState != "Removed" {
+				// Disabled observability must not affect core dashboard readiness,
+				// even while its stale resources await cleanup.
+				severity = common.ConditionSeverityInfo
+			}
 			cm.MarkFalse(conditionObservabilityAvailable,
 				conditions.WithError(err),
-				conditions.WithReason("CleanupFailed"))
+				conditions.WithReason("CleanupFailed"),
+				conditions.WithSeverity(severity))
 			logger.Error(err, "Failed to clean up disabled observability resources")
 			return observabilityRetryInterval
 		}
