@@ -95,7 +95,6 @@ type App struct {
 	dashboardNamespace      string
 	memoryStore             cache.MemoryStore
 	rootCAs                 *x509.CertPool
-	clusterDomain           string
 	sandboxMu               sync.RWMutex
 	sandboxesAvailable      bool
 	sandboxWatcherDone      chan struct{}
@@ -368,17 +367,6 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	fileUploadJobTracker := services.NewFileUploadJobTracker(memStore, logger)
 	logger.Info("Initialized file upload job tracker")
 
-	// Cache cluster domain at startup using service account
-	var clusterDomain string
-	if !cfg.MockK8sClient {
-		if domain, err := k8s.GetClusterDomainUsingServiceAccount(context.Background(), logger); err != nil {
-			logger.Error("Failed to get cluster domain at startup, MaaS autodiscovery will be unavailable", "error", err)
-		} else {
-			clusterDomain = domain
-			logger.Info("Cached cluster domain for MaaS autodiscovery", "domain", clusterDomain)
-		}
-	}
-
 	// GatewayDomain is used to construct the base_url for the remote::passthrough
 	// provider in OGX configs
 	if cfg.GatewayDomain == "" {
@@ -402,7 +390,6 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		dashboardNamespace:      dashboardNamespace,
 		memoryStore:             memStore,
 		rootCAs:                 rootCAs,
-		clusterDomain:           clusterDomain,
 		fileUploadJobTracker:    fileUploadJobTracker,
 		cleanupFuncs:            cleanupFuncs,
 	}

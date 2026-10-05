@@ -9,7 +9,7 @@
     {
       "id": "test-impact-review",
       "status": "pass",
-      "summary": "Tests cover the changed behavior."
+      "summary": "Automation, efficiency, and evidence depth cover the change."
     }
   ],
   "todo": ["Address the readiness note if the author agrees it still applies."],
