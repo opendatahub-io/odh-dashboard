@@ -6,6 +6,7 @@ import type { PluginStore } from '@odh-dashboard/plugin-core';
 
 type SDKConfigurations = React.ComponentProps<typeof AppInitSDK>['configurations'];
 
+// Consumers supply static Kubernetes models for SDK calls and watches, so discovery is unnecessary.
 const apiDiscovery: NonNullable<SDKConfigurations['apiDiscovery']> = () => null;
 
 const getWsAppSettings = (basePath: string): ReturnType<SDKConfigurations['wsAppSettings']> =>
