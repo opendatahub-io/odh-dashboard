@@ -46,9 +46,29 @@ func TestServingRuntimeCatalogRoutes(t *testing.T) {
 	}
 }
 
-func TestServingRuntimeCatalogDisabledOutsideMockMode(t *testing.T) {
-	// A catalog mock is injected deliberately: the flag must still gate the extension.
-	app := api.NewTestApp(config.EnvConfig{DeploymentMode: config.DeploymentModeFederated}, noopLogger(), &fakeKubeFactory{}, &repositories.Repositories{ModelCatalogClient: &mocks.ModelCatalogClientMock{}})
+func TestServingRuntimeCatalogDevModeUsesMockWithoutCatalogMockFlag(t *testing.T) {
+	liveCatalogClient, err := repositories.NewModelCatalogClient(noopLogger())
+	require.NoError(t, err)
+	app := api.NewTestApp(
+		config.EnvConfig{DevMode: true, MockMRCatalogClient: false, DeploymentMode: config.DeploymentModeFederated},
+		noopLogger(),
+		&fakeKubeFactory{},
+		&repositories.Repositories{ModelCatalogClient: liveCatalogClient},
+	)
+	rr := httptest.NewRecorder()
+	app.Routes().ServeHTTP(rr, httptest.NewRequest(http.MethodGet, api.ServingRuntimeListPath+"?namespace=test", nil))
+	require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+}
+
+func TestServingRuntimeCatalogNotAvailableOutsideDevOrMock(t *testing.T) {
+	liveCatalogClient, err := repositories.NewModelCatalogClient(noopLogger())
+	require.NoError(t, err)
+	app := api.NewTestApp(
+		config.EnvConfig{DevMode: false, MockMRCatalogClient: false, DeploymentMode: config.DeploymentModeFederated},
+		noopLogger(),
+		&fakeKubeFactory{},
+		&repositories.Repositories{ModelCatalogClient: liveCatalogClient},
+	)
 	router := app.Routes()
 	for _, path := range []string{api.ServingRuntimeListPath, api.ServingRuntimeFilterOptionsPath, api.ServingRuntimeListPath + "/1", api.ServingRuntimeListPath + "/1/versions"} {
 		rr := httptest.NewRecorder()
