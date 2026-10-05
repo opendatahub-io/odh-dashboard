@@ -1327,6 +1327,54 @@ describe('useChatbotMessages', () => {
       secondPane.unmount();
       expect(revokeObjectURL).toHaveBeenCalledWith('blob:second-pane');
     });
+
+    it('should clear audio URL tracking when URL.revokeObjectURL is unavailable', async () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
+
+      await act(async () => {
+        await result.current.handleMessageSend(
+          'Transcribed speech',
+          undefined,
+          'file-image-1',
+          { previewUrl: 'blob:image-preview', fileName: 'photo.png' },
+          file,
+        );
+      });
+
+      URL.revokeObjectURL = undefined as unknown as typeof URL.revokeObjectURL;
+      act(() => result.current.clearConversation());
+
+      await act(async () => {
+        await result.current.handleMessageSend(
+          'Transcribed speech',
+          undefined,
+          undefined,
+          undefined,
+          file,
+        );
+      });
+      expect(createObjectURL).toHaveBeenCalledTimes(2);
+    });
+
+    it('should unmount with audio when URL.revokeObjectURL is unavailable', async () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+      const hook = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await hook.result.current.handleMessageSend(
+          'Transcribed speech',
+          undefined,
+          undefined,
+          undefined,
+          new File(['audio-data'], 'recording.wav', { type: 'audio/wav' }),
+        );
+      });
+
+      URL.revokeObjectURL = undefined as unknown as typeof URL.revokeObjectURL;
+      expect(hook.unmount).not.toThrow();
+    });
   });
 
   describe('thinking collapsible (non-streaming)', () => {

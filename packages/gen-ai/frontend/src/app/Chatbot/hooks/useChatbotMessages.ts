@@ -414,9 +414,11 @@ const useChatbotMessages = ({
     setLastResponseMetrics(null);
     isStoppingStreamRef.current = false;
     multimodalContentRef.current.clear();
-    imagePreviewRef.current.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+    if (typeof URL.revokeObjectURL === 'function') {
+      imagePreviewRef.current.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+      audioFileUrlRef.current.forEach((previewUrl) => URL.revokeObjectURL(previewUrl));
+    }
     imagePreviewRef.current.clear();
-    audioFileUrlRef.current.forEach((previewUrl) => URL.revokeObjectURL(previewUrl));
     audioFileUrlRef.current.clear();
 
     // Reset clearing flag after state updates complete
@@ -1136,7 +1138,9 @@ const useChatbotMessages = ({
           // URL.revokeObjectURL may be unavailable in test environments
         }
       });
-      audioFileUrlRef.current.forEach((previewUrl) => URL.revokeObjectURL(previewUrl));
+      if (typeof URL.revokeObjectURL === 'function') {
+        audioFileUrlRef.current.forEach((previewUrl) => URL.revokeObjectURL(previewUrl));
+      }
       audioFileUrlRef.current.clear();
     },
     [],
