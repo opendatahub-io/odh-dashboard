@@ -11,7 +11,7 @@ import {
   RhUiGearGroupIcon,
   RhUiInstallIcon,
   SearchIcon,
-  StarIcon,
+  RhUiStarIcon,
 } from '@patternfly/react-icons';
 import {
   DEFAULT_TASK_ICON,
@@ -28,7 +28,7 @@ describe('resolveTaskIconForNodeId', () => {
     expect(resolveTaskIconForNodeId('docs__extract_documents')).toBe(SearchIcon);
     expect(resolveTaskIconForNodeId('search__prepare_search_space')).toBe(RhUiGearGroupIcon);
     expect(resolveTaskIconForNodeId('opt__optimize_templates')).toBe(RhUiDistributeIcon);
-    expect(resolveTaskIconForNodeId('final__build_leaderboard')).toBe(StarIcon);
+    expect(resolveTaskIconForNodeId('final__build_leaderboard')).toBe(RhUiStarIcon);
   });
 
   it('maps branch step IDs to Figma-aligned stand-ins', () => {
