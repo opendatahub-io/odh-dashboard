@@ -5561,11 +5561,14 @@ components:
       type: object
       required:
         - name
+        - displayName
         - namespace
         - agentProfileId
         - state
       properties:
         name:
+          type: string
+        displayName:
           type: string
         namespace:
           type: string
