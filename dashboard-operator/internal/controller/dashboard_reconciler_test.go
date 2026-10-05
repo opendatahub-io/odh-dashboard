@@ -344,9 +344,10 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
 		},
 		Spec: v1alpha1.DashboardSpec{
-			ManagementSpec:     common.ManagementSpec{ManagementState: "Removed"},
-			MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
+			ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
+			MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
 		},
+		Status: v1alpha1.DashboardStatus{MaaSConsumerPortalURL: "https://previous.example.com/"},
 	}
 	cli := fake.NewClientBuilder().
 		WithScheme(scheme).
@@ -373,6 +374,7 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 	require.NotNil(t, condition)
 	assert.Equal(t, metav1.ConditionFalse, condition.Status)
 	assert.Equal(t, "ModuleDeployFailed", condition.Reason)
+	assert.Equal(t, "https://previous.example.com/", updated.Status.MaaSPortalURL)
 }
 
 func TestReconcile_Deletion(t *testing.T) {

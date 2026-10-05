@@ -37,7 +37,7 @@ const ModelServingContextProvider: HostApiServices['contexts']['ModelServingCont
 );
 
 const unsupportedCreateProject: HostApiServices['createProject'] = () =>
-  Promise.reject(new Error('Project creation is not available in the RHAII Tilt host.'));
+  Promise.reject(new Error('Project creation is not available in the RHAII host.'));
 
 const patchSecretWithOwnerReference = (
   secret: SecretKind,
@@ -104,7 +104,7 @@ const createCoreApi = (dashboardNamespace: string): HostApiCoreServices => ({
   checkAccess: () => Promise.resolve(false),
   trackEvent: () => undefined,
   fetchDashboardConfig: () =>
-    Promise.reject(new Error('DashboardConfig is not available in the RHAII Tilt host.')),
+    Promise.reject(new Error('DashboardConfig is not available in the RHAII host.')),
   fetchClusterSettings: () =>
     Promise.resolve<ClusterSettingsType>({
       userTrackingEnabled: false,
@@ -113,7 +113,7 @@ const createCoreApi = (dashboardNamespace: string): HostApiCoreServices => ({
       modelServingPlatformEnabled: { kServe: true, LLMd: false },
     }),
   updateClusterSettings: () =>
-    Promise.reject(new Error('Cluster settings are not configurable in the RHAII Tilt host.')),
+    Promise.reject(new Error('Cluster settings are not configurable in the RHAII host.')),
 });
 
 const infraApi: HostApiInfraServices = {
@@ -124,7 +124,7 @@ const infraApi: HostApiInfraServices = {
   patchSecretWithOwnerReference,
   patchSecretWithProtocolAnnotation,
   createProject: () =>
-    Promise.reject(new Error('Project creation is not available in the RHAII Tilt host.')),
+    Promise.reject(new Error('Project creation is not available in the RHAII host.')),
   getDashboardPvcs: () => Promise.resolve([]),
 };
 

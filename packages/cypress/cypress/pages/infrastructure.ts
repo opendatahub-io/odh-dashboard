@@ -24,6 +24,20 @@ class InfrastructurePage {
     return cy.findByTestId('infrastructure-tab-workloads');
   }
 
+  findProjectSelectorToggle() {
+    return cy.findByTestId('project-selector-toggle');
+  }
+
+  findProjectSelectorSearch() {
+    return cy.findByTestId('project-selector-search').find('input');
+  }
+
+  selectProjectByName(name: string) {
+    this.findProjectSelectorToggle().click();
+    this.findProjectSelectorSearch().fill(name);
+    cy.findByRole('menuitem', { name }).click();
+  }
+
   switchToQuotaUsageTab() {
     this.findQuotaUsageTab().click();
     return this;

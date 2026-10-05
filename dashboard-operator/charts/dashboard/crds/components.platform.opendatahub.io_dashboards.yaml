@@ -95,7 +95,11 @@ spec:
                 - domain
                 type: object
               maasConsumerPortal:
-                description: MaaSConsumerPortal configures the MaaS Consumer Portal.
+                description: |-
+                  MaaSConsumerPortal is the pre-DSC-v3 spelling. It is accepted for
+                  compatibility with existing Dashboard resources; MaaSPortal takes
+                  precedence when both fields are present.
+                  Deprecated: use MaaSPortal.
                 properties:
                   managementState:
                     default: Removed
@@ -104,7 +108,23 @@ spec:
                       "Managed" deploys the portal (requires Gateway.Domain to be set,
                       since the portal host is derived from it); "Removed" tears it down.
                       This mirrors the shape the ODH Operator projects from
-                      dashboard.maasConsumerPortal.managementState.
+                      dashboard.maasPortal.managementState.
+                    enum:
+                    - Managed
+                    - Removed
+                    type: string
+                type: object
+              maasPortal:
+                description: MaaSPortal configures the MaaS Portal.
+                properties:
+                  managementState:
+                    default: Removed
+                    description: |-
+                      ManagementState controls whether the portal is deployed.
+                      "Managed" deploys the portal (requires Gateway.Domain to be set,
+                      since the portal host is derived from it); "Removed" tears it down.
+                      This mirrors the shape the ODH Operator projects from
+                      dashboard.maasPortal.managementState.
                     enum:
                     - Managed
                     - Removed
@@ -266,8 +286,15 @@ spec:
                 type: object
               maasConsumerPortalUrl:
                 description: |-
-                  MaaSConsumerPortalURL is the externally-reachable MaaS Consumer Portal URL (last known good).
+                  MaaSConsumerPortalURL is the pre-DSC-v3 spelling retained for status
+                  compatibility. New consumers should use MaaSPortalURL.
+                  Deprecated: use MaaSPortalURL.
+                type: string
+              maasPortalUrl:
+                description: |-
+                  MaaSPortalURL is the externally-reachable MaaS Portal URL (last known good).
                   It is cleared when the portal operand is removed.
+                maxLength: 2048
                 type: string
               moduleStatuses:
                 additionalProperties:
