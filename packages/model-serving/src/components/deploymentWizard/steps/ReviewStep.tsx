@@ -528,11 +528,11 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
                     }}
                   >
                     {visibleItems.map((item) => (
-                      <DescriptionListGroup key={item.key}>
+                      <DescriptionListGroup key={item.key} data-testid={`review-item-${item.key}`}>
                         <DescriptionListTerm style={{ fontWeight: 'normal' }}>
                           {item.label}
                         </DescriptionListTerm>
-                        <DescriptionListDescription>
+                        <DescriptionListDescription data-testid={`review-item-${item.key}-value`}>
                           {item.comp(wizardState.state)}
                         </DescriptionListDescription>
                       </DescriptionListGroup>
