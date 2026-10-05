@@ -108,6 +108,11 @@ jest.mock('../../components/QuotaUsageSection', () => ({
   default: () => <div data-testid="quota-usage" />,
 }));
 
+jest.mock('../../components/InfrastructureWorkloadsSection', () => ({
+  __esModule: true,
+  default: () => <div data-testid="infrastructure-workloads" />,
+}));
+
 const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
 const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
 const mockUseAccessAllowed = jest.mocked(useAccessAllowed);
