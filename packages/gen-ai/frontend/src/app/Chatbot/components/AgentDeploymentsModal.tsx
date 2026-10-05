@@ -21,6 +21,7 @@ import {
 } from '@patternfly/react-core';
 import AgentConfigurationCard from '~/app/AIAssets/components/agentprofiles/AgentConfigurationCard';
 import { AgentDeploymentSummary } from '~/app/agentProfile/types';
+import { AIModel } from '~/app/types';
 import {
   buildResponseAPICurl,
   responseAPIURL,
@@ -33,6 +34,7 @@ type AgentDeploymentsModalProps = {
   agentName: string;
   deployments: AgentDeploymentSummary[];
   initialDeploymentName: string;
+  aiModels?: AIModel[];
   onClose: () => void;
   onDeleted: () => void;
 };
@@ -41,6 +43,7 @@ const AgentDeploymentsModal: React.FC<AgentDeploymentsModalProps> = ({
   agentName,
   deployments,
   initialDeploymentName,
+  aiModels,
   onClose,
   onDeleted,
 }) => {
@@ -205,6 +208,7 @@ const AgentDeploymentsModal: React.FC<AgentDeploymentsModalProps> = ({
                           profile={deploymentDetails.config}
                           title="Configuration snapshot"
                           deployedAt={deployment.createdAt}
+                          aiModels={aiModels}
                         />
                       </StackItem>
                     )}
