@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
 	"sync"
 	"time"
 
@@ -48,14 +49,18 @@ func (e *MaasUpstreamError) Error() string {
 // NewMaasClient creates a MaaS API client. An empty baseURL is allowed so the BFF
 // can start before maas-api is discoverable; call SetBaseURL once the URL is known.
 func NewMaasClient(logger *slog.Logger, baseURL string) (*MaasClient, error) {
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true, // TODO: Don't skip TLS verification; honor `insecure-skip-verify` command line flag
+		},
+	}
+	if os.Getenv("E2E_USE_PROXY_FROM_ENV") == "true" {
+		transport.Proxy = http.ProxyFromEnvironment
+	}
 	client := &MaasClient{
 		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true, // TODO: Don't skip TLS verification; honor `insecure-skip-verify` command line flag
-				},
-			},
+			Timeout:   10 * time.Second,
+			Transport: transport,
 		},
 		logger:          logger,
 		maxResponseSize: 2 << 20, // 2MB

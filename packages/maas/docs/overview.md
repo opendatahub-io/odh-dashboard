@@ -39,3 +39,5 @@
 - **Deprecated flags**: Prefer `--deployment-mode=<mode>` over legacy `--standalone-mode` / `--federated-platform`.
 - **`MOCK_HTTP_CLIENT`**: Fixtures under `bff/internal/integrations/maas/testdata/` do not cover all edge cases.
 - **Kubeflow mode**: Expects a Kuadrant-capable cluster; not fully mockable.
+
+For cluster-backed Cypress E2E runs, `dev-bff-e2e-cluster` keeps `MAAS_API_URL` pointed at the real gateway and sets `E2E_USE_PROXY_FROM_ENV=true` for the MaaS BFF. Its MaaS API client then honors the runner's `HTTPS_PROXY` and `NO_PROXY` settings. Other startup targets do not set this flag.

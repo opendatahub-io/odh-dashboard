@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"testing"
 
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
@@ -37,6 +38,61 @@ func jsonHandler(t *testing.T, v any) http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write(b)
 	})
+}
+
+func TestNewMaasClient_ProxyFromEnvironmentOnlyInE2E(t *testing.T) {
+	// Go caches proxy environment settings on first use, so test their values
+	// in a fresh process rather than relying on the order of other tests.
+	if os.Getenv("MAAS_PROXY_TEST_CHILD") != "1" {
+		cmd := exec.Command(os.Args[0], "-test.run=^TestNewMaasClient_ProxyFromEnvironmentOnlyInE2E$")
+		cmd.Env = append(os.Environ(),
+			"MAAS_PROXY_TEST_CHILD=1",
+			"E2E_USE_PROXY_FROM_ENV=",
+			"HTTPS_PROXY=http://squid.example.test:3128",
+			"https_proxy=",
+			"NO_PROXY=.cluster.local",
+			"no_proxy=",
+		)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("MaaS proxy environment subprocess failed: %v\n%s", err, output)
+		}
+		return
+	}
+
+	t.Setenv("E2E_USE_PROXY_FROM_ENV", "")
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	client, err := NewMaasClient(logger, "https://maas.example.test/maas-api")
+	if err != nil {
+		t.Fatalf("NewMaasClient without E2E proxy: %v", err)
+	}
+	transport := client.httpClient.Transport.(*http.Transport)
+	if transport.Proxy != nil {
+		t.Fatal("MaaS client must not use the runner proxy by default")
+	}
+
+	t.Setenv("E2E_USE_PROXY_FROM_ENV", "true")
+	client, err = NewMaasClient(logger, "https://maas.example.test/maas-api")
+	if err != nil {
+		t.Fatalf("NewMaasClient with E2E proxy: %v", err)
+	}
+	transport = client.httpClient.Transport.(*http.Transport)
+	if transport.Proxy == nil {
+		t.Fatal("MaaS client must honor proxy environment in E2E mode")
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "https://maas.example.test/maas-api/v1/models", nil)
+	proxyURL, err := transport.Proxy(request)
+	if err != nil || proxyURL == nil || proxyURL.String() != "http://squid.example.test:3128" {
+		t.Fatalf("unexpected proxy for MaaS API: %v, %v", proxyURL, err)
+	}
+
+	request = httptest.NewRequest(http.MethodGet, "https://maas.svc.cluster.local/maas-api/v1/models", nil)
+	proxyURL, err = transport.Proxy(request)
+	if err != nil || proxyURL != nil {
+		t.Fatalf("NO_PROXY target should bypass Squid: %v, %v", proxyURL, err)
+	}
 }
 
 func TestSearchAPIKeys_NilDataNormalized(t *testing.T) {
