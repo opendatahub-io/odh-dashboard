@@ -191,6 +191,10 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
+	// Migrate the legacy last-known-good portal URL before any reconciliation
+	// step can fail and persist status without reaching portal reconciliation.
+	backfillMaaSPortalURL(&dashboard.Status)
+
 	// Ready is the rollup condition — auto-derived by the Manager from
 	// ProvisioningSucceeded, Degraded, ObservabilityAvailable, and
 	// MaaSConsumerPortalAvailable. It is set explicitly only when both operands are
@@ -253,7 +257,8 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			conditions.WithReason("Removed"),
 			conditions.WithMessage("Dashboard has been removed"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
-		if dashboard.Spec.MaaSConsumerPortal == nil || dashboard.Spec.MaaSConsumerPortal.ManagementState != "Managed" {
+		portal := effectiveMaaSPortal(dashboard.Spec)
+		if portal == nil || portal.ManagementState != "Managed" {
 			// With neither operand managed, retain the established Removed state.
 			cm.MarkFalse(string(common.ConditionTypeReady),
 				conditions.WithReason("Removed"),
@@ -710,6 +715,10 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 
 	if err := r.cleanupRayDashboardGatewayRBAC(ctx); err != nil {
 		return err
+	}
+
+	if err := r.cleanupDataConnectHubGatewayRBAC(ctx, ""); err != nil {
+		return fmt.Errorf("DCH gateway RBAC cleanup: %w", err)
 	}
 
 	obsNS := ""

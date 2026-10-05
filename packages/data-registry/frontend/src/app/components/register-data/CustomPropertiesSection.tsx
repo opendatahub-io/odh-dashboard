@@ -8,7 +8,7 @@ import {
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
-import { PlusCircleIcon } from '@patternfly/react-icons';
+import { PlusCircleIcon, TrashIcon } from '@patternfly/react-icons';
 import { useFieldArray, useFormContext } from 'react-hook-form';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
 import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
@@ -54,7 +54,7 @@ const CustomPropertiesSection: React.FC = () => {
                 aria-label="Remove property"
                 data-testid={`data-custom-property-remove-${index}`}
               >
-                Remove
+                <TrashIcon />
               </Button>
             </FlexItem>
           </Flex>

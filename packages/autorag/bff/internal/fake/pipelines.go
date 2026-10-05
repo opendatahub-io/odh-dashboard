@@ -38,7 +38,7 @@ var fakePipelineSpec = json.RawMessage(`{
         "input_data_bucket_name": {"parameterType": "STRING"},
         "input_data_key": {"parameterType": "STRING"},
         "maas_secret_name": {"parameterType": "STRING"},
-        "vector_db_secret_name": {"parameterType": "STRING"},
+        "db_secret_name": {"parameterType": "STRING"},
         "chunk_size": {"parameterType": "INT"},
         "chunk_overlap": {"parameterType": "INT"},
         "chunking_method": {"parameterType": "STRING"}
@@ -312,11 +312,11 @@ func (c *PipelinesClient) seedRuns() {
 			"input_data_secret_name":        "data-connection",
 			"maas_secret_name":              "maas",
 			"optimization_max_rag_patterns": 5,
-			"optimization_metric":           "faithfulness",
+			"optimization_metric":           "unitxt:faithfulness",
 			"test_data_bucket_name":         "s3-bucket",
 			"test_data_key":                 "autorag input data/pdf/bank_policies_pdf/all_bank_policies_eval_data_pdf.json",
 			"test_data_secret_name":         "data-connection",
-			"vector_db_secret_name":         "vector-db",
+			"db_secret_name":                "vector-db",
 		}
 
 		history := []plsvc.RuntimeStatus{

@@ -1,7 +1,7 @@
 /* eslint-disable camelcase -- BFF API uses snake_case */
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   QueryClient,
@@ -14,7 +14,7 @@ import { AutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import type { AutomlResultsContextProps } from '~/app/context/AutomlResultsContext';
 import * as modelRegistryApi from '~/app/api/modelRegistry';
 import * as useModelRegistriesQueryModule from '~/app/hooks/useModelRegistriesQuery';
-import type { ModelRegistriesResponse } from '~/app/types';
+import type { ModelRegistriesResponse, RegisterModelResponse } from '~/app/types';
 import RegisterModelModal, {
   REGISTRATION_FAILURE_MESSAGE,
   REGISTRIES_LOAD_FAILURE_MESSAGE,
@@ -334,6 +334,38 @@ describe('RegisterModelModal', () => {
       // Submit button should remain disabled
       expect(screen.getByTestId('register-model-submit')).toBeDisabled();
     });
+
+    it('should disable submit when the selected registry is no longer available', () => {
+      mockUseModelRegistriesQuery.mockReturnValue(
+        mockQueryResult({
+          data: mockRegistries,
+          isLoading: false,
+          isError: false,
+        }),
+      );
+
+      renderModal();
+      fireEvent.click(screen.getByTestId('registry-select-toggle'));
+      fireEvent.click(
+        screen.getByTestId('registry-option-default-registry').querySelector('button')!,
+      );
+
+      mockUseModelRegistriesQuery.mockReturnValue(
+        mockQueryResult({
+          data: { model_registries: [] },
+          isLoading: false,
+          isError: false,
+        }),
+      );
+      fireEvent.change(screen.getByTestId('model-description-input'), {
+        target: { value: 'Updated description' },
+      });
+
+      expect(screen.getByTestId('registry-validation-error')).toHaveTextContent(
+        'This registry is no longer available and cannot be used for model registration.',
+      );
+      expect(screen.getByTestId('register-model-submit')).toBeDisabled();
+    });
   });
 
   describe('form rendering', () => {
@@ -474,6 +506,111 @@ describe('RegisterModelModal', () => {
       expect(allTrackingCalls).not.toContain('AKIAabc123');
     });
 
+    it('should use the submit-time registry when the selection changes while pending', () => {
+      renderModal();
+
+      capturedMutationOptions?.onSuccess?.(
+        { registered_model_id: 'registered-1' },
+        {
+          registryId: 'uid-1',
+          registryName: 'default-registry',
+          modelName: 'TestModel',
+          request: {
+            s3_path: 'model/predictor',
+            model_name: 'TestModel',
+            version_name: 'v1',
+          },
+        },
+        undefined,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        {} as any,
+      );
+
+      expect(notificationSuccess).toHaveBeenCalledWith(
+        'TestModel registered successfully',
+        undefined,
+        expect.arrayContaining([
+          expect.objectContaining({
+            title: 'View in model registry',
+          }),
+        ]),
+      );
+      expect(fireAutomlModelRegisteredMock).toHaveBeenCalledWith(
+        expect.objectContaining({ registryTarget: 'default-registry', success: true }),
+      );
+    });
+
+    it('should keep the submit-time registry identity through a pending registration', async () => {
+      const secondRegistry = {
+        ...mockRegistries.model_registries[0],
+        id: 'uid-3',
+        name: 'second-registry',
+        display_name: 'Second Registry',
+      };
+      mockUseModelRegistriesQuery.mockReturnValue(
+        mockQueryResult({
+          data: { model_registries: [mockRegistries.model_registries[0], secondRegistry] },
+          isLoading: false,
+          isError: false,
+        }),
+      );
+      let resolveRegistration: ((value: RegisterModelResponse) => void) | undefined;
+      mockRegisterModel.mockReturnValueOnce(
+        new Promise<RegisterModelResponse>((resolve) => {
+          resolveRegistration = resolve;
+        }),
+      );
+      const open = jest.spyOn(window, 'open').mockImplementation(() => null);
+
+      renderModal();
+      fireEvent.click(screen.getByTestId('registry-select-toggle'));
+      fireEvent.click(
+        screen.getByTestId('registry-option-default-registry').querySelector('button')!,
+      );
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('register-model-submit'));
+        await Promise.resolve();
+      });
+      expect(mockRegisterModel).toHaveBeenCalledWith(
+        '',
+        expect.objectContaining({ registryId: 'uid-1' }),
+      );
+
+      fireEvent.click(screen.getByTestId('registry-select-toggle'));
+      fireEvent.click(
+        screen.getByTestId('registry-option-second-registry').querySelector('button')!,
+      );
+      await act(async () => {
+        resolveRegistration?.({ registered_model_id: 'registered-2', model_artifact: {} });
+        await Promise.resolve();
+      });
+
+      expect(notificationSuccess).toHaveBeenCalledWith(
+        'TestModel registered successfully',
+        undefined,
+        expect.arrayContaining([
+          expect.objectContaining({
+            title: 'View in model registry',
+            onClick: expect.any(Function),
+          }),
+        ]),
+      );
+      expect(fireAutomlModelRegisteredMock).toHaveBeenCalledWith(
+        expect.objectContaining({ registryTarget: 'default-registry', success: true }),
+      );
+      const successActions = notificationSuccess.mock.calls[0]?.[2];
+      if (successActions) {
+        successActions[0].onClick();
+      }
+      expect(open).toHaveBeenCalledWith(
+        '/ai-hub/registry/default-registry/registered-models/registered-2/overview',
+        '_blank',
+        'noopener,noreferrer',
+      );
+      open.mockRestore();
+    });
+
     it('should show only the fixed, user-safe message in the notification, never the raw registry error (CWE-209)', () => {
       renderModal();
 
@@ -514,8 +651,8 @@ describe('RegisterModelModal', () => {
             ...actualUseMutation(options),
             isError: true,
             error: new Error(sensitiveMessage),
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          }) as any,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, prettier/prettier
+          } as any),
       );
 
       renderModal();
@@ -583,8 +720,8 @@ describe('RegisterModelModal', () => {
           ({
             ...actualUseMutation(options),
             isPending: true,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          }) as any,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, prettier/prettier
+          } as any),
       );
       renderModal({ onClose });
 
@@ -605,8 +742,8 @@ describe('RegisterModelModal', () => {
           ({
             ...actualUseMutation(options),
             isPending: true,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          }) as any,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, prettier/prettier
+          } as any),
       );
       renderModal({ onClose });
 

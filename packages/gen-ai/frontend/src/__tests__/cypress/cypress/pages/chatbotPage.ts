@@ -243,6 +243,18 @@ class ChatbotPage {
     return cy.findByTestId('header-kebab-menu-toggle');
   }
 
+  findSaveProfileNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('save-agent-profile-name-input');
+  }
+
+  findSaveProfileSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('save-agent-profile-submit-button');
+  }
+
+  findProfileLoadWarning(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('agent-profile-load-warning');
+  }
+
   openKebabMenu(): void {
     this.findKebabMenuButton().click();
   }

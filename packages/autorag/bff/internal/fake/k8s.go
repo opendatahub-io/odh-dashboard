@@ -117,6 +117,16 @@ var fakeSecrets = map[string][]v1.Secret{
 				"MILVUS_URI": []byte("https://milvus.example.com:19530"),
 			},
 		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "neo4j",
+				Namespace: "my-project",
+				UID:       "7c3g7e49-5f3f-6c3d-be9f-9f8g0d1c2b3f",
+			},
+			Data: map[string][]byte{
+				"NEO4J_URI": []byte("neo4j://neo4j.example.com:7687"),
+			},
+		},
 	},
 }
 

@@ -21,15 +21,15 @@ describe('AutoRAG run results metrics', () => {
     autoragRunResultsPage.findMetricHeader('answer_correctness', 'unitxt').should('be.visible');
     autoragRunResultsPage.findMetricHeaderInfoButton('answer_correctness', 'unitxt').click();
     autoragRunResultsPage
-      .findMetricDescriptionTooltip()
-      .should('contain.text', 'Matches the expected ground-truth answers');
+      .findMetricDescriptionPopover()
+      .should('contain.text', 'expected ground-truth answers');
 
     autoragRunResultsPage.findPatternLink(1).click();
     autoragRunResultsPage.findPatternDetailsModal().should('be.visible');
 
     autoragRunResultsPage.findCIScoresChart().should('be.visible');
     autoragRunResultsPage.findCIScoresInfo().should('be.visible');
-    autoragRunResultsPage.findCIMetricHelp('answer_correctness').should('exist');
+    autoragRunResultsPage.findCIMetricHelp('answer_correctness', 'unitxt').should('exist');
     autoragRunResultsPage.findCILegendLowHelp().should('exist');
 
     autoragRunResultsPage.findPatternDetailsTab('sample_qa').click();

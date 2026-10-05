@@ -18,7 +18,7 @@ import { useParams } from 'react-router';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { computeRankMap, resolveEvalMetric } from '~/app/utilities/utils';
 import { TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
-import { useModelEvaluationArtifactsQuery } from '~/app/hooks/queries';
+import { useModelEvaluationArtifactsQuery } from '~/app/hooks/useModelEvaluationArtifactsQuery';
 import {
   fireAutomlModelDetailsDownloadInitiated,
   fireAutomlModelDetailsTabViewed,

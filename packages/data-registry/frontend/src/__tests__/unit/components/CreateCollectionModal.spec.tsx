@@ -136,6 +136,30 @@ describe('CreateCollectionModal', () => {
     expect(screen.getByTestId('create-collection-submit')).toBeDisabled();
   });
 
+  it('should keep the owner options available when the user settings load', async () => {
+    mockUseSettings.mockReturnValue({
+      userSettings: { userId: '' },
+      configSettings: null,
+      loaded: false,
+      loadError: undefined,
+    });
+
+    const user = userEvent.setup();
+    const { rerender } = render(<CreateCollectionModal {...defaultProps} />);
+
+    await user.click(screen.getByLabelText('Typeahead menu toggle'));
+
+    mockUseSettings.mockReturnValue({
+      userSettings: { userId: 'test-user' },
+      configSettings: null,
+      loaded: true,
+      loadError: undefined,
+    });
+    rerender(<CreateCollectionModal {...defaultProps} />);
+
+    expect(screen.getByText('Unassigned')).toBeInTheDocument();
+  });
+
   it('should display error message on submission failure', async () => {
     const user = userEvent.setup();
     mockCreateCollection.mockRejectedValue(new Error('API error 409: Collection already exists'));

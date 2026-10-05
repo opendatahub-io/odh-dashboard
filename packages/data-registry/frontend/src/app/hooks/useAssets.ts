@@ -1,7 +1,7 @@
 import React from 'react';
 import { useFetchState, type APIOptions, type FetchStateCallbackPromise } from 'mod-arch-core';
 import { fetchCollections, fetchAssets, fetchVolumes } from '~/app/api/dataRegistry';
-import type { AssetResponse, VolumeInfo } from '~/app/types';
+import type { AssetResponse } from '~/app/types';
 
 export type RegistryAsset = {
   name: string;
@@ -14,7 +14,7 @@ export type RegistryAsset = {
   collection: string;
   properties: Record<string, string>;
   /** The original BFF response, including asset-type-specific fields. */
-  rawAsset?: AssetResponse | VolumeInfo;
+  rawAsset?: AssetResponse;
 };
 
 const mapTableAsset = (asset: AssetResponse, collection: string): RegistryAsset => {
@@ -28,9 +28,9 @@ const mapTableAsset = (asset: AssetResponse, collection: string): RegistryAsset 
   return {
     name: asset.name,
     description: asset.description || '',
-    format: asset.format || '',
-    assetType: 'table',
-    location: asset.location || '',
+    format: asset.format,
+    assetType: asset.asset_type,
+    location: asset.storage_location || '',
     connectionRef,
     labels: asset.labels || [],
     collection,
@@ -39,7 +39,7 @@ const mapTableAsset = (asset: AssetResponse, collection: string): RegistryAsset 
   };
 };
 
-const mapVolumeAsset = (volume: VolumeInfo, collection: string): RegistryAsset => {
+const mapVolumeAsset = (volume: AssetResponse, collection: string): RegistryAsset => {
   // Extract connection name from ConnectionRef object
   const connectionRef = volume.connection_ref
     ? volume.connection_ref.type === 'rhai'
@@ -49,10 +49,10 @@ const mapVolumeAsset = (volume: VolumeInfo, collection: string): RegistryAsset =
 
   return {
     name: volume.name,
-    description: volume.properties?.description || volume.comment || '',
-    format: volume['volume-type'] || '',
-    assetType: 'volume',
-    location: volume['storage-location'] || '',
+    description: volume.description || '',
+    format: volume.format,
+    assetType: volume.asset_type,
+    location: volume.storage_location || '',
     connectionRef,
     labels: volume.labels || [],
     collection,
@@ -86,12 +86,8 @@ export const useAssets = (
             fetchVolumes(project, collection, opts),
           ]);
 
-          const tableAssets = (assetsResponse.assets ?? []).map((a) =>
-            mapTableAsset(a, collection),
-          );
-          const volumeAssets = (volumesResponse.volumes ?? []).map((v) =>
-            mapVolumeAsset(v, collection),
-          );
+          const tableAssets = assetsResponse.assets.map((a) => mapTableAsset(a, collection));
+          const volumeAssets = volumesResponse.volumes.map((v) => mapVolumeAsset(v, collection));
 
           return [...tableAssets, ...volumeAssets];
         }),

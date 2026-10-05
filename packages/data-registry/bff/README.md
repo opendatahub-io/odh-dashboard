@@ -157,13 +157,13 @@ authorization, data persistence, or business logic of its own. See
   `/api` segment is stripped before forwarding upstream, so `/api/v1/{project}/namespaces/{collection}/...`
   becomes upstream `/v1/{project}/namespaces/{collection}/...`, matching the vendored OpenAPI
   contract's own `/v1` root exactly. `project` is the RHOAI project (K8s namespace, used by the
-  upstream server for SAR) and `collection` is the Iceberg namespace within that project. The two
-  non-project-scoped routes (`/api/v1/config`, `/api/v1/projects`) need no special-casing — they're
+  upstream server for SAR) and `collection` is the Iceberg namespace within that project. The
+  non-project-scoped route (`/api/v1/config`) needs no special-casing — it's
   just more paths under the same catchall.
 - **Auth**: the caller's bearer token (extracted by `InjectRequestIdentity` from the configured
   token header) is forwarded upstream as `Authorization: Bearer <token>` — rebuilt fresh from
   the verified identity, never copied verbatim from the incoming request. The Data Registry
-  server's own `kube-rbac-proxy` sidecar performs the actual TokenReview/SubjectAccessReview
+  server's own `kube-rbac-proxy` sidecar performs the actual TokenReview/SAR
   against the `project` path segment; the BFF does not perform its own authorization for these
   routes.
 - **Relaying**: request method, body, and the raw query string are forwarded unchanged (query
@@ -171,8 +171,8 @@ authorization, data persistence, or business logic of its own. See
   `Authorization` (always rebuilt, see above), the configured incoming auth-token header (e.g.
   `x-forwarded-access-token` — see `-auth-token-header` above; never relayed verbatim either, for
   the same reason as `Authorization`), and `X-User` plus legacy Kubeflow identity headers (always
-  stripped) — the upstream contract trusts those identity headers for attribution (e.g. the
-  `registered_by` field), so a caller-supplied value is never relayed as-is. The upstream response
+  stripped) — the upstream contract trusts those identity headers for attribution, so a
+  caller-supplied value is never relayed as-is. The upstream response
   status, body, and headers are relayed back verbatim by `httputil.ReverseProxy` — including error
   responses, so Iceberg REST error shapes (`{"error": {"message", "type", "code"}}`) reach the
   frontend untransformed.

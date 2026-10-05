@@ -2,7 +2,6 @@ import React from 'react';
 import { Alert, Button, Flex, FlexItem, Label } from '@patternfly/react-core';
 import { Message, MessageProps as PFMessageProps } from '@patternfly/chatbot';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { ChatbotMessageProps } from '~/app/Chatbot/hooks/useChatbotMessages';
 import type { DocumentAttachment } from '~/app/types';
 import { ChatbotMessagesMetrics } from '~/app/Chatbot/ChatbotMessagesMetrics';
@@ -71,7 +70,6 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
           // eslint-disable-next-line jsx-a11y/aria-role
           role="bot"
           name={modelDisplayName}
-          avatar={botAvatar}
           content={placeholderContent}
           data-testid="chatbot-placeholder-message"
           style={{ cursor: 'default', pointerEvents: 'none' }}
@@ -103,40 +101,42 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
         // Build extraContent with metrics and error alerts
         const extraContent: PFMessageProps['extraContent'] = { ...messageExtraContent };
 
-        if (message.role === 'user' && (documentAttachments?.length || attachmentWarning)) {
-          extraContent.endContent = (
+        if (message.role === 'user' && documentAttachments?.length) {
+          extraContent.beforeMainContent = (
             <>
-              {documentAttachments && (
-                <Flex flexWrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
-                  {documentAttachments.map((attachment) => (
-                    <Label
-                      key={attachment.file_id}
-                      className="gen-ai-chatbot-document-attachment"
-                      icon={
-                        <span className="gen-ai-chatbot-icon">
-                          <img src={RhUiResourceIcon} alt="" />
-                        </span>
-                      }
-                      onClick={() => onViewDocument?.(attachment)}
-                      variant="outline"
-                      data-testid={`sent-document-attachment-${attachment.file_id}`}
-                    >
-                      <span className="gen-ai-chatbot-details">
-                        <span className="gen-ai-chatbot-filename">{attachment.filename}</span>
-                        <span className="gen-ai-chatbot-type">
-                          {getDocumentAttachmentTypeLabel(attachment.filename)}
-                        </span>
+              {extraContent.beforeMainContent}
+              <Flex flexWrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
+                {documentAttachments.map((attachment) => (
+                  <Label
+                    key={attachment.file_id}
+                    className="gen-ai-chatbot-document-attachment"
+                    icon={
+                      <span className="gen-ai-chatbot-icon">
+                        <img src={RhUiResourceIcon} alt="" />
                       </span>
-                    </Label>
-                  ))}
-                </Flex>
-              )}
-              {attachmentWarning && (
-                <Alert variant="danger" isInline isPlain title="Model context window exceeded">
-                  Model’s context window exceeded. Instead upload files to Settings → RAG.
-                </Alert>
-              )}
+                    }
+                    onClick={() => onViewDocument?.(attachment)}
+                    variant="outline"
+                    data-testid={`sent-document-attachment-${attachment.file_id}`}
+                  >
+                    <span className="gen-ai-chatbot-details">
+                      <span className="gen-ai-chatbot-filename">{attachment.filename}</span>
+                      <span className="gen-ai-chatbot-type">
+                        {getDocumentAttachmentTypeLabel(attachment.filename)}
+                      </span>
+                    </span>
+                  </Label>
+                ))}
+              </Flex>
             </>
+          );
+        }
+
+        if (message.role === 'user' && attachmentWarning) {
+          extraContent.endContent = (
+            <Alert variant="danger" isInline isPlain title="Model context window exceeded">
+              Model’s context window exceeded. Instead upload files to Settings → RAG.
+            </Alert>
           );
         }
 
