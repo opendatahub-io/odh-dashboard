@@ -161,8 +161,8 @@ func resolveModuleStatuses(spec *v1alpha1.DashboardSpec) map[string]v1alpha1.Mod
 	result := make(map[string]v1alpha1.ModuleStatus, len(moduleRegistry))
 
 	coreRequiresModules := spec.ManagementState != "Removed"
-	maasConsumerPortalRequiresModules := spec.MaaSConsumerPortal != nil &&
-		spec.MaaSConsumerPortal.ManagementState == "Managed"
+	portal := effectiveMaaSPortal(*spec)
+	maasConsumerPortalRequiresModules := portal != nil && portal.ManagementState == "Managed"
 
 	// Pass 1: aggregate demand + DSC component gate + explicit CR overrides
 	for name, mod := range moduleRegistry {
