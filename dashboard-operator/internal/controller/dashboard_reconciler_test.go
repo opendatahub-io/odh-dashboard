@@ -145,9 +145,13 @@ func TestReconcile_ObservabilityDetectionFailureDoesNotBlockCore(t *testing.T) {
 	assert.Equal(t, ctrlpkg.ObservabilityRetryInterval, result.RequeueAfter)
 	updated := &v1alpha1.Dashboard{}
 	require.NoError(t, cli.Get(ctx, req.NamespacedName, updated))
-	assert.Equal(t, "DetectionFailed", conditions.FindStatusCondition(updated, "ObservabilityAvailable").Reason)
+	condition := conditions.FindStatusCondition(updated, "ObservabilityAvailable")
+	require.NotNil(t, condition)
+	assert.Equal(t, "DetectionFailed", condition.Reason)
+	assert.Equal(t, common.ConditionSeverityInfo, condition.Severity)
 	assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeProvisioningSucceeded)))
-	assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
+	assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeReady)), "optional Perses detection must not block core readiness")
+	assert.Equal(t, common.PhaseReady, updated.Status.Phase)
 	require.NoError(t, cli.Get(ctx, client.ObjectKey{Name: "test-config", Namespace: testNamespace}, &corev1.ConfigMap{}), "core resources must be applied")
 	retained := &corev1.ConfigMap{}
 	require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(observability), retained))

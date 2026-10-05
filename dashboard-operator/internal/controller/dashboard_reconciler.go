@@ -215,10 +215,16 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if dashboard.Spec.ManagementState != "Removed" || maasPortalManaged {
 		observabilityDetectionErr = r.autoDetectObservability(ctx, dashboard)
 		if observabilityDetectionErr != nil {
-			dashboard.Status.Phase = common.PhaseNotReady
+			severity := common.ConditionSeverityError
+			if dashboard.Spec.ManagementState != "Removed" {
+				// Optional Perses detection must not change core dashboard readiness.
+				// Portal-only operation still reports observability failures as errors.
+				severity = common.ConditionSeverityInfo
+			}
 			cm.MarkFalse(conditionObservabilityAvailable,
 				conditions.WithError(observabilityDetectionErr),
-				conditions.WithReason("DetectionFailed"))
+				conditions.WithReason("DetectionFailed"),
+				conditions.WithSeverity(severity))
 			logger.Error(observabilityDetectionErr, "Failed to auto-detect observability, preserving its resources and Perses federation entry")
 		}
 	}

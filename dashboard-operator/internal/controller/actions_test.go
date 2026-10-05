@@ -706,6 +706,7 @@ data:
 	condition := conditions.FindStatusCondition(updated, conditionObservabilityAvailable)
 	require.NotNil(t, condition)
 	assert.Equal(t, "DetectionFailed", condition.Reason)
+	assert.Equal(t, common.ConditionSeverityError, condition.Severity, "portal-only observability failures must still block readiness")
 	assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
 	assert.False(t, conditions.IsStatusConditionTrue(updated, conditionMaaSConsumerPortalAvailable), "portal availability must be recalculated")
 	assert.Equal(t, "Removed", conditions.FindStatusCondition(updated, string(common.ConditionTypeProvisioningSucceeded)).Reason)
