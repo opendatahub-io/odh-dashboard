@@ -59,8 +59,8 @@ type RegistryTableProps = {
   labels: string[];
   project: string;
   connections?: ConnectionModel[];
-  onManageCollections: () => void;
-  onManageLabels: () => void;
+  onManageCollections: (onReturnToEdit?: () => void) => void;
+  onManageLabels: (onReturnToEdit?: () => void) => void;
   onRegisterData: () => void;
   onRetry: () => void;
   hasWriteAccess?: boolean;
@@ -144,6 +144,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   const [activeActionsAsset, setActiveActionsAsset] = React.useState<string>();
   const [deleteAsset, setDeleteAsset] = React.useState<RegistryAsset | null>(null);
   const [editAsset, setEditAsset] = React.useState<RegistryAsset | null>(null);
+  const [isEditAssetModalOpen, setIsEditAssetModalOpen] = React.useState(false);
   const [activeSortIndex, setActiveSortIndex] = React.useState<number | undefined>(undefined);
   const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc'>('asc');
   const [page, setPage] = React.useState(1);
@@ -252,9 +253,15 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   );
 
   const handleEditSaved = React.useCallback(() => {
+    setIsEditAssetModalOpen(false);
     setEditAsset(null);
     onRetry();
   }, [onRetry]);
+
+  const handleEditClosed = React.useCallback(() => {
+    setIsEditAssetModalOpen(false);
+    setEditAsset(null);
+  }, []);
 
   // Value dropdown content based on category
   const renderValueDropdown = () => {
@@ -849,6 +856,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                             onClick={() => {
                               if (asset.rawAsset) {
                                 setEditAsset(asset);
+                                setIsEditAssetModalOpen(true);
                               }
                             }}
                             isDisabled={!hasWriteAccess}
@@ -884,13 +892,30 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
       ) : null}
       {editAsset?.rawAsset ? (
         <EditAssetModal
+          isOpen={isEditAssetModalOpen}
           asset={editAsset.rawAsset}
           assetKind={editAsset.assetType}
           project={project}
           collection={editAsset.collection}
           name={editAsset.name}
-          onClose={() => setEditAsset(null)}
+          onClose={handleEditClosed}
           onSaved={handleEditSaved}
+          onManageCollections={
+            hasWriteAccess
+              ? () => {
+                  setIsEditAssetModalOpen(false);
+                  onManageCollections(() => setIsEditAssetModalOpen(true));
+                }
+              : undefined
+          }
+          onManageLabels={
+            hasWriteAccess
+              ? () => {
+                  setIsEditAssetModalOpen(false);
+                  onManageLabels(() => setIsEditAssetModalOpen(true));
+                }
+              : undefined
+          }
         />
       ) : null}
     </>

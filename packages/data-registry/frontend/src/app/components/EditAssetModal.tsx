@@ -33,6 +33,7 @@ import {
 import './register-data/RegistrationForm.scss';
 
 type EditAssetModalProps = {
+  isOpen?: boolean;
   asset: AssetResponse;
   assetKind: 'table' | 'volume';
   project: string;
@@ -40,6 +41,8 @@ type EditAssetModalProps = {
   name: string;
   onClose: () => void;
   onSaved: () => void;
+  onManageCollections?: () => void;
+  onManageLabels?: () => void;
 };
 
 const WELL_KNOWN_PROPERTIES = new Set(['purpose', 'license', 'maturity', 'domain', 'pii']);
@@ -134,6 +137,7 @@ const buildFormDefaults = (props: EditAssetModalProps, idStart: number): EditAss
 };
 
 const EditAssetModal: React.FC<EditAssetModalProps> = ({
+  isOpen = true,
   asset,
   assetKind,
   project,
@@ -141,12 +145,15 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
   name,
   onClose,
   onSaved,
+  onManageCollections,
+  onManageLabels,
 }) => {
   const isTable = assetKind === 'table';
   const [connections, connectionsLoaded, connectionsError] = useConnections(project);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
   const idRef = React.useRef(0);
+  const assetKey = `${project}:${collection}:${name}:${assetKind}`;
 
   const defaults = React.useMemo(() => {
     const result = buildFormDefaults(
@@ -165,9 +172,13 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
     mode: 'onBlur',
   });
 
+  const previousAssetKey = React.useRef<string>();
   React.useEffect(() => {
-    form.reset(defaults);
-  }, [defaults, form]);
+    if (previousAssetKey.current !== assetKey) {
+      previousAssetKey.current = assetKey;
+      form.reset(defaults);
+    }
+  }, [assetKey, defaults, form]);
 
   const handleSubmit = React.useCallback(
     async (data: EditAssetFormData) => {
@@ -272,7 +283,7 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
 
   return (
     <Modal
-      isOpen
+      isOpen={isOpen}
       onClose={isSubmitting ? undefined : onClose}
       variant="medium"
       data-testid="edit-asset-modal"
@@ -300,7 +311,11 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
             />
             <RegistrationAssetFormatSection isEditMode />
             {isTable ? <SchemaSection /> : null}
-            <RegistrationOrganizationSection isEditMode />
+            <RegistrationOrganizationSection
+              isEditMode
+              onManageCollections={onManageCollections}
+              onManageLabels={onManageLabels}
+            />
             <PropertiesSection />
           </Form>
         </FormProvider>

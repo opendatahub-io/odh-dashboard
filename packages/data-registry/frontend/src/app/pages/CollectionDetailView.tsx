@@ -31,6 +31,7 @@ type CollectionDetailViewProps = {
   collection: CollectionDetail;
   project?: string;
   onRegisterData?: () => void;
+  isRegisterDataDisabled?: boolean;
 };
 
 type AssetRowProps = {
@@ -110,6 +111,7 @@ const CollectionDetailView: React.FC<CollectionDetailViewProps> = ({
   collection,
   project,
   onRegisterData,
+  isRegisterDataDisabled = false,
 }) => (
   <Grid hasGutter>
     <GridItem md={7}>
@@ -134,6 +136,7 @@ const CollectionDetailView: React.FC<CollectionDetailViewProps> = ({
                   <Button
                     variant="primary"
                     onClick={onRegisterData}
+                    isDisabled={isRegisterDataDisabled}
                     data-testid="collection-empty-register-data-button"
                   >
                     Register data

@@ -106,6 +106,8 @@ const DataRegistryPage: React.FC = () => {
   const [isCollectionsModalOpen, setIsCollectionsModalOpen] = React.useState(false);
   const [isLabelsModalOpen, setIsLabelsModalOpen] = React.useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = React.useState(false);
+  const [returnToRegisterData, setReturnToRegisterData] = React.useState(false);
+  const returnToEditRef = React.useRef<(() => void) | undefined>(undefined);
   const [projectCreationFailure, setProjectCreationFailure] = React.useState<string>();
 
   const { preferredNamespace, updatePreferredNamespace } =
@@ -189,6 +191,30 @@ const DataRegistryPage: React.FC = () => {
     collectionsRefresh();
     labelsRefresh();
   }, [assetsRefresh, collectionsRefresh, labelsRefresh]);
+
+  const handleCollectionsModalClose = React.useCallback(() => {
+    setIsCollectionsModalOpen(false);
+    if (returnToRegisterData) {
+      setReturnToRegisterData(false);
+      setIsRegisterModalOpen(true);
+      return;
+    }
+    const returnToEdit = returnToEditRef.current;
+    returnToEditRef.current = undefined;
+    returnToEdit?.();
+  }, [returnToRegisterData]);
+
+  const handleLabelsModalClose = React.useCallback(() => {
+    setIsLabelsModalOpen(false);
+    if (returnToRegisterData) {
+      setReturnToRegisterData(false);
+      setIsRegisterModalOpen(true);
+      return;
+    }
+    const returnToEdit = returnToEditRef.current;
+    returnToEditRef.current = undefined;
+    returnToEdit?.();
+  }, [returnToRegisterData]);
 
   const handleProjectSelect = React.useCallback(
     (projectName: string) => {
@@ -322,25 +348,36 @@ const DataRegistryPage: React.FC = () => {
             labels={labels}
             project={selectedProject}
             connections={connections}
-            onManageCollections={() => {
+            onManageCollections={(onReturnToEdit) => {
+              setReturnToRegisterData(false);
               if (!collectionsError) {
+                returnToEditRef.current = onReturnToEdit;
                 setIsCollectionsModalOpen(true);
+              } else {
+                onReturnToEdit?.();
               }
             }}
-            onManageLabels={() => setIsLabelsModalOpen(true)}
-            onRegisterData={() => setIsRegisterModalOpen(true)}
+            onManageLabels={(onReturnToEdit) => {
+              returnToEditRef.current = onReturnToEdit;
+              setReturnToRegisterData(false);
+              setIsLabelsModalOpen(true);
+            }}
+            onRegisterData={() => {
+              setReturnToRegisterData(false);
+              setIsRegisterModalOpen(true);
+            }}
             onRetry={handleRefresh}
             hasWriteAccess={hasWriteAccess}
           />
           <ManageCollectionsModal
             isOpen={isCollectionsModalOpen}
-            onClose={() => setIsCollectionsModalOpen(false)}
+            onClose={handleCollectionsModalClose}
             project={selectedProject}
             onRefresh={handleRefresh}
           />
           <ManageLabelsModal
             isOpen={isLabelsModalOpen}
-            onClose={() => setIsLabelsModalOpen(false)}
+            onClose={handleLabelsModalClose}
             project={selectedProject}
             labels={labels}
             assets={assets}
@@ -354,10 +391,12 @@ const DataRegistryPage: React.FC = () => {
             onCreated={handleRefresh}
             onManageCollections={() => {
               setIsRegisterModalOpen(false);
+              setReturnToRegisterData(true);
               setIsCollectionsModalOpen(true);
             }}
             onManageLabels={() => {
               setIsRegisterModalOpen(false);
+              setReturnToRegisterData(true);
               setIsLabelsModalOpen(true);
             }}
           />

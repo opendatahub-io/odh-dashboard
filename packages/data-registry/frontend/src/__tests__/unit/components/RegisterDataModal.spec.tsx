@@ -223,6 +223,24 @@ describe('RegisterDataModal', () => {
     expect(defaultProps.onManageLabels).toHaveBeenCalled();
   });
 
+  it('should disable project label management when no callback is provided', () => {
+    render(<RegisterDataModal {...defaultProps} onManageLabels={undefined} />);
+
+    expect(screen.getByRole('button', { name: 'Manage labels' })).toBeDisabled();
+  });
+
+  it('should preserve form values while the modal is temporarily hidden', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<RegisterDataModal {...defaultProps} />);
+
+    await user.type(screen.getByTestId('data-name-input'), 'asset-under-construction');
+
+    rerender(<RegisterDataModal {...defaultProps} isOpen={false} />);
+    rerender(<RegisterDataModal {...defaultProps} isOpen />);
+
+    expect(screen.getByTestId('data-name-input')).toHaveValue('asset-under-construction');
+  });
+
   it('should keep added labels as editable rows with remove controls', async () => {
     const user = userEvent.setup();
     render(<RegisterDataModal {...defaultProps} />);

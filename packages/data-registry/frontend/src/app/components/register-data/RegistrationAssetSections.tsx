@@ -313,8 +313,8 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
           <Button
             variant="link"
             isInline
-            isDisabled={isEditMode}
-            onClick={isEditMode ? undefined : onManageCollections}
+            isDisabled={!onManageCollections}
+            onClick={onManageCollections}
           >
             Manage collections
           </Button>
@@ -386,12 +386,7 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
         <Content component="p">
           Optionally add labels to this data asset to make it easier to find later. To manage labels
           for the entire project, go to{' '}
-          <Button
-            variant="link"
-            isInline
-            isDisabled={isEditMode}
-            onClick={isEditMode ? undefined : onManageLabels}
-          >
+          <Button variant="link" isInline isDisabled={!onManageLabels} onClick={onManageLabels}>
             Manage labels
           </Button>
           .

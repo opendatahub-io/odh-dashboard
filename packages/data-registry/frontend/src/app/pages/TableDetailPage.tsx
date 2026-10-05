@@ -29,12 +29,15 @@ import { useVolume } from '~/app/hooks/useVolume';
 import { useConnections } from '~/app/hooks/useConnections';
 import { useAssets } from '~/app/hooks/useAssets';
 import { useCollections } from '~/app/hooks/useCollections';
+import { useLabels } from '~/app/hooks/useLabels';
 import { deleteGenericTable, deleteVolume } from '~/app/api/dataRegistry';
 import { hasDataRegistryWriteAccess } from '~/app/utilities/access';
 import { browseUrl } from '~/app/utilities/routes';
 import { useNotification } from '~/app/hooks/useNotification';
 import DeleteAssetModal from '~/app/components/DeleteAssetModal';
 import EditAssetModal from '~/app/components/EditAssetModal';
+import ManageCollectionsModal from '~/app/components/ManageCollectionsModal';
+import ManageLabelsModal from '~/app/components/ManageLabelsModal';
 import TableDetailView from './TableDetailView';
 
 const TableDetailPage: React.FC = () => {
@@ -61,8 +64,9 @@ const TableDetailPage: React.FC = () => {
     isVolume ? name : undefined,
   );
   const [connections] = useConnections(project || '');
-  const [assets, , assetsError, , collectionNames] = useAssets(project || '');
+  const [assets, , assetsError, assetsRefresh, collectionNames] = useAssets(project || '');
   const [, , collectionsError] = useCollections(project || '', assets, collectionNames);
+  const [labels, , , labelsRefresh] = useLabels(project || '');
   const hasWriteAccess = hasDataRegistryWriteAccess(assetsError, collectionsError);
 
   const asset = React.useMemo(
@@ -76,9 +80,13 @@ const TableDetailPage: React.FC = () => {
   const [isActionsOpen, setIsActionsOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(searchParams.get('edit') === 'true');
+  const [returnToEditModal, setReturnToEditModal] = React.useState(false);
+  const [isManageCollectionsOpen, setIsManageCollectionsOpen] = React.useState(false);
+  const [isManageLabelsOpen, setIsManageLabelsOpen] = React.useState(false);
 
   const closeEditModal = React.useCallback(() => {
     setIsEditModalOpen(false);
+    setReturnToEditModal(false);
     if (searchParams.has('edit')) {
       setSearchParams((current) => {
         const next = new URLSearchParams(current);
@@ -88,14 +96,48 @@ const TableDetailPage: React.FC = () => {
     }
   }, [searchParams, setSearchParams]);
 
-  const handleSaved = React.useCallback(() => {
-    closeEditModal();
+  const openCollectionsFromEdit = React.useCallback(() => {
+    setIsEditModalOpen(false);
+    setReturnToEditModal(true);
+    setIsManageCollectionsOpen(true);
+  }, []);
+
+  const openLabelsFromEdit = React.useCallback(() => {
+    setIsEditModalOpen(false);
+    setReturnToEditModal(true);
+    setIsManageLabelsOpen(true);
+  }, []);
+
+  const handleCollectionsModalClose = React.useCallback(() => {
+    setIsManageCollectionsOpen(false);
+    if (returnToEditModal) {
+      setReturnToEditModal(false);
+      setIsEditModalOpen(true);
+    }
+  }, [returnToEditModal]);
+
+  const handleLabelsModalClose = React.useCallback(() => {
+    setIsManageLabelsOpen(false);
+    if (returnToEditModal) {
+      setReturnToEditModal(false);
+      setIsEditModalOpen(true);
+    }
+  }, [returnToEditModal]);
+
+  const refresh = React.useCallback(() => {
     if (isVolume) {
       refreshVolume();
     } else {
       refreshGenericTable();
     }
-  }, [closeEditModal, isVolume, refreshGenericTable, refreshVolume]);
+    assetsRefresh();
+    labelsRefresh();
+  }, [assetsRefresh, isVolume, labelsRefresh, refreshGenericTable, refreshVolume]);
+
+  const handleSaved = React.useCallback(() => {
+    closeEditModal();
+    refresh();
+  }, [closeEditModal, refresh]);
 
   const handleDelete = React.useCallback(async () => {
     if (!project || !collection || !name) {
@@ -127,10 +169,11 @@ const TableDetailPage: React.FC = () => {
   );
 
   let editAssetModal: React.ReactNode = null;
-  if (isEditModalOpen && project && collection && name) {
+  if ((isEditModalOpen || returnToEditModal) && hasWriteAccess && project && collection && name) {
     if (isVolume && volume) {
       editAssetModal = (
         <EditAssetModal
+          isOpen={isEditModalOpen}
           asset={volume}
           assetKind="volume"
           project={project}
@@ -138,11 +181,14 @@ const TableDetailPage: React.FC = () => {
           name={name}
           onClose={closeEditModal}
           onSaved={handleSaved}
+          onManageCollections={openCollectionsFromEdit}
+          onManageLabels={openLabelsFromEdit}
         />
       );
     } else if (!isVolume && genericTable) {
       editAssetModal = (
         <EditAssetModal
+          isOpen={isEditModalOpen}
           asset={genericTable}
           assetKind="table"
           project={project}
@@ -150,6 +196,8 @@ const TableDetailPage: React.FC = () => {
           name={name}
           onClose={closeEditModal}
           onSaved={handleSaved}
+          onManageCollections={openCollectionsFromEdit}
+          onManageLabels={openLabelsFromEdit}
         />
       );
     }
@@ -206,6 +254,24 @@ const TableDetailPage: React.FC = () => {
         />
       ) : null}
       {editAssetModal}
+      {project ? (
+        <ManageCollectionsModal
+          isOpen={isManageCollectionsOpen}
+          project={project}
+          onRefresh={refresh}
+          onClose={handleCollectionsModalClose}
+        />
+      ) : null}
+      {project ? (
+        <ManageLabelsModal
+          isOpen={isManageLabelsOpen}
+          project={project}
+          labels={labels}
+          assets={assets}
+          onRefresh={refresh}
+          onClose={handleLabelsModalClose}
+        />
+      ) : null}
     </>
   );
 
@@ -225,14 +291,6 @@ const TableDetailPage: React.FC = () => {
       }
     />
   );
-
-  const refresh = React.useCallback(() => {
-    if (isVolume) {
-      refreshVolume();
-    } else {
-      refreshGenericTable();
-    }
-  }, [isVolume, refreshGenericTable, refreshVolume]);
 
   return (
     <ApplicationsPage
