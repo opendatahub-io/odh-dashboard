@@ -231,6 +231,7 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 		}
 
 		ctx := context.WithValue(r.Context(), constants.NamespaceQueryParameterKey, namespace)
+		setActiveSpanNamespace(ctx, namespace)
 		r = r.WithContext(ctx)
 
 		next(w, r, ps)
@@ -249,9 +250,19 @@ func (app *App) AttachNamespaceFromPath(next func(http.ResponseWriter, *http.Req
 		}
 
 		ctx := context.WithValue(r.Context(), constants.NamespaceQueryParameterKey, namespace)
+		setActiveSpanNamespace(ctx, namespace)
 		r = r.WithContext(ctx)
 
 		next(w, r, ps)
+	}
+}
+
+func setActiveSpanNamespace(ctx context.Context, namespace string) {
+	if namespace == "" {
+		return
+	}
+	if span := trace.SpanFromContext(ctx); span.IsRecording() {
+		span.SetAttributes(attribute.String("k8s.namespace.name", namespace))
 	}
 }
 

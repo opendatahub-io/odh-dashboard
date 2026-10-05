@@ -46,18 +46,6 @@ replacements:
   - source:
       kind: ConfigMap
       name: maas-consumer-portal-params
-      fieldPath: data.gateway-domain
-    targets:
-      - select:
-          group: gateway.networking.k8s.io
-          version: v1
-          kind: HTTPRoute
-          name: maas-consumer-portal
-        fieldPaths:
-          - spec.hostnames.0
-  - source:
-      kind: ConfigMap
-      name: maas-consumer-portal-params
       fieldPath: data.dashboard-namespace
     targets:
       - select:

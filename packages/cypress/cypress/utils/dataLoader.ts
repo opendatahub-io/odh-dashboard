@@ -26,6 +26,7 @@ import type {
   PromptManagementTestData,
   MlflowExperimentsTestData,
   ModelAsAServiceTestData,
+  ExternalModelTestData,
   MlflowPipelineIntegrationTestData,
   NIMProjectScopedTestData,
 } from '../types';
@@ -248,6 +249,15 @@ export const loadMlflowExperimentsFixture = (
 export const loadMaaSFixture = (fixturePath: string): Cypress.Chainable<ModelAsAServiceTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as ModelAsAServiceTestData;
+
+    return data;
+  });
+
+export const loadExternalModelFixture = (
+  fixturePath: string,
+): Cypress.Chainable<ExternalModelTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as ExternalModelTestData;
 
     return data;
   });

@@ -24,6 +24,7 @@ import (
 	nemo "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -211,6 +212,15 @@ type MCPServer struct {
 	AllowedTools  []string `json:"allowed_tools,omitempty"` // List of specific tool names allowed from this server
 }
 
+// DocumentAttachment is the persisted Playground representation of an OGX
+// document. FileID is retained for lifecycle/viewing; Text is injected as an
+// input_text part so inference does not depend on model multimodal support.
+type DocumentAttachment struct {
+	FileID   string `json:"file_id"`
+	Filename string `json:"filename"`
+	Text     string `json:"text"`
+}
+
 // CreateResponseRequest represents the request body for creating a response
 type CreateResponseRequest struct {
 	Input llamastack.InputUnion `json:"input"`
@@ -224,10 +234,34 @@ type CreateResponseRequest struct {
 	Stream             bool                          `json:"stream,omitempty"`               // Enable streaming response
 	MCPServers         []MCPServer                   `json:"mcp_servers,omitempty"`          // MCP server configurations
 	PreviousResponseID string                        `json:"previous_response_id,omitempty"` // Link to previous response for conversation continuity
-	Store              *bool                         `json:"store,omitempty"`                // Store response for later retrieval (default true)
-	GuardrailConfig    *models.GuardrailInlineConfig `json:"guardrail_config,omitempty"`     // Inline NeMo guardrail configuration
-	ModelSourceType    string                        `json:"model_source_type,omitempty"`    // Source type: "namespace", "custom_endpoint", "maas"
-	Subscription       string                        `json:"subscription,omitempty"`         // MaaS subscription name for API key generation
+	Attachments        []DocumentAttachment          `json:"attachments,omitempty"`
+	Store              *bool                         `json:"store,omitempty"`             // Store response for later retrieval (default true)
+	GuardrailConfig    *models.GuardrailInlineConfig `json:"guardrail_config,omitempty"`  // Inline NeMo guardrail configuration
+	ModelSourceType    string                        `json:"model_source_type,omitempty"` // Source type: "namespace", "custom_endpoint", "maas"
+	Subscription       string                        `json:"subscription,omitempty"`      // MaaS subscription name for API key generation
+}
+
+func appendDocumentAttachments(input llamastack.InputUnion, attachments []DocumentAttachment) (llamastack.InputUnion, error) {
+	if len(attachments) == 0 {
+		return input, nil
+	}
+	parts := input.Parts
+	if !input.IsMultimodal() {
+		parts = []llamastack.InputContentPart{{Type: "input_text", Text: input.Text}}
+	}
+	for _, attachment := range attachments {
+		if attachment.FileID == "" || strings.TrimSpace(attachment.Filename) == "" {
+			return llamastack.InputUnion{}, errors.New("document attachment requires file_id and filename")
+		}
+		if strings.TrimSpace(attachment.Text) == "" {
+			return llamastack.InputUnion{}, fmt.Errorf("document attachment %q has no extracted text", attachment.Filename)
+		}
+		parts = append(parts, llamastack.InputContentPart{
+			Type: "input_text",
+			Text: fmt.Sprintf("Document: %s\n---\n%s", attachment.Filename, attachment.Text),
+		})
+	}
+	return llamastack.InputUnion{Parts: parts}, nil
 }
 
 // convertToStreamingEvent converts a LlamaStack event to our clean StreamingEvent schema
@@ -477,6 +511,11 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		app.badRequestResponse(w, r, errors.New("model is required"))
 		return
 	}
+	inputWithDocuments, err := appendDocumentAttachments(createRequest.Input, createRequest.Attachments)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
 
 	// Enforce one-image-per-conversation limit across input and chat history
 	if llamastack.CountImageParts(createRequest.Input, func() []llamastack.ChatContextMessage {
@@ -644,7 +683,7 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 					inputMessages = append(inputMessages, nemo.Message{Role: nemo.RoleUser, Content: msg.Content.TextContent()})
 				}
 			}
-			inputMessages = append(inputMessages, nemo.Message{Role: nemo.RoleUser, Content: createRequest.Input.TextContent()})
+			inputMessages = append(inputMessages, nemo.Message{Role: nemo.RoleUser, Content: inputWithDocuments.TextContent()})
 		}
 
 		// For non-streaming requests, run input moderation now (HTTP error responses)
@@ -663,7 +702,7 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 	}
 
 	params := llamastack.CreateResponseParams{
-		Input:              createRequest.Input,
+		Input:              inputWithDocuments,
 		Model:              qualifyPassthroughModelID(createRequest.Model),
 		VectorStoreIDs:     createRequest.VectorStoreIDs,
 		ChatContext:        chatContext,
@@ -916,7 +955,23 @@ func (app *App) getProviderData(ctx context.Context, subscription, modelSourceTy
 		providerData["maas_subscription"] = subscription
 	}
 
+	injectTraceContextProviderData(ctx, providerData)
+
 	return providerData, nil
+}
+
+func injectTraceContextProviderData(ctx context.Context, providerData map[string]interface{}) {
+	traceHeaders := map[string]string{}
+	propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
+		propagation.Baggage{},
+	).Inject(ctx, propagation.MapCarrier(traceHeaders))
+
+	for _, header := range []string{constants.TraceParentHeader, constants.TraceStateHeader, constants.BaggageHeader} {
+		if value := traceHeaders[header]; value != "" {
+			providerData[header] = value
+		}
+	}
 }
 
 // getMaaSTokenForModel retrieves a MaaS token from cache or generates a new one.
@@ -1042,65 +1097,9 @@ func (app *App) getCustomEndpointBaseURLKeyAndModelID(ctx context.Context, model
 		return "", "", ""
 	}
 
-	var foundModel *models.RegisteredModel
-	lookupModelID := stripPassthroughProviderPrefix(modelID)
-
-	if strings.Contains(lookupModelID, "/") && !strings.HasPrefix(modelID, constants.PassthroughProviderID+"/") {
-		// Provider-qualified form: "endpoint-1/gpt-4o". Try this first for
-		// backwards compatibility, but if it does not match, treat the full value as a
-		// provider-native slash-delimited model ID.
-		parts := strings.SplitN(lookupModelID, "/", 2)
-		if len(parts) == 2 && parts[0] != "" && parts[1] != "" {
-			for i := range externalModelsConfig.RegisteredResources.Models {
-				m := &externalModelsConfig.RegisteredResources.Models[i]
-				if m.ProviderID == parts[0] && m.ModelID == parts[1] {
-					foundModel = m
-					break
-				}
-			}
-		}
-	}
-
-	if foundModel == nil {
-		// Bare/native model ID (e.g. "gpt-4o" or "meta-llama/Llama-3.1-8B") —
-		// search all registered models by ModelID. OGX strips the provider prefix before
-		// forwarding to the passthrough handler.
-		//
-		// Collect all matches: if more than one provider registers the same bare ID the
-		// lookup is ambiguous and we fail closed rather than silently routing to the wrong
-		// endpoint or leaking another provider's credentials (CWE-441).
-		var matches []*models.RegisteredModel
-		for i := range externalModelsConfig.RegisteredResources.Models {
-			m := &externalModelsConfig.RegisteredResources.Models[i]
-			if m.ModelID == lookupModelID {
-				matches = append(matches, m)
-			}
-		}
-		switch len(matches) {
-		case 1:
-			foundModel = matches[0]
-		default:
-			if len(matches) > 1 {
-				app.logger.Warn("Ambiguous bare model ID — multiple providers register the same ModelID; use a provider-qualified ID",
-					"modelID", modelID, "count", len(matches))
-			}
-			// Return empty strings: no match or ambiguous match is not routable.
-		}
-	}
-
-	if foundModel == nil {
-		return "", "", ""
-	}
-
-	var foundProvider *models.InferenceProvider
-	for i := range externalModelsConfig.Providers.Inference {
-		if externalModelsConfig.Providers.Inference[i].ProviderID == foundModel.ProviderID {
-			foundProvider = &externalModelsConfig.Providers.Inference[i]
-			break
-		}
-	}
-	if foundProvider == nil {
-		app.logger.Warn("Provider not found for custom endpoint model", "model", foundModel.ModelID, "providerID", foundModel.ProviderID)
+	foundModel, foundProvider, resolveErr := k8s.ResolveCustomEndpointModelProvider(externalModelsConfig, modelID)
+	if resolveErr != nil {
+		app.logger.Warn("Failed to resolve custom endpoint model", "model", modelID, "error", resolveErr)
 		return "", "", ""
 	}
 
@@ -1246,8 +1245,8 @@ func (app *App) getGuardrailModelEndpointAndKey(ctx context.Context, guardrailMo
 		}
 
 		guardrailModelID = maasModelID
-		if app.resolveMaaSBaseURL() == "" {
-			return "", "", fmt.Errorf("MaaS is not available (no MAAS_URL or cluster domain configured)")
+		if _, err := resolveMaaSGatewayURL(ctx); err != nil {
+			return "", "", fmt.Errorf("MaaS is not available via the MaaS BFF: %w", err)
 		}
 		token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, guardrailModelID, subscription)
 		if token == "" {

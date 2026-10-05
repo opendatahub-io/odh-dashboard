@@ -61,6 +61,8 @@ const CreateExternalProviderForm: React.FC<CreateExternalProviderFormProps> = ({
     handleProviderChange,
   } = form;
 
+  const endpointValidations = getFieldValidation(['endpointUrl']);
+
   return (
     <Form className="pf-v6-u-w-100">
       {showProjectField && (
@@ -114,13 +116,17 @@ const CreateExternalProviderForm: React.FC<CreateExternalProviderFormProps> = ({
             <HelperTextItem>Do not include https:// or a path to a specific model.</HelperTextItem>
           </HelperText>
         </FormHelperText>
-        {getFieldValidation(['endpointUrl']).map((validation) => (
-          <FormHelperText key={validation.path.join('.')}>
-            <HelperText>
-              <HelperTextItem variant="error">{validation.message}</HelperTextItem>
-            </HelperText>
-          </FormHelperText>
-        ))}
+        {endpointValidations.length > 0 && (
+          <div data-testid="external-provider-endpoint-error">
+            {endpointValidations.map((validation, index) => (
+              <FormHelperText key={`${validation.path.join('.')}-${index}`}>
+                <HelperText>
+                  <HelperTextItem variant="error">{validation.message}</HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            ))}
+          </div>
+        )}
       </FormGroup>
 
       <CredentialSecretField

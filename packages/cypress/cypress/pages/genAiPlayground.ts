@@ -3,6 +3,8 @@ const GEN_AI_CUSTOM_ENDPOINTS_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,modelAsService=false';
+const GEN_AI_CUSTOM_ENDPOINTS_RAG_FLAG =
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,externalVectorStores=true,modelAsService=false';
 const GEN_AI_GUARDRAILS_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,guardrails=true,modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_GUARDRAILS_FLAG =
@@ -10,7 +12,7 @@ const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_GUARDRAILS_FLAG =
 const GEN_AI_ALL_FLAGS =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,agentConfigManagement=true,modelAsService=false';
 const GEN_AI_MCP_REGISTRY_FLAG =
-  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,mcpRegistry=true,modelAsService=false';
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,mcpRegistry=true,genAiMcpRegistryServers=true,modelAsService=false';
 
 class GenAiPlayground {
   navigate(projectName: string) {
@@ -63,6 +65,12 @@ class GenAiPlayground {
 
   navigateToPlaygroundWithPromptManagementRetry(projectName: string) {
     const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG}`;
+    cy.visit(playgroundUrl);
+    cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
+  }
+
+  navigateToPlaygroundWithRag(projectName: string) {
+    const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_RAG_FLAG}`;
     cy.visit(playgroundUrl);
     cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
   }
@@ -341,12 +349,18 @@ class GenAiPlayground {
     return cy.findByTestId('chatbot-settings-page-tab-knowledge');
   }
 
-  findDocumentFileInput() {
-    return cy.findByTestId('document-file-input');
+  findKnowledgeModeUploadRadio() {
+    return cy.findByTestId('knowledge-mode-upload-radio');
   }
 
-  uploadDocumentViaAttachMenu(fixturePath: string) {
-    this.findDocumentFileInput().selectFile(fixturePath, { force: true });
+  findKnowledgeSourceFileInput() {
+    return cy.findByTestId('source-file-input');
+  }
+
+  uploadDocumentToKnowledge(fixturePath: string) {
+    this.findKnowledgeSourceFileInput()
+      .should('be.enabled')
+      .selectFile(fixturePath, { force: true });
   }
 
   findSourceSettingsModal() {

@@ -52,6 +52,22 @@ func isStaticAsset(filePath string) bool {
 	return staticAssetPattern.MatchString(filePath)
 }
 
+func shouldTraceRequest(r *http.Request) bool {
+	return r.Header.Get("X-Session-ID") != "" || r.Header.Get(constants.TraceParentHeader) != ""
+}
+
+func bffSpanName(_ string, r *http.Request) string {
+	if r == nil {
+		return "gen-ai-bff"
+	}
+
+	spanPath := r.URL.Path
+	if spanPath == "" || spanPath == "/" {
+		return "gen-ai-bff"
+	}
+	return "gen-ai-bff " + r.Method + " " + spanPath
+}
+
 func cacheControlForStaticFile(filePath string) string {
 	if isHashedAsset(filePath) {
 		return "public, max-age=31536000, immutable"
@@ -79,7 +95,6 @@ type App struct {
 	dashboardNamespace      string
 	memoryStore             cache.MemoryStore
 	rootCAs                 *x509.CertPool
-	clusterDomain           string
 	sandboxMu               sync.RWMutex
 	sandboxesAvailable      bool
 	sandboxWatcherDone      chan struct{}
@@ -352,17 +367,6 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	fileUploadJobTracker := services.NewFileUploadJobTracker(memStore, logger)
 	logger.Info("Initialized file upload job tracker")
 
-	// Cache cluster domain at startup using service account
-	var clusterDomain string
-	if !cfg.MockK8sClient {
-		if domain, err := k8s.GetClusterDomainUsingServiceAccount(context.Background(), logger); err != nil {
-			logger.Error("Failed to get cluster domain at startup, MaaS autodiscovery will be unavailable", "error", err)
-		} else {
-			clusterDomain = domain
-			logger.Info("Cached cluster domain for MaaS autodiscovery", "domain", clusterDomain)
-		}
-	}
-
 	// GatewayDomain is used to construct the base_url for the remote::passthrough
 	// provider in OGX configs
 	if cfg.GatewayDomain == "" {
@@ -386,7 +390,6 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		dashboardNamespace:      dashboardNamespace,
 		memoryStore:             memStore,
 		rootCAs:                 rootCAs,
-		clusterDomain:           clusterDomain,
 		fileUploadJobTracker:    fileUploadJobTracker,
 		cleanupFuncs:            cleanupFuncs,
 	}
@@ -482,6 +485,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.FilesUploadStatusPath, app.AttachNamespace(app.LlamaStackFileUploadStatusHandler))
 	apiRouter.DELETE(constants.FilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackDeleteFileHandler))))
 	apiRouter.POST(constants.MediaFilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackMediaFileUploadHandler))))
+	apiRouter.POST(constants.DocumentsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackDocumentUploadHandler))))
 
 	// Audio Transcription (ASR)
 	apiRouter.POST(constants.AudioTranscriptionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.AttachOGXClient(app.LlamaStackAudioTranscriptionHandler)))))
@@ -566,6 +570,11 @@ func (app *App) Routes() http.Handler {
 	apiRouter.PUT(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.UpdateAgentProfileHandler)))
 	apiRouter.DELETE(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteAgentProfileHandler)))
 
+	apiRouter.GET(constants.AgentDeploymentsPath, app.AttachNamespace(app.RequireAccessToService(app.ListAgentDeploymentsHandler)))
+	apiRouter.GET(constants.AgentDeploymentIDPath, app.AttachNamespace(app.RequireAccessToService(app.GetAgentDeploymentHandler)))
+	apiRouter.DELETE(constants.AgentDeploymentIDPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteAgentDeploymentHandler)))
+	apiRouter.POST(constants.AgentDeploymentsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.AttachBFFMLflowClient(app.CreateAgentDeploymentHandler)))))
+
 	// GenAI Proxy — OpenAI-compatible endpoints for OGX passthrough provider.
 	// OGX forwards the user JWT via Authorization: Bearer (from passthrough_api_key
 	// in X-OGX-Provider-Data). InjectRequestIdentity extracts it via the Bearer fallback.
@@ -633,9 +642,8 @@ func (app *App) Routes() http.Handler {
 	combinedMux.Handle("/", otelhttp.NewHandler(
 		app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))),
 		"gen-ai-bff",
-		otelhttp.WithSpanNameFormatter(func(_ string, _ *http.Request) string {
-			return "gen-ai-bff"
-		}),
+		otelhttp.WithFilter(shouldTraceRequest),
+		otelhttp.WithSpanNameFormatter(bffSpanName),
 	))
 
 	return combinedMux

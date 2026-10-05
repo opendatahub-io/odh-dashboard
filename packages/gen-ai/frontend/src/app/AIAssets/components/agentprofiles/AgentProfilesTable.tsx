@@ -18,6 +18,7 @@ import {
 import { CloseIcon, FilterIcon } from '@patternfly/react-icons';
 import { Table, DashboardEmptyTableView } from 'mod-arch-shared';
 import { AgentProfileSummary } from '~/app/agentProfile/types';
+import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
 import AgentProfileTableRow from './AgentProfileTableRow';
 import AgentProfileColumns from './AgentProfileColumns';
 
@@ -48,6 +49,13 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = React.useState(false);
   const [currentFilterKey, setCurrentFilterKey] = React.useState<FilterKey>('name');
   const [searchValue, setSearchValue] = React.useState('');
+  const { enabled: isAgentDeploymentEnabled, loaded: agentDeploymentAvailabilityLoaded } =
+    useGenAiAgentDeploymentEnabled();
+  const columns = React.useMemo(
+    () => AgentProfileColumns(isAgentDeploymentEnabled),
+    [isAgentDeploymentEnabled],
+  );
+  const lastModifiedColumnIndex = columns.findIndex((column) => column.field === 'lastModified');
 
   const onFilterUpdate = React.useCallback((key: FilterKey, value: string | undefined) => {
     setFilterData((prev) => ({ ...prev, [key]: value || undefined }));
@@ -166,12 +174,32 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
     </Toolbar>
   );
 
+  if (!agentDeploymentAvailabilityLoaded) {
+    return (
+      <Table
+        key="agent-profiles-loading"
+        data={profiles}
+        columns={AgentProfileColumns(false)}
+        enablePagination
+        defaultSortColumn={2}
+        loading
+        rowRenderer={() => null}
+        data-testid="agent-profiles-table"
+      />
+    );
+  }
+
   return (
     <Table
+      key={
+        isAgentDeploymentEnabled
+          ? 'agent-profiles-with-endpoints'
+          : 'agent-profiles-without-endpoints'
+      }
       data={filteredProfiles}
-      columns={AgentProfileColumns}
+      columns={columns}
       enablePagination
-      defaultSortColumn={2}
+      defaultSortColumn={lastModifiedColumnIndex}
       emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
       rowRenderer={(profile: AgentProfileSummary) => (
         <AgentProfileTableRow
@@ -179,6 +207,7 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
           profile={profile}
           onDelete={onDelete}
           onRefresh={onRefresh}
+          showEndpointsColumn={isAgentDeploymentEnabled}
         />
       )}
       toolbarContent={toolbar}

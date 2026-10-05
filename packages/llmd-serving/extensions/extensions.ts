@@ -465,7 +465,7 @@ const extensions: (
         import('../src/deployments/model').then((m) => m.extractEnvironmentVariables),
       extractHuggingFaceApiKey: () =>
         import('../src/hfTokenSecret').then(
-          (m) => (deployment) => m.extractHuggingFaceApiKeyFromEnv(deployment.model),
+          (m) => (deployment) => m.extractHuggingFaceApiKey(deployment.model),
         ),
       extractModelAvailabilityData: () =>
         import('../src/wizardFields/modelAvailability').then((m) => m.extractModelAvailabilityData),

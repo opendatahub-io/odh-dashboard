@@ -45,12 +45,6 @@ type EnvConfig struct {
 	NemoGuardrailsURL string
 	MockNemoClient    bool
 
-	// MaaS (Model as a Service) Configuration
-	// MaaSURL is used as a guardrail-availability gate: when non-empty, MaaS features
-	// are considered available. Actual MaaS communication goes through the MaaS BFF
-	// (configured via BFF_MAAS_* inter-BFF settings, not this URL directly).
-	MaaSURL string
-
 	// MLflow Configuration
 	MLflowURL string
 
@@ -172,6 +166,10 @@ type EnvConfig struct {
 	// PgvectorImage is the container image for auto-provisioned pgvector.
 	// Injected by the operator via RELATED_IMAGE_POSTGRESQL_16_IMAGE.
 	PgvectorImage string
+
+	// OGXCoreImage is the container image for the OGX core agent runtime.
+	// Injected by the operator via RELATED_IMAGE_ODH_OGX_CORE_IMAGE.
+	OGXCoreImage string
 
 	// ─── GATEWAY ───────────────────────────────────────────────
 	// GatewayDomain is the external domain of the OpenShift Gateway/Route used to

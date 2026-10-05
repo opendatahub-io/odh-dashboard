@@ -55,6 +55,10 @@ type App struct {
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	logger.Debug("Initializing app with config", slog.Any("config", cfg))
+	// Insecure TLS is a local-development-only escape hatch. Startup validation
+	// rejects this setting with a server certificate; keep this additional guard
+	// here so callers that construct App directly cannot enable it outside dev mode.
+	cfg.InsecureSkipVerify = cfg.DevMode && cfg.InsecureSkipVerify
 	var k8sFactory k8s.KubernetesClientFactory
 	var err error
 	// used only on mocked k8s client
@@ -211,7 +215,10 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
 	apiRouter.GET(ConnectionsPath, app.GetConnectionsHandler)
 	apiRouter.GET(ConnectionTypesPath, app.GetConnectionTypesHandler)
+	apiRouter.POST(ConnectionsPath, app.CreateConnectionHandler)
+	apiRouter.GET(ConnectionTypePath, app.GetConnectionTypeHandler)
 	apiRouter.POST(ConnectionReadinessPath, app.CheckConnectionReadinessHandler)
+	apiRouter.POST(TestCredentialsPath, app.TestCredentialsHandler)
 	apiRouter.DELETE(ConnectionDeletePath, app.DeleteConnectionHandler)
 
 	// Inter-BFF Communication routes — wire your target BFF endpoints here.

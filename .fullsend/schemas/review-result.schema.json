@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "review-result.schema.json",
   "title": "Review Agent Result",
-  "description": "Agent fills findings, semantic sections, readiness checks, risk, confidence, change_summary, verification, and optional decision_needed/inspected. The host post-script sets action and body.",
+  "description": "Agent fills findings, semantic sections, readiness checks, signal fields (risk, confidence), change_summary, optional todo, and inspected. The host post-script sets action and body.",
   "type": "object",
   "additionalProperties": false,
   "required": ["pr_number", "repo", "head_sha"],
@@ -19,16 +19,15 @@
     "risk": { "$ref": "#/$defs/rated" },
     "confidence": { "$ref": "#/$defs/confidence_rated" },
     "product_ask": { "$ref": "#/$defs/product_ask" },
-    "jira_criteria": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/jira_criterion" }
-    },
     "checks": {
       "type": "array",
       "items": { "$ref": "#/$defs/readiness_check" }
     },
-    "verification": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/verification_row" } },
-    "decision_needed": { "$ref": "#/$defs/decision_needed" },
+    "todo": {
+      "type": "array",
+      "description": "Review-derived action list. Plain strings rendered as sticky ## TODO bullets. Empty or omitted when nothing remains.",
+      "items": { "type": "string", "minLength": 1 }
+    },
     "inspected": { "$ref": "#/$defs/inspected" },
     "label_actions": { "$ref": "#/$defs/label_actions" }
   },
@@ -36,7 +35,7 @@
     {
       "if": { "properties": { "action": { "const": "failure" } }, "required": ["action"] },
       "then": { "required": ["reason"] },
-      "else": { "required": ["risk", "confidence", "change_summary", "verification"] }
+      "else": { "required": ["risk", "confidence", "change_summary"] }
     },
     {
       "if": { "required": ["reason"] },
@@ -71,39 +70,6 @@
           "description": "How sure this change fulfills its stated intent (min of intent and verified evidence; completeness is a ceiling only): high means intent matches and evidence is proportionate; medium is thin/partial or capped; low cannot support approve."
         },
         "why": { "type": "string", "minLength": 1 }
-      }
-    },
-    "verification_row": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["id", "label", "result"],
-      "properties": {
-        "id": { "type": "string", "enum": ["description-vs-code", "evidence", "security", "blocking-findings", "product-ask"] },
-        "label": { "type": "string", "minLength": 1 },
-        "result": { "type": "string", "enum": ["pass", "fail", "could-not-verify"] },
-        "notes": { "type": "string" }
-      }
-    },
-    "decision_needed": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["question", "options"],
-      "properties": {
-        "question": { "type": "string", "minLength": 1 },
-        "options": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["id", "title"],
-            "properties": {
-              "id": { "type": "string", "minLength": 1 },
-              "title": { "type": "string", "minLength": 1 },
-              "implication": { "type": "string" }
-            }
-          }
-        }
       }
     },
     "inspected": {
@@ -152,18 +118,6 @@
         "mismatched": { "type": "array", "items": { "type": "string" } },
         "justified_in_description": { "type": "boolean" },
         "needs_human": { "type": "boolean" }
-      }
-    },
-    "jira_criterion": {
-      "type": "object",
-      "description": "Diff evaluation of one explicit Jira acceptance criterion. This is review context, not a finding and not challenger input.",
-      "additionalProperties": false,
-      "required": ["criterion", "verdict", "evidence"],
-      "properties": {
-        "criterion": { "type": "string", "minLength": 1 },
-        "verdict": { "type": "string", "enum": ["PASS", "PARTIAL", "MISS", "SKIP"] },
-        "evidence": { "type": "string", "minLength": 1 },
-        "stale_comment": { "type": "boolean" }
       }
     },
     "readiness_check": {

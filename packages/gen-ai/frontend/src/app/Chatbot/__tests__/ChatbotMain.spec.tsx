@@ -146,7 +146,7 @@ describe('ChatbotMain - Empty State Logic', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseFetchBFFConfig.mockReturnValue({
-      data: { isCustomLSD: false },
+      data: { isCustomLSD: false, sandboxesAvailable: true },
       loaded: false,
       error: undefined,
       refresh: jest.fn(),

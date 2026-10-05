@@ -1,6 +1,7 @@
 package llamastack
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -17,6 +18,15 @@ func TestWrapClientError_NilError(t *testing.T) {
 		result := wrapClientError(nil, "ListModels")
 		assert.Nil(t, result)
 	})
+}
+
+func TestWrapClientError_DeadlineExceeded(t *testing.T) {
+	result := wrapClientError(context.DeadlineExceeded, "ProcessFile")
+
+	require.NotNil(t, result)
+	assert.Equal(t, ErrCodeTimeout, result.Code)
+	assert.Equal(t, http.StatusGatewayTimeout, result.StatusCode)
+	assert.Equal(t, ComponentOGX, result.Component)
 }
 
 func TestWrapClientError_NetworkErrors(t *testing.T) {

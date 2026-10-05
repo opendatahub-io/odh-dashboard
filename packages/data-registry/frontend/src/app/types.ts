@@ -51,48 +51,69 @@ export type RhaiConnectionRef = {
 
 export type ConnectionRef = DchConnectionRef | RhaiConnectionRef;
 
-export type AssetResponse = {
+export type UnstructuredFormat = 'documents' | 'images' | 'audio' | 'video' | 'binary' | 'other';
+
+export type StructuredFormat =
+  'iceberg' | 'parquet' | 'csv' | 'delta' | 'postgresql' | 'milvus' | 'other';
+
+export type AssetFormat = UnstructuredFormat | StructuredFormat;
+
+export const LICENSE_VALUES = [
+  'internal-use',
+  'cc-by-4.0',
+  'apache-2.0',
+  'proprietary',
+  'restricted',
+] as const;
+
+export type LicenseType = (typeof LICENSE_VALUES)[number];
+
+export const MATURITY_VALUES = ['experimental', 'staging', 'production', 'deprecated'] as const;
+
+export type MaturityType = (typeof MATURITY_VALUES)[number];
+
+export const PII_STATUS_VALUES = [
+  'none',
+  'contains-pii',
+  'contains-sensitive',
+  'anonymized',
+] as const;
+
+export type PiiStatus = (typeof PII_STATUS_VALUES)[number];
+
+export type AssetResponseBase = {
   name: string;
-  asset_type: string;
-  uuid?: string;
-  format?: string;
-  location?: string;
-  content_type?: string;
+  uuid: string;
+  storage_location?: string | null;
   columns?: SchemaField[] | null;
-  collection?: string;
+  collection: string;
   connection_ref?: ConnectionRef | null;
-  owner?: string;
-  description?: string;
+  owner: string;
+  description?: string | null;
   labels?: string[] | null;
-  properties?: Record<string, string>;
-  registered_by?: string;
-  updated_by?: string;
-  created_at?: string;
-  updated_at?: string;
+  properties?: Record<string, string> | null;
+  created_at: string;
+  updated_at: string;
 };
+
+export type StructuredAssetResponse = AssetResponseBase & {
+  asset_type: 'table';
+  format: StructuredFormat;
+};
+
+export type UnstructuredAssetResponse = AssetResponseBase & {
+  asset_type: 'volume';
+  format: UnstructuredFormat;
+};
+
+export type AssetResponse = StructuredAssetResponse | UnstructuredAssetResponse;
 
 export type AssetListResponse = {
-  assets?: AssetResponse[];
-};
-
-export type VolumeInfo = {
-  name: string;
-  'catalog-name': string;
-  'schema-name': string;
-  'volume-type': string;
-  'storage-location': string;
-  comment?: string;
-  owner?: string;
-  'created-at'?: string;
-  'updated-at'?: string;
-  labels?: string[] | null;
-  properties?: Record<string, string>;
-  config?: Record<string, string>;
-  connection_ref?: ConnectionRef | null;
+  assets: StructuredAssetResponse[];
 };
 
 export type ListVolumesResponse = {
-  volumes?: VolumeInfo[];
+  volumes: UnstructuredAssetResponse[];
 };
 
 export type ListNamespacesResponse = {
@@ -111,27 +132,30 @@ export type CreateNamespaceRequest = {
 
 export type CreateVolumeRequest = {
   name: string;
-  location?: string;
-  content_type?: string;
-  connection_ref?: ConnectionRef;
+  format: UnstructuredFormat;
+  storage_location?: string;
+  connection_ref?: ConnectionRef | null;
   description?: string;
-  owner?: string;
+  purpose?: string;
+  license?: LicenseType | null;
+  maturity?: MaturityType | null;
+  domain?: string;
+  pii?: PiiStatus | null;
   labels?: string[];
   properties?: Record<string, string>;
 };
 
 export type CreateGenericTableRequest = {
   name: string;
-  format?: string;
-  location?: string;
-  connection_ref?: ConnectionRef;
+  format: StructuredFormat;
+  storage_location?: string;
+  connection_ref?: ConnectionRef | null;
   description?: string;
   purpose?: string;
-  license?: string;
-  maturity?: string;
+  license?: LicenseType | null;
+  maturity?: MaturityType | null;
   domain?: string;
-  pii?: string;
-  owner?: string;
+  pii?: PiiStatus | null;
   labels?: string[];
   schema_fields?: SchemaField[];
   properties?: Record<string, string>;
