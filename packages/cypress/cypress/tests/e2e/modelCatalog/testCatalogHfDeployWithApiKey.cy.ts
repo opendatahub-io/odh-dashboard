@@ -80,6 +80,8 @@ describe('Verify HF private deploy uses ServiceAccount and Secret', () => {
         '@ModelServing',
         '@ModelServingCI',
         '@LLMDServingCI',
+        '@Smoke',
+        '@SmokeSet3',
         '@NonConcurrent',
       ],
     },
