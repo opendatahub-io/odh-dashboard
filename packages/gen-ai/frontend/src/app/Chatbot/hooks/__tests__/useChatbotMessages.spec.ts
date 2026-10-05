@@ -1204,6 +1204,62 @@ describe('useChatbotMessages', () => {
       act(() => result.current.clearConversation());
     });
 
+    it('should retain a playable audio attachment for each sent turn', async () => {
+      createObjectURL
+        .mockReturnValueOnce('blob:first-audio')
+        .mockReturnValueOnce('blob:second-audio');
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const firstFile = new File(['first-audio'], 'first.wav', { type: 'audio/wav' });
+      const secondFile = new File(['second-audio'], 'second.wav', { type: 'audio/wav' });
+
+      await act(async () => {
+        await result.current.handleMessageSend(
+          'First transcription',
+          undefined,
+          undefined,
+          undefined,
+          firstFile,
+          '',
+        );
+      });
+      await act(async () => {
+        await result.current.handleMessageSend(
+          'Second transcription',
+          undefined,
+          undefined,
+          undefined,
+          secondFile,
+          '',
+        );
+      });
+
+      expect(mockCreateResponse).toHaveBeenCalledTimes(2);
+      expect(mockCreateResponse.mock.calls[1][0]).toMatchObject({
+        input: 'Second transcription',
+        chat_context: [
+          { role: 'user', content: 'First transcription' },
+          { role: 'assistant', content: 'This is a bot response' },
+        ],
+      });
+      expect(result.current.messages[0].content).toBe('');
+      expect(result.current.messages[2].content).toBe('');
+      render(result.current.messages[0].extraContent?.beforeMainContent);
+      render(result.current.messages[2].extraContent?.beforeMainContent);
+      const tiles = screen.getAllByTestId('sent-audio-tile');
+      expect(within(tiles[0]).getByText('first.wav')).toBeInTheDocument();
+      expect(within(tiles[0]).getByTestId('sent-audio-player')).toHaveAttribute(
+        'src',
+        'blob:first-audio',
+      );
+      expect(within(tiles[1]).getByText('second.wav')).toBeInTheDocument();
+      expect(within(tiles[1]).getByTestId('sent-audio-player')).toHaveAttribute(
+        'src',
+        'blob:second-audio',
+      );
+      act(() => result.current.clearConversation());
+    });
+
     it('should keep document and image attachments alongside the audio tile', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
       const document: DocumentAttachment = {
