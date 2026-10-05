@@ -1,5 +1,9 @@
 import { OdhDatasourceApi } from '../datasource-api';
-import { fetchPersesDashboardsMetadata } from '../perses-client';
+import {
+  fetchPersesDashboard,
+  fetchPersesDashboardsMetadata,
+  fetchPersesProjects,
+} from '../perses-client';
 
 describe('Perses proxy path', () => {
   let originalFetch: typeof global.fetch;
@@ -49,6 +53,33 @@ describe('Perses proxy path', () => {
       expect.any(Object),
     );
   });
+
+  it.each([undefined, '/maas-consumer-portal/perses/api'])(
+    'fetches individual dashboards and projects using proxy path %s',
+    async (basePath) => {
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve([]),
+        headers: new Headers(),
+      } as Response);
+      const { signal } = new AbortController();
+
+      await fetchPersesDashboard('team a', 'model/dashboard', signal, basePath);
+      await fetchPersesProjects(basePath);
+
+      const expectedBasePath = basePath ?? '/perses/api';
+      expect(global.fetch).toHaveBeenNthCalledWith(
+        1,
+        `${expectedBasePath}/api/v1/projects/team%20a/dashboards/model%2Fdashboard`,
+        expect.objectContaining({ signal }),
+      );
+      expect(global.fetch).toHaveBeenNthCalledWith(
+        2,
+        `${expectedBasePath}/api/v1/projects`,
+        expect.any(Object),
+      );
+    },
+  );
 
   it('builds metric proxy URLs under the supplied base path', () => {
     const api = new OdhDatasourceApi('/maas-consumer-portal/perses/api');
