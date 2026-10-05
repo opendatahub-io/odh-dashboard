@@ -228,12 +228,25 @@ export const useKServeServingRuntimeExternalData = (
     ? globalLoaded && projectLoaded
     : dependencies?.modelFormatLoaded ?? false;
 
+  const isLegacyGenerativePath =
+    dependencies?.deploymentMethod === LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY;
+
   return React.useMemo(() => {
-    const extraOptions = modelServerOverrides.flatMap((override) => override.extraOptions ?? []);
-    const suggestion = modelServerOverrides.reduce<ModelServerOption | undefined>(
+    let extraOptions = modelServerOverrides.flatMap((override) => override.extraOptions ?? []);
+    let suggestion = modelServerOverrides.reduce<ModelServerOption | undefined>(
       (acc, override) => acc ?? override.suggestion?.(modelServingClusterSettings),
       undefined,
     );
+
+    // Pre-vLLMonMaaS llm-d override stays active for generative models based on model type /
+    // feature flag alone (not deployment method). On the KServe legacy path that injects
+    // LLMD_OPTION (no Template), which would auto-select and deploy without a ServingRuntime.
+    if (isLegacyGenerativePath) {
+      extraOptions = extraOptions.filter((option) => option.name !== 'llmd-serving');
+      if (suggestion?.name === 'llmd-serving') {
+        suggestion = undefined;
+      }
+    }
 
     return {
       data: { templates, extraOptions, suggestion },
@@ -249,6 +262,7 @@ export const useKServeServingRuntimeExternalData = (
     globalError,
     projectError,
     clusterSettingsError,
+    isLegacyGenerativePath,
   ]);
 };
 

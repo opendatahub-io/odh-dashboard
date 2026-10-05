@@ -233,6 +233,35 @@ describe('useKServeServingRuntimeExternalData', () => {
 
     expect(renderResult.result.current.loadError).toBe(clusterError);
   });
+
+  it('should exclude llmd-serving override suggestion and extraOptions on the legacy path', () => {
+    const llmdOption = {
+      name: 'llmd-serving',
+      label: 'Distributed inference with llm-d',
+    };
+    mockUseWizardFieldOverrides.mockReturnValue([
+      {
+        id: 'modelServerTemplate',
+        type: 'modifier',
+        extraOptions: [llmdOption],
+        suggestion: () => llmdOption,
+      },
+    ]);
+    mockUseModelServingClusterSettings.mockReturnValue({
+      data: { isLLMdDefault: true },
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
+
+    const renderResult = testHook(useKServeServingRuntimeExternalData)({
+      modelType: { type: ServingRuntimeModelType.GENERATIVE },
+      deploymentMethod: LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY,
+    });
+
+    expect(renderResult.result.current.data.extraOptions).toEqual([]);
+    expect(renderResult.result.current.data.suggestion).toBeUndefined();
+  });
 });
 
 describe('KServeServingRuntimeFieldWizardField', () => {
