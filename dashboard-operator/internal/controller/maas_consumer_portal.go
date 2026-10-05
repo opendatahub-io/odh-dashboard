@@ -62,13 +62,15 @@ func maasConsumerPortalURL(domain string) (string, bool) {
 
 // reconcileMaaSConsumerPortalOperand applies federation configuration before
 // reconciling the portal bundle and availability in either core management state.
+// If observability detection failed, preserve only the existing Perses entry.
 func (r *DashboardReconciler) reconcileMaaSConsumerPortalOperand(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
 	cm *conditions.Manager,
 	statuses map[string]v1alpha1.ModuleStatus,
+	observabilityKnown bool,
 ) time.Duration {
-	if err := r.deployMaaSConsumerPortalFederationConfigMap(ctx, dashboard, statuses); err != nil {
+	if err := r.deployMaaSConsumerPortalFederationConfigMap(ctx, dashboard, statuses, observabilityKnown); err != nil {
 		r.markMaaSConsumerPortalFederationConfigMapFailed(cm, err)
 		log.FromContext(ctx).Error(err, "Failed to deploy MaaS Consumer Portal federation ConfigMap")
 	}

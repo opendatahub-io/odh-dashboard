@@ -116,20 +116,40 @@ func TestGetOperatorSubscriptionStatus(t *testing.T) {
 	}
 }
 
-func TestGetOperatorSubscriptionStatus_PrefersRHOAI(t *testing.T) {
-	dynClient := fake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), map[schema.GroupVersionResource]string{
-		models.DataScienceClusterGVR: "DataScienceClusterList",
-	}, dataScienceCluster(selfManagedRHOAIReleaseName),
-		subscription("rhods-operator", "redhat-ods-operator", "stable", "2026-09-25T12:00:00Z", "rhods-operator.v3.0.0"),
-		subscription("opendatahub-operator", "opendatahub-operator", "fast", "2026-09-25T13:00:00Z", "opendatahub-operator.v2.0.0"),
-	)
-	repo := NewOperatorSubscriptionStatusRepository(dynClient, "")
-
-	status, err := repo.GetOperatorSubscriptionStatus(context.Background())
-
-	require.NoError(t, err)
-	assert.Equal(t, "stable", status.Channel)
-	assert.Equal(t, "2026-09-25T12:00:00Z", status.LastUpdated)
+func TestGetOperatorSubscriptionStatus_ReleaseSelection(t *testing.T) {
+	for _, tt := range []struct {
+		name, release, expected string
+		rhoaiInstalled          bool
+		odhInstalled            bool
+	}{
+		{name: "self-managed selects RHOAI", release: selfManagedRHOAIReleaseName, expected: "stable", rhoaiInstalled: true, odhInstalled: true},
+		{name: "cloud service selects RHOAI", release: managedRHOAIReleaseName, expected: "stable", rhoaiInstalled: true, odhInstalled: true},
+		{name: "ODH selects ODH", release: openDataHubReleaseName, expected: "fast", rhoaiInstalled: true, odhInstalled: true},
+		{name: "RHOAI never falls back to ODH", release: selfManagedRHOAIReleaseName, odhInstalled: true},
+		{name: "ODH never falls back to RHOAI", release: openDataHubReleaseName, rhoaiInstalled: true},
+		{name: "unknown release keeps RHOAI preference", release: "unrecognized", expected: "stable", rhoaiInstalled: true, odhInstalled: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			objects := []runtime.Object{dataScienceCluster(tt.release)}
+			if tt.rhoaiInstalled {
+				objects = append(objects, subscription("rhods-operator", "redhat-ods-operator", "stable", "", "rhods-operator.v3.0.0"))
+			}
+			if tt.odhInstalled {
+				objects = append(objects, subscription("opendatahub-operator", "opendatahub-operator", "fast", "", "opendatahub-operator.v3.0.0"))
+			}
+			cli := fake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), map[schema.GroupVersionResource]string{
+				models.DataScienceClusterGVR: "DataScienceClusterList",
+			}, objects...)
+			status, err := NewOperatorSubscriptionStatusRepository(cli, "").GetOperatorSubscriptionStatus(context.Background())
+			if tt.expected == "" {
+				require.Error(t, err)
+				assert.True(t, apierrors.IsNotFound(err))
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, status.Channel)
+		})
+	}
 }
 
 func TestGetOperatorSubscriptionStatus_Namespaces(t *testing.T) {

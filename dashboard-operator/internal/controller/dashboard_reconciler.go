@@ -211,17 +211,15 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		conditionMaaSConsumerPortalAvailable,
 	)
 	maasPortalManaged := r.maasPortalManaged(dashboard)
+	var observabilityDetectionErr error
 	if dashboard.Spec.ManagementState != "Removed" || maasPortalManaged {
-		if err := r.autoDetectObservability(ctx, dashboard); err != nil {
-			cm.MarkFalse(conditionObservabilityAvailable,
-				conditions.WithError(err),
-				conditions.WithReason("DetectionFailed"))
+		observabilityDetectionErr = r.autoDetectObservability(ctx, dashboard)
+		if observabilityDetectionErr != nil {
 			dashboard.Status.Phase = common.PhaseNotReady
-			cm.Sort()
-			if statusErr := r.Status().Update(ctx, dashboard); statusErr != nil {
-				logger.Error(statusErr, "Failed to update status after observability detection failure")
-			}
-			return ctrl.Result{}, err
+			cm.MarkFalse(conditionObservabilityAvailable,
+				conditions.WithError(observabilityDetectionErr),
+				conditions.WithReason("DetectionFailed"))
+			logger.Error(observabilityDetectionErr, "Failed to auto-detect observability, preserving its resources and Perses federation entry")
 		}
 	}
 	// MaaS Consumer Portal availability is recalculated from its managed resources on every
@@ -243,15 +241,19 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		dashboard.Status.ModuleStatuses = nextStatuses
 		r.setMaaSConsumerPortalModuleCondition(cm, dashboard, nextStatuses)
 		var observabilityRetryAfter time.Duration
-		if maasPortalManaged {
+		if observabilityDetectionErr != nil {
+			observabilityRetryAfter = observabilityRetryInterval
+		} else if maasPortalManaged {
 			observabilityRetryAfter = r.reconcileObservability(ctx, dashboard, cm)
 		}
-		portalRetryAfter := r.reconcileMaaSConsumerPortalOperand(ctx, dashboard, cm, nextStatuses)
+		portalRetryAfter := r.reconcileMaaSConsumerPortalOperand(ctx, dashboard, cm, nextStatuses, observabilityDetectionErr == nil)
 		if observabilityRetryAfter > 0 && (portalRetryAfter == 0 || observabilityRetryAfter < portalRetryAfter) {
 			portalRetryAfter = observabilityRetryAfter
 		}
 
-		if err := r.teardownManagedResources(ctx, dashboard, nextStatuses); err != nil {
+		preserveObservability := maasPortalManaged && (observabilityDetectionErr != nil ||
+			(dashboard.Spec.Observability != nil && dashboard.Spec.Observability.Enabled))
+		if err := r.teardownManagedResources(ctx, dashboard, nextStatuses, preserveObservability); err != nil {
 			r.persistRemovedFailureStatus(ctx, dashboard, cm, "TeardownFailed", err)
 			return ctrl.Result{}, fmt.Errorf("failed to tear down resources: %w", err)
 		}
@@ -320,7 +322,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		logger.Error(pvErr, "Failed to read platform version, skipping handshake")
 	}
 
-	result, err := r.reconcile(ctx, dashboard, cm, cfg)
+	result, err := r.reconcile(ctx, dashboard, cm, cfg, observabilityDetectionErr == nil)
 
 	releases := []common.ComponentRelease{{
 		Name:    v1alpha1.DashboardComponentName,
@@ -365,6 +367,7 @@ func (r *DashboardReconciler) persistRemovedFailureStatus(
 	cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 		conditions.WithReason(reason),
 		conditions.WithMessage("Dashboard removal reconciliation failed: %s", failure))
+	dashboard.Status.Phase = common.PhaseNotReady
 	cm.Sort()
 	if statusErr := r.Status().Update(ctx, dashboard); statusErr != nil {
 		log.FromContext(ctx).Error(statusErr, "Failed to update status after removal failure")
@@ -378,8 +381,9 @@ func (r *DashboardReconciler) reconcile(
 	dashboard *v1alpha1.Dashboard,
 	cm *conditions.Manager,
 	cfg OperatorConfig,
+	observabilityKnown bool,
 ) (ctrl.Result, error) {
-	result, err := r.reconcileDeployment(ctx, dashboard, cm, cfg)
+	result, err := r.reconcileDeployment(ctx, dashboard, cm, cfg, observabilityKnown)
 
 	if dashboard.Spec.Observability == nil && err == nil && result.RequeueAfter == 0 {
 		result.RequeueAfter = observabilityRetryInterval
@@ -439,6 +443,7 @@ func (r *DashboardReconciler) reconcileDeployment(
 	dashboard *v1alpha1.Dashboard,
 	cm *conditions.Manager,
 	cfg OperatorConfig,
+	observabilityKnown bool,
 ) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
@@ -541,11 +546,13 @@ func (r *DashboardReconciler) reconcileDeployment(
 			conditions.WithError(rbacErr))
 	}
 
-	// Deploy observability
-	observabilityRetryAfter := r.reconcileObservability(ctx, dashboard, cm)
-
-	// Build and deploy federation ConfigMap
-	fedData, err := r.deployFederationConfigMap(ctx, nextStatuses, dashboard)
+	// A failed lookup leaves observability unknown, not disabled. Preserve its
+	// resources and Perses entry while reconciling the remaining federation entries.
+	observabilityRetryAfter := observabilityRetryInterval
+	if observabilityKnown {
+		observabilityRetryAfter = r.reconcileObservability(ctx, dashboard, cm)
+	}
+	fedData, err := r.deployFederationConfigMap(ctx, nextStatuses, dashboard, observabilityKnown)
 	if err != nil {
 		cm.MarkTrue(string(common.ConditionTypeDegraded),
 			conditions.WithReason("FederationConfigMapFailed"),
@@ -553,7 +560,7 @@ func (r *DashboardReconciler) reconcileDeployment(
 		logger.Error(err, "Failed to deploy federation ConfigMap")
 		return ctrl.Result{}, fmt.Errorf("federation ConfigMap: %w", err)
 	}
-	portalRetryAfter := r.reconcileMaaSConsumerPortalOperand(ctx, dashboard, cm, nextStatuses)
+	portalRetryAfter := r.reconcileMaaSConsumerPortalOperand(ctx, dashboard, cm, nextStatuses, observabilityKnown)
 
 	if err := r.patchDeploymentFederationHash(ctx, fedData); err != nil {
 		logger.Error(err, "Failed to patch federation hash on deployment")
@@ -752,11 +759,20 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 func (r *DashboardReconciler) cleanupManagedObservability(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
 	// The service reference may be removed when observability is disabled. Find
 	// labeled resources across namespaces without relying on the current spec.
-	if err := r.cleanupObservabilityResources(ctx, client.MatchingLabels{
+	if err := r.cleanupObservabilityResources(ctx, false, client.MatchingLabels{
 		labels.PlatformPartOf: strings.ToLower(v1alpha1.DashboardKind),
 		moduleComponentLabel:  observabilityComponent,
 	}); err != nil {
 		return err
+	}
+	// In the applications namespace, broad legacy-label cleanup would also
+	// remove core resources. Limit it to known observability kinds and names.
+	if r.ApplicationsNamespace != "" {
+		if err := r.cleanupObservabilityResources(ctx, true, client.InNamespace(r.ApplicationsNamespace), client.MatchingLabels{
+			labels.PlatformPartOf: strings.ToLower(v1alpha1.DashboardKind),
+		}); err != nil {
+			return err
+		}
 	}
 
 	obsNS := ""
@@ -787,10 +803,36 @@ func (r *DashboardReconciler) cleanupManagedObservability(ctx context.Context, d
 	if err != nil {
 		return fmt.Errorf("creating legacy observability selector: %w", err)
 	}
-	return r.cleanupObservabilityResources(ctx, client.InNamespace(obsNS), client.MatchingLabelsSelector{Selector: legacySelector})
+	return r.cleanupObservabilityResources(ctx, false, client.InNamespace(obsNS), client.MatchingLabelsSelector{Selector: legacySelector})
 }
 
-func (r *DashboardReconciler) cleanupObservabilityResources(ctx context.Context, opts ...client.ListOption) error {
+// isLegacyObservabilityResource recognizes resources that predate the component
+// label without treating other dashboard-owned resources as observability.
+func isLegacyObservabilityResource(resource client.Object) bool {
+	if resource.GetLabels()[labels.PlatformPartOf] != strings.ToLower(v1alpha1.DashboardKind) {
+		return false
+	}
+	if _, labeled := resource.GetLabels()[moduleComponentLabel]; labeled {
+		return false
+	}
+	switch obj := resource.(type) {
+	case *corev1.Service:
+		return obj.Name == persesServiceName
+	case *corev1.ConfigMap:
+		return obj.Name == "perses-dashboard-config"
+	case *networkingv1.NetworkPolicy:
+		return obj.Name == "dashboard-perses-access"
+	case *unstructured.Unstructured:
+		if obj.GroupVersionKind() != persesdashboardGVK {
+			return false
+		}
+		return obj.GetName() == "dashboard-0-cluster-admin" || obj.GetName() == "dashboard-1-model" || obj.GetName() == "dashboard-1-model-admin"
+	default:
+		return false
+	}
+}
+
+func (r *DashboardReconciler) cleanupObservabilityResources(ctx context.Context, legacyOnly bool, opts ...client.ListOption) error {
 	logger := log.FromContext(ctx)
 
 	var svcs corev1.ServiceList
@@ -798,6 +840,9 @@ func (r *DashboardReconciler) cleanupObservabilityResources(ctx context.Context,
 		return fmt.Errorf("listing observability services: %w", err)
 	}
 	for i := range svcs.Items {
+		if legacyOnly && !isLegacyObservabilityResource(&svcs.Items[i]) {
+			continue
+		}
 		obsNS := svcs.Items[i].Namespace
 		logger.Info("Deleting cross-namespace service", "name", svcs.Items[i].Name, "namespace", obsNS)
 		if err := r.Delete(ctx, &svcs.Items[i]); client.IgnoreNotFound(err) != nil {
@@ -810,6 +855,9 @@ func (r *DashboardReconciler) cleanupObservabilityResources(ctx context.Context,
 		return fmt.Errorf("listing observability configmaps: %w", err)
 	}
 	for i := range cms.Items {
+		if legacyOnly && !isLegacyObservabilityResource(&cms.Items[i]) {
+			continue
+		}
 		obsNS := cms.Items[i].Namespace
 		logger.Info("Deleting cross-namespace configmap", "name", cms.Items[i].Name, "namespace", obsNS)
 		if err := r.Delete(ctx, &cms.Items[i]); client.IgnoreNotFound(err) != nil {
@@ -822,6 +870,9 @@ func (r *DashboardReconciler) cleanupObservabilityResources(ctx context.Context,
 		return fmt.Errorf("listing observability networkpolicies: %w", err)
 	}
 	for i := range netpols.Items {
+		if legacyOnly && !isLegacyObservabilityResource(&netpols.Items[i]) {
+			continue
+		}
 		obsNS := netpols.Items[i].Namespace
 		logger.Info("Deleting cross-namespace networkpolicy", "name", netpols.Items[i].Name, "namespace", obsNS)
 		if err := r.Delete(ctx, &netpols.Items[i]); client.IgnoreNotFound(err) != nil {
@@ -837,6 +888,9 @@ func (r *DashboardReconciler) cleanupObservabilityResources(ctx context.Context,
 		}
 	} else {
 		for i := range persesList.Items {
+			if legacyOnly && !isLegacyObservabilityResource(&persesList.Items[i]) {
+				continue
+			}
 			obsNS := persesList.Items[i].GetNamespace()
 			logger.Info("Deleting cross-namespace PersesDashboard", "name", persesList.Items[i].GetName(), "namespace", obsNS)
 			if err := r.Delete(ctx, &persesList.Items[i]); client.IgnoreNotFound(err) != nil {
@@ -851,14 +905,13 @@ func (r *DashboardReconciler) cleanupObservabilityResources(ctx context.Context,
 // teardownManagedResources deletes all resources labeled with
 // platform.opendatahub.io/part-of=dashboard in the applications namespace,
 // and cleans up cross-namespace resources.
-func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dashboard *v1alpha1.Dashboard, statuses map[string]v1alpha1.ModuleStatus) error {
+func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dashboard *v1alpha1.Dashboard, statuses map[string]v1alpha1.ModuleStatus, preserveObservability bool) error {
 	logger := log.FromContext(ctx)
 	maasConsumerPortalRequiredModules := maasConsumerPortalRequiredModuleSlugs(&dashboard.Spec, statuses)
-	preserveObservability := r.maasPortalManaged(dashboard) &&
-		dashboard.Spec.Observability != nil && dashboard.Spec.Observability.Enabled
 	shouldPreserve := func(resource client.Object) bool {
 		component := resource.GetLabels()[moduleComponentLabel]
-		return maasConsumerPortalRequiredModules[component] || (preserveObservability && component == observabilityComponent)
+		return maasConsumerPortalRequiredModules[component] || (preserveObservability &&
+			(component == observabilityComponent || isLegacyObservabilityResource(resource)))
 	}
 
 	matchLabels := client.MatchingLabels{

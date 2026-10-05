@@ -20,6 +20,7 @@ const operatorSubscriptionQueryTimeout = 10 * time.Second
 const (
 	selfManagedRHOAIReleaseName = "OpenShift AI Self-Managed"
 	managedRHOAIReleaseName     = "OpenShift AI Cloud Service"
+	openDataHubReleaseName      = "Open Data Hub"
 )
 
 type operatorSubscription struct {
@@ -27,10 +28,11 @@ type operatorSubscription struct {
 	namespace string
 }
 
-var operatorSubscriptions = []operatorSubscription{
-	{name: "rhods-operator", namespace: "redhat-ods-operator"},
-	{name: "opendatahub-operator", namespace: "opendatahub-operator"},
-}
+var (
+	rhoaiOperatorSubscription = operatorSubscription{name: "rhods-operator", namespace: "redhat-ods-operator"}
+	odhOperatorSubscription   = operatorSubscription{name: "opendatahub-operator", namespace: "opendatahub-operator"}
+	operatorSubscriptions     = []operatorSubscription{rhoaiOperatorSubscription, odhOperatorSubscription}
+)
 
 // OperatorSubscriptionStatusRepository reads the installed data science operator subscription.
 type OperatorSubscriptionStatusRepository struct {
@@ -128,10 +130,10 @@ func (r *OperatorSubscriptionStatusRepository) selectedOperatorSubscriptions(ctx
 	}
 
 	if isRHOAIRelease(releaseName) {
-		return operatorSubscriptions[:1], nil
+		return []operatorSubscription{rhoaiOperatorSubscription}, nil
 	}
-	if releaseName == "Open Data Hub" {
-		return operatorSubscriptions[1:], nil
+	if releaseName == openDataHubReleaseName {
+		return []operatorSubscription{odhOperatorSubscription}, nil
 	}
 	// Without release metadata, try both known operators using the existing named GETs.
 	return operatorSubscriptions, nil

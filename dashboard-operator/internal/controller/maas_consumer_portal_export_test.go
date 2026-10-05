@@ -13,7 +13,7 @@ func (r *DashboardReconciler) PatchMaaSConsumerPortalDeploymentFederationHash(ct
 }
 
 func (r *DashboardReconciler) DeployMaaSConsumerPortalFederationConfigMap(ctx context.Context, dashboard *v1alpha1.Dashboard, statuses map[string]v1alpha1.ModuleStatus) error {
-	return r.deployMaaSConsumerPortalFederationConfigMap(ctx, dashboard, statuses)
+	return r.deployMaaSConsumerPortalFederationConfigMap(ctx, dashboard, statuses, true)
 }
 
 func (r *DashboardReconciler) DeleteMaaSConsumerPortalResources(ctx context.Context) error {

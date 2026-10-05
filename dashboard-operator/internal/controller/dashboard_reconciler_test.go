@@ -22,6 +22,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
@@ -110,6 +111,61 @@ func TestReconcile_NotFound(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, ctrl.Result{}, result)
+}
+
+func TestReconcile_ObservabilityDetectionFailureDoesNotBlockCore(t *testing.T) {
+	scheme := testScheme(t)
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName, Finalizers: []string{"components.platform.opendatahub.io/cleanup"}},
+		Spec:       v1alpha1.DashboardSpec{ManagementSpec: common.ManagementSpec{ManagementState: "Managed"}},
+	}
+	observability := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		Name: "perses-dashboard-config", Namespace: testNamespace,
+		Labels: map[string]string{labels.PlatformPartOf: "dashboard", "app.kubernetes.io/component": "observability"},
+	}, Data: map[string]string{"config": "existing observability"}}
+	federation := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "federation-config", Namespace: testNamespace},
+		Data: map[string]string{"module-federation-config.json": `[{"name":"perses","extra":"preserved"},{"name":"obsolete"}]`}}
+	lookupFails := true
+	cli := fake.NewClientBuilder().WithScheme(scheme).
+		WithObjects(dashboard, admittedRoute(testNamespace), observability, federation).WithStatusSubresource(dashboard).
+		WithInterceptorFuncs(interceptor.Funcs{
+			Get: func(ctx context.Context, delegate client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+				if _, isService := obj.(*corev1.Service); lookupFails && isService && key.Name == "data-science-perses" {
+					return assert.AnError
+				}
+				return delegate.Get(ctx, key, obj, opts...)
+			},
+		}).Build()
+	r := &ctrlpkg.DashboardReconciler{Client: cli, Scheme: scheme, ManifestsBasePath: createMinimalManifests(t),
+		Platform: cluster.OpenDataHub, Namespace: testNamespace, ApplicationsNamespace: testNamespace}
+	ctx := context.Background()
+	req := ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)}
+	result, err := r.Reconcile(ctx, req)
+	require.NoError(t, err)
+	assert.Equal(t, ctrlpkg.ObservabilityRetryInterval, result.RequeueAfter)
+	updated := &v1alpha1.Dashboard{}
+	require.NoError(t, cli.Get(ctx, req.NamespacedName, updated))
+	assert.Equal(t, "DetectionFailed", conditions.FindStatusCondition(updated, "ObservabilityAvailable").Reason)
+	assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeProvisioningSucceeded)))
+	assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
+	require.NoError(t, cli.Get(ctx, client.ObjectKey{Name: "test-config", Namespace: testNamespace}, &corev1.ConfigMap{}), "core resources must be applied")
+	retained := &corev1.ConfigMap{}
+	require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(observability), retained))
+	assert.Equal(t, observability.Data, retained.Data)
+	require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(federation), retained))
+	assert.Contains(t, retained.Data["module-federation-config.json"], `"name": "perses"`)
+	assert.Contains(t, retained.Data["module-federation-config.json"], `"extra": "preserved"`)
+	assert.Contains(t, retained.Data["module-federation-config.json"], `"name": "coreBff"`)
+	assert.NotContains(t, retained.Data["module-federation-config.json"], "obsolete")
+
+	// A successful lookup that finds no Perses service must resume normal cleanup
+	// and replace the previous DetectionFailed condition.
+	lookupFails = false
+	_, err = r.Reconcile(ctx, req)
+	require.NoError(t, err)
+	require.NoError(t, cli.Get(ctx, req.NamespacedName, updated))
+	assert.Equal(t, "Disabled", conditions.FindStatusCondition(updated, "ObservabilityAvailable").Reason)
+	assert.True(t, k8serrors.IsNotFound(cli.Get(ctx, client.ObjectKeyFromObject(observability), retained)))
 }
 
 func TestReconcile(t *testing.T) {

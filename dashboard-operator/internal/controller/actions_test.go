@@ -643,10 +643,26 @@ func TestCleanupCrossNamespaceResources_PreserveObservabilityStillCleansDCH(t *t
 
 func TestReconcile_ObservabilityDetectionFailurePreservesResources(t *testing.T) {
 	scheme := maasConsumerPortalScheme(t)
+	base := t.TempDir()
+	bundle := filepath.Join(base, "distributions", maasConsumerPortalDeploymentName)
+	require.NoError(t, os.MkdirAll(bundle, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(bundle, "kustomization.yaml"), []byte(`apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - configmap.yaml
+`), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(bundle, "configmap.yaml"), []byte(`apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portal-bundle-config
+data:
+  key: updated
+`), 0644))
 	dashboard := &v1alpha1.Dashboard{
 		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName, Finalizers: []string{dashboardFinalizer}},
 		Spec: v1alpha1.DashboardSpec{
 			ManagementSpec:     common.ManagementSpec{ManagementState: "Removed"},
+			Gateway:            &v1alpha1.GatewaySpec{Domain: "apps.example.com"},
 			MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
 		},
 	}
@@ -659,11 +675,18 @@ func TestReconcile_ObservabilityDetectionFailurePreservesResources(t *testing.T)
 	}}
 	federation := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalFederationConfigMapName, Namespace: "applications"},
-		Data:       map[string]string{federationConfigKey: "existing federation data"},
+		Data:       map[string]string{federationConfigKey: `[{"name":"perses","proxyService":[{"path":"/perses/api","service":{"name":"data-science-perses","namespace":"redhat-ods-monitoring","port":8080}}]}]`},
 	}
+	localObservability := observability.DeepCopy()
+	localObservability.Namespace = "applications"
+	localObservability.Labels = map[string]string{labels.PlatformPartOf: "dashboard"}
+	coreConfig := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		Name: "dashboard-core-config", Namespace: "applications",
+		Labels: map[string]string{labels.PlatformPartOf: "dashboard"},
+	}}
 	lookupFails := true
 	cli := fake.NewClientBuilder().WithScheme(scheme).
-		WithObjects(dashboard, service, observability, federation).WithStatusSubresource(dashboard).
+		WithObjects(dashboard, service, observability, localObservability, federation, coreConfig).WithStatusSubresource(dashboard).
 		WithInterceptorFuncs(interceptor.Funcs{
 			Get: func(ctx context.Context, delegate client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 				if _, isService := obj.(*corev1.Service); lookupFails && isService && key == client.ObjectKeyFromObject(service) {
@@ -672,27 +695,41 @@ func TestReconcile_ObservabilityDetectionFailurePreservesResources(t *testing.T)
 				return delegate.Get(ctx, key, obj, opts...)
 			},
 		}).Build()
-	r := &DashboardReconciler{Client: cli, Scheme: scheme, Platform: cluster.SelfManagedRhoai, ApplicationsNamespace: "applications"}
+	r := &DashboardReconciler{Client: cli, Scheme: scheme, ManifestsBasePath: base, Platform: cluster.SelfManagedRhoai, ApplicationsNamespace: "applications"}
 	ctx := context.Background()
-	_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)})
-	require.ErrorIs(t, err, assert.AnError)
+	result, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)})
+	require.NoError(t, err)
+	assert.Positive(t, result.RequeueAfter)
+	assert.LessOrEqual(t, result.RequeueAfter, observabilityRetryInterval)
 	updated := &v1alpha1.Dashboard{}
 	require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(dashboard), updated))
 	condition := conditions.FindStatusCondition(updated, conditionObservabilityAvailable)
 	require.NotNil(t, condition)
 	assert.Equal(t, "DetectionFailed", condition.Reason)
 	assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
-	assert.True(t, conditions.IsStatusConditionTrue(updated, conditionMaaSConsumerPortalAvailable))
+	assert.False(t, conditions.IsStatusConditionTrue(updated, conditionMaaSConsumerPortalAvailable), "portal availability must be recalculated")
+	assert.Equal(t, "Removed", conditions.FindStatusCondition(updated, string(common.ConditionTypeProvisioningSucceeded)).Reason)
+	assert.True(t, apierrors.IsNotFound(cli.Get(ctx, client.ObjectKeyFromObject(coreConfig), &corev1.ConfigMap{})), "core teardown must proceed")
+	portalConfig := &corev1.ConfigMap{}
+	require.NoError(t, cli.Get(ctx, client.ObjectKey{Name: "portal-bundle-config", Namespace: "applications"}, portalConfig), "portal bundle reconciliation must proceed")
+	assert.Equal(t, "updated", portalConfig.Data["key"])
 	retained := &corev1.ConfigMap{}
 	require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(observability), retained))
 	assert.Equal(t, observability.UID, retained.UID)
+	require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(localObservability), retained))
+	assert.Equal(t, localObservability.UID, retained.UID)
 	require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(federation), retained))
-	assert.Equal(t, federation.Data, retained.Data)
+	assert.JSONEq(t, federation.Data[federationConfigKey], retained.Data[federationConfigKey])
 
 	lookupFails = false
-	require.NoError(t, r.autoDetectObservability(ctx, updated))
-	require.NotNil(t, updated.Spec.Observability)
-	assert.True(t, updated.Spec.Observability.Enabled)
+	obsOverlay := filepath.Join(base, "observability", "rhoai")
+	require.NoError(t, os.MkdirAll(obsOverlay, 0755))
+	require.NoError(t, os.CopyFS(obsOverlay, os.DirFS(bundle)))
+	_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)})
+	require.NoError(t, err)
+	require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(dashboard), updated))
+	assert.Equal(t, "Deployed", conditions.FindStatusCondition(updated, conditionObservabilityAvailable).Reason)
+	assert.Nil(t, updated.Spec.Observability, "auto-detection must not be persisted in the spec")
 }
 
 func TestReconcileObservability_APIFailuresRetry(t *testing.T) {
