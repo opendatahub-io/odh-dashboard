@@ -60,4 +60,20 @@ describe('HostApiProvider', () => {
     await waitFor(() => expect(screen.getByTestId('access-result').textContent).toBe('false-true'));
     expect(checkAccessMock).toHaveBeenCalledTimes(1);
   });
+
+  it('should retry a failed review when the consumer mounts again', async () => {
+    checkAccessMock.mockRejectedValueOnce(new Error('network unavailable')).mockResolvedValue(true);
+    const consumer = (
+      <HostApiProvider>
+        <AccessReview />
+      </HostApiProvider>
+    );
+    const { unmount } = render(consumer);
+    await waitFor(() => expect(screen.getByTestId('access-result').textContent).toBe('false-true'));
+    unmount();
+
+    render(consumer);
+    await waitFor(() => expect(screen.getByTestId('access-result').textContent).toBe('true-true'));
+    expect(checkAccessMock).toHaveBeenCalledTimes(2);
+  });
 });

@@ -823,7 +823,7 @@ func isLegacyObservabilityResource(resource client.Object) bool {
 	case *networkingv1.NetworkPolicy:
 		return obj.Name == "dashboard-perses-access"
 	case *unstructured.Unstructured:
-		if obj.GroupVersionKind() != persesdashboardGVK {
+		if obj.GroupVersionKind() != persesdashboardGVK.GroupVersion().WithKind("PersesDashboard") {
 			return false
 		}
 		return obj.GetName() == "dashboard-0-cluster-admin" || obj.GetName() == "dashboard-1-model" || obj.GetName() == "dashboard-1-model-admin"

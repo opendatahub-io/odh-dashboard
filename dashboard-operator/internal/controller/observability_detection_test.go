@@ -3,6 +3,8 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,6 +13,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -38,6 +41,7 @@ func TestFederationDuringObservabilityDetectionFailure(t *testing.T) {
 			{name: "updates modules and preserves Perses", existing: `[{"name":"obsolete"},{"name":"perses","extra":"preserved"}]`, wantPerses: true},
 			{name: "updates modules without Perses", existing: `[{"name":"obsolete"}]`},
 			{name: "malformed existing configuration is retained", existing: "invalid JSON", wantError: true},
+			{name: "invalid entry name is retained", existing: `[{"name":123}]`, wantError: true},
 			{name: "read failure does not overwrite existing configuration", existing: `[{"name":"perses"}]`, readFails: true, wantError: true},
 		} {
 			t.Run(name+"/"+tt.name, func(t *testing.T) {
@@ -161,4 +165,89 @@ func TestCleanupLegacyLocalObservabilityIsBounded(t *testing.T) {
 	for _, retained := range []client.Object{core, unowned} {
 		require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(retained), &networkingv1.NetworkPolicy{}))
 	}
+}
+
+func TestCleanupLegacyLocalObservabilityOwnership(t *testing.T) {
+	perses := &unstructured.Unstructured{}
+	perses.SetGroupVersionKind(persesdashboardGVK.GroupVersion().WithKind("PersesDashboard"))
+	perses.SetName("dashboard-1-model")
+	for _, resource := range []client.Object{
+		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: persesServiceName}},
+		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "perses-dashboard-config"}},
+		&networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: "dashboard-perses-access"}},
+		perses,
+	} {
+		for _, ownership := range []string{"legacy", "unowned", "other component", "other namespace"} {
+			t.Run(resource.GetName()+"/"+ownership, func(t *testing.T) {
+				obj := resource.DeepCopyObject().(client.Object)
+				obj.SetNamespace("applications")
+				obj.SetLabels(map[string]string{labels.PlatformPartOf: "dashboard"})
+				switch ownership {
+				case "unowned":
+					obj.SetLabels(nil)
+				case "other component":
+					obj.SetLabels(map[string]string{labels.PlatformPartOf: "dashboard", moduleComponentLabel: "core"})
+				case "other namespace":
+					obj.SetNamespace("other")
+				}
+				scheme := maasConsumerPortalScheme(t)
+				cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(obj).Build()
+				r := &DashboardReconciler{Client: cli, Scheme: scheme, ApplicationsNamespace: "applications"}
+				ctx := context.Background()
+				require.NoError(t, r.cleanupManagedObservability(ctx, &v1alpha1.Dashboard{}))
+				err := cli.Get(ctx, client.ObjectKeyFromObject(obj), obj.DeepCopyObject().(client.Object))
+				if ownership == "legacy" {
+					assert.True(t, apierrors.IsNotFound(err), "legacy resource should be deleted: %v", err)
+				} else {
+					require.NoError(t, err, "unrelated resource should be retained")
+				}
+			})
+		}
+	}
+}
+
+func TestPortalFederationPreservationFailureStillReconcilesBundle(t *testing.T) {
+	scheme := maasConsumerPortalScheme(t)
+	base := t.TempDir()
+	bundle := filepath.Join(base, "distributions", maasConsumerPortalDeploymentName)
+	require.NoError(t, os.MkdirAll(bundle, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(bundle, "kustomization.yaml"), []byte(`apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - configmap.yaml
+`), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(bundle, "configmap.yaml"), []byte(`apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portal-bundle-config
+data:
+  key: updated
+`), 0644))
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName},
+		Spec: v1alpha1.DashboardSpec{
+			Gateway:            &v1alpha1.GatewaySpec{Domain: "apps.example.com"},
+			MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
+		},
+	}
+	federation := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalFederationConfigMapName, Namespace: "applications"},
+		Data:       map[string]string{federationConfigKey: "invalid JSON"},
+	}
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(federation).Build()
+	r := &DashboardReconciler{Client: cli, Scheme: scheme, ManifestsBasePath: base,
+		ApplicationsNamespace: "applications", Platform: cluster.SelfManagedRhoai}
+	cm := maasConsumerPortalTestManager(t, dashboard)
+	ctx := context.Background()
+	retry := r.reconcileMaaSConsumerPortalOperand(ctx, dashboard, cm, nil, false)
+	assert.Equal(t, maasConsumerPortalRetryInterval, retry)
+	condition := conditions.FindStatusCondition(dashboard, conditionMaaSConsumerPortalAvailable)
+	require.NotNil(t, condition)
+	assert.Equal(t, metav1.ConditionFalse, condition.Status)
+	assert.Equal(t, "MaaSConsumerPortalFederationConfigMapFailed", condition.Reason)
+	applied := &corev1.ConfigMap{}
+	require.NoError(t, cli.Get(ctx, client.ObjectKey{Name: "portal-bundle-config", Namespace: "applications"}, applied))
+	assert.Equal(t, "updated", applied.Data["key"])
+	require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(federation), applied))
+	assert.Equal(t, federation.Data, applied.Data)
 }

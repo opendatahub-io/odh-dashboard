@@ -90,4 +90,32 @@ describe('PortalClusterDetailsVariablesProvider', () => {
       expect(value).toBe('Unknown');
     }
   });
+
+  it.each(['network error', 'HTTP error', 'invalid JSON'])(
+    'should preserve cluster metadata when subscription lookup returns %s',
+    async (failure) => {
+      global.fetch =
+        failure === 'network error'
+          ? jest.fn().mockRejectedValue(new Error('network unavailable'))
+          : jest.fn().mockResolvedValue({
+              ok: failure === 'invalid JSON',
+              status: 503,
+              json: async () => {
+                throw new SyntaxError('Unexpected token');
+              },
+            });
+      render(<PortalClusterDetailsVariablesProvider />);
+      await waitFor(() => expect(setVariableValue).toHaveBeenCalledTimes(4));
+      expect(setVariableValue).toHaveBeenCalledWith('CLUSTER_DETAILS_CHANNEL', 'Unknown');
+      expect(setVariableValue).toHaveBeenCalledWith(
+        'CLUSTER_DETAILS_API_SERVER',
+        'https://api.example.test',
+      );
+      expect(setVariableValue).toHaveBeenCalledWith('CLUSTER_DETAILS_OPENSHIFT_VERSION', '4.19.0');
+      expect(setVariableValue).toHaveBeenCalledWith(
+        'CLUSTER_DETAILS_INFRASTRUCTURE_PROVIDER',
+        'AWS',
+      );
+    },
+  );
 });
