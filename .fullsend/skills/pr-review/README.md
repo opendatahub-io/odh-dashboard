@@ -146,6 +146,15 @@ Host blocking: severity `medium` and above, except categories excluded in
 | `fail` | `request-changes`; refuse approve |
 | `could-not-verify` | Refuse approve; `comment` → `requires-manual-review`; also caps high confidence via incompleteness |
 
+#### Test impact vs PR description (Evidence)
+
+| Check | Role |
+| --- | --- |
+| `pr-description-review` | Surface: Problem / Solution / Evidence — is meaningful test evidence present on the face of the PR body? |
+| `test-impact-review` | Depth: **Automation**, **Efficiency**, **Evidence depth** — durable automation (incl. edge cases); efficient tier (unit over Cypress mock; heavy Cypress / unit-light fails unless the description justifies); dig into proof so it covers the change and protects integrity while tests stay green. Missing description call-out → Evidence depth `fail` even if tests exist in the tree. |
+
+`test-impact-review` may return **`fail`**, which maps to `request-changes`. Per-aspect N/A: Automation/Efficiency may be N/A for non-product-code heads (lockfile/manifest/docs with nothing to unit-test), or when there are no tests to evaluate for Efficiency; **Evidence depth remains required** for those heads. Do not N/A the whole check solely because the change is non-code.
+
 ### Signals (`risk` / `confidence`)
 
 Refuse approve (→ `comment`, not `request-changes`) when levels match
