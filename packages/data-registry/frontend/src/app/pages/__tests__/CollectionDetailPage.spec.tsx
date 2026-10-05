@@ -152,6 +152,27 @@ describe('CollectionDetailPage', () => {
     expect(screen.getByTestId('collection-action-manage-collections')).toHaveClass('pf-m-disabled');
   });
 
+  it('should disable write actions when collection loading returns a forbidden error', () => {
+    jest
+      .mocked(useCollectionDetailHook.useCollectionDetail)
+      .mockReturnValue([mockCollectionDetail, true, new Error('Access forbidden'), jest.fn()]);
+    jest
+      .mocked(useAssetsHook.useAssets)
+      .mockReturnValue([[], true, new Error('Failed to load assets'), jest.fn(), []]);
+
+    render(
+      <BrowserRouter>
+        <CollectionDetailPage />
+      </BrowserRouter>,
+    );
+
+    fireEvent.click(screen.getByTestId('collection-actions-toggle'));
+
+    expect(screen.getByTestId('collection-action-register-data')).toHaveClass('pf-m-disabled');
+    expect(screen.getByTestId('collection-action-delete')).toHaveClass('pf-m-disabled');
+    expect(screen.getByTestId('collection-action-manage-collections')).toHaveClass('pf-m-disabled');
+  });
+
   it('should disable registration from the empty state when the user lacks write access', () => {
     const emptyCollectionDetail: CollectionDetail = {
       ...mockCollectionDetail,

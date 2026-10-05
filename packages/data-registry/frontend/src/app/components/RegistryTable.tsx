@@ -559,7 +559,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                   <DropdownList>
                     <DropdownItem
                       key="manage-collections"
-                      onClick={onManageCollections}
+                      onClick={() => onManageCollections()}
                       isDisabled={!hasWriteAccess}
                       data-testid="manage-collections-action"
                     >
@@ -567,7 +567,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                     </DropdownItem>
                     <DropdownItem
                       key="manage-labels"
-                      onClick={onManageLabels}
+                      onClick={() => onManageLabels()}
                       isDisabled={!hasWriteAccess}
                       data-testid="manage-labels-action"
                     >

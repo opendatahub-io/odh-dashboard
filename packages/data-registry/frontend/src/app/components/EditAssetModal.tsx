@@ -164,7 +164,8 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
     return result;
   }, [asset, assetKind, collection, name, onClose, onSaved, project]);
 
-  const originalLabels = React.useMemo(() => getValidLabels(asset.labels ?? []), [asset.labels]);
+  const assetLabels = React.useMemo(() => getValidLabels(asset.labels ?? []), [asset.labels]);
+  const originalLabels = assetLabels;
 
   const form = useForm<EditAssetFormData>({
     resolver: zodResolver(editAssetSchema),
@@ -179,6 +180,12 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
       form.reset(defaults);
     }
   }, [assetKey, defaults, form]);
+
+  React.useEffect(() => {
+    if (!form.getFieldState('labels').isDirty) {
+      form.setValue('labels', assetLabels, { shouldDirty: false });
+    }
+  }, [assetLabels, form]);
 
   const handleSubmit = React.useCallback(
     async (data: EditAssetFormData) => {

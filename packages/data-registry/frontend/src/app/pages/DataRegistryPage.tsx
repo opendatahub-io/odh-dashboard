@@ -218,6 +218,7 @@ const DataRegistryPage: React.FC = () => {
 
   const handleProjectSelect = React.useCallback(
     (projectName: string) => {
+      returnToEditRef.current = undefined;
       const namespace = projectNamespaces.find((project) => project.name === projectName);
       if (namespace) {
         updatePreferredNamespace(namespace);

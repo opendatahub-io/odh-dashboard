@@ -55,7 +55,7 @@ const CollectionDetailPage: React.FC = () => {
   const [isRegisterDataOpen, setIsRegisterDataOpen] = React.useState(false);
   const [returnToRegisterData, setReturnToRegisterData] = React.useState(false);
 
-  const hasWriteAccess = hasDataRegistryWriteAccess(assetsError ?? loadError, collectionsError);
+  const hasWriteAccess = hasDataRegistryWriteAccess(assetsError, loadError, collectionsError);
 
   const handleRefresh = React.useCallback(() => {
     refresh();

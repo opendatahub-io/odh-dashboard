@@ -627,7 +627,7 @@ describe('Manage Labels', () => {
     cy.findByTestId('manage-labels-action').click();
     cy.findByTestId('manage-labels-modal').should('exist');
 
-    cy.contains('button', 'Close').click();
+    cy.findByTestId('manage-labels-close-button').click();
     cy.findByTestId('manage-labels-modal').should('not.exist');
   });
 });
