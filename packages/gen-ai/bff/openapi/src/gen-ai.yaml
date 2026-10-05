@@ -2380,6 +2380,10 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '504':
           description: Agent prompt provider timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
 
   /gen-ai/api/v1/agent-deployments/{id}:
     get:
@@ -5564,6 +5568,7 @@ components:
         - displayName
         - namespace
         - agentProfileId
+        - createdAt
         - state
       properties:
         name:
