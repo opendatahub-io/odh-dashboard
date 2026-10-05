@@ -11,6 +11,12 @@ import useQuotaHierarchy from '../useQuotaHierarchy';
 jest.mock('@odh-dashboard/ui-core/hooks/useFetch', () => ({
   __esModule: true,
   default: jest.fn(),
+  NotReadyError: class NotReadyError extends Error {
+    constructor(reason: string) {
+      super(`Not ready yet. ${reason}`);
+      this.name = 'NotReadyError';
+    }
+  },
 }));
 
 jest.mock('@odh-dashboard/internal/api/k8s/clusterQueues', () => ({
@@ -55,15 +61,59 @@ describe('useQuotaHierarchy', () => {
   });
 
   it('should register useFetch with empty initial tree and refresh interval', () => {
-    testHook(useQuotaHierarchy)();
+    testHook(useQuotaHierarchy)(true, true);
 
     expect(useFetchMock).toHaveBeenCalledWith(
       expect.any(Function),
       { tree: [] },
       {
         refreshRate: INFRASTRUCTURE_REFRESH_INTERVAL,
+        initialPromisePurity: true,
       },
     );
+  });
+
+  it('should remain not ready while administrative access is loading', async () => {
+    testHook(useQuotaHierarchy)(true, false);
+    const fetchQuotaHierarchy = useFetchMock.mock.calls[0][0] as () => Promise<unknown>;
+
+    await expect(fetchQuotaHierarchy()).rejects.toMatchObject({ name: 'NotReadyError' });
+    expect(listClusterQueuesMock).not.toHaveBeenCalled();
+    expect(listCohortsMock).not.toHaveBeenCalled();
+  });
+
+  it('should start loading quota data after administrative access resolves', async () => {
+    listCohortsMock.mockResolvedValue(mockCohorts);
+    listClusterQueuesMock.mockResolvedValue(mockClusterQueues);
+    buildQuotaHierarchyTreeMock.mockReturnValue(mockTree);
+
+    const renderResult = testHook(useQuotaHierarchy)(true, false);
+    const loadingFetchQuotaHierarchy = useFetchMock.mock.calls[0][0] as () => Promise<unknown>;
+
+    await expect(loadingFetchQuotaHierarchy()).rejects.toMatchObject({ name: 'NotReadyError' });
+    expect(listClusterQueuesMock).not.toHaveBeenCalled();
+    expect(listCohortsMock).not.toHaveBeenCalled();
+
+    renderResult.rerender(true, true);
+    const resolvedFetchQuotaHierarchy = useFetchMock.mock.calls[1][0] as () => Promise<{
+      tree: QuotaTreeNode[];
+    }>;
+
+    await expect(resolvedFetchQuotaHierarchy()).resolves.toEqual({ tree: mockTree });
+    expect(listClusterQueuesMock).toHaveBeenCalledTimes(1);
+    expect(listCohortsMock).toHaveBeenCalledTimes(1);
+    expect(buildQuotaHierarchyTreeMock).toHaveBeenCalledWith(mockCohorts, mockClusterQueues);
+  });
+
+  it('should return an empty tree when administrative access is denied', async () => {
+    testHook(useQuotaHierarchy)(false, true);
+    const fetchQuotaHierarchy = useFetchMock.mock.calls[0][0] as () => Promise<{
+      tree: QuotaTreeNode[];
+    }>;
+
+    await expect(fetchQuotaHierarchy()).resolves.toEqual({ tree: [] });
+    expect(listClusterQueuesMock).not.toHaveBeenCalled();
+    expect(listCohortsMock).not.toHaveBeenCalled();
   });
 
   it('should list cohorts and cluster queues then build the navigation tree', async () => {
@@ -71,7 +121,7 @@ describe('useQuotaHierarchy', () => {
     listClusterQueuesMock.mockResolvedValue(mockClusterQueues);
     buildQuotaHierarchyTreeMock.mockReturnValue(mockTree);
 
-    testHook(useQuotaHierarchy)();
+    testHook(useQuotaHierarchy)(true, true);
     const fetchQuotaHierarchy = useFetchMock.mock.calls[0][0] as () => Promise<{
       tree: QuotaTreeNode[];
     }>;
@@ -90,7 +140,7 @@ describe('useQuotaHierarchy', () => {
       refresh: jest.fn(),
     });
 
-    const renderResult = testHook(useQuotaHierarchy)();
+    const renderResult = testHook(useQuotaHierarchy)(true, true);
     const initialLastRefreshed = renderResult.result.current.lastRefreshed;
     expect(initialLastRefreshed).toEqual(expect.any(Date));
 
@@ -100,7 +150,7 @@ describe('useQuotaHierarchy', () => {
       error: undefined,
       refresh: jest.fn(),
     });
-    renderResult.rerender();
+    renderResult.rerender(true, true);
 
     expect(renderResult.result.current.lastRefreshed).toBe(initialLastRefreshed);
   });
@@ -114,7 +164,7 @@ describe('useQuotaHierarchy', () => {
       refresh,
     });
 
-    const renderResult = testHook(useQuotaHierarchy)();
+    const renderResult = testHook(useQuotaHierarchy)(true, true);
     const initialLastRefreshed = renderResult.result.current.lastRefreshed;
 
     const refreshPromise = renderResult.result.current.refresh();
