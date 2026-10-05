@@ -49,6 +49,7 @@ type RegisterDataModalProps = {
   collections: string[];
   onCreated: () => void;
   onManageCollections: () => void;
+  onManageLabels?: () => void;
 };
 
 const getConnectionRef = (
@@ -180,6 +181,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
   collections,
   onCreated,
   onManageCollections,
+  onManageLabels,
 }) => {
   const [connections, connectionsLoaded, connectionsError] = useConnections(project);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -270,6 +272,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
             <RegistrationOrganizationSection
               collections={collections}
               onManageCollections={onManageCollections}
+              onManageLabels={onManageLabels}
             />
             <PropertiesSection />
           </Form>

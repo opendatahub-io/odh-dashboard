@@ -28,6 +28,7 @@ describe('RegisterDataModal', () => {
     collections: ['collection-1', 'collection-2'],
     onCreated: jest.fn(),
     onManageCollections: jest.fn(),
+    onManageLabels: jest.fn(),
   };
 
   beforeEach(() => {
@@ -45,6 +46,8 @@ describe('RegisterDataModal', () => {
     expect(screen.getByTestId('data-format-toggle')).toBeTruthy();
     expect(screen.getByTestId('data-collection-toggle')).toBeTruthy();
     expect(screen.getByTestId('data-path-input')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Asset type info' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'PII information' })).toBeInTheDocument();
   });
 
   it('should default to Unstructured asset type', () => {
@@ -209,6 +212,15 @@ describe('RegisterDataModal', () => {
 
     await user.click(screen.getByTestId('data-collection-toggle'));
     expect(screen.getByText('Create new collection')).toBeTruthy();
+  });
+
+  it('should open project label management from the organization section', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByRole('button', { name: 'Manage labels' }));
+
+    expect(defaultProps.onManageLabels).toHaveBeenCalled();
   });
 
   it('should keep added labels as editable rows with remove controls', async () => {

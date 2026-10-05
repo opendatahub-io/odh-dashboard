@@ -85,9 +85,17 @@ describe('RegistryTable', () => {
   it('should link a connection reference to project connections', () => {
     renderTable();
 
-    const connectionLink = screen.getByRole('link', { name: 'minio-connection' });
+    const connectionLink = screen.getByRole('link', { name: 'Minio connection' });
     expect(connectionLink).toHaveAttribute('href', '/projects/test-project?section=connections');
     expect(screen.getByTestId('connection-type')).toHaveTextContent('s3');
+  });
+
+  it('should fall back to the connection name when display name is unavailable', () => {
+    renderTable({
+      connections: [{ name: 'minio-connection', connectionType: 's3' }],
+    });
+
+    expect(screen.getByRole('link', { name: 'minio-connection' })).toBeInTheDocument();
   });
 
   it('should keep a location-only asset location as plain text', () => {
@@ -113,6 +121,7 @@ describe('RegistryTable', () => {
     expect(screen.getByTestId('registry-empty-state-description')).toHaveTextContent(
       'Data assets point to the exact location within a connection where information is located, and can be used across workbenches and pipelines in your project. To get started, create a data asset.',
     );
+    expect(screen.getByRole('heading', { name: 'No data assets' })).toBeInTheDocument();
     expect(screen.getByTestId('registry-toolbar')).toHaveClass('pf-v6-u-display-none');
     expect(screen.queryByRole('columnheader', { name: 'Name' })).toBeNull();
     expect(screen.getByTestId('empty-register-data-button')).toBeTruthy();
@@ -221,5 +230,18 @@ describe('RegistryTable', () => {
   it('should render kebab menu', () => {
     renderTable();
     expect(screen.getByTestId('registry-kebab')).toBeTruthy();
+  });
+
+  it('should disable per-asset edit and delete actions without write access', () => {
+    renderTable({ hasWriteAccess: false });
+
+    fireEvent.click(screen.getByTestId('asset-actions-table-analytics-claims-data'));
+
+    expect(screen.getByTestId('asset-edit-table-analytics-claims-data')).toHaveClass(
+      'pf-m-disabled',
+    );
+    expect(screen.getByTestId('asset-delete-table-analytics-claims-data')).toHaveClass(
+      'pf-m-disabled',
+    );
   });
 });

@@ -190,6 +190,7 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project, conne
                     <DescriptionListDescription data-testid="asset-connection">
                       <ConnectionRefLink
                         connectionRef={asset.connection_ref}
+                        connections={connections}
                         linkTo={project ? projectConnectionsUrl(project) : undefined}
                       />
                       {connectionType ? (

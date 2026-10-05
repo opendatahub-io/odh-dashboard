@@ -78,6 +78,12 @@ describe('ManageLabelsModal', () => {
     ).toBeTruthy();
   });
 
+  it('should not show an informational warning for label deletion', () => {
+    renderModal();
+
+    expect(screen.queryByTestId('manage-labels-delete-warning')).not.toBeInTheDocument();
+  });
+
   it('should render all labels with outline variant', () => {
     renderModal();
     mockLabels.forEach((label) => {

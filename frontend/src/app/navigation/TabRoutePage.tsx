@@ -47,11 +47,15 @@ const isPageTitleHidden = (
   basePath: string,
   hiddenPathPrefixes: string[] | undefined,
 ): boolean => {
-  if (!hiddenPathPrefixes?.length || !pathname.startsWith(basePath)) {
+  const normalizedBasePath = basePath.replace(/\/+$/, '');
+  const isWithinBasePath =
+    pathname === normalizedBasePath || pathname.startsWith(`${normalizedBasePath}/`);
+
+  if (!hiddenPathPrefixes?.length || !isWithinBasePath) {
     return false;
   }
 
-  const relativePath = pathname.slice(basePath.length).replace(/^\//, '');
+  const relativePath = pathname.slice(normalizedBasePath.length).replace(/^\//, '');
   return hiddenPathPrefixes.some((prefix) => {
     const normalizedPrefix = prefix.replace(/^\/+|\/+$/g, '');
     return relativePath === normalizedPrefix || relativePath.startsWith(`${normalizedPrefix}/`);

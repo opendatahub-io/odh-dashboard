@@ -5,12 +5,12 @@ import { MemoryRouter } from 'react-router-dom';
 import TableDetailView from '~/app/pages/TableDetailView';
 import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
 import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
-import type { AssetResponse } from '~/app/types';
+import type { AssetResponse, ConnectionModel } from '~/app/types';
 
 const renderView = (
   asset: AssetResponse,
   project = 'test-project',
-  connections: { name: string; connectionType?: string }[] = [],
+  connections: ConnectionModel[] = [],
 ) =>
   render(
     <MemoryRouter>
@@ -49,10 +49,19 @@ describe('TableDetailView', () => {
 
   it('should render connection name as a link to project connections', () => {
     const asset = mockAssetResponse();
-    renderView(asset);
+    renderView(asset, 'test-project', [
+      { name: 'my-s3-connection', displayName: 'My S3 Connection' },
+    ]);
     const el = screen.getByTestId('connection-ref-link');
-    expect(el).toHaveTextContent('my-s3-connection');
+    expect(el).toHaveTextContent('My S3 Connection');
     expect(el).toHaveAttribute('href', '/projects/test-project?section=connections');
+  });
+
+  it('should fall back to the connection name when display name is unavailable', () => {
+    const asset = mockAssetResponse();
+    renderView(asset, 'test-project', [{ name: 'my-s3-connection' }]);
+
+    expect(screen.getByTestId('connection-ref-link')).toHaveTextContent('my-s3-connection');
   });
 
   it('should render the connection type below the connection name', () => {

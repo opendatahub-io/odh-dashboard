@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   FormGroup,
+  FormGroupLabelHelp,
   FormSection,
   TextInput,
   Select,
@@ -11,10 +12,8 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
-  Icon,
   Popover,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Controller, useFormContext } from 'react-hook-form';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
 import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
@@ -194,9 +193,7 @@ const PropertiesSection: React.FC = () => {
         placeholder="Select PII status"
         labelHelp={
           <Popover bodyContent="The type of personally identifiable information (PII) present in the data.">
-            <Icon aria-label="PII information" role="button">
-              <OutlinedQuestionCircleIcon />
-            </Icon>
+            <FormGroupLabelHelp aria-label="PII information" />
           </Popover>
         }
       />

@@ -16,6 +16,7 @@ import { Controller, useFormContext } from 'react-hook-form';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
 import { ConnectionModel } from '~/app/types';
 import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
+import { getConnectionDisplayName } from '~/app/utilities/connectionUtils';
 
 type DataLocationSectionProps = {
   connections?: ConnectionModel[];
@@ -42,8 +43,7 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
     if (!value) {
       return 'Select a connection';
     }
-    const match = connections.find((c) => c.name === value);
-    return match?.displayName || match?.name || value;
+    return getConnectionDisplayName(value, connections);
   };
 
   return (
@@ -104,7 +104,7 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
                       description={conn.connectionType}
                       data-testid={`connection-option-${conn.name}`}
                     >
-                      {conn.displayName || conn.name}
+                      {getConnectionDisplayName(conn.name, connections)}
                     </SelectOption>
                   ))}
                 </SelectList>

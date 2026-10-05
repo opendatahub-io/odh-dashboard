@@ -3,13 +3,13 @@ import {
   Button,
   Content,
   FormGroup,
+  FormGroupLabelHelp,
   FormHelperText,
   FormSection,
   Flex,
   FlexItem,
   HelperText,
   HelperTextItem,
-  Icon,
   MenuToggle,
   MenuToggleElement,
   Popover,
@@ -19,11 +19,7 @@ import {
   TextArea,
   TextInput,
 } from '@patternfly/react-core';
-import {
-  MinusCircleIcon,
-  OutlinedQuestionCircleIcon,
-  PlusCircleIcon,
-} from '@patternfly/react-icons';
+import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { Controller, useFormContext } from 'react-hook-form';
 import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
@@ -144,9 +140,7 @@ export const RegistrationAssetFormatSection: React.FC<EditModeProps> = ({ isEdit
         labelHelp={
           isEditMode ? undefined : (
             <Popover bodyContent="Structured formats such as iceberg, parquet, and SQL databases have a defined schema. Unstructured formats such as PDFs and images represent raw data.">
-              <Icon aria-label="Asset type info" role="button">
-                <OutlinedQuestionCircleIcon />
-              </Icon>
+              <FormGroupLabelHelp aria-label="Asset type info" />
             </Popover>
           )
         }
@@ -259,12 +253,14 @@ export const RegistrationAssetFormatSection: React.FC<EditModeProps> = ({ isEdit
 type RegistrationOrganizationSectionProps = EditModeProps & {
   collections?: string[];
   onManageCollections?: () => void;
+  onManageLabels?: () => void;
 };
 
 export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationSectionProps> = ({
   collections = [],
   isEditMode = false,
   onManageCollections,
+  onManageLabels,
 }) => {
   const {
     control,
@@ -275,13 +271,26 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
   } = useFormContext<AssetFormData>();
   const labels = watch('labels');
   const [isCollectionOpen, setIsCollectionOpen] = React.useState(false);
+  const labelIdsRef = React.useRef<string[]>([]);
+  const nextLabelIdRef = React.useRef(0);
+
+  while (labelIdsRef.current.length < labels.length) {
+    labelIdsRef.current.push(`label-${nextLabelIdRef.current}`);
+    nextLabelIdRef.current += 1;
+  }
+  if (labelIdsRef.current.length > labels.length) {
+    labelIdsRef.current.length = labels.length;
+  }
 
   const handleAddLabel = React.useCallback(() => {
+    labelIdsRef.current.push(`label-${nextLabelIdRef.current}`);
+    nextLabelIdRef.current += 1;
     setValue('labels', [...getValues('labels'), '']);
   }, [getValues, setValue]);
 
   const handleRemoveLabel = React.useCallback(
     (index: number) => {
+      labelIdsRef.current.splice(index, 1);
       const currentLabels = getValues('labels');
       setValue(
         'labels',
@@ -377,14 +386,19 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
         <Content component="p">
           Optionally add labels to this data asset to make it easier to find later. To manage labels
           for the entire project, go to{' '}
-          <Button variant="link" isInline isDisabled>
+          <Button
+            variant="link"
+            isInline
+            isDisabled={isEditMode}
+            onClick={isEditMode ? undefined : onManageLabels}
+          >
             Manage labels
           </Button>
           .
         </Content>
         {labels.map((label, index) => (
           <Flex
-            key={index}
+            key={labelIdsRef.current[index]}
             alignItems={{ default: 'alignItemsCenter' }}
             gap={{ default: 'gapMd' }}
             className="pf-v6-u-mb-xs"

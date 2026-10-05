@@ -27,7 +27,10 @@ import ApplicationsPage from '~/app/components/ApplicationsPage';
 import { useGenericTable } from '~/app/hooks/useGenericTable';
 import { useVolume } from '~/app/hooks/useVolume';
 import { useConnections } from '~/app/hooks/useConnections';
+import { useAssets } from '~/app/hooks/useAssets';
+import { useCollections } from '~/app/hooks/useCollections';
 import { deleteGenericTable, deleteVolume } from '~/app/api/dataRegistry';
+import { hasDataRegistryWriteAccess } from '~/app/utilities/access';
 import { browseUrl } from '~/app/utilities/routes';
 import { useNotification } from '~/app/hooks/useNotification';
 import DeleteAssetModal from '~/app/components/DeleteAssetModal';
@@ -58,6 +61,9 @@ const TableDetailPage: React.FC = () => {
     isVolume ? name : undefined,
   );
   const [connections] = useConnections(project || '');
+  const [assets, , assetsError, , collectionNames] = useAssets(project || '');
+  const [, , collectionsError] = useCollections(project || '', assets, collectionNames);
+  const hasWriteAccess = hasDataRegistryWriteAccess(assetsError, collectionsError);
 
   const asset = React.useMemo(
     () => (isVolume ? volume : genericTable),
@@ -174,6 +180,7 @@ const TableDetailPage: React.FC = () => {
           <DropdownItem
             key="edit"
             onClick={() => setIsEditModalOpen(true)}
+            isDisabled={!hasWriteAccess}
             data-testid="asset-action-edit"
           >
             Edit
@@ -182,6 +189,7 @@ const TableDetailPage: React.FC = () => {
           <DropdownItem
             key="delete"
             onClick={() => setIsDeleteModalOpen(true)}
+            isDisabled={!hasWriteAccess}
             isDanger
             data-testid="asset-action-delete"
           >

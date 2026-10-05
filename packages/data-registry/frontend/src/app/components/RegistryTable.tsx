@@ -50,6 +50,7 @@ import ServiceUnavailableError from '~/app/components/errors/ServiceUnavailableE
 import noAssetsImage from '~/images/no-assets.png';
 import DeleteAssetModal from './DeleteAssetModal';
 import EditAssetModal from './EditAssetModal';
+import './RegistryTable.scss';
 
 type RegistryTableProps = {
   assets: RegistryAsset[];
@@ -276,7 +277,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
               onClick={() => setIsValueOpen((prev) => !prev)}
               isExpanded={isValueOpen}
               data-testid="filter-value"
-              style={{ minWidth: '180px' }}
+              className="odh-data-registry-registry-table__filter-value"
             >
               Labels{' '}
               {selectedLabels.length > 0 ? (
@@ -330,7 +331,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
               onClick={() => setIsValueOpen((prev) => !prev)}
               isExpanded={isValueOpen}
               data-testid="filter-value"
-              style={{ minWidth: '180px' }}
+              className="odh-data-registry-registry-table__filter-value"
             >
               All asset types{' '}
               {selectedAssetTypes.length > 0 ? (
@@ -380,7 +381,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
             onClick={() => setIsValueOpen((prev) => !prev)}
             isExpanded={isValueOpen}
             data-testid="filter-value"
-            style={{ minWidth: '180px' }}
+            className="odh-data-registry-registry-table__filter-value"
           >
             All formats{' '}
             {selectedFormats.length > 0 ? (
@@ -454,7 +455,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
 
   return (
     <>
-      <PageSection hasBodyWrapper={false}>
+      <PageSection hasBodyWrapper={false} className="odh-data-registry-registry-table">
         <Toolbar
           className={assets.length === 0 ? 'pf-v6-u-display-none' : undefined}
           data-testid="registry-toolbar"
@@ -480,7 +481,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                       isExpanded={isCategoryOpen}
                       data-testid="filter-category"
                       icon={<FilterIcon />}
-                      style={{ minWidth: '150px' }}
+                      className="odh-data-registry-registry-table__filter-category"
                     >
                       {CATEGORY_LABELS[filterCategory]}
                     </MenuToggle>
@@ -509,7 +510,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                     setPage(1);
                   }}
                   data-testid="asset-search"
-                  style={{ minWidth: '340px' }}
+                  className="odh-data-registry-registry-table__search"
                 />
               </ToolbarItem>
             </ToolbarGroup>
@@ -714,7 +715,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                       hasActiveFilters && assets.length > 0 ? undefined : EmptyRegistryStateIcon
                     }
                     titleText={
-                      hasActiveFilters && assets.length > 0 ? 'No assets found' : undefined
+                      hasActiveFilters && assets.length > 0 ? 'No assets found' : 'No data assets'
                     }
                     variant={
                       hasActiveFilters && assets.length > 0
@@ -793,6 +794,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                         <>
                           <ConnectionRefLink
                             connectionRef={asset.rawAsset.connection_ref}
+                            connections={connections}
                             linkTo={projectConnectionsUrl(project)}
                           />
                           {connectionType ? (
@@ -849,6 +851,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                                 setEditAsset(asset);
                               }
                             }}
+                            isDisabled={!hasWriteAccess}
                             data-testid={assetTestId('asset-edit')}
                           >
                             Edit
@@ -856,6 +859,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                           <DropdownItem
                             key="delete"
                             onClick={() => setDeleteAsset(asset)}
+                            isDisabled={!hasWriteAccess}
                             data-testid={assetTestId('asset-delete')}
                           >
                             Delete

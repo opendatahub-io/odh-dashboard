@@ -1,5 +1,6 @@
 .odh-data-registry__empty-state-image {
-  height: 20rem;
+  --odh-data-registry--empty-state-image-height: 20rem;
+  height: var(--odh-data-registry--empty-state-image-height);
   max-width: 100%;
   object-fit: contain;
 }

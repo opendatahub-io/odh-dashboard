@@ -17,12 +17,13 @@ describe('ConnectionRefLink', () => {
       <MemoryRouter>
         <ConnectionRefLink
           connectionRef={{ type: 'rhai', secret_name: 'my-secret' }}
+          connections={[{ name: 'my-secret', displayName: 'My connection' }]}
           linkTo="/connections/my-secret"
         />
       </MemoryRouter>,
     );
     const el = screen.getByTestId('connection-ref-link');
-    expect(el).toHaveTextContent('my-secret');
+    expect(el).toHaveTextContent('My connection');
     expect(el.tagName).toBe('A');
     expect(el).toHaveAttribute('href', '/connections/my-secret');
   });
