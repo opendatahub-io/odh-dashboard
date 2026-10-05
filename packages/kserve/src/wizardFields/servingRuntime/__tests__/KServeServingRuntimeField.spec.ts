@@ -243,6 +243,7 @@ describe('useKServeServingRuntimeExternalData', () => {
       {
         id: 'modelServerTemplate',
         type: 'modifier',
+        isActive: () => true,
         extraOptions: [llmdOption],
         suggestion: () => llmdOption,
       },

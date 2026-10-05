@@ -239,8 +239,8 @@ export const useKServeServingRuntimeExternalData = (
     );
 
     // Pre-vLLMonMaaS llm-d override stays active for generative models based on model type /
-    // feature flag alone (not deployment method). On the KServe legacy path that injects
-    // LLMD_OPTION (no Template), which would auto-select and deploy without a ServingRuntime.
+    // feature flag alone (not deployment method). On the KServe legacy path that override
+    // injects LLMD_OPTION (no Template), which would auto-select and deploy without a ServingRuntime.
     if (isLegacyGenerativePath) {
       extraOptions = extraOptions.filter((option) => option.name !== 'llmd-serving');
       if (suggestion?.name === 'llmd-serving') {
