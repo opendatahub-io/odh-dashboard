@@ -14,7 +14,6 @@ On startup, the proxy builds a routing table from `test-variables.yml` and the m
 |---------|--------|-------------|
 | `/api/service/*` | Cluster (`ODH_DASHBOARD_URL`) | `Authorization: Bearer <token>` |
 | `proxyService` paths where `service.name` is not `odh-dashboard` | Cluster | `Authorization: Bearer <token>` |
-| `/__e2e/maas-api/*` | MaaS API (`MAAS_API_URL`) | Preserved from the MaaS BFF |
 | Everything else (static files, `/api/*`, `/_mf/*` for local BFFs, WebSockets) | Local backend (`:4000`) | `x-forwarded-access-token: <token>` |
 
 Only services NOT managed by `odh-dashboard` are routed to the cluster. The `proxyService` paths are read from each package's `module-federation` config in `package.json`. Packages with BFFs running locally (service name `odh-dashboard`) fall through to the backend, which proxies `/_mf/{name}/*` to the local BFF port.
@@ -22,11 +21,6 @@ Only services NOT managed by `odh-dashboard` are routed to the cluster. The `pro
 The split in auth headers is intentional:
 - The cluster's auth layer (Gateway/kube-rbac-proxy) validates `Authorization: Bearer` and internally sets the forwarded token for its backend
 - The local backend reads `x-forwarded-access-token` directly for K8s API calls, matching production behavior behind kube-auth-proxy
-
-The E2E-only MaaS BFF Makefile target calls the loopback `/__e2e/maas-api` route when
-`MAAS_API_URL` is set. The proxy forwards the remaining path to that external URL
-with its Squid-aware agent, preserving the BFF's authorization header. Production
-MaaS startup is unchanged.
 
 ## Endpoints
 
@@ -84,7 +78,6 @@ This means if you're already logged into the cluster via `oc login`, the proxy i
 | `BACKEND_PORT` | `4000` | Port of the local Node.js backend |
 | `ODH_DASHBOARD_URL` | from `test-variables.yml` | Cluster dashboard URL for proxied requests |
 | `OCP_API_URL` | discovered via `oc whoami --show-server` | OpenShift API URL for `oc login` |
-| `MAAS_API_URL` | unset | External MaaS API URL for the E2E-only loopback route |
 | `CY_TEST_CONFIG` | `packages/cypress/test-variables.yml` | Path to test config file |
 | `E2E_PROXY_LOG_LEVEL` | `info` | Log verbosity: `error`, `info`, or `debug` |
 

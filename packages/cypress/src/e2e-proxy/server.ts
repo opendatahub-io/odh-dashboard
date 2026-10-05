@@ -10,7 +10,6 @@ const isSocket = (obj: unknown): obj is Socket =>
   obj != null && typeof obj === 'object' && !('writeHead' in obj);
 
 const TMP_KUBECONFIG = '/tmp/cypress-e2e.kubeconfig';
-const MAAS_PROXY_PATH = '/__e2e/maas-api';
 
 type LogLevel = 'error' | 'info' | 'debug';
 const LOG_LEVELS: Record<LogLevel, number> = { error: 0, info: 1, debug: 2 };
@@ -138,10 +137,6 @@ function handleE2eLogin(body: string, res: http.ServerResponse): void {
 }
 
 export function createProxyServer(routingTable: RoutingTable, port: number): http.Server {
-  // The E2E MaaS BFF uses this loopback route so its upstream requests can use
-  // the same Squid-aware agent as the dashboard's cluster-bound requests.
-  const maasTarget = process.env.MAAS_API_URL;
-  const maasAgent = maasTarget ? getHttpsProxyAgent(maasTarget) : undefined;
   const proxyAgents = new Map(
     [routingTable.defaultTarget, ...routingTable.clusterRoutes.map(({ target }) => target)].map(
       (target) => [target, getHttpsProxyAgent(target)] as const,
@@ -218,13 +213,6 @@ export function createProxyServer(routingTable: RoutingTable, port: number): htt
     if (url === '/e2e-login' && req.method === 'POST') {
       const body = await readBody(req);
       handleE2eLogin(body, res);
-      return;
-    }
-
-    if (maasTarget && url.startsWith(`${MAAS_PROXY_PATH}/`)) {
-      // Keep the BFF's Authorization header; the normal cluster routes replace it.
-      const target = `${maasTarget.replace(/\/+$/, '')}${url.slice(MAAS_PROXY_PATH.length)}`;
-      proxy.web(req, res, { target, agent: maasAgent, ignorePath: true });
       return;
     }
 
