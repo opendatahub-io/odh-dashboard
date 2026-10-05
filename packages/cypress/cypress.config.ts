@@ -21,6 +21,7 @@ import { validateHttpsUrls } from './cypress/utils/urlValidator';
 import { logToConsole, LogLevel } from './cypress/utils/logger';
 import { getCypressTestPatterns } from './cypress/utils/discoverTestPatterns';
 import { createAutomlCleanupTasks } from './src/automlCleanupManifest';
+import { createAwsCliPodTask } from './src/awsCliPodTask';
 
 const getCyEnvVariables = (envVars: Record<string, string | undefined>) => {
   return Object.fromEntries(
@@ -123,14 +124,14 @@ export default defineConfig({
       );
       /* eslint-enable @typescript-eslint/consistent-type-assertions */
       setupWebsockets(on, config);
-      on(
-        'task',
-        createAutomlCleanupTasks(
+      on('task', {
+        ...createAutomlCleanupTasks(
           path.resolve(__dirname, resultsDir),
           env.JOB_NAME || env.GITHUB_WORKFLOW || '',
           env.BUILD_NUMBER || env.GITHUB_RUN_ID || '',
         ),
-      );
+        runAwsCliInCluster: createAwsCliPodTask(),
+      });
 
       on('before:browser:launch', (browser, launchOptions) => {
         if (browser.family === 'chromium' && isCI) {
