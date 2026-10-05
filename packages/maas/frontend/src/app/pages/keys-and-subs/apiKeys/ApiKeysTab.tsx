@@ -133,7 +133,6 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState, subscriptions, showD
               onSubscriptionChange={onSubscriptionChange}
               activeApiKeys={activeApiKeys}
               refresh={refreshAll}
-              onClearFilters={onClearFilters}
             />
           }
         />

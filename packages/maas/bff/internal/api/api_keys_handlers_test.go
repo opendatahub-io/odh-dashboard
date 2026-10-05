@@ -94,6 +94,23 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			Expect(actual.Data).To(BeNil())
 		})
 	})
+	var _ = Describe("GetAPIKeyConfigHandler", Ordered, func() {
+		It("returns 200 and the API key config", func() {
+			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+			actual, rs, err := setupApiTest[Envelope[*models.APIKeyConfig, None]](
+				http.MethodGet,
+				"/api/v1/api-keys-config",
+				nil,
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(actual.Data).NotTo(BeNil())
+			Expect(actual.Data.MaxExpirationDays).To(Equal(90))
+			Expect(actual.Data.EphemeralMaxExpiration).To(Equal("1h"))
+		})
+	})
 	var _ = Describe("GetAPIKeyHandler", Ordered, func() {
 		It("returns 200 and the API key", func() {
 			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
