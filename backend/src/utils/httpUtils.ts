@@ -101,7 +101,7 @@ export const proxyCall = (
         };
 
         const agent = getProxyAgent(url);
-        const reqOpts: Record<string, unknown> = { method, ...requestOptions };
+        const reqOpts: https.RequestOptions = { method, ...requestOptions };
         if (agent) {
           reqOpts.agent = agent;
         }
