@@ -63,7 +63,6 @@ const ARTIFACT_AVAILABLE_TOOLTIP = 'Available after the run completes successful
 const ARTIFACT_CHECKING_TOOLTIP = 'Checking artifact availability...';
 const ARTIFACT_UNSUCCESSFUL_TOOLTIP = 'Unavailable because the run did not complete successfully';
 const ARTIFACT_UNAVAILABLE_TOOLTIP = 'Artifact unavailable';
-const ARTIFACT_DOWNLOADING_TOOLTIP = 'Downloading...';
 
 const isAbortError = (error: unknown): boolean =>
   error instanceof Error && error.name === 'AbortError';
@@ -78,7 +77,6 @@ function AutomlResultsPage(): React.JSX.Element {
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
   const [stopInitiated, setStopInitiated] = React.useState(false);
   const [runNotebookDownloadError, setRunNotebookDownloadError] = React.useState<string>();
-  const [isDownloadingRunNotebook, setIsDownloadingRunNotebook] = React.useState(false);
   const runNotebookDownloadController = React.useRef<AbortController | null>(null);
   const runNotebookDownloadGeneration = React.useRef(0);
 
@@ -87,7 +85,6 @@ function AutomlResultsPage(): React.JSX.Element {
     runNotebookDownloadController.current?.abort();
     runNotebookDownloadController.current = null;
     setRunNotebookDownloadError(undefined);
-    setIsDownloadingRunNotebook(false);
 
     return () => {
       runNotebookDownloadGeneration.current += 1;
@@ -167,9 +164,6 @@ function AutomlResultsPage(): React.JSX.Element {
   const runArtifactListError = runLevelError || trainingTaskError || notebookError;
 
   const runNotebookTooltip = React.useMemo(() => {
-    if (isDownloadingRunNotebook) {
-      return ARTIFACT_DOWNLOADING_TOOLTIP;
-    }
     if (!isRunCompleted(pipelineRun?.state)) {
       return isRunInTerminalState(pipelineRun?.state)
         ? ARTIFACT_UNSUCCESSFUL_TOOLTIP
@@ -179,13 +173,7 @@ function AutomlResultsPage(): React.JSX.Element {
       return ARTIFACT_CHECKING_TOOLTIP;
     }
     return hasRunNotebook && !runArtifactListError ? undefined : ARTIFACT_UNAVAILABLE_TOOLTIP;
-  }, [
-    hasRunNotebook,
-    isDownloadingRunNotebook,
-    pipelineRun?.state,
-    runArtifactListError,
-    runArtifactLoading,
-  ]);
+  }, [hasRunNotebook, pipelineRun?.state, runArtifactListError, runArtifactLoading]);
   const runNotebookDisabled = Boolean(runNotebookTooltip);
 
   const handleDownloadRunNotebook = React.useCallback(async () => {
@@ -197,7 +185,6 @@ function AutomlResultsPage(): React.JSX.Element {
     const downloadGeneration = ++runNotebookDownloadGeneration.current;
     runNotebookDownloadController.current = controller;
     setRunNotebookDownloadError(undefined);
-    setIsDownloadingRunNotebook(true);
     try {
       const notebook = await fetchS3File(namespace, runNotebookKey, {
         signal: controller.signal,
@@ -229,7 +216,6 @@ function AutomlResultsPage(): React.JSX.Element {
         runNotebookDownloadController.current === controller
       ) {
         runNotebookDownloadController.current = null;
-        setIsDownloadingRunNotebook(false);
       }
     }
   }, [fetchS3File, namespace, runNotebookDisabled, runNotebookKey]);

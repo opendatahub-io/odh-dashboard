@@ -78,7 +78,6 @@ const ARTIFACT_AVAILABLE_TOOLTIP = 'Available after the run completes successful
 const ARTIFACT_CHECKING_TOOLTIP = 'Checking artifact availability...';
 const ARTIFACT_UNSUCCESSFUL_TOOLTIP = 'Unavailable because the run did not complete successfully';
 const ARTIFACT_UNAVAILABLE_TOOLTIP = 'Artifact unavailable';
-const ARTIFACT_DOWNLOADING_TOOLTIP = 'Downloading...';
 
 const isAbortError = (error: unknown): boolean =>
   error instanceof Error && error.name === 'AbortError';
@@ -99,7 +98,6 @@ function AutoragResultsPage(): React.JSX.Element {
   }, [locationKey]);
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
   const [starterKitDownloadError, setStarterKitDownloadError] = React.useState<string>();
-  const [isDownloadingStarterKit, setIsDownloadingStarterKit] = React.useState(false);
   const starterKitDownloadGeneration = React.useRef(0);
   const starterKitDownloadController = React.useRef<AbortController | null>(null);
 
@@ -108,7 +106,6 @@ function AutoragResultsPage(): React.JSX.Element {
     starterKitDownloadController.current?.abort();
     starterKitDownloadController.current = null;
     setStarterKitDownloadError(undefined);
-    setIsDownloadingStarterKit(false);
 
     return () => {
       starterKitDownloadGeneration.current += 1;
@@ -176,9 +173,6 @@ function AutoragResultsPage(): React.JSX.Element {
   const runArtifactListError = artifactDiscoveryError || starterKitError;
 
   const starterKitTooltip = React.useMemo(() => {
-    if (isDownloadingStarterKit) {
-      return ARTIFACT_DOWNLOADING_TOOLTIP;
-    }
     if (!isRunCompleted(pipelineRun?.state)) {
       return isRunInTerminalState(pipelineRun?.state)
         ? ARTIFACT_UNSUCCESSFUL_TOOLTIP
@@ -188,13 +182,7 @@ function AutoragResultsPage(): React.JSX.Element {
       return ARTIFACT_CHECKING_TOOLTIP;
     }
     return hasStarterKit && !runArtifactListError ? undefined : ARTIFACT_UNAVAILABLE_TOOLTIP;
-  }, [
-    hasStarterKit,
-    isDownloadingStarterKit,
-    pipelineRun?.state,
-    runArtifactListError,
-    runArtifactLoading,
-  ]);
+  }, [hasStarterKit, pipelineRun?.state, runArtifactListError, runArtifactLoading]);
   const starterKitDisabled = Boolean(starterKitTooltip);
 
   const handleDownloadStarterKit = React.useCallback(async () => {
@@ -206,7 +194,6 @@ function AutoragResultsPage(): React.JSX.Element {
     const controller = new AbortController();
     starterKitDownloadController.current = controller;
     setStarterKitDownloadError(undefined);
-    setIsDownloadingStarterKit(true);
     try {
       const starterKit = await fetchS3File(namespace, starterKitKey, {
         signal: controller.signal,
@@ -238,7 +225,6 @@ function AutoragResultsPage(): React.JSX.Element {
         starterKitDownloadController.current === controller
       ) {
         starterKitDownloadController.current = null;
-        setIsDownloadingStarterKit(false);
       }
     }
   }, [fetchS3File, namespace, starterKitDisabled, starterKitKey]);

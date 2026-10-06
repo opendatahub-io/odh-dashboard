@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter } from 'react-router';
@@ -1525,15 +1525,19 @@ describe('AutoragResultsPage', () => {
       await userEvent.click(screen.getByTestId('starter-kit-download-button'));
       expect(mockFetchS3File).toHaveBeenCalledTimes(2);
       expect(firstController.aborted).toBe(true);
+      expect(screen.getByTestId('starter-kit-download-button')).not.toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
 
-      rejectFirstDownload(new Error('stale download failed'));
+      await act(async () => {
+        rejectFirstDownload(new Error('stale download failed'));
+        await Promise.resolve();
+      });
 
       await waitFor(() => {
         expect(screen.queryByText('Starter kit download failed')).not.toBeInTheDocument();
       });
-
-      await userEvent.hover(screen.getByTestId('starter-kit-download-button'));
-      expect(await screen.findByText('Downloading...')).toBeInTheDocument();
 
       resolveSecondDownload(secondBlob);
       await waitFor(() => {
