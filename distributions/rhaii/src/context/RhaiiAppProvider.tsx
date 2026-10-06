@@ -38,6 +38,7 @@ const availableAreaStatus: IsAreaAvailableStatus = {
 const areasStatus = {
   [SupportedArea.MODEL_SERVING]: availableAreaStatus,
   [SupportedArea.K_SERVE]: availableAreaStatus,
+  [SupportedArea.LLMD_SERVING]: availableAreaStatus,
 };
 
 const areaContextValue = { dscStatus: null, dsciStatus: null, areasStatus };
