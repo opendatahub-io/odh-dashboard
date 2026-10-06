@@ -310,8 +310,16 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       cy.intercept('GET', '**/lsd/models*').as('playgroundModels');
       cy.intercept('GET', '**/aaa/models*').as('assetModels');
 
+      // CI traces show the Playground remounting and aborting transcription at a host poll.
+      // Match the Cypress mock-test setup for this audio page only.
+      cy.step('Disable dashboard polling on the audio test page');
+      cy.on('window:before:load', (win) => {
+        Object.assign(win, { POLL_INTERVAL: 999999 });
+      });
+
       cy.step('Open a fresh Playground conversation with the Gemini chat model');
       genAiPlayground.navigateToPlaygroundWithRetry(projectName);
+      cy.window().its('POLL_INTERVAL').should('eq', 999999);
       genAiPlayground.findMessageInput({ timeout: 120000 }).should('be.visible');
 
       cy.wait('@playgroundModels').then(({ request, response }) => {
@@ -347,7 +355,6 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       genAiPlayground.findAsrModelToggle().should('be.visible').click();
       genAiPlayground.findAsrModelOption(testData.audio.asrModelId).should('be.visible').click();
       genAiPlayground.findAsrModelToggle().should('contain', testData.audio.asrDisplayName);
-      genAiPlayground.findCloseSettingsButton().click();
 
       let transcriptionStarted = false;
       const recordAudioTrace = (event: string): void => {
