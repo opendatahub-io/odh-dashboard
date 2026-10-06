@@ -19,13 +19,6 @@ func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httpro
 	ctx := r.Context()
 	namespace, hasNamespace := ctx.Value(constants.NamespaceQueryParameterKey).(string)
 
-	// Get the request identity from context
-	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
-	if !ok || identity == nil {
-		app.unauthorizedResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-		return
-	}
-
 	// Parse sources query parameter
 	// Supports both formats:
 	//   - Comma-separated: ?sources=namespace,maas (OpenAPI explode: false)
@@ -61,6 +54,13 @@ func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httpro
 	// and can be listed without a namespace.
 	if (requestedSources[models.ModelSourceTypeNamespace] || requestedSources[models.ModelSourceTypeCustomEndpoint]) && (!hasNamespace || namespace == "") {
 		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in the context"))
+		return
+	}
+
+	// Get the request identity from context
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil {
+		app.unauthorizedResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
 		return
 	}
 
