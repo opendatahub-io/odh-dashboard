@@ -234,6 +234,7 @@ describe('WhatsNewModal', () => {
       clickNextStep();
 
       expect(screen.getByText('Develop & train')).toBeInTheDocument();
+      expect(screen.getByText('Generally available in 3.6')).toBeInTheDocument();
       expect(screen.queryByText(/OdhDashboardConfig/)).not.toBeInTheDocument();
       expect(screen.queryByText(/Contact your administrator/)).not.toBeInTheDocument();
     });

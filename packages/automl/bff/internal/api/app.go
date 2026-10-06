@@ -397,6 +397,13 @@ func (app *App) Routes() http.Handler {
 	healthcheckRouter := httprouter.New()
 	healthcheckRouter.GET(HealthCheckPath, app.healthcheck.HealthcheckHandler)
 	healthcheckMux.Handle(HealthCheckPath, app.RecoverPanic(app.EnableTelemetry(healthcheckRouter)))
+	// Keep health checks public at the API path used by the dashboard module proxy
+	// (/automl/api -> /api) and by federated clients that call the AutoML BFF directly.
+	appMux.Handle(ApiPathPrefix+HealthCheckPath, http.StripPrefix(ApiPathPrefix, healthcheckMux))
+	appMux.Handle(
+		PathPrefix+ApiPathPrefix+HealthCheckPath,
+		http.StripPrefix(PathPrefix+ApiPathPrefix, healthcheckMux),
+	)
 
 	// Combines the healthcheck endpoint with the rest of the routes
 	combinedMux := http.NewServeMux()

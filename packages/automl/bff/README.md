@@ -11,6 +11,7 @@ Minimal backend-for-frontend providing only core endpoints required by the start
 This service exposes the following endpoints:
 
 - GET `/healthcheck` – liveness probe
+- GET `/api/v1/healthcheck` and `/automl/api/v1/healthcheck` – API-prefixed checks for dashboard-proxied and direct federated requests
 - GET `/api/v1/user` – returns the authenticated (mock) user
 - GET `/api/v1/namespaces` – list namespaces (available only when DEV_MODE=true or mock k8s enabled)
 - GET `/api/v1/secrets` – list and filter secrets from a namespace (supports filtering by storage type)
