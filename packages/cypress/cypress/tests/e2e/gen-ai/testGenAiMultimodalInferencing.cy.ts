@@ -64,7 +64,18 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
   let originalExternalProviders: boolean | undefined;
   let portForwardHandle: PortForwardHandle | null = null;
   let asrPortForwardHandle: PortForwardHandle | null = null;
+  let audioTraceEvents: string[] | null = null;
+  let stopAudioTrace: (() => void) | undefined;
   const projectName = `multimodal-e2e-${generateTestUUID()}`;
+
+  afterEach(() => {
+    stopAudioTrace?.();
+    stopAudioTrace = undefined;
+    if (audioTraceEvents) {
+      cy.task('log', `[AUDIO TRACE]\n${audioTraceEvents.join('\n')}`);
+      audioTraceEvents = null;
+    }
+  });
 
   retryableBefore(() => {
     if (asrPortForwardHandle) {
@@ -282,6 +293,7 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       ],
     },
     () => {
+      audioTraceEvents = null;
       cy.step('Deploy the Whisper Tiny transcription model');
       deployWhisperTinyModel(projectName);
 
@@ -337,8 +349,107 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       genAiPlayground.findAsrModelToggle().should('contain', testData.audio.asrDisplayName);
       genAiPlayground.findCloseSettingsButton().click();
 
+      let transcriptionStarted = false;
+      const recordAudioTrace = (event: string): void => {
+        audioTraceEvents?.push(`${new Date().toISOString()} ${event}`);
+      };
+      audioTraceEvents = [];
+
+      cy.step('Trace browser requests and Playground state during transcription');
+      cy.intercept({ method: 'GET', url: '**/api/**', middleware: true }, (request) => {
+        if (transcriptionStarted) {
+          const path = new URL(request.url).pathname;
+          recordAudioTrace(`GET ${path} started`);
+          request.on('after:response', (response) => {
+            recordAudioTrace(`GET ${path} completed ${response.statusCode}`);
+          });
+        }
+      });
+      cy.window().then((win) => {
+        const browserWindow = win;
+        const originalFetch = win.fetch;
+        const originalInput = win.document.querySelector('[data-testid="chatbot-message-bar"]');
+        let currentInput = originalInput;
+        let currentAudioChip = win.document.querySelector('[data-testid="audio-file-chip"]');
+        let currentPath = win.location.pathname;
+
+        const tracedFetch: typeof win.fetch = (input, init) => {
+          if (!String(input).includes('/lsd/audio/transcriptions')) {
+            return originalFetch.call(win, input, init);
+          }
+
+          transcriptionStarted = true;
+          recordAudioTrace('transcription fetch started');
+          init?.signal?.addEventListener(
+            'abort',
+            () => {
+              const stack = new Error().stack?.split('\n').slice(1, 5).join(' | ');
+              recordAudioTrace(`transcription abort signal fired${stack ? `: ${stack}` : ''}`);
+            },
+            { once: true },
+          );
+
+          return originalFetch.call(win, input, init).then(
+            (response) => {
+              recordAudioTrace(`transcription fetch resolved ${response.status}`);
+              return response;
+            },
+            (error: unknown) => {
+              recordAudioTrace(
+                `transcription fetch rejected ${
+                  error instanceof Error ? error.name : String(error)
+                }`,
+              );
+              throw error;
+            },
+          );
+        };
+        browserWindow.fetch = tracedFetch;
+
+        const onPageHide = (): void => recordAudioTrace('pagehide fired');
+        const onBeforeUnload = (): void => recordAudioTrace('beforeunload fired');
+        win.addEventListener('pagehide', onPageHide);
+        win.addEventListener('beforeunload', onBeforeUnload);
+
+        const observer = new win.MutationObserver(() => {
+          if (!transcriptionStarted) {
+            return;
+          }
+          if (win.location.pathname !== currentPath) {
+            currentPath = win.location.pathname;
+            recordAudioTrace(`browser path changed to ${currentPath}`);
+          }
+          const input = win.document.querySelector('[data-testid="chatbot-message-bar"]');
+          if (input !== currentInput) {
+            recordAudioTrace(`Playground input ${input ? 'mounted or replaced' : 'removed'}`);
+            currentInput = input;
+          }
+          const audioChip = win.document.querySelector('[data-testid="audio-file-chip"]');
+          if (audioChip !== currentAudioChip) {
+            recordAudioTrace(`audio file chip ${audioChip ? 'added or replaced' : 'removed'}`);
+            currentAudioChip = audioChip;
+          }
+        });
+        observer.observe(win.document.body, { childList: true, subtree: true });
+
+        stopAudioTrace = () => {
+          observer.disconnect();
+          win.removeEventListener('pagehide', onPageHide);
+          win.removeEventListener('beforeunload', onBeforeUnload);
+          if (win.fetch === tracedFetch) {
+            browserWindow.fetch = originalFetch;
+          }
+        };
+      });
+
       cy.intercept('POST', '**/api/v1/lsd/files/media**').as('uploadAudio');
-      cy.intercept('POST', '**/api/v1/lsd/audio/transcriptions**').as('transcribeAudio');
+      cy.intercept('POST', '**/api/v1/lsd/audio/transcriptions**', (request) => {
+        transcriptionStarted = true;
+        recordAudioTrace('transcription POST reached Cypress proxy');
+        request.on('after:response', (response) => {
+          recordAudioTrace(`transcription POST delivered ${response.statusCode}`);
+        });
+      }).as('transcribeAudio');
       let chatRequestCount = 0;
       cy.intercept('POST', '**/api/v1/lsd/responses**', (request) => {
         chatRequestCount += 1;
