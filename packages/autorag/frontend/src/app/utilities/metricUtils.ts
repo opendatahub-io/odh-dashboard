@@ -11,7 +11,7 @@ export type MetricKey = string;
 
 const normalize = (value: string): string => value.trim().toLowerCase();
 
-type ObjectiveReference = MetricReference | string;
+export type ObjectiveReference = MetricReference | string;
 
 export function parseMetricReference(value: string): MetricReference {
   const separator = value.indexOf(':');

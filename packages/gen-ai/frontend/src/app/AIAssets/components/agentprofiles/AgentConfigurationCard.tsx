@@ -14,9 +14,10 @@ import { AgentProfile, AgentProfileMcpServer } from '~/app/agentProfile/types';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
 
 type AgentConfigurationCardProps = {
-  profile: AgentProfile;
+  profile: Pick<AgentProfile, 'spec'>;
   title: string;
   lastModified?: string;
+  deployedAt?: string;
   isSavedConfiguration?: boolean;
 };
 
@@ -40,6 +41,7 @@ const AgentConfigurationCard: React.FC<AgentConfigurationCardProps> = ({
   profile,
   title,
   lastModified,
+  deployedAt,
   isSavedConfiguration = false,
 }) => {
   const tools = profile.spec.mcpServers ?? [];
@@ -57,6 +59,11 @@ const AgentConfigurationCard: React.FC<AgentConfigurationCardProps> = ({
           {lastModified && (
             <FlexItem>
               <Content component="small">Last modified {formatDate(lastModified)}</Content>
+            </FlexItem>
+          )}
+          {deployedAt && !lastModified && (
+            <FlexItem>
+              <Content component="small">Deployed {formatDate(deployedAt)}</Content>
             </FlexItem>
           )}
         </Flex>

@@ -13,7 +13,7 @@ import {
   RhUiInstallIcon,
   RhUiMonitoringIcon,
   SearchIcon,
-  StarIcon,
+  RhUiStarIcon,
 } from '@patternfly/react-icons';
 import type { SVGIconProps } from '@patternfly/react-icons/dist/esm/createIcon';
 import { parseStageMapNodeId } from './stageMapStepMetadata';
@@ -36,7 +36,7 @@ export const STAGE_TASK_ICONS: Record<string, TaskIconComponent> = {
   refit_and_evaluate: RhUiMonitoringIcon, // rh-ui-icon-monitoring
   refit_full: RhUiMonitoringIcon, // rh-ui-icon-monitoring
   evaluate_models: CommentsIcon, // rh-ui-icon-comments (score)
-  build_leaderboard: StarIcon, // rh-ui-icon-star-fill
+  build_leaderboard: RhUiStarIcon, // rh-ui-icon-star (outlined)
 };
 
 // Branch step glyphs (chunking, engineer features, train model, …).

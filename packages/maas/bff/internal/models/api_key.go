@@ -2,6 +2,13 @@ package models
 
 import "time"
 
+// APIKeyConfig represents API key configuration limits from maas-api.
+// Based on the MaaS API OpenAPI spec: GET /v1/api-keys/config
+type APIKeyConfig struct {
+	MaxExpirationDays      int    `json:"max_expiration_days"`
+	EphemeralMaxExpiration string `json:"ephemeral_max_expiration"`
+}
+
 // APIKeyCreateRequest represents a request to create a new API key.
 // Based on the MaaS API OpenAPI spec: POST /v1/api-keys
 type APIKeyCreateRequest struct {
