@@ -45,6 +45,10 @@ func (kc *TokenKubernetesClient) ListAgentDeployments(
 
 	deployments := make([]models.AgentDeploymentSummary, 0, len(sandboxes.Items))
 	for i := range sandboxes.Items {
+		if !sandboxes.Items[i].GetDeletionTimestamp().IsZero() {
+			continue
+		}
+
 		deployment, err := kc.sandboxDeploymentSummary(ctx, namespace, &sandboxes.Items[i])
 		if err != nil {
 			return nil, err
@@ -59,6 +63,39 @@ func (kc *TokenKubernetesClient) ListAgentDeployments(
 		return deployments[i].CreatedAt > deployments[j].CreatedAt
 	})
 	return &models.AgentDeploymentListResponse{Deployments: deployments, TotalCount: len(deployments)}, nil
+}
+
+// IsAgentDeploymentDisplayNameTaken reports whether an active dashboard-created
+// Sandbox already uses the supplied display name in the namespace.
+func (kc *TokenKubernetesClient) IsAgentDeploymentDisplayNameTaken(
+	ctx context.Context,
+	namespace, displayName string,
+) (bool, error) {
+	sandboxes := &unstructured.UnstructuredList{}
+	sandboxes.SetGroupVersionKind(schema.GroupVersionKind{
+		Group: sandboxGroup, Version: sandboxVersion, Kind: sandboxKind + "List",
+	})
+	if err := kc.Client.List(ctx, sandboxes, client.InNamespace(namespace), client.MatchingLabels(map[string]string{
+		dashboardLabel: "true",
+	})); err != nil {
+		return false, sandboxDeploymentListError(err, namespace)
+	}
+
+	for i := range sandboxes.Items {
+		sandbox := &sandboxes.Items[i]
+		if !sandbox.GetDeletionTimestamp().IsZero() {
+			continue
+		}
+		deploymentDisplayName := sandbox.GetAnnotations()[deploymentDisplayNameAnnotation]
+		if deploymentDisplayName == "" {
+			deploymentDisplayName = sandbox.GetName()
+		}
+		if deploymentDisplayName == displayName {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 // GetAgentDeployment returns one dashboard-created Sandbox deployment by its name.
@@ -112,8 +149,13 @@ func (kc *TokenKubernetesClient) sandboxDeploymentSummary(
 	if err != nil {
 		return nil, err
 	}
+	displayName := sandbox.GetAnnotations()[deploymentDisplayNameAnnotation]
+	if displayName == "" {
+		displayName = sandbox.GetName()
+	}
 	return &models.AgentDeploymentSummary{
 		Name:           sandbox.GetName(),
+		DisplayName:    displayName,
 		Namespace:      namespace,
 		AgentProfileID: sandbox.GetLabels()[agentProfileIDLabel],
 		RouteURL:       routeURL,

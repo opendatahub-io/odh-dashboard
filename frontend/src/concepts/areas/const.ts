@@ -312,6 +312,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     // Dev-only flag — not in OdhDashboardConfig CRD. Off by default.
     devFlags: ['guidedTour'],
   },
+  [SupportedArea.UNIFIED_PROJECT_SELECTOR]: {
+    // Dev-only gate — not in OdhDashboardConfig CRD. Off by default.
+    devFlags: ['unifiedProjectSelector'],
+  },
   [SupportedArea.RUNTIME_CATALOG]: {
     // Tech preview — not in OdhDashboardConfig CRD yet. Off by default.
     featureFlags: ['runtimeCatalog'],
