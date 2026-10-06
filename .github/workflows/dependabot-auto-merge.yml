@@ -64,7 +64,7 @@ jobs:
           steps.upstream.outputs.touches_upstream != 'true' &&
           steps.metadata.outputs.update-type == 'version-update:semver-minor' &&
           steps.metadata.outputs.previous-version == ''
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           sparse-checkout: |
