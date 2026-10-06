@@ -34,14 +34,19 @@ synthesizing **findings** arrays, and producing a structured result. The
 orchestrator does not evaluate code directly. It does not start CLI tools
 (those already ran on the host).
 Challenger (step 6d) is synthesis over **findings only**, not a
-dimension and not a schema section. After the finding set is final,
-run every selected `check:*` row, then every selected `signal:*` row
-(step 6g). Do not special-case producer names.
+dimension and not a schema section. **Required barrier order:**
+dispatch selected `findings` + `section:*` + `check:*` together; after
+all findings are raised (and adapters folded), run the challenger and
+write expanded challenger state into `producers.json` (checks/sections
+may still be in flight); after challenger + all sections + all checks,
+run every selected `signal:*` row with the `producers.json` path; then
+assemble `agent-result.json`. Do not special-case producer names.
 
 In pipeline mode (`$FULLSEND_OUTPUT_DIR` set), it writes JSON for the
 post-script to post. In interactive mode, it posts directly via
-`gh pr review`. The orchestrator is the sole producer of
-`agent-result.json`.
+`gh pr review`. The orchestrator is the sole writer of both
+`producers.json` and `agent-result.json`. Post-review reads
+`agent-result.json` only.
 
 ## Dimension registry
 
@@ -412,10 +417,12 @@ sandbox. `output: section:*` rows are not classified against the diff.
 
 #### 3c. Select sub-agents
 
-Select every in-scope **findings** `llm-subagent`. Run those in
-parallel with `section:*` LLMs (step 4b). `check:*` and `signal:*`
-rows run later (step 6g), checks first. Challenger runs after collect
-(step 6d), alone. Do not spawn `cli-adapter` rows.
+Select every in-scope **findings** `llm-subagent`. **Required:** run
+those in parallel with selected `section:*` and `check:*` LLMs (steps
+4 / 4b / 4-check). `signal:*` rows run later (step 6g), after the
+challenger and after all checks/sections have returned. Challenger
+runs after all findings are raised (step 6d), alone. Do not spawn
+`cli-adapter` rows.
 
 **Structured-output LLMs** (`output` starts with `section:`, `check:`,
 or `signal:`):
@@ -695,8 +702,8 @@ prioritization.
 Reviewers start from the diff, and each one works out for itself what
 the change does and what it touches outside the diff. A registry row
 with an LLM kind, `output: context`, and `stage: pre-dispatch` does that
-work once, and every later LLM reviewer (steps 4, 4b and 6g) is told to
-read its brief.
+work once, and every later LLM reviewer (steps 4, 4b, 4-check and 6g) is
+told to read its brief.
 
 Run this step after `shared.md` exists (step 3d) and before step 4. If
 the registry has no such row, skip the step.
@@ -716,7 +723,7 @@ base to head. Record an unselected row under `skipped` in the ledger
    findings — the brief describes the change, not earlier reviews of
    it. End with `REVIEW_SUB_AGENT_TRUE`.
 2. Spawn it **synchronously and alone**. Its output feeds every prompt
-   in the step 4 batch, so it cannot be part of that batch.
+   in the step 4 / 4b / 4-check batch, so it cannot be part of that batch.
 3. Check the return against the row's `meta_prompt` contract: a JSON
    object with a `brief` whose `id` equals the row id and whose `status`
    is `completed` or `partial`.
@@ -833,13 +840,17 @@ For each selected **findings** LLM row (from step 3c — excludes
 2. Spawn each sub-agent with the `prompt` argument composed from the
    template above.
 
-**All findings LLMs AND structured-output LLMs (step 4b) MUST be
-dispatched simultaneously** — include all Agent calls in a single
-message so they run concurrently. Composing short prompts is what makes
-this possible: a prompt you have to generate for a minute is a prompt
-that serializes the batch no matter which message it is in.
+**All findings LLMs, `section:*` LLMs (step 4b), AND `check:*` LLMs
+(step 4-check) MUST be dispatched simultaneously** — include all Agent
+calls in a single message so they run concurrently. Composing short
+prompts is what makes this possible: a prompt you have to generate for
+a minute is a prompt that serializes the batch no matter which message
+it is in.
 
-Wait for all sub-agents to complete.
+Do **not** wait for checks/sections before starting the challenger once
+**all findings** (including CLI adapter findings) are raised and written
+into `producers.json`. Wait for the full parallel batch before the
+signal gate (step 6g).
 
 ### 4b. Dispatch structured-output LLMs
 
@@ -863,53 +874,78 @@ was selected in step 3c:
    fields outside it are dropped by the orchestrator, so supporting
    context belongs in the contract's own string fields. Do not call Jira
    or GitHub issue APIs to replace an unavailable trusted snapshot.
-3. For `section:<name>`, copy every schema member named by `result_fields`
-   (or its named section when omitted) onto `agent-result.json`;
-   `include_findings: true` also contributes its
-   `findings[]` to step 5. Do not append `check:*` results here — those
-   rows run in step 6g.
+3. For `section:<name>`, write every schema member named by `result_fields`
+   (or its named section when omitted) into `producers.json` under
+   `sections` (or merge onto the working store); `include_findings: true`
+   also contributes its `findings[]` to step 5. Do not wait for checks
+   here — selected `check:*` rows are dispatched in the same parallel
+   batch (step 4-check).
+
+**Also dispatch selected `check:*` LLMs in this same message** (step
+4-check). Compose each check prompt like a structured-output row:
+`definition`, `meta-prompts/common-review.md`, the row's `meta_prompt`,
+`Output id` / `Output kind`. Context: shared context file and the step
+3g brief named the way step 4 does (not `producers.json`, not final
+findings). Validate `check.id` equals `row.id` when the return arrives
+and merge into `producers.json` `checks`. On timeout or malformed JSON,
+record the same `could-not-verify` object as step 5b.
 
 If a structured-output LLM times out or returns malformed JSON, record its
 explicit unavailable result. Do **not** fail the review and do **not** add a
 `sub-agent-failure` finding.
 
-### 4c. Record the producer ledger
+### 4c. Record and accumulate `producers.json`
 
-**Write the ledger as part of the same message that dispatches.** It is
-the factual record of what this run did, written before any result is
-known, so it cannot be shaped by what the review later wants to claim:
+**Write a lean ledger as part of the same message that dispatches.** It
+is the factual record of what this run did, written before any result is
+known. The orchestrator is the **sole writer** of this file: start lean,
+then **rewrite the whole file** (read-merge-write) as each
+findings / section / check return arrives. Payloads are small — do **not**
+use per-id files. Require the file to reflect all completed returns
+before starting the next barrier stage (challenger / signals / assemble).
 
 ```bash
 mkdir -p "${FULLSEND_OUTPUT_DIR}"
 cat > "${FULLSEND_OUTPUT_DIR}/producers.json" <<'JSON'
 {
-  "dispatched": ["<id of every LLM row selected for step 4, 4b, or 6g, and of each step 3g row whose brief was written>"],
+  "dispatched": ["<id of every LLM row selected for step 4, 4b, 4-check, or 6g, and of each step 3g row whose brief was written>"],
   "skipped": [
     {"id": "<registry id not dispatched>", "reason": "<why: out of scope / re_review skip / missing context_file / no usable brief>"}
   ],
-  "adapters": ["<id of every cli-adapter row whose envelope you loaded>"],
+  "adapters": [
+    {"id": "<cli-adapter id>", "status": "<ok|none|skipped|error>", "reason": "<optional token>"}
+  ],
+  "returned": [],
+  "raised": {},
+  "checks": {},
+  "sections": {},
   "challenger": { "status": "pending" }
 }
 JSON
 ```
 
 Put every `check:*` and `signal:*` id selected in step 3c in that first
-`dispatched` list. Selection is already known, so step 6g does not append
-those ids later. After collect (step 5), rewrite the same file with
-`"returned"` — the ids that actually produced a parseable result. After
-the challenger (or when skipping or failing it), replace the `challenger`
-object per step 6d (object with `status`, never a string). Leaving
-`status` at `pending` is
-"never rewritten", not a skip. The challenger is not a producer; do not
-list it in `inspected.producers`. The host renders it in its own section.
+`dispatched` list. Selection is already known, so later steps do not
+append those ids. Transfer adapter envelope `status` / `reason` from
+`collected.json` into `adapters` objects at load time (host sticky does
+not re-read `collected.json`).
 
-Every registry row must appear in exactly one of `dispatched`,
-`skipped`, or `adapters`. The host reconciles the review's own claims
-against this file: a producer you name in `inspected` but not in the
-ledger is dropped. A skipped producer is not a passed check: the host
-turns a `checks[]` row into `could-not-verify` when its id is absent from
-`dispatched` and `adapters`. Writing the ledger honestly is therefore
-cheaper than writing it optimistically.
+As each return arrives, rewrite `producers.json` to accumulate:
+
+- `raised.<id>` — as-raised findings array for that findings producer
+  (stamp `dimension` at collect)
+- `checks.<id>` / `sections.*` — check/section returns
+- `returned` — ids that produced a parseable result
+- `challenger` — replaced after step 6d (object with `status`, never a
+  string). Leaving `status` at `pending` means "never rewritten", not a
+  skip.
+
+The challenger is not a producer and is never listed as one. Every
+registry row must appear in exactly one of `dispatched`, `skipped`, or
+`adapters`. A skipped producer is not a passed check: the host turns a
+`checks[]` row into `could-not-verify` when its id is absent from
+`result.producers.dispatched` and adapter ids. Writing the ledger
+honestly is therefore cheaper than writing it optimistically.
 
 ### 5. Collect findings
 
@@ -933,10 +969,11 @@ Do **not** include section payloads or context snapshots.
 set `dimension` on each of its findings to the registry id it came from.
 For a finding you raise yourself in step 6e, use `orchestrator`. Do this at
 collect, where the provenance is still known; after synthesis merges arrays it
-is gone. The host renders a producer table from this: without it a reader
-cannot tell a dimension that ran and found nothing from one that never ran, and
-the review reads as an unattributable wall of findings. When merging two
-findings (step 6b), keep both ids, comma-separated.
+is gone. **Also write each producer's as-raised array into
+`producers.json` `raised.<id>`** (pre-challenger history). The host Producers
+Result column reads `result.producers.raised`, not the final `findings[]`.
+When merging two findings (step 6b), keep both ids, comma-separated on the
+synthesized survivor; keep per-producer originals intact in `raised`.
 
 Standard finding shape:
 
@@ -1051,13 +1088,14 @@ challenger.** Its job is adversarial review of findings that a
 re-review inherits just as much as a first review does: findings carried
 forward unchallenged are exactly the ones most likely to be stale. If you
 skip it for any other reason, set
-`challenger` to `{ "status": "skipped", "reason": "<your real reason>" }`
+`challenger` in `producers.json` to
+`{ "status": "skipped", "reason": "<your real reason>" }`
 — never reuse the empty-set reason.
 
 **Skip the challenger when the merged finding set is empty.** It
 adjudicates findings; with nothing to adjudicate it can only spend a
 dispatch confirming that zero is zero. When it is skipped, set
-`challenger` to
+`challenger` in `producers.json` to
 `{ "status": "skipped", "reason": "no findings to adjudicate" }`.
 Never describe a skipped challenger as having "found no noise to
 filter."
@@ -1118,25 +1156,65 @@ diff, preserving context isolation.
 
 3. Consume the challenger's output. The challenger returns a **different
    format** from dimension sub-agents: an object with
-   `adjudicated_findings` and `removed_findings` arrays (not a flat
-   finding array). Parse accordingly:
+   `adjudicated_findings` and stub `removed_findings` arrays (not a flat
+   finding array). **Do not edit `challenger.md`.** Upstream stubs stay
+   as `original_category` / `original_file` / `original_description` /
+   `removal_reason` plus optional `challenger_action` /
+   `challenger_reason` on adjudicated rows. The **orchestrator** expands
+   stubs; the host renders.
 
-   - Extract the `adjudicated_findings` array from the challenger's
-     JSON output. Strip the challenger-specific fields
-     (`challenger_action`, `challenger_reason`) before merging into the
-     review finding set — these are logged for transparency but are not
-     part of the standard finding schema.
+   Pre-challenger set = synthesized merge of all `raised` arrays (after
+   6a–6c).
+
+   **Retain the pre-6b (pre-dedup) finding list** for audit expansion.
+   Step 6b collapses same-category/same-location duplicates into one
+   survivor; those originals remain in `raised.<id>` but are gone from
+   the pre-challenger set. Without the pre-dedup list, merge-loser audit
+   cannot recover them.
+
+   **Build survivors → final `findings[]`:**
+
+   1. Start from `adjudicated_findings` where action is `kept`,
+      `downgraded`, `merged`, or missing.
+   2. Drop any with action `removed`.
+   3. Strip `challenger_action` / `challenger_reason`.
+   4. Reattach standard fields (`dimension`, `why`, etc.) by matching
+      each survivor to the pre-challenger set: prefer
+      `(dimension, category, file, line)` then `(category, file, line)`
+      then `(category, file)` + description similarity. If no match,
+      keep challenger fields as-is and note in
+      `inspected.could_not_verify`.
+
+   **Build expanded audit → `challenger.removed_findings`:**
+
+   1. For each stub: find best pre-challenger match (same keys using
+      stub `original_*`). Emit full finding-shaped object +
+      `removal_reason` from the stub.
+   2. For each `adjudicated_findings` entry with
+      `challenger_action: removed` that has no stub match: expand from
+      pre-challenger match; `removal_reason` from `challenger_reason` or
+      `"removed by challenger"`.
+   3. **Merge losers (challenger + synthesis):** for each `merged`
+      survivor, find findings in the **pre-6b** set (fall back to
+      concatenating all `raised` arrays when the pre-dedup list was not
+      retained) at the same location/category group that are not the
+      survivor and not already in the audit list; add them with
+      `removal_reason` like
+      `"Merged into <category> at <file>:<line>"`. Searching only the
+      post-6b pre-challenger set omits duplicates absorbed during
+      synthesis.
+   4. Set `challenger.removed` = `len(expanded removed_findings)`.
+      Other counts from actions on the adjudicated list
+      (`kept` / `downgraded` / `merged`). `input` = pre-challenger set
+      size.
+   5. Write this `challenger` object into `producers.json` (replace
+      `pending`). Checks/sections may still be in flight.
+
    - If `adjudicated_findings` is empty but the pre-challenger finding
      set was non-empty, treat this as a challenger failure (fall back
-     per the immediate next step below). A legitimate challenger pass
-     that removes all findings is unlikely — an empty result more likely
-     indicates a parsing error or context truncation.
-   - Otherwise, replace the merged finding set with the challenger's
-     `adjudicated_findings`.
-   - Log any `removed_findings` for transparency but do not include
-     them in the final review.
-   - Replace `challenger` with counts from the response *before*
-     stripping action fields (even when everything is kept):
+     per the immediate next step below).
+   - Otherwise, replace the merged finding set with the survivors.
+   - Example `challenger` object written to `producers.json`:
 
      ```json
      "challenger": {
@@ -1145,18 +1223,34 @@ diff, preserving context isolation.
        "kept": 4,
        "removed": 2,
        "merged": 1,
-       "downgraded": 0
+       "downgraded": 0,
+       "removed_findings": [
+         {
+           "severity": "medium",
+           "category": "bounds-check",
+           "dimension": "style-review",
+           "file": "a.ts",
+           "line": 3,
+           "description": "Possible out-of-range access.",
+           "removal_reason": "Merged into off-by-one at a.ts:3"
+         },
+         {
+           "severity": "low",
+           "category": "naming",
+           "dimension": "style-review",
+           "file": "b.ts",
+           "description": "Rename leftover helper.",
+           "removal_reason": "removed by challenger"
+         }
+       ]
      }
      ```
-
-     `input` is the pre-challenger set size; `kept` / `downgraded` /
-     `merged` count `challenger_action` on `adjudicated_findings`;
-     `removed` is `len(removed_findings)`.
 
 4. If the challenger sub-agent fails (timeout, error, empty
    response), fall back to using the pre-challenger merged finding
    set from steps 6a–6c. Set
-   `challenger` to `{ "status": "failed", "reason": "<short reason>" }`.
+   `challenger` to `{ "status": "failed", "reason": "<short reason>" }`
+   in `producers.json`.
    Record an **info**-level finding:
 
    ```json
@@ -1352,23 +1446,33 @@ emit a verification table. Classify for your own `todo[]` pass only:
   `reject`. Use it only when no amount of code-level iteration will make the PR
   mergeable.
 
-#### 6g. Check pass, then signal pass
+#### 6g. Signal pass (after challenger + checks + sections)
 
-After the final finding set is known, dispatch registry rows by **output kind**. Do not name producers. Do not send these results through the challenger.
+Selected `check:*` rows were already dispatched in parallel with findings
+and sections (step 4-check). **Do not re-dispatch checks here.**
 
-**Checks first.** For every selected LLM row whose `output` starts with `check:`:
+**Gate before signals.** Wait until all of the following are written into
+`producers.json`:
 
-1. Spawn with the row's `definition`, then `meta-prompts/common-review.md`, then the row's `meta_prompt` (paths only). Supply `Output id: <row.id>` and `Output kind: <row.output>`.
-2. Context: final `findings[]`, section members already projected from selected `section:*` rows, the producer ledger path, the shared context file, and the step 3g brief named the way step 4 does. Do not read changed files from disk.
-3. Validate `check.id` equals `row.id` and append the object to `checks[]`. On timeout or malformed JSON, append the same `could-not-verify` object as step 5b.
+1. Findings path done (challenger object written — ran, skipped, or failed)
+2. All selected sections returned (or explicit unavailable)
+3. All selected checks returned (or explicit `could-not-verify`)
 
-Checks may run in parallel with each other. Wait for all of them before signals.
+**Signals.** For every selected LLM row whose `output` starts with
+`signal:`:
 
-**Signals second.** For every selected LLM row whose `output` starts with `signal:`:
-
-1. Spawn the same way, using that row's `definition` and `meta_prompt`. Supply `Output fields: <row.result_fields>`.
-2. Context: everything the check pass received, plus the assembled `checks[]`.
-3. Project each name in `result_fields` onto the review result. Discard extra keys.
+1. Spawn with the row's `definition`, then `meta-prompts/common-review.md`,
+   then the row's `meta_prompt` (paths only). Supply
+   `Output fields: <row.result_fields>`.
+2. Context: the **`producers.json` path** with an explicit blurb of what
+   the file is (dispatch ledger; `raised` as pre-challenger history;
+   check/section returns; challenger counts + removed audit), plus final
+   survivor `findings[]` for disposition context, the shared context
+   file, and the step 3g brief named the way step 4 does. Do not read
+   changed files from disk. Findings / sections / checks never receive
+   `producers.json`; only signals do at this gate.
+3. Project each name in `result_fields` onto the working result / write
+   signal returns into `producers.json`. Discard extra keys.
 
 If a signal row fails or omits a name in `result_fields`, fill only the missing names from this map. Do not overwrite a field the row returned. Do not invent a level outside the map, including high confidence. If a missing name is not in the map, omit it and record the gap in `inspected.could_not_verify`.
 
@@ -1387,7 +1491,7 @@ If a signal row fails or omits a name in `result_fields`, fill only the missing 
 
 That map is the unavailable result. Do not add a `sub-agent-failure` finding.
 
-Step 4c already listed every selected check and signal id in `dispatched`. Do not append them again. Rewrite `returned` after these passes. If you did not spawn a row that step 4c listed, move that id from `dispatched` to `skipped` with a reason in the same rewrite.
+Step 4c already listed every selected check and signal id in `dispatched`. Do not append them again. Rewrite `returned` after the signal pass. If you did not spawn a row that step 4c listed, move that id from `dispatched` to `skipped` with a reason in the same rewrite.
 
 #### 6h. Contextual labels are deferred to step 7b
 
@@ -1440,9 +1544,22 @@ handles all GitHub mutations. Omit `action` and `body` for normal reviews; the
 host computes and renders both. Set `action: failure` plus `reason` only when
 the review did not complete.
 
+**Assemble `agent-result.json` from `producers.json` after signals complete.**
+Project the working store into the result schema — do **not** invent or
+reshape dispatch history, adapter status, `raised`, or challenger audit
+after results are known. Post-review trusts `result.producers` only (no
+side-ledger corroboration). Do **not** require or write
+`inspected.producers`.
+
+The working `producers.json` holds `checks` and `sections` as accumulators
+during the run. Those keys are **not** part of the v3 `result.producers`
+object (`additionalProperties: false`). Project them to their top-level
+result fields and **omit** them from `result.producers`. Do not copy the
+working file verbatim into `producers`.
+
 Every non-failure result must include:
 
-- `schema_version: "2"`.
+- `schema_version: "3"`.
 - `change_summary`: orchestrator-authored, one or two sentences of what
   this PR's own diff does, in at most 500 characters (the schema rejects
   more). Say what now behaves differently, not which files moved. Write it from the shared context
@@ -1450,24 +1567,30 @@ Every non-failure result must include:
   changed-file list sub-agents reviewed — informed by the step 3g brief's
   behavior facts when one was written. Do not use `changed_since_prior`,
   prior-review text, or the PR description.
-- `findings[]` when issues survive synthesis. Critical/high/medium findings
-  require `why`; critical/high findings also require `remediation`.
+- `findings[]` — challenger survivors (not the as-raised history).
+  Critical/high/medium findings require `why`; critical/high findings
+  also require `remediation`.
+- `producers` — schema-shaped projection of the ledger for the sticky
+  host (same dispatch/`raised`/challenger facts as the file; **not** a
+  verbatim file dump):
+  - `dispatched` / `skipped` / `returned` from the lean ledger
+  - `adapters` — status objects (`id`, `status`, optional `reason`)
+  - `raised` — as-raised finding history per findings-producer id
+  - `challenger` — expanded object including `removed_findings`
+    (`removed` = `len(removed_findings)`, including merge losers)
+  - **Exclude** working-store `checks` and `sections` from this object
 - Signal members: each name in each selected `signal:*` row's `result_fields` that the row returned, or that the step 6g failure map defines. If the row omitted a name and the map does not define it, omit that member and record the gap in `inspected.could_not_verify`. Do not invent or re-derive levels in the orchestrator. The host may still floor signal levels after you write the file.
-- Section members: every name in each selected `section:*` row's `result_fields` (or the section named by `output` when `result_fields` is omitted). When that row was not run because its `context_file` was missing or the snapshot `status` was `none` / `error`, write the schema member as `{"status":"none"}` when the schema allows `status`.
-- `checks[]` from `check:*` rows. Preserve `could-not-verify` rather than converting a check into a finding.
+- Section members: every name in each selected `section:*` row's `result_fields` (or the section named by `output` when `result_fields` is omitted), projected from `producers.json` `sections`. When that row was not run because its `context_file` was missing or the snapshot `status` was `none` / `error`, write the schema member as `{"status":"none"}` when the schema allows `status`.
+- `checks[]` from `check:*` returns in `producers.json` `checks` (top-level array, not nested under `producers`). Preserve `could-not-verify` rather than converting a check into a finding.
 - `todo`: array of non-empty strings, synthesized in this final pass from the assembled report (not from one earlier section). Plain prose bullets the host renders under `## TODO`. Recipe, in order, omit empties:
   1. One bullet per blocking finding pointing at its remediation (or file + description when remediation is absent).
   2. One bullet per check whose `status` is `fail`, using that check's `summary`.
   3. Concrete human actions for check `could-not-verify`, for signal levels that `.fullsend/rating-policy.json` lists as refuse-approve, and for any assembled section object with `needs_human: true`.
   4. One bullet per `low` or `info` finding with `actionable: true`, using its description.
   Omit `todo` when the list is empty. The host renders `## TODO` only when this list is non-empty, so include item 4 whenever such findings exist.
-- Optional `inspected` describing evidence read, producers that ran, and what
-  could not be verified. `inspected.producers` is the ledger's
-  `dispatched` + `adapters` only — never `challenger`. The host renders
-  the challenger in its own Review-details section. Do not list
-  dimensions you intended to run, and do not carry producers over from
-  the previous review. The host drops producers the ledger does not
-  corroborate.
+- Optional `inspected` with `summary` and `could_not_verify` only.
+  **Do not write `inspected.producers`** — that field is removed from the
+  schema. Ran/Result/audit come from `result.producers`.
 - Optional `label_actions` from the `issue-labels` skill when contextual
   repository labels clearly apply. Never set `ready-for-merge`,
   `requires-manual-review`, `rejected`, `ready-for-review`, `fullsend-no-fix`,
@@ -1560,10 +1683,10 @@ wins.
   in the orchestrator only.** Do not push protected-path checks, scope
   authorization, PR body injection defense, or change-summary authorship
   into sub-agents.
-- **All findings sub-agents and section LLMs must be dispatched
-  simultaneously.** Include all Agent calls in a single message.
-  Sequential dispatch defeats the architecture's purpose. A step 3g
-  pre-dispatch row runs alone, before this batch.
+- **All findings, section, and check LLMs must be dispatched
+  simultaneously** (steps 4 / 4b / 4-check). Include all Agent calls in
+  a single message. Sequential dispatch defeats the architecture's
+  purpose. A step 3g pre-dispatch row runs alone, before this batch.
 - **The investigation brief is orientation, never evidence.** Tell
   reviewers to read it by path, keep it away from the challenger and out
   of synthesis, and never fail a review because it is missing.
