@@ -1166,6 +1166,12 @@ diff, preserving context isolation.
    Pre-challenger set = synthesized merge of all `raised` arrays (after
    6a–6c).
 
+   **Retain the pre-6b (pre-dedup) finding list** for audit expansion.
+   Step 6b collapses same-category/same-location duplicates into one
+   survivor; those originals remain in `raised.<id>` but are gone from
+   the pre-challenger set. Without the pre-dedup list, merge-loser audit
+   cannot recover them.
+
    **Build survivors → final `findings[]`:**
 
    1. Start from `adjudicated_findings` where action is `kept`,
@@ -1188,11 +1194,15 @@ diff, preserving context isolation.
       `challenger_action: removed` that has no stub match: expand from
       pre-challenger match; `removal_reason` from `challenger_reason` or
       `"removed by challenger"`.
-   3. **Merge losers:** for each `merged` survivor, find pre-challenger
-      findings at the same location/category group that are not the
+   3. **Merge losers (challenger + synthesis):** for each `merged`
+      survivor, find findings in the **pre-6b** set (fall back to
+      concatenating all `raised` arrays when the pre-dedup list was not
+      retained) at the same location/category group that are not the
       survivor and not already in the audit list; add them with
       `removal_reason` like
-      `"Merged into <category> at <file>:<line>"`.
+      `"Merged into <category> at <file>:<line>"`. Searching only the
+      post-6b pre-challenger set omits duplicates absorbed during
+      synthesis.
    4. Set `challenger.removed` = `len(expanded removed_findings)`.
       Other counts from actions on the adjudicated list
       (`kept` / `downgraded` / `merged`). `input` = pre-challenger set
@@ -1535,10 +1545,17 @@ host computes and renders both. Set `action: failure` plus `reason` only when
 the review did not complete.
 
 **Assemble `agent-result.json` from `producers.json` after signals complete.**
-Copy/project the working store — do **not** invent or reshape dispatch
-history, adapter status, `raised`, or challenger audit after results are
-known. Post-review trusts `result.producers` only (no side-ledger
-corroboration). Do **not** require or write `inspected.producers`.
+Project the working store into the result schema — do **not** invent or
+reshape dispatch history, adapter status, `raised`, or challenger audit
+after results are known. Post-review trusts `result.producers` only (no
+side-ledger corroboration). Do **not** require or write
+`inspected.producers`.
+
+The working `producers.json` holds `checks` and `sections` as accumulators
+during the run. Those keys are **not** part of the v3 `result.producers`
+object (`additionalProperties: false`). Project them to their top-level
+result fields and **omit** them from `result.producers`. Do not copy the
+working file verbatim into `producers`.
 
 Every non-failure result must include:
 
@@ -1553,16 +1570,18 @@ Every non-failure result must include:
 - `findings[]` — challenger survivors (not the as-raised history).
   Critical/high/medium findings require `why`; critical/high findings
   also require `remediation`.
-- `producers` — self-contained mirror of `producers.json` for the sticky
-  host (must match the file, not a post-hoc rewrite):
+- `producers` — schema-shaped projection of the ledger for the sticky
+  host (same dispatch/`raised`/challenger facts as the file; **not** a
+  verbatim file dump):
   - `dispatched` / `skipped` / `returned` from the lean ledger
   - `adapters` — status objects (`id`, `status`, optional `reason`)
   - `raised` — as-raised finding history per findings-producer id
   - `challenger` — expanded object including `removed_findings`
     (`removed` = `len(removed_findings)`, including merge losers)
+  - **Exclude** working-store `checks` and `sections` from this object
 - Signal members: each name in each selected `signal:*` row's `result_fields` that the row returned, or that the step 6g failure map defines. If the row omitted a name and the map does not define it, omit that member and record the gap in `inspected.could_not_verify`. Do not invent or re-derive levels in the orchestrator. The host may still floor signal levels after you write the file.
-- Section members: every name in each selected `section:*` row's `result_fields` (or the section named by `output` when `result_fields` is omitted). When that row was not run because its `context_file` was missing or the snapshot `status` was `none` / `error`, write the schema member as `{"status":"none"}` when the schema allows `status`.
-- `checks[]` from `check:*` returns in `producers.json`. Preserve `could-not-verify` rather than converting a check into a finding.
+- Section members: every name in each selected `section:*` row's `result_fields` (or the section named by `output` when `result_fields` is omitted), projected from `producers.json` `sections`. When that row was not run because its `context_file` was missing or the snapshot `status` was `none` / `error`, write the schema member as `{"status":"none"}` when the schema allows `status`.
+- `checks[]` from `check:*` returns in `producers.json` `checks` (top-level array, not nested under `producers`). Preserve `could-not-verify` rather than converting a check into a finding.
 - `todo`: array of non-empty strings, synthesized in this final pass from the assembled report (not from one earlier section). Plain prose bullets the host renders under `## TODO`. Recipe, in order, omit empties:
   1. One bullet per blocking finding pointing at its remediation (or file + description when remediation is absent).
   2. One bullet per check whose `status` is `fail`, using that check's `summary`.

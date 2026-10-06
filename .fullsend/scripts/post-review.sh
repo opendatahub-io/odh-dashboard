@@ -485,15 +485,18 @@ def render_location(result, finding, server_url):
     path = (finding.get("file") or "").strip()
     line = finding.get("line")
     label = f"{path}:{line}" if line else path
+    # Finding file labels are untrusted; escape HTML (and backticks when the
+    # label is shown in a code span) so they cannot break sticky <details>.
+    safe_display = code_span_text(label)
     repo = (result.get("repo") or os.environ.get("GITHUB_REPOSITORY") or "").strip("/")
     sha = (result.get("head_sha") or "").strip()
     if not path or path.lower() == "n/a" or not repo or not sha:
-        return f"`{label}`"
+        return f"`{safe_display}`"
     target = f"{server_url.rstrip('/')}/{repo}/blob/{sha}/{quote(path.lstrip('/'), safe='/')}"
     if line:
         target += f"#L{line}"
-    safe_label = label.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
-    return f"[{safe_label}]({target})"
+    link_label = safe_display.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
+    return f"[{link_label}]({target})"
 
 def clean(text):
     return suppress_mentions(str(text or "").strip())
@@ -530,6 +533,14 @@ def inline_text(text):
     headings or extra list items.
     """
     return clean(text).replace("\n", " ").replace("<", "&lt;")
+
+def code_span_text(text):
+    """Untrusted text for a single Markdown inline-code span (`...`).
+
+    Applies inline_text, then replaces backticks so a value cannot break
+    out of the span (or close a surrounding <details> via that breakout).
+    """
+    return inline_text(text).replace("`", "'")
 
 def check_details_cell(check):
     """Checks-table Details cell: summary, then details[] with a blank line between each.
@@ -699,7 +710,9 @@ def render_removed_audit(result):
         origin = ""
         if finding.get("dimension"):
             origin_ids = producer_ids(finding)
-            origin_shown = ", ".join(dimension_label(i) for i in origin_ids) or inline_text(finding.get("dimension"))
+            origin_shown = ", ".join(
+                code_span_text(dimension_label(i)) for i in origin_ids
+            ) or code_span_text(finding.get("dimension"))
             origin = f"`{origin_shown}` · "
         lines += [
             "",
@@ -1597,6 +1610,55 @@ run_self_test() {
     fail=1
   else
     echo "PASS removed-finding audit fields are HTML-escaped"
+  fi
+
+  # Hostile dimension / file labels must not break the audit code span or <details>.
+  # Unrecognized dimensions fall back to the finding's dimension string; file is
+  # shown via render_location. Both are untrusted review data.
+  jq -n \
+    --argjson common "$(printf '{%s}' "${common}")" \
+    '$common * {
+      findings: [],
+      producers: {
+        dispatched: ["correctness"],
+        adapters: [],
+        skipped: [],
+        returned: ["correctness"],
+        raised: {correctness: []},
+        challenger: {
+          status: "ran",
+          input: 1,
+          kept: 0,
+          removed: 1,
+          merged: 0,
+          downgraded: 0,
+          removed_findings: [{
+            severity: "medium",
+            category: "x",
+            dimension: "evil`</details>`",
+            file: "path</details>`evil.ts",
+            description: "desc",
+            removal_reason: "merged"
+          }]
+        }
+      }
+    }' > "${tmp}/audit-label-escape.json"
+  transform_review_result "${tmp}/audit-label-escape.json" > "${tmp}/audit-label-escape-out.json"
+  body=$(jq -r .body "${tmp}/audit-label-escape-out.json")
+  if grep -qF 'evil`</details>`' <<<"${body}" || grep -qF 'path</details>`evil.ts' <<<"${body}"; then
+    echo "FAIL audit-label-escape: raw hostile dimension/file label reached the comment" >&2
+    fail=1
+  elif [[ "$(grep -c '</details>' <<<"${body}")" -ne 2 ]]; then
+    echo "FAIL audit-label-escape: expected only audit + review-details closers" >&2
+    fail=1
+  elif ! grep -qF "evil'&lt;/details>'" <<<"${body}"; then
+    echo "FAIL audit-label-escape: hostile dimension was not escaped into the code span" >&2
+    fail=1
+  elif ! grep -qF "path&lt;/details>'evil.ts" <<<"${body}"; then
+    echo "FAIL audit-label-escape: hostile file label was not escaped" >&2
+    fail=1
+  else
+    echo "PASS removed-finding dimension/file labels are escaped"
   fi
 
   # A patch snippet must survive as code. Flattened to one bullet it is

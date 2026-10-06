@@ -280,7 +280,7 @@ Canonical schema: [`.fullsend/schemas/review-result.schema.json`](../../schemas/
 | `pr_number`, `repo`, `head_sha`, `schema_version` | Orchestrator | Identity; `schema_version` is `"3"` |
 | `change_summary` | Orchestrator | From shared PR context, not prior-review text |
 | `findings[]` | Findings producers + challenger survivors | Disposition + sticky Findings |
-| `producers` | Orchestrator (from `producers.json`) | Raised history, adapter status, challenger audit, ledger mirror — assemble copies the working store; post-review does not re-read side files |
+| `producers` | Orchestrator (from `producers.json`) | Raised history, adapter status, challenger audit, ledger projection — omit working-store `checks`/`sections` (those become top-level); post-review does not re-read side files |
 | `product_ask` | `section:product_ask` | Omit sticky section when `none` |
 | `checks[]` | `check:*` rows | Readiness; disposition-affecting |
 | `risk`, `confidence` | `signal:*` via `result_fields` | Sticky Signals table |
