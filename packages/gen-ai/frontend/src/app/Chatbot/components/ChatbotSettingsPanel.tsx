@@ -6,7 +6,6 @@ import {
   DrawerHead,
   DrawerPanelContent,
   DrawerPanelBody,
-  Badge,
   Flex,
   FlexItem,
   Icon,
@@ -41,10 +40,8 @@ import {
   selectSystemInstruction,
   selectTemperature,
   selectStreamingEnabled,
-  selectSelectedMcpServerIds,
   selectSelectedModel,
   selectSelectedSubscription,
-  selectRagEnabled,
   selectConfigIds,
   DEFAULT_CONFIG_ID,
 } from '~/app/Chatbot/store';
@@ -141,11 +138,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   // Consume store directly using configId (controlled by parent)
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
   const temperature = useChatbotConfigStore(selectTemperature(configId));
-  const selectedMcpServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
   const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
   const selectedSubscription = useChatbotConfigStore(selectSelectedSubscription(configId));
-  const isRagEnabled = useChatbotConfigStore(selectRagEnabled(configId));
 
   // Get updater functions from store
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
@@ -383,13 +378,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             <Tab
               eventKey={2}
               tabContentId="chatbot-settings-page-tab-content-knowledge"
-              title={renderTabTitle(
-                'RAG',
-                <DatabaseIcon />,
-                <Badge isRead={!isRagEnabled} data-testid="knowledge-status-badge">
-                  {isRagEnabled ? 'On' : 'Off'}
-                </Badge>,
-              )}
+              title={renderTabTitle('RAG', <DatabaseIcon />)}
               aria-label="RAG"
               tooltip={areTabsCompact ? <Tooltip content="RAG" /> : undefined}
               data-testid="chatbot-settings-page-tab-knowledge"
@@ -400,19 +389,12 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               title={renderTabTitle(
                 'MCP',
                 <RobotIcon />,
-                selectedMcpServerIds.length > 0 || showMcpToolsWarning ? (
-                  <>
-                    {selectedMcpServerIds.length > 0 && (
-                      <Badge>{selectedMcpServerIds.length}</Badge>
-                    )}
-                    {showMcpToolsWarning && (
-                      <Tooltip content="Performance may be degraded with more than 40 active tools">
-                        <Icon status="warning" data-testid="mcp-tools-warning-icon">
-                          <ExclamationTriangleIcon />
-                        </Icon>
-                      </Tooltip>
-                    )}
-                  </>
+                showMcpToolsWarning ? (
+                  <Tooltip content="Performance may be degraded with more than 40 active tools">
+                    <Icon status="warning" data-testid="mcp-tools-warning-icon">
+                      <ExclamationTriangleIcon />
+                    </Icon>
+                  </Tooltip>
                 ) : undefined,
               )}
               aria-label="MCP"

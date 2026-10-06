@@ -674,7 +674,7 @@ describe('ChatbotSettingsPanel', () => {
       mockUseGuardrailsEnabled.mockReturnValue(false);
     });
 
-    it('keeps every icon and status visible when the panel becomes narrow', () => {
+    it('keeps every icon visible when the panel becomes narrow', () => {
       mockUseGuardrailsEnabled.mockReturnValue(true);
       render(<ChatbotSettingsPanel {...defaultProps} />);
 
@@ -690,7 +690,6 @@ describe('ChatbotSettingsPanel', () => {
         expect(tab).not.toHaveTextContent(label);
         expect(tab.querySelector('svg')).toBeInTheDocument();
       }
-      expect(screen.getByTestId('knowledge-status-badge')).toHaveTextContent('Off');
       mockUseGuardrailsEnabled.mockReturnValue(false);
     });
 
@@ -701,16 +700,28 @@ describe('ChatbotSettingsPanel', () => {
       expect(screen.getByRole('tab', { name: 'Model' })).not.toHaveTextContent('Model');
     });
 
-    it('shows enabled RAG and selected MCP server status in compact tabs', () => {
+    it('omits RAG status and MCP server count from wide and compact tabs', () => {
+      render(<ChatbotSettingsPanel {...defaultProps} />);
+      expect(screen.getByRole('tab', { name: 'RAG' })).not.toHaveTextContent('Off');
+
       useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
       useChatbotConfigStore
         .getState()
         .updateSelectedMcpServerIds(DEFAULT_CONFIG_ID, ['server-one']);
-      sessionStorage.setItem(SETTINGS_PANEL_WIDTH, '300px');
-      render(<ChatbotSettingsPanel {...defaultProps} />);
 
-      expect(screen.getByTestId('knowledge-status-badge')).toHaveTextContent('On');
-      expect(screen.getByRole('tab', { name: 'MCP' })).toHaveTextContent('1');
+      expect(screen.getByRole('tab', { name: 'RAG' })).toHaveTextContent('RAG');
+      expect(screen.getByRole('tab', { name: 'RAG' })).not.toHaveTextContent('On');
+      expect(screen.getByRole('tab', { name: 'MCP' })).not.toHaveTextContent('1');
+
+      act(() => {
+        mockResizeObserverCallback(
+          [{ contentRect: { width: 300 } } as ResizeObserverEntry],
+          {} as ResizeObserver,
+        );
+      });
+
+      expect(screen.getByRole('tab', { name: 'RAG' })).not.toHaveTextContent('On');
+      expect(screen.getByRole('tab', { name: 'MCP' })).not.toHaveTextContent('1');
     });
 
     it('keeps the MCP tools warning visible in the compact tab', async () => {
