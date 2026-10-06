@@ -32,6 +32,18 @@ jq -e '
   ([.dimensions[] | select((.kind != "llm-subagent") and (.kind != "llm-skill") and (.kind != "cli-adapter"))] | length == 0)
 ' "${REGISTRY}" >/dev/null || fail "kind must be llm-subagent, llm-skill, or cli-adapter"
 
+# The orchestrator dispatches an LLM context row only through its pre-dispatch
+# step, so one without the stage would never run, and the stage on any other
+# row would hand reviewers something that is not a context brief.
+jq -e '
+  all(.dimensions[];
+    (.kind == "llm-subagent" or .kind == "llm-skill") as $llm |
+    ((.output // "findings") == "context") as $context |
+    (.stage // "") as $stage |
+    ($stage == "" or $stage == "pre-dispatch") and
+    (($stage == "pre-dispatch") == ($llm and $context)))
+' "${REGISTRY}" >/dev/null || fail "stage must be pre-dispatch on every LLM row with output context, and absent on every other row"
+
 while IFS=$'\t' read -r id label kind output definition meta result_fields inline_skill; do
   [[ -n "${id}" ]] || fail "dimension without id"
   [[ -n "${label}" ]] || fail "${id}: missing non-empty label"
