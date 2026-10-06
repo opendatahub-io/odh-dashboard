@@ -49,6 +49,17 @@ jest.mock('../GenAiCoreNoProjects', () => ({
 
 const mockUseNamespaceSelectorWithPersistence = jest.mocked(useNamespaceSelectorWithPersistence);
 
+const mockNamespaceSelectorReturn = (namespacesLoaded: boolean) =>
+  ({
+    namespaces: [],
+    namespacesLoaded,
+    preferredNamespace: undefined,
+    updatePreferredNamespace: jest.fn(),
+    clearStoredNamespace: jest.fn(),
+    namespacesLoadError: undefined,
+    initializationError: undefined,
+  }) as ReturnType<typeof useNamespaceSelectorWithPersistence>;
+
 const renderLoader = () =>
   render(
     <MemoryRouter initialEntries={['/assets']}>
@@ -71,10 +82,7 @@ const renderLoader = () =>
 
 describe('GenAiCoreLoader', () => {
   it('waits for namespaces to load before rendering no-project content', () => {
-    mockUseNamespaceSelectorWithPersistence.mockReturnValue({
-      namespaces: [],
-      namespacesLoaded: false,
-    } as ReturnType<typeof useNamespaceSelectorWithPersistence>);
+    mockUseNamespaceSelectorWithPersistence.mockReturnValue(mockNamespaceSelectorReturn(false));
 
     renderLoader();
 
@@ -83,10 +91,7 @@ describe('GenAiCoreLoader', () => {
   });
 
   it('renders no-project content after namespaces load with an empty list', () => {
-    mockUseNamespaceSelectorWithPersistence.mockReturnValue({
-      namespaces: [],
-      namespacesLoaded: true,
-    } as ReturnType<typeof useNamespaceSelectorWithPersistence>);
+    mockUseNamespaceSelectorWithPersistence.mockReturnValue(mockNamespaceSelectorReturn(true));
 
     renderLoader();
 
