@@ -188,22 +188,11 @@ Module health is checked by inspecting each module's Deployment readiness (repli
 
 ## Dynamic Federation ConfigMap
 
-The operator dynamically builds a `federation-config` ConfigMap based on which modules are enabled. For each enabled module, it generates a service entry pointing to the module's Service:
-
-```json
-{
-  "name": "<moduleName>",
-  "remoteEntry": "/remoteEntry.js",
-  "authorize": true,
-  "tls": true,
-  "proxy": [{"path": "/<module>/api", "pathRewrite": "/api"}],
-  "service": {
-    "name": "odh-dashboard-<slug>-ui",
-    "namespace": "<apps-namespace>",
-    "port": <module-port>
-  }
-}
-```
+The operator dynamically builds a `federation-config` ConfigMap based on which
+modules are enabled. Each module's normalized entry has an optional `backend`
+for its remote bundle and one or more `proxyService` targets for its APIs. See
+[Module Federation](module-federation.md#configmap-structure) for the runtime
+entry schema.
 
 The ConfigMap also includes:
 - A `coreBff` entry for core-bff proxy routing (routes `/core-bff/api` to port 8943 on the main dashboard Service)

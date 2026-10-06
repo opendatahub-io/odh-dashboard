@@ -42,7 +42,7 @@ func TestBuildMaaSPortalFederationConfigMap(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(configMap.Data["module-federation-config.json"]), &entries))
 	require.Len(t, entries, 1)
 	assert.Equal(t, "maas", entries[0]["name"])
-	assert.Equal(t, "/maas/api", entries[0]["proxy"].([]any)[0].(map[string]any)["path"])
+	assert.Equal(t, "/maas/api", entries[0]["proxyService"].([]any)[0].(map[string]any)["path"])
 }
 
 func TestBuildMaaSPortalFederationConfigMap_IncludesHealthyDependencies(t *testing.T) {
@@ -55,8 +55,8 @@ func TestBuildMaaSPortalFederationConfigMap_IncludesHealthyDependencies(t *testi
 	require.Len(t, entries, 2)
 	assert.Equal(t, "genAi", entries[0]["name"])
 	assert.Equal(t, "maas", entries[1]["name"])
-	assert.Equal(t, float64(8143), entries[0]["service"].(map[string]any)["port"])
-	assert.Equal(t, float64(8243), entries[1]["service"].(map[string]any)["port"])
+	assert.Equal(t, float64(8143), entries[0]["backend"].(map[string]any)["service"].(map[string]any)["port"])
+	assert.Equal(t, float64(8243), entries[1]["backend"].(map[string]any)["service"].(map[string]any)["port"])
 }
 
 func TestBuildMaaSPortalFederationConfigMap_IncludesPersesWhenConfigured(t *testing.T) {

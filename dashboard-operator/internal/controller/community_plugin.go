@@ -25,27 +25,12 @@ var (
 	communityProxyPathSegment = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 )
 
-// communityFederationEntry is intentionally separate from federationEntry. The
-// latter is the operator's established flat format for Dashboard-managed
-// modules; community entries use the nested format consumed directly by the
-// Dashboard runtime so a frontend backend and a distinct BFF proxy target are
-// preserved losslessly.
-type communityFederationEntry struct {
-	Name         string                     `json:"name"`
-	Backend      communityFederationBackend `json:"backend"`
-	ProxyService []proxyServiceEntry        `json:"proxyService,omitempty"`
-}
-
+// communityFederationSourceEntry is the installer-owned source contract. It
+// remains distinct from federationEntry because paths and optional connection
+// policy must be validated and normalized before reaching the Dashboard runtime.
 type communityFederationSourceEntry struct {
-	Backend      communityFederationBackend         `json:"backend"`
+	Backend      federationBackend                  `json:"backend"`
 	ProxyService []communityProxyServiceSourceEntry `json:"proxyService,omitempty"`
-}
-
-type communityFederationBackend struct {
-	RemoteEntry string     `json:"remoteEntry"`
-	Authorize   *bool      `json:"authorize,omitempty"`
-	TLS         *bool      `json:"tls,omitempty"`
-	Service     serviceRef `json:"service"`
 }
 
 // communityProxyServiceSourceEntry accepts a relative suffix rather than a
@@ -57,10 +42,6 @@ type communityProxyServiceSourceEntry struct {
 	PathRewrite string     `json:"pathRewrite,omitempty"`
 	TLS         *bool      `json:"tls,omitempty"`
 	Service     serviceRef `json:"service"`
-}
-
-func (entry communityFederationEntry) federationConfigName() string {
-	return entry.Name
 }
 
 func validateCommunityServiceRef(field string, service serviceRef) error {
@@ -101,7 +82,7 @@ func validateCommunityRemoteEntryPath(remoteEntry string) error {
 	return nil
 }
 
-func validateCommunityFederationEntry(entry communityFederationEntry, existingNames map[string]struct{}) error {
+func validateCommunityFederationEntry(entry federationEntry, existingNames map[string]struct{}) error {
 	if !moduleFederationRemoteName.MatchString(entry.Name) {
 		return fmt.Errorf("community plugin entry key %q must be a valid Module Federation remote name", entry.Name)
 	}
@@ -148,19 +129,21 @@ func decodeCommunityFederationSource(rawEntry string) (communityFederationSource
 	}
 }
 
-func communityFederationEntryFromSource(name string, source communityFederationSourceEntry) (communityFederationEntry, error) {
-	entry := communityFederationEntry{Name: name, Backend: source.Backend}
+func communityFederationEntryFromSource(name string, source communityFederationSourceEntry) (federationEntry, error) {
+	entry := federationEntry{Name: name, Backend: &source.Backend}
 	for _, sourceProxy := range source.ProxyService {
 		proxyPath, err := communityProxyPath(name, sourceProxy.PathSuffix)
 		if err != nil {
-			return communityFederationEntry{}, err
+			return federationEntry{}, err
 		}
 		entry.ProxyService = append(entry.ProxyService, proxyServiceEntry{
-			Authorize:   sourceProxy.Authorize != nil && *sourceProxy.Authorize,
 			Path:        proxyPath,
 			PathRewrite: sourceProxy.PathRewrite,
-			TLS:         sourceProxy.TLS != nil && *sourceProxy.TLS,
-			Service:     sourceProxy.Service,
+			federationTarget: federationTarget{
+				Authorize: sourceProxy.Authorize,
+				TLS:       sourceProxy.TLS,
+				Service:   sourceProxy.Service,
+			},
 		})
 	}
 
@@ -172,7 +155,7 @@ func communityFederationEntries(
 	reader client.Reader,
 	namespace string,
 	existingEntries []federationEntry,
-) ([]communityFederationEntry, error) {
+) ([]federationEntry, error) {
 	source := &corev1.ConfigMap{}
 	key := client.ObjectKey{Name: communityPluginsConfigMapName, Namespace: namespace}
 	if err := reader.Get(ctx, key, source); err != nil {
@@ -187,7 +170,7 @@ func communityFederationEntries(
 		existingNames[entry.Name] = struct{}{}
 	}
 
-	entries := make([]communityFederationEntry, 0, len(source.Data))
+	entries := make([]federationEntry, 0, len(source.Data))
 	for name, rawEntry := range source.Data {
 		sourceEntry, err := decodeCommunityFederationSource(rawEntry)
 		if err != nil {

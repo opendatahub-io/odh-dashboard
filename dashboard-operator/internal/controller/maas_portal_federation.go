@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sort"
 
@@ -106,10 +105,10 @@ func (r *DashboardReconciler) buildMaaSPortalFederationConfigMap(
 		}
 		entries = append(entries, r.moduleFederationEntry(name, mod))
 	}
-	if entry := persesFederationEntry(observability); entry != nil {
-		entries = append(entries, *entry)
+	if entry, ok := r.persesFederationEntry(observability); ok {
+		entries = append(entries, entry)
 	}
-	data, err := json.MarshalIndent(entries, "    ", "  ")
+	data, err := marshalFederationEntries(entries)
 	if err != nil {
 		return nil, fmt.Errorf("marshalling MaaS Portal federation config: %w", err)
 	}

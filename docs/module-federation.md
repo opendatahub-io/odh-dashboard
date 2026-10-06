@@ -205,35 +205,46 @@ The operator dynamically builds the `federation-config` ConfigMap based on which
 
 ### ConfigMap Structure
 
-Each module entry in the ConfigMap follows this structure:
+Each entry in the ConfigMap uses one normalized runtime structure. A `backend`
+describes the remote frontend bundle, while each `proxyService` may route to a
+separate service. Entries may contain either or both; for example, `coreBff`
+is proxy-only.
 
 ```json
 {
   "name": "genAi",
-  "remoteEntry": "/remoteEntry.js",
-  "authorize": true,
-  "tls": true,
-  "proxy": [
+  "backend": {
+    "remoteEntry": "/remoteEntry.js",
+    "authorize": true,
+    "tls": true,
+    "service": {
+      "name": "odh-dashboard-gen-ai-ui",
+      "namespace": "redhat-ods-applications",
+      "port": 8143
+    }
+  },
+  "proxyService": [
     {
       "path": "/gen-ai/api",
-      "pathRewrite": "/api"
+      "pathRewrite": "/api",
+      "authorize": true,
+      "tls": true,
+      "service": {
+        "name": "odh-dashboard-gen-ai-ui",
+        "namespace": "redhat-ods-applications",
+        "port": 8143
+      }
     }
-  ],
-  "service": {
-    "name": "odh-dashboard-gen-ai-ui",
-    "namespace": "redhat-ods-applications",
-    "port": 8143
-  }
+  ]
 }
 ```
 
 ### Community Plugin Entries
 
-The generated ConfigMap can also contain nested community entries composed by
+The generated ConfigMap can also contain community entries composed by
 dashboard-operator from the installer-owned `community-plugins-config` source.
-Unlike legacy module entries, their `backend` and `proxyService` fields are
-already in the runtime's nested format. Dashboard derives each community proxy
-path from a source `pathSuffix` under
+Both Dashboard-managed and community entries use the normalized runtime format.
+Dashboard derives each community proxy path from a source `pathSuffix` under
 `/community-plugins/<remote-name>/`; the runtime consumes the resulting
 `proxyService.path` normally.
 

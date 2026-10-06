@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -41,110 +40,12 @@ const (
 
 var moduleFederationRemoteName = regexp.MustCompile(`^[A-Za-z_$][A-Za-z0-9_$]*$`)
 
-// --- Module proxy and federation types ---
-
-type proxyRoute struct {
-	Path        string `json:"path"`
-	PathRewrite string `json:"pathRewrite"`
-}
-
-type serviceRef struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	Port      int32  `json:"port"`
-}
-
-type federationEntry struct {
-	Name         string              `json:"name"`
-	RemoteEntry  string              `json:"remoteEntry,omitempty"`
-	Authorize    bool                `json:"authorize"`
-	TLS          bool                `json:"tls"`
-	Proxy        []proxyRoute        `json:"proxy,omitempty"`
-	Service      *serviceRef         `json:"service,omitempty"`
-	ProxyService []proxyServiceEntry `json:"proxyService,omitempty"`
-}
-
-func (entry federationEntry) federationConfigName() string {
-	return entry.Name
-}
-
-type federationConfigEntry interface {
-	federationConfigName() string
-}
-
-type proxyServiceEntry struct {
-	Authorize   bool       `json:"authorize"`
-	Path        string     `json:"path"`
-	PathRewrite string     `json:"pathRewrite"`
-	TLS         bool       `json:"tls"`
-	Service     serviceRef `json:"service"`
-}
-
-func marshalFederationEntries(entries []federationEntry, communityEntries []communityFederationEntry) ([]byte, error) {
-	allEntries := make([]federationConfigEntry, 0, len(entries)+len(communityEntries))
-	for _, entry := range entries {
-		allEntries = append(allEntries, entry)
-	}
-	for _, entry := range communityEntries {
-		allEntries = append(allEntries, entry)
-	}
-
-	sort.Slice(allEntries, func(i, j int) bool {
-		return allEntries[i].federationConfigName() < allEntries[j].federationConfigName()
-	})
-
-	return json.MarshalIndent(allEntries, "    ", "  ")
-}
-
 // --- Service discovery env vars (inter-BFF injection) ---
 
 type interBFFDependency struct {
 	EnvServiceName string
 	EnvServicePort string
 	TargetModule   string
-}
-
-// proxyPathsFor returns the proxy routes for a module. If the module has
-// explicit ProxyPaths set, those are returned. Otherwise the standard
-// convention /<slug>/api → /api is used.
-func proxyPathsFor(mod ModuleDefinition) []proxyRoute {
-	if mod.ProxyPaths != nil {
-		return mod.ProxyPaths
-	}
-	return []proxyRoute{{
-		Path:        "/" + mod.ManifestSlug + "/api",
-		PathRewrite: "/api",
-	}}
-}
-
-// moduleFederationEntry builds the common remote-module entry used by each
-// federation ConfigMap. The module registry is the source of service, TLS, and
-// proxy-route configuration for every consumer.
-func (r *DashboardReconciler) moduleFederationEntry(name string, mod ModuleDefinition) federationEntry {
-	return federationEntry{
-		Name:        name,
-		RemoteEntry: "/remoteEntry.js",
-		Authorize:   true,
-		TLS:         mod.TLS,
-		Proxy:       proxyPathsFor(mod),
-		Service: &serviceRef{
-			Name:      standaloneServiceName(r.Platform, mod.ManifestSlug),
-			Namespace: r.ApplicationsNamespace,
-			Port:      mod.Port,
-		},
-	}
-}
-
-// coreBffPort is the port core-bff listens on within the main dashboard pod/service.
-const coreBffPort = 8943
-
-// mainDashboardServiceName returns the platform-specific name of the main
-// dashboard Service that exposes the core-bff port (8943).
-func mainDashboardServiceName(platform cluster.Platform) string {
-	if platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai {
-		return "rhods-dashboard"
-	}
-	return "odh-dashboard"
 }
 
 // --- Platform-aware service name resolution ---
@@ -459,60 +360,15 @@ func (r *DashboardReconciler) buildFederationConfigMap(
 	statuses map[string]v1alpha1.ModuleStatus,
 	dashboard *v1alpha1.Dashboard,
 ) (*corev1.ConfigMap, error) {
-	var entries []federationEntry
-
-	for name, mod := range moduleRegistry {
-		status := statuses[name]
-		if status.Phase != v1alpha1.ModulePhaseDeployed && status.Phase != v1alpha1.ModulePhaseDegraded {
-			continue
-		}
-
-		entries = append(entries, r.moduleFederationEntry(name, mod))
-	}
-
-	// Add coreBff entry — core-bff is always present when the dashboard is deployed
-	// (it is a core container in the main pod, not a module). The Fastify backend
-	// uses this proxyService entry to route /core-bff/api/* requests to port 8943.
-	entries = append(entries, federationEntry{
-		Name: "coreBff",
-		ProxyService: []proxyServiceEntry{{
-			Authorize:   true,
-			Path:        "/core-bff/api",
-			PathRewrite: "/api",
-			TLS:         true,
-			Service: serviceRef{
-				Name:      mainDashboardServiceName(r.Platform),
-				Namespace: r.ApplicationsNamespace,
-				Port:      coreBffPort,
-			},
-		}},
-	})
-
-	if entry := persesFederationEntry(dashboard.Spec.Observability); entry != nil {
-		entries = append(entries, *entry)
-	}
-
-	// Add mlflowEmbedded entry if mlflow is deployed
-	if s, ok := statuses["mlflow"]; ok && (s.Phase == v1alpha1.ModulePhaseDeployed || s.Phase == v1alpha1.ModulePhaseDegraded) {
-		entries = append(entries, federationEntry{
-			Name:        "mlflowEmbedded",
-			RemoteEntry: "/mlflow/static-files/federated/remoteEntry.js",
-			Authorize:   true,
-			TLS:         true,
-			Service: &serviceRef{
-				Name:      "mlflow",
-				Namespace: r.ApplicationsNamespace,
-				Port:      8443,
-			},
-		})
-	}
+	entries := r.dashboardFederationEntries(statuses, dashboard)
 
 	communityEntries, err := communityFederationEntries(ctx, r.Client, r.ApplicationsNamespace, entries)
 	if err != nil {
 		return nil, fmt.Errorf("reading community plugin federation entries: %w", err)
 	}
 
-	data, err := marshalFederationEntries(entries, communityEntries)
+	entries = append(entries, communityEntries...)
+	data, err := marshalFederationEntries(entries)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal federation config: %w", err)
 	}

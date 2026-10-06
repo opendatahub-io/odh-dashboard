@@ -243,9 +243,11 @@ func TestBuildFederationConfigMap_TLS(t *testing.T) {
 	found := make(map[string]bool)
 	for _, entry := range entries {
 		name, _ := entry["name"].(string)
-		tls, _ := entry["tls"].(bool)
 		if wantTLS, ok := expected[name]; ok {
 			found[name] = true
+			backend, ok := entry["backend"].(map[string]interface{})
+			require.Truef(t, ok, "%s must have a backend entry", name)
+			tls, _ := backend["tls"].(bool)
 			if wantTLS {
 				assert.True(t, tls, "%s must have tls=true", name)
 			} else {
@@ -348,8 +350,10 @@ func TestBuildFederationConfigMap_NamespaceValues(t *testing.T) {
 				"coreBff proxyService.service.namespace must match ApplicationsNamespace")
 
 		default:
-			svc, ok := entry["service"].(map[string]interface{})
-			require.Truef(t, ok, "%s must have a service entry", name)
+			backend, ok := entry["backend"].(map[string]interface{})
+			require.Truef(t, ok, "%s must have a backend entry", name)
+			svc, ok := backend["service"].(map[string]interface{})
+			require.Truef(t, ok, "%s backend must have a service entry", name)
 			assert.Equalf(t, appNS, svc["namespace"],
 				"%s service.namespace must match ApplicationsNamespace", name)
 		}
@@ -387,7 +391,7 @@ func TestBuildFederationConfigMap_CommunityPluginsAbsentOrEmptyPreservesExisting
 	assert.Equal(t, baseline.Data["module-federation-config.json"], empty.Data["module-federation-config.json"])
 }
 
-func TestBuildFederationConfigMap_MergesNestedCommunityPluginWithoutChangingLegacyEntries(t *testing.T) {
+func TestBuildFederationConfigMap_MergesCommunityPluginWithDashboardEntries(t *testing.T) {
 	s := testScheme(t)
 	statuses := allDeployedStatuses()
 	communitySource := &corev1.ConfigMap{
@@ -430,7 +434,7 @@ func TestBuildFederationConfigMap_MergesNestedCommunityPluginWithoutChangingLega
 	var entries []map[string]interface{}
 	require.NoError(t, json.Unmarshal([]byte(cm.Data["module-federation-config.json"]), &entries))
 	var community map[string]interface{}
-	var legacyModule map[string]interface{}
+	var dashboardModule map[string]interface{}
 	entryNames := make([]string, 0, len(entries))
 	for _, entry := range entries {
 		entryNames = append(entryNames, entry["name"].(string))
@@ -438,12 +442,12 @@ func TestBuildFederationConfigMap_MergesNestedCommunityPluginWithoutChangingLega
 		case "communityPluginsAdmin":
 			community = entry
 		case "modelRegistry":
-			legacyModule = entry
+			dashboardModule = entry
 		}
 	}
 	assert.True(t, sort.StringsAreSorted(entryNames))
 	require.NotNil(t, community)
-	require.NotNil(t, legacyModule)
+	require.NotNil(t, dashboardModule)
 	assert.NotContains(t, community, "remoteEntry")
 	assert.NotContains(t, community, "service")
 	assert.NotContains(t, community, "proxy")
@@ -455,9 +459,10 @@ func TestBuildFederationConfigMap_MergesNestedCommunityPluginWithoutChangingLega
 	assert.Equal(t, "community-plugins-admin-bff", proxy["service"].(map[string]interface{})["name"])
 	assert.Equal(t, "cai-plugin-system", proxy["service"].(map[string]interface{})["namespace"])
 
-	assert.Contains(t, legacyModule, "remoteEntry")
-	assert.Contains(t, legacyModule, "service")
-	assert.NotContains(t, legacyModule, "backend")
+	assert.Contains(t, dashboardModule, "backend")
+	assert.Contains(t, dashboardModule, "proxyService")
+	assert.NotContains(t, dashboardModule, "remoteEntry")
+	assert.NotContains(t, dashboardModule, "service")
 
 	require.NoError(t, cli.Delete(context.Background(), communitySource))
 	withoutCommunity, err := ctrlpkg.BuildFederationConfigMap(r, statuses, &v1alpha1.Dashboard{})
