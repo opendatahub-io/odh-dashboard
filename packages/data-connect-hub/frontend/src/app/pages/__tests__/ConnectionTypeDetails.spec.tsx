@@ -1,13 +1,35 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { mockConnectionType } from '~/__mocks__/mockConnectionType';
+import { createConnection } from '~/app/api/dch';
+import CreateConnectionWizard from '~/app/components/CreateConnectionWizard';
 import { useConnectionType } from '~/app/hooks/useConnectionType';
 import ConnectionTypeDetails from '~/app/pages/ConnectionTypeDetails';
+import type { CreateConnectionRequest } from '~/app/types';
 
 jest.mock('~/app/hooks/useConnectionType');
+jest.mock('~/app/api/dch', () => ({
+  createConnection: jest.fn(),
+}));
+jest.mock('~/app/components/CreateConnectionWizard', () => ({
+  __esModule: true,
+  default: jest.fn(() => null),
+}));
 
 const mockUseConnectionType = jest.mocked(useConnectionType);
+const mockCreateConnection = jest.mocked(createConnection);
+const mockCreateConnectionWizard = jest.mocked(CreateConnectionWizard);
+const mockCreateRequest = jest.fn();
+
+const createRequest: CreateConnectionRequest = {
+  name: 'warehouse',
+  data_connection_type_id: 'postgresql',
+  format: 'tabular',
+  credentials: { secret: 'warehouse', properties: { URI: 'postgres://example' } },
+  properties: {},
+};
 
 const renderDetails = (entry = '/connection-types/postgresql?project=test-project&view=details') =>
   render(
@@ -22,6 +44,19 @@ const renderDetails = (entry = '/connection-types/postgresql?project=test-projec
 describe('ConnectionTypeDetails', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockCreateConnection.mockReturnValue(mockCreateRequest);
+    mockCreateConnectionWizard.mockImplementation(({ isOpen, onClose, onCreate }) =>
+      isOpen ? (
+        <div data-testid="mock-create-connection-wizard">
+          <button type="button" onClick={onClose}>
+            Close mocked wizard
+          </button>
+          <button type="button" onClick={() => void onCreate?.(createRequest, 'new-project')}>
+            Submit mocked connection
+          </button>
+        </div>
+      ) : null,
+    );
   });
 
   it('should load the route connection type for the selected project', () => {
@@ -32,11 +67,48 @@ describe('ConnectionTypeDetails', () => {
 
     expect(mockUseConnectionType).toHaveBeenCalledWith('test-project', 'postgresql');
     expect(screen.getAllByText('PostgreSQL').length).toBeGreaterThan(0);
-    expect(screen.getByText('Connect to a PostgreSQL database.')).toBeTruthy();
+    expect(screen.getAllByText('Connect to a PostgreSQL database.')).toHaveLength(2);
     expect(screen.getByText('Provider')).toBeTruthy();
     expect(
       screen.getByTestId('connection-type-details').getAttribute('data-connection-type-id'),
     ).toBe('postgresql');
+    expect(screen.getAllByText('Full integration')).toHaveLength(2);
+  });
+
+  it('should open a wizard preselected with the displayed connection type', async () => {
+    const user = userEvent.setup();
+    mockUseConnectionType.mockReturnValue([mockConnectionType(), true, undefined]);
+
+    renderDetails();
+    await user.click(screen.getByTestId('connection-type-details-create-connection'));
+
+    expect(screen.getByTestId('mock-create-connection-wizard')).toBeTruthy();
+    const wizardCalls = mockCreateConnectionWizard.mock.calls;
+    const wizardProps = wizardCalls[wizardCalls.length - 1]?.[0];
+    expect(wizardProps).toEqual(
+      expect.objectContaining({
+        isOpen: true,
+        namespace: 'test-project',
+        initialFormData: { data_connection_type_id: 'postgresql' },
+      }),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Close mocked wizard' }));
+    expect(screen.queryByTestId('mock-create-connection-wizard')).toBeNull();
+  });
+
+  it('should create a connection in the namespace selected by the wizard', async () => {
+    const user = userEvent.setup();
+    mockUseConnectionType.mockReturnValue([mockConnectionType(), true, undefined]);
+
+    renderDetails();
+    await user.click(screen.getByTestId('connection-type-details-create-connection'));
+    await user.click(screen.getByRole('button', { name: 'Submit mocked connection' }));
+
+    await waitFor(() => {
+      expect(mockCreateConnection).toHaveBeenCalledWith('');
+      expect(mockCreateRequest).toHaveBeenCalledWith({}, 'new-project', createRequest);
+    });
   });
 
   it('should preserve the query string in the breadcrumb link', () => {

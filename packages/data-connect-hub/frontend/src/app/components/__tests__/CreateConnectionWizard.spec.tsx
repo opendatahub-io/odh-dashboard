@@ -6,6 +6,7 @@ import CreateConnectionWizard, { getPropertyErrors } from '~/app/components/Crea
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
 import { testCredentials } from '~/app/api/dch';
+import type { CreateConnectionRequest } from '~/app/types';
 
 jest.mock('~/app/hooks/useConnectionTypes');
 jest.mock('~/app/hooks/useNamespaces');
@@ -75,6 +76,89 @@ describe('CreateConnectionWizard', () => {
     rerender(<CreateConnectionWizard isOpen namespace="test-project" onClose={jest.fn()} />);
 
     expect(mockUseConnectionTypes).toHaveBeenCalledWith('test-project', true);
+  });
+
+  it('should start at connection details when an initial connection type is selected', async () => {
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{ data_connection_type_id: 'postgresql' }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Connection details' })).toBeTruthy();
+    expect(screen.getByTestId('connection-project-select').textContent).toContain('test-project');
+    expect((screen.getByTestId('connection-name-input') as HTMLInputElement).value).toBe('');
+  });
+
+  it('should start at review when all initial form data is valid', async () => {
+    const user = userEvent.setup();
+    const onCreate = jest.fn<(data: CreateConnectionRequest, selectedNamespace: string) => void>();
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        onCreate={onCreate}
+        initialFormData={{
+          name: 'existing-connection',
+          data_connection_type_id: 'postgresql',
+          credentials: {
+            secret: 'existing-connection',
+            properties: { URI: 'postgres://example' },
+          },
+          properties: { region: 'east' },
+        }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Review' })).toBeTruthy();
+    expect(screen.getByText('existing-connection')).toBeTruthy();
+    expect(screen.getByText('region: east')).toBeTruthy();
+    expect(screen.queryByText('postgres://example')).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Show URI' }));
+    expect(screen.getByText('postgres://example')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Create connection' }));
+    await waitFor(() =>
+      expect(onCreate).toHaveBeenCalledWith(
+        {
+          name: 'existing-connection',
+          data_connection_type_id: 'postgresql',
+          format: 'tabular',
+          credentials: {
+            secret: 'existing-connection',
+            properties: { URI: 'postgres://example' },
+          },
+          properties: { region: 'east' },
+        },
+        'test-project',
+      ),
+    );
+  });
+
+  it('should reset to the supplied initial form data after closing', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    const props = {
+      namespace: 'test-project',
+      onClose,
+      initialFormData: { data_connection_type_id: 'postgresql' },
+    };
+    const { rerender } = render(<CreateConnectionWizard {...props} isOpen />);
+
+    expect(await screen.findByRole('heading', { name: 'Connection details' })).toBeTruthy();
+    await user.type(screen.getByTestId('connection-name-input'), 'temporary-name');
+    await user.click(screen.getByRole('button', { name: 'Close wizard' }));
+
+    rerender(<CreateConnectionWizard {...props} isOpen={false} />);
+    rerender(<CreateConnectionWizard {...props} isOpen />);
+
+    expect(await screen.findByRole('heading', { name: 'Connection details' })).toBeTruthy();
+    expect((screen.getByTestId('connection-name-input') as HTMLInputElement).value).toBe('');
   });
 
   it('starts with a blank wizard after the modal is cancelled', async () => {

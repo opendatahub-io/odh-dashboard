@@ -208,7 +208,7 @@ class ConnectionTypeInstance implements ConnectionType {
 
   matchesSearch(searchTerm: string) {
     const name = this.resource.name;
-    const description = this.resource.description;
+    const description = this.resource.description ?? '';
     const searchableText = `${name} ${description}`.trim().toLowerCase();
     return searchableText.includes(searchTerm.trim().toLowerCase());
   }
