@@ -8,6 +8,7 @@ import useFetchAgentDeployments from '~/app/AIAssets/hooks/useFetchAgentDeployme
 import useFetchAgentProfile from '~/app/AIAssets/hooks/useFetchAgentProfile';
 import useFetchAgentProfiles from '~/app/hooks/useFetchAgentProfiles';
 import useFetchAIModels from '~/app/hooks/useFetchAIModels';
+import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { AgentDeploymentSummary, AgentProfile } from '~/app/agentProfile/types';
@@ -36,6 +37,11 @@ jest.mock('~/app/hooks/useFetchAIModels', () => ({
   default: jest.fn(),
 }));
 
+jest.mock('~/app/hooks/useGenAiAgentDeploymentEnabled', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
 jest.mock('~/app/hooks/useGenAiAPI', () => ({
   useGenAiAPI: jest.fn(),
 }));
@@ -49,6 +55,7 @@ const mockUseFetchAgentProfile = jest.mocked(useFetchAgentProfile);
 const mockUseFetchAgentDeployments = jest.mocked(useFetchAgentDeployments);
 const mockUseFetchAgentProfiles = jest.mocked(useFetchAgentProfiles);
 const mockUseFetchAIModels = jest.mocked(useFetchAIModels);
+const mockUseGenAiAgentDeploymentEnabled = jest.mocked(useGenAiAgentDeploymentEnabled);
 const mockUseGuardrailsEnabled = jest.mocked(useGuardrailsEnabled);
 const mockUseGenAiAPI = jest.mocked(useGenAiAPI);
 
@@ -112,6 +119,7 @@ const renderPageWithDeployment = (deploymentName: string) =>
 describe('AgentProfileDetailPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseGenAiAgentDeploymentEnabled.mockReturnValue({ enabled: true, loaded: true });
     mockUseGuardrailsEnabled.mockReturnValue(true);
     mockUseFetchAgentProfile.mockReturnValue({
       data: profile,
@@ -158,6 +166,20 @@ describe('AgentProfileDetailPage', () => {
     expect(buildResponseAPICurl("https://example.com/agent's-route")).toContain(
       "'https://example.com/agent'\"'\"'s-route/v1/responses'",
     );
+  });
+
+  it('does not fetch or render deployments when agent deployments are disabled', () => {
+    mockUseGenAiAgentDeploymentEnabled.mockReturnValue({ enabled: false, loaded: true });
+    mockUseGenAiAPI.mockReturnValue({
+      api: { getAgentDeployment: jest.fn() },
+      apiAvailable: true,
+      refreshAllAPI: jest.fn(),
+    } as unknown as ReturnType<typeof useGenAiAPI>);
+
+    renderPage();
+
+    expect(mockUseFetchAgentDeployments).toHaveBeenCalledWith('123', { enabled: false });
+    expect(screen.queryByRole('heading', { name: /Deployments/ })).not.toBeInTheDocument();
   });
 
   it('shows the saved configuration and deployment summaries', () => {
