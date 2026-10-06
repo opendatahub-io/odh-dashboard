@@ -13,7 +13,12 @@
     "head_sha": { "type": "string", "pattern": "^[0-9a-fA-F]{40}$|^[0-9a-fA-F]{64}$" },
     "body": { "type": "string", "minLength": 1 },
     "schema_version": { "type": "string", "const": "2" },
-    "change_summary": { "type": "string", "minLength": 1 },
+    "change_summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "description": "What this PR's diff does, in one or two sentences. The host trims anything past the third sentence."
+    },
     "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
     "reason": { "type": "string", "enum": ["tool-failure", "missing-context", "ambiguous-findings", "token-limit"] },
     "risk": { "$ref": "#/$defs/rated" },
