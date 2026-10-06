@@ -36,7 +36,7 @@ const GenAiCoreLoader: React.FC<GenAiCoreLoaderProps> = ({
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
   if (namespaces.length === 0) {
-    if (allowNoProjects && !namespace) {
+    if (allowNoProjects && !namespace && namespacesLoaded) {
       return (
         <GenAiContextProvider>
           <Outlet />
