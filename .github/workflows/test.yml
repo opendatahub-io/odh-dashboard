@@ -184,7 +184,7 @@ jobs:
 
           # GitHub rejects an empty matrix. A no-op entry keeps the aggregate jobs successful.
           if [[ "$HAS_TESTS" != "true" ]]; then
-            TEST_GROUPS='[{"name":"no-cypress-mock-tests","spec":""}]'
+            TEST_GROUPS='[{"name":"no-cypress-mock-tests","specs":[]}]'
           fi
 
           {
