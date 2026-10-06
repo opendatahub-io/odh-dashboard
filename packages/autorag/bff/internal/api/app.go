@@ -2,6 +2,7 @@ package api
 
 import (
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -240,6 +241,11 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 	// The Responses repository uses the same configured MaaS transport as discovery.
 	responsesFactory := maas.NewClientFactoryWithHTTPClient(maasHTTPClient)
+	if cfg.MockMaaSClient {
+		responsesFactory = func(string, string) (*maas.Client, error) {
+			return nil, errors.New("MaaS Responses are unavailable with the mock MaaS client")
+		}
+	}
 	var responsesRepo *repositories.ResponsesRepository
 	if pfManager != nil {
 		responsesRepo = repositories.NewResponsesRepositoryWithMaaSClientFactory(logger, k8sService, responsesFactory, pfManager)

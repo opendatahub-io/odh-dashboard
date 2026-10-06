@@ -193,8 +193,8 @@ Executes a RAG query and streams the answer back as [OpenAI Responses API](https
 - `metadata.embedding_model` — required; model used for query embedding
 - `metadata.context_template_text` — optional; template for each retrieved chunk (`{document}`, `{doc_number}` placeholders)
 - `metadata.user_message_text` — optional; wraps context + question (`{reference_documents}`, `{question}` placeholders)
-- `stream: true` — must be `true`; non-streaming (`stream: false`) is also supported
-- `max_output_tokens` — nonnegative; zero uses the 2048-token default and explicit values are capped at 4096. Requests run for at most two minutes, and request input, retrieved context, and accumulated streamed output are bounded.
+- `stream` — when `true`, returns the answer as Responses API SSE events; when `false` or omitted, returns a single JSON response with the answer and retrieved sources
+- `max_output_tokens` — nonnegative; zero uses the 2048-token default and values above 4096 are rejected with HTTP 400. Requests run for at most two minutes, and request input, retrieved context, and accumulated streamed output are bounded.
 - Request safety limits — the raw body is capped at 10 MiB, strings at 1 MiB, input messages at 1,000, content parts at 1,000 per message and 2,000 cumulatively, tools at 100, vector store IDs at 100 per tool and 200 cumulatively, include items at 100, and metadata entries at 100. Input message, content, tool, ranking-options, and tool-choice objects are limited to the documented contract properties. MaaS response bodies are capped at 4 MiB before SDK parsing; embedding responses are limited to 16 vectors of at most 16,384 dimensions.
 
 **SSE event sequence (streaming):**
@@ -292,7 +292,7 @@ When running in dev mode (via `make dev-start-federated`), the BFF uses **dynami
 
 Under the covers, the BFF discovers the DSPipelineApplication (DSPA) in the target namespace, identifies the pipeline server and any managed MinIO services, and sets up local port-forwards on-demand. The forwarded connections are managed for the lifetime of the BFF process and cleaned up automatically on shutdown.
 
-In local DevMode only, a database Secret selected in the request namespace may refer to a Kubernetes Service in another namespace, such as `milvus.milvus.svc.cluster.local` for a request in `dduong-36-ga`. The developer-kubeconfig credentials used by the BFF must be authorized to read the request namespace Secret and create the required Kubernetes port-forward. This cross-namespace forwarding is not enabled or used by production BFF deployments.
+Cross-namespace Kubernetes Service references are intentionally supported in both DevMode and production, subject to readable Secret endpoint configuration, Kubernetes/service authorization, network policy, and service reachability. For example, a database Secret selected in the request namespace may refer to `milvus.milvus.svc.cluster.local` for a request in `dduong-36-ga`.
 
 This means you can simply start the BFF in dev mode and it will handle all service connectivity transparently using your current kubeconfig context.
 
