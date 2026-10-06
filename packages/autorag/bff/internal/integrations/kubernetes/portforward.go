@@ -451,6 +451,10 @@ func (m *PortForwardManager) resolvePod(ctx context.Context, namespace, serviceN
 
 // createForward establishes a port-forward to a pod and waits for it to be ready.
 func (m *PortForwardManager) createForward(ctx context.Context, namespace, podName string, remotePort int) (*activeForward, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("waiting for port-forward startup: %w", err)
+	}
+
 	reqURL := m.clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Namespace(namespace).
@@ -495,6 +499,9 @@ func (m *PortForwardManager) createForward(ctx context.Context, namespace, podNa
 	case <-ctx.Done():
 		active.stop()
 		active.wait()
+		if startupErr, stopped := active.terminalError(); stopped && startupErr != nil {
+			return nil, fmt.Errorf("port-forward failed to start: %w", errors.Join(ctx.Err(), startupErr))
+		}
 		return nil, fmt.Errorf("waiting for port-forward startup: %w", ctx.Err())
 
 	case <-readyChan:
@@ -519,6 +526,12 @@ func (m *PortForwardManager) createForward(ctx context.Context, namespace, podNa
 	case err := <-errChan:
 		active.stop()
 		active.wait()
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			if err == nil {
+				err = errors.New("port-forward stopped before becoming ready")
+			}
+			return nil, fmt.Errorf("port-forward failed to start: %w", errors.Join(ctxErr, err))
+		}
 		if err == nil {
 			return nil, errors.New("port-forward stopped before becoming ready")
 		}

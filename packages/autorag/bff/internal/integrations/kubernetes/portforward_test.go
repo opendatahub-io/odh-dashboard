@@ -92,7 +92,9 @@ func TestForwardURL_DoesNotRewriteUnsupportedHostsOrUserinfo(t *testing.T) {
 }
 
 func TestCreateForward_ContextCancellationStopsStartup(t *testing.T) {
+	requestObserved := make(chan struct{})
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		close(requestObserved)
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer server.Close()
@@ -116,6 +118,83 @@ func TestCreateForward_ContextCancellationStopsStartup(t *testing.T) {
 	_, err = manager.createForward(ctx, "team-a", "milvus-0", 19530)
 	if err == nil || !errors.Is(err, context.Canceled) {
 		t.Fatalf("createForward() error = %v, want wrapped cancellation error", err)
+	}
+	server.Close()
+	select {
+	case <-requestObserved:
+		t.Fatal("pre-canceled createForward() started a port-forward request")
+	default:
+	}
+}
+
+func TestCreateForward_ActiveStartupCancellationRetainsStartupError(t *testing.T) {
+	requestObserved := make(chan struct{})
+	allowResponse := make(chan struct{})
+	handlerFinished := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		close(requestObserved)
+		<-allowResponse
+		w.WriteHeader(http.StatusInternalServerError)
+		close(handlerFinished)
+	}))
+	defer server.Close()
+
+	clientset, err := kubernetes.NewForConfig(&rest.Config{
+		Host:    server.URL,
+		APIPath: "/api",
+		ContentConfig: rest.ContentConfig{
+			GroupVersion:         &schema.GroupVersion{Group: "", Version: "v1"},
+			NegotiatedSerializer: scheme.Codecs,
+		},
+	})
+	if err != nil {
+		t.Fatalf("NewForConfig() error = %v", err)
+	}
+	manager := newTestPortForwardManager(clientset)
+	manager.restConfig = &rest.Config{Host: server.URL}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	result := make(chan error, 1)
+	go func() {
+		_, createErr := manager.createForward(ctx, "team-a", "milvus-0", 19530)
+		result <- createErr
+	}()
+
+	select {
+	case <-requestObserved:
+	case <-time.After(time.Second):
+		t.Fatal("port-forward request was not observed")
+	}
+	cancel()
+	close(allowResponse)
+	select {
+	case <-handlerFinished:
+	case <-time.After(time.Second):
+		t.Fatal("port-forward startup handler did not finish")
+	}
+
+	select {
+	case err = <-result:
+	case <-time.After(time.Second):
+		t.Fatal("createForward() did not finish after startup cancellation")
+	}
+	if err == nil || !errors.Is(err, context.Canceled) {
+		t.Fatalf("createForward() error = %v, want cancellation error", err)
+	}
+	var joined interface{ Unwrap() []error }
+	if !errors.As(err, &joined) {
+		t.Fatalf("createForward() error = %v, want joined cancellation and startup errors", err)
+	}
+	var startupDiagnostic error
+	for _, cause := range joined.Unwrap() {
+		if cause != nil && !errors.Is(cause, context.Canceled) && cause.Error() != "" {
+			startupDiagnostic = cause
+			break
+		}
+	}
+	if startupDiagnostic == nil {
+		t.Fatalf("createForward() error = %v, want non-cancellation startup diagnostic", err)
 	}
 }
 
