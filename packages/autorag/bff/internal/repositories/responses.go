@@ -364,7 +364,7 @@ func extractHistoryAndQuestion(
 	for _, msg := range input {
 		text := ""
 		for _, c := range msg.Content {
-			if c.Type == "input_text" {
+			if c.Type == "input_text" || (msg.Role == "assistant" && c.Type == "output_text") {
 				text += c.Text
 			}
 		}
@@ -415,9 +415,20 @@ type ragContext struct {
 func parseFileSearchTool(req *models.ResponsesRequest) (collection string, topK int, alpha float32, hybrid bool, err error) {
 	topK = 5
 	alpha = 0.5
+	fileSearchTools := 0
 	for _, tool := range req.Tools {
-		if tool.Type != "file_search" || len(tool.VectorStoreIDs) == 0 {
+		if tool.Type != "file_search" {
 			continue
+		}
+		fileSearchTools++
+		if fileSearchTools > 1 {
+			return "", 0, 0, false, fmt.Errorf("%w: more than one file_search tool is not supported", ErrInvalidResponsesRequest)
+		}
+		if len(tool.VectorStoreIDs) == 0 {
+			continue
+		}
+		if len(tool.VectorStoreIDs) > 1 {
+			return "", 0, 0, false, fmt.Errorf("%w: more than one vector_store_id is not supported", ErrInvalidResponsesRequest)
 		}
 		for _, id := range tool.VectorStoreIDs {
 			if !validVectorStoreID.MatchString(id) {
@@ -448,7 +459,6 @@ func parseFileSearchTool(req *models.ResponsesRequest) (collection string, topK 
 		} else if tool.RankingOptions.Alpha != nil {
 			return "", 0, 0, false, fmt.Errorf("ranking_options.alpha requires ranking_options.ranker")
 		}
-		break
 	}
 	if collection == "" {
 		return "", 0, 0, false, fmt.Errorf("no file_search tool with vector_store_ids found in request")
@@ -550,11 +560,15 @@ func (r *ResponsesRepository) prepareRAGContext(ctx context.Context, params Resp
 }
 
 // ValidateResponses checks backend capabilities before a streaming response commits its SSE headers.
-// It deliberately does not resolve MaaS, connect to a vector DB, or execute a search.
+// It validates MaaS configuration and database search capabilities without executing a search.
 // In local development it may establish a cached port-forward for Milvus.
 func (r *ResponsesRepository) ValidateResponses(ctx context.Context, params ResponsesParams, req *models.ResponsesRequest) error {
 	_, _, _, hybrid, err := parseFileSearchTool(req)
 	if err != nil {
+		return err
+	}
+
+	if _, err := r.resolveMaasClient(ctx, params.Namespace, params.MaasSecretName); err != nil {
 		return err
 	}
 

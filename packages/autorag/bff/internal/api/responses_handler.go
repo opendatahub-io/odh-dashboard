@@ -437,22 +437,27 @@ func (h *ResponsesHandler) handleStreamingResponse(w http.ResponseWriter, r *htt
 	}
 
 	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) || errors.Is(streamCtx.Err(), context.DeadlineExceeded) {
-			if streamWriteErr == nil {
-				_ = sseData(w, flusher, map[string]any{"type": "error", "sequence_number": next(), "message": genericStreamingErrorMessage})
-				_ = sseDone(w, flusher)
-			}
+		deadline := errors.Is(err, context.DeadlineExceeded) || errors.Is(streamCtx.Err(), context.DeadlineExceeded)
+		vectorDBError := errors.Is(err, vectordb.ErrDatabaseTimeout) || errors.Is(err, vectordb.ErrDatabaseUnavailable)
+		if vectorDBError {
+			h.logger.Error("RAG streaming response failed",
+				"namespace", params.Namespace,
+				"db_secret_name", params.DBSecretName,
+				"maas_secret_name", params.MaasSecretName,
+				"error", sanitizeErrorForLog(err),
+			)
+		}
+		if !deadline && (streamCtx.Err() != nil || errors.Is(err, context.Canceled)) {
 			return
 		}
-		if streamCtx.Err() != nil || errors.Is(err, context.Canceled) {
-			return
+		if !vectorDBError && !deadline {
+			h.logger.Error("RAG streaming response failed",
+				"namespace", params.Namespace,
+				"db_secret_name", params.DBSecretName,
+				"maas_secret_name", params.MaasSecretName,
+				"error", sanitizeErrorForLog(err),
+			)
 		}
-		h.logger.Error("RAG streaming response failed",
-			"namespace", params.Namespace,
-			"db_secret_name", params.DBSecretName,
-			"maas_secret_name", params.MaasSecretName,
-			"error", sanitizeErrorForLog(err),
-		)
 		errorEvent := map[string]any{"type": "error", "sequence_number": next(), "message": genericStreamingErrorMessage}
 		if errors.Is(err, vectordb.ErrDatabaseTimeout) {
 			errorEvent["code"] = vectorDBTimeoutCode
@@ -460,6 +465,11 @@ func (h *ResponsesHandler) handleStreamingResponse(w http.ResponseWriter, r *htt
 		} else if errors.Is(err, vectordb.ErrDatabaseUnavailable) {
 			errorEvent["code"] = vectorDBUnavailableCode
 			errorEvent["message"] = vectorDBUnavailableMessage
+		}
+		if deadline {
+			_ = sseData(w, flusher, errorEvent)
+			_ = sseDone(w, flusher)
+			return
 		}
 		if !writeEvent(errorEvent) {
 			return

@@ -544,6 +544,29 @@ func TestHandleResponsesEndpoint_Streaming(t *testing.T) {
 		repo.AssertExpectations(t)
 	})
 
+	t.Run("wrapped database timeout deadline emits classified safe error event then DONE", func(t *testing.T) {
+		var logs bytes.Buffer
+		repo := new(mockResponsesRepo)
+		h := &ResponsesHandler{logger: slog.New(slog.NewTextHandler(&logs, nil)), repo: repo}
+
+		repo.On("HandleResponsesStream", mock.Anything, validParams, mock.Anything, mock.AnythingOfType("func(string)")).
+			Return(nil, fmt.Errorf("%w: %w: https://user:password@milvus.example:19530", vectordb.ErrDatabaseTimeout, context.DeadlineExceeded))
+		repo.On("ValidateResponses", mock.Anything, validParams, mock.Anything).Return(nil)
+
+		req := responsesRequestWithNamespace(http.MethodPost, url, streamingResponsesBody, ns)
+		rr := httptest.NewRecorder()
+		h.HandleResponsesEndpoint(rr, req, httprouter.Params{})
+
+		body := rr.Body.String()
+		assert.Contains(t, body, `"code":"vector_database_timeout"`)
+		assert.Contains(t, body, `"message":"The vector database request timed out."`)
+		assert.NotContains(t, body, "password")
+		assert.Contains(t, body, "[DONE]")
+		assert.NotContains(t, logs.String(), "password")
+		assert.Contains(t, logs.String(), "milvus.example:19530")
+		repo.AssertExpectations(t)
+	})
+
 	t.Run("unsupported streaming search returns 400 before SSE headers", func(t *testing.T) {
 		h, repo := newTestResponsesHandler()
 		repo.On("ValidateResponses", mock.Anything, validParams, mock.Anything).

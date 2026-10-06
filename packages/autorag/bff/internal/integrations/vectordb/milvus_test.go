@@ -2,6 +2,8 @@ package vectordb
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"testing"
 	"time"
@@ -166,4 +168,43 @@ func TestNewMilvusFromForwardedSecret_AllowsLocalhost(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Equal(t, "localhost:4321", gotAddress)
+}
+
+func TestNewMilvusFromSecret_ParsesTokenForms(t *testing.T) {
+	tests := []struct {
+		name     string
+		token    string
+		username string
+		password string
+		apiKey   string
+	}{
+		{name: "colon credentials", token: "user:password", username: "user", password: "password"},
+		{name: "API key", token: "api-key", apiKey: "api-key"},
+		{name: "empty token"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got milvusclient.Config
+			_, err := newMilvusFromSecretWithTimeoutPolicy(context.Background(), map[string][]byte{
+				"MILVUS_URI":   []byte("http://localhost:4321"),
+				"MILVUS_TOKEN": []byte(tt.token),
+			}, true, time.Millisecond, func(_ context.Context, cfg milvusclient.Config) (milvusClient, error) {
+				got = cfg
+				return nil, context.DeadlineExceeded
+			})
+
+			require.Error(t, err)
+			assert.Equal(t, tt.username, got.Username)
+			assert.Equal(t, tt.password, got.Password)
+			assert.Equal(t, tt.apiKey, got.APIKey)
+		})
+	}
+}
+
+func TestMilvusTLSConfigUsesCustomCAPoolAndTLS12Minimum(t *testing.T) {
+	pool := x509.NewCertPool()
+	config := milvusTLSConfig(pool)
+
+	assert.Same(t, pool, config.RootCAs)
+	assert.Equal(t, uint16(tls.VersionTLS12), config.MinVersion)
 }

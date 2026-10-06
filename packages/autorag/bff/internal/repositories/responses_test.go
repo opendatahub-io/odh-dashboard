@@ -89,6 +89,70 @@ func TestResponsesRepositoryResolveMaasClientRejectsUnsafeURLsBeforeFactory(t *t
 	}
 }
 
+func TestResponsesRepositoryValidateResponsesMaaSPreflight(t *testing.T) {
+	request := fileSearchRequest(models.FileSearchTool{Type: "file_search", VectorStoreIDs: []string{"collection"}})
+	validMaaSSecret := &v1.Secret{Data: map[string][]byte{
+		"MAAS_BASE_URL": []byte("https://maas.example"),
+		"MAAS_API_KEY":  []byte("test-key"),
+	}}
+
+	tests := []struct {
+		name        string
+		secret      *v1.Secret
+		secretErr   error
+		factoryErr  error
+		wantMessage string
+	}{
+		{name: "secret lookup failure", secretErr: errors.New("secret lookup failed"), wantMessage: "failed to get MaaS secret"},
+		{name: "invalid config", secret: &v1.Secret{Data: map[string][]byte{"MAAS_BASE_URL": []byte("https://maas.example")}}, wantMessage: "missing MAAS_API_KEY"},
+		{name: "factory failure", secret: validMaaSSecret, factoryErr: errors.New("factory failed"), wantMessage: "factory failed"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := NewResponsesRepositoryWithMaaSClientFactory(nil, &mockK8sService{
+				getSecretFn: func(_ context.Context, _, name string) (*v1.Secret, error) {
+					assert.Equal(t, "maas", name)
+					return tt.secret, tt.secretErr
+				},
+			}, func(string, string) (*maas.Client, error) {
+				return nil, tt.factoryErr
+			})
+
+			err := repo.ValidateResponses(context.Background(), ResponsesParams{
+				Namespace: "test-ns", DBSecretName: "database", MaasSecretName: "maas",
+			}, request)
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.wantMessage)
+		})
+	}
+}
+
+func TestResponsesRepositoryValidateResponsesMaaSPreflightPrecedesDatabaseValidation(t *testing.T) {
+	var calls []string
+	repo := NewResponsesRepositoryWithMaaSClientFactory(nil, &mockK8sService{
+		getSecretFn: func(_ context.Context, _, name string) (*v1.Secret, error) {
+			calls = append(calls, name)
+			if name == "maas" {
+				return &v1.Secret{Data: map[string][]byte{
+					"MAAS_BASE_URL": []byte("https://maas.example"),
+					"MAAS_API_KEY":  []byte("test-key"),
+				}}, nil
+			}
+			return &v1.Secret{Data: map[string][]byte{"NEO4J_URI": []byte("neo4j://example:7687")}}, nil
+		},
+	}, func(string, string) (*maas.Client, error) {
+		return &maas.Client{}, nil
+	})
+
+	err := repo.ValidateResponses(context.Background(), ResponsesParams{
+		Namespace: "test-ns", DBSecretName: "database", MaasSecretName: "maas",
+	}, fileSearchRequest(models.FileSearchTool{Type: "file_search", VectorStoreIDs: []string{"collection"}}))
+
+	require.ErrorIs(t, err, vectordb.ErrUnsupportedVectorDB)
+	assert.Equal(t, []string{"maas", "database"}, calls)
+}
+
 func TestResponsesRepositoryResolveVectorDBRejectsUnsupportedSecret(t *testing.T) {
 	repo := NewResponsesRepository(nil, &mockK8sService{
 		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
@@ -284,7 +348,13 @@ func TestResponsesRepositoryResolveVectorDBClassifiesForwardingDeadline(t *testi
 
 func TestResponsesRepositoryValidateResponsesClassifiesForwardingDeadline(t *testing.T) {
 	repo := NewResponsesRepository(nil, &mockK8sService{
-		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+		getSecretFn: func(_ context.Context, _, name string) (*v1.Secret, error) {
+			if name == "maas" {
+				return &v1.Secret{Data: map[string][]byte{
+					"MAAS_BASE_URL": []byte("https://maas.example"),
+					"MAAS_API_KEY":  []byte("test-key"),
+				}}, nil
+			}
 			return &v1.Secret{Data: map[string][]byte{
 				"MILVUS_URI": []byte("http://milvus.milvus.svc.cluster.local:19530"),
 			}}, nil
@@ -294,9 +364,10 @@ func TestResponsesRepositoryValidateResponsesClassifiesForwardingDeadline(t *tes
 			return "", fmt.Errorf("port-forward startup: %w", context.DeadlineExceeded)
 		},
 	})
+	repo.newMaaSClient = func(string, string) (*maas.Client, error) { return &maas.Client{}, nil }
 
 	err := repo.ValidateResponses(context.Background(), ResponsesParams{
-		Namespace: "run-ns", DBSecretName: "database",
+		Namespace: "run-ns", DBSecretName: "database", MaasSecretName: "maas",
 	}, fileSearchRequest(models.FileSearchTool{
 		Type:           "file_search",
 		VectorStoreIDs: []string{"collection"},
@@ -332,13 +403,20 @@ func TestResponsesRepositoryValidateResponsesChecksDatabaseProviderForAllSearchM
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := NewResponsesRepository(nil, &mockK8sService{
-				getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+				getSecretFn: func(_ context.Context, _, name string) (*v1.Secret, error) {
+					if name == "maas" {
+						return &v1.Secret{Data: map[string][]byte{
+							"MAAS_BASE_URL": []byte("https://maas.example"),
+							"MAAS_API_KEY":  []byte("test-key"),
+						}}, nil
+					}
 					return &v1.Secret{Data: tt.secretData}, nil
 				},
 			})
+			repo.newMaaSClient = func(string, string) (*maas.Client, error) { return &maas.Client{}, nil }
 
 			err := repo.ValidateResponses(context.Background(), ResponsesParams{
-				Namespace: "test-ns", DBSecretName: "database",
+				Namespace: "test-ns", DBSecretName: "database", MaasSecretName: "maas",
 			}, request)
 			if tt.wantErr != nil {
 				require.ErrorIs(t, err, tt.wantErr)
@@ -356,7 +434,13 @@ func TestResponsesRepositoryValidateResponsesBoundsMilvusForwarding(t *testing.T
 	})
 	var observedDeadline time.Time
 	repo := NewResponsesRepository(nil, &mockK8sService{
-		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+		getSecretFn: func(_ context.Context, _, name string) (*v1.Secret, error) {
+			if name == "maas" {
+				return &v1.Secret{Data: map[string][]byte{
+					"MAAS_BASE_URL": []byte("https://maas.example"),
+					"MAAS_API_KEY":  []byte("test-key"),
+				}}, nil
+			}
 			return &v1.Secret{Data: map[string][]byte{"MILVUS_URI": []byte("http://milvus.milvus.svc.cluster.local:19530")}}, nil
 		},
 	}, &mockURLForwarder{
@@ -367,9 +451,10 @@ func TestResponsesRepositoryValidateResponsesBoundsMilvusForwarding(t *testing.T
 			return rawURL, nil
 		},
 	})
+	repo.newMaaSClient = func(string, string) (*maas.Client, error) { return &maas.Client{}, nil }
 
 	require.NoError(t, repo.ValidateResponses(context.Background(), ResponsesParams{
-		Namespace: "test-ns", DBSecretName: "database",
+		Namespace: "test-ns", DBSecretName: "database", MaasSecretName: "maas",
 	}, request))
 	assert.LessOrEqual(t, time.Until(observedDeadline), vectordb.MilvusOperationTimeout)
 }
@@ -491,6 +576,19 @@ func TestExtractHistoryAndQuestion(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestExtractHistoryAndQuestionPreservesAssistantOutputText(t *testing.T) {
+	input := []models.InputMessage{
+		{Role: "user", Content: []models.InputContent{{Type: "input_text", Text: "question"}}},
+		{Role: "assistant", Content: []models.InputContent{{Type: "output_text", Text: "answer"}}},
+		{Role: "user", Content: []models.InputContent{{Type: "input_text", Text: "follow-up"}}},
+	}
+
+	_, history, _ := extractHistoryAndQuestion(input)
+
+	require.Len(t, history, 2)
+	assert.Equal(t, "answer", msgContent(history[1]))
 }
 
 func TestExtractHistoryAndQuestion_NormalizedStringInput(t *testing.T) {
@@ -758,6 +856,34 @@ func TestParseFileSearchTool_NoFileSearchTool(t *testing.T) {
 	_, _, _, _, err := parseFileSearchTool(&models.ResponsesRequest{})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no file_search tool with vector_store_ids found")
+}
+
+func TestParseFileSearchToolRejectsMultipleToolsAndVectorStoreIDs(t *testing.T) {
+	tests := []struct {
+		name string
+		req  *models.ResponsesRequest
+	}{
+		{
+			name: "multiple file search tools",
+			req: &models.ResponsesRequest{Tools: []models.FileSearchTool{
+				{Type: "file_search", VectorStoreIDs: []string{"one"}},
+				{Type: "file_search", VectorStoreIDs: []string{"two"}},
+			}},
+		},
+		{
+			name: "multiple vector store IDs",
+			req: &models.ResponsesRequest{Tools: []models.FileSearchTool{
+				{Type: "file_search", VectorStoreIDs: []string{"one", "two"}},
+			}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, _, _, _, err := parseFileSearchTool(tt.req)
+			require.Error(t, err)
+			assert.ErrorIs(t, err, ErrInvalidResponsesRequest)
+		})
+	}
 }
 
 func TestParseFileSearchTool_RejectsInvalidVectorStoreID(t *testing.T) {

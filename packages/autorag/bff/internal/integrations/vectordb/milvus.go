@@ -3,6 +3,7 @@ package vectordb
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"net"
@@ -75,9 +76,12 @@ func newMilvusFromSecretWithTimeoutPolicy(
 	}
 
 	var username, password string
+	var apiKey string
 	if parts := strings.SplitN(token, ":", 2); len(parts) == 2 {
 		username = parts[0]
 		password = parts[1]
+	} else if token != "" {
+		apiKey = token
 	}
 
 	var endpoint vectorEndpoint
@@ -97,6 +101,7 @@ func newMilvusFromSecretWithTimeoutPolicy(
 		Address:       addr,
 		Username:      username,
 		Password:      password,
+		APIKey:        apiKey,
 		EnableTLSAuth: useTLS,
 	}
 
@@ -114,7 +119,7 @@ func newMilvusFromSecretWithTimeoutPolicy(
 		if err != nil {
 			return nil, fmt.Errorf("milvus: %w", err)
 		}
-		creds := credentials.NewTLS(&tls.Config{RootCAs: pool})
+		creds := credentials.NewTLS(milvusTLSConfig(pool))
 		cfg.DialOptions = append(cfg.DialOptions, grpc.WithTransportCredentials(creds))
 		cfg.EnableTLSAuth = false
 	}
@@ -126,6 +131,10 @@ func newMilvusFromSecretWithTimeoutPolicy(
 		return nil, fmt.Errorf("milvus connect: %w", classifyMilvusError(ctx, operationCtx, err))
 	}
 	return &milvusDB{client: c}, nil
+}
+
+func milvusTLSConfig(pool *x509.CertPool) *tls.Config {
+	return &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}
 }
 
 func (m *milvusDB) Search(ctx context.Context, collection string, queryVec []float32, query string, topK int, alpha float32, hybrid bool) ([]SearchResult, error) {

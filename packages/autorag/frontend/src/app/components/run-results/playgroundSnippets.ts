@@ -125,7 +125,7 @@ ${body})
 \t\tpanic(fmt.Sprintf("request failed (%d): %s", resp.StatusCode, string(body)))
 \t}
 \tfmt.Println(string(body))
-}`;
+ }`.replace(/^ +(?=\t|import|\)|func main|\})/gm, '');
 };
 
 const jsonToPython = (value: unknown, indent = 0): string => {

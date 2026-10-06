@@ -71,6 +71,12 @@ describe('playground snippets', () => {
     expect(result).not.toContain('\n const dashboardUrl =');
   });
 
+  it('should generate Go source without spaces before tab indentation', () => {
+    const result = generateGoSnippet(mockParams);
+
+    expect(result).not.toMatch(/^ \t/m);
+  });
+
   it('should preserve template content in each displayed language', () => {
     for (const { fn } of generators) {
       expect(fn(mockParams)).toContain('Be helpful.');
