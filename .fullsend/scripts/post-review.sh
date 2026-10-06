@@ -522,7 +522,7 @@ def table_cell(text):
     return clean(text).replace("|", "\\|").replace("\n", " ").replace("<", "&lt;")
 
 def check_details_cell(check):
-    """Checks-table Details cell: summary, blank line, then details[] lines.
+    """Checks-table Details cell: summary, then details[] with a blank line between each.
 
     GitHub markdown tables need `<br>` for line breaks. User text is escaped
     the same way as `table_cell`; the `<br>` separators are intentional HTML."""
@@ -547,7 +547,10 @@ def check_details_cell(check):
     if detail_lines:
         if parts:
             parts.append("")  # summary<br><br>details ≈ a couple of newlines
-        parts.extend(table_cell(line) for line in detail_lines)
+        for i, line in enumerate(detail_lines):
+            if i:
+                parts.append("")  # extra blank line between details
+            parts.append(table_cell(line))
     return "<br>".join(parts)
 
 def render_header(result, action):
@@ -1201,14 +1204,14 @@ run_self_test() {
     echo "PASS approve omits findings section"
   fi
 
-  printf '%s' "{${common},\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"warning\",\"summary\":\"No targeted tests were changed.\",\"details\":[\"PR body explains manual verification only.\"]}],\"todo\":[\"Confirm the manual verification note is enough.\"],\"producers\":{\"dispatched\":[\"test-impact-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"test-impact-review\"],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/structured.json"
+  printf '%s' "{${common},\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"warning\",\"summary\":\"No targeted tests were changed.\",\"details\":[\"PR body explains manual verification only.\",\"Second detail line.\"]}],\"todo\":[\"Confirm the manual verification note is enough.\"],\"producers\":{\"dispatched\":[\"test-impact-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"test-impact-review\"],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/structured.json"
   transform_review_result "${tmp}/structured.json" > "${tmp}/structured-out.json"
   body=$(jq -r .body "${tmp}/structured-out.json")
   if [[ "$(jq -r .action "${tmp}/structured-out.json")" != "approve" ]] ||
      ! grep -q '### Checks' <<<"${body}" ||
      ! grep -q '| Check | Status | Details |' <<<"${body}" ||
      ! grep -q 'Test impact' <<<"${body}" ||
-     ! grep -Fq 'No targeted tests were changed.<br><br>PR body explains manual verification only.' <<<"${body}" ||
+     ! grep -Fq 'No targeted tests were changed.<br><br>PR body explains manual verification only.<br><br>Second detail line.' <<<"${body}" ||
      ! grep -q '## TODO' <<<"${body}" ||
      grep -q '### Verification' <<<"${body}" ||
      grep -q '### Jira acceptance criteria' <<<"${body}" ||
