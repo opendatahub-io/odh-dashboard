@@ -374,7 +374,7 @@ paths:
       Lists all available AI Available Assets models from various sources including
       Kubernetes InferenceServices, custom endpoints, and MaaS (Model as a Service).
       Returns models with their serving runtime, API protocol, version, and status information.
-      Requires namespace parameter for proper multi-tenant isolation.
+      A namespace is required unless only MaaS models are requested, because MaaS access is subscription-scoped.
       The sources parameter controls which model types are included in the response.
     get:
       tags:
@@ -385,7 +385,7 @@ paths:
         - name: namespace
           in: query
           description: Kubernetes namespace to query for AI Assets models
-          required: true
+          required: false
           schema:
             type: string
             example: 'genai-lls'
@@ -673,7 +673,7 @@ paths:
     description: >-
       Lists all available models from MaaS (Model as a Service).
       Returns models with their identifiers, creation timestamps, ownership information, ready status, and service URLs.
-      Requires namespace parameter for proper multi-tenant isolation.
+      Requires a namespace parameter for proper multi-tenant isolation.
     get:
       tags:
         - MaaS

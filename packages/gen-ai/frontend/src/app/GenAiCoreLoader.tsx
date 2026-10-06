@@ -15,6 +15,7 @@ type GenAiCoreLoaderProps = {
   getInvalidRedirectPath: (namespace: string) => string;
   title: string;
   icon?: IconType;
+  allowNoProjects?: boolean;
 } & Omit<
   ApplicationPageProps,
   'loaded' | 'headerContent' | 'provideChildrenPadding' | EmptyStateProps
@@ -26,6 +27,7 @@ const GenAiCoreLoader: React.FC<GenAiCoreLoaderProps> = ({
   getInvalidRedirectPath,
   title,
   icon,
+  allowNoProjects = false,
   ...applicationPageProps
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -34,6 +36,13 @@ const GenAiCoreLoader: React.FC<GenAiCoreLoaderProps> = ({
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
   if (namespaces.length === 0) {
+    if (allowNoProjects && !namespace) {
+      return (
+        <GenAiContextProvider>
+          <Outlet />
+        </GenAiContextProvider>
+      );
+    }
     renderStateProps = {
       empty: true,
       emptyStatePage: <GenAiCoreNoProjects />,

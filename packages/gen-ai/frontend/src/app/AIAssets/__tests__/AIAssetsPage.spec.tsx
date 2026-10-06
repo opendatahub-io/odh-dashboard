@@ -55,8 +55,10 @@ describe('AIAssetsPage', () => {
     mockUseExtensions.mockReturnValue([]);
 
     render(
-      <MemoryRouter>
-        <AIAssetsPage />
+      <MemoryRouter initialEntries={['/assets/my-project']}>
+        <Routes>
+          <Route path="/assets/:namespace" element={<AIAssetsPage />} />
+        </Routes>
       </MemoryRouter>,
     );
 
@@ -95,8 +97,10 @@ describe('AIAssetsPage', () => {
     mockUseExtensions.mockReturnValue(mockExtensions);
 
     render(
-      <MemoryRouter>
-        <AIAssetsPage />
+      <MemoryRouter initialEntries={['/assets/my-project']}>
+        <Routes>
+          <Route path="/assets/:namespace" element={<AIAssetsPage />} />
+        </Routes>
       </MemoryRouter>,
     );
 
@@ -104,12 +108,48 @@ describe('AIAssetsPage', () => {
     expect(screen.getByText('MCP servers')).toBeInTheDocument();
   });
 
+  it('should show only the Models tab when no project is selected', () => {
+    mockUseExtensions.mockReturnValue([
+      {
+        type: 'gen-ai.ai-assets/tab',
+        properties: {
+          id: 'models',
+          title: 'Models',
+          component: () => Promise.resolve({ default: () => <div>Models Tab</div> }),
+        },
+        uid: 'models-uid',
+        pluginName: 'gen-ai',
+        flags: {},
+      },
+      {
+        type: 'gen-ai.ai-assets/tab',
+        properties: {
+          id: 'mcpservers',
+          title: 'MCP servers',
+          component: () => Promise.resolve({ default: () => <div>MCP Tab</div> }),
+        },
+        uid: 'mcp-uid',
+        pluginName: 'gen-ai',
+        flags: {},
+      },
+    ]);
+
+    render(
+      <MemoryRouter>
+        <AIAssetsPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Models')).toBeInTheDocument();
+    expect(screen.queryByText('MCP servers')).not.toBeInTheDocument();
+  });
+
   it('should render tab with label when provided', () => {
     const mockExtensions = [
       {
         type: 'gen-ai.ai-assets/tab',
         properties: {
-          id: 'test-tab',
+          id: 'models',
           title: 'Test Tab',
           component: () => Promise.resolve({ default: () => <div>Test Tab Content</div> }),
           label: 'Tech Preview',
@@ -297,8 +337,10 @@ describe('AIAssetsPage', () => {
       mockUseExtensions.mockReturnValue(mockExtensions);
 
       render(
-        <MemoryRouter>
-          <AIAssetsPage />
+        <MemoryRouter initialEntries={['/assets/my-project']}>
+          <Routes>
+            <Route path="/assets/:namespace" element={<AIAssetsPage />} />
+          </Routes>
         </MemoryRouter>,
       );
 
@@ -338,8 +380,10 @@ describe('AIAssetsPage', () => {
       mockUseExtensions.mockReturnValue(mockExtensions);
 
       render(
-        <MemoryRouter>
-          <AIAssetsPage />
+        <MemoryRouter initialEntries={['/assets/my-project']}>
+          <Routes>
+            <Route path="/assets/:namespace" element={<AIAssetsPage />} />
+          </Routes>
         </MemoryRouter>,
       );
 
