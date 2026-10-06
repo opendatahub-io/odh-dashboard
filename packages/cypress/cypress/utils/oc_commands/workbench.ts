@@ -94,7 +94,8 @@ export const validateWorkbenchNodeSelectors = (
         );
       }
 
-      const nodeSelector = JSON.parse(nsResult.stdout) as Record<string, string>;
+      const raw = nsResult.stdout.trim();
+      const nodeSelector = raw ? (JSON.parse(raw) as Record<string, string>) : {};
       cy.log(`Pod node selectors: ${JSON.stringify(nodeSelector)}`);
 
       for (const [key, value] of Object.entries(expectedNodeSelector)) {

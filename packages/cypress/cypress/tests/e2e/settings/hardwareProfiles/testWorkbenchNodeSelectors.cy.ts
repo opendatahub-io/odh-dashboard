@@ -1,7 +1,8 @@
 import { NotebookStatusLabel } from '../../../../types';
 import { projectListPage, projectDetails } from '../../../../pages/projects';
 import { workbenchPage, createSpawnerPage } from '../../../../pages/workbench';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
+import { LDAP_ADMIN_USER } from '../../../../utils/e2eUsers';
+import { ensureAdminOcSession } from '../../../../utils/oc_commands/baseCommands';
 import { loadWBNodeSelectorsFixture } from '../../../../utils/dataLoader';
 import { createCleanProject } from '../../../../utils/projectChecker';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
@@ -44,15 +45,22 @@ describe('Workbenches - node selector tests', () => {
       })
       .then(() => {
         cy.log(`Creating Hardware Profile A: ${testData.hardwareProfileNameA}`);
+        return cleanupHardwareProfiles(testData.hardwareProfileNameA);
+      })
+      .then(() => {
         createCleanHardwareProfile(testData.resourceYamlPathA);
       })
       .then(() => {
         cy.log(`Creating Hardware Profile B: ${testData.hardwareProfileNameB}`);
+        return cleanupHardwareProfiles(testData.hardwareProfileNameB);
+      })
+      .then(() => {
         createCleanHardwareProfile(testData.resourceYamlPathB);
       }),
   );
 
   after(() => {
+    ensureAdminOcSession();
     cy.log(`Cleaning up Hardware Profile A: ${testData.hardwareProfileNameA}`);
     cleanupHardwareProfiles(testData.hardwareProfileNameA)
       .then(() => {
@@ -83,7 +91,7 @@ describe('Workbenches - node selector tests', () => {
     { tags: ['@Dashboard', '@HardwareProfiles', '@Sanity', '@SanitySet2', '@HardwareProfilesCI'] },
     () => {
       cy.step('Log into the application');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin('/', LDAP_ADMIN_USER);
 
       cy.step(`Navigate to workbenches tab of project ${projectName}`);
       projectListPage.navigate();
@@ -124,7 +132,7 @@ describe('Workbenches - node selector tests', () => {
     { tags: ['@Dashboard', '@HardwareProfiles', '@Sanity', '@SanitySet2', '@HardwareProfilesCI'] },
     () => {
       cy.step('Log into the application');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin('/', LDAP_ADMIN_USER);
 
       cy.step(`Navigate to workbenches tab of project ${projectName}`);
       projectListPage.navigate();

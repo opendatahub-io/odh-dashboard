@@ -28,4 +28,4 @@ spec:
       tolerations:
         - effect: PreferNoSchedule
           key: test-taint
-          operator: Equal
+          operator: Exists
