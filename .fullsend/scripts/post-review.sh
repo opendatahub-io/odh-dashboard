@@ -522,6 +522,15 @@ def table_cell(text):
     `<` would let a cell close the surrounding `<details>` block."""
     return clean(text).replace("|", "\\|").replace("\n", " ").replace("<", "&lt;")
 
+def inline_text(text):
+    """Untrusted finding/audit field for Markdown outside tables.
+
+    clean() only strips @mentions. Neutralize HTML so a field cannot close
+    the host <details> block; flatten newlines so a value cannot inject
+    headings or extra list items.
+    """
+    return clean(text).replace("\n", " ").replace("<", "&lt;")
+
 def check_details_cell(check):
     """Checks-table Details cell: summary, then details[] with a blank line between each.
 
@@ -690,15 +699,15 @@ def render_removed_audit(result):
         origin = ""
         if finding.get("dimension"):
             origin_ids = producer_ids(finding)
-            origin_shown = ", ".join(dimension_label(i) for i in origin_ids) or clean(finding.get("dimension"))
+            origin_shown = ", ".join(dimension_label(i) for i in origin_ids) or inline_text(finding.get("dimension"))
             origin = f"`{origin_shown}` · "
         lines += [
             "",
-            f"- {origin}**{clean(finding.get('category'))}** ({loc}): {clean(finding.get('description'))}",
+            f"- {origin}**{inline_text(finding.get('category'))}** ({loc}): {inline_text(finding.get('description'))}",
         ]
         if finding.get("why"):
-            lines.append(f"  - Why: {clean(finding.get('why'))}")
-        reason = clean(finding.get("removal_reason") or "")
+            lines.append(f"  - Why: {inline_text(finding.get('why'))}")
+        reason = inline_text(finding.get("removal_reason") or "")
         if reason:
             lines.append(f"  - Removal reason: {reason}")
     lines += ["", "</details>"]
@@ -1543,6 +1552,51 @@ run_self_test() {
     fail=1
   else
     echo "PASS removed count mismatch is recorded"
+  fi
+
+  # Untrusted removed-finding fields must not close the audit <details> block.
+  jq -n \
+    --argjson common "$(printf '{%s}' "${common}")" \
+    '$common * {
+      findings: [],
+      producers: {
+        dispatched: ["correctness"],
+        adapters: [],
+        skipped: [],
+        returned: ["correctness"],
+        raised: {correctness: []},
+        challenger: {
+          status: "ran",
+          input: 1,
+          kept: 0,
+          removed: 1,
+          merged: 0,
+          downgraded: 0,
+          removed_findings: [{
+            severity: "medium",
+            category: "x </details>",
+            dimension: "correctness",
+            file: "a.ts",
+            description: "desc </details>",
+            why: "why </details>",
+            removal_reason: "reason </details>"
+          }]
+        }
+      }
+    }' > "${tmp}/audit-escape.json"
+  transform_review_result "${tmp}/audit-escape.json" > "${tmp}/audit-escape-out.json"
+  body=$(jq -r .body "${tmp}/audit-escape-out.json")
+  if grep -qF 'x </details>' <<<"${body}" || grep -qF 'desc </details>' <<<"${body}" || grep -qF 'why </details>' <<<"${body}" || grep -qF 'reason </details>' <<<"${body}"; then
+    echo "FAIL audit-escape: raw </details> from a removed-finding field reached the comment" >&2
+    fail=1
+  elif ! grep -q '&lt;/details>' <<<"${body}"; then
+    echo "FAIL audit-escape: removed-finding markup was not escaped" >&2
+    fail=1
+  elif [[ "$(grep -c '</details>' <<<"${body}")" -ne 2 ]]; then
+    echo "FAIL audit-escape: expected only audit + review-details closers, not a field breakout" >&2
+    fail=1
+  else
+    echo "PASS removed-finding audit fields are HTML-escaped"
   fi
 
   # A patch snippet must survive as code. Flattened to one bullet it is
