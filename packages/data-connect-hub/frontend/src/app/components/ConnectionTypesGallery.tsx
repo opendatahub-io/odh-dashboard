@@ -24,13 +24,7 @@ import {
 } from 'mod-arch-shared';
 
 import { ConnectionTypeCard, ConnectionTypeCardIdentifier } from '~/app/components/ConnectionType';
-import type {
-  Identified,
-  Labelled,
-  Described,
-  ConnectionType,
-  ConnectionTypeGroup,
-} from '~/app/types';
+import type { Identified, Labelled, Described, ConnectionType } from '~/app/types';
 
 import emptyStateImage from '~/images/RHOAI-Noconnections-RGB.svg';
 
@@ -41,6 +35,8 @@ type FilterItem = Identified<string> & Labelled<string>;
 type FilterItems = Record<string, FilterItem>;
 
 type SelectedFilters = Record<string, string | null>;
+
+type ConnectionTypeGroup = 'full_integration' | 'credentials';
 
 type ConnectionGroup = Identified<ConnectionTypeGroup> &
   Labelled<string> &
