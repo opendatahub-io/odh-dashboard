@@ -21,7 +21,6 @@ import {
   createMaaSSubscription,
   createMaaSAuthPolicy,
   modelsAsAServiceNamespace,
-  startMaaSBFFPortForward,
   verifyMaaSUserAccess,
   waitForMaaSModelReady,
 } from '../../../utils/oc_commands/maas';
@@ -134,16 +133,6 @@ describe('Verify Gen AI Playground inference with a MaaS model', () => {
       cy.step('Wait for MaaSModelRef readiness and resolve its catalog model ID');
       waitForMaaSModelReady(modelProjectName, modelName).then((alias) => {
         maasModelId = alias;
-      });
-
-      cy.step('Start port-forward for the MaaS BFF used by the local Gen AI BFF');
-      startMaaSBFFPortForward(
-        Cypress.env('APPLICATIONS_NAMESPACE'),
-        fixtureData.maasBffServiceName,
-        fixtureData.maasBffLocalPort,
-        fixtureData.maasBffServicePort,
-      ).then((handle) => {
-        maasBffPortForwardHandle = handle;
       });
 
       cy.step('Log in with Gen AI Studio and MaaS enabled');

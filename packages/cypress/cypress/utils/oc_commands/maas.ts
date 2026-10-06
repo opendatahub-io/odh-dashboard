@@ -1,4 +1,4 @@
-import { getClusterAppsDomain, type PortForwardHandle } from './baseCommands';
+import { getClusterAppsDomain } from './baseCommands';
 import type { CommandLineResult } from '../../types';
 import { Path } from '../../types';
 import { replacePlaceholdersInYaml } from '../../utils/yaml_files';
@@ -8,43 +8,6 @@ export const modelsAsAServiceNamespace = 'models-as-a-service';
 /** OpenShift Route that exposes the shared MaaS API gateway. */
 const maasGatewayRouteName = 'maas-gateway-route';
 const maasGatewayRouteNamespace = 'openshift-ingress';
-
-/**
- * Starts a local port-forward to the MaaS BFF service for Gen AI local E2E runs.
- *
- * Gen AI's local BFF uses BFF_MAAS_DEV_URL for inter-BFF MaaS calls. The local dev
- * workflow commonly points that at http://localhost:8081/api/v1, while the in-cluster
- * MaaS BFF is exposed on the odh-dashboard Service port 8243. Use an explicit
- * localPort:servicePort forward here instead of changing the shared base port-forward helper.
- */
-export const startMaaSBFFPortForward = (
-  namespace: string,
-  serviceName: string,
-  localPort: number,
-  servicePort: number,
-  waitTimeMs = 3000,
-): Cypress.Chainable<PortForwardHandle | null> => {
-  const baseUrl = Cypress.config('baseUrl') || '';
-  if (!baseUrl.includes('localhost')) {
-    cy.log(`Skipping MaaS BFF port-forward for ${serviceName} - baseUrl is not localhost`);
-    return cy.wrap<PortForwardHandle | null>(null);
-  }
-
-  const logFile = `/tmp/port-forward-${serviceName}-${localPort}-${Date.now()}.log`;
-
-  return cy
-    .exec(
-      `nohup oc port-forward -n ${namespace} svc/${serviceName} ${localPort}:${servicePort} > ${logFile} 2>&1 & echo $!`,
-      { failOnNonZeroExit: false },
-    )
-    .then((result: CommandLineResult): Cypress.Chainable<PortForwardHandle | null> => {
-      const pid = result.stdout.trim();
-      cy.log(`MaaS BFF port-forward PID: ${pid}`);
-      // eslint-disable-next-line cypress/no-unnecessary-waiting
-      cy.wait(waitTimeMs);
-      return cy.wrap<PortForwardHandle | null>({ pid, logFile });
-    });
-};
 
 /** LLM completions can exceed Cypress's default 30s `cy.request` timeout (especially with high `max_tokens`). */
 const completionsRequestTimeoutMs = 180000;
