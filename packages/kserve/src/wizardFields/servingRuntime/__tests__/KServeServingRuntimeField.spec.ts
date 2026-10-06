@@ -234,17 +234,23 @@ describe('useKServeServingRuntimeExternalData', () => {
     expect(renderResult.result.current.loadError).toBe(clusterError);
   });
 
-  it('should exclude llmd-serving override suggestion and extraOptions on the legacy path', () => {
+  it('should exclude non-Template-backed override suggestion and extraOptions on the legacy path', () => {
+    const template = mockServingRuntimeTemplateK8sResource({ name: 'template-backed' });
     const llmdOption = {
       name: 'llmd-serving',
       label: 'Distributed inference with llm-d',
+    };
+    const templateBackedOption = {
+      name: 'template-backed',
+      label: 'Template backed runtime',
+      template,
     };
     mockUseWizardFieldOverrides.mockReturnValue([
       {
         id: 'modelServerTemplate',
         type: 'modifier',
         isActive: () => true,
-        extraOptions: [llmdOption],
+        extraOptions: [llmdOption, templateBackedOption],
         suggestion: () => llmdOption,
       },
     ]);
@@ -260,7 +266,7 @@ describe('useKServeServingRuntimeExternalData', () => {
       deploymentMethod: LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY,
     });
 
-    expect(renderResult.result.current.data.extraOptions).toEqual([]);
+    expect(renderResult.result.current.data.extraOptions).toEqual([templateBackedOption]);
     expect(renderResult.result.current.data.suggestion).toBeUndefined();
   });
 });

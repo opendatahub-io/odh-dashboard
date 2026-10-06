@@ -11,6 +11,7 @@ import {
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeFromTemplate,
   getServingRuntimeVersion,
+  isTemplateKind,
 } from '@odh-dashboard/model-serving/shared';
 import {
   isModelServerTemplateFieldOverride,
@@ -238,12 +239,15 @@ export const useKServeServingRuntimeExternalData = (
       undefined,
     );
 
-    // Pre-vLLMonMaaS llm-d override stays active for generative models based on model type /
-    // feature flag alone (not deployment method). On the KServe legacy path that override
-    // injects LLMD_OPTION (no Template), which would auto-select and deploy without a ServingRuntime.
+    // Pre-vLLMonMaaS overrides can inject model-server options with no Template (e.g. llm-d)
+    // based on model type / feature flag alone. On the KServe legacy path only Template-backed
+    // options are valid — otherwise we would auto-select and deploy without a ServingRuntime.
     if (isLegacyGenerativePath) {
-      extraOptions = extraOptions.filter((option) => option.name !== 'llmd-serving');
-      if (suggestion?.name === 'llmd-serving') {
+      const isTemplateBacked = (option: ModelServerOption): boolean =>
+        option.template !== undefined && isTemplateKind(option.template);
+
+      extraOptions = extraOptions.filter(isTemplateBacked);
+      if (suggestion && !isTemplateBacked(suggestion)) {
         suggestion = undefined;
       }
     }
