@@ -1257,7 +1257,8 @@ describe('AutoragResultsPage', () => {
     const mockNestedArtifactLists = (
       options: {
         discoveryPrefixes?: { prefix: string }[];
-        artifactContents?: { key: string; size: number }[];
+        starterKitContents?: { key: string; size: number }[];
+        starterKitDirectoryMissing?: boolean;
         errorPath?: string;
         loadingPath?: string;
       } = {},
@@ -1265,7 +1266,8 @@ describe('AutoragResultsPage', () => {
     ): string => {
       const discoveryPath = `documents-rag-optimization-pipeline/${runId}/rag-templates-optimization`;
       const artifactPath = `${discoveryPath}/11111111-1111-1111-1111-111111111111`;
-      const key = `${artifactPath}/starter_kit.zip`;
+      const starterKitPath = `${artifactPath}/starter_kit`;
+      const key = `${starterKitPath}/starter_kit.zip`;
 
       mockUseS3ListFilesQuery.mockImplementation((_namespace: string, path?: string) => {
         if (path === discoveryPath) {
@@ -1278,10 +1280,13 @@ describe('AutoragResultsPage', () => {
             isError: options.errorPath === path,
           };
         }
-        if (path === artifactPath) {
+        if (path === starterKitPath) {
+          if (options.starterKitDirectoryMissing) {
+            return { data: undefined, isLoading: false, isError: false };
+          }
           return {
             data: {
-              contents: options.artifactContents ?? [{ key, size: 1 }],
+              contents: options.starterKitContents ?? [{ key, size: 1 }],
               common_prefixes: [],
             },
             isLoading: options.loadingPath === path,
@@ -1379,7 +1384,17 @@ describe('AutoragResultsPage', () => {
     });
 
     it('should remain disabled when the exact artifact is absent', () => {
-      mockNestedArtifactLists({ artifactContents: [] });
+      mockNestedArtifactLists({ starterKitContents: [] });
+      renderWithRun(createMockPipelineRun());
+
+      expect(screen.getByTestId('starter-kit-download-button')).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+    });
+
+    it('should remain disabled when the starter kit directory is absent', () => {
+      mockNestedArtifactLists({ starterKitDirectoryMissing: true });
       renderWithRun(createMockPipelineRun());
 
       expect(screen.getByTestId('starter-kit-download-button')).toHaveAttribute(
@@ -1391,7 +1406,7 @@ describe('AutoragResultsPage', () => {
     it('should remain disabled when a nested artifact listing fails', () => {
       mockNestedArtifactLists({
         errorPath:
-          'documents-rag-optimization-pipeline/run-123/rag-templates-optimization/11111111-1111-1111-1111-111111111111',
+          'documents-rag-optimization-pipeline/run-123/rag-templates-optimization/11111111-1111-1111-1111-111111111111/starter_kit',
       });
       renderWithRun(createMockPipelineRun());
 
@@ -1403,7 +1418,7 @@ describe('AutoragResultsPage', () => {
 
     it('should show Artifact unavailable when a successful run has no exact artifact', async () => {
       const user = userEvent.setup();
-      mockNestedArtifactLists({ artifactContents: [] });
+      mockNestedArtifactLists({ starterKitContents: [] });
       renderWithRun(createMockPipelineRun());
 
       expectHeaderActions();
@@ -1427,8 +1442,8 @@ describe('AutoragResultsPage', () => {
     it('should download the exact starter kit and track only after success', async () => {
       const blob = new Blob(['zip']);
       const key =
-        'documents-rag-optimization-pipeline/run-123/rag-templates-optimization/11111111-1111-1111-1111-111111111111/starter_kit.zip';
-      mockNestedArtifactLists({ artifactContents: [{ key, size: blob.size }] });
+        'documents-rag-optimization-pipeline/run-123/rag-templates-optimization/11111111-1111-1111-1111-111111111111/starter_kit/starter_kit.zip';
+      mockNestedArtifactLists({ starterKitContents: [{ key, size: blob.size }] });
       mockFetchS3File.mockResolvedValue(blob);
       renderWithRun(createMockPipelineRun());
 

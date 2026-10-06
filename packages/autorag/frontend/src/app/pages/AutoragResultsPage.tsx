@@ -159,18 +159,21 @@ function AutoragResultsPage(): React.JSX.Element {
   }, [artifactDiscoveryFiles, artifactDiscoveryPath]);
   const artifactDirectory = artifactUuid ? `${artifactDiscoveryPath}/${artifactUuid}` : undefined;
   const {
-    data: artifactFiles,
-    isLoading: artifactLoading,
-    isError: artifactError,
-  } = useS3ListFilesQuery(namespace, artifactDirectory);
+    data: starterKitFiles,
+    isLoading: starterKitLoading,
+    isError: starterKitError,
+  } = useS3ListFilesQuery(
+    namespace,
+    artifactDirectory ? `${artifactDirectory}/starter_kit` : undefined,
+  );
   const starterKitKey = artifactDirectory
-    ? `${artifactDirectory}/${STARTER_KIT_FILENAME}`
+    ? `${artifactDirectory}/starter_kit/${STARTER_KIT_FILENAME}`
     : undefined;
   const hasStarterKit = Boolean(
-    starterKitKey && artifactFiles?.contents.some((object) => object.key === starterKitKey),
+    starterKitKey && starterKitFiles?.contents.some((object) => object.key === starterKitKey),
   );
-  const runArtifactLoading = artifactDiscoveryLoading || artifactLoading;
-  const runArtifactListError = artifactDiscoveryError || artifactError;
+  const runArtifactLoading = artifactDiscoveryLoading || starterKitLoading;
+  const runArtifactListError = artifactDiscoveryError || starterKitError;
 
   const starterKitTooltip = React.useMemo(() => {
     if (isDownloadingStarterKit) {
