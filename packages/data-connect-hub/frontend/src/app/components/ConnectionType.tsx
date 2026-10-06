@@ -199,8 +199,7 @@ class ConnectionTypeInstance implements ConnectionType {
   }
 
   isFullIntegration() {
-    // TODO [ Gustavo ] Subject to change to flight_ready: Other PR will be updating the schema to be used here
-    return Boolean(this.status?.capabilities.flight);
+    return Boolean(this.status?.flight_ready);
   }
 
   isCredentialsOnly() {
