@@ -17,7 +17,7 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 500,
-      "description": "What this PR's diff does, in one or two sentences. The host trims anything past the third sentence."
+      "description": "What this PR's diff does, in one or two sentences."
     },
     "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
     "reason": { "type": "string", "enum": ["tool-failure", "missing-context", "ambiguous-findings", "token-limit"] },

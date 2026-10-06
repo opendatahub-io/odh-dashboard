@@ -1445,8 +1445,7 @@ Every non-failure result must include:
 - `schema_version: "2"`.
 - `change_summary`: orchestrator-authored, one or two sentences of what
   this PR's own diff does, in at most 500 characters (the schema rejects
-  more, and the host trims past the third sentence). Say what now behaves
-  differently, not which files moved. Write it from the shared context
+  more). Say what now behaves differently, not which files moved. Write it from the shared context
   file (step 3d `context_path` / `shared.md`) — the same PR diff and
   changed-file list sub-agents reviewed — informed by the step 3g brief's
   behavior facts when one was written. Do not use `changed_since_prior`,
