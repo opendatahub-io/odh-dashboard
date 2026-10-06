@@ -115,6 +115,12 @@ describe('CreateConnectionWizard', () => {
     await user.click(screen.getByTestId('verify-connection-button'));
     expect(mockTestCredentials).toHaveBeenCalled();
     expect(await screen.findByText('Connection successful')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+
+    // Verification is intentionally available only on Configuration, never Review.
+    expect(screen.queryByTestId('verify-connection-button')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Verify connection' })).toBeNull();
   });
 
   it('does not show verification for a non-flight-ready connection type', async () => {

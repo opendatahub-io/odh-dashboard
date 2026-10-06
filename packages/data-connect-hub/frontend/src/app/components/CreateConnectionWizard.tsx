@@ -349,7 +349,7 @@ const VerifyConnectionSection: React.FC<VerificationSectionProps> = ({
   verificationError,
 }) => {
   if (!connectionType?.status?.flight_ready) {
-    return;
+    return null;
   }
 
   const fields = connectionType?.resource.credentials_fields ?? [];
