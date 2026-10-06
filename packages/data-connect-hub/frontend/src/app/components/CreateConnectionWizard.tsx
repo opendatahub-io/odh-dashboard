@@ -57,6 +57,7 @@ export type CreateConnectionWizardProps = {
   namespace: string;
   onClose: () => void;
   onCreate?: (data: CreateConnectionFormData, selectedNamespace: string) => void | Promise<void>;
+  initialFormData?: Partial<CreateConnectionFormData>;
 };
 
 const INITIAL_FORM_DATA: CreateConnectionFormData = {
@@ -742,8 +743,16 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   namespace,
   onClose,
   onCreate,
+  initialFormData: propInitialFormData,
 }) => {
-  const [formData, setFormData] = React.useState<CreateConnectionFormData>(INITIAL_FORM_DATA);
+  let initialFormData = INITIAL_FORM_DATA;
+  if (propInitialFormData) {
+    initialFormData = { ...initialFormData, ...propInitialFormData };
+  }
+  const [formData, setFormData] = React.useState<CreateConnectionFormData>(initialFormData);
+  const [sessionStartIndex, setSessionStartIndex] = React.useState(1);
+  const [hasResolvedSessionStartIndex, setHasResolvedSessionStartIndex] = React.useState(false);
+  const [isOpenSessionReady, setIsOpenSessionReady] = React.useState(false);
   const [selectedNamespace, setSelectedNamespace] = React.useState(namespace);
   const [isCreating, setIsCreating] = React.useState(false);
   const [isVerifying, setIsVerifying] = React.useState(false);
@@ -790,6 +799,43 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     requiredCredentialFields.every((field) =>
       hasCredentialValue(formData.credentials.properties[field.name]),
     );
+  const needsInitialValidationData =
+    hasConnectionType &&
+    Boolean(selectedNamespace) &&
+    isValidConnectionName(formData.name) &&
+    hasValidProperties;
+  const canResolveStartIndex =
+    !needsInitialValidationData ||
+    (isOpenSessionReady && connectionTypesLoaded && namespacesLoaded);
+  const calculatedStartIndex = hasValidConfiguration
+    ? 4
+    : hasValidDetailsWithProperties
+      ? 3
+      : hasConnectionType
+        ? 2
+        : 1;
+  const startIndex = hasResolvedSessionStartIndex
+    ? sessionStartIndex
+    : canResolveStartIndex
+      ? calculatedStartIndex
+      : 1;
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      setIsOpenSessionReady(false);
+      setHasResolvedSessionStartIndex(false);
+      setSessionStartIndex(1);
+    } else {
+      setIsOpenSessionReady(true);
+    }
+  }, [isOpen]);
+  React.useEffect(() => {
+    if (isOpen && !hasResolvedSessionStartIndex && canResolveStartIndex) {
+      setSessionStartIndex(calculatedStartIndex);
+      setHasResolvedSessionStartIndex(true);
+    }
+  }, [calculatedStartIndex, canResolveStartIndex, hasResolvedSessionStartIndex, isOpen]);
+
   const invalidateVerification = React.useCallback(() => {
     verificationRequestRef.current += 1;
     verificationAbortRef.current?.abort();
@@ -922,14 +968,17 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     }
   };
   const resetForm = React.useCallback(() => {
-    setFormData(INITIAL_FORM_DATA);
+    setFormData(initialFormData);
+    setIsOpenSessionReady(false);
+    setHasResolvedSessionStartIndex(false);
+    setSessionStartIndex(1);
     setSelectedNamespace(namespace);
     setIsCreating(false);
     invalidateVerification();
     setPropertyRows([]);
     setTouchedProperties(new Set());
     propertyIdRef.current = 0;
-  }, [invalidateVerification, namespace]);
+  }, [invalidateVerification, namespace, initialFormData]);
   const handleClose = React.useCallback(() => {
     if (!isCreating) {
       resetForm();
@@ -971,6 +1020,8 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
       data-testid="create-connection-tearsheet"
     >
       <Wizard
+        key={startIndex}
+        startIndex={startIndex}
         onClose={handleClose}
         header={
           <WizardHeader

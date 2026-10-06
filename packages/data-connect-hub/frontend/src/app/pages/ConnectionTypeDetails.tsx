@@ -1,11 +1,23 @@
+/* eslint-disable no-console */
+
 // Modules -------------------------------------------------------------------->
 
 import React from 'react';
-import { Breadcrumb, BreadcrumbItem, PageSection, Skeleton } from '@patternfly/react-core';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  Button,
+  PageSection,
+  Skeleton,
+  Split,
+  SplitItem,
+} from '@patternfly/react-core';
 import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import ApplicationsPage from '~/app/components/ApplicationsPage';
 import { useConnectionType } from '~/app/hooks/useConnectionType';
 import { ConnectionTypeIcon, ConnectionTypeValues } from '~/app/components/ConnectionType.tsx';
+import { createConnection } from '~/app/api/dch.ts';
+import CreateConnectionWizard from '~/app/components/CreateConnectionWizard.tsx';
 
 // Types ---------------------------------------------------------------------->
 
@@ -24,6 +36,7 @@ const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> 
   const { connectionTypeId = '' } = useParams<'connectionTypeId'>();
   const { search } = useLocation();
   const [connectionType, loaded, loadError] = useConnectionType(namespace, connectionTypeId);
+  const [isConnectionWizardOpen, setIsConnectionWizardOpen] = React.useState<boolean>(false);
 
   const loadingSkeleton = <Skeleton screenreaderText="Loading connection type" />;
 
@@ -62,6 +75,19 @@ const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> 
           </BreadcrumbItem>
         </Breadcrumb>
       }
+      headerAction={
+        <Split hasGutter>
+          <SplitItem>
+            <Button
+              variant="primary"
+              data-testid="connection-type-details-create-connection"
+              onClick={() => setIsConnectionWizardOpen(true)}
+            >
+              Create connection
+            </Button>
+          </SplitItem>
+        </Split>
+      }
       loaded={loaded}
       loadError={loadError}
       errorMessage="Unable to load connection type"
@@ -73,6 +99,17 @@ const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> 
         data-connection-type-id={connectionType?.metadata.id}
       >
         {connectionType && <ConnectionTypeValues connectionType={connectionType} />}
+        <CreateConnectionWizard
+          isOpen={isConnectionWizardOpen}
+          namespace={namespace}
+          onClose={() => setIsConnectionWizardOpen(false)}
+          onCreate={async (data, selectedNamespace) => {
+            await createConnection('')({}, selectedNamespace, data);
+          }}
+          initialFormData={{
+            data_connection_type_id: connectionType?.id,
+          }}
+        />
       </PageSection>
     </ApplicationsPage>
   );
@@ -83,11 +120,11 @@ const ConnectionTypeDetails: React.FC = () => {
   const [searchParams] = useSearchParams();
   const namespace = searchParams.get('project');
 
-  return namespace ? (
-    <ConnectionTypeDetailsContent namespace={namespace} />
-  ) : (
-    <Navigate to={{ pathname: '..', search }} relative="path" replace />
-  );
+  if (namespace) {
+    return <ConnectionTypeDetailsContent namespace={namespace} />;
+  }
+
+  return <Navigate to={{ pathname: '..', search }} relative="path" replace />;
 };
 
 // Public --------------------------------------------------------------------->
