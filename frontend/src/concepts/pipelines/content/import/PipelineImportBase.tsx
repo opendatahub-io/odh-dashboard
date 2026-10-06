@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Form, FormGroup, Stack, StackItem, Spinner, Alert } from '@patternfly/react-core';
-import { ContentModal } from '@odh-dashboard/ui-core';
+import { ContentModal, useNotification } from '@odh-dashboard/ui-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type { K8sNameDescriptionFieldUpdateFunction } from '@odh-dashboard/k8s-core';
 import K8sNameDescriptionField, {
@@ -63,6 +63,7 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
   const isArgoWorkflow = extractKindFromPipelineYAML(fileContents) === 'Workflow';
   const isV1PipelineFile = isYAMLPipelineV1(fileContents);
   const [pipelineNamespaceCR, crLoaded, crLoadError] = usePipelineNamespaceCR(namespace);
+  const notification = useNotification();
 
   const isKubernetesStorage =
     crLoaded &&
@@ -153,8 +154,14 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
       setError(new Error(PIPELINE_IMPORT_ARGO_ERROR_TEXT));
     } else {
       submitAction()
-        .then((result) => {
+        .then((result: PipelineKF | PipelineVersionKF) => {
           onBeforeClose(result);
+          const versionIdKey = 'pipeline_version_id' satisfies keyof PipelineVersionKF;
+          const msg =
+            versionIdKey in result
+              ? `Pipeline version ${result.display_name} successfully created.`
+              : `Pipeline ${result.display_name} successfully created.`;
+          notification.success(msg);
         })
         .catch((e) => {
           setImporting(false);

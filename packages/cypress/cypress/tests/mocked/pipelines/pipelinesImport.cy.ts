@@ -16,6 +16,7 @@ import {
 } from '../../../pages/pipelines';
 import { verifyRelativeURL } from '../../../utils/url';
 import { argoAlert } from '../../../pages/pipelines/argoAlert';
+import { toastNotifications } from '../../../pages/components/ToastNotifications';
 
 const pipelineYamlPath = './cypress/tests/mocked/pipelines/mock-upload-pipeline.yaml';
 const argoWorkflowPipeline = './cypress/tests/mocked/pipelines/argo-workflow-pipeline.yaml';
@@ -88,6 +89,13 @@ describe('Pipeline Import and Upload', () => {
     cy.wait('@refreshPipelines');
     cy.wait('@getPipeline');
     cy.wait('@getPipelineVersion');
+
+    toastNotifications
+      .findToastNotification(0)
+      .should(
+        'contain.text',
+        `Pipeline ${uploadedMockPipeline.display_name} successfully created.`,
+      );
 
     verifyRelativeURL(
       `/develop-train/pipelines/definitions/${projectName}/${uploadedMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
@@ -216,6 +224,9 @@ describe('Pipeline Import and Upload', () => {
 
     pipelineImportModal.findImportModalError().should('exist');
     pipelineImportModal.findImportModalError().contains('Unsupported pipeline version');
+    toastNotifications
+      .findToastNotificationList()
+      .should('not.contain.text', 'successfully created.');
   });
 
   it('fails to import a v1 pipeline', () => {
@@ -439,6 +450,13 @@ describe('Pipeline Import and Upload', () => {
 
     cy.wait('@getPipeline');
     cy.wait('@getPipelineVersion');
+
+    toastNotifications
+      .findToastNotification(0)
+      .should(
+        'contain.text',
+        `Pipeline version ${uploadedMockPipelineVersion.display_name} successfully created.`,
+      );
 
     verifyRelativeURL(
       `/develop-train/pipelines/definitions/${projectName}/${initialMockPipeline.pipeline_id}/${uploadedMockPipelineVersion.pipeline_version_id}/view`,
