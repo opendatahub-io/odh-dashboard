@@ -26,10 +26,10 @@ export const AIAssetsPage: React.FC = () => {
   const { namespace, tab: tabParam } = useParams<{ namespace: string; tab: string }>();
   const navigate = useNavigate();
 
-  const defaultTab = tabExtensions[0]?.properties.id || '';
   const visibleTabExtensions = namespace
     ? tabExtensions
     : tabExtensions.filter((extension) => extension.properties.id === 'models');
+  const defaultTab = visibleTabExtensions[0]?.properties.id || '';
   const isValidTab = visibleTabExtensions.some((ext) => ext.properties.id === tabParam);
   const activeTabKey = isValidTab ? String(tabParam) : defaultTab;
 

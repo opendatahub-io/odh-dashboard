@@ -144,6 +144,41 @@ describe('AIAssetsPage', () => {
     expect(screen.queryByText('MCP servers')).not.toBeInTheDocument();
   });
 
+  it('should select the rendered Models tab when no project is selected', () => {
+    mockUseExtensions.mockReturnValue([
+      {
+        type: 'gen-ai.ai-assets/tab',
+        properties: {
+          id: 'mcpservers',
+          title: 'MCP servers',
+          component: () => Promise.resolve({ default: () => <div>MCP Tab</div> }),
+        },
+        uid: 'mcp-uid',
+        pluginName: 'gen-ai',
+        flags: {},
+      },
+      {
+        type: 'gen-ai.ai-assets/tab',
+        properties: {
+          id: 'models',
+          title: 'Models',
+          component: () => Promise.resolve({ default: () => <div>Models Tab</div> }),
+        },
+        uid: 'models-uid',
+        pluginName: 'gen-ai',
+        flags: {},
+      },
+    ]);
+
+    render(
+      <MemoryRouter>
+        <AIAssetsPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('ai-assets-tab-models')).toHaveAttribute('aria-selected', 'true');
+  });
+
   it('should render tab with label when provided', () => {
     const mockExtensions = [
       {
