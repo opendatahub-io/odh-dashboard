@@ -34,6 +34,7 @@ import { ExclamationCircleIcon, InProgressIcon } from '@patternfly/react-icons';
 import { Link, useParams } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { AgentDeploymentSummary } from '~/app/agentProfile/types';
+import { buildResponseAPICurl } from '~/app/agentProfile/deploymentUtils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { genAiAiAssetsTabRoute, genAiChatPlaygroundRoute } from '~/app/utilities/routes';
 import NoData from '~/app/EmptyStates/NoData';
@@ -73,34 +74,7 @@ const deploymentStateLabel = (state: AgentDeploymentSummary['state']): React.Rea
   }
 };
 
-export const buildResponseAPICurl = (routeUrl?: string): string => {
-  if (!routeUrl) {
-    return '';
-  }
-
-  try {
-    const responseURL = new URL(routeUrl);
-    if (responseURL.protocol !== 'http:' && responseURL.protocol !== 'https:') {
-      return '';
-    }
-
-    responseURL.search = '';
-    responseURL.hash = '';
-    responseURL.pathname = `${responseURL.pathname.replace(/\/$/, '')}/v1/responses`;
-    const shellSafeURL = responseURL.toString().replaceAll("'", "'\"'\"'");
-
-    return [
-      `curl -s -X POST '${shellSafeURL}' \\`,
-      '  -H "Content-Type: application/json" \\',
-      '  -H "Authorization: Bearer $TOKEN" \\',
-      "  -d '{",
-      '    "input": "Hello, what can you help me with?"',
-      "  }'",
-    ].join('\n');
-  } catch {
-    return '';
-  }
-};
+export { buildResponseAPICurl } from '~/app/agentProfile/deploymentUtils';
 
 const DeploymentSnapshotSkeleton: React.FC = () => (
   <Card isFullHeight data-testid="deployment-snapshot-skeleton">

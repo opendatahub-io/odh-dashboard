@@ -60,6 +60,7 @@ interface MCPServersPanelProps {
   initialServerStatuses?: Map<string, ServerStatusInfo>;
   onToolsWarningChange?: (showWarning: boolean) => void;
   onActiveToolsCountChange?: (count: number) => void;
+  onMissingAuthServersChange?: (serverNames: string[]) => void;
 }
 
 const MCP_AUTH_EVENT_NAME = 'Playground MCP Auth';
@@ -77,6 +78,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   initialServerStatuses,
   onToolsWarningChange,
   onActiveToolsCountChange,
+  onMissingAuthServersChange,
 }) => {
   const isDarkMode = useDarkMode();
   const { api, apiAvailable } = useGenAiAPI();
@@ -252,6 +254,29 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
       return !isAuthenticated && !isServerLoading;
     });
 
+  const missingAuthServerNames = React.useMemo(
+    () =>
+      visibleSelectedServers
+        .filter((server) => {
+          const tokenInfo = tokenManagement.getToken(server.connectionUrl);
+          const isAuthenticated = tokenInfo?.authenticated || tokenInfo?.autoConnected || false;
+          const isServerLoading =
+            validation.validatingServers.has(server.connectionUrl) ||
+            validation.checkingServers.has(server.connectionUrl) ||
+            autoUnlockingServers.has(server.connectionUrl);
+          return selection.isInitialLoadComplete && !isAuthenticated && !isServerLoading;
+        })
+        .map((server) => server.name),
+    [
+      autoUnlockingServers,
+      selection.isInitialLoadComplete,
+      tokenManagement,
+      validation.checkingServers,
+      validation.validatingServers,
+      visibleSelectedServers,
+    ],
+  );
+
   React.useEffect(() => {
     onToolsWarningChange?.(showToolsWarning);
   }, [showToolsWarning, onToolsWarningChange]);
@@ -259,6 +284,10 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   React.useEffect(() => {
     onActiveToolsCountChange?.(totalActiveTools);
   }, [totalActiveTools, onActiveToolsCountChange]);
+
+  React.useEffect(() => {
+    onMissingAuthServersChange?.(missingAuthServerNames);
+  }, [missingAuthServerNames, onMissingAuthServersChange]);
 
   const handleConfigModalClose = React.useCallback(() => {
     if (configModal.selectedItem) {
