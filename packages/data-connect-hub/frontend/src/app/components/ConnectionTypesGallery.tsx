@@ -1,11 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-console */
-
 // Modules -------------------------------------------------------------------->
 
-import React, { useCallback } from 'react';
+import React from 'react';
 import {
-  Button,
   Checkbox,
   Content,
   EmptyState,
@@ -18,25 +14,20 @@ import {
   Stack,
   StackItem,
   Title,
-  Toolbar,
-  ToolbarContent,
   ToolbarItem,
 } from '@patternfly/react-core';
 import {
-  default as FilterToolbar,
-  type ToolbarFilterProps,
-} from '@odh-dashboard/ui-core/components/FilterToolbar';
-import {
-  MultiSelection,
-  type SelectionOptions,
-} from '@odh-dashboard/ui-core/components/MultiSelection';
+  ToolbarFilter,
+  type FilterConfigMap,
+  type FilterState,
+  type FilterValue,
+} from 'mod-arch-shared';
 
 import { ConnectionTypeCard, ConnectionTypeCardIdentifier } from '~/app/components/ConnectionType';
 import type {
   Identified,
   Labelled,
   Described,
-  Valued,
   ConnectionType,
   ConnectionTypeGroup,
 } from '~/app/types';
@@ -44,8 +35,6 @@ import type {
 import emptyStateImage from '~/images/RHOAI-Noconnections-RGB.svg';
 
 // Types ---------------------------------------------------------------------->
-
-type ValuedLabel = Valued<string> & Labelled<string>;
 
 type FilterItem = Identified<string> & Labelled<string>;
 
@@ -63,44 +52,61 @@ type FilterOption = 'capability' | 'labels';
 
 // Globals -------------------------------------------------------------------->
 
-const filterOptions: Record<FilterOption, string> = {
-  capability: 'Capability',
-  labels: 'Labels',
-};
-
 const capabilityFilters = {
   full_integration: {
     value: 'full_integration',
     label: 'Full integration',
   },
-  credential: {
-    value: 'credential',
+  credentials: {
+    value: 'credentials',
     label: 'Credentials only',
   },
 };
 
 const mockLabels = [
   {
-    id: 'label-01',
-    name: 'Label 01',
+    value: 'label-01',
+    label: 'Label 01',
   },
   {
-    id: 'label-02',
-    name: 'Label 02',
+    value: 'label-02',
+    label: 'Label 02',
   },
   {
-    id: 'label-03',
-    name: 'Label 03',
+    value: 'label-03',
+    label: 'Label 03',
   },
   {
-    id: 'label-04',
-    name: 'Label 04',
+    value: 'label-04',
+    label: 'Label 04',
   },
   {
-    id: 'label-05',
-    name: 'Label 05',
+    value: 'label-05',
+    label: 'Label 05',
   },
 ];
+
+const filterConfig: FilterConfigMap<FilterOption> = {
+  capability: {
+    type: 'select',
+    label: 'Capability',
+    placeholder: 'Filter by capability',
+    options: Object.values(capabilityFilters),
+  },
+  labels: {
+    type: 'multiselect',
+    label: 'Labels',
+    placeholder: 'Filter by labels',
+    options: mockLabels,
+  },
+};
+
+const visibleFilterKeys = ['capability', 'labels'] as const;
+
+const initialFilterValues: FilterState<FilterOption> = {
+  capability: '',
+  labels: [],
+};
 
 const categoriesFilter: FilterItems = {
   data_warehouse: { id: 'data_warehouse', label: 'Data warehouse' },
@@ -147,15 +153,6 @@ const defaults = {
   },
 };
 
-// Private -------------------------------------------------------------------->
-
-function selectionOptionToValuedLabel(option: SelectionOptions): ValuedLabel {
-  return {
-    value: option.id as string,
-    label: option.name,
-  };
-}
-
 // Components ----------------------------------------------------------------->
 
 type ConnectionTypesGalleryProps = {
@@ -181,26 +178,13 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
   );
   const [selectedFilters, setSelectedFilters] = React.useState(initialSelectedFilters);
   const [searchTerm, setSearchTerm] = React.useState('');
-  const [selectedConnectionGroup, setSelectedConnectionGroup] =
-    React.useState<ConnectionTypeGroup | null>(null);
-  const [filterType, setFilterType] = React.useState<FilterOption>('capability');
-  const [capabilityFilterItems, setCapabilityFilterItems] = React.useState<SelectionOptions[]>(
-    Object.values(capabilityFilters).map((capability) => ({
-      id: capability.value,
-      name: capability.label,
-    })),
-  );
-  const [labelFilterItems, setLabelFilterItems] = React.useState<SelectionOptions[]>(mockLabels);
-
-  const filterData = React.useMemo<Record<FilterOption, ValuedLabel[]>>(
-    () => ({
-      capability: capabilityFilterItems
-        .filter((item) => item.checked)
-        .map(selectionOptionToValuedLabel),
-      labels: labelFilterItems.filter((item) => item.checked).map(selectionOptionToValuedLabel),
-    }),
-    [capabilityFilterItems, labelFilterItems],
-  );
+  const [filterValues, setFilterValues] =
+    React.useState<FilterState<FilterOption>>(initialFilterValues);
+  const selectedConnectionGroup =
+    typeof filterValues.capability === 'string' &&
+    (filterValues.capability === 'full_integration' || filterValues.capability === 'credentials')
+      ? filterValues.capability
+      : null;
 
   // Callbacks ---------------------------------------------------------------->
 
@@ -220,12 +204,14 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
     [searchTerm],
   );
 
-  const onFilterUpdate = useCallback<ToolbarFilterProps<FilterOption>['onFilterUpdate']>(
-    (type, value) => {
-      console.info(`Implement onFilterUpdate: type(${type}) value(${value})`);
-    },
-    [],
-  );
+  const onFilterChange = React.useCallback((filterKey: FilterOption, value: FilterValue) => {
+    setFilterValues((previousFilterValues) => ({
+      ...previousFilterValues,
+      [filterKey]: value,
+    }));
+  }, []);
+
+  const onClearAllFilters = React.useCallback(() => setFilterValues(initialFilterValues), []);
 
   // Helpers ------------------------------------------------------------------>
 
@@ -268,27 +254,6 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
       (renderedConnectionTypes) => renderedConnectionTypes.length === 0,
     );
 
-  const filterOptionRenders: ToolbarFilterProps<FilterOption>['filterOptionRenders'] = {
-    capability: () => (
-      <MultiSelection
-        value={capabilityFilterItems}
-        setValue={setCapabilityFilterItems}
-        placeholder={'Filter by capabilities'}
-        ariaLabel="Connection type capability filter"
-        isDisabled={false}
-      />
-    ),
-    labels: () => (
-      <MultiSelection
-        value={labelFilterItems}
-        setValue={setLabelFilterItems}
-        placeholder={'Filter by labels'}
-        ariaLabel="Connection type label filter"
-        isDisabled={false}
-      />
-    ),
-  };
-
   // Rendering ---------------------------------------------------------------->
 
   const sidebarPanel = (
@@ -329,34 +294,14 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
   );
 
   const toolbar = (
-    <Toolbar
-      id="ConnectionTypesGallery-toolbar"
-      className="pf-m-toggle-group-container"
-      collapseListedFiltersBreakpoint="xl"
-      customLabelGroupContent={
-        <ToolbarItem>
-          <Button
-            variant="link"
-            isInline
-            onClick={() => {
-              console.info(`Clear all filters`);
-            }}
-          >
-            Clear all filters
-          </Button>
-        </ToolbarItem>
-      }
-    >
-      <ToolbarContent>
-        <FilterToolbar
-          testId="ConnectionTypesGallery-filters"
-          filterOptions={filterOptions}
-          filterOptionRenders={filterOptionRenders}
-          filterData={filterData}
-          onFilterUpdate={onFilterUpdate}
-          currentFilterType={filterType}
-          onFilterTypeChange={setFilterType}
-        />
+    <ToolbarFilter
+      filterConfig={filterConfig}
+      visibleFilterKeys={visibleFilterKeys}
+      filterValues={filterValues}
+      onFilterChange={onFilterChange}
+      onClearAllFilters={onClearAllFilters}
+      testIdPrefix="connection-types-gallery"
+      toolbarActions={
         <ToolbarItem>
           <SearchInput
             name="ConnectionTypesGallery-toolbar-search"
@@ -367,8 +312,8 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
             onClear={() => setSearchTerm('')}
           />
         </ToolbarItem>
-      </ToolbarContent>
-    </Toolbar>
+      }
+    />
   );
 
   const galleryCards = Object.values(defaults.toolbar.groups)
