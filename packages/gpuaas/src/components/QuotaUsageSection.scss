@@ -86,3 +86,10 @@
 .gpuaas-quota-usage-meter__value {
   color: var(--pf-t--global--text--color--regular);
 }
+
+.gpuaas-quota-usage-meter__chart svg {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
