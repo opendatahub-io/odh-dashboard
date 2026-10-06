@@ -4,8 +4,8 @@ import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { asProductAdminUser, asProjectEditUser } from '../../../utils/mockUsers';
 import { pageNotfound } from '../../../pages/pageNotFound';
 
-const catalogUrl =
-  '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog';
+const settingsUrl = '/settings/model-resources-operations/model-deployment-settings';
+const catalogUrl = `${settingsUrl}/serving-runtime-catalog`;
 const runtimeId = 'catalog-vllm-0-6-2';
 const detailsUrl = `${catalogUrl}/${runtimeId}`;
 
@@ -56,7 +56,9 @@ describe('Runtime image library details', () => {
       .should('have.value', 'registry.example.com/mock/vllm:0.6.2');
     cy.findByRole('button', { name: 'Create' }).should('be.disabled');
     cy.findByRole('button', { name: 'Install' }).should('not.exist');
-    cy.findByText(/# Example only\. Not deployable\./).should('be.visible');
+    cy.findByRole('tabpanel', { name: 'Serving runtime template' })
+      .findByText(/# Example only\. Not deployable\./)
+      .should('be.visible');
   });
 
   it('copies the container image', () => {
@@ -93,7 +95,8 @@ describe('Runtime image library details', () => {
   it('does not expose details when the feature flag is disabled', () => {
     setupRuntimeCatalog(false);
     cy.visitWithLogin(detailsUrl);
-    pageNotfound.findPage().should('exist');
+    cy.location('pathname').should('eq', `${settingsUrl}/general-settings`);
+    cy.findByTestId('runtime-catalog-details').should('not.exist');
   });
 
   it('does not expose details to a non-admin user', () => {
