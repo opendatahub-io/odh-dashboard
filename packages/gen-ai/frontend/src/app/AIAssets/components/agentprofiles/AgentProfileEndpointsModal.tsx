@@ -130,7 +130,7 @@ const AgentProfileEndpointsModal: React.FC<AgentProfileEndpointsModalProps> = ({
                       component={(props) => <Link {...props} to={detailsPath} />}
                       data-testid={`view-deployment-details-${deployment.name}`}
                     >
-                      View full details
+                      View details
                     </Button>
                   </Td>
                 </Tr>

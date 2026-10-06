@@ -42,6 +42,9 @@ describe('AgentProfileEndpointsModal', () => {
     expect(
       screen.getByDisplayValue('https://hr-chatbot-v2.apps.example.com/v1/responses'),
     ).toBeInTheDocument();
+    expect(screen.getByTestId('view-deployment-details-hr-chatbot-v2')).toHaveTextContent(
+      'View details',
+    );
     expect(screen.getByTestId('view-deployment-details-hr-chatbot-v2')).toHaveAttribute(
       'href',
       '/gen-ai-studio/assets/my-project/agentprofile/profile-id?deployment=hr-chatbot-v2',
