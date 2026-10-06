@@ -24,11 +24,14 @@ import {
 } from 'mod-arch-shared';
 
 import {
+  type ConnectionTypeCapability,
+  ConnectionTypeCapabilities,
   ConnectionTypeInstance,
   ConnectionTypeCard,
   ConnectionTypeCardIdentifier,
 } from '~/app/components/ConnectionType';
-import type { Identified, Labelled, Described, ConnectionType } from '~/app/types';
+import type { Identified, Labelled, ConnectionType } from '~/app/types';
+import { IdentifiedLabelledToValuedLabelled } from '~/app/types';
 
 import emptyStateImage from '~/images/RHOAI-Noconnections-RGB.svg';
 
@@ -40,27 +43,13 @@ type FilterItems = Record<string, FilterItem>;
 
 type SelectedFilters = Record<string, string | null>;
 
-type ConnectionTypeGroup = 'full_integration' | 'credentials';
-
-type ConnectionGroup = Identified<ConnectionTypeGroup> &
-  Labelled<string> &
-  Described<string> & {
-    renderGroupSection?: boolean;
-  };
-
 type FilterOption = 'capability' | 'labels';
 
 // Globals -------------------------------------------------------------------->
 
 const capabilityFilters = {
-  full_integration: {
-    value: 'full_integration',
-    label: 'Full integration',
-  },
-  credentials: {
-    value: 'credentials',
-    label: 'Credentials only',
-  },
+  ...IdentifiedLabelledToValuedLabelled(ConnectionTypeCapabilities.full_integration),
+  ...IdentifiedLabelledToValuedLabelled(ConnectionTypeCapabilities.credentials),
 };
 
 const mockLabels = [
@@ -123,20 +112,6 @@ const licensesFilter: FilterItems = {
   proprietary: { id: 'proprietary', label: 'Proprietary' },
 };
 
-const connectionGroups: Record<ConnectionTypeGroup, ConnectionGroup> = {
-  full_integration: {
-    id: 'full_integration',
-    label: 'Full integration',
-    description: 'Connection types with credential management and data ingestion support.',
-  },
-  credentials: {
-    id: 'credentials',
-    label: 'Credentials only',
-    description:
-      'Connection types that store credentials for authentication without built-in ingestion.',
-  },
-};
-
 const localFeatureFlags = {
   filters: false,
 };
@@ -149,7 +124,7 @@ const defaults = {
     },
   },
   toolbar: {
-    groups: connectionGroups,
+    groups: ConnectionTypeCapabilities,
   },
 };
 
@@ -220,9 +195,9 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
   // Helpers ------------------------------------------------------------------>
 
   const connectionTypesByGroup = React.useMemo<
-    Record<ConnectionTypeGroup, ConnectionTypeInstance[]>
+    Record<ConnectionTypeCapability, ConnectionTypeInstance[]>
   >(() => {
-    const groupedConnectionTypes: Record<ConnectionTypeGroup, ConnectionTypeInstance[]> = {
+    const groupedConnectionTypes: Record<ConnectionTypeCapability, ConnectionTypeInstance[]> = {
       full_integration: [],
       credentials: [],
     };
@@ -241,13 +216,13 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
   }, [connectionTypes]);
 
   const connectionTypesByGroupToRender = React.useMemo<
-    Record<ConnectionTypeGroup, ConnectionTypeInstance[]>
+    Record<ConnectionTypeCapability, ConnectionTypeInstance[]>
   >(() => {
-    const filteredConnectionTypes: Record<ConnectionTypeGroup, ConnectionTypeInstance[]> = {
+    const filteredConnectionTypes: Record<ConnectionTypeCapability, ConnectionTypeInstance[]> = {
       full_integration: [],
       credentials: [],
     };
-    Object.values(connectionGroups).forEach(({ id: connectionTypeGroup }) => {
+    Object.values(ConnectionTypeCapabilities).forEach(({ id: connectionTypeGroup }) => {
       filteredConnectionTypes[connectionTypeGroup] =
         connectionTypesByGroup[connectionTypeGroup].filter(shouldShowConnectionType);
     });
@@ -327,7 +302,6 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
   );
 
   const galleryCards = Object.values(defaults.toolbar.groups)
-    .filter((group) => group.renderGroupSection !== false)
     .filter((group) => connectionTypesByGroupToRender[group.id].length)
     .filter((group) => !selectedConnectionGroup || group.id === selectedConnectionGroup)
     .map((group) => (

@@ -52,9 +52,17 @@ describe('ConnectionType', () => {
   });
 
   it('should render the provider and relative timestamps in the details values', () => {
-    jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-09-10T16:00:00Z').getTime());
+    const oneDayInMs = 24 * 60 * 60 * 1000;
+    const now = new Date('2026-09-10T16:00:00Z').getTime();
+    const connectionType = mockConnectionType({
+      metadata: {
+        created_at: new Date(now - 2 * oneDayInMs).toISOString(),
+        updated_at: new Date(now - oneDayInMs).toISOString(),
+      },
+    });
+    jest.spyOn(Date, 'now').mockReturnValue(now);
 
-    render(<ConnectionTypeValues connectionType={mockConnectionType()} />);
+    render(<ConnectionTypeValues connectionType={connectionType} />);
 
     expect(screen.getByText('Provider')).toBeTruthy();
     expect(screen.getByText('postgresql')).toBeTruthy();

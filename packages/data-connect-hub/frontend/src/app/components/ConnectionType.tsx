@@ -16,13 +16,19 @@ import {
   Icon,
   Label,
   LabelColor,
-  Timestamp,
-  TimestampTooltipVariant,
 } from '@patternfly/react-core';
 import type { IconComponentProps } from '@patternfly/react-core';
 import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
-import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
-import type { Identified, Iconed, ConnectionType, Labelled, Valued } from '~/app/types';
+import RelativeTimestamp from '~/app/components/RelativeTimestamp';
+import {
+  Described,
+  Identified,
+  Iconed,
+  Labelled,
+  Valued,
+  ConnectionType,
+  Colored,
+} from '~/app/types';
 
 import DataSourceIcon from '@patternfly/react-icons/dist/esm/icons/data-source-icon';
 import LinkIcon from '@patternfly/react-icons/dist/esm/icons/link-icon';
@@ -42,6 +48,17 @@ type RenderedConnectionTypeValue = Identified<string> &
   Valued<ValueRenderer> & {
     shouldRender?: boolean;
   };
+
+type ConnectionTypeCapability = 'full_integration' | 'credentials';
+
+type ConnectionTypeCapabilityDetails = Identified<ConnectionTypeCapability> &
+  Labelled<string> &
+  Described<string> &
+  Colored<LabelColor>;
+
+type BaseConnectionTypeProps = {
+  connectionType: ConnectionType;
+};
 
 // Globals -------------------------------------------------------------------->
 
@@ -88,6 +105,25 @@ const KnownConnectionTypes: Record<string, KnownConnectionType> = {
   },
 };
 
+const ConnectionTypeCapabilities: Record<
+  ConnectionTypeCapability,
+  ConnectionTypeCapabilityDetails
+> = {
+  full_integration: {
+    id: 'full_integration',
+    label: 'Full integration',
+    description: 'Connection types with credential management and data ingestion support.',
+    color: LabelColor.teal,
+  },
+  credentials: {
+    id: 'credentials',
+    label: 'Credentials only',
+    description:
+      'Connection types that store credentials for authentication without built-in ingestion.',
+    color: LabelColor.yellow,
+  },
+};
+
 const renderedConnectionTypeValues: Record<string, RenderedConnectionTypeValue> = {
   description: {
     id: 'description',
@@ -121,7 +157,9 @@ const renderedConnectionTypeValues: Record<string, RenderedConnectionTypeValue> 
     id: 'capability',
     label: 'Capability',
     value: (connectionType) =>
-      connectionType.isCredentialsOnly() ? 'Credentials only' : 'Full integration',
+      connectionType.isCredentialsOnly()
+        ? ConnectionTypeCapabilities.credentials.label
+        : ConnectionTypeCapabilities.full_integration.label,
   },
   created: {
     id: 'created',
@@ -136,7 +174,7 @@ const renderedConnectionTypeValues: Record<string, RenderedConnectionTypeValue> 
 };
 
 const localFeatureFlags = {
-  tags: true,
+  tags: false,
 };
 
 // Private -------------------------------------------------------------------->
@@ -188,25 +226,7 @@ class ConnectionTypeInstance implements ConnectionType {
 
 // Components ----------------------------------------------------------------->
 
-type RelativeTimestampProps = {
-  datetime: string;
-};
-const RelativeTimestamp: React.FC<RelativeTimestampProps> = ({ datetime }) => {
-  const datetimeObject = new Date(datetime);
-
-  if (Number.isNaN(datetimeObject.getTime())) {
-    return <>-</>;
-  }
-
-  return (
-    <Timestamp date={datetimeObject} tooltip={{ variant: TimestampTooltipVariant.default }}>
-      {relativeTime(Date.now(), datetimeObject.getTime())}
-    </Timestamp>
-  );
-};
-
-type ConnectionTypeIconProps = {
-  connectionType: ConnectionType;
+type ConnectionTypeIconProps = BaseConnectionTypeProps & {
   iconProps?: IconComponentProps;
 };
 const ConnectionTypeIcon: React.FC<ConnectionTypeIconProps> = ({ connectionType, iconProps }) => {
@@ -225,23 +245,20 @@ const ConnectionTypeIcon: React.FC<ConnectionTypeIconProps> = ({ connectionType,
   );
 };
 
-type ConnectionTypeLabelProps = {
-  connectionType: ConnectionType;
-};
+type ConnectionTypeLabelProps = BaseConnectionTypeProps;
 const ConnectionTypeLabel: React.FC<ConnectionTypeLabelProps> = ({
   connectionType: _connectionType,
 }) => {
   const connectionType = new ConnectionTypeInstance(_connectionType);
-  let label = <Label color={LabelColor.teal}>Full integration</Label>;
+  let capability = ConnectionTypeCapabilities.full_integration;
   if (connectionType.isCredentialsOnly()) {
-    label = <Label color={LabelColor.yellow}>Credentials only</Label>;
+    capability = ConnectionTypeCapabilities.credentials;
   }
-  return label;
+  return <Label color={capability.color}>{capability.label}</Label>;
 };
 
 const ConnectionTypeCardIdentifier = (id: string) => `${id}--ConnectionTypeCard`;
-type ConnectionTypeCardProps = {
-  connectionType: ConnectionType;
+type ConnectionTypeCardProps = BaseConnectionTypeProps & {
   onClick: () => void;
   isSelectable?: boolean;
   isSelected?: boolean;
@@ -289,7 +306,7 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
   );
 };
 
-type ConnectionTypeValuesProps = { connectionType: ConnectionType };
+type ConnectionTypeValuesProps = BaseConnectionTypeProps;
 const ConnectionTypeValues: React.FC<ConnectionTypeValuesProps> = ({
   connectionType: _connectionType,
 }) => {
@@ -356,8 +373,17 @@ const ConnectionTypeValues: React.FC<ConnectionTypeValuesProps> = ({
 
 // Public --------------------------------------------------------------------->
 
+export type {
+  KnownConnectionType,
+  ValueRenderer,
+  RenderedConnectionTypeValue,
+  ConnectionTypeCapability,
+  ConnectionTypeCapabilityDetails,
+};
+
 export {
   KnownConnectionTypes,
+  ConnectionTypeCapabilities,
   ConnectionTypeInstance,
   ConnectionTypeIcon,
   ConnectionTypeLabel,
