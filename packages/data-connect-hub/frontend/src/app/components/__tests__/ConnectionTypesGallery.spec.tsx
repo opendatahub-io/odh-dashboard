@@ -124,7 +124,8 @@ describe('ConnectionTypesGallery', () => {
     expect(screen.queryByRole('heading', { name: 'Credentials only' })).toBeNull();
   });
 
-  it('should support selecting and clearing multiple label filters', async () => {
+  // TODO: Labels are waiting on API changes; re-enable this test when label filtering is enabled.
+  it.skip('should support selecting and clearing multiple label filters', async () => {
     const user = userEvent.setup();
 
     render(<ConnectionTypesGallery connectionTypes={[]} onConnectionTypeClick={jest.fn()} />);

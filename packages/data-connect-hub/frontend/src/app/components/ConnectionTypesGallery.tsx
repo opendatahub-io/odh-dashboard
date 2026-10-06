@@ -52,6 +52,11 @@ const capabilityFilters = {
   ...IdentifiedLabelledToValuedLabelled(ConnectionTypeCapabilities.credentials),
 };
 
+const localFeatureFlags = {
+  filters: false,
+  tags: false,
+};
+
 const mockLabels = [
   {
     value: 'label-01',
@@ -90,7 +95,9 @@ const filterConfig: FilterConfigMap<FilterOption> = {
   },
 };
 
-const visibleFilterKeys = ['capability', 'labels'] as const;
+const visibleFilterKeys: FilterOption[] = localFeatureFlags.tags
+  ? ['capability', 'labels']
+  : ['capability'];
 
 const initialFilterValues: FilterState<FilterOption> = {
   capability: '',
@@ -110,10 +117,6 @@ const licensesFilter: FilterItems = {
   mit: { id: 'mit', label: 'MIT' },
   postgresql_license: { id: 'postgresql_license', label: 'PostgreSQL License' },
   proprietary: { id: 'proprietary', label: 'Proprietary' },
-};
-
-const localFeatureFlags = {
-  filters: false,
 };
 
 const defaults = {
@@ -175,7 +178,7 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
       if (normalizedSearchTerm) {
         shouldRenderConnectionType = connectionType.matchesSearch(normalizedSearchTerm);
       }
-      if (filterValues.labels.length) {
+      if (localFeatureFlags.tags && filterValues.labels.length) {
         shouldRenderConnectionType = connectionType.matchesLabels(filterValues.labels);
       }
       return shouldRenderConnectionType;
@@ -229,7 +232,9 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
     return filteredConnectionTypes;
   }, [connectionTypesByGroup, shouldShowConnectionType]);
 
-  const hasFilters = Boolean(filterValues.capability) || Boolean(filterValues.labels.length);
+  const hasFilters =
+    Boolean(filterValues.capability) ||
+    (localFeatureFlags.tags && Boolean(filterValues.labels.length));
 
   const shouldRenderGroupTitles = !hasFilters && !normalizedSearchTerm;
 
