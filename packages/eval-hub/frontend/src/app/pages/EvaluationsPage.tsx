@@ -44,11 +44,13 @@ import type { Collection, EvaluationJob } from '~/app/types';
 import { useCollectionDrawer } from '~/app/hooks/useCollectionDrawer';
 import StopEvaluationModal from '~/app/components/StopEvaluationModal';
 import EvaluateTab from './EvaluateTab';
+import GalleryTab from './GalleryTab';
 
 import './EvaluationsTabs.scss';
 
 const EvaluationStatusModal = React.lazy(() => import('~/app/components/EvaluationStatusModal'));
 
+const GALLERY_TAB = 'gallery';
 const EVALUATE_TAB = 'evaluate';
 const RUNS_TAB = 'runs';
 const TAB_QUERY_PARAM = 'tab';
@@ -61,7 +63,9 @@ const EvaluationsPage: React.FC = () => {
   const { clusterAdmin } = useUser();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get(TAB_QUERY_PARAM);
-  const activeTab = tabParam === RUNS_TAB ? RUNS_TAB : EVALUATE_TAB;
+  const activeTab = [GALLERY_TAB, EVALUATE_TAB, RUNS_TAB].includes(tabParam ?? '')
+    ? tabParam!
+    : GALLERY_TAB;
   const isRunsTab = activeTab === RUNS_TAB;
 
   // Pause list polling when the browser tab is backgrounded
@@ -123,7 +127,7 @@ const EvaluationsPage: React.FC = () => {
   const onSelectTab = React.useCallback(
     (_event: React.MouseEvent, selectedTab: string | number) => {
       const nextTab = String(selectedTab);
-      if (nextTab === activeTab || ![EVALUATE_TAB, RUNS_TAB].includes(nextTab)) {
+      if (nextTab === activeTab || ![GALLERY_TAB, EVALUATE_TAB, RUNS_TAB].includes(nextTab)) {
         return;
       }
 
@@ -248,9 +252,17 @@ const EvaluationsPage: React.FC = () => {
                 mountOnEnter
               >
                 <Tab
+                  eventKey={GALLERY_TAB}
+                  title={<TabTitleText>Gallery</TabTitleText>}
+                  aria-label="Gallery tab"
+                  data-testid="gallery-tab"
+                >
+                  <GalleryTab namespace={namespace ?? ''} />
+                </Tab>
+                <Tab
                   eventKey={EVALUATE_TAB}
-                  title={<TabTitleText>Evaluate</TabTitleText>}
-                  aria-label="Evaluate tab"
+                  title={<TabTitleText>Benchmark suites</TabTitleText>}
+                  aria-label="Benchmark suites tab"
                   data-testid="evaluate-tab"
                 >
                   <EvaluateTab

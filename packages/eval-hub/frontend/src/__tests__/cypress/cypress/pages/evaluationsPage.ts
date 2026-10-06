@@ -1,7 +1,15 @@
 class EvaluationsPage {
-  visit(namespace: string, tab?: 'evaluate' | 'runs') {
+  visit(namespace: string, tab?: 'gallery' | 'evaluate' | 'runs') {
     cy.visit(`/evaluation/${namespace}${tab ? `?tab=${tab}` : ''}`);
     this.waitForLoad();
+  }
+
+  visitGallery(namespace: string) {
+    this.visit(namespace, 'gallery');
+  }
+
+  visitEvaluate(namespace: string) {
+    this.visit(namespace, 'evaluate');
   }
 
   visitRuns(namespace: string) {
@@ -42,6 +50,14 @@ class EvaluationsPage {
 
   findEvaluateTab() {
     return cy.findByTestId('evaluate-tab');
+  }
+
+  findGalleryTab() {
+    return cy.findByTestId('gallery-tab');
+  }
+
+  findGalleryContent() {
+    return cy.findByTestId('gallery-tab-content');
   }
 
   findRunsTab() {
@@ -120,7 +136,26 @@ class EvaluationsPage {
     return cy.findByTestId('benchmark-suites-industry-filter');
   }
 
-  findBenchmarkSuitesFilterOption(filter: 'category' | 'evaluates' | 'industry', value: string) {
+  findBenchmarkSuitesTagsFilter() {
+    return cy.findByTestId('benchmark-suites-tags-filter');
+  }
+
+  findBenchmarkSuitesTaskFilter() {
+    return cy.findByTestId('benchmark-suites-task-filter');
+  }
+
+  findBenchmarkSuitesModalityFilter() {
+    return cy.findByTestId('benchmark-suites-modality-filter');
+  }
+
+  findBenchmarkSuitesPagination() {
+    return cy.findByTestId('benchmark-suites-pagination-top');
+  }
+
+  findBenchmarkSuitesFilterOption(
+    filter: 'category' | 'evaluates' | 'industry' | 'tags' | 'task' | 'modality',
+    value: string,
+  ) {
     return cy.findByTestId(`benchmark-suites-${filter}-filter-option-${value}`);
   }
 

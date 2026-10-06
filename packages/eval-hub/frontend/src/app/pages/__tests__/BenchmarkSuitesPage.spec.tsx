@@ -206,6 +206,9 @@ describe('BenchmarkSuitesPage', () => {
       domains: [],
       // eslint-disable-next-line camelcase
       evaluation_targets: [],
+      tags: [],
+      tasks: [],
+      modalities: [],
       industries: [],
     }));
 
@@ -224,6 +227,9 @@ describe('BenchmarkSuitesPage', () => {
     expect(screen.queryByTestId('benchmark-suites-category-filter')).not.toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suites-evaluates-filter')).not.toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suites-industry-filter')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-tags-filter')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-task-filter')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-modality-filter')).not.toBeInTheDocument();
   });
 
   it('should keep filters enabled when an active filter returns no suites', () => {
@@ -247,8 +253,8 @@ describe('BenchmarkSuitesPage', () => {
   it('should derive filter options from collection fields', async () => {
     const collections = mockBenchmarkSuiteCollections().map((collection, index) => ({
       ...collection,
-      category: index % 2 === 0 ? 'z-category' : 'a-category',
-      domains: ['domain-only'],
+      category: 'legacy-category',
+      domains: [index % 2 === 0 ? 'z-category' : 'a-category'],
       // eslint-disable-next-line camelcase
       evaluation_targets: [index % 2 === 0 ? 'z-entity' : 'a-entity'],
       industries: [index % 2 === 0 ? 'z-industry' : 'a-industry'],
@@ -275,7 +281,7 @@ describe('BenchmarkSuitesPage', () => {
       screen.getByTestId('benchmark-suites-category-filter-option-z-category'),
     ).toBeInTheDocument();
     expect(
-      screen.queryByTestId('benchmark-suites-category-filter-option-domain-only'),
+      screen.queryByTestId('benchmark-suites-category-filter-option-legacy-category'),
     ).not.toBeInTheDocument();
 
     await user.click(screen.getByTestId('benchmark-suites-category-filter-option-all'));

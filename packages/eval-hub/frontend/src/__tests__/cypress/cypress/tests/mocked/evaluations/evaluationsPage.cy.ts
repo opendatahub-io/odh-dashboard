@@ -8,6 +8,7 @@ import { mockKueueAvailability } from '~/__mocks__/mockKueueAvailability';
 import {
   mockBenchmarkSuiteCollections,
   mockCollectionsListResponse,
+  mockCuratedBenchmarkSuiteCollections,
 } from '~/__mocks__/mockCollection';
 import { evaluationsPage } from '~/__tests__/cypress/cypress/pages/evaluationsPage';
 import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
@@ -37,7 +38,7 @@ const initIntercepts = ({
   health = mockEvalHubHealth(),
   jobs = [],
   providers = [],
-  collections = [],
+  collections = mockCuratedBenchmarkSuiteCollections(),
   collectionsTotalCount,
   kueueAvailability = mockKueueAvailability(),
 }: InterceptOptions = {}) => {
@@ -75,15 +76,20 @@ describe('Evaluations Page - Tabs', () => {
     });
   });
 
-  it('should default to the Evaluate tab with the benchmark suite create link', () => {
+  it('should default to the Gallery tab with curated suite filters', () => {
     evaluationsPage.visit(NAMESPACE);
-    evaluationsPage.findEvaluateTab().should('have.attr', 'aria-selected', 'true');
-    evaluationsPage.findEvaluateContent().should('exist');
-    evaluationsPage.findCreateSuiteCard().should('exist');
-    evaluationsPage
-      .findCreateSuiteButton()
-      .should('have.attr', 'href', `/evaluation/${NAMESPACE}/create/collections/new`)
-      .and('not.have.attr', 'aria-disabled', 'true');
+    evaluationsPage.findGalleryTab().should('have.attr', 'aria-selected', 'true');
+    evaluationsPage.findGalleryContent().should('exist');
+    evaluationsPage.findCreateSuiteCard().should('not.exist');
+    evaluationsPage.findBenchmarkSuitesCategoryFilter().should('exist');
+    evaluationsPage.findBenchmarkSuitesIndustryFilter().should('exist');
+    evaluationsPage.findBenchmarkSuitesTagsFilter().should('exist');
+    evaluationsPage.findBenchmarkSuitesTaskFilter().should('exist');
+    evaluationsPage.findBenchmarkSuitesModalityFilter().should('exist');
+    evaluationsPage.findBenchmarkSuitesEvaluatesFilter().should('exist');
+    evaluationsPage.findBenchmarkSuitesPagination().should('exist');
+    evaluationsPage.findBenchmarkSuiteCard('clawbench').should('exist');
+    evaluationsPage.findBenchmarkSuiteCard('curated-open-llm-leaderboard-v2').should('exist');
     evaluationsPage
       .findPageDescription()
       .should(
@@ -92,8 +98,57 @@ describe('Evaluations Page - Tabs', () => {
       );
   });
 
-  it('should navigate to the single benchmark flow from the browse benchmarks section', () => {
+  it('should filter Gallery suites by evaluation target', () => {
     evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.findBenchmarkSuitesEvaluatesFilter().click();
+    evaluationsPage.findBenchmarkSuitesFilterOption('evaluates', 'model').should('exist');
+    evaluationsPage.findBenchmarkSuitesFilterOption('evaluates', 'agent').should('exist');
+    evaluationsPage.findBenchmarkSuitesFilterOption('evaluates', 'model').click();
+
+    evaluationsPage.findBenchmarkSuiteCard('curated-open-llm-leaderboard-v2').should('exist');
+    evaluationsPage.findBenchmarkSuiteCard('clawbench').should('not.exist');
+  });
+
+  it('should filter Gallery suites by category, tags, task, modality, and industry', () => {
+    evaluationsPage.visit(NAMESPACE);
+
+    evaluationsPage.findBenchmarkSuitesCategoryFilter().click();
+    evaluationsPage.findBenchmarkSuitesFilterOption('category', 'code').click();
+    evaluationsPage.findBenchmarkSuiteCard('software-engineering-agent-suite').should('exist');
+    evaluationsPage.findBenchmarkSuiteCard('clawbench').should('not.exist');
+
+    evaluationsPage.findBenchmarkSuitesCategoryFilter().click();
+    evaluationsPage.findBenchmarkSuitesFilterOption('category', 'all').click();
+    evaluationsPage.findBenchmarkSuitesTagsFilter().click();
+    evaluationsPage.findBenchmarkSuitesFilterOption('tags', 'code').click();
+    evaluationsPage.findBenchmarkSuiteCard('software-engineering-agent-suite').should('exist');
+    evaluationsPage.findBenchmarkSuiteCard('clawbench').should('not.exist');
+
+    evaluationsPage.findBenchmarkSuitesTagsFilter().click();
+    evaluationsPage.findBenchmarkSuitesFilterOption('tags', 'all').click();
+    evaluationsPage.findBenchmarkSuitesTaskFilter().click();
+    evaluationsPage.findBenchmarkSuitesFilterOption('task', 'code_generation').click();
+    evaluationsPage.findBenchmarkSuiteCard('software-engineering-agent-suite').should('exist');
+    evaluationsPage.findBenchmarkSuiteCard('clawbench').should('not.exist');
+
+    evaluationsPage.findBenchmarkSuitesTaskFilter().click();
+    evaluationsPage.findBenchmarkSuitesFilterOption('task', 'all').click();
+    evaluationsPage.findBenchmarkSuitesModalityFilter().click();
+    evaluationsPage.findBenchmarkSuitesFilterOption('modality', 'code').click();
+    evaluationsPage.findBenchmarkSuiteCard('software-engineering-agent-suite').should('exist');
+    evaluationsPage.findBenchmarkSuiteCard('clawbench').should('not.exist');
+
+    evaluationsPage.findBenchmarkSuitesModalityFilter().click();
+    evaluationsPage.findBenchmarkSuitesFilterOption('modality', 'all').click();
+    evaluationsPage.findBenchmarkSuitesIndustryFilter().click();
+    evaluationsPage.findBenchmarkSuitesFilterOption('industry', 'telco').click();
+    evaluationsPage.findBenchmarkSuiteCard('software-engineering-agent-suite').should('exist');
+    evaluationsPage.findBenchmarkSuiteCard('clawbench').should('not.exist');
+  });
+
+  it('should navigate to the single benchmark flow from the browse benchmarks section', () => {
+    evaluationsPage.visitEvaluate(NAMESPACE);
+    evaluationsPage.findEvaluateTab().should('contain.text', 'Benchmark suites');
     evaluationsPage.findBrowseAllBenchmarksExploreButton().click();
     cy.url().should('include', `/evaluation/${NAMESPACE}/create/benchmarks`);
   });
@@ -116,12 +171,12 @@ describe('Evaluations Page - Tabs', () => {
     cy.url().should('include', '?tab=runs');
   });
 
-  it('should restore the Evaluate tab when navigating back', () => {
+  it('should restore the Gallery tab when navigating back', () => {
     evaluationsPage.visit(NAMESPACE);
     evaluationsPage.findRunsTab().click();
     cy.go('back');
-    evaluationsPage.findEvaluateTab().should('have.attr', 'aria-selected', 'true');
-    evaluationsPage.findCreateSuiteCard().should('exist');
+    evaluationsPage.findGalleryTab().should('have.attr', 'aria-selected', 'true');
+    evaluationsPage.findGalleryContent().should('exist');
   });
 
   it('should render tenant benchmark suites in the gallery', () => {
@@ -130,7 +185,7 @@ describe('Evaluations Page - Tabs', () => {
       collectionsTotalCount: 8,
     });
 
-    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.visitEvaluate(NAMESPACE);
 
     evaluationsPage.findBenchmarkSuiteCard('model-suite-2').should('contain.text', 'Model suite 2');
     evaluationsPage.findBenchmarkSuiteCard('model-suite-7').should('contain.text', 'Model suite 7');
@@ -161,7 +216,7 @@ describe('Evaluations Page - Tabs', () => {
   it('should open the suite details drawer when selecting a suite name', () => {
     initIntercepts({ collections: mockBenchmarkSuiteCollections() });
 
-    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.visitEvaluate(NAMESPACE);
     evaluationsPage.findBenchmarkSuiteName('model-suite-2').click();
 
     evaluationsPage.findCollectionDrawerPanel().should('be.visible');
@@ -172,7 +227,7 @@ describe('Evaluations Page - Tabs', () => {
   it('should render curated suite category cards and link to filtered collections', () => {
     initIntercepts({ collections: mockBenchmarkSuiteCollections() });
 
-    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.visitEvaluate(NAMESPACE);
 
     evaluationsPage.findCuratedSuiteCategories().should('exist');
     evaluationsPage.findCuratedSuiteCategoryCard('agents').should('contain.text', 'Agents');
@@ -183,7 +238,7 @@ describe('Evaluations Page - Tabs', () => {
   it('should show suite contextual actions and the delete confirmation modal', () => {
     initIntercepts({ collections: mockBenchmarkSuiteCollections() });
 
-    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.visitEvaluate(NAMESPACE);
     evaluationsPage.findBenchmarkSuiteMenu('model-suite-2').click();
 
     evaluationsPage.findBenchmarkSuiteAction('duplicate', 'model-suite-2').should('be.visible');

@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { mockCollection } from '~/__mocks__/mockCollection';
@@ -8,10 +9,11 @@ describe('BenchmarkSuiteCard', () => {
     const collection = mockCollection({
       id: 'model-suite',
       name: 'Model suite',
-      domains: ['safety', 'model'],
-      benchmarkIds: ['benchmark-1', 'benchmark-2'],
-      benchmarkMetrics: ['mc1_acc', 'toxicity_score'],
+      domains: ['safety'],
+      benchmarkIds: ['benchmark-2', 'benchmark-1'],
+      benchmarkMetrics: ['toxicity_score', 'mc1_acc'],
     });
+    collection.evaluation_targets = ['model', 'agent'];
 
     render(
       <BenchmarkSuiteCard
@@ -22,11 +24,126 @@ describe('BenchmarkSuiteCard', () => {
     );
 
     expect(screen.getByTestId('benchmark-suite-card-model-suite')).toHaveTextContent('Model suite');
-    expect(screen.getByText('2 benchmarks')).toBeInTheDocument();
+    expect(screen.queryByText('2 benchmarks')).not.toBeInTheDocument();
     expect(screen.getByText('Safety')).toBeInTheDocument();
     expect(screen.queryByText('Model')).not.toBeInTheDocument();
-    expect(screen.getByText('MC1 accuracy')).toBeInTheDocument();
-    expect(screen.getByText('Toxicity score')).toBeInTheDocument();
+    expect(screen.queryByText('MC1 accuracy')).not.toBeInTheDocument();
+    expect(screen.queryByText('Toxicity score')).not.toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suite-card-benchmarks-model-suite')).toHaveTextContent(
+      '2',
+    );
+    expect(screen.getByTestId('benchmark-suite-card-metrics-model-suite')).toHaveTextContent('2');
+    expect(screen.getByTestId('benchmark-suite-card-metrics-model-suite')).toHaveAttribute(
+      'aria-label',
+      'Metrics: MC1 accuracy, Toxicity score',
+    );
+    expect(
+      screen.getByTestId('benchmark-suite-card-evaluation-targets-model-suite'),
+    ).toHaveTextContent('2');
+    expect(
+      screen.getByTestId('benchmark-suite-card-evaluation-targets-model-suite'),
+    ).toHaveAttribute('aria-label', 'Evaluation targets: Agent, Model');
+    expect(screen.getByTestId('benchmark-suite-card-benchmarks-model-suite')).toHaveAttribute(
+      'aria-label',
+      'Benchmarks: benchmark-1, benchmark-2',
+    );
+    const categoryTag = screen.getByText('Safety');
+    const metricsSummary = screen.getByTestId('benchmark-suite-card-metrics-model-suite');
+    expect(categoryTag.compareDocumentPosition(metricsSummary)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
+  it('should show benchmark names in the benchmark count tooltip', async () => {
+    render(
+      <BenchmarkSuiteCard
+        collection={mockCollection({
+          id: 'benchmark-tooltip-suite',
+          benchmarkIds: ['benchmark-two', 'benchmark-one'],
+        })}
+        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+      />,
+    );
+
+    fireEvent.mouseEnter(
+      screen.getByTestId('benchmark-suite-card-benchmarks-benchmark-tooltip-suite'),
+    );
+
+    expect(await screen.findByText('benchmark-one')).toBeInTheDocument();
+    expect(screen.getByText('benchmark-two')).toBeInTheDocument();
+    expect(
+      screen.getByText('benchmark-one').compareDocumentPosition(screen.getByText('benchmark-two')),
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('should show evaluation targets in the evaluation target count tooltip', async () => {
+    render(
+      <BenchmarkSuiteCard
+        collection={{
+          ...mockCollection({ id: 'evaluation-targets-tooltip-suite' }),
+          evaluation_targets: ['model', 'agent'],
+        }}
+        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+      />,
+    );
+
+    fireEvent.mouseEnter(
+      screen.getByTestId(
+        'benchmark-suite-card-evaluation-targets-evaluation-targets-tooltip-suite',
+      ),
+    );
+
+    expect(await screen.findByText('Agent')).toBeInTheDocument();
+    expect(screen.getByText('Model')).toBeInTheDocument();
+  });
+
+  it.each([1, 2, 3])('should mark curation order %s as popular', (curationOrder) => {
+    render(
+      <BenchmarkSuiteCard
+        collection={{
+          ...mockCollection({ id: `popular-suite-${curationOrder}` }),
+          curation_order: curationOrder,
+        }}
+        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+      />,
+    );
+
+    expect(
+      screen.getByTestId(`benchmark-suite-card-popular-popular-suite-${curationOrder}`),
+    ).toHaveTextContent('Popular');
+  });
+
+  it('should not mark later curated suites as popular', () => {
+    render(
+      <BenchmarkSuiteCard
+        collection={{ ...mockCollection({ id: 'not-popular-suite' }), curation_order: 4 }}
+        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId('benchmark-suite-card-popular-not-popular-suite'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('should reserve the popular label space when requested', () => {
+    render(
+      <BenchmarkSuiteCard
+        collection={{
+          ...mockCollection({ id: 'reserved-popular-space-suite' }),
+          curation_order: 4,
+        }}
+        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+        reservePopularHeader
+      />,
+    );
+
+    expect(
+      screen.getByTestId('benchmark-suite-card-popular-placeholder-reserved-popular-space-suite'),
+    ).toHaveTextContent('Popular');
+    expect(
+      screen.queryByTestId('benchmark-suite-card-popular-reserved-popular-space-suite'),
+    ).not.toBeInTheDocument();
   });
 
   it('should render and invoke contextual actions for the collection', () => {
@@ -87,33 +204,109 @@ describe('BenchmarkSuiteCard', () => {
     expect(onSelect).toHaveBeenCalledWith(collection);
   });
 
-  it('should prefer category over domains for classification labels', () => {
-    render(
-      <BenchmarkSuiteCard
-        collection={mockCollection({
-          id: 'category-first-suite',
-          category: 'primary_category',
-          domains: ['domain_fallback'],
-        })}
-        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
-      />,
-    );
-
-    expect(screen.getByText('Primary category')).toBeInTheDocument();
-    expect(screen.queryByText('Domain fallback')).not.toBeInTheDocument();
-  });
-
-  it('should use domains when category is unavailable', () => {
+  it('should render tags from the tags field instead of domains or evaluation targets', () => {
     render(
       <BenchmarkSuiteCard
         collection={{
-          ...mockCollection({ id: 'domain-fallback-suite', domains: ['domain_fallback'] }),
-          category: undefined,
+          ...mockCollection({
+            id: 'collection-tags-suite',
+            domains: ['domain_value'],
+            tags: ['collection_tag'],
+          }),
+          category: 'primary_category',
+          evaluation_targets: ['model'],
         }}
         primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
       />,
     );
 
-    expect(screen.getByText('Domain fallback')).toBeInTheDocument();
+    expect(screen.getByText('Collection tag')).toBeInTheDocument();
+    expect(screen.queryByText('Domain value')).not.toBeInTheDocument();
+    expect(screen.queryByText('Primary category')).not.toBeInTheDocument();
+    expect(screen.queryByText('Model')).not.toBeInTheDocument();
+  });
+
+  it('should render tags in alphabetical order', () => {
+    render(
+      <BenchmarkSuiteCard
+        collection={mockCollection({
+          id: 'alphabetized-tags-suite',
+          tags: ['zebra', 'alpha', 'middle'],
+        })}
+        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+      />,
+    );
+
+    expect(screen.getByText('Alpha').compareDocumentPosition(screen.getByText('Middle'))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(screen.getByText('Middle').compareDocumentPosition(screen.getByText('Zebra'))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
+  it.each([
+    ['knowledge_and_reasoning', 'purple'],
+    ['grounded_document_understanding', 'blue'],
+    ['instruction_and_output_reliability', 'green'],
+    ['tool_use_and_function_calling', 'yellow'],
+    ['software', 'orange'],
+    ['trustworthiness', 'red'],
+    ['multilingual', 'teal'],
+    ['multimodal', 'orangered'],
+  ])('should render the %s domain icon with the %s color', (domain, color) => {
+    render(
+      <BenchmarkSuiteCard
+        collection={{
+          ...mockCollection({ id: `${domain}-suite`, domains: [domain] }),
+        }}
+        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+      />,
+    );
+
+    expect(screen.getByTestId(`benchmark-suite-card-domain-icon-${domain}-suite`)).toHaveAttribute(
+      'data-icon-color',
+      color,
+    );
+  });
+
+  it('should prefer a supported category over the first domain for the tile icon', () => {
+    render(
+      <BenchmarkSuiteCard
+        collection={{
+          ...mockCollection({
+            id: 'category-icon-suite',
+            domains: ['software'],
+          }),
+          category: 'multilingual',
+        }}
+        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+      />,
+    );
+
+    expect(
+      screen.getByTestId('benchmark-suite-card-domain-icon-category-icon-suite'),
+    ).toHaveAttribute('title', 'Multilingual');
+  });
+
+  it('should fall back to the first domain when category is not a supported enum value', () => {
+    render(
+      <BenchmarkSuiteCard
+        collection={{
+          ...mockCollection({
+            id: 'domain-icon-fallback-suite',
+            domains: ['software'],
+          }),
+          category: 'legacy-category',
+        }}
+        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+      />,
+    );
+
+    expect(
+      screen.getByTestId('benchmark-suite-card-domain-icon-domain-icon-fallback-suite'),
+    ).toHaveAttribute('title', 'Software');
   });
 });
+
+/* eslint-enable camelcase */

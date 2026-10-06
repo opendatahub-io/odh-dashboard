@@ -4,7 +4,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
-import { mockBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
+import {
+  mockBenchmarkSuiteCollections,
+  mockCuratedBenchmarkSuiteCollections,
+} from '~/app/mockBenchmarkSuiteCollections';
 import EvaluationsPage from '~/app/pages/EvaluationsPage';
 
 const mockRefresh = jest.fn();
@@ -159,37 +162,130 @@ describe('EvaluationsPage', () => {
       mutateAsync: mockDeleteCollection,
       reset: jest.fn(),
     });
-    mockUseCollectionsQuery.mockReturnValue({
-      data: { items: mockBenchmarkSuiteCollections() },
+    mockUseCollectionsQuery.mockImplementation((_namespace: string, scope?: string) => ({
+      data: {
+        items:
+          scope === 'system'
+            ? mockCuratedBenchmarkSuiteCollections()
+            : mockBenchmarkSuiteCollections(),
+      },
       isLoading: false,
       error: null,
-    });
+    }));
   });
 
-  it('should render the page with correct title and description', () => {
+  it('should default to the Gallery tab with curated suite filters', () => {
     renderPage('test-project');
     expect(screen.getByTestId('applications-page')).toBeInTheDocument();
     expect(screen.getByText('Evaluations')).toBeInTheDocument();
-    expect(screen.getByTestId('evaluate-tab')).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByTestId('create-suite-card')).toBeInTheDocument();
-    expect(screen.getByTestId('benchmark-suite-card-model-suite-2')).toBeInTheDocument();
+    expect(screen.getByTestId('gallery-tab')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('gallery-tab-content')).toBeInTheDocument();
+    expect(screen.queryByTestId('create-suite-card')).not.toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suite-card-clawbench')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('benchmark-suite-card-curated-open-llm-leaderboard-v2'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-category-filter')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-industry-filter')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-tags-filter')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-task-filter')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-modality-filter')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-evaluates-filter')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-pagination-top')).toBeInTheDocument();
     expect(screen.getByTestId('page-description')).toHaveTextContent(
       'Create benchmark suites and run evaluations to measure model, agent, and dataset performance.',
     );
   });
 
+  it('should filter Gallery suites by evaluation target', () => {
+    renderPage('test-project');
+
+    fireEvent.click(screen.getByTestId('benchmark-suites-evaluates-filter'));
+    expect(
+      screen.getByTestId('benchmark-suites-evaluates-filter-option-agent'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('benchmark-suites-evaluates-filter-option-model'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('option', { name: 'Model' }));
+
+    expect(
+      screen.getByTestId('benchmark-suite-card-curated-open-llm-leaderboard-v2'),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suite-card-clawbench')).not.toBeInTheDocument();
+  });
+
+  it('should filter Gallery suites by category, tags, task, modality, and industry', () => {
+    renderPage('test-project');
+
+    fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
+    expect(screen.getByTestId('benchmark-suites-category-filter-option-code')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('option', { name: /^Code$/ }));
+    expect(
+      screen.getByTestId('benchmark-suite-card-software-engineering-agent-suite'),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suite-card-clawbench')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
+    fireEvent.click(screen.getByTestId('benchmark-suites-category-filter-option-all'));
+    fireEvent.click(screen.getByTestId('benchmark-suites-tags-filter'));
+    expect(screen.getByTestId('benchmark-suites-tags-filter-option-code')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('option', { name: /^Code$/ }));
+    expect(
+      screen.getByTestId('benchmark-suite-card-software-engineering-agent-suite'),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suite-card-clawbench')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('benchmark-suites-tags-filter'));
+    fireEvent.click(screen.getByTestId('benchmark-suites-tags-filter-option-all'));
+    fireEvent.click(screen.getByTestId('benchmark-suites-task-filter'));
+    expect(
+      screen.getByTestId('benchmark-suites-task-filter-option-code_generation'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('option', { name: /^Code generation$/ }));
+    expect(
+      screen.getByTestId('benchmark-suite-card-software-engineering-agent-suite'),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suite-card-clawbench')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('benchmark-suites-task-filter'));
+    fireEvent.click(screen.getByTestId('benchmark-suites-task-filter-option-all'));
+    fireEvent.click(screen.getByTestId('benchmark-suites-modality-filter'));
+    expect(screen.getByTestId('benchmark-suites-modality-filter-option-code')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('option', { name: /^Code$/ }));
+    expect(
+      screen.getByTestId('benchmark-suite-card-software-engineering-agent-suite'),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suite-card-clawbench')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('benchmark-suites-modality-filter'));
+    fireEvent.click(screen.getByTestId('benchmark-suites-modality-filter-option-all'));
+    fireEvent.click(screen.getByTestId('benchmark-suites-industry-filter'));
+    expect(screen.getByTestId('benchmark-suites-industry-filter-option-telco')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('option', { name: /^Telco$/ }));
+    expect(
+      screen.getByTestId('benchmark-suite-card-software-engineering-agent-suite'),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suite-card-clawbench')).not.toBeInTheDocument();
+  });
+
   it('should not gate the Evaluate tab on the Runs request', () => {
     mockUseEvaluationJobs.mockReturnValue([[], false, new Error('Runs unavailable'), mockRefresh]);
 
-    renderPage('test-project');
+    renderPage('test-project', '?tab=evaluate');
 
     expect(screen.getByTestId('evaluate-tab')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('evaluate-tab')).toHaveAttribute(
+      'aria-label',
+      'Benchmark suites tab',
+    );
     expect(screen.getByTestId('create-suite-card')).toBeInTheDocument();
     expect(screen.queryByTestId('evalhub-load-error-admin-empty-state')).not.toBeInTheDocument();
   });
 
   it('should show the suite contextual actions and delete confirmation modal', () => {
-    renderPage('test-project');
+    renderPage('test-project', '?tab=evaluate');
 
     fireEvent.click(screen.getByTestId('benchmark-suite-card-menu-model-suite-2'));
 
@@ -208,7 +304,7 @@ describe('EvaluationsPage', () => {
   });
 
   it('should navigate to the copy suite page from Duplicate', () => {
-    renderPage('test-project');
+    renderPage('test-project', '?tab=evaluate');
 
     fireEvent.click(screen.getByTestId('benchmark-suite-card-menu-model-suite-2'));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Duplicate' }));
@@ -219,7 +315,7 @@ describe('EvaluationsPage', () => {
   });
 
   it('should show a success notification after deleting a benchmark suite', async () => {
-    renderPage('test-project');
+    renderPage('test-project', '?tab=evaluate');
 
     fireEvent.click(screen.getByTestId('benchmark-suite-card-menu-model-suite-2'));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
@@ -233,7 +329,7 @@ describe('EvaluationsPage', () => {
   });
 
   it('should link to the tenant benchmark suites page', () => {
-    renderPage('test-project');
+    renderPage('test-project', '?tab=evaluate');
 
     expect(screen.getByRole('link', { name: 'Go to All my benchmark suites' })).toHaveAttribute(
       'href',
@@ -242,7 +338,7 @@ describe('EvaluationsPage', () => {
   });
 
   it('should link to the single benchmark flow from the browse benchmarks section', () => {
-    renderPage('test-project');
+    renderPage('test-project', '?tab=evaluate');
 
     expect(screen.queryByTestId('start-single-benchmark-button')).not.toBeInTheDocument();
     expect(screen.getByTestId('browse-all-benchmarks')).toBeInTheDocument();
@@ -253,7 +349,7 @@ describe('EvaluationsPage', () => {
   });
 
   it('should open the start evaluation run modal for a suite', () => {
-    renderPage('test-project');
+    renderPage('test-project', '?tab=evaluate');
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Run benchmark suite' })[0]);
 

@@ -29,12 +29,12 @@ import { mockCuratedBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCo
 import { useCollectionsQuery, useDeleteCollectionMutation } from '~/app/hooks/collections';
 import { useNotification } from '~/app/hooks/useNotification';
 import { evaluationBenchmarkSuitesRoute } from '~/app/routes';
-import BenchmarkSuiteCard from '~/app/components/BenchmarkSuiteCard';
+import BenchmarkSuiteCard, { isPopularCollection } from '~/app/components/BenchmarkSuiteCard';
 import type { BenchmarkSuiteCardAction } from '~/app/components/BenchmarkSuiteCard';
 import CreateBenchmarkSuiteCard from '~/app/components/CreateBenchmarkSuiteCard';
 import DeleteConfirmationModal from '~/app/components/DeleteConfirmationModal';
 import type { Collection, CollectionFilterParams, CollectionScope } from '~/app/types';
-import { formatCategory, getCollectionCategoryValues } from '~/app/components/benchmarkUtils';
+import { formatCategory } from '~/app/components/benchmarkUtils';
 import { COLLECTION_FETCH_LIMIT } from '~/app/utilities/const';
 import './BenchmarkSuitesGallery.scss';
 
@@ -42,18 +42,25 @@ import './BenchmarkSuitesGallery.scss';
 const DEFAULT_PAGE_SIZE = 6;
 const PAGE_SIZE_OPTIONS = [6, 12, 24];
 // These are the collection fields that can provide values for the filter dropdowns.
-type CollectionFilterField = 'domains' | 'evaluation_targets' | 'industries';
+type CollectionFilterField =
+  'domains' | 'evaluation_targets' | 'industries' | 'tags' | 'tasks' | 'modalities';
 
 type CollectionFilterOptions = {
-  categories: string[];
+  domains: string[];
   evaluatesTypes: string[];
   industries: string[];
+  tags: string[];
+  tasks: string[];
+  modalities: string[];
 };
 
 const EMPTY_COLLECTION_FILTER_OPTIONS: CollectionFilterOptions = {
-  categories: [],
+  domains: [],
   evaluatesTypes: [],
   industries: [],
+  tags: [],
+  tasks: [],
+  modalities: [],
 };
 
 const mergeFilterOptions = (previous: string[], next: string[]): string[] =>
@@ -130,20 +137,9 @@ const CollectionFilterSelect: React.FC<CollectionFilterSelectProps> = ({
   );
 };
 
-/**
- * Reads the values for a filter from one collection. Category is the canonical value; domains are
- * used as a fallback for responses that do not provide category.
- */
-const getCollectionFieldValues = (
-  collection: Collection,
-  field: CollectionFilterField,
-): string[] => {
-  if (field === 'domains') {
-    return getCollectionCategoryValues(collection);
-  }
-
-  return collection[field] ?? [];
-};
+/** Reads the values for a filter from one collection. */
+const getCollectionFieldValues = (collection: Collection, field: CollectionFilterField): string[] =>
+  collection[field] ?? [];
 
 /**
  * Builds a dropdown's options from all values returned by the collections. Set removes duplicates,
@@ -210,9 +206,12 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   onSelectCollection,
 }) => {
   const [nameFilter, setNameFilter] = React.useState('');
-  const [categoryFilter, setCategoryFilter] = React.useState('');
+  const [domainFilter, setDomainFilter] = React.useState('');
   const [evaluatesFilter, setEvaluatesFilter] = React.useState('');
   const [industryFilter, setIndustryFilter] = React.useState('');
+  const [tagFilter, setTagFilter] = React.useState('');
+  const [taskFilter, setTaskFilter] = React.useState('');
+  const [modalityFilter, setModalityFilter] = React.useState('');
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(DEFAULT_PAGE_SIZE);
   const [collectionToDelete, setCollectionToDelete] = React.useState<Collection | null>(null);
@@ -231,7 +230,15 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   const previousFilterOptionsKey = React.useRef(filterOptionsKey);
   const isClientSideFiltering =
     showPagination &&
-    Boolean(nameFilter.trim() || categoryFilter || evaluatesFilter || industryFilter);
+    Boolean(
+      nameFilter.trim() ||
+      domainFilter ||
+      evaluatesFilter ||
+      industryFilter ||
+      tagFilter ||
+      taskFilter ||
+      modalityFilter,
+    );
   const queryLimit = showPagination
     ? requireCuratedIndex || isClientSideFiltering
       ? COLLECTION_FETCH_LIMIT
@@ -264,8 +271,12 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   const mockEvaluationTarget = queryFilters?.evaluationTargets?.[0];
   const mockCollections = React.useMemo(
     () =>
-      requireCuratedIndex && (mockEvaluationTarget === 'agent' || mockEvaluationTarget === 'model')
-        ? mockCuratedBenchmarkSuiteCollections(mockEvaluationTarget)
+      requireCuratedIndex
+        ? mockCuratedBenchmarkSuiteCollections(
+            mockEvaluationTarget === 'agent' || mockEvaluationTarget === 'model'
+              ? mockEvaluationTarget
+              : undefined,
+          )
         : [],
     [mockEvaluationTarget, requireCuratedIndex],
   );
@@ -301,7 +312,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
 
   // All filter dropdowns use the same helper so their options stay in sync with the collection
   // fields returned by the API or the temporary mock fallback.
-  const availableCategories = React.useMemo(
+  const availableDomains = React.useMemo(
     () => getAvailableFilterOptions(sourceCollections, 'domains'),
     [sourceCollections],
   );
@@ -313,25 +324,50 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     () => getAvailableFilterOptions(sourceCollections, 'industries'),
     [sourceCollections],
   );
+  const availableTags = React.useMemo(
+    () => getAvailableFilterOptions(sourceCollections, 'tags'),
+    [sourceCollections],
+  );
+  const availableTasks = React.useMemo(
+    () => getAvailableFilterOptions(sourceCollections, 'tasks'),
+    [sourceCollections],
+  );
+  const availableModalities = React.useMemo(
+    () => getAvailableFilterOptions(sourceCollections, 'modalities'),
+    [sourceCollections],
+  );
   React.useEffect(() => {
     setFilterOptions((previous) => {
       const next = {
-        categories: mergeFilterOptions(previous.categories, availableCategories),
+        domains: mergeFilterOptions(previous.domains, availableDomains),
         evaluatesTypes: mergeFilterOptions(previous.evaluatesTypes, availableEvaluatesTypes),
         industries: mergeFilterOptions(previous.industries, availableIndustries),
+        tags: mergeFilterOptions(previous.tags, availableTags),
+        tasks: mergeFilterOptions(previous.tasks, availableTasks),
+        modalities: mergeFilterOptions(previous.modalities, availableModalities),
       };
 
       if (
-        areStringArraysEqual(previous.categories, next.categories) &&
+        areStringArraysEqual(previous.domains, next.domains) &&
         areStringArraysEqual(previous.evaluatesTypes, next.evaluatesTypes) &&
-        areStringArraysEqual(previous.industries, next.industries)
+        areStringArraysEqual(previous.industries, next.industries) &&
+        areStringArraysEqual(previous.tags, next.tags) &&
+        areStringArraysEqual(previous.tasks, next.tasks) &&
+        areStringArraysEqual(previous.modalities, next.modalities)
       ) {
         return previous;
       }
 
       return next;
     });
-  }, [availableCategories, availableEvaluatesTypes, availableIndustries]);
+  }, [
+    availableDomains,
+    availableEvaluatesTypes,
+    availableIndustries,
+    availableModalities,
+    availableTags,
+    availableTasks,
+  ]);
 
   React.useEffect(() => {
     if (previousFilterOptionsKey.current === filterOptionsKey) {
@@ -341,10 +377,6 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     setFilterOptions(EMPTY_COLLECTION_FILTER_OPTIONS);
   }, [filterOptionsKey]);
 
-  const categoryOptions = React.useMemo(
-    () => mergeFilterOptions(filterOptions.categories, availableCategories),
-    [availableCategories, filterOptions.categories],
-  );
   const evaluatesOptions = React.useMemo(
     () => mergeFilterOptions(filterOptions.evaluatesTypes, availableEvaluatesTypes),
     [availableEvaluatesTypes, filterOptions.evaluatesTypes],
@@ -352,6 +384,22 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   const industryOptions = React.useMemo(
     () => mergeFilterOptions(filterOptions.industries, availableIndustries),
     [availableIndustries, filterOptions.industries],
+  );
+  const domainOptions = React.useMemo(
+    () => mergeFilterOptions(filterOptions.domains, availableDomains),
+    [availableDomains, filterOptions.domains],
+  );
+  const tagOptions = React.useMemo(
+    () => mergeFilterOptions(filterOptions.tags, availableTags),
+    [availableTags, filterOptions.tags],
+  );
+  const taskOptions = React.useMemo(
+    () => mergeFilterOptions(filterOptions.tasks, availableTasks),
+    [availableTasks, filterOptions.tasks],
+  );
+  const modalityOptions = React.useMemo(
+    () => mergeFilterOptions(filterOptions.modalities, availableModalities),
+    [availableModalities, filterOptions.modalities],
   );
 
   const filteredCollections = React.useMemo(() => {
@@ -361,10 +409,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
       if (normalizedNameFilter && !collection.name.toLowerCase().includes(normalizedNameFilter)) {
         return false;
       }
-      if (
-        categoryFilter &&
-        !getCollectionFieldValues(collection, 'domains').includes(categoryFilter)
-      ) {
+      if (domainFilter && !getCollectionFieldValues(collection, 'domains').includes(domainFilter)) {
         return false;
       }
       if (
@@ -379,9 +424,30 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
       ) {
         return false;
       }
+      if (tagFilter && !getCollectionFieldValues(collection, 'tags').includes(tagFilter)) {
+        return false;
+      }
+      if (taskFilter && !getCollectionFieldValues(collection, 'tasks').includes(taskFilter)) {
+        return false;
+      }
+      if (
+        modalityFilter &&
+        !getCollectionFieldValues(collection, 'modalities').includes(modalityFilter)
+      ) {
+        return false;
+      }
       return true;
     });
-  }, [categoryFilter, evaluatesFilter, industryFilter, nameFilter, sourceCollections]);
+  }, [
+    domainFilter,
+    evaluatesFilter,
+    industryFilter,
+    modalityFilter,
+    nameFilter,
+    sourceCollections,
+    tagFilter,
+    taskFilter,
+  ]);
 
   // Mock data and client-side-filtered results need local slicing. The latter are limited to the
   // first COLLECTION_FETCH_LIMIT API results by queryLimit above.
@@ -392,6 +458,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
       ? filteredCollections.slice((page - 1) * pageSize, page * pageSize)
       : filteredCollections.slice(0, pageSize)
     : sourceCollections;
+  const hasPopularCollections = visibleCollections.some(isPopularCollection);
   // TODO: Remove the mock count branch when mock collections are no longer needed and always use
   // the API total_count for pagination.
   const filteredCollectionCount = showPagination
@@ -400,7 +467,13 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
       : (data?.total_count ?? filteredCollections.length)
     : totalCount;
   const hasActiveFilters = Boolean(
-    nameFilter || categoryFilter || evaluatesFilter || industryFilter,
+    nameFilter ||
+    domainFilter ||
+    evaluatesFilter ||
+    industryFilter ||
+    tagFilter ||
+    taskFilter ||
+    modalityFilter,
   );
   const areFiltersDisabled =
     shouldShowLoadError || (!isLoading && sourceCollections.length === 0 && !hasActiveFilters);
@@ -409,20 +482,26 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   React.useEffect(() => {
     setPage(1);
   }, [
-    categoryFilter,
+    domainFilter,
     evaluatesFilter,
     industryFilter,
+    modalityFilter,
     maxVisibleCollections,
     nameFilter,
     namespace,
+    tagFilter,
+    taskFilter,
   ]);
 
   React.useEffect(() => {
     setPage(1);
     setNameFilter('');
-    setCategoryFilter('');
+    setDomainFilter('');
     setEvaluatesFilter('');
     setIndustryFilter('');
+    setTagFilter('');
+    setTaskFilter('');
+    setModalityFilter('');
   }, [queryFiltersKey, scope]);
 
   const handleDeleteSelect = React.useCallback(
@@ -496,15 +575,15 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                 data-testid="benchmark-suites-name-filter"
               />
             </ToolbarItem>
-            {categoryOptions.length > 0 && (
+            {domainOptions.length > 0 && (
               <ToolbarItem>
                 <CollectionFilterSelect
                   categoryName="Category"
                   allLabel="All categories"
                   allOptionLabel="All categories"
-                  options={categoryOptions}
-                  selected={categoryFilter}
-                  onSelect={setCategoryFilter}
+                  options={domainOptions}
+                  selected={domainFilter}
+                  onSelect={setDomainFilter}
                   isDisabled={areFiltersDisabled}
                   testId="benchmark-suites-category-filter"
                 />
@@ -524,6 +603,19 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                 />
               </ToolbarItem>
             )}
+            {tagOptions.length > 0 && (
+              <ToolbarItem>
+                <CollectionFilterSelect
+                  categoryName="Tags"
+                  allLabel="All tags"
+                  options={tagOptions}
+                  selected={tagFilter}
+                  onSelect={setTagFilter}
+                  isDisabled={areFiltersDisabled}
+                  testId="benchmark-suites-tags-filter"
+                />
+              </ToolbarItem>
+            )}
             {industryOptions.length > 0 && (
               <ToolbarItem>
                 <CollectionFilterSelect
@@ -534,6 +626,32 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                   onSelect={setIndustryFilter}
                   isDisabled={areFiltersDisabled}
                   testId="benchmark-suites-industry-filter"
+                />
+              </ToolbarItem>
+            )}
+            {taskOptions.length > 0 && (
+              <ToolbarItem>
+                <CollectionFilterSelect
+                  categoryName="Tasks"
+                  allLabel="All tasks"
+                  options={taskOptions}
+                  selected={taskFilter}
+                  onSelect={setTaskFilter}
+                  isDisabled={areFiltersDisabled}
+                  testId="benchmark-suites-task-filter"
+                />
+              </ToolbarItem>
+            )}
+            {modalityOptions.length > 0 && (
+              <ToolbarItem>
+                <CollectionFilterSelect
+                  categoryName="Modalities"
+                  allLabel="All modalities"
+                  options={modalityOptions}
+                  selected={modalityFilter}
+                  onSelect={setModalityFilter}
+                  isDisabled={areFiltersDisabled}
+                  testId="benchmark-suites-modality-filter"
                 />
               </ToolbarItem>
             )}
@@ -630,6 +748,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                   }}
                   contextualActions={showContextualActions ? contextualActions : undefined}
                   onSelect={onSelectCollection}
+                  reservePopularHeader={hasPopularCollections}
                 />
               </GalleryItem>
             ))}
