@@ -5,15 +5,38 @@
     {
       "name": "Green",
       "ci_tags": ["ModelRegistryCI", "ModelCatalogCI"],
-      "path_patterns": ["modelRegistry/", "modelCatalog/", "mcpCatalog/", "agentsCatalog/", "data-registry/"],
+      "path_patterns": [
+        "modelRegistry/",
+        "modelCatalog/",
+        "mcpCatalog/",
+        "agentsCatalog/",
+        "data-registry/"
+      ],
       "slack_handle": "@openshift-ai-dashboard-green-scrum",
       "slack_group_id": "S07BJDHQR2R",
       "emoji": ":large_green_circle:"
     },
     {
       "name": "Razzmatazz",
-      "ci_tags": ["AgentOpsCI", "ConnectionTypes", "HardwareProfiles", "MlflowEmbedded", "MLflowCI"],
-      "path_patterns": ["pipelines/", "agentOps/", "connectionTypes/", "hardwareProfiles/", "mlflow/", "mlflowExperiments/", "dashboardNavigation/", "learningResources/", "storageClasses/", "settings/"],
+      "ci_tags": [
+        "AgentOpsCI",
+        "ConnectionTypes",
+        "HardwareProfiles",
+        "MlflowEmbedded",
+        "MLflowCI"
+      ],
+      "path_patterns": [
+        "pipelines/",
+        "agentOps/",
+        "connectionTypes/",
+        "hardwareProfiles/",
+        "mlflow/",
+        "mlflowExperiments/",
+        "dashboardNavigation/",
+        "learningResources/",
+        "storageClasses/",
+        "settings/"
+      ],
       "slack_handle": "@openshift-ai-dashboard-razzmatazz-scrum",
       "slack_group_id": "S06FFRUSFH8",
       "emoji": ":razzmatazz:"
@@ -21,7 +44,13 @@
     {
       "name": "Zaffre",
       "ci_tags": ["KServeCI", "NIMServingCI", "ModelServingCI", "LLMDServingCI"],
-      "path_patterns": ["modelServing/", "nim/", "dataScienceProjects/models/", "dataScienceProjects/connections/", "settings/servingRuntimes/"],
+      "path_patterns": [
+        "modelServing/",
+        "nim/",
+        "dataScienceProjects/models/",
+        "dataScienceProjects/connections/",
+        "settings/servingRuntimes/"
+      ],
       "slack_handle": "@openshift-ai-dashboard-zaffre-scrum",
       "slack_group_id": "S07CFUVMXBM",
       "emoji": ":zaffre:"
@@ -29,7 +58,7 @@
     {
       "name": "Monarch",
       "ci_tags": ["Observability"],
-      "path_patterns": ["distributedWorkloadMetrics/"],
+      "path_patterns": ["distributedWorkloadMetrics/", "observability/"],
       "slack_handle": "@openshift-ai-dashboard-monarch-scrum",
       "slack_group_id": "S07EBN8NY1L",
       "emoji": ":large_yellow_circle:"

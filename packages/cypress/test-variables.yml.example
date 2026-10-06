@@ -47,3 +47,21 @@ MAAS_URL: https://maas.apps.your-cluster.com
 MAAS_API_KEY: your-api-key-here
 MAAS_GENERATION_MODEL_ID: your-generation-model-id
 MAAS_EMBEDDING_MODEL_ID: your-embedding-model-id
+
+# Dashboard-owned live observability fixture metadata. These values describe
+# data and personas provisioned by the QE/productization job; do not put
+# credentials in this block. credentialVariable must reference one of the
+# credential blocks above.
+OBSERVABILITY:
+  seededModelName: replace-with-seeded-model-name
+  foreignModelNames:
+    - replace-with-foreign-model-name
+  personas:
+    - id: replace-with-persona-id
+      credentialVariable: LDAP_ADMIN_USER
+      namespaceScope: replace-with-authorized-namespace
+      unauthorizedNamespaceScope: replace-with-unauthorized-namespace
+      visibleDashboardNames:
+        - cluster
+        - models
+      hiddenDashboardNames: []

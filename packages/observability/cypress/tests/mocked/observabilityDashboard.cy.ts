@@ -5,7 +5,7 @@ import { mockStatus } from '@odh-dashboard/internal/__mocks__';
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
 import { SelfSubjectAccessReviewModel } from '@odh-dashboard/internal/api/models';
-import { observabilityDashboardPage } from '../../pages/observabilityDashboard';
+import { observabilityDashboardPage } from '../../../../cypress/cypress/pages/observabilityDashboard';
 
 // Minimal test fixtures following the naming pattern from packages/observability/setup
 // Dashboard names: dashboard-{N}-{name} for regular, dashboard-{N}-{name}-admin for admin-only

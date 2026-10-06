@@ -131,6 +131,7 @@ export const cypressEnv = {
   MAAS_GENERATION_MODEL_ID,
   MAAS_EMBEDDING_MODEL_ID,
   CLUSTER_AUTH,
+  OBSERVABILITY_FIXTURES: testConfig?.OBSERVABILITY,
 };
 
 // re-export the updated process env

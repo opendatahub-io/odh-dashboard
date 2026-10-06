@@ -1,17 +1,20 @@
-import type { UserAuthConfig } from '../../../cypress/cypress/types';
 import {
   validateEvidenceDirectory,
+  type ObservabilityRecord,
+  type ObservabilityTimeRange,
   type UnauthorizedNamespaceOutcome,
-} from '../../src/utils/observabilityContract';
+  type ObservabilityCredentials,
+} from '../utils/observabilityContract';
 import {
   hasSeriesForNamespace,
   isPrometheusQueryPath,
   isPrometheusResponsePath,
   isPrometheusVariablePath,
+  hasRequiredLabelsForQuery,
   parsePrometheusResponseEvidence,
   requestContainsNamespace,
   type PrometheusResponseEvidence,
-} from '../../src/utils/observabilityResponse';
+} from '../utils/observabilityResponse';
 
 type PanelState =
   | 'loaded'
@@ -31,22 +34,30 @@ type NetworkEvidence = {
   status: number;
   complete: boolean;
   responseTimeMs: number;
+  query?: string;
   responseData?: PrometheusResponseEvidence;
   namespaceMatches?: boolean;
+  datasource?: string;
+  timeRange?: ObservabilityTimeRange;
   error?: string;
 };
 
 type EvidenceContext = {
   jiraKey: string;
+  contractVersion: string;
+  contractRef: string;
+  contractSource: string;
   releaseStage: string;
-  dashboardVersion: string;
-  imageVersion: string;
   persona: string;
   namespaceScope: string;
   dashboard: string;
+  contractRecordIds: string[];
   runId: string;
-  unauthorizedNamespaceOutcome: string;
+  unauthorizedNamespaceOutcome?: string;
+  unauthorizedNamespaceScope?: string;
+  authorizationContractRecordIds?: string[];
   foreignDataMustNotRender: true;
+  clusterOwnership: 'dashboard-job-local';
 };
 
 const DASHBOARD_PATH = '/observe-and-monitor/dashboard';
@@ -54,6 +65,113 @@ const DASHBOARD_PATH = '/observe-and-monitor/dashboard';
 const DASHBOARD_API_PATHS = new Set(['/api/config', '/api/status']);
 
 const safeFilePart = (value: string): string => value.replace(/[^a-zA-Z0-9._-]/g, '_');
+
+const sanitizeEvidenceText = (value: string): string =>
+  value
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/\b(?:Bearer|Basic)\s+[^\s,;]+/gi, '[REDACTED]')
+    .replace(
+      /((?:authorization|cookie|password|passwd|secret|token|api[_-]?key)\s*[:=]\s*)[^\s,;&]+/gi,
+      '$1[REDACTED]',
+    );
+
+const sanitizeNetworkEvidence = ({ responseData, error, query, ...request }: NetworkEvidence) => ({
+  ...request,
+  ...(query ? { query: sanitizeEvidenceText(query) } : {}),
+  ...(error ? { error: sanitizeEvidenceText(error) } : {}),
+  ...(responseData
+    ? {
+        responseData: {
+          ...responseData,
+          ...(responseData.error ? { error: sanitizeEvidenceText(responseData.error) } : {}),
+        },
+      }
+    : {}),
+});
+
+const getRequestQuery = (url: URL, body: unknown): string | undefined => {
+  const urlQuery = url.searchParams.get('query');
+  if (urlQuery) {
+    return urlQuery;
+  }
+  if (typeof body === 'string') {
+    const formQuery = new URLSearchParams(body).get('query');
+    if (formQuery) {
+      return formQuery;
+    }
+    try {
+      const parsedBody: unknown = JSON.parse(body);
+      if (
+        typeof parsedBody === 'object' &&
+        parsedBody !== null &&
+        'query' in parsedBody &&
+        typeof parsedBody.query === 'string'
+      ) {
+        return parsedBody.query;
+      }
+    } catch {
+      // The request body is not JSON; the form-encoded query was already checked above.
+    }
+  }
+  if (
+    typeof body === 'object' &&
+    body !== null &&
+    'query' in body &&
+    typeof body.query === 'string'
+  ) {
+    return body.query;
+  }
+  return undefined;
+};
+
+const getRequestDatasource = (path: string): string | undefined => {
+  const datasourceMatch = path.match(/\/datasources\/([^/]+)\/proxy(?:\/|$)/);
+  return datasourceMatch ? decodeURIComponent(datasourceMatch[1]) : undefined;
+};
+
+const getRequestTimeRange = (url: URL): ObservabilityTimeRange => {
+  const timeRange: ObservabilityTimeRange = {};
+  ['start', 'end', 'step', 'time'].forEach((key) => {
+    const value = url.searchParams.get(key);
+    if (value !== null) {
+      timeRange[key] = value;
+    }
+  });
+  return timeRange;
+};
+
+const normalizePromql = (query: string): string =>
+  query
+    .replace(/\$\{([^}]+)\}/g, '$$$1')
+    .replace(/\s+/g, '')
+    .replace(/=~/g, '=');
+
+const getPromqlMetric = (query: string): string | undefined => {
+  const selectorMetric = query.match(/(?:^|[({,])([a-zA-Z_:][a-zA-Z0-9_:]*)(?=\{|$)/);
+  return selectorMetric?.[1];
+};
+
+const getPromqlMatchers = (query: string): Map<string, string> => {
+  const matchers = new Map<string, string>();
+  const matcherPattern = /(?:^|[{,])([a-zA-Z_][a-zA-Z0-9_]*)\s*(!=|=~|!~|=)\s*"/g;
+  for (const match of query.matchAll(matcherPattern)) {
+    matchers.set(match[1], match[2]);
+  }
+  return matchers;
+};
+
+const PROMETHEUS_DATASOURCE_ALIASES: Record<string, string[]> = {
+  'cluster-thanos': [
+    'cluster-thanos',
+    'cluster-prometheus-datasource',
+    'cluster-prometheus-tenancy-datasource',
+    'thanos',
+  ],
+  tenancy: ['tenancy', 'cluster-prometheus-tenancy-datasource', 'thanos'],
+  'namespace-proxy': ['namespace-proxy'],
+  'data-science-thanos': ['data-science-thanos', 'data-science-prometheus-datasource'],
+  'gpu-aas': ['gpu-aas'],
+};
 
 class ObservabilityDashboardPage {
   private networkEvidence: NetworkEvidence[] = [];
@@ -77,7 +195,7 @@ class ObservabilityDashboardPage {
     this.wait();
   }
 
-  visitAsPersona(sessionId: string, credentials: UserAuthConfig) {
+  visitAsPersona(sessionId: string, credentials: ObservabilityCredentials) {
     cy.session(['observability-dashboard', sessionId], () => {
       cy.visitWithLogin(DASHBOARD_PATH, credentials);
     });
@@ -106,6 +224,9 @@ class ObservabilityDashboardPage {
         status: 0,
         complete: false,
         responseTimeMs: 0,
+        query: getRequestQuery(url, request.body),
+        datasource: getRequestDatasource(path),
+        timeRange: getRequestTimeRange(url),
         namespaceMatches:
           this.observationNamespace && isPrometheusResponsePath(path)
             ? requestContainsNamespace(url.search, request.body, this.observationNamespace)
@@ -190,14 +311,14 @@ class ObservabilityDashboardPage {
     return this.findTabs().find('[role="tab"]');
   }
 
-  findPanel(panelId: string, displayName: string) {
+  findPanel(panelId: string, displayName?: string) {
     return cy.findAllByTestId('panel').filter((_, panel) => {
       const title = Cypress.$(panel).find('[id$="-title"]');
       const titleId = title.attr('id');
       const matchesPanelId =
         typeof titleId === 'string' &&
         (titleId === `${panelId}-title` || titleId.endsWith(`-${panelId}-title`));
-      return matchesPanelId && title.text().trim() === displayName;
+      return matchesPanelId && (displayName === undefined || title.text().trim() === displayName);
     });
   }
 
@@ -254,25 +375,42 @@ class ObservabilityDashboardPage {
 
   shouldHavePanelState(
     panelId: string,
-    displayName: string,
+    displayName: string | undefined,
     expectedState: 'non-empty' | 'valid-empty',
+    expectedEmptyUiState = 'No data',
   ) {
     this.findPanel(panelId, displayName)
       .should('be.visible')
       .should(($panels) => {
-        const state = this.getPanelStateFromPanels($panels);
+        const state = this.getPanelStateFromPanels($panels, expectedEmptyUiState);
         this.panelStates[panelId] = state;
+        const validStates =
+          expectedState === 'valid-empty' ? ['loaded', 'valid-empty'] : ['loaded'];
         expect(
-          state,
-          `panel '${displayName}' should be ${
+          validStates,
+          `panel '${displayName ?? panelId}' should be ${
             expectedState === 'non-empty' ? 'loaded' : 'valid-empty'
           }`,
-        ).to.equal(expectedState === 'non-empty' ? 'loaded' : 'valid-empty');
+        ).to.include(state);
       });
     return this;
   }
 
-  shouldNotHavePanel(panelId: string, displayName: string) {
+  shouldHaveRenderedPanel(panelId: string, displayName?: string) {
+    this.findPanel(panelId, displayName)
+      .should('be.visible')
+      .should(($panels) => {
+        expect($panels, `panel '${displayName ?? panelId}' should render once`).to.have.length(1);
+        expect(
+          $panels.find('[aria-label="panel errors"], [role="alert"]'),
+          `panel '${displayName ?? panelId}' should not show an error`,
+        ).to.have.length(0);
+        this.panelStates[panelId] = 'loaded';
+      });
+    return this;
+  }
+
+  shouldNotHavePanel(panelId: string, displayName?: string) {
     this.findPanel(panelId, displayName).should('not.exist');
     return this;
   }
@@ -282,12 +420,35 @@ class ObservabilityDashboardPage {
     return this;
   }
 
-  shouldHaveSuccessfulRequests(requireData = false, expectedNamespace?: string) {
+  shouldHaveSuccessfulRequests(
+    records: ObservabilityRecord[],
+    requireData = false,
+    expectedNamespace?: string,
+  ) {
     cy.wrap(null).should(() => {
       const requests = this.getRequestsSince(this.networkBoundary).filter((request) =>
-        this.isPrometheusQueryRequest(request),
+        this.isPrometheusPanelQueryRequest(request),
       );
       expect(requests, 'Prometheus query requests').not.to.have.length(0);
+      const shippedRecords = records.filter(({ capability }) => capability === 'shipped');
+      expect(shippedRecords, 'shipped dashboard contract records').not.to.have.length(0);
+      expect(
+        requests.filter(
+          (request) =>
+            !shippedRecords.some((record) => this.matchesContractRequest(request, record)),
+        ),
+        'Prometheus requests without a matching release-contract request shape',
+      ).to.have.length(0);
+      const expectedHttpStatuses = new Set(
+        shippedRecords.flatMap(({ expectedHttpStatus }) => expectedHttpStatus),
+      );
+      const expectedPrometheusStatuses = new Set(
+        shippedRecords.map(({ expectedPrometheusStatus }) => expectedPrometheusStatus),
+      );
+      expect(
+        requests.filter(({ status }) => !expectedHttpStatuses.has(status)),
+        'unexpected HTTP statuses for dashboard contract requests',
+      ).to.have.length(0);
       expect(
         requests.filter(
           ({ complete, status, responseData }) =>
@@ -295,20 +456,76 @@ class ObservabilityDashboardPage {
             status < 200 ||
             status >= 300 ||
             responseData === undefined ||
-            responseData.error !== undefined,
+            responseData.error !== undefined ||
+            responseData.errorType !== undefined,
         ),
         'failed API requests for the selected dashboard',
       ).to.have.length(0);
+      expect(
+        requests.filter(
+          ({ query, responseData }) =>
+            !query ||
+            !responseData ||
+            !expectedPrometheusStatuses.has(responseData.prometheusStatus),
+        ),
+        'dashboard requests without contract-valid Prometheus responses',
+      ).to.have.length(0);
+      const warningsAllowed = shippedRecords.some(
+        ({ warningsAllowed: recordWarningsAllowed }) => recordWarningsAllowed,
+      );
+      expect(
+        requests.filter(
+          ({ responseData }) =>
+            responseData !== undefined && responseData.warnings.length > 0 && !warningsAllowed,
+        ),
+        'dashboard requests with unexpected Prometheus warnings',
+      ).to.have.length(0);
+      expect(
+        requests.filter(({ path, responseData }) => {
+          if (!responseData?.resultType) {
+            return true;
+          }
+          // Perses uses range queries for charts even when the release contract describes
+          // the equivalent instant query as a vector.
+          return !shippedRecords.some((record) =>
+            this.matchesExpectedResultType(path, responseData, record.expectedResultType),
+          );
+        }),
+        'dashboard requests with unexpected Prometheus result types',
+      ).to.have.length(0);
+      const dataRequests = requests.filter(({ responseData }) => responseData?.hasData === true);
+      expect(
+        dataRequests.filter(
+          ({ path, query, responseData }) =>
+            responseData === undefined ||
+            !shippedRecords.some(
+              (record) =>
+                this.matchesExpectedResultType(path, responseData, record.expectedResultType) &&
+                responseData.series.length >= record.minimumSeries &&
+                hasRequiredLabelsForQuery(responseData, record.requiredLabels, query ?? ''),
+            ),
+        ),
+        'dashboard data responses without contract-required series and labels',
+      ).to.have.length(0);
       if (requireData) {
-        const dataRequests = requests.filter(({ responseData }) => responseData?.hasData === true);
+        const minimumRequiredSeries = Math.max(
+          ...shippedRecords.map(({ minimumSeries: recordMinimumSeries }) => recordMinimumSeries),
+        );
         expect(
           expectedNamespace
             ? dataRequests.some(
-                ({ responseData }) =>
+                ({ query, responseData }) =>
                   responseData !== undefined &&
-                  hasSeriesForNamespace(responseData, expectedNamespace),
+                  responseData.series.length >= minimumRequiredSeries &&
+                  hasSeriesForNamespace(responseData, expectedNamespace) &&
+                  shippedRecords.some((record) =>
+                    hasRequiredLabelsForQuery(responseData, record.requiredLabels, query ?? ''),
+                  ),
               )
-            : dataRequests.length > 0,
+            : dataRequests.some(
+                ({ responseData }) =>
+                  responseData !== undefined && responseData.series.length >= minimumRequiredSeries,
+              ),
           'selected dashboard telemetry data',
         ).to.equal(true);
       }
@@ -341,7 +558,9 @@ class ObservabilityDashboardPage {
       const requests = this.getRequestsSince(this.observationBoundary).filter((request) =>
         this.isPrometheusResponseRequest(request),
       );
-      const queryRequests = requests.filter((request) => this.isPrometheusQueryRequest(request));
+      const queryRequests = requests.filter((request) =>
+        this.isPrometheusPanelQueryRequest(request),
+      );
       const namespaceQueryRequests = queryRequests.filter(
         ({ namespaceMatches }) => namespaceMatches,
       );
@@ -352,11 +571,11 @@ class ObservabilityDashboardPage {
       );
       const selectorRequests =
         variableRequests.length > 0 ? variableRequests : relevantQueryRequests;
-      if (outcome === 'forbidden') {
+      if (outcome === '403' || outcome === '404') {
         expect(namespaceQueryRequests, 'Prometheus namespace query requests').not.to.have.length(0);
       }
       const namespaceRequests =
-        outcome === 'forbidden'
+        outcome === '403' || outcome === '404'
           ? [...new Set([...relevantQueryRequests, ...variableRequests])]
           : selectorRequests;
 
@@ -365,16 +584,10 @@ class ObservabilityDashboardPage {
         namespaceRequests.filter(({ complete }) => !complete),
         'pending requests',
       ).to.have.length(0);
-      expect(
-        namespaceRequests.filter(
-          ({ status }) => !((status >= 200 && status < 300) || status === 401 || status === 403),
-        ),
-        'unexpected namespace responses',
-      ).to.have.length(0);
-      if (outcome === 'forbidden') {
+      if (outcome === '403' || outcome === '404') {
         expect(
-          namespaceRequests.every(({ status }) => status === 401 || status === 403),
-          'forbidden namespace response',
+          namespaceRequests.every(({ status }) => status === Number(outcome)),
+          `HTTP ${outcome} namespace response`,
         ).to.equal(true);
         return;
       }
@@ -402,7 +615,7 @@ class ObservabilityDashboardPage {
         ),
         'failed unauthorized namespace telemetry requests',
       ).to.have.length(0);
-      if (outcome === 'empty') {
+      if (outcome === 'success-empty') {
         expect(
           [...selectorRequests, ...relevantQueryRequests].every(
             ({ responseData }) => responseData?.hasData === false,
@@ -453,17 +666,20 @@ class ObservabilityDashboardPage {
     return this;
   }
 
-  shouldNotRenderValues(panelId: string, displayName: string, values: string[]) {
+  shouldNotRenderValues(panelId: string, values: string[], displayName?: string) {
     this.findPanel(panelId, displayName).should(($panels) => {
       const panelText = $panels.text();
       values.forEach((value) => {
-        expect(panelText, `panel '${displayName}'`).not.to.include(value);
+        expect(panelText, `panel '${displayName ?? panelId}'`).not.to.include(value);
       });
     });
     return this;
   }
 
-  private getPanelStateFromPanels(panels: JQuery<HTMLElement>): PanelState {
+  private getPanelStateFromPanels(
+    panels: JQuery<HTMLElement>,
+    expectedEmptyUiState: string,
+  ): PanelState {
     if (!panels.length) {
       return 'missing';
     }
@@ -486,7 +702,7 @@ class ObservabilityDashboardPage {
     const hasEmptyState = panels
       .find('p')
       .toArray()
-      .some((element) => element.textContent.trim() === 'No data');
+      .some((element) => element.textContent.trim() === expectedEmptyUiState);
     if (hasEmptyState) {
       return 'valid-empty';
     }
@@ -506,7 +722,7 @@ class ObservabilityDashboardPage {
   }
 
   writeEvidence(directory: string, context: EvidenceContext) {
-    const evidenceDirectory = validateEvidenceDirectory(directory);
+    const evidenceDirectory = validateEvidenceDirectory(directory, { allowAbsolute: true });
     const fileName = [context.runId, context.persona, context.dashboard]
       .map(safeFilePart)
       .join('-');
@@ -516,7 +732,9 @@ class ObservabilityDashboardPage {
         ...context,
         selections: { ...this.variableSelections },
         panels: { ...this.panelStates },
-        requests: [...this.observationRequests, ...this.getRequestsSince(this.networkBoundary)],
+        requests: [...this.observationRequests, ...this.getRequestsSince(this.networkBoundary)].map(
+          sanitizeNetworkEvidence,
+        ),
       });
       this.observationRequests = [];
     });
@@ -533,6 +751,78 @@ class ObservabilityDashboardPage {
 
   private isPrometheusQueryRequest(request: NetworkEvidence) {
     return this.isPrometheusResponseRequest(request) && isPrometheusQueryPath(request.path);
+  }
+
+  private isPrometheusPanelQueryRequest(request: NetworkEvidence) {
+    return this.isPrometheusQueryRequest(request) && !request.path.endsWith('/series');
+  }
+
+  private matchesExpectedResultType(
+    path: string,
+    responseData: PrometheusResponseEvidence,
+    expectedResultType: string,
+  ) {
+    if (responseData.resultType === expectedResultType) {
+      return true;
+    }
+    return (
+      path.endsWith('/query_range') &&
+      responseData.resultType === 'matrix' &&
+      expectedResultType === 'vector'
+    );
+  }
+
+  private matchesContractRequest(request: NetworkEvidence, record: ObservabilityRecord): boolean {
+    const routeMatches =
+      request.path.endsWith(record.route) ||
+      (record.route.endsWith('/query') && request.path.endsWith('/query_range'));
+    if (!routeMatches) {
+      return false;
+    }
+
+    if (request.datasource) {
+      const aliases = PROMETHEUS_DATASOURCE_ALIASES[record.datasource] ?? [record.datasource];
+      if (!aliases.includes(request.datasource)) {
+        return false;
+      }
+    }
+
+    const expectedTimeRange = Object.entries(record.timeRange);
+    if (
+      expectedTimeRange.some(([key, value]) => String(request.timeRange?.[key]) !== String(value))
+    ) {
+      return false;
+    }
+
+    if (!request.query) {
+      return false;
+    }
+    const normalizedRequestQuery = normalizePromql(request.query);
+    const normalizedContractQuery = normalizePromql(record.promql);
+    if (normalizedRequestQuery === normalizedContractQuery) {
+      return true;
+    }
+
+    const contractMetric = getPromqlMetric(normalizedContractQuery);
+    if (contractMetric && normalizedRequestQuery.includes(contractMetric)) {
+      return true;
+    }
+
+    // Dashboard panels may aggregate or join a producer query while preserving its
+    // selector semantics. For those queries, compare the selector keys that overlap
+    // with the release contract instead of requiring identical PromQL text.
+    const contractMatchers = getPromqlMatchers(normalizedContractQuery);
+    const requestMatchers = getPromqlMatchers(normalizedRequestQuery);
+    const isAggregateQuery = /(?:^|[^a-zA-Z0-9_])(sum|avg|count|max|min|rate|increase)\(/.test(
+      request.query,
+    );
+    return (
+      isAggregateQuery &&
+      [...contractMatchers.entries()].every(
+        ([label, operator]) =>
+          !requestMatchers.has(label) || requestMatchers.get(label) === operator,
+      )
+    );
   }
 
   private isPrometheusVariableRequest(request: NetworkEvidence, variableName: string) {

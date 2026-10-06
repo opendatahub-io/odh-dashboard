@@ -5885,7 +5885,6 @@ importers:
       '@odh-dashboard/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
-
   packages/plugin-core:
     dependencies:
       '@odh-dashboard/foundation':

@@ -34,8 +34,7 @@
     ]
   },
   "cypress": {
-    "mocked": "cypress/tests/mocked/**/*.cy.ts",
-    "e2e": "cypress/tests/e2e/**/*.cy.ts"
+    "mocked": "cypress/tests/mocked/**/*.cy.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

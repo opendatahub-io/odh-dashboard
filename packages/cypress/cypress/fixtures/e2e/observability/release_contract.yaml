@@ -1,0 +1,480 @@
+contract_version: 1.0.0
+release_stage: GA
+product_versions:
+  rhoai: ${RHOAI_VERSION}
+  opendatahub: ${OPENDATAHUB_VERSION}
+  dashboard: ${DASHBOARD_VERSION}
+  observability: ${OBSERVABILITY_VERSION}
+  serving_repository: ${SERVING_REPOSITORY}
+  serving_image: ${SERVING_IMAGE}
+  gpu_exporter_image: ${GPU_EXPORTER_IMAGE}
+  maas_image: ${MAAS_IMAGE}
+default_time_range: {}
+records:
+  - id: cluster-system-health
+    dashboard: cluster
+    panel: system-health
+    datasource: cluster-thanos
+    route: /api/v1/query
+    promql: up{namespace="${namespace}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 1
+    required_labels: [namespace]
+    empty_result_valid: false
+    empty_ui_state: No data
+    capability: shipped
+    authorization_response: not-applicable
+  - id: cluster-deployed-models
+    dashboard: cluster
+    panel: deployed-models
+    datasource: cluster-thanos
+    route: /api/v1/query
+    promql: kserve_deployment_ready{namespace="${namespace}",name="${model}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 1
+    required_labels: [namespace, name]
+    empty_result_valid: false
+    empty_ui_state: No data
+    capability: shipped
+    authorization_response: not-applicable
+  - id: cluster-gpu-utilization
+    dashboard: cluster
+    panel: gpu-utilization
+    datasource: cluster-thanos
+    route: /api/v1/query
+    promql: DCGM_FI_DEV_GPU_UTIL{namespace="${namespace}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 1
+    required_labels: [namespace]
+    empty_result_valid: false
+    empty_ui_state: No data
+    capability: shipped
+    authorization_response: not-applicable
+  - id: cluster-gpu-utilization-by-project
+    dashboard: cluster
+    panel: gpu-utilization-by-project
+    datasource: cluster-thanos
+    route: /api/v1/query
+    promql: accelerator_gpu_utilization{namespace="${namespace}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 1
+    required_labels: [namespace]
+    empty_result_valid: false
+    empty_ui_state: No data
+    capability: shipped
+    authorization_response: not-applicable
+  - id: cluster-cpu
+    dashboard: cluster
+    panel: cpu
+    datasource: cluster-thanos
+    route: /api/v1/query
+    promql: pod:container_cpu_usage:sum{namespace="${namespace}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 1
+    required_labels: [namespace]
+    empty_result_valid: false
+    empty_ui_state: No data
+    capability: shipped
+    authorization_response: not-applicable
+  - id: cluster-memory
+    dashboard: cluster
+    panel: memory
+    datasource: cluster-thanos
+    route: /api/v1/query
+    promql: container_memory_working_set_bytes{namespace="${namespace}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 1
+    required_labels: [namespace]
+    empty_result_valid: false
+    empty_ui_state: No data
+    capability: shipped
+    authorization_response: not-applicable
+  - id: cluster-network
+    dashboard: cluster
+    panel: network
+    datasource: cluster-thanos
+    route: /api/v1/query
+    promql: container_network_receive_bytes_total{namespace="${namespace}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 1
+    required_labels: [namespace]
+    empty_result_valid: false
+    empty_ui_state: No data
+    capability: shipped
+    authorization_response: not-applicable
+  - id: models-model-deployment-variable
+    dashboard: models
+    panel: model-deployment-variable
+    datasource: cluster-thanos
+    route: /api/v1/query
+    promql: kserve_deployment_ready{namespace=~"${namespace}",name=~"${model}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 1
+    required_labels: [namespace, name]
+    empty_result_valid: false
+    empty_ui_state: No data
+    capability: shipped
+    authorization_response: not-applicable
+  - id: models-model-table
+    dashboard: models
+    panel: model-table
+    datasource: cluster-thanos
+    route: /api/v1/query
+    promql: kserve_deployment_ready{namespace="${namespace}",name="${model}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 1
+    required_labels: [namespace, name]
+    empty_result_valid: false
+    empty_ui_state: No data
+    capability: shipped
+    authorization_response: not-applicable
+  - id: models-request-queue
+    dashboard: models
+    panel: request-queue
+    datasource: cluster-thanos
+    route: /api/v1/query
+    promql: kserve_request_queue_depth{namespace="${namespace}",name="${model}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 1
+    required_labels: [namespace, name]
+    empty_result_valid: true
+    empty_ui_state: Zero
+    capability: shipped
+    authorization_response: not-applicable
+  - id: models-replicas
+    dashboard: models
+    panel: replicas
+    datasource: cluster-thanos
+    route: /api/v1/query
+    promql: kserve_replicas{namespace="${namespace}",name="${model}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 1
+    required_labels: [namespace, name]
+    empty_result_valid: false
+    empty_ui_state: No data
+    capability: shipped
+    authorization_response: not-applicable
+  - id: models-latency
+    dashboard: models
+    panel: latency
+    datasource: cluster-thanos
+    route: /api/v1/query
+    promql: kserve_request_latency_seconds{namespace="${namespace}",name="${model}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 1
+    required_labels: [namespace, name]
+    empty_result_valid: true
+    empty_ui_state: No data
+    capability: shipped
+    authorization_response: not-applicable
+  - id: models-ttft
+    dashboard: models
+    panel: ttft
+    datasource: cluster-thanos
+    route: /api/v1/query
+    promql: kserve_vllm:time_to_first_token_seconds:rate5m{namespace="${namespace}",name="${model}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 0
+    required_labels: [namespace]
+    empty_result_valid: true
+    empty_ui_state: Not shipped
+    capability: not-shipped
+    authorization_response: not-applicable
+  - id: models-token-generation
+    dashboard: models
+    panel: token-generation
+    datasource: cluster-thanos
+    route: /api/v1/query
+    promql: kserve_vllm:request_success_total:rate5m{namespace="${namespace}",name="${model}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 0
+    required_labels: [namespace]
+    empty_result_valid: true
+    empty_ui_state: Not shipped
+    capability: not-shipped
+    authorization_response: not-applicable
+  - id: models-throughput
+    dashboard: models
+    panel: throughput
+    datasource: cluster-thanos
+    route: /api/v1/query
+    promql: kserve_vllm:time_per_output_token_seconds:rate5m{namespace="${namespace}",name="${model}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 0
+    required_labels: [namespace]
+    empty_result_valid: true
+    empty_ui_state: Not shipped
+    capability: not-shipped
+    authorization_response: not-applicable
+  - id: models-response-distribution
+    dashboard: models
+    panel: response-distribution
+    datasource: cluster-thanos
+    route: /api/v1/query
+    promql: kserve_request_latency_seconds_bucket{namespace="${namespace}",name="${model}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 0
+    required_labels: [namespace]
+    empty_result_valid: true
+    empty_ui_state: Not shipped
+    capability: not-shipped
+    authorization_response: not-applicable
+  - id: accelerator-dcgm-source
+    dashboard: accelerators
+    panel: dcgm-gpu-utilization
+    datasource: data-science-thanos
+    route: /api/v1/query
+    promql: DCGM_FI_DEV_GPU_UTIL{namespace="${namespace}",pod=~"${model}.*"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 1
+    required_labels: [namespace, pod]
+    empty_result_valid: false
+    empty_ui_state: No data
+    capability: shipped
+    authorization_response: not-applicable
+  - id: accelerator-gpu-utilization
+    dashboard: accelerators
+    panel: gpu-utilization
+    datasource: data-science-thanos
+    route: /api/v1/query
+    promql: accelerator_gpu_utilization{namespace="${namespace}",pod=~"${model}.*"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 1
+    required_labels: [namespace, pod]
+    empty_result_valid: false
+    empty_ui_state: No data
+    capability: shipped
+    authorization_response: not-applicable
+  - id: accelerator-memory-used
+    dashboard: accelerators
+    panel: memory-used
+    datasource: data-science-thanos
+    route: /api/v1/query
+    promql: accelerator_memory_used_bytes{namespace="${namespace}",pod=~"${model}.*"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 1
+    required_labels: [namespace, pod]
+    empty_result_valid: false
+    empty_ui_state: No data
+    capability: shipped
+    authorization_response: not-applicable
+  - id: accelerator-temperature
+    dashboard: accelerators
+    panel: temperature
+    datasource: data-science-thanos
+    route: /api/v1/query
+    promql: DCGM_FI_DEV_GPU_TEMP{namespace="${namespace}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 0
+    required_labels: [namespace]
+    empty_result_valid: true
+    empty_ui_state: Not shipped
+    capability: not-shipped
+    authorization_response: not-applicable
+  - id: accelerator-power
+    dashboard: accelerators
+    panel: power
+    datasource: data-science-thanos
+    route: /api/v1/query
+    promql: DCGM_FI_DEV_POWER_USAGE{namespace="${namespace}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 0
+    required_labels: [namespace]
+    empty_result_valid: true
+    empty_ui_state: Not shipped
+    capability: not-shipped
+    authorization_response: not-applicable
+  - id: gpu-aas-regression
+    dashboard: accelerators
+    panel: gpu-aas-regression
+    datasource: gpu-aas
+    route: /api/v1/query
+    promql: accelerator_gpu_utilization{namespace="${namespace}",pod=~"${model}.*"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 1
+    required_labels: [namespace, pod]
+    empty_result_valid: false
+    empty_ui_state: No data
+    capability: environment-blocked
+    authorization_response: not-applicable
+  - id: inference-vllm-series
+    dashboard: models
+    panel: vllm-inference
+    datasource: namespace-proxy
+    route: /api/prometheus/api/v1/query
+    promql: '{__name__=~"kserve_vllm:.*",namespace="${namespace}",name="${model}"}'
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 1
+    required_labels: [namespace]
+    empty_result_valid: false
+    empty_ui_state: No data
+    capability: shipped
+    authorization_response: not-applicable
+  - id: maas-authorized-hits
+    dashboard: maas
+    panel: token-usage
+    datasource: data-science-thanos
+    route: /api/v1/query
+    promql: authorized_hits{namespace="${namespace}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 1
+    required_labels: [namespace]
+    empty_result_valid: false
+    empty_ui_state: No data
+    capability: shipped
+    authorization_response: not-applicable
+  - id: maas-authorized-calls
+    dashboard: maas
+    panel: request-usage
+    datasource: data-science-thanos
+    route: /api/v1/query
+    promql: authorized_calls{namespace="${namespace}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 1
+    required_labels: [namespace]
+    empty_result_valid: false
+    empty_ui_state: No data
+    capability: shipped
+    authorization_response: not-applicable
+  - id: maas-limited-calls
+    dashboard: maas
+    panel: rate-limited-requests
+    datasource: data-science-thanos
+    route: /api/v1/query
+    promql: limited_calls{namespace="${namespace}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 0
+    required_labels: [namespace]
+    empty_result_valid: true
+    empty_ui_state: Not shipped
+    capability: not-shipped
+    authorization_response: not-applicable
+  - id: token-breakdown
+    release_stage: EA2
+    dashboard: maas
+    panel: prompt-completion-token-breakdown
+    datasource: data-science-thanos
+    route: /api/v1/query
+    promql: authorized_hits{namespace="${namespace}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 0
+    required_labels: [namespace]
+    empty_result_valid: true
+    empty_ui_state: 'Unavailable: not shipped'
+    capability: not-shipped
+    authorization_response: not-applicable
+  - id: showback
+    release_stage: GA
+    dashboard: maas
+    panel: showback
+    datasource: data-science-thanos
+    route: /api/v1/query
+    promql: authorized_hits{namespace="${namespace}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 0
+    required_labels: [namespace]
+    empty_result_valid: true
+    empty_ui_state: 'Unavailable: not shipped'
+    capability: not-shipped
+    authorization_response: not-applicable
+  - id: namespace-proxy
+    dashboard: cluster
+    panel: namespace-proxy-isolation
+    datasource: namespace-proxy
+    route: /api/prometheus/api/v1/query
+    promql: up{namespace="${namespace}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 1
+    required_labels: [namespace]
+    empty_result_valid: false
+    empty_ui_state: No data
+    capability: shipped
+    authorization_response: '403'
+  - id: tenancy-endpoint
+    dashboard: cluster
+    panel: tenancy-isolation
+    datasource: tenancy
+    route: /api/prometheus-tenancy/api/v1/query
+    promql: up{namespace="${namespace}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 1
+    required_labels: [namespace]
+    empty_result_valid: false
+    empty_ui_state: No data
+    capability: shipped
+    authorization_response: '403'
+  - id: data-science-thanos
+    dashboard: cluster
+    panel: data-science-thanos-route
+    datasource: data-science-thanos
+    route: /api/v1/query
+    promql: up{namespace="${namespace}"}
+    expected_http_status: [200]
+    expected_prometheus_status: success
+    expected_result_type: vector
+    minimum_series: 1
+    required_labels: [namespace]
+    empty_result_valid: false
+    empty_ui_state: No data
+    capability: shipped
+    authorization_response: isolation-only

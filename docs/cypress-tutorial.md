@@ -326,6 +326,7 @@ cy.step('Verify project was created');
 8. **Use fixtures for test data** - Load from YAML files
 
 > **AI Rules:** For detailed guidelines when writing tests with AI assistance, see:
+>
 > - [cypress-e2e.md](../.claude/rules/cypress-e2e.md) - E2E test patterns and conventions
 > - [cypress-mock.md](../.claude/rules/cypress-mock.md) - Mocked test patterns and intercepts
 > - [contract-tests.md](../.claude/rules/contract-tests.md) - Contract test guidelines
@@ -546,17 +547,17 @@ Tests filtered by tags use Mocha's `this.skip()` in `beforeEach()`, marking them
 
 Common test configuration via environment variables and flags (full list in [docs/testing.md](./testing.md#cypress-environment-variables)).
 
-
-| Variable | Purpose | Default | Example |
-| ------ | --------- | --------- | --------- |
-| `CY_TEST_CONFIG` | Path to test config | - | `export CY_TEST_CONFIG='./test-variables.yml'` |
-| `CY_MOCK` | Enable mocked mode | `0` | `CY_MOCK=1 pnpm run cypress:run` |
-| `CYPRESS_E2E_PROXY` | Use E2E proxy (implies baseUrl + /e2e-login auth) | - | `CYPRESS_E2E_PROXY=true` |
-| `grepTags` | Filter by tags | - | `--env grepTags="@Smoke"` |
-| `skipTags` | Skip by tags | - | `--env skipTags="@Bug"` |
-| `CY_COVERAGE` | Enable coverage | `false` | `CY_COVERAGE=true pnpm run cypress:run:mock` |
-| `CY_RETRY` | Test retries | `2` (E2E), `0` (mock) | `CY_RETRY=0` (disable retries) |
-| `CY_RESULTS_DIR` | Results directory | `results` | `CY_RESULTS_DIR=my-results` |
+| Variable            | Purpose                                              | Default               | Example                                        |
+| ------------------- | ---------------------------------------------------- | --------------------- | ---------------------------------------------- |
+| `CY_TEST_CONFIG`    | Path to test config                                  | -                     | `export CY_TEST_CONFIG='./test-variables.yml'` |
+| `CY_MOCK`           | Enable mocked mode                                   | `0`                   | `CY_MOCK=1 pnpm run cypress:run`               |
+| `CYPRESS_E2E_PROXY` | Use E2E proxy (implies baseUrl + /e2e-login auth)    | -                     | `CYPRESS_E2E_PROXY=true`                       |
+| `grepTags`          | Filter by tags                                       | -                     | `--env grepTags="@Smoke"`                      |
+| `skipTags`          | Skip by tags                                         | -                     | `--env skipTags="@Bug"`                        |
+| `CY_COVERAGE`       | Enable coverage                                      | `false`               | `CY_COVERAGE=true pnpm run cypress:run:mock`   |
+| `CY_RETRY`          | Test retries                                         | `2` (E2E), `0` (mock) | `CY_RETRY=0` (disable retries)                 |
+| `CY_RESULTS_DIR`    | Results directory                                    | `results`             | `CY_RESULTS_DIR=my-results`                    |
+| `OBSERVABILITY`     | Dashboard-owned fixture metadata in `CY_TEST_CONFIG` | -                     | See `test-variables.yml.example`               |
 
 ---
 
@@ -664,6 +665,32 @@ cd packages/cypress
 CYPRESS_E2E_PROXY=true CY_TEST_CONFIG=./test-variables.yml \
   CY_TEST_TAGS=@ci-dashboard-regression-tags pnpm run run:e2e
 ```
+
+### Running observability E2E tests
+
+The observability suite is opt-in and runs only the dashboard-owned live
+observability spec. It uses the same Cypress proxy, credentials, cluster
+login, result directory, and `ODH_DASHBOARD_URL` as standard E2E tests, plus:
+
+- The runner fetches only
+  `tests/observability/contracts/release_contract.yaml` from the producer
+  repository.
+- `OBSERVABILITY`: fixture metadata for the seeded model, foreign model names,
+  personas, and namespace scopes. Persona entries refer to existing credential
+  blocks through `credentialVariable`; they do not contain credentials.
+- A productization environment with the observability operator, dashboards,
+  datasource routes, and fixture data installed.
+
+From the repository root, use the central proxy orchestration:
+
+```bash
+CY_TEST_CONFIG=./test-variables.yml \
+pnpm run run:e2e:observability
+```
+
+The suite writes sanitized observability evidence below
+`packages/cypress/results/<results-dir>/e2e/observability/`. It is not included
+in ordinary E2E runs unless the observability command is selected.
 
 See [bff-e2e-testing.md](./bff-e2e-testing.md) for details on the local stack model.
 

@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
+import YAML from 'js-yaml';
 
 // @ts-expect-error: Types are not available for this third-party library
 import registerCypressGrep from '@cypress/grep/src/plugin';
@@ -20,6 +21,12 @@ import { extractHttpsUrlsWithLocation } from './cypress/utils/urlExtractor';
 import { validateHttpsUrls } from './cypress/utils/urlValidator';
 import { logToConsole, LogLevel } from './cypress/utils/logger';
 import { getCypressTestPatterns } from './cypress/utils/discoverTestPatterns';
+import {
+  parseLocalObservabilityDashboards,
+  parseObservabilityContractYaml,
+  validateObservabilityContractRef,
+  validateRequiredDashboardRecords,
+} from './cypress/utils/observabilityContract';
 
 const getCyEnvVariables = (envVars: Record<string, string | undefined>) => {
   return Object.fromEntries(
@@ -32,6 +39,182 @@ const getCyEnvVariables = (envVars: Record<string, string | undefined>) => {
 const resultsDir = `${env.CY_RESULTS_DIR || 'results'}/${env.CY_MOCK ? 'mocked' : 'e2e'}`;
 
 const isCI = !!env.CI;
+
+const requiresImmutableObservabilityContractRef =
+  env.CI === 'true' ||
+  env.CI === '1' ||
+  Boolean(env.BUILD_NUMBER || env.JENKINS_URL || env.GITHUB_ACTIONS);
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isObservabilityLiveRun =
+  !env.CY_MOCK &&
+  (env.CY_OBSERVABILITY_LIVE === 'true' || Boolean(env.RHOAI_OBSERVABILITY_CONTRACT_REF));
+
+const getObservabilityContractOutputPath = (): string =>
+  path.resolve(
+    __dirname,
+    env.CY_OBSERVABILITY_CONTRACT_PATH ||
+      path.join(env.CY_RESULTS_DIR || 'results', 'e2e', 'observability', 'release_contract.yaml'),
+  );
+
+const loadLocalObservabilityDashboards = () => {
+  const distribution = env.OBSERVABILITY_MANIFEST_DISTRIBUTION || 'rhoai';
+  const directory = path.resolve(__dirname, '..', '..', 'manifests', 'observability', distribution);
+  const manifestNames = [
+    'perses-dashboard-cluster.yaml',
+    'perses-dashboard-model.yaml',
+    'perses-dashboard-model-admin.yaml',
+  ];
+  const grouped = new Map<
+    string,
+    {
+      contractName: string;
+      displayName: string;
+      runtimeNames: string[];
+      panelIds: string[];
+      panelDisplayNames: Record<string, string>;
+      variables: Array<{ name: string; displayName?: string }>;
+    }
+  >();
+
+  manifestNames.forEach((manifestName) => {
+    const manifestPath = path.join(directory, manifestName);
+    if (!fs.existsSync(manifestPath)) {
+      throw new Error(`Observability dashboard manifest is missing: ${manifestPath}`);
+    }
+    const document: unknown = YAML.load(fs.readFileSync(manifestPath, 'utf8'));
+    if (!isRecord(document) || !isRecord(document.metadata) || !isRecord(document.spec)) {
+      throw new Error(`Observability dashboard manifest '${manifestName}' is malformed`);
+    }
+    const runtimeName = document.metadata.name;
+    if (typeof runtimeName !== 'string' || runtimeName.trim().length === 0) {
+      throw new Error(`Observability dashboard manifest '${manifestName}' has no metadata.name`);
+    }
+    const manifestSpec = document.spec;
+    const dashboardConfig = isRecord(manifestSpec.config) ? manifestSpec.config : manifestSpec;
+    const { display, panels, variables } = dashboardConfig;
+    const displayName = isRecord(display) ? display.name : undefined;
+    if (
+      typeof displayName !== 'string' ||
+      displayName.trim().length === 0 ||
+      !isRecord(panels) ||
+      !Array.isArray(variables)
+    ) {
+      throw new Error(`Observability dashboard manifest '${manifestName}' is missing UI metadata`);
+    }
+
+    const contractName = runtimeName.includes('-cluster')
+      ? 'cluster'
+      : runtimeName.includes('-model')
+      ? 'models'
+      : undefined;
+    if (!contractName) {
+      return;
+    }
+
+    const parsedVariables = variables.map((variable) => {
+      if (!isRecord(variable) || !isRecord(variable.spec)) {
+        throw new Error(
+          `Observability dashboard manifest '${manifestName}' has a malformed variable`,
+        );
+      }
+      const { name, display: variableDisplay } = variable.spec;
+      const variableDisplayName = isRecord(variableDisplay) ? variableDisplay.name : undefined;
+      if (typeof name !== 'string' || name.trim().length === 0) {
+        throw new Error(
+          `Observability dashboard manifest '${manifestName}' has a variable without a name`,
+        );
+      }
+      return {
+        name,
+        ...(typeof variableDisplayName === 'string' ? { displayName: variableDisplayName } : {}),
+      };
+    });
+    const panelDisplayNames = Object.fromEntries(
+      Object.entries(panels).map(([panelId, panel]) => {
+        if (!isRecord(panel) || !isRecord(panel.spec) || !isRecord(panel.spec.display)) {
+          throw new Error(
+            `Observability dashboard manifest '${manifestName}' has a panel without display metadata`,
+          );
+        }
+        const panelDisplayName = panel.spec.display.name;
+        if (typeof panelDisplayName !== 'string' || panelDisplayName.trim().length === 0) {
+          throw new Error(
+            `Observability dashboard manifest '${manifestName}' has a panel without a display name`,
+          );
+        }
+        return [panelId, panelDisplayName];
+      }),
+    );
+    const existing = grouped.get(contractName);
+    if (existing) {
+      if (existing.displayName !== displayName) {
+        throw new Error(
+          `Observability dashboard display name differs across '${contractName}' manifests`,
+        );
+      }
+      existing.runtimeNames.push(runtimeName);
+      existing.panelIds = [...new Set([...existing.panelIds, ...Object.keys(panels)])];
+      Object.entries(panelDisplayNames).forEach(([panelId, panelDisplayName]) => {
+        const existingDisplayName = existing.panelDisplayNames[panelId];
+        if (
+          Object.prototype.hasOwnProperty.call(existing.panelDisplayNames, panelId) &&
+          existingDisplayName !== panelDisplayName
+        ) {
+          throw new Error(
+            `Observability dashboard panel display name differs across '${contractName}' manifests`,
+          );
+        }
+        existing.panelDisplayNames[panelId] = panelDisplayName;
+      });
+      existing.variables = [...existing.variables, ...parsedVariables].filter(
+        (variable, index, all) => all.findIndex(({ name }) => name === variable.name) === index,
+      );
+      return;
+    }
+    grouped.set(contractName, {
+      contractName,
+      displayName,
+      runtimeNames: [runtimeName],
+      panelIds: Object.keys(panels),
+      panelDisplayNames,
+      variables: parsedVariables,
+    });
+  });
+
+  return parseLocalObservabilityDashboards([...grouped.values()]);
+};
+
+const loadObservabilityContractForRun = () => {
+  if (!isObservabilityLiveRun) {
+    return undefined;
+  }
+  const contractPath = getObservabilityContractOutputPath();
+  if (!fs.existsSync(contractPath)) {
+    throw new Error(
+      `Observability release contract was not found at '${contractPath}'. Run the pre-test fetch first.`,
+    );
+  }
+  const contract = parseObservabilityContractYaml(fs.readFileSync(contractPath, 'utf8'));
+  validateRequiredDashboardRecords(contract);
+  const ref = env.RHOAI_OBSERVABILITY_CONTRACT_REF;
+  if (!ref && requiresImmutableObservabilityContractRef) {
+    throw new Error(
+      'RHOAI_OBSERVABILITY_CONTRACT_REF must be provided for productized or CI observability runs',
+    );
+  }
+  const contractRef = ref ? validateObservabilityContractRef(ref) : 'main';
+  return {
+    contract,
+    contractRef,
+    contractSource: 'opendatahub-tests/tests/observability/contracts/release_contract.yaml',
+    localDashboards: loadLocalObservabilityDashboards(),
+  };
+};
+
+const observabilityContractForRun = loadObservabilityContractForRun();
 
 export default defineConfig({
   experimentalMemoryManagement: true,
@@ -74,6 +257,10 @@ export default defineConfig({
     ODH_PRODUCT_NAME: env.ODH_PRODUCT_NAME,
     BUILD_NUMBER: env.BUILD_NUMBER || '',
     GITHUB_RUN_ID: env.GITHUB_RUN_ID || '',
+    OBSERVABILITY_CONTRACT: observabilityContractForRun?.contract,
+    OBSERVABILITY_CONTRACT_REF: observabilityContractForRun?.contractRef,
+    OBSERVABILITY_CONTRACT_SOURCE: observabilityContractForRun?.contractSource,
+    OBSERVABILITY_LOCAL_DASHBOARDS: observabilityContractForRun?.localDashboards,
     resolution: 'high',
     grepFilterSpecs: true,
     mfConfigs: getModuleFederationConfigs(true),
@@ -89,6 +276,9 @@ export default defineConfig({
       : env.CY_RECORD
       ? 'cypress/tests/mocked/**/*.scy.ts'
       : ['cypress/tests/e2e/**/*.cy.ts', ...getCypressTestPatterns('e2e')],
+    excludeSpecPattern: isObservabilityLiveRun
+      ? []
+      : ['cypress/tests/e2e/observability/**/*.cy.ts'],
     experimentalInteractiveRunEvents: true,
     setupNodeEvents(on, config) {
       registerCypressGrep(config);

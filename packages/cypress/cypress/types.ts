@@ -299,6 +299,7 @@ export type TestConfig = {
   // BYOIDC cluster authentication settings
   CLUSTER_AUTH?: string;
   CLUSTER_OIDC_ISSUER?: string;
+  OBSERVABILITY?: unknown;
 };
 
 export type DataScienceProjectData = {
