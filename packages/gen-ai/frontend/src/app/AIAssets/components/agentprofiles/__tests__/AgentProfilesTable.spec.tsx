@@ -2,7 +2,7 @@ import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { AgentDeploymentSummary, AgentProfileSummary } from '~/app/agentProfile/types';
 import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
-import AgentProfilesTable from '../AgentProfilesTable';
+import AgentProfilesTable from '~/app/AIAssets/components/agentprofiles/AgentProfilesTable';
 
 jest.mock('mod-arch-shared', () => ({
   Table: ({

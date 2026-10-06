@@ -2,7 +2,7 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AgentProfileSummary } from '~/app/agentProfile/types';
-import AgentProfileTableRow from '../AgentProfileTableRow';
+import AgentProfileTableRow from '~/app/AIAssets/components/agentprofiles/AgentProfileTableRow';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireMiscTrackingEvent: jest.fn(),

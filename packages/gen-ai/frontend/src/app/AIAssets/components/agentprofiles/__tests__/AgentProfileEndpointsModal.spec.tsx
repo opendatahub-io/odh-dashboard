@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import AgentProfileEndpointsModal from '../AgentProfileEndpointsModal';
+import AgentProfileEndpointsModal from '~/app/AIAssets/components/agentprofiles/AgentProfileEndpointsModal';
 
 describe('AgentProfileEndpointsModal', () => {
   it('should show the most recent deployments and link to the selected deployment details', () => {
