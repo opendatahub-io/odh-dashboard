@@ -22,7 +22,7 @@ describe('createTestShards', () => {
 
     assert.equal(shards.length, 3);
     assert.deepEqual(
-      shards.flatMap((shard) => shard.spec.split(',')).toSorted(),
+      shards.flatMap((shard) => shard.specs).toSorted(),
       groups.map((group) => `../packages/${group.spec}`).toSorted(),
     );
   });

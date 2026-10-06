@@ -137,9 +137,9 @@ function balancedSplit(files, numBins) {
 /**
  * Pack discovered groups into a stable, bounded matrix.
  *
- * Cypress accepts a comma-separated list of specs, including brace globs, so a
- * shard can preserve the existing test selection while limiting the number of
- * GitHub check runs created by the matrix.
+ * Each shard retains its original spec groups so the workflow can run them in
+ * isolated Cypress processes while limiting the number of GitHub check runs
+ * created by the matrix.
  */
 function createTestShards(groups, maxShards = MAX_TEST_SHARDS) {
   if (!Number.isInteger(maxShards) || maxShards < 1) {
@@ -158,7 +158,7 @@ function createTestShards(groups, maxShards = MAX_TEST_SHARDS) {
 
   return balancedSplit(normalizedGroups, shardCount).map((bin, index) => ({
     name: `shard-${String(index + 1).padStart(2, '0')}`,
-    spec: bin.files.map((group) => `../packages/${group.spec}`).join(','),
+    specs: bin.files.map((group) => `../packages/${group.spec}`),
     size: bin.totalSize,
     count: bin.files.reduce((total, group) => total + (group.count ?? 1), 0),
     strategy: 'shard',
@@ -483,7 +483,14 @@ function main() {
   // Output JSON for GitHub Actions
   // Remove metadata fields (size, count, strategy) from final output
   // Validate all names and specs for shell safety
-  const output = allGroups.map(({ name, spec }) => ({ name, spec }));
+  const output = allGroups.map(({ name, specs }) => {
+    validateSafePath(name, 'test group name');
+    if (!Array.isArray(specs) || specs.length === 0) {
+      throw new Error('test group specs must be a non-empty array');
+    }
+    specs.forEach((spec) => validateSafePath(spec, 'test group spec'));
+    return { name, specs };
+  });
   console.log(JSON.stringify(output));
 }
 
