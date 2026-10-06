@@ -15,6 +15,7 @@ import {
 } from '@patternfly/react-core';
 import AgentConfigurationCard from '~/app/AIAssets/components/agentprofiles/AgentConfigurationCard';
 import type { AgentProfile } from '~/app/agentProfile/types';
+import { AIModel } from '~/app/types';
 import './DeployAgentModal.scss';
 
 type DeployAgentModalProps = {
@@ -23,6 +24,7 @@ type DeployAgentModalProps = {
   isDeploying: boolean;
   missingMCPServerAuth: string[];
   existingDeploymentNames: string[];
+  aiModels?: AIModel[];
   onDeploy: (name: string) => void;
   onClose: () => void;
 };
@@ -62,6 +64,7 @@ const DeployAgentModal: React.FC<DeployAgentModalProps> = ({
   isDeploying,
   missingMCPServerAuth,
   existingDeploymentNames,
+  aiModels,
   onDeploy,
   onClose,
 }) => {
@@ -131,6 +134,7 @@ const DeployAgentModal: React.FC<DeployAgentModalProps> = ({
             profile={profile}
             title="Configuration snapshot"
             isSavedConfiguration
+            aiModels={aiModels}
           />
         </Form>
       </ModalBody>

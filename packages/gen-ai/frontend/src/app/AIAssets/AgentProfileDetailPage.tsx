@@ -34,8 +34,10 @@ import { ExclamationCircleIcon, InProgressIcon } from '@patternfly/react-icons';
 import { Link, useParams } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { AgentDeploymentSummary } from '~/app/agentProfile/types';
+import { AIModel } from '~/app/types';
 import { buildResponseAPICurl } from '~/app/agentProfile/deploymentUtils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import useFetchAIModels from '~/app/hooks/useFetchAIModels';
 import { genAiAiAssetsTabRoute, genAiChatPlaygroundRoute } from '~/app/utilities/routes';
 import NoData from '~/app/EmptyStates/NoData';
 import useFetchAgentProfiles from '~/app/hooks/useFetchAgentProfiles';
@@ -46,6 +48,7 @@ import AgentConfigurationCard from './components/agentprofiles/AgentConfiguratio
 type DeploymentAccordionItemProps = {
   deployment: AgentDeploymentSummary;
   isLatest: boolean;
+  aiModels: AIModel[];
 };
 
 const formatDeploymentDate = (value: string): string => {
@@ -96,6 +99,7 @@ const DeploymentSnapshotSkeleton: React.FC = () => (
 const DeploymentAccordionItem: React.FC<DeploymentAccordionItemProps> = ({
   deployment,
   isLatest,
+  aiModels,
 }) => {
   const { api } = useGenAiAPI();
   const [isExpanded, setIsExpanded] = React.useState(false);
@@ -177,7 +181,11 @@ const DeploymentAccordionItem: React.FC<DeploymentAccordionItemProps> = ({
             )}
             {details?.config && (
               <StackItem>
-                <AgentConfigurationCard profile={details.config} title="Deployed snapshot" />
+                <AgentConfigurationCard
+                  profile={details.config}
+                  title="Deployed snapshot"
+                  aiModels={aiModels}
+                />
               </StackItem>
             )}
             {details && !details.config && !loadingDetails && !detailsError && (
@@ -241,6 +249,7 @@ const AgentProfileDetailPage: React.FC = () => {
     error: deploymentsError,
   } = useFetchAgentDeployments(profileId);
   const { data: profiles = [] } = useFetchAgentProfiles();
+  const { data: aiModels = [] } = useFetchAIModels();
 
   if (!profileLoaded && !profileError) {
     return (
@@ -315,6 +324,7 @@ const AgentProfileDetailPage: React.FC = () => {
               title="Current saved state"
               lastModified={lastModified}
               isSavedConfiguration
+              aiModels={aiModels}
             />
           </StackItem>
           <StackItem>
@@ -345,6 +355,7 @@ const AgentProfileDetailPage: React.FC = () => {
                     key={deployment.name}
                     deployment={deployment}
                     isLatest={index === 0}
+                    aiModels={aiModels}
                   />
                 ))}
               </Accordion>
