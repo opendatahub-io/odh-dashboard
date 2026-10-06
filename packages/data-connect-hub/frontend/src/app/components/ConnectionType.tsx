@@ -11,6 +11,8 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
   Icon,
+  Label,
+  LabelColor,
   Timestamp,
   TimestampTooltipVariant,
 } from '@patternfly/react-core';
@@ -127,6 +129,51 @@ const renderedConnectionTypeValues: Record<string, RenderedConnectionTypeValue> 
 
 // Private -------------------------------------------------------------------->
 
+// Classes -------------------------------------------------------------------->
+
+class ConnectionTypeInstance implements ConnectionType {
+  metadata: ConnectionType['metadata'];
+  resource: ConnectionType['resource'];
+  status: ConnectionType['status'];
+
+  readonly id: string;
+  readonly original: ConnectionType;
+
+  constructor(connectionType: ConnectionType) {
+    this.metadata = connectionType.metadata;
+    this.resource = connectionType.resource;
+    this.status = connectionType.status;
+
+    this.id = connectionType.metadata.id;
+    this.original = connectionType;
+  }
+
+  isFullIntegration() {
+    // TODO [ Gustavo ] Subject to change to flight_ready: Other PR will be updating the schema to be used here
+    return Boolean(this.status?.capabilities.flight);
+  }
+
+  isCredentialsOnly() {
+    return !this.isFullIntegration();
+  }
+
+  matchesSearch(searchTerm: string) {
+    const name = this.resource.name;
+    const description = this.resource.description;
+    const searchableText = `${name} ${description}`.trim().toLowerCase();
+    return searchableText.includes(searchTerm.trim().toLowerCase());
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Depends on labels being added by API: Return true for now
+  matchesLabels(labels: string | string[]) {
+    return true;
+  }
+
+  toJSON() {
+    return this.original;
+  }
+}
+
 // Components ----------------------------------------------------------------->
 
 type RelativeTimestampProps = {
@@ -174,12 +221,25 @@ type ConnectionTypeCardProps = {
   isSelected?: boolean;
 };
 const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
-  connectionType,
+  connectionType: _connectionType,
   onClick,
   isSelectable = false,
   isSelected = false,
 }) => {
+  const connectionType = new ConnectionTypeInstance(_connectionType);
   const rootId = ConnectionTypeCardIdentifier(connectionType.metadata.id);
+  let label = (
+    <Label key="full_integration" color={LabelColor.teal}>
+      Full integration
+    </Label>
+  );
+  if (connectionType.isCredentialsOnly()) {
+    label = (
+      <Label key="credentials" color={LabelColor.yellow}>
+        Credentials only
+      </Label>
+    );
+  }
   return (
     <Card
       id={rootId}
@@ -190,6 +250,10 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
       style={{ aspectRatio: '4 / 3' }}
     >
       <CardHeader
+        actions={{
+          hasNoOffset: true,
+          actions: [label],
+        }}
         selectableActions={{
           onClickAction: onClick,
           onChange: onClick,
@@ -229,6 +293,7 @@ const ConnectionTypeValues: React.FC<ConnectionTypeValuesProps> = ({ connectionT
 
 export {
   KnownConnectionTypes,
+  ConnectionTypeInstance,
   ConnectionTypeIcon,
   ConnectionTypeCardIdentifier,
   ConnectionTypeCard,

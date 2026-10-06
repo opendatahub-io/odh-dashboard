@@ -23,7 +23,11 @@ import {
   type FilterValue,
 } from 'mod-arch-shared';
 
-import { ConnectionTypeCard, ConnectionTypeCardIdentifier } from '~/app/components/ConnectionType';
+import {
+  ConnectionTypeInstance,
+  ConnectionTypeCard,
+  ConnectionTypeCardIdentifier,
+} from '~/app/components/ConnectionType';
 import type { Identified, Labelled, Described, ConnectionType } from '~/app/types';
 
 import emptyStateImage from '~/images/RHOAI-Noconnections-RGB.svg';
@@ -184,20 +188,24 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
 
   // Callbacks ---------------------------------------------------------------->
 
-  const shouldShowConnectionType = React.useCallback(
-    (connectionType: ConnectionType) => {
-      const normalizedSearchTerm = searchTerm.trim().toLowerCase();
-      if (normalizedSearchTerm) {
-        const searchableText = `${connectionType.resource.name} ${
-          connectionType.resource.description ?? ''
-        }`
-          .trim()
-          .toLowerCase();
-        return searchableText.includes(normalizedSearchTerm);
-      }
-      return true;
-    },
+  const normalizedSearchTerm = React.useMemo<string>(
+    () => searchTerm.trim().toLowerCase(),
     [searchTerm],
+  );
+
+  const shouldShowConnectionType = React.useCallback(
+    (connectionType: ConnectionTypeInstance) => {
+      let shouldRenderConnectionType = true;
+
+      if (normalizedSearchTerm) {
+        shouldRenderConnectionType = connectionType.matchesSearch(normalizedSearchTerm);
+      }
+      if (filterValues.labels.length) {
+        shouldRenderConnectionType = connectionType.matchesLabels(filterValues.labels);
+      }
+      return shouldRenderConnectionType;
+    },
+    [normalizedSearchTerm, filterValues],
   );
 
   const onFilterChange = React.useCallback((filterKey: FilterOption, value: FilterValue) => {
@@ -212,28 +220,30 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
   // Helpers ------------------------------------------------------------------>
 
   const connectionTypesByGroup = React.useMemo<
-    Record<ConnectionTypeGroup, ConnectionType[]>
+    Record<ConnectionTypeGroup, ConnectionTypeInstance[]>
   >(() => {
-    const groupedConnectionTypes: Record<ConnectionTypeGroup, ConnectionType[]> = {
+    const groupedConnectionTypes: Record<ConnectionTypeGroup, ConnectionTypeInstance[]> = {
       full_integration: [],
       credentials: [],
     };
 
-    connectionTypes.forEach((connectionType) => {
-      if (connectionType.status?.capabilities.flight) {
-        groupedConnectionTypes.full_integration.push(connectionType);
-      } else {
-        groupedConnectionTypes.credentials.push(connectionType);
-      }
-    });
+    connectionTypes
+      .map((connectionType) => new ConnectionTypeInstance(connectionType))
+      .forEach((connectionType) => {
+        if (connectionType.isFullIntegration()) {
+          groupedConnectionTypes.full_integration.push(connectionType);
+        } else {
+          groupedConnectionTypes.credentials.push(connectionType);
+        }
+      });
 
     return groupedConnectionTypes;
   }, [connectionTypes]);
 
   const connectionTypesByGroupToRender = React.useMemo<
-    Record<ConnectionTypeGroup, ConnectionType[]>
+    Record<ConnectionTypeGroup, ConnectionTypeInstance[]>
   >(() => {
-    const filteredConnectionTypes: Record<ConnectionTypeGroup, ConnectionType[]> = {
+    const filteredConnectionTypes: Record<ConnectionTypeGroup, ConnectionTypeInstance[]> = {
       full_integration: [],
       credentials: [],
     };
@@ -244,8 +254,12 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
     return filteredConnectionTypes;
   }, [connectionTypesByGroup, shouldShowConnectionType]);
 
+  const hasFilters = Boolean(filterValues.capability) || Boolean(filterValues.labels.length);
+
+  const shouldRenderGroupTitles = !hasFilters && !normalizedSearchTerm;
+
   const shouldRenderEmptySearchState =
-    Boolean(searchTerm) &&
+    Boolean(normalizedSearchTerm) &&
     Object.values(connectionTypesByGroupToRender).every(
       (renderedConnectionTypes) => renderedConnectionTypes.length === 0,
     );
@@ -302,7 +316,7 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
           <SearchInput
             name="ConnectionTypesGallery-toolbar-search"
             aria-label="Search data connection types by name"
-            placeholder="Search by name or description..."
+            placeholder="Find by name or description..."
             value={searchTerm}
             onChange={(_event, value) => setSearchTerm(value)}
             onClear={() => setSearchTerm('')}
@@ -318,10 +332,14 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
     .filter((group) => !selectedConnectionGroup || group.id === selectedConnectionGroup)
     .map((group) => (
       <React.Fragment key={group.id}>
-        <Title headingLevel="h3">{group.label}</Title>
-        <Content component="p" className="pf-v6-u-mb-sm pf-v6-u-mt-sm">
-          {group.description}
-        </Content>
+        {shouldRenderGroupTitles && (
+          <>
+            <Title headingLevel="h3">{group.label}</Title>
+            <Content component="p" className="pf-v6-u-mb-sm pf-v6-u-mt-sm">
+              {group.description}
+            </Content>
+          </>
+        )}
         <Gallery hasGutter maxWidths={{ default: '350px' }} className="pf-v6-u-mb-lg">
           {connectionTypesByGroupToRender[group.id].map((connectionType) => (
             <ConnectionTypeCard
