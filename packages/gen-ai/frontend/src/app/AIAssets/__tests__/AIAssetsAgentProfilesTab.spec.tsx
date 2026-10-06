@@ -132,6 +132,9 @@ describe('AIAssetsAgentProfilesTab', () => {
 
     renderTab();
 
-    expect(mockUseFetchAgentDeployments).toHaveBeenCalledWith(undefined, { includeAll: true });
+    expect(mockUseFetchAgentDeployments).toHaveBeenCalledWith(undefined, {
+      includeAll: true,
+      enabled: true,
+    });
   });
 });

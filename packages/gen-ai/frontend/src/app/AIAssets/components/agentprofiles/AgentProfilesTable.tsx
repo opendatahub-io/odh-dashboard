@@ -144,12 +144,14 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
                   text={`Deployed (${deployedProfileCount})`}
                   isSelected={deploymentFilter === 'deployed'}
                   onChange={() => setDeploymentFilter('deployed')}
+                  isDisabled={!deploymentsLoaded}
                   data-testid="agent-deployment-filter-deployed"
                 />
                 <ToggleGroupItem
                   text={`Not deployed (${profiles.length - deployedProfileCount})`}
                   isSelected={deploymentFilter === 'not-deployed'}
                   onChange={() => setDeploymentFilter('not-deployed')}
+                  isDisabled={!deploymentsLoaded}
                   data-testid="agent-deployment-filter-not-deployed"
                 />
               </ToggleGroup>

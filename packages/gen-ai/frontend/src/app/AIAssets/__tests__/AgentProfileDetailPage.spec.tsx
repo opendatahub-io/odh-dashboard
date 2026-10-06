@@ -58,6 +58,11 @@ const mockUseFetchAIModels = jest.mocked(useFetchAIModels);
 const mockUseGenAiAgentDeploymentEnabled = jest.mocked(useGenAiAgentDeploymentEnabled);
 const mockUseGuardrailsEnabled = jest.mocked(useGuardrailsEnabled);
 const mockUseGenAiAPI = jest.mocked(useGenAiAPI);
+const originalScrollIntoView = Element.prototype.scrollIntoView;
+
+afterEach(() => {
+  Element.prototype.scrollIntoView = originalScrollIntoView;
+});
 
 const profile: AgentProfile = {
   apiVersion: 'gen-ai.opendatahub.io/v1alpha1',
@@ -253,7 +258,8 @@ describe('AgentProfileDetailPage', () => {
       apiAvailable: true,
       refreshAllAPI: jest.fn(),
     } as unknown as ReturnType<typeof useGenAiAPI>);
-    Element.prototype.scrollIntoView = jest.fn();
+    const scrollIntoView = jest.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
 
     renderPageWithDeployment(deployment.name);
 
@@ -261,7 +267,7 @@ describe('AgentProfileDetailPage', () => {
       expect(getAgentDeployment).toHaveBeenCalledWith({ id: deployment.name });
     });
     expect(screen.getByText('Deployed snapshot')).toBeInTheDocument();
-    expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
+    expect(scrollIntoView).toHaveBeenCalledWith({
       behavior: 'smooth',
       block: 'start',
     });

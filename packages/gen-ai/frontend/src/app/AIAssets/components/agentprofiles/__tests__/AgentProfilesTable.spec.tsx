@@ -147,5 +147,7 @@ describe('AgentProfilesTable', () => {
     expect(screen.getByTestId('row-not-deployed-agent-id')).toHaveTextContent(
       'deployments loading',
     );
+    expect(screen.getByRole('button', { name: 'Deployed (0)' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Not deployed (2)' })).toBeDisabled();
   });
 });

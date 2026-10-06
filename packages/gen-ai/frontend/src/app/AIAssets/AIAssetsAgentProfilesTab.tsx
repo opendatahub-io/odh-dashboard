@@ -13,7 +13,7 @@ const AIAssetsAgentProfilesTab: React.FC = () => {
   const { enabled: agentDeploymentsEnabled } = useGenAiAgentDeploymentEnabled();
   const { data: deployments = [], loaded: deploymentsLoaded } = useFetchAgentDeployments(
     undefined,
-    { includeAll: agentDeploymentsEnabled },
+    { includeAll: true, enabled: agentDeploymentsEnabled },
   );
 
   const handleDelete = React.useCallback(
