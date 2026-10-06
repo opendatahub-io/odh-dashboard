@@ -136,5 +136,18 @@ export { ProjectSelector, ProjectSelectorNavigator } from './components/projectS
 export { ProjectsContext } from './context/ProjectsContext';
 export type { ProjectsContextType } from './context/ProjectsContext';
 
+export {
+  WorkingProjectContext,
+  WorkingProjectProvider,
+  useWorkingProject,
+} from './context/WorkingProjectContext';
+export type {
+  ProjectIdentity,
+  ProvidedWorkingProjectState,
+  WorkingProjectContextType,
+  WorkingProjectProviderProps,
+  WorkingProjectState,
+} from './context/WorkingProjectContext';
+
 export { ConnectionDetailsHelperText } from './components/connectionTypes/ConnectionDetailsHelperText';
 export { default as DefaultValueTextRenderer } from './components/connectionTypes/DefaultValueTextRenderer';
