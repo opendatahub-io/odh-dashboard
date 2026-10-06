@@ -2,6 +2,10 @@ import * as React from 'react';
 import { isEqual } from 'lodash-es';
 import { Button, Bullseye, PageSection, Spinner, Stack, StackItem } from '@patternfly/react-core';
 import { TrackingOutcome, useNotification } from '@odh-dashboard/ui-core';
+import { useExtensions } from '@odh-dashboard/plugin-core';
+import { ExtensibleActions } from '@odh-dashboard/plugin-core/helpers/ui';
+import { isActionExtension } from '@odh-dashboard/plugin-core/extension-points';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import {
   useHostApiCore,
   useTrackEvent,
@@ -10,10 +14,13 @@ import {
 } from '@odh-dashboard/plugin-core/host-api';
 import ModelServingPlatformSettings from './ModelServingPlatformSettings';
 import DeploymentStrategySettings, { DeploymentStrategy } from './DeploymentStrategySettings';
+import { mockRuntimeImageActionData } from '../runtimeImageInstall/mockRuntimeImageActionData';
+import type { PlaceholderRuntimeImageActionProps } from '../runtimeImageInstall/placeholder-types';
 import {
   fireDeploymentStrategyChanged,
   firePlatformSettingChanged,
 } from '../../shared/tracking/generalSettingsTracking';
+import { PLACEHOLDER_ACTION_GROUP } from '../runtimeImageInstall/const';
 
 const DEFAULT_DISTRIBUTED_INFERENCING = true;
 const DEFAULT_ENABLED_PLATFORMS: ModelServingPlatformEnabled = { kServe: true, LLMd: true };
@@ -40,6 +47,14 @@ const GeneralSettingsTab: React.FC = () => {
   );
 
   const notification = useNotification();
+
+  // TODO placeholder extension point for testing the runtime image library install flow.
+  // Will be replaced with usage of the real extension point on the library details page when it exists in https://redhat.atlassian.net/browse/RHOAIENG-96642
+  const runtimeImageLibraryEnabled = useIsAreaAvailable(SupportedArea.RUNTIME_CATALOG).status;
+  const placeholderActionExtensions = useExtensions(isActionExtension);
+  const hasPlaceholderInstallAction = placeholderActionExtensions.some(
+    (extension) => extension.properties.group === PLACEHOLDER_ACTION_GROUP,
+  );
 
   React.useEffect(() => {
     let cancelled = false;
@@ -221,6 +236,30 @@ const GeneralSettingsTab: React.FC = () => {
             Save changes
           </Button>
         </StackItem>
+        {runtimeImageLibraryEnabled && hasPlaceholderInstallAction ? (
+          // TODO placeholder extension point for testing the runtime image library install flow.
+          // Will be replaced with usage of the real extension point on the library details page when it exists in https://redhat.atlassian.net/browse/RHOAIENG-96642
+          <>
+            <StackItem>
+              <hr />
+              <h2 style={{ color: 'red' }}>
+                PLACEHOLDER: This is a temporary extension point, this install button will not live
+                on this page. It will move to the new runtime library details page when that exists.
+              </h2>
+            </StackItem>
+            <StackItem>
+              <ExtensibleActions
+                actions={placeholderActionExtensions}
+                group={PLACEHOLDER_ACTION_GROUP}
+                componentProps={
+                  {
+                    actionData: mockRuntimeImageActionData(),
+                  } satisfies PlaceholderRuntimeImageActionProps
+                }
+              />
+            </StackItem>
+          </>
+        ) : null}
       </Stack>
     </PageSection>
   );

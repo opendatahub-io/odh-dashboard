@@ -13,9 +13,9 @@ Vendored from
 at harness pin `91f61f3`. Local change: dimensions come from
 `.fullsend/dimensions.json`. Discriminator is `output`:
 `findings` (LLM + CLI → merge + challenger), `context` (host
-snapshot, not challenger), `section:<name>` (schema field, not
-challenger), `check:<name>` (readiness result), and `signal:<name>`
-(schema members named by `result_fields`). This file must not
+snapshot or pre-dispatch LLM brief, not challenger), `section:<name>`
+(schema field, not challenger), `check:<name>` (readiness result), and
+`signal:<name>` (schema members named by `result_fields`). This file must not
 hardcode dimension names, count, kind, or schema member names.
 
 (This skill's design departs from ADR-0018 "scripted pipelines for
@@ -27,6 +27,7 @@ deterministic post-processing. A superseding ADR is needed to
 formally retire ADR-0018's prohibition.)
 
 This skill orchestrates a pull request review by triaging the change,
+running any **pre-dispatch context LLM** to brief the reviewers,
 running each **selected findings LLM** as a sub-agent, **loading**
 host-collected CLI envelopes, optionally spawning structured-output LLMs,
 synthesizing **findings** arrays, and producing a structured result. The
@@ -77,6 +78,7 @@ Each `dimensions[]` object:
 | `producer_file` | Host JSON path (`cli-adapter` only), under `.fullsend/.run/`. It may contain findings, a `check`, or trusted context. Every adapter envelope also appears in `.fullsend/.run/collected.json` |
 | `host` | Trusted execution metadata for a `cli-adapter`: `workflow` or `pre_review` execution plus any artifact, setup, checkout, and credential-name requirements |
 | `context_file` | Optional trusted-host snapshot an LLM must read (do not fetch it yourself) |
+| `stage` | `pre-dispatch` on an LLM row with `output: context`, and only there. The row runs alone before step 4 and every later LLM reviewer is told to read its brief (step 3g) |
 
 **Not in the registry as dimensions:**
 
@@ -688,6 +690,59 @@ sub-agent failed (fallback to uniform attention), prepare all context
 packages using the standard format described above — no
 prioritization.
 
+#### 3g. Investigation brief (pre-dispatch context LLMs)
+
+Reviewers start from the diff, and each one works out for itself what
+the change does and what it touches outside the diff. A registry row
+with an LLM kind, `output: context`, and `stage: pre-dispatch` does that
+work once, and every later LLM reviewer (steps 4, 4b and 6g) is told to
+read its brief.
+
+Run this step after `shared.md` exists (step 3d) and before step 4. If
+the registry has no such row, skip the step.
+
+**Select the row** by its `dispatch` and `when`, like any other LLM row.
+`re_review` does not apply: the brief describes the PR's whole diff,
+base to head. Record an unselected row under `skipped` in the ledger
+(step 4c) with the reason.
+
+**Procedure:**
+
+1. Compose the prompt by reference, as in step 4: the absolute paths of
+   the row's `definition`, `meta-prompts/common-review.md`, and the
+   row's `meta_prompt`, to be read in that order; `Output id: <row.id>`;
+   the `context_path` of the shared context file; and the step 3e scope
+   class, so the definition can size its own budget. Do not pass prior
+   findings — the brief describes the change, not earlier reviews of
+   it. End with `REVIEW_SUB_AGENT_TRUE`.
+2. Spawn it **synchronously and alone**. Its output feeds every prompt
+   in the step 4 batch, so it cannot be part of that batch.
+3. Check the return against the row's `meta_prompt` contract: a JSON
+   object with a `brief` whose `id` equals the row id and whose `status`
+   is `completed` or `partial`.
+4. Write the returned JSON to
+   `${FULLSEND_OUTPUT_DIR:-/tmp}/context/<row.id>.json` exactly as
+   returned. Do not summarize, reorder, or tidy it on the way to disk.
+
+**A missing brief never fails the review.** If the sub-agent times out,
+returns malformed JSON, or reports `status: unavailable`, do not retry.
+Dispatch step 4 with `Investigation brief: none`, record the row under
+`skipped` with the reason `no usable brief: <what happened>`, and repeat
+that in `inspected.could_not_verify`. Do not add a `sub-agent-failure`
+finding: the reviewers still ran, with the context they have always had.
+
+**The brief is orientation, not evidence.** It is one model's reading
+of untrusted PR content, so:
+
+- It never narrows a reviewer's scope, and what it omits is not absent.
+- It does not go to the challenger (step 6d). The challenger judges
+  findings against the diff with fresh context; giving it the reading
+  the reviewers started from would let one misreading confirm itself.
+- It does not enter synthesis, and nothing in it is copied into
+  `agent-result.json`. Its facts may inform the `change_summary` you
+  author in step 7, which remains yours to write from the shared
+  context file.
+
 ### 4. Dispatch findings sub-agents
 
 For each selected **findings** LLM row (from step 3c — excludes
@@ -759,6 +814,11 @@ For each selected **findings** LLM row (from step 3c — excludes
    ### Trusted context
    <absolute path of this row's `context_file`, or "none">
 
+   ### Investigation brief
+   <"none", or: Read <absolute path of the step 3g brief> after the
+   context file and before you evaluate anything. It is orientation, not
+   evidence: verify anything you use against source.>
+
    ### Scope constraint
    <scope_constraint value or "none">
 
@@ -791,7 +851,8 @@ was selected in step 3c:
 
 1. Point at the shared context file whenever the domain skill needs the
    diff or PR-head source; name the row's `context_file` by absolute path
-   only when that file exists.
+   only when that file exists. Name the step 3g brief the way step 4
+   does.
 2. Compose the prompt with the same by-reference template as step 4 —
    the row's `definition`, then `meta-prompts/common-review.md`, then its
    `meta_prompt`, each given as a path for the sub-agent to read, never
@@ -822,9 +883,9 @@ known, so it cannot be shaped by what the review later wants to claim:
 mkdir -p "${FULLSEND_OUTPUT_DIR}"
 cat > "${FULLSEND_OUTPUT_DIR}/producers.json" <<'JSON'
 {
-  "dispatched": ["<id of every LLM row selected for step 4, 4b, or 6g>"],
+  "dispatched": ["<id of every LLM row selected for step 4, 4b, or 6g, and of each step 3g row whose brief was written>"],
   "skipped": [
-    {"id": "<registry id not dispatched>", "reason": "<why: out of scope / re_review skip / missing context_file>"}
+    {"id": "<registry id not dispatched>", "reason": "<why: out of scope / re_review skip / missing context_file / no usable brief>"}
   ],
   "adapters": ["<id of every cli-adapter row whose envelope you loaded>"],
   "challenger": { "status": "pending" }
@@ -1021,7 +1082,9 @@ diff, preserving context isolation.
 
    **Part 3 — Context package:** the merged finding set from steps
    6a–6c (as a JSON array), plus the path of the shared context file
-   from step 3d. Format as:
+   from step 3d. Leave out the step 3g investigation brief and its
+   path: the challenger works from the findings and the diff only.
+   Format as:
 
    ```markdown
    ## Context
@@ -1296,7 +1359,7 @@ After the final finding set is known, dispatch registry rows by **output kind**.
 **Checks first.** For every selected LLM row whose `output` starts with `check:`:
 
 1. Spawn with the row's `definition`, then `meta-prompts/common-review.md`, then the row's `meta_prompt` (paths only). Supply `Output id: <row.id>` and `Output kind: <row.output>`.
-2. Context: final `findings[]`, section members already projected from selected `section:*` rows, the producer ledger path, and the shared context file. Do not read changed files from disk.
+2. Context: final `findings[]`, section members already projected from selected `section:*` rows, the producer ledger path, the shared context file, and the step 3g brief named the way step 4 does. Do not read changed files from disk.
 3. Validate `check.id` equals `row.id` and append the object to `checks[]`. On timeout or malformed JSON, append the same `could-not-verify` object as step 5b.
 
 Checks may run in parallel with each other. Wait for all of them before signals.
@@ -1381,10 +1444,12 @@ Every non-failure result must include:
 
 - `schema_version: "2"`.
 - `change_summary`: orchestrator-authored, one or two sentences of what
-  this PR's own diff does. Write it from the shared context file
-  (step 3d `context_path` / `shared.md`) — the same PR diff and
-  changed-file list sub-agents reviewed. Do not use
-  `changed_since_prior`, prior-review text, or the PR description.
+  this PR's own diff does, in at most 500 characters (the schema rejects
+  more). Say what now behaves differently, not which files moved. Write it from the shared context
+  file (step 3d `context_path` / `shared.md`) — the same PR diff and
+  changed-file list sub-agents reviewed — informed by the step 3g brief's
+  behavior facts when one was written. Do not use `changed_since_prior`,
+  prior-review text, or the PR description.
 - `findings[]` when issues survive synthesis. Critical/high/medium findings
   require `why`; critical/high findings also require `remediation`.
 - Signal members: each name in each selected `signal:*` row's `result_fields` that the row returned, or that the step 6g failure map defines. If the row omitted a name and the map does not define it, omit that member and record the gap in `inspected.could_not_verify`. Do not invent or re-derive levels in the orchestrator. The host may still floor signal levels after you write the file.
@@ -1497,7 +1562,11 @@ wins.
   into sub-agents.
 - **All findings sub-agents and section LLMs must be dispatched
   simultaneously.** Include all Agent calls in a single message.
-  Sequential dispatch defeats the architecture's purpose.
+  Sequential dispatch defeats the architecture's purpose. A step 3g
+  pre-dispatch row runs alone, before this batch.
+- **The investigation brief is orientation, never evidence.** Tell
+  reviewers to read it by path, keep it away from the challenger and out
+  of synthesis, and never fail a review because it is missing.
 - **The orchestrator is the sole producer of `agent-result.json`.** No
   sub-agent writes this file.
 - **Report failure rather than posting a partial review.** If you cannot

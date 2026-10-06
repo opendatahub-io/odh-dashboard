@@ -153,9 +153,9 @@ paths:
   /gen-ai/api/v1/lsd/models:
     summary: List available AI models
     description: >-
-      Lists all available AI models from Llama Stack using OpenAI SDK.
-      Returns models with their identifiers, creation timestamps, and ownership information.
-      Requires namespace parameter for proper multi-tenant isolation.
+      Lists chat-capable LLM models from OGX by default. Set include_embedding_models=true
+      to return all model types for AI Assets and RAG settings. Returns identifiers,
+      creation timestamps, and ownership information. Requires namespace for multi-tenant isolation.
     get:
       tags:
         - Models
@@ -169,6 +169,13 @@ paths:
           schema:
             type: string
             example: 'default'
+        - name: include_embedding_models
+          in: query
+          description: Return all OGX model types, including embedding and transcription models. Only true or false is accepted.
+          required: false
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           $ref: '#/components/responses/ModelsResponse'
@@ -179,8 +186,8 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
       operationId: listModels
-      summary: List All Models
-      description: Gets a list of all available AI models from Llama Stack.
+      summary: List Playground Models
+      description: Gets LLM models by default, or all OGX model types when requested.
 
   /gen-ai/api/v1/lsd/status:
     summary: Get LlamaStack Distribution status

@@ -19,7 +19,10 @@ change set.
    CLIs itself.
 3. The orchestrator reads [`.fullsend/dimensions.json`](../../dimensions.json),
    selects rows by `dispatch` / `when` / `re_review`, and records a producer
-   ledger before results are known.
+   ledger before results are known. A **`context`** LLM row with
+   `stage: pre-dispatch` runs here, alone; its brief is written under
+   `context/` and every later LLM reviewer is told to read it. The
+   challenger is not.
 4. Selected **`findings`** LLM rows run in parallel with selected **`section:*`**
    rows. CLI **`findings`** / **`context`** envelopes are loaded from disk.
 5. The **challenger** adjudicates the merged **findings** set only (not checks,
@@ -42,7 +45,7 @@ flowchart TD
   signals[signal rows]
   todo[todo synthesis]
   host[post-review action and sticky]
-  findings --> checks --> signals --> todo --> host
+  brief[Investigator brief] --> findings --> checks --> signals --> todo --> host
 ```
 
 ### Sticky comment order
@@ -180,7 +183,7 @@ Omit `todo` when empty. Sticky bullets only — no `[ ]` task-list syntax.
 | `output` | Role | Timing | Meta-prompt |
 | --- | --- | --- | --- |
 | `findings` | Code defects → challenger | Parallel (LLM + CLI envelopes) | `findings-output.md` |
-| `context` | Trusted host snapshot | Host adapter only | none |
+| `context` | Trusted host snapshot; or, with `stage: pre-dispatch`, an LLM brief every later reviewer reads | Host adapter; or alone, before dispatch | none; `context-output.md` for the LLM brief |
 | `section:*` | Schema object (e.g. `product_ask`) | Parallel with findings | `section-output.md` |
 | `check:*` | Readiness row → `checks[]` | After findings/challenger; before signals | `check-output.md` |
 | `signal:*` | Schema members from `result_fields` | After all selected checks | `signal-output.md` |
@@ -197,6 +200,7 @@ at harness pin `91f61f3`. Everything else is an ODH overlay producer.
 
 | id | label | output | source | definition / runner |
 | --- | --- | --- | --- | --- |
+| investigator | Investigator | `context` (`stage: pre-dispatch`) | ODH | `sub-agents/investigator.md` |
 | correctness | Correctness | `findings` | stock | `sub-agents/correctness.md` |
 | security | Security | `findings` | stock | `sub-agents/security.md` |
 | intent-coherence | Intent coherence | `findings` | stock | `sub-agents/intent-coherence.md` |
