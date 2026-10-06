@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"sort"
 	"strings"
 	"testing"
 
@@ -392,6 +393,12 @@ func TestBuildFederationConfigMap_MergesNestedCommunityPluginWithoutChangingLega
 	communitySource := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{Name: "community-plugins-config", Namespace: testNamespace},
 		Data: map[string]string{
+			"analyticsPlugin": `{
+  "backend": {
+    "remoteEntry": "/remoteEntry.js",
+    "service": {"name": "analytics-ui", "namespace": "cai-plugin-system", "port": 8080}
+  }
+}`,
 			"communityPluginsAdmin": `{
   "backend": {
     "remoteEntry": "/remoteEntry.js",
@@ -424,7 +431,9 @@ func TestBuildFederationConfigMap_MergesNestedCommunityPluginWithoutChangingLega
 	require.NoError(t, json.Unmarshal([]byte(cm.Data["module-federation-config.json"]), &entries))
 	var community map[string]interface{}
 	var legacyModule map[string]interface{}
+	entryNames := make([]string, 0, len(entries))
 	for _, entry := range entries {
+		entryNames = append(entryNames, entry["name"].(string))
 		switch entry["name"] {
 		case "communityPluginsAdmin":
 			community = entry
@@ -432,6 +441,7 @@ func TestBuildFederationConfigMap_MergesNestedCommunityPluginWithoutChangingLega
 			legacyModule = entry
 		}
 	}
+	assert.True(t, sort.StringsAreSorted(entryNames))
 	require.NotNil(t, community)
 	require.NotNil(t, legacyModule)
 	assert.NotContains(t, community, "remoteEntry")
@@ -475,8 +485,12 @@ func TestBuildFederationConfigMap_RejectsInvalidCommunityPlugins(t *testing.T) {
 			"invalidRemoteEntry":   `{"backend":{"remoteEntry":"/../remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
 			"encodedRemoteEntry":   `{"backend":{"remoteEntry":"/%2e%2e/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
 			"invalidSuffix":        `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"pathSuffix":"../core-bff/api","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
+			"parameterizedSuffix":  `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"pathSuffix":"api/:id","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
+			"wildcardSuffix":       `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"pathSuffix":"api/*","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
+			"duplicateSuffix":      `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"pathSuffix":"api","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}},{"pathSuffix":"api","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
 			"unsupportedPathField": `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"path":"/","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
 			"unexpected":           `{"name":"anotherRemote","backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"validNestedPaths":     `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"pathSuffix":"api","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}},{"pathSuffix":"api/v1","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
 			"validRemote":          `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
 		},
 	}
@@ -503,8 +517,12 @@ func TestBuildFederationConfigMap_RejectsInvalidCommunityPlugins(t *testing.T) {
 	assert.NotContains(t, names, "invalidRemoteEntry")
 	assert.NotContains(t, names, "encodedRemoteEntry")
 	assert.NotContains(t, names, "invalidSuffix")
+	assert.NotContains(t, names, "parameterizedSuffix")
+	assert.NotContains(t, names, "wildcardSuffix")
+	assert.NotContains(t, names, "duplicateSuffix")
 	assert.NotContains(t, names, "unsupportedPathField")
 	assert.NotContains(t, names, "unexpected")
+	assert.Contains(t, names, "validNestedPaths")
 }
 
 func TestPatchDeploymentFederationHash_CreatesAnnotation(t *testing.T) {

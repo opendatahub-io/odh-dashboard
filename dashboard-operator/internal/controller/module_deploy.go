@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"maps"
 	"os"
 	"path/filepath"
@@ -22,7 +21,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/util/validation"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -35,12 +33,10 @@ import (
 )
 
 const (
-	federationConfigMapName       = "federation-config"
-	federationConfigKey           = "module-federation-config.json"
-	communityPluginsConfigMapName = "community-plugins-config"
-	communityPluginsProxyPrefix   = "/community-plugins"
-	moduleComponentLabel          = "app.kubernetes.io/component"
-	dataConnectHubModuleName      = "dataConnectHub"
+	federationConfigMapName  = "federation-config"
+	federationConfigKey      = "module-federation-config.json"
+	moduleComponentLabel     = "app.kubernetes.io/component"
+	dataConnectHubModuleName = "dataConnectHub"
 )
 
 var moduleFederationRemoteName = regexp.MustCompile(`^[A-Za-z_$][A-Za-z0-9_$]*$`)
@@ -68,6 +64,14 @@ type federationEntry struct {
 	ProxyService []proxyServiceEntry `json:"proxyService,omitempty"`
 }
 
+func (entry federationEntry) federationConfigName() string {
+	return entry.Name
+}
+
+type federationConfigEntry interface {
+	federationConfigName() string
+}
+
 type proxyServiceEntry struct {
 	Authorize   bool       `json:"authorize"`
 	Path        string     `json:"path"`
@@ -76,46 +80,20 @@ type proxyServiceEntry struct {
 	Service     serviceRef `json:"service"`
 }
 
-// communityFederationEntry is intentionally separate from federationEntry. The
-// latter is the operator's established flat format for Dashboard-managed
-// modules; community entries use the nested format consumed directly by the
-// Dashboard runtime so a frontend backend and a distinct BFF proxy target are
-// preserved losslessly.
-type communityFederationEntry struct {
-	Name         string                       `json:"name"`
-	Backend      communityFederationBackend   `json:"backend"`
-	ProxyService []communityProxyServiceEntry `json:"proxyService,omitempty"`
-}
+func marshalFederationEntries(entries []federationEntry, communityEntries []communityFederationEntry) ([]byte, error) {
+	allEntries := make([]federationConfigEntry, 0, len(entries)+len(communityEntries))
+	for _, entry := range entries {
+		allEntries = append(allEntries, entry)
+	}
+	for _, entry := range communityEntries {
+		allEntries = append(allEntries, entry)
+	}
 
-type communityFederationSourceEntry struct {
-	Backend      communityFederationBackend         `json:"backend"`
-	ProxyService []communityProxyServiceSourceEntry `json:"proxyService,omitempty"`
-}
+	sort.Slice(allEntries, func(i, j int) bool {
+		return allEntries[i].federationConfigName() < allEntries[j].federationConfigName()
+	})
 
-type communityFederationBackend struct {
-	RemoteEntry string     `json:"remoteEntry"`
-	Authorize   *bool      `json:"authorize,omitempty"`
-	TLS         *bool      `json:"tls,omitempty"`
-	Service     serviceRef `json:"service"`
-}
-
-type communityProxyServiceEntry struct {
-	Authorize   *bool      `json:"authorize,omitempty"`
-	Path        string     `json:"path"`
-	PathRewrite string     `json:"pathRewrite,omitempty"`
-	TLS         *bool      `json:"tls,omitempty"`
-	Service     serviceRef `json:"service"`
-}
-
-// communityProxyServiceSourceEntry accepts a relative suffix rather than a
-// public path. The Dashboard controls the public route namespace and derives
-// the final path as /community-plugins/<remote-name>/<path-suffix>.
-type communityProxyServiceSourceEntry struct {
-	Authorize   *bool      `json:"authorize,omitempty"`
-	PathSuffix  string     `json:"pathSuffix"`
-	PathRewrite string     `json:"pathRewrite,omitempty"`
-	TLS         *bool      `json:"tls,omitempty"`
-	Service     serviceRef `json:"service"`
+	return json.MarshalIndent(allEntries, "    ", "  ")
 }
 
 // --- Service discovery env vars (inter-BFF injection) ---
@@ -476,208 +454,6 @@ func addInterBFFParams(params map[string]string, moduleName string, statuses map
 	}
 }
 
-// --- Build dynamic federation ConfigMap ---
-
-func validateCommunityServiceRef(field string, service serviceRef) error {
-	if errs := validation.IsDNS1035Label(service.Name); len(errs) > 0 {
-		return fmt.Errorf("%s service name %q is invalid: %s", field, service.Name, strings.Join(errs, ", "))
-	}
-	if errs := validation.IsDNS1123Label(service.Namespace); len(errs) > 0 {
-		return fmt.Errorf("%s service namespace %q is invalid: %s", field, service.Namespace, strings.Join(errs, ", "))
-	}
-	if service.Port < 1 || service.Port > 65535 {
-		return fmt.Errorf("%s service port %d is outside the valid range", field, service.Port)
-	}
-	return nil
-}
-
-func proxyPathsConflict(first, second string) bool {
-	if first == "/" || second == "/" {
-		return true
-	}
-	return first == second ||
-		strings.HasPrefix(first, second+"/") ||
-		strings.HasPrefix(second, first+"/")
-}
-
-func communityProxyPath(remoteName, suffix string) (string, error) {
-	if suffix == "" || strings.HasPrefix(suffix, "/") || strings.HasSuffix(suffix, "/") ||
-		strings.ContainsAny(suffix, "?#%") {
-		return "", fmt.Errorf("proxyService pathSuffix %q must be a non-empty relative URL path", suffix)
-	}
-	for _, segment := range strings.Split(suffix, "/") {
-		if segment == "" || segment == "." || segment == ".." {
-			return "", fmt.Errorf("proxyService pathSuffix %q contains an invalid path segment", suffix)
-		}
-	}
-	return communityPluginsProxyPrefix + "/" + remoteName + "/" + suffix, nil
-}
-
-func validateCommunityRemoteEntryPath(remoteEntry string) error {
-	if remoteEntry == "" || !strings.HasPrefix(remoteEntry, "/") ||
-		strings.ContainsAny(remoteEntry, "?#%") {
-		return fmt.Errorf("backend.remoteEntry %q must be a non-empty absolute URL path", remoteEntry)
-	}
-	for _, segment := range strings.Split(strings.TrimPrefix(remoteEntry, "/"), "/") {
-		if segment == "" || segment == "." || segment == ".." {
-			return fmt.Errorf("backend.remoteEntry %q contains an invalid path segment", remoteEntry)
-		}
-	}
-	return nil
-}
-
-func validateCommunityFederationEntry(entry communityFederationEntry, existingNames, existingPaths map[string]struct{}) error {
-	if !moduleFederationRemoteName.MatchString(entry.Name) {
-		return fmt.Errorf("remote name %q must be a valid JavaScript identifier", entry.Name)
-	}
-	if _, exists := existingNames[entry.Name]; exists {
-		return fmt.Errorf("remote name %q collides with an existing federation entry", entry.Name)
-	}
-	if err := validateCommunityRemoteEntryPath(entry.Backend.RemoteEntry); err != nil {
-		return err
-	}
-	if err := validateCommunityServiceRef("backend", entry.Backend.Service); err != nil {
-		return err
-	}
-
-	paths := make(map[string]struct{}, len(entry.ProxyService))
-	for _, proxy := range entry.ProxyService {
-		for existingPath := range existingPaths {
-			if proxyPathsConflict(proxy.Path, existingPath) {
-				return fmt.Errorf("proxyService path %q collides with existing proxy route %q", proxy.Path, existingPath)
-			}
-		}
-		for acceptedPath := range paths {
-			if proxyPathsConflict(proxy.Path, acceptedPath) {
-				return fmt.Errorf("proxyService path %q collides with another community proxy route %q", proxy.Path, acceptedPath)
-			}
-		}
-		if err := validateCommunityServiceRef("proxyService", proxy.Service); err != nil {
-			return err
-		}
-		paths[proxy.Path] = struct{}{}
-	}
-
-	return nil
-}
-
-func communityFederationEntries(
-	ctx context.Context,
-	reader client.Reader,
-	namespace string,
-	existingEntries []federationEntry,
-) ([]communityFederationEntry, error) {
-	source := &corev1.ConfigMap{}
-	key := client.ObjectKey{Name: communityPluginsConfigMapName, Namespace: namespace}
-	if err := reader.Get(ctx, key, source); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("getting community plugins ConfigMap: %w", err)
-	}
-
-	existingNames := make(map[string]struct{}, len(existingEntries))
-	existingPaths := make(map[string]struct{})
-	for _, entry := range existingEntries {
-		existingNames[entry.Name] = struct{}{}
-		for _, proxy := range entry.Proxy {
-			existingPaths[proxy.Path] = struct{}{}
-		}
-		for _, proxy := range entry.ProxyService {
-			existingPaths[proxy.Path] = struct{}{}
-		}
-	}
-
-	keys := make([]string, 0, len(source.Data))
-	for name := range source.Data {
-		keys = append(keys, name)
-	}
-	sort.Strings(keys)
-
-	entries := make([]communityFederationEntry, 0, len(keys))
-	for _, name := range keys {
-		var sourceEntry communityFederationSourceEntry
-		decoder := json.NewDecoder(strings.NewReader(source.Data[name]))
-		decoder.DisallowUnknownFields()
-		if err := decoder.Decode(&sourceEntry); err != nil {
-			log.FromContext(ctx).Error(err, "Ignoring invalid community plugin federation entry", "configMap", key.Name, "entry", name)
-			continue
-		}
-		if err := decoder.Decode(&struct{}{}); err != io.EOF {
-			log.FromContext(ctx).Info("Ignoring invalid community plugin federation entry", "configMap", key.Name, "entry", name, "reason", "value contains multiple JSON objects")
-			continue
-		}
-		entry := communityFederationEntry{Name: name, Backend: sourceEntry.Backend}
-		for _, sourceProxy := range sourceEntry.ProxyService {
-			proxyPath, err := communityProxyPath(name, sourceProxy.PathSuffix)
-			if err != nil {
-				log.FromContext(ctx).Error(err, "Ignoring invalid community plugin federation entry", "configMap", key.Name, "entry", name)
-				entry = communityFederationEntry{}
-				break
-			}
-			entry.ProxyService = append(entry.ProxyService, communityProxyServiceEntry{
-				Authorize:   sourceProxy.Authorize,
-				Path:        proxyPath,
-				PathRewrite: sourceProxy.PathRewrite,
-				TLS:         sourceProxy.TLS,
-				Service:     sourceProxy.Service,
-			})
-		}
-		if entry.Name == "" {
-			continue
-		}
-		if err := validateCommunityFederationEntry(entry, existingNames, existingPaths); err != nil {
-			log.FromContext(ctx).Error(err, "Ignoring invalid community plugin federation entry", "configMap", key.Name, "entry", name)
-			continue
-		}
-
-		entries = append(entries, entry)
-		existingNames[entry.Name] = struct{}{}
-		for _, proxy := range entry.ProxyService {
-			existingPaths[proxy.Path] = struct{}{}
-		}
-	}
-
-	return entries, nil
-}
-
-func marshalFederationEntries(entries []federationEntry, communityEntries []communityFederationEntry) ([]byte, error) {
-	if len(communityEntries) == 0 {
-		return json.MarshalIndent(entries, "    ", "  ")
-	}
-
-	type entryJSON struct {
-		name string
-		data json.RawMessage
-	}
-
-	allEntries := make([]entryJSON, 0, len(entries)+len(communityEntries))
-	for _, entry := range entries {
-		data, err := json.Marshal(entry)
-		if err != nil {
-			return nil, err
-		}
-		allEntries = append(allEntries, entryJSON{name: entry.Name, data: data})
-	}
-	for _, entry := range communityEntries {
-		data, err := json.Marshal(entry)
-		if err != nil {
-			return nil, err
-		}
-		allEntries = append(allEntries, entryJSON{name: entry.Name, data: data})
-	}
-
-	sort.Slice(allEntries, func(i, j int) bool {
-		return allEntries[i].name < allEntries[j].name
-	})
-
-	data := make([]json.RawMessage, 0, len(allEntries))
-	for _, entry := range allEntries {
-		data = append(data, entry.data)
-	}
-	return json.MarshalIndent(data, "    ", "  ")
-}
-
 func (r *DashboardReconciler) buildFederationConfigMap(
 	ctx context.Context,
 	statuses map[string]v1alpha1.ModuleStatus,
@@ -730,11 +506,6 @@ func (r *DashboardReconciler) buildFederationConfigMap(
 			},
 		})
 	}
-
-	// Sort entries by name for deterministic output
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].Name < entries[j].Name
-	})
 
 	communityEntries, err := communityFederationEntries(ctx, r.Client, r.ApplicationsNamespace, entries)
 	if err != nil {
