@@ -1534,6 +1534,16 @@ describe('AutomlResultsPage', () => {
       expect(await screen.findByText('Artifact unavailable')).toBeInTheDocument();
     });
 
+    it('should not show a tooltip when the action is enabled', async () => {
+      const user = userEvent.setup();
+      mockNestedArtifactLists(tabularRun());
+      renderWithRun(tabularRun());
+
+      await user.hover(screen.getByTestId('run-notebook-download-button'));
+
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    });
+
     it('should hide the artifact behind the unavailable state when listing fails', () => {
       const run = tabularRun();
       mockNestedArtifactLists(run, { errorPath: 'autogluon-tabular-training-pipeline/run-123' });

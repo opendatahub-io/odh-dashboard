@@ -433,14 +433,15 @@ function AutomlResultsPage(): React.JSX.Element {
                     </Button>
                   </SplitItem>
                   <SplitItem>
-                    <Tooltip content={runNotebookTooltip}>
+                    <Tooltip
+                      content={runNotebookTooltip}
+                      trigger={runNotebookDisabled ? 'mouseenter focus' : ''}
+                    >
                       <Button
                         variant="link"
                         icon={<DownloadIcon />}
                         onClick={() => void handleDownloadRunNotebook()}
                         isAriaDisabled={runNotebookDisabled}
-                        isLoading={isDownloadingRunNotebook}
-                        spinnerAriaValueText="Downloading run notebook"
                         data-testid="run-notebook-download-button"
                       >
                         Download run notebook

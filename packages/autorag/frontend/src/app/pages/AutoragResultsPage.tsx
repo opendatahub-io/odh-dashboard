@@ -549,14 +549,15 @@ function AutoragResultsPage(): React.JSX.Element {
                     </Button>
                   </SplitItem>
                   <SplitItem>
-                    <Tooltip content={starterKitTooltip}>
+                    <Tooltip
+                      content={starterKitTooltip}
+                      trigger={starterKitDisabled ? 'mouseenter focus' : ''}
+                    >
                       <Button
                         variant="link"
                         icon={<DownloadIcon />}
                         onClick={() => void handleDownloadStarterKit()}
                         isAriaDisabled={starterKitDisabled}
-                        isLoading={isDownloadingStarterKit}
-                        spinnerAriaValueText="Downloading starter kit"
                         data-testid="starter-kit-download-button"
                       >
                         Download starter kit

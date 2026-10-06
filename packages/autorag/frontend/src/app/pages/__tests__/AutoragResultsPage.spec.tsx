@@ -1427,6 +1427,16 @@ describe('AutoragResultsPage', () => {
       expect(await screen.findByText('Artifact unavailable')).toBeInTheDocument();
     });
 
+    it('should not show a tooltip when the action is enabled', async () => {
+      const user = userEvent.setup();
+      mockNestedArtifactLists();
+      renderWithRun(createMockPipelineRun());
+
+      await user.hover(screen.getByTestId('starter-kit-download-button'));
+
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    });
+
     it('should hide the artifact behind the unavailable state when listing fails', () => {
       mockNestedArtifactLists({
         errorPath: 'documents-rag-optimization-pipeline/run-123/rag-templates-optimization',
