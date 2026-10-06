@@ -12,4 +12,4 @@ hardwareProfileDeploymentSizeA: "cypress-hp-wb-node-selectors CPU: Default = 2 C
 hardwareProfileDeploymentSizeB: "cypress-hp-wb-ns-and-tolerations CPU: Default = 2 Cores, Max = 4 Cores; Memory: Default = 4 GiB, Max = 8 GiB"
 nodeSelectorKey: "e2e-test-key"
 nodeSelectorValue: "e2e-test-value"
-tolerationValue: "PreferNoSchedule"
+tolerationValue: "test-taint"
