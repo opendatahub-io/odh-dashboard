@@ -1,9 +1,5 @@
 import type { CatalogGridSpans } from '~/app/shared/components/catalog/types/catalogFilterTypes';
 
-export const RUNTIME_CATALOG_LANDING_TITLE = 'Runtime image library';
-export const RUNTIME_CATALOG_LANDING_DESCRIPTION =
-  'Browse container images and templates you can install as serving runtimes on this cluster.';
-
 export const RUNTIME_CATALOG_FILTER_KEYS = ['hardware'] as const;
 
 export type RuntimeCatalogFilterKey = (typeof RUNTIME_CATALOG_FILTER_KEYS)[number];

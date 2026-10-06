@@ -35,12 +35,12 @@ func init() {
 
 // servingRuntimeCatalogClient resolves the client for serving-runtime catalog APIs.
 // The live model catalog client does not implement ServingRuntimeCatalogClient yet; use
-// mock data in dev and full catalog-mock mode until a live backend is wired.
+// mock data when --mock-mr-catalog-client is set until a live backend is wired.
 func servingRuntimeCatalogClient(app *api.App) (redhatrepos.ServingRuntimeCatalogClient, bool) {
 	if client, ok := app.Repositories().ModelCatalogClient.(redhatrepos.ServingRuntimeCatalogClient); ok {
 		return client, true
 	}
-	if app.Config().MockMRCatalogClient || app.Config().DevMode {
+	if app.Config().MockMRCatalogClient {
 		return &mocks.ModelCatalogClientMock{}, true
 	}
 	return nil, false

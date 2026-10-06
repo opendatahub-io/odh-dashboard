@@ -46,21 +46,7 @@ func TestServingRuntimeCatalogRoutes(t *testing.T) {
 	}
 }
 
-func TestServingRuntimeCatalogDevModeUsesMockWithoutCatalogMockFlag(t *testing.T) {
-	liveCatalogClient, err := repositories.NewModelCatalogClient(noopLogger())
-	require.NoError(t, err)
-	app := api.NewTestApp(
-		config.EnvConfig{DevMode: true, MockMRCatalogClient: false, DeploymentMode: config.DeploymentModeFederated},
-		noopLogger(),
-		&fakeKubeFactory{},
-		&repositories.Repositories{ModelCatalogClient: liveCatalogClient},
-	)
-	rr := httptest.NewRecorder()
-	app.Routes().ServeHTTP(rr, httptest.NewRequest(http.MethodGet, api.ServingRuntimeListPath+"?namespace=test", nil))
-	require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
-}
-
-func TestServingRuntimeCatalogNotAvailableOutsideDevOrMock(t *testing.T) {
+func TestServingRuntimeCatalogNotAvailableOutsideMock(t *testing.T) {
 	liveCatalogClient, err := repositories.NewModelCatalogClient(noopLogger())
 	require.NoError(t, err)
 	app := api.NewTestApp(

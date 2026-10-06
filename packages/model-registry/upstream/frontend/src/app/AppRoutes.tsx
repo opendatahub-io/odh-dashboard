@@ -3,8 +3,6 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { NotFound } from 'mod-arch-shared';
 import { useModularArchContext, DeploymentMode } from 'mod-arch-core';
 import { NavDataItem } from '~/app/standalone/types';
-import { RUNTIME_CATALOG_TAB_PATH } from '~/odh/routes/runtimeCatalog/runtimeCatalog';
-import RuntimeCatalogRoutes from '~/odh/pages/runtimeCatalog/RuntimeCatalogRoutes';
 import ModelRegistrySettingsRoutes from './pages/settings/ModelRegistrySettingsRoutes';
 import ModelRegistryRoutes from './pages/modelRegistry/ModelRegistryRoutes';
 import ModelCatalogRoutes from './pages/modelCatalog/ModelCatalogRoutes';
@@ -100,7 +98,6 @@ const AppRoutes: React.FC = () => {
           <Route path={`${agentsCatalogUrl()}/*`} element={<AgentsCatalogRoutes />} />
           <Route path={`${catalogSettingsUrl()}/*`} element={<ModelCatalogSettingsRoutes />} />
           <Route path={`${mcpCatalogSettingsUrl()}/*`} element={<McpCatalogSettingsRoutes />} />
-          <Route path={`${RUNTIME_CATALOG_TAB_PATH}/*`} element={<RuntimeCatalogRoutes />} />
         </>
       )}
       <Route path="*" element={<NotFound />} />

@@ -1,33 +1,57 @@
 import * as React from 'react';
 import { ApplicationsPage } from 'mod-arch-shared';
+import { useQueryParamNamespaces } from 'mod-arch-core';
 import {
-  Content,
-  PageSection,
-  Sidebar,
-  SidebarContent,
-  SidebarPanel,
-  Stack,
-  StackItem,
-  Title,
-} from '@patternfly/react-core';
-import { CatalogActiveFilters, CatalogSourceLabelSelector } from '~/app/shared/components/catalog';
+  CatalogActiveFilters,
+  CatalogPageLayout,
+  CatalogSourceLabelSelector,
+  EmptyCatalogState,
+} from '~/app/shared/components/catalog';
+import useModelCatalogAPIState from '~/app/hooks/modelCatalog/useModelCatalogAPIState';
+import { useCatalogSources } from '~/app/hooks/modelCatalog/useCatalogSources';
+import { useCatalogLabels } from '~/app/hooks/modelCatalog/useCatalogLabels';
+import { URL_PREFIX, BFF_API_VERSION } from '~/app/utilities/const';
 import { useServingRuntimeFilterOptionList } from '~/odh/hooks/servingRuntimeCatalog/useServingRuntimeFilterOptionList';
 import RuntimeCatalogFilters from '~/odh/pages/runtimeCatalog/components/RuntimeCatalogFilters';
 import RuntimeCatalogGalleryView from '~/odh/pages/runtimeCatalog/components/RuntimeCatalogGalleryView';
 import {
   RUNTIME_CATALOG_FILTER_CATEGORY_NAMES,
   RUNTIME_CATALOG_FILTER_KEYS,
-  RUNTIME_CATALOG_LANDING_DESCRIPTION,
-  RUNTIME_CATALOG_LANDING_TITLE,
   type RuntimeCatalogFiltersState,
 } from '~/odh/pages/runtimeCatalog/const';
 import { hasRuntimeCatalogFiltersApplied } from '~/odh/pages/runtimeCatalog/utils/runtimeCatalogUtils';
 
+const MODEL_CATALOG_PATH = `${URL_PREFIX}/api/${BFF_API_VERSION}/model_catalog`;
+
 const RuntimeCatalogView: React.FC = () => {
   const [filters, setFilters] = React.useState<RuntimeCatalogFiltersState>({});
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [selectedSourceLabel, setSelectedSourceLabel] = React.useState<string | undefined>(
+    undefined,
+  );
   const [filterOptions, filterOptionsLoaded, filterOptionsLoadError] =
     useServingRuntimeFilterOptionList();
+
+  const queryParams = useQueryParamNamespaces();
+  const runtimeListParams = React.useMemo(() => ({ assetType: 'serving_runtimes' as const }), []);
+  const [apiStateModelCatalog] = useModelCatalogAPIState(MODEL_CATALOG_PATH, queryParams);
+  const [catalogSources, catalogSourcesLoaded] = useCatalogSources(
+    apiStateModelCatalog,
+    runtimeListParams,
+  );
+  const [catalogLabels] = useCatalogLabels(apiStateModelCatalog, runtimeListParams);
+
+  const pageTitle = React.useMemo(() => {
+    const { items } = catalogSources;
+    return items && items.length > 0 ? items[0].name : 'Runtime image library';
+  }, [catalogSources]);
+
+  const pageDescription = React.useMemo(
+    () =>
+      catalogLabels.items[0]?.description ??
+      'Browse container images and templates you can install as serving runtimes on this cluster.',
+    [catalogLabels],
+  );
 
   const handleFilterChange = React.useCallback((key: string, values: string[]) => {
     setFilters((prev) => ({ ...prev, [key]: values }));
@@ -43,17 +67,29 @@ const RuntimeCatalogView: React.FC = () => {
   return (
     <ApplicationsPage
       noTitle
-      title={RUNTIME_CATALOG_LANDING_TITLE}
-      description={RUNTIME_CATALOG_LANDING_DESCRIPTION}
+      title={pageTitle}
+      description={pageDescription}
       empty={false}
       loaded
       provideChildrenPadding
     >
       <div data-testid="runtime-catalog-page">
-        {/* Manual Sidebar layout — runtime catalog has no source categories so
-            CatalogPageLayout (which requires catalogSources/catalogLabels) is not used. */}
-        <Sidebar hasBorder hasGutter>
-          <SidebarPanel variant="sticky" data-testid="runtime-catalog-sidebar">
+        <CatalogPageLayout
+          catalogSources={catalogSources}
+          catalogLabels={catalogLabels}
+          catalogSourcesLoaded={catalogSourcesLoaded}
+          selectedSourceLabel={selectedSourceLabel}
+          onSelectSourceLabel={setSelectedSourceLabel}
+          isAllItemsView={selectedSourceLabel === undefined && !hasFiltersApplied}
+          renderEmptyCategoriesState={() => (
+            <EmptyCatalogState
+              testid="empty-runtime-catalog-no-categories"
+              title="No runtime sources configured"
+              headerIcon={null}
+              description="There are no runtime image sources to display."
+            />
+          )}
+          renderFilterSidebar={() => (
             <RuntimeCatalogFilters
               filters={filters}
               onFilterChange={handleFilterChange}
@@ -61,55 +97,45 @@ const RuntimeCatalogView: React.FC = () => {
               filterOptionsLoaded={filterOptionsLoaded}
               filterOptionsLoadError={filterOptionsLoadError}
             />
-          </SidebarPanel>
-          <SidebarContent>
-            <Stack hasGutter>
-              <StackItem>
-                <Title headingLevel="h2" size="xl" data-testid="runtime-catalog-section-title">
-                  {RUNTIME_CATALOG_LANDING_TITLE}
-                </Title>
-                <Content
-                  component="p"
-                  className="pf-v6-u-color-200 pf-v6-u-mt-sm"
-                  data-testid="runtime-catalog-section-description"
-                >
-                  {RUNTIME_CATALOG_LANDING_DESCRIPTION}
-                </Content>
-              </StackItem>
-              <CatalogSourceLabelSelector
-                searchTerm={searchQuery}
-                onSearch={setSearchQuery}
-                onClearSearch={() => setSearchQuery('')}
-                onResetAllFilters={handleResetFilters}
-                hasFiltersApplied={hasFiltersApplied}
-                searchPlaceholder="Search by name or description"
-                searchInputTestId="runtime-catalog-search-input"
-                searchButtonTestId="runtime-catalog-search-button"
-                renderActiveFilters={() => (
-                  <CatalogActiveFilters
-                    filterKeys={[...RUNTIME_CATALOG_FILTER_KEYS]}
-                    categoryNames={RUNTIME_CATALOG_FILTER_CATEGORY_NAMES}
-                    filters={filters}
-                    setFilters={setFilters}
-                    testIdPrefix="runtime-catalog-filter"
-                  />
-                )}
-              />
-              <PageSection
-                isFilled
-                padding={{ default: 'noPadding' }}
-                data-testid="runtime-catalog-gallery-section"
-              >
-                <RuntimeCatalogGalleryView
+          )}
+          renderToolbar={() => (
+            <CatalogSourceLabelSelector
+              searchTerm={searchQuery}
+              onSearch={setSearchQuery}
+              onClearSearch={() => setSearchQuery('')}
+              onResetAllFilters={handleResetFilters}
+              hasFiltersApplied={hasFiltersApplied}
+              searchPlaceholder="Search by name or description"
+              searchInputTestId="runtime-catalog-search-input"
+              searchButtonTestId="runtime-catalog-search-button"
+              renderActiveFilters={() => (
+                <CatalogActiveFilters
+                  filterKeys={[...RUNTIME_CATALOG_FILTER_KEYS]}
+                  categoryNames={RUNTIME_CATALOG_FILTER_CATEGORY_NAMES}
                   filters={filters}
-                  searchQuery={searchQuery}
-                  filterOptionsLoaded={filterOptionsLoaded}
-                  onResetFilters={handleResetFilters}
+                  setFilters={setFilters}
+                  testIdPrefix="runtime-catalog-filter"
                 />
-              </PageSection>
-            </Stack>
-          </SidebarContent>
-        </Sidebar>
+              )}
+            />
+          )}
+          renderAllItemsView={() => (
+            <RuntimeCatalogGalleryView
+              filters={filters}
+              searchQuery={searchQuery}
+              filterOptionsLoaded={filterOptionsLoaded}
+              onResetFilters={handleResetFilters}
+            />
+          )}
+          renderGalleryView={() => (
+            <RuntimeCatalogGalleryView
+              filters={filters}
+              searchQuery={searchQuery}
+              filterOptionsLoaded={filterOptionsLoaded}
+              onResetFilters={handleResetFilters}
+            />
+          )}
+        />
       </div>
     </ApplicationsPage>
   );
