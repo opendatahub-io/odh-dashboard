@@ -323,6 +323,19 @@ describe('isAreaAvailable', () => {
         expect(isAvailable.devFlags).toEqual({ guidedTour: 'off' });
         expect(isAvailable.featureFlags).toBe(null);
       });
+
+      it('should disable Unified Project Selector by default', () => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.UNIFIED_PROJECT_SELECTOR,
+          mockDashboardConfig({}).spec,
+          null,
+          null,
+        );
+
+        expect(isAvailable.status).toBe(false);
+        expect(isAvailable.devFlags).toEqual({ unifiedProjectSelector: 'off' });
+        expect(isAvailable.featureFlags).toBe(null);
+      });
     });
 
     describe('customCondition', () => {

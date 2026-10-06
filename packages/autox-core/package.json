@@ -47,7 +47,7 @@
     "zod": "4.4.3"
   },
   "peerDependencies": {
-    "@patternfly/react-component-groups": "^6",
+    "@patternfly/react-component-groups": "~6.7.0",
     "@patternfly/react-core": "^6",
     "@patternfly/react-drag-drop": "^6",
     "@patternfly/react-icons": "^6",

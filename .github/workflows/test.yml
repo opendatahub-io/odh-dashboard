@@ -145,27 +145,50 @@ jobs:
     needs: Setup
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
     outputs:
       test-groups: ${{ steps.set-groups.outputs.test-groups }}
+      has-tests: ${{ steps.set-groups.outputs.has-tests }}
+      full-matrix: ${{ steps.set-groups.outputs.full-matrix }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+          # Keep GitHub's merge checkout so the diff and graph match the code under test.
+          fetch-depth: 0
       - name: Setup pnpm and install dependencies
         uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
       - id: set-groups
+        name: Select Cypress mock test groups
         shell: bash
+        env:
+          IMPACT_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          IMPACT_HEAD: ${{ github.sha }}
         run: |
-          # Generate test groups using Node.js script
-          # Automatically splits large files (>15KB) into individual groups
-          # Groups smaller files together
-          # New test files are automatically picked up
-          TEST_GROUPS=$(node scripts/generate-cypress-test-matrix.js)
+          node scripts/cypress/plan-mock-test-impact.js \
+            --base "$IMPACT_BASE" \
+            --head "$IMPACT_HEAD" \
+            --matrix "$RUNNER_TEMP/cypress-mock-matrix.json" \
+            --scope "$RUNNER_TEMP/cypress-mock-scope.txt"
 
-          # Output for GitHub Actions matrix
-          echo "test-groups=$TEST_GROUPS" >> "$GITHUB_OUTPUT"
+          TEST_GROUPS=$(jq -c . "$RUNNER_TEMP/cypress-mock-matrix.json")
+          SELECTED_GROUPS=$(jq 'length' "$RUNNER_TEMP/cypress-mock-matrix.json")
+          HAS_TESTS=$([[ "$SELECTED_GROUPS" -gt 0 ]] && echo true || echo false)
+          FULL_MATRIX=$([[ "$(cat "$RUNNER_TEMP/cypress-mock-scope.txt")" == "full" ]] && echo true || echo false)
 
-          # Pretty print for logs
+          # GitHub rejects an empty matrix. A no-op entry keeps the aggregate jobs successful.
+          if [[ "$HAS_TESTS" != "true" ]]; then
+            TEST_GROUPS='[{"name":"no-cypress-mock-tests","spec":""}]'
+          fi
+
+          {
+            echo "test-groups=$TEST_GROUPS"
+            echo "has-tests=$HAS_TESTS"
+            echo "full-matrix=$FULL_MATRIX"
+          } >> "$GITHUB_OUTPUT"
           echo "$TEST_GROUPS" | jq .
 
   Contract-Tests:
@@ -271,7 +294,8 @@ jobs:
           github-token: ${{ github.token }}
 
   Cypress-Setup:
-    needs: [Setup, Get-Cypress-Packages]
+    needs: [Setup, Get-Cypress-Packages, Get-Test-Groups]
+    if: needs.Get-Test-Groups.outputs.has-tests == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     permissions:
@@ -298,6 +322,14 @@ jobs:
 
   Cypress-Mock-Tests:
     needs: [Setup, Cypress-Setup, Get-Test-Groups, Get-Cypress-Packages]
+    if: >-
+      ${{
+        always() &&
+        needs.Setup.result == 'success' &&
+        needs.Get-Test-Groups.result == 'success' &&
+        needs.Get-Cypress-Packages.result == 'success' &&
+        (needs.Get-Test-Groups.outputs.has-tests != 'true' || needs.Cypress-Setup.result == 'success')
+      }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     permissions:
@@ -308,20 +340,27 @@ jobs:
       matrix:
         test-group: ${{ fromJson(needs.Get-Test-Groups.outputs.test-groups) }}
     steps:
+      - name: No Cypress mock tests selected
+        if: needs.Get-Test-Groups.outputs.has-tests != 'true'
+        run: echo "Documentation-only change; Cypress mock tests are not required."
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        if: needs.Get-Test-Groups.outputs.has-tests == 'true'
         with:
           persist-credentials: false
       - name: Setup pnpm and install dependencies
+        if: needs.Get-Test-Groups.outputs.has-tests == 'true'
         uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Restore Cypress builds
+        if: needs.Get-Test-Groups.outputs.has-tests == 'true'
         uses: ./.github/actions/cypress-build-restore
         with:
           mode: restore
           packages: ${{ needs.Get-Cypress-Packages.outputs.packages }}
           github-token: ${{ github.token }}
       - name: Abort if quality gate already failed
+        if: needs.Get-Test-Groups.outputs.has-tests == 'true'
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
@@ -344,6 +383,7 @@ jobs:
             );
             core.info(`Quality gates: ${status.join(', ')}`);
       - name: Run Cypress Mock tests
+        if: needs.Get-Test-Groups.outputs.has-tests == 'true'
         env:
           CYPRESS_SPEC: ${{ matrix.test-group.spec }}
         run: |
@@ -351,25 +391,25 @@ jobs:
           pnpm run test:cypress-ci:coverage:nobuild
         working-directory: ./frontend
       - name: Test group name
-        if: ${{ always() }}
+        if: ${{ always() && needs.Get-Test-Groups.outputs.has-tests == 'true' }}
         env:
           TEST_GROUP_RAW: ${{ matrix.test-group.name }}
         run: echo "TEST_GROUP_NAME=$(echo "${TEST_GROUP_RAW}" | tr '/-' '_')" >> $GITHUB_ENV
       - name: Upload Cypress Mock results
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        if: ${{ always() }}
+        if: ${{ always() && needs.Get-Test-Groups.outputs.has-tests == 'true' }}
         with:
           name: cypress-results-${{ env.TEST_GROUP_NAME }}
           path: ./packages/cypress/results/mocked
       - name: Upload Cypress coverage
-        if: env.IS_DRAFT != 'true'
+        if: env.IS_DRAFT != 'true' && needs.Get-Test-Groups.outputs.has-tests == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: cypress-coverage-${{ env.TEST_GROUP_NAME }}
           path: ./packages/cypress/coverage
 
   Combine-Results-and-Upload:
-    needs: [Unit-Tests, Cypress-Mock-Tests]
+    needs: [Unit-Tests, Cypress-Mock-Tests, Get-Test-Groups]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -405,7 +445,7 @@ jobs:
           verbose: true
 
       - name: Merge Cypress coverage reports
-        if: env.IS_DRAFT != 'true'
+        if: env.IS_DRAFT != 'true' && needs.Get-Test-Groups.outputs.has-tests == 'true'
         run: |
           mkdir -p ./cypress-coverage
           find all-artifacts -name "cypress-coverage-*" -type d | while read dir; do
@@ -418,7 +458,7 @@ jobs:
           ls -la ./cypress-coverage/
           pnpm exec nyc merge ./cypress-coverage ./cypress-coverage/merged-cypress-coverage.json
       - name: Upload Cypress mock coverage to Codecov
-        if: env.IS_DRAFT != 'true'
+        if: env.IS_DRAFT != 'true' && needs.Get-Test-Groups.outputs.full-matrix == 'true'
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

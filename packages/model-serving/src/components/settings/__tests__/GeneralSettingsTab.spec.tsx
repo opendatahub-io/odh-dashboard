@@ -8,6 +8,11 @@ import GeneralSettingsTab from '../GeneralSettingsTab';
 const mockFetchClusterSettings = jest.fn();
 const mockUpdateClusterSettings = jest.fn();
 
+jest.mock('@odh-dashboard/plugin-core', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core'),
+  useExtensions: () => [],
+}));
+
 jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),
   useNotification: jest.fn(),

@@ -59,9 +59,6 @@ func main() {
 	flag.StringVar(&cfg.NemoGuardrailsURL, "nemo-guardrails-url", getEnvAsString("NEMO_GUARDRAILS_URL", ""), "NeMo Guardrails server URL for content moderation")
 	flag.BoolVar(&cfg.MockNemoClient, "mock-nemo", getEnvAsBool("MOCK_NEMO_CLIENT", false), "Use mock NeMo Guardrails client")
 
-	// MaaS configuration
-	flag.StringVar(&cfg.MaaSURL, "maas-url", getEnvAsString("MAAS_URL", ""), "MaaS server URL for proxying requests")
-
 	// MLflow configuration
 	flag.StringVar(&cfg.MLflowURL, "mlflow-url", getEnvAsString("MLFLOW_URL", ""), "MLflow tracking server URL")
 

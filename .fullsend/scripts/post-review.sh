@@ -16,6 +16,9 @@
 #      (fallback: registry id). Machine matching still uses `id`.
 #   6. Producers table columns: Producer | Type | Ran | Result (kind-aware;
 #      Type from registry output, else adapter envelope output).
+#   7. Absolutize FULLSEND_CONFIG_DIR when FULLSEND_DIR is relative — post_script
+#      CWD is runDir, so a bare ".fullsend" would miss dimensions.json and
+#      .run/collected.json (labels → ids, Type/Result → —, adapter envelopes lost).
 
 #
 # Harness may fetch this script with sibling files in scripts/.
@@ -49,8 +52,27 @@
 set -euo pipefail
 
 REVIEW_STICKY_MARKER='<!-- fullsend:review-agent -->'
-_FULLSEND_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-FULLSEND_CONFIG_DIR="${FULLSEND_DIR:-${_FULLSEND_DIR}}"
+
+# Resolve the config directory to an absolute path. The harness sets
+# FULLSEND_DIR=.fullsend (relative) and runs post_script with CWD=runDir, so a
+# bare relative value cannot find dimensions.json or .run/collected.json.
+resolve_fullsend_config_dir() {
+  local script_dir candidate
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  candidate="${FULLSEND_DIR:-${script_dir}}"
+  if [[ "${candidate}" != /* ]]; then
+    if [[ -d "${candidate}" ]]; then
+      candidate="$(cd "${candidate}" && pwd)"
+    elif [[ -n "${GITHUB_WORKSPACE:-}" && -d "${GITHUB_WORKSPACE}/${candidate}" ]]; then
+      candidate="$(cd "${GITHUB_WORKSPACE}/${candidate}" && pwd)"
+    else
+      candidate="${script_dir}"
+    fi
+  fi
+  printf '%s' "${candidate}"
+}
+
+FULLSEND_CONFIG_DIR="$(resolve_fullsend_config_dir)"
 export FULLSEND_CONFIG_DIR
 
 # $1 = path to agent-result.json. Writes transformed JSON to stdout.
@@ -529,6 +551,35 @@ def table_cell(text):
     `<` would let a cell close the surrounding `<details>` block."""
     return clean(text).replace("|", "\\|").replace("\n", " ").replace("<", "&lt;")
 
+def check_details_cell(check):
+    """Checks-table Details cell: summary, blank line, then details[] lines.
+
+    GitHub markdown tables need `<br>` for line breaks. User text is escaped
+    the same way as `table_cell`; the `<br>` separators are intentional HTML."""
+    summary = clean(check.get("summary") or "")
+    raw = check.get("details")
+    detail_lines = []
+    if isinstance(raw, list):
+        for item in raw:
+            if isinstance(item, str):
+                line = clean(item)
+                if line:
+                    detail_lines.append(line)
+    elif isinstance(raw, str):
+        line = clean(raw)
+        if line:
+            detail_lines.append(line)
+    if not summary and not detail_lines:
+        return "—"
+    parts = []
+    if summary:
+        parts.append(table_cell(summary))
+    if detail_lines:
+        if parts:
+            parts.append("")  # summary<br><br>details ≈ a couple of newlines
+        parts.extend(table_cell(line) for line in detail_lines)
+    return "<br>".join(parts)
+
 def render_header(result, action):
     sha = result.get("head_sha") or ""
     short = sha[:7] if sha else "unknown"
@@ -838,12 +889,12 @@ def render_checks_table(result):
     rows = checks(result)
     if not rows:
         return []
-    lines = ["", "### Checks", "", "| Check | Status | Summary |", "| --- | --- | --- |"]
+    lines = ["", "### Checks", "", "| Check | Status | Details |", "| --- | --- | --- |"]
     for check in rows:
         status = check.get("status") or ""
         lines.append(
             f"| {table_cell(dimension_label(check.get('id')))} | {mark(STATUS_MARK, status)} {table_cell(status)} "
-            f"| {table_cell(check.get('summary'))} |")
+            f"| {check_details_cell(check)} |")
     return lines
 
 def render_todo_section(result):
@@ -998,6 +1049,37 @@ run_self_test() {
   cleanup_self_test() { rm -rf "${tmp}"; }
   trap cleanup_self_test EXIT
 
+  # Relative FULLSEND_DIR must still resolve when CWD is not the workspace
+  # (post_script runs in runDir). Without this, labels/Type/Result collapse.
+  local resolved_from_rundir
+  resolved_from_rundir="$(
+    cd "${tmp}"
+    FULLSEND_DIR=".fullsend"
+    unset GITHUB_WORKSPACE
+    resolve_fullsend_config_dir
+  )"
+  if [[ "${resolved_from_rundir}" != /* ]] || [[ ! -f "${resolved_from_rundir}/dimensions.json" ]]; then
+    echo "FAIL config-dir: relative FULLSEND_DIR from runDir did not resolve to dimensions.json (${resolved_from_rundir})" >&2
+    fail=1
+  else
+    echo "PASS relative FULLSEND_DIR resolves from runDir to ${resolved_from_rundir}"
+  fi
+
+  local resolved_via_workspace
+  resolved_via_workspace="$(
+    cd "${tmp}"
+    FULLSEND_DIR=".fullsend"
+    # BASH_SOURCE[0] is this script (.fullsend/scripts/post-review.sh).
+    GITHUB_WORKSPACE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+    resolve_fullsend_config_dir
+  )"
+  if [[ ! -f "${resolved_via_workspace}/dimensions.json" ]]; then
+    echo "FAIL config-dir: GITHUB_WORKSPACE-relative FULLSEND_DIR missed dimensions.json (${resolved_via_workspace})" >&2
+    fail=1
+  else
+    echo "PASS GITHUB_WORKSPACE-relative FULLSEND_DIR resolves to ${resolved_via_workspace}"
+  fi
+
   render_fixture() {
     local name="$1" want_action="$2" json="$3" body
     printf '%s' "${json}" > "${tmp}/${name}.json"
@@ -1095,7 +1177,9 @@ run_self_test() {
   body=$(jq -r .body "${tmp}/structured-out.json")
   if [[ "$(jq -r .action "${tmp}/structured-out.json")" != "approve" ]] ||
      ! grep -q '### Checks' <<<"${body}" ||
+     ! grep -q '| Check | Status | Details |' <<<"${body}" ||
      ! grep -q 'Test impact' <<<"${body}" ||
+     ! grep -Fq 'No targeted tests were changed.<br><br>PR body explains manual verification only.' <<<"${body}" ||
      ! grep -q '## TODO' <<<"${body}" ||
      grep -q '### Verification' <<<"${body}" ||
      grep -q '### Jira acceptance criteria' <<<"${body}" ||
