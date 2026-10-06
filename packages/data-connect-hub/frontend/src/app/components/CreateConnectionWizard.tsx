@@ -49,6 +49,7 @@ import type {
   CreateConnectionRequest,
   NamespaceKind,
 } from '~/app/types';
+import './CreateConnectionWizard.scss';
 
 export type CreateConnectionFormData = CreateConnectionRequest;
 
@@ -169,7 +170,7 @@ const ConnectionDetailsStep: React.FC<ConnectionDetailsStepProps> = ({
   const hasInvalidName = connectionName.length > 0 && !isValidConnectionName(connectionName);
 
   return (
-    <Form>
+    <Form className="dch-connection-wizard-step-form">
       <StepHeader
         title="Connection details"
         description="Choose the project and provide a name for this connection."
@@ -252,7 +253,7 @@ const ConnectionDetailsStep: React.FC<ConnectionDetailsStepProps> = ({
             ) : null}
           </FormGroup>
           <FormGroup label="Key-value pairs" fieldId="properties">
-            <PropertiesStep
+            <KeyValueInput
               properties={properties}
               propertyErrors={propertyErrors}
               touchedProperties={touchedProperties}
@@ -339,20 +340,23 @@ type ConfigurationStepProps = {
 
 type VerificationSectionProps = Omit<ConfigurationStepProps, 'onCredentialChange'>;
 
-const VerifyConnectionSection: React.FC<VerificationSectionProps & { showTitle?: boolean }> = ({
+const VerifyConnectionSection: React.FC<VerificationSectionProps> = ({
   connectionType,
   credentials,
   onVerify,
   isVerifying,
   isVerified,
   verificationError,
-  showTitle = true,
 }) => {
+  if (!connectionType?.status?.flight_ready) {
+    return null;
+  }
+
   const fields = connectionType?.resource.credentials_fields ?? [];
 
   return (
     <div className="pf-v6-u-mt-xl">
-      {showTitle ? <Content component={ContentVariants.h3}>Verify connection</Content> : null}
+      <Content component={ContentVariants.h3}>Verify connection</Content>
       <Content component={ContentVariants.p}>
         Optionally verify your credentials and endpoint.
       </Content>
@@ -388,7 +392,7 @@ const ConfigurationStep: React.FC<ConfigurationStepProps> = (props) => {
   const fields = connectionType?.resource.credentials_fields ?? [];
 
   return (
-    <Form>
+    <Form className="dch-connection-wizard-step-form">
       <StepHeader
         title="Configuration"
         description={
@@ -411,9 +415,11 @@ const ConfigurationStep: React.FC<ConfigurationStepProps> = (props) => {
   );
 };
 
-type ReviewStepProps = VerificationSectionProps & {
+type ReviewStepProps = {
   name: string;
   namespace: string;
+  connectionType?: ConnectionType;
+  credentials: Record<string, string>;
   properties: Record<string, string>;
 };
 
@@ -453,22 +459,24 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   connectionType,
   credentials,
   properties,
-  ...verificationProps
 }) => {
   const fields = connectionType?.resource.credentials_fields ?? [];
   const valueOrDash = (value?: string): string => (value?.trim() ? value : '-');
 
   return (
-    <Grid>
+    <Grid hasGutter>
       <StepHeader
         title="Review"
         description="Review the information below and click Create connection to complete. Use the Back button to make changes."
       />
-      <Content component={ContentVariants.h3}>Summary</Content>
       <DescriptionList
-        isHorizontal
-        horizontalTermWidthModifier={{ default: '15ch' }}
-        className="pf-v6-u-mb-lg"
+        className="dch-connection-wizard-review-summary"
+        columnModifier={{
+          default: '1Col',
+          lg: '2Col',
+        }}
+        isCompact
+        isFillColumns
       >
         <DescriptionListGroup>
           <DescriptionListTerm>Connection name</DescriptionListTerm>
@@ -517,13 +525,6 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
           </DescriptionListDescription>
         </DescriptionListGroup>
       </DescriptionList>
-      <Content component={ContentVariants.h3}>Verify connection</Content>
-      <VerifyConnectionSection
-        {...verificationProps}
-        connectionType={connectionType}
-        credentials={credentials}
-        showTitle={false}
-      />
     </Grid>
   );
 };
@@ -554,7 +555,7 @@ export const getPropertyErrors = (properties: PropertyRow[]): Record<number, str
   return errors;
 };
 
-type PropertiesStepProps = {
+type KeyValueInputProps = {
   properties: PropertyRow[];
   propertyErrors: Record<number, string>;
   touchedProperties: Set<number>;
@@ -571,7 +572,7 @@ const shouldShowPropertyError = (
 ): boolean =>
   Boolean(error && (touched || (error === 'Key must be unique.' && property.key.trim() !== '')));
 
-const PropertiesStep: React.FC<PropertiesStepProps> = ({
+const KeyValueInput: React.FC<KeyValueInputProps> = ({
   properties,
   propertyErrors,
   touchedProperties,
@@ -582,7 +583,7 @@ const PropertiesStep: React.FC<PropertiesStepProps> = ({
 }) => (
   <Stack hasGutter>
     <StackItem>
-      <Content component={ContentVariants.p}>
+      <Content component={ContentVariants.small}>
         Optionally define metadata to help discover and govern this connection in Data Connect Hub.
       </Content>
     </StackItem>
@@ -1048,10 +1049,6 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
             connectionType={selectedConnectionType}
             credentials={formData.credentials.properties}
             properties={formData.properties}
-            onVerify={() => void handleVerify()}
-            isVerifying={isVerifying}
-            isVerified={isVerified}
-            verificationError={verificationError}
           />
         </WizardStep>
       </Wizard>
