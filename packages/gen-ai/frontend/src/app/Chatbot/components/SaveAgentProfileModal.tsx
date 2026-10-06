@@ -252,7 +252,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
       <ModalHeader
         title={title}
         labelId="save-agent-profile-modal-title"
-        description="Save your model, prompt, knowledge, and MCP servers as a reusable agent."
+        description="Save your model, prompt, RAG, and MCP servers as a reusable agent."
       />
       <ModalBody>
         <Form id="save-agent-profile-form" onSubmit={handleSubmit}>
@@ -401,7 +401,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
           )}
 
           {/* Knowledge */}
-          <FormGroup label="Knowledge" fieldId="detail-knowledge">
+          <FormGroup label="RAG" fieldId="detail-knowledge">
             {!config?.isRagEnabled ? (
               <Alert variant="info" isInline isPlain title="RAG is not enabled" />
             ) : config.knowledgeMode === 'inline' ? (
@@ -418,7 +418,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
                 <Label variant="outline">{externalVectorStoreName}</Label>
               </LabelGroup>
             ) : (
-              <Alert variant="info" isInline isPlain title="No knowledge source selected" />
+              <Alert variant="info" isInline isPlain title="No RAG source selected" />
             )}
           </FormGroup>
 

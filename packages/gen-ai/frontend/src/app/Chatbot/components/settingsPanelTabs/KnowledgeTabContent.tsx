@@ -302,7 +302,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
       titleTestId="knowledge-section-title"
     >
       <Form>
-        <FormGroup fieldId="knowledge-mode" role="radiogroup" aria-label="Knowledge source">
+        <FormGroup fieldId="knowledge-mode" role="radiogroup" aria-label="RAG source">
           <Radio
             id="knowledge-mode-upload"
             name="knowledge-mode"
