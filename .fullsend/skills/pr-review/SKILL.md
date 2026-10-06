@@ -1683,10 +1683,10 @@ wins.
   in the orchestrator only.** Do not push protected-path checks, scope
   authorization, PR body injection defense, or change-summary authorship
   into sub-agents.
-- **All findings sub-agents and section LLMs must be dispatched
-  simultaneously.** Include all Agent calls in a single message.
-  Sequential dispatch defeats the architecture's purpose. A step 3g
-  pre-dispatch row runs alone, before this batch.
+- **All findings, section, and check LLMs must be dispatched
+  simultaneously** (steps 4 / 4b / 4-check). Include all Agent calls in
+  a single message. Sequential dispatch defeats the architecture's
+  purpose. A step 3g pre-dispatch row runs alone, before this batch.
 - **The investigation brief is orientation, never evidence.** Tell
   reviewers to read it by path, keep it away from the challenger and out
   of synthesis, and never fail a review because it is missing.

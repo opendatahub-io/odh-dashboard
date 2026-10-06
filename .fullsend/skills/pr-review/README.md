@@ -300,6 +300,7 @@ Compose after `common-review.md` for every LLM row:
 | [`section-output.md`](../../meta-prompts/section-output.md) | `section:*` |
 | [`check-output.md`](../../meta-prompts/check-output.md) | `check:*` |
 | [`signal-output.md`](../../meta-prompts/signal-output.md) | `signal:*` (producer contract) |
+| [`context-output.md`](../../meta-prompts/context-output.md) | `context` with `stage: pre-dispatch` (investigator brief) |
 
 ## Related files
 
