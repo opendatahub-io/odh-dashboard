@@ -1,17 +1,19 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import AgentProfileEndpointsModal from '~/app/AIAssets/components/agentprofiles/AgentProfileEndpointsModal';
 
 describe('AgentProfileEndpointsModal', () => {
   it('should show the most recent deployments and link to the selected deployment details', () => {
+    const onClose = jest.fn();
+
     render(
       <MemoryRouter>
         <AgentProfileEndpointsModal
           agentName="HR Chatbot"
           namespace="my-project"
           profileId="profile-id"
-          onClose={jest.fn()}
+          onClose={onClose}
           deployments={[
             {
               name: 'hr-chatbot-v1',
@@ -50,5 +52,8 @@ describe('AgentProfileEndpointsModal', () => {
       '/gen-ai-studio/assets/my-project/agentprofile/profile-id?deployment=hr-chatbot-v2',
     );
     expect(screen.queryByText('Serving name')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

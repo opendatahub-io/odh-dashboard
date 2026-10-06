@@ -7,7 +7,6 @@ import {
   Label,
   Modal,
   ModalBody,
-  ModalFooter,
   ModalHeader,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, InProgressIcon } from '@patternfly/react-icons';
@@ -139,11 +138,6 @@ const AgentProfileEndpointsModal: React.FC<AgentProfileEndpointsModalProps> = ({
           </Tbody>
         </Table>
       </ModalBody>
-      <ModalFooter>
-        <Button variant="primary" onClick={onClose}>
-          Close
-        </Button>
-      </ModalFooter>
     </Modal>
   );
 };
