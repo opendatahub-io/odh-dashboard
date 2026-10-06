@@ -171,7 +171,7 @@ paths:
             example: 'default'
         - name: include_embedding_models
           in: query
-          description: Return all OGX model types, including embedding and transcription models
+          description: Return all OGX model types, including embedding and transcription models. Only true or false is accepted.
           required: false
           schema:
             type: boolean

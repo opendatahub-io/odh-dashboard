@@ -29,7 +29,14 @@ func (app *App) LlamaStackModelsHandler(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	includeEmbeddingModels := r.URL.Query().Get("include_embedding_models") == "true"
+	includeEmbeddingModels := false
+	if values, ok := r.URL.Query()["include_embedding_models"]; ok {
+		if len(values) != 1 || (values[0] != "true" && values[0] != "false") {
+			app.badRequestResponse(w, r, fmt.Errorf("include_embedding_models must be true or false"))
+			return
+		}
+		includeEmbeddingModels = values[0] == "true"
+	}
 	ogxModels = filterModels(ogxModels, app.config.FilteredModelKeywords, includeEmbeddingModels)
 
 	response := ModelsResponse{
