@@ -1,11 +1,15 @@
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { mockBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
 import BenchmarkSuitesPage from '~/app/pages/BenchmarkSuitesPage';
 
 const mockUseCollectionsQuery = jest.fn();
+
+const clickFilterOption = (testId: string) => {
+  fireEvent.click(within(screen.getByTestId(testId)).getByRole('checkbox'));
+};
 
 jest.mock('~/app/hooks/collections', () => ({
   useCollectionsQuery: (...args: unknown[]) => mockUseCollectionsQuery(...args),
@@ -84,7 +88,7 @@ describe('BenchmarkSuitesPage', () => {
     expect(mockUseCollectionsQuery).toHaveBeenCalledWith(
       'test-project',
       'tenant',
-      6,
+      8,
       undefined,
       undefined,
       0,
@@ -155,7 +159,7 @@ describe('BenchmarkSuitesPage', () => {
 
   it('should search the capped fetched collection set when the name filter is used', () => {
     const collections = mockBenchmarkSuiteCollections();
-    const firstPageCollections = collections.slice(0, 6);
+    const firstPageCollections = collections.slice(0, 8);
 
     mockUseCollectionsQuery.mockImplementation((...args: unknown[]) => {
       const limit = args[2];
@@ -236,9 +240,9 @@ describe('BenchmarkSuitesPage', () => {
     renderPage();
 
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
-    fireEvent.click(screen.getByRole('option', { name: 'Code' }));
+    clickFilterOption('benchmark-suites-category-filter-option-code');
     fireEvent.click(screen.getByTestId('benchmark-suites-industry-filter'));
-    fireEvent.click(screen.getByRole('option', { name: 'Health' }));
+    clickFilterOption('benchmark-suites-industry-filter-option-health');
 
     expect(screen.getByTestId('benchmark-suites-empty-state')).toHaveTextContent(
       'No benchmark suites match the current filters.',
@@ -284,7 +288,7 @@ describe('BenchmarkSuitesPage', () => {
       screen.queryByTestId('benchmark-suites-category-filter-option-legacy-category'),
     ).not.toBeInTheDocument();
 
-    await user.click(screen.getByTestId('benchmark-suites-category-filter-option-all'));
+    await user.click(screen.getByTestId('benchmark-suites-category-filter'));
     await user.click(screen.getByTestId('benchmark-suites-evaluates-filter'));
 
     expect(
@@ -297,7 +301,6 @@ describe('BenchmarkSuitesPage', () => {
       screen.queryByTestId('benchmark-suites-evaluates-filter-option-model'),
     ).not.toBeInTheDocument();
 
-    await user.click(screen.getByTestId('benchmark-suites-evaluates-filter-option-all'));
     await user.click(screen.getByTestId('benchmark-suites-industry-filter'));
 
     expect(
@@ -312,7 +315,7 @@ describe('BenchmarkSuitesPage', () => {
     renderPage();
 
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
-    fireEvent.click(screen.getByRole('option', { name: 'Code' }));
+    clickFilterOption('benchmark-suites-category-filter-option-code');
 
     expect(screen.getByTestId('benchmark-suite-card-code-quality-suite')).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suite-card-model-suite-2')).not.toBeInTheDocument();
@@ -325,10 +328,10 @@ describe('BenchmarkSuitesPage', () => {
       undefined,
     );
 
+    clickFilterOption('benchmark-suites-category-filter-option-code');
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
-    fireEvent.click(screen.getByRole('option', { name: 'All categories' }));
     fireEvent.click(screen.getByTestId('benchmark-suites-evaluates-filter'));
-    fireEvent.click(screen.getByRole('option', { name: 'Agent' }));
+    clickFilterOption('benchmark-suites-evaluates-filter-option-agent');
 
     expect(screen.getByTestId('benchmark-suite-card-agent-safety-suite')).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suite-card-code-quality-suite')).not.toBeInTheDocument();

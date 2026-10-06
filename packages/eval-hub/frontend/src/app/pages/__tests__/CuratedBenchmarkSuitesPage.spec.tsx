@@ -1,10 +1,14 @@
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { mockCuratedBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
 import CuratedBenchmarkSuitesPage from '~/app/pages/CuratedBenchmarkSuitesPage';
 
 const mockUseCollectionsQuery = jest.fn();
+
+const clickFilterOption = (testId: string) => {
+  fireEvent.click(within(screen.getByTestId(testId)).getByRole('checkbox'));
+};
 
 jest.mock('~/app/hooks/collections', () => ({
   useCollectionsQuery: (...args: unknown[]) => mockUseCollectionsQuery(...args),
@@ -70,9 +74,7 @@ describe('CuratedBenchmarkSuitesPage', () => {
       screen.getByText('Select a benchmark suite to evaluate your agent.'),
     ).toBeInTheDocument();
     expect(screen.getByTestId('create-benchmark-suite-button')).toBeInTheDocument();
-    expect(screen.getByTestId('benchmark-suites-category-filter')).toHaveTextContent(
-      'All categories',
-    );
+    expect(screen.getByTestId('benchmark-suites-category-filter')).toHaveTextContent('Category');
     expect(screen.queryByTestId('benchmark-suites-evaluates-filter')).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-pagination-top')).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suites-pagination-bottom')).not.toBeInTheDocument();
@@ -210,9 +212,9 @@ describe('CuratedBenchmarkSuitesPage', () => {
     renderPage();
 
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
-    fireEvent.click(screen.getByRole('option', { name: 'Code' }));
+    clickFilterOption('benchmark-suites-category-filter-option-code');
     fireEvent.click(screen.getByTestId('benchmark-suites-industry-filter'));
-    fireEvent.click(screen.getByRole('option', { name: 'Government' }));
+    clickFilterOption('benchmark-suites-industry-filter-option-government');
 
     expect(screen.getByTestId('benchmark-suites-empty-state')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-industry-filter')).toBeInTheDocument();
@@ -261,7 +263,7 @@ describe('CuratedBenchmarkSuitesPage', () => {
     );
 
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
-    fireEvent.click(screen.getByRole('option', { name: 'Code' }));
+    clickFilterOption('benchmark-suites-category-filter-option-code');
     expect(
       screen.getByTestId('benchmark-suite-card-software-engineering-agent-suite'),
     ).toBeInTheDocument();

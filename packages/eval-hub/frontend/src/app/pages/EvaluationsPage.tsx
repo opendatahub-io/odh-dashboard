@@ -55,7 +55,7 @@ const EVALUATE_TAB = 'evaluate';
 const RUNS_TAB = 'runs';
 const TAB_QUERY_PARAM = 'tab';
 const EVALUATE_DESCRIPTION =
-  'Create benchmark suites and run evaluations to measure model, agent, and dataset performance.';
+  'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project..';
 const RUNS_DESCRIPTION = 'Start and manage evaluation runs for models, agents, and datasets.';
 
 const EvaluationsPage: React.FC = () => {

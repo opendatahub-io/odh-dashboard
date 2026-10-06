@@ -88,13 +88,17 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBenchmarkSuitesModalityFilter().should('exist');
     evaluationsPage.findBenchmarkSuitesEvaluatesFilter().should('exist');
     evaluationsPage.findBenchmarkSuitesPagination().should('exist');
+    evaluationsPage
+      .findBenchmarkSuitesNameFilter()
+      .find('input')
+      .should('have.attr', 'placeholder', 'Search collections');
     evaluationsPage.findBenchmarkSuiteCard('clawbench').should('exist');
     evaluationsPage.findBenchmarkSuiteCard('curated-open-llm-leaderboard-v2').should('exist');
     evaluationsPage
       .findPageDescription()
       .should(
         'contain.text',
-        'Create benchmark suites and run evaluations to measure model, agent, and dataset performance.',
+        'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project..',
       );
   });
 
@@ -117,33 +121,44 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBenchmarkSuiteCard('software-engineering-agent-suite').should('exist');
     evaluationsPage.findBenchmarkSuiteCard('clawbench').should('not.exist');
 
+    evaluationsPage.findBenchmarkSuitesFilterOption('category', 'code').click();
     evaluationsPage.findBenchmarkSuitesCategoryFilter().click();
-    evaluationsPage.findBenchmarkSuitesFilterOption('category', 'all').click();
     evaluationsPage.findBenchmarkSuitesTagsFilter().click();
     evaluationsPage.findBenchmarkSuitesFilterOption('tags', 'code').click();
     evaluationsPage.findBenchmarkSuiteCard('software-engineering-agent-suite').should('exist');
     evaluationsPage.findBenchmarkSuiteCard('clawbench').should('not.exist');
 
+    evaluationsPage.findBenchmarkSuitesFilterOption('tags', 'code').click();
     evaluationsPage.findBenchmarkSuitesTagsFilter().click();
-    evaluationsPage.findBenchmarkSuitesFilterOption('tags', 'all').click();
     evaluationsPage.findBenchmarkSuitesTaskFilter().click();
     evaluationsPage.findBenchmarkSuitesFilterOption('task', 'code_generation').click();
     evaluationsPage.findBenchmarkSuiteCard('software-engineering-agent-suite').should('exist');
     evaluationsPage.findBenchmarkSuiteCard('clawbench').should('not.exist');
 
+    evaluationsPage.findBenchmarkSuitesFilterOption('task', 'code_generation').click();
     evaluationsPage.findBenchmarkSuitesTaskFilter().click();
-    evaluationsPage.findBenchmarkSuitesFilterOption('task', 'all').click();
     evaluationsPage.findBenchmarkSuitesModalityFilter().click();
     evaluationsPage.findBenchmarkSuitesFilterOption('modality', 'code').click();
     evaluationsPage.findBenchmarkSuiteCard('software-engineering-agent-suite').should('exist');
     evaluationsPage.findBenchmarkSuiteCard('clawbench').should('not.exist');
 
+    evaluationsPage.findBenchmarkSuitesFilterOption('modality', 'code').click();
     evaluationsPage.findBenchmarkSuitesModalityFilter().click();
-    evaluationsPage.findBenchmarkSuitesFilterOption('modality', 'all').click();
     evaluationsPage.findBenchmarkSuitesIndustryFilter().click();
     evaluationsPage.findBenchmarkSuitesFilterOption('industry', 'telco').click();
     evaluationsPage.findBenchmarkSuiteCard('software-engineering-agent-suite').should('exist');
     evaluationsPage.findBenchmarkSuiteCard('clawbench').should('not.exist');
+  });
+
+  it('should allow multiple selections within a Gallery filter', () => {
+    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.findBenchmarkSuitesCategoryFilter().click();
+    evaluationsPage.findBenchmarkSuitesFilterOption('category', 'code').click();
+    evaluationsPage.findBenchmarkSuitesFilterOption('category', 'safety').click();
+
+    cy.findByTestId('benchmark-suites-category-filter-badge').should('contain.text', '2');
+    evaluationsPage.findBenchmarkSuiteCard('software-engineering-agent-suite').should('exist');
+    evaluationsPage.findBenchmarkSuiteCard('curated-agent-safety-suite').should('exist');
   });
 
   it('should navigate to the single benchmark flow from the browse benchmarks section', () => {
@@ -163,7 +178,7 @@ describe('Evaluations Page - Tabs', () => {
       .findPageDescription()
       .should(
         'contain.text',
-        'Create benchmark suites and run evaluations to measure model, agent, and dataset performance.',
+        'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project..',
       );
     evaluationsPage
       .findRunsDescription()
@@ -208,8 +223,8 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBenchmarkSuiteCard('model-suite-2').should('exist');
     evaluationsPage.findBenchmarkSuiteCard('model-suite-7').should('not.exist');
 
+    evaluationsPage.findBenchmarkSuitesFilterOption('industry', 'health').click();
     evaluationsPage.findBenchmarkSuitesIndustryFilter().click();
-    evaluationsPage.findBenchmarkSuitesFilterOption('industry', 'all').click();
     evaluationsPage.findBenchmarkSuiteCard('model-suite-7').should('exist');
   });
 

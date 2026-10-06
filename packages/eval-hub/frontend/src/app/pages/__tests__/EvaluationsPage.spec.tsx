@@ -149,6 +149,10 @@ describe('EvaluationsPage', () => {
     fireEvent.click(screen.getByTestId('runs-tab'));
   };
 
+  const clickFilterOption = (testId: string) => {
+    fireEvent.click(within(screen.getByTestId(testId)).getByRole('checkbox'));
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     queryClient.clear();
@@ -192,8 +196,9 @@ describe('EvaluationsPage', () => {
     expect(screen.getByTestId('benchmark-suites-modality-filter')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-evaluates-filter')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-pagination-top')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search collections')).toBeInTheDocument();
     expect(screen.getByTestId('page-description')).toHaveTextContent(
-      'Create benchmark suites and run evaluations to measure model, agent, and dataset performance.',
+      'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project..',
     );
   });
 
@@ -208,7 +213,7 @@ describe('EvaluationsPage', () => {
       screen.getByTestId('benchmark-suites-evaluates-filter-option-model'),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('option', { name: 'Model' }));
+    clickFilterOption('benchmark-suites-evaluates-filter-option-model');
 
     expect(
       screen.getByTestId('benchmark-suite-card-curated-open-llm-leaderboard-v2'),
@@ -221,53 +226,69 @@ describe('EvaluationsPage', () => {
 
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
     expect(screen.getByTestId('benchmark-suites-category-filter-option-code')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('option', { name: /^Code$/ }));
+    clickFilterOption('benchmark-suites-category-filter-option-code');
     expect(
       screen.getByTestId('benchmark-suite-card-software-engineering-agent-suite'),
     ).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suite-card-clawbench')).not.toBeInTheDocument();
 
+    clickFilterOption('benchmark-suites-category-filter-option-code');
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
-    fireEvent.click(screen.getByTestId('benchmark-suites-category-filter-option-all'));
     fireEvent.click(screen.getByTestId('benchmark-suites-tags-filter'));
     expect(screen.getByTestId('benchmark-suites-tags-filter-option-code')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('option', { name: /^Code$/ }));
+    clickFilterOption('benchmark-suites-tags-filter-option-code');
     expect(
       screen.getByTestId('benchmark-suite-card-software-engineering-agent-suite'),
     ).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suite-card-clawbench')).not.toBeInTheDocument();
 
+    clickFilterOption('benchmark-suites-tags-filter-option-code');
     fireEvent.click(screen.getByTestId('benchmark-suites-tags-filter'));
-    fireEvent.click(screen.getByTestId('benchmark-suites-tags-filter-option-all'));
     fireEvent.click(screen.getByTestId('benchmark-suites-task-filter'));
     expect(
       screen.getByTestId('benchmark-suites-task-filter-option-code_generation'),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('option', { name: /^Code generation$/ }));
+    clickFilterOption('benchmark-suites-task-filter-option-code_generation');
     expect(
       screen.getByTestId('benchmark-suite-card-software-engineering-agent-suite'),
     ).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suite-card-clawbench')).not.toBeInTheDocument();
 
+    clickFilterOption('benchmark-suites-task-filter-option-code_generation');
     fireEvent.click(screen.getByTestId('benchmark-suites-task-filter'));
-    fireEvent.click(screen.getByTestId('benchmark-suites-task-filter-option-all'));
     fireEvent.click(screen.getByTestId('benchmark-suites-modality-filter'));
     expect(screen.getByTestId('benchmark-suites-modality-filter-option-code')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('option', { name: /^Code$/ }));
+    clickFilterOption('benchmark-suites-modality-filter-option-code');
     expect(
       screen.getByTestId('benchmark-suite-card-software-engineering-agent-suite'),
     ).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suite-card-clawbench')).not.toBeInTheDocument();
 
+    clickFilterOption('benchmark-suites-modality-filter-option-code');
     fireEvent.click(screen.getByTestId('benchmark-suites-modality-filter'));
-    fireEvent.click(screen.getByTestId('benchmark-suites-modality-filter-option-all'));
     fireEvent.click(screen.getByTestId('benchmark-suites-industry-filter'));
     expect(screen.getByTestId('benchmark-suites-industry-filter-option-telco')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('option', { name: /^Telco$/ }));
+    clickFilterOption('benchmark-suites-industry-filter-option-telco');
     expect(
       screen.getByTestId('benchmark-suite-card-software-engineering-agent-suite'),
     ).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suite-card-clawbench')).not.toBeInTheDocument();
+  });
+
+  it('should allow multiple selections within a Gallery filter', () => {
+    renderPage('test-project');
+
+    fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
+    clickFilterOption('benchmark-suites-category-filter-option-code');
+    clickFilterOption('benchmark-suites-category-filter-option-safety');
+
+    expect(screen.getByTestId('benchmark-suites-category-filter-badge')).toHaveTextContent('2');
+    expect(
+      screen.getByTestId('benchmark-suite-card-software-engineering-agent-suite'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('benchmark-suite-card-curated-agent-safety-suite'),
+    ).toBeInTheDocument();
   });
 
   it('should not gate the Evaluate tab on the Runs request', () => {
@@ -366,7 +387,7 @@ describe('EvaluationsPage', () => {
     expect(screen.getByTestId('runs-tab')).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByTestId('evaluations-table')).toBeInTheDocument();
     expect(screen.getByTestId('page-description')).toHaveTextContent(
-      'Create benchmark suites and run evaluations to measure model, agent, and dataset performance.',
+      'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project..',
     );
     expect(screen.getByTestId('runs-tab-description')).toHaveTextContent(
       'Start and manage evaluation runs for models, agents, and datasets.',
