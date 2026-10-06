@@ -17,7 +17,8 @@
 #   6. Producers table columns: Producer | Type | Ran | Result (kind-aware;
 #      Type from registry output; Ran/Result/adapter status from result.producers;
 #      findings Result from producers.raised; Challenger audit from
-#      producers.challenger.removed_findings).
+#      producers.challenger.removed_findings). Rows are sorted alphabetically
+#      by Type, then Producer.
 #   7. Absolutize FULLSEND_CONFIG_DIR when FULLSEND_DIR is relative — post_script
 #      CWD is runDir, so a bare ".fullsend" would miss dimensions.json
 #      (labels → ids, Type/Result → —).
@@ -842,7 +843,7 @@ def producer_rows(result):
 
     LLM rows in `dispatched` are ✅. Adapter rows use transferred status on
     result.producers.adapters. Findings Result uses producers.raised.
-    Each row is (label, type, ran_icon, result)."""
+    Each row is (label, type, ran_icon, result). Sorted by type, then label."""
     producers = producers_block(result)
     review_checks = checks(result)
 
@@ -871,6 +872,7 @@ def producer_rows(result):
                 "➖",
                 reason,
             ))
+    rows.sort(key=lambda r: ((r[1] or "").casefold(), (r[0] or "").casefold()))
     return rows, True
 
 def status_headline(result, action):
@@ -1420,6 +1422,20 @@ run_self_test() {
     fail=1
   else
     echo "PASS as-raised Result counts per producer; merge losers in audit"
+  fi
+
+  # Producers table rows are sorted alphabetically by Type, then Producer.
+  printf '%s' "{${common},\"findings\":[],\"producers\":{\"dispatched\":[\"correctness\",\"test-impact-review\"],\"adapters\":[{\"id\":\"jira-snapshot\",\"status\":\"ok\"},{\"id\":\"coderabbit\",\"status\":\"ok\"}],\"skipped\":[{\"id\":\"security\",\"reason\":\"no auth or secrets touched\"},{\"id\":\"pr-description-review\",\"reason\":\"not spawned\"}],\"returned\":[\"correctness\",\"test-impact-review\"],\"raised\":{\"correctness\":[],\"coderabbit\":[]},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/producer-sort.json"
+  transform_review_result "${tmp}/producer-sort.json" > "${tmp}/producer-sort-out.json"
+  body=$(jq -r .body "${tmp}/producer-sort-out.json")
+  got=$(awk -F '|' '/^\| Producer \| Type \|/{flag=1; next} flag && /^\| ---/{next} flag && /^\| /{gsub(/^ +| +$/,"",$2); gsub(/^ +| +$/,"",$3); print $3 " | " $2; next} {if(flag) exit}' <<<"${body}")
+  want=$'check | PR description\ncheck | Test impact\ncontext | Jira\nfindings | CodeRabbit\nfindings | Correctness\nfindings | Security'
+  if [[ "${got}" != "${want}" ]]; then
+    echo "FAIL producer-sort: expected Type then Producer order, got:" >&2
+    printf '%s\n' "${got}" >&2
+    fail=1
+  else
+    echo "PASS producers table is sorted by Type then Producer"
   fi
 
   # Adapter status comes from result.producers.adapters, not collected.json.
