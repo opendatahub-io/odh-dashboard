@@ -7,6 +7,7 @@ import AgentProfileDetailPage, {
 import useFetchAgentDeployments from '~/app/AIAssets/hooks/useFetchAgentDeployments';
 import useFetchAgentProfile from '~/app/AIAssets/hooks/useFetchAgentProfile';
 import useFetchAgentProfiles from '~/app/hooks/useFetchAgentProfiles';
+import useFetchAIModels from '~/app/hooks/useFetchAIModels';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { AgentDeploymentSummary, AgentProfile } from '~/app/agentProfile/types';
@@ -30,6 +31,11 @@ jest.mock('~/app/hooks/useFetchAgentProfiles', () => ({
   default: jest.fn(),
 }));
 
+jest.mock('~/app/hooks/useFetchAIModels', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
 jest.mock('~/app/hooks/useGenAiAPI', () => ({
   useGenAiAPI: jest.fn(),
 }));
@@ -42,6 +48,7 @@ jest.mock('~/app/Chatbot/hooks/useGuardrailsEnabled', () => ({
 const mockUseFetchAgentProfile = jest.mocked(useFetchAgentProfile);
 const mockUseFetchAgentDeployments = jest.mocked(useFetchAgentDeployments);
 const mockUseFetchAgentProfiles = jest.mocked(useFetchAgentProfiles);
+const mockUseFetchAIModels = jest.mocked(useFetchAIModels);
 const mockUseGuardrailsEnabled = jest.mocked(useGuardrailsEnabled);
 const mockUseGenAiAPI = jest.mocked(useGenAiAPI);
 
@@ -118,6 +125,17 @@ describe('AgentProfileDetailPage', () => {
       error: undefined,
       refresh: jest.fn(),
     });
+    mockUseFetchAIModels.mockReturnValue({
+      data: [
+        {
+          model_id: 'llama-4-scout', // eslint-disable-line camelcase
+          display_name: 'Llama 4 Scout', // eslint-disable-line camelcase
+        },
+      ],
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    } as unknown as ReturnType<typeof useFetchAIModels>);
   });
 
   it('creates a shell-safe Responses API command only for HTTP endpoints', () => {
@@ -138,7 +156,7 @@ describe('AgentProfileDetailPage', () => {
     renderPage();
 
     expect(screen.getByRole('heading', { name: 'Saved configuration' })).toBeInTheDocument();
-    expect(screen.getByText('llama-4-scout')).toBeInTheDocument();
+    expect(screen.getByText('Llama 4 Scout')).toBeInTheDocument();
     expect(screen.getByText('hr-assistant')).toBeInTheDocument();
     expect(screen.getByText('v3')).toBeInTheDocument();
     expect(screen.getByText('jira')).toBeInTheDocument();

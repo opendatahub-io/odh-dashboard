@@ -1,11 +1,12 @@
 import React from 'react';
 import {
+  Button,
   EmptyState,
   EmptyStateBody,
   EmptyStateFooter,
   EmptyStateVariant,
 } from '@patternfly/react-core';
-import { CogIcon } from '@patternfly/react-icons';
+import { CogIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { WhosMyAdministrator } from '@odh-dashboard/ui-core';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { useUser } from '@odh-dashboard/internal/redux/selectors/user';
@@ -14,6 +15,7 @@ import {
   MLFLOW_NOT_CONFIGURED_ADMIN_TITLE,
   MLFLOW_NOT_CONFIGURED_MESSAGE,
   MLFLOW_NOT_CONFIGURED_TITLE,
+  MLFLOW_INSTALLATION_DOCS_URL,
 } from './const';
 import SupportIcon from '../icons/SupportIcon';
 
@@ -30,6 +32,20 @@ const MLflowNotConfigured: React.FC = () => {
         data-testid="mlflow-not-configured-admin-empty-state"
       >
         <EmptyStateBody>{MLFLOW_NOT_CONFIGURED_ADMIN_MESSAGE}</EmptyStateBody>
+        <EmptyStateFooter>
+          <Button
+            component="a"
+            data-testid="mlflow-installation-docs-link"
+            href={MLFLOW_INSTALLATION_DOCS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            variant="link"
+            icon={<ExternalLinkAltIcon />}
+            iconPosition="end"
+          >
+            Learn how to install and configure MLflow
+          </Button>
+        </EmptyStateFooter>
       </EmptyState>
     );
   }

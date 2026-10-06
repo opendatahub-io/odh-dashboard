@@ -5,8 +5,16 @@ import DeployAgentModal from '~/app/Chatbot/components/DeployAgentModal';
 
 jest.mock('~/app/AIAssets/components/agentprofiles/AgentConfigurationCard', () => ({
   __esModule: true,
-  default: ({ title }: { title: string }) => (
-    <div data-testid="configuration-snapshot">{title}</div>
+  default: ({
+    title,
+    profile,
+  }: {
+    title: string;
+    profile: { spec: { model: { id: string } } };
+  }) => (
+    <div data-testid="configuration-snapshot">
+      {title}: {profile.spec.model.id}
+    </div>
   ),
 }));
 
@@ -35,7 +43,26 @@ describe('DeployAgentModal', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('Advanced: use a different serving name')).not.toBeInTheDocument();
     expect(screen.getByTestId('configuration-snapshot')).toHaveTextContent(
-      'Configuration snapshot',
+      'Configuration snapshot: llama-3.1-8b',
+    );
+  });
+
+  it('renders the current configuration passed for deployment', () => {
+    render(
+      <DeployAgentModal
+        profile={{
+          spec: {
+            ...profile.spec,
+            model: { id: 'llama-4-scout', uri: 'https://models.example.com/v1' },
+          },
+        }}
+        namespace="my-project"
+        {...defaultProps}
+      />,
+    );
+
+    expect(screen.getByTestId('configuration-snapshot')).toHaveTextContent(
+      'Configuration snapshot: llama-4-scout',
     );
   });
 
