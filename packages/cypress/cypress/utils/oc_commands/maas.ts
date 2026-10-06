@@ -1,4 +1,4 @@
-import { getClusterAppsDomain } from './baseCommands';
+import { getClusterAppsDomain, type PortForwardHandle } from './baseCommands';
 import type { CommandLineResult } from '../../types';
 import { Path } from '../../types';
 import { replacePlaceholdersInYaml } from '../../utils/yaml_files';
@@ -8,6 +8,43 @@ export const modelsAsAServiceNamespace = 'models-as-a-service';
 /** OpenShift Route that exposes the shared MaaS API gateway. */
 const maasGatewayRouteName = 'maas-gateway-route';
 const maasGatewayRouteNamespace = 'openshift-ingress';
+
+/**
+ * Starts a local port-forward to the MaaS BFF service for Gen AI local E2E runs.
+ *
+ * Gen AI's local BFF uses BFF_MAAS_DEV_URL for inter-BFF MaaS calls. The local dev
+ * workflow commonly points that at http://localhost:8081/api/v1, while the in-cluster
+ * MaaS BFF is exposed on the odh-dashboard Service port 8243. Use an explicit
+ * localPort:servicePort forward here instead of changing the shared base port-forward helper.
+ */
+export const startMaaSBFFPortForward = (
+  namespace: string,
+  serviceName: string,
+  localPort: number,
+  servicePort: number,
+  waitTimeMs = 3000,
+): Cypress.Chainable<PortForwardHandle | null> => {
+  const baseUrl = Cypress.config('baseUrl') || '';
+  if (!baseUrl.includes('localhost')) {
+    cy.log(`Skipping MaaS BFF port-forward for ${serviceName} - baseUrl is not localhost`);
+    return cy.wrap<PortForwardHandle | null>(null);
+  }
+
+  const logFile = `/tmp/port-forward-${serviceName}-${localPort}-${Date.now()}.log`;
+
+  return cy
+    .exec(
+      `nohup oc port-forward -n ${namespace} svc/${serviceName} ${localPort}:${servicePort} > ${logFile} 2>&1 & echo $!`,
+      { failOnNonZeroExit: false },
+    )
+    .then((result: CommandLineResult): Cypress.Chainable<PortForwardHandle | null> => {
+      const pid = result.stdout.trim();
+      cy.log(`MaaS BFF port-forward PID: ${pid}`);
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(waitTimeMs);
+      return cy.wrap<PortForwardHandle | null>({ pid, logFile });
+    });
+};
 
 /** LLM completions can exceed Cypress's default 30s `cy.request` timeout (especially with high `max_tokens`). */
 const completionsRequestTimeoutMs = 180000;
@@ -365,6 +402,7 @@ export const createMaaSSubscription = (
   projectName: string,
   modelName: string,
   fixturePath = 'resources/maas/MaaSSubscription.yaml',
+  fixtureReplacements: Record<string, string> = {},
 ): Cypress.Chainable<CommandLineResult> => {
   const name = assertValidK8sLabel(subscriptionName, 'subscription name');
   const project = assertValidK8sNamespace(projectName);
@@ -376,6 +414,7 @@ export const createMaaSSubscription = (
       SUBSCRIPTION_DESCRIPTION: subscriptionDescription,
       MODEL_NAME: model,
       PROJECT_NAME: project,
+      ...fixtureReplacements,
     };
     const processedYaml = replacePlaceholdersInYaml(yamlContent, replacements);
     const ocCommand = `cat <<'EOF' | oc apply -f -
@@ -391,6 +430,7 @@ export const createMaaSAuthPolicy = (
   projectName: string,
   modelName: string,
   fixturePath = 'resources/maas/MaaSAuthPolicy.yaml',
+  fixtureReplacements: Record<string, string> = {},
 ): Cypress.Chainable<CommandLineResult> => {
   const name = assertValidK8sLabel(policyName, 'auth policy name');
   const project = assertValidK8sNamespace(projectName);
@@ -401,6 +441,7 @@ export const createMaaSAuthPolicy = (
       POLICY_NAME: name,
       MODEL_NAME: model,
       PROJECT_NAME: project,
+      ...fixtureReplacements,
     };
     const processedYaml = replacePlaceholdersInYaml(yamlContent, replacements);
     const ocCommand = `cat <<'EOF' | oc apply -f -
@@ -1323,6 +1364,60 @@ export const checkMaaSAuthPolicyState = (
     shouldPollMaaSState(options),
   );
 };
+
+/** Wait for governance and runtime readiness, then read the ID exposed by the MaaS catalog. */
+export const waitForMaaSModelReady = (
+  modelNamespace: string,
+  modelName: string,
+): Cypress.Chainable<string> => {
+  cy.exec(
+    `oc wait --for=condition=Ready maasmodelref/${modelName} -n ${modelNamespace} --timeout=300s`,
+    { timeout: 330000 },
+  );
+  return cy.exec(`oc get maasmodelref ${modelName} -n ${modelNamespace} -o json`).then((result) => {
+    const modelRef = JSON.parse(result.stdout) as {
+      status?: { resolvedModelAlias?: string };
+    };
+    const alias = modelRef.status?.resolvedModelAlias;
+    if (!alias?.trim()) {
+      throw new Error(`Ready MaaSModelRef ${modelName} has no status.resolvedModelAlias`);
+    }
+    // Explicitly wrap the ID so terminal-logging tasks cannot replace the yielded value.
+    return cy.wrap(alias);
+  });
+};
+
+/** Verify direct-user grants were persisted without logging the configured username. */
+export const verifyMaaSUserAccess = (
+  maasNamespace: string,
+  subscriptionName: string,
+  policyName: string,
+  username: string,
+): Cypress.Chainable<Cypress.Exec> =>
+  cy
+    .exec(
+      `oc get maassubscription/${subscriptionName} maasauthpolicy/${policyName} -n ${maasNamespace} -o json`,
+      { log: false },
+    )
+    .then((result) => {
+      const resources = JSON.parse(result.stdout) as {
+        items: {
+          kind: string;
+          spec: { owner?: { users?: string[] }; subjects?: { users?: string[] } };
+        }[];
+      };
+      const subscription = resources.items.find((resource) => resource.kind === 'MaaSSubscription');
+      const policy = resources.items.find((resource) => resource.kind === 'MaaSAuthPolicy');
+      expect(
+        subscription?.spec.owner?.users?.includes(username),
+        'subscription directly grants ownership to the configured test user',
+      ).to.eq(true);
+      expect(
+        policy?.spec.subjects?.users?.includes(username),
+        'auth policy directly grants access to the configured test user',
+      ).to.eq(true);
+      return cy.wrap(result, { log: false });
+    });
 
 export const MAAS_COMPLETIONS_DEFAULT_MAX_ATTEMPTS = 24;
 

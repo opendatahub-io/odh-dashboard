@@ -13,6 +13,7 @@ const GEN_AI_ALL_FLAGS =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,agentConfigManagement=true,modelAsService=false';
 const GEN_AI_MCP_REGISTRY_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,mcpRegistry=true,genAiMcpRegistryServers=true,modelAsService=false';
+const GEN_AI_MAAS_FLAG = 'devFeatureFlags=genAiStudio=true,modelAsService=true,maasApiKeys=true';
 
 class GenAiPlayground {
   navigate(projectName: string) {
@@ -33,6 +34,16 @@ class GenAiPlayground {
   navigateToAssetsWithCustomEndpoints(projectName: string) {
     cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_FLAG}`);
     cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
+  }
+
+  navigateToAssetsWithMaaS(projectName: string) {
+    cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_MAAS_FLAG}`);
+    cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
+  }
+
+  navigateToPlaygroundWithMaaS(projectName: string) {
+    cy.visit(`/gen-ai-studio/playground/${projectName}?${GEN_AI_MAAS_FLAG}`);
+    cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
   }
 
   navigateWithCustomEndpoints(projectName: string) {
@@ -85,8 +96,34 @@ class GenAiPlayground {
     return cy.findByTestId('empty-state');
   }
 
-  findAddToPlaygroundButton() {
-    return cy.findByTestId('ai-models-table').contains('button', 'Add to playground');
+  findAiModelsNameFilter() {
+    return cy.findByTestId('models-table-toolbar').find('input');
+  }
+
+  findAiModelRow(modelId: string, options?: { timeout?: number }) {
+    return this.findAiModelsTable(options)
+      .contains('[data-testid="model-id-text"]', modelId, options)
+      .closest('tr');
+  }
+
+  findAddToPlaygroundButton(modelId?: string) {
+    const scope = modelId ? this.findAiModelRow(modelId) : this.findAiModelsTable();
+    return scope.contains('button', 'Add to playground');
+  }
+
+  findModelCheckbox(modelName: string) {
+    const sanitizedModelName = modelName.replace(/[^a-zA-Z0-9-]/g, '');
+    return this.findConfigurationTable()
+      .findByTestId(`${sanitizedModelName}-checkbox`)
+      .find('input[type="checkbox"]');
+  }
+
+  findSubscriptionToggle(options?: { timeout?: number }) {
+    return cy.findByTestId('subscription-selector-toggle', options);
+  }
+
+  findStopButton(options?: { timeout?: number }) {
+    return cy.get('[data-testid="chatbot-stop-button"]', options);
   }
 
   findGoToPlaygroundLink(options?: { timeout?: number }) {
@@ -97,8 +134,16 @@ class GenAiPlayground {
     return cy.findByTestId('chatbot-configuration-table');
   }
 
+  findCreatePlaygroundButton(options?: { timeout?: number }) {
+    return cy.findByTestId('empty-state-action-button', options);
+  }
+
   findCreateButtonInDialog() {
     return cy.findByTestId('modal-submit-button');
+  }
+
+  findConfigurePlaygroundModal() {
+    return cy.findByTestId('configure-playground-modal');
   }
 
   findModelToggleButton(options?: { timeout?: number }) {

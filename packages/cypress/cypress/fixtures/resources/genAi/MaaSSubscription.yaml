@@ -1,0 +1,19 @@
+# Direct user grants avoid relying on propagation of newly-created group membership.
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSSubscription
+metadata:
+  name: "{{SUBSCRIPTION_NAME}}"
+  namespace: "{{MAAS_NAMESPACE}}"
+  annotations:
+    openshift.io/display-name: "{{SUBSCRIPTION_NAME}}"
+spec:
+  modelRefs:
+    - name: "{{MODEL_NAME}}"
+      namespace: "{{PROJECT_NAME}}"
+      tokenRateLimits:
+        - limit: 10000
+          window: 1h
+  owner:
+    users:
+      - {{USERNAME}}
+  priority: 1
