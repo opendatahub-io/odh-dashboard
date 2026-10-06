@@ -23,9 +23,13 @@ import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useFetchAAEVectorStores from '~/app/hooks/useFetchAAEVectorStores';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { DEFAULT_CONFIG_ID, useChatbotConfigStore } from '~/app/Chatbot/store';
-import { convertMaaSModelToAIModel, isPlaygroundModelMatchForAIModel } from '~/app/utilities/utils';
+import {
+  convertMaaSModelToAIModel,
+  resolveAIModelForPlaygroundSelection,
+} from '~/app/utilities/utils';
 import { serializeToAgentProfileSpec } from '~/app/agentProfile/serialize';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
+import useSaveAgentProfile from '~/app/Chatbot/hooks/useSaveAgentProfile';
 import { MCPServerFromAPI } from '~/app/types/mcp';
 import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 
@@ -54,12 +58,12 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
   onSaved,
 }) => {
   const { api, apiAvailable } = useGenAiAPI();
+  const { saveAgentProfile } = useSaveAgentProfile(mcpServers, mcpConfigMapName);
   const { aiModels, maasModels, models: playgroundModels } = React.useContext(ChatbotContext);
 
   const config = useChatbotConfigStore((s) => s.configurations[DEFAULT_CONFIG_ID]);
   const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
   const loadedProfileDisplayName = useChatbotConfigStore((s) => s.loadedProfileDisplayName);
-  const loadedResourceVersion = useChatbotConfigStore((s) => s.loadedResourceVersion);
   const loadedProfileDescription = useChatbotConfigStore((s) => s.loadedProfileDescription);
   const loadedProfileSpec = useChatbotConfigStore((s) => s.loadedProfileSpec);
 
@@ -84,10 +88,10 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
   );
   const aiModel = React.useMemo(
     () =>
-      llamaModel
-        ? allAIModels.find((ai) => isPlaygroundModelMatchForAIModel(llamaModel, ai))
+      config?.selectedModel
+        ? resolveAIModelForPlaygroundSelection(config.selectedModel, playgroundModels, allAIModels)
         : undefined,
-    [llamaModel, allAIModels],
+    [config?.selectedModel, playgroundModels, allAIModels],
   );
   const asrModel = React.useMemo(
     () =>
@@ -129,62 +133,33 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
     setError(null);
 
     try {
-      // Register or update the prompt before serializing, then sync the store so
-      // the spec picks up the new version via config.activePrompt.
-      if (isPromptDirty || !activePrompt) {
-        const promptName = activePrompt ? activePrompt.name : autoPromptName.current;
-        // dirtyPrompt.template holds the latest edited text; systemInstruction is the fallback
-        const template = dirtyPrompt?.template ?? systemInstruction ?? '';
-        const registeredPrompt = await api.registerMLflowPrompt({
-          name: promptName,
-          template,
-        });
-        // The API response may omit template; preserve what we sent so the store
-        // doesn't reset the displayed instruction to an empty/old value.
-        useChatbotConfigStore
-          .getState()
-          .updateActivePrompt(DEFAULT_CONFIG_ID, { ...registeredPrompt, template });
-      }
-
-      // Read fresh config after the store update so activePrompt reflects the new version
-      const freshConfig =
-        useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID] ?? config;
-
-      const spec = serializeToAgentProfileSpec(
-        freshConfig,
-        name.trim(),
-        description.trim() || undefined,
-        serializationContext,
-      );
+      const savedProfile = await saveAgentProfile({
+        mode,
+        name,
+        description,
+        promptName: autoPromptName.current,
+      });
 
       if (mode === 'save-as' || !loadedProfileId) {
-        const response = await api.createAgentProfile({ spec });
         fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.COPY_SAVED, {
           originalAgentID: loadedProfileId ?? '',
-          newAgentID: response.profileId,
+          newAgentID: savedProfile.profileId,
         });
-        onSaved(response.profileId, response.displayName, description.trim());
+        onSaved(savedProfile.profileId, savedProfile.displayName, description.trim());
         // Set after onSaved for the same reason as the update branch below.
-        useChatbotConfigStore.getState().setLoadedResourceVersion(response.resourceVersion);
+        useChatbotConfigStore.getState().setLoadedResourceVersion(savedProfile.resourceVersion);
       } else {
-        // Use the stored resourceVersion directly — no intermediate GET needed.
-        // The server returns 409 if the profile was modified elsewhere, or 404 if deleted.
-        const response = await api.updateAgentProfile({
-          id: loadedProfileId,
-          spec,
-          resourceVersion: loadedResourceVersion ?? '',
-        });
         fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.SAVED, {
           agentID: loadedProfileId,
         });
-        onSaved(loadedProfileId, response.displayName, description.trim());
+        onSaved(loadedProfileId, savedProfile.displayName, description.trim());
         // Set after onSaved: applyAgentProfile (called inside onSaved) resets the store
         // from storeInitialState, which would clear anything set before it.
-        useChatbotConfigStore.getState().setLoadedResourceVersion(response.resourceVersion);
+        useChatbotConfigStore.getState().setLoadedResourceVersion(savedProfile.resourceVersion);
       }
       // Update the dirty-detection baseline to the spec that was just persisted.
       // Any subsequent config changes will now be detected as unsaved.
-      useChatbotConfigStore.getState().setLoadedProfileSpec(spec);
+      useChatbotConfigStore.getState().setLoadedProfileSpec(savedProfile.spec);
       onClose();
     } catch (err) {
       if (err instanceof Error && 'code' in err) {

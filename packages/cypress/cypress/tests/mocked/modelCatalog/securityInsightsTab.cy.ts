@@ -153,6 +153,7 @@ describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
     modelDetailsPage.findSecurityInsightsTable().should('contain.text', 'Toxicity');
     modelDetailsPage.findSecurityInsightsTable().should('contain.text', 'PII Leakage');
     modelDetailsPage.findSecurityInsightsTable().should('contain.text', '92.0%');
+    modelDetailsPage.findSecurityInsightsTable().should('contain.text', '100.0%');
     modelDetailsPage.findSecurityInsightsEmptyState().should('not.exist');
     cy.wait('@getSecurityArtifacts');
   });
