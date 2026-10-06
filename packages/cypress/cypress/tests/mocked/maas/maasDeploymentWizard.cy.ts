@@ -235,6 +235,20 @@ describe('MaaS Deployment Wizard', () => {
       );
     });
     cy.get('@createMaaSModelRef.all').should('have.length', 2);
+    cy.interceptK8sList(
+      LLMInferenceServiceModel,
+      mockK8sResourceList([
+        mockLLMInferenceServiceK8sResource({
+          name: 'test-llm-inference-service',
+          displayName: 'Test LLM Inference Service',
+          isMaaS: true,
+        }),
+      ]),
+    );
+    modelServingGlobal.findMaaSPublishedPostDeployAlert().should('be.visible');
+    modelServingGlobal
+      .findMaaSPublishedPostDeployAlert()
+      .should('contain.text', 'Test LLM Inference Service');
   });
   it('should update the MaaSModelRef when editing an existing deployment', () => {
     initMaaSDeploymentIntercepts();
@@ -295,6 +309,18 @@ describe('MaaS Deployment Wizard', () => {
     cy.get('@updateMaaSModelRef.all').then((interceptions) => {
       expect(interceptions).to.have.length(2);
     });
+    cy.interceptK8sList(
+      LLMInferenceServiceModel,
+      mockK8sResourceList([
+        mockLLMInferenceServiceK8sResource({
+          name: 'test-llm-inference-service',
+          displayName: 'Test LLM Inference Service',
+          isMaaS: true,
+        }),
+      ]),
+    );
+    // if the deployment was already MaaS, we don't show the alert again
+    modelServingGlobal.findMaaSPublishedPostDeployAlert().should('not.exist');
   });
   it('should delete the MaaSModelRef when the MaaS checkbox is unchecked', () => {
     initMaaSDeploymentIntercepts();
@@ -367,6 +393,18 @@ describe('MaaS Deployment Wizard', () => {
       expect(interceptions).to.have.length(2);
     });
     cy.get('@deleteMaaSModelRef.all').should('have.length', 2);
+    cy.interceptK8sList(
+      LLMInferenceServiceModel,
+      mockK8sResourceList([
+        mockLLMInferenceServiceK8sResource({
+          name: 'test-llm-inference-service',
+          displayName: 'Test LLM Inference Service',
+          isMaaS: false,
+        }),
+      ]),
+    );
+    // if the deployment has MaaS unchecked, we don't show the alert again
+    modelServingGlobal.findMaaSPublishedPostDeployAlert().should('not.exist');
   });
   it('should show an error if the MaaSModelRef dry run fails', () => {
     initMaaSDeploymentIntercepts();
