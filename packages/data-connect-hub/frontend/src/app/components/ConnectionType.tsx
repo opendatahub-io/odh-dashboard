@@ -6,10 +6,13 @@ import {
   CardBody,
   CardHeader,
   CardTitle,
+  Content,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
+  Grid,
+  GridItem,
   Icon,
   Label,
   LabelColor,
@@ -32,7 +35,7 @@ import RhUiStorageIcon from '@patternfly/react-icons/dist/esm/icons/rh-ui-storag
 
 type KnownConnectionType = Identified<string> & Iconed<React.ReactNode>;
 
-type ValueRenderer = (c: ConnectionType) => React.ReactNode;
+type ValueRenderer = (c: ConnectionTypeInstance) => React.ReactNode;
 
 type RenderedConnectionTypeValue = Identified<string> &
   Labelled<string> &
@@ -86,6 +89,11 @@ const KnownConnectionTypes: Record<string, KnownConnectionType> = {
 };
 
 const renderedConnectionTypeValues: Record<string, RenderedConnectionTypeValue> = {
+  description: {
+    id: 'description',
+    label: 'Description',
+    value: (connectionType) => connectionType.resource.description,
+  },
   category: {
     id: 'category',
     label: 'Category',
@@ -104,16 +112,16 @@ const renderedConnectionTypeValues: Record<string, RenderedConnectionTypeValue> 
     value: () => null,
     shouldRender: false,
   },
-  tags: {
-    id: 'tags',
-    label: 'Tags',
-    value: () => null,
-    shouldRender: false,
-  },
   provider: {
     id: 'provider',
     label: 'Provider',
     value: (connectionType) => connectionType.resource.provider,
+  },
+  capability: {
+    id: 'capability',
+    label: 'Capability',
+    value: (connectionType) =>
+      connectionType.isCredentialsOnly() ? 'Credentials only' : 'Full integration',
   },
   created: {
     id: 'created',
@@ -125,6 +133,10 @@ const renderedConnectionTypeValues: Record<string, RenderedConnectionTypeValue> 
     label: 'Last modified',
     value: (connectionType) => <RelativeTimestamp datetime={connectionType.metadata.updated_at} />,
   },
+};
+
+const localFeatureFlags = {
+  tags: true,
 };
 
 // Private -------------------------------------------------------------------->
@@ -213,6 +225,20 @@ const ConnectionTypeIcon: React.FC<ConnectionTypeIconProps> = ({ connectionType,
   );
 };
 
+type ConnectionTypeLabelProps = {
+  connectionType: ConnectionType;
+};
+const ConnectionTypeLabel: React.FC<ConnectionTypeLabelProps> = ({
+  connectionType: _connectionType,
+}) => {
+  const connectionType = new ConnectionTypeInstance(_connectionType);
+  let label = <Label color={LabelColor.teal}>Full integration</Label>;
+  if (connectionType.isCredentialsOnly()) {
+    label = <Label color={LabelColor.yellow}>Credentials only</Label>;
+  }
+  return label;
+};
+
 const ConnectionTypeCardIdentifier = (id: string) => `${id}--ConnectionTypeCard`;
 type ConnectionTypeCardProps = {
   connectionType: ConnectionType;
@@ -228,18 +254,6 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
 }) => {
   const connectionType = new ConnectionTypeInstance(_connectionType);
   const rootId = ConnectionTypeCardIdentifier(connectionType.metadata.id);
-  let label = (
-    <Label key="full_integration" color={LabelColor.teal}>
-      Full integration
-    </Label>
-  );
-  if (connectionType.isCredentialsOnly()) {
-    label = (
-      <Label key="credentials" color={LabelColor.yellow}>
-        Credentials only
-      </Label>
-    );
-  }
   return (
     <Card
       id={rootId}
@@ -252,7 +266,9 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
       <CardHeader
         actions={{
           hasNoOffset: true,
-          actions: [label],
+          actions: [
+            <ConnectionTypeLabel key="ConnectionTypeLabel" connectionType={_connectionType} />,
+          ],
         }}
         selectableActions={{
           onClickAction: onClick,
@@ -274,20 +290,69 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
 };
 
 type ConnectionTypeValuesProps = { connectionType: ConnectionType };
-const ConnectionTypeValues: React.FC<ConnectionTypeValuesProps> = ({ connectionType }) => (
-  <DescriptionList>
-    {Object.values(renderedConnectionTypeValues)
-      .filter((v) => v.shouldRender !== false)
-      .map((renderedValue) => (
-        <DescriptionListGroup key={renderedValue.id}>
-          <DescriptionListTerm>{renderedValue.label}</DescriptionListTerm>
-          <DescriptionListDescription>
-            {renderedValue.value(connectionType)}
-          </DescriptionListDescription>
-        </DescriptionListGroup>
-      ))}
-  </DescriptionList>
-);
+const ConnectionTypeValues: React.FC<ConnectionTypeValuesProps> = ({
+  connectionType: _connectionType,
+}) => {
+  const connectionType = new ConnectionTypeInstance(_connectionType);
+  const valuesToRender = Object.values(renderedConnectionTypeValues).filter(
+    (v) => v.shouldRender !== false,
+  );
+  return (
+    <Grid className="pf-v6-u-h-100" hasGutter>
+      <GridItem span={8}>
+        <Card className="pf-v6-u-p-xs" isFullHeight>
+          <div style={{ overflow: 'auto' }}>
+            <CardHeader>
+              <Content component="h3">Details</Content>
+            </CardHeader>
+            <CardBody>
+              <Grid hasGutter>
+                <GridItem span={6}>
+                  <DescriptionList>
+                    {valuesToRender.slice(0, 2).map((renderedValue) => (
+                      <DescriptionListGroup key={renderedValue.id}>
+                        <DescriptionListTerm>{renderedValue.label}</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          {renderedValue.value(connectionType)}
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ))}
+                  </DescriptionList>
+                </GridItem>
+                <GridItem span={6}>
+                  <DescriptionList>
+                    {valuesToRender.slice(2).map((renderedValue) => (
+                      <DescriptionListGroup key={renderedValue.id}>
+                        <DescriptionListTerm>{renderedValue.label}</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          {renderedValue.value(connectionType)}
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ))}
+                  </DescriptionList>
+                </GridItem>
+              </Grid>
+            </CardBody>
+          </div>
+        </Card>
+      </GridItem>
+      {localFeatureFlags.tags && (
+        <GridItem span={4}>
+          <Card className="pf-v6-u-p-xs" isFullHeight>
+            <div style={{ overflow: 'auto' }}>
+              <CardHeader>
+                <Content component="h3">Labels</Content>
+              </CardHeader>
+              <CardBody>
+                <Label>Example</Label>
+              </CardBody>
+            </div>
+          </Card>
+        </GridItem>
+      )}
+    </Grid>
+  );
+};
 
 // Public --------------------------------------------------------------------->
 
@@ -295,6 +360,7 @@ export {
   KnownConnectionTypes,
   ConnectionTypeInstance,
   ConnectionTypeIcon,
+  ConnectionTypeLabel,
   ConnectionTypeCardIdentifier,
   ConnectionTypeCard,
   ConnectionTypeValues,

@@ -7,6 +7,7 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Button,
+  Flex,
   PageSection,
   Skeleton,
   Split,
@@ -15,7 +16,11 @@ import {
 import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import ApplicationsPage from '~/app/components/ApplicationsPage';
 import { useConnectionType } from '~/app/hooks/useConnectionType';
-import { ConnectionTypeIcon, ConnectionTypeValues } from '~/app/components/ConnectionType.tsx';
+import {
+  ConnectionTypeIcon,
+  ConnectionTypeLabel,
+  ConnectionTypeValues,
+} from '~/app/components/ConnectionType.tsx';
 import { createConnection } from '~/app/api/dch.ts';
 import CreateConnectionWizard from '~/app/components/CreateConnectionWizard.tsx';
 
@@ -45,7 +50,7 @@ const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> 
 
   if (connectionType) {
     title = (
-      <>
+      <Flex alignItems={{ default: 'alignItemsCenter' }}>
         <ConnectionTypeIcon
           connectionType={connectionType}
           iconProps={{
@@ -53,8 +58,9 @@ const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> 
             className: 'pf-v6-u-mr-md',
           }}
         />
-        {connectionType.resource.name}
-      </>
+        <span className="pf-v6-u-mr-md">{connectionType.resource.name}</span>
+        <ConnectionTypeLabel connectionType={connectionType} />
+      </Flex>
     );
     description = <>{connectionType.resource.description ?? ''}</>;
   }
