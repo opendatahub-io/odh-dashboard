@@ -420,13 +420,7 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       });
 
       cy.step('Verify the submitted message and completed assistant answer');
-      genAiPlayground
-        .findAllUserMessages()
-        .last()
-        .should(($message) => {
-          expect($message.text()).to.contain(transcribedText.trim());
-          expect($message.text()).to.contain(testData.audio.prompt);
-        });
+      // Streaming response headers can arrive before the answer is rendered in the chat.
       genAiPlayground
         .findAllAssistantMessages({ timeout: 120000 })
         .last()
@@ -437,6 +431,13 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
           testData.audio.expectedResponseKeywords.forEach((keyword) => {
             expect(normalizedAnswer).to.contain(keyword.toLowerCase());
           });
+        });
+      genAiPlayground
+        .findAllUserMessages()
+        .last()
+        .should(($message) => {
+          expect($message.text()).to.contain(transcribedText.trim());
+          expect($message.text()).to.contain(testData.audio.prompt);
         });
       genAiPlayground.findStopButton().should('not.exist');
       genAiPlayground.findChatbotErrorAlerts().should('not.exist');
