@@ -510,7 +510,7 @@ function AutoragResultsPage(): React.JSX.Element {
                   <SplitItem>
                     {runTerminatable && (
                       <Button
-                        variant="secondary"
+                        variant="link"
                         icon={<StopCircleIcon />}
                         onClick={() => setIsStopModalOpen(true)}
                         isDisabled={isTerminating || isStopModalOpen}
@@ -523,7 +523,7 @@ function AutoragResultsPage(): React.JSX.Element {
                     )}
                     {runRetryable && (
                       <Button
-                        variant="secondary"
+                        variant="link"
                         icon={<RedoIcon />}
                         onClick={() => void handleRetry().catch(() => undefined)}
                         isDisabled={isRetrying}
@@ -536,9 +536,19 @@ function AutoragResultsPage(): React.JSX.Element {
                     )}
                   </SplitItem>
                   <SplitItem>
+                    <Button
+                      variant="link"
+                      icon={<CogIcon />}
+                      component={ReconfigureLink}
+                      data-testid="reconfigure-run-button"
+                    >
+                      Reconfigure
+                    </Button>
+                  </SplitItem>
+                  <SplitItem>
                     <Tooltip content={starterKitTooltip}>
                       <Button
-                        variant="secondary"
+                        variant="link"
                         icon={<DownloadIcon />}
                         onClick={() => void handleDownloadStarterKit()}
                         isAriaDisabled={starterKitDisabled}
@@ -549,16 +559,6 @@ function AutoragResultsPage(): React.JSX.Element {
                         Download starter kit
                       </Button>
                     </Tooltip>
-                  </SplitItem>
-                  <SplitItem>
-                    <Button
-                      variant="secondary"
-                      icon={<CogIcon />}
-                      component={ReconfigureLink}
-                      data-testid="reconfigure-run-button"
-                    >
-                      Reconfigure
-                    </Button>
                   </SplitItem>
                   <SplitItem>
                     <Button

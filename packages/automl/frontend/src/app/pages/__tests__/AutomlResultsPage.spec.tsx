@@ -231,6 +231,24 @@ const renderPage = () => {
   );
 };
 
+const expectHeaderActions = (conditionalAction?: 'stop' | 'retry') => {
+  const actionIds = [
+    conditionalAction === 'stop' ? 'stop-run-button' : undefined,
+    conditionalAction === 'retry' ? 'retry-run-button' : undefined,
+    'reconfigure-run-button',
+    'run-notebook-download-button',
+    'run-details-button',
+  ].filter((id): id is string => id !== undefined);
+
+  const actions = actionIds.map((id) => screen.getByTestId(id));
+  actions.forEach((action) => expect(action).toHaveClass('pf-m-link'));
+  actions.slice(0, -1).forEach((action, index) => {
+    expect(action.compareDocumentPosition(actions[index + 1])).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+};
+
 describe('AutomlResultsPage', () => {
   afterEach(() => {
     jest.restoreAllMocks();
@@ -632,6 +650,7 @@ describe('AutomlResultsPage', () => {
 
       renderPage();
 
+      expectHeaderActions();
       expect(screen.queryByTestId('automl-results')).not.toBeInTheDocument();
     });
 
@@ -646,6 +665,11 @@ describe('AutomlResultsPage', () => {
 
       renderPage();
 
+      expectHeaderActions();
+      expect(screen.getByTestId('run-notebook-download-button')).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
       expect(screen.queryByTestId('automl-results')).not.toBeInTheDocument();
     });
   });
@@ -843,6 +867,19 @@ describe('AutomlResultsPage', () => {
 
       expect(screen.queryByTestId('stop-run-button')).not.toBeInTheDocument();
       expect(screen.queryByTestId('retry-run-button')).not.toBeInTheDocument();
+    });
+
+    it.each([
+      ['SUCCEEDED', undefined],
+      ['RUNNING', 'stop'],
+      ['PAUSED', 'stop'],
+      ['FAILED', 'retry'],
+      ['CANCELED', 'retry'],
+    ] as const)('should render header actions in order for %s runs', (state, conditionalAction) => {
+      setupWithRunState(state);
+      renderPage();
+
+      expectHeaderActions(conditionalAction);
     });
 
     it('should open StopRunModal when Stop button is clicked', async () => {
@@ -1491,6 +1528,7 @@ describe('AutomlResultsPage', () => {
       mockNestedArtifactLists(run, { notebookContents: [] });
       renderWithRun(run);
 
+      expectHeaderActions();
       await user.hover(screen.getByTestId('run-notebook-download-button'));
 
       expect(await screen.findByText('Artifact unavailable')).toBeInTheDocument();
