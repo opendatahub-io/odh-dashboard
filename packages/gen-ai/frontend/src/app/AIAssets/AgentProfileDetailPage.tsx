@@ -31,7 +31,7 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, InProgressIcon } from '@patternfly/react-icons';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { AgentDeploymentSummary } from '~/app/agentProfile/types';
 import { AIModel } from '~/app/types';
@@ -49,6 +49,7 @@ type DeploymentAccordionItemProps = {
   deployment: AgentDeploymentSummary;
   isLatest: boolean;
   aiModels: AIModel[];
+  initiallyExpanded: boolean;
 };
 
 const formatDeploymentDate = (value: string): string => {
@@ -100,24 +101,21 @@ const DeploymentAccordionItem: React.FC<DeploymentAccordionItemProps> = ({
   deployment,
   isLatest,
   aiModels,
+  initiallyExpanded,
 }) => {
   const { api } = useGenAiAPI();
-  const [isExpanded, setIsExpanded] = React.useState(false);
+  const [isExpanded, setIsExpanded] = React.useState(initiallyExpanded);
   const [details, setDetails] = React.useState<AgentDeploymentSummary | null>(null);
   const [loadingDetails, setLoadingDetails] = React.useState(false);
   const [detailsError, setDetailsError] = React.useState<string | null>(null);
-  const isExpandedRef = React.useRef(false);
+  const isExpandedRef = React.useRef(initiallyExpanded);
   const snapshotRequestInFlightRef = React.useRef(false);
   const contentId = React.useId();
   const toggleId = `agent-deployment-${deployment.name}-toggle`;
   const responseAPICurl = buildResponseAPICurl(deployment.routeUrl);
 
-  const handleToggle = React.useCallback(() => {
-    const willExpand = !isExpandedRef.current;
-    isExpandedRef.current = willExpand;
-    setIsExpanded(willExpand);
-
-    if (!willExpand || details || snapshotRequestInFlightRef.current) {
+  const loadDetails = React.useCallback(() => {
+    if (details || snapshotRequestInFlightRef.current) {
       return;
     }
 
@@ -133,6 +131,32 @@ const DeploymentAccordionItem: React.FC<DeploymentAccordionItemProps> = ({
         setLoadingDetails(false);
       });
   }, [api, deployment.name, details]);
+
+  const handleToggle = React.useCallback(() => {
+    const willExpand = !isExpandedRef.current;
+    isExpandedRef.current = willExpand;
+    setIsExpanded(willExpand);
+
+    if (willExpand) {
+      loadDetails();
+    }
+  }, [loadDetails]);
+
+  React.useEffect(() => {
+    if (!initiallyExpanded) {
+      return;
+    }
+
+    isExpandedRef.current = true;
+    setIsExpanded(true);
+    document.getElementById(toggleId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [initiallyExpanded, toggleId]);
+
+  React.useEffect(() => {
+    if (isExpanded) {
+      loadDetails();
+    }
+  }, [isExpanded, loadDetails]);
 
   const copyResponseAPICurl = React.useCallback(() => {
     void navigator.clipboard.writeText(responseAPICurl).catch(() => {
@@ -238,6 +262,8 @@ const DeploymentAccordionItem: React.FC<DeploymentAccordionItemProps> = ({
 
 const AgentProfileDetailPage: React.FC = () => {
   const { namespace, profileId } = useParams<{ namespace: string; profileId: string }>();
+  const [searchParams] = useSearchParams();
+  const selectedDeploymentName = searchParams.get('deployment');
   const {
     data: profile,
     loaded: profileLoaded,
@@ -356,6 +382,7 @@ const AgentProfileDetailPage: React.FC = () => {
                     deployment={deployment}
                     isLatest={index === 0}
                     aiModels={aiModels}
+                    initiallyExpanded={deployment.name === selectedDeploymentName}
                   />
                 ))}
               </Accordion>

@@ -95,6 +95,20 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
+const renderPageWithDeployment = (deploymentName: string) =>
+  render(
+    <MemoryRouter
+      initialEntries={[`/assets/my-project/agentprofile/123?deployment=${deploymentName}`]}
+    >
+      <Routes>
+        <Route
+          path="/assets/:namespace/agentprofile/:profileId"
+          element={<AgentProfileDetailPage />}
+        />
+      </Routes>
+    </MemoryRouter>,
+  );
+
 describe('AgentProfileDetailPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -208,5 +222,26 @@ describe('AgentProfileDetailPage', () => {
       screen.getByText(/https:\/\/hr-chatbot\.example\.com\/v1\/responses/),
     ).toBeInTheDocument();
     expect(screen.getByText(/"input": "Hello, what can you help me with\?"/)).toBeInTheDocument();
+  });
+
+  it('expands and loads the deployment selected by the deployment query parameter', async () => {
+    const getAgentDeployment = jest.fn().mockResolvedValue({ ...deployment, config: profile });
+    mockUseGenAiAPI.mockReturnValue({
+      api: { getAgentDeployment },
+      apiAvailable: true,
+      refreshAllAPI: jest.fn(),
+    } as unknown as ReturnType<typeof useGenAiAPI>);
+    Element.prototype.scrollIntoView = jest.fn();
+
+    renderPageWithDeployment(deployment.name);
+
+    await waitFor(() => {
+      expect(getAgentDeployment).toHaveBeenCalledWith({ id: deployment.name });
+    });
+    expect(screen.getByText('Deployed snapshot')).toBeInTheDocument();
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
+      behavior: 'smooth',
+      block: 'start',
+    });
   });
 });

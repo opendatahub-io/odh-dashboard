@@ -2,11 +2,23 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchAgentProfiles from '~/app/hooks/useFetchAgentProfiles';
+import useFetchAgentDeployments from '~/app/AIAssets/hooks/useFetchAgentDeployments';
+import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
 import AIAssetsAgentProfilesTab from '~/app/AIAssets/AIAssetsAgentProfilesTab';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 import { AgentProfileSummary } from '~/app/agentProfile/types';
 
 jest.mock('~/app/hooks/useFetchAgentProfiles', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('~/app/AIAssets/hooks/useFetchAgentDeployments', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('~/app/hooks/useGenAiAgentDeploymentEnabled', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
@@ -25,6 +37,8 @@ jest.mock('~/app/AIAssets/components/agentprofiles/AgentProfilesTable', () => ({
 }));
 
 const mockUseFetchAgentProfiles = jest.mocked(useFetchAgentProfiles);
+const mockUseFetchAgentDeployments = jest.mocked(useFetchAgentDeployments);
+const mockUseGenAiAgentDeploymentEnabled = jest.mocked(useGenAiAgentDeploymentEnabled);
 
 const makeProfile = (overrides: Partial<AgentProfileSummary> = {}): AgentProfileSummary => ({
   name: 'agent-profile-test-uuid',
@@ -46,6 +60,13 @@ const renderTab = () =>
 describe('AIAssetsAgentProfilesTab', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseGenAiAgentDeploymentEnabled.mockReturnValue({ enabled: false, loaded: true });
+    mockUseFetchAgentDeployments.mockReturnValue({
+      data: [],
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
   });
 
   it('should render loading state', () => {
@@ -98,5 +119,19 @@ describe('AIAssetsAgentProfilesTab', () => {
     expect(screen.getByTestId('profile-uuid-2')).toBeInTheDocument();
     expect(screen.getByText('Test Agent')).toBeInTheDocument();
     expect(screen.getByText('Second Agent')).toBeInTheDocument();
+  });
+
+  it('should fetch all deployments when deployments are enabled', () => {
+    mockUseGenAiAgentDeploymentEnabled.mockReturnValue({ enabled: true, loaded: true });
+    mockUseFetchAgentProfiles.mockReturnValue({
+      data: [makeProfile()],
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
+
+    renderTab();
+
+    expect(mockUseFetchAgentDeployments).toHaveBeenCalledWith(undefined, { includeAll: true });
   });
 });
