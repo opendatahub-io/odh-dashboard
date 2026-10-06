@@ -1,7 +1,8 @@
 /**
  * Generate Cypress test matrix for CI
  *
- * Automatically splits test directories based on file size:
+ * Discovers test groups based on file size, then packs them into a fixed number
+ * of balanced CI shards:
  * - Files > 15KB get individual test groups
  * - Smaller files are grouped together
  * - Package tests with large combined size are split the same way
@@ -19,6 +20,7 @@ const DEFAULT_ROOT = path.resolve(__dirname, '..');
 const TESTS_DIR = 'packages/cypress/cypress/tests/mocked';
 const SIZE_THRESHOLD = 15 * 1024; // 15KB - files larger than this get split into individual groups
 const GROUP_SIZE_THRESHOLD = 40 * 1024; // 40KB - grouped shards larger than this get split into balanced sub-groups
+const MAX_TEST_SHARDS = 12;
 
 /**
  * Validate that a string is safe for use in shell contexts
@@ -118,7 +120,9 @@ function getTestFiles(root, dir) {
 function balancedSplit(files, numBins) {
   const bins = Array.from({ length: numBins }, () => ({ files: [], totalSize: 0 }));
 
-  const sorted = [...files].toSorted((a, b) => b.size - a.size);
+  const sorted = [...files].toSorted(
+    (a, b) => b.size - a.size || (a.name ?? '').localeCompare(b.name ?? ''),
+  );
   for (const file of sorted) {
     const smallest = bins.reduce((min, bin) => (bin.totalSize < min.totalSize ? bin : min));
     smallest.files.push(file);
@@ -126,6 +130,37 @@ function balancedSplit(files, numBins) {
   }
 
   return bins.filter((bin) => bin.files.length > 0);
+}
+
+/**
+ * Pack discovered groups into a stable, bounded matrix.
+ *
+ * Cypress accepts a comma-separated list of specs, including brace globs, so a
+ * shard can preserve the existing test selection while limiting the number of
+ * GitHub check runs created by the matrix.
+ */
+function createTestShards(groups, maxShards = MAX_TEST_SHARDS) {
+  if (!Number.isInteger(maxShards) || maxShards < 1) {
+    throw new Error('maxShards must be a positive integer');
+  }
+
+  if (groups.length === 0) {
+    return [];
+  }
+
+  const shardCount = Math.min(maxShards, groups.length);
+  const normalizedGroups = groups.map((group) => ({
+    ...group,
+    size: group.size ?? 1,
+  }));
+
+  return balancedSplit(normalizedGroups, shardCount).map((bin, index) => ({
+    name: `shard-${String(index + 1).padStart(2, '0')}`,
+    spec: bin.files.map((group) => group.spec).join(','),
+    size: bin.totalSize,
+    count: bin.files.reduce((total, group) => total + (group.count ?? 1), 0),
+    strategy: 'shard',
+  }));
 }
 
 /**
@@ -410,24 +445,27 @@ function generateTestGroups(root = DEFAULT_ROOT) {
 function main() {
   console.error('Generating Cypress test matrix...\n');
 
-  const allGroups = generateTestGroups();
-  const centralGroups = allGroups.filter((group) => !group.name.startsWith('pkg-'));
-  const packageGroups = allGroups.filter((group) => group.name.startsWith('pkg-'));
+  const discoveredGroups = generateTestGroups();
+  const centralGroups = discoveredGroups.filter((group) => !group.name.startsWith('pkg-'));
+  const packageGroups = discoveredGroups.filter((group) => group.name.startsWith('pkg-'));
 
   console.error(`✓ Found ${centralGroups.length} central test groups`);
   console.error(`✓ Found ${packageGroups.length} package test groups`);
 
+  const allGroups = createTestShards(discoveredGroups);
+
   // Log summary
   console.error(`\n📊 Test Matrix Summary:`);
-  console.error(`   Total groups: ${allGroups.length}`);
+  console.error(`   Discovered groups: ${discoveredGroups.length}`);
+  console.error(`   CI shards: ${allGroups.length} (maximum ${MAX_TEST_SHARDS})`);
 
-  const individual = allGroups.filter(
+  const individual = discoveredGroups.filter(
     (g) => g.strategy === 'individual' || g.strategy === 'package-individual',
   );
-  const grouped = allGroups.filter(
+  const grouped = discoveredGroups.filter(
     (g) => g.strategy === 'grouped' || g.strategy === 'package-grouped',
   );
-  const unsplitPackages = allGroups.filter((g) => g.strategy === 'package');
+  const unsplitPackages = discoveredGroups.filter((g) => g.strategy === 'package');
 
   if (individual.length > 0) {
     console.error(`   Individual files (>${SIZE_THRESHOLD / 1024}KB): ${individual.length}`);
@@ -452,4 +490,11 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { generateCentralTestGroups, generatePackageTestGroups, generateTestGroups };
+module.exports = {
+  MAX_TEST_SHARDS,
+  balancedSplit,
+  createTestShards,
+  generateCentralTestGroups,
+  generatePackageTestGroups,
+  generateTestGroups,
+};

@@ -21,19 +21,17 @@
 # Concurrency: per-role cancel-in-progress groups live in reusable-dispatch.yml
 # stage jobs with -agent- suffix. Roles operate independently (#2452).
 # Do not add workflow-level cancel-in-progress here: job `if` runs after the
-# concurrency group is assigned, so label/review/comment noise would still
-# queue a run, cancel an in-flight review, then skip every job.
+# concurrency group is assigned, so unrelated label noise would still queue a
+# run, cancel an in-flight review, then skip every job. Comment commands are
+# routed through fullsend-commands.yml so ordinary comments create one check
+# instead of every job in this workflow.
 name: fullsend
 
 on:
   issues:
     types: [opened, edited, labeled]
-  issue_comment:
-    types: [created]
   pull_request_target:
-    types: [opened, synchronize, ready_for_review, closed, labeled, unlabeled]
-  pull_request_review:
-    types: [submitted]
+    types: [opened, synchronize, ready_for_review, labeled]
 
 permissions: {}
 
@@ -42,25 +40,20 @@ jobs:
     name: Plan host adapters
     # These jobs run a paid CodeRabbit review and a credentialed Jira fetch, and
     # `dispatch` needs them, so they finish before Route picks a stage. Anything
-    # admitted here that Route then declines is wasted spend. Route only accepts
-    # `labeled` for `ready-for-review`, and only acts on a `changes_requested`
-    # review, so match that: applying `fullsend` itself used to burn a full
-    # review that nothing consumed.
+    # admitted here that Route then declines is wasted spend. Explicit review
+    # reruns are routed by fullsend-commands.yml through the
+    # fullsend-review-requested label; automatic review-event reruns are omitted
+    # because every submitted review added this entire job graph to the PR head.
     if: >-
       (github.event_name == 'pull_request_target'
-       && contains(github.event.pull_request.labels.*.name, 'fullsend')
-       && (github.event.action == 'opened'
-        || github.event.action == 'synchronize'
-        || github.event.action == 'ready_for_review'
+       && ((contains(github.event.pull_request.labels.*.name, 'fullsend')
+         && (github.event.action == 'opened'
+          || github.event.action == 'synchronize'
+          || github.event.action == 'ready_for_review'
+          || (github.event.action == 'labeled'
+           && github.event.label.name == 'ready-for-review')))
         || (github.event.action == 'labeled'
-         && github.event.label.name == 'ready-for-review')))
-      || (github.event_name == 'pull_request_review'
-       && contains(github.event.pull_request.labels.*.name, 'fullsend')
-       && github.event.review.state == 'changes_requested')
-      || (github.event_name == 'issue_comment'
-       && github.event.issue.pull_request
-       && github.event.comment.user.type != 'Bot'
-       && github.event.comment.body == '/fs-review')
+         && github.event.label.name == 'fullsend-review-requested')))
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -85,14 +78,14 @@ jobs:
         id: gate
         env:
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO_FULL_NAME: ${{ github.repository }}
         run: bash .fullsend/scripts/pre-review.sh --adapter-gate
 
       - name: Build adapter matrix from registry
         id: adapters
         env:
-          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
           bash .fullsend/scripts/pre-review.sh --validate-adapters
@@ -140,7 +133,7 @@ jobs:
         id: revisions
         env:
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO_FULL_NAME: ${{ github.repository }}
         run: |
           set -euo pipefail
@@ -187,7 +180,7 @@ jobs:
           FULLSEND_ADAPTER_HEAD_SHA: ${{ steps.revisions.outputs.head_sha }}
           ADAPTER_RUNNER: ${{ matrix.runner }}
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO_FULL_NAME: ${{ github.repository }}
           EVENT_PR_BODY: ${{ github.event.pull_request.body }}
           EVENT_PR_TITLE: ${{ github.event.pull_request.title }}
@@ -213,30 +206,25 @@ jobs:
 
   dispatch:
     needs: [adapter-plan, adapter-context]
-    # Same event filter as adapter-plan so unrelated labels (e.g. approved) or
-    # bot reviews do not burn a Route/dispatch when nothing will act on them.
+    # Same event filter as adapter-plan so unrelated labels (e.g. approved) do
+    # not burn a Route/dispatch when nothing will act on them.
     # always()+!cancelled() still lets Route run when adapters were skipped
     # or failed (or when this run was cancelled).
     if: >-
       always()
       && !cancelled()
-      && (github.event_name != 'pull_request_target' && github.event_name != 'pull_request_review'
+      && (github.event_name != 'pull_request_target'
        || github.event.pull_request.head.ref != 'fullsend/scaffold-install')
       && (
         (github.event_name == 'pull_request_target'
-         && contains(github.event.pull_request.labels.*.name, 'fullsend')
-         && (github.event.action == 'opened'
-          || github.event.action == 'synchronize'
-          || github.event.action == 'ready_for_review'
+         && ((contains(github.event.pull_request.labels.*.name, 'fullsend')
+           && (github.event.action == 'opened'
+            || github.event.action == 'synchronize'
+            || github.event.action == 'ready_for_review'
+            || (github.event.action == 'labeled'
+             && github.event.label.name == 'ready-for-review')))
           || (github.event.action == 'labeled'
-           && github.event.label.name == 'ready-for-review')))
-        || (github.event_name == 'pull_request_review'
-         && contains(github.event.pull_request.labels.*.name, 'fullsend')
-         && github.event.review.state == 'changes_requested')
-        || (github.event_name == 'issue_comment'
-         && github.event.issue.pull_request
-         && github.event.comment.user.type != 'Bot'
-         && github.event.comment.body == '/fs-review')
+           && github.event.label.name == 'fullsend-review-requested')))
       )
     permissions:
       actions: write
@@ -264,64 +252,3 @@ jobs:
       OTEL_EXPORTER_OTLP_HEADERS: ${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }}
       JIRA_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
       JIRA_USER_EMAIL: ${{ secrets.JIRA_USERNAME }}
-
-  stop-fix:
-    # Job-level if: is intentionally coarse — it only screens for the
-    # /fs-fix-stop command on a PR from a non-bot. The authoritative
-    # authorization decision (collaborator permission API + PR-author escape
-    # hatch) is made in the step below, so a maintainer whose author_association
-    # is not MEMBER (e.g. private org membership) is not filtered out (ADR 0054).
-    if: >-
-      github.event_name == 'issue_comment'
-        && github.event.issue.pull_request
-        && github.event.comment.user.type != 'Bot'
-        && github.event.comment.body == '/fs-fix-stop'
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      issues: write
-      pull-requests: write
-    steps:
-      - name: Add fullsend-no-fix label and notify
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.issue.number }}
-          REPO: ${{ github.repository }}
-          COMMENT_USER_LOGIN: ${{ github.event.comment.user.login }}
-          ISSUE_USER_LOGIN: ${{ github.event.issue.user.login }}
-        run: |
-          set -euo pipefail
-          # ADR 0054: authorize via the collaborator permission API
-          # (admin|maintain|write), not author_association — the latter grants
-          # contributor status to anyone with a single merged PR (issue #5421).
-          # Mirrors has_repo_permission() in dispatch.yml; keep the two in sync.
-          # The PR author may always stop the fix agent on their own PR.
-          authorized=false
-          if [[ -n "$COMMENT_USER_LOGIN" && "$COMMENT_USER_LOGIN" == "$ISSUE_USER_LOGIN" ]]; then
-            authorized=true
-          else
-            if api_err=$(mktemp); then
-              if role=$(gh api "repos/$REPO/collaborators/$COMMENT_USER_LOGIN/permission" \
-                --jq '.role_name' 2>"$api_err"); then
-                case "$role" in
-                  admin|maintain|write) authorized=true ;;
-                esac
-              else
-                echo "::warning::Permission API call failed for $COMMENT_USER_LOGIN: $(cat "$api_err")"
-              fi
-              rm -f "$api_err"
-            else
-              echo "::warning::Failed to create temp file for permission check of $COMMENT_USER_LOGIN"
-            fi
-          fi
-          if [[ "$authorized" != "true" ]]; then
-            echo "::notice::User $COMMENT_USER_LOGIN is not authorized to stop the fix agent (requires write access or PR authorship)"
-            exit 0
-          fi
-          gh label create "fullsend-no-fix" --repo "$REPO" \
-            --description "Skip bot-triggered fix agent runs" --color "FBCA04" \
-            --force 2>/dev/null || true
-          gh pr edit "$PR_NUMBER" --repo "$REPO" \
-            --add-label "fullsend-no-fix"
-          gh pr comment "$PR_NUMBER" --repo "$REPO" \
-            --body "Fix agent disabled for this PR. Remove the \`fullsend-no-fix\` label or use \`/fs-fix\` to re-engage."

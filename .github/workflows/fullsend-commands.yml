@@ -1,0 +1,75 @@
+name: Fullsend Commands
+
+# Keep comment handling in a single-job workflow. GitHub creates check runs for
+# skipped jobs too, so putting comment commands in the main Fullsend workflow
+# multiplied every ordinary PR comment into several status contexts.
+on:
+  issue_comment:
+    types: [created]
+
+permissions: {}
+
+jobs:
+  route:
+    if: github.event.issue.pull_request && github.event.comment.user.type != 'Bot'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.issue.number }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Request Fullsend review
+        if: github.event.comment.body == '/fs-review'
+        run: |
+          set -euo pipefail
+          gh label create "fullsend-review-requested" --repo "$REPO" \
+            --description "Request an explicit Fullsend review rerun" --color "1D76DB" \
+            --force 2>/dev/null || true
+          gh pr edit "$PR_NUMBER" --repo "$REPO" \
+            --remove-label "fullsend-review-requested" 2>/dev/null || true
+          gh pr edit "$PR_NUMBER" --repo "$REPO" \
+            --add-label "fullsend-review-requested"
+
+      - name: Stop Fullsend fix agent
+        if: github.event.comment.body == '/fs-fix-stop'
+        env:
+          COMMENT_USER_LOGIN: ${{ github.event.comment.user.login }}
+          ISSUE_USER_LOGIN: ${{ github.event.issue.user.login }}
+        run: |
+          set -euo pipefail
+          # ADR 0054: authorize via the collaborator permission API
+          # (admin|maintain|write), not author_association. The PR author may
+          # always stop the fix agent on their own PR.
+          authorized=false
+          if [[ -n "$COMMENT_USER_LOGIN" && "$COMMENT_USER_LOGIN" == "$ISSUE_USER_LOGIN" ]]; then
+            authorized=true
+          else
+            if api_err=$(mktemp); then
+              if role=$(gh api "repos/$REPO/collaborators/$COMMENT_USER_LOGIN/permission" \
+                --jq '.role_name' 2>"$api_err"); then
+                case "$role" in
+                  admin|maintain|write) authorized=true ;;
+                esac
+              else
+                echo "::warning::Permission API call failed for $COMMENT_USER_LOGIN: $(cat "$api_err")"
+              fi
+              rm -f "$api_err"
+            else
+              echo "::warning::Failed to create temp file for permission check of $COMMENT_USER_LOGIN"
+            fi
+          fi
+          if [[ "$authorized" != "true" ]]; then
+            echo "::notice::User $COMMENT_USER_LOGIN is not authorized to stop the fix agent (requires write access or PR authorship)"
+            exit 0
+          fi
+          gh label create "fullsend-no-fix" --repo "$REPO" \
+            --description "Skip bot-triggered fix agent runs" --color "FBCA04" \
+            --force 2>/dev/null || true
+          gh pr edit "$PR_NUMBER" --repo "$REPO" \
+            --add-label "fullsend-no-fix"
+          gh pr comment "$PR_NUMBER" --repo "$REPO" \
+            --body "Fix agent disabled for this PR. Remove the \`fullsend-no-fix\` label or use \`/fs-fix\` to re-engage."

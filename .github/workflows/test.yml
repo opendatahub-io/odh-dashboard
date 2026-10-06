@@ -1,5 +1,8 @@
 name: Test
-on: [push, pull_request]
+on:
+  pull_request:
+  push:
+    branches: [main]
 
 # Concurrency control: Only run latest tests for each PR/branch
 # Cancel in-progress runs when new commits are pushed

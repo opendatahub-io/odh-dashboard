@@ -2,6 +2,7 @@ name: Validate manifests with Kustomize
 
 on:
   push:
+    branches: [main, 'odh-release*', 'rhoai-release*', '*-release', 'v*-fixes', 'v*-hotfix']
     paths:
       - 'manifests/**'
       - 'distributions/**'
