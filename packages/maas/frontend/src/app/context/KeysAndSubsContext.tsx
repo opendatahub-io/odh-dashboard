@@ -9,6 +9,7 @@ import {
   subscriptionDetailsFromMaaSSubscriptions,
   subscriptionDetailsFromUserSubscriptions,
 } from '~/app/utilities/apiKeys';
+import { useApiKeyConfig } from '~/app/hooks/useApiKeyConfig';
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
 export const KeysAndSubsContext = React.createContext({} as KeysAndSubsContextType);
@@ -23,6 +24,9 @@ type KeysAndSubsContextType = {
   hasAnyApiKeys: boolean; // from a single existence-check search (limit 1)
   hasAnyApiKeysLoaded: boolean;
   hasAnyApiKeysError: Error | undefined;
+  maxExpirationDays: number;
+  apiKeyConfigLoaded: boolean;
+  apiKeyConfigError: Error | undefined;
   /**
    * Subscription existence map for API key active/inactive + row enrichment.
    * Admin: GET /all-subscriptions (K8s). Non-admin: same as `subscriptions` (MaaS API).
@@ -66,6 +70,9 @@ export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ childr
   const [hasAnyApiKeys, hasAnyApiKeysLoaded, hasAnyApiKeysError, refreshHasAnyApiKeys] =
     useFetchState(hasAnyApiKeysCallback, false, { refreshRate: POLL_INTERVAL });
 
+  const [apiKeyConfig, apiKeyConfigLoaded, apiKeyConfigError, refreshApiKeyConfig] =
+    useApiKeyConfig();
+
   // Admin: all K8s subscriptions. Non-admin: MaaS /subscriptions (same scope as create-key list).
   // Resolves admin itself so we never classify inactive against an empty/stale map.
   const statusSubscriptionDetailsCallback = React.useCallback<
@@ -91,11 +98,12 @@ export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ childr
     refreshSubscriptions();
     refreshIsMaasAdmin();
     refreshHasAnyApiKeys();
+    refreshApiKeyConfig();
     refreshStatusSubscriptionDetails();
   }, [
     refreshSubscriptions,
     refreshIsMaasAdmin,
-    refreshHasAnyApiKeys,
+    refreshHasAnyApiKeys, refreshApiKeyConfig,
     refreshStatusSubscriptionDetails,
   ]);
 
@@ -110,6 +118,9 @@ export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ childr
       hasAnyApiKeys,
       hasAnyApiKeysLoaded,
       hasAnyApiKeysError,
+      maxExpirationDays: apiKeyConfig.max_expiration_days,
+      apiKeyConfigLoaded,
+      apiKeyConfigError,
       statusSubscriptionDetails: statusSubscriptionDetailsLoaded
         ? statusSubscriptionDetails
         : undefined,
@@ -127,6 +138,9 @@ export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ childr
       hasAnyApiKeys,
       hasAnyApiKeysLoaded,
       hasAnyApiKeysError,
+      apiKeyConfig.max_expiration_days,
+      apiKeyConfigLoaded,
+      apiKeyConfigError,
       statusSubscriptionDetails,
       statusSubscriptionDetailsLoaded,
       statusSubscriptionDetailsError,

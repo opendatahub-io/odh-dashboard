@@ -98,6 +98,7 @@ paths:
             - 'ogx': Filters for Open GenAI Stack secrets (classification keys: OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL)
             - 'maas': Filters for hosted MaaS secrets (classification keys: MAAS_BASE_URL, MAAS_API_KEY)
             - 'vector-db': Filters for the union of Milvus (MILVUS_URI) and PGVector credential keys
+            - 'database': Filters for database credentials; use provider to narrow to milvus, pgvector, or neo4j
             - Omit for all secrets
 
             Filtering uses case-sensitive key-presence matching. A non-empty connection-type annotation may determine the returned type field after a secret matches; it does not replace the required keys for filtering.
@@ -112,7 +113,18 @@ paths:
               - ogx
               - maas
               - vector-db
+              - database
           example: storage
+        - name: provider
+          in: query
+          required: false
+          description: Database provider filter. Valid only with type=database.
+          schema:
+            type: string
+            enum:
+              - milvus
+              - pgvector
+              - neo4j
       responses:
         '200':
           $ref: '#/components/responses/SecretsResponse'
@@ -137,7 +149,8 @@ paths:
             - 's3': AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT
             - 'ogx': OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL
             - 'maas': MAAS_BASE_URL, MAAS_API_KEY
-            - 'vector-db': MILVUS_URI, or all of PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER, PGVECTOR_PASSWORD
+             - 'vector-db': MILVUS_URI, or all of PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER, PGVECTOR_PASSWORD
+             - 'database': MILVUS_URI, PGVector credentials, or NEO4J_URI
 
         Optional Keys:
         Secrets may contain additional optional keys beyond classification requirements (e.g., AWS_S3_BUCKET, AWS_DEFAULT_REGION for S3 secrets).
@@ -148,6 +161,7 @@ paths:
          - 'ogx': Returns secrets containing both OGX keys
          - 'maas': Returns secrets containing both MaaS keys; empty values and extra keys are allowed
          - 'vector-db': Returns the deduplicated union of the Milvus and PGVector key sets; empty values and mixed or extra keys are allowed
+         - 'database': Returns database secrets; provider can narrow the result to milvus, pgvector, or neo4j
         - No type: Returns all secrets with their detected type classification
   /api/v1/secret/{name}:
     summary: Path used to retrieve credential data from a named secret.
@@ -1131,7 +1145,7 @@ components:
               description: Key-value map of pipeline parameters
               additionalProperties: true
               example:
-                optimization_metric: 'overall_score'
+                optimization_metric: 'custom:overall_score'
                 test_data_secret_name: 'minio-secret'
                 test_data_bucket_name: 'autorag'
             pipeline_root:
@@ -1318,7 +1332,7 @@ components:
         - input_data_bucket_name
         - input_data_keys
         - maas_secret_name
-        - vector_db_secret_name
+        - db_secret_name
         - embedding_models
         - generation_models
       properties:
@@ -1382,16 +1396,21 @@ components:
         optimization_metric:
           type: string
           enum:
-            - overall_score
+            - custom:overall_score
+            - unitxt:faithfulness
+            - unitxt:answer_correctness
+            - ragas:faithfulness
+            - ragas:answer_relevancy
+            - ragas:context_precision
+            - ragas:context_recall
             - faithfulness
-            - answer_correctness
-            - context_correctness
-          description: Metric to optimize (defaults to overall_score)
-        vector_db_secret_name:
+          default: custom:overall_score
+          description: Metric to optimize. Defaults to custom:overall_score. speed permits the Unitxt faithfulness, Unitxt answer correctness, and custom overall score metrics; balanced permits all seven qualified metrics. The legacy bare faithfulness value is normalized according to the selected preset.
+        db_secret_name:
           type: string
           minLength: 1
-          description: Name of the K8s secret for vector database access
-          example: vector-db-secret
+          description: Name of the database Connection selected by the active RAG template
+          example: database-connection
         optimization_max_rag_patterns:
           type: integer
           minimum: 4
@@ -1426,7 +1445,7 @@ components:
           type: object
           description: >-
             Pipeline runtime parameters from pattern.indexing.pipeline_spec.parameters
-            (for example embedding_model_id, input_data_*, maas_secret_name, vector_db_secret_name, chunking fields).
+            (for example embedding_model_id, input_data_*, maas_secret_name, db_secret_name, chunking fields).
             Parameters not declared by the discovered pipeline version are removed by the BFF.
           additionalProperties: true
           minProperties: 1
@@ -1436,7 +1455,7 @@ components:
             input_data_bucket_name: 'my-bucket'
             input_data_key: 'docs/'
             maas_secret_name: 'maas-connection'
-            vector_db_secret_name: 'vector-db-connection'
+            db_secret_name: 'database-connection'
             chunk_size: 512
             chunk_overlap: 50
             chunking_method: 'recursive'
@@ -2027,7 +2046,7 @@ components:
                 pipeline_version_id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
               runtime_config:
                 parameters:
-                  optimization_metric: 'overall_score'
+                  optimization_metric: 'custom:overall_score'
                   test_data_secret_name: 'minio-secret'
                   test_data_bucket_name: 'autorag'
                   test_data_key: 'test_data.json'
@@ -2036,7 +2055,7 @@ components:
                   input_data_keys:
                     - 'documents/'
                   maas_secret_name: 'maas-secret'
-                  vector_db_secret_name: 'vector-db-secret'
+                  db_secret_name: 'database-secret'
                   embedding_models:
                     - 'vllm-embedding/ibm-granite/granite-embedding-english-r2'
                   generation_models:

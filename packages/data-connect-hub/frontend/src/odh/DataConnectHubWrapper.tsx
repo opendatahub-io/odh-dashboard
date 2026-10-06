@@ -7,7 +7,8 @@ import {
   BrowserStorageContextProvider,
 } from 'mod-arch-core';
 import { URL_PREFIX } from '~/app/utilities/const';
-import MainPage from '~/app/pages/MainPage';
+import AppRoutes from '~/app/AppRoutes';
+import ToastNotifications from '~/app/components/ToastNotifications';
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Federated,
@@ -19,7 +20,8 @@ const ModArchWrapper: React.FC = () => (
   <ModularArchContextProvider config={modularArchConfig}>
     <BrowserStorageContextProvider>
       <NotificationContextProvider>
-        <MainPage basePath="/ai-hub/connections" />
+        <AppRoutes />
+        <ToastNotifications />
       </NotificationContextProvider>
     </BrowserStorageContextProvider>
   </ModularArchContextProvider>

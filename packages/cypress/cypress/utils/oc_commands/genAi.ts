@@ -183,7 +183,7 @@ export const waitForModelInLSD = (
 
   const check = (attempt: number): void => {
     cy.exec(
-      `oc exec deploy/lsd-genai-playground -n ${namespace} -- curl -s ${serviceUrl} | jq -e '.data[] | select(.custom_metadata.provider_resource_id == "${modelId}")'`,
+      `token=$(oc whoami -t) && provider_data=$(jq -cn --arg token "$token" '{passthrough_api_key: $token}') && oc exec deploy/lsd-genai-playground -n ${namespace} -- curl -s -H "Authorization: Bearer $token" -H "X-OGX-Provider-Data: $provider_data" ${serviceUrl} | jq -e '.data[] | select(.custom_metadata.provider_resource_id == "${modelId}")'`,
       { failOnNonZeroExit: false, timeout: 30000 },
     ).then((result) => {
       if (result.exitCode === 0 && result.stdout.trim().length > 0) {
@@ -203,6 +203,19 @@ export const waitForModelInLSD = (
 
   check(1);
 };
+
+/**
+ * Wait for the namespace's NemoGuardrails instance, deployment, and service endpoint to become ready.
+ * The custom resource can report Ready before the separately provisioned workload is available.
+ *
+ * @param namespace - Namespace containing the NemoGuardrails custom resource.
+ */
+export const waitForNemoGuardrailsReady = (namespace: string): Cypress.Chainable<Cypress.Exec> =>
+  pollUntilSuccess(
+    `oc get nemoguardrails nemoguardrails -n ${namespace} -o json | jq -e '.status.phase == "Ready"' && oc get deployment nemoguardrails -n ${namespace} -o json | jq -e '.status.availableReplicas != null and .status.availableReplicas == .spec.replicas' && oc get endpoints nemoguardrails -n ${namespace} -o json | jq -e '[.subsets[]?.addresses[]?] | length > 0'`,
+    `NemoGuardrails to be Ready in namespace ${namespace}`,
+    { maxAttempts: 60, pollIntervalMs: 5000 },
+  );
 
 /**
  * Create a prompt via the Gen AI BFF MLflow prompts API.
@@ -534,10 +547,10 @@ export const removeMCPServerConfigMapEntry = (configMapName: string, serverKey: 
  * and adds the Deployment, Service, and Route on top.
  * Idempotent — skips resources that already exist.
  *
- * Returns the in-cluster Service URL with `/mcp` suffix. The Route is still
- * created (for manual debugging) but the Service URL is used for the test
- * to avoid TLS failures on clusters where the ingress CA is not in the
- * BFF's trusted CA bundle.
+ * Returns an endpoint that the Gen AI BFF can resolve in its execution environment:
+ * the external Route when the BFF is running locally, otherwise the in-cluster Service URL.
+ * Keeping the Service URL for non-local runs avoids TLS failures on clusters where the
+ * ingress CA is not in the BFF's trusted CA bundle.
  */
 export const deployMCPServer = (
   mcpNamespace: string,
@@ -576,9 +589,26 @@ export const deployMCPServer = (
     timeout: 130000,
   });
 
-  const url = `http://${name}.${mcpNamespace}.svc.cluster.local:8080/mcp`;
-  cy.log(`MCP server URL: ${url}`);
-  return cy.wrap(url);
+  const serviceUrl = `http://${name}.${mcpNamespace}.svc.cluster.local:8080/mcp`;
+  const isLocalRun = Cypress.config('baseUrl')?.includes('localhost');
+  if (!isLocalRun) {
+    cy.log(`MCP server URL (cluster Service): ${serviceUrl}`);
+    return cy.wrap(serviceUrl);
+  }
+
+  return cy
+    .exec(`oc get route/${name} -n ${mcpNamespace} -o jsonpath='{.spec.host}'`)
+    .then((result) => {
+      const routeHost = result.stdout.trim();
+      if (!routeHost) {
+        throw new Error(`MCP server Route ${mcpNamespace}/${name} has no host`);
+      }
+
+      const routeUrl = `https://${routeHost}/mcp`;
+      return cy
+        .log(`MCP server URL (external Route for local BFF): ${routeUrl}`)
+        .then(() => routeUrl);
+    });
 };
 
 /**

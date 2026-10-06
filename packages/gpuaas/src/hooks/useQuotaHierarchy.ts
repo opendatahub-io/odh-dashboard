@@ -1,5 +1,5 @@
 import * as React from 'react';
-import useFetch, { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
+import useFetch, { FetchStateObject, NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { listClusterQueues } from '@odh-dashboard/internal/api/k8s/clusterQueues';
 import { listCohorts } from '@odh-dashboard/internal/api/k8s/cohorts';
 import { QuotaTreeNode } from '../types';
@@ -11,15 +11,23 @@ export type QuotaHierarchyData = {
 };
 
 const useQuotaHierarchy = (
+  canAccessAdminTabs: boolean,
+  adminAccessLoaded: boolean,
   refreshRate = INFRASTRUCTURE_REFRESH_INTERVAL,
 ): FetchStateObject<QuotaHierarchyData> & { lastRefreshed: Date | null } => {
   const quotaHierarchyState = useFetch<QuotaHierarchyData>(
     React.useCallback(async () => {
+      if (!adminAccessLoaded) {
+        throw new NotReadyError('ClusterQueue access check is still loading');
+      }
+      if (!canAccessAdminTabs) {
+        return { tree: [] };
+      }
       const [clusterQueues, cohorts] = await Promise.all([listClusterQueues(), listCohorts()]);
       return { tree: buildQuotaHierarchyTree(cohorts, clusterQueues) };
-    }, []),
+    }, [adminAccessLoaded, canAccessAdminTabs]),
     { tree: [] },
-    { refreshRate },
+    { refreshRate, initialPromisePurity: true },
   );
 
   const initializedRef = React.useRef(false);

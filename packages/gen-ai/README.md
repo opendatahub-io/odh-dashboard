@@ -178,6 +178,11 @@ make dev-start-no-portforward
 
 These commands will run both services in parallel, making it easier to start your development environment with a single command.
 
+For a real-cluster Playground, set `GATEWAY_DOMAIN` in `.env.local` to use a specific public
+gateway hostname (without `https://`). When it is unset, the BFF discovers the hostname from the
+current `oc` context and prints it at startup. Recreate an existing Playground once after enabling
+gateway discovery so its OGX configuration includes the passthrough provider.
+
 ## Debugging the bff
 
 If you want to be able to set breakpoints in vscode, you must first ensure the following debug config is added to your .vscode/launch.json file.
@@ -329,7 +334,6 @@ The BFF supports the following configuration options:
 - `LOG_LEVEL`: Logging level (default: "INFO" for production, "debug" for development via Makefile)
 - `ALLOWED_ORIGINS`: CORS allowed origins (default: none)
 - `LLAMA_STACK_URL`: **Base URL for the Llama Stack API.** All requests to `/api/llama-stack/*` will be proxied to this URL. Example: `http://llama-stack-service:8080`
-- `MAAS_URL`: **Base URL for the MaaS (Model as a Service) API.** Used for MaaS model and token management. Example: `http://maas-service:8080`
 
 These can be set as environment variables when running the container:
 
@@ -339,7 +343,6 @@ docker run -p 8080:8080 \
   -e LOG_LEVEL=INFO \
   -e ALLOWED_ORIGINS="*" \
   -e LLAMA_STACK_URL=http://llama-stack-service:8080 \
-  -e MAAS_URL=http://maas-service:8080 \
   gen-ai
 ```
 

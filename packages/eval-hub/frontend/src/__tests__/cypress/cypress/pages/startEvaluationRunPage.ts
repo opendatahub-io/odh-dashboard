@@ -109,6 +109,18 @@ class StartEvaluationRunPage {
     return cy.findByTestId('additional-args-upload');
   }
 
+  findHardwareProfileToggle() {
+    return cy.findByTestId('hardware-profile-toggle');
+  }
+
+  findHardwareProfileOption(profileName: string) {
+    return cy.findByTestId(`hardware-profile-option-${profileName}`);
+  }
+
+  findHardwareProfileHelperText() {
+    return cy.findByTestId('hardware-profile-helper-text');
+  }
+
   findSubmitButton() {
     return cy.findByTestId('start-evaluation-submit');
   }

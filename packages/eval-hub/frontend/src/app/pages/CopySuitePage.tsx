@@ -12,6 +12,7 @@ import {
   EmptyStateFooter,
   PageSection,
   Spinner,
+  Title,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -180,6 +181,14 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
   const curatedSuitePage = sourceEvaluationTarget
     ? CURATED_SUITE_PAGE_CONFIG[sourceEvaluationTarget]
     : undefined;
+  const isBenchmarksStep = currentStep === 'benchmarks';
+  const showPageHeader = currentStep !== 'selectBenchmarks';
+  const pageTitle = isBenchmarksStep ? 'Benchmarks' : isCreateMode ? 'Create suite' : 'Copy suite';
+  const pageDescription = isBenchmarksStep
+    ? 'Choose the primary metric, number of samples, random seed, threshold, and weight used to calculate the result for each benchmark.'
+    : isCreateMode
+      ? 'Create a benchmark suite by choosing its metadata, benchmarks, thresholds, and metrics.'
+      : 'Customize benchmarks, thresholds, and metrics before adding this suite to your dashboard.';
 
   const breadcrumbItems: React.ReactElement[] = [
     <BreadcrumbItem
@@ -291,18 +300,25 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
             className="evalhub-copy-suite-page__editor"
             data-testid="copy-suite-editor"
           >
-            <Content
-              component="h1"
-              data-testid="app-page-title"
-              className="pf-v6-u-mt-0 pf-v6-u-mb-0"
-            >
-              {isCreateMode ? 'Create suite' : 'Copy suite'}
-            </Content>
-            <Content component="p" data-testid="copy-suite-description">
-              {isCreateMode
-                ? 'Create a benchmark suite by choosing its metadata, benchmarks, thresholds, and metrics.'
-                : 'Customize benchmarks, thresholds, and metrics before adding this suite to your dashboard.'}
-            </Content>
+            {showPageHeader ? (
+              <>
+                <Title
+                  headingLevel="h1"
+                  size="2xl"
+                  data-testid="app-page-title"
+                  className="pf-v6-u-mt-0 pf-v6-u-mb-0"
+                >
+                  {pageTitle}
+                </Title>
+                <Content
+                  component="p"
+                  data-testid="copy-suite-description"
+                  className={isBenchmarksStep ? 'pf-v6-u-mb-xl' : undefined}
+                >
+                  {pageDescription}
+                </Content>
+              </>
+            ) : null}
 
             {currentStep === 'settings' ? (
               <CopySuiteSettingsStep

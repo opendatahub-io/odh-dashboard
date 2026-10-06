@@ -7,13 +7,7 @@ import (
 )
 
 const (
-	// AuthMethodInternal uses the credentials of the running backend.
-	// If running inside the cluster, it uses the pod's service account.
-	// If running locally (e.g. for development), it uses the current user's kubeconfig context.
-	// This is the default authentication method.
-	AuthMethodInternal = "internal"
-
-	// AuthMethodUser uses a user-provided Bearer token for authentication.
+	// AuthMethodUser uses the authenticated user's OpenShift bearer token for authentication.
 	AuthMethodUser = "user_token"
 
 	// DefaultAuthTokenHeader is the standard header for Bearer token auth.
@@ -70,16 +64,16 @@ func (d DeploymentMode) IsFederatedMode() bool {
 }
 
 type EnvConfig struct {
-	Port               int
-	MockK8Client       bool
-	MockHTTPClient     bool
-	DevMode            bool
-	DeploymentMode     DeploymentMode
-	DevModeClientPort  int
-	DevModeCatalogPort int
-	StaticAssetsDir    string
-	LogLevel           slog.Level
-	AllowedOrigins     []string
+	Port                int
+	MockK8Client        bool
+	MockHTTPClient      bool
+	DevMode             bool
+	DeploymentMode      DeploymentMode
+	DevModeClientPort   int
+	DevModeRegistryPort int
+	StaticAssetsDir     string
+	LogLevel            slog.Level
+	AllowedOrigins      []string
 	// BundlePaths is a list of filesystem paths to PEM-encoded CA bundle files.
 	// If provided, the application will attempt to load these files and add the
 	// certificates to the HTTP client's Root CAs for outbound TLS connections.
@@ -88,7 +82,7 @@ type EnvConfig struct {
 
 	// ─── AUTH ───────────────────────────────────────────────────
 	// Specifies the authentication method used by the server.
-	// Valid values: "internal" or "user_token"
+	// The only supported value is "user_token".
 	AuthMethod string
 
 	// Header used to extract the authentication token.
@@ -112,7 +106,7 @@ type EnvConfig struct {
 
 	// ─── DATA REGISTRY API ────────────────────────────────────────
 	// DataRegistryAPIURL is the base URL of the upstream Data Registry API
-	// (Iceberg REST Catalog-compatible). When set via flag/env, it takes precedence over
+	// (Iceberg REST-compatible). When set via flag/env, it takes precedence over
 	// the ConfigMap lookup below — primarily useful for local dev and tests.
 	DataRegistryAPIURL string
 

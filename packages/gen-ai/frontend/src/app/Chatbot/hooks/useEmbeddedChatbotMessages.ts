@@ -2,7 +2,6 @@ import * as React from 'react';
 import { MessageProps } from '@patternfly/chatbot';
 import type { ResponsesTemplate } from '~/types/embeddable-chatbot';
 import userAvatar from '~/app/bgimages/user_avatar.svg';
-import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { getId } from '~/app/utilities/utils';
 import { ApiError, isApiError, ResponseMetrics } from '~/app/types';
 import { createPassthroughResponse } from '~/app/services/llamaStackService';
@@ -208,7 +207,6 @@ const useEmbeddedChatbotMessages = ({
           role: 'bot',
           content: '',
           name: modelDisplayName,
-          avatar: botAvatar,
           isLoading: true,
           timestamp: new Date().toLocaleString(),
         };

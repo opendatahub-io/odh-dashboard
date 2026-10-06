@@ -16,6 +16,10 @@ import {
   AgentProfileListResponse,
   AgentProfileUpdateRequest,
   AgentProfileUpdateResponse,
+  AgentDeploymentCreateRequest,
+  AgentDeploymentCreateResponse,
+  AgentDeploymentListResponse,
+  AgentDeploymentSummary,
 } from '~/app/agentProfile/types';
 import {
   ApiErrorClass,
@@ -30,6 +34,7 @@ import {
   FileSearchResult,
   FileUploadJobResponse,
   FileUploadStatusResponse,
+  DocumentUploadResponse,
   isApiError,
   LlamaModel,
   LlamaStackDistributionModel,
@@ -1055,6 +1060,14 @@ export const uploadSource = (
     baseQueryParams,
   );
 
+// Synchronous document upload for Playground attachments. OGX extracts the
+// text before this call resolves, so callers can include it in a Responses request.
+export const uploadDocument = (
+  hostPath: string,
+  baseQueryParams: Record<string, unknown> = {},
+): ModArchRestCREATE<DocumentUploadResponse, FormData> =>
+  modArchRestCREATE<DocumentUploadResponse, FormData>('/lsd/documents')(hostPath, baseQueryParams);
+
 // File upload status polling
 export const getFileUploadStatus = modArchRestGET<FileUploadStatusResponse>(
   '/lsd/files/upload/status',
@@ -1442,4 +1455,54 @@ export const getAgentProfile =
       }
       throw new Error('Invalid response format');
     });
+  };
+
+export const listAgentDeployments =
+  modArchRestGET<AgentDeploymentListResponse>('/agent-deployments');
+
+export const createAgentDeployment = modArchRestCREATE<
+  AgentDeploymentCreateResponse,
+  AgentDeploymentCreateRequest
+>('/agent-deployments');
+
+export const getAgentDeployment =
+  (
+    hostPath: string,
+    baseQueryParams: Record<string, unknown> = {},
+  ): ModArchRestGET<AgentDeploymentSummary> =>
+  (queryParams: Record<string, unknown> = {}, opts: APIOptions = {}) => {
+    const { id, ...restParams } = queryParams;
+    if (!id || typeof id !== 'string') {
+      return Promise.reject(new Error('id parameter is required'));
+    }
+    const path = `/agent-deployments/${encodeURIComponent(id)}`;
+    return handleRestFailures(
+      restGET<AgentDeploymentSummary>(hostPath, path, { ...baseQueryParams, ...restParams }, opts),
+    ).then((response) => {
+      if (isModArchResponse<AgentDeploymentSummary>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
+export const deleteAgentDeployment =
+  (
+    hostPath: string,
+    baseQueryParams: Record<string, unknown> = {},
+  ): ModArchRestDELETE<void, { id: string }> =>
+  ({ id }: { id: string }, queryParams: Record<string, unknown> = {}, opts: APIOptions = {}) => {
+    if (!id || typeof id !== 'string') {
+      return Promise.reject(new Error('id parameter is required'));
+    }
+    const path = `/agent-deployments/${encodeURIComponent(id)}`;
+    return handleRestFailures(
+      restDELETE<void>(
+        hostPath,
+        path,
+        {},
+        { ...baseQueryParams, ...queryParams },
+        { ...opts, parseJSON: false },
+      ),
+    ).then(() => undefined);
   };

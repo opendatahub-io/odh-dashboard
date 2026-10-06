@@ -15,6 +15,7 @@
     "./hooks/useBrowserStorage": "./src/hooks/useBrowserStorage.tsx",
     "./hooks/useFetch": "./src/hooks/useFetch.ts",
     "./hooks/useFetchState": "./src/hooks/useFetchState.ts",
+    "./hooks/useK8sWatchResourceList": "./src/hooks/useK8sWatchResourceList.ts",
     "./design": "./src/design/index.ts",
     "./design/vars.scss": "./src/design/vars.scss",
     "./design/icons": "./src/images/icons/index.ts",
@@ -113,6 +114,7 @@
   "dependencies": {
     "@odh-dashboard/foundation": "workspace:*",
     "@odh-dashboard/k8s-core": "workspace:*",
+    "@openshift/dynamic-plugin-sdk-utils": "^5.0.0",
     "classnames": "^2.5.1",
     "lodash-es": "^4.18.1",
     "axios": "^1"
@@ -126,11 +128,11 @@
     "@odh-dashboard/plugin-core": "workspace:*"
   },
   "peerDependencies": {
-    "@patternfly/react-core": "^6",
-    "@patternfly/react-icons": "^6",
-    "@patternfly/react-styles": "^6",
-    "@patternfly/react-table": "^6",
-    "@patternfly/react-tokens": "^6",
+    "@patternfly/react-core": "~6.6.1",
+    "@patternfly/react-icons": "~6.6.1",
+    "@patternfly/react-styles": "~6.6.1",
+    "@patternfly/react-table": "~6.6.1",
+    "@patternfly/react-tokens": "~6.6.1",
     "react": "^18",
     "react-router-dom": "^7.18.3",
     "zod": "^3",

@@ -589,7 +589,16 @@ export type ModelRegistryTestData = {
   modelFormatTensorflow: string;
   formatVersion3_0: string;
   uriVersion2: string;
+  /** Standard KServe (Knative/Serverless) — status.deploymentMode is 'Standard'. */
   deploymentType: string;
+  /**
+   * KServe RawDeployment — status.deploymentMode is 'RawDeployment'.
+   * Terminal load failures are signalled by:
+   *   targetModelState === 'FailedToLoad'
+   *   transitionStatus === 'BlockedByFailedLoad'
+   *   modelStatus.lastFailureInfo.reason / .message
+   */
+  rawDeploymentType: string;
 
   newNameSuffix: string;
   newDescription: string;
@@ -845,6 +854,8 @@ export type EvalHubTestData = {
 export type EvalHubBenchmarkSuiteTestData = Omit<EvalHubTestData, 'benchmarkCardTitle'> & {
   /** Base name for the tenant suite created by this spec. */
   suiteName: string;
+  /** Category IDs assigned to suites created from this fixture. */
+  suiteDomains: string[];
   /** Provider ID used to disambiguate benchmark IDs in the catalog. */
   benchmarkProviderId: string;
   /** LM Evaluation Harness benchmarks added to each tenant suite. */
@@ -907,6 +918,39 @@ export type ModelAsAServiceTestData = {
   kind: string;
 };
 
+export type ExternalModelTestData = {
+  kind: string;
+  projectResourceName: string;
+  existingSecretName: string;
+  createSecretName: string;
+  externalProviderName: string;
+  providerDescription: string;
+  providerReferenceName: string;
+  externalModelName: string;
+  externalModelDescription: string;
+  providerType: string;
+  providerEndpoint: string;
+  providerAuthType: string;
+  providerPhase: string;
+  providerConfigPair: {
+    key: string;
+    value: string;
+  };
+  targetModel: string;
+  weight: number;
+  weightPercentage: number;
+  providerRef: {
+    displayName: string;
+    providerType: string;
+    endpoint: string;
+    newSecret: {
+      name: string;
+      apiKey: string;
+    };
+  };
+  pathPlaceholderKey: string;
+};
+
 export enum ApiKeyStatus {
   active = 'Active',
   expired = 'Expired',
@@ -923,6 +967,16 @@ export enum PhaseStatus {
   UNAVAILABLE = 'Unavailable',
   UNHEALTHY = 'Unhealthy',
   UNKNOWN = 'Unknown',
+}
+
+export enum APIFormat {
+  OPENAI_CHAT = 'OpenAI Chat',
+  MESSAGES = 'Anthropic Messages',
+}
+
+export enum Path {
+  OPENAI_CHAT = '/v1/chat/completions',
+  MESSAGES = '/v1/messages',
 }
 
 export type TrainJobTestData = {
@@ -1043,15 +1097,6 @@ export type AutoragTestData = {
   awsBucket: 'BUCKET_2' | 'BUCKET_3';
   maxRagPatterns: number;
   optimizationMetric?: string;
-};
-
-export type AgentRuntimesTestData = {
-  pageTitle: string;
-  projectResourceName: string;
-  filterSearchTerm: string;
-  filterOptionStatus: string;
-  statusPending: string;
-  statusReady: string;
 };
 
 export type MlflowIrisRunData = {

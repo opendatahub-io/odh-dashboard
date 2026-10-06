@@ -73,7 +73,7 @@ func TestDeployMaaSConsumerPortalFederationConfigMap_ManagedCreatesConfigMap(t *
 	scheme := testScheme(t)
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 	reconciler := &ctrlpkg.DashboardReconciler{Client: client, Scheme: scheme, Platform: cluster.SelfManagedRhoai, ApplicationsNamespace: testNamespace}
-	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"}}}
+	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"}}}
 	require.NoError(t, reconciler.DeployMaaSConsumerPortalFederationConfigMap(context.Background(), dashboard, allDeployedStatuses()))
 	configMap := &corev1.ConfigMap{}
 	require.NoError(t, client.Get(context.Background(), types.NamespacedName{Name: "maas-consumer-portal-federation-config", Namespace: testNamespace}, configMap))

@@ -2,6 +2,9 @@ import * as React from 'react';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
+import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
+import { ClusterQueueModel } from '@odh-dashboard/k8s-core/api/models';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import {
   Button,
@@ -27,9 +30,12 @@ import {
   INFRASTRUCTURE_PAGE_DESCRIPTION,
   INFRASTRUCTURE_SECTIONS,
   INFRASTRUCTURE_TABS,
+  getDefaultInfrastructureTab,
+  getVisibleInfrastructureTabs,
   type InfrastructureTabId,
 } from '../const';
 import InfrastructureKueueHelpLink from '../components/InfrastructureKueueHelpLink';
+import InfrastructureWorkloadsSection from '../components/InfrastructureWorkloadsSection';
 import {
   GPUAAS_EVENTS,
   QUOTA_USAGE_INTERACTION_TYPES,
@@ -129,28 +135,39 @@ const renderInfrastructureSection = (
 );
 
 const InfrastructurePage: React.FC = () => {
-  const metrics = useInfrastructureMetrics();
+  const [canAccessAdminTabs, adminAccessLoaded] = useAccessAllowed(
+    verbModelAccess('list', ClusterQueueModel),
+  );
+  const adminTabsEnabled = adminAccessLoaded && canAccessAdminTabs;
+  const metrics = useInfrastructureMetrics(adminTabsEnabled);
   const { refresh: refreshMetrics } = metrics;
-  const quotaHierarchy = useQuotaHierarchy();
+  const quotaHierarchy = useQuotaHierarchy(canAccessAdminTabs, adminAccessLoaded);
   const { refresh: refreshQuotaHierarchy } = quotaHierarchy;
   const borrowingLendingRefreshRef = React.useRef<(() => void) | undefined>(undefined);
   const quotaWorkloadRefreshRef = React.useRef<(() => Promise<unknown>) | undefined>(undefined);
   const detailRefreshRef = React.useRef<() => Promise<unknown[]>>(() => Promise.resolve([]));
   const isKueueAvailable = useIsAreaAvailable(SupportedArea.KUEUE).status;
+  const visibleTabs = getVisibleInfrastructureTabs(adminTabsEnabled);
   const hasTrackedPageView = React.useRef(false);
   const hasTrackedQuotaUsageView = React.useRef(false);
   const quotaUsageTabLoadedAt = React.useRef(Date.now());
-  const [activeTabKey, setActiveTabKey] = React.useState<InfrastructureTabId>(
-    INFRASTRUCTURE_TABS[0].id,
-  );
+  const [activeTabKey, setActiveTabKey] = React.useState<InfrastructureTabId>();
   const [tabRefreshKey, setTabRefreshKey] = React.useState(0);
   const [currentTime, setCurrentTime] = React.useState(() => Date.now());
   const utilizationContentRef = React.useRef<HTMLElement>(null);
   const quotaUsageContentRef = React.useRef<HTMLElement>(null);
+  const workloadsContentRef = React.useRef<HTMLElement>(null);
   const tabContentRefs: Record<InfrastructureTabId, React.RefObject<HTMLElement>> = {
     utilization: utilizationContentRef,
     'quota-usage': quotaUsageContentRef,
+    workloads: workloadsContentRef,
   };
+
+  React.useEffect(() => {
+    if (adminAccessLoaded && !visibleTabs.some((tab) => tab.id === activeTabKey)) {
+      setActiveTabKey(getDefaultInfrastructureTab(visibleTabs));
+    }
+  }, [activeTabKey, adminAccessLoaded, visibleTabs]);
 
   React.useEffect(() => {
     const interval = window.setInterval(() => setCurrentTime(Date.now()), 20_000);
@@ -158,7 +175,11 @@ const InfrastructurePage: React.FC = () => {
   }, []);
 
   React.useEffect(() => {
-    if (metrics.loaded && !hasTrackedPageView.current) {
+    if (
+      adminAccessLoaded &&
+      (!canAccessAdminTabs || metrics.loaded) &&
+      !hasTrackedPageView.current
+    ) {
       hasTrackedPageView.current = true;
       const totalAccelerators = metrics.accelerators?.total;
       const acceleratorsInUse = metrics.accelerators?.inUse;
@@ -178,6 +199,8 @@ const InfrastructurePage: React.FC = () => {
       fireMiscTrackingEvent(GPUAAS_EVENTS.PAGE_VIEWED, props);
     }
   }, [
+    adminAccessLoaded,
+    canAccessAdminTabs,
     metrics.loaded,
     metrics.accelerators,
     metrics.computeUtilization,
@@ -369,6 +392,9 @@ const InfrastructurePage: React.FC = () => {
   };
 
   const renderTabPanel = (tabId: InfrastructureTabId): React.ReactNode => {
+    if (tabId === 'workloads') {
+      return <InfrastructureWorkloadsSection />;
+    }
     const tabInfo = INFRASTRUCTURE_TABS.find((entry) => entry.id === tabId);
     if (tabInfo?.layout === 'viewport') {
       return renderQuotaUsageTab();
@@ -390,7 +416,12 @@ const InfrastructurePage: React.FC = () => {
   };
 
   return (
-    <ApplicationsPage loaded empty={false} noHeader provideChildrenPadding={false}>
+    <ApplicationsPage
+      loaded={adminAccessLoaded}
+      empty={false}
+      noHeader
+      provideChildrenPadding={false}
+    >
       <PageGroup isFilled={false} stickyOnBreakpoint={{ default: 'top' }}>
         <PageSection hasBodyWrapper={false} id="infrastructure-hub-header" className="pf-v6-u-pb-0">
           <Stack hasGutter>
@@ -409,7 +440,7 @@ const InfrastructurePage: React.FC = () => {
                 aria-label="Infrastructure page tabs"
                 data-testid="infrastructure-tabs"
               >
-                {INFRASTRUCTURE_TABS.map((tabInfo) => {
+                {visibleTabs.map((tabInfo) => {
                   return (
                     <Tab
                       key={tabInfo.id}
@@ -436,7 +467,7 @@ const InfrastructurePage: React.FC = () => {
         className="pf-v6-u-pt-0"
         id="infrastructure-hub-content"
       >
-        {INFRASTRUCTURE_TABS.map((tabInfo) => (
+        {visibleTabs.map((tabInfo) => (
           <TabContent
             className={
               tabInfo.layout === 'viewport'

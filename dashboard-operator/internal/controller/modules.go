@@ -134,6 +134,18 @@ var moduleRegistry = map[string]ModuleDefinition{
 		RequiredDSCComponents: []string{"feastoperator"},
 		ProxyPaths:            []proxyRoute{{Path: "/data-registry/api", PathRewrite: "/api"}},
 	},
+	"dataConnectHub": {
+		Name:          "dataConnectHub",
+		ContainerName: "data-connect-hub-ui",
+		Port:          9243,
+		ImageEnvVar:   "RELATED_IMAGE_ODH_MOD_ARCH_DATA_CONNECT_HUB_IMAGE",
+		ManifestSlug:  "data-connect-hub",
+		TLS:           true,
+		ProxyPaths: []proxyRoute{
+			{Path: "/data-connect-hub/api", PathRewrite: "/api"},
+			{Path: "/data-connect-hub/healthcheck", PathRewrite: "/healthcheck"},
+		},
+	},
 }
 
 // resolveModuleStatuses determines the status of each module based on
@@ -149,8 +161,8 @@ func resolveModuleStatuses(spec *v1alpha1.DashboardSpec) map[string]v1alpha1.Mod
 	result := make(map[string]v1alpha1.ModuleStatus, len(moduleRegistry))
 
 	coreRequiresModules := spec.ManagementState != "Removed"
-	maasConsumerPortalRequiresModules := spec.MaaSConsumerPortal != nil &&
-		spec.MaaSConsumerPortal.ManagementState == "Managed"
+	portal := effectiveMaaSPortal(*spec)
+	maasConsumerPortalRequiresModules := portal != nil && portal.ManagementState == "Managed"
 
 	// Pass 1: aggregate demand + DSC component gate + explicit CR overrides
 	for name, mod := range moduleRegistry {

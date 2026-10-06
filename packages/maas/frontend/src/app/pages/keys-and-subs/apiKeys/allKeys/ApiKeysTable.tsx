@@ -82,9 +82,14 @@ const ApiKeysTable: React.FC<ApiKeysTableProps> = ({
 
   return (
     <>
-      <Toolbar inset={{ default: 'insetNone' }} className="pf-v6-u-w-100">
+      <Toolbar
+        inset={{ default: 'insetNone' }}
+        className="pf-v6-u-w-100"
+        data-testid="api-keys-toolbar"
+        clearAllFilters={onClearFilters}
+      >
         <ToolbarContent>
-          {toolbarContent && <ToolbarItem>{toolbarContent}</ToolbarItem>}
+          {toolbarContent}
           <ToolbarItem
             variant="pagination"
             align={{ default: 'alignEnd' }}
