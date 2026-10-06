@@ -1,6 +1,12 @@
 import { checkInferenceServiceState } from './modelServing';
 import { createCleanHardwareProfile } from './hardwareProfiles';
-import { applyOpenShiftYaml, patchOpenShiftResource, pollUntilSuccess } from './baseCommands';
+import {
+  applyOpenShiftYaml,
+  patchOpenShiftResource,
+  pollUntilSuccess,
+  waitForResource,
+  type PortForwardHandle,
+} from './baseCommands';
 import { setupMcpServerDeployResources, cleanupMcpServerDeployResources } from './mcpServerDeploy';
 import { replacePlaceholdersInYaml } from '../yaml_files';
 import type { GenAiTestData } from '../../types';
@@ -58,6 +64,81 @@ export const deployGenAiModel = (projectName: string, testData: GenAiTestData): 
   cy.step('Wait for InferenceService to be Ready');
   checkInferenceServiceState(inferenceServiceName, projectName, { checkReady: true });
 };
+
+/**
+ * Deploy the E2E Whisper Tiny transcription model and its CPU vLLM runtime.
+ * Wait for KServe to create the predictor Service named in its status URL.
+ */
+export const deployWhisperTinyModel = (projectName: string): void => {
+  cy.step('Apply Whisper Tiny vLLM ServingRuntime to project namespace');
+  cy.fixture('resources/modelServing/singleModel/whisper_tiny_runtime.yaml', 'utf8').then(
+    (runtimeYaml: string) => {
+      const runtimeTmpFile = `/tmp/whisper-tiny-runtime-${Date.now()}.yaml`;
+      cy.writeFile(runtimeTmpFile, runtimeYaml);
+      cy.exec(`oc apply -n ${projectName} -f ${runtimeTmpFile}`).then((result) => {
+        if (result.exitCode !== 0) {
+          throw new Error(`Whisper ServingRuntime apply failed: ${result.stderr}`);
+        }
+      });
+    },
+  );
+
+  cy.step('Apply Whisper Tiny InferenceService to project namespace');
+  cy.fixture('resources/genAi/whisper-tiny-inference-service.yaml', 'utf8').then(
+    (inferenceServiceYaml: string) => {
+      const inferenceServiceTmpFile = `/tmp/whisper-tiny-isvc-${Date.now()}.yaml`;
+      cy.writeFile(inferenceServiceTmpFile, inferenceServiceYaml);
+      cy.exec(`oc apply -n ${projectName} -f ${inferenceServiceTmpFile}`).then((result) => {
+        if (result.exitCode !== 0) {
+          throw new Error(`Whisper InferenceService apply failed: ${result.stderr}`);
+        }
+      });
+    },
+  );
+
+  cy.step('Wait for Whisper Tiny InferenceService to be ready');
+  checkInferenceServiceState('whisper-tiny', projectName, { checkReady: true });
+
+  cy.step('Wait for KServe to create the Whisper predictor Service');
+  waitForResource('service', 'whisper-tiny-predictor', projectName);
+};
+
+/** Verify the local ASR port-forward reaches the expected predictor before uploading audio. */
+export const verifyWhisperTinyPortForward = (handle: PortForwardHandle): void => {
+  expect(handle.pid, 'Whisper port-forward PID').to.match(/^\d+$/);
+  cy.exec(`kill -0 ${handle.pid}`, { failOnNonZeroExit: false }).then((result) => {
+    expect(result.exitCode, `Whisper port-forward exited; see ${handle.logFile}`).to.equal(0);
+  });
+  cy.request('http://127.0.0.1:8790/v1/models').then((response) => {
+    const models = response.body as { data?: { id?: string }[] };
+    const modelIds = (models.data ?? []).map((model) => model.id ?? '');
+    expect(modelIds, `Models on local ASR port: ${modelIds.join(', ')}`).to.include('whisper-tiny');
+  });
+};
+
+/**
+ * Collect the KServe resources that determine whether the predictor hostname
+ * can resolve. Used only to enrich a failed ASR request with cluster evidence.
+ */
+export const getWhisperTinyPredictorDiagnostics = (
+  projectName: string,
+): Cypress.Chainable<string> =>
+  cy
+    .exec(`oc get service whisper-tiny-predictor -n ${projectName} -o json`, {
+      failOnNonZeroExit: false,
+    })
+    .then((serviceResult) =>
+      cy
+        .exec(
+          `oc get endpointslice -n ${projectName} -l kubernetes.io/service-name=whisper-tiny-predictor -o json`,
+          { failOnNonZeroExit: false },
+        )
+        .then(
+          (endpointSliceResult) =>
+            `predictor Service: ${serviceResult.stdout || serviceResult.stderr}\n` +
+            `predictor EndpointSlices: ${endpointSliceResult.stdout || endpointSliceResult.stderr}`,
+        ),
+    );
 
 export const getExternalProviders = (): Cypress.Chainable<boolean> => {
   const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
