@@ -103,7 +103,8 @@ export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ childr
   }, [
     refreshSubscriptions,
     refreshIsMaasAdmin,
-    refreshHasAnyApiKeys, refreshApiKeyConfig,
+    refreshHasAnyApiKeys,
+    refreshApiKeyConfig,
     refreshStatusSubscriptionDetails,
   ]);
 
