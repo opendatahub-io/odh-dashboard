@@ -184,31 +184,44 @@ func (r *ExternalModelsRepository) DeleteExternalModel(
 	return client.DeleteExternalModel(ctx, identity, namespace, modelID)
 }
 
-// isInternalHost reports whether a URL targets a host that is known to be internal
-// (localhost or a Kubernetes in-cluster service). These legitimately resolve to private
-// IPs, so SSRF validation is skipped for them. All other URLs are subject to SSRF checks.
-func isInternalHost(baseURL string) bool {
+// isInternalHost reports whether a URL targets a host that is known to be internal and
+// legitimately resolves to a private IP, so SSRF validation may be skipped for it. Trusted
+// hosts are localhost/loopback and Kubernetes in-cluster services that live in the caller's
+// AUTHORIZED namespace (allowedNamespace). In-cluster services in OTHER namespaces are NOT
+// trusted: otherwise the verify route could be abused to reach arbitrary in-cluster services
+// across the cluster (CWE-918 SSRF) even though the caller is only authorized for their own
+// namespace. All other URLs are subject to the client's SSRF checks.
+func isInternalHost(baseURL, allowedNamespace string) bool {
 	u, err := url.Parse(baseURL)
 	if err != nil {
 		return false
 	}
 	h := u.Hostname()
-	// TODO: respect OdhDashboardConfig feature flags when available to be fetched from the BFF
-	// Require a fully-qualified Kubernetes service DNS name: <service>.<namespace>.svc.cluster.local
-	// (5 dot-separated labels minimum), preventing overly-broad matches like "evil.cluster.local".
-	isK8sService := strings.HasSuffix(h, ".svc.cluster.local") && len(strings.Split(h, ".")) >= 5
-	ip := net.ParseIP(h)
-	return h == "localhost" ||
-		(ip != nil && ip.IsLoopback()) ||
-		isK8sService
+	if h == "localhost" {
+		return true
+	}
+	if ip := net.ParseIP(h); ip != nil && ip.IsLoopback() {
+		return true
+	}
+	// Kubernetes in-cluster service DNS: <service>.<namespace>.svc.cluster.local
+	// (5 dot-separated labels minimum, preventing overly-broad matches like "evil.cluster.local").
+	// Only trust services whose namespace segment matches the caller's authorized namespace.
+	// TODO: respect OdhDashboardConfig feature flags when available to be fetched from the BFF.
+	if strings.HasSuffix(h, ".svc.cluster.local") {
+		labels := strings.Split(h, ".")
+		if len(labels) >= 5 && allowedNamespace != "" && labels[1] == allowedNamespace {
+			return true
+		}
+	}
+	return false
 }
 
 // internalHostRootCAs returns the provided CA pool only when the URL targets an internal
 // host. For external hosts it returns nil so the client falls back to the system CA pool,
 // which contains the public root CAs needed to verify certificates from services like
 // api.openai.com. Passing a cluster-only CA pool to an external host would break TLS.
-func internalHostRootCAs(baseURL string, rootCAs *x509.CertPool) *x509.CertPool {
-	if isInternalHost(baseURL) {
+func internalHostRootCAs(baseURL, allowedNamespace string, rootCAs *x509.CertPool) *x509.CertPool {
+	if isInternalHost(baseURL, allowedNamespace) {
 		return rootCAs
 	}
 	return nil
@@ -217,25 +230,29 @@ func internalHostRootCAs(baseURL string, rootCAs *x509.CertPool) *x509.CertPool 
 // VerifyExternalModel tests an external model endpoint using the external models client.
 // rootCAs is the application CA pool (nil falls back to system pool for external hosts).
 // insecureSkipVerify mirrors cfg.InsecureSkipVerify and disables TLS cert validation when true.
+// namespace is the caller's authorized namespace (from the request context). It scopes which
+// in-cluster service hosts are trusted for SSRF-skip — see isInternalHost.
 func (r *ExternalModelsRepository) VerifyExternalModel(
 	logger *slog.Logger,
 	ctx context.Context,
+	namespace string,
 	req models.VerifyExternalModelRequest,
 	rootCAs *x509.CertPool,
 	insecureSkipVerify bool,
 ) (*models.VerifyExternalModelResponse, error) {
+	internal := isInternalHost(req.BaseURL, namespace)
 	client, err := externalmodels.NewExternalModelsClient(
 		logger,
 		req.BaseURL,
 		req.SecretValue,
 		req.ModelType,
 		&externalmodels.ClientOptions{
-			AllowHTTP:          isInternalHost(req.BaseURL),
-			SkipSSRFValidation: isInternalHost(req.BaseURL),
+			AllowHTTP:          internal,
+			SkipSSRFValidation: internal,
 			// Only supply the cluster CA pool for internal hosts; external hosts
 			// must use the system CA pool to verify public certificates.
-			SkipTLSVerification: insecureSkipVerify && isInternalHost(req.BaseURL),
-			RootCAs:             internalHostRootCAs(req.BaseURL, rootCAs),
+			SkipTLSVerification: insecureSkipVerify && internal,
+			RootCAs:             internalHostRootCAs(req.BaseURL, namespace, rootCAs),
 		},
 	)
 	if err != nil {

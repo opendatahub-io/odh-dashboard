@@ -167,6 +167,11 @@ func (app *App) VerifyExternalModelHandler(
 ) {
 	ctx := r.Context()
 
+	// Authorized namespace from context (the route is wrapped with AttachNamespace +
+	// RequireAccessToService, so by the time we get here the caller is authorized for it).
+	// It scopes which in-cluster service hosts may skip SSRF validation (CWE-918).
+	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+
 	// 1. Parse request
 	var req models.VerifyExternalModelRequest
 	if err := app.ReadJSON(w, r, &req); err != nil {
@@ -212,7 +217,7 @@ func (app *App) VerifyExternalModelHandler(
 	}
 
 	// 3. Call repository
-	response, err := app.repositories.ExternalModels.VerifyExternalModel(app.logger, ctx, req, app.rootCAs, app.config.InsecureSkipVerify)
+	response, err := app.repositories.ExternalModels.VerifyExternalModel(app.logger, ctx, namespace, req, app.rootCAs, app.config.InsecureSkipVerify)
 	if err != nil {
 		// Handle custom error types
 		if extErr, ok := err.(*externalmodels.ExternalModelError); ok {
