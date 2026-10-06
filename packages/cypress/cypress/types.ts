@@ -802,9 +802,6 @@ export type GenAiMaaSTestData = {
   subscriptionFixturePath: string;
   authPolicyFixturePath: string;
   phase: string;
-  maasBffServiceName: string;
-  maasBffLocalPort: number;
-  maasBffServicePort: number;
   playgroundServiceName: string;
   playgroundPodPrefix: string;
   playgroundPodReadyTimeout: string;

@@ -3,9 +3,6 @@ llmInferenceServiceFixturePath: resources/maas/llmInferenceServiceSimulatorPremi
 subscriptionFixturePath: resources/genAi/MaaSSubscription.yaml
 authPolicyFixturePath: resources/genAi/MaaSAuthPolicy.yaml
 phase: Active
-maasBffServiceName: odh-dashboard
-maasBffLocalPort: 8081
-maasBffServicePort: 8243
 playgroundServiceName: lsd-genai-playground-service
 playgroundPodPrefix: lsd-genai-playground
 playgroundPodReadyTimeout: 300s
