@@ -89,7 +89,7 @@ async function githubRequest(url, token, options = {}) {
   });
 
   if (!response.ok) {
-    throw new Error(`GitHub request failed (${response.status}): ${await response.text()}`);
+    throw new Error(`GitHub request failed (${response.status} ${response.statusText})`);
   }
 
   return response.json();
@@ -257,6 +257,7 @@ if (require.main === module) {
 module.exports = {
   contextProducer,
   contextSource,
+  githubRequest,
   parseArgs,
   summarizeContexts,
 };

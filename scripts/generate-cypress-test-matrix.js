@@ -32,8 +32,10 @@ function validateSafePath(input, fieldName) {
     throw new Error(`${fieldName} must be a non-empty string`);
   }
 
-  // Reject path traversal attempts
-  if (input.includes('..') || input.includes('//')) {
+  // Cypress runs from frontend/, so generated selectors intentionally start
+  // with ../packages/. Reject every other traversal sequence.
+  const traversalSafeInput = input.replaceAll('../packages/', 'packages/');
+  if (traversalSafeInput.includes('..') || traversalSafeInput.includes('//')) {
     throw new Error(`${fieldName} contains path traversal: ${input}`);
   }
 
@@ -156,7 +158,7 @@ function createTestShards(groups, maxShards = MAX_TEST_SHARDS) {
 
   return balancedSplit(normalizedGroups, shardCount).map((bin, index) => ({
     name: `shard-${String(index + 1).padStart(2, '0')}`,
-    spec: bin.files.map((group) => group.spec).join(','),
+    spec: bin.files.map((group) => `../packages/${group.spec}`).join(','),
     size: bin.totalSize,
     count: bin.files.reduce((total, group) => total + (group.count ?? 1), 0),
     strategy: 'shard',
@@ -497,4 +499,5 @@ module.exports = {
   generateCentralTestGroups,
   generatePackageTestGroups,
   generateTestGroups,
+  validateSafePath,
 };

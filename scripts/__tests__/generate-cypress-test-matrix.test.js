@@ -1,7 +1,11 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 
-const { MAX_TEST_SHARDS, createTestShards } = require('../generate-cypress-test-matrix');
+const {
+  MAX_TEST_SHARDS,
+  createTestShards,
+  validateSafePath,
+} = require('../generate-cypress-test-matrix');
 
 const groups = [
   { name: 'alpha', spec: 'alpha.cy.ts', size: 100 },
@@ -19,7 +23,7 @@ describe('createTestShards', () => {
     assert.equal(shards.length, 3);
     assert.deepEqual(
       shards.flatMap((shard) => shard.spec.split(',')).toSorted(),
-      groups.map((group) => group.spec).toSorted(),
+      groups.map((group) => `../packages/${group.spec}`).toSorted(),
     );
   });
 
@@ -36,5 +40,21 @@ describe('createTestShards', () => {
 
   it('rejects an invalid shard cap', () => {
     assert.throws(() => createTestShards(groups, 0), /positive integer/);
+  });
+});
+
+describe('validateSafePath', () => {
+  it('allows generated package-relative selectors but rejects other traversal', () => {
+    assert.equal(
+      validateSafePath(
+        '../packages/alpha.cy.ts,../packages/bravo/{one,two}.cy.ts',
+        'test group spec',
+      ),
+      '../packages/alpha.cy.ts,../packages/bravo/{one,two}.cy.ts',
+    );
+    assert.throws(
+      () => validateSafePath('../outside/alpha.cy.ts', 'test group spec'),
+      /path traversal/,
+    );
   });
 });

@@ -1,7 +1,30 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 
-const { parseArgs, summarizeContexts } = require('../ci/audit-status-contexts');
+const { githubRequest, parseArgs, summarizeContexts } = require('../ci/audit-status-contexts');
+
+describe('githubRequest', () => {
+  it('does not expose response bodies in HTTP errors', async () => {
+    const originalFetch = global.fetch;
+    global.fetch = async () => ({
+      ok: false,
+      status: 403,
+      statusText: 'Forbidden',
+      text: async () => 'sensitive response body',
+    });
+
+    try {
+      await assert.rejects(
+        githubRequest('https://api.github.com/example', 'token'),
+        (error) =>
+          error.message === 'GitHub request failed (403 Forbidden)' &&
+          !error.message.includes('sensitive response body'),
+      );
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+});
 
 describe('summarizeContexts', () => {
   it('groups check runs by app and workflow and legacy statuses by creator and context', () => {
