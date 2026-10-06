@@ -18,34 +18,43 @@ change set.
    `.fullsend/.run/` (and `collected.json`). The orchestrator never invokes those
    CLIs itself.
 3. The orchestrator reads [`.fullsend/dimensions.json`](../../dimensions.json),
-   selects rows by `dispatch` / `when` / `re_review`, and records a producer
-   ledger before results are known. A **`context`** LLM row with
-   `stage: pre-dispatch` runs here, alone; its brief is written under
+   selects rows by `dispatch` / `when` / `re_review`, and writes a lean
+   `producers.json` ledger before results are known. A **`context`** LLM row
+   with `stage: pre-dispatch` runs here, alone; its brief is written under
    `context/` and every later LLM reviewer is told to read it. The
    challenger is not.
-4. Selected **`findings`** LLM rows run in parallel with selected **`section:*`**
-   rows. CLI **`findings`** / **`context`** envelopes are loaded from disk.
-5. The **challenger** adjudicates the merged **findings** set only (not checks,
-   not signals, not sections).
-6. Every selected **`check:*`** row runs. Shared output contract:
-   [`check-output.md`](../../meta-prompts/check-output.md).
-7. Every selected **`signal:*`** row runs **after** all checks. Shared output
-   contract: [`signal-output.md`](../../meta-prompts/signal-output.md). Each row
-   projects `result_fields` onto the review result.
-8. The orchestrator synthesizes `todo[]` from the assembled report (findings,
-   checks, signals, product ask), then writes `agent-result.json`.
-9. [`post-review.sh`](../../scripts/post-review.sh) computes internal `action`,
-   renders the sticky comment body, posts the GitHub review, and applies at most
-   one outcome label.
+4. Selected **`findings`**, **`section:*`**, and **`check:*`** LLM rows run
+   **together** (required). CLI **`findings`** / **`context`** envelopes are
+   loaded from disk; adapter status is transferred into `producers.adapters`.
+   As each return arrives, the orchestrator rewrites `producers.json`
+   (`raised`, checks, sections, `returned`).
+5. After **all findings** are raised, the **challenger** adjudicates the
+   merged findings set only. The orchestrator expands stub
+   `removed_findings` and writes the expanded `challenger` object into
+   `producers.json` (checks/sections may still be in flight).
+6. After challenger + all sections + all checks, every selected
+   **`signal:*`** row runs with the **`producers.json` path** (file contract:
+   ledger + raised history + checks/sections + challenger). Shared output
+   contract: [`signal-output.md`](../../meta-prompts/signal-output.md).
+7. The orchestrator synthesizes `todo[]`, assembles `agent-result.json` from
+   `producers.json` (including `result.producers`), and validates.
+8. [`post-review.sh`](../../scripts/post-review.sh) reads **`agent-result.json`
+   only**, computes internal `action`, renders the sticky comment body, posts
+   the GitHub review, and applies at most one outcome label.
 
 ```mermaid
 flowchart TD
-  findings[Findings plus challenger]
-  checks[check rows]
-  signals[signal rows]
-  todo[todo synthesis]
-  host[post-review action and sticky]
-  brief[Investigator brief] --> findings --> checks --> signals --> todo --> host
+  brief[Investigator brief] --> lean[Lean producers.json]
+  lean --> parallel[Parallel findings + sections + checks]
+  parallel --> findingsDone[All findings raised written]
+  findingsDone --> challenger[Challenger]
+  challenger --> chWrite[Expand + write challenger into producers.json]
+  parallel --> checksDone[All checks + sections written]
+  chWrite --> gate[Gate: challenger + checks + sections]
+  checksDone --> gate
+  gate --> signals[Signals get producers.json]
+  signals --> assemble[Assemble agent-result.json]
+  assemble --> host[post-review: result only]
 ```
 
 ### Sticky comment order
@@ -60,12 +69,13 @@ Visible sections, in order:
 6. Findings (omit when empty)
 7. Product ask (omit when `status` is `none`)
 8. TODO (omit when empty)
-9. Collapsed **Review details**: Producers, Challenger, Evidence inspected,
-   Labels
+9. Collapsed **Review details**: Producers, Challenger (counts + removed
+   audit), Evidence inspected, Labels
 
 ### Producers table
 
-Host-rendered provenance under Review details:
+Host-rendered provenance under Review details. Sourced from
+`result.producers` only (no side ledger / `collected.json` at post time).
 
 | Column | Meaning |
 | --- | --- |
@@ -74,15 +84,14 @@ Host-rendered provenance under Review details:
 | Ran | Dispatch / adapter status icon (see below) |
 | Result | Kind-aware one-line outcome (not a second Status table) |
 
-**Type resolution:** registry `output` for the dimension id first; if the id is
-absent from the registry, fall back to the CLI adapter envelope’s `output`.
-Collapse `check:*` / `signal:*` / `section:*` to the prefix before `:`.
+**Type resolution:** registry `output` for the dimension id. Collapse
+`check:*` / `signal:*` / `section:*` to the prefix before `:`.
 
 **Result by Type:**
 
 | Type | Result cell |
 | --- | --- |
-| `findings` | `N findings: cat1, cat2` or `No findings.` |
+| `findings` | As-raised from `producers.raised.<id>`: `N findings: cat1, cat2` or `No findings.` (not post-challenger survivors) |
 | `check` | `pass — <summary>` (status + summary); skipped rows use the skip reason |
 | `signal` | `risk high · confidence medium` from `result_fields` levels (no `why` prose) |
 | `section` | e.g. `product_ask aligned` from each `result_fields` member’s `status` |
@@ -92,15 +101,21 @@ Collapse `check:*` / `signal:*` / `section:*` to the prefix before `:`.
 Check and signal Result cells intentionally overlap Status → Checks / Signals
 for provenance. Status remains the primary outcome surface.
 
-Producer **Ran** icons (ledger + `collected.json` for adapters):
+**Challenger audit:** when `producers.challenger.removed_findings` is
+non-empty, a collapsed section under Challenger renders those items like
+findings, with an audit-only / must-ignore disclaimer and each
+`removal_reason`. Disposition and `## Findings` use survivor `findings[]`
+only. Host warns if `challenger.removed` ≠ audit list length.
+
+Producer **Ran** icons (`result.producers`):
 
 | Icon | Meaning |
 | --- | --- |
-| ✅ | Ran (LLM dispatched, or adapter envelope `status: ok`) |
+| ✅ | Ran (LLM dispatched, or adapter `status: ok` on `producers.adapters`) |
 | ⚪ | Adapter unavailable (`none` / `skipped` — not a clean zero-finding run) |
 | ❌ | Adapter `status: error` |
 | ➖ | Orchestrator skipped (out of scope / re_review) |
-| ❔ | Missing ledger, missing adapter envelope, or unrecognized status |
+| ❔ | Missing `result.producers`, missing adapter status, or unrecognized status |
 
 ## Labels
 
@@ -182,12 +197,11 @@ Omit `todo` when empty. Sticky bullets only — no `[ ]` task-list syntax.
 
 | `output` | Role | Timing | Meta-prompt |
 | --- | --- | --- | --- |
-| `findings` | Code defects → challenger | Parallel (LLM + CLI envelopes) | `findings-output.md` |
+| `findings` | Code defects → challenger | Parallel with sections + checks (LLM + CLI envelopes) | `findings-output.md` |
 | `context` | Trusted host snapshot; or, with `stage: pre-dispatch`, an LLM brief every later reviewer reads | Host adapter; or alone, before dispatch | none; `context-output.md` for the LLM brief |
-| `section:*` | Schema object (e.g. `product_ask`) | Parallel with findings | `section-output.md` |
-| `check:*` | Readiness row → `checks[]` | After findings/challenger; before signals | `check-output.md` |
-| `signal:*` | Schema members from `result_fields` | After all selected checks | `signal-output.md` |
-
+| `section:*` | Schema object (e.g. `product_ask`) | Parallel with findings + checks | `section-output.md` |
+| `check:*` | Readiness row → `checks[]` | Parallel with findings + sections; before signals | `check-output.md` |
+| `signal:*` | Schema members from `result_fields` | After challenger + all checks + all sections; gets `producers.json` | `signal-output.md` |
 `result_fields` names the schema properties a `section:*` or `signal:*` row
 projects onto the result. For `section:*`, if omitted, default to the name after
 `section:`. For `signal:*`, `result_fields` is required.
@@ -263,14 +277,15 @@ Canonical schema: [`.fullsend/schemas/review-result.schema.json`](../../schemas/
 
 | Field | Written by | Notes |
 | --- | --- | --- |
-| `pr_number`, `repo`, `head_sha`, `schema_version` | Orchestrator | Identity |
+| `pr_number`, `repo`, `head_sha`, `schema_version` | Orchestrator | Identity; `schema_version` is `"3"` |
 | `change_summary` | Orchestrator | From shared PR context, not prior-review text |
-| `findings[]` | Findings producers + challenger | Code defects |
+| `findings[]` | Findings producers + challenger survivors | Disposition + sticky Findings |
+| `producers` | Orchestrator (from `producers.json`) | Raised history, adapter status, challenger audit, ledger mirror — assemble copies the working store; post-review does not re-read side files |
 | `product_ask` | `section:product_ask` | Omit sticky section when `none` |
 | `checks[]` | `check:*` rows | Readiness; disposition-affecting |
 | `risk`, `confidence` | `signal:*` via `result_fields` | Sticky Signals table |
 | `todo[]` | Orchestrator final pass | Sticky TODO; omit when empty |
-| `inspected` | Orchestrator (+ host reconcile) | Producers / could_not_verify |
+| `inspected` | Orchestrator (+ host limits) | `summary` / `could_not_verify` only — no `producers` |
 | `label_actions` | Optional enrichment | Control labels stripped by host |
 | `action`, `body` | Host | Disposition + sticky markdown |
 

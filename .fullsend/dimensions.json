@@ -1,5 +1,5 @@
 {
-  "comment": "Review dimension registry. The orchestrator dispatches by output kind only: findings (then challenger), section:* in parallel with findings, then every check:* row, then every signal:* row. It must not special-case producer names. Context adapters are trusted host data and never enter challenger synthesis. Host post-review uses optional label for human-facing Check/Producer names; id remains the machine key. The Producers sticky table uses output (Type) and result_fields (signal/section Result cells).",
+  "comment": "Review dimension registry. The orchestrator dispatches by output kind only: findings + section:* + check:* together (required), challenger after all findings raised, then every signal:* row (after challenger + all checks + all sections). It must not special-case producer names. Context adapters are trusted host data and never enter challenger synthesis. Host post-review uses optional label for human-facing Check/Producer names; id remains the machine key. The Producers sticky table uses output (Type), result.producers.raised for findings Result, and result_fields (signal/section Result cells).",
   "dimensions": [
     {
       "id": "investigator",
