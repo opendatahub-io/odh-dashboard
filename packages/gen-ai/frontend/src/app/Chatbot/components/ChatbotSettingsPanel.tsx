@@ -28,7 +28,7 @@ import {
   OutlinedQuestionCircleIcon,
   RobotIcon,
   ShieldAltIcon,
-  SlidersHIcon,
+  RhUiAiModelIcon,
 } from '@patternfly/react-icons';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -362,7 +362,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             <Tab
               eventKey={0}
               tabContentId="chatbot-settings-page-tab-content-model"
-              title={renderTabTitle('Model', <SlidersHIcon />)}
+              title={renderTabTitle('Model', <RhUiAiModelIcon />)}
               aria-label="Model"
               tooltip={areTabsCompact ? <Tooltip content="Model" /> : undefined}
               data-testid="chatbot-settings-page-tab-model"
