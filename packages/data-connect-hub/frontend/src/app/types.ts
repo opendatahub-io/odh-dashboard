@@ -93,7 +93,12 @@ export type ConnectionType = {
     description?: string | null;
     credentials_fields: ConnectionTypeCredentialField[];
   };
-  status?: { capabilities: { flight: boolean; rest: boolean } };
+  status?: {
+    flight_ready: boolean;
+    flight_url?: string;
+    message?: string;
+    updated_at?: string;
+  };
 };
 
 export type TestCredentialsRequest = {

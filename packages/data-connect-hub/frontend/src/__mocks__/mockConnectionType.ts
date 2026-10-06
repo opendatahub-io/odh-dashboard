@@ -25,9 +25,8 @@ export const mockConnectionType = (
       ...overrides.resource,
     },
     status: overrides.status ?? {
-      capabilities: {
-        flight: false,
-        rest: true,
-      },
+      flight_ready: true,
+      flight_url: 'https://dch-default-dataconnectservice-flight.redhat-ods-applications.svc:8443',
+      updated_at: '2026-09-08T16:00:00Z',
     },
   });
