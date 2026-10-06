@@ -81,6 +81,14 @@ jest.mock('~/app/components/StartEvaluationRunModal', () => ({
     ) : null,
 }));
 
+jest.mock('~/app/components/CuratedSuiteRunModal', () => ({
+  __esModule: true,
+  default: ({ collection, isOpen }: { collection?: { name: string }; isOpen: boolean }) =>
+    isOpen ? (
+      <div data-testid="curated-suite-start-evaluation-run-modal">{collection?.name}</div>
+    ) : null,
+}));
+
 jest.mock('~/app/context/CollectionsContext', () => ({
   useCollectionsContext: jest.fn().mockReturnValue({
     response: { items: [] },
@@ -199,6 +207,38 @@ describe('EvaluationsPage', () => {
     expect(screen.getByPlaceholderText('Search collections')).toBeInTheDocument();
     expect(screen.getByTestId('page-description')).toHaveTextContent(
       'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project..',
+    );
+  });
+
+  it('should open the suite details drawer when selecting a Gallery suite name', () => {
+    renderPage('test-project');
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-name-clawbench'));
+
+    expect(screen.getByTestId('collection-drawer-panel')).toBeInTheDocument();
+    expect(screen.getByTestId('collection-drawer-panel')).toHaveTextContent('ClawBench');
+    expect(screen.getByTestId('collection-drawer-panel')).toHaveTextContent('Run benchmark suite');
+  });
+
+  it('should offer Gallery suite customization from the details drawer', () => {
+    renderPage('test-project');
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-name-clawbench'));
+    fireEvent.click(screen.getByTestId('customize-benchmark-suite-button'));
+
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+      '/evaluation/test-project/create/collections/clawbench/copy',
+    );
+  });
+
+  it('should use the curated run flow from the Gallery details drawer', () => {
+    renderPage('test-project');
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-name-clawbench'));
+    fireEvent.click(screen.getByTestId('use-benchmark-suite-button'));
+
+    expect(screen.getByTestId('curated-suite-start-evaluation-run-modal')).toHaveTextContent(
+      'ClawBench',
     );
   });
 

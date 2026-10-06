@@ -40,6 +40,7 @@ import usePageVisibility from '~/app/hooks/usePageVisibility';
 import EvaluationsTable from '~/app/components/EvaluationsTable';
 import CollectionDrawerPanel from '~/app/components/CollectionDrawerPanel';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
+import CuratedSuiteRunModal from '~/app/components/CuratedSuiteRunModal';
 import type { Collection, EvaluationJob } from '~/app/types';
 import { useCollectionDrawer } from '~/app/hooks/useCollectionDrawer';
 import StopEvaluationModal from '~/app/components/StopEvaluationModal';
@@ -87,10 +88,46 @@ const EvaluationsPage: React.FC = () => {
   const { selectedCollection, benchmarkDetailsMap, selectCollection, closeDrawer } =
     useCollectionDrawer(namespace ?? '');
   const [collectionToRun, setCollectionToRun] = React.useState<Collection | undefined>();
+  const [curatedCollectionToRun, setCuratedCollectionToRun] = React.useState<
+    Collection | undefined
+  >();
+  const [selectedCollectionIsSystem, setSelectedCollectionIsSystem] = React.useState(false);
+
+  const handleCloseDrawer = React.useCallback(() => {
+    setSelectedCollectionIsSystem(false);
+    closeDrawer();
+  }, [closeDrawer]);
+
+  const handleSelectCollection = React.useCallback(
+    (collection: Collection, isSystemCollection = false) => {
+      setSelectedCollectionIsSystem(isSystemCollection);
+      selectCollection(collection);
+    },
+    [selectCollection],
+  );
 
   const handleRunCollection = React.useCallback((collection: Collection) => {
     setCollectionToRun(collection);
   }, []);
+
+  const handleRunSystemCollection = React.useCallback(
+    (collection: Collection) => {
+      handleCloseDrawer();
+      setCuratedCollectionToRun(collection);
+    },
+    [handleCloseDrawer],
+  );
+
+  const handleDrawerRunCollection = React.useCallback(
+    (collection: Collection, isSystemCollection: boolean) => {
+      if (isSystemCollection) {
+        handleRunSystemCollection(collection);
+      } else {
+        handleRunCollection(collection);
+      }
+    },
+    [handleRunCollection, handleRunSystemCollection],
+  );
 
   const handleDuplicateCollection = React.useCallback(
     (collection: Collection) => {
@@ -101,6 +138,7 @@ const EvaluationsPage: React.FC = () => {
 
   const handleRunSuccess = React.useCallback(() => {
     setCollectionToRun(undefined);
+    setCuratedCollectionToRun(undefined);
     refreshEvaluations();
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.set(TAB_QUERY_PARAM, RUNS_TAB);
@@ -146,8 +184,10 @@ const EvaluationsPage: React.FC = () => {
             <CollectionDrawerPanel
               collection={selectedCollection}
               benchmarkDetailsMap={benchmarkDetailsMap}
-              onClose={closeDrawer}
-              onRunCollection={handleRunCollection}
+              onClose={handleCloseDrawer}
+              onRunCollection={handleDrawerRunCollection}
+              onCustomizeCollection={handleDuplicateCollection}
+              isSystemCollection={selectedCollectionIsSystem}
               primaryActionLabel="Run benchmark suite"
             />
           }
@@ -257,7 +297,10 @@ const EvaluationsPage: React.FC = () => {
                   aria-label="Gallery tab"
                   data-testid="gallery-tab"
                 >
-                  <GalleryTab namespace={namespace ?? ''} />
+                  <GalleryTab
+                    namespace={namespace ?? ''}
+                    onSelectCollection={(collection) => handleSelectCollection(collection, true)}
+                  />
                 </Tab>
                 <Tab
                   eventKey={EVALUATE_TAB}
@@ -267,7 +310,7 @@ const EvaluationsPage: React.FC = () => {
                 >
                   <EvaluateTab
                     namespace={namespace ?? ''}
-                    onSelectCollection={selectCollection}
+                    onSelectCollection={handleSelectCollection}
                     onRunCollection={handleRunCollection}
                     onDuplicateCollection={handleDuplicateCollection}
                   />
@@ -356,6 +399,16 @@ const EvaluationsPage: React.FC = () => {
           isCollectionFlow
           modalId="evaluations-page-start-evaluation-run-modal"
           trackingSource="evaluations_page"
+          onSuccess={handleRunSuccess}
+        />
+      ) : null}
+      {curatedCollectionToRun ? (
+        <CuratedSuiteRunModal
+          isOpen
+          onClose={() => setCuratedCollectionToRun(undefined)}
+          namespace={namespace}
+          collection={curatedCollectionToRun}
+          trackingSource="curated_gallery"
           onSuccess={handleRunSuccess}
         />
       ) : null}

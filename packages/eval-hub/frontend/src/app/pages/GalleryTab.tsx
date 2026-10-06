@@ -12,9 +12,10 @@ import type { Collection } from '~/app/types';
 
 type GalleryTabProps = {
   namespace: string;
+  onSelectCollection: (collection: Collection) => void;
 };
 
-const GalleryTab: React.FC<GalleryTabProps> = ({ namespace }) => {
+const GalleryTab: React.FC<GalleryTabProps> = ({ namespace, onSelectCollection }) => {
   const navigate = useNavigate();
   const [collectionToRun, setCollectionToRun] = React.useState<Collection | undefined>();
 
@@ -63,7 +64,7 @@ const GalleryTab: React.FC<GalleryTabProps> = ({ namespace }) => {
         onPrimaryAction={handleRunCollection}
         onDropdownAction={handleCustomizeCollection}
         onDuplicateCollection={handleCustomizeCollection}
-        onSelectCollection={handleCustomizeCollection}
+        onSelectCollection={onSelectCollection}
         createSuiteRoute={evaluationCreateSuiteRoute(namespace)}
       />
       {collectionToRun ? (
