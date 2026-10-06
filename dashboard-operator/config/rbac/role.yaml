@@ -205,6 +205,16 @@ rules:
       - get
       - list
       - watch
+  # OLM v1 resources for platform detection (ClusterExtension/ClusterCatalog)
+  - apiGroups:
+      - olm.operatorframework.io
+    resources:
+      - clustercatalogs
+      - clusterextensions
+    verbs:
+      - get
+      - list
+      - watch
   # Console links
   - apiGroups:
       - console.openshift.io

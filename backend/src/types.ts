@@ -278,6 +278,38 @@ export type CSVKind = {
   };
 } & K8sResourceCommon;
 
+// Minimal type for OLM v1 ClusterExtensions (olm.operatorframework.io/v1, cluster-scoped).
+// On OLM v1 clusters the install lifecycle is represented by a ClusterExtension instead of
+// an OLM Classic Subscription/CSV pair.
+export type ClusterExtensionKind = {
+  spec: {
+    namespace?: string;
+    source?: {
+      sourceType?: string;
+      catalog?: {
+        packageName?: string;
+        channels?: string[];
+        version?: string;
+      };
+    };
+  };
+  status?: {
+    install?: {
+      bundle?: {
+        name?: string;
+        version?: string;
+      };
+    };
+    conditions?: {
+      type: string;
+      status: string;
+      reason?: string;
+      message?: string;
+      lastTransitionTime?: string;
+    }[];
+  };
+} & K8sResourceCommon;
+
 // Minimal type for ConsoleLinks
 export type ConsoleLinkKind = {
   spec: {
@@ -1053,6 +1085,12 @@ export type SubscriptionStatusData = {
   installedCSV?: string;
   installPlanRefNamespace?: string;
   lastUpdated?: string;
+  // Which OLM generation this entry was resolved from. Absent is treated as OLM v0 for
+  // backwards compatibility. OLM v1 entries are derived from a ClusterExtension and have
+  // no backing ClusterServiceVersion to read.
+  source?: 'OLMv0' | 'OLMv1';
+  // For OLM v1 entries only: whether the ClusterExtension reports a successful install.
+  installed?: boolean;
 };
 
 export type CronJobKind = {

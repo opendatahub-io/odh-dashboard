@@ -4,6 +4,7 @@ import {
   BuildPhase,
   BuildKind,
   BuildStatus,
+  ClusterExtensionKind,
   ConsoleLinkKind,
   CSVKind,
   DashboardConfig,
@@ -45,6 +46,14 @@ const documentationsPlural = 'odhdocuments';
 const quickStartsGroup = 'console.openshift.io';
 const quickStartsVersion = 'v1';
 const quickStartsPlural = 'odhquickstarts';
+const subscriptionsGroup = 'operators.coreos.com';
+const subscriptionsVersion = 'v1alpha1';
+const subscriptionsPlural = 'subscriptions';
+const clusterServiceVersionsPlural = 'clusterserviceversions';
+// OLM v1 (ClusterExtension) — cluster-scoped install lifecycle resource.
+const clusterExtensionsGroup = 'olm.operatorframework.io';
+const clusterExtensionsVersion = 'v1';
+const clusterExtensionsPlural = 'clusterextensions';
 
 let dashboardConfigWatcher: ResourceWatcher<DashboardConfig>;
 let authWatcher: ResourceWatcher<AuthKind>;
@@ -112,47 +121,123 @@ const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfi
     });
 };
 
-const fetchSubscriptions = (fastify: KubeFastifyInstance): Promise<SubscriptionStatusData[]> => {
-  const fetchAll = async (): Promise<SubscriptionStatusData[]> => {
-    const installedCSVs: SubscriptionStatusData[] = [];
-    let _continue: string = undefined;
-    let remainingItemCount = 1;
-    try {
-      while (remainingItemCount) {
-        const res = (await fastify.kube.customObjectsApi.listNamespacedCustomObject(
-          'operators.coreos.com',
-          'v1alpha1',
-          '',
-          'subscriptions',
-          undefined,
-          _continue,
-          undefined,
-          undefined,
-          250,
-        )) as {
-          body: {
-            items: SubscriptionKind[];
-            metadata: { continue: string; remainingItemCount: number };
-          };
+const fetchOLMv0Subscriptions = async (
+  fastify: KubeFastifyInstance,
+): Promise<SubscriptionStatusData[]> => {
+  const installedCSVs: SubscriptionStatusData[] = [];
+  let _continue: string = undefined;
+  let remainingItemCount = 1;
+  try {
+    while (remainingItemCount) {
+      const res = (await fastify.kube.customObjectsApi.listNamespacedCustomObject(
+        subscriptionsGroup,
+        subscriptionsVersion,
+        '',
+        subscriptionsPlural,
+        undefined,
+        _continue,
+        undefined,
+        undefined,
+        250,
+      )) as {
+        body: {
+          items: SubscriptionKind[];
+          metadata: { continue: string; remainingItemCount: number };
         };
-        const subs = res?.body.items?.map((sub) => ({
+      };
+      const subs = res?.body.items?.map(
+        (sub): SubscriptionStatusData => ({
           channel: sub.spec.channel,
           installedCSV: sub.status?.installedCSV,
           installPlanRefNamespace: sub.status?.installPlanRef?.namespace,
-          lastUpdated: sub.status.lastUpdated,
-        }));
-        remainingItemCount = res.body?.metadata?.remainingItemCount;
-        _continue = res.body?.metadata?.continue;
-        if (subs?.length) {
-          installedCSVs.push(...subs);
-        }
+          lastUpdated: sub.status?.lastUpdated,
+          source: 'OLMv0',
+        }),
+      );
+      remainingItemCount = res.body?.metadata?.remainingItemCount;
+      _continue = res.body?.metadata?.continue;
+      if (subs?.length) {
+        installedCSVs.push(...subs);
       }
-    } catch (e) {
-      console.error(`ERROR: `, e.body.message);
     }
-    return installedCSVs;
+  } catch (e) {
+    console.error(`ERROR: `, e.body?.message ?? e);
+  }
+  return installedCSVs;
+};
+
+/**
+ * Projects an OLM v1 ClusterExtension onto the SubscriptionStatusData shape so OLM v0 and v1
+ * installs flow through the same consumers. `installedCSV` maps to the installed bundle name,
+ * `installPlanRefNamespace` to the install namespace, and `channel` to the first requested
+ * channel. `installed` reflects the `Installed`/`Succeeded` status condition (there is no CSV
+ * to read on OLM v1).
+ */
+export const clusterExtensionToSubscriptionStatus = (
+  ce: ClusterExtensionKind,
+): SubscriptionStatusData => {
+  const installedCondition = ce.status?.conditions?.find((c) => c.type === 'Installed');
+  const installed =
+    installedCondition?.status === 'True' && installedCondition.reason === 'Succeeded';
+  return {
+    channel: ce.spec.source?.catalog?.channels?.[0],
+    installedCSV: ce.status?.install?.bundle?.name,
+    installPlanRefNamespace: ce.spec.namespace,
+    lastUpdated: installedCondition?.lastTransitionTime,
+    source: 'OLMv1',
+    installed,
   };
-  return fetchAll();
+};
+
+const fetchOLMv1ClusterExtensions = async (
+  fastify: KubeFastifyInstance,
+): Promise<SubscriptionStatusData[]> => {
+  const results: SubscriptionStatusData[] = [];
+  let _continue: string = undefined;
+  let remainingItemCount = 1;
+  try {
+    while (remainingItemCount) {
+      const res = (await fastify.kube.customObjectsApi.listClusterCustomObject(
+        clusterExtensionsGroup,
+        clusterExtensionsVersion,
+        clusterExtensionsPlural,
+        undefined,
+        _continue,
+        undefined,
+        undefined,
+        250,
+      )) as {
+        body: {
+          items: ClusterExtensionKind[];
+          metadata: { continue: string; remainingItemCount: number };
+        };
+      };
+      const exts = res?.body.items?.map(clusterExtensionToSubscriptionStatus);
+      remainingItemCount = res.body?.metadata?.remainingItemCount;
+      _continue = res.body?.metadata?.continue;
+      if (exts?.length) {
+        results.push(...exts);
+      }
+    }
+  } catch (e) {
+    // On OLM v0 clusters the ClusterExtension CRD is absent (404/NotFound). That is an
+    // expected, non-fatal condition — degrade to "no OLM v1 installs" rather than failing.
+    if (isHttpError(e) && e.statusCode === 404) {
+      return [];
+    }
+    console.error(`ERROR: `, e.body?.message ?? e);
+  }
+  return results;
+};
+
+const fetchSubscriptions = async (
+  fastify: KubeFastifyInstance,
+): Promise<SubscriptionStatusData[]> => {
+  const [olmV0, olmV1] = await Promise.all([
+    fetchOLMv0Subscriptions(fastify),
+    fetchOLMv1ClusterExtensions(fastify),
+  ]);
+  return [...olmV0, ...olmV1];
 };
 
 const fetchQuickStarts = async (fastify: KubeFastifyInstance): Promise<QuickStart[]> => {
@@ -685,7 +770,7 @@ const getCREnabledForApp = (
     .catch(() => false);
 };
 
-const getCSVForApp = (
+export const getCSVForApp = (
   fastify: KubeFastifyInstance,
   app: OdhApplication,
 ): Promise<K8sResourceCommon | undefined> => {
@@ -711,12 +796,24 @@ const getCSVForApp = (
     return Promise.resolve(undefined);
   }
 
+  // OLM v1: there is no ClusterServiceVersion to read. The ClusterExtension's install status
+  // already tells us whether the operator is present; synthesize the minimal resource shape
+  // (name + namespace) that downstream consumers rely on.
+  if (subStatus.source === 'OLMv1') {
+    if (!subStatus.installed) {
+      return Promise.resolve(undefined);
+    }
+    return Promise.resolve({
+      metadata: { name: installedCSV, namespace },
+    });
+  }
+
   return fastify.kube.customObjectsApi
     .getNamespacedCustomObject(
-      'operators.coreos.com',
-      'v1alpha1',
+      subscriptionsGroup,
+      subscriptionsVersion,
       namespace,
-      'clusterserviceversions',
+      clusterServiceVersionsPlural,
       installedCSV,
     )
     .then((response) => {
