@@ -11,6 +11,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
@@ -52,6 +53,10 @@ func (r *DashboardReconciler) isMaaSConsumerPortalOperatorNamespace(obj client.O
 	}
 
 	return slices.Contains(r.maasConsumerPortalSubscriptionNamespaces(), obj.GetName())
+}
+
+func (r *DashboardReconciler) maasConsumerPortalOperatorNamespacePredicate() predicate.Predicate {
+	return predicate.NewPredicateFuncs(r.isMaaSConsumerPortalOperatorNamespace)
 }
 
 func (r *DashboardReconciler) mapMaaSConsumerPortalOperatorNamespaceToDashboard(_ context.Context, obj client.Object) []reconcile.Request {
@@ -130,9 +135,9 @@ func setMaaSConsumerPortalOperatorSubscriptionNamespaces(resources []unstructure
 					continue
 				}
 				seen[target] = true
-				copy := resources[i].DeepCopy()
-				copy.SetNamespace(target)
-				extra = append(extra, *copy)
+				resourceCopy := resources[i].DeepCopy()
+				resourceCopy.SetNamespace(target)
+				extra = append(extra, *resourceCopy)
 			}
 		}
 	}

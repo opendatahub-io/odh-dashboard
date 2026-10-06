@@ -1201,6 +1201,7 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		Watches(
 			&corev1.Namespace{},
 			handler.EnqueueRequestsFromMapFunc(r.mapMaaSConsumerPortalOperatorNamespaceToDashboard),
+			builder.WithPredicates(r.maasConsumerPortalOperatorNamespacePredicate()),
 		)
 
 	if err := addOptionalOwnedResourceWatches(mgr.GetRESTMapper(), controllerBuilder); err != nil {

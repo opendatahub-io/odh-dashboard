@@ -18,6 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
@@ -81,6 +82,31 @@ func TestMapMaaSConsumerPortalOperatorNamespaceToDashboard(t *testing.T) {
 	unrelated := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "unrelated"}}
 	assert.Empty(t, r.mapMaaSConsumerPortalOperatorNamespaceToDashboard(context.Background(), unrelated))
 	assert.Empty(t, r.mapMaaSConsumerPortalOperatorNamespaceToDashboard(context.Background(), nil))
+}
+
+func TestMaaSConsumerPortalOperatorNamespacePredicate(t *testing.T) {
+	r := &DashboardReconciler{Namespace: "custom-operators"}
+	p := r.maasConsumerPortalOperatorNamespacePredicate()
+	tests := []struct {
+		name string
+		obj  client.Object
+		want bool
+	}{
+		{name: "RHODS", obj: &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalRhodsOperatorNamespace}}, want: true},
+		{name: "ODH", obj: &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalOpenDataHubOperatorNamespace}}, want: true},
+		{name: "OpenShift operators", obj: &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "openshift-operators"}}, want: true},
+		{name: "configured operator namespace", obj: &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: r.Namespace}}, want: true},
+		{name: "unrelated", obj: &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "unrelated"}}},
+		{name: "nil"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, p.Create(event.CreateEvent{Object: tt.obj}))
+			assert.Equal(t, tt.want, p.Update(event.UpdateEvent{ObjectOld: tt.obj, ObjectNew: tt.obj}))
+			assert.Equal(t, tt.want, p.Delete(event.DeleteEvent{Object: tt.obj}))
+			assert.Equal(t, tt.want, p.Generic(event.GenericEvent{Object: tt.obj}))
+		})
+	}
 }
 
 func TestExistingMaaSConsumerPortalOperatorNamespaces_PropagatesGetError(t *testing.T) {
