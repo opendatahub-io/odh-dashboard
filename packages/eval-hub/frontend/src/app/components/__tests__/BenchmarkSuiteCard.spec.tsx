@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { mockCollection } from '~/__mocks__/mockCollection';
 import BenchmarkSuiteCard from '~/app/components/BenchmarkSuiteCard';
 
@@ -185,6 +185,40 @@ describe('BenchmarkSuiteCard', () => {
     fireEvent.click(screen.getByTestId('benchmark-suite-card-primary-action-model-suite'));
 
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('should render Run as the split button action and Customize in its menu', () => {
+    const onRun = jest.fn();
+    const onCustomize = jest.fn();
+
+    render(
+      <BenchmarkSuiteCard
+        collection={mockCollection({ id: 'curated-suite' })}
+        primaryAction={{ label: 'Run', onClick: onRun, variant: 'secondary' }}
+        dropdownAction={{ label: 'Customize', onClick: onCustomize }}
+      />,
+    );
+
+    const runButton = screen.getByTestId('benchmark-suite-card-primary-action-curated-suite');
+    const dropdownToggle = screen.getByTestId('benchmark-suite-card-dropdown-toggle-curated-suite');
+    const splitButton = dropdownToggle.closest('.pf-v6-c-menu-toggle');
+
+    expect(runButton).toHaveTextContent('Run');
+    expect(runButton).toHaveClass('pf-v6-c-menu-toggle__button');
+    expect(splitButton).toHaveClass('pf-m-secondary');
+    expect(
+      screen.queryByTestId('benchmark-suite-card-dropdown-action-curated-suite'),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(runButton);
+    fireEvent.click(dropdownToggle);
+    const customizeAction = screen.getByTestId(
+      'benchmark-suite-card-dropdown-action-curated-suite',
+    );
+    fireEvent.click(within(customizeAction).getByRole('menuitem'));
+
+    expect(onRun).toHaveBeenCalledTimes(1);
+    expect(onCustomize).toHaveBeenCalledTimes(1);
   });
 
   it('should invoke the suite selection callback when the name is clicked', () => {

@@ -25,6 +25,14 @@ jest.mock('@odh-dashboard/ui-core', () => ({
   ...require('~/__tests__/unit/testUtils/mocks').mockApplicationsPageModule(),
 }));
 
+jest.mock('~/app/components/CuratedSuiteRunModal', () => ({
+  __esModule: true,
+  default: ({ collection, isOpen }: { collection: { name: string }; isOpen: boolean }) =>
+    isOpen ? (
+      <div data-testid="curated-suite-start-evaluation-run-modal">{collection.name}</div>
+    ) : null,
+}));
+
 const renderPage = (evaluationTarget = 'agent') =>
   render(
     <MemoryRouter initialEntries={[`/test-project/collections/${evaluationTarget}`]}>
@@ -79,7 +87,8 @@ describe('CuratedBenchmarkSuitesPage', () => {
     expect(screen.getByTestId('benchmark-suites-pagination-top')).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suites-pagination-bottom')).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suite-card-clawbench')).toBeInTheDocument();
-    expect(screen.getAllByText('Customize')).toHaveLength(5);
+    expect(screen.getAllByText('Run')).toHaveLength(5);
+    expect(screen.queryByText('Customize')).not.toBeInTheDocument();
     expect(mockUseCollectionsQuery).toHaveBeenCalledWith(
       'test-project',
       'system',
@@ -112,7 +121,7 @@ describe('CuratedBenchmarkSuitesPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('should link Customize to the collection copy route', () => {
+  it('should link Customize in the action menu to the collection copy route', () => {
     mockUseCollectionsQuery.mockReturnValue({
       data: {
         items: mockCuratedBenchmarkSuiteCollections('model'),
@@ -125,11 +134,26 @@ describe('CuratedBenchmarkSuitesPage', () => {
 
     renderPage('model');
 
-    expect(
-      screen.getByTestId('benchmark-suite-card-primary-action-safety-and-fairness-v1'),
-    ).toHaveAttribute(
+    fireEvent.click(
+      screen.getByTestId('benchmark-suite-card-dropdown-toggle-safety-and-fairness-v1'),
+    );
+
+    const customizeAction = screen.getByTestId(
+      'benchmark-suite-card-dropdown-action-safety-and-fairness-v1',
+    );
+    expect(within(customizeAction).getByRole('menuitem')).toHaveAttribute(
       'href',
       '/evaluation/test-project/create/collections/safety-and-fairness-v1/copy',
+    );
+  });
+
+  it('should open the run modal from a curated suite card', () => {
+    renderPage('model');
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-primary-action-clawbench'));
+
+    expect(screen.getByTestId('curated-suite-start-evaluation-run-modal')).toHaveTextContent(
+      'ClawBench',
     );
   });
 

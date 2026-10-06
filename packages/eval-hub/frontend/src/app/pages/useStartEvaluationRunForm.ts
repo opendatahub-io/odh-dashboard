@@ -72,6 +72,10 @@ type UseStartEvaluationRunFormParams = {
   trackingSource?: string;
   onSuccess?: () => void;
   onCancel?: () => void;
+  onRunFailure?: (
+    error: unknown,
+    collection?: Collection,
+  ) => unknown | void | Promise<unknown | void>;
 };
 
 const buildDefaultEvaluationName = (
@@ -145,6 +149,7 @@ export function useStartEvaluationRunForm({
   trackingSource = 'evaluations_page',
   onSuccess,
   onCancel,
+  onRunFailure,
 }: UseStartEvaluationRunFormParams) {
   const navigate = useNavigate();
   const notification = useNotification();
@@ -894,7 +899,24 @@ export function useStartEvaluationRunForm({
         success: false,
         errorName: e instanceof Error ? e.name : 'UnknownError',
       });
-      notification.error(getErrorTitle(e, 'Failed to start evaluation'), message);
+      let cleanupError: unknown;
+      try {
+        cleanupError = await onRunFailure?.(e, activeCollection);
+      } catch (failureCleanupError) {
+        cleanupError = failureCleanupError;
+      }
+      if (cleanupError) {
+        const cleanupMessage =
+          cleanupError instanceof Error
+            ? cleanupError.message
+            : 'Unable to remove the copied suite.';
+        notification.error(
+          'Failed to start evaluation and remove copied suite',
+          `${message} Cleanup error: ${cleanupMessage}`,
+        );
+      } else {
+        notification.error(getErrorTitle(e, 'Failed to start evaluation'), message);
+      }
     } finally {
       setIsSubmitting(false);
     }

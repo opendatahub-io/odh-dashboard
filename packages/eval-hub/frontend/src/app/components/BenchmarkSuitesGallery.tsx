@@ -110,11 +110,16 @@ type BenchmarkSuitesGalleryProps = {
   primaryActionLabel?: string;
   primaryActionRoute?: (collection: Collection) => string;
   primaryActionState?: unknown;
+  primaryActionVariant?: 'primary' | 'secondary' | 'tertiary';
+  dropdownActionLabel?: string;
+  dropdownActionRoute?: (collection: Collection) => string;
+  dropdownActionState?: unknown;
   // TODO: Remove this temporary switch once curated collections use the API.
   useMockFallback?: boolean;
   createSuiteRoute?: string;
   onCreateSuite?: () => void;
   onPrimaryAction: (collection: Collection) => void;
+  onDropdownAction?: (collection: Collection) => void;
   onDuplicateCollection: (collection: Collection) => void;
   onSelectCollection: (collection: Collection) => void;
 };
@@ -134,10 +139,15 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   primaryActionLabel = 'Run benchmark suite',
   primaryActionRoute,
   primaryActionState,
+  primaryActionVariant = 'secondary',
+  dropdownActionLabel,
+  dropdownActionRoute,
+  dropdownActionState,
   useMockFallback = false,
   createSuiteRoute,
   onCreateSuite,
   onPrimaryAction,
+  onDropdownAction,
   onDuplicateCollection,
   onSelectCollection,
 }) => {
@@ -724,8 +734,19 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                     label: primaryActionLabel,
                     href: primaryActionRoute?.(collection),
                     state: primaryActionState,
+                    variant: primaryActionVariant,
                     onClick: () => onPrimaryAction(collection),
                   }}
+                  dropdownAction={
+                    dropdownActionLabel
+                      ? {
+                          label: dropdownActionLabel,
+                          href: dropdownActionRoute?.(collection),
+                          state: dropdownActionState,
+                          onClick: () => onDropdownAction?.(collection),
+                        }
+                      : undefined
+                  }
                   contextualActions={showContextualActions ? contextualActions : undefined}
                   onSelect={onSelectCollection}
                   reservePopularHeader={hasPopularCollections}

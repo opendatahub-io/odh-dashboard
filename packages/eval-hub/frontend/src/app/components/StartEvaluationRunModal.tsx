@@ -62,6 +62,11 @@ type StartEvaluationRunModalProps = {
   onClonePendingChange?: (isPending: boolean) => void;
   trackingSource?: string;
   onSuccess?: () => void;
+  description?: React.ReactNode;
+  onRunFailure?: (
+    error: unknown,
+    collection?: Collection,
+  ) => unknown | void | Promise<unknown | void>;
 };
 
 const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
@@ -78,6 +83,8 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
   onClonePendingChange,
   trackingSource,
   onSuccess,
+  description,
+  onRunFailure,
 }) => {
   const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false);
   const [isCloning, setIsCloning] = React.useState(false);
@@ -124,6 +131,7 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
     trackingSource,
     onSuccess,
     onCancel: onClose,
+    onRunFailure,
   });
 
   const isSubmitting = form.isSubmitting || isCloning;
@@ -264,6 +272,15 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
             data-testid="start-evaluation-run-collection-name"
           >
             Benchmark suite: {collection.name}
+          </Content>
+        ) : null}
+        {description ? (
+          <Content
+            component="p"
+            className="evalhub-start-evaluation-run-modal__description"
+            data-testid="start-evaluation-run-description"
+          >
+            {description}
           </Content>
         ) : null}
         <FormProvider {...form.form}>

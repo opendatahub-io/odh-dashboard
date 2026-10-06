@@ -120,6 +120,18 @@ class EvaluationsPage {
     return cy.findByTestId(`benchmark-suite-card-primary-action-${collectionId}`);
   }
 
+  findBenchmarkSuiteDropdownToggle(collectionId: string) {
+    return cy.findByTestId(`benchmark-suite-card-dropdown-toggle-${collectionId}`);
+  }
+
+  findBenchmarkSuiteDropdownAction(collectionId: string) {
+    return cy.findByTestId(`benchmark-suite-card-dropdown-action-${collectionId}`);
+  }
+
+  findCuratedSuiteRunModal() {
+    return cy.findByTestId('curated-suite-start-evaluation-run-modal');
+  }
+
   findBenchmarkSuitesNameFilter() {
     return cy.findByTestId('benchmark-suites-name-filter');
   }

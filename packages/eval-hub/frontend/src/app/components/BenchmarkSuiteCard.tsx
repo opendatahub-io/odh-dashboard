@@ -16,6 +16,7 @@ import {
   List,
   ListItem,
   MenuToggle,
+  MenuToggleAction,
   Tooltip,
 } from '@patternfly/react-core';
 import {
@@ -71,6 +72,14 @@ export type BenchmarkSuiteCardAction = {
   label: string;
   onSelect: (collection: Collection) => void;
   isDanger?: boolean;
+};
+
+type BenchmarkSuiteCardButton = {
+  label: string;
+  onClick: () => void;
+  href?: string;
+  state?: unknown;
+  variant?: 'primary' | 'secondary' | 'tertiary';
 };
 
 type BenchmarkSuiteCardTagsProps = {
@@ -201,12 +210,8 @@ const BenchmarkSuiteCardTags: React.FC<BenchmarkSuiteCardTagsProps> = ({
 
 type BenchmarkSuiteCardProps = {
   collection: Collection;
-  primaryAction: {
-    label: string;
-    onClick: () => void;
-    href?: string;
-    state?: unknown;
-  };
+  primaryAction: BenchmarkSuiteCardButton;
+  dropdownAction?: BenchmarkSuiteCardButton;
   contextualActions?: BenchmarkSuiteCardAction[];
   onSelect?: (collection: Collection) => void;
   reservePopularHeader?: boolean;
@@ -215,11 +220,13 @@ type BenchmarkSuiteCardProps = {
 const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
   collection,
   primaryAction,
+  dropdownAction,
   contextualActions,
   onSelect,
   reservePopularHeader = false,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
   const domains = [...new Set(collection.domains ?? [])];
   const tags = collection.tags ?? [];
   const iconDomain =
@@ -296,26 +303,77 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
   const evaluationTargetsSummaryLabel = `Evaluation targets: ${
     evaluationTargetNames.join(', ') || 'No evaluation targets available'
   }`;
-  const primaryActionButton = primaryAction.href ? (
-    <Button
-      variant="secondary"
-      isInline
-      component={(props) => (
-        <Link {...props} to={primaryAction.href!} state={primaryAction.state} />
-      )}
-      data-testid={`benchmark-suite-card-primary-action-${collection.resource.id}`}
-    >
-      {primaryAction.label}
-    </Button>
-  ) : (
-    <Button
-      variant="secondary"
-      isInline
+  const renderActionButton = (action: BenchmarkSuiteCardButton, actionName: 'primary') =>
+    action.href ? (
+      <Button
+        variant={action.variant ?? 'secondary'}
+        isInline
+        component={(props) => <Link {...props} to={action.href!} state={action.state} />}
+        data-testid={`benchmark-suite-card-${actionName}-action-${collection.resource.id}`}
+      >
+        {action.label}
+      </Button>
+    ) : (
+      <Button
+        variant={action.variant ?? 'secondary'}
+        isInline
+        onClick={action.onClick}
+        data-testid={`benchmark-suite-card-${actionName}-action-${collection.resource.id}`}
+      >
+        {action.label}
+      </Button>
+    );
+
+  const primaryActionButton = dropdownAction ? (
+    <MenuToggleAction
+      key="primary-action"
+      aria-label={primaryAction.label}
       onClick={primaryAction.onClick}
       data-testid={`benchmark-suite-card-primary-action-${collection.resource.id}`}
     >
       {primaryAction.label}
-    </Button>
+    </MenuToggleAction>
+  ) : (
+    renderActionButton(primaryAction, 'primary')
+  );
+  const actionFooter = dropdownAction ? (
+    <Dropdown
+      isOpen={isActionMenuOpen}
+      onOpenChange={setIsActionMenuOpen}
+      toggle={(toggleRef) => (
+        <MenuToggle
+          ref={toggleRef}
+          variant={primaryAction.variant === 'secondary' ? 'secondary' : 'primary'}
+          splitButtonItems={[primaryActionButton]}
+          aria-label={`Actions for ${collection.name}`}
+          onClick={() => setIsActionMenuOpen((isOpen) => !isOpen)}
+          data-testid={`benchmark-suite-card-dropdown-toggle-${collection.resource.id}`}
+        />
+      )}
+    >
+      <DropdownList>
+        <DropdownItem
+          {...(dropdownAction.href
+            ? {
+                component: (props) => (
+                  <Link {...props} to={dropdownAction.href!} state={dropdownAction.state} />
+                ),
+              }
+            : {})}
+          onClick={() => {
+            setIsActionMenuOpen(false);
+            if (!dropdownAction.href) {
+              dropdownAction.onClick();
+            }
+          }}
+          data-testid={`benchmark-suite-card-dropdown-action-${collection.resource.id}`}
+        >
+          {dropdownAction.label}
+        </DropdownItem>
+      </DropdownList>
+    </Dropdown>
+  ) : (
+    primaryActionButton
   );
 
   return (
@@ -480,7 +538,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
               </Tooltip>
             </Flex>
           </FlexItem>
-          <FlexItem>{primaryActionButton}</FlexItem>
+          <FlexItem>{actionFooter}</FlexItem>
         </Flex>
       </CardFooter>
     </Card>

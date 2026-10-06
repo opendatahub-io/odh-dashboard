@@ -2,7 +2,12 @@ import * as React from 'react';
 import { Stack } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import BenchmarkSuitesGallery from '~/app/components/BenchmarkSuitesGallery';
-import { evaluationCopySuiteRoute, evaluationCreateSuiteRoute } from '~/app/routes';
+import CuratedSuiteRunModal from '~/app/components/CuratedSuiteRunModal';
+import {
+  evaluationCopySuiteRoute,
+  evaluationCreateSuiteRoute,
+  evaluationsBaseRoute,
+} from '~/app/routes';
 import type { Collection } from '~/app/types';
 
 type GalleryTabProps = {
@@ -11,6 +16,7 @@ type GalleryTabProps = {
 
 const GalleryTab: React.FC<GalleryTabProps> = ({ namespace }) => {
   const navigate = useNavigate();
+  const [collectionToRun, setCollectionToRun] = React.useState<Collection | undefined>();
 
   const handleCreateSuite = React.useCallback(() => {
     navigate(evaluationCreateSuiteRoute(namespace));
@@ -22,6 +28,15 @@ const GalleryTab: React.FC<GalleryTabProps> = ({ namespace }) => {
     },
     [navigate, namespace],
   );
+
+  const handleRunCollection = React.useCallback((collection: Collection) => {
+    setCollectionToRun(collection);
+  }, []);
+
+  const handleRunSuccess = React.useCallback(() => {
+    setCollectionToRun(undefined);
+    navigate({ pathname: evaluationsBaseRoute(namespace), search: '?tab=runs' });
+  }, [navigate, namespace]);
 
   return (
     <Stack
@@ -38,16 +53,29 @@ const GalleryTab: React.FC<GalleryTabProps> = ({ namespace }) => {
         showPagination
         showCreateSuiteCard={false}
         showContextualActions={false}
-        primaryActionLabel="Customize"
-        primaryActionRoute={(collection) =>
+        primaryActionLabel="Run"
+        primaryActionVariant="secondary"
+        dropdownActionLabel="Customize"
+        dropdownActionRoute={(collection) =>
           evaluationCopySuiteRoute(namespace, collection.resource.id)
         }
         onCreateSuite={handleCreateSuite}
-        onPrimaryAction={handleCustomizeCollection}
+        onPrimaryAction={handleRunCollection}
+        onDropdownAction={handleCustomizeCollection}
         onDuplicateCollection={handleCustomizeCollection}
         onSelectCollection={handleCustomizeCollection}
         createSuiteRoute={evaluationCreateSuiteRoute(namespace)}
       />
+      {collectionToRun ? (
+        <CuratedSuiteRunModal
+          isOpen
+          onClose={() => setCollectionToRun(undefined)}
+          namespace={namespace}
+          collection={collectionToRun}
+          trackingSource="curated_gallery"
+          onSuccess={handleRunSuccess}
+        />
+      ) : null}
     </Stack>
   );
 };

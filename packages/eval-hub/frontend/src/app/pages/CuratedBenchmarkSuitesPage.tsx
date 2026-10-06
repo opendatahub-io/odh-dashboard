@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import BenchmarkSuitesGallery from '~/app/components/BenchmarkSuitesGallery';
+import CuratedSuiteRunModal from '~/app/components/CuratedSuiteRunModal';
 import {
   evaluationCopySuiteRoute,
   evaluationCreateSuiteRoute,
@@ -19,6 +20,7 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
     evaluationTarget: string;
   }>();
   const navigate = useNavigate();
+  const [collectionToRun, setCollectionToRun] = React.useState<Collection | undefined>();
 
   const handleCreateSuite = React.useCallback(() => {
     navigate(evaluationCreateSuiteRoute(namespace));
@@ -33,6 +35,15 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
     [evaluationTarget, navigate, namespace],
   );
 
+  const handleRunCollection = React.useCallback((collection: Collection) => {
+    setCollectionToRun(collection);
+  }, []);
+
+  const handleRunSuccess = React.useCallback(() => {
+    setCollectionToRun(undefined);
+    navigate({ pathname: evaluationsBaseRoute(namespace), search: '?tab=runs' });
+  }, [navigate, namespace]);
+
   if (!isCuratedEvaluationTarget(evaluationTarget)) {
     return <NotFound />;
   }
@@ -40,58 +51,73 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
   const pageConfig = CURATED_SUITE_PAGE_CONFIG[evaluationTarget];
 
   return (
-    <ApplicationsPage
-      title={pageConfig.title}
-      description={pageConfig.description}
-      headerAction={
-        <Button
-          variant="primary"
-          onClick={handleCreateSuite}
-          data-testid="create-benchmark-suite-button"
-        >
-          Create benchmark suite
-        </Button>
-      }
-      breadcrumb={
-        <Breadcrumb>
-          <BreadcrumbItem
-            render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
-          />
-          <BreadcrumbItem isActive>{pageConfig.title}</BreadcrumbItem>
-        </Breadcrumb>
-      }
-      loaded
-      empty={false}
-    >
-      <PageSection hasBodyWrapper={false} isFilled>
-        <Stack
-          className="evalhub-benchmark-suites-page__content"
-          data-testid="curated-benchmark-suites-page"
-        >
-          <BenchmarkSuitesGallery
-            namespace={namespace ?? ''}
-            scope="system"
-            queryFilters={{ evaluationTargets: [evaluationTarget] }}
-            requireCuratedIndex
-            useMockFallback
-            showCreateSuiteCard={false}
-            showFilters
-            showEvaluatesFilter={false}
-            showPagination
-            showContextualActions={false}
-            primaryActionLabel="Customize"
-            primaryActionRoute={(collection) =>
-              evaluationCopySuiteRoute(namespace, collection.resource.id)
-            }
-            primaryActionState={{ sourceEvaluationTarget: evaluationTarget }}
-            onCreateSuite={handleCreateSuite}
-            onPrimaryAction={handleCustomizeCollection}
-            onDuplicateCollection={handleCustomizeCollection}
-            onSelectCollection={handleCustomizeCollection}
-          />
-        </Stack>
-      </PageSection>
-    </ApplicationsPage>
+    <>
+      <ApplicationsPage
+        title={pageConfig.title}
+        description={pageConfig.description}
+        headerAction={
+          <Button
+            variant="primary"
+            onClick={handleCreateSuite}
+            data-testid="create-benchmark-suite-button"
+          >
+            Create benchmark suite
+          </Button>
+        }
+        breadcrumb={
+          <Breadcrumb>
+            <BreadcrumbItem
+              render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
+            />
+            <BreadcrumbItem isActive>{pageConfig.title}</BreadcrumbItem>
+          </Breadcrumb>
+        }
+        loaded
+        empty={false}
+      >
+        <PageSection hasBodyWrapper={false} isFilled>
+          <Stack
+            className="evalhub-benchmark-suites-page__content"
+            data-testid="curated-benchmark-suites-page"
+          >
+            <BenchmarkSuitesGallery
+              namespace={namespace ?? ''}
+              scope="system"
+              queryFilters={{ evaluationTargets: [evaluationTarget] }}
+              requireCuratedIndex
+              useMockFallback
+              showCreateSuiteCard={false}
+              showFilters
+              showEvaluatesFilter={false}
+              showPagination
+              showContextualActions={false}
+              primaryActionLabel="Run"
+              primaryActionVariant="secondary"
+              dropdownActionLabel="Customize"
+              dropdownActionRoute={(collection) =>
+                evaluationCopySuiteRoute(namespace, collection.resource.id)
+              }
+              dropdownActionState={{ sourceEvaluationTarget: evaluationTarget }}
+              onCreateSuite={handleCreateSuite}
+              onPrimaryAction={handleRunCollection}
+              onDropdownAction={handleCustomizeCollection}
+              onDuplicateCollection={handleCustomizeCollection}
+              onSelectCollection={handleCustomizeCollection}
+            />
+          </Stack>
+        </PageSection>
+      </ApplicationsPage>
+      {collectionToRun ? (
+        <CuratedSuiteRunModal
+          isOpen
+          onClose={() => setCollectionToRun(undefined)}
+          namespace={namespace}
+          collection={collectionToRun}
+          trackingSource="curated_suite_page"
+          onSuccess={handleRunSuccess}
+        />
+      ) : null}
+    </>
   );
 };
 

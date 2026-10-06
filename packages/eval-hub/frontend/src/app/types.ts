@@ -419,7 +419,7 @@ export type CollectionFilterParams = {
 };
 
 export type CloneCollectionRequest = {
-  name: string;
+  name?: string;
   description?: string;
   category?: string;
   tags?: string[];

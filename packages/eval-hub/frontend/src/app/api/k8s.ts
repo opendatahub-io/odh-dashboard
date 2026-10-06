@@ -396,7 +396,15 @@ export const deleteCollection =
         { namespace },
         { ...opts, parseJSON: false },
       ),
-    ).then(() => undefined);
+    ).then((response) => {
+      // A successful delete returns 204 with an empty body. The shared REST
+      // helper does not reject based on HTTP status, so a non-empty response
+      // indicates that the BFF returned an error payload instead.
+      if (typeof response === 'string' && response.trim() !== '') {
+        throw new Error(response);
+      }
+      return undefined;
+    });
   };
 
 export const patchCollection =
