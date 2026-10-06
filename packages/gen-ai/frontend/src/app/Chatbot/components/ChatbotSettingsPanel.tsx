@@ -23,7 +23,7 @@ import {
 } from '@patternfly/react-core';
 import {
   ClipboardIcon,
-  DatabaseIcon,
+  BookIcon,
   ExclamationTriangleIcon,
   OutlinedQuestionCircleIcon,
   RobotIcon,
@@ -378,7 +378,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             <Tab
               eventKey={2}
               tabContentId="chatbot-settings-page-tab-content-knowledge"
-              title={renderTabTitle('RAG', <DatabaseIcon />)}
+              title={renderTabTitle('RAG', <BookIcon />)}
               aria-label="RAG"
               tooltip={areTabsCompact ? <Tooltip content="RAG" /> : undefined}
               data-testid="chatbot-settings-page-tab-knowledge"
