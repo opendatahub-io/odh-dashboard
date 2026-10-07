@@ -1,4 +1,4 @@
-import { mockLLMInferenceServiceK8sResource } from '../../__mocks__/mockLLMInferenceServiceK8sResource';
+import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceK8sResource';
 import { applyDefaultScheduler } from '../model';
 
 describe('applyDefaultScheduler', () => {
