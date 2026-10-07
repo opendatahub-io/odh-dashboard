@@ -1,13 +1,25 @@
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import { runtimeCatalogDetailsPage } from '../../../pages/runtimeCatalogDetails';
 import { asProductAdminUser, asProjectEditUser } from '../../../utils/mockUsers';
 import { pageNotfound } from '../../../pages/pageNotFound';
+import { getClipboardContent, stubClipboard } from '../../../utils/clipboardUtils';
 
 const settingsUrl = '/settings/model-resources-operations/model-deployment-settings';
-const catalogUrl = `${settingsUrl}/serving-runtime-catalog`;
 const runtimeId = 'catalog-vllm-0-6-2';
-const detailsUrl = `${catalogUrl}/${runtimeId}`;
+const servingRuntimeYaml = `# Example only. Not deployable.
+apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  name: cuda-vllm
+`;
+const llmAcceleratorYaml = `# Example only. Not deployable.
+apiVersion: serving.kserve.io/v1alpha1
+kind: LLMInferenceServiceConfig
+metadata:
+  name: cuda-vllm
+`;
 
 const setupRuntimeCatalog = (enabled = true): void => {
   cy.interceptOdh('GET /api/config', mockDashboardConfig({ runtimeCatalog: enabled }));
@@ -42,77 +54,71 @@ describe('Runtime image library details', () => {
   });
 
   it('displays the runtime details and catalog data', () => {
-    cy.visitWithLogin(detailsUrl);
-    cy.findByRole('heading', { name: 'CUDA vLLM 0.6.2' }).should('be.visible');
-    cy.findByRole('heading', { name: 'Description' }).should('be.visible');
-    cy.findByRole('heading', { name: 'Details' }).should('be.visible');
-    cy.findByText('A GPU runtime for vLLM model serving').should('be.visible');
-    cy.findByText('0.6.2').should('be.visible');
-    cy.findByText('safetensors, huggingface').should('be.visible');
-    cy.findByText('October 1, 2026').should('be.visible');
-    cy.findAllByText('N/A').should('have.length', 2);
-    cy.findByTestId('runtime-container-image-copy')
-      .findByRole('textbox')
+    runtimeCatalogDetailsPage.visit(runtimeId);
+    runtimeCatalogDetailsPage.findHeading('CUDA vLLM 0.6.2').should('be.visible');
+    runtimeCatalogDetailsPage.findHeading('Description').should('be.visible');
+    runtimeCatalogDetailsPage.findHeading('Details').should('be.visible');
+    runtimeCatalogDetailsPage.findText('A GPU runtime for vLLM model serving').should('be.visible');
+    runtimeCatalogDetailsPage.findText('0.6.2').should('be.visible');
+    runtimeCatalogDetailsPage.findText('safetensors, huggingface').should('be.visible');
+    runtimeCatalogDetailsPage.findText('October 1, 2026').should('be.visible');
+    runtimeCatalogDetailsPage.findAllText('N/A').should('have.length', 2);
+    runtimeCatalogDetailsPage
+      .findContainerImageInput()
       .should('have.value', 'registry.example.com/mock/vllm:0.6.2');
-    cy.findByRole('button', { name: 'Create' }).should('be.disabled');
-    cy.findByRole('button', { name: 'Install' }).should('not.exist');
-    cy.findByRole('tabpanel', { name: 'Serving runtime template' })
-      .findByText(/# Example only\. Not deployable\./)
-      .should('be.visible');
+    runtimeCatalogDetailsPage.findButton('Create').should('be.disabled');
+    runtimeCatalogDetailsPage.findButton('Install').should('not.exist');
+    runtimeCatalogDetailsPage
+      .findTemplatePanel('Serving runtime template')
+      .should('contain.text', '# Example only. Not deployable.');
     cy.testA11y();
   });
 
   it('copies the container image', () => {
-    cy.visitWithLogin(detailsUrl);
-    cy.window().then((window) => {
-      cy.stub(window.navigator.clipboard, 'writeText').as('clipboardWrite');
-    });
+    runtimeCatalogDetailsPage.visit(runtimeId);
+    stubClipboard('copiedImage');
 
-    cy.findByRole('button', { name: 'Copy container image' }).click();
-    cy.get('@clipboardWrite')
-      .its('firstCall.args.0')
+    runtimeCatalogDetailsPage.copyContainerImage();
+    getClipboardContent('copiedImage')
+      .its(0)
       .should('equal', 'registry.example.com/mock/vllm:0.6.2');
     cy.testA11y();
   });
 
   it('shows both configuration tabs and copies the selected YAML', () => {
-    cy.visitWithLogin(detailsUrl);
-    cy.findByRole('heading', { name: 'Available configurations' }).should('be.visible');
-    cy.findByText(/kind: ServingRuntime/).should('be.visible');
+    runtimeCatalogDetailsPage.visit(runtimeId);
+    runtimeCatalogDetailsPage.findHeading('Available configurations').should('be.visible');
+    runtimeCatalogDetailsPage.findText(/kind: ServingRuntime/).should('be.visible');
 
-    cy.window().then((window) => {
-      cy.stub(window.navigator.clipboard, 'writeText').as('clipboardWrite');
-    });
-    cy.findByRole('button', { name: 'Copy to clipboard' }).click();
-    cy.get('@clipboardWrite').its('firstCall.args.0').should('include', 'kind: ServingRuntime');
+    stubClipboard('copiedYaml');
+    runtimeCatalogDetailsPage.copySelectedYaml();
+    getClipboardContent('copiedYaml').its(0).should('equal', servingRuntimeYaml);
 
-    cy.findByRole('tab', { name: 'LLM accelerator configuration' }).click();
-    cy.findByText(/kind: LLMInferenceServiceConfig/).should('be.visible');
-    cy.findByRole('button', { name: 'Copy to clipboard' }).click();
-    cy.get('@clipboardWrite')
-      .its('secondCall.args.0')
-      .should('include', 'kind: LLMInferenceServiceConfig');
+    runtimeCatalogDetailsPage.selectConfigurationTab('LLM accelerator configuration');
+    runtimeCatalogDetailsPage.findText(/kind: LLMInferenceServiceConfig/).should('be.visible');
+    runtimeCatalogDetailsPage.copySelectedYaml();
+    getClipboardContent('copiedYaml').its(1).should('equal', llmAcceleratorYaml);
     cy.testA11y();
   });
 
   it('does not expose details when the feature flag is disabled', () => {
     setupRuntimeCatalog(false);
-    cy.visitWithLogin(detailsUrl);
+    runtimeCatalogDetailsPage.visit(runtimeId);
     cy.location('pathname').should('eq', `${settingsUrl}/general-settings`);
-    cy.findByTestId('runtime-catalog-details').should('not.exist');
+    runtimeCatalogDetailsPage.findPage().should('not.exist');
     cy.testA11y();
   });
 
   it('does not expose details to a non-admin user', () => {
     asProjectEditUser();
-    cy.visitWithLogin(detailsUrl);
+    runtimeCatalogDetailsPage.visit(runtimeId);
     pageNotfound.findPage().should('exist');
     cy.testA11y();
   });
 
   it('shows not found for an unknown runtime', () => {
-    cy.visitWithLogin(`${catalogUrl}/unknown-runtime`);
-    cy.findByRole('heading', { name: 'Runtime image not found' }).should('be.visible');
+    runtimeCatalogDetailsPage.visit('unknown-runtime');
+    runtimeCatalogDetailsPage.findHeading('Runtime image not found').should('be.visible');
     cy.testA11y();
   });
 });
