@@ -237,6 +237,7 @@ export type BYONImage = {
   software: BYONImagePackage[];
   packages: BYONImagePackage[];
   recommendedAcceleratorIdentifiers: string[];
+  tier?: string;
   isOOTB: boolean;
 };
 
