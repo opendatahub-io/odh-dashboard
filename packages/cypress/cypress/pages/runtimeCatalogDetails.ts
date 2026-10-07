@@ -17,32 +17,39 @@ class RuntimeCatalogDetailsPage {
     return this.findPage().findByText(text);
   }
 
-  findAllText(text: string) {
-    return this.findPage().findAllByText(text);
-  }
-
   findButton(name: string) {
     return this.findPage().findByRole('button', { name });
+  }
+
+  findVersionSelect() {
+    return this.findPage().findByTestId('runtime-version-select');
+  }
+
+  selectVersion(versionId: string) {
+    this.findVersionSelect().select(versionId);
   }
 
   findContainerImageInput() {
     return this.findPage().findByTestId('runtime-container-image-copy').findByRole('textbox');
   }
 
-  findTemplatePanel(name: string) {
-    return this.findPage().findByRole('tabpanel', { name });
+  findServingRuntimePanel() {
+    return this.findPage().findByTestId('runtime-serving-runtime-panel');
   }
 
-  selectConfigurationTab(name: string) {
-    this.findPage().findByRole('tab', { name }).click();
+  findServingRuntimeTab() {
+    return this.findPage().findByTestId('runtime-serving-runtime-tab');
   }
 
   copyContainerImage() {
-    this.findButton('Copy container image').click();
+    this.findPage()
+      .findByTestId('runtime-container-image-copy')
+      .findByRole('button', { name: 'Copy container image' })
+      .click();
   }
 
-  copySelectedYaml() {
-    this.findButton('Copy to clipboard').click();
+  copyServingRuntimeYaml() {
+    this.findPage().findByTestId('runtime-serving-runtime-copy').click();
   }
 }
 

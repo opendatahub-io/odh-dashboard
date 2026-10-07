@@ -4,7 +4,6 @@ import {
   Alert,
   Breadcrumb,
   BreadcrumbItem,
-  Button,
   Card,
   CardBody,
   CardHeader,
@@ -15,10 +14,8 @@ import {
   DescriptionListTerm,
   EmptyState,
   EmptyStateBody,
-  Flex,
-  FlexItem,
-  Label,
-  LabelGroup,
+  FormSelect,
+  FormSelectOption,
   PageSection,
   Sidebar,
   SidebarContent,
@@ -33,19 +30,13 @@ import {
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
 import CodeBlockComponent from '~/app/shared/markdown/components/CodeBlockComponent';
+import { ServingRuntime, ServingRuntimeVersion } from '~/odh/types/servingRuntimeCatalogTypes';
 import { formatRuntimePublishedDate, formatRuntimeTemplate } from './runtimeCatalogDetailsUtils';
-import {
-  RuntimeDetails,
-  RuntimeDisplayDetails,
-  sampleRuntimeDetails,
-  sampleRuntimeDisplayDetails,
-} from './runtimeCatalogMock';
-import './RuntimeCatalogDetailsView.scss';
 
 export type RuntimeCatalogDetailsViewProps = {
   breadcrumbs: { title: string; href: string }[];
-  runtimeDetails?: RuntimeDetails;
-  displayDetails?: RuntimeDisplayDetails;
+  runtimeDetails?: ServingRuntime | null;
+  runtimeVersions?: ServingRuntimeVersion[];
   loading?: boolean;
   error?: Error;
   notFound?: boolean;
@@ -53,25 +44,27 @@ export type RuntimeCatalogDetailsViewProps = {
 
 const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
   breadcrumbs,
-  runtimeDetails = sampleRuntimeDetails,
-  displayDetails,
+  runtimeDetails,
+  runtimeVersions = [],
   loading = false,
   error,
   notFound = false,
 }) => {
-  const { runtimeName = '' } = useParams<{ runtimeName: string }>();
-  const [activeTab, setActiveTab] = React.useState<string | number>('serving-runtime');
-  const runtimeNotFound = notFound || runtimeName !== runtimeDetails.id;
-  const isSample = runtimeDetails === sampleRuntimeDetails;
-  const resolvedDisplayDetails =
-    displayDetails ?? (isSample ? sampleRuntimeDisplayDetails : undefined);
-  const certifiedPlatforms =
-    resolvedDisplayDetails?.certifiedPlatform
-      .split(',')
-      .map((platform) => platform.trim())
-      .filter((platform) => Boolean(platform) && platform !== 'N/A') ?? [];
-  const modelFormats = runtimeDetails.supportedModelFormats?.map(({ name }) => name).join(', ');
-  const publishedDate = formatRuntimePublishedDate(runtimeDetails.publishedDate);
+  const { runtimeId = '' } = useParams<{ runtimeId: string }>();
+  const [selectedVersionId, setSelectedVersionId] = React.useState('');
+  const selectedVersion =
+    runtimeVersions.find((version) => (version.id || version.version) === selectedVersionId) ||
+    (runtimeVersions.length > 0 ? runtimeVersions[0] : undefined);
+  const runtimeNotFound = notFound || (!!runtimeDetails && runtimeId !== runtimeDetails.id);
+  const modelFormats = (
+    selectedVersion?.supportedModelFormats || runtimeDetails?.supportedModelFormats
+  )
+    ?.map(({ name }) => name)
+    .join(', ');
+  const publishedDate = formatRuntimePublishedDate(
+    selectedVersion ? selectedVersion.publishedDate : runtimeDetails?.publishedDate,
+  );
+  const hardware = runtimeDetails?.capabilities?.supportedAccelerators?.join(', ');
 
   return (
     <>
@@ -81,7 +74,9 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
             <BreadcrumbItem key={href} render={() => <Link to={href}>{title}</Link>} />
           ))}
           <BreadcrumbItem isActive>
-            {runtimeNotFound ? runtimeName : runtimeDetails.name}
+            {runtimeNotFound
+              ? runtimeId
+              : runtimeDetails?.displayName || runtimeDetails?.name || runtimeId}
           </BreadcrumbItem>
         </Breadcrumb>
       </PageSection>
@@ -92,26 +87,35 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
           </Alert>
         ) : loading ? (
           <Spinner aria-label="Loading runtime image" />
-        ) : runtimeNotFound ? (
+        ) : runtimeNotFound || !runtimeDetails ? (
           <EmptyState headingLevel="h1" icon={CubesIcon} titleText="Runtime image not found">
             <EmptyStateBody>The selected runtime image is not available.</EmptyStateBody>
           </EmptyState>
         ) : (
           <Stack hasGutter>
             <StackItem>
-              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                <FlexItem>
-                  <Title headingLevel="h1" size="2xl">
-                    {runtimeDetails.name}
-                  </Title>
-                </FlexItem>
-                <FlexItem>
-                  <Button variant="primary" isDisabled>
-                    Create
-                  </Button>
-                </FlexItem>
-              </Flex>
+              <Title headingLevel="h1" size="2xl">
+                {runtimeDetails.displayName || runtimeDetails.name || runtimeId}
+              </Title>
             </StackItem>
+            {runtimeVersions.length > 0 ? (
+              <StackItem>
+                <FormSelect
+                  aria-label="Runtime version"
+                  data-testid="runtime-version-select"
+                  value={selectedVersion?.id || selectedVersion?.version || ''}
+                  onChange={(_event, value) => setSelectedVersionId(value)}
+                >
+                  {runtimeVersions.map((version) => (
+                    <FormSelectOption
+                      key={version.id || version.version}
+                      value={version.id || version.version}
+                      label={version.version}
+                    />
+                  ))}
+                </FormSelect>
+              </StackItem>
+            ) : null}
             <StackItem>
               <Sidebar hasGutter isPanelRight>
                 <SidebarContent>
@@ -123,75 +127,50 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                             Description
                           </Title>
                         </CardHeader>
-                        <CardBody>{runtimeDetails.description}</CardBody>
+                        <CardBody>{runtimeDetails.description || 'N/A'}</CardBody>
                       </Card>
                     </StackItem>
-                    <StackItem>
-                      <Card>
-                        <CardHeader>
-                          <Title headingLevel="h2" size="lg">
-                            Available configurations
-                          </Title>
-                        </CardHeader>
-                        <CardBody>
-                          <Tabs
-                            activeKey={activeTab}
-                            onSelect={(_event, tabKey) => setActiveTab(tabKey)}
-                            aria-label="Runtime configurations"
-                          >
-                            <Tab
-                              eventKey="serving-runtime"
-                              title={<TabTitleText>Serving runtime template</TabTitleText>}
-                            >
-                              <Stack hasGutter className="pf-v6-u-mt-md">
-                                <StackItem>
-                                  <Title headingLevel="h3" size="md">
-                                    Serving runtime template
-                                  </Title>
-                                </StackItem>
-                                <StackItem>
-                                  Use this configuration for model serving. It appears under Serving
-                                  runtime templates and in the model deployment wizard.
-                                </StackItem>
-                                <StackItem>
-                                  <CodeBlockComponent>
-                                    {formatRuntimeTemplate(
-                                      runtimeDetails.servingRuntimeTemplate,
-                                      isSample,
-                                    )}
-                                  </CodeBlockComponent>
-                                </StackItem>
-                              </Stack>
-                            </Tab>
-                            <Tab
-                              eventKey="llm-accelerator"
-                              title={<TabTitleText>LLM accelerator configuration</TabTitleText>}
-                            >
-                              <Stack hasGutter className="pf-v6-u-mt-md">
-                                <StackItem>
-                                  <Title headingLevel="h3" size="md">
-                                    LLM accelerator configuration
-                                  </Title>
-                                </StackItem>
-                                <StackItem>
-                                  Use this configuration for LLM inference services. It appears
-                                  under LLM accelerator configurations and in the LLM inference
-                                  service deployment wizard.
-                                </StackItem>
-                                <StackItem>
-                                  <CodeBlockComponent>
-                                    {formatRuntimeTemplate(
-                                      runtimeDetails.llmInferenceServiceTemplate,
-                                      isSample,
-                                    )}
-                                  </CodeBlockComponent>
-                                </StackItem>
-                              </Stack>
-                            </Tab>
-                          </Tabs>
-                        </CardBody>
-                      </Card>
-                    </StackItem>
+                    {selectedVersion?.template ? (
+                      <StackItem>
+                        <Card>
+                          <CardHeader>
+                            <Title headingLevel="h2" size="lg">
+                              Available configurations
+                            </Title>
+                          </CardHeader>
+                          <CardBody>
+                            <Tabs activeKey="serving-runtime" aria-label="Runtime configurations">
+                              <Tab
+                                eventKey="serving-runtime"
+                                data-testid="runtime-serving-runtime-tab"
+                                title={<TabTitleText>Serving runtime template</TabTitleText>}
+                              >
+                                <Stack
+                                  hasGutter
+                                  className="pf-v6-u-mt-md"
+                                  data-testid="runtime-serving-runtime-panel"
+                                >
+                                  <StackItem>
+                                    <Title headingLevel="h3" size="md">
+                                      Serving runtime template
+                                    </Title>
+                                  </StackItem>
+                                  <StackItem>
+                                    Use this configuration for model serving. It appears under
+                                    Serving runtime templates and in the model deployment wizard.
+                                  </StackItem>
+                                  <StackItem>
+                                    <CodeBlockComponent copyTestId="runtime-serving-runtime-copy">
+                                      {formatRuntimeTemplate(selectedVersion.template)}
+                                    </CodeBlockComponent>
+                                  </StackItem>
+                                </Stack>
+                              </Tab>
+                            </Tabs>
+                          </CardBody>
+                        </Card>
+                      </StackItem>
+                    ) : null}
                   </Stack>
                 </SidebarContent>
                 <SidebarPanel width={{ default: 'width_33' }}>
@@ -204,11 +183,11 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                     <CardBody>
                       <DescriptionList>
                         {[
-                          ['Version', runtimeDetails.version],
-                          ['Hardware', resolvedDisplayDetails?.hardware],
+                          ['Version', selectedVersion?.version],
+                          ['Hardware', hardware],
                           ['Model formats', modelFormats],
-                          ['Container image', runtimeDetails.image],
-                          ['Certified platform', resolvedDisplayDetails?.certifiedPlatform],
+                          ['Container image', selectedVersion?.image],
+                          ['Certified platform', undefined],
                           ['Publish on', publishedDate],
                         ].map(([label, value]) => (
                           <DescriptionListGroup key={label}>
@@ -222,23 +201,6 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                                 >
                                   {value}
                                 </ClipboardCopy>
-                              ) : label === 'Certified platform' ? (
-                                certifiedPlatforms.length > 0 ? (
-                                  <LabelGroup numLabels={certifiedPlatforms.length}>
-                                    {certifiedPlatforms.map((platform) => (
-                                      <Label
-                                        key={platform}
-                                        variant="outline"
-                                        className="odh-runtime-catalog-certified-platform"
-                                        data-testid="runtime-certified-platform-label"
-                                      >
-                                        {platform}
-                                      </Label>
-                                    ))}
-                                  </LabelGroup>
-                                ) : (
-                                  'N/A'
-                                )
                               ) : (
                                 value || 'N/A'
                               )}

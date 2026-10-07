@@ -1,14 +1,13 @@
 import yaml from 'js-yaml';
 
-export const formatRuntimeTemplate = (template: string | undefined, isSample: boolean): string => {
+export const formatRuntimeTemplate = (template: string | undefined): string => {
   if (!template) {
     return 'N/A';
   }
-  const warning = isSample ? '# Example only. Not deployable.\n' : '';
   try {
-    return warning + yaml.dump(JSON.parse(template), { lineWidth: -1, noRefs: true });
+    return yaml.dump(JSON.parse(template), { lineWidth: -1, noRefs: true });
   } catch {
-    return warning + template;
+    return template;
   }
 };
 

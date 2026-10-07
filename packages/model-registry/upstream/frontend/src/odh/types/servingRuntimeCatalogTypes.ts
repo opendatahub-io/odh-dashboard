@@ -113,7 +113,7 @@ export interface ServingRuntimeCatalogAPIs {
     opts: APIOptions,
     params?: ServingRuntimeListParams,
   ) => Promise<ServingRuntimeList>;
-  getServingRuntime: (opts: APIOptions, runtimeId: string) => Promise<ServingRuntime>;
+  getServingRuntime: (opts: APIOptions, runtimeId: string) => Promise<ServingRuntime | null>;
   getServingRuntimeVersions: (
     opts: APIOptions,
     runtimeId: string,

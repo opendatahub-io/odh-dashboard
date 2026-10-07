@@ -130,7 +130,7 @@ const extensions: (
       required: [SupportedArea.RUNTIME_CATALOG, ADMIN_USER],
     },
     properties: {
-      path: `${RUNTIME_CATALOG_TAB_PATH}/:runtimeName`,
+      path: `${RUNTIME_CATALOG_TAB_PATH}/:runtimeId`,
       component: () =>
         import('./RuntimeCatalogWrapper').then((module) => ({
           default: module.RuntimeCatalogDetailsWrapper,

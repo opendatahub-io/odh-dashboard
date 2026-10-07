@@ -7,7 +7,7 @@ describe('formatRuntimeTemplate', () => {
   it('should convert JSON with nested fields to YAML', () => {
     const template = '{"kind":"ServingRuntime","metadata":{"name":"example"}}';
 
-    expect(formatRuntimeTemplate(template, false)).toBe(
+    expect(formatRuntimeTemplate(template)).toBe(
       'kind: ServingRuntime\nmetadata:\n  name: example\n',
     );
   });
@@ -15,21 +15,12 @@ describe('formatRuntimeTemplate', () => {
   it('should preserve a raw YAML template', () => {
     const template = 'kind: ServingRuntime\nmetadata:\n  name: raw-runtime\n';
 
-    expect(formatRuntimeTemplate(template, false)).toBe(template);
+    expect(formatRuntimeTemplate(template)).toBe(template);
   });
 
   it('should return N/A when the template is absent', () => {
-    expect(formatRuntimeTemplate(undefined, false)).toBe('N/A');
-    expect(formatRuntimeTemplate('', true)).toBe('N/A');
-  });
-
-  it('should prefix sample templates with a deployment warning', () => {
-    expect(formatRuntimeTemplate('{"kind":"ServingRuntime"}', true)).toBe(
-      '# Example only. Not deployable.\nkind: ServingRuntime\n',
-    );
-    expect(formatRuntimeTemplate('kind: ServingRuntime\n', true)).toBe(
-      '# Example only. Not deployable.\nkind: ServingRuntime\n',
-    );
+    expect(formatRuntimeTemplate(undefined)).toBe('N/A');
+    expect(formatRuntimeTemplate('')).toBe('N/A');
   });
 });
 
