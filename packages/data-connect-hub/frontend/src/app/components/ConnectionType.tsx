@@ -59,7 +59,7 @@ type ConnectionTypeCapabilityDetails = Identified<ConnectionTypeCapability> &
   Colored<LabelColor>;
 
 type BaseConnectionTypeProps = {
-  connectionType: ConnectionType;
+  connectionType: ConnectionTypeInstance;
 };
 
 // Globals -------------------------------------------------------------------->
@@ -247,10 +247,7 @@ const ConnectionTypeIcon: React.FC<ConnectionTypeIconProps> = ({ connectionType,
 };
 
 type ConnectionTypeLabelProps = BaseConnectionTypeProps;
-const ConnectionTypeLabel: React.FC<ConnectionTypeLabelProps> = ({
-  connectionType: _connectionType,
-}) => {
-  const connectionType = new ConnectionTypeInstance(_connectionType);
+const ConnectionTypeLabel: React.FC<ConnectionTypeLabelProps> = ({ connectionType }) => {
   let capability = ConnectionTypeCapabilities.full_integration;
   if (connectionType.isCredentialsOnly()) {
     capability = ConnectionTypeCapabilities.credentials;
@@ -265,12 +262,11 @@ type ConnectionTypeCardProps = BaseConnectionTypeProps & {
   isSelected?: boolean;
 };
 const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
-  connectionType: _connectionType,
+  connectionType,
   onClick,
   isSelectable = false,
   isSelected = false,
 }) => {
-  const connectionType = new ConnectionTypeInstance(_connectionType);
   const rootId = ConnectionTypeCardIdentifier(connectionType.metadata.id);
   return (
     <Card
@@ -296,7 +292,7 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
             <ConnectionTypeIcon connectionType={connectionType} iconProps={{ size: 'xl' }} />
           </LevelItem>
           <LevelItem>
-            <ConnectionTypeLabel key="ConnectionTypeLabel" connectionType={_connectionType} />
+            <ConnectionTypeLabel key="ConnectionTypeLabel" connectionType={connectionType} />
           </LevelItem>
         </Level>
       </CardHeader>
@@ -309,10 +305,7 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
 };
 
 type ConnectionTypeValuesProps = BaseConnectionTypeProps;
-const ConnectionTypeValues: React.FC<ConnectionTypeValuesProps> = ({
-  connectionType: _connectionType,
-}) => {
-  const connectionType = new ConnectionTypeInstance(_connectionType);
+const ConnectionTypeValues: React.FC<ConnectionTypeValuesProps> = ({ connectionType }) => {
   const valuesToRender = Object.values(renderedConnectionTypeValues).filter(
     (v) => v.shouldRender !== false,
   );
