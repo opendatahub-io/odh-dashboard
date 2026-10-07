@@ -14,7 +14,7 @@ type GenAiContextProps = {
 
 type GenAiContextProviderProps = {
   children: React.ReactNode;
-  namespaceParam: string;
+  namespaceParam?: string;
 };
 
 export const GenAiContext = React.createContext<GenAiContextProps>({

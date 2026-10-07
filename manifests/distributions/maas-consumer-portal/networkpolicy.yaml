@@ -10,7 +10,10 @@ spec:
     - Ingress
     - Egress
   ingress:
-    - from:
+    - ports:
+        - protocol: TCP
+          port: 8443
+      from:
         - namespaceSelector:
             matchLabels:
               network.openshift.io/policy-group: ingress

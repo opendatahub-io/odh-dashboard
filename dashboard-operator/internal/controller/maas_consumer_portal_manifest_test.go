@@ -53,6 +53,8 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	params := readExistingParams(filepath.Join(dir, "params.env"))
 	params["core-bff-image"] = maasConsumerPortalCoreBFFImage
 	params["dashboard-namespace"] = "portal-test"
+	params["perses-namespace"] = "custom-perses"
+	params["operator-namespace"] = "custom-operators"
 	params["gateway-name"] = "portal-gateway"
 	params["maas-consumer-portal-federation-config"] = "maas-consumer-portal-federation-test"
 	require.NoError(t, writeParamsEnv(dir, params))
@@ -60,12 +62,14 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	engine := kustomize.NewEngine()
 	rendered, err := engine.Render(dir, kustomize.WithNamespace("portal-test"))
 	require.NoError(t, err)
-	require.Len(t, rendered, 8, "bundle must render its seven operand resources and params ConfigMap")
+	rendered = setMaaSConsumerPortalOperatorSubscriptionNamespaces(rendered, "custom-operators")
+	require.Len(t, rendered, 19, "bundle must include scoped subscription RBAC in default and configured operator namespaces")
 
 	resources := make(map[string]*unstructured.Unstructured, len(rendered))
 	for i := range rendered {
 		resource := &rendered[i]
 		resources[resource.GetKind()+"/"+resource.GetName()] = resource
+		resources[resource.GetKind()+"/"+resource.GetName()+"/"+resource.GetNamespace()] = resource
 		assert.Equal(t, maasConsumerPortalName, resource.GetLabels()["app.kubernetes.io/component"])
 		assert.Equal(t, maasConsumerPortalName, resource.GetLabels()["app.kubernetes.io/part-of"])
 		assert.Equal(t, maasConsumerPortalName, resource.GetLabels()["platform.opendatahub.io/part-of"])
@@ -101,6 +105,7 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	require.Len(t, containers, 1)
 	container := containers[0].(map[string]interface{})
 	assert.Equal(t, maasConsumerPortalCoreBFFImage, container["image"])
+	assert.Equal(t, "custom-operators", namedManifestObject(t, container["env"].([]interface{}), "OPERATOR_NAMESPACE")["value"])
 	assert.Contains(t, container["args"], "--deployment-mode=standalone")
 	assert.Contains(t, container["args"], "--platform-type=OpenShift")
 	assert.Contains(t, container["args"], "--namespace=portal-test")
@@ -207,7 +212,7 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	rules, found, err = unstructured.NestedSlice(role.Object, "rules")
 	require.NoError(t, err)
 	require.True(t, found)
-	require.Len(t, rules, 2, "portal RBAC is limited to DSC and ingress discovery")
+	require.Len(t, rules, 2, "portal ClusterRole is limited to cluster-scoped DSC and ingress discovery")
 	assert.Equal(t, []interface{}{"datasciencecluster.opendatahub.io"}, rules[0].(map[string]interface{})["apiGroups"])
 	assert.Equal(t, []interface{}{"datascienceclusters"}, rules[0].(map[string]interface{})["resources"])
 	assert.Equal(t, []interface{}{"get", "list"}, rules[0].(map[string]interface{})["verbs"])
@@ -215,12 +220,18 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	assert.Equal(t, []interface{}{"ingresses"}, rules[1].(map[string]interface{})["resources"])
 	assert.Equal(t, []interface{}{"get"}, rules[1].(map[string]interface{})["verbs"])
 
+	assertOperatorSubscriptionRole(t, resources, "redhat-ods-operator", "rhods-operator")
+	assertOperatorSubscriptionRole(t, resources, "opendatahub-operator", "opendatahub-operator")
+	assertOperatorSubscriptionRole(t, resources, "openshift-operators", "opendatahub-operator")
+	assertOperatorSubscriptionRole(t, resources, "custom-operators", "rhods-operator")
+	assertOperatorSubscriptionRole(t, resources, "custom-operators", "opendatahub-operator")
+
 	networkPolicy := resources["NetworkPolicy/"+maasConsumerPortalName]
 	require.NotNil(t, networkPolicy)
 	egress, found, err := unstructured.NestedSlice(networkPolicy.Object, "spec", "egress")
 	require.NoError(t, err)
 	require.True(t, found)
-	require.Len(t, egress, 4, "portal egress is limited to DNS, Kubernetes API, MaaS, and GenAI")
+	require.Len(t, egress, 4, "base portal egress is limited to DNS, Kubernetes API, MaaS, and GenAI")
 	assert.Equal(t, []interface{}{map[string]interface{}{"namespaceSelector": map[string]interface{}{"matchLabels": map[string]interface{}{"kubernetes.io/metadata.name": "openshift-dns"}}}}, egress[0].(map[string]interface{})["to"])
 	assert.Equal(t, []interface{}{map[string]interface{}{"protocol": "UDP", "port": int64(5353)}, map[string]interface{}{"protocol": "TCP", "port": int64(5353)}}, egress[0].(map[string]interface{})["ports"])
 	assert.Equal(t, []interface{}{map[string]interface{}{"ipBlock": map[string]interface{}{"cidr": "0.0.0.0/0"}}}, egress[1].(map[string]interface{})["to"])
@@ -235,6 +246,71 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 		"podSelector":       map[string]interface{}{"matchLabels": map[string]interface{}{"deployment": "gen-ai-ui"}},
 	}}, egress[3].(map[string]interface{})["to"])
 	assert.Equal(t, []interface{}{map[string]interface{}{"protocol": "TCP", "port": int64(8143)}}, egress[3].(map[string]interface{})["ports"])
+	persesNetworkPolicy := resources["NetworkPolicy/"+maasConsumerPortalName+"-perses"]
+	require.NotNil(t, persesNetworkPolicy)
+	podSelector, found, err := unstructured.NestedStringMap(persesNetworkPolicy.Object, "spec", "podSelector", "matchLabels")
+	require.NoError(t, err)
+	require.True(t, found)
+	assert.Equal(t, map[string]string{"deployment": maasConsumerPortalName}, podSelector)
+	policyTypes, found, err := unstructured.NestedStringSlice(persesNetworkPolicy.Object, "spec", "policyTypes")
+	require.NoError(t, err)
+	require.True(t, found)
+	assert.Equal(t, []string{"Egress"}, policyTypes)
+	persesEgress, found, err := unstructured.NestedSlice(persesNetworkPolicy.Object, "spec", "egress")
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Len(t, persesEgress, 1)
+	assert.Equal(t, []interface{}{map[string]interface{}{
+		"namespaceSelector": map[string]interface{}{"matchLabels": map[string]interface{}{"kubernetes.io/metadata.name": "custom-perses"}},
+		"podSelector":       map[string]interface{}{"matchLabels": map[string]interface{}{"app.kubernetes.io/managed-by": "perses-operator"}},
+	}}, persesEgress[0].(map[string]interface{})["to"])
+	assert.Equal(t, []interface{}{map[string]interface{}{"protocol": "TCP", "port": int64(8080)}}, persesEgress[0].(map[string]interface{})["ports"])
+}
+
+func TestFilterMaaSConsumerPortalResources(t *testing.T) {
+	resources := []unstructured.Unstructured{
+		{Object: map[string]interface{}{"kind": "Role", "metadata": map[string]interface{}{"name": "maas-consumer-portal-rhods-operator-subscription"}}},
+		{Object: map[string]interface{}{"kind": "RoleBinding", "metadata": map[string]interface{}{"name": "maas-consumer-portal-rhods-operator-subscription"}}},
+		{Object: map[string]interface{}{"kind": "Role", "metadata": map[string]interface{}{"name": "maas-consumer-portal-opendatahub-operator-subscription"}}},
+		{Object: map[string]interface{}{"kind": "RoleBinding", "metadata": map[string]interface{}{"name": "maas-consumer-portal-opendatahub-operator-subscription"}}},
+		{Object: map[string]interface{}{"kind": "Deployment", "metadata": map[string]interface{}{"name": maasConsumerPortalName}}},
+	}
+
+	filtered := filterMaaSConsumerPortalResources(resources, map[string]struct{}{"redhat-ods-operator": {}})
+
+	require.Len(t, filtered, 3)
+	assert.Equal(t, "maas-consumer-portal-rhods-operator-subscription", filtered[0].GetName())
+	assert.Equal(t, "maas-consumer-portal-rhods-operator-subscription", filtered[1].GetName())
+	assert.Equal(t, maasConsumerPortalName, filtered[2].GetName())
+}
+
+func assertOperatorSubscriptionRole(t *testing.T, resources map[string]*unstructured.Unstructured, namespace, subscriptionName string) {
+	t.Helper()
+	name := "maas-consumer-portal-" + subscriptionName + "-subscription"
+	role := resources["Role/"+name+"/"+namespace]
+	require.NotNil(t, role)
+	assert.Equal(t, namespace, role.GetNamespace())
+	rules, found, err := unstructured.NestedSlice(role.Object, "rules")
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Len(t, rules, 1)
+	assert.Equal(t, []interface{}{"operators.coreos.com"}, rules[0].(map[string]interface{})["apiGroups"])
+	assert.Equal(t, []interface{}{"subscriptions"}, rules[0].(map[string]interface{})["resources"])
+	assert.Equal(t, []interface{}{subscriptionName}, rules[0].(map[string]interface{})["resourceNames"])
+	assert.Equal(t, []interface{}{"get"}, rules[0].(map[string]interface{})["verbs"])
+
+	binding := resources["RoleBinding/"+name+"/"+namespace]
+	require.NotNil(t, binding)
+	roleRef, found, err := unstructured.NestedStringMap(binding.Object, "roleRef")
+	require.NoError(t, err)
+	require.True(t, found)
+	assert.Equal(t, "Role", roleRef["kind"])
+	assert.Equal(t, name, roleRef["name"])
+	subjects, found, err := unstructured.NestedSlice(binding.Object, "subjects")
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Len(t, subjects, 1)
+	assert.Equal(t, "portal-test", subjects[0].(map[string]interface{})["namespace"])
 }
 
 func namedManifestObject(t *testing.T, objects []interface{}, name string) map[string]interface{} {

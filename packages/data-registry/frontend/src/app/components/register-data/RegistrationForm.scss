@@ -1,0 +1,14 @@
+.odh-data-registry-registration-form {
+  .pf-v6-c-form__section {
+    gap: var(--pf-t--global--spacer--sm);
+  }
+
+  .pf-v6-c-form__section .pf-v6-c-content--p {
+    margin-block-end: 0;
+  }
+
+  // Schema is part of the data asset format section, so keep it closer to the format fields.
+  .odh-data-registry-schema-section {
+    margin-block-start: calc(-1 * var(--pf-t--global--spacer--sm));
+  }
+}

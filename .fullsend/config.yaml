@@ -10,14 +10,20 @@ runtime: claude
 keep_history: false
 models:
     # Pi includes configured aliases in the trusted subagent model set. Keep
-    # both GPT-6 models available so review personas can use the appropriate
-    # quality/cost tier within one OpenAI-backed run.
+    # both tiers (GPT-6.1 Sol, GPT-6 Luna) available so review personas can use
+    # the appropriate quality/cost tier within one OpenAI-backed run.
     aliases:
-        opus: openai/gpt-6-sol
+        opus: openai/gpt-6.1-sol
         sonnet: openai/gpt-6-luna
 roles:
     - review
+    # Enables the fix stage (Fullsend maps fix to the coder role). The coder
+    # role also covers issue-driven /fs-code, which stays off via the code
+    # entry below.
+    - coder
 agents:
+    - name: code
+      enabled: false
     # Dashboard overlay; the base harness still supplies Fullsend's review skills.
     - name: review
       source: harness/review.yaml
@@ -26,12 +32,15 @@ agents:
       runtime: pi
       model: openai/gpt-6-luna
       subagents:
-          challenger: openai/gpt-6-sol
-          correctness: openai/gpt-6-sol
-          cross-repo-contracts: openai/gpt-6-sol
+          challenger: openai/gpt-6.1-sol
+          correctness: openai/gpt-6.1-sol
+          cross-repo-contracts: openai/gpt-6.1-sol
           docs-currency: openai/gpt-6-luna
-          intent-coherence: openai/gpt-6-sol
-          security: openai/gpt-6-sol
+          intent-coherence: openai/gpt-6.1-sol
+          investigator: openai/gpt-6-luna
+          # Rating's risk/confidence gates approval; tiny output, so pay for Sol.
+          rating: openai/gpt-6.1-sol
+          security: openai/gpt-6.1-sol
           security-triage: openai/gpt-6-luna
           style-conventions: openai/gpt-6-luna
 allowed_remote_resources:

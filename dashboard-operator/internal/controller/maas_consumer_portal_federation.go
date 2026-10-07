@@ -95,8 +95,9 @@ func (r *DashboardReconciler) patchMaaSConsumerPortalDeploymentFederationHash(ct
 // ingress rewriting remains outside aggregate module orchestration.
 func (r *DashboardReconciler) buildMaaSConsumerPortalFederationConfigMap(
 	statuses map[string]v1alpha1.ModuleStatus,
+	observability *v1alpha1.ObservabilitySpec,
 ) (*corev1.ConfigMap, error) {
-	entries := make([]federationEntry, 0, 2)
+	entries := make([]federationEntry, 0, 3)
 	for _, name := range maasConsumerPortalRequiredModuleNames() {
 		mod := moduleRegistry[name]
 		status := statuses[name]
@@ -104,6 +105,9 @@ func (r *DashboardReconciler) buildMaaSConsumerPortalFederationConfigMap(
 			continue
 		}
 		entries = append(entries, r.moduleFederationEntry(name, mod))
+	}
+	if entry := persesFederationEntry(observability); entry != nil {
+		entries = append(entries, *entry)
 	}
 	data, err := json.MarshalIndent(entries, "    ", "  ")
 	if err != nil {
@@ -118,7 +122,7 @@ func (r *DashboardReconciler) buildMaaSConsumerPortalFederationConfigMap(
 	}, nil
 }
 
-func (r *DashboardReconciler) deployMaaSConsumerPortalFederationConfigMap(ctx context.Context, dashboard *v1alpha1.Dashboard, statuses map[string]v1alpha1.ModuleStatus) error {
+func (r *DashboardReconciler) deployMaaSConsumerPortalFederationConfigMap(ctx context.Context, dashboard *v1alpha1.Dashboard, statuses map[string]v1alpha1.ModuleStatus, observabilityKnown bool) error {
 	portal := effectiveMaaSPortal(dashboard.Spec)
 	if portal == nil || portal.ManagementState != "Managed" || !maasConsumerPortalSupportedPlatform(r.Platform) {
 		configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalFederationConfigMapName, Namespace: r.ApplicationsNamespace}}
@@ -127,9 +131,14 @@ func (r *DashboardReconciler) deployMaaSConsumerPortalFederationConfigMap(ctx co
 		}
 		return nil
 	}
-	configMap, err := r.buildMaaSConsumerPortalFederationConfigMap(statuses)
+	configMap, err := r.buildMaaSConsumerPortalFederationConfigMap(statuses, dashboard.Spec.Observability)
 	if err != nil {
 		return err
+	}
+	if !observabilityKnown {
+		if err := r.preservePersesFederationEntry(ctx, configMap); err != nil {
+			return err
+		}
 	}
 	resource, err := configMapToUnstructured(configMap)
 	if err != nil {

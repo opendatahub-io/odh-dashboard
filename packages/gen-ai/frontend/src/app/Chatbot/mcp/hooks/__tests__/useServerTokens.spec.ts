@@ -136,6 +136,35 @@ describe('useServerTokens', () => {
     expect(result.current.getToken('https://server2.com')).toBeDefined();
   });
 
+  it('should retain tokens from updates batched in the same render', () => {
+    const { result } = renderHook(() =>
+      useServerTokens({
+        onServerTokensChange: mockOnServerTokensChange,
+      }),
+    );
+
+    act(() => {
+      result.current.updateToken('https://server1.com', {
+        token: 'token1',
+        authenticated: true,
+        autoConnected: false,
+      });
+      result.current.updateToken('https://server2.com', {
+        token: 'token2',
+        authenticated: true,
+        autoConnected: false,
+      });
+    });
+
+    expect(result.current.serverTokens).toEqual(
+      new Map([
+        ['https://server1.com', expect.objectContaining({ token: 'token1' })],
+        ['https://server2.com', expect.objectContaining({ token: 'token2' })],
+      ]),
+    );
+    expect(mockOnServerTokensChange).toHaveBeenLastCalledWith(result.current.serverTokens);
+  });
+
   it('should maintain referential stability of functions', () => {
     const { result, rerender } = renderHook(() =>
       useServerTokens({

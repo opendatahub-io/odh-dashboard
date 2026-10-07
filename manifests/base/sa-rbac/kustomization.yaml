@@ -4,7 +4,6 @@ resources:
   - ./auth-delegator.clusterrolebinding.yaml
   - ./cluster-role.yaml
   - ./cluster-role-binding.yaml
-  - ./cluster-monitoring-role-binding.yaml
   - ./image-puller.clusterrolebinding.yaml
   - ./role.yaml
   - ./role-binding.yaml

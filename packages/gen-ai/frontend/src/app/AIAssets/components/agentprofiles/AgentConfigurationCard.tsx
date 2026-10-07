@@ -12,6 +12,8 @@ import {
 } from '@patternfly/react-core';
 import { AgentProfile, AgentProfileMcpServer } from '~/app/agentProfile/types';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
+import { AIModel } from '~/app/types';
+import { getLlamaModelDisplayName } from '~/app/utilities';
 
 type AgentConfigurationCardProps = {
   profile: Pick<AgentProfile, 'spec'>;
@@ -19,6 +21,7 @@ type AgentConfigurationCardProps = {
   lastModified?: string;
   deployedAt?: string;
   isSavedConfiguration?: boolean;
+  aiModels?: AIModel[];
 };
 
 const formatDate = (value: string): string => {
@@ -43,6 +46,7 @@ const AgentConfigurationCard: React.FC<AgentConfigurationCardProps> = ({
   lastModified,
   deployedAt,
   isSavedConfiguration = false,
+  aiModels = [],
 }) => {
   const tools = profile.spec.mcpServers ?? [];
   const vectorStoreIDs = (profile.spec.vectorStores?.stores ?? [])
@@ -50,6 +54,7 @@ const AgentConfigurationCard: React.FC<AgentConfigurationCardProps> = ({
     .filter((storeID): storeID is string => Boolean(storeID));
   const guardrailCount = profile.spec.guardrails?.length ?? 0;
   const guardrailsEnabled = useGuardrailsEnabled();
+  const modelDisplayName = getLlamaModelDisplayName(profile.spec.model.id, aiModels);
 
   return (
     <Card isFullHeight data-testid="agent-configuration-card">
@@ -79,7 +84,7 @@ const AgentConfigurationCard: React.FC<AgentConfigurationCardProps> = ({
               Model
             </FlexItem>
             <FlexItem component="dd" className="pf-v6-u-m-0">
-              {profile.spec.model.id}
+              {modelDisplayName || profile.spec.model.id}
             </FlexItem>
           </Flex>
           {profile.spec.prompt && (
