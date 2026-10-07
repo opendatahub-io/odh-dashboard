@@ -74,6 +74,14 @@ describe('Gen AI API Contract Tests', () => {
         status: 200,
       });
     });
+
+    it('should list MaaS models without a namespace', async () => {
+      const result = await apiClient.get('/gen-ai/api/v1/aaa/models?sources=maas');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/AAModelsResponse/content/application/json/schema',
+        status: 200,
+      });
+    });
   });
 
   describe('MaaS Models Endpoint', () => {
