@@ -17,6 +17,7 @@ import { getModelDeploymentStoppedStates } from '@odh-dashboard/model-serving/ut
 import { getKueueSchedulingSubStep } from '@odh-dashboard/ui-core/kueue/statusInfo';
 import { KUEUE_STATUSES_PAST_ADMISSION } from '@odh-dashboard/k8s-core/kueue/types';
 import type { KueueWorkloadStatusWithMessage } from '@odh-dashboard/k8s-core/kueue/types';
+import { LLMD_WORKLOAD_POD_COMPONENTS } from './constants';
 import {
   LLMdDeployment,
   LLMInferenceServiceKind,
@@ -33,10 +34,15 @@ export const useLLMInferenceServicePods = (
       isList: true,
       groupVersionKind: groupVersionKind(PodModel),
       namespace,
+      // Every workload Pod shape; the status still reads only the single-node component.
       selector: {
-        matchLabels: {
-          'app.kubernetes.io/component': 'llminferenceservice-workload',
-        },
+        matchExpressions: [
+          {
+            key: 'app.kubernetes.io/component',
+            operator: 'In',
+            values: LLMD_WORKLOAD_POD_COMPONENTS,
+          },
+        ],
       },
     },
     PodModel,

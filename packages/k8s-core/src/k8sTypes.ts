@@ -11,6 +11,8 @@ import type {
   NotebookSize,
   PodAffinity,
   PodContainer,
+  PodResourceClaim,
+  PodResourceClaimStatus,
   Toleration,
   Volume,
   AccessMode,
@@ -117,6 +119,8 @@ export type PodSpec = {
   volumes?: Volume[];
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;
+  nodeName?: string;
+  resourceClaims?: PodResourceClaim[];
 };
 
 export type PodContainerStatus = {
@@ -199,6 +203,7 @@ export type PodKind = K8sResourceCommon & {
     phase: string;
     conditions?: K8sCondition[];
     containerStatuses?: PodContainerStatus[];
+    resourceClaimStatuses?: PodResourceClaimStatus[];
   };
 };
 
@@ -228,6 +233,9 @@ export type HardwareProfileKind = K8sResourceCommon & {
   spec: {
     identifiers?: Identifier[];
     scheduling?: HardwareProfileScheduling;
+    dra?: {
+      resourceClaimTemplateName: string;
+    };
   };
 };
 
@@ -772,13 +780,7 @@ export type WorkloadPodSet = {
       readinessGates?: {
         conditionType: string;
       }[];
-      resourceClaims?: {
-        name: string;
-        source?: {
-          resourceClaimName?: string;
-          resourceClaimTemplateName: string;
-        };
-      }[];
+      resourceClaims?: PodResourceClaim[];
       restartPolicy?: string;
       runtimeClassName?: string;
       schedulerName?: string;

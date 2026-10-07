@@ -682,6 +682,40 @@ class ModelServingRow extends TableRow {
     return this.find().siblings();
   }
 
+  findExpandedSection() {
+    return this.find().next('tr');
+  }
+
+  findClaimsSection() {
+    return this.findExpandedSection().findByTestId('deployment-claims-section');
+  }
+
+  findClaimsGroup(groupId: string) {
+    return this.findExpandedSection().findByTestId(`claims-group-${groupId}`);
+  }
+
+  findClaimsGroupToggle(groupId: string) {
+    return this.findExpandedSection().findByTestId(`claims-group-${groupId}-toggle`).find('button');
+  }
+
+  findClaimsGroupDetail(groupId: string, detail: 'pod' | 'description' | 'status' | 'summary') {
+    return this.findExpandedSection().findByTestId(`claims-group-${groupId}-${detail}`);
+  }
+
+  findClaimsGroupPodNames() {
+    return this.findClaimsSection().find('[data-testid^="claims-group-"][data-testid$="-pod"]');
+  }
+
+  findGroupClaimItem(groupId: string, alias: string) {
+    return this.findExpandedSection().findByTestId(`claims-group-${groupId}-item-${alias}`);
+  }
+
+  findGroupClaimDetail(groupId: string, alias: string, detail: string) {
+    return this.findExpandedSection().findByTestId(
+      `claims-group-${groupId}-item-${alias}-${detail}`,
+    );
+  }
+
   findInternalServiceButton() {
     return this.find().findByTestId('internal-service-button');
   }

@@ -4,6 +4,7 @@ import type {
   DisplayNameAnnotations,
   K8sAPIOptions,
   NamespaceApplicationCase,
+  PodKind,
   ProjectKind,
 } from '@odh-dashboard/k8s-core';
 import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/hardware-profiles/shared';
@@ -77,6 +78,17 @@ export type ModelResourceType = K8sResourceCommon & {
   };
 };
 
+/** The workload Pods a platform selects for one deployment, with the watch state they came from. */
+export type DeploymentPods = {
+  data: PodKind[];
+  loaded: boolean;
+  error?: Error;
+  /** Containers the platform treats as the model server; claims other containers use are still listed. */
+  containerNames?: string[];
+  /** Short role per Pod name shown after it in the Claims row, e.g. an llm-d `prefill` worker. Plain data: deployments travel through router state. */
+  podDescriptions?: Record<string, string>;
+};
+
 /**
  * `server` is more of a template / config resource, not a server
  */
@@ -91,6 +103,8 @@ export type Deployment<
   endpoints?: DeploymentEndpoint[];
   apiProtocol?: string;
   resources?: ModelServingPodSpecOptionsState;
+  /** Platform-selected workload Pods; absent when the platform does not expose them. */
+  pods?: DeploymentPods;
 };
 
 /**

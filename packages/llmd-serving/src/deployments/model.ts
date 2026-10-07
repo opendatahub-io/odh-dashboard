@@ -26,6 +26,7 @@ import {
   RuntimeArgsFieldData,
 } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { isDashboardManagedHfTokenEnvVar } from '@odh-dashboard/model-serving/shared/hfTokenConstants';
+import { LLMD_MAIN_CONTAINER_NAME } from './constants';
 import { VLLM_ADDITIONAL_ARGS } from '../const';
 import type { LLMdContainer, LLMInferenceServiceKind, LLMdDeployment } from '../types';
 import {
@@ -109,11 +110,11 @@ export const structuredCloneWithMainContainer = (
     };
   }
   let mainContainer = result.spec.template.containers?.find(
-    (container) => container.name === 'main',
+    (container) => container.name === LLMD_MAIN_CONTAINER_NAME,
   );
   if (!mainContainer) {
     mainContainer = {
-      name: 'main',
+      name: LLMD_MAIN_CONTAINER_NAME,
     };
     result.spec.template.containers?.push(mainContainer);
   }
@@ -148,7 +149,7 @@ export const extractRuntimeArgs = (
   llmdDeployment: LLMdDeployment,
 ): { enabled: boolean; args: string[] } | null => {
   const args = llmdDeployment.model.spec.template?.containers
-    ?.find((container) => container.name === 'main')
+    ?.find((container) => container.name === LLMD_MAIN_CONTAINER_NAME)
     ?.env?.find((env) => env.name === VLLM_ADDITIONAL_ARGS)?.value;
 
   const argsArray = typeof args === 'string' ? args.split(' ') : [];
@@ -163,7 +164,7 @@ export const extractEnvironmentVariables = (
 ): { enabled: boolean; variables: EnvironmentVariable[] } | null => {
   const envVars =
     llmdDeployment.model.spec.template?.containers
-      ?.find((container) => container.name === 'main')
+      ?.find((container) => container.name === LLMD_MAIN_CONTAINER_NAME)
       ?.env?.filter(
         (env) => env.name !== VLLM_ADDITIONAL_ARGS && !isDashboardManagedHfTokenEnvVar(env),
       ) || [];

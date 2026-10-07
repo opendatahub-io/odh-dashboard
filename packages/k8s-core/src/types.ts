@@ -16,6 +16,7 @@ export type ContainerResources = {
     cpu?: string | number;
     memory?: string;
   };
+  claims?: { name: string; request?: string }[];
 };
 
 export type EnvironmentVariable = EitherNotBoth<
@@ -137,6 +138,22 @@ export type PodContainer = {
   terminationMessagePath?: string;
   terminationMessagePolicy?: string;
   securityContext?: unknown;
+};
+
+/** Exactly one of `resourceClaimName` or `resourceClaimTemplateName`. */
+export type PodResourceClaim = {
+  name: string;
+  resourceClaimName?: string;
+  resourceClaimTemplateName?: string;
+};
+
+/**
+ * Template-backed claims only; direct claims never get one. No entry: not generated yet.
+ * No `resourceClaimName`: no claim needed; ignore.
+ */
+export type PodResourceClaimStatus = {
+  name: string;
+  resourceClaimName?: string;
 };
 
 export type PodAffinity = {

@@ -16,6 +16,8 @@
     "./__mocks__/mockPVCK8sResource": "./src/__mocks__/mockPVCK8sResource.ts",
     "./__mocks__/mockPodK8sResource": "./src/__mocks__/mockPodK8sResource.ts",
     "./__mocks__/mockProjectK8sResource": "./src/__mocks__/mockProjectK8sResource.ts",
+    "./__mocks__/mockResourceClaim": "./src/__mocks__/mockResourceClaim.ts",
+    "./__mocks__/mockResourceClaimTemplate": "./src/__mocks__/mockResourceClaimTemplate.ts",
     "./__mocks__/mockRouteK8sResource": "./src/__mocks__/mockRouteK8sResource.ts",
     "./__mocks__/mockSecretK8sResource": "./src/__mocks__/mockSecretK8sResource.ts",
     "./__mocks__/mockTrustyAIServiceK8sResource": "./src/__mocks__/mockTrustyAIServiceK8sResource.ts",
@@ -30,9 +32,11 @@
     "./api/localQueues": "./src/api/localQueues.ts",
     "./api/clusterQueues": "./src/api/clusterQueues.ts",
     "./api/workloads": "./src/api/workloads.ts",
+    "./api/resourceClaims": "./src/api/resourceClaims.ts",
     "./kueue/types": "./src/kueue/types.ts",
     "./kueue/messageUtils": "./src/kueue/messageUtils.ts",
-    "./kueue/workloadStatus": "./src/kueue/workloadStatus.ts"
+    "./kueue/workloadStatus": "./src/kueue/workloadStatus.ts",
+    "./dra/types": "./src/dra/types.ts"
   },
   "scripts": {
     "lint": "eslint .",

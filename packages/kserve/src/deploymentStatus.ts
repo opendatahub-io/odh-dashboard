@@ -133,15 +133,16 @@ export const getKServeDeploymentConditions = (
   return conditions;
 };
 
+/** Label KServe puts on every Pod of an InferenceService. */
+export const INFERENCE_SERVICE_POD_LABEL = 'serving.kserve.io/inferenceservice';
+
 export const getKServeDeploymentStatus = (
   inferenceService: InferenceServiceKind,
   deploymentPods: PodKind[],
   kueueStatus?: KueueWorkloadStatusWithMessage | null,
 ): DeploymentStatus => {
   const deploymentPod = deploymentPods.find(
-    (pod) =>
-      pod.metadata.labels?.['serving.kserve.io/inferenceservice'] ===
-      inferenceService.metadata.name,
+    (pod) => pod.metadata.labels?.[INFERENCE_SERVICE_POD_LABEL] === inferenceService.metadata.name,
   );
   const modelPodStatus = deploymentPod ? checkModelPodStatus(deploymentPod) : null;
 

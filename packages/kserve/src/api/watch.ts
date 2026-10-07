@@ -8,6 +8,7 @@ import {
   ServingRuntimeModel,
 } from '@odh-dashboard/internal/api/models/kserve';
 import type { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
+import { INFERENCE_SERVICE_POD_LABEL } from '../deploymentStatus';
 
 export const useWatchInferenceServices = (
   project?: ProjectKind,
@@ -51,7 +52,7 @@ export const useWatchDeploymentPods = (
       selector: {
         matchExpressions: [
           {
-            key: 'serving.kserve.io/inferenceservice',
+            key: INFERENCE_SERVICE_POD_LABEL,
             operator: 'Exists',
           },
         ],

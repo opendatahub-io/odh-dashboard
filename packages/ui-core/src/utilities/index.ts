@@ -1,4 +1,9 @@
-export { FAST_POLL_INTERVAL, ODH_PRODUCT_NAME, LABEL_SELECTOR_DASHBOARD_RESOURCE } from './const';
+export {
+  POLL_INTERVAL,
+  FAST_POLL_INTERVAL,
+  ODH_PRODUCT_NAME,
+  LABEL_SELECTOR_DASHBOARD_RESOURCE,
+} from './const';
 export { containsOnlySlashes, isS3PathValid } from './string';
 export { trimInputOnBlur, trimInputOnPaste } from './trimInput';
 export { formatMemory, MEMORY_UNITS_FOR_PARSING } from './valueUnits';

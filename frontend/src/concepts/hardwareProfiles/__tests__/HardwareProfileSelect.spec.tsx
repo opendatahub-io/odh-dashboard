@@ -18,6 +18,8 @@ import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentPro
 import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
 import type { LocalQueuesContextType } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
+import { getResourceClaimTemplate } from '@odh-dashboard/k8s-core/api/resourceClaims';
+import { mockResourceClaimTemplate } from '@odh-dashboard/k8s-core/__mocks__/mockResourceClaimTemplate';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
@@ -30,7 +32,12 @@ jest.mock('@odh-dashboard/hardware-profiles/shared/kueueUtils', () => ({
   useKueueConfiguration: jest.fn(),
 }));
 
+jest.mock('@odh-dashboard/k8s-core/api/resourceClaims', () => ({
+  getResourceClaimTemplate: jest.fn(),
+}));
+
 const useHardwareProfileConfigMock = jest.mocked(useHardwareProfileConfig);
+const getResourceClaimTemplateMock = jest.mocked(getResourceClaimTemplate);
 const useKueueConfigurationMock = jest.mocked(useKueueConfiguration);
 
 const kueueHardwareProfile = mockHardwareProfile({
@@ -767,5 +774,147 @@ describe('HardwareProfileSelect - Project-scoped preview description', () => {
     expect(
       screen.getByText('Use existing resource requests/limits, tolerations, and node selectors.'),
     ).toBeInTheDocument();
+  });
+
+  describe('claim template preview', () => {
+    const draProjectProfile = mockHardwareProfile({
+      name: 'dra-project-profile',
+      displayName: 'DRA Project Profile',
+      namespace: 'test-project',
+      resourceClaimTemplateName: 'single-gpu',
+    });
+
+    it('should show the claim template in the project-scoped preview without fetching it', () => {
+      renderProjectScopedPreview({ selectedProfile: draProjectProfile });
+
+      expect(screen.getByText('Claim template: single-gpu')).toBeInTheDocument();
+      expect(screen.getByText(/CPU:.*Default.*Max/)).toBeInTheDocument();
+      expect(getResourceClaimTemplateMock).not.toHaveBeenCalled();
+    });
+
+    it('should not show a claim template line for a non-DRA profile', () => {
+      renderProjectScopedPreview({ selectedProfile: profileWithDescriptionAndKueue });
+
+      expect(screen.queryByText(/Claim template:/)).not.toBeInTheDocument();
+    });
+
+    it('should show the claim template in the global select preview and options', async () => {
+      const draGlobalProfile = mockHardwareProfile({
+        name: 'dra-global-profile',
+        displayName: 'DRA Global Profile',
+        namespace: 'redhat-ods-applications',
+        resourceClaimTemplateName: 'single-gpu',
+      });
+      useKueueConfigurationMock.mockReturnValue({
+        isKueueDisabled: false,
+        isKueueFeatureEnabled: true,
+        isProjectKueueEnabled: false,
+        kueueFilteringState: KueueFilteringState.ONLY_NON_KUEUE_PROFILES,
+      });
+
+      render(
+        <ProjectsContext.Provider
+          value={{
+            projects: [],
+            modelServingProjects: [],
+            nonActiveProjects: [],
+            preferredProject: null,
+            updatePreferredProject: () => undefined,
+            loaded: true,
+            loadError: undefined,
+            waitForProject: () => Promise.resolve(),
+          }}
+        >
+          <LocalQueuesContext.Provider value={{ localQueues: DEFAULT_LIST_FETCH_STATE }}>
+            <HardwareProfileSelect
+              previewDescription
+              hardwareProfiles={[draGlobalProfile, nodeHardwareProfile]}
+              isProjectScoped={false}
+              hardwareProfilesLoaded
+              hardwareProfilesError={undefined}
+              projectScopedHardwareProfiles={[[], true, undefined]}
+              allowExistingSettings={false}
+              hardwareProfileConfig={{
+                selectedProfile: draGlobalProfile,
+                useExistingSettings: false,
+              }}
+              isHardwareProfileSupported={() => true}
+              onChange={() => null}
+              namespace="test-project"
+            />
+          </LocalQueuesContext.Provider>
+        </ProjectsContext.Provider>,
+      );
+
+      expect(screen.getByText('Claim template: single-gpu')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByTestId('hardware-profile-select'));
+      expect(screen.getAllByText('Claim template: single-gpu')).toHaveLength(2);
+      expect(getResourceClaimTemplateMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('claim template namespace', () => {
+    it('should fetch the claim template from the namespace prop without a project context', async () => {
+      const draProfile = mockHardwareProfile({
+        name: 'dra-profile',
+        displayName: 'DRA Profile',
+        namespace: 'redhat-ods-applications',
+        resourceClaimTemplateName: 'single-gpu',
+      });
+      useKueueConfigurationMock.mockReturnValue({
+        isKueueDisabled: false,
+        isKueueFeatureEnabled: true,
+        isProjectKueueEnabled: false,
+        kueueFilteringState: KueueFilteringState.ONLY_NON_KUEUE_PROFILES,
+      });
+      getResourceClaimTemplateMock.mockResolvedValue(
+        mockResourceClaimTemplate({ name: 'single-gpu', namespace: 'jupyter-ns' }),
+      );
+
+      // No CurrentProjectContext provider and no `project` prop, as in the Jupyter tile spawner.
+      render(
+        <ProjectsContext.Provider
+          value={{
+            projects: [],
+            modelServingProjects: [],
+            nonActiveProjects: [],
+            preferredProject: null,
+            updatePreferredProject: () => undefined,
+            loaded: true,
+            loadError: undefined,
+            waitForProject: () => Promise.resolve(),
+          }}
+        >
+          <LocalQueuesContext.Provider value={{ localQueues: DEFAULT_LIST_FETCH_STATE }}>
+            <HardwareProfileSelect
+              previewDescription={false}
+              hardwareProfiles={[draProfile, nodeHardwareProfile]}
+              isProjectScoped={false}
+              hardwareProfilesLoaded
+              hardwareProfilesError={undefined}
+              projectScopedHardwareProfiles={[[], true, undefined]}
+              allowExistingSettings={false}
+              hardwareProfileConfig={{ selectedProfile: draProfile, useExistingSettings: false }}
+              isHardwareProfileSupported={() => true}
+              onChange={() => null}
+              namespace="jupyter-ns"
+            />
+          </LocalQueuesContext.Provider>
+        </ProjectsContext.Provider>,
+      );
+
+      expect(getResourceClaimTemplateMock).not.toHaveBeenCalled();
+      await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
+
+      expect(await screen.findByTestId('device-request-0-device-class')).toBeInTheDocument();
+      expect(getResourceClaimTemplateMock).toHaveBeenCalledTimes(1);
+      expect(getResourceClaimTemplateMock).toHaveBeenCalledWith(
+        'jupyter-ns',
+        'single-gpu',
+        expect.anything(),
+      );
+      expect(screen.queryByTestId('device-requests-no-namespace')).not.toBeInTheDocument();
+    });
   });
 });

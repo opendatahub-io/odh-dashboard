@@ -4,8 +4,10 @@ import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/mo
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
 import type { KServeDeployment } from '../types';
-import { useWatchDeployments } from '../deployments';
+import { KSERVE_MODEL_CONTAINER_NAMES, useWatchDeployments } from '../deployments';
+import { getKServeDeploymentStatus } from '../deploymentStatus';
 import * as watchModule from '../api/watch';
 
 // Mock the watch module
@@ -420,5 +422,94 @@ describe('useWatchDeployments', () => {
     expect(loaded).toBe(true);
     expect(deployments).toHaveLength(3);
     expect(deployments?.find((d) => d.model.metadata.name === 'nim-model')).toBeUndefined();
+  });
+
+  describe('pods', () => {
+    const podFor = (
+      inferenceServiceName: string,
+      name: string,
+      options: Partial<Parameters<typeof mockPodK8sResource>[0]> = {},
+    ): PodKind =>
+      mockPodK8sResource({
+        name,
+        namespace: 'test-project',
+        labels: { 'serving.kserve.io/inferenceservice': inferenceServiceName },
+        ...options,
+      });
+
+    it('should attach an empty, loaded Pod list to a deployment with no replicas', () => {
+      const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
+
+      const [deployments] = renderResult.result.current as DeploymentHookResult;
+
+      expect(deployments?.[0].pods).toEqual({
+        data: [],
+        loaded: true,
+        error: undefined,
+        containerNames: KSERVE_MODEL_CONTAINER_NAMES,
+      });
+      // Transformer and multi-node worker Pods share the label, so their main containers count too.
+      expect(KSERVE_MODEL_CONTAINER_NAMES).toEqual([
+        'kserve-container',
+        'worker-container',
+        'transformer-container',
+      ]);
+    });
+
+    it('should attach only the Pods labelled for each InferenceService', () => {
+      const model1Pod = podFor('model-1', 'model-1-predictor-0');
+      const model2PodA = podFor('model-2', 'model-2-predictor-0');
+      const model2PodB = podFor('model-2', 'model-2-predictor-1');
+      const unrelatedPod = mockPodK8sResource({ name: 'unrelated', namespace: 'test-project' });
+      mockUseWatchDeploymentPods.mockReturnValue([
+        [unrelatedPod, model2PodB, model1Pod, model2PodA],
+        true,
+        undefined,
+      ]);
+
+      const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
+
+      const [deployments] = renderResult.result.current as DeploymentHookResult;
+
+      expect(deployments?.[0].pods?.data).toEqual([model1Pod]);
+      // Replica Pods keep their watch order and are never merged with another deployment's.
+      expect(deployments?.[1].pods?.data).toEqual([model2PodB, model2PodA]);
+      expect(deployments?.[2].pods?.data).toEqual([]);
+    });
+
+    it('should expose the Pod watch state on every deployment', () => {
+      const podsError = new Error('Failed to fetch deployment pods');
+      mockUseWatchDeploymentPods.mockReturnValue([[], false, podsError]);
+
+      const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
+
+      const [deployments, , errors] = renderResult.result.current as DeploymentHookResult;
+
+      expect(deployments?.map((deployment) => deployment.pods)).toEqual(
+        Array(3).fill({
+          data: [],
+          loaded: false,
+          error: podsError,
+          containerNames: KSERVE_MODEL_CONTAINER_NAMES,
+        }),
+      );
+      expect(errors).toContain(podsError);
+    });
+
+    it('should keep the status derived from the Pods exactly as before', () => {
+      const pendingPod = podFor('model-1', 'model-1-predictor-0', { isPending: true });
+      mockUseWatchDeploymentPods.mockReturnValue([[pendingPod], true, undefined]);
+
+      const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
+
+      const [deployments] = renderResult.result.current as DeploymentHookResult;
+
+      expect(deployments?.[0].status).toEqual(
+        getKServeDeploymentStatus(mockInferenceServices[0], [pendingPod], null),
+      );
+      expect(deployments?.[1].status).toEqual(
+        getKServeDeploymentStatus(mockInferenceServices[1], [pendingPod], null),
+      );
+    });
   });
 });

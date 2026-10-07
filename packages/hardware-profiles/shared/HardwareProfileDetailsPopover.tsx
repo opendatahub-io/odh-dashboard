@@ -26,6 +26,8 @@ import {
   sortIdentifiers,
   getLocalQueueLabel,
 } from './utils';
+import DeviceRequestsSection from './dra/DeviceRequestsSection';
+import { useResourceClaimTemplateLookup } from './dra/useResourceClaimTemplateLookup';
 
 type HardwareProfileDetailsPopoverProps = {
   localQueueName?: string;
@@ -33,6 +35,8 @@ type HardwareProfileDetailsPopoverProps = {
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;
   hardwareProfile?: HardwareProfileKind;
+  /** Workload project namespace used to resolve the claim template; not the profile namespace. */
+  namespace?: string;
   tableView?: boolean;
   onExpandRow?: () => void;
 };
@@ -43,6 +47,7 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
   tolerations,
   nodeSelector,
   hardwareProfile,
+  namespace,
   tableView = false,
   onExpandRow,
 }) => {
@@ -69,6 +74,14 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
       </DescriptionListGroup>
     </DescriptionList>
   );
+
+  const templateName = hardwareProfile?.spec.dra?.resourceClaimTemplateName;
+  // `enabled` gates the request on visibility so a closed popover never fetches.
+  const templateLookup = useResourceClaimTemplateLookup({
+    templateName,
+    namespace,
+    enabled: isPopoverVisible,
+  });
 
   const profileIdentifiers = React.useMemo(
     () =>
@@ -103,6 +116,8 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
   return (
     <Popover
       hasAutoWidth={!!hardwareProfile}
+      // Auto width has no cap, so long template or class names must still stop at the viewport.
+      maxWidth={hardwareProfile ? 'calc(100vw - var(--pf-t--global--spacer--2xl))' : undefined}
       isVisible={isPopoverVisible}
       shouldOpen={() => setIsPopoverVisible(true)}
       shouldClose={closePopover}
@@ -129,6 +144,15 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
                     )}
                   </StackItem>
                 ))}
+              {templateName && (
+                <StackItem>
+                  <DeviceRequestsSection
+                    templateName={templateName}
+                    namespace={namespace}
+                    lookup={templateLookup}
+                  />
+                </StackItem>
+              )}
             </>
           ) : noHpTableView ? (
             <StackItem>

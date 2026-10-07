@@ -21,6 +21,14 @@ describe('SelectTemplateModal', () => {
     expect(screen.getByText(/Select a template to add its rules to your role/)).toBeInTheDocument();
   });
 
+  it('should explain that roles created from an older template are not updated', () => {
+    render(<SelectTemplateModal mode="select" onSelectTemplate={jest.fn()} onClose={jest.fn()} />);
+
+    expect(screen.getByTestId('role-template-migration-note')).toHaveTextContent(
+      'roles created from an earlier version of a template are not updated automatically',
+    );
+  });
+
   it('should render "Select template" buttons in select mode', () => {
     render(<SelectTemplateModal mode="select" onSelectTemplate={jest.fn()} onClose={jest.fn()} />);
 
