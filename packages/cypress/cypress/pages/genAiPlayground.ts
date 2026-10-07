@@ -3,6 +3,8 @@ const GEN_AI_CUSTOM_ENDPOINTS_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,modelAsService=false';
+const GEN_AI_CUSTOM_ENDPOINTS_RAG_FLAG =
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,externalVectorStores=true,modelAsService=false';
 const GEN_AI_GUARDRAILS_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,guardrails=true,modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_GUARDRAILS_FLAG =
@@ -10,7 +12,7 @@ const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_GUARDRAILS_FLAG =
 const GEN_AI_ALL_FLAGS =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,agentConfigManagement=true,modelAsService=false';
 const GEN_AI_MCP_REGISTRY_FLAG =
-  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,mcpRegistry=true,modelAsService=false';
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,mcpRegistry=true,genAiMcpRegistryServers=true,modelAsService=false';
 
 class GenAiPlayground {
   navigate(projectName: string) {
@@ -67,6 +69,12 @@ class GenAiPlayground {
     cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
   }
 
+  navigateToPlaygroundWithRag(projectName: string) {
+    const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_RAG_FLAG}`;
+    cy.visit(playgroundUrl);
+    cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
+  }
+
   navigateToPlaygroundWithMCPRegistry(projectName: string) {
     const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_MCP_REGISTRY_FLAG}`;
     cy.visit(playgroundUrl);
@@ -97,8 +105,56 @@ class GenAiPlayground {
     return cy.findByTestId('settings-model-selector-toggle', options);
   }
 
-  findMessageInput() {
-    return cy.findByTestId('chatbot-message-bar');
+  findMessageInput(options?: { timeout?: number }) {
+    return cy.findByTestId('chatbot-message-bar', options);
+  }
+
+  findImageFileInput() {
+    return cy.findByTestId('vision-file-input');
+  }
+
+  findImagePreview(options?: { timeout?: number }) {
+    return cy.findByTestId('vision-file-preview', options);
+  }
+
+  findImagePreviewCloseButton(fileName: string) {
+    return this.findImagePreview().findByRole('button', { name: `Close ${fileName}` });
+  }
+
+  findSentImage(fileName: string) {
+    return cy.findByRole('img', { name: fileName });
+  }
+
+  findAttachmentButton() {
+    return cy.findByRole('button', { name: /^attach$/i });
+  }
+
+  findImageUploadMenuItem() {
+    return cy.findByTestId('upload-image-menu-item');
+  }
+
+  findAudioUploadMenuItem() {
+    return cy.findByTestId('upload-audio-menu-item');
+  }
+
+  findAudioFileInput() {
+    return cy.findByTestId('audio-file-input');
+  }
+
+  findAudioFileChip() {
+    return cy.get('[data-testid="audio-file-chip"]');
+  }
+
+  findAudioTranscriptionError() {
+    return cy.get('[data-testid="audio-transcription-error"]');
+  }
+
+  findStopButton() {
+    return cy.get('[data-testid="chatbot-stop-button"]');
+  }
+
+  findSendButton() {
+    return cy.findByTestId('chatbot-send-button');
   }
 
   findUserMessage() {
@@ -115,6 +171,10 @@ class GenAiPlayground {
 
   findAllAssistantMessages(options?: { timeout?: number }) {
     return cy.findAllByTestId('chatbot-message-bot', options);
+  }
+
+  findChatbotErrorAlerts() {
+    return cy.get('[data-testid^="chatbot-error-alert-"]');
   }
 
   sendMessage(message: string) {
@@ -181,6 +241,20 @@ class GenAiPlayground {
     return cy.findByTestId('create-external-model-token-input');
   }
 
+  findAddCapabilityButton() {
+    return cy.findByTestId('add-capability-btn');
+  }
+
+  findCapabilityMenuItem(capability: string) {
+    // The test id is applied to the DropdownItem itself, which owns the menuitem role.
+    // Querying descendants skips that element and waits for a nested menuitem that does not exist.
+    return cy.findByTestId(`common-capability-${capability}`);
+  }
+
+  findSelectedCapability(capability: string) {
+    return cy.findByTestId(`selected-capability-${capability}`);
+  }
+
   findVerifyModelButton() {
     return cy.findByTestId('create-external-model-verify-button');
   }
@@ -230,17 +304,36 @@ class GenAiPlayground {
     return cy.findByTestId('chatbot-settings-panel-header', options);
   }
 
+  findCloseSettingsButton() {
+    return cy.findByRole('button', { name: 'Close settings panel' });
+  }
+
   ensureSettingsPanelOpen() {
-    cy.get('body').then(($body) => {
-      if ($body.find('[data-testid="chatbot-settings-panel-header"]').length === 0) {
-        this.findSettingsButton().should('be.visible').click();
-      }
-    });
+    this.findSettingsButton()
+      .should('be.visible')
+      .then(($button) => {
+        if ($button.attr('aria-expanded') !== 'true') {
+          cy.wrap($button).click();
+        }
+      });
+    this.findSettingsButton().should('have.attr', 'aria-expanded', 'true');
     this.findSettingsPanelHeader({ timeout: 10000 }).should('be.visible');
   }
 
   findSettingsPromptTab() {
     return cy.findByTestId('chatbot-settings-page-tab-prompt');
+  }
+
+  findAddTranscriptionModelButton() {
+    return cy.findByTestId('add-transcription-model-btn');
+  }
+
+  findAsrModelToggle() {
+    return cy.findByTestId('asr-model-selector-toggle');
+  }
+
+  findAsrModelOption(modelId: string) {
+    return cy.findByTestId(`asr-model-option-${modelId}`);
   }
 
   // Prompt management methods (within the playground settings panel)
@@ -292,17 +385,35 @@ class GenAiPlayground {
     return cy.findByTestId('prompt-name-title');
   }
 
+  findVariableInputPanel() {
+    return cy.findByTestId('prompt-variable-input-panel');
+  }
+
+  scrollPromptTabToBottom() {
+    return cy.findByTestId('chatbot-settings-page-tab-content-prompt').scrollTo('bottom');
+  }
+
+  findVariableInput(variableName: string) {
+    return cy.findByTestId(`prompt-variable-input-${variableName}`).scrollIntoView();
+  }
+
   // RAG / Knowledge upload methods
   findKnowledgeTab() {
     return cy.findByTestId('chatbot-settings-page-tab-knowledge');
   }
 
-  findDocumentFileInput() {
-    return cy.findByTestId('document-file-input');
+  findKnowledgeModeUploadRadio() {
+    return cy.findByTestId('knowledge-mode-upload-radio');
   }
 
-  uploadDocumentViaAttachMenu(fixturePath: string) {
-    this.findDocumentFileInput().selectFile(fixturePath, { force: true });
+  findKnowledgeSourceFileInput() {
+    return cy.findByTestId('source-file-input');
+  }
+
+  uploadDocumentToKnowledge(fixturePath: string) {
+    this.findKnowledgeSourceFileInput()
+      .should('be.enabled')
+      .selectFile(fixturePath, { force: true });
   }
 
   findSourceSettingsModal() {

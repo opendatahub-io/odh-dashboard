@@ -1,6 +1,10 @@
-import { useQueries, useQueryClient } from '@tanstack/react-query';
+import { useQueries } from '@tanstack/react-query';
 import React from 'react';
-import { useS3ListFilesQuery, fetchS3Json } from '~/app/hooks/queries';
+import {
+  useS3CacheActions,
+  useS3ListFilesQuery,
+  useS3FileFetchers,
+} from '@odh-dashboard/autox-core/ui/hooks';
 import {
   isCanonicalRawPattern,
   parsePatternArtifact,
@@ -25,7 +29,10 @@ export function normalizePattern(
     iteration: raw.iteration,
     max_combinations: raw.max_combinations,
     duration_seconds: raw.duration_seconds,
-    settings: raw.settings,
+    settings: {
+      ...raw.settings,
+      store_binding: raw.settings.store_binding ?? raw.settings.vector_store_binding,
+    },
     evaluation: raw.evaluation,
     inference: raw.inference,
     indexing: raw.indexing,
@@ -39,7 +46,7 @@ type UseAutoragResultsReturn = {
   isLoading: boolean;
   isError: boolean;
   error: Error | undefined;
-  refetch: () => void;
+  refetch: () => Promise<void>;
   ragPatternsBasePath?: string;
 };
 
@@ -121,6 +128,7 @@ export function useAutoragResults(
   namespace?: string,
   pipelineRun?: PipelineRun,
 ): UseAutoragResultsReturn {
+  const { fetchS3Json } = useS3FileFetchers();
   // Step 1: Fetch S3 files to discover the non-deterministic UUID directory
   const shouldFetchS3Files = pipelineRun?.state === 'SUCCEEDED' && Boolean(runId);
   const { rootDir, patternGenerationDir } = useAutoragOutputDir(pipelineRun);
@@ -132,7 +140,6 @@ export function useAutoragResults(
     isLoading: isTemplatesOptimizationLoading,
     isFetching: isTemplatesOptimizationFetching,
     isError: isTemplatesOptimizationError,
-    refetch: refetchTemplatesOptimization,
   } = useS3ListFilesQuery(namespace, templatesOptimizationPath);
 
   // Step 1b: Extract the non-deterministic UUID directory. The listing exposes no recency
@@ -245,7 +252,7 @@ export function useAutoragResults(
     queries: patternDirectories.map(({ name, directory }) => {
       const patternJsonPath = `${directory}pattern.json`;
       return {
-        queryKey: ['autorag', 's3File', namespace, name, patternJsonPath],
+        queryKey: ['s3File', namespace, patternJsonPath],
         queryFn: async ({ signal }) => {
           if (!namespace || !patternJsonPath) {
             throw new Error('namespace and key are required');
@@ -355,12 +362,10 @@ export function useAutoragResults(
     (isRagPatternsError ? new Error('Failed to list RAG patterns directory') : undefined) ||
     (patternQueries.isError ? new Error('Failed to fetch pattern data') : undefined);
 
-  const queryClient = useQueryClient();
-  const refetch = React.useCallback(() => {
-    refetchTemplatesOptimization();
-    queryClient.invalidateQueries({ queryKey: ['autorag', 's3Files', namespace] });
-    queryClient.invalidateQueries({ queryKey: ['autorag', 's3File', namespace] });
-  }, [refetchTemplatesOptimization, queryClient, namespace]);
+  const { invalidateS3Results } = useS3CacheActions();
+  const refetch = React.useCallback(async () => {
+    await invalidateS3Results(namespace);
+  }, [invalidateS3Results, namespace]);
 
   return {
     patterns,

@@ -7,6 +7,7 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
 import { isLlamaModelEnabled } from '~/app/utilities';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
+import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import ChatbotPlayground from '~/app/Chatbot/ChatbotPlayground';
@@ -25,6 +26,7 @@ jest.mock('react-router-dom', () => ({
 }));
 
 jest.mock('~/app/hooks/useFetchBFFConfig');
+jest.mock('~/app/hooks/useGenAiAgentDeploymentEnabled');
 jest.mock('~/app/hooks/useFetchMCPServers');
 jest.mock('~/app/hooks/useMCPServerStatuses');
 jest.mock('~/app/utilities');
@@ -109,6 +111,7 @@ const mockIsLlamaModelEnabled = isLlamaModelEnabled as jest.MockedFunction<
   typeof isLlamaModelEnabled
 >;
 const mockUseFetchBFFConfig = useFetchBFFConfig as jest.MockedFunction<typeof useFetchBFFConfig>;
+const mockUseGenAiAgentDeploymentEnabled = jest.mocked(useGenAiAgentDeploymentEnabled);
 const mockUseFetchMCPServers = jest.mocked(useFetchMCPServers);
 const mockUseMCPServerStatuses = jest.mocked(useMCPServerStatuses);
 const mockChatbotPlayground = jest.mocked(ChatbotPlayground);
@@ -146,11 +149,12 @@ describe('ChatbotMain - Empty State Logic', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseFetchBFFConfig.mockReturnValue({
-      data: { isCustomLSD: false },
+      data: { isCustomLSD: false, sandboxesAvailable: true },
       loaded: false,
       error: undefined,
       refresh: jest.fn(),
     } as FetchStateObject<BFFConfig | null>);
+    mockUseGenAiAgentDeploymentEnabled.mockReturnValue({ enabled: false, loaded: true });
     mockIsLlamaModelEnabled.mockReturnValue(true);
     mockUseFetchMCPServers.mockReturnValue({
       data: [],

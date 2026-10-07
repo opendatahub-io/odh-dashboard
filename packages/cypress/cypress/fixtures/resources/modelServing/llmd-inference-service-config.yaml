@@ -2,10 +2,10 @@ apiVersion: serving.kserve.io/v1alpha2
 kind: LLMInferenceServiceConfig
 metadata:
   annotations:
-    description: vLLM CPU LLMInferenceServiceConfig for LLMInferenceService.
+    description: Test vLLM CPU LLMInferenceServiceConfig for LLMInferenceService.
     opendatahub.io/runtime-version: v0.1
-    openshift.io/display-name: vLLM CPU LLMInferenceServiceConfig
-  name: kserve-config-llm-template-cpu
+    openshift.io/display-name: Test vLLM CPU LLMInferenceServiceConfig
+  name: test-llm-template-cpu
   labels:
     opendatahub.io/config-type: accelerator
 spec:

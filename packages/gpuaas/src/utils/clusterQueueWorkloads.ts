@@ -16,7 +16,8 @@ import {
 import { listInferenceService } from '@odh-dashboard/internal/api/k8s/inferenceServices';
 import { getPendingWorkloads } from '@odh-dashboard/internal/api/k8s/pendingWorkloads';
 import { listWorkloads } from '@odh-dashboard/internal/api/k8s/workloads';
-import { PodModel, StatefulSetModel } from '@odh-dashboard/internal/api/models';
+import { PodModel } from '@odh-dashboard/k8s-core/api/models';
+import { StatefulSetModel } from '@odh-dashboard/internal/api/models';
 import { RayJobModel, TrainJobModel } from '@odh-dashboard/internal/api/models/kubeflow';
 import {
   getKueueWorkloadStatusWithMessage,

@@ -28,7 +28,7 @@ const CreateExternalModelPage: React.FC = () => {
   return (
     <ApplicationsPage
       title="Add external model"
-      description="Register a model endpoint from a provider outside OpenShift AI by selecting a provider and configuring the model details. External models can reference multiple providers with weighted traffic routing for A/B testing or failover."
+      description="Add a new external model to the MaaS gateway. External models can reference one or more providers."
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem

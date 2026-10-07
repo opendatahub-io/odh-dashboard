@@ -4,35 +4,29 @@ This guide outlines how to run the upstream Model Registry and integrate it with
 
 ## Prerequisites
 
-1. **Start the ODH Backend:**
-    Ensure your ODH backend server is running. Run in the root of the ODH project:
+1. **Start the ODH Dashboard:**
+   Start the dashboard backend on port `4000` and the host frontend on port `4010`. Run in the repository root:
 
-    ```bash
-    npm run dev:backend
-    ```
+   ```bash
+   pnpm run dev
+   ```
 
-2. **Start the ODH Frontend:**
-    The main ODH dashboard frontend application must also be running. Run in the root of the ODH project:
+   **Important:** Do not use `pnpm run start:dev:ext` for the ODH frontend when testing this upstream integration.
 
-    ```bash
-    npm run dev:frontend
-    ```
+2. **Start the Model Registry federated module:**
+   Ensure you have met the [frontend requirements] and [BFF requirements] for the Model Registry UI. You can run Model Registry in either **mocked mode** or **federated mode**. For testing ODH integration, use **federated mode**.
 
-    **Important:** Do not use `npm run start:dev:ext` for the ODH frontend when testing this upstream integration.
+   ```bash
+   pnpm --filter @odh-dashboard/model-registry start:dev
+   ```
 
-3. **Model Registry UI Requirements:**
-    Ensure you have met the [frontend requirements] and [BFF requirements] for the Model Registry UI. You can run Model Registry in either **mocked mode** or **federated mode**. For testing ODH integration, use **federated mode**.
+   This ODH wrapper runs the Model Registry frontend on port `9100` and its BFF on port `4005`. Do not invoke `upstream`'s `make dev-start-federated` directly for ODH integration: its default BFF port is `4000`, which conflicts with the dashboard backend.
 
-    ```bash
-    cd packages/model-registry/upstream
-    make dev-start-federated
-    ```
+   Now you need to port forward the Model Catalog service to allow the Model Registry to communicate with it. In a separate terminal, run:
 
-    Now you need to port forward the Model Catalog service to allow the Model Registry to communicate with it. In a separate terminal, run:
-
-    ```bash
-    kubectl port-forward svc/model-catalog 8086:8443 -n <model-catalog-namespace>
-    ```
+   ```bash
+   kubectl port-forward svc/model-catalog 8086:8443 -n <model-catalog-namespace>
+   ```
 
 ## Model Registry Setup
 
@@ -95,9 +89,10 @@ This package uses Module Federation and depends on workspace packages like:
 
 The workspace-aware Dockerfile ensures these dependencies are available during the build process by:
 
-1. Installing workspace dependencies at the root level
+1. Running `pnpm install` at the repo root for `@odh-dashboard/*` workspace packages
 2. Copying shared packages into the build context
-3. Installing module-specific dependencies including federated modules
-4. Building from the workspace context rather than module isolation
+3. Running `npm ci` in `upstream/frontend` for the upstream webpack toolchain (git-subtree npm island)
+4. Building with `npm run build:prod` in the upstream frontend directory
+5. Building from the workspace context rather than module isolation
 
 For more information about workspace Dockerfiles, see [docs/workspace-dockerfiles.md](../../docs/workspace-dockerfiles.md).

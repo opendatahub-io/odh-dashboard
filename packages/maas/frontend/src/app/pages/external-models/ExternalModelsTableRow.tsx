@@ -17,6 +17,7 @@ import {
   ExternalModelEditClickedProperties,
 } from '~/app/types/event-tracking';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
+import { convertStringToProviderType } from '~/app/pages/external-providers/utils';
 import { externalModelsColumns } from './columns';
 import {
   editExternalModelPath,
@@ -299,7 +300,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
         title="Path"
         description="The request path appended to the provider URL. If path variables were configured, they're shown with resolved values."
         subContentTitle="Provider"
-        subContent={pathModalRef?.provider?.provider ?? ''}
+        subContent={convertStringToProviderType(pathModalRef?.provider?.provider ?? '')}
       />
       <ProviderURLModal
         isOpen={!!providerURLModalRef}

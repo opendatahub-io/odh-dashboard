@@ -63,6 +63,8 @@ export const useModelDeployedTracking = (
   platformId?: string,
   isEdit?: boolean,
   externalData?: ExternalDataMap,
+  deploymentKind: 'inferenceService' | 'llmInferenceService' = 'inferenceService',
+  kueueQueueName?: string,
 ): {
   fireModelDeployedTracking: (outcome: 'submit' | 'cancel', success?: boolean) => Promise<void>;
 } => {
@@ -84,6 +86,13 @@ export const useModelDeployedTracking = (
         additionalProperties: {
           ...getBaseModelDeployedTrackingProperties(formState),
           ...platformTrackingProperties,
+          hasKueueEnabled: Boolean(kueueQueueName),
+          kueueSubState: 'none',
+          isKueueBlocking: false,
+          admittedReplicaCount: 0,
+          primaryDeploymentStatus: 'Pending',
+          deploymentKind,
+          kueueQueueName,
         },
       });
 
@@ -101,6 +110,8 @@ export const useModelDeployedTracking = (
       trackEvent,
       isEdit,
       externalData,
+      deploymentKind,
+      kueueQueueName,
     ],
   );
 

@@ -1,8 +1,10 @@
+/* eslint-disable camelcase */
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import RegistryTable from '~/app/components/RegistryTable';
 import { RegistryAsset } from '~/app/hooks/useAssets';
+import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
 
 const mockAssets: RegistryAsset[] = [
   {
@@ -14,16 +16,22 @@ const mockAssets: RegistryAsset[] = [
     connectionRef: 'minio-connection',
     labels: ['production', 'claims'],
     collection: 'analytics',
+    properties: { 'data-domain': 'claims' },
+    rawAsset: mockAssetResponse({
+      name: 'claims-data',
+      connection_ref: { type: 'rhai', secret_name: 'minio-connection' },
+    }),
   },
   {
     name: 'raw-documents',
     description: 'PDF documents',
-    format: 'application/pdf',
+    format: 'documents',
     assetType: 'volume',
     location: 's3://bucket/docs',
     connectionRef: '',
     labels: ['source-docs'],
     collection: 'guidelines',
+    properties: { 'retention-class': 'long-term' },
   },
 ];
 
@@ -38,6 +46,13 @@ const renderTable = (props?: Partial<React.ComponentProps<typeof RegistryTable>>
         error={undefined}
         labels={mockLabels}
         project="test-project"
+        connections={[
+          {
+            name: 'minio-connection',
+            displayName: 'Minio connection',
+            connectionType: 's3',
+          },
+        ]}
         onManageCollections={jest.fn()}
         onManageLabels={jest.fn()}
         onRegisterData={jest.fn()}
@@ -56,8 +71,8 @@ describe('RegistryTable', () => {
 
   it('should render format badges', () => {
     renderTable();
-    expect(screen.getByText('parquet')).toBeTruthy();
-    expect(screen.getByText('application/pdf')).toBeTruthy();
+    expect(screen.getByText('Apache Parquet')).toBeTruthy();
+    expect(screen.getByText('Documents')).toBeTruthy();
   });
 
   it('should render labels', () => {
@@ -65,6 +80,28 @@ describe('RegistryTable', () => {
     expect(screen.getByText('production')).toBeTruthy();
     expect(screen.getByText('claims')).toBeTruthy();
     expect(screen.getByText('source-docs')).toBeTruthy();
+  });
+
+  it('should link a connection reference to project connections', () => {
+    renderTable();
+
+    const connectionLink = screen.getByRole('link', { name: 'Minio connection' });
+    expect(connectionLink).toHaveAttribute('href', '/projects/test-project?section=connections');
+    expect(screen.getByTestId('connection-type')).toHaveTextContent('s3');
+  });
+
+  it('should fall back to the connection name when display name is unavailable', () => {
+    renderTable({
+      connections: [{ name: 'minio-connection', connectionType: 's3' }],
+    });
+
+    expect(screen.getByRole('link', { name: 'minio-connection' })).toBeInTheDocument();
+  });
+
+  it('should keep a location-only asset location as plain text', () => {
+    renderTable();
+
+    expect(screen.getByText('s3://bucket/docs')).not.toHaveAttribute('href');
   });
 
   it('should show loading state', () => {
@@ -77,9 +114,28 @@ describe('RegistryTable', () => {
     expect(screen.getByText('Error loading assets')).toBeTruthy();
   });
 
-  it('should show empty state when no assets', () => {
+  it('should show the empty state image, description, and register action when no assets', () => {
     renderTable({ assets: [] });
+    expect(screen.getByTestId('registry-empty-state')).toBeTruthy();
+    expect(screen.getByTestId('registry-empty-state-image')).toBeTruthy();
+    expect(screen.getByTestId('registry-empty-state-description')).toHaveTextContent(
+      'Data assets point to the exact location within a connection where information is located, and can be used across workbenches and pipelines in your project. To get started, create a data asset.',
+    );
+    expect(screen.getByRole('heading', { name: 'No data assets' })).toBeInTheDocument();
+    expect(screen.getByTestId('registry-toolbar')).toHaveClass('pf-v6-u-display-none');
+    expect(screen.queryByRole('columnheader', { name: 'Name' })).toBeNull();
+    expect(screen.getByTestId('empty-register-data-button')).toBeTruthy();
+  });
+
+  it('should show the filtered empty state when filters match no assets', () => {
+    renderTable();
+    fireEvent.change(screen.getByTestId('asset-search').querySelector('input')!, {
+      target: { value: 'missing' },
+    });
+
     expect(screen.getByText('No assets found')).toBeTruthy();
+    expect(screen.getByText('Try adjusting your filters.')).toBeTruthy();
+    expect(screen.queryByTestId('registry-empty-state-description')).toBeNull();
   });
 
   it('should render filter dropdowns', () => {
@@ -87,10 +143,105 @@ describe('RegistryTable', () => {
     expect(screen.getByTestId('filter-category')).toBeTruthy();
     expect(screen.getByTestId('filter-value')).toBeTruthy();
     expect(screen.getByTestId('asset-search')).toBeTruthy();
+    expect(screen.getByTestId('register-data-button')).toBeTruthy();
+    expect(screen.getByTestId('registry-toolbar')).toContainElement(
+      screen.getByTestId('registry-pagination'),
+    );
+  });
+
+  it('should show a disabled empty state when no labels are available', () => {
+    renderTable({ labels: [] });
+
+    fireEvent.click(screen.getByTestId('filter-value'));
+
+    const emptyOption = screen.getByRole('option', { name: 'No labels found.' });
+    expect(emptyOption).toBeDisabled();
+  });
+
+  it('should allow selecting multiple formats', () => {
+    renderTable();
+
+    fireEvent.click(screen.getByTestId('filter-category'));
+    fireEvent.click(screen.getByRole('option', { name: 'Format' }));
+    fireEvent.click(screen.getByTestId('filter-value'));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Apache Parquet' }));
+
+    expect(screen.getByText('claims-data')).toBeInTheDocument();
+    expect(screen.queryByText('raw-documents')).toBeNull();
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Documents' }));
+
+    expect(screen.getByText('claims-data')).toBeInTheDocument();
+    expect(screen.getByText('raw-documents')).toBeInTheDocument();
+    expect(screen.getByTestId('filter-value')).toHaveTextContent('2');
+  });
+
+  it('should use OR within categories and AND across categories', () => {
+    renderTable();
+
+    // Labels use OR: either selected label matches.
+    fireEvent.click(screen.getByTestId('filter-value'));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'production' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'source-docs' }));
+    expect(screen.getByText('claims-data')).toBeInTheDocument();
+    expect(screen.getByText('raw-documents')).toBeInTheDocument();
+
+    // Asset type uses OR: either selected type matches.
+    fireEvent.click(screen.getByTestId('filter-value'));
+    fireEvent.click(screen.getByTestId('filter-category'));
+    fireEvent.click(screen.getByRole('option', { name: 'Asset type' }));
+    fireEvent.click(screen.getByTestId('filter-value'));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Structured' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Unstructured' }));
+    expect(screen.getByText('claims-data')).toBeInTheDocument();
+    expect(screen.getByText('raw-documents')).toBeInTheDocument();
+
+    // Categories use AND: the remaining source-docs label narrows both asset types.
+    fireEvent.click(screen.getByTestId('filter-value'));
+    fireEvent.click(screen.getByTestId('filter-category'));
+    fireEvent.click(screen.getByRole('option', { name: 'Labels' }));
+    fireEvent.click(screen.getByTestId('filter-value'));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'production' }));
+    expect(screen.queryByText('claims-data')).toBeNull();
+    expect(screen.getByText('raw-documents')).toBeInTheDocument();
+
+    // Formats use OR while remaining combined with the label and asset type filters.
+    fireEvent.click(screen.getByTestId('filter-value'));
+    fireEvent.click(screen.getByTestId('filter-category'));
+    fireEvent.click(screen.getByRole('option', { name: 'Format' }));
+    fireEvent.click(screen.getByTestId('filter-value'));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Apache Parquet' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Documents' }));
+    expect(screen.queryByText('claims-data')).toBeNull();
+    expect(screen.getByText('raw-documents')).toBeInTheDocument();
+  });
+
+  it('should filter assets by property key and value', () => {
+    renderTable();
+
+    fireEvent.change(screen.getByTestId('asset-search').querySelector('input')!, {
+      target: { value: 'retention-class' },
+    });
+
+    expect(screen.getByText('raw-documents')).toBeTruthy();
+    expect(screen.queryByText('claims-data')).toBeNull();
   });
 
   it('should render kebab menu', () => {
     renderTable();
     expect(screen.getByTestId('registry-kebab')).toBeTruthy();
+  });
+
+  it('should disable per-asset edit and delete actions without write access', () => {
+    renderTable({ hasWriteAccess: false });
+
+    fireEvent.click(screen.getByTestId('asset-actions-table-analytics-claims-data'));
+
+    expect(screen.getByTestId('asset-edit-table-analytics-claims-data')).toHaveClass(
+      'pf-m-disabled',
+    );
+    expect(screen.getByTestId('asset-delete-table-analytics-claims-data')).toHaveClass(
+      'pf-m-disabled',
+    );
   });
 });

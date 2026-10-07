@@ -33,10 +33,16 @@ import {
 import React from 'react';
 import { Link, useParams } from 'react-router';
 import type { ColumnManagementModalColumn } from '@patternfly/react-component-groups';
-import AutoragRunInProgress from '~/app/components/empty-states/AutoragRunInProgress';
+import { RunInProgress } from '@odh-dashboard/autox-core/ui/components/feature';
+import {
+  ManageColumnsModal,
+  type ColumnPreset,
+} from '@odh-dashboard/autox-core/ui/components/primitive';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import type { AutoragPattern, MetricReference } from '~/app/types/autoragPattern';
+import emptyStateImage from '~/app/bgimages/empty-state.svg';
 import { RuntimeStateKF } from '~/app/types/pipeline';
+import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { formatPatternName, isRunInProgress } from '~/app/utilities/utils';
 import {
   findMetric,
@@ -51,6 +57,7 @@ import {
 } from '~/app/utilities/metricUtils';
 import { patternHasIndexingPipelineSpec } from '~/app/utilities/indexingPipeline';
 import { METRIC_DESCRIPTIONS } from '~/app/utilities/const';
+import { getMetricDescription } from '~/app/utilities/metricDisplay';
 import {
   fireAutoragResultsColumnToggled,
   fireAutoragLeaderboardPresetApplied,
@@ -58,8 +65,9 @@ import {
   type ResultsColumnName,
   type LeaderboardPresetType,
 } from '~/app/utilities/tracking';
-import ManageColumnsModal, { type ColumnPreset } from './ManageColumnsModal';
 import './AutoragLeaderboard.scss';
+
+const RunInProgressIcon = () => <img src={emptyStateImage} alt="Run in progress" />;
 
 type LeaderboardEntry = {
   rank?: number;
@@ -266,13 +274,25 @@ const COLUMN_META: Record<string, ColumnMeta> = {
 // key returns a value, but dynamic settings and metric names may be absent at runtime.
 const getColumnMeta = (id: string, metric?: MetricReference): ColumnMeta | undefined => {
   if (metric) {
-    return METRIC_COLUMN_META[normalizeMetricReference(metric).name];
+    const { name } = normalizeMetricReference(metric);
+    if (Object.hasOwn(METRIC_COLUMN_META, name)) {
+      return METRIC_COLUMN_META[name];
+    }
+    const description = getMetricDescription(name);
+    if (description) {
+      return {
+        name: metricLabel({ name }),
+        description,
+        minWidth: '15rem',
+      };
+    }
+    return undefined;
   }
-  if (id in COLUMN_META) {
+  if (Object.hasOwn(COLUMN_META, id)) {
     return COLUMN_META[id];
   }
   const lowerId = id.toLowerCase();
-  if (lowerId in COLUMN_META) {
+  if (Object.hasOwn(COLUMN_META, lowerId)) {
     return COLUMN_META[lowerId];
   }
   return undefined;
@@ -922,7 +942,7 @@ function AutoragLeaderboard({
         </Label>
       ) : (
         // eslint-disable-next-line prettier/prettier -- preserve the JSX fallback expression format
-        entry.rank ?? 'Unranked'
+        (entry.rank ?? 'Unranked')
       );
     }
     if (col.id === 'pattern') {
@@ -977,7 +997,14 @@ function AutoragLeaderboard({
     if (!namespace) {
       return null;
     }
-    return <AutoragRunInProgress namespace={namespace} />;
+    return (
+      <RunInProgress
+        productName="AutoRAG"
+        icon={RunInProgressIcon}
+        viewRunsRoute={`${autoragExperimentsPathname}/${namespace}`}
+        data-testid="autorag-run-in-progress"
+      />
+    );
   }
 
   // Show loading state with 5 rows and 14 columns
@@ -1032,7 +1059,10 @@ function AutoragLeaderboard({
           <EmptyStateBody>An error occurred while loading pattern results.</EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>
-              <Button variant="link" onClick={onRetryPatterns}>
+              <Button
+                variant="link"
+                onClick={() => void Promise.resolve(onRetryPatterns?.()).catch(() => undefined)}
+              >
                 Retry
               </Button>
             </EmptyStateActions>

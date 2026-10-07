@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Configuration
-DOCKERFILE="packages/gen-ai/Dockerfile"
+DOCKERFILE="packages/gen-ai/Dockerfile.workspace"
 
 # Get Git information
 # Get the remote and branch from upstream
@@ -56,7 +56,8 @@ echo "✅ BuildConfig created successfully"
 echo "🔧 Patching BuildConfig..."
 oc patch buildconfig ${APP_NAME} --type='json' -p='[
   {"op": "remove", "path": "/spec/source/contextDir"},
-  {"op": "add", "path": "/spec/strategy/dockerStrategy/dockerfilePath", "value": "packages/gen-ai/Dockerfile"}
+  {"op": "add", "path": "/spec/strategy/dockerStrategy/dockerfilePath", "value": "packages/gen-ai/Dockerfile.workspace"},
+  {"op": "add", "path": "/spec/strategy/dockerStrategy/buildArgs", "value": [{"name": "DEPLOYMENT_MODE", "value": "standalone"}]}
 ]'
 
 echo "✅ Patched BuildConfig: removed contextDir and set dockerfilePath to ${DOCKERFILE}"

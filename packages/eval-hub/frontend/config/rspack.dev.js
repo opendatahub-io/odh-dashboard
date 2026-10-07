@@ -1,6 +1,5 @@
 /* eslint-disable no-console */
 const { execSync } = require('child_process');
-const path = require('path');
 const { merge } = require('rspack-merge');
 const { TsCheckerRspackPlugin } = require('ts-checker-rspack-plugin');
 const { ReactRefreshRspackPlugin } = require('@rspack/plugin-react-refresh');
@@ -11,8 +10,6 @@ const rspackCommon = require('./rspack.common.js');
 
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR;
-const SRC_DIR = process.env._SRC_DIR;
-const COMMON_DIR = process.env._COMMON_DIR;
 const PUBLIC_PATH = process.env._PUBLIC_PATH;
 const DIST_DIR = process.env._DIST_DIR;
 const HOST = process.env._HOST;
@@ -21,7 +18,6 @@ const PROXY_PROTOCOL = process.env._PROXY_PROTOCOL;
 const PROXY_HOST = process.env._PROXY_HOST;
 const PROXY_PORT = process.env._PROXY_PORT;
 const MLFLOW_PROXY_PORT = process.env.MLFLOW_PROXY_PORT || '4000';
-const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules');
 const DEPLOYMENT_MODE = process.env._DEPLOYMENT_MODE;
 const AUTH_METHOD = process.env._AUTH_METHOD;
 const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/eval-hub/' : PUBLIC_PATH;
@@ -149,12 +145,6 @@ module.exports = merge(
       rules: [
         {
           test: /\.css$/,
-          include: [
-            SRC_DIR,
-            COMMON_DIR,
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
-            path.resolve(ROOT_NODE_MODULES, '@patternfly'),
-          ],
           use: ['style-loader', 'css-loader'],
         },
       ],

@@ -12,7 +12,10 @@ import {
 import React from 'react';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
-import { canShowModelsExpandToggle } from '~/app/topology/tree-view/branchExpand';
+import {
+  canShowModelsExpandToggle,
+  countModelBranches,
+} from '~/app/topology/tree-view/branchExpand';
 import { ModelsExpandProvider } from '~/app/topology/tree-view/ModelsExpandContext';
 import TreeTopology from '~/app/topology/tree-view/TreeTopology';
 import {
@@ -67,6 +70,10 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
     () => canShowModelsExpandToggle(treeViewData.stageMapNodes),
     [treeViewData.stageMapNodes],
   );
+  const modelCount = React.useMemo(
+    () => countModelBranches(treeViewData.stageMapNodes),
+    [treeViewData.stageMapNodes],
+  );
 
   const winnerResolved = statusFilter === 'completed' && !!treeViewData.selectedModel;
 
@@ -85,9 +92,10 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
     () => ({
       modelsExpanded,
       showToggle: showModelsToggle,
+      modelCount,
       onToggle: () => setModelsExpanded((prev) => !prev),
     }),
-    [modelsExpanded, showModelsToggle],
+    [modelsExpanded, showModelsToggle, modelCount],
   );
 
   const showTreeLoadingState = treeLoadingMode != null;

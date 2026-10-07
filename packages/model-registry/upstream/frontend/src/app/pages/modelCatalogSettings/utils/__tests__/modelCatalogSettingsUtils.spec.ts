@@ -231,6 +231,15 @@ describe('getPayloadForConfig', () => {
       excludedModels: [],
     });
   });
+
+  it('does not copy response credential metadata into create or update payloads', () => {
+    const response = mockHuggingFaceCatalogSourceConfig({ hasConfiguredApiKey: true });
+    expect(getPayloadForConfig(response, false, false)).not.toHaveProperty('hasConfiguredApiKey');
+    expect(
+      getPayloadForConfig({ ...response, apiKey: 'hf_replacement' }, false, true),
+    ).not.toHaveProperty('hasConfiguredApiKey');
+    expect(getPayloadForConfig(response, true, false)).not.toHaveProperty('hasConfiguredApiKey');
+  });
 });
 
 describe('resolveHuggingFaceApiKeyField', () => {

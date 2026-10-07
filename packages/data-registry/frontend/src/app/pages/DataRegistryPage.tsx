@@ -3,25 +3,27 @@ import {
   PageSection,
   EmptyState,
   EmptyStateBody,
+  EmptyStateFooter,
   EmptyStateVariant,
+  EmptyStateActions,
+  Button,
   Spinner,
-  Select,
-  SelectOption,
-  SelectList,
-  MenuToggle,
   Flex,
   FlexItem,
-  Button,
   Content,
 } from '@patternfly/react-core';
-import { OutlinedFolderIcon } from '@patternfly/react-icons';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useNamespaceSelector, type UseNamespaceSelectorArgs } from 'mod-arch-core';
+import ProjectSelector from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelector';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
+import NewProjectButton from '~/app/components/NewProjectButton';
 import './DataRegistryPage.scss';
 import { useCollections } from '~/app/hooks/useCollections';
 import { useAssets } from '~/app/hooks/useAssets';
 import { useLabels } from '~/app/hooks/useLabels';
+import { useConnections } from '~/app/hooks/useConnections';
 import { is503Error, is403Error, isConnectionError } from '~/app/api/dataRegistry';
+import { hasDataRegistryWriteAccess } from '~/app/utilities/access';
 import RegistryTable from '~/app/components/RegistryTable';
 import ManageCollectionsModal from '~/app/components/ManageCollectionsModal';
 import ManageLabelsModal from '~/app/components/ManageLabelsModal';
@@ -29,19 +31,87 @@ import RegisterDataModal from '~/app/components/RegisterDataModal';
 import ServiceUnavailableError from '~/app/components/errors/ServiceUnavailableError';
 import AccessDeniedError from '~/app/components/errors/AccessDeniedError';
 import ConnectionError from '~/app/components/errors/ConnectionError';
+import noProjectsImage from '~/images/RHOAI-Registerdata-Noprojects-RGB.png';
 
 // TODO: Replace with isAvailableProject from @odh-dashboard/k8s-core when BFF returns filtered projects
 const HIDDEN_NS_PREFIXES = ['openshift-', 'kube-'];
 const HIDDEN_NS = ['openshift', 'default', 'system', 'redhat-ods-applications'];
+const PERSISTENCE_OPTIONS = {
+  storeLastNamespace: true,
+} satisfies UseNamespaceSelectorArgs;
+
+type NoProjectsPageProps = {
+  onProjectCreated: (projectName: string) => void | Promise<void>;
+};
+
+type ProjectCreationErrorPageProps = {
+  projectName: string;
+  error?: Error;
+  onRetry: () => void;
+};
+
+const NoProjectsPage: React.FC<NoProjectsPageProps> = ({ onProjectCreated }) => (
+  <PageSection hasBodyWrapper={false} isFilled>
+    <EmptyState
+      headingLevel="h2"
+      icon={() => (
+        <img
+          className="odh-data-registry__empty-state-image"
+          src={noProjectsImage}
+          alt="No projects"
+        />
+      )}
+      titleText="No projects"
+      variant={EmptyStateVariant.lg}
+      data-testid="no-projects-empty-state"
+    >
+      <EmptyStateBody>To browse data assets, first create a project.</EmptyStateBody>
+      <EmptyStateFooter>
+        <NewProjectButton onProjectCreated={onProjectCreated} />
+      </EmptyStateFooter>
+    </EmptyState>
+  </PageSection>
+);
+
+const ProjectCreationErrorPage: React.FC<ProjectCreationErrorPageProps> = ({
+  projectName,
+  error,
+  onRetry,
+}) => (
+  <PageSection hasBodyWrapper={false} isFilled>
+    <EmptyState
+      headingLevel="h2"
+      titleText="Project is not available yet"
+      variant={EmptyStateVariant.lg}
+    >
+      <EmptyStateBody>
+        {error?.message ||
+          `Project "${projectName}" was created, but it is not available in the project list yet.`}
+      </EmptyStateBody>
+      <EmptyStateFooter>
+        <EmptyStateActions>
+          <Button variant="primary" onClick={onRetry} data-testid="retry-project-creation">
+            Retry
+          </Button>
+        </EmptyStateActions>
+      </EmptyStateFooter>
+    </EmptyState>
+  </PageSection>
+);
 
 const DataRegistryPage: React.FC = () => {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedProject = searchParams.get('project') || '';
-  const [isProjectOpen, setIsProjectOpen] = React.useState(false);
   const [isCollectionsModalOpen, setIsCollectionsModalOpen] = React.useState(false);
   const [isLabelsModalOpen, setIsLabelsModalOpen] = React.useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = React.useState(false);
+  const [returnToRegisterData, setReturnToRegisterData] = React.useState(false);
+  const returnToEditRef = React.useRef<(() => void) | undefined>(undefined);
+  const [projectCreationFailure, setProjectCreationFailure] = React.useState<string>();
 
+  const { preferredNamespace, updatePreferredNamespace } =
+    useNamespaceSelector(PERSISTENCE_OPTIONS);
   const [namespaces, namespacesLoaded, namespacesError, namespacesRefresh] = useNamespaces();
 
   const projects = React.useMemo(
@@ -54,7 +124,55 @@ const DataRegistryPage: React.FC = () => {
     [namespaces],
   );
 
-  const selectedProject = projects.some((p) => p.name === requestedProject) ? requestedProject : '';
+  const projectNamespaces = React.useMemo(
+    () =>
+      projects.map((project) => ({
+        ...project,
+        displayName: project.displayName ?? project.name,
+      })),
+    [projects],
+  );
+  const validPreferredNamespace = projectNamespaces.find(
+    (project) => project.name === preferredNamespace?.name,
+  );
+  const requestedNamespace = projectNamespaces.find((project) => project.name === requestedProject);
+  let selectedProject = '';
+  if (requestedNamespace) {
+    selectedProject = requestedNamespace.name;
+  } else if (validPreferredNamespace) {
+    selectedProject = validPreferredNamespace.name;
+  } else if (projectNamespaces.length > 0) {
+    selectedProject = projectNamespaces[0].name;
+  }
+
+  React.useEffect(() => {
+    if (!selectedProject) {
+      return;
+    }
+
+    const selectedNamespace = projectNamespaces.find((project) => project.name === selectedProject);
+    if (selectedNamespace && selectedNamespace.name !== preferredNamespace?.name) {
+      updatePreferredNamespace(selectedNamespace);
+    }
+
+    if (requestedProject !== selectedProject) {
+      setSearchParams(
+        (previous) => {
+          const next = new URLSearchParams(previous);
+          next.set('project', selectedProject);
+          return next;
+        },
+        { replace: true },
+      );
+    }
+  }, [
+    preferredNamespace,
+    projectNamespaces,
+    requestedProject,
+    selectedProject,
+    setSearchParams,
+    updatePreferredNamespace,
+  ]);
 
   const [assets, assetsLoaded, assetsError, assetsRefresh, collectionNames] =
     useAssets(selectedProject);
@@ -64,28 +182,87 @@ const DataRegistryPage: React.FC = () => {
     collectionNames,
   );
   const [labels, , , labelsRefresh] = useLabels(selectedProject);
+  const [connections] = useConnections(selectedProject);
 
-  const hasWriteAccess = !is403Error(assetsError) && !is403Error(collectionsError);
+  const hasWriteAccess = hasDataRegistryWriteAccess(assetsError, collectionsError);
 
-  const handleRefresh = React.useCallback(() => {
-    assetsRefresh();
-    collectionsRefresh();
-    labelsRefresh();
+  const handleRefresh = React.useCallback(async () => {
+    await Promise.all([assetsRefresh(), collectionsRefresh(), labelsRefresh()]);
   }, [assetsRefresh, collectionsRefresh, labelsRefresh]);
 
+  const handleCollectionsModalClose = React.useCallback(async () => {
+    setIsCollectionsModalOpen(false);
+    if (returnToRegisterData) {
+      await assetsRefresh();
+      setReturnToRegisterData(false);
+      setIsRegisterModalOpen(true);
+      return;
+    }
+    const returnToEdit = returnToEditRef.current;
+    returnToEditRef.current = undefined;
+    returnToEdit?.();
+  }, [assetsRefresh, returnToRegisterData]);
+
+  const handleLabelsModalClose = React.useCallback(() => {
+    setIsLabelsModalOpen(false);
+    if (returnToRegisterData) {
+      setReturnToRegisterData(false);
+      setIsRegisterModalOpen(true);
+      return;
+    }
+    const returnToEdit = returnToEditRef.current;
+    returnToEditRef.current = undefined;
+    returnToEdit?.();
+  }, [returnToRegisterData]);
+
   const handleProjectSelect = React.useCallback(
-    (_event: React.MouseEvent | undefined, value: string | number | undefined) => {
-      if (value && value !== '__none__') {
-        setSearchParams((prev) => {
-          const params = new URLSearchParams(prev);
-          params.set('project', String(value));
-          return params;
-        });
+    (projectName: string) => {
+      returnToEditRef.current = undefined;
+      const namespace = projectNamespaces.find((project) => project.name === projectName);
+      if (namespace) {
+        updatePreferredNamespace(namespace);
       }
-      setIsProjectOpen(false);
+      setSearchParams(
+        (previous) => {
+          const next = new URLSearchParams(previous);
+          next.set('project', projectName);
+          return next;
+        },
+        { replace: true },
+      );
     },
-    [setSearchParams],
+    [projectNamespaces, setSearchParams, updatePreferredNamespace],
   );
+
+  const handleProjectCreated = React.useCallback(
+    async (projectName: string) => {
+      const refreshedNamespaces = await namespacesRefresh();
+      if (!refreshedNamespaces?.some((namespace) => namespace.name === projectName)) {
+        setProjectCreationFailure(projectName);
+        return;
+      }
+
+      setProjectCreationFailure(undefined);
+      navigate(`/ai-hub/data/browse?project=${encodeURIComponent(projectName)}`);
+    },
+    [namespacesRefresh, navigate],
+  );
+
+  const handleProjectCreationRetry = React.useCallback(() => {
+    if (projectCreationFailure) {
+      void handleProjectCreated(projectCreationFailure);
+    }
+  }, [handleProjectCreated, projectCreationFailure]);
+
+  if (projectCreationFailure) {
+    return (
+      <ProjectCreationErrorPage
+        projectName={projectCreationFailure}
+        error={namespacesError}
+        onRetry={handleProjectCreationRetry}
+      />
+    );
+  }
 
   if (namespacesError) {
     if (is503Error(namespacesError)) {
@@ -132,51 +309,25 @@ const DataRegistryPage: React.FC = () => {
     );
   }
 
+  if (projects.length === 0) {
+    return <NoProjectsPage onProjectCreated={handleProjectCreated} />;
+  }
+
   return (
     <>
       <PageSection hasBodyWrapper={false}>
+        <Content component="p" className="pf-v6-u-mb-xs">
+          View and manage this project’s data assets where information is located.
+        </Content>
         <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsMd' }}>
           <FlexItem>
-            <OutlinedFolderIcon /> Project
+            <ProjectSelector
+              namespace={selectedProject}
+              onSelection={handleProjectSelect}
+              namespacesOverride={projectNamespaces}
+              showTitle
+            />
           </FlexItem>
-          <FlexItem>
-            <Select
-              isOpen={isProjectOpen}
-              selected={selectedProject}
-              onSelect={handleProjectSelect}
-              onOpenChange={setIsProjectOpen}
-              toggle={(toggleRef) => (
-                <MenuToggle
-                  ref={toggleRef}
-                  onClick={() => setIsProjectOpen((prev) => !prev)}
-                  isExpanded={isProjectOpen}
-                  aria-label="Select a project"
-                  data-testid="project-selector"
-                >
-                  {selectedProject || 'Select a project'}
-                </MenuToggle>
-              )}
-            >
-              <SelectList>
-                {projects.map((ns) => (
-                  <SelectOption key={ns.name} value={ns.name}>
-                    {ns.name}
-                  </SelectOption>
-                ))}
-              </SelectList>
-            </Select>
-          </FlexItem>
-          {selectedProject ? (
-            <FlexItem>
-              <Button
-                variant="link"
-                data-testid="go-to-project-link"
-                component={(props) => <Link {...props} to={`/projects/${selectedProject}`} />}
-              >
-                Go to <OutlinedFolderIcon /> <strong>{selectedProject}</strong>
-              </Button>
-            </FlexItem>
-          ) : null}
         </Flex>
       </PageSection>
 
@@ -190,41 +341,43 @@ const DataRegistryPage: React.FC = () => {
         </PageSection>
       ) : (
         <>
-          <PageSection hasBodyWrapper={false} className="odh-data-registry__header">
-            <span className="odh-data-registry__tab">Registry</span>
-          </PageSection>
-          <PageSection hasBodyWrapper={false}>
-            <Content component="p">
-              View and manage data assets registered in the selected project. The data registry
-              provides a structured and organized way to discover, share, version, and connect
-              schemas, datasets, and data sources.
-            </Content>
-          </PageSection>
           <RegistryTable
             assets={assets}
             loaded={assetsLoaded && collectionsLoaded}
             error={assetsError ?? collectionsError}
             labels={labels}
             project={selectedProject}
-            onManageCollections={() => {
+            connections={connections}
+            onManageCollections={(onReturnToEdit) => {
+              setReturnToRegisterData(false);
               if (!collectionsError) {
+                returnToEditRef.current = onReturnToEdit;
                 setIsCollectionsModalOpen(true);
+              } else {
+                onReturnToEdit?.();
               }
             }}
-            onManageLabels={() => setIsLabelsModalOpen(true)}
-            onRegisterData={() => setIsRegisterModalOpen(true)}
+            onManageLabels={(onReturnToEdit) => {
+              returnToEditRef.current = onReturnToEdit;
+              setReturnToRegisterData(false);
+              setIsLabelsModalOpen(true);
+            }}
+            onRegisterData={() => {
+              setReturnToRegisterData(false);
+              setIsRegisterModalOpen(true);
+            }}
             onRetry={handleRefresh}
             hasWriteAccess={hasWriteAccess}
           />
           <ManageCollectionsModal
             isOpen={isCollectionsModalOpen}
-            onClose={() => setIsCollectionsModalOpen(false)}
+            onClose={handleCollectionsModalClose}
             project={selectedProject}
             onRefresh={handleRefresh}
           />
           <ManageLabelsModal
             isOpen={isLabelsModalOpen}
-            onClose={() => setIsLabelsModalOpen(false)}
+            onClose={handleLabelsModalClose}
             project={selectedProject}
             labels={labels}
             assets={assets}
@@ -238,7 +391,13 @@ const DataRegistryPage: React.FC = () => {
             onCreated={handleRefresh}
             onManageCollections={() => {
               setIsRegisterModalOpen(false);
+              setReturnToRegisterData(true);
               setIsCollectionsModalOpen(true);
+            }}
+            onManageLabels={() => {
+              setIsRegisterModalOpen(false);
+              setReturnToRegisterData(true);
+              setIsLabelsModalOpen(true);
             }}
           />
         </>

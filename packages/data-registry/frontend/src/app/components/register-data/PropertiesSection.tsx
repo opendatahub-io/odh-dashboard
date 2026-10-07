@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   FormGroup,
+  FormGroupLabelHelp,
   FormSection,
   TextInput,
   Select,
@@ -8,36 +9,51 @@ import {
   SelectList,
   MenuToggle,
   MenuToggleElement,
-  Content,
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Popover,
 } from '@patternfly/react-core';
 import { Controller, useFormContext } from 'react-hook-form';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
 import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
+import {
+  LICENSE_VALUES,
+  MATURITY_VALUES,
+  PII_STATUS_VALUES,
+  LicenseType,
+  MaturityType,
+  PiiStatus,
+} from '~/app/types';
+import CustomPropertiesSection from './CustomPropertiesSection';
 
-const LICENSE_OPTIONS = [
-  { key: 'internal-use', label: 'Internal use' },
-  { key: 'cc-by-4.0', label: 'CC BY 4.0' },
-  { key: 'apache-2.0', label: 'Apache 2.0' },
-  { key: 'proprietary', label: 'Proprietary' },
-  { key: 'restricted', label: 'Restricted' },
-];
+const LICENSE_LABELS: Record<LicenseType, string> = {
+  'internal-use': 'Internal use',
+  'cc-by-4.0': 'CC BY 4.0',
+  'apache-2.0': 'Apache 2.0',
+  proprietary: 'Proprietary',
+  restricted: 'Restricted',
+};
 
-const MATURITY_OPTIONS = [
-  { key: 'experimental', label: 'Experimental' },
-  { key: 'staging', label: 'Staging' },
-  { key: 'production', label: 'Production' },
-  { key: 'deprecated', label: 'Deprecated' },
-];
+const LICENSE_OPTIONS = LICENSE_VALUES.map((key) => ({ key, label: LICENSE_LABELS[key] }));
 
-const PII_OPTIONS = [
-  { key: 'none', label: 'None' },
-  { key: 'contains-pii', label: 'Contains PII' },
-  { key: 'contains-sensitive', label: 'Contains sensitive' },
-  { key: 'anonymized', label: 'Anonymized' },
-];
+const MATURITY_LABELS: Record<MaturityType, string> = {
+  experimental: 'Experimental',
+  staging: 'Staging',
+  production: 'Production',
+  deprecated: 'Deprecated',
+};
+
+const MATURITY_OPTIONS = MATURITY_VALUES.map((key) => ({ key, label: MATURITY_LABELS[key] }));
+
+const PII_LABELS: Record<PiiStatus, string> = {
+  none: 'None',
+  'contains-pii': 'Contains PII',
+  'contains-sensitive': 'Contains sensitive',
+  anonymized: 'Anonymized',
+};
+
+const PII_OPTIONS = PII_STATUS_VALUES.map((key) => ({ key, label: PII_LABELS[key] }));
 
 type SelectFieldProps = {
   name: 'license' | 'maturity' | 'piiStatus';
@@ -46,6 +62,7 @@ type SelectFieldProps = {
   testId: string;
   options: { key: string; label: string }[];
   placeholder: string;
+  labelHelp?: React.ReactElement;
 };
 
 const SelectField: React.FC<SelectFieldProps> = ({
@@ -55,6 +72,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
   testId,
   options,
   placeholder,
+  labelHelp,
 }) => {
   const { control } = useFormContext<RegisterDataFormData | EditAssetFormData>();
   const [isOpen, setIsOpen] = React.useState(false);
@@ -64,7 +82,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
       name={name}
       control={control}
       render={({ field }) => (
-        <FormGroup label={label} fieldId={fieldId}>
+        <FormGroup label={label} fieldId={fieldId} labelHelp={labelHelp}>
           <Select
             isOpen={isOpen}
             selected={field.value}
@@ -81,14 +99,17 @@ const SelectField: React.FC<SelectFieldProps> = ({
                 isFullWidth
                 data-testid={testId}
               >
-                {options.find((o) => o.key === field.value)?.label || placeholder}
+                {options.find((option) => option.key === field.value)?.label || placeholder}
               </MenuToggle>
             )}
           >
             <SelectList>
-              {options.map((o) => (
-                <SelectOption key={o.key} value={o.key}>
-                  {o.label}
+              <SelectOption value="" data-testid={`${testId}-clear`}>
+                Not set
+              </SelectOption>
+              {options.map((option) => (
+                <SelectOption key={option.key} value={option.key}>
+                  {option.label}
                 </SelectOption>
               ))}
             </SelectList>
@@ -107,10 +128,6 @@ const PropertiesSection: React.FC = () => {
 
   return (
     <FormSection title="Properties" titleElement="h2">
-      <Content component="p">
-        Define operational metadata, compliance levels, and discoverability tags.
-      </Content>
-
       <Controller
         name="purpose"
         control={control}
@@ -130,6 +147,21 @@ const PropertiesSection: React.FC = () => {
                 </HelperText>
               </FormHelperText>
             ) : null}
+          </FormGroup>
+        )}
+      />
+
+      <Controller
+        name="domain"
+        control={control}
+        render={({ field }) => (
+          <FormGroup label="Domain" fieldId="data-domain">
+            <TextInput
+              id="data-domain"
+              {...field}
+              placeholder="e.g. Finance, Healthcare"
+              data-testid="data-domain-input"
+            />
           </FormGroup>
         )}
       />
@@ -159,7 +191,14 @@ const PropertiesSection: React.FC = () => {
         testId="data-pii-toggle"
         options={PII_OPTIONS}
         placeholder="Select PII status"
+        labelHelp={
+          <Popover bodyContent="The type of personally identifiable information (PII) present in the data.">
+            <FormGroupLabelHelp aria-label="PII information" />
+          </Popover>
+        }
       />
+
+      <CustomPropertiesSection />
     </FormSection>
   );
 };

@@ -15,23 +15,46 @@ env:
 jobs:
   Setup:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Validate all package-lock.json files
-        run: ./scripts/check-package-lock.sh --all
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - name: Package Manager Policy — reject unexpected npm lockfiles
+        shell: bash
+        run: |
+          set -euo pipefail
+          allowed_lockfiles=(
+            "packages/model-registry/upstream/package-lock.json"
+            "packages/model-registry/upstream/frontend/package-lock.json"
+            "packages/notebooks/upstream/workspaces/frontend/package-lock.json"
+          )
+          unexpected=()
+          while IFS= read -r file; do
+            if [[ " ${allowed_lockfiles[*]} " == *" $file "* ]]; then
+              continue
+            fi
+            unexpected+=("$file")
+          done < <(
+            git ls-files |
+              grep -E '(^|/)(package-lock\.json|npm-shrinkwrap\.json)$' || true
+          )
+
+          if ((${#unexpected[@]} > 0)); then
+            printf '::error::Unexpected npm lockfile(s):\n'
+            printf '  %s\n' "${unexpected[@]}"
+            echo 'Use the root pnpm-lock.yaml.'
+            echo 'Only documented vendored upstream lockfiles are allowed.'
+            exit 1
+          fi
+      - name: Free disk space
+        uses: ./.github/actions/free-disk-space
+      - name: Setup pnpm and Node.js
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          include-modules: 'true'
-          force-install: 'true'
+          install-dependencies: 'false'
 
       - name: Validate module federation ports
-        run: npm run validate:ports
+        run: pnpm run validate:ports
 
       - name: Check for uncommitted changes
         run: git diff --exit-code
@@ -39,58 +62,49 @@ jobs:
   Quality-Gate:
     needs: [Setup]
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: true
       matrix:
         check: [lint, type-check]
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          include-modules: 'true'
       - name: Cache turbo
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: |
-            **/.turbo
+          path: .turbo
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ matrix.check }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ matrix.check }}-
       - name: Run ${{ matrix.check }}
         run: |
           if [ "${{ matrix.check }}" = "lint" ]; then
-            NODE_OPTIONS="--max-old-space-size=8192" npm run lint
+            NODE_OPTIONS="--max-old-space-size=8192" pnpm run lint
           else
-            npm run type-check
+            pnpm run type-check
           fi
 
   Unit-Tests:
     needs: [Setup]
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       actions: read
       contents: read
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: Module caches
-        uses: ./.github/actions/module-caches
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Cache turbo
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: |
-            **/.turbo
+          path: .turbo
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-
@@ -118,7 +132,7 @@ jobs:
             core.info(`Quality gates: ${status.join(', ')}`);
       - name: Unit tests with coverage
         run: |
-          npm run test-unit-coverage
+          pnpm run test-unit-coverage
       - name: Upload unit test coverage
         if: env.IS_DRAFT != 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -130,43 +144,64 @@ jobs:
   Get-Test-Groups:
     needs: Setup
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
     outputs:
       test-groups: ${{ steps.set-groups.outputs.test-groups }}
+      has-tests: ${{ steps.set-groups.outputs.has-tests }}
+      full-matrix: ${{ steps.set-groups.outputs.full-matrix }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
         with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: Module caches
-        uses: ./.github/actions/module-caches
+          persist-credentials: false
+          # Keep GitHub's merge checkout so the diff and graph match the code under test.
+          fetch-depth: 0
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
       - id: set-groups
+        name: Select Cypress mock test groups
         shell: bash
+        env:
+          IMPACT_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          IMPACT_HEAD: ${{ github.sha }}
         run: |
-          # Generate test groups using Node.js script
-          # Automatically splits large files (>15KB) into individual groups
-          # Groups smaller files together
-          # New test files are automatically picked up
-          TEST_GROUPS=$(node scripts/generate-cypress-test-matrix.js)
+          node scripts/cypress/plan-mock-test-impact.js \
+            --base "$IMPACT_BASE" \
+            --head "$IMPACT_HEAD" \
+            --matrix "$RUNNER_TEMP/cypress-mock-matrix.json" \
+            --scope "$RUNNER_TEMP/cypress-mock-scope.txt"
 
-          # Output for GitHub Actions matrix
-          echo "test-groups=$TEST_GROUPS" >> "$GITHUB_OUTPUT"
+          TEST_GROUPS=$(jq -c . "$RUNNER_TEMP/cypress-mock-matrix.json")
+          SELECTED_GROUPS=$(jq 'length' "$RUNNER_TEMP/cypress-mock-matrix.json")
+          HAS_TESTS=$([[ "$SELECTED_GROUPS" -gt 0 ]] && echo true || echo false)
+          FULL_MATRIX=$([[ "$(cat "$RUNNER_TEMP/cypress-mock-scope.txt")" == "full" ]] && echo true || echo false)
 
-          # Pretty print for logs
+          # GitHub rejects an empty matrix. A no-op entry keeps the aggregate jobs successful.
+          if [[ "$HAS_TESTS" != "true" ]]; then
+            TEST_GROUPS='[{"name":"no-cypress-mock-tests","spec":""}]'
+          fi
+
+          {
+            echo "test-groups=$TEST_GROUPS"
+            echo "has-tests=$HAS_TESTS"
+            echo "full-matrix=$FULL_MATRIX"
+          } >> "$GITHUB_OUTPUT"
           echo "$TEST_GROUPS" | jq .
 
   Contract-Tests:
     needs: [Setup]
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       actions: read
       contents: read
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Setup Go
@@ -177,13 +212,15 @@ jobs:
             packages/model-registry/upstream/bff/go.sum
             packages/gen-ai/bff/go.sum
             packages/mlflow/bff/go.sum
+            packages/notebooks/upstream/workspaces/backend/go.sum
             distributions/core-bff/bff/go.sum
       - name: Install uv
+        timeout-minutes: 5
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-      - name: Module caches
-        uses: ./.github/actions/module-caches
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          # Contract tests only need the uv binary on PATH; disable dependency cache
+          # scanning (default **/*requirements*.txt glob traverses pnpm node_modules).
+          enable-cache: false
       - name: Abort if quality gate already failed
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
@@ -210,7 +247,7 @@ jobs:
         run: |
           export GITHUB_RUN_ID="$GITHUB_RUN_ID"
           export CI="true"
-          npm run test:contract
+          pnpm run test:contract
         env:
           GITHUB_RUN_ID: ${{ github.run_id }}
           CI: true
@@ -235,6 +272,7 @@ jobs:
   Get-Cypress-Packages:
     needs: [Setup]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     outputs:
@@ -243,6 +281,11 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           persist-credentials: false
+      - name: Setup pnpm
+        uses: ./.github/actions/pnpm-setup
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          install-dependencies: 'false'
       - name: Discover Cypress packages
         id: cypress
         uses: ./.github/actions/cypress-build-restore
@@ -251,8 +294,10 @@ jobs:
           github-token: ${{ github.token }}
 
   Cypress-Setup:
-    needs: [Setup, Get-Cypress-Packages]
+    needs: [Setup, Get-Cypress-Packages, Get-Test-Groups]
+    if: needs.Get-Test-Groups.outputs.has-tests == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     permissions:
       contents: read
     strategy:
@@ -263,15 +308,10 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           persist-credentials: false
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          include-modules: 'true'
       - name: Build and upload ${{ matrix.package.name }}
         uses: ./.github/actions/cypress-build-restore
         with:
@@ -282,7 +322,16 @@ jobs:
 
   Cypress-Mock-Tests:
     needs: [Setup, Cypress-Setup, Get-Test-Groups, Get-Cypress-Packages]
+    if: >-
+      ${{
+        always() &&
+        needs.Setup.result == 'success' &&
+        needs.Get-Test-Groups.result == 'success' &&
+        needs.Get-Cypress-Packages.result == 'success' &&
+        (needs.Get-Test-Groups.outputs.has-tests != 'true' || needs.Cypress-Setup.result == 'success')
+      }}
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     permissions:
       actions: read
       contents: read
@@ -291,25 +340,27 @@ jobs:
       matrix:
         test-group: ${{ fromJson(needs.Get-Test-Groups.outputs.test-groups) }}
     steps:
+      - name: No Cypress mock tests selected
+        if: needs.Get-Test-Groups.outputs.has-tests != 'true'
+        run: echo "Documentation-only change; Cypress mock tests are not required."
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        if: needs.Get-Test-Groups.outputs.has-tests == 'true'
         with:
           persist-credentials: false
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - name: Setup pnpm and install dependencies
+        if: needs.Get-Test-Groups.outputs.has-tests == 'true'
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          include-modules: 'true'
       - name: Restore Cypress builds
+        if: needs.Get-Test-Groups.outputs.has-tests == 'true'
         uses: ./.github/actions/cypress-build-restore
         with:
           mode: restore
           packages: ${{ needs.Get-Cypress-Packages.outputs.packages }}
           github-token: ${{ github.token }}
       - name: Abort if quality gate already failed
+        if: needs.Get-Test-Groups.outputs.has-tests == 'true'
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
@@ -332,39 +383,42 @@ jobs:
             );
             core.info(`Quality gates: ${status.join(', ')}`);
       - name: Run Cypress Mock tests
+        if: needs.Get-Test-Groups.outputs.has-tests == 'true'
         env:
           CYPRESS_SPEC: ${{ matrix.test-group.spec }}
         run: |
-          npm run test:cypress-ci:coverage:nobuild -- --spec "../packages/${CYPRESS_SPEC}"
+          export CYPRESS_SPEC="../packages/${CYPRESS_SPEC}"
+          pnpm run test:cypress-ci:coverage:nobuild
         working-directory: ./frontend
       - name: Test group name
-        if: ${{ always() }}
+        if: ${{ always() && needs.Get-Test-Groups.outputs.has-tests == 'true' }}
         env:
           TEST_GROUP_RAW: ${{ matrix.test-group.name }}
         run: echo "TEST_GROUP_NAME=$(echo "${TEST_GROUP_RAW}" | tr '/-' '_')" >> $GITHUB_ENV
       - name: Upload Cypress Mock results
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        if: ${{ always() }}
+        if: ${{ always() && needs.Get-Test-Groups.outputs.has-tests == 'true' }}
         with:
           name: cypress-results-${{ env.TEST_GROUP_NAME }}
           path: ./packages/cypress/results/mocked
       - name: Upload Cypress coverage
-        if: env.IS_DRAFT != 'true'
+        if: env.IS_DRAFT != 'true' && needs.Get-Test-Groups.outputs.has-tests == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: cypress-coverage-${{ env.TEST_GROUP_NAME }}
           path: ./packages/cypress/coverage
 
   Combine-Results-and-Upload:
-    needs: [Unit-Tests, Cypress-Mock-Tests]
+    needs: [Unit-Tests, Cypress-Mock-Tests, Get-Test-Groups]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       actions: read
       contents: read
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - name: Setup pnpm
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Download all artifacts
@@ -372,10 +426,7 @@ jobs:
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: all-artifacts
-      - name: Install dependencies
-        if: env.IS_DRAFT != 'true'
-        run: npm install nyc --no-save
-
+      # nyc is a root devDependency and is installed by the pnpm setup step.
       - name: Prepare unit coverage
         if: env.IS_DRAFT != 'true'
         run: |
@@ -394,7 +445,7 @@ jobs:
           verbose: true
 
       - name: Merge Cypress coverage reports
-        if: env.IS_DRAFT != 'true'
+        if: env.IS_DRAFT != 'true' && needs.Get-Test-Groups.outputs.has-tests == 'true'
         run: |
           mkdir -p ./cypress-coverage
           find all-artifacts -name "cypress-coverage-*" -type d | while read dir; do
@@ -405,9 +456,9 @@ jobs:
           done
           echo "Cypress coverage files:"
           ls -la ./cypress-coverage/
-          npx nyc merge ./cypress-coverage ./cypress-coverage/merged-cypress-coverage.json
+          pnpm exec nyc merge ./cypress-coverage ./cypress-coverage/merged-cypress-coverage.json
       - name: Upload Cypress mock coverage to Codecov
-        if: env.IS_DRAFT != 'true'
+        if: env.IS_DRAFT != 'true' && needs.Get-Test-Groups.outputs.full-matrix == 'true'
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -424,14 +475,14 @@ jobs:
           mkdir -p ./coverage
           cp ./unit-coverage/coverage-final.json ./coverage/unit-coverage-final.json || true
           cp ./cypress-coverage/merged-cypress-coverage.json ./coverage/cypress-coverage-final.json || true
-          npx nyc merge ./coverage ./coverage/merged-coverage.json
+          pnpm exec nyc merge ./coverage ./coverage/merged-coverage.json
           jq 'del(.[] | select(.statementMap == {}))' ./coverage/merged-coverage.json > ./coverage/cleaned-coverage.json
           mv ./coverage/cleaned-coverage.json ./coverage/merged-coverage.json
       - name: Generate coverage report
         if: env.IS_DRAFT != 'true'
         run: |
           mkdir -p ./coverage/report
-          npx nyc report --reporter=html --reporter=text-summary --temp-directory ./coverage -t ./coverage --report-dir ./coverage/report
+          pnpm exec nyc report --reporter=html --reporter=text-summary --temp-directory ./coverage -t ./coverage --report-dir ./coverage/report
       - name: Upload combined results
         if: env.IS_DRAFT != 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -442,6 +493,7 @@ jobs:
   Tests:
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs:
       - Quality-Gate
       - Unit-Tests

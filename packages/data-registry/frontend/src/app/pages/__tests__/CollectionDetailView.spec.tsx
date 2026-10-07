@@ -72,13 +72,26 @@ describe('CollectionDetailView', () => {
       unstructuredCount: 0,
     };
 
+    const onRegisterData = jest.fn();
     render(
       <BrowserRouter>
-        <CollectionDetailView collection={emptyCollection} project="demo-user-1" />
+        <CollectionDetailView
+          collection={emptyCollection}
+          project="demo-user-1"
+          onRegisterData={onRegisterData}
+        />
       </BrowserRouter>,
     );
 
-    expect(screen.getByText('No data assets in this collection.')).toBeInTheDocument();
+    expect(screen.getByTestId('collection-assets-empty-state')).toBeInTheDocument();
+    expect(screen.getByText('No data assets')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Data assets point to the exact location within a connection where information is located, and can be used across workbenches and pipelines in your project. To get started, create a data asset.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('collection-empty-register-data-button')).toBeInTheDocument();
+    expect(screen.queryByTestId('collection-assets-table')).not.toBeInTheDocument();
   });
 
   it('should link to table detail pages', () => {
@@ -91,7 +104,7 @@ describe('CollectionDetailView', () => {
     const table1Link = screen.getByText('table1').closest('a');
     expect(table1Link).toHaveAttribute(
       'href',
-      '/ai-hub/data/browse/tables/demo-user-1/test-collection/table1',
+      '/ai-hub/data/browse/assets/table/demo-user-1/test-collection/table1',
     );
   });
 
@@ -105,7 +118,7 @@ describe('CollectionDetailView', () => {
     const volume1Link = screen.getByText('volume1').closest('a');
     expect(volume1Link).toHaveAttribute(
       'href',
-      '/ai-hub/data/browse/volumes/demo-user-1/test-collection/volume1',
+      '/ai-hub/data/browse/assets/volume/demo-user-1/test-collection/volume1',
     );
   });
 

@@ -5,16 +5,9 @@ import { createLabel, deleteLabel } from '~/app/api/dataRegistry';
 import { RegistryAsset } from '~/app/hooks/useAssets';
 
 jest.mock('~/app/api/dataRegistry', () => ({
+  ...jest.requireActual('~/app/api/dataRegistry'),
   createLabel: jest.fn(),
   deleteLabel: jest.fn(),
-  ApiError: class ApiError extends Error {
-    status: number;
-
-    constructor(status: number, message: string) {
-      super(message);
-      this.status = status;
-    }
-  },
 }));
 
 const mockCreateLabel = jest.mocked(createLabel);
@@ -30,6 +23,7 @@ const mockAssets: RegistryAsset[] = [
     connectionRef: 'minio-connection',
     labels: ['production', 'shared-label'],
     collection: 'analytics',
+    properties: {},
   },
   {
     name: 'raw-documents',
@@ -40,6 +34,7 @@ const mockAssets: RegistryAsset[] = [
     connectionRef: '',
     labels: ['source-docs', 'shared-label'],
     collection: 'guidelines',
+    properties: {},
   },
   {
     name: 'embeddings',
@@ -50,6 +45,7 @@ const mockAssets: RegistryAsset[] = [
     connectionRef: '',
     labels: ['production'],
     collection: 'analytics',
+    properties: {},
   },
 ];
 
@@ -77,14 +73,15 @@ describe('ManageLabelsModal', () => {
     expect(screen.getByText('Manage labels')).toBeTruthy();
     expect(
       screen.getByText(
-        'Create and delete labels to manage how assets are organized across this project.',
+        'View and manage this project’s labels. Optionally use labels to organize and filter your data assets.',
       ),
     ).toBeTruthy();
   });
 
-  it('should render info alert', () => {
+  it('should not show an informational warning for label deletion', () => {
     renderModal();
-    expect(screen.getByText('Changes affect all project assets')).toBeTruthy();
+
+    expect(screen.queryByTestId('manage-labels-delete-warning')).not.toBeInTheDocument();
   });
 
   it('should render all labels with outline variant', () => {

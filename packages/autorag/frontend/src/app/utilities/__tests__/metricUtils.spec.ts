@@ -13,6 +13,7 @@ import {
   metricKey,
   metricLabel,
   orderPatternsByLeaderboardRank,
+  parseMetricReference,
   resolveBestPatternKey,
   resolveObjectiveReference,
 } from '~/app/utilities/metricUtils';
@@ -45,6 +46,14 @@ const makeRankPattern = (name: string, mean: number): AutoragPattern =>
   makePattern([makeMetric('overall_score', 'custom', mean, true)], name);
 
 describe('metricUtils', () => {
+  it('parses evaluator-qualified runtime objectives while preserving bare values', () => {
+    expect(parseMetricReference('unitxt:faithfulness')).toEqual({
+      evaluator: 'unitxt',
+      name: 'faithfulness',
+    });
+    expect(parseMetricReference('faithfulness')).toEqual({ name: 'faithfulness' });
+  });
+
   it('creates one normalized opaque key for evaluator/name references', () => {
     expect(metricKey({ name: ' Faithfulness ', evaluator: ' RAGAS ' })).toBe(
       'metric:["ragas","faithfulness"]',
@@ -63,12 +72,13 @@ describe('metricUtils', () => {
   });
 
   it('renders labels with and without evaluator qualifiers', () => {
-    expect(metricLabel({ name: 'faithfulness', evaluator: 'ragas' })).toBe(
-      'Answer faithfulness (ragas)',
+    expect(metricLabel({ name: 'faithfulness', evaluator: 'unitxt' })).toBe(
+      'Faithfulness (Unitxt)',
     );
+    expect(metricLabel({ name: 'faithfulness', evaluator: 'ragas' })).toBe('Faithfulness (RAGAS)');
     expect(metricLabel({ name: 'faithfulness' })).toBe('Answer faithfulness');
     expect(metricLabel({ name: ' Faithfulness ', evaluator: ' RAGAS ' })).toBe(
-      'Answer faithfulness (RAGAS)',
+      'Faithfulness (RAGAS)',
     );
   });
 

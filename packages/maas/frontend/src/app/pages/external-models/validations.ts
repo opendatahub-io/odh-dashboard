@@ -23,6 +23,14 @@ export type ProviderReferenceFormData = {
   configPairs: ConfigPair[];
 };
 
+export type InitialProviderReferenceFormData = {
+  apiFormat: ProviderReferenceApiFormat | undefined;
+  path: string | undefined;
+  targetModel: string | undefined;
+  weight: number;
+  configPairs: ConfigPair[];
+};
+
 export type ProviderReferenceFieldErrors = {
   targetModel?: string;
   path?: string;
@@ -142,12 +150,12 @@ export const validateProviderRefPathPlaceholders = (
   );
 
 export const getProviderReferenceFieldErrors = (
-  form: ProviderReferenceFormData,
+  form: ProviderReferenceFormData | InitialProviderReferenceFormData,
   context?: ProviderReferenceValidationContext,
 ): ProviderReferenceFieldErrors => {
   const errors: ProviderReferenceFieldErrors = {};
 
-  const trimmedTargetModel = form.targetModel.trim();
+  const trimmedTargetModel = form.targetModel?.trim();
   if (!trimmedTargetModel) {
     errors.targetModel = 'Target model ID is required';
   } else {
@@ -160,12 +168,12 @@ export const getProviderReferenceFieldErrors = (
     }
   }
 
-  const pathError = validateProviderReferencePath(form.path);
+  const pathError = validateProviderReferencePath(form.path ?? '');
   if (pathError) {
     errors.path = pathError;
   } else {
     const placeholderError = validateProviderReferencePathPlaceholders(
-      form.path,
+      form.path ?? '',
       context?.inheritedConfig,
       form.configPairs,
     );
@@ -178,22 +186,23 @@ export const getProviderReferenceFieldErrors = (
 };
 
 export const isProviderReferenceFormIncomplete = (
-  form: ProviderReferenceFormData,
+  form: ProviderReferenceFormData | InitialProviderReferenceFormData,
   context?: ProviderReferenceValidationContext,
-): boolean => Object.keys(getProviderReferenceFieldErrors(form, context)).length > 0;
+): boolean =>
+  !form.apiFormat || Object.keys(getProviderReferenceFieldErrors(form, context)).length > 0;
 
 /** Field errors for display — after blur, or immediately when the field has a value. */
 export const getVisibleProviderReferenceFieldErrors = (
-  form: ProviderReferenceFormData,
+  form: ProviderReferenceFormData | InitialProviderReferenceFormData,
   errors: ProviderReferenceFieldErrors,
   touched: ProviderReferenceFieldTouched,
 ): ProviderReferenceFieldErrors => {
   const visible: ProviderReferenceFieldErrors = {};
 
-  if (errors.targetModel && (touched.targetModel || form.targetModel.trim())) {
+  if (errors.targetModel && (touched.targetModel || form.targetModel?.trim())) {
     visible.targetModel = errors.targetModel;
   }
-  if (errors.path && (touched.path || form.path.trim())) {
+  if (errors.path && (touched.path || form.path?.trim())) {
     visible.path = errors.path;
   }
 

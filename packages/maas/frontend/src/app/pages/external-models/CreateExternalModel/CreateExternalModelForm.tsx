@@ -30,6 +30,7 @@ import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { enqueuePostDeployAlert } from '@odh-dashboard/model-serving/concepts/postDeployAlertStore';
 import { createExternalModel, updateExternalModel } from '~/app/api/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import {
@@ -38,6 +39,7 @@ import {
   ProviderRef,
   UpdateExternalModelRequest,
 } from '~/app/types/external-models';
+import { MAAS_PUBLISHED_EXTERNAL_ALERT_ID } from '~/odh/modelServingExtensions/MaaSPublishedPostDeployAlert';
 import {
   DISTRIBUTE_EQUALLY_POPOVER_CONTENT,
   EXTERNAL_MODEL_FIELD_MAX_LENGTH,
@@ -176,6 +178,8 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
           hasDescription: nameDescData.description.trim() !== '',
           success: true,
         } satisfies ExternalModelAddedProperties);
+
+        enqueuePostDeployAlert(MAAS_PUBLISHED_EXTERNAL_ALERT_ID, { modelName: trimmedName });
       }
 
       refreshExternalModels();
@@ -278,7 +282,7 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
   return (
     <PageSection hasBodyWrapper={false}>
       <Form maxWidth="750px">
-        <FormSection title="Model details" titleElement="h2">
+        <FormSection>
           <FormGroup label="Project" fieldId="external-model-project" isRequired>
             <TextInput
               id="external-model-project"
@@ -293,18 +297,18 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
             onDataChange={onNameDescChange}
             dataTestId="external-model-name-desc"
             nameLabel="Name"
-            nameHelperText="The client-facing model name. Consumers use this to identify the model in API requests."
             maxLength={EXTERNAL_MODEL_FIELD_MAX_LENGTH}
           />
         </FormSection>
 
-        <FormSection title="Provider reference configuration" titleElement="h2">
+        <FormSection title="Provider references" titleElement="h2">
           <FormHelperText>
             <HelperText>
               <HelperTextItem>
-                Configure which external providers serve this model and how traffic is distributed.
-                A provider reference links this model to an existing provider connection and
-                specifies the target model ID, API format, and traffic weight.
+                Configure references to the providers that serve this model. A provider reference
+                defines a model&apos;s relationship to a provider, and includes the provider&apos;s
+                model ID, API format, and request path. If a model references multiple providers,
+                requests are distributed based on each reference&apos;s routing weight.
               </HelperTextItem>
             </HelperText>
           </FormHelperText>
@@ -346,18 +350,6 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
               </Flex>
             </StackItem>
 
-            {providerRefs.length === 0 && (
-              <StackItem>
-                <Alert
-                  variant="info"
-                  isInline
-                  isPlain
-                  title="Add at least one provider reference to configure how this model routes inference traffic."
-                  data-testid="provider-refs-required-info"
-                />
-              </StackItem>
-            )}
-
             {providerRefs.length > 0 && (
               <StackItem>
                 <ProviderReferencesTable
@@ -386,7 +378,9 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
               <StackItem>
                 <FormHelperText>
                   <HelperText>
-                    <HelperTextItem variant="error">{providerRefsValidationError}</HelperTextItem>
+                    <HelperTextItem variant="error" data-testid="provider-refs-required-info">
+                      {providerRefsValidationError}
+                    </HelperTextItem>
                   </HelperText>
                 </FormHelperText>
               </StackItem>
@@ -394,22 +388,42 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
           </Stack>
         </FormSection>
 
-        <FormSection title="Availability" titleElement="h2">
+        <FormSection
+          title="Endpoint availability"
+          titleElement="h2"
+          description="Defines where users can access the model endpoint, and which users can do so."
+        >
           <Checkbox
             id="external-model-maas-availability"
             data-testid="external-model-maas-availability"
-            label="Available as a Model as a Service (MaaS)"
-            description="External models are served through the MaaS gateway. This model will be available cluster-wide once a subscription and authorization policy are configured in MaaS governance."
+            label="GenAI studio for subscribed users"
+            description={
+              <>
+                Model endpoints are accessible to subscribed users from the{' '}
+                <strong>AI asset endpoints</strong> page, which makes the model available on the{' '}
+                <strong>Playground</strong> page.
+              </>
+            }
             isChecked
             isDisabled
           />
         </FormSection>
+        <Alert
+          variant="info"
+          title="Additional configuration required"
+          data-testid="additional-configuration-required-alert"
+          isInline
+        >
+          To make the endpoint accessible to users, an admin must configure subscriptions and
+          authorization policies on the <strong>MaaS governance</strong> page. Users can view their
+          subscriptions, accessible models, and API keys on the <strong>API keys</strong> page.
+        </Alert>
 
         {submitError && (
           <Alert
             variant="danger"
             isInline
-            title={`Failed to ${isEditing ? 'update' : 'create'} external model`}
+            title={`Failed to ${isEditing ? 'update' : 'add'} external model`}
           >
             {submitError}
           </Alert>

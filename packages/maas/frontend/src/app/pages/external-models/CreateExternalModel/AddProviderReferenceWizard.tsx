@@ -12,6 +12,7 @@ import {
   isProviderReferenceFormIncomplete,
   ProviderReferenceFieldTouched,
   ProviderReferenceFormData,
+  InitialProviderReferenceFormData,
 } from '~/app/pages/external-models/validations';
 import { configPairsToRecord } from '~/app/utilities/configPairs';
 import {
@@ -39,9 +40,9 @@ type AddProviderReferenceWizardProps = {
   eventContext: ExternalModelProviderContext;
 };
 
-const emptyConfigureForm = (): ProviderReferenceFormData => ({
-  apiFormat: 'openai-chat',
-  path: '/v1/chat/completions',
+const emptyConfigureForm = (): InitialProviderReferenceFormData => ({
+  apiFormat: undefined,
+  path: '',
   targetModel: '',
   weight: 1,
   configPairs: [],
@@ -71,7 +72,7 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
     ExternalProvider | undefined
   >();
   const [configureForm, setConfigureForm] =
-    React.useState<ProviderReferenceFormData>(emptyConfigureForm);
+    React.useState<InitialProviderReferenceFormData>(emptyConfigureForm);
   const [fieldTouched, setFieldTouched] = React.useState<ProviderReferenceFieldTouched>({});
 
   React.useEffect(() => {
@@ -222,9 +223,9 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
 
     onAdd({
       providerName: resolvedProviderName,
-      apiFormat: configureForm.apiFormat.trim(),
-      path: configureForm.path.trim(),
-      targetModel: configureForm.targetModel.trim(),
+      apiFormat: configureForm.apiFormat?.trim() ?? '',
+      path: configureForm.path?.trim() ?? '',
+      targetModel: configureForm.targetModel?.trim() ?? '',
       weight: configureForm.weight,
       config: configPairsToRecord(configureForm.configPairs),
     });
@@ -249,17 +250,18 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
         isNextDisabled={!isStepOneValid}
         isAddDisabled={isAddDisabled}
         isAddLoading={createProviderForm.isSubmitting}
-        submitLabel="Add"
+        submitLabel="Create"
         onAdd={handleAdd}
         onNext={handleNext}
         providerSource={providerSource}
         providerType={trackingProviderType}
-        apiFormat={configureForm.apiFormat.trim()}
+        apiFormat={configureForm.apiFormat?.trim() ?? ''}
         authMechanism={trackingAuthMechanism}
         hasCreatedSecret={trackingHasCreatedSecret}
         hasPathOverride={
-          configureForm.path.trim() !==
-          PROVIDER_REFERENCE_API_FORMATS[configureForm.apiFormat].defaultPath
+          !!configureForm.apiFormat &&
+          configureForm.path?.trim() !==
+            PROVIDER_REFERENCE_API_FORMATS[configureForm.apiFormat].defaultPath
         }
         countOfConfigOverrides={configureForm.configPairs.length}
         context={eventContext}
@@ -295,15 +297,16 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
         onClose={onClose}
         header={
           <WizardHeader
-            title="Add provider reference"
+            title="Create provider reference"
             titleId="add-provider-reference-wizard-title"
             onClose={onClose}
             closeButtonAriaLabel="Close wizard"
+            description="Create a provider reference to define this model's relationship to a provider. "
           />
         }
         footer={wizardFooter}
       >
-        <WizardStep name="Select provider" id="select-provider-step">
+        <WizardStep name="Provider" id="select-provider-step">
           <SelectProviderStep
             namespace={namespace}
             providerSource={providerSource}
@@ -314,7 +317,11 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
             createProviderForm={createProviderForm}
           />
         </WizardStep>
-        <WizardStep name="Configure model" id="configure-model-step" isDisabled={!isStepOneValid}>
+        <WizardStep
+          name="Model configuration"
+          id="configure-model-step"
+          isDisabled={!isStepOneValid}
+        >
           <ProviderReferenceStep2Form
             form={configureForm}
             selectedProvider={selectedProvider}

@@ -11,6 +11,7 @@ import type {
   ClusterStorageAccessModesTestData,
   OOTBConnectionTypesData,
   WBTolerationsTestData,
+  WBNodeSelectorsTestData,
   ModifyHardwareProfileTestData,
   WBImagesTestData,
   DeployOCIModelData,
@@ -27,6 +28,7 @@ import type {
   MlflowExperimentsTestData,
   ModelAsAServiceTestData,
   FileMapping,
+  ExternalModelTestData,
   MlflowPipelineIntegrationTestData,
   NIMProjectScopedTestData,
 } from '../types';
@@ -135,6 +137,15 @@ export const loadWBTolerationsFixture = (
 ): Cypress.Chainable<WBTolerationsTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as WBTolerationsTestData;
+
+    return data;
+  });
+
+export const loadWBNodeSelectorsFixture = (
+  fixturePath: string,
+): Cypress.Chainable<WBNodeSelectorsTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as WBNodeSelectorsTestData;
 
     return data;
   });
@@ -263,6 +274,15 @@ export const loadMlflowExperimentsFixture = (
 export const loadMaaSFixture = (fixturePath: string): Cypress.Chainable<ModelAsAServiceTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as ModelAsAServiceTestData;
+
+    return data;
+  });
+
+export const loadExternalModelFixture = (
+  fixturePath: string,
+): Cypress.Chainable<ExternalModelTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as ExternalModelTestData;
 
     return data;
   });

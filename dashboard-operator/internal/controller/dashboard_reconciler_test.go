@@ -344,9 +344,10 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
 		},
 		Spec: v1alpha1.DashboardSpec{
-			ManagementSpec:     common.ManagementSpec{ManagementState: "Removed"},
-			MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
+			ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
+			MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
 		},
+		Status: v1alpha1.DashboardStatus{MaaSConsumerPortalURL: "https://previous.example.com/"},
 	}
 	cli := fake.NewClientBuilder().
 		WithScheme(scheme).
@@ -373,6 +374,7 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 	require.NotNil(t, condition)
 	assert.Equal(t, metav1.ConditionFalse, condition.Status)
 	assert.Equal(t, "ModuleDeployFailed", condition.Reason)
+	assert.Equal(t, "https://previous.example.com/", updated.Status.MaaSPortalURL)
 }
 
 func TestReconcile_Deletion(t *testing.T) {
@@ -487,7 +489,7 @@ func TestReconcile_Deletion_WithCrossNamespaceResources(t *testing.T) {
 	assert.Empty(t, cms.Items, "cross-namespace configmaps should be deleted")
 }
 
-func TestReconcile_Deletion_CleansRayGatewayRBAC(t *testing.T) {
+func TestReconcile_Deletion_CleansGatewayRBAC(t *testing.T) {
 	s := testScheme(t)
 
 	const gatewayNS = "openshift-ingress"
@@ -516,10 +518,16 @@ func TestReconcile_Deletion_CleansRayGatewayRBAC(t *testing.T) {
 			Namespace: gatewayNS,
 		},
 	}
+	dchResources := []client.Object{
+		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-data-connect-hub-rhoai-gateway-discovery", Namespace: "openshift-ingress"}},
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-data-connect-hub-rhoai-gateway-discovery", Namespace: "openshift-ingress"}},
+		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-data-connect-hub-odh-gateway-discovery", Namespace: "opendatahub"}},
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-data-connect-hub-odh-gateway-discovery", Namespace: "opendatahub"}},
+	}
 
 	cli := fake.NewClientBuilder().
 		WithScheme(s).
-		WithObjects(dashboard, gatewayRole, gatewayRoleBinding).
+		WithObjects(append([]client.Object{dashboard, gatewayRole, gatewayRoleBinding}, dchResources...)...).
 		WithStatusSubresource(dashboard).
 		Build()
 
@@ -544,6 +552,11 @@ func TestReconcile_Deletion_CleansRayGatewayRBAC(t *testing.T) {
 
 	err = cli.Get(context.Background(), types.NamespacedName{Name: gatewayRBACName, Namespace: gatewayNS}, &rbacv1.RoleBinding{})
 	assert.True(t, k8serrors.IsNotFound(err), "gateway RoleBinding should be deleted")
+
+	for _, resource := range dchResources {
+		err = cli.Get(context.Background(), client.ObjectKeyFromObject(resource), resource)
+		assert.True(t, k8serrors.IsNotFound(err), "DCH %T should be deleted", resource)
+	}
 }
 
 func TestReconcile_Deletion_SameNamespaceObservability(t *testing.T) {
@@ -981,18 +994,31 @@ func TestReconcile_PlatformVersionHandshake(t *testing.T) {
 			updated := &v1alpha1.Dashboard{}
 			require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
 
-			var platformVersion string
-			for _, r := range updated.GetReleaseStatus().Releases {
-				if r.Name == "platform" {
-					platformVersion = r.Version
-					break
-				}
-			}
-			assert.Equal(t, tt.wantPlatformVersion, platformVersion)
-
+			releases := updated.GetReleaseStatus().Releases
+			wantReleaseCount := 1
 			if tt.wantPlatformVersion != "" {
-				require.GreaterOrEqual(t, len(updated.GetReleaseStatus().Releases), 2,
-					"should have both dashboard and platform release entries")
+				wantReleaseCount = 2
+			}
+			require.Len(t, releases, wantReleaseCount)
+
+			releasesByName := make(map[string]common.ComponentRelease, len(releases))
+			for _, release := range releases {
+				_, duplicate := releasesByName[release.Name]
+				require.False(t, duplicate, "release %q must appear only once", release.Name)
+				releasesByName[release.Name] = release
+			}
+
+			dashboardRelease, found := releasesByName[v1alpha1.DashboardComponentName]
+			require.True(t, found, "dashboard release must be reported")
+			assert.Equal(t, ctrlpkg.Version, dashboardRelease.Version)
+			assert.Equal(t, "https://github.com/opendatahub-io/odh-dashboard", dashboardRelease.RepoURL)
+
+			platformRelease, found := releasesByName[common.ReleasePlatform]
+			if tt.wantPlatformVersion == "" {
+				assert.False(t, found, "platform release must be omitted without platformVersion")
+			} else {
+				require.True(t, found, "platform release must be reported")
+				assert.Equal(t, tt.wantPlatformVersion, platformRelease.Version)
 			}
 		})
 	}

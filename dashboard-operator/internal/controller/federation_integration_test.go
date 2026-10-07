@@ -25,7 +25,7 @@ import (
 // tree for the all-modules-enabled federation test.
 var allModuleSlugs = []string{
 	"model-registry", "gen-ai", "mlflow", "maas", "eval-hub",
-	"automl", "autorag", "agent-ops", "notebooks", "data-registry",
+	"automl", "autorag", "agent-ops", "notebooks", "data-registry", "data-connect-hub",
 }
 
 // TestIntegration_AddInterBFFParams verifies the reconciler injects service-discovery

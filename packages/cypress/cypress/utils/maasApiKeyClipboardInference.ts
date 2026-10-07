@@ -56,61 +56,57 @@ export const stubClipboard = (copiedAliasName?: string): void => {
  * After the copy button was clicked: reads the token from the stub, aliases it as
  * `maasApiKeyToken`, and asserts completions return 200.
  *
- * @param getLlmInferenceServiceName Return the LLMInferenceService `metadata.name` from the deploy wizard
+ * @param getModelName Return the model `metadata.name` (LLMInferenceService or ExternalModel)
  * (e.g. `() => resourceName`). Must be a **getter** so the name is read when this chain runs, not when the
  * spec is first parsed — otherwise it is still `undefined` before the wizard's `.then` has executed.
- * @param inferenceOptions Optional `maxAttempts` / `retryIntervalMs` for the MaaS `/v1/completions` POST (transient HTTP errors).
+ * @param inferenceOptions Optional `maxAttempts` / `retryIntervalMs` / `apiPath`
+ * (`Path.OPENAI_CHAT` default, or `Path.MESSAGES` for Anthropic).
  */
 export const verifyMaaSModelInferenceUsingCopiedApiKeyFromModal = (
   projectName: string,
-  getLlmInferenceServiceName: () => string,
+  getModelName: () => string,
   apiKey: string,
   inferenceOptions: VerifyMaaSModelInferencingOptions = {},
 ): Cypress.Chainable<MaaSModelInferencingResult> => {
-  const llmInferenceServiceName = getLlmInferenceServiceName().trim();
-  return verifyMaaSModelInferencing(
-    llmInferenceServiceName,
-    projectName,
-    apiKey,
-    inferenceOptions,
-  ).then((result) => {
-    const { response } = result;
-    expect(response.status).to.equal(200);
-    return cy
-      .log(`Response status: ${response.status}`)
-      .log(`✅ Inference with the model using the copied API key successful`)
-      .log(`✅ Response body: ${JSON.stringify(response.body)}`)
-      .then(() => result);
-  });
+  const modelName = getModelName().trim();
+  return verifyMaaSModelInferencing(modelName, projectName, apiKey, inferenceOptions).then(
+    (result) => {
+      const { response } = result;
+      expect(response.status).to.equal(200);
+      return cy
+        .log(`Response status: ${response.status}`)
+        .log(`✅ Inference with the model using the copied API key successful`)
+        .log(`✅ Response body: ${JSON.stringify(response.body)}`)
+        .then(() => result);
+    },
+  );
 };
 
 /**
  * Asserts the model returns 403 using apiKey (after the key was revoked in the UI).
  *
- * @param getLlmInferenceServiceName Same deferred getter as {@link verifyMaaSModelInferenceUsingCopiedApiKeyFromModal}.
- * @param inferenceOptions Optional `maxAttempts` / `retryIntervalMs` for the MaaS `/v1/completions` POST (e.g. 503 while gateway catches up; 403 is not retried).
+ * @param getModelName Same deferred getter as {@link verifyMaaSModelInferenceUsingCopiedApiKeyFromModal}.
+ * @param inferenceOptions Optional `maxAttempts` / `retryIntervalMs` / `apiPath`
+ * (e.g. 503 while gateway catches up; 403 is not retried).
  */
 export const verifyMaaSModelInferenceUsingRevokedApiKey = (
   projectName: string,
-  getLlmInferenceServiceName: () => string,
+  getModelName: () => string,
   apiKey: string,
   inferenceOptions: VerifyMaaSModelInferencingOptions = {},
 ): Cypress.Chainable<MaaSModelInferencingResult> => {
-  const llmInferenceServiceName = getLlmInferenceServiceName().trim();
-  return verifyMaaSModelInferencing(
-    llmInferenceServiceName,
-    projectName,
-    apiKey,
-    inferenceOptions,
-  ).then((result) => {
-    const { response } = result;
-    expect(response.status).to.equal(403);
-    return cy
-      .log(`Response status: ${response.status}`)
-      .log(`❌ Inference with the model using the revoked API key failed`)
-      .log(`❌ Response body: ${JSON.stringify(response.body)}`)
-      .then(() => result);
-  });
+  const modelName = getModelName().trim();
+  return verifyMaaSModelInferencing(modelName, projectName, apiKey, inferenceOptions).then(
+    (result) => {
+      const { response } = result;
+      expect(response.status).to.equal(403);
+      return cy
+        .log(`Response status: ${response.status}`)
+        .log(`❌ Inference with the model using the revoked API key failed`)
+        .log(`❌ Response body: ${JSON.stringify(response.body)}`)
+        .then(() => result);
+    },
+  );
 };
 
 export const verifyMaasModelExistsForUser = (

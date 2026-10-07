@@ -82,6 +82,7 @@ type DashboardFeatureFlags struct {
 	Mlflow                       bool `json:"mlflow"`
 	McpCatalog                   bool `json:"mcpCatalog"`
 	McpRegistry                  bool `json:"mcpRegistry"`
+	GenAiMcpRegistryServers      bool `json:"genAiMcpRegistryServers"`
 	AgentsCatalog                bool `json:"agentsCatalog"`
 	ToolCalling                  bool `json:"toolCalling"`
 	TrainingJobs                 bool `json:"trainingJobs"`
@@ -90,12 +91,14 @@ type DashboardFeatureFlags struct {
 	DeploymentWizardYAMLViewer   bool `json:"deploymentWizardYAMLViewer"`
 	ExternalVectorStores         bool `json:"externalVectorStores"`
 	AgentConfigManagement        bool `json:"agentConfigManagement"`
+	GenAiAgentDeployment         bool `json:"genAiAgentDeployment"`
 	VLLMDeploymentOnMaaS         bool `json:"vLLMDeploymentOnMaaS"`
 	LlmGatewayField              bool `json:"llmGatewayField"`
 	PromptManagement             bool `json:"promptManagement"`
 	MySubscriptions              bool `json:"mySubscriptions"`
 	ConnectionTest               bool `json:"connectionTest"`
 	ModelCapabilities            bool `json:"modelCapabilities"`
+	RuntimeCatalog               bool `json:"runtimeCatalog"`
 }
 
 type NotebookController struct {
@@ -178,6 +181,7 @@ var BlankDashboardCR = DashboardConfig{
 			Mlflow:                       true,
 			McpCatalog:                   false,
 			McpRegistry:                  false,
+			GenAiMcpRegistryServers:      false,
 			AgentsCatalog:                false,
 			ToolCalling:                  false,
 			TrainingJobs:                 true,
@@ -185,12 +189,14 @@ var BlankDashboardCR = DashboardConfig{
 			RoleManagement:               true,
 			DeploymentWizardYAMLViewer:   false,
 			ExternalVectorStores:         false,
+			GenAiAgentDeployment:         false,
 			VLLMDeploymentOnMaaS:         false,
 			LlmGatewayField:              false,
 			PromptManagement:             false,
 			MySubscriptions:              false,
 			ConnectionTest:               false,
 			ModelCapabilities:            false,
+			RuntimeCatalog:               false,
 		},
 		NotebookController: &NotebookController{
 			Enabled: true,

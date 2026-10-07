@@ -32,9 +32,10 @@ import (
 )
 
 const (
-	federationConfigMapName = "federation-config"
-	federationConfigKey     = "module-federation-config.json"
-	moduleComponentLabel    = "app.kubernetes.io/component"
+	federationConfigMapName  = "federation-config"
+	federationConfigKey      = "module-federation-config.json"
+	moduleComponentLabel     = "app.kubernetes.io/component"
+	dataConnectHubModuleName = "dataConnectHub"
 )
 
 // --- Module proxy and federation types ---
@@ -209,6 +210,13 @@ func (r *DashboardReconciler) deployModuleManifests(
 			continue
 		}
 
+		if name == dataConnectHubModuleName {
+			activeRBACName, _ := dataConnectHubGatewayRBACForPlatform(r.Platform)
+			if err := r.cleanupDataConnectHubGatewayRBAC(ctx, activeRBACName); err != nil {
+				return fmt.Errorf("cleaning up inactive DCH gateway RBAC: %w", err)
+			}
+		}
+
 		params := readExistingParams(filepath.Join(modulePath, "params.env"))
 		maps.Copy(params, computed)
 		addInterBFFParams(params, name, statuses, r.Platform)
@@ -222,6 +230,8 @@ func (r *DashboardReconciler) deployModuleManifests(
 			logger.Error(err, "Failed to render module manifests", "module", name)
 			return fmt.Errorf("failed to render manifests for module %s: %w", name, err)
 		}
+		remapRayDashboardGatewayRBAC(rendered)
+		rendered = filterAndRemapDataConnectHubGatewayRBAC(rendered, r.ApplicationsNamespace, r.Platform)
 
 		deployer := deploy.NewDeployer(
 			deploy.WithFieldOwner("dashboard-operator"),
@@ -259,6 +269,12 @@ func (r *DashboardReconciler) deleteModuleResources(
 		status := statuses[name]
 		if status.Phase == v1alpha1.ModulePhaseDeployed || status.Phase == v1alpha1.ModulePhaseDegraded {
 			continue
+		}
+
+		if name == dataConnectHubModuleName {
+			if err := r.cleanupDataConnectHubGatewayRBAC(ctx, ""); err != nil {
+				errs = append(errs, fmt.Errorf("cleaning up DCH gateway RBAC: %w", err))
+			}
 		}
 
 		matchLabels := client.MatchingLabels{
@@ -620,7 +636,8 @@ func (r *DashboardReconciler) reconcileModuleDemand(ctx context.Context, dashboa
 	statuses := resolveModuleStatuses(&dashboard.Spec)
 	// The MaaS Consumer Portal is a RHOAI-only operand. Do not let an unsupported
 	// MaaS Consumer Portal request create MaaS/GenAI demand when the core dashboard is removed.
-	if !maasConsumerPortalSupportedPlatform(r.Platform) && dashboard.Spec.ManagementState == "Removed" && dashboard.Spec.MaaSConsumerPortal != nil && dashboard.Spec.MaaSConsumerPortal.ManagementState == "Managed" {
+	portal := effectiveMaaSPortal(dashboard.Spec)
+	if !maasConsumerPortalSupportedPlatform(r.Platform) && dashboard.Spec.ManagementState == "Removed" && portal != nil && portal.ManagementState == "Managed" {
 		for _, name := range maasConsumerPortalRequiredModuleNames() {
 			if statuses[name].Reason != "ExplicitOverride" {
 				statuses[name] = v1alpha1.ModuleStatus{Phase: v1alpha1.ModulePhaseNotDeployed, Reason: "UnsupportedPlatform", Message: "MaaS Consumer Portal is supported only on RHOAI", LastTransitionTime: metav1.Now()}

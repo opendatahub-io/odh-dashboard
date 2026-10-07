@@ -373,3 +373,20 @@ export const isModelServingExcludeDeployment = (
   extension: Extension,
 ): extension is ModelServingExcludeDeploymentExtension =>
   extension.type === 'model-serving.platform/exclude-deployment';
+
+/**
+ * Extension point for platforms to display a banner on the deployments page.
+ * @param id - The id of the banner
+ * @param component - The component to display the banner
+ */
+export type ModelServingDeploymentsBannerExtension = Extension<
+  'model-serving.deployments/banner',
+  {
+    id: string;
+    component: CodeRef<React.ComponentType>;
+  }
+>;
+export const isModelServingDeploymentsBanner = (
+  extension: Extension,
+): extension is ModelServingDeploymentsBannerExtension =>
+  extension.type === 'model-serving.deployments/banner';

@@ -171,6 +171,9 @@ spec:
                     agentConfigManagement:
                       type: boolean
                       description: 'When true, enables agent configuration management features in the Gen AI Studio.'
+                    genAiAgentDeployment:
+                      type: boolean
+                      description: 'When true, enables agent deployment features in the Gen AI Studio.'
                     mlflow:
                       type: boolean
                       description: 'DEPRECATED: MLflow is now always enabled when the operator component is present. This field will be removed in a future version.'
@@ -180,6 +183,9 @@ spec:
                     mcpRegistry:
                       type: boolean
                       description: 'When true, enables the MCP (Model Context Protocol) Registry tab within the MCP Servers page.'
+                    genAiMcpRegistryServers:
+                      type: boolean
+                      description: 'When true, enables MCP Registry servers in the Gen AI Studio playground.'
                     agentOps:
                       type: boolean
                       description: 'When true, enables the Agent Ops features in the Gen AI Studio.'

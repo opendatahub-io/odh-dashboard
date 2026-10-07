@@ -98,16 +98,18 @@ const AddProviderReferenceWizardFooter: React.FC<AddProviderReferenceWizardFoote
     <WizardFooterWrapper>
       <ActionList>
         <ActionListGroup>
-          <ActionListItem>
-            <Button
-              variant="secondary"
-              onClick={goToPrevStep}
-              isDisabled={isFirstStep}
-              data-testid="provider-ref-wizard-back"
-            >
-              Back
-            </Button>
-          </ActionListItem>
+          {!isFirstStep && (
+            <ActionListItem>
+              <Button
+                variant="secondary"
+                onClick={goToPrevStep}
+                isDisabled={isFirstStep}
+                data-testid="provider-ref-wizard-back"
+              >
+                Back
+              </Button>
+            </ActionListItem>
+          )}
           {isLastStep ? (
             <ActionListItem>
               <Button

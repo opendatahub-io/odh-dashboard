@@ -33,6 +33,10 @@ class ModelServingGlobal {
     this.wait();
   }
 
+  assertPathname(pathname: string) {
+    return cy.location('pathname').should('eq', pathname);
+  }
+
   navigate() {
     appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).click();
     this.wait();
@@ -152,6 +156,10 @@ class ModelServingGlobal {
       return cy.findAllByTestId('token-secret').findAllByRole('button').eq(0);
     }
     return cy.findAllByTestId('token-secret').eq(index).findAllByRole('button').eq(0);
+  }
+
+  findMaaSPublishedPostDeployAlert() {
+    return cy.findByTestId('maas-published-post-deploy-alert');
   }
 }
 
@@ -973,6 +981,43 @@ class ModelServingWizard extends Wizard {
     cy.visitWithLogin(`/ai-hub/models/deployments/deploy`);
   }
 
+  /**
+   * Open the deploy wizard with React Router location state that sets
+   * `requiresHuggingFaceApiKey: true` (same flag catalog private/gated deploy
+   * prefill uses). Needed because the HF API key field is not shown for a
+   * blank URI wizard without that initialData flag.
+   *
+   * Does not pre-select a project (avoids races while ProjectsContext loads);
+   * callers select the project on the Preconfigure step.
+   *
+   * Uses createBrowserRouter's `usr` history-state shape (React Router 7).
+   */
+  visitRequiringHuggingFaceApiKey(returnRoute = '/ai-hub/models/deployments/') {
+    const routeState = {
+      initialData: {
+        requiresHuggingFaceApiKey: true,
+      },
+      returnRoute,
+      cancelReturnRoute: returnRoute,
+    };
+
+    cy.visit('/ai-hub/models/deployments/deploy', {
+      onBeforeLoad(win) {
+        win.history.replaceState(
+          {
+            usr: routeState,
+            key: 'hf-api-key-e2e',
+            idx: 0,
+          },
+          '',
+          '/ai-hub/models/deployments/deploy',
+        );
+      },
+    });
+
+    cy.location('pathname').should('include', '/ai-hub/models/deployments/deploy');
+  }
+
   findSpinner() {
     return cy.findByTestId('spinner');
   }
@@ -1227,6 +1272,18 @@ class ModelServingWizard extends Wizard {
 
   findCustomModelLocationSelectOption(name: string) {
     return this.findCustomModelLocationSelect().findSelectOption(name);
+  }
+
+  /**
+   * Asserts a custom S3 connection type is absent when the custom-type dropdown is present.
+   * The dropdown is omitted when only one S3-compatible type remains.
+   */
+  shouldNotHaveCustomModelLocationOptionIfSelectExists(name: string) {
+    cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="custom-type-select"]').length > 0) {
+        this.findCustomModelLocationSelectOption(name).should('not.exist');
+      }
+    });
   }
 
   findLocationPathInput() {
@@ -1613,6 +1670,14 @@ class ModelServingWizard extends Wizard {
 
   findReviewStepModelDetailsSection() {
     return cy.findByTestId('review-step-model-details');
+  }
+
+  findReviewHuggingFaceApiKey() {
+    return cy.findByTestId('review-item-huggingFaceApiKey');
+  }
+
+  findReviewHuggingFaceApiKeyValue() {
+    return cy.findByTestId('review-item-huggingFaceApiKey-value');
   }
 
   findYAMLViewerToggle(toggle: string) {

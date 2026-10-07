@@ -2,6 +2,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import * as api from '~/app/api/dataRegistry';
 import { useVolume } from '~/app/hooks/useVolume';
+import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
 
 jest.mock('~/app/api/dataRegistry');
 
@@ -31,18 +32,15 @@ describe('useVolume', () => {
   });
 
   it('should fetch volume data when all params are provided', async () => {
-    const mockVolume = {
+    const mockVolume = mockVolumeInfo({
       name: 'my-volume',
-      'catalog-name': 'my-project',
-      'schema-name': 'default',
-      'volume-type': 'EXTERNAL',
-      'storage-location': 's3://bucket/volumes/my-volume/',
-      comment: 'A volume',
+      collection: 'default',
+      format: 'other',
+      storage_location: 's3://bucket/volumes/my-volume/',
+      description: 'A volume',
       owner: 'user1',
-      'created-at': '2026-01-01',
-      'updated-at': '2026-01-02',
       properties: {},
-    };
+    });
     mockFetchVolume.mockResolvedValue(mockVolume);
 
     const { result } = renderHook(() => useVolume('my-project', 'default', 'my-volume'));
@@ -52,7 +50,12 @@ describe('useVolume', () => {
     });
 
     expect(result.current[0]).toEqual(mockVolume);
-    expect(mockFetchVolume).toHaveBeenCalledWith('my-project', 'default', 'my-volume');
+    expect(mockFetchVolume).toHaveBeenCalledWith(
+      'my-project',
+      'default',
+      'my-volume',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
   });
 
   it('should handle fetch errors', async () => {

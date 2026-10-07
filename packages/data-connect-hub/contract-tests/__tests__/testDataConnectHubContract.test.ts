@@ -43,4 +43,117 @@ describe('Data Connect Hub BFF Contract Tests', () => {
       });
     });
   });
+
+  describe('Connections Endpoint', () => {
+    it('should retrieve connections for a project', async () => {
+      const result = await apiClient.get('/api/v1/connections?namespace=default');
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/responses/ConnectionsResponse/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should create a connection for a project', async () => {
+      const result = await apiClient.post('/api/v1/connections?namespace=default', {
+        name: 'warehouse',
+        // eslint-disable-next-line camelcase
+        data_connection_type_id: 'postgresql',
+        format: 'tabular',
+        credentials: {
+          secret: 'warehouse',
+          properties: { URI: 'postgres://example' },
+        },
+        properties: {},
+      });
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/responses/ConnectionResponse/content/application~1json/schema',
+        status: 201,
+      });
+    });
+  });
+
+  describe('Test Credentials Endpoint', () => {
+    it('should verify credentials for a connection type', async () => {
+      const result = await apiClient.post('/api/v1/test/credentials?namespace=default', {
+        // eslint-disable-next-line camelcase
+        data_connection_type_id: 'postgresql',
+        credentials: { URI: 'postgres://example' },
+      });
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/schemas/NoContent',
+        status: 204,
+      });
+    });
+  });
+
+  describe('Connection Types Endpoint', () => {
+    it('should retrieve connection types for a project', async () => {
+      const result = await apiClient.get('/api/v1/connection-types?namespace=default');
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/responses/ConnectionTypesResponse/content/application~1json/schema',
+        status: 200,
+      });
+    });
+  });
+
+  describe('Connection Type Endpoint', () => {
+    it('should retrieve a connection type for a project', async () => {
+      const result = await apiClient.get('/api/v1/connection-types/postgresql?namespace=default');
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/responses/ConnectionTypeResponse/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should return not found for an unknown connection type', async () => {
+      const result = await apiClient.get('/api/v1/connection-types/unknown?namespace=default');
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect({ status: result.error.status, data: result.error.data }).toMatchContract(
+          bffSchema,
+          {
+            ref: '#/components/responses/NotFound/content/application~1json/schema',
+            status: 404,
+          },
+        );
+      }
+    });
+
+    it('should return bad request when namespace is missing', async () => {
+      const result = await apiClient.get('/api/v1/connection-types/postgresql');
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect({ status: result.error.status, data: result.error.data }).toMatchContract(
+          bffSchema,
+          {
+            ref: '#/components/responses/BadRequest/content/application~1json/schema',
+            status: 400,
+          },
+        );
+      }
+    });
+  });
+
+  describe('Connection Readiness Endpoint', () => {
+    it('should verify a connection', async () => {
+      const result = await apiClient.post(
+        '/api/v1/connections/connection-1/readiness?namespace=default',
+        {},
+      );
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/schemas/NoContent',
+        status: 204,
+      });
+    });
+  });
+
+  describe('Delete Connection Endpoint', () => {
+    it('should delete a connection', async () => {
+      const result = await apiClient.delete('/api/v1/connections/connection-1?namespace=default');
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/schemas/NoContent',
+        status: 204,
+      });
+    });
+  });
 });

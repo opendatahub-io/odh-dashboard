@@ -414,19 +414,16 @@ class AttachExistingStorageModal extends Modal {
   }
 
   selectExistingPersistentStorage(name: string) {
-    // Wait for PVCs to finish loading — placeholder is 'Loading storages' until loaded=true.
-    cy.findByTestId('persistent-storage-group')
-      .find('input', { timeout: 30000 })
-      .should('not.have.attr', 'placeholder', 'Loading storages');
-    cy.findByTestId('persistent-storage-group')
-      .find('[data-testid="typeahead-menu-toggle"]')
-      .then(($toggle) => {
-        if ($toggle.is(':disabled') || $toggle.hasClass('pf-m-disabled')) {
-          cy.findByTestId('persistent-storage-group').find('input').should('have.value', name);
-        } else {
-          cy.wrap($toggle).click();
-          cy.findByTestId('persistent-storage-typeahead').contains(name).click();
+    this.findPersistentStorageInput()
+      .invoke('prop', 'disabled')
+      .then((isDisabled) => {
+        if (isDisabled) {
+          attachExistingStorageModal.findPersistentStorageInput().should('have.value', name);
+          return;
         }
+
+        attachExistingStorageModal.findPersistentStorageInput().click();
+        attachExistingStorageModal.findPersistentStorageOption(name).should('be.visible').click();
       });
   }
 
@@ -461,6 +458,19 @@ class AttachExistingStorageModal extends Modal {
 
   findTypeaheadOptionUnderGroup(groupLabel: string, optionText: string) {
     return this.findTypeaheadGroup(groupLabel).contains(optionText);
+  }
+
+  findPersistentStorageOption(name: string) {
+    const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return cy.findByTestId('persistent-storage-typeahead').findByRole('option', {
+      name: new RegExp(`^${escapedName}(?:\\s|$)`),
+    });
+  }
+
+  findPersistentStorageInput() {
+    return cy
+      .findByTestId('persistent-storage-group')
+      .findByPlaceholderText('Select a persistent storage');
   }
 }
 

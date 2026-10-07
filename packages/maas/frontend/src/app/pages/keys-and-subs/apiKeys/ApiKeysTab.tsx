@@ -2,7 +2,6 @@ import { Bullseye, Content, ContentVariants, PageSection, Spinner } from '@patte
 import React from 'react';
 import PageLoadErrorState from '~/app/components/PageLoadErrorState';
 import { useApiKeysPageLoad } from '~/app/hooks/useApiKeysPageLoad';
-import { useUserSubscriptions } from '~/app/hooks/useUserSubscriptions';
 import { APIKey } from '~/app/types/api-key';
 import { ApiKeyCreateInitiatedFrom, ApiKeyRevokeInitiatedFrom } from '~/app/types/event-tracking';
 import CreateApiKeyModal from './CreateApiKeyModal';
@@ -20,14 +19,12 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
   const [revokeApiKey, setRevokeApiKey] = React.useState<APIKey | undefined>(undefined);
 
   const pageState = useApiKeysPageLoad();
-  const [subscriptions, subscriptionsLoaded] = useUserSubscriptions();
 
   const {
     isMaasAdmin,
-    isMaasAdminLoaded,
+    subscriptions,
     response,
     hasAnyApiKeys,
-    existenceLoaded,
     loaded,
     loadError,
     refreshAll,
@@ -48,17 +45,19 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
     onSetPage,
     onPerPageSelect,
     onClearFilters,
+    maxExpirationDays,
+    apiKeyConfigError,
   } = pageState;
 
   const subscriptionOptions = React.useMemo(
     () =>
-      showDescription && subscriptionsLoaded
+      showDescription
         ? subscriptions.map((sub) => ({
             name: sub.subscription_id_header,
             displayName: sub.display_name ?? sub.subscription_id_header,
           }))
         : [],
-    [showDescription, subscriptions, subscriptionsLoaded],
+    [showDescription, subscriptions],
   );
 
   const apiKeys = response.data;
@@ -71,12 +70,7 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
     return <PageLoadErrorState error={loadError} title="Error loading API keys" />;
   }
 
-  if (
-    !loaded ||
-    !isMaasAdminLoaded ||
-    (!hasAnyApiKeys && !existenceLoaded) ||
-    (showDescription && !subscriptionsLoaded)
-  ) {
+  if (!loaded) {
     return (
       <PageSection isFilled>
         <Bullseye>
@@ -86,12 +80,14 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
     );
   }
 
-  if (existenceLoaded && !hasAnyApiKeys) {
+  if (!hasAnyApiKeys) {
     return (
       <>
         {isModalOpen && (
           <CreateApiKeyModal
             initiatedFrom={ApiKeyCreateInitiatedFrom.API_KEYS_TOOLBAR}
+            maxExpirationDays={maxExpirationDays}
+            apiKeyConfigError={apiKeyConfigError}
             onClose={() => {
               setIsModalOpen(false);
               refreshAll();
@@ -108,6 +104,8 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
       {isModalOpen && (
         <CreateApiKeyModal
           initiatedFrom={ApiKeyCreateInitiatedFrom.API_KEYS_TOOLBAR}
+          maxExpirationDays={maxExpirationDays}
+          apiKeyConfigError={apiKeyConfigError}
           onClose={() => {
             setIsModalOpen(false);
             refreshAll();
@@ -150,7 +148,6 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
               onSubscriptionChange={onSubscriptionChange}
               activeApiKeys={activeApiKeys}
               refresh={refreshAll}
-              onClearFilters={onClearFilters}
             />
           }
         />

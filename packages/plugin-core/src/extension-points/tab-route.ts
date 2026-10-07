@@ -22,6 +22,8 @@ export type TabRoutePageExtension = Extension<
   NavItemProperties & {
     /** The link href value for the nav item. */
     href: string;
+    /** Optional tab ID to use when a child page links back to this page. */
+    breadcrumbTabId?: string;
     /**
      * The react-router path pattern to match against the current location.
      * Should include a wildcard suffix (e.g. '/ai-hub/models/*') to capture tab sub-paths.
@@ -36,6 +38,8 @@ export type TabRoutePageExtension = Extension<
     objectType?: string;
     /** When true, renders the tab bar even if only one tab is registered. */
     alwaysShowTabBar?: boolean;
+    /** Relative path prefixes where the generic page title should be hidden. */
+    hidePageTitleOnPaths?: string[];
   }
 >;
 

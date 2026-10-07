@@ -17,7 +17,7 @@ import {
 } from '@patternfly/react-core';
 import { CheckIcon, TimesIcon, TrashIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
-import { createLabel, deleteLabel, ApiError } from '~/app/api/dataRegistry';
+import { createLabel, deleteLabel, isConflictError } from '~/app/api/dataRegistry';
 import { RegistryAsset } from '~/app/hooks/useAssets';
 
 type ManageLabelsModalProps = {
@@ -79,7 +79,7 @@ const ManageLabelsModal: React.FC<ManageLabelsModalProps> = ({
       setIsCreating(false);
       onRefresh();
     } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
+      if (isConflictError(err)) {
         setActionError(`Label "${trimmed}" already exists.`);
       } else {
         setActionError(err instanceof Error ? err.message : 'Failed to create label');
@@ -114,17 +114,9 @@ const ManageLabelsModal: React.FC<ManageLabelsModalProps> = ({
     <Modal isOpen={isOpen} onClose={handleClose} variant="large" data-testid="manage-labels-modal">
       <ModalHeader
         title="Manage labels"
-        description="Create and delete labels to manage how assets are organized across this project."
+        description="View and manage this project’s labels. Optionally use labels to organize and filter your data assets."
       />
       <ModalBody>
-        <Alert
-          variant="info"
-          isInline
-          title="Changes affect all project assets"
-          className="pf-v6-u-mb-md"
-        >
-          Deleting a label removes it from every asset using it within this project.
-        </Alert>
         {actionError ? (
           <Alert
             variant="danger"
@@ -164,7 +156,7 @@ const ManageLabelsModal: React.FC<ManageLabelsModalProps> = ({
           <Thead>
             <Tr>
               <Th>Label</Th>
-              <Th>Assets</Th>
+              <Th>Data assets</Th>
               <Th screenReaderText="Actions" />
             </Tr>
           </Thead>
@@ -176,11 +168,11 @@ const ManageLabelsModal: React.FC<ManageLabelsModalProps> = ({
                     alignItems={{ default: 'alignItemsCenter' }}
                     flexWrap={{ default: 'nowrap' }}
                   >
-                    <FlexItem style={{ maxWidth: '200px' }}>
+                    <FlexItem style={{ maxWidth: 'var(--pf-t--global--spacer--6xl)' }}>
                       <TextInput
                         value={newLabelName}
                         onChange={(_event, value) => setNewLabelName(value)}
-                        placeholder="Enter label name"
+                        placeholder="New label"
                         aria-label="New label name"
                         isDisabled={isSubmitting}
                         onKeyDown={(e) => {
@@ -234,7 +226,7 @@ const ManageLabelsModal: React.FC<ManageLabelsModalProps> = ({
                     {labelInfo.name}
                   </Label>
                 </Td>
-                <Td dataLabel="Assets">
+                <Td dataLabel="Data assets">
                   {labelInfo.assetNames.length > 0 ? labelInfo.assetNames.join(', ') : '–'}
                 </Td>
                 <Td isActionCell>
@@ -254,7 +246,7 @@ const ManageLabelsModal: React.FC<ManageLabelsModalProps> = ({
         </Table>
       </ModalBody>
       <ModalFooter>
-        <Button variant="link" onClick={handleClose}>
+        <Button variant="secondary" onClick={handleClose} data-testid="manage-labels-close-button">
           Close
         </Button>
       </ModalFooter>

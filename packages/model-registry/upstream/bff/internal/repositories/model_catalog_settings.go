@@ -405,6 +405,7 @@ func (r *ModelCatalogSettingsRepository) DeleteCatalogSourceConfig(
 		return nil, fmt.Errorf("failed to update configmap after deletion: %w", err)
 	}
 
+	stripHuggingFaceApiKeyForAPI(catalogSourceToDelete)
 	return catalogSourceToDelete, nil
 }
 
@@ -496,6 +497,9 @@ func mergeCatalogSourceConfigs(defaultCatalog models.CatalogSourceConfig, userCa
 	if userCatalog.ApiKey != nil {
 		mergedSource.ApiKey = userCatalog.ApiKey
 	}
+	if userCatalog.HasConfiguredApiKey != nil {
+		mergedSource.HasConfiguredApiKey = userCatalog.HasConfiguredApiKey
+	}
 
 	if userCatalog.IncludedModels != nil {
 		mergedSource.IncludedModels = userCatalog.IncludedModels
@@ -559,10 +563,18 @@ func isRawHuggingFaceApiKey(value string) bool {
 }
 
 func stripHuggingFaceApiKeyForAPI(config *models.CatalogSourceConfig) {
-	if config == nil || config.Type != CatalogTypeHuggingFace {
+	if config == nil {
 		return
 	}
 	config.ApiKey = nil
+	if config.Type == CatalogTypeHuggingFace {
+		if config.HasConfiguredApiKey == nil {
+			configured := false
+			config.HasConfiguredApiKey = &configured
+		}
+	} else {
+		config.HasConfiguredApiKey = nil
+	}
 }
 
 func persistHuggingFaceApiKeyFromPayload(

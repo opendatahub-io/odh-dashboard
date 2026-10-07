@@ -266,7 +266,7 @@ AUTOML_TABULAR_PIPELINE_NAME_PREFIX=my-tabular \
 In a separate terminal, from the repo root:
 
 ```shell
-npm run dev
+pnpm run dev
 ```
 
 Then access the dashboard at **http://localhost:4010** and navigate to the AutoML section.

@@ -61,6 +61,7 @@ export type DashboardConfig = K8sResourceCommon & {
       workbenchesV2: boolean;
       mcpCatalog: boolean;
       mcpRegistry: boolean;
+      genAiMcpRegistryServers: boolean;
       agentOps: boolean;
       agentsCatalog: boolean;
       toolCalling: boolean;
@@ -71,6 +72,7 @@ export type DashboardConfig = K8sResourceCommon & {
       deploymentWizardYAMLViewer: boolean;
       externalVectorStores: boolean;
       agentConfigManagement: boolean;
+      genAiAgentDeployment: boolean;
       vLLMDeploymentOnMaaS: boolean;
       llmGatewayField: boolean;
       promptManagement: boolean;
@@ -78,7 +80,9 @@ export type DashboardConfig = K8sResourceCommon & {
       gpuaas: boolean;
       connectionTest: boolean;
       modelCapabilities: boolean;
+      runtimeCatalog: boolean;
       observabilityDashboard: boolean;
+      nimWizard: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
     // groupsConfig?: {

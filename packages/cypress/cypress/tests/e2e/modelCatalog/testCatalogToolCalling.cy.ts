@@ -23,13 +23,13 @@ describe('Verify tool calling configuration in Model Catalog', () => {
         verifyModelCatalogBackend();
 
         cy.step('Ensure the Red Hat AI validated catalog source is enabled');
-        return ensureModelCatalogSourceEnabled(testData.redhatAiSourceId2);
+        return ensureModelCatalogSourceEnabled(testData.validatedSourceId);
       });
   });
 
   it(
     'Tool calling labels, filter, and validated arguments card are displayed',
-    { tags: ['@Dashboard', '@ModelCatalog', `@SmokeSet1`, '@Smoke'] },
+    { tags: ['@Dashboard', '@ModelCatalog', '@SmokeSet1', '@Smoke'] },
     () => {
       cy.step('Login as admin');
       cy.visitWithLogin('/', LDAP_ADMIN_USER);

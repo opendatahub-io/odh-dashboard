@@ -4,6 +4,7 @@ import type {
   ModelServingDeleteModal,
   ModelServingStartStopAction,
 } from '@odh-dashboard/model-serving/extension-points';
+import type { RuntimeImageInstallTargetExtension } from '@odh-dashboard/model-serving/extension-points/runtime-image-install-target';
 import type {
   WizardFieldExtension,
   WizardFieldApplyExtension,
@@ -412,6 +413,7 @@ const extensions: (
   | HrefNavItemExtension
   | RouteExtension
   | TabRouteTabExtension
+  | RuntimeImageInstallTargetExtension
 )[] = [
   {
     type: 'app.area',
@@ -465,7 +467,7 @@ const extensions: (
         import('../src/deployments/model').then((m) => m.extractEnvironmentVariables),
       extractHuggingFaceApiKey: () =>
         import('../src/hfTokenSecret').then(
-          (m) => (deployment) => m.extractHuggingFaceApiKeyFromEnv(deployment.model),
+          (m) => (deployment) => m.extractHuggingFaceApiKey(deployment.model),
         ),
       extractModelAvailabilityData: () =>
         import('../src/wizardFields/modelAvailability').then((m) => m.extractModelAvailabilityData),
@@ -658,6 +660,23 @@ const extensions: (
         from: `${ROUTING_CONFIGS_STANDALONE_PATH}/*`,
         to: `${ROUTING_CONFIGS_TAB_PATH}/*`,
       }),
+    },
+  },
+  {
+    type: 'model-serving.runtime-image/install-target',
+    flags: {
+      required: [LLMD_SERVING_ID, ADMIN_USER, SupportedArea.VLLM_ON_MAAS],
+    },
+    properties: {
+      id: 'llmAcceleratorConfiguration',
+      label: 'LLM accelerator configuration',
+      description: 'Install as an LLMInferenceServiceConfig for LLM inference service deployments.',
+      selectedState: {
+        listName: 'LLM accelerator configurations',
+        description: 'and the LLM inference service deployment wizard.',
+      },
+      configureStepLabel: 'Configure accelerator',
+      component: () => import('../src/runtimeImageInstall/LlmAcceleratorInstallTarget'),
     },
   },
   {

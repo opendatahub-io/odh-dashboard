@@ -31,6 +31,14 @@ const ProviderTypeField: React.FC<ProviderTypeFieldProps> = ({
 
   return (
     <FormGroup label="Provider type" isRequired fieldId="provider-type">
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem>
+            Select a provider type. This determines the expected path format and default
+            authentication.
+          </HelperTextItem>
+        </HelperText>
+      </FormHelperText>
       <Select
         id="provider-type"
         isOpen={isOpen}
@@ -48,7 +56,7 @@ const ProviderTypeField: React.FC<ProviderTypeFieldProps> = ({
             isFullWidth
             data-testid="provider-type-toggle"
           >
-            {provider ? selectedLabel : 'Select a provider'}
+            {provider ? selectedLabel : 'Select a provider type'}
           </MenuToggle>
         )}
       >
@@ -64,11 +72,6 @@ const ProviderTypeField: React.FC<ProviderTypeFieldProps> = ({
           ))}
         </SelectList>
       </Select>
-      <FormHelperText>
-        <HelperText>
-          <HelperTextItem>Select a known provider type.</HelperTextItem>
-        </HelperText>
-      </FormHelperText>
       {validationMessage && (
         <FormHelperText>
           <HelperText>

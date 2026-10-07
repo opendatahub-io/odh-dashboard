@@ -4,11 +4,17 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import TableDetailView from '~/app/pages/TableDetailView';
 import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
+import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
+import type { AssetResponse, ConnectionModel } from '~/app/types';
 
-const renderView = (asset: ReturnType<typeof mockAssetResponse>, project = 'test-project') =>
+const renderView = (
+  asset: AssetResponse,
+  project = 'test-project',
+  connections: ConnectionModel[] = [],
+) =>
   render(
     <MemoryRouter>
-      <TableDetailView asset={asset} project={project} />
+      <TableDetailView asset={asset} project={project} connections={connections} />
     </MemoryRouter>,
   );
 
@@ -18,10 +24,11 @@ describe('TableDetailView', () => {
     renderView(asset);
 
     expect(screen.getByTestId('data-details-card')).toBeTruthy();
+    expect(screen.getByTestId('asset-name')).toHaveTextContent('test-table');
     expect(screen.getByTestId('asset-description')).toHaveTextContent(
       'A test table for unit testing',
     );
-    expect(screen.getByTestId('asset-format')).toHaveTextContent('parquet');
+    expect(screen.getByTestId('asset-format')).toHaveTextContent('Apache Parquet');
     expect(screen.getByTestId('asset-collection')).toHaveTextContent('default');
     expect(screen.getByTestId('asset-location')).toHaveTextContent(
       's3://my-bucket/data/test-table/',
@@ -40,19 +47,58 @@ describe('TableDetailView', () => {
     expect(link).toHaveTextContent('default');
   });
 
-  it('should render connection name', () => {
+  it('should render connection name as a link to project connections', () => {
     const asset = mockAssetResponse();
-    renderView(asset);
-    const el = screen.getByTestId('connection-ref-label');
-    expect(el).toHaveTextContent('my-s3-connection');
+    renderView(asset, 'test-project', [
+      { name: 'my-s3-connection', displayName: 'My S3 Connection' },
+    ]);
+    const el = screen.getByTestId('connection-ref-link');
+    expect(el).toHaveTextContent('My S3 Connection');
+    expect(el).toHaveAttribute('href', '/projects/test-project?section=connections');
   });
 
-  it('should render created and last modified with user attribution', () => {
+  it('should fall back to the connection name when display name is unavailable', () => {
     const asset = mockAssetResponse();
+    renderView(asset, 'test-project', [{ name: 'my-s3-connection' }]);
+
+    expect(screen.getByTestId('connection-ref-link')).toHaveTextContent('my-s3-connection');
+  });
+
+  it('should render the connection type below the connection name', () => {
+    const asset = mockAssetResponse();
+    renderView(asset, 'test-project', [{ name: 'my-s3-connection', connectionType: 's3' }]);
+
+    expect(screen.getByTestId('connection-type')).toHaveTextContent('s3');
+  });
+
+  it('should render a location without a link when no connection is specified', () => {
+    const asset = mockAssetResponse({
+      connection_ref: null,
+      storage_location: 's3://bucket/path',
+    });
     renderView(asset);
 
-    expect(screen.getByTestId('asset-created-at')).toHaveTextContent('by user@example.com');
-    expect(screen.getByTestId('asset-updated-at')).toHaveTextContent('by admin@example.com');
+    expect(screen.getByTestId('asset-connection')).toHaveTextContent('-');
+    expect(screen.getByTestId('asset-location')).toHaveTextContent('s3://bucket/path');
+    expect(screen.queryByTestId('connection-ref-link')).not.toBeInTheDocument();
+  });
+
+  it('should render relative created and last modified timestamps with hover details', () => {
+    const asset = mockAssetResponse();
+    const dateNowSpy = jest
+      .spyOn(Date, 'now')
+      .mockReturnValue(new Date('2026-08-21T14:45:00Z').getTime());
+
+    try {
+      renderView(asset);
+
+      expect(screen.getByTestId('asset-created-at')).toHaveTextContent('1 month ago');
+      expect(screen.getByTestId('asset-updated-at')).toHaveTextContent('1 day ago');
+      expect(screen.getByTestId('asset-created-at')).not.toHaveTextContent('View timestamp');
+      expect(screen.getByTestId('asset-updated-at')).not.toHaveTextContent('View timestamp');
+    } finally {
+      dateNowSpy.mockRestore();
+    }
   });
 
   it('should render labels card with expandable label group', () => {
@@ -69,19 +115,47 @@ describe('TableDetailView', () => {
     expect(screen.getByTestId('asset-labels')).toHaveTextContent('No labels');
   });
 
-  it('should render properties card with key:value labels', () => {
-    const asset = mockAssetResponse();
-    renderView(asset);
+  it('should render properties below data details with well-known properties first', () => {
+    renderView(
+      mockAssetResponse({
+        properties: {
+          source: 'etl-pipeline',
+          purpose: 'ML training',
+          'data.quality': 'verified',
+        },
+      }),
+    );
     expect(screen.getByTestId('properties-card')).toBeTruthy();
-    expect(screen.getByText('data.quality: verified')).toBeTruthy();
-    expect(screen.getByText('source: etl-pipeline')).toBeTruthy();
+    expect(screen.getByTestId('asset-property-purpose')).toHaveTextContent('PurposeML training');
+    expect(screen.getByTestId('asset-property-data.quality')).toHaveTextContent('verified');
+    expect(screen.getByTestId('asset-property-source')).toHaveTextContent('etl-pipeline');
+
+    const propertyGroups = Array.from(
+      screen.getByTestId('asset-properties').querySelectorAll('dt'),
+    ).map((term) => term.textContent);
+    expect(propertyGroups).toEqual(['Purpose', 'source', 'data.quality']);
   });
 
-  it('should render schema card with column count and columns table', () => {
+  it('should render custom properties whose names match Object prototype keys', () => {
+    const properties = JSON.parse(
+      '{"constructor":"constructor value","toString":"toString value","purpose":"ML training"}',
+    ) as Record<string, string>;
+    renderView(mockAssetResponse({ properties }));
+
+    expect(screen.getByTestId('asset-property-purpose')).toHaveTextContent('PurposeML training');
+    expect(screen.getByTestId('asset-property-constructor')).toHaveTextContent(
+      'constructorconstructor value',
+    );
+    expect(screen.getByTestId('asset-property-toString')).toHaveTextContent(
+      'toStringtoString value',
+    );
+  });
+
+  it('should render schema card with columns table', () => {
     const asset = mockAssetResponse();
     renderView(asset);
     expect(screen.getByTestId('schema-card')).toBeTruthy();
-    expect(screen.getByTestId('schema-column-count')).toHaveTextContent('3 columns');
+    expect(screen.queryByTestId('schema-column-count')).not.toBeInTheDocument();
     expect(screen.getByTestId('schema-columns-table')).toBeTruthy();
     expect(screen.getByTestId('schema-column-name-id')).toHaveTextContent('id');
   });
@@ -93,16 +167,8 @@ describe('TableDetailView', () => {
     expect(screen.getByTestId('schema-column-type-name')).toHaveTextContent('string');
   });
 
-  it('should hide format field when format is not set', () => {
-    const asset = mockAssetResponse({ format: undefined });
-    renderView(asset);
-    expect(screen.queryByTestId('asset-format')).not.toBeInTheDocument();
-    expect(screen.getByTestId('asset-type')).toHaveTextContent('table');
-  });
-
   it('should render an unstructured volume with its human-readable format', () => {
-    const asset = mockAssetResponse({
-      asset_type: 'Unstructured',
+    const asset = mockVolumeInfo({
       format: 'documents',
       columns: [],
       properties: { 'content-type': 'application/pdf' },
@@ -111,8 +177,8 @@ describe('TableDetailView', () => {
 
     expect(screen.getByTestId('asset-type')).toHaveTextContent('Unstructured');
     expect(screen.getByTestId('asset-format')).toHaveTextContent('Documents');
-    expect(screen.getByTestId('properties-card')).toHaveTextContent(
-      'content-type: application/pdf',
+    expect(screen.getByTestId('asset-property-content-type')).toHaveTextContent(
+      'content-typeapplication/pdf',
     );
     expect(screen.queryByTestId('schema-card')).not.toBeInTheDocument();
     expect(screen.getAllByText('Created')).toHaveLength(1);
@@ -121,9 +187,8 @@ describe('TableDetailView', () => {
 
   it('should render dash for missing optional fields', () => {
     const asset = mockAssetResponse({
-      format: undefined,
       description: undefined,
-      location: undefined,
+      storage_location: undefined,
       owner: undefined,
       labels: [],
       properties: undefined,
@@ -132,7 +197,7 @@ describe('TableDetailView', () => {
     });
     renderView(asset);
 
-    expect(screen.queryByTestId('asset-format')).not.toBeInTheDocument();
+    expect(screen.getByTestId('asset-format')).toHaveTextContent('Apache Parquet');
     expect(screen.getByTestId('asset-description')).toHaveTextContent('-');
     expect(screen.getByTestId('asset-location')).toHaveTextContent('-');
     expect(screen.getByTestId('asset-owner')).toHaveTextContent('-');

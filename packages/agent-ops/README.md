@@ -13,7 +13,7 @@ You can check the [contributing guidelines] for more information on how to contr
 Bootstrap a fresh copy of this starter without cloning the repo by using the published CLI:
 
 ```bash
-npx mod-arch-installer my-module --flavor default
+pnpm dlx mod-arch-installer my-module --flavor default
 ```
 
 See [`docs/install.md`](./docs/install.md) for all CLI options and details about the PatternFly-first default flavor.
@@ -24,13 +24,13 @@ The canonical OpenAPI 3.0 contract is in [`api/openapi/agent-ops.yaml`](./api/op
 
 When the BFF is running locally (`make dev-bff` from `packages/agent-ops/`):
 
-| URL | Purpose |
-|-----|---------|
-| `http://localhost:4000/mod-arch/swagger-ui` | Interactive API docs |
+| URL                                           | Purpose               |
+| --------------------------------------------- | --------------------- |
+| `http://localhost:4000/mod-arch/swagger-ui`   | Interactive API docs  |
 | `http://localhost:4000/mod-arch/openapi.json` | Machine-readable spec |
-| `http://localhost:4000/mod-arch/openapi.yaml` | YAML spec |
+| `http://localhost:4000/mod-arch/openapi.yaml` | YAML spec             |
 
-After changing the canonical spec, run `make sync-openapi` from `packages/agent-ops/bff/` (or `make run`, which syncs automatically). CI and `npm run test:contract` fail if `api/openapi/agent-ops.yaml` and `bff/openapi/src/agent-ops.yaml` drift apart.
+After changing the canonical spec, run `make sync-openapi` from `packages/agent-ops/bff/` (or `make run`, which syncs automatically). CI and `pnpm run test:contract` fail if `api/openapi/agent-ops.yaml` and `bff/openapi/src/agent-ops.yaml` drift apart.
 
 [Open the spec in Swagger Editor](https://editor.swagger.io/?url=https://raw.githubusercontent.com/opendatahub-io/odh-dashboard/main/packages/agent-ops/api/openapi/agent-ops.yaml)
 
@@ -110,14 +110,17 @@ The following Makefile targets are used to build and push the Docker images the 
 ### Build Commands
 
 - **`docker-build`**: Builds the Docker image for the UI platform.
+
   - Command: `make docker-build`
   - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
 
 - **`docker-buildx`**: Builds the Docker image with buildX for multiarch support.
+
   - Command: `make docker-buildx`
   - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
 
 - **`docker-build-standalone`**: Builds the Docker image for the UI platform **in standalone mode**.
+
   - Command: `make docker-build-standalone`
   - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables to push the image.
 
@@ -128,6 +131,7 @@ The following Makefile targets are used to build and push the Docker images the 
 ### Push Commands
 
 - **`docker-push`**: Pushes the Docker image for the UI service to the container registry.
+
   - Command: `make docker-push`
   - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
 

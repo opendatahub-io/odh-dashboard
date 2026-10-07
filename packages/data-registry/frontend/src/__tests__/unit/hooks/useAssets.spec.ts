@@ -2,6 +2,8 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import * as api from '~/app/api/dataRegistry';
 import { useAssets } from '~/app/hooks/useAssets';
+import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
+import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
 
 jest.mock('~/app/api/dataRegistry');
 
@@ -17,7 +19,7 @@ describe('useAssets', () => {
   it('should return empty array when no project', async () => {
     const { result } = renderHook(() => useAssets(''));
     expect(result.current[0]).toEqual([]);
-    expect(result.current[1]).toBe(true);
+    await waitFor(() => expect(result.current[1]).toBe(true));
   });
 
   it('should fetch and combine tables and volumes', async () => {
@@ -26,33 +28,24 @@ describe('useAssets', () => {
     });
     mockFetchAssets.mockResolvedValue({
       assets: [
-        {
+        mockAssetResponse({
           name: 'test-table',
-          asset_type: 'table',
-          format: 'parquet',
-          location: 's3://bucket/path',
           description: 'A test table',
           labels: ['production'],
           collection: 'default',
-          connection_ref: null,
-          owner: 'user1',
-          registered_by: 'user1',
-          created_at: '2026-01-01',
-        },
+          properties: { domain: 'finance' },
+        }),
       ],
     });
     mockFetchVolumes.mockResolvedValue({
       volumes: [
-        {
+        mockVolumeInfo({
           name: 'test-volume',
-          'catalog-name': 'project',
-          'schema-name': 'default',
-          'volume-type': 'application/pdf',
-          'storage-location': 's3://bucket/docs',
-          'created-at': '2026-01-01',
+          collection: 'default',
+          format: 'documents',
+          storage_location: 's3://bucket/docs',
           properties: { description: 'PDF docs' },
-          config: {},
-        },
+        }),
       ],
     });
 
@@ -69,6 +62,8 @@ describe('useAssets', () => {
     expect(assets[0].name).toBe('test-table');
     expect(assets[0].format).toBe('parquet');
     expect(assets[0].labels).toEqual(['production']);
+    expect(assets[0].properties).toEqual({ domain: 'finance' });
+    expect(assets[0].rawAsset).toMatchObject({ name: 'test-table' });
   });
 
   it('should map volume labels from API response', async () => {
@@ -76,25 +71,22 @@ describe('useAssets', () => {
     mockFetchAssets.mockResolvedValue({ assets: [] });
     mockFetchVolumes.mockResolvedValue({
       volumes: [
-        {
+        mockVolumeInfo({
           name: 'labeled-volume',
-          'catalog-name': 'project',
-          'schema-name': 'col1',
-          'volume-type': 'documents',
-          'storage-location': '/data',
+          collection: 'col1',
+          format: 'documents',
+          storage_location: '/data',
           labels: ['production', 'ml-data'],
           properties: { description: 'Volume with labels' },
-          config: {},
-        },
-        {
+        }),
+        mockVolumeInfo({
           name: 'unlabeled-volume',
-          'catalog-name': 'project',
-          'schema-name': 'col1',
-          'volume-type': 'images',
-          'storage-location': '/images',
+          collection: 'col1',
+          format: 'images',
+          storage_location: '/images',
+          labels: [],
           properties: {},
-          config: {},
-        },
+        }),
       ],
     });
 
@@ -109,6 +101,7 @@ describe('useAssets', () => {
 
     const labeled = assets.find((a) => a.name === 'labeled-volume');
     expect(labeled?.labels).toEqual(['production', 'ml-data']);
+    expect(labeled?.properties).toEqual({ description: 'Volume with labels' });
 
     const unlabeled = assets.find((a) => a.name === 'unlabeled-volume');
     expect(unlabeled?.labels).toEqual([]);
@@ -119,11 +112,8 @@ describe('useAssets', () => {
 
     const { result } = renderHook(() => useAssets('test-project'));
 
-    await waitFor(() => {
-      expect(result.current[1]).toBe(true);
-    });
+    await waitFor(() => expect(result.current[2]).toBeDefined());
 
-    expect(result.current[2]).toBeDefined();
     expect(result.current[2]?.message).toBe('Network error');
   });
 });

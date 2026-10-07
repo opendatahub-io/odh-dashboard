@@ -160,6 +160,22 @@ describe('useDevFeatureFlags', () => {
     });
   });
 
+  it('should recognize and override Unified Project Selector without changing configured flags', () => {
+    const { setSessionFn } = mockSession({ unifiedProjectSelector: true });
+    const dashboardConfig = {
+      spec: { dashboardConfig: { disableAppLauncher: true } },
+    } as DashboardConfigKind;
+    const renderResult = renderHook(() => useDevFeatureFlags(dashboardConfig), renderOptions());
+
+    expect(renderResult.result.current.devFeatureFlags).toEqual({ unifiedProjectSelector: true });
+    expect(renderResult.result.current.dashboardConfig?.spec.dashboardConfig).toEqual(
+      dashboardConfig.spec.dashboardConfig,
+    );
+
+    act(() => renderResult.result.current.setDevFeatureFlag('unifiedProjectSelector', false));
+    expect(setSessionFn).toHaveBeenLastCalledWith({ unifiedProjectSelector: false });
+  });
+
   it('should load flags from query string', () => {
     const { setSessionFn } = mockSession(null);
     const { searchParams, setSearchParamsFn } = mockUseSearchParams({

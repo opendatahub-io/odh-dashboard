@@ -1,0 +1,200 @@
+import * as React from 'react';
+import {
+  Alert,
+  Card,
+  CardBody,
+  CardTitle,
+  Content,
+  Flex,
+  FlexItem,
+  Label,
+  LabelGroup,
+} from '@patternfly/react-core';
+import { AgentProfile, AgentProfileMcpServer } from '~/app/agentProfile/types';
+import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
+import { AIModel } from '~/app/types';
+import { getLlamaModelDisplayName } from '~/app/utilities';
+
+type AgentConfigurationCardProps = {
+  profile: Pick<AgentProfile, 'spec'>;
+  title: string;
+  lastModified?: string;
+  deployedAt?: string;
+  isSavedConfiguration?: boolean;
+  aiModels?: AIModel[];
+};
+
+const formatDate = (value: string): string => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      });
+};
+
+const getMcpServerName = (server: AgentProfileMcpServer): string =>
+  'serverRef' in server ? (server.serverRef.key ?? server.serverRef.name) : server.name;
+
+const AgentConfigurationCard: React.FC<AgentConfigurationCardProps> = ({
+  profile,
+  title,
+  lastModified,
+  deployedAt,
+  isSavedConfiguration = false,
+  aiModels = [],
+}) => {
+  const tools = profile.spec.mcpServers ?? [];
+  const vectorStoreIDs = (profile.spec.vectorStores?.stores ?? [])
+    .map((store) => store.storeRef?.key ?? store.id)
+    .filter((storeID): storeID is string => Boolean(storeID));
+  const guardrailCount = profile.spec.guardrails?.length ?? 0;
+  const guardrailsEnabled = useGuardrailsEnabled();
+  const modelDisplayName = getLlamaModelDisplayName(profile.spec.model.id, aiModels);
+
+  return (
+    <Card isFullHeight data-testid="agent-configuration-card">
+      <CardTitle>
+        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
+          <FlexItem>{title}</FlexItem>
+          {lastModified && (
+            <FlexItem>
+              <Content component="small">Last modified {formatDate(lastModified)}</Content>
+            </FlexItem>
+          )}
+          {deployedAt && !lastModified && (
+            <FlexItem>
+              <Content component="small">Deployed {formatDate(deployedAt)}</Content>
+            </FlexItem>
+          )}
+        </Flex>
+      </CardTitle>
+      <CardBody>
+        <dl className="pf-v6-u-m-0">
+          <Flex component="div" className="pf-v6-u-mb-md">
+            <FlexItem
+              component="dt"
+              className="pf-v6-u-font-weight-bold"
+              style={{ minWidth: '11rem' }}
+            >
+              Model
+            </FlexItem>
+            <FlexItem component="dd" className="pf-v6-u-m-0">
+              {modelDisplayName || profile.spec.model.id}
+            </FlexItem>
+          </Flex>
+          {profile.spec.prompt && (
+            <Flex component="div" className="pf-v6-u-mb-md">
+              <FlexItem
+                component="dt"
+                className="pf-v6-u-font-weight-bold"
+                style={{ minWidth: '11rem' }}
+              >
+                Prompt
+              </FlexItem>
+              <FlexItem component="dd" className="pf-v6-u-m-0">
+                <LabelGroup>
+                  <Label variant="outline">
+                    {profile.spec.prompt.name}
+                    {profile.spec.prompt.version && (
+                      <Label isCompact color="grey" className="pf-v6-u-ml-xs">
+                        v{profile.spec.prompt.version}
+                      </Label>
+                    )}
+                  </Label>
+                </LabelGroup>
+              </FlexItem>
+            </Flex>
+          )}
+          <Flex component="div" className="pf-v6-u-mb-md">
+            <FlexItem
+              component="dt"
+              className="pf-v6-u-font-weight-bold"
+              style={{ minWidth: '11rem' }}
+            >
+              Tools
+            </FlexItem>
+            <FlexItem component="dd" className="pf-v6-u-m-0">
+              {tools.length > 0 ? (
+                <Flex gap={{ default: 'gapSm' }}>
+                  {tools.map((tool) => {
+                    const toolName = getMcpServerName(tool);
+
+                    return (
+                      <FlexItem key={toolName}>
+                        <Label isCompact>{toolName}</Label>
+                      </FlexItem>
+                    );
+                  })}
+                </Flex>
+              ) : (
+                'No tools selected'
+              )}
+            </FlexItem>
+          </Flex>
+          <Flex component="div" className="pf-v6-u-mb-md">
+            <FlexItem
+              component="dt"
+              className="pf-v6-u-font-weight-bold"
+              style={{ minWidth: '11rem' }}
+            >
+              Knowledge
+            </FlexItem>
+            <FlexItem component="dd" className="pf-v6-u-m-0">
+              {vectorStoreIDs.length > 0 ? (
+                <Flex gap={{ default: 'gapSm' }}>
+                  {vectorStoreIDs.map((storeID) => (
+                    <FlexItem key={storeID}>
+                      <Label isCompact>{storeID}</Label>
+                    </FlexItem>
+                  ))}
+                </Flex>
+              ) : (
+                'No vector stores'
+              )}
+            </FlexItem>
+          </Flex>
+          {guardrailsEnabled && (
+            <Flex component="div">
+              <FlexItem
+                component="dt"
+                className="pf-v6-u-font-weight-bold"
+                style={{ minWidth: '11rem' }}
+              >
+                Guardrails
+              </FlexItem>
+              <FlexItem component="dd" className="pf-v6-u-m-0">
+                {isSavedConfiguration ? (
+                  <Label isCompact color="grey">
+                    Not saved
+                  </Label>
+                ) : guardrailCount > 0 ? (
+                  `${guardrailCount} enabled`
+                ) : (
+                  <Label isCompact color="grey">
+                    Not saved
+                  </Label>
+                )}
+              </FlexItem>
+            </Flex>
+          )}
+        </dl>
+        {isSavedConfiguration && guardrailsEnabled && (
+          <Alert
+            className="pf-v6-u-mt-lg"
+            isInline
+            isPlain
+            variant="info"
+            title="Guardrails are not included in saved configurations."
+          />
+        )}
+      </CardBody>
+    </Card>
+  );
+};
+
+export default AgentConfigurationCard;

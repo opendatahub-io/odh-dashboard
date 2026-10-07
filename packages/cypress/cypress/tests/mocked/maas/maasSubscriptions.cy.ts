@@ -486,6 +486,12 @@ describe('Subscription Create Page', () => {
 
     cy.url().should('include', '/maas/maas-governance/subscriptions');
   });
+
+  it('should show warning when system:authenticated group is used', () => {
+    createSubscriptionPage.visit();
+    createSubscriptionPage.selectGroup('system:authenticated');
+    createSubscriptionPage.findSystemAuthenticatedWarning().should('exist');
+  });
 });
 
 describe('Edit Subscription Page', () => {

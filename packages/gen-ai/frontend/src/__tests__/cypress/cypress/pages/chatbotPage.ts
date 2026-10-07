@@ -87,6 +87,46 @@ class ChatbotPage {
     return cy.findByRole('button', { name: 'Send' });
   }
 
+  findAttachmentButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('button', { name: /^attach$/i });
+  }
+
+  findAudioUploadMenuItem(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('upload-audio-menu-item');
+  }
+
+  findAudioFileInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('audio-file-input');
+  }
+
+  findAudioFileChip(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get('[data-testid="audio-file-chip"]');
+  }
+
+  findAudioTranscriptionError(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get('[data-testid="audio-transcription-error"]');
+  }
+
+  findAddTranscriptionModelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('add-transcription-model-btn');
+  }
+
+  findChatModelToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('settings-model-selector-toggle');
+  }
+
+  findChatModelOption(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.contains('[role="menuitem"]', name);
+  }
+
+  findAsrModelToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('asr-model-selector-toggle');
+  }
+
+  findAsrModelOption(modelId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`asr-model-option-${modelId}`);
+  }
+
   findStopButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     // PatternFly MessageBar component - Stop button appears when loading
     // NOTE: Cannot add testID to external library component, using semantic role
@@ -243,6 +283,18 @@ class ChatbotPage {
     return cy.findByTestId('header-kebab-menu-toggle');
   }
 
+  findSaveProfileNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('save-agent-profile-name-input');
+  }
+
+  findSaveProfileSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('save-agent-profile-submit-button');
+  }
+
+  findProfileLoadWarning(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('agent-profile-load-warning');
+  }
+
   openKebabMenu(): void {
     this.findKebabMenuButton().click();
   }
@@ -383,7 +435,18 @@ class ChatbotPage {
 
   verifyMetricsDisplayed(): void {
     this.findMetrics().should('be.visible');
-    this.findMetrics().find('.pf-v6-c-label').should('have.length.at.least', 1);
+    this.findMetrics()
+      .find('button[aria-expanded]')
+      .should('be.visible')
+      .then(($toggle) => {
+        if ($toggle.attr('aria-expanded') === 'false') {
+          cy.wrap($toggle).click();
+        }
+      });
+    cy.get('[data-testid="chatbot-message-metrics"] .pf-v6-c-label').should(
+      'have.length.at.least',
+      1,
+    );
   }
 
   // Compare Mode Methods
@@ -416,6 +479,18 @@ class ChatbotPage {
   // Find the global Settings button in the page header
   findSettingsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('settings-button');
+  }
+
+  ensureSettingsPanelOpen(): void {
+    this.findSettingsButton()
+      .should('be.visible')
+      .then(($button) => {
+        if ($button.attr('aria-expanded') !== 'true') {
+          cy.wrap($button).click();
+        }
+      });
+    this.findSettingsButton().should('have.attr', 'aria-expanded', 'true');
+    this.findSettingsPanelHeader().should('be.visible');
   }
 
   // Find the config switcher toggle group inside the settings panel

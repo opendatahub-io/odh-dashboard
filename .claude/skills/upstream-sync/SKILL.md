@@ -45,7 +45,7 @@ gh pr list --repo opendatahub-io/odh-dashboard --head automated/model-registry-u
 
 | Situation | What to do |
 |-----------|------------|
-| **Open PR with `(conflicts — resolve manually)` in the title** | Checkout `automated/model-registry-upstream-sync`, resolve conflict markers (Phase 3), run `npm run update-subtree -w packages/model-registry -- --continue` until sync completes, run Phase 4 tests, push to update the PR. **Do not** create a parallel `mr-sync-*` branch. |
+| **Open PR with `(conflicts — resolve manually)` in the title** | Checkout `automated/model-registry-upstream-sync`, resolve conflict markers (Phase 3), run `pnpm --filter @odh-dashboard/model-registry run update-subtree --continue` until sync completes, run Phase 4 tests, push to update the PR. **Do not** create a parallel `mr-sync-*` branch. |
 | **Open clean sync PR** (no conflict in title) | Review/merge via normal PR process, or ask whether to update that branch instead of opening a duplicate sync. |
 | **No open automated PR** | Proceed with normal manual sync (Phase 1 branch naming below). |
 
@@ -99,17 +99,17 @@ First, check the current branch state:
 Run the update-subtree script from the `packages/<package-name>` directory:
 
 ```bash
-cd packages/<package-name> && npm run update-subtree
+cd packages/<package-name> && pnpm run update-subtree
 ```
 
 **[PR Test Mode]** Pass the `--pr` flag with the PR URL:
 ```bash
-cd packages/<package-name> && npm run update-subtree -- --pr=<pr-url>
+cd packages/<package-name> && pnpm run update-subtree --pr=<pr-url>
 ```
 
 Or if continuing after conflict resolution:
 ```bash
-cd packages/<package-name> && npm run update-subtree -- --continue
+cd packages/<package-name> && pnpm run update-subtree --continue
 ```
 
 Parse the output to detect:
@@ -138,12 +138,12 @@ When conflicts are detected:
 
 4. **After resolution**:
    - Stage the resolved files: `git add <file1> <file2> ...`
-   - Continue the sync: `cd packages/<package-name> && npm run update-subtree -- --continue`
+   - Continue the sync: `cd packages/<package-name> && pnpm run update-subtree --continue`
    - Repeat this phase if more conflicts are encountered
 
 ### Phase 4: Lint and Tests
 
-After the sync completes successfully, run lint and tests. Check which scripts are available in the package's upstream frontend:
+After the sync completes successfully, run lint and tests. These commands intentionally use npm because they run inside the independently maintained upstream frontend, which keeps its own npm lockfile; do not replace them with the root pnpm commands. Check which scripts are available in the package's upstream frontend:
 
 ```bash
 jq -r '.scripts | keys[] | select(test("^(test:|type-check)"))' packages/<package-name>/upstream/frontend/package.json
