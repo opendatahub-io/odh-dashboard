@@ -82,17 +82,19 @@ const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> 
         </Breadcrumb>
       }
       headerAction={
-        <Split hasGutter>
-          <SplitItem>
-            <Button
-              variant="primary"
-              data-testid="connection-type-details-create-connection"
-              onClick={() => setIsConnectionWizardOpen(true)}
-            >
-              Create connection
-            </Button>
-          </SplitItem>
-        </Split>
+        loaded && !loadError && connectionType ? (
+          <Split hasGutter>
+            <SplitItem>
+              <Button
+                variant="primary"
+                data-testid="connection-type-details-create-connection"
+                onClick={() => setIsConnectionWizardOpen(true)}
+              >
+                Create connection
+              </Button>
+            </SplitItem>
+          </Split>
+        ) : undefined
       }
       loaded={loaded}
       loadError={loadError}
@@ -105,17 +107,19 @@ const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> 
         data-connection-type-id={connectionType?.metadata.id}
       >
         {connectionType && <ConnectionTypeValues connectionType={connectionType} />}
-        <CreateConnectionWizard
-          isOpen={isConnectionWizardOpen}
-          namespace={namespace}
-          onClose={() => setIsConnectionWizardOpen(false)}
-          onCreate={async (data, selectedNamespace) => {
-            await createConnection('')({}, selectedNamespace, data);
-          }}
-          initialFormData={{
-            data_connection_type_id: connectionType?.id,
-          }}
-        />
+        {loaded && !loadError && connectionType && (
+          <CreateConnectionWizard
+            isOpen={isConnectionWizardOpen}
+            namespace={namespace}
+            onClose={() => setIsConnectionWizardOpen(false)}
+            onCreate={async (data, selectedNamespace) => {
+              await createConnection('')({}, selectedNamespace, data);
+            }}
+            initialFormData={{
+              data_connection_type_id: connectionType.id,
+            }}
+          />
+        )}
       </PageSection>
     </ApplicationsPage>
   );

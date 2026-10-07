@@ -135,6 +135,8 @@ describe('ConnectionTypeDetails', () => {
 
     expect(screen.getByText('Loading')).toBeTruthy();
     expect(screen.getAllByText('Loading connection type').length).toBeGreaterThan(0);
+    expect(screen.queryByTestId('connection-type-details-create-connection')).toBeNull();
+    expect(mockCreateConnectionWizard).not.toHaveBeenCalled();
   });
 
   it('should render the load error', () => {
@@ -144,6 +146,8 @@ describe('ConnectionTypeDetails', () => {
 
     expect(screen.getByText('Unable to load connection type')).toBeTruthy();
     expect(screen.getByText('request failed')).toBeTruthy();
+    expect(screen.queryByTestId('connection-type-details-create-connection')).toBeNull();
+    expect(mockCreateConnectionWizard).not.toHaveBeenCalled();
   });
 
   it('should render the not-found state for an empty successful response', () => {
@@ -152,5 +156,7 @@ describe('ConnectionTypeDetails', () => {
     renderDetails('/connection-types/missing?project=test-project');
 
     expect(screen.getByText('Connection type not found')).toBeTruthy();
+    expect(screen.queryByTestId('connection-type-details-create-connection')).toBeNull();
+    expect(mockCreateConnectionWizard).not.toHaveBeenCalled();
   });
 });
