@@ -8,6 +8,8 @@ export type MockSecurityArtifact = {
     category: { metadataType: 'MetadataStringValue'; string_value: string };
     benchmark: { metadataType: 'MetadataStringValue'; string_value: string };
     description: { metadataType: 'MetadataStringValue'; string_value: string };
+    result_metric?: { metadataType: 'MetadataStringValue'; string_value: string };
+    lower_is_better?: { metadataType: 'MetadataBoolValue'; bool_value: boolean };
     result: { metadataType: 'MetadataDoubleValue'; double_value: number };
   };
 };
@@ -48,6 +50,22 @@ export const mockSecurityArtifacts = (): MockSecurityArtifact[] => [
         string_value: 'Detects personally identifiable information leakage',
       },
       result: { metadataType: 'MetadataDoubleValue', double_value: 0.15 },
+    },
+  },
+  {
+    artifactType: 'SecurityArtifact',
+    id: 'security-art-3',
+    customProperties: {
+      evaluation: { metadataType: 'MetadataStringValue', string_value: 'Garak' },
+      category: { metadataType: 'MetadataStringValue', string_value: 'security' },
+      benchmark: { metadataType: 'MetadataStringValue', string_value: 'Attack success rate' },
+      description: {
+        metadataType: 'MetadataStringValue',
+        string_value: 'Measures the rate of successful attacks',
+      },
+      result_metric: { metadataType: 'MetadataStringValue', string_value: 'attack_success_rate' },
+      lower_is_better: { metadataType: 'MetadataBoolValue', bool_value: true },
+      result: { metadataType: 'MetadataDoubleValue', double_value: 0 },
     },
   },
 ];

@@ -18,7 +18,7 @@ export const STAGE_DISPLAY_NAMES: Record<string, string> = {
   write_patterns: 'Write patterns',
   build_requests: 'Build requests',
   write_artifacts: 'Write artifacts',
-  build_leaderboard: 'Select best pattern',
+  build_leaderboard: 'Build leaderboard',
 };
 
 export const STEP_DISPLAY_NAMES: Record<string, string> = {
@@ -26,7 +26,7 @@ export const STEP_DISPLAY_NAMES: Record<string, string> = {
   embedding: 'Generate embeddings',
   retrieval: 'Retrieve documents',
   generation: 'Generate responses',
-  evaluation: 'Evaluate results',
+  evaluation: 'Score pattern',
 };
 
 const fallbackStageLabel = (stageId: string): string => {
@@ -46,5 +46,8 @@ export const resolveStepLabel = (stepId: string): string =>
   Object.hasOwn(STEP_DISPLAY_NAMES, stepId)
     ? STEP_DISPLAY_NAMES[stepId]
     : fallbackStageLabel(stepId);
+
+/** Branch-order labels in the expanded table (Pattern 1, Pattern 2, …). */
+export const getPatternRowLabel = (index: number): string => `Pattern ${index + 1}`;
 
 /* eslint-enable camelcase */

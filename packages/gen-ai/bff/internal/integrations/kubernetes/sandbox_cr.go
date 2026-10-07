@@ -23,13 +23,17 @@ const (
 	sandboxConfigMount   = "/etc/ogx"
 	sandboxWrapperMount  = "/opt/custom"
 
-	agentProfileIDLabel = "opendatahub.io/agent-profile-id"
+	agentProfileIDLabel             = "opendatahub.io/agent-profile-id"
+	deploymentDisplayNameAnnotation = "opendatahub.io/agent-deployment-display-name"
 )
 
 // SandboxCROptions holds all parameters for building a Sandbox CR.
 type SandboxCROptions struct {
 	// Name is used as the Sandbox CR name and app.kubernetes.io/instance label.
 	Name string
+	// DisplayName is the user-provided deployment name, retained independently from the generated
+	// Sandbox resource name.
+	DisplayName string
 	// ProfileID is stored as a label so list/get can use a label selector.
 	ProfileID               string
 	LlamaStackConfigMapName string
@@ -128,6 +132,9 @@ func (kc *TokenKubernetesClient) CreateSandboxCR(
 			"metadata": map[string]interface{}{
 				"name":      opts.Name,
 				"namespace": namespace,
+				"annotations": map[string]interface{}{
+					deploymentDisplayNameAnnotation: opts.DisplayName,
+				},
 				"labels": map[string]interface{}{
 					dashboardLabel:      "true",
 					agentProfileIDLabel: opts.ProfileID,

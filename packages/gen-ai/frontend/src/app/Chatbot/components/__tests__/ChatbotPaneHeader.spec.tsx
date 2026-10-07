@@ -90,6 +90,23 @@ describe('ChatbotPaneHeader', () => {
     expect(screen.getByTestId('agent-clear-button')).toBeInTheDocument();
   });
 
+  it('opens the most recent deployment from the deployed label', async () => {
+    const user = userEvent.setup();
+    const onDeploymentClick = jest.fn();
+    render(
+      <ChatbotPaneHeader
+        agentName="HR Chatbot"
+        deploymentCount={2}
+        onDeploymentClick={onDeploymentClick}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Deployed (2)' }));
+
+    expect(screen.getByText('Deployed (2)')).toBeInTheDocument();
+    expect(onDeploymentClick).toHaveBeenCalledTimes(1);
+  });
+
   it('calls onClearAgent when Clear agent is clicked', async () => {
     const user = userEvent.setup();
     const mockOnClear = jest.fn();
