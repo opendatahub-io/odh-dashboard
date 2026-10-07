@@ -137,13 +137,6 @@ const ModelAvailabilityItem = ({
   modelAvailability: ModelAvailabilityFieldsData;
   isMaaSEnabled?: boolean;
 }) => {
-  const availabilityTypes = [];
-  if (modelAvailability.saveAsAiAsset) {
-    availabilityTypes.push('AI asset endpoint');
-  }
-  if (isMaaSEnabled) {
-    availabilityTypes.push('Model-as-a-Service (MaaS)');
-  }
   return (
     <DescriptionList
       isHorizontal
@@ -151,11 +144,15 @@ const ModelAvailabilityItem = ({
       data-testid="model-availability-description-section"
     >
       <DescriptionListGroup>
-        <DescriptionListTerm>Model availability</DescriptionListTerm>
-        <DescriptionListDescription data-testid="model-availability-description-item">
-          {availabilityTypes.length > 0 ? availabilityTypes.join(', ') : 'No model availability'}
+        <DescriptionListTerm>Users</DescriptionListTerm>
+        <DescriptionListDescription data-testid="model-users-description-item">
+          {isMaaSEnabled ? 'Subscribed users' : 'Project members'}
         </DescriptionListDescription>
-        {availabilityTypes.length > 0 ? (
+        <DescriptionListTerm>Availability</DescriptionListTerm>
+        <DescriptionListDescription data-testid="model-availability-description-item">
+          {modelAvailability.saveAsAiAsset ? 'Gen AI Studio' : 'Not available in Gen AI Studio'}
+        </DescriptionListDescription>
+        {modelAvailability.saveAsAiAsset ? (
           <>
             <DescriptionListTerm>Use case</DescriptionListTerm>
             <DescriptionListDescription data-testid="use-case-description-item">

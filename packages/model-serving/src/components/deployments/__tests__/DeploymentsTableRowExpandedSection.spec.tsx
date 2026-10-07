@@ -95,8 +95,9 @@ describe('DeploymentsTableRowExpandedSection', () => {
     expect(screen.getByText('1')).toBeInTheDocument();
     // hardware profile
     expect(screen.getByText('test-profile')).toBeInTheDocument();
-    // model availability
-    expect(screen.getByText('AI asset endpoint, Model-as-a-Service (MaaS)')).toBeInTheDocument();
+    // users and availability
+    expect(screen.getByText('Subscribed users')).toBeInTheDocument();
+    expect(screen.getByText('Gen AI Studio')).toBeInTheDocument();
     // use case
     expect(screen.getByText('test-use-case')).toBeInTheDocument();
   });

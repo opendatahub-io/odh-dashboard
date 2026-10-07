@@ -271,10 +271,11 @@ describe('NIM Models Deployments', () => {
       .findDescriptionListItem('Hardware profile')
       .next('dd')
       .should('have.text', 'default-profile');
+    row.findDescriptionListItem('Users').next('dd').should('have.text', 'Project members');
     row
-      .findDescriptionListItem('Model availability')
+      .findDescriptionListItem('Availability')
       .next('dd')
-      .should('have.text', 'No model availability');
+      .should('have.text', 'Not available in Gen AI Studio');
     row
       .findDescriptionListItem('Token authentication')
       .next('dd')

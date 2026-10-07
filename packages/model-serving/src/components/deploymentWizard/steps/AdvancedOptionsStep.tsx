@@ -24,7 +24,7 @@ import { EnvironmentVariablesField } from '../fields/EnvironmentVariablesField';
 import { DeploymentStrategyField } from '../fields/DeploymentStrategyField';
 import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
 import { type UseModelDeploymentWizardState } from '../useDeploymentWizard';
-import { AvailableAiAssetsFieldsComponent } from '../fields/ModelAvailabilityFields';
+import { GenAiStudioAvailabilityFields } from '../fields/ModelAvailabilityFields';
 import type { ExternalDataMap } from '../ExternalDataLoader';
 
 export const accessReviewResource: AccessReviewResourceAttributes = {
@@ -102,13 +102,11 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
   };
 
   const { isGenAiEnabled } = wizardState.state.modelAvailability;
-  const hasModelPlaygroundExtensionFields = React.useMemo(
-    () => wizardState.fields.some((f) => f.parentId === 'model-playground-availability'),
+  const hasUserExtensionFields = React.useMemo(
+    () => wizardState.fields.some((f) => f.parentId === 'model-users'),
     [wizardState.fields],
   );
-  const showModelPlaygroundAvailabilitySection =
-    wizardState.state.modelAvailability.showField &&
-    (isGenAiEnabled || hasModelPlaygroundExtensionFields);
+  const showAvailabilitySection = wizardState.state.modelAvailability.showField && isGenAiEnabled;
 
   if (!wizardState.loaded.advancedOptionsLoaded) {
     return <Spinner data-testid="spinner" />;
@@ -133,27 +131,42 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
       <Form>
         <FormSection title="Advanced settings">
           <Stack hasGutter>
-            {showModelPlaygroundAvailabilitySection && (
+            {hasUserExtensionFields && (
+              <StackItem>
+                <FormGroup label="Users" data-testid="model-users" fieldId="model-users">
+                  <FormHelperText className="pf-v6-u-mb-md">
+                    <HelperText>
+                      <HelperTextItem>
+                        Select which users can discover this endpoint within OpenShift AI.
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                  <GenericFieldRenderer
+                    parentId="model-users"
+                    wizardState={wizardState}
+                    externalData={externalData}
+                  />
+                </FormGroup>
+              </StackItem>
+            )}
+            {showAvailabilitySection && (
               <StackItem>
                 <FormGroup
-                  label="Model availability"
-                  data-testid="model-playground-availability"
-                  fieldId="model-playground-availability"
+                  label="Availability"
+                  data-testid="model-availability"
+                  fieldId="model-availability"
                 >
                   <FormHelperText className="pf-v6-u-mb-md">
                     <HelperText>
                       <HelperTextItem>
-                        Make this model available to other users by publishing it on the{' '}
-                        <b>AI asset endpoints</b> page.
+                        Select where users can access endpoint details.
                       </HelperTextItem>
                     </HelperText>
                   </FormHelperText>
-                  <AvailableAiAssetsFieldsComponent
+                  <GenAiStudioAvailabilityFields
                     data={wizardState.state.modelAvailability.data}
                     setData={wizardState.state.modelAvailability.setData}
-                    isGenAiEnabled={isGenAiEnabled}
-                    wizardState={wizardState}
-                    externalData={externalData}
+                    isDisabled={wizardState.state.modelAvailability.isDisabled}
                   />
                 </FormGroup>
               </StackItem>

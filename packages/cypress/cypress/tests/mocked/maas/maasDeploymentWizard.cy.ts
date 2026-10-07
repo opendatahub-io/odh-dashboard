@@ -182,12 +182,12 @@ describe('MaaS Deployment Wizard', () => {
     // Select a non-MaaS gateway
     cy.findByRole('option', { name: 'test-gateway | test-ns' }).click();
 
-    // Verify MaaS checkbox is unchecked by default
-    maasWizardField.findSaveAsMaaSCheckbox().should('exist').should('not.be.checked');
+    // Project members is the default audience.
+    maasWizardField.findProjectMembersRadio().should('exist').should('be.checked');
 
-    // Check the MaaS checkbox — the gateway field should become disabled and show the MaaS gateway
-    maasWizardField.findSaveAsMaaSCheckbox().click();
-    maasWizardField.findSaveAsMaaSCheckbox().should('be.checked');
+    // Select subscribed users — the gateway field becomes disabled and shows the MaaS gateway.
+    maasWizardField.findSubscribedUsersRadio().click();
+    maasWizardField.findSubscribedUsersRadio().should('be.checked');
 
     modelServingWizard
       .findGatewaySelect()
@@ -277,8 +277,8 @@ describe('MaaS Deployment Wizard', () => {
     );
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
-    // MaaS checkbox is checked (from existing deployment), gateway should be disabled showing MaaS gateway
-    maasWizardField.findSaveAsMaaSCheckbox().should('exist').should('be.checked');
+    // Subscribed users is selected (from the existing deployment), so the MaaS gateway is locked.
+    maasWizardField.findSubscribedUsersRadio().should('exist').should('be.checked');
     modelServingWizardEdit
       .findGatewaySelect()
       .should('be.disabled')
@@ -354,16 +354,16 @@ describe('MaaS Deployment Wizard', () => {
     );
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
-    // MaaS is checked, gateway should be disabled showing MaaS gateway
-    maasWizardField.findSaveAsMaaSCheckbox().should('exist').should('be.checked');
+    // Subscribed users is selected, so the MaaS gateway is locked.
+    maasWizardField.findSubscribedUsersRadio().should('exist').should('be.checked');
     modelServingWizardEdit
       .findGatewaySelect()
       .should('be.disabled')
       .should('contain.text', 'maas-default-gateway | openshift-ingress');
 
-    // Uncheck MaaS — gateway should become enabled and no longer show the MaaS gateway
-    maasWizardField.findSaveAsMaaSCheckbox().click();
-    maasWizardField.findSaveAsMaaSCheckbox().should('not.be.checked');
+    // Select Project members — gateway becomes enabled and no longer shows the MaaS gateway.
+    maasWizardField.findProjectMembersRadio().click();
+    maasWizardField.findProjectMembersRadio().should('be.checked');
 
     // Gateway should now be enabled; open it to verify maas-default-gateway is hidden
     modelServingWizardEdit.findGatewaySelect().should('not.be.disabled').click();
@@ -442,12 +442,12 @@ describe('MaaS Deployment Wizard', () => {
     // uncheck token auth to simplify test
     modelServingWizard.findTokenAuthenticationCheckbox().click();
 
-    // Verify MaaS checkbox is unchecked by default
-    maasWizardField.findSaveAsMaaSCheckbox().should('exist').should('not.be.checked');
+    // Project members is the default audience.
+    maasWizardField.findProjectMembersRadio().should('exist').should('be.checked');
 
-    // Check the MaaS checkbox
-    maasWizardField.findSaveAsMaaSCheckbox().click();
-    maasWizardField.findSaveAsMaaSCheckbox().should('be.checked');
+    // Select subscribed users.
+    maasWizardField.findSubscribedUsersRadio().click();
+    maasWizardField.findSubscribedUsersRadio().should('be.checked');
 
     modelServingWizard.findNextButton().should('be.enabled').click();
 

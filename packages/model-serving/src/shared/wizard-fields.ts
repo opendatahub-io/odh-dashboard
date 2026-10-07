@@ -18,7 +18,7 @@ export {
 export { useWizardFieldOverrides } from '../components/deploymentWizard/dynamicFormUtils';
 
 export {
-  AvailableAiAssetsFieldsComponent,
+  GenAiStudioAvailabilityFields,
   isValidModelAvailabilityFieldsData,
   modelAvailabilityFieldsSchema,
   useModelAvailabilityFields,

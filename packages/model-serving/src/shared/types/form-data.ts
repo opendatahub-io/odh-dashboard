@@ -261,6 +261,10 @@ export type WizardStateOverrides = {
     isDisabled?: boolean;
     disabledHelperText?: string;
   };
+  modelAvailability?: {
+    isDisabled?: boolean;
+    forceSaveAsAiAsset?: boolean;
+  };
   'llmd-serving/gateway'?: {
     isDisabled?: boolean;
     selection?: { name: string; namespace?: string };

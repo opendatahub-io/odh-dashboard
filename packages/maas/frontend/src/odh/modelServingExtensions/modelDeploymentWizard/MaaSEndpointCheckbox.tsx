@@ -1,5 +1,5 @@
 import React from 'react';
-import { Checkbox, Flex, FlexItem, Stack, StackItem } from '@patternfly/react-core';
+import { Radio, Stack, StackItem } from '@patternfly/react-core';
 import { useLocation } from 'react-router-dom';
 import { z } from 'zod';
 import type {
@@ -47,7 +47,7 @@ const resolveMaaSTrackingDependencies = (
 };
 
 /**
- * Keeps a publish-tracking session alive for the whole wizard while this field is
+ * Keeps a subscribed-users tracking session alive for the whole wizard while this field is
  * active (not only while the Advanced settings step is mounted). On wizard exit
  * without submit, fires cancel.
  */
@@ -86,42 +86,38 @@ type MaaSFieldProps = {
   isDisabled?: boolean;
 };
 
-const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange, isDisabled }) => {
-  const handleCheckboxChange = (_: React.FormEvent<HTMLInputElement>, checked: boolean): void => {
-    onChange({ ...value, isChecked: checked });
-  };
-
-  return (
-    <StackItem>
-      <Stack hasGutter>
-        <Checkbox
-          id={id}
-          data-testid={id}
-          label={
-            <>
-              <div className="pf-v6-c-form__label-text">Publish as MaaS</div>
-              <Flex>
-                <FlexItem>
-                  Publishing as MaaS makes the model deployment endpoint accessible to others as a
-                  service through a gateway API.
-                </FlexItem>
-              </Flex>
-            </>
-          }
-          isChecked={value?.isChecked}
-          isDisabled={isDisabled}
-          onChange={handleCheckboxChange}
-        />
-      </Stack>
-    </StackItem>
-  );
-};
+const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange, isDisabled }) => (
+  <StackItem>
+    <Stack hasGutter>
+      <Radio
+        id="project-members-radio"
+        name="model-users"
+        label="Project members"
+        description="Available within the UI to users with access to this project."
+        isChecked={!value?.isChecked}
+        isDisabled={isDisabled}
+        onChange={() => onChange({ isChecked: false })}
+        data-testid="project-members-radio"
+      />
+      <Radio
+        id={id}
+        name="model-users"
+        label="Subscribed users"
+        description="Available as a service (MaaS) to users with an admin-assigned subscription and authorization policy."
+        isChecked={value?.isChecked}
+        isDisabled={isDisabled}
+        onChange={() => onChange({ isChecked: true })}
+        data-testid={id}
+      />
+    </Stack>
+  </StackItem>
+);
 
 export type MaaSFieldType = WizardField<MaaSFieldValue, null, MaaSTrackingDependencies>;
 
 export const MaaSEndpointFieldWizardField: MaaSFieldType = {
   id: 'maas/save-as-maas-checkbox',
-  parentId: 'model-playground-availability',
+  parentId: 'model-users',
   step: 'advancedOptions',
   type: 'addition',
   isActive: isLLMInferenceServiceActive,
@@ -133,23 +129,31 @@ export const MaaSEndpointFieldWizardField: MaaSFieldType = {
     getFieldOverrides: (fieldValue) => {
       const overrides: WizardStateOverrides = {};
       if (fieldValue.isChecked) {
+        overrides.modelAvailability = {
+          isDisabled: true,
+          forceSaveAsAiAsset: true,
+        };
         overrides.tokenAuthentication = {
           isDisabled: true,
           disabledHelperText:
-            'Token authentication does not apply to MaaS models. Access is managed with API keys instead. Manage API keys in Gen AI Studio.',
+            'Token authentication does not apply to models published for subscribed users. Access is managed with API keys instead. Manage API keys in Gen AI Studio.',
         };
         overrides['llmd-serving/gateway'] = {
           isDisabled: true,
           selection: MAAS_DEFAULT_GATEWAY,
           disabledTooltip:
-            'The MaaS gateway handles routing, API keys, and subscription access. You cannot select a different gateway while Publish as MaaS is on.',
+            'The MaaS gateway handles routing, API keys, and subscription access. You cannot select a different gateway while Subscribed users is selected.',
           labelHelpPopover: {
             title: 'Gateway selection',
             content:
-              'Models published as MaaS use the MaaS gateway. When Publish as MaaS is selected, this field is locked.',
+              'Models published for subscribed users use the MaaS gateway. When Subscribed users is selected, this field is locked.',
           },
         };
       } else {
+        overrides.modelAvailability = {
+          isDisabled: false,
+          forceSaveAsAiAsset: false,
+        };
         overrides['llmd-serving/gateway'] = {
           hiddenOptions: [MAAS_DEFAULT_GATEWAY],
           disabledTooltip: undefined,
