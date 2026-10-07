@@ -366,7 +366,7 @@ class InferenceServiceModal extends ServingModal {
       } else {
         dropdown.click();
         if (profileName) {
-          cy.findByTestId(profileName).find('[role="option"]').click();
+          cy.findByTestId(profileName).click();
         } else {
           cy.findByRole('option', { name: profileDisplayName }).click();
         }
