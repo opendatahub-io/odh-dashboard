@@ -31,6 +31,8 @@ import { getLatestEvaluationJob } from '~/app/utilities/evaluationUtils';
 import {
   evaluationCopySuiteRoute,
   evaluationEditSuiteRoute,
+  evaluationEvaluateNavigationState,
+  evaluationGalleryNavigationState,
   evaluationReconfigureRoute,
 } from '~/app/routes';
 import { useEvaluationJobs } from '~/app/hooks/useEvaluationJobs';
@@ -89,8 +91,13 @@ const EvaluationsPage: React.FC = () => {
   >();
   const navigate = useNavigate();
   const [pendingStopJob, setPendingStopJob] = React.useState<EvaluationJob | undefined>();
-  const { selectedCollection, benchmarkDetailsMap, selectCollection, closeDrawer } =
-    useCollectionDrawer(namespace ?? '');
+  const {
+    selectedCollection,
+    benchmarkDetailsMap,
+    benchmarkNameMap,
+    selectCollection,
+    closeDrawer,
+  } = useCollectionDrawer(namespace ?? '');
   const [collectionToRun, setCollectionToRun] = React.useState<Collection | undefined>();
   const [curatedCollectionToRun, setCuratedCollectionToRun] = React.useState<
     Collection | undefined
@@ -135,14 +142,30 @@ const EvaluationsPage: React.FC = () => {
 
   const handleDuplicateCollection = React.useCallback(
     (collection: Collection) => {
-      navigate(evaluationCopySuiteRoute(namespace, collection.resource.id));
+      const route = evaluationCopySuiteRoute(namespace, collection.resource.id);
+      if (selectedCollectionIsSystem) {
+        navigate(route, { state: evaluationGalleryNavigationState });
+      } else {
+        navigate(route, { state: evaluationEvaluateNavigationState });
+      }
+    },
+    [navigate, namespace, selectedCollectionIsSystem],
+  );
+
+  const handleEvaluateDuplicateCollection = React.useCallback(
+    (collection: Collection) => {
+      navigate(evaluationCopySuiteRoute(namespace, collection.resource.id), {
+        state: evaluationEvaluateNavigationState,
+      });
     },
     [navigate, namespace],
   );
 
   const handleEditCollection = React.useCallback(
     (collection: Collection) => {
-      navigate(evaluationEditSuiteRoute(namespace, collection.resource.id));
+      navigate(evaluationEditSuiteRoute(namespace, collection.resource.id), {
+        state: evaluationEvaluateNavigationState,
+      });
     },
     [navigate, namespace],
   );
@@ -199,7 +222,7 @@ const EvaluationsPage: React.FC = () => {
               onRunCollection={handleDrawerRunCollection}
               onCustomizeCollection={handleDuplicateCollection}
               isSystemCollection={selectedCollectionIsSystem}
-              primaryActionLabel="Run benchmark suite"
+              primaryActionLabel="Run"
             />
           }
         >
@@ -310,6 +333,7 @@ const EvaluationsPage: React.FC = () => {
                 >
                   <GalleryTab
                     namespace={namespace ?? ''}
+                    benchmarkNameMap={benchmarkNameMap}
                     onSelectCollection={(collection) => handleSelectCollection(collection, true)}
                   />
                 </Tab>
@@ -321,10 +345,11 @@ const EvaluationsPage: React.FC = () => {
                 >
                   <EvaluateTab
                     namespace={namespace ?? ''}
+                    benchmarkNameMap={benchmarkNameMap}
                     onSelectCollection={handleSelectCollection}
                     onRunCollection={handleRunCollection}
                     onEditCollection={handleEditCollection}
-                    onDuplicateCollection={handleDuplicateCollection}
+                    onDuplicateCollection={handleEvaluateDuplicateCollection}
                   />
                 </Tab>
                 <Tab

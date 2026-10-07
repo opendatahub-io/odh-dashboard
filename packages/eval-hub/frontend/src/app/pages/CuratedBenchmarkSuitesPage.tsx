@@ -5,9 +5,12 @@ import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import BenchmarkSuitesGallery from '~/app/components/BenchmarkSuitesGallery';
 import CuratedSuiteRunModal from '~/app/components/CuratedSuiteRunModal';
+import { getBenchmarkNameMap } from '~/app/components/benchmarkUtils';
+import { useProviders } from '~/app/hooks/useProviders';
 import {
   evaluationCopySuiteRoute,
   evaluationCreateSuiteRoute,
+  evaluationCuratedBenchmarkSuitesNavigationState,
   evaluationsBaseRoute,
 } from '~/app/routes';
 import type { Collection } from '~/app/types';
@@ -21,15 +24,27 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
   }>();
   const navigate = useNavigate();
   const [collectionToRun, setCollectionToRun] = React.useState<Collection | undefined>();
+  const { providers } = useProviders(namespace ?? '');
+  const benchmarkNameMap = React.useMemo(() => getBenchmarkNameMap(providers), [providers]);
 
   const handleCreateSuite = React.useCallback(() => {
-    navigate(evaluationCreateSuiteRoute(namespace));
-  }, [navigate, namespace]);
+    if (!isCuratedEvaluationTarget(evaluationTarget)) {
+      return;
+    }
+
+    navigate(evaluationCreateSuiteRoute(namespace), {
+      state: evaluationCuratedBenchmarkSuitesNavigationState(evaluationTarget),
+    });
+  }, [evaluationTarget, navigate, namespace]);
 
   const handleCustomizeCollection = React.useCallback(
     (collection: Collection) => {
+      if (!isCuratedEvaluationTarget(evaluationTarget)) {
+        return;
+      }
+
       navigate(evaluationCopySuiteRoute(namespace, collection.resource.id), {
-        state: { sourceEvaluationTarget: evaluationTarget },
+        state: evaluationCuratedBenchmarkSuitesNavigationState(evaluationTarget),
       });
     },
     [evaluationTarget, navigate, namespace],
@@ -82,6 +97,7 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
           >
             <BenchmarkSuitesGallery
               namespace={namespace ?? ''}
+              benchmarkNameMap={benchmarkNameMap}
               scope="system"
               queryFilters={{ evaluationTargets: [evaluationTarget] }}
               requireCuratedIndex
@@ -97,7 +113,9 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
               dropdownActionRoute={(collection) =>
                 evaluationCopySuiteRoute(namespace, collection.resource.id)
               }
-              dropdownActionState={{ sourceEvaluationTarget: evaluationTarget }}
+              dropdownActionState={evaluationCuratedBenchmarkSuitesNavigationState(
+                evaluationTarget,
+              )}
               onCreateSuite={handleCreateSuite}
               onPrimaryAction={handleRunCollection}
               onDropdownAction={handleCustomizeCollection}

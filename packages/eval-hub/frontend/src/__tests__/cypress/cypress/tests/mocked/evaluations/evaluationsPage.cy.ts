@@ -236,7 +236,7 @@ describe('Evaluations Page - Tabs', () => {
 
     evaluationsPage.findCollectionDrawerPanel().should('be.visible');
     evaluationsPage.findCollectionDrawerPanel().should('contain.text', 'Model suite 2');
-    evaluationsPage.findCollectionDrawerPanel().should('contain.text', 'Run benchmark suite');
+    evaluationsPage.findCollectionDrawerPanel().should('contain.text', 'Run');
   });
 
   it('should render curated suite category cards and link to filtered collections', () => {

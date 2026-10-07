@@ -1691,12 +1691,16 @@ describe('useCopySuiteForm', () => {
     expect(mockCloneCollection).not.toHaveBeenCalled();
   });
 
-  it('should navigate back to evaluations when a create suite is cancelled', () => {
-    const result = renderForm({ mode: 'create', sourceCollection: undefined });
+  it('should navigate back to the benchmark suites tab when a create suite is cancelled', () => {
+    const result = renderForm({
+      mode: 'create',
+      sourceCollection: undefined,
+      cancelRoute: '/evaluation/test-namespace?tab=evaluate',
+    });
 
     act(() => result.result.current.handleCancel());
 
-    expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace');
+    expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace?tab=evaluate');
   });
 
   it('should navigate back to the originating suite page when a cancel route is provided', () => {

@@ -131,11 +131,12 @@ const queryClient = new QueryClient({
 });
 
 const LocationDisplay: React.FC = () => {
-  const { pathname, search } = useLocation();
+  const { pathname, search, state } = useLocation();
   return (
     <>
       <div data-testid="location-pathname">{pathname}</div>
       <div data-testid="location-search">{search}</div>
+      <div data-testid="location-state">{JSON.stringify(state ?? null)}</div>
     </>
   );
 };
@@ -217,7 +218,7 @@ describe('EvaluationsPage', () => {
 
     expect(screen.getByTestId('collection-drawer-panel')).toBeInTheDocument();
     expect(screen.getByTestId('collection-drawer-panel')).toHaveTextContent('ClawBench');
-    expect(screen.getByTestId('collection-drawer-panel')).toHaveTextContent('Run benchmark suite');
+    expect(screen.getByTestId('collection-drawer-panel')).toHaveTextContent('Run');
   });
 
   it('should offer Gallery suite customization from the details drawer', () => {
@@ -229,6 +230,7 @@ describe('EvaluationsPage', () => {
     expect(screen.getByTestId('location-pathname')).toHaveTextContent(
       '/evaluation/test-project/create/collections/clawbench/copy',
     );
+    expect(screen.getByTestId('location-state')).toHaveTextContent('{"source":"gallery"}');
   });
 
   it('should use the curated run flow from the Gallery details drawer', () => {
@@ -373,6 +375,19 @@ describe('EvaluationsPage', () => {
     expect(screen.getByTestId('location-pathname')).toHaveTextContent(
       '/evaluation/test-project/create/collections/model-suite-2/copy',
     );
+    expect(screen.getByTestId('location-state')).toHaveTextContent('{"source":"evaluate"}');
+  });
+
+  it('should navigate to the edit suite page with the Evaluate tab as its source', () => {
+    renderPage('test-project', '?tab=evaluate');
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-menu-model-suite-2'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit' }));
+
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+      '/evaluation/test-project/create/collections/model-suite-2/edit',
+    );
+    expect(screen.getByTestId('location-state')).toHaveTextContent('{"source":"evaluate"}');
   });
 
   it('should show a success notification after deleting a benchmark suite', async () => {

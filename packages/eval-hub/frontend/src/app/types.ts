@@ -382,6 +382,8 @@ export type CollectionBenchmark = {
 export type Collection = {
   resource: CollectionResource;
   name: string;
+  // EvalHub returns clone lineage at the collection level.
+  derived_from?: string;
   category?: string;
   description?: string;
   tags?: string[];

@@ -43,19 +43,29 @@ const unchangedCopy: Collection = {
   ...sourceCollection,
   resource: { id: 'tenant-copy', created_at: '2026-10-06T12:00:00Z' },
   curation_order: undefined,
-  state: { derived_from: 'curated-suite', run_count: 2, pinned_order: 3 },
+  derived_from: 'curated-suite',
 };
 
 describe('isReusableCollectionCopy', () => {
-  it('should match an unchanged child while ignoring resource and server metadata', () => {
+  it('should match an unchanged child with top-level lineage while ignoring resource metadata', () => {
     expect(isReusableCollectionCopy(sourceCollection, unchangedCopy)).toBe(true);
+  });
+
+  it('should support legacy nested lineage metadata', () => {
+    expect(
+      isReusableCollectionCopy(sourceCollection, {
+        ...unchangedCopy,
+        derived_from: undefined,
+        state: { derived_from: 'curated-suite', run_count: 2, pinned_order: 3 },
+      }),
+    ).toBe(true);
   });
 
   it('should reject a child with a different parent', () => {
     expect(
       isReusableCollectionCopy(sourceCollection, {
         ...unchangedCopy,
-        state: { derived_from: 'another-suite' },
+        derived_from: 'another-suite',
       }),
     ).toBe(false);
   });

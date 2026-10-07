@@ -21,11 +21,14 @@ const getCollectionContent = (collection: Collection) => ({
   benchmarks: collection.benchmarks,
 });
 
+const getCollectionDerivedFrom = (collection: Collection): string | undefined =>
+  collection.derived_from ?? collection.state?.derived_from;
+
 export const isReusableCollectionCopy = (
   sourceCollection: Collection,
   candidateCollection: Collection,
 ): boolean =>
-  candidateCollection.state?.derived_from === sourceCollection.resource.id &&
+  getCollectionDerivedFrom(candidateCollection) === sourceCollection.resource.id &&
   isEqual(getCollectionContent(candidateCollection), getCollectionContent(sourceCollection));
 
 export const getAllTenantCollections = async (

@@ -18,7 +18,9 @@ import { useCollectionDrawer } from '~/app/hooks/useCollectionDrawer';
 import {
   evaluationCopySuiteRoute,
   evaluationCreateSuiteRoute,
+  evaluationBenchmarkSuitesNavigationState,
   evaluationEditSuiteRoute,
+  evaluationEvaluateRoute,
   evaluationsBaseRoute,
 } from '~/app/routes';
 import type { Collection } from '~/app/types';
@@ -28,11 +30,18 @@ const BenchmarkSuitesPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
   const [collectionToRun, setCollectionToRun] = React.useState<Collection | undefined>();
-  const { selectedCollection, benchmarkDetailsMap, selectCollection, closeDrawer } =
-    useCollectionDrawer(namespace ?? '');
+  const {
+    selectedCollection,
+    benchmarkDetailsMap,
+    benchmarkNameMap,
+    selectCollection,
+    closeDrawer,
+  } = useCollectionDrawer(namespace ?? '');
 
   const handleCreateSuite = React.useCallback(() => {
-    navigate(evaluationCreateSuiteRoute(namespace));
+    navigate(evaluationCreateSuiteRoute(namespace), {
+      state: evaluationBenchmarkSuitesNavigationState,
+    });
   }, [navigate, namespace]);
 
   const handleRunCollection = React.useCallback((collection: Collection) => {
@@ -41,14 +50,18 @@ const BenchmarkSuitesPage: React.FC = () => {
 
   const handleDuplicateCollection = React.useCallback(
     (collection: Collection) => {
-      navigate(evaluationCopySuiteRoute(namespace, collection.resource.id));
+      navigate(evaluationCopySuiteRoute(namespace, collection.resource.id), {
+        state: evaluationBenchmarkSuitesNavigationState,
+      });
     },
     [navigate, namespace],
   );
 
   const handleEditCollection = React.useCallback(
     (collection: Collection) => {
-      navigate(evaluationEditSuiteRoute(namespace, collection.resource.id));
+      navigate(evaluationEditSuiteRoute(namespace, collection.resource.id), {
+        state: evaluationBenchmarkSuitesNavigationState,
+      });
     },
     [navigate, namespace],
   );
@@ -68,7 +81,7 @@ const BenchmarkSuitesPage: React.FC = () => {
               benchmarkDetailsMap={benchmarkDetailsMap}
               onClose={closeDrawer}
               onRunCollection={handleRunCollection}
-              primaryActionLabel="Run benchmark suite"
+              primaryActionLabel="Run"
             />
           }
         >
@@ -90,6 +103,11 @@ const BenchmarkSuitesPage: React.FC = () => {
                   <BreadcrumbItem
                     render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
                   />
+                  <BreadcrumbItem
+                    render={() => (
+                      <Link to={evaluationEvaluateRoute(namespace)}>Benchmark suites</Link>
+                    )}
+                  />
                   <BreadcrumbItem isActive>My benchmark suites</BreadcrumbItem>
                 </Breadcrumb>
               }
@@ -100,6 +118,7 @@ const BenchmarkSuitesPage: React.FC = () => {
                 <Stack className="evalhub-benchmark-suites-page__content">
                   <BenchmarkSuitesGallery
                     namespace={namespace ?? ''}
+                    benchmarkNameMap={benchmarkNameMap}
                     showCreateSuiteCard={false}
                     showFilters
                     showPagination

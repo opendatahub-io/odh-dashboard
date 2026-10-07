@@ -2009,6 +2009,10 @@ components:
           type: string
           minLength: 1
           example: 'Open LLM Leaderboard v2'
+        derived_from:
+          type: string
+          description: ID of the system collection this tenant collection was cloned from.
+          nullable: true
         category:
           type: string
           example: 'General'

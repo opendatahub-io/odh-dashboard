@@ -34,6 +34,7 @@ import DeleteConfirmationModal from '~/app/components/DeleteConfirmationModal';
 import SearchableMultiSelectFilter from '~/app/components/SearchableMultiSelectFilter';
 import type { Collection, CollectionFilterParams, CollectionScope } from '~/app/types';
 import { formatCategory } from '~/app/components/benchmarkUtils';
+import type { BenchmarkNameMap } from '~/app/components/benchmarkUtils';
 import { COLLECTION_FETCH_LIMIT } from '~/app/utilities/const';
 import './BenchmarkSuitesGallery.scss';
 
@@ -96,6 +97,7 @@ const hasCuratedIndex = (collection: Collection): boolean =>
 
 type BenchmarkSuitesGalleryProps = {
   namespace: string;
+  benchmarkNameMap?: BenchmarkNameMap;
   maxVisibleCollections?: number;
   showSummary?: boolean;
   showCreateSuiteCard?: boolean;
@@ -117,6 +119,7 @@ type BenchmarkSuitesGalleryProps = {
   // TODO: Remove this temporary switch once curated collections use the API.
   useMockFallback?: boolean;
   createSuiteRoute?: string;
+  createSuiteRouteState?: unknown;
   onCreateSuite?: () => void;
   onPrimaryAction: (collection: Collection) => void;
   onDropdownAction?: (collection: Collection) => void;
@@ -127,6 +130,7 @@ type BenchmarkSuitesGalleryProps = {
 
 const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   namespace,
+  benchmarkNameMap,
   maxVisibleCollections,
   showSummary = false,
   showCreateSuiteCard = true,
@@ -137,7 +141,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   scope = 'tenant',
   queryFilters,
   requireCuratedIndex = false,
-  primaryActionLabel = 'Run benchmark suite',
+  primaryActionLabel = 'Run',
   primaryActionRoute,
   primaryActionState,
   primaryActionVariant = 'secondary',
@@ -146,6 +150,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   dropdownActionState,
   useMockFallback = false,
   createSuiteRoute,
+  createSuiteRouteState,
   onCreateSuite,
   onPrimaryAction,
   onDropdownAction,
@@ -728,6 +733,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
               <GalleryItem>
                 <CreateBenchmarkSuiteCard
                   createSuiteRoute={createSuiteRoute}
+                  createSuiteRouteState={createSuiteRouteState}
                   onCreateSuite={onCreateSuite}
                 />
               </GalleryItem>
@@ -736,6 +742,8 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
               <GalleryItem key={collection.resource.id}>
                 <BenchmarkSuiteCard
                   collection={collection}
+                  benchmarkNameMap={benchmarkNameMap}
+                  showRunCount={scope === 'tenant'}
                   primaryAction={{
                     label: primaryActionLabel,
                     href: primaryActionRoute?.(collection),

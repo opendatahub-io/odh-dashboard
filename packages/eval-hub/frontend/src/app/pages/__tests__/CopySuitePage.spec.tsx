@@ -8,6 +8,11 @@ import { getCollection } from '~/app/api/k8s';
 import { useProviders } from '~/app/hooks/useProviders';
 import { useCopySuiteForm, type CopySuiteBenchmark } from '~/app/pages/useCopySuiteForm';
 import CopySuitePage, { CreateSuitePage } from '~/app/pages/CopySuitePage';
+import {
+  evaluationBenchmarkSuitesNavigationState,
+  evaluationEvaluateNavigationState,
+  evaluationGalleryNavigationState,
+} from '~/app/routes';
 import { copySuiteSchema, type CopySuiteFormValues } from '~/app/schemas/copySuite.schema';
 import type { Collection, Provider } from '~/app/types';
 
@@ -279,9 +284,76 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
-const renderCreatePage = () =>
+const renderGalleryOriginPage = () =>
   render(
-    <MemoryRouter initialEntries={['/evaluation/test-namespace/create/collections/new']}>
+    <MemoryRouter
+      initialEntries={[
+        {
+          pathname: '/evaluation/test-namespace/create/collections/source-collection/copy',
+          state: { source: 'gallery' },
+        },
+      ]}
+    >
+      <LocationDisplay />
+      <Routes>
+        <Route
+          path="/evaluation/:namespace/create/collections/:collectionId/copy"
+          element={<CopySuitePage />}
+        />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+const renderBenchmarkSuitesOriginPage = () =>
+  render(
+    <MemoryRouter
+      initialEntries={[
+        {
+          pathname: '/evaluation/test-namespace/create/collections/source-collection/copy',
+          state: evaluationBenchmarkSuitesNavigationState,
+        },
+      ]}
+    >
+      <LocationDisplay />
+      <Routes>
+        <Route
+          path="/evaluation/:namespace/create/collections/:collectionId/copy"
+          element={<CopySuitePage />}
+        />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+const renderEvaluateOriginPage = () =>
+  render(
+    <MemoryRouter
+      initialEntries={[
+        {
+          pathname: '/evaluation/test-namespace/create/collections/source-collection/copy',
+          state: evaluationEvaluateNavigationState,
+        },
+      ]}
+    >
+      <LocationDisplay />
+      <Routes>
+        <Route
+          path="/evaluation/:namespace/create/collections/:collectionId/copy"
+          element={<CopySuitePage />}
+        />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+const renderCreatePage = (state?: unknown) =>
+  render(
+    <MemoryRouter
+      initialEntries={[
+        {
+          pathname: '/evaluation/test-namespace/create/collections/new',
+          state,
+        },
+      ]}
+    >
       <LocationDisplay />
       <Routes>
         <Route path="/evaluation/:namespace/create/collections/new" element={<CreateSuitePage />} />
@@ -324,6 +396,13 @@ describe('CopySuitePage', () => {
     expect(screen.getByTestId('copy-suite-description')).toHaveTextContent(
       'Create a benchmark suite',
     );
+    expect(screen.getByRole('link', { name: 'Benchmark suites' })).toHaveAttribute(
+      'href',
+      '/evaluation/test-namespace?tab=evaluate',
+    );
+    expect(mockUseCopySuiteForm).toHaveBeenCalledWith(
+      expect.objectContaining({ cancelRoute: '/evaluation/test-namespace?tab=evaluate' }),
+    );
     goToBenchmarksStep();
     expect(screen.getByTestId('app-page-title')).toHaveTextContent('Benchmarks');
     expect(screen.getByTestId('copy-suite-description')).toHaveTextContent(
@@ -339,6 +418,30 @@ describe('CopySuitePage', () => {
     expect(screen.getByTestId('copy-suite-step-select-benchmarks')).toBeInTheDocument();
     expect(screen.queryByTestId('app-page-title')).not.toBeInTheDocument();
     expect(screen.queryByTestId('copy-suite-description')).not.toBeInTheDocument();
+  });
+
+  it('should use the Evaluate tab as the source when explicitly provided', () => {
+    mockUseFetchState.mockReturnValue([
+      {
+        ...sourceCollection,
+        // eslint-disable-next-line camelcase
+        evaluation_targets: ['model'],
+      },
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    renderEvaluateOriginPage();
+
+    expect(screen.getByRole('link', { name: 'Benchmark suites' })).toHaveAttribute(
+      'href',
+      '/evaluation/test-namespace?tab=evaluate',
+    );
+    expect(screen.queryByRole('link', { name: 'Model benchmark suites' })).not.toBeInTheDocument();
+    expect(mockUseCopySuiteForm).toHaveBeenCalledWith(
+      expect.objectContaining({ cancelRoute: '/evaluation/test-namespace?tab=evaluate' }),
+    );
   });
 
   it('should wire create and run and create only to their respective handlers', () => {
@@ -500,6 +603,100 @@ describe('CopySuitePage', () => {
     expect(screen.getByRole('link', { name: 'Model benchmark suites' })).toHaveAttribute(
       'href',
       '/evaluation/test-namespace/collections/model',
+    );
+  });
+
+  it('should show the gallery breadcrumb and return route when opened from the gallery', () => {
+    mockUseFetchState.mockReturnValue([
+      {
+        ...sourceCollection,
+        // eslint-disable-next-line camelcase
+        evaluation_targets: ['model'],
+      },
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    renderGalleryOriginPage();
+
+    expect(screen.getByRole('link', { name: 'Gallery' })).toHaveAttribute(
+      'href',
+      '/evaluation/test-namespace?tab=gallery',
+    );
+    expect(screen.queryByRole('link', { name: 'Model benchmark suites' })).not.toBeInTheDocument();
+    expect(mockUseCopySuiteForm).toHaveBeenCalledWith(
+      expect.objectContaining({ cancelRoute: '/evaluation/test-namespace?tab=gallery' }),
+    );
+  });
+
+  it('should show the tenant benchmark suites breadcrumb and return route when opened from there', () => {
+    mockUseFetchState.mockReturnValue([
+      {
+        ...sourceCollection,
+        // eslint-disable-next-line camelcase
+        evaluation_targets: ['model'],
+      },
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    renderBenchmarkSuitesOriginPage();
+
+    expect(screen.getByRole('link', { name: 'Benchmark suites' })).toHaveAttribute(
+      'href',
+      '/evaluation/test-namespace?tab=evaluate',
+    );
+    expect(screen.getByRole('link', { name: 'My benchmark suites' })).toHaveAttribute(
+      'href',
+      '/evaluation/test-namespace/collections',
+    );
+    expect(screen.queryByRole('link', { name: 'Model benchmark suites' })).not.toBeInTheDocument();
+    expect(mockUseCopySuiteForm).toHaveBeenCalledWith(
+      expect.objectContaining({ cancelRoute: '/evaluation/test-namespace/collections' }),
+    );
+  });
+
+  it('should preserve the Gallery source when creating a suite', () => {
+    mockUseFetchState.mockReturnValue([undefined, true, undefined, jest.fn()]);
+
+    renderCreatePage(evaluationGalleryNavigationState);
+
+    expect(screen.getByRole('link', { name: 'Gallery' })).toHaveAttribute(
+      'href',
+      '/evaluation/test-namespace?tab=gallery',
+    );
+    expect(mockUseCopySuiteForm).toHaveBeenCalledWith(
+      expect.objectContaining({ cancelRoute: '/evaluation/test-namespace?tab=gallery' }),
+    );
+  });
+
+  it('should preserve the tenant benchmark suites source when creating a suite', () => {
+    mockUseFetchState.mockReturnValue([undefined, true, undefined, jest.fn()]);
+
+    renderCreatePage(evaluationBenchmarkSuitesNavigationState);
+
+    expect(screen.getByRole('link', { name: 'My benchmark suites' })).toHaveAttribute(
+      'href',
+      '/evaluation/test-namespace/collections',
+    );
+    expect(mockUseCopySuiteForm).toHaveBeenCalledWith(
+      expect.objectContaining({ cancelRoute: '/evaluation/test-namespace/collections' }),
+    );
+  });
+
+  it('should preserve a curated source when creating a suite', () => {
+    mockUseFetchState.mockReturnValue([undefined, true, undefined, jest.fn()]);
+
+    renderCreatePage({ sourceEvaluationTarget: 'model' });
+
+    expect(screen.getByRole('link', { name: 'Model benchmark suites' })).toHaveAttribute(
+      'href',
+      '/evaluation/test-namespace/collections/model',
+    );
+    expect(mockUseCopySuiteForm).toHaveBeenCalledWith(
+      expect.objectContaining({ cancelRoute: '/evaluation/test-namespace/collections/model' }),
     );
   });
 
@@ -748,10 +945,10 @@ describe('CopySuitePage', () => {
     goToSelectBenchmarksStep();
 
     const breadcrumb = screen.getByRole('navigation', { name: 'Breadcrumb' });
-    expect(breadcrumb.querySelectorAll('.pf-v6-c-breadcrumb__item-divider')).toHaveLength(2);
+    expect(breadcrumb.querySelectorAll('.pf-v6-c-breadcrumb__item-divider')).toHaveLength(3);
 
     fireEvent.click(screen.getByTestId('copy-suite-next-select-benchmarks'));
-    expect(breadcrumb.querySelectorAll('.pf-v6-c-breadcrumb__item-divider')).toHaveLength(3);
+    expect(breadcrumb.querySelectorAll('.pf-v6-c-breadcrumb__item-divider')).toHaveLength(4);
   });
 
   it('should navigate back to settings from the select benchmarks breadcrumb', () => {

@@ -20,6 +20,10 @@ jest.mock('~/app/hooks/collections', () => ({
   }),
 }));
 
+jest.mock('~/app/hooks/useProviders', () => ({
+  useProviders: () => ({ providers: [], loaded: true, loadError: undefined }),
+}));
+
 jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),
   ...require('~/__tests__/unit/testUtils/mocks').mockApplicationsPageModule(),

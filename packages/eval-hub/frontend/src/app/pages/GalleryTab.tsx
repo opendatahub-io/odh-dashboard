@@ -6,26 +6,37 @@ import CuratedSuiteRunModal from '~/app/components/CuratedSuiteRunModal';
 import {
   evaluationCopySuiteRoute,
   evaluationCreateSuiteRoute,
+  evaluationGalleryNavigationState,
   evaluationsBaseRoute,
 } from '~/app/routes';
+import type { BenchmarkNameMap } from '~/app/components/benchmarkUtils';
 import type { Collection } from '~/app/types';
 
 type GalleryTabProps = {
   namespace: string;
+  benchmarkNameMap: BenchmarkNameMap;
   onSelectCollection: (collection: Collection) => void;
 };
 
-const GalleryTab: React.FC<GalleryTabProps> = ({ namespace, onSelectCollection }) => {
+const GalleryTab: React.FC<GalleryTabProps> = ({
+  namespace,
+  benchmarkNameMap,
+  onSelectCollection,
+}) => {
   const navigate = useNavigate();
   const [collectionToRun, setCollectionToRun] = React.useState<Collection | undefined>();
 
   const handleCreateSuite = React.useCallback(() => {
-    navigate(evaluationCreateSuiteRoute(namespace));
+    navigate(evaluationCreateSuiteRoute(namespace), {
+      state: evaluationGalleryNavigationState,
+    });
   }, [navigate, namespace]);
 
   const handleCustomizeCollection = React.useCallback(
     (collection: Collection) => {
-      navigate(evaluationCopySuiteRoute(namespace, collection.resource.id));
+      navigate(evaluationCopySuiteRoute(namespace, collection.resource.id), {
+        state: evaluationGalleryNavigationState,
+      });
     },
     [navigate, namespace],
   );
@@ -46,6 +57,7 @@ const GalleryTab: React.FC<GalleryTabProps> = ({ namespace, onSelectCollection }
     >
       <BenchmarkSuitesGallery
         namespace={namespace}
+        benchmarkNameMap={benchmarkNameMap}
         scope="system"
         requireCuratedIndex
         useMockFallback
@@ -57,9 +69,11 @@ const GalleryTab: React.FC<GalleryTabProps> = ({ namespace, onSelectCollection }
         primaryActionLabel="Run"
         primaryActionVariant="secondary"
         dropdownActionLabel="Customize"
+        createSuiteRouteState={evaluationGalleryNavigationState}
         dropdownActionRoute={(collection) =>
           evaluationCopySuiteRoute(namespace, collection.resource.id)
         }
+        dropdownActionState={evaluationGalleryNavigationState}
         onCreateSuite={handleCreateSuite}
         onPrimaryAction={handleRunCollection}
         onDropdownAction={handleCustomizeCollection}

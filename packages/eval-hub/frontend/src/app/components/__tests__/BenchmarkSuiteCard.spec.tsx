@@ -18,7 +18,7 @@ describe('BenchmarkSuiteCard', () => {
     render(
       <BenchmarkSuiteCard
         collection={collection}
-        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
         contextualActions={[{ id: 'delete', label: 'Delete', onSelect: jest.fn() }]}
       />,
     );
@@ -54,14 +54,15 @@ describe('BenchmarkSuiteCard', () => {
     );
   });
 
-  it('should show benchmark names in the benchmark count tooltip', async () => {
+  it('should show benchmark names and fall back to IDs in the benchmark count tooltip', async () => {
     render(
       <BenchmarkSuiteCard
         collection={mockCollection({
           id: 'benchmark-tooltip-suite',
           benchmarkIds: ['benchmark-two', 'benchmark-one'],
         })}
-        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+        benchmarkNameMap={new Map([['safety_eval_suite:benchmark-one', 'Benchmark One']])}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
       />,
     );
 
@@ -69,11 +70,14 @@ describe('BenchmarkSuiteCard', () => {
       screen.getByTestId('benchmark-suite-card-benchmarks-benchmark-tooltip-suite'),
     );
 
-    expect(await screen.findByText('benchmark-one')).toBeInTheDocument();
+    expect(await screen.findByText('Benchmark One')).toBeInTheDocument();
     expect(screen.getByText('benchmark-two')).toBeInTheDocument();
     expect(
-      screen.getByText('benchmark-one').compareDocumentPosition(screen.getByText('benchmark-two')),
+      screen.getByText('Benchmark One').compareDocumentPosition(screen.getByText('benchmark-two')),
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(
+      screen.getByTestId('benchmark-suite-card-benchmarks-benchmark-tooltip-suite'),
+    ).toHaveAttribute('aria-label', 'Benchmarks: Benchmark One, benchmark-two');
   });
 
   it('should show evaluation targets in the evaluation target count tooltip', async () => {
@@ -83,7 +87,7 @@ describe('BenchmarkSuiteCard', () => {
           ...mockCollection({ id: 'evaluation-targets-tooltip-suite' }),
           evaluation_targets: ['model', 'agent'],
         }}
-        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
       />,
     );
 
@@ -97,6 +101,44 @@ describe('BenchmarkSuiteCard', () => {
     expect(screen.getByText('Model')).toBeInTheDocument();
   });
 
+  it('should show the successful run count when enabled', async () => {
+    render(
+      <BenchmarkSuiteCard
+        collection={{ ...mockCollection({ id: 'run-count-suite' }), state: { run_count: 3 } }}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
+        showRunCount
+      />,
+    );
+
+    const runCount = screen.getByTestId('benchmark-suite-card-run-count-run-count-suite');
+    expect(runCount).toHaveTextContent('3');
+    expect(runCount).toHaveAttribute(
+      'aria-label',
+      'Run Count: Number of successful executions of this suite',
+    );
+
+    fireEvent.mouseEnter(runCount);
+    expect(
+      await screen.findByText('Run Count: Number of successful executions of this suite'),
+    ).toBeInTheDocument();
+  });
+
+  it('should hide the successful run count when disabled', () => {
+    render(
+      <BenchmarkSuiteCard
+        collection={{
+          ...mockCollection({ id: 'hidden-run-count-suite' }),
+          state: { run_count: 3 },
+        }}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId('benchmark-suite-card-run-count-hidden-run-count-suite'),
+    ).not.toBeInTheDocument();
+  });
+
   it.each([1, 2, 3])('should mark curation order %s as popular', (curationOrder) => {
     render(
       <BenchmarkSuiteCard
@@ -104,7 +146,7 @@ describe('BenchmarkSuiteCard', () => {
           ...mockCollection({ id: `popular-suite-${curationOrder}` }),
           curation_order: curationOrder,
         }}
-        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
       />,
     );
 
@@ -117,7 +159,7 @@ describe('BenchmarkSuiteCard', () => {
     render(
       <BenchmarkSuiteCard
         collection={{ ...mockCollection({ id: 'not-popular-suite' }), curation_order: 4 }}
-        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
       />,
     );
 
@@ -133,7 +175,7 @@ describe('BenchmarkSuiteCard', () => {
           ...mockCollection({ id: 'reserved-popular-space-suite' }),
           curation_order: 4,
         }}
-        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
         reservePopularHeader
       />,
     );
@@ -153,7 +195,7 @@ describe('BenchmarkSuiteCard', () => {
     render(
       <BenchmarkSuiteCard
         collection={collection}
-        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
         contextualActions={[
           { id: 'edit', label: 'Edit', onSelect },
           { id: 'duplicate', label: 'Duplicate', onSelect },
@@ -183,7 +225,7 @@ describe('BenchmarkSuiteCard', () => {
     render(
       <BenchmarkSuiteCard
         collection={collection}
-        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
         contextualActions={[{ id: 'edit', label: 'Edit', onSelect: onEdit, isDisabled: true }]}
       />,
     );
@@ -201,7 +243,7 @@ describe('BenchmarkSuiteCard', () => {
     render(
       <BenchmarkSuiteCard
         collection={mockCollection({ id: 'model-suite' })}
-        primaryAction={{ label: 'Run benchmark suite', onClick }}
+        primaryAction={{ label: 'Run', onClick }}
       />,
     );
 
@@ -251,7 +293,7 @@ describe('BenchmarkSuiteCard', () => {
     render(
       <BenchmarkSuiteCard
         collection={collection}
-        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
         onSelect={onSelect}
       />,
     );
@@ -273,7 +315,7 @@ describe('BenchmarkSuiteCard', () => {
           category: 'primary_category',
           evaluation_targets: ['model'],
         }}
-        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
       />,
     );
 
@@ -290,7 +332,7 @@ describe('BenchmarkSuiteCard', () => {
           id: 'alphabetized-tags-suite',
           tags: ['zebra', 'alpha', 'middle'],
         })}
-        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
       />,
     );
 
@@ -317,7 +359,7 @@ describe('BenchmarkSuiteCard', () => {
         collection={{
           ...mockCollection({ id: `${domain}-suite`, domains: [domain] }),
         }}
-        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
       />,
     );
 
@@ -337,7 +379,7 @@ describe('BenchmarkSuiteCard', () => {
           }),
           category: 'multilingual',
         }}
-        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
       />,
     );
 
@@ -356,7 +398,7 @@ describe('BenchmarkSuiteCard', () => {
           }),
           category: 'legacy-category',
         }}
-        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
       />,
     );
 

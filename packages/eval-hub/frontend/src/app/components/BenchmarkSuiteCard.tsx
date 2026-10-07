@@ -29,6 +29,7 @@ import {
   CubesIcon,
   EllipsisVIcon,
   LanguageIcon,
+  PlayIcon,
   RhUiCollectionFillIcon,
   ShieldAltIcon,
   ToolsIcon,
@@ -36,7 +37,8 @@ import {
 import { Link } from 'react-router-dom';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import type { Collection } from '~/app/types';
-import { formatCategory, getMetricDisplayName } from './benchmarkUtils';
+import { formatCategory, getBenchmarkDisplayName, getMetricDisplayName } from './benchmarkUtils';
+import type { BenchmarkNameMap } from './benchmarkUtils';
 import './BenchmarkSuiteCard.scss';
 
 const POPULAR_CURATION_ORDERS = new Set([1, 2, 3]);
@@ -211,7 +213,9 @@ const BenchmarkSuiteCardTags: React.FC<BenchmarkSuiteCardTagsProps> = ({
 
 type BenchmarkSuiteCardProps = {
   collection: Collection;
+  benchmarkNameMap?: BenchmarkNameMap;
   primaryAction: BenchmarkSuiteCardButton;
+  showRunCount?: boolean;
   dropdownAction?: BenchmarkSuiteCardButton;
   contextualActions?: BenchmarkSuiteCardAction[];
   onSelect?: (collection: Collection) => void;
@@ -220,7 +224,9 @@ type BenchmarkSuiteCardProps = {
 
 const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
   collection,
+  benchmarkNameMap,
   primaryAction,
+  showRunCount = false,
   dropdownAction,
   contextualActions,
   onSelect,
@@ -248,8 +254,11 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
     .map(getMetricDisplayName)
     .toSorted((first, second) => first.localeCompare(second));
   const benchmarkNames = (collection.benchmarks ?? [])
-    .map((benchmark) => benchmark.id)
-    .toSorted((first, second) => first.localeCompare(second));
+    .map((benchmark) => ({
+      id: benchmark.id,
+      name: getBenchmarkDisplayName(benchmark, benchmarkNameMap),
+    }))
+    .toSorted((first, second) => first.name.localeCompare(second.name));
   const evaluationTargetNames = [...new Set(collection.evaluation_targets ?? [])]
     .map(formatCategory)
     .toSorted((first, second) => first.localeCompare(second));
@@ -278,7 +287,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
       {benchmarkNames.length > 0 ? (
         <List className="evalhub-benchmark-suite-card__tooltip-list">
           {benchmarkNames.map((benchmark) => (
-            <ListItem key={benchmark}>{benchmark}</ListItem>
+            <ListItem key={benchmark.id}>{benchmark.name}</ListItem>
           ))}
         </List>
       ) : (
@@ -287,7 +296,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
     </div>
   );
   const benchmarksSummaryLabel = `Benchmarks: ${
-    benchmarkNames.join(', ') || 'No benchmarks available'
+    benchmarkNames.map((benchmark) => benchmark.name).join(', ') || 'No benchmarks available'
   }`;
   const evaluationTargetsTooltip = (
     <div className="evalhub-benchmark-suite-card__tooltip-content">
@@ -306,6 +315,8 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
   const evaluationTargetsSummaryLabel = `Evaluation targets: ${
     evaluationTargetNames.join(', ') || 'No evaluation targets available'
   }`;
+  const runCount = collection.state?.run_count ?? 0;
+  const runCountTooltip = 'Run Count: Number of successful executions of this suite';
   const renderActionButton = (action: BenchmarkSuiteCardButton, actionName: 'primary') =>
     action.href ? (
       <Button
@@ -543,6 +554,19 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
                   <span>{evaluationTargetNames.length}</span>
                 </button>
               </Tooltip>
+              {showRunCount && (
+                <Tooltip content={runCountTooltip}>
+                  <button
+                    type="button"
+                    className="evalhub-benchmark-suite-card__counter evalhub-benchmark-suite-card__counter--run-count evalhub-benchmark-suite-card__tooltip-summary"
+                    data-testid={`benchmark-suite-card-run-count-${collection.resource.id}`}
+                    aria-label={runCountTooltip}
+                  >
+                    <PlayIcon aria-hidden="true" />
+                    <span>{runCount}</span>
+                  </button>
+                </Tooltip>
+              )}
             </Flex>
           </FlexItem>
           <FlexItem>{actionFooter}</FlexItem>

@@ -8,6 +8,23 @@ export const evaluationRootSegment = 'evaluation';
 export const evaluationsBaseRoute = (namespace?: string): string =>
   namespace ? `/${evaluationRootSegment}/${namespace}` : `/${evaluationRootSegment}`;
 
+export const evaluationEvaluateRoute = (namespace?: string): string =>
+  `${evaluationsBaseRoute(namespace)}?tab=evaluate`;
+
+export const evaluationGalleryRoute = (namespace?: string): string =>
+  `${evaluationsBaseRoute(namespace)}?tab=gallery`;
+
+export const evaluationGalleryNavigationState = { source: 'gallery' } as const;
+
+export const evaluationEvaluateNavigationState = { source: 'evaluate' } as const;
+
+export const evaluationBenchmarkSuitesNavigationState = {
+  source: 'benchmark-suites',
+} as const;
+
+export const evaluationCuratedBenchmarkSuitesNavigationState = (evaluationTarget: string) =>
+  ({ sourceEvaluationTarget: evaluationTarget }) as const;
+
 export const evaluationCreateRoute = (namespace?: string): string =>
   `${evaluationsBaseRoute(namespace)}/create`;
 

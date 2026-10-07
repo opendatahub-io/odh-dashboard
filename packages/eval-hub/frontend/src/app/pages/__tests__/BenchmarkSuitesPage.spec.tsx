@@ -27,7 +27,9 @@ jest.mock('~/app/hooks/useProviders', () => ({
 
 jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),
-  ...require('~/__tests__/unit/testUtils/mocks').mockApplicationsPageModule(),
+  ...require('~/__tests__/unit/testUtils/mocks').mockApplicationsPageModule({
+    includeBreadcrumb: true,
+  }),
 }));
 
 jest.mock('~/app/components/StartEvaluationRunModal', () => ({
@@ -39,8 +41,13 @@ jest.mock('~/app/components/StartEvaluationRunModal', () => ({
 }));
 
 const LocationDisplay = () => {
-  const { pathname } = useLocation();
-  return <div data-testid="location-pathname">{pathname}</div>;
+  const { pathname, state } = useLocation();
+  return (
+    <>
+      <div data-testid="location-pathname">{pathname}</div>
+      <div data-testid="location-state">{JSON.stringify(state)}</div>
+    </>
+  );
 };
 
 const renderPage = () =>
@@ -71,7 +78,11 @@ describe('BenchmarkSuitesPage', () => {
   it('should render all tenant benchmark suites', () => {
     renderPage();
 
-    expect(screen.getByText('My benchmark suites')).toBeInTheDocument();
+    expect(screen.getByTestId('page-title')).toHaveTextContent('My benchmark suites');
+    expect(screen.getByRole('link', { name: 'Benchmark suites' })).toHaveAttribute(
+      'href',
+      '/evaluation/test-project?tab=evaluate',
+    );
     expect(
       screen.getByText('View, run, and manage all benchmark suites you have created or saved.'),
     ).toBeInTheDocument();
@@ -103,12 +114,13 @@ describe('BenchmarkSuitesPage', () => {
     expect(screen.getByTestId('location-pathname')).toHaveTextContent(
       '/evaluation/test-project/create/collections/new',
     );
+    expect(screen.getByTestId('location-state')).toHaveTextContent('{"source":"benchmark-suites"}');
   });
 
   it('should open the start evaluation run modal for a suite', async () => {
     renderPage();
 
-    await userEvent.click(screen.getAllByRole('button', { name: 'Run benchmark suite' })[0]);
+    await userEvent.click(screen.getAllByRole('button', { name: 'Run' })[0]);
 
     expect(
       screen.getByTestId('benchmark-suites-page-start-evaluation-run-modal'),
@@ -126,6 +138,19 @@ describe('BenchmarkSuitesPage', () => {
     expect(screen.getByTestId('location-pathname')).toHaveTextContent(
       '/evaluation/test-project/create/collections/model-suite-2/copy',
     );
+    expect(screen.getByTestId('location-state')).toHaveTextContent('{"source":"benchmark-suites"}');
+  });
+
+  it('should navigate to the edit suite page from Edit', async () => {
+    renderPage();
+
+    await userEvent.click(screen.getByTestId('benchmark-suite-card-menu-model-suite-2'));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Edit' }));
+
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+      '/evaluation/test-project/create/collections/model-suite-2/edit',
+    );
+    expect(screen.getByTestId('location-state')).toHaveTextContent('{"source":"benchmark-suites"}');
   });
 
   it('should show a refresh spinner without hiding existing suites while fetching', () => {
