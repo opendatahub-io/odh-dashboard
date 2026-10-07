@@ -13,7 +13,7 @@ func (r *DashboardReconciler) PatchMaaSConsumerPortalDeploymentFederationHash(ct
 }
 
 func (r *DashboardReconciler) DeployMaaSConsumerPortalFederationConfigMap(ctx context.Context, dashboard *v1alpha1.Dashboard, statuses map[string]v1alpha1.ModuleStatus) error {
-	return r.deployMaaSConsumerPortalFederationConfigMap(ctx, dashboard, statuses)
+	return r.deployMaaSConsumerPortalFederationConfigMap(ctx, dashboard, statuses, true)
 }
 
 func (r *DashboardReconciler) DeleteMaaSConsumerPortalResources(ctx context.Context) error {
@@ -23,8 +23,9 @@ func (r *DashboardReconciler) DeleteMaaSConsumerPortalResources(ctx context.Cont
 func BuildMaaSConsumerPortalFederationConfigMap(
 	r *DashboardReconciler,
 	statuses map[string]v1alpha1.ModuleStatus,
+	observability *v1alpha1.ObservabilitySpec,
 ) (*corev1.ConfigMap, error) {
-	return r.buildMaaSConsumerPortalFederationConfigMap(statuses)
+	return r.buildMaaSConsumerPortalFederationConfigMap(statuses, observability)
 }
 
 const ConditionMaaSConsumerPortalAvailable = conditionMaaSConsumerPortalAvailable

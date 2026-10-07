@@ -200,6 +200,7 @@ func TestIntegration_MaaSConsumerPortalLifecycle(t *testing.T) {
 		{"v1", "Service", "maas-consumer-portal"},
 		{"v1", "ServiceAccount", "maas-consumer-portal"},
 		{"networking.k8s.io/v1", "NetworkPolicy", "maas-consumer-portal"},
+		{"networking.k8s.io/v1", "NetworkPolicy", "maas-consumer-portal-perses"},
 		{"v1", "ConfigMap", "maas-consumer-portal-federation-config"},
 		{"gateway.networking.k8s.io/v1", "HTTPRoute", "maas-consumer-portal"},
 		{"rbac.authorization.k8s.io/v1", "ClusterRole", "maas-consumer-portal"},
@@ -271,7 +272,9 @@ func TestIntegration_MaaSConsumerPortalLifecycle(t *testing.T) {
 		route.Status.Parents[0].Conditions[i].ObservedGeneration = route.Generation
 	}
 	require.NoError(t, k8sClient.Status().Update(ctx, route))
-	reconcile(t, r)
+	discoveryResult := reconcile(t, r)
+	assert.Equal(t, ctrlpkg.ObservabilityRetryInterval, discoveryResult.RequeueAfter,
+		"a ready portal must keep checking for Perses when observability is not configured")
 
 	updated := getDashboard(t)
 	assert.Equal(t, common.PhaseReady, updated.Status.Phase)
@@ -345,6 +348,7 @@ func TestIntegration_MaaSConsumerPortalLifecycle(t *testing.T) {
 		{"apps/v1", "Deployment", "maas-consumer-portal"},
 		{"v1", "Service", "maas-consumer-portal"},
 		{"networking.k8s.io/v1", "NetworkPolicy", "maas-consumer-portal"},
+		{"networking.k8s.io/v1", "NetworkPolicy", "maas-consumer-portal-perses"},
 		{"v1", "ConfigMap", "maas-consumer-portal-federation-config"},
 		{"gateway.networking.k8s.io/v1", "HTTPRoute", "maas-consumer-portal"},
 		{"rbac.authorization.k8s.io/v1", "ClusterRole", "maas-consumer-portal"},
