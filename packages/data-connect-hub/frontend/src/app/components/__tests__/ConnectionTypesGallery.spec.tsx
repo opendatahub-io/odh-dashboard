@@ -153,6 +153,39 @@ describe('ConnectionTypesGallery', () => {
     expect(screen.queryByText('S3')).toBeNull();
   });
 
+  it('should combine capability filtering and search with AND behavior', async () => {
+    const user = userEvent.setup();
+    render(
+      <ConnectionTypesGallery
+        connectionTypes={getConnectionTypes()}
+        onConnectionTypeClick={jest.fn()}
+      />,
+    );
+
+    await user.click(screen.getByTestId('connection-types-gallery-dropdown'));
+    await user.click(
+      within(screen.getByTestId('connection-types-gallery-dropdown-capability')).getByRole(
+        'option',
+        { name: 'Capability' },
+      ),
+    );
+    await user.click(screen.getByTestId('connection-types-gallery-capability-dropdown'));
+    await user.click(
+      within(screen.getByTestId('connection-types-gallery-capability-credentials')).getByRole(
+        'option',
+        { name: 'Credentials only' },
+      ),
+    );
+    await user.type(
+      screen.getByRole('textbox', { name: 'Search data connection types by name' }),
+      'relational',
+    );
+
+    expect(screen.getByText('No matching data connection types')).toBeTruthy();
+    expect(screen.queryByText('PostgreSQL')).toBeNull();
+    expect(screen.queryByText('OCI')).toBeNull();
+  });
+
   // TODO: Labels are waiting on API changes; re-enable this test when label filtering is enabled.
   it.skip('should support selecting and clearing multiple label filters', async () => {
     const user = userEvent.setup();
