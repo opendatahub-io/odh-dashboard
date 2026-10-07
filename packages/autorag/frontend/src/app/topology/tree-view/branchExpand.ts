@@ -3,6 +3,8 @@ import type { PipelineNodeModelExpanded } from '~/app/types/topology';
 /** Mirrors stageMapStatus.BRANCHING_STAGE_ID without importing PF topology. */
 const BRANCHING_STAGE_ID = 'optimize_templates';
 
+export type PatternRankMap = Record<string, number>;
+
 export type BranchExpandOptions = {
   /** When false (default), show shared spine + winner branch only. */
   patternsExpanded: boolean;
@@ -13,6 +15,8 @@ export type BranchExpandOptions = {
   winnerResolved: boolean;
   winnerPatternLabel?: string;
   winnerPatternKey?: string;
+  /** Leaderboard ranks keyed by pattern record key — badges 1–3 on expanded pattern results. */
+  patternRanks?: PatternRankMap;
 };
 
 const BRANCH_STARTED_STATUSES = new Set(['InProgress', 'Succeeded', 'Failed', 'Cancelled']);
@@ -49,7 +53,17 @@ const valuesLooselyMatch = (left: string, right: string): boolean => {
   return true;
 };
 
-const isPatternTerminusId = (nodeId: string): boolean => /__pattern__branch-\d+$/.test(nodeId);
+/** `{component}__pattern__branch-{N}` — excludes fan-in spacer ids that join termini with `|`. */
+export const isPatternTerminusId = (nodeId: string): boolean => {
+  const parts = nodeId.split('__');
+  return (
+    parts.length === 3 && !!parts[0] && parts[1] === 'pattern' && /^branch-\d+$/.test(parts[2])
+  );
+};
+
+export const countPatternBranches = (
+  topologyNodes: PipelineNodeModelExpanded[] | undefined,
+): number => topologyNodes?.filter((node) => isPatternTerminusId(node.id)).length ?? 0;
 
 const isAnyBranchNodeId = (nodeId: string): boolean =>
   /__step__.+__branch-\d+$/.test(nodeId) ||
@@ -83,6 +97,18 @@ export const canShowPatternsExpandToggle = (
 
 export const isBranchingStageNodeId = (nodeId: string): boolean =>
   nodeId.endsWith(`__${BRANCHING_STAGE_ID}`);
+
+export const resolvePatternRank = (
+  patternNode: PipelineNodeModelExpanded,
+  patternRanks: PatternRankMap | undefined,
+): 1 | 2 | 3 | undefined => {
+  const patternKey = patternNode.data?.patternKey;
+  if (!patternRanks || typeof patternKey !== 'string' || patternKey.length === 0) {
+    return undefined;
+  }
+  const rank = patternRanks[patternKey];
+  return rank === 1 || rank === 2 || rank === 3 ? rank : undefined;
+};
 
 export const matchesWinnerPattern = (
   patternNode: PipelineNodeModelExpanded,

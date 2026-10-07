@@ -190,15 +190,33 @@ const ConnectionTypeCardIdentifier = (id: string) => `${id}--ConnectionTypeCard`
 type ConnectionTypeCardProps = {
   connectionType: ConnectionType;
   onClick: () => void;
+  isSelectable?: boolean;
+  isSelected?: boolean;
 };
-const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({ connectionType, onClick }) => {
+const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
+  connectionType,
+  onClick,
+  isSelectable = false,
+  isSelected = false,
+}) => {
   const rootId = ConnectionTypeCardIdentifier(connectionType.metadata.id);
   return (
-    <Card id={rootId} data-testid={rootId} isClickable style={{ aspectRatio: '4 / 3' }}>
+    <Card
+      id={rootId}
+      data-testid={rootId}
+      isClickable={!isSelectable}
+      isSelectable={isSelectable}
+      isSelected={isSelectable ? isSelected : undefined}
+      style={{ aspectRatio: '4 / 3' }}
+    >
       <CardHeader
         selectableActions={{
           onClickAction: onClick,
+          onChange: onClick,
           selectableActionAriaLabel: connectionType.resource.name,
+          name: 'connection-type',
+          variant: 'single',
+          isHidden: isSelectable,
         }}
       >
         <ConnectionTypeIcon connectionType={connectionType} iconProps={{ size: 'xl' }} />

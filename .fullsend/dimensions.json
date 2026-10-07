@@ -1,6 +1,19 @@
 {
-  "comment": "Review dimension registry. The orchestrator dispatches by output kind only: findings (then challenger), section:* in parallel with findings, then every check:* row, then every signal:* row. It must not special-case producer names. Context adapters are trusted host data and never enter challenger synthesis. Host post-review uses optional label for human-facing Check/Producer names; id remains the machine key. The Producers sticky table uses output (Type) and result_fields (signal/section Result cells).",
+  "comment": "Review dimension registry. The orchestrator dispatches by output kind only: findings + section:* + check:* together (required), challenger after all findings raised, then every signal:* row (after challenger + all checks + all sections). It must not special-case producer names. Context adapters are trusted host data and never enter challenger synthesis. Host post-review uses optional label for human-facing Check/Producer names; id remains the machine key. The Producers sticky table uses output (Type), result.producers.raised for findings Result, and result_fields (signal/section Result cells).",
   "dimensions": [
+    {
+      "id": "investigator",
+      "label": "Investigator",
+      "kind": "llm-subagent",
+      "output": "context",
+      "stage": "pre-dispatch",
+      "dispatch": "conditional",
+      "when": "the change is not mechanical or value-only",
+      "definition": "skills/pr-review/sub-agents/investigator.md",
+      "meta_prompt": "meta-prompts/context-output.md",
+      "failure_severity": "info",
+      "notes": "Runs alone before the reviewer batch and returns a factual brief of the change and the code around it. Every findings, section, check and signal reviewer is told to read the brief as orientation. The challenger does not receive it, and it never enters synthesis."
+    },
     {
       "id": "correctness",
       "label": "Correctness",
@@ -215,7 +228,7 @@
       "failure_severity": "info",
       "budget_priority": 3,
       "re_review": "full",
-      "notes": "Reports whether changed behavior has proportionate test coverage; this is a readiness check, not a fabricated code finding."
+      "notes": "Assurance-grade readiness check: Automation, Efficiency, Evidence depth. Overall status follows the applicable aspects. Check status may be fail → request-changes. Readiness check only; excluded from challenger input."
     },
     {
       "id": "pr-description-review",

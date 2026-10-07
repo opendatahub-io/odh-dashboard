@@ -52,6 +52,38 @@ describe('Data Connect Hub BFF Contract Tests', () => {
         status: 200,
       });
     });
+
+    it('should create a connection for a project', async () => {
+      const result = await apiClient.post('/api/v1/connections?namespace=default', {
+        name: 'warehouse',
+        // eslint-disable-next-line camelcase
+        data_connection_type_id: 'postgresql',
+        format: 'tabular',
+        credentials: {
+          secret: 'warehouse',
+          properties: { URI: 'postgres://example' },
+        },
+        properties: {},
+      });
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/responses/ConnectionResponse/content/application~1json/schema',
+        status: 201,
+      });
+    });
+  });
+
+  describe('Test Credentials Endpoint', () => {
+    it('should verify credentials for a connection type', async () => {
+      const result = await apiClient.post('/api/v1/test/credentials?namespace=default', {
+        // eslint-disable-next-line camelcase
+        data_connection_type_id: 'postgresql',
+        credentials: { URI: 'postgres://example' },
+      });
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/schemas/NoContent',
+        status: 204,
+      });
+    });
   });
 
   describe('Connection Types Endpoint', () => {

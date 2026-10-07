@@ -19,8 +19,8 @@ func TestResolveModuleStatuses_MaaSConsumerPortalDemand(t *testing.T) {
 		wantReason map[string]string
 	}{
 		{
-			name:       "MaaS Consumer Portal only requires MaaS and GenAI",
-			spec:       v1alpha1.DashboardSpec{ManagementSpec: common.ManagementSpec{ManagementState: "Removed"}, MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"}},
+			name:       "MaaS Portal only requires MaaS and GenAI",
+			spec:       v1alpha1.DashboardSpec{ManagementSpec: common.ManagementSpec{ManagementState: "Removed"}, MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"}},
 			wantPhases: map[string]v1alpha1.ModulePhase{"maas": v1alpha1.ModulePhaseDeployed, "genAi": v1alpha1.ModulePhaseDeployed, "mlflow": v1alpha1.ModulePhaseNotDeployed},
 		},
 		{
