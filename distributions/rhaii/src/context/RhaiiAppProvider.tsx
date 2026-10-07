@@ -9,6 +9,7 @@ import {
   type IsAreaAvailableStatus,
 } from '@odh-dashboard/plugin-core/areas';
 import { DashboardNamespaceProvider } from './DashboardNamespaceContext';
+import HardwareProfilesContextProvider from './HardwareProfilesContextProvider';
 import HostApiProvider from './HostApiProvider';
 import ProjectsContextProvider from './ProjectsContextProvider';
 import TiltFixturesProvider from '../development/tilt/TiltFixturesProvider';
@@ -37,6 +38,7 @@ const availableAreaStatus: IsAreaAvailableStatus = {
 const areasStatus = {
   [SupportedArea.MODEL_SERVING]: availableAreaStatus,
   [SupportedArea.K_SERVE]: availableAreaStatus,
+  [SupportedArea.LLMD_SERVING]: availableAreaStatus,
 };
 
 const areaContextValue = { dscStatus: null, dsciStatus: null, areasStatus };
@@ -53,9 +55,11 @@ const RhaiiAppProvider: React.FC<RhaiiAppProviderProps> = ({ children }) => {
     <IntegrationsContext.Provider value={integrationsContextValue}>
       <AreaContext.Provider value={areaContextValue}>
         <DashboardNamespaceProvider>
-          <ProjectsContextProvider>
-            <HostApiProvider>{appContent}</HostApiProvider>
-          </ProjectsContextProvider>
+          <HardwareProfilesContextProvider>
+            <ProjectsContextProvider>
+              <HostApiProvider>{appContent}</HostApiProvider>
+            </ProjectsContextProvider>
+          </HardwareProfilesContextProvider>
         </DashboardNamespaceProvider>
       </AreaContext.Provider>
     </IntegrationsContext.Provider>

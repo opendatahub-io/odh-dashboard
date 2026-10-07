@@ -826,6 +826,9 @@ importers:
       '@odh-dashboard/kserve':
         specifier: workspace:*
         version: link:../../packages/kserve
+      '@odh-dashboard/llmd-serving':
+        specifier: workspace:*
+        version: link:../../packages/llmd-serving
       '@odh-dashboard/model-serving':
         specifier: workspace:*
         version: link:../../packages/model-serving

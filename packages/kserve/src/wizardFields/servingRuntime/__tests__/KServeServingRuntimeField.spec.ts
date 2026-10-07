@@ -1,6 +1,6 @@
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import * as projectSelectors from '@odh-dashboard/internal/redux/selectors/project';
+import * as hostApi from '@odh-dashboard/plugin-core/host-api';
 import * as servingRuntimeTemplates from '@odh-dashboard/model-serving/concepts/useServingRuntimeTemplates';
 import * as clusterSettings from '@odh-dashboard/model-serving/concepts/useModelServingClusterSettings';
 import * as wizardFields from '@odh-dashboard/model-serving/shared/wizard-fields';
@@ -13,7 +13,10 @@ import {
 } from '../KServeServingRuntimeField';
 import { LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY } from '../../deploymentMethodField';
 
-jest.mock('@odh-dashboard/internal/redux/selectors/project');
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/host-api'),
+  useDashboardNamespace: jest.fn(),
+}));
 jest.mock('@odh-dashboard/model-serving/concepts/useServingRuntimeTemplates');
 jest.mock('@odh-dashboard/model-serving/concepts/useModelServingClusterSettings');
 jest.mock('@odh-dashboard/model-serving/shared/wizard-fields', () => {
@@ -24,7 +27,7 @@ jest.mock('@odh-dashboard/model-serving/shared/wizard-fields', () => {
   };
 });
 
-const mockUseDashboardNamespace = jest.mocked(projectSelectors.useDashboardNamespace);
+const mockUseDashboardNamespace = jest.mocked(hostApi.useDashboardNamespace);
 const mockUseServingRuntimeTemplates = jest.mocked(
   servingRuntimeTemplates.useServingRuntimeTemplates,
 );
