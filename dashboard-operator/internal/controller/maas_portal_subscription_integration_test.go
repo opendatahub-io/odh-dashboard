@@ -28,7 +28,7 @@ import (
 	ctrlpkg "github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
 )
 
-func TestIntegration_MaaSConsumerPortalSubscriptionRBACWatches(t *testing.T) {
+func TestIntegration_MaaSPortalSubscriptionRBACWatches(t *testing.T) {
 	// A running manager exercises informer events rather than manually invoking
 	// Reconcile. Isolate it from the shared envtest's manually reconciled CRs.
 	localEnv := &envtest.Environment{
@@ -46,7 +46,7 @@ func TestIntegration_MaaSConsumerPortalSubscriptionRBACWatches(t *testing.T) {
 	})
 	require.NoError(t, err)
 	base := createIntegrationManifests(t, []string{"maas", "gen-ai"})
-	writeMaaSConsumerPortalManifest(t, base)
+	writeMaaSPortalManifest(t, base)
 	require.NoError(t, ctrlpkg.SetupWithManager(mgr, ctrlpkg.Options{
 		ManifestsBasePath: base, Platform: cluster.SelfManagedRhoai,
 		Namespace: integrationNamespace, ApplicationsNamespace: integrationNamespace,
@@ -59,11 +59,11 @@ func TestIntegration_MaaSConsumerPortalSubscriptionRBACWatches(t *testing.T) {
 		require.NoError(t, directClient.Create(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}))
 	}
 	require.NoError(t, directClient.Create(ctx, newDashboard(v1alpha1.DashboardSpec{
-		ManagementSpec:     common.ManagementSpec{ManagementState: "Removed"},
-		Gateway:            &v1alpha1.GatewaySpec{Domain: "test.example.com"},
-		Modules:            disableAllModulesExcept("maas", "genAi"),
-		MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
-		Observability:      &v1alpha1.ObservabilitySpec{Enabled: false},
+		ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
+		Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+		Modules:        disableAllModulesExcept("maas", "genAi"),
+		MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
+		Observability:  &v1alpha1.ObservabilitySpec{Enabled: false},
 	})))
 	managerErr := make(chan error, 1)
 	go func() { managerErr <- mgr.Start(ctx) }()

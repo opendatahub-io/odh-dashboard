@@ -167,7 +167,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if !dashboard.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(dashboard, dashboardFinalizer) {
-			if err := r.deleteMaaSConsumerPortalResources(ctx); err != nil {
+			if err := r.deleteMaaSPortalResources(ctx); err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to cleanup MaaS Consumer Portal resources: %w", err)
 			}
 			if err := r.cleanupCrossNamespaceResources(ctx, dashboard, false); err != nil {
@@ -208,7 +208,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		string(common.ConditionTypeProvisioningSucceeded),
 		string(common.ConditionTypeDegraded),
 		conditionObservabilityAvailable,
-		conditionMaaSConsumerPortalAvailable,
+		conditionMaaSPortalAvailable,
 	)
 	maasPortalManaged := r.maasPortalManaged(dashboard)
 	var observabilityDetectionErr error
@@ -231,7 +231,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// MaaS Consumer Portal availability is recalculated from its managed resources on every
 	// reconciliation. Clear a stale failure now; failures recorded later in this
 	// cycle (for example federation ConfigMap reconciliation) remain intact.
-	cm.ClearCondition(conditionMaaSConsumerPortalAvailable)
+	cm.ClearCondition(conditionMaaSPortalAvailable)
 
 	if dashboard.Spec.ManagementState == "Removed" {
 		logger.Info("ManagementState is Removed, tearing down resources")
@@ -245,14 +245,14 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 		preserveModuleStatusTransitionTimes(dashboard.Status.ModuleStatuses, nextStatuses)
 		dashboard.Status.ModuleStatuses = nextStatuses
-		r.setMaaSConsumerPortalModuleCondition(cm, dashboard, nextStatuses)
+		r.setMaaSPortalModuleCondition(cm, dashboard, nextStatuses)
 		var observabilityRetryAfter time.Duration
 		if observabilityDetectionErr != nil {
 			observabilityRetryAfter = observabilityRetryInterval
 		} else if maasPortalManaged {
 			observabilityRetryAfter = r.reconcileObservability(ctx, dashboard, cm)
 		}
-		portalRetryAfter := r.reconcileMaaSConsumerPortalOperand(ctx, dashboard, cm, nextStatuses, observabilityDetectionErr == nil)
+		portalRetryAfter := r.reconcileMaaSPortalOperand(ctx, dashboard, cm, nextStatuses, observabilityDetectionErr == nil)
 		portalRetryAfter = minNonZeroDuration(portalRetryAfter, observabilityRetryAfter)
 
 		preserveObservability := maasPortalManaged && (observabilityDetectionErr != nil ||
@@ -539,7 +539,7 @@ func (r *DashboardReconciler) reconcileDeployment(
 	// stale status on the CR (the outer Reconcile always calls Status().Update).
 	preserveModuleStatusTransitionTimes(dashboard.Status.ModuleStatuses, nextStatuses)
 	dashboard.Status.ModuleStatuses = nextStatuses
-	r.setMaaSConsumerPortalModuleCondition(cm, dashboard, nextStatuses)
+	r.setMaaSPortalModuleCondition(cm, dashboard, nextStatuses)
 
 	// Reconcile cross-namespace RBAC (notebooks, model-registry)
 	rbacErr := r.reconcileNamespacedRBAC(ctx, dashboard)
@@ -564,7 +564,7 @@ func (r *DashboardReconciler) reconcileDeployment(
 		logger.Error(err, "Failed to deploy federation ConfigMap")
 		return ctrl.Result{}, fmt.Errorf("federation ConfigMap: %w", err)
 	}
-	portalRetryAfter := r.reconcileMaaSConsumerPortalOperand(ctx, dashboard, cm, nextStatuses, observabilityKnown)
+	portalRetryAfter := r.reconcileMaaSPortalOperand(ctx, dashboard, cm, nextStatuses, observabilityKnown)
 
 	if err := r.patchDeploymentFederationHash(ctx, fedData); err != nil {
 		logger.Error(err, "Failed to patch federation hash on deployment")
@@ -935,10 +935,10 @@ func (r *DashboardReconciler) cleanupObservabilityResources(ctx context.Context,
 // and cleans up cross-namespace resources.
 func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dashboard *v1alpha1.Dashboard, statuses map[string]v1alpha1.ModuleStatus, preserveObservability bool) error {
 	logger := log.FromContext(ctx)
-	maasConsumerPortalRequiredModules := maasConsumerPortalRequiredModuleSlugs(&dashboard.Spec, statuses)
+	maasPortalRequiredModules := maasPortalRequiredModuleSlugs(&dashboard.Spec, statuses)
 	shouldPreserve := func(resource client.Object) bool {
 		component := resource.GetLabels()[moduleComponentLabel]
-		return maasConsumerPortalRequiredModules[component] || (preserveObservability &&
+		return maasPortalRequiredModules[component] || (preserveObservability &&
 			(component == observabilityComponent || isLegacyObservabilityResource(resource)))
 	}
 
@@ -1200,8 +1200,8 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		).
 		Watches(
 			&corev1.Namespace{},
-			handler.EnqueueRequestsFromMapFunc(r.mapMaaSConsumerPortalOperatorNamespaceToDashboard),
-			builder.WithPredicates(r.maasConsumerPortalOperatorNamespacePredicate()),
+			handler.EnqueueRequestsFromMapFunc(r.mapMaaSPortalOperatorNamespaceToDashboard),
+			builder.WithPredicates(r.maasPortalOperatorNamespacePredicate()),
 		)
 
 	if err := addOptionalOwnedResourceWatches(mgr.GetRESTMapper(), controllerBuilder); err != nil {

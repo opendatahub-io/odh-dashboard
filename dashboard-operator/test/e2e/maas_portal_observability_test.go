@@ -20,7 +20,7 @@ import (
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
-func TestE2E_MaaSConsumerPortalObservabilitySurvivesCoreRemoval(t *testing.T) {
+func TestE2E_MaaSPortalObservabilitySurvivesCoreRemoval(t *testing.T) {
 	if requiredPlatform(t) != "rhoai" {
 		t.Skip("MaaS Consumer Portal is supported only on RHOAI")
 	}
@@ -44,6 +44,10 @@ func TestE2E_MaaSConsumerPortalObservabilitySurvivesCoreRemoval(t *testing.T) {
 			"MaaS Consumer Portal requires module %q to be enabled", name)
 	}
 	originalSpec := dashboard.Spec.DeepCopy()
+	originalPortalSpec := originalSpec.MaaSPortal
+	if originalPortalSpec == nil {
+		originalPortalSpec = originalSpec.MaaSConsumerPortal
+	}
 	coreRoute, err := waitForAdmittedHTTPRouteByNames(k8sClient, testNamespace,
 		[]string{"odh-dashboard", "rhods-dashboard"}, operandReadyTimeout)
 	require.NoError(t, err)
@@ -51,7 +55,7 @@ func TestE2E_MaaSConsumerPortalObservabilitySurvivesCoreRemoval(t *testing.T) {
 	t.Cleanup(func() {
 		patchDashboardSpec(t, func(spec *dashboardv1alpha1.DashboardSpec) {
 			spec.ManagementState = originalSpec.ManagementState
-			spec.MaaSConsumerPortal = originalSpec.MaaSConsumerPortal
+			spec.MaaSPortal = originalSpec.MaaSPortal
 			spec.Observability = originalSpec.Observability
 		})
 		require.NoError(t, waitForCondition(k8sClient, key.Name,
@@ -59,9 +63,9 @@ func TestE2E_MaaSConsumerPortalObservabilitySurvivesCoreRemoval(t *testing.T) {
 		require.NoError(t, waitForDeploymentReady(k8sClient, testNamespace, coreRoute.Name, operandReadyTimeout))
 		_, err := waitForAdmittedHTTPRouteByName(k8sClient, testNamespace, coreRoute.Name, operandReadyTimeout)
 		require.NoError(t, err)
-		if originalSpec.MaaSConsumerPortal == nil || originalSpec.MaaSConsumerPortal.ManagementState != "Managed" {
-			waitForObjectAbsent(t, &gatewayv1.HTTPRoute{}, maasConsumerPortalRouteName)
-			waitForObjectAbsent(t, &appsv1.Deployment{}, maasConsumerPortalRouteName)
+		if originalPortalSpec == nil || originalPortalSpec.ManagementState != "Managed" {
+			waitForObjectAbsent(t, &gatewayv1.HTTPRoute{}, maasPortalRouteName)
+			waitForObjectAbsent(t, &appsv1.Deployment{}, maasPortalRouteName)
 		} else {
 			require.NoError(t, waitForCondition(k8sClient, key.Name,
 				"MaaSConsumerPortalAvailable", metav1.ConditionTrue, fixtureReadyTimeout))
@@ -69,7 +73,7 @@ func TestE2E_MaaSConsumerPortalObservabilitySurvivesCoreRemoval(t *testing.T) {
 	})
 
 	patchDashboardSpec(t, func(spec *dashboardv1alpha1.DashboardSpec) {
-		spec.MaaSConsumerPortal = &dashboardv1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"}
+		spec.MaaSPortal = &dashboardv1alpha1.MaaSPortalSpec{ManagementState: "Managed"}
 		spec.Observability = nil
 	})
 
@@ -83,8 +87,8 @@ func TestE2E_MaaSConsumerPortalObservabilitySurvivesCoreRemoval(t *testing.T) {
 		for _, condition := range []string{"MaaSConsumerPortalAvailable", "ObservabilityAvailable"} {
 			require.NoError(t, waitForCondition(k8sClient, key.Name, condition, metav1.ConditionTrue, fixtureReadyTimeout))
 		}
-		require.NoError(t, waitForDeploymentReady(k8sClient, testNamespace, maasConsumerPortalRouteName, operandReadyTimeout))
-		_, err := waitForAdmittedHTTPRouteByName(k8sClient, testNamespace, maasConsumerPortalRouteName, operandReadyTimeout)
+		require.NoError(t, waitForDeploymentReady(k8sClient, testNamespace, maasPortalRouteName, operandReadyTimeout))
+		_, err := waitForAdmittedHTTPRouteByName(k8sClient, testNamespace, maasPortalRouteName, operandReadyTimeout)
 		require.NoError(t, err)
 		require.NoError(t, k8sClient.Get(t.Context(), key, dashboard))
 		require.Equal(t, state, dashboard.Spec.ManagementState)
@@ -95,7 +99,7 @@ func TestE2E_MaaSConsumerPortalObservabilitySurvivesCoreRemoval(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), operandReadyTimeout)
 		t.Cleanup(cancel)
 		require.EventuallyWithT(t, func(c *assert.CollectT) {
-			healthResponse, err := fetchGatewayPath(ctx, maasConsumerPortalHealthPath)
+			healthResponse, err := fetchGatewayPath(ctx, maasPortalHealthPath)
 			if assert.NoError(c, err) {
 				assert.Equal(c, http.StatusOK, healthResponse.statusCode)
 				mediaType, _, err := mime.ParseMediaType(healthResponse.contentType)
@@ -107,7 +111,7 @@ func TestE2E_MaaSConsumerPortalObservabilitySurvivesCoreRemoval(t *testing.T) {
 				assert.NoError(c, json.Unmarshal(healthResponse.body, &health))
 				assert.Equal(c, "available", health.Status)
 			}
-			response, err := fetchGatewayPath(ctx, maasConsumerPortalPath+"/perses/api/api/v1/dashboards")
+			response, err := fetchGatewayPath(ctx, maasPortalPath+"/perses/api/api/v1/dashboards")
 			if assert.NoError(c, err) {
 				assert.NoError(c, validatePersesDashboardsResponse(response.statusCode, response.contentType,
 					response.body, "dashboard-1-model"))
