@@ -32,7 +32,7 @@ func TestFederationDuringObservabilityDetectionFailure(t *testing.T) {
 	for _, portal := range []bool{false, true} {
 		name := federationConfigMapName
 		if portal {
-			name = maasConsumerPortalFederationConfigMapName
+			name = maasPortalFederationConfigMapName
 		}
 		for _, tt := range []struct {
 			name, existing                   string
@@ -47,7 +47,7 @@ func TestFederationDuringObservabilityDetectionFailure(t *testing.T) {
 		} {
 			t.Run(name+"/"+tt.name, func(t *testing.T) {
 				readFails := tt.readFails
-				scheme := maasConsumerPortalScheme(t)
+				scheme := maasPortalScheme(t)
 				builder := fake.NewClientBuilder().WithScheme(scheme)
 				key := client.ObjectKey{Name: name, Namespace: "applications"}
 				if tt.existing != "" {
@@ -64,12 +64,12 @@ func TestFederationDuringObservabilityDetectionFailure(t *testing.T) {
 				}).Build()
 				r := &DashboardReconciler{Client: cli, Scheme: scheme, ApplicationsNamespace: key.Namespace, Platform: cluster.SelfManagedRhoai}
 				dashboard := &v1alpha1.Dashboard{ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName},
-					Spec: v1alpha1.DashboardSpec{MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"}}}
+					Spec: v1alpha1.DashboardSpec{MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"}}}
 				statuses := map[string]v1alpha1.ModuleStatus{"maas": {Phase: v1alpha1.ModulePhaseDeployed}}
 				ctx := context.Background()
 				var err error
 				if portal {
-					err = r.deployMaaSConsumerPortalFederationConfigMap(ctx, dashboard, statuses, false)
+					err = r.deployMaaSPortalFederationConfigMap(ctx, dashboard, statuses, false)
 				} else {
 					_, err = r.deployFederationConfigMap(ctx, statuses, dashboard, false)
 				}
@@ -110,10 +110,10 @@ func TestFederationDuringObservabilityDetectionFailure(t *testing.T) {
 func TestRemovedDetectionFailureEarlyErrorUpdatesPhase(t *testing.T) {
 	for _, failure := range []string{"ModuleDeployFailed", "TeardownFailed"} {
 		t.Run(failure, func(t *testing.T) {
-			scheme := maasConsumerPortalScheme(t)
+			scheme := maasPortalScheme(t)
 			dashboard := &v1alpha1.Dashboard{ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName, Finalizers: []string{dashboardFinalizer}},
 				Spec: v1alpha1.DashboardSpec{ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
-					MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"}},
+					MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"}},
 				Status: v1alpha1.DashboardStatus{Status: common.Status{Phase: common.PhaseReady}}}
 			cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(dashboard).WithStatusSubresource(dashboard).
 				WithInterceptorFuncs(interceptor.Funcs{
@@ -151,7 +151,7 @@ func TestRemovedDetectionFailureEarlyErrorUpdatesPhase(t *testing.T) {
 }
 
 func TestCleanupLegacyLocalObservabilityIsBounded(t *testing.T) {
-	scheme := maasConsumerPortalScheme(t)
+	scheme := maasPortalScheme(t)
 	legacy := &networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: "dashboard-perses-access", Namespace: "applications",
 		Labels: map[string]string{labels.PlatformPartOf: "dashboard"}}}
 	core := &networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: "dashboard-core-access", Namespace: "applications", Labels: legacy.Labels}}
@@ -191,7 +191,7 @@ func TestCleanupLegacyLocalObservabilityOwnership(t *testing.T) {
 				case "other namespace":
 					obj.SetNamespace("other")
 				}
-				scheme := maasConsumerPortalScheme(t)
+				scheme := maasPortalScheme(t)
 				cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(obj).Build()
 				r := &DashboardReconciler{Client: cli, Scheme: scheme, ApplicationsNamespace: "applications"}
 				ctx := context.Background()
@@ -213,7 +213,7 @@ func TestCleanupObservabilityPreservesOperatorResources(t *testing.T) {
 			t.Setenv("OPERATOR_CONFIGMAP_NAME", configName)
 			for _, componentLabel := range []bool{false, true} {
 				t.Run(fmt.Sprintf("component label %t", componentLabel), func(t *testing.T) {
-					scheme := maasConsumerPortalScheme(t)
+					scheme := maasPortalScheme(t)
 					ownership := map[string]string{labels.PlatformPartOf: "dashboard"}
 					if componentLabel {
 						ownership[moduleComponentLabel] = observabilityComponent
@@ -242,9 +242,9 @@ func TestCleanupObservabilityPreservesOperatorResources(t *testing.T) {
 }
 
 func TestPortalFederationPreservationFailureStillReconcilesBundle(t *testing.T) {
-	scheme := maasConsumerPortalScheme(t)
+	scheme := maasPortalScheme(t)
 	base := t.TempDir()
-	bundle := filepath.Join(base, "distributions", maasConsumerPortalDeploymentName)
+	bundle := filepath.Join(base, "distributions", maasPortalDeploymentName)
 	require.NoError(t, os.MkdirAll(bundle, 0755))
 	require.NoError(t, os.WriteFile(filepath.Join(bundle, "kustomization.yaml"), []byte(`apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -261,22 +261,22 @@ data:
 	dashboard := &v1alpha1.Dashboard{
 		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName},
 		Spec: v1alpha1.DashboardSpec{
-			Gateway:            &v1alpha1.GatewaySpec{Domain: "apps.example.com"},
-			MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
+			Gateway:    &v1alpha1.GatewaySpec{Domain: "apps.example.com"},
+			MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
 		},
 	}
 	federation := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalFederationConfigMapName, Namespace: "applications"},
+		ObjectMeta: metav1.ObjectMeta{Name: maasPortalFederationConfigMapName, Namespace: "applications"},
 		Data:       map[string]string{federationConfigKey: "invalid JSON"},
 	}
 	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(federation).Build()
 	r := &DashboardReconciler{Client: cli, Scheme: scheme, ManifestsBasePath: base,
 		ApplicationsNamespace: "applications", Platform: cluster.SelfManagedRhoai}
-	cm := maasConsumerPortalTestManager(t, dashboard)
+	cm := maasPortalTestManager(t, dashboard)
 	ctx := context.Background()
-	retry := r.reconcileMaaSConsumerPortalOperand(ctx, dashboard, cm, nil, false)
-	assert.Equal(t, maasConsumerPortalRetryInterval, retry)
-	condition := conditions.FindStatusCondition(dashboard, conditionMaaSConsumerPortalAvailable)
+	retry := r.reconcileMaaSPortalOperand(ctx, dashboard, cm, nil, false)
+	assert.Equal(t, maasPortalRetryInterval, retry)
+	condition := conditions.FindStatusCondition(dashboard, conditionMaaSPortalAvailable)
 	require.NotNil(t, condition)
 	assert.Equal(t, metav1.ConditionFalse, condition.Status)
 	assert.Equal(t, "MaaSConsumerPortalFederationConfigMapFailed", condition.Reason)

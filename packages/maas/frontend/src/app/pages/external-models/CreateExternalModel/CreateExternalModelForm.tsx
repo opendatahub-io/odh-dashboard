@@ -125,7 +125,10 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
   const showZeroTotalWeightWarning = hasZeroTotalProviderRefWeight(providerRefs);
 
   const isSubmitDisabled =
-    nameDescData.name.trim() === '' || providerRefs.length === 0 || isSubmitting;
+    nameDescData.name.trim() === '' ||
+    providerRefs.length === 0 ||
+    isSubmitting ||
+    !isK8sNameDescriptionDataValid(nameDescData);
 
   const handleSubmit = async () => {
     setProviderRefsTouched(true);

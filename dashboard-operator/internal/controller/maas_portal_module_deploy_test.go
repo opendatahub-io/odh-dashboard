@@ -19,7 +19,7 @@ import (
 	ctrlpkg "github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
 )
 
-func TestBuildMaaSConsumerPortalFederationConfigMap(t *testing.T) {
+func TestBuildMaaSPortalFederationConfigMap(t *testing.T) {
 	scheme := testScheme(t)
 	reconciler := &ctrlpkg.DashboardReconciler{
 		Client:                fake.NewClientBuilder().WithScheme(scheme).Build(),
@@ -31,7 +31,7 @@ func TestBuildMaaSConsumerPortalFederationConfigMap(t *testing.T) {
 	statuses["maas"] = v1alpha1.ModuleStatus{Phase: v1alpha1.ModulePhaseDegraded}
 	statuses["genAi"] = v1alpha1.ModuleStatus{Phase: v1alpha1.ModulePhaseDisabled}
 
-	configMap, err := ctrlpkg.BuildMaaSConsumerPortalFederationConfigMap(reconciler, statuses, nil)
+	configMap, err := ctrlpkg.BuildMaaSPortalFederationConfigMap(reconciler, statuses, nil)
 	require.NoError(t, err)
 	assert.Equal(t, "maas-consumer-portal-federation-config", configMap.Name)
 	assert.Equal(t, "maas-consumer-portal", configMap.Labels["platform.opendatahub.io/part-of"])
@@ -45,10 +45,10 @@ func TestBuildMaaSConsumerPortalFederationConfigMap(t *testing.T) {
 	assert.Equal(t, "/maas/api", entries[0]["proxy"].([]any)[0].(map[string]any)["path"])
 }
 
-func TestBuildMaaSConsumerPortalFederationConfigMap_IncludesHealthyDependencies(t *testing.T) {
+func TestBuildMaaSPortalFederationConfigMap_IncludesHealthyDependencies(t *testing.T) {
 	scheme := testScheme(t)
 	reconciler := &ctrlpkg.DashboardReconciler{Client: fake.NewClientBuilder().WithScheme(scheme).Build(), Scheme: scheme, Platform: cluster.OpenDataHub, ApplicationsNamespace: testNamespace}
-	configMap, err := ctrlpkg.BuildMaaSConsumerPortalFederationConfigMap(reconciler, allDeployedStatuses(), nil)
+	configMap, err := ctrlpkg.BuildMaaSPortalFederationConfigMap(reconciler, allDeployedStatuses(), nil)
 	require.NoError(t, err)
 	var entries []map[string]any
 	require.NoError(t, json.Unmarshal([]byte(configMap.Data["module-federation-config.json"]), &entries))
@@ -59,14 +59,14 @@ func TestBuildMaaSConsumerPortalFederationConfigMap_IncludesHealthyDependencies(
 	assert.Equal(t, float64(8243), entries[1]["service"].(map[string]any)["port"])
 }
 
-func TestBuildMaaSConsumerPortalFederationConfigMap_IncludesPersesWhenConfigured(t *testing.T) {
+func TestBuildMaaSPortalFederationConfigMap_IncludesPersesWhenConfigured(t *testing.T) {
 	scheme := testScheme(t)
 	reconciler := &ctrlpkg.DashboardReconciler{Client: fake.NewClientBuilder().WithScheme(scheme).Build(), Scheme: scheme, Platform: cluster.OpenDataHub, ApplicationsNamespace: testNamespace}
 	observability := &v1alpha1.ObservabilitySpec{
 		Enabled:       true,
 		PersesService: &v1alpha1.ServiceTarget{Name: "perses", Namespace: "observability", Port: 8080},
 	}
-	configMap, err := ctrlpkg.BuildMaaSConsumerPortalFederationConfigMap(reconciler, allDeployedStatuses(), observability)
+	configMap, err := ctrlpkg.BuildMaaSPortalFederationConfigMap(reconciler, allDeployedStatuses(), observability)
 	require.NoError(t, err)
 
 	var entries []map[string]any
@@ -79,14 +79,14 @@ func TestBuildMaaSConsumerPortalFederationConfigMap_IncludesPersesWhenConfigured
 	assert.Equal(t, "perses", proxy["service"].(map[string]any)["name"])
 }
 
-func TestBuildMaaSConsumerPortalFederationConfigMap_OmitsPersesWhenObservabilityIsDisabled(t *testing.T) {
+func TestBuildMaaSPortalFederationConfigMap_OmitsPersesWhenObservabilityIsDisabled(t *testing.T) {
 	scheme := testScheme(t)
 	reconciler := &ctrlpkg.DashboardReconciler{Client: fake.NewClientBuilder().WithScheme(scheme).Build(), Scheme: scheme, Platform: cluster.OpenDataHub, ApplicationsNamespace: testNamespace}
 	observability := &v1alpha1.ObservabilitySpec{
 		Enabled:       false,
 		PersesService: &v1alpha1.ServiceTarget{Name: "perses", Namespace: "observability", Port: 8080},
 	}
-	configMap, err := ctrlpkg.BuildMaaSConsumerPortalFederationConfigMap(reconciler, allDeployedStatuses(), observability)
+	configMap, err := ctrlpkg.BuildMaaSPortalFederationConfigMap(reconciler, allDeployedStatuses(), observability)
 	require.NoError(t, err)
 
 	var entries []map[string]any
@@ -99,29 +99,29 @@ func TestBuildMaaSConsumerPortalFederationConfigMap_OmitsPersesWhenObservability
 	assert.NotContains(t, entryNames, "perses")
 }
 
-func TestDeployMaaSConsumerPortalFederationConfigMap_RemovedDeletesConfigMap(t *testing.T) {
+func TestDeployMaaSPortalFederationConfigMap_RemovedDeletesConfigMap(t *testing.T) {
 	scheme := testScheme(t)
 	configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "maas-consumer-portal-federation-config", Namespace: testNamespace}}
 	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(configMap).Build()
 	reconciler := &ctrlpkg.DashboardReconciler{Client: client, Scheme: scheme, ApplicationsNamespace: testNamespace}
-	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Removed"}}}
-	require.NoError(t, reconciler.DeployMaaSConsumerPortalFederationConfigMap(context.Background(), dashboard, nil))
+	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Removed"}}}
+	require.NoError(t, reconciler.DeployMaaSPortalFederationConfigMap(context.Background(), dashboard, nil))
 	assert.Error(t, client.Get(context.Background(), types.NamespacedName{Name: configMap.Name, Namespace: testNamespace}, &corev1.ConfigMap{}))
 }
 
-func TestDeployMaaSConsumerPortalFederationConfigMap_ManagedCreatesConfigMap(t *testing.T) {
+func TestDeployMaaSPortalFederationConfigMap_ManagedCreatesConfigMap(t *testing.T) {
 	scheme := testScheme(t)
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 	reconciler := &ctrlpkg.DashboardReconciler{Client: client, Scheme: scheme, Platform: cluster.SelfManagedRhoai, ApplicationsNamespace: testNamespace}
 	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"}}}
-	require.NoError(t, reconciler.DeployMaaSConsumerPortalFederationConfigMap(context.Background(), dashboard, allDeployedStatuses()))
+	require.NoError(t, reconciler.DeployMaaSPortalFederationConfigMap(context.Background(), dashboard, allDeployedStatuses()))
 	configMap := &corev1.ConfigMap{}
 	require.NoError(t, client.Get(context.Background(), types.NamespacedName{Name: "maas-consumer-portal-federation-config", Namespace: testNamespace}, configMap))
 	assert.Equal(t, "maas-consumer-portal", configMap.Labels["platform.opendatahub.io/part-of"])
 	assert.NotEmpty(t, configMap.Data["module-federation-config.json"])
 }
 
-func TestDeployMaaSConsumerPortalFederationConfigMap_DoesNotPatchDeployment(t *testing.T) {
+func TestDeployMaaSPortalFederationConfigMap_DoesNotPatchDeployment(t *testing.T) {
 	scheme := testScheme(t)
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{Name: "maas-consumer-portal", Namespace: testNamespace},
@@ -129,15 +129,15 @@ func TestDeployMaaSConsumerPortalFederationConfigMap_DoesNotPatchDeployment(t *t
 	}
 	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(deployment).Build()
 	reconciler := &ctrlpkg.DashboardReconciler{Client: client, Scheme: scheme, Platform: cluster.SelfManagedRhoai, ApplicationsNamespace: testNamespace}
-	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"}}}
+	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"}}}
 
-	require.NoError(t, reconciler.DeployMaaSConsumerPortalFederationConfigMap(context.Background(), dashboard, allDeployedStatuses()))
+	require.NoError(t, reconciler.DeployMaaSPortalFederationConfigMap(context.Background(), dashboard, allDeployedStatuses()))
 	updated := &appsv1.Deployment{}
 	require.NoError(t, client.Get(context.Background(), types.NamespacedName{Name: deployment.Name, Namespace: deployment.Namespace}, updated))
 	assert.Empty(t, updated.Spec.Template.Annotations)
 }
 
-func TestPatchMaaSConsumerPortalDeploymentFederationHash(t *testing.T) {
+func TestPatchMaaSPortalDeploymentFederationHash(t *testing.T) {
 	const annotation = "dashboard.opendatahub.io/maas-consumer-portal-federation-config-hash"
 	newDeployment := func(annotations map[string]string) *appsv1.Deployment {
 		return &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "maas-consumer-portal", Namespace: testNamespace}, Spec: appsv1.DeploymentSpec{Template: corev1.PodTemplateSpec{ObjectMeta: metav1.ObjectMeta{Annotations: annotations}}}}
@@ -156,7 +156,7 @@ func TestPatchMaaSConsumerPortalDeploymentFederationHash(t *testing.T) {
 			}
 			client := builder.Build()
 			reconciler := &ctrlpkg.DashboardReconciler{Client: client, Scheme: scheme, ApplicationsNamespace: testNamespace}
-			require.NoError(t, reconciler.PatchMaaSConsumerPortalDeploymentFederationHash(context.Background(), tt.data))
+			require.NoError(t, reconciler.PatchMaaSPortalDeploymentFederationHash(context.Background(), tt.data))
 			if tt.name == "does not fail when deployment is absent" {
 				return
 			}

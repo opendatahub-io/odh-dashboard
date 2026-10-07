@@ -481,7 +481,10 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 			ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
 			MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
 		},
-		Status: v1alpha1.DashboardStatus{MaaSConsumerPortalURL: "https://previous.example.com/"},
+		Status: v1alpha1.DashboardStatus{
+			MaaSPortalURL:         "https://previous.example.com/",
+			MaaSConsumerPortalURL: "https://previous.example.com/",
+		},
 	}
 	cli := fake.NewClientBuilder().
 		WithScheme(scheme).
@@ -509,6 +512,7 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 	assert.Equal(t, metav1.ConditionFalse, condition.Status)
 	assert.Equal(t, "ModuleDeployFailed", condition.Reason)
 	assert.Equal(t, "https://previous.example.com/", updated.Status.MaaSPortalURL)
+	assert.Equal(t, "https://previous.example.com/", updated.Status.MaaSConsumerPortalURL)
 }
 
 func TestReconcile_Deletion(t *testing.T) {

@@ -27,7 +27,6 @@ type ConnectionsTableRowProps = {
   kebabActions: IAction[];
   showCompatibilityCell?: boolean;
   showConnectedResourcesCell?: boolean;
-  showStatusCell?: boolean;
   showWarningIcon?: boolean;
   onEditConnection?: (connection: Connection) => void;
   isTesting?: boolean;
@@ -42,7 +41,6 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
   kebabActions,
   showCompatibilityCell = true,
   showConnectedResourcesCell = true,
-  showStatusCell = true,
   showWarningIcon = false,
   onEditConnection,
   isTesting = false,
@@ -112,11 +110,9 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
           <ConnectedResources connection={obj} />
         </Td>
       )}
-      {showStatusCell && (
-        <Td dataLabel="Status" data-testid="connection-status-cell">
-          <ConnectionTestStatusLabel status={connectionStatus} timestamp={connectionTimestamp} />
-        </Td>
-      )}
+      <Td dataLabel="Status" data-testid="connection-status-cell">
+        <ConnectionTestStatusLabel status={connectionStatus} timestamp={connectionTimestamp} />
+      </Td>
       <Td isActionCell>
         <ActionsColumn items={kebabActions} />
       </Td>
