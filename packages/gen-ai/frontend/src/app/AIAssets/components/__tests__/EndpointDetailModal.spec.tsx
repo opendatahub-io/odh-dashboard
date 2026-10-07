@@ -1,26 +1,12 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { MemoryRouter } from 'react-router-dom';
+import EndpointDetailModal, {
+  buildModelUsageExample,
+} from '~/app/AIAssets/components/EndpointDetailModal';
 import type { AIModel } from '~/app/types';
-import EndpointDetailModal from '~/app/AIAssets/components/EndpointDetailModal';
-
-const mockGenerateToken = jest.fn();
-const mockResetToken = jest.fn();
-
-jest.mock('~/app/hooks/useGenerateMaaSToken', () => ({
-  __esModule: true,
-  default: () => mockUseGenerateMaaSToken(),
-}));
-
-let mockUseGenerateMaaSToken: jest.Mock = jest.fn(() => ({
-  isGenerating: false,
-  tokenData: null,
-  error: null,
-  generateToken: mockGenerateToken,
-  resetToken: mockResetToken,
-}));
 
 jest.mock('~/app/utilities/utils', () => ({
   copyToClipboardWithTracking: jest.fn(),
@@ -49,20 +35,8 @@ const renderModal = (model: AIModel, onClose = jest.fn()) =>
   );
 
 describe('EndpointDetailModal', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockUseGenerateMaaSToken = jest.fn(() => ({
-      isGenerating: false,
-      tokenData: null,
-      error: null,
-      generateToken: mockGenerateToken,
-      resetToken: mockResetToken,
-    }));
-  });
-
-  it('should render modal with title and description', () => {
-    const model = createMockModel({ internalEndpoint: 'http://internal' });
-    renderModal(model);
+  it('should render the modal title and description', () => {
+    renderModal(createMockModel({ internalEndpoint: 'http://internal' }));
 
     expect(screen.getByText('Endpoints')).toBeInTheDocument();
     expect(
@@ -70,412 +44,152 @@ describe('EndpointDetailModal', () => {
     ).toBeInTheDocument();
   });
 
-  it('should call onClose when Close button is clicked', () => {
+  it('should call onClose when the close icon is clicked', () => {
     const onClose = jest.fn();
-    const model = createMockModel({ internalEndpoint: 'http://internal' });
-    renderModal(model, onClose);
+    renderModal(createMockModel({ internalEndpoint: 'http://internal' }), onClose);
 
-    fireEvent.click(screen.getByTestId('endpoint-modal-close'));
-    expect(mockResetToken).toHaveBeenCalled();
-    expect(onClose).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  describe('External API endpoint', () => {
-    it('should show external endpoint when available', () => {
-      const model = createMockModel({
-        externalEndpoint: 'https://api.example.com/models/test/v1',
-      });
-      renderModal(model);
-
-      expect(screen.getByText('External API endpoint')).toBeInTheDocument();
-      expect(screen.getByTestId('endpoint-modal-external-url')).toBeInTheDocument();
-      expect(
-        screen.getByText('Use this endpoint to access the model from outside the cluster.'),
-      ).toBeInTheDocument();
-    });
-
-    it('should not show external endpoint when not available', () => {
-      const model = createMockModel({ internalEndpoint: 'http://internal' });
-      renderModal(model);
-
-      expect(screen.queryByText('External API endpoint')).not.toBeInTheDocument();
-    });
-  });
-
-  describe('Internal API endpoint', () => {
-    it('should show internal endpoint when available', () => {
-      const model = createMockModel({
-        internalEndpoint: 'http://test-model.ns.svc.cluster.local:8080/v1',
-      });
-      renderModal(model);
-
-      expect(screen.getByText('Internal API endpoint')).toBeInTheDocument();
-      expect(screen.getByTestId('endpoint-modal-internal-url')).toBeInTheDocument();
-      expect(
-        screen.getByText('Use this endpoint to access the model from within the cluster.'),
-      ).toBeInTheDocument();
-    });
-
-    it('should not show internal endpoint when not available', () => {
-      const model = createMockModel({
-        externalEndpoint: 'https://api.example.com/models/test/v1',
-      });
-      renderModal(model);
-
-      expect(screen.queryByText('Internal API endpoint')).not.toBeInTheDocument();
-    });
-  });
-
-  describe('MaaS models', () => {
-    const defaultSubscriptions = [{ name: 'test-sub', displayName: 'Test Sub' }];
-
-    it('should show both endpoints and API key section for MaaS models', () => {
-      const model = createMockModel({
+  it('should show Base URL, Model ID, and a usage example for MaaS models', () => {
+    renderModal(
+      createMockModel({
         model_source_type: 'maas',
         externalEndpoint: 'https://api.example.com/models/test/v1',
-        internalEndpoint: 'http://test-model.ns.svc.cluster.local:8080/v1',
-        subscriptions: defaultSubscriptions,
-      });
-      renderModal(model);
+        subscriptions: [
+          {
+            name: 'limited',
+            displayName: 'Limited',
+            description: 'Lightweight access limited to smaller models.',
+          },
+          {
+            name: 'standard',
+            displayName: 'Standard',
+          },
+        ],
+      }),
+    );
 
-      expect(screen.getByText('External API endpoint')).toBeInTheDocument();
-      expect(screen.getByText('Internal API endpoint')).toBeInTheDocument();
-      expect(screen.getByText('Temporary API key')).toBeInTheDocument();
-      expect(screen.getByText(/Create permanent API keys from the/)).toBeInTheDocument();
-      expect(screen.getByTestId('endpoint-modal-generate-api-key')).toBeInTheDocument();
-    });
-
-    it('should not show API key section for non-MaaS models', () => {
-      const model = createMockModel({
-        internalEndpoint: 'http://internal',
-      });
-      renderModal(model);
-
-      expect(screen.queryByText('Temporary API key')).not.toBeInTheDocument();
-    });
-
-    it('should call generateToken when Generate API Key button is clicked', () => {
-      const model = createMockModel({
-        model_source_type: 'maas',
-        externalEndpoint: 'https://api.example.com/v1',
-        subscriptions: defaultSubscriptions,
-      });
-      renderModal(model);
-
-      fireEvent.click(screen.getByTestId('endpoint-modal-generate-api-key'));
-      expect(mockGenerateToken).toHaveBeenCalledWith(undefined, 'test-sub');
-    });
-
-    it('should show generated token with alert when token is available', () => {
-      mockUseGenerateMaaSToken = jest.fn(() => ({
-        isGenerating: false,
-        tokenData: { key: 'generated-token-123' },
-        error: null,
-        generateToken: mockGenerateToken,
-        resetToken: mockResetToken,
-      }));
-
-      const model = createMockModel({
-        model_source_type: 'maas',
-        externalEndpoint: 'https://api.example.com/v1',
-        subscriptions: defaultSubscriptions,
-      });
-      renderModal(model);
-
-      expect(screen.getByText('Copy your temporary key')).toBeInTheDocument();
-      expect(screen.getByText(/This key will expire in 1 hour/)).toBeInTheDocument();
-      expect(screen.getByTestId('endpoint-modal-api-key-input')).toBeInTheDocument();
-      expect(screen.queryByTestId('endpoint-modal-generate-api-key')).not.toBeInTheDocument();
-    });
-
-    it('should show error alert when token generation fails', () => {
-      mockUseGenerateMaaSToken = jest.fn(() => ({
-        isGenerating: false,
-        tokenData: null,
-        error: 'Failed to generate token',
-        generateToken: mockGenerateToken,
-        resetToken: mockResetToken,
-      }));
-
-      const model = createMockModel({
-        model_source_type: 'maas',
-        externalEndpoint: 'https://api.example.com/v1',
-        subscriptions: defaultSubscriptions,
-      });
-      renderModal(model);
-
-      expect(screen.getByText('Error generating API key')).toBeInTheDocument();
-      expect(screen.getByText('Failed to generate token')).toBeInTheDocument();
-    });
-
-    it('should disable Generate button while generating', () => {
-      mockUseGenerateMaaSToken = jest.fn(() => ({
-        isGenerating: true,
-        tokenData: null,
-        error: null,
-        generateToken: mockGenerateToken,
-        resetToken: mockResetToken,
-      }));
-
-      const model = createMockModel({
-        model_source_type: 'maas',
-        externalEndpoint: 'https://api.example.com/v1',
-        subscriptions: defaultSubscriptions,
-      });
-      renderModal(model);
-
-      expect(screen.getByTestId('endpoint-modal-generate-api-key')).toBeDisabled();
-    });
-
-    describe('Subscriptions', () => {
-      it('should show subscription dropdown above Generate API key button when subscriptions are available', () => {
-        const model = createMockModel({
-          model_source_type: 'maas',
-          externalEndpoint: 'https://api.example.com/v1',
-          subscriptions: [
-            {
-              name: 'basic-subscription',
-              displayName: 'Basic Subscription',
-              description: 'Basic subscription',
-            },
-            {
-              name: 'premium-subscription',
-              displayName: 'Premium Subscription',
-              description: 'Premium subscription',
-            },
-          ],
-        });
-        renderModal(model);
-
-        expect(screen.getByText('Subscription')).toBeInTheDocument();
-        expect(screen.getByTestId('endpoint-modal-subscription-select')).toBeInTheDocument();
-        expect(screen.getByTestId('endpoint-modal-generate-api-key')).toBeInTheDocument();
-      });
-
-      it('should select first subscription by default', () => {
-        const model = createMockModel({
-          model_source_type: 'maas',
-          externalEndpoint: 'https://api.example.com/v1',
-          subscriptions: [
-            {
-              name: 'basic-subscription',
-              displayName: 'Basic Subscription',
-              description: 'Basic subscription',
-            },
-          ],
-        });
-        renderModal(model);
-
-        const selectButton = screen.getByTestId('endpoint-modal-subscription-select');
-        expect(selectButton).toHaveTextContent('Basic Subscription');
-      });
-
-      it('should call generateToken with selected subscription when button is clicked', () => {
-        const model = createMockModel({
-          model_source_type: 'maas',
-          externalEndpoint: 'https://api.example.com/v1',
-          subscriptions: [
-            {
-              name: 'premium-subscription',
-              displayName: 'Premium Subscription',
-              description: 'Premium subscription',
-            },
-          ],
-        });
-        renderModal(model);
-
-        fireEvent.click(screen.getByTestId('endpoint-modal-generate-api-key'));
-        expect(mockGenerateToken).toHaveBeenCalledWith(undefined, 'premium-subscription');
-      });
-
-      it('should not show subscription dropdown for non-MaaS models', () => {
-        const model = createMockModel({
-          model_source_type: 'namespace',
-          internalEndpoint: 'http://internal',
-        });
-        renderModal(model);
-
-        expect(screen.queryByTestId('endpoint-modal-subscription-select')).not.toBeInTheDocument();
-      });
-
-      it('should change subscription selection when user selects different option', () => {
-        const model = createMockModel({
-          model_source_type: 'maas',
-          externalEndpoint: 'https://api.example.com/v1',
-          subscriptions: [
-            {
-              name: 'basic-subscription',
-              displayName: 'Basic Subscription',
-              description: 'Basic subscription',
-            },
-            {
-              name: 'premium-subscription',
-              displayName: 'Premium Subscription',
-              description: 'Premium subscription',
-            },
-          ],
-        });
-        renderModal(model);
-
-        const selectButton = screen.getByTestId('endpoint-modal-subscription-select');
-
-        // Default is first subscription
-        expect(selectButton).toHaveTextContent('Basic Subscription');
-
-        // Open the dropdown and select premium
-        fireEvent.click(selectButton);
-        const premiumOption = screen.getByText('Premium Subscription');
-        fireEvent.click(premiumOption);
-
-        expect(selectButton).toHaveTextContent('Premium Subscription');
-      });
-
-      it('should reset token when subscription is changed', () => {
-        mockUseGenerateMaaSToken = jest.fn(() => ({
-          isGenerating: false,
-          tokenData: { key: 'existing-key', expiresAt: '2026-12-31T00:00:00Z' },
-          error: null,
-          generateToken: mockGenerateToken,
-          resetToken: mockResetToken,
-        }));
-
-        const model = createMockModel({
-          model_source_type: 'maas',
-          externalEndpoint: 'https://api.example.com/v1',
-          subscriptions: [
-            {
-              name: 'basic-subscription',
-              displayName: 'Basic Subscription',
-              description: 'Basic subscription',
-            },
-            {
-              name: 'premium-subscription',
-              displayName: 'Premium Subscription',
-              description: 'Premium subscription',
-            },
-          ],
-        });
-        renderModal(model);
-
-        fireEvent.click(screen.getByTestId('endpoint-modal-subscription-select'));
-        fireEvent.click(screen.getByText('Premium Subscription'));
-
-        expect(mockResetToken).toHaveBeenCalled();
-      });
-
-      it('should pass changed subscription to generateToken', () => {
-        const model = createMockModel({
-          model_source_type: 'maas',
-          externalEndpoint: 'https://api.example.com/v1',
-          subscriptions: [
-            {
-              name: 'basic-subscription',
-              displayName: 'Basic Subscription',
-              description: 'Basic subscription',
-            },
-            {
-              name: 'premium-subscription',
-              displayName: 'Premium Subscription',
-              description: 'Premium subscription',
-            },
-          ],
-        });
-        renderModal(model);
-
-        // Change from default (basic) to premium
-        fireEvent.click(screen.getByTestId('endpoint-modal-subscription-select'));
-        fireEvent.click(screen.getByText('Premium Subscription'));
-
-        // Generate with the changed subscription
-        fireEvent.click(screen.getByTestId('endpoint-modal-generate-api-key'));
-        expect(mockGenerateToken).toHaveBeenCalledWith(undefined, 'premium-subscription');
-      });
-
-      it('should keep subscription dropdown visible after token is generated', () => {
-        mockUseGenerateMaaSToken = jest.fn(() => ({
-          isGenerating: false,
-          tokenData: { key: 'generated-token-123' },
-          error: null,
-          generateToken: mockGenerateToken,
-          resetToken: mockResetToken,
-        }));
-
-        const model = createMockModel({
-          model_source_type: 'maas',
-          externalEndpoint: 'https://api.example.com/v1',
-          subscriptions: [
-            {
-              name: 'basic-subscription',
-              displayName: 'Basic Subscription',
-              description: 'Basic subscription',
-            },
-          ],
-        });
-        renderModal(model);
-
-        // Subscription dropdown should remain visible when token is present
-        expect(screen.getByTestId('endpoint-modal-subscription-select')).toBeInTheDocument();
-        expect(screen.getByTestId('endpoint-modal-subscription-select')).toHaveTextContent(
-          'Basic Subscription',
-        );
-      });
-
-      it('should show alert when no subscriptions are available', () => {
-        const model = createMockModel({
-          model_source_type: 'maas',
-          externalEndpoint: 'https://api.example.com/v1',
-          subscriptions: [],
-        });
-        renderModal(model);
-
-        expect(
-          screen.getByText(/You don't have any subscriptions for this model/),
-        ).toBeInTheDocument();
-        expect(
-          screen.getByText(/Contact your administrator to request access/),
-        ).toBeInTheDocument();
-        expect(screen.queryByText('Authentication')).not.toBeInTheDocument();
-        expect(screen.queryByText('Generate API key')).not.toBeInTheDocument();
-      });
-    });
+    expect(screen.getByText('Base URL')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('https://api.example.com/models/test/v1')).toBeInTheDocument();
+    expect(screen.getByText('Use this base URL for requests to MaaS models.')).toBeInTheDocument();
+    expect(screen.getByText('Model ID')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('test-model-id')).toBeInTheDocument();
+    expect(screen.getByText(/Use this exact identifier in the/)).toBeInTheDocument();
+    expect(screen.getByText('Authentication')).toBeInTheDocument();
+    expect(
+      screen.getByText(/To authenticate requests to this model, use an existing API key/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/The API key must be scoped to a subscription that includes this model/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'API keys' })).toHaveAttribute('href', '/maas/tokens');
+    const subscriptionsToggle = screen.getByRole('button', { name: 'View subscriptions' });
+    expect(subscriptionsToggle).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(subscriptionsToggle);
+    expect(screen.getByTestId('endpoint-modal-subscriptions-table')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Limited' })).toHaveAttribute(
+      'href',
+      '/maas/maas-governance/subscriptions/view/limited',
+    );
+    expect(screen.getByText('limited')).toBeInTheDocument();
+    expect(screen.getByText('Lightweight access limited to smaller models.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Standard' })).toHaveAttribute(
+      'href',
+      '/maas/maas-governance/subscriptions/view/standard',
+    );
+    expect(screen.getByText('standard')).toBeInTheDocument();
+    expect(screen.getByText('-')).toBeInTheDocument();
+    expect(screen.getByText('Usage example')).toBeInTheDocument();
+    expect(screen.getByText(/export API_KEY="<your-api-key>"/)).toBeInTheDocument();
+    expect(screen.getByText(/Authorization: Bearer \$API_KEY/)).toBeInTheDocument();
+    expect(screen.getByText(/Set/)).toBeInTheDocument();
+    expect(screen.queryByText('External API endpoint')).not.toBeInTheDocument();
+    expect(screen.queryByText('Internal API endpoint')).not.toBeInTheDocument();
   });
 
-  describe('Field matrix per model source', () => {
-    it('should show only internal endpoint for Internal models', () => {
-      const model = createMockModel({
-        model_source_type: 'namespace',
-        internalEndpoint: 'http://granite-7b.ns.svc.cluster.local:8080/v1',
-      });
-      renderModal(model);
+  it('should show internal connection details and OpenShift token authentication for namespace models', () => {
+    renderModal(createMockModel({ internalEndpoint: 'http://internal' }));
 
-      expect(screen.queryByText('External API endpoint')).not.toBeInTheDocument();
-      expect(screen.getByText('Internal API endpoint')).toBeInTheDocument();
-      expect(screen.queryByText('Temporary API key')).not.toBeInTheDocument();
-    });
+    expect(screen.getByText('Base URL')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('http://internal')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Use this base URL for requests to the model. Internal endpoints must be accessed from within the cluster.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Model ID')).toBeInTheDocument();
+    expect(screen.getByText('Authentication')).toBeInTheDocument();
+    expect(screen.getByText(/Use an OpenShift token to authenticate requests/)).toBeInTheDocument();
+    expect(screen.getByText('Usage example')).toBeInTheDocument();
+    expect(screen.getByText(/export TOKEN="<your-openshift-token>"/)).toBeInTheDocument();
+    expect(screen.getByText(/Authorization: Bearer \$TOKEN/)).toBeInTheDocument();
+    expect(
+      screen.getAllByText(
+        (_, element) =>
+          element?.textContent === 'Set TOKEN to an OpenShift token before running this command.',
+      ),
+    ).not.toHaveLength(0);
+  });
 
-    it('should show both endpoints for Internal models with external route', () => {
-      const model = createMockModel({
-        model_source_type: 'namespace',
-        externalEndpoint: 'https://api.example.com/models/mistral/v1',
-        internalEndpoint: 'http://mistral-7b.ns.svc.cluster.local:8080/v1',
-      });
-      renderModal(model);
-
-      expect(screen.getByText('External API endpoint')).toBeInTheDocument();
-      expect(screen.getByText('Internal API endpoint')).toBeInTheDocument();
-      expect(screen.queryByText('Temporary API key')).not.toBeInTheDocument();
-    });
-
-    it('should show only external endpoint for Custom endpoint models', () => {
-      const model = createMockModel({
+  it('should show connection details and authentication guidance for custom endpoints', () => {
+    renderModal(
+      createMockModel({
         model_source_type: 'custom_endpoint',
-        externalEndpoint: 'https://api.custom-endpoint.com/v1',
-      });
-      renderModal(model);
+        externalEndpoint: 'https://api.example.com/v1',
+      }),
+    );
 
-      expect(screen.getByText('External API endpoint')).toBeInTheDocument();
-      expect(screen.queryByText('Internal API endpoint')).not.toBeInTheDocument();
-      expect(screen.queryByText('Temporary API key')).not.toBeInTheDocument();
-    });
+    expect(screen.getByText('Base URL')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Use this base URL for requests to the model. Internal endpoints must be accessed from within the cluster.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Model ID')).toBeInTheDocument();
+    expect(screen.getByText('Authentication')).toBeInTheDocument();
+    expect(screen.getByText(/Use the API key for the underlying model/)).toBeInTheDocument();
+    expect(screen.getByText('Usage example')).toBeInTheDocument();
+    expect(screen.queryByText('External API endpoint')).not.toBeInTheDocument();
+  });
+
+  it('should create an embeddings usage example for embedding models', () => {
+    expect(
+      buildModelUsageExample(
+        'https://api.example.com/maas-api',
+        'embed-model',
+        'embedding',
+        'apiKey',
+      ),
+    ).toContain("curl -X POST 'https://api.example.com/maas-api/v1/embeddings'");
+    expect(
+      buildModelUsageExample(
+        'https://api.example.com/maas-api',
+        'embed-model',
+        'embedding',
+        'apiKey',
+      ),
+    ).toContain('"input":"Hello, world!"');
+  });
+
+  it('should create a chat completions usage example for LLM models', () => {
+    expect(
+      buildModelUsageExample('https://api.example.com/maas-api', 'chat-model', 'llm', 'apiKey'),
+    ).toContain("curl -X POST 'https://api.example.com/maas-api/v1/chat/completions'");
+    expect(
+      buildModelUsageExample('https://api.example.com/maas-api', 'chat-model', 'llm', 'apiKey'),
+    ).toContain('"messages":[{"role":"user","content":"Hello, world!"}]');
+  });
+
+  it('should not duplicate the API version when the Base URL already ends in /v1', () => {
+    expect(
+      buildModelUsageExample('https://api.example.com/v1', 'chat-model', 'llm', 'apiKey'),
+    ).toContain("curl -X POST 'https://api.example.com/v1/chat/completions'");
+  });
+
+  it('should omit a usage example for an invalid Base URL', () => {
+    expect(buildModelUsageExample('ftp://api.example.com', 'chat-model', 'llm', 'apiKey')).toBe('');
   });
 });

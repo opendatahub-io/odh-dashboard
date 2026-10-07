@@ -1,94 +1,99 @@
 import * as React from 'react';
 import {
-  Alert,
-  AlertVariant,
-  Button,
-  ButtonVariant,
   ClipboardCopy,
+  ClipboardCopyButton,
+  CodeBlock,
+  CodeBlockAction,
+  CodeBlockCode,
   Content,
   ContentVariants,
+  ExpandableSection,
   Flex,
   FlexItem,
-  FormGroup,
-  InputGroup,
-  InputGroupItem,
   Label,
-  MenuToggle,
-  MenuToggleElement,
   Modal,
   ModalBody,
-  ModalFooter,
   ModalHeader,
   ModalVariant,
-  Select,
-  SelectList,
-  SelectOption,
-  Spinner,
-  TextInput,
-  Tooltip,
 } from '@patternfly/react-core';
-import {
-  CheckCircleIcon,
-  CopyIcon,
-  EyeIcon,
-  EyeSlashIcon,
-  InfoCircleIcon,
-  TimesIcon,
-} from '@patternfly/react-icons';
+import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
-import { AIModel, SubscriptionInfo } from '~/app/types';
-import useGenerateMaaSToken from '~/app/hooks/useGenerateMaaSToken';
-import { copyToClipboardWithTracking } from '~/app/utilities/utils';
+import { AIModel } from '~/app/types';
 import { maasTokensPath } from '~/app/utilities/routes';
+import { copyToClipboardWithTracking } from '~/app/utilities/utils';
 
 type EndpointDetailModalProps = {
   model: AIModel;
   onClose: () => void;
 };
 
+export const buildModelUsageExample = (
+  baseURL: string | undefined,
+  modelID: string,
+  modelType: AIModel['model_type'],
+  authenticationType: 'apiKey' | 'openshiftToken',
+): string => {
+  if (!baseURL) {
+    return '';
+  }
+
+  try {
+    const requestURL = new URL(baseURL);
+    if (requestURL.protocol !== 'http:' && requestURL.protocol !== 'https:') {
+      return '';
+    }
+
+    const isEmbedding = modelType === 'embedding';
+    requestURL.search = '';
+    requestURL.hash = '';
+    const basePath = requestURL.pathname.replace(/\/$/, '');
+    const apiVersionPath = basePath.endsWith('/v1') ? basePath : `${basePath}/v1`;
+    requestURL.pathname = `${apiVersionPath}/${isEmbedding ? 'embeddings' : 'chat/completions'}`;
+
+    const requestBody = isEmbedding
+      ? { model: modelID, input: 'Hello, world!' }
+      : { model: modelID, messages: [{ role: 'user', content: 'Hello, world!' }] };
+    const shellSafeURL = requestURL.toString().replaceAll("'", "'\"'\"'");
+    const shellSafeBody = JSON.stringify(requestBody).replaceAll("'", "'\"'\"'");
+
+    const authenticationLines =
+      authenticationType === 'apiKey'
+        ? ['export API_KEY="<your-api-key>"', '', '  -H "Authorization: Bearer $API_KEY" \\']
+        : ['export TOKEN="<your-openshift-token>"', '', '  -H "Authorization: Bearer $TOKEN" \\'];
+
+    return [
+      ...authenticationLines.slice(0, 2),
+      `curl -X POST '${shellSafeURL}' \\`,
+      '  -H "Content-Type: application/json" \\',
+      ...authenticationLines.slice(2),
+      `  -d '${shellSafeBody}'`,
+    ].join('\n');
+  } catch {
+    return '';
+  }
+};
+
 const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClose }) => {
   const hasExternal = !!model.externalEndpoint;
   const hasInternal = !!model.internalEndpoint;
   const isMaaS = model.model_source_type === 'maas';
-
-  const { isGenerating, tokenData, error, generateToken, resetToken } = useGenerateMaaSToken();
-
-  // Get subscriptions from model data (included in /maas/models response)
-  const subscriptions = React.useMemo(
-    () => (isMaaS && model.subscriptions ? model.subscriptions : []),
-    [isMaaS, model.subscriptions],
-  );
-
-  const [selectedSubscription, setSelectedSubscription] = React.useState<string>(
-    subscriptions.length > 0 ? subscriptions[0].name : '',
-  );
-  const [isSubscriptionSelectOpen, setIsSubscriptionSelectOpen] = React.useState(false);
-  const [isKeyVisible, setIsKeyVisible] = React.useState(false);
-  const [isKeyCopied, setIsKeyCopied] = React.useState(false);
-  const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Update selected subscription when subscriptions change
-  React.useEffect(() => {
-    if (subscriptions.length > 0) {
-      setSelectedSubscription(subscriptions[0].name);
-    } else {
-      setSelectedSubscription('');
-    }
-  }, [subscriptions]);
-
-  // Cleanup timeout on unmount
-  React.useEffect(
-    () => () => {
-      if (copyTimeoutRef.current) {
-        clearTimeout(copyTimeoutRef.current);
-      }
-    },
-    [],
-  );
-
-  const selectedSubscriptionObj = subscriptions.find(
-    (sub: SubscriptionInfo) => sub.name === selectedSubscription,
-  );
+  const isCustomEndpoint = model.model_source_type === 'custom_endpoint';
+  const isNamespaceModel = model.model_source_type === 'namespace';
+  const showConnectionDetails = isMaaS || isCustomEndpoint || isNamespaceModel;
+  const subscriptions = isMaaS ? (model.subscriptions ?? []) : [];
+  const [isSubscriptionsExpanded, setIsSubscriptionsExpanded] = React.useState(false);
+  const modelID = model.id ?? model.model_id;
+  const baseURL = isNamespaceModel
+    ? (model.internalEndpoint ?? model.externalEndpoint)
+    : model.externalEndpoint;
+  const usageExample = showConnectionDetails
+    ? buildModelUsageExample(
+        baseURL,
+        modelID,
+        model.model_type,
+        isNamespaceModel ? 'openshiftToken' : 'apiKey',
+      )
+    : '';
 
   const handleEndpointCopy = (endpoint: string, endpointType: 'external' | 'internal') =>
     copyToClipboardWithTracking(endpoint, 'Available Endpoints Endpoint Copied', {
@@ -99,40 +104,10 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
       endpointSource: model.model_source_type,
     });
 
-  const handleClose = () => {
-    resetToken();
-    setIsKeyVisible(false);
-    setIsKeyCopied(false);
-    onClose();
-  };
-
-  const handleClearKey = () => {
-    resetToken();
-    setIsKeyVisible(false);
-    setIsKeyCopied(false);
-  };
-
-  const handleCopyKey = () => {
-    if (tokenData) {
-      copyToClipboardWithTracking(tokenData.key, 'Available Endpoints Service Token Copied', {
-        assetType: 'maas_model',
-        copyTarget: 'service_token',
-      });
-      setIsKeyCopied(true);
-      // Clear any existing timeout to prevent multiple timers
-      if (copyTimeoutRef.current) {
-        clearTimeout(copyTimeoutRef.current);
-      }
-      copyTimeoutRef.current = setTimeout(() => {
-        setIsKeyCopied(false);
-      }, 2000);
-    }
-  };
-
   return (
     <Modal
       isOpen
-      onClose={handleClose}
+      onClose={onClose}
       variant={ModalVariant.medium}
       aria-label="Endpoints"
       data-testid="endpoint-detail-modal"
@@ -157,7 +132,44 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
             </Content>
           </FlexItem>
 
-          {hasExternal && (
+          {showConnectionDetails && baseURL && (
+            <FlexItem>
+              <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
+                <FlexItem>
+                  <Content
+                    component={ContentVariants.p}
+                    style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+                  >
+                    Base URL
+                  </Content>
+                </FlexItem>
+                <FlexItem>
+                  <ClipboardCopy
+                    isReadOnly
+                    data-testid="endpoint-modal-base-url"
+                    hoverTip="Copy URL"
+                    clickTip="Copied"
+                    aria-label={`Base URL for ${model.model_name}`}
+                    onCopy={() => handleEndpointCopy(baseURL, 'external')}
+                  >
+                    {baseURL}
+                  </ClipboardCopy>
+                </FlexItem>
+                <FlexItem>
+                  <Content
+                    component={ContentVariants.small}
+                    style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
+                  >
+                    {isMaaS
+                      ? 'Use this base URL for requests to MaaS models.'
+                      : 'Use this base URL for requests to the model. Internal endpoints must be accessed from within the cluster.'}
+                  </Content>
+                </FlexItem>
+              </Flex>
+            </FlexItem>
+          )}
+
+          {!showConnectionDetails && hasExternal && (
             <FlexItem>
               <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
                 <FlexItem>
@@ -192,7 +204,7 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
             </FlexItem>
           )}
 
-          {hasInternal && (
+          {!showConnectionDetails && hasInternal && (
             <FlexItem>
               <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
                 <FlexItem>
@@ -227,9 +239,95 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
             </FlexItem>
           )}
 
-          {isMaaS && subscriptions.length > 0 && (
+          {showConnectionDetails && (
             <FlexItem>
-              <Flex direction={{ default: 'column' }}>
+              <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
+                <FlexItem>
+                  <Content
+                    component={ContentVariants.p}
+                    style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+                  >
+                    Model ID
+                  </Content>
+                </FlexItem>
+                <FlexItem>
+                  <ClipboardCopy
+                    isReadOnly
+                    isCode
+                    data-testid="endpoint-modal-model-id"
+                    hoverTip="Copy model ID"
+                    clickTip="Copied"
+                    aria-label={`Model ID for ${model.model_name}`}
+                  >
+                    {modelID}
+                  </ClipboardCopy>
+                </FlexItem>
+                <FlexItem>
+                  <Content
+                    component={ContentVariants.small}
+                    style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
+                  >
+                    Use this exact identifier in the <code>model</code> field of your API request.
+                  </Content>
+                </FlexItem>
+              </Flex>
+            </FlexItem>
+          )}
+
+          {showConnectionDetails && usageExample && (
+            <FlexItem>
+              <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
+                <FlexItem>
+                  <Content
+                    component={ContentVariants.p}
+                    style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+                  >
+                    Usage example
+                  </Content>
+                </FlexItem>
+                <FlexItem>
+                  <CodeBlock
+                    actions={
+                      <CodeBlockAction>
+                        <ClipboardCopyButton
+                          id={`model-${modelID}-usage-example-copy`}
+                          aria-label="Copy usage example"
+                          onClick={() =>
+                            void navigator.clipboard.writeText(usageExample).catch(() => undefined)
+                          }
+                          variant="plain"
+                        >
+                          Copy
+                        </ClipboardCopyButton>
+                      </CodeBlockAction>
+                    }
+                  >
+                    <CodeBlockCode>{usageExample}</CodeBlockCode>
+                  </CodeBlock>
+                </FlexItem>
+                <FlexItem>
+                  <Content
+                    component={ContentVariants.small}
+                    style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
+                  >
+                    {isNamespaceModel ? (
+                      <>
+                        Set <code>TOKEN</code> to an OpenShift token before running this command.
+                      </>
+                    ) : (
+                      <>
+                        Set <code>API_KEY</code> to an existing API key before running this command.
+                      </>
+                    )}
+                  </Content>
+                </FlexItem>
+              </Flex>
+            </FlexItem>
+          )}
+
+          {showConnectionDetails && (
+            <FlexItem>
+              <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
                 <FlexItem>
                   <Content
                     component={ContentVariants.p}
@@ -239,204 +337,70 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
                   </Content>
                 </FlexItem>
                 <FlexItem>
-                  <Content component={ContentVariants.small}>
-                    To authenticate requests to this model, select a subscription, then generate a
-                    temporary API key.
-                  </Content>
+                  {isMaaS ? (
+                    <Content component={ContentVariants.small}>
+                      To authenticate requests to this model, use an existing API key or create a
+                      new one from the <Link to={maasTokensPath}>API keys</Link> page. The API key
+                      must be scoped to a subscription that includes this model.
+                    </Content>
+                  ) : isCustomEndpoint ? (
+                    <Content component={ContentVariants.small}>
+                      Use the API key for the underlying model that was provided when this endpoint
+                      was created.
+                    </Content>
+                  ) : (
+                    <Content component={ContentVariants.small}>
+                      Use an OpenShift token to authenticate requests to this model.
+                    </Content>
+                  )}
                 </FlexItem>
-
-                <FlexItem>
-                  <Content
-                    component={ContentVariants.p}
-                    style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-                  >
-                    Subscription
-                  </Content>
-                </FlexItem>
-                <FlexItem>
-                  <FormGroup fieldId="subscription-select">
-                    <Select
-                      isOpen={isSubscriptionSelectOpen}
-                      selected={selectedSubscription}
-                      onSelect={(_event, value) => {
-                        if (typeof value === 'string' && value !== selectedSubscription) {
-                          setSelectedSubscription(value);
-                          resetToken();
-                          setIsKeyVisible(false);
-                          setIsKeyCopied(false);
-                        }
-                        setIsSubscriptionSelectOpen(false);
-                      }}
-                      onOpenChange={(isOpen) => setIsSubscriptionSelectOpen(isOpen)}
-                      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                        <MenuToggle
-                          ref={toggleRef}
-                          onClick={() => setIsSubscriptionSelectOpen(!isSubscriptionSelectOpen)}
-                          isExpanded={isSubscriptionSelectOpen}
-                          isFullWidth
-                          data-testid="endpoint-modal-subscription-select"
-                        >
-                          {selectedSubscriptionObj?.displayName ||
-                            selectedSubscriptionObj?.name ||
-                            'Select a subscription'}
-                        </MenuToggle>
-                      )}
-                    >
-                      <SelectList>
-                        {subscriptions.map((sub: SubscriptionInfo) => (
-                          <SelectOption
-                            key={sub.name}
-                            value={sub.name}
-                            description={
-                              <span
-                                style={{
-                                  fontSize: 'var(--pf-t--global--font--size--body--sm)',
-                                  color: 'var(--pf-t--global--text--color--subtle)',
-                                }}
-                              >
-                                {sub.name}
-                              </span>
-                            }
-                          >
-                            {sub.displayName || sub.name}
-                          </SelectOption>
-                        ))}
-                      </SelectList>
-                    </Select>
-                  </FormGroup>
-                </FlexItem>
-
-                <FlexItem>
-                  <Content
-                    component={ContentVariants.p}
-                    style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-                  >
-                    Temporary API key
-                  </Content>
-                </FlexItem>
-
-                {!tokenData ? (
-                  <>
-                    <FlexItem>
-                      <Button
-                        data-testid="endpoint-modal-generate-api-key"
-                        variant={ButtonVariant.secondary}
-                        isDisabled={isGenerating}
-                        onClick={() => generateToken(undefined, selectedSubscription || undefined)}
-                        icon={isGenerating ? <Spinner size="sm" /> : undefined}
-                      >
-                        Generate API key
-                      </Button>
-                    </FlexItem>
-
-                    <FlexItem>
-                      <Content component={ContentVariants.small}>
-                        Create permanent API keys from the <Link to={maasTokensPath}>API keys</Link>{' '}
-                        page.
-                      </Content>
-                    </FlexItem>
-                  </>
-                ) : (
-                  <>
-                    <FlexItem>
-                      <Alert
-                        variant={AlertVariant.info}
-                        title="Copy your temporary key"
-                        isInline
-                        customIcon={<InfoCircleIcon />}
-                      >
-                        This key will expire in 1 hour, and will never appear in your API keys list.
-                        You can create permanent API keys from the{' '}
-                        <Link to={maasTokensPath}>API keys</Link> page.
-                      </Alert>
-                    </FlexItem>
-                    <FlexItem>
-                      <InputGroup>
-                        <InputGroupItem isFill>
-                          <TextInput
-                            type={isKeyVisible ? 'text' : 'password'}
-                            value={tokenData.key}
-                            readOnlyVariant="default"
-                            aria-label="Generated MaaS API key"
-                            data-testid="endpoint-modal-api-key-input"
-                          />
-                        </InputGroupItem>
-                        <InputGroupItem>
-                          <Tooltip content={isKeyVisible ? 'Hide key' : 'Show key'}>
-                            <Button
-                              variant={ButtonVariant.control}
-                              onClick={() => setIsKeyVisible(!isKeyVisible)}
-                              aria-label={isKeyVisible ? 'Hide key' : 'Show key'}
-                              data-testid="endpoint-modal-api-key-toggle"
-                            >
-                              {isKeyVisible ? <EyeSlashIcon /> : <EyeIcon />}
-                            </Button>
-                          </Tooltip>
-                        </InputGroupItem>
-                        <InputGroupItem>
-                          <Tooltip content={isKeyCopied ? 'Copied!' : 'Copy API key'}>
-                            <Button
-                              variant={ButtonVariant.control}
-                              onClick={handleCopyKey}
-                              aria-label="Copy API key"
-                              data-testid="endpoint-modal-api-key-copy"
-                            >
-                              {isKeyCopied ? <CheckCircleIcon /> : <CopyIcon />}
-                            </Button>
-                          </Tooltip>
-                        </InputGroupItem>
-                        <InputGroupItem>
-                          <Tooltip content="Clear key">
-                            <Button
-                              variant={ButtonVariant.control}
-                              onClick={handleClearKey}
-                              aria-label="Clear key"
-                              data-testid="endpoint-modal-api-key-clear"
-                            >
-                              <TimesIcon />
-                            </Button>
-                          </Tooltip>
-                        </InputGroupItem>
-                      </InputGroup>
-                    </FlexItem>
-                  </>
-                )}
-
-                {error && (
+                {subscriptions.length > 0 && (
                   <FlexItem>
-                    <Alert variant={AlertVariant.danger} title="Error generating API key" isInline>
-                      {error}
-                    </Alert>
+                    <ExpandableSection
+                      toggleText="View subscriptions"
+                      isExpanded={isSubscriptionsExpanded}
+                      onToggle={() => setIsSubscriptionsExpanded((isExpanded) => !isExpanded)}
+                    >
+                      <Table
+                        aria-label="Available subscriptions"
+                        variant="compact"
+                        data-testid="endpoint-modal-subscriptions-table"
+                      >
+                        <Thead>
+                          <Tr>
+                            <Th>Subscription</Th>
+                            <Th>Description</Th>
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          {subscriptions.map((subscription) => (
+                            <Tr key={subscription.name}>
+                              <Td dataLabel="Subscription">
+                                <Link
+                                  to={`/maas/maas-governance/subscriptions/view/${encodeURIComponent(subscription.name)}`}
+                                >
+                                  {subscription.displayName ?? subscription.name}
+                                </Link>
+                                {subscription.displayName &&
+                                  subscription.displayName !== subscription.name && (
+                                    <Content component={ContentVariants.small}>
+                                      {subscription.name}
+                                    </Content>
+                                  )}
+                              </Td>
+                              <Td dataLabel="Description">{subscription.description ?? '-'}</Td>
+                            </Tr>
+                          ))}
+                        </Tbody>
+                      </Table>
+                    </ExpandableSection>
                   </FlexItem>
                 )}
               </Flex>
             </FlexItem>
           )}
-
-          {isMaaS && subscriptions.length === 0 && (
-            <FlexItem>
-              <Alert
-                variant={AlertVariant.info}
-                title="No subscriptions available"
-                isInline
-                customIcon={<InfoCircleIcon />}
-              >
-                You don&apos;t have any subscriptions for this model. Contact your administrator to
-                request access.
-              </Alert>
-            </FlexItem>
-          )}
         </Flex>
       </ModalBody>
-      <ModalFooter>
-        <Button
-          data-testid="endpoint-modal-close"
-          variant={ButtonVariant.primary}
-          onClick={handleClose}
-        >
-          Close
-        </Button>
-      </ModalFooter>
     </Modal>
   );
 };

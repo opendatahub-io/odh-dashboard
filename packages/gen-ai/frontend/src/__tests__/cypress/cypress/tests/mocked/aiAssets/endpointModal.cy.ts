@@ -1,14 +1,11 @@
 /* eslint-disable camelcase */
 import { aiAssetsPage } from '~/__tests__/cypress/cypress/pages/aiAssetsPage';
-import { modelsTabPage, endpointModalPage } from '~/__tests__/cypress/cypress/pages/modelsTabPage';
-import {
-  setupModelsTabIntercepts,
-  setupTokenIntercept,
-} from '~/__tests__/cypress/cypress/support/helpers/modelsTab/modelsTabTestHelpers';
+import { endpointModalPage, modelsTabPage } from '~/__tests__/cypress/cypress/pages/modelsTabPage';
+import { setupModelsTabIntercepts } from '~/__tests__/cypress/cypress/support/helpers/modelsTab/modelsTabTestHelpers';
 
 const TEST_NAMESPACE = 'test-namespace';
 
-const MAAS_MODEL_WITH_SUBS = {
+const MAAS_MODEL = {
   model_id: 'granite-3-8b-instruct',
   model_name: 'Granite 3.1 8B Instruct',
   display_name: 'Granite 3.1 8B Instruct',
@@ -20,205 +17,72 @@ const MAAS_MODEL_WITH_SUBS = {
   serving_runtime: 'MaaS',
   api_protocol: 'OpenAI',
   version: '',
-
   model_source_type: 'maas' as const,
   subscriptions: [
-    { name: 'premium-team-sub', displayName: 'Premium Subscription' },
-    { name: 'basic-team-sub', displayName: 'Basic Subscription' },
+    {
+      name: 'limited',
+      displayName: 'Limited',
+      description: 'Lightweight access limited to smaller models.',
+    },
+    {
+      name: 'standard',
+      displayName: 'Standard',
+    },
   ],
 };
 
-const MAAS_MODEL_NO_SUBS = {
-  model_id: 'llama-3-8b',
-  model_name: 'Llama 3 8B',
-  display_name: 'Llama 3 8B',
-  description: 'Llama family of LLMs',
-  usecase: 'Text Generation',
-  model_type: 'llm' as const,
-  endpoints: ['external:https://llama-model.apps.cluster.com'],
-  status: 'Running',
-  serving_runtime: 'MaaS',
-  api_protocol: 'OpenAI',
-  version: '',
-
-  model_source_type: 'maas' as const,
-  subscriptions: [],
-};
-
-describe('Endpoint Detail Modal - Subscriptions', () => {
+describe('Endpoint Detail Modal - MaaS connection details', () => {
   it(
-    'should display no subscriptions alert when model has no subscriptions',
+    'should show the Base URL, Model ID, and a usage example',
     { tags: ['@GenAI', '@EndpointModal', '@AIAssets'] },
     () => {
       setupModelsTabIntercepts({
         namespace: TEST_NAMESPACE,
         aiModels: [],
-        maasModels: [MAAS_MODEL_NO_SUBS],
+        maasModels: [MAAS_MODEL],
       });
       aiAssetsPage.visit(TEST_NAMESPACE);
 
-      modelsTabPage.openEndpointModal('Llama 3 8B');
+      modelsTabPage.openEndpointModal('Granite 3.1 8B Instruct');
 
       endpointModalPage.findModal().should('exist');
-      cy.contains('Authentication').should('not.exist');
-      endpointModalPage.findSubscriptionSelect().should('not.exist');
-      endpointModalPage.findGenerateButton().should('not.exist');
-
-      cy.contains('No subscriptions available').should('exist');
-      cy.contains(
-        "You don't have any subscriptions for this model. Contact your administrator to request access.",
-      ).should('exist');
-    },
-  );
-
-  it(
-    'should show subscription dropdown with correct options',
-    { tags: ['@GenAI', '@EndpointModal', '@AIAssets'] },
-    () => {
-      setupModelsTabIntercepts({
-        namespace: TEST_NAMESPACE,
-        aiModels: [],
-        maasModels: [MAAS_MODEL_WITH_SUBS],
-      });
-      aiAssetsPage.visit(TEST_NAMESPACE);
-
-      modelsTabPage.openEndpointModal('Granite 3.1 8B Instruct');
-
-      endpointModalPage.findSubscriptionSelect().should('contain', 'Premium Subscription');
-
-      endpointModalPage.findSubscriptionSelect().click();
-      cy.contains('Premium Subscription').should('exist');
-      cy.contains('Basic Subscription').should('exist');
-      cy.contains('Basic Subscription').click();
-
-      endpointModalPage.findSubscriptionSelect().should('contain', 'Basic Subscription');
-    },
-  );
-
-  it(
-    'should handle API key generation error',
-    { tags: ['@GenAI', '@EndpointModal', '@AIAssets'] },
-    () => {
-      setupModelsTabIntercepts({
-        namespace: TEST_NAMESPACE,
-        aiModels: [],
-        maasModels: [MAAS_MODEL_WITH_SUBS],
-      });
-      setupTokenIntercept({
-        statusCode: 500,
-        body: { error: { message: 'Failed to generate token' } },
-      });
-      aiAssetsPage.visit(TEST_NAMESPACE);
-
-      modelsTabPage.openEndpointModal('Granite 3.1 8B Instruct');
-
-      endpointModalPage.findSubscriptionSelect().click();
-      cy.contains('Premium Subscription').click();
-      endpointModalPage.findGenerateButton().click();
-
-      cy.contains('Error generating API key').should('exist');
-      endpointModalPage.findApiKeyInput().should('not.exist');
-      endpointModalPage.findGenerateButton().should('exist');
-    },
-  );
-
-  it(
-    'should disable generate button while loading',
-    { tags: ['@GenAI', '@EndpointModal', '@AIAssets'] },
-    () => {
-      setupModelsTabIntercepts({
-        namespace: TEST_NAMESPACE,
-        aiModels: [],
-        maasModels: [MAAS_MODEL_WITH_SUBS],
-      });
-      setupTokenIntercept({
-        delay: 1000,
-        body: {
-          data: {
-            key: 'test-ephemeral-token-12345',
-            expiresAt: new Date(Date.now() + 3600000).toISOString(),
-          },
-        },
-      });
-      aiAssetsPage.visit(TEST_NAMESPACE);
-
-      modelsTabPage.openEndpointModal('Granite 3.1 8B Instruct');
-
-      endpointModalPage.findSubscriptionSelect().click();
-      cy.contains('Premium Subscription').click();
-      endpointModalPage.findGenerateButton().click();
-
-      endpointModalPage.findGenerateButton().should('be.disabled');
-
-      cy.findByTestId('endpoint-modal-api-key-input', { timeout: 2000 }).should('exist');
-    },
-  );
-
-  it(
-    'should reset state when modal is closed and reopened',
-    { tags: ['@GenAI', '@EndpointModal', '@AIAssets'] },
-    () => {
-      setupModelsTabIntercepts({
-        namespace: TEST_NAMESPACE,
-        aiModels: [],
-        maasModels: [MAAS_MODEL_WITH_SUBS],
-      });
-      setupTokenIntercept({
-        data: {
-          key: 'test-ephemeral-token-12345',
-          expiresAt: new Date(Date.now() + 3600000).toISOString(),
-        },
-      });
-      aiAssetsPage.visit(TEST_NAMESPACE);
-
-      modelsTabPage.openEndpointModal('Granite 3.1 8B Instruct');
-
-      endpointModalPage.findSubscriptionSelect().click();
-      cy.contains('Premium Subscription').click();
-      endpointModalPage.findGenerateButton().click();
-
-      endpointModalPage.findApiKeyInput().should('exist');
-      endpointModalPage.findApiKeyToggle().click();
-      endpointModalPage.findApiKeyInput().should('have.attr', 'type', 'text');
-
-      endpointModalPage.findCloseButton().click();
-
-      modelsTabPage.openEndpointModal('Granite 3.1 8B Instruct');
-
-      endpointModalPage.findApiKeyInput().should('not.exist');
-      endpointModalPage.findGenerateButton().should('exist');
-      endpointModalPage.findSubscriptionSelect().should('contain', 'Premium Subscription');
-    },
-  );
-
-  it(
-    'should pass selected subscription to token generation',
-    { tags: ['@GenAI', '@EndpointModal', '@AIAssets'] },
-    () => {
-      setupModelsTabIntercepts({
-        namespace: TEST_NAMESPACE,
-        aiModels: [],
-        maasModels: [MAAS_MODEL_WITH_SUBS],
-      });
-      cy.interceptGenAi('POST /api/v1/maas/tokens', {
-        data: {
-          key: 'test-token-for-basic',
-          expiresAt: new Date(Date.now() + 3600000).toISOString(),
-        },
-      }).as('generateToken');
-      aiAssetsPage.visit(TEST_NAMESPACE);
-
-      modelsTabPage.openEndpointModal('Granite 3.1 8B Instruct');
-
-      endpointModalPage.findSubscriptionSelect().click();
-      cy.contains('Basic Subscription').click();
-      endpointModalPage.findGenerateButton().click();
-
-      cy.wait('@generateToken').then((interception) => {
-        expect(interception.request.body).to.have.property('subscription', 'basic-team-sub');
-      });
-
-      endpointModalPage.findApiKeyInput().should('exist');
+      cy.contains('Base URL').should('exist');
+      cy.findByDisplayValue('https://granite-model.apps.cluster.com').should('exist');
+      cy.contains('Use this base URL for requests to MaaS models.').should('exist');
+      cy.contains('Model ID').should('exist');
+      cy.findByDisplayValue('granite-3-8b-instruct').should('exist');
+      cy.contains('Use this exact identifier in the model field of your API request.').should(
+        'exist',
+      );
+      cy.contains('Authentication').should('exist');
+      cy.contains('To authenticate requests to this model, use an existing API key').should(
+        'exist',
+      );
+      cy.findByRole('link', { name: 'API keys' }).should('have.attr', 'href', '/maas/tokens');
+      cy.findByRole('button', { name: 'View subscriptions' }).should(
+        'have.attr',
+        'aria-expanded',
+        'false',
+      );
+      cy.findByRole('button', { name: 'View subscriptions' }).click();
+      cy.findByTestId('endpoint-modal-subscriptions-table').should('exist');
+      cy.findByRole('link', { name: 'Limited' }).should(
+        'have.attr',
+        'href',
+        '/maas/maas-governance/subscriptions/view/limited',
+      );
+      cy.contains('Lightweight access limited to smaller models.').should('exist');
+      cy.findByRole('link', { name: 'Standard' }).should(
+        'have.attr',
+        'href',
+        '/maas/maas-governance/subscriptions/view/standard',
+      );
+      cy.contains('-').should('exist');
+      cy.contains('Usage example').should('exist');
+      cy.contains('export API_KEY="<your-api-key>"').should('exist');
+      cy.contains('Authorization: Bearer $API_KEY').should('exist');
+      cy.contains('Set API_KEY to an existing API key').should('exist');
+      cy.contains('X-MAAS-SUBSCRIPTION').should('not.exist');
     },
   );
 });
