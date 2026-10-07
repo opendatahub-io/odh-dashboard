@@ -849,6 +849,8 @@ class ObservabilityDashboardPage {
     );
     return (
       isAggregateQuery &&
+      contractMatchers.size > 0 &&
+      (!contractMetric || hasPromqlMetricToken(request.query, contractMetric)) &&
       [...contractMatchers.entries()].every(
         ([label, operator]) =>
           requestMatchers.has(label) && requestMatchers.get(label) === operator,
