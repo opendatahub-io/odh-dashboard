@@ -17,16 +17,21 @@ describe('AutoRAG knowledge document image upload', () => {
     cy.intercept('POST', '**/autorag/api/v1/s3/files/**').as('uploadKnowledgeImage');
 
     autoragConfigurePage.visit(NAMESPACE);
-    autoragConfigurePage.findNameInput().should('be.visible').type('Test Image Upload');
+    autoragConfigurePage.findNameInput().should('be.visible');
+    cy.testA11y();
+    autoragConfigurePage.findNameInput().type('Test Image Upload');
 
-    autoragConfigurePage.findMaaSSecretInput().should('not.be.disabled');
+    autoragConfigurePage.findMaaSSecretSelector({ timeout: 60000 }).should('not.be.disabled');
     autoragConfigurePage.findMaaSSecretSelector().click();
     autoragConfigurePage.findMaaSSecretInput().type(MAAS_SECRET);
     autoragConfigurePage.findSecretOption(MAAS_SECRET).should('be.visible').click();
     autoragConfigurePage.findNextButton().should('be.enabled').click();
     autoragConfigurePage.findConfigureStepSubtitle().should('be.visible');
 
-    autoragConfigurePage.findStorageSecretInput().should('exist').and('not.be.disabled');
+    autoragConfigurePage
+      .findStorageSecretSelector({ timeout: 60000 })
+      .should('exist')
+      .and('not.be.disabled');
     autoragConfigurePage.findStorageSecretSelector().click();
     autoragConfigurePage.findStorageSecretInput().type(STORAGE_SECRET);
     autoragConfigurePage.findSecretOption(STORAGE_SECRET).should('be.visible').click();

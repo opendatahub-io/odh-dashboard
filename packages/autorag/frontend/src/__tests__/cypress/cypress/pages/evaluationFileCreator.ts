@@ -116,16 +116,16 @@ class AutoragConfigurePage {
     return cy.findByTestId('configure-step-subtitle');
   }
 
-  findMaaSSecretSelector() {
-    return cy.findByTestId('maas-secret-selector');
+  findMaaSSecretSelector(options?: { timeout?: number }) {
+    return cy.findByTestId('maas-secret-selector', options);
   }
 
   findMaaSSecretInput() {
     return this.findMaaSSecretSelector().find('input');
   }
 
-  findStorageSecretSelector() {
-    return cy.findByTestId('aws-secret-selector');
+  findStorageSecretSelector(options?: { timeout?: number }) {
+    return cy.findByTestId('aws-secret-selector', options);
   }
 
   findStorageSecretInput() {
