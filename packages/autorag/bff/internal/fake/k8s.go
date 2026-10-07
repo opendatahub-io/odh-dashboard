@@ -114,7 +114,19 @@ var fakeSecrets = map[string][]v1.Secret{
 				UID:       "6b2f6d38-4e2d-5b2c-ad8f-8e7f9c0b1a2e",
 			},
 			Data: map[string][]byte{
-				"MILVUS_URI": []byte("https://milvus.example.com:19530"),
+				"MILVUS_URI":     []byte("https://milvus.example.com:19530"),
+				"MILVUS_CA_CERT": []byte("canonical-ca-certificate"),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "legacy-milvus",
+				Namespace: "my-project",
+				UID:       "8d4h8f5a-6g4h-7d4e-cf0g-0g9h1e2d3c4g",
+			},
+			Data: map[string][]byte{
+				"MILVUS_URI":         []byte("https://milvus.example.com:19530"),
+				"MILVUS_SERVER_CERT": []byte("legacy-certificate"),
 			},
 		},
 		{
@@ -122,6 +134,17 @@ var fakeSecrets = map[string][]v1.Secret{
 				Name:      "neo4j",
 				Namespace: "my-project",
 				UID:       "7c3g7e49-5f3f-6c3d-be9f-9f8g0d1c2b3f",
+			},
+			Data: map[string][]byte{
+				"NEO4J_URI":      []byte("neo4j://neo4j.example.com:7687"),
+				"NEO4J_PASSWORD": []byte("fake-neo4j-password"),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "neo4j-uri-only",
+				Namespace: "my-project",
+				UID:       "9e5i9g6b-7h5i-8e5f-dg1h-1h0i2f3e4d5h",
 			},
 			Data: map[string][]byte{
 				"NEO4J_URI": []byte("neo4j://neo4j.example.com:7687"),

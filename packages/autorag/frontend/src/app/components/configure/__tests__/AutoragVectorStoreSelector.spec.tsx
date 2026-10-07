@@ -58,7 +58,10 @@ jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
           onChange({
             uuid: provider === 'neo4j' ? 'neo4j-1' : 'vector-db-1',
             name: provider === 'neo4j' ? 'neo4j-secret' : 'vector-db-secret',
-            data: provider === 'neo4j' ? { NEO4J_URI: 'neo4j://example' } : {},
+            data:
+              provider === 'neo4j'
+                ? { NEO4J_URI: 'neo4j://example', NEO4J_PASSWORD: '[REDACTED]' }
+                : {},
             invalid: false,
           })
         }

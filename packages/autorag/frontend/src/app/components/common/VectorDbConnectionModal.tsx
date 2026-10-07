@@ -21,6 +21,11 @@ import K8sNameDescriptionField, {
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { useCreateSecretMutation } from '@odh-dashboard/autox-core/ui/hooks';
+import {
+  parseVectorDbConnection,
+  type VectorDbConnectionFields,
+  type VectorDbProvider,
+} from '~/app/schemas/vectorDbConnection.schema';
 
 type Props = {
   namespace: string;
@@ -30,44 +35,14 @@ type Props = {
   onSubmit: (secretName: string) => void | Promise<void>;
 };
 
-type Provider = 'milvus' | 'pgvector' | 'neo4j';
-
-const isValidUri = (value: string): boolean => {
-  try {
-    const parsed = new URL(value.trim());
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-  } catch {
-    return false;
-  }
-};
-
-const isValidNeo4jUri = (value: string): boolean => {
-  try {
-    const parsed = new URL(value.trim());
-    return (
-      Boolean(parsed.hostname) &&
-      ['neo4j:', 'neo4j+s:', 'bolt:', 'bolt+s:'].includes(parsed.protocol)
-    );
-  } catch {
-    return false;
-  }
-};
-
-const isValidPgVectorPort = (value: string): boolean => {
-  if (!/^\d+$/.test(value.trim())) {
-    return false;
-  }
-  const port = Number(value);
-  return Number.isInteger(port) && port >= 1 && port <= 65535;
-};
+type Provider = VectorDbProvider;
 
 const NEO4J_OPTIONAL_FIELDS: ReadonlyArray<{
-  key: 'NEO4J_USERNAME' | 'NEO4J_PASSWORD' | 'NEO4J_DATABASE';
+  key: 'NEO4J_USERNAME' | 'NEO4J_DATABASE';
   label: string;
   type: 'text' | 'password';
 }> = [
   { key: 'NEO4J_USERNAME', label: 'Username', type: 'text' },
-  { key: 'NEO4J_PASSWORD', label: 'Password', type: 'password' },
   { key: 'NEO4J_DATABASE', label: 'Database', type: 'text' },
 ];
 
@@ -82,32 +57,21 @@ const VectorDbConnectionModal: React.FC<Props> = ({
   const [provider, setProvider] = React.useState<Provider>(() =>
     allowedProviders.includes(initialProvider) ? initialProvider : allowedProviders[0],
   );
-  const [fields, setFields] = React.useState<Partial<Record<string, string>>>({});
-  const [uriTouched, setUriTouched] = React.useState(false);
+  const [fields, setFields] = React.useState<VectorDbConnectionFields>({});
   const [submitError, setSubmitError] = React.useState<Error>();
   const [isSaving, setIsSaving] = React.useState(false);
   const createdSecretRef = React.useRef<SecretKind>();
   const createSecretMutation = useCreateSecretMutation();
 
   const getField = (key: string): string => fields[key] ?? '';
-  const uri = getField(provider === 'neo4j' ? 'NEO4J_URI' : 'MILVUS_URI');
-  const uriValid = provider === 'neo4j' ? isValidNeo4jUri(uri) : isValidUri(uri);
-  const showUriError = uriTouched && uri.trim() !== '' && !uriValid;
-  const pgVectorPortValid = isValidPgVectorPort(getField('PGVECTOR_PORT'));
-  const isFormValid = Boolean(
-    isK8sNameDescriptionDataValid(nameDescData) &&
-    (provider === 'milvus'
-      ? uriValid
-      : provider === 'neo4j'
-        ? uriValid
-        : [
-            'PGVECTOR_HOST',
-            'PGVECTOR_PORT',
-            'PGVECTOR_DB',
-            'PGVECTOR_USER',
-            'PGVECTOR_PASSWORD',
-          ].every((key) => getField(key).trim() !== '') && pgVectorPortValid),
-  );
+  const validationResult = parseVectorDbConnection(provider, fields);
+  const getFieldError = (key: string): string | undefined =>
+    validationResult.success
+      ? undefined
+      : validationResult.error.issues.find((issue) => issue.path[0] === key)?.message;
+  const isFormValid = isK8sNameDescriptionDataValid(nameDescData) && validationResult.success;
+  const uriKey = provider === 'neo4j' ? 'NEO4J_URI' : 'MILVUS_URI';
+  const uri = getField(uriKey);
 
   const setField = (key: string, value: string) => {
     setFields((previous) => ({ ...previous, [key]: value }));
@@ -116,41 +80,22 @@ const VectorDbConnectionModal: React.FC<Props> = ({
   const handleProviderChange = (nextProvider: Provider) => {
     setProvider(nextProvider);
     setFields({});
-    setUriTouched(false);
   };
 
   const handleSubmit = async () => {
+    const parsed = parseVectorDbConnection(provider, fields);
+    if (!parsed.success || !isK8sNameDescriptionDataValid(nameDescData)) {
+      return;
+    }
     setIsSaving(true);
     setSubmitError(undefined);
     const k8sName = nameDescData.k8sName.value;
-    const stringData: Record<string, string> =
-      provider === 'milvus'
-        ? { MILVUS_URI: getField('MILVUS_URI').trim() }
-        : provider === 'neo4j'
-          ? { NEO4J_URI: getField('NEO4J_URI').trim() }
-          : {
-              PGVECTOR_HOST: getField('PGVECTOR_HOST').trim(),
-              PGVECTOR_PORT: getField('PGVECTOR_PORT').trim(),
-              PGVECTOR_DB: getField('PGVECTOR_DB').trim(),
-              PGVECTOR_USER: getField('PGVECTOR_USER').trim(),
-              PGVECTOR_PASSWORD: getField('PGVECTOR_PASSWORD').trim(),
-            };
-    if (provider === 'milvus') {
-      if (getField('MILVUS_TOKEN').trim()) {
-        stringData.MILVUS_TOKEN = getField('MILVUS_TOKEN').trim();
-      }
-      if (getField('MILVUS_SERVER_CERT').trim()) {
-        stringData.MILVUS_SERVER_CERT = getField('MILVUS_SERVER_CERT').trim();
-      }
-    }
-    if (provider === 'neo4j') {
-      for (const key of ['NEO4J_USERNAME', 'NEO4J_PASSWORD', 'NEO4J_DATABASE'] as const) {
-        const value = getField(key);
-        if (value.trim()) {
-          stringData[key] = key === 'NEO4J_PASSWORD' ? value : value.trim();
-        }
-      }
-    }
+    const stringData = Object.fromEntries(
+      Object.entries(parsed.data).reduce<Array<[string, string]>>(
+        (entries, [key, value]) => (value ? [...entries, [key, value]] : entries),
+        [],
+      ),
+    );
 
     const secret: SecretKind = {
       apiVersion: 'v1',
@@ -252,18 +197,12 @@ const VectorDbConnectionModal: React.FC<Props> = ({
                   data-testid="milvus-uri-input"
                   value={uri}
                   onChange={(_event, value) => setField('MILVUS_URI', value)}
-                  onBlur={() => {
-                    setUriTouched(true);
-                    setField('MILVUS_URI', uri.trim());
-                  }}
-                  validated={showUriError ? 'error' : 'default'}
+                  validated={getFieldError('MILVUS_URI') ? 'error' : 'default'}
                 />
                 <FormHelperText>
                   <HelperText>
-                    <HelperTextItem variant={showUriError ? 'error' : 'default'}>
-                      {showUriError
-                        ? 'Enter a valid HTTP or HTTPS URI.'
-                        : 'The Milvus service URI.'}
+                    <HelperTextItem variant={getFieldError('MILVUS_URI') ? 'error' : 'default'}>
+                      {getFieldError('MILVUS_URI') || 'The Milvus service URI.'}
                     </HelperTextItem>
                   </HelperText>
                 </FormHelperText>
@@ -278,14 +217,33 @@ const VectorDbConnectionModal: React.FC<Props> = ({
                   ariaLabelHide="Hide token"
                 />
               </FormGroup>
-              <FormGroup fieldId="milvus-server-cert" label="Server certificate">
+              <FormGroup fieldId="milvus-ca-cert" label="CA certificate">
                 <TextArea
-                  id="milvus-server-cert"
-                  data-testid="milvus-server-cert-input"
-                  value={getField('MILVUS_SERVER_CERT')}
-                  onChange={(_event, value) => setField('MILVUS_SERVER_CERT', value)}
+                  id="milvus-ca-cert"
+                  data-testid="milvus-ca-cert-input"
+                  value={getField('MILVUS_CA_CERT')}
+                  onChange={(_event, value) => setField('MILVUS_CA_CERT', value)}
+                  validated={getFieldError('MILVUS_CA_CERT') ? 'error' : 'default'}
                 />
+                {getFieldError('MILVUS_CA_CERT') && (
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem variant="error">
+                        {getFieldError('MILVUS_CA_CERT')}
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                )}
               </FormGroup>
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem>
+                    Example Secret: MILVUS_URI=https://milvus.example.com, with optional
+                    MILVUS_TOKEN and MILVUS_CA_CERT. The CA certificate verifies TLS connections;
+                    enter certificate text as-is.
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
             </>
           )}
           {provider === 'pgvector' &&
@@ -318,7 +276,15 @@ const VectorDbConnectionModal: React.FC<Props> = ({
                     }
                     value={getField(key)}
                     onChange={(_event, value) => setField(key, value)}
+                    validated={getFieldError(key) ? 'error' : 'default'}
                   />
+                  {getFieldError(key) && (
+                    <FormHelperText>
+                      <HelperText>
+                        <HelperTextItem variant="error">{getFieldError(key)}</HelperTextItem>
+                      </HelperText>
+                    </FormHelperText>
+                  )}
                   {fieldName === 'HOST' && (
                     <FormHelperText>
                       <HelperText>
@@ -331,6 +297,38 @@ const VectorDbConnectionModal: React.FC<Props> = ({
                 </FormGroup>
               );
             })}
+          {provider === 'pgvector' && (
+            <>
+              <FormGroup fieldId="pgvector-ca-cert" label="CA certificate">
+                <TextArea
+                  id="pgvector-ca-cert"
+                  data-testid="pgvector-ca-cert-input"
+                  value={getField('PGVECTOR_CA_CERT')}
+                  onChange={(_event, value) => setField('PGVECTOR_CA_CERT', value)}
+                  validated={getFieldError('PGVECTOR_CA_CERT') ? 'error' : 'default'}
+                />
+                {getFieldError('PGVECTOR_CA_CERT') && (
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem variant="error">
+                        {getFieldError('PGVECTOR_CA_CERT')}
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                )}
+              </FormGroup>
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem>
+                    Example Secret: PGVECTOR_HOST=postgres.example.com, PGVECTOR_PORT=5432,
+                    PGVECTOR_DB=rag, PGVECTOR_USER=rag-user, and PGVECTOR_PASSWORD=&lt;password&gt;,
+                    with optional PGVECTOR_CA_CERT. The CA certificate verifies TLS connections;
+                    enter certificate text as-is.
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            </>
+          )}
           {provider === 'neo4j' && (
             <>
               <FormGroup fieldId="neo4j-uri" label="URI" isRequired>
@@ -339,18 +337,13 @@ const VectorDbConnectionModal: React.FC<Props> = ({
                   data-testid="neo4j-uri-input"
                   value={uri}
                   onChange={(_event, value) => setField('NEO4J_URI', value)}
-                  onBlur={() => {
-                    setUriTouched(true);
-                    setField('NEO4J_URI', uri.trim());
-                  }}
-                  validated={showUriError ? 'error' : 'default'}
+                  validated={getFieldError('NEO4J_URI') ? 'error' : 'default'}
                 />
                 <FormHelperText>
                   <HelperText>
-                    <HelperTextItem variant={showUriError ? 'error' : 'default'}>
-                      {showUriError
-                        ? 'Enter a valid neo4j://, neo4j+s://, bolt://, or bolt+s:// URI.'
-                        : 'The Neo4j service URI (neo4j://, neo4j+s://, bolt://, or bolt+s://).'}
+                    <HelperTextItem variant={getFieldError('NEO4J_URI') ? 'error' : 'default'}>
+                      {getFieldError('NEO4J_URI') ||
+                        'The Neo4j service URI (neo4j://, neo4j+s://, bolt://, or bolt+s://).'}
                     </HelperTextItem>
                   </HelperText>
                 </FormHelperText>
@@ -366,6 +359,54 @@ const VectorDbConnectionModal: React.FC<Props> = ({
                   />
                 </FormGroup>
               ))}
+              <FormGroup fieldId="neo4j-password" label="Password" isRequired>
+                <TextInput
+                  id="neo4j-password"
+                  data-testid="neo4j-password-input"
+                  type="password"
+                  value={getField('NEO4J_PASSWORD')}
+                  onChange={(_event, value) => setField('NEO4J_PASSWORD', value)}
+                  validated={getFieldError('NEO4J_PASSWORD') ? 'error' : 'default'}
+                />
+                {getFieldError('NEO4J_PASSWORD') && (
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem variant="error">
+                        {getFieldError('NEO4J_PASSWORD')}
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                )}
+              </FormGroup>
+              <FormGroup fieldId="neo4j-ca-cert" label="CA certificate">
+                <TextArea
+                  id="neo4j-ca-cert"
+                  data-testid="neo4j-ca-cert-input"
+                  value={getField('NEO4J_CA_CERT')}
+                  onChange={(_event, value) => setField('NEO4J_CA_CERT', value)}
+                  validated={getFieldError('NEO4J_CA_CERT') ? 'error' : 'default'}
+                />
+                {getFieldError('NEO4J_CA_CERT') && (
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem variant="error">
+                        {getFieldError('NEO4J_CA_CERT')}
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                )}
+              </FormGroup>
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem>
+                    Example Secret: NEO4J_URI=neo4j://neo4j.example.com:7687 and
+                    NEO4J_PASSWORD=&lt;password&gt;, with optional NEO4J_USERNAME, NEO4J_DATABASE,
+                    and NEO4J_CA_CERT. Omitted username defaults to neo4j and omitted database
+                    defaults to the server default. The CA certificate verifies TLS connections;
+                    enter certificate text as-is.
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
             </>
           )}
         </Form>

@@ -97,8 +97,8 @@ paths:
             - 'storage': Filters for storage secrets (e.g., S3 secrets with classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT)
             - 'ogx': Filters for Open GenAI Stack secrets (classification keys: OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL)
             - 'maas': Filters for hosted MaaS secrets (classification keys: MAAS_BASE_URL, MAAS_API_KEY)
-            - 'vector-db': Filters for the union of Milvus (MILVUS_URI) and PGVector credential keys
-            - 'database': Filters for database credentials; use provider to narrow to milvus, pgvector, or neo4j
+            - 'vector-db': Filters for Milvus (MILVUS_URI) or complete PGVector credentials; MILVUS_SERVER_CERT is not supported
+            - 'database': Filters for complete Milvus, PGVector, or Neo4j credentials; Neo4j requires NEO4J_URI and NEO4J_PASSWORD
             - Omit for all secrets
 
             Filtering uses case-sensitive key-presence matching. A non-empty connection-type annotation may determine the returned type field after a secret matches; it does not replace the required keys for filtering.
@@ -149,8 +149,8 @@ paths:
             - 's3': AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT
             - 'ogx': OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL
             - 'maas': MAAS_BASE_URL, MAAS_API_KEY
-             - 'vector-db': MILVUS_URI, or all of PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER, PGVECTOR_PASSWORD
-             - 'database': MILVUS_URI, PGVector credentials, or NEO4J_URI
+             - 'vector-db': MILVUS_URI, or all of PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER, PGVECTOR_PASSWORD; optional CA keys are MILVUS_CA_CERT and PGVECTOR_CA_CERT
+             - 'database': MILVUS_URI, PGVector credentials, or NEO4J_URI and NEO4J_PASSWORD; optional CA keys are MILVUS_CA_CERT, PGVECTOR_CA_CERT, and NEO4J_CA_CERT
 
         Optional Keys:
         Secrets may contain additional optional keys beyond classification requirements (e.g., AWS_S3_BUCKET, AWS_DEFAULT_REGION for S3 secrets).
@@ -160,8 +160,8 @@ paths:
          - 'storage': Returns secrets containing a configured storage key set
          - 'ogx': Returns secrets containing both OGX keys
          - 'maas': Returns secrets containing both MaaS keys; empty values and extra keys are allowed
-         - 'vector-db': Returns the deduplicated union of the Milvus and PGVector key sets; empty values and mixed or extra keys are allowed
-         - 'database': Returns database secrets; provider can narrow the result to milvus, pgvector, or neo4j
+          - 'vector-db': Returns the deduplicated union of the Milvus and PGVector key sets; legacy MILVUS_SERVER_CERT shapes are excluded
+          - 'database': Returns complete database secrets; provider can narrow the result to milvus, pgvector, or neo4j
         - No type: Returns all secrets with their detected type classification
   /api/v1/secret/{name}:
     summary: Path used to retrieve credential data from a named secret.
@@ -1035,6 +1035,48 @@ components:
                   example: ['OGX_CLIENT_API_KEY', 'OGX_CLIENT_BASE_URL']
                 commonOptionalKeys:
                   example: []
+        vector-db:
+          allOf:
+            - $ref: '#/components/schemas/SecretTypeSchema'
+            - type: object
+              properties:
+                classificationKeys:
+                  description: >-
+                    One of the supported provider key sets: Milvus requires MILVUS_URI;
+                    PGVector requires PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER,
+                    and PGVECTOR_PASSWORD. Secrets containing the unsupported legacy
+                    MILVUS_SERVER_CERT key are excluded.
+                  example: ['MILVUS_URI']
+                commonOptionalKeys:
+                  description: >-
+                    Milvus may include MILVUS_TOKEN and MILVUS_CA_CERT. PGVector may include
+                    PGVECTOR_CA_CERT. These keys are optional and do not replace classification keys.
+                  example: ['MILVUS_TOKEN', 'MILVUS_CA_CERT', 'PGVECTOR_CA_CERT']
+        database:
+          allOf:
+            - $ref: '#/components/schemas/SecretTypeSchema'
+            - type: object
+              properties:
+                classificationKeys:
+                  description: >-
+                    One of the supported provider key sets: Milvus requires MILVUS_URI;
+                    PGVector requires PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER,
+                    and PGVECTOR_PASSWORD; Neo4j requires NEO4J_URI and NEO4J_PASSWORD.
+                  example: ['NEO4J_URI', 'NEO4J_PASSWORD']
+                commonOptionalKeys:
+                  description: >-
+                    Milvus may include MILVUS_TOKEN and MILVUS_CA_CERT; PGVector may include
+                    PGVECTOR_CA_CERT; Neo4j may include NEO4J_USERNAME, NEO4J_DATABASE, and
+                    NEO4J_CA_CERT. These keys are optional and do not replace classification keys.
+                  example:
+                    [
+                      'MILVUS_TOKEN',
+                      'MILVUS_CA_CERT',
+                      'PGVECTOR_CA_CERT',
+                      'NEO4J_USERNAME',
+                      'NEO4J_DATABASE',
+                      'NEO4J_CA_CERT',
+                    ]
 
     SecretListItem:
       description: A Kubernetes secret with its UUID, name, type classification, and available keys

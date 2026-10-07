@@ -279,6 +279,10 @@ func TestGetFilteredSecrets(t *testing.T) {
 			vectorDBSecret("vector-db", map[string]string{
 				"MILVUS_URI": "https://milvus.example.com",
 			}),
+			vectorDBSecret("legacy-milvus", map[string]string{
+				"MILVUS_URI":         "https://milvus.example.com",
+				"MILVUS_SERVER_CERT": "legacy-cert",
+			}),
 			mixed,
 			maasSecret("maas"),
 		}
@@ -299,12 +303,30 @@ func TestGetFilteredSecrets(t *testing.T) {
 		}
 	})
 
+	t.Run("database filters out Neo4j URI-only secrets", func(t *testing.T) {
+		k8s := &mockK8sService{
+			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
+				return []kubernetes.SecretInfo{
+					vectorDBSecret("uri-only", map[string]string{"NEO4J_URI": "neo4j://neo4j.example.com:7687"}),
+				}, nil
+			},
+		}
+		result, err := repo.GetFilteredSecretsByProvider(k8s, context.Background(), "ns", "database", "neo4j")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 0 {
+			t.Fatalf("expected URI-only Neo4j secret to be excluded, got %+v", result)
+		}
+	})
+
 	t.Run("database provider filters Neo4j credentials", func(t *testing.T) {
 		allSecrets := []kubernetes.SecretInfo{
 			vectorDBSecret("vector-db", map[string]string{"MILVUS_URI": "https://milvus.example.com"}),
 			vectorDBSecret("neo4j", map[string]string{
 				"NEO4J_URI":      "neo4j://neo4j.example.com:7687",
 				"NEO4J_USERNAME": "neo4j",
+				"NEO4J_PASSWORD": "password",
 			}),
 		}
 		k8s := &mockK8sService{
@@ -323,11 +345,13 @@ func TestGetFilteredSecrets(t *testing.T) {
 
 	t.Run("database filtering excludes mixed-provider secrets and preserves annotations", func(t *testing.T) {
 		mixed := vectorDBSecret("mixed-database", map[string]string{
-			"MILVUS_URI": "https://milvus.example.com",
-			"NEO4J_URI":  "neo4j://neo4j.example.com:7687",
+			"MILVUS_URI":     "https://milvus.example.com",
+			"NEO4J_URI":      "neo4j://neo4j.example.com:7687",
+			"NEO4J_PASSWORD": "password",
 		})
 		annotated := annotatedSecret("annotated-neo4j", "database", map[string]string{
-			"NEO4J_URI": "neo4j://neo4j.example.com:7687",
+			"NEO4J_URI":      "neo4j://neo4j.example.com:7687",
+			"NEO4J_PASSWORD": "password",
 		})
 		k8s := &mockK8sService{
 			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
