@@ -31,8 +31,10 @@ const setupIntercepts = () => {
     'GET /api/:apiVersion/evalhub/health',
     { path: API_VERSION },
     mockEvalHubHealth(),
+  ).as('evalHubHealth');
+  cy.interceptApi('GET /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, []).as(
+    'evalHubJobs',
   );
-  cy.interceptApi('GET /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, []);
   cy.interceptApi(
     'GET /api/:apiVersion/evaluations/collections',
     { path: API_VERSION },
@@ -93,6 +95,7 @@ const interceptTenantCollections = (collections: Collection[]) => {
 };
 
 const prepareRunForm = () => {
+  cy.step('Open the curated suite run form');
   evaluationsPage.findBenchmarkSuitePrimaryAction(sourceCollection.resource.id).click();
   evaluationsPage.findCuratedSuiteRunModal().should('be.visible');
   startEvaluationRunPage
@@ -102,7 +105,7 @@ const prepareRunForm = () => {
       'An unchanged copy of this benchmark suite will be reused if one already exists in your project; otherwise, it will be copied before the evaluation starts.',
     );
   startEvaluationRunPage.findModelPickerToggle().click();
-  cy.findByTestId('model-option-external').click();
+  startEvaluationRunPage.findExternalModelOption().click();
   startEvaluationRunPage.findModelNameInput().type('my-model');
   startEvaluationRunPage.findEndpointUrlInput().type('https://api.example.com/v1');
   startEvaluationRunPage.findValidateConnectionButton().click();
@@ -253,8 +256,10 @@ describe('Curated benchmark suite Run CTA', () => {
     startEvaluationRunPage.findSubmitButton().click();
 
     cy.wait(['@cloneCuratedSuite', '@createCuratedSuiteRun', '@deleteCopiedSuite']);
-    cy.findByText('Failed to start evaluation and remove copied suite').should('exist');
-    cy.findByText(/Cleanup error:/).should('exist');
+    startEvaluationRunPage
+      .findNotificationTitle('Failed to start evaluation and remove copied suite')
+      .should('exist');
+    startEvaluationRunPage.findNotificationMessage(/Cleanup error:/).should('exist');
   });
 
   it('should preserve a reused collection when run creation fails', () => {
@@ -285,7 +290,7 @@ describe('Curated benchmark suite Run CTA', () => {
 
     cy.wait('@findTenantCollections');
     cy.wait('@reusedRunFailure');
-    cy.findByText('Failed to start evaluation').should('exist');
+    startEvaluationRunPage.findNotificationTitle('Failed to start evaluation').should('exist');
     cy.get('@unexpectedClone.all').should('have.length', 0);
     cy.get('@unexpectedDelete.all').should('have.length', 0);
   });
@@ -322,7 +327,9 @@ describe('Curated benchmark suite Run CTA', () => {
     startEvaluationRunPage.findSubmitButton().click();
 
     cy.wait('@tenantCollectionsFailure');
-    cy.findByText('Failed to find existing suite copy').should('exist');
+    startEvaluationRunPage
+      .findNotificationTitle('Failed to find existing suite copy')
+      .should('exist');
     cy.get('@unexpectedClone.all').should('have.length', 0);
     cy.get('@unexpectedRun.all').should('have.length', 0);
     startEvaluationRunPage.findSubmitButton().should('be.enabled');

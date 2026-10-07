@@ -61,6 +61,10 @@ class StartEvaluationRunPage {
     return cy.findByTestId('model-picker-select');
   }
 
+  findExternalModelOption() {
+    return cy.findByTestId('model-option-external');
+  }
+
   findModelNameInput() {
     return cy.findByTestId('model-name-input');
   }
@@ -135,6 +139,14 @@ class StartEvaluationRunPage {
 
   findLoadError() {
     return cy.findByTestId('start-evaluation-load-error');
+  }
+
+  findNotificationTitle(title: string) {
+    return cy.findByText(title);
+  }
+
+  findNotificationMessage(message: string | RegExp) {
+    return cy.findByText(message);
   }
 }
 

@@ -50,9 +50,13 @@ const initIntercepts = ({
 
   cy.interceptApi('GET /api/:apiVersion/namespaces', { path: API_VERSION }, namespaces);
 
-  cy.interceptApi('GET /api/:apiVersion/evalhub/health', { path: API_VERSION }, health);
+  cy.interceptApi('GET /api/:apiVersion/evalhub/health', { path: API_VERSION }, health).as(
+    'evalHubHealth',
+  );
 
-  cy.interceptApi('GET /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, jobs);
+  cy.interceptApi('GET /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, jobs).as(
+    'evalHubJobs',
+  );
 
   cy.interceptApi('GET /api/:apiVersion/evaluations/providers', { path: API_VERSION }, providers);
 
@@ -98,8 +102,16 @@ describe('Evaluations Page - Tabs', () => {
       .findPageDescription()
       .should(
         'contain.text',
-        'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project..',
+        'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project.',
       );
+  });
+
+  it('should navigate from a Gallery Customize action to the suite editor', () => {
+    evaluationsPage.visitGallery(NAMESPACE);
+    evaluationsPage.findBenchmarkSuiteDropdownToggle('clawbench').click();
+    evaluationsPage.findBenchmarkSuiteDropdownAction('clawbench').click();
+
+    cy.url().should('include', `/evaluation/${NAMESPACE}/create/collections/clawbench/copy`);
   });
 
   it('should filter Gallery suites by evaluation target', () => {
@@ -156,7 +168,7 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBenchmarkSuitesFilterOption('category', 'code').click();
     evaluationsPage.findBenchmarkSuitesFilterOption('category', 'safety').click();
 
-    cy.findByTestId('benchmark-suites-category-filter-badge').should('contain.text', '2');
+    evaluationsPage.findBenchmarkSuitesCategoryFilterBadge().should('contain.text', '2');
     evaluationsPage.findBenchmarkSuiteCard('software-engineering-agent-suite').should('exist');
     evaluationsPage.findBenchmarkSuiteCard('curated-agent-safety-suite').should('exist');
   });
@@ -178,7 +190,7 @@ describe('Evaluations Page - Tabs', () => {
       .findPageDescription()
       .should(
         'contain.text',
-        'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project..',
+        'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project.',
       );
     evaluationsPage
       .findRunsDescription()

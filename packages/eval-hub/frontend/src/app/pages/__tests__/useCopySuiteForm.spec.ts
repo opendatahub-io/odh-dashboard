@@ -315,6 +315,27 @@ describe('useCopySuiteForm', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/collections');
   });
 
+  it('should reject save-only edits after the source collection has been run', async () => {
+    const result = renderForm({
+      mode: 'edit',
+      sourceCollection: { ...sourceCollection, state: { run_count: 1 } },
+    });
+
+    await waitFor(() => expect(result.result.current.suiteName).toBe(sourceCollection.name));
+    await waitFor(() => expect(result.result.current.isValid).toBe(true));
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    expect(mockPatchCollection).not.toHaveBeenCalled();
+    expect(mockNotification.error).toHaveBeenCalledWith(
+      'Failed to update suite',
+      'Benchmark suites cannot be edited after they have been run.',
+    );
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
   it('should fall back to another provider when the matching provider lacks the benchmark', async () => {
     const cloneFetcher = jest.fn().mockResolvedValue({
       resource: { id: 'saved-collection' },
@@ -1381,6 +1402,28 @@ describe('useCopySuiteForm', () => {
     expect(cloned).toEqual(clonedCollection);
     expect(mockFireMiscTrackingEvent).toHaveBeenCalled();
     expect(mockRefreshCollections).toHaveBeenCalledTimes(1);
+  });
+
+  it('should reject edit-mode save and run after the source collection has been run', async () => {
+    const result = renderForm({
+      mode: 'edit',
+      sourceCollection: { ...sourceCollection, state: { run_count: 1 } },
+    });
+
+    await waitFor(() => expect(result.result.current.suiteName).toBe(sourceCollection.name));
+    await waitFor(() => expect(result.result.current.isValid).toBe(true));
+
+    let savedCollection: Collection | undefined;
+    await act(async () => {
+      savedCollection = await result.result.current.cloneCollectionForRun();
+    });
+
+    expect(savedCollection).toBeUndefined();
+    expect(mockPatchCollection).not.toHaveBeenCalled();
+    expect(mockNotification.error).toHaveBeenCalledWith(
+      'Failed to update suite',
+      'Benchmark suites cannot be edited after they have been run.',
+    );
   });
 
   it('should send explicit empty metadata arrays when all values are removed', async () => {

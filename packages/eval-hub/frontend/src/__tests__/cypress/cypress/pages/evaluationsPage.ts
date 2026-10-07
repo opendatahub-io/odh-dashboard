@@ -1,7 +1,7 @@
 class EvaluationsPage {
   visit(namespace: string, tab?: 'gallery' | 'evaluate' | 'runs') {
     cy.visit(`/evaluation/${namespace}${tab ? `?tab=${tab}` : ''}`);
-    this.waitForLoad();
+    this.waitForLoad(tab ?? 'gallery');
   }
 
   visitGallery(namespace: string) {
@@ -18,26 +18,46 @@ class EvaluationsPage {
 
   visitBenchmarkSuites(namespace: string) {
     cy.visit(`/evaluation/${namespace}/collections`);
-    this.waitForLoad();
+    this.waitForPageHeader();
+    cy.get(
+      '[data-testid="benchmark-suites-gallery"], [data-testid="benchmark-suites-empty-state"], [data-testid="benchmark-suites-load-error"]',
+    )
+      .filter(':visible')
+      .should('have.length.at.least', 1);
+    cy.testA11y();
   }
 
   visitInvalidProject(namespace: string) {
     cy.visit(`/evaluation/${namespace}`);
-    this.waitForLoad();
+    this.waitForPageHeader();
+    this.findInvalidProjectState().should('be.visible');
+    cy.testA11y();
   }
 
   visitNoProjects() {
     cy.visit('/evaluation/any');
-    this.waitForLoad();
+    this.waitForPageHeader();
+    this.findNoProjectsState().should('be.visible');
+    cy.testA11y();
   }
 
   visitRoot() {
     cy.visit('/evaluation');
   }
 
-  private waitForLoad() {
-    cy.findByTestId('app-page-title').should('exist');
+  private waitForLoad(tab: 'gallery' | 'evaluate' | 'runs') {
+    this.waitForPageHeader();
+    cy.wait('@evalHubHealth');
+    if (tab === 'runs') {
+      cy.wait('@evalHubJobs');
+    }
+    cy.findByTestId(`${tab}-tab`).should('be.visible');
+    cy.findByTestId(`${tab}-tab-content`).should('be.visible');
     cy.testA11y();
+  }
+
+  private waitForPageHeader() {
+    cy.findByTestId('app-page-title').should('be.visible');
   }
 
   findTitle() {
@@ -140,6 +160,10 @@ class EvaluationsPage {
     return cy.findByTestId('benchmark-suites-category-filter');
   }
 
+  findBenchmarkSuitesCategoryFilterBadge() {
+    return cy.findByTestId('benchmark-suites-category-filter-badge');
+  }
+
   findBenchmarkSuitesEvaluatesFilter() {
     return cy.findByTestId('benchmark-suites-evaluates-filter');
   }
@@ -168,7 +192,9 @@ class EvaluationsPage {
     filter: 'category' | 'evaluates' | 'industry' | 'tags' | 'task' | 'modality',
     value: string,
   ) {
-    return cy.findByTestId(`benchmark-suites-${filter}-filter-option-${value}`);
+    return cy
+      .findByTestId(`benchmark-suites-${filter}-filter-select`)
+      .findByTestId(`benchmark-suites-${filter}-filter-option-${value}`);
   }
 
   findBenchmarkSuitesSummary() {

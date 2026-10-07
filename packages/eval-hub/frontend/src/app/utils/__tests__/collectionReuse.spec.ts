@@ -131,6 +131,36 @@ describe('getAllTenantCollections', () => {
     expect(firstRequest).toHaveBeenCalledWith({ signal });
     expect(secondRequest).toHaveBeenCalledWith({ signal });
   });
+
+  it('should stop when a page contains no new collection IDs', async () => {
+    const firstPage = Array.from({ length: 100 }, (_, index) => ({
+      ...sourceCollection,
+      resource: { id: `other-suite-${index}` },
+    }));
+    mockGetCollections.mockReturnValue(
+      jest.fn().mockResolvedValue({ items: firstPage, total_count: 200 }),
+    );
+
+    await expect(getAllTenantCollections('test-namespace')).resolves.toHaveLength(100);
+
+    expect(mockGetCollections).toHaveBeenCalledTimes(2);
+  });
+
+  it('should stop after the maximum number of pages', async () => {
+    mockGetCollections.mockImplementation((_hostPath, params) =>
+      jest.fn().mockResolvedValue({
+        items: Array.from({ length: 100 }, (_, index) => ({
+          ...sourceCollection,
+          resource: { id: `other-suite-${params.offset}-${index}` },
+        })),
+        total_count: 10_000,
+      }),
+    );
+
+    await expect(getAllTenantCollections('test-namespace')).resolves.toHaveLength(10_000);
+
+    expect(mockGetCollections).toHaveBeenCalledTimes(100);
+  });
 });
 
 describe('findReusableCollectionCopy', () => {

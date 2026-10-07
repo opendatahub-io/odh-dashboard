@@ -3,6 +3,7 @@ import { getCollections } from '~/app/api/k8s';
 import type { Collection } from '~/app/types';
 
 const COLLECTION_PAGE_SIZE = 100;
+const MAX_COLLECTION_PAGES = 100;
 
 const getCollectionContent = (collection: Collection) => ({
   name: collection.name,
@@ -36,9 +37,12 @@ export const getAllTenantCollections = async (
   signal?: AbortSignal,
 ): Promise<Collection[]> => {
   const collections: Collection[] = [];
+  const collectionIds = new Set<string>();
   let offset: number | undefined = 0;
+  let pageCount = 0;
 
-  while (offset !== undefined) {
+  while (offset !== undefined && pageCount < MAX_COLLECTION_PAGES) {
+    pageCount += 1;
     const response = await getCollections('', {
       namespace,
       scope: 'tenant',
@@ -46,7 +50,13 @@ export const getAllTenantCollections = async (
       offset,
     })({ signal });
 
+    const newItems = response.items.filter(({ resource }) => !collectionIds.has(resource.id));
+    if (newItems.length === 0) {
+      break;
+    }
+
     collections.push(...response.items);
+    newItems.forEach(({ resource }) => collectionIds.add(resource.id));
 
     offset =
       response.items.length === COLLECTION_PAGE_SIZE &&

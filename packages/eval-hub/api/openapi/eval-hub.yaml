@@ -288,6 +288,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -2807,6 +2809,13 @@ components:
 
     Forbidden:
       description: Forbidden - User is not authorized to access this service
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+
+    Conflict:
+      description: Conflict - Collection cannot be edited after it has been run
       content:
         application/json:
           schema:

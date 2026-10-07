@@ -36,6 +36,7 @@ import type {
 const DEFAULT_SUITE_THRESHOLD = 70;
 const MIN_WEIGHT_PERCENT = 5;
 export const MAX_BENCHMARKS = 10;
+const EDIT_AFTER_RUN_ERROR = 'Benchmark suites cannot be edited after they have been run.';
 
 export type CopySuiteBenchmark = CopySuiteFormValues['benchmarks'][number];
 
@@ -814,6 +815,11 @@ export function useCopySuiteForm({
         return undefined;
       }
 
+      if (isEditMode && (sourceCollection.state?.run_count ?? 0) > 0) {
+        notification.error('Failed to update suite', EDIT_AFTER_RUN_ERROR);
+        return undefined;
+      }
+
       const controller = new AbortController();
       abortControllerRef.current = controller;
       const abortClone = () => controller.abort();
@@ -949,6 +955,11 @@ export function useCopySuiteForm({
     let controller: AbortController | undefined;
 
     try {
+      if (isEditMode && (sourceCollection?.state?.run_count ?? 0) > 0) {
+        notification.error('Failed to update suite', EDIT_AFTER_RUN_ERROR);
+        return;
+      }
+
       if (!(await form.trigger())) {
         return;
       }
