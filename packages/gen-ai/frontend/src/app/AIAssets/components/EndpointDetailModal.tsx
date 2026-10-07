@@ -73,6 +73,11 @@ export const buildModelUsageExample = (
   }
 };
 
+export const getBaseURLEndpointType = (
+  baseURL: string | undefined,
+  internalEndpoint: string | undefined,
+): 'external' | 'internal' => (baseURL === internalEndpoint ? 'internal' : 'external');
+
 const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClose }) => {
   const hasExternal = !!model.externalEndpoint;
   const hasInternal = !!model.internalEndpoint;
@@ -83,9 +88,12 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
   const subscriptions = isMaaS ? (model.subscriptions ?? []) : [];
   const [isSubscriptionsExpanded, setIsSubscriptionsExpanded] = React.useState(false);
   const modelID = model.id ?? model.model_id;
-  const baseURL = isNamespaceModel
-    ? (model.internalEndpoint ?? model.externalEndpoint)
-    : model.externalEndpoint;
+  const baseURL = model.externalEndpoint ?? model.internalEndpoint;
+  const internalBaseURL =
+    isNamespaceModel && model.internalEndpoint && model.internalEndpoint !== baseURL
+      ? model.internalEndpoint
+      : undefined;
+  const baseURLEndpointType = getBaseURLEndpointType(baseURL, model.internalEndpoint);
   const usageExample = showConnectionDetails
     ? buildModelUsageExample(
         baseURL,
@@ -150,7 +158,7 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
                     hoverTip="Copy URL"
                     clickTip="Copied"
                     aria-label={`Base URL for ${model.model_name}`}
-                    onCopy={() => handleEndpointCopy(baseURL, 'external')}
+                    onCopy={() => handleEndpointCopy(baseURL, baseURLEndpointType)}
                   >
                     {baseURL}
                   </ClipboardCopy>
@@ -163,6 +171,41 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
                     {isMaaS
                       ? 'Use this base URL for requests to MaaS models.'
                       : 'Use this base URL for requests to the model. Internal endpoints must be accessed from within the cluster.'}
+                  </Content>
+                </FlexItem>
+              </Flex>
+            </FlexItem>
+          )}
+
+          {showConnectionDetails && internalBaseURL && (
+            <FlexItem>
+              <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
+                <FlexItem>
+                  <Content
+                    component={ContentVariants.p}
+                    style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+                  >
+                    Internal Base URL
+                  </Content>
+                </FlexItem>
+                <FlexItem>
+                  <ClipboardCopy
+                    isReadOnly
+                    data-testid="endpoint-modal-internal-base-url"
+                    hoverTip="Copy URL"
+                    clickTip="Copied"
+                    aria-label={`Internal Base URL for ${model.model_name}`}
+                    onCopy={() => handleEndpointCopy(internalBaseURL, 'internal')}
+                  >
+                    {internalBaseURL}
+                  </ClipboardCopy>
+                </FlexItem>
+                <FlexItem>
+                  <Content
+                    component={ContentVariants.small}
+                    style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
+                  >
+                    Internal endpoints must be accessed from within the cluster.
                   </Content>
                 </FlexItem>
               </Flex>

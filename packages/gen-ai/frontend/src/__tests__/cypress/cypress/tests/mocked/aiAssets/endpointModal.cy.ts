@@ -77,7 +77,9 @@ describe('Endpoint Detail Modal - MaaS connection details', () => {
         'href',
         '/maas/maas-governance/subscriptions/view/standard',
       );
-      cy.contains('-').should('exist');
+      cy.findByTestId('endpoint-modal-subscriptions-table').within(() => {
+        cy.contains('tr', 'Standard').find('td[data-label="Description"]').should('have.text', '-');
+      });
       cy.contains('Usage example').should('exist');
       cy.contains('export API_KEY="<your-api-key>"').should('exist');
       cy.contains('Authorization: Bearer $API_KEY').should('exist');

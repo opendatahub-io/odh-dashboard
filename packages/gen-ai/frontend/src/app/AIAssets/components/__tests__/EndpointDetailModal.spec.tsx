@@ -5,6 +5,7 @@ import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 import EndpointDetailModal, {
   buildModelUsageExample,
+  getBaseURLEndpointType,
 } from '~/app/AIAssets/components/EndpointDetailModal';
 import type { AIModel } from '~/app/types';
 
@@ -132,6 +133,28 @@ describe('EndpointDetailModal', () => {
           element?.textContent === 'Set TOKEN to an OpenShift token before running this command.',
       ),
     ).not.toHaveLength(0);
+  });
+
+  it('should use the external Base URL and also show the internal Base URL for namespace models', () => {
+    renderModal(
+      createMockModel({
+        externalEndpoint: 'https://external.example.com/v1',
+        internalEndpoint: 'http://internal.example.com/v1',
+      }),
+    );
+
+    expect(screen.getByDisplayValue('https://external.example.com/v1')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('http://internal.example.com/v1')).toBeInTheDocument();
+    expect(
+      screen.getByText("curl -X POST 'https://external.example.com/v1/chat/completions' \\", {
+        exact: false,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('should classify a namespace Base URL as an internal endpoint', () => {
+    expect(getBaseURLEndpointType('http://internal', 'http://internal')).toBe('internal');
+    expect(getBaseURLEndpointType('https://external', 'http://internal')).toBe('external');
   });
 
   it('should show connection details and authentication guidance for custom endpoints', () => {
