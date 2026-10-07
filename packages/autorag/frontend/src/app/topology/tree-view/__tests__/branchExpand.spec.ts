@@ -12,18 +12,26 @@ import { RunStatus } from '@patternfly/react-topology';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
 import {
   canShowPatternsExpandToggle,
+  countPatternBranches,
   isBranchingStageNodeId,
+  isPatternTerminusId,
   matchesWinnerPattern,
+  resolvePatternRank,
   resolveVisibleBranchIndices,
   resolveWinnerBranchIndex,
 } from '~/app/topology/tree-view/branchExpand';
 
-const makeNode = (id: string, label: string, runStatus?: RunStatus): PipelineNodeModelExpanded =>
+const makeNode = (
+  id: string,
+  label: string,
+  runStatus?: RunStatus,
+  patternKey?: string,
+): PipelineNodeModelExpanded =>
   ({
     id,
     label,
     type: 'DEFAULT_TASK_NODE',
-    data: runStatus ? { runStatus } : undefined,
+    data: runStatus || patternKey ? { runStatus, patternKey } : undefined,
   }) as PipelineNodeModelExpanded;
 
 describe('branchExpand', () => {
@@ -104,5 +112,33 @@ describe('branchExpand', () => {
     expect(
       resolveVisibleBranchIndices([0, 1], branches, { ...options, patternsExpanded: true }),
     ).toEqual([0, 1]);
+  });
+
+  it('should resolve top-3 pattern ranks from the leaderboard map', () => {
+    const node = makeNode('rag__pattern__branch-1', 'Display Name', undefined, 'pattern_h');
+    const patternRanks = Object.fromEntries([
+      ['pattern_h', 2],
+      ['pattern_a', 1],
+    ] as const);
+
+    expect(resolvePatternRank(node, patternRanks)).toBe(2);
+    expect(resolvePatternRank(node, { DisplayName: 2 })).toBeUndefined();
+    expect(
+      resolvePatternRank(makeNode('rag__pattern__branch-1', 'Pattern H'), patternRanks),
+    ).toBeUndefined();
+  });
+
+  it('should not count fan-in spacer ids as pattern branches', () => {
+    const spacerId = 'rag__pattern__branch-0|rag__pattern__branch-1|rag__pattern__branch-2';
+    expect(isPatternTerminusId('rag__pattern__branch-0')).toBe(true);
+    expect(isPatternTerminusId(spacerId)).toBe(false);
+    expect(
+      countPatternBranches([
+        makeNode('rag__pattern__branch-0', 'Pattern A'),
+        makeNode('rag__pattern__branch-1', 'Pattern B'),
+        makeNode('rag__pattern__branch-2', 'Pattern C'),
+        makeNode(spacerId, ''),
+      ]),
+    ).toBe(3);
   });
 });

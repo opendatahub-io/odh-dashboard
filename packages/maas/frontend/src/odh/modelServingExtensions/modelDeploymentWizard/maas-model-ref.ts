@@ -1,10 +1,13 @@
 import type { LLMdDeployment } from '@odh-dashboard/llmd-serving/types';
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { DeploymentHookPayloadFor } from '@odh-dashboard/model-serving/extension-points';
+import { enqueuePostDeployAlert } from '@odh-dashboard/model-serving/concepts/postDeployAlertStore';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { createMaaSModelRef, deleteMaaSModelRef, updateMaaSModelRef } from '~/app/api/maas-models';
 import { ModelDeploymentMode } from '~/app/types/event-tracking';
+import { MAAS_PUBLISHED_INTERNAL_ALERT_ID } from '~/odh/modelServingExtensions/MaaSPublishedPostDeployAlert';
 import type { MaaSFieldValue } from './MaaSEndpointCheckbox';
+import { extractMaaSEndpointData } from './maasDeploymentTransformer';
 import {
   fireMaaSPublishTrackingEvent,
   markMaaSPublishSubmitAttempted,
@@ -169,6 +172,9 @@ export const postDeployMaaSModelRef = async (
   );
 
   const { isChecked } = fieldData;
+  const wasAlreadyMaas =
+    !!existingDeployment && extractMaaSEndpointData(existingDeployment)?.isChecked === true;
+  const newlyPublishedAsMaas = isChecked && !wasAlreadyMaas;
   const modelRef = { kind: LLMINFERENCESERVICE_KIND, name };
   const displayName =
     deployedModel.model.metadata.annotations?.['openshift.io/display-name'] ?? name;
@@ -222,5 +228,9 @@ export const postDeployMaaSModelRef = async (
       description,
       modelCapabilities,
     })({});
+  }
+
+  if (newlyPublishedAsMaas) {
+    enqueuePostDeployAlert(MAAS_PUBLISHED_INTERNAL_ALERT_ID, { modelName: displayName });
   }
 };

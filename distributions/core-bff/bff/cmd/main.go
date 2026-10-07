@@ -103,6 +103,7 @@ func parseFlags() (config.EnvConfig, string, string) {
 	flag.StringVar(&cfg.Namespace, "namespace",
 		getEnvAsString("NAMESPACE", getEnvAsString("OC_PROJECT", "opendatahub")),
 		"Kubernetes namespace where the dashboard is deployed (falls back to OC_PROJECT env var)")
+	flag.StringVar(&cfg.OperatorNamespace, "operator-namespace", getEnvAsString("OPERATOR_NAMESPACE", ""), "Preferred namespace of the installed data science operator subscription")
 	flag.StringVar(&cfg.WorkbenchNamespace, "workbench-namespace",
 		getEnvAsString("WORKBENCH_NAMESPACE", ""),
 		"Kubernetes namespace for workbenches (defaults to dashboard namespace if empty)")

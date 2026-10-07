@@ -199,6 +199,23 @@ export type WBTolerationsTestData = {
   deletedStatusBadge: string;
 };
 
+export type WBNodeSelectorsTestData = {
+  testNamespace: string;
+  testDescription: string;
+  workbenchNameA: string;
+  workbenchNameB: string;
+  notebookImageName: string;
+  resourceYamlPathA: string;
+  resourceYamlPathB: string;
+  hardwareProfileNameA: string;
+  hardwareProfileNameB: string;
+  hardwareProfileDeploymentSizeA: string;
+  hardwareProfileDeploymentSizeB: string;
+  nodeSelectorKey: string;
+  nodeSelectorValue: string;
+  tolerationValue: string;
+};
+
 export type ModifyHardwareProfileTestData = {
   wbTolerationsTestNamespace: string;
   wbTolerationsTestDescription: string;
@@ -589,7 +606,16 @@ export type ModelRegistryTestData = {
   modelFormatTensorflow: string;
   formatVersion3_0: string;
   uriVersion2: string;
+  /** Standard KServe (Knative/Serverless) — status.deploymentMode is 'Standard'. */
   deploymentType: string;
+  /**
+   * KServe RawDeployment — status.deploymentMode is 'RawDeployment'.
+   * Terminal load failures are signalled by:
+   *   targetModelState === 'FailedToLoad'
+   *   transitionStatus === 'BlockedByFailedLoad'
+   *   modelStatus.lastFailureInfo.reason / .message
+   */
+  rawDeploymentType: string;
 
   newNameSuffix: string;
   newDescription: string;

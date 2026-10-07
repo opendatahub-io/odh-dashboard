@@ -73,9 +73,11 @@ const AppRoutes = (): React.ReactElement => (
           title="AI asset endpoints"
           icon={AiAssetEndpointsIcon}
           getInvalidRedirectPath={genAiAiAssetsRoute}
+          allowNoProjects
         />
       }
     >
+      <Route index element={<AIAssetsPage />} />
       <Route path=":namespace" element={<AIAssetsPage />} />
       <Route path=":namespace/:tab" element={<AIAssetsPage />} />
       <Route path=":namespace/agentprofile/:profileId" element={<AgentProfileDetailPage />} />

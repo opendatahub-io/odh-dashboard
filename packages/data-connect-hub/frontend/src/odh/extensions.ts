@@ -25,7 +25,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       section: 'ai-hub',
       path: '/ai-hub/connections/*',
       group: '4_connections',
-      label: 'Tech Preview',
+      label: 'Dev Preview',
     },
   },
   {

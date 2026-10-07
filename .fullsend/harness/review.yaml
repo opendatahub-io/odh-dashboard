@@ -2,9 +2,9 @@ base: https://raw.githubusercontent.com/fullsend-ai/agents/91f61f3441baedf3f912c
 
 agent: agents/review.md
 
-# Pin the multi-architecture Fullsend sandbox image that carries Pi 0.87.1
-# and its GPT-6 model catalog.
-image: ghcr.io/fullsend-ai/fullsend-sandbox@sha256:03e142441eb11f632a6edba14d5dd96031844c72b3afef817a5ca51d09d5d925
+# Pin the multi-architecture Fullsend sandbox image (v0.45.0) that carries
+# Pi 0.99.2, the first Pi release whose model catalog has GPT-6.1 Sol.
+image: ghcr.io/fullsend-ai/fullsend-sandbox@sha256:dec698251c58eabcb0c0d6d08ab9ca4415929991cc1deec5d3f3a94de5db6cca
 
 # Enables the runner's run-scoped OpenAI provider used by the orchestrator and
 # every configured review persona.

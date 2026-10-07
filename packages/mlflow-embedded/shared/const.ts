@@ -11,8 +11,10 @@ export const MLFLOW_UNAVAILABLE_MESSAGE =
 
 export const MLFLOW_NOT_CONFIGURED_ADMIN_TITLE = 'MLflow not configured';
 export const MLFLOW_NOT_CONFIGURED_ADMIN_MESSAGE =
-  'Enable MLflow for this project to start using experiments.';
+  'MLflow is not available for this cluster. Check that the MLflow Operator component is enabled and that an MLflow custom resource has been created.';
+export const MLFLOW_INSTALLATION_DOCS_URL =
+  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/working_with_mlflow/installing-mlflow_mlflow';
 
 export const MLFLOW_NOT_CONFIGURED_TITLE = 'Admin configuration required';
 export const MLFLOW_NOT_CONFIGURED_MESSAGE =
-  'Experiments enable you to track, compare, and manage your runs in one place. To start using experiments, request that your administrator enable MLflow for this project.';
+  'MLflow supports experiment tracking, prompt management, and agent observability. Ask your administrator to enable MLflow for this cluster.';
