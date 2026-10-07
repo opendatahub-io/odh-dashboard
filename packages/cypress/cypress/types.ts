@@ -302,7 +302,7 @@ export type TestConfig = {
   // BYOIDC cluster authentication settings
   CLUSTER_AUTH?: string;
   CLUSTER_OIDC_ISSUER?: string;
-  FILEMAPPING: FileMapping;
+  FILEMAPPING?: FileMapping;
 };
 
 export type DataScienceProjectData = {
@@ -549,6 +549,7 @@ export type ModelTolerationsTestData = {
   isS390x?: boolean;
   servingRuntimeName?: string;
   servingRuntimeYamlPath?: string;
+  inferenceServicePatch?: string;
 };
 
 export type NotebookTolerationsTestData = {

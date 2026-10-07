@@ -29,9 +29,10 @@ export const createOpenShiftProject = (
     const labelCommand = `oc label namespace ${projectName} opendatahub.io/dashboard=true --overwrite`;
     return cy.exec(labelCommand, { failOnNonZeroExit: false }).then((labelResult) => {
       if (labelResult.exitCode !== 0) {
-        cy.log(`WARNING: Failed to add dashboard label to ${projectName}
+        cy.log(`ERROR: Failed to add dashboard label to ${projectName}
                   stdout: ${labelResult.stdout}
                   stderr: ${labelResult.stderr}`);
+        throw new Error(`Label command failed with code ${labelResult.exitCode}`);
       }
       return cy.wrap(result);
     });

@@ -74,7 +74,13 @@ describe('ModelServing - tolerations tests', () => {
         cy.log(`Creating ServingRuntime for s390x: ${testData.servingRuntimeName}`);
         // Clean up any existing Template/ServingRuntime then apply fresh via Template resource.
         cleanupTemplates(testData.servingRuntimeName).then(() => {
-          createCustomResource(applicationNamespace, testData.servingRuntimeYamlPath);
+          createCustomResource(applicationNamespace, testData.servingRuntimeYamlPath).then(
+            (result) => {
+              if (result.exitCode !== 0) {
+                throw new Error(`Failed to create ServingRuntime template: ${result.stderr}`);
+              }
+            },
+          );
         });
       }
 
@@ -186,11 +192,11 @@ describe('ModelServing - tolerations tests', () => {
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(modelName);
 
-      if (isS390x) {
+      if (isS390x && testData.inferenceServicePatch) {
         patchOpenShiftResource(
           'inferenceservice',
           modelName,
-          `{"spec":{"predictor":{"model":{"storage":{"path":"${modelFilePath}"}}}}}`,
+          testData.inferenceServicePatch,
           projectName,
         );
       }

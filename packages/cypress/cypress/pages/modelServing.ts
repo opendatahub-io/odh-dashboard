@@ -1034,7 +1034,12 @@ class ModelServingWizard extends Wizard {
   }
 
   findModelTypeSelectOption(name: string) {
-    return this.findModelTypeSelect().findSelectOption(name);
+    return this.findModelTypeSelect().then(($el) => {
+      if ($el.attr('aria-expanded') === 'false') {
+        cy.wrap($el).click();
+      }
+      return cy.findByRole('option', { name }).scrollIntoView();
+    });
   }
 
   findModelDeploymentProjectSelector() {
@@ -1075,7 +1080,7 @@ class ModelServingWizard extends Wizard {
   }
 
   findModelFormatSelect() {
-    return cy.findByTestId('model-framework-select');
+    return cy.findByTestId('model-framework-select').should('exist');
   }
 
   openModelFormatSelect() {

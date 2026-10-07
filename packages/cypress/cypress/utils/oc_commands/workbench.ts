@@ -19,7 +19,7 @@ const waitForPodReady = (namespace: string, podName: string): Cypress.Chainable<
   const waitCmd = `oc wait pod/${podName} -n ${namespace} --for=condition=Ready --timeout=120s`;
   cy.log(`Waiting for pod ${podName} to be Ready via oc wait`);
 
-  return cy.exec(waitCmd, { failOnNonZeroExit: false }).then((result) => {
+  return cy.exec(waitCmd, { failOnNonZeroExit: false, timeout: 130_000 }).then((result) => {
     if (result.exitCode !== 0) {
       throw new Error(
         `Pod "${podName}" in namespace "${namespace}" did not become Ready within 120s. ` +

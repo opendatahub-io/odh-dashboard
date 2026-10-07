@@ -16,5 +16,6 @@ modelFormat: "python - 1"
 servingRuntime: "IBM Z Triton Inference Server"
 servingRuntimeName: "ibmz-triton-rest"
 servingRuntimeYamlPath: "resources/modelServing/ibmz-triton-rest.yaml"
+inferenceServicePatch: '{"spec":{"predictor":{"model":{"storage":{"path":"triton/model_repository"}}}}}'
 clusterRole: 'rhods-users'
 isS390x: true
