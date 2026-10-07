@@ -144,19 +144,27 @@ wrap-up: a review that has not written `agent-result.json` by then
 posts nothing. The harness mirrors that value into `TIMEOUT_SECONDS`;
 skip every time check when it is unset.
 
-Before anything else in step 1: `date +%s > /sandbox/workspace/agent-start`
-(a file: shell variables do not survive between Bash calls). The
+Before anything else in step 1, as its own Bash call:
+`date +%s > /sandbox/workspace/agent-start` (a file: shell variables do
+not survive between Bash calls). The
 runner's clock starts 1–2 minutes before yours, so:
 
 ```bash
-if test -n "${TIMEOUT_SECONDS:-}" && test -s /sandbox/workspace/agent-start; then
-  NOW=$(date +%s); AGENT_START=$(cat /sandbox/workspace/agent-start)
-  REMAINING=$(( TIMEOUT_SECONDS - 120 - NOW + AGENT_START ))
-  echo "REMAINING=${REMAINING}"
-fi
+read -r AGENT_START < /sandbox/workspace/agent-start; NOW=$(date +%s); REMAINING=$(( TIMEOUT_SECONDS - 120 - NOW + AGENT_START )); echo "TIMEOUT_SECONDS=${TIMEOUT_SECONDS:-unset} REMAINING=${REMAINING}"
 ```
 
-(`test`, not `[ ]`; no nested `$( )` — the sandbox scanner blocks both.)
+Run it as its own Bash call, exactly as written. When it prints
+`TIMEOUT_SECONDS=unset`, ignore `REMAINING`.
+
+**Sandbox scanner.** Every Bash call passes a scanner (Tirith) that
+blocks any command it cannot fully parse. It blocks `[ ]` and `[[ ]]`
+(use `test`), `$( )` nested inside `$(( ))`, an `if … fi` wrapped
+around `$(( ))`, and `{ …; }` groups. A blocked call costs a round
+trip, so keep each call simple: run a reference command block as its
+own call with its line breaks intact, do not join blocks or add
+commands to them with `;`, and append to a file with separate `>` /
+`>>` redirections, never a redirected group. When a call is blocked,
+split it into simpler calls; do not retry it unchanged.
 
 Checkpoints:
 
@@ -193,7 +201,7 @@ commands in the GitHub command reference,
 `skills/pr-review/github/SKILL.md` under
 `/sandbox/workspace/target-repo/.fullsend/` (the inherited
 `pr-review-github` skill is the same text). The one addition: end that
-same Bash call with a print of what it read:
+same Bash call with a print of what it read, on a line of its own:
 
 ```bash
 printf 'HEAD_SHA=%s IS_DRAFT=%s\n' "${HEAD_SHA}" "${IS_DRAFT}"
@@ -587,7 +595,8 @@ what is not on disk yet:
   title, body, comments).
 
 Build it with Bash redirection (`cat` the manifest and the `jq` output
-straight into it) so the bytes never pass through your own output. Then
+straight into it, one `>>` append per source, no `{ …; }` group) so the
+bytes never pass through your own output. Then
 give each sub-agent a short prompt that references the file by absolute
 path.
 
@@ -1289,11 +1298,14 @@ gets posted if the sandbox is killed.
      duplicated, ambiguous, unmatched, or evidence-free accounting is a
      failure.
    - Validate severity and category against the inputs, looked up in the
-     6a–6c set (invariants in `challenger.md` Constraints). `merged_from`
-     must never combine inputs from the two category lists that
-     `challenger.md` Constraints forbids merging (match each input's
-     `category` against those lists; a category in neither list is
-     unconstrained).
+     6a–6c set (invariants in `challenger.md` Constraints). A merge is
+     invalid in exactly one case: its `merged_from` holds at least one
+     category from the correctness list in `challenger.md` Constraints
+     **and** at least one from its security list. Every other merge is
+     valid, including a security-list category merged with a category
+     that is in neither list, and two categories from the same list. Do
+     not reject a merge because it crosses dimensions or because it
+     involves a security finding.
 
    **Build survivors → final `findings[]`:**
 
