@@ -26,11 +26,16 @@ import {
   mlflowExperimentsPath,
   WORKSPACE_QUERY_PARAM,
 } from '@odh-dashboard/internal/routes/pipelines/mlflow';
-import { EXPERIMENTS_PAGE_TITLE } from '../shared/const';
+import { EXPERIMENTS_PAGE_TITLE, WorkflowType } from '../shared/const';
 import MLflowUnavailable from '../shared/MLflowUnavailable';
 import MLflowNotConfigured from '../shared/MLflowNotConfigured';
 import MlflowBreadcrumbs, { BreadcrumbEntry } from '../shared/MlflowBreadcrumbs';
 import LaunchMlflowButton from '../shared/LaunchMlflowButton';
+
+export type MlflowExperimentWrapperProps = {
+  onBreadcrumbChange: (breadcrumbs: BreadcrumbEntry[]) => void;
+  workflowType: WorkflowType;
+};
 
 const MlflowExperimentsPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -44,7 +49,9 @@ const MlflowExperimentsPage: React.FC = () => {
 
   const loadWrapper = useMemo(
     () => () =>
-      loadRemote<{ default: React.ComponentType }>('mlflowEmbedded/MlflowExperimentWrapper')
+      loadRemote<{ default: React.ComponentType<MlflowExperimentWrapperProps> }>(
+        'mlflowEmbedded/MlflowExperimentWrapper',
+      )
         .then((mod) => mod ?? { default: MLflowUnavailable })
         .catch(() => ({ default: MLflowUnavailable })),
     [],
@@ -106,10 +113,10 @@ const MlflowExperimentsPage: React.FC = () => {
       }
       keepBodyWrapper={false}
     >
-      <LazyCodeRefComponent
+      <LazyCodeRefComponent<MlflowExperimentWrapperProps>
         key={workspace}
         component={loadWrapper}
-        props={{ onBreadcrumbChange: setBreadcrumbs }}
+        props={{ onBreadcrumbChange: setBreadcrumbs, workflowType: WorkflowType.MACHINE_LEARNING }}
         fallback={
           <Bullseye>
             <Spinner />

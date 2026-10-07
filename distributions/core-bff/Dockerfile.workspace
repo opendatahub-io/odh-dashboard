@@ -45,6 +45,7 @@ COPY --chown=default:root packages/gen-ai/ ./packages/gen-ai/
 COPY --chown=default:root packages/model-serving/ ./packages/model-serving/
 COPY --chown=default:root packages/trustyai/ ./packages/trustyai/
 COPY --chown=default:root packages/hardware-profiles/ ./packages/hardware-profiles/
+COPY --chown=default:root packages/observability/ ./packages/observability/
 COPY --chown=default:root packages/eslint-config/ ./packages/eslint-config/
 COPY --chown=default:root packages/jest-config/ ./packages/jest-config/
 # Copy only the frontend source (not the entire frontend build artifacts) for cross-module imports
