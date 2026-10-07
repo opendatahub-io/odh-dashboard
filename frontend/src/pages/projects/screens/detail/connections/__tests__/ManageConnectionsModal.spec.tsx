@@ -668,6 +668,30 @@ describe('ManageConnectionModal test connection', () => {
     expect(screen.getByTestId('test-connection-button')).toBeDisabled();
   });
 
+  it('should disable Test connection button for an unsupported connection type', async () => {
+    render(
+      <ManageConnectionModal
+        project={mockProjectK8sResource({})}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 'postgres',
+            fields: [{ type: 'short-text', name: 'Field', envVar: 'env1', properties: {} }],
+          }),
+        ]}
+      />,
+    );
+
+    const testButton = screen.getByTestId('test-connection-button');
+    expect(testButton).toHaveAttribute('aria-disabled', 'true');
+
+    await act(async () => {
+      fireEvent.click(testButton);
+    });
+    expect(mockedTestConnection).not.toHaveBeenCalled();
+  });
+
   it('should reset test status when connection type is changed', async () => {
     mockedTestConnection.mockResolvedValue({ success: true, message: 'ok' });
 
@@ -678,11 +702,11 @@ describe('ManageConnectionModal test connection', () => {
         onSubmit={onSubmitMock}
         connectionTypes={[
           mockConnectionTypeConfigMapObj({
-            name: 'type one',
+            name: 'uri-type-one',
             fields: [{ type: 'short-text', name: 'Field 1', envVar: 'env1', properties: {} }],
           }),
           mockConnectionTypeConfigMapObj({
-            name: 'type two',
+            name: 'oci-type-two',
             fields: [{ type: 'short-text', name: 'Field 2', envVar: 'env2', properties: {} }],
           }),
         ]}
@@ -824,7 +848,7 @@ describe('ManageConnectionModal buildFieldValues integration', () => {
         onSubmit={onSubmitMock}
         connection={mockConnection({
           name: 'test-conn',
-          connectionType: 'multi-type',
+          connectionType: 'uri-multi-type',
           data: {
             textField: window.btoa('hello'),
             boolField: window.btoa('true'),
@@ -834,7 +858,7 @@ describe('ManageConnectionModal buildFieldValues integration', () => {
         })}
         connectionTypes={[
           mockConnectionTypeConfigMapObj({
-            name: 'multi-type',
+            name: 'uri-multi-type',
             fields: [
               { type: 'short-text', name: 'Text', envVar: 'textField', properties: {} },
               {
@@ -868,7 +892,7 @@ describe('ManageConnectionModal buildFieldValues integration', () => {
 
     expect(mockedTestConnection).toHaveBeenCalledTimes(1);
     const callArgs = mockedTestConnection.mock.calls[0][0];
-    expect(callArgs.connectionType).toBe('multi-type');
+    expect(callArgs.connectionType).toBe('uri-multi-type');
     expect(callArgs.fieldValues.textField).toBe('hello');
     expect(callArgs.fieldValues.boolField).toBe('true');
     expect(callArgs.fieldValues.numField).toBe('42');
@@ -883,7 +907,7 @@ describe('ManageConnectionModal buildFieldValues integration', () => {
         onSubmit={onSubmitMock}
         connectionTypes={[
           mockConnectionTypeConfigMapObj({
-            name: 'sparse-type',
+            name: 'uri-sparse-type',
             fields: [
               {
                 type: 'short-text',

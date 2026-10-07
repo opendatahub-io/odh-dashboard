@@ -36,6 +36,11 @@ import {
 import ConnectionTestStatusLabel from '#~/concepts/connectionTypes/ConnectionTestStatusLabel';
 import { testConnection } from '#~/services/connectionTestService';
 import {
+  CONNECTION_TEST_UNSUPPORTED_TOOLTIP,
+  isConnectionTestSupported,
+} from '#~/concepts/connectionTypes/connectionTestUtils';
+import ExtendedButton from '#~/components/ExtendedButton';
+import {
   fireConnectionTestInitiated,
   fireConnectionTestCompleted,
   fireConnectionFormClosed,
@@ -430,16 +435,21 @@ export const ManageConnectionModal: React.FC<Props> = ({
                   </Button>
                 </ActionListItem>
                 <ActionListItem>
-                  <Button
+                  <ExtendedButton
                     key="test"
                     variant="secondary"
                     onClick={handleTestConnection}
                     isLoading={isTesting}
                     isDisabled={isTesting || !connectionTypeName}
+                    tooltipProps={
+                      connectionTypeName && !isConnectionTestSupported(connectionTypeName)
+                        ? { isEnabled: true, content: CONNECTION_TEST_UNSUPPORTED_TOOLTIP }
+                        : { isEnabled: false }
+                    }
                     data-testid="test-connection-button"
                   >
                     {isTesting ? 'Verifying...' : 'Verify connection'}
-                  </Button>
+                  </ExtendedButton>
                 </ActionListItem>
                 <ActionListItem>
                   <Button

@@ -10,6 +10,11 @@ import {
 } from '#~/concepts/connectionTypes/types';
 import { testConnection } from '#~/services/connectionTestService';
 import {
+  CONNECTION_TEST_UNSUPPORTED_TOOLTIP,
+  getConnectionTestType,
+  isConnectionTestSupported,
+} from '#~/concepts/connectionTypes/connectionTestUtils';
+import {
   fireConnectionTestInitiated,
   fireConnectionTestCompleted,
 } from '#~/concepts/connectionTypes/connectionTestTracking';
@@ -110,11 +115,7 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
         return next;
       });
 
-      // Extract connection type
-      const connectionType =
-        connection.metadata.annotations['opendatahub.io/connection-type-ref'] ??
-        connection.metadata.annotations['opendatahub.io/connection-type'] ??
-        '';
+      const connectionType = getConnectionTestType(connection);
 
       // Decode base64-encoded field values from the K8s Secret
       const fieldValues: Record<string, string> = {};
@@ -188,38 +189,45 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
         data={connections}
         data-testid="connection-table"
         columns={columns}
-        rowRenderer={(connection) => (
-          <ConnectionsTableRow
-            key={connection.metadata.name}
-            obj={connection}
-            connectionTypes={connectionTypes}
-            isTesting={testingConnections.has(connection.metadata.name)}
-            onEditConnection={handleEditConnection}
-            kebabActions={[
-              {
-                title: <span data-testid="edit-connection-action">Edit</span>,
-                onClick: () => {
-                  handleEditConnection(connection);
+        rowRenderer={(connection) => {
+          const isTestSupported = isConnectionTestSupported(getConnectionTestType(connection));
+          return (
+            <ConnectionsTableRow
+              key={connection.metadata.name}
+              obj={connection}
+              connectionTypes={connectionTypes}
+              isTesting={testingConnections.has(connection.metadata.name)}
+              onEditConnection={handleEditConnection}
+              kebabActions={[
+                {
+                  title: <span data-testid="edit-connection-action">Edit</span>,
+                  onClick: () => {
+                    handleEditConnection(connection);
+                  },
                 },
-              },
-              {
-                title: <span data-testid="test-connection-action">Verify</span>,
-                onClick: () => {
-                  handleTestConnection(connection);
+                {
+                  title: <span data-testid="test-connection-action">Verify</span>,
+                  onClick: () => {
+                    handleTestConnection(connection);
+                  },
+                  isDisabled: testingConnections.has(connection.metadata.name),
+                  isAriaDisabled: !isTestSupported,
+                  ...(!isTestSupported && {
+                    tooltipProps: { content: CONNECTION_TEST_UNSUPPORTED_TOOLTIP },
+                  }),
                 },
-                isDisabled: testingConnections.has(connection.metadata.name),
-              },
-              { isSeparator: true },
-              {
-                title: <span data-testid="delete-connection-action">Delete</span>,
-                onClick: () => {
-                  setDeleteConnection(connection);
+                { isSeparator: true },
+                {
+                  title: <span data-testid="delete-connection-action">Delete</span>,
+                  onClick: () => {
+                    setDeleteConnection(connection);
+                  },
+                  isDanger: true,
                 },
-                isDanger: true,
-              },
-            ]}
-          />
-        )}
+              ]}
+            />
+          );
+        }}
         isStriped
       />
       {deleteConnection && (
