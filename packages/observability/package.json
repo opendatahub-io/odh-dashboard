@@ -12,6 +12,8 @@
   },
   "exports": {
     "./extensions": "./extensions.ts",
+    "./extensions/static": "./extensions/static.ts",
+    "./dashboard": "./src/dashboard.ts",
     "./embeddable": "./src/perses/embeddable/api.ts"
   },
   "module-federation": {
