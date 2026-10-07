@@ -101,8 +101,9 @@ Treat missing `output` as `findings`. Treat `llm-subagent` and
 ownership only. All spawned reviewer definitions live beneath
 `skills/pr-review/sub-agents`. Upstream definitions are regular markdown
 files; ODH-owned definitions are repository-relative symlinks to their
-canonical directories in `.claude/skills`. The harness imports only this
-orchestrator skill, so nested reviewer definitions do not become peer skills
+canonical directories in `.claude/skills`. Of the skills in this directory tree the
+harness imports only this orchestrator (its one other local skill is the
+standalone `issue-labels`), so nested reviewer definitions do not become peer skills
 or collide with inherited Fullsend skill names. Resolve every registry
 `definition` from the target repository checkout under
 `/sandbox/workspace/target-repo/.fullsend/`; do not look for nested definitions
@@ -1166,6 +1167,14 @@ budget section), skip the challenger: keep the merged finding set from
 `{ "status": "skipped", "reason": "time budget: <n>s remaining" }`, and
 continue to 6e.
 
+With a runtime note (pi) a dispatched child cannot be interrupted and
+may outlast the budget. In pipeline mode with `REMAINING` under 900,
+write `agent-result.json` as step 7 describes before dispatching the
+challenger, from the 6a–6c set, with the step 5b `could-not-verify`
+object for any check that has not returned and the 6g failure map for
+the signal members; step 7 overwrites it. A valid result on disk is what
+gets posted if the sandbox is killed.
+
 1. Compose the spawn prompt from:
 
    **Part 1 — Sub-agent definition:** the absolute path of the
@@ -1600,9 +1609,13 @@ and sections (step 4-check). **Do not re-dispatch checks here.**
 **Signals.** For every selected LLM row whose `output` starts with
 `signal:`:
 
-1. Run the Time budget check first. Spawn with the row's `definition`,
-   then `meta-prompts/common-review.md`, then the row's `meta_prompt`
-   (paths only), using the step 4 item 2 dispatch shape. Supply
+1. Run the Time budget check first. With a runtime note (pi) a
+   dispatched child cannot be interrupted, so in pipeline mode write
+   `agent-result.json` as step 7 describes before dispatching, with the
+   failure map below for the signal members; step 7 overwrites it. Then
+   spawn with the row's `definition`, then
+   `meta-prompts/common-review.md`, then the row's `meta_prompt` (paths
+   only), using the step 4 item 2 dispatch shape. Supply
    `Output fields: <row.result_fields>`.
 2. Context: the **`producers.json` path** with an explicit blurb of what
    the file is (dispatch ledger; `raised` as pre-challenger history;

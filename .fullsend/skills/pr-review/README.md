@@ -363,7 +363,7 @@ Not carried from that revision:
 ### Re-review data flow
 
 1. `post-review.sh` writes one `<!-- fullsend:review-findings-v2:<base64> -->`
-   marker as the first line of every sticky body. Its payload is the severity,
+   marker as the first line of every review body it renders. Its payload is the severity,
    category, file and line of each finding that a registry row owns. When a
    finding cannot be represented (a category no row lists) or a dimension
    failed, the payload is a withheld sentinel instead, so the next run reviews

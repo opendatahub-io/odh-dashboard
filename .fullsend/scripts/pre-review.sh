@@ -287,7 +287,7 @@ prepare_cli_adapters() {
 # ---------------------------------------------------------------------------
 # Replace the human-readable sticky review with a mechanically validated,
 # structured projection before host_files copies it into the sandbox. The
-# projection is appended by post-review.sh from schema-validated findings.
+# projection is written by post-review.sh from schema-validated findings.
 # Anything missing, malformed, unauthenticated, or projection-invalid fails closed to
 # an empty file, which makes the agent perform a full first-review dispatch.
 #
@@ -302,16 +302,20 @@ validate_prior_review_projection() {
   local markers marker marker_version encoded decoded tmp_file
 
   tmp_file="$(mktemp "${prior_file}.validated.XXXXXX")"
-  # post-review.sh writes exactly one marker into every comment (a withheld
-  # sentinel when it has nothing to project), and config.yaml sets
-  # keep_history: false, so a genuine comment holds one marker and no
-  # sticky-history delimiter. Accept nothing else. post-review.sh strips
+  # post-review.sh writes exactly one marker into every review body it renders
+  # (a withheld sentinel when it has nothing to project), and config.yaml sets
+  # keep_history: false, so a genuine review comment holds one marker and no
+  # sticky-history delimiter. Accept nothing else: the notices that carry no
+  # marker (the poster's stale-head notice, and the failure notice posted when
+  # there is no agent result or the severity threshold is invalid) hold no
+  # findings and are rejected here too. post-review.sh strips
   # reserved strings from the text it renders, but the poster then normalizes
   # Unicode and drops terminal escapes, which can turn an obfuscated copy in
   # the body into an exact marker or delimiter; that copy then arrives next to
   # the genuine marker and the comment is rejected. Position is not checked:
   # the Jira integration appends link definitions to these comments. With
-  # keep_history: true every projection is rejected (full first-review
+  # keep_history: true only a PR's first sticky comment, created before any
+  # history exists, is accepted; every later one is rejected (full first-review
   # dispatch). Comments edited on the forge can come back with CRLF endings.
   markers="$(awk -v marker='^<!-- fullsend:review-findings-v[12]:[A-Za-z0-9+/=]+ -->$' '
       {sub(/\r$/, "")}

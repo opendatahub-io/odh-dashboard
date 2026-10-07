@@ -22,8 +22,10 @@ Check if `/sandbox/workspace/prior-review.txt` exists and is non-empty:
 the JSON from schema-validated findings and accepts the versioned marker only
 from a sticky comment that holds exactly one marker and no sticky-history
 delimiter (this repository posts with `keep_history: false`). The host writes
-one marker into every comment; when it has nothing to project the marker is a
-withheld sentinel and this file is empty.
+one marker into every review it renders; when it has nothing to project the
+marker is a withheld sentinel and this file is empty. A sticky comment with no
+marker (a stale-head or no-result failure notice, or a comment older than the
+marker) also leaves this file empty.
 
 The `<!-- sticky:history-start -->` / `<!-- sticky:history-end -->` delimiters
 are owned by the external `fullsend post-review` CLI in

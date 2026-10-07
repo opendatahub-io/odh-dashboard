@@ -347,6 +347,13 @@ def protected_prefixes():
 
 def changed_paths():
     raw = os.environ.get("REVIEW_CHANGED_FILES") or ""
+    path = os.environ.get("REVIEW_CHANGED_FILES_FILE") or ""
+    if path and os.path.isfile(path):
+        try:
+            with open(path, encoding="utf-8") as fh:
+                raw = fh.read()
+        except OSError:
+            pass
     return [line.strip() for line in raw.splitlines() if line.strip()]
 
 def normalize_protected_findings(result):
@@ -1325,8 +1332,9 @@ prepare_summary_only_result() {
   jq 'if (.findings | type) == "array" then .findings |= map(del(.line)) else . end' "$1" > "$2"
 }
 
-# Append a machine-readable projection only when every schema-validated finding
-# can be represented safely. A lossy projection could turn a failed sub-agent
+# Write the machine-readable projection into the body: the findings only when
+# every schema-validated finding can be represented safely, otherwise a
+# withheld sentinel. A lossy projection could turn a failed sub-agent
 # into an apparently clean dimension on the next re-review. Low-severity
 # challenger failures are non-dimensional and retain the pre-challenger findings.
 # A dimension failure the severity filter removed (info-tier failures) must
@@ -1380,8 +1388,9 @@ append_prior_findings_projection() {
       # The agent may already have dropped an info-tier failure finding, so
       # also read result.producers: a findings row dispatched but not
       # returned failed.
+      | (($run.raised // {}) | if type == "object" then keys else [] end) as $raised_ids
       | (($run.returned | type) == "array" and (($run.dispatched // []) | any(.[];
-          . as $id | ($id | IN($findings_rows[])) and ($id | IN($run.returned[]) | not)))) as $unreturned
+          . as $id | ($id | IN($findings_rows[])) and ($id | IN($run.returned[], $raised_ids[]) | not)))) as $unreturned
       | ((($unfiltered[0].findings // [])
           | any(.[]; .category == "sub-agent-failure" and (non_dimensional_finding | not)))
           or $unreturned) as $dimension_failed
@@ -2135,6 +2144,17 @@ run_self_test() {
     echo "PASS orchestrator-only findings do not contradict an empty-set skip"
   fi
 
+  # Nor does an unstamped protected-path finding: step 6e raises those too.
+  printf '%s' "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"protected-path\",\"file\":\".github/x.yml\",\"description\":\"d\",\"why\":\"w\"}]}" > "${tmp}/ch-pp.json"
+  ( unset REVIEW_PROTECTED_PATHS; transform_review_result "${tmp}/ch-pp.json" ) > "${tmp}/ch-pp-out.json"
+  if grep -q 'records the challenger as skipped for an empty finding set' <<<"$(jq -r .body "${tmp}/ch-pp-out.json")" \
+    || ! jq -e '.confidence.level == "high"' "${tmp}/ch-pp-out.json" >/dev/null; then
+    echo "FAIL challenger-protected-path: an unstamped protected-path finding was read as disproving an empty-set skip" >&2
+    fail=1
+  else
+    echo "PASS an unstamped protected-path finding does not contradict an empty-set skip"
+  fi
+
   # An honest skip with a stated reason renders in the Challenger section.
   jq '.producers.challenger = {"status":"skipped","reason":"re-review, findings unchanged since prior run"}' \
     "${tmp}/ch.json" > "${tmp}/ch-ok.json"
@@ -2430,16 +2450,19 @@ if bad:
   fi
 
   # A category no registry row owns, or a dimension that failed, makes the
-  # projection lossy: emit nothing so the next run reviews from scratch.
+  # projection lossy: emit the withheld marker so the next run reviews from
+  # scratch.
   printf '%s' '{"action":"comment","body":"b","findings":[{"severity":"medium","category":"made-up-category","file":"a.ts","description":"d"}]}' > "${tmp}/proj-unknown.json"
   append_prior_findings_projection "${tmp}/proj-unknown.json" "${tmp}/proj-unknown.json" > "${tmp}/proj-unknown-out.json"
   printf '%s' '{"action":"approve","body":"b"}' > "${tmp}/proj-filtered.json"
   printf '%s' '{"action":"approve","body":"b","findings":[{"severity":"info","category":"sub-agent-failure","file":"N/A","description":"docs-currency returned nothing"}]}' > "${tmp}/proj-unfiltered.json"
   append_prior_findings_projection "${tmp}/proj-filtered.json" "${tmp}/proj-unfiltered.json" > "${tmp}/proj-failed-out.json"
+  printf '%s' '{"action":"approve","body":"b","findings":[{"severity":"info","category":"sub-agent-failure","dimension":"orchestrator","file":"N/A","description":"docs-currency returned nothing"}]}' > "${tmp}/proj-unfiltered-orch.json"
+  append_prior_findings_projection "${tmp}/proj-filtered.json" "${tmp}/proj-unfiltered-orch.json" > "${tmp}/proj-failed-orch-out.json"
   printf '%s' '{"action":"failure","reason":"tool-failure","body":"b"}' > "${tmp}/proj-failure.json"
   append_prior_findings_projection "${tmp}/proj-failure.json" "${tmp}/proj-failure.json" > "${tmp}/proj-failure-out.json"
   local withheld='{"version":2,"withheld":true}'
-  if [[ "$(_projection_of "${tmp}/proj-unknown-out.json")" != "${withheld}" || "$(_projection_of "${tmp}/proj-failed-out.json")" != "${withheld}" || "$(_projection_of "${tmp}/proj-failure-out.json")" != "${withheld}" ]]; then
+  if [[ "$(_projection_of "${tmp}/proj-unknown-out.json")" != "${withheld}" || "$(_projection_of "${tmp}/proj-failed-out.json")" != "${withheld}" || "$(_projection_of "${tmp}/proj-failed-orch-out.json")" != "${withheld}" || "$(_projection_of "${tmp}/proj-failure-out.json")" != "${withheld}" ]]; then
     echo "FAIL projection: a lossy or failed review did not carry the withheld marker" >&2
     fail=1
   elif [[ "$(jq -r '.body' "${tmp}/proj-failed-out.json" | sed 1d)" != "b" || "$(jq -r '.body' "${tmp}/proj-failed-out.json" | grep -c 'review-findings-v')" -ne 1 ]]; then
@@ -2452,7 +2475,7 @@ if bad:
   # The agent definition has the agent drop below-threshold findings, so an
   # info-tier failure may never reach the result. result.producers still shows it.
   printf '%s' '{"action":"approve","body":"b","findings":[{"severity":"low","category":"logic-error","file":"a.ts","description":"d"}],"producers":{"dispatched":["correctness","docs-currency","rating"],"adapters":[],"skipped":[],"returned":["correctness","rating"]}}' > "${tmp}/proj-unreturned.json"
-  printf '%s' '{"action":"approve","body":"b","findings":[{"severity":"low","category":"logic-error","file":"a.ts","description":"d"}],"producers":{"dispatched":["correctness","docs-currency","rating"],"adapters":[],"skipped":[],"returned":["correctness","docs-currency"]}}' > "${tmp}/proj-returned.json"
+  printf '%s' '{"action":"approve","body":"b","findings":[{"severity":"low","category":"logic-error","file":"a.ts","description":"d"}],"producers":{"dispatched":["correctness","docs-currency","rating","coderabbit"],"adapters":[],"skipped":[],"returned":["correctness"],"raised":{"docs-currency":[]}}}' > "${tmp}/proj-returned.json"
   append_prior_findings_projection "${tmp}/proj-unreturned.json" "${tmp}/proj-unreturned.json" > "${tmp}/proj-unreturned-out.json"
   append_prior_findings_projection "${tmp}/proj-returned.json" "${tmp}/proj-returned.json" > "${tmp}/proj-returned-out.json"
   if [[ "$(_projection_of "${tmp}/proj-unreturned-out.json")" != "${withheld}" ]]; then
@@ -2683,7 +2706,12 @@ fetch_pr_files() {
   [[ -n "${files}" ]] && printf '%s\n' "${files}"
 }
 REVIEW_CHANGED_FILES=$(fetch_pr_files) || REVIEW_CHANGED_FILES=""
-export REVIEW_CHANGED_FILES
+# Handed to the renderer as a file, not exported: one environment string is
+# limited to 128 KiB on Linux, and a larger one fails every later exec.
+REVIEW_CHANGED_FILES_FILE=$(mktemp)
+CLEANUP_FILES+=("${REVIEW_CHANGED_FILES_FILE}")
+printf '%s\n' "${REVIEW_CHANGED_FILES}" > "${REVIEW_CHANGED_FILES_FILE}"
+export REVIEW_CHANGED_FILES_FILE
 if [[ -n "${GITHUB_RUN_ID:-}" ]]; then
   _RUN_STARTED_AT=$(gh run view "${GITHUB_RUN_ID}" --repo "${REPO_FULL_NAME}" \
     --json startedAt --jq '.startedAt // empty' 2>/dev/null || true)
@@ -2895,7 +2923,7 @@ if [[ "${HAS_LABEL_ACTIONS}" == "true" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Re-review context: append the structured prior-findings projection to the
+# Re-review context: put the prior-findings marker on the first line of the
 # final body. Runs last so it sees the action and findings that get posted.
 # ---------------------------------------------------------------------------
 PROJECTED_RESULT=$(mktemp)

@@ -145,12 +145,13 @@ review across all reviewed PRs.
 
 ## Contextual labels
 
-After producing the review verdict, invoke the `issue-labels` skill to
-recommend contextual labels for the PR based on the diff's area and domain.
+Contextual labels are optional enrichment. Do not invoke the `issue-labels`
+skill until `agent-result.json` has been written and has passed
+`fullsend-check-output` (step 7b of the `pr-review` skill), and skip it in the
+cases step 7b lists.
 
-Its recommendation is intermediate orchestration data. After the skill
-returns—even when it recommends no labels—resume `pr-review`, write
-`agent-result.json`, validate it, and only then finish the agent run.
+When it runs and recommends labels, add `label_actions` to the result, rewrite
+`agent-result.json` and validate it again. Never end the run on the label step.
 
 - Emit `label_actions` in the result JSON alongside the review verdict.
 - Labels target the PR itself -- issue labeling remains the triage agent's
