@@ -280,7 +280,7 @@ jobs:
         run: docker save odh-dashboard:odh-test | gzip > /tmp/odh-dashboard-odh.tar.gz
 
       - name: Upload ODH image artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.0
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: odh-dashboard-odh-image
           path: /tmp/odh-dashboard-odh.tar.gz
@@ -316,7 +316,7 @@ jobs:
         run: docker save odh-dashboard:rhoai-test | gzip > /tmp/odh-dashboard-rhoai.tar.gz
 
       - name: Upload RHOAI image artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.0
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: odh-dashboard-rhoai-image
           path: /tmp/odh-dashboard-rhoai.tar.gz
