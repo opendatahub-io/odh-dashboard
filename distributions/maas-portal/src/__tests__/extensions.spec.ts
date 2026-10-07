@@ -159,7 +159,7 @@ const mockMaasExtensions: Extension[] = [
 const buildCatalog = (): Record<string, Extension[]> => ({
   '@odh-dashboard/maas': mockMaasExtensions,
   '@odh-dashboard/gen-ai': mockGenAiExtensions,
-  'maas-consumer-portal': localExtensions,
+  'maas-portal': localExtensions,
 });
 
 describe('MaaS Consumer Portal extensions', () => {
@@ -339,7 +339,7 @@ describe('MaaS Consumer Portal extensions', () => {
     const catalog: Record<string, Extension[]> = {
       '@odh-dashboard/maas': mockMaasExtensions,
       '@odh-dashboard/gen-ai': futureExtensions,
-      'maas-consumer-portal': localExtensions,
+      'maas-portal': localExtensions,
     };
 
     const store = new PluginStore(catalog);
