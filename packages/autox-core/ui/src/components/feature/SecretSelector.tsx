@@ -224,15 +224,10 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
             type !== undefined &&
             ['database', 'vector-db'].includes(type) &&
             !!allowedProviders &&
-            (() => {
-              const filteredProviders = getDatabaseProviders(secret);
-              return (
-                (preservedSelection?.name === secret.name &&
-                  !secrets?.some((item) => item.name === secret.name)) ||
-                filteredProviders.length !== 1 ||
-                !allowedProviders.includes(filteredProviders[0])
-              );
-            })(),
+            ((preservedSelection?.name === secret.name &&
+              !secrets?.some((item) => item.name === secret.name)) ||
+              matchingProviders.length !== 1 ||
+              !allowedProviders.includes(matchingProviders[0])),
           description: labels.length ? (
             <LabelGroup className="pf-v6-u-mt-sm">{labels}</LabelGroup>
           ) : undefined,
