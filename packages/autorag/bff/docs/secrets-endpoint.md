@@ -296,7 +296,7 @@ The endpoint supports filtering modes based on the `type` parameter:
 
 5. **`type=vector-db`**: Filters for vector database secrets
    - Returns the deduplicated union of `MILVUS_URI` and the complete PGVector key set; legacy `MILVUS_SERVER_CERT` shapes are excluded
-   - Uses key presence only; empty values and additional or mixed keys are allowed
+   - Uses key presence only; empty values and additional or mixed keys are allowed, except any Secret containing the unsupported legacy `MILVUS_SERVER_CERT` key
 
 Invalid type values result in a 400 Bad Request error.
 

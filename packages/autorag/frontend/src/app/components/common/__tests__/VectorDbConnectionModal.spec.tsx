@@ -39,7 +39,7 @@ describe('VectorDbConnectionModal', () => {
       target: { value: 'https://milvus.example.com' },
     });
     fireEvent.change(screen.getByTestId('milvus-token-input'), {
-      target: { value: 'token' },
+      target: { value: ' token ' },
     });
     expect(screen.getByTestId('milvus-token-input')).toHaveAttribute('type', 'password');
 
@@ -56,7 +56,7 @@ describe('VectorDbConnectionModal', () => {
         }),
         stringData: {
           MILVUS_URI: 'https://milvus.example.com',
-          MILVUS_TOKEN: 'token',
+          MILVUS_TOKEN: ' token ',
         },
       }),
     );
@@ -105,6 +105,23 @@ describe('VectorDbConnectionModal', () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/Omitted username defaults to neo4j/)).toBeInTheDocument();
     expect(screen.getByText(/omitted database defaults to the server default/)).toBeInTheDocument();
+  });
+
+  it('should not show required field errors until a field is edited', () => {
+    render(
+      <VectorDbConnectionModal
+        namespace="test-namespace"
+        initialProvider="pgvector"
+        onClose={onClose}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    expect(screen.queryByText('This field is required')).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId('pgvector-host-input'), { target: { value: 'host' } });
+    fireEvent.change(screen.getByTestId('pgvector-host-input'), { target: { value: '' } });
+    expect(screen.getByText('This field is required')).toBeInTheDocument();
   });
 
   it.each(['milvus', 'pgvector', 'neo4j'] as const)(
@@ -203,7 +220,7 @@ describe('VectorDbConnectionModal', () => {
       ['port', '5432'],
       ['db', 'rag'],
       ['user', 'rag-user'],
-      ['password', 'secret'],
+      ['password', ' secret '],
     ]) {
       fireEvent.change(screen.getByTestId(`pgvector-${field}-input`), { target: { value } });
     }
@@ -219,7 +236,7 @@ describe('VectorDbConnectionModal', () => {
           PGVECTOR_PORT: '5432',
           PGVECTOR_DB: 'rag',
           PGVECTOR_USER: 'rag-user',
-          PGVECTOR_PASSWORD: 'secret',
+          PGVECTOR_PASSWORD: ' secret ',
         },
       }),
     );
@@ -241,7 +258,7 @@ describe('VectorDbConnectionModal', () => {
       ['port', '5432'],
       ['db', 'rag'],
       ['user', 'rag-user'],
-      ['password', 'secret'],
+      ['password', ' secret '],
     ]) {
       fireEvent.change(screen.getByTestId(`pgvector-${field}-input`), { target: { value } });
     }
@@ -321,7 +338,9 @@ describe('VectorDbConnectionModal', () => {
       target: { value: 'neo4j://neo4j.example.com:7687' },
     });
     fireEvent.change(screen.getByTestId('neo4j-username-input'), { target: { value: 'neo4j' } });
-    fireEvent.change(screen.getByTestId('neo4j-password-input'), { target: { value: 'secret' } });
+    fireEvent.change(screen.getByTestId('neo4j-password-input'), {
+      target: { value: ' secret ' },
+    });
     fireEvent.change(screen.getByTestId('neo4j-database-input'), { target: { value: 'graph' } });
     fireEvent.change(screen.getByTestId('neo4j-ca-cert-input'), {
       target: { value: '  arbitrary CA text  ' },
@@ -342,7 +361,7 @@ describe('VectorDbConnectionModal', () => {
         stringData: {
           NEO4J_URI: 'neo4j://neo4j.example.com:7687',
           NEO4J_USERNAME: 'neo4j',
-          NEO4J_PASSWORD: 'secret',
+          NEO4J_PASSWORD: ' secret ',
           NEO4J_DATABASE: 'graph',
           NEO4J_CA_CERT: 'arbitrary CA text',
         },
@@ -454,7 +473,7 @@ describe('VectorDbConnectionModal', () => {
     expect(screen.getByRole('button', { name: 'Add connection' })).toBeDisabled();
   });
 
-  it('should trim a non-empty Neo4j password', async () => {
+  it('should preserve whitespace in a non-empty Neo4j password', async () => {
     render(
       <VectorDbConnectionModal
         namespace="test-namespace"
@@ -476,7 +495,7 @@ describe('VectorDbConnectionModal', () => {
     });
 
     expect(createSecretMock.mock.calls[0][0].stringData).toMatchObject({
-      NEO4J_PASSWORD: 'secret',
+      NEO4J_PASSWORD: ' secret ',
     });
   });
 });

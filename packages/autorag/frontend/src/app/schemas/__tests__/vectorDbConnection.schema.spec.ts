@@ -19,7 +19,7 @@ const validFields: Record<'milvus' | 'pgvector' | 'neo4j', VectorDbConnectionFie
 };
 
 describe('vector database connection schemas', () => {
-  it('should accept and trim valid provider fields', () => {
+  it('should accept and trim non-credential provider fields', () => {
     expect(parseVectorDbConnection('milvus', validFields.milvus)).toMatchObject({
       success: true,
       data: { MILVUS_URI: 'https://milvus.example.com' },
@@ -30,8 +30,72 @@ describe('vector database connection schemas', () => {
     });
     expect(parseVectorDbConnection('neo4j', validFields.neo4j)).toMatchObject({
       success: true,
-      data: { NEO4J_PASSWORD: 'password' },
+      data: { NEO4J_PASSWORD: ' password ' },
     });
+  });
+
+  it('should report the canonical required message for missing fields', () => {
+    for (const provider of ['milvus', 'pgvector', 'neo4j'] as const) {
+      const result = parseVectorDbConnection(provider, {});
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.some((issue) => issue.message === 'invalid_type')).toBe(false);
+        const requiredFields =
+          provider === 'milvus'
+            ? ['MILVUS_URI']
+            : provider === 'pgvector'
+              ? [
+                  'PGVECTOR_HOST',
+                  'PGVECTOR_PORT',
+                  'PGVECTOR_DB',
+                  'PGVECTOR_USER',
+                  'PGVECTOR_PASSWORD',
+                ]
+              : ['NEO4J_URI', 'NEO4J_PASSWORD'];
+        for (const field of requiredFields) {
+          expect(
+            result.error.issues.some(
+              (issue) => issue.path[0] === field && issue.message === 'This field is required',
+            ),
+          ).toBe(true);
+        }
+      }
+    }
+  });
+
+  it('should preserve credential whitespace while rejecting whitespace-only credentials', () => {
+    expect(
+      parseVectorDbConnection('milvus', {
+        MILVUS_URI: 'https://milvus.example.com',
+        MILVUS_TOKEN: ' token ',
+      }),
+    ).toMatchObject({ success: true, data: { MILVUS_TOKEN: ' token ' } });
+    expect(
+      parseVectorDbConnection('pgvector', {
+        ...validFields.pgvector,
+        PGVECTOR_PASSWORD: ' password ',
+      }),
+    ).toMatchObject({ success: true, data: { PGVECTOR_PASSWORD: ' password ' } });
+    expect(
+      parseVectorDbConnection('neo4j', {
+        ...validFields.neo4j,
+        NEO4J_PASSWORD: ' password ',
+      }),
+    ).toMatchObject({ success: true, data: { NEO4J_PASSWORD: ' password ' } });
+
+    expect(
+      parseVectorDbConnection('milvus', {
+        MILVUS_URI: 'https://milvus.example.com',
+        MILVUS_TOKEN: '   ',
+      }).success,
+    ).toBe(false);
+    expect(
+      parseVectorDbConnection('pgvector', { ...validFields.pgvector, PGVECTOR_PASSWORD: '   ' })
+        .success,
+    ).toBe(false);
+    expect(
+      parseVectorDbConnection('neo4j', { ...validFields.neo4j, NEO4J_PASSWORD: '\t' }).success,
+    ).toBe(false);
   });
 
   it.each([

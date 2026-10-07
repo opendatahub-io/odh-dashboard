@@ -323,6 +323,16 @@ describe('getVectorStoreProviderTypeFromSecretData', () => {
       }),
     ).toBeUndefined();
   });
+
+  it('should reject legacy Milvus metadata mixed with complete Neo4j metadata', () => {
+    expect(
+      getVectorStoreProviderTypeFromSecretData({
+        MILVUS_SERVER_CERT: '[REDACTED]',
+        NEO4J_URI: '[REDACTED]',
+        NEO4J_PASSWORD: '[REDACTED]',
+      }),
+    ).toBeUndefined();
+  });
 });
 
 describe('fireAutoragVectorStoreConfigured', () => {

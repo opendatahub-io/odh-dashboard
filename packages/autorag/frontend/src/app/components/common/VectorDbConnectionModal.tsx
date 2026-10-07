@@ -66,7 +66,7 @@ const VectorDbConnectionModal: React.FC<Props> = ({
   const getField = (key: string): string => fields[key] ?? '';
   const validationResult = parseVectorDbConnection(provider, fields);
   const getFieldError = (key: string): string | undefined =>
-    validationResult.success
+    validationResult.success || !Object.prototype.hasOwnProperty.call(fields, key)
       ? undefined
       : validationResult.error.issues.find((issue) => issue.path[0] === key)?.message;
   const isFormValid = isK8sNameDescriptionDataValid(nameDescData) && validationResult.success;
@@ -215,7 +215,17 @@ const VectorDbConnectionModal: React.FC<Props> = ({
                   onChange={(_event, value) => setField('MILVUS_TOKEN', value)}
                   ariaLabelShow="Show token"
                   ariaLabelHide="Hide token"
+                  validated={getFieldError('MILVUS_TOKEN') ? 'error' : 'default'}
                 />
+                {getFieldError('MILVUS_TOKEN') && (
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem variant="error">
+                        {getFieldError('MILVUS_TOKEN')}
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                )}
               </FormGroup>
               <FormGroup fieldId="milvus-ca-cert" label="CA certificate">
                 <TextArea

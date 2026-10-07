@@ -200,7 +200,7 @@ export const getVectorStoreProviderTypeFromSecretData = (
     ['PGVECTOR_HOST', 'PGVECTOR_PORT', 'PGVECTOR_DB', 'PGVECTOR_USER', 'PGVECTOR_PASSWORD'].every(
       (key) => keys.has(key),
     );
-  const hasNeo4j = keys.has('NEO4J_URI') && keys.has('NEO4J_PASSWORD');
+  const hasNeo4j = !hasLegacyMilvusKey && keys.has('NEO4J_URI') && keys.has('NEO4J_PASSWORD');
 
   const providers = [
     hasMilvus ? 'milvus' : undefined,
