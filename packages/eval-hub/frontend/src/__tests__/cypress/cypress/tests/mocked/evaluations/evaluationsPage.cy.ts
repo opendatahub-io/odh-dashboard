@@ -214,11 +214,11 @@ describe('Evaluations Page - Tabs', () => {
 
     evaluationsPage.visitEvaluate(NAMESPACE);
 
-    evaluationsPage.findBenchmarkSuiteCard('model-suite-2').should('contain.text', 'Model suite 2');
-    evaluationsPage.findBenchmarkSuiteCard('model-suite-7').should('contain.text', 'Model suite 7');
     evaluationsPage.findBenchmarkSuiteCard('agent-safety-suite').should('exist');
     evaluationsPage.findBenchmarkSuiteCard('code-quality-suite').should('exist');
-    evaluationsPage.findBenchmarkSuiteCard('trace-evaluation-suite').should('exist');
+    evaluationsPage.findBenchmarkSuiteCard('finance-evaluation-suite').should('exist');
+    evaluationsPage.findBenchmarkSuiteCard('guardrails-compliance-suite').should('exist');
+    evaluationsPage.findBenchmarkSuiteCard('model-suite-2').should('contain.text', 'Model suite 2');
     evaluationsPage
       .findBenchmarkSuitesSummary()
       .should('contain.text', 'Go to All my benchmark suites');

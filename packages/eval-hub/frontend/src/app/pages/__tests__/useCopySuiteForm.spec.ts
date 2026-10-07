@@ -295,6 +295,10 @@ describe('useCopySuiteForm', () => {
     await waitFor(() => expect(result.result.current.suiteName).toBe(sourceCollection.name));
     await waitFor(() => expect(result.result.current.isValid).toBe(true));
 
+    act(() => {
+      result.result.current.setSuiteName('Updated suite');
+    });
+
     await act(async () => {
       await result.result.current.handleSaveOnly();
     });
@@ -306,13 +310,66 @@ describe('useCopySuiteForm', () => {
       expect.any(Array),
     );
     expect(mockPatchCollection.mock.calls[0]?.[3]).toEqual(
-      expect.arrayContaining([
-        { op: 'replace', path: '/name', value: sourceCollection.name },
-        { op: 'add', path: '/benchmarks', value: expect.any(Array) },
-      ]),
+      expect.arrayContaining([{ op: 'replace', path: '/name', value: 'Updated suite' }]),
+    );
+    expect(mockPatchCollection.mock.calls[0]?.[3]).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ path: '/benchmarks' })]),
     );
     expect(mockCloneCollection).not.toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/collections');
+  });
+
+  it('should preserve untouched source benchmark settings when another benchmark is edited', async () => {
+    const editSourceCollection: Collection = {
+      ...sourceCollection,
+      benchmarks: [
+        {
+          ...sourceCollection.benchmarks![0],
+          weight: 0.8,
+          pass_criteria: { threshold: 0.755 },
+        },
+        {
+          id: 'benchmark-two',
+          provider_id: 'provider-two',
+          weight: 0.2,
+          primary_score: { metric: 'accuracy', lower_is_better: false },
+          pass_criteria: { threshold: 0.645 },
+          parameters: { num_examples: 42 },
+        },
+      ],
+    };
+    const patchFetcher = jest.fn().mockResolvedValue({
+      ...editSourceCollection,
+      name: 'Updated suite',
+    });
+    mockPatchCollection.mockReturnValue(patchFetcher);
+    const result = renderForm({ mode: 'edit', sourceCollection: editSourceCollection });
+
+    await waitFor(() => expect(result.result.current.suiteName).toBe(editSourceCollection.name));
+    await waitFor(() => expect(result.result.current.isValid).toBe(true));
+
+    act(() => {
+      result.result.current.updateBenchmark(0, 'threshold', 80);
+    });
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    const benchmarkOperation = mockPatchCollection.mock.calls[0]?.[3].find(
+      (operation) => operation.path === '/benchmarks',
+    );
+    expect(benchmarkOperation).toEqual({
+      op: 'add',
+      path: '/benchmarks',
+      value: [
+        expect.objectContaining({
+          id: 'benchmark-one',
+          pass_criteria: { threshold: 0.8 },
+        }),
+        editSourceCollection.benchmarks![1],
+      ],
+    });
   });
 
   it('should reject save-only edits after the source collection has been run', async () => {
@@ -399,7 +456,7 @@ describe('useCopySuiteForm', () => {
     expect(result.result.current.suiteEvaluates).toEqual(['model', 'agent']);
   });
 
-  it('should fall back to legacy evaluates metadata when evaluation targets are empty', async () => {
+  it('should preserve an explicitly empty evaluation targets array', async () => {
     const result = renderForm({
       sourceCollection: {
         ...sourceCollection,
@@ -410,7 +467,7 @@ describe('useCopySuiteForm', () => {
 
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
-    expect(result.result.current.suiteEvaluates).toEqual(['traces']);
+    expect(result.result.current.suiteEvaluates).toEqual([]);
   });
 
   it('should remove duplicate collection metadata values on initialization', async () => {

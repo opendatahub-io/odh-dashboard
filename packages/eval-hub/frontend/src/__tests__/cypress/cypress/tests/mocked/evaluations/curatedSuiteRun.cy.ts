@@ -95,7 +95,6 @@ const interceptTenantCollections = (collections: Collection[]) => {
 };
 
 const prepareRunForm = () => {
-  cy.step('Open the curated suite run form');
   evaluationsPage.findBenchmarkSuitePrimaryAction(sourceCollection.resource.id).click();
   evaluationsPage.findCuratedSuiteRunModal().should('be.visible');
   startEvaluationRunPage

@@ -1,8 +1,42 @@
+// .pf-v6-c-page__main-container Cypress visibility fix: PF v6 uses align-self: start,
+// which makes it content-sized instead of filling the grid area. In a normal browser
+// the page still renders because block-flow elements expand to fit their content.
+// However, Cypress checks computed ancestor dimensions for visibility — when the
+// Drawer's height: 100% cannot resolve to a definite value (because no ancestor in the
+// chain has an explicit height), Cypress sees a 0-height container with overflow: hidden
+// and considers all children invisible, failing with "effective width and height of:
+// N x 0 pixels".
+//
+// The proper fix is adding isContentFilled to the <Page> component in App.tsx, which
+// adds PF's pf-m-fill modifier and sets align-self: stretch on the main-container.
+// We can't do that because App.tsx is shared across all packages — changing it would
+// affect every page in the standalone app, not just this one.
+//
+// Instead, this scoped override uses :has() to stretch the main-container only when the
+// evaluations drawer is present, and makes .pf-v6-c-page__main a flex column container,
+// giving the Drawer and its descendants a continuous definite-height chain from the
+// viewport down to the tabs.
+.pf-v6-c-page__main-container:has(.evalhub-evaluations-drawer-content) {
+  align-self: stretch;
+
+  > .pf-v6-c-page__main {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    min-height: 0;
+  }
+}
+
 .evalhub-evaluations-drawer-content {
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
 .evalhub-evaluations-drawer-body {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
   min-height: 0;
   overflow: hidden;
 }
@@ -10,11 +44,13 @@
 .evalhub-evaluations-page {
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
   height: 100%;
   min-height: 0;
   overflow: hidden;
 
   > .pf-v6-l-flex {
+    flex: 1 1 auto;
     min-height: 0;
     overflow: hidden;
 
@@ -29,17 +65,13 @@
   }
 
   > .pf-v6-l-flex > .pf-m-flex-1 > .pf-v6-l-flex > .pf-v6-c-page__main-section {
-    min-height: 0;
-    flex-shrink: 1;
-    overflow: hidden;
+    --pf-v6-c-page__main-section--RowGap: 0;
 
-    > .pf-v6-c-page__main-body {
-      display: flex;
-      min-height: 0;
-      flex: 1;
-      flex-direction: column;
-      overflow: hidden;
-    }
+    display: flex;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+    overflow: hidden;
   }
 
   &__tabs {
@@ -56,7 +88,7 @@
     ~ .pf-v6-c-tab-content:not([hidden]) {
       display: flex;
       min-height: 0;
-      flex: 1 1 0;
+      flex: 1 1 auto;
       flex-direction: column;
       overflow-y: auto;
 

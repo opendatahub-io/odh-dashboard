@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
+import isEqual from 'lodash-es/isEqual';
 import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -353,7 +354,7 @@ const resolveInitialEvaluates = (
   };
 
   const evaluationTargets = normalizeEvaluates(collection.evaluation_targets);
-  if (evaluationTargets.length > 0) {
+  if (collection.evaluation_targets !== undefined) {
     return evaluationTargets;
   }
 
@@ -458,6 +459,61 @@ const buildInitialBenchmarks = (
   );
 };
 
+const findSourceBenchmark = (
+  sourceBenchmarks: CollectionBenchmark[],
+  benchmark: CopySuiteBenchmark,
+): CollectionBenchmark | undefined => {
+  const matchingBenchmarks = sourceBenchmarks.filter(({ id }) => id === benchmark.id);
+  /* eslint-disable camelcase */
+  const sourceBenchmark = matchingBenchmarks.find(
+    ({ provider_id }) => provider_id === benchmark.providerId,
+  );
+  /* eslint-enable camelcase */
+  return sourceBenchmark ?? (matchingBenchmarks.length === 1 ? matchingBenchmarks[0] : undefined);
+};
+
+type BuildEditBenchmarksPatchParams = {
+  sourceCollection: Collection;
+  initialBenchmarks: CopySuiteBenchmark[];
+  currentBenchmarks: CopySuiteBenchmark[];
+  requestBenchmarks: CollectionBenchmark[];
+};
+
+const buildEditBenchmarksPatch = ({
+  sourceCollection,
+  initialBenchmarks,
+  currentBenchmarks,
+  requestBenchmarks,
+}: BuildEditBenchmarksPatchParams): CollectionBenchmark[] | undefined => {
+  const initialKeys = initialBenchmarks.map(getBenchmarkKey);
+  const currentKeys = currentBenchmarks.map(getBenchmarkKey);
+  const selectionChanged =
+    initialKeys.length !== currentKeys.length ||
+    initialKeys.some((key, index) => key !== currentKeys[index]);
+  const initialBenchmarksByKey = new Map(
+    initialBenchmarks.map((benchmark) => [getBenchmarkKey(benchmark), benchmark]),
+  );
+  const sourceBenchmarks = sourceCollection.benchmarks ?? [];
+  let hasChanges = selectionChanged;
+
+  const patchedBenchmarks = requestBenchmarks.map((requestBenchmark, index) => {
+    const currentBenchmark = currentBenchmarks[index];
+    const initialBenchmark = initialBenchmarksByKey.get(getBenchmarkKey(currentBenchmark));
+    const benchmarkChanged = !initialBenchmark || !isEqual(currentBenchmark, initialBenchmark);
+    const sourceBenchmark = findSourceBenchmark(sourceBenchmarks, currentBenchmark);
+
+    hasChanges ||= benchmarkChanged || sourceBenchmark === undefined;
+
+    if (!benchmarkChanged && sourceBenchmark) {
+      return sourceBenchmark;
+    }
+
+    return sourceBenchmark ? { ...sourceBenchmark, ...requestBenchmark } : requestBenchmark;
+  });
+
+  return hasChanges ? patchedBenchmarks : undefined;
+};
+
 export const equalWeights = (count: number): number[] => {
   if (count <= 0) {
     return [];
@@ -518,29 +574,36 @@ type EditableCollectionRequest = {
 
 export const buildCollectionPatchOperations = (
   request: EditableCollectionRequest,
-): CollectionPatchOperation[] => [
-  { op: 'replace', path: '/name', value: request.name },
-  { op: 'add', path: '/description', value: request.description ?? '' },
-  { op: 'add', path: '/domains', value: request.domains ?? [] },
-  { op: 'add', path: '/tasks', value: request.tasks ?? [] },
-  { op: 'add', path: '/modalities', value: request.modalities ?? [] },
-  { op: 'add', path: '/industries', value: request.industries ?? [] },
-  {
-    op: 'add',
-    // eslint-disable-next-line camelcase
-    path: '/evaluation_targets',
-    // eslint-disable-next-line camelcase
-    value: request.evaluation_targets ?? [],
-  },
-  {
-    op: 'add',
-    // eslint-disable-next-line camelcase
-    path: '/pass_criteria',
-    // eslint-disable-next-line camelcase
-    value: request.pass_criteria ?? { threshold: 0 },
-  },
-  { op: 'add', path: '/benchmarks', value: request.benchmarks ?? [] },
-];
+): CollectionPatchOperation[] => {
+  const operations: CollectionPatchOperation[] = [
+    { op: 'replace', path: '/name', value: request.name },
+    { op: 'add', path: '/description', value: request.description ?? '' },
+    { op: 'add', path: '/domains', value: request.domains ?? [] },
+    { op: 'add', path: '/tasks', value: request.tasks ?? [] },
+    { op: 'add', path: '/modalities', value: request.modalities ?? [] },
+    { op: 'add', path: '/industries', value: request.industries ?? [] },
+    {
+      op: 'add',
+      // eslint-disable-next-line camelcase
+      path: '/evaluation_targets',
+      // eslint-disable-next-line camelcase
+      value: request.evaluation_targets ?? [],
+    },
+    {
+      op: 'add',
+      // eslint-disable-next-line camelcase
+      path: '/pass_criteria',
+      // eslint-disable-next-line camelcase
+      value: request.pass_criteria ?? { threshold: 0 },
+    },
+  ];
+
+  if (request.benchmarks !== undefined) {
+    operations.push({ op: 'add', path: '/benchmarks', value: request.benchmarks });
+  }
+
+  return operations;
+};
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function useCopySuiteForm({
@@ -570,16 +633,17 @@ export function useCopySuiteForm({
   const { isValid: isFormValid } = form.formState;
 
   const initializedRef = React.useRef(false);
+  const initialBenchmarksRef = React.useRef<CopySuiteBenchmark[]>([]);
   React.useEffect(() => {
     if (initializedRef.current || !providersLoaded || (!isCreateMode && !sourceCollection)) {
       return;
     }
     initializedRef.current = true;
-    form.reset(
-      sourceCollection
-        ? buildInitialFormValues(sourceCollection, providers, isEditMode ? 'edit' : 'copy')
-        : copySuiteDefaultValues,
-    );
+    const initialValues = sourceCollection
+      ? buildInitialFormValues(sourceCollection, providers, isEditMode ? 'edit' : 'copy')
+      : copySuiteDefaultValues;
+    initialBenchmarksRef.current = initialValues.benchmarks;
+    form.reset(initialValues);
     void form.trigger();
   }, [sourceCollection, providers, providersLoaded, form, isCreateMode, isEditMode]);
 
@@ -782,10 +846,23 @@ export function useCopySuiteForm({
     [buildCloneRequest],
   );
 
-  const buildPatchOperations = React.useCallback(
-    () => buildCollectionPatchOperations(buildCloneRequest()),
-    [buildCloneRequest],
-  );
+  const buildPatchOperations = React.useCallback(() => {
+    const request = buildCloneRequest();
+    if (!isEditMode || !sourceCollection) {
+      return buildCollectionPatchOperations(request);
+    }
+
+    const currentBenchmarks = form.getValues('benchmarks');
+    return buildCollectionPatchOperations({
+      ...request,
+      benchmarks: buildEditBenchmarksPatch({
+        sourceCollection,
+        initialBenchmarks: initialBenchmarksRef.current,
+        currentBenchmarks,
+        requestBenchmarks: request.benchmarks,
+      }),
+    });
+  }, [buildCloneRequest, form, isEditMode, sourceCollection]);
 
   const getPendingCollection = React.useCallback((): Collection | undefined => {
     const values = form.getValues();

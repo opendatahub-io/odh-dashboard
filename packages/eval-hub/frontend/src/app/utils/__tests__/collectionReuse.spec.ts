@@ -132,7 +132,7 @@ describe('getAllTenantCollections', () => {
     expect(secondRequest).toHaveBeenCalledWith({ signal });
   });
 
-  it('should stop when a page contains no new collection IDs', async () => {
+  it('should fail when a page repeats before all collections are fetched', async () => {
     const firstPage = Array.from({ length: 100 }, (_, index) => ({
       ...sourceCollection,
       resource: { id: `other-suite-${index}` },
@@ -141,12 +141,44 @@ describe('getAllTenantCollections', () => {
       jest.fn().mockResolvedValue({ items: firstPage, total_count: 200 }),
     );
 
+    await expect(getAllTenantCollections('test-namespace')).rejects.toThrow(
+      'collection page repeated before all collections were fetched',
+    );
+
+    expect(mockGetCollections).toHaveBeenCalledTimes(2);
+  });
+
+  it('should preserve results when a repeated page has no total count', async () => {
+    const firstPage = Array.from({ length: 100 }, (_, index) => ({
+      ...sourceCollection,
+      resource: { id: `other-suite-${index}` },
+    }));
+    mockGetCollections.mockReturnValue(jest.fn().mockResolvedValue({ items: firstPage }));
+
     await expect(getAllTenantCollections('test-namespace')).resolves.toHaveLength(100);
 
     expect(mockGetCollections).toHaveBeenCalledTimes(2);
   });
 
-  it('should stop after the maximum number of pages', async () => {
+  it('should fail after reaching the maximum number of pages before all collections are fetched', async () => {
+    mockGetCollections.mockImplementation((_hostPath, params) =>
+      jest.fn().mockResolvedValue({
+        items: Array.from({ length: 100 }, (_, index) => ({
+          ...sourceCollection,
+          resource: { id: `other-suite-${params.offset}-${index}` },
+        })),
+        total_count: 10_001,
+      }),
+    );
+
+    await expect(getAllTenantCollections('test-namespace')).rejects.toThrow(
+      'maximum page limit reached',
+    );
+
+    expect(mockGetCollections).toHaveBeenCalledTimes(100);
+  });
+
+  it('should preserve results when the final page reaches the maximum page count', async () => {
     mockGetCollections.mockImplementation((_hostPath, params) =>
       jest.fn().mockResolvedValue({
         items: Array.from({ length: 100 }, (_, index) => ({

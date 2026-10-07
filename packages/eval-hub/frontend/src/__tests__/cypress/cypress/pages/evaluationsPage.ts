@@ -47,13 +47,24 @@ class EvaluationsPage {
 
   private waitForLoad(tab: 'gallery' | 'evaluate' | 'runs') {
     this.waitForPageHeader();
-    cy.wait('@evalHubHealth');
-    if (tab === 'runs') {
-      cy.wait('@evalHubJobs');
-    }
-    cy.findByTestId(`${tab}-tab`).should('be.visible');
-    cy.findByTestId(`${tab}-tab-content`).should('be.visible');
-    cy.testA11y();
+    cy.wait('@evalHubHealth').then((interception) => {
+      const responseBody = interception.response?.body as {
+        data?: { available?: boolean };
+        available?: boolean;
+      };
+      const isAvailable = responseBody.data?.available ?? responseBody.available;
+
+      if (isAvailable === false) {
+        return;
+      }
+
+      if (tab === 'runs') {
+        cy.wait('@evalHubJobs');
+      }
+      cy.findByTestId(`${tab}-tab`).should('be.visible');
+      cy.findByTestId(`${tab}-tab-content`).should('be.visible');
+      cy.testA11y();
+    });
   }
 
   private waitForPageHeader() {

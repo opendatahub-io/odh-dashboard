@@ -325,7 +325,7 @@ const EvaluationsPage: React.FC = () => {
                 }
                 provideChildrenPadding
                 removeChildrenTopPadding
-                removeHeaderBottomPadding
+                keepBodyWrapper={false}
               >
                 <Tabs
                   activeKey={activeTab}

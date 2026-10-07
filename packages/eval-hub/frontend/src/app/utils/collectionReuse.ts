@@ -4,6 +4,7 @@ import type { Collection } from '~/app/types';
 
 const COLLECTION_PAGE_SIZE = 100;
 const MAX_COLLECTION_PAGES = 100;
+const COLLECTION_LOOKUP_ERROR = 'Unable to complete tenant collection lookup';
 
 const getCollectionContent = (collection: Collection) => ({
   name: collection.name,
@@ -52,6 +53,12 @@ export const getAllTenantCollections = async (
 
     const newItems = response.items.filter(({ resource }) => !collectionIds.has(resource.id));
     if (newItems.length === 0) {
+      if (response.total_count != null && collections.length < response.total_count) {
+        throw new Error(
+          `${COLLECTION_LOOKUP_ERROR}: collection page repeated before all collections were fetched`,
+        );
+      }
+      offset = undefined;
       break;
     }
 
@@ -63,6 +70,10 @@ export const getAllTenantCollections = async (
       (response.total_count == null || collections.length < response.total_count)
         ? offset + response.items.length
         : undefined;
+  }
+
+  if (offset !== undefined) {
+    throw new Error(`${COLLECTION_LOOKUP_ERROR}: maximum page limit reached`);
   }
 
   return collections;

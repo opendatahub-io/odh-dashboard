@@ -142,11 +142,11 @@ class StartEvaluationRunPage {
   }
 
   findNotificationTitle(title: string) {
-    return cy.findByText(title);
+    return cy.findByTestId('toast-notification-alert').findByText(title);
   }
 
   findNotificationMessage(message: string | RegExp) {
-    return cy.findByText(message);
+    return cy.findByTestId('toast-notification-alert').findByText(message);
   }
 }
 

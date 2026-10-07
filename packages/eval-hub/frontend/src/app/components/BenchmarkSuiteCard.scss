@@ -222,7 +222,7 @@
 
 .evalhub-benchmark-suite-card__footer-summary {
   color: var(--pf-t--global--text--color--subtle);
-  gap: var(--pf-t--global--spacer--lg);
+  gap: var(--pf-t--global--spacer--md);
 }
 
 .evalhub-benchmark-suite-card__tooltip-summary {
@@ -253,14 +253,7 @@
   > svg {
     color: var(--pf-t--global--icon--color--subtle);
     flex-shrink: 0;
-    height: 1.25em;
-    width: 1.25em;
-  }
-}
-
-.evalhub-benchmark-suite-card__counter--run-count {
-  > svg {
-    height: 1em;
-    width: 1em;
+    height: var(--pf-t--global--icon--size--lg);
+    width: var(--pf-t--global--icon--size--lg);
   }
 }
