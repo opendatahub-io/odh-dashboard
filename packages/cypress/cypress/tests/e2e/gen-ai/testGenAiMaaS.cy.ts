@@ -46,14 +46,11 @@ describe('Verify Gen AI Playground inference with a MaaS model', () => {
   const policyName = `genai-maas-policy-${uuid}`;
   let testData: GenAiMaaSTestData | undefined;
   let maasModelId: string;
-  let maasBffPortForwardHandle: PortForwardHandle | null = null;
   let portForwardHandle: PortForwardHandle | null = null;
 
   const cleanupResources = () => {
     stopPortForward(portForwardHandle);
-    stopPortForward(maasBffPortForwardHandle);
     portForwardHandle = null;
-    maasBffPortForwardHandle = null;
     ensureAdminOcSession();
     cleanupSubscription(subscriptionName, modelsAsAServiceNamespace);
     cleanupAuthPolicy(policyName, modelsAsAServiceNamespace);
