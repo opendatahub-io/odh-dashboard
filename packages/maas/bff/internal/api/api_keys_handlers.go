@@ -29,6 +29,7 @@ func attachAPIKeyHandlers(apiRouter *httprouter.Router, app *App) {
 // when computing key counts. Counts at or above this value all display as this cap,
 // which is enough signal ("a lot of keys") without fetching unbounded data.
 const subscriptionKeyCountCap = 10
+
 // isMaasAdminCheck is the admin probe used during API key subscription enrichment.
 var isMaasAdminCheck = checkIsMaasAdmin
 
