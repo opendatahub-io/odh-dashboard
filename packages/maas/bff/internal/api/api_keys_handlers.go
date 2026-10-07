@@ -29,6 +29,8 @@ func attachAPIKeyHandlers(apiRouter *httprouter.Router, app *App) {
 // when computing key counts. Counts at or above this value all display as this cap,
 // which is enough signal ("a lot of keys") without fetching unbounded data.
 const subscriptionKeyCountCap = 10
+// isMaasAdminCheck is the admin probe used during API key subscription enrichment.
+var isMaasAdminCheck = checkIsMaasAdmin
 
 // ListSubscriptionsPassthroughHandler handles GET /api/v1/subscriptions
 // Proxies to the maas-api /v1/subscriptions endpoint and returns a sanitised list of subscriptions accessible to the authenticated user.
@@ -183,10 +185,6 @@ func SearchAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, _ ht
 	}
 }
 
-// isMaasAdminCheck is the admin probe used during API key subscription enrichment.
-// Tests override this to avoid requiring a live token/SSAR against a real cluster.
-var isMaasAdminCheck = checkIsMaasAdmin
-
 // enrichAPIKeysWithSubscriptionDetails populates SubscriptionDetails for inactive
 // status and row enrichment.
 //
@@ -207,8 +205,8 @@ func enrichAPIKeysWithSubscriptionDetails(app *App, r *http.Request, response *m
 
 	isAdmin, err := isMaasAdminCheck(app, r)
 	if err != nil {
-		app.logger.Warn("Failed to check MaaS admin for API key enrichment; falling back to MaaS API subscriptions", "error", err)
-		isAdmin = false
+		app.logger.Warn("Failed to check MaaS admin for API key enrichment; skipping subscriptionDetails", "error", err)
+		return
 	}
 
 	if isAdmin {
@@ -260,7 +258,7 @@ func enrichAPIKeysFromMaasSubscriptions(
 ) {
 	subscriptions, err := app.repositories.APIKeys.ListSubscriptionsForApiKeys(r.Context())
 	if err != nil {
-		app.logger.Warn("Failed to fetch MaaS API subscriptions for API key enrichment", "error", err)
+		app.logger.Warn("Failed to fetch subscriptions for API key enrichment", "error", err)
 		return
 	}
 

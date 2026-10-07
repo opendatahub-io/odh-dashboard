@@ -73,7 +73,7 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			Expect(actual.Data.Object).To(Equal("list"))
 			Expect(len(actual.Data.Data)).Should(BeNumerically(">", 0))
 		})
-		It("returns subscription on API keys and enriches with subscription details from the MaaS API for non-admins", func() {
+		It("returns subscription on API keys and enriches with subscription details from the MaaS API", func() {
 			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 			searchRequest := models.APIKeySearchRequest{}
 			actual, rs, err := setupApiTest[Envelope[*models.APIKeyListResponse, None]](
