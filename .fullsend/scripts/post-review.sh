@@ -6,7 +6,8 @@
 #   1. Set the GitHub review action from findings (any medium+ →
 #      request-changes; risk/confidence/needs-human → comment) and rewrite
 #      the sticky comment. Floors/caps live in rating-policy.json.
-#   2. Do not append the /fs-fix "Next steps" footer.
+#   2. Categorize sticky ## TODO (Findings / Checks / Judgement / Nits).
+#      Do not append the stock /fs-fix "Next steps" footer.
 #   3. Link file/line references in the sticky summary and suppress inline
 #      review comments by omitting line numbers only from the CLI payload.
 #   4. Render the durable structured review: change summary, host status,
@@ -215,6 +216,10 @@ def is_blocking(finding):
     severity = (finding.get("severity") or "info").lower()
     return severity in POLICY["_blocking_severities"]
 
+def is_actionable_nit(finding):
+    severity = (finding.get("severity") or "info").lower()
+    return severity in ("low", "info") and bool(finding.get("actionable"))
+
 def blocking_count(result):
     return sum(1 for finding in (result.get("findings") or []) if is_blocking(finding))
 
@@ -396,13 +401,72 @@ def cap_confidence(result):
 def protected_path_todo(listed):
     return f"A human must approve this protected-path change: {listed}"
 
-def todo_items(result):
-    return [t for t in (result.get("todo") or []) if isinstance(t, str) and t.strip()]
+# Sticky ## TODO category ids → plain-text labels (not markdown headers).
+TODO_CATEGORIES = (
+    ("findings", "Findings"),
+    ("checks", "Checks"),
+    ("judgement", "Judgement"),
+    ("nits", "Nits"),
+)
+TODO_CATEGORY_IDS = {cid for cid, _ in TODO_CATEGORIES}
 
-def append_todo(result, item):
+def infer_todo_category(text, result):
+    """Best-effort category for legacy plain-string todo bullets."""
+    if "protected-path" in text.lower():
+        return "judgement"
+    for check in failed_checks(result):
+        summary = (check.get("summary") or "").strip()
+        if summary and (text == summary or summary in text):
+            return "checks"
+    for finding in (result.get("findings") or []):
+        desc = (finding.get("description") or "").strip()
+        if is_actionable_nit(finding) and desc and (desc in text or text in desc):
+            return "nits"
+        if not is_blocking(finding):
+            continue
+        rem = (finding.get("remediation") or "").strip()
+        if (rem and rem in text) or (desc and desc in text):
+            return "findings"
+    if needs_human(result) or approve_refuse_reason(result):
+        return "judgement"
+    return "findings"
+
+def normalize_todo_item(item, result):
+    if isinstance(item, str):
+        text = item.strip()
+    elif isinstance(item, dict):
+        text = (item.get("text") or "").strip()
+    else:
+        return None
+    if not text:
+        return None
+    if isinstance(item, dict):
+        category = (item.get("category") or "").lower()
+        if category in TODO_CATEGORY_IDS:
+            return {"category": category, "text": text}
+    return {"category": infer_todo_category(text, result), "text": text}
+
+def todo_items(result):
+    items = []
+    for raw in (result.get("todo") or []):
+        item = normalize_todo_item(raw, result)
+        if item:
+            items.append(item)
+    return items
+
+def append_todo(result, item, category="judgement"):
+    if isinstance(item, str):
+        candidate = {"category": category, "text": item.strip()}
+    elif isinstance(item, dict):
+        candidate = item
+    else:
+        return
+    normalized = normalize_todo_item(candidate, result)
+    if not normalized:
+        return
     todos = todo_items(result)
-    if item not in todos:
-        todos.append(item)
+    if not any(t["text"] == normalized["text"] for t in todos):
+        todos.append(normalized)
     result["todo"] = todos
 
 def apply_host_todos(result):
@@ -951,8 +1015,15 @@ def render_todo_section(result):
     todos = todo_items(result)
     if not todos:
         return []
-    lines = ["", "## TODO", ""]
-    lines += [f"- {clean(item)}" for item in todos]
+    by_category = {cid: [] for cid, _ in TODO_CATEGORIES}
+    for item in todos:
+        by_category[item["category"]].append(item["text"])
+    lines = ["", "## TODO"]
+    for cid, label in TODO_CATEGORIES:
+        items = by_category[cid]
+        if not items:
+            continue
+        lines += ["", label] + [f"- {clean(text)}" for text in items]
     return lines
 
 def render_product_ask_section(pa):
@@ -995,7 +1066,7 @@ def render_body(result, previous_md, action):
                     origin_ids = producer_ids(finding)
                     origin_shown = ", ".join(dimension_label(i) for i in origin_ids) or clean(finding.get("dimension"))
                     origin = f"`{origin_shown}` · "
-                tail = " · actionable follow-up" if finding.get("actionable") and severity in ("low", "info") else ""
+                tail = " · actionable follow-up" if is_actionable_nit(finding) else ""
                 lines += ["", f"- {origin}**{clean(finding.get('category'))}** ({loc}){tail}: {clean(finding.get('description'))}"]
                 if finding.get("why"):
                     lines.append(f"  - Why: {clean(finding.get('why'))}")
@@ -1153,7 +1224,8 @@ run_self_test() {
        grep -q '### Verification' <<<"${body}" ||
        grep -q '### Jira acceptance criteria' <<<"${body}" ||
        grep -q '## Decision needed' <<<"${body}" ||
-       grep -q '### Readiness checks' <<<"${body}"; then
+       grep -q '### Readiness checks' <<<"${body}" ||
+       grep -q '## Next steps' <<<"${body}"; then
       echo "FAIL ${name}: required rendered sections missing or retired sections present" >&2
       fail=1
       return
@@ -1168,7 +1240,7 @@ run_self_test() {
 
   render_fixture request-changes request-changes "{${common},\"findings\":[{\"severity\":\"high\",\"category\":\"correctness\",\"file\":\"a.ts\",\"line\":12,\"description\":\"Empty state throws.\",\"why\":\"The supported empty route reaches an unguarded map.\",\"remediation\":\"Guard the list and add an empty-state test.\"}],\"product_ask\":{\"status\":\"aligned\"}}"
 
-  render_fixture needs-human comment "{${common},\"findings\":[],\"todo\":[\"Decide which product scope this PR implements.\"],\"product_ask\":{\"status\":\"mismatch-justified\",\"needs_human\":true}}"
+  render_fixture needs-human comment "{${common},\"findings\":[],\"todo\":[{\"category\":\"judgement\",\"text\":\"Decide which product scope this PR implements.\"}],\"product_ask\":{\"status\":\"mismatch-justified\",\"needs_human\":true}}"
 
   local pa body
   printf '%s' "{${common},\"product_ask\":{\"status\":\"mismatch-unjustified\",\"mismatched\":[\"Jira asks for export\"]}}" > "${tmp}/product-ask.json"
@@ -1214,11 +1286,14 @@ run_self_test() {
     echo "PASS request-changes status and linked location"
   fi
   body=$(jq -r .body "${tmp}/needs-human-out.json")
-  if ! grep -Fq '**Needs human judgment.**' <<<"${body}" || ! grep -q '## TODO' <<<"${body}" || grep -q '## Decision needed' <<<"${body}"; then
-    echo "FAIL needs-human: status or TODO section missing" >&2
+  if ! grep -Fq '**Needs human judgment.**' <<<"${body}" ||
+     ! grep -q '## TODO' <<<"${body}" ||
+     ! grep -Fxq 'Judgement' <<<"${body}" ||
+     grep -q '## Decision needed' <<<"${body}"; then
+    echo "FAIL needs-human: status or categorized TODO missing" >&2
     fail=1
   else
-    echo "PASS needs-human status and TODO section"
+    echo "PASS needs-human status and Judgement TODO"
   fi
   body=$(jq -r .body "${tmp}/approve-out.json")
   if grep -q '## Findings' <<<"${body}" || grep -q '## TODO' <<<"${body}" || ! grep -q 'Looks good to me' <<<"${body}"; then
@@ -1228,7 +1303,7 @@ run_self_test() {
     echo "PASS approve omits findings section"
   fi
 
-  printf '%s' "{${common},\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"warning\",\"summary\":\"No targeted tests were changed.\",\"details\":[\"PR body explains manual verification only.\",\"Second detail line.\"]}],\"todo\":[\"Confirm the manual verification note is enough.\"],\"producers\":{\"dispatched\":[\"test-impact-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"test-impact-review\"],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/structured.json"
+  printf '%s' "{${common},\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"warning\",\"summary\":\"No targeted tests were changed.\",\"details\":[\"PR body explains manual verification only.\",\"Second detail line.\"]}],\"todo\":[{\"category\":\"findings\",\"text\":\"Confirm the manual verification note is enough.\"}],\"producers\":{\"dispatched\":[\"test-impact-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"test-impact-review\"],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/structured.json"
   transform_review_result "${tmp}/structured.json" > "${tmp}/structured-out.json"
   body=$(jq -r .body "${tmp}/structured-out.json")
   if [[ "$(jq -r .action "${tmp}/structured-out.json")" != "approve" ]] ||
@@ -1237,6 +1312,7 @@ run_self_test() {
      ! grep -q 'Test impact' <<<"${body}" ||
      ! grep -Fq 'No targeted tests were changed.<br><br>PR body explains manual verification only.<br><br>Second detail line.' <<<"${body}" ||
      ! grep -q '## TODO' <<<"${body}" ||
+     ! grep -Fxq 'Findings' <<<"${body}" ||
      grep -q '### Verification' <<<"${body}" ||
      grep -q '### Jira acceptance criteria' <<<"${body}" ||
      grep -q '### Readiness checks' <<<"${body}"; then
@@ -1256,6 +1332,25 @@ run_self_test() {
     fi
   fi
 
+  printf '%s' "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"correctness\",\"file\":\"a.ts\",\"line\":1,\"description\":\"Service name mismatch.\",\"why\":\"Config disagrees with the Service manifest.\",\"remediation\":\"Align the service name with the manifest.\"},{\"severity\":\"low\",\"category\":\"style-conventions\",\"file\":\"b.ts\",\"description\":\"Minor naming nit.\",\"actionable\":true}],\"checks\":[{\"id\":\"pr-description-review\",\"status\":\"fail\",\"summary\":\"Problem section is empty.\"}],\"todo\":[{\"category\":\"findings\",\"text\":\"Align the service name with the manifest.\"},{\"category\":\"checks\",\"text\":\"Problem section is empty.\"},{\"category\":\"judgement\",\"text\":\"Obtain human approval for the protected-path change.\"},{\"category\":\"nits\",\"text\":\"Minor naming nit.\"}],\"product_ask\":{\"status\":\"none\"}}" > "${tmp}/todo-cats.json"
+  transform_review_result "${tmp}/todo-cats.json" > "${tmp}/todo-cats-out.json"
+  body=$(jq -r .body "${tmp}/todo-cats-out.json")
+  # Category labels live under ## TODO as plain text (not ## / ### headings).
+  todo_block=$(awk '/^## TODO$/{p=1;next} /^## /{p=0} p' <<<"${body}")
+  findings_label=$(grep -n '^Findings$' <<<"${todo_block}" | head -1 | cut -d: -f1)
+  checks_label=$(grep -n '^Checks$' <<<"${todo_block}" | head -1 | cut -d: -f1)
+  human_label=$(grep -n '^Judgement$' <<<"${todo_block}" | head -1 | cut -d: -f1)
+  nits_label=$(grep -n '^Nits$' <<<"${todo_block}" | head -1 | cut -d: -f1)
+  if [[ -z "${findings_label}" || -z "${checks_label}" || -z "${human_label}" || -z "${nits_label}" ||
+        "${findings_label}" -ge "${checks_label}" || "${checks_label}" -ge "${human_label}" ||
+        "${human_label}" -ge "${nits_label}" ]] ||
+     grep -Eq '^#{1,6}[[:space:]]+(Findings|Checks|Judgement|Nits)$' <<<"${todo_block}"; then
+    echo "FAIL todo-cats: categorized TODO labels missing, misordered, or markdown-headed" >&2
+    fail=1
+  else
+    echo "PASS categorized TODO labels render as plain text in recipe order"
+  fi
+
   printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"pr-description-review\",\"status\":\"fail\",\"summary\":\"Problem section is empty.\"}],\"producers\":{\"dispatched\":[\"pr-description-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"pr-description-review\"],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/check-fail.json"
   transform_review_result "${tmp}/check-fail.json" > "${tmp}/check-fail-out.json"
   if [[ "$(jq -r .action "${tmp}/check-fail-out.json")" != "request-changes" ]] ||
@@ -1266,7 +1361,7 @@ run_self_test() {
     echo "PASS failed readiness check requests changes"
   fi
 
-  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"could-not-verify\",\"summary\":\"CI host context was unavailable.\"}],\"todo\":[\"Re-run when CI context is available.\"]}" > "${tmp}/check-cnv.json"
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"could-not-verify\",\"summary\":\"CI host context was unavailable.\"}],\"todo\":[{\"category\":\"judgement\",\"text\":\"Re-run when CI context is available.\"}]}" > "${tmp}/check-cnv.json"
   transform_review_result "${tmp}/check-cnv.json" > "${tmp}/check-cnv-out.json"
   if [[ "$(jq -r .action "${tmp}/check-cnv-out.json")" != "comment" ]] ||
      ! grep -Fq '**Needs human judgment.**' <<<"$(jq -r .body "${tmp}/check-cnv-out.json")"; then
@@ -1315,11 +1410,20 @@ run_self_test() {
     export REVIEW_CHANGED_FILES=$'.github/workflows/ci.yaml\nsrc/app.ts'
     transform_review_result "${tmp}/pp-real.json"
   ) > "${tmp}/pp-real-out.json"
-  if ! jq -e '.action == "comment" and ((.findings // []) | length) == 1 and ((.todo // []) | any(.[]; contains(".github/workflows/ci.yaml"))) and (.decision_needed | not)' "${tmp}/pp-real-out.json" >/dev/null; then
-    echo "FAIL protected-path-real: want comment + retained finding + TODO, no decision_needed" >&2
+  if ! jq -e '
+      .action == "comment"
+      and ((.findings // []) | length) == 1
+      and ((.todo // [])
+           | map(if type == "string" then . else .text end)
+           | any(contains(".github/workflows/ci.yaml")))
+      and ((.todo // []) | any(type == "object" and .category == "judgement"))
+      and (.decision_needed | not)
+    ' "${tmp}/pp-real-out.json" >/dev/null; then
+    echo "FAIL protected-path-real: want comment + retained finding + judgement TODO, no decision_needed" >&2
     fail=1
-  elif ! grep -q 'Needs human judgment' <<<"$(jq -r .body "${tmp}/pp-real-out.json")"; then
-    echo "FAIL protected-path-real: status should route to human judgment, not the author" >&2
+  elif ! grep -q 'Needs human judgment' <<<"$(jq -r .body "${tmp}/pp-real-out.json")" ||
+       ! grep -Fxq 'Judgement' <<<"$(jq -r .body "${tmp}/pp-real-out.json")"; then
+    echo "FAIL protected-path-real: status should route to human judgment with Judgement TODO" >&2
     fail=1
   else
     echo "PASS supported protected-path routes to human judgment, not request-changes"

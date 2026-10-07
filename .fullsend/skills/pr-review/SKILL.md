@@ -1582,11 +1582,11 @@ Every non-failure result must include:
 - Signal members: each name in each selected `signal:*` row's `result_fields` that the row returned, or that the step 6g failure map defines. If the row omitted a name and the map does not define it, omit that member and record the gap in `inspected.could_not_verify`. Do not invent or re-derive levels in the orchestrator. The host may still floor signal levels after you write the file.
 - Section members: every name in each selected `section:*` row's `result_fields` (or the section named by `output` when `result_fields` is omitted), projected from `producers.json` `sections`. When that row was not run because its `context_file` was missing or the snapshot `status` was `none` / `error`, write the schema member as `{"status":"none"}` when the schema allows `status`.
 - `checks[]` from `check:*` returns in `producers.json` `checks` (top-level array, not nested under `producers`). Preserve `could-not-verify` rather than converting a check into a finding.
-- `todo`: array of non-empty strings, synthesized in this final pass from the assembled report (not from one earlier section). Plain prose bullets the host renders under `## TODO`. Recipe, in order, omit empties:
-  1. One bullet per blocking finding pointing at its remediation (or file + description when remediation is absent).
-  2. One bullet per check whose `status` is `fail`, using that check's `summary`.
-  3. Concrete human actions for check `could-not-verify`, for signal levels that `.fullsend/rating-policy.json` lists as refuse-approve, and for any assembled section object with `needs_human: true`.
-  4. One bullet per `low` or `info` finding with `actionable: true`, using its description.
+- `todo`: array of `{category,text}` objects (preferred) or plain strings, synthesized in this final pass from the assembled report (not from one earlier section). The host renders them under sticky `## TODO` grouped by plain-text category labels. Recipe, in order, omit empties:
+  1. `category: "findings"` — one bullet per blocking finding pointing at its remediation (or file + description when remediation is absent).
+  2. `category: "checks"` — one bullet per check whose `status` is `fail`, using that check's `summary`.
+  3. `category: "judgement"` — concrete human actions for check `could-not-verify`, for signal levels that `.fullsend/rating-policy.json` lists as refuse-approve, and for any assembled section object with `needs_human: true`.
+  4. `category: "nits"` — one bullet per `low` or `info` finding with `actionable: true`, using its description.
   Omit `todo` when the list is empty. The host renders `## TODO` only when this list is non-empty, so include item 4 whenever such findings exist.
 - Optional `inspected` with `summary` and `could_not_verify` only.
   **Do not write `inspected.producers`** — that field is removed from the
