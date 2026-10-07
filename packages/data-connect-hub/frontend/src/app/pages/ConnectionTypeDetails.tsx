@@ -42,6 +42,12 @@ const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> 
   const { search } = useLocation();
   const [connectionType, loaded, loadError] = useConnectionType(namespace, connectionTypeId);
   const [isConnectionWizardOpen, setIsConnectionWizardOpen] = React.useState<boolean>(false);
+  const selectedConnectionTypeId = connectionType?.id;
+  const initialFormData = React.useMemo(
+    () =>
+      selectedConnectionTypeId ? { data_connection_type_id: selectedConnectionTypeId } : undefined,
+    [selectedConnectionTypeId],
+  );
 
   const loadingSkeleton = <Skeleton screenreaderText="Loading connection type" />;
 
@@ -115,9 +121,7 @@ const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> 
             onCreate={async (data, selectedNamespace) => {
               await createConnection('')({}, selectedNamespace, data);
             }}
-            initialFormData={{
-              data_connection_type_id: connectionType.id,
-            }}
+            initialFormData={initialFormData}
           />
         )}
       </PageSection>
