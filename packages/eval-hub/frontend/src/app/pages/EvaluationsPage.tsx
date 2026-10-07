@@ -232,22 +232,26 @@ const EvaluationsPage: React.FC = () => {
           <DrawerContentBody className="evalhub-evaluations-drawer-body">
             <div className="evalhub-evaluations-page">
               <ApplicationsPage
-                title={<EvalHubHeader title="Evaluations" />}
-                description={EVALUATE_DESCRIPTION}
-                headerContent={
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                    <ProjectIconWithSize size={IconSize.LG} />
-                    <FlexItem>
-                      <Content component="p">Project</Content>
-                    </FlexItem>
-                    <FlexItem>
-                      <EvalHubProjectSelector
-                        namespace={namespace}
-                        getRedirectPath={evalHubEvaluationsRoute}
-                      />
-                    </FlexItem>
-                  </Flex>
+                title={
+                  <EvalHubHeader
+                    title="Evaluations"
+                    projectContent={
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                        <ProjectIconWithSize size={IconSize.LG} />
+                        <FlexItem>
+                          <Content component="p">Project</Content>
+                        </FlexItem>
+                        <FlexItem>
+                          <EvalHubProjectSelector
+                            namespace={namespace}
+                            getRedirectPath={evalHubEvaluationsRoute}
+                          />
+                        </FlexItem>
+                      </Flex>
+                    }
+                  />
                 }
+                description={EVALUATE_DESCRIPTION}
                 loaded={healthLoaded && (!isHealthy || !isRunsTab || loaded)}
                 loadError={!isHealthy ? healthError : isRunsTab ? error : undefined}
                 loadErrorPage={

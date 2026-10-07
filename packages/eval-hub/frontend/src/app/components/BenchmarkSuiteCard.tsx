@@ -31,6 +31,7 @@ import {
   LanguageIcon,
   PlayIcon,
   RhUiCollectionFillIcon,
+  RhUiStarFillIcon,
   ShieldAltIcon,
   ToolsIcon,
 } from '@patternfly/react-icons';
@@ -183,7 +184,9 @@ const BenchmarkSuiteCardTags: React.FC<BenchmarkSuiteCardTagsProps> = ({
             index >= visibleTagCount ? 'evalhub-benchmark-suite-card__tag--hidden' : undefined
           }
         >
-          <Label color="grey">{tag.label}</Label>
+          <Label color="grey" variant="outline">
+            {tag.label}
+          </Label>
         </span>
       ))}
       {overflowTags.length > 0 && (
@@ -205,7 +208,9 @@ const BenchmarkSuiteCardTags: React.FC<BenchmarkSuiteCardTagsProps> = ({
         className="evalhub-benchmark-suite-card__tag-overflow-measure"
         aria-hidden="true"
       >
-        <Label color="grey">+{tags.length}</Label>
+        <Label color="grey" variant="outline">
+          +{tags.length}
+        </Label>
       </span>
     </div>
   );
@@ -407,23 +412,27 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
             {isPopular && (
               <FlexItem>
                 <Label
-                  color="blue"
+                  color="teal"
+                  variant="outline"
                   isCompact
+                  icon={<RhUiStarFillIcon aria-hidden="true" />}
                   data-testid={`benchmark-suite-card-popular-${collection.resource.id}`}
                 >
-                  Popular
+                  Recommended
                 </Label>
               </FlexItem>
             )}
             {!isPopular && reservePopularHeader && (
               <FlexItem aria-hidden="true">
                 <Label
-                  color="blue"
+                  color="teal"
+                  variant="outline"
                   isCompact
+                  icon={<RhUiStarFillIcon aria-hidden="true" />}
                   className="evalhub-benchmark-suite-card__popular-placeholder"
                   data-testid={`benchmark-suite-card-popular-placeholder-${collection.resource.id}`}
                 >
-                  Popular
+                  Recommended
                 </Label>
               </FlexItem>
             )}

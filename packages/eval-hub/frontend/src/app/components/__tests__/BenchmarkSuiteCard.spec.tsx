@@ -152,7 +152,7 @@ describe('BenchmarkSuiteCard', () => {
     ).not.toBeInTheDocument();
   });
 
-  it.each([1, 2, 3])('should mark curation order %s as popular', (curationOrder) => {
+  it.each([1, 2, 3])('should mark curation order %s as recommended', (curationOrder) => {
     render(
       <BenchmarkSuiteCard
         collection={{
@@ -163,9 +163,10 @@ describe('BenchmarkSuiteCard', () => {
       />,
     );
 
-    expect(
-      screen.getByTestId(`benchmark-suite-card-popular-popular-suite-${curationOrder}`),
-    ).toHaveTextContent('Popular');
+    const label = screen.getByTestId(`benchmark-suite-card-popular-popular-suite-${curationOrder}`);
+    expect(label).toHaveTextContent('Recommended');
+    expect(label).toHaveClass('pf-m-teal', 'pf-m-outline');
+    expect(label.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('should not mark later curated suites as popular', () => {
@@ -193,9 +194,12 @@ describe('BenchmarkSuiteCard', () => {
       />,
     );
 
-    expect(
-      screen.getByTestId('benchmark-suite-card-popular-placeholder-reserved-popular-space-suite'),
-    ).toHaveTextContent('Popular');
+    const label = screen.getByTestId(
+      'benchmark-suite-card-popular-placeholder-reserved-popular-space-suite',
+    );
+    expect(label).toHaveTextContent('Recommended');
+    expect(label).toHaveClass('pf-m-teal', 'pf-m-outline');
+    expect(label.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
     expect(
       screen.queryByTestId('benchmark-suite-card-popular-reserved-popular-space-suite'),
     ).not.toBeInTheDocument();
@@ -333,6 +337,9 @@ describe('BenchmarkSuiteCard', () => {
     );
 
     expect(screen.getByText('Collection tag')).toBeInTheDocument();
+    expect(screen.getByText('Collection tag').closest('.pf-v6-c-label')).toHaveClass(
+      'pf-m-outline',
+    );
     expect(screen.queryByText('Domain value')).not.toBeInTheDocument();
     expect(screen.queryByText('Primary category')).not.toBeInTheDocument();
     expect(screen.queryByText('Model')).not.toBeInTheDocument();
