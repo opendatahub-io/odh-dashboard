@@ -27,19 +27,17 @@ import (
 	ctrlpkg "github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
 )
 
-func TestIntegration_MaaSConsumerPortalObservabilityLifecycle(t *testing.T) {
+func TestIntegration_MaaSPortalObservabilityLifecycle(t *testing.T) {
 	installPersesCRD(t)
 	for _, tt := range []struct {
 		name        string
 		namespace   string
 		autoDetect  bool
 		initialCore common.ManagementState
-		legacy      bool
 	}{
 		{name: "portal only auto-detects Perses", namespace: "redhat-ods-monitoring", autoDetect: true, initialCore: "Removed"},
 		{name: "core removal preserves cross-namespace observability", namespace: "portal-observability-test", initialCore: "Managed"},
 		{name: "core removal preserves observability in applications namespace", namespace: integrationNamespace, initialCore: "Managed"},
-		{name: "legacy portal retains observability", namespace: "portal-observability-legacy-test", initialCore: "Managed", legacy: true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
@@ -62,7 +60,7 @@ func TestIntegration_MaaSConsumerPortalObservabilityLifecycle(t *testing.T) {
 			t.Cleanup(func() { deleteIgnoreNotFound(t, service) })
 
 			base := createIntegrationManifests(t, []string{"maas", "gen-ai"})
-			writeMaaSConsumerPortalManifest(t, base)
+			writeMaaSPortalManifest(t, base)
 			writePortalObservabilityOverlay(t, base)
 			r := &ctrlpkg.DashboardReconciler{
 				Client: persesClient, Scheme: persesClient.Scheme(), ManifestsBasePath: base,
@@ -73,13 +71,7 @@ func TestIntegration_MaaSConsumerPortalObservabilityLifecycle(t *testing.T) {
 				Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
 				Modules:        disableAllModulesExcept("maas", "genAi"),
 				MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
-				// The canonical field must override this conflicting legacy state.
-				MaaSConsumerPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Removed"},
 			})
-			if tt.legacy {
-				dashboard.Spec.MaaSPortal = nil
-				dashboard.Spec.MaaSConsumerPortal.ManagementState = "Managed"
-			}
 			if !tt.autoDetect {
 				dashboard.Spec.Observability = &v1alpha1.ObservabilitySpec{
 					Enabled: true, PersesService: &v1alpha1.ServiceTarget{Name: service.Name, Namespace: service.Namespace, Port: 8080},
@@ -99,7 +91,7 @@ func TestIntegration_MaaSConsumerPortalObservabilityLifecycle(t *testing.T) {
 			}
 			t.Cleanup(func() {
 				deleteDashboard(t)
-				cleanupMaaSConsumerPortalResources(t, r)
+				cleanupMaaSPortalResources(t, r)
 				cleanupModuleResources(t)
 				for _, resource := range resources {
 					require.NoError(t, client.IgnoreNotFound(persesClient.Delete(ctx, resource)))
@@ -161,12 +153,7 @@ func TestIntegration_MaaSConsumerPortalObservabilityLifecycle(t *testing.T) {
 				}
 				dashboard = getDashboard(t)
 				assert.Equal(t, common.ManagementState("Managed"), dashboard.Spec.ManagementState)
-				if tt.legacy {
-					assert.Equal(t, "Managed", dashboard.Spec.MaaSConsumerPortal.ManagementState)
-				} else {
-					assert.Equal(t, "Managed", dashboard.Spec.MaaSPortal.ManagementState)
-					assert.Equal(t, "Removed", dashboard.Spec.MaaSConsumerPortal.ManagementState)
-				}
+				assert.Equal(t, "Managed", dashboard.Spec.MaaSPortal.ManagementState)
 				dashboard.Spec.Observability = configuredObservability
 				require.NoError(t, persesClient.Update(ctx, dashboard))
 				reconcile(t, r)
@@ -223,7 +210,7 @@ func TestIntegration_MaaSConsumerPortalObservabilityLifecycle(t *testing.T) {
 					assert.Contains(t, condition.Message, "data[invalid key]")
 				}
 			}
-			assert.Equal(t, metav1.ConditionTrue, conditionStatus(failedDashboard, ctrlpkg.ConditionMaaSConsumerPortalAvailable))
+			assert.Equal(t, metav1.ConditionTrue, conditionStatus(failedDashboard, ctrlpkg.ConditionMaaSPortalAvailable))
 			assert.Equal(t, federation.Data, getConfigMap(t, federation.Name).Data)
 			for i, resource := range resources {
 				require.NoError(t, persesClient.Get(ctx, client.ObjectKeyFromObject(resource), resource))
@@ -258,13 +245,7 @@ func TestIntegration_MaaSConsumerPortalObservabilityLifecycle(t *testing.T) {
 
 			// Removing the remaining consumer releases all shared observability resources.
 			dashboard = getDashboard(t)
-			if tt.legacy {
-				dashboard.Spec.MaaSConsumerPortal.ManagementState = "Removed"
-			} else {
-				dashboard.Spec.MaaSPortal.ManagementState = "Removed"
-				// The legacy field must not retain observability after canonical removal.
-				dashboard.Spec.MaaSConsumerPortal.ManagementState = "Managed"
-			}
+			dashboard.Spec.MaaSPortal.ManagementState = "Removed"
 			require.NoError(t, persesClient.Update(ctx, dashboard))
 			reconcile(t, r)
 			for _, resource := range resources {
@@ -273,11 +254,7 @@ func TestIntegration_MaaSConsumerPortalObservabilityLifecycle(t *testing.T) {
 
 			// CR deletion must clean up even while the portal is still desired.
 			dashboard = getDashboard(t)
-			if tt.legacy {
-				dashboard.Spec.MaaSConsumerPortal.ManagementState = "Managed"
-			} else {
-				dashboard.Spec.MaaSPortal.ManagementState = "Managed"
-			}
+			dashboard.Spec.MaaSPortal.ManagementState = "Managed"
 			require.NoError(t, persesClient.Update(ctx, dashboard))
 			reconcile(t, r)
 			for _, resource := range resources {

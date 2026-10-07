@@ -110,8 +110,8 @@ test run:
 
 ```bash
 make test-e2e E2E_TEST_ARGS='-run TestE2E_BFFHealthchecks'
-make test-e2e E2E_TEST_ARGS='-run ^TestE2E_MaaSConsumerPortalRoutingConformance$'
-TEST_PLATFORM=rhoai make test-e2e E2E_TEST_ARGS='-run ^TestE2E_MaaSConsumerPortalObservabilitySurvivesCoreRemoval$'
+make test-e2e E2E_TEST_ARGS='-run ^TestE2E_MaaSPortalRoutingConformance$'
+TEST_PLATFORM=rhoai make test-e2e E2E_TEST_ARGS='-run ^TestE2E_MaaSPortalObservabilitySurvivesCoreRemoval$'
 ```
 
 Run the RHOAIENG-83658 cases, or one ticket story, with:

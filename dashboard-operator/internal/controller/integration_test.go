@@ -291,7 +291,7 @@ func TestIntegration_MaaSPortalURLMigrationOnEarlyFailure(t *testing.T) {
 
 	fetched := getDashboard(t)
 	assert.Equal(t, "ModuleDeployFailed", conditionReason(fetched, string(common.ConditionTypeProvisioningSucceeded)))
-	assert.Equal(t, "https://previous.example.com/", fetched.Status.MaaSConsumerPortalURL)
+	assert.Equal(t, "https://previous.example.com/", fetched.Status.MaaSPortalURL)
 	assert.Equal(t, "https://previous.example.com/", fetched.Status.MaaSPortalURL)
 }
 

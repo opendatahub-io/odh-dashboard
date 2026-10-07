@@ -481,7 +481,7 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 			ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
 			MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
 		},
-		Status: v1alpha1.DashboardStatus{MaaSConsumerPortalURL: "https://previous.example.com/"},
+		Status: v1alpha1.DashboardStatus{MaaSPortalURL: "https://previous.example.com/"},
 	}
 	cli := fake.NewClientBuilder().
 		WithScheme(scheme).

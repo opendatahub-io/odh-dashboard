@@ -22,13 +22,13 @@ import (
 )
 
 const (
-	modelCatalogRouteName        = "model-catalog"
-	modelCatalogPath             = "/catalog/api/model_catalog/v1alpha1/sources"
-	maasConsumerPortalRouteName  = "maas-consumer-portal"
-	maasConsumerPortalPath       = "/maas-consumer-portal"
-	maasConsumerPortalHealthPath = "/maas-consumer-portal/healthcheck"
-	sharedGatewayName            = "data-science-gateway"
-	maxRouteResponseBody         = 1 << 20
+	modelCatalogRouteName = "model-catalog"
+	modelCatalogPath      = "/catalog/api/model_catalog/v1alpha1/sources"
+	maasPortalRouteName   = "maas-consumer-portal"
+	maasPortalPath        = "/maas-consumer-portal"
+	maasPortalHealthPath  = "/maas-consumer-portal/healthcheck"
+	sharedGatewayName     = "data-science-gateway"
+	maxRouteResponseBody  = 1 << 20
 )
 
 type gatewayResponse struct {
@@ -70,7 +70,7 @@ func TestE2E_GatewaySubPathRoutingConformance(t *testing.T) {
 		modelCatalogPath, response.status, response.contentType, len(response.body))
 }
 
-func TestE2E_MaaSConsumerPortalRoutingConformance(t *testing.T) {
+func TestE2E_MaaSPortalRoutingConformance(t *testing.T) {
 	requireManagedFixture(t)
 	if requiredPlatform(t) != platformRHOAI {
 		t.Skip("MaaS Consumer Portal is supported only on RHOAI")
@@ -82,22 +82,22 @@ func TestE2E_MaaSConsumerPortalRoutingConformance(t *testing.T) {
 		require.NotEqual(t, dashboardv1alpha1.ModuleDisabled, dashboard.Spec.Modules[name].State,
 			"MaaS Consumer Portal routing test requires module %q to be enabled in Dashboard spec.modules", name)
 	}
-	var originalPortalSpec *dashboardv1alpha1.MaaSConsumerPortalSpec
-	if dashboard.Spec.MaaSConsumerPortal != nil {
-		originalPortalSpec = dashboard.Spec.MaaSConsumerPortal.DeepCopy()
+	var originalPortalSpec *dashboardv1alpha1.MaaSPortalSpec
+	if dashboard.Spec.MaaSPortal != nil {
+		originalPortalSpec = dashboard.Spec.MaaSPortal.DeepCopy()
 	}
 	t.Cleanup(func() {
 		patchDashboardSpec(t, func(spec *dashboardv1alpha1.DashboardSpec) {
-			spec.MaaSConsumerPortal = originalPortalSpec
+			spec.MaaSPortal = originalPortalSpec
 		})
 		if originalPortalSpec == nil || originalPortalSpec.ManagementState != "Managed" {
-			waitForObjectAbsent(t, &gatewayv1.HTTPRoute{}, maasConsumerPortalRouteName)
-			waitForObjectAbsent(t, &appsv1.Deployment{}, maasConsumerPortalRouteName)
+			waitForObjectAbsent(t, &gatewayv1.HTTPRoute{}, maasPortalRouteName)
+			waitForObjectAbsent(t, &appsv1.Deployment{}, maasPortalRouteName)
 		}
 	})
 
 	patchDashboardSpec(t, func(spec *dashboardv1alpha1.DashboardSpec) {
-		spec.MaaSConsumerPortal = &dashboardv1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"}
+		spec.MaaSPortal = &dashboardv1alpha1.MaaSPortalSpec{ManagementState: "Managed"}
 	})
 	require.NoError(t, waitForCondition(
 		k8sClient,
@@ -109,7 +109,7 @@ func TestE2E_MaaSConsumerPortalRoutingConformance(t *testing.T) {
 	require.NoError(t, waitForDeploymentReady(
 		k8sClient,
 		testNamespace,
-		maasConsumerPortalRouteName,
+		maasPortalRouteName,
 		operandReadyTimeout,
 	))
 
@@ -123,7 +123,7 @@ func TestE2E_MaaSConsumerPortalRoutingConformance(t *testing.T) {
 	portalRoute, err := waitForAdmittedHTTPRouteByName(
 		k8sClient,
 		testNamespace,
-		maasConsumerPortalRouteName,
+		maasPortalRouteName,
 		operandReadyTimeout,
 	)
 	require.NoError(t, err)
@@ -143,11 +143,11 @@ func TestE2E_MaaSConsumerPortalRoutingConformance(t *testing.T) {
 		require.Equal(t, gatewayv1.ObjectName(sharedGatewayName), route.Spec.ParentRefs[0].Name)
 	}
 	require.True(t, httpRouteMatchesPathPrefix(dashboardRoute, "/"))
-	require.True(t, httpRouteMatchesPathPrefix(portalRoute, maasConsumerPortalPath))
+	require.True(t, httpRouteMatchesPathPrefix(portalRoute, maasPortalPath))
 	require.True(t, httpRouteMatchesPathPrefix(catalogRoute, "/catalog/"))
 
 	require.NoError(t, k8sClient.Get(context.Background(), client.ObjectKey{Name: dashboardv1alpha1.DashboardInstanceName}, dashboard))
-	require.Equal(t, "https://"+testGatewayDomain+maasConsumerPortalPath+"/", dashboard.Status.MaaSConsumerPortalURL)
+	require.Equal(t, "https://"+testGatewayDomain+maasPortalPath+"/", dashboard.Status.MaaSPortalURL)
 
 	dashboardResponse := requestGatewayPath(t, "/")
 	require.Equal(t, http.StatusOK, dashboardResponse.statusCode,
@@ -157,7 +157,7 @@ func TestE2E_MaaSConsumerPortalRoutingConformance(t *testing.T) {
 		"dashboard root returned non-HTML content type %q and body length %d",
 		dashboardResponse.contentType, len(dashboardResponse.body))
 
-	portalResponse := requestGatewayPath(t, maasConsumerPortalHealthPath)
+	portalResponse := requestGatewayPath(t, maasPortalHealthPath)
 	require.Equal(t, http.StatusOK, portalResponse.statusCode,
 		"portal health check returned status %s, content type %q, and body length %d",
 		portalResponse.status, portalResponse.contentType, len(portalResponse.body))
