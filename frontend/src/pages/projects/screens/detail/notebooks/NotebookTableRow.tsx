@@ -21,6 +21,7 @@ import {
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { getDescriptionFromK8sResource } from '@odh-dashboard/k8s-core';
 import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
+import { hasDeclaredClaims } from '@odh-dashboard/hardware-profiles/shared/dra/claimResolution';
 import { NotebookState } from '#~/pages/projects/notebook/types';
 import NotebookRouteLink from '#~/pages/projects/notebook/NotebookRouteLink';
 import { NotebookKind } from '#~/k8sTypes';
@@ -48,6 +49,7 @@ import { NotebookImageDisplayName } from './NotebookImageDisplayName';
 import NotebookStorageBars from './NotebookStorageBars';
 import NotebookFeatureStoreList from './NotebookFeatureStoreList';
 import NotebookSizeDetails from './NotebookSizeDetails';
+import NotebookClaimsDetails from './NotebookClaimsDetails';
 import WorkbenchMigrationLabel from './WorkbenchMigrationLabel';
 import useNotebookImage from './useNotebookImage';
 import NotebookUpdateImageModal from './NotebookUpdateImageModal';
@@ -86,6 +88,8 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const [bindingStateInfo, bindingStateLoaded, bindingStateLoadError] =
     useHardwareProfileBindingState(obj.notebook, WORKBENCH_VISIBILITY);
   const showMigrationRequired = !isWorkbenchMigrated(obj.notebook);
+  // Only workbenches that declare claims get the Claims cell, so plain rows stay untouched.
+  const hasClaims = hasDeclaredClaims(obj.notebook.spec.template.spec);
 
   const isMlflowAvailable = useIsAreaAvailable(SupportedArea.MLFLOW).status;
   const isFeatureStoreAvailable = useIsAreaAvailable(SupportedArea.FEATURE_STORE).status;
@@ -182,6 +186,15 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const onModalClose = () => {
     setIsModalOpen(false);
   };
+
+  const featureStoreList = (
+    <NotebookFeatureStoreList
+      key={obj.notebook.metadata.uid}
+      notebook={obj.notebook}
+      availableStoreMap={availableStoreMap}
+      availabilityLoaded={featureStoresLoaded}
+    />
+  );
 
   const onUpdateImageClick = () => {
     if (
@@ -358,22 +371,42 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
             />
           </ExpandableRowContent>
         </Td>
-        {isFeatureStoreAvailable ? (
-          <Td>
+        {hasClaims ? (
+          // Claims share the three trailing columns so the section has room beside Limits.
+          <Td
+            dataLabel={isFeatureStoreAvailable ? 'Connected feature stores and claims' : 'Claims'}
+            colSpan={3}
+          >
             <ExpandableRowContent>
-              <NotebookFeatureStoreList
-                key={obj.notebook.metadata.uid}
-                notebook={obj.notebook}
-                availableStoreMap={availableStoreMap}
-                availabilityLoaded={featureStoresLoaded}
-              />
+              <Flex
+                direction={{ default: 'column', lg: 'row' }}
+                gap={{ default: 'gapXl' }}
+                alignItems={{ default: 'alignItemsFlexStart' }}
+              >
+                {isFeatureStoreAvailable && <FlexItem>{featureStoreList}</FlexItem>}
+                <FlexItem flex={{ default: 'flex_1' }}>
+                  <NotebookClaimsDetails
+                    notebook={obj.notebook}
+                    runningPodUid={obj.runningPodUid}
+                    isExpanded={isExpanded}
+                  />
+                </FlexItem>
+              </Flex>
             </ExpandableRowContent>
           </Td>
         ) : (
-          <Td />
+          <>
+            {isFeatureStoreAvailable ? (
+              <Td>
+                <ExpandableRowContent>{featureStoreList}</ExpandableRowContent>
+              </Td>
+            ) : (
+              <Td />
+            )}
+            <Td />
+            <Td />
+          </>
         )}
-        <Td />
-        <Td />
       </Tr>
       {isOpenConfirm && (
         <StopNotebookConfirmModal

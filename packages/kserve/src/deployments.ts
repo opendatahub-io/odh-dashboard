@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import type { PodKind, ProjectKind } from '@odh-dashboard/k8s-core';
 import { K8sAPIOptions } from '@odh-dashboard/k8s-core';
 import {
   type InferenceServiceKind,
@@ -27,12 +27,26 @@ import {
   useWatchInferenceServices,
 } from './api/watch';
 import { getKServeDeploymentEndpoints } from './deploymentEndpoints';
-import { getKServeDeploymentStatus } from './deploymentStatus';
+import { INFERENCE_SERVICE_POD_LABEL, getKServeDeploymentStatus } from './deploymentStatus';
 import { KServeDeployment } from './types';
 import { KSERVE_ID } from '../extensions';
 
 export const isKServeDeployment = (deployment: Deployment): deployment is KServeDeployment =>
   deployment.modelServingPlatformId === KSERVE_ID;
+
+// Main containers of KServe predictor, multi-node worker, and transformer Pods.
+export const KSERVE_MODEL_CONTAINER_NAMES = [
+  'kserve-container',
+  'worker-container',
+  'transformer-container',
+];
+
+/** Pods the InferenceService owns, selected by the same label the status uses. */
+export const selectInferenceServicePods = (
+  pods: PodKind[],
+  inferenceServiceName: string,
+): PodKind[] =>
+  pods.filter((pod) => pod.metadata.labels?.[INFERENCE_SERVICE_POD_LABEL] === inferenceServiceName);
 
 export const useWatchDeployments = (
   project: ProjectKind,
@@ -102,9 +116,22 @@ export const useWatchDeployments = (
           apiProtocol: servingRuntime
             ? getAPIProtocolFromServingRuntime(servingRuntime)
             : undefined,
+          pods: {
+            data: selectInferenceServicePods(deploymentPods, inferenceService.metadata.name),
+            loaded: deploymentPodsLoaded,
+            error: deploymentPodsError,
+            containerNames: KSERVE_MODEL_CONTAINER_NAMES,
+          },
         };
       }),
-    [filteredInferenceServices, servingRuntimes, deploymentPods, kueueStatusByDeploymentKey],
+    [
+      filteredInferenceServices,
+      servingRuntimes,
+      deploymentPods,
+      deploymentPodsLoaded,
+      deploymentPodsError,
+      kueueStatusByDeploymentKey,
+    ],
   );
 
   const effectivelyLoaded = Boolean(

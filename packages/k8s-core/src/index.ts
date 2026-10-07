@@ -24,6 +24,8 @@ export type {
   HardwareProfileScheduling,
   Identifier,
   PodContainer,
+  PodResourceClaim,
+  PodResourceClaimStatus,
   PodAffinity,
   Volume,
   VolumeMount,

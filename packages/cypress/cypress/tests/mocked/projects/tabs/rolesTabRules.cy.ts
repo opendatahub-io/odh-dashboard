@@ -194,7 +194,7 @@ describe('Rules toolbar', () => {
 
     projectRoles.findSelectRoleTemplateButton().click();
     projectRoles.findSelectTemplateButton('workbench-reader').click();
-    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 5);
+    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 6);
   });
 
   it('should filter rules by API groups', () => {
@@ -205,7 +205,7 @@ describe('Rules toolbar', () => {
     projectRoles
       .findPermissionRulesTable()
       .find('tbody tr')
-      .should('have.length.lessThan', 5)
+      .should('have.length.lessThan', 6)
       .and('have.length.greaterThan', 0);
   });
 
@@ -217,7 +217,7 @@ describe('Rules toolbar', () => {
     projectRoles
       .findPermissionRulesTable()
       .find('tbody tr')
-      .should('have.length.lessThan', 5)
+      .should('have.length.lessThan', 6)
       .and('have.length.greaterThan', 0);
   });
 
@@ -226,7 +226,7 @@ describe('Rules toolbar', () => {
     cy.findByRole('option', { name: 'Actions' }).click();
 
     projectRoles.findRulesSearchInput().type('get');
-    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 5);
+    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 6);
 
     projectRoles.findRulesSearchInput().clear().type('create');
     projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 0);

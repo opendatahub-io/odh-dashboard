@@ -1,6 +1,12 @@
 import { genUID } from '@odh-dashboard/foundation';
 import { KnownLabels, type PodKind } from '../k8sTypes';
-import { TolerationEffect, TolerationOperator } from '../types';
+import {
+  TolerationEffect,
+  TolerationOperator,
+  type ContainerResources,
+  type PodResourceClaim,
+  type PodResourceClaimStatus,
+} from '../types';
 
 type MockResourceConfigType = {
   user?: string;
@@ -9,6 +15,22 @@ type MockResourceConfigType = {
   isPending?: boolean;
   isRunning?: boolean;
   labels?: Record<string, string>;
+  /** Main container name; workbench Pods name it after the notebook. */
+  containerName?: string;
+  uid?: string;
+  creationTimestamp?: string;
+  /** Marks a terminating Pod. */
+  deletionTimestamp?: string;
+  /** Overrides the phase derived from `isPending`. */
+  phase?: string;
+  /** Scheduled node; pass `null` for an unscheduled Pod. */
+  nodeName?: string | null;
+  /** `spec.resourceClaims`; omit for a non-DRA Pod. */
+  resourceClaims?: PodResourceClaim[];
+  /** `status.resourceClaimStatuses`; only template-backed claims get one. */
+  resourceClaimStatuses?: PodResourceClaimStatus[];
+  /** `resources.claims` on the main container. */
+  containerClaims?: ContainerResources['claims'];
 };
 
 export const mockPodK8sResource = ({
@@ -18,6 +40,15 @@ export const mockPodK8sResource = ({
   isPending = false,
   isRunning = true,
   labels,
+  containerName = name,
+  uid = genUID('pod'),
+  creationTimestamp = '2023-02-14T22:06:45Z',
+  deletionTimestamp,
+  phase = isPending ? 'Pending' : 'Running',
+  nodeName = 'user-xz6d2-worker-0-hw2hq',
+  resourceClaims,
+  resourceClaimStatuses,
+  containerClaims,
 }: MockResourceConfigType): PodKind => ({
   kind: 'Pod',
   apiVersion: 'project.openshift.io/v1',
@@ -25,9 +56,10 @@ export const mockPodK8sResource = ({
     name,
     generateName: name,
     namespace,
-    uid: genUID('pod'),
+    uid,
     resourceVersion: '4800675',
-    creationTimestamp: '2023-02-14T22:06:45Z',
+    creationTimestamp,
+    ...(deletionTimestamp ? { deletionTimestamp } : {}),
     labels: {
       app: name,
       'controller-revision-hash': `${name}-5b68f78f58`,
@@ -81,7 +113,7 @@ export const mockPodK8sResource = ({
     ],
     containers: [
       {
-        name,
+        name: containerName,
         image:
           'image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/s2i-minimal-notebook:py3.8-v1',
         workingDir: '/opt/app-root/src',
@@ -124,6 +156,7 @@ export const mockPodK8sResource = ({
             cpu: '1',
             memory: '8Gi',
           },
+          ...(containerClaims ? { claims: containerClaims } : {}),
         },
         volumeMounts: [
           {
@@ -238,7 +271,8 @@ export const mockPodK8sResource = ({
     dnsPolicy: 'ClusterFirst',
     serviceAccountName: name,
     serviceAccount: name,
-    nodeName: 'user-xz6d2-worker-0-hw2hq',
+    ...(nodeName ? { nodeName } : {}),
+    ...(resourceClaims ? { resourceClaims } : {}),
     securityContext: {
       seLinuxOptions: {
         level: 's0:c26,c25',
@@ -302,7 +336,7 @@ export const mockPodK8sResource = ({
     preemptionPolicy: 'PreemptLowerPriority',
   },
   status: {
-    phase: isPending ? 'Pending' : 'Running',
+    phase,
     conditions: !isPending
       ? [
           {
@@ -351,13 +385,14 @@ export const mockPodK8sResource = ({
     startTime: '2023-02-14T22:06:45Z',
     containerStatuses: [
       {
-        name,
+        name: containerName,
         state: {
           running: isRunning,
         },
         ready: isRunning,
       },
     ],
+    ...(resourceClaimStatuses ? { resourceClaimStatuses } : {}),
     qosClass: 'Burstable',
   },
 });

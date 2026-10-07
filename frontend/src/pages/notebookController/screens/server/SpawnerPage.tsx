@@ -356,6 +356,7 @@ const SpawnerPage: React.FC = () => {
               podSpecOptionsState={podSpecOptionsState}
               isEditing={!!currentUserNotebook}
               visibleIn={WORKBENCH_VISIBILITY}
+              namespace={workbenchNamespace}
             />
           </FormSection>
           <FormSection title="Environment variables" className="odh-notebook-controller__env-var">

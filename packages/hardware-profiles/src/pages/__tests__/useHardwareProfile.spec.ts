@@ -13,6 +13,10 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
 const k8sGetResourceMock = jest.mocked(k8sGetResource<HardwareProfileKind>);
 
 describe('useHardwareProfile', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should return hardware profile', async () => {
     k8sGetResourceMock.mockResolvedValue(mockHardwareProfile({ uid: 'test-1' }));
     const options = {

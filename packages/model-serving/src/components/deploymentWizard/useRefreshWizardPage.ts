@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useExtractFormDataFromDeployment } from './useExtractFormDataFromDeployment';
+import { toWizardDeploymentState } from './useNavigateToDeploymentWizard';
 import type { Deployment } from '../../../extension-points';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 
@@ -52,7 +53,7 @@ export const useRefreshWizardPage = (
       replace: true,
       state: {
         ...location.state,
-        existingDeployment: latestDeployment ?? existingDeployment,
+        existingDeployment: toWizardDeploymentState(latestDeployment ?? existingDeployment),
         initialData: latestFormData,
         refreshKey: Date.now(),
       },

@@ -16,6 +16,7 @@ import {
 } from '@odh-dashboard/k8s-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { useValidation, ValidationContext } from '@odh-dashboard/ui-core/utilities/useValidation';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { useHardwareProfilesByFeatureVisibility } from '@odh-dashboard/internal/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { ZodErrorHelperText } from '@odh-dashboard/ui-core/components/ZodErrorFormHelperText';
 import { ProjectScopedPopover } from '@odh-dashboard/ui-core';
@@ -30,6 +31,8 @@ import { getContainerResourcesFromHardwareProfile } from './utils';
 type HardwareProfileFormSectionProps<T extends HardwarePodSpecOptions> = {
   isEditing: boolean;
   project?: string;
+  /** Workload namespace for claim-template lookups when no project / project context applies. */
+  namespace?: string;
   visibleIn?: HardwareProfileFeatureVisibility[];
   podSpecOptionsState: HardwarePodSpecOptionsState<T>;
   isHardwareProfileSupported?: (profile: HardwareProfileKind) => boolean;
@@ -40,6 +43,7 @@ type HardwareProfileFormSectionProps<T extends HardwarePodSpecOptions> = {
 const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSpecOptions>> = ({
   podSpecOptionsState,
   project,
+  namespace,
   isEditing,
   visibleIn = [],
   isHardwareProfileSupported = () => false,
@@ -117,6 +121,7 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
               onChange={onProfileSelect}
               allowExistingSettings={isEditing && !initialHardwareProfile}
               project={project}
+              namespace={namespace}
               selectionIndicator={
                 isLocalQueueMissing ? (
                   <Popover alertSeverityVariant="warning" bodyContent={LOCAL_QUEUE_MISSING_BODY}>

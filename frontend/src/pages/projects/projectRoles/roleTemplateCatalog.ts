@@ -13,6 +13,17 @@ export type RoleTemplateCategory = {
   templates: RoleTemplate[];
 };
 
+/** Templates are copied into a Role at creation; Roles created from an older template are not updated automatically. */
+export const ROLE_TEMPLATE_MIGRATION_NOTE =
+  'Template rules are copied into the role when it is created; roles created from an earlier version of a template are not updated automatically.';
+
+// Read-only access to the DRA claims a workbench Pod references; no DeviceClass, ResourceSlice, Node, list, or watch.
+const DRA_READ_RULE: ResourceRule = {
+  apiGroups: ['resource.k8s.io'],
+  resources: ['resourceclaims', 'resourceclaimtemplates'],
+  verbs: ['get'],
+};
+
 export const ROLE_TEMPLATE_CATALOG: RoleTemplateCategory[] = [
   {
     id: 'workbench-management',
@@ -50,6 +61,7 @@ export const ROLE_TEMPLATE_CATALOG: RoleTemplateCategory[] = [
             resources: ['hardwareprofiles'],
             verbs: ['get', 'watch', 'list'],
           },
+          DRA_READ_RULE,
         ],
       },
       {
@@ -87,6 +99,7 @@ export const ROLE_TEMPLATE_CATALOG: RoleTemplateCategory[] = [
             resources: ['hardwareprofiles'],
             verbs: ['get', 'list', 'watch'],
           },
+          DRA_READ_RULE,
         ],
       },
       {
@@ -121,6 +134,7 @@ export const ROLE_TEMPLATE_CATALOG: RoleTemplateCategory[] = [
             resources: ['hardwareprofiles'],
             verbs: ['get', 'watch', 'list'],
           },
+          DRA_READ_RULE,
         ],
       },
     ],

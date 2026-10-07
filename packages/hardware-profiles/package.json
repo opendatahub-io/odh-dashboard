@@ -13,6 +13,18 @@
     "./shared/useHardwareProfileBindingState": "./shared/useHardwareProfileBindingState.ts",
     "./shared/utils": "./shared/utils.ts",
     "./shared/validationUtils": "./shared/validationUtils.ts",
+    "./shared/dra/types": "./shared/dra/types.ts",
+    "./shared/dra/celFormatter": "./shared/dra/celFormatter.ts",
+    "./shared/dra/requestNormalizer": "./shared/dra/requestNormalizer.ts",
+    "./shared/dra/lookupState": "./shared/dra/lookupState.ts",
+    "./shared/dra/claimResolution": "./shared/dra/claimResolution.ts",
+    "./shared/dra/useResourceClaimTemplateLookup": "./shared/dra/useResourceClaimTemplateLookup.ts",
+    "./shared/dra/DeviceRequestsSection": "./shared/dra/DeviceRequestsSection.tsx",
+    "./shared/dra/requestDisplay": "./shared/dra/requestDisplay.tsx",
+    "./shared/dra/workloadClaims": "./shared/dra/workloadClaims.ts",
+    "./shared/dra/useResourceClaimLookups": "./shared/dra/useResourceClaimLookups.ts",
+    "./shared/dra/ClaimItem": "./shared/dra/ClaimItem.tsx",
+    "./shared/dra/ClaimsSection": "./shared/dra/ClaimsSection.tsx",
     "./extensions": "./extensions.ts",
     "./pages/DeleteHardwareProfileModal": "./src/pages/DeleteHardwareProfileModal.tsx",
     "./pages/HardwareProfileEnableToggle": "./src/pages/HardwareProfileEnableToggle.tsx",
@@ -62,7 +74,9 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test-unit": "jest --silent",
+    "test-unit-coverage": "jest --silent --coverage"
   },
   "e2eCiTags": [
     "@HardwareProfilesCI"
@@ -78,6 +92,7 @@
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
     "@odh-dashboard/tsconfig": "workspace:*"
   },
   "peerDependencies": {

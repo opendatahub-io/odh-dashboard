@@ -40,6 +40,43 @@ export class HardwareProfileSection {
     return cy.findByTestId('hardware-profile-details-popover');
   }
 
+  // Device requests section of the open popover (DRA profiles only).
+  findDeviceRequests(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDetails().findByTestId('hardware-profile-device-requests');
+  }
+
+  findDeviceRequestsStatus(
+    status: 'claim-template' | 'loading' | 'missing' | 'forbidden' | 'error' | 'empty',
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDeviceRequests().findByTestId(`device-requests-${status}`);
+  }
+
+  findDeviceRequest(index: number, detail: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDeviceRequests().findByTestId(`device-request-${index}-${detail}`);
+  }
+
+  findDeviceRequestAlternatives(index: number): Cypress.Chainable<JQuery<HTMLLIElement>> {
+    return this.findDeviceRequest(index, 'alternatives').find('li');
+  }
+
+  // The open popover body stays within PatternFly's default popover width.
+  shouldNotExceedWidth(maxPx: number): void {
+    this.findDetails().should(($details) => {
+      expect($details[0].getBoundingClientRect().width, 'popover width').to.be.at.most(maxPx);
+    });
+  }
+
+  // The open popover body neither overflows its own box nor leaves the viewport.
+  shouldFitViewport(): void {
+    this.findDetails().should(($details) => {
+      const details = $details[0];
+      const { left, right } = details.getBoundingClientRect();
+      expect(details.scrollWidth, 'popover content width').to.be.at.most(details.clientWidth);
+      expect(left, 'popover left edge').to.be.at.least(0);
+      expect(right, 'popover right edge').to.be.at.most(Cypress.config('viewportWidth'));
+    });
+  }
+
   findKueueFilteringInfo(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('kueue-filtering-info');
   }

@@ -271,6 +271,62 @@ class NotebookRow extends TableRow {
     return this.find().siblings();
   }
 
+  findClaimsSection() {
+    return this.findExpansion().findByTestId('claims-section');
+  }
+
+  findClaimItem(alias: string) {
+    return this.findExpansion().findByTestId(`claim-item-${alias}`);
+  }
+
+  findClaimStatus(alias: string) {
+    return this.findExpansion().findByTestId(`claim-item-${alias}-status`);
+  }
+
+  findClaimSummary(alias: string) {
+    return this.findExpansion().findByTestId(`claim-item-${alias}-summary`);
+  }
+
+  findClaimDetailsToggle(alias: string) {
+    return this.findExpansion().findByTestId(`claim-item-${alias}-details-toggle`);
+  }
+
+  findClaimDetails(alias: string) {
+    return this.findExpansion().findByTestId(`claim-item-${alias}-details`);
+  }
+
+  findClaimDetail(alias: string, detail: string) {
+    return this.findExpansion().findByTestId(`claim-item-${alias}-${detail}`);
+  }
+
+  // The "Allocation details" button; the toggle test id sits on the button's label.
+  findClaimDetailsButton(alias: string) {
+    return this.findClaimDetailsToggle(alias).closest('button');
+  }
+
+  findClaimsLoading() {
+    return this.findExpansion().findByTestId('claims-section-loading');
+  }
+
+  findHardwareProfileDetailsPopover() {
+    return this.findHardwareProfileColumn().findByTestId('hardware-profile-details-popover');
+  }
+
+  // The Claims section neither overflows its own box nor spills past the expanded row.
+  shouldHaveClaimsWithinRow() {
+    this.findExpansion().then(($expansion) => {
+      const rowRect = $expansion[0].getBoundingClientRect();
+      this.findClaimsSection().should(($section) => {
+        const section = $section[0];
+        const { left, right } = section.getBoundingClientRect();
+        expect(section.scrollWidth, 'claims content width').to.be.at.most(section.clientWidth);
+        expect(left, 'claims left edge').to.be.at.least(rowRect.left);
+        expect(right, 'claims right edge').to.be.at.most(rowRect.right);
+      });
+    });
+    return this;
+  }
+
   findAddStorageButton() {
     return this.find()
       .siblings()

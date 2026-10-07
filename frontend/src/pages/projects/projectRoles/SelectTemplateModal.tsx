@@ -1,7 +1,11 @@
 import * as React from 'react';
-import { DataList, Flex, SearchInput } from '@patternfly/react-core';
+import { Content, DataList, Flex, FlexItem, SearchInput } from '@patternfly/react-core';
 import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
-import { ROLE_TEMPLATE_CATALOG, type RoleTemplate } from './roleTemplateCatalog';
+import {
+  ROLE_TEMPLATE_CATALOG,
+  ROLE_TEMPLATE_MIGRATION_NOTE,
+  type RoleTemplate,
+} from './roleTemplateCatalog';
 import TemplateCategoryGroup from './TemplateCategoryGroup';
 
 type SelectTemplateModalMode = 'select' | 'addRules';
@@ -55,15 +59,26 @@ const SelectTemplateModal: React.FC<SelectTemplateModalProps> = ({
       noBodyPadding
       contents={
         <>
-          <Flex className="pf-v6-u-py-md pf-v6-u-px-lg">
-            <SearchInput
-              placeholder="Find by name"
-              value={searchValue}
-              onChange={(_e, value) => setSearchValue(value)}
-              onClear={() => setSearchValue('')}
-              data-testid="template-search-input"
-              aria-label="Search templates by name"
-            />
+          <Flex
+            direction={{ default: 'column' }}
+            spaceItems={{ default: 'spaceItemsSm' }}
+            className="pf-v6-u-py-md pf-v6-u-px-lg"
+          >
+            <FlexItem>
+              <SearchInput
+                placeholder="Find by name"
+                value={searchValue}
+                onChange={(_e, value) => setSearchValue(value)}
+                onClear={() => setSearchValue('')}
+                data-testid="template-search-input"
+                aria-label="Search templates by name"
+              />
+            </FlexItem>
+            <FlexItem>
+              <Content component="small" data-testid="role-template-migration-note">
+                {ROLE_TEMPLATE_MIGRATION_NOTE}
+              </Content>
+            </FlexItem>
           </Flex>
           <DataList aria-label="Role template categories">
             {filteredCategories.map((category) => (

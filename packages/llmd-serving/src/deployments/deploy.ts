@@ -12,6 +12,7 @@ import type { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extensio
 import type { HardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import { applyHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import { setUpTokenAuth } from '@odh-dashboard/model-serving/concepts/auth';
+import { LLMD_MAIN_CONTAINER_NAME } from './constants';
 import { applyReplicas, LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from './hardware';
 import {
   applyModelEnvVarsAndArgs,
@@ -74,7 +75,7 @@ export const BaseLLMInferenceService = (
       template: {
         containers: [
           {
-            name: 'main',
+            name: LLMD_MAIN_CONTAINER_NAME,
           },
         ],
       },

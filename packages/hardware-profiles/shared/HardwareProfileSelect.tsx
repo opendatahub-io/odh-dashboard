@@ -28,6 +28,7 @@ import {
   ProjectScopedSearchDropdown,
 } from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedSearchDropdown';
 import ProjectScopedToggleContent from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedToggleContent';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import {
   getHardwareProfileDescription,
   getHardwareProfileDisplayName,
@@ -79,6 +80,11 @@ const getKueueText = (profile: HardwareProfileKind): string | undefined => {
   return `Local queue: ${localQueueName}${priorityClass ? `; Priority: ${priorityClass}` : ''}`;
 };
 
+const getClaimTemplateText = (profile: HardwareProfileKind): string | undefined => {
+  const templateName = profile.spec.dra?.resourceClaimTemplateName;
+  return templateName ? `Claim template: ${templateName}` : undefined;
+};
+
 type HardwareProfileSelectProps = {
   initialHardwareProfile?: HardwareProfileKind;
   previewDescription?: boolean;
@@ -97,6 +103,8 @@ type HardwareProfileSelectProps = {
   isHardwareProfilePreferred?: (profile: HardwareProfileKind) => boolean;
   onChange: (profile: HardwareProfileKind | undefined) => void;
   project?: string;
+  /** Workload namespace for claim-template lookups; falls back to `project` or the current project. */
+  namespace?: string;
   selectionIndicator?: React.ReactNode;
 };
 
@@ -118,6 +126,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   isHardwareProfilePreferred,
   onChange,
   project,
+  namespace,
 }) => {
   const [searchHardwareProfile, setSearchHardwareProfile] = React.useState('');
   const [
@@ -197,6 +206,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
       const description = getHardwareProfileDescription(profile);
       const identifiersText = getIdentifiersText(profile.spec.identifiers);
       const kueueText = getKueueText(profile);
+      const claimTemplateText = getClaimTemplateText(profile);
       const queueMissing = profile === initialHardwareProfile && isQueueMissing(profile);
 
       return {
@@ -221,6 +231,11 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
             {kueueText && (
               <StackItem>
                 <Truncate content={kueueText} />
+              </StackItem>
+            )}
+            {claimTemplateText && (
+              <StackItem>
+                <Truncate content={claimTemplateText} />
               </StackItem>
             )}
           </Stack>
@@ -276,6 +291,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     const description = getHardwareProfileDescription(profile);
     const identifiersText = getIdentifiersText(profile.spec.identifiers);
     const kueueText = getKueueText(profile);
+    const claimTemplateText = getClaimTemplateText(profile);
     const queueMissing = profile === initialHardwareProfile && isQueueMissing(profile);
     return (
       <MenuItem
@@ -301,6 +317,11 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
             {kueueText && (
               <StackItem>
                 <Truncate content={kueueText} />
+              </StackItem>
+            )}
+            {claimTemplateText && (
+              <StackItem>
+                <Truncate content={claimTemplateText} />
               </StackItem>
             )}
           </Stack>
@@ -454,9 +475,12 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                   hardwareProfileConfig.selectedProfile.spec.identifiers,
                 );
                 const kueueText = getKueueText(hardwareProfileConfig.selectedProfile);
+                const claimTemplateText = getClaimTemplateText(
+                  hardwareProfileConfig.selectedProfile,
+                );
 
                 // No preview content. useExistingSettings cannot apply while a profile is selected.
-                if (!description && !identifiersText && !kueueText) {
+                if (!description && !identifiersText && !kueueText && !claimTemplateText) {
                   return null;
                 }
 
@@ -474,6 +498,8 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                         {identifiersText && <Truncate content={identifiersText} />}
                         {identifiersText && kueueText && <br />}
                         {kueueText && <Truncate content={kueueText} />}
+                        {(identifiersText || kueueText) && claimTemplateText && <br />}
+                        {claimTemplateText && <Truncate content={claimTemplateText} />}
                       </HelperTextItem>
                     </HelperText>
                   </FormHelperText>
@@ -541,6 +567,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
           {options.length > 0 && (
             <HardwareProfileDetailsPopover
               hardwareProfile={hardwareProfileConfig.selectedProfile}
+              namespace={namespace || project || currentProject.metadata.name || undefined}
               localQueueName={
                 hardwareProfileConfig.selectedProfile?.spec.scheduling?.kueue?.localQueueName
               }

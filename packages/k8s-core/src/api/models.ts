@@ -58,3 +58,18 @@ export const WorkloadModel: K8sModelCommon = {
   kind: 'Workload',
   plural: 'workloads',
 };
+
+// The resource.k8s.io/v1 models below require Kubernetes 1.34+; older clusters return 404.
+export const ResourceClaimModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'resource.k8s.io',
+  kind: 'ResourceClaim',
+  plural: 'resourceclaims',
+};
+
+export const ResourceClaimTemplateModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'resource.k8s.io',
+  kind: 'ResourceClaimTemplate',
+  plural: 'resourceclaimtemplates',
+};

@@ -281,7 +281,7 @@ describe('Select role template (header button)', () => {
         'A set of rules that grants users to act as the admin of the workbench component.',
       );
     projectRoles.findPermissionRulesTable().should('exist');
-    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 6);
+    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 7);
   });
 
   it('should not apply template when cancelling confirmation', () => {
@@ -307,7 +307,7 @@ describe('Select role template (header button)', () => {
     projectRoles.findSelectTemplateModal().should('not.exist');
     projectRoles.findRoleNameInput().should('have.value', 'Workbench maintainer');
     projectRoles.findPermissionRulesTable().should('exist');
-    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 6);
+    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 7);
   });
 
   it('should display template categories and templates', () => {
@@ -429,7 +429,7 @@ describe('Add rules from template (toolbar button)', () => {
     projectRoles.findRoleNameInput().should('have.value', 'my-custom-role');
     projectRoles.findDescriptionTextarea().should('have.value', 'My description');
     projectRoles.findPermissionRulesTable().should('exist');
-    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 5);
+    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 6);
 
     projectRoles.findImportTemplateButton().should('not.exist');
   });

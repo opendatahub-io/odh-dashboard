@@ -1,15 +1,51 @@
 import React from 'react';
-import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/k8s-core';
+import type { K8sAPIOptions, PodKind, ProjectKind } from '@odh-dashboard/k8s-core';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { useKueueStatusWithQueuePositions } from '@odh-dashboard/internal/pages/modelServing/useKueueStatusWithQueuePositions';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { buildModelDeploymentKey } from '@odh-dashboard/internal/api/k8s/workloads';
+import {
+  LLMD_MAIN_CONTAINER_NAME,
+  LLMD_WORKLOAD_POD_COMPONENT,
+  LLMD_WORKLOAD_POD_COMPONENTS,
+  getLLMdPodDescriptions,
+} from './constants';
 import { getLLMdDeploymentEndpoints } from './endpoints';
 import { getLLMdDeploymentStatus, useLLMInferenceServicePods } from './status';
 import { useWatchLLMInferenceService } from '../api/LLMInferenceService';
 import { useWatchLLMInferenceServiceConfigs } from '../api/LLMInferenceServiceConfigs';
 import { type LLMdDeployment, type LLMInferenceServiceKind } from '../types';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
+
+// The model server container of every llm-d workload Pod.
+export const LLMD_MODEL_CONTAINER_NAMES = [LLMD_MAIN_CONTAINER_NAME];
+
+const belongsTo = (pod: PodKind, llmInferenceServiceName: string): boolean =>
+  pod.metadata.labels?.['app.kubernetes.io/name'] === llmInferenceServiceName;
+
+/** Every workload Pod of one LLMInferenceService: decode, prefill, leader, and worker shapes. */
+export const selectLLMInferenceServicePods = (
+  pods: PodKind[],
+  llmInferenceServiceName: string,
+): PodKind[] =>
+  pods.filter(
+    (pod) =>
+      belongsTo(pod, llmInferenceServiceName) &&
+      LLMD_WORKLOAD_POD_COMPONENTS.includes(
+        pod.metadata.labels?.['app.kubernetes.io/component'] ?? '',
+      ),
+  );
+
+/** The single-node Pods the status has always been derived from. */
+export const selectLLMInferenceServiceStatusPods = (
+  pods: PodKind[],
+  llmInferenceServiceName: string,
+): PodKind[] =>
+  pods.filter(
+    (pod) =>
+      belongsTo(pod, llmInferenceServiceName) &&
+      pod.metadata.labels?.['app.kubernetes.io/component'] === LLMD_WORKLOAD_POD_COMPONENT,
+  );
 
 export const useWatchDeployments = (
   project: ProjectKind,
@@ -44,20 +80,16 @@ export const useWatchDeployments = (
 
   const deployments = React.useMemo(() => {
     return filteredLLMInferenceServices.map((llmInferenceService) => {
-      const pods = deploymentPods.filter(
-        (pod) =>
-          pod.metadata.labels?.['app.kubernetes.io/name'] === llmInferenceService.metadata.name &&
-          pod.metadata.labels['app.kubernetes.io/component'] === 'llminferenceservice-workload',
-      );
+      const { name } = llmInferenceService.metadata;
+      const pods = selectLLMInferenceServicePods(deploymentPods, name);
+      const statusPods = selectLLMInferenceServiceStatusPods(deploymentPods, name);
 
       const matchingBaseRefConfig = llmInferenceService.spec.baseRefs?.find(
-        (baseRef) => baseRef.name === llmInferenceService.metadata.name,
+        (baseRef) => baseRef.name === name,
       );
 
       const kueueStatus =
-        kueueStatusByDeploymentKey[
-          buildModelDeploymentKey('LLMInferenceService', llmInferenceService.metadata.name)
-        ] ?? null;
+        kueueStatusByDeploymentKey[buildModelDeploymentKey('LLMInferenceService', name)] ?? null;
 
       return {
         modelServingPlatformId: LLMD_SERVING_ID,
@@ -69,12 +101,22 @@ export const useWatchDeployments = (
           : undefined,
         apiProtocol: 'REST', // vLLM uses REST so I assume it's the same for LLMd
         endpoints: getLLMdDeploymentEndpoints(llmInferenceService),
-        status: getLLMdDeploymentStatus(llmInferenceService, pods, kueueStatus),
+        status: getLLMdDeploymentStatus(llmInferenceService, statusPods, kueueStatus),
+        // Claims see every workload Pod, each as its own group, with its llm-d role when labelled.
+        pods: {
+          data: pods,
+          loaded: deploymentPodsLoaded,
+          error: deploymentPodsError,
+          containerNames: LLMD_MODEL_CONTAINER_NAMES,
+          podDescriptions: getLLMdPodDescriptions(pods),
+        },
       };
     });
   }, [
     filteredLLMInferenceServices,
     deploymentPods,
+    deploymentPodsLoaded,
+    deploymentPodsError,
     llmInferenceServiceConfigs,
     kueueStatusByDeploymentKey,
   ]);

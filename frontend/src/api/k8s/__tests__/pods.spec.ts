@@ -30,6 +30,7 @@ describe('getPodsForNotebook', () => {
 
     const result = await getPodsForNotebook(namespace, notebookName);
     expect(k8sListResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: PodModel,
       queryOptions: {
         ns: namespace,
@@ -46,6 +47,7 @@ describe('getPodsForNotebook', () => {
     await expect(getPodsForNotebook(namespace, notebookName)).rejects.toThrow('error1');
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sListResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
       model: PodModel,
       queryOptions: {
         ns: namespace,

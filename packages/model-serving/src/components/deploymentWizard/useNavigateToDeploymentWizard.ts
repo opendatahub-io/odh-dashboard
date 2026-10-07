@@ -12,6 +12,13 @@ import {
 } from '../../shared/tracking/deployWizardTracking';
 import { type Deployment } from '../../../extension-points';
 
+/** Router state must stay small and serializable, so the watched Pod manifests never travel with the deployment. */
+export const toWizardDeploymentState = (deployment: Deployment): Deployment => {
+  const state = { ...deployment };
+  delete state.pods;
+  return state;
+};
+
 /**
  * Custom hook that provides a navigation function to the deployment wizard.
  * This hook handles loading form data from existing deployments and ensures
@@ -116,7 +123,7 @@ export const useNavigateToDeploymentWizard = (
       navigate(getDeploymentWizardRoute(), {
         state: {
           initialData: mergedInitialData,
-          existingDeployment: deployment,
+          existingDeployment: deployment ? toWizardDeploymentState(deployment) : deployment,
           returnRoute,
           cancelReturnRoute,
           projectName,

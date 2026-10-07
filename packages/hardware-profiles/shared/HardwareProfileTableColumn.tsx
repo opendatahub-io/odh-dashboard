@@ -4,6 +4,7 @@ import React from 'react';
 import { DashboardPopupIconButton, ScopedLabel } from '@odh-dashboard/ui-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import type { NotebookKind } from '@odh-dashboard/k8s-core';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { getHardwareProfileDisplayName } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
 import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import type { HardwareProfileResource } from './types';
@@ -74,6 +75,7 @@ const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
             {hardwareProfile ? (
               <HardwareProfileDetailsPopover
                 hardwareProfile={hardwareProfile}
+                namespace={namespace}
                 tolerations={hardwareProfile.spec.scheduling?.node?.tolerations}
                 nodeSelector={hardwareProfile.spec.scheduling?.node?.nodeSelector}
                 localQueueName={hardwareProfile.spec.scheduling?.kueue?.localQueueName}

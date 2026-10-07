@@ -215,7 +215,7 @@ describe('Create Role submit', () => {
 
     cy.wait('@createRole').then((interception) => {
       const { rules } = interception.request.body;
-      expect(rules).to.have.length(6);
+      expect(rules).to.have.length(7);
       for (const rule of rules) {
         expect(rule.verbs).to.not.include('*');
       }
@@ -225,6 +225,23 @@ describe('Create Role submit', () => {
       expect(notebookRule)
         .to.have.property('verbs')
         .that.deep.equals(['get', 'list', 'watch', 'create', 'update', 'patch', 'delete']);
+      // DRA claims are readable by name only; no inventory objects, no list or watch.
+      const draRules = rules.filter((r: { apiGroups?: string[] }) =>
+        r.apiGroups?.includes('resource.k8s.io'),
+      );
+      expect(draRules).to.deep.equal([
+        {
+          apiGroups: ['resource.k8s.io'],
+          resources: ['resourceclaims', 'resourceclaimtemplates'],
+          verbs: ['get'],
+        },
+      ]);
+      expect(draRules[0].verbs).to.deep.equal(['get']);
+      for (const rule of rules) {
+        for (const inventory of ['deviceclasses', 'resourceslices', 'nodes']) {
+          expect(rule.resources).to.not.include(inventory);
+        }
+      }
     });
 
     cy.url().should('include', `/projects/${NAMESPACE}`);

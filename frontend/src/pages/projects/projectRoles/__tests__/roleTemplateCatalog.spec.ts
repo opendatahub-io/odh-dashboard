@@ -75,3 +75,51 @@ describe('roleTemplateCatalog', () => {
     }
   });
 });
+
+describe('workbench role templates DRA access', () => {
+  const DRA_API_GROUP = 'resource.k8s.io';
+  const workbenchTemplates = () =>
+    ROLE_TEMPLATE_CATALOG.filter((c) => c.id === 'workbench-management').flatMap(
+      (c) => c.templates,
+    );
+  const draRules = (template: RoleTemplate) =>
+    template.rules.filter((rule) => rule.apiGroups?.includes(DRA_API_GROUP));
+
+  it.each<[string, number]>([
+    ['workbench-maintainer', 7],
+    ['workbench-reader', 6],
+    ['workbench-updater', 7],
+  ])('should give %s exactly %i rules', (id, count) => {
+    expect(workbenchTemplates().find((t) => t.id === id)?.rules).toHaveLength(count);
+  });
+
+  it('should grant namespace-scoped get on claims and claim templates in every workbench template', () => {
+    const templates = workbenchTemplates();
+    expect(templates).toHaveLength(3);
+    for (const template of templates) {
+      expect(draRules(template)).toStrictEqual([
+        {
+          apiGroups: [DRA_API_GROUP],
+          resources: ['resourceclaims', 'resourceclaimtemplates'],
+          verbs: ['get'],
+        },
+      ]);
+    }
+  });
+
+  it('should never grant DeviceClass, ResourceSlice, or Node access', () => {
+    for (const category of ROLE_TEMPLATE_CATALOG) {
+      for (const template of category.templates) {
+        for (const rule of template.rules) {
+          expect(rule.resources).not.toContain('deviceclasses');
+          expect(rule.resources).not.toContain('resourceslices');
+          expect(rule.resources).not.toContain('nodes');
+          if (rule.apiGroups?.includes(DRA_API_GROUP)) {
+            expect(rule.verbs).not.toContain('list');
+            expect(rule.verbs).not.toContain('watch');
+          }
+        }
+      }
+    }
+  });
+});

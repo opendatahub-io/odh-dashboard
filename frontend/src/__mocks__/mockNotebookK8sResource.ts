@@ -5,6 +5,7 @@ import {
   TolerationOperator,
   type ContainerResources,
   type EnvironmentVariable,
+  type PodResourceClaim,
   type Volume,
   type VolumeMount,
 } from '@odh-dashboard/k8s-core';
@@ -34,6 +35,10 @@ type MockResourceConfigType = {
   hardwareProfileNamespace?: string | null;
   workbenchImageNamespace?: string | null;
   injectAuth?: string | null;
+  /** `spec.template.spec.resourceClaims`; omit for a non-DRA workbench. */
+  resourceClaims?: PodResourceClaim[];
+  /** `resources.claims` on the notebook container. */
+  containerClaims?: ContainerResources['claims'];
 };
 
 export const mockNotebookK8sResource = ({
@@ -62,6 +67,8 @@ export const mockNotebookK8sResource = ({
   hardwareProfileNamespace = null,
   workbenchImageNamespace = null,
   injectAuth = 'true',
+  resourceClaims,
+  containerClaims,
 }: MockResourceConfigType): NotebookKind =>
   _.merge(
     {
@@ -116,6 +123,7 @@ export const mockNotebookK8sResource = ({
                 ],
               },
             },
+            ...(resourceClaims ? { resourceClaims } : {}),
             containers: [
               {
                 env: [
@@ -166,7 +174,7 @@ export const mockNotebookK8sResource = ({
                   successThreshold: 1,
                   timeoutSeconds: 1,
                 },
-                resources,
+                resources: containerClaims ? { ...resources, claims: containerClaims } : resources,
                 volumeMounts: [
                   {
                     mountPath: '/opt/app-root/src',

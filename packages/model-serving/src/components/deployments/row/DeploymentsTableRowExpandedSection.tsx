@@ -19,6 +19,7 @@ import {
   MODEL_SERVING_VISIBILITY,
 } from '@odh-dashboard/hardware-profiles/shared';
 import HardwareProfileNameValue from './HardwareProfileNameValue';
+import DeploymentClaimsItem from './DeploymentClaimsItem';
 import { TokensDescriptionItem } from '../../../shared/components';
 import { isDeploymentAuthEnabled, useDeploymentAuthTokens } from '../../../concepts/auth';
 import { useResolvedDeploymentExtension } from '../../../concepts/extensionUtils';
@@ -243,6 +244,7 @@ export const DeploymentRowExpandedSection: React.FC<{
               project={deployment.model.metadata.namespace}
               hardwareProfile={hardwareProfileOptions}
             />
+            <DeploymentClaimsItem deployment={deployment} isVisible={isVisible} />
             {modelAvailability && (
               <ModelAvailabilityItem
                 modelAvailability={modelAvailability}
