@@ -368,11 +368,9 @@ func (r *DashboardReconciler) reconcile(
 	return result, err
 }
 
-// cleanupLegacySidecarResources removes resources that were created by the
-// now-removed sidecar deployment mode. Kept for upgrade safety: clusters that
-// were running sidecar mode need these resources cleaned up on the first
-// reconcile with the new operator. The function is idempotent.
-func (r *DashboardReconciler) cleanupLegacySidecarResources(ctx context.Context) error {
+// cleanupLegacyResources removes resources that are no longer rendered by the
+// current manifests. It is kept for upgrade safety and is idempotent.
+func (r *DashboardReconciler) cleanupLegacyResources(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	ns := r.ApplicationsNamespace
 	var errs []error
@@ -396,19 +394,21 @@ func (r *DashboardReconciler) cleanupLegacySidecarResources(ctx context.Context)
 		}
 	}
 
-	clusterResources := []client.Object{
-		&rbacv1.ClusterRole{},
-		&rbacv1.ClusterRoleBinding{},
+	clusterResources := []namedResource{
+		{&rbacv1.ClusterRole{}, "odh-dashboard-modules"},
+		{&rbacv1.ClusterRoleBinding{}, "odh-dashboard-modules"},
+		{&rbacv1.ClusterRoleBinding{}, "odh-dashboard-monitoring"},
+		{&rbacv1.ClusterRoleBinding{}, "rhods-dashboard-monitoring"},
 	}
-	for _, obj := range clusterResources {
-		obj.SetName("odh-dashboard-modules")
-		if err := r.Delete(ctx, obj); client.IgnoreNotFound(err) != nil {
-			errs = append(errs, fmt.Errorf("deleting %T odh-dashboard-modules: %w", obj, err))
+	for _, nr := range clusterResources {
+		nr.obj.SetName(nr.name)
+		if err := r.Delete(ctx, nr.obj); client.IgnoreNotFound(err) != nil {
+			errs = append(errs, fmt.Errorf("deleting %T %s: %w", nr.obj, nr.name, err))
 		}
 	}
 
 	if len(errs) == 0 {
-		logger.Info("Cleaned up legacy sidecar resources")
+		logger.Info("Cleaned up legacy resources")
 	}
 
 	return errors.Join(errs...)
@@ -422,11 +422,11 @@ func (r *DashboardReconciler) reconcileDeployment(
 ) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	if err := r.cleanupLegacySidecarResources(ctx); err != nil {
+	if err := r.cleanupLegacyResources(ctx); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
-			conditions.WithReason("SidecarCleanupFailed"),
+			conditions.WithReason("LegacyCleanupFailed"),
 			conditions.WithError(err))
-		return ctrl.Result{}, fmt.Errorf("failed to clean up legacy sidecar resources: %w", err)
+		return ctrl.Result{}, fmt.Errorf("failed to clean up legacy resources: %w", err)
 	}
 
 	manifests := manifestSets(r.ManifestsBasePath, r.Platform)
