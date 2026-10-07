@@ -87,6 +87,7 @@ describe('CuratedBenchmarkSuitesPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId('create-benchmark-suite-button')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-category-filter')).toHaveTextContent('Category');
+    expect(screen.getByTestId('benchmark-suites-category-filter-icon')).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suites-evaluates-filter')).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-pagination-top')).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suites-pagination-bottom')).not.toBeInTheDocument();

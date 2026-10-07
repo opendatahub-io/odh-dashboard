@@ -226,6 +226,23 @@ describe('EvaluationsPage', () => {
     expect(screen.getByTestId('benchmark-suites-task-filter')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-modality-filter')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-evaluates-filter')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-benchmarks-filter')).toBeInTheDocument();
+    const filterOrder = [
+      'benchmark-suites-category-filter',
+      'benchmark-suites-benchmarks-filter',
+      'benchmark-suites-metrics-filter',
+      'benchmark-suites-evaluates-filter',
+      'benchmark-suites-modality-filter',
+      'benchmark-suites-task-filter',
+      'benchmark-suites-tags-filter',
+    ];
+    filterOrder.slice(0, -1).forEach((filterId, index) => {
+      expect(
+        screen
+          .getByTestId(filterId)
+          .compareDocumentPosition(screen.getByTestId(filterOrder[index + 1])),
+      ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    });
     expect(screen.getByTestId('benchmark-suites-pagination-top')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Search collections')).toBeInTheDocument();
     expect(screen.getByTestId('page-description')).toHaveTextContent(
@@ -285,9 +302,21 @@ describe('EvaluationsPage', () => {
     expect(screen.queryByTestId('benchmark-suite-card-clawbench')).not.toBeInTheDocument();
   });
 
-  it('should filter Gallery suites by category, tags, task, modality, and industry', () => {
+  it('should filter Gallery suites by benchmark, category, tags, task, metric, modality, and industry', () => {
     renderPage('test-project');
 
+    fireEvent.click(screen.getByTestId('benchmark-suites-benchmarks-filter'));
+    expect(
+      screen.getByTestId('benchmark-suites-benchmarks-filter-option-code-generation'),
+    ).toBeInTheDocument();
+    clickFilterOption('benchmark-suites-benchmarks-filter-option-code-generation');
+    expect(
+      screen.getByTestId('benchmark-suite-card-software-engineering-agent-suite'),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suite-card-clawbench')).not.toBeInTheDocument();
+
+    clickFilterOption('benchmark-suites-benchmarks-filter-option-code-generation');
+    fireEvent.click(screen.getByTestId('benchmark-suites-benchmarks-filter'));
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
     expect(screen.getByTestId('benchmark-suites-category-filter-option-code')).toBeInTheDocument();
     clickFilterOption('benchmark-suites-category-filter-option-code');
@@ -330,6 +359,18 @@ describe('EvaluationsPage', () => {
 
     clickFilterOption('benchmark-suites-modality-filter-option-code');
     fireEvent.click(screen.getByTestId('benchmark-suites-modality-filter'));
+    fireEvent.click(screen.getByTestId('benchmark-suites-metrics-filter'));
+    expect(
+      screen.getByTestId('benchmark-suites-metrics-filter-option-accuracy'),
+    ).toBeInTheDocument();
+    clickFilterOption('benchmark-suites-metrics-filter-option-accuracy');
+    expect(
+      screen.getByTestId('benchmark-suite-card-software-engineering-agent-suite'),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suite-card-clawbench')).not.toBeInTheDocument();
+
+    clickFilterOption('benchmark-suites-metrics-filter-option-accuracy');
+    fireEvent.click(screen.getByTestId('benchmark-suites-metrics-filter'));
     fireEvent.click(screen.getByTestId('benchmark-suites-industry-filter'));
     expect(screen.getByTestId('benchmark-suites-industry-filter-option-telco')).toBeInTheDocument();
     clickFilterOption('benchmark-suites-industry-filter-option-telco');

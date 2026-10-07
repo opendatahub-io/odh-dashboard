@@ -14,6 +14,7 @@ import {
 
 type SearchableMultiSelectFilterProps = {
   categoryName: string;
+  icon?: React.ReactNode;
   options: string[];
   selected: string[];
   formatLabel: (value: string) => string;
@@ -26,6 +27,7 @@ type SearchableMultiSelectFilterProps = {
 
 const SearchableMultiSelectFilter: React.FC<SearchableMultiSelectFilterProps> = ({
   categoryName,
+  icon,
   options,
   selected,
   formatLabel,
@@ -79,6 +81,7 @@ const SearchableMultiSelectFilter: React.FC<SearchableMultiSelectFilterProps> = 
             onClick={() => setIsOpen((prev) => !prev)}
             isExpanded={isOpen}
             isDisabled={isDisabled}
+            icon={icon}
             data-testid={filterTestId}
             badge={
               selected.length > 0 ? (
