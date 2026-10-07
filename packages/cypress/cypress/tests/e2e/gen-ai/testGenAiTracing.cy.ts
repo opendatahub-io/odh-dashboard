@@ -15,7 +15,6 @@ import {
 import {
   disableExternalProviders,
   enableExternalProviders,
-  getExternalProviders,
   waitForDsciCondition,
   waitForModelInLSD,
   verifyPlaygroundTracingEnabledViaAPI,
@@ -24,7 +23,6 @@ import {
 import {
   enableMlflowFeatures,
   disablePromptManagementFeatures,
-  getPromptManagementFeaturesEnabled,
 } from '../../../utils/oc_commands/mlflow';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
@@ -40,8 +38,7 @@ describe('Verify tracing and observability in Gen AI Playground', { testIsolatio
   let testData: GenAiTracingTestData;
   let playgroundPortForwardHandle: PortForwardHandle | null = null;
   let traceCollectorPortForwardHandle: PortForwardHandle | null = null;
-  let originalExternalProviders: boolean | undefined;
-  let originalPromptManagementFeaturesEnabled: boolean | undefined;
+
   const projectName = `tracing-e2e-${generateTestUUID()}`;
 
   retryableBefore(() => {
@@ -58,20 +55,6 @@ describe('Verify tracing and observability in Gen AI Playground', { testIsolatio
       cy.step('Verify platform tracing conditions are available in DSCI status');
       waitForDsciCondition(testData.tracing.openTelemetryCondition);
       waitForDsciCondition(testData.tracing.tempoCondition);
-
-      if (originalExternalProviders === undefined) {
-        cy.step('Record original externalProviders setting');
-        getExternalProviders().then((externalProviders) => {
-          originalExternalProviders = externalProviders;
-        });
-      }
-
-      if (originalPromptManagementFeaturesEnabled === undefined) {
-        cy.step('Record original Prompt Management feature state');
-        getPromptManagementFeaturesEnabled().then((enabled) => {
-          originalPromptManagementFeaturesEnabled = enabled;
-        });
-      }
 
       cy.step('Enable externalProviders in OdhDashboardConfig');
       enableExternalProviders();
@@ -94,17 +77,8 @@ describe('Verify tracing and observability in Gen AI Playground', { testIsolatio
   after(() => {
     stopPortForward(playgroundPortForwardHandle);
     stopPortForward(traceCollectorPortForwardHandle);
-
-    cy.step('Restore externalProviders in OdhDashboardConfig');
-    if (originalExternalProviders !== undefined) {
-      disableExternalProviders(originalExternalProviders);
-    }
-
-    cy.step('Restore Prompt Management feature state');
-    if (originalPromptManagementFeaturesEnabled === false) {
-      disablePromptManagementFeatures(true);
-    }
-
+    disableExternalProviders();
+    disablePromptManagementFeatures();
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 

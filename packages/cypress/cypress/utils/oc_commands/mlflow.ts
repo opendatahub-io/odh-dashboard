@@ -534,13 +534,6 @@ export const enableMlflowFeatures = (): Cypress.Chainable<boolean> => {
     });
 };
 
-export const getPromptManagementFeaturesEnabled = (): Cypress.Chainable<boolean> =>
-  cy
-    .exec(`oc get ${MLFLOW_GVR} ${MLFLOW_CR_NAME} -o name --ignore-not-found`, {
-      failOnNonZeroExit: false,
-    })
-    .then((result: CommandLineResult) => result.stdout.trim().length > 0);
-
 export const disableMlflowFeatures = (force = false): void => {
   if (force || Cypress.env('MLFLOW_CR_CREATED_BY_TEST')) {
     Cypress.env('MLFLOW_CR_CREATED_BY_TEST', false);
