@@ -85,6 +85,48 @@ describe('useAppExtensions', () => {
     expect(loadRemoteMock).toHaveBeenCalledWith('autorag/extensions');
   });
 
+  it('does not override the dashboard flag for a bare AutoRAG developer flag', async () => {
+    window.history.replaceState({}, '', '/?devFeatureFlags=autorag');
+    fetchDashboardConfigMock.mockResolvedValue(mockDashboardConfig({ autorag: true }));
+
+    await renderExtensionsHook();
+
+    expect(loadRemoteMock).toHaveBeenCalledWith('autorag/extensions');
+  });
+
+  it('matches the developer bulk-toggle semantics', async () => {
+    window.history.replaceState({}, '', '/?devFeatureFlags=true');
+    fetchDashboardConfigMock.mockResolvedValue(mockDashboardConfig({ autorag: true }));
+
+    await renderExtensionsHook();
+
+    expect(loadRemoteMock).not.toHaveBeenCalledWith('autorag/extensions');
+  });
+
+  it('loads AutoRAG when the developer bulk toggle is false', async () => {
+    window.history.replaceState({}, '', '/?devFeatureFlags=false');
+    fetchDashboardConfigMock.mockResolvedValue(mockDashboardConfig({ autorag: false }));
+
+    await renderExtensionsHook();
+
+    expect(loadRemoteMock).toHaveBeenCalledWith('autorag/extensions');
+  });
+
+  it('loads all remotes if fetching the dashboard config fails', async () => {
+    fetchDashboardConfigMock.mockRejectedValue(new Error('network'));
+
+    await renderExtensionsHook();
+
+    expect(initMock).toHaveBeenCalledWith({
+      name: 'app',
+      remotes: [
+        { name: 'gen-ai', entry: '/_mf/gen-ai/remoteEntry.js' },
+        { name: 'autorag', entry: '/_mf/autorag/remoteEntry.js' },
+      ],
+    });
+    expect(loadRemoteMock).toHaveBeenCalledWith('autorag/extensions');
+  });
+
   it('honors a persisted developer override when the dashboard flag is false', async () => {
     sessionStorage.setItem('odh-feature-flags', JSON.stringify({ autorag: true }));
     fetchDashboardConfigMock.mockResolvedValue(mockDashboardConfig({ autorag: false }));

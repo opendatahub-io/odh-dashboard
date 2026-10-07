@@ -44,14 +44,17 @@ const getDevAutoRagOverride = (): boolean | undefined => {
 
   if (queryFlags != null) {
     if (queryFlags === 'true') {
-      return true;
+      return false;
     }
     if (queryFlags === 'false') {
-      return false;
+      return true;
     }
 
     const autoragFlag = queryFlags.split(',').find((flag) => flag.split('=')[0] === 'autorag');
-    return autoragFlag == null ? undefined : autoragFlag.split('=')[1] === 'true';
+    if (autoragFlag != null && autoragFlag.includes('=')) {
+      return autoragFlag.split('=')[1] === 'true';
+    }
+    return undefined;
   }
 
   try {
