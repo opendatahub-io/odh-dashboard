@@ -12,6 +12,7 @@ import {
   isClusterLocalURL,
   convertMaaSModelToAIModel,
 } from '~/app/utilities/utils';
+import { GenAiContext } from '~/app/context/GenAiContext';
 import { useGenAiAPI } from './useGenAiAPI';
 import useGenAiDashboardConfig from './useGenAiDashboardConfig';
 import useAiAssetModelAsServiceEnabled from './useAiAssetModelAsServiceEnabled';
@@ -51,6 +52,7 @@ export const isValidAAModel = (item: unknown): item is AAModelResponse =>
 
 const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
   const { api, apiAvailable } = useGenAiAPI();
+  const { namespace } = React.useContext(GenAiContext);
   const maaSEnabled = !!useAiAssetModelAsServiceEnabled();
   const genAiConfig = useGenAiDashboardConfig();
   const clusterDomains = React.useMemo(
@@ -64,6 +66,19 @@ const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
     async (opts: APIOptions) => {
       if (!apiAvailable) {
         return Promise.reject(new NotReadyError('API not yet available'));
+      }
+
+      if (!namespace) {
+        if (!maaSEnabled) {
+          return [];
+        }
+
+        const rawData = await api.getAAModels({ sources: 'maas' }, opts);
+        if (!Array.isArray(rawData)) {
+          throw new Error('Invalid response from getAAModels: expected an array');
+        }
+
+        return rawData.filter(isValidAAModel).map(convertMaaSModelToAIModel);
       }
 
       const rawData = await api.getAAModels(queryParams, opts);
@@ -96,7 +111,7 @@ const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
         };
       });
     },
-    [api, apiAvailable, clusterDomains, queryParams],
+    [api, apiAvailable, clusterDomains, maaSEnabled, namespace, queryParams],
   );
 
   const [data, loaded, error, refresh] = useFetchState(fetchAIModels, [], {

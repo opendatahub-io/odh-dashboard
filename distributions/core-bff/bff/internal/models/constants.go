@@ -54,3 +54,17 @@ var OpenShiftUserGVR = schema.GroupVersionResource{
 	Version:  "v1",
 	Resource: "users",
 }
+
+// SubscriptionGVR is the GroupVersionResource for Operator Lifecycle Manager subscriptions.
+var SubscriptionGVR = schema.GroupVersionResource{
+	Group:    "operators.coreos.com",
+	Version:  "v1alpha1",
+	Resource: "subscriptions",
+}
+
+// DataScienceClusterGVR is the GroupVersionResource for the platform DataScienceCluster.
+var DataScienceClusterGVR = schema.GroupVersionResource{
+	Group:    "datasciencecluster.opendatahub.io",
+	Version:  "v2",
+	Resource: "datascienceclusters",
+}
