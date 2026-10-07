@@ -30,8 +30,6 @@ export const useApiKeysPageLoad = (): UseApiKeysPageLoadReturn => {
     maxExpirationDays,
     apiKeyConfigLoaded,
     apiKeyConfigError,
-    statusSubscriptionDetailsLoaded,
-    statusSubscriptionDetailsError,
     refresh,
     subscriptions,
   } = useKeysAndSubsContext();
@@ -39,15 +37,9 @@ export const useApiKeysPageLoad = (): UseApiKeysPageLoadReturn => {
 
   // Config failures must not block listing/revoking; the create modal surfaces them.
   // Do not wait on api-key config — it is only needed when creating a key.
-  const loadError =
-    hasAnyApiKeysError ?? isMaasAdminError ?? statusSubscriptionDetailsError ?? tableState.error;
+  const loadError = hasAnyApiKeysError ?? isMaasAdminError ?? tableState.error;
 
-  const loaded =
-    hasAnyApiKeysLoaded &&
-    isMaasAdminLoaded &&
-    statusSubscriptionDetailsLoaded &&
-    tableState.loaded &&
-    !loadError;
+  const loaded = hasAnyApiKeysLoaded && isMaasAdminLoaded && tableState.loaded && !loadError;
 
   const refreshAll = React.useCallback(() => {
     tableState.refresh();

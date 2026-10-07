@@ -333,17 +333,21 @@ describe('API Keys Page', () => {
       subscription: 'negative-priority-sub',
     };
 
+    // BFF admin enrichment includes the CR in search subscriptionDetails even when
+    // it is absent from My Subscriptions (GET /subscriptions).
     cy.interceptOdh(
       'POST /maas/api/v1/api-keys/search',
-      mockSearchResponse([inaccessibleSubKey], mockSubscriptionDetails),
+      mockSearchResponse([inaccessibleSubKey], {
+        ...mockSubscriptionDetails,
+        'negative-priority-sub': {
+          displayName: 'Negative Priority Subscription',
+          models: ['flan-t5-small'],
+        },
+      }),
     ).as('searchInaccessibleSub');
-    // My Subscriptions: only premium/basic — not negative-priority-sub
+    // My Subscriptions: only premium/basic — not negative-priority-sub (no detail link)
     cy.interceptOdh('GET /maas/api/v1/subscriptions', {
       data: mockSubscriptionListItems(),
-    });
-    // all-subscriptions still includes negative-priority-sub
-    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
-      data: mockSubscriptions(),
     });
 
     apiKeysPage.visit();
@@ -351,7 +355,7 @@ describe('API Keys Page', () => {
 
     const row = apiKeysPage.getRow('other-user-inaccessible-sub-key');
     row.findStatus().should('contain.text', 'Active');
-    row.findSubscription().should('contain.text', 'negative-priority-sub');
+    row.findSubscription().should('contain.text', 'Negative Priority Subscription');
     row.findSubscriptionDetailLink().should('not.exist');
     row
       .findSubscriptionGovernanceLink()

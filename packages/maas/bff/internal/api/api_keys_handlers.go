@@ -183,8 +183,16 @@ func SearchAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, _ ht
 	}
 }
 
-// enrichAPIKeysWithSubscriptionDetails fetches subscription data from the MaaS API
-// and populates SubscriptionDetails on the response with model names per subscription.
+// isMaasAdminCheck is the admin probe used during API key subscription enrichment.
+// Tests override this to avoid requiring a live token/SSAR against a real cluster.
+var isMaasAdminCheck = checkIsMaasAdmin
+
+// enrichAPIKeysWithSubscriptionDetails populates SubscriptionDetails for inactive
+// status and row enrichment.
+//
+// Admins: list all MaaSSubscription CRs from Kubernetes so keys on subscriptions
+// the admin cannot open in My Subscriptions still resolve when the CR exists.
+// Non-admins: caller-scoped MaaS API /subscriptions list.
 func enrichAPIKeysWithSubscriptionDetails(app *App, r *http.Request, response *models.APIKeyListResponse) {
 	subNames := make(map[string]struct{})
 	for _, key := range response.Data {
@@ -197,9 +205,62 @@ func enrichAPIKeysWithSubscriptionDetails(app *App, r *http.Request, response *m
 		return
 	}
 
+	isAdmin, err := isMaasAdminCheck(app, r)
+	if err != nil {
+		app.logger.Warn("Failed to check MaaS admin for API key enrichment; falling back to MaaS API subscriptions", "error", err)
+		isAdmin = false
+	}
+
+	if isAdmin {
+		enrichAPIKeysFromK8sSubscriptions(app, r, response, subNames)
+		return
+	}
+	enrichAPIKeysFromMaasSubscriptions(app, r, response, subNames)
+}
+
+func enrichAPIKeysFromK8sSubscriptions(
+	app *App,
+	r *http.Request,
+	response *models.APIKeyListResponse,
+	subNames map[string]struct{},
+) {
+	subscriptions, err := app.repositories.Subscriptions.ListSubscriptions(r.Context())
+	if err != nil {
+		app.logger.Warn("Failed to list K8s subscriptions for API key enrichment", "error", err)
+		return
+	}
+
+	details := make(map[string]models.SubscriptionDetail, len(subNames))
+	for _, sub := range subscriptions {
+		if _, needed := subNames[sub.Name]; !needed {
+			continue
+		}
+		modelNames := make([]string, len(sub.ModelRefs))
+		for i, ref := range sub.ModelRefs {
+			if ref.DisplayName != "" {
+				modelNames[i] = ref.DisplayName
+			} else {
+				modelNames[i] = ref.Name
+			}
+		}
+		displayName := sub.DisplayName
+		if displayName == "" {
+			displayName = sub.Name
+		}
+		details[sub.Name] = models.SubscriptionDetail{DisplayName: displayName, Models: modelNames}
+	}
+	response.SubscriptionDetails = details
+}
+
+func enrichAPIKeysFromMaasSubscriptions(
+	app *App,
+	r *http.Request,
+	response *models.APIKeyListResponse,
+	subNames map[string]struct{},
+) {
 	subscriptions, err := app.repositories.APIKeys.ListSubscriptionsForApiKeys(r.Context())
 	if err != nil {
-		app.logger.Warn("Failed to fetch subscriptions for API key enrichment", "error", err)
+		app.logger.Warn("Failed to fetch MaaS API subscriptions for API key enrichment", "error", err)
 		return
 	}
 

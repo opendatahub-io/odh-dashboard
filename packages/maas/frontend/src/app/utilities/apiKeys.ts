@@ -5,8 +5,8 @@ import type { MaaSSubscription, UserSubscription } from '~/app/types/subscriptio
  * Determines whether an API key should be displayed as "inactive".
  *
  * A key is inactive when it has `active` status on the server but its
- * subscription no longer appears in the enrichment map — meaning the
- * subscription was deleted or is otherwise unavailable.
+ * subscription no longer appears in the BFF search `subscriptionDetails` map —
+ * meaning the subscription was deleted or is otherwise unavailable.
  *
  * When `subscriptionDetails` is `undefined` (existence map not loaded yet, or
  * a transient fetch failure), no key is classified as inactive so we avoid
@@ -21,7 +21,7 @@ export const isKeyInactive = (
   subscriptionDetails != null &&
   !(key.subscription in subscriptionDetails);
 
-/** Build the inactive-check map from MaaS API "my subscriptions" (non-admin). */
+/** Build a map from MaaS API "my subscriptions" (used for My Subscriptions link gating). */
 export const subscriptionDetailsFromUserSubscriptions = (
   subscriptions: UserSubscription[],
 ): Record<string, SubscriptionDetail> => {
@@ -36,7 +36,7 @@ export const subscriptionDetailsFromUserSubscriptions = (
 };
 
 /**
- * Build the inactive-check map from K8s-backed all-subscriptions (admin).
+ * Build a map from K8s-backed all-subscriptions.
  * Keyed by CR name, which matches `APIKey.subscription`.
  */
 export const subscriptionDetailsFromMaaSSubscriptions = (

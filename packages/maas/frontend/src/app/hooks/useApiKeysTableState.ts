@@ -109,7 +109,10 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
 
   const [rawResponse, loaded, error, refresh] = useFetchApiKeys(searchRequest);
 
-  const { statusSubscriptionDetails, subscriptions } = useKeysAndSubsContext();
+  const { subscriptions } = useKeysAndSubsContext();
+
+  // BFF attaches this on search (admin: K8s all CRs; non-admin: My Subscriptions).
+  const statusSubscriptionDetails = rawResponse.subscriptionDetails;
 
   const accessibleSubscriptionDetails = React.useMemo(
     () => subscriptionDetailsFromUserSubscriptions(subscriptions),
