@@ -15,6 +15,8 @@ import {
   GridItem,
   Icon,
   Label,
+  Level,
+  LevelItem,
   LabelColor,
 } from '@patternfly/react-core';
 import type { IconComponentProps } from '@patternfly/react-core';
@@ -280,12 +282,6 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
       style={{ aspectRatio: '4 / 3' }}
     >
       <CardHeader
-        actions={{
-          hasNoOffset: true,
-          actions: [
-            <ConnectionTypeLabel key="ConnectionTypeLabel" connectionType={_connectionType} />,
-          ],
-        }}
         selectableActions={{
           onClickAction: onClick,
           onChange: onClick,
@@ -295,7 +291,14 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
           isHidden: isSelectable,
         }}
       >
-        <ConnectionTypeIcon connectionType={connectionType} iconProps={{ size: 'xl' }} />
+        <Level>
+          <LevelItem>
+            <ConnectionTypeIcon connectionType={connectionType} iconProps={{ size: 'xl' }} />
+          </LevelItem>
+          <LevelItem>
+            <ConnectionTypeLabel key="ConnectionTypeLabel" connectionType={_connectionType} />
+          </LevelItem>
+        </Level>
       </CardHeader>
       <CardTitle id={`${rootId}-card-title`}>{connectionType.resource.name}</CardTitle>
       <CardBody>
