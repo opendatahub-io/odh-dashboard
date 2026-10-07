@@ -15,6 +15,7 @@ import {
   ServingContainer,
   ServingRuntimeKind,
   isServingRuntimeKind,
+  isTemplateKind,
 } from '@odh-dashboard/model-serving/shared';
 import { ExternalRouteField } from '../fields/ExternalRouteField';
 import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
@@ -49,14 +50,20 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
 
   // TODO: Clean up the stuff below related to KServe. Maybe move to an extension?
   const selectedModelServer = React.useMemo(() => {
-    const templates = wizardState.state.modelFormatState.templatesFilteredForModelType;
-    const modelServerData = wizardState.state.modelServer?.data;
-    if (!modelServerData || !templates || templates.length === 0) {
+    const selection = wizardState.state.modelServer?.data?.selection;
+    if (!selection) {
       return undefined;
     }
-    const template = templates.find(
-      (tmpl) => tmpl.metadata.name === modelServerData.selection?.name,
-    );
+
+    // Prefer Template attached to the shared model-server selection; fall back to
+    // modelFormatState (existing tech debt) for predictive flows before hydration.
+    const templateFromSelection =
+      selection.template && isTemplateKind(selection.template) ? selection.template : undefined;
+    const template =
+      templateFromSelection ??
+      wizardState.state.modelFormatState.templatesFilteredForModelType?.find(
+        (tmpl) => tmpl.metadata.name === selection.name,
+      );
 
     return template?.objects[0];
   }, [

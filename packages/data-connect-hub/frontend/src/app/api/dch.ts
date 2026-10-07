@@ -86,10 +86,7 @@ const isConnectionType = (value: unknown): value is ConnectionType =>
   Array.isArray(value.resource.credentials_fields) &&
   value.resource.credentials_fields.every(isConnectionTypeField) &&
   (value.status === undefined ||
-    (isRecord(value.status) &&
-      isRecord(value.status.capabilities) &&
-      typeof value.status.capabilities.flight === 'boolean' &&
-      typeof value.status.capabilities.rest === 'boolean'));
+    (isRecord(value.status) && typeof value.status.flight_ready === 'boolean'));
 
 export const getConnections =
   (hostPath: string) =>
