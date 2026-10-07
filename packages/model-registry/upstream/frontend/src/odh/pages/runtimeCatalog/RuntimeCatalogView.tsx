@@ -121,6 +121,7 @@ const RuntimeCatalogView: React.FC = () => {
           )}
           renderAllItemsView={() => (
             <RuntimeCatalogGalleryView
+              selectedSourceLabel={selectedSourceLabel}
               filters={filters}
               searchQuery={searchQuery}
               filterOptionsLoaded={filterOptionsLoaded}
@@ -129,6 +130,7 @@ const RuntimeCatalogView: React.FC = () => {
           )}
           renderGalleryView={() => (
             <RuntimeCatalogGalleryView
+              selectedSourceLabel={selectedSourceLabel}
               filters={filters}
               searchQuery={searchQuery}
               filterOptionsLoaded={filterOptionsLoaded}

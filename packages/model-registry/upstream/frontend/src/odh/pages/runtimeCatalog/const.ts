@@ -19,7 +19,7 @@ export const RUNTIME_CATALOG_HARDWARE_LABELS: Record<string, string> = {
   'habana.ai/gaudi': 'Intel Gaudi',
 };
 
-export const RUNTIME_CATALOG_GALLERY_PAGE_SIZE = 50;
+export const RUNTIME_CATALOG_GALLERY_PAGE_SIZE = 10;
 
 export const RUNTIME_CATALOG_GRID_SPANS: CatalogGridSpans = {
   sm: 12,
