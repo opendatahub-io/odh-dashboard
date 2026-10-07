@@ -42,6 +42,11 @@ type NetworkEvidence = {
   error?: string;
 };
 
+type SanitizedPrometheusResponseEvidence = Omit<PrometheusResponseEvidence, 'series'> & {
+  seriesCount: number;
+  labelNames: string[];
+};
+
 type EvidenceContext = {
   jiraKey: string;
   contractVersion: string;
@@ -75,16 +80,28 @@ const sanitizeEvidenceText = (value: string): string =>
       '$1[REDACTED]',
     );
 
+const sanitizePrometheusResponseEvidence = (
+  responseData: PrometheusResponseEvidence,
+): SanitizedPrometheusResponseEvidence => ({
+  hasData: responseData.hasData,
+  prometheusStatus: responseData.prometheusStatus,
+  ...(responseData.resultType ? { resultType: responseData.resultType } : {}),
+  warnings: responseData.warnings.map(sanitizeEvidenceText),
+  seriesCount: responseData.series.length,
+  labelNames: [
+    ...new Set(responseData.series.flatMap(({ metric }) => Object.keys(metric))),
+  ].toSorted(),
+  ...(responseData.errorType ? { errorType: responseData.errorType } : {}),
+  ...(responseData.error ? { error: sanitizeEvidenceText(responseData.error) } : {}),
+});
+
 const sanitizeNetworkEvidence = ({ responseData, error, query, ...request }: NetworkEvidence) => ({
   ...request,
   ...(query ? { query: sanitizeEvidenceText(query) } : {}),
   ...(error ? { error: sanitizeEvidenceText(error) } : {}),
   ...(responseData
     ? {
-        responseData: {
-          ...responseData,
-          ...(responseData.error ? { error: sanitizeEvidenceText(responseData.error) } : {}),
-        },
+        responseData: sanitizePrometheusResponseEvidence(responseData),
       }
     : {}),
 });
@@ -730,13 +747,18 @@ class ObservabilityDashboardPage {
       .join('-');
 
     cy.then(() => {
+      const requests = Array.from(
+        new Map(
+          [...this.observationRequests, ...this.getRequestsSince(this.networkBoundary)].map(
+            (request) => [request.id, request] as const,
+          ),
+        ).values(),
+      ).toSorted((left, right) => left.id - right.id);
       cy.writeFile(`${evidenceDirectory}/${fileName}.json`, {
         ...context,
         selections: { ...this.variableSelections },
         panels: { ...this.panelStates },
-        requests: [...this.observationRequests, ...this.getRequestsSince(this.networkBoundary)].map(
-          sanitizeNetworkEvidence,
-        ),
+        requests: requests.map(sanitizeNetworkEvidence),
       });
       this.observationRequests = [];
     });
