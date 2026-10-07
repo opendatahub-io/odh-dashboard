@@ -6,7 +6,6 @@ import {
 } from '@odh-dashboard/plugin-core/areas';
 
 export const techPreviewFlags = {
-  genAiStudio: false,
   genAiTracing: false,
   autorag: false,
   guardrails: false,
@@ -25,7 +24,6 @@ export const techPreviewFlags = {
   vLLMDeploymentOnMaaS: false,
   llmdTemplates: false,
   llmGatewayField: false,
-  promptManagement: false,
   globalProjectPrompts: false,
   agentOps: false,
   connectionTest: false,
@@ -88,6 +86,8 @@ export const modelServingFlags = {
 
 // Group 4: Advanced AI/ML Features & Pipelines
 export const advancedAIMLFlags = {
+  genAiStudio: true,
+  promptManagement: true,
   disablePipelines: false,
   disableDistributedWorkloads: false,
   disableModelCatalog: false,
