@@ -34,7 +34,7 @@ import {
   findTemplateForSelection,
   mergeProjectAndGlobalTemplates,
 } from '@odh-dashboard/model-serving/concepts/servingRuntimeTemplates/templateUtils';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
 import { isCompatibleWithIdentifier } from '@odh-dashboard/internal/pages/projects/screens/spawner/spawnerUtils';
 import { useProfileIdentifiers } from '@odh-dashboard/hardware-profiles/shared';
 import { LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY } from '../deploymentMethodField';
