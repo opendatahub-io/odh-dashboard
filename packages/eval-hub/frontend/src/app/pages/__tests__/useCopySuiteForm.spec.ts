@@ -3,7 +3,7 @@ import { act, waitFor } from '@testing-library/react';
 import { useNavigate } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
-import { cloneCollection, createCollection } from '~/app/api/k8s';
+import { cloneCollection, createCollection, patchCollection } from '~/app/api/k8s';
 import { useCollectionsContext } from '~/app/context/CollectionsContext';
 import { useNotification } from '~/app/hooks/useNotification';
 import {
@@ -26,6 +26,7 @@ jest.mock('react-router-dom', () => ({
 jest.mock('~/app/api/k8s', () => ({
   cloneCollection: jest.fn(),
   createCollection: jest.fn(),
+  patchCollection: jest.fn(),
 }));
 
 jest.mock('~/app/hooks/useNotification', () => ({
@@ -47,6 +48,7 @@ const mockNotification = {
 
 const mockCloneCollection = jest.mocked(cloneCollection);
 const mockCreateCollection = jest.mocked(createCollection);
+const mockPatchCollection = jest.mocked(patchCollection);
 const mockUseNotification = jest.mocked(useNotification);
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseCollectionsContext = jest.mocked(useCollectionsContext);
@@ -280,6 +282,37 @@ describe('useCopySuiteForm', () => {
       }),
     ]);
     await waitFor(() => expect(result.result.current.isValid).toBe(true));
+  });
+
+  it('should reuse the suite editor to update an unrun source collection', async () => {
+    const patchFetcher = jest.fn().mockResolvedValue({
+      ...sourceCollection,
+      name: 'Updated suite',
+    });
+    mockPatchCollection.mockReturnValue(patchFetcher);
+    const result = renderForm({ mode: 'edit' });
+
+    await waitFor(() => expect(result.result.current.suiteName).toBe(sourceCollection.name));
+    await waitFor(() => expect(result.result.current.isValid).toBe(true));
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    expect(mockPatchCollection).toHaveBeenCalledWith(
+      '',
+      'test-namespace',
+      sourceCollection.resource.id,
+      expect.any(Array),
+    );
+    expect(mockPatchCollection.mock.calls[0]?.[3]).toEqual(
+      expect.arrayContaining([
+        { op: 'replace', path: '/name', value: sourceCollection.name },
+        { op: 'add', path: '/benchmarks', value: expect.any(Array) },
+      ]),
+    );
+    expect(mockCloneCollection).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/collections');
   });
 
   it('should fall back to another provider when the matching provider lacks the benchmark', async () => {
@@ -1212,6 +1245,21 @@ describe('useCopySuiteForm', () => {
     await waitFor(() => expect(result.result.current.isValid).toBe(true));
 
     act(() => result.result.current.setSuiteName('   '));
+    expect(result.result.current.isValid).toBe(false);
+  });
+
+  it('should reject a copy that keeps the source collection name', async () => {
+    const result = renderForm();
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
+
+    act(() => result.result.current.setSuiteName(sourceCollection.name));
+
+    await waitFor(() =>
+      expect(result.result.current.form.formState.errors.suiteName?.message).toBe(
+        'Suite name must be different from the source collection name.',
+      ),
+    );
+    expect(result.result.current.isSettingsValid).toBe(false);
     expect(result.result.current.isValid).toBe(false);
   });
 

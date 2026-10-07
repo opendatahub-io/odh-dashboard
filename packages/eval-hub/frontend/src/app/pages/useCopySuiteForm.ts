@@ -14,18 +14,20 @@ import { weightsToPercentages } from '~/app/utilities/weightDistributionUtils';
 import { evaluationBenchmarkSuitesRoute, evaluationsBaseRoute } from '~/app/routes';
 import { useNotification } from '~/app/hooks/useNotification';
 import { useCollectionsContext } from '~/app/context/CollectionsContext';
-import { cloneCollection, createCollection } from '~/app/api/k8s';
+import { cloneCollection, createCollection, patchCollection } from '~/app/api/k8s';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { isSuiteEvaluatesOption, type SuiteEvaluatesOption } from '~/app/pages/const';
 import {
   copySuiteDefaultValues,
-  copySuiteSchema,
+  getCopySuiteSchema,
+  isSameAsSourceCollectionName,
   type CopySuiteBenchmarkParameter,
   type CopySuiteFormValues,
 } from '~/app/schemas/copySuite.schema';
 import type {
   Collection,
   CollectionBenchmark,
+  CollectionPatchOperation,
   CreateCollectionRequest,
   Provider,
   ProviderBenchmark,
@@ -195,7 +197,7 @@ type UseCopySuiteFormParams = {
   sourceCollection: Collection | undefined;
   providers: Provider[];
   providersLoaded: boolean;
-  mode?: 'copy' | 'create';
+  mode?: 'copy' | 'create' | 'edit';
   onSaveAndRunRequest?: () => void;
   cancelRoute?: string;
 };
@@ -484,8 +486,9 @@ const buildDefaultSuiteName = (sourceName: string): string =>
 const buildInitialFormValues = (
   sourceCollection: Collection,
   providers: Provider[],
+  mode: 'copy' | 'edit',
 ): CopySuiteFormValues => ({
-  suiteName: buildDefaultSuiteName(sourceCollection.name),
+  suiteName: mode === 'edit' ? sourceCollection.name : buildDefaultSuiteName(sourceCollection.name),
   suiteDescription: sourceCollection.description ?? '',
   suiteDomains: uniqueCollectionMetadata(
     sourceCollection.domains ?? (sourceCollection.category ? [sourceCollection.category] : []),
@@ -499,6 +502,44 @@ const buildInitialFormValues = (
     : DEFAULT_SUITE_THRESHOLD,
   benchmarks: buildInitialBenchmarks(sourceCollection, providers),
 });
+
+type EditableCollectionRequest = {
+  name: string;
+  description?: string;
+  domains?: string[];
+  tasks?: string[];
+  modalities?: string[];
+  industries?: string[];
+  evaluation_targets?: string[];
+  pass_criteria?: { threshold: number };
+  benchmarks?: CollectionBenchmark[];
+};
+
+export const buildCollectionPatchOperations = (
+  request: EditableCollectionRequest,
+): CollectionPatchOperation[] => [
+  { op: 'replace', path: '/name', value: request.name },
+  { op: 'add', path: '/description', value: request.description ?? '' },
+  { op: 'add', path: '/domains', value: request.domains ?? [] },
+  { op: 'add', path: '/tasks', value: request.tasks ?? [] },
+  { op: 'add', path: '/modalities', value: request.modalities ?? [] },
+  { op: 'add', path: '/industries', value: request.industries ?? [] },
+  {
+    op: 'add',
+    // eslint-disable-next-line camelcase
+    path: '/evaluation_targets',
+    // eslint-disable-next-line camelcase
+    value: request.evaluation_targets ?? [],
+  },
+  {
+    op: 'add',
+    // eslint-disable-next-line camelcase
+    path: '/pass_criteria',
+    // eslint-disable-next-line camelcase
+    value: request.pass_criteria ?? { threshold: 0 },
+  },
+  { op: 'add', path: '/benchmarks', value: request.benchmarks ?? [] },
+];
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function useCopySuiteForm({
@@ -514,10 +555,15 @@ export function useCopySuiteForm({
   const notification = useNotification();
   const { refresh: refreshCollections } = useCollectionsContext();
   const isCreateMode = mode === 'create';
+  const isEditMode = mode === 'edit';
+  const validationSchema = React.useMemo(
+    () => getCopySuiteSchema(mode === 'copy' ? sourceCollection?.name : undefined),
+    [mode, sourceCollection?.name],
+  );
 
   const form = useForm<CopySuiteFormValues>({
     mode: 'onChange',
-    resolver: zodResolver(copySuiteSchema),
+    resolver: zodResolver(validationSchema),
     defaultValues: copySuiteDefaultValues,
   });
   const { isValid: isFormValid } = form.formState;
@@ -530,11 +576,11 @@ export function useCopySuiteForm({
     initializedRef.current = true;
     form.reset(
       sourceCollection
-        ? buildInitialFormValues(sourceCollection, providers)
+        ? buildInitialFormValues(sourceCollection, providers, isEditMode ? 'edit' : 'copy')
         : copySuiteDefaultValues,
     );
     void form.trigger();
-  }, [sourceCollection, providers, providersLoaded, form, isCreateMode]);
+  }, [sourceCollection, providers, providersLoaded, form, isCreateMode, isEditMode]);
 
   const [
     suiteName,
@@ -676,7 +722,9 @@ export function useCopySuiteForm({
     [form],
   );
 
-  const isSettingsValid = suiteName.trim() !== '';
+  const isSettingsValid =
+    suiteName.trim() !== '' &&
+    !isSameAsSourceCollectionName(suiteName, mode === 'copy' ? sourceCollection?.name : undefined);
 
   const isValid = isSettingsValid && benchmarks.length > 0 && isFormValid;
 
@@ -733,6 +781,11 @@ export function useCopySuiteForm({
     [buildCloneRequest],
   );
 
+  const buildPatchOperations = React.useCallback(
+    () => buildCollectionPatchOperations(buildCloneRequest()),
+    [buildCloneRequest],
+  );
+
   const getPendingCollection = React.useCallback((): Collection | undefined => {
     const values = form.getValues();
     return buildPendingCollection({
@@ -767,12 +820,19 @@ export function useCopySuiteForm({
       parentSignal?.addEventListener('abort', abortClone, { once: true });
 
       try {
-        const clonedCollection = await cloneCollection(
-          '',
-          namespace,
-          sourceCollection.resource.id,
-          buildCloneRequest(),
-        )({ signal: controller.signal });
+        const savedCollection = isEditMode
+          ? await patchCollection(
+              '',
+              namespace,
+              sourceCollection.resource.id,
+              buildPatchOperations(),
+            )({ signal: controller.signal })
+          : await cloneCollection(
+              '',
+              namespace,
+              sourceCollection.resource.id,
+              buildCloneRequest(),
+            )({ signal: controller.signal });
 
         if (controller.signal.aborted) {
           return undefined;
@@ -782,16 +842,19 @@ export function useCopySuiteForm({
 
         fireMiscTrackingEvent(EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED, {
           runType: 'collection',
-          collectionName: clonedCollection.name,
-          benchmarkTypes: JSON.stringify((clonedCollection.benchmarks ?? []).map((b) => b.id)),
-          countOfBenchmarks: clonedCollection.benchmarks?.length ?? 0,
+          collectionName: savedCollection.name,
+          benchmarkTypes: JSON.stringify((savedCollection.benchmarks ?? []).map((b) => b.id)),
+          countOfBenchmarks: savedCollection.benchmarks?.length ?? 0,
         });
 
-        return clonedCollection;
+        return savedCollection;
       } catch (e) {
         if (!controller.signal.aborted) {
           const message = e instanceof Error ? e.message : 'An unknown error occurred.';
-          notification.error('Failed to copy suite', message);
+          notification.error(
+            isEditMode ? 'Failed to update suite' : 'Failed to copy suite',
+            message,
+          );
         }
         return undefined;
       } finally {
@@ -801,7 +864,16 @@ export function useCopySuiteForm({
         }
       }
     },
-    [sourceCollection, namespace, form, buildCloneRequest, notification, refreshCollections],
+    [
+      sourceCollection,
+      namespace,
+      form,
+      isEditMode,
+      buildCloneRequest,
+      buildPatchOperations,
+      notification,
+      refreshCollections,
+    ],
   );
 
   const createCollectionForRun = React.useCallback(
@@ -885,16 +957,25 @@ export function useCopySuiteForm({
       abortControllerRef.current = controller;
       const savedCollection = isCreateMode
         ? await createCollection('', namespace, buildCreateRequest())({ signal: controller.signal })
-        : await cloneCollection(
-            '',
-            namespace,
-            sourceCollection!.resource.id,
-            buildCloneRequest(),
-          )({ signal: controller.signal });
+        : isEditMode
+          ? await patchCollection(
+              '',
+              namespace,
+              sourceCollection!.resource.id,
+              buildPatchOperations(),
+            )({ signal: controller.signal })
+          : await cloneCollection(
+              '',
+              namespace,
+              sourceCollection!.resource.id,
+              buildCloneRequest(),
+            )({ signal: controller.signal });
 
       notification.success(
-        isCreateMode ? 'Suite created' : 'Suite saved',
-        `"${savedCollection.name}" has been added to your benchmark suites.`,
+        isCreateMode ? 'Suite created' : isEditMode ? 'Suite updated' : 'Suite saved',
+        isEditMode
+          ? `"${savedCollection.name}" has been updated.`
+          : `"${savedCollection.name}" has been added to your benchmark suites.`,
       );
       refreshCollections();
       navigate(evaluationBenchmarkSuitesRoute(namespace));
@@ -902,7 +983,11 @@ export function useCopySuiteForm({
       if (controller && !controller.signal.aborted) {
         const message = e instanceof Error ? e.message : 'An unknown error occurred.';
         notification.error(
-          isCreateMode ? 'Failed to create suite' : 'Failed to copy suite',
+          isCreateMode
+            ? 'Failed to create suite'
+            : isEditMode
+              ? 'Failed to update suite'
+              : 'Failed to copy suite',
           message,
         );
       }
@@ -915,11 +1000,13 @@ export function useCopySuiteForm({
     }
   }, [
     isCreateMode,
+    isEditMode,
     sourceCollection,
     namespace,
     form,
     buildCreateRequest,
     buildCloneRequest,
+    buildPatchOperations,
     navigate,
     notification,
     refreshCollections,

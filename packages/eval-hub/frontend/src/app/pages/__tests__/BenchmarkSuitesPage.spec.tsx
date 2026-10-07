@@ -119,7 +119,7 @@ describe('BenchmarkSuitesPage', () => {
     renderPage();
 
     await userEvent.click(screen.getByTestId('benchmark-suite-card-menu-model-suite-2'));
-    expect(screen.queryByRole('menuitem', { name: 'Edit' })).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Edit' })).toBeEnabled();
     expect(screen.getByRole('menuitem', { name: 'Duplicate' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('menuitem', { name: 'Duplicate' }));
 

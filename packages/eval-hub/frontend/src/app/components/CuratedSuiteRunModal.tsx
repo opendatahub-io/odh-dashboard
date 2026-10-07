@@ -3,11 +3,12 @@ import { useCollectionsContext } from '~/app/context/CollectionsContext';
 import { cloneCollection } from '~/app/api/k8s';
 import { useDeleteCollectionMutation } from '~/app/hooks/collections';
 import { useNotification } from '~/app/hooks/useNotification';
-import type { Collection } from '~/app/types';
+import { findReusableCollectionCopy } from '~/app/utils/collectionReuse';
+import type { Collection, CollectionResolution } from '~/app/types';
 import StartEvaluationRunModal from './StartEvaluationRunModal';
 
 const CURATED_SUITE_RUN_DESCRIPTION =
-  'This benchmark suite will be copied to your project as-is before the evaluation starts.';
+  'An unchanged copy of this benchmark suite will be reused if one already exists in your project; otherwise, it will be copied before the evaluation starts.';
 
 type CuratedSuiteRunModalProps = {
   isOpen: boolean;
@@ -34,9 +35,30 @@ const CuratedSuiteRunModal: React.FC<CuratedSuiteRunModalProps> = ({
   const { mutateAsync: deleteCollection } = useDeleteCollectionMutation(namespace ?? '');
 
   const resolveCollection = React.useCallback(
-    async (signal?: AbortSignal): Promise<Collection | undefined> => {
+    async (signal?: AbortSignal): Promise<CollectionResolution | undefined> => {
       if (!namespace || signal?.aborted) {
         return undefined;
+      }
+
+      let reusableCollection: Collection | undefined;
+      try {
+        reusableCollection = await findReusableCollectionCopy(collection, namespace, signal);
+      } catch (error) {
+        if (!signal?.aborted) {
+          notification.error(
+            'Failed to find existing suite copy',
+            getErrorMessage(error, 'Unable to check for an existing suite copy.'),
+          );
+        }
+        throw error;
+      }
+
+      if (signal?.aborted) {
+        return undefined;
+      }
+
+      if (reusableCollection) {
+        return { collection: reusableCollection, wasCreated: false };
       }
 
       try {
@@ -52,7 +74,7 @@ const CuratedSuiteRunModal: React.FC<CuratedSuiteRunModalProps> = ({
         }
 
         refreshCollections();
-        return copiedCollection;
+        return { collection: copiedCollection, wasCreated: true };
       } catch (error) {
         if (!signal?.aborted) {
           notification.error(
@@ -63,16 +85,12 @@ const CuratedSuiteRunModal: React.FC<CuratedSuiteRunModalProps> = ({
         return undefined;
       }
     },
-    [collection.resource.id, namespace, notification, refreshCollections],
+    [collection, namespace, notification, refreshCollections],
   );
 
   const handleRunFailure = React.useCallback(
-    async (_error: unknown, copiedCollection?: Collection) => {
-      if (
-        !namespace ||
-        !copiedCollection ||
-        copiedCollection.resource.id === collection.resource.id
-      ) {
+    async (_error: unknown, copiedCollection?: Collection, wasCreated = false) => {
+      if (!namespace || !copiedCollection || !wasCreated) {
         return;
       }
 
@@ -88,7 +106,7 @@ const CuratedSuiteRunModal: React.FC<CuratedSuiteRunModalProps> = ({
       }
       return undefined;
     },
-    [collection.resource.id, deleteCollection, namespace],
+    [deleteCollection, namespace],
   );
 
   return (

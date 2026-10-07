@@ -18,6 +18,7 @@ import { useCollectionDrawer } from '~/app/hooks/useCollectionDrawer';
 import {
   evaluationCopySuiteRoute,
   evaluationCreateSuiteRoute,
+  evaluationEditSuiteRoute,
   evaluationsBaseRoute,
 } from '~/app/routes';
 import type { Collection } from '~/app/types';
@@ -41,6 +42,13 @@ const BenchmarkSuitesPage: React.FC = () => {
   const handleDuplicateCollection = React.useCallback(
     (collection: Collection) => {
       navigate(evaluationCopySuiteRoute(namespace, collection.resource.id));
+    },
+    [navigate, namespace],
+  );
+
+  const handleEditCollection = React.useCallback(
+    (collection: Collection) => {
+      navigate(evaluationEditSuiteRoute(namespace, collection.resource.id));
     },
     [navigate, namespace],
   );
@@ -97,6 +105,7 @@ const BenchmarkSuitesPage: React.FC = () => {
                     showPagination
                     onCreateSuite={handleCreateSuite}
                     onPrimaryAction={handleRunCollection}
+                    onEditCollection={handleEditCollection}
                     onDuplicateCollection={handleDuplicateCollection}
                     onSelectCollection={selectCollection}
                   />

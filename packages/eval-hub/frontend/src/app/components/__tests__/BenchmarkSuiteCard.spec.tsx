@@ -173,6 +173,29 @@ describe('BenchmarkSuiteCard', () => {
     expect(onSelect).toHaveBeenCalledWith(collection);
   });
 
+  it('should disable edit when the collection has existing runs', () => {
+    const onEdit = jest.fn();
+    const collection = {
+      ...mockCollection({ id: 'run-suite' }),
+      state: { run_count: 1 },
+    };
+
+    render(
+      <BenchmarkSuiteCard
+        collection={collection}
+        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+        contextualActions={[{ id: 'edit', label: 'Edit', onSelect: onEdit, isDisabled: true }]}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-menu-run-suite'));
+    const editAction = screen.getByRole('menuitem', { name: 'Edit' });
+
+    expect(editAction).toBeDisabled();
+    fireEvent.click(editAction);
+    expect(onEdit).not.toHaveBeenCalled();
+  });
+
   it('should call the primary action when clicked', () => {
     const onClick = jest.fn();
     render(

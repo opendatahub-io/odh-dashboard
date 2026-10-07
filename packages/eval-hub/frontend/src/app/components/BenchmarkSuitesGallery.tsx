@@ -120,6 +120,7 @@ type BenchmarkSuitesGalleryProps = {
   onCreateSuite?: () => void;
   onPrimaryAction: (collection: Collection) => void;
   onDropdownAction?: (collection: Collection) => void;
+  onEditCollection?: (collection: Collection) => void;
   onDuplicateCollection: (collection: Collection) => void;
   onSelectCollection: (collection: Collection) => void;
 };
@@ -148,6 +149,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   onCreateSuite,
   onPrimaryAction,
   onDropdownAction,
+  onEditCollection,
   onDuplicateCollection,
   onSelectCollection,
 }) => {
@@ -508,28 +510,32 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     setCollectionToDelete(null);
   }, [resetDeleteMutation]);
 
-  const contextualActions: BenchmarkSuiteCardAction[] = [
-    // TODO: Reconsider enabling Edit if users request it.
-    // Product guidance is to create a new version and keep the original suite
-    // to avoid confusion when comparing results. Until that flow is defined,
-    // keep Edit disabled and use Duplicate to create a new suite.
-    // {
-    //   id: 'edit',
-    //   label: 'Edit',
-    //   onSelect: () => {},
-    // },
-    {
-      id: 'duplicate',
-      label: 'Duplicate',
-      onSelect: onDuplicateCollection,
-    },
-    {
-      id: 'delete',
-      label: 'Delete',
-      isDanger: true,
-      onSelect: handleDeleteSelect,
-    },
-  ];
+  const getContextualActions = React.useCallback(
+    (collection: Collection): BenchmarkSuiteCardAction[] => [
+      ...(onEditCollection
+        ? [
+            {
+              id: 'edit',
+              label: 'Edit',
+              isDisabled: (collection.state?.run_count ?? 0) > 0,
+              onSelect: onEditCollection,
+            },
+          ]
+        : []),
+      {
+        id: 'duplicate',
+        label: 'Duplicate',
+        onSelect: onDuplicateCollection,
+      },
+      {
+        id: 'delete',
+        label: 'Delete',
+        isDanger: true,
+        onSelect: handleDeleteSelect,
+      },
+    ],
+    [handleDeleteSelect, onDuplicateCollection, onEditCollection],
+  );
 
   return (
     <>
@@ -747,7 +753,9 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                         }
                       : undefined
                   }
-                  contextualActions={showContextualActions ? contextualActions : undefined}
+                  contextualActions={
+                    showContextualActions ? getContextualActions(collection) : undefined
+                  }
                   onSelect={onSelectCollection}
                   reservePopularHeader={hasPopularCollections}
                 />

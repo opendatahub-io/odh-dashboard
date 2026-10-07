@@ -350,7 +350,7 @@ describe('EvaluationsPage', () => {
 
     fireEvent.click(screen.getByTestId('benchmark-suite-card-menu-model-suite-2'));
 
-    expect(screen.queryByRole('menuitem', { name: 'Edit' })).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Edit' })).toBeEnabled();
     expect(screen.getByText('Duplicate')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
 
@@ -412,7 +412,7 @@ describe('EvaluationsPage', () => {
   it('should open the start evaluation run modal for a suite', () => {
     renderPage('test-project', '?tab=evaluate');
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Run benchmark suite' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Run' })[0]);
 
     expect(screen.getByTestId('evaluations-page-start-evaluation-run-modal')).toHaveTextContent(
       'Model suite 2',

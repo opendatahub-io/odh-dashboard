@@ -28,7 +28,11 @@ import { ApplicationsPage, WhosMyAdministrator } from '@odh-dashboard/ui-core';
 import SupportIcon from '~/app/icons/SupportIcon';
 import { evalHubEvaluationsRoute } from '~/app/utilities/routes';
 import { getLatestEvaluationJob } from '~/app/utilities/evaluationUtils';
-import { evaluationCopySuiteRoute, evaluationReconfigureRoute } from '~/app/routes';
+import {
+  evaluationCopySuiteRoute,
+  evaluationEditSuiteRoute,
+  evaluationReconfigureRoute,
+} from '~/app/routes';
 import { useEvaluationJobs } from '~/app/hooks/useEvaluationJobs';
 import useEvalHubHealth from '~/app/hooks/useEvalHubHealth';
 import { useCollectionNameMap } from '~/app/hooks/useCollectionNameMap';
@@ -132,6 +136,13 @@ const EvaluationsPage: React.FC = () => {
   const handleDuplicateCollection = React.useCallback(
     (collection: Collection) => {
       navigate(evaluationCopySuiteRoute(namespace, collection.resource.id));
+    },
+    [navigate, namespace],
+  );
+
+  const handleEditCollection = React.useCallback(
+    (collection: Collection) => {
+      navigate(evaluationEditSuiteRoute(namespace, collection.resource.id));
     },
     [navigate, namespace],
   );
@@ -312,6 +323,7 @@ const EvaluationsPage: React.FC = () => {
                     namespace={namespace ?? ''}
                     onSelectCollection={handleSelectCollection}
                     onRunCollection={handleRunCollection}
+                    onEditCollection={handleEditCollection}
                     onDuplicateCollection={handleDuplicateCollection}
                   />
                 </Tab>

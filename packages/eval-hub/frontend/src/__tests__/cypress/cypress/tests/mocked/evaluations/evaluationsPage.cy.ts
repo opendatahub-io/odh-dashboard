@@ -256,6 +256,7 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.visitEvaluate(NAMESPACE);
     evaluationsPage.findBenchmarkSuiteMenu('model-suite-2').click();
 
+    evaluationsPage.findBenchmarkSuiteAction('edit', 'model-suite-2').should('not.be.disabled');
     evaluationsPage.findBenchmarkSuiteAction('duplicate', 'model-suite-2').should('be.visible');
     evaluationsPage.findBenchmarkSuiteAction('delete', 'model-suite-2').click();
 
@@ -265,6 +266,20 @@ describe('Evaluations Page - Tabs', () => {
       .should('contain.text', 'The Model suite 2 benchmark suite will be permanently deleted.');
     evaluationsPage.findBenchmarkSuiteDeleteCancel().click();
     evaluationsPage.findBenchmarkSuiteDeleteModal().should('not.exist');
+  });
+
+  it('should disable editing a benchmark suite after it has been run', () => {
+    const collections = mockBenchmarkSuiteCollections().map((collection) =>
+      collection.resource.id === 'model-suite-2'
+        ? { ...collection, state: { run_count: 1 } }
+        : collection,
+    );
+    initIntercepts({ collections });
+
+    evaluationsPage.visitEvaluate(NAMESPACE);
+    evaluationsPage.findBenchmarkSuiteMenu('model-suite-2').click();
+
+    evaluationsPage.findBenchmarkSuiteAction('edit', 'model-suite-2').should('be.disabled');
   });
 });
 

@@ -8,7 +8,13 @@ import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData
 import { createEvaluationJob } from '~/app/api/k8s';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import type { Collection, HardwareProfile, KueueAvailability, SourceMode } from '~/app/types';
+import type {
+  Collection,
+  CollectionResolution,
+  HardwareProfile,
+  KueueAvailability,
+  SourceMode,
+} from '~/app/types';
 
 const mockNavigate = jest.fn();
 const mockMlflowSelectorMounted = jest.fn();
@@ -107,6 +113,10 @@ const clonedCollection: Collection = {
   ...collection,
   resource: { id: 'cloned-suite' },
   name: 'Copied suite',
+};
+const clonedCollectionResolution: CollectionResolution = {
+  collection: clonedCollection,
+  wasCreated: true,
 };
 
 const kueueAvailability: KueueAvailability = {
@@ -283,7 +293,7 @@ describe('StartEvaluationRunModal', () => {
   });
 
   it('should disable fields and prevent a deferred clone from submitting after cancel', async () => {
-    const deferredClone = createDeferred<Collection | undefined>();
+    const deferredClone = createDeferred<CollectionResolution | undefined>();
     let cloneSignal: AbortSignal | undefined;
     const resolveCollection = jest.fn((signal?: AbortSignal) => {
       cloneSignal = signal;
@@ -319,7 +329,7 @@ describe('StartEvaluationRunModal', () => {
     );
 
     await act(async () => {
-      deferredClone.resolve(clonedCollection);
+      deferredClone.resolve(clonedCollectionResolution);
       await deferredClone.promise;
     });
 
@@ -327,7 +337,7 @@ describe('StartEvaluationRunModal', () => {
   });
 
   it('should replace the MLflow selector with a disabled instance while cloning', async () => {
-    const deferredClone = createDeferred<Collection | undefined>();
+    const deferredClone = createDeferred<CollectionResolution | undefined>();
     const resolveCollection = jest.fn(() => deferredClone.promise);
     renderModal(resolveCollection);
 
@@ -351,13 +361,13 @@ describe('StartEvaluationRunModal', () => {
 
     fireEvent.click(screen.getByTestId('start-evaluation-cancel'));
     await act(async () => {
-      deferredClone.resolve(clonedCollection);
+      deferredClone.resolve(clonedCollectionResolution);
       await deferredClone.promise;
     });
   });
 
   it('should prevent a deferred clone from submitting when the modal close control is used', async () => {
-    const deferredClone = createDeferred<Collection | undefined>();
+    const deferredClone = createDeferred<CollectionResolution | undefined>();
     const resolveCollection = jest.fn(() => deferredClone.promise);
     const { onClose } = renderModal(resolveCollection);
 
@@ -375,7 +385,7 @@ describe('StartEvaluationRunModal', () => {
     );
 
     await act(async () => {
-      deferredClone.resolve(clonedCollection);
+      deferredClone.resolve(clonedCollectionResolution);
       await deferredClone.promise;
     });
 
@@ -383,7 +393,7 @@ describe('StartEvaluationRunModal', () => {
   });
 
   it('should submit the evaluation using the cloned collection', async () => {
-    const resolveCollection = jest.fn(() => Promise.resolve(clonedCollection));
+    const resolveCollection = jest.fn(() => Promise.resolve(clonedCollectionResolution));
     renderModal(resolveCollection);
 
     await selectClusterModel();
@@ -401,7 +411,7 @@ describe('StartEvaluationRunModal', () => {
   });
 
   it('should resolve a deferred collection before submitting a create run', async () => {
-    const resolveCollection = jest.fn(() => Promise.resolve(clonedCollection));
+    const resolveCollection = jest.fn(() => Promise.resolve(clonedCollectionResolution));
     renderModal(resolveCollection, undefined, { omitCollection: true });
 
     await selectClusterModel();

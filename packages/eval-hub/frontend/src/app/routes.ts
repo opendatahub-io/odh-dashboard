@@ -32,6 +32,9 @@ export const evaluationStartRoute = (namespace?: string): string =>
 export const evaluationCopySuiteRoute = (namespace?: string, collectionId?: string): string =>
   `${evaluationCollectionsRoute(namespace)}/${collectionId ?? ':collectionId'}/copy`;
 
+export const evaluationEditSuiteRoute = (namespace?: string, collectionId?: string): string =>
+  `${evaluationCollectionsRoute(namespace)}/${collectionId ?? ':collectionId'}/edit`;
+
 export const evaluationCreateSuiteRoute = (namespace?: string): string =>
   `${evaluationCollectionsRoute(namespace)}/new`;
 

@@ -75,6 +75,7 @@ type UseStartEvaluationRunFormParams = {
   onRunFailure?: (
     error: unknown,
     collection?: Collection,
+    collectionWasCreated?: boolean,
   ) => unknown | void | Promise<unknown | void>;
 };
 
@@ -682,12 +683,16 @@ export function useStartEvaluationRunForm({
     trackingSource,
   ]);
 
-  const handleSubmit = async (submitOverrides?: { collection?: Collection }) => {
+  const handleSubmit = async (submitOverrides?: {
+    collection?: Collection;
+    collectionWasCreated?: boolean;
+  }) => {
     if (!isValid || isSubmitting) {
       return;
     }
 
     const activeCollection = submitOverrides?.collection ?? collection;
+    const activeCollectionWasCreated = submitOverrides?.collectionWasCreated;
     const values = form.getValues();
 
     setIsSubmitting(true);
@@ -901,7 +906,10 @@ export function useStartEvaluationRunForm({
       });
       let cleanupError: unknown;
       try {
-        cleanupError = await onRunFailure?.(e, activeCollection);
+        cleanupError =
+          activeCollectionWasCreated === undefined
+            ? await onRunFailure?.(e, activeCollection)
+            : await onRunFailure?.(e, activeCollection, activeCollectionWasCreated);
       } catch (failureCleanupError) {
         cleanupError = failureCleanupError;
       }

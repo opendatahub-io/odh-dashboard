@@ -44,7 +44,7 @@ import {
   SOURCE_OPTIONS,
   suiteEvaluatesToSourceMode,
 } from '~/app/utilities/startEvaluationRunUtils';
-import type { Collection, FlatBenchmark, SourceMode } from '~/app/types';
+import type { Collection, CollectionResolution, FlatBenchmark, SourceMode } from '~/app/types';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
 import './StartEvaluationRunModal.scss';
 
@@ -58,7 +58,9 @@ type StartEvaluationRunModalProps = {
   defaultEvaluationName?: string;
   defaultSourceMode?: SourceMode;
   modalId?: string;
-  resolveCollection?: (signal?: AbortSignal) => Promise<Collection | undefined>;
+  resolveCollection?: (
+    signal?: AbortSignal,
+  ) => Promise<Collection | CollectionResolution | undefined>;
   onClonePendingChange?: (isPending: boolean) => void;
   trackingSource?: string;
   onSuccess?: () => void;
@@ -209,21 +211,28 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
 
     try {
       let activeCollection = collection;
+      let activeCollectionWasCreated: boolean | undefined;
       if (resolveCollection) {
         const cloneAbortController = new AbortController();
         cloneAbortControllerRef.current = cloneAbortController;
         setIsCloning(true);
         onClonePendingChange?.(true);
         try {
-          const cloned = await resolveCollection(cloneAbortController.signal);
+          const resolvedCollection = await resolveCollection(cloneAbortController.signal);
           if (
             startAttempt !== startAttemptRef.current ||
             cloneAbortController.signal.aborted ||
-            !cloned
+            !resolvedCollection
           ) {
             return;
           }
-          activeCollection = cloned;
+          if ('collection' in resolvedCollection) {
+            activeCollection = resolvedCollection.collection;
+            activeCollectionWasCreated = resolvedCollection.wasCreated;
+          } else {
+            activeCollection = resolvedCollection;
+            activeCollectionWasCreated = true;
+          }
         } finally {
           if (cloneAbortControllerRef.current === cloneAbortController) {
             cloneAbortControllerRef.current = null;
@@ -244,7 +253,10 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
         return;
       }
 
-      await form.handleSubmit({ collection: activeCollection });
+      await form.handleSubmit({
+        collection: activeCollection,
+        collectionWasCreated: activeCollectionWasCreated,
+      });
     } catch {
       // Collection resolvers own request-error feedback. A rejected resolver must not submit.
     } finally {

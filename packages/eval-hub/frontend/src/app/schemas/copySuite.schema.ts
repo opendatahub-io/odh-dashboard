@@ -109,6 +109,26 @@ export const copySuiteSchema = z
     });
   });
 
+export const SOURCE_COLLECTION_NAME_ERROR =
+  'Suite name must be different from the source collection name.';
+
+export const isSameAsSourceCollectionName = (
+  suiteName: string,
+  sourceCollectionName: string | undefined,
+): boolean =>
+  Boolean(sourceCollectionName?.trim()) && suiteName.trim() === sourceCollectionName?.trim();
+
+export const getCopySuiteSchema = (sourceCollectionName?: string): typeof copySuiteSchema =>
+  copySuiteSchema.superRefine((data, ctx) => {
+    if (isSameAsSourceCollectionName(data.suiteName, sourceCollectionName)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: SOURCE_COLLECTION_NAME_ERROR,
+        path: ['suiteName'],
+      });
+    }
+  });
+
 export type CopySuiteFormValues = z.infer<typeof copySuiteSchema>;
 export type CopySuiteBenchmarkFormValues = z.infer<typeof copySuiteBenchmarkSchema>;
 

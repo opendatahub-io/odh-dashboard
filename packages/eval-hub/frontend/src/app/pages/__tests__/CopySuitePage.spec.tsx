@@ -689,6 +689,18 @@ describe('CopySuitePage', () => {
     expect(screen.getByTestId('copy-suite-next')).toBeDisabled();
   });
 
+  it('should require a copied suite to have a different name from its source collection', () => {
+    mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
+    mockUseCopySuiteForm.mockReturnValue(makeForm({ suiteName: sourceCollection.name }));
+
+    renderPage();
+
+    expect(
+      screen.getByText('Suite name must be different from the source collection name.'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('copy-suite-next')).toBeDisabled();
+  });
+
   it('should require a category before continuing from both suite settings flows', () => {
     mockUseCopySuiteForm.mockReturnValue(makeForm({ suiteDomains: [] }));
     mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);

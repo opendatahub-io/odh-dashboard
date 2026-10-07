@@ -23,6 +23,7 @@ type EvaluateTabProps = {
   namespace: string;
   onSelectCollection: (collection: Collection) => void;
   onRunCollection: (collection: Collection) => void;
+  onEditCollection: (collection: Collection) => void;
   onDuplicateCollection: (collection: Collection) => void;
 };
 
@@ -30,6 +31,7 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
   namespace,
   onSelectCollection,
   onRunCollection,
+  onEditCollection,
   onDuplicateCollection,
 }) => (
   <>
@@ -49,8 +51,10 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
           maxVisibleCollections={MAX_VISIBLE_BENCHMARK_SUITES}
           showSummary
           useMockFallback={false}
+          primaryActionLabel="Run"
           createSuiteRoute={evaluationCreateSuiteRoute(namespace)}
           onPrimaryAction={onRunCollection}
+          onEditCollection={onEditCollection}
           onDuplicateCollection={onDuplicateCollection}
           onSelectCollection={onSelectCollection}
         />

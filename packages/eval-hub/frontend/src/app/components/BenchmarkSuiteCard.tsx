@@ -72,6 +72,7 @@ export type BenchmarkSuiteCardAction = {
   label: string;
   onSelect: (collection: Collection) => void;
   isDanger?: boolean;
+  isDisabled?: boolean;
 };
 
 type BenchmarkSuiteCardButton = {
@@ -285,7 +286,9 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
       )}
     </div>
   );
-  const benchmarksSummaryLabel = `Benchmarks: ${benchmarkNames.join(', ') || 'No benchmarks available'}`;
+  const benchmarksSummaryLabel = `Benchmarks: ${
+    benchmarkNames.join(', ') || 'No benchmarks available'
+  }`;
   const evaluationTargetsTooltip = (
     <div className="evalhub-benchmark-suite-card__tooltip-content">
       <strong>Evaluation targets</strong>
@@ -438,7 +441,11 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
                         key={action.id}
                         value={action.id}
                         isDanger={action.isDanger}
+                        isDisabled={action.isDisabled}
                         onClick={() => {
+                          if (action.isDisabled) {
+                            return;
+                          }
                           setIsMenuOpen(false);
                           action.onSelect(collection);
                         }}

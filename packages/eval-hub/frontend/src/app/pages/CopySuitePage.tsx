@@ -33,7 +33,7 @@ import { useCopySuiteForm } from './useCopySuiteForm';
 import './CopySuitePage.scss';
 
 type CopySuiteStep = 'settings' | 'selectBenchmarks' | 'benchmarks';
-type SuiteEditorMode = 'copy' | 'create';
+type SuiteEditorMode = 'copy' | 'create' | 'edit';
 
 type SuiteEditorPageProps = {
   mode: SuiteEditorMode;
@@ -41,6 +41,7 @@ type SuiteEditorPageProps = {
 
 const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
   const isCreateMode = mode === 'create';
+  const isEditMode = mode === 'edit';
   const { namespace, collectionId } = useParams<{
     namespace: string;
     collectionId: string;
@@ -183,12 +184,25 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
     : undefined;
   const isBenchmarksStep = currentStep === 'benchmarks';
   const showPageHeader = currentStep !== 'selectBenchmarks';
-  const pageTitle = isBenchmarksStep ? 'Benchmarks' : isCreateMode ? 'Create suite' : 'Copy suite';
+  const pageTitle = isBenchmarksStep
+    ? 'Benchmarks'
+    : isCreateMode
+      ? 'Create suite'
+      : isEditMode
+        ? 'Edit suite'
+        : 'Copy suite';
   const pageDescription = isBenchmarksStep
     ? 'Choose the primary metric, number of samples, random seed, threshold, and weight used to calculate the result for each benchmark.'
     : isCreateMode
       ? 'Create a benchmark suite by choosing its metadata, benchmarks, thresholds, and metrics.'
-      : 'Customize benchmarks, thresholds, and metrics before adding this suite to your dashboard.';
+      : isEditMode
+        ? 'Edit this benchmark suite by updating its metadata, benchmarks, thresholds, and metrics.'
+        : 'Customize benchmarks, thresholds, and metrics before adding this suite to your dashboard.';
+  const settingsBreadcrumbLabel = isCreateMode
+    ? 'Create suite'
+    : isEditMode
+      ? 'Edit benchmark suite'
+      : 'Customize benchmark suite';
 
   const breadcrumbItems: React.ReactElement[] = [
     <BreadcrumbItem
@@ -221,7 +235,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
   if (currentStep === 'settings') {
     breadcrumbItems.push(
       <BreadcrumbItem key="settings" isActive>
-        {isCreateMode ? 'Create suite' : 'Customize benchmark suite'}
+        {settingsBreadcrumbLabel}
       </BreadcrumbItem>,
     );
   } else {
@@ -241,7 +255,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
             isDisabled={isPageInteractionDisabled}
             data-testid="copy-suite-breadcrumb-settings"
           >
-            {isCreateMode ? 'Create suite' : 'Customize benchmark suite'}
+            {settingsBreadcrumbLabel}
           </Button>
         )}
       />,
@@ -324,6 +338,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
               <CopySuiteSettingsStep
                 onNext={() => setCurrentStep('selectBenchmarks')}
                 onCancel={form.handleCancel}
+                sourceCollectionName={mode === 'copy' ? sourceCollection?.name : undefined}
               />
             ) : currentStep === 'selectBenchmarks' ? (
               <CopySuiteBenchmarkSelectionStep
@@ -352,7 +367,14 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
                 onBack={() => setCurrentStep('selectBenchmarks')}
                 onSaveAndRun={form.handleSaveAndRun}
                 onSaveOnly={form.handleSaveOnly}
-                primaryActionTestId={isCreateMode ? 'create-suite-submit' : undefined}
+                primaryActionTestId={
+                  isCreateMode
+                    ? 'create-suite-submit'
+                    : isEditMode
+                      ? 'edit-suite-save-and-run'
+                      : undefined
+                }
+                secondaryActionLabel={isEditMode ? 'Save changes' : undefined}
                 onCancel={form.handleCancel}
               />
             )}
@@ -368,13 +390,19 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
             defaultEvaluationName={form.suiteName}
             defaultSourceMode={suiteEvaluatesToSourceMode(form.suiteEvaluates)}
             modalId={
-              isCreateMode ? 'create-suite-run-evaluation-modal' : 'copy-suite-run-evaluation-modal'
+              isCreateMode
+                ? 'create-suite-run-evaluation-modal'
+                : isEditMode
+                  ? 'edit-suite-run-evaluation-modal'
+                  : 'copy-suite-run-evaluation-modal'
             }
             resolveCollection={
               isCreateMode ? form.createCollectionForRun : form.cloneCollectionForRun
             }
             onClonePendingChange={setIsClonePending}
-            trackingSource={isCreateMode ? 'create_suite' : 'copy_suite'}
+            trackingSource={
+              isCreateMode ? 'create_suite' : isEditMode ? 'edit_suite' : 'copy_suite'
+            }
             onSuccess={() => {
               setIsRunModalOpen(false);
               navigate({ pathname: evaluationsBaseRoute(namespace), search: '?tab=runs' });
@@ -389,5 +417,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
 const CopySuitePage: React.FC = () => <SuiteEditorPage mode="copy" />;
 
 export const CreateSuitePage: React.FC = () => <SuiteEditorPage mode="create" />;
+
+export const EditSuitePage: React.FC = () => <SuiteEditorPage mode="edit" />;
 
 export default CopySuitePage;

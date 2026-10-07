@@ -2,7 +2,10 @@ import * as React from 'react';
 import {
   Button,
   Form,
+  FormHelperText,
   FormGroup,
+  HelperText,
+  HelperTextItem,
   Label,
   LabelGroup,
   MenuToggle,
@@ -20,11 +23,16 @@ import { Controller, useFormContext, type Control } from 'react-hook-form';
 import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
 import { formatCollectionMetadataValue } from '~/app/components/benchmarkUtils';
 import { COLLECTION_METADATA_OPTIONS, SUITE_EVALUATES_MENU_OPTIONS } from '~/app/pages/const';
-import type { CopySuiteFormValues } from '~/app/schemas/copySuite.schema';
+import {
+  isSameAsSourceCollectionName,
+  SOURCE_COLLECTION_NAME_ERROR,
+  type CopySuiteFormValues,
+} from '~/app/schemas/copySuite.schema';
 
 type CopySuiteSettingsStepProps = {
   onNext: () => void;
   onCancel: () => void;
+  sourceCollectionName?: string;
 };
 
 type CollectionMetadataFieldName =
@@ -274,11 +282,17 @@ const CollectionMetadataField: React.FC<CollectionMetadataFieldProps> = (props) 
   );
 };
 
-const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({ onNext, onCancel }) => {
+const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
+  onNext,
+  onCancel,
+  sourceCollectionName,
+}) => {
   const { control, watch } = useFormContext<CopySuiteFormValues>();
   const suiteName = watch('suiteName');
   const suiteDomains = watch('suiteDomains');
-  const isSettingsValid = suiteName.trim() !== '' && suiteDomains.length > 0;
+  const isSourceNameConflict = isSameAsSourceCollectionName(suiteName, sourceCollectionName);
+  const isSettingsValid =
+    suiteName.trim() !== '' && suiteDomains.length > 0 && !isSourceNameConflict;
 
   return (
     <div
@@ -291,17 +305,35 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({ onNext, o
           <Controller
             name="suiteName"
             control={control}
-            render={({ field }) => (
-              <TextInput
-                id="suite-name"
-                data-testid="suite-name-input"
-                placeholder="Enter suite name"
-                value={field.value}
-                onChange={(_event, value) => field.onChange(value)}
-                onBlur={field.onBlur}
-                isRequired
-              />
-            )}
+            render={({ field, fieldState }) => {
+              const errorMessage =
+                fieldState.error?.message ??
+                (isSameAsSourceCollectionName(field.value, sourceCollectionName)
+                  ? SOURCE_COLLECTION_NAME_ERROR
+                  : undefined);
+
+              return (
+                <>
+                  <TextInput
+                    id="suite-name"
+                    data-testid="suite-name-input"
+                    placeholder="Enter suite name"
+                    value={field.value}
+                    onChange={(_event, value) => field.onChange(value)}
+                    onBlur={field.onBlur}
+                    isRequired
+                    validated={errorMessage ? 'error' : undefined}
+                  />
+                  {errorMessage ? (
+                    <FormHelperText>
+                      <HelperText>
+                        <HelperTextItem variant="error">{errorMessage}</HelperTextItem>
+                      </HelperText>
+                    </FormHelperText>
+                  ) : null}
+                </>
+              );
+            }}
           />
         </FormGroup>
 

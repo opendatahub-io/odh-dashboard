@@ -397,6 +397,11 @@ export type Collection = {
   benchmarks?: CollectionBenchmark[];
 };
 
+export type CollectionResolution = {
+  collection: Collection;
+  wasCreated: boolean;
+};
+
 export type CollectionPatchOperation =
   | {
       op: 'replace' | 'add';
