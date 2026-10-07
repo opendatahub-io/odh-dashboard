@@ -49,10 +49,10 @@ pnpm in odh-dashboard — changes would be overwritten on the next subtree sync.
 The hybrid Docker pattern:
 
 1. `pnpm install --frozen-lockfile --prefer-offline` at repo root → `@odh-dashboard/plugin-core`, `@odh-dashboard/internal`, etc.
-2. `npm ci --prefer-offline --ignore-scripts` in the upstream frontend directory → webpack, loaders, upstream-only deps
+2. `npm ci --userconfig /usr/src/workspace/.npmrc --prefer-offline --ignore-scripts` in the upstream frontend directory → webpack, loaders, upstream-only deps
 3. `npm run build:prod` in the upstream frontend directory
 
-Set `hermetic: true` on each PipelineRun; the shared pipeline defaults to network-enabled. In `prefetch-input`, declare `.` as a `pnpm` input and `prefetch/pnpm` as an `npm` input. This lets Hermeto cache the pnpm CLI as a normal npm dependency instead of a generic artifact. Hermeto also injects a root `.npmrc` that points pnpm to prefetched tarballs. Since workspace Dockerfiles copy files selectively, copy `.npmrc` alongside the root manifests; otherwise pnpm falls back to the public registry, which is unavailable in hermetic builds. Keep `prefetch/pnpm/***` in path-change filters so changes to the bootstrap package trigger builds.
+Set `hermetic: true` on each PipelineRun; the shared pipeline defaults to network-enabled. In `prefetch-input`, declare `.` as a `pnpm` input and `prefetch/pnpm` as an `npm` input. This lets Hermeto cache the pnpm CLI as a normal npm dependency instead of a generic artifact. Hermeto also injects a root `.npmrc` that points pnpm to prefetched tarballs. Since workspace Dockerfiles copy files selectively, copy `.npmrc` alongside the root manifests; otherwise pnpm falls back to the public registry, which is unavailable in hermetic builds. Nested upstream npm projects do not inherit the workspace root `.npmrc`; pass it explicitly with `--userconfig /usr/src/workspace/.npmrc` so those installs also use Hermeto's registry. Keep `prefetch/pnpm/**` in path-change filters so changes to the bootstrap package trigger builds.
 
 ## Dockerfile Structure
 
@@ -108,7 +108,8 @@ RUN npm ci --prefix ./prefetch/pnpm --prefer-offline --ignore-scripts --no-audit
 RUN pnpm install --frozen-lockfile --prefer-offline  # @odh-dashboard/* workspace packages
 
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
-RUN npm ci --prefer-offline --ignore-scripts         # upstream webpack toolchain
+# Use Hermeto's registry for the upstream webpack toolchain.
+RUN npm ci --userconfig /usr/src/workspace/.npmrc --prefer-offline --ignore-scripts
 RUN npm run build:prod                        # upstream is an npm island
 ```
 
@@ -247,7 +248,7 @@ RUN pnpm run build:prod
 ```dockerfile
 RUN pnpm install --frozen-lockfile --prefer-offline   # at repo root — @odh-dashboard/* only
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
-RUN npm ci --prefer-offline --ignore-scripts # upstream npm island (package-lock.json)
+RUN npm ci --userconfig /usr/src/workspace/.npmrc --prefer-offline --ignore-scripts
 RUN npm run build:prod
 ```
 

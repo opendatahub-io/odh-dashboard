@@ -67,7 +67,7 @@ WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
 ARG URL_PREFIX=/notebooks
 # pnpm hoists a newer esbuild binary to the workspace root; defer lifecycle scripts so
 # npm ci installs lockfile-pinned optional @esbuild/* packages before install.js runs.
-RUN npm ci --prefer-offline --ignore-scripts \
+RUN npm ci --userconfig /usr/src/workspace/.npmrc --prefer-offline --ignore-scripts \
     && node ./node_modules/esbuild/install.js
 RUN npm run build:prod
 

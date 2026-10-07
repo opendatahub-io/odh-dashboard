@@ -117,6 +117,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-
       - name: Abort if quality gate already failed
+        # v7.0.1
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
         with:
           script: |
@@ -147,6 +148,7 @@ jobs:
           pnpm run test-unit-coverage
       - name: Upload unit test coverage
         if: env.IS_DRAFT != 'true'
+        # v4
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: unit-coverage
@@ -167,7 +169,8 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           persist-credentials: false
-          # Keep GitHub's merge checkout so the diff and graph match the code under test.
+          # Keep GitHub's merge checkout so the diff and graph match
+          # the code under test.
           fetch-depth: 0
       - name: Setup pnpm and install dependencies
         uses: ./.github/actions/pnpm-setup
@@ -177,7 +180,8 @@ jobs:
         name: Select Cypress mock test groups
         shell: bash
         env:
-          IMPACT_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          IMPACT_BASE: >-
+            ${{ github.event.pull_request.base.sha || github.event.before }}
           IMPACT_HEAD: ${{ github.sha }}
         run: |
           node scripts/cypress/plan-mock-test-impact.js \
@@ -189,9 +193,13 @@ jobs:
           TEST_GROUPS=$(jq -c . "$RUNNER_TEMP/cypress-mock-matrix.json")
           SELECTED_GROUPS=$(jq 'length' "$RUNNER_TEMP/cypress-mock-matrix.json")
           HAS_TESTS=$([[ "$SELECTED_GROUPS" -gt 0 ]] && echo true || echo false)
-          FULL_MATRIX=$([[ "$(cat "$RUNNER_TEMP/cypress-mock-scope.txt")" == "full" ]] && echo true || echo false)
+          FULL_MATRIX=$(
+            [[ "$(cat "$RUNNER_TEMP/cypress-mock-scope.txt")" == "full" ]] &&
+              echo true || echo false
+          )
 
-          # GitHub rejects an empty matrix. A no-op entry keeps the aggregate jobs successful.
+          # GitHub rejects an empty matrix. A no-op entry keeps the
+          # aggregate jobs successful.
           if [[ "$HAS_TESTS" != "true" ]]; then
             TEST_GROUPS='[{"name":"no-cypress-mock-tests","spec":""}]'
           fi
@@ -228,6 +236,7 @@ jobs:
             distributions/core-bff/bff/go.sum
       - name: Install uv
         timeout-minutes: 5
+        # v10.0.1
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d
         with:
           # Contract tests only need the uv binary on PATH; disable dependency
@@ -235,6 +244,7 @@ jobs:
           # node_modules).
           enable-cache: false
       - name: Abort if quality gate already failed
+        # v7.0.1
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
         with:
           script: |
@@ -284,6 +294,7 @@ jobs:
           fi
         id: upload-results
       - name: Upload artifacts
+        # v4
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: steps.upload-results.outputs.results-dir != ''
         with:
@@ -349,7 +360,8 @@ jobs:
         needs.Setup.result == 'success' &&
         needs.Get-Test-Groups.result == 'success' &&
         needs.Get-Cypress-Packages.result == 'success' &&
-        (needs.Get-Test-Groups.outputs.has-tests != 'true' || needs.Cypress-Setup.result == 'success')
+        (needs.Get-Test-Groups.outputs.has-tests != 'true' ||
+        needs.Cypress-Setup.result == 'success')
       }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -363,7 +375,8 @@ jobs:
     steps:
       - name: No Cypress mock tests selected
         if: needs.Get-Test-Groups.outputs.has-tests != 'true'
-        run: echo "Documentation-only change; Cypress mock tests are not required."
+        run: |
+          echo "Documentation-only change; Cypress mock tests are not required."
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         if: needs.Get-Test-Groups.outputs.has-tests == 'true'
         with:
@@ -382,6 +395,7 @@ jobs:
           github-token: ${{ github.token }}
       - name: Abort if quality gate already failed
         if: needs.Get-Test-Groups.outputs.has-tests == 'true'
+        # v7.0.1
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
         with:
           script: |
@@ -423,6 +437,7 @@ jobs:
           test_group_name=$(echo "$TEST_GROUP_RAW" | tr '/-' '_')
           echo "TEST_GROUP_NAME=$test_group_name" >> "$GITHUB_ENV"
       - name: Upload Cypress Mock results
+        # v4
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: ${{ always() && needs.Get-Test-Groups.outputs.has-tests == 'true' }}
         with:
@@ -432,6 +447,7 @@ jobs:
         if: >-
           ${{ env.IS_DRAFT != 'true' &&
           needs.Get-Test-Groups.outputs.has-tests == 'true' }}
+        # v4
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: cypress-coverage-${{ env.TEST_GROUP_NAME }}
@@ -452,6 +468,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - name: Download all artifacts
         if: env.IS_DRAFT != 'true'
+        # v4
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           path: all-artifacts
@@ -464,6 +481,7 @@ jobs:
             ./unit-coverage/coverage-final.json || true
       - name: Upload unit coverage to Codecov
         if: env.IS_DRAFT != 'true'
+        # v4.6.0
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -496,6 +514,7 @@ jobs:
         if: >-
           ${{ env.IS_DRAFT != 'true' &&
           needs.Get-Test-Groups.outputs.full-matrix == 'true' }}
+        # v4.6.0
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -530,6 +549,7 @@ jobs:
             --report-dir ./coverage/report
       - name: Upload combined results
         if: env.IS_DRAFT != 'true'
+        # v4
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: combined-coverage-results
