@@ -539,7 +539,12 @@ export const getPromptManagementFeaturesEnabled = (): Cypress.Chainable<boolean>
     .exec(`oc get ${MLFLOW_GVR} ${MLFLOW_CR_NAME} -o name --ignore-not-found`, {
       failOnNonZeroExit: false,
     })
-    .then((result: CommandLineResult) => result.stdout.trim().length > 0);
+    .then((result: CommandLineResult) => {
+      if (result.exitCode !== 0) {
+        throw new Error('Could not determine the initial MLflow custom resource state');
+      }
+      return result.stdout.trim().length > 0;
+    });
 
 export const disableMlflowFeatures = (force = false): void => {
   if (force || Cypress.env('MLFLOW_CR_CREATED_BY_TEST')) {
