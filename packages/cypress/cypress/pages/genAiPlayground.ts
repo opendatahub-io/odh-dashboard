@@ -194,10 +194,6 @@ class GenAiPlayground {
     return cy.get('[data-testid="audio-transcription-error"]');
   }
 
-  findStopButton() {
-    return cy.get('[data-testid="chatbot-stop-button"]');
-  }
-
   findSendButton() {
     return cy.findByTestId('chatbot-send-button');
   }
