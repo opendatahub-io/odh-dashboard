@@ -1,11 +1,7 @@
 /* eslint-disable camelcase */
-import {
-  isKeyInactive,
-  subscriptionDetailsFromMaaSSubscriptions,
-  subscriptionDetailsFromUserSubscriptions,
-} from '~/app/utilities/apiKeys';
+import { isKeyInactive, subscriptionDetailsFromUserSubscriptions } from '~/app/utilities/apiKeys';
 import type { APIKey } from '~/app/types/api-key';
-import type { MaaSSubscription, UserSubscription } from '~/app/types/subscriptions';
+import type { UserSubscription } from '~/app/types/subscriptions';
 
 describe('subscriptionDetailsFromUserSubscriptions', () => {
   it('keys details by subscription_id_header', () => {
@@ -25,27 +21,6 @@ describe('subscriptionDetailsFromUserSubscriptions', () => {
   });
 });
 
-describe('subscriptionDetailsFromMaaSSubscriptions', () => {
-  it('keys details by CR name for admin existence checks', () => {
-    const subs: MaaSSubscription[] = [
-      {
-        name: 'premium-team-sub',
-        namespace: 'maas-system',
-        displayName: 'Premium Team',
-        owner: { groups: [] },
-        modelRefs: [
-          { name: 'm1', namespace: 'ns', displayName: 'Model A', tokenRateLimits: [] },
-          { name: 'm2', namespace: 'ns', tokenRateLimits: [] },
-        ],
-      },
-    ];
-
-    expect(subscriptionDetailsFromMaaSSubscriptions(subs)).toEqual({
-      'premium-team-sub': { displayName: 'Premium Team', models: ['Model A', 'm2'] },
-    });
-  });
-});
-
 describe('isKeyInactive', () => {
   const activeKey: APIKey = {
     id: '1',
@@ -59,7 +34,7 @@ describe('isKeyInactive', () => {
     expect(isKeyInactive(activeKey, undefined)).toBe(false);
   });
 
-  it('is false when subscription exists in the map (admin all-subs case)', () => {
+  it('is false when subscription exists in the BFF search map', () => {
     expect(
       isKeyInactive(activeKey, {
         'user-only-sub': { displayName: 'User Only', models: [] },

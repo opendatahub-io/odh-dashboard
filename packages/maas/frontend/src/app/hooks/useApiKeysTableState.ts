@@ -38,7 +38,10 @@ export type UseApiKeysTableStateReturn = {
   refresh: () => void;
   filterData: ApiKeyFilterDataType;
   isKeyInactive: (key: APIKey) => boolean;
-  /** Client-built map for inactive checks and table enrichment (admin: all subs). */
+  /**
+   * From BFF search enrichment — existence map for inactive status + row display.
+   * Admin: K8s MaaSSubscriptions; non-admin: caller-scoped MaaS /subscriptions.
+   */
   statusSubscriptionDetails: Record<string, SubscriptionDetail> | undefined;
   /**
    * Subscriptions the current viewer can open (My Subscriptions).

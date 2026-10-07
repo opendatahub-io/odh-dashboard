@@ -1,5 +1,5 @@
 import { APIKey, APIKeyDisplayStatus, SubscriptionDetail } from '~/app/types/api-key';
-import type { MaaSSubscription, UserSubscription } from '~/app/types/subscriptions';
+import type { UserSubscription } from '~/app/types/subscriptions';
 
 /**
  * Determines whether an API key should be displayed as "inactive".
@@ -8,9 +8,8 @@ import type { MaaSSubscription, UserSubscription } from '~/app/types/subscriptio
  * subscription no longer appears in the BFF search `subscriptionDetails` map —
  * meaning the subscription was deleted or is otherwise unavailable.
  *
- * When `subscriptionDetails` is `undefined` (existence map not loaded yet, or
- * a transient fetch failure), no key is classified as inactive so we avoid
- * false positives.
+ * When `subscriptionDetails` is `undefined` (enrichment skipped / failed),
+ * no key is classified as inactive so we avoid false positives.
  */
 export const isKeyInactive = (
   key: APIKey,
@@ -30,23 +29,6 @@ export const subscriptionDetailsFromUserSubscriptions = (
     details[sub.subscription_id_header] = {
       displayName: sub.display_name ?? sub.subscription_id_header,
       models: sub.model_refs.map((ref) => ref.display_name || ref.name),
-    };
-  }
-  return details;
-};
-
-/**
- * Build a map from K8s-backed all-subscriptions.
- * Keyed by CR name, which matches `APIKey.subscription`.
- */
-export const subscriptionDetailsFromMaaSSubscriptions = (
-  subscriptions: MaaSSubscription[],
-): Record<string, SubscriptionDetail> => {
-  const details: Record<string, SubscriptionDetail> = {};
-  for (const sub of subscriptions) {
-    details[sub.name] = {
-      displayName: sub.displayName ?? sub.name,
-      models: sub.modelRefs.map((ref) => ref.displayName || ref.name),
     };
   }
   return details;
