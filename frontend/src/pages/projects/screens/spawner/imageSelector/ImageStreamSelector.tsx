@@ -197,6 +197,9 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
             }
             popperProps={{ appendTo: 'inline' }}
             onSelect={(_event, key) => {
+              if (key === selectedImageStream?.metadata.name) {
+                return;
+              }
               const imageStream = imageStreams.find(
                 (currentImageStream) => currentImageStream.metadata.name === key,
               );
