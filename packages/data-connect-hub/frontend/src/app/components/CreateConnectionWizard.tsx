@@ -663,8 +663,7 @@ const KeyValueInput: React.FC<KeyValueInputProps> = ({
 type CreateConnectionWizardFooterProps = {
   onCreate: () => void;
   isCreating: boolean;
-  hasConnectionType: boolean;
-  hasConnectionTypesReady: boolean;
+  hasSelectedConnectionType: boolean;
   hasValidDetails: boolean;
   hasValidConfiguration: boolean;
 };
@@ -672,8 +671,7 @@ type CreateConnectionWizardFooterProps = {
 const CreateConnectionWizardFooter: React.FC<CreateConnectionWizardFooterProps> = ({
   onCreate,
   isCreating,
-  hasConnectionType,
-  hasConnectionTypesReady,
+  hasSelectedConnectionType,
   hasValidDetails,
   hasValidConfiguration,
 }) => {
@@ -683,7 +681,7 @@ const CreateConnectionWizardFooter: React.FC<CreateConnectionWizardFooterProps> 
   const isNextDisabled = (() => {
     switch (activeStep.index) {
       case 1:
-        return !hasConnectionType || !hasConnectionTypesReady;
+        return !hasSelectedConnectionType;
       case 2:
         return !hasValidDetails;
       case 3:
@@ -788,11 +786,10 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   );
   const hasConnectionType = Boolean(formData.data_connection_type_id);
   const hasConnectionTypesReady = connectionTypesLoaded && !connectionTypesError;
+  const hasSelectedConnectionType = hasConnectionTypesReady && Boolean(selectedConnectionType);
   const hasNamespacesReady = namespacesLoaded && !namespacesError;
   const hasValidDetails =
-    hasConnectionType &&
-    hasConnectionTypesReady &&
-    Boolean(selectedConnectionType) &&
+    hasSelectedConnectionType &&
     hasNamespacesReady &&
     Boolean(selectedNamespace) &&
     isValidConnectionName(formData.name);
@@ -813,12 +810,13 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     hasValidProperties;
   const canResolveStartIndex =
     isOpenSessionReady &&
-    (!needsInitialValidationData || (connectionTypesLoaded && namespacesLoaded));
+    (!hasConnectionType || connectionTypesLoaded || Boolean(connectionTypesError)) &&
+    (!needsInitialValidationData || namespacesLoaded);
   const calculatedStartIndex = hasValidConfiguration
     ? 4
     : hasValidDetailsWithProperties
       ? 3
-      : hasConnectionType
+      : hasSelectedConnectionType
         ? 2
         : 1;
   const startIndex = hasResolvedSessionStartIndex
@@ -1051,8 +1049,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
           <CreateConnectionWizardFooter
             onCreate={handleCreate}
             isCreating={isCreating}
-            hasConnectionType={hasConnectionType}
-            hasConnectionTypesReady={hasConnectionTypesReady}
+            hasSelectedConnectionType={hasSelectedConnectionType}
             hasValidDetails={hasValidDetailsWithProperties}
             hasValidConfiguration={hasValidConfiguration}
           />
@@ -1072,7 +1069,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
         <WizardStep
           name="Connection details"
           id="connection-details-step"
-          isDisabled={!hasConnectionType || !hasConnectionTypesReady}
+          isDisabled={!hasSelectedConnectionType}
         >
           <ConnectionDetailsStep
             namespaces={availableNamespaces}

@@ -93,6 +93,39 @@ describe('CreateConnectionWizard', () => {
     expect((screen.getByTestId('connection-name-input') as HTMLInputElement).value).toBe('');
   });
 
+  it('should remain on connection type when a prefilled connection type fails to load', async () => {
+    mockUseConnectionTypes.mockReturnValue([[], false, new Error('request failed')]);
+
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{ data_connection_type_id: 'postgresql' }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Connection type' })).toBeTruthy();
+    expect(screen.getByText('Unable to load connection types')).toBeTruthy();
+    expect(screen.getByText('request failed')).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Connection details' })).toBeNull();
+  });
+
+  it('should remain on connection type when a prefilled connection type is unknown', async () => {
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{ data_connection_type_id: 'unknown' }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Connection type' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', true);
+    expect(screen.queryByRole('heading', { name: 'Connection details' })).toBeNull();
+  });
+
   it('should start at review when all initial form data is valid', async () => {
     const user = userEvent.setup();
     const onCreate = jest.fn<(data: CreateConnectionRequest, selectedNamespace: string) => void>();
