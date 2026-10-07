@@ -32,9 +32,9 @@ import (
 	ctrlpkg "github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
 )
 
-// writeMaaSConsumerPortalManifest copies the portal distribution bundle into the
+// writeMaaSPortalManifest copies the portal distribution bundle into the
 // integration fixture because reconciliation writes its params.env at runtime.
-func writeMaaSConsumerPortalManifest(t *testing.T, base string) {
+func writeMaaSPortalManifest(t *testing.T, base string) {
 	t.Helper()
 
 	source := filepath.Join("..", "..", "..", "manifests", "distributions", "maas-consumer-portal")
@@ -71,9 +71,9 @@ resources:
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "httproute.yaml"), routeManifest, 0644))
 }
 
-func cleanupMaaSConsumerPortalResources(t *testing.T, r *ctrlpkg.DashboardReconciler) {
+func cleanupMaaSPortalResources(t *testing.T, r *ctrlpkg.DashboardReconciler) {
 	t.Helper()
-	require.NoError(t, r.DeleteMaaSConsumerPortalResources(context.Background()))
+	require.NoError(t, r.DeleteMaaSPortalResources(context.Background()))
 	require.NoError(t, client.IgnoreNotFound(k8sClient.Delete(context.Background(), &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: "maas-consumer-portal", Namespace: integrationNamespace}})))
 }
 
@@ -111,10 +111,10 @@ func conditionReason(dashboard *v1alpha1.Dashboard, conditionType string) string
 	return ""
 }
 
-func TestIntegration_CoreDashboardAndMaaSConsumerPortalRoutesShareGateway(t *testing.T) {
+func TestIntegration_CoreDashboardAndMaaSPortalRoutesShareGateway(t *testing.T) {
 	base := createIntegrationManifests(t, []string{"maas", "gen-ai"})
 	writeDashboardRouteManifest(t, base)
-	writeMaaSConsumerPortalManifest(t, base)
+	writeMaaSPortalManifest(t, base)
 
 	r := &ctrlpkg.DashboardReconciler{
 		Client:                k8sClient,
@@ -125,15 +125,15 @@ func TestIntegration_CoreDashboardAndMaaSConsumerPortalRoutesShareGateway(t *tes
 		ApplicationsNamespace: integrationNamespace,
 	}
 	dashboard := newDashboard(v1alpha1.DashboardSpec{
-		ManagementSpec:     common.ManagementSpec{ManagementState: "Managed"},
-		Gateway:            &v1alpha1.GatewaySpec{Domain: "test.example.com"},
-		Modules:            disableAllModulesExcept("maas", "genAi"),
-		MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
+		ManagementSpec: common.ManagementSpec{ManagementState: "Managed"},
+		Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+		Modules:        disableAllModulesExcept("maas", "genAi"),
+		MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
 	})
 	require.NoError(t, k8sClient.Create(context.Background(), dashboard))
 	t.Cleanup(func() {
 		deleteDashboard(t)
-		cleanupMaaSConsumerPortalResources(t, r)
+		cleanupMaaSPortalResources(t, r)
 		cleanupModuleResources(t)
 		deleteIgnoreNotFound(t, &gatewayv1.HTTPRoute{ObjectMeta: metav1.ObjectMeta{Name: "rhods-dashboard", Namespace: integrationNamespace}})
 	})
@@ -163,9 +163,9 @@ func TestIntegration_CoreDashboardAndMaaSConsumerPortalRoutesShareGateway(t *tes
 	}
 }
 
-func TestIntegration_MaaSConsumerPortalLifecycle(t *testing.T) {
+func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 	base := createIntegrationManifests(t, []string{"maas", "gen-ai"})
-	writeMaaSConsumerPortalManifest(t, base)
+	writeMaaSPortalManifest(t, base)
 
 	r := &ctrlpkg.DashboardReconciler{
 		Client:                k8sClient,
@@ -177,10 +177,10 @@ func TestIntegration_MaaSConsumerPortalLifecycle(t *testing.T) {
 	}
 
 	dashboard := newDashboard(v1alpha1.DashboardSpec{
-		ManagementSpec:     common.ManagementSpec{ManagementState: "Removed"},
-		Gateway:            &v1alpha1.GatewaySpec{Domain: "test.example.com"},
-		Modules:            disableAllModulesExcept("maas", "genAi"),
-		MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
+		ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
+		Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+		Modules:        disableAllModulesExcept("maas", "genAi"),
+		MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
 	})
 
 	ctx := context.Background()
@@ -188,7 +188,7 @@ func TestIntegration_MaaSConsumerPortalLifecycle(t *testing.T) {
 
 	t.Cleanup(func() {
 		deleteDashboard(t)
-		cleanupMaaSConsumerPortalResources(t, r)
+		cleanupMaaSPortalResources(t, r)
 		cleanupModuleResources(t)
 	})
 
@@ -208,7 +208,7 @@ func TestIntegration_MaaSConsumerPortalLifecycle(t *testing.T) {
 	} {
 		assert.NotNil(t, getPortalResource(t, resource.apiVersion, resource.kind, resource.name), "%s/%s should be deployed", resource.kind, resource.name)
 	}
-	assert.Empty(t, getDashboard(t).Status.MaaSConsumerPortalURL,
+	assert.Empty(t, getDashboard(t).Status.MaaSPortalURL,
 		"the URL is not published before the portal is available")
 
 	// Report the normally controller-managed Deployment and HTTPRoute status so
@@ -280,7 +280,7 @@ func TestIntegration_MaaSConsumerPortalLifecycle(t *testing.T) {
 	assert.Equal(t, common.PhaseReady, updated.Status.Phase)
 	assert.Equal(t, metav1.ConditionTrue, conditionStatus(updated, string(common.ConditionTypeReady)))
 	assert.Equal(t, metav1.ConditionTrue, conditionStatus(updated, "MaaSConsumerPortalAvailable"))
-	assert.Equal(t, "https://test.example.com/maas-consumer-portal/", updated.Status.MaaSConsumerPortalURL)
+	assert.Equal(t, "https://test.example.com/maas-consumer-portal/", updated.Status.MaaSPortalURL)
 
 	// Updating a portal input reapplies the complete bundle, but retains the
 	// previous URL until the Deployment and HTTPRoute have observed the update.
@@ -296,7 +296,7 @@ func TestIntegration_MaaSConsumerPortalLifecycle(t *testing.T) {
 	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-consumer-portal", Namespace: integrationNamespace}, route))
 	assert.Equal(t, previousRouteUID, route.GetUID(), "gateway-domain changes must update the existing HTTPRoute")
 	assert.Empty(t, route.Spec.Hostnames, "gateway-domain changes must not restore route hostnames")
-	assert.Equal(t, "https://test.example.com/maas-consumer-portal/", getDashboard(t).Status.MaaSConsumerPortalURL)
+	assert.Equal(t, "https://test.example.com/maas-consumer-portal/", getDashboard(t).Status.MaaSPortalURL)
 
 	deployment.Status.ObservedGeneration = deployment.Generation
 	require.NoError(t, k8sClient.Status().Update(ctx, deployment))
@@ -305,7 +305,7 @@ func TestIntegration_MaaSConsumerPortalLifecycle(t *testing.T) {
 	}
 	require.NoError(t, k8sClient.Status().Update(ctx, route))
 	reconcile(t, r)
-	assert.Equal(t, "https://updated.example.com/maas-consumer-portal/", getDashboard(t).Status.MaaSConsumerPortalURL)
+	assert.Equal(t, "https://updated.example.com/maas-consumer-portal/", getDashboard(t).Status.MaaSPortalURL)
 
 	// A transient bundle apply error reports an actionable condition, requests a
 	// retry, and retains the previously verified endpoint.
@@ -328,10 +328,10 @@ func TestIntegration_MaaSConsumerPortalLifecycle(t *testing.T) {
 		},
 	})
 	result := reconcile(t, &failingReconciler)
-	assert.Equal(t, ctrlpkg.MaaSConsumerPortalRetryInterval, result.RequeueAfter)
+	assert.Equal(t, ctrlpkg.MaaSPortalRetryInterval, result.RequeueAfter)
 	updated = getDashboard(t)
 	assert.Equal(t, "MaaSConsumerPortalDeployFailed", conditionReason(updated, "MaaSConsumerPortalAvailable"))
-	assert.Equal(t, "https://updated.example.com/maas-consumer-portal/", updated.Status.MaaSConsumerPortalURL)
+	assert.Equal(t, "https://updated.example.com/maas-consumer-portal/", updated.Status.MaaSPortalURL)
 
 	// service-ca normally creates this unlabelled Secret; model it explicitly to
 	// verify portal removal does not rely on owner-reference garbage collection.
@@ -339,7 +339,7 @@ func TestIntegration_MaaSConsumerPortalLifecycle(t *testing.T) {
 
 	// Disable the portal and remove its resources.
 	dashboard = getDashboard(t)
-	dashboard.Spec.MaaSConsumerPortal = &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Removed"}
+	dashboard.Spec.MaaSPortal = &v1alpha1.MaaSPortalSpec{ManagementState: "Removed"}
 	require.NoError(t, k8sClient.Update(ctx, dashboard))
 
 	reconcile(t, r)
@@ -358,14 +358,14 @@ func TestIntegration_MaaSConsumerPortalLifecycle(t *testing.T) {
 		assert.Nil(t, getPortalResource(t, resource.apiVersion, resource.kind, resource.name), "%s/%s should be removed", resource.kind, resource.name)
 	}
 	assert.NotNil(t, getPortalResource(t, "v1", "ServiceAccount", "maas-consumer-portal"), "ServiceAccount is retained for platforms that protect ServiceAccounts")
-	assert.Empty(t, getDashboard(t).Status.MaaSConsumerPortalURL)
+	assert.Empty(t, getDashboard(t).Status.MaaSPortalURL)
 }
 
-// TestIntegration_MaaSConsumerPortalResourcesPreservedWhenCoreRemoved verifies
+// TestIntegration_MaaSPortalResourcesPreservedWhenCoreRemoved verifies
 // that core-dashboard teardown preserves the independent portal operand.
-func TestIntegration_MaaSConsumerPortalResourcesPreservedWhenCoreRemoved(t *testing.T) {
+func TestIntegration_MaaSPortalResourcesPreservedWhenCoreRemoved(t *testing.T) {
 	base := createIntegrationManifests(t, []string{"maas", "gen-ai"})
-	writeMaaSConsumerPortalManifest(t, base)
+	writeMaaSPortalManifest(t, base)
 
 	r := &ctrlpkg.DashboardReconciler{
 		Client:                k8sClient,
@@ -377,10 +377,10 @@ func TestIntegration_MaaSConsumerPortalResourcesPreservedWhenCoreRemoved(t *test
 	}
 
 	dashboard := newDashboard(v1alpha1.DashboardSpec{
-		ManagementSpec:     common.ManagementSpec{ManagementState: "Removed"},
-		Gateway:            &v1alpha1.GatewaySpec{Domain: "test.example.com"},
-		Modules:            disableAllModulesExcept("maas", "genAi"),
-		MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
+		ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
+		Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+		Modules:        disableAllModulesExcept("maas", "genAi"),
+		MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
 	})
 
 	ctx := context.Background()
@@ -388,7 +388,7 @@ func TestIntegration_MaaSConsumerPortalResourcesPreservedWhenCoreRemoved(t *test
 
 	t.Cleanup(func() {
 		deleteDashboard(t)
-		cleanupMaaSConsumerPortalResources(t, r)
+		cleanupMaaSPortalResources(t, r)
 		cleanupModuleResources(t)
 	})
 
@@ -412,30 +412,30 @@ func TestIntegration_MaaSConsumerPortalResourcesPreservedWhenCoreRemoved(t *test
 	assert.Equal(t, "RequiredModuleUnavailable", conditionReason(updated, "MaaSConsumerPortalAvailable"))
 }
 
-func TestIntegration_MaaSConsumerPortalModuleDemandMatrix(t *testing.T) {
+func TestIntegration_MaaSPortalModuleDemandMatrix(t *testing.T) {
 	tests := []struct {
-		name                         string
-		coreState                    string
-		maasConsumerPortalState      string
-		wantSharedBFFs               bool
-		wantMaaSConsumerPortalConfig bool
+		name                 string
+		coreState            string
+		maasPortalState      string
+		wantSharedBFFs       bool
+		wantMaaSPortalConfig bool
 	}{
-		{name: "Core Dashboard only", coreState: "Managed", maasConsumerPortalState: "Removed", wantSharedBFFs: true},
-		{name: "Core Dashboard and MaaS Consumer Portal", coreState: "Managed", maasConsumerPortalState: "Managed", wantSharedBFFs: true, wantMaaSConsumerPortalConfig: true},
-		{name: "MaaS Consumer Portal only", coreState: "Removed", maasConsumerPortalState: "Managed", wantSharedBFFs: true, wantMaaSConsumerPortalConfig: true},
-		{name: "both operands removed", coreState: "Removed", maasConsumerPortalState: "Removed"},
+		{name: "Core Dashboard only", coreState: "Managed", maasPortalState: "Removed", wantSharedBFFs: true},
+		{name: "Core Dashboard and MaaS Consumer Portal", coreState: "Managed", maasPortalState: "Managed", wantSharedBFFs: true, wantMaaSPortalConfig: true},
+		{name: "MaaS Consumer Portal only", coreState: "Removed", maasPortalState: "Managed", wantSharedBFFs: true, wantMaaSPortalConfig: true},
+		{name: "both operands removed", coreState: "Removed", maasPortalState: "Removed"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			base := createIntegrationManifests(t, []string{"maas", "gen-ai"})
-			writeMaaSConsumerPortalManifest(t, base)
+			writeMaaSPortalManifest(t, base)
 			r := &ctrlpkg.DashboardReconciler{Client: k8sClient, Scheme: k8sClient.Scheme(), ManifestsBasePath: base, Platform: cluster.SelfManagedRhoai, Namespace: integrationNamespace, ApplicationsNamespace: integrationNamespace}
-			dashboard := newDashboard(v1alpha1.DashboardSpec{ManagementSpec: common.ManagementSpec{ManagementState: common.ManagementState(tt.coreState)}, Gateway: &v1alpha1.GatewaySpec{Domain: "test.example.com"}, Modules: disableAllModulesExcept("maas", "genAi"), MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: tt.maasConsumerPortalState}})
+			dashboard := newDashboard(v1alpha1.DashboardSpec{ManagementSpec: common.ManagementSpec{ManagementState: common.ManagementState(tt.coreState)}, Gateway: &v1alpha1.GatewaySpec{Domain: "test.example.com"}, Modules: disableAllModulesExcept("maas", "genAi"), MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: tt.maasPortalState}})
 			require.NoError(t, k8sClient.Create(context.Background(), dashboard))
 			t.Cleanup(func() {
 				deleteDashboard(t)
-				cleanupMaaSConsumerPortalResources(t, r)
+				cleanupMaaSPortalResources(t, r)
 				cleanupModuleResources(t)
 			})
 			reconcile(t, r)
@@ -453,14 +453,14 @@ func TestIntegration_MaaSConsumerPortalModuleDemandMatrix(t *testing.T) {
 				assert.Empty(t, listServices(t, "gen-ai"))
 			}
 
-			maasConsumerPortalConfig := getConfigMap(t, "maas-consumer-portal-federation-config")
-			if !tt.wantMaaSConsumerPortalConfig {
-				assert.Nil(t, maasConsumerPortalConfig)
+			maasPortalConfig := getConfigMap(t, "maas-consumer-portal-federation-config")
+			if !tt.wantMaaSPortalConfig {
+				assert.Nil(t, maasPortalConfig)
 				return
 			}
-			require.NotNil(t, maasConsumerPortalConfig)
-			assert.Equal(t, "maas-consumer-portal", maasConsumerPortalConfig.Labels[labels.PlatformPartOf])
-			entries := parseFederationEntries(t, maasConsumerPortalConfig)
+			require.NotNil(t, maasPortalConfig)
+			assert.Equal(t, "maas-consumer-portal", maasPortalConfig.Labels[labels.PlatformPartOf])
+			entries := parseFederationEntries(t, maasPortalConfig)
 			require.Len(t, entries, 2)
 			assert.NotNil(t, findFederationEntry(entries, "maas"))
 			assert.NotNil(t, findFederationEntry(entries, "genAi"))
