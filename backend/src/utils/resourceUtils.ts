@@ -245,6 +245,10 @@ const fetchSubscriptions = async (
     fetchOLMv0Subscriptions(fastify),
     fetchOLMv1ClusterExtensions(fastify),
   ]);
+  // OLM v0 entries are listed first. Consumers that must disambiguate a mid-migration cluster
+  // (both a Subscription and a ClusterExtension for the same operator) must prefer the installed
+  // OLM v1 entry explicitly rather than relying on this order — see getCSVForApp and
+  // selectOperatorSubscriptionStatus.
   return [...olmV0, ...olmV1];
 };
 
@@ -679,6 +683,21 @@ export const updateDashboardConfig = (): Promise<void> => {
 export const getSubscriptions = (): SubscriptionStatusData[] => {
   return subscriptionWatcher.getResources();
 };
+
+/**
+ * Selects the operator entry matching `subNamePrefix` (the operator package name, e.g.
+ * `rhods-operator`). An OLM v1 bundle name is not guaranteed to derive from its package name,
+ * so an installed OLM v1 ClusterExtension is matched by `packageName` first; only then do we
+ * fall back to the OLM v0 bundle-name (`installedCSV`) match. This keeps parity with
+ * getCSVForApp and avoids a 404 for an OLM v1 install whose bundle name differs from its package.
+ */
+export const selectOperatorSubscriptionStatus = (
+  subscriptions: SubscriptionStatusData[],
+  subNamePrefix: string,
+): SubscriptionStatusData | undefined =>
+  subscriptions.find(
+    (sub) => sub.source === 'OLMv1' && sub.installed && sub.packageName === subNamePrefix,
+  ) ?? subscriptions.find((sub) => sub.installedCSV?.includes(subNamePrefix));
 
 export const getApplications = (): OdhApplication[] => {
   return appWatcher.getResources();
