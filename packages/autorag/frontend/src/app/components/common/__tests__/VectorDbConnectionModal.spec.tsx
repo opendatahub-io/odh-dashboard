@@ -86,6 +86,16 @@ describe('VectorDbConnectionModal', () => {
     expect(screen.queryByTestId('vector-db-connection-description')).not.toBeInTheDocument();
   });
 
+  it('should render provider radios in split-button menu order', () => {
+    renderModal();
+
+    expect(screen.getAllByRole('radio').map((radio) => radio.dataset.testid)).toEqual([
+      'vector-db-provider-milvus',
+      'vector-db-provider-pgvector',
+      'vector-db-provider-neo4j',
+    ]);
+  });
+
   it('should toggle Milvus token visibility without changing its value', async () => {
     renderModal();
     fireEvent.change(screen.getByTestId('milvus-token-input'), {
