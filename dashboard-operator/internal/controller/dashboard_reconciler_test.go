@@ -1336,8 +1336,8 @@ func runPreservesOperatorResourcesTest(t *testing.T, opDep, opSA, opCR, opCRB, d
 	assert.NotContains(t, crbNames, delCRB, "non-operator ClusterRoleBindings must be deleted")
 }
 
-func TestCleanupLegacySidecarResources(t *testing.T) {
-	t.Run("deletes all legacy sidecar resources", func(t *testing.T) {
+func TestCleanupLegacyResources(t *testing.T) {
+	t.Run("deletes all legacy resources", func(t *testing.T) {
 		s := testScheme(t)
 		ctx := context.Background()
 
@@ -1359,14 +1359,23 @@ func TestCleanupLegacySidecarResources(t *testing.T) {
 		sidecarCRB := &rbacv1.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-modules"},
 		}
+		odhMonitoringCRB := &rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-monitoring"},
+		}
+		rhoaiMonitoringCRB := &rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: "rhods-dashboard-monitoring"},
+		}
 
 		unrelatedCM := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{Name: "unrelated-config", Namespace: testNamespace},
 		}
+		unrelatedCRB := &rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: "unrelated-binding"},
+		}
 
 		cli := fake.NewClientBuilder().
 			WithScheme(s).
-			WithObjects(sidecarSA, sidecarSecret, sidecarNetpol, sidecarCM, sidecarCR, sidecarCRB, unrelatedCM).
+			WithObjects(sidecarSA, sidecarSecret, sidecarNetpol, sidecarCM, sidecarCR, sidecarCRB, odhMonitoringCRB, rhoaiMonitoringCRB, unrelatedCM, unrelatedCRB).
 			Build()
 
 		r := &ctrlpkg.DashboardReconciler{
@@ -1375,7 +1384,7 @@ func TestCleanupLegacySidecarResources(t *testing.T) {
 			ApplicationsNamespace: testNamespace,
 		}
 
-		err := r.CleanupLegacySidecarResources(ctx)
+		err := r.CleanupLegacyResources(ctx)
 		require.NoError(t, err)
 
 		assert.True(t, k8sNotFound(t, cli, ctx, &corev1.ServiceAccount{}, testNamespace, "odh-dashboard-modules"))
@@ -1384,9 +1393,13 @@ func TestCleanupLegacySidecarResources(t *testing.T) {
 		assert.True(t, k8sNotFound(t, cli, ctx, &corev1.ConfigMap{}, testNamespace, "sidecar-params"))
 		assert.True(t, k8sNotFound(t, cli, ctx, &rbacv1.ClusterRole{}, "", "odh-dashboard-modules"))
 		assert.True(t, k8sNotFound(t, cli, ctx, &rbacv1.ClusterRoleBinding{}, "", "odh-dashboard-modules"))
+		assert.True(t, k8sNotFound(t, cli, ctx, &rbacv1.ClusterRoleBinding{}, "", "odh-dashboard-monitoring"))
+		assert.True(t, k8sNotFound(t, cli, ctx, &rbacv1.ClusterRoleBinding{}, "", "rhods-dashboard-monitoring"))
 
 		assert.False(t, k8sNotFound(t, cli, ctx, &corev1.ConfigMap{}, testNamespace, "unrelated-config"),
 			"unrelated resources must not be deleted")
+		assert.False(t, k8sNotFound(t, cli, ctx, &rbacv1.ClusterRoleBinding{}, "", "unrelated-binding"),
+			"unrelated bindings must not be deleted")
 	})
 
 	t.Run("succeeds when resources already absent", func(t *testing.T) {
@@ -1399,8 +1412,33 @@ func TestCleanupLegacySidecarResources(t *testing.T) {
 			ApplicationsNamespace: testNamespace,
 		}
 
-		err := r.CleanupLegacySidecarResources(context.Background())
+		err := r.CleanupLegacyResources(context.Background())
 		require.NoError(t, err)
+	})
+
+	t.Run("returns deletion errors", func(t *testing.T) {
+		s := testScheme(t)
+		cli := fake.NewClientBuilder().
+			WithScheme(s).
+			WithInterceptorFuncs(interceptor.Funcs{
+				Delete: func(ctx context.Context, client client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
+					if obj.GetName() == "odh-dashboard-monitoring" {
+						return assert.AnError
+					}
+					return client.Delete(ctx, obj, opts...)
+				},
+			}).
+			Build()
+
+		r := &ctrlpkg.DashboardReconciler{
+			Client:                cli,
+			Scheme:                s,
+			ApplicationsNamespace: testNamespace,
+		}
+
+		err := r.CleanupLegacyResources(context.Background())
+		require.ErrorIs(t, err, assert.AnError)
+		assert.Contains(t, err.Error(), "odh-dashboard-monitoring")
 	})
 }
 
