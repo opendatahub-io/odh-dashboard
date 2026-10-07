@@ -219,11 +219,13 @@ func TestDashboardChartRBACInSync(t *testing.T) {
 			if err != nil {
 				t.Fatalf("load source ClusterRole: %v", err)
 			}
+			assertEvalHubKueuePermissions(t, sourceRole)
 
 			chartRole, err := renderChartClusterRoleRules(tt.input.chartDir)
 			if err != nil {
 				t.Fatalf("render chart ClusterRole: %v", err)
 			}
+			assertEvalHubKueuePermissions(t, chartRole)
 
 			if tt.wantErr {
 				if rulesEqual(sourceRole, chartRole) {
@@ -236,6 +238,55 @@ func TestDashboardChartRBACInSync(t *testing.T) {
 				t.Fatalf("chart ClusterRole rules differ from %s; update charts/dashboard/templates/rbac.yaml", tt.input.rolePath)
 			}
 		})
+	}
+}
+
+func TestDashboardOperatorRBACIncludesEvalHubKueuePermissions(t *testing.T) {
+	rules, err := loadClusterRoleRules(filepath.Join("..", "config", "rbac", "role.yaml"))
+	if err != nil {
+		t.Fatalf("load source ClusterRole: %v", err)
+	}
+
+	assertEvalHubKueuePermissions(t, rules)
+}
+
+func assertEvalHubKueuePermissions(t *testing.T, rules []rbacv1.PolicyRule) {
+	t.Helper()
+
+	wantRules := []rbacv1.PolicyRule{
+		{
+			APIGroups: []string{"kueue.openshift.io"},
+			Resources: []string{"kueues"},
+			Verbs:     []string{"list"},
+		},
+		{
+			APIGroups: []string{"kueue.x-k8s.io"},
+			Resources: []string{"localqueues"},
+			Verbs:     []string{"list"},
+		},
+		{
+			APIGroups: []string{"kueue.x-k8s.io"},
+			Resources: []string{"workloads"},
+			Verbs:     []string{"list"},
+		},
+		{
+			APIGroups: []string{"visibility.kueue.x-k8s.io"},
+			Resources: []string{"localqueues/pendingworkloads"},
+			Verbs:     []string{"get"},
+		},
+	}
+
+	for _, want := range wantRules {
+		found := false
+		for _, got := range rules {
+			if policyRuleEqual(want, got) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("missing EvalHub Kueue RBAC rule: apiGroups=%v resources=%v verbs=%v", want.APIGroups, want.Resources, want.Verbs)
+		}
 	}
 }
 
@@ -302,7 +353,9 @@ func rulesEqual(a, b []rbacv1.PolicyRule) bool {
 func policyRuleEqual(a, b rbacv1.PolicyRule) bool {
 	return stringSliceEqual(a.APIGroups, b.APIGroups) &&
 		stringSliceEqual(a.Resources, b.Resources) &&
-		stringSliceEqual(a.Verbs, b.Verbs)
+		stringSliceEqual(a.Verbs, b.Verbs) &&
+		stringSliceEqual(a.ResourceNames, b.ResourceNames) &&
+		stringSliceEqual(a.NonResourceURLs, b.NonResourceURLs)
 }
 
 func stringSliceEqual(a, b []string) bool {
