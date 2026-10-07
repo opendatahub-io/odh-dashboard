@@ -5,6 +5,7 @@ import {
   NotebookImageAvailability,
   NotebookImageStatus,
 } from '#~/pages/projects/screens/detail/notebooks/const';
+import { ImageStreamAnnotation, ImageStreamSpecTagAnnotation } from '#~/types';
 
 describe('getNotebookImageData', () => {
   it('should return image data when image stream exists and image version exists with internal registry', () => {
@@ -150,5 +151,68 @@ describe('getNotebookImageData', () => {
     expect(result?.imageStatus !== NotebookImageStatus.DELETED && result?.imageAvailability).toBe(
       NotebookImageAvailability.ENABLED,
     );
+  });
+
+  it('should return deprecated for a tag when the image stream is deprecated', () => {
+    const notebook = mockNotebookK8sResource({
+      image:
+        'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+      lastImageSelection: 'jupyter-datascience-notebook:1.2',
+    });
+    const images = [
+      mockImageStreamK8sResource({
+        name: 'jupyter-datascience-notebook',
+        opts: {
+          metadata: {
+            annotations: {
+              [ImageStreamAnnotation.DEPRECATED]: 'true',
+            },
+          },
+          spec: {
+            tags: [
+              {
+                name: '1.2',
+                annotations: {
+                  [ImageStreamSpecTagAnnotation.RECOMMENDED]: 'true',
+                },
+              },
+            ],
+          },
+        },
+      }),
+    ];
+
+    const result = getNotebookImageData(notebook, images);
+
+    expect(result?.imageStatus).toBe(NotebookImageStatus.DEPRECATED);
+  });
+
+  it('should preserve the tag status when the image stream deprecation annotation is absent', () => {
+    const notebook = mockNotebookK8sResource({
+      image:
+        'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+      lastImageSelection: 'jupyter-datascience-notebook:1.2',
+    });
+    const images = [
+      mockImageStreamK8sResource({
+        name: 'jupyter-datascience-notebook',
+        opts: {
+          spec: {
+            tags: [
+              {
+                name: '1.2',
+                annotations: {
+                  [ImageStreamSpecTagAnnotation.RECOMMENDED]: 'true',
+                },
+              },
+            ],
+          },
+        },
+      }),
+    ];
+
+    const result = getNotebookImageData(notebook, images);
+
+    expect(result?.imageStatus).toBe(NotebookImageStatus.LATEST);
   });
 });

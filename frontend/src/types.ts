@@ -379,6 +379,7 @@ export enum ImageStreamAnnotation {
   DESC = 'opendatahub.io/notebook-image-desc',
   URL = 'opendatahub.io/notebook-image-url',
   CREATOR = 'opendatahub.io/notebook-image-creator',
+  DEPRECATED = 'opendatahub.io/deprecated',
   RECOMMENDED_ACCELERATORS = 'opendatahub.io/recommended-accelerators',
   IMAGE_ORDER = 'opendatahub.io/notebook-image-order',
   HIDDEN = 'opendatahub.io/notebook-image-hidden',
