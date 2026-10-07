@@ -25,6 +25,10 @@ not remove the standard Dashboard.
 `managementState` accepts `Managed` or `Removed` for each child. The MaaS Portal
 also requires the Dashboard gateway domain when it is managed.
 
+**Platform support:** The MaaS Portal is supported only on RHOAI Self-Managed
+and RHOAI Managed. On other platforms, `managementState: Managed` reports an
+`UnsupportedPlatform` condition and does not deploy MaaS Portal resources.
+
 ## Migration From DSC v2
 
 When migrating an existing DSC v2 configuration, use these field mappings:
