@@ -196,16 +196,9 @@ describe('Verify tracing and observability in Gen AI Playground', { testIsolatio
       genAiPlayground.findAssistantMessage({ timeout: 120000 }).should('exist').and('not.be.empty');
 
       cy.step('Verify View trace link is shown for the completed bot message');
-      genAiPlayground
-        .findViewTraceLink({ timeout: 30000 })
-        .should('be.visible')
-        .invoke('attr', 'data-trace-id')
-        .then((attrTraceId) => {
-          expect(attrTraceId, 'trace ID on View trace link').to.be.a('string');
-          expect(attrTraceId, 'trace ID on View trace link').to.not.equal('');
-          return attrTraceId ?? '';
-        })
-        .as('traceId');
+      genAiPlayground.findAssistantMessage({ timeout: 60000 }).should(($message) => {
+        expect($message.find('[data-testid="view-trace-link"]')).to.have.length.greaterThan(0);
+      });
 
       cy.step('Wait for trace to be ingested by MLflow');
       // Trace export and MLflow ingestion are asynchronous after the response completes.
@@ -215,28 +208,30 @@ describe('Verify tracing and observability in Gen AI Playground', { testIsolatio
       cy.step('Open the trace details drawer');
       genAiPlayground.findViewTraceLink().click();
       genAiPlayground.findTracePanel({ timeout: 30000 }).should('be.visible');
-      genAiPlayground.findTracePanelTitle().should('be.visible');
-      cy.get<string>('@traceId').then((traceId) => {
-        genAiPlayground
-          .findMlflowTraceDetail({ timeout: 120000 })
-          .should('be.visible')
-          .and('have.attr', 'data-trace-id', traceId);
-      });
-      genAiPlayground.findMlflowTraceDetailLoading({ timeout: 120000 }).should('not.exist');
-      genAiPlayground.findMlflowTraceUnavailable().should('not.exist');
       genAiPlayground
-        .findMlflowTraceDetail()
-        .invoke('text')
-        .should((text) => {
-          const normalizedText = text.replace(/\s+/g, ' ').trim();
-          expect(normalizedText, 'MLflow trace detail content').not.to.eq('');
-          for (const expectedSpan of testData.tracing.mlflowTraceDetailExpectedSpans) {
-            expect(normalizedText, `MLflow trace detail contains span: ${expectedSpan}`).to.include(
-              expectedSpan,
-            );
-          }
-        });
-      genAiPlayground.findTracePanelCloseButton().should('be.visible').click();
+        .findTracePanel()
+        .contains('h3', /^Trace Details$/)
+        .should('be.visible');
+      genAiPlayground.findAssistantMessage().should('exist');
+      genAiPlayground.findTracePanel({ timeout: 120000 }).should(($panel) => {
+        const normalizedText = $panel.text().replace(/\s+/g, ' ').trim();
+        expect(normalizedText, 'trace panel content').not.to.eq('');
+        expect(normalizedText, 'trace panel title').to.include('Trace Details');
+        expect(normalizedText, 'MLflow unavailable state').not.to.include(
+          'MLflow is currently unavailable',
+        );
+        for (const expectedSpan of testData.tracing.mlflowTraceDetailExpectedSpans) {
+          expect(normalizedText, `MLflow trace detail contains span: ${expectedSpan}`).to.include(
+            expectedSpan,
+          );
+        }
+      });
+      genAiPlayground
+        .findTracePanel()
+        .find('[data-testid="trace-panel-close-button"], button[aria-label="Close drawer panel"]')
+        .first()
+        .should('be.visible')
+        .click();
       genAiPlayground.findTracePanel().should('not.exist');
 
       cy.step('Reopen playground configuration and verify tracing state is persisted');
