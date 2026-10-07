@@ -6,3 +6,101 @@
     }
   }
 }
+
+.pipeline-visualization-graph {
+  flex-shrink: 1;
+  min-height: clamp(20rem, 45vh, 32rem);
+
+  .pipeline-visualization {
+    height: 100%;
+  }
+}
+
+.pipeline-run-steps-panel {
+  flex-shrink: 0;
+  background-color: var(--pf-t--global--background--color--primary--default);
+
+  // displaySize="lg" sets secondary (gray) background via PF custom properties
+  .pf-v6-c-expandable-section {
+    --pf-v6-c-expandable-section--m-display-lg--BackgroundColor: var(
+      --pf-t--global--background--color--primary--default
+    );
+    --pf-v6-c-expandable-section--m-display-lg--BorderWidth: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  &__content {
+    padding: 0 var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--md);
+  }
+
+  &__scroll {
+    max-height: clamp(8rem, 30vh, 16rem);
+    overflow-y: auto;
+  }
+
+  &__collapsed-strip {
+    padding: 0 var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--sm);
+  }
+
+  &__empty {
+    margin: var(--pf-t--global--spacer--sm) 0 0;
+    color: var(--pf-t--global--text--color--subtle);
+  }
+}
+
+.odh-pipeline-run-status-summary {
+  flex-shrink: 0;
+  padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
+  background-color: var(--pf-t--global--background--color--primary--default);
+}
+
+.pipeline-run-steps-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pf-t--global--spacer--sm);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  &__item {
+    display: inline-flex;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// Transparent HTML button overlays give pipeline steps native keyboard and screen reader semantics.
+// Mouse events pass through step overlays to the SVG below.
+// The collapsed group trigger accepts pointer events so it can open its task popover.
+.pipeline-node-a11y-button {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  pointer-events: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--pf-t--global--color--brand--default, #06c);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+}
+
+.pipeline-node-a11y-button--group {
+  pointer-events: auto;
+}

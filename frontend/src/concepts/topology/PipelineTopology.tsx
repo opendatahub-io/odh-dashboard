@@ -1,19 +1,16 @@
 import React from 'react';
-import {
-  PipelineNodeModel,
-  SELECTION_EVENT,
-  VisualizationProvider,
-} from '@patternfly/react-topology';
+import { SELECTION_EVENT, VisualizationProvider } from '@patternfly/react-topology';
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import PipelineVersionError from '#~/concepts/pipelines/content/pipelinesDetails/PipelineVersionError';
 import PipelineTopologyEmpty from './PipelineTopologyEmpty';
 import useTopologyController from './useTopologyController';
 import PipelineVisualizationSurface from './PipelineVisualizationSurface';
+import { PipelineNodeModelExpanded } from './types';
 
 type PipelineTopologyProps = {
   selectedIds?: string[];
   onSelectionChange?: (selectionIds: string[]) => void;
-  nodes: PipelineNodeModel[];
+  nodes: PipelineNodeModelExpanded[];
   versionError?: Error;
   sidePanel?: React.ReactElement | null;
 };

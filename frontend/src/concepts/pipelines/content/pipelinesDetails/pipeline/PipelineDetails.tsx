@@ -201,7 +201,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
                   />
                 </Tabs>
               </FlexItem>
-              <FlexItem flex={{ default: 'flex_1' }} style={{ overflowY: 'hidden' }}>
+              <FlexItem flex={{ default: 'flex_1' }} style={{ overflowY: 'auto', minHeight: 0 }}>
                 <TabContent
                   id={`tabContent-${PipelineDetailsTab.GRAPH}`}
                   eventKey={PipelineDetailsTab.GRAPH}

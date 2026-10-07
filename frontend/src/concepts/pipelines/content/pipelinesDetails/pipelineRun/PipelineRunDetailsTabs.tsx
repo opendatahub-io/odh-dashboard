@@ -108,7 +108,7 @@ export const PipelineRunDetailsTabs: React.FC<PipelineRunDetailsTabsProps> = ({
             )}
           </Tabs>
         </FlexItem>
-        <FlexItem flex={{ default: 'flex_1' }} style={{ overflowY: 'hidden' }}>
+        <FlexItem flex={{ default: 'flex_1' }} style={{ overflowY: 'auto', minHeight: 0 }}>
           <TabContent
             id={DetailsTabKey.Graph}
             eventKey={DetailsTabKey.Graph}
