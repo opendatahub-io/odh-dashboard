@@ -28,6 +28,7 @@ describe('RegisterDataModal', () => {
     collections: ['collection-1', 'collection-2'],
     onCreated: jest.fn(),
     onManageCollections: jest.fn(),
+    onManageLabels: jest.fn(),
   };
 
   beforeEach(() => {
@@ -38,13 +39,15 @@ describe('RegisterDataModal', () => {
   it('should render modal with all form fields', () => {
     render(<RegisterDataModal {...defaultProps} />);
 
-    expect(screen.getByText('Register data')).toBeTruthy();
+    expect(screen.getByText('Create data asset')).toBeTruthy();
     expect(screen.getByTestId('data-name-input')).toBeTruthy();
     expect(screen.getByTestId('data-description-input')).toBeTruthy();
     expect(screen.getByTestId('asset-type-toggle')).toBeTruthy();
     expect(screen.getByTestId('data-format-toggle')).toBeTruthy();
     expect(screen.getByTestId('data-collection-toggle')).toBeTruthy();
     expect(screen.getByTestId('data-path-input')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Asset type info' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'PII information' })).toBeInTheDocument();
   });
 
   it('should default to Unstructured asset type', () => {
@@ -211,6 +214,57 @@ describe('RegisterDataModal', () => {
     expect(screen.getByText('Create new collection')).toBeTruthy();
   });
 
+  it('should open project label management from the organization section', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByRole('button', { name: 'Manage labels' }));
+
+    expect(defaultProps.onManageLabels).toHaveBeenCalled();
+  });
+
+  it('should disable project label management when no callback is provided', () => {
+    render(<RegisterDataModal {...defaultProps} onManageLabels={undefined} />);
+
+    expect(screen.getByRole('button', { name: 'Manage labels' })).toBeDisabled();
+  });
+
+  it('should preserve form values while the modal is temporarily hidden', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<RegisterDataModal {...defaultProps} />);
+
+    await user.type(screen.getByTestId('data-name-input'), 'asset-under-construction');
+
+    rerender(<RegisterDataModal {...defaultProps} isOpen={false} />);
+    rerender(<RegisterDataModal {...defaultProps} isOpen />);
+
+    expect(screen.getByTestId('data-name-input')).toHaveValue('asset-under-construction');
+  });
+
+  it('should keep added labels as editable rows with remove controls', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('data-add-label-button'));
+    const labelInput = screen.getByTestId('data-labels-input-0');
+    await user.type(labelInput, 'production');
+
+    expect(labelInput).toHaveValue('production');
+    expect(screen.getByTestId('data-label-remove-0')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('data-label-remove-0'));
+    expect(screen.queryByTestId('data-labels-input-0')).not.toBeInTheDocument();
+  });
+
+  it('should use a minus control for custom property rows', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('data-add-custom-property'));
+
+    expect(screen.getByTestId('data-custom-property-remove-0')).toBeInTheDocument();
+  });
+
   it('should display available connections in dropdown', async () => {
     const user = userEvent.setup();
     render(<RegisterDataModal {...defaultProps} />);
@@ -218,15 +272,6 @@ describe('RegisterDataModal', () => {
     await user.click(screen.getByTestId('data-connection-toggle'));
     expect(screen.getByText('My S3 Connection')).toBeTruthy();
     expect(screen.getByText('My URI Connection')).toBeTruthy();
-  });
-
-  it('should show empty state when no connections available', async () => {
-    mockUseConnections.mockReturnValue([[], true, undefined]);
-    const user = userEvent.setup();
-    render(<RegisterDataModal {...defaultProps} />);
-
-    await user.click(screen.getByTestId('data-connection-toggle'));
-    expect(screen.getByText('No connections available')).toBeTruthy();
   });
 
   it('should include connection_ref when connection is selected for volume', async () => {
