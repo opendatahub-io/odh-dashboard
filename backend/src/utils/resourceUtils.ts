@@ -161,7 +161,11 @@ const fetchOLMv0Subscriptions = async (
       }
     }
   } catch (e) {
-    console.error(`ERROR: `, e.body?.message ?? e);
+    // Discard any partially-accumulated pages: a mid-pagination failure (e.g. 403 from missing
+    // RBAC, or a 410 expired continue token) must not be cached as a complete list, which would
+    // silently mark operators on later pages as absent until the next successful refresh.
+    fastify.log.error(`Failed to list Subscriptions: ${e.body?.message ?? e}`);
+    return [];
   }
   return installedCSVs;
 };
@@ -226,7 +230,10 @@ const fetchOLMv1ClusterExtensions = async (
     if (isHttpError(e) && e.statusCode === 404) {
       return [];
     }
-    console.error(`ERROR: `, e.body?.message ?? e);
+    // Any other failure (e.g. 403 before the RBAC update rolls out, or a 410 expired continue
+    // token) must discard partial pages rather than caching a truncated list as complete.
+    fastify.log.error(`Failed to list ClusterExtensions: ${e.body?.message ?? e}`);
+    return [];
   }
   return results;
 };
