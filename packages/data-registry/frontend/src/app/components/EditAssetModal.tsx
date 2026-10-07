@@ -8,8 +8,6 @@ import {
   AssetResponse,
   ConnectionModel,
   ConnectionRef,
-  StructuredFormat,
-  UnstructuredFormat,
   LICENSE_VALUES,
   MATURITY_VALUES,
   PII_STATUS_VALUES,
@@ -22,6 +20,7 @@ import {
 } from '~/app/api/dataRegistry';
 import { useConnections } from '~/app/hooks/useConnections';
 import { editAssetSchema, EditAssetFormData } from '~/app/schemas/editAsset.schema';
+import { isStructuredFormat, isUnstructuredFormat } from '~/app/utilities/formatUtils';
 import DataLocationSection from './register-data/DataLocationSection';
 import PropertiesSection from './register-data/PropertiesSection';
 import SchemaSection from './register-data/SchemaSection';
@@ -46,31 +45,6 @@ type EditAssetModalProps = {
 };
 
 const WELL_KNOWN_PROPERTIES = new Set(['purpose', 'license', 'maturity', 'domain', 'pii']);
-
-const STRUCTURED_FORMATS: StructuredFormat[] = [
-  'iceberg',
-  'parquet',
-  'csv',
-  'delta',
-  'postgresql',
-  'milvus',
-  'other',
-];
-
-const UNSTRUCTURED_FORMATS: UnstructuredFormat[] = [
-  'documents',
-  'images',
-  'audio',
-  'video',
-  'binary',
-  'other',
-];
-
-const isStructuredFormat = (format: string): format is StructuredFormat =>
-  STRUCTURED_FORMATS.some((value) => value === format);
-
-const isUnstructuredFormat = (format: string): format is UnstructuredFormat =>
-  UNSTRUCTURED_FORMATS.some((value) => value === format);
 
 const getEnumPropertyValue = <T extends string>(
   value: string | undefined,

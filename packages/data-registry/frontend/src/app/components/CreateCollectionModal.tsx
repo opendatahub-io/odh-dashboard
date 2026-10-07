@@ -34,6 +34,7 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
 }) => {
   const { userSettings } = useSettings();
   const userId = typeof userSettings?.userId === 'string' ? userSettings.userId : '';
+  const isUserIdentityUnavailable = !userId.trim();
   const [name, setName] = React.useState('');
   const [description, setDescription] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -103,6 +104,11 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
             {error}
           </Alert>
         ) : null}
+        {isUserIdentityUnavailable ? (
+          <Alert variant="warning" isInline title="Unable to determine the current user">
+            Refresh the page and try again before creating a collection.
+          </Alert>
+        ) : null}
         <Form>
           <FormGroup label="Name" isRequired fieldId="collection-name">
             <TextInput
@@ -135,7 +141,9 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
         <Button
           variant="primary"
           onClick={handleSubmit}
-          isDisabled={!name.trim() || !userId.trim() || !!nameValidationError || isSubmitting}
+          isDisabled={
+            !name.trim() || isUserIdentityUnavailable || !!nameValidationError || isSubmitting
+          }
           isLoading={isSubmitting}
           data-testid="create-collection-submit"
         >

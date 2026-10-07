@@ -24,7 +24,7 @@ const extensions: Extension[] = [
       section: 'ai-hub',
       objectType: 'data-registry',
       label: 'Tech Preview',
-      hidePageTitleOnPaths: ['browse/assets'],
+      hidePageTitleOnPaths: ['browse/assets', 'browse/collections'],
     },
   },
   {

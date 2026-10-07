@@ -23,10 +23,9 @@ import {
   CreateGenericTableRequest,
   ConnectionModel,
   ConnectionRef,
-  UnstructuredFormat,
-  StructuredFormat,
 } from '~/app/types';
 import { useConnections } from '~/app/hooks/useConnections';
+import { isStructuredFormat, isUnstructuredFormat } from '~/app/utilities/formatUtils';
 import {
   registerDataSchema,
   registerDataDefaults,
@@ -65,31 +64,6 @@ const getConnectionRef = (
 };
 
 type SharedCreateAssetRequest = Omit<CreateVolumeRequest, 'format'> & { format: string };
-
-const UNSTRUCTURED_FORMAT_VALUES: UnstructuredFormat[] = [
-  'documents',
-  'images',
-  'audio',
-  'video',
-  'binary',
-  'other',
-];
-
-const STRUCTURED_FORMAT_VALUES: StructuredFormat[] = [
-  'iceberg',
-  'parquet',
-  'csv',
-  'delta',
-  'postgresql',
-  'milvus',
-  'other',
-];
-
-const isUnstructuredFormat = (format: string): format is UnstructuredFormat =>
-  UNSTRUCTURED_FORMAT_VALUES.some((value) => value === format);
-
-const isStructuredFormat = (format: string): format is StructuredFormat =>
-  STRUCTURED_FORMAT_VALUES.some((value) => value === format);
 
 const getValidLabels = (labels: string[]): string[] => [
   ...new Set(labels.map((label) => label.trim()).filter(Boolean)),

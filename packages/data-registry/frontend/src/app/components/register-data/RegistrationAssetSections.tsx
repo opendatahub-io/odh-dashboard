@@ -23,32 +23,13 @@ import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { Controller, useFormContext } from 'react-hook-form';
 import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
+import {
+  DEFAULT_FORMATS,
+  STRUCTURED_FORMAT_OPTIONS,
+  UNSTRUCTURED_FORMAT_OPTIONS,
+} from '~/app/utilities/formatUtils';
 
 type AssetFormData = RegisterDataFormData | EditAssetFormData;
-
-const UNSTRUCTURED_FORMATS = [
-  { key: 'documents', label: 'Documents' },
-  { key: 'images', label: 'Images' },
-  { key: 'audio', label: 'Audio' },
-  { key: 'video', label: 'Video' },
-  { key: 'binary', label: 'Binary' },
-  { key: 'other', label: 'Other unstructured' },
-];
-
-const STRUCTURED_FORMATS = [
-  { key: 'iceberg', label: 'Apache Iceberg' },
-  { key: 'parquet', label: 'Apache Parquet' },
-  { key: 'csv', label: 'CSV' },
-  { key: 'delta', label: 'Delta Lake' },
-  { key: 'postgresql', label: 'PostgreSQL' },
-  { key: 'milvus', label: 'Milvus' },
-  { key: 'other', label: 'Other structured' },
-];
-
-const DEFAULT_FORMATS: Record<string, string> = {
-  unstructured: 'other',
-  structured: 'iceberg',
-};
 
 type EditModeProps = {
   isEditMode?: boolean;
@@ -125,7 +106,8 @@ export const RegistrationAssetFormatSection: React.FC<EditModeProps> = ({ isEdit
   const assetType = watch('assetType');
   const [isAssetTypeOpen, setIsAssetTypeOpen] = React.useState(false);
   const [isFormatOpen, setIsFormatOpen] = React.useState(false);
-  const formatOptions = assetType === 'structured' ? STRUCTURED_FORMATS : UNSTRUCTURED_FORMATS;
+  const formatOptions =
+    assetType === 'structured' ? STRUCTURED_FORMAT_OPTIONS : UNSTRUCTURED_FORMAT_OPTIONS;
 
   return (
     <FormSection title="Data asset format" titleElement="h2">

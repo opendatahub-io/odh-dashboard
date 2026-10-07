@@ -63,6 +63,10 @@ describe('CreateCollectionModal', () => {
     await user.type(screen.getByTestId('collection-name-input'), 'test-collection');
 
     expect(screen.getByTestId('create-collection-submit')).toBeDisabled();
+    expect(screen.getByText('Unable to determine the current user')).toBeInTheDocument();
+    expect(
+      screen.getByText('Refresh the page and try again before creating a collection.'),
+    ).toBeInTheDocument();
   });
 
   it('should show validation error for invalid name', async () => {
