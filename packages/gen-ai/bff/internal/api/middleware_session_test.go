@@ -94,6 +94,19 @@ func TestAttachNamespace_SetsNamespaceOnActiveSpan(t *testing.T) {
 	assert.True(t, found, "expected k8s.namespace.name span attribute with namespace from query")
 }
 
+func TestAttachOptionalNamespace_AllowsMissingNamespace(t *testing.T) {
+	app := &App{}
+	handler := app.AttachOptionalNamespace(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		assert.Nil(t, r.Context().Value(constants.NamespaceQueryParameterKey))
+		w.WriteHeader(http.StatusOK)
+	})
+
+	rr := httptest.NewRecorder()
+	handler(rr, httptest.NewRequest(http.MethodGet, "/test", nil), nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
 func TestAttachNamespaceFromPath_SetsNamespaceOnActiveSpan(t *testing.T) {
 	exporter := setupTestTracerProvider(t)
 	app := &App{}
