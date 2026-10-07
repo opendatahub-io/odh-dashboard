@@ -33,6 +33,7 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, ps
 	}
 
 	source, outcome, reason, count := "rhai", "error", "unconfigured", 0
+	dchFallback := false
 	start := time.Now()
 	defer func() {
 		// One structured event per lookup supports outcome/fallback rates, latency and counts.
@@ -45,7 +46,10 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, ps
 	if app.bffClientFactory != nil && app.bffClientFactory.IsTargetConfigured(bffclient.BFFTargetDCH) {
 		source = "dch"
 		client := app.bffClientFactory.CreateClient(bffclient.BFFTargetDCH, identity.Token)
-		if client != nil {
+		if client == nil {
+			reason = "client_unavailable"
+			dchFallback = true
+		} else {
 			timeout := time.Duration(app.config.BFFDCHTimeoutSeconds) * time.Second
 			if timeout <= 0 {
 				timeout = 5 * time.Second
@@ -79,6 +83,7 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, ps
 					}
 					return
 				}
+				dchFallback = true
 			}
 		}
 	}
@@ -101,12 +106,21 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, ps
 			return
 		}
 	}
+	if dchFallback {
+		if envelope.Metadata == nil {
+			envelope.Metadata = &models.ConnectionsMetadata{}
+		}
+		envelope.Metadata.Warnings = append(envelope.Metadata.Warnings, models.ConnectionWarning{
+			Code:    "DCH_FALLBACK",
+			Message: "Some connection options could not be loaded. Showing currently available connections.",
+		})
+	}
 	count = len(envelope.Data)
 	outcome = "success"
 	if source == "rhai" && reason != "unconfigured" {
 		outcome = "fallback"
 	}
-	if envelope.Metadata != nil {
+	if envelope.Metadata != nil && !dchFallback {
 		outcome = "partial"
 	}
 	if err := app.WriteJSON(w, http.StatusOK, envelope, nil); err != nil {

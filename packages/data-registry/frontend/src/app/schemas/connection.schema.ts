@@ -25,7 +25,7 @@ export const connectionsResponseSchema = z.object({
       warnings: z
         .array(
           z.object({
-            code: z.literal('UNRESOLVED_CONNECTION_TYPE'),
+            code: z.enum(['UNRESOLVED_CONNECTION_TYPE', 'DCH_FALLBACK']),
             message: z.string(),
           }),
         )

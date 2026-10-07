@@ -11,6 +11,7 @@ import {
   Flex,
   FlexItem,
   Content,
+  Alert,
 } from '@patternfly/react-core';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useNamespaceSelector, type UseNamespaceSelectorArgs } from 'mod-arch-core';
@@ -176,7 +177,8 @@ const DataRegistryPage: React.FC = () => {
 
   const [assets, assetsLoaded, assetsError, assetsRefresh, collectionNames] =
     useAssets(selectedProject);
-  const [connections] = useConnections(selectedProject);
+  const [connections, connectionsLoaded, connectionsError, , connectionWarnings] =
+    useConnections(selectedProject);
   const [, collectionsLoaded, collectionsError, collectionsRefresh] = useCollections(
     selectedProject,
     assets,
@@ -341,12 +343,21 @@ const DataRegistryPage: React.FC = () => {
         </PageSection>
       ) : (
         <>
+          {connectionWarnings.length > 0 ? (
+            <PageSection hasBodyWrapper={false}>
+              {connectionWarnings.map((warning) => (
+                <Alert key={warning.code} variant="warning" isInline title={warning.message} />
+              ))}
+            </PageSection>
+          ) : null}
           <RegistryTable
             assets={assets}
             loaded={assetsLoaded && collectionsLoaded}
             error={assetsError ?? collectionsError}
             labels={labels}
             connections={connections}
+            connectionsLoaded={connectionsLoaded}
+            connectionsError={connectionsError}
             project={selectedProject}
             onManageCollections={(onReturnToEdit) => {
               setReturnToRegisterData(false);
