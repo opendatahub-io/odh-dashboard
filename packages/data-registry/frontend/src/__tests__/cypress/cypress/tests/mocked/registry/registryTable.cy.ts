@@ -2,7 +2,6 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
-import { createCollectionModal } from '~/__tests__/cypress/cypress/pages/createCollectionModal';
 
 const REGISTRY_API = '/data-registry/api/v1';
 const MAIN_API = '/data-registry/api/v1';
@@ -206,21 +205,11 @@ describe('Registry Table', () => {
     cy.findByTestId('delete-asset-modal').should('not.exist');
   });
 
-  it('should navigate to the asset detail view to edit a table', () => {
-    cy.intercept(
-      'GET',
-      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/claims-data`,
-      { body: mockAssetsResponse.assets[0] },
-    ).as('getTable');
-
+  it('should open the edit modal from the browse view without navigating', () => {
     visitWithData();
     cy.findByTestId('asset-actions-table-analytics-claims-data').click();
     cy.findByTestId('asset-edit-table-analytics-claims-data').click();
-    cy.url().should(
-      'include',
-      '/ai-hub/data/browse/assets/table/test-project/analytics/claims-data?edit=true',
-    );
-    cy.wait('@getTable');
+    cy.url().should('include', '/ai-hub/data/browse?project=test-project');
     cy.findByTestId('edit-asset-modal').should('exist');
   });
 
@@ -313,17 +302,16 @@ describe('Registry Table', () => {
     });
   });
 
-  it('should block delete when collection has assets', () => {
+  it('should disable delete when collection has assets', () => {
     visitWithData();
     cy.findByTestId('registry-kebab').click();
     cy.findByTestId('manage-collections-action').click();
-    cy.findByTestId('collection-delete-analytics').click();
-    cy.findByTestId('delete-collection-modal').should('exist');
-    cy.contains('Collection is not empty').should('exist');
-    cy.findByTestId('confirm-delete-button').should('be.disabled');
+    cy.findByTestId('collection-delete-analytics').should('be.disabled');
+    cy.findByTestId('manage-collections-modal').should('exist');
+    cy.findByTestId('delete-collection-modal').should('not.exist');
   });
 
-  it('should delete an empty collection with confirmation', () => {
+  it('should delete an empty collection without confirmation text', () => {
     cy.intercept('DELETE', `${REGISTRY_API}/test-project/namespaces/empty-collection`, {
       statusCode: 204,
     }).as('deleteCollection');
@@ -345,10 +333,60 @@ describe('Registry Table', () => {
     cy.findByTestId('manage-collections-action').click();
     cy.findByTestId('collection-delete-empty-collection').click();
     cy.findByTestId('delete-collection-modal').should('exist');
-    cy.contains('Collection is not empty').should('not.exist');
-    cy.findByTestId('confirm-delete-input').type('empty-collection');
+    cy.findByTestId('manage-collections-modal').should('not.exist');
+    cy.contains(
+      'The empty-collection collection will be deleted. It contains no data assets.',
+    ).should('exist');
     cy.findByTestId('confirm-delete-button').should('be.enabled').click();
     cy.wait('@deleteCollection');
+  });
+});
+
+describe('Registration collection management', () => {
+  beforeEach(() => {
+    initIntercepts();
+  });
+
+  it('should include a newly created collection when returning to registration', () => {
+    let namespaces = [['analytics'], ['default']];
+
+    cy.intercept('GET', `${REGISTRY_API}/test-project/namespaces`, (request) => {
+      request.reply({ body: { namespaces } });
+    }).as('getCollectionsForRegistration');
+    cy.intercept('POST', `${REGISTRY_API}/test-project/namespaces`, (request) => {
+      namespaces = [...namespaces, ['new-collection']];
+      request.reply({
+        statusCode: 200,
+        body: { namespace: ['new-collection'], properties: { description: 'Test' } },
+      });
+    }).as('createCollectionFromRegistration');
+    cy.intercept('GET', `${REGISTRY_API}/test-project/namespaces/new-collection`, {
+      body: { namespace: ['new-collection'], properties: { description: 'Test' } },
+    });
+    cy.intercept('GET', `${REGISTRY_API}/test-project/namespaces/new-collection/generic-tables`, {
+      body: { assets: [] },
+    });
+    cy.intercept('GET', `${REGISTRY_API}/test-project/namespaces/new-collection/volumes`, {
+      body: { volumes: [] },
+    });
+
+    cy.visit('/ai-hub/data/browse/collections/test-project/analytics');
+    cy.findByTestId('collection-actions-toggle').click();
+    cy.findByTestId('collection-action-register-data').click();
+    cy.findByTestId('register-data-modal').should('exist');
+
+    cy.findByRole('button', { name: 'Manage collections' }).click();
+    cy.findByTestId('create-collection-button').click();
+    cy.findByTestId('collection-name-input').type('new-collection');
+    cy.findByTestId('create-collection-submit').click();
+    cy.wait('@createCollectionFromRegistration');
+    cy.findByTestId('create-collection-modal').should('not.exist');
+
+    cy.findByTestId('manage-collections-close-button').click();
+    cy.findByTestId('register-data-modal').should('exist');
+    cy.findByTestId('data-collection-toggle').click();
+    cy.findByText('new-collection').click();
+    cy.findByTestId('data-collection-toggle').should('contain.text', 'new-collection');
   });
 });
 
@@ -363,7 +401,7 @@ describe('Register Volume', () => {
     cy.findByTestId('register-data-modal').should('exist');
     cy.contains('Register data').should('exist');
     cy.contains(
-      'Create a new data asset and configure its source location, metadata, and schema.',
+      'A data asset points to the exact location within a connection where the information is located. It can also record information about the structure of the data.',
     ).should('exist');
   });
 
@@ -507,9 +545,9 @@ describe('Manage Labels', () => {
     cy.findByTestId('manage-labels-modal').should('exist');
     cy.contains('Manage labels').should('exist');
     cy.contains(
-      'Create and delete labels to manage how assets are organized across this project.',
+      'View and manage this project’s labels. Optionally use labels to organize and filter your data assets.',
     ).should('exist');
-    cy.contains('Changes affect all project assets').should('exist');
+    cy.contains('Changes affect all project assets').should('not.exist');
   });
 
   it('should display labels with associated assets', () => {
@@ -637,7 +675,7 @@ describe('Manage Labels', () => {
     cy.findByTestId('manage-labels-action').click();
     cy.findByTestId('manage-labels-modal').should('exist');
 
-    cy.contains('button', 'Close').click();
+    cy.findByTestId('manage-labels-close-button').click();
     cy.findByTestId('manage-labels-modal').should('not.exist');
   });
 });
@@ -738,12 +776,12 @@ describe('Register Table', () => {
     cy.findByTestId('add-schema-column').click();
     cy.findByTestId('schema-column-name-0').type('claim_id');
     cy.findByTestId('schema-column-type-0').click();
-    cy.contains('integer').click();
+    cy.contains('Integer').click();
 
     cy.findByTestId('add-schema-column').click();
     cy.findByTestId('schema-column-name-1').type('amount');
     cy.findByTestId('schema-column-type-1').click();
-    cy.contains('double').click();
+    cy.contains('Double').click();
 
     cy.findByTestId('register-data-submit').click();
 
@@ -973,12 +1011,12 @@ describe('Connection Selector', () => {
   });
 });
 
-describe('Create Collection with Owner', () => {
+describe('Create Collection', () => {
   beforeEach(() => {
     initIntercepts();
   });
 
-  it('should include owner field when creating collection', () => {
+  it('should use the creator as owner without displaying an owner field', () => {
     cy.intercept('POST', `${REGISTRY_API}/test-project/namespaces`, {
       statusCode: 200,
       body: {
@@ -1002,41 +1040,6 @@ describe('Create Collection with Owner', () => {
       });
       expect(interception.request.body.properties).to.include({
         owner: 'test-user',
-      });
-    });
-  });
-
-  it('should allow selecting Unassigned as collection owner', () => {
-    cy.intercept('POST', `${REGISTRY_API}/test-project/namespaces`, {
-      statusCode: 200,
-      body: {
-        namespace: ['unassigned-collection'],
-        properties: {},
-      },
-    }).as('createCollection');
-
-    visitWithData();
-    cy.findByTestId('registry-kebab').click();
-    cy.findByTestId('manage-collections-action').click();
-    cy.findByTestId('create-collection-button').click();
-
-    cy.findByTestId('collection-name-input').type('unassigned-collection');
-
-    // Ensure form is ready and owner field is visible
-    cy.findByTestId('collection-name-input').scrollIntoView();
-
-    cy.findByPlaceholderText('Select or type owner', { timeout: 10000 }).should('be.visible');
-    createCollectionModal.findOwnerToggle().click();
-    createCollectionModal.findOwnerOption('Unassigned').click();
-
-    cy.findByTestId('create-collection-submit').click();
-
-    cy.wait('@createCollection').then((interception) => {
-      expect(interception.request.body).to.deep.include({
-        namespace: ['unassigned-collection'],
-      });
-      expect(interception.request.body.properties).to.include({
-        owner: 'Unassigned',
       });
     });
   });

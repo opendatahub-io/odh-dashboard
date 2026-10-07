@@ -637,7 +637,6 @@ var _ = Describe("ModelsAAHandler with sources query parameter", func() {
 		mockMaaSClient := mockClientFactory.CreateClient(bffclient.BFFTargetMaaS, "test-token")
 
 		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-2")
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})

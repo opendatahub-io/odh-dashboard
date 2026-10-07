@@ -1,4 +1,6 @@
+/* eslint-disable camelcase */
 import { chatbotPage } from '~/__tests__/cypress/cypress/pages/chatbotPage';
+import { mockAAModel, mockAAModels } from '~/__tests__/cypress/cypress/__mocks__/mockAAModels';
 
 // Use mock-test-namespace-2 which has LSD configured and ready in the BFF
 const TEST_NAMESPACE = 'mock-test-namespace-2';
@@ -262,5 +264,107 @@ describe('AI Playground - Chatbot Interactions (Mocked)', () => {
 
       cy.step('Test completed - Header actions are visible');
     });
+  });
+
+  describe('Audio transcription', () => {
+    it(
+      'holds Send while transcription is pending and forwards the transcript with the prompt',
+      { tags: ['@GenAI', '@Chatbot', '@Audio'] },
+      () => {
+        const asrModelId = 'mock-whisper-asr';
+        const fileId = 'mock-audio-file';
+        const transcript = 'My fellow Americans, ask not what your country can do for you.';
+        const prompt = 'How does the speaker address the audience?';
+        let releaseTranscription: (() => void) | undefined;
+
+        cy.interceptGenAi(
+          'GET /api/v1/aaa/models',
+          mockAAModels([
+            mockAAModel({
+              model_id: 'llama3.2:3b',
+              model_name: 'llama3.2:3b',
+              display_name: 'Mock Chat Model',
+            }),
+            mockAAModel({
+              model_id: asrModelId,
+              model_name: asrModelId,
+              display_name: 'Mock Whisper ASR',
+              model_source_type: 'custom_endpoint',
+              model_type: 'transcription',
+              capabilities: ['audio-transcription'],
+            }),
+          ]),
+        ).as('audioModels');
+        cy.intercept('POST', '**/api/v1/lsd/files/media**', {
+          statusCode: 200,
+          body: { data: { id: fileId } },
+        }).as('uploadAudio');
+        cy.intercept(
+          'POST',
+          '**/api/v1/lsd/audio/transcriptions**',
+          (request) =>
+            new Promise<void>((resolve) => {
+              releaseTranscription = () => {
+                request.reply({ statusCode: 200, body: { text: transcript } });
+                resolve();
+              };
+            }),
+        ).as('transcribeAudio');
+        cy.intercept('POST', '**/api/v1/lsd/responses**').as('createAudioResponse');
+
+        chatbotPage.visit(TEST_NAMESPACE);
+        cy.wait('@audioModels');
+        chatbotPage.findMessageInput().should('be.visible');
+
+        cy.step('Select the mocked ASR model in Playground settings');
+        chatbotPage.ensureSettingsPanelOpen();
+        chatbotPage.findChatModelToggle().click();
+        chatbotPage.findChatModelOption('Mock Chat Model').should('be.visible').click();
+        chatbotPage.findChatModelToggle().should('contain', 'Mock Chat Model');
+        chatbotPage.findAddTranscriptionModelButton().should('be.visible').click();
+        chatbotPage.findAsrModelToggle().click();
+        chatbotPage.findAsrModelOption(asrModelId).click();
+        chatbotPage.findAsrModelToggle().should('contain', 'Mock Whisper ASR');
+        chatbotPage.closeSettingsPanel();
+
+        cy.step('Type a prompt and upload audio while transcription stays pending');
+        chatbotPage.findMessageInput().type(prompt);
+        chatbotPage.findAttachmentButton().click();
+        chatbotPage.findAudioUploadMenuItem().should('be.visible').click();
+        chatbotPage.findAudioFileInput().selectFile(
+          {
+            contents: Cypress.Buffer.from('mock WAV data'),
+            fileName: 'speech.wav',
+            mimeType: 'audio/wav',
+          },
+          { force: true },
+        );
+        cy.wait('@uploadAudio');
+        cy.wrap(null).should(() => {
+          expect(releaseTranscription).to.be.a('function');
+        });
+        chatbotPage.findSendButton().should('be.disabled');
+        cy.get('@createAudioResponse.all').should('have.length', 0);
+
+        cy.step('Complete transcription and verify the chat payload');
+        cy.then(() => releaseTranscription?.());
+        cy.wait('@transcribeAudio').its('request.body').should('include', {
+          file_id: fileId,
+          asr_model_id: asrModelId,
+        });
+        chatbotPage.findAudioFileChip().should('be.visible').and('contain', 'speech');
+        chatbotPage.findAudioTranscriptionError().should('not.exist');
+        chatbotPage.findMessageInput().should('have.value', prompt);
+        cy.get('@createAudioResponse.all').should('have.length', 0);
+
+        chatbotPage.findSendButton().should('be.enabled').click();
+        cy.wait('@createAudioResponse')
+          .its('request.body.input')
+          .should('equal', `${transcript}\n\n${prompt}`);
+        chatbotPage.findAudioFileChip().should('not.exist');
+        chatbotPage.findUserMessages().last().should('contain.text', prompt);
+        chatbotPage.findBotMessages().last().should('contain.text', 'mock response');
+      },
+    );
   });
 });
