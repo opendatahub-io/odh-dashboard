@@ -532,6 +532,9 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
 
 type PropertyRow = { id: number; key: string; value: string };
 
+const createPropertyRows = (properties: Record<string, string>): PropertyRow[] =>
+  Object.entries(properties).map(([key, value], index) => ({ id: index + 1, key, value }));
+
 export const getPropertyErrors = (properties: PropertyRow[]): Record<number, string> => {
   const errors: Record<number, string> = {};
   const normalizedKeys = new Map<string, number[]>();
@@ -763,9 +766,11 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     connectionTypeName: string;
     namespace: string;
   }>();
-  const [propertyRows, setPropertyRows] = React.useState<PropertyRow[]>([]);
+  const [propertyRows, setPropertyRows] = React.useState<PropertyRow[]>(() =>
+    createPropertyRows(initialFormData.properties),
+  );
   const [touchedProperties, setTouchedProperties] = React.useState<Set<number>>(new Set());
-  const propertyIdRef = React.useRef(0);
+  const propertyIdRef = React.useRef(propertyRows.length);
   const verificationRequestRef = React.useRef(0);
   const verificationAbortRef = React.useRef<AbortController>();
   const [connectionTypes, connectionTypesLoaded, connectionTypesError] = useConnectionTypes(
@@ -969,6 +974,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     }
   };
   const resetForm = React.useCallback(() => {
+    const initialPropertyRows = createPropertyRows(initialFormData.properties);
     setFormData(initialFormData);
     setIsOpenSessionReady(false);
     setHasResolvedSessionStartIndex(false);
@@ -976,9 +982,9 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     setSelectedNamespace(namespace);
     setIsCreating(false);
     invalidateVerification();
-    setPropertyRows([]);
+    setPropertyRows(initialPropertyRows);
     setTouchedProperties(new Set());
-    propertyIdRef.current = 0;
+    propertyIdRef.current = initialPropertyRows.length;
   }, [invalidateVerification, namespace, initialFormData]);
   const handleClose = React.useCallback(() => {
     if (!isCreating) {
