@@ -29,8 +29,10 @@ describe('RuntimeCatalogDetailsView', () => {
   it('should show a controlled load error instead of runtime details', () => {
     renderDetails({ error: new Error('Catalog service unavailable') });
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Unable to load runtime image');
-    expect(screen.getByRole('alert')).toHaveTextContent('Catalog service unavailable');
+    expect(
+      screen.getByRole('heading', { name: 'Danger alert: Unable to load runtime image' }),
+    ).toBeVisible();
+    expect(screen.getByText('Catalog service unavailable')).toBeVisible();
     expect(screen.queryByRole('heading', { name: 'CUDA vLLM 0.6.2' })).not.toBeInTheDocument();
   });
 
