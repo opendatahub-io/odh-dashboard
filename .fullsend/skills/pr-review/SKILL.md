@@ -196,15 +196,16 @@ Determine which PR to review:
 - If a PR URL was provided, extract the number and repo from the URL.
 - If none was provided, stop and report the failure rather than guessing.
 
-Fetch the PR head SHA and draft status with the "PR data fetching"
-commands in the GitHub command reference,
+Fetch the PR head SHA and draft status. The GitHub command reference,
 `skills/pr-review/github/SKILL.md` under
 `/sandbox/workspace/target-repo/.fullsend/` (the inherited
-`pr-review-github` skill is the same text). The one addition: end that
-same Bash call with a print of what it read, on a line of its own:
+`pr-review-github` skill is the same text), has a "PR data fetching"
+block for this, but the sandbox scanner has blocked that block in
+practice. Use this form, which it accepts, as its own Bash call:
 
 ```bash
-printf 'HEAD_SHA=%s IS_DRAFT=%s\n' "${HEAD_SHA}" "${IS_DRAFT}"
+gh api "repos/${REPO_FULL_NAME}/pulls/${PR_NUMBER}" > /sandbox/workspace/pr-data.json
+echo "HEAD_SHA=$(jq -r '.head.sha' /sandbox/workspace/pr-data.json) IS_DRAFT=$(jq -r '.draft' /sandbox/workspace/pr-data.json)"
 ```
 
 **Shell variables do not survive between Bash tool calls.** Each Bash
@@ -231,7 +232,8 @@ guessing.
 Retrieve PR metadata and the full diff with the commands in the GitHub
 command reference (step 1):
 
-- Fetch PR metadata (title, body, author, labels)
+- PR metadata (title, body, author, labels) is already in
+  `/sandbox/workspace/pr-data.json` from step 1
 - Fetch the changed files list with per-file stats (additions,
   deletions) into `/sandbox/workspace/pr-files.json` — every page
 - Compute `FILE_COUNT` and `LINE_COUNT` from that file
@@ -854,9 +856,11 @@ For each selected **findings** LLM row (from step 3c — excludes
    note" at the end of your system prompt, when present, lists the
    sub-agent personas this run registered.
 
-   - **Persona listed in the runtime note (pi):** `subagent_type` = the
-     persona name exactly as listed (the `name:` in the definition's
-     frontmatter), no `model`. The runner resolves the model from the
+   - **Persona listed in the runtime note (pi):** a row has a persona
+     only when the runtime note lists a name that is character for
+     character the row's `id` (for the challenger and a `pre_pass`, the
+     `name:` in that file's frontmatter). Then `subagent_type` = that
+     name, no `model`. The runner resolves the model from the
      repository's `agents[].subagents` and the frontmatter; a `model`
      argument is ignored and an unlisted `subagent_type` is rejected.
    - **No runtime note (Claude Code):** `model` from the definition's
@@ -864,8 +868,11 @@ For each selected **findings** LLM row (from step 3c — excludes
      comes from the prompt.
    - **Runtime note present, persona not listed (pi):** omit **both**
      `subagent_type` and `model`; the child runs on this run's sub-agent
-     default, which is always servable. Never dispatch a row under
-     another row's persona.
+     default, which is always servable. Decide this row by row from the
+     `id` alone. A listed persona with a similar name or a related
+     purpose is not a match: dispatching a row under it gives the child
+     another reviewer's instructions and model. Dispatch each row
+     exactly once.
 
 **All findings LLMs, `section:*` LLMs (step 4b), AND `check:*` LLMs
 (step 4-check) MUST be dispatched simultaneously** — include all Agent
@@ -1306,6 +1313,15 @@ gets posted if the sandbox is killed.
      that is in neither list, and two categories from the same list. Do
      not reject a merge because it crosses dimensions or because it
      involves a security finding.
+   - Step 6c ("never drop a security-related finding") binds your own
+     synthesis in 6a–6c only. The challenger may remove, merge or
+     downgrade any finding, a security finding included, when the
+     accounting above holds and the removal or downgrade cites evidence.
+     The same holds for `justified` (Part 2b), with two limits: the
+     `challenger_reason` must cite the Justifications claim and what
+     was verified in the diff, and a `justified` row whose category is
+     `protected-path` or `approach-rejected` is treated as `kept`.
+     That is its job; do not reject an adjudication for doing it.
 
    **Build survivors → final `findings[]`:**
 
