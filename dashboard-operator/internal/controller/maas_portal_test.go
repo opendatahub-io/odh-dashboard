@@ -170,8 +170,11 @@ func TestReconcileMaaSPortalAvailability(t *testing.T) {
 func TestReconcileMaaSPortal_UnsupportedPlatform(t *testing.T) {
 	s := maasPortalScheme(t)
 	dashboard := &v1alpha1.Dashboard{
-		Spec:   v1alpha1.DashboardSpec{MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"}},
-		Status: v1alpha1.DashboardStatus{MaaSPortalURL: "https://previous.example.com/"},
+		Spec: v1alpha1.DashboardSpec{MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"}},
+		Status: v1alpha1.DashboardStatus{
+			MaaSPortalURL:         "https://previous.example.com/",
+			MaaSConsumerPortalURL: "https://previous.example.com/",
+		},
 	}
 	r := &DashboardReconciler{Client: fake.NewClientBuilder().WithScheme(s).Build(), Scheme: s, ApplicationsNamespace: maasPortalTestNamespace, Platform: cluster.OpenDataHub}
 	cm := maasPortalTestManager(t, dashboard)
@@ -189,7 +192,10 @@ func TestReconcileMaaSPortal_MissingGatewayDomainRetries(t *testing.T) {
 		Spec: v1alpha1.DashboardSpec{
 			MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
 		},
-		Status: v1alpha1.DashboardStatus{MaaSPortalURL: "https://previous.example.com/"},
+		Status: v1alpha1.DashboardStatus{
+			MaaSPortalURL:         "https://previous.example.com/",
+			MaaSConsumerPortalURL: "https://previous.example.com/",
+		},
 	}
 	r := &DashboardReconciler{Client: fake.NewClientBuilder().WithScheme(s).Build(), Scheme: s, ApplicationsNamespace: maasPortalTestNamespace, Platform: cluster.SelfManagedRhoai}
 	cm := maasPortalTestManager(t, dashboard)
@@ -199,7 +205,7 @@ func TestReconcileMaaSPortal_MissingGatewayDomainRetries(t *testing.T) {
 	require.NotNil(t, condition)
 	assert.Equal(t, "MaaSConsumerPortalDomainRequired", condition.Reason)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
-	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
+	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSConsumerPortalURL)
 }
 
 func maasPortalScheme(t *testing.T) *runtime.Scheme {
@@ -221,7 +227,10 @@ func TestReconcileMaaSPortal_DeployFailurePreservesURL(t *testing.T) {
 			Gateway:    &v1alpha1.GatewaySpec{Domain: "apps.example.com"},
 			MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
 		},
-		Status: v1alpha1.DashboardStatus{MaaSPortalURL: "https://previous.example.com/"},
+		Status: v1alpha1.DashboardStatus{
+			MaaSPortalURL:         "https://previous.example.com/",
+			MaaSConsumerPortalURL: "https://previous.example.com/",
+		},
 	}
 	r := &DashboardReconciler{Client: fake.NewClientBuilder().WithScheme(s).Build(), Scheme: s, ManifestsBasePath: t.TempDir(), Platform: cluster.SelfManagedRhoai}
 	cm := maasPortalTestManager(t, dashboard)
@@ -235,7 +244,7 @@ func TestReconcileMaaSPortal_DeployFailurePreservesURL(t *testing.T) {
 	assert.Equal(t, "MaaSConsumerPortalDeployFailed", condition.Reason)
 	assert.Equal(t, maasPortalRetryInterval, retryAfter)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
-	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
+	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSConsumerPortalURL)
 }
 
 func TestReconcileMaaSPortal_PreservesEarlierFailure(t *testing.T) {
@@ -324,7 +333,10 @@ func TestReconcileRemovedMaaSPortal_CleanupFailureRetries(t *testing.T) {
 			return delegate.Delete(ctx, obj, options...)
 		},
 	}).Build()
-	dashboard := &v1alpha1.Dashboard{Status: v1alpha1.DashboardStatus{MaaSPortalURL: "https://previous.example.com/"}}
+	dashboard := &v1alpha1.Dashboard{Status: v1alpha1.DashboardStatus{
+		MaaSPortalURL:         "https://previous.example.com/",
+		MaaSConsumerPortalURL: "https://previous.example.com/",
+	}}
 	r := &DashboardReconciler{Client: cli, Scheme: s, ApplicationsNamespace: maasPortalTestNamespace}
 	cm := maasPortalTestManager(t, dashboard)
 	assert.Equal(t, maasPortalRetryInterval, r.reconcileRemovedMaaSPortal(context.Background(), dashboard, cm))
@@ -333,7 +345,7 @@ func TestReconcileRemovedMaaSPortal_CleanupFailureRetries(t *testing.T) {
 	assert.Equal(t, "MaaSConsumerPortalCleanupFailed", condition.Reason)
 	assert.Equal(t, common.ConditionSeverityInfo, condition.Severity)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
-	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
+	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSConsumerPortalURL)
 }
 
 func TestReconcileUnsupportedMaaSPortal_CleanupFailurePreservesURL(t *testing.T) {
@@ -343,14 +355,17 @@ func TestReconcileUnsupportedMaaSPortal_CleanupFailurePreservesURL(t *testing.T)
 			return errors.New("simulated portal cleanup failure")
 		},
 	}).Build()
-	dashboard := &v1alpha1.Dashboard{Status: v1alpha1.DashboardStatus{MaaSPortalURL: "https://previous.example.com/"}}
+	dashboard := &v1alpha1.Dashboard{Status: v1alpha1.DashboardStatus{
+		MaaSPortalURL:         "https://previous.example.com/",
+		MaaSConsumerPortalURL: "https://previous.example.com/",
+	}}
 	r := &DashboardReconciler{Client: cli, Scheme: s, ApplicationsNamespace: maasPortalTestNamespace}
 	cm := maasPortalTestManager(t, dashboard)
 
 	assert.Equal(t, maasPortalRetryInterval, r.reconcileUnsupportedMaaSPortal(context.Background(), dashboard, cm))
 	assert.Equal(t, "MaaSConsumerPortalCleanupFailed", cm.GetCondition(conditionMaaSPortalAvailable).Reason)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
-	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
+	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSConsumerPortalURL)
 }
 
 func TestReconcileDeletion_CleansMaaSPortalResources(t *testing.T) {

@@ -44,6 +44,10 @@ func TestE2E_MaaSPortalObservabilitySurvivesCoreRemoval(t *testing.T) {
 			"MaaS Consumer Portal requires module %q to be enabled", name)
 	}
 	originalSpec := dashboard.Spec.DeepCopy()
+	originalPortalSpec := originalSpec.MaaSPortal
+	if originalPortalSpec == nil {
+		originalPortalSpec = originalSpec.MaaSConsumerPortal
+	}
 	coreRoute, err := waitForAdmittedHTTPRouteByNames(k8sClient, testNamespace,
 		[]string{"odh-dashboard", "rhods-dashboard"}, operandReadyTimeout)
 	require.NoError(t, err)
@@ -59,7 +63,7 @@ func TestE2E_MaaSPortalObservabilitySurvivesCoreRemoval(t *testing.T) {
 		require.NoError(t, waitForDeploymentReady(k8sClient, testNamespace, coreRoute.Name, operandReadyTimeout))
 		_, err := waitForAdmittedHTTPRouteByName(k8sClient, testNamespace, coreRoute.Name, operandReadyTimeout)
 		require.NoError(t, err)
-		if originalSpec.MaaSPortal == nil || originalSpec.MaaSPortal.ManagementState != "Managed" {
+		if originalPortalSpec == nil || originalPortalSpec.ManagementState != "Managed" {
 			waitForObjectAbsent(t, &gatewayv1.HTTPRoute{}, maasPortalRouteName)
 			waitForObjectAbsent(t, &appsv1.Deployment{}, maasPortalRouteName)
 		} else {
