@@ -262,11 +262,16 @@ fields such as `outcome`, `summary`, `prior_review_sha`, or
 | Field       | Type    | Always required | Description                                      |
 |-------------|---------|-----------------|--------------------------------------------------|
 | `action`    | string  | yes             | One of: `approve`, `request-changes`, `comment`, `reject`, `failure` |
+| `schema_version` | string | yes (non-failure) | Const `"3"` |
 | `pr_number` | integer | yes             | PR number (minimum 1)                            |
 | `repo`      | string  | yes             | `owner/repo` format (pattern: `^[^/]+/[^/]+$`)  |
 | `head_sha`  | string  | conditional     | Commit SHA (40 or 64 hex chars)                  |
 | `body`      | string  | conditional     | Markdown review comment (min 1 char)             |
+| `change_summary` | string | yes (non-failure) | One or two sentences of what this PR's diff does |
 | `findings`  | array   | conditional     | Array of finding objects (min 1 item when present)|
+| `producers` | object  | yes (non-failure) | Dispatch mirror, `raised` history, adapters, expanded `challenger` (see below) |
+| `risk`      | object  | yes (non-failure) | `{level, why}` blast-radius rating |
+| `confidence`| object  | yes (non-failure) | `{level, why}` intent/evidence rating |
 | `reason`    | string  | conditional     | One of: `tool-failure`, `missing-context`, `ambiguous-findings`, `token-limit` |
 | `label_actions` | object | no | Contextual label recommendations (see `issue-labels` skill) |
 
@@ -274,11 +279,22 @@ fields such as `outcome`, `summary`, `prior_review_sha`, or
 
 | Action            | Required fields                          |
 |-------------------|------------------------------------------|
-| `approve`         | `body`, `head_sha`                       |
-| `request-changes` | `body`, `head_sha`, `findings`           |
-| `comment`         | `body`, `head_sha`                       |
-| `reject`          | `body`, `head_sha`, `findings`           |
+| `approve`         | `schema_version`, `body`, `head_sha`, `change_summary`, `producers`, `risk`, `confidence` |
+| `request-changes` | `schema_version`, `body`, `head_sha`, `findings`, `change_summary`, `producers`, `risk`, `confidence` |
+| `comment`         | `schema_version`, `body`, `head_sha`, `change_summary`, `producers`, `risk`, `confidence` |
+| `reject`          | `schema_version`, `body`, `head_sha`, `findings`, `change_summary`, `producers`, `risk`, `confidence` |
 | `failure`         | `reason`                                 |
+
+**`producers` object** (required on every non-failure result; `additionalProperties: false`):
+
+| Field        | Type   | Required | Description |
+|--------------|--------|----------|-------------|
+| `dispatched` | string[] | yes | Registry ids selected for this run |
+| `adapters`   | object[] | yes | `{id, status}` (`ok` / `none` / `skipped` / `error`); optional `reason` |
+| `skipped`    | object[] | yes | `{id, reason}` for producers not run |
+| `raised`     | object | yes | As-raised findings arrays keyed by findings-producer id |
+| `challenger` | object | yes | At least `{status}`; when `ran`, include counts and `removed_findings` |
+| `returned`   | string[] | no | Registry ids that returned |
 
 **Finding object** (`additionalProperties: false`):
 
@@ -295,6 +311,9 @@ fields such as `outcome`, `summary`, `prior_review_sha`, or
 Schema validation failures trigger a harness retry iteration. The jq
 examples below show the exact JSON shape for each action.
 
+Non-failure examples must include `schema_version: "3"` and a valid
+`producers` object (plus `change_summary`, `risk`, and `confidence`).
+
 For `approve` with no actionable findings, or for `comment`:
 
 ```bash
@@ -304,8 +323,13 @@ jq -n \
   --arg repo "<owner/repo>" \
   --arg head_sha "<sha>" \
   --arg body "<markdown review comment>" \
-  '{action: $action, pr_number: $pr_number, repo: $repo,
-    head_sha: $head_sha, body: $body}' \
+  --arg change_summary "<one or two sentences>" \
+  --argjson producers '{"dispatched":[],"adapters":[],"skipped":[],"raised":{},"challenger":{"status":"skipped","reason":"no findings to adjudicate"}}' \
+  '{action: $action, schema_version: "3", pr_number: $pr_number, repo: $repo,
+    head_sha: $head_sha, body: $body, change_summary: $change_summary,
+    producers: $producers,
+    risk: {level: "low", why: "Narrow internal change."},
+    confidence: {level: "high", why: "Producers returned evidence."}}' \
   > "$FULLSEND_OUTPUT_DIR/agent-result.json"
 ```
 
@@ -318,9 +342,14 @@ jq -n \
   --arg repo "<owner/repo>" \
   --arg head_sha "<sha>" \
   --arg body "<markdown review comment>" \
+  --arg change_summary "<one or two sentences>" \
   --argjson findings '<findings array>' \
-  '{action: $action, pr_number: $pr_number, repo: $repo,
-    head_sha: $head_sha, body: $body, findings: $findings}' \
+  --argjson producers '{"dispatched":[],"adapters":[],"skipped":[],"raised":{},"challenger":{"status":"skipped","reason":"no findings to adjudicate"}}' \
+  '{action: $action, schema_version: "3", pr_number: $pr_number, repo: $repo,
+    head_sha: $head_sha, body: $body, change_summary: $change_summary,
+    findings: $findings, producers: $producers,
+    risk: {level: "low", why: "Narrow internal change."},
+    confidence: {level: "high", why: "Producers returned evidence."}}' \
   > "$FULLSEND_OUTPUT_DIR/agent-result.json"
 ```
 
@@ -333,9 +362,14 @@ jq -n \
   --arg repo "<owner/repo>" \
   --arg head_sha "<sha>" \
   --arg body "<markdown review comment>" \
+  --arg change_summary "<one or two sentences>" \
   --argjson findings '<findings array>' \
-  '{action: $action, pr_number: $pr_number, repo: $repo,
-    head_sha: $head_sha, body: $body, findings: $findings}' \
+  --argjson producers '{"dispatched":[],"adapters":[],"skipped":[],"raised":{},"challenger":{"status":"ran","input":1,"kept":1,"removed":0,"merged":0,"downgraded":0,"removed_findings":[]}}' \
+  '{action: $action, schema_version: "3", pr_number: $pr_number, repo: $repo,
+    head_sha: $head_sha, body: $body, change_summary: $change_summary,
+    findings: $findings, producers: $producers,
+    risk: {level: "medium", why: "Feature-local blast radius."},
+    confidence: {level: "medium", why: "Blocking findings remain."}}' \
   > "$FULLSEND_OUTPUT_DIR/agent-result.json"
 ```
 
@@ -361,9 +395,14 @@ jq -n \
   --arg repo "<owner/repo>" \
   --arg head_sha "<sha>" \
   --arg body "<markdown review comment>" \
+  --arg change_summary "<one or two sentences>" \
+  --argjson producers '{"dispatched":[],"adapters":[],"skipped":[],"raised":{},"challenger":{"status":"skipped","reason":"no findings to adjudicate"}}' \
   --argjson label_actions '{"reason":"PR modifies API surface","actions":[{"action":"add","label":"area/api"}]}' \
-  '{action: $action, pr_number: $pr_number, repo: $repo,
-    head_sha: $head_sha, body: $body, label_actions: $label_actions}' \
+  '{action: $action, schema_version: "3", pr_number: $pr_number, repo: $repo,
+    head_sha: $head_sha, body: $body, change_summary: $change_summary,
+    producers: $producers, label_actions: $label_actions,
+    risk: {level: "low", why: "Narrow internal change."},
+    confidence: {level: "high", why: "Producers returned evidence."}}' \
   > "$FULLSEND_OUTPUT_DIR/agent-result.json"
 ```
 

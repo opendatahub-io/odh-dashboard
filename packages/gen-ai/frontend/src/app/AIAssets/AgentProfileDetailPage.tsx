@@ -31,11 +31,14 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, InProgressIcon } from '@patternfly/react-icons';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { AgentDeploymentSummary } from '~/app/agentProfile/types';
+import { AIModel } from '~/app/types';
 import { buildResponseAPICurl } from '~/app/agentProfile/deploymentUtils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import useFetchAIModels from '~/app/hooks/useFetchAIModels';
+import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
 import { genAiAiAssetsTabRoute, genAiChatPlaygroundRoute } from '~/app/utilities/routes';
 import NoData from '~/app/EmptyStates/NoData';
 import useFetchAgentProfiles from '~/app/hooks/useFetchAgentProfiles';
@@ -46,6 +49,8 @@ import AgentConfigurationCard from './components/agentprofiles/AgentConfiguratio
 type DeploymentAccordionItemProps = {
   deployment: AgentDeploymentSummary;
   isLatest: boolean;
+  aiModels: AIModel[];
+  initiallyExpanded: boolean;
 };
 
 const formatDeploymentDate = (value: string): string => {
@@ -96,24 +101,22 @@ const DeploymentSnapshotSkeleton: React.FC = () => (
 const DeploymentAccordionItem: React.FC<DeploymentAccordionItemProps> = ({
   deployment,
   isLatest,
+  aiModels,
+  initiallyExpanded,
 }) => {
   const { api } = useGenAiAPI();
-  const [isExpanded, setIsExpanded] = React.useState(false);
+  const [isExpanded, setIsExpanded] = React.useState(initiallyExpanded);
   const [details, setDetails] = React.useState<AgentDeploymentSummary | null>(null);
   const [loadingDetails, setLoadingDetails] = React.useState(false);
   const [detailsError, setDetailsError] = React.useState<string | null>(null);
-  const isExpandedRef = React.useRef(false);
+  const isExpandedRef = React.useRef(initiallyExpanded);
   const snapshotRequestInFlightRef = React.useRef(false);
   const contentId = React.useId();
   const toggleId = `agent-deployment-${deployment.name}-toggle`;
   const responseAPICurl = buildResponseAPICurl(deployment.routeUrl);
 
-  const handleToggle = React.useCallback(() => {
-    const willExpand = !isExpandedRef.current;
-    isExpandedRef.current = willExpand;
-    setIsExpanded(willExpand);
-
-    if (!willExpand || details || snapshotRequestInFlightRef.current) {
+  const loadDetails = React.useCallback(() => {
+    if (details || snapshotRequestInFlightRef.current) {
       return;
     }
 
@@ -129,6 +132,32 @@ const DeploymentAccordionItem: React.FC<DeploymentAccordionItemProps> = ({
         setLoadingDetails(false);
       });
   }, [api, deployment.name, details]);
+
+  const handleToggle = React.useCallback(() => {
+    const willExpand = !isExpandedRef.current;
+    isExpandedRef.current = willExpand;
+    setIsExpanded(willExpand);
+
+    if (willExpand) {
+      loadDetails();
+    }
+  }, [loadDetails]);
+
+  React.useEffect(() => {
+    if (!initiallyExpanded) {
+      return;
+    }
+
+    isExpandedRef.current = true;
+    setIsExpanded(true);
+    document.getElementById(toggleId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [initiallyExpanded, toggleId]);
+
+  React.useEffect(() => {
+    if (isExpanded) {
+      loadDetails();
+    }
+  }, [isExpanded, loadDetails]);
 
   const copyResponseAPICurl = React.useCallback(() => {
     void navigator.clipboard.writeText(responseAPICurl).catch(() => {
@@ -177,7 +206,11 @@ const DeploymentAccordionItem: React.FC<DeploymentAccordionItemProps> = ({
             )}
             {details?.config && (
               <StackItem>
-                <AgentConfigurationCard profile={details.config} title="Deployed snapshot" />
+                <AgentConfigurationCard
+                  profile={details.config}
+                  title="Deployed snapshot"
+                  aiModels={aiModels}
+                />
               </StackItem>
             )}
             {details && !details.config && !loadingDetails && !detailsError && (
@@ -230,6 +263,9 @@ const DeploymentAccordionItem: React.FC<DeploymentAccordionItemProps> = ({
 
 const AgentProfileDetailPage: React.FC = () => {
   const { namespace, profileId } = useParams<{ namespace: string; profileId: string }>();
+  const [searchParams] = useSearchParams();
+  const selectedDeploymentName = searchParams.get('deployment');
+  const { enabled: agentDeploymentsEnabled } = useGenAiAgentDeploymentEnabled();
   const {
     data: profile,
     loaded: profileLoaded,
@@ -239,8 +275,9 @@ const AgentProfileDetailPage: React.FC = () => {
     data: deployments = [],
     loaded: deploymentsLoaded,
     error: deploymentsError,
-  } = useFetchAgentDeployments(profileId);
+  } = useFetchAgentDeployments(profileId, { enabled: agentDeploymentsEnabled });
   const { data: profiles = [] } = useFetchAgentProfiles();
+  const { data: aiModels = [] } = useFetchAIModels();
 
   if (!profileLoaded && !profileError) {
     return (
@@ -315,41 +352,50 @@ const AgentProfileDetailPage: React.FC = () => {
               title="Current saved state"
               lastModified={lastModified}
               isSavedConfiguration
+              aiModels={aiModels}
             />
           </StackItem>
-          <StackItem>
-            <Content component="h2">Deployments ({deployments.length})</Content>
-          </StackItem>
-          <StackItem>
-            {!deploymentsLoaded && !deploymentsError && (
-              <Bullseye>
-                <Spinner size="md" aria-label="Loading deployments" />
-              </Bullseye>
-            )}
-            {deploymentsError && (
-              <Alert
-                variant="warning"
-                isInline
-                title="Unable to load deployments for this agent configuration."
-              />
-            )}
-            {deploymentsLoaded && !deploymentsError && deployments.length === 0 && (
-              <EmptyState headingLevel="h3" titleText="No deployments" variant="sm">
-                <EmptyStateBody>This agent configuration has not been deployed yet.</EmptyStateBody>
-              </EmptyState>
-            )}
-            {deployments.length > 0 && (
-              <Accordion asDefinitionList isBordered togglePosition="start">
-                {deployments.map((deployment, index) => (
-                  <DeploymentAccordionItem
-                    key={deployment.name}
-                    deployment={deployment}
-                    isLatest={index === 0}
+          {agentDeploymentsEnabled && (
+            <>
+              <StackItem>
+                <Content component="h2">Deployments ({deployments.length})</Content>
+              </StackItem>
+              <StackItem>
+                {!deploymentsLoaded && !deploymentsError && (
+                  <Bullseye>
+                    <Spinner size="md" aria-label="Loading deployments" />
+                  </Bullseye>
+                )}
+                {deploymentsError && (
+                  <Alert
+                    variant="warning"
+                    isInline
+                    title="Unable to load deployments for this agent configuration."
                   />
-                ))}
-              </Accordion>
-            )}
-          </StackItem>
+                )}
+                {deploymentsLoaded && !deploymentsError && deployments.length === 0 && (
+                  <EmptyState headingLevel="h3" titleText="No deployments" variant="sm">
+                    <EmptyStateBody>
+                      This agent configuration has not been deployed yet.
+                    </EmptyStateBody>
+                  </EmptyState>
+                )}
+                {deployments.length > 0 && (
+                  <Accordion asDefinitionList isBordered togglePosition="start">
+                    {deployments.map((deployment, index) => (
+                      <DeploymentAccordionItem
+                        key={deployment.name}
+                        deployment={deployment}
+                        isLatest={index === 0}
+                        aiModels={aiModels}
+                        initiallyExpanded={deployment.name === selectedDeploymentName}
+                      />
+                    ))}
+                  </Accordion>
+                )}
+              </StackItem>
+            </>
+          )}
         </Stack>
       </PageSection>
     </ApplicationsPage>
