@@ -206,7 +206,6 @@ const createMaaSConnection = (testData: AutoragTestData, maasFixture: AutoragMaa
 };
 
 const createVectorDbConnection = (testData: AutoragTestData): void => {
-  autoragConfigurePage.findSimpleRagRadio().click();
   autoragConfigurePage.findAddDatabaseDropdownToggle().click();
   autoragConfigurePage.findAddPgvectorConnectionOption().click();
   const connection = getVectorDatabaseConnection();
@@ -264,7 +263,7 @@ export const createAutoragConnections = (
  * Handles: login, wait for DSPA, navigate to experiments, create run,
  * fill name/description, select MaaS secret, select S3 connection,
  * upload document, browse and select it, upload evaluation dataset,
- * and select the Simple RAG database connection.
+ * and select the database connection.
  *
  * After this, optionally configure metric/patterns, then call `submitAutoragRun()`.
  */
@@ -389,7 +388,7 @@ export const configureAutoragRun = (
   cy.step('Wait for evaluation file upload to complete');
   autoragConfigurePage.findEvaluationFileValue().invoke('val').should('not.be.empty');
 
-  cy.step('Select Simple RAG database connection');
+  cy.step('Select database connection');
   if (options.createConnections) {
     cy.step('Create PGVector connection through the dashboard');
     createVectorDbConnection(testData);

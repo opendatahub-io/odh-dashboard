@@ -26,6 +26,7 @@ jest.mock('@odh-dashboard/ui-core', () => ({
       content: string | number;
       value: string | number;
       isDisabled?: boolean;
+      dropdownLabel?: React.ReactNode;
     }[];
   }) => (
     <div>
@@ -44,6 +45,7 @@ jest.mock('@odh-dashboard/ui-core', () => ({
           aria-disabled={option.isDisabled}
         >
           {option.content}
+          {option.dropdownLabel}
         </span>
       ))}
     </div>
@@ -319,6 +321,43 @@ describe('SecretSelector', () => {
     expect(screen.queryByTestId('secret-option-mixed')).not.toBeInTheDocument();
   });
 
+  it('should show compact provider labels for uniquely recognized database secrets', () => {
+    const databaseSecrets: SecretListItem[] = [
+      { uuid: 'milvus', name: 'milvus', data: { MILVUS_URI: 'https://milvus' } },
+      {
+        uuid: 'pgvector',
+        name: 'pgvector',
+        data: {
+          PGVECTOR_HOST: 'host',
+          PGVECTOR_PORT: '5432',
+          PGVECTOR_DB: 'db',
+          PGVECTOR_USER: 'user',
+          PGVECTOR_PASSWORD: 'password',
+        },
+      },
+      { uuid: 'neo4j', name: 'neo4j', data: { NEO4J_URI: 'neo4j://db' } },
+    ];
+    mockUseSecretsQuery.mockReturnValue({
+      data: databaseSecrets,
+      isPending: false,
+      error: null,
+      refetch: jest.fn(),
+    } as never);
+
+    render(
+      <SecretSelector
+        namespace="test"
+        type="database"
+        allowedProviders={['milvus', 'pgvector', 'neo4j']}
+        onChange={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Milvus')).toBeInTheDocument();
+    expect(screen.getByText('PGVector')).toBeInTheDocument();
+    expect(screen.getByText('Neo4j')).toBeInTheDocument();
+  });
+
   it('should preserve a mixed-provider legacy selection as an option', () => {
     const legacySecret: SecretListItem = {
       uuid: 'legacy',
@@ -338,6 +377,34 @@ describe('SecretSelector', () => {
         type="vector-db"
         allowedProviders={['milvus']}
         preserveSelectedValue
+        valueName="legacy"
+        onChange={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('secret-option-legacy')).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('should preserve a legacy selection supplied outside the database query as disabled', () => {
+    const legacySecret: SecretListItem = {
+      uuid: 'legacy',
+      name: 'legacy',
+      data: { MILVUS_URI: 'https://milvus', NEO4J_URI: 'neo4j://db' },
+    };
+    mockUseSecretsQuery.mockReturnValue({
+      data: [],
+      isPending: false,
+      error: null,
+      refetch: jest.fn(),
+    } as never);
+
+    render(
+      <SecretSelector
+        namespace="test"
+        type="database"
+        allowedProviders={['milvus', 'pgvector', 'neo4j']}
+        preserveSelectedValue
+        preservedSelection={legacySecret}
         valueName="legacy"
         onChange={jest.fn()}
       />,

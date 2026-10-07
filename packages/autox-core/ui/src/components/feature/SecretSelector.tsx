@@ -23,6 +23,7 @@ type TypeaheadSelectOption = Omit<SelectOptionProps, 'content' | 'isSelected'> &
   content: string | number;
   value: string | number;
   isSelected?: boolean;
+  dropdownLabel?: React.ReactNode;
   description?: React.ReactNode;
 };
 
@@ -50,6 +51,7 @@ export type SecretSelectorProps = Omit<
   provider?: 'milvus' | 'pgvector' | 'neo4j';
   allowedProviders?: readonly ('milvus' | 'pgvector' | 'neo4j')[];
   preserveSelectedValue?: boolean;
+  preservedSelection?: SecretSelection;
   value?: string;
   valueName?: string;
   onChange: (selection: SecretSelection | undefined) => void;
@@ -65,6 +67,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   provider,
   allowedProviders,
   preserveSelectedValue = false,
+  preservedSelection,
   value,
   valueName,
   onChange,
@@ -105,13 +108,15 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
       return matchingProviders.length === 1 && allowedProviders.includes(matchingProviders[0]);
     });
     if (preserveSelectedValue && valueName) {
-      const selectedSecret = allSecrets.find((secret) => secret.name === valueName);
+      const selectedSecret =
+        allSecrets.find((secret) => secret.name === valueName) ??
+        (preservedSelection?.name === valueName ? preservedSelection : undefined);
       if (selectedSecret && !filteredSecrets.some((secret) => secret.name === valueName)) {
         return [...filteredSecrets, selectedSecret];
       }
     }
     return filteredSecrets;
-  }, [allowedProviders, preserveSelectedValue, secrets, type, valueName]);
+  }, [allowedProviders, preserveSelectedValue, preservedSelection, secrets, type, valueName]);
   const hasSecrets = secretsList.length > 0;
   const hasError = !!error;
   const isLoading = !loaded;
@@ -177,6 +182,15 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
     () =>
       secretsList.map((secret) => {
         const labels = [];
+        const matchingProviders = getDatabaseProviders(secret);
+        const providerLabel =
+          ['database', 'vector-db'].includes(type ?? '') && matchingProviders.length === 1
+            ? matchingProviders[0] === 'pgvector'
+              ? 'PGVector'
+              : matchingProviders[0] === 'milvus'
+              ? 'Milvus'
+              : 'Neo4j'
+            : undefined;
         if (showType && secret.type) {
           labels.push(
             <Label key="type" color="teal" isCompact>
@@ -198,6 +212,11 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
         return {
           content: secret.displayName || secret.name,
           value: secret.uuid,
+          dropdownLabel: providerLabel ? (
+            <Label color="grey" variant="outline" isCompact>
+              {providerLabel}
+            </Label>
+          ) : undefined,
           isSelected: secret.uuid === selectedValue,
           isDisabled:
             preserveSelectedValue &&
@@ -206,9 +225,12 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
             ['database', 'vector-db'].includes(type) &&
             !!allowedProviders &&
             (() => {
-              const matchingProviders = getDatabaseProviders(secret);
+              const filteredProviders = getDatabaseProviders(secret);
               return (
-                matchingProviders.length !== 1 || !allowedProviders.includes(matchingProviders[0])
+                (preservedSelection?.name === secret.name &&
+                  !secrets?.some((item) => item.name === secret.name)) ||
+                filteredProviders.length !== 1 ||
+                !allowedProviders.includes(filteredProviders[0])
               );
             })(),
           description: labels.length ? (
@@ -219,6 +241,8 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
     [
       allowedProviders,
       preserveSelectedValue,
+      preservedSelection,
+      secrets,
       secretsList,
       selectedValue,
       showDescription,

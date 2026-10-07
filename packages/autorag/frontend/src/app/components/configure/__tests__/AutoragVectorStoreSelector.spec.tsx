@@ -36,14 +36,12 @@ jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
     onChange,
     dataTestId,
     type,
-    provider,
     value,
     onRefreshReady,
   }: {
     onChange: (value: unknown) => void;
     dataTestId: string;
     type: string;
-    provider?: string;
     value?: string;
     onRefreshReady?: (refresh: () => Promise<SecretListItem[] | undefined>) => void;
   }) => {
@@ -52,13 +50,13 @@ jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
       <button
         data-testid={dataTestId}
         data-secret-type={type}
-        data-secret-provider={provider}
+        data-secret-provider={undefined}
         data-selected-value={value}
         onClick={() =>
           onChange({
-            uuid: provider === 'neo4j' ? 'neo4j-1' : 'vector-db-1',
-            name: provider === 'neo4j' ? 'neo4j-secret' : 'vector-db-secret',
-            data: provider === 'neo4j' ? { NEO4J_URI: 'neo4j://example' } : {},
+            uuid: 'vector-db-1',
+            name: 'vector-db-secret',
+            data: {},
             invalid: false,
           })
         }
@@ -95,7 +93,7 @@ describe('AutoragVectorStoreSelector', () => {
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
   });
 
-  it('should query the existing vector-db Secret filter for Simple RAG', () => {
+  it('should query one database Secret filter for all providers', () => {
     render(
       <FormWrapper>
         <AutoragVectorStoreSelector />
@@ -104,26 +102,23 @@ describe('AutoragVectorStoreSelector', () => {
 
     expect(screen.getByTestId('database-secret-selector')).toHaveAttribute(
       'data-secret-type',
-      'vector-db',
+      'database',
     );
     expect(screen.getByTestId('database-secret-selector')).not.toHaveAttribute(
       'data-secret-provider',
     );
   });
 
-  it('should render labeled, non-required RAG template radios with descriptions', () => {
+  it('should not render RAG template mode controls', () => {
     render(
       <FormWrapper>
         <AutoragVectorStoreSelector />
       </FormWrapper>,
     );
 
-    expect(screen.getByRole('radiogroup', { name: 'RAG template' })).toBeInTheDocument();
-    expect(screen.getByTestId('autorag-rag-mode-simple')).toHaveAccessibleName('Simple RAG');
-    expect(screen.getByTestId('autorag-rag-mode-graph')).toHaveAccessibleName('Graph RAG');
-    expect(screen.getByText('Uses a Milvus or PGVector database connection.')).toBeInTheDocument();
-    expect(screen.getByText('Uses a Neo4j database connection.')).toBeInTheDocument();
-    expect(screen.getByText('RAG template').closest('label')).not.toHaveAttribute('for');
+    expect(screen.queryByRole('radiogroup', { name: 'RAG template' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('autorag-rag-mode-simple')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('autorag-rag-mode-graph')).not.toBeInTheDocument();
   });
 
   it('should render an action to add a vector database connection', () => {
@@ -142,7 +137,7 @@ describe('AutoragVectorStoreSelector', () => {
     ).toHaveClass('pf-m-secondary');
   });
 
-  it('should offer Milvus and PGVector creation options', async () => {
+  it('should offer exactly Milvus, PGVector, and Neo4j creation options', async () => {
     render(
       <FormWrapper>
         <AutoragVectorStoreSelector />
@@ -158,44 +153,40 @@ describe('AutoragVectorStoreSelector', () => {
     expect(screen.getByTestId('add-pgvector-connection-option')).toHaveTextContent(
       'Add PGVector connection',
     );
+    expect(screen.getByTestId('add-neo4j-connection-option')).toHaveTextContent(
+      'Add Neo4j connection',
+    );
   });
 
-  it('should switch to Graph RAG and open Neo4j creation directly', async () => {
+  it.each([
+    ['milvus', 'add-milvus-connection-option'],
+    ['pgvector', 'add-pgvector-connection-option'],
+    ['neo4j', 'add-neo4j-connection-option'],
+  ])('should preselect %s when adding that connection', async (provider, optionTestId) => {
     render(
       <FormWrapper>
         <AutoragVectorStoreSelector />
       </FormWrapper>,
     );
-
-    fireEvent.click(screen.getByTestId('autorag-rag-mode-graph'));
-    expect(screen.getByTestId('database-secret-selector')).toHaveAttribute(
-      'data-secret-type',
-      'database',
+    fireEvent.click(screen.getByTestId('add-database-dropdown-toggle'));
+    fireEvent.click(screen.getByTestId(optionTestId).querySelector('button') as HTMLElement);
+    expect(screen.getByTestId('vector-db-modal')).toHaveAttribute(
+      'data-initial-provider',
+      provider,
     );
-    expect(screen.getByTestId('database-secret-selector')).toHaveAttribute(
-      'data-secret-provider',
-      'neo4j',
-    );
-    expect(screen.queryByTestId('add-database-dropdown-toggle')).not.toBeInTheDocument();
-    expect(screen.getByTestId('add-database-connection-button')).toHaveTextContent(
-      'Add Neo4j connection',
-    );
-    fireEvent.click(screen.getByTestId('add-database-connection-button'));
-    expect(screen.getByTestId('vector-db-modal')).toHaveAttribute('data-initial-provider', 'neo4j');
   });
 
-  it('should clear the database selection when changing RAG mode', () => {
-    let values: typeof schema.defaults | undefined;
+  it('should preselect Milvus from the split-button primary action', () => {
     render(
-      <FormWrapper onChange={(nextValues) => (values = nextValues)}>
+      <FormWrapper>
         <AutoragVectorStoreSelector />
       </FormWrapper>,
     );
-
-    fireEvent.click(screen.getByTestId('database-secret-selector'));
-    expect(values?.db_secret_name).toBe('vector-db-secret');
-    fireEvent.click(screen.getByTestId('autorag-rag-mode-graph'));
-    expect(values?.db_secret_name).toBe('');
+    fireEvent.click(screen.getByTestId('add-database-connection-button'));
+    expect(screen.getByTestId('vector-db-modal')).toHaveAttribute(
+      'data-initial-provider',
+      'milvus',
+    );
   });
 
   it('should store the selected vector database Secret name', () => {
@@ -225,9 +216,8 @@ describe('AutoragVectorStoreSelector', () => {
     expect(screen.getByTestId('vector-db-modal')).toBeInTheDocument();
   });
 
-  it('should preserve a selected Graph RAG connection when the selector remounts', () => {
+  it('should preserve a selected connection when the selector remounts', () => {
     const ControlledSelector = () => {
-      const [mode, setMode] = React.useState<'simple' | 'graph'>('simple');
       const [selectedSecret, setSelectedSecret] = React.useState<SecretListItem>();
       const [renderKey, setRenderKey] = React.useState(0);
 
@@ -238,9 +228,7 @@ describe('AutoragVectorStoreSelector', () => {
           </button>
           <AutoragVectorStoreSelector
             key={renderKey}
-            mode={mode}
             selectedSecret={selectedSecret}
-            onModeChange={setMode}
             onSelectedSecretChange={setSelectedSecret}
           />
         </>
@@ -253,18 +241,12 @@ describe('AutoragVectorStoreSelector', () => {
       </FormWrapper>,
     );
 
-    fireEvent.click(screen.getByTestId('autorag-rag-mode-graph'));
     fireEvent.click(screen.getByTestId('database-secret-selector'));
     fireEvent.click(screen.getByTestId('remount-selector'));
 
-    expect(screen.getByTestId('autorag-rag-mode-graph')).toBeChecked();
-    expect(screen.getByTestId('database-secret-selector')).toHaveAttribute(
-      'data-secret-provider',
-      'neo4j',
-    );
     expect(screen.getByTestId('database-secret-selector')).toHaveAttribute(
       'data-selected-value',
-      'neo4j-1',
+      'vector-db-1',
     );
   });
 

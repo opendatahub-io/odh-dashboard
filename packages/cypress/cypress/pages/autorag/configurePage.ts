@@ -168,14 +168,6 @@ class AutoragConfigurePage {
   }
 
   // Step 2 - Database connection
-  findSimpleRagRadio() {
-    return cy.findByTestId('autorag-rag-mode-simple');
-  }
-
-  findGraphRagRadio() {
-    return cy.findByTestId('autorag-rag-mode-graph');
-  }
-
   findDatabaseSelector(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
     return cy.findByTestId('database-secret-selector', options);
   }
@@ -190,6 +182,10 @@ class AutoragConfigurePage {
 
   findAddPgvectorConnectionOption() {
     return cy.findByTestId('add-pgvector-connection-option');
+  }
+
+  findAddNeo4jConnectionOption() {
+    return cy.findByTestId('add-neo4j-connection-option');
   }
 
   findPgvectorConnectionNameInput() {
