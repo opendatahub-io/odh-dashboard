@@ -260,7 +260,7 @@ module.exports = merge(rspackCommon(), {
         const underline = '\x1b[4m';
         const reset = '\x1b[0m';
         const url = `http://localhost:${addr.port}${BASE_PATH}/`;
-        console.log(`${green}✓ MaaS Consumer Portal available at: ${underline}${url}${reset}`);
+        console.log(`${green}✓ MaaS Portal available at: ${underline}${url}${reset}`);
       } else {
         console.warn('MaaS Portal dev server started but could not determine address');
       }

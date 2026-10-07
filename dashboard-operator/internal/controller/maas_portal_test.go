@@ -492,7 +492,7 @@ func TestSetMaaSPortalModuleCondition(t *testing.T) {
 			assert.Equal(t, metav1.ConditionFalse, condition.Status)
 			assert.Equal(t, "RequiredModuleUnavailable", condition.Reason)
 			assert.Equal(t, common.ConditionSeverityError, condition.Severity)
-			assert.False(t, cm.IsHappy(), "a Managed MaaS Consumer Portal dependency failure must make the aggregate readiness false")
+			assert.False(t, cm.IsHappy(), "a Managed MaaS Portal dependency failure must make the aggregate readiness false")
 		})
 	}
 
@@ -547,7 +547,7 @@ func TestMarkMaaSPortalFederationConfigMapFailed(t *testing.T) {
 	assert.Equal(t, metav1.ConditionFalse, condition.Status)
 	assert.Equal(t, "MaaSConsumerPortalFederationConfigMapFailed", condition.Reason)
 	assert.Equal(t, common.ConditionSeverityError, condition.Severity)
-	assert.False(t, cm.IsHappy(), "a Managed MaaS Consumer Portal federation failure must make the aggregate readiness false")
+	assert.False(t, cm.IsHappy(), "a Managed MaaS Portal federation failure must make the aggregate readiness false")
 
 	t.Run("preserves an earlier portal failure", func(t *testing.T) {
 		dashboard := &v1alpha1.Dashboard{}
