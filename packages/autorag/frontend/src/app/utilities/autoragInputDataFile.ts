@@ -171,7 +171,6 @@ export const SUPPORTED_FORMAT: Record<string, Format> = {
   },
 };
 const SUPPORTED_FORMAT_LIST = Object.values(SUPPORTED_FORMAT);
-const AUDIO_MIME_TYPES = new Set(['audio/mpeg', 'audio/wav', 'audio/mp4']);
 
 export const SUPPORTED_FORMAT_EXTENSIONS = SUPPORTED_FORMAT_LIST.map((f) => f.extension);
 export const SUPPORTED_FORMAT_NAMES = [...new Set(SUPPORTED_FORMAT_LIST.map((f) => f.name))];
@@ -219,9 +218,6 @@ export function isAllowedInputDataUploadFile(file: File): boolean {
       if (allowed.toLowerCase() === ext) {
         return true;
       }
-    }
-    if (file.type && AUDIO_MIME_TYPES.has(file.type)) {
-      return false;
     }
   }
   return Boolean(file.type && file.type in INPUT_DATA_FILE_ACCEPT);

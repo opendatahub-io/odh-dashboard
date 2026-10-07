@@ -225,13 +225,6 @@ describe('autoragInputDataFile', () => {
       ).toBe(true);
     });
 
-    it.each(['audio/mpeg', 'audio/wav', 'audio/mp4'])(
-      'rejects a named unknown extension with new audio MIME %s',
-      (type) => {
-        expect(isAllowedInputDataUploadFile(new File(['x'], 'malware.exe', { type }))).toBe(false);
-      },
-    );
-
     it.each([
       ['document.odt', 'application/vnd.oasis.opendocument.text'],
       ['slides.odp', 'application/vnd.oasis.opendocument.presentation'],
