@@ -10,6 +10,29 @@ func DefaultCRDs() []*apiextensionsv1.CustomResourceDefinition {
 	return []*apiextensionsv1.CustomResourceDefinition{
 		CreateServingRuntimeCRD(),
 		CreateNIMAccountCRD(),
+		createOperatorMetadataCRD("datasciencecluster.opendatahub.io", "v2", "datascienceclusters", "DataScienceCluster", apiextensionsv1.ClusterScoped),
+		createOperatorMetadataCRD("operators.coreos.com", "v1alpha1", "subscriptions", "Subscription", apiextensionsv1.NamespaceScoped),
+	}
+}
+
+func createOperatorMetadataCRD(group, version, plural, kind string, scope apiextensionsv1.ResourceScope) *apiextensionsv1.CustomResourceDefinition {
+	preserveUnknown := true
+	return &apiextensionsv1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{Name: plural + "." + group},
+		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+			Group: group, Scope: scope,
+			Names: apiextensionsv1.CustomResourceDefinitionNames{Plural: plural, Kind: kind, ListKind: kind + "List"},
+			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{{
+				Name: version, Served: true, Storage: true,
+				Schema: &apiextensionsv1.CustomResourceValidation{OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+					Type: "object",
+					Properties: map[string]apiextensionsv1.JSONSchemaProps{
+						"spec":   {Type: "object", XPreserveUnknownFields: &preserveUnknown},
+						"status": {Type: "object", XPreserveUnknownFields: &preserveUnknown},
+					},
+				}},
+			}},
+		},
 	}
 }
 
