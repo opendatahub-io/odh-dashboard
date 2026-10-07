@@ -66,7 +66,7 @@ export const getApiKeyConfig =
   (hostPath = '') =>
   (opts: APIOptions): Promise<APIKeyConfig> =>
     handleRestFailures(
-      restGET(hostPath, `${API_URL_PREFIX}/api/${BFF_API_VERSION}/api-keys-config`, {}, opts),
+      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/api-keys-config`, {}, opts),
     ).then((response) => {
       if (isModArchResponse<unknown>(response) && isAPIKeyConfig(response.data)) {
         return response.data;
