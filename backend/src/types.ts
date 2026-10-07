@@ -1083,6 +1083,9 @@ export type DataScienceClusterInitializationList = {
 export type SubscriptionStatusData = {
   channel?: string;
   installedCSV?: string;
+  // OLM package name (OLM v1 only). The installed bundle name is not guaranteed to be derived
+  // from the package name, so this is the stable identity used to match OLM v1 installs.
+  packageName?: string;
   installPlanRefNamespace?: string;
   lastUpdated?: string;
   // Which OLM generation this entry was resolved from. Absent is treated as OLM v0 for

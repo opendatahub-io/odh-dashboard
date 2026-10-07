@@ -94,6 +94,7 @@ describe('resourceUtils', () => {
       expect(clusterExtensionToSubscriptionStatus(makeClusterExtension())).toEqual({
         channel: 'stable',
         installedCSV: 'rhods-operator.v2.19.0',
+        packageName: 'rhods-operator',
         installPlanRefNamespace: 'redhat-ods-operator',
         lastUpdated: '2026-10-06T00:00:00Z',
         source: 'OLMv1',
@@ -117,6 +118,7 @@ describe('resourceUtils', () => {
       expect(clusterExtensionToSubscriptionStatus(ce)).toEqual({
         channel: 'stable',
         installedCSV: undefined,
+        packageName: 'rhods-operator',
         installPlanRefNamespace: 'redhat-ods-operator',
         lastUpdated: undefined,
         source: 'OLMv1',
@@ -151,6 +153,44 @@ describe('resourceUtils', () => {
       mockSubscriptions([
         {
           installedCSV: 'rhods-operator.v2.19.0',
+          installPlanRefNamespace: 'redhat-ods-operator',
+          source: 'OLMv1',
+          installed: true,
+        },
+      ]);
+      await expect(getCSVForApp(mockFastify, appDef)).resolves.toEqual({
+        metadata: { name: 'rhods-operator.v2.19.0', namespace: 'redhat-ods-operator' },
+      });
+      expect(getNamespacedCustomObject).not.toHaveBeenCalled();
+    });
+
+    it('should match an installed OLM v1 extension by package name when the bundle name differs', async () => {
+      mockSubscriptions([
+        {
+          installedCSV: 'some-unrelated-bundle.v1.0.0',
+          packageName: 'rhods-operator',
+          installPlanRefNamespace: 'redhat-ods-operator',
+          source: 'OLMv1',
+          installed: true,
+        },
+      ]);
+      await expect(getCSVForApp(mockFastify, appDef)).resolves.toEqual({
+        metadata: { name: 'some-unrelated-bundle.v1.0.0', namespace: 'redhat-ods-operator' },
+      });
+      expect(getNamespacedCustomObject).not.toHaveBeenCalled();
+    });
+
+    it('should prefer an installed OLM v1 extension over a stale OLM v0 entry', async () => {
+      mockSubscriptions([
+        // Stale OLM v0 entry first in the merged list (no backing CSV).
+        {
+          installedCSV: 'rhods-operator.v2.18.0',
+          installPlanRefNamespace: 'redhat-ods-operator',
+          source: 'OLMv0',
+        },
+        {
+          installedCSV: 'rhods-operator.v2.19.0',
+          packageName: 'rhods-operator',
           installPlanRefNamespace: 'redhat-ods-operator',
           source: 'OLMv1',
           installed: true,

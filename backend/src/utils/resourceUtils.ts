@@ -182,6 +182,7 @@ export const clusterExtensionToSubscriptionStatus = (
   return {
     channel: ce.spec.source?.catalog?.channels?.[0],
     installedCSV: ce.status?.install?.bundle?.name,
+    packageName: ce.spec.source?.catalog?.packageName,
     installPlanRefNamespace: ce.spec.namespace,
     lastUpdated: installedCondition?.lastTransitionTime,
     source: 'OLMv1',
@@ -779,7 +780,18 @@ export const getCSVForApp = (
   }
 
   const subsStatus = getSubscriptions();
-  const subStatus = subsStatus.find((st) => st.installedCSV?.startsWith(app.spec.csvName));
+  // Prefer an installed OLM v1 ClusterExtension. The installed bundle name is not guaranteed to
+  // start with the catalog package name, so match on packageName as well; this also prevents a
+  // stale OLM v0 entry (which comes first in the merged list) from masking an installed OLM v1
+  // one. Fall back to the existing OLM v0 bundle-prefix match.
+  const subStatus =
+    subsStatus.find(
+      (st) =>
+        st.source === 'OLMv1' &&
+        st.installed &&
+        (st.packageName === app.spec.csvName || st.installedCSV?.startsWith(app.spec.csvName)),
+    ) ??
+    subsStatus.find((st) => st.source !== 'OLMv1' && st.installedCSV?.startsWith(app.spec.csvName));
 
   if (!subStatus) {
     return Promise.resolve(undefined);
