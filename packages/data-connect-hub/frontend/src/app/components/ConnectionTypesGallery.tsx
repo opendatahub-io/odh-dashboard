@@ -179,7 +179,8 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
         shouldRenderConnectionType = connectionType.matchesSearch(normalizedSearchTerm);
       }
       if (localFeatureFlags.tags && filterValues.labels.length) {
-        shouldRenderConnectionType = connectionType.matchesLabels(filterValues.labels);
+        shouldRenderConnectionType =
+          shouldRenderConnectionType && connectionType.matchesLabels(filterValues.labels);
       }
       return shouldRenderConnectionType;
     },
