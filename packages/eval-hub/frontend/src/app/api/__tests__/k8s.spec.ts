@@ -17,6 +17,7 @@ import {
   getEvalHubCRStatus,
   validateHardwareProfiles,
   getKueueWorkloadStatuses,
+  getEvaluationJobs,
   getEvaluationJob,
   getProviders,
   createEvaluationJob,
@@ -1099,6 +1100,33 @@ describe('getProviders', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].benchmarks).toBeUndefined();
+  });
+});
+
+describe('getEvaluationJobs', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should bypass cached responses while preserving request options', async () => {
+    mockRestGET.mockResolvedValue({ data: { items: [] } });
+    mockIsModArchResponse.mockReturnValue(true);
+    const opts = { headers: { 'X-Test': 'value' } };
+
+    await getEvaluationJobs('', { namespace: 'my-ns' })(opts);
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/jobs',
+      { namespace: 'my-ns' },
+      {
+        headers: {
+          'X-Test': 'value',
+          'Cache-Control': 'no-cache',
+        },
+      },
+    );
   });
 });
 

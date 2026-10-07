@@ -7,7 +7,6 @@ import {
   evaluationCopySuiteRoute,
   evaluationCreateSuiteRoute,
   evaluationGalleryNavigationState,
-  evaluationsBaseRoute,
 } from '~/app/routes';
 import type { BenchmarkNameMap } from '~/app/components/benchmarkUtils';
 import type { Collection } from '~/app/types';
@@ -16,12 +15,14 @@ type GalleryTabProps = {
   namespace: string;
   benchmarkNameMap: BenchmarkNameMap;
   onSelectCollection: (collection: Collection) => void;
+  onRunSuccess: () => void;
 };
 
 const GalleryTab: React.FC<GalleryTabProps> = ({
   namespace,
   benchmarkNameMap,
   onSelectCollection,
+  onRunSuccess,
 }) => {
   const navigate = useNavigate();
   const [collectionToRun, setCollectionToRun] = React.useState<Collection | undefined>();
@@ -47,8 +48,8 @@ const GalleryTab: React.FC<GalleryTabProps> = ({
 
   const handleRunSuccess = React.useCallback(() => {
     setCollectionToRun(undefined);
-    navigate({ pathname: evaluationsBaseRoute(namespace), search: '?tab=runs' });
-  }, [navigate, namespace]);
+    onRunSuccess();
+  }, [onRunSuccess]);
 
   return (
     <Stack

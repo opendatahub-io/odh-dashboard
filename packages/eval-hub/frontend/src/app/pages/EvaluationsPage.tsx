@@ -170,10 +170,12 @@ const EvaluationsPage: React.FC = () => {
     [navigate, namespace],
   );
 
-  const handleRunSuccess = React.useCallback(() => {
+  const handleRunSuccess = React.useCallback(async () => {
     setCollectionToRun(undefined);
     setCuratedCollectionToRun(undefined);
-    refreshEvaluations();
+    // Wait for the post-create list request before switching tabs so the Runs tab renders the
+    // refreshed result instead of the list that was loaded before the evaluation was created.
+    await refreshEvaluations();
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.set(TAB_QUERY_PARAM, RUNS_TAB);
     setSearchParams(nextSearchParams);
@@ -335,6 +337,7 @@ const EvaluationsPage: React.FC = () => {
                     namespace={namespace ?? ''}
                     benchmarkNameMap={benchmarkNameMap}
                     onSelectCollection={(collection) => handleSelectCollection(collection, true)}
+                    onRunSuccess={handleRunSuccess}
                   />
                 </Tab>
                 <Tab

@@ -304,7 +304,15 @@ export const getEvaluationJobs =
     }
 
     return handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs`, queryParams, opts),
+      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs`, queryParams, {
+        ...opts,
+        headers: {
+          ...opts.headers,
+          // The list changes immediately after a run is created. Do not let the browser reuse
+          // a pre-create response.
+          'Cache-Control': 'no-cache',
+        },
+      }),
     ).then((response) => {
       if (isModArchResponse<EvaluationJobsResponse | EvaluationJob[]>(response)) {
         const { data } = response;

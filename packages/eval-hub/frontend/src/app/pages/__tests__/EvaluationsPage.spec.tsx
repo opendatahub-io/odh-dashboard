@@ -75,17 +75,39 @@ jest.mock('~/app/components/EvaluationStatusModal', () => ({
 
 jest.mock('~/app/components/StartEvaluationRunModal', () => ({
   __esModule: true,
-  default: ({ collection, isOpen }: { collection?: { name: string }; isOpen: boolean }) =>
+  default: ({
+    collection,
+    isOpen,
+    onSuccess,
+  }: {
+    collection?: { name: string };
+    isOpen: boolean;
+    onSuccess?: () => void;
+  }) =>
     isOpen ? (
-      <div data-testid="evaluations-page-start-evaluation-run-modal">{collection?.name}</div>
+      <>
+        <div data-testid="evaluations-page-start-evaluation-run-modal">{collection?.name}</div>
+        <button type="button" data-testid="evaluation-run-success" onClick={onSuccess} />
+      </>
     ) : null,
 }));
 
 jest.mock('~/app/components/CuratedSuiteRunModal', () => ({
   __esModule: true,
-  default: ({ collection, isOpen }: { collection?: { name: string }; isOpen: boolean }) =>
+  default: ({
+    collection,
+    isOpen,
+    onSuccess,
+  }: {
+    collection?: { name: string };
+    isOpen: boolean;
+    onSuccess?: () => void;
+  }) =>
     isOpen ? (
-      <div data-testid="curated-suite-start-evaluation-run-modal">{collection?.name}</div>
+      <>
+        <div data-testid="curated-suite-start-evaluation-run-modal">{collection?.name}</div>
+        <button type="button" data-testid="curated-suite-run-success" onClick={onSuccess} />
+      </>
     ) : null,
 }));
 
@@ -431,6 +453,54 @@ describe('EvaluationsPage', () => {
 
     expect(screen.getByTestId('evaluations-page-start-evaluation-run-modal')).toHaveTextContent(
       'Model suite 2',
+    );
+  });
+
+  it('should refresh evaluations before navigating to the Runs tab after a successful run', async () => {
+    let resolveRefresh: (() => void) | undefined;
+    const refresh = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveRefresh = resolve;
+        }),
+    );
+    mockUseEvaluationJobs.mockReturnValue([[], true, undefined, refresh]);
+    renderPage('test-project', '?tab=evaluate');
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Run' })[0]);
+    fireEvent.click(screen.getByTestId('evaluation-run-success'));
+
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('location-search')).toHaveTextContent('?tab=evaluate');
+
+    resolveRefresh?.();
+
+    await waitFor(() =>
+      expect(screen.getByTestId('location-search')).toHaveTextContent('?tab=runs'),
+    );
+  });
+
+  it('should refresh evaluations before navigating after a successful Gallery run', async () => {
+    let resolveRefresh: (() => void) | undefined;
+    const refresh = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveRefresh = resolve;
+        }),
+    );
+    mockUseEvaluationJobs.mockReturnValue([[], true, undefined, refresh]);
+    renderPage('test-project');
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-primary-action-clawbench'));
+    fireEvent.click(screen.getByTestId('curated-suite-run-success'));
+
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('location-search')).toHaveTextContent('');
+
+    resolveRefresh?.();
+
+    await waitFor(() =>
+      expect(screen.getByTestId('location-search')).toHaveTextContent('?tab=runs'),
     );
   });
 
