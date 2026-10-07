@@ -333,7 +333,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
   const effectiveSelectedModel =
     selectedModel !== undefined && availableModelOptions.some((opt) => opt.value === selectedModel)
       ? selectedModel
-      : (availableModelOptions[0]?.value ?? '');
+      : (availableModelOptions[0]?.value ?? 'No models available');
 
   const selectedModelOption = availableModelOptions.find(
     (opt) => opt.value === effectiveSelectedModel,
@@ -662,14 +662,16 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                     </HelperText>
                   </FormHelperText>
                 </FormGroup>
-                <CopyableDisabledField
-                  id="api-key-model-id"
-                  label="Model ID"
-                  value={effectiveSelectedModel}
-                  copiedFieldId={copiedFieldId}
-                  onCopy={handleFieldCopy}
-                  onTooltipHidden={() => setCopiedFieldId(undefined)}
-                />
+                {availableModelOptions.length > 0 && (
+                  <CopyableDisabledField
+                    id="api-key-model-id"
+                    label="Model ID"
+                    value={effectiveSelectedModel}
+                    copiedFieldId={copiedFieldId}
+                    onCopy={handleFieldCopy}
+                    onTooltipHidden={() => setCopiedFieldId(undefined)}
+                  />
+                )}
                 {modelDocumentationUrl && isSelectedModelInternal && (
                   <CopyableDisabledField
                     id="api-key-model-documentation"
