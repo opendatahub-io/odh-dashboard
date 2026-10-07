@@ -150,6 +150,35 @@ func TestResolveModuleStatuses(t *testing.T) {
 			},
 		},
 		{
+			name:    "aipipelines Managed enables autorag",
+			wantLen: 11,
+			spec: v1alpha1.DashboardSpec{
+				Components: map[string]v1alpha1.ComponentAvailability{
+					"aipipelines": {ManagementState: "Managed"},
+				},
+			},
+			wantPhases: map[string]v1alpha1.ModulePhase{
+				"autorag": v1alpha1.ModulePhaseDeployed,
+				"genAi":   v1alpha1.ModulePhaseDeployed,
+			},
+		},
+		{
+			name:    "autorag explicit disable override disables module",
+			wantLen: 11,
+			spec: v1alpha1.DashboardSpec{
+				Modules: map[string]v1alpha1.ModuleOverride{
+					"autorag": {State: v1alpha1.ModuleDisabled},
+				},
+			},
+			wantPhases: map[string]v1alpha1.ModulePhase{
+				"autorag": v1alpha1.ModulePhaseDisabled,
+				"genAi":   v1alpha1.ModulePhaseDeployed,
+			},
+			wantReason: map[string]string{
+				"autorag": "ExplicitOverride",
+			},
+		},
+		{
 			name:    "feastoperator Managed enables data registry",
 			wantLen: 11,
 			spec: v1alpha1.DashboardSpec{
@@ -461,6 +490,14 @@ func TestModuleRegistry(t *testing.T) {
 			assert.NotEmpty(t, mod.ManifestSlug, "module must have ManifestSlug")
 		})
 	}
+}
+
+func TestAutoRAGModuleRegistration(t *testing.T) {
+	module := moduleRegistry["autorag"]
+	assert.Equal(t, "autorag-ui", module.ContainerName)
+	assert.Equal(t, int32(8743), module.Port)
+	assert.Equal(t, []string{"aipipelines"}, module.RequiredDSCComponents)
+	assert.Equal(t, []string{"genAi"}, module.InterModuleDependencies)
 }
 
 func TestModuleNames(t *testing.T) {

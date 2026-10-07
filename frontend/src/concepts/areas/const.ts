@@ -8,7 +8,6 @@ import {
 export const techPreviewFlags = {
   genAiTracing: false,
   automl: false,
-  autorag: false,
   guardrails: false,
   modelAsService: true,
   aiAssetCustomEndpoints: false,
@@ -30,6 +29,10 @@ export const techPreviewFlags = {
   connectionTest: false,
   dataRegistry: false,
   dataConnectHub: false,
+} satisfies Partial<DashboardCommonConfig>;
+
+export const generallyAvailableFlags = {
+  autorag: true,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -102,6 +105,7 @@ export const advancedAIMLFlags = {
 // Combined feature flags object
 const allFeatureFlagsConfig = {
   ...devTemporaryFeatureFlags,
+  ...generallyAvailableFlags,
   ...techPreviewFlags,
   ...coreDashboardFlags,
   ...projectManagementFlags,

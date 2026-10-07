@@ -5,6 +5,7 @@ import { FeatureFlagLauncherProps } from '#~/app/featureFlags/FeatureFlagLaunche
 import { useDevFlags } from '#~/app/featureFlags/useDevFeatureFlags';
 import {
   devTemporaryFeatureFlags,
+  generallyAvailableFlags,
   techPreviewFlags,
   coreDashboardFlags,
   projectManagementFlags,
@@ -81,6 +82,8 @@ const FeatureFlagModal: React.FC<Props> = ({
           <Content component="p">
             Flags that have an indeterminate value are because they are *not* defined in the server.
           </Content>
+          <h2> Generally Available Flags </h2>
+          {renderFlags(Object.keys(generallyAvailableFlags), dashboardConfig)}
           <h2> Tech Preview Flags </h2>
           {renderFlags(Object.keys(techPreviewFlags), dashboardConfig)}
           <h2> Temporary Developer Feature Flags</h2>
