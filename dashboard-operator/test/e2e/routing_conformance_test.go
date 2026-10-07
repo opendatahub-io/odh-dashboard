@@ -5,6 +5,7 @@ package e2e
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"mime"
 	"net/http"
@@ -180,30 +181,49 @@ func TestE2E_MaaSConsumerPortalRoutingConformance(t *testing.T) {
 
 func requestGatewayPath(t *testing.T, path string) gatewayResponse {
 	t.Helper()
+	response, err := fetchGatewayPath(context.Background(), path)
+	require.NoError(t, err)
+	return response
+}
+
+// fetchGatewayPath lets convergence checks retry transport and proxy failures
+// while preserving the same authentication, TLS, and response limits.
+func fetchGatewayPath(ctx context.Context, path string) (gatewayResponse, error) {
+	if restConfig.BearerToken == "" {
+		return gatewayResponse{}, fmt.Errorf("kubeconfig must provide a bearer token for the authenticated Gateway request")
+	}
 	requestURL := url.URL{Scheme: "https", Host: testGatewayDomain, Path: path}
-	ctx, cancel := context.WithTimeout(context.Background(), httpRequestTimeout)
+	ctx, cancel := context.WithTimeout(ctx, httpRequestTimeout)
 	defer cancel()
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL.String(), nil)
-	require.NoError(t, err)
-	require.NotEmpty(t, restConfig.BearerToken,
-		"kubeconfig must provide a bearer token for the authenticated Gateway request")
+	if err != nil {
+		return gatewayResponse{}, err
+	}
 	request.Header.Set("Authorization", "Bearer "+restConfig.BearerToken)
 
-	response, err := routeHTTPClient().Do(request)
-	require.NoError(t, err)
-	defer func() {
-		require.NoError(t, response.Body.Close())
-	}()
+	httpClient := routeHTTPClient()
+	defer httpClient.CloseIdleConnections()
+	response, err := httpClient.Do(request)
+	if err != nil {
+		return gatewayResponse{}, err
+	}
 
-	body, err := io.ReadAll(io.LimitReader(response.Body, maxRouteResponseBody+1))
-	require.NoError(t, err)
-	require.LessOrEqual(t, len(body), maxRouteResponseBody,
-		"Gateway response for path %s exceeded the %d-byte diagnostic limit", path, maxRouteResponseBody)
+	body, readErr := io.ReadAll(io.LimitReader(response.Body, maxRouteResponseBody+1))
+	closeErr := response.Body.Close()
+	if readErr != nil {
+		return gatewayResponse{}, readErr
+	}
+	if closeErr != nil {
+		return gatewayResponse{}, closeErr
+	}
+	if len(body) > maxRouteResponseBody {
+		return gatewayResponse{}, fmt.Errorf("Gateway response for path %s exceeded the %d-byte diagnostic limit", path, maxRouteResponseBody)
+	}
 
 	return gatewayResponse{
 		statusCode:  response.StatusCode,
 		status:      response.Status,
 		contentType: response.Header.Get("Content-Type"),
 		body:        body,
-	}
+	}, nil
 }
