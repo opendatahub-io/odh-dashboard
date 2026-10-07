@@ -10,11 +10,11 @@ import {
   validateEvidenceDirectory,
   validateObservabilityContractRef,
   validateRequiredDashboardRecords,
-} from '../../../../cypress/cypress/utils/observabilityContract';
+} from '../observabilityContract';
 
 const fixturePath = path.resolve(
   __dirname,
-  '../../../../cypress/cypress/fixtures/e2e/observability/release_contract.yaml',
+  '../../fixtures/e2e/observability/release_contract.yaml',
 );
 
 describe('parseObservabilityContractYaml', () => {

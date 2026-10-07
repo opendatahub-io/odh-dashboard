@@ -141,14 +141,16 @@ const getRequestTimeRange = (url: URL): ObservabilityTimeRange => {
 };
 
 const normalizePromql = (query: string): string =>
-  query
-    .replace(/\$\{([^}]+)\}/g, '$$$1')
-    .replace(/\s+/g, '')
-    .replace(/=~/g, '=');
+  query.replace(/\$\{([^}]+)\}/g, '$$$1').replace(/\s+/g, '');
 
 const getPromqlMetric = (query: string): string | undefined => {
   const selectorMetric = query.match(/(?:^|[({,])([a-zA-Z_:][a-zA-Z0-9_:]*)(?=\{|$)/);
   return selectorMetric?.[1];
+};
+
+const hasPromqlMetricToken = (query: string, metric: string): boolean => {
+  const escapedMetric = metric.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?:^|[^a-zA-Z0-9_:])${escapedMetric}(?:$|[^a-zA-Z0-9_:])`).test(query);
 };
 
 const getPromqlMatchers = (query: string): Map<string, string> => {
@@ -803,16 +805,16 @@ class ObservabilityDashboardPage {
       return true;
     }
 
-    const contractMetric = getPromqlMetric(normalizedContractQuery);
-    if (contractMetric && normalizedRequestQuery.includes(contractMetric)) {
+    const contractMetric = getPromqlMetric(record.promql);
+    if (contractMetric && hasPromqlMetricToken(request.query, contractMetric)) {
       return true;
     }
 
     // Dashboard panels may aggregate or join a producer query while preserving its
     // selector semantics. For those queries, compare the selector keys that overlap
     // with the release contract instead of requiring identical PromQL text.
-    const contractMatchers = getPromqlMatchers(normalizedContractQuery);
-    const requestMatchers = getPromqlMatchers(normalizedRequestQuery);
+    const contractMatchers = getPromqlMatchers(record.promql);
+    const requestMatchers = getPromqlMatchers(request.query);
     const isAggregateQuery = /(?:^|[^a-zA-Z0-9_])(sum|avg|count|max|min|rate|increase)\(/.test(
       request.query,
     );

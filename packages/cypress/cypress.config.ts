@@ -48,9 +48,7 @@ const requiresImmutableObservabilityContractRef =
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const isObservabilityLiveRun =
-  !env.CY_MOCK &&
-  (env.CY_OBSERVABILITY_LIVE === 'true' || Boolean(env.RHOAI_OBSERVABILITY_CONTRACT_REF));
+const isObservabilityLiveRun = env.CY_OBSERVABILITY_LIVE === 'true' && !env.CY_MOCK;
 
 const getObservabilityContractOutputPath = (): string =>
   path.resolve(

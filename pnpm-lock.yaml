@@ -2714,6 +2714,9 @@ importers:
       '@odh-dashboard/internal':
         specifier: workspace:*
         version: link:../../frontend/src
+      '@odh-dashboard/jest-config':
+        specifier: workspace:*
+        version: link:../jest-config
       '@odh-dashboard/k8s-core':
         specifier: workspace:*
         version: link:../k8s-core

@@ -689,8 +689,10 @@ pnpm run run:e2e:observability
 ```
 
 The suite writes sanitized observability evidence below
-`packages/cypress/results/<results-dir>/e2e/observability/`. It is not included
-in ordinary E2E runs unless the observability command is selected.
+`packages/cypress/results/e2e/observability/` by default. `CY_RESULTS_DIR` may set
+a relative directory under the Cypress project root or an absolute directory; the
+configured directory is not prefixed with an additional `results/` segment. It is
+not included in ordinary E2E runs unless the observability command is selected.
 
 See [bff-e2e-testing.md](./bff-e2e-testing.md) for details on the local stack model.
 

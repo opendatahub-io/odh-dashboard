@@ -7,7 +7,7 @@ import {
   isPrometheusVariablePath,
   parsePrometheusResponseEvidence,
   requestContainsNamespace,
-} from '../../../../cypress/cypress/utils/observabilityResponse';
+} from '../observabilityResponse';
 
 const unauthorizedSeriesResponse = {
   status: 'success',
