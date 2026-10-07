@@ -300,13 +300,7 @@ export type ClusterExtensionKind = {
         version?: string;
       };
     };
-    conditions?: {
-      type: string;
-      status: string;
-      reason?: string;
-      message?: string;
-      lastTransitionTime?: string;
-    }[];
+    conditions?: K8sCondition[];
   };
 } & K8sResourceCommon;
 

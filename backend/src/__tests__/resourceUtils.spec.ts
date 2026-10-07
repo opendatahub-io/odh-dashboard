@@ -2,6 +2,7 @@ import {
   isRHOAI,
   clusterExtensionToSubscriptionStatus,
   getCSVForApp,
+  selectOperatorSubscriptionStatus,
 } from '../utils/resourceUtils';
 import * as resourceUtils from '../utils/resourceUtils';
 import {
@@ -124,6 +125,52 @@ describe('resourceUtils', () => {
         source: 'OLMv1',
         installed: false,
       });
+    });
+  });
+
+  describe('selectOperatorSubscriptionStatus', () => {
+    it('should match an installed OLM v1 operator by package name when the bundle name differs', () => {
+      const v1: SubscriptionStatusData = {
+        installedCSV: 'some-renamed-bundle.v3.6.0',
+        packageName: 'rhods-operator',
+        installPlanRefNamespace: 'redhat-ods-operator',
+        source: 'OLMv1',
+        installed: true,
+      };
+      expect(selectOperatorSubscriptionStatus([v1], 'rhods-operator')).toBe(v1);
+    });
+
+    it('should fall back to the OLM v0 bundle-name match', () => {
+      const v0: SubscriptionStatusData = {
+        installedCSV: 'rhods-operator.3.6.0',
+        installPlanRefNamespace: 'redhat-ods-operator',
+        source: 'OLMv0',
+      };
+      expect(selectOperatorSubscriptionStatus([v0], 'rhods-operator')).toBe(v0);
+    });
+
+    it('should prefer an installed OLM v1 operator over a stale OLM v0 entry', () => {
+      const v0: SubscriptionStatusData = {
+        installedCSV: 'rhods-operator.3.5.0',
+        installPlanRefNamespace: 'redhat-ods-operator',
+        source: 'OLMv0',
+      };
+      const v1: SubscriptionStatusData = {
+        installedCSV: 'some-renamed-bundle.v3.6.0',
+        packageName: 'rhods-operator',
+        installPlanRefNamespace: 'redhat-ods-operator',
+        source: 'OLMv1',
+        installed: true,
+      };
+      expect(selectOperatorSubscriptionStatus([v0, v1], 'rhods-operator')).toBe(v1);
+    });
+
+    it('should return undefined when no entry matches', () => {
+      const other: SubscriptionStatusData = {
+        installedCSV: 'some-other-operator.v1',
+        source: 'OLMv0',
+      };
+      expect(selectOperatorSubscriptionStatus([other], 'rhods-operator')).toBeUndefined();
     });
   });
 
