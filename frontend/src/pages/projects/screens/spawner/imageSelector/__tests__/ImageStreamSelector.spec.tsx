@@ -30,7 +30,7 @@ const createImages = (namespace = 'dashboard') =>
     }),
   );
 
-const expectedLabels = ['Image 1Community', 'Image 0Custom', 'Image 2Secure', 'Image 3Unknown'];
+const expectedLabels = ['Image 2Secure', 'Image 1Community', 'Image 0Custom', 'Image 3Unknown'];
 
 describe('ImageStreamSelector', () => {
   beforeEach(() => {
@@ -62,9 +62,9 @@ describe('ImageStreamSelector', () => {
     fireEvent.click(input);
 
     expect(screen.getAllByRole('heading').map((heading) => heading.textContent)).toEqual([
+      'Secure',
       'Community',
       'Custom',
-      'Secure',
       'Unknown',
     ]);
     screen.getAllByRole('option').forEach((option, index) => {

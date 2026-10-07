@@ -15,5 +15,12 @@ export const getImageTierColor = (tier: string): LabelProps['color'] =>
 export const getImageStreamTier = (imageStream: ImageStreamKind): string =>
   imageStream.metadata.annotations?.[ImageStreamAnnotation.NOTEBOOK_TIER] || 'custom';
 
-export const compareImageStreamTier = (a: ImageStreamKind, b: ImageStreamKind): number =>
-  getImageStreamTier(a).localeCompare(getImageStreamTier(b)) || compareImageStreamOrder(a, b);
+export const compareImageStreamTier = (a: ImageStreamKind, b: ImageStreamKind): number => {
+  const tierA = getImageStreamTier(a);
+  const tierB = getImageStreamTier(b);
+  return (
+    Number(tierB === 'secure') - Number(tierA === 'secure') ||
+    tierA.localeCompare(tierB) ||
+    compareImageStreamOrder(a, b)
+  );
+};

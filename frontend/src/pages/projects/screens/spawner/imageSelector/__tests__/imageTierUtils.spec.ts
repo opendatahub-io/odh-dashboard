@@ -46,7 +46,7 @@ describe('getImageStreamTier', () => {
 });
 
 describe('compareImageStreamTier', () => {
-  it('should sort tiers alphabetically while preserving image order within each tier without mutating input', () => {
+  it('should put secure first, then sort other tiers alphabetically and preserve image order without mutating input', () => {
     const images = [
       ['custom-first', undefined, '1'],
       ['community', 'community', '1'],
@@ -69,12 +69,12 @@ describe('compareImageStreamTier', () => {
     );
     const original = [...images];
     expect(images.toSorted(compareImageStreamTier).map((image) => image.metadata.name)).toEqual([
-      'community',
-      'custom-first',
-      'unknown',
       'secure-first',
       'secure-tied',
       'secure-later',
+      'community',
+      'custom-first',
+      'unknown',
     ]);
     expect(images).toEqual(original);
   });
