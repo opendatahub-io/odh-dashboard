@@ -828,15 +828,22 @@ class ObservabilityDashboardPage {
     }
 
     const contractMetric = getPromqlMetric(record.promql);
-    if (contractMetric && hasPromqlMetricToken(request.query, contractMetric)) {
+    const contractMatchers = getPromqlMatchers(record.promql);
+    const requestMatchers = getPromqlMatchers(request.query);
+    const hasContractSelectorKeys = [...contractMatchers.keys()].every((label) =>
+      requestMatchers.has(label),
+    );
+    if (
+      contractMetric &&
+      hasPromqlMetricToken(request.query, contractMetric) &&
+      hasContractSelectorKeys
+    ) {
       return true;
     }
 
     // Dashboard panels may aggregate or join a producer query while preserving its
-    // selector semantics. For those queries, compare the selector keys that overlap
-    // with the release contract instead of requiring identical PromQL text.
-    const contractMatchers = getPromqlMatchers(record.promql);
-    const requestMatchers = getPromqlMatchers(request.query);
+    // selector semantics. For those queries, compare the contract's selector keys
+    // and operators instead of requiring identical PromQL text.
     const isAggregateQuery = /(?:^|[^a-zA-Z0-9_])(sum|avg|count|max|min|rate|increase)\(/.test(
       request.query,
     );
@@ -844,7 +851,7 @@ class ObservabilityDashboardPage {
       isAggregateQuery &&
       [...contractMatchers.entries()].every(
         ([label, operator]) =>
-          !requestMatchers.has(label) || requestMatchers.get(label) === operator,
+          requestMatchers.has(label) && requestMatchers.get(label) === operator,
       )
     );
   }
