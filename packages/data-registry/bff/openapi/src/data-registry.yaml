@@ -125,7 +125,10 @@ paths:
         when DCH is unconfigured, unreachable, times out, or returns an upstream 5xx.
         Authorization errors, other 4xx responses and invalid response contracts do
         not trigger fallback. Unresolved type IDs omit the affected connections and
-        produce metadata.warnings. Lookup failures never modify saved asset references.
+        produce an UNRESOLVED_CONNECTION_TYPE warning. When a configured DCH lookup
+        fails and the RHOAI fallback succeeds, metadata.warnings includes DCH_FALLBACK.
+        An unconfigured DCH integration falls back silently. Lookup failures never
+        modify saved asset references.
       parameters:
         - name: namespace
           in: path
@@ -1190,7 +1193,7 @@ components:
                 properties:
                   code:
                     type: string
-                    enum: [UNRESOLVED_CONNECTION_TYPE]
+                    enum: [UNRESOLVED_CONNECTION_TYPE, DCH_FALLBACK]
                   message:
                     type: string
       examples:
@@ -1209,6 +1212,15 @@ components:
             warnings:
               - code: UNRESOLVED_CONNECTION_TYPE
                 message: Some connections could not be loaded because their connector types are unavailable.
+        - data:
+            - type: rhai
+              secret_name: production-data
+              name: Production data
+              connectionType: s3
+          metadata:
+            warnings:
+              - code: DCH_FALLBACK
+                message: Some connection options could not be loaded. Showing currently available connections.
     ConnectionRef:
       description: Stable RHOAI Secret or DCH connection identifier, with display-only fields.
       oneOf:

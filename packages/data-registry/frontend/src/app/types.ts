@@ -189,7 +189,7 @@ export type ErrorResponse = {
 export type ConnectionModel = ConnectionRef;
 
 export type ConnectionWarning = {
-  code: 'UNRESOLVED_CONNECTION_TYPE';
+  code: 'UNRESOLVED_CONNECTION_TYPE' | 'DCH_FALLBACK';
   message: string;
 };
 
