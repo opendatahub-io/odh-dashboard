@@ -59,6 +59,7 @@ describe('Runtime image library details', () => {
     cy.findByRole('tabpanel', { name: 'Serving runtime template' })
       .findByText(/# Example only\. Not deployable\./)
       .should('be.visible');
+    cy.testA11y();
   });
 
   it('copies the container image', () => {
@@ -71,6 +72,7 @@ describe('Runtime image library details', () => {
     cy.get('@clipboardWrite')
       .its('firstCall.args.0')
       .should('equal', 'registry.example.com/mock/vllm:0.6.2');
+    cy.testA11y();
   });
 
   it('shows both configuration tabs and copies the selected YAML', () => {
@@ -90,6 +92,7 @@ describe('Runtime image library details', () => {
     cy.get('@clipboardWrite')
       .its('secondCall.args.0')
       .should('include', 'kind: LLMInferenceServiceConfig');
+    cy.testA11y();
   });
 
   it('does not expose details when the feature flag is disabled', () => {
@@ -97,16 +100,19 @@ describe('Runtime image library details', () => {
     cy.visitWithLogin(detailsUrl);
     cy.location('pathname').should('eq', `${settingsUrl}/general-settings`);
     cy.findByTestId('runtime-catalog-details').should('not.exist');
+    cy.testA11y();
   });
 
   it('does not expose details to a non-admin user', () => {
     asProjectEditUser();
     cy.visitWithLogin(detailsUrl);
     pageNotfound.findPage().should('exist');
+    cy.testA11y();
   });
 
   it('shows not found for an unknown runtime', () => {
     cy.visitWithLogin(`${catalogUrl}/unknown-runtime`);
     cy.findByRole('heading', { name: 'Runtime image not found' }).should('be.visible');
+    cy.testA11y();
   });
 });

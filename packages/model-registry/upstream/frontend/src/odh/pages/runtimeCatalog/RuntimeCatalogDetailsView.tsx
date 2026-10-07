@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Link, useParams } from 'react-router-dom';
-import yaml from 'js-yaml';
 import {
   Alert,
   Breadcrumb,
@@ -34,6 +33,7 @@ import {
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
 import CodeBlockComponent from '~/app/shared/markdown/components/CodeBlockComponent';
+import { formatRuntimePublishedDate, formatRuntimeTemplate } from './runtimeCatalogDetailsUtils';
 import {
   RuntimeDetails,
   RuntimeDisplayDetails,
@@ -49,18 +49,6 @@ export type RuntimeCatalogDetailsViewProps = {
   loading?: boolean;
   error?: Error;
   notFound?: boolean;
-};
-
-const formatRuntimeTemplate = (template: string | undefined, isSample: boolean): string => {
-  if (!template) {
-    return 'N/A';
-  }
-  const warning = isSample ? '# Example only. Not deployable.\n' : '';
-  try {
-    return warning + yaml.dump(JSON.parse(template), { lineWidth: -1, noRefs: true });
-  } catch {
-    return warning + template;
-  }
 };
 
 const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
@@ -83,12 +71,7 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
       .map((platform) => platform.trim())
       .filter((platform) => Boolean(platform) && platform !== 'N/A') ?? [];
   const modelFormats = runtimeDetails.supportedModelFormats?.map(({ name }) => name).join(', ');
-  const publishedDate = runtimeDetails.publishedDate
-    ? new Date(runtimeDetails.publishedDate).toLocaleDateString('en-US', {
-        dateStyle: 'long',
-        timeZone: 'UTC',
-      })
-    : undefined;
+  const publishedDate = formatRuntimePublishedDate(runtimeDetails.publishedDate);
 
   return (
     <>
