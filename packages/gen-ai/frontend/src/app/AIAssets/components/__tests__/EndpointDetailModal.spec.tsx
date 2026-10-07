@@ -206,6 +206,22 @@ describe('EndpointDetailModal', () => {
     ).toContain('"messages":[{"role":"user","content":"Hello, world!"}]');
   });
 
+  it('should create a transcription usage example with an audio-file placeholder', () => {
+    const usageExample = buildModelUsageExample(
+      'https://api.example.com/maas-api',
+      'transcription-model',
+      'transcription',
+      'apiKey',
+    );
+
+    expect(usageExample).toContain(
+      "curl -X POST 'https://api.example.com/maas-api/v1/audio/transcriptions'",
+    );
+    expect(usageExample).toContain('-F "file=@<path-to-audio-file>"');
+    expect(usageExample).toContain('-F "model=transcription-model"');
+    expect(usageExample).not.toContain('Content-Type: application/json');
+  });
+
   it('should not duplicate the API version when the Base URL already ends in /v1', () => {
     expect(
       buildModelUsageExample('https://api.example.com/v1', 'chat-model', 'llm', 'apiKey'),

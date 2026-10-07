@@ -44,11 +44,14 @@ export const buildModelUsageExample = (
     }
 
     const isEmbedding = modelType === 'embedding';
+    const isTranscription = modelType === 'transcription';
     requestURL.search = '';
     requestURL.hash = '';
     const basePath = requestURL.pathname.replace(/\/$/, '');
     const apiVersionPath = basePath.endsWith('/v1') ? basePath : `${basePath}/v1`;
-    requestURL.pathname = `${apiVersionPath}/${isEmbedding ? 'embeddings' : 'chat/completions'}`;
+    requestURL.pathname = `${apiVersionPath}/${
+      isEmbedding ? 'embeddings' : isTranscription ? 'audio/transcriptions' : 'chat/completions'
+    }`;
 
     const requestBody = isEmbedding
       ? { model: modelID, input: 'Hello, world!' }
@@ -61,13 +64,21 @@ export const buildModelUsageExample = (
         ? ['export API_KEY="<your-api-key>"', '', '  -H "Authorization: Bearer $API_KEY" \\']
         : ['export TOKEN="<your-openshift-token>"', '', '  -H "Authorization: Bearer $TOKEN" \\'];
 
-    return [
-      ...authenticationLines.slice(0, 2),
-      `curl -X POST '${shellSafeURL}' \\`,
-      '  -H "Content-Type: application/json" \\',
-      ...authenticationLines.slice(2),
-      `  -d '${shellSafeBody}'`,
-    ].join('\n');
+    const requestLines = isTranscription
+      ? [
+          `curl -X POST '${shellSafeURL}' \\`,
+          ...authenticationLines.slice(2),
+          '  -F "file=@<path-to-audio-file>" \\',
+          `  -F "model=${modelID}"`,
+        ]
+      : [
+          `curl -X POST '${shellSafeURL}' \\`,
+          '  -H "Content-Type: application/json" \\',
+          ...authenticationLines.slice(2),
+          `  -d '${shellSafeBody}'`,
+        ];
+
+    return [...authenticationLines.slice(0, 2), ...requestLines].join('\n');
   } catch {
     return '';
   }
@@ -402,7 +413,7 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
                     <ExpandableSection
                       toggleText="View subscriptions"
                       isExpanded={isSubscriptionsExpanded}
-                      onToggle={() => setIsSubscriptionsExpanded((isExpanded) => !isExpanded)}
+                      onToggle={(_event, expanded) => setIsSubscriptionsExpanded(expanded)}
                     >
                       <Table
                         aria-label="Available subscriptions"
