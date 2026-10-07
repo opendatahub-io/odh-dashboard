@@ -239,12 +239,6 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
 
   const shouldRenderGroupTitles = !hasFilters && !normalizedSearchTerm;
 
-  const shouldRenderEmptySearchState =
-    Boolean(normalizedSearchTerm) &&
-    Object.values(connectionTypesByGroupToRender).every(
-      (renderedConnectionTypes) => renderedConnectionTypes.length === 0,
-    );
-
   // Rendering ---------------------------------------------------------------->
 
   const sidebarPanel = (
@@ -333,6 +327,9 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
         </Gallery>
       </React.Fragment>
     ));
+
+  const shouldRenderEmptySearchState =
+    (Boolean(normalizedSearchTerm) || hasFilters) && galleryCards.length === 0;
 
   const emptyState = (
     <EmptyState
