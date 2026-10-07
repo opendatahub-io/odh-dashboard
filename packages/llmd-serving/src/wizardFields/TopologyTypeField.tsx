@@ -16,7 +16,7 @@ import type {
 } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
 import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
 import {
   TopologyType,

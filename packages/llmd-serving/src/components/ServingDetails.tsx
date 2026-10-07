@@ -1,13 +1,15 @@
 import * as React from 'react';
 import { LabelGroup, Stack, StackItem } from '@patternfly/react-core';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
 import type { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import { renderDeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
-import { getServingRuntimeVersionStatus } from '@odh-dashboard/internal/pages/modelServing/utils';
-import ServingRuntimeVersionStatus from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionStatus';
-import ServingRuntimeTemplateStatus from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeTemplateStatus';
-import { ServingRuntimeVersionStatusLabel } from '@odh-dashboard/internal/pages/modelServing/screens/const';
+import {
+  getServingRuntimeVersionStatus,
+  renderDeploymentResourceVersionLabels,
+  ServingRuntimeTemplateStatus,
+  ServingRuntimeVersionStatus,
+  ServingRuntimeVersionStatusLabel,
+} from '@odh-dashboard/model-serving/shared/components';
 import type { LLMdDeployment, LLMInferenceServiceConfigKind } from '../types';
 import { useFetchLLMInferenceServiceConfigs } from '../api/LLMInferenceServiceConfigs';
 
