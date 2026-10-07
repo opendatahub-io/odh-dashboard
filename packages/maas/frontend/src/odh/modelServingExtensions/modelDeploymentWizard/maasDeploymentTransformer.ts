@@ -25,7 +25,9 @@ export const applyMaaSEndpointData = (
   const filteredRefs = existingRefs.filter((ref) => !isMaaSGateway(ref));
 
   if (fieldData.isChecked) {
-    // Add the MaaS gateway and remove the enable-auth annotation — MaaS manages auth externally
+    // Add the MaaS gateway and remove annotations managed outside the project endpoint.
+    // MaaSModelRef provides discovery for subscribed users, so the generic Gen AI asset metadata
+    // must not also be applied to the LLMInferenceService.
     result.model.spec.router = {
       ...result.model.spec.router,
       gateway: {
@@ -34,6 +36,8 @@ export const applyMaaSEndpointData = (
       },
     };
     delete result.model.metadata.annotations?.['security.opendatahub.io/enable-auth'];
+    delete result.model.metadata.labels?.['opendatahub.io/genai-asset'];
+    delete result.model.metadata.annotations?.['opendatahub.io/genai-use-case'];
   } else if (filteredRefs.length > 0) {
     // Keep other gateways if they exist
     result.model.spec.router = {
