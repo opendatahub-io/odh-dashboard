@@ -1,3 +1,73 @@
+.evalhub-evaluations-drawer-content {
+  overflow: hidden;
+}
+
+.evalhub-evaluations-drawer-body {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.evalhub-evaluations-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+
+  > .pf-v6-l-flex {
+    min-height: 0;
+    overflow: hidden;
+
+    > .pf-m-flex-1 {
+      min-height: 0;
+
+      > .pf-v6-l-flex {
+        min-height: 0;
+        overflow: hidden;
+      }
+    }
+  }
+
+  > .pf-v6-l-flex > .pf-m-flex-1 > .pf-v6-l-flex > .pf-v6-c-page__main-section {
+    min-height: 0;
+    flex-shrink: 1;
+    overflow: hidden;
+
+    > .pf-v6-c-page__main-body {
+      display: flex;
+      min-height: 0;
+      flex: 1;
+      flex-direction: column;
+      overflow: hidden;
+    }
+  }
+
+  &__tabs {
+    display: flex;
+    min-height: 0;
+    flex: 0 0 auto;
+    flex-direction: column;
+    overflow: hidden;
+
+    > .pf-v6-c-tabs__list {
+      flex: 0 0 auto;
+    }
+
+    ~ .pf-v6-c-tab-content:not([hidden]) {
+      display: flex;
+      min-height: 0;
+      flex: 1 1 0;
+      flex-direction: column;
+      overflow-y: auto;
+
+      > .evalhub-evaluations-tab-content {
+        height: auto;
+        flex: 0 0 auto;
+      }
+    }
+  }
+}
+
 .evalhub-evaluations-tab-content {
   padding-block-start: var(--pf-t--global--spacer--xl);
 }

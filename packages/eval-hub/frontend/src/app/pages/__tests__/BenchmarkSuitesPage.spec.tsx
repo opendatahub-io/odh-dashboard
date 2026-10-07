@@ -3,9 +3,11 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { mockBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
+import { mockProvider } from '~/__mocks__/mockProvider';
 import BenchmarkSuitesPage from '~/app/pages/BenchmarkSuitesPage';
 
 const mockUseCollectionsQuery = jest.fn();
+const mockUseProviders = jest.fn();
 
 const clickFilterOption = (testId: string) => {
   fireEvent.click(within(screen.getByTestId(testId)).getByRole('checkbox'));
@@ -22,7 +24,7 @@ jest.mock('~/app/hooks/collections', () => ({
 }));
 
 jest.mock('~/app/hooks/useProviders', () => ({
-  useProviders: () => ({ providers: [], loaded: true, loadError: undefined }),
+  useProviders: (...args: unknown[]) => mockUseProviders(...args),
 }));
 
 jest.mock('@odh-dashboard/ui-core', () => ({
@@ -63,6 +65,7 @@ const renderPage = () =>
 describe('BenchmarkSuitesPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseProviders.mockReturnValue({ providers: [], loaded: true, loadError: undefined });
     mockUseCollectionsQuery.mockReturnValue({
       data: {
         items: mockBenchmarkSuiteCollections(),
@@ -90,6 +93,8 @@ describe('BenchmarkSuitesPage', () => {
     expect(screen.queryByTestId('create-suite-card')).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-filter-toolbar')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-pagination-top')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Go to first page' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Go to last page' })).not.toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suites-pagination-bottom')).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suite-card-model-suite-2')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suite-card-trace-evaluation-suite')).toBeInTheDocument();
@@ -120,7 +125,11 @@ describe('BenchmarkSuitesPage', () => {
   it('should open the start evaluation run modal for a suite', async () => {
     renderPage();
 
-    await userEvent.click(screen.getAllByRole('button', { name: 'Run' })[0]);
+    await userEvent.click(
+      within(screen.getByTestId('benchmark-suite-card-model-suite-2')).getByRole('button', {
+        name: 'Run',
+      }),
+    );
 
     expect(
       screen.getByTestId('benchmark-suites-page-start-evaluation-run-modal'),
@@ -334,6 +343,46 @@ describe('BenchmarkSuitesPage', () => {
     expect(
       screen.getByTestId('benchmark-suites-industry-filter-option-z-industry'),
     ).toBeInTheDocument();
+  });
+
+  it('should sort benchmark filter options by display name', async () => {
+    const collections = [
+      {
+        ...mockBenchmarkSuiteCollections()[0],
+        benchmarks: [
+          // eslint-disable-next-line camelcase
+          { id: 'benchmark-z', provider_id: 'benchmark-provider' },
+          // eslint-disable-next-line camelcase
+          { id: 'benchmark-a', provider_id: 'benchmark-provider' },
+        ],
+      },
+    ];
+    mockUseCollectionsQuery.mockReturnValue({
+      // eslint-disable-next-line camelcase
+      data: { items: collections, total_count: collections.length },
+      isLoading: false,
+      error: null,
+    });
+    mockUseProviders.mockReturnValue({
+      providers: [
+        mockProvider({
+          id: 'benchmark-provider',
+          benchmarks: [
+            { id: 'benchmark-z', name: 'Zulu Benchmark' },
+            { id: 'benchmark-a', name: 'Alpha Benchmark' },
+          ],
+        }),
+      ],
+      loaded: true,
+      loadError: undefined,
+    });
+
+    renderPage();
+    await userEvent.click(screen.getByTestId('benchmark-suites-benchmarks-filter'));
+
+    const alphaOption = screen.getByTestId('benchmark-suites-benchmarks-filter-option-benchmark-a');
+    const zuluOption = screen.getByTestId('benchmark-suites-benchmarks-filter-option-benchmark-z');
+    expect(alphaOption.compareDocumentPosition(zuluOption)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
   it('should filter tenant benchmark suites by category and evaluates type', () => {

@@ -30,6 +30,7 @@ export type ApplicationsPageProps = {
   headerContent?: React.ReactNode;
   provideChildrenPadding?: boolean;
   removeChildrenTopPadding?: boolean;
+  removeHeaderBottomPadding?: boolean;
   subtext?: React.ReactNode;
   loadingContent?: React.ReactNode;
   noHeader?: boolean;
@@ -53,6 +54,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   headerContent,
   provideChildrenPadding,
   removeChildrenTopPadding,
+  removeHeaderBottomPadding,
   keepBodyWrapper = true,
   subtext,
   loadingContent,
@@ -60,7 +62,10 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   noTitle,
 }) => {
   const renderHeader = () => (
-    <PageSection hasBodyWrapper={false}>
+    <PageSection
+      hasBodyWrapper={false}
+      style={removeHeaderBottomPadding ? { paddingBottom: 0 } : undefined}
+    >
       <Stack hasGutter>
         <StackItem>
           <Flex

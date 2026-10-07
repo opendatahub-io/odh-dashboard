@@ -392,7 +392,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
 
   return (
     <Card
-      className="evalhub-benchmark-suite-card"
+      className={`evalhub-benchmark-suite-card evalhub-benchmark-suite-card--${iconColor}`}
       isFullHeight
       data-testid={`benchmark-suite-card-${collection.resource.id}`}
     >
@@ -503,11 +503,9 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
         </div>
       </CardTitle>
       <CardBody className="evalhub-benchmark-suite-card__body">
-        {collection.description && (
-          <Content component="p" className="evalhub-benchmark-suite-card__description">
-            {collection.description}
-          </Content>
-        )}
+        <Content component="p" className="evalhub-benchmark-suite-card__description">
+          {collection.description || <em>No description provided</em>}
+        </Content>
         <BenchmarkSuiteCardTags tags={tags} collectionId={collection.resource.id} />
       </CardBody>
       <CardFooter className="evalhub-benchmark-suite-card__footer">

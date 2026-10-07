@@ -234,6 +234,7 @@ describe('EvaluationsPage', () => {
       'benchmark-suites-evaluates-filter',
       'benchmark-suites-modality-filter',
       'benchmark-suites-task-filter',
+      'benchmark-suites-industry-filter',
       'benchmark-suites-tags-filter',
     ];
     filterOrder.slice(0, -1).forEach((filterId, index) => {
@@ -467,6 +468,37 @@ describe('EvaluationsPage', () => {
     );
   });
 
+  it('should render tenant benchmark suites in alphabetical order', () => {
+    const suiteIds = [
+      'agent-safety-suite',
+      'code-quality-suite',
+      'model-suite-2',
+      'model-suite-7',
+      'trace-evaluation-suite',
+    ];
+    const collections = mockBenchmarkSuiteCollections()
+      .filter(({ resource }) => suiteIds.includes(resource.id))
+      .toReversed();
+    mockUseCollectionsQuery.mockReturnValue({
+      // eslint-disable-next-line camelcase
+      data: { items: collections, total_count: collections.length },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage('test-project', '?tab=evaluate');
+
+    suiteIds.slice(0, -1).forEach((suiteId, index) => {
+      expect(
+        screen
+          .getByTestId(`benchmark-suite-card-name-${suiteId}`)
+          .compareDocumentPosition(
+            screen.getByTestId(`benchmark-suite-card-name-${suiteIds[index + 1]}`),
+          ),
+      ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+  });
+
   it('should link to the tenant benchmark suites page', () => {
     renderPage('test-project', '?tab=evaluate');
 
@@ -490,7 +522,11 @@ describe('EvaluationsPage', () => {
   it('should open the start evaluation run modal for a suite', () => {
     renderPage('test-project', '?tab=evaluate');
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Run' })[0]);
+    fireEvent.click(
+      within(screen.getByTestId('benchmark-suite-card-model-suite-2')).getByRole('button', {
+        name: 'Run',
+      }),
+    );
 
     expect(screen.getByTestId('evaluations-page-start-evaluation-run-modal')).toHaveTextContent(
       'Model suite 2',

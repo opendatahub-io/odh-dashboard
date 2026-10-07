@@ -54,6 +54,19 @@ describe('BenchmarkSuiteCard', () => {
     );
   });
 
+  it('should show an italic fallback when the collection has no description', () => {
+    render(
+      <BenchmarkSuiteCard
+        collection={{ ...mockCollection({ id: 'no-description-suite' }), description: undefined }}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
+      />,
+    );
+
+    const fallbackDescription = screen.getByText('No description provided');
+    expect(fallbackDescription).toBeInTheDocument();
+    expect(fallbackDescription.tagName).toBe('EM');
+  });
+
   it('should show benchmark names and fall back to IDs in the benchmark count tooltip', async () => {
     render(
       <BenchmarkSuiteCard

@@ -26,8 +26,12 @@ import {
   CubeIcon,
   ExclamationCircleIcon,
   FilterIcon,
+  IndustryIcon,
+  LayerGroupIcon,
   RhUiCollectionFillIcon,
   SearchIcon,
+  TagsIcon,
+  TasksIcon,
 } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { mockCuratedBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
@@ -53,6 +57,7 @@ import './BenchmarkSuitesGallery.scss';
 // TODO: Remove this curated mock fallback once the curated collections API is available.
 const DEFAULT_PAGE_SIZE = 8;
 const PAGE_SIZE_OPTIONS = [8, 16, 32];
+const FILTER_COMPACTION_LEVELS = 2;
 // These are the collection fields or derived values that can provide options for filter dropdowns.
 type CollectionFilterField =
   | 'domains'
@@ -88,6 +93,25 @@ const EMPTY_COLLECTION_FILTER_OPTIONS: CollectionFilterOptions = {
 
 const mergeFilterOptions = (previous: string[], next: string[]): string[] =>
   [...new Set([...previous, ...next])].toSorted();
+
+const sortFilterOptionsByLabel = (
+  options: string[],
+  formatLabel: (value: string) => string,
+): string[] =>
+  [...options].toSorted((first, second) => {
+    const labelComparison = formatLabel(first).localeCompare(formatLabel(second), undefined, {
+      sensitivity: 'base',
+    });
+    return labelComparison || first.localeCompare(second, undefined, { sensitivity: 'base' });
+  });
+
+const sortCollectionsByName = (collections: Collection[]): Collection[] =>
+  [...collections].toSorted((first, second) => {
+    const nameComparison = first.name.localeCompare(second.name, undefined, {
+      sensitivity: 'base',
+    });
+    return nameComparison || first.resource.id.localeCompare(second.resource.id);
+  });
 
 const areStringArraysEqual = (first: string[], second: string[]): boolean =>
   first.length === second.length && first.every((value, index) => value === second[index]);
@@ -211,6 +235,109 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(DEFAULT_PAGE_SIZE);
   const [collectionToDelete, setCollectionToDelete] = React.useState<Collection | null>(null);
+  const [filterCompactionLevel, setFilterCompactionLevel] = React.useState(0);
+  const filterCompactionLevelRef = React.useRef(filterCompactionLevel);
+  filterCompactionLevelRef.current = filterCompactionLevel;
+
+  const measureFilterToolbar = React.useCallback(() => {
+    const toolbarContent = document.querySelector<HTMLElement>(
+      '[data-testid="benchmark-suites-filter-content"]',
+    );
+    const filterGroup = toolbarContent?.querySelector<HTMLElement>(
+      '[data-testid="benchmark-suites-filter-group"]',
+    );
+    const pagination = toolbarContent?.querySelector<HTMLElement>(
+      '[data-testid="benchmark-suites-pagination-top"]',
+    );
+
+    if (
+      !toolbarContent ||
+      !filterGroup ||
+      !pagination ||
+      filterGroup.getBoundingClientRect().width === 0
+    ) {
+      return;
+    }
+
+    const paginationTop = pagination.getBoundingClientRect().top;
+    const filterItems = Array.from(filterGroup.children).filter(
+      (filterItem): filterItem is HTMLElement => filterItem instanceof HTMLElement,
+    );
+    if (filterItems.length === 0) {
+      return;
+    }
+    const filterItemTops = filterItems.map((filterItem) => filterItem.getBoundingClientRect().top);
+    const firstFilterTop = Math.min(...filterItemTops);
+    const isFilterGroupWrapped = filterItems.some(
+      (filterItem) => filterItem.getBoundingClientRect().top > firstFilterTop + 1,
+    );
+    const isPaginationWrapped = paginationTop > firstFilterTop + 1;
+
+    if (
+      (isFilterGroupWrapped || isPaginationWrapped) &&
+      filterCompactionLevelRef.current < FILTER_COMPACTION_LEVELS
+    ) {
+      setFilterCompactionLevel((previous) => previous + 1);
+    }
+  }, []);
+
+  React.useLayoutEffect(() => {
+    measureFilterToolbar();
+  }, [filterCompactionLevel, measureFilterToolbar]);
+
+  React.useEffect(() => {
+    const toolbarContent = document.querySelector<HTMLElement>(
+      '[data-testid="benchmark-suites-filter-content"]',
+    );
+    if (!toolbarContent || typeof ResizeObserver === 'undefined') {
+      return undefined;
+    }
+
+    let lastWidth = toolbarContent.getBoundingClientRect().width;
+    let animationFrame: number | undefined;
+
+    const scheduleMeasurement = () => {
+      if (animationFrame !== undefined) {
+        cancelAnimationFrame(animationFrame);
+      }
+      animationFrame = requestAnimationFrame(() => {
+        animationFrame = undefined;
+        const { width } = toolbarContent.getBoundingClientRect();
+        if (Math.abs(width - lastWidth) > 0.5) {
+          lastWidth = width;
+          setFilterCompactionLevel(0);
+        }
+        measureFilterToolbar();
+      });
+    };
+
+    const resizeObserver = new ResizeObserver(scheduleMeasurement);
+    resizeObserver.observe(toolbarContent);
+
+    const filterGroup = toolbarContent.querySelector<HTMLElement>(
+      '[data-testid="benchmark-suites-filter-group"]',
+    );
+    if (filterGroup) {
+      resizeObserver.observe(filterGroup);
+    }
+
+    const pagination = toolbarContent.querySelector<HTMLElement>(
+      '[data-testid="benchmark-suites-pagination-top"]',
+    );
+    if (pagination) {
+      resizeObserver.observe(pagination);
+    }
+
+    scheduleMeasurement();
+
+    return () => {
+      resizeObserver.disconnect();
+      if (animationFrame !== undefined) {
+        cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [measureFilterToolbar, showFilters, showPagination]);
+
   const notification = useNotification();
   const clearFilters = React.useCallback(() => {
     setNameFilter('');
@@ -311,10 +438,13 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     requireCuratedIndex,
     shouldShowLoadError,
   ]);
-  const sourceCollections = React.useMemo(
-    () => (maxVisibleCollections ? collections.slice(0, maxVisibleCollections) : collections),
-    [collections, maxVisibleCollections],
-  );
+  const sourceCollections = React.useMemo(() => {
+    const orderedCollections =
+      scope === 'tenant' ? sortCollectionsByName(collections) : collections;
+    return maxVisibleCollections
+      ? orderedCollections.slice(0, maxVisibleCollections)
+      : orderedCollections;
+  }, [collections, maxVisibleCollections, scope]);
   const benchmarkLabels = React.useMemo(() => {
     const labels = new Map<string, string>();
     sourceCollections.forEach((collection) => {
@@ -444,8 +574,12 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     [availableMetrics, filterOptions.metrics],
   );
   const benchmarkOptions = React.useMemo(
-    () => mergeFilterOptions(filterOptions.benchmarks, availableBenchmarks),
-    [availableBenchmarks, filterOptions.benchmarks],
+    () =>
+      sortFilterOptionsByLabel(
+        mergeFilterOptions(filterOptions.benchmarks, availableBenchmarks),
+        formatBenchmarkLabel,
+      ),
+    [availableBenchmarks, filterOptions.benchmarks, formatBenchmarkLabel],
   );
 
   const filteredCollections = React.useMemo(() => {
@@ -654,9 +788,9 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     <>
       {showFilters && (
         <Toolbar clearAllFilters={clearFilters} data-testid="benchmark-suites-filter-toolbar">
-          <ToolbarContent>
+          <ToolbarContent data-testid="benchmark-suites-filter-content">
             <ToolbarToggleGroup breakpoint="md" toggleIcon={<FilterIcon />}>
-              <ToolbarGroup variant="filter-group">
+              <ToolbarGroup variant="filter-group" data-testid="benchmark-suites-filter-group">
                 <ToolbarFilter
                   labels={nameFilter ? [nameFilter] : []}
                   deleteLabel={() => setNameFilter('')}
@@ -681,6 +815,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                         data-testid="benchmark-suites-category-filter-icon"
                       />
                     }
+                    isCompact={filterCompactionLevel >= FILTER_COMPACTION_LEVELS}
                     options={domainOptions}
                     selected={domainFilter}
                     formatLabel={formatCategory}
@@ -697,6 +832,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                   <SearchableMultiSelectFilter
                     categoryName="Benchmarks"
                     icon={<RhUiCollectionFillIcon aria-hidden="true" />}
+                    isCompact={filterCompactionLevel >= FILTER_COMPACTION_LEVELS}
                     options={benchmarkOptions}
                     selected={benchmarkFilter}
                     formatLabel={formatBenchmarkLabel}
@@ -713,6 +849,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                   <SearchableMultiSelectFilter
                     categoryName="Metrics"
                     icon={<ChartLineIcon aria-hidden="true" />}
+                    isCompact={filterCompactionLevel >= FILTER_COMPACTION_LEVELS}
                     options={metricOptions}
                     selected={metricFilter}
                     formatLabel={getMetricDisplayName}
@@ -729,6 +866,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                   <SearchableMultiSelectFilter
                     categoryName="Evaluates"
                     icon={<CubeIcon aria-hidden="true" />}
+                    isCompact={filterCompactionLevel >= FILTER_COMPACTION_LEVELS}
                     options={evaluatesOptions}
                     selected={evaluatesFilter}
                     formatLabel={formatCategory}
@@ -744,6 +882,8 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                 {modalityOptions.length > 0 && (
                   <SearchableMultiSelectFilter
                     categoryName="Modalities"
+                    icon={<LayerGroupIcon aria-hidden="true" />}
+                    isCompact={filterCompactionLevel >= 1}
                     options={modalityOptions}
                     selected={modalityFilter}
                     formatLabel={formatCategory}
@@ -759,6 +899,8 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                 {taskOptions.length > 0 && (
                   <SearchableMultiSelectFilter
                     categoryName="Tasks"
+                    icon={<TasksIcon aria-hidden="true" />}
+                    isCompact={filterCompactionLevel >= 1}
                     options={taskOptions}
                     selected={taskFilter}
                     formatLabel={formatCategory}
@@ -771,24 +913,11 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                     testId="benchmark-suites-task-filter"
                   />
                 )}
-                {tagOptions.length > 0 && (
-                  <SearchableMultiSelectFilter
-                    categoryName="Tags"
-                    options={tagOptions}
-                    selected={tagFilter}
-                    formatLabel={formatCategory}
-                    onToggleOption={(value) =>
-                      setTagFilter((previous) => toggleFilterValue(previous, value))
-                    }
-                    onClearAll={() => setTagFilter([])}
-                    isDisabled={areFiltersDisabled}
-                    testIdPrefix="benchmark-suites-tags"
-                    testId="benchmark-suites-tags-filter"
-                  />
-                )}
                 {industryOptions.length > 0 && (
                   <SearchableMultiSelectFilter
                     categoryName="Industry"
+                    icon={<IndustryIcon aria-hidden="true" />}
+                    isCompact={filterCompactionLevel >= 1}
                     options={industryOptions}
                     selected={industryFilter}
                     formatLabel={formatCategory}
@@ -799,6 +928,23 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                     isDisabled={areFiltersDisabled}
                     testIdPrefix="benchmark-suites-industry"
                     testId="benchmark-suites-industry-filter"
+                  />
+                )}
+                {tagOptions.length > 0 && (
+                  <SearchableMultiSelectFilter
+                    categoryName="Tags"
+                    icon={<TagsIcon aria-hidden="true" />}
+                    isCompact={filterCompactionLevel >= 1}
+                    options={tagOptions}
+                    selected={tagFilter}
+                    formatLabel={formatCategory}
+                    onToggleOption={(value) =>
+                      setTagFilter((previous) => toggleFilterValue(previous, value))
+                    }
+                    onClearAll={() => setTagFilter([])}
+                    isDisabled={areFiltersDisabled}
+                    testIdPrefix="benchmark-suites-tags"
+                    testId="benchmark-suites-tags-filter"
                   />
                 )}
               </ToolbarGroup>
@@ -814,6 +960,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                     setPageSize(newPageSize);
                     setPage(1);
                   }}
+                  isCompact
                   perPageOptions={PAGE_SIZE_OPTIONS.map((size) => ({
                     title: String(size),
                     value: size,

@@ -1,6 +1,64 @@
 .evalhub-benchmark-suite-card {
+  --evalhub-benchmark-suite-card-gradient-color: var(
+    --pf-t--global--background--color--primary--default
+  );
+  --pf-v6-c-card--BackgroundColor: transparent;
+  background: linear-gradient(
+    to bottom,
+    var(--pf-t--global--background--color--primary--default),
+    var(--pf-t--global--background--color--primary--default) 60%,
+    color-mix(in srgb, var(--evalhub-benchmark-suite-card-gradient-color) 50%, transparent)
+  );
   max-width: 22.25rem;
   min-width: 0;
+}
+
+.evalhub-benchmark-suite-card--blue {
+  --evalhub-benchmark-suite-card-gradient-color: var(--pf-t--global--color--blue--100, #dbeafe);
+}
+
+.evalhub-benchmark-suite-card--cyan {
+  --evalhub-benchmark-suite-card-gradient-color: var(--pf-t--global--color--cyan--100, #cffafe);
+}
+
+.evalhub-benchmark-suite-card--green {
+  --evalhub-benchmark-suite-card-gradient-color: var(--pf-t--global--color--green--100, #dcfce7);
+}
+
+.evalhub-benchmark-suite-card--orange {
+  --evalhub-benchmark-suite-card-gradient-color: var(
+    --pf-t--global--color--orange--100,
+    #ffedd5
+  );
+}
+
+.evalhub-benchmark-suite-card--orangered {
+  --evalhub-benchmark-suite-card-gradient-color: var(
+    --pf-t--global--color--orange--100,
+    #fed7aa
+  );
+}
+
+.evalhub-benchmark-suite-card--purple {
+  --evalhub-benchmark-suite-card-gradient-color: var(
+    --pf-t--global--color--purple--100,
+    #f3e8ff
+  );
+}
+
+.evalhub-benchmark-suite-card--red {
+  --evalhub-benchmark-suite-card-gradient-color: var(--pf-t--global--color--red--100, #fee2e2);
+}
+
+.evalhub-benchmark-suite-card--teal {
+  --evalhub-benchmark-suite-card-gradient-color: var(--pf-t--global--color--teal--100, #ccfbf1);
+}
+
+.evalhub-benchmark-suite-card--yellow {
+  --evalhub-benchmark-suite-card-gradient-color: var(
+    --pf-t--global--color--yellow--100,
+    #fef3c7
+  );
 }
 
 .evalhub-benchmark-suite-card__header {
@@ -193,6 +251,7 @@
   gap: var(--pf-t--global--spacer--xs);
 
   > svg {
+    color: var(--pf-t--global--icon--color--subtle);
     flex-shrink: 0;
     height: 1.25em;
     width: 1.25em;

@@ -216,6 +216,7 @@ const EvaluationsPage: React.FC = () => {
     <>
       <Drawer isExpanded={!!selectedCollection}>
         <DrawerContent
+          className="evalhub-evaluations-drawer-content"
           panelContent={
             <CollectionDrawerPanel
               collection={selectedCollection}
@@ -228,173 +229,178 @@ const EvaluationsPage: React.FC = () => {
             />
           }
         >
-          <DrawerContentBody>
-            <ApplicationsPage
-              title={<EvalHubHeader title="Evaluations" />}
-              description={EVALUATE_DESCRIPTION}
-              headerContent={
-                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                  <ProjectIconWithSize size={IconSize.LG} />
-                  <FlexItem>
-                    <Content component="p">Project</Content>
-                  </FlexItem>
-                  <FlexItem>
-                    <EvalHubProjectSelector
-                      namespace={namespace}
-                      getRedirectPath={evalHubEvaluationsRoute}
-                    />
-                  </FlexItem>
-                </Flex>
-              }
-              loaded={healthLoaded && (!isHealthy || !isRunsTab || loaded)}
-              loadError={!isHealthy ? healthError : isRunsTab ? error : undefined}
-              loadErrorPage={
-                <PageSection hasBodyWrapper={false} isFilled>
-                  {clusterAdmin ? (
-                    <EmptyState
-                      headingLevel="h4"
-                      icon={CogIcon}
-                      titleText="Evaluations unavailable"
-                      variant={EmptyStateVariant.lg}
-                      data-testid="evalhub-load-error-admin-empty-state"
-                    >
-                      <EmptyStateBody>
-                        EvalHub custom resources are currently unavailable. To use evaluations,
-                        complete the EvalHub custom resources configuration.
-                      </EmptyStateBody>
-                    </EmptyState>
-                  ) : (
-                    <EmptyState
-                      headingLevel="h4"
-                      icon={SupportIcon}
-                      titleText="Evaluations unavailable"
-                      variant={EmptyStateVariant.lg}
-                      data-testid="evalhub-load-error-nonadmin-empty-state"
-                    >
-                      <EmptyStateBody>
-                        Evaluations are unavailable due to an incomplete configuration. To use this
-                        feature, contact your administrator.
-                      </EmptyStateBody>
-                      <EmptyStateFooter>
-                        <WhosMyAdministrator />
-                      </EmptyStateFooter>
-                    </EmptyState>
-                  )}
-                </PageSection>
-              }
-              empty={healthLoaded && !isHealthy && !healthError}
-              emptyStatePage={
-                <PageSection hasBodyWrapper={false} isFilled>
-                  {clusterAdmin ? (
-                    <EmptyState
-                      headingLevel="h4"
-                      icon={CogIcon}
-                      titleText="Evaluations unavailable"
-                      variant={EmptyStateVariant.lg}
-                      data-testid="evalhub-unavailable-empty-state"
-                    >
-                      <EmptyStateBody>
-                        To use evaluations, enable the evaluation service using the TrustyAI
-                        Operator.
-                      </EmptyStateBody>
-                    </EmptyState>
-                  ) : (
-                    <EmptyState
-                      headingLevel="h4"
-                      icon={SupportIcon}
-                      titleText="Admin configuration required"
-                      variant={EmptyStateVariant.lg}
-                      data-testid="evalhub-nonadmin-empty-state"
-                    >
-                      <EmptyStateBody>
-                        To use this service, request that your administrator enable evaluations for
-                        this cluster.
-                      </EmptyStateBody>
-                      <EmptyStateFooter>
-                        <WhosMyAdministrator />
-                      </EmptyStateFooter>
-                    </EmptyState>
-                  )}
-                </PageSection>
-              }
-              provideChildrenPadding
-            >
-              <Tabs
-                activeKey={activeTab}
-                onSelect={onSelectTab}
-                aria-label="Evaluations page tabs"
-                data-testid="evaluations-page-tabs"
-                inset={{ default: 'insetNone' }}
-                mountOnEnter
-              >
-                <Tab
-                  eventKey={GALLERY_TAB}
-                  title={<TabTitleText>Gallery</TabTitleText>}
-                  aria-label="Gallery tab"
-                  data-testid="gallery-tab"
-                >
-                  <GalleryTab
-                    namespace={namespace ?? ''}
-                    benchmarkNameMap={benchmarkNameMap}
-                    onSelectCollection={(collection) => handleSelectCollection(collection, true)}
-                    onRunSuccess={handleRunSuccess}
-                  />
-                </Tab>
-                <Tab
-                  eventKey={EVALUATE_TAB}
-                  title={<TabTitleText>Benchmark suites</TabTitleText>}
-                  aria-label="Benchmark suites tab"
-                  data-testid="evaluate-tab"
-                >
-                  <EvaluateTab
-                    namespace={namespace ?? ''}
-                    benchmarkNameMap={benchmarkNameMap}
-                    onSelectCollection={handleSelectCollection}
-                    onRunCollection={handleRunCollection}
-                    onEditCollection={handleEditCollection}
-                    onDuplicateCollection={handleEvaluateDuplicateCollection}
-                  />
-                </Tab>
-                <Tab
-                  eventKey={RUNS_TAB}
-                  title={<TabTitleText>Runs</TabTitleText>}
-                  aria-label="Runs tab"
-                  data-testid="runs-tab"
-                >
-                  <Stack
-                    className="evalhub-evaluations-tab-content evalhub-runs-tab"
-                    data-testid="runs-tab-content"
-                  >
-                    {evaluations.length > 0 && (
-                      <StackItem>
-                        <Content
-                          component="p"
-                          className="evalhub-runs-tab__description"
-                          data-testid="runs-tab-description"
-                        >
-                          {RUNS_DESCRIPTION}
-                        </Content>
-                      </StackItem>
+          <DrawerContentBody className="evalhub-evaluations-drawer-body">
+            <div className="evalhub-evaluations-page">
+              <ApplicationsPage
+                title={<EvalHubHeader title="Evaluations" />}
+                description={EVALUATE_DESCRIPTION}
+                headerContent={
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                    <ProjectIconWithSize size={IconSize.LG} />
+                    <FlexItem>
+                      <Content component="p">Project</Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <EvalHubProjectSelector
+                        namespace={namespace}
+                        getRedirectPath={evalHubEvaluationsRoute}
+                      />
+                    </FlexItem>
+                  </Flex>
+                }
+                loaded={healthLoaded && (!isHealthy || !isRunsTab || loaded)}
+                loadError={!isHealthy ? healthError : isRunsTab ? error : undefined}
+                loadErrorPage={
+                  <PageSection hasBodyWrapper={false} isFilled>
+                    {clusterAdmin ? (
+                      <EmptyState
+                        headingLevel="h4"
+                        icon={CogIcon}
+                        titleText="Evaluations unavailable"
+                        variant={EmptyStateVariant.lg}
+                        data-testid="evalhub-load-error-admin-empty-state"
+                      >
+                        <EmptyStateBody>
+                          EvalHub custom resources are currently unavailable. To use evaluations,
+                          complete the EvalHub custom resources configuration.
+                        </EmptyStateBody>
+                      </EmptyState>
+                    ) : (
+                      <EmptyState
+                        headingLevel="h4"
+                        icon={SupportIcon}
+                        titleText="Evaluations unavailable"
+                        variant={EmptyStateVariant.lg}
+                        data-testid="evalhub-load-error-nonadmin-empty-state"
+                      >
+                        <EmptyStateBody>
+                          Evaluations are unavailable due to an incomplete configuration. To use
+                          this feature, contact your administrator.
+                        </EmptyStateBody>
+                        <EmptyStateFooter>
+                          <WhosMyAdministrator />
+                        </EmptyStateFooter>
+                      </EmptyState>
                     )}
-                    <StackItem>
-                      {evaluations.length === 0 ? (
-                        <EvalHubEmptyState />
-                      ) : (
-                        <EvaluationsTable
-                          evaluations={evaluations}
-                          loaded={loaded}
-                          namespace={namespace}
-                          collectionNameMap={collectionNameMap}
-                          collectionsLoaded={collectionsLoaded}
-                          onRefresh={refreshEvaluations}
-                          onShowStatus={onShowStatus}
-                        />
+                  </PageSection>
+                }
+                empty={healthLoaded && !isHealthy && !healthError}
+                emptyStatePage={
+                  <PageSection hasBodyWrapper={false} isFilled>
+                    {clusterAdmin ? (
+                      <EmptyState
+                        headingLevel="h4"
+                        icon={CogIcon}
+                        titleText="Evaluations unavailable"
+                        variant={EmptyStateVariant.lg}
+                        data-testid="evalhub-unavailable-empty-state"
+                      >
+                        <EmptyStateBody>
+                          To use evaluations, enable the evaluation service using the TrustyAI
+                          Operator.
+                        </EmptyStateBody>
+                      </EmptyState>
+                    ) : (
+                      <EmptyState
+                        headingLevel="h4"
+                        icon={SupportIcon}
+                        titleText="Admin configuration required"
+                        variant={EmptyStateVariant.lg}
+                        data-testid="evalhub-nonadmin-empty-state"
+                      >
+                        <EmptyStateBody>
+                          To use this service, request that your administrator enable evaluations
+                          for this cluster.
+                        </EmptyStateBody>
+                        <EmptyStateFooter>
+                          <WhosMyAdministrator />
+                        </EmptyStateFooter>
+                      </EmptyState>
+                    )}
+                  </PageSection>
+                }
+                provideChildrenPadding
+                removeChildrenTopPadding
+                removeHeaderBottomPadding
+              >
+                <Tabs
+                  activeKey={activeTab}
+                  onSelect={onSelectTab}
+                  aria-label="Evaluations page tabs"
+                  data-testid="evaluations-page-tabs"
+                  className="evalhub-evaluations-page__tabs"
+                  inset={{ default: 'insetNone' }}
+                  mountOnEnter
+                >
+                  <Tab
+                    eventKey={GALLERY_TAB}
+                    title={<TabTitleText>Gallery</TabTitleText>}
+                    aria-label="Gallery tab"
+                    data-testid="gallery-tab"
+                  >
+                    <GalleryTab
+                      namespace={namespace ?? ''}
+                      benchmarkNameMap={benchmarkNameMap}
+                      onSelectCollection={(collection) => handleSelectCollection(collection, true)}
+                      onRunSuccess={handleRunSuccess}
+                    />
+                  </Tab>
+                  <Tab
+                    eventKey={EVALUATE_TAB}
+                    title={<TabTitleText>Benchmark suites</TabTitleText>}
+                    aria-label="Benchmark suites tab"
+                    data-testid="evaluate-tab"
+                  >
+                    <EvaluateTab
+                      namespace={namespace ?? ''}
+                      benchmarkNameMap={benchmarkNameMap}
+                      onSelectCollection={handleSelectCollection}
+                      onRunCollection={handleRunCollection}
+                      onEditCollection={handleEditCollection}
+                      onDuplicateCollection={handleEvaluateDuplicateCollection}
+                    />
+                  </Tab>
+                  <Tab
+                    eventKey={RUNS_TAB}
+                    title={<TabTitleText>Runs</TabTitleText>}
+                    aria-label="Runs tab"
+                    data-testid="runs-tab"
+                  >
+                    <Stack
+                      className="evalhub-evaluations-tab-content evalhub-runs-tab"
+                      data-testid="runs-tab-content"
+                    >
+                      {evaluations.length > 0 && (
+                        <StackItem>
+                          <Content
+                            component="p"
+                            className="evalhub-runs-tab__description"
+                            data-testid="runs-tab-description"
+                          >
+                            {RUNS_DESCRIPTION}
+                          </Content>
+                        </StackItem>
                       )}
-                    </StackItem>
-                  </Stack>
-                </Tab>
-              </Tabs>
-            </ApplicationsPage>
+                      <StackItem>
+                        {evaluations.length === 0 ? (
+                          <EvalHubEmptyState />
+                        ) : (
+                          <EvaluationsTable
+                            evaluations={evaluations}
+                            loaded={loaded}
+                            namespace={namespace}
+                            collectionNameMap={collectionNameMap}
+                            collectionsLoaded={collectionsLoaded}
+                            onRefresh={refreshEvaluations}
+                            onShowStatus={onShowStatus}
+                          />
+                        )}
+                      </StackItem>
+                    </Stack>
+                  </Tab>
+                </Tabs>
+              </ApplicationsPage>
+            </div>
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
