@@ -36,7 +36,7 @@ const InheritedProviderConfig: React.FC<InheritedProviderConfigProps> = ({
     return (
       <HelperText>
         <HelperTextItem>
-          <strong>This provider has no configuration values.</strong>
+          <strong>This provider has no key-value pairs.</strong>
         </HelperTextItem>
       </HelperText>
     );
