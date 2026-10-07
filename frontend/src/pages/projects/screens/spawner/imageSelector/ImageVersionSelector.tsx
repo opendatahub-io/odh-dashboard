@@ -10,7 +10,7 @@ import {
   Label,
   Timestamp,
 } from '@patternfly/react-core';
-import { CheckCircleIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { ImageVersionSelectDataType } from '#~/pages/projects/screens/spawner/types';
 import {
@@ -25,6 +25,7 @@ import {
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamSpecTagType } from '#~/k8sTypes';
 import { isElyraVersionOutOfDate } from '#~/concepts/pipelines/elyra/utils';
+import { ImageStreamAnnotation } from '#~/types';
 import ImageVersionTooltip from './ImageVersionTooltip';
 
 type ImageVersionSelectorProps = {
@@ -43,6 +44,9 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
   if (!imageStream || getAvailableVersionsForImageStream(imageStream, buildStatuses).length <= 1) {
     return null;
   }
+
+  const isImageStreamDeprecated =
+    imageStream.metadata.annotations?.[ImageStreamAnnotation.DEPRECATED] === 'true';
 
   const selectOptionObjects = imageVersions
     .toSorted(compareImageVersionOrder)
@@ -69,9 +73,18 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
               }`}
             </FlexItem>
             <FlexItem align={{ default: 'alignRight' }}>
-              {optionObject.imageVersion.annotations?.[
-                'opendatahub.io/workbench-image-recommended'
-              ] === 'true' && (
+              {isImageStreamDeprecated ? (
+                <Label
+                  data-testid="notebook-image-availability"
+                  isCompact
+                  status="warning"
+                  icon={<ExclamationTriangleIcon />}
+                >
+                  Deprecated
+                </Label>
+              ) : optionObject.imageVersion.annotations?.[
+                  'opendatahub.io/workbench-image-recommended'
+                ] === 'true' ? (
                 <Label
                   data-testid="notebook-image-availability"
                   isCompact
@@ -81,7 +94,7 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
                 >
                   Latest
                 </Label>
-              )}
+              ) : null}
             </FlexItem>
           </Flex>
         </ImageVersionTooltip>
