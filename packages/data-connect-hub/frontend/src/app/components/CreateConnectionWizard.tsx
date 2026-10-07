@@ -773,6 +773,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const propertyIdRef = React.useRef(propertyRows.length);
   const verificationRequestRef = React.useRef(0);
   const verificationAbortRef = React.useRef<AbortController>();
+  const wasOpenRef = React.useRef(false);
   const [connectionTypes, connectionTypesLoaded, connectionTypesError] = useConnectionTypes(
     selectedNamespace,
     isOpen,
@@ -811,8 +812,8 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     isValidConnectionName(formData.name) &&
     hasValidProperties;
   const canResolveStartIndex =
-    !needsInitialValidationData ||
-    (isOpenSessionReady && connectionTypesLoaded && namespacesLoaded);
+    isOpenSessionReady &&
+    (!needsInitialValidationData || (connectionTypesLoaded && namespacesLoaded));
   const calculatedStartIndex = hasValidConfiguration
     ? 4
     : hasValidDetailsWithProperties
@@ -827,14 +828,21 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
       : 1;
 
   React.useEffect(() => {
-    if (!isOpen) {
+    if (isOpen && !wasOpenRef.current) {
+      const initialPropertyRows = createPropertyRows(initialFormData.properties);
+      setFormData(initialFormData);
+      setSelectedNamespace(namespace);
+      setPropertyRows(initialPropertyRows);
+      setTouchedProperties(new Set());
+      propertyIdRef.current = initialPropertyRows.length;
+      setIsOpenSessionReady(true);
+    } else if (!isOpen && wasOpenRef.current) {
       setIsOpenSessionReady(false);
       setHasResolvedSessionStartIndex(false);
       setSessionStartIndex(1);
-    } else {
-      setIsOpenSessionReady(true);
     }
-  }, [isOpen]);
+    wasOpenRef.current = isOpen;
+  }, [initialFormData, isOpen, namespace]);
   React.useEffect(() => {
     if (isOpen && !hasResolvedSessionStartIndex && canResolveStartIndex) {
       setSessionStartIndex(calculatedStartIndex);
