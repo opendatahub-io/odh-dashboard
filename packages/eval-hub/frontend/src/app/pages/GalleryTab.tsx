@@ -63,7 +63,9 @@ const GalleryTab: React.FC<GalleryTabProps> = ({
         requireCuratedIndex
         useMockFallback
         showFilters
-        showEvaluatesFilter
+        // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+        // showEvaluatesFilter
+        showEvaluatesFilter={false}
         showPagination
         showCreateSuiteCard={false}
         showContextualActions={false}

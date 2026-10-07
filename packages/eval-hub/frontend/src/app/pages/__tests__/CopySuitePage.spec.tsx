@@ -209,7 +209,9 @@ const defaultFormValues: CopySuiteFormValues = {
   suiteTasks: ['text-generation'],
   suiteModalities: ['text'],
   suiteIndustries: ['technology'],
-  suiteEvaluates: ['agent'],
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // suiteEvaluates: ['agent'],
+  suiteEvaluates: ['model'],
   suiteThreshold: 70,
   benchmarks: [benchmark],
 };
@@ -392,7 +394,11 @@ describe('CopySuitePage', () => {
       'placeholder',
       'Enter suite description',
     );
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    /*
     expect(screen.getByTestId('suite-evaluates-tag-agent')).toHaveTextContent('Agent');
+    */
+    expect(screen.queryByTestId('suite-evaluates-input')).not.toBeInTheDocument();
     expect(screen.getByTestId('copy-suite-description')).toHaveTextContent(
       'Create a benchmark suite',
     );
@@ -566,7 +572,11 @@ describe('CopySuitePage', () => {
     expect(screen.getByTestId('suite-description-input')).toHaveValue('Description');
     expect(screen.queryByTestId('suite-category-toggle')).not.toBeInTheDocument();
     expect(screen.getByText('Category')).toBeInTheDocument();
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    /*
     expect(screen.getByTestId('suite-evaluates-tag-agent')).toHaveTextContent('Agent');
+    */
+    expect(screen.queryByTestId('suite-evaluates-input')).not.toBeInTheDocument();
     expect(screen.getByTestId('suite-domains-tag-reasoning')).toHaveTextContent('Reasoning');
     expect(screen.getByTestId('suite-domains-tag-safety')).toHaveTextContent('Safety');
     /*
@@ -709,6 +719,8 @@ describe('CopySuitePage', () => {
     expect(screen.getByTestId('suite-domains-tag-reasoning')).toHaveTextContent('Reasoning');
   });
 
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  /*
   it('should render selected evaluation targets as labels', () => {
     mockUseCopySuiteForm.mockReturnValue(makeForm({ suiteEvaluates: ['agent', 'model'] }));
     mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
@@ -718,11 +730,24 @@ describe('CopySuitePage', () => {
     expect(screen.getByTestId('suite-evaluates-tag-agent')).toHaveTextContent('Agent');
     expect(screen.getByTestId('suite-evaluates-tag-model')).toHaveTextContent('Model');
   });
+  */
 
+  it('should hide the evaluation target field', () => {
+    mockUseCopySuiteForm.mockReturnValue(makeForm({ suiteEvaluates: ['agent', 'model'] }));
+    mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
+
+    renderPage();
+
+    expect(screen.queryByTestId('suite-evaluates-input')).not.toBeInTheDocument();
+  });
+
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  /*
   it('should only show backend-supported evaluation targets in the menu', () => {
     mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
 
     renderPage();
+
     fireEvent.click(screen.getByTestId('suite-evaluates-input'));
 
     expect(screen.getByTestId('suite-evaluates-option-agent')).toBeInTheDocument();
@@ -730,16 +755,29 @@ describe('CopySuitePage', () => {
     expect(screen.queryByTestId('suite-evaluates-option-guardrails')).not.toBeInTheDocument();
     expect(screen.queryByTestId('suite-evaluates-option-traces')).not.toBeInTheDocument();
   });
+  */
+
+  it('should not render an evaluation target menu', () => {
+    mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
+
+    renderPage();
+
+    expect(screen.queryByTestId('suite-evaluates-input')).not.toBeInTheDocument();
+  });
 
   it('should associate metadata labels with their multi-select controls', () => {
     mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
 
     renderPage();
 
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    /*
     expect(screen.getByLabelText('Evaluates')).toHaveAttribute(
       'data-testid',
       'suite-evaluates-input',
     );
+    */
+    expect(screen.queryByTestId('suite-evaluates-input')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Category')).toHaveAttribute('data-testid', 'suite-domains-input');
     /*
     expect(screen.getByLabelText('Tasks')).toHaveAttribute('data-testid', 'suite-tasks-input');
@@ -819,11 +857,14 @@ describe('CopySuitePage', () => {
     fireEvent.change(screen.getByTestId('suite-description-input'), {
       target: { value: 'Updated description' },
     });
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    /*
     fireEvent.click(screen.getByTestId('suite-evaluates-input'));
     fireEvent.click(
       within(screen.getByTestId('suite-evaluates-option-model')).getByRole('checkbox'),
     );
     fireEvent.click(screen.getByTestId('suite-evaluates-input'));
+    */
     fireEvent.click(screen.getByTestId('suite-domains-input'));
     fireEvent.click(
       within(screen.getByTestId('suite-domains-option-knowledge_and_reasoning')).getByRole(
@@ -865,7 +906,11 @@ describe('CopySuitePage', () => {
 
     expect(form.form.getValues('suiteName')).toBe('Updated suite');
     expect(form.form.getValues('suiteDescription')).toBe('Updated description');
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    /*
     expect(form.form.getValues('suiteEvaluates')).toEqual(['agent', 'model']);
+    */
+    expect(form.form.getValues('suiteEvaluates')).toEqual(['model']);
     expect(form.form.getValues('suiteDomains')).toEqual(['reasoning', 'knowledge_and_reasoning']);
     /*
     expect(form.form.getValues('suiteTasks')).toEqual(['text-generation', 'reasoning']);

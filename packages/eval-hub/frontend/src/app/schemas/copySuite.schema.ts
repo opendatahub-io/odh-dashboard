@@ -1,5 +1,5 @@
 import * as z from 'zod';
-import { SUITE_EVALUATES_OPTIONS } from '~/app/pages/const';
+import { MODEL_EVALUATION_TARGETS, SUITE_EVALUATES_OPTIONS } from '~/app/pages/const';
 import { isPercentageMetric } from '~/app/utilities/evaluationUtils';
 
 export const copySuiteBenchmarkParameterTypeSchema = z.enum(['number', 'boolean', 'text']);
@@ -139,7 +139,9 @@ export const copySuiteDefaultValues: CopySuiteFormValues = {
   suiteTasks: [],
   suiteModalities: [],
   suiteIndustries: [],
-  suiteEvaluates: [],
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // suiteEvaluates: [],
+  suiteEvaluates: [...MODEL_EVALUATION_TARGETS],
   suiteThreshold: 70,
   benchmarks: [],
 };

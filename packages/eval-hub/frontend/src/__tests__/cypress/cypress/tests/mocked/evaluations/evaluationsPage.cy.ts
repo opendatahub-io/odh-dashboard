@@ -80,7 +80,7 @@ describe('Evaluations Page - Tabs', () => {
     });
   });
 
-  it('should default to the Gallery tab with curated suite filters', () => {
+  it('should default to the Gallery tab with curated model suite filters', () => {
     evaluationsPage.visit(NAMESPACE);
     evaluationsPage.findGalleryTab().should('have.attr', 'aria-selected', 'true');
     evaluationsPage.findGalleryContent().should('exist');
@@ -90,7 +90,7 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBenchmarkSuitesTagsFilter().should('exist');
     evaluationsPage.findBenchmarkSuitesTaskFilter().should('exist');
     evaluationsPage.findBenchmarkSuitesModalityFilter().should('exist');
-    evaluationsPage.findBenchmarkSuitesEvaluatesFilter().should('exist');
+    evaluationsPage.findBenchmarkSuitesEvaluatesFilter().should('not.exist');
     evaluationsPage.findBenchmarkSuitesPagination().should('exist');
     evaluationsPage
       .findBenchmarkSuitesNameFilter()
@@ -114,15 +114,9 @@ describe('Evaluations Page - Tabs', () => {
     cy.url().should('include', `/evaluation/${NAMESPACE}/create/collections/clawbench/copy`);
   });
 
-  it('should filter Gallery suites by evaluation target', () => {
+  it('should hide the Gallery evaluation target filter', () => {
     evaluationsPage.visit(NAMESPACE);
-    evaluationsPage.findBenchmarkSuitesEvaluatesFilter().click();
-    evaluationsPage.findBenchmarkSuitesFilterOption('evaluates', 'model').should('exist');
-    evaluationsPage.findBenchmarkSuitesFilterOption('evaluates', 'agent').should('exist');
-    evaluationsPage.findBenchmarkSuitesFilterOption('evaluates', 'model').click();
-
-    evaluationsPage.findBenchmarkSuiteCard('curated-open-llm-leaderboard-v2').should('exist');
-    evaluationsPage.findBenchmarkSuiteCard('clawbench').should('not.exist');
+    evaluationsPage.findBenchmarkSuitesEvaluatesFilter().should('not.exist');
   });
 
   it('should filter Gallery suites by category, tags, task, modality, and industry', () => {
@@ -257,7 +251,8 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.visitEvaluate(NAMESPACE);
 
     evaluationsPage.findCuratedSuiteCategories().should('exist');
-    evaluationsPage.findCuratedSuiteCategoryCard('agents').should('contain.text', 'Agents');
+    evaluationsPage.findCuratedSuiteCategoryCard('models').should('contain.text', 'Models');
+    evaluationsPage.findCuratedSuiteCategoryCard('agents').should('not.exist');
     evaluationsPage.findCuratedSuiteCategoryCard('models').click();
     cy.url().should('include', `/evaluation/${NAMESPACE}/collections/model`);
   });
@@ -399,11 +394,11 @@ describe('Evaluations Page - Empty state', () => {
       .findEmptyStateBody()
       .should(
         'contain.text',
-        'Start an evaluation run, or select a different project to view its runs.',
+        'Go to benchmark suites to create a suite or run an individual benchmark, or select a different project to view its runs.',
       );
   });
 
-  it('should navigate to the Evaluate tab when clicking the empty state action', () => {
+  it('should navigate to the Benchmark suites tab when clicking the empty state action', () => {
     evaluationsPage.visitRuns(NAMESPACE);
     evaluationsPage.findCreateEvaluationButton().click();
     evaluationsPage.findEvaluateTab().should('have.attr', 'aria-selected', 'true');

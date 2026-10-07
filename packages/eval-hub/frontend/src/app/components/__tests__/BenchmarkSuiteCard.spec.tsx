@@ -37,12 +37,18 @@ describe('BenchmarkSuiteCard', () => {
       'aria-label',
       'Metrics: MC1 accuracy, Toxicity score',
     );
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    /*
     expect(
       screen.getByTestId('benchmark-suite-card-evaluation-targets-model-suite'),
     ).toHaveTextContent('2');
     expect(
       screen.getByTestId('benchmark-suite-card-evaluation-targets-model-suite'),
     ).toHaveAttribute('aria-label', 'Evaluation targets: Agent, Model');
+    */
+    expect(
+      screen.queryByTestId('benchmark-suite-card-evaluation-targets-model-suite'),
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suite-card-benchmarks-model-suite')).toHaveAttribute(
       'aria-label',
       'Benchmarks: benchmark-1, benchmark-2',
@@ -93,6 +99,8 @@ describe('BenchmarkSuiteCard', () => {
     ).toHaveAttribute('aria-label', 'Benchmarks: Benchmark One, benchmark-two');
   });
 
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  /*
   it('should show evaluation targets in the evaluation target count tooltip', async () => {
     render(
       <BenchmarkSuiteCard
@@ -112,6 +120,25 @@ describe('BenchmarkSuiteCard', () => {
 
     expect(await screen.findByText('Agent')).toBeInTheDocument();
     expect(screen.getByText('Model')).toBeInTheDocument();
+  });
+  */
+
+  it('should hide the evaluation target count', () => {
+    render(
+      <BenchmarkSuiteCard
+        collection={{
+          ...mockCollection({ id: 'evaluation-targets-tooltip-suite' }),
+          evaluation_targets: ['model', 'agent'],
+        }}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId(
+        'benchmark-suite-card-evaluation-targets-evaluation-targets-tooltip-suite',
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it('should show the successful run count when enabled', async () => {

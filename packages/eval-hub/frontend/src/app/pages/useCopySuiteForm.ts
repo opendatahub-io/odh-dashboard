@@ -17,7 +17,9 @@ import { useNotification } from '~/app/hooks/useNotification';
 import { useCollectionsContext } from '~/app/context/CollectionsContext';
 import { cloneCollection, createCollection, patchCollection } from '~/app/api/k8s';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { isSuiteEvaluatesOption, type SuiteEvaluatesOption } from '~/app/pages/const';
+// TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+// import { isSuiteEvaluatesOption, type SuiteEvaluatesOption } from '~/app/pages/const';
+import { MODEL_EVALUATION_TARGETS, type SuiteEvaluatesOption } from '~/app/pages/const';
 import {
   copySuiteDefaultValues,
   getCopySuiteSchema,
@@ -225,7 +227,8 @@ export const buildPendingCollection = ({
   suiteTasks,
   suiteModalities,
   suiteIndustries,
-  suiteEvaluates,
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // suiteEvaluates,
   suiteThreshold,
   benchmarks,
 }: BuildPendingCollectionParams): Collection => {
@@ -254,8 +257,11 @@ export const buildPendingCollection = ({
     tasks: suiteTasks,
     modalities: suiteModalities,
     industries: suiteIndustries,
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
     // eslint-disable-next-line camelcase
-    evaluation_targets: suiteEvaluates,
+    // evaluation_targets: suiteEvaluates,
+    // eslint-disable-next-line camelcase
+    evaluation_targets: [...MODEL_EVALUATION_TARGETS],
     custom: buildCustomMetadata(baseCollection.custom),
     // eslint-disable-next-line camelcase
     pass_criteria: { threshold: suiteThreshold / 100 },
@@ -344,6 +350,8 @@ const normalizeWeights = (weights: number[]): number[] => {
   return weightsWithMinimum;
 };
 
+// TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+/*
 const resolveInitialEvaluates = (
   collection: Collection,
   providers: Provider[],
@@ -373,6 +381,8 @@ const resolveInitialEvaluates = (
 
   return [];
 };
+*/
+const resolveInitialEvaluates = (): SuiteEvaluatesOption[] => [...MODEL_EVALUATION_TARGETS];
 
 const buildBenchmarkFromProvider = (
   provider: Provider,
@@ -553,7 +563,9 @@ const buildInitialFormValues = (
   suiteTasks: uniqueCollectionMetadata(sourceCollection.tasks),
   suiteModalities: uniqueCollectionMetadata(sourceCollection.modalities),
   suiteIndustries: uniqueCollectionMetadata(sourceCollection.industries),
-  suiteEvaluates: resolveInitialEvaluates(sourceCollection, providers),
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // suiteEvaluates: resolveInitialEvaluates(sourceCollection, providers),
+  suiteEvaluates: resolveInitialEvaluates(),
   suiteThreshold: sourceCollection.pass_criteria
     ? normalizeThreshold(sourceCollection.pass_criteria.threshold)
     : DEFAULT_SUITE_THRESHOLD,
@@ -586,8 +598,10 @@ export const buildCollectionPatchOperations = (
       op: 'add',
       // eslint-disable-next-line camelcase
       path: '/evaluation_targets',
+      // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
       // eslint-disable-next-line camelcase
-      value: request.evaluation_targets ?? [],
+      // value: request.evaluation_targets ?? [],
+      value: [...MODEL_EVALUATION_TARGETS],
     },
     {
       op: 'add',
@@ -644,7 +658,9 @@ export function useCopySuiteForm({
       : copySuiteDefaultValues;
     initialBenchmarksRef.current = initialValues.benchmarks;
     form.reset(initialValues);
-    void form.trigger();
+    if (sourceCollection) {
+      void form.trigger();
+    }
   }, [sourceCollection, providers, providersLoaded, form, isCreateMode, isEditMode]);
 
   const [
@@ -699,9 +715,20 @@ export function useCopySuiteForm({
     (value: string) => form.setValue('suiteDescription', value, { shouldValidate: true }),
     [form],
   );
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  /*
   const setSuiteEvaluates = React.useCallback(
     (value: SuiteEvaluatesOption[]) =>
       form.setValue('suiteEvaluates', value, { shouldValidate: true }),
+    [form],
+  );
+  */
+  const setSuiteEvaluates = React.useCallback(
+    (value: SuiteEvaluatesOption[]) => {
+      void value;
+      // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+      form.setValue('suiteEvaluates', [...MODEL_EVALUATION_TARGETS], { shouldValidate: true });
+    },
     [form],
   );
   const handleSuiteThresholdChange = React.useCallback(
@@ -829,8 +856,11 @@ export function useCopySuiteForm({
       tasks: values.suiteTasks,
       modalities: values.suiteModalities,
       industries: values.suiteIndustries,
+      // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
       // eslint-disable-next-line camelcase
-      evaluation_targets: values.suiteEvaluates,
+      // evaluation_targets: values.suiteEvaluates,
+      // eslint-disable-next-line camelcase
+      evaluation_targets: [...MODEL_EVALUATION_TARGETS],
       custom: buildCustomMetadata(sourceCollection?.custom),
       // eslint-disable-next-line camelcase
       pass_criteria: { threshold: values.suiteThreshold / 100 },

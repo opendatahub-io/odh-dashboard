@@ -225,13 +225,17 @@ describe('EvaluationsPage', () => {
     expect(screen.getByTestId('benchmark-suites-tags-filter')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-task-filter')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-modality-filter')).toBeInTheDocument();
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    /*
     expect(screen.getByTestId('benchmark-suites-evaluates-filter')).toBeInTheDocument();
+    */
     expect(screen.getByTestId('benchmark-suites-benchmarks-filter')).toBeInTheDocument();
     const filterOrder = [
       'benchmark-suites-category-filter',
       'benchmark-suites-benchmarks-filter',
       'benchmark-suites-metrics-filter',
-      'benchmark-suites-evaluates-filter',
+      // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+      // 'benchmark-suites-evaluates-filter',
       'benchmark-suites-modality-filter',
       'benchmark-suites-task-filter',
       'benchmark-suites-industry-filter',
@@ -284,6 +288,8 @@ describe('EvaluationsPage', () => {
     );
   });
 
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  /*
   it('should filter Gallery suites by evaluation target', () => {
     renderPage('test-project');
 
@@ -301,6 +307,13 @@ describe('EvaluationsPage', () => {
       screen.getByTestId('benchmark-suite-card-curated-open-llm-leaderboard-v2'),
     ).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suite-card-clawbench')).not.toBeInTheDocument();
+  });
+  */
+
+  it('should hide the Gallery evaluation target filter', () => {
+    renderPage('test-project');
+
+    expect(screen.queryByTestId('benchmark-suites-evaluates-filter')).not.toBeInTheDocument();
   });
 
   it('should filter Gallery suites by benchmark, category, tags, task, metric, modality, and industry', () => {

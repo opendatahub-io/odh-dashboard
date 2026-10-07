@@ -22,7 +22,9 @@ import { TimesIcon } from '@patternfly/react-icons';
 import { Controller, useFormContext, type Control } from 'react-hook-form';
 import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
 import { formatCollectionMetadataValue } from '~/app/components/benchmarkUtils';
-import { COLLECTION_METADATA_OPTIONS, SUITE_EVALUATES_MENU_OPTIONS } from '~/app/pages/const';
+// TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+// import { COLLECTION_METADATA_OPTIONS, SUITE_EVALUATES_MENU_OPTIONS } from '~/app/pages/const';
+import { COLLECTION_METADATA_OPTIONS } from '~/app/pages/const';
 import {
   isSameAsSourceCollectionName,
   SOURCE_COLLECTION_NAME_ERROR,
@@ -355,6 +357,8 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
           />
         </FormGroup>
 
+        {/* TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added. */}
+        {/*
         <CollectionMetadataField
           name="suiteEvaluates"
           label="Evaluates"
@@ -363,6 +367,7 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
           testId="suite-evaluates"
           options={SUITE_EVALUATES_MENU_OPTIONS}
         />
+        */}
 
         <CollectionMetadataField
           name="suiteDomains"

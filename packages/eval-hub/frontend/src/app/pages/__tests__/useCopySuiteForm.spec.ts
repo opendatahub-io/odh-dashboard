@@ -443,7 +443,9 @@ describe('useCopySuiteForm', () => {
     );
   });
 
-  it('should preserve multiple valid evaluates values while removing duplicates and invalid values', async () => {
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // it('should preserve multiple valid evaluates values while removing duplicates and invalid values', async () => {
+  it('should initialize copied suites with the model evaluation target', async () => {
     const result = renderForm({
       sourceCollection: {
         ...sourceCollection,
@@ -453,10 +455,14 @@ describe('useCopySuiteForm', () => {
 
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
-    expect(result.result.current.suiteEvaluates).toEqual(['model', 'agent']);
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    // expect(result.result.current.suiteEvaluates).toEqual(['model', 'agent']);
+    expect(result.result.current.suiteEvaluates).toEqual(['model']);
   });
 
-  it('should preserve an explicitly empty evaluation targets array', async () => {
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // it('should preserve an explicitly empty evaluation targets array', async () => {
+  it('should initialize copied suites with the model target when source targets are empty', async () => {
     const result = renderForm({
       sourceCollection: {
         ...sourceCollection,
@@ -467,7 +473,9 @@ describe('useCopySuiteForm', () => {
 
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
-    expect(result.result.current.suiteEvaluates).toEqual([]);
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    // expect(result.result.current.suiteEvaluates).toEqual([]);
+    expect(result.result.current.suiteEvaluates).toEqual(['model']);
   });
 
   it('should remove duplicate collection metadata values on initialization', async () => {
@@ -519,7 +527,9 @@ describe('useCopySuiteForm', () => {
     const result = renderForm({ mode: 'create', sourceCollection: undefined });
 
     await waitFor(() => expect(result.result.current.suiteName).toBe(''));
-    expect(result.result.current.suiteEvaluates).toEqual([]);
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    // expect(result.result.current.suiteEvaluates).toEqual([]);
+    expect(result.result.current.suiteEvaluates).toEqual(['model']);
 
     act(() => {
       result.result.current.form.setValue('suiteName', 'New suite', { shouldValidate: true });
@@ -579,7 +589,9 @@ describe('useCopySuiteForm', () => {
     expect(mockCloneCollection).not.toHaveBeenCalled();
   });
 
-  it('should submit an empty evaluation_targets array for a create suite with no evaluates selected', async () => {
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // it('should submit an empty evaluation_targets array for a create suite with no evaluates selected', async () => {
+  it('should submit the model evaluation target for a create suite', async () => {
     const createFetcher = jest.fn().mockResolvedValue({
       resource: { id: 'created-collection' },
       name: 'New suite',
@@ -612,7 +624,9 @@ describe('useCopySuiteForm', () => {
       '',
       'test-namespace',
       expect.objectContaining({
-        evaluation_targets: [],
+        // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+        // evaluation_targets: [],
+        evaluation_targets: ['model'],
       }),
     );
     expect(mockCreateCollection.mock.calls[0]?.[2]).not.toHaveProperty('category');
@@ -727,7 +741,9 @@ describe('useCopySuiteForm', () => {
     }
   });
 
-  it('should fall back to legacy custom evaluates metadata when evaluation_targets is absent', async () => {
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // it('should fall back to legacy custom evaluates metadata when evaluation_targets is absent', async () => {
+  it('should use the model target when legacy custom evaluates metadata is present', async () => {
     const legacySourceCollection: Collection = {
       ...sourceCollection,
       evaluation_targets: undefined,
@@ -737,10 +753,14 @@ describe('useCopySuiteForm', () => {
 
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
-    expect(result.result.current.suiteEvaluates).toEqual(['traces']);
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    // expect(result.result.current.suiteEvaluates).toEqual(['traces']);
+    expect(result.result.current.suiteEvaluates).toEqual(['model']);
   });
 
-  it('should leave evaluates blank when the source has no evaluates metadata', async () => {
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // it('should leave evaluates blank when the source has no evaluates metadata', async () => {
+  it('should use the model target when the source has no evaluates metadata', async () => {
     const sourceWithoutEvaluates: Collection = {
       ...sourceCollection,
       evaluation_targets: undefined,
@@ -750,10 +770,14 @@ describe('useCopySuiteForm', () => {
 
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
-    expect(result.result.current.suiteEvaluates).toEqual([]);
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    // expect(result.result.current.suiteEvaluates).toEqual([]);
+    expect(result.result.current.suiteEvaluates).toEqual(['model']);
   });
 
-  it('should fall back to provider evaluates metadata when collection metadata is absent', async () => {
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // it('should fall back to provider evaluates metadata when collection metadata is absent', async () => {
+  it('should use the model target when provider evaluates metadata is present', async () => {
     const sourceWithoutEvaluates: Collection = {
       ...sourceCollection,
       evaluation_targets: undefined,
@@ -770,7 +794,9 @@ describe('useCopySuiteForm', () => {
 
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
-    expect(result.result.current.suiteEvaluates).toEqual(['guardrails']);
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    // expect(result.result.current.suiteEvaluates).toEqual(['guardrails']);
+    expect(result.result.current.suiteEvaluates).toEqual(['model']);
   });
 
   it('should map returned primitive parameters to fields and keep other parameters in JSON', async () => {
@@ -994,7 +1020,9 @@ describe('useCopySuiteForm', () => {
 
     expect(result.result.current.suiteName).toBe('Updated suite');
     expect(result.result.current.suiteDescription).toBe('Updated description');
-    expect(result.result.current.suiteEvaluates).toEqual(['traces']);
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    // expect(result.result.current.suiteEvaluates).toEqual(['traces']);
+    expect(result.result.current.suiteEvaluates).toEqual(['model']);
     expect(result.result.current.suiteThreshold).toBe(65);
     expect(result.result.current.benchmarks[0]).toEqual(
       expect.objectContaining({
@@ -1326,6 +1354,14 @@ describe('useCopySuiteForm', () => {
     expect(result.result.current.isValid).toBe(false);
   });
 
+  it('should not show validation errors when a blank create form is initialized', async () => {
+    const result = renderForm({ mode: 'create', sourceCollection: undefined });
+
+    await waitFor(() => expect(result.result.current.suiteName).toBe(''));
+
+    expect(result.result.current.form.formState.errors).toEqual({});
+  });
+
   it('should reject a copy that keeps the source collection name', async () => {
     const result = renderForm();
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
@@ -1440,7 +1476,9 @@ describe('useCopySuiteForm', () => {
         tasks: ['text-generation'],
         modalities: ['text'],
         industries: ['technology'],
-        evaluation_targets: ['traces'],
+        // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+        // evaluation_targets: ['traces'],
+        evaluation_targets: ['model'],
         custom: { source: 'curated' },
         pass_criteria: { threshold: 0.8 },
         benchmarks: [
@@ -1513,7 +1551,9 @@ describe('useCopySuiteForm', () => {
         tasks: [],
         modalities: [],
         industries: [],
-        evaluation_targets: [],
+        // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+        // evaluation_targets: [],
+        evaluation_targets: ['model'],
       }),
     );
   });
@@ -1616,7 +1656,9 @@ describe('useCopySuiteForm', () => {
         tasks: ['text-generation'],
         modalities: ['text'],
         industries: ['technology'],
-        evaluation_targets: ['guardrails'],
+        // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+        // evaluation_targets: ['guardrails'],
+        evaluation_targets: ['model'],
         custom: { source: 'curated' },
         pass_criteria: { threshold: 0.8 },
         benchmarks: [

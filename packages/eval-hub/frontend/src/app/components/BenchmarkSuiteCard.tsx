@@ -25,7 +25,8 @@ import {
   ChartLineIcon,
   ClipboardCheckIcon,
   CodeIcon,
-  CubeIcon,
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // CubeIcon,
   CubesIcon,
   EllipsisVIcon,
   LanguageIcon,
@@ -264,9 +265,12 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
       name: getBenchmarkDisplayName(benchmark, benchmarkNameMap),
     }))
     .toSorted((first, second) => first.name.localeCompare(second.name));
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  /*
   const evaluationTargetNames = [...new Set(collection.evaluation_targets ?? [])]
     .map(formatCategory)
     .toSorted((first, second) => first.localeCompare(second));
+  */
   const benchmarkCount = collection.benchmarks?.length ?? 0;
   const isPopular = isPopularCollection(collection);
   const actions = contextualActions ?? [];
@@ -303,6 +307,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
   const benchmarksSummaryLabel = `Benchmarks: ${
     benchmarkNames.map((benchmark) => benchmark.name).join(', ') || 'No benchmarks available'
   }`;
+  /*
   const evaluationTargetsTooltip = (
     <div className="evalhub-benchmark-suite-card__tooltip-content">
       <strong>Evaluation targets</strong>
@@ -320,6 +325,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
   const evaluationTargetsSummaryLabel = `Evaluation targets: ${
     evaluationTargetNames.join(', ') || 'No evaluation targets available'
   }`;
+  */
   const runCount = collection.state?.run_count ?? 0;
   const runCountTooltip = 'Run Count: Number of successful executions of this suite';
   const renderActionButton = (action: BenchmarkSuiteCardButton, actionName: 'primary') =>
@@ -550,6 +556,8 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
                   <span>{metrics.length}</span>
                 </button>
               </Tooltip>
+              {/* TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added. */}
+              {/*
               <Tooltip content={evaluationTargetsTooltip}>
                 <button
                   type="button"
@@ -561,6 +569,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
                   <span>{evaluationTargetNames.length}</span>
                 </button>
               </Tooltip>
+              */}
               {showRunCount && (
                 <Tooltip content={runCountTooltip}>
                   <button
