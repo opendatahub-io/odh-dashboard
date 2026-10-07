@@ -100,6 +100,32 @@ export const addUserToProject = (
   });
 };
 
+/** Deletes any existing project, waits until it is gone, then creates a fresh one. */
+export const recreateOpenShiftProject = (
+  projectName: string,
+): Cypress.Chainable<CommandLineResult> => {
+  const waitUntilGone = (attempt = 1): Cypress.Chainable<void> =>
+    verifyOpenShiftProjectExists(projectName).then((exists): Cypress.Chainable<void> => {
+      if (!exists) {
+        return cy.wrap(undefined as void);
+      }
+      if (attempt >= 60) {
+        throw new Error(`Project ${projectName} still exists after cleanup`);
+      }
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      return cy.wait(2000).then(() => waitUntilGone(attempt + 1));
+    });
+
+  return cy
+    .exec(`oc delete project ${projectName} --wait=false --ignore-not-found`, {
+      failOnNonZeroExit: false,
+    })
+    .then(() => waitUntilGone())
+    .then(() => createOpenShiftProject(projectName));
+};
+
+
+
 export const addClusterRoleToUser = (
   clusterRole: string,
   userName: string,
