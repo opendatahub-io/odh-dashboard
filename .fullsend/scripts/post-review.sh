@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Vendored from fullsend-ai/agents scripts/post-review.sh
-# @ 91f61f3441baedf3f912c9afd4bd574c98793b96 (harness review.yaml base).
+# @ bb167e241317812f30bd596878868b5134c4b002, the last revision before
+# upstream's multi-forge rewrite. The prior-findings projection, the
+# label_actions hardening, the PR file-list retry and the failed outcome for
+# action=failure are from ce2eedd097dcccf17e29f4a7cd337ec4d95d7194; the rest
+# is not synced past the first commit.
 #
 # Local changes from the stock script:
 #   1. Set the GitHub review action from findings (any medium+ →
@@ -52,7 +56,9 @@
 #
 # Exit codes:
 #   0 — review posted
-#   1 — error (review not posted or fallback comment posted)
+#   1 — error (review not posted, fallback comment posted, or the result's
+#       action was "failure": the notice is published but the review did
+#       not complete)
 set -euo pipefail
 
 REVIEW_STICKY_MARKER='<!-- fullsend:review-agent -->'
@@ -60,9 +66,13 @@ REVIEW_STICKY_MARKER='<!-- fullsend:review-agent -->'
 # Resolve the config directory to an absolute path. The harness sets
 # FULLSEND_DIR=.fullsend (relative) and runs post_script with CWD=runDir, so a
 # bare relative value cannot find dimensions.json or .run/collected.json.
+# Captured once at load time, before anything changes directory: BASH_SOURCE[0]
+# is relative when the script is invoked by a relative path.
+POST_REVIEW_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 resolve_fullsend_config_dir() {
   local script_dir candidate
-  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  script_dir="$(cd "${POST_REVIEW_SCRIPT_DIR}/.." && pwd)"
   candidate="${FULLSEND_DIR:-${script_dir}}"
   if [[ "${candidate}" != /* ]]; then
     if [[ -d "${candidate}" ]]; then
@@ -709,6 +719,23 @@ def claims_empty_skip(reason):
     """True when a skipped challenger claims the empty-finding-set sanction."""
     return not reason or "no finding" in reason.lower()
 
+# Raised by the orchestrator after the step 6d skip decision (step 6e, and the
+# step 7 provenance warning), so they cannot disprove an empty-set skip.
+ORCHESTRATOR_ONLY_CATEGORIES = frozenset({"protected-path", "provenance-warning"})
+
+def challengeable(findings):
+    """Findings step 6d could have handed the challenger."""
+    kept = []
+    for finding in findings:
+        if not isinstance(finding, dict):
+            continue
+        if str(finding.get("category") or "").lower() in ORCHESTRATOR_ONLY_CATEGORIES:
+            continue
+        if producer_ids(finding) == ["orchestrator"]:
+            continue
+        kept.append(finding)
+    return kept
+
 def challenger_problem(ch, findings):
     """Confidence/limit note when the challenger record contradicts itself.
 
@@ -717,6 +744,7 @@ def challenger_problem(ch, findings):
     reason = clean(ch.get("reason") or "")
     if status == "pending":
         return 'Challenger status is still pending, so whether it ran is unknown.'
+    findings = challengeable(findings)
     if status == "skipped" and claims_empty_skip(reason) and findings:
         count = len(findings)
         return (f"Challenger was marked skipped with no findings to adjudicate, but {count} "
@@ -1297,6 +1325,109 @@ prepare_summary_only_result() {
   jq 'if (.findings | type) == "array" then .findings |= map(del(.line)) else . end' "$1" > "$2"
 }
 
+# Append a machine-readable projection only when every schema-validated finding
+# can be represented safely. A lossy projection could turn a failed sub-agent
+# into an apparently clean dimension on the next re-review. Low-severity
+# challenger failures are non-dimensional and retain the pre-challenger findings.
+# A dimension failure the severity filter removed (info-tier failures) must
+# still suppress the projection.
+#
+# From fullsend-ai/agents scripts/post-review.src.sh
+# @ ce2eedd097dcccf17e29f4a7cd337ec4d95d7194. Local changes:
+#   - The allowed categories are the registry rows' `categories`, not a fixed
+#     list, so ODH dimensions project too.
+#   - A findings row that result.producers records as dispatched but not
+#     returned counts as a failed dimension, because the agent may already
+#     have dropped its info-tier failure finding.
+#   - Findings the orchestrator raised itself (`dimension: orchestrator`) are
+#     not a dimension's prior findings.
+#   - Exactly one marker is always written, as the first line of the body: the
+#     projection, or a withheld sentinel that cannot validate. pre-review.sh
+#     accepts a comment only when it holds exactly one marker, so text inside
+#     the body can never stand in for a marker the host did not write. First,
+#     not last: the poster truncates an oversized body from the end, and the
+#     Jira integration appends link definitions to the comment.
+#
+# Usage: append_prior_findings_projection <result.json> <unfiltered-result.json>
+append_prior_findings_projection() {
+  local result_file="$1" unfiltered_file="$2"
+  local registry="${FULLSEND_CONFIG_DIR:-}/dimensions.json"
+  local projection="" marker encoded
+  if [[ -f "${registry}" && -f "${unfiltered_file}" ]]; then
+    projection="$(jq -c --slurpfile unfiltered "${unfiltered_file}" --slurpfile registry "${registry}" '
+      def allowed_category:
+        IN($registry[0].dimensions[].categories[]?);
+      def safe_path:
+        type == "string" and length > 0 and . != "N/A" and
+        test("^[ -~]+$") and
+        (test("(^/|/$|//|(^|/)\\.\\.?(/|$)|[\\\\\\r\\n<>])") | not);
+      def non_dimensional_category:
+        type == "string" and IN(
+          "protected-path", "provenance-warning", "scope-authorization-implicit"
+        );
+      def non_dimensional_finding:
+        (.category | non_dimensional_category) or
+        (.dimension == "orchestrator" and .category != "sub-agent-failure") or
+        (.category == "sub-agent-failure" and .severity == "low");
+      def projectable:
+        (.category | type == "string" and allowed_category) and (.file == "N/A" or (.file | safe_path));
+      (.findings // []) as $findings
+      | ($findings | map(select(non_dimensional_finding | not))) as $dimension_findings
+      | [$registry[0].dimensions[]
+          | select(.kind != "cli-adapter" and ((.output // "findings") == "findings"))
+          | .id] as $findings_rows
+      | (($unfiltered[0].producers // {}) | if type == "object" then . else {} end) as $run
+      # The agent may already have dropped an info-tier failure finding, so
+      # also read result.producers: a findings row dispatched but not
+      # returned failed.
+      | (($run.returned | type) == "array" and (($run.dispatched // []) | any(.[];
+          . as $id | ($id | IN($findings_rows[])) and ($id | IN($run.returned[]) | not)))) as $unreturned
+      | ((($unfiltered[0].findings // [])
+          | any(.[]; .category == "sub-agent-failure" and (non_dimensional_finding | not)))
+          or $unreturned) as $dimension_failed
+      | if (.action | IN("approve", "request-changes", "comment", "reject"))
+          and ($dimension_findings | all(.[]; projectable))
+          and ($dimension_failed | not) then
+          {
+            version: 2,
+            findings: [
+              $dimension_findings[]
+              | {severity, category, file: (if .file == "N/A" then null else .file end)}
+                + (if (.line | type) == "number" then {line} else {} end)
+            ]
+          }
+        else empty
+        end
+    ' "${result_file}")" || {
+      echo "::warning::Prior-findings projection could not be computed; the next re-review runs as a first review" >&2
+      projection=""
+    }
+  fi
+  # Nothing to project: still write a marker, one whose payload pre-review.sh
+  # rejects, so the comment never lacks the single marker it is checked for.
+  [[ -n "${projection}" ]] || projection='{"version":2,"withheld":true}'
+  encoded="$(printf '%s' "${projection}" | base64 | tr -d '\n')"
+  marker="<!-- fullsend:review-findings-v2:${encoded} -->"
+  jq --arg marker "${marker}" '
+    # pre-review.sh rejects a comment with a second marker or a history
+    # delimiter, so a copy of either in the body would cost the next run its
+    # prior findings.
+    def strip_reserved:
+      gsub("(?m)^<!-- fullsend:review-findings-v[12]:[A-Za-z0-9+/=]+ -->\\r?$"; "")
+      | gsub("<!-- sticky:history-(start|end) -->"; "")
+      | gsub("(?m)^<summary>Previous run( \\([0-9]+\\))?</summary>\\r?$"; "");
+    # Removing a substring can join its neighbours into a new reserved string,
+    # so repeat until nothing changes. Each changing pass shortens the body.
+    def strip_reserved_fixpoint:
+      . as $in | strip_reserved | if . == $in then . else strip_reserved_fixpoint end;
+    .body = (
+      if (.body | type) == "string" then .body else "" end
+      | strip_reserved_fixpoint
+    )
+    | .body = ($marker + "\n" + .body)
+  ' "${result_file}"
+}
+
 run_self_test() {
   local fail=0 tmp
   tmp=$(mktemp -d)
@@ -1323,8 +1454,8 @@ run_self_test() {
   resolved_via_workspace="$(
     cd "${tmp}"
     FULLSEND_DIR=".fullsend"
-    # BASH_SOURCE[0] is this script (.fullsend/scripts/post-review.sh).
-    GITHUB_WORKSPACE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+    # POST_REVIEW_SCRIPT_DIR is the directory of this script (.fullsend/scripts).
+    GITHUB_WORKSPACE="$(cd "${POST_REVIEW_SCRIPT_DIR}/../.." && pwd)"
     resolve_fullsend_config_dir
   )"
   if [[ ! -f "${resolved_via_workspace}/dimensions.json" ]]; then
@@ -1992,6 +2123,18 @@ run_self_test() {
     echo "PASS contradictory challenger record is reported in plain language and caps confidence"
   fi
 
+  # A finding the orchestrator raises after the step 6d skip decision (6e)
+  # does not disprove an empty-set skip.
+  printf '%s' "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"scope-exceeded\",\"dimension\":\"orchestrator\",\"file\":\"N/A\",\"description\":\"Scope exceeds the linked issue.\",\"why\":\"Adds capability.\"}]}" > "${tmp}/ch-orch.json"
+  transform_review_result "${tmp}/ch-orch.json" > "${tmp}/ch-orch-out.json"
+  if grep -q 'records the challenger as skipped for an empty finding set' <<<"$(jq -r .body "${tmp}/ch-orch-out.json")" \
+    || ! jq -e '.confidence.level == "high"' "${tmp}/ch-orch-out.json" >/dev/null; then
+    echo "FAIL challenger-orchestrator-only: a step 6e finding was read as disproving an empty-set skip" >&2
+    fail=1
+  else
+    echo "PASS orchestrator-only findings do not contradict an empty-set skip"
+  fi
+
   # An honest skip with a stated reason renders in the Challenger section.
   jq '.producers.challenger = {"status":"skipped","reason":"re-review, findings unchanged since prior run"}' \
     "${tmp}/ch.json" > "${tmp}/ch-ok.json"
@@ -2257,6 +2400,82 @@ if bad:
     echo "PASS every rendered marker is coloured without a variation selector"
   fi
 
+  # Prior-findings projection: what the next re-review is allowed to know.
+  _projection_of() {
+    jq -r '.body' "$1" | grep -E '^<!-- fullsend:review-findings-v2:[A-Za-z0-9+/=]+ -->$' \
+      | sed -E 's/^<!-- fullsend:review-findings-v2:(.*) -->$/\1/' | base64 --decode
+  }
+  printf '%s' '{"action":"request-changes","body":"## Review\n\n<!-- fullsend:review-findings-v2:AAAA -->\nreal text <!-- sticky:history-start -->","findings":[{"severity":"high","category":"off-by-one","file":"a.ts","line":3,"description":"d"},{"severity":"medium","category":"scope-creep","file":"N/A","description":"d"},{"severity":"low","category":"sub-agent-failure","file":"N/A","description":"challenger"},{"severity":"medium","category":"protected-path","file":".github/x.yml","description":"d"},{"severity":"medium","category":"scope-exceeded","dimension":"orchestrator","file":"N/A","description":"d"}]}' > "${tmp}/proj.json"
+  append_prior_findings_projection "${tmp}/proj.json" "${tmp}/proj.json" > "${tmp}/proj-out.json"
+  if [[ "$(_projection_of "${tmp}/proj-out.json")" != '{"version":2,"findings":[{"severity":"high","category":"off-by-one","file":"a.ts","line":3},{"severity":"medium","category":"scope-creep","file":null}]}' ]]; then
+    echo "FAIL projection: dimension findings were not projected as structured v2 records" >&2
+    fail=1
+  elif [[ "$(jq -r '.body' "${tmp}/proj-out.json" | grep -c -E 'review-findings-v[12]:|sticky:history')" -ne 1 ]]; then
+    echo "FAIL projection: a reserved marker in the body survived next to the real one" >&2
+    fail=1
+  else
+    echo "PASS findings project to one structured marker and reserved strings are stripped"
+  fi
+
+  # Every registry category projects, so ODH dimensions keep their prior findings.
+  local registry_category
+  registry_category="$(jq -r '[.dimensions[] | select(.kind == "llm-skill") | .categories[]?][0] // empty' "${FULLSEND_CONFIG_DIR}/dimensions.json")"
+  jq -cn --arg c "${registry_category}" '{action:"comment",body:"b",findings:[{severity:"medium",category:$c,file:"a.tsx",description:"d"}]}' > "${tmp}/proj-odh.json"
+  append_prior_findings_projection "${tmp}/proj-odh.json" "${tmp}/proj-odh.json" > "${tmp}/proj-odh-out.json"
+  if [[ -z "${registry_category}" ]] || ! _projection_of "${tmp}/proj-odh-out.json" | jq -e --arg c "${registry_category}" '.findings[0].category == $c' >/dev/null; then
+    echo "FAIL projection: a category owned by an ODH registry row was not projected" >&2
+    fail=1
+  else
+    echo "PASS registry-owned categories project"
+  fi
+
+  # A category no registry row owns, or a dimension that failed, makes the
+  # projection lossy: emit nothing so the next run reviews from scratch.
+  printf '%s' '{"action":"comment","body":"b","findings":[{"severity":"medium","category":"made-up-category","file":"a.ts","description":"d"}]}' > "${tmp}/proj-unknown.json"
+  append_prior_findings_projection "${tmp}/proj-unknown.json" "${tmp}/proj-unknown.json" > "${tmp}/proj-unknown-out.json"
+  printf '%s' '{"action":"approve","body":"b"}' > "${tmp}/proj-filtered.json"
+  printf '%s' '{"action":"approve","body":"b","findings":[{"severity":"info","category":"sub-agent-failure","file":"N/A","description":"docs-currency returned nothing"}]}' > "${tmp}/proj-unfiltered.json"
+  append_prior_findings_projection "${tmp}/proj-filtered.json" "${tmp}/proj-unfiltered.json" > "${tmp}/proj-failed-out.json"
+  printf '%s' '{"action":"failure","reason":"tool-failure","body":"b"}' > "${tmp}/proj-failure.json"
+  append_prior_findings_projection "${tmp}/proj-failure.json" "${tmp}/proj-failure.json" > "${tmp}/proj-failure-out.json"
+  local withheld='{"version":2,"withheld":true}'
+  if [[ "$(_projection_of "${tmp}/proj-unknown-out.json")" != "${withheld}" || "$(_projection_of "${tmp}/proj-failed-out.json")" != "${withheld}" || "$(_projection_of "${tmp}/proj-failure-out.json")" != "${withheld}" ]]; then
+    echo "FAIL projection: a lossy or failed review did not carry the withheld marker" >&2
+    fail=1
+  elif [[ "$(jq -r '.body' "${tmp}/proj-failed-out.json" | sed 1d)" != "b" || "$(jq -r '.body' "${tmp}/proj-failed-out.json" | grep -c 'review-findings-v')" -ne 1 ]]; then
+    echo "FAIL projection: the withheld marker is not the single first line of an otherwise unchanged body" >&2
+    fail=1
+  else
+    echo "PASS lossy, failed-dimension and failure results carry a withheld marker"
+  fi
+
+  # The agent definition has the agent drop below-threshold findings, so an
+  # info-tier failure may never reach the result. result.producers still shows it.
+  printf '%s' '{"action":"approve","body":"b","findings":[{"severity":"low","category":"logic-error","file":"a.ts","description":"d"}],"producers":{"dispatched":["correctness","docs-currency","rating"],"adapters":[],"skipped":[],"returned":["correctness","rating"]}}' > "${tmp}/proj-unreturned.json"
+  printf '%s' '{"action":"approve","body":"b","findings":[{"severity":"low","category":"logic-error","file":"a.ts","description":"d"}],"producers":{"dispatched":["correctness","docs-currency","rating"],"adapters":[],"skipped":[],"returned":["correctness","docs-currency"]}}' > "${tmp}/proj-returned.json"
+  append_prior_findings_projection "${tmp}/proj-unreturned.json" "${tmp}/proj-unreturned.json" > "${tmp}/proj-unreturned-out.json"
+  append_prior_findings_projection "${tmp}/proj-returned.json" "${tmp}/proj-returned.json" > "${tmp}/proj-returned-out.json"
+  if [[ "$(_projection_of "${tmp}/proj-unreturned-out.json")" != "${withheld}" ]]; then
+    echo "FAIL projection: a findings row dispatched but not returned still emitted a projection" >&2
+    fail=1
+  elif ! _projection_of "${tmp}/proj-returned-out.json" | jq -e '.findings | length == 1' >/dev/null; then
+    echo "FAIL projection: a non-findings row missing from returned withheld the projection" >&2
+    fail=1
+  else
+    echo "PASS a findings row dispatched but not returned withholds the projection"
+  fi
+
+  # Round trip: what this script writes is what pre-review.sh accepts, also
+  # after the Jira integration has appended link definitions to the comment.
+  printf '%s\n\n[RHOAIENG-1]: https://example.atlassian.net/browse/RHOAIENG-1\n' "$(jq -r '.body' "${tmp}/proj-out.json")" > "${tmp}/prior-review.txt"
+  if ! ( source "${FULLSEND_CONFIG_DIR}/scripts/pre-review.sh" && validate_prior_review_projection "${tmp}/prior-review.txt" ) >/dev/null 2>&1 \
+    || ! jq -e '.version == 2 and (.findings | length == 2) and .findings[1].file == null' "${tmp}/prior-review.txt" >/dev/null; then
+    echo "FAIL projection: pre-review.sh rejected the marker post-review.sh wrote" >&2
+    fail=1
+  else
+    echo "PASS projection round-trips through pre-review.sh"
+  fi
+
   if [[ "${fail}" -ne 0 ]]; then
     exit 1
   fi
@@ -2338,6 +2557,9 @@ if [ -z "${RESULT_FILE}" ] || [ ! -f "${RESULT_FILE}" ]; then
 fi
 
 echo "Using result: ${RESULT_FILE}"
+# The severity filter below can drop an info-level sub-agent-failure. Keep the
+# unfiltered result so the projection still sees every failed dimension.
+UNFILTERED_RESULT_FILE="${RESULT_FILE}"
 
 # Sticky Ran/Result/Challenger audit come from result.producers only.
 # producers.json is the orchestrator's working store; post-review does not
@@ -2447,8 +2669,20 @@ REVIEW_SIGNALS=$(gh pr view "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" \
 export REVIEW_SIGNALS
 # Changed paths let the renderer adjudicate protected-path findings against the
 # same list the host enforces, instead of trusting the agent's path matching.
-REVIEW_CHANGED_FILES=$(gh pr view "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" \
-  --json files --jq '.files[].path' 2>/dev/null || true)
+# Use the paginated /pulls/{n}/files REST endpoint rather than the
+# `gh pr view --json files` summary field: that field stops at 100 files, and
+# fullsend-ai/fullsend#2093 found empty results correlated with recent
+# merge-commit updates. The files endpoint reflects the computed diff more
+# directly.
+fetch_pr_files() {
+  local files
+  if ! files=$(gh api "repos/${REPO_FULL_NAME}/pulls/${PR_NUMBER}/files" \
+    --paginate --jq '.[].filename' 2>/dev/null); then
+    return 1
+  fi
+  [[ -n "${files}" ]] && printf '%s\n' "${files}"
+}
+REVIEW_CHANGED_FILES=$(fetch_pr_files) || REVIEW_CHANGED_FILES=""
 export REVIEW_CHANGED_FILES
 if [[ -n "${GITHUB_RUN_ID:-}" ]]; then
   _RUN_STARTED_AT=$(gh run view "${GITHUB_RUN_ID}" --repo "${REPO_FULL_NAME}" \
@@ -2525,9 +2759,24 @@ if [ "${ACTION}" = "approve" ]; then
   # run regardless of whether protected-path enforcement itself is
   # enabled — only the pattern-matching loop below is gated on a
   # non-empty REVIEW_ACTIVE_PROTECTED_PATHS.
-  PR_FILES=$(gh pr view "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" --json files --jq '.files[].path')
-  if [ -z "${PR_FILES}" ]; then
-    echo "::error::Failed to fetch PR files or PR has no changed files — refusing to approve (gh pr view --json files)" >&2
+  # Reuse the list the renderer adjudicated against (fetch_pr_files above),
+  # so the gate and the rendered comment are decided on the same files.
+  PR_FILES="${REVIEW_CHANGED_FILES}"
+  PR_FILES_FETCH_FAILED=false
+  if [ "${PR_FILES_FETCH_FAILED}" = true ] || [ -z "${PR_FILES}" ]; then
+    # An empty file list may be a transient forge data race. Retry once
+    # before refusing to approve, so a genuinely non-empty PR is not failed.
+    echo "::notice::PR files came back empty; retrying once in case of a transient forge data race" >&2
+    sleep 10
+    if PR_FILES=$(fetch_pr_files); then
+      PR_FILES_FETCH_FAILED=false
+    else
+      PR_FILES_FETCH_FAILED=true
+      PR_FILES=""
+    fi
+  fi
+  if [ "${PR_FILES_FETCH_FAILED}" = true ] || [ -z "${PR_FILES}" ]; then
+    echo "::error::Failed to fetch PR files or PR has no changed files — refusing to approve (pulls/${PR_NUMBER}/files)" >&2
     exit 1
   fi
 
@@ -2574,6 +2823,9 @@ REVIEW_CONTROL_LABELS=(
   "ready-for-review" "fullsend-no-fix" "fullsend-fix"
 )
 
+# Make a value safe to print inside a GitHub Actions workflow command.
+_gha_sanitize() { printf '%s' "$1" | tr -d '\n\r' | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g; s/%/%25/g; s/::/%3A%3A/g'; }
+
 is_control_label() {
   local label="$1"
   for cl in "${REVIEW_CONTROL_LABELS[@]}"; do
@@ -2607,23 +2859,17 @@ if [[ "${HAS_LABEL_ACTIONS}" == "true" ]]; then
     LA_ACTION=$(jq -r ".label_actions.actions[${i}].action" "${RESULT_FILE}")
     LA_LABEL=$(jq -r ".label_actions.actions[${i}].label" "${RESULT_FILE}")
 
-    # Sanitize jq -r output: strip newlines, carriage returns, and GHA
-    # workflow command delimiters to prevent command injection via crafted
-    # label names or action values.
-    LA_ACTION="${LA_ACTION//$'\n'/}"
-    LA_ACTION="${LA_ACTION//$'\r'/}"
-    LA_ACTION="${LA_ACTION//::/:}"
-    LA_LABEL="${LA_LABEL//$'\n'/}"
-    LA_LABEL="${LA_LABEL//$'\r'/}"
-    LA_LABEL="${LA_LABEL//::/:}"
+    # Decide on the values as given; print only _gha_sanitize copies.
+    LA_ACTION_SHOWN=$(_gha_sanitize "${LA_ACTION}")
+    LA_LABEL_SHOWN=$(_gha_sanitize "${LA_LABEL}")
 
-    if [[ ! "${LA_LABEL}" =~ ^[a-zA-Z0-9._/:\ +\-]+$ ]]; then
-      echo "::warning::Refused label '${LA_LABEL}' -- contains invalid characters"
+    if [[ "${LA_LABEL}" == *::* || ! "${LA_LABEL}" =~ ^[a-zA-Z0-9._/:\ +\-]+$ ]]; then
+      echo "::warning::Refused label '${LA_LABEL_SHOWN}' -- contains invalid characters or a double colon"
       continue
     fi
 
     if is_control_label "${LA_LABEL}"; then
-      echo "::warning::Refused to ${LA_ACTION} control label '${LA_LABEL}' -- control labels are managed by the review pipeline"
+      echo "::warning::Refused to ${LA_ACTION_SHOWN} control label '${LA_LABEL}' -- control labels are managed by the review pipeline"
       continue
     fi
 
@@ -2639,7 +2885,7 @@ if [[ "${HAS_LABEL_ACTIONS}" == "true" ]]; then
         VALIDATED_LABEL_REMOVES+=("${LA_LABEL}")
         ;;
       *)
-        echo "::warning::Unknown label action '${LA_ACTION}' for label '${LA_LABEL}'"
+        echo "::warning::Unknown label action '${LA_ACTION_SHOWN}' for label '${LA_LABEL}'"
         ;;
     esac
   done
@@ -2647,6 +2893,15 @@ if [[ "${HAS_LABEL_ACTIONS}" == "true" ]]; then
   # The host-rendered Review details section already explains label_actions.
   # Validation controls which of those proposed mutations are actually synced.
 fi
+
+# ---------------------------------------------------------------------------
+# Re-review context: append the structured prior-findings projection to the
+# final body. Runs last so it sees the action and findings that get posted.
+# ---------------------------------------------------------------------------
+PROJECTED_RESULT=$(mktemp)
+CLEANUP_FILES+=("${PROJECTED_RESULT}")
+append_prior_findings_projection "${RESULT_FILE}" "${UNFILTERED_RESULT_FILE}" > "${PROJECTED_RESULT}"
+RESULT_FILE="${PROJECTED_RESULT}"
 
 # ---------------------------------------------------------------------------
 # Post the review. Exit code 10 = stale-head: the PR HEAD moved after the
@@ -2728,6 +2983,21 @@ for stale_label in "ready-for-merge" "requires-manual-review" "rejected"; do
   gh pr edit "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" \
     --remove-label "${stale_label}" 2>/dev/null || true
 done
+
+# ---------------------------------------------------------------------------
+# Explicit failure result: the agent could not complete a real review (e.g.
+# tool-failure, missing-context, time-budget). The failure notice above was
+# published successfully — that is publication success, not review success.
+# Propagate a failed task outcome so the run does not report Success for a
+# review that never happened. This runs after the stale-label loop: a failed
+# run must not leave an earlier run's outcome label in place.
+# (fullsend-ai/agents#1612)
+# ---------------------------------------------------------------------------
+if [ "${ACTION}" = "failure" ]; then
+  FAILURE_REASON=$(jq -r '.reason // "unknown"' "${RESULT_FILE}")
+  echo "::error::Review result reported action=failure (reason: $(_gha_sanitize "${FAILURE_REASON}")) — failure notice was published, but propagating a failed task outcome (PR #${PR_NUMBER} in ${REPO_FULL_NAME})" >&2
+  exit 1
+fi
 
 if [ "${OUTCOME_LABEL}" = "ready-for-merge" ]; then
   echo "Approve disposition — applying ready-for-merge label"

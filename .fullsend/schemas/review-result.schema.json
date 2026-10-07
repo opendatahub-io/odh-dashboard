@@ -15,7 +15,7 @@
     "schema_version": { "type": "string", "const": "3" },
     "change_summary": { "type": "string", "minLength": 1, "maxLength": 500 },
     "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
-    "reason": { "type": "string", "enum": ["tool-failure", "missing-context", "ambiguous-findings", "token-limit"] },
+    "reason": { "type": "string", "enum": ["tool-failure", "missing-context", "ambiguous-findings", "token-limit", "time-budget"] },
     "risk": { "$ref": "#/$defs/rated" },
     "confidence": { "$ref": "#/$defs/confidence_rated" },
     "product_ask": { "$ref": "#/$defs/product_ask" },

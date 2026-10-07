@@ -66,6 +66,7 @@
       "failure_severity": "info",
       "budget_priority": 3,
       "re_review": "skip-unless-requalified",
+      "remediation_candidates": true,
       "categories": [
         "scope-exceeded", "tier-mismatch", "unauthorized-change", "scope-creep",
         "missing-authorization", "misleading-label", "design-direction",

@@ -1,7 +1,7 @@
 # Based on the Fullsend-managed scaffold, with registry-driven host-adapter
 # preparation for PR reviews. Keep this extension in sync with the upstream
 # scaffold when Fullsend is upgraded.
-# Upstream: https://github.com/fullsend-ai/fullsend/blob/main/internal/scaffold/fullsend-repo/.github/workflows/fullsend.yaml
+# Upstream: https://github.com/fullsend-ai/fullsend/blob/main/internal/scaffold/fullsend-repo/templates/shim-per-repo.yaml
 ---
 # fullsend shim workflow (per-repo installation mode)
 # Routes events to agent workflows via reusable-dispatch.yml.
@@ -247,6 +247,8 @@ jobs:
       pull-requests: write
     # Keep in step with the sandbox image pinned in .fullsend/harness/review.yaml
     # (same release, Pi 0.99.2).
+    # The harness base names built-in providers that only v0.45.0 onward
+    # resolves, so this pin and the base pin move together.
     # Temporary pin through fullsend#7848 (fixes #7834 custom role_name auth).
     # Revert to a released tag when v0.46+ ships this.
     uses: fullsend-ai/fullsend/.github/workflows/reusable-dispatch.yml@d8560dcc4f4920618f8eba3afd6c56e60263502a # fullsend#7848 (post-v0.45.0)
