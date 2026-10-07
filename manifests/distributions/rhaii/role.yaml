@@ -1,0 +1,32 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rhaii-dashboard
+rules:
+  # The BFF reads its dashboard configuration and the settings ConfigMaps in
+  # its own namespace. Mutations are limited to the configuration paths owned
+  # by the dashboard service account.
+  - apiGroups:
+      - ''
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+      - create
+      - update
+      - delete
+  - apiGroups:
+      - opendatahub.io
+    resources:
+      - odhdashboardconfigs
+    verbs:
+      - get
+      - create
+      - patch
+  - apiGroups:
+      - dashboard.opendatahub.io
+    resources:
+      - odhapplications
+    verbs:
+      - list

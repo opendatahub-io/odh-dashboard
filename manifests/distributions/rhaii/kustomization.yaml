@@ -1,0 +1,73 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Deliberately namespace-neutral: the future operator or installer supplies
+# the applications namespace when rendering/applying this bundle.
+resources:
+  - service-account.yaml
+  - role.yaml
+  - role-binding.yaml
+  - deployment.yaml
+  - service.yaml
+  - networkpolicy.yaml
+  - httproute.yaml
+configMapGenerator:
+  - name: rhaii-dashboard-params
+    env: params.env
+generatorOptions:
+  disableNameSuffixHash: true
+labels:
+  - pairs:
+      app.kubernetes.io/component: rhaii-dashboard
+      app.kubernetes.io/name: rhaii-dashboard
+      app.kubernetes.io/part-of: rhaii-dashboard
+      platform.opendatahub.io/part-of: rhaii-dashboard
+    includeSelectors: false
+replacements:
+  - source:
+      kind: ConfigMap
+      name: rhaii-dashboard-params
+      fieldPath: data.rhaii-dashboard-image
+    targets:
+      - select:
+          kind: Deployment
+          name: rhaii-dashboard
+        fieldPaths:
+          - spec.template.spec.containers.[name=rhaii-dashboard].image
+  # Keep the HTTPRoute backend reference synchronized with the Service port.
+  # The Service targetPort and pod probes use the named `dashboard` port.
+  - source:
+      kind: Service
+      name: rhaii-dashboard
+      fieldPath: spec.ports.0.port
+    targets:
+      - select:
+          group: gateway.networking.k8s.io
+          version: v1
+          kind: HTTPRoute
+          name: rhaii-dashboard
+        fieldPaths:
+          - spec.rules.0.backendRefs.0.port
+  - source:
+      kind: ConfigMap
+      name: rhaii-dashboard-params
+      fieldPath: data.gateway-name
+    targets:
+      - select:
+          group: gateway.networking.k8s.io
+          version: v1
+          kind: HTTPRoute
+          name: rhaii-dashboard
+        fieldPaths:
+          - spec.parentRefs.0.name
+  - source:
+      kind: ConfigMap
+      name: rhaii-dashboard-params
+      fieldPath: data.gateway-namespace
+    targets:
+      - select:
+          group: gateway.networking.k8s.io
+          version: v1
+          kind: HTTPRoute
+          name: rhaii-dashboard
+        fieldPaths:
+          - spec.parentRefs.0.namespace

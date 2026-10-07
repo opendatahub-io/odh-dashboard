@@ -7,9 +7,10 @@
 ARG NODE_BASE_IMAGE=node:22
 ARG GOLANG_BASE_IMAGE=golang:1.25
 ARG DISTROLESS_BASE_IMAGE=gcr.io/distroless/static:nonroot
+ARG BUILDPLATFORM
 
 # ── Stage 1: UI Builder ──────────────────────────────────────────────────────
-FROM ${NODE_BASE_IMAGE} AS ui-builder
+FROM --platform=$BUILDPLATFORM ${NODE_BASE_IMAGE} AS ui-builder
 
 WORKDIR /usr/src/workspace
 
@@ -52,14 +53,26 @@ RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
 WORKDIR /usr/src/workspace/distributions/rhaii
 ARG ENABLE_MODEL_SERVING=false
 ENV ENABLE_MODEL_SERVING=${ENABLE_MODEL_SERVING}
-ARG MODEL_SERVING_REMOTE_ENTRY=""
+# Production images serve the federated Model Serving remote from the same
+# origin. This matches the main dashboard's module-federation URL convention.
+# Tilt overrides it with its local development server on port 9109.
+ARG MODEL_SERVING_REMOTE_ENTRY="/_mf/modelServing/remoteEntry.js"
 ENV MODEL_SERVING_REMOTE_ENTRY=${MODEL_SERVING_REMOTE_ENTRY}
 ARG RHAII_TILT_FIXTURES=false
 ENV RHAII_TILT_FIXTURES=${RHAII_TILT_FIXTURES}
 RUN pnpm run build
 
+# Build the Model Serving module as a federated remote. The final stage places
+# these assets at the conventional /_mf/modelServing path in the RHAII BFF's
+# static root, so the browser can load the remote from the same origin without
+# a separate UI deployment or CORS policy.
+WORKDIR /usr/src/workspace/packages/model-serving/frontend
+ENV DEPLOYMENT_MODE=federated
+ENV PUBLIC_PATH=/_mf/modelServing/
+RUN pnpm run build:prod
+
 # ── Stage 2: BFF Builder ─────────────────────────────────────────────────────
-FROM ${GOLANG_BASE_IMAGE} AS bff-builder
+FROM --platform=$BUILDPLATFORM ${GOLANG_BASE_IMAGE} AS bff-builder
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -89,8 +102,9 @@ WORKDIR /
 COPY --from=bff-builder /usr/src/app/bff ./
 COPY --from=bff-builder /usr/src/app/openapi/ ./openapi/
 COPY --from=ui-builder /usr/src/workspace/distributions/rhaii/public ./static/
+COPY --from=ui-builder /usr/src/workspace/packages/model-serving/frontend/dist ./static/_mf/modelServing/
 USER 65532:65532
 
-EXPOSE 4000
+EXPOSE 8443
 
 ENTRYPOINT ["/bff"]
