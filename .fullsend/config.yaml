@@ -38,6 +38,8 @@ agents:
           docs-currency: openai/gpt-6-luna
           intent-coherence: openai/gpt-6.1-sol
           investigator: openai/gpt-6-luna
+          # Rating's risk/confidence gates approval; tiny output, so pay for Sol.
+          rating: openai/gpt-6.1-sol
           security: openai/gpt-6.1-sol
           security-triage: openai/gpt-6-luna
           style-conventions: openai/gpt-6-luna
