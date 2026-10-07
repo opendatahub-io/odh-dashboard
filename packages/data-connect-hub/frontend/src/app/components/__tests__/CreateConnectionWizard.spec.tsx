@@ -161,6 +161,81 @@ describe('CreateConnectionWizard', () => {
     expect((screen.getByTestId('connection-name-input') as HTMLInputElement).value).toBe('');
   });
 
+  it('should apply the latest initial data on open without overwriting session edits', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    const { rerender } = render(
+      <CreateConnectionWizard isOpen={false} namespace="test-project" onClose={onClose} />,
+    );
+
+    rerender(
+      <CreateConnectionWizard
+        isOpen={false}
+        namespace="test-project"
+        onClose={onClose}
+        initialFormData={{ data_connection_type_id: 'postgresql' }}
+      />,
+    );
+    rerender(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={onClose}
+        initialFormData={{ data_connection_type_id: 'postgresql' }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Connection details' })).toBeTruthy();
+    await user.type(screen.getByTestId('connection-name-input'), 'session-edit');
+
+    rerender(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={onClose}
+        initialFormData={{ data_connection_type_id: 'oci-v1', name: 'updated-prop' }}
+      />,
+    );
+
+    expect((screen.getByTestId('connection-name-input') as HTMLInputElement).value).toBe(
+      'session-edit',
+    );
+  });
+
+  it('should preserve prefilled properties when adding another property', async () => {
+    const user = userEvent.setup();
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{
+          data_connection_type_id: 'postgresql',
+          properties: { region: 'east' },
+        }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Connection details' })).toBeTruthy();
+    expect((screen.getByTestId('connection-property-key-1') as HTMLInputElement).value).toBe(
+      'region',
+    );
+    expect((screen.getByTestId('connection-property-value-1') as HTMLInputElement).value).toBe(
+      'east',
+    );
+
+    await user.type(screen.getByTestId('connection-name-input'), 'warehouse');
+    await user.click(screen.getByRole('button', { name: 'Add key-value pair' }));
+    await user.type(screen.getByTestId('connection-property-key-2'), 'zone');
+    await user.type(screen.getByTestId('connection-property-value-2'), 'west');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.type(screen.getByTestId('credential-URI'), 'postgres://example');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+
+    expect(screen.getByText('region: east')).toBeTruthy();
+    expect(screen.getByText('zone: west')).toBeTruthy();
+  });
+
   it('starts with a blank wizard after the modal is cancelled', async () => {
     const user = userEvent.setup();
     const onClose = jest.fn();

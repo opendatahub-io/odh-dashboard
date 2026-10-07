@@ -124,6 +124,35 @@ describe('ConnectionTypesGallery', () => {
     expect(screen.queryByRole('heading', { name: 'Credentials only' })).toBeNull();
   });
 
+  it('should render the no-match state when filters exclude all connection types', async () => {
+    const user = userEvent.setup();
+    render(
+      <ConnectionTypesGallery
+        connectionTypes={getConnectionTypes().slice(0, 2)}
+        onConnectionTypeClick={jest.fn()}
+      />,
+    );
+
+    await user.click(screen.getByTestId('connection-types-gallery-dropdown'));
+    await user.click(
+      within(screen.getByTestId('connection-types-gallery-dropdown-capability')).getByRole(
+        'option',
+        { name: 'Capability' },
+      ),
+    );
+    await user.click(screen.getByTestId('connection-types-gallery-capability-dropdown'));
+    await user.click(
+      within(screen.getByTestId('connection-types-gallery-capability-credentials')).getByRole(
+        'option',
+        { name: 'Credentials only' },
+      ),
+    );
+
+    expect(screen.getByText('No matching data connection types')).toBeTruthy();
+    expect(screen.queryByText('PostgreSQL')).toBeNull();
+    expect(screen.queryByText('S3')).toBeNull();
+  });
+
   // TODO: Labels are waiting on API changes; re-enable this test when label filtering is enabled.
   it.skip('should support selecting and clearing multiple label filters', async () => {
     const user = userEvent.setup();
