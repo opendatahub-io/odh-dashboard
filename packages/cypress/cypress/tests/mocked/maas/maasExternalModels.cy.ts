@@ -806,6 +806,23 @@ describe('External Models Page', () => {
       externalModelsPage.findMaaSPublishedPostDeployAlert().should('contain.text', 'GPT-4 Turbo');
       externalModelsPage.findMaaSPublishedPostDeployAlertLink().should('not.exist');
     });
+    it('should disable the create button if the resource name is invalid', () => {
+      createExternalModelPage.visit();
+      createExternalModelPage.findDisplayNameInput().type('GPT-4 Turbo');
+      createExternalModelPage.findDescriptionInput().type('External GPT-4 Turbo model');
+      createExternalModelPage.findAddProviderReferenceButton().click();
+      addProviderReferenceWizard.addProviderReference(
+        'Anthropic Provider',
+        'claude-sonnet-4',
+        'openai-chat',
+      );
+      createExternalModelPage.findCreateButton().should('be.enabled');
+      createExternalModelPage.findEditResourceNameButton().click();
+      createExternalModelPage.findResourceNameInput().should('exist');
+      createExternalModelPage.findResourceNameInput().should('have.value', 'gpt-4-turbo');
+      createExternalModelPage.findResourceNameInput().type('gpt-4-turbo-invalid-');
+      createExternalModelPage.findCreateButton().should('be.disabled');
+    });
   });
 });
 

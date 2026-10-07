@@ -1977,6 +1977,14 @@ class CreateExternalModelPage {
     return cy.findByTestId('external-model-name-desc-name');
   }
 
+  findEditResourceNameButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-name-desc-editResourceLink');
+  }
+
+  findResourceNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-name-desc-resourceName');
+  }
+
   findDescriptionInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('external-model-name-desc-description');
   }
