@@ -95,13 +95,16 @@ export const useAppExtensions = (): [Record<string, Extension[]>, boolean] => {
           const loadExtensions = async () => {
             let activeRemotes = remotes;
             if (remotes.some(({ name }) => name === AUTORAG_MODULE_NAME)) {
+              const devOverride = getDevAutoRagOverride();
               try {
                 const config = await fetchDashboardConfig();
-                const devOverride = getDevAutoRagOverride();
                 const autoragEnabled = devOverride ?? config.spec.dashboardConfig.autorag ?? true;
                 activeRemotes = filterDisabledAutoRagRemote(remotes, autoragEnabled);
               } catch (error) {
-                // Preserve the current startup behavior if configuration cannot be fetched here.
+                if (devOverride === false) {
+                  activeRemotes = filterDisabledAutoRagRemote(remotes, false);
+                }
+                // Preserve startup behavior if configuration fails, except for an explicit opt-out.
                 // The application performs its own config fetch and displays the corresponding error.
                 // eslint-disable-next-line no-console
                 console.warn('Failed to load dashboard config for module federation:', error);

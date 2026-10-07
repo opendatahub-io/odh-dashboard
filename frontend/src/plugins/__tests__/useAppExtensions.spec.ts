@@ -112,7 +112,7 @@ describe('useAppExtensions', () => {
     expect(loadRemoteMock).toHaveBeenCalledWith('autorag/extensions');
   });
 
-  it('loads all remotes if fetching the dashboard config fails', async () => {
+  it('loads all remotes if fetching the dashboard config fails without a developer opt-out', async () => {
     fetchDashboardConfigMock.mockRejectedValue(new Error('network'));
 
     await renderExtensionsHook();
@@ -125,6 +125,20 @@ describe('useAppExtensions', () => {
       ],
     });
     expect(loadRemoteMock).toHaveBeenCalledWith('autorag/extensions');
+  });
+
+  it('honors a developer opt-out if fetching the dashboard config fails', async () => {
+    window.history.replaceState({}, '', '/?devFeatureFlags=autorag%3Dfalse');
+    fetchDashboardConfigMock.mockRejectedValue(new Error('network'));
+
+    await renderExtensionsHook();
+
+    expect(initMock).toHaveBeenCalledWith({
+      name: 'app',
+      remotes: [{ name: 'gen-ai', entry: '/_mf/gen-ai/remoteEntry.js' }],
+    });
+    expect(loadRemoteMock).toHaveBeenCalledTimes(1);
+    expect(loadRemoteMock).toHaveBeenCalledWith('gen-ai/extensions');
   });
 
   it('honors a persisted developer override when the dashboard flag is false', async () => {

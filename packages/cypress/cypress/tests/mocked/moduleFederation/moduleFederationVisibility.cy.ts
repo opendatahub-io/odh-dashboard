@@ -6,6 +6,7 @@ import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatu
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { pageNotfound } from '../../../pages/pageNotFound';
 import { homePage } from '../../../pages/home/home';
+import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
 import { navSidebar } from '../navSidebar/navSidebar';
 
 const initIntercepts = (
@@ -55,13 +56,16 @@ describe('Module federation visibility', () => {
         .and('not.contain.text', /Tech Preview|Technology Preview|Dev Preview/i);
 
       homePage.visit();
-      cy.get('[data-testid="task-link-genai-autorag"]')
+      homePage
+        .findTaskShortcut('genai-autorag')
         .should('be.visible')
         .and('not.contain.text', /Tech Preview|Technology Preview|Dev Preview/i);
 
-      cy.visitWithLogin('/gen-ai-studio/autorag/configure/test-project');
-      cy.findByTestId('app-page-title').should('exist');
-      cy.get('body').should('not.contain.text', /Tech Preview|Technology Preview|Dev Preview/i);
+      autoragConfigurePage.visit('test-project');
+      autoragConfigurePage.findPageTitle().should('exist');
+      autoragConfigurePage
+        .findPageBody()
+        .should('not.contain.text', /Tech Preview|Technology Preview|Dev Preview/i);
     });
 
     it('should show Feature store section and render route when flag and DSC are enabled', () => {
