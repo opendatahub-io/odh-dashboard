@@ -173,7 +173,7 @@ const QuotaUsageMeter: React.FC<QuotaUsageMeterProps> = ({
       aria-label={`${ariaLabel}: ${valueText}`}
       data-testid={testId}
     >
-      <FlexItem flex={{ default: 'flexNone' }}>
+      <FlexItem className="gpuaas-quota-usage-meter__chart" flex={{ default: 'flexNone' }}>
         {hasOverQuotaTooltip ? (
           <Tooltip content={QUOTA_USAGE_METER.overQuotaTooltip}>{meterChart}</Tooltip>
         ) : (
@@ -181,7 +181,7 @@ const QuotaUsageMeter: React.FC<QuotaUsageMeterProps> = ({
         )}
       </FlexItem>
       <FlexItem>
-        <Content component="p" className="gpuaas-quota-usage-meter__value">
+        <Content component="small" className="gpuaas-quota-usage-meter__value">
           {valueText}
         </Content>
       </FlexItem>

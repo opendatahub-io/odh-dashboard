@@ -11,6 +11,7 @@ import {
 import { DashboardNamespaceProvider } from './DashboardNamespaceContext';
 import HostApiProvider from './HostApiProvider';
 import ProjectsContextProvider from './ProjectsContextProvider';
+import TiltFixturesProvider from '../development/tilt/TiltFixturesProvider';
 
 type RhaiiAppProviderProps = {
   children: React.ReactNode;
@@ -40,16 +41,25 @@ const areasStatus = {
 
 const areaContextValue = { dscStatus: null, dsciStatus: null, areasStatus };
 
-const RhaiiAppProvider: React.FC<RhaiiAppProviderProps> = ({ children }) => (
-  <IntegrationsContext.Provider value={integrationsContextValue}>
-    <AreaContext.Provider value={areaContextValue}>
-      <DashboardNamespaceProvider>
-        <ProjectsContextProvider>
-          <HostApiProvider>{children}</HostApiProvider>
-        </ProjectsContextProvider>
-      </DashboardNamespaceProvider>
-    </AreaContext.Provider>
-  </IntegrationsContext.Provider>
-);
+const RhaiiAppProvider: React.FC<RhaiiAppProviderProps> = ({ children }) => {
+  const appContent =
+    process.env.RHAII_TILT_FIXTURES === 'true' ? (
+      <TiltFixturesProvider>{children}</TiltFixturesProvider>
+    ) : (
+      children
+    );
+
+  return (
+    <IntegrationsContext.Provider value={integrationsContextValue}>
+      <AreaContext.Provider value={areaContextValue}>
+        <DashboardNamespaceProvider>
+          <ProjectsContextProvider>
+            <HostApiProvider>{appContent}</HostApiProvider>
+          </ProjectsContextProvider>
+        </DashboardNamespaceProvider>
+      </AreaContext.Provider>
+    </IntegrationsContext.Provider>
+  );
+};
 
 export default RhaiiAppProvider;

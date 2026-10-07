@@ -48,11 +48,13 @@ jest.mock('~/app/AIAssets/components/AIModelsTable', () => ({
   default: ({
     models,
     toolbarActions,
+    showPlaygroundColumn,
   }: {
     models: AIModel[];
     toolbarActions?: React.ReactNode;
+    showPlaygroundColumn?: boolean;
   }) => (
-    <div data-testid="models-table">
+    <div data-testid="models-table" data-show-playground-column={showPlaygroundColumn}>
       {toolbarActions}
       {models.map((model) => (
         <div key={model.model_id} data-testid={`model-${model.model_id}`}>
@@ -155,6 +157,38 @@ describe('AIAssetsModelsTab', () => {
     expect(screen.getByTestId('models-table')).toBeInTheDocument();
     expect(screen.getByTestId('model-model-1')).toBeInTheDocument();
     expect(screen.getByText('Test Model')).toBeInTheDocument();
+  });
+
+  it('should hide Playground actions when no project is selected', () => {
+    mockUseAiAssetCustomEndpointsEnabled.mockReturnValue(true);
+    mockUseMergedModels.mockReturnValue({
+      models: [
+        {
+          model_id: 'maas-model', // eslint-disable-line camelcase
+          model_name: 'maas-model', // eslint-disable-line camelcase
+          display_name: 'MaaS Model', // eslint-disable-line camelcase
+          status: 'Running',
+          model_source_type: 'maas', // eslint-disable-line camelcase
+        },
+      ] as AIModel[],
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    } as ReturnType<typeof useMergedModels>);
+
+    render(
+      <GenAiContext.Provider value={{ ...mockGenAiContextValue, namespace: undefined }}>
+        <MemoryRouter>
+          <AIAssetsModelsTab />
+        </MemoryRouter>
+      </GenAiContext.Provider>,
+    );
+
+    expect(screen.getByTestId('models-table')).toHaveAttribute(
+      'data-show-playground-column',
+      'false',
+    );
+    expect(screen.queryByTestId('create-endpoint-button')).not.toBeInTheDocument();
   });
 
   it('should refresh merged and playground models after creating an endpoint', () => {

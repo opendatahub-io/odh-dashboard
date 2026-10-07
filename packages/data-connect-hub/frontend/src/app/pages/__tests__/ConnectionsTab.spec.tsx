@@ -5,11 +5,18 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import ConnectionsTab, { synchronizeTypeSelection } from '~/app/pages/ConnectionsTab';
 import { useConnections } from '~/app/hooks/useConnections';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
+import { useNamespaces } from '~/app/hooks/useNamespaces';
 import { deleteConnection, verifyConnection } from '~/app/api/dch';
 
 jest.mock('~/app/hooks/useConnections');
 jest.mock('~/app/hooks/useConnectionTypes');
+jest.mock('~/app/hooks/useNamespaces');
+const mockNotificationSuccess = jest.fn();
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: () => ({ success: mockNotificationSuccess, error: jest.fn() }),
+}));
 jest.mock('~/app/api/dch', () => ({
+  createConnection: jest.fn(),
   deleteConnection: jest.fn(),
   verifyConnection: jest.fn(),
 }));
@@ -40,6 +47,7 @@ jest.mock('@odh-dashboard/ui-core', () => ({
 
 const mockUseConnections = jest.mocked(useConnections);
 const mockUseConnectionTypes = jest.mocked(useConnectionTypes);
+const mockUseNamespaces = jest.mocked(useNamespaces);
 const mockVerifyConnection = jest.mocked(verifyConnection);
 const mockDeleteConnection = jest.mocked(deleteConnection);
 
@@ -67,7 +75,15 @@ const connectionTypes = [
       created_at: '2026-09-08T16:00:00Z',
       updated_at: '2026-09-08T16:00:00Z',
     },
-    resource: { name: 'PostgreSQL', provider: 'postgresql', credentials_fields: [] },
+    resource: {
+      name: 'PostgreSQL',
+      provider: 'postgresql',
+      credentials_fields: [
+        { name: 'URI', label: 'URI', required: true, type: 'string' },
+        { name: 'CA_CERT', label: 'CA certificate', required: false, type: 'string' },
+      ],
+    },
+    status: { flight_ready: true },
   },
   {
     metadata: {
@@ -76,6 +92,7 @@ const connectionTypes = [
       updated_at: '2026-09-08T16:00:00Z',
     },
     resource: { name: 'S3', provider: 's3', credentials_fields: [] },
+    status: { flight_ready: true },
   },
 ];
 
@@ -101,6 +118,7 @@ describe('ConnectionsTab', () => {
     mockDeleteConnection.mockImplementation(() => () => Promise.resolve());
     mockUseConnections.mockReturnValue([connections, true, undefined, jest.fn()]);
     mockUseConnectionTypes.mockReturnValue([connectionTypes, true, undefined]);
+    mockUseNamespaces.mockReturnValue([[{ name: 'test-project' }], true, undefined]);
   });
 
   it('keeps manually deselected types deselected during polling', () => {
@@ -123,7 +141,20 @@ describe('ConnectionsTab', () => {
     expect(screen.getByText('Unverified')).toBeTruthy();
   });
 
-  it('disables connection polling while the Registry tab is inactive', () => {
+  it('opens the create connection wizard from the toolbar', async () => {
+    const user = userEvent.setup();
+    render(<ConnectionsTab namespace="test-project" />);
+
+    await user.click(screen.getByRole('button', { name: 'Create connection' }));
+
+    expect(screen.getByTestId('create-connection-tearsheet')).toBeTruthy();
+    expect(screen.getAllByText('Connection type').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Connection details').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Configuration').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Review').length).toBeGreaterThan(0);
+  });
+
+  it('disables connection polling while the Connections tab is inactive', () => {
     render(<ConnectionsTab namespace="test-project" isActive={false} />);
 
     expect(mockUseConnections).toHaveBeenCalledWith('test-project', false);
@@ -243,7 +274,8 @@ describe('ConnectionsTab', () => {
     expect(screen.getByText('object-store')).toBeTruthy();
   });
 
-  it('shows the designed empty state when the project has no connections', () => {
+  it('shows the designed empty state when the project has no connections', async () => {
+    const user = userEvent.setup();
     mockUseConnections.mockReturnValue([[], true, undefined, jest.fn()]);
 
     render(<ConnectionsTab namespace="empty-project" />);
@@ -255,5 +287,7 @@ describe('ConnectionsTab', () => {
       ),
     ).toBeTruthy();
     expect(screen.queryByRole('textbox', { name: 'Filter by name' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Create connection' }));
+    expect(screen.getByTestId('create-connection-tearsheet')).toBeTruthy();
   });
 });

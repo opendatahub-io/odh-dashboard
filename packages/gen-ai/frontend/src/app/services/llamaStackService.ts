@@ -16,6 +16,8 @@ import {
   AgentProfileListResponse,
   AgentProfileUpdateRequest,
   AgentProfileUpdateResponse,
+  AgentDeploymentCreateRequest,
+  AgentDeploymentCreateResponse,
   AgentDeploymentListResponse,
   AgentDeploymentSummary,
 } from '~/app/agentProfile/types';
@@ -1458,6 +1460,11 @@ export const getAgentProfile =
 export const listAgentDeployments =
   modArchRestGET<AgentDeploymentListResponse>('/agent-deployments');
 
+export const createAgentDeployment = modArchRestCREATE<
+  AgentDeploymentCreateResponse,
+  AgentDeploymentCreateRequest
+>('/agent-deployments');
+
 export const getAgentDeployment =
   (
     hostPath: string,
@@ -1477,4 +1484,25 @@ export const getAgentDeployment =
       }
       throw new Error('Invalid response format');
     });
+  };
+
+export const deleteAgentDeployment =
+  (
+    hostPath: string,
+    baseQueryParams: Record<string, unknown> = {},
+  ): ModArchRestDELETE<void, { id: string }> =>
+  ({ id }: { id: string }, queryParams: Record<string, unknown> = {}, opts: APIOptions = {}) => {
+    if (!id || typeof id !== 'string') {
+      return Promise.reject(new Error('id parameter is required'));
+    }
+    const path = `/agent-deployments/${encodeURIComponent(id)}`;
+    return handleRestFailures(
+      restDELETE<void>(
+        hostPath,
+        path,
+        {},
+        { ...baseQueryParams, ...queryParams },
+        { ...opts, parseJSON: false },
+      ),
+    ).then(() => undefined);
   };

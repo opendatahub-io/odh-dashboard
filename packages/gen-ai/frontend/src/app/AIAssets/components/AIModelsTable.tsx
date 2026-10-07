@@ -32,6 +32,8 @@ type AIModelsTableProps = {
   lsdStatus: LlamaStackDistributionModel | null;
   toolbarActions?: React.ReactNode;
   onDelete?: (modelId: string) => Promise<void>;
+  showPlaygroundColumn?: boolean;
+  showModelStatusPopover?: boolean;
 };
 
 const dontSeeModelPopoverContent: React.ReactNode = (
@@ -117,6 +119,8 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
   lsdStatus,
   toolbarActions,
   onDelete,
+  showPlaygroundColumn = true,
+  showModelStatusPopover = true,
 }) => {
   const { filterData, onFilterUpdate, onClearFilters, filteredModels } = useAIModelsFilter(models);
   const { data: allCollections, loaded: collectionsLoaded } = useFetchAAEVectorStores();
@@ -129,10 +133,10 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
   // Filter columns based on playground availability
   const visibleColumns = React.useMemo(
     () =>
-      isChatPlaygroundEnabled
+      isChatPlaygroundEnabled && showPlaygroundColumn
         ? aiModelColumns
         : aiModelColumns.filter((col) => col.field !== 'playground'),
-    [isChatPlaygroundEnabled],
+    [isChatPlaygroundEnabled, showPlaygroundColumn],
   );
 
   return (
@@ -150,7 +154,11 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
           filterData={filterData}
           filterOptions={assetsFilterOptions}
           filterColors={AI_FILTER_COLORS}
-          infoPopover={<AIModelStatusPopover modelsVisibleCount={filteredModels.length} />}
+          infoPopover={
+            showModelStatusPopover ? (
+              <AIModelStatusPopover modelsVisibleCount={filteredModels.length} />
+            ) : undefined
+          }
           onClearFilters={onClearFilters}
           resultsCount={filteredModels.length}
           toolbarActions={toolbarActions}
@@ -166,7 +174,7 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
           playgroundModels={playgroundModels}
           onDelete={onDelete}
           showActionColumn={hasCustomEndpoints && !!onDelete}
-          showPlaygroundColumn={isChatPlaygroundEnabled}
+          showPlaygroundColumn={isChatPlaygroundEnabled && showPlaygroundColumn}
           allCollections={allCollections}
           collectionsLoaded={collectionsLoaded}
           existingCollections={existingCollections}
