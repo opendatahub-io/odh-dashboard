@@ -28,7 +28,10 @@ type SupportedFormat =
   | 'msg'
   | 'qmd'
   | 'Rmd'
-  | 'xhtml';
+  | 'xhtml'
+  | 'mp3'
+  | 'wav'
+  | 'm4a';
 interface Format {
   id: SupportedFormat;
   extension: string;
@@ -148,8 +151,27 @@ export const SUPPORTED_FORMAT: Record<string, Format> = {
     mimeType: 'application/xhtml+xml',
     name: 'XHTML',
   },
+  mp3: {
+    id: 'mp3',
+    extension: 'mp3',
+    mimeType: 'audio/mpeg',
+    name: 'MP3',
+  },
+  wav: {
+    id: 'wav',
+    extension: 'wav',
+    mimeType: 'audio/wav',
+    name: 'WAV',
+  },
+  m4a: {
+    id: 'm4a',
+    extension: 'm4a',
+    mimeType: 'audio/mp4',
+    name: 'M4A',
+  },
 };
 const SUPPORTED_FORMAT_LIST = Object.values(SUPPORTED_FORMAT);
+const AUDIO_MIME_TYPES = new Set(['audio/mpeg', 'audio/wav', 'audio/mp4']);
 
 export const SUPPORTED_FORMAT_EXTENSIONS = SUPPORTED_FORMAT_LIST.map((f) => f.extension);
 export const SUPPORTED_FORMAT_NAMES = [...new Set(SUPPORTED_FORMAT_LIST.map((f) => f.name))];
@@ -197,6 +219,9 @@ export function isAllowedInputDataUploadFile(file: File): boolean {
       if (allowed.toLowerCase() === ext) {
         return true;
       }
+    }
+    if (file.type && AUDIO_MIME_TYPES.has(file.type)) {
+      return false;
     }
   }
   return Boolean(file.type && file.type in INPUT_DATA_FILE_ACCEPT);

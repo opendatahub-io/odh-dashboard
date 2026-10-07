@@ -44,6 +44,9 @@ describe('autoragInputDataFile', () => {
         'qmd',
         'Rmd',
         'xhtml',
+        'mp3',
+        'wav',
+        'm4a',
       ];
       expect(Object.keys(SUPPORTED_FORMAT)).toEqual(expected);
     });
@@ -136,6 +139,42 @@ describe('autoragInputDataFile', () => {
       ]);
       expect(SUPPORTED_FORMATS_MIME_TYPE_TO_EXTENSION['text/x-gfm']).toEqual(['.Rmd']);
       expect(SUPPORTED_FORMATS_MIME_TYPE_TO_EXTENSION['application/xhtml+xml']).toEqual(['.xhtml']);
+      expect(SUPPORTED_FORMATS_MIME_TYPE_TO_EXTENSION['audio/mpeg']).toEqual(['.mp3']);
+      expect(SUPPORTED_FORMATS_MIME_TYPE_TO_EXTENSION['audio/wav']).toEqual(['.wav']);
+      expect(SUPPORTED_FORMATS_MIME_TYPE_TO_EXTENSION['audio/mp4']).toEqual(['.m4a']);
+    });
+
+    it('includes exact audio metadata without MIME aliases', () => {
+      expect(SUPPORTED_FORMAT.mp3).toEqual({
+        id: 'mp3',
+        extension: 'mp3',
+        mimeType: 'audio/mpeg',
+        name: 'MP3',
+      });
+      expect(SUPPORTED_FORMAT.wav).toEqual({
+        id: 'wav',
+        extension: 'wav',
+        mimeType: 'audio/wav',
+        name: 'WAV',
+      });
+      expect(SUPPORTED_FORMAT.m4a).toEqual({
+        id: 'm4a',
+        extension: 'm4a',
+        mimeType: 'audio/mp4',
+        name: 'M4A',
+      });
+      expect(Object.keys(SUPPORTED_FORMATS_MIME_TYPE_TO_EXTENSION)).not.toEqual(
+        expect.arrayContaining(['audio/x-mpeg', 'audio/x-wav', 'audio/m4a']),
+      );
+    });
+
+    it('appends audio extensions to the derived allowlists in registry order', () => {
+      expect(SUPPORTED_FORMAT_EXTENSIONS.slice(-3)).toEqual(['mp3', 'wav', 'm4a']);
+      expect(INPUT_DATA_UPLOAD_NATIVE_ACCEPT.split(',').slice(-3)).toEqual([
+        '.mp3',
+        '.wav',
+        '.m4a',
+      ]);
     });
 
     it('INPUT_DATA_FILE_ACCEPT is the same object as SUPPORTED_FORMATS_MIME_TYPE_TO_EXTENSION', () => {
@@ -180,6 +219,19 @@ describe('autoragInputDataFile', () => {
       ).toBe(false);
     });
 
+    it('preserves MIME fallback for a named unknown extension with a document MIME', () => {
+      expect(
+        isAllowedInputDataUploadFile(new File(['x'], 'notes.unknown', { type: 'text/plain' })),
+      ).toBe(true);
+    });
+
+    it.each(['audio/mpeg', 'audio/wav', 'audio/mp4'])(
+      'rejects a named unknown extension with new audio MIME %s',
+      (type) => {
+        expect(isAllowedInputDataUploadFile(new File(['x'], 'malware.exe', { type }))).toBe(false);
+      },
+    );
+
     it.each([
       ['document.odt', 'application/vnd.oasis.opendocument.text'],
       ['slides.odp', 'application/vnd.oasis.opendocument.presentation'],
@@ -207,6 +259,24 @@ describe('autoragInputDataFile', () => {
         ).toBe(true);
       },
     );
+
+    it.each([
+      ['recording.MP3', 'application/octet-stream'],
+      ['recording.WAV', ''],
+      ['recording.m4a', 'application/incorrect'],
+    ])('allows audio %s by extension with an arbitrary MIME type', (filename, type) => {
+      expect(isAllowedInputDataUploadFile(new File(['x'], filename, { type }))).toBe(true);
+    });
+
+    it.each([
+      ['audio/mpeg', true],
+      ['audio/wav', true],
+      ['audio/mp4', true],
+      ['audio/*', false],
+      ['application/octet-stream', false],
+    ])('uses exact audio MIME matching for extensionless files', (type, allowed) => {
+      expect(isAllowedInputDataUploadFile(new File(['x'], 'recording', { type }))).toBe(allowed);
+    });
 
     it('matches extensions case-insensitively', () => {
       expect(
