@@ -93,10 +93,11 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		logger:                  logger,
 		kubernetesClientFactory: k8sResult.factory,
 		repositories: repositories.NewRepositories(repositories.RepositoriesConfig{
-			Platform:    resolvedPlatform,
-			SADynClient: k8sResult.saDynClient,
-			SAClientset: k8sResult.saClientset,
-			Namespace:   cfg.Namespace,
+			Platform:          resolvedPlatform,
+			SADynClient:       k8sResult.saDynClient,
+			SAClientset:       k8sResult.saClientset,
+			Namespace:         cfg.Namespace,
+			OperatorNamespace: cfg.OperatorNamespace,
 			Prometheus: repositories.PrometheusConfig{
 				Host:               cfg.PrometheusHost,
 				Namespace:          cfg.PrometheusNamespace,

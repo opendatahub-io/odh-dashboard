@@ -262,13 +262,13 @@ describe('Edit Table Asset', () => {
     assetDetailPage.findEditAction().click();
     editAssetModal.shouldBeOpen();
 
-    editAssetModal.findLabel('production').should('exist');
-    editAssetModal.findLabel('claims').should('exist');
+    editAssetModal.findLabelInput(0).should('have.value', 'production');
+    editAssetModal.findLabelInput(1).should('have.value', 'claims');
 
     editAssetModal.findAddLabelButton().click();
-    editAssetModal.findLabelsInput().type('new-label{enter}');
+    editAssetModal.findLabelInput(2).type('new-label');
 
-    editAssetModal.removeLabel('production');
+    editAssetModal.removeLabel(0);
 
     editAssetModal.findSaveButton().click();
 
@@ -346,7 +346,7 @@ describe('Edit Table Asset', () => {
     editAssetModal.shouldBeOpen();
 
     editAssetModal.findSchemaColumnName(0).should('have.value', 'id');
-    editAssetModal.findSchemaColumnTypeToggle(0).should('contain.text', 'integer');
+    editAssetModal.findSchemaColumnTypeToggle(0).should('contain.text', 'Integer');
     editAssetModal.findSchemaColumnName(1).should('have.value', 'amount');
 
     editAssetModal.findAddColumnButton().click();

@@ -23,20 +23,23 @@ import {
   CreateGenericTableRequest,
   ConnectionModel,
   ConnectionRef,
-  UnstructuredFormat,
-  StructuredFormat,
 } from '~/app/types';
 import { useConnections } from '~/app/hooks/useConnections';
+import { isStructuredFormat, isUnstructuredFormat } from '~/app/utilities/formatUtils';
 import {
   registerDataSchema,
   registerDataDefaults,
   RegisterDataFormData,
 } from '~/app/schemas/registerData.schema';
-import AssetDetailsSection from './register-data/AssetDetailsSection';
 import DataLocationSection from './register-data/DataLocationSection';
 import PropertiesSection from './register-data/PropertiesSection';
-import CustomPropertiesSection from './register-data/CustomPropertiesSection';
 import SchemaSection from './register-data/SchemaSection';
+import {
+  RegistrationAssetFormatSection,
+  RegistrationIdentitySection,
+  RegistrationOrganizationSection,
+} from './register-data/RegistrationAssetSections';
+import './register-data/RegistrationForm.scss';
 
 type RegisterDataModalProps = {
   isOpen: boolean;
@@ -45,6 +48,7 @@ type RegisterDataModalProps = {
   collections: string[];
   onCreated: () => void;
   onManageCollections: () => void;
+  onManageLabels?: () => void;
 };
 
 const getConnectionRef = (
@@ -61,30 +65,9 @@ const getConnectionRef = (
 
 type SharedCreateAssetRequest = Omit<CreateVolumeRequest, 'format'> & { format: string };
 
-const UNSTRUCTURED_FORMAT_VALUES: UnstructuredFormat[] = [
-  'documents',
-  'images',
-  'audio',
-  'video',
-  'binary',
-  'other',
+const getValidLabels = (labels: string[]): string[] => [
+  ...new Set(labels.map((label) => label.trim()).filter(Boolean)),
 ];
-
-const STRUCTURED_FORMAT_VALUES: StructuredFormat[] = [
-  'iceberg',
-  'parquet',
-  'csv',
-  'delta',
-  'postgresql',
-  'milvus',
-  'other',
-];
-
-const isUnstructuredFormat = (format: string): format is UnstructuredFormat =>
-  UNSTRUCTURED_FORMAT_VALUES.some((value) => value === format);
-
-const isStructuredFormat = (format: string): format is StructuredFormat =>
-  STRUCTURED_FORMAT_VALUES.some((value) => value === format);
 
 const buildSharedAssetRequest = (
   data: RegisterDataFormData,
@@ -103,8 +86,9 @@ const buildSharedAssetRequest = (
   if (data.connection) {
     request.connection_ref = getConnectionRef(data.connection, connections);
   }
-  if (data.labels.length > 0) {
-    request.labels = data.labels;
+  const labels = getValidLabels(data.labels);
+  if (labels.length > 0) {
+    request.labels = labels;
   }
   const properties: Record<string, string> = {};
   if (data.purpose) {
@@ -171,6 +155,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
   collections,
   onCreated,
   onManageCollections,
+  onManageLabels,
 }) => {
   const [connections, connectionsLoaded, connectionsError] = useConnections(project);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -182,21 +167,26 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
     mode: 'onBlur',
   });
 
-  const handleClose = React.useCallback(() => {
+  const resetAndClose = React.useCallback(() => {
     form.reset(registerDataDefaults);
     setIsSubmitting(false);
     setError('');
     onClose();
   }, [form, onClose]);
 
+  const handleClose = React.useCallback(() => {
+    resetAndClose();
+  }, [resetAndClose]);
+
   const handleSubmit = React.useCallback(
     async (data: RegisterDataFormData) => {
       setIsSubmitting(true);
       setError('');
       try {
-        if (data.labels.length > 0) {
+        const labels = getValidLabels(data.labels);
+        if (labels.length > 0) {
           await Promise.all(
-            data.labels.map((label) =>
+            labels.map((label) =>
               createLabel(project, { name: label }).catch((err) => {
                 if (isConflictError(err)) {
                   return;
@@ -228,10 +218,11 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={handleClose} variant="medium" data-testid="register-data-modal">
       <ModalHeader
-        title="Register data"
+        title="Create data asset"
         description={
           <Content component="p">
-            Create a new data asset and configure its source location, metadata, and schema.
+            A data asset points to the exact location within a connection where the information is
+            located. It can also record information about the structure of the data.
           </Content>
         }
       />
@@ -242,20 +233,22 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
           </Alert>
         ) : null}
         <FormProvider {...form}>
-          <Form>
-            <AssetDetailsSection
-              collections={collections}
-              onManageCollections={onManageCollections}
-            />
+          <Form className="odh-data-registry-registration-form">
+            <RegistrationIdentitySection />
             <DataLocationSection
               connections={connections}
               connectionsLoaded={connectionsLoaded}
               connectionsError={connectionsError}
               showConnection
             />
-            <PropertiesSection />
-            <CustomPropertiesSection />
+            <RegistrationAssetFormatSection />
             {assetType === 'structured' ? <SchemaSection /> : null}
+            <RegistrationOrganizationSection
+              collections={collections}
+              onManageCollections={onManageCollections}
+              onManageLabels={onManageLabels}
+            />
+            <PropertiesSection />
           </Form>
         </FormProvider>
       </ModalBody>
