@@ -62,7 +62,7 @@ export const getAllTenantCollections = async (
       break;
     }
 
-    collections.push(...response.items);
+    collections.push(...newItems);
     newItems.forEach(({ resource }) => collectionIds.add(resource.id));
 
     offset =

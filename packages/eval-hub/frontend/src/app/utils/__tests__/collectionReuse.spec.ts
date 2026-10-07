@@ -210,6 +210,49 @@ describe('findReusableCollectionCopy', () => {
     );
   });
 
+  it('should check all unique collections when pages partially overlap', async () => {
+    const createUnchangedCollection = (id: string): Collection => ({
+      ...sourceCollection,
+      resource: { id },
+      derived_from: `other-parent-${id}`,
+    });
+    const firstPage = Array.from({ length: 100 }, (_, index) =>
+      createUnchangedCollection(`other-suite-${index}`),
+    );
+    const secondPage = [
+      ...firstPage.slice(50),
+      ...Array.from({ length: 50 }, (_, index) =>
+        createUnchangedCollection(`other-suite-${index + 100}`),
+      ),
+    ];
+    const thirdPage = [
+      ...secondPage.slice(50),
+      ...Array.from({ length: 50 }, (_, index) =>
+        createUnchangedCollection(`other-suite-${index + 150}`),
+      ),
+    ];
+    const fourthPage = [
+      ...thirdPage.slice(50),
+      ...Array.from({ length: 49 }, (_, index) =>
+        createUnchangedCollection(`other-suite-${index + 200}`),
+      ),
+      unchangedCopy,
+    ];
+    const pages = [firstPage, secondPage, thirdPage, fourthPage];
+
+    mockGetCollections.mockImplementation((_hostPath, params) =>
+      jest.fn().mockResolvedValue({
+        items: pages[(params.offset ?? 0) / 100],
+        total_count: 250,
+      }),
+    );
+
+    await expect(findReusableCollectionCopy(sourceCollection, 'test-namespace')).resolves.toEqual(
+      unchangedCopy,
+    );
+    expect(mockGetCollections).toHaveBeenCalledTimes(4);
+  });
+
   it('should propagate collection lookup failures', async () => {
     mockGetCollections.mockReturnValue(jest.fn().mockRejectedValue(new Error('lookup failed')));
 
