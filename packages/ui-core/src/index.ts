@@ -146,7 +146,7 @@ export type {
   ProvidedWorkingProjectState,
   WorkingProjectContextType,
   WorkingProjectProviderProps,
-  WorkingProjectState,
+  WorkingProjectSelectionState,
 } from './context/WorkingProjectContext';
 
 export { ConnectionDetailsHelperText } from './components/connectionTypes/ConnectionDetailsHelperText';

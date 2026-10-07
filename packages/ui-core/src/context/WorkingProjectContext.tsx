@@ -5,26 +5,30 @@ export type ProjectIdentity = {
   displayName?: string;
 };
 
-export type WorkingProjectState =
-  | { status: 'absent' }
+export type WorkingProjectSelectionState =
+  | { status: 'provider-absent' }
   | { status: 'loading' }
   | {
       status: 'ready';
       projects: [ProjectIdentity, ...ProjectIdentity[]];
       activeProject: ProjectIdentity;
     }
-  | { status: 'empty'; projects: []; activeProject: null }
+  | { status: 'no-accessible-projects'; projects: []; activeProject: null }
   | {
       status: 'list-unavailable';
-      knownProjects: ProjectIdentity[];
+      /** Identities individually validated by the provider; not a complete project list. */
+      providerValidatedProjects: ProjectIdentity[];
       activeProject: ProjectIdentity | null;
     }
-  | { status: 'error'; error: Error };
+  | { status: 'provider-error'; error: Error };
 
-export type ProvidedWorkingProjectState = Exclude<WorkingProjectState, { status: 'absent' }>;
+export type ProvidedWorkingProjectState = Exclude<
+  WorkingProjectSelectionState,
+  { status: 'provider-absent' }
+>;
 
 export type WorkingProjectContextType = {
-  state: WorkingProjectState;
+  state: WorkingProjectSelectionState;
   selectProject: (project: ProjectIdentity) => void;
 };
 
@@ -34,23 +38,23 @@ export type WorkingProjectProviderProps = {
   onProjectChange: (project: ProjectIdentity) => void;
 };
 
-const absentState: WorkingProjectState = { status: 'absent' };
+const providerAbsentState: WorkingProjectSelectionState = { status: 'provider-absent' };
 
 export const WorkingProjectContext = React.createContext<WorkingProjectContextType>({
-  state: absentState,
+  state: providerAbsentState,
   selectProject: () => undefined,
 });
 
-const getKnownProjects = (state: WorkingProjectState): ProjectIdentity[] => {
+const getSelectableProjects = (state: WorkingProjectSelectionState): ProjectIdentity[] => {
   switch (state.status) {
     case 'ready':
       return state.projects;
     case 'list-unavailable':
-      return state.knownProjects;
-    case 'absent':
+      return state.providerValidatedProjects;
+    case 'provider-absent':
     case 'loading':
-    case 'empty':
-    case 'error':
+    case 'no-accessible-projects':
+    case 'provider-error':
       return [];
   }
 };
@@ -60,13 +64,13 @@ export const WorkingProjectProvider: React.FC<WorkingProjectProviderProps> = ({
   state,
   onProjectChange,
 }) => {
-  const providerState = React.useMemo<WorkingProjectState>(() => {
+  const providerState = React.useMemo<WorkingProjectSelectionState>(() => {
     if (state.status === 'ready') {
       const activeProject = state.projects.find(({ name }) => name === state.activeProject.name);
 
       if (!activeProject) {
         return {
-          status: 'error',
+          status: 'provider-error',
           error: new Error('The active project must belong to the provider-known project set.'),
         };
       }
@@ -75,7 +79,7 @@ export const WorkingProjectProvider: React.FC<WorkingProjectProviderProps> = ({
     }
 
     if (state.status === 'list-unavailable' && state.activeProject) {
-      const activeProject = state.knownProjects.find(
+      const activeProject = state.providerValidatedProjects.find(
         ({ name }) => name === state.activeProject?.name,
       );
 
@@ -91,12 +95,12 @@ export const WorkingProjectProvider: React.FC<WorkingProjectProviderProps> = ({
 
   const selectProject = React.useCallback(
     (project: ProjectIdentity): void => {
-      const knownProject = getKnownProjects(providerState).find(
+      const selectableProject = getSelectableProjects(providerState).find(
         ({ name }) => name === project.name,
       );
 
-      if (knownProject) {
-        onProjectChange(knownProject);
+      if (selectableProject) {
+        onProjectChange(selectableProject);
       }
     },
     [onProjectChange, providerState],
