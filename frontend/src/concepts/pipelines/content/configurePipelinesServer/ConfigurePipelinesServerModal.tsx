@@ -105,8 +105,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
     ...FORM_DEFAULTS,
     ...defaultConfig,
     enableManagedPipelines:
-      isManagedPipelinesAvailable &&
-      (defaultConfig?.enableManagedPipelines ?? FORM_DEFAULTS.enableManagedPipelines),
+      defaultConfig?.enableManagedPipelines ?? FORM_DEFAULTS.enableManagedPipelines,
   }));
   const [config, setConfig] = React.useState<PipelineServerConfigType>(() => mergedDefaults);
   const { registerNotification } = React.useContext(NotificationWatcherContext);

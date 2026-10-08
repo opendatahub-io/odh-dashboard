@@ -308,6 +308,18 @@ describe('ConfigurePipelinesServerModal', () => {
     expect(submittedSpec.apiServer).not.toHaveProperty('managedPipelines');
   });
 
+  it('should retain the managed pipelines default if they become available after the modal opens', () => {
+    const { rerender } = renderModal();
+    fireEvent.click(screen.getByText('Advanced settings'));
+
+    expect(screen.queryByTestId('managed-pipelines-checkbox')).not.toBeInTheDocument();
+
+    mockAreaStatuses([SupportedArea.PLUGIN_AUTOML]);
+    rerender(modalElement());
+
+    expect(screen.getByTestId('managed-pipelines-checkbox')).toBeChecked();
+  });
+
   it('should enable submit button when form is valid', () => {
     // Mock objectStorageIsValid to return true
     const {
