@@ -141,6 +141,7 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
                   isExpanded={isConnectionOpen}
                   isFullWidth
                   isDisabled={!connectionsLoaded || !!connectionsError || isConnectionDisabled}
+                  className="odh-data-registry-registration-form__connection-toggle"
                   data-testid="data-connection-toggle"
                 >
                   {!connectionsLoaded && !connectionsError && !field.value ? (

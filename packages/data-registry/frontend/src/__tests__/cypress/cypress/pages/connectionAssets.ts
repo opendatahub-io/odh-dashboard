@@ -5,11 +5,11 @@ class ConnectionAssets {
     cy.visit(`/ai-hub/data/browse/assets/${kind}/test-project/analytics/asset-a`);
     cy.wait('@getAsset');
     this.findConnection().should('exist');
-    cy.testA11y();
+    cy.then(() => cy.testA11y());
   }
 
   findConnection() {
-    return cy.findByTestId('connection-ref-label');
+    return cy.get('[data-testid="connection-ref-link"], [data-testid="connection-ref-label"]');
   }
 
   edit() {

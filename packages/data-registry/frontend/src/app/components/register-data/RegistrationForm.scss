@@ -1,4 +1,8 @@
 .odh-data-registry-registration-form {
+  .odh-data-registry-registration-form__connection-toggle:is(:disabled, .pf-m-disabled) {
+    --pf-v6-c-menu-toggle--disabled--Color: var(--pf-t--global--text--color--regular);
+  }
+
   .pf-v6-c-form__section {
     gap: var(--pf-t--global--spacer--sm);
   }
