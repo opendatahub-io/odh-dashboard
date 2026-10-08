@@ -188,7 +188,8 @@ branches). Prefer `{category,text}` objects:
 1. `findings` — blocking findings → remediation / location pointers
 2. `checks` — check `fail` → that check’s summary
 3. `judgement` — check `could-not-verify`, refuse-approve levels from `rating-policy.json`, section `needs_human` → concrete follow-ups
-4. `nits` — actionable low/info when the path would otherwise approve
+4. `nits` — one bullet per `low`/`info` finding with `actionable: true` (whenever
+   such findings exist, not only on otherwise-approve paths)
 
 Omit `todo` when empty. Sticky bullets only — no `[ ]` task-list syntax. Host
 renders category labels as plain text (not markdown headers).

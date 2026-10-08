@@ -418,15 +418,19 @@ def infer_todo_category(text, result):
         summary = (check.get("summary") or "").strip()
         if summary and (text == summary or summary in text):
             return "checks"
+    # Blocking matches win over nits so finding order cannot misfile a
+    # blocker-related string under Nits.
+    nit_match = False
     for finding in (result.get("findings") or []):
         desc = (finding.get("description") or "").strip()
+        if is_blocking(finding):
+            rem = (finding.get("remediation") or "").strip()
+            if (rem and rem in text) or (desc and desc in text):
+                return "findings"
         if is_actionable_nit(finding) and desc and (desc in text or text in desc):
-            return "nits"
-        if not is_blocking(finding):
-            continue
-        rem = (finding.get("remediation") or "").strip()
-        if (rem and rem in text) or (desc and desc in text):
-            return "findings"
+            nit_match = True
+    if nit_match:
+        return "nits"
     if needs_human(result) or approve_refuse_reason(result):
         return "judgement"
     return "findings"
@@ -465,7 +469,15 @@ def append_todo(result, item, category="judgement"):
     if not normalized:
         return
     todos = todo_items(result)
-    if not any(t["text"] == normalized["text"] for t in todos):
+    for t in todos:
+        if t["text"] != normalized["text"]:
+            continue
+        # Host-owned Judgement (protected-path) wins over an agent Findings
+        # classification of the same text — do not leave it under Findings.
+        if normalized["category"] == "judgement" and t["category"] != "judgement":
+            t["category"] = "judgement"
+        break
+    else:
         todos.append(normalized)
     result["todo"] = todos
 
@@ -1351,6 +1363,18 @@ run_self_test() {
     echo "PASS categorized TODO labels render as plain text in recipe order"
   fi
 
+  # Legacy string TODO matching both a nit (listed first) and a blocker
+  # remediation must categorize as Findings, not Nits.
+  printf '%s' "{${common},\"findings\":[{\"severity\":\"low\",\"category\":\"style-conventions\",\"file\":\"b.ts\",\"description\":\"Align the service name with the manifest.\",\"actionable\":true},{\"severity\":\"medium\",\"category\":\"correctness\",\"file\":\"a.ts\",\"line\":1,\"description\":\"Service name mismatch.\",\"why\":\"Config disagrees with the Service manifest.\",\"remediation\":\"Align the service name with the manifest.\"}],\"todo\":[\"Align the service name with the manifest.\"],\"product_ask\":{\"status\":\"none\"}}" > "${tmp}/todo-infer-order.json"
+  transform_review_result "${tmp}/todo-infer-order.json" > "${tmp}/todo-infer-order-out.json"
+  todo_block=$(awk '/^## TODO$/{p=1;next} /^## /{p=0} p' <<<"$(jq -r .body "${tmp}/todo-infer-order-out.json")")
+  if ! grep -Fxq 'Findings' <<<"${todo_block}" || grep -Fxq 'Nits' <<<"${todo_block}"; then
+    echo "FAIL todo-infer-order: sticky must show Findings, not Nits, when blocker matches first" >&2
+    fail=1
+  else
+    echo "PASS legacy string TODO prefers blocking match over earlier nit"
+  fi
+
   printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"pr-description-review\",\"status\":\"fail\",\"summary\":\"Problem section is empty.\"}],\"producers\":{\"dispatched\":[\"pr-description-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"pr-description-review\"],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/check-fail.json"
   transform_review_result "${tmp}/check-fail.json" > "${tmp}/check-fail-out.json"
   if [[ "$(jq -r .action "${tmp}/check-fail-out.json")" != "request-changes" ]] ||
@@ -1427,6 +1451,40 @@ run_self_test() {
     fail=1
   else
     echo "PASS supported protected-path routes to human judgment, not request-changes"
+  fi
+
+  # Host-owned protected-path TODO keeps Judgement even when an agent already
+  # listed the same text under Findings.
+  local pp_todo_text
+  pp_todo_text='A human must approve this protected-path change: .github/workflows/ci.yaml'
+  printf '%s' "{${common},\"findings\":[${pp_finding}],\"todo\":[{\"category\":\"findings\",\"text\":$(jq -n --arg t "${pp_todo_text}" '$t')}]}" > "${tmp}/pp-todo-dup.json"
+  (
+    export REVIEW_PROTECTED_PATHS=".github/,scripts/"
+    export REVIEW_CHANGED_FILES=$'.github/workflows/ci.yaml\nsrc/app.ts'
+    transform_review_result "${tmp}/pp-todo-dup.json"
+  ) > "${tmp}/pp-todo-dup-out.json"
+  if ! jq -e '
+      .action == "comment"
+      and ((.todo // [])
+           | map(select((.text // .) | contains(".github/workflows/ci.yaml")))
+           | length) == 1
+      and ((.todo // []) | any(
+            type == "object"
+            and .category == "judgement"
+            and (.text | contains(".github/workflows/ci.yaml"))))
+      and ((.todo // []) | any(
+            type == "object"
+            and .category == "findings"
+            and (.text | contains(".github/workflows/ci.yaml"))) | not)
+    ' "${tmp}/pp-todo-dup-out.json" >/dev/null; then
+    echo "FAIL protected-path-todo-dup: host Judgement must replace matching agent Findings TODO" >&2
+    fail=1
+  elif ! grep -Fxq 'Judgement' <<<"$(jq -r .body "${tmp}/pp-todo-dup-out.json")" ||
+       grep -Fxq 'Findings' <<<"$(awk '/^## TODO$/{p=1;next} /^## /{p=0} p' <<<"$(jq -r .body "${tmp}/pp-todo-dup-out.json")")"; then
+    echo "FAIL protected-path-todo-dup: sticky must show Judgement, not Findings, for the TODO" >&2
+    fail=1
+  else
+    echo "PASS host-owned protected-path TODO retains Judgement over matching Findings"
   fi
 
   # result.producers is authoritative; legacy inspected.producers is dropped.
