@@ -55,9 +55,12 @@ describe('MaaSEndpointCheckbox', () => {
   });
 
   it('locks the MaaS gateway and provides its routing guidance for subscribed users', () => {
-    const overrides = MaaSEndpointFieldWizardField.reducerFunctions.getFieldOverrides?.({
-      isChecked: true,
-    });
+    const overrides = MaaSEndpointFieldWizardField.reducerFunctions.getFieldOverrides?.(
+      {
+        isChecked: true,
+      },
+      {},
+    );
     const gateway = overrides?.['llmd-serving/gateway'];
 
     expect(gateway).toMatchObject({
