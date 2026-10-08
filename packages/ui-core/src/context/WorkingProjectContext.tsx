@@ -15,6 +15,12 @@ export type WorkingProjectSelectionState =
     }
   | { status: 'no-accessible-projects'; projects: []; activeProject: null }
   | {
+      status: 'invalid-route';
+      candidate: string;
+      projects: ProjectIdentity[];
+      activeProject: ProjectIdentity | null;
+    }
+  | {
       status: 'list-unavailable';
       /** Identities individually validated by the provider; not a complete project list. */
       providerValidatedProjects: ProjectIdentity[];
@@ -48,6 +54,7 @@ export const WorkingProjectContext = React.createContext<WorkingProjectContextTy
 const getSelectableProjects = (state: WorkingProjectSelectionState): ProjectIdentity[] => {
   switch (state.status) {
     case 'ready':
+    case 'invalid-route':
       return state.projects;
     case 'list-unavailable':
       return state.providerValidatedProjects;
@@ -78,10 +85,13 @@ export const WorkingProjectProvider: React.FC<WorkingProjectProviderProps> = ({
       return activeProject === state.activeProject ? state : { ...state, activeProject };
     }
 
-    if (state.status === 'list-unavailable' && state.activeProject) {
-      const activeProject = state.providerValidatedProjects.find(
-        ({ name }) => name === state.activeProject?.name,
-      );
+    if (
+      (state.status === 'list-unavailable' || state.status === 'invalid-route') &&
+      state.activeProject
+    ) {
+      const projects =
+        state.status === 'list-unavailable' ? state.providerValidatedProjects : state.projects;
+      const activeProject = projects.find(({ name }) => name === state.activeProject?.name);
 
       if (!activeProject) {
         return { ...state, activeProject: null };

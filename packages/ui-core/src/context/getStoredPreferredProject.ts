@@ -17,6 +17,8 @@ export const getStoredPreferredProject = (projects: ProjectKind[]): ProjectKind 
     const parsed = JSON.parse(raw);
     if (typeof parsed === 'string') {
       storedNamespace = parsed;
+    } else {
+      storedNamespace = raw;
     }
   } catch {
     if (typeof raw === 'string' && raw.length > 0) {

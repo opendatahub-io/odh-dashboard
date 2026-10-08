@@ -15,6 +15,12 @@ const mountedProviderStates: ProvidedWorkingProjectState[] = [
   { status: 'loading' },
   { status: 'ready', projects: [firstProject, secondProject], activeProject: firstProject },
   { status: 'no-accessible-projects', projects: [], activeProject: null },
+  {
+    status: 'invalid-route',
+    candidate: 'missing-project',
+    projects: [firstProject],
+    activeProject: null,
+  },
   { status: 'list-unavailable', providerValidatedProjects: [], activeProject: null },
   { status: 'provider-error', error: new Error('Unable to load projects') },
 ];

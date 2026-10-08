@@ -1,10 +1,19 @@
 import * as React from 'react';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
-import { getDisplayNameFromK8sResource, byName } from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource, byName, isAiProject } from '@odh-dashboard/k8s-core';
 import {
   ProjectsContext,
   type ProjectsContextType,
 } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import {
+  type ProjectIdentity,
+  type ProvidedWorkingProjectState,
+  WorkingProjectProvider,
+} from '@odh-dashboard/ui-core/context/WorkingProjectContext';
+import {
+  type ProjectSelectionCandidate,
+  useProjectSelection,
+} from '@odh-dashboard/ui-core/context/useProjectSelection';
 import {
   getStoredPreferredProject,
   PREFERRED_NAMESPACE_STORAGE_KEY,
@@ -21,12 +30,21 @@ export { byName } from '@odh-dashboard/k8s-core';
 
 const projectSorter = (projectA: ProjectKind, projectB: ProjectKind) =>
   getDisplayNameFromK8sResource(projectA).localeCompare(getDisplayNameFromK8sResource(projectB));
+const projectSelectionAccessors = {
+  getName: (project: ProjectKind) => project.metadata.name,
+  getDisplayName: (project: ProjectKind) => getDisplayNameFromK8sResource(project),
+};
+const toProjectIdentity = (project: ProjectKind): ProjectIdentity => ({
+  name: projectSelectionAccessors.getName(project),
+  displayName: projectSelectionAccessors.getDisplayName(project),
+});
 
 type ProjectsProviderProps = {
   children: React.ReactNode;
+  routeCandidate?: ProjectSelectionCandidate;
 };
 
-const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) => {
+const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children, routeCandidate }) => {
   const [preferredProject, setPreferredProject] =
     React.useState<ProjectsContextType['preferredProject']>(null);
   const initializedFromStorage = React.useRef(false);
@@ -78,6 +96,65 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
       setPreferredProject(match);
     }
   }, [loaded, projects]);
+
+  const {
+    orderedProjects: orderedWorkingProjects,
+    activeProject: activeWorkingProject,
+    resolution: workingProjectResolution,
+    selectProject: selectWorkingProject,
+  } = useProjectSelection({
+    projects: loaded && !loadError ? projects : null,
+    providerValidatedProjects: projects,
+    routeCandidate,
+    accessors: projectSelectionAccessors,
+    isAiProject,
+    enablePersistence: routeCandidate !== undefined,
+  });
+
+  const projectIdentities = React.useMemo(
+    () => orderedWorkingProjects.map(toProjectIdentity),
+    [orderedWorkingProjects],
+  );
+  const workingProjectSelectionState = React.useMemo<ProvidedWorkingProjectState>(() => {
+    const firstProject = projectIdentities.at(0);
+    const activeProject = activeWorkingProject
+      ? projectIdentities.find(({ name }) => name === activeWorkingProject.metadata.name) ?? null
+      : null;
+    if (!loaded) {
+      return { status: 'loading' };
+    }
+    if (loadError) {
+      return { status: 'provider-error', error: loadError };
+    }
+    if (workingProjectResolution.status === 'invalid-route') {
+      return {
+        status: 'invalid-route',
+        candidate: workingProjectResolution.candidate,
+        projects: projectIdentities,
+        activeProject,
+      };
+    }
+    if (!firstProject) {
+      return { status: 'no-accessible-projects', projects: [], activeProject: null };
+    }
+    if (!activeProject) {
+      return { status: 'loading' };
+    }
+    return {
+      status: 'ready',
+      projects: [firstProject, ...projectIdentities.slice(1)],
+      activeProject,
+    };
+  }, [activeWorkingProject, loadError, loaded, projectIdentities, workingProjectResolution]);
+  const updateWorkingProject = React.useCallback(
+    ({ name }: ProjectIdentity) => {
+      const project = orderedWorkingProjects.find(byName(name));
+      if (project) {
+        selectWorkingProject(project);
+      }
+    },
+    [orderedWorkingProjects, selectWorkingProject],
+  );
 
   const isMounted = React.useRef(true);
   React.useEffect(() => {
@@ -134,7 +211,14 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
     ],
   );
 
-  return <ProjectsContext.Provider value={contextValue}>{children}</ProjectsContext.Provider>;
+  return (
+    <WorkingProjectProvider
+      state={workingProjectSelectionState}
+      onProjectChange={updateWorkingProject}
+    >
+      <ProjectsContext.Provider value={contextValue}>{children}</ProjectsContext.Provider>
+    </WorkingProjectProvider>
+  );
 };
 
 export default ProjectsContextProvider;

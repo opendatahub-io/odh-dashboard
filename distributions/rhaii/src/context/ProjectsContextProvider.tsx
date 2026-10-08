@@ -1,7 +1,17 @@
 import * as React from 'react';
-import { ProjectsContext, type ProjectsContextType } from '@odh-dashboard/ui-core';
+import {
+  type ProjectIdentity,
+  type ProvidedWorkingProjectState,
+  ProjectsContext,
+  type ProjectsContextType,
+  WorkingProjectProvider,
+} from '@odh-dashboard/ui-core';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
-import { byName, isAvailableProject } from '@odh-dashboard/k8s-core';
+import { byName, getDisplayNameFromK8sResource, isAvailableProject } from '@odh-dashboard/k8s-core';
+import {
+  type ProjectSelectionCandidate,
+  useProjectSelection,
+} from '@odh-dashboard/ui-core/context/useProjectSelection';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/hooks/useBrowserStorage';
 import { PREFERRED_NAMESPACE_STORAGE_KEY } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import fetchNamespaces, { FETCH_TIMEOUT_MS } from './fetchNamespaces';
@@ -12,7 +22,22 @@ const WAIT_FOR_PROJECT_POLL_MS = 2_000;
 
 type ProjectsContextProviderProps = {
   children: React.ReactNode;
+  routeCandidate?: ProjectSelectionCandidate;
+  validateProjectCandidate?: (
+    projectName: string,
+    signal: AbortSignal,
+  ) => Promise<ProjectKind | null>;
 };
+
+const projectSelectionAccessors = {
+  getName: (project: ProjectKind) => project.metadata.name,
+  getDisplayName: getDisplayNameFromK8sResource,
+};
+const toProjectIdentity = (project: ProjectKind): ProjectIdentity => ({
+  name: projectSelectionAccessors.getName(project),
+  displayName: projectSelectionAccessors.getDisplayName(project),
+});
+const isXksAiProject = (): boolean => false;
 
 /**
  * Host-side ProjectsContext for RHAII / xKS.
@@ -20,7 +45,11 @@ type ProjectsContextProviderProps = {
  * so model-serving (and other packages) can consume ProjectsContext without
  * the OpenShift Project watch used by the main ODH frontend.
  */
-const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ children }) => {
+const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({
+  children,
+  routeCandidate,
+  validateProjectCandidate,
+}) => {
   const dashboardNamespace = React.useContext(DashboardNamespaceContext);
   const [projectData, setProjectData] = React.useState<ProjectKind[]>([]);
   const [loaded, setLoaded] = React.useState(false);
@@ -116,6 +145,84 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     }
   }, [loaded, projects, storedPreferredName]);
 
+  const validateCandidate = React.useCallback(
+    async (projectName: string, signal: AbortSignal) => {
+      const validatedProject = await validateProjectCandidate?.(projectName, signal);
+      return validatedProject &&
+        validatedProject.status?.phase === 'Active' &&
+        isAvailableProject(validatedProject.metadata.name, dashboardNamespace)
+        ? validatedProject
+        : null;
+    },
+    [dashboardNamespace, validateProjectCandidate],
+  );
+  const projectListUnavailable = loaded && Boolean(loadError);
+
+  const {
+    orderedProjects: orderedWorkingProjects,
+    activeProject: activeWorkingProject,
+    resolution: workingProjectResolution,
+    selectProject: selectWorkingProject,
+  } = useProjectSelection({
+    projects: loaded && !loadError ? projects : null,
+    providerValidatedProjects: projectListUnavailable ? projects : undefined,
+    routeCandidate,
+    accessors: projectSelectionAccessors,
+    isAiProject: isXksAiProject,
+    validateCandidate:
+      projectListUnavailable && validateProjectCandidate ? validateCandidate : undefined,
+    enablePersistence: routeCandidate !== undefined,
+  });
+
+  const projectIdentities = React.useMemo(
+    () => orderedWorkingProjects.map(toProjectIdentity),
+    [orderedWorkingProjects],
+  );
+  const workingProjectSelectionState = React.useMemo<ProvidedWorkingProjectState>(() => {
+    const firstProject = projectIdentities.at(0);
+    const activeProject = activeWorkingProject
+      ? projectIdentities.find(({ name }) => name === activeWorkingProject.metadata.name) ?? null
+      : null;
+    if (!loaded) {
+      return { status: 'loading' };
+    }
+    if (loadError) {
+      return {
+        status: 'list-unavailable',
+        providerValidatedProjects: projectIdentities,
+        activeProject,
+      };
+    }
+    if (workingProjectResolution.status === 'invalid-route') {
+      return {
+        status: 'invalid-route',
+        candidate: workingProjectResolution.candidate,
+        projects: projectIdentities,
+        activeProject,
+      };
+    }
+    if (!firstProject) {
+      return { status: 'no-accessible-projects', projects: [], activeProject: null };
+    }
+    if (!activeProject) {
+      return { status: 'loading' };
+    }
+    return {
+      status: 'ready',
+      projects: [firstProject, ...projectIdentities.slice(1)],
+      activeProject,
+    };
+  }, [activeWorkingProject, loadError, loaded, projectIdentities, workingProjectResolution]);
+  const updateWorkingProject = React.useCallback(
+    ({ name }: ProjectIdentity) => {
+      const project = orderedWorkingProjects.find(byName(name));
+      if (project) {
+        selectWorkingProject(project);
+      }
+    },
+    [orderedWorkingProjects, selectWorkingProject],
+  );
+
   const waitControllerRef = React.useRef<AbortController | null>(null);
   const waitTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const waitRejectRef = React.useRef<((reason: Error) => void) | null>(null);
@@ -201,7 +308,14 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     ],
   );
 
-  return <ProjectsContext.Provider value={contextValue}>{children}</ProjectsContext.Provider>;
+  return (
+    <WorkingProjectProvider
+      state={workingProjectSelectionState}
+      onProjectChange={updateWorkingProject}
+    >
+      <ProjectsContext.Provider value={contextValue}>{children}</ProjectsContext.Provider>
+    </WorkingProjectProvider>
+  );
 };
 
 export default ProjectsContextProvider;
