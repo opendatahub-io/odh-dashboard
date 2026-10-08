@@ -12,11 +12,10 @@ change set.
 
 ## Pipeline
 
-1. A GitHub event matches the opt-in gate: the PR has `fullsend`, plus a trigger
-   listed under [Invocation](#invocation).
-2. Host adapters (workflow jobs / `pre-review`) write trusted JSON under
-   `.fullsend/.run/` (and `collected.json`). The orchestrator never invokes those
-   CLIs itself.
+1. A GitHub event matches a **review** trigger listed under [Invocation](#invocation).
+2. Workflow host-adapter jobs write trusted JSON under `.fullsend/.run/`;
+   `pre-review` validates the registry and aggregates envelopes into
+   `collected.json`. The orchestrator never invokes those CLIs itself.
 3. The orchestrator reads [`.fullsend/dimensions.json`](../../dimensions.json),
    selects rows by `dispatch` / `when` / `re_review`, and writes a lean
    `producers.json` ledger before results are known. A **`context`** LLM row
@@ -59,18 +58,20 @@ flowchart TD
 
 ### Sticky comment order
 
-Visible sections, in order:
+Visible layout, in order (heading levels matter):
 
 1. Header (action, head SHA, run metadata)
-2. Change summary
-3. Status
-4. Signals (risk / confidence table)
-5. Checks (readiness table; omit when empty)
-6. Findings (omit when empty; includes severity groups then `### Justified` when present)
-7. Product ask (omit when `status` is `none`)
-8. TODO (omit when empty; plain-text category labels Findings / Checks /
-   Judgement / Nits)
-9. Collapsed **Review details**: Producers, Challenger (counts + removed
+2. `## Change summary`
+3. `## Status` (headline), immediately followed by:
+   - `### Signals` (risk / confidence table — always present on non-failure)
+   - `### Checks` (readiness table; omit when empty)
+4. `## Findings` when survivors or justified items exist (severity groups,
+   then `### Justified` when present). On `approve` with neither, the host
+   renders “Looks good to me.” instead of a Findings section.
+5. `## Product ask` (omit when `status` is `none`)
+6. `## TODO` (omit when empty; plain-text category labels Findings / Checks /
+   Judgement / Nits — not markdown headers)
+7. Collapsed **Review details**: Producers, Challenger (counts + removed
    audit), Evidence inspected, Labels
 
 ### Producers table
@@ -116,18 +117,17 @@ removed audit. Each shows the original severity, description, and
 these do not block disposition. The section is wrapped in HTML markers
 (`<!-- fullsend:justified-findings -->`) for downstream tooling.
 
-### PR Justifications
+### Author rebuttals (Justifications vs Evidence)
 
-Authors may challenge review findings or testing expectations via a
-`## Justifications` section in the PR body. Justifications participate
-in two places only:
+Authors can rebut review pressure in two separate places in the PR body.
+They are **not** interchangeable:
 
-| Channel | How Justifications are used |
-| --- | --- |
-| **Challenger** (findings) | If a justification adequately rebuts a finding against the diff, the challenger marks it `challenger_action: justified` and it follows the removed path — visible under `### Justified` with the challenger's reason, but not disposition-blocking. Insufficient justifications leave the finding at its original severity. Host policy categories (`protected-path`, `approach-rejected`) cannot be justified; the host restores them into `findings[]` if mistagged. |
-| **test-impact** (check) | A sufficient constraint justification in the Evidence section (why tests could not be added, what alternative verification exists) adjusts Automation/Efficiency scoring to ⚠️ instead of ❌. When Automation is ⚠️ solely because there are no tests, Efficiency stays ➖. Evidence depth still requires verification proof in the description. |
+| Channel | Where authors write | How it is used |
+| --- | --- | --- |
+| **Challenger** (findings) | `## Justifications` | If a justification adequately rebuts a finding against the diff, the challenger marks it `challenger_action: justified` and it follows the removed path — visible under `### Justified` with the challenger's reason, but not disposition-blocking. Insufficient justifications leave the finding at its original severity. Host policy categories (`protected-path`, `approach-rejected`) cannot be justified; the host restores them into `findings[]` if mistagged. |
+| **test-impact** (check) | Typically `## Evidence` | A sufficient **constraint justification** (why automation could not or should not be added, and what alternative verification exists) adjusts Automation/Efficiency scoring to ⚠️ instead of ❌. When Automation is ⚠️ solely because there are no tests, Efficiency stays ➖. Evidence depth still requires verification proof in the description — a waiver does not satisfy it. |
 
-Justifications are **not** a shared ruleset applied to every producer.
+These rebuttals are **not** a shared ruleset applied to every producer.
 Rating, pr-description-review, and other producers are not affected.
 Product-ask already has its own `mismatch-justified` path.
 
@@ -145,9 +145,8 @@ Producer **Ran** icons (`result.producers`):
 
 | Label | Applied by | Role |
 | --- | --- | --- |
-| `fullsend` | Temporary review opt-in | Gate for the workflow while Fullsend is opt-in. Applying it alone on `labeled` does not start a review. |
-| `ready-for-review` | Review readiness | With `fullsend`, a `labeled` event starts a run. |
-| `fullsend-no-fix` | Fix control | Disables the fix agent. |
+| `ready-for-review` | Humans / process | On a non-draft PR, a `labeled` event with this label starts a **review** run. Still stripped from agent `label_actions`. |
+| `fullsend-no-fix` | Humans or `/fs-fix-stop` | Disables the fix agent. |
 | `fullsend-fix` | Fix control | Fix-agent marker. Not set via agent `label_actions`. |
 | `ready-for-merge` | Host (post-review) | Internal `approve`, not draft, not a protected-path downgrade. Merge remains a separate step. |
 | `requires-manual-review` | Host (post-review) | Internal `comment`, or approve downgraded for draft / protected paths. |
@@ -276,12 +275,27 @@ Do **not**:
 ## Invocation
 
 Workflow: [`.github/workflows/fullsend.yaml`](../../../.github/workflows/fullsend.yaml).
-The PR must already have `fullsend`. Additional triggers:
+Fullsend reviews all **non-draft** PRs (no opt-in label). ODH differs from
+stock Fullsend by skipping drafts on automatic PR events; use `/fs-review` to
+review a draft. Job `if` filters admit:
 
-- `opened`, `synchronize`, `ready_for_review`
-- `labeled` with `ready-for-review` (not with `fullsend` alone)
-- issue comment body exactly `/fs-review`
-- `changes_requested` review (fix path)
+**Review path** (host adapters + review stage; `adapter-plan` / `dispatch`):
+
+- `pull_request_target` when **not draft**: `opened`, `synchronize`,
+  `ready_for_review` (draft→ready), or `labeled` with `ready-for-review`
+- issue comment body exactly `/fs-review` (non-bot) — runs even on drafts
+
+**Fix path** (`dispatch` only — no host adapters; fix stage never reads adapter
+context):
+
+- `pull_request_review` with state `changes_requested`
+- issue comment starting with `/fs-fix` (but not `/fs-fix-stop`) from a non-bot
+
+`/fs-fix-stop` is handled by the separate `stop-fix` job (adds
+`fullsend-no-fix`). Closed/merged PRs are skipped by `pre-review` /
+`post-review` gates. If a draft is reviewed via `/fs-review`, host outcome
+labeling still downgrades `approve` → `requires-manual-review` instead of
+`ready-for-merge`.
 
 Local contract checks (no GitHub API):
 
@@ -317,17 +331,19 @@ Canonical schema: [`.fullsend/schemas/review-result.schema.json`](../../schemas/
 
 ## Meta-prompts
 
-Compose after `common-review.md` for every LLM row:
+For dispatched LLM producers, compose the kind contract after
+`common-review.md`. Challenger guidance is spawn-only (not a producer
+`meta_prompt`).
 
 | File | Kind |
 | --- | --- |
-| [`common-review.md`](../../meta-prompts/common-review.md) | Shared preface |
+| [`common-review.md`](../../meta-prompts/common-review.md) | Shared preface for LLM producers |
 | [`findings-output.md`](../../meta-prompts/findings-output.md) | `findings` |
 | [`section-output.md`](../../meta-prompts/section-output.md) | `section:*` |
 | [`check-output.md`](../../meta-prompts/check-output.md) | `check:*` |
 | [`signal-output.md`](../../meta-prompts/signal-output.md) | `signal:*` (producer contract) |
 | [`context-output.md`](../../meta-prompts/context-output.md) | `context` with `stage: pre-dispatch` (investigator brief) |
-| [`challenger-justifications.md`](../../meta-prompts/challenger-justifications.md) | Challenger spawn-only: PR Justifications → `justified` action |
+| [`challenger-justifications.md`](../../meta-prompts/challenger-justifications.md) | Challenger spawn-only: PR `## Justifications` → `justified` action |
 
 ## Related files
 
