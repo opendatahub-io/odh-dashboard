@@ -270,7 +270,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   );
   const primaryIsAsrEnabled = useChatbotConfigStore(selectIsAsrModelEnabled(primaryConfigId));
 
-  // Workspace capabilities — controls visibility & disable state of multimodal uploads
   const workspaceCapabilities = useWorkspaceCapabilities(
     aiModels,
     aiModelsLoaded,
@@ -278,8 +277,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     aiModelsError,
     maasModels,
   );
-  const { hasVisionModel, hasASRModel, capabilitiesReady, capabilitiesError } =
-    workspaceCapabilities;
+  const { hasVisionModel, capabilitiesReady, capabilitiesError } = workspaceCapabilities;
 
   useCapabilityOnboarding(workspaceCapabilities, namespace?.name);
 
@@ -322,13 +320,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     aiModelsLoaded,
     hasVisionModel,
   ]);
-
-  const isAudioUploadDisabled =
-    !capabilitiesReady ||
-    capabilitiesError ||
-    !hasASRModel ||
-    !primaryIsAsrEnabled ||
-    !primarySelectedAsrModel;
 
   // Router state
   const location = useLocation();
@@ -420,38 +411,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const previewUrlRef = React.useRef<string | null>(null);
   previewUrlRef.current = imageUploadState.previewUrl;
 
-  // Capability-based image upload gating
-  const isImageUploadDisabled =
-    !capabilitiesReady ||
-    capabilitiesError ||
-    hasImageInConversation ||
-    !allModelsHaveVision ||
-    !hasVisionModel;
-
-  const imageDisabledTooltip = React.useMemo(() => {
-    if (!capabilitiesReady) {
-      return undefined;
-    }
-    if (!hasVisionModel) {
-      return 'Deploy a model with vision capabilities to enable image upload.';
-    }
-    if (!allModelsHaveVision) {
-      return isCompareMode
-        ? 'All compared models must have vision capabilities to upload images.'
-        : 'Switch to a vision-capable model to upload images.';
-    }
-    if (hasImageInConversation) {
-      return 'Only one image per conversation.';
-    }
-    return undefined;
-  }, [
-    capabilitiesReady,
-    allModelsHaveVision,
-    hasVisionModel,
-    hasImageInConversation,
-    isCompareMode,
-  ]);
-
   // Audio transcription state
   const audioTranscription = useAudioTranscription();
   const [hasAudioInCurrentMessage, setHasAudioInCurrentMessage] = React.useState(false);
@@ -492,46 +451,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     },
     [],
   );
-
-  // Clear pending (unsent) image when vision capability is lost (e.g. model change in compare mode)
-  const prevAllModelsHaveVisionRef = React.useRef(allModelsHaveVision);
-  React.useEffect(() => {
-    const wasEnabled = prevAllModelsHaveVisionRef.current;
-    prevAllModelsHaveVisionRef.current = allModelsHaveVision;
-
-    if (
-      wasEnabled &&
-      !allModelsHaveVision &&
-      imageUploadState.fileName &&
-      !hasImageInConversation
-    ) {
-      if (imageUploadState.uploading) {
-        visionXhrRef.current?.abort();
-      }
-      if (imageUploadState.previewUrl) {
-        URL.revokeObjectURL(imageUploadState.previewUrl);
-      }
-      setImageUploadState({
-        uploading: false,
-        progress: 0,
-        fileId: null,
-        previewUrl: null,
-        fileName: null,
-      });
-      const { configIds: ids, configurations: configs } = useChatbotConfigStore.getState();
-      ids.forEach((cId) => {
-        if (configs[cId]) {
-          useChatbotConfigStore.getState().updateHasVisionImage(cId, false);
-        }
-      });
-    }
-  }, [
-    allModelsHaveVision,
-    imageUploadState.fileName,
-    imageUploadState.uploading,
-    imageUploadState.previewUrl,
-    hasImageInConversation,
-  ]);
 
   // Callbacks
   const setSelectedModel = React.useCallback(
@@ -795,9 +714,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   const handleImageUpload = React.useCallback(
     (file: File) => {
-      if (!capabilitiesReady || !allModelsHaveVision) {
-        return;
-      }
       if (imageUploadState.fileName && !hasImageInConversation) {
         pendingReplaceFileRef.current = file;
         setShowReplaceMediaModal(true);
@@ -805,13 +721,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       }
       performImageUpload(file);
     },
-    [
-      capabilitiesReady,
-      allModelsHaveVision,
-      imageUploadState.fileName,
-      hasImageInConversation,
-      performImageUpload,
-    ],
+    [imageUploadState.fileName, hasImageInConversation, performImageUpload],
   );
 
   const handleReplaceMediaConfirm = React.useCallback(() => {
@@ -875,9 +785,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   // Audio upload handler
   const handleAudioUpload = React.useCallback(
     (file: File) => {
-      if (isAudioUploadDisabled) {
-        return;
-      }
       if (hasAudioInCurrentMessage || audioUploadLatchRef.current) {
         setShowAudioPerMessageModal(true);
         return;
@@ -893,7 +800,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       );
     },
     [
-      isAudioUploadDisabled,
       hasAudioInCurrentMessage,
       primarySelectedAsrModel,
       primarySelectedAsrSubscription,
@@ -903,6 +809,29 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       primaryConfigId,
     ],
   );
+
+  React.useEffect(() => {
+    if (
+      audioTranscription.state.phase === 'waiting-for-model' &&
+      primaryIsAsrEnabled &&
+      primarySelectedAsrModel
+    ) {
+      audioTranscription.resumeUpload(
+        primarySelectedAsrModel,
+        namespace?.name || '',
+        primarySelectedAsrSubscription || undefined,
+        configIds.indexOf(primaryConfigId),
+      );
+    }
+  }, [
+    audioTranscription,
+    primaryIsAsrEnabled,
+    primarySelectedAsrModel,
+    primarySelectedAsrSubscription,
+    namespace?.name,
+    configIds,
+    primaryConfigId,
+  ]);
 
   const handleAudioCancel = React.useCallback(() => {
     const cancelPhase = audioTranscription.state.phase;
@@ -1358,6 +1287,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                     imageUploadState.uploading ||
                     audioTranscription.state.phase === 'uploading' ||
                     audioTranscription.state.phase === 'transcribing' ||
+                    audioTranscription.state.phase === 'waiting-for-model' ||
                     isDocumentUploading
                   }
                   showAttachButton={!isEmbedded}
@@ -1377,16 +1307,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   onImageUpload={handleImageUpload}
                   imageUploadState={imageUploadState}
                   onRemoveImage={handleRemoveImage}
-                  isImageUploadDisabled={isImageUploadDisabled}
-                  imageDisabledTooltip={imageDisabledTooltip}
-                  isAudioUploadDisabled={isAudioUploadDisabled}
-                  audioDisabledTooltip={
-                    isAudioUploadDisabled
-                      ? !hasASRModel
-                        ? 'Deploy an ASR model to enable audio upload.'
-                        : 'Select a transcription model in settings to enable audio upload'
-                      : undefined
+                  isImageUploadDisabled={hasImageInConversation}
+                  imageDisabledTooltip={
+                    hasImageInConversation ? 'Only one image per conversation.' : undefined
                   }
+                  showImageCapabilityAlert={Boolean(primarySelectedModel) && !allModelsHaveVision}
+                  isAudioUploadDisabled={false}
                   onAudioUpload={handleAudioUpload}
                   audioTranscriptionState={audioTranscription.state}
                   onAudioCancel={handleAudioCancel}
