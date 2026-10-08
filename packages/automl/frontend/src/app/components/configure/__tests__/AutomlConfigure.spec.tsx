@@ -1324,7 +1324,7 @@ describe('AutomlConfigure', () => {
         expect(bestQualityRadio).not.toBeChecked();
       });
 
-      it('should display human-readable labels for presets', () => {
+      it('should display preset labels and selection budgets', () => {
         renderComponent();
         selectSecretAndFile();
         selectTargetColumn();
@@ -1333,6 +1333,11 @@ describe('AutomlConfigure', () => {
         expect(screen.getByText('Faster')).toBeInTheDocument();
         expect(screen.getByText('Better quality')).toBeInTheDocument();
         expect(screen.getByText('Best quality')).toBeInTheDocument();
+        expect(screen.getByText(/45-minute model-selection budget/)).toBeInTheDocument();
+        expect(screen.getByText(/Up to 3 hours for model selection/)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Up to 6 hours for model selection, plus data loading and refit/),
+        ).toBeInTheDocument();
       });
 
       it('should switch preset when clicking the other radio', () => {
@@ -1369,9 +1374,9 @@ describe('AutomlConfigure', () => {
 
         expect(qualityRadio).toBeChecked();
         expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
-        expect(screen.getByText(/16 vCPU \/ 64 GiB/)).toBeInTheDocument();
+        expect(screen.getByText(/Training request: 16 vCPU \/ 64 GiB/)).toBeInTheDocument();
         expect(
-          screen.getByText(/Up to 6 h for model selection, plus data loading and refit/),
+          screen.getByText(/Up to 6 hours for model selection, plus data loading and refit/),
         ).toBeInTheDocument();
         expect(screen.getByText(/samples up to 10 GiB/)).toBeInTheDocument();
         expect(
