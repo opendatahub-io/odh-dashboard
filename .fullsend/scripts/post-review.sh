@@ -688,14 +688,64 @@ def challenger_prose(result):
         return f"Adjudicated {input_n} {noun}; kept {kept} ({', '.join(parts)})."
     return clean(status)
 
+def justified_findings(result):
+    """Extract findings with challenger_action == justified from removed_findings."""
+    producers = producers_block(result)
+    if producers is None:
+        return []
+    ch = challenger_record(producers)
+    removed = ch.get("removed_findings")
+    if not isinstance(removed, list):
+        return []
+    return [f for f in removed if isinstance(f, dict) and f.get("challenger_action") == "justified"]
+
+def render_justified_section(result):
+    """Render ### Justified under ## Findings with omit markers."""
+    items = justified_findings(result)
+    if not items:
+        return []
+    run_url = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
+    lines = [
+        "",
+        "<!-- fullsend:justified-findings -->",
+        f"### Justified ({len(items)})",
+        "",
+        "_These findings were raised by review producers but the PR's "
+        "Justifications were accepted as sufficient for this run. They do "
+        "not block disposition. A human reviewer may still disagree._",
+    ]
+    for finding in items:
+        loc = render_location(result, finding, run_url)
+        origin = ""
+        if finding.get("dimension"):
+            origin_ids = producer_ids(finding)
+            origin_shown = ", ".join(
+                dimension_label(i) for i in origin_ids
+            ) or clean(finding.get("dimension"))
+            origin = f"`{origin_shown}` · "
+        sev = (finding.get("severity") or "info").capitalize()
+        lines += ["", f"- {origin}**{inline_text(finding.get('category'))}** ({loc}) · _{sev}_: {inline_text(finding.get('description'))}"]
+        reason = inline_text(finding.get("removal_reason") or "")
+        if reason:
+            lines.append(f"  - Justification: {reason}")
+    lines += ["", "<!-- /fullsend:justified-findings -->"]
+    return lines
+
 def render_removed_audit(result):
-    """Collapsed audit list of challenger-removed findings (ignore for disposition)."""
+    """Collapsed audit list of challenger-removed findings (ignore for disposition).
+
+    Items with challenger_action == justified are rendered under Findings
+    ### Justified instead; they are excluded here to avoid duplication.
+    """
     producers = producers_block(result)
     if producers is None:
         return []
     ch = challenger_record(producers)
     removed = ch.get("removed_findings")
     if not isinstance(removed, list) or not removed:
+        return []
+    non_justified = [f for f in removed if isinstance(f, dict) and f.get("challenger_action") != "justified"]
+    if not non_justified:
         return []
     run_url = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
     lines = [
@@ -708,9 +758,7 @@ def render_removed_audit(result):
         "actionable review findings; use `findings[]` / ## Findings instead.",
         "",
     ]
-    for finding in removed:
-        if not isinstance(finding, dict):
-            continue
+    for finding in non_justified:
         loc = render_location(result, finding, run_url)
         origin = ""
         if finding.get("dimension"):
@@ -989,7 +1037,8 @@ def render_body(result, previous_md, action):
     lines += render_checks_table(result)
 
     findings = result.get("findings") or []
-    if findings:
+    justified = justified_findings(result)
+    if findings or justified:
         lines += ["", "## Findings"]
         for severity, items in group_findings(findings):
             lines += ["", f"### {severity.capitalize()} ({len(items)})"]
@@ -1006,6 +1055,7 @@ def render_body(result, previous_md, action):
                     lines.append(f"  - Why: {clean(finding.get('why'))}")
                 if finding.get("remediation"):
                     lines += render_remediation(finding.get("remediation"))
+        lines += render_justified_section(result)
     elif action == "approve":
         lines += ["", "Looks good to me."]
 
@@ -1744,6 +1794,56 @@ run_self_test() {
     fail=1
   else
     echo "PASS challenger section reports removals and merges"
+  fi
+
+  # Justified findings: challenger_action == justified items appear under
+  # ## Findings → ### Justified, not in severity groups or removed audit.
+  printf '%s' "{${common},\"findings\":[],\"producers\":{\"dispatched\":[\"correctness\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"correctness\"],\"raised\":{\"correctness\":[{\"severity\":\"high\",\"category\":\"architecture\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Norm departure.\",\"why\":\"New pattern.\",\"remediation\":\"Follow existing.\"}]},\"challenger\":{\"status\":\"ran\",\"input\":1,\"kept\":0,\"removed\":1,\"merged\":0,\"downgraded\":0,\"removed_findings\":[{\"severity\":\"high\",\"category\":\"architecture\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Norm departure.\",\"why\":\"New pattern.\",\"removal_reason\":\"PR Justifications explain the architectural choice; diff confirms the new pattern is consistent.\",\"challenger_action\":\"justified\"}]}}}" > "${tmp}/justified.json"
+  transform_review_result "${tmp}/justified.json" > "${tmp}/justified-out.json"
+  body=$(jq -r .body "${tmp}/justified-out.json")
+  if [[ "$(jq -r .action "${tmp}/justified-out.json")" != "approve" ]]; then
+    echo "FAIL justified: justified-only findings must not block disposition" >&2
+    fail=1
+  elif ! grep -q '## Findings' <<<"${body}"; then
+    echo "FAIL justified: justified items without survivors must still open ## Findings" >&2
+    fail=1
+  elif ! grep -q '### Justified (1)' <<<"${body}"; then
+    echo "FAIL justified: ### Justified subheading missing or wrong count" >&2
+    fail=1
+  elif ! grep -q 'fullsend:justified-findings' <<<"${body}"; then
+    echo "FAIL justified: HTML omit markers missing" >&2
+    fail=1
+  elif ! grep -q 'Justification:' <<<"${body}"; then
+    echo "FAIL justified: challenger reason not rendered under Justified" >&2
+    fail=1
+  elif grep -q '### High' <<<"${body}"; then
+    echo "FAIL justified: justified finding must not appear in severity groups" >&2
+    fail=1
+  elif grep -q 'Removed findings (audit only)' <<<"${body}"; then
+    echo "FAIL justified: justified items must not appear in removed audit" >&2
+    fail=1
+  elif grep -q 'Looks good to me' <<<"${body}"; then
+    echo "FAIL justified: justified-only must not render LGTM" >&2
+    fail=1
+  else
+    echo "PASS justified findings render under ### Justified, not severity groups or audit"
+  fi
+
+  # Mixed: survivors + justified should show both severity groups and ### Justified.
+  printf '%s' "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"bounds\",\"dimension\":\"correctness\",\"file\":\"b.ts\",\"description\":\"Off by one.\",\"why\":\"Index.\"}],\"producers\":{\"dispatched\":[\"correctness\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"correctness\"],\"raised\":{\"correctness\":[{\"severity\":\"high\",\"category\":\"architecture\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Norm departure.\",\"why\":\"New pattern.\",\"remediation\":\"Follow existing.\"},{\"severity\":\"medium\",\"category\":\"bounds\",\"dimension\":\"correctness\",\"file\":\"b.ts\",\"description\":\"Off by one.\",\"why\":\"Index.\"}]},\"challenger\":{\"status\":\"ran\",\"input\":2,\"kept\":1,\"removed\":1,\"merged\":0,\"downgraded\":0,\"removed_findings\":[{\"severity\":\"high\",\"category\":\"architecture\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Norm departure.\",\"why\":\"New pattern.\",\"removal_reason\":\"Architecture justified per PR body.\",\"challenger_action\":\"justified\"}]}}}" > "${tmp}/justified-mixed.json"
+  transform_review_result "${tmp}/justified-mixed.json" > "${tmp}/justified-mixed-out.json"
+  body=$(jq -r .body "${tmp}/justified-mixed-out.json")
+  if [[ "$(jq -r .action "${tmp}/justified-mixed-out.json")" != "request-changes" ]]; then
+    echo "FAIL justified-mixed: surviving medium finding must still block" >&2
+    fail=1
+  elif ! grep -q '### Medium (1)' <<<"${body}"; then
+    echo "FAIL justified-mixed: severity group missing for surviving finding" >&2
+    fail=1
+  elif ! grep -q '### Justified (1)' <<<"${body}"; then
+    echo "FAIL justified-mixed: ### Justified subheading missing alongside severity groups" >&2
+    fail=1
+  else
+    echo "PASS mixed survivors + justified both render under ## Findings"
   fi
 
   # Every U+FE0F variation selector is stripped from the comment before it is

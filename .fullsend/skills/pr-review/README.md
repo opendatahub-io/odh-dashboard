@@ -66,7 +66,7 @@ Visible sections, in order:
 3. Status
 4. Signals (risk / confidence table)
 5. Checks (readiness table; omit when empty)
-6. Findings (omit when empty)
+6. Findings (omit when empty; includes severity groups then `### Justified` when present)
 7. Product ask (omit when `status` is `none`)
 8. TODO (omit when empty)
 9. Collapsed **Review details**: Producers, Challenger (counts + removed
@@ -102,10 +102,33 @@ Check and signal Result cells intentionally overlap Status → Checks / Signals
 for provenance. Status remains the primary outcome surface.
 
 **Challenger audit:** when `producers.challenger.removed_findings` is
-non-empty, a collapsed section under Challenger renders those items like
-findings, with an audit-only / must-ignore disclaimer and each
+non-empty, a collapsed section under Challenger renders non-justified items
+like findings, with an audit-only / must-ignore disclaimer and each
 `removal_reason`. Disposition and `## Findings` use survivor `findings[]`
 only. Host warns if `challenger.removed` ≠ audit list length.
+
+**Justified findings:** items in `removed_findings` with
+`challenger_action: justified` are rendered under `## Findings` →
+`### Justified (N)` (after the severity groups), not in the Challenger
+removed audit. Each shows the original severity, description, and
+`removal_reason` labeled as a justification. A fixed disclaimer notes
+these do not block disposition. The section is wrapped in HTML markers
+(`<!-- fullsend:justified-findings -->`) for downstream tooling.
+
+### PR Justifications
+
+Authors may challenge review findings or testing expectations via a
+`## Justifications` section in the PR body. Justifications participate
+in two places only:
+
+| Channel | How Justifications are used |
+| --- | --- |
+| **Challenger** (findings) | If a justification adequately rebuts a finding against the diff, the challenger marks it `challenger_action: justified` and it follows the removed path — visible under `### Justified` with the challenger's reason, but not disposition-blocking. Insufficient justifications leave the finding at its original severity. |
+| **test-impact** (check) | A sufficient constraint justification in the Evidence section (why tests could not be added, what alternative verification exists) adjusts Automation/Efficiency scoring to ⚠️ instead of ❌. Evidence depth still requires verification proof in the description. |
+
+Justifications are **not** a shared ruleset applied to every producer.
+Rating, pr-description-review, and other producers are not affected.
+Product-ask already has its own `mismatch-justified` path.
 
 Producer **Ran** icons (`result.producers`):
 
@@ -301,6 +324,7 @@ Compose after `common-review.md` for every LLM row:
 | [`check-output.md`](../../meta-prompts/check-output.md) | `check:*` |
 | [`signal-output.md`](../../meta-prompts/signal-output.md) | `signal:*` (producer contract) |
 | [`context-output.md`](../../meta-prompts/context-output.md) | `context` with `stage: pre-dispatch` (investigator brief) |
+| [`challenger-justifications.md`](../../meta-prompts/challenger-justifications.md) | Challenger spawn-only: PR Justifications → `justified` action |
 
 ## Related files
 

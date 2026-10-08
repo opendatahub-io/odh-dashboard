@@ -42,16 +42,18 @@ Classify changed paths (product code vs docs / manifests / generated / lockfiles
 
 Is there enough durable test automation for the future to cover the feature, including edge cases?
 
-- Product-code changes that need automation but lack adequate coverage (including edge cases) → ❌.
+- Product-code changes that need automation but lack adequate coverage (including edge cases) → ❌, **unless** the PR description provides a **sufficient constraint justification** (see below) → ⚠️.
 - Coverage present but thin / missing important edges → ⚠️.
 - Adequate durable automation for the change → ✅.
 - **➖** when there is no product behavior under test (e.g. docs-only, pure lockfile/manifest/generated with nothing sensible to unit- or mock-test). Do not require new test files for those heads.
+
+**Constraint justification (Automation):** the author may explain in the PR body — typically under `## Evidence` alongside their other testing proof — why durable test automation could not or should not be added for this change (e.g. the surface is not automatable, the change is infrastructure/workflow-only with no testable behavior, or tests would provide no value for the specific type of change). A sufficient justification must state **which constraint** applies, **why** automation is inappropriate or impossible here, and **what alternative verification** exists. When sufficient, score ⚠️ (acknowledged waiver) instead of ❌ — never ✅, which would imply automation exists. Note in the Evidence cell that the score was adjusted based on the author's constraint justification.
 
 ### 2. Efficiency
 
 Are tests written efficiently? Call out duplication. Prefer unit tests over Cypress mock. Reserve mock/e2e-style tests for flows or application-level testing, not isolated component-level checks.
 
-- **Heavy Cypress dependence with little or no unit tests → ❌**, unless the PR description **explicitly justifies** that mix (why units are not appropriate and Cypress is the right tier).
+- **Heavy Cypress dependence with little or no unit tests → ❌**, unless the PR description **explicitly justifies** that mix (why units are not appropriate and Cypress is the right tier) → ⚠️. The justification must explain which constraint makes unit tests inappropriate and why Cypress is the correct tier for this change. Note in the Evidence cell when the score was adjusted.
 - Milder wrong-tier, duplication, or efficiency issues → ⚠️.
 - Efficient tier mix for the change → ✅.
 - **➖** when there is nothing to place on the pyramid (Automation is ➖, or Automation is ❌ because there are no tests to evaluate for tier/efficiency).

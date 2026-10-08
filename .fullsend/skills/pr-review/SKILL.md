@@ -1121,6 +1121,16 @@ diff, preserving context isolation.
    format**: object with `adjudicated_findings` and `removed_findings`).
    A flat findings array is malformed.
 
+   **Part 2b — Justifications guidance:** the absolute path of
+   `meta-prompts/challenger-justifications.md`. This extends the
+   challenger's adjudication vocabulary with `challenger_action:
+   justified` for findings adequately rebutted by the PR body's
+   `## Justifications` section. Justified items follow the same
+   removed path (dual-write: adjudicated row + stub) and are
+   excluded from `findings[]` survivors. The orchestrator preserves
+   `challenger_action: justified` on expanded removed items so the
+   host can render them separately.
+
    **Part 3 — Context package:** the merged finding set from steps
    6a–6c (as a JSON array), plus the path of the shared context file
    from step 3d. Leave out the step 3g investigation brief and its
@@ -1179,7 +1189,7 @@ diff, preserving context isolation.
 
    1. Start from `adjudicated_findings` where action is `kept`,
       `downgraded`, `merged`, or missing.
-   2. Drop any with action `removed`.
+   2. Drop any with action `removed` or `justified`.
    3. Strip `challenger_action` / `challenger_reason`.
    4. Reattach standard fields (`dimension`, `why`, etc.) by matching
       each survivor to the pre-challenger set: prefer
@@ -1194,9 +1204,11 @@ diff, preserving context isolation.
       stub `original_*`). Emit full finding-shaped object +
       `removal_reason` from the stub.
    2. For each `adjudicated_findings` entry with
-      `challenger_action: removed` that has no stub match: expand from
-      pre-challenger match; `removal_reason` from `challenger_reason` or
-      `"removed by challenger"`.
+      `challenger_action: removed` or `justified` that has no stub
+      match: expand from pre-challenger match; `removal_reason` from
+      `challenger_reason` or `"removed by challenger"`. For `justified`
+      entries, preserve `challenger_action: justified` on the expanded
+      object so the host can distinguish them from noise removals.
    3. **Merge losers (challenger + synthesis):** for each `merged`
       survivor, find findings in the **pre-6b** set (fall back to
       concatenating all `raised` arrays when the pre-dedup list was not
