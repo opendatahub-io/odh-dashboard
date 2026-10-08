@@ -223,6 +223,13 @@ function AutomlConfigure({
   const maxTopN = isTimeseries ? MAX_TOP_N_TIMESERIES : MAX_TOP_N_TABULAR;
   const availablePresets = isTimeseries ? TIMESERIES_PRESETS : PRESETS;
 
+  // Normalize unsupported presets on initial values as well as when switching to timeseries.
+  useEffect(() => {
+    if (isTimeseries && getValues('preset') === PRESET_QUALITY) {
+      setValue('preset', PRESET_FASTER, { shouldValidate: true });
+    }
+  }, [isTimeseries, getValues, setValue]);
+
   // Clear timeseries fields that conflict with the selected target column
   useEffect(() => {
     if (!targetColumn) {
@@ -273,9 +280,6 @@ function AutomlConfigure({
         shouldValidate: true,
       });
       void trigger('top_n');
-    }
-    if (isTimeseries && getValues('preset') === PRESET_QUALITY) {
-      setValue('preset', PRESET_FASTER, { shouldValidate: true });
     }
   }, [taskType, isTaskTypeSelected, isTimeseries, getValues, setValue, trigger]);
 
@@ -1086,6 +1090,9 @@ function AutomlConfigure({
                                       ) : (
                                         <>
                                           16 vCPU / 64 GiB
+                                          <br />
+                                          Up to 6 h for model selection, plus data loading and
+                                          refit; samples up to 10 GiB.
                                           <br />
                                           Choose for large datasets when maximum model search
                                           quality is worth the longer run and higher resource use.
