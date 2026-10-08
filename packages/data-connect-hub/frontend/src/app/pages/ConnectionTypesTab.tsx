@@ -36,23 +36,23 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
         available catalogs to easily connect your projects to external storage, databases, and
         services.
       </p>
-      {shouldRenderLoadingState ? (
+      {shouldRenderLoadingState && (
         <EmptyState headingLevel="h3" titleText="Loading data connection types">
           <Spinner aria-label="Loading data connection types" />
         </EmptyState>
-      ) : null}
-      {hasError ? (
+      )}
+      {hasError && (
         <EmptyState headingLevel="h3" titleText="Unable to load data connection types">
           <EmptyStateBody>{typesError?.message}</EmptyStateBody>
         </EmptyState>
-      ) : null}
-      {shouldRenderGallery ? (
+      )}
+      {shouldRenderGallery && (
         <ConnectionTypesGallery
           connectionTypes={connectionTypes}
           onConnectionTypeClick={handleConnectionTypeClick}
         />
-      ) : null}
-      {shouldRenderEmptyState ? (
+      )}
+      {shouldRenderEmptyState && (
         <EmptyState
           headingLevel="h3"
           icon={() => <img src={emptyStateImage} alt="" width={108} height={108} />}
@@ -62,7 +62,7 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
             Browse available data connection types and use them to create new data connections
           </EmptyStateBody>
         </EmptyState>
-      ) : null}
+      )}
     </PageSection>
   );
 };
