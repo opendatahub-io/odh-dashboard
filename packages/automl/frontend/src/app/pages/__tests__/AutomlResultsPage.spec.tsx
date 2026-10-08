@@ -81,17 +81,22 @@ jest.mock('~/app/hooks/useComponentStatuses', () => ({
   useComponentStatuses: (...args: unknown[]) => mockUseComponentStatuses(...args),
 }));
 
-// Mock AutomlResults to capture context
+// Mock AutomlResults to capture context and surface the threaded header actions
 let capturedContext: unknown = null;
 jest.mock('~/app/components/run-results/AutomlResults', () => ({
   __esModule: true,
-  default: () => {
+  default: ({ headerActions }: { headerActions?: React.ReactNode }) => {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const { useAutomlResultsContext } = jest.requireActual('~/app/context/AutomlResultsContext');
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const context = useAutomlResultsContext();
     capturedContext = context;
-    return <div data-testid="automl-results">AutoML Results Component</div>;
+    return (
+      <div data-testid="automl-results">
+        {headerActions}
+        AutoML Results Component
+      </div>
+    );
   },
 }));
 
@@ -139,7 +144,7 @@ jest.mock('mod-arch-shared', () => ({
     loadError,
     emptyStatePage,
     breadcrumb,
-    headerAction,
+    noHeader,
   }: {
     children: React.ReactNode;
     empty: boolean;
@@ -147,22 +152,16 @@ jest.mock('mod-arch-shared', () => ({
     loadError?: Error;
     emptyStatePage: React.ReactNode;
     breadcrumb?: React.ReactNode;
-    headerAction?: React.ReactNode;
+    noHeader?: boolean;
     [key: string]: unknown;
   }) => (
-    <div data-testid="applications-page">
+    <div data-testid="applications-page" data-no-header={noHeader ? 'true' : 'false'}>
       {breadcrumb}
-      {headerAction}
       {loadError ? <div data-testid="load-error">{loadError.message}</div> : null}
       {empty ? emptyStatePage : null}
       {loaded && !empty ? children : null}
     </div>
   ),
-}));
-
-jest.mock('~/app/components/common/AutomlHeader/AutomlHeader', () => ({
-  __esModule: true,
-  default: () => <span>AutoML</span>,
 }));
 
 // ============================================================================
@@ -720,7 +719,7 @@ describe('AutomlResultsPage', () => {
   });
 
   describe('breadcrumb', () => {
-    it('should display experiment context breadcrumb with Run results', () => {
+    it('should display experiment context breadcrumb with the run name as the final item', () => {
       const { useNamespaceSelector } = jest.requireMock('mod-arch-core');
       useNamespaceSelector.mockReturnValue({
         namespaces: [{ name: 'test-ns' }],
@@ -755,10 +754,27 @@ describe('AutomlResultsPage', () => {
         '/develop-train/automl/reconfigure/test-ns/run-123',
       );
       expect(experimentConfigLink.querySelector('a')).toHaveAttribute('data-from', 'results');
-      expect(screen.getByText('Run results')).toBeInTheDocument();
+      expect(screen.getByTestId('results-breadcrumb-run-name')).toHaveTextContent(
+        'My Custom Run Name results',
+      );
+      expect(screen.queryByText('Run results')).not.toBeInTheDocument();
       expect(
         screen.getByTestId('project-navigator-link-in-breadcrumb').querySelector('a'),
       ).toHaveAttribute('href', '/projects/test-ns');
+    });
+
+    it('should render the page without a header section', () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun(),
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(screen.getByTestId('applications-page')).toHaveAttribute('data-no-header', 'true');
     });
   });
 

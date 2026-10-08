@@ -15,6 +15,35 @@ describe('AutoRAG run results metrics', () => {
     autoragRunResultsPage.findLeaderboardTable().should('be.visible');
   });
 
+  it('should show the run name as the final breadcrumb item without a page header', () => {
+    // Final breadcrumb reflects the run name; no separate page header/subtext.
+    // The separator renders as &nbsp; (U+00A0), which contain.text does not
+    // normalize — normalize the actual text before comparing.
+    autoragRunResultsPage.findResultsBreadcrumbRunName().should(($el) => {
+      expect($el.text().replace(/\u00a0/g, ' ')).to.contain('rag results');
+    });
+    cy.findByTestId('app-page-title').should('not.exist');
+  });
+
+  it('should place run actions in the visualization header', () => {
+    autoragRunResultsPage.findRunDetailsButton().should('be.visible');
+    cy.findByTestId('hide-details').should('not.exist');
+  });
+
+  it('should show a Pipeline details link when the step details panel is hidden', () => {
+    cy.findByTestId('pipeline-details-button').should('not.exist');
+
+    cy.findByTestId('close-step-details').click();
+    autoragRunResultsPage.findPipelineDetailsButton().should('contain.text', 'Pipeline details');
+    // PF keeps the panel wrapper mounted when collapsed (hidden via transform) — assert the hidden attribute
+    cy.findByTestId('step-details-drawer-panel').should('have.attr', 'hidden');
+
+    // Clicking the link re-shows the panel
+    autoragRunResultsPage.findPipelineDetailsButton().click();
+    cy.findByTestId('step-details-drawer-panel').should('be.visible');
+    cy.findByTestId('pipeline-details-button').should('not.exist');
+  });
+
   it('should provide metric header definitions, CI help, and grouped Sample Q&A metrics', () => {
     // The seed run optimizes for faithfulness, so enable this column to make its header unique.
     autoragRunResultsPage.enableMetricColumn('answer_correctness', 'unitxt');

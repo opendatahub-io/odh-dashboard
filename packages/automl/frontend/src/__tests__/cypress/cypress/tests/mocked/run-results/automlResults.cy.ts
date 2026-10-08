@@ -23,6 +23,44 @@ const MODEL_NAMES = [
 const TOP_FEATURES = ['Name', 'Pclass', 'Sex'];
 
 describe('AutoML Results Page', () => {
+  describe('Header', () => {
+    it('should show the run name as the final breadcrumb item without a page header', () => {
+      automlResultsPage.visit(NAMESPACE, RUN_ID);
+
+      // Final breadcrumb reflects the run name; no separate page header/subtext.
+      // The separator renders as &nbsp; (U+00A0), which contain.text does not
+      // normalize — normalize the actual text before comparing.
+      automlResultsPage.findResultsBreadcrumbRunName().should(($el) => {
+        expect($el.text().replace(/\u00a0/g, ' ')).to.contain('binary results');
+      });
+      cy.findByTestId('app-page-title').should('not.exist');
+    });
+
+    it('should place run actions in the visualization header', () => {
+      automlResultsPage.visit(NAMESPACE, RUN_ID);
+
+      automlResultsPage.findRunDetailsButton().should('be.visible');
+      cy.findByTestId('hide-details').should('not.exist');
+    });
+
+    it('should show a Pipeline details link when the step details panel is hidden', () => {
+      automlResultsPage.visit(NAMESPACE, RUN_ID);
+
+      // Drawer is expanded by default — no floating link yet
+      cy.findByTestId('pipeline-details-button').should('not.exist');
+
+      cy.findByTestId('close-step-details').click();
+      automlResultsPage.findPipelineDetailsButton().should('contain.text', 'Pipeline details');
+      // PF keeps the panel wrapper mounted when collapsed (hidden via transform) — assert the hidden attribute
+      cy.findByTestId('step-details-drawer-panel').should('have.attr', 'hidden');
+
+      // Clicking the link re-shows the panel
+      automlResultsPage.findPipelineDetailsButton().click();
+      cy.findByTestId('step-details-drawer-panel').should('be.visible');
+      cy.findByTestId('pipeline-details-button').should('not.exist');
+    });
+  });
+
   describe('Leaderboard', () => {
     it('should display leaderboard with model rows', () => {
       automlResultsPage.visit(NAMESPACE, RUN_ID);
@@ -145,7 +183,8 @@ describe('AutoML Results Page', () => {
       automlResultsPage.findRunDetailsDrawerPanel().should('be.visible');
 
       automlResultsPage.findRunDetailsDrawerCloseButton().click();
-      automlResultsPage.findRunDetailsDrawerPanel().should('not.be.visible');
+      // PF keeps the panel wrapper mounted when collapsed (hidden via transform) — assert the hidden attribute
+      automlResultsPage.findRunDetailsDrawerPanel().should('have.attr', 'hidden');
     });
   });
 });

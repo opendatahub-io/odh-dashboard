@@ -10,11 +10,10 @@ import {
   EmptyStateBody,
   EmptyStateFooter,
   EmptyStateVariant,
+  Flex,
+  FlexItem,
   Label,
   Skeleton,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
   Tooltip,
 } from '@patternfly/react-core';
 import { ColumnsIcon, ExclamationCircleIcon, StarIcon } from '@patternfly/react-icons';
@@ -939,26 +938,33 @@ function AutomlLeaderboard({
   return (
     <Card>
       <CardBody>
-        <Content component={ContentVariants.h3}>Results</Content>
-        <Toolbar hasNoPadding>
-          <ToolbarContent alignItems="center">
-            <ToolbarItem>
-              <Content component={ContentVariants.small} data-testid="columns-selected-count">
-                {visibleColumns.length}/{columnDefs.length} columns selected
-              </Content>
-            </ToolbarItem>
-            <ToolbarItem>
-              <Button
-                variant="link"
-                icon={<ColumnsIcon />}
-                onClick={() => setIsManageColumnsOpen(true)}
-                data-testid="manage-columns-button"
-              >
-                Manage columns
-              </Button>
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+        >
+          <FlexItem>
+            <Content component={ContentVariants.h3}>Results</Content>
+          </FlexItem>
+          <FlexItem>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+              <FlexItem>
+                <Content component={ContentVariants.small} data-testid="columns-selected-count">
+                  {visibleColumns.length}/{columnDefs.length} columns selected
+                </Content>
+              </FlexItem>
+              <FlexItem>
+                <Button
+                  variant="link"
+                  icon={<ColumnsIcon />}
+                  onClick={() => setIsManageColumnsOpen(true)}
+                  data-testid="manage-columns-button"
+                >
+                  Manage columns
+                </Button>
+              </FlexItem>
+            </Flex>
+          </FlexItem>
+        </Flex>
         <InnerScrollContainer>
           <Table
             aria-label="AutoML Model Leaderboard"
