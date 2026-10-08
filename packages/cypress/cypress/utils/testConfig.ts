@@ -95,6 +95,7 @@ const GEMINI_API_KEY = testConfig?.GEMINI_API_KEY;
 const OCI_SECRET_VALUE = testConfig?.OCI_SECRET_VALUE;
 const OCI_MODEL_URI = testConfig?.OCI_MODEL_URI;
 const OCP_API_URL = testConfig?.OCP_API_URL;
+const { FILEMAPPING } = testConfig ?? {};
 
 // OGX connection settings
 const OGX_URL = testConfig?.OGX_URL;
@@ -120,6 +121,7 @@ export const cypressEnv = {
   OCI_SECRET_VALUE,
   OCI_MODEL_URI,
   OCP_API_URL,
+  FILEMAPPING,
   OGX_URL,
   OGX_API_KEY,
   CLUSTER_AUTH,

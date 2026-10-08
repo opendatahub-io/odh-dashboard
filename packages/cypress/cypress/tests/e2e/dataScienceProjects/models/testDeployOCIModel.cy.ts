@@ -15,6 +15,8 @@ import {
   checkInferenceServiceState,
   verifyModelExternalToken,
 } from '../../../../utils/oc_commands/modelServing';
+import { cleanupTemplates } from '../../../../utils/oc_commands/templates';
+import { createCustomResource } from '../../../../utils/oc_commands/customResources';
 import type { DeployOCIModelData } from '../../../../types';
 import { loadDeployOCIModelFixture } from '../../../../utils/dataLoader';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
@@ -28,18 +30,21 @@ let modelDeploymentURI: string;
 let modelDeploymentName: string;
 let modelFormat: string;
 let servingRuntime: string;
+let isS390x: boolean;
 const uuid = generateTestUUID();
+const applicationNamespace: string = Cypress.env('APPLICATIONS_NAMESPACE');
 
 const updateSecretDetailsFile = (
   secretValue: string,
   fixtureRelativePath: string,
   fixtureFullPath: string,
+  registryHost: string,
 ) => {
   return cy.fixture(fixtureRelativePath).then((templateContent) => {
     const updatedContent = {
       ...templateContent,
       auths: {
-        'quay.io': {
+        [registryHost]: {
           auth: secretValue,
         },
       },
@@ -61,23 +66,45 @@ describe(
           testData = fixtureData;
           projectName = `${testData.projectName}-${uuid}`;
           connectionName = testData.connectionName;
+          isS390x = !!testData.isS390x;
+          if (isS390x) {
+            cy.clearCookies();
+          }
           // Load fixture file and update with actual secret value
+          ociRegistryHost = testData.ociRegistryHost;
           const secretValue = Cypress.env('OCI_SECRET_VALUE');
           const secretDetailsFixture = 'resources/json/oci-data-connection-secret.json';
           secretDetailsFile = `cypress/fixtures/${secretDetailsFixture}`;
-          updateSecretDetailsFile(secretValue, secretDetailsFixture, secretDetailsFile);
-          ociRegistryHost = testData.ociRegistryHost;
-          modelDeploymentURI = Cypress.env('OCI_MODEL_URI');
+          updateSecretDetailsFile(
+            secretValue,
+            secretDetailsFixture,
+            secretDetailsFile,
+            ociRegistryHost,
+          );
+          modelDeploymentURI = testData.modelOciUri ?? (Cypress.env('OCI_MODEL_URI') as string);
           modelDeploymentName = testData.modelDeploymentName;
           modelFormat = testData.modelFormat;
           servingRuntime = testData.servingRuntime;
           cy.log(`Loaded project name: ${projectName}`);
+
+          if (isS390x && testData.servingRuntimeName && testData.servingRuntimeYamlPath) {
+            const runtimeYamlPath = testData.servingRuntimeYamlPath;
+            cy.log(`Creating ServingRuntime for s390x: ${testData.servingRuntimeName}`);
+            cleanupTemplates(testData.servingRuntimeName).then(() => {
+              createCustomResource(applicationNamespace, runtimeYamlPath);
+            });
+          }
+
           createCleanProject(projectName);
         },
       );
     });
 
     after(() => {
+      if (isS390x && testData.servingRuntimeName) {
+        cy.log(`Cleaning up ServingRuntime: ${testData.servingRuntimeName}`);
+        cleanupTemplates(testData.servingRuntimeName);
+      }
       // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
       // TODO: Review this timeout once RHOAIENG-19969 is resolved
       deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
@@ -142,8 +169,13 @@ describe(
           .then((val) => {
             resourceName = val as string;
           });
-        modelServingWizard.findModelFormatSelectOption(modelFormat).click();
-        modelServingWizard.selectServingRuntimeOption(servingRuntime);
+        if (isS390x) {
+          modelServingWizard.selectServingRuntimeOption(servingRuntime);
+          modelServingWizard.findModelFormatSelectOption(modelFormat).click({ force: true });
+        } else {
+          modelServingWizard.findModelFormatSelectOption(modelFormat).click();
+          modelServingWizard.selectServingRuntimeOption(servingRuntime);
+        }
         modelServingWizard.findNextButton().click();
 
         cy.step('Step 3: Advanced settings');

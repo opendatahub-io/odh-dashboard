@@ -267,7 +267,10 @@ export type TestConfig = {
   // BYOIDC cluster authentication settings
   CLUSTER_AUTH?: string;
   CLUSTER_OIDC_ISSUER?: string;
+  FILEMAPPING?: FileMapping;
 };
+
+export type FileMapping = Record<string, string>;
 
 export type DataScienceProjectData = {
   projectDisplayName: string;
@@ -456,6 +459,10 @@ export type DeployOCIModelData = {
   modelDeploymentName: string;
   modelFormat: string;
   servingRuntime: string;
+  isS390x?: boolean;
+  modelOciUri?: string;
+  servingRuntimeName?: string;
+  servingRuntimeYamlPath?: string;
 };
 
 export type ModelTolerationsTestData = {
