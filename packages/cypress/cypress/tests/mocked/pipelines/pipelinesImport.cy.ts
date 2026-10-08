@@ -94,7 +94,7 @@ describe('Pipeline Import and Upload', () => {
       .findToastNotification(0)
       .should(
         'contain.text',
-        `Pipeline ${uploadedMockPipeline.display_name} successfully created.`,
+        `Pipeline ${uploadedMockPipeline.display_name} successfully imported`,
       );
 
     verifyRelativeURL(
@@ -224,9 +224,6 @@ describe('Pipeline Import and Upload', () => {
 
     pipelineImportModal.findImportModalError().should('exist');
     pipelineImportModal.findImportModalError().contains('Unsupported pipeline version');
-    toastNotifications
-      .findToastNotificationList()
-      .should('not.contain.text', 'successfully created.');
   });
 
   it('fails to import a v1 pipeline', () => {
@@ -251,6 +248,9 @@ describe('Pipeline Import and Upload', () => {
     pipelineImportModal.findImportModalError().contains('Pipeline update and recompile required');
     argoAlert.findCloudServiceReleaseNotesLink().should('exist');
     argoAlert.findSelfManagedReleaseNotesLink().should('exist');
+    toastNotifications
+      .findToastNotificationList()
+      .should('not.contain.text', 'successfully imported');
   });
 
   it('imports a new pipeline by url', () => {
@@ -455,7 +455,7 @@ describe('Pipeline Import and Upload', () => {
       .findToastNotification(0)
       .should(
         'contain.text',
-        `Pipeline version ${uploadedMockPipelineVersion.display_name} successfully created.`,
+        `Pipeline version ${uploadedMockPipelineVersion.display_name} successfully imported`,
       );
 
     verifyRelativeURL(

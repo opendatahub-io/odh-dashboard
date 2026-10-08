@@ -154,14 +154,13 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
       setError(new Error(PIPELINE_IMPORT_ARGO_ERROR_TEXT));
     } else {
       submitAction()
-        .then((result: PipelineKF | PipelineVersionKF) => {
+        .then((result) => {
           onBeforeClose(result);
-          const versionIdKey = 'pipeline_version_id' satisfies keyof PipelineVersionKF;
-          const msg =
-            versionIdKey in result
-              ? `Pipeline version ${result.display_name} successfully created.`
-              : `Pipeline ${result.display_name} successfully created.`;
-          notification.success(msg);
+          notification.success(
+            'pipeline_version_id' in result
+              ? `Pipeline version ${result.display_name} successfully imported`
+              : `Pipeline ${result.display_name} successfully imported`,
+          );
         })
         .catch((e) => {
           setImporting(false);
