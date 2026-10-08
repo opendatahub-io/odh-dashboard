@@ -1079,22 +1079,24 @@ function AutomlConfigure({
                                         <>
                                           45-minute model-selection budget.
                                           <br />
-                                          Training request: 4 vCPU / 16 GiB; samples up to 100 MiB.
-                                          Use fewer resources to prioritize speed.
+                                          4 vCPU / 16 GiB
+                                          <br />
+                                          Use fewer resources to prioritize speed
                                         </>
                                       ) : preset === PRESET_BETTER_QUALITY ? (
                                         <>
                                           Up to 3 hours for model selection.
                                           <br />
-                                          Training request: 8 vCPU / 32 GiB; samples up to 1 GiB.
-                                          Use more resources to prioritize accuracy.
+                                          8 vCPU / 32 GiB
+                                          <br />
+                                          Use more resources to prioritize accuracy
                                         </>
                                       ) : (
                                         <>
-                                          Up to 6 hours for model selection, plus data loading and
-                                          refit.
+                                          16 vCPU / 64 GiB
                                           <br />
-                                          Training request: 16 vCPU / 64 GiB; samples up to 10 GiB.
+                                          Up to 6 h for model selection, plus data loading and
+                                          refit; samples up to 10 GiB.
                                           <br />
                                           Choose for large datasets when maximum model search
                                           quality is worth the longer run and higher resource use.

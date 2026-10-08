@@ -1336,7 +1336,7 @@ describe('AutomlConfigure', () => {
         expect(screen.getByText(/45-minute model-selection budget/)).toBeInTheDocument();
         expect(screen.getByText(/Up to 3 hours for model selection/)).toBeInTheDocument();
         expect(
-          screen.getByText(/Up to 6 hours for model selection, plus data loading and refit/),
+          screen.getByText(/Up to 6 h for model selection, plus data loading and refit/),
         ).toBeInTheDocument();
       });
 
@@ -1374,9 +1374,9 @@ describe('AutomlConfigure', () => {
 
         expect(qualityRadio).toBeChecked();
         expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
-        expect(screen.getByText(/Training request: 16 vCPU \/ 64 GiB/)).toBeInTheDocument();
+        expect(screen.getByText(/16 vCPU \/ 64 GiB/)).toBeInTheDocument();
         expect(
-          screen.getByText(/Up to 6 hours for model selection, plus data loading and refit/),
+          screen.getByText(/Up to 6 h for model selection, plus data loading and refit/),
         ).toBeInTheDocument();
         expect(screen.getByText(/samples up to 10 GiB/)).toBeInTheDocument();
         expect(
