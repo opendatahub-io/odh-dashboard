@@ -285,6 +285,8 @@ func (m *ModelCatalogClientMock) GetCatalogLabels(client httpclient.HTTPClientIn
 		labels = GetMcpServerCatalogLabelListMock()
 	case "agents":
 		labels = GetAgentCatalogLabelListMock()
+	case "serving_runtimes":
+		labels = GetServingRuntimeCatalogLabelListMock()
 	default:
 		labels = GetCatalogLabelListMock()
 	}

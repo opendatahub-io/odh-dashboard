@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { useServingRuntimeCatalogAPI } from '~/odh/hooks/servingRuntimeCatalog/useServingRuntimeCatalogAPI';
 import { useServingRuntime } from '~/odh/hooks/servingRuntimeCatalog/useServingRuntime';
 import { useServingRuntimeList } from '~/odh/hooks/servingRuntimeCatalog/useServingRuntimeList';
@@ -75,6 +75,125 @@ describe('serving runtime catalog hooks', () => {
       }),
     );
     await waitFor(() => expect(result.current[0].items).toEqual([]));
+  });
+
+  it('should append pages with the selected source and reset when the source changes', async () => {
+    api.getServingRuntimeList
+      .mockResolvedValueOnce({
+        items: [{ id: '1' }],
+        size: 2,
+        pageSize: 10,
+        nextPageToken: 'next',
+      })
+      .mockResolvedValueOnce({
+        items: [{ id: '2' }],
+        size: 2,
+        pageSize: 10,
+        nextPageToken: '',
+      })
+      .mockResolvedValueOnce({
+        items: [{ id: 'new' }],
+        size: 1,
+        pageSize: 10,
+        nextPageToken: '',
+      });
+    const { result, rerender } = renderHook(
+      ({ sourceLabel }) => useServingRuntimeList({ sourceLabel: [sourceLabel], pageSize: 10 }),
+      { initialProps: { sourceLabel: 'Red Hat' } },
+    );
+    await waitFor(() => expect(result.current[0].hasMore).toBe(true));
+    await act(async () => {
+      await result.current[0].loadMore();
+    });
+    expect(api.getServingRuntimeList).toHaveBeenLastCalledWith(
+      {},
+      { sourceLabel: ['Red Hat'], pageSize: 10, nextPageToken: 'next' },
+    );
+    expect(result.current[0].items).toEqual([{ id: '1' }, { id: '2' }]);
+    expect(result.current[0].hasMore).toBe(false);
+    await act(async () => {
+      await result.current[0].loadMore();
+    });
+    expect(api.getServingRuntimeList).toHaveBeenCalledTimes(2);
+    rerender({ sourceLabel: 'Community' });
+    await waitFor(() => expect(result.current[0].items).toEqual([{ id: 'new' }]));
+    expect(api.getServingRuntimeList).toHaveBeenLastCalledWith(expect.anything(), {
+      sourceLabel: ['Community'],
+      pageSize: 10,
+    });
+  });
+
+  it('should expose load-more failures and allow a retry without losing existing cards', async () => {
+    api.getServingRuntimeList
+      .mockResolvedValueOnce({
+        items: [{ id: '1' }],
+        size: 2,
+        pageSize: 10,
+        nextPageToken: 'next',
+      })
+      .mockRejectedValueOnce(new Error('Network error'))
+      .mockResolvedValueOnce({
+        items: [{ id: '2' }],
+        size: 2,
+        pageSize: 10,
+        nextPageToken: '',
+      });
+    const { result } = renderHook(() => useServingRuntimeList());
+    await waitFor(() => expect(result.current[0].hasMore).toBe(true));
+    await act(async () => {
+      await result.current[0].loadMore();
+    });
+    expect(result.current[0].loadMoreError?.message).toContain('Network error');
+    expect(result.current[0].items).toEqual([{ id: '1' }]);
+    expect(result.current[0].isLoadingMore).toBe(false);
+    await act(async () => {
+      await result.current[0].loadMore();
+    });
+    expect(result.current[0].items).toHaveLength(2);
+    expect(result.current[0].loadMoreError).toBeUndefined();
+  });
+
+  it('should ignore an old page request after the source changes and prevent duplicate loads', async () => {
+    let resolvePage: (value: {
+      items: { id: string }[];
+      size: number;
+      pageSize: number;
+      nextPageToken: string;
+    }) => void = () => undefined;
+    api.getServingRuntimeList
+      .mockResolvedValueOnce({
+        items: [{ id: 'old' }],
+        size: 2,
+        pageSize: 10,
+        nextPageToken: 'next',
+      })
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolvePage = resolve;
+          }),
+      )
+      .mockResolvedValueOnce({ items: [{ id: 'new' }], size: 1, pageSize: 10, nextPageToken: '' });
+    const { result, rerender } = renderHook(
+      ({ sourceLabel }) => useServingRuntimeList({ sourceLabel: [sourceLabel] }),
+      { initialProps: { sourceLabel: 'old' } },
+    );
+    await waitFor(() => expect(result.current[0].hasMore).toBe(true));
+    let request: Promise<void>;
+    act(() => {
+      request = result.current[0].loadMore();
+      void result.current[0].loadMore();
+    });
+    expect(result.current[0].isLoadingMore).toBe(true);
+    expect(api.getServingRuntimeList).toHaveBeenCalledTimes(2);
+    rerender({ sourceLabel: 'new' });
+    await waitFor(() => expect(result.current[0].items).toEqual([{ id: 'new' }]));
+    await act(async () => {
+      resolvePage({ items: [{ id: 'stale' }], size: 2, pageSize: 10, nextPageToken: '' });
+      await request;
+    });
+    expect(result.current[0].items).toEqual([{ id: 'new' }]);
+    expect(result.current[0].isLoadingMore).toBe(false);
   });
 
   it('should return version request failures to the component', async () => {
