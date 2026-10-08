@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+const maxBFFResponseBytes = 10 << 20
+
 // BFFClientInterface defines the interface for inter-BFF communication
 type BFFClientInterface interface {
 	// Call makes a request to the target BFF
@@ -130,9 +132,12 @@ func (c *HTTPBFFClient) Call(ctx context.Context, method, path string, body inte
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxBFFResponseBytes+1))
 	if err != nil {
 		return NewConnectionError(c.target, "failed to read response body")
+	}
+	if len(respBody) > maxBFFResponseBytes {
+		return NewInvalidResponseError(c.target, "BFF response too large")
 	}
 
 	// Handle error status codes

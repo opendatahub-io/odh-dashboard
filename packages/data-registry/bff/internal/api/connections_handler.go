@@ -126,6 +126,11 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, ps
 
 	if envelope.Data == nil {
 		source = "rhai"
+		if app.kubernetesClientFactory == nil {
+			rhaiLookupOutcome = "error"
+			app.serverErrorResponse(w, r, fmt.Errorf("unable to load project connections"))
+			return
+		}
 		client, err := app.kubernetesClientFactory.GetClient(ctx)
 		if err == nil {
 			envelope.Data, err = app.repositories.Connection.GetConnections(client, ctx, namespace)
