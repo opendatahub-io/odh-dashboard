@@ -93,6 +93,47 @@ describe('AutomlPipelineVisualization', () => {
     expect(screen.getByTestId('hide-details')).toHaveTextContent('Hide details');
   });
 
+  it('should style the details toggle as a link button with panel icons', async () => {
+    const user = userEvent.setup();
+    render(
+      <AutomlPipelineVisualization
+        runTitle="AutoML pipeline run"
+        runState="RUNNING"
+        treeViewData={treeViewData}
+      />,
+    );
+
+    const hideDetails = screen.getByTestId('hide-details');
+    expect(hideDetails).toHaveClass('pf-m-link');
+    expect(hideDetails.querySelector('svg')).toBeInTheDocument();
+
+    await user.click(hideDetails);
+
+    const showDetails = screen.getByTestId('show-details');
+    expect(showDetails).toHaveClass('pf-m-link');
+    expect(showDetails.querySelector('svg')).toBeInTheDocument();
+  });
+
+  it('should render header actions to the left of the details toggle', () => {
+    render(
+      <AutomlPipelineVisualization
+        runTitle="AutoML pipeline run"
+        runState="RUNNING"
+        treeViewData={treeViewData}
+        headerActions={
+          <button type="button" data-testid="reconfigure-run-button">
+            Reconfigure
+          </button>
+        }
+      />,
+    );
+
+    const actions = screen.getByTestId('reconfigure-run-button');
+    const toggle = screen.getByTestId('hide-details');
+    // Both sit in the same actions row, actions first
+    expect(toggle.compareDocumentPosition(actions)).toBe(Node.DOCUMENT_POSITION_PRECEDING);
+  });
+
   it('should close details via the panel onClose callback', async () => {
     const user = userEvent.setup();
     render(

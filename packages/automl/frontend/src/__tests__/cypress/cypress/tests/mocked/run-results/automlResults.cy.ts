@@ -23,6 +23,40 @@ const MODEL_NAMES = [
 const TOP_FEATURES = ['Name', 'Pclass', 'Sex'];
 
 describe('AutoML Results Page', () => {
+  describe('Header', () => {
+    it('should show the run name as the final breadcrumb item without a page header', () => {
+      automlResultsPage.visit(NAMESPACE, RUN_ID);
+
+      // Final breadcrumb reflects the run name; no separate page header/subtext
+      automlResultsPage.findResultsBreadcrumbRunName().should('contain.text', 'binary results');
+      cy.findByTestId('app-page-title').should('not.exist');
+    });
+
+    it('should place run actions next to the hide details control in the visualization header', () => {
+      automlResultsPage.visit(NAMESPACE, RUN_ID);
+
+      automlResultsPage.findRunDetailsButton().should('be.visible');
+      automlResultsPage
+        .findHideDetailsButton()
+        .should('be.visible')
+        .then(($hideDetails) => {
+          const hideDetailsRight = $hideDetails[0].getBoundingClientRect().right;
+          cy.findByTestId('run-details-button').then(($runDetails) => {
+            expect($runDetails[0].getBoundingClientRect().right).to.be.lessThan(hideDetailsRight);
+          });
+        });
+    });
+
+    it('should toggle the step details panel with panel icons', () => {
+      automlResultsPage.visit(NAMESPACE, RUN_ID);
+
+      automlResultsPage.findHideDetailsButton().should('contain.text', 'Hide details');
+      automlResultsPage.findHideDetailsButton().click();
+      automlResultsPage.findShowDetailsButton().should('contain.text', 'Show details');
+      cy.findByTestId('step-details-drawer-panel').should('not.be.visible');
+    });
+  });
+
   describe('Leaderboard', () => {
     it('should display leaderboard with model rows', () => {
       automlResultsPage.visit(NAMESPACE, RUN_ID);

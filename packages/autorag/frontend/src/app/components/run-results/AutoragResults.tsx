@@ -34,11 +34,16 @@ import './AutoragResults.scss';
 const PatternDetailsModal = React.lazy(() => import('./PatternDetailsModal/PatternDetailsModal'));
 
 type AutoragResultsProps = {
+  headerActions?: React.ReactNode;
   onTryPattern?: (patternName: string, source: PlaygroundOpenedSource) => void;
   onViewCode?: (patternName: string, source: ViewCodeEntrySource) => void;
 };
 
-function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): React.JSX.Element {
+function AutoragResults({
+  headerActions,
+  onTryPattern,
+  onViewCode,
+}: AutoragResultsProps): React.JSX.Element {
   const fetchS3File = useFetchS3File();
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
@@ -352,6 +357,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
             treeLoadingMode={treeLoadingMode}
             componentStageMap={componentStageMap}
             pipelineRun={pipelineRun}
+            headerActions={headerActions}
             showStageMapUnavailableNotice={shouldShowStageMapUnavailableNotice({
               hasStageMapTask,
               hasComponentStageMap: Boolean(componentStageMap),

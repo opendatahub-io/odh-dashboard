@@ -10,6 +10,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import React from 'react';
+import { PanelCloseIcon, PanelOpenIcon } from '@patternfly/react-icons';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
 import {
@@ -43,6 +44,7 @@ type AutoragPipelineVisualizationProps = {
   treeLoadingMode?: PipelineTreeLoadingMode;
   componentStageMap?: ComponentStageMap;
   pipelineRun?: PipelineRun;
+  headerActions?: React.ReactNode;
   showStageMapUnavailableNotice?: boolean;
 };
 
@@ -53,6 +55,7 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
   treeLoadingMode,
   componentStageMap,
   pipelineRun,
+  headerActions,
   showStageMapUnavailableNotice,
 }) => {
   const statusFilter = React.useMemo((): PipelineStatusFilter => {
@@ -165,10 +168,12 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
 
         <FlexItem>
           <Flex>
+            {headerActions && <FlexItem>{headerActions}</FlexItem>}
             <FlexItem>
               <Button
-                variant="tertiary"
+                variant="link"
                 isInline
+                icon={showDetails ? <PanelCloseIcon /> : <PanelOpenIcon />}
                 aria-expanded={showDetails}
                 onClick={() => setShowDetails((prev) => !prev)}
                 data-testid={showDetails ? 'hide-details' : 'show-details'}

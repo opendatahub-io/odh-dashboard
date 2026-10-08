@@ -47,11 +47,13 @@ jest.mock('~/app/components/run-results/AutoragPipelineVisualization', () => ({
     runTitle,
     runState,
     treeLoadingMode,
+    headerActions,
     showStageMapUnavailableNotice,
   }: {
     runTitle: string;
     runState?: string;
     treeLoadingMode?: string;
+    headerActions?: React.ReactNode;
     showStageMapUnavailableNotice?: boolean;
   }) => (
     <div
@@ -60,7 +62,9 @@ jest.mock('~/app/components/run-results/AutoragPipelineVisualization', () => ({
       data-run-state={runState}
       data-tree-loading-mode={treeLoadingMode ?? 'none'}
       data-stage-map-unavailable={showStageMapUnavailableNotice ? 'true' : 'false'}
-    />
+    >
+      {headerActions}
+    </div>
   ),
 }));
 
@@ -282,6 +286,15 @@ describe('AutoragResults', () => {
     const visualization = getPipelineVisualization();
     expect(visualization).toHaveAttribute('data-run-title', 'AutoRAG pipeline run');
     expect(visualization).toHaveAttribute('data-run-state', 'SUCCEEDED');
+  });
+
+  it('should pass header actions through to the pipeline visualization', () => {
+    renderWithContext(mockPipelineRun, {}, 'test-namespace', undefined, {
+      headerActions: <button type="button" data-testid="reconfigure-run-button" />,
+    });
+    expect(
+      within(getPipelineVisualization()).getByTestId('reconfigure-run-button'),
+    ).toBeInTheDocument();
   });
 
   it('should pass fallback topology nodes to useTreeViewData when stage map is unavailable', () => {
