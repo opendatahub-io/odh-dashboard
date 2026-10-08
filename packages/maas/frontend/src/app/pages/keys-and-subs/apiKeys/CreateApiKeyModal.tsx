@@ -72,7 +72,6 @@ import {
 } from '~/app/pages/keys-and-subs/utils';
 import { createApiKey } from '~/app/api/api-keys';
 import { listUserSubscriptions } from '~/app/api/subscriptions';
-import { useApiKeyConfig } from '~/app/hooks/useApiKeyConfig';
 import {
   MaaSModelRefSummary,
   ModelSubscriptionRef,
@@ -133,12 +132,19 @@ type CreateApiKeyFormData = z.infer<ReturnType<typeof createApiKeySchema>>;
 type CreateApiKeyModalProps = {
   onClose: (created?: boolean) => void;
   initialSubscription?: UserSubscription;
+  maxExpirationDays: number;
+  apiKeyConfigLoaded: boolean;
+  apiKeyConfigError?: Error;
 };
 
-const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose, initialSubscription }) => {
+const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
+  onClose,
+  initialSubscription,
+  maxExpirationDays,
+  apiKeyConfigLoaded,
+  apiKeyConfigError,
+}) => {
   const canLockSubscription = Boolean(initialSubscription);
-  const [apiKeyConfig, apiKeyConfigLoaded, apiKeyConfigError] = useApiKeyConfig();
-  const maxExpirationDays = apiKeyConfig.max_expiration_days;
   // When config fails (or returns a non-positive max), skip max enforcement and hide "max" mode.
   const hasKnownMaxExpiration = apiKeyConfigLoaded && !apiKeyConfigError && maxExpirationDays > 0;
   const effectiveMaxDays = hasKnownMaxExpiration ? maxExpirationDays : 0;

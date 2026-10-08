@@ -96,6 +96,7 @@ describe('API Keys Page', () => {
     }).as('getApiKeyConfig');
     apiKeysPage.visitKeysAndSubs();
     cy.wait('@initialSearch');
+    cy.wait('@getApiKeyConfig');
   });
 
   it('should not show the subscriptions tab when mySubscriptions flag is disabled', () => {
@@ -749,10 +750,10 @@ describe('API Keys Page', () => {
 
     apiKeysPage.visitKeysAndSubs();
     cy.wait('@initialSearch');
+    cy.wait('@getApiKeyConfig90');
 
     apiKeysPage.findCreateApiKeyButton().click();
     createApiKeyModal.shouldBeOpen();
-    cy.wait('@getApiKeyConfig90');
     createApiKeyModal.findExpirationModeToggle().click();
     createApiKeyModal
       .findExpirationModeOption('max')

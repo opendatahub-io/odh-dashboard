@@ -136,7 +136,7 @@ dev-bff-federated:
 			echo "Ensure you are logged into the cluster (oc login) or set MAAS_API_URL manually."; \
 			exit 1; \
 		fi; \
-		MAAS_URL="http://maas.$$CLUSTER_DOMAIN/maas-api"; \
+		MAAS_URL="https://maas.$$CLUSTER_DOMAIN/maas-api"; \
 		echo "Auto-detected MAAS_API_URL: $$MAAS_URL"; \
 	fi; \
 	cd bff && make run PORT=8081 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true MAAS_API_URL="$$MAAS_URL"

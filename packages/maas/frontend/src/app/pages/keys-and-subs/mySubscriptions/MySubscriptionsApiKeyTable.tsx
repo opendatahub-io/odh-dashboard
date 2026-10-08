@@ -18,6 +18,7 @@ import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { APIKey } from '~/app/types/api-key';
 import { UserSubscription } from '~/app/types/subscriptions';
 import { useSubscriptionApiKeysTableState } from '~/app/hooks/useSubscriptionApiKeysTableState';
+import { useApiKeyConfig } from '~/app/hooks/useApiKeyConfig';
 import ApiKeysTableRow from '~/app/pages/keys-and-subs/apiKeys/allKeys/ApiKeysTableRow';
 import { ApiKeyColumn } from '~/app/pages/keys-and-subs/apiKeys/allKeys/columns';
 import CreateApiKeyModal from '~/app/pages/keys-and-subs/apiKeys/CreateApiKeyModal';
@@ -108,6 +109,7 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
     onPerPageSelect,
     onSort,
   } = useSubscriptionApiKeysTableState(subscriptionId);
+  const [apiKeyConfig, apiKeyConfigLoaded, apiKeyConfigError] = useApiKeyConfig();
 
   const apiKeys = response.data;
   const showTableLoading = !loaded || isFetching;
@@ -120,6 +122,9 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
       {isModalOpen && (
         <CreateApiKeyModal
           initialSubscription={subscription}
+          maxExpirationDays={apiKeyConfig.max_expiration_days}
+          apiKeyConfigLoaded={apiKeyConfigLoaded}
+          apiKeyConfigError={apiKeyConfigError}
           onClose={(created?: boolean) => {
             setIsModalOpen(false);
             if (created) {

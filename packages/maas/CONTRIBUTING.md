@@ -59,16 +59,16 @@ The `dev-start-federated` (and `dev-bff-federated`) targets need a `MAAS_API_URL
 oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}'
 ```
 
-The resulting URL is `http://maas.<CLUSTER_DOMAIN>/maas-api`. For this to work you must be logged into the cluster (`oc login`).
+The resulting URL is `https://maas.<CLUSTER_DOMAIN>/maas-api` (TLS; the gateway route is passthrough). For this to work you must be logged into the cluster (`oc login`).
 
 You can also set the URL explicitly via environment variable or `.env.local`:
 
 ```shell
 # environment variable
-MAAS_API_URL=http://maas.apps.my-cluster.example.com/maas-api make dev-start-federated
+MAAS_API_URL=https://maas.apps.my-cluster.example.com/maas-api make dev-start-federated
 
 # or in .env.local
-MAAS_API_URL=http://maas.apps.my-cluster.example.com/maas-api
+MAAS_API_URL=https://maas.apps.my-cluster.example.com/maas-api
 ```
 
 When the BFF runs **in-cluster** without `MAAS_API_URL`, it locates the internal `maas-api` Service from the cluster `DataScienceCluster` product type (`status.release.name` → `odh-ai-gateway-infra` or `redhat-ai-gateway-infra`), falling back to `redhat-ai-gateway-infra` if DSC is unavailable. It then calls `GET /v1/tenants` (service account auth), selects the tenant whose gateway name is `maas-default-gateway`, and uses `gateway.externalUrl + /maas-api` as the passthrough base URL. Optional overrides: `MAAS_API_INTERNAL_URL`, `MAAS_API_NAMESPACE`. If `maas-api` is absent or discovery fails, the BFF starts anyway (degraded): routes that call maas-api return `503`, and discovery retries in the background until the service becomes available.
