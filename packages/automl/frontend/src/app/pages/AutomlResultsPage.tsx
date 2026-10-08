@@ -173,7 +173,7 @@ function AutomlResultsPage(): React.JSX.Element {
 
   const headerActions = React.useMemo(
     () => (
-      <Split hasGutter>
+      <Split hasGutter isWrappable>
         <SplitItem>
           {runTerminatable && !stopInitiated && (
             <Button

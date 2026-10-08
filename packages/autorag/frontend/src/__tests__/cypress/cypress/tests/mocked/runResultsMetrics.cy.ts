@@ -19,11 +19,9 @@ describe('AutoRAG run results metrics', () => {
     // Final breadcrumb reflects the run name; no separate page header/subtext.
     // The separator renders as &nbsp; (U+00A0), which contain.text does not
     // normalize — normalize the actual text before comparing.
-    autoragRunResultsPage
-      .findResultsBreadcrumbRunName()
-      .invoke('text')
-      .then((text: string) => text.replace(/\u00a0/g, ' '))
-      .should('contain', 'rag results');
+    autoragRunResultsPage.findResultsBreadcrumbRunName().should(($el) => {
+      expect($el.text().replace(/\u00a0/g, ' ')).to.contain('rag results');
+    });
     cy.findByTestId('app-page-title').should('not.exist');
   });
 
