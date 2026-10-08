@@ -7,7 +7,7 @@ const {
   normalizePath,
   planMockTestImpact,
 } = require('./lib/mock-test-impact');
-const { generateTestGroups } = require('../generate-cypress-test-matrix');
+const { createTestShards, generateTestGroups } = require('../generate-cypress-test-matrix');
 
 const parseArgs = (args) => {
   const options = {};
@@ -53,9 +53,9 @@ const writeFile = (file, contents) => {
 
 const createTestMatrix = (groups, selectedGroups) => {
   const selectedNames = new Set(selectedGroups);
-  return groups
-    .filter((group) => selectedNames.has(group.name))
-    .map(({ name, spec }) => ({ name, spec }));
+  return createTestShards(groups.filter((group) => selectedNames.has(group.name))).map(
+    ({ name, specs }) => ({ name, specs }),
+  );
 };
 
 const sanitizeLogText = (value) =>
@@ -99,9 +99,9 @@ const main = () => {
   writeFile(options.matrix, `${JSON.stringify(matrix, null, 2)}\n`);
   writeFile(options.scope, `${plan.scope}\n`);
   process.stdout.write(
-    `Cypress mock selection: ${matrix.length}/${groups.length} groups (${
-      plan.scope
-    }). ${sanitizeLogText(plan.reason)}\n`,
+    `Cypress mock selection: ${plan.selectedGroups.length}/${groups.length} groups in ${
+      matrix.length
+    } shards (${plan.scope}). ${sanitizeLogText(plan.reason)}\n`,
   );
 };
 

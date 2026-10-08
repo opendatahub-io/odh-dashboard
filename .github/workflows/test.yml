@@ -1,5 +1,8 @@
 name: Test
-on: [push, pull_request]
+on:
+  pull_request:
+  push:
+    branches: [main]
 
 # Concurrency control: Only run latest tests for each PR/branch
 # Cancel in-progress runs when new commits are pushed
@@ -181,7 +184,7 @@ jobs:
 
           # GitHub rejects an empty matrix. A no-op entry keeps the aggregate jobs successful.
           if [[ "$HAS_TESTS" != "true" ]]; then
-            TEST_GROUPS='[{"name":"no-cypress-mock-tests","spec":""}]'
+            TEST_GROUPS='[{"name":"no-cypress-mock-tests","specs":[]}]'
           fi
 
           {
@@ -385,10 +388,24 @@ jobs:
       - name: Run Cypress Mock tests
         if: needs.Get-Test-Groups.outputs.has-tests == 'true'
         env:
-          CYPRESS_SPEC: ${{ matrix.test-group.spec }}
+          CYPRESS_SPECS: ${{ toJson(matrix.test-group.specs) }}
         run: |
-          export CYPRESS_SPEC="../packages/${CYPRESS_SPEC}"
-          pnpm run test:cypress-ci:coverage:nobuild
+          set -euo pipefail
+          coverage_parts=$(mktemp -d)
+          trap 'rm -rf "$coverage_parts"' EXIT
+          mapfile -t specs < <(jq -r '.[]' <<< "$CYPRESS_SPECS")
+
+          for index in "${!specs[@]}"; do
+            export CYPRESS_SPEC="${specs[$index]}"
+            echo "Running Cypress group $((index + 1))/${#specs[@]}: $CYPRESS_SPEC"
+            pnpm run test:cypress-ci:coverage:nobuild
+            cp ../packages/cypress/coverage/coverage-final.json \
+              "$coverage_parts/coverage-$index.json"
+          done
+
+          pnpm exec istanbul-merge \
+            --out ../packages/cypress/coverage/coverage-final.json \
+            "$coverage_parts/*.json"
         working-directory: ./frontend
       - name: Test group name
         if: ${{ always() && needs.Get-Test-Groups.outputs.has-tests == 'true' }}
