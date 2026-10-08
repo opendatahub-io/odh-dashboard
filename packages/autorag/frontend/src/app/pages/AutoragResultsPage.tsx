@@ -27,7 +27,6 @@ import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';
-import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutoragResults from '~/app/components/run-results/AutoragResults';
 import AutoragInputParametersPanel from '~/app/components/run-results/AutoragInputParametersPanel';
@@ -467,6 +466,95 @@ function AutoragResultsPage(): React.JSX.Element {
     [namespace, runId],
   );
 
+  const headerActions = React.useMemo(
+    () => (
+      <Split hasGutter>
+        <SplitItem>
+          {runTerminatable && (
+            <Button
+              variant="secondary"
+              icon={<StopCircleIcon />}
+              onClick={() => setIsStopModalOpen(true)}
+              isDisabled={isTerminating || isStopModalOpen}
+              isLoading={isTerminating || isStopModalOpen}
+              spinnerAriaValueText="Stopping run"
+              data-testid="stop-run-button"
+            >
+              Stop
+            </Button>
+          )}
+          {runRetryable && (
+            <Button
+              variant="secondary"
+              icon={<RedoIcon />}
+              onClick={() => void handleRetry().catch(() => undefined)}
+              isDisabled={isRetrying}
+              isLoading={isRetrying}
+              spinnerAriaValueText="Retrying run"
+              data-testid="retry-run-button"
+            >
+              Retry
+            </Button>
+          )}
+        </SplitItem>
+        <SplitItem>
+          <Button
+            variant="secondary"
+            icon={<CogIcon />}
+            component={ReconfigureLink}
+            data-testid="reconfigure-run-button"
+          >
+            Reconfigure
+          </Button>
+        </SplitItem>
+        <SplitItem>
+          <Tooltip
+            content={starterKitTooltip}
+            trigger={starterKitDisabled ? 'mouseenter focus' : ''}
+          >
+            <Button
+              variant="secondary"
+              icon={<DownloadIcon />}
+              onClick={() => void handleDownloadStarterKit()}
+              isAriaDisabled={starterKitDisabled}
+              data-testid="starter-kit-download-button"
+            >
+              Download starter kit
+            </Button>
+          </Tooltip>
+        </SplitItem>
+        <SplitItem>
+          <Button
+            variant="link"
+            icon={<OpenDrawerRightIcon />}
+            onClick={() =>
+              setDrawerContent((prev) =>
+                prev?.type === 'run-details' ? null : { type: 'run-details' },
+              )
+            }
+            aria-expanded={drawerContent?.type === 'run-details'}
+            data-testid="run-details-button"
+          >
+            Run details
+          </Button>
+        </SplitItem>
+      </Split>
+    ),
+    [
+      runTerminatable,
+      runRetryable,
+      isTerminating,
+      isStopModalOpen,
+      isRetrying,
+      ReconfigureLink,
+      starterKitTooltip,
+      starterKitDisabled,
+      handleDownloadStarterKit,
+      drawerContent,
+      handleRetry,
+    ],
+  );
+
   const ogxSecretName =
     typeof pipelineRun?.runtime_config?.parameters?.ogx_secret_name === 'string'
       ? pipelineRun.runtime_config.parameters.ogx_secret_name
@@ -677,93 +765,7 @@ function AutoragResultsPage(): React.JSX.Element {
         >
           <DrawerContentBody>
             <ApplicationsPage
-              title={<AutoragHeader />}
-              subtext={
-                <h2 className="pf-v6-u-mt-sm">
-                  {pipelineRun ? (
-                    <span>
-                      &quot;
-                      <Truncate content={pipelineRun.display_name || ''} />
-                      &quot; results
-                    </span>
-                  ) : (
-                    <Skeleton width="300px" />
-                  )}
-                </h2>
-              }
-              headerAction={
-                <Split hasGutter>
-                  <SplitItem>
-                    {runTerminatable && (
-                      <Button
-                        variant="link"
-                        icon={<StopCircleIcon />}
-                        onClick={() => setIsStopModalOpen(true)}
-                        isDisabled={isTerminating || isStopModalOpen}
-                        isLoading={isTerminating || isStopModalOpen}
-                        spinnerAriaValueText="Stopping run"
-                        data-testid="stop-run-button"
-                      >
-                        Stop
-                      </Button>
-                    )}
-                    {runRetryable && (
-                      <Button
-                        variant="link"
-                        icon={<RedoIcon />}
-                        onClick={() => void handleRetry().catch(() => undefined)}
-                        isDisabled={isRetrying}
-                        isLoading={isRetrying}
-                        spinnerAriaValueText="Retrying run"
-                        data-testid="retry-run-button"
-                      >
-                        Retry
-                      </Button>
-                    )}
-                  </SplitItem>
-                  <SplitItem>
-                    <Button
-                      variant="link"
-                      icon={<CogIcon />}
-                      component={ReconfigureLink}
-                      data-testid="reconfigure-run-button"
-                    >
-                      Reconfigure
-                    </Button>
-                  </SplitItem>
-                  <SplitItem>
-                    <Tooltip
-                      content={starterKitTooltip}
-                      trigger={starterKitDisabled ? 'mouseenter focus' : ''}
-                    >
-                      <Button
-                        variant="link"
-                        icon={<DownloadIcon />}
-                        onClick={() => void handleDownloadStarterKit()}
-                        isAriaDisabled={starterKitDisabled}
-                        data-testid="starter-kit-download-button"
-                      >
-                        Download starter kit
-                      </Button>
-                    </Tooltip>
-                  </SplitItem>
-                  <SplitItem>
-                    <Button
-                      variant="link"
-                      icon={<OpenDrawerRightIcon />}
-                      onClick={() =>
-                        setDrawerContent((prev) =>
-                          prev?.type === 'run-details' ? null : { type: 'run-details' },
-                        )
-                      }
-                      aria-expanded={drawerContent?.type === 'run-details'}
-                      data-testid="run-details-button"
-                    >
-                      Run details
-                    </Button>
-                  </SplitItem>
-                </Split>
-              }
+              noHeader
               breadcrumb={
                 namespace ? (
                   <ContextBreadcrumb
@@ -782,7 +784,14 @@ function AutoragResultsPage(): React.JSX.Element {
                         Run configurations
                       </Link>
                     </BreadcrumbItem>
-                    <BreadcrumbItem isActive>Run results</BreadcrumbItem>
+                    <BreadcrumbItem isActive data-testid="results-breadcrumb-run-name">
+                      {pipelineRun ? (
+                        <Truncate content={pipelineRun.display_name || ''} />
+                      ) : (
+                        <Skeleton width="300px" />
+                      )}
+                      &nbsp;results
+                    </BreadcrumbItem>
                   </ContextBreadcrumb>
                 ) : undefined
               }
@@ -810,7 +819,11 @@ function AutoragResultsPage(): React.JSX.Element {
                   {starterKitDownloadError}
                 </Alert>
               )}
-              <AutoragResults onTryPattern={handleTryPattern} onViewCode={handleViewCode} />
+              <AutoragResults
+                headerActions={headerActions}
+                onTryPattern={handleTryPattern}
+                onViewCode={handleViewCode}
+              />
             </ApplicationsPage>
           </DrawerContentBody>
         </DrawerContent>

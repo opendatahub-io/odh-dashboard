@@ -15,6 +15,32 @@ describe('AutoRAG run results metrics', () => {
     autoragRunResultsPage.findLeaderboardTable().should('be.visible');
   });
 
+  it('should show the run name as the final breadcrumb item without a page header', () => {
+    // Final breadcrumb reflects the run name; no separate page header/subtext
+    autoragRunResultsPage.findResultsBreadcrumbRunName().should('contain.text', 'rag results');
+    cy.findByTestId('app-page-title').should('not.exist');
+  });
+
+  it('should place run actions next to the hide details control in the visualization header', () => {
+    autoragRunResultsPage.findRunDetailsButton().should('be.visible');
+    autoragRunResultsPage
+      .findHideDetailsButton()
+      .should('be.visible')
+      .then(($hideDetails) => {
+        const hideDetailsRight = $hideDetails[0].getBoundingClientRect().right;
+        cy.findByTestId('run-details-button').then(($runDetails) => {
+          expect($runDetails[0].getBoundingClientRect().right).to.be.lessThan(hideDetailsRight);
+        });
+      });
+  });
+
+  it('should toggle the step details panel with panel icons', () => {
+    autoragRunResultsPage.findHideDetailsButton().should('contain.text', 'Hide details');
+    autoragRunResultsPage.findHideDetailsButton().click();
+    autoragRunResultsPage.findShowDetailsButton().should('contain.text', 'Show details');
+    cy.findByTestId('step-details-drawer-panel').should('not.be.visible');
+  });
+
   it('should provide metric header definitions, CI help, and grouped Sample Q&A metrics', () => {
     // The seed run optimizes for faithfulness, so enable this column to make its header unique.
     autoragRunResultsPage.enableMetricColumn('answer_correctness', 'unitxt');

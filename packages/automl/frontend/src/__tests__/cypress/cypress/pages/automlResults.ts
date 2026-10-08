@@ -9,6 +9,19 @@ class AutomlResultsPage {
     cy.testA11y();
   }
 
+  // Breadcrumb
+  findResultsBreadcrumbRunName() {
+    return cy.findByTestId('results-breadcrumb-run-name');
+  }
+
+  findHideDetailsButton() {
+    return cy.findByTestId('hide-details');
+  }
+
+  findShowDetailsButton() {
+    return cy.findByTestId('show-details');
+  }
+
   // Leaderboard
   findLeaderboardTable() {
     return cy.findByTestId('leaderboard-table');
