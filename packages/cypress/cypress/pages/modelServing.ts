@@ -1596,8 +1596,25 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('gateway-select');
   }
 
+  /**
+   * Opens the MultiSelection gateway menu if needed, then returns the option.
+   * Uses MultiSelection option test ids because aria-expanded lives on the
+   * inner combobox (not the toggle testid), so findSelectOption never opens it.
+   */
   findGatewaySelectOption(name: string) {
-    return this.findGatewaySelect().findSelectOption(name);
+    const optionTestId = `select-multi-typeahead-${name.replace(/[^a-zA-Z0-9]+/g, '-')}`;
+    this.findGatewaySelect().within(() => {
+      cy.get('[role="combobox"]').then(($input) => {
+        if ($input.attr('aria-expanded') !== 'true') {
+          cy.wrap($input).click();
+        }
+      });
+    });
+    return cy.findByTestId(optionTestId);
+  }
+
+  findGatewaySelectRemoveChip(name: string) {
+    return cy.findByLabelText(`Remove ${name}`);
   }
 
   findGatewaySelectTooltip() {

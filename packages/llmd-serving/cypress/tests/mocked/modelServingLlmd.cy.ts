@@ -870,8 +870,8 @@ describe('Model Serving LLMD', () => {
       // Step 3: Advanced Options — verify gateway is pre-populated with existing value
       modelServingWizardEdit.findGatewaySelect().should('contain.text', 'existing-gw | gw-ns');
 
-      // Replace the existing gateway with a different one (deselect then select)
-      modelServingWizardEdit.findGatewaySelectOption('existing-gw | gw-ns').click();
+      // Replace the existing gateway with a different one (remove chip, then select)
+      modelServingWizardEdit.findGatewaySelectRemoveChip('existing-gw | gw-ns').click();
       modelServingWizardEdit.findGatewaySelectOption('new-gateway | gw-ns-2').click();
       modelServingWizardEdit.findGatewaySelect().closeSelectMenu();
 
