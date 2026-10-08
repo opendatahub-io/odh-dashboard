@@ -16,7 +16,6 @@ import {
   enableExternalProviders,
   disableExternalProviders,
   forceDashboardConfigRefresh,
-  getExternalProviders,
   waitForModelInLSD,
 } from '../../../utils/oc_commands/genAi';
 import { retryableBefore } from '../../../utils/retryableHooks';
@@ -67,7 +66,6 @@ describe(
   { retries: { runMode: 0, openMode: 0 } },
   () => {
     let testData: DocumentTestData;
-    let originalExternalProviders: boolean | undefined;
     let portForwardHandle: PortForwardHandle | null = null;
     const projectName = `documents-e2e-${generateTestUUID()}`;
 
@@ -99,12 +97,6 @@ describe(
           throw new Error(
             'GEMINI_API_KEY is not set in test-variables.yml — cannot run document attachment tests',
           );
-        }
-
-        if (originalExternalProviders === undefined) {
-          getExternalProviders().then((enabled) => {
-            originalExternalProviders = enabled;
-          });
         }
 
         cy.step('Enable external providers and create a dedicated project');
@@ -167,9 +159,7 @@ describe(
 
     after(() => {
       stopPortForward(portForwardHandle);
-      if (originalExternalProviders !== undefined) {
-        disableExternalProviders(originalExternalProviders);
-      }
+      disableExternalProviders();
       deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     });
 
