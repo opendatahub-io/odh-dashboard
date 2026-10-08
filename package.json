@@ -142,6 +142,10 @@
     "form-data": "^4.0.5",
     "axios": "^1.17.0",
     "shell-quote": ">=1.8.4",
-    "webpack": "5.104.1"
+    "webpack": "5.104.1",
+    "ajv": {
+      "fast-uri": "3.1.8"
+    },
+    "fast-uri": ">=4.2.1"
   }
 }

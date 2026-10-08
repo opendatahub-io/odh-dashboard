@@ -157,6 +157,10 @@
   },
   "overrides": {
     "csstype": "3.2.3",
-    "shell-quote": ">=1.8.4"
+    "shell-quote": ">=1.8.4",
+    "ajv": {
+      "fast-uri": "3.1.8"
+    },
+    "fast-uri": ">=4.2.1"
   }
 }

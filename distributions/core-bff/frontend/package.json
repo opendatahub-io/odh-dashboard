@@ -13,7 +13,11 @@
     "js-yaml": "^4.1.1",
     "csstype": "3.2.3",
     "axios": "^1.7.4",
-    "shell-quote": ">=1.8.4"
+    "shell-quote": ">=1.8.4",
+    "ajv": {
+      "fast-uri": "3.1.8"
+    },
+    "fast-uri": ">=4.2.1"
   },
   "scripts": {
     "build": "run-s build:prod",
