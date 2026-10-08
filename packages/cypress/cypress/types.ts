@@ -344,6 +344,8 @@ export type TestConfig = {
   FILEMAPPING?: FileMapping;
 };
 
+export type FileMapping = Record<string, string>;
+
 export type DataScienceProjectData = {
   projectDisplayName: string;
   projectDescription: string;
@@ -603,6 +605,10 @@ export type DeployOCIModelData = {
   modelDeploymentName: string;
   modelFormat: string;
   servingRuntime: string;
+  isS390x?: boolean;
+  modelOciUri?: string;
+  servingRuntimeName?: string;
+  servingRuntimeYamlPath?: string;
 };
 
 export type ModelTolerationsTestData = {

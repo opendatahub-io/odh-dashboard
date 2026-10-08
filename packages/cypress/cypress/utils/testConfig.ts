@@ -98,6 +98,7 @@ const GEMINI_API_KEY = testConfig?.GEMINI_API_KEY;
 const OCI_SECRET_VALUE = testConfig?.OCI_SECRET_VALUE;
 const OCI_MODEL_URI = testConfig?.OCI_MODEL_URI;
 const OCP_API_URL = testConfig?.OCP_API_URL;
+const { FILEMAPPING } = testConfig ?? {};
 
 // MaaS connection settings
 const MAAS_URL = testConfig?.MAAS_URL;
@@ -131,6 +132,7 @@ export const cypressEnv = {
   OCI_SECRET_VALUE,
   OCI_MODEL_URI,
   OCP_API_URL,
+  FILEMAPPING,
   MAAS_URL,
   MAAS_API_KEY,
   HF_API_KEY,
