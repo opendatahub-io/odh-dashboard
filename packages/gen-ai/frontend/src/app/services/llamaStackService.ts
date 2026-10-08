@@ -796,10 +796,25 @@ export const createPassthroughResponse = (
           try {
             const errorBody = await response.text();
             const errorData = JSON.parse(errorBody);
-            if (responsesEndpointUrl && errorData?.error && typeof errorData.error === 'object') {
+            if (
+              responsesEndpointUrl &&
+              errorData?.error &&
+              typeof errorData.error === 'object' &&
+              typeof errorData.error.message === 'string' &&
+              errorData.error.message.trim().length > 0
+            ) {
               throw new ApiErrorClass(errorData.error, errorData.trace_id);
             }
-            errorMessage = errorData?.error?.message || errorMessage;
+            if (responsesEndpointUrl) {
+              if (
+                typeof errorData?.error?.message === 'string' &&
+                errorData.error.message.trim().length > 0
+              ) {
+                errorMessage = errorData.error.message;
+              }
+            } else {
+              errorMessage = errorData?.error?.message || errorMessage;
+            }
           } catch (error) {
             if (error instanceof ApiErrorClass) {
               throw error;

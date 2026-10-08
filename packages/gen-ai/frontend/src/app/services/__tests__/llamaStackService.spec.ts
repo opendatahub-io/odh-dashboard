@@ -20,6 +20,7 @@ import {
   transcribeAudio,
 } from '~/app/services/llamaStackService';
 import { URL_PREFIX } from '~/app/utilities';
+import { ApiErrorClass } from '~/app/types';
 import { mockLlamaModels } from '~/__mocks__/mockLlamaStackModels';
 import { mockVectorStores } from '~/__mocks__/mockVectorStores';
 import { mockLlamaStackDistribution } from '~/__mocks__/mockLlamaStackDistribution';
@@ -1834,17 +1835,91 @@ describe('llamaStackService', () => {
         text: () => Promise.resolve('{"error":{"code":"400","message":"invalid RAG input"}}'),
       });
 
-      await expect(
-        createPassthroughResponse(
-          '/gen-ai/api/v1',
-          'ns',
-          'secret',
-          mockBody,
-          jest.fn(),
-          undefined,
-          '/autorag/api/v1/responses?dbSecretName=db&maasSecretName=maas',
-        ),
-      ).rejects.toMatchObject({ message: 'invalid RAG input' });
+      const request = createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+        undefined,
+        '/autorag/api/v1/responses?dbSecretName=db&maasSecretName=maas',
+      );
+
+      await expect(request).rejects.toBeInstanceOf(ApiErrorClass);
+      await expect(request).rejects.toMatchObject({
+        error: { code: '400', message: 'invalid RAG input' },
+        message: 'invalid RAG input',
+      });
+    });
+
+    it.each([
+      ['missing message', '{"error":{"code":"400"}}'],
+      ['empty message', '{"error":{"code":"400","message":""}}'],
+      ['whitespace-only message', '{"error":{"code":"400","message":"   "}}'],
+      ['non-string message', '{"error":{"code":"400","message":123}}'],
+      ['non-object error', '{"error":"invalid error"}'],
+    ])('should use generic fallback for an AutoRAG error with %s', async (_, body) => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: () => Promise.resolve(body),
+      });
+
+      const request = createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+        undefined,
+        '/autorag/api/v1/responses?dbSecretName=db&maasSecretName=maas',
+      );
+
+      await expect(request).rejects.not.toBeInstanceOf(ApiErrorClass);
+      await expect(request).rejects.toMatchObject({ message: 'HTTP error! status: 400' });
+    });
+
+    it('should use status-specific fallback for a malformed AutoRAG error body', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 502,
+        text: () => Promise.resolve('{malformed-json'),
+      });
+
+      const request = createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+        undefined,
+        '/autorag/api/v1/responses?dbSecretName=db&maasSecretName=maas',
+      );
+
+      await expect(request).rejects.not.toBeInstanceOf(ApiErrorClass);
+      await expect(request).rejects.toMatchObject({
+        message:
+          'The OGX instance is not responding. Check that the instance is running and reachable.',
+      });
+    });
+
+    it('should preserve default passthrough fallback behavior without an AutoRAG endpoint', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: () => Promise.resolve('{"error":{"code":"400","message":"invalid input"}}'),
+      });
+
+      const request = createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+      );
+
+      await expect(request).rejects.not.toBeInstanceOf(ApiErrorClass);
+      await expect(request).rejects.toMatchObject({ message: 'invalid input' });
     });
 
     it('should reject with "Response stopped by user" on AbortError', async () => {
