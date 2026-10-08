@@ -132,6 +132,7 @@ export const MaaSEndpointFieldWizardField: MaaSFieldType = {
         overrides.modelAvailability = {
           isDisabled: true,
           forceSaveAsAiAsset: true,
+          isMaaSSubscriptionSelected: true,
         };
         overrides.tokenAuthentication = {
           isDisabled: true,
@@ -153,6 +154,7 @@ export const MaaSEndpointFieldWizardField: MaaSFieldType = {
         overrides.modelAvailability = {
           isDisabled: false,
           forceSaveAsAiAsset: false,
+          isMaaSSubscriptionSelected: false,
         };
         overrides['llmd-serving/gateway'] = {
           hiddenOptions: [MAAS_DEFAULT_GATEWAY],

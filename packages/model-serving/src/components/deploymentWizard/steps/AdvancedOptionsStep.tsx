@@ -10,6 +10,7 @@ import {
   HelperText,
   HelperTextItem,
   Spinner,
+  Alert,
 } from '@patternfly/react-core';
 import {
   ServingContainer,
@@ -167,7 +168,23 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                     data={wizardState.state.modelAvailability.data}
                     setData={wizardState.state.modelAvailability.setData}
                     isDisabled={wizardState.state.modelAvailability.isDisabled}
+                    showUseCase={!wizardState.state.modelAvailability.isMaaSSubscriptionSelected}
                   />
+                  {wizardState.state.modelAvailability.isMaaSSubscriptionSelected && (
+                    <Alert
+                      className="pf-v6-u-mt-md"
+                      variant="info"
+                      title="Additional configuration required"
+                      data-testid="maas-additional-configuration-alert"
+                      isInline
+                    >
+                      To make the endpoint accessible to users, an admin must configure
+                      subscriptions and authorization policies on the{' '}
+                      <strong>MaaS governance</strong> page. Users can view their subscriptions,
+                      accessible models, and API keys on the
+                      <strong>API keys</strong> page.
+                    </Alert>
+                  )}
                 </FormGroup>
               </StackItem>
             )}

@@ -244,6 +244,7 @@ export const useModelDeploymentWizard = (
       modelAvailability: {
         ...state.modelAvailability,
         isDisabled: modelAvailabilityOverrides.isDisabled,
+        isMaaSSubscriptionSelected: modelAvailabilityOverrides.isMaaSSubscriptionSelected,
         data: modelAvailabilityOverrides.forceSaveAsAiAsset
           ? { ...state.modelAvailability.data, saveAsAiAsset: true }
           : state.modelAvailability.data,

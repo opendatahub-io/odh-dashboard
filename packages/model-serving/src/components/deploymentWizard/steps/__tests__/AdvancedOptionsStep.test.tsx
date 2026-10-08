@@ -98,5 +98,31 @@ describe('AdvancedSettingsStepContent', () => {
       expect(screen.getByTestId('model-users')).toBeInTheDocument();
       expect(screen.queryByTestId('model-availability')).not.toBeInTheDocument();
     });
+
+    it('should show the MaaS configuration alert and hide Use case for subscribed users', () => {
+      const wizardState = mockDeploymentWizardState({
+        fields: [userExtensionField()],
+        advancedOptions: { isExternalRouteVisible: false },
+        state: {
+          modelAvailability: {
+            ...modelAvailabilityBase,
+            data: { saveAsAiAsset: true, useCase: 'chat' },
+            isGenAiEnabled: true,
+            isMaaSSubscriptionSelected: true,
+          },
+        },
+      });
+
+      render(
+        <AdvancedSettingsStepContent
+          wizardState={wizardState}
+          externalData={externalData}
+          allowCreate
+        />,
+      );
+
+      expect(screen.getByTestId('maas-additional-configuration-alert')).toBeInTheDocument();
+      expect(screen.queryByTestId('use-case-input')).not.toBeInTheDocument();
+    });
   });
 });

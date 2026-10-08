@@ -264,6 +264,7 @@ export type WizardStateOverrides = {
   modelAvailability?: {
     isDisabled?: boolean;
     forceSaveAsAiAsset?: boolean;
+    isMaaSSubscriptionSelected?: boolean;
   };
   'llmd-serving/gateway'?: {
     isDisabled?: boolean;

@@ -140,6 +140,18 @@ describe('ModelAvailabilityFields', () => {
         expect(screen.getByTestId('use-case-input')).toBeInTheDocument();
         expect(screen.getByTestId('use-case-input')).toHaveValue('test');
       });
+
+      it('should hide the use case input when it is not available to the selected users', () => {
+        render(
+          <GenAiStudioAvailabilityFields
+            data={{ saveAsAiAsset: true, useCase: 'test' }}
+            setData={jest.fn()}
+            showUseCase={false}
+          />,
+        );
+
+        expect(screen.queryByTestId('use-case-input')).not.toBeInTheDocument();
+      });
     });
   });
   describe('useModelAvailabilityFields hook visibility logic', () => {

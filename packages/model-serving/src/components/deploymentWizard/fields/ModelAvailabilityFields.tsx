@@ -18,6 +18,7 @@ export type ModelAvailabilityFields = {
   showField?: boolean;
   showSaveAsMaaS?: boolean;
   isDisabled?: boolean;
+  isMaaSSubscriptionSelected?: boolean;
 };
 
 export const isValidModelAvailabilityFieldsData = (): boolean => {
@@ -67,12 +68,14 @@ type GenAiStudioAvailabilityFieldsProps = {
   data: ModelAvailabilityFieldsData;
   setData: (data: ModelAvailabilityFieldsData) => void;
   isDisabled?: boolean;
+  showUseCase?: boolean;
 };
 
 export const GenAiStudioAvailabilityFields: React.FC<GenAiStudioAvailabilityFieldsProps> = ({
   data,
   setData,
   isDisabled = false,
+  showUseCase = true,
 }) => {
   const setDataWithClearUseCase = React.useCallback(
     (newData: ModelAvailabilityFieldsData) => {
@@ -104,7 +107,7 @@ export const GenAiStudioAvailabilityFields: React.FC<GenAiStudioAvailabilityFiel
             onChange={(_, checked) => setDataWithClearUseCase({ ...data, saveAsAiAsset: checked })}
           />
         </StackItem>
-        {data.saveAsAiAsset && (
+        {showUseCase && data.saveAsAiAsset && (
           <StackItem>
             <div className="pf-v6-u-ml-lg">
               <FormGroup
