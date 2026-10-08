@@ -148,6 +148,39 @@ describe('getAllTenantCollections', () => {
     expect(mockGetCollections).toHaveBeenCalledTimes(2);
   });
 
+  it('should fail when a page ends short while more collections remain', async () => {
+    // The server clamps the effective page size (or a concurrent deletion shifts the offset
+    // window), so the final page returns fewer than COLLECTION_PAGE_SIZE items even though
+    // total_count reports more collections exist.
+    const shortPage = Array.from({ length: 50 }, (_, index) => ({
+      ...sourceCollection,
+      resource: { id: `other-suite-${index}` },
+    }));
+    mockGetCollections.mockReturnValue(
+      jest.fn().mockResolvedValue({ items: shortPage, total_count: 200 }),
+    );
+
+    await expect(getAllTenantCollections('test-namespace')).rejects.toThrow(
+      'collection page ended before all collections were fetched',
+    );
+
+    expect(mockGetCollections).toHaveBeenCalledTimes(1);
+  });
+
+  it('should preserve results when a short page completes the list', async () => {
+    const shortPage = Array.from({ length: 50 }, (_, index) => ({
+      ...sourceCollection,
+      resource: { id: `other-suite-${index}` },
+    }));
+    mockGetCollections.mockReturnValue(
+      jest.fn().mockResolvedValue({ items: shortPage, total_count: 50 }),
+    );
+
+    await expect(getAllTenantCollections('test-namespace')).resolves.toHaveLength(50);
+
+    expect(mockGetCollections).toHaveBeenCalledTimes(1);
+  });
+
   it('should preserve results when a repeated page has no total count', async () => {
     const firstPage = Array.from({ length: 100 }, (_, index) => ({
       ...sourceCollection,

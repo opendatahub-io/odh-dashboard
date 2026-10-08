@@ -52,7 +52,7 @@ const LocationDisplay = () => {
   );
 };
 
-const renderPage = () =>
+const renderSuitePage = () =>
   render(
     <MemoryRouter initialEntries={['/test-project/collections']}>
       <LocationDisplay />
@@ -61,6 +61,8 @@ const renderPage = () =>
       </Routes>
     </MemoryRouter>,
   );
+
+const renderPage = () => renderSuitePage();
 
 describe('BenchmarkSuitesPage', () => {
   beforeEach(() => {
@@ -160,6 +162,101 @@ describe('BenchmarkSuitesPage', () => {
       '/evaluation/test-project/create/collections/model-suite-2/edit',
     );
     expect(screen.getByTestId('location-state')).toHaveTextContent('{"source":"benchmark-suites"}');
+  });
+
+  it('should keep suites visible while a filter refetch is pending', () => {
+    // The query keeps the previous page visible (placeholderData) while the widened
+    // filter query is in flight. A filter that matches nothing on the stale page must
+    // not flash the empty state before the new results land.
+    let isFetching = true;
+    mockUseCollectionsQuery.mockImplementation(() => ({
+      data: {
+        items: mockBenchmarkSuiteCollections(),
+        // eslint-disable-next-line camelcase
+        total_count: 8,
+      },
+      isLoading: false,
+      isFetching,
+      error: null,
+    }));
+
+    renderPage();
+
+    fireEvent.change(screen.getByTestId('benchmark-suites-name-filter').querySelector('input')!, {
+      target: { value: 'not-found' },
+    });
+
+    expect(screen.getByTestId('benchmark-suites-refresh-loading')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-empty-state')).not.toBeInTheDocument();
+
+    // Once the fetch settles with no matches, the empty state renders normally.
+    isFetching = false;
+    fireEvent.change(screen.getByTestId('benchmark-suites-name-filter').querySelector('input')!, {
+      target: { value: 'still-not-found' },
+    });
+
+    expect(screen.getByTestId('benchmark-suites-empty-state')).toBeInTheDocument();
+  });
+
+  it('should clamp to the last valid page when the result count drops', async () => {
+    // 9 suites => 2 pages of 8. Navigate to page 2, then shrink the result set to a
+    // single page (as happens when the last suite on the last page is deleted) and
+    // verify the gallery renders the last page instead of an out-of-range empty state.
+    const nineCollections = [
+      ...mockBenchmarkSuiteCollections(),
+      {
+        ...mockBenchmarkSuiteCollections()[0],
+        resource: { ...mockBenchmarkSuiteCollections()[0].resource, id: 'extra-suite' },
+      },
+    ];
+    mockUseCollectionsQuery.mockImplementation((...args: unknown[]) => {
+      const offset = args[5];
+      const items = offset === 8 ? [nineCollections[8]] : nineCollections.slice(0, 8);
+      return {
+        // eslint-disable-next-line camelcase
+        data: { items, total_count: nineCollections.length },
+        isLoading: false,
+        error: null,
+      };
+    });
+
+    const view = renderSuitePage();
+    const user = userEvent.setup();
+
+    await user.click(
+      within(screen.getByTestId('benchmark-suites-pagination-top')).getByRole('button', {
+        name: 'Go to next page',
+      }),
+    );
+
+    expect(screen.getByTestId('benchmark-suite-card-extra-suite')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suite-card-model-suite-2')).not.toBeInTheDocument();
+
+    // The deletion lands: the count drops to a single page of suites. Re-render the same
+    // tree so the page state survives and the clamp logic has to correct it.
+    mockUseCollectionsQuery.mockImplementation((...args: unknown[]) => {
+      const offset = args[5];
+      const items = offset === 8 ? [] : mockBenchmarkSuiteCollections();
+      return {
+        // eslint-disable-next-line camelcase
+        data: { items, total_count: mockBenchmarkSuiteCollections().length },
+        isLoading: false,
+        error: null,
+      };
+    });
+
+    view.rerender(
+      <MemoryRouter initialEntries={['/test-project/collections']}>
+        <LocationDisplay />
+        <Routes>
+          <Route path="/:namespace/collections" element={<BenchmarkSuitesPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    // The stale page-2 state is clamped back to the last valid page.
+    expect(screen.getByTestId('benchmark-suite-card-model-suite-2')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-empty-state')).not.toBeInTheDocument();
   });
 
   it('should show a refresh spinner without hiding existing suites while fetching', () => {

@@ -669,12 +669,6 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   // first COLLECTION_FETCH_LIMIT API results by queryLimit above.
   const shouldUseClientSidePagination =
     isUsingMockCollections || isClientSideFiltering || requireCuratedIndex;
-  const visibleCollections = showPagination
-    ? shouldUseClientSidePagination
-      ? filteredCollections.slice((page - 1) * pageSize, page * pageSize)
-      : filteredCollections.slice(0, pageSize)
-    : sourceCollections;
-  const hasPopularCollections = visibleCollections.some(isPopularCollection);
   // TODO: Remove the mock count branch when mock collections are no longer needed and always use
   // the API total_count for pagination.
   const filteredCollectionCount = showPagination
@@ -682,6 +676,17 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
       ? filteredCollections.length
       : (data?.total_count ?? filteredCollections.length)
     : totalCount;
+  // A server-side count drop (for example, deleting the last suite on the last page) can leave
+  // the page state beyond the last valid page. Render the clamped page; the effect below corrects
+  // the state itself so the next server-side query offset is clamped too.
+  const maxPage = Math.max(1, Math.ceil(filteredCollectionCount / pageSize));
+  const currentPage = Math.min(page, maxPage);
+  const visibleCollections = showPagination
+    ? shouldUseClientSidePagination
+      ? filteredCollections.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+      : filteredCollections.slice(0, pageSize)
+    : sourceCollections;
+  const hasPopularCollections = visibleCollections.some(isPopularCollection);
   const hasActiveFilters = Boolean(
     nameFilter ||
     domainFilter.length > 0 ||
@@ -696,6 +701,12 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   const areFiltersDisabled =
     shouldShowLoadError || (!isLoading && sourceCollections.length === 0 && !hasActiveFilters);
   const isRefreshing = isFetching && !isLoading;
+
+  React.useEffect(() => {
+    if (page > maxPage) {
+      setPage(maxPage);
+    }
+  }, [page, maxPage]);
 
   React.useEffect(() => {
     setPage(1);
@@ -959,7 +970,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                 <Pagination
                   itemCount={filteredCollectionCount}
                   perPage={pageSize}
-                  page={page}
+                  page={currentPage}
                   onSetPage={(_event, newPage) => setPage(newPage)}
                   onPerPageSelect={(_event, newPageSize) => {
                     setPageSize(newPageSize);
@@ -1008,7 +1019,10 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
         <Bullseye data-testid="benchmark-suites-loading">
           <Spinner aria-label="Loading benchmark suites" />
         </Bullseye>
-      ) : (showFilters || showPagination) && filteredCollections.length === 0 ? (
+      ) : // While a changed filter or sort is refetching, placeholderData keeps the previous
+      // results rendered with the localized refreshing spinner. Only treat a filter as matching
+      // nothing once the fetch has settled, so a stale page cannot flash the empty state.
+      (showFilters || showPagination) && filteredCollections.length === 0 && !isFetching ? (
         <Bullseye data-testid="benchmark-suites-empty-state">
           <EmptyState variant={EmptyStateVariant.sm} icon={SearchIcon}>
             <Title headingLevel="h2" size="lg">

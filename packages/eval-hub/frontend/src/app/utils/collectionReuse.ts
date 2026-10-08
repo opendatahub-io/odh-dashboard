@@ -65,6 +65,19 @@ export const getAllTenantCollections = async (
     collections.push(...newItems);
     newItems.forEach(({ resource }) => collectionIds.add(resource.id));
 
+    // A short page normally means the end of the list. Fail closed when the server still reports
+    // more collections, so a partial scan is never treated as a completed lookup and the run flow
+    // cannot miss an existing reusable copy and clone a duplicate.
+    if (
+      response.items.length < COLLECTION_PAGE_SIZE &&
+      response.total_count != null &&
+      collections.length < response.total_count
+    ) {
+      throw new Error(
+        `${COLLECTION_LOOKUP_ERROR}: collection page ended before all collections were fetched`,
+      );
+    }
+
     offset =
       response.items.length === COLLECTION_PAGE_SIZE &&
       (response.total_count == null || collections.length < response.total_count)
