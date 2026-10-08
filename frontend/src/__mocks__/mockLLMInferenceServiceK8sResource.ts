@@ -91,7 +91,19 @@ export const mockLLMInferenceServiceK8sResource = ({
           : {}),
       },
       route: {},
-      ...(isLLMd && { scheduler: {} }),
+      ...(isLLMd && {
+        scheduler: {
+          config: {
+            ref: {
+              name: 'llm-scheduler-config',
+              key: 'default-scheduler',
+            },
+          },
+          template: {
+            containers: [{ name: 'main', args: ['--grpc-port', '9002'] }],
+          },
+        },
+      }),
     },
     template: {
       containers: [
