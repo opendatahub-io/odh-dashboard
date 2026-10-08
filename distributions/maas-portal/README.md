@@ -1,6 +1,6 @@
-# MaaS Consumer Portal Distribution
+# MaaS Portal Distribution
 
-Consumer-facing portal for MaaS API key management and AI asset endpoints. Bundles the `maas` and `gen-ai` packages.
+Portal for MaaS API key management and AI asset endpoints. Bundles the `maas` and `gen-ai` packages.
 
 In production the portal is served at `https://<gateway-domain>/maas-consumer-portal/`. Its router, static assets, and MaaS/GenAI browser API calls use that base path; the Gateway strips the prefix before forwarding to the existing Core-BFF and shared module BFF contracts. The portal can remain available when the core dashboard operand is removed. The shared gateway retains the OAuth callback and sign-out endpoints.
 
@@ -24,12 +24,12 @@ cd packages/gen-ai/bff
 make run MOCK_K8S_CLIENT=true MOCK_LS_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true MOCK_BFF_CLIENTS=true
 ```
 
-Note: do NOT use `make dev-bff-mock` — it sets `AUTH_METHOD=disabled`, which skips identity extraction. The consumer portal's proxy injects auth headers, so the BFF needs the default `AUTH_METHOD=user_token`.
+Note: do NOT use `make dev-bff-mock` — it sets `AUTH_METHOD=disabled`, which skips identity extraction. The portal's proxy injects auth headers, so the BFF needs the default `AUTH_METHOD=user_token`.
 
 **Terminal 3 — Dev server (port 4020):**
 
 ```bash
-cd distributions/maas-consumer-portal
+cd distributions/maas-portal
 OC_PROJECT= ODH_APP= ODH_DASHBOARD_HOST= MOCK_USER=user@example.com MAAS_BFF_TARGET=http://localhost:8081 pnpm run dev
 ```
 
@@ -42,7 +42,7 @@ For certificate-verified cluster proxying, set `ODH_DASHBOARD_CA_FILE` to the PE
 Serve the portal locally and proxy its API requests through the deployed portal's HTTPRoute. The proxy preserves `/maas-consumer-portal`, so this works when the core dashboard operand is removed. Log in with `oc` first, then run:
 
 ```bash
-cd distributions/maas-consumer-portal
+cd distributions/maas-portal
 OC_PROJECT=redhat-ods-applications pnpm run start:dev:ext
 ```
 
@@ -83,7 +83,7 @@ oc port-forward -n "$NS" svc/"$APP" 8943:8943
 **Terminal 4 — Dev server (port 4020):**
 
 ```bash
-cd distributions/maas-consumer-portal
+cd distributions/maas-portal
 MAAS_BFF_TARGET=https://localhost:8243 \
 GENAI_BFF_TARGET=https://localhost:8143 \
 CORE_BFF_TARGET=https://localhost:8943 \
@@ -118,7 +118,7 @@ oc -n redhat-ods-monitoring port-forward svc/data-science-perses 9005:8080
 Keep the tunnel running. For the local Core BFF setup above, add `PERSES_TARGET` to the dev-server command. If you are forwarding the cluster Core BFF instead, use `CORE_BFF_TARGET=https://localhost:8943`.
 
 ```bash
-cd distributions/maas-consumer-portal
+cd distributions/maas-portal
 MAAS_BFF_TARGET=https://localhost:8243 \
 GENAI_BFF_TARGET=https://localhost:8143 \
 CORE_BFF_TARGET=http://localhost:8082 \

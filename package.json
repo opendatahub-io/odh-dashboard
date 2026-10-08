@@ -63,6 +63,7 @@
     "validate:cypress-mock": "node scripts/cypress/run-mock-federation-task.js validate",
     "test:cypress-orchestration": "node --test scripts/cypress/__tests__/*.test.js",
     "plan:cypress-mock-impact": "node scripts/cypress/plan-mock-test-impact.js",
+    "test:ci-matrix": "node --test scripts/__tests__/generate-cypress-test-matrix.test.js scripts/__tests__/audit-status-contexts.test.js",
     "cypress:server:e2e": "turbo run cypress:server:e2e --concurrency=20",
     "cypress:server:dev": "node scripts/cypress/run-mock-federation-task.js dev",
     "cypress:server:build": "node scripts/cypress/run-mock-federation-task.js build",
