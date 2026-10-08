@@ -178,6 +178,7 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
                 defaultSize="320px"
                 className="automl-pipeline-visualization__drawer-panel"
                 data-testid="step-details-drawer-panel"
+                id="step-details-drawer-panel"
               >
                 <StepDetailsPanel
                   selectedNodeId={selectedNodeId}
@@ -212,7 +213,7 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
             variant="link"
             icon={<OpenDrawerRightIcon />}
             onClick={() => setShowDetails(true)}
-            aria-expanded={showDetails}
+            aria-controls="step-details-drawer-panel"
             className="automl-pipeline-visualization__pipeline-details"
             data-testid="pipeline-details-button"
           >

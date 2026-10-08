@@ -98,7 +98,7 @@ describe('AutoragPipelineVisualization', () => {
     await user.click(screen.getByTestId('close-details'));
     const pipelineDetails = screen.getByTestId('pipeline-details-button');
     expect(pipelineDetails).toHaveTextContent('Pipeline details');
-    expect(pipelineDetails).toHaveAttribute('aria-expanded', 'false');
+    expect(pipelineDetails).toHaveAttribute('aria-controls', 'step-details-drawer-panel');
     expect(screen.getByTestId('step-details-drawer-panel')).not.toBeVisible();
 
     await user.click(pipelineDetails);
