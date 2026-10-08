@@ -125,7 +125,7 @@
     },
     "removed_finding": {
       "type": "object",
-      "description": "Audit-only copy of a finding the challenger removed or merged away. Not used for disposition.",
+      "description": "Audit-only copy of a finding the challenger removed, merged, or justified away. Items with challenger_action justified are rendered under Findings ### Justified; all others appear in the Challenger removed-audit UI.",
       "required": ["severity", "category", "file", "description", "removal_reason"],
       "properties": {
         "severity": { "type": "string", "enum": ["critical", "high", "medium", "low", "info"] },
@@ -137,7 +137,8 @@
         "remediation": { "type": "string", "minLength": 1 },
         "why": { "type": "string", "minLength": 1 },
         "actionable": { "type": "boolean" },
-        "removal_reason": { "type": "string", "minLength": 1 }
+        "removal_reason": { "type": "string", "minLength": 1 },
+        "challenger_action": { "type": "string", "enum": ["removed", "merged", "justified"] }
       },
       "additionalProperties": false
     },
