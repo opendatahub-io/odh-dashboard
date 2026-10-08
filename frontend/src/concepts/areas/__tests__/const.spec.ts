@@ -1,6 +1,6 @@
 import { SupportedArea, type SupportedAreaType } from '@odh-dashboard/plugin-core/areas';
 import {
-  generallyAvailableFlags,
+  advancedAIMLFlags,
   techPreviewFlags,
   definedFeatureFlags,
   SupportedAreasStateMap,
@@ -57,8 +57,8 @@ describe('Verify const stability', () => {
     expect(list.length > 0).toBe(true);
   });
 
-  it('should list AutoRAG as a generally available flag', () => {
-    expect(generallyAvailableFlags.autorag).toBe(true);
+  it('classifies AutoRAG as generally available and enables it by default', () => {
+    expect(advancedAIMLFlags.autorag).toBe(true);
     expect(techPreviewFlags).not.toHaveProperty('autorag');
     expect(definedFeatureFlags).toContain('autorag');
   });

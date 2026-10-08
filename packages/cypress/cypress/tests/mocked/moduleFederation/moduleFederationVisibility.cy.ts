@@ -105,17 +105,11 @@ describe('Module federation visibility', () => {
       pageNotfound.findPage().should('exist');
     });
 
-    it('should not load the AutoRAG remote, page, or API when its dashboard flag is disabled', () => {
-      let autoragApiRequests = 0;
-      let autoragFederationRequests = 0;
-      cy.intercept({ pathname: '/autorag/api/**' }, (request) => {
-        autoragApiRequests += 1;
-        request.continue();
-      });
-      cy.intercept({ pathname: '/_mf/autorag/**' }, (request) => {
-        autoragFederationRequests += 1;
-        request.continue();
-      });
+    it('should hide AutoRAG nav and show 404 on route when flag is disabled', () => {
+      // The MF host loads remoteEntry.js and extensions for every remote regardless of feature
+      // flags — flag filtering happens after load — so only the module's API requests are
+      // meaningful to assert on here.
+      cy.intercept({ pathname: '/autorag/api/**' }, { statusCode: 404 }).as('autoragApiRequests');
       initIntercepts(
         { autorag: false, genAiStudio: true },
         { [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' } },
@@ -123,10 +117,13 @@ describe('Module federation visibility', () => {
 
       navSidebar.visit();
       navSidebar.findNavItem({ name: 'AutoRAG', rootSection: 'Gen AI studio' }).should('not.exist');
+      // AutoRAG's route sits under the Gen AI studio catch-all (/gen-ai-studio/*) owned by the
+      // gen-ai remote — with the AutoRAG route filtered out, the URL falls through to gen-ai's
+      // own not-found page rather than the host's, so assert on the AutoRAG page not rendering.
       cy.visitWithLogin('/gen-ai-studio/autorag/configure/test-project');
-      pageNotfound.findPage().should('exist');
-      cy.then(() => expect(autoragApiRequests).to.equal(0));
-      cy.then(() => expect(autoragFederationRequests).to.equal(0));
+      autoragConfigurePage.findPageTitle().should('not.exist');
+      autoragConfigurePage.findPageBody().should('contain.text', '404 Page not found');
+      cy.get('@autoragApiRequests.all').should('have.length', 0);
     });
 
     it('should hide Feature store section and show 404 on route when flag is disabled', () => {

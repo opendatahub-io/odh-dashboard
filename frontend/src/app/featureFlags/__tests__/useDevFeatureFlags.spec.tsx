@@ -222,28 +222,6 @@ describe('useDevFeatureFlags', () => {
     });
   });
 
-  it('should leave a bare positive feature flag at its configured value', () => {
-    const backing = new URLSearchParams({ devFeatureFlags: 'autorag' });
-    useSearchParamsMock.mockReturnValue([
-      {
-        get: jest.fn((name: string) => backing.get(name)),
-        has: jest.fn((name: string) => backing.has(name)),
-        delete: jest.fn((name: string) => backing.delete(name)),
-        toString: () => backing.toString(),
-      } as unknown as ReturnType<typeof useSearchParams>[0],
-      jest.fn(),
-    ]);
-    mockSession(null);
-    const dashboardConfig = {
-      spec: { dashboardConfig: { autorag: true } },
-    } as DashboardConfigKind;
-
-    const renderResult = renderHook(() => useDevFeatureFlags(dashboardConfig), renderOptions());
-
-    expect(renderResult.result.current.devFeatureFlags).toEqual({});
-    expect(renderResult.result.current.dashboardConfig?.spec.dashboardConfig.autorag).toBe(true);
-  });
-
   it('should load flags from query string with true', () => {
     mockUseSearchParams(true);
     mockSession(null);

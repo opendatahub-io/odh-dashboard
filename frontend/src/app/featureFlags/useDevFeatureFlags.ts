@@ -41,7 +41,6 @@ export const useDevFlags: () => string[] = () => {
  *  - disableHome = false
  *  - disableAppLauncher = false
  *  - disableSupport = false
- * Bare names for positive feature flags do not override their configured value.
  *
  * Use `?devFeatureFlags=true` to enable all feature flags and `?devFeatureFlags=false` to disable all feature flags.
  */
@@ -112,11 +111,7 @@ const useDevFeatureFlags = (
             return param.split(',').reduce<Record<string, boolean>>((acc, v) => {
               const [name, bool] = v.split('=');
               if (isFlag(name)) {
-                // A bare positive flag name is not an override. Bare aliases for disable* flags
-                // continue to mean enabled, as handled below.
-                if (v.includes('=')) {
-                  acc[name] = bool === 'true';
-                }
+                acc[name] = bool === 'true';
               } else {
                 const fullName = `disable${capitalize(name)}`;
                 if (isFlag(fullName)) {
