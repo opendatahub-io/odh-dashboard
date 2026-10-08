@@ -6,7 +6,6 @@ import {
 } from '@odh-dashboard/plugin-core/areas';
 
 export const techPreviewFlags = {
-  genAiStudio: false,
   genAiTracing: false,
   automl: false,
   autorag: false,
@@ -26,10 +25,8 @@ export const techPreviewFlags = {
   vLLMDeploymentOnMaaS: false,
   llmdTemplates: false,
   llmGatewayField: false,
-  promptManagement: false,
   globalProjectPrompts: false,
   agentOps: false,
-  connectionTest: false,
   dataRegistry: false,
   dataConnectHub: false,
 } satisfies Partial<DashboardCommonConfig>;
@@ -85,6 +82,8 @@ export const modelServingFlags = {
 
 // Group 4: Advanced AI/ML Features & Pipelines
 export const advancedAIMLFlags = {
+  genAiStudio: true,
+  promptManagement: true,
   disablePipelines: false,
   disableDistributedWorkloads: false,
   disableModelCatalog: false,
@@ -295,9 +294,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['gpuaas'],
     requiredComponents: [DataScienceStackComponent.KUEUE],
   },
-  [SupportedArea.CONNECTION_TEST]: {
-    featureFlags: ['connectionTest'],
-  },
   [SupportedArea.MODEL_CAPABILITIES]: {
     featureFlags: ['modelCapabilities'],
     reliantAreas: [SupportedArea.MODEL_SERVING],
@@ -311,6 +307,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.GUIDED_TOUR]: {
     // Dev-only flag — not in OdhDashboardConfig CRD. Off by default.
     devFlags: ['guidedTour'],
+  },
+  [SupportedArea.UNIFIED_PROJECT_SELECTOR]: {
+    // Dev-only gate — not in OdhDashboardConfig CRD. Off by default.
+    devFlags: ['unifiedProjectSelector'],
   },
   [SupportedArea.RUNTIME_CATALOG]: {
     // Tech preview — not in OdhDashboardConfig CRD yet. Off by default.

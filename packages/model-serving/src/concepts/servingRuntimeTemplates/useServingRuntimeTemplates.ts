@@ -12,6 +12,9 @@ import {
 /**
  * Custom hook that retrieves, sorts, and filters serving runtime templates for model serving.
  * @param namespace - The namespace to fetch templates from. If not provided, the dashboard namespace is used.
+ * @param enabled - When false, skips the K8s Template watch and returns an empty loaded result.
+ *   Use this to defer loading until the caller knows templates are needed (e.g. predictive /
+ *   legacy KServe paths in the deployment wizard).
  *
  * @description This hook orchestrates the fetching and processing of serving runtime templates
  * by combining template data with ordering and enablement configurations. The logic determines
@@ -42,11 +45,17 @@ import {
  *   - `loaded`: Boolean indicating if all data sources have finished loading
  *   - `error`: Any error that occurred during data fetching from templates, ordering, or disablement
  */
-export const useServingRuntimeTemplates = (namespace?: string): K8sWatchResult<TemplateKind[]> => {
+export const useServingRuntimeTemplates = (
+  namespace?: string,
+  enabled = true,
+): K8sWatchResult<TemplateKind[]> => {
   const { dashboardNamespace } = useDashboardNamespace();
   const { getDashboardConfigTemplateOrder, getDashboardConfigTemplateDisablement } = useHostApi();
 
-  const [templates, loaded, error] = useTemplates(namespace || dashboardNamespace);
+  // Pass undefined namespace when disabled so useTemplates does not start a watch.
+  const [templates, loaded, error] = useTemplates(
+    enabled ? namespace || dashboardNamespace : undefined,
+  );
   const {
     data: order,
     loaded: orderLoaded,
@@ -59,7 +68,7 @@ export const useServingRuntimeTemplates = (namespace?: string): K8sWatchResult<T
   } = useTemplateDisablement(dashboardNamespace, getDashboardConfigTemplateDisablement);
 
   const result = React.useMemo(() => {
-    if (templates.length === 0 || !orderLoaded || !disablementLoaded) {
+    if (!enabled || templates.length === 0 || !orderLoaded || !disablementLoaded) {
       return [];
     }
     const sortedTemplates = getSortedTemplates(templates, order);
@@ -72,7 +81,11 @@ export const useServingRuntimeTemplates = (namespace?: string): K8sWatchResult<T
     );
 
     return filteredTemplates;
-  }, [templates, order, disablement, orderLoaded, disablementLoaded]);
+  }, [enabled, templates, order, disablement, orderLoaded, disablementLoaded]);
+
+  if (!enabled) {
+    return [[], true, undefined];
+  }
 
   return [
     result,

@@ -27,26 +27,32 @@ const useServerTokens = ({
   const [serverTokens, setServerTokens] = React.useState<Map<string, TokenInfo>>(
     initialTokens || new Map(),
   );
+  const notifiedTokensRef = React.useRef(serverTokens);
 
-  const updateToken = React.useCallback(
-    (serverUrl: string, tokenInfo: TokenInfo) => {
-      const updatedTokens = new Map(serverTokens);
+  React.useEffect(() => {
+    if (notifiedTokensRef.current === serverTokens) {
+      return;
+    }
+
+    notifiedTokensRef.current = serverTokens;
+    onServerTokensChange(serverTokens);
+  }, [onServerTokensChange, serverTokens]);
+
+  const updateToken = React.useCallback((serverUrl: string, tokenInfo: TokenInfo) => {
+    setServerTokens((currentTokens) => {
+      const updatedTokens = new Map(currentTokens);
       updatedTokens.set(serverUrl, tokenInfo);
-      setServerTokens(updatedTokens);
-      onServerTokensChange(updatedTokens);
-    },
-    [serverTokens, onServerTokensChange],
-  );
+      return updatedTokens;
+    });
+  }, []);
 
-  const removeToken = React.useCallback(
-    (serverUrl: string) => {
-      const updatedTokens = new Map(serverTokens);
+  const removeToken = React.useCallback((serverUrl: string) => {
+    setServerTokens((currentTokens) => {
+      const updatedTokens = new Map(currentTokens);
       updatedTokens.delete(serverUrl);
-      setServerTokens(updatedTokens);
-      onServerTokensChange(updatedTokens);
-    },
-    [serverTokens, onServerTokensChange],
-  );
+      return updatedTokens;
+    });
+  }, []);
 
   const getToken = React.useCallback(
     (serverUrl: string): TokenInfo | undefined => serverTokens.get(serverUrl),

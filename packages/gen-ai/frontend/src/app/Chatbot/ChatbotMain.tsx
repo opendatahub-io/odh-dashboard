@@ -11,8 +11,13 @@ import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingC
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
 import { GenAiContext } from '~/app/context/GenAiContext';
-import { isLlamaModelEnabled } from '~/app/utilities';
+import {
+  convertMaaSModelToAIModel,
+  isLlamaModelEnabled,
+  resolveAIModelForPlaygroundSelection,
+} from '~/app/utilities';
 import { filterUnavailableMCPServers } from '~/app/utilities/mcp';
+import { serializeToAgentProfileSpec } from '~/app/agentProfile/serialize';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import useFetchAAEVectorStores from '~/app/hooks/useFetchAAEVectorStores';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
@@ -154,10 +159,63 @@ const ChatbotMain: React.FunctionComponent = () => {
   const configIds = useChatbotConfigStore(selectConfigIds);
   const isCompareMode = configIds.length > 1;
   const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
+  const currentConfiguration = useChatbotConfigStore(
+    (state) => state.configurations[DEFAULT_CONFIG_ID],
+  );
 
   const isProfileDirty = useIsProfileDirty(primaryConfigId, availableMcpServers, mcpConfigMapName);
   useSafeBrowserUnloadBlocker(isProfileDirty);
   const selectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
+
+  const allAIModels = React.useMemo(
+    () => [...aiModels, ...maasModels.map(convertMaaSModelToAIModel)],
+    [aiModels, maasModels],
+  );
+  const deploymentSnapshotModel = React.useMemo(
+    () =>
+      currentConfiguration?.selectedModel
+        ? resolveAIModelForPlaygroundSelection(
+            currentConfiguration.selectedModel,
+            models,
+            allAIModels,
+          )
+        : undefined,
+    [allAIModels, currentConfiguration?.selectedModel, models],
+  );
+  const deploymentSnapshotAsrModel = React.useMemo(
+    () =>
+      currentConfiguration?.isAsrModelEnabled && currentConfiguration.selectedAsrModel
+        ? aiModels.find((model) => model.model_id === currentConfiguration.selectedAsrModel)
+        : undefined,
+    [aiModels, currentConfiguration?.isAsrModelEnabled, currentConfiguration?.selectedAsrModel],
+  );
+  const deploymentSnapshotProfile = React.useMemo(() => {
+    if (!loadedProfileSpec || !currentConfiguration) {
+      return undefined;
+    }
+
+    return {
+      spec: serializeToAgentProfileSpec(
+        currentConfiguration,
+        loadedProfileSpec.displayName,
+        loadedProfileSpec.description,
+        {
+          model: deploymentSnapshotModel,
+          asrModel: deploymentSnapshotAsrModel,
+          mcpServers: availableMcpServers,
+          previousMcpServers: loadedProfileSpec.mcpServers,
+          mcpConfigMapName: mcpConfigMapName ?? 'gen-ai-aa-mcp-servers',
+        },
+      ),
+    };
+  }, [
+    availableMcpServers,
+    currentConfiguration,
+    deploymentSnapshotAsrModel,
+    deploymentSnapshotModel,
+    loadedProfileSpec,
+    mcpConfigMapName,
+  ]);
 
   // Check if there are any models available (either AI assets or MaaS models)
   const hasModels = aiModels.length > 0 || maasModels.length > 0;
@@ -603,16 +661,17 @@ const ChatbotMain: React.FunctionComponent = () => {
       {agentDeploymentsEnabled &&
         deployModalOpen &&
         loadedProfileId &&
-        loadedProfileSpec &&
+        deploymentSnapshotProfile &&
         namespace?.name && (
           <DeployAgentModal
-            profile={{ spec: loadedProfileSpec }}
+            profile={deploymentSnapshotProfile}
             namespace={namespace.name}
             isDeploying={isDeploying || isSavingForDeployment}
             missingMCPServerAuth={mcpServersMissingAuth}
             existingDeploymentNames={allDeployments.map(
               (deployment) => deployment.displayName ?? deployment.name,
             )}
+            aiModels={aiModels}
             onDeploy={(name) => void handleDeploy(name)}
             onClose={handleCloseDeployModal}
           />
@@ -622,6 +681,7 @@ const ChatbotMain: React.FunctionComponent = () => {
           agentName={loadedProfileSpec.displayName}
           deployments={sortedDeployments}
           initialDeploymentName={selectedDeploymentName}
+          aiModels={aiModels}
           onClose={() => setSelectedDeploymentName(null)}
           onDeleted={() => {
             setSelectedDeploymentName(null);

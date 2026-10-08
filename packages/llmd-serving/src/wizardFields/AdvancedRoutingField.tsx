@@ -15,7 +15,7 @@ import type {
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import { z } from 'zod';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
 import { isTopologyTypeFieldData } from './TopologyTypeField';

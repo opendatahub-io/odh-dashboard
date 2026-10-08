@@ -32,8 +32,8 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4
-      - uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4
+      - name: Setup pnpm and workspace dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: '22'
       - name: Validate federation targets and test selection

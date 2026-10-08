@@ -12,16 +12,102 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/controller/conditions"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
+
+func TestIntegration_Observability_DisablePreservesOperatorResources(t *testing.T) {
+	installPersesCRD(t)
+	ctx := context.Background()
+	cli := newIsolatedClient(t)
+	operatorNamespace := "observability-operator-test"
+	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: operatorNamespace}}
+	require.NoError(t, cli.Create(ctx, namespace))
+	t.Cleanup(func() { deleteIgnoreNotFound(t, namespace) })
+
+	base := createIntegrationManifests(t, nil)
+	writeObservabilityOverlay(t, base)
+	require.NoError(t, os.CopyFS(filepath.Join(base, "observability", "rhoai"), os.DirFS(filepath.Join(base, "observability", "odh"))))
+	r := newReconcilerWithClient(cli, base)
+	r.Platform = cluster.SelfManagedRhoai
+	r.Namespace = operatorNamespace
+	dashboard := newDashboard(v1alpha1.DashboardSpec{
+		Gateway: &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+		Modules: disableAllModulesExcept(),
+		Observability: &v1alpha1.ObservabilitySpec{Enabled: true, PersesService: &v1alpha1.ServiceTarget{
+			Name: "data-science-perses", Namespace: operatorNamespace, Port: 8080,
+		}},
+	})
+	require.NoError(t, cli.Create(ctx, dashboard))
+	t.Cleanup(func() {
+		deleteDashboard(t)
+		cleanupModuleResources(t)
+	})
+
+	// Match the chart's labels: operator resources share part-of=dashboard
+	// and have no component label, even when installed beside Perses.
+	ownership := map[string]string{labels.PlatformPartOf: "dashboard"}
+	preserved := []client.Object{
+		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-config", Namespace: operatorNamespace, Labels: ownership}, Data: map[string]string{"distribution.name": "RHOAI"}},
+		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: "dashboard-operator-webhook", Namespace: operatorNamespace, Labels: ownership}, Spec: corev1.ServiceSpec{Ports: []corev1.ServicePort{{Port: 443}}}},
+		&networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: "operator-access", Namespace: operatorNamespace, Labels: ownership}, Spec: networkingv1.NetworkPolicySpec{PodSelector: metav1.LabelSelector{}}},
+	}
+	legacy := []client.Object{
+		&networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: "dashboard-perses-access", Namespace: operatorNamespace, Labels: ownership}, Spec: networkingv1.NetworkPolicySpec{PodSelector: metav1.LabelSelector{}}},
+		&unstructured.Unstructured{Object: map[string]any{
+			"apiVersion": "perses.dev/v1alpha1", "kind": "PersesDashboard",
+			"metadata": map[string]any{"name": "dashboard-1-model", "namespace": operatorNamespace, "labels": map[string]any{labels.PlatformPartOf: "dashboard"}},
+			"spec":     map[string]any{},
+		}},
+	}
+	for _, resources := range [][]client.Object{preserved, legacy} {
+		for _, resource := range resources {
+			require.NoError(t, cli.Create(ctx, resource))
+			// Keep Perses discovery on the isolated client; the shared mapper
+			// must remain unaware of the CRD for the missing-CRD test below.
+			t.Cleanup(func() { require.NoError(t, client.IgnoreNotFound(cli.Delete(ctx, resource))) })
+		}
+	}
+	reconcile(t, r)
+	reconcile(t, r)
+	coreUID := getConfigMap(t, "dashboard-core-config").UID
+	observability := &corev1.ConfigMap{}
+	require.NoError(t, cli.Get(ctx, client.ObjectKey{Name: "perses-dashboard-config", Namespace: operatorNamespace}, observability))
+	// Exercise cleanup of resources from an earlier operator release.
+	delete(observability.Labels, "app.kubernetes.io/component")
+	require.NoError(t, cli.Update(ctx, observability))
+	legacy = append(legacy, observability)
+	t.Cleanup(func() { deleteIgnoreNotFound(t, observability) })
+	dashboard = getDashboard(t)
+	dashboard.Spec.Observability.Enabled = false
+	require.NoError(t, cli.Update(ctx, dashboard))
+	for range 2 {
+		reconcile(t, r)
+		assert.Equal(t, "Disabled", conditionReason(getDashboard(t), conditionObservabilityAvailable))
+		assert.Equal(t, coreUID, getConfigMap(t, "dashboard-core-config").UID)
+		for _, resource := range preserved {
+			retained := resource.DeepCopyObject().(client.Object)
+			require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(resource), retained))
+			assert.Equal(t, resource.GetUID(), retained.GetUID(), "operator resources must survive disablement")
+		}
+		for _, resource := range legacy {
+			assert.True(t, apierrors.IsNotFound(cli.Get(ctx, client.ObjectKeyFromObject(resource), resource.DeepCopyObject().(client.Object))), resource.GetName())
+		}
+		assert.Nil(t, findFederationEntry(parseFederationEntries(t, getConfigMap(t, "federation-config")), "perses"))
+	}
+}
 
 // conditionObservabilityAvailable mirrors the controller's condition type name.
 const conditionObservabilityAvailable = "ObservabilityAvailable"
@@ -226,7 +312,12 @@ func installPersesCRD(t *testing.T) {
 	}
 
 	require.NoError(t, k8sClient.Create(ctx, crd))
-	t.Cleanup(func() { deleteIgnoreNotFound(t, crd) })
+	t.Cleanup(func() {
+		require.NoError(t, client.IgnoreNotFound(k8sClient.Delete(ctx, crd)))
+		require.Eventually(t, func() bool {
+			return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(crd), &apiextensionsv1.CustomResourceDefinition{}))
+		}, 30*time.Second, 200*time.Millisecond, "PersesDashboard CRD must be deleted before another test installs it")
+	})
 
 	require.Eventually(t, func() bool {
 		got := &apiextensionsv1.CustomResourceDefinition{}

@@ -17,7 +17,7 @@ FROM ${NODE_BASE_IMAGE} AS ui-builder
 
 ARG UI_SOURCE_CODE
 ARG MODULE_NAME
-# core-bff is a HOST distribution: both its own frontend and the bundled MaaS Consumer Portal
+# core-bff is a HOST distribution: both its own frontend and the bundled MaaS Portal
 # are standalone/host builds that must emit an index.html (see the assertion in the final stage).
 # Do NOT default to federated here — each workspace's own .env drives DEPLOYMENT_MODE=standalone.
 ARG DEPLOYMENT_MODE
@@ -28,9 +28,9 @@ WORKDIR /usr/src/workspace
 ### Workspace setup
 # Copy root workspace manifest and lockfile for pnpm workspace resolution.
 COPY --chown=default:root package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-# Copy the MaaS Consumer Portal workspace and the source packages used by its production build.
+# Copy the MaaS Portal workspace and the source packages used by its production build.
 COPY --chown=default:root frontend/package.json ./frontend/
-COPY --chown=default:root distributions/maas-consumer-portal/ ./distributions/maas-consumer-portal/
+COPY --chown=default:root distributions/maas-portal/ ./distributions/maas-portal/
 COPY --chown=default:root distributions/base/ ./distributions/base/
 # Copy required shared workspace packages needed for module builds
 COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
@@ -42,6 +42,10 @@ COPY --chown=default:root packages/k8s-core/ ./packages/k8s-core/
 COPY --chown=default:root packages/ui-core/ ./packages/ui-core/
 COPY --chown=default:root packages/maas/ ./packages/maas/
 COPY --chown=default:root packages/gen-ai/ ./packages/gen-ai/
+COPY --chown=default:root packages/model-serving/ ./packages/model-serving/
+COPY --chown=default:root packages/trustyai/ ./packages/trustyai/
+COPY --chown=default:root packages/hardware-profiles/ ./packages/hardware-profiles/
+COPY --chown=default:root packages/observability/ ./packages/observability/
 COPY --chown=default:root packages/eslint-config/ ./packages/eslint-config/
 COPY --chown=default:root packages/jest-config/ ./packages/jest-config/
 # Copy only the frontend source (not the entire frontend build artifacts) for cross-module imports
@@ -63,10 +67,10 @@ RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
 RUN pnpm run build:prod
 
-# The MaaS Consumer Portal is a root workspace and its Rspack config writes to public/
+# The MaaS Portal is a root workspace and its Rspack config writes to public/
 # (rather than the Core BFF frontend's dist/ directory).
 WORKDIR /usr/src/workspace
-RUN pnpm --filter @odh-dashboard/maas-consumer-portal-distribution run build:prod
+RUN pnpm --filter @odh-dashboard/maas-portal-distribution run build:prod
 
 # BFF build stage
 FROM ${GOLANG_BASE_IMAGE} AS bff-builder
@@ -102,9 +106,9 @@ WORKDIR /
 COPY --from=bff-builder /tmp/bff ./bff
 COPY --from=bff-builder /usr/src/app/openapi/ ./openapi/
 COPY --from=ui-builder /usr/src/workspace/${UI_SOURCE_CODE}/dist ./static/
-COPY --from=ui-builder /usr/src/workspace/distributions/maas-consumer-portal/public ./static/maas-consumer-portal/
+COPY --from=ui-builder /usr/src/workspace/distributions/maas-portal/public ./static/maas-consumer-portal/
 
-# Fail the image build if the MaaS Consumer Portal production bundle was not packaged.
+# Fail the image build if the MaaS Portal production bundle was not packaged.
 RUN test -s /static/maas-consumer-portal/index.html
 
 USER 65532:65532

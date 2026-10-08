@@ -1,9 +1,9 @@
 import { loadRemote } from '@module-federation/runtime';
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
+import { createDistribution } from '@odh-dashboard/base-distribution';
 import pluginExtensions, { featureFlags } from './distribution-extensions';
 import K8sSdkProvider from './context/K8sSdkProvider';
 import RhaiiAppProvider from './context/RhaiiAppProvider';
-import { createDistribution } from '../../base/src/lib';
 
 const remoteEntry = process.env.MODEL_SERVING_REMOTE_ENTRY;
 const REMOTE_LOAD_TIMEOUT_MS = 10_000;

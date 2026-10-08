@@ -199,6 +199,23 @@ export type WBTolerationsTestData = {
   deletedStatusBadge: string;
 };
 
+export type WBNodeSelectorsTestData = {
+  testNamespace: string;
+  testDescription: string;
+  workbenchNameA: string;
+  workbenchNameB: string;
+  notebookImageName: string;
+  resourceYamlPathA: string;
+  resourceYamlPathB: string;
+  hardwareProfileNameA: string;
+  hardwareProfileNameB: string;
+  hardwareProfileDeploymentSizeA: string;
+  hardwareProfileDeploymentSizeB: string;
+  nodeSelectorKey: string;
+  nodeSelectorValue: string;
+  tolerationValue: string;
+};
+
 export type ModifyHardwareProfileTestData = {
   wbTolerationsTestNamespace: string;
   wbTolerationsTestDescription: string;
@@ -1119,6 +1136,11 @@ export type MlflowExperimentsTestData = {
   experiments: MlflowExperimentData[];
   runs: MlflowExperimentRunData[];
   nonExistentExperiment: string;
+};
+
+export type MlflowAgentObservabilityTestData = {
+  projectName: string;
+  experimentName: string;
 };
 
 export type AutoragTestData = {

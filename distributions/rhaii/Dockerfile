@@ -26,6 +26,7 @@ COPY packages/tsconfig/ ./packages/tsconfig/
 # Copy feature packages used by the RHAII distribution.
 COPY packages/model-serving/ ./packages/model-serving/
 COPY packages/kserve/ ./packages/kserve/
+COPY packages/llmd-serving/ ./packages/llmd-serving/
 COPY packages/analytics/ ./packages/analytics/
 COPY packages/trustyai/ ./packages/trustyai/
 COPY packages/foundation/ ./packages/foundation/

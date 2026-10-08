@@ -212,6 +212,10 @@ class APIKeyTableRow extends TableRow {
     return this.find().findByTestId('subscription-detail-link');
   }
 
+  findSubscriptionGovernanceLink(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('subscription-governance-link');
+  }
+
   findOwner(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('api-key-owner');
   }
@@ -1903,6 +1907,14 @@ class ExternalModelsPage {
   findAddExternalModelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('add-external-model-button');
   }
+
+  findMaaSPublishedPostDeployAlert() {
+    return cy.findByTestId('maas-published-post-deploy-alert');
+  }
+
+  findMaaSPublishedPostDeployAlertLink() {
+    return cy.findByTestId('maas-published-post-deploy-alert-link');
+  }
 }
 
 class ProviderRefTableRow extends Contextual<HTMLElement> {
@@ -1967,6 +1979,14 @@ class CreateExternalModelPage {
 
   findDisplayNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('external-model-name-desc-name');
+  }
+
+  findEditResourceNameButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-name-desc-editResourceLink');
+  }
+
+  findResourceNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-name-desc-resourceName');
   }
 
   findDescriptionInput(): Cypress.Chainable<JQuery<HTMLElement>> {

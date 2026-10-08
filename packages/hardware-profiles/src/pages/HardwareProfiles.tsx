@@ -25,7 +25,7 @@ import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { useApplicationSettings } from '@odh-dashboard/internal/app/useApplicationSettings';
-import { HardwareProfilesContext } from '@odh-dashboard/internal/concepts/hardwareProfiles/HardwareProfilesContext';
+import { HardwareProfilesContext } from '@odh-dashboard/ui-core/context/HardwareProfilesContext';
 import { generateWarningForHardwareProfiles } from './utils';
 import HardwareProfilesTable from './HardwareProfilesTable';
 

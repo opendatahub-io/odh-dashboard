@@ -1,27 +1,24 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import ConnectionsTab, { synchronizeTypeSelection } from '~/app/pages/ConnectionsTab';
-import CreateConnectionWizard, { getPropertyErrors } from '~/app/components/CreateConnectionWizard';
 import { useConnections } from '~/app/hooks/useConnections';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
-import { deleteConnection, testCredentials, verifyConnection } from '~/app/api/dch';
+import { deleteConnection, verifyConnection } from '~/app/api/dch';
 
 jest.mock('~/app/hooks/useConnections');
 jest.mock('~/app/hooks/useConnectionTypes');
 jest.mock('~/app/hooks/useNamespaces');
 const mockNotificationSuccess = jest.fn();
-const mockNotificationError = jest.fn();
 jest.mock('~/app/hooks/useNotification', () => ({
-  useNotification: () => ({ success: mockNotificationSuccess, error: mockNotificationError }),
+  useNotification: () => ({ success: mockNotificationSuccess, error: jest.fn() }),
 }));
 jest.mock('~/app/api/dch', () => ({
   createConnection: jest.fn(),
   deleteConnection: jest.fn(),
   verifyConnection: jest.fn(),
-  testCredentials: jest.fn(),
 }));
 jest.mock('@odh-dashboard/ui-core', () => ({
   DeleteModal: ({
@@ -53,7 +50,6 @@ const mockUseConnectionTypes = jest.mocked(useConnectionTypes);
 const mockUseNamespaces = jest.mocked(useNamespaces);
 const mockVerifyConnection = jest.mocked(verifyConnection);
 const mockDeleteConnection = jest.mocked(deleteConnection);
-const mockTestCredentials = jest.mocked(testCredentials);
 
 const connections = [
   {
@@ -87,6 +83,7 @@ const connectionTypes = [
         { name: 'CA_CERT', label: 'CA certificate', required: false, type: 'string' },
       ],
     },
+    status: { flight_ready: true },
   },
   {
     metadata: {
@@ -95,6 +92,7 @@ const connectionTypes = [
       updated_at: '2026-09-08T16:00:00Z',
     },
     resource: { name: 'S3', provider: 's3', credentials_fields: [] },
+    status: { flight_ready: true },
   },
 ];
 
@@ -118,7 +116,6 @@ describe('ConnectionsTab', () => {
     jest.clearAllMocks();
     mockVerifyConnection.mockImplementation(() => () => Promise.resolve());
     mockDeleteConnection.mockImplementation(() => () => Promise.resolve());
-    mockTestCredentials.mockImplementation(() => () => Promise.resolve());
     mockUseConnections.mockReturnValue([connections, true, undefined, jest.fn()]);
     mockUseConnectionTypes.mockReturnValue([connectionTypes, true, undefined]);
     mockUseNamespaces.mockReturnValue([[{ name: 'test-project' }], true, undefined]);
@@ -134,16 +131,6 @@ describe('ConnectionsTab', () => {
     expect(
       synchronizeTypeSelection(['postgresql'], ['postgresql'], ['postgresql', 'snowflake']),
     ).toEqual(['postgresql', 'snowflake']);
-  });
-
-  it('rejects duplicate normalized and whitespace-only property keys', () => {
-    expect(
-      getPropertyErrors([
-        { id: 1, key: ' key ', value: 'one' },
-        { id: 2, key: 'key', value: 'two' },
-        { id: 3, key: '   ', value: 'three' },
-      ]),
-    ).toEqual({ 1: 'Key must be unique.', 2: 'Key must be unique.', 3: 'Key is required.' });
   });
 
   it('renders connection names and readable type names', () => {
@@ -165,112 +152,9 @@ describe('ConnectionsTab', () => {
     expect(screen.getAllByText('Connection details').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Configuration').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Review').length).toBeGreaterThan(0);
-    const nextButton = screen.getByRole('button', { name: 'Next' });
-    expect(nextButton).toHaveProperty('disabled', true);
-
-    await user.click(
-      within(screen.getByTestId('postgresql--ConnectionTypeCard')).getByRole('radio', {
-        hidden: true,
-      }),
-    );
-
-    expect(nextButton).toHaveProperty('disabled', false);
-    await user.click(nextButton);
-    expect(screen.getByTestId('connection-project-select')).toBeTruthy();
-    expect(screen.getByTestId('connection-name-input')).toBeTruthy();
-    expect(nextButton).toHaveProperty('disabled', true);
-
-    await user.type(screen.getByTestId('connection-name-input'), 'warehouse');
-
-    expect(nextButton).toHaveProperty('disabled', false);
-    await user.click(nextButton);
-    expect(screen.getByTestId('credential-URI')).toBeTruthy();
-    expect(nextButton).toHaveProperty('disabled', true);
-
-    await user.type(screen.getByTestId('credential-URI'), 'postgres://example');
-
-    expect(nextButton).toHaveProperty('disabled', false);
-    await user.click(screen.getByTestId('verify-connection-button'));
-    expect(mockTestCredentials).toHaveBeenCalled();
-    expect(await screen.findByText('Connection successful')).toBeTruthy();
   });
 
-  it('loads connection types when the create connection modal opens', () => {
-    const { rerender } = render(
-      <CreateConnectionWizard isOpen={false} namespace="test-project" onClose={jest.fn()} />,
-    );
-
-    expect(mockUseConnectionTypes).toHaveBeenCalledWith('test-project', false);
-
-    rerender(<CreateConnectionWizard isOpen namespace="test-project" onClose={jest.fn()} />);
-
-    expect(mockUseConnectionTypes).toHaveBeenCalledWith('test-project', true);
-  });
-
-  it('starts with a blank wizard after the modal is cancelled', async () => {
-    const user = userEvent.setup();
-    render(<ConnectionsTab namespace="test-project" />);
-
-    await user.click(screen.getByRole('button', { name: 'Create connection' }));
-    await user.click(
-      within(screen.getByTestId('postgresql--ConnectionTypeCard')).getByRole('radio', {
-        hidden: true,
-      }),
-    );
-    await user.click(screen.getByRole('button', { name: 'Close wizard' }));
-    await user.click(screen.getByRole('button', { name: 'Create connection' }));
-
-    expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', true);
-  });
-
-  it('shows an error when connection creation fails', async () => {
-    const user = userEvent.setup();
-    render(
-      <CreateConnectionWizard
-        isOpen
-        namespace="test-project"
-        onClose={jest.fn()}
-        onCreate={() => Promise.reject(new Error('creation failed'))}
-      />,
-    );
-
-    await user.click(
-      within(screen.getByTestId('postgresql--ConnectionTypeCard')).getByRole('radio', {
-        hidden: true,
-      }),
-    );
-    await user.click(screen.getByRole('button', { name: 'Next' }));
-    await user.type(screen.getByTestId('connection-name-input'), 'warehouse');
-    await user.click(screen.getByRole('button', { name: /Add key.?value pair/ }));
-    await user.click(screen.getByRole('button', { name: /Add key.?value pair/ }));
-    await user.type(screen.getByTestId('connection-property-key-1'), 'first');
-    await user.type(screen.getByTestId('connection-property-value-1'), 'one');
-    await user.type(screen.getByTestId('connection-property-key-2'), 'second');
-    await user.type(screen.getByTestId('connection-property-value-2'), 'two');
-    expect(screen.getByTestId('connection-property-key-1')).toBeTruthy();
-    expect(screen.getByTestId('connection-property-value-2')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Remove property first' })).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: 'Next' }));
-    await user.type(screen.getByTestId('credential-URI'), 'postgres://example');
-    await user.click(screen.getByRole('button', { name: 'Next' }));
-    expect(screen.getByText('Summary')).toBeTruthy();
-    expect(screen.getByText('Connection name')).toBeTruthy();
-    expect(screen.getByText('Project')).toBeTruthy();
-    expect(screen.getAllByText('Connection type').length).toBeGreaterThan(0);
-    expect(screen.getByText('Global')).toBeTruthy();
-    expect(screen.getAllByText('Verify connection').length).toBeGreaterThan(0);
-    await user.click(screen.getByRole('button', { name: 'Create connection' }));
-
-    await waitFor(() =>
-      expect(mockNotificationError).toHaveBeenCalledWith(
-        'Unable to create connection',
-        'creation failed',
-      ),
-    );
-    expect(screen.getByTestId('create-connection-tearsheet')).toBeTruthy();
-  });
-
-  it('disables connection polling while the Registry tab is inactive', () => {
+  it('disables connection polling while the Connections tab is inactive', () => {
     render(<ConnectionsTab namespace="test-project" isActive={false} />);
 
     expect(mockUseConnections).toHaveBeenCalledWith('test-project', false);

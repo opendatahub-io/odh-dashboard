@@ -129,6 +129,10 @@ class ConnectionModal extends Modal {
     return this.find().findByTestId('test-connection-button');
   }
 
+  findTestConnectionUnsupportedTooltip() {
+    return cy.findByRole('tooltip');
+  }
+
   findTestStatusNotTested() {
     return this.find().findByTestId('connection-test-label-not-tested');
   }
