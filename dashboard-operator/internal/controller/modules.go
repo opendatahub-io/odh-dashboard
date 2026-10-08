@@ -29,7 +29,7 @@ type ModuleDefinition struct {
 	// InterBFFDeps injects service-discovery env vars into this module's container.
 	InterBFFDeps []interBFFDependency
 	// RequiredByMaaSPortal identifies the modules required when the
-	// MaaS Consumer Portal operand is managed independently of the dashboard.
+	// MaaS Portal operand is managed independently of the dashboard.
 	RequiredByMaaSPortal bool
 }
 
