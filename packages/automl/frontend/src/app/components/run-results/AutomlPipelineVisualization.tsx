@@ -10,7 +10,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import React from 'react';
-import { PanelCloseIcon, PanelOpenIcon } from '@patternfly/react-icons';
+import { OpenDrawerRightIcon } from '@patternfly/react-icons';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
 import {
@@ -166,23 +166,7 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
           </Flex>
         </FlexItem>
 
-        <FlexItem>
-          <Flex>
-            {headerActions && <FlexItem>{headerActions}</FlexItem>}
-            <FlexItem>
-              <Button
-                variant="link"
-                isInline
-                icon={showDetails ? <PanelCloseIcon /> : <PanelOpenIcon />}
-                aria-expanded={showDetails}
-                onClick={() => setShowDetails((prev) => !prev)}
-                data-testid={showDetails ? 'hide-details' : 'show-details'}
-              >
-                {showDetails ? 'Hide details' : 'Show details'}
-              </Button>
-            </FlexItem>
-          </Flex>
-        </FlexItem>
+        {headerActions && <FlexItem>{headerActions}</FlexItem>}
       </Flex>
 
       <div className="automl-pipeline-visualization__body">
@@ -190,7 +174,6 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
           <DrawerContent
             panelContent={
               <DrawerPanelContent
-                isResizable
                 minSize="320px"
                 defaultSize="320px"
                 className="automl-pipeline-visualization__drawer-panel"
@@ -224,6 +207,18 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
             </DrawerContentBody>
           </DrawerContent>
         </Drawer>
+        {!showDetails && (
+          <Button
+            variant="link"
+            icon={<OpenDrawerRightIcon />}
+            onClick={() => setShowDetails(true)}
+            aria-expanded={showDetails}
+            className="automl-pipeline-visualization__pipeline-details"
+            data-testid="pipeline-details-button"
+          >
+            Pipeline details
+          </Button>
+        )}
       </div>
     </div>
   );

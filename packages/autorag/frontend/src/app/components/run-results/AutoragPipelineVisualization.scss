@@ -11,6 +11,7 @@
 }
 
 .autorag-pipeline-visualization__body {
+  position: relative;
   height: 30vh;
   min-height: 220px;
   overflow: hidden;
@@ -23,18 +24,21 @@
   }
 }
 
+// Floating re-open control shown only while the step details drawer is collapsed;
+// pinned to the space the panel vacates (top-right of the visualization body).
+// Sits above the drawer content/panel layers (z-index xs/sm) so it is clickable
+// over the inline topology while the panel is hidden.
+.autorag-pipeline-visualization__pipeline-details {
+  position: absolute;
+  top: var(--pf-t--global--spacer--sm);
+  right: var(--pf-t--global--spacer--md);
+  z-index: var(--pf-t--global--z-index--lg);
+}
+
 .autorag-pipeline-visualization__drawer-panel {
   height: 100%;
   max-height: 100%;
   overflow: hidden;
-
-  .pf-v6-c-drawer__panel-main {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    min-height: 0;
-    overflow: hidden;
-  }
 
   .pf-v6-c-drawer__head {
     flex-shrink: 0;

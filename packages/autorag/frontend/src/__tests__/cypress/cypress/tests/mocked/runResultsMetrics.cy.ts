@@ -21,24 +21,22 @@ describe('AutoRAG run results metrics', () => {
     cy.findByTestId('app-page-title').should('not.exist');
   });
 
-  it('should place run actions next to the hide details control in the visualization header', () => {
+  it('should place run actions in the visualization header', () => {
     autoragRunResultsPage.findRunDetailsButton().should('be.visible');
-    autoragRunResultsPage
-      .findHideDetailsButton()
-      .should('be.visible')
-      .then(($hideDetails) => {
-        const hideDetailsRight = $hideDetails[0].getBoundingClientRect().right;
-        cy.findByTestId('run-details-button').then(($runDetails) => {
-          expect($runDetails[0].getBoundingClientRect().right).to.be.lessThan(hideDetailsRight);
-        });
-      });
+    cy.findByTestId('hide-details').should('not.exist');
   });
 
-  it('should toggle the step details panel with panel icons', () => {
-    autoragRunResultsPage.findHideDetailsButton().should('contain.text', 'Hide details');
-    autoragRunResultsPage.findHideDetailsButton().click();
-    autoragRunResultsPage.findShowDetailsButton().should('contain.text', 'Show details');
+  it('should show a Pipeline details link when the step details panel is hidden', () => {
+    cy.findByTestId('pipeline-details-button').should('not.exist');
+
+    cy.findByTestId('close-step-details').click();
+    autoragRunResultsPage.findPipelineDetailsButton().should('contain.text', 'Pipeline details');
     cy.findByTestId('step-details-drawer-panel').should('not.be.visible');
+
+    // Clicking the link re-shows the panel
+    autoragRunResultsPage.findPipelineDetailsButton().click();
+    cy.findByTestId('step-details-drawer-panel').should('be.visible');
+    cy.findByTestId('pipeline-details-button').should('not.exist');
   });
 
   it('should provide metric header definitions, CI help, and grouped Sample Q&A metrics', () => {
