@@ -1,4 +1,4 @@
-import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type {
   AreaExtension,
   NavExtension,
@@ -6,8 +6,7 @@ import type {
   TaskItemExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
-const PLUGIN_AUTORAG = 'plugin-autorag';
-const PLUGIN_GEN_AI = 'plugin-gen-ai';
+const { PLUGIN_AUTORAG, PLUGIN_GEN_AI } = SupportedArea;
 
 const extensions: (NavExtension | RouteExtension | AreaExtension | TaskItemExtension)[] = [
   {

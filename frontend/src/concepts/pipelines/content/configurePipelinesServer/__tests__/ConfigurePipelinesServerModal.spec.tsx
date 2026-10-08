@@ -2,9 +2,8 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router-dom';
-import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { NotificationWatcherContext } from '@odh-dashboard/ui-core/contexts/NotificationWatcherContext';
-import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { deleteSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import { ConfigurePipelinesServerModal } from '#~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
@@ -15,7 +14,6 @@ import {
   configureDSPipelineResourceSpec,
   createDSPipelineResourceSpec,
 } from '#~/concepts/pipelines/content/configurePipelinesServer/utils';
-import { useAppContext } from '#~/app/AppContext';
 import useIsMlflowCRAvailable from '#~/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 
 // Mock dependencies
@@ -52,10 +50,6 @@ jest.mock('#~/concepts/pipelines/content/configurePipelinesServer/utils', () => 
   objectStorageIsValid: jest.fn(),
 }));
 
-jest.mock('#~/app/AppContext', () => ({
-  useAppContext: jest.fn(),
-}));
-
 jest.mock('#~/concepts/mlflow/hooks/useIsMlflowCRAvailable', () => ({
   __esModule: true,
   default: jest.fn(),
@@ -86,10 +80,21 @@ const mockFireFormTrackingEvent = fireFormTrackingEvent as jest.MockedFunction<
 const mockConfigureDSPipelineResourceSpec = configureDSPipelineResourceSpec as jest.MockedFunction<
   typeof configureDSPipelineResourceSpec
 >;
-const mockUseAppContext = useAppContext as jest.MockedFunction<typeof useAppContext>;
 const mockUseIsMlflowCRAvailable = useIsMlflowCRAvailable as jest.MockedFunction<
   typeof useIsMlflowCRAvailable
 >;
+const mockAreaStatuses = (availableAreas: SupportedArea[]) => {
+  const availableAreaSet = new Set<string>(availableAreas);
+  mockUseIsAreaAvailable.mockImplementation((area) => ({
+    status: availableAreaSet.has(area),
+    featureFlags: {},
+    devFlags: {},
+    reliantAreas: {},
+    requiredComponents: {},
+    requiredCapabilities: {},
+    customCondition: jest.fn(),
+  }));
+};
 
 describe('ConfigurePipelinesServerModal', () => {
   const mockOnClose = jest.fn();
@@ -141,22 +146,7 @@ describe('ConfigurePipelinesServerModal', () => {
 
     mockUsePipelinesConnections.mockReturnValue([[], true, undefined, jest.fn()]);
 
-    mockUseIsAreaAvailable.mockReturnValue({
-      status: false,
-      featureFlags: {},
-      devFlags: {},
-      reliantAreas: {},
-      requiredComponents: {},
-      requiredCapabilities: {},
-      customCondition: jest.fn(),
-    } as ReturnType<typeof useIsAreaAvailable>);
-
-    mockUseAppContext.mockReturnValue({
-      buildStatuses: [],
-      dashboardConfig: mockDashboardConfig({ automl: false, autorag: false }),
-      storageClasses: [],
-      isRHOAI: false,
-    });
+    mockAreaStatuses([]);
 
     mockUseIsMlflowCRAvailable.mockReturnValue({
       available: false,
@@ -231,41 +221,33 @@ describe('ConfigurePipelinesServerModal', () => {
   });
 
   it.each([
-    ['AutoML', true, false],
-    ['AutoRAG', false, true],
-  ])(
-    'should enable managed pipelines by default when %s is available',
-    async (_feature, automl, autorag) => {
-      const {
-        objectStorageIsValid,
-      } = require('#~/concepts/pipelines/content/configurePipelinesServer/utils');
-      objectStorageIsValid.mockReturnValue(true);
-      configureSpecFromSubmitConfig();
+    { feature: 'AutoML', area: SupportedArea.PLUGIN_AUTOML },
+    { feature: 'AutoRAG', area: SupportedArea.PLUGIN_AUTORAG },
+  ])('should enable managed pipelines by default when $feature is available', async ({ area }) => {
+    const {
+      objectStorageIsValid,
+    } = require('#~/concepts/pipelines/content/configurePipelinesServer/utils');
+    objectStorageIsValid.mockReturnValue(true);
+    configureSpecFromSubmitConfig();
 
-      mockUseAppContext.mockReturnValue({
-        buildStatuses: [],
-        dashboardConfig: mockDashboardConfig({ automl, autorag }),
-        storageClasses: [],
-        isRHOAI: false,
-      });
+    mockAreaStatuses([area]);
 
-      renderModal();
-      fireEvent.click(screen.getByText('Advanced settings'));
+    renderModal();
+    fireEvent.click(screen.getByText('Advanced settings'));
 
-      expect(screen.getByTestId('managed-pipelines-checkbox')).toBeChecked();
+    expect(screen.getByTestId('managed-pipelines-checkbox')).toBeChecked();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Configure pipeline server' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Configure pipeline server' }));
 
-      await waitFor(() => {
-        expect(mockCreatePipelinesCR).toHaveBeenCalledWith(
-          'test-project',
-          expect.objectContaining({
-            apiServer: expect.objectContaining({ managedPipelines: {} }),
-          }),
-        );
-      });
-    },
-  );
+    await waitFor(() => {
+      expect(mockCreatePipelinesCR).toHaveBeenCalledWith(
+        'test-project',
+        expect.objectContaining({
+          apiServer: expect.objectContaining({ managedPipelines: {} }),
+        }),
+      );
+    });
+  });
 
   it('should not show or configure managed pipelines when AutoML and AutoRAG are unavailable', async () => {
     const {
@@ -303,23 +285,13 @@ describe('ConfigurePipelinesServerModal', () => {
     objectStorageIsValid.mockReturnValue(true);
     configureSpecFromSubmitConfig();
 
-    mockUseAppContext.mockReturnValue({
-      buildStatuses: [],
-      dashboardConfig: mockDashboardConfig({ automl: true, autorag: false }),
-      storageClasses: [],
-      isRHOAI: false,
-    });
+    mockAreaStatuses([SupportedArea.PLUGIN_AUTOML]);
 
     const { rerender } = renderModal();
     fireEvent.click(screen.getByText('Advanced settings'));
     expect(screen.getByTestId('managed-pipelines-checkbox')).toBeChecked();
 
-    mockUseAppContext.mockReturnValue({
-      buildStatuses: [],
-      dashboardConfig: mockDashboardConfig({ automl: false, autorag: false }),
-      storageClasses: [],
-      isRHOAI: false,
-    });
+    mockAreaStatuses([]);
     rerender(modalElement());
 
     fireEvent.click(screen.getByRole('button', { name: 'Configure pipeline server' }));

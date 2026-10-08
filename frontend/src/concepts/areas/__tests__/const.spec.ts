@@ -1,4 +1,8 @@
-import { SupportedArea, type SupportedAreaType } from '@odh-dashboard/plugin-core/areas';
+import {
+  DataScienceStackComponent,
+  SupportedArea,
+  type SupportedAreaType,
+} from '@odh-dashboard/plugin-core/areas';
 import { SupportedAreasStateMap } from '#~/concepts/areas/const';
 
 describe('Verify const stability', () => {
@@ -50,5 +54,17 @@ describe('Verify const stability', () => {
         ),
     );
     expect(list.length > 0).toBe(true);
+  });
+
+  it('should define AutoML and AutoRAG area availability requirements', () => {
+    expect(SupportedAreasStateMap[SupportedArea.PLUGIN_AUTOML]).toEqual({
+      featureFlags: ['automl'],
+      requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
+    });
+    expect(SupportedAreasStateMap[SupportedArea.PLUGIN_AUTORAG]).toEqual({
+      featureFlags: ['autorag'],
+      requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
+      reliantAreas: [SupportedArea.PLUGIN_GEN_AI],
+    });
   });
 });

@@ -36,8 +36,8 @@ import {
   hasServerTimedOut,
   isDspaAllReady,
 } from '#~/concepts/pipelines/context/usePipelineNamespaceCR';
-import { useAppContext } from '#~/app/AppContext';
 import useIsMlflowCRAvailable from '#~/concepts/mlflow/hooks/useIsMlflowCRAvailable';
+import useIsManagedPipelinesAvailable from '#~/concepts/pipelines/hooks/useIsManagedPipelinesAvailable';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { PipelineCachingSection } from './PipelineCachingSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
@@ -98,14 +98,9 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   const [advancedSettingsExpanded, setAdvancedSettingsExpanded] = React.useState(
     showManagedPipelinesWarning,
   );
-  const { dashboardConfig } = useAppContext();
-  // standaloneNamespace is currently only used in autorag and automl — skip the dashboardConfig
-  // check because to reach those pages the feature must already be enabled.
-  const isManagedPipelinesAvailable = standaloneNamespace
-    ? true
-    : !!(
-        dashboardConfig.spec.dashboardConfig.automl || dashboardConfig.spec.dashboardConfig.autorag
-      );
+  const managedPipelinesAreaAvailable = useIsManagedPipelinesAvailable();
+  // Standalone mode is only used from AutoML and AutoRAG, so those features are already available.
+  const isManagedPipelinesAvailable = !!standaloneNamespace || managedPipelinesAreaAvailable;
   const [mergedDefaults] = React.useState<PipelineServerConfigType>(() => ({
     ...FORM_DEFAULTS,
     ...defaultConfig,
