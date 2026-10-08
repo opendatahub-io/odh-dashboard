@@ -11,7 +11,7 @@ import (
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
-func TestResolveModuleStatuses_MaaSConsumerPortalDemand(t *testing.T) {
+func TestResolveModuleStatuses_MaaSPortalDemand(t *testing.T) {
 	tests := []struct {
 		name       string
 		spec       v1alpha1.DashboardSpec
@@ -25,12 +25,12 @@ func TestResolveModuleStatuses_MaaSConsumerPortalDemand(t *testing.T) {
 		},
 		{
 			name:       "Core Dashboard and MaaS Consumer Portal share MaaS and GenAI demand",
-			spec:       v1alpha1.DashboardSpec{ManagementSpec: common.ManagementSpec{ManagementState: "Managed"}, MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"}},
+			spec:       v1alpha1.DashboardSpec{ManagementSpec: common.ManagementSpec{ManagementState: "Managed"}, MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"}},
 			wantPhases: map[string]v1alpha1.ModulePhase{"maas": v1alpha1.ModulePhaseDeployed, "genAi": v1alpha1.ModulePhaseDeployed, "mlflow": v1alpha1.ModulePhaseDeployed},
 		},
 		{
 			name:       "explicit disable overrides MaaS Consumer Portal demand",
-			spec:       v1alpha1.DashboardSpec{ManagementSpec: common.ManagementSpec{ManagementState: "Removed"}, MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"}, Modules: map[string]v1alpha1.ModuleOverride{"maas": {State: v1alpha1.ModuleDisabled}}},
+			spec:       v1alpha1.DashboardSpec{ManagementSpec: common.ManagementSpec{ManagementState: "Removed"}, MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"}, Modules: map[string]v1alpha1.ModuleOverride{"maas": {State: v1alpha1.ModuleDisabled}}},
 			wantPhases: map[string]v1alpha1.ModulePhase{"maas": v1alpha1.ModulePhaseDisabled, "genAi": v1alpha1.ModulePhaseDeployed},
 			wantReason: map[string]string{"maas": "ExplicitOverride"},
 		},

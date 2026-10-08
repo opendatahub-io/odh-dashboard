@@ -10,16 +10,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func servingRuntimeListQuery(values url.Values) url.Values {
+	query := url.Values{}
+	for key, value := range values {
+		query[key] = append(query[key], value...)
+	}
+	if len(query["pageSize"]) == 0 && len(query["nextPageToken"]) == 0 {
+		query.Set("pageSize", "50")
+	}
+	return query
+}
+
 func TestServingRuntimeCatalogMockBrowsing(t *testing.T) {
 	repo := NewServingRuntimeCatalogRepository(&mocks.ModelCatalogClientMock{})
 	first, err := repo.List(url.Values{"pageSize": {"1"}, "orderBy": {"NAME"}})
 	require.NoError(t, err)
 	require.Len(t, first.Items, 1)
-	require.Equal(t, "mlserver", *first.Items[0].Name)
+	require.Equal(t, "caikit-nlp", *first.Items[0].Name)
 	require.NotEmpty(t, first.NextPageToken)
 	next, err := repo.List(url.Values{"pageSize": {"1"}, "orderBy": {"NAME"}, "nextPageToken": {first.NextPageToken}})
 	require.NoError(t, err)
-	require.Equal(t, "ovms", *next.Items[0].Name)
+	require.Equal(t, "mlserver", *next.Items[0].Name)
 	runtime, err := repo.Get(*next.Items[0].ID)
 	require.NoError(t, err)
 	require.Equal(t, *next.Items[0].Name, *runtime.Name)
@@ -43,25 +54,25 @@ func TestServingRuntimeCatalogMockFilters(t *testing.T) {
 	}{
 		{"search", url.Values{"q": {"VLLM"}}, 1},
 		{"name pattern", url.Values{"name": {"%server"}}, 1},
-		{"source", url.Values{"source": {"redhat-runtimes"}}, 2},
-		{"multiple sources", url.Values{"source": {"redhat-runtimes", "community-runtimes"}}, 8},
-		{"source label", url.Values{"sourceLabel": {"null"}}, 6},
-		{"named source label", url.Values{"sourceLabel": {"Red Hat"}}, 2},
-		{"multiple source labels", url.Values{"sourceLabel": {"Red Hat", "null"}}, 8},
-		{"comma separated source labels", url.Values{"sourceLabel": {"Red Hat,null"}}, 8},
+		{"source", url.Values{"source": {"redhat-runtimes"}}, 12},
+		{"multiple sources", url.Values{"source": {"redhat-runtimes", "community-runtimes"}}, 12},
+		{"source label", url.Values{"sourceLabel": {"null"}}, 0},
+		{"named source label", url.Values{"sourceLabel": {"Red Hat"}}, 12},
+		{"multiple source labels", url.Values{"sourceLabel": {"Red Hat", "null"}}, 12},
+		{"comma separated source labels", url.Values{"sourceLabel": {"Red Hat,null"}}, 12},
 		{"unknown source label", url.Values{"sourceLabel": {"unknown"}}, 0},
 		{"source and label intersection", url.Values{"source": {"community-runtimes"}, "sourceLabel": {"Red Hat"}}, 0},
-		{"filter", url.Values{"filterQuery": {"hardware='nvidia.com/gpu' AND modelFormat IN ('safetensors')"}}, 1},
-		{"accelerator", url.Values{"filterQuery": {"hardware='nvidia.com/gpu'"}}, 2},
+		{"filter", url.Values{"filterQuery": {"hardware='nvidia.com/gpu' AND modelFormat IN ('safetensors')"}}, 3},
+		{"accelerator", url.Values{"filterQuery": {"hardware='nvidia.com/gpu'"}}, 5},
 		{"format", url.Values{"filterQuery": {"modelFormat IN ('onnx', 'sklearn')"}}, 3},
-		{"huggingface", url.Values{"filterQuery": {"modelFormat='huggingface'"}}, 1},
-		{"cpu or gpu", url.Values{"filterQuery": {"hardware='cpu-or-gpu'"}}, 1},
+		{"huggingface", url.Values{"filterQuery": {"modelFormat='huggingface'"}}, 2},
+		{"cpu or gpu", url.Values{"filterQuery": {"hardware='cpu-or-gpu'"}}, 2},
 		{"amd accelerator", url.Values{"filterQuery": {"hardware='amd.com/gpu'"}}, 1},
 		{"empty", url.Values{"q": {"no-such-runtime"}}, 0},
 		{"end of results", url.Values{"nextPageToken": {"9223372036854775807"}}, 0},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			list, err := repo.List(tt.query)
+			list, err := repo.List(servingRuntimeListQuery(tt.query))
 			require.NoError(t, err)
 			require.NotNil(t, list.Items)
 			require.Len(t, list.Items, tt.count)
@@ -97,10 +108,10 @@ func TestServingRuntimeCatalogOrderByValues(t *testing.T) {
 	repo := NewServingRuntimeCatalogRepository(&mocks.ModelCatalogClientMock{})
 	for _, field := range []string{"ID", "NAME", "CREATE_TIME", "LAST_UPDATE_TIME", "RECOMMENDED"} {
 		t.Run(field, func(t *testing.T) {
-			query := url.Values{"orderBy": {field}}
+			query := servingRuntimeListQuery(url.Values{"orderBy": {field}})
 			list, err := repo.List(query)
 			require.NoError(t, err)
-			require.Len(t, list.Items, 8)
+			require.Len(t, list.Items, 12)
 			versions, err := repo.Versions("1", query)
 			require.NoError(t, err)
 			require.Len(t, versions.Items, 2)
@@ -116,7 +127,7 @@ func TestServingRuntimeFilterOptionsMatchMockData(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, *options.Filters, 2)
 	require.ElementsMatch(t, []interface{}{"amd.com/gpu", "cpu", "cpu-or-gpu", "ibm.com/spyre", "habana.ai/gaudi", "nvidia.com/gpu"}, (*options.Filters)["hardware"].Values)
-	require.ElementsMatch(t, []interface{}{"huggingface", "onnx", "openvino_ir", "xgboost", "safetensors", "sklearn", "tensorflow", "tensorrt"}, (*options.Filters)["modelFormat"].Values)
+	require.ElementsMatch(t, []interface{}{"caikit", "huggingface", "onnx", "openvino_ir", "pytorch", "xgboost", "safetensors", "sklearn", "tensorflow", "tensorrt", "torchscript"}, (*options.Filters)["modelFormat"].Values)
 	for field, option := range *options.Filters {
 		for _, value := range option.Values {
 			t.Run(fmt.Sprintf("%s/%v", field, value), func(t *testing.T) {

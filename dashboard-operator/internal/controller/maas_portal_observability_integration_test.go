@@ -27,7 +27,7 @@ import (
 	ctrlpkg "github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
 )
 
-func TestIntegration_MaaSConsumerPortalObservabilityLifecycle(t *testing.T) {
+func TestIntegration_MaaSPortalObservabilityLifecycle(t *testing.T) {
 	installPersesCRD(t)
 	for _, tt := range []struct {
 		name        string
@@ -62,7 +62,7 @@ func TestIntegration_MaaSConsumerPortalObservabilityLifecycle(t *testing.T) {
 			t.Cleanup(func() { deleteIgnoreNotFound(t, service) })
 
 			base := createIntegrationManifests(t, []string{"maas", "gen-ai"})
-			writeMaaSConsumerPortalManifest(t, base)
+			writeMaaSPortalManifest(t, base)
 			writePortalObservabilityOverlay(t, base)
 			r := &ctrlpkg.DashboardReconciler{
 				Client: persesClient, Scheme: persesClient.Scheme(), ManifestsBasePath: base,
@@ -99,7 +99,7 @@ func TestIntegration_MaaSConsumerPortalObservabilityLifecycle(t *testing.T) {
 			}
 			t.Cleanup(func() {
 				deleteDashboard(t)
-				cleanupMaaSConsumerPortalResources(t, r)
+				cleanupMaaSPortalResources(t, r)
 				cleanupModuleResources(t)
 				for _, resource := range resources {
 					require.NoError(t, client.IgnoreNotFound(persesClient.Delete(ctx, resource)))
@@ -223,7 +223,7 @@ func TestIntegration_MaaSConsumerPortalObservabilityLifecycle(t *testing.T) {
 					assert.Contains(t, condition.Message, "data[invalid key]")
 				}
 			}
-			assert.Equal(t, metav1.ConditionTrue, conditionStatus(failedDashboard, ctrlpkg.ConditionMaaSConsumerPortalAvailable))
+			assert.Equal(t, metav1.ConditionTrue, conditionStatus(failedDashboard, ctrlpkg.ConditionMaaSPortalAvailable))
 			assert.Equal(t, federation.Data, getConfigMap(t, federation.Name).Data)
 			for i, resource := range resources {
 				require.NoError(t, persesClient.Get(ctx, client.ObjectKeyFromObject(resource), resource))
