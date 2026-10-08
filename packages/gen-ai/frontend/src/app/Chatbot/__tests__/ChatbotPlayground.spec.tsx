@@ -946,6 +946,61 @@ describe('ChatbotPlayground — audio transcription', () => {
     expect(screen.getByTestId('audio-file-input')).toBeInTheDocument();
   });
 
+  it('keeps audio pending until a transcription model is selected', async () => {
+    const { uploadMediaFile } = require('~/app/services/llamaStackService');
+    uploadMediaFile.mockReturnValue({
+      promise: new Promise(() => {
+        /* Keep the upload in progress. */
+      }),
+      xhr: { abort: jest.fn() },
+    });
+    renderPlayground();
+    const file = new File(['audio-data'], 'test.wav', { type: 'audio/wav' });
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('audio-file-input'), { target: { files: [file] } });
+    });
+    expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
+    expect(screen.getByTestId('audio-model-needed-alert')).toBeInTheDocument();
+    expect(screen.getByTestId('send-button')).toBeDisabled();
+    expect(uploadMediaFile).not.toHaveBeenCalled();
+
+    act(() => {
+      useChatbotConfigStore.getState().updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'untagged-model');
+    });
+    expect(uploadMediaFile).not.toHaveBeenCalled();
+    expect(screen.getByTestId('audio-model-needed-alert')).toBeInTheDocument();
+
+    act(() => {
+      useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
+    });
+    await waitFor(() => expect(uploadMediaFile).toHaveBeenCalledTimes(1));
+    expect(screen.queryByTestId('audio-model-needed-alert')).not.toBeInTheDocument();
+  });
+
+  it('does not upload canceled audio after a transcription model is selected', async () => {
+    const { uploadMediaFile } = require('~/app/services/llamaStackService');
+    renderPlayground();
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('audio-file-input'), {
+        target: { files: [new File(['audio-data'], 'test.wav', { type: 'audio/wav' })] },
+      });
+    });
+    expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('chip-close'));
+    });
+    expect(screen.queryByTestId('audio-file-chip')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('audio-model-needed-alert')).not.toBeInTheDocument();
+
+    act(() => {
+      useChatbotConfigStore.getState().updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-model');
+    });
+    expect(uploadMediaFile).not.toHaveBeenCalled();
+  });
+
   it('audio upload triggers uploadMediaFile with audio type', async () => {
     const { uploadMediaFile } = require('~/app/services/llamaStackService');
     uploadMediaFile.mockReturnValue({
@@ -1195,7 +1250,7 @@ describe('ChatbotPlayground — compare mode attachments', () => {
     expect(imageMenuItem).not.toBeDisabled();
   });
 
-  it('image upload is disabled when one compared model lacks vision capability', async () => {
+  it('keeps an in-flight image upload when a compared model lacks vision capability', async () => {
     const visionModel = { id: 'vision-ai', capabilities: ['vision', 'text-generation'] };
     const textModel = { id: 'text-ai', capabilities: ['text-generation'] };
 
@@ -1243,7 +1298,7 @@ describe('ChatbotPlayground — compare mode attachments', () => {
           },
           'config-2': {
             ...DEFAULT_CONFIGURATION,
-            selectedModel: 'text-llama',
+            selectedModel: 'vision-llama',
           },
         },
         configIds: [DEFAULT_CONFIG_ID, 'config-2'],
@@ -1255,10 +1310,46 @@ describe('ChatbotPlayground — compare mode attachments', () => {
     });
 
     const imageMenuItem = screen.getByTestId('menu-item-upload-image');
-    expect(imageMenuItem).toBeDisabled();
+    expect(imageMenuItem).not.toBeDisabled();
+
+    const { uploadMediaFile } = require('~/app/services/llamaStackService');
+    let finishUpload: (response: { data: { id: string } }) => void = () => undefined;
+    const abortUpload = jest.fn();
+    uploadMediaFile.mockReturnValue({
+      promise: new Promise((resolve) => {
+        finishUpload = resolve;
+      }),
+      xhr: { abort: abortUpload },
+    });
+    const file = new File(['pixels'], 'photo.png', { type: 'image/png' });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('vision-file-input'), {
+        target: { files: createFileList([file]) },
+      });
+    });
+    expect(screen.getByTestId('vision-file-preview')).toBeInTheDocument();
+    expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+    expect(screen.getByTestId('chip-loading')).toBeInTheDocument();
+
+    act(() => {
+      useChatbotConfigStore.getState().updateSelectedModel('config-2', 'text-llama');
+    });
+    expect(screen.getByTestId('vision-file-preview')).toBeInTheDocument();
+    expect(screen.getByTestId('image-capability-alert')).toBeInTheDocument();
+    expect(abortUpload).not.toHaveBeenCalled();
+
+    act(() => {
+      useChatbotConfigStore.getState().updateSelectedModel('config-2', 'vision-llama');
+    });
+    expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+
+    await act(async () => {
+      finishUpload({ data: { id: 'image-file' } });
+    });
+    expect(screen.getByTestId('vision-file-preview')).toBeInTheDocument();
   });
 
-  it('image upload is disabled when workspace has no vision models', async () => {
+  it('allows image upload when workspace has no vision-tagged models', async () => {
     const useWorkspaceCapabilities = require('~/app/hooks/useWorkspaceCapabilities').default;
     useWorkspaceCapabilities.mockReturnValue({
       hasVisionModel: false,
@@ -1274,7 +1365,66 @@ describe('ChatbotPlayground — compare mode attachments', () => {
     });
 
     const imageMenuItem = screen.getByTestId('menu-item-upload-image');
-    expect(imageMenuItem).toBeDisabled();
+    expect(imageMenuItem).not.toBeDisabled();
+
+    const { uploadMediaFile } = require('~/app/services/llamaStackService');
+    uploadMediaFile.mockReturnValue({
+      promise: Promise.resolve({ data: { id: 'image-file' } }),
+      xhr: { abort: jest.fn() },
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('vision-file-input'), {
+        target: {
+          files: createFileList([new File(['pixels'], 'photo.png', { type: 'image/png' })]),
+        },
+      });
+    });
+    expect(screen.getByTestId('vision-file-preview')).toBeInTheDocument();
+    expect(screen.getByTestId('image-capability-alert')).toBeInTheDocument();
+  });
+
+  it.each([
+    ['model metadata is loading', false, []],
+    ['the selected model has no matching capability record', true, [{ id: 'other-model' }]],
+  ])('shows the vision notice when %s', async (_scenario, aiModelsLoaded, aiModels) => {
+    mockIsPlaygroundModelMatch.mockReturnValue(false);
+    render(
+      <MemoryRouter initialEntries={['/gen-ai-studio/playground/test-ns']}>
+        <ChatbotContext.Provider
+          value={
+            {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              ...(ChatbotContext as any)._currentValue,
+              aiModels,
+              aiModelsLoaded,
+            } as React.ContextType<typeof ChatbotContext>
+          }
+        >
+          <ChatbotPlayground
+            isViewCodeModalOpen={false}
+            setIsViewCodeModalOpen={jest.fn()}
+            isNewChatModalOpen={false}
+            setIsNewChatModalOpen={jest.fn()}
+          />
+        </ChatbotContext.Provider>
+      </MemoryRouter>,
+    );
+
+    const { uploadMediaFile } = require('~/app/services/llamaStackService');
+    uploadMediaFile.mockReturnValue({
+      promise: Promise.resolve({ data: { id: 'image-file' } }),
+      xhr: { abort: jest.fn() },
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('vision-file-input'), {
+        target: {
+          files: createFileList([new File(['pixels'], 'photo.png', { type: 'image/png' })]),
+        },
+      });
+    });
+
+    expect(screen.getByTestId('vision-file-preview')).toBeInTheDocument();
+    expect(screen.getByTestId('image-capability-alert')).toBeInTheDocument();
   });
 
   it('audio file input is rendered in compare mode', () => {
