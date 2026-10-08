@@ -53,7 +53,8 @@ describe('AutoML Results Page', () => {
 
       cy.findByTestId('close-step-details').click();
       automlResultsPage.findPipelineDetailsButton().should('contain.text', 'Pipeline details');
-      cy.findByTestId('step-details-drawer-panel').should('not.be.visible');
+      // PF keeps the panel wrapper mounted when collapsed (hidden via transform) — assert the hidden attribute
+      cy.findByTestId('step-details-drawer-panel').should('have.attr', 'hidden');
 
       // Clicking the link re-shows the panel
       automlResultsPage.findPipelineDetailsButton().click();
@@ -184,7 +185,8 @@ describe('AutoML Results Page', () => {
       automlResultsPage.findRunDetailsDrawerPanel().should('be.visible');
 
       automlResultsPage.findRunDetailsDrawerCloseButton().click();
-      automlResultsPage.findRunDetailsDrawerPanel().should('not.be.visible');
+      // PF keeps the panel wrapper mounted when collapsed (hidden via transform) — assert the hidden attribute
+      automlResultsPage.findRunDetailsDrawerPanel().should('have.attr', 'hidden');
     });
   });
 });
