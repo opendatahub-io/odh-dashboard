@@ -102,7 +102,7 @@ Rules live in `.claude/rules/`. Read the relevant rule file before starting the 
 | **Conventions**             | `conventions.md`              | When writing or reviewing TypeScript, React, or backend code                   |
 | **CSS & PatternFly**        | `css-patternfly.md`           | When writing or modifying styles, SCSS, or PatternFly components               |
 | **Distributions**           | `distributions.md`            | When working on code in `distributions/`                                       |
-| **Cypress E2E Tests**       | `cypress-e2e.md`              | When creating or modifying E2E tests, Robot Framework migrations               |
+| **Cypress E2E Tests**       | `cypress-e2e.md`              | When creating, modifying, or running E2E tests, Robot Framework migrations      |
 | **Cypress Mock Tests**      | `cypress-mock.md`             | When creating or modifying mock/component tests                                |
 | **envtest Integration Tests** | `envtest-integration-tests.md` | When writing or modifying envtest integration tests in `dashboard-operator/` |
 | **Jira Creation**           | `jira-creation.md`            | When asked to create Jira issues, tickets, bugs, stories, tasks, or epics      |

@@ -544,8 +544,20 @@ After implementation:
 **After user confirms test variables and cluster connection:**
 
 1. **Run the E2E Test(s):**
-   - Execute the created E2E test(s) against the connected cluster.
-   - Use Cypress in headless mode for automated runs, or Cypress open mode for live debugging if requested or if failures occur.
+   - For a live, already-deployed dashboard, execute the created E2E test(s) directly from `packages/cypress`; do not start local BFFs, the E2E proxy, dev servers, or the root `test:cypress:e2e` orchestration unless the user explicitly asks for that local stack.
+   - Use the pinned package manager with Corepack:
+     ```bash
+     cd packages/cypress
+     export CY_TEST_CONFIG=/absolute/path/to/test-variables.yml
+     corepack pnpm exec cypress run -b chrome \
+       --spec "cypress/tests/e2e/<feature>/<test>.cy.ts"
+     ```
+   - Verify the connected cluster matches the target before running:
+     ```bash
+     oc whoami --show-server
+     ```
+     Compare the server URL with `OCP_API_URL` in `CY_TEST_CONFIG`; do not print credentials or other secret values.
+   - Use Cypress open mode only when live debugging is requested or after a failure.
 
 2. **Test Passes:**
    - If the test passes, proceed as normal and report success.
@@ -573,7 +585,8 @@ After implementation:
 
 ## Cypress Test Execution Directory and Input Handling
 
-- When running Cypress tests, always run from the correct directory (e.g., 'frontend') so that the --project flag is relative to that directory.
+- For direct live-cluster E2E runs, execute from `packages/cypress` so Cypress resolves `cypress.config.ts`, specs, and fixtures without a wrapper script.
+- Only run from `frontend` when using a frontend-specific wrapper script that explicitly sets `--project`; do not use that path for direct live-cluster runs.
 - Do not use absolute or user-specific paths in scripts or documentation; use relative paths for portability.
 - When updating input fields in E2E tests, always clear the field before typing a new value to avoid concatenation issues (e.g., use .clear().type('newValue')).
 
