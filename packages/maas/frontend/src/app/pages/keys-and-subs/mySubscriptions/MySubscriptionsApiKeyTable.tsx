@@ -18,6 +18,7 @@ import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { APIKey } from '~/app/types/api-key';
 import { UserSubscription } from '~/app/types/subscriptions';
 import { useSubscriptionApiKeysTableState } from '~/app/hooks/useSubscriptionApiKeysTableState';
+import { useKeysAndSubsContext } from '~/app/context/KeysAndSubsContext';
 import ApiKeysTableRow from '~/app/pages/keys-and-subs/apiKeys/allKeys/ApiKeysTableRow';
 import { ApiKeyColumn } from '~/app/pages/keys-and-subs/apiKeys/allKeys/columns';
 import CreateApiKeyModal from '~/app/pages/keys-and-subs/apiKeys/CreateApiKeyModal';
@@ -94,12 +95,13 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
   const subscriptionId = subscription.subscription_id_header;
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [revokeApiKey, setRevokeApiKey] = React.useState<APIKey | undefined>(undefined);
+  const { refresh: refreshKeysAndSubs } = useKeysAndSubsContext();
 
   const {
     response,
     loaded,
     error,
-    refresh,
+    refresh: refreshTable,
     page,
     perPage,
     sortField,
@@ -109,9 +111,16 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
     onPerPageSelect,
     onSort,
   } = useSubscriptionApiKeysTableState(subscriptionId);
+  const { maxExpirationDays, apiKeyConfigError } = useKeysAndSubsContext();
+
+  const refreshAll = () => {
+    refreshTable();
+    refreshKeysAndSubs();
+  };
 
   const apiKeys = response.data;
   const showTableLoading = !loaded || isFetching;
+  const tableError = error;
   const activeSortIndex = subscriptionApiKeyColumns.findIndex(
     (c) => c.serverSortField === sortField,
   );
@@ -122,10 +131,12 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
         <CreateApiKeyModal
           initialSubscription={subscription}
           initiatedFrom={ApiKeyCreateInitiatedFrom.SUBSCRIPTION_DETAIL}
+          maxExpirationDays={maxExpirationDays}
+          apiKeyConfigError={apiKeyConfigError}
           onClose={(created?: boolean) => {
             setIsModalOpen(false);
             if (created) {
-              refresh();
+              refreshAll();
             }
           }}
         />
@@ -137,7 +148,7 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
           onClose={(revoked?: boolean) => {
             setRevokeApiKey(undefined);
             if (revoked) {
-              refresh();
+              refreshAll();
             }
           }}
         />
@@ -163,14 +174,14 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
         </ToolbarContent>
       </Toolbar>
 
-      {error && (
+      {tableError && (
         <Alert
           variant="danger"
           isInline
           title="Failed to load API keys"
           data-testid="subscription-api-keys-error"
         >
-          {error.message}
+          {tableError.message}
         </Alert>
       )}
       <Table data-testid="subscription-api-keys-table" aria-label="Subscription API keys table">
@@ -205,7 +216,7 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
           </Tr>
         </Thead>
         <Tbody>
-          {showTableLoading && !error ? (
+          {showTableLoading && !tableError ? (
             <SubscriptionApiKeySkeletonRows rowCount={perPage} />
           ) : apiKeys.length === 0 ? (
             <Tr>

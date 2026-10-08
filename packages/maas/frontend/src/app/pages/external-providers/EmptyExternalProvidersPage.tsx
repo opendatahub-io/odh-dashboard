@@ -1,6 +1,6 @@
 import React from 'react';
 import { EmptyState, EmptyStateBody, Button, Stack, StackItem } from '@patternfly/react-core';
-import { PlusCircleIcon } from '@patternfly/react-icons';
+import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
 
 type EmptyExternalProvidersPageProps = {
   onCreateExternalProvider: () => void;
@@ -14,7 +14,13 @@ const EmptyExternalProvidersPage: React.FC<EmptyExternalProvidersPageProps> = ({
     headingLevel="h3"
     variant="lg"
     data-testid="empty-external-providers-page"
-    icon={PlusCircleIcon}
+    icon={() => (
+      <img
+        src={typedEmptyImage(ProjectObjectType.modelServer)}
+        alt="No external providers"
+        style={{ height: '200px' }}
+      />
+    )}
   >
     <EmptyStateBody>
       <Stack hasGutter>

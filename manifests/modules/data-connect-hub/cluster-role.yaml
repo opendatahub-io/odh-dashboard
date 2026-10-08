@@ -4,13 +4,21 @@ metadata:
   name: odh-dashboard-data-connect-hub-ui
 rules:
   - apiGroups:
-      - ""
+      - ''
     verbs:
       - get
       - list
       - watch
     resources:
       - configmaps
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - apiservers
+    resourceNames:
+      - cluster
+    verbs:
+      - get
   - apiGroups:
       - authorization.k8s.io
     verbs:

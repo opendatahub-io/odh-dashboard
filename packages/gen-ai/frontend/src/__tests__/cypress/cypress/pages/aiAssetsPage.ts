@@ -1,10 +1,12 @@
+import { appendFeatureFlagParams } from './appChrome';
+
 class AIAssetsPage {
   visit(namespace?: string, queryParams?: Record<string, string>): void {
     const qs = queryParams ? `?${new URLSearchParams(queryParams).toString()}` : '';
     if (namespace) {
-      cy.visit(`/gen-ai-studio/assets/${namespace}${qs}`);
+      cy.visit(appendFeatureFlagParams(`/gen-ai-studio/assets/${namespace}${qs}`));
     } else {
-      cy.visit(`/gen-ai-studio/assets${qs}`);
+      cy.visit(appendFeatureFlagParams(`/gen-ai-studio/assets${qs}`));
     }
     this.waitForPageLoad();
   }
@@ -33,7 +35,7 @@ class AIAssetsPage {
     return cy.findByTestId('mcp-servers-table');
   }
 
-  findMCPServerRow(serverName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+  findMCPServerRow(serverName: string): Cypress.Chainable<JQuery<HTMLTableRowElement>> {
     return this.findMCPServersTable().contains('tr', serverName);
   }
 

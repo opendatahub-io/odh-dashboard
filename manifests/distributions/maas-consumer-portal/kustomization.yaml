@@ -4,9 +4,14 @@ resources:
   - service-account.yaml
   - cluster-role.yaml
   - cluster-role-binding.yaml
+  - rhods-operator-subscription-role.yaml
+  - rhods-operator-subscription-role-binding.yaml
+  - opendatahub-operator-subscription-role.yaml
+  - opendatahub-operator-subscription-role-binding.yaml
   - deployment.yaml
   - service.yaml
   - networkpolicy.yaml
+  - perses-networkpolicy.yaml
   - httproute.yaml
 configMapGenerator:
   - name: maas-consumer-portal-params
@@ -46,18 +51,6 @@ replacements:
   - source:
       kind: ConfigMap
       name: maas-consumer-portal-params
-      fieldPath: data.gateway-domain
-    targets:
-      - select:
-          group: gateway.networking.k8s.io
-          version: v1
-          kind: HTTPRoute
-          name: maas-consumer-portal
-        fieldPaths:
-          - spec.hostnames.0
-  - source:
-      kind: ConfigMap
-      name: maas-consumer-portal-params
       fieldPath: data.dashboard-namespace
     targets:
       - select:
@@ -65,6 +58,20 @@ replacements:
           version: v1
           kind: ClusterRoleBinding
           name: maas-consumer-portal
+        fieldPaths:
+          - subjects.0.namespace
+      - select:
+          group: rbac.authorization.k8s.io
+          version: v1
+          kind: RoleBinding
+          name: maas-consumer-portal-rhods-operator-subscription
+        fieldPaths:
+          - subjects.0.namespace
+      - select:
+          group: rbac.authorization.k8s.io
+          version: v1
+          kind: RoleBinding
+          name: maas-consumer-portal-opendatahub-operator-subscription
         fieldPaths:
           - subjects.0.namespace
       - select:
@@ -87,6 +94,16 @@ replacements:
   - source:
       kind: ConfigMap
       name: maas-consumer-portal-params
+      fieldPath: data.perses-namespace
+    targets:
+      - select:
+          kind: NetworkPolicy
+          name: maas-consumer-portal-perses
+        fieldPaths:
+          - spec.egress.0.to.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
+  - source:
+      kind: ConfigMap
+      name: maas-consumer-portal-params
       fieldPath: data.maas-consumer-portal-federation-config
     targets:
       - select:
@@ -94,3 +111,13 @@ replacements:
           name: maas-consumer-portal
         fieldPaths:
           - spec.template.spec.volumes.[name=maas-consumer-portal-federation-config].configMap.name
+  - source:
+      kind: ConfigMap
+      name: maas-consumer-portal-params
+      fieldPath: data.operator-namespace
+    targets:
+      - select:
+          kind: Deployment
+          name: maas-consumer-portal
+        fieldPaths:
+          - spec.template.spec.containers.[name=maas-consumer-portal].env.[name=OPERATOR_NAMESPACE].value

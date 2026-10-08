@@ -24,7 +24,8 @@ const EvalHubEmptyState: React.FC = () => {
       data-testid="eval-hub-empty-state"
     >
       <EmptyStateBody data-testid="eval-hub-empty-state-body">
-        Start an evaluation run, or select a different project to view its runs.
+        Go to benchmark suites to create a suite or run an individual benchmark, or select a
+        different project to view its runs.
       </EmptyStateBody>
       <EmptyStateFooter>
         <EmptyStateActions>
@@ -33,10 +34,10 @@ const EvalHubEmptyState: React.FC = () => {
             data-testid="create-evaluation-button"
             onClick={() => {
               fireSimpleTrackingEvent(EVAL_HUB_EVENTS.START_EVALUATION_SELECTED);
-              navigate('create');
+              navigate({ search: '?tab=evaluate' });
             }}
           >
-            Start evaluation run
+            View benchmark suites
           </Button>
         </EmptyStateActions>
       </EmptyStateFooter>

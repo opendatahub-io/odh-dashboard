@@ -27,6 +27,7 @@ import SupportIconLight from '~/app/bgimages/support-icon-light.svg';
 import { MCPServer, MCPServerFromAPI } from '~/app/types';
 import { transformMCPServerData, shouldTriggerAutoUnlock } from '~/app/utilities/mcp';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import useGenAiMcpRegistryServers from '~/app/hooks/useGenAiMcpRegistryServers';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import { useChatbotConfigStore, selectSelectedMcpServerIds } from '~/app/Chatbot/store';
@@ -59,6 +60,7 @@ interface MCPServersPanelProps {
   initialServerStatuses?: Map<string, ServerStatusInfo>;
   onToolsWarningChange?: (showWarning: boolean) => void;
   onActiveToolsCountChange?: (count: number) => void;
+  onMissingAuthServersChange?: (serverNames: string[]) => void;
 }
 
 const MCP_AUTH_EVENT_NAME = 'Playground MCP Auth';
@@ -76,9 +78,11 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   initialServerStatuses,
   onToolsWarningChange,
   onActiveToolsCountChange,
+  onMissingAuthServersChange,
 }) => {
   const isDarkMode = useDarkMode();
   const { api, apiAvailable } = useGenAiAPI();
+  const mcpRegistryServersEnabled = useGenAiMcpRegistryServers();
   const { namespace } = React.useContext(GenAiContext);
 
   const initialSelectedServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
@@ -107,7 +111,8 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
     [transformedServers],
   );
 
-  const showRegisteredSection = registryAvailable && registeredServers.length > 0;
+  const showRegisteredSection =
+    mcpRegistryServersEnabled && registryAvailable && registeredServers.length > 0;
 
   // Section expand/collapse state
   const [isRegisteredExpanded, setIsRegisteredExpanded] = React.useState(true);
@@ -155,16 +160,44 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
     initialSelectedServerIds,
     onSelectionChange,
   });
+  const { selectedServers, setSelectedServers } = selection;
+
+  const visibleSelectedServers = React.useMemo(
+    () =>
+      mcpRegistryServersEnabled
+        ? selectedServers
+        : selectedServers.filter((server) => server.source !== 'registry'),
+    [mcpRegistryServersEnabled, selectedServers],
+  );
+
+  React.useEffect(() => {
+    if (visibleSelectedServers.length !== selectedServers.length) {
+      setSelectedServers(visibleSelectedServers);
+      onSelectionChange(visibleSelectedServers.map((server) => server.id));
+    }
+  }, [onSelectionChange, selectedServers.length, setSelectedServers, visibleSelectedServers]);
+
+  React.useEffect(() => {
+    if (mcpRegistryServersEnabled) {
+      return;
+    }
+
+    [configModal, toolsModal, successModal].forEach((modal) => {
+      if (modal.selectedItem?.source === 'registry') {
+        modal.closeModal();
+      }
+    });
+  }, [configModal, mcpRegistryServersEnabled, successModal, toolsModal]);
 
   const selectedRegisteredCount = React.useMemo(
-    () => selection.selectedServers.filter((s) => s.source === 'registry').length,
-    [selection.selectedServers],
+    () => visibleSelectedServers.filter((s) => s.source === 'registry').length,
+    [visibleSelectedServers],
   );
 
   // Auto-unlock
   const { autoUnlockingServers } = useAutoUnlock({
     checkServerStatus,
-    selectedServers: selection.selectedServers,
+    selectedServers: visibleSelectedServers,
     isInitialLoadComplete: selection.isInitialLoadComplete,
     initialServerStatuses,
     getToken: tokenManagement.getToken,
@@ -175,7 +208,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   // Table integration (checkboxes for selecting servers)
   const { isSelected, toggleSelection } = useCheckboxTableBase(
     transformedServers,
-    selection.selectedServers,
+    visibleSelectedServers,
     selection.setSelectedServers,
     React.useCallback((server: MCPServer) => server.id, []),
   );
@@ -195,7 +228,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   // Calculate total active tools across all connected AND selected servers
   const totalActiveTools = React.useMemo(() => {
     let total = 0;
-    selection.selectedServers.forEach((server) => {
+    visibleSelectedServers.forEach((server) => {
       const tokenInfo = tokenManagement.getToken(server.connectionUrl);
       const isAuthenticated = tokenInfo?.authenticated || tokenInfo?.autoConnected || false;
 
@@ -205,13 +238,13 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
       }
     });
     return total;
-  }, [selection.selectedServers, tokenManagement, getToolCounts]);
+  }, [visibleSelectedServers, tokenManagement, getToolCounts]);
 
   const showToolsWarning = totalActiveTools > 40;
 
   const showAuthRequiredBanner =
     selection.isInitialLoadComplete &&
-    selection.selectedServers.some((server) => {
+    visibleSelectedServers.some((server) => {
       const tokenInfo = tokenManagement.getToken(server.connectionUrl);
       const isAuthenticated = tokenInfo?.authenticated || tokenInfo?.autoConnected || false;
       const isServerLoading =
@@ -221,6 +254,29 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
       return !isAuthenticated && !isServerLoading;
     });
 
+  const missingAuthServerNames = React.useMemo(
+    () =>
+      visibleSelectedServers
+        .filter((server) => {
+          const tokenInfo = tokenManagement.getToken(server.connectionUrl);
+          const isAuthenticated = tokenInfo?.authenticated || tokenInfo?.autoConnected || false;
+          const isServerLoading =
+            validation.validatingServers.has(server.connectionUrl) ||
+            validation.checkingServers.has(server.connectionUrl) ||
+            autoUnlockingServers.has(server.connectionUrl);
+          return selection.isInitialLoadComplete && !isAuthenticated && !isServerLoading;
+        })
+        .map((server) => server.name),
+    [
+      autoUnlockingServers,
+      selection.isInitialLoadComplete,
+      tokenManagement,
+      validation.checkingServers,
+      validation.validatingServers,
+      visibleSelectedServers,
+    ],
+  );
+
   React.useEffect(() => {
     onToolsWarningChange?.(showToolsWarning);
   }, [showToolsWarning, onToolsWarningChange]);
@@ -228,6 +284,10 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   React.useEffect(() => {
     onActiveToolsCountChange?.(totalActiveTools);
   }, [totalActiveTools, onActiveToolsCountChange]);
+
+  React.useEffect(() => {
+    onMissingAuthServersChange?.(missingAuthServerNames);
+  }, [missingAuthServerNames, onMissingAuthServersChange]);
 
   const handleConfigModalClose = React.useCallback(() => {
     if (configModal.selectedItem) {

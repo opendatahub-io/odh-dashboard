@@ -1,7 +1,357 @@
-import { pollUntilSuccess } from './baseCommands';
+import { applyOpenShiftYaml, pollUntilSuccess } from './baseCommands';
+import { createEvalHubHardwareProfile } from './evalHubHardwareProfile';
+import type { EvalHubInstance } from './evalHubInstance';
 import { checkInferenceServiceState } from './modelServing';
-import { createCleanHardwareProfile } from './hardwareProfiles';
-import type { EvalHubTestData } from '../../types';
+import type { CommandLineResult, EvalHubTestData } from '../../types';
+
+const EVALHUB_DISCOVERY_CONFIGMAP = 'evalhub-discovery';
+const EVALHUB_DISCOVERY_URL_KEY = 'service-url';
+const EVALHUB_JOB_CONFIG_CLUSTER_ROLE = 'trustyai-service-operator-evalhub-job-config';
+const EVALHUB_JOBS_WRITER_CLUSTER_ROLE = 'trustyai-service-operator-evalhub-jobs-writer';
+const KUBERNETES_NAME_RE = /^[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?$/;
+const KSERVE_APPLY_MAX_ATTEMPTS = 4;
+const KSERVE_APPLY_RETRY_INTERVAL_MS = 5000;
+
+type EvalHubDiscoveryConfigMap = {
+  data?: Partial<Record<string, string>>;
+};
+
+export type EvalHubServiceTarget = {
+  serviceName: string;
+  serviceNamespace: string;
+};
+
+type EvalHubServiceIdentity = EvalHubServiceTarget & {
+  serviceAccountName: string;
+};
+
+const isTransientKServeWebhookError = (output: string): boolean =>
+  output.includes('failed calling webhook') &&
+  ['context deadline exceeded', 'connection refused', 'no endpoints available for service'].some(
+    (message) => output.includes(message),
+  );
+
+const applyKServeResource = (
+  namespace: string,
+  filePath: string,
+  resourceDescription: string,
+  attempt = 1,
+): Cypress.Chainable<CommandLineResult> =>
+  cy
+    .exec(`oc apply -n ${namespace} -f ${filePath}`, { failOnNonZeroExit: false })
+    .then((result) => {
+      if (result.exitCode === 0) {
+        return cy.wrap(result);
+      }
+
+      const output = result.stderr || result.stdout;
+      if (isTransientKServeWebhookError(output) && attempt < KSERVE_APPLY_MAX_ATTEMPTS) {
+        cy.log(
+          `${resourceDescription} admission webhook was unavailable; retrying ` +
+            `(${attempt}/${KSERVE_APPLY_MAX_ATTEMPTS})`,
+        );
+        // eslint-disable-next-line cypress/no-unnecessary-waiting -- bounded webhook readiness backoff
+        return cy
+          .wait(KSERVE_APPLY_RETRY_INTERVAL_MS)
+          .then(() => applyKServeResource(namespace, filePath, resourceDescription, attempt + 1));
+      }
+
+      throw new Error(`${resourceDescription} apply failed: ${output}`);
+    });
+
+const assertKubernetesName = (value: string, description: string): string => {
+  if (!KUBERNETES_NAME_RE.test(value)) {
+    throw new Error(`${description} must be a DNS-1123 name; received '${value}'.`);
+  }
+  return value;
+};
+
+export const getEvalHubTenantResourceSelector = ({
+  serviceName,
+  serviceNamespace,
+}: EvalHubServiceTarget): string => {
+  const safeServiceName = assertKubernetesName(serviceName, 'EvalHub service name');
+  assertKubernetesName(serviceNamespace, 'EvalHub service namespace');
+
+  return [
+    'app=eval-hub',
+    `app.kubernetes.io/instance=${safeServiceName}`,
+    'app.kubernetes.io/component=job',
+  ].join(',');
+};
+
+/**
+ * Mirrors the EvalHub BFF's discovery selection. Each supported E2E environment has one
+ * multi-tenant EvalHub instance, either pre-existing or provisioned by the test.
+ */
+const resolveDiscoveryURL = (data: Partial<Record<string, string>>): string => {
+  let selectedKey = '';
+  let selectedURL = '';
+
+  Object.entries(data).forEach(([key, value]) => {
+    const url = value?.trim() ?? '';
+    if (key.endsWith('.url') && url && (!selectedKey || key < selectedKey)) {
+      selectedKey = key;
+      selectedURL = url;
+    }
+  });
+
+  return selectedURL || data[EVALHUB_DISCOVERY_URL_KEY]?.trim() || '';
+};
+
+const resolveEvalHubServiceTarget = (serviceURL: string): EvalHubServiceTarget => {
+  let endpoint: URL;
+  try {
+    endpoint = new URL(serviceURL);
+  } catch {
+    throw new Error(`EvalHub discovery ConfigMap has an invalid service URL: '${serviceURL}'.`);
+  }
+
+  if (!['http:', 'https:'].includes(endpoint.protocol) || endpoint.username || endpoint.password) {
+    throw new Error(`EvalHub discovery ConfigMap has an unsafe service URL: '${serviceURL}'.`);
+  }
+
+  const { hostname } = endpoint;
+  const serviceHost = hostname.endsWith('.svc.cluster.local')
+    ? hostname.slice(0, -'.svc.cluster.local'.length)
+    : hostname.endsWith('.svc')
+    ? hostname.slice(0, -'.svc'.length)
+    : '';
+  const [serviceName, serviceNamespace, ...unexpectedHostParts] = serviceHost.split('.');
+
+  if (unexpectedHostParts.length > 0 || !serviceName.startsWith('evalhub') || !serviceNamespace) {
+    throw new Error(
+      `EvalHub discovery URL must identify an in-cluster EvalHub service; received '${serviceURL}'.`,
+    );
+  }
+
+  return {
+    serviceName: assertKubernetesName(serviceName, 'EvalHub service name'),
+    serviceNamespace: assertKubernetesName(serviceNamespace, 'EvalHub service namespace'),
+  };
+};
+
+const getEvalHubServiceIdentity = (
+  tenantNamespace: string,
+): Cypress.Chainable<EvalHubServiceIdentity> =>
+  cy
+    .exec(`oc -n ${tenantNamespace} get configmap ${EVALHUB_DISCOVERY_CONFIGMAP} -o json`, {
+      failOnNonZeroExit: false,
+    })
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `Unable to read ${EVALHUB_DISCOVERY_CONFIGMAP} in ${tenantNamespace}: ${
+            result.stderr || result.stdout
+          }`,
+        );
+      }
+
+      let discoveryConfigMap: EvalHubDiscoveryConfigMap;
+      try {
+        discoveryConfigMap = JSON.parse(result.stdout) as EvalHubDiscoveryConfigMap;
+      } catch {
+        throw new Error(
+          `Unable to parse ${EVALHUB_DISCOVERY_CONFIGMAP} in ${tenantNamespace} as JSON.`,
+        );
+      }
+
+      const serviceURL = resolveDiscoveryURL(discoveryConfigMap.data ?? {});
+      if (!serviceURL) {
+        throw new Error(
+          `${EVALHUB_DISCOVERY_CONFIGMAP} in ${tenantNamespace} does not contain an EvalHub service URL.`,
+        );
+      }
+
+      return resolveEvalHubServiceTarget(serviceURL);
+    })
+    .then(({ serviceName, serviceNamespace }) =>
+      cy
+        .exec(
+          `oc -n ${serviceNamespace} get deployment ${serviceName} ` +
+            "-o jsonpath='{.spec.template.spec.serviceAccountName}'",
+          { failOnNonZeroExit: false },
+        )
+        .then((result) => {
+          if (result.exitCode !== 0) {
+            throw new Error(
+              `Unable to read EvalHub deployment ${serviceNamespace}/${serviceName}: ${
+                result.stderr || result.stdout
+              }`,
+            );
+          }
+
+          return {
+            serviceName,
+            serviceNamespace,
+            serviceAccountName: assertKubernetesName(
+              result.stdout.trim(),
+              `service account for EvalHub deployment ${serviceNamespace}/${serviceName}`,
+            ),
+          };
+        }),
+    );
+
+const waitForExpectedEvalHubDiscovery = (
+  tenantNamespace: string,
+  expectedInstance: EvalHubInstance,
+): Cypress.Chainable<Cypress.Exec> => {
+  const expectedName = assertKubernetesName(expectedInstance.name, 'Expected EvalHub name');
+  const expectedNamespace = assertKubernetesName(
+    expectedInstance.namespace,
+    'Expected EvalHub namespace',
+  );
+  const expectedKey = `${expectedName}.url`;
+  const shortHost = `${expectedName}.${expectedNamespace}.svc`;
+  const fullHost = `${shortHost}.cluster.local`;
+
+  return pollUntilSuccess(
+    `oc -n ${tenantNamespace} get configmap ${EVALHUB_DISCOVERY_CONFIGMAP} -o json | ` +
+      `jq -e --arg key "${expectedKey}" --arg shortHost "${shortHost}" --arg fullHost "${fullHost}" '` +
+      '(.data // {}) as $data | ' +
+      '([$data | to_entries[] | select(.key | endswith(".url")) | select(.value != null and .value != "")] ' +
+      '| sort_by(.key) | .[0] // {key: "service-url", value: ($data["service-url"] // "")}) as $selected | ' +
+      '(($selected.key == $key) or ($selected.key == "service-url")) and ' +
+      '(($selected.value | ' +
+      'if startswith("https://") then ltrimstr("https://") ' +
+      'elif startswith("http://") then ltrimstr("http://") else "" end | ' +
+      'split("/")[0] | split(":")[0]) as $host | ' +
+      '($host == $shortHost or $host == $fullHost))' +
+      "'",
+    `tenant discovery to select EvalHub ${expectedNamespace}/${expectedName}`,
+    { maxAttempts: 30, pollIntervalMs: 2000 },
+  );
+};
+
+const renderEvalHubJobRoleBindings = ({
+  serviceNamespace,
+  serviceAccountName,
+}: EvalHubServiceIdentity): string => `
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: e2e-evalhub-job-config
+  labels:
+    opendatahub.io/dashboard-e2e-evalhub-tenant-rbac: 'true'
+subjects:
+  - kind: ServiceAccount
+    name: ${serviceAccountName}
+    namespace: ${serviceNamespace}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ${EVALHUB_JOB_CONFIG_CLUSTER_ROLE}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: e2e-evalhub-jobs-writer
+  labels:
+    opendatahub.io/dashboard-e2e-evalhub-tenant-rbac: 'true'
+subjects:
+  - kind: ServiceAccount
+    name: ${serviceAccountName}
+    namespace: ${serviceNamespace}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ${EVALHUB_JOBS_WRITER_CLUSTER_ROLE}
+`;
+
+const assertEvalHubJobPermission = (
+  tenantNamespace: string,
+  { serviceNamespace, serviceAccountName }: EvalHubServiceIdentity,
+  resource: 'configmaps' | 'jobs',
+): Cypress.Chainable<Cypress.Exec> =>
+  cy
+    .exec(
+      `oc auth can-i --quiet create ${resource} ` +
+        `--as=system:serviceaccount:${serviceNamespace}:${serviceAccountName} -n ${tenantNamespace}`,
+      { failOnNonZeroExit: false },
+    )
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `EvalHub service account ${serviceNamespace}/${serviceAccountName} cannot create ${resource} ` +
+            `in evaluation namespace ${tenantNamespace}.`,
+        );
+      }
+      return result;
+    });
+
+const waitForEvalHubTenantResources = (
+  tenantNamespace: string,
+  serviceIdentity: EvalHubServiceIdentity,
+): Cypress.Chainable<Cypress.Exec> => {
+  // The operator shortens long Job ServiceAccount and Role names with a stable hash. Select by
+  // the operator-owned labels instead of duplicating that private naming algorithm in Cypress.
+  const jobResourceSelector = getEvalHubTenantResourceSelector(serviceIdentity);
+  // For an existing service CA ConfigMap, the operator ensures the injection annotation but
+  // does not backfill the job-resource labels. Query this well-known name instead.
+  const serviceCAConfigMapName = `${serviceIdentity.serviceName}-service-ca`;
+  const instanceDescription = `${serviceIdentity.serviceNamespace}/${serviceIdentity.serviceName}`;
+
+  return pollUntilSuccess(
+    `oc -n ${tenantNamespace} get serviceaccounts -l '${jobResourceSelector}' -o json | ` +
+      "jq -e '.items | length > 0'",
+    `operator-provisioned Job ServiceAccount for EvalHub ${instanceDescription}`,
+    { maxAttempts: 30, pollIntervalMs: 2000 },
+  )
+    .then(() =>
+      pollUntilSuccess(
+        `oc -n ${tenantNamespace} get configmap ${serviceCAConfigMapName} -o json | ` +
+          'jq -e \'.metadata.annotations["service.beta.openshift.io/inject-cabundle"] == "true"\'',
+        `operator-provisioned service CA ConfigMap for EvalHub ${instanceDescription}`,
+        { maxAttempts: 30, pollIntervalMs: 2000 },
+      ),
+    )
+    .then(() =>
+      pollUntilSuccess(
+        `oc -n ${tenantNamespace} get roles -l '${jobResourceSelector}' -o json | ` +
+          'jq -e \'[.items[]?.rules[]?.resources[]? | select(. == "status-events")] | length > 0\'',
+        `operator-provisioned status-events Role for EvalHub ${instanceDescription}`,
+        { maxAttempts: 30, pollIntervalMs: 2000 },
+      ),
+    );
+};
+
+const ensureEvalHubTenantJobAccess = (
+  tenantNamespace: string,
+  expectedInstance: EvalHubInstance,
+): void => {
+  waitForExpectedEvalHubDiscovery(tenantNamespace, expectedInstance).then(() =>
+    getEvalHubServiceIdentity(tenantNamespace).then((serviceIdentity) => {
+      if (
+        serviceIdentity.serviceName !== expectedInstance.name ||
+        serviceIdentity.serviceNamespace !== expectedInstance.namespace
+      ) {
+        throw new Error(
+          `Tenant ${tenantNamespace} discovered EvalHub ` +
+            `${serviceIdentity.serviceNamespace}/${serviceIdentity.serviceName}, expected ` +
+            `${expectedInstance.namespace}/${expectedInstance.name}.`,
+        );
+      }
+
+      return waitForEvalHubTenantResources(tenantNamespace, serviceIdentity).then(() => {
+        cy.step(
+          `Grant EvalHub ${serviceIdentity.serviceNamespace}/${serviceIdentity.serviceAccountName} job access in tenant`,
+        );
+        return applyOpenShiftYaml(renderEvalHubJobRoleBindings(serviceIdentity), tenantNamespace)
+          .then((result) => {
+            if (result.exitCode !== 0) {
+              throw new Error(
+                `Failed to grant EvalHub job access in ${tenantNamespace}: ${
+                  result.stderr || result.stdout
+                }`,
+              );
+            }
+            return assertEvalHubJobPermission(tenantNamespace, serviceIdentity, 'configmaps');
+          })
+          .then(() => assertEvalHubJobPermission(tenantNamespace, serviceIdentity, 'jobs'));
+      });
+    }),
+  );
+};
 
 /**
  * Grants a user EvalHub tenant access in the namespace. Creates the `evalhub-evaluator` Role
@@ -31,14 +381,51 @@ rules:
   );
 }
 
-export function getVllmEndpointUrl(td: EvalHubTestData, ns: string): string {
+/** Removes the EvalHub tenant label before deleting an E2E tenant namespace. */
+export function removeEvalHubTenantLabel(ns: string): Cypress.Chainable<Cypress.Exec> {
+  return cy
+    .exec(`oc get namespace ${ns} --ignore-not-found -o name`, {
+      failOnNonZeroExit: false,
+    })
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `Failed to check EvalHub tenant namespace ${ns}: ${result.stderr || result.stdout}`,
+        );
+      }
+      if (!result.stdout.trim()) {
+        return cy.wrap(result);
+      }
+
+      return cy
+        .exec(`oc label namespace ${ns} evalhub.trustyai.opendatahub.io/tenant-`, {
+          failOnNonZeroExit: false,
+        })
+        .then((labelResult) => {
+          if (labelResult.exitCode !== 0) {
+            throw new Error(
+              `Failed to remove EvalHub tenant label from ${ns}: ${
+                labelResult.stderr || labelResult.stdout
+              }`,
+            );
+          }
+          return labelResult;
+        });
+    });
+}
+
+export function getVllmEndpointUrl(
+  td: Omit<EvalHubTestData, 'benchmarkCardTitle'>,
+  ns: string,
+): string {
   return `http://${td.inferenceServiceName}-predictor.${ns}.svc.cluster.local:8080`;
 }
 
 export function setupTenantAndDeployModel(
   ns: string,
-  td: EvalHubTestData,
+  td: Omit<EvalHubTestData, 'benchmarkCardTitle'>,
   hwProfileName: string,
+  evalHubInstance: EvalHubInstance,
 ): void {
   cy.step('Label namespace so TrustyAI operator provisions tenant RBAC');
   cy.exec(
@@ -46,21 +433,7 @@ export function setupTenantAndDeployModel(
   );
 
   cy.step('Wait for operator to reconcile tenant resources');
-  pollUntilSuccess(
-    `oc -n ${ns} get sa evalhub-redhat-ods-applications-job -o name`,
-    'operator-provisioned ServiceAccount',
-    { maxAttempts: 30, pollIntervalMs: 2000 },
-  );
-  pollUntilSuccess(
-    `oc -n ${ns} get configmap evalhub-service-ca -o name`,
-    'operator-provisioned evalhub-service-ca ConfigMap',
-    { maxAttempts: 30, pollIntervalMs: 2000 },
-  );
-  pollUntilSuccess(
-    `oc -n ${ns} get role evalhub-redhat-ods-applications-job-access-role -o name`,
-    'operator-provisioned status-events Role',
-    { maxAttempts: 30, pollIntervalMs: 2000 },
-  );
+  ensureEvalHubTenantJobAccess(ns, evalHubInstance);
 
   cy.step('Deploy vLLM model in tenant namespace');
   const {
@@ -70,16 +443,12 @@ export function setupTenantAndDeployModel(
     hardwareProfileResourceYamlPath,
   } = td;
 
-  createCleanHardwareProfile(hardwareProfileResourceYamlPath);
+  createEvalHubHardwareProfile(hardwareProfileResourceYamlPath, hwProfileName);
 
   cy.fixture(servingRuntimeYamlPath, 'utf8').then((srYaml: string) => {
     const tmpFile = `/tmp/evalhub-sr-${ns}.yaml`;
     cy.writeFile(tmpFile, srYaml);
-    cy.exec(`oc apply -n ${ns} -f ${tmpFile}`, { failOnNonZeroExit: false }).then((result) => {
-      if (result.exitCode !== 0) {
-        throw new Error(`ServingRuntime apply failed: ${result.stderr}`);
-      }
-    });
+    applyKServeResource(ns, tmpFile, 'ServingRuntime');
   });
 
   cy.fixture('resources/eval-hub/evalhub-inference-service.yaml', 'utf8').then(
@@ -90,13 +459,7 @@ export function setupTenantAndDeployModel(
         .replace('__MODEL_URI__', modelOciUri);
       const isvcTmpFile = `/tmp/evalhub-isvc-${ns}.yaml`;
       cy.writeFile(isvcTmpFile, isvcYaml);
-      cy.exec(`oc apply -n ${ns} -f ${isvcTmpFile}`, { failOnNonZeroExit: false }).then(
-        (result) => {
-          if (result.exitCode !== 0) {
-            throw new Error(`InferenceService apply failed: ${result.stderr}`);
-          }
-        },
-      );
+      applyKServeResource(ns, isvcTmpFile, 'InferenceService');
     },
   );
 

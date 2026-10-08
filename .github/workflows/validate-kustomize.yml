@@ -2,6 +2,7 @@ name: Validate manifests with Kustomize
 
 on:
   push:
+    branches: [main, 'odh-release*', 'rhoai-release*', '*-release', 'v*-fixes', 'v*-hotfix']
     paths:
       - 'manifests/**'
       - 'distributions/**'
@@ -34,7 +35,7 @@ jobs:
             path: manifests/odh
           - name: Modules
             path: manifests/modules
-          - name: MaaS Consumer Portal
+          - name: MaaS Portal
             path: manifests/distributions/maas-consumer-portal
     steps:
       - name: Checkout repository

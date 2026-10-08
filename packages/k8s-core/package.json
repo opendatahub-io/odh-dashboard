@@ -20,6 +20,9 @@
     "./__mocks__/mockSecretK8sResource": "./src/__mocks__/mockSecretK8sResource.ts",
     "./__mocks__/mockTrustyAIServiceK8sResource": "./src/__mocks__/mockTrustyAIServiceK8sResource.ts",
     "./api/models": "./src/api/models.ts",
+    "./api/accessReview": "./src/api/accessReview.ts",
+    "./api/apiResource": "./src/api/apiResource.ts",
+    "./api/operatorSubscriptionStatus": "./src/api/operatorSubscriptionStatus.ts",
     "./api/secrets": "./src/api/secrets.ts",
     "./api/serviceAccounts": "./src/api/serviceAccounts.ts",
     "./api/roles": "./src/api/roles.ts",
@@ -37,17 +40,20 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test-unit": "jest --silent",
+    "test-unit-coverage": "jest --coverage"
   },
   "dependencies": {
-    "@odh-dashboard/foundation": "*",
+    "@odh-dashboard/foundation": "workspace:*",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@openshift/dynamic-plugin-sdk-utils": "^5.0.0",
     "axios": "^1",
     "lodash-es": "^4.18.1"
   },
   "devDependencies": {
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
+    "@odh-dashboard/tsconfig": "workspace:*"
   }
 }

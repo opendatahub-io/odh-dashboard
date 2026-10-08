@@ -21,7 +21,7 @@ jest.mock('child_process', () => ({
         name: 'odh-dashboard-frontend',
         dependencies: {
           '@odh-dashboard/internal': '*',
-          '@odh-dashboard/plugin-core': '*',
+          '@odh-dashboard/context-library': '*',
           '@odh-dashboard/ui-core': '*',
         },
       },
@@ -31,12 +31,23 @@ jest.mock('child_process', () => ({
         exports: { './extensions': './extensions.ts' },
       },
       {
-        name: '@odh-dashboard/plugin-core',
+        name: '@odh-dashboard/context-library',
         dependencies: { '@odh-dashboard/internal': '*' },
+        exports: {
+          './areas': './src/areas/index.ts',
+          './host-api': './src/host-api/index.ts',
+          './integrations': './src/integrations/index.ts',
+          './routing': './src/routing/index.ts',
+        },
+        'module-federation-shared': ['./areas', './host-api', './integrations'],
       },
       {
         name: '@odh-dashboard/ui-core',
         dependencies: {},
+        exports: {
+          './context/HardwareProfilesContext': './src/context/HardwareProfilesContext.tsx',
+        },
+        'module-federation-shared': ['./context/HardwareProfilesContext'],
       },
       {
         name: '@odh-dashboard/k8s-core',
@@ -56,7 +67,7 @@ jest.mock('child_process', () => ({
         // Built into the host via virtual plugin-extensions, not a host dep / not federated.
         name: '@odh-dashboard/kserve',
         exports: { './extensions': './extensions.ts' },
-        dependencies: { '@odh-dashboard/plugin-core': '*' },
+        dependencies: { '@odh-dashboard/context-library': '*' },
       },
       {
         // Host-provided via ./extensions; also a dep of a federated remote.
@@ -106,7 +117,7 @@ describe('getRuntimeOdhPackages', () => {
 
     for (const name of [
       '@odh-dashboard/internal',
-      '@odh-dashboard/plugin-core',
+      '@odh-dashboard/context-library',
       '@odh-dashboard/ui-core',
       '@odh-dashboard/k8s-core',
     ]) {
@@ -123,6 +134,80 @@ describe('getRuntimeOdhPackages', () => {
     expect(all.has('@odh-dashboard/llmd-serving')).toBe(true);
     expect(hostProvided.has('@odh-dashboard/llmd-serving')).toBe(true);
   });
+
+  it('should share only explicitly declared package export subpaths', () => {
+    const { all, hostProvided } = getRuntimeOdhPackages();
+
+    for (const name of [
+      '@odh-dashboard/context-library/areas',
+      '@odh-dashboard/context-library/host-api',
+      '@odh-dashboard/context-library/integrations',
+    ]) {
+      expect(all.has(name)).toBe(true);
+      expect(hostProvided.has(name)).toBe(true);
+    }
+    expect(all.has('@odh-dashboard/context-library/routing')).toBe(false);
+  });
+
+  it('should honor shared exports from the real plugin-core manifest', () => {
+    const pluginCorePackage = JSON.parse(
+      fs.readFileSync(path.resolve(__dirname, '../../../../plugin-core/package.json'), 'utf8'),
+    ) as WorkspacePackageInfo;
+    const packages: WorkspacePackageInfo[] = [
+      {
+        name: 'odh-dashboard-frontend',
+        dependencies: { [pluginCorePackage.name]: '*' },
+      },
+      pluginCorePackage,
+    ];
+
+    const { all, hostProvided } = getRuntimeOdhPackages(packages);
+    const declaredSharedExports = pluginCorePackage['module-federation-shared'] ?? [];
+
+    expect(declaredSharedExports).not.toHaveLength(0);
+    for (const exportPath of declaredSharedExports) {
+      const moduleName = `${pluginCorePackage.name}/${exportPath.slice(2)}`;
+      expect(all.has(moduleName)).toBe(true);
+      expect(hostProvided.has(moduleName)).toBe(true);
+    }
+    expect(all.has('@odh-dashboard/plugin-core/routing')).toBe(false);
+  });
+
+  it('should share the hardware profiles context declared by the real ui-core manifest', () => {
+    const uiCorePackage = JSON.parse(
+      fs.readFileSync(path.resolve(__dirname, '../../../../ui-core/package.json'), 'utf8'),
+    ) as WorkspacePackageInfo;
+    const { all, hostProvided } = getRuntimeOdhPackages([
+      { name: 'odh-dashboard-frontend', dependencies: { [uiCorePackage.name]: '*' } },
+      uiCorePackage,
+    ]);
+
+    expect(all.has('@odh-dashboard/ui-core/context/HardwareProfilesContext')).toBe(true);
+    expect(hostProvided.has('@odh-dashboard/ui-core/context/HardwareProfilesContext')).toBe(true);
+  });
+
+  it.each(['./*', 'context', './missing'])(
+    'should reject invalid shared export %s',
+    (sharedExport) => {
+      const packages: WorkspacePackageInfo[] = [
+        {
+          name: 'odh-dashboard-frontend',
+          dependencies: { '@odh-dashboard/contexts': '*' },
+        },
+        {
+          name: '@odh-dashboard/contexts',
+          exports: { './context': './src/context.ts' },
+          'module-federation-shared': [sharedExport],
+        },
+      ];
+
+      expect(() => getRuntimeOdhPackages(packages)).toThrow(
+        `@odh-dashboard/contexts declares invalid module-federation-shared export "${sharedExport}". ` +
+          'Entries must be explicit paths from the package exports map. ' +
+          'Valid explicit exports: ./context.',
+      );
+    },
+  );
 
   it('includes federated modules in all but not hostProvided when host cannot own them', () => {
     const { all, hostProvided } = getRuntimeOdhPackages();
@@ -275,6 +360,15 @@ describe('OdhFederationPlugin share policy', () => {
     expect(lastConfig?.shared.react.import).toBeUndefined();
     expect(lastConfig?.shared['react-dom']).toBeUndefined();
     expect(lastConfig?.shared['@odh-dashboard/internal'].import).toBeUndefined();
+    expect(lastConfig?.shared['@odh-dashboard/context-library/host-api']).toEqual({
+      singleton: true,
+      requiredVersion: '*',
+    });
+    expect(lastConfig?.shared['@odh-dashboard/context-library/routing']).toBeUndefined();
+    expect(lastConfig?.shared['@odh-dashboard/ui-core/context/HardwareProfilesContext']).toEqual({
+      singleton: true,
+      requiredVersion: '*',
+    });
     expect(lastConfig?.shared['@patternfly/react-table'].eager).toBeUndefined();
   });
 
@@ -299,6 +393,17 @@ describe('OdhFederationPlugin share policy', () => {
     expect(lastConfig?.shared['@odh-dashboard/internal']).toEqual(
       expect.objectContaining({ singleton: true, requiredVersion: '*', import: false }),
     );
+    expect(lastConfig?.shared['@odh-dashboard/context-library/host-api']).toEqual({
+      singleton: true,
+      requiredVersion: '*',
+      import: false,
+    });
+    expect(lastConfig?.shared['@odh-dashboard/context-library/routing']).toBeUndefined();
+    expect(lastConfig?.shared['@odh-dashboard/ui-core/context/HardwareProfilesContext']).toEqual({
+      singleton: true,
+      requiredVersion: '*',
+      import: false,
+    });
     expect(lastConfig?.shared['@odh-dashboard/maas'].import).toBeUndefined();
     expect(lastConfig?.shared['@patternfly/react-table'].import).toBeUndefined();
   });
@@ -319,6 +424,97 @@ describe('OdhFederationPlugin share policy', () => {
     expect(lastConfig?.shared['custom-lib']).toEqual({
       singleton: true,
       requiredVersion: '^1.0.0',
+    });
+  });
+
+  // RHOAIENG-83821: workspace images must compile with DEPLOYMENT_MODE=federated so remotes
+  // consume host-provided singletons (import: false) instead of bundling their own copies.
+  // moduleFederation.js maps `DEPLOYMENT_MODE === 'standalone'` -> isHost, so `federated` and
+  // `kubeflow` both produce a remote build (isHost: false). These tests lock that contract in
+  // for the full must-share module set, beyond the single `react` case above.
+  describe('federated remote must-share contract (RHOAIENG-83821)', () => {
+    // Every framework module the plugin must force to come from the host (allowFallback: false).
+    const MUST_COME_FROM_HOST = [
+      'react',
+      'react-dom',
+      'react-router',
+      'react-router-dom',
+      '@openshift/dynamic-plugin-sdk',
+      '@openshift/dynamic-plugin-sdk-utils',
+      '@patternfly/react-core',
+      '@patternfly/react-styles',
+    ];
+
+    beforeEach(() => {
+      // Re-seed the context package.json with the full must-share dependency set plus a
+      // fallback-allowed PatternFly module, so the plugin emits a share entry for each.
+      fs.writeFileSync(
+        path.join(root, 'package.json'),
+        JSON.stringify({
+          dependencies: {
+            react: '^18.3.1',
+            'react-dom': '^18.3.1',
+            'react-router': '^6.30.0',
+            'react-router-dom': '^6.30.0',
+            '@openshift/dynamic-plugin-sdk': '^5.0.1',
+            '@openshift/dynamic-plugin-sdk-utils': '^5.0.1',
+            '@patternfly/react-core': '~6.5.1',
+            '@patternfly/react-styles': '~6.5.1',
+            '@patternfly/react-table': '~6.5.1',
+          },
+        }),
+      );
+    });
+
+    it('forces every must-come-from-host module to import: false and not eager on a remote', () => {
+      new CapturePlugin({
+        name: 'maas',
+        isHost: false,
+        exposes: { './extensions': './src/odh/extensions' },
+      }).apply({ options: { context: root } });
+
+      expect(lastConfig).toBeDefined();
+      MUST_COME_FROM_HOST.forEach((moduleName) => {
+        expect(lastConfig?.shared[moduleName]).toEqual(
+          expect.objectContaining({ singleton: true, import: false }),
+        );
+        expect(lastConfig?.shared[moduleName].eager).toBeUndefined();
+      });
+      // Fallback-allowed PatternFly modules stay importable (remote can bundle its own copy).
+      expect(lastConfig?.shared['@patternfly/react-table'].import).toBeUndefined();
+    });
+
+    it('eager-bundles every must-come-from-host module and never sets import: false on the host', () => {
+      new CapturePlugin({ name: 'host', isHost: true }).apply({ options: { context: root } });
+
+      expect(lastConfig).toBeDefined();
+      MUST_COME_FROM_HOST.forEach((moduleName) => {
+        expect(lastConfig?.shared[moduleName]).toEqual(
+          expect.objectContaining({ singleton: true, eager: true }),
+        );
+        expect(lastConfig?.shared[moduleName].import).toBeUndefined();
+      });
+      // Fallback-allowed modules are not eager on the host.
+      expect(lastConfig?.shared['@patternfly/react-table'].eager).toBeUndefined();
+    });
+
+    it('sets import: false only on host-provided ODH packages, not federated-only ones', () => {
+      new CapturePlugin({
+        name: 'maas',
+        isHost: false,
+        exposes: { './extensions': './src/odh/extensions' },
+      }).apply({ options: { context: root } });
+
+      expect(lastConfig).toBeDefined();
+      // Host-provided ODH packages: remote must consume the host copy.
+      expect(lastConfig?.shared['@odh-dashboard/internal']).toEqual(
+        expect.objectContaining({ singleton: true, import: false }),
+      );
+      expect(lastConfig?.shared['@odh-dashboard/context-library'].import).toBe(false);
+      // Federated-only ODH packages keep their fallback (host does not own them).
+      expect(lastConfig?.shared['@odh-dashboard/maas']).toBeDefined();
+      expect(lastConfig?.shared['@odh-dashboard/maas'].import).toBeUndefined();
+      expect(lastConfig?.shared['@odh-dashboard/gen-ai'].import).toBeUndefined();
     });
   });
 });

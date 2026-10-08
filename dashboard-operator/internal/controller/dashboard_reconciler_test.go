@@ -22,6 +22,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
@@ -110,6 +111,139 @@ func TestReconcile_NotFound(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, ctrl.Result{}, result)
+}
+
+func TestReconcile_DisabledObservabilityCleanupFailureDoesNotBlockCore(t *testing.T) {
+	for _, explicit := range []bool{false, true} {
+		for _, operation := range []string{"list", "delete"} {
+			name := "auto-detection/" + operation
+			if explicit {
+				name = "explicit-disable/" + operation
+			}
+			t.Run(name, func(t *testing.T) {
+				scheme := testScheme(t)
+				dashboard := &v1alpha1.Dashboard{
+					ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName, Finalizers: []string{"components.platform.opendatahub.io/cleanup"}},
+					Spec: v1alpha1.DashboardSpec{
+						ManagementSpec: common.ManagementSpec{ManagementState: "Managed"},
+						Gateway:        &v1alpha1.GatewaySpec{Domain: "apps.example.com"},
+					},
+				}
+				if explicit {
+					dashboard.Spec.Observability = &v1alpha1.ObservabilitySpec{Enabled: false}
+				}
+				stale := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+					Name: "perses-dashboard-config", Namespace: testNamespace,
+					Labels: map[string]string{labels.PlatformPartOf: "dashboard", "app.kubernetes.io/component": "observability"},
+				}}
+				failCleanup := true
+				cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(dashboard, stale).
+					WithStatusSubresource(dashboard).WithInterceptorFuncs(interceptor.Funcs{
+					List: func(ctx context.Context, delegate client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+						if failCleanup && operation == "list" && list.GetObjectKind().GroupVersionKind().Kind == "PersesDashboardList" {
+							return k8serrors.NewServiceUnavailable("Perses API temporarily unavailable")
+						}
+						return delegate.List(ctx, list, opts...)
+					},
+					Delete: func(ctx context.Context, delegate client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
+						if failCleanup && operation == "delete" && client.ObjectKeyFromObject(obj) == client.ObjectKeyFromObject(stale) {
+							return assert.AnError
+						}
+						return delegate.Delete(ctx, obj, opts...)
+					},
+				}).Build()
+				r := &ctrlpkg.DashboardReconciler{Client: cli, Scheme: scheme, ManifestsBasePath: createMinimalManifests(t),
+					Platform: cluster.OpenDataHub, Namespace: testNamespace, ApplicationsNamespace: testNamespace}
+				ctx := context.Background()
+				req := ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)}
+				result, err := r.Reconcile(ctx, req)
+				require.NoError(t, err)
+				assert.Equal(t, ctrlpkg.ObservabilityRetryInterval, result.RequeueAfter)
+				updated := &v1alpha1.Dashboard{}
+				require.NoError(t, cli.Get(ctx, req.NamespacedName, updated))
+				condition := conditions.FindStatusCondition(updated, "ObservabilityAvailable")
+				require.NotNil(t, condition)
+				assert.Equal(t, "CleanupFailed", condition.Reason)
+				assert.Equal(t, common.ConditionSeverityInfo, condition.Severity)
+				assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeProvisioningSucceeded)))
+				assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeReady)))
+				assert.Equal(t, common.PhaseReady, updated.Status.Phase)
+				core := &corev1.ConfigMap{}
+				require.NoError(t, cli.Get(ctx, client.ObjectKey{Name: "test-config", Namespace: testNamespace}, core))
+				assert.Equal(t, "value", core.Data["key"])
+
+				failCleanup = false
+				_, err = r.Reconcile(ctx, req)
+				require.NoError(t, err)
+				require.NoError(t, cli.Get(ctx, req.NamespacedName, updated))
+				assert.Equal(t, "Disabled", conditions.FindStatusCondition(updated, "ObservabilityAvailable").Reason)
+				assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeReady)))
+				assert.Equal(t, common.PhaseReady, updated.Status.Phase)
+				assert.True(t, k8serrors.IsNotFound(cli.Get(ctx, client.ObjectKeyFromObject(stale), &corev1.ConfigMap{})))
+				require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(core), core))
+				assert.Equal(t, "value", core.Data["key"])
+			})
+		}
+	}
+}
+
+func TestReconcile_ObservabilityDetectionFailureDoesNotBlockCore(t *testing.T) {
+	scheme := testScheme(t)
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName, Finalizers: []string{"components.platform.opendatahub.io/cleanup"}},
+		Spec:       v1alpha1.DashboardSpec{ManagementSpec: common.ManagementSpec{ManagementState: "Managed"}},
+	}
+	observability := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		Name: "perses-dashboard-config", Namespace: testNamespace,
+		Labels: map[string]string{labels.PlatformPartOf: "dashboard", "app.kubernetes.io/component": "observability"},
+	}, Data: map[string]string{"config": "existing observability"}}
+	federation := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "federation-config", Namespace: testNamespace},
+		Data: map[string]string{"module-federation-config.json": `[{"name":"perses","extra":"preserved"},{"name":"obsolete"}]`}}
+	lookupFails := true
+	cli := fake.NewClientBuilder().WithScheme(scheme).
+		WithObjects(dashboard, admittedRoute(testNamespace), observability, federation).WithStatusSubresource(dashboard).
+		WithInterceptorFuncs(interceptor.Funcs{
+			Get: func(ctx context.Context, delegate client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+				if _, isService := obj.(*corev1.Service); lookupFails && isService && key.Name == "data-science-perses" {
+					return assert.AnError
+				}
+				return delegate.Get(ctx, key, obj, opts...)
+			},
+		}).Build()
+	r := &ctrlpkg.DashboardReconciler{Client: cli, Scheme: scheme, ManifestsBasePath: createMinimalManifests(t),
+		Platform: cluster.OpenDataHub, Namespace: testNamespace, ApplicationsNamespace: testNamespace}
+	ctx := context.Background()
+	req := ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)}
+	result, err := r.Reconcile(ctx, req)
+	require.NoError(t, err)
+	assert.Equal(t, ctrlpkg.ObservabilityRetryInterval, result.RequeueAfter)
+	updated := &v1alpha1.Dashboard{}
+	require.NoError(t, cli.Get(ctx, req.NamespacedName, updated))
+	condition := conditions.FindStatusCondition(updated, "ObservabilityAvailable")
+	require.NotNil(t, condition)
+	assert.Equal(t, "DetectionFailed", condition.Reason)
+	assert.Equal(t, common.ConditionSeverityInfo, condition.Severity)
+	assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeProvisioningSucceeded)))
+	assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeReady)), "optional Perses detection must not block core readiness")
+	assert.Equal(t, common.PhaseReady, updated.Status.Phase)
+	require.NoError(t, cli.Get(ctx, client.ObjectKey{Name: "test-config", Namespace: testNamespace}, &corev1.ConfigMap{}), "core resources must be applied")
+	retained := &corev1.ConfigMap{}
+	require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(observability), retained))
+	assert.Equal(t, observability.Data, retained.Data)
+	require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(federation), retained))
+	assert.Contains(t, retained.Data["module-federation-config.json"], `"name": "perses"`)
+	assert.Contains(t, retained.Data["module-federation-config.json"], `"extra": "preserved"`)
+	assert.Contains(t, retained.Data["module-federation-config.json"], `"name": "coreBff"`)
+	assert.NotContains(t, retained.Data["module-federation-config.json"], "obsolete")
+
+	// A successful lookup that finds no Perses service must resume normal cleanup
+	// and replace the previous DetectionFailed condition.
+	lookupFails = false
+	_, err = r.Reconcile(ctx, req)
+	require.NoError(t, err)
+	require.NoError(t, cli.Get(ctx, req.NamespacedName, updated))
+	assert.Equal(t, "Disabled", conditions.FindStatusCondition(updated, "ObservabilityAvailable").Reason)
+	assert.True(t, k8serrors.IsNotFound(cli.Get(ctx, client.ObjectKeyFromObject(observability), retained)))
 }
 
 func TestReconcile(t *testing.T) {
@@ -344,8 +478,12 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
 		},
 		Spec: v1alpha1.DashboardSpec{
-			ManagementSpec:     common.ManagementSpec{ManagementState: "Removed"},
-			MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
+			ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
+			MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
+		},
+		Status: v1alpha1.DashboardStatus{
+			MaaSPortalURL:         "https://previous.example.com/",
+			MaaSConsumerPortalURL: "https://previous.example.com/",
 		},
 	}
 	cli := fake.NewClientBuilder().
@@ -373,6 +511,8 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 	require.NotNil(t, condition)
 	assert.Equal(t, metav1.ConditionFalse, condition.Status)
 	assert.Equal(t, "ModuleDeployFailed", condition.Reason)
+	assert.Equal(t, "https://previous.example.com/", updated.Status.MaaSPortalURL)
+	assert.Equal(t, "https://previous.example.com/", updated.Status.MaaSConsumerPortalURL)
 }
 
 func TestReconcile_Deletion(t *testing.T) {
@@ -443,14 +583,14 @@ func TestReconcile_Deletion_WithCrossNamespaceResources(t *testing.T) {
 
 	crossNSSvc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "perses-proxy",
+			Name:      "data-science-perses",
 			Namespace: obsNS,
 			Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
 		},
 	}
 	crossNSCM := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "perses-config",
+			Name:      "perses-dashboard-config",
 			Namespace: obsNS,
 			Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
 		},
@@ -487,7 +627,7 @@ func TestReconcile_Deletion_WithCrossNamespaceResources(t *testing.T) {
 	assert.Empty(t, cms.Items, "cross-namespace configmaps should be deleted")
 }
 
-func TestReconcile_Deletion_CleansRayGatewayRBAC(t *testing.T) {
+func TestReconcile_Deletion_CleansGatewayRBAC(t *testing.T) {
 	s := testScheme(t)
 
 	const gatewayNS = "openshift-ingress"
@@ -516,10 +656,16 @@ func TestReconcile_Deletion_CleansRayGatewayRBAC(t *testing.T) {
 			Namespace: gatewayNS,
 		},
 	}
+	dchResources := []client.Object{
+		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-data-connect-hub-rhoai-gateway-discovery", Namespace: "openshift-ingress"}},
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-data-connect-hub-rhoai-gateway-discovery", Namespace: "openshift-ingress"}},
+		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-data-connect-hub-odh-gateway-discovery", Namespace: "opendatahub"}},
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-data-connect-hub-odh-gateway-discovery", Namespace: "opendatahub"}},
+	}
 
 	cli := fake.NewClientBuilder().
 		WithScheme(s).
-		WithObjects(dashboard, gatewayRole, gatewayRoleBinding).
+		WithObjects(append([]client.Object{dashboard, gatewayRole, gatewayRoleBinding}, dchResources...)...).
 		WithStatusSubresource(dashboard).
 		Build()
 
@@ -544,6 +690,11 @@ func TestReconcile_Deletion_CleansRayGatewayRBAC(t *testing.T) {
 
 	err = cli.Get(context.Background(), types.NamespacedName{Name: gatewayRBACName, Namespace: gatewayNS}, &rbacv1.RoleBinding{})
 	assert.True(t, k8serrors.IsNotFound(err), "gateway RoleBinding should be deleted")
+
+	for _, resource := range dchResources {
+		err = cli.Get(context.Background(), client.ObjectKeyFromObject(resource), resource)
+		assert.True(t, k8serrors.IsNotFound(err), "DCH %T should be deleted", resource)
+	}
 }
 
 func TestReconcile_Deletion_SameNamespaceObservability(t *testing.T) {
@@ -981,18 +1132,31 @@ func TestReconcile_PlatformVersionHandshake(t *testing.T) {
 			updated := &v1alpha1.Dashboard{}
 			require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
 
-			var platformVersion string
-			for _, r := range updated.GetReleaseStatus().Releases {
-				if r.Name == "platform" {
-					platformVersion = r.Version
-					break
-				}
-			}
-			assert.Equal(t, tt.wantPlatformVersion, platformVersion)
-
+			releases := updated.GetReleaseStatus().Releases
+			wantReleaseCount := 1
 			if tt.wantPlatformVersion != "" {
-				require.GreaterOrEqual(t, len(updated.GetReleaseStatus().Releases), 2,
-					"should have both dashboard and platform release entries")
+				wantReleaseCount = 2
+			}
+			require.Len(t, releases, wantReleaseCount)
+
+			releasesByName := make(map[string]common.ComponentRelease, len(releases))
+			for _, release := range releases {
+				_, duplicate := releasesByName[release.Name]
+				require.False(t, duplicate, "release %q must appear only once", release.Name)
+				releasesByName[release.Name] = release
+			}
+
+			dashboardRelease, found := releasesByName[v1alpha1.DashboardComponentName]
+			require.True(t, found, "dashboard release must be reported")
+			assert.Equal(t, ctrlpkg.Version, dashboardRelease.Version)
+			assert.Equal(t, "https://github.com/opendatahub-io/odh-dashboard", dashboardRelease.RepoURL)
+
+			platformRelease, found := releasesByName[common.ReleasePlatform]
+			if tt.wantPlatformVersion == "" {
+				assert.False(t, found, "platform release must be omitted without platformVersion")
+			} else {
+				require.True(t, found, "platform release must be reported")
+				assert.Equal(t, tt.wantPlatformVersion, platformRelease.Version)
 			}
 		})
 	}
@@ -1176,8 +1340,8 @@ func runPreservesOperatorResourcesTest(t *testing.T, opDep, opSA, opCR, opCRB, d
 	assert.NotContains(t, crbNames, delCRB, "non-operator ClusterRoleBindings must be deleted")
 }
 
-func TestCleanupLegacySidecarResources(t *testing.T) {
-	t.Run("deletes all legacy sidecar resources", func(t *testing.T) {
+func TestCleanupLegacyResources(t *testing.T) {
+	t.Run("deletes all legacy resources", func(t *testing.T) {
 		s := testScheme(t)
 		ctx := context.Background()
 
@@ -1199,14 +1363,23 @@ func TestCleanupLegacySidecarResources(t *testing.T) {
 		sidecarCRB := &rbacv1.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-modules"},
 		}
+		odhMonitoringCRB := &rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-monitoring"},
+		}
+		rhoaiMonitoringCRB := &rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: "rhods-dashboard-monitoring"},
+		}
 
 		unrelatedCM := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{Name: "unrelated-config", Namespace: testNamespace},
 		}
+		unrelatedCRB := &rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: "unrelated-binding"},
+		}
 
 		cli := fake.NewClientBuilder().
 			WithScheme(s).
-			WithObjects(sidecarSA, sidecarSecret, sidecarNetpol, sidecarCM, sidecarCR, sidecarCRB, unrelatedCM).
+			WithObjects(sidecarSA, sidecarSecret, sidecarNetpol, sidecarCM, sidecarCR, sidecarCRB, odhMonitoringCRB, rhoaiMonitoringCRB, unrelatedCM, unrelatedCRB).
 			Build()
 
 		r := &ctrlpkg.DashboardReconciler{
@@ -1215,7 +1388,7 @@ func TestCleanupLegacySidecarResources(t *testing.T) {
 			ApplicationsNamespace: testNamespace,
 		}
 
-		err := r.CleanupLegacySidecarResources(ctx)
+		err := r.CleanupLegacyResources(ctx)
 		require.NoError(t, err)
 
 		assert.True(t, k8sNotFound(t, cli, ctx, &corev1.ServiceAccount{}, testNamespace, "odh-dashboard-modules"))
@@ -1224,9 +1397,13 @@ func TestCleanupLegacySidecarResources(t *testing.T) {
 		assert.True(t, k8sNotFound(t, cli, ctx, &corev1.ConfigMap{}, testNamespace, "sidecar-params"))
 		assert.True(t, k8sNotFound(t, cli, ctx, &rbacv1.ClusterRole{}, "", "odh-dashboard-modules"))
 		assert.True(t, k8sNotFound(t, cli, ctx, &rbacv1.ClusterRoleBinding{}, "", "odh-dashboard-modules"))
+		assert.True(t, k8sNotFound(t, cli, ctx, &rbacv1.ClusterRoleBinding{}, "", "odh-dashboard-monitoring"))
+		assert.True(t, k8sNotFound(t, cli, ctx, &rbacv1.ClusterRoleBinding{}, "", "rhods-dashboard-monitoring"))
 
 		assert.False(t, k8sNotFound(t, cli, ctx, &corev1.ConfigMap{}, testNamespace, "unrelated-config"),
 			"unrelated resources must not be deleted")
+		assert.False(t, k8sNotFound(t, cli, ctx, &rbacv1.ClusterRoleBinding{}, "", "unrelated-binding"),
+			"unrelated bindings must not be deleted")
 	})
 
 	t.Run("succeeds when resources already absent", func(t *testing.T) {
@@ -1239,8 +1416,33 @@ func TestCleanupLegacySidecarResources(t *testing.T) {
 			ApplicationsNamespace: testNamespace,
 		}
 
-		err := r.CleanupLegacySidecarResources(context.Background())
+		err := r.CleanupLegacyResources(context.Background())
 		require.NoError(t, err)
+	})
+
+	t.Run("returns deletion errors", func(t *testing.T) {
+		s := testScheme(t)
+		cli := fake.NewClientBuilder().
+			WithScheme(s).
+			WithInterceptorFuncs(interceptor.Funcs{
+				Delete: func(ctx context.Context, client client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
+					if obj.GetName() == "odh-dashboard-monitoring" {
+						return assert.AnError
+					}
+					return client.Delete(ctx, obj, opts...)
+				},
+			}).
+			Build()
+
+		r := &ctrlpkg.DashboardReconciler{
+			Client:                cli,
+			Scheme:                s,
+			ApplicationsNamespace: testNamespace,
+		}
+
+		err := r.CleanupLegacyResources(context.Background())
+		require.ErrorIs(t, err, assert.AnError)
+		assert.Contains(t, err.Error(), "odh-dashboard-monitoring")
 	})
 }
 

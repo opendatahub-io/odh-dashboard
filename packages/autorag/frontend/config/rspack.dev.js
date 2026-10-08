@@ -24,6 +24,7 @@ const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules'
 const DEPLOYMENT_MODE = process.env._DEPLOYMENT_MODE;
 const AUTH_METHOD = process.env._AUTH_METHOD;
 const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/autorag/' : PUBLIC_PATH;
+const IS_CYPRESS_RUN = process.env.CYPRESS_RUN === 'true';
 
 // Get the kubeconfig token at startup as a fallback for standalone dev mode.
 const getKubeconfigToken = () => {
@@ -98,7 +99,8 @@ module.exports = merge(
       port: PORT,
       compress: true,
       historyApiFallback: true,
-      hot: true,
+      hot: !IS_CYPRESS_RUN,
+      liveReload: !IS_CYPRESS_RUN,
       open: false,
       proxy: [
         {
@@ -141,7 +143,10 @@ module.exports = merge(
             SRC_DIR,
             COMMON_DIR,
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
-            path.resolve(ROOT_NODE_MODULES, '@patternfly'),
+            path.resolve(RELATIVE_DIRNAME, '../node_modules'),
+            path.resolve(RELATIVE_DIRNAME, '../../../frontend/node_modules'),
+            path.resolve(RELATIVE_DIRNAME, '../../../frontend/src/node_modules'),
+            path.resolve(ROOT_NODE_MODULES),
           ],
           use: ['style-loader', 'css-loader'],
         },

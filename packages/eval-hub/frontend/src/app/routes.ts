@@ -8,17 +8,52 @@ export const evaluationRootSegment = 'evaluation';
 export const evaluationsBaseRoute = (namespace?: string): string =>
   namespace ? `/${evaluationRootSegment}/${namespace}` : `/${evaluationRootSegment}`;
 
+export const evaluationEvaluateRoute = (namespace?: string): string =>
+  `${evaluationsBaseRoute(namespace)}?tab=evaluate`;
+
+export const evaluationGalleryRoute = (namespace?: string): string =>
+  `${evaluationsBaseRoute(namespace)}?tab=gallery`;
+
+export const evaluationGalleryNavigationState = { source: 'gallery' } as const;
+
+export const evaluationEvaluateNavigationState = { source: 'evaluate' } as const;
+
+export const evaluationBenchmarkSuitesNavigationState = {
+  source: 'benchmark-suites',
+} as const;
+
+export const evaluationCuratedBenchmarkSuitesNavigationState = (evaluationTarget: string) =>
+  ({ sourceEvaluationTarget: evaluationTarget }) as const;
+
 export const evaluationCreateRoute = (namespace?: string): string =>
   `${evaluationsBaseRoute(namespace)}/create`;
 
 export const evaluationCollectionsRoute = (namespace?: string): string =>
   `${evaluationCreateRoute(namespace)}/collections`;
 
+export const evaluationBenchmarkSuitesRoute = (namespace?: string): string =>
+  `${evaluationsBaseRoute(namespace)}/collections`;
+
+export const evaluationCuratedBenchmarkSuitesRoute = (
+  namespace?: string,
+  evaluationTarget?: string,
+): string =>
+  `${evaluationBenchmarkSuitesRoute(namespace)}/${evaluationTarget ?? ':evaluationTarget'}`;
+
 export const evaluationBenchmarksRoute = (namespace?: string): string =>
   `${evaluationCreateRoute(namespace)}/benchmarks`;
 
 export const evaluationStartRoute = (namespace?: string): string =>
   `${evaluationCreateRoute(namespace)}/start`;
+
+export const evaluationCopySuiteRoute = (namespace?: string, collectionId?: string): string =>
+  `${evaluationCollectionsRoute(namespace)}/${collectionId ?? ':collectionId'}/copy`;
+
+export const evaluationEditSuiteRoute = (namespace?: string, collectionId?: string): string =>
+  `${evaluationCollectionsRoute(namespace)}/${collectionId ?? ':collectionId'}/edit`;
+
+export const evaluationCreateSuiteRoute = (namespace?: string): string =>
+  `${evaluationCollectionsRoute(namespace)}/new`;
 
 export const evaluationResultsRoute = (namespace?: string, jobId?: string): string =>
   `${evaluationsBaseRoute(namespace)}/results/${jobId ?? ':jobId'}`;

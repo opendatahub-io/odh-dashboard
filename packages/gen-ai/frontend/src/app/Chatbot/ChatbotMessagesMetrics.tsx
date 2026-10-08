@@ -1,9 +1,24 @@
 import * as React from 'react';
-import { Flex, FlexItem, Label } from '@patternfly/react-core';
+import {
+  Button,
+  ExpandableSection,
+  ExpandableSectionToggle,
+  Flex,
+  FlexItem,
+  Label,
+} from '@patternfly/react-core';
+import CaretDownIcon from '@patternfly/react-icons/dist/esm/icons/rh-microns-caret-down-icon';
 import { ResponseMetrics } from '~/app/types';
 
 interface ChatbotMessagesMetricsProps {
   metrics: ResponseMetrics;
+  isExpanded?: boolean;
+  onExpandedChange?: (isExpanded: boolean) => void;
+  isDisabled?: boolean;
+  showToggle?: boolean;
+  showContent?: boolean;
+  toggleId?: string;
+  contentId?: string;
 }
 
 /**
@@ -50,44 +65,89 @@ export const formatBytes = (bytes: number): string => {
  * Inline metrics labels displayed beneath each assistant response.
  * Shows latency, total tokens, tokens/sec, and TTFT as compact label chips.
  */
-export const ChatbotMessagesMetrics: React.FC<ChatbotMessagesMetricsProps> = ({ metrics }) => {
+export const ChatbotMessagesMetrics: React.FC<ChatbotMessagesMetricsProps> = ({
+  metrics,
+  isExpanded: controlledIsExpanded,
+  onExpandedChange,
+  isDisabled = false,
+  showToggle = true,
+  showContent = true,
+  toggleId: providedToggleId,
+  contentId: providedContentId,
+}) => {
   const tokensPerSec = calculateTokensPerSec(metrics.usage?.total_tokens, metrics.latency_ms);
+  const [uncontrolledIsExpanded, setUncontrolledIsExpanded] = React.useState(false);
+  const generatedToggleId = React.useId();
+  const generatedContentId = React.useId();
+  const toggleId = providedToggleId ?? generatedToggleId;
+  const contentId = providedContentId ?? generatedContentId;
+  const isExpanded = controlledIsExpanded ?? uncontrolledIsExpanded;
+  const toggleExpanded = () => {
+    const nextIsExpanded = !isExpanded;
+    setUncontrolledIsExpanded(nextIsExpanded);
+    onExpandedChange?.(nextIsExpanded);
+  };
 
   return (
-    <Flex gap={{ default: 'gapSm' }} data-testid="chatbot-message-metrics">
-      <FlexItem>
-        <Label variant="outline" isCompact>
-          {formatDuration(metrics.latency_ms)}
-        </Label>
-      </FlexItem>
-      {metrics.usage && (
-        <FlexItem>
-          <Label variant="outline" isCompact>
-            T: {metrics.usage.total_tokens}
-          </Label>
-        </FlexItem>
+    <div data-testid="chatbot-message-metrics">
+      {showToggle && isDisabled ? (
+        <Button variant="plain" icon={<CaretDownIcon />} isDisabled>
+          <small>Response metrics</small>
+        </Button>
+      ) : showToggle ? (
+        <ExpandableSectionToggle
+          isExpanded={isExpanded}
+          onToggle={toggleExpanded}
+          contentId={contentId}
+          toggleId={toggleId}
+        >
+          <small>Response metrics</small>
+        </ExpandableSectionToggle>
+      ) : null}
+      {showContent && (controlledIsExpanded === undefined || isExpanded) && (
+        <ExpandableSection
+          isExpanded={isExpanded}
+          isDetached
+          contentId={contentId}
+          toggleId={toggleId}
+        >
+          <Flex gap={{ default: 'gapSm' }}>
+            <FlexItem>
+              <Label variant="outline" isCompact>
+                {formatDuration(metrics.latency_ms)}
+              </Label>
+            </FlexItem>
+            {metrics.usage && (
+              <FlexItem>
+                <Label variant="outline" isCompact>
+                  T: {metrics.usage.total_tokens}
+                </Label>
+              </FlexItem>
+            )}
+            {tokensPerSec && (
+              <FlexItem>
+                <Label variant="outline" isCompact>
+                  {tokensPerSec} T/s
+                </Label>
+              </FlexItem>
+            )}
+            {metrics.time_to_first_token_ms !== undefined && (
+              <FlexItem>
+                <Label variant="outline" isCompact>
+                  TTFT: {formatDuration(metrics.time_to_first_token_ms)}
+                </Label>
+              </FlexItem>
+            )}
+            {metrics.response_size_bytes !== undefined && metrics.response_size_bytes > 0 && (
+              <FlexItem>
+                <Label variant="outline" isCompact>
+                  {formatBytes(metrics.response_size_bytes)}
+                </Label>
+              </FlexItem>
+            )}
+          </Flex>
+        </ExpandableSection>
       )}
-      {tokensPerSec && (
-        <FlexItem>
-          <Label variant="outline" isCompact>
-            {tokensPerSec} T/s
-          </Label>
-        </FlexItem>
-      )}
-      {metrics.time_to_first_token_ms !== undefined && (
-        <FlexItem>
-          <Label variant="outline" isCompact>
-            TTFT: {formatDuration(metrics.time_to_first_token_ms)}
-          </Label>
-        </FlexItem>
-      )}
-      {metrics.response_size_bytes !== undefined && metrics.response_size_bytes > 0 && (
-        <FlexItem>
-          <Label variant="outline" isCompact>
-            {formatBytes(metrics.response_size_bytes)}
-          </Label>
-        </FlexItem>
-      )}
-    </Flex>
+    </div>
   );
 };

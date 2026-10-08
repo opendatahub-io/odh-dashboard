@@ -1,0 +1,51 @@
+# Containerized real-cluster E2E runner for the early-gate shift-left framework.
+# The early-gate cluster already contains the PR-derived dashboard-operator and
+# its singleton Dashboard. This image validates that installation; it does not
+# install or replace either resource.
+
+FROM golang:1.26.5 AS builder
+
+ARG TARGETOS
+ARG TARGETARCH
+ARG GOTESTSUM_VERSION=v1.13.0
+
+WORKDIR /usr/src/app
+
+COPY dashboard-operator/go.mod dashboard-operator/go.sum ./
+RUN go mod download
+
+COPY dashboard-operator/api/ api/
+COPY dashboard-operator/test/ test/
+
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} \
+    go test -c -tags=e2e -o /tmp/e2e.test ./test/e2e
+RUN CGO_ENABLED=0 GOBIN=/tmp/bin \
+    go install gotest.tools/gotestsum@${GOTESTSUM_VERSION}
+RUN CGO_ENABLED=0 \
+    go build -ldflags="-s -w" -o /tmp/bin/test2json cmd/test2json
+
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.3
+
+# Build provenance consumed by image scanners; the runtime contains no Go toolchain.
+ENV GOVERSION=go1.26.5
+
+WORKDIR /e2e
+
+RUN mkdir -p /e2e/results \
+    && chown -R 65532:0 /e2e \
+    && chmod -R g=u /e2e
+
+COPY --from=builder /tmp/e2e.test /usr/local/bin/e2e.test
+COPY --from=builder /tmp/bin/gotestsum /usr/local/bin/gotestsum
+COPY --from=builder /tmp/bin/test2json /usr/local/bin/test2json
+
+USER 65532:0
+
+# Shift-left appends the selected quality-gate arguments after this command.
+# test2json converts the compiled binary's verbose output to the stream that
+# gotestsum uses for both console output and JUnit generation.
+ENTRYPOINT ["/usr/local/bin/gotestsum", "--format=standard-verbose", "--junitfile=/e2e/results/xunit_report.xml", "--junitfile-testsuite-name=short", "--raw-command", "--", "/usr/local/bin/test2json", "-t", "-p", "e2e", "/usr/local/bin/e2e.test", "-test.v"]
+
+# Safe fallback when the image is run without component-specific arguments.
+# Mutation, optional-module, MaaS, and operator-chaos scenarios are excluded.
+CMD ["-fixture-mode=existing", "-test.run=^TestE2ESmoke_"]

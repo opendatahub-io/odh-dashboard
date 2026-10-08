@@ -6,11 +6,12 @@ alwaysApply: false
 
 # Pull Request Creation
 
-When creating a pull request targeting `opendatahub-io/odh-dashboard`, you **MUST** use the PR template at `.github/pull_request_template.md` as the PR body structure. Read the template, fill in every section following the HTML comment instructions within it, and include the full checklist. This rule does not apply to PRs targeting other repositories.
+When creating a pull request targeting `opendatahub-io/odh-dashboard`, use `.github/pull_request_template.md` and fill every **REQUIRED** section from its HTML comment instructions. This rule does not apply to PRs targeting other repositories.
+
+The PR description is the **sole source of truth** for review: put goals, constraints, and proof in the body; do not rely on Jira, chat, or comments as substitutes. A linked Jira is still evaluated for alignment with the description — justify any departure in the body. Keep the body present-tense and current with the branch head.
 
 ## Agent-Specific Guidance
 
-- **Honesty over completeness.** Only check `[x]` checklist items you can substantiate. If you didn't add tests, leave that box unchecked and explain why in the Test Impact section. If you only ran automated checks (lint, type-check), do not check "manually tested."
-- **Post-merge items stay unchecked.** The "After the PR is posted & before it merges" items are human tasks — leave them as `[ ]`.
-- **UI section is conditional.** If the change has no UI impact, omit the "If you have UI changes" checklist items entirely rather than leaving them unchecked.
-- **No bare summaries.** Never skip the template and use a plain paragraph as the PR body. Reviewers expect the full structure.
+- **Substance over placeholders.** Fill Problem, Solution, and Evidence with real content. Drop unused optional content (including Justifications when it does not apply) — no TBD or placeholder text.
+- **Evidence must be reproducible.** Include the steps you took, not only the outcome. Call out automated coverage that protects the change, or briefly explain when new tests are not appropriate. For UI or flow changes, attach or link screenshots, GIFs, and/or video.
+- **No bare summaries.** Never skip the template and use a plain paragraph as the PR body. Reviewers expect the Problem / Solution / Evidence structure.

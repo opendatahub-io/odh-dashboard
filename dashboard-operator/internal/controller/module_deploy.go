@@ -32,9 +32,10 @@ import (
 )
 
 const (
-	federationConfigMapName = "federation-config"
-	federationConfigKey     = "module-federation-config.json"
-	moduleComponentLabel    = "app.kubernetes.io/component"
+	federationConfigMapName  = "federation-config"
+	federationConfigKey      = "module-federation-config.json"
+	moduleComponentLabel     = "app.kubernetes.io/component"
+	dataConnectHubModuleName = "dataConnectHub"
 )
 
 // --- Module proxy and federation types ---
@@ -209,6 +210,13 @@ func (r *DashboardReconciler) deployModuleManifests(
 			continue
 		}
 
+		if name == dataConnectHubModuleName {
+			activeRBACName, _ := dataConnectHubGatewayRBACForPlatform(r.Platform)
+			if err := r.cleanupDataConnectHubGatewayRBAC(ctx, activeRBACName); err != nil {
+				return fmt.Errorf("cleaning up inactive DCH gateway RBAC: %w", err)
+			}
+		}
+
 		params := readExistingParams(filepath.Join(modulePath, "params.env"))
 		maps.Copy(params, computed)
 		addInterBFFParams(params, name, statuses, r.Platform)
@@ -222,6 +230,8 @@ func (r *DashboardReconciler) deployModuleManifests(
 			logger.Error(err, "Failed to render module manifests", "module", name)
 			return fmt.Errorf("failed to render manifests for module %s: %w", name, err)
 		}
+		remapRayDashboardGatewayRBAC(rendered)
+		rendered = filterAndRemapDataConnectHubGatewayRBAC(rendered, r.ApplicationsNamespace, r.Platform)
 
 		deployer := deploy.NewDeployer(
 			deploy.WithFieldOwner("dashboard-operator"),
@@ -259,6 +269,12 @@ func (r *DashboardReconciler) deleteModuleResources(
 		status := statuses[name]
 		if status.Phase == v1alpha1.ModulePhaseDeployed || status.Phase == v1alpha1.ModulePhaseDegraded {
 			continue
+		}
+
+		if name == dataConnectHubModuleName {
+			if err := r.cleanupDataConnectHubGatewayRBAC(ctx, ""); err != nil {
+				errs = append(errs, fmt.Errorf("cleaning up DCH gateway RBAC: %w", err))
+			}
 		}
 
 		matchLabels := client.MatchingLabels{
@@ -446,24 +462,8 @@ func (r *DashboardReconciler) buildFederationConfigMap(
 		}},
 	})
 
-	// Add perses entry if observability is enabled
-	if dashboard.Spec.Observability != nil && dashboard.Spec.Observability.Enabled &&
-		dashboard.Spec.Observability.PersesService != nil {
-		ps := dashboard.Spec.Observability.PersesService
-		entries = append(entries, federationEntry{
-			Name: "perses",
-			ProxyService: []proxyServiceEntry{{
-				Authorize:   true,
-				Path:        "/perses/api",
-				PathRewrite: "",
-				TLS:         false,
-				Service: serviceRef{
-					Name:      ps.Name,
-					Namespace: ps.Namespace,
-					Port:      ps.Port,
-				},
-			}},
-		})
+	if entry := persesFederationEntry(dashboard.Spec.Observability); entry != nil {
+		entries = append(entries, *entry)
 	}
 
 	// Add mlflowEmbedded entry if mlflow is deployed
@@ -506,6 +506,28 @@ func (r *DashboardReconciler) buildFederationConfigMap(
 	}
 
 	return cm, nil
+}
+
+func persesFederationEntry(observability *v1alpha1.ObservabilitySpec) *federationEntry {
+	if observability == nil || !observability.Enabled || observability.PersesService == nil {
+		return nil
+	}
+
+	persesService := observability.PersesService
+	return &federationEntry{
+		Name: "perses",
+		ProxyService: []proxyServiceEntry{{
+			Authorize:   true,
+			Path:        "/perses/api",
+			PathRewrite: "",
+			TLS:         false,
+			Service: serviceRef{
+				Name:      persesService.Name,
+				Namespace: persesService.Namespace,
+				Port:      persesService.Port,
+			},
+		}},
+	}
 }
 
 // --- Standalone readiness overlay ---
@@ -585,10 +607,16 @@ func (r *DashboardReconciler) deployFederationConfigMap(
 	ctx context.Context,
 	statuses map[string]v1alpha1.ModuleStatus,
 	dashboard *v1alpha1.Dashboard,
+	observabilityKnown bool,
 ) (string, error) {
 	fedCM, err := r.buildFederationConfigMap(statuses, dashboard)
 	if err != nil {
 		return "", fmt.Errorf("building federation ConfigMap: %w", err)
+	}
+	if !observabilityKnown {
+		if err := r.preservePersesFederationEntry(ctx, fedCM); err != nil {
+			return "", err
+		}
 	}
 
 	fedResources, err := configMapToUnstructured(fedCM)
@@ -613,17 +641,57 @@ func (r *DashboardReconciler) deployFederationConfigMap(
 	return fedCM.Data[federationConfigKey], nil
 }
 
+// preservePersesFederationEntry retains the last-known-good Perses entry while
+// detection is unavailable. Other entries come from the current module demand;
+// an absent ConfigMap does not prevent a first installation from starting.
+func (r *DashboardReconciler) preservePersesFederationEntry(ctx context.Context, desired *corev1.ConfigMap) error {
+	existing := &corev1.ConfigMap{}
+	if err := r.Get(ctx, client.ObjectKeyFromObject(desired), existing); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("reading federation ConfigMap %s: %w", desired.Name, err)
+	}
+	var existingEntries []json.RawMessage
+	if err := json.Unmarshal([]byte(existing.Data[federationConfigKey]), &existingEntries); err != nil {
+		return fmt.Errorf("reading federation entries from %s: %w", desired.Name, err)
+	}
+	for _, entry := range existingEntries {
+		var identity struct {
+			Name string `json:"name"`
+		}
+		if err := json.Unmarshal(entry, &identity); err != nil {
+			return fmt.Errorf("reading federation entry from %s: %w", desired.Name, err)
+		}
+		if identity.Name != "perses" {
+			continue
+		}
+		var desiredEntries []json.RawMessage
+		if err := json.Unmarshal([]byte(desired.Data[federationConfigKey]), &desiredEntries); err != nil {
+			return fmt.Errorf("reading desired federation entries: %w", err)
+		}
+		data, err := json.MarshalIndent(append(desiredEntries, entry), "    ", "  ")
+		if err != nil {
+			return fmt.Errorf("preserving Perses federation entry: %w", err)
+		}
+		desired.Data[federationConfigKey] = string(data)
+		return nil
+	}
+	return nil
+}
+
 // reconcileModuleDemand deploys and removes shared BFFs based on both operand
 // lifecycles. Shared modules retain the dashboard ownership label because they
 // are common dependencies rather than resources owned by a single operand.
 func (r *DashboardReconciler) reconcileModuleDemand(ctx context.Context, dashboard *v1alpha1.Dashboard) (map[string]v1alpha1.ModuleStatus, error) {
 	statuses := resolveModuleStatuses(&dashboard.Spec)
-	// The MaaS Consumer Portal is a RHOAI-only operand. Do not let an unsupported
-	// MaaS Consumer Portal request create MaaS/GenAI demand when the core dashboard is removed.
-	if !maasConsumerPortalSupportedPlatform(r.Platform) && dashboard.Spec.ManagementState == "Removed" && dashboard.Spec.MaaSConsumerPortal != nil && dashboard.Spec.MaaSConsumerPortal.ManagementState == "Managed" {
-		for _, name := range maasConsumerPortalRequiredModuleNames() {
+	// The MaaS Portal is a RHOAI-only operand. Do not let an unsupported
+	// MaaS Portal request create MaaS/GenAI demand when the core dashboard is removed.
+	portal := effectiveMaaSPortal(dashboard.Spec)
+	if !maasPortalSupportedPlatform(r.Platform) && dashboard.Spec.ManagementState == "Removed" && portal != nil && portal.ManagementState == "Managed" {
+		for _, name := range maasPortalRequiredModuleNames() {
 			if statuses[name].Reason != "ExplicitOverride" {
-				statuses[name] = v1alpha1.ModuleStatus{Phase: v1alpha1.ModulePhaseNotDeployed, Reason: "UnsupportedPlatform", Message: "MaaS Consumer Portal is supported only on RHOAI", LastTransitionTime: metav1.Now()}
+				statuses[name] = v1alpha1.ModuleStatus{Phase: v1alpha1.ModulePhaseNotDeployed, Reason: "UnsupportedPlatform", Message: "MaaS Portal is supported only on RHOAI", LastTransitionTime: metav1.Now()}
 			}
 		}
 	}

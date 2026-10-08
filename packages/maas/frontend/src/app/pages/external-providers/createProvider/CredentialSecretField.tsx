@@ -46,18 +46,7 @@ type CredentialSecretFieldProps = {
   secretValueValidationMessage?: string;
 };
 
-const credentialSecretHelpContent = (
-  <>
-    <p>
-      A <strong>credential secret</strong> is a Kubernetes Secret (type: Opaque) in your namespace
-      that stores the authentication credentials needed to connect to the provider.
-    </p>
-    <p>
-      <strong>Expected format:</strong> The secret must contain the data key{' '}
-      <code>{SECRET_API_KEY_DATA_KEY}</code> whose value is your API key or token.
-    </p>
-  </>
-);
+const credentialSecretHelpContent = <>The secret that stores this provider&apos;s credentials.</>;
 
 const EXISTING_SECRETS_GROUP = 'existing-secrets';
 
@@ -151,7 +140,7 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
   return (
     <>
       <FormGroup
-        label="Credential secret"
+        label="Secret"
         isRequired
         fieldId="credential-secret"
         labelHelp={
@@ -162,6 +151,13 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
           />
         }
       >
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem>
+              Select an existing secret by its name, or create a new one.
+            </HelperTextItem>
+          </HelperText>
+        </FormHelperText>
         <TypeaheadSelect
           id="credential-secret"
           dataTestId="credential-secret-toggle"
@@ -178,7 +174,7 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
             }
           }}
           filterFunction={filterSecretOptions}
-          placeholder="Select a credential secret"
+          placeholder="Select or create a secret"
           previewDescription={false}
           isRequired={false}
           isDisabled={!secretsLoaded}
@@ -187,14 +183,6 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
           popperProps={{ maxWidth: 'trigger' }}
           isScrollable
         />
-        <FormHelperText>
-          <HelperText>
-            <HelperTextItem>
-              Select an existing secret, or create a new one and set the Secret resource name plus
-              API key.
-            </HelperTextItem>
-          </HelperText>
-        </FormHelperText>
         {missingCredentialSecretRef && (
           <FormHelperText>
             <HelperText>

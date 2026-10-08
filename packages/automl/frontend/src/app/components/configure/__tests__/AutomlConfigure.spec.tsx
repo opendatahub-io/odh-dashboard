@@ -9,7 +9,7 @@ import { useNavigate, useParams } from 'react-router';
 import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplorer/types';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
-import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
+import { useS3GetFileSchemaQuery } from '~/app/hooks/useS3GetFileSchemaQuery';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import { AUTOML_EVENTS } from '~/app/utilities/tracking';
 
@@ -25,9 +25,9 @@ jest.mock('react-router', () => ({
   useParams: jest.fn(),
 }));
 
-jest.mock('~/app/hooks/queries');
-jest.mock('~/app/hooks/mutations', () => ({
-  ...jest.requireActual<typeof import('~/app/hooks/mutations')>('~/app/hooks/mutations'),
+jest.mock('~/app/hooks/useS3GetFileSchemaQuery');
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
   useS3FileUploadMutation: jest.fn(() => ({ mutateAsync: mockUpload })),
 }));
 
@@ -68,9 +68,10 @@ jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileEx
     ) : null,
 }));
 
-jest.mock('~/app/components/common/SecretSelector', () => ({
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
   __esModule: true,
-  default: ({
+  ConnectionModal: () => null,
+  SecretSelector: ({
     onChange,
     value,
     dataTestId,
@@ -109,12 +110,12 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
   ),
 }));
 
+jest.mock('@odh-dashboard/autox-core/ui/components/primitive', () => ({
+  ConfigureFormGroup: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
   useWatchConnectionTypes: () => [[]],
-}));
-jest.mock('~/app/components/common/AutomlConnectionModal', () => ({
-  __esModule: true,
-  default: () => null,
 }));
 jest.mock('mod-arch-shared', () => ({
   DashboardPopupIconButton: ({ icon, ...props }: { icon: React.ReactNode }) => (
@@ -129,6 +130,7 @@ const mockNavigate = jest.mocked(useNavigate);
 const mockParams = jest.mocked(useParams);
 const trackingMock = jest.mocked(fireMiscTrackingEvent);
 const schema = createConfigureSchema();
+const mockResetSchemaCache = jest.fn();
 
 const columns = [
   { name: 'target', type: 'string' as const, task_type: 'binary' as const, unique_count: 2 },
@@ -162,7 +164,11 @@ describe('AutomlConfigure', () => {
     jest.clearAllMocks();
     mockParams.mockReturnValue({ namespace: 'test-namespace' });
     mockNavigate.mockReturnValue(jest.fn());
-    mockGetSchema.mockReturnValue({ data: columns, isLoading: false } as never);
+    mockGetSchema.mockReturnValue({
+      data: columns,
+      isLoading: false,
+      resetSchemaCache: mockResetSchemaCache,
+    } as never);
     mockUpload.mockResolvedValue({ key: 'uploaded.csv' });
   });
 

@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -82,8 +83,8 @@ func TestReconcileModuleDemand_WhenNeitherOperandRequiresModules(t *testing.T) {
 		ApplicationsNamespace: testNamespace,
 	}
 	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{
-		ManagementSpec:     common.ManagementSpec{ManagementState: "Removed"},
-		MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Removed"},
+		ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
+		MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Removed"},
 	}}
 
 	statuses, err := reconciler.ReconcileModuleDemand(context.Background(), dashboard)
@@ -594,5 +595,26 @@ func TestDeleteModuleResources_ConfigMaps(t *testing.T) {
 				require.NoErrorf(t, err, "ConfigMap %s/%s should be retained", retained.Namespace, retained.Name)
 			}
 		})
+	}
+}
+
+func TestDeleteModuleResources_DataConnectHubGatewayRBAC(t *testing.T) {
+	s := testScheme(t)
+	resources := []client.Object{
+		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-data-connect-hub-rhoai-gateway-discovery", Namespace: "openshift-ingress"}},
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-data-connect-hub-rhoai-gateway-discovery", Namespace: "openshift-ingress"}},
+		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-data-connect-hub-odh-gateway-discovery", Namespace: "opendatahub"}},
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-data-connect-hub-odh-gateway-discovery", Namespace: "opendatahub"}},
+	}
+	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(resources...).Build()
+	r := &ctrlpkg.DashboardReconciler{Client: cli, Scheme: s, ApplicationsNamespace: testNamespace}
+	statuses := allDeployedStatuses()
+	statuses["dataConnectHub"] = v1alpha1.ModuleStatus{Phase: v1alpha1.ModulePhaseDisabled}
+
+	require.NoError(t, r.DeleteModuleResources(context.Background(), statuses))
+	require.NoError(t, r.DeleteModuleResources(context.Background(), statuses), "cleanup should be idempotent")
+	for _, resource := range resources {
+		err := cli.Get(context.Background(), client.ObjectKeyFromObject(resource), resource)
+		assert.True(t, apierrors.IsNotFound(err), "%T should be deleted", resource)
 	}
 }

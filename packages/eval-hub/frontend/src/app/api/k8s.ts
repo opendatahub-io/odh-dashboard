@@ -6,19 +6,30 @@ import {
   restCREATE,
   restDELETE,
   restGET,
+  restPATCH,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
   Collection,
   CollectionBenchmark,
+  CollectionPatchOperation,
+  CloneCollectionRequest,
   CollectionsListResponse,
   EvalHubCRStatus,
   EvalHubHealthResponse,
   CreateEvaluationJobRequest,
   CreateEvaluationJobResponse,
+  HardwareProfileValidationRequest,
+  HardwareProfileValidationResponse,
+  CreateCollectionRequest,
   EvaluationJob,
   EvaluationJobsResponse,
   InferenceServicesResponse,
+  KueueAvailability,
+  KueueWorkloadStatus,
+  KueueWorkloadStatusesResponse,
+  HardwareProfile,
+  HardwareProfilesResponse,
   ListCollectionsParams,
   ListEvaluationJobsParams,
   NamespaceKind,
@@ -29,6 +40,15 @@ import {
   VerifyConnectionResponse,
 } from '~/app/types';
 import { CatalogSecurityArtifactList } from '~/app/pages/modelCatalog/securityInsightsTypes';
+
+const isValidCollectionBenchmark = (b: unknown): b is CollectionBenchmark =>
+  b != null &&
+  typeof b === 'object' &&
+  'id' in b &&
+  typeof b.id === 'string' &&
+  b.id.trim().length > 0 &&
+  (!('weight' in b) ||
+    (typeof b.weight === 'number' && Number.isFinite(b.weight) && b.weight >= 0));
 
 const validateCollection = (data: unknown): void => {
   if (!data || typeof data !== 'object') {
@@ -43,8 +63,13 @@ const validateCollection = (data: unknown): void => {
   if (!('id' in data.resource) || typeof data.resource.id !== 'string') {
     throw new Error('Invalid collection: missing resource.id');
   }
-  if ('benchmarks' in data && data.benchmarks != null && !Array.isArray(data.benchmarks)) {
-    throw new Error('Invalid collection: benchmarks is not an array');
+  if ('benchmarks' in data && data.benchmarks != null) {
+    if (!Array.isArray(data.benchmarks)) {
+      throw new Error('Invalid collection: benchmarks is not an array');
+    }
+    if (data.benchmarks.some((benchmark) => !isValidCollectionBenchmark(benchmark))) {
+      throw new Error('Invalid collection: benchmarks contains an invalid entry');
+    }
   }
 };
 
@@ -65,6 +90,27 @@ const validateEvaluationJob = (data: unknown): void => {
 };
 
 const isString = (v: unknown): v is string => typeof v === 'string';
+
+const sanitizeStringArray = (value: unknown): string[] | undefined =>
+  Array.isArray(value) ? value.filter(isString) : undefined;
+
+const sanitizeOptionalString = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
+
+const sanitizeCollection = (c: Collection): Collection => ({
+  ...c,
+  category: sanitizeOptionalString(c.category),
+  tags: sanitizeStringArray(c.tags),
+  domains: sanitizeStringArray(c.domains),
+  tasks: sanitizeStringArray(c.tasks),
+  modalities: sanitizeStringArray(c.modalities),
+  industries: sanitizeStringArray(c.industries),
+  // eslint-disable-next-line camelcase
+  evaluation_targets: sanitizeStringArray(c.evaluation_targets),
+  benchmarks: Array.isArray(c.benchmarks)
+    ? c.benchmarks.filter(isValidCollectionBenchmark)
+    : undefined,
+});
 
 const isValidProviderItem = (p: unknown): p is Provider =>
   p != null &&
@@ -96,9 +142,6 @@ const isValidCollectionItem = (c: unknown): c is Collection =>
   'name' in c &&
   typeof c.name === 'string';
 
-const isValidCollectionBenchmark = (b: unknown): b is CollectionBenchmark =>
-  b != null && typeof b === 'object' && 'id' in b && typeof b.id === 'string';
-
 const sanitizeProviders = (items: unknown[]): Provider[] =>
   items.filter(isValidProviderItem).map((p) => ({
     ...p,
@@ -111,12 +154,7 @@ const sanitizeProviders = (items: unknown[]): Provider[] =>
   }));
 
 const sanitizeCollectionItems = (items: unknown[]): Collection[] =>
-  items.filter(isValidCollectionItem).map((c) => ({
-    ...c,
-    benchmarks: Array.isArray(c.benchmarks)
-      ? c.benchmarks.filter(isValidCollectionBenchmark)
-      : undefined,
-  }));
+  items.filter(isValidCollectionItem).map(sanitizeCollection);
 
 export const getUser =
   (hostPath: string) =>
@@ -171,6 +209,77 @@ export const getEvalHubHealth =
       throw new Error('Invalid health response format');
     });
 
+export const getKueueAvailability =
+  (hostPath: string, namespace: string) =>
+  (opts: APIOptions): Promise<KueueAvailability> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/kueue/availability`,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<KueueAvailability>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid Kueue availability response format');
+    });
+
+export const getKueueWorkloadStatuses =
+  (hostPath: string, namespace: string, evaluationIds: string[]) =>
+  (opts: APIOptions): Promise<KueueWorkloadStatus[]> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/kueue/workloads`,
+        // eslint-disable-next-line camelcase -- Query parameter follows the BFF OpenAPI contract.
+        { namespace, evaluation_ids: evaluationIds.join(',') },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<KueueWorkloadStatusesResponse>(response)) {
+        return response.data.items;
+      }
+      throw new Error('Invalid Kueue Workload status response format');
+    });
+
+export const getHardwareProfiles =
+  (hostPath: string, namespace: string) =>
+  (opts: APIOptions): Promise<HardwareProfile[]> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/hardwareprofiles`,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<HardwareProfilesResponse | HardwareProfile[]>(response)) {
+        const { data } = response;
+        return Array.isArray(data) ? data : data.items;
+      }
+      throw new Error('Invalid HardwareProfile response format');
+    });
+
+export const validateHardwareProfiles =
+  (hostPath: string, namespace: string, request: HardwareProfileValidationRequest) =>
+  (opts: APIOptions): Promise<HardwareProfileValidationResponse> =>
+    handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/hardwareprofiles/validate`,
+        request,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<HardwareProfileValidationResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid HardwareProfiles validation response format');
+    });
+
 export const getEvaluationJobs =
   (hostPath: string, params?: ListEvaluationJobsParams) =>
   (opts: APIOptions): Promise<EvaluationJob[]> => {
@@ -195,7 +304,15 @@ export const getEvaluationJobs =
     }
 
     return handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs`, queryParams, opts),
+      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs`, queryParams, {
+        ...opts,
+        headers: {
+          ...opts.headers,
+          // The list changes immediately after a run is created. Do not let the browser reuse
+          // a pre-create response.
+          'Cache-Control': 'no-cache',
+        },
+      }),
     ).then((response) => {
       if (isModArchResponse<EvaluationJobsResponse | EvaluationJob[]>(response)) {
         const { data } = response;
@@ -267,6 +384,64 @@ export const getCollection =
     ).then((response) => {
       if (isModArchResponse<Collection>(response)) {
         validateCollection(response.data);
+        return sanitizeCollection(response.data);
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
+export const deleteCollection =
+  (hostPath: string, namespace: string, collectionId: string) =>
+  (opts: APIOptions): Promise<void> => {
+    if (!collectionId) {
+      return Promise.reject(new Error('collectionId must not be empty'));
+    }
+    return handleRestFailures(
+      restDELETE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(collectionId)}`,
+        {},
+        { namespace },
+        { ...opts, parseJSON: false },
+      ),
+    ).then((response) => {
+      // A successful delete returns 204 with an empty body. The shared REST
+      // helper does not reject based on HTTP status, so a non-empty response
+      // indicates that the BFF returned an error payload instead.
+      if (typeof response === 'string' && response.trim() !== '') {
+        throw new Error(response);
+      }
+      return undefined;
+    });
+  };
+
+export const patchCollection =
+  (
+    hostPath: string,
+    namespace: string,
+    collectionId: string,
+    operations: CollectionPatchOperation[],
+  ) =>
+  (opts: APIOptions): Promise<Collection> => {
+    if (!collectionId) {
+      return Promise.reject(new Error('collectionId must not be empty'));
+    }
+    return handleRestFailures(
+      restPATCH(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(
+          collectionId,
+        )}`,
+        // EvalHub's PATCH endpoint accepts a JSON Patch array. The shared REST
+        // helper types request bodies as records, although it serializes arrays correctly.
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        operations as unknown as Record<string, unknown>,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<Collection>(response)) {
+        validateCollection(response.data);
         return response.data;
       }
       throw new Error('Invalid response format');
@@ -298,6 +473,20 @@ export const getCollections =
     if (params.scope) {
       queryParams.scope = params.scope;
     }
+    if (params.sortBy) {
+      // eslint-disable-next-line camelcase
+      queryParams.sort_by = params.sortBy;
+    }
+    if (params.domains && params.domains.length > 0) {
+      queryParams.domains = params.domains.join(',');
+    }
+    if (params.industries && params.industries.length > 0) {
+      queryParams.industries = params.industries.join(',');
+    }
+    if (params.evaluationTargets && params.evaluationTargets.length > 0) {
+      // eslint-disable-next-line camelcase
+      queryParams.evaluation_targets = params.evaluationTargets.join(',');
+    }
     return handleRestFailures(
       restGET(
         hostPath,
@@ -308,9 +497,7 @@ export const getCollections =
     ).then((response) => {
       if (
         isModArchResponse<
-          | { items?: Collection[] | null; total_count?: number; limit?: number }
-          | Collection[]
-          | null
+          { items?: unknown; total_count?: number; limit?: number } | Collection[] | null
         >(response)
       ) {
         const { data } = response;
@@ -320,8 +507,12 @@ export const getCollections =
         if (Array.isArray(data)) {
           return { items: sanitizeCollectionItems(data) };
         }
+        const items = data.items ?? [];
+        if (!Array.isArray(items)) {
+          throw new Error('Invalid response format');
+        }
         return {
-          items: sanitizeCollectionItems(data.items ?? []),
+          items: sanitizeCollectionItems(items),
           // eslint-disable-next-line camelcase
           total_count: data.total_count,
           limit: data.limit,
@@ -330,6 +521,48 @@ export const getCollections =
       throw new Error('Invalid response format');
     });
   };
+
+export const cloneCollection =
+  (hostPath: string, namespace: string, collectionId: string, request: CloneCollectionRequest) =>
+  (opts: APIOptions): Promise<Collection> => {
+    if (!collectionId) {
+      return Promise.reject(new Error('collectionId must not be empty'));
+    }
+    return handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(collectionId)}/clones`,
+        request,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<Collection>(response)) {
+        validateCollection(response.data);
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
+export const createCollection =
+  (hostPath: string, namespace: string, request: CreateCollectionRequest) =>
+  (opts: APIOptions): Promise<Collection> =>
+    handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections`,
+        request,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<Collection>(response)) {
+        validateCollection(response.data);
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
 
 export const getProviders =
   (hostPath: string, namespace: string) =>

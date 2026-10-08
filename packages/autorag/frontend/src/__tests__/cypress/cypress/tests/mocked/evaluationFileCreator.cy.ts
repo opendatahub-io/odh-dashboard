@@ -1,4 +1,5 @@
 import {
+  autoragConfigurePage,
   evaluationFileCreator,
   evaluationFileSelector,
   fileExplorer,
@@ -7,8 +8,8 @@ import {
 // my-project is the only fake namespace with a DSPA and secrets
 // (packages/autorag/bff/internal/fake/k8s.go)
 const NAMESPACE = 'my-project';
-// Real fake secrets: an "ogx" secret and a "data-connection" storage secret with a bucket set
-const OGX_SECRET = 'ogx';
+// Real fake secrets: a "maas" secret and a "data-connection" storage secret with a bucket set
+const MAAS_SECRET = 'maas';
 const STORAGE_SECRET = 'data-connection';
 
 // Real seed data under the fake S3 bucket (packages/autorag/bff/internal/fake/s3-bucket/):
@@ -28,24 +29,21 @@ const navigateToConfigure = () => {
   cy.testA11y();
 };
 
-const selectOgxAndStorageSecrets = () => {
+const selectMaaSAndStorageSecrets = () => {
   cy.findByTestId('autorag-name-input').type('Test Experiment');
-  cy.findByTestId('ogx-secret-selector').click();
-  cy.findByRole('option', { name: new RegExp(OGX_SECRET, 'i') }).click();
+  cy.findByTestId('maas-secret-selector', { timeout: 60000 }).should('not.be.disabled');
+  autoragConfigurePage.selectMaaSSecret(MAAS_SECRET);
+  cy.findByTestId('autorag-next-button').should('be.enabled');
   cy.findByTestId('autorag-next-button').click();
   cy.findByTestId('configure-step-subtitle').should('be.visible');
 
   // Select S3 connection — wait for secrets to load
-  cy.findByTestId('aws-secret-selector').should('exist');
-  cy.findByTestId('aws-secret-selector').click();
-  cy.findByTestId('aws-secret-selector').find('input').type(STORAGE_SECRET);
-  cy.findByRole('option', { name: new RegExp(STORAGE_SECRET, 'i') })
-    .should('be.visible')
-    .click();
+  cy.findByTestId('aws-secret-selector', { timeout: 60000 }).should('exist').and('not.be.disabled');
+  autoragConfigurePage.selectStorageSecret(STORAGE_SECRET);
 };
 
 const browseToSeedFolder = () => {
-  fileExplorer.findBrowseBucketButton().click();
+  fileExplorer.findAddKnowledgeFilesButton().click();
   fileExplorer.find().should('be.visible');
   fileExplorer.navigateIntoFolder('autorag input data');
   fileExplorer.navigateIntoFolder('pdf');
@@ -53,7 +51,7 @@ const browseToSeedFolder = () => {
 };
 
 const advanceToStep2 = () => {
-  selectOgxAndStorageSecrets();
+  selectMaaSAndStorageSecrets();
   browseToSeedFolder();
   fileExplorer.navigateIntoFolder(DOCUMENTS_FOLDER_NAME);
 
@@ -62,18 +60,18 @@ const advanceToStep2 = () => {
   fileExplorer.findSelectButton().click();
 
   // Wait for the evaluation section to render
-  cy.findByTestId('evaluation-create-button').should('exist');
+  evaluationFileSelector.findActionsButton().should('exist');
 };
 
 const advanceToStep2WithFolder = () => {
-  selectOgxAndStorageSecrets();
+  selectMaaSAndStorageSecrets();
   browseToSeedFolder();
 
   // Select a folder as input data (not a file)
   fileExplorer.findRow(DOCUMENTS_FOLDER_NAME).click();
   fileExplorer.findSelectButton().click();
 
-  cy.findByTestId('evaluation-create-button').should('exist');
+  evaluationFileSelector.findActionsButton().should('exist');
 };
 
 // Helper: add a Q&A pair (document auto-selected from file input)
@@ -94,7 +92,8 @@ describe('EvaluationFileCreator', () => {
     advanceToStep2();
 
     evaluationFileCreator.find().should('not.exist');
-    evaluationFileSelector.findCreateButton().click();
+    evaluationFileSelector.findActionsButton().click();
+    evaluationFileSelector.findCreateDatasetMenuItem().click();
 
     evaluationFileCreator.find().should('be.visible');
     evaluationFileCreator.findEmptyState().should('be.visible');
@@ -119,12 +118,13 @@ describe('EvaluationFileCreator', () => {
     navigateToConfigure();
     advanceToStep2();
 
-    evaluationFileSelector.findCreateButton().click();
+    evaluationFileSelector.findActionsButton().click();
+    evaluationFileSelector.findCreateDatasetMenuItem().click();
     addQAPair('Q1', 'A1');
     evaluationFileCreator.findTableRow('Q1').should('be.visible');
 
     // Edit the row
-    evaluationFileCreator.findKebabAction('Q1', 'Edit').click();
+    evaluationFileCreator.clickKebabAction('Q1', 'Edit');
     evaluationFileCreator.findQuestionInput().should('have.value', 'Q1');
     evaluationFileCreator.findAnswerInput().should('have.value', 'A1');
 
@@ -133,7 +133,7 @@ describe('EvaluationFileCreator', () => {
     evaluationFileCreator.findTableRow('Q1').should('be.visible');
 
     // Delete the row
-    evaluationFileCreator.findKebabAction('Q1', 'Delete').click();
+    evaluationFileCreator.clickKebabAction('Q1', 'Delete');
     evaluationFileCreator.findEmptyState().should('be.visible');
   });
 
@@ -143,7 +143,8 @@ describe('EvaluationFileCreator', () => {
     navigateToConfigure();
     advanceToStep2();
 
-    evaluationFileSelector.findCreateButton().click();
+    evaluationFileSelector.findActionsButton().click();
+    evaluationFileSelector.findCreateDatasetMenuItem().click();
     addQAPair('What is AI?', 'Artificial Intelligence');
 
     evaluationFileCreator.findSubmitButton().click();
@@ -158,7 +159,8 @@ describe('EvaluationFileCreator', () => {
     navigateToConfigure();
     advanceToStep2();
 
-    evaluationFileSelector.findCreateButton().click();
+    evaluationFileSelector.findActionsButton().click();
+    evaluationFileSelector.findCreateDatasetMenuItem().click();
     addQAPair('What is AI?', 'Artificial Intelligence');
     evaluationFileCreator.findSubmitButton().click();
 
@@ -178,7 +180,7 @@ describe('EvaluationFileCreator', () => {
       evaluationFileSelector.findFileInput().should('have.value', '');
 
       // Browse S3 and search for the real uploaded file (uploaded to the bucket root)
-      evaluationFileSelector.findS3BrowseButton().click();
+      evaluationFileSelector.findFileActionButton().click();
       fileExplorer.findSearch().type(uploadedKey.replace(/\.json$/, ''));
       fileExplorer.findRow(uploadedKey).should('be.visible');
     });
@@ -188,7 +190,8 @@ describe('EvaluationFileCreator', () => {
     navigateToConfigure();
     advanceToStep2WithFolder();
 
-    evaluationFileSelector.findCreateButton().click();
+    evaluationFileSelector.findActionsButton().click();
+    evaluationFileSelector.findCreateDatasetMenuItem().click();
 
     // With folder input, Select button should be visible
     evaluationFileCreator.findSelectDocumentsButton().should('be.visible');
@@ -223,7 +226,8 @@ describe('EvaluationFileCreator', () => {
     navigateToConfigure();
     advanceToStep2();
 
-    evaluationFileSelector.findCreateButton().click();
+    evaluationFileSelector.findActionsButton().click();
+    evaluationFileSelector.findCreateDatasetMenuItem().click();
     addQAPair('Q1', 'A1');
 
     evaluationFileCreator.findSubmitButton().should('be.enabled');
@@ -237,7 +241,8 @@ describe('EvaluationFileCreator', () => {
     navigateToConfigure();
     advanceToStep2();
 
-    evaluationFileSelector.findCreateButton().click();
+    evaluationFileSelector.findActionsButton().click();
+    evaluationFileSelector.findCreateDatasetMenuItem().click();
     evaluationFileCreator.find().should('be.visible');
 
     evaluationFileCreator.findCancelButton().click();

@@ -1,0 +1,47 @@
+name: Cypress Mock Orchestration
+permissions:
+  contents: read
+on:
+  pull_request:
+    paths:
+      - 'package.json'
+      - 'frontend/package.json'
+      - 'packages/**/package.json'
+      - 'distributions/**/package.json'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.jsonc'
+      - 'scripts/cypress/**'
+      - 'scripts/generate-cypress-test-matrix.js'
+      - 'scripts/__tests__/generate-cypress-test-matrix.test.js'
+      - '.github/workflows/cypress-mock-orchestration.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'frontend/package.json'
+      - 'packages/**/package.json'
+      - 'distributions/**/package.json'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.jsonc'
+      - 'scripts/cypress/**'
+      - 'scripts/generate-cypress-test-matrix.js'
+      - 'scripts/__tests__/generate-cypress-test-matrix.test.js'
+      - '.github/workflows/cypress-mock-orchestration.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+      - name: Setup pnpm and workspace dependencies
+        uses: ./.github/actions/pnpm-setup
+        with:
+          node-version: '22'
+      - name: Validate federation targets and test selection
+        run: |
+          node scripts/cypress/run-mock-federation-task.js validate
+          node --test scripts/cypress/__tests__/*.test.js
+          pnpm run test:ci-matrix

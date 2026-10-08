@@ -13,13 +13,14 @@ import {
 } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun } from '~/app/types';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
-import * as queries from '~/app/hooks/queries';
 import * as treeView from '~/app/topology/tree-view';
 import * as transformPipelineDataModule from '~/app/topology/tree-view/transformPipelineData';
 import * as buildStageMapTopologyModule from '~/app/topology/buildStageMapTopology';
 import * as useAutomlTaskTopologyModule from '~/app/topology/useAutomlTaskTopology';
 import * as utils from '~/app/utilities/utils';
 import { AUTOML_EVENTS } from '~/app/utilities/tracking';
+
+const mockFetchS3File = jest.fn();
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
@@ -84,9 +85,9 @@ jest.mock('~/app/utilities/utils', () => ({
   downloadBlob: jest.fn(),
 }));
 
-jest.mock('~/app/hooks/queries', () => ({
-  ...jest.requireActual('~/app/hooks/queries'),
-  fetchS3File: jest.fn(),
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
+  useFetchS3File: jest.fn(() => mockFetchS3File),
 }));
 
 const mockPipelineRun: PipelineRun = {
@@ -109,7 +110,7 @@ const createMockModel = (modelName: string): AutomlModel => ({
 });
 
 const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
-const fetchS3FileMock = jest.mocked(queries.fetchS3File);
+const fetchS3FileMock = jest.mocked(mockFetchS3File);
 const downloadBlobMock = jest.mocked(utils.downloadBlob);
 const useTreeViewDataMock = jest.mocked(treeView.useTreeViewData);
 const transformPipelineDataMock = jest.mocked(transformPipelineDataModule.transformPipelineData);
@@ -172,7 +173,14 @@ describe('AutomlResults', () => {
   it('should pass fallback topology nodes to useTreeViewData when stage map is unavailable', () => {
     renderWithContext(mockPipelineRun);
     const fallbackNodes = useAutomlTaskTopologyMock.mock.results[0]?.value;
-    expect(useTreeViewDataMock).toHaveBeenCalledWith({}, fallbackNodes, undefined, undefined);
+    expect(useTreeViewDataMock).toHaveBeenCalledWith(
+      {},
+      fallbackNodes,
+      undefined,
+      undefined,
+      'timeseries',
+      undefined,
+    );
   });
 
   it('should render gracefully when pipelineRun is undefined', () => {
@@ -535,6 +543,8 @@ describe('AutomlResults', () => {
         useAutomlTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
         undefined,
+        'timeseries',
+        undefined,
       );
     });
 
@@ -589,6 +599,8 @@ describe('AutomlResults', () => {
         buildStageMapTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
         undefined,
+        'timeseries',
+        undefined,
       );
     });
 
@@ -622,6 +634,8 @@ describe('AutomlResults', () => {
         useAutomlTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
         undefined,
+        'timeseries',
+        undefined,
       );
     });
 
@@ -635,6 +649,8 @@ describe('AutomlResults', () => {
         {},
         useAutomlTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
+        undefined,
+        'timeseries',
         undefined,
       );
     });
@@ -650,6 +666,8 @@ describe('AutomlResults', () => {
         {},
         useAutomlTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
+        undefined,
+        'timeseries',
         undefined,
       );
     });

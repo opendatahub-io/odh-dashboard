@@ -1,7 +1,26 @@
 // Modules -------------------------------------------------------------------->
 
 import type { ComponentType, CSSProperties } from 'react';
-import type { PipelineSpecVariable, RuntimeStateKF } from '~/app/types/pipeline';
+import type {
+  NamespaceKind as SharedNamespaceKind,
+  SecretListItem as SharedSecretListItem,
+} from '@odh-dashboard/autox-core/ui/api/k8s/types';
+import type {
+  S3ObjectInfo as SharedS3ObjectInfo,
+  S3CommonPrefix as SharedS3CommonPrefix,
+  S3ListObjectsResponse as SharedS3ListObjectsResponse,
+} from '@odh-dashboard/autox-core/ui/api/s3/types';
+import type {
+  PipelineVersionReference as SharedPipelineVersionReference,
+  PipelineRunRuntimeConfig as SharedPipelineRunRuntimeConfig,
+  PipelineRunErrorDetail as SharedPipelineRunErrorDetail,
+  PipelineRunError as SharedPipelineRunError,
+  PipelineSpec as SharedPipelineSpec,
+  PipelineRunTaskDetail as SharedPipelineRunTaskDetail,
+  PipelineRunDetails as SharedPipelineRunDetails,
+  PipelineRunStateHistoryEntry as SharedPipelineRunStateHistoryEntry,
+  PipelineRun as SharedPipelineRun,
+} from '@odh-dashboard/autox-core/ui/api/pipelines/types';
 
 // Types ---------------------------------------------------------------------->
 
@@ -30,19 +49,9 @@ export type ConfigSecretItem = {
   keys: string[];
 };
 
-export type NamespaceKind = {
-  name: string;
-  displayName?: string;
-};
+export type NamespaceKind = SharedNamespaceKind;
 
 export type IconType = ComponentType<{ style?: CSSProperties }>;
-
-export type PipelineDefinition = {
-  pipeline_id: string;
-  display_name: string;
-  created_at: string;
-  description?: string;
-};
 
 export type ManagedPipelineType = 'autorag' | 'indexing';
 
@@ -61,75 +70,40 @@ export type CreateIndexingPipelineRunRequest = {
 };
 
 /** Pipeline reference embedded in a run (API schema). */
-export type PipelineVersionReference = {
-  pipeline_id: string;
-  pipeline_version_id: string;
-};
+export type PipelineVersionReference = SharedPipelineVersionReference;
 
-export type PipelineRunRuntimeConfig = {
-  parameters?: Record<string, unknown>;
-  pipeline_root?: string;
-};
+export type PipelineRunRuntimeConfig = SharedPipelineRunRuntimeConfig;
+
+export type PipelineRunErrorDetail = SharedPipelineRunErrorDetail;
 
 /** Runtime parameters are displayed read-only and may come from historical or current runs. */
-export type AutoragRuntimeParameters = Record<string, unknown>;
-
-export type PipelineRunErrorDetail = {
-  '@type'?: string;
-  type_url?: string;
-  value?: string;
-  [key: string]: unknown;
+export type AutoragRuntimeParameters = Record<string, unknown> & {
+  optimization_metric?: unknown;
+  optimization_max_rag_patterns?: unknown;
+  generation_models?: unknown;
+  embedding_models?: unknown;
+  input_data_keys?: unknown;
+  maas_secret_name?: unknown;
+  vector_db_secret_name?: unknown;
+  input_data_key?: unknown;
+  ogx_secret_name?: unknown;
+  vector_io_provider_id?: unknown;
+  llama_stack_secret_name?: unknown;
+  llama_stack_vector_io_provider_id?: unknown;
+  embeddings_models?: unknown;
 };
 
-export type PipelineRunError = {
-  code: number;
-  message: string;
-  details?: PipelineRunErrorDetail[];
-};
+export type PipelineRunError = SharedPipelineRunError;
 
-export type PipelineSpec = PipelineSpecVariable;
+export type PipelineSpec = SharedPipelineSpec;
 
-export type PipelineRunTaskDetail = {
-  run_id?: string;
-  task_id: string;
-  display_name?: string;
-  create_time?: string;
-  start_time?: string;
-  end_time?: string;
-  state?: string;
-  execution_id?: string;
-  child_tasks?: { pod_name?: string; task_id?: string }[];
-  error?: PipelineRunError;
-};
+export type PipelineRunTaskDetail = SharedPipelineRunTaskDetail;
 
-export type PipelineRunDetails = {
-  task_details?: PipelineRunTaskDetail[];
-};
+export type PipelineRunDetails = SharedPipelineRunDetails;
 
-export type PipelineRunStateHistoryEntry = {
-  update_time: string;
-  state?: string;
-};
+export type PipelineRunStateHistoryEntry = SharedPipelineRunStateHistoryEntry;
 
-export type PipelineRun = {
-  run_id: string;
-  display_name: string;
-  created_at: string;
-  state: '' | `${RuntimeStateKF}`;
-  experiment_id?: string;
-  storage_state?: string;
-  description?: string;
-  pipeline_version_id?: string;
-  pipeline_spec?: PipelineSpec;
-  pipeline_version_reference?: PipelineVersionReference;
-  runtime_config?: PipelineRunRuntimeConfig;
-  service_account?: string;
-  scheduled_at?: string;
-  finished_at?: string;
-  error?: PipelineRunError;
-  run_details?: PipelineRunDetails;
-  state_history?: PipelineRunStateHistoryEntry[];
-};
+export type PipelineRun<TParams = Record<string, unknown>> = SharedPipelineRun<TParams>;
 
 export type MaaSModel = {
   id: string;
@@ -143,39 +117,13 @@ export type MaaSModelsResponse = {
   models: MaaSModel[];
 };
 
-export type SecretListItem = {
-  uuid: string;
-  name: string;
-  type?: string;
-  data?: Record<string, string>;
-  displayName?: string;
-  description?: string;
-};
+export type SecretListItem = SharedSecretListItem;
 
-export type S3ObjectInfo = {
-  key: string;
-  last_modified?: string;
-  etag?: string;
-  size: number;
-  storage_class?: string;
-};
+export type S3ObjectInfo = SharedS3ObjectInfo;
 
-export type S3CommonPrefix = {
-  prefix: string;
-};
+export type S3CommonPrefix = SharedS3CommonPrefix;
 
-export type S3ListObjectsResponse = {
-  common_prefixes: S3CommonPrefix[];
-  contents: S3ObjectInfo[];
-  continuation_token?: string;
-  delimiter?: string;
-  is_truncated: boolean;
-  key_count: number;
-  max_keys: number;
-  name?: string;
-  next_continuation_token?: string;
-  prefix?: string;
-};
+export type S3ListObjectsResponse = SharedS3ListObjectsResponse;
 
 export type Envelope<M, D> = {
   metadata: M;

@@ -1,13 +1,3 @@
-// Modules -------------------------------------------------------------------->
-
-import type { FileRejection } from 'react-dropzone';
-import {
-  type DropzoneFileRejectedNotification,
-  AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
-  AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
-  getDropzoneFileRejectedNotification,
-} from '~/app/utilities/dropzoneFileUpload';
-
 // Types ---------------------------------------------------------------------->
 
 type SupportedFormat =
@@ -181,8 +171,6 @@ export const INPUT_DATA_UPLOAD_NATIVE_ACCEPT = [
   ...new Set(Object.values(INPUT_DATA_FILE_ACCEPT).flat()),
 ].join(',');
 
-export const INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION = `File type must be one of the accepted types (${SUPPORTED_FORMAT_NAMES_STRING_SIMPLE}).`;
-
 // Functions ------------------------------------------------------------------>
 
 /**
@@ -200,14 +188,4 @@ export function isAllowedInputDataUploadFile(file: File): boolean {
     }
   }
   return Boolean(file.type && file.type in INPUT_DATA_FILE_ACCEPT);
-}
-
-export function getInputDataDropRejectedNotification(
-  fileRejections: FileRejection[],
-): DropzoneFileRejectedNotification | null {
-  return getDropzoneFileRejectedNotification(fileRejections, {
-    uploadTooLargeDetail: AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
-    invalidFileTypeDescription: INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION,
-    tooManyFilesDetail: AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
-  });
 }

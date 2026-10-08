@@ -3,8 +3,12 @@ import {
   capitalizeFirst,
   getCategoryColor,
   formatCategory,
+  getCollectionCategoryValues,
+  formatCollectionMetadataValue,
   getMetricDisplayName,
   toSafeExternalUrl,
+  getBenchmarkDisplayName,
+  getBenchmarkNameMap,
 } from '~/app/components/benchmarkUtils';
 
 describe('toTitleCase', () => {
@@ -93,11 +97,51 @@ describe('formatCategory', () => {
   });
 });
 
+describe('getCollectionCategoryValues', () => {
+  it('should prefer category when domains are also present', () => {
+    expect(
+      getCollectionCategoryValues({
+        category: 'primary_category',
+        domains: ['domain_fallback'],
+      }),
+    ).toEqual(['primary_category']);
+  });
+
+  it('should fall back to domains when category is unavailable', () => {
+    expect(getCollectionCategoryValues({ domains: ['domain_fallback'] })).toEqual([
+      'domain_fallback',
+    ]);
+  });
+});
+
+describe('formatCollectionMetadataValue', () => {
+  it('should render snake case metadata as a human-readable label', () => {
+    expect(formatCollectionMetadataValue('knowledge_and_reasoning')).toBe(
+      'Knowledge and reasoning',
+    );
+    expect(formatCollectionMetadataValue('document_chart_vqa')).toBe('Document chart VQA');
+    expect(formatCollectionMetadataValue('text-generation')).toBe('Text generation');
+  });
+
+  it('should preserve supported metadata acronyms when formatting labels', () => {
+    expect(formatCollectionMetadataValue('qa-rag-vqa')).toBe('QA RAG VQA');
+  });
+
+  it('should leave the value unchanged for payload use', () => {
+    const value = 'grounded_document_understanding';
+    expect(value).toBe('grounded_document_understanding');
+    expect(formatCollectionMetadataValue(value)).toBe('Grounded document understanding');
+  });
+});
+
 describe('getMetricDisplayName', () => {
   it('should return the mapped display name for known metrics', () => {
     expect(getMetricDisplayName('acc')).toBe('Accuracy');
+    expect(getMetricDisplayName('accuracy/accuracy')).toBe('Accuracy');
     expect(getMetricDisplayName('exact_match')).toBe('Exact match');
+    expect(getMetricDisplayName('pass@1')).toBe('Pass@1');
     expect(getMetricDisplayName('ppl')).toBe('Perplexity');
+    expect(getMetricDisplayName('telelogs_scorer/maj_at_k')).toBe('Telelogs majority at k');
     expect(getMetricDisplayName('bleu')).toBe('BLEU');
   });
 
@@ -140,3 +184,53 @@ describe('toSafeExternalUrl', () => {
     expect(toSafeExternalUrl('not-a-url')).toBeUndefined();
   });
 });
+
+/* eslint-disable camelcase */
+describe('benchmark name lookups', () => {
+  it('should resolve provider-qualified and unique benchmark names', () => {
+    const benchmarkNameMap = getBenchmarkNameMap([
+      {
+        resource: { id: 'provider-one' },
+        name: 'Provider One',
+        benchmarks: [{ id: 'benchmark-one', name: 'Benchmark One' }],
+      },
+      {
+        resource: { id: 'provider-two' },
+        name: 'Provider Two',
+        benchmarks: [{ id: 'benchmark-two', name: 'Benchmark Two' }],
+      },
+    ]);
+
+    expect(
+      getBenchmarkDisplayName(
+        { id: 'benchmark-one', provider_id: 'provider-one' },
+        benchmarkNameMap,
+      ),
+    ).toBe('Benchmark One');
+    expect(getBenchmarkDisplayName({ id: 'benchmark-two' }, benchmarkNameMap)).toBe(
+      'Benchmark Two',
+    );
+    expect(getBenchmarkDisplayName({ id: 'unknown' }, benchmarkNameMap)).toBe('unknown');
+  });
+
+  it('should use the ID when a provider-agnostic benchmark name is ambiguous', () => {
+    const benchmarkNameMap = getBenchmarkNameMap([
+      {
+        resource: { id: 'provider-one' },
+        name: 'Provider One',
+        benchmarks: [{ id: 'shared', name: 'Shared One' }],
+      },
+      {
+        resource: { id: 'provider-two' },
+        name: 'Provider Two',
+        benchmarks: [{ id: 'shared', name: 'Shared Two' }],
+      },
+    ]);
+
+    expect(getBenchmarkDisplayName({ id: 'shared' }, benchmarkNameMap)).toBe('shared');
+    expect(
+      getBenchmarkDisplayName({ id: 'shared', provider_id: 'provider-two' }, benchmarkNameMap),
+    ).toBe('Shared Two');
+  });
+});
+/* eslint-enable camelcase */

@@ -12,6 +12,7 @@ import {
   Toolbar,
   ToolbarContent,
   ToolbarItem,
+  Tooltip,
 } from '@patternfly/react-core';
 import { TrashIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
@@ -26,7 +27,7 @@ type ManageCollectionsModalProps = {
   isOpen: boolean;
   onClose: () => void;
   project: string;
-  onRefresh: () => void;
+  onRefresh: () => void | Promise<void>;
 };
 
 const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
@@ -42,10 +43,8 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
     collectionNames,
   );
 
-  const handleRefresh = React.useCallback(() => {
-    assetsRefresh();
-    collectionsRefresh();
-    onRefresh();
+  const handleRefresh = React.useCallback(async () => {
+    await Promise.all([assetsRefresh(), collectionsRefresh(), onRefresh()]);
   }, [assetsRefresh, collectionsRefresh, onRefresh]);
   const [filterText, setFilterText] = React.useState('');
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
@@ -67,7 +66,7 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
   return (
     <>
       <Modal
-        isOpen={isOpen}
+        isOpen={isOpen && !isCreateOpen && deleteTarget === null}
         onClose={() => {
           setFilterText('');
           onClose();
@@ -75,7 +74,10 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
         variant="large"
         data-testid="manage-collections-modal"
       >
-        <ModalHeader title="Manage collections" />
+        <ModalHeader
+          title="Manage collections"
+          description="View and manage this project's collections. Collections are groups that you can use to organize your data assets."
+        />
         <ModalBody>
           <Stack hasGutter>
             {assetsError || collectionsError ? (
@@ -86,17 +88,18 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
               </StackItem>
             ) : null}
             <StackItem>
-              <Alert variant="info" isInline title="Changes affect all project assets">
-                Editing or deleting a collection updates or removes it from every asset using it
-                within this project.
-              </Alert>
+              <Alert
+                variant="info"
+                isInline
+                title="Remove all associated assets to delete a collection."
+              />
             </StackItem>
             <StackItem>
               <Toolbar>
                 <ToolbarContent>
                   <ToolbarItem>
                     <SearchInput
-                      placeholder="Filter by name, descri..."
+                      placeholder="Filter by name or description"
                       value={filterText}
                       onChange={(_event, value) => setFilterText(value)}
                       onClear={() => setFilterText('')}
@@ -121,7 +124,7 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
               <Tr>
                 <Th>Name</Th>
                 <Th>Description</Th>
-                <Th>Assets</Th>
+                <Th>Data assets</Th>
                 <Th screenReaderText="Actions" />
               </Tr>
             </Thead>
@@ -144,14 +147,29 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
                     {collection.assetNames.length > 0 ? collection.assetNames.join(', ') : '–'}
                   </Td>
                   <Td isActionCell>
-                    <Button
-                      variant="plain"
-                      aria-label={`Delete ${collection.name}`}
-                      onClick={() => setDeleteTarget(collection)}
-                      data-testid={`collection-delete-${collection.name}`}
-                    >
-                      <TrashIcon />
-                    </Button>
+                    {collection.assetNames.length > 0 ? (
+                      <Tooltip content="Remove all associated assets to delete this collection">
+                        <span>
+                          <Button
+                            variant="plain"
+                            isDisabled
+                            aria-label={`Delete ${collection.name}`}
+                            data-testid={`collection-delete-${collection.name}`}
+                          >
+                            <TrashIcon />
+                          </Button>
+                        </span>
+                      </Tooltip>
+                    ) : (
+                      <Button
+                        variant="plain"
+                        aria-label={`Delete ${collection.name}`}
+                        onClick={() => setDeleteTarget(collection)}
+                        data-testid={`collection-delete-${collection.name}`}
+                      >
+                        <TrashIcon />
+                      </Button>
+                    )}
                   </Td>
                 </Tr>
               ))}
@@ -160,11 +178,12 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
         </ModalBody>
         <ModalFooter>
           <Button
-            variant="link"
+            variant="secondary"
             onClick={() => {
               setFilterText('');
               onClose();
             }}
+            data-testid="manage-collections-close-button"
           >
             Close
           </Button>
@@ -172,14 +191,14 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
       </Modal>
 
       <CreateCollectionModal
-        isOpen={isCreateOpen}
+        isOpen={isOpen && isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         project={project}
         onCreated={handleRefresh}
       />
 
       <DeleteCollectionModal
-        isOpen={deleteTarget !== null}
+        isOpen={isOpen && deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
         project={project}
         collection={deleteTarget}

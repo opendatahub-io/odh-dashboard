@@ -24,8 +24,9 @@ export const mockGenAiContextValue: React.ContextType<typeof GenAiContext> = {
       deleteVectorStoreFile: jest.fn().mockResolvedValue({ data: null }),
       createVectorStore: jest.fn().mockResolvedValue({ data: null }),
       uploadSource: jest.fn().mockResolvedValue({ data: null }),
+      uploadDocument: jest.fn().mockResolvedValue({ data: null }),
       getFileUploadStatus: jest.fn().mockResolvedValue({ data: null }),
-      getBFFConfig: jest.fn().mockResolvedValue({ isCustomLSD: false }),
+      getBFFConfig: jest.fn().mockResolvedValue({ isCustomLSD: false, sandboxesAvailable: true }),
       getNemoGuardrailsStatus: jest
         .fn()
         .mockResolvedValue({ name: 'nemoguardrails', phase: 'Ready', isReady: true }),
@@ -63,6 +64,10 @@ export const mockGenAiContextValue: React.ContextType<typeof GenAiContext> = {
       }),
       deleteAgentProfile: jest.fn().mockResolvedValue(undefined),
       createAgentProfile: jest.fn().mockResolvedValue({ data: null }),
+      listAgentDeployments: jest.fn().mockResolvedValue({ deployments: [], totalCount: 0 }),
+      createAgentDeployment: jest.fn().mockResolvedValue({ data: null }),
+      getAgentDeployment: jest.fn().mockResolvedValue({ data: null }),
+      deleteAgentDeployment: jest.fn().mockResolvedValue(undefined),
     },
   },
   refreshAPIState: jest.fn(),

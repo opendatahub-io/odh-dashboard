@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: maas-consumer-portal-rhods-operator-subscription
+rules:
+  - apiGroups:
+      - operators.coreos.com
+    resources:
+      - subscriptions
+    resourceNames:
+      - rhods-operator
+    verbs:
+      - get

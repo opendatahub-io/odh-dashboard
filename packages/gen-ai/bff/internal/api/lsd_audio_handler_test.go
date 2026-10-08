@@ -116,6 +116,9 @@ func (m *mockLSClientForASR) DeleteVectorStore(_ context.Context, _ string) erro
 func (m *mockLSClientForASR) UploadFile(_ context.Context, _ llamastack.UploadFileParams) (*llamastack.FileUploadResult, error) {
 	return nil, nil
 }
+func (m *mockLSClientForASR) ProcessFile(_ context.Context, _ string) (*llamastack.ProcessedDocument, error) {
+	return nil, nil
+}
 func (m *mockLSClientForASR) ListFiles(_ context.Context, _ llamastack.ListFilesParams) ([]openai.FileObject, error) {
 	return nil, nil
 }
@@ -322,24 +325,6 @@ func TestAudioTranscription_ModelNotFound(t *testing.T) {
 	assert.Equal(t, "asr", fe.Error.Component)
 	assert.Equal(t, constants.ASRCodeModelNotFound, fe.Error.Code)
 	assert.Contains(t, fe.Error.Message, "not found")
-	assert.False(t, fe.Error.Retriable)
-}
-
-func TestAudioTranscription_ModelLacksCapability(t *testing.T) {
-	model := asrModel("test-ns")
-	model.Capabilities = []string{constants.CapabilityTextGeneration}
-	app := newTestAppForASR(t, []models.AAModel{model})
-	lsClient := mockLSWithAudio(wavBytes(), "audio/wav")
-
-	req := buildAudioRequest(t, AudioTranscriptionRequest{FileID: "file-abc123", ASRModelID: "whisper-asr"}, lsClient)
-	rr := httptest.NewRecorder()
-	app.LlamaStackAudioTranscriptionHandler(rr, req, nil)
-
-	assert.Equal(t, http.StatusNotFound, rr.Code)
-	fe := parseFrontendError(t, rr.Body.Bytes())
-	assert.Equal(t, "asr", fe.Error.Component)
-	assert.Equal(t, constants.ASRCodeModelInvalid, fe.Error.Code)
-	assert.Contains(t, fe.Error.Message, "does not have audio-transcription capability")
 	assert.False(t, fe.Error.Retriable)
 }
 
@@ -605,7 +590,7 @@ func TestAudioTranscription_InvalidAudioFormat(t *testing.T) {
 
 // --- Success Tests ---
 
-func TestAudioTranscription_Success_WAV(t *testing.T) {
+func TestAudioTranscription_Success_UntaggedWAV(t *testing.T) {
 	asrServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.True(t, strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data"))
@@ -618,6 +603,7 @@ func TestAudioTranscription_Success_WAV(t *testing.T) {
 	defer asrServer.Close()
 
 	model := asrModel("test-ns")
+	model.Capabilities = []string{constants.CapabilityTextGeneration}
 	model.Endpoints = []string{"internal: " + asrServer.URL}
 	app := newTestAppForASR(t, []models.AAModel{model})
 	lsClient := mockLSWithAudio(wavBytes(), "audio/wav")

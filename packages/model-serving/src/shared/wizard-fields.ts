@@ -15,6 +15,8 @@ export {
   type ModelServerSelectField,
 } from '../components/deploymentWizard/fields/ModelServerTemplateSelectField';
 
+export { useWizardFieldOverrides } from '../components/deploymentWizard/dynamicFormUtils';
+
 export {
   AvailableAiAssetsFieldsComponent,
   isValidModelAvailabilityFieldsData,
@@ -33,6 +35,34 @@ export {
   type EnvironmentVariablesFieldData,
   type EnvironmentVariablesFieldHook,
 } from '../components/deploymentWizard/fields/EnvironmentVariablesField';
+
+export {
+  EnvironmentVariableType,
+  createDefaultEnvironmentVariable,
+  formatEnvironmentVariableForReview,
+  isSecretEnvVar,
+  isValidSecretDataKey,
+  isValidSecretName,
+  isValueEnvVar,
+  mapEnvironmentVariableToK8sEnv,
+  mapEnvironmentVariablesToK8sEnv,
+  mapK8sEnvToEnvironmentVariable,
+  mergeEnvironmentVariableUpdates,
+  normalizeEnvironmentVariable,
+  SECRET_DATA_KEY_VALIDATION_ERROR,
+  SECRET_NAME_VALIDATION_ERROR,
+  type EnvironmentVariable,
+  type EnvironmentVariableUpdates,
+  type K8sConfigMapKeyRef,
+  type K8sEnvironmentVariable,
+  type K8sEnvironmentVariableInput,
+  type K8sEnvironmentVariableValueFrom,
+  type K8sFieldRef,
+  type K8sResourceFieldRef,
+  type K8sSecretKeyRef,
+  type SecretEnvironmentVariable,
+  type ValueEnvironmentVariable,
+} from './environmentVariablesUtils';
 
 export {
   ExternalRouteField,
@@ -117,6 +147,7 @@ export {
   HuggingFaceApiKeyField,
   huggingFaceApiKeyFieldSchema,
   isHuggingFaceApiKeyConfigured,
+  shouldAttachHfTokenOwnerRefs,
   requiredHuggingFaceApiKeySchema,
   useHuggingFaceApiKeyField,
   type HuggingFaceApiKeyFieldData,

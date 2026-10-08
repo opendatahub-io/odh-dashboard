@@ -2,7 +2,11 @@ import * as React from 'react';
 import {
   Alert,
   AlertActionCloseButton,
+  Button,
   DropEvent,
+  Flex,
+  Icon,
+  Label,
   MenuItem,
   MenuList,
   Tooltip,
@@ -13,13 +17,19 @@ import { OutlinedFileImageIcon, VolumeUpIcon, OutlinedFileAltIcon } from '@patte
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   VISION_UPLOAD_CONFIG,
-  FILE_UPLOAD_CONFIG,
+  DOCUMENT_ATTACHMENT_CONFIG,
   ERROR_MESSAGES,
   ALERT_TIMEOUT_MS,
   AUDIO_UPLOAD_CONFIG,
 } from '~/app/Chatbot/const';
+import { DocumentAttachment } from '~/app/types';
 import { AudioTranscriptionState } from '~/app/Chatbot/hooks/useAudioTranscription';
+import { getDocumentAttachmentTypeLabel } from '~/app/Chatbot/documentAttachmentUtils';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
+import RhUiResourceIcon from '~/app/bgimages/rh-ui-resource-icon.svg';
+import './ChatbotMessageInput.scss';
+
+const IMAGE_CAPABILITY_ALERT_DISMISSED_KEY = 'playground-image-capability-alert-dismissed';
 
 export interface ImageUploadState {
   uploading: boolean;
@@ -46,6 +56,7 @@ interface ChatbotMessageInputProps {
   onRemoveImage: () => void;
   isImageUploadDisabled: boolean;
   imageDisabledTooltip?: string;
+  showImageCapabilityAlert?: boolean;
   isAudioUploadDisabled: boolean;
   audioDisabledTooltip?: string;
   onAudioUpload?: (file: File) => void;
@@ -57,6 +68,13 @@ interface ChatbotMessageInputProps {
   onMessageBarValueChange?: (value: string) => void;
   configIndex?: number;
   isCompareMode?: boolean;
+  documentAttachments?: DocumentAttachment[];
+  onRemoveDocument?: (fileID: string) => void;
+  onViewDocument?: (attachment: DocumentAttachment) => void;
+  isDocumentUploading?: boolean;
+  documentUploadCount?: number;
+  isDocumentUploadDisabled?: boolean;
+  shouldShowPdfTextExtractionNotice?: boolean;
 }
 
 const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
@@ -72,6 +90,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
   onRemoveImage,
   isImageUploadDisabled,
   imageDisabledTooltip,
+  showImageCapabilityAlert,
   isAudioUploadDisabled,
   audioDisabledTooltip,
   onAudioUpload,
@@ -83,9 +102,23 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
   onMessageBarValueChange,
   configIndex,
   isCompareMode,
+  documentAttachments = [],
+  onRemoveDocument,
+  onViewDocument,
+  isDocumentUploading = false,
+  documentUploadCount = 1,
+  isDocumentUploadDisabled = false,
+  shouldShowPdfTextExtractionNotice = false,
 }) => {
   const [isAttachMenuOpen, setIsAttachMenuOpen] = React.useState(false);
   const [validationError, setValidationError] = React.useState<string | null>(null);
+  const [hideImageCapabilityAlert, setHideImageCapabilityAlert] = React.useState(() => {
+    try {
+      return window.localStorage.getItem(IMAGE_CAPABILITY_ALERT_DISMISSED_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
   const imageInputRef = React.useRef<HTMLInputElement>(null);
   const audioInputRef = React.useRef<HTMLInputElement>(null);
   const documentInputRef = React.useRef<HTMLInputElement>(null);
@@ -93,7 +126,8 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
 
   const audioPhase = audioTranscriptionState?.phase || 'idle';
   const isAudioActive = audioPhase === 'uploading' || audioPhase === 'transcribing';
-  const showAudioChip = isAudioActive || audioPhase === 'ready';
+  const showAudioChip =
+    isAudioActive || audioPhase === 'ready' || audioPhase === 'waiting-for-model';
 
   // PatternFly MessageBar only reads the `value` prop at mount time (internal useState).
   // When messageBarValue changes programmatically (e.g. from transcription), we must
@@ -162,7 +196,9 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
       }
       if (file.size > VISION_UPLOAD_CONFIG.MAX_FILE_SIZE) {
         setValidationError(
-          `${file.name} exceeds maximum size of ${VISION_UPLOAD_CONFIG.MAX_FILE_SIZE / (1024 * 1024)} MB. Try a smaller file.`,
+          `${file.name} exceeds maximum size of ${
+            VISION_UPLOAD_CONFIG.MAX_FILE_SIZE / (1024 * 1024)
+          } MB. Try a smaller file.`,
         );
         return;
       }
@@ -194,7 +230,9 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
       }
       if (file.size > AUDIO_UPLOAD_CONFIG.MAX_FILE_SIZE) {
         setValidationError(
-          `${file.name} exceeds maximum size of ${AUDIO_UPLOAD_CONFIG.MAX_FILE_SIZE / (1024 * 1024)} MB. Try a smaller file.`,
+          `${file.name} exceeds maximum size of ${
+            AUDIO_UPLOAD_CONFIG.MAX_FILE_SIZE / (1024 * 1024)
+          } MB. Try a smaller file.`,
         );
         return;
       }
@@ -212,16 +250,27 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
       // eslint-disable-next-line no-param-reassign
       event.target.value = '';
 
-      const allowedMimes = Object.keys(FILE_UPLOAD_CONFIG.ALLOWED_FILE_TYPES);
+      const allowedExtensions = Object.keys(DOCUMENT_ATTACHMENT_CONFIG.EXTENSION_TO_MIME);
+      const allowedMimes: readonly string[] = DOCUMENT_ATTACHMENT_CONFIG.ALLOWED_MIME_TYPES;
       const errors: string[] = [];
       const accepted: File[] = [];
 
       for (const file of files) {
-        if (file.size > FILE_UPLOAD_CONFIG.MAX_FILE_SIZE) {
-          errors.push(`${file.name}: ${ERROR_MESSAGES.FILE_TOO_LARGE}`);
-        } else if (!allowedMimes.includes(file.type)) {
+        const extension = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+        const extensionMime = Object.entries(DOCUMENT_ATTACHMENT_CONFIG.EXTENSION_TO_MIME).find(
+          ([candidateExtension]) => candidateExtension === extension,
+        )?.[1];
+        const resolvedMime =
+          file.type && allowedMimes.includes(file.type) ? file.type : extensionMime || '';
+        if (file.size > DOCUMENT_ATTACHMENT_CONFIG.MAX_FILE_SIZE) {
           errors.push(
-            `${file.name}: File type not supported. Accepted types: ${FILE_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}`,
+            `${file.name}: File size exceeds ${
+              DOCUMENT_ATTACHMENT_CONFIG.MAX_FILE_SIZE / (1024 * 1024)
+            }MB`,
+          );
+        } else if (!allowedExtensions.includes(extension) || !allowedMimes.includes(resolvedMime)) {
+          errors.push(
+            `${file.name}: File type not supported. Accepted types: ${DOCUMENT_ATTACHMENT_CONFIG.ACCEPTED_EXTENSIONS}`,
           );
         } else {
           accepted.push(file);
@@ -245,6 +294,8 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
     switch (audioTranscriptionState.phase) {
       case 'uploading':
         return `Uploading ${audioTranscriptionState.fileName}`;
+      case 'waiting-for-model':
+        return 'Select a transcription model to transcribe the attached audio file';
       case 'transcribing':
         return `Transcribing audio with speech recognition model`;
       case 'ready':
@@ -297,7 +348,9 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
         )}
         <MenuItem
           icon={<OutlinedFileAltIcon />}
+          isDisabled={isDocumentUploadDisabled}
           onClick={() => handleMenuSelect('upload-documents')}
+          data-testid="upload-document-menu-item"
         >
           Upload documents
         </MenuItem>
@@ -308,6 +361,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
       imageDisabledTooltip,
       isAudioUploadDisabled,
       audioDisabledTooltip,
+      isDocumentUploadDisabled,
       handleMenuSelect,
     ],
   );
@@ -316,7 +370,10 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
     <div
       style={{
         flexShrink: 0,
-        padding: '1rem',
+        padding:
+          documentAttachments.length > 0
+            ? `0 var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--md)`
+            : 'var(--pf-t--global--spacer--md)',
         backgroundColor: isDarkMode
           ? 'var(--pf-t--global--dark--background--color--100)'
           : 'var(--pf-t--global--background--color--100)',
@@ -363,12 +420,10 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
             flexWrap: 'wrap',
             gap: 'var(--pf-t--global--spacer--sm)',
             paddingBottom: 'var(--pf-t--global--spacer--sm)',
-            maxWidth: '60rem',
-            margin: '0 auto',
             width: '100%',
-            paddingLeft: 'var(--pf-t--global--spacer--lg)',
           }}
           aria-busy={isAudioActive}
+          data-testid="media-attachment-row"
         >
           {imageUploadState.fileName && (
             <FileDetailsLabel
@@ -392,11 +447,113 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
           )}
         </div>
       )}
+      {imageUploadState.fileName && showImageCapabilityAlert && !hideImageCapabilityAlert && (
+        <Alert
+          variant="info"
+          isInline
+          title="Vision capability not tagged"
+          className="pf-v6-u-mb-sm"
+          data-testid="image-capability-alert"
+        >
+          This model isn&apos;t tagged for vision capabilities, which can lead to unexpected output.
+          To identify supported models faster, tag this model&apos;s capabilities in the Model
+          Registry or contact your admin.
+          <p className="pf-v6-u-mt-sm">
+            <Button
+              variant="link"
+              isInline
+              onClick={() => {
+                setHideImageCapabilityAlert(true);
+                try {
+                  window.localStorage.setItem(IMAGE_CAPABILITY_ALERT_DISMISSED_KEY, 'true');
+                } catch {
+                  // Keep the notice dismissed in this session when storage is unavailable.
+                }
+              }}
+            >
+              Don&apos;t show this again
+            </Button>
+          </p>
+        </Alert>
+      )}
+      {audioPhase === 'waiting-for-model' && (
+        <Alert
+          variant="info"
+          isInline
+          title="Audio files require a transcription model. Select one under the Model tab in Settings."
+          className="pf-v6-u-mb-sm"
+          data-testid="audio-model-needed-alert"
+        />
+      )}
+      {isDocumentUploading && (
+        <Flex
+          className="gen-ai-chatbot-document-attachments pf-v6-u-w-100 pf-v6-u-pb-sm"
+          alignItems={{ default: 'alignItemsCenter' }}
+          justifyContent={{ default: 'justifyContentCenter' }}
+          gap={{ default: 'gapSm' }}
+          aria-busy
+          data-testid="document-attachment-loading"
+        >
+          <Icon
+            isInProgress
+            size="md"
+            defaultProgressArialabel={`Adding ${documentUploadCount === 1 ? 'document' : 'documents'}`}
+          />
+          <span>Adding {documentUploadCount === 1 ? 'Document' : 'Documents'}…</span>
+        </Flex>
+      )}
+      {documentAttachments.length > 0 && (
+        <>
+          <Flex
+            className="gen-ai-chatbot-document-attachments pf-v6-u-w-100 pf-v6-u-pb-sm pf-v6-u-pl-lg"
+            flexWrap={{ default: 'wrap' }}
+            gap={{ default: 'gapSm' }}
+            aria-busy={isAudioActive || isDocumentUploading}
+          >
+            {documentAttachments.map((attachment) => (
+              <Label
+                key={attachment.file_id}
+                className="gen-ai-chatbot-document-attachment gen-ai-chatbot-staged"
+                icon={
+                  <span className="gen-ai-chatbot-icon">
+                    <img src={RhUiResourceIcon} alt="" />
+                  </span>
+                }
+                onClick={() => onViewDocument?.(attachment)}
+                onClose={() => onRemoveDocument?.(attachment.file_id)}
+                variant="outline"
+                data-testid={`document-attachment-${attachment.file_id}`}
+              >
+                <span className="gen-ai-chatbot-details">
+                  <span className="gen-ai-chatbot-filename">{attachment.filename}</span>
+                  <span className="gen-ai-chatbot-type">
+                    {getDocumentAttachmentTypeLabel(attachment.filename)}
+                  </span>
+                </span>
+              </Label>
+            ))}
+          </Flex>
+          {shouldShowPdfTextExtractionNotice &&
+            documentAttachments.some((attachment) =>
+              attachment.filename.toLowerCase().endsWith('.pdf'),
+            ) && (
+              <Alert
+                className="pf-v6-u-ml-lg pf-v6-u-mb-sm"
+                variant="info"
+                isInline
+                isPlain
+                title="This model is optimized to process text. Images might not extract correctly."
+                data-testid="pdf-text-extraction-notice"
+              />
+            )}
+        </>
+      )}
       <div
         style={{
           border: isDarkMode ? 'none' : '1px solid var(--pf-t--global--border--color--default)',
           borderRadius: '2.25rem',
         }}
+        data-testid="chatbot-message-bar-frame"
       >
         <MessageBar
           onSendMessage={(message) => {
@@ -476,11 +633,12 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
       <input
         ref={documentInputRef}
         type="file"
-        accept={FILE_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}
+        accept={DOCUMENT_ATTACHMENT_CONFIG.ACCEPTED_TYPES}
         multiple
         style={{ display: 'none' }}
         onChange={handleDocumentFileSelect}
         data-testid="document-file-input"
+        disabled={isDocumentUploadDisabled}
       />
       <div style={{ paddingTop: '1rem', textAlign: 'center' }}>
         <ChatbotFootnote label="This chatbot uses AI. Check for mistakes." />

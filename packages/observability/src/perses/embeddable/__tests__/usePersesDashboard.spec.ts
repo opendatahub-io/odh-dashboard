@@ -1,4 +1,5 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
+import { waitFor } from '@testing-library/react';
 import { DashboardResource } from '@perses-dev/core';
 import { fetchPersesDashboard } from '../../perses-client';
 import { usePersesDashboard } from '../usePersesDashboard';
@@ -63,7 +64,41 @@ describe('usePersesDashboard', () => {
       'test-project',
       'test-dashboard',
       expect.any(AbortSignal),
+      undefined,
     );
+  });
+
+  it('should fetch from the host proxy and refetch when its path changes', async () => {
+    fetchPersesDashboardMock.mockResolvedValue(mockDashboard);
+    const options = { persesProxyBasePath: '/maas-consumer-portal/perses/api' };
+    const renderResult = testHook(usePersesDashboard)('test-project', 'test-dashboard', options);
+    await renderResult.waitForNextUpdate();
+    expect(fetchPersesDashboardMock).toHaveBeenCalledWith(
+      'test-project',
+      'test-dashboard',
+      expect.any(AbortSignal),
+      options.persesProxyBasePath,
+    );
+
+    renderResult.rerender('test-project', 'test-dashboard', { ...options });
+    expect(fetchPersesDashboardMock).toHaveBeenCalledTimes(1);
+
+    renderResult.rerender('test-project', 'test-dashboard', {
+      persesProxyBasePath: '/another-host/perses/api',
+    });
+    await waitFor(() => expect(fetchPersesDashboardMock).toHaveBeenCalledTimes(2));
+    expect(fetchPersesDashboardMock).toHaveBeenLastCalledWith(
+      'test-project',
+      'test-dashboard',
+      expect.any(AbortSignal),
+      '/another-host/perses/api',
+    );
+    await waitFor(() =>
+      expect(renderResult).hookToStrictEqual(
+        expect.objectContaining({ dashboard: mockDashboard, loaded: true, error: undefined }),
+      ),
+    );
+    expect(renderResult).hookToHaveUpdateCount(6);
   });
 
   it('should return an error on failure', async () => {

@@ -124,14 +124,17 @@ export enum SupportedArea {
   /* Role Management */
   ROLE_MANAGEMENT = 'role-management',
 
-  /* Connection Test */
-  CONNECTION_TEST = 'connection-test',
-
   /* Model Capabilities */
   MODEL_CAPABILITIES = 'model-capabilities',
 
   /* Guided tour (What's New) — hidden until tour content matches the installed version */
   GUIDED_TOUR = 'guided-tour',
+
+  /* Unified Project Selector — development-only gate for the shared project-selection foundation */
+  UNIFIED_PROJECT_SELECTOR = 'unified-project-selector',
+
+  /* Runtime Catalog */
+  RUNTIME_CATALOG = 'runtime-catalog',
 }
 
 export type SupportedAreaType = SupportedArea | string;

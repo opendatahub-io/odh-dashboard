@@ -8,8 +8,8 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplorer/types';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { UIErrorHandler } from '@odh-dashboard/autox-core/ui/components/primitive';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
-import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
 import { useMaaSModelsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import { AUTORAG_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
@@ -30,8 +30,8 @@ jest.mock('~/app/hooks/queries', () => ({
   useMaaSModelsQuery: jest.fn(),
   useSecretsQuery: jest.fn().mockReturnValue({ data: [], isLoading: false }),
 }));
-jest.mock('~/app/hooks/mutations', () => ({
-  ...jest.requireActual('~/app/hooks/mutations'),
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
   useS3FileUploadMutation: jest.fn(() => ({ mutateAsync: mockUpload })),
 }));
 jest.mock('~/app/hooks/useNotification', () => ({
@@ -62,9 +62,10 @@ jest.mock('mod-arch-shared', () => ({
   ),
 }));
 
-jest.mock('~/app/components/common/SecretSelector', () => ({
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
   __esModule: true,
-  default: ({
+  ConnectionModal: () => null,
+  SecretSelector: ({
     onChange,
     value,
     dataTestId,
@@ -101,6 +102,11 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
       )}
     </div>
   ),
+}));
+
+jest.mock('@odh-dashboard/autox-core/ui/components/primitive', () => ({
+  UIErrorHandler: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  ConfigureFormGroup: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer', () => ({

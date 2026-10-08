@@ -74,6 +74,37 @@ describe('CollectionDrawerPanel', () => {
     jest.clearAllMocks();
   });
 
+  it('should identify system collections and expose the customize action', () => {
+    const collection = makeCollection({ resource: { id: 'system-suite' } });
+    const onRunCollection = jest.fn();
+    const onCustomizeCollection = jest.fn();
+
+    render(
+      <Drawer isExpanded>
+        <DrawerContent
+          panelContent={
+            <CollectionDrawerPanel
+              collection={collection}
+              benchmarkDetailsMap={new Map()}
+              onClose={jest.fn()}
+              onRunCollection={onRunCollection}
+              onCustomizeCollection={onCustomizeCollection}
+              isSystemCollection
+            />
+          }
+        >
+          <div />
+        </DrawerContent>
+      </Drawer>,
+    );
+
+    fireEvent.click(screen.getByTestId('use-benchmark-suite-button'));
+    fireEvent.click(screen.getByTestId('customize-benchmark-suite-button'));
+
+    expect(onRunCollection).toHaveBeenCalledWith(collection, true);
+    expect(onCustomizeCollection).toHaveBeenCalledWith(collection);
+  });
+
   it('should reset search and metric filter when collection changes', () => {
     const detailsMap = new Map<string, BenchmarkWithProvider>([
       ['prov:bench-a', makeBenchmark('bench-a', 'prov', ['accuracy'])],
@@ -255,7 +286,7 @@ describe('CollectionDrawerPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
 
-    expect(screen.getByText('85%')).toBeInTheDocument();
+    expect(screen.getByText('0.85')).toBeInTheDocument();
     expect(screen.queryByText('30%')).not.toBeInTheDocument();
     expect(screen.getByText('collection_metric')).toBeInTheDocument();
     expect(screen.queryByText('provider_metric')).not.toBeInTheDocument();
@@ -287,7 +318,7 @@ describe('CollectionDrawerPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
 
-    expect(screen.getByText('30%')).toBeInTheDocument();
+    expect(screen.getByText('0.3')).toBeInTheDocument();
     expect(screen.getByText('provider_metric')).toBeInTheDocument();
 
     const datasetLink = screen.getByRole('link', { name: /View benchmark dataset/i });

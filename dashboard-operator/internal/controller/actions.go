@@ -10,8 +10,10 @@ import (
 
 	routev1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,9 +40,13 @@ var (
 const (
 	dataScienceGatewayNamespace   = "openshift-ingress"
 	rayDataScienceGatewayRBACName = "fetch-ray-data-science-gateway"
+	odhGatewayNamespace           = "opendatahub"
+	dchRhoaiGatewayRBACName       = "odh-dashboard-data-connect-hub-rhoai-gateway-discovery"
+	dchOdhGatewayRBACName         = "odh-dashboard-data-connect-hub-odh-gateway-discovery"
 )
 
 const (
+	observabilityComponent         = "observability"
 	persesServiceName              = "data-science-perses"
 	persesServicePort        int32 = 8080
 	rhoaiMonitoringNamespace       = "redhat-ods-monitoring"
@@ -103,6 +109,116 @@ func remapRayDashboardGatewayRBAC(resources []unstructured.Unstructured) {
 			}
 		}
 	}
+}
+
+func remapDataConnectHubGatewayRBAC(resources []unstructured.Unstructured, applicationsNamespace string) {
+	for i := range resources {
+		r := &resources[i]
+		var namespace string
+		switch r.GetName() {
+		case dchRhoaiGatewayRBACName:
+			namespace = dataScienceGatewayNamespace
+		case dchOdhGatewayRBACName:
+			namespace = odhGatewayNamespace
+		default:
+			continue
+		}
+		if r.GetKind() == "Role" || r.GetKind() == "RoleBinding" {
+			r.SetNamespace(namespace)
+		}
+		if r.GetKind() == "RoleBinding" {
+			if subjects, found, err := unstructured.NestedSlice(r.Object, "subjects"); err == nil && found {
+				for _, rawSubject := range subjects {
+					subject, ok := rawSubject.(map[string]interface{})
+					if ok && subject["kind"] == "ServiceAccount" && subject["name"] == "odh-dashboard-data-connect-hub-ui" {
+						subject["namespace"] = applicationsNamespace
+					}
+				}
+				_ = unstructured.SetNestedSlice(r.Object, subjects, "subjects")
+			}
+		}
+	}
+}
+
+func dataConnectHubGatewayRBACForPlatform(platform cluster.Platform) (string, string) {
+	if platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai {
+		return dchRhoaiGatewayRBACName, dataScienceGatewayNamespace
+	}
+
+	return dchOdhGatewayRBACName, odhGatewayNamespace
+}
+
+// cleanupDataConnectHubGatewayRBAC removes DCH gateway RBAC other than keepName.
+// Passing an empty keepName removes both platform pairs during module teardown.
+func (r *DashboardReconciler) cleanupDataConnectHubGatewayRBAC(ctx context.Context, keepName string) error {
+	logger := log.FromContext(ctx)
+	pairs := []struct {
+		name      string
+		namespace string
+	}{
+		{name: dchRhoaiGatewayRBACName, namespace: dataScienceGatewayNamespace},
+		{name: dchOdhGatewayRBACName, namespace: odhGatewayNamespace},
+	}
+	var errs []error
+
+	for _, pair := range pairs {
+		if pair.name == keepName {
+			continue
+		}
+
+		role := &rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: pair.name, Namespace: pair.namespace}}
+		logger.Info("Deleting DCH Gateway Role", "name", pair.name, "namespace", pair.namespace)
+		if err := r.Delete(ctx, role); client.IgnoreNotFound(err) != nil {
+			errs = append(errs, fmt.Errorf("deleting Role %s/%s: %w", pair.namespace, pair.name, err))
+		}
+
+		roleBinding := &rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: pair.name, Namespace: pair.namespace}}
+		logger.Info("Deleting DCH Gateway RoleBinding", "name", pair.name, "namespace", pair.namespace)
+		if err := r.Delete(ctx, roleBinding); client.IgnoreNotFound(err) != nil {
+			errs = append(errs, fmt.Errorf("deleting RoleBinding %s/%s: %w", pair.namespace, pair.name, err))
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
+// filterAndRemapDataConnectHubGatewayRBAC is the platform-aware counterpart to
+// remapDataConnectHubGatewayRBAC. It drops gateway RBAC resources that do not
+// apply to the current platform before remapping namespaces, so the deployer
+// never tries to create resources in a namespace that may not exist
+// (e.g. opendatahub does not exist on RHOAI).
+func filterAndRemapDataConnectHubGatewayRBAC(resources []unstructured.Unstructured, applicationsNamespace string, platform cluster.Platform) []unstructured.Unstructured {
+	activeName, targetNamespace := dataConnectHubGatewayRBACForPlatform(platform)
+	result := make([]unstructured.Unstructured, 0, len(resources))
+	for _, res := range resources {
+		r := res
+		kind := r.GetKind()
+		switch r.GetName() {
+		case dchRhoaiGatewayRBACName, dchOdhGatewayRBACName:
+			if r.GetName() != activeName {
+				continue
+			}
+		default:
+			result = append(result, r)
+			continue
+		}
+		if kind == "Role" || kind == "RoleBinding" {
+			r.SetNamespace(targetNamespace)
+		}
+		if kind == "RoleBinding" {
+			if subjects, found, err := unstructured.NestedSlice(r.Object, "subjects"); err == nil && found {
+				for _, rawSubject := range subjects {
+					subject, ok := rawSubject.(map[string]interface{})
+					if ok && subject["kind"] == "ServiceAccount" && subject["name"] == "odh-dashboard-data-connect-hub-ui" {
+						subject["namespace"] = applicationsNamespace
+					}
+				}
+				_ = unstructured.SetNestedSlice(r.Object, subjects, "subjects")
+			}
+		}
+		result = append(result, r)
+	}
+	return result
 }
 
 func manifestSets(basePath string, platform cluster.Platform) []render.ManifestInfo {
@@ -172,6 +288,7 @@ func deployObservabilityManifests(
 	dashboard *v1alpha1.Dashboard,
 	basePath string,
 	platform cluster.Platform,
+	applicationsNamespace string,
 ) error {
 	logger := log.FromContext(ctx)
 
@@ -200,11 +317,15 @@ func deployObservabilityManifests(
 	}
 
 	m := observabilityManifestInfo(basePath, platform)
-	engine := kustomize.NewEngine()
-
-	rendered, err := engine.Render(m.String(), kustomize.WithNamespace(obsNamespace))
+	rendered, err := kustomize.NewEngine().Render(m.String(), kustomize.WithNamespace(obsNamespace))
 	if err != nil {
 		return fmt.Errorf("failed to render observability manifests from %s: %w", m, err)
+	}
+
+	if maasPortalSupportedPlatform(platform) {
+		if err := setMaaSPortalPersesIngressNamespace(rendered, applicationsNamespace); err != nil {
+			return err
+		}
 	}
 
 	logger.Info("Deploying observability manifests", "namespace", obsNamespace, "resources", len(rendered))
@@ -212,6 +333,7 @@ func deployObservabilityManifests(
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
+		deploy.WithLabel(moduleComponentLabel, observabilityComponent),
 		deploy.WithApplyOrder(),
 	)
 

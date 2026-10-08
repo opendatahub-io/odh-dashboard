@@ -28,8 +28,8 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 
 const mockUpload = jest.fn().mockResolvedValue({ key: 'uploaded.json' });
 
-jest.mock('~/app/hooks/mutations', () => ({
-  ...jest.requireActual('~/app/hooks/mutations'),
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
   useS3FileUploadMutation: jest.fn(() => ({ mutateAsync: mockUpload })),
 }));
 

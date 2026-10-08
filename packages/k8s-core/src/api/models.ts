@@ -6,6 +6,13 @@ export const ConfigMapModel: K8sModelCommon = {
   plural: 'configmaps',
 };
 
+export const SelfSubjectAccessReviewModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'authorization.k8s.io',
+  kind: 'SelfSubjectAccessReview',
+  plural: 'selfsubjectaccessreviews',
+};
+
 export const RoleModel: K8sModelCommon = {
   apiVersion: 'v1',
   apiGroup: 'rbac.authorization.k8s.io',
@@ -30,6 +37,19 @@ export const ServiceAccountModel: K8sModelCommon = {
   apiVersion: 'v1',
   kind: 'ServiceAccount',
   plural: 'serviceaccounts',
+};
+
+export const PodModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  kind: 'Pod',
+  plural: 'pods',
+};
+
+export const HardwareProfileModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'infrastructure.opendatahub.io',
+  kind: 'HardwareProfile',
+  plural: 'hardwareprofiles',
 };
 
 export const ClusterQueueModel: K8sModelCommon = {

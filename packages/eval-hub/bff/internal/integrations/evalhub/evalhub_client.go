@@ -26,13 +26,25 @@ type ListEvaluationJobsParams struct {
 
 // ListCollectionsParams holds optional query parameters for the list collections endpoint.
 type ListCollectionsParams struct {
-	Namespace string
-	Limit     int
-	Offset    int
-	Name      string
-	Category  string
-	Tags      string
-	Scope     string
+	Namespace         string
+	Limit             int
+	Offset            int
+	Name              string
+	Category          string
+	Tags              string
+	Scope             string
+	SortBy            string
+	Domains           string
+	Industries        string
+	EvaluationTargets string
+}
+
+// CollectionPatchOperation is one JSON Patch operation accepted by EvalHub's
+// collection PATCH endpoint.
+type CollectionPatchOperation struct {
+	Op    string          `json:"op"`
+	Path  string          `json:"path"`
+	Value json.RawMessage `json:"value,omitempty"`
 }
 
 // GetJobLogsParams holds optional query parameters for the log endpoints.
@@ -57,7 +69,11 @@ type EvalHubClientInterface interface {
 	CreateEvaluationJob(ctx context.Context, namespace string, req CreateEvaluationJobRequest) (*EvaluationJob, error)
 	CancelEvaluationJob(ctx context.Context, id string, namespace string, hardDelete bool) error
 	ListCollections(ctx context.Context, params ListCollectionsParams) (CollectionsResponse, error)
+	CreateCollection(ctx context.Context, namespace string, req CreateCollectionRequest) (*Collection, error)
 	GetCollection(ctx context.Context, id string, namespace string) (*Collection, error)
+	PatchCollection(ctx context.Context, id string, namespace string, operations []CollectionPatchOperation) (*Collection, error)
+	DeleteCollection(ctx context.Context, id string, namespace string) error
+	CloneCollection(ctx context.Context, id string, namespace string, req CloneCollectionRequest) (*Collection, error)
 	ListProviders(ctx context.Context, namespace string, limit, offset int) (ProvidersResponse, error)
 	GetEvaluationJobLogs(ctx context.Context, id string, namespace string, params GetJobLogsParams) (EvaluationJobLogsResponse, error)
 	GetEvaluationJobBenchmarkLogs(ctx context.Context, id string, benchmarkIndex int, namespace string, params GetJobLogsParams) (EvaluationJobLogsResponse, error)
@@ -77,19 +93,20 @@ type EvaluationJobsResponse struct {
 
 // EvaluationJob represents an evaluation job from eval-hub.
 type EvaluationJob struct {
-	Resource     JobResource      `json:"resource"`
-	Status       JobStatus        `json:"status"`
-	Results      JobResults       `json:"results"`
-	Name         string           `json:"name,omitempty"`
-	Description  string           `json:"description,omitempty"`
-	Tags         []string         `json:"tags,omitempty"`
-	Model        JobModel         `json:"model"`
-	PassCriteria *JobPassCriteria `json:"pass_criteria,omitempty"`
-	Benchmarks   []JobBenchmark   `json:"benchmarks,omitempty"`
-	Collection   *JobCollectionID `json:"collection,omitempty"`
-	Experiment   *JobExperiment   `json:"experiment,omitempty"`
-	Custom       map[string]any   `json:"custom,omitempty"`
-	Exports      *JobExports      `json:"exports,omitempty"`
+	Resource       JobResource      `json:"resource"`
+	Status         JobStatus        `json:"status"`
+	Results        JobResults       `json:"results"`
+	Name           string           `json:"name,omitempty"`
+	Description    string           `json:"description,omitempty"`
+	Tags           []string         `json:"tags,omitempty"`
+	Model          JobModel         `json:"model"`
+	PassCriteria   *JobPassCriteria `json:"pass_criteria,omitempty"`
+	Benchmarks     []JobBenchmark   `json:"benchmarks,omitempty"`
+	Collection     *JobCollectionID `json:"collection,omitempty"`
+	Experiment     *JobExperiment   `json:"experiment,omitempty"`
+	HardwareConfig *HardwareConfig  `json:"hardware_config,omitempty"`
+	Custom         map[string]any   `json:"custom,omitempty"`
+	Exports        *JobExports      `json:"exports,omitempty"`
 }
 
 type JobResource struct {
@@ -101,6 +118,7 @@ type JobResource struct {
 	Owner              string     `json:"owner,omitempty"`
 	MlflowExperimentID string     `json:"mlflow_experiment_id,omitempty"`
 	Message            JobMessage `json:"message,omitempty"`
+	Queue              string     `json:"queue,omitempty"`
 }
 
 type JobMessage struct {
@@ -113,6 +131,7 @@ type JobStatus struct {
 	State      string           `json:"state"`
 	Message    JobMessage       `json:"message,omitempty"`
 	Benchmarks []BenchmarkState `json:"benchmarks,omitempty"`
+	Queue      string           `json:"queue,omitempty"`
 }
 
 type BenchmarkState struct {
@@ -192,14 +211,40 @@ type TestDataRef struct {
 	S3 *S3DataRef `json:"s3,omitempty"`
 }
 
+// HardwareConfig describes the resource and scheduling configuration for an evaluation job.
+// HardwareProfileName is mutually exclusive with the direct resource and queue fields.
+type HardwareConfig struct {
+	HardwareProfileName string                  `json:"hardware_profile_name,omitempty"`
+	CPU                 *HardwareResourceConfig `json:"cpu,omitempty"`
+	Memory              *HardwareResourceConfig `json:"memory,omitempty"`
+	GPU                 *HardwareGPUConfig      `json:"gpu,omitempty"`
+	Queue               *HardwareQueueConfig    `json:"queue,omitempty"`
+}
+
+type HardwareResourceConfig struct {
+	Request string `json:"request,omitempty"`
+	Limit   string `json:"limit,omitempty"`
+}
+
+type HardwareGPUConfig struct {
+	Name  string `json:"name,omitempty"`
+	Count int64  `json:"count,omitempty"`
+}
+
+type HardwareQueueConfig struct {
+	Kind string `json:"kind,omitempty"`
+	Name string `json:"name"`
+}
+
 type JobBenchmark struct {
-	ID           string           `json:"id"`
-	ProviderID   string           `json:"provider_id,omitempty"`
-	Weight       float64          `json:"weight,omitempty"`
-	PrimaryScore *JobPrimaryScore `json:"primary_score,omitempty"`
-	PassCriteria *JobPassCriteria `json:"pass_criteria,omitempty"`
-	Parameters   map[string]any   `json:"parameters,omitempty"`
-	TestDataRef  *TestDataRef     `json:"test_data_ref,omitempty"`
+	ID             string           `json:"id"`
+	ProviderID     string           `json:"provider_id,omitempty"`
+	Weight         float64          `json:"weight,omitempty"`
+	PrimaryScore   *JobPrimaryScore `json:"primary_score,omitempty"`
+	PassCriteria   *JobPassCriteria `json:"pass_criteria,omitempty"`
+	Parameters     map[string]any   `json:"parameters,omitempty"`
+	TestDataRef    *TestDataRef     `json:"test_data_ref,omitempty"`
+	HardwareConfig *HardwareConfig  `json:"hardware_config,omitempty"`
 }
 
 // CollectionsResponse is the paginated response from the EvalHub API.
@@ -229,7 +274,51 @@ type ProviderK8sRuntime struct {
 	MemoryRequest string           `json:"memory_request,omitempty"`
 	CPULimit      string           `json:"cpu_limit,omitempty"`
 	MemoryLimit   string           `json:"memory_limit,omitempty"`
+	GPU           *ProviderGPU     `json:"gpu,omitempty"`
 	Env           []ProviderEnvVar `json:"env,omitempty"`
+}
+
+// UnmarshalJSON accepts the snake_case fields exposed by the BFF API and the
+// PascalCase resource fields returned by the EvalHub service. EvalHub's Go
+// runtime type has YAML/mapstructure tags for these fields but no JSON tags,
+// so encoding/json serializes CPURequest, MemoryRequest, CPULimit, and
+// MemoryLimit with their Go field names.
+func (r *ProviderK8sRuntime) UnmarshalJSON(data []byte) error {
+	type providerK8sRuntimeAlias ProviderK8sRuntime
+	var runtime providerK8sRuntimeAlias
+	if err := json.Unmarshal(data, &runtime); err != nil {
+		return err
+	}
+	*r = ProviderK8sRuntime(runtime)
+
+	var evalHubRuntime struct {
+		CPURequest    string `json:"CPURequest"`
+		MemoryRequest string `json:"MemoryRequest"`
+		CPULimit      string `json:"CPULimit"`
+		MemoryLimit   string `json:"MemoryLimit"`
+	}
+	if err := json.Unmarshal(data, &evalHubRuntime); err != nil {
+		return err
+	}
+	if r.CPURequest == "" {
+		r.CPURequest = evalHubRuntime.CPURequest
+	}
+	if r.MemoryRequest == "" {
+		r.MemoryRequest = evalHubRuntime.MemoryRequest
+	}
+	if r.CPULimit == "" {
+		r.CPULimit = evalHubRuntime.CPULimit
+	}
+	if r.MemoryLimit == "" {
+		r.MemoryLimit = evalHubRuntime.MemoryLimit
+	}
+
+	return nil
+}
+
+type ProviderGPU struct {
+	Resource string `json:"resource,omitempty"`
+	Count    int64  `json:"count,omitempty"`
 }
 
 // ProviderLocalRuntime holds local-execution runtime configuration for a provider.
@@ -321,24 +410,40 @@ type ProviderBenchmarkPassCriteria struct {
 
 // Collection represents a benchmark collection from eval-hub.
 type Collection struct {
-	Resource     CollectionResource      `json:"resource"`
-	Name         string                  `json:"name"`
-	Category     string                  `json:"category,omitempty"`
-	Description  string                  `json:"description,omitempty"`
-	Tags         []string                `json:"tags,omitempty"`
-	Custom       map[string]any          `json:"custom,omitempty"`
-	PassCriteria *CollectionPassCriteria `json:"pass_criteria,omitempty"`
-	Benchmarks   []CollectionBenchmark   `json:"benchmarks,omitempty"`
+	Resource          CollectionResource      `json:"resource"`
+	Name              string                  `json:"name"`
+	DerivedFrom       string                  `json:"derived_from,omitempty"`
+	Category          string                  `json:"category,omitempty"`
+	Description       string                  `json:"description,omitempty"`
+	Tags              []string                `json:"tags,omitempty"`
+	Domains           []string                `json:"domains,omitempty"`
+	Tasks             []string                `json:"tasks,omitempty"`
+	Modalities        []string                `json:"modalities,omitempty"`
+	Industries        []string                `json:"industries,omitempty"`
+	EvaluationTargets []string                `json:"evaluation_targets,omitempty"`
+	CurationOrder     int                     `json:"curation_order,omitempty"`
+	State             *CollectionState        `json:"state,omitempty"`
+	Custom            map[string]any          `json:"custom,omitempty"`
+	PassCriteria      *CollectionPassCriteria `json:"pass_criteria,omitempty"`
+	Benchmarks        []CollectionBenchmark   `json:"benchmarks,omitempty"`
 }
 
 // CollectionResource holds the resource metadata for a collection.
 type CollectionResource struct {
-	ID        string `json:"id"`
-	Tenant    string `json:"tenant,omitempty"`
-	CreatedAt string `json:"created_at,omitempty"`
-	UpdatedAt string `json:"updated_at,omitempty"`
-	ReadOnly  bool   `json:"read_only,omitempty"`
-	Owner     string `json:"owner,omitempty"`
+	ID             string `json:"id"`
+	Tenant         string `json:"tenant,omitempty"`
+	CreatedAt      string `json:"created_at,omitempty"`
+	UpdatedAt      string `json:"updated_at,omitempty"`
+	ReadOnly       bool   `json:"read_only,omitempty"`
+	Owner          string `json:"owner,omitempty"`
+	VersionCounter int    `json:"version_counter,omitempty"`
+}
+
+// CollectionState contains server-derived metadata used to order and summarize collections.
+type CollectionState struct {
+	DerivedFrom string `json:"derived_from,omitempty"`
+	RunCount    int    `json:"run_count,omitempty"`
+	PinnedOrder int    `json:"pinned_order,omitempty"`
 }
 
 // CollectionBenchmark represents a BenchmarkConfig entry within a collection.
@@ -363,18 +468,54 @@ type CollectionPassCriteria struct {
 	Threshold float64 `json:"threshold"`
 }
 
+// CloneCollectionRequest is the optional payload for cloning a collection.
+type CloneCollectionRequest struct {
+	Name        string   `json:"name,omitempty"`
+	Description string   `json:"description,omitempty"`
+	Category    string   `json:"category,omitempty"`
+	Tags        []string `json:"tags,omitempty"`
+	// Pointer slices distinguish omitted fields (inherit) from explicit empty arrays (clear).
+	Domains           *[]string               `json:"domains,omitempty"`
+	Tasks             *[]string               `json:"tasks,omitempty"`
+	Modalities        *[]string               `json:"modalities,omitempty"`
+	Industries        *[]string               `json:"industries,omitempty"`
+	EvaluationTargets *[]string               `json:"evaluation_targets,omitempty"`
+	Custom            map[string]any          `json:"custom,omitempty"`
+	PassCriteria      *CollectionPassCriteria `json:"pass_criteria,omitempty"`
+	Benchmarks        []CollectionBenchmark   `json:"benchmarks,omitempty"`
+}
+
+// CreateCollectionRequest is the payload sent to create a tenant collection.
+type CreateCollectionRequest struct {
+	Name              string                  `json:"name"`
+	Category          string                  `json:"category,omitempty"`
+	Description       string                  `json:"description,omitempty"`
+	Tags              []string                `json:"tags,omitempty"`
+	Domains           []string                `json:"domains,omitempty"`
+	Tasks             []string                `json:"tasks,omitempty"`
+	Modalities        []string                `json:"modalities,omitempty"`
+	Industries        []string                `json:"industries,omitempty"`
+	EvaluationTargets []string                `json:"evaluation_targets,omitempty"`
+	Custom            map[string]any          `json:"custom,omitempty"`
+	PassCriteria      *CollectionPassCriteria `json:"pass_criteria,omitempty"`
+	Benchmarks        []CollectionBenchmark   `json:"benchmarks"`
+}
+
 // CreateEvaluationJobRequest is the payload sent to the EvalHub API to start a new evaluation run.
 type CreateEvaluationJobRequest struct {
-	Name         string           `json:"name"`
-	Description  string           `json:"description,omitempty"`
-	Tags         []string         `json:"tags,omitempty"`
-	Model        JobModel         `json:"model"`
-	PassCriteria *JobPassCriteria `json:"pass_criteria,omitempty"`
-	Benchmarks   []JobBenchmark   `json:"benchmarks,omitempty"`
-	Collection   *JobCollectionID `json:"collection,omitempty"`
-	Experiment   *JobExperiment   `json:"experiment,omitempty"`
-	Custom       map[string]any   `json:"custom,omitempty"`
-	Exports      *JobExports      `json:"exports,omitempty"`
+	Name           string           `json:"name"`
+	Description    string           `json:"description,omitempty"`
+	Tags           []string         `json:"tags,omitempty"`
+	Model          JobModel         `json:"model"`
+	PassCriteria   *JobPassCriteria `json:"pass_criteria,omitempty"`
+	Benchmarks     []JobBenchmark   `json:"benchmarks,omitempty"`
+	Collection     *JobCollectionID `json:"collection,omitempty"`
+	Experiment     *JobExperiment   `json:"experiment,omitempty"`
+	Custom         map[string]any   `json:"custom,omitempty"`
+	Exports        *JobExports      `json:"exports,omitempty"`
+	HardwareConfig *HardwareConfig  `json:"hardware_config,omitempty"`
+	// Queue is retained as a lowest-priority compatibility fallback. New callers should use HardwareConfig.Queue.
+	Queue *HardwareQueueConfig `json:"queue,omitempty"`
 }
 
 type JobCollectionID struct {
@@ -422,16 +563,31 @@ type EvalHubClient struct {
 
 // NewEvalHubClient creates a new client configured for EvalHub.
 func NewEvalHubClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool, apiPath string) *EvalHubClient {
+	return NewEvalHubClientWithTransport(baseURL, authToken, insecureSkipVerify, rootCAs, apiPath, nil)
+}
+
+// NewEvalHubClientWithTransport creates a new client with an optional HTTP transport wrapper.
+func NewEvalHubClientWithTransport(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool, apiPath string, wrapTransport func(http.RoundTripper) http.RoundTripper) *EvalHubClient {
 	tlsConfig := &tls.Config{InsecureSkipVerify: insecureSkipVerify}
 	if rootCAs != nil {
 		tlsConfig.RootCAs = rootCAs
 	}
+	// The port-forward wrapper changes the connection address to localhost. Keep
+	// the original service hostname for TLS SNI and certificate verification.
+	if wrapTransport != nil {
+		if serviceURL, err := url.Parse(baseURL); err == nil && serviceURL.Scheme == "https" && serviceURL.Hostname() != "" {
+			tlsConfig.ServerName = serviceURL.Hostname()
+		}
+	}
+
+	var transport http.RoundTripper = &http.Transport{TLSClientConfig: tlsConfig}
+	if wrapTransport != nil {
+		transport = wrapTransport(transport)
+	}
 
 	httpClient := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: tlsConfig,
-		},
-		Timeout: 2 * time.Minute,
+		Transport: transport,
+		Timeout:   2 * time.Minute,
 	}
 
 	return &EvalHubClient{
@@ -575,6 +731,18 @@ func (c *EvalHubClient) ListCollections(ctx context.Context, params ListCollecti
 	if params.Scope != "" {
 		query.Set("scope", params.Scope)
 	}
+	if params.SortBy != "" {
+		query.Set("sort_by", params.SortBy)
+	}
+	if params.Domains != "" {
+		query.Set("domains", params.Domains)
+	}
+	if params.Industries != "" {
+		query.Set("industries", params.Industries)
+	}
+	if params.EvaluationTargets != "" {
+		query.Set("evaluation_targets", params.EvaluationTargets)
+	}
 
 	path := "/evaluations/collections"
 	if len(query) > 0 {
@@ -589,6 +757,23 @@ func (c *EvalHubClient) ListCollections(ctx context.Context, params ListCollecti
 		resp.Items = []Collection{}
 	}
 	return *resp, nil
+}
+
+// CreateCollection creates a tenant-scoped collection in EvalHub.
+// The namespace is sent as the X-Tenant header rather than a query parameter.
+func (c *EvalHubClient) CreateCollection(ctx context.Context, namespace string, req CreateCollectionRequest) (*Collection, error) {
+	path := "/evaluations/collections"
+
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := post[Collection](c, ctx, path, req, headers)
+	if err != nil {
+		return nil, wrapClientError(err, "CreateCollection")
+	}
+	return resp, nil
 }
 
 // GetCollection retrieves a single benchmark collection by ID.
@@ -606,6 +791,59 @@ func (c *EvalHubClient) GetCollection(ctx context.Context, id string, namespace 
 		return nil, wrapClientError(err, "GetCollection")
 	}
 	return resp, nil
+}
+
+// PatchCollection partially updates a tenant-owned collection using JSON Patch
+// operations. The namespace is sent as the X-Tenant header to scope the
+// request to the caller's tenant.
+func (c *EvalHubClient) PatchCollection(ctx context.Context, id string, namespace string, operations []CollectionPatchOperation) (*Collection, error) {
+	path := fmt.Sprintf("/evaluations/collections/%s", url.PathEscape(id))
+
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := patch[Collection](c, ctx, path, operations, headers)
+	if err != nil {
+		return nil, wrapClientError(err, "PatchCollection")
+	}
+	return resp, nil
+}
+
+// CloneCollection creates a tenant-scoped copy of an existing collection.
+// The namespace is sent as the X-Tenant header. The request body optionally overrides
+// name, description, category, tags, domains, tasks, modalities, industries,
+// evaluation targets, custom metadata, benchmarks, and pass criteria.
+func (c *EvalHubClient) CloneCollection(ctx context.Context, id string, namespace string, req CloneCollectionRequest) (*Collection, error) {
+	path := fmt.Sprintf("/evaluations/collections/%s/clones", url.PathEscape(id))
+
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := post[Collection](c, ctx, path, req, headers)
+	if err != nil {
+		return nil, wrapClientError(err, "CloneCollection")
+	}
+	return resp, nil
+}
+
+// DeleteCollection permanently removes a benchmark collection from EvalHub.
+// The namespace is sent as the X-Tenant header to scope the request to the caller's tenant.
+func (c *EvalHubClient) DeleteCollection(ctx context.Context, id string, namespace string) error {
+	path := fmt.Sprintf("/evaluations/collections/%s", url.PathEscape(id))
+
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return err
+	}
+
+	if err := doRequest(c, ctx, http.MethodDelete, path, headers); err != nil {
+		return wrapClientError(err, "DeleteCollection")
+	}
+	return nil
 }
 
 // ListProviders retrieves all evaluation providers with their benchmark catalogues from EvalHub.
@@ -695,7 +933,26 @@ func tenantHeaders(namespace string) (map[string]string, error) {
 // get performs a typed GET request against the EvalHub API, using the same
 // HTTP client and TLS configuration that the openai.Client was initialised with.
 // extraHeaders is an optional map of additional HTTP headers to include in the request.
-const maxGetResponseSize = 50 * 1024 * 1024 // 50 MiB — accommodates paginated list responses
+const (
+	maxGetResponseSize    = 50 * 1024 * 1024 // 50 MiB — accommodates paginated list responses
+	maxPostResponseSize   = 10 * 1024 * 1024 // 10 MiB — accommodates one submitted evaluation job
+	maxDeleteResponseSize = 1 * 1024 * 1024  // 1 MiB — DELETE responses should be empty or a small error payload
+	// TODO: Remove this temporary BFF response-size guard when log responses
+	// stream directly to clients after the backend team exposes a normal
+	// X-Log-Truncated response header.
+	maxLogResponseSize = 64 * 1024 * 1024 // 64 MiB — includes headroom over the upstream limit
+)
+
+func readResponseBody(body io.Reader, maxSize int) ([]byte, error) {
+	responseBody, err := io.ReadAll(io.LimitReader(body, int64(maxSize)+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(responseBody) > maxSize {
+		return nil, fmt.Errorf("response body exceeds maximum allowed size of %d bytes", maxSize)
+	}
+	return responseBody, nil
+}
 
 func get[T any](c *EvalHubClient, ctx context.Context, path string, extraHeaders map[string]string) (*T, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
@@ -716,12 +973,9 @@ func get[T any](c *EvalHubClient, ctx context.Context, path string, extraHeaders
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxGetResponseSize+1))
+	body, err := readResponseBody(resp.Body, maxGetResponseSize)
 	if err != nil {
 		return nil, err
-	}
-	if len(body) > maxGetResponseSize {
-		return nil, fmt.Errorf("response body exceeds maximum allowed size of %d bytes", maxGetResponseSize)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -765,7 +1019,53 @@ func post[T any](c *EvalHubClient, ctx context.Context, path string, body any, e
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := readResponseBody(resp.Body, maxPostResponseSize)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, &httpError{
+			StatusCode: resp.StatusCode,
+			Body:       string(respBody),
+		}
+	}
+
+	var result T
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// patch performs a typed PATCH request against the EvalHub API.
+// extraHeaders is an optional map of additional HTTP headers to include in the request.
+func patch[T any](c *EvalHubClient, ctx context.Context, path string, body any, extraHeaders map[string]string) (*T, error) {
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, c.baseURL+path, bytes.NewReader(jsonBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	if c.authToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.authToken)
+	}
+	for k, v := range extraHeaders {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	respBody, err := readResponseBody(resp.Body, maxPostResponseSize)
 	if err != nil {
 		return nil, err
 	}
@@ -805,7 +1105,7 @@ func doRequest(c *EvalHubClient, ctx context.Context, method, path string, extra
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := readResponseBody(resp.Body, maxDeleteResponseSize)
 	if err != nil {
 		return err
 	}
@@ -840,16 +1140,9 @@ func getRaw(c *EvalHubClient, ctx context.Context, path string, extraHeaders map
 	}
 	defer resp.Body.Close()
 
-	// TODO: Remove this temporary BFF response-size guard when log responses
-	// stream directly to clients after the backend team exposes a normal
-	// X-Log-Truncated response header.
-	const maxLogResponseSize = 64 * 1024 * 1024 // 64 MiB; includes headroom over the upstream limit
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxLogResponseSize+1))
+	body, err := readResponseBody(resp.Body, maxLogResponseSize)
 	if err != nil {
 		return EvaluationJobLogsResponse{}, err
-	}
-	if len(body) > maxLogResponseSize {
-		return EvaluationJobLogsResponse{}, fmt.Errorf("response body exceeds maximum allowed size of %d bytes", maxLogResponseSize)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return EvaluationJobLogsResponse{}, &httpError{

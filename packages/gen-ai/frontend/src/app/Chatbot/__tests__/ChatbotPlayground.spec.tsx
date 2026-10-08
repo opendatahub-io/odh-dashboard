@@ -11,9 +11,20 @@ const mockDeleteFileById = jest.fn().mockResolvedValue(undefined);
 const mockRefreshFiles = jest.fn().mockResolvedValue(undefined);
 const mockOnShowErrorAlert = jest.fn();
 const mockHandleMessageSend = jest.fn().mockResolvedValue(undefined);
+const mockUploadDocument = jest.fn(async (formData: FormData) => {
+  const file = formData.get('file') as File;
+  return {
+    id: `document-${file.name}`,
+    filename: file.name,
+    // eslint-disable-next-line camelcase
+    content_type: file.type,
+    text: 'Extracted document content',
+  };
+});
 const mockChatbotSettingsPanelProps = jest.fn();
 const mockViewCodeModalProps = jest.fn();
 const mockChatbotConfigInstanceProps = jest.fn();
+const documentStorageKey = 'gen-ai-playground-document-cache:test-ns';
 
 let mockFilesWithSettings: Array<{
   id: string;
@@ -154,11 +165,19 @@ jest.mock('~/app/context/GenAiContext', () => {
   return {
     GenAiContext: createContext({
       namespace: { name: 'test-ns' },
-      apiState: { apiAvailable: true, api: {} },
+      apiState: { apiAvailable: true, api: { uploadDocument: mockUploadDocument } },
       refreshAPIState: jest.fn(),
     }),
   };
 });
+
+jest.mock('~/app/hooks/useGenAiAPI', () => ({
+  useGenAiAPI: () => ({
+    apiAvailable: true,
+    api: { uploadDocument: mockUploadDocument },
+    refreshAllAPI: jest.fn(),
+  }),
+}));
 
 jest.mock('~/app/utilities', () => ({
   isLlamaModelEnabled: jest.fn(() => true),
@@ -349,7 +368,19 @@ jest.mock('@patternfly/react-core', () => {
       isOpen?: boolean;
       'data-testid'?: string;
     }) =>
-      isOpen ? React.createElement('div', { 'data-testid': testId || 'modal' }, children) : null,
+      isOpen
+        ? React.createElement(
+            'div',
+            {
+              'data-testid': 'modal-backdrop',
+            },
+            React.createElement(
+              'div',
+              { className: 'pf-v6-c-modal-box', 'data-testid': testId || 'modal' },
+              children,
+            ),
+          )
+        : null,
     ModalHeader: ({ title }: { title: string }) => React.createElement('div', null, title),
     ModalBody: ({ children }: { children: unknown }) => React.createElement('div', null, children),
     ModalFooter: ({ children }: { children: unknown }) =>
@@ -485,7 +516,7 @@ import { useChatbotConfigStore } from '~/app/Chatbot/store/useChatbotConfigStore
 import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 import { DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
-import type { MCPServerFromAPI } from '~/app/types';
+import type { DocumentAttachment, MCPServerFromAPI } from '~/app/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockSetLastInput = (ChatbotContext as any)._currentValue.setLastInput as jest.Mock;
@@ -560,6 +591,7 @@ const createMCPServer = (overrides: Partial<MCPServerFromAPI> = {}): MCPServerFr
 describe('ChatbotPlayground — document upload and messaging', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    window.localStorage.clear();
     uuidCounter = 0;
     mockFilesWithSettings = [];
     mockFileManagementFiles = [];
@@ -620,29 +652,86 @@ describe('ChatbotPlayground — document upload and messaging', () => {
   });
 
   describe('handleAttach — document upload', () => {
-    it('calls sourceManagement.handleSourceDrop with the files', async () => {
+    it('closes the extracted text modal when its backdrop is clicked', () => {
+      renderPlayground();
+
+      const configInstanceProps = mockChatbotConfigInstanceProps.mock.calls.at(-1)?.[0] as {
+        onViewDocument: (attachment: DocumentAttachment) => void;
+      };
+      const attachment: DocumentAttachment = {
+        // eslint-disable-next-line camelcase -- matches the document-attachment API contract
+        file_id: 'document-notes.txt',
+        filename: 'notes.txt',
+        // eslint-disable-next-line camelcase -- matches the document-attachment API contract
+        content_type: 'text/plain',
+        size: 42,
+        text: 'Extracted document content',
+      };
+
+      act(() => configInstanceProps.onViewDocument(attachment));
+
+      expect(screen.getByTestId('document-extracted-text-modal')).toBeInTheDocument();
+
+      fireEvent.mouseDown(screen.getByTestId('modal-backdrop'));
+
+      expect(screen.queryByTestId('document-extracted-text-modal')).not.toBeInTheDocument();
+    });
+
+    it('uploads each document through the extraction API', async () => {
       renderPlayground();
 
       await triggerDocumentUpload([createFile('x.txt'), createFile('y.txt')]);
 
-      expect(mockHandleSourceDrop).toHaveBeenCalledTimes(1);
-      const [, filesArg] = mockHandleSourceDrop.mock.calls[0];
-      expect(filesArg).toHaveLength(2);
-      expect(filesArg[0].name).toBe('x.txt');
-      expect(filesArg[1].name).toBe('y.txt');
+      await waitFor(() => expect(mockUploadDocument).toHaveBeenCalledTimes(2));
+      expect((mockUploadDocument.mock.calls[0][0] as FormData).get('file')).toMatchObject({
+        name: 'x.txt',
+      });
+      expect((mockUploadDocument.mock.calls[1][0] as FormData).get('file')).toMatchObject({
+        name: 'y.txt',
+      });
     });
 
-    it('shows error alert on handleSourceDrop failure', async () => {
-      mockHandleSourceDrop.mockRejectedValueOnce(new Error('Upload API failed'));
+    it('shows an error alert when document extraction fails', async () => {
+      mockUploadDocument.mockRejectedValueOnce(new Error('Document extraction failed'));
       renderPlayground();
 
       await triggerDocumentUpload([createFile('fail.txt')]);
 
       await waitFor(() => {
         expect(mockOnShowErrorAlert).toHaveBeenCalledWith(
-          expect.stringContaining('Upload API failed'),
-          'File Upload Error',
+          expect.stringContaining('Document extraction failed'),
+          'Document upload error',
         );
+      });
+    });
+
+    it('caches extracted attachments without restoring them into the composer after a reload', async () => {
+      const { unmount } = renderPlayground();
+
+      await triggerDocumentUpload([createFile('notes.txt')]);
+
+      await waitFor(() => {
+        const stored = JSON.parse(window.localStorage.getItem(documentStorageKey) || '[]');
+        expect(stored).toEqual([
+          expect.objectContaining({
+            // eslint-disable-next-line camelcase
+            file_id: 'document-notes.txt',
+            filename: 'notes.txt',
+            text: 'Extracted document content',
+            fingerprint: expect.any(String),
+          }),
+        ]);
+      });
+
+      unmount();
+      mockChatbotConfigInstanceProps.mockClear();
+      renderPlayground();
+
+      await waitFor(() => {
+        const configProps = mockChatbotConfigInstanceProps.mock.calls.at(-1)?.[0] as {
+          documentAttachments?: DocumentAttachment[];
+        };
+        expect(configProps.documentAttachments).toEqual([]);
       });
     });
   });
@@ -855,6 +944,61 @@ describe('ChatbotPlayground — audio transcription', () => {
   it('renders audio file input', () => {
     renderPlayground();
     expect(screen.getByTestId('audio-file-input')).toBeInTheDocument();
+  });
+
+  it('keeps audio pending until a transcription model is selected', async () => {
+    const { uploadMediaFile } = require('~/app/services/llamaStackService');
+    uploadMediaFile.mockReturnValue({
+      promise: new Promise(() => {
+        /* Keep the upload in progress. */
+      }),
+      xhr: { abort: jest.fn() },
+    });
+    renderPlayground();
+    const file = new File(['audio-data'], 'test.wav', { type: 'audio/wav' });
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('audio-file-input'), { target: { files: [file] } });
+    });
+    expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
+    expect(screen.getByTestId('audio-model-needed-alert')).toBeInTheDocument();
+    expect(screen.getByTestId('send-button')).toBeDisabled();
+    expect(uploadMediaFile).not.toHaveBeenCalled();
+
+    act(() => {
+      useChatbotConfigStore.getState().updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'untagged-model');
+    });
+    expect(uploadMediaFile).not.toHaveBeenCalled();
+    expect(screen.getByTestId('audio-model-needed-alert')).toBeInTheDocument();
+
+    act(() => {
+      useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
+    });
+    await waitFor(() => expect(uploadMediaFile).toHaveBeenCalledTimes(1));
+    expect(screen.queryByTestId('audio-model-needed-alert')).not.toBeInTheDocument();
+  });
+
+  it('does not upload canceled audio after a transcription model is selected', async () => {
+    const { uploadMediaFile } = require('~/app/services/llamaStackService');
+    renderPlayground();
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('audio-file-input'), {
+        target: { files: [new File(['audio-data'], 'test.wav', { type: 'audio/wav' })] },
+      });
+    });
+    expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('chip-close'));
+    });
+    expect(screen.queryByTestId('audio-file-chip')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('audio-model-needed-alert')).not.toBeInTheDocument();
+
+    act(() => {
+      useChatbotConfigStore.getState().updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-model');
+    });
+    expect(uploadMediaFile).not.toHaveBeenCalled();
   });
 
   it('audio upload triggers uploadMediaFile with audio type', async () => {
@@ -1106,7 +1250,7 @@ describe('ChatbotPlayground — compare mode attachments', () => {
     expect(imageMenuItem).not.toBeDisabled();
   });
 
-  it('image upload is disabled when one compared model lacks vision capability', async () => {
+  it('keeps an in-flight image upload when a compared model lacks vision capability', async () => {
     const visionModel = { id: 'vision-ai', capabilities: ['vision', 'text-generation'] };
     const textModel = { id: 'text-ai', capabilities: ['text-generation'] };
 
@@ -1154,7 +1298,7 @@ describe('ChatbotPlayground — compare mode attachments', () => {
           },
           'config-2': {
             ...DEFAULT_CONFIGURATION,
-            selectedModel: 'text-llama',
+            selectedModel: 'vision-llama',
           },
         },
         configIds: [DEFAULT_CONFIG_ID, 'config-2'],
@@ -1166,10 +1310,46 @@ describe('ChatbotPlayground — compare mode attachments', () => {
     });
 
     const imageMenuItem = screen.getByTestId('menu-item-upload-image');
-    expect(imageMenuItem).toBeDisabled();
+    expect(imageMenuItem).not.toBeDisabled();
+
+    const { uploadMediaFile } = require('~/app/services/llamaStackService');
+    let finishUpload: (response: { data: { id: string } }) => void = () => undefined;
+    const abortUpload = jest.fn();
+    uploadMediaFile.mockReturnValue({
+      promise: new Promise((resolve) => {
+        finishUpload = resolve;
+      }),
+      xhr: { abort: abortUpload },
+    });
+    const file = new File(['pixels'], 'photo.png', { type: 'image/png' });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('vision-file-input'), {
+        target: { files: createFileList([file]) },
+      });
+    });
+    expect(screen.getByTestId('vision-file-preview')).toBeInTheDocument();
+    expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+    expect(screen.getByTestId('chip-loading')).toBeInTheDocument();
+
+    act(() => {
+      useChatbotConfigStore.getState().updateSelectedModel('config-2', 'text-llama');
+    });
+    expect(screen.getByTestId('vision-file-preview')).toBeInTheDocument();
+    expect(screen.getByTestId('image-capability-alert')).toBeInTheDocument();
+    expect(abortUpload).not.toHaveBeenCalled();
+
+    act(() => {
+      useChatbotConfigStore.getState().updateSelectedModel('config-2', 'vision-llama');
+    });
+    expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+
+    await act(async () => {
+      finishUpload({ data: { id: 'image-file' } });
+    });
+    expect(screen.getByTestId('vision-file-preview')).toBeInTheDocument();
   });
 
-  it('image upload is disabled when workspace has no vision models', async () => {
+  it('allows image upload when workspace has no vision-tagged models', async () => {
     const useWorkspaceCapabilities = require('~/app/hooks/useWorkspaceCapabilities').default;
     useWorkspaceCapabilities.mockReturnValue({
       hasVisionModel: false,
@@ -1185,7 +1365,66 @@ describe('ChatbotPlayground — compare mode attachments', () => {
     });
 
     const imageMenuItem = screen.getByTestId('menu-item-upload-image');
-    expect(imageMenuItem).toBeDisabled();
+    expect(imageMenuItem).not.toBeDisabled();
+
+    const { uploadMediaFile } = require('~/app/services/llamaStackService');
+    uploadMediaFile.mockReturnValue({
+      promise: Promise.resolve({ data: { id: 'image-file' } }),
+      xhr: { abort: jest.fn() },
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('vision-file-input'), {
+        target: {
+          files: createFileList([new File(['pixels'], 'photo.png', { type: 'image/png' })]),
+        },
+      });
+    });
+    expect(screen.getByTestId('vision-file-preview')).toBeInTheDocument();
+    expect(screen.getByTestId('image-capability-alert')).toBeInTheDocument();
+  });
+
+  it.each([
+    ['model metadata is loading', false, []],
+    ['the selected model has no matching capability record', true, [{ id: 'other-model' }]],
+  ])('shows the vision notice when %s', async (_scenario, aiModelsLoaded, aiModels) => {
+    mockIsPlaygroundModelMatch.mockReturnValue(false);
+    render(
+      <MemoryRouter initialEntries={['/gen-ai-studio/playground/test-ns']}>
+        <ChatbotContext.Provider
+          value={
+            {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              ...(ChatbotContext as any)._currentValue,
+              aiModels,
+              aiModelsLoaded,
+            } as React.ContextType<typeof ChatbotContext>
+          }
+        >
+          <ChatbotPlayground
+            isViewCodeModalOpen={false}
+            setIsViewCodeModalOpen={jest.fn()}
+            isNewChatModalOpen={false}
+            setIsNewChatModalOpen={jest.fn()}
+          />
+        </ChatbotContext.Provider>
+      </MemoryRouter>,
+    );
+
+    const { uploadMediaFile } = require('~/app/services/llamaStackService');
+    uploadMediaFile.mockReturnValue({
+      promise: Promise.resolve({ data: { id: 'image-file' } }),
+      xhr: { abort: jest.fn() },
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('vision-file-input'), {
+        target: {
+          files: createFileList([new File(['pixels'], 'photo.png', { type: 'image/png' })]),
+        },
+      });
+    });
+
+    expect(screen.getByTestId('vision-file-preview')).toBeInTheDocument();
+    expect(screen.getByTestId('image-capability-alert')).toBeInTheDocument();
   });
 
   it('audio file input is rendered in compare mode', () => {
@@ -1193,12 +1432,12 @@ describe('ChatbotPlayground — compare mode attachments', () => {
     expect(screen.getByTestId('audio-file-input')).toBeInTheDocument();
   });
 
-  it('document upload calls sourceManagement in compare mode', async () => {
+  it('document upload uses the extraction API in compare mode', async () => {
     renderPlayground();
 
     await triggerDocumentUpload([createFile('doc.pdf')]);
 
-    expect(mockHandleSourceDrop).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mockUploadDocument).toHaveBeenCalledTimes(1));
   });
 });
 

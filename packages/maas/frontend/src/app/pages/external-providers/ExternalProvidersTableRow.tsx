@@ -151,14 +151,14 @@ const ExternalProvidersTableRow: React.FC<ExternalProvidersTableRowProps> = ({
       </Tbody>
       <PathModal
         title="Endpoints"
-        description="Use the following URL endpoint to connect this provider to your application."
-        inputTitle="External API endpoint"
+        description="Use this endpoint to connect to the provider."
+        inputTitle="API endpoint"
         path={externalProvider.endpointUrl}
         isOpen={!!endpointURLModalRef}
         onClose={() => {
           setEndpointURLModalRef(null);
         }}
-        subContentTitle="Authentication"
+        subContentTitle="Authentication type"
         subContent={mapAuthMechanismToHumanReadable(externalProvider.authMechanism)}
       />
     </>

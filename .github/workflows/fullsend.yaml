@@ -20,6 +20,9 @@
 #
 # Concurrency: per-role cancel-in-progress groups live in reusable-dispatch.yml
 # stage jobs with -agent- suffix. Roles operate independently (#2452).
+# Do not add workflow-level cancel-in-progress here: job `if` runs after the
+# concurrency group is assigned, so label/review/comment noise would still
+# queue a run, cancel an in-flight review, then skip every job.
 name: fullsend
 
 on:
@@ -39,10 +42,11 @@ jobs:
     name: Plan host adapters
     # These jobs run a paid CodeRabbit review and a credentialed Jira fetch, and
     # `dispatch` needs them, so they finish before Route picks a stage. Anything
-    # admitted here that Route then declines is wasted spend. Route only accepts
-    # `labeled` for `ready-for-review`, and only acts on a `changes_requested`
-    # review, so match that: applying `fullsend` itself used to burn a full
-    # review that nothing consumed.
+    # admitted here that the review stage does not consume is wasted spend. Route
+    # only accepts `labeled` for `ready-for-review`, so match that: applying
+    # `fullsend` itself used to burn a full review that nothing consumed. A
+    # `changes_requested` review routes to the fix stage, which never reads
+    # adapter context, so it is not admitted here.
     if: >-
       (github.event_name == 'pull_request_target'
        && contains(github.event.pull_request.labels.*.name, 'fullsend')
@@ -51,9 +55,6 @@ jobs:
         || github.event.action == 'ready_for_review'
         || (github.event.action == 'labeled'
          && github.event.label.name == 'ready-for-review')))
-      || (github.event_name == 'pull_request_review'
-       && contains(github.event.pull_request.labels.*.name, 'fullsend')
-       && github.event.review.state == 'changes_requested')
       || (github.event_name == 'issue_comment'
        && github.event.issue.pull_request
        && github.event.comment.user.type != 'Bot'
@@ -64,6 +65,7 @@ jobs:
       pull-requests: read
     outputs:
       matrix: ${{ steps.adapters.outputs.matrix }}
+      run_adapters: ${{ steps.gate.outputs.run_adapters }}
     steps:
       - name: Checkout trusted review integration
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -73,6 +75,17 @@ jobs:
           # was last advanced (see RHOAIENG-82125 CI failure on PR #9090).
           ref: ${{ github.sha }}
           persist-credentials: false
+
+      # The review's pre-script skips closed PRs, but it runs inside dispatch,
+      # after the adapters have already bought a CodeRabbit review. Apply the
+      # same state check here first.
+      - name: Check review readiness
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+          REPO_FULL_NAME: ${{ github.repository }}
+        run: bash .fullsend/scripts/pre-review.sh --adapter-gate
 
       - name: Build adapter matrix from registry
         id: adapters
@@ -106,6 +119,7 @@ jobs:
   adapter-context:
     name: Prepare ${{ matrix.id }} context
     needs: adapter-plan
+    if: needs.adapter-plan.outputs.run_adapters == 'true'
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -197,17 +211,32 @@ jobs:
 
   dispatch:
     needs: [adapter-plan, adapter-context]
+    # Same event filter as adapter-plan so unrelated labels (e.g. approved) or
+    # bot reviews do not burn a Route/dispatch when nothing will act on them.
+    # always()+!cancelled() still lets Route run when adapters were skipped
+    # or failed (or when this run was cancelled).
     if: >-
       always()
+      && !cancelled()
       && (github.event_name != 'pull_request_target' && github.event_name != 'pull_request_review'
        || github.event.pull_request.head.ref != 'fullsend/scaffold-install')
       && (
-        ((github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review')
-         && contains(github.event.pull_request.labels.*.name, 'fullsend'))
+        (github.event_name == 'pull_request_target'
+         && contains(github.event.pull_request.labels.*.name, 'fullsend')
+         && (github.event.action == 'opened'
+          || github.event.action == 'synchronize'
+          || github.event.action == 'ready_for_review'
+          || (github.event.action == 'labeled'
+           && github.event.label.name == 'ready-for-review')))
+        || (github.event_name == 'pull_request_review'
+         && contains(github.event.pull_request.labels.*.name, 'fullsend')
+         && github.event.review.state == 'changes_requested')
         || (github.event_name == 'issue_comment'
          && github.event.issue.pull_request
          && github.event.comment.user.type != 'Bot'
-         && github.event.comment.body == '/fs-review')
+         && (github.event.comment.body == '/fs-review'
+          || (startsWith(github.event.comment.body, '/fs-fix')
+           && !startsWith(github.event.comment.body, '/fs-fix-stop'))))
       )
     permissions:
       actions: write
@@ -216,7 +245,11 @@ jobs:
       issues: write
       packages: read
       pull-requests: write
-    uses: fullsend-ai/fullsend/.github/workflows/reusable-dispatch.yml@094191b0151e3261d65ce2b032a4586654eb44ab # v0.41.0
+    # Keep in step with the sandbox image pinned in .fullsend/harness/review.yaml
+    # (same release, Pi 0.99.2).
+    # Temporary pin through fullsend#7848 (fixes #7834 custom role_name auth).
+    # Revert to a released tag when v0.46+ ships this.
+    uses: fullsend-ai/fullsend/.github/workflows/reusable-dispatch.yml@d8560dcc4f4920618f8eba3afd6c56e60263502a # fullsend#7848 (post-v0.45.0)
     with:
       event_action: ${{ github.event.action }}
       install_mode: per-repo
@@ -228,6 +261,7 @@ jobs:
     secrets:
       FULLSEND_GCP_WIF_PROVIDER: ${{ secrets.FULLSEND_GCP_WIF_PROVIDER }}
       FULLSEND_GCP_PROJECT_ID: ${{ secrets.FULLSEND_GCP_PROJECT_ID }}
+      FULLSEND_OPENAI_API_KEY: ${{ secrets.FULLSEND_OPENAI_API_KEY }}
       OTEL_EXPORTER_OTLP_TRACES_HEADERS: ${{ secrets.OTEL_EXPORTER_OTLP_TRACES_HEADERS }}
       OTEL_EXPORTER_OTLP_HEADERS: ${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }}
       JIRA_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
@@ -262,7 +296,8 @@ jobs:
           # ADR 0054: authorize via the collaborator permission API
           # (admin|maintain|write), not author_association — the latter grants
           # contributor status to anyone with a single merged PR (issue #5421).
-          # Mirrors has_repo_permission() in dispatch.yml; keep the two in sync.
+          # Mirrors has_repo_permission() in reusable-dispatch.yml, including the
+          # custom-role --jq resolution; keep the two in sync (fullsend#7834).
           # The PR author may always stop the fix agent on their own PR.
           authorized=false
           if [[ -n "$COMMENT_USER_LOGIN" && "$COMMENT_USER_LOGIN" == "$ISSUE_USER_LOGIN" ]]; then
@@ -270,7 +305,19 @@ jobs:
           else
             if api_err=$(mktemp); then
               if role=$(gh api "repos/$REPO/collaborators/$COMMENT_USER_LOGIN/permission" \
-                --jq '.role_name' 2>"$api_err"); then
+                --jq '.user.permissions as $p
+                  | if (.role_name | type) != "string" or .role_name == "" then "none"
+                    elif (.role_name | IN("admin", "maintain", "write", "triage", "read")) then .role_name
+                    elif $p == null then
+                      if (.permission | IN("admin", "write", "read")) then .permission else "none" end
+                    elif ($p | type) == "object" then
+                      if $p.admin == true then "admin"
+                      elif $p.maintain == true then "maintain"
+                      elif $p.push == true then "write"
+                      elif $p.triage == true then "triage"
+                      elif $p.pull == true then "read"
+                      else "none" end
+                    else "none" end' 2>"$api_err"); then
                 case "$role" in
                   admin|maintain|write) authorized=true ;;
                 esac

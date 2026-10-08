@@ -15,6 +15,7 @@ import {
   FlexItem,
   Label,
 } from '@patternfly/react-core';
+import CaretDownIcon from '@patternfly/react-icons/dist/esm/icons/rh-microns-caret-down-icon';
 import { FileSearchCallData, FileSearchResult } from '~/app/types';
 import './ChatbotFileSearchResults.scss';
 
@@ -23,6 +24,13 @@ type ChatbotFileSearchResultsProps = {
   citationMap?: Map<string, number>;
   expandedCitation?: number;
   onCitationExpanded?: () => void;
+  isExpanded?: boolean;
+  onExpandedChange?: (isExpanded: boolean) => void;
+  isDisabled?: boolean;
+  showToggle?: boolean;
+  showContent?: boolean;
+  toggleId?: string;
+  contentId?: string;
 };
 
 type FileGroup = {
@@ -258,12 +266,21 @@ const ChatbotFileSearchResults: React.FC<ChatbotFileSearchResultsProps> = ({
   citationMap,
   expandedCitation,
   onCitationExpanded,
+  isExpanded: controlledIsExpanded,
+  onExpandedChange,
+  isDisabled = false,
+  showToggle = true,
+  showContent = true,
+  toggleId: providedToggleId,
+  contentId: providedContentId,
 }) => {
-  const [isExpanded, setIsExpanded] = React.useState(false);
+  const [uncontrolledIsExpanded, setUncontrolledIsExpanded] = React.useState(false);
   const [collapseKey, setCollapseKey] = React.useState(0);
   const [highlightedCitation, setHighlightedCitation] = React.useState<number | undefined>();
-  const toggleId = React.useId();
-  const contentId = React.useId();
+  const generatedToggleId = React.useId();
+  const generatedContentId = React.useId();
+  const toggleId = providedToggleId ?? generatedToggleId;
+  const contentId = providedContentId ?? generatedContentId;
 
   const { queries, results } = fileSearchData;
 
@@ -274,73 +291,92 @@ const ChatbotFileSearchResults: React.FC<ChatbotFileSearchResultsProps> = ({
 
   const totalSources = fileGroups.length;
   const citedSources = citationMap ? fileGroups.filter((g) => g.citationNumber != null).length : 0;
+  const isExpanded = controlledIsExpanded ?? uncontrolledIsExpanded;
+  const toggleExpanded = () => {
+    const nextIsExpanded = !isExpanded;
+    setUncontrolledIsExpanded(nextIsExpanded);
+    onExpandedChange?.(nextIsExpanded);
+  };
 
   React.useEffect(() => {
     if (expandedCitation != null) {
-      setIsExpanded(true);
+      setUncontrolledIsExpanded(true);
+      onExpandedChange?.(true);
       setHighlightedCitation(expandedCitation);
       onCitationExpanded?.();
       const timer = window.setTimeout(() => setHighlightedCitation(undefined), 2100);
       return () => clearTimeout(timer);
     }
     return undefined;
-  }, [expandedCitation, onCitationExpanded]);
+  }, [expandedCitation, onCitationExpanded, onExpandedChange]);
 
   return (
     <div className="chatbot-file-search" data-testid="file-search-results">
-      <ExpandableSectionToggle
-        isExpanded={isExpanded}
-        onToggle={() => {
-          setIsExpanded((prev) => {
-            if (prev) {
+      {showToggle && isDisabled ? (
+        <Button variant="plain" icon={<CaretDownIcon />} isDisabled>
+          <small>
+            {citedSources > 0
+              ? `${citedSources} cited, ${totalSources} retrieved`
+              : `${totalSources} source${totalSources !== 1 ? 's' : ''} retrieved`}
+          </small>
+        </Button>
+      ) : showToggle ? (
+        <ExpandableSectionToggle
+          isExpanded={isExpanded}
+          onToggle={() => {
+            if (isExpanded) {
               setCollapseKey((k) => k + 1);
             }
-            return !prev;
-          });
-        }}
-        contentId={contentId}
-        toggleId={toggleId}
-        data-testid="file-search-results-toggle"
-      >
-        {citedSources > 0
-          ? `${citedSources} cited, ${totalSources} retrieved`
-          : `${totalSources} source${totalSources !== 1 ? 's' : ''} retrieved`}
-      </ExpandableSectionToggle>
-      <ExpandableSection
-        isExpanded={isExpanded}
-        isDetached
-        contentId={contentId}
-        toggleId={toggleId}
-      >
-        <div className="chatbot-file-search__content">
-          {queries.length > 0 && (
-            <Content
-              component="small"
-              className="chatbot-file-search__query"
-              data-testid="file-search-query"
-            >
-              <span className="pf-v6-u-font-weight-bold">Embedding query:</span> &ldquo;
-              {queries[0]}&rdquo;
-            </Content>
-          )}
-          <DataList aria-label="File search results" isCompact>
-            {fileGroups.map((group, index) => (
-              <FileGroupRow
-                key={group.filename}
-                group={group}
-                index={index}
-                collapseKey={collapseKey}
-                isForceExpanded={
-                  expandedCitation != null && group.citationNumber === expandedCitation
-                }
-                isHighlighted={
-                  highlightedCitation != null && group.citationNumber === highlightedCitation
-                }
-              />
-            ))}
-          </DataList>
-        </div>
-      </ExpandableSection>
+            toggleExpanded();
+          }}
+          contentId={contentId}
+          toggleId={toggleId}
+          data-testid="file-search-results-toggle"
+        >
+          <small>
+            {citedSources > 0
+              ? `${citedSources} cited, ${totalSources} retrieved`
+              : `${totalSources} source${totalSources !== 1 ? 's' : ''} retrieved`}
+          </small>
+        </ExpandableSectionToggle>
+      ) : null}
+      {showContent && (controlledIsExpanded === undefined || isExpanded) && (
+        <ExpandableSection
+          isExpanded={isExpanded}
+          isDetached
+          contentId={contentId}
+          toggleId={toggleId}
+        >
+          <div className="chatbot-file-search__content">
+            {queries.length > 0 && (
+              <Content
+                component="small"
+                className="chatbot-file-search__query"
+                data-testid="file-search-query"
+              >
+                <span className="pf-v6-u-font-weight-bold">Embedding query:</span> &ldquo;
+                {queries[0]}&rdquo;
+              </Content>
+            )}
+            <DataList aria-label="File search results" isCompact>
+              {fileGroups.map((group, index) => (
+                <FileGroupRow
+                  key={group.filename}
+                  group={group}
+                  index={index}
+                  collapseKey={collapseKey}
+                  isForceExpanded={
+                    expandedCitation != null && group.citationNumber === expandedCitation
+                  }
+                  isHighlighted={
+                    highlightedCitation != null && group.citationNumber === highlightedCitation
+                  }
+                />
+              ))}
+            </DataList>
+          </div>
+        </ExpandableSection>
+      )}
     </div>
   );
 };

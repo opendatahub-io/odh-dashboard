@@ -4,36 +4,32 @@
 
 This project requires the following tools to be installed on your system:
 
-- [NodeJS and NPM](https://nodejs.org/)
-  - Node recommended version -> `22.17.0`
-  - NPM recommended version -> `10.8.2`
+- [Node.js](https://nodejs.org/) 22.18.0 or later
+- pnpm 11.22.0 (pinned by the repository root `package.json`)
 
 ## Development
 
-1. Clone the repository
+1. Clone the `odh-dashboard` repository.
+2. Install all workspace dependencies from the repository root:
 
-      ``` bash
-      git clone https://github.com/opendatahub-io/mod-arch-library
-      ```
+   ```bash
+   pnpm install
+   ```
 
-2. Within the repo context, install project dependencies
-
-     ```bash
-     cd mod-arch/clients/ui/frontend && npm install
-     ```
+3. Change to `packages/data-connect-hub/frontend` for the frontend commands below.
 
 ### Build project
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 ### Serve development content
 
-This is the default context for running a local UI.  Make sure you build the project using the instructions above prior to running the command below.
+This is the default context for running a local UI. Make sure you build the project using the instructions above prior to running the command below.
 
 ```bash
-npm run start:dev
+pnpm run start:dev
 ```
 
 For in-depth local run guidance review the [contribution guidelines](../../../ui/CONTRIBUTING.md).
@@ -42,8 +38,8 @@ For in-depth local run guidance review the [contribution guidelines](../../../ui
 
 Run the mock tests.
 
-  ```bash
-  npm run test:cypress-ci
-  ```
+```bash
+pnpm run test:cypress-ci
+```
 
 For in-depth testing guidance review the [testing guidelines](./testing.md)

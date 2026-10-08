@@ -1,26 +1,15 @@
-import type { FileRejection } from 'react-dropzone';
 import {
-  AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
-  AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
-} from '~/app/utilities/dropzoneFileUpload';
-import {
-  getInputDataDropRejectedNotification,
   INPUT_DATA_FILE_ACCEPT,
-  INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION,
   INPUT_DATA_UPLOAD_NATIVE_ACCEPT,
   isAllowedInputDataUploadFile,
   SUPPORTED_FORMAT,
   SUPPORTED_FORMAT_EXTENSIONS,
   SUPPORTED_FORMAT_HINT,
   SUPPORTED_FORMAT_NAMES,
-  SUPPORTED_FORMAT_NAMES_STRING_OR,
   SUPPORTED_FORMAT_NAMES_STRING_SIMPLE,
+  SUPPORTED_FORMAT_NAMES_STRING_OR,
   SUPPORTED_FORMATS_MIME_TYPE_TO_EXTENSION,
 } from '~/app/utilities/autoragInputDataFile';
-
-function rejection(file: File, errors: Array<{ code: string; message: string }>): FileRejection {
-  return { file, errors };
-}
 
 describe('autoragInputDataFile', () => {
   describe('SUPPORTED_FORMAT', () => {
@@ -149,12 +138,6 @@ describe('autoragInputDataFile', () => {
         expect(ext).toMatch(/^\.\w+$/);
       }
     });
-
-    it('INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION includes the simple name list', () => {
-      expect(INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION).toBe(
-        `File type must be one of the accepted types (${SUPPORTED_FORMAT_NAMES_STRING_SIMPLE}).`,
-      );
-    });
   });
 
   describe('isAllowedInputDataUploadFile', () => {
@@ -237,86 +220,6 @@ describe('autoragInputDataFile', () => {
 
     it('rejects a file with no extension and empty MIME type', () => {
       expect(isAllowedInputDataUploadFile(new File(['x'], 'noext', { type: '' }))).toBe(false);
-    });
-  });
-
-  describe('getInputDataDropRejectedNotification', () => {
-    it('uses knowledge-document invalid type copy', () => {
-      const file = new File(['x'], 'a.exe', { type: 'application/octet-stream' });
-      expect(
-        getInputDataDropRejectedNotification([
-          rejection(file, [{ code: 'file-invalid-type', message: 'bad' }]),
-        ]),
-      ).toEqual({
-        title: 'Invalid file type',
-        description: INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION,
-      });
-    });
-
-    it('uses shared too-large detail', () => {
-      const file = new File(['x'], 'big.pdf', { type: 'application/pdf' });
-      expect(
-        getInputDataDropRejectedNotification([
-          rejection(file, [{ code: 'file-too-large', message: 'too big' }]),
-        ]),
-      ).toEqual({
-        title: 'File too large',
-        description: AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
-      });
-    });
-
-    it('uses too-many-files detail', () => {
-      const file = new File(['x'], 'a.pdf', { type: 'application/pdf' });
-      expect(
-        getInputDataDropRejectedNotification([
-          rejection(file, [{ code: 'too-many-files', message: 'too many' }]),
-        ]),
-      ).toEqual({
-        title: 'Too many files',
-        description: AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
-      });
-    });
-
-    it('returns null for empty rejections', () => {
-      expect(getInputDataDropRejectedNotification([])).toBeNull();
-    });
-
-    it('combines multiple known rejection codes into a single notification', () => {
-      const result = getInputDataDropRejectedNotification([
-        rejection(new File(['x'], 'a.exe', { type: 'application/octet-stream' }), [
-          { code: 'file-invalid-type', message: 'bad type' },
-        ]),
-        rejection(new File(['x'], 'b.exe', { type: 'application/octet-stream' }), [
-          { code: 'file-invalid-type', message: 'bad type' },
-        ]),
-      ]);
-      expect(result).toEqual({
-        title: 'File not accepted',
-        description: expect.stringContaining(INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION),
-      });
-      expect(result!.description).toContain(AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL);
-    });
-
-    it('falls back to raw error message for unknown rejection codes', () => {
-      const file = new File(['x'], 'mystery.bin', { type: 'application/octet-stream' });
-      const result = getInputDataDropRejectedNotification([
-        rejection(file, [{ code: 'custom-error', message: 'Something went wrong' }]),
-      ]);
-      expect(result).toEqual({
-        title: 'File not accepted',
-        description: 'Something went wrong',
-      });
-    });
-
-    it('falls back to filename when unknown code has no message', () => {
-      const file = new File(['x'], 'mystery.bin', { type: 'application/octet-stream' });
-      const result = getInputDataDropRejectedNotification([
-        rejection(file, [{ code: 'custom-error', message: '' }]),
-      ]);
-      expect(result).toEqual({
-        title: 'File not accepted',
-        description: '“mystery.bin” could not be added.',
-      });
     });
   });
 });

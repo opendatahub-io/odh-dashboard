@@ -44,11 +44,19 @@ class EvaluationFileCreator extends Modal {
   findKebabAction(question: string, action: string) {
     return this.findTableRow(question).findKebabAction(action);
   }
+
+  clickKebabAction(question: string, action: string) {
+    this.findKebabAction(question, action).then(($action) => {
+      // Clicking an action removes or re-renders the menu immediately, so Cypress's
+      // normal click command can report that the subject detached after the click.
+      $action[0].click();
+    });
+  }
 }
 
 class FileExplorer {
-  findBrowseBucketButton() {
-    return cy.findByTestId('browse-bucket-button');
+  findAddKnowledgeFilesButton() {
+    return cy.findByTestId('add-knowledge-files-button');
   }
 
   find() {
@@ -91,6 +99,28 @@ class FileExplorer {
   }
 }
 
+class AutoragConfigurePage {
+  selectMaaSSecret(secretName: string) {
+    const selectorTestId = 'maas-secret-selector';
+    cy.findByTestId(selectorTestId).click();
+    cy.findByTestId(selectorTestId).find('input').type(secretName);
+    cy.findByRole('option', { name: new RegExp(`^${secretName}$`, 'i') })
+      .should('be.visible')
+      .click();
+    cy.findByTestId(selectorTestId).find('input').should('have.value', secretName);
+  }
+
+  selectStorageSecret(secretName: string) {
+    const selectorTestId = 'aws-secret-selector';
+    cy.findByTestId(selectorTestId).click();
+    cy.findByTestId(selectorTestId).find('input').type(secretName);
+    cy.findByRole('option', { name: new RegExp(`^${secretName}$`, 'i') })
+      .should('be.visible')
+      .click();
+    cy.findByTestId(selectorTestId).find('input').should('have.value', secretName);
+  }
+}
+
 class EvaluationFileSelector {
   find() {
     return cy.findByTestId('evaluation-file-selector');
@@ -104,15 +134,20 @@ class EvaluationFileSelector {
     return this.find().findByRole('button', { name: 'Clear file' });
   }
 
-  findCreateButton() {
-    return cy.findByTestId('evaluation-create-button');
+  findActionsButton() {
+    return this.find().findByTestId('evaluation-file-actions');
   }
 
-  findS3BrowseButton() {
-    return this.find().findByRole('button', { name: /S3/i });
+  findCreateDatasetMenuItem() {
+    return this.find().findByRole('menuitem', { name: 'Create new evaluation dataset' });
+  }
+
+  findFileActionButton() {
+    return this.find().findByRole('button', { name: /^(Add file|Replace file)$/ });
   }
 }
 
 export const evaluationFileCreator = new EvaluationFileCreator();
 export const evaluationFileSelector = new EvaluationFileSelector();
 export const fileExplorer = new FileExplorer();
+export const autoragConfigurePage = new AutoragConfigurePage();

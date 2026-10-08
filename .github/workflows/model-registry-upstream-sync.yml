@@ -50,7 +50,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
-          # Do not write GITHUB_TOKEN into .git/config before npm/upstream scripts run.
+          # Do not write GITHUB_TOKEN into .git/config before package-manager/upstream scripts run.
           persist-credentials: false
 
       - name: Configure git identity
@@ -58,13 +58,8 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Module caches (root)
-        uses: ./.github/actions/module-caches
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -139,7 +134,7 @@ jobs:
         continue-on-error: true
         run: |
           set -o pipefail
-          npm run update-subtree -w "${{ env.PACKAGE_NAME }}" 2>&1 | tee sync-output.txt
+          pnpm --filter "${{ env.PACKAGE_NAME }}" run update-subtree 2>&1 | tee sync-output.txt
 
       - name: Detect sync outcome
         id: outcome
@@ -196,7 +191,7 @@ jobs:
           if ! git diff --cached --quiet; then
             git commit \
               -m "WIP: model-registry upstream sync conflict (resolve before merge)" \
-              -m "Automated sync stopped with conflicts. Resolve markers, then continue with: npm run update-subtree -w packages/model-registry -- --continue"
+              -m "Automated sync stopped with conflicts. Resolve markers, then continue with: pnpm --filter @odh-dashboard/model-registry run update-subtree --continue"
           elif [[ "$(git rev-list --count origin/main..HEAD)" -eq 0 ]]; then
             echo "::error::Conflict detected but nothing to commit for PR"
             exit 1
@@ -366,7 +361,7 @@ jobs:
           - Upstream tip: \`${{ needs.sync.outputs.upstream_tip }}\`
           - Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-          Resolve manually with \`/upstream-sync model-registry\` (or \`npm run update-subtree -w packages/model-registry\`), then open a PR.
+          Resolve manually with \`/upstream-sync model-registry\` (or \`pnpm --filter @odh-dashboard/model-registry run update-subtree\`), then open a PR.
 
           <details><summary>Sync log (tail)</summary>
 
@@ -479,47 +474,40 @@ jobs:
           fi
 
           if [[ "$SYNC_MODE" == 'conflict' ]]; then
-            TESTED_SECTION="## How Has This Been Tested?
+            EVIDENCE_SECTION="## Evidence
 
           **Not run automatically** — subtree sync stopped with conflicts. After resolving markers, run in \`packages/model-registry/upstream/frontend\`:
           * \`npm run test:lint\`
           * \`npm run test:type-check\`
           * \`npm run test:unit\`
 
-          Continue the subtree sync with \`npm run update-subtree -w packages/model-registry -- --continue\` as needed."
+          Continue the subtree sync with \`pnpm --filter @odh-dashboard/model-registry run update-subtree --continue\` as needed.
+
+          Automated coverage: upstream changes include their own tests."
           else
-            TESTED_SECTION="## How Has This Been Tested?
+            EVIDENCE_SECTION="## Evidence
 
           CI ran the following in \`packages/model-registry/upstream/frontend\` before opening this PR:
           * \`npm run test:lint\`
           * \`npm run test:type-check\`
-          * \`npm run test:unit\`"
+          * \`npm run test:unit\`
+
+          Automated coverage: upstream changes include their own tests."
           fi
 
           BODY=$(cat <<EOF
-          ## Description
+          ## Problem
+
+          odh-dashboard's copy of model-registry is behind upstream and needs the listed upstream changes.
+
+          ## Solution
 
           Automated sync to pull in changes from:
           ${PR_LINKS}
 
           Tracked upstream commit: \`${NEW_COMMIT}\`
 
-          ${TESTED_SECTION}
-
-          ## Test Impact
-
-          Upstream changes include their own tests.
-
-          ## Request review criteria:
-
-          Self checklist (all need to be checked):
-          - [ ] The developer has manually tested the changes and verified that the changes work
-          - [ ] Testing instructions have been added in the PR body (for PRs involving changes that are not immediately obvious).
-          - [ ] The developer has added tests or explained why testing cannot be added (unit or cypress tests for related changes)
-          - [ ] The code follows our [Best Practices](/docs/best-practices.md) (React coding standards, PatternFly usage, performance considerations)
-
-          After the PR is posted & before it merges:
-          - [ ] The developer has tested their solution on a cluster by using the image produced by the PR to \`main\`
+          ${EVIDENCE_SECTION}
 
           ---
           *Opened by [\`model-registry-upstream-sync\`](${{ github.server_url }}/${{ github.repository }}/actions/workflows/model-registry-upstream-sync.yml) (run [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})).*

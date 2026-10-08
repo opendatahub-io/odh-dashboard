@@ -67,6 +67,7 @@ const QuotaUsageSection: React.FC<QuotaUsageSectionProps> = ({
   onRegisterDetailRefresh,
 }) => {
   const [userSelection, setUserSelection] = React.useState<QuotaSelection | undefined>();
+  const tabLoadedAt = React.useRef(Date.now());
 
   const selection = React.useMemo(() => {
     if (!loaded || tree.length === 0) {
@@ -166,6 +167,7 @@ const QuotaUsageSection: React.FC<QuotaUsageSectionProps> = ({
                   detail={detail}
                   detailLoaded={detailLoaded}
                   error={detailError}
+                  tabLoadedAt={tabLoadedAt}
                 />
               </DrawerPanelContent>
             }
@@ -179,6 +181,7 @@ const QuotaUsageSection: React.FC<QuotaUsageSectionProps> = ({
                 tree={tree}
                 selection={selection}
                 onSelectionChange={setUserSelection}
+                tabLoadedAt={tabLoadedAt}
               />
             </DrawerContentBody>
           </DrawerContent>

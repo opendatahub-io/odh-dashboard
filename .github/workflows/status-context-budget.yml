@@ -1,0 +1,44 @@
+name: Status Context Budget
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: Optional pull request number; all open pull requests are audited when omitted
+        required: false
+        type: number
+
+permissions:
+  checks: read
+  contents: read
+  pull-requests: read
+  statuses: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4
+        with:
+          node-version: '22'
+      - name: Audit all open pull requests
+        if: inputs.pull_request == ''
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/ci/audit-status-contexts.js --budget 90 --warning-threshold 80
+      - name: Audit selected pull request
+        if: inputs.pull_request != ''
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pull_request }}
+        run: >-
+          node scripts/ci/audit-status-contexts.js
+          --pr "${PR_NUMBER}"
+          --budget 90
+          --warning-threshold 80

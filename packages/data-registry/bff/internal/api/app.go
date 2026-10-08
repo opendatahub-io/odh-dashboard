@@ -30,10 +30,10 @@ const (
 	Version         = "1.0.0"
 	PathPrefix      = "/data-registry"
 	ApiPathPrefix   = "/api/v1"
-	HealthCheckPath  = "/healthcheck"
-	UserPath         = ApiPathPrefix + "/user"
-	NamespacePath    = ApiPathPrefix + "/namespaces"
-	ConnectionsPath  = ApiPathPrefix + "/connections/:namespace"
+	HealthCheckPath = "/healthcheck"
+	UserPath        = ApiPathPrefix + "/user"
+	NamespacePath   = ApiPathPrefix + "/namespaces"
+	ConnectionsPath = ApiPathPrefix + "/connections/:namespace"
 
 	// DataRegistryPathPrefix is the root under which the Data Registry API catchall proxy is
 	// mounted. It intentionally matches ApiPathPrefix so the publicly exposed route shape stays
@@ -127,7 +127,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			return nil, fmt.Errorf("failed to setup envtest: %w", err)
 		}
 		//create mocked kubernetes client factory
-		k8sFactory, err = k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
+		k8sFactory, err = k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, logger)
 
 	} else {
 		//create kubernetes client factory
@@ -250,7 +250,7 @@ func (app *App) Routes() http.Handler {
 	appMux.Handle(ApiPathPrefix+"/connections/", apiRouter)
 	appMux.Handle(PathPrefix+ApiPathPrefix+"/", http.StripPrefix(PathPrefix, apiRouter))
 
-	// Data Registry API catchall proxy (Iceberg REST Catalog-compatible + RHOAI extensions):
+	// Data Registry API catchall proxy (Iceberg REST-compatible + RHOAI extensions):
 	// every request under DataRegistryPathPrefix is forwarded verbatim to the upstream Data
 	// Registry API — no per-operation routes, so new upstream endpoints are automatically
 	// reachable without any BFF change ("dumb proxy", confirmed in RHAI-415 review). See

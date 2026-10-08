@@ -2,10 +2,11 @@ export const platformKeyMap = {
   single: 'kServe',
 } as const;
 
-export const SERVING_RUNTIME_SCOPE = {
-  Global: 'global',
-  Project: 'project',
-};
+export {
+  SERVING_RUNTIME_SCOPE,
+  ServingRuntimeTemplateStatusLabel,
+  ServingRuntimeVersionStatusLabel,
+} from '@odh-dashboard/model-serving/shared/components';
 
 export enum StorageKeys {
   ACCESS_KEY_ID = 'access_key_id',
@@ -26,13 +27,4 @@ export const DEPLOY_BUTTON_TOOLTIP = {
 export enum ScopedType {
   Project = 'Project-scoped',
   Global = 'Global-scoped',
-}
-
-export enum ServingRuntimeVersionStatusLabel {
-  LATEST = 'Latest',
-  OUTDATED = 'Outdated',
-}
-
-export enum ServingRuntimeTemplateStatusLabel {
-  TEMPLATE_REMOVED = 'Template removed',
 }

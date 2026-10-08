@@ -2,6 +2,7 @@ import http from 'http';
 import type { Socket } from 'net';
 import { execFileSync } from 'child_process';
 import httpProxy from 'http-proxy';
+import { getHttpsProxyAgent, redactProxyDetails } from './proxyAgent';
 import type { ProxyRoute, RoutingTable } from './routes';
 import { getOcpApiUrl } from './routes';
 
@@ -136,6 +137,11 @@ function handleE2eLogin(body: string, res: http.ServerResponse): void {
 }
 
 export function createProxyServer(routingTable: RoutingTable, port: number): http.Server {
+  const proxyAgents = new Map(
+    [routingTable.defaultTarget, ...routingTable.clusterRoutes.map(({ target }) => target)].map(
+      (target) => [target, getHttpsProxyAgent(target)] as const,
+    ),
+  );
   const proxy = httpProxy.createProxyServer({
     changeOrigin: true,
     secure: false,
@@ -167,7 +173,7 @@ export function createProxyServer(routingTable: RoutingTable, port: number): htt
   });
 
   proxy.on('error', (err, req, res) => {
-    const errorMessage = err.message || String(err) || 'Unknown proxy error';
+    const errorMessage = redactProxyDetails(err.message || String(err) || 'Unknown proxy error');
     log.error(`Proxy error for ${req.url ?? '/'}: ${errorMessage}`);
     if (isSocket(res)) {
       // WebSocket proxy error — destroy the client socket so the browser gets a clean close
@@ -216,7 +222,7 @@ export function createProxyServer(routingTable: RoutingTable, port: number): htt
     log.debug(`${req.method ?? ''} ${url} → ${clusterRoute ? 'cluster' : 'backend'} (${target})`);
 
     injectAuth(req, clusterRoute);
-    proxy.web(req, res, { target });
+    proxy.web(req, res, { target, agent: proxyAgents.get(target) });
   });
 
   server.on('upgrade', (req: http.IncomingMessage, socket: Socket, head: Buffer) => {
@@ -231,7 +237,7 @@ export function createProxyServer(routingTable: RoutingTable, port: number): htt
     });
 
     injectAuth(req, clusterRoute);
-    proxy.ws(req, socket, head, { target });
+    proxy.ws(req, socket, head, { target, agent: proxyAgents.get(target) });
   });
 
   server.listen(port, '127.0.0.1', () => {
