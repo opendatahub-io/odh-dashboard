@@ -96,7 +96,9 @@ const DeployAgentModal: React.FC<DeployAgentModalProps> = ({
   };
 
   const handleCancel = () => {
-    fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_SUBMITTED, { outcome: 'cancel' });
+    if (!isDeploying) {
+      fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_SUBMITTED, { outcome: 'cancel' });
+    }
     onClose();
   };
 

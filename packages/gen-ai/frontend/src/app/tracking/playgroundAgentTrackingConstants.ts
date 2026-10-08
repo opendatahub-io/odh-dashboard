@@ -84,6 +84,8 @@ export type DeploymentSubmittedProperties = {
   outcome: 'submit' | 'cancel';
 };
 
+export type DeploymentDetailsViewedProperties = Record<string, never>;
+
 export type DeploymentStatusFilterSelectedProperties = {
   filterType: 'all' | 'deployed' | 'notDeployed';
 };

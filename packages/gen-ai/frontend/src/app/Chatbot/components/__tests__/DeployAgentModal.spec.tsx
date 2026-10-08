@@ -188,4 +188,26 @@ describe('DeployAgentModal', () => {
     );
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('does not track cancellation when closing while deployment is in progress', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    render(
+      <DeployAgentModal
+        profile={profile}
+        namespace="my-project"
+        {...defaultProps}
+        isDeploying
+        onClose={onClose}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+
+    expect(fireMiscTrackingEvent).not.toHaveBeenCalledWith(
+      PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_SUBMITTED,
+      { outcome: 'cancel' },
+    );
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 });
