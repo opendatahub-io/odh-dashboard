@@ -481,6 +481,8 @@ export const navigateToEvaluationsPage = (evaluationTenantProject: string): void
     .findPageTitle({ timeout: 30000 })
     .should('be.visible')
     .and('contain.text', 'Evaluations');
+  cy.step('Open the Benchmark suites tab');
+  evaluationsPage.findEvaluateTab({ timeout: 30000 }).should('be.visible').click();
   evaluationsPage.findEvaluateTabContent({ timeout: 30000 }).should('be.visible');
 };
 
