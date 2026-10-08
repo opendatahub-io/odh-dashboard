@@ -103,8 +103,8 @@
     "@patternfly/react-table": "^6.4.3",
     "@patternfly/react-templates": "^6.4.0",
     "classnames": "^2.2.6",
-    "dompurify": "^3.4.12",
-    "js-yaml": "^4.1.1",
+    "dompurify": "^3.4.16",
+    "js-yaml": "^4.3.2",
     "lodash-es": "^4.18.1",
     "mod-arch-core": "~1.21.0",
     "mod-arch-kubeflow": "~1.21.0",
@@ -157,6 +157,18 @@
   },
   "overrides": {
     "csstype": "3.2.3",
-    "shell-quote": ">=1.8.4"
+    "shell-quote": ">=1.8.4",
+    "ajv": {
+      "fast-uri": "3.1.8"
+    },
+    "fast-uri": ">=4.2.1",
+    "brace-expansion@^1.0.0": "1.1.21",
+    "brace-expansion@^2.0.0": "2.1.7",
+    "brace-expansion@^5.0.0": "5.0.12",
+    "qs": "6.16.0",
+    "compression": "1.8.2",
+    "adm-zip": "0.6.1",
+    "js-yaml@^3.0.0": "3.15.2",
+    "dompurify": "^3.4.16"
   }
 }

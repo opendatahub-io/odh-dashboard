@@ -11,11 +11,23 @@
   },
   "packageManager": "npm@11.8.0",
   "overrides": {
-    "js-yaml": "^4.1.1",
     "csstype": "3.2.3",
     "axios": "^1.15.0",
     "shell-quote": ">=1.8.4",
-    "@types/react": "18.3.31"
+    "@types/react": "18.3.31",
+    "ajv": {
+      "fast-uri": "3.1.8"
+    },
+    "fast-uri": ">=4.2.1",
+    "brace-expansion@^1.0.0": "1.1.21",
+    "brace-expansion@^2.0.0": "2.1.7",
+    "brace-expansion@^5.0.0": "5.0.12",
+    "qs": "6.16.0",
+    "compression": "1.8.2",
+    "adm-zip": "0.6.1",
+    "js-yaml@^3.0.0": "3.15.2",
+    "js-yaml@^4.0.0": "4.3.2",
+    "dompurify": "^3.4.16"
   },
   "scripts": {
     "build": "run-s build:prod",
@@ -115,7 +127,7 @@
     "@patternfly/react-topology": "^6.4.0",
     "@tanstack/react-query": "^5.90.20",
     "classnames": "^2.2.6",
-    "dompurify": "^3.4.1",
+    "dompurify": "^3.4.16",
     "es-toolkit": "^1.44.0",
     "lodash-es": "^4.17.15",
     "mod-arch-core": "^1.15.4",

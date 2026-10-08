@@ -134,7 +134,7 @@
     "react-router": "^7.17.0",
     "ws": "^8.21.0",
     "@types/ws": "^8.18.1",
-    "dompurify": "^3.4.8",
+    "dompurify": "^3.4.16",
     "@types/tar": "^6.1.13",
     "jsonpath-plus": "^10.4.0",
     "tough-cookie": "^4.1.4",
@@ -142,6 +142,18 @@
     "form-data": "^4.0.5",
     "axios": "^1.17.0",
     "shell-quote": ">=1.8.4",
-    "webpack": "5.104.1"
+    "webpack": "5.104.1",
+    "ajv": {
+      "fast-uri": "3.1.8"
+    },
+    "fast-uri": ">=4.2.1",
+    "brace-expansion@^1.0.0": "1.1.21",
+    "brace-expansion@^2.0.0": "2.1.7",
+    "brace-expansion@^5.0.0": "5.0.12",
+    "qs": "6.16.0",
+    "compression": "1.8.2",
+    "adm-zip": "0.6.1",
+    "js-yaml@^3.0.0": "3.15.2",
+    "js-yaml@^4.0.0": "4.3.2"
   }
 }
