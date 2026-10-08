@@ -697,6 +697,17 @@ def justification_allowed(finding):
     # protected-path needs human; approach-rejected maps to reject.
     return category not in ("protected-path", "approach-rejected")
 
+# Fields allowed on result.findings[] (schema $defs.finding). Audit-only
+# keys on removed_finding (removal_reason, challenger_action) must not land here.
+_FINDING_KEYS = (
+    "severity", "category", "dimension", "file", "line",
+    "description", "remediation", "why", "actionable",
+)
+
+def as_finding(item):
+    """Project a removed_finding (or finding) onto schema-valid finding fields."""
+    return {k: item[k] for k in _FINDING_KEYS if k in item}
+
 def restore_policy_findings(result):
     """Put mistagged justified policy findings back into findings[].
 
@@ -704,6 +715,9 @@ def restore_policy_findings(result):
     that incorrectly marks protected-path or approach-rejected as justified
     would otherwise drop them from disposition. Restore before
     normalize_protected_findings so host gates still fire.
+
+    Restored items are projected onto standard finding fields; audit metadata
+    stays only in producers.challenger.removed_findings.
     """
     producers = producers_block(result)
     if producers is None:
@@ -712,7 +726,7 @@ def restore_policy_findings(result):
     if not isinstance(removed, list):
         return result
     protected = [
-        f for f in removed
+        as_finding(f) for f in removed
         if isinstance(f, dict)
         and f.get("challenger_action") == "justified"
         and not justification_allowed(f)
@@ -1994,6 +2008,18 @@ run_self_test() {
   elif ! jq -e '((.findings // []) | map(select(.category == "protected-path")) | length) == 1' "${tmp}/justified-pp-out.json" >/dev/null; then
     echo "FAIL justified-pp: protected-path must be restored into findings[]" >&2
     fail=1
+  elif jq -e '((.findings // []) | map(select(has("challenger_action") or has("removal_reason"))) | length) > 0' "${tmp}/justified-pp-out.json" >/dev/null; then
+    echo "FAIL justified-pp: restored findings must not carry audit-only keys" >&2
+    fail=1
+  elif ! python3 -c "
+import json, sys
+from jsonschema import Draft202012Validator
+schema = json.load(open(sys.argv[1], encoding='utf-8'))
+instance = json.load(open(sys.argv[2], encoding='utf-8'))
+Draft202012Validator(schema).validate(instance)
+" "${FULLSEND_CONFIG_DIR}/schemas/review-result.schema.json" "${tmp}/justified-pp-out.json"; then
+    echo "FAIL justified-pp: transformed recovery result must be schema-valid" >&2
+    fail=1
   elif grep -q '### Justified' <<<"${body}"; then
     echo "FAIL justified-pp: policy-protected justified must not render under ### Justified" >&2
     fail=1
@@ -2002,10 +2028,22 @@ run_self_test() {
   fi
 
   # Mistagged justified approach-rejected must still reject.
-  printf '%s' "{${common},\"findings\":[],\"producers\":{\"dispatched\":[\"intent-coherence\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"intent-coherence\"],\"raised\":{\"intent-coherence\":[]},\"challenger\":{\"status\":\"ran\",\"input\":1,\"kept\":0,\"removed\":1,\"merged\":0,\"downgraded\":0,\"removed_findings\":[{\"severity\":\"high\",\"category\":\"approach-rejected\",\"dimension\":\"intent-coherence\",\"file\":\"a.ts\",\"description\":\"Wrong approach.\",\"why\":\"Product ask mismatch.\",\"removal_reason\":\"Author justified.\",\"challenger_action\":\"justified\"}]}}}" > "${tmp}/justified-reject.json"
+  printf '%s' "{${common},\"findings\":[],\"producers\":{\"dispatched\":[\"intent-coherence\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"intent-coherence\"],\"raised\":{\"intent-coherence\":[]},\"challenger\":{\"status\":\"ran\",\"input\":1,\"kept\":0,\"removed\":1,\"merged\":0,\"downgraded\":0,\"removed_findings\":[{\"severity\":\"high\",\"category\":\"approach-rejected\",\"dimension\":\"intent-coherence\",\"file\":\"a.ts\",\"description\":\"Wrong approach.\",\"why\":\"Product ask mismatch.\",\"remediation\":\"Align with the product ask.\",\"removal_reason\":\"Author justified.\",\"challenger_action\":\"justified\"}]}}}" > "${tmp}/justified-reject.json"
   transform_review_result "${tmp}/justified-reject.json" > "${tmp}/justified-reject-out.json"
   if [[ "$(jq -r .action "${tmp}/justified-reject-out.json")" != "reject" ]]; then
     echo "FAIL justified-reject: mistagged approach-rejected must still reject" >&2
+    fail=1
+  elif jq -e '((.findings // []) | map(select(has("challenger_action") or has("removal_reason"))) | length) > 0' "${tmp}/justified-reject-out.json" >/dev/null; then
+    echo "FAIL justified-reject: restored findings must not carry audit-only keys" >&2
+    fail=1
+  elif ! python3 -c "
+import json, sys
+from jsonschema import Draft202012Validator
+schema = json.load(open(sys.argv[1], encoding='utf-8'))
+instance = json.load(open(sys.argv[2], encoding='utf-8'))
+Draft202012Validator(schema).validate(instance)
+" "${FULLSEND_CONFIG_DIR}/schemas/review-result.schema.json" "${tmp}/justified-reject-out.json"; then
+    echo "FAIL justified-reject: transformed recovery result must be schema-valid" >&2
     fail=1
   elif grep -q '### Justified' <<<"$(jq -r .body "${tmp}/justified-reject-out.json")"; then
     echo "FAIL justified-reject: approach-rejected must not render under ### Justified" >&2
