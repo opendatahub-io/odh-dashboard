@@ -680,16 +680,49 @@ def challenger_prose(result):
         if input_n is None or kept is None:
             return "Challenger ran, but adjudication counts were not recorded."
         removed, merged, downgraded = num("removed") or 0, num("merged") or 0, num("downgraded") or 0
+        justified_n = len(justified_findings(result))
+        removed_noise = max(0, removed - justified_n)
         noun = "finding" if input_n == 1 else "findings"
         parts = [f"{label} {n}" for label, n in (
-            ("removed", removed), ("merged", merged), ("downgraded", downgraded)) if n]
+            ("removed", removed_noise), ("justified", justified_n),
+            ("merged", merged), ("downgraded", downgraded)) if n]
         if not parts:
             return f"Adjudicated {input_n} {noun}; all kept."
         return f"Adjudicated {input_n} {noun}; kept {kept} ({', '.join(parts)})."
     return clean(status)
 
+def justification_allowed(finding):
+    """Host policy categories cannot be cleared via Justifications."""
+    category = (finding.get("category") or "").lower()
+    # protected-path needs human; approach-rejected maps to reject.
+    return category not in ("protected-path", "approach-rejected")
+
+def restore_policy_findings(result):
+    """Put mistagged justified policy findings back into findings[].
+
+    needs_human / compute_action only inspect result.findings. A challenger
+    that incorrectly marks protected-path or approach-rejected as justified
+    would otherwise drop them from disposition. Restore before
+    normalize_protected_findings so host gates still fire.
+    """
+    producers = producers_block(result)
+    if producers is None:
+        return result
+    removed = challenger_record(producers).get("removed_findings")
+    if not isinstance(removed, list):
+        return result
+    protected = [
+        f for f in removed
+        if isinstance(f, dict)
+        and f.get("challenger_action") == "justified"
+        and not justification_allowed(f)
+    ]
+    if protected:
+        result["findings"] = list(result.get("findings") or []) + protected
+    return result
+
 def justified_findings(result):
-    """Extract findings with challenger_action == justified from removed_findings."""
+    """Extract justified findings allowed to render under ### Justified."""
     producers = producers_block(result)
     if producers is None:
         return []
@@ -697,7 +730,12 @@ def justified_findings(result):
     removed = ch.get("removed_findings")
     if not isinstance(removed, list):
         return []
-    return [f for f in removed if isinstance(f, dict) and f.get("challenger_action") == "justified"]
+    return [
+        f for f in removed
+        if isinstance(f, dict)
+        and f.get("challenger_action") == "justified"
+        and justification_allowed(f)
+    ]
 
 def render_justified_section(result):
     """Render ### Justified under ## Findings with omit markers."""
@@ -720,8 +758,8 @@ def render_justified_section(result):
         if finding.get("dimension"):
             origin_ids = producer_ids(finding)
             origin_shown = ", ".join(
-                dimension_label(i) for i in origin_ids
-            ) or clean(finding.get("dimension"))
+                code_span_text(dimension_label(i)) for i in origin_ids
+            ) or code_span_text(finding.get("dimension"))
             origin = f"`{origin_shown}` · "
         sev = (finding.get("severity") or "info").capitalize()
         lines += ["", f"- {origin}**{inline_text(finding.get('category'))}** ({loc}) · _{sev}_: {inline_text(finding.get('description'))}"]
@@ -734,8 +772,9 @@ def render_justified_section(result):
 def render_removed_audit(result):
     """Collapsed audit list of challenger-removed findings (ignore for disposition).
 
-    Items with challenger_action == justified are rendered under Findings
-    ### Justified instead; they are excluded here to avoid duplication.
+    Allowed justified items are rendered under Findings ### Justified instead;
+    they are excluded here to avoid duplication. Policy-rejected justified
+    items (protected-path / approach-rejected) stay in this audit.
     """
     producers = producers_block(result)
     if producers is None:
@@ -744,7 +783,11 @@ def render_removed_audit(result):
     removed = ch.get("removed_findings")
     if not isinstance(removed, list) or not removed:
         return []
-    non_justified = [f for f in removed if isinstance(f, dict) and f.get("challenger_action") != "justified"]
+    non_justified = [
+        f for f in removed
+        if isinstance(f, dict)
+        and not (f.get("challenger_action") == "justified" and justification_allowed(f))
+    ]
     if not non_justified:
         return []
     run_url = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
@@ -1129,6 +1172,7 @@ def render_body(result, previous_md, action):
 with open(sys.argv[1], encoding="utf-8") as fh:
     result = json.load(fh)
 previous_md = os.environ.get("REVIEW_PREVIOUS_MARKDOWN", "")
+result = restore_policy_findings(result)
 result = normalize_protected_findings(result)
 result = reconcile_producers(result)
 result = apply_host_todos(result)
@@ -1825,6 +1869,9 @@ run_self_test() {
   elif grep -q 'Looks good to me' <<<"${body}"; then
     echo "FAIL justified: justified-only must not render LGTM" >&2
     fail=1
+  elif ! grep -q 'kept 0 (justified 1)' <<<"${body}"; then
+    echo "FAIL justified: challenger prose must report justified, not removed" >&2
+    fail=1
   else
     echo "PASS justified findings render under ### Justified, not severity groups or audit"
   fi
@@ -1844,6 +1891,127 @@ run_self_test() {
     fail=1
   else
     echo "PASS mixed survivors + justified both render under ## Findings"
+  fi
+
+  # Challenger prose must separate justified from noise-removal counts.
+  printf '%s' "{${common},\"findings\":[],\"producers\":{\"dispatched\":[\"correctness\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"correctness\"],\"raised\":{\"correctness\":[]},\"challenger\":{\"status\":\"ran\",\"input\":2,\"kept\":0,\"removed\":2,\"merged\":0,\"downgraded\":0,\"removed_findings\":[{\"severity\":\"high\",\"category\":\"architecture\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Norm departure.\",\"removal_reason\":\"Justified per PR body.\",\"challenger_action\":\"justified\"},{\"severity\":\"low\",\"category\":\"noise\",\"dimension\":\"correctness\",\"file\":\"b.ts\",\"description\":\"False positive.\",\"removal_reason\":\"Not reproducible.\"}]}}}" > "${tmp}/justified-prose.json"
+  transform_review_result "${tmp}/justified-prose.json" > "${tmp}/justified-prose-out.json"
+  if ! grep -q 'kept 0 (removed 1, justified 1)' <<<"$(jq -r .body "${tmp}/justified-prose-out.json")"; then
+    echo "FAIL justified-prose: challenger summary must split removed vs justified" >&2
+    fail=1
+  else
+    echo "PASS challenger prose separates justified from removed counts"
+  fi
+
+  # Hostile dimension / file labels in ### Justified must use code_span_text.
+  jq -n \
+    --argjson common "$(printf '{%s}' "${common}")" \
+    '$common * {
+      findings: [],
+      producers: {
+        dispatched: ["correctness"],
+        adapters: [],
+        skipped: [],
+        returned: ["correctness"],
+        raised: {correctness: []},
+        challenger: {
+          status: "ran",
+          input: 1,
+          kept: 0,
+          removed: 1,
+          merged: 0,
+          downgraded: 0,
+          removed_findings: [{
+            severity: "medium",
+            category: "architecture",
+            dimension: "evil`</details>`",
+            file: "path</details>`evil.ts",
+            description: "Norm departure.",
+            removal_reason: "Justified per PR body.",
+            challenger_action: "justified"
+          }]
+        }
+      }
+    }' > "${tmp}/justified-label-escape.json"
+  transform_review_result "${tmp}/justified-label-escape.json" > "${tmp}/justified-label-escape-out.json"
+  body=$(jq -r .body "${tmp}/justified-label-escape-out.json")
+  if grep -qF 'evil`</details>`' <<<"${body}" || grep -qF 'path</details>`evil.ts' <<<"${body}"; then
+    echo "FAIL justified-label-escape: raw hostile dimension/file label reached the comment" >&2
+    fail=1
+  elif ! grep -q '### Justified (1)' <<<"${body}"; then
+    echo "FAIL justified-label-escape: ### Justified section missing" >&2
+    fail=1
+  elif ! grep -qF "evil'&lt;/details>'" <<<"${body}"; then
+    echo "FAIL justified-label-escape: hostile dimension was not escaped into the code span" >&2
+    fail=1
+  elif ! grep -qF "path&lt;/details>'evil.ts" <<<"${body}"; then
+    echo "FAIL justified-label-escape: hostile file label was not escaped" >&2
+    fail=1
+  else
+    echo "PASS justified finding dimension/file labels are escaped"
+  fi
+
+  # Mistagged justified protected-path must be restored into findings[] (host gate).
+  jq -n \
+    --argjson common "$(printf '{%s}' "${common}")" \
+    '$common * {
+      findings: [],
+      producers: {
+        dispatched: ["orchestrator"],
+        adapters: [],
+        skipped: [],
+        returned: ["orchestrator"],
+        raised: {orchestrator: []},
+        challenger: {
+          status: "ran",
+          input: 1,
+          kept: 0,
+          removed: 1,
+          merged: 0,
+          downgraded: 0,
+          removed_findings: [{
+            severity: "medium",
+            category: "protected-path",
+            dimension: "orchestrator",
+            file: ".github/workflows/ci.yaml",
+            description: "Touches protected path.",
+            why: "Human approval required.",
+            removal_reason: "Author justified in PR body.",
+            challenger_action: "justified"
+          }]
+        }
+      }
+    }' > "${tmp}/justified-pp.json"
+  (
+    export REVIEW_PROTECTED_PATHS=".github/,scripts/"
+    export REVIEW_CHANGED_FILES=$'.github/workflows/ci.yaml\nsrc/app.ts'
+    transform_review_result "${tmp}/justified-pp.json"
+  ) > "${tmp}/justified-pp-out.json"
+  body=$(jq -r .body "${tmp}/justified-pp-out.json")
+  if [[ "$(jq -r .action "${tmp}/justified-pp-out.json")" != "comment" ]]; then
+    echo "FAIL justified-pp: mistagged protected-path must not clear to approve" >&2
+    fail=1
+  elif ! jq -e '((.findings // []) | map(select(.category == "protected-path")) | length) == 1' "${tmp}/justified-pp-out.json" >/dev/null; then
+    echo "FAIL justified-pp: protected-path must be restored into findings[]" >&2
+    fail=1
+  elif grep -q '### Justified' <<<"${body}"; then
+    echo "FAIL justified-pp: policy-protected justified must not render under ### Justified" >&2
+    fail=1
+  else
+    echo "PASS mistagged justified protected-path is restored for host gate"
+  fi
+
+  # Mistagged justified approach-rejected must still reject.
+  printf '%s' "{${common},\"findings\":[],\"producers\":{\"dispatched\":[\"intent-coherence\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"intent-coherence\"],\"raised\":{\"intent-coherence\":[]},\"challenger\":{\"status\":\"ran\",\"input\":1,\"kept\":0,\"removed\":1,\"merged\":0,\"downgraded\":0,\"removed_findings\":[{\"severity\":\"high\",\"category\":\"approach-rejected\",\"dimension\":\"intent-coherence\",\"file\":\"a.ts\",\"description\":\"Wrong approach.\",\"why\":\"Product ask mismatch.\",\"removal_reason\":\"Author justified.\",\"challenger_action\":\"justified\"}]}}}" > "${tmp}/justified-reject.json"
+  transform_review_result "${tmp}/justified-reject.json" > "${tmp}/justified-reject-out.json"
+  if [[ "$(jq -r .action "${tmp}/justified-reject-out.json")" != "reject" ]]; then
+    echo "FAIL justified-reject: mistagged approach-rejected must still reject" >&2
+    fail=1
+  elif grep -q '### Justified' <<<"$(jq -r .body "${tmp}/justified-reject-out.json")"; then
+    echo "FAIL justified-reject: approach-rejected must not render under ### Justified" >&2
+    fail=1
+  else
+    echo "PASS mistagged justified approach-rejected still rejects"
   fi
 
   # Every U+FE0F variation selector is stripped from the comment before it is

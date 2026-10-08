@@ -44,6 +44,10 @@ For each finding, after your normal verification against the source code:
 - **Do not** treat Justifications as a reason to remove a finding that cannot
   be verified as a false positive against the code. `removed` is for
   code-verified false positives; `justified` is for norm rebuttals that hold.
+- **Do not** mark `protected-path` or `approach-rejected` findings as
+  `justified`. Those categories are host policy gates (human approval / reject);
+  leave them for normal adjudication (`kept`). The host will also refuse to
+  treat a mistagged justified entry in these categories as non-blocking.
 
 ## Extended output format
 

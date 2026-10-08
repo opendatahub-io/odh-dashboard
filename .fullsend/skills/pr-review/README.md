@@ -123,8 +123,8 @@ in two places only:
 
 | Channel | How Justifications are used |
 | --- | --- |
-| **Challenger** (findings) | If a justification adequately rebuts a finding against the diff, the challenger marks it `challenger_action: justified` and it follows the removed path — visible under `### Justified` with the challenger's reason, but not disposition-blocking. Insufficient justifications leave the finding at its original severity. |
-| **test-impact** (check) | A sufficient constraint justification in the Evidence section (why tests could not be added, what alternative verification exists) adjusts Automation/Efficiency scoring to ⚠️ instead of ❌. Evidence depth still requires verification proof in the description. |
+| **Challenger** (findings) | If a justification adequately rebuts a finding against the diff, the challenger marks it `challenger_action: justified` and it follows the removed path — visible under `### Justified` with the challenger's reason, but not disposition-blocking. Insufficient justifications leave the finding at its original severity. Host policy categories (`protected-path`, `approach-rejected`) cannot be justified; the host restores them into `findings[]` if mistagged. |
+| **test-impact** (check) | A sufficient constraint justification in the Evidence section (why tests could not be added, what alternative verification exists) adjusts Automation/Efficiency scoring to ⚠️ instead of ❌. When Automation is ⚠️ solely because there are no tests, Efficiency stays ➖. Evidence depth still requires verification proof in the description. |
 
 Justifications are **not** a shared ruleset applied to every producer.
 Rating, pr-description-review, and other producers are not affected.

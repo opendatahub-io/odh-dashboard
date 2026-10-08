@@ -56,7 +56,7 @@ Are tests written efficiently? Call out duplication. Prefer unit tests over Cypr
 - **Heavy Cypress dependence with little or no unit tests → ❌**, unless the PR description **explicitly justifies** that mix (why units are not appropriate and Cypress is the right tier) → ⚠️. The justification must explain which constraint makes unit tests inappropriate and why Cypress is the correct tier for this change. Note in the Evidence cell when the score was adjusted.
 - Milder wrong-tier, duplication, or efficiency issues → ⚠️.
 - Efficient tier mix for the change → ✅.
-- **➖** when there is nothing to place on the pyramid (Automation is ➖, or Automation is ❌ because there are no tests to evaluate for tier/efficiency).
+- **➖** when there is nothing to place on the pyramid (Automation is ➖; or there are no tests to evaluate for tier/efficiency — including when Automation is ❌ for missing coverage, or ⚠️ solely from a constraint justification with no tests present). Do not score Efficiency when the suite is empty, even if Automation was waived to ⚠️.
 
 ### 3. Evidence depth
 

@@ -1189,7 +1189,9 @@ diff, preserving context isolation.
 
    1. Start from `adjudicated_findings` where action is `kept`,
       `downgraded`, `merged`, or missing.
-   2. Drop any with action `removed` or `justified`.
+   2. Drop any with action `removed` or `justified` (see audit
+      expansion below — `justified` entries preserve
+      `challenger_action: justified` on the expanded object).
    3. Strip `challenger_action` / `challenger_reason`.
    4. Reattach standard fields (`dimension`, `why`, etc.) by matching
       each survivor to the pre-challenger set: prefer
@@ -1202,7 +1204,13 @@ diff, preserving context isolation.
 
    1. For each stub: find best pre-challenger match (same keys using
       stub `original_*`). Emit full finding-shaped object +
-      `removal_reason` from the stub.
+      `removal_reason` from the stub. Also match the corresponding
+      `adjudicated_findings` row (same keys); when that row (or the
+      stub) has `challenger_action: justified`, copy
+      `challenger_action: justified` onto the expanded audit entry so
+      the host can render it. Without this copy, the normal dual-write
+      path loses the tag and the host treats the item as a noise
+      removal.
    2. For each `adjudicated_findings` entry with
       `challenger_action: removed` or `justified` that has no stub
       match: expand from pre-challenger match; `removal_reason` from
