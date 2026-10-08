@@ -47,8 +47,6 @@
     "./concepts/auth": "./src/concepts/auth.ts",
     "./concepts/postDeployAlertStore": "./src/concepts/postDeployAlertStore.ts",
     "./concepts/useModelServingClusterSettings": "./src/concepts/useModelServingClusterSettings.tsx",
-    "./concepts/useServingRuntimeTemplates": "./src/concepts/servingRuntimeTemplates/useServingRuntimeTemplates.ts",
-    "./concepts/servingRuntimeTemplates/templateUtils": "./src/concepts/servingRuntimeTemplates/templateUtils.ts",
     "./concepts/versions": "./src/concepts/versions.ts",
     "./utils": "./src/concepts/utils.ts",
     "./shared/tracking/limitedSupportTracking": "./src/shared/tracking/limitedSupportTracking.ts",

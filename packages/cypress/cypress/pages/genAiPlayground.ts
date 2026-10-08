@@ -340,12 +340,12 @@ class GenAiPlayground {
     return cy.findByTestId('add-transcription-model-btn');
   }
 
-  findAsrModelToggle() {
-    return cy.findByTestId('asr-model-selector-toggle');
+  findTranscriptionModelSelector() {
+    return cy.findByTestId('transcription-model-selector');
   }
 
-  findAsrModelOption(modelId: string) {
-    return cy.findByTestId(`asr-model-option-${modelId}`);
+  findTranscriptionModelOption(modelId: string) {
+    return cy.findByTestId(`all-model-option-${modelId}`);
   }
 
   // Prompt management methods (within the playground settings panel)
