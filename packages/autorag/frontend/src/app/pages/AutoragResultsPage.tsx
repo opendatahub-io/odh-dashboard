@@ -807,6 +807,7 @@ function AutoragResultsPage(): React.JSX.Element {
                 hasPreviousData ? undefined : (pipelineRunLoadError ?? namespacesLoadError)
               }
               loaded={namespacesLoaded && !pipelineRunPending}
+              provideChildrenPadding
             >
               {starterKitDownloadError && (
                 <Alert
