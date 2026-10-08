@@ -176,11 +176,12 @@ describe('MaaS Deployment Wizard', () => {
 
     // Verify gateway select exists and that maas-default-gateway is hidden when MaaS is unchecked
     modelServingWizard.findGatewaySelect().should('exist').click();
-    cy.findByRole('option', { name: 'maas-default-gateway | openshift-ingress' }).should(
+    cy.findByRole('option', { name: /maas-default-gateway \| openshift-ingress/ }).should(
       'not.exist',
     );
     // Select a non-MaaS gateway
-    cy.findByRole('option', { name: 'test-gateway | test-ns' }).click();
+    cy.findByRole('option', { name: /test-gateway \| test-ns/ }).click();
+    modelServingWizard.findGatewaySelect().closeSelectMenu();
 
     // Verify MaaS checkbox is unchecked by default
     maasWizardField.findSaveAsMaaSCheckbox().should('exist').should('not.be.checked');
@@ -367,12 +368,12 @@ describe('MaaS Deployment Wizard', () => {
 
     // Gateway should now be enabled; open it to verify maas-default-gateway is hidden
     modelServingWizardEdit.findGatewaySelect().should('not.be.disabled').click();
-    cy.findByRole('option', { name: 'maas-default-gateway | openshift-ingress' }).should(
+    cy.findByRole('option', { name: /maas-default-gateway \| openshift-ingress/ }).should(
       'not.exist',
     );
-    cy.findByRole('option', { name: 'other-gateway | other-ns' }).should('exist');
+    cy.findByRole('option', { name: /other-gateway \| other-ns/ }).should('exist');
     // Close dropdown without selecting — no gateway selected
-    modelServingWizardEdit.findGatewaySelect().click();
+    modelServingWizardEdit.findGatewaySelect().closeSelectMenu();
 
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
     modelServingWizardEdit.findSubmitButton().click();
