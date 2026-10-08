@@ -334,7 +334,7 @@ function AutoragResults({
 
   return (
     <>
-      <Stack hasGutter>
+      <Stack hasGutter className="autorag-results">
         {downloadError && (
           <StackItem>
             <Alert

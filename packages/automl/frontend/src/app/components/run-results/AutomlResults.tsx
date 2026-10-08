@@ -241,7 +241,7 @@ function AutomlResults({ headerActions }: { headerActions?: React.ReactNode }): 
 
   return (
     <>
-      <Stack hasGutter>
+      <Stack hasGutter className="automl-results">
         {downloadError && (
           <StackItem>
             <Alert

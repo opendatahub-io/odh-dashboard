@@ -326,7 +326,6 @@ function AutomlResultsPage(): React.JSX.Element {
                 hasPreviousData ? undefined : (pipelineRunLoadError ?? namespacesLoadError)
               }
               loaded={namespacesLoaded && !pipelineRunPending}
-              provideChildrenPadding
             >
               <AutomlResults headerActions={headerActions} />
             </ApplicationsPage>
