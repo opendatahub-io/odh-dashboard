@@ -11,6 +11,9 @@ jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
 const createSecretMock = jest.fn();
 const useCreateSecretMutationMock = jest.mocked(useCreateSecretMutation);
 
+const caCertificateGuidance =
+  "Optional PEM-encoded CA certificate used to verify the server's TLS certificate. Required when TLS certificate verification is enabled and the server uses a private or self-signed CA. Public-host connections with TLS verification enabled will fail if the required CA certificate is not provided. Leave blank for connections that do not use TLS verification.";
+
 describe('VectorDbConnectionModal', () => {
   const onClose = jest.fn();
   const onSubmit = jest.fn();
@@ -86,25 +89,146 @@ describe('VectorDbConnectionModal', () => {
     expect(screen.queryByTestId('vector-db-connection-description')).not.toBeInTheDocument();
   });
 
-  it('should show provider-specific Secret examples, Neo4j defaults, and TLS CA guidance', () => {
+  it('should render concise guidance, examples, and field accessibility references', () => {
     renderModal();
 
-    expect(
-      screen.getByText(/Example Secret: MILVUS_URI=https:\/\/milvus\.example\.com/),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/CA certificate verifies TLS connections/)).toBeInTheDocument();
+    for (const [field, descriptionId] of [
+      ['uri', 'milvus-uri-description'],
+      ['token', 'milvus-token-description'],
+      ['ca-cert', 'milvus-ca-cert-description'],
+    ]) {
+      const input = screen.getByTestId(`milvus-${field}-input`);
+      expect(input).toHaveAttribute('aria-describedby', descriptionId);
+      expect(input).not.toHaveAttribute('placeholder');
+      expect(input.getAttribute('placeholder') ?? '').not.toMatch(/(?:for )?example:/i);
+    }
+    expect(document.getElementById('milvus-ca-cert-description')).toHaveTextContent(
+      caCertificateGuidance,
+    );
+    expect(document.getElementById('milvus-uri-description')).toHaveTextContent(
+      'Milvus server endpoint, including protocol and port (for example: "http://localhost:19530" or "https://milvus.example.com:19530").',
+    );
+    expect(document.getElementById('milvus-token-description')).toHaveTextContent(
+      'Authentication token in the format "username:password". Leave blank if authentication is disabled.',
+    );
+    expect(screen.queryByText(/Example Secret:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/MILVUS_/)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('vector-db-provider-pgvector'));
-    expect(
-      screen.getByText(/Example Secret: PGVECTOR_HOST=postgres\.example\.com/),
-    ).toBeInTheDocument();
+    for (const [field, descriptionId] of [
+      ['host', 'pgvector_host-description'],
+      ['port', 'pgvector_port-description'],
+      ['db', 'pgvector_db-description'],
+      ['user', 'pgvector_user-description'],
+      ['password', 'pgvector_password-description'],
+    ]) {
+      const input = screen.getByTestId(`pgvector-${field}-input`);
+      expect(input).toHaveAttribute('aria-describedby', descriptionId);
+      expect(input).not.toHaveAttribute('placeholder');
+      expect(input.getAttribute('placeholder') ?? '').not.toMatch(/(?:for )?example:/i);
+    }
+    expect(document.getElementById('pgvector_host-description')).toHaveTextContent(
+      'PostgreSQL server hostname or IP address (for example: "db.example.com" or "10.0.0.5").',
+    );
+    expect(document.getElementById('pgvector_port-description')).toHaveTextContent(
+      'PostgreSQL port number. Usually "5432" unless your provider specifies a different port.',
+    );
+    expect(document.getElementById('pgvector_db-description')).toHaveTextContent(
+      'Name of the PostgreSQL database that contains your pgvector tables and embeddings.',
+    );
+    expect(document.getElementById('pgvector_user-description')).toHaveTextContent(
+      'PostgreSQL user account used to connect to the database.',
+    );
+    expect(document.getElementById('pgvector_password-description')).toHaveTextContent(
+      'Password for the PostgreSQL user account.',
+    );
+    expect(screen.getByTestId('pgvector-ca-cert-input')).toHaveAttribute(
+      'aria-describedby',
+      'pgvector-ca-cert-description',
+    );
+    expect(document.getElementById('pgvector-ca-cert-description')).toHaveTextContent(
+      caCertificateGuidance,
+    );
+    expect(screen.queryByText(/Example Secret:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/PGVECTOR_/)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('vector-db-provider-neo4j'));
+    for (const [field, descriptionId] of [
+      ['uri', 'neo4j-uri-description'],
+      ['database', 'neo4j_database-description'],
+      ['username', 'neo4j_username-description'],
+      ['password', 'neo4j-password-description'],
+      ['ca-cert', 'neo4j-ca-cert-description'],
+    ]) {
+      expect(screen.getByTestId(`neo4j-${field}-input`)).toHaveAttribute(
+        'aria-describedby',
+        descriptionId,
+      );
+    }
+    for (const field of ['uri', 'database', 'username', 'password', 'ca-cert']) {
+      const input = screen.getByTestId(`neo4j-${field}-input`);
+      expect(input).not.toHaveAttribute('placeholder');
+      expect(input.getAttribute('placeholder') ?? '').not.toMatch(/(?:for )?example:/i);
+    }
+    expect(document.getElementById('neo4j-uri-description')).toHaveTextContent(
+      'Neo4j connection URI, including protocol and host (for example: "neo4j+s://example.databases.neo4j.io" or "bolt://localhost:7687").',
+    );
+    expect(document.getElementById('neo4j_database-description')).toHaveTextContent(
+      'Name of the Neo4j database to connect to. Leave blank to use the default database configured for the user.',
+    );
+    expect(document.getElementById('neo4j_username-description')).toHaveTextContent(
+      'Neo4j username used for authentication.',
+    );
+    expect(document.getElementById('neo4j-ca-cert-description')).toHaveTextContent(
+      caCertificateGuidance,
+    );
+    expect(document.getElementById('neo4j-password-description')).toHaveTextContent(
+      'Password for the specified Neo4j user account.',
+    );
+    expect(screen.queryByText(/Example Secret:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/NEO4J_/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Optional\./)).not.toBeInTheDocument();
+  });
+
+  it('should preserve static guidance when a validation error is shown', () => {
+    render(
+      <VectorDbConnectionModal
+        namespace="test-namespace"
+        initialProvider="pgvector"
+        onClose={onClose}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId('pgvector-host-input'), { target: { value: 'host' } });
+    fireEvent.change(screen.getByTestId('pgvector-host-input'), { target: { value: '' } });
+
+    expect(screen.getByTestId('pgvector-host-input')).toHaveAttribute(
+      'aria-describedby',
+      'pgvector_host-description pgvector_host-error',
+    );
+    expect(document.getElementById('pgvector_host-description')).toBeInTheDocument();
+    expect(document.getElementById('pgvector_host-error')).toHaveTextContent(
+      'This field is required',
+    );
+  });
+
+  it('should render Neo4j database before username', () => {
+    render(
+      <VectorDbConnectionModal
+        namespace="test-namespace"
+        initialProvider="neo4j"
+        onClose={onClose}
+        onSubmit={onSubmit}
+      />,
+    );
+
     expect(
-      screen.getByText(/Example Secret: NEO4J_URI=neo4j:\/\/neo4j\.example\.com:7687/),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Omitted username defaults to neo4j/)).toBeInTheDocument();
-    expect(screen.getByText(/omitted database defaults to the server default/)).toBeInTheDocument();
+      screen
+        .getByTestId('neo4j-database-input')
+        .compareDocumentPosition(screen.getByTestId('neo4j-username-input')) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('should not show required field errors until a field is edited', () => {
@@ -205,9 +329,7 @@ describe('VectorDbConnectionModal', () => {
     expect(screen.getByText('Database')).toBeInTheDocument();
     expect(screen.getByText('Username')).toBeInTheDocument();
     expect(screen.getByText('Password')).toBeInTheDocument();
-    expect(
-      screen.getByText('Hostname or IP address of the PostgreSQL server.'),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('pgvector-host-input')).not.toHaveAttribute('placeholder');
   });
 
   it('should create a PGVector Secret with only PGVector fields', async () => {
