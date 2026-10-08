@@ -75,7 +75,7 @@ describe('AdvancedSettingsStepContent', () => {
       expect(screen.getByTestId('model-availability')).toBeInTheDocument();
     });
 
-    it('should show Users when MaaS is available even if Gen AI Studio is disabled', () => {
+    it('should show Users and MaaS guidance even if Gen AI Studio is disabled', () => {
       const wizardState = mockDeploymentWizardState({
         fields: [userExtensionField()],
         advancedOptions: { isExternalRouteVisible: false },
@@ -83,6 +83,7 @@ describe('AdvancedSettingsStepContent', () => {
           modelAvailability: {
             ...modelAvailabilityBase,
             isGenAiEnabled: false,
+            isMaaSSubscriptionSelected: true,
           },
         },
       });
@@ -96,6 +97,7 @@ describe('AdvancedSettingsStepContent', () => {
       );
 
       expect(screen.getByTestId('model-users')).toBeInTheDocument();
+      expect(screen.getByTestId('maas-additional-configuration-alert')).toBeInTheDocument();
       expect(screen.queryByTestId('model-availability')).not.toBeInTheDocument();
     });
 
