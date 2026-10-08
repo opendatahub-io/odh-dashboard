@@ -42,10 +42,11 @@ jobs:
     name: Plan host adapters
     # These jobs run a paid CodeRabbit review and a credentialed Jira fetch, and
     # `dispatch` needs them, so they finish before Route picks a stage. Anything
-    # admitted here that Route then declines is wasted spend. Route only accepts
-    # `labeled` for `ready-for-review`, and only acts on a `changes_requested`
-    # review, so match that: applying `fullsend` itself used to burn a full
-    # review that nothing consumed.
+    # admitted here that the review stage does not consume is wasted spend. Route
+    # only accepts `labeled` for `ready-for-review`, so match that: applying
+    # `fullsend` itself used to burn a full review that nothing consumed. A
+    # `changes_requested` review routes to the fix stage, which never reads
+    # adapter context, so it is not admitted here.
     if: >-
       (github.event_name == 'pull_request_target'
        && contains(github.event.pull_request.labels.*.name, 'fullsend')
@@ -54,9 +55,6 @@ jobs:
         || github.event.action == 'ready_for_review'
         || (github.event.action == 'labeled'
          && github.event.label.name == 'ready-for-review')))
-      || (github.event_name == 'pull_request_review'
-       && contains(github.event.pull_request.labels.*.name, 'fullsend')
-       && github.event.review.state == 'changes_requested')
       || (github.event_name == 'issue_comment'
        && github.event.issue.pull_request
        && github.event.comment.user.type != 'Bot'
@@ -236,7 +234,9 @@ jobs:
         || (github.event_name == 'issue_comment'
          && github.event.issue.pull_request
          && github.event.comment.user.type != 'Bot'
-         && github.event.comment.body == '/fs-review')
+         && (github.event.comment.body == '/fs-review'
+          || (startsWith(github.event.comment.body, '/fs-fix')
+           && !startsWith(github.event.comment.body, '/fs-fix-stop'))))
       )
     permissions:
       actions: write
@@ -245,9 +245,11 @@ jobs:
       issues: write
       packages: read
       pull-requests: write
-    # Post-v0.43.0 revision with Pi 0.87.1 and GPT-6 model support. Return to
-    # a release tag once v0.44.0 is published.
-    uses: fullsend-ai/fullsend/.github/workflows/reusable-dispatch.yml@b246a295afd885b3080389e6da0160e3a8ab5bc1
+    # Keep in step with the sandbox image pinned in .fullsend/harness/review.yaml
+    # (same release, Pi 0.99.2).
+    # Temporary pin through fullsend#7848 (fixes #7834 custom role_name auth).
+    # Revert to a released tag when v0.46+ ships this.
+    uses: fullsend-ai/fullsend/.github/workflows/reusable-dispatch.yml@d8560dcc4f4920618f8eba3afd6c56e60263502a # fullsend#7848 (post-v0.45.0)
     with:
       event_action: ${{ github.event.action }}
       install_mode: per-repo
@@ -294,7 +296,8 @@ jobs:
           # ADR 0054: authorize via the collaborator permission API
           # (admin|maintain|write), not author_association — the latter grants
           # contributor status to anyone with a single merged PR (issue #5421).
-          # Mirrors has_repo_permission() in dispatch.yml; keep the two in sync.
+          # Mirrors has_repo_permission() in reusable-dispatch.yml, including the
+          # custom-role --jq resolution; keep the two in sync (fullsend#7834).
           # The PR author may always stop the fix agent on their own PR.
           authorized=false
           if [[ -n "$COMMENT_USER_LOGIN" && "$COMMENT_USER_LOGIN" == "$ISSUE_USER_LOGIN" ]]; then
@@ -302,7 +305,19 @@ jobs:
           else
             if api_err=$(mktemp); then
               if role=$(gh api "repos/$REPO/collaborators/$COMMENT_USER_LOGIN/permission" \
-                --jq '.role_name' 2>"$api_err"); then
+                --jq '.user.permissions as $p
+                  | if (.role_name | type) != "string" or .role_name == "" then "none"
+                    elif (.role_name | IN("admin", "maintain", "write", "triage", "read")) then .role_name
+                    elif $p == null then
+                      if (.permission | IN("admin", "write", "read")) then .permission else "none" end
+                    elif ($p | type) == "object" then
+                      if $p.admin == true then "admin"
+                      elif $p.maintain == true then "maintain"
+                      elif $p.push == true then "write"
+                      elif $p.triage == true then "triage"
+                      elif $p.pull == true then "read"
+                      else "none" end
+                    else "none" end' 2>"$api_err"); then
                 case "$role" in
                   admin|maintain|write) authorized=true ;;
                 esac

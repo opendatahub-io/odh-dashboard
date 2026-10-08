@@ -302,7 +302,8 @@ func rulesEqual(a, b []rbacv1.PolicyRule) bool {
 func policyRuleEqual(a, b rbacv1.PolicyRule) bool {
 	return stringSliceEqual(a.APIGroups, b.APIGroups) &&
 		stringSliceEqual(a.Resources, b.Resources) &&
-		stringSliceEqual(a.Verbs, b.Verbs)
+		stringSliceEqual(a.Verbs, b.Verbs) &&
+		stringSliceEqual(a.ResourceNames, b.ResourceNames)
 }
 
 func stringSliceEqual(a, b []string) bool {

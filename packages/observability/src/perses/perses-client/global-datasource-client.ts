@@ -22,10 +22,12 @@ export function fetchGlobalDatasourceList(
   kind?: string,
   defaultDatasource?: boolean,
   name?: string,
+  basePath?: string,
 ): Promise<GlobalDatasourceResource[]> {
   const url = buildURL({
     resource: globalDatasourceResource,
     queryParams: buildDatasourceQueryParameters(kind, defaultDatasource, name),
+    basePath,
   });
   return odhPersesFetchJson<GlobalDatasourceResource[]>(url);
 }

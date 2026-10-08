@@ -1,6 +1,7 @@
 name: Test / AutoRAG Frontend Tests
 on:
   push:
+    branches: [main, 'odh-release*', 'rhoai-release*', '*-release', 'v*-fixes', 'v*-hotfix']
     paths:
       - 'packages/autorag/**'
       - '.github/workflows/autorag-frontend-tests.yml'

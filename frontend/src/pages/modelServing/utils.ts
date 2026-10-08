@@ -42,7 +42,6 @@ import {
   ModelServingSize,
   ModelServingState,
 } from '#~/pages/modelServing/screens/types';
-import { ServingRuntimeVersionStatusLabel } from './screens/const';
 
 type TokenNames = {
   serviceAccountName: string;
@@ -376,14 +375,4 @@ export const getInferenceServiceStoppedStatus = (
   };
 };
 
-export const getServingRuntimeVersionStatus = (
-  servingRuntimeVersion: string | undefined,
-  templateVersion: string | undefined,
-): ServingRuntimeVersionStatusLabel | undefined => {
-  if (!servingRuntimeVersion || !templateVersion) {
-    return undefined;
-  }
-  return servingRuntimeVersion === templateVersion
-    ? ServingRuntimeVersionStatusLabel.LATEST
-    : ServingRuntimeVersionStatusLabel.OUTDATED;
-};
+export { getServingRuntimeVersionStatus } from '@odh-dashboard/model-serving/shared/components';
