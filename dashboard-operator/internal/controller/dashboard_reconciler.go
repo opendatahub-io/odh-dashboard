@@ -167,7 +167,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if !dashboard.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(dashboard, dashboardFinalizer) {
-			if err := r.deleteMaaSConsumerPortalResources(ctx); err != nil {
+			if err := r.deleteMaaSPortalResources(ctx); err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to cleanup MaaS Consumer Portal resources: %w", err)
 			}
 			if err := r.cleanupCrossNamespaceResources(ctx, dashboard, false); err != nil {
@@ -208,7 +208,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		string(common.ConditionTypeProvisioningSucceeded),
 		string(common.ConditionTypeDegraded),
 		conditionObservabilityAvailable,
-		conditionMaaSConsumerPortalAvailable,
+		conditionMaaSPortalAvailable,
 	)
 	maasPortalManaged := r.maasPortalManaged(dashboard)
 	var observabilityDetectionErr error
@@ -231,7 +231,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// MaaS Consumer Portal availability is recalculated from its managed resources on every
 	// reconciliation. Clear a stale failure now; failures recorded later in this
 	// cycle (for example federation ConfigMap reconciliation) remain intact.
-	cm.ClearCondition(conditionMaaSConsumerPortalAvailable)
+	cm.ClearCondition(conditionMaaSPortalAvailable)
 
 	if dashboard.Spec.ManagementState == "Removed" {
 		logger.Info("ManagementState is Removed, tearing down resources")
@@ -245,14 +245,14 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 		preserveModuleStatusTransitionTimes(dashboard.Status.ModuleStatuses, nextStatuses)
 		dashboard.Status.ModuleStatuses = nextStatuses
-		r.setMaaSConsumerPortalModuleCondition(cm, dashboard, nextStatuses)
+		r.setMaaSPortalModuleCondition(cm, dashboard, nextStatuses)
 		var observabilityRetryAfter time.Duration
 		if observabilityDetectionErr != nil {
 			observabilityRetryAfter = observabilityRetryInterval
 		} else if maasPortalManaged {
 			observabilityRetryAfter = r.reconcileObservability(ctx, dashboard, cm)
 		}
-		portalRetryAfter := r.reconcileMaaSConsumerPortalOperand(ctx, dashboard, cm, nextStatuses, observabilityDetectionErr == nil)
+		portalRetryAfter := r.reconcileMaaSPortalOperand(ctx, dashboard, cm, nextStatuses, observabilityDetectionErr == nil)
 		portalRetryAfter = minNonZeroDuration(portalRetryAfter, observabilityRetryAfter)
 
 		preserveObservability := maasPortalManaged && (observabilityDetectionErr != nil ||
@@ -396,11 +396,9 @@ func (r *DashboardReconciler) reconcile(
 	return result, err
 }
 
-// cleanupLegacySidecarResources removes resources that were created by the
-// now-removed sidecar deployment mode. Kept for upgrade safety: clusters that
-// were running sidecar mode need these resources cleaned up on the first
-// reconcile with the new operator. The function is idempotent.
-func (r *DashboardReconciler) cleanupLegacySidecarResources(ctx context.Context) error {
+// cleanupLegacyResources removes resources that are no longer rendered by the
+// current manifests. It is kept for upgrade safety and is idempotent.
+func (r *DashboardReconciler) cleanupLegacyResources(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	ns := r.ApplicationsNamespace
 	var errs []error
@@ -424,19 +422,21 @@ func (r *DashboardReconciler) cleanupLegacySidecarResources(ctx context.Context)
 		}
 	}
 
-	clusterResources := []client.Object{
-		&rbacv1.ClusterRole{},
-		&rbacv1.ClusterRoleBinding{},
+	clusterResources := []namedResource{
+		{&rbacv1.ClusterRole{}, "odh-dashboard-modules"},
+		{&rbacv1.ClusterRoleBinding{}, "odh-dashboard-modules"},
+		{&rbacv1.ClusterRoleBinding{}, "odh-dashboard-monitoring"},
+		{&rbacv1.ClusterRoleBinding{}, "rhods-dashboard-monitoring"},
 	}
-	for _, obj := range clusterResources {
-		obj.SetName("odh-dashboard-modules")
-		if err := r.Delete(ctx, obj); client.IgnoreNotFound(err) != nil {
-			errs = append(errs, fmt.Errorf("deleting %T odh-dashboard-modules: %w", obj, err))
+	for _, nr := range clusterResources {
+		nr.obj.SetName(nr.name)
+		if err := r.Delete(ctx, nr.obj); client.IgnoreNotFound(err) != nil {
+			errs = append(errs, fmt.Errorf("deleting %T %s: %w", nr.obj, nr.name, err))
 		}
 	}
 
 	if len(errs) == 0 {
-		logger.Info("Cleaned up legacy sidecar resources")
+		logger.Info("Cleaned up legacy resources")
 	}
 
 	return errors.Join(errs...)
@@ -451,11 +451,11 @@ func (r *DashboardReconciler) reconcileDeployment(
 ) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	if err := r.cleanupLegacySidecarResources(ctx); err != nil {
+	if err := r.cleanupLegacyResources(ctx); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
-			conditions.WithReason("SidecarCleanupFailed"),
+			conditions.WithReason("LegacyCleanupFailed"),
 			conditions.WithError(err))
-		return ctrl.Result{}, fmt.Errorf("failed to clean up legacy sidecar resources: %w", err)
+		return ctrl.Result{}, fmt.Errorf("failed to clean up legacy resources: %w", err)
 	}
 
 	manifests := manifestSets(r.ManifestsBasePath, r.Platform)
@@ -539,7 +539,7 @@ func (r *DashboardReconciler) reconcileDeployment(
 	// stale status on the CR (the outer Reconcile always calls Status().Update).
 	preserveModuleStatusTransitionTimes(dashboard.Status.ModuleStatuses, nextStatuses)
 	dashboard.Status.ModuleStatuses = nextStatuses
-	r.setMaaSConsumerPortalModuleCondition(cm, dashboard, nextStatuses)
+	r.setMaaSPortalModuleCondition(cm, dashboard, nextStatuses)
 
 	// Reconcile cross-namespace RBAC (notebooks, model-registry)
 	rbacErr := r.reconcileNamespacedRBAC(ctx, dashboard)
@@ -564,7 +564,7 @@ func (r *DashboardReconciler) reconcileDeployment(
 		logger.Error(err, "Failed to deploy federation ConfigMap")
 		return ctrl.Result{}, fmt.Errorf("federation ConfigMap: %w", err)
 	}
-	portalRetryAfter := r.reconcileMaaSConsumerPortalOperand(ctx, dashboard, cm, nextStatuses, observabilityKnown)
+	portalRetryAfter := r.reconcileMaaSPortalOperand(ctx, dashboard, cm, nextStatuses, observabilityKnown)
 
 	if err := r.patchDeploymentFederationHash(ctx, fedData); err != nil {
 		logger.Error(err, "Failed to patch federation hash on deployment")
@@ -935,10 +935,10 @@ func (r *DashboardReconciler) cleanupObservabilityResources(ctx context.Context,
 // and cleans up cross-namespace resources.
 func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dashboard *v1alpha1.Dashboard, statuses map[string]v1alpha1.ModuleStatus, preserveObservability bool) error {
 	logger := log.FromContext(ctx)
-	maasConsumerPortalRequiredModules := maasConsumerPortalRequiredModuleSlugs(&dashboard.Spec, statuses)
+	maasPortalRequiredModules := maasPortalRequiredModuleSlugs(&dashboard.Spec, statuses)
 	shouldPreserve := func(resource client.Object) bool {
 		component := resource.GetLabels()[moduleComponentLabel]
-		return maasConsumerPortalRequiredModules[component] || (preserveObservability &&
+		return maasPortalRequiredModules[component] || (preserveObservability &&
 			(component == observabilityComponent || isLegacyObservabilityResource(resource)))
 	}
 
@@ -1200,8 +1200,8 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		).
 		Watches(
 			&corev1.Namespace{},
-			handler.EnqueueRequestsFromMapFunc(r.mapMaaSConsumerPortalOperatorNamespaceToDashboard),
-			builder.WithPredicates(r.maasConsumerPortalOperatorNamespacePredicate()),
+			handler.EnqueueRequestsFromMapFunc(r.mapMaaSPortalOperatorNamespaceToDashboard),
+			builder.WithPredicates(r.maasPortalOperatorNamespacePredicate()),
 		)
 
 	if err := addOptionalOwnedResourceWatches(mgr.GetRESTMapper(), controllerBuilder); err != nil {

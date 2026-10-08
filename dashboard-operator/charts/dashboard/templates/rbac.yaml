@@ -155,13 +155,26 @@ rules:
       - update
       - patch
       - delete
-  # Escalation for user Ray dashboard URL reads (manifests/common/rbac/all-users)
+  # Escalation for data-science-gateway reads used by Ray dashboard URL resolution
+  # (manifests/base/rbac/all-users/fetch-ray-dashboard-url.rbac.yaml) and Data
+  # Connect Hub RHOAI gateway discovery
+  # (manifests/modules/data-connect-hub/gateway-discovery-rbac.yaml).
   - apiGroups:
       - gateway.networking.k8s.io
     resources:
       - gateways
     resourceNames:
       - data-science-gateway
+    verbs:
+      - get
+  # Escalation for Data Connect Hub ODH gateway discovery
+  # (manifests/modules/data-connect-hub/gateway-discovery-rbac.yaml)
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways
+    resourceNames:
+      - odh-gateway
     verbs:
       - get
   # Events
@@ -332,19 +345,6 @@ rules:
       - subjectaccessreviews
     verbs:
       - create
-  # Prometheus API access for cluster-monitoring-view ClusterRoleBinding escalation.
-  # The operand deploys a ClusterRoleBinding to the OpenShift built-in
-  # cluster-monitoring-view ClusterRole, which grants these permissions.
-  - apiGroups:
-      - monitoring.coreos.com
-    resources:
-      - prometheuses/api
-    resourceNames:
-      - k8s
-    verbs:
-      - get
-      - create
-      - update
   # TLS security profile for server TLS configuration
   - apiGroups:
       - config.openshift.io

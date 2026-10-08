@@ -112,6 +112,7 @@ rules:
   - apiGroups:
       - ''
     verbs:
+      - get
       - patch
     resources:
       - namespaces

@@ -1,19 +1,11 @@
 import React, { act } from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
-import * as areasModule from '@odh-dashboard/plugin-core/areas';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import { ManageConnectionModal } from '#~/pages/projects/screens/detail/connections/ManageConnectionsModal';
 import { mockConnection } from '#~/__mocks__/mockConnection';
 import * as connectionTestService from '#~/services/connectionTestService';
-
-jest.mock('@odh-dashboard/plugin-core/areas', () => ({
-  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
-  useIsAreaAvailable: jest.fn().mockReturnValue({ status: true }),
-}));
-
-const mockUseIsAreaAvailable = jest.mocked(areasModule.useIsAreaAvailable);
 
 describe('Create connection modal', () => {
   const onCloseMock = jest.fn();
@@ -676,6 +668,30 @@ describe('ManageConnectionModal test connection', () => {
     expect(screen.getByTestId('test-connection-button')).toBeDisabled();
   });
 
+  it('should disable Test connection button for an unsupported connection type', async () => {
+    render(
+      <ManageConnectionModal
+        project={mockProjectK8sResource({})}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 'postgres',
+            fields: [{ type: 'short-text', name: 'Field', envVar: 'env1', properties: {} }],
+          }),
+        ]}
+      />,
+    );
+
+    const testButton = screen.getByTestId('test-connection-button');
+    expect(testButton).toHaveAttribute('aria-disabled', 'true');
+
+    await act(async () => {
+      fireEvent.click(testButton);
+    });
+    expect(mockedTestConnection).not.toHaveBeenCalled();
+  });
+
   it('should reset test status when connection type is changed', async () => {
     mockedTestConnection.mockResolvedValue({ success: true, message: 'ok' });
 
@@ -686,11 +702,11 @@ describe('ManageConnectionModal test connection', () => {
         onSubmit={onSubmitMock}
         connectionTypes={[
           mockConnectionTypeConfigMapObj({
-            name: 'type one',
+            name: 'uri-type-one',
             fields: [{ type: 'short-text', name: 'Field 1', envVar: 'env1', properties: {} }],
           }),
           mockConnectionTypeConfigMapObj({
-            name: 'type two',
+            name: 'oci-type-two',
             fields: [{ type: 'short-text', name: 'Field 2', envVar: 'env2', properties: {} }],
           }),
         ]}
@@ -832,7 +848,7 @@ describe('ManageConnectionModal buildFieldValues integration', () => {
         onSubmit={onSubmitMock}
         connection={mockConnection({
           name: 'test-conn',
-          connectionType: 'multi-type',
+          connectionType: 'uri-multi-type',
           data: {
             textField: window.btoa('hello'),
             boolField: window.btoa('true'),
@@ -842,7 +858,7 @@ describe('ManageConnectionModal buildFieldValues integration', () => {
         })}
         connectionTypes={[
           mockConnectionTypeConfigMapObj({
-            name: 'multi-type',
+            name: 'uri-multi-type',
             fields: [
               { type: 'short-text', name: 'Text', envVar: 'textField', properties: {} },
               {
@@ -876,7 +892,7 @@ describe('ManageConnectionModal buildFieldValues integration', () => {
 
     expect(mockedTestConnection).toHaveBeenCalledTimes(1);
     const callArgs = mockedTestConnection.mock.calls[0][0];
-    expect(callArgs.connectionType).toBe('multi-type');
+    expect(callArgs.connectionType).toBe('uri-multi-type');
     expect(callArgs.fieldValues.textField).toBe('hello');
     expect(callArgs.fieldValues.boolField).toBe('true');
     expect(callArgs.fieldValues.numField).toBe('42');
@@ -891,7 +907,7 @@ describe('ManageConnectionModal buildFieldValues integration', () => {
         onSubmit={onSubmitMock}
         connectionTypes={[
           mockConnectionTypeConfigMapObj({
-            name: 'sparse-type',
+            name: 'uri-sparse-type',
             fields: [
               {
                 type: 'short-text',
@@ -926,60 +942,5 @@ describe('ManageConnectionModal buildFieldValues integration', () => {
     const callArgs = mockedTestConnection.mock.calls[0][0];
     expect(callArgs.fieldValues.requiredField).toBe('some-value');
     expect(callArgs.fieldValues).not.toHaveProperty('optionalField');
-  });
-});
-
-describe('ManageConnectionModal feature flag', () => {
-  const onCloseMock = jest.fn();
-  const onSubmitMock = jest.fn().mockResolvedValue(() => undefined);
-
-  it('should hide test connection UI when feature flag is disabled', () => {
-    mockUseIsAreaAvailable.mockReturnValue({ status: false } as ReturnType<
-      typeof areasModule.useIsAreaAvailable
-    >);
-
-    render(
-      <ManageConnectionModal
-        project={mockProjectK8sResource({})}
-        onClose={onCloseMock}
-        onSubmit={onSubmitMock}
-        connectionTypes={[
-          mockConnectionTypeConfigMapObj({
-            name: 's3',
-            fields: [{ type: 'short-text', name: 'Endpoint', envVar: 'endpoint', properties: {} }],
-          }),
-        ]}
-      />,
-    );
-
-    expect(screen.queryByTestId('test-connection-button')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('connection-test-label-not-tested')).not.toBeInTheDocument();
-
-    mockUseIsAreaAvailable.mockReturnValue({ status: true } as ReturnType<
-      typeof areasModule.useIsAreaAvailable
-    >);
-  });
-
-  it('should show test connection UI when feature flag is enabled', () => {
-    mockUseIsAreaAvailable.mockReturnValue({ status: true } as ReturnType<
-      typeof areasModule.useIsAreaAvailable
-    >);
-
-    render(
-      <ManageConnectionModal
-        project={mockProjectK8sResource({})}
-        onClose={onCloseMock}
-        onSubmit={onSubmitMock}
-        connectionTypes={[
-          mockConnectionTypeConfigMapObj({
-            name: 's3',
-            fields: [{ type: 'short-text', name: 'Endpoint', envVar: 'endpoint', properties: {} }],
-          }),
-        ]}
-      />,
-    );
-
-    expect(screen.getByTestId('test-connection-button')).toBeInTheDocument();
-    expect(screen.getByTestId('connection-test-label-not-tested')).toBeInTheDocument();
   });
 });
