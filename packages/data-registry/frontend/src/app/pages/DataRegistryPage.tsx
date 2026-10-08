@@ -32,6 +32,7 @@ import RegisterDataModal from '~/app/components/RegisterDataModal';
 import ServiceUnavailableError from '~/app/components/errors/ServiceUnavailableError';
 import AccessDeniedError from '~/app/components/errors/AccessDeniedError';
 import ConnectionError from '~/app/components/errors/ConnectionError';
+import { shouldDisplayConnectionWarning } from '~/app/utilities/connectionUtils';
 import noProjectsImage from '~/images/RHOAI-Registerdata-Noprojects-RGB.png';
 
 // TODO: Replace with isAvailableProject from @odh-dashboard/k8s-core when BFF returns filtered projects
@@ -177,8 +178,26 @@ const DataRegistryPage: React.FC = () => {
 
   const [assets, assetsLoaded, assetsError, assetsRefresh, collectionNames] =
     useAssets(selectedProject);
-  const [connections, connectionsLoaded, connectionsError, , connectionWarnings] =
-    useConnections(selectedProject);
+  const [
+    connections,
+    connectionsLoaded,
+    connectionsError,
+    ,
+    connectionWarnings,
+    fetchedConnectionDisplayData,
+  ] = useConnections(selectedProject);
+  const connectionDisplayData = fetchedConnectionDisplayData ?? connections;
+  const hasExistingDchConnectionReferences =
+    assetsLoaded && assets.some((asset) => asset.rawAsset?.connection_ref?.type === 'dch');
+  const hasExistingRhaiConnectionReferences =
+    assetsLoaded && assets.some((asset) => asset.rawAsset?.connection_ref?.type === 'rhai');
+  const visibleConnectionWarnings = connectionWarnings.filter((warning) =>
+    shouldDisplayConnectionWarning(
+      warning,
+      hasExistingDchConnectionReferences,
+      hasExistingRhaiConnectionReferences,
+    ),
+  );
   const [, collectionsLoaded, collectionsError, collectionsRefresh] = useCollections(
     selectedProject,
     assets,
@@ -343,9 +362,21 @@ const DataRegistryPage: React.FC = () => {
         </PageSection>
       ) : (
         <>
-          {connectionWarnings.length > 0 ? (
+          {connectionsError ? (
             <PageSection hasBodyWrapper={false}>
-              {connectionWarnings.map((warning) => (
+              <Alert
+                variant="warning"
+                isInline
+                title="Unable to load connections"
+                data-testid="connections-error"
+              >
+                {connectionsError.message}
+              </Alert>
+            </PageSection>
+          ) : null}
+          {visibleConnectionWarnings.length > 0 ? (
+            <PageSection hasBodyWrapper={false}>
+              {visibleConnectionWarnings.map((warning) => (
                 <Alert key={warning.code} variant="warning" isInline title={warning.message} />
               ))}
             </PageSection>
@@ -356,6 +387,7 @@ const DataRegistryPage: React.FC = () => {
             error={assetsError ?? collectionsError}
             labels={labels}
             connections={connections}
+            connectionDisplayData={connectionDisplayData}
             connectionsLoaded={connectionsLoaded}
             connectionsError={connectionsError}
             project={selectedProject}
@@ -400,6 +432,8 @@ const DataRegistryPage: React.FC = () => {
             onClose={() => setIsRegisterModalOpen(false)}
             project={selectedProject}
             collections={collectionNames}
+            hasExistingDchConnectionReferences={hasExistingDchConnectionReferences}
+            hasExistingRhaiConnectionReferences={hasExistingRhaiConnectionReferences}
             onCreated={handleRefresh}
             onManageCollections={() => {
               setIsRegisterModalOpen(false);

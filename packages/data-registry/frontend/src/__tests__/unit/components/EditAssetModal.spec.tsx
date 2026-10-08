@@ -175,10 +175,7 @@ describe('EditAssetModal', () => {
             asset={mockAssetResponse({ connection_ref: connectionRef, columns: [] })}
           />
         ) : (
-          <EditAssetModal
-            {...props}
-            asset={mockVolumeInfo({ connection_ref: connectionRef })}
-          />
+          <EditAssetModal {...props} asset={mockVolumeInfo({ connection_ref: connectionRef })} />
         ),
       );
     };
@@ -222,9 +219,7 @@ describe('EditAssetModal', () => {
       renderWithConnection(rhaiConnection);
       await user.click(screen.getByTestId('data-connection-toggle'));
       await user.click(
-        within(screen.getByTestId(`connection-option-dch:${dchConnection.id}`)).getByRole(
-          'option',
-        ),
+        within(screen.getByTestId(`connection-option-dch:${dchConnection.id}`)).getByRole('option'),
       );
       await user.click(screen.getByTestId('edit-asset-save'));
 
@@ -247,9 +242,7 @@ describe('EditAssetModal', () => {
       renderWithConnection(rhaiConnection);
       await user.click(screen.getByTestId('data-connection-toggle'));
       await user.click(
-        within(screen.getByTestId(`connection-option-dch:${dchConnection.id}`)).getByRole(
-          'option',
-        ),
+        within(screen.getByTestId(`connection-option-dch:${dchConnection.id}`)).getByRole('option'),
       );
       await user.click(screen.getByTestId('edit-asset-save'));
 

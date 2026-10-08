@@ -15,6 +15,7 @@ export const useConnections = (
   Error | undefined,
   () => Promise<ConnectionModel[]>,
   ConnectionWarning[],
+  ConnectionModel[]?,
 ] => {
   const callback = React.useCallback<FetchStateCallbackPromise<ConnectionsResponse>>(
     (opts: APIOptions) => {
@@ -44,5 +45,6 @@ export const useConnections = (
     error,
     refreshConnections,
     error ? NO_WARNINGS : (result.metadata?.warnings ?? NO_WARNINGS),
+    error ? [] : [...result.data, ...(result.metadata?.rhaiConnections ?? [])],
   ];
 };

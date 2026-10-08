@@ -33,13 +33,16 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, ps
 	}
 
 	source, outcome, reason, count := "rhai", "error", "unconfigured", 0
+	rhaiLookupOutcome, rhaiCount := "not_attempted", 0
 	dchFallback := false
 	start := time.Now()
 	defer func() {
 		// One structured event per lookup supports outcome/fallback rates, latency and counts.
 		// Never log upstream bodies, credentials, tokens or arbitrary error messages.
 		app.logger.Info("Connection lookup", "namespace", namespace, "source", source,
-			"outcome", outcome, "reason", reason, "count", count, "elapsed_ms", time.Since(start).Milliseconds())
+			"outcome", outcome, "reason", reason, "count", count,
+			"rhai_lookup_outcome", rhaiLookupOutcome, "rhai_count", rhaiCount,
+			"elapsed_ms", time.Since(start).Milliseconds())
 	}()
 
 	var envelope ConnectionsEnvelope
@@ -64,6 +67,39 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, ps
 			if err == nil {
 				envelope.Data, envelope.Metadata = connections, metadata
 				reason = "success"
+				// DCH remains the only selectable source, but saved RHOAI references still
+				// need their current display details while DCH is active.
+				var lookupErr error
+				var rhaiConnections []models.ConnectionModel
+				if app.kubernetesClientFactory == nil {
+					lookupErr = fmt.Errorf("Kubernetes client factory is unavailable")
+				} else {
+					var kubeClient kubernetes.KubernetesClientInterface
+					kubeClient, lookupErr = app.kubernetesClientFactory.GetClient(ctx)
+					if lookupErr == nil {
+						rhaiConnections, lookupErr = app.repositories.Connection.GetConnections(kubeClient, ctx, namespace)
+					}
+				}
+				if lookupErr != nil {
+					rhaiLookupOutcome = "error"
+					app.logger.Warn("RHOAI connection display lookup failed", "namespace", namespace)
+					if envelope.Metadata == nil {
+						envelope.Metadata = &models.ConnectionsMetadata{}
+					}
+					envelope.Metadata.Warnings = append(envelope.Metadata.Warnings, models.ConnectionWarning{
+						Code:    "RHAI_LOOKUP_FAILED",
+						Message: "Some saved RHOAI connection details could not be loaded.",
+					})
+				} else {
+					rhaiLookupOutcome = "success"
+					rhaiCount = len(rhaiConnections)
+					if rhaiCount > 0 {
+						if envelope.Metadata == nil {
+							envelope.Metadata = &models.ConnectionsMetadata{}
+						}
+						envelope.Metadata.RhaiConnections = rhaiConnections
+					}
+				}
 			} else {
 				var upstream *bffclient.BFFClientError
 				reason = "integration_error"
@@ -95,6 +131,7 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, ps
 			envelope.Data, err = app.repositories.Connection.GetConnections(client, ctx, namespace)
 		}
 		if err != nil {
+			rhaiLookupOutcome = "error"
 			switch {
 			case k8serrors.IsUnauthorized(err):
 				app.unauthorizedResponse(w, r, fmt.Errorf("secret lookup authentication failed"))
@@ -105,6 +142,8 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, ps
 			}
 			return
 		}
+		rhaiLookupOutcome = "success"
+		rhaiCount = len(envelope.Data)
 	}
 	if dchFallback {
 		if envelope.Metadata == nil {
@@ -112,7 +151,7 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, ps
 		}
 		envelope.Metadata.Warnings = append(envelope.Metadata.Warnings, models.ConnectionWarning{
 			Code:    "DCH_FALLBACK",
-			Message: "Some connection options could not be loaded. Showing currently available connections.",
+			Message: "Some connections could not be loaded. Showing available connections.",
 		})
 	}
 	count = len(envelope.Data)
@@ -120,7 +159,7 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, ps
 	if source == "rhai" && reason != "unconfigured" {
 		outcome = "fallback"
 	}
-	if envelope.Metadata != nil && !dchFallback {
+	if envelope.Metadata != nil && len(envelope.Metadata.Warnings) > 0 && !dchFallback {
 		outcome = "partial"
 	}
 	if err := app.WriteJSON(w, http.StatusOK, envelope, nil); err != nil {

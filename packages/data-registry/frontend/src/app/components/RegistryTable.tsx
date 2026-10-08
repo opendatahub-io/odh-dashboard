@@ -40,7 +40,7 @@ import {
   isConnectionError,
 } from '~/app/api/dataRegistry';
 import { useNotification } from '~/app/hooks/useNotification';
-import { assetDetailUrl, projectConnectionsUrl } from '~/app/utilities/routes';
+import { assetDetailUrl, projectConnectionUrl } from '~/app/utilities/routes';
 import { getFormatBadge, FORMAT_OPTIONS } from '~/app/utilities/formatUtils';
 import AccessDeniedError from '~/app/components/errors/AccessDeniedError';
 import ConnectionError from '~/app/components/errors/ConnectionError';
@@ -60,6 +60,7 @@ type RegistryTableProps = {
   labels: string[];
   project: string;
   connections?: ConnectionModel[];
+  connectionDisplayData?: ConnectionModel[];
   connectionsLoaded?: boolean;
   connectionsError?: Error;
   onManageCollections: (onReturnToEdit?: () => void) => void;
@@ -129,6 +130,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   labels,
   project,
   connections = [],
+  connectionDisplayData,
   connectionsLoaded = false,
   connectionsError,
   onManageCollections,
@@ -137,6 +139,9 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   onRetry,
   hasWriteAccess = true,
 }) => {
+  const displayConnections = connectionDisplayData ?? connections;
+  const hasExistingDchConnectionReferences =
+    loaded && assets.some((asset) => asset.rawAsset?.connection_ref?.type === 'dch');
   const notification = useNotification();
   const [searchText, setSearchText] = React.useState('');
   const [filterCategory, setFilterCategory] = React.useState<FilterCategory>('labels');
@@ -766,8 +771,9 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                 const assetKey = JSON.stringify([asset.assetType, asset.collection, asset.name]);
                 const connectionRef = asset.rawAsset?.connection_ref;
                 const connectionType = connectionRef
-                  ? connections.find(
-                      (connection) => getConnectionKey(connection) === getConnectionKey(connectionRef),
+                  ? displayConnections.find(
+                      (connection) =>
+                        getConnectionKey(connection) === getConnectionKey(connectionRef),
                     )?.connectionType
                   : undefined;
                 const assetTestId = (prefix: string) =>
@@ -809,10 +815,10 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                         <>
                           <ConnectionRefLink
                             connectionRef={asset.rawAsset?.connection_ref ?? asset.connectionRef}
-                            connections={connections}
+                            connections={displayConnections}
                             connectionsLoaded={connectionsLoaded}
                             connectionsError={connectionsError}
-                            linkTo={projectConnectionsUrl(project)}
+                            linkTo={(ref) => projectConnectionUrl(project, ref)}
                           />
                           {connectionType ? (
                             <Content component="small" data-testid="connection-type">
@@ -908,6 +914,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
           project={project}
           collection={editAsset.collection}
           name={editAsset.name}
+          hasExistingDchConnectionReferences={hasExistingDchConnectionReferences}
           onClose={handleEditClosed}
           onSaved={handleEditSaved}
           onManageCollections={

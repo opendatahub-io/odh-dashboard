@@ -45,7 +45,9 @@ const CollectionDetailPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [collectionDetail, loaded, loadError, refresh] = useCollectionDetail(project, collection);
-  const [assets, , assetsError, assetsRefresh, collectionNames] = useAssets(project || '');
+  const [assets, assetsLoaded, assetsError, assetsRefresh, collectionNames] = useAssets(
+    project || '',
+  );
   const [, , collectionsError] = useCollections(project || '', assets, collectionNames);
   const [labels, , , labelsRefresh] = useLabels(project || '');
   const [isActionsOpen, setIsActionsOpen] = React.useState(false);
@@ -200,6 +202,12 @@ const CollectionDetailPage: React.FC = () => {
           isOpen={isRegisterDataOpen}
           project={project}
           collections={collectionNames}
+          hasExistingDchConnectionReferences={
+            assetsLoaded && assets.some((asset) => asset.rawAsset?.connection_ref?.type === 'dch')
+          }
+          hasExistingRhaiConnectionReferences={
+            assetsLoaded && assets.some((asset) => asset.rawAsset?.connection_ref?.type === 'rhai')
+          }
           onCreated={handleRefresh}
           onManageCollections={() => {
             setIsRegisterDataOpen(false);

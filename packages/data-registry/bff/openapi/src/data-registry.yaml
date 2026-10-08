@@ -127,7 +127,12 @@ paths:
         not trigger fallback. Unresolved type IDs omit the affected connections and
         produce an UNRESOLVED_CONNECTION_TYPE warning. When a configured DCH lookup
         fails and the RHOAI fallback succeeds, metadata.warnings includes DCH_FALLBACK.
-        An unconfigured DCH integration falls back silently. Lookup failures never
+        When DCH lookup succeeds, metadata.rhaiConnections includes current RHOAI
+        connection details for resolving saved RHOAI asset references; those entries
+        are display metadata and are not selectable alongside DCH connections. An
+        unsuccessful supplemental RHOAI lookup adds an RHAI_LOOKUP_FAILED warning
+        without removing successfully loaded DCH options. An
+        unconfigured DCH integration falls back silently. Lookup failures never
         modify saved asset references.
       parameters:
         - name: namespace
@@ -1185,6 +1190,13 @@ components:
         metadata:
           type: object
           properties:
+            rhaiConnections:
+              type: array
+              description: |
+                Current RHOAI connection details for display-only resolution of saved RHOAI
+                asset references. These are not selectable when data contains DCH connections.
+              items:
+                $ref: "#/components/schemas/RhaiConnectionRef"
             warnings:
               type: array
               items:
@@ -1193,7 +1205,7 @@ components:
                 properties:
                   code:
                     type: string
-                    enum: [UNRESOLVED_CONNECTION_TYPE, DCH_FALLBACK]
+                    enum: [UNRESOLVED_CONNECTION_TYPE, DCH_FALLBACK, RHAI_LOOKUP_FAILED]
                   message:
                     type: string
       examples:
@@ -1202,6 +1214,12 @@ components:
               id: 550e8400-e29b-41d4-a716-446655440000
               name: Production data
               connectionType: s3
+          metadata:
+            rhaiConnections:
+              - type: rhai
+                secret_name: legacy-data
+                name: Legacy RHOAI data
+                connectionType: s3
         - data:
             - type: rhai
               secret_name: production-data
@@ -1220,7 +1238,7 @@ components:
           metadata:
             warnings:
               - code: DCH_FALLBACK
-                message: Some connection options could not be loaded. Showing currently available connections.
+                message: Some connections could not be loaded. Showing available connections.
     ConnectionRef:
       description: Stable RHOAI Secret or DCH connection identifier, with display-only fields.
       oneOf:

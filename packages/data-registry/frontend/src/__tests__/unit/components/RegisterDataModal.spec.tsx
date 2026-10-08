@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import RegisterDataModal from '~/app/components/RegisterDataModal';
 import * as dataRegistryApi from '~/app/api/dataRegistry';
@@ -285,6 +285,29 @@ describe('RegisterDataModal', () => {
     await user.click(screen.getByTestId('data-connection-toggle'));
     expect(screen.getByText('My S3 Connection')).toBeTruthy();
     expect(screen.getByText('My URI Connection')).toBeTruthy();
+  });
+
+  it('should keep RHOAI display metadata out of the selectable connections', async () => {
+    const user = userEvent.setup();
+    const dchConnection = mockDchConnection();
+    const rhaiDisplayConnection = mockRhaiConnection({
+      secret_name: 'legacy-rhai-connection',
+      name: 'Legacy RHOAI connection',
+    });
+    mockUseConnections.mockReturnValue([
+      [dchConnection],
+      true,
+      undefined,
+      mockRefreshConnections,
+      [],
+      [dchConnection, rhaiDisplayConnection],
+    ]);
+
+    render(<RegisterDataModal {...defaultProps} />);
+    await user.click(screen.getByTestId('data-connection-toggle'));
+
+    expect(screen.getByTestId(`connection-option-dch:${dchConnection.id}`)).toBeInTheDocument();
+    expect(screen.queryByText('Legacy RHOAI connection')).not.toBeInTheDocument();
   });
 
   it('should include connection_ref when connection is selected for volume', async () => {

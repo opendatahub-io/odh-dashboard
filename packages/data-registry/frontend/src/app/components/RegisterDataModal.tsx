@@ -18,11 +18,7 @@ import {
   createLabel,
   isConflictError,
 } from '~/app/api/dataRegistry';
-import {
-  CreateVolumeRequest,
-  CreateGenericTableRequest,
-  ConnectionRef,
-} from '~/app/types';
+import { CreateVolumeRequest, CreateGenericTableRequest, ConnectionRef } from '~/app/types';
 import { useConnections } from '~/app/hooks/useConnections';
 import { confirmConnection } from '~/app/utilities/connectionUtils';
 import { isStructuredFormat, isUnstructuredFormat } from '~/app/utilities/formatUtils';
@@ -49,6 +45,8 @@ type RegisterDataModalProps = {
   onCreated: () => void;
   onManageCollections: () => void;
   onManageLabels?: () => void;
+  hasExistingDchConnectionReferences?: boolean;
+  hasExistingRhaiConnectionReferences?: boolean;
 };
 
 type SharedCreateAssetRequest = Omit<CreateVolumeRequest, 'format'> & { format: string };
@@ -144,6 +142,8 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
   onCreated,
   onManageCollections,
   onManageLabels,
+  hasExistingDchConnectionReferences = false,
+  hasExistingRhaiConnectionReferences = false,
 }) => {
   const [
     connections,
@@ -151,7 +151,9 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
     connectionsError,
     refreshConnections,
     connectionWarnings,
+    fetchedConnectionDisplayData,
   ] = useConnections(project, isOpen);
+  const connectionDisplayData = fetchedConnectionDisplayData ?? connections;
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
 
@@ -196,7 +198,11 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
         if (data.assetType === 'unstructured') {
           await createVolume(project, data.collection, buildVolumeRequest(data, connectionRef));
         } else {
-          await createGenericTable(project, data.collection, buildTableRequest(data, connectionRef));
+          await createGenericTable(
+            project,
+            data.collection,
+            buildTableRequest(data, connectionRef),
+          );
         }
         form.reset(registerDataDefaults);
         onCreated();
@@ -234,9 +240,12 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
             <RegistrationIdentitySection />
             <DataLocationSection
               connections={connections}
+              connectionDisplayData={connectionDisplayData}
               connectionsLoaded={connectionsLoaded}
               connectionsError={connectionsError}
               connectionWarnings={connectionWarnings}
+              showDchFallbackWarning={hasExistingDchConnectionReferences}
+              showRhaiLookupWarning={hasExistingRhaiConnectionReferences}
               isConnectionDisabled={isSubmitting}
             />
             <RegistrationAssetFormatSection />
