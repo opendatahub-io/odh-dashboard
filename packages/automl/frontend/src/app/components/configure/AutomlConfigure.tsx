@@ -1077,17 +1077,17 @@ function AutomlConfigure({
                                     description={
                                       preset === PRESET_FASTER ? (
                                         <>
-                                          45-minute model-selection budget.
-                                          <br />
                                           4 vCPU / 16 GiB
+                                          <br />
+                                          45-minute model-selection budget.
                                           <br />
                                           Use fewer resources to prioritize speed
                                         </>
                                       ) : preset === PRESET_BETTER_QUALITY ? (
                                         <>
-                                          Up to 3 hours for model selection.
-                                          <br />
                                           8 vCPU / 32 GiB
+                                          <br />
+                                          Up to 3 hours for model selection.
                                           <br />
                                           Use more resources to prioritize accuracy
                                         </>
