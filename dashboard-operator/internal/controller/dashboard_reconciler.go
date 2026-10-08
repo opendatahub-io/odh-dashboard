@@ -1216,7 +1216,7 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 }
 
 // addOptionalOwnedResourceWatches adds watches for APIs used only by the MaaS
-// Consumer Portal. The Dashboard controller also runs on clusters where those
+// Portal. The Dashboard controller also runs on clusters where those
 // APIs are not installed, so absent APIs must not prevent manager startup.
 func addOptionalOwnedResourceWatches(mapper meta.RESTMapper, controllerBuilder *builder.Builder) error {
 	resources, err := optionalOwnedResources(mapper)
