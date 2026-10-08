@@ -20,6 +20,9 @@ jest.mock('~/app/hooks/useApiKeysPageLoad', () => ({
     existenceLoaded: true,
     isMaasAdmin: false,
     isMaasAdminLoaded: true,
+    maxExpirationDays: 365,
+    apiKeyConfigLoaded: true,
+    apiKeyConfigError: undefined,
     // eslint-disable-next-line camelcase
     response: { data: [], has_more: false, object: 'list' },
     refreshAll: jest.fn(),

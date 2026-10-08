@@ -44,6 +44,9 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState, subscriptions, showD
     onSetPage,
     onPerPageSelect,
     onClearFilters,
+    maxExpirationDays,
+    apiKeyConfigLoaded,
+    apiKeyConfigError,
   } = pageState;
 
   const subscriptionOptions = React.useMemo(
@@ -76,6 +79,9 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState, subscriptions, showD
       <>
         {isModalOpen && (
           <CreateApiKeyModal
+            maxExpirationDays={maxExpirationDays}
+            apiKeyConfigLoaded={apiKeyConfigLoaded}
+            apiKeyConfigError={apiKeyConfigError}
             onClose={() => {
               setIsModalOpen(false);
               refreshAll();
@@ -91,6 +97,9 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState, subscriptions, showD
     <>
       {isModalOpen && (
         <CreateApiKeyModal
+          maxExpirationDays={maxExpirationDays}
+          apiKeyConfigLoaded={apiKeyConfigLoaded}
+          apiKeyConfigError={apiKeyConfigError}
           onClose={() => {
             setIsModalOpen(false);
             refreshAll();
@@ -133,7 +142,6 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState, subscriptions, showD
               onSubscriptionChange={onSubscriptionChange}
               activeApiKeys={activeApiKeys}
               refresh={refreshAll}
-              onClearFilters={onClearFilters}
             />
           }
         />

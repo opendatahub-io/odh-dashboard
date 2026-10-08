@@ -86,8 +86,17 @@ describe('API Keys Page', () => {
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
       data: mockSubscriptions(),
     }).as('getAllSubscriptions');
+    cy.interceptOdh('GET /maas/api/v1/api-keys-config', {
+      data: {
+        // eslint-disable-next-line camelcase
+        max_expiration_days: 365,
+        // eslint-disable-next-line camelcase
+        ephemeral_max_expiration: '1h',
+      },
+    }).as('getApiKeyConfig');
     apiKeysPage.visitKeysAndSubs();
     cy.wait('@initialSearch');
+    cy.wait('@getApiKeyConfig');
   });
 
   it('should not show the subscriptions tab when mySubscriptions flag is disabled', () => {
@@ -559,7 +568,7 @@ describe('API Keys Page', () => {
     });
   });
 
-  it('should create a new API key with the default 30 days expiration', () => {
+  it('should create a new API key with the default 1 day expiration', () => {
     cy.interceptOdh('POST /maas/api/v1/api-keys', {
       data: mockCreateAPIKeyResponse(),
     }).as('createApiKey');
@@ -567,7 +576,8 @@ describe('API Keys Page', () => {
     apiKeysPage.findCreateApiKeyButton().click();
     createApiKeyModal.shouldBeOpen();
     cy.wait('@getSubscriptions');
-    createApiKeyModal.findExpirationToggle().should('contain.text', '30 days');
+    createApiKeyModal.findExpirationModeToggle().should('contain.text', 'On date');
+    createApiKeyModal.findExpirationDateInput().should('exist');
     createApiKeyModal.findSubmitButton().should('be.disabled');
     createApiKeyModal.findSubscriptionToggle().click();
     createApiKeyModal.findSubscriptionOption('premium-team-sub').click();
@@ -576,7 +586,7 @@ describe('API Keys Page', () => {
     createApiKeyModal.findSubmitButton().should('be.enabled');
     createApiKeyModal.findSubmitButton().click();
     cy.wait('@createApiKey').then((interception) => {
-      expect(interception.request.body?.data).to.include({ expiresIn: '30d' });
+      expect(interception.request.body?.data).to.include({ expiresIn: '1d' });
       expect(interception.response?.body?.data).to.include({
         name: 'production-backend',
         expiresAt: '2026-01-20T11:54:34.521671447-05:00',
@@ -585,7 +595,7 @@ describe('API Keys Page', () => {
 
     copyApiKeyModal.shouldBeOpen();
     copyApiKeyModal.findApiKeyName().should('contain.text', 'production-backend');
-    copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '30 days');
+    copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '1 days');
   });
 
   it('should show/hide the token when the visibility toggle is clicked', () => {
@@ -596,7 +606,7 @@ describe('API Keys Page', () => {
     apiKeysPage.findCreateApiKeyButton().click();
     createApiKeyModal.shouldBeOpen();
     cy.wait('@getSubscriptions');
-    createApiKeyModal.findExpirationToggle().should('contain.text', '30 days');
+    createApiKeyModal.findExpirationDateInput().should('exist');
     createApiKeyModal.findSubmitButton().should('be.disabled');
     createApiKeyModal.findSubscriptionToggle().click();
     createApiKeyModal.findSubscriptionOption('premium-team-sub').click();
@@ -605,7 +615,7 @@ describe('API Keys Page', () => {
     createApiKeyModal.findSubmitButton().should('be.enabled');
     createApiKeyModal.findSubmitButton().click();
     cy.wait('@createApiKey').then((interception) => {
-      expect(interception.request.body?.data).to.include({ expiresIn: '30d' });
+      expect(interception.request.body?.data).to.include({ expiresIn: '1d' });
       expect(interception.response?.body?.data).to.include({
         name: 'production-backend',
         expiresAt: '2026-01-20T11:54:34.521671447-05:00',
@@ -631,35 +641,22 @@ describe('API Keys Page', () => {
       .should('have.value', formatApiKeyHiddenPreview(createdApiKey));
   });
 
-  it('should show the custom days input when Custom (days) is selected and hide it when switching back', () => {
-    apiKeysPage.findCreateApiKeyButton().click();
-    createApiKeyModal.shouldBeOpen();
-
-    createApiKeyModal.findCustomDaysInput().should('not.exist');
-    createApiKeyModal.findExpirationToggle().click();
-    createApiKeyModal.findExpirationOption('custom').click();
-    createApiKeyModal.findCustomDaysInput().should('exist');
-
-    createApiKeyModal.findExpirationToggle().click();
-    createApiKeyModal.findExpirationOption('90d').click();
-    createApiKeyModal.findCustomDaysInput().should('not.exist');
-  });
-
-  it('should create an API key with a custom expiration and show the correct label in the success view', () => {
-    const created = mockCreateAPIKeyResponse();
+  it('should create an API key with an on-date expiration', () => {
     cy.interceptOdh('POST /maas/api/v1/api-keys', {
-      data: created,
+      data: mockCreateAPIKeyResponse(),
     }).as('createApiKey');
 
     apiKeysPage.findCreateApiKeyButton().click();
     createApiKeyModal.shouldBeOpen();
     cy.wait('@getSubscriptions');
-    createApiKeyModal.findExpirationToggle().click();
-    createApiKeyModal.findExpirationOption('custom').click();
-    createApiKeyModal.findCustomDaysInput().type('45');
+
+    createApiKeyModal.findExpirationModeToggle().should('contain.text', 'On date');
+    createApiKeyModal.findExpirationDateInput().should('exist');
+    createApiKeyModal.findAfterDaysInput().should('not.exist');
+    createApiKeyModal.setExpirationDaysFromToday(45);
     createApiKeyModal.findSubscriptionToggle().click();
     createApiKeyModal.findSubscriptionOption('premium-team-sub').click();
-    createApiKeyModal.findNameInput().type('my-key');
+    createApiKeyModal.findNameInput().type('on-date-key');
     createApiKeyModal.findSubmitButton().should('be.enabled');
     createApiKeyModal.findSubmitButton().click();
 
@@ -668,19 +665,112 @@ describe('API Keys Page', () => {
     });
 
     copyApiKeyModal.shouldBeOpen();
-    copyApiKeyModal.findApiKeyName().should('contain.text', 'my-key');
+    copyApiKeyModal.findApiKeyName().should('contain.text', 'on-date-key');
     copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '45 days');
   });
 
-  it('should show a validation error for an out-of-range custom days value', () => {
+  it('should create an API key with an after-days expiration', () => {
+    cy.interceptOdh('POST /maas/api/v1/api-keys', {
+      data: mockCreateAPIKeyResponse(),
+    }).as('createApiKey');
+
     apiKeysPage.findCreateApiKeyButton().click();
     createApiKeyModal.shouldBeOpen();
-    createApiKeyModal.findExpirationToggle().click();
-    createApiKeyModal.findExpirationOption('custom').click();
-    createApiKeyModal.findCustomDaysInput().type('366').blur();
-    createApiKeyModal.find().contains('Enter a value between 1 and 365 days').should('exist');
+    cy.wait('@getSubscriptions');
+
+    createApiKeyModal.selectExpirationMode('after');
+    createApiKeyModal.findExpirationDatePicker().should('not.exist');
+    createApiKeyModal.findAfterDaysInput().should('have.value', '1');
+    createApiKeyModal.findExpirationHelper().should('contain.text', 'Enter a value between 1 and');
+    createApiKeyModal.setAfterDays(45);
+    createApiKeyModal.findSubscriptionToggle().click();
+    createApiKeyModal.findSubscriptionOption('premium-team-sub').click();
+    createApiKeyModal.findNameInput().type('after-days-key');
+    createApiKeyModal.findSubmitButton().should('be.enabled');
+    createApiKeyModal.findSubmitButton().click();
+
+    cy.wait('@createApiKey').then((interception) => {
+      expect(interception.request.body?.data).to.include({ expiresIn: '45d' });
+    });
+
+    copyApiKeyModal.shouldBeOpen();
+    copyApiKeyModal.findApiKeyName().should('contain.text', 'after-days-key');
+    copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '45 days');
+  });
+
+  it('should create an API key with the maximum expiration', () => {
+    cy.interceptOdh('POST /maas/api/v1/api-keys', {
+      data: mockCreateAPIKeyResponse(),
+    }).as('createApiKey');
+
+    apiKeysPage.findCreateApiKeyButton().click();
+    createApiKeyModal.shouldBeOpen();
+    cy.wait('@getSubscriptions');
+
+    createApiKeyModal.selectExpirationMode('max');
+    createApiKeyModal.findExpirationDatePicker().should('not.exist');
+    createApiKeyModal.findAfterDaysInput().should('not.exist');
+    createApiKeyModal
+      .findExpirationModeToggle()
+      .should('contain.text', 'Use max value of 365 days');
+    createApiKeyModal.findExpirationHelper().should('contain.text', 'Expires in 365 days');
+    createApiKeyModal.findSubscriptionToggle().click();
+    createApiKeyModal.findSubscriptionOption('premium-team-sub').click();
+    createApiKeyModal.findNameInput().type('max-expiration-key');
+    createApiKeyModal.findSubmitButton().should('be.enabled');
+    createApiKeyModal.findSubmitButton().click();
+
+    cy.wait('@createApiKey').then((interception) => {
+      expect(interception.request.body?.data).to.include({ expiresIn: '365d' });
+    });
+
+    copyApiKeyModal.shouldBeOpen();
+    copyApiKeyModal.findApiKeyName().should('contain.text', 'max-expiration-key');
+    copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '365 days (maximum)');
+  });
+
+  it('should show a validation error for an out-of-range after-days value', () => {
+    apiKeysPage.findCreateApiKeyButton().click();
+    createApiKeyModal.shouldBeOpen();
+    createApiKeyModal.setAfterDays(400);
     createApiKeyModal.findNameInput().type('my-key');
     createApiKeyModal.findSubmitButton().should('be.disabled');
+    createApiKeyModal.findExpirationHelper().should('contain.text', 'Enter a value between 1 and');
+  });
+
+  it('should respect a lower configured max expiration across modes', () => {
+    cy.interceptOdh('GET /maas/api/v1/api-keys-config', {
+      data: {
+        // eslint-disable-next-line camelcase
+        max_expiration_days: 90,
+        // eslint-disable-next-line camelcase
+        ephemeral_max_expiration: '1h',
+      },
+    }).as('getApiKeyConfig90');
+
+    apiKeysPage.visitKeysAndSubs();
+    cy.wait('@initialSearch');
+    cy.wait('@getApiKeyConfig90');
+
+    apiKeysPage.findCreateApiKeyButton().click();
+    createApiKeyModal.shouldBeOpen();
+    createApiKeyModal.findExpirationModeToggle().click();
+    createApiKeyModal
+      .findExpirationModeOption('max')
+      .should('contain.text', 'Use max value of 90 days');
+    createApiKeyModal.findExpirationModeOption('max').click();
+    createApiKeyModal.findExpirationHelper().should('contain.text', 'Expires in 90 days');
+
+    createApiKeyModal.setAfterDays(91);
+    createApiKeyModal.findNameInput().type('my-key');
+    createApiKeyModal.findSubmitButton().should('be.disabled');
+    createApiKeyModal
+      .findExpirationHelper()
+      .should('contain.text', 'Enter a value between 1 and 90');
+
+    createApiKeyModal.setExpirationDaysFromToday(91);
+    createApiKeyModal.findSubmitButton().should('be.disabled');
+    createApiKeyModal.find().contains('Select a date').should('exist');
   });
 
   it('should display an inline error alert when API key creation fails', () => {
