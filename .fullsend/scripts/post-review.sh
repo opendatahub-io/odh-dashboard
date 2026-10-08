@@ -659,8 +659,13 @@ def challenger_prose(result):
         return problem
     reason = clean(ch.get("reason") or "")
     if status == "failed":
-        return (f"Challenger failed ({reason}); using the pre-challenger finding set."
-                if reason else "Challenger failed; using the pre-challenger finding set.")
+        fallback = "using the pre-challenger finding set"
+        if not reason:
+            return f"Challenger failed; {fallback}."
+        # Agents sometimes embed the fallback in reason; avoid duplicating it.
+        if fallback in reason.lower():
+            return f"Challenger failed ({reason})."
+        return f"Challenger failed ({reason}); {fallback}."
     if status == "skipped":
         if claims_empty_skip(reason):
             return "Skipped — no findings to adjudicate."
