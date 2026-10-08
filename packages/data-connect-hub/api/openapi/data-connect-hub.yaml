@@ -320,6 +320,7 @@ components:
           type: object
           required:
             - id
+            - tenant_id
           properties:
             id:
               type: string
@@ -327,6 +328,8 @@ components:
               pattern: '^[^/]+$'
             tenant_id:
               type: string
+              minLength: 1
+              description: Owning namespace for this connection.
             created_at:
               type: string
             updated_at:

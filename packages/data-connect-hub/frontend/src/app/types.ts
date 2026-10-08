@@ -45,7 +45,7 @@ export type NamespaceKind = {
 };
 
 export type Connection = {
-  metadata: { id: string; tenant_id?: string };
+  metadata: { id: string; tenant_id: string };
   resource: {
     name: string;
     data_connection_type_id: string;
