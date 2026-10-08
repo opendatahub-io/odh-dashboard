@@ -144,6 +144,7 @@ type Options struct {
 // DashboardReconciler reconciles a Dashboard object.
 type DashboardReconciler struct {
 	client.Client
+	APIReader             client.Reader
 	Scheme                *runtime.Scheme
 	ManifestsBasePath     string
 	Platform              cluster.Platform
@@ -167,8 +168,12 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if !dashboard.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(dashboard, dashboardFinalizer) {
-			if err := r.deleteMaaSPortalResources(ctx); err != nil {
+			cleanup, err := r.deleteMaaSPortalResources(ctx)
+			if err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to cleanup MaaS Portal resources: %w", err)
+			}
+			if cleanup.Pending {
+				return ctrl.Result{RequeueAfter: maasPortalRetryInterval}, nil
 			}
 			if err := r.cleanupCrossNamespaceResources(ctx, dashboard, false); err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to cleanup cross-namespace resources: %w", err)
@@ -1162,6 +1167,7 @@ func extractItems(list client.ObjectList) []client.Object {
 func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 	r := &DashboardReconciler{
 		Client:                mgr.GetClient(),
+		APIReader:             mgr.GetAPIReader(),
 		Scheme:                mgr.GetScheme(),
 		ManifestsBasePath:     opts.ManifestsBasePath,
 		Platform:              opts.Platform,
