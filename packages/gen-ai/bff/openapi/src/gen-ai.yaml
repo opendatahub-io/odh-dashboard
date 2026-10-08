@@ -153,9 +153,9 @@ paths:
   /gen-ai/api/v1/lsd/models:
     summary: List available AI models
     description: >-
-      Lists all available AI models from Llama Stack using OpenAI SDK.
-      Returns models with their identifiers, creation timestamps, and ownership information.
-      Requires namespace parameter for proper multi-tenant isolation.
+      Lists chat-capable LLM models from OGX by default. Set include_embedding_models=true
+      to return all model types for AI Assets and RAG settings. Returns identifiers,
+      creation timestamps, and ownership information. Requires namespace for multi-tenant isolation.
     get:
       tags:
         - Models
@@ -169,6 +169,13 @@ paths:
           schema:
             type: string
             example: 'default'
+        - name: include_embedding_models
+          in: query
+          description: Return all OGX model types, including embedding and transcription models. Only true or false is accepted.
+          required: false
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           $ref: '#/components/responses/ModelsResponse'
@@ -179,8 +186,8 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
       operationId: listModels
-      summary: List All Models
-      description: Gets a list of all available AI models from Llama Stack.
+      summary: List Playground Models
+      description: Gets LLM models by default, or all OGX model types when requested.
 
   /gen-ai/api/v1/lsd/status:
     summary: Get LlamaStack Distribution status
@@ -374,7 +381,7 @@ paths:
       Lists all available AI Available Assets models from various sources including
       Kubernetes InferenceServices, custom endpoints, and MaaS (Model as a Service).
       Returns models with their serving runtime, API protocol, version, and status information.
-      Requires namespace parameter for proper multi-tenant isolation.
+      A namespace is required unless only MaaS models are requested, because MaaS access is subscription-scoped.
       The sources parameter controls which model types are included in the response.
     get:
       tags:
@@ -385,7 +392,7 @@ paths:
         - name: namespace
           in: query
           description: Kubernetes namespace to query for AI Assets models
-          required: true
+          required: false
           schema:
             type: string
             example: 'genai-lls'
@@ -673,7 +680,7 @@ paths:
     description: >-
       Lists all available models from MaaS (Model as a Service).
       Returns models with their identifiers, creation timestamps, ownership information, ready status, and service URLs.
-      Requires namespace parameter for proper multi-tenant isolation.
+      Requires a namespace parameter for proper multi-tenant isolation.
     get:
       tags:
         - MaaS
@@ -2380,6 +2387,10 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '504':
           description: Agent prompt provider timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
 
   /gen-ai/api/v1/agent-deployments/{id}:
     get:
@@ -5561,11 +5572,15 @@ components:
       type: object
       required:
         - name
+        - displayName
         - namespace
         - agentProfileId
+        - createdAt
         - state
       properties:
         name:
+          type: string
+        displayName:
           type: string
         namespace:
           type: string

@@ -1,3 +1,51 @@
+import type { CollectionBenchmark, Provider } from '~/app/types';
+
+export type BenchmarkNameMap = ReadonlyMap<string, string>;
+
+const benchmarkNameMapKey = (providerId: string, benchmarkId: string): string =>
+  `${providerId}:${benchmarkId}`;
+
+/**
+ * Builds benchmark-name lookups for both provider-qualified and provider-agnostic collection
+ * benchmark references. An ID-only lookup is omitted when providers expose conflicting names.
+ */
+export const getBenchmarkNameMap = (providers: Provider[]): Map<string, string> => {
+  const nameMap = new Map<string, string>();
+  const ambiguousBenchmarkIds = new Set<string>();
+
+  providers.forEach((provider) => {
+    (provider.benchmarks ?? []).forEach((benchmark) => {
+      const name = benchmark.name.trim() || benchmark.id;
+      nameMap.set(benchmarkNameMapKey(provider.resource.id, benchmark.id), name);
+
+      if (ambiguousBenchmarkIds.has(benchmark.id)) {
+        return;
+      }
+
+      const existingName = nameMap.get(benchmark.id);
+      if (existingName && existingName !== name) {
+        nameMap.delete(benchmark.id);
+        ambiguousBenchmarkIds.add(benchmark.id);
+      } else {
+        nameMap.set(benchmark.id, name);
+      }
+    });
+  });
+
+  return nameMap;
+};
+
+export const getBenchmarkDisplayName = (
+  benchmark: CollectionBenchmark,
+  benchmarkNameMap?: BenchmarkNameMap,
+): string => {
+  const providerBenchmarkName = benchmark.provider_id
+    ? benchmarkNameMap?.get(benchmarkNameMapKey(benchmark.provider_id, benchmark.id))
+    : undefined;
+
+  return providerBenchmarkName ?? benchmarkNameMap?.get(benchmark.id) ?? benchmark.id;
+};
+
 type CategoryColor = 'orange' | 'blue' | 'green' | 'purple' | 'teal' | 'red' | 'yellow';
 
 const CATEGORY_COLOR_PALETTE: CategoryColor[] = [

@@ -12,7 +12,7 @@ import { deleteOpenShiftProject, createOpenShiftProject } from '../../../utils/o
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { loadMlflowExperimentsFixture } from '../../../utils/dataLoader';
-import { mlflowExperiments, ExperimentTypeToggle } from '../../../pages/mlflowExperiments';
+import { mlflowExperiments } from '../../../pages/mlflowExperiments';
 import { appChrome } from '../../../pages/appChrome';
 import type { MlflowExperimentsTestData } from '../../../types';
 
@@ -118,48 +118,13 @@ describe('Verify MLflow Experiments page', () => {
       cy.step('Verify experiment detail heading is shown');
       mlflowExperiments.findExperimentDetailHeading(experimentName).should('be.visible');
 
-      cy.step('Verify experiment type toggle is visible');
-      mlflowExperiments
-        .findExperimentTypeToggleItem(ExperimentTypeToggle.GEN_AI)
-        .should('be.visible');
-      mlflowExperiments
-        .findExperimentTypeToggleItem(ExperimentTypeToggle.MODEL_TRAINING)
-        .should('be.visible');
-
-      cy.step('Verify GenAI toggle is selected by default');
-      mlflowExperiments.shouldHaveExperimentTypeSelected(ExperimentTypeToggle.GEN_AI);
-
-      cy.step('Verify GenAI tabs are visible');
-      mlflowExperiments.findUsageTab().should('be.visible');
-      mlflowExperiments.findQualityTab().should('be.visible');
-      mlflowExperiments.findToolCallsTab().should('be.visible');
-      mlflowExperiments.shouldHaveUsageTabSelected();
-
-      cy.step('Verify Evaluation runs link is visible');
-      mlflowExperiments.findEvaluationRunsLink().should('be.visible');
-
-      cy.step('Switch to Model training toggle');
-      mlflowExperiments.findExperimentTypeToggleItem(ExperimentTypeToggle.MODEL_TRAINING).click();
-      mlflowExperiments.shouldHaveExperimentTypeSelected(ExperimentTypeToggle.MODEL_TRAINING);
-
-      cy.step('Switch back to GenAI toggle');
-      mlflowExperiments.findExperimentTypeToggleItem(ExperimentTypeToggle.GEN_AI).click();
-      mlflowExperiments.shouldHaveExperimentTypeSelected(ExperimentTypeToggle.GEN_AI);
-
       cy.step('Verify breadcrumbs appear');
       mlflowExperiments.findBreadcrumb().scrollIntoView().should('be.visible');
       mlflowExperiments.findBreadcrumbItem('Experiments').should('be.visible');
       mlflowExperiments.findBreadcrumbItem(experimentName).should('be.visible');
 
-      cy.step('Switch to Model training to verify runs view');
-      mlflowExperiments.findExperimentTypeToggleItem(ExperimentTypeToggle.MODEL_TRAINING).click();
-      mlflowExperiments.shouldHaveExperimentTypeSelected(ExperimentTypeToggle.MODEL_TRAINING);
-
       cy.step('Verify runs table or empty runs state is visible');
       mlflowExperiments.shouldHaveRunsTable();
-
-      cy.step('Switch back to GenAI');
-      mlflowExperiments.findExperimentTypeToggleItem(ExperimentTypeToggle.GEN_AI).click();
 
       cy.step('Click "Experiments" in breadcrumbs to navigate back');
       mlflowExperiments.findBreadcrumbItem('Experiments').click();
@@ -260,12 +225,6 @@ describe('Verify MLflow Experiments page', () => {
           mlflowExperiments.visit(projectName);
           mlflowExperiments.findExperimentInTable(runsExperimentName).click();
 
-          cy.step('Switch to Model training to see runs');
-          mlflowExperiments
-            .findExperimentTypeToggleItem(ExperimentTypeToggle.MODEL_TRAINING)
-            .click();
-          mlflowExperiments.shouldHaveExperimentTypeSelected(ExperimentTypeToggle.MODEL_TRAINING);
-
           cy.step('Verify both runs appear in the runs table');
           mlflowExperiments.findRunInTable(run1.name).should('be.visible');
           mlflowExperiments.findRunInTable(run2.name).should('be.visible');
@@ -285,10 +244,7 @@ describe('Verify MLflow Experiments page', () => {
           cy.step('Navigate back to experiment via breadcrumbs');
           mlflowExperiments.findBreadcrumbItem(runsExperimentName).click();
 
-          cy.step('Switch to Model training to see runs table');
-          mlflowExperiments
-            .findExperimentTypeToggleItem(ExperimentTypeToggle.MODEL_TRAINING)
-            .click();
+          cy.step('Verify runs table is visible');
           mlflowExperiments.findRunInTable(run1.name).should('be.visible');
 
           cy.step('Select both runs via checkboxes');

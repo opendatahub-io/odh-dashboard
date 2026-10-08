@@ -30,6 +30,7 @@ import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { enqueuePostDeployAlert } from '@odh-dashboard/model-serving/concepts/postDeployAlertStore';
 import { createExternalModel, updateExternalModel } from '~/app/api/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import {
@@ -38,6 +39,7 @@ import {
   ProviderRef,
   UpdateExternalModelRequest,
 } from '~/app/types/external-models';
+import { MAAS_PUBLISHED_EXTERNAL_ALERT_ID } from '~/odh/modelServingExtensions/MaaSPublishedPostDeployAlert';
 import {
   DISTRIBUTE_EQUALLY_POPOVER_CONTENT,
   EXTERNAL_MODEL_FIELD_MAX_LENGTH,
@@ -123,7 +125,10 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
   const showZeroTotalWeightWarning = hasZeroTotalProviderRefWeight(providerRefs);
 
   const isSubmitDisabled =
-    nameDescData.name.trim() === '' || providerRefs.length === 0 || isSubmitting;
+    nameDescData.name.trim() === '' ||
+    providerRefs.length === 0 ||
+    isSubmitting ||
+    !isK8sNameDescriptionDataValid(nameDescData);
 
   const handleSubmit = async () => {
     setProviderRefsTouched(true);
@@ -176,6 +181,8 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
           hasDescription: nameDescData.description.trim() !== '',
           success: true,
         } satisfies ExternalModelAddedProperties);
+
+        enqueuePostDeployAlert(MAAS_PUBLISHED_EXTERNAL_ALERT_ID, { modelName: trimmedName });
       }
 
       refreshExternalModels();
@@ -374,7 +381,9 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
               <StackItem>
                 <FormHelperText>
                   <HelperText>
-                    <HelperTextItem variant="error">{providerRefsValidationError}</HelperTextItem>
+                    <HelperTextItem variant="error" data-testid="provider-refs-required-info">
+                      {providerRefsValidationError}
+                    </HelperTextItem>
                   </HelperText>
                 </FormHelperText>
               </StackItem>
@@ -382,16 +391,36 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
           </Stack>
         </FormSection>
 
-        <FormSection title="Model availability" titleElement="h2">
+        <FormSection
+          title="Endpoint availability"
+          titleElement="h2"
+          description="Defines where users can access the model endpoint, and which users can do so."
+        >
           <Checkbox
             id="external-model-maas-availability"
             data-testid="external-model-maas-availability"
-            label="Available as a Model as a Service (MaaS)"
-            description="External models are served through the MaaS gateway. This model will be available to select users in the cluster after an administrator configures a subscription and authorization policy."
+            label="GenAI studio for subscribed users"
+            description={
+              <>
+                Model endpoints are accessible to subscribed users from the{' '}
+                <strong>AI asset endpoints</strong> page, which makes the model available on the{' '}
+                <strong>Playground</strong> page.
+              </>
+            }
             isChecked
             isDisabled
           />
         </FormSection>
+        <Alert
+          variant="info"
+          title="Additional configuration required"
+          data-testid="additional-configuration-required-alert"
+          isInline
+        >
+          To make the endpoint accessible to users, an admin must configure subscriptions and
+          authorization policies on the <strong>MaaS governance</strong> page. Users can view their
+          subscriptions, accessible models, and API keys on the <strong>API keys</strong> page.
+        </Alert>
 
         {submitError && (
           <Alert

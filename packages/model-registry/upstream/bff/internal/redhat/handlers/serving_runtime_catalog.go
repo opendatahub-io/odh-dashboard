@@ -8,6 +8,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/kubeflow/hub/ui/bff/internal/api"
 	"github.com/kubeflow/hub/ui/bff/internal/integrations/httpclient"
+	"github.com/kubeflow/hub/ui/bff/internal/mocks"
 	"github.com/kubeflow/hub/ui/bff/internal/models"
 	redhatrepos "github.com/kubeflow/hub/ui/bff/internal/redhat/repositories"
 )
@@ -32,14 +33,24 @@ func init() {
 	api.RegisterHandlerOverride(servingRuntimeVersionsHandlerID, overrideServingRuntimeVersions)
 }
 
-func overrideServingRuntimeList(app *api.App, buildDefault func() httprouter.Handle) httprouter.Handle {
-	if !app.Config().MockMRCatalogClient {
-		return buildDefault()
+// servingRuntimeCatalogClient resolves the client for serving-runtime catalog APIs.
+// The live model catalog client does not implement ServingRuntimeCatalogClient yet; use
+// mock data when --mock-mr-catalog-client is set until a live backend is wired.
+func servingRuntimeCatalogClient(app *api.App) (redhatrepos.ServingRuntimeCatalogClient, bool) {
+	if client, ok := app.Repositories().ModelCatalogClient.(redhatrepos.ServingRuntimeCatalogClient); ok {
+		return client, true
 	}
+	if app.Config().MockMRCatalogClient {
+		return &mocks.ModelCatalogClientMock{}, true
+	}
+	return nil, false
+}
+
+func overrideServingRuntimeList(app *api.App, buildDefault func() httprouter.Handle) httprouter.Handle {
 	return app.AttachNamespace(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		client, ok := app.Repositories().ModelCatalogClient.(redhatrepos.ServingRuntimeCatalogClient)
+		client, ok := servingRuntimeCatalogClient(app)
 		if !ok {
-			app.ServerError(w, r, fmt.Errorf("serving runtime catalog mock client not found"))
+			buildDefault()(w, r, ps)
 			return
 		}
 		repo := redhatrepos.NewServingRuntimeCatalogRepository(client)
@@ -55,13 +66,10 @@ func overrideServingRuntimeList(app *api.App, buildDefault func() httprouter.Han
 }
 
 func overrideServingRuntimeFilterOptions(app *api.App, buildDefault func() httprouter.Handle) httprouter.Handle {
-	if !app.Config().MockMRCatalogClient {
-		return buildDefault()
-	}
 	return app.AttachNamespace(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		client, ok := app.Repositories().ModelCatalogClient.(redhatrepos.ServingRuntimeCatalogClient)
+		client, ok := servingRuntimeCatalogClient(app)
 		if !ok {
-			app.ServerError(w, r, fmt.Errorf("serving runtime catalog mock client not found"))
+			buildDefault()(w, r, ps)
 			return
 		}
 		repo := redhatrepos.NewServingRuntimeCatalogRepository(client)
@@ -77,13 +85,10 @@ func overrideServingRuntimeFilterOptions(app *api.App, buildDefault func() httpr
 }
 
 func overrideServingRuntimeGet(app *api.App, buildDefault func() httprouter.Handle) httprouter.Handle {
-	if !app.Config().MockMRCatalogClient {
-		return buildDefault()
-	}
 	return app.AttachNamespace(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		client, ok := app.Repositories().ModelCatalogClient.(redhatrepos.ServingRuntimeCatalogClient)
+		client, ok := servingRuntimeCatalogClient(app)
 		if !ok {
-			app.ServerError(w, r, fmt.Errorf("serving runtime catalog mock client not found"))
+			buildDefault()(w, r, ps)
 			return
 		}
 		repo := redhatrepos.NewServingRuntimeCatalogRepository(client)
@@ -104,13 +109,10 @@ func overrideServingRuntimeGet(app *api.App, buildDefault func() httprouter.Hand
 }
 
 func overrideServingRuntimeVersions(app *api.App, buildDefault func() httprouter.Handle) httprouter.Handle {
-	if !app.Config().MockMRCatalogClient {
-		return buildDefault()
-	}
 	return app.AttachNamespace(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		client, ok := app.Repositories().ModelCatalogClient.(redhatrepos.ServingRuntimeCatalogClient)
+		client, ok := servingRuntimeCatalogClient(app)
 		if !ok {
-			app.ServerError(w, r, fmt.Errorf("serving runtime catalog mock client not found"))
+			buildDefault()(w, r, ps)
 			return
 		}
 		repo := redhatrepos.NewServingRuntimeCatalogRepository(client)

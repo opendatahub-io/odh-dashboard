@@ -385,6 +385,28 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /api/operator-subscription-status:
+    get:
+      tags:
+        - Status
+      operationId: getOperatorSubscriptionStatus
+      summary: Get the installed data science operator subscription status
+      description: >-
+        Returns only the channel and last-updated timestamp of the installed OpenShift AI or Open Data Hub operator subscription.
+        All authenticated users, including non-admin MaaS Portal users, may access this read-only metadata to populate observability dashboard variables.
+        Administrator privileges and direct Kubernetes Subscription read permission are not required.
+        Checks the configured operator namespace before the platform defaults, including openshift-operators for Open Data Hub.
+        Returns 404 when no candidate subscription is installed or accessible to the BFF service account.
+      responses:
+        '200':
+          $ref: '#/components/responses/OperatorSubscriptionStatusResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/BFFNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /api/dashboardConfig/{namespace}/{name}:
     parameters:
       - name: namespace
@@ -1397,6 +1419,17 @@ components:
         isImpersonating:
           type: boolean
 
+    OperatorSubscriptionStatus:
+      type: object
+      required:
+        - channel
+      properties:
+        channel:
+          type: string
+        lastUpdated:
+          type: string
+          format: date-time
+
     StatusEnvelope:
       type: object
       required:
@@ -1670,6 +1703,16 @@ components:
               isAllowed: true
               serverURL: 'https://api.cluster.example.com:6443'
               isImpersonating: false
+
+    OperatorSubscriptionStatusResponse:
+      description: Installed data science operator subscription status
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/OperatorSubscriptionStatus'
+          example:
+            channel: fast
+            lastUpdated: '2026-09-25T12:00:00Z'
 
     ComponentsResponse:
       description: List of OdhApplication components

@@ -28,6 +28,13 @@ const (
 	e2eCleanupTimeout = 5 * time.Minute
 )
 
+func requireManagedFixture(t *testing.T) {
+	t.Helper()
+	if testFixtureMode != fixtureModeManaged || !e2eOwnsFixture {
+		t.Fatalf("test mutates the Dashboard fixture and requires -fixture-mode=%s", fixtureModeManaged)
+	}
+}
+
 func waitForCondition(
 	c client.Client,
 	name string,

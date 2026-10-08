@@ -133,6 +133,38 @@ class GenAiPlayground {
     return cy.findByTestId('upload-image-menu-item');
   }
 
+  findAudioUploadMenuItem() {
+    return cy.findByTestId('upload-audio-menu-item');
+  }
+
+  findAudioFileInput() {
+    return cy.findByTestId('audio-file-input');
+  }
+
+  findDocumentUploadMenuItem() {
+    return cy.findByTestId('upload-document-menu-item');
+  }
+
+  findDocumentFileInput() {
+    return cy.findByTestId('document-file-input');
+  }
+
+  findDocumentAttachmentByName(fileName: string) {
+    return cy.contains('[data-testid^="document-attachment-"]', fileName);
+  }
+
+  findAudioFileChip() {
+    return cy.get('[data-testid="audio-file-chip"]');
+  }
+
+  findAudioTranscriptionError() {
+    return cy.get('[data-testid="audio-transcription-error"]');
+  }
+
+  findStopButton() {
+    return cy.get('[data-testid="chatbot-stop-button"]');
+  }
+
   findSendButton() {
     return cy.findByTestId('chatbot-send-button');
   }
@@ -221,6 +253,20 @@ class GenAiPlayground {
     return cy.findByTestId('create-external-model-token-input');
   }
 
+  findAddCapabilityButton() {
+    return cy.findByTestId('add-capability-btn');
+  }
+
+  findCapabilityMenuItem(capability: string) {
+    // The test id is applied to the DropdownItem itself, which owns the menuitem role.
+    // Querying descendants skips that element and waits for a nested menuitem that does not exist.
+    return cy.findByTestId(`common-capability-${capability}`);
+  }
+
+  findSelectedCapability(capability: string) {
+    return cy.findByTestId(`selected-capability-${capability}`);
+  }
+
   findVerifyModelButton() {
     return cy.findByTestId('create-external-model-verify-button');
   }
@@ -270,17 +316,36 @@ class GenAiPlayground {
     return cy.findByTestId('chatbot-settings-panel-header', options);
   }
 
+  findCloseSettingsButton() {
+    return cy.findByRole('button', { name: 'Close settings panel' });
+  }
+
   ensureSettingsPanelOpen() {
-    cy.get('body').then(($body) => {
-      if ($body.find('[data-testid="chatbot-settings-panel-header"]').length === 0) {
-        this.findSettingsButton().should('be.visible').click();
-      }
-    });
+    this.findSettingsButton()
+      .should('be.visible')
+      .then(($button) => {
+        if ($button.attr('aria-expanded') !== 'true') {
+          cy.wrap($button).click();
+        }
+      });
+    this.findSettingsButton().should('have.attr', 'aria-expanded', 'true');
     this.findSettingsPanelHeader({ timeout: 10000 }).should('be.visible');
   }
 
   findSettingsPromptTab() {
     return cy.findByTestId('chatbot-settings-page-tab-prompt');
+  }
+
+  findAddTranscriptionModelButton() {
+    return cy.findByTestId('add-transcription-model-btn');
+  }
+
+  findAsrModelToggle() {
+    return cy.findByTestId('asr-model-selector-toggle');
+  }
+
+  findAsrModelOption(modelId: string) {
+    return cy.findByTestId(`asr-model-option-${modelId}`);
   }
 
   // Prompt management methods (within the playground settings panel)

@@ -3,6 +3,7 @@ import * as React from 'react';
 export type PatternsExpandContextValue = {
   patternsExpanded: boolean;
   showToggle: boolean;
+  patternCount: number;
   onToggle: () => void;
 };
 

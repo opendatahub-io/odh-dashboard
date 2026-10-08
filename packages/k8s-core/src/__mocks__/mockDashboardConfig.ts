@@ -72,7 +72,6 @@ export type MockDashboardConfigType = {
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
-  connectionTest?: boolean;
   modelCapabilities?: boolean;
   runtimeCatalog?: boolean;
   globalMLflowNamespaces?: string[];
@@ -93,7 +92,7 @@ export const mockDashboardConfig = ({
   disableTracking = false,
   disableBYONImageStream = false,
   disableISVBadges = false,
-  genAiStudio = false,
+  genAiStudio = true,
   genAiTracing = false,
   automl = false,
   autorag = false,
@@ -139,7 +138,7 @@ export const mockDashboardConfig = ({
   genAiAgentDeployment = false,
   vLLMDeploymentOnMaaS = false,
   llmGatewayField = false,
-  promptManagement = false,
+  promptManagement = true,
   globalProjectPrompts = false,
   nimWizard = true,
   nimServiceOperator = false,
@@ -148,7 +147,6 @@ export const mockDashboardConfig = ({
   agentsCatalog = false,
   roleManagement = true,
   gpuaas = true,
-  connectionTest = false,
   modelCapabilities = false,
   runtimeCatalog = false,
   hardwareProfileOrder = ['test-hardware-profile'],
@@ -347,7 +345,6 @@ export const mockDashboardConfig = ({
       agentsCatalog,
       roleManagement,
       gpuaas,
-      connectionTest,
       modelCapabilities,
       runtimeCatalog,
     },

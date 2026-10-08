@@ -73,14 +73,15 @@ describe('ManageLabelsModal', () => {
     expect(screen.getByText('Manage labels')).toBeTruthy();
     expect(
       screen.getByText(
-        'Create and delete labels to manage how assets are organized across this project.',
+        'View and manage this project’s labels. Optionally use labels to organize and filter your data assets.',
       ),
     ).toBeTruthy();
   });
 
-  it('should render info alert', () => {
+  it('should not show an informational warning for label deletion', () => {
     renderModal();
-    expect(screen.getByText('Changes affect all project assets')).toBeTruthy();
+
+    expect(screen.queryByTestId('manage-labels-delete-warning')).not.toBeInTheDocument();
   });
 
   it('should render all labels with outline variant', () => {

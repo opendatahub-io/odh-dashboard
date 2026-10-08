@@ -382,6 +382,8 @@ export type CollectionBenchmark = {
 export type Collection = {
   resource: CollectionResource;
   name: string;
+  // EvalHub returns clone lineage at the collection level.
+  derived_from?: string;
   category?: string;
   description?: string;
   tags?: string[];
@@ -395,6 +397,11 @@ export type Collection = {
   custom?: Record<string, unknown>;
   pass_criteria?: CollectionPassCriteria;
   benchmarks?: CollectionBenchmark[];
+};
+
+export type CollectionResolution = {
+  collection: Collection;
+  wasCreated: boolean;
 };
 
 export type CollectionPatchOperation =
@@ -419,7 +426,7 @@ export type CollectionFilterParams = {
 };
 
 export type CloneCollectionRequest = {
-  name: string;
+  name?: string;
   description?: string;
   category?: string;
   tags?: string[];

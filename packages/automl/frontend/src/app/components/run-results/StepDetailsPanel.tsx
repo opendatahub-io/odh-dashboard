@@ -307,6 +307,20 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
               </Alert>
             </StackItem>
           )}
+          {nodeData.stepState === 'unreached' && (
+            <StackItem>
+              <Alert
+                variant="warning"
+                isInline
+                title="Step not attempted"
+                data-testid="step-not-attempted-alert"
+              >
+                {statusFilter === 'error'
+                  ? 'This step was not attempted because the pipeline failed at an earlier step.'
+                  : 'This step was skipped and was not attempted.'}
+              </Alert>
+            </StackItem>
+          )}
 
           <StackItem>
             <Content component={ContentVariants.p} className="automl-step-details__description">

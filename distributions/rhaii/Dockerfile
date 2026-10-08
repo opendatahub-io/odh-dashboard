@@ -26,6 +26,7 @@ COPY packages/tsconfig/ ./packages/tsconfig/
 # Copy feature packages used by the RHAII distribution.
 COPY packages/model-serving/ ./packages/model-serving/
 COPY packages/kserve/ ./packages/kserve/
+COPY packages/llmd-serving/ ./packages/llmd-serving/
 COPY packages/analytics/ ./packages/analytics/
 COPY packages/trustyai/ ./packages/trustyai/
 COPY packages/foundation/ ./packages/foundation/
@@ -54,6 +55,8 @@ ARG ENABLE_MODEL_SERVING=false
 ENV ENABLE_MODEL_SERVING=${ENABLE_MODEL_SERVING}
 ARG MODEL_SERVING_REMOTE_ENTRY=""
 ENV MODEL_SERVING_REMOTE_ENTRY=${MODEL_SERVING_REMOTE_ENTRY}
+ARG RHAII_TILT_FIXTURES=false
+ENV RHAII_TILT_FIXTURES=${RHAII_TILT_FIXTURES}
 RUN pnpm run build
 
 # ── Stage 2: BFF Builder ─────────────────────────────────────────────────────

@@ -140,7 +140,7 @@ curl -i -H "kubeflow-userid: user@example.com" "localhost:4000/api/v1/pipeline-r
 # Create a pipeline run
 curl -i -X POST -H "kubeflow-userid: user@example.com" -H "Content-Type: application/json" \
   "localhost:4000/api/v1/pipeline-runs?namespace=test-namespace" \
-  -d '{"display_name":"test-run","test_data_secret_name":"s","test_data_bucket_name":"b","test_data_key":"k","input_data_secret_name":"s","input_data_bucket_name":"b","input_data_keys":["k"],"maas_secret_name":"maas","vector_db_secret_name":"vector-db"}'
+  -d '{"display_name":"test-run","test_data_secret_name":"s","test_data_bucket_name":"b","test_data_key":"k","input_data_secret_name":"s","input_data_bucket_name":"b","input_data_keys":["k"],"maas_secret_name":"maas","db_secret_name":"database"}'
 ```
 
 For detailed API documentation, see:
