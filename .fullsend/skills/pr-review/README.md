@@ -68,7 +68,8 @@ Visible sections, in order:
 5. Checks (readiness table; omit when empty)
 6. Findings (omit when empty)
 7. Product ask (omit when `status` is `none`)
-8. TODO (omit when empty)
+8. TODO (omit when empty; plain-text category labels Findings / Checks /
+   Judgement / Nits)
 9. Collapsed **Review details**: Producers, Challenger (counts + removed
    audit), Evidence inspected, Labels
 
@@ -182,14 +183,16 @@ mismatch or incomplete checks; it does not invent risk.
 ### TODO synthesis (orchestrator)
 
 Closed recipe after the report is assembled (kind/status-driven, not producer-id
-branches):
+branches). Prefer `{category,text}` objects:
 
-1. Blocking findings → remediation / location pointers
-2. Check `fail` → that check’s summary
-3. Check `could-not-verify`, refuse-approve levels from `rating-policy.json`, section `needs_human` → concrete follow-ups
-4. Actionable low/info nits when the path would otherwise approve
+1. `findings` — blocking findings → remediation / location pointers
+2. `checks` — check `fail` → that check’s summary
+3. `judgement` — check `could-not-verify`, refuse-approve levels from `rating-policy.json`, section `needs_human` → concrete follow-ups
+4. `nits` — one bullet per `low`/`info` finding with `actionable: true` (whenever
+   such findings exist, not only on otherwise-approve paths)
 
-Omit `todo` when empty. Sticky bullets only — no `[ ]` task-list syntax.
+Omit `todo` when empty. Sticky bullets only — no `[ ]` task-list syntax. Host
+renders category labels as plain text (not markdown headers).
 
 ## Dimensions
 
@@ -284,7 +287,7 @@ Canonical schema: [`.fullsend/schemas/review-result.schema.json`](../../schemas/
 | `product_ask` | `section:product_ask` | Omit sticky section when `none` |
 | `checks[]` | `check:*` rows | Readiness; disposition-affecting |
 | `risk`, `confidence` | `signal:*` via `result_fields` | Sticky Signals table |
-| `todo[]` | Orchestrator final pass | Sticky TODO; omit when empty |
+| `todo[]` | Orchestrator final pass | Sticky TODO by category; omit when empty |
 | `inspected` | Orchestrator (+ host limits) | `summary` / `could_not_verify` only — no `producers` |
 | `label_actions` | Optional enrichment | Control labels stripped by host |
 | `action`, `body` | Host | Disposition + sticky markdown |
