@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Alert,
   FormGroup,
   FormHelperText,
   HelperText,
@@ -14,15 +13,12 @@ import {
 import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/ui-core/components/TypeaheadSelect';
-import { Link } from 'react-router-dom';
 import { ExternalProvider } from '~/app/types/external-models';
 import CreateExternalProviderForm from '~/app/pages/external-providers/createProvider/CreateExternalProviderForm';
 import { UseCreateExternalProviderFormReturn } from '~/app/pages/external-providers/createProvider/useCreateExternalProviderForm';
-import { externalProvidersManagementPath } from '~/app/pages/external-providers/const';
 import { ProviderSource, type ProviderSourceType } from '~/app/pages/external-models/const';
 
 type SelectProviderStepProps = {
-  namespace: string;
   providerSource: ProviderSourceType;
   onProviderSourceChange: (source: ProviderSourceType) => void;
   providerName: string;
@@ -32,7 +28,6 @@ type SelectProviderStepProps = {
 };
 
 const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
-  namespace,
   providerSource,
   onProviderSourceChange,
   providerName,
@@ -105,21 +100,6 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
                         popperProps={{ maxWidth: 'trigger' }}
                         toggleProps={{ id: 'provider-ref-provider' }}
                       />
-                      {externalProviders.length === 0 && (
-                        <Alert
-                          variant="info"
-                          isInline
-                          isPlain
-                          title="No external providers found"
-                          data-testid="no-external-providers-alert"
-                        >
-                          Create a provider on the{' '}
-                          <Link to={externalProvidersManagementPath(namespace)}>
-                            Manage external providers
-                          </Link>{' '}
-                          page first.
-                        </Alert>
-                      )}
                     </FormGroup>
                   ) : null
                 }
