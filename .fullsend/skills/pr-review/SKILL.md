@@ -97,8 +97,9 @@ Each `dimensions[]` object:
   through the challenger.
 
 Treat missing `output` as `findings`. Treat `llm-subagent` and
-`llm-skill` identically for selection and dispatch: the distinction is
-ownership only. All spawned reviewer definitions live beneath
+`llm-skill` identically for selection and dispatch, with one difference:
+an `llm-skill` row is never a registered persona (step 4 item 2).
+Otherwise the distinction is ownership only. All spawned reviewer definitions live beneath
 `skills/pr-review/sub-agents`. Upstream definitions are regular markdown
 files; ODH-owned definitions are repository-relative symlinks to their
 canonical directories in `.claude/skills`. Of the skills in this directory tree the
@@ -787,7 +788,7 @@ For each selected **findings** LLM row (from step 3c — excludes
    own context boundaries and output serialization:
 
    1. {definition_abs_path}         <!-- the row's `definition` -->
-   2. {inline_skill_path}           <!-- only when the row sets `inline_skill` -->
+   2. {inline_skill_path}           <!-- only when the registry row has an `inline_skill` field; never build a path for a row that has none -->
    3. /sandbox/workspace/target-repo/.fullsend/meta-prompts/common-review.md
    4. {meta_prompt_abs_path}        <!-- the row's `meta_prompt` -->
 
@@ -857,10 +858,12 @@ For each selected **findings** LLM row (from step 3c — excludes
    sub-agent personas this run registered.
 
    - **Persona listed in the runtime note (pi):** a row has a persona
-     only when the runtime note lists a name that is character for
-     character the row's `id` (for the challenger and a `pre_pass`, the
-     `name:` in that file's frontmatter). Then `subagent_type` = that
-     name, no `model`. The runner resolves the model from the
+     only when its `kind` is `llm-subagent` **and** the runtime note
+     lists a name that is character for character the row's `id` (for
+     the challenger and a `pre_pass`, the `name:` in that file's
+     frontmatter). Look the id up in the note's list before every
+     dispatch; an `llm-skill` row never has one. Then `subagent_type` =
+     that name, no `model`. The runner resolves the model from the
      repository's `agents[].subagents` and the frontmatter; a `model`
      argument is ignored and an unlisted `subagent_type` is rejected.
    - **No runtime note (Claude Code):** `model` from the definition's
