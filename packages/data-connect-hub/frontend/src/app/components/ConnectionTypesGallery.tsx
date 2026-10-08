@@ -31,8 +31,6 @@ import { IdentifiedLabelledToValuedLabelled } from '~/app/types';
 
 import emptyStateImage from '~/images/RHOAI-Noconnections-RGB.svg';
 
-import './ConnectionTypesGallery.scss';
-
 // Types ---------------------------------------------------------------------->
 
 type FilterOption = 'capability' | 'labels';
