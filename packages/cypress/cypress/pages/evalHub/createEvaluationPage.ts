@@ -11,6 +11,8 @@ class CreateEvaluationPage {
     return cy.findByTestId('suite-description-input');
   }
 
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  /*
   findSuiteEvaluatesToggle() {
     return cy.findByTestId('suite-evaluates-toggle');
   }
@@ -26,6 +28,7 @@ class CreateEvaluationPage {
   closeSuiteEvaluatesMenu() {
     this.findSuiteEvaluatesInput().type('{esc}').should('have.attr', 'aria-expanded', 'false');
   }
+  */
 
   findSuiteCategoryInput() {
     return cy.findByTestId('suite-domains-input');

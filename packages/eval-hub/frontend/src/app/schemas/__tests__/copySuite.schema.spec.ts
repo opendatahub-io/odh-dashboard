@@ -1,6 +1,7 @@
 import {
   copySuiteDefaultValues,
   copySuiteSchema,
+  getCopySuiteSchema,
   type CopySuiteFormValues,
 } from '~/app/schemas/copySuite.schema';
 
@@ -48,6 +49,25 @@ describe('copySuiteSchema', () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it('should reject a copy that keeps the source collection name', () => {
+    const result = getCopySuiteSchema('Source suite').safeParse({
+      ...validValues(),
+      suiteName: ' Source suite ',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: ['suiteName'],
+            message: 'Suite name must be different from the source collection name.',
+          }),
+        ]),
+      );
+    }
   });
 
   it('should accept raw metric thresholds above the percentage slider range', () => {
