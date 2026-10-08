@@ -159,7 +159,10 @@ describe(
 
     after(() => {
       stopPortForward(portForwardHandle);
+
+      cy.step('Revert externalProviders in OdhDashboardConfig');
       disableExternalProviders();
+
       deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     });
 
