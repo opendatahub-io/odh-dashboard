@@ -789,6 +789,18 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const hasConnectionType = Boolean(formData.data_connection_type_id);
   const hasConnectionTypesReady = connectionTypesLoaded && !connectionTypesError;
   const hasSelectedConnectionType = hasConnectionTypesReady && Boolean(selectedConnectionType);
+  const defaultCredentials = React.useMemo(
+    () =>
+      Object.fromEntries(
+        (selectedConnectionType?.resource.credentials_fields ?? [])
+          .filter((field) => field.default_value !== undefined)
+          .map((field) => [field.name, field.default_value ?? '']),
+      ),
+    [selectedConnectionType],
+  );
+  const hasMissingCredentialDefaults = Object.keys(defaultCredentials).some(
+    (name) => !(name in formData.credentials.properties),
+  );
   const hasNamespacesReady = namespacesLoaded && !namespacesError;
   const hasValidDetails =
     hasSelectedConnectionType &&
@@ -812,6 +824,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     hasValidProperties;
   const canResolveStartIndex =
     isOpenSessionReady &&
+    (!hasSelectedConnectionType || !hasMissingCredentialDefaults) &&
     (!hasConnectionType || connectionTypesLoaded || Boolean(connectionTypesError)) &&
     (!needsInitialValidationData || namespacesLoaded || Boolean(namespacesError));
   const calculatedStartIndex = hasValidConfiguration
@@ -844,6 +857,23 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     wasOpenRef.current = isOpen;
   }, [initialFormData, isOpen, namespace]);
   React.useEffect(() => {
+    if (isOpen && isOpenSessionReady && hasSelectedConnectionType && hasMissingCredentialDefaults) {
+      setFormData((current) => ({
+        ...current,
+        credentials: {
+          ...current.credentials,
+          properties: { ...defaultCredentials, ...current.credentials.properties },
+        },
+      }));
+    }
+  }, [
+    defaultCredentials,
+    hasMissingCredentialDefaults,
+    hasSelectedConnectionType,
+    isOpen,
+    isOpenSessionReady,
+  ]);
+  React.useEffect(() => {
     if (isOpen && !hasResolvedSessionStartIndex && canResolveStartIndex) {
       setSessionStartIndex(calculatedStartIndex);
       setHasResolvedSessionStartIndex(true);
@@ -868,7 +898,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     const selectedType = connectionTypes.find(
       (connectionType) => connectionType.metadata.id === connectionTypeId,
     );
-    const defaultCredentials = Object.fromEntries(
+    const defaultsForType = Object.fromEntries(
       (selectedType?.resource.credentials_fields ?? [])
         .filter((field) => field.default_value !== undefined)
         .map((field) => [field.name, field.default_value ?? '']),
@@ -876,7 +906,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     setFormData((current) => ({
       ...current,
       data_connection_type_id: connectionTypeId,
-      credentials: { ...current.credentials, properties: defaultCredentials },
+      credentials: { ...current.credentials, properties: defaultsForType },
     }));
     setConnectionTypeWarning(undefined);
   };

@@ -111,6 +111,91 @@ describe('CreateConnectionWizard', () => {
     expect(screen.queryByRole('heading', { name: 'Connection details' })).toBeNull();
   });
 
+  it.each([undefined, 'postgres://supplied', ''])(
+    'should merge asynchronously loaded credential defaults while preserving supplied values (%s)',
+    async (suppliedUri) => {
+      const user = userEvent.setup();
+      const onCreate =
+        jest.fn<(data: CreateConnectionRequest, selectedNamespace: string) => void>();
+      mockUseConnectionTypes.mockReturnValue([[], false, undefined]);
+      const credentialProperties: Record<string, string> =
+        suppliedUri === undefined ? {} : { URI: suppliedUri };
+      const props = {
+        namespace: 'test-project',
+        onClose: jest.fn(),
+        onCreate,
+        initialFormData: {
+          data_connection_type_id: 'postgresql',
+          credentials: {
+            secret: '',
+            properties: credentialProperties,
+          },
+        },
+      };
+      const { rerender } = render(<CreateConnectionWizard {...props} isOpen />);
+
+      mockUseConnectionTypes.mockReturnValue([
+        [
+          {
+            ...connectionTypes[0],
+            resource: {
+              ...connectionTypes[0].resource,
+              credentials_fields: [
+                {
+                  name: 'URI',
+                  label: 'URI',
+                  required: true,
+                  type: 'string',
+                  default_value: 'postgres://default',
+                },
+                {
+                  name: 'SSL_MODE',
+                  label: 'SSL mode',
+                  required: false,
+                  type: 'string',
+                  default_value: 'require',
+                },
+              ],
+            },
+          },
+        ],
+        true,
+        undefined,
+      ]);
+      rerender(<CreateConnectionWizard {...props} isOpen />);
+
+      expect(await screen.findByRole('heading', { name: 'Connection details' })).toBeTruthy();
+      await user.type(screen.getByTestId('connection-name-input'), 'warehouse');
+      await user.click(screen.getByRole('button', { name: 'Next' }));
+      expect(screen.getByTestId('credential-URI')).toHaveProperty(
+        'value',
+        suppliedUri ?? 'postgres://default',
+      );
+      expect(screen.getByTestId('credential-SSL_MODE')).toHaveProperty('value', 'require');
+      expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty(
+        'disabled',
+        suppliedUri === '',
+      );
+      if (suppliedUri === '') {
+        return;
+      }
+
+      await user.click(screen.getByRole('button', { name: 'Next' }));
+      await user.click(screen.getByRole('button', { name: 'Create connection' }));
+      await waitFor(() =>
+        expect(onCreate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            credentials: {
+              secret: 'warehouse',
+              properties: { URI: suppliedUri ?? 'postgres://default', SSL_MODE: 'require' },
+            },
+          }),
+          'test-project',
+        ),
+      );
+    },
+  );
+
   it('should remain on connection type when a prefilled connection type is unknown', async () => {
     render(
       <CreateConnectionWizard
@@ -196,6 +281,42 @@ describe('CreateConnectionWizard', () => {
         },
         'test-project',
       ),
+    );
+  });
+
+  it('should resolve the initial step after merging required credential defaults', async () => {
+    mockUseConnectionTypes.mockReturnValue([
+      [
+        {
+          ...connectionTypes[0],
+          resource: {
+            ...connectionTypes[0].resource,
+            credentials_fields: [
+              {
+                ...connectionTypes[0].resource.credentials_fields[0],
+                default_value: 'default-uri',
+              },
+            ],
+          },
+        },
+      ],
+      true,
+      undefined,
+    ]);
+
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{ data_connection_type_id: 'postgresql', name: 'warehouse' }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Review' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Create connection' })).toHaveProperty(
+      'disabled',
+      false,
     );
   });
 
