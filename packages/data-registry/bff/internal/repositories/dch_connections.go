@@ -103,7 +103,7 @@ func (r *ConnectionRepository) GetDCHConnections(ctx context.Context, client bff
 		for _, connection := range connections.Data {
 			if !validDCHConnectionID(connection.Metadata.ID) || seen[connection.Metadata.ID] ||
 				!validDCHTypeID(connection.Resource.TypeID) || strings.TrimSpace(connection.Resource.Name) == "" ||
-				(connection.Metadata.TenantID != "" && connection.Metadata.TenantID != namespace) {
+				connection.Metadata.TenantID != namespace {
 				connectionErr = invalidDCHResponse()
 				return
 			}
