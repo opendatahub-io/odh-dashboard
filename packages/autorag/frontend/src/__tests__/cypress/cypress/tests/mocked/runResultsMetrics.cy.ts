@@ -37,7 +37,8 @@ describe('AutoRAG run results metrics', () => {
 
     cy.findByTestId('close-step-details').click();
     autoragRunResultsPage.findPipelineDetailsButton().should('contain.text', 'Pipeline details');
-    cy.findByTestId('step-details-drawer-panel').should('not.be.visible');
+    // PF keeps the panel wrapper mounted when collapsed (hidden via transform) — assert the hidden attribute
+    cy.findByTestId('step-details-drawer-panel').should('have.attr', 'hidden');
 
     // Clicking the link re-shows the panel
     autoragRunResultsPage.findPipelineDetailsButton().click();
