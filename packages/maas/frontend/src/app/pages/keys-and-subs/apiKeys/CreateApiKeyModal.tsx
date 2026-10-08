@@ -83,6 +83,7 @@ import {
   MaaSEvents,
 } from '~/app/types/event-tracking';
 import { useKeysAndSubsContext } from '~/app/context/KeysAndSubsContext';
+import CopyableDisabledField from '~/app/shared/CopyableDisabledField';
 
 const createApiKeySchema = (maxDays: number) =>
   z
@@ -133,54 +134,6 @@ const createApiKeySchema = (maxDays: number) =>
     });
 
 type CreateApiKeyFormData = z.infer<ReturnType<typeof createApiKeySchema>>;
-
-type CopyableDisabledFieldProps = {
-  id: string;
-  label: string;
-  value: string;
-  copiedFieldId: string | undefined;
-  onCopy: (id: string, value: string) => void;
-  onTooltipHidden: () => void;
-  helperText?: React.ReactNode;
-};
-
-const CopyableDisabledField: React.FC<CopyableDisabledFieldProps> = ({
-  id,
-  label,
-  value,
-  copiedFieldId,
-  onCopy,
-  onTooltipHidden,
-  helperText,
-}) => (
-  <FormGroup label={label} fieldId={id}>
-    <InputGroup>
-      <InputGroupItem isFill>
-        <TextInput id={id} isDisabled aria-label={label} value={value} dir="ltr" />
-      </InputGroupItem>
-      <InputGroupItem>
-        <ClipboardCopyButton
-          id={`${id}-copy`}
-          data-testid={`${id}-copy-button`}
-          variant="control"
-          aria-label={`Copy ${label}`}
-          hasNoPadding
-          onClick={() => onCopy(id, value)}
-          onTooltipHidden={onTooltipHidden}
-        >
-          {copiedFieldId === id ? 'Copied' : 'Copy'}
-        </ClipboardCopyButton>
-      </InputGroupItem>
-    </InputGroup>
-    {helperText ? (
-      <FormHelperText>
-        <HelperText>
-          <HelperTextItem>{helperText}</HelperTextItem>
-        </HelperText>
-      </FormHelperText>
-    ) : null}
-  </FormGroup>
-);
 
 type CreateApiKeyModalProps = {
   onClose: (created?: boolean) => void;
@@ -508,7 +461,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
           <Stack hasGutter>
             <StackItem>
               <Alert
-                variant="success"
+                variant="warning"
                 isInline
                 title="Save your API key"
                 data-testid="api-key-created-alert"
@@ -597,9 +550,6 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                     id="api-key-base-url"
                     label="Base URL"
                     value={gatewayUrl}
-                    copiedFieldId={copiedFieldId}
-                    onCopy={handleFieldCopy}
-                    onTooltipHidden={() => setCopiedFieldId(undefined)}
                     helperText={
                       <>
                         Universal MaaS gateway base URL (shared across models). Do not use a
@@ -612,9 +562,6 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                   id="api-key-subscription-id"
                   label="Subscription ID"
                   value={selectedSubscription?.subscription_id_header ?? ''}
-                  copiedFieldId={copiedFieldId}
-                  onCopy={handleFieldCopy}
-                  onTooltipHidden={() => setCopiedFieldId(undefined)}
                 />
                 <FormGroup label="Available models" fieldId="api-key-available-models">
                   <Select
@@ -667,9 +614,6 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                     id="api-key-model-id"
                     label="Model ID"
                     value={effectiveSelectedModel}
-                    copiedFieldId={copiedFieldId}
-                    onCopy={handleFieldCopy}
-                    onTooltipHidden={() => setCopiedFieldId(undefined)}
                   />
                 )}
                 {modelDocumentationUrl && isSelectedModelInternal && (
@@ -677,9 +621,6 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                     id="api-key-model-documentation"
                     label="Model documentation"
                     value={modelDocumentationUrl}
-                    copiedFieldId={copiedFieldId}
-                    onCopy={handleFieldCopy}
-                    onTooltipHidden={() => setCopiedFieldId(undefined)}
                     helperText="OpenAPI documentation for this model. Opens the FastAPI / Swagger UI."
                   />
                 )}

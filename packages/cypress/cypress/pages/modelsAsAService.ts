@@ -494,7 +494,7 @@ class CopyApiKeyModal extends Modal {
   }
 
   findModelDocumentation(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('input[aria-label="Model documentation"]');
+    return this.find().find('#api-key-model-documentation');
   }
 
   findAvailableModelsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -511,15 +511,15 @@ class CopyApiKeyModal extends Modal {
   }
 
   findSubscriptionID(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('input[aria-label="Subscription ID"]');
+    return this.find().find('#api-key-subscription-id');
   }
 
   findModelID(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('input[aria-label="Model ID"]');
+    return this.find().find('#api-key-model-id');
   }
 
   findBaseURL(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('input[aria-label="Base URL"]');
+    return this.find().find('#api-key-base-url');
   }
 }
 
