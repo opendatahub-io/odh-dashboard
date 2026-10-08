@@ -237,12 +237,15 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   const [collectionToDelete, setCollectionToDelete] = React.useState<Collection | null>(null);
   const [filterCompactionLevel, setFilterCompactionLevel] = React.useState(0);
   const filterCompactionLevelRef = React.useRef(filterCompactionLevel);
+  const filterToolbarRef = React.useRef<HTMLDivElement | null>(null);
+  const setFilterToolbarRef = React.useCallback((filterGroup: HTMLDivElement | null) => {
+    filterToolbarRef.current =
+      filterGroup?.closest<HTMLDivElement>('[data-testid="benchmark-suites-filter-content"]') ??
+      null;
+  }, []);
   filterCompactionLevelRef.current = filterCompactionLevel;
 
-  const measureFilterToolbar = React.useCallback(() => {
-    const toolbarContent = document.querySelector<HTMLElement>(
-      '[data-testid="benchmark-suites-filter-content"]',
-    );
+  const measureFilterToolbar = React.useCallback((toolbarContent: HTMLElement | null) => {
     const filterGroup = toolbarContent?.querySelector<HTMLElement>(
       '[data-testid="benchmark-suites-filter-group"]',
     );
@@ -282,13 +285,11 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   }, []);
 
   React.useLayoutEffect(() => {
-    measureFilterToolbar();
+    measureFilterToolbar(filterToolbarRef.current);
   }, [filterCompactionLevel, measureFilterToolbar]);
 
   React.useEffect(() => {
-    const toolbarContent = document.querySelector<HTMLElement>(
-      '[data-testid="benchmark-suites-filter-content"]',
-    );
+    const toolbarContent = filterToolbarRef.current;
     if (!toolbarContent || typeof ResizeObserver === 'undefined') {
       return undefined;
     }
@@ -307,7 +308,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
           lastWidth = width;
           setFilterCompactionLevel(0);
         }
-        measureFilterToolbar();
+        measureFilterToolbar(toolbarContent);
       });
     };
 
@@ -790,7 +791,11 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
         <Toolbar clearAllFilters={clearFilters} data-testid="benchmark-suites-filter-toolbar">
           <ToolbarContent data-testid="benchmark-suites-filter-content">
             <ToolbarToggleGroup breakpoint="md" toggleIcon={<FilterIcon />}>
-              <ToolbarGroup variant="filter-group" data-testid="benchmark-suites-filter-group">
+              <ToolbarGroup
+                ref={setFilterToolbarRef}
+                variant="filter-group"
+                data-testid="benchmark-suites-filter-group"
+              >
                 <ToolbarFilter
                   labels={nameFilter ? [nameFilter] : []}
                   deleteLabel={() => setNameFilter('')}

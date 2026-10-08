@@ -251,7 +251,7 @@ describe('EvaluationsPage', () => {
     expect(screen.getByTestId('benchmark-suites-pagination-top')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Search collections')).toBeInTheDocument();
     expect(screen.getByTestId('page-description')).toHaveTextContent(
-      'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project..',
+      'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project.',
     );
   });
 
@@ -602,7 +602,7 @@ describe('EvaluationsPage', () => {
     expect(screen.getByTestId('runs-tab')).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByTestId('evaluations-table')).toBeInTheDocument();
     expect(screen.getByTestId('page-description')).toHaveTextContent(
-      'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project..',
+      'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project.',
     );
     expect(screen.getByTestId('runs-tab-description')).toHaveTextContent(
       'Start and manage evaluation runs for models, agents, and datasets.',
