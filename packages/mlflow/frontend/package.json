@@ -26,7 +26,8 @@
     "compression": "1.8.2",
     "adm-zip": "0.6.1",
     "js-yaml@^3.0.0": "3.15.2",
-    "js-yaml@^4.0.0": "4.3.2"
+    "js-yaml@^4.0.0": "4.3.2",
+    "dompurify": "^3.4.16"
   },
   "scripts": {
     "build": "run-s build:prod",
@@ -119,7 +120,7 @@
     "@patternfly/react-table": "^6.3.1",
     "@patternfly/react-templates": "^6.3.1",
     "classnames": "^2.2.6",
-    "dompurify": "^3.2.4",
+    "dompurify": "^3.4.16",
     "lodash-es": "^4.17.15",
     "mod-arch-core": "^1.2.2",
     "react": "^18",

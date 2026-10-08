@@ -134,7 +134,7 @@
     "react-router": "^7.17.0",
     "ws": "^8.21.0",
     "@types/ws": "^8.18.1",
-    "dompurify": "^3.4.8",
+    "dompurify": "^3.4.16",
     "@types/tar": "^6.1.13",
     "jsonpath-plus": "^10.4.0",
     "tough-cookie": "^4.1.4",
