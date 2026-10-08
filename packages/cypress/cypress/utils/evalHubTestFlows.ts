@@ -589,9 +589,12 @@ export const createBenchmarkSuite = (opts: BenchmarkSuiteCreationOptions): void 
 
   createEvaluationPage.findSuiteNameInput().clear().type(suiteName);
   createEvaluationPage.findSuiteDescriptionInput().type('Created by the EvalHub Cypress E2E flow.');
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  /*
   createEvaluationPage.findSuiteEvaluatesToggle().click();
   createEvaluationPage.findSuiteEvaluatesOption('model').click();
   createEvaluationPage.closeSuiteEvaluatesMenu();
+  */
   suiteDomains.forEach((category) => createEvaluationPage.selectSuiteCategory(category));
   createEvaluationPage.findCopySuiteNextButton().should('be.enabled').click();
 
