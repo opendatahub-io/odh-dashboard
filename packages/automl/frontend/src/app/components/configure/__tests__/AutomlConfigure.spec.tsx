@@ -1315,10 +1315,13 @@ describe('AutomlConfigure', () => {
 
         const fasterRadio = screen.getByTestId('preset-radio-speed');
         const betterQualityRadio = screen.getByTestId('preset-radio-balanced');
+        const bestQualityRadio = screen.getByTestId('preset-radio-quality');
         expect(fasterRadio).toBeInTheDocument();
         expect(betterQualityRadio).toBeInTheDocument();
+        expect(bestQualityRadio).toBeInTheDocument();
         expect(fasterRadio).toBeChecked();
         expect(betterQualityRadio).not.toBeChecked();
+        expect(bestQualityRadio).not.toBeChecked();
       });
 
       it('should display human-readable labels for presets', () => {
@@ -1329,6 +1332,7 @@ describe('AutomlConfigure', () => {
 
         expect(screen.getByText('Faster')).toBeInTheDocument();
         expect(screen.getByText('Better quality')).toBeInTheDocument();
+        expect(screen.getByText('Best quality')).toBeInTheDocument();
       });
 
       it('should switch preset when clicking the other radio', () => {
@@ -1352,6 +1356,23 @@ describe('AutomlConfigure', () => {
 
         expect(screen.getByTestId('preset-radio-balanced')).toBeChecked();
         expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
+      });
+
+      it('should select the quality preset and display its summary', () => {
+        renderComponent();
+        selectSecretAndFile();
+        selectTargetColumn();
+        selectPredictionType('binary');
+
+        const qualityRadio = screen.getByTestId('preset-radio-quality');
+        fireEvent.click(qualityRadio);
+
+        expect(qualityRadio).toBeChecked();
+        expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
+        expect(screen.getByText(/16 vCPU \/ 64 GiB/)).toBeInTheDocument();
+        expect(
+          screen.getByText(/maximum model search quality is worth the longer run/i),
+        ).toBeInTheDocument();
       });
     });
 

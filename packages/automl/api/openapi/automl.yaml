@@ -1317,8 +1317,8 @@ components:
           example: "data/train.csv"
         preset:
           type: string
-          enum: [speed, balanced]
-          description: Training quality tier controlling the trade-off between training speed and model quality. "speed" (default) uses fewer resources; "balanced" prioritizes accuracy with longer training time. When omitted, the pipeline defaults to "speed".
+          enum: [speed, balanced, quality]
+          description: Training quality tier controlling the trade-off between training speed and model quality. Tabular pipelines support "speed" (default), "balanced", and "quality"; time-series pipelines support "speed" and "balanced". When omitted, the pipeline defaults to "speed".
           example: "speed"
         eval_metric:
           type: string
