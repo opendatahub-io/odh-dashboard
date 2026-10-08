@@ -25,6 +25,14 @@ class RuntimeCatalogDetailsPage {
     return this.findPage().findByTestId('runtime-container-image-copy').findByRole('textbox');
   }
 
+  findCertifiedPlatforms() {
+    return this.findPage().findByTestId('runtime-certified-platform');
+  }
+
+  findCertifiedPlatformLabels() {
+    return this.findCertifiedPlatforms().findAllByTestId('runtime-certified-platform-label');
+  }
+
   findServingRuntimePanel() {
     return this.findPage().findByTestId('runtime-serving-runtime-panel');
   }

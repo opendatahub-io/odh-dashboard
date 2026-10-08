@@ -14,6 +14,8 @@ import {
   DescriptionListTerm,
   EmptyState,
   EmptyStateBody,
+  Label,
+  LabelGroup,
   PageSection,
   Sidebar,
   SidebarContent,
@@ -33,7 +35,7 @@ import { formatRuntimePublishedDate, formatRuntimeTemplate } from './runtimeCata
 
 export type RuntimeCatalogDetailsViewProps = {
   breadcrumbs: { title: string; href: string }[];
-  runtimeDetails?: ServingRuntime | null;
+  runtimeDetails?: (ServingRuntime & { certifiedPlatform?: string[] }) | null;
   runtimeVersions?: ServingRuntimeVersion[];
   loading?: boolean;
   error?: Error;
@@ -60,6 +62,8 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
     selectedVersion ? selectedVersion.publishedDate : runtimeDetails?.publishedDate,
   );
   const hardware = runtimeDetails?.capabilities?.supportedAccelerators?.join(', ');
+  const certifiedPlatforms =
+    runtimeDetails?.certifiedPlatform?.map((platform) => platform.trim()).filter(Boolean) ?? [];
 
   return (
     <>
@@ -208,11 +212,18 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                           ['Hardware', hardware],
                           ['Model formats', modelFormats],
                           ['Container image', selectedVersion?.image],
+                          ['Certified platform', undefined],
                           ['Publish on', publishedDate],
                         ].map(([label, value]) => (
                           <DescriptionListGroup key={label}>
                             <DescriptionListTerm>{label}</DescriptionListTerm>
-                            <DescriptionListDescription>
+                            <DescriptionListDescription
+                              data-testid={
+                                label === 'Certified platform'
+                                  ? 'runtime-certified-platform'
+                                  : undefined
+                              }
+                            >
                               {label === 'Container image' && value ? (
                                 <ClipboardCopy
                                   isReadOnly
@@ -221,6 +232,22 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                                 >
                                   {value}
                                 </ClipboardCopy>
+                              ) : label === 'Certified platform' ? (
+                                certifiedPlatforms.length > 0 ? (
+                                  <LabelGroup numLabels={certifiedPlatforms.length}>
+                                    {certifiedPlatforms.map((platform, index) => (
+                                      <Label
+                                        key={`${platform}-${index}`}
+                                        variant="outline"
+                                        data-testid="runtime-certified-platform-label"
+                                      >
+                                        {platform}
+                                      </Label>
+                                    ))}
+                                  </LabelGroup>
+                                ) : (
+                                  'N/A'
+                                )
                               ) : (
                                 value || 'N/A'
                               )}

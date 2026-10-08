@@ -140,12 +140,39 @@ describe('Runtime image library details', () => {
     runtimeCatalogDetailsPage
       .findContainerImageInput()
       .should('have.value', 'registry.example.com/mock/vllm:0.6.0');
+    runtimeCatalogDetailsPage.findCertifiedPlatforms().should('have.text', 'N/A');
     runtimeCatalogDetailsPage.findButton('Install').should('not.exist');
     runtimeCatalogDetailsPage.findServingRuntimeTab().should('be.visible');
     runtimeCatalogDetailsPage
       .findServingRuntimePanel()
       .should('contain.text', 'kind: ServingRuntime');
     cy.testA11y();
+  });
+
+  it('shows every certified platform as a badge', () => {
+    cy.intercept(
+      { method: 'GET', pathname: `${catalogApiPath}/${runtimeId}` },
+      { data: { ...runtimeFamily, certifiedPlatform: ['OpenShift AI', 'Kubernetes'] } },
+    );
+    runtimeCatalogDetailsPage.visit(runtimeId);
+
+    runtimeCatalogDetailsPage.findCertifiedPlatformLabels().should('have.length', 2);
+    runtimeCatalogDetailsPage
+      .findCertifiedPlatformLabels()
+      .eq(0)
+      .should('have.text', 'OpenShift AI');
+    runtimeCatalogDetailsPage.findCertifiedPlatformLabels().eq(1).should('have.text', 'Kubernetes');
+    runtimeCatalogDetailsPage.findCertifiedPlatforms().should('not.contain.text', 'N/A');
+  });
+
+  it('shows N/A when certified platforms are empty', () => {
+    cy.intercept(
+      { method: 'GET', pathname: `${catalogApiPath}/${runtimeId}` },
+      { data: { ...runtimeFamily, certifiedPlatform: [] } },
+    );
+    runtimeCatalogDetailsPage.visit(runtimeId);
+
+    runtimeCatalogDetailsPage.findCertifiedPlatforms().should('have.text', 'N/A');
   });
 
   it('copies the container image', () => {

@@ -1,6 +1,7 @@
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import { runtimeCatalogPage } from '../../../pages/runtimeCatalog';
+import { runtimeCatalogDetailsPage } from '../../../pages/runtimeCatalogDetails';
 import { API_VERSION, setupModelCatalogIntercepts } from '../catalogHelpers';
 
 const setupRuntimeCatalogIntercepts = (): void => {
@@ -63,6 +64,8 @@ const setupRuntimeCatalogIntercepts = (): void => {
     },
   );
 };
+
+const runtimeDetailsPath = `/model-registry/api/${API_VERSION}/serving_runtime_catalog/serving_runtimes/1`;
 
 const setupRuntimeCatalogSourceIntercepts = (): void => {
   cy.intercept('GET', `**/model-registry/api/${API_VERSION}/model_catalog/sources*`, {
@@ -146,5 +149,52 @@ describe('Runtime image library landing', () => {
     runtimeCatalogPage.visit();
     runtimeCatalogPage.findCardHardware('vllm').should('contain.text', 'NVIDIA GPU');
     runtimeCatalogPage.findCardHardware('ovms').should('contain.text', 'CPU');
+  });
+
+  it('opens runtime details using the BFF ID instead of the runtime name', () => {
+    cy.intercept(
+      { method: 'GET', pathname: runtimeDetailsPath },
+      {
+        body: { data: { id: '1', name: 'vllm', displayName: 'vLLM' } },
+      },
+    ).as('runtimeDetails');
+    cy.intercept(
+      { method: 'GET', pathname: `${runtimeDetailsPath}/versions` },
+      {
+        body: { data: { items: [], size: 0, pageSize: 1, nextPageToken: '' } },
+      },
+    );
+
+    runtimeCatalogPage.visit();
+    runtimeCatalogPage.openCardDetails('vllm');
+
+    cy.location('pathname').should(
+      'eq',
+      '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog/1',
+    );
+    cy.wait('@runtimeDetails');
+    runtimeCatalogDetailsPage.findHeading('vLLM').should('be.visible');
+  });
+
+  it('does not offer navigation for a runtime without a BFF ID', () => {
+    cy.intercept(
+      {
+        method: 'GET',
+        pathname: `/model-registry/api/${API_VERSION}/serving_runtime_catalog/serving_runtimes`,
+      },
+      {
+        body: {
+          data: {
+            items: [{ name: 'idless', displayName: 'Runtime without ID' }],
+            size: 1,
+            pageSize: 50,
+            nextPageToken: '',
+          },
+        },
+      },
+    );
+
+    runtimeCatalogPage.visit();
+    runtimeCatalogPage.findCardDetailLink('idless').should('be.disabled');
   });
 });
