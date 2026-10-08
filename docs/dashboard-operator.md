@@ -75,11 +75,11 @@ The controller follows a sequential pipeline on each reconcile:
 
 The controller supports `managementState: Removed` on the Dashboard CR. When set:
 
-1. Resources labeled `platform.opendatahub.io/part-of: dashboard` in the applications namespace are deleted (Deployments, Services, ConfigMaps, ServiceAccounts, Secrets, NetworkPolicies, Roles, RoleBindings) plus cluster-scoped ClusterRoles and ClusterRoleBindings, except shared resources still needed by a managed MaaS Consumer Portal
+1. Resources labeled `platform.opendatahub.io/part-of: dashboard` in the applications namespace are deleted (Deployments, Services, ConfigMaps, ServiceAccounts, Secrets, NetworkPolicies, Roles, RoleBindings) plus cluster-scoped ClusterRoles and ClusterRoleBindings, except shared resources still needed by a managed MaaS Portal
 2. Enabled observability resources are retained while the portal is managed, including resources in a separate monitoring namespace; otherwise they are cleaned up
-3. Core-dashboard conditions are updated with reason `Removed` and informational severity. If no MaaS Consumer Portal is managed, status remains `phase: NotReady`; if a MaaS Consumer Portal is managed, its health determines the aggregate `Ready` condition and `phase`.
+3. Core-dashboard conditions are updated with reason `Removed` and informational severity. If no MaaS Portal is managed, status remains `phase: NotReady`; if a MaaS Portal is managed, its health determines the aggregate `Ready` condition and `phase`.
 4. `status.url` and distribution status are cleared; `status.moduleStatuses` continues to reflect aggregate module demand
-5. The controller requeues while a managed MaaS Consumer Portal is awaiting readiness or retrying a transient failure. If the portal is managed, `spec.observability` is unset, and Perses remains undetected, it schedules a five-minute retry when no other retry is pending. Successful detection does not schedule this periodic retry, even though `spec.observability` remains unset in the stored CR.
+5. The controller requeues while a managed MaaS Portal is awaiting readiness or retrying a transient failure. If the portal is managed, `spec.observability` is unset, and Perses remains undetected, it schedules a five-minute retry when no other retry is pending. Successful detection does not schedule this periodic retry, even though `spec.observability` remains unset in the stored CR.
 
 **The MaaS Portal is an independent RHOAI-only operand, decoupled from the core dashboard's `managementState`.** It is gated by `spec.maasPortal.managementState`, not the core dashboard lifecycle:
 
@@ -140,7 +140,7 @@ The eight registered modules and their manifest directories:
 | mlflow | `manifests/modules/mlflow/` | `odh-dashboard-mlflow-ui` |
 | modelRegistry | `manifests/modules/model-registry/` | `odh-dashboard-model-registry-ui` |
 
-### MaaS Consumer Portal Operand
+### MaaS Portal Operand
 
 When `spec.maasPortal.managementState` is `Managed` on RHOAI and `spec.gateway.domain` is set, the controller deploys `manifests/distributions/maas-consumer-portal/`: Deployment, Service, ServiceAccount, ClusterRole, ClusterRoleBinding, NetworkPolicy, and HTTPRoute.
 
@@ -214,7 +214,7 @@ After deploying the ConfigMap, the operator patches the main Deployment with a c
 
 ### Perses Service Requirements
 
-When `spec.observability` is unset, the controller looks for `data-science-perses:8080` in the platform monitoring namespace (`redhat-ods-monitoring` on RHOAI). Auto-detection runs when either the core dashboard or the MaaS Consumer Portal is managed. It configures observability in memory and reports its state through `ObservabilityAvailable`; it does not write `spec.observability` back to the CR or install the Perses server. Set `spec.observability.enabled: false` to disable it explicitly.
+When `spec.observability` is unset, the controller looks for `data-science-perses:8080` in the platform monitoring namespace (`redhat-ods-monitoring` on RHOAI). Auto-detection runs when either the core dashboard or the MaaS Portal is managed. It configures observability in memory and reports its state through `ObservabilityAvailable`; it does not write `spec.observability` back to the CR or install the Perses server. Set `spec.observability.enabled: false` to disable it explicitly.
 
 `spec.observability.persesService` can override the HTTP service name, namespace, and service port. The managed network policies require the backing pods to have `app.kubernetes.io/managed-by: perses-operator` and listen on TCP port `8080`. A different **service port** must still forward to pod port `8080`. Other pod labels or listening ports require deployment-specific network policies; configuring the service target alone does not support those topologies.
 
@@ -331,7 +331,7 @@ On Dashboard CR deletion, or core soft removal when the portal no longer needs o
 
 ### Labels
 
-Core dashboard resources deployed by the controller are labeled with `platform.opendatahub.io/part-of: dashboard`, enabling both cleanup and resource discovery. Individual module resources also carry `app.kubernetes.io/component: <slug>` for targeted garbage collection. MaaS Consumer Portal resources use `platform.opendatahub.io/part-of: maas-consumer-portal`, so the core teardown selector (`part-of: dashboard`) never matches them (see [MaaS Consumer Portal Operand](#maas-consumer-portal-operand)).
+Core dashboard resources deployed by the controller are labeled with `platform.opendatahub.io/part-of: dashboard`, enabling both cleanup and resource discovery. Individual module resources also carry `app.kubernetes.io/component: <slug>` for targeted garbage collection. MaaS Portal resources use `platform.opendatahub.io/part-of: maas-consumer-portal`, so the core teardown selector (`part-of: dashboard`) never matches them (see [MaaS Portal Operand](#maas-portal-operand)).
 
 ## Status Aggregation
 
@@ -359,9 +359,9 @@ The Dashboard type provides five methods:
 | `ProvisioningSucceeded` | Manifests rendered and applied | Render or deploy failed |
 | `Degraded` | One or more modules degraded | No degradation / route not ready |
 | `ObservabilityAvailable` | Perses proxy deployed | Perses proxy not configured/failed (set with `severity: Info` when simply disabled, which does not block `Ready`) |
-| `MaaSConsumerPortalAvailable` | MaaS Consumer Portal Deployment is available and its HTTPRoute is accepted/resolved | Portal dependency, federation, Deployment, route, apply, or cleanup failure; `Disabled` and `UnsupportedPlatform` use `severity: Info` |
+| `MaaSConsumerPortalAvailable` | MaaS Portal Deployment is available and its HTTPRoute is accepted/resolved | Portal dependency, federation, Deployment, route, apply, or cleanup failure; `Disabled` and `UnsupportedPlatform` use `severity: Info` |
 
-The `Ready` condition is a rollup derived by the conditions manager from `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, and `MaaSConsumerPortalAvailable`. Core dashboard removal is informational when MaaS Consumer Portal remains managed, allowing the portal to determine the aggregate result. If both operands are removed, `Ready` is explicitly `False` with reason `Removed`. Informational conditions, such as a disabled portal or unsupported platform, do not block the rollup.
+The `Ready` condition is a rollup derived by the conditions manager from `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, and `MaaSConsumerPortalAvailable`. Core dashboard removal is informational when MaaS Portal remains managed, allowing the portal to determine the aggregate result. If both operands are removed, `Ready` is explicitly `False` with reason `Removed`. Informational conditions, such as a disabled portal or unsupported platform, do not block the rollup.
 
 ### Phase Derivation
 

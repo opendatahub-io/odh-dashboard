@@ -322,7 +322,7 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 				return err
 			}
 			if strings.Contains(string(data), `"kind":"Deployment"`) && strings.Contains(string(data), `"name":"maas-consumer-portal"`) {
-				return errors.New("simulated MaaS Consumer Portal apply failure")
+				return errors.New("simulated MaaS Portal apply failure")
 			}
 			return delegate.Apply(ctx, configuration, options...)
 		},
@@ -408,7 +408,7 @@ func TestIntegration_MaaSPortalResourcesPreservedWhenCoreRemoved(t *testing.T) {
 
 	updated := getDashboard(t)
 	assert.Equal(t, metav1.ConditionFalse, conditionStatus(updated, "MaaSConsumerPortalAvailable"),
-		"MaaS Consumer Portal must report unavailable when its explicitly disabled MaaS/GenAI dependencies are missing")
+		"MaaS Portal must report unavailable when its explicitly disabled MaaS/GenAI dependencies are missing")
 	assert.Equal(t, "RequiredModuleUnavailable", conditionReason(updated, "MaaSConsumerPortalAvailable"))
 }
 
@@ -421,8 +421,8 @@ func TestIntegration_MaaSPortalModuleDemandMatrix(t *testing.T) {
 		wantMaaSPortalConfig bool
 	}{
 		{name: "Core Dashboard only", coreState: "Managed", maasPortalState: "Removed", wantSharedBFFs: true},
-		{name: "Core Dashboard and MaaS Consumer Portal", coreState: "Managed", maasPortalState: "Managed", wantSharedBFFs: true, wantMaaSPortalConfig: true},
-		{name: "MaaS Consumer Portal only", coreState: "Removed", maasPortalState: "Managed", wantSharedBFFs: true, wantMaaSPortalConfig: true},
+		{name: "Core Dashboard and MaaS Portal", coreState: "Managed", maasPortalState: "Managed", wantSharedBFFs: true, wantMaaSPortalConfig: true},
+		{name: "MaaS Portal only", coreState: "Removed", maasPortalState: "Managed", wantSharedBFFs: true, wantMaaSPortalConfig: true},
 		{name: "both operands removed", coreState: "Removed", maasPortalState: "Removed"},
 	}
 

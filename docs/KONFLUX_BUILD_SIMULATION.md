@@ -176,7 +176,7 @@ Runs only when a PR changes files in a package that has a `Dockerfile.workspace`
 Runs independently of the Docker build (no image needed), so it fails fast on manifest regressions.
 
 - ✅ **Kustomize build testing**
-  - Builds: The set the `dashboard-operator` actually renders — the platform overlays (`manifests/base`, `manifests/odh`, `manifests/rhoai`), the observability overlays (`manifests/observability/{odh,rhoai}`), the MaaS consumer-portal distribution (`manifests/distributions/maas-consumer-portal`), and every module overlay under `manifests/modules/<slug>` (discovered automatically, so a new module needs no workflow edit). The ConsoleLink overlays are covered transitively through the platform overlays.
+  - Builds: The set the `dashboard-operator` actually renders — the platform overlays (`manifests/base`, `manifests/odh`, `manifests/rhoai`), the observability overlays (`manifests/observability/{odh,rhoai}`), the MaaS Portal distribution (`manifests/distributions/maas-consumer-portal`), and every module overlay under `manifests/modules/<slug>` (discovered automatically, so a new module needs no workflow edit). The ConsoleLink overlays are covered transitively through the platform overlays.
   - Validates: YAML syntax, kustomization references, resource generation
   - Catches: Missing files, broken `resources:`/`patches:` paths, ConfigMapGenerator errors
 
