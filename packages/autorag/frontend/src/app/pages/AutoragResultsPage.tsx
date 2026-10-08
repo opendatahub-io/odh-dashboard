@@ -468,7 +468,7 @@ function AutoragResultsPage(): React.JSX.Element {
 
   const headerActions = React.useMemo(
     () => (
-      <Split hasGutter>
+      <Split hasGutter isWrappable>
         <SplitItem>
           {runTerminatable && (
             <Button

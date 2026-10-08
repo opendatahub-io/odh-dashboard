@@ -30,11 +30,9 @@ describe('AutoML Results Page', () => {
       // Final breadcrumb reflects the run name; no separate page header/subtext.
       // The separator renders as &nbsp; (U+00A0), which contain.text does not
       // normalize — normalize the actual text before comparing.
-      automlResultsPage
-        .findResultsBreadcrumbRunName()
-        .invoke('text')
-        .then((text: string) => text.replace(/\u00a0/g, ' '))
-        .should('contain', 'binary results');
+      automlResultsPage.findResultsBreadcrumbRunName().should(($el) => {
+        expect($el.text().replace(/\u00a0/g, ' ')).to.contain('binary results');
+      });
       cy.findByTestId('app-page-title').should('not.exist');
     });
 
