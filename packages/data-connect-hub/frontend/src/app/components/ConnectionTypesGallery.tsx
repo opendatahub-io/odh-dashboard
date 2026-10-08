@@ -35,6 +35,8 @@ import { IdentifiedLabelledToValuedLabelled } from '~/app/types';
 
 import emptyStateImage from '~/images/RHOAI-Noconnections-RGB.svg';
 
+import './ConnectionTypesGallery.scss';
+
 // Types ---------------------------------------------------------------------->
 
 type FilterItem = Identified<string> & Labelled<string>;
@@ -264,14 +266,7 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
             />
           ))}
           {sectionIndex !== sectionsList.length - 1 ? (
-            <div
-              style={{
-                borderBottom:
-                  'var(--pf-t--global--border--width--divider--default) solid var(--pf-t--global--border--color--default)',
-                paddingBottom: 'var(--pf-t--global--spacer--md)',
-                marginBottom: 'var(--pf-t--global--spacer--md)',
-              }}
-            />
+            <div className="dch-connection-types-gallery__filter-separator" />
           ) : null}
         </React.Fragment>
       ))}

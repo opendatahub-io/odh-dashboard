@@ -76,7 +76,7 @@ const StepHeader: React.FC<{ title: string; description: React.ReactNode }> = ({
   title,
   description,
 }) => (
-  <Stack hasGutter style={{ gap: 'var(--pf-t--global--spacer--sm)' }}>
+  <Stack hasGutter className="dch-connection-wizard-step-header">
     <StackItem>
       <Content component={ContentVariants.h2}>{title}</Content>
     </StackItem>
@@ -224,7 +224,7 @@ const ConnectionDetailsStep: React.FC<ConnectionDetailsStepProps> = ({
                 </MenuToggle>
               )}
             >
-              <SelectList style={{ maxHeight: '200px', overflow: 'auto' }}>
+              <SelectList className="dch-connection-wizard-project-list">
                 {namespaces.map((project) => (
                   <SelectOption key={project.name} value={project.name}>
                     {project.displayName ?? project.name}
