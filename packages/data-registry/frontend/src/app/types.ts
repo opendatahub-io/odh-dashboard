@@ -189,11 +189,14 @@ export type ErrorResponse = {
 export type ConnectionModel = ConnectionRef;
 
 export type ConnectionWarning = {
-  code: 'UNRESOLVED_CONNECTION_TYPE' | 'DCH_FALLBACK';
+  code: 'UNRESOLVED_CONNECTION_TYPE' | 'DCH_FALLBACK' | 'RHAI_LOOKUP_FAILED';
   message: string;
 };
 
 export type ConnectionsResponse = {
   data: ConnectionRef[];
-  metadata?: { warnings?: ConnectionWarning[] };
+  metadata?: {
+    warnings?: ConnectionWarning[];
+    rhaiConnections?: RhaiConnectionRef[];
+  };
 };

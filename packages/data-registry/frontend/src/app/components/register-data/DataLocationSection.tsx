@@ -20,13 +20,17 @@ import {
   CONNECTION_UNAVAILABLE_LABEL,
   getConnectionDisplayName,
   getConnectionKey,
+  shouldDisplayConnectionWarning,
 } from '~/app/utilities/connectionUtils';
 
 type DataLocationSectionProps = {
   connections?: ConnectionModel[];
+  connectionDisplayData?: ConnectionModel[];
   connectionsLoaded?: boolean;
   connectionsError?: Error;
   connectionWarnings?: ConnectionWarning[];
+  showDchFallbackWarning?: boolean;
+  showRhaiLookupWarning?: boolean;
   currentConnection?: ConnectionRef | null;
   pathLabel?: string;
   isConnectionDisabled?: boolean;
@@ -35,20 +39,26 @@ type DataLocationSectionProps = {
 const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
   const {
     connections = [],
+    connectionDisplayData,
     connectionsLoaded = true,
     connectionsError,
     connectionWarnings = [],
+    showDchFallbackWarning,
+    showRhaiLookupWarning,
     currentConnection,
     pathLabel = 'Path',
     isConnectionDisabled = false,
   } = props;
   const { control } = useFormContext<RegisterDataFormData | EditAssetFormData>();
   const [isConnectionOpen, setIsConnectionOpen] = React.useState(false);
+  const displayConnections = connectionDisplayData ?? connections;
+  const showFallbackWarning = showDchFallbackWarning ?? currentConnection?.type === 'dch';
+  const showRhaiWarning = showRhaiLookupWarning ?? currentConnection?.type === 'rhai';
   const connectionsResolved = connectionsLoaded && !connectionsError;
   const currentConnectionUnavailable =
     !!currentConnection &&
     connectionsResolved &&
-    !connections.some(
+    !displayConnections.some(
       (connection) => getConnectionKey(connection) === getConnectionKey(currentConnection),
     );
 
@@ -56,11 +66,14 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
     if (!value) {
       return 'Select a connection';
     }
-    const match = connections.find((connection) => getConnectionKey(connection) === value);
-    const current = currentConnection && getConnectionKey(currentConnection) === value;
+    const match = displayConnections.find((connection) => getConnectionKey(connection) === value);
+    const current =
+      currentConnection && getConnectionKey(currentConnection) === value
+        ? currentConnection
+        : undefined;
     return getConnectionDisplayName(
       current || match || value,
-      connections,
+      displayConnections,
       connectionsLoaded,
       connectionsError,
     );
@@ -81,15 +94,19 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
         </Alert>
       ) : null}
 
-      {connectionWarnings.map((warning) => (
-        <Alert
-          key={warning.code}
-          variant="warning"
-          isInline
-          title={warning.message}
-          data-testid="connections-warning"
-        />
-      ))}
+      {connectionWarnings
+        .filter((warning) =>
+          shouldDisplayConnectionWarning(warning, showFallbackWarning, showRhaiWarning),
+        )
+        .map((warning) => (
+          <Alert
+            key={warning.code}
+            variant="warning"
+            isInline
+            title={warning.message}
+            data-testid="connections-warning"
+          />
+        ))}
       {currentConnectionUnavailable ? (
         <Alert
           variant="warning"
@@ -135,17 +152,9 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
               )}
             >
               <SelectList>
-                {currentConnection &&
-                !connections.some(
-                  (connection) => getConnectionKey(connection) === getConnectionKey(currentConnection),
-                ) ? (
+                {currentConnectionUnavailable ? (
                   <SelectOption value={getConnectionKey(currentConnection)}>
-                    {getConnectionDisplayName(
-                      currentConnection,
-                      connections,
-                      connectionsLoaded,
-                      connectionsError,
-                    )}
+                    {CONNECTION_UNAVAILABLE_LABEL}
                   </SelectOption>
                 ) : null}
                 {connections.length === 0 ? (
@@ -162,7 +171,7 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
                     >
                       {getConnectionDisplayName(
                         connection,
-                        connections,
+                        displayConnections,
                         connectionsLoaded,
                         connectionsError,
                       )}

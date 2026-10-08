@@ -4,12 +4,7 @@ import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardMod
 import { Alert, Form, Modal, ModalBody, ModalFooter, ModalHeader } from '@patternfly/react-core';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  AssetResponse,
-  LICENSE_VALUES,
-  MATURITY_VALUES,
-  PII_STATUS_VALUES,
-} from '~/app/types';
+import { AssetResponse, LICENSE_VALUES, MATURITY_VALUES, PII_STATUS_VALUES } from '~/app/types';
 import {
   isConflictError,
   createLabel,
@@ -41,6 +36,7 @@ type EditAssetModalProps = {
   onSaved: () => void;
   onManageCollections?: () => void;
   onManageLabels?: () => void;
+  hasExistingDchConnectionReferences?: boolean;
 };
 
 const WELL_KNOWN_PROPERTIES = new Set(['purpose', 'license', 'maturity', 'domain', 'pii']);
@@ -100,6 +96,7 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
   onSaved,
   onManageCollections,
   onManageLabels,
+  hasExistingDchConnectionReferences,
 }) => {
   const isTable = assetKind === 'table';
   const [
@@ -108,7 +105,9 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
     connectionsError,
     refreshConnections,
     connectionWarnings,
+    fetchedConnectionDisplayData,
   ] = useConnections(project);
+  const connectionDisplayData = fetchedConnectionDisplayData ?? connections;
   const originalConnectionKey = asset.connection_ref ? getConnectionKey(asset.connection_ref) : '';
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
@@ -275,9 +274,14 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
             <RegistrationIdentitySection isEditMode />
             <DataLocationSection
               connections={connections}
+              connectionDisplayData={connectionDisplayData}
               connectionsLoaded={connectionsLoaded}
               connectionsError={connectionsError}
               connectionWarnings={connectionWarnings}
+              showDchFallbackWarning={
+                hasExistingDchConnectionReferences || asset.connection_ref?.type === 'dch'
+              }
+              showRhaiLookupWarning={asset.connection_ref?.type === 'rhai'}
               currentConnection={asset.connection_ref}
               isConnectionDisabled={isSubmitting}
             />

@@ -1,4 +1,4 @@
-import { ConnectionModel, ConnectionRef } from '~/app/types';
+import { ConnectionModel, ConnectionRef, ConnectionWarning } from '~/app/types';
 
 export const CONNECTION_UNAVAILABLE_LABEL = 'Connection unavailable';
 export const CONNECTION_LOADING_LABEL = 'Loading connection...';
@@ -35,7 +35,9 @@ export const getConnectionDisplayName = (
   }
 
   const connection = isConnectionRef(connectionRef)
-    ? connections.find((candidate) => getConnectionKey(candidate) === getConnectionKey(connectionRef))
+    ? connections.find(
+        (candidate) => getConnectionKey(candidate) === getConnectionKey(connectionRef),
+      )
     : connections.find(
         (candidate) =>
           getConnectionKey(candidate) === connectionRef ||
@@ -56,6 +58,38 @@ export const getConnectionDisplayNameForIdentifier = (
   connectionsLoaded: boolean,
   connectionsError?: Error,
 ): string => getConnectionDisplayName(identifier, connections, connectionsLoaded, connectionsError);
+
+export const shouldDisplayConnectionWarning = (
+  warning: ConnectionWarning,
+  hasSavedDchReference: boolean,
+  hasSavedRhaiReference: boolean,
+): boolean => {
+  if (warning.code === 'DCH_FALLBACK') {
+    return hasSavedDchReference;
+  }
+  if (warning.code === 'RHAI_LOOKUP_FAILED') {
+    return hasSavedRhaiReference;
+  }
+  return true;
+};
+
+export const getAssetDetailConnectionWarnings = (
+  warnings: ConnectionWarning[],
+  connectionRef?: ConnectionRef | null,
+): ConnectionWarning[] =>
+  warnings
+    .filter((warning) =>
+      shouldDisplayConnectionWarning(
+        warning,
+        connectionRef?.type === 'dch',
+        connectionRef?.type === 'rhai',
+      ),
+    )
+    .map((warning) =>
+      warning.code === 'DCH_FALLBACK'
+        ? { ...warning, message: "Couldn't load connections from Data Connect Hub." }
+        : warning,
+    );
 
 // Explicitly allowlist persistent fields. Never spread a lookup result into an asset write.
 export const toConnectionRef = (ref: ConnectionRef): ConnectionRef =>

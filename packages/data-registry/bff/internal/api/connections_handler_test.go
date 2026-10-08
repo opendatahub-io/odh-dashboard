@@ -90,8 +90,9 @@ func TestConnectionsSourcePolicy(t *testing.T) {
 		source              string
 	}{
 		{name: "unconfigured uses secrets", disabled: true, status: 200, secretCalls: 1, source: "rhai"},
-		{name: "DCH success never reads secrets", status: 200, source: "dch"},
-		{name: "empty DCH never reads secrets", empty: true, status: 200},
+		{name: "DCH success loads RHOAI display details", status: 200, secretCalls: 1, source: "dch"},
+		{name: "empty DCH loads RHOAI display details", empty: true, status: 200, secretCalls: 1},
+		{name: "RHOAI display lookup failure preserves DCH results", secretErr: errors.New("RHOAI lookup failed"), status: 200, secretCalls: 1, source: "dch"},
 		{name: "network fallback", upstreamErr: bffclient.NewConnectionError(bffclient.BFFTargetDCH, "private upstream detail"), status: 200, secretCalls: 1, source: "rhai"},
 		{name: "timeout fallback", upstreamErr: bffclient.NewTimeoutError(bffclient.BFFTargetDCH), status: 200, secretCalls: 1, source: "rhai"},
 		{name: "5xx fallback", upstreamErr: bffclient.NewServerUnavailableError(bffclient.BFFTargetDCH), status: 200, secretCalls: 1, source: "rhai"},
@@ -133,14 +134,34 @@ func TestConnectionsSourcePolicy(t *testing.T) {
 			if !tt.disabled {
 				require.Equal(t, "user-token", factory.token)
 			}
-			if tt.source != "" {
+			if tt.status == 200 {
 				var envelope ConnectionsEnvelope
 				require.NoError(t, json.Unmarshal(w.Body.Bytes(), &envelope))
-				require.Equal(t, tt.source, envelope.Data[0].Type)
+				if tt.source != "" {
+					require.Equal(t, tt.source, envelope.Data[0].Type)
+				}
 				if tt.source == "rhai" {
 					require.Equal(t, "original-secret", envelope.Data[0].SecretName)
 					require.Equal(t, "Display name", envelope.Data[0].Name)
 					require.Equal(t, "project-a", kube.client.namespace)
+				}
+				if tt.empty {
+					require.Empty(t, envelope.Data)
+					require.NotNil(t, envelope.Metadata)
+					require.Empty(t, envelope.Metadata.Warnings)
+				}
+				if !tt.disabled && tt.upstreamErr == nil {
+					require.NotNil(t, envelope.Metadata)
+					if tt.secretErr == nil {
+						require.Len(t, envelope.Metadata.RhaiConnections, 1)
+						require.Equal(t, "rhai", envelope.Metadata.RhaiConnections[0].Type)
+						require.Equal(t, "original-secret", envelope.Metadata.RhaiConnections[0].SecretName)
+						require.Equal(t, "Display name", envelope.Metadata.RhaiConnections[0].Name)
+					} else {
+						require.Empty(t, envelope.Metadata.RhaiConnections)
+						require.Len(t, envelope.Metadata.Warnings, 1)
+						require.Equal(t, "RHAI_LOOKUP_FAILED", envelope.Metadata.Warnings[0].Code)
+					}
 				}
 			}
 		})

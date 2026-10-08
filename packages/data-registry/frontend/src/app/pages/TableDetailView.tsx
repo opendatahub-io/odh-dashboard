@@ -24,7 +24,7 @@ import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
 import { AssetResponse, ConnectionModel, ConnectionWarning } from '~/app/types';
 import SchemaColumnsTable from '~/app/components/SchemaColumnsTable';
 import ConnectionRefLink from '~/app/components/ConnectionRefLink';
-import { collectionDetailUrl, projectConnectionsUrl } from '~/app/utilities/routes';
+import { collectionDetailUrl, projectConnectionUrl } from '~/app/utilities/routes';
 import { getConnectionKey } from '~/app/utilities/connectionUtils';
 import {
   getFormatBadge,
@@ -88,7 +88,8 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({
   const orderedProperties = asset.properties ? getOrderedProperties(asset.properties) : [];
   const connectionType = connections.find(
     (connection) =>
-      !!asset.connection_ref && getConnectionKey(connection) === getConnectionKey(asset.connection_ref),
+      !!asset.connection_ref &&
+      getConnectionKey(connection) === getConnectionKey(asset.connection_ref),
   )?.connectionType;
 
   const renderTimestamp = (timestamp: string | null | undefined) => {
@@ -207,7 +208,11 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({
                         connections={connections}
                         connectionsLoaded={connectionsLoaded}
                         connectionsError={connectionsError}
-                        linkTo={project ? projectConnectionsUrl(project) : undefined}
+                        linkTo={
+                          project
+                            ? (connectionRef) => projectConnectionUrl(project, connectionRef)
+                            : undefined
+                        }
                       />
                       {connectionType ? (
                         <Content component="small" data-testid="connection-type">

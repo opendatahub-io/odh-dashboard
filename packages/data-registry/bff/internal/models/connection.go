@@ -14,5 +14,6 @@ type ConnectionWarning struct {
 }
 
 type ConnectionsMetadata struct {
-	Warnings []ConnectionWarning `json:"warnings,omitempty"`
+	Warnings        []ConnectionWarning `json:"warnings,omitempty"`
+	RhaiConnections []ConnectionModel   `json:"rhaiConnections,omitempty"`
 }

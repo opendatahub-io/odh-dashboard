@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import * as k8sApi from '~/app/api/k8s';
 import { useConnections } from '~/app/hooks/useConnections';
-import { mockDchConnection } from '~/__mocks__/mockConnection';
+import { mockDchConnection, mockRhaiConnection } from '~/__mocks__/mockConnection';
 import { ConnectionsResponse } from '~/app/types';
 
 jest.mock('~/app/api/k8s');
@@ -40,6 +40,21 @@ describe('useConnections', () => {
     const { result } = renderHook(() => useConnections('project-a'));
     await waitFor(() => expect(result.current[0]).toEqual([connection]));
     expect(result.current[4]).toEqual(warnings);
+  });
+
+  it('should keep RHOAI display metadata out of selectable DCH connections', async () => {
+    const dchConnection = mockDchConnection();
+    const rhaiConnection = mockRhaiConnection();
+    mockGetConnections.mockResolvedValue({
+      data: [dchConnection],
+      metadata: { rhaiConnections: [rhaiConnection] },
+    });
+
+    const { result } = renderHook(() => useConnections('project-a'));
+    await waitFor(() => expect(result.current[5]).toEqual([dchConnection, rhaiConnection]));
+
+    expect(result.current[0]).toEqual([dchConnection]);
+    expect(result.current[5]).toEqual([dchConnection, rhaiConnection]);
   });
 
   it('should refetch on reopen and expose a refresh that returns fresh results', async () => {
