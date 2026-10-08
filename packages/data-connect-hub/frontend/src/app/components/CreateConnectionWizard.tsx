@@ -205,6 +205,8 @@ const ConnectionDetailsStep: React.FC<ConnectionDetailsStepProps> = ({
           <FormGroup label="Project" isRequired fieldId="connection-project">
             <Select
               isOpen={isNamespaceSelectOpen}
+              maxMenuHeight="12.5rem"
+              isScrollable
               selected={selectedNamespace}
               onSelect={(_event, selection) => {
                 onNamespaceChange(String(selection));
@@ -224,7 +226,7 @@ const ConnectionDetailsStep: React.FC<ConnectionDetailsStepProps> = ({
                 </MenuToggle>
               )}
             >
-              <SelectList className="dch-connection-wizard-project-list">
+              <SelectList>
                 {namespaces.map((project) => (
                   <SelectOption key={project.name} value={project.name}>
                     {project.displayName ?? project.name}
