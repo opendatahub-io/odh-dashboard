@@ -13,23 +13,32 @@ import {
 import { Link } from 'react-router-dom';
 import BenchmarkSuitesGallery from '~/app/components/BenchmarkSuitesGallery';
 import CuratedSuiteCategories from '~/app/components/CuratedSuiteCategories';
-import { evaluationBenchmarksRoute, evaluationCreateSuiteRoute } from '~/app/routes';
+import {
+  evaluationBenchmarksRoute,
+  evaluationCreateSuiteRoute,
+  evaluationEvaluateNavigationState,
+} from '~/app/routes';
 import type { Collection } from '~/app/types';
+import type { BenchmarkNameMap } from '~/app/components/benchmarkUtils';
 
 // Show five suites so the create-suite card occupies the sixth slot in the preview gallery.
 const MAX_VISIBLE_BENCHMARK_SUITES = 5;
 
 type EvaluateTabProps = {
   namespace: string;
+  benchmarkNameMap: BenchmarkNameMap;
   onSelectCollection: (collection: Collection) => void;
   onRunCollection: (collection: Collection) => void;
+  onEditCollection: (collection: Collection) => void;
   onDuplicateCollection: (collection: Collection) => void;
 };
 
 const EvaluateTab: React.FC<EvaluateTabProps> = ({
   namespace,
+  benchmarkNameMap,
   onSelectCollection,
   onRunCollection,
+  onEditCollection,
   onDuplicateCollection,
 }) => (
   <>
@@ -46,11 +55,15 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
         {/* Use the real tenant collections API on the front page. */}
         <BenchmarkSuitesGallery
           namespace={namespace}
+          benchmarkNameMap={benchmarkNameMap}
           maxVisibleCollections={MAX_VISIBLE_BENCHMARK_SUITES}
           showSummary
           useMockFallback={false}
+          primaryActionLabel="Run"
           createSuiteRoute={evaluationCreateSuiteRoute(namespace)}
+          createSuiteRouteState={evaluationEvaluateNavigationState}
           onPrimaryAction={onRunCollection}
+          onEditCollection={onEditCollection}
           onDuplicateCollection={onDuplicateCollection}
           onSelectCollection={onSelectCollection}
         />
