@@ -79,7 +79,7 @@ describe('VectorDbConnectionModal', () => {
     expect(screen.getByText('Token')).toBeInTheDocument();
     expect(screen.getByText('Server certificate')).toBeInTheDocument();
     expect(screen.getByTestId('milvus-server-cert-input').tagName).toBe('TEXTAREA');
-    expect(screen.getByText('Vector database type')).toBeInTheDocument();
+    expect(screen.getByText('Database type')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Add Milvus connection' }).textContent,
     ).not.toContain('conneciton');
@@ -127,7 +127,7 @@ describe('VectorDbConnectionModal', () => {
 
     expect(screen.getByTestId('vector-db-provider-pgvector')).toBeChecked();
     expect(screen.getByRole('heading', { name: 'Add PGVector connection' })).toBeInTheDocument();
-    expect(screen.getByText('Vector database type')).toBeInTheDocument();
+    expect(screen.getByText('Database type')).toBeInTheDocument();
     expect(screen.getByText('Host')).toBeInTheDocument();
     expect(screen.getByText('Port')).toBeInTheDocument();
     expect(screen.getByText('Database')).toBeInTheDocument();
@@ -252,7 +252,7 @@ describe('VectorDbConnectionModal', () => {
     expect(screen.queryByTestId('vector-db-provider-neo4j')).not.toBeInTheDocument();
     expect(screen.queryByTestId('vector-db-provider-milvus')).not.toBeInTheDocument();
     expect(screen.queryByTestId('vector-db-provider-pgvector')).not.toBeInTheDocument();
-    expect(screen.queryByText('Vector database type')).not.toBeInTheDocument();
+    expect(screen.queryByText('Database type')).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Add Neo4j connection' })).toBeInTheDocument();
     expect(screen.getByTestId('neo4j-uri-input')).toBeInTheDocument();
   });

@@ -204,7 +204,7 @@ const VectorDbConnectionModal: React.FC<Props> = ({
       <ModalBody>
         <Form>
           {allowedProviders.length > 1 && (
-            <FormGroup fieldId="vector-db-provider" label="Vector database type" isRequired>
+            <FormGroup fieldId="vector-db-provider" label="Database type" isRequired>
               {allowedProviders.includes('milvus') && (
                 <Radio
                   id="vector-db-provider-milvus"
