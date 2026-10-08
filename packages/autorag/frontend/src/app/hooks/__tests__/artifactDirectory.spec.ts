@@ -27,4 +27,9 @@ describe('resolveArtifactDirectory', () => {
       ),
     ).toEqual({ id: '44444444-4444-4444-4444-444444444444' });
   });
+
+  it('should reject a missing UUID directory', () => {
+    expect(resolveArtifactDirectory([], basePath).id).toBeUndefined();
+    expect(resolveArtifactDirectory([], basePath).error).toContain('No UUID directory found');
+  });
 });
