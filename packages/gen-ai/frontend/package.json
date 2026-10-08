@@ -19,7 +19,9 @@
     "brace-expansion@^5.0.0": "5.0.12",
     "qs": "6.16.0",
     "compression": "1.8.2",
-    "adm-zip": "0.6.1"
+    "adm-zip": "0.6.1",
+    "js-yaml@^3.0.0": "3.15.2",
+    "js-yaml@^4.0.0": "4.3.2"
   },
   "scripts": {
     "prebuild:standalone": "npm run test:type-check:standalone && npm run clean",

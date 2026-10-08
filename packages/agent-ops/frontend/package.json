@@ -11,7 +11,6 @@
   },
   "packageManager": "npm@11.8.0",
   "overrides": {
-    "js-yaml": "^4.1.1",
     "csstype": "3.2.3",
     "axios": "^1.7.4",
     "shell-quote": ">=1.8.4",
@@ -25,7 +24,9 @@
     "brace-expansion@^5.0.0": "5.0.12",
     "qs": "6.16.0",
     "compression": "1.8.2",
-    "adm-zip": "0.6.1"
+    "adm-zip": "0.6.1",
+    "js-yaml@^3.0.0": "3.15.2",
+    "js-yaml@^4.0.0": "4.3.2"
   },
   "scripts": {
     "build": "run-s build:prod",
