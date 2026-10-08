@@ -25,9 +25,9 @@ export const applyMaaSEndpointData = (
   const filteredRefs = existingRefs.filter((ref) => !isMaaSGateway(ref));
 
   if (fieldData.isChecked) {
-    // Add the MaaS gateway and remove annotations managed outside the project endpoint.
-    // MaaSModelRef provides discovery for subscribed users, so the generic Gen AI asset metadata
-    // must not also be applied to the LLMInferenceService.
+    // MaaS keeps Gen AI Studio visibly selected to reflect its forced UI state.
+    // This transformer runs after the shared availability applicators, so remove their Gen AI
+    // metadata here and let MaaSModelRef provide subscribed-user discovery.
     result.model.spec.router = {
       ...result.model.spec.router,
       gateway: {
