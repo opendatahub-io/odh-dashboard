@@ -17,14 +17,14 @@ const replacement = mockDchConnection({ id: '550e8400-e29b-41d4-a716-44665544000
     const assetURL = `${API}/test-project/namespaces/analytics/${
       kind === 'table' ? 'generic-tables' : 'volumes'
     }/asset-a`;
-    const method = kind === 'table' ? 'PATCH' : 'PUT';
+    const method = 'PATCH';
     const asset =
       kind === 'table'
         ? mockAssetResponse({ name: 'asset-a', connection_ref: { type: 'dch', id: original.id } })
         : mockVolumeInfo({ name: 'asset-a', connection_ref: { type: 'dch', id: original.id } });
 
     beforeEach(() => {
-      cy.intercept('GET', `${API}/user`, { body: mockModArchResponse(mockUserSettings()) });
+      cy.intercept('GET', `${API}/user`, { body: mockModArchResponse(mockUserSettings({})) });
       cy.intercept('GET', `${API}/namespaces`, {
         body: mockModArchResponse([mockNamespace({ name: 'test-project' })]),
       });
@@ -72,10 +72,10 @@ const replacement = mockDchConnection({ id: '550e8400-e29b-41d4-a716-44665544000
         body: { error: { code: '403', message: 'Access forbidden' } },
       }).as('deniedConnections');
       connectionAssets.visit(kind);
-      connectionAssets.findConnection().should('contain.text', original.id);
+      connectionAssets.findConnection().should('contain.text', 'Connection unavailable');
       connectionAssets.edit();
       connectionAssets.findLookupError().should('be.visible');
-      editAssetModal.findConnectionToggle().should('contain.text', original.id);
+      editAssetModal.findConnectionToggle().should('contain.text', 'Connection unavailable');
       editAssetModal.findDescriptionInput().clear().type('Updated description');
       cy.intercept(method, assetURL, { body: asset }).as('updateAsset');
       editAssetModal.findSaveButton().click();

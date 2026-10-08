@@ -14,6 +14,11 @@ const mockConnectionsResponse = [
     name: 'My URI Connection',
     connectionType: 'uri',
   }),
+  mockRhaiConnection({
+    secret_name: 'db-connection',
+    name: 'Database Connection',
+    connectionType: 'postgresql',
+  }),
 ];
 
 const mockCollectionsResponse = {
