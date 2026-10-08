@@ -143,11 +143,19 @@ export const MaaSEndpointFieldWizardField: MaaSFieldType = {
           isDisabled: true,
           selection: MAAS_DEFAULT_GATEWAY,
           disabledTooltip:
-            'The MaaS gateway handles routing, API keys, and subscription access. You cannot select a different gateway while Subscribed users is selected.',
+            'Models available as a service (MaaS) are automatically routed through the maas-default-gateway | openshift-ingress gateway.',
           labelHelpPopover: {
-            title: 'Gateway selection',
-            content:
-              'Models published for subscribed users use the MaaS gateway. When Subscribed users is selected, this field is locked.',
+            content: (
+              <Stack hasGutter>
+                <StackItem>
+                  Select the gateway through which users can access model deployments.
+                </StackItem>
+                <StackItem>
+                  Models available as a service (<strong>MaaS</strong>) are automatically routed
+                  through the <strong>maas-default-gateway | openshift-ingress</strong> gateway.
+                </StackItem>
+              </Stack>
+            ),
           },
         };
       } else {

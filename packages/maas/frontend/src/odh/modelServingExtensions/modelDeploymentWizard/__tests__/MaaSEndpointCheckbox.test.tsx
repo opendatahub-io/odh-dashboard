@@ -53,4 +53,23 @@ describe('MaaSEndpointCheckbox', () => {
     fireEvent.click(screen.getByTestId('maas/save-as-maas-checkbox'));
     expect(onChange).toHaveBeenCalledWith({ isChecked: true });
   });
+
+  it('locks the MaaS gateway and provides its routing guidance for subscribed users', () => {
+    const overrides = MaaSEndpointFieldWizardField.reducerFunctions.getFieldOverrides?.({
+      isChecked: true,
+    });
+    const gateway = overrides?.['llmd-serving/gateway'];
+
+    expect(gateway).toMatchObject({
+      isDisabled: true,
+      selection: { name: 'maas-default-gateway', namespace: 'openshift-ingress' },
+    });
+    expect(gateway?.labelHelpPopover?.title).toBeUndefined();
+
+    render(<>{gateway?.labelHelpPopover?.content}</>);
+    expect(
+      screen.getByText('Select the gateway through which users can access model deployments.'),
+    ).toBeTruthy();
+    expect(screen.getByText('maas-default-gateway | openshift-ingress')).toBeTruthy();
+  });
 });

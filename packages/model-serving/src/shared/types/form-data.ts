@@ -253,7 +253,7 @@ export type GenericFieldProps = {
 
 export type WizardFieldHelpPopover = {
   title?: string;
-  content: string;
+  content: React.ReactNode;
 };
 
 export type WizardStateOverrides = {
