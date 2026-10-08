@@ -9,6 +9,7 @@ import {
   Radio,
   Stack,
   StackItem,
+  Alert,
 } from '@patternfly/react-core';
 import TypeaheadSelect, {
   TypeaheadSelectOption,
@@ -100,6 +101,15 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
                         popperProps={{ maxWidth: 'trigger' }}
                         toggleProps={{ id: 'provider-ref-provider' }}
                       />
+                      {externalProviders.length === 0 && (
+                        <Alert
+                          variant="info"
+                          isInline
+                          isPlain
+                          title="No external providers found"
+                          data-testid="no-external-providers-alert"
+                        />
+                      )}
                     </FormGroup>
                   ) : null
                 }
