@@ -77,7 +77,8 @@ abstract class BaseOdhFederationPlugin<TCompiler extends FederationCompiler> {
       shared: additionalShared,
       dts,
     } = this.options;
-    const deps = collectDependenciesFromContext(compiler.options.context ?? process.cwd());
+    const context = compiler.options.context ?? process.cwd();
+    const deps = collectDependenciesFromContext(context);
 
     const shared: Record<string, SharedModuleConfig> = {};
 
@@ -87,7 +88,11 @@ abstract class BaseOdhFederationPlugin<TCompiler extends FederationCompiler> {
       const requiredVersion = deps[moduleName] ?? '*';
       let version: string | undefined;
       try {
-        const installed = require(`${moduleName}/package.json`).version;
+        // Resolve from the building package's own context, not this plugin's location —
+        // otherwise Node's lookup can walk up to a phantom-hoisted root node_modules copy
+        // at a different version than what this package actually depends on/bundles.
+        const packageJsonPath = require.resolve(`${moduleName}/package.json`, { paths: [context] });
+        const installed = require(packageJsonPath).version;
         version = typeof installed === 'string' ? installed : undefined;
       } catch {
         version = requiredVersion === '*' ? undefined : requiredVersion.replace(/^[\^~]/, '');

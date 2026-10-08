@@ -90,25 +90,22 @@ func TestNewPgvectorFromSecret_DisableRejectedForRemoteHost(t *testing.T) {
 	assert.Contains(t, err.Error(), "external endpoints must use TLS")
 }
 
-func TestNewPgvectorFromSecret_DisableDefaultRejectedForRemoteHostWithoutCert(t *testing.T) {
-	_, err := newPgvectorFromSecret(context.Background(), map[string][]byte{
-		"PGVECTOR_HOST": []byte("db.apps.example.com"),
-		"PGVECTOR_DB":   []byte("db"),
-		"PGVECTOR_USER": []byte("user"),
-	})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "external endpoints must use TLS")
+func TestDefaultPgvectorSSLMode(t *testing.T) {
+	assert.Equal(t, "verify-full", defaultPgvectorSSLMode(false, false, false), "external endpoints use system-trust TLS without a custom CA")
+	assert.Equal(t, "verify-full", defaultPgvectorSSLMode(true, false, true))
+	assert.Equal(t, "disable", defaultPgvectorSSLMode(true, false, false))
+	assert.Equal(t, "disable", defaultPgvectorSSLMode(false, true, false))
 }
 
 func TestNewPgvectorFromSecret_MalformedServerCert(t *testing.T) {
 	_, err := newPgvectorFromSecret(context.Background(), map[string][]byte{
-		"PGVECTOR_HOST":        []byte("postgres.team-a.svc.cluster.local"),
-		"PGVECTOR_DB":          []byte("db"),
-		"PGVECTOR_USER":        []byte("user"),
-		"PGVECTOR_SERVER_CERT": []byte("not a certificate"),
+		"PGVECTOR_HOST":    []byte("postgres.team-a.svc.cluster.local"),
+		"PGVECTOR_DB":      []byte("db"),
+		"PGVECTOR_USER":    []byte("user"),
+		"PGVECTOR_CA_CERT": []byte("not a certificate"),
 	})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to parse PGVECTOR_SERVER_CERT")
+	assert.Contains(t, err.Error(), "failed to parse PGVECTOR_CA_CERT")
 }
 
 // TestNewPgvectorFromSecret_DisableAllowedForLocalhost proves the localhost

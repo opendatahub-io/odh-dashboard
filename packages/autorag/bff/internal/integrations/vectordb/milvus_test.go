@@ -141,10 +141,10 @@ func TestNewMilvusFromSecret_PlaintextRejectedForRemoteHost(t *testing.T) {
 func TestNewMilvusFromSecret_MalformedServerCert(t *testing.T) {
 	_, err := newMilvusFromSecret(context.Background(), map[string][]byte{
 		"MILVUS_URI":         []byte("https://milvus.apps.example.com:19530"),
-		"MILVUS_SERVER_CERT": []byte("not a certificate"),
+		"MILVUS_CA_CERT": []byte("not a certificate"),
 	})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to parse MILVUS_SERVER_CERT")
+	assert.Contains(t, err.Error(), "failed to parse MILVUS_CA_CERT")
 }
 
 // TestNewMilvusFromSecret_PlaintextAllowedForLocalhost proves the localhost

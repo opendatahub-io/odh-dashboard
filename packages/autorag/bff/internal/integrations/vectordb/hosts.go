@@ -15,41 +15,33 @@ type vectorEndpoint struct {
 	port      string
 	address   string
 	inCluster bool
+	loopback  bool
 	useTLS    bool
 }
 
-// isClusterServiceHost deliberately accepts only the fully-qualified Service
-// form. Broad cluster.local suffix checks can be bypassed with arbitrary hosts.
+// isClusterServiceHost accepts Kubernetes cluster-local DNS names. Hosts outside
+// this suffix are treated as external endpoints.
 func isClusterServiceHost(host string) bool {
-	labels := strings.Split(strings.ToLower(host), ".")
-	if len(labels) != 5 || labels[2] != "svc" || labels[3] != "cluster" || labels[4] != "local" {
+	host = strings.TrimSuffix(strings.ToLower(host), ".")
+	if !strings.HasSuffix(host, ".cluster.local") {
 		return false
 	}
-	for _, label := range []string{labels[0], labels[1]} {
-		if label == "" || len(label) > 63 {
-			return false
-		}
-		for i, r := range label {
-			if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' {
-				return false
-			}
-			if (i == 0 || i == len(label)-1) && r == '-' {
-				return false
-			}
-		}
-	}
-	return true
+	return host != "cluster.local"
 }
 
-func validateVectorHost(host string) (bool, error) {
+func validateVectorHost(host string) (inCluster, loopback bool, err error) {
+	host = strings.TrimSuffix(strings.TrimSpace(host), ".")
 	if host == "" || net.ParseIP(host) != nil {
-		return false, fmt.Errorf("vector database host must be a DNS name, not a literal IP address")
+		return false, false, fmt.Errorf("vector database host must be a DNS name, not a literal IP address")
 	}
-	inCluster := isClusterServiceHost(host)
-	if strings.EqualFold(host, "localhost") || strings.Contains(host, "..") {
-		return false, fmt.Errorf("vector database host is not allowed")
+	if strings.EqualFold(host, "localhost") {
+		return false, true, nil
 	}
-	return inCluster, nil
+	inCluster = isClusterServiceHost(host)
+	if strings.Contains(host, "..") {
+		return false, false, fmt.Errorf("vector database host is not allowed")
+	}
+	return inCluster, false, nil
 }
 
 func parseMilvusEndpoint(raw string) (vectorEndpoint, error) {
@@ -76,13 +68,21 @@ func parseMilvusEndpointWithLoopback(raw string, allowLoopback bool) (vectorEndp
 			return vectorEndpoint{}, fmt.Errorf("forwarded Milvus endpoint must use a valid ephemeral port")
 		}
 	} else {
-		inCluster, err = validateVectorHost(host)
+		inCluster, loopback, err := validateVectorHost(host)
 		if err != nil {
 			return vectorEndpoint{}, err
 		}
-		if !inCluster && parsed.Scheme != "https" {
+		if !inCluster && !loopback && parsed.Scheme != "https" {
 			return vectorEndpoint{}, fmt.Errorf("milvus external endpoints must use https")
 		}
+		port := parsed.Port()
+		if port == "" {
+			port = "19530"
+		}
+		if n, err := strconv.Atoi(port); err != nil || n < 1 || n > 65535 {
+			return vectorEndpoint{}, fmt.Errorf("milvus URI contains an invalid port")
+		}
+		return vectorEndpoint{host: host, port: port, address: net.JoinHostPort(host, port), inCluster: inCluster, loopback: loopback, useTLS: parsed.Scheme == "https"}, nil
 	}
 	port := parsed.Port()
 	if port == "" {
@@ -91,7 +91,7 @@ func parseMilvusEndpointWithLoopback(raw string, allowLoopback bool) (vectorEndp
 	if n, err := strconv.Atoi(port); err != nil || n < 1 || n > 65535 {
 		return vectorEndpoint{}, fmt.Errorf("milvus URI contains an invalid port")
 	}
-	return vectorEndpoint{host: host, port: port, address: net.JoinHostPort(host, port), inCluster: inCluster, useTLS: parsed.Scheme == "https"}, nil
+	return vectorEndpoint{host: host, port: port, address: net.JoinHostPort(host, port), inCluster: inCluster, loopback: strings.EqualFold(host, "localhost"), useTLS: parsed.Scheme == "https"}, nil
 }
 
 // ValidateMilvusEndpoint applies the normal caller-controlled endpoint policy.
@@ -108,7 +108,7 @@ func ValidateForwardedMilvusEndpoint(original, forwarded string) error {
 	if err != nil {
 		return err
 	}
-	if !originalEndpoint.inCluster {
+	if !originalEndpoint.inCluster && !originalEndpoint.loopback {
 		return fmt.Errorf("original Milvus endpoint is not an in-cluster service")
 	}
 	if _, err := parseMilvusEndpointWithLoopback(forwarded, true); err != nil {
@@ -119,21 +119,21 @@ func ValidateForwardedMilvusEndpoint(original, forwarded string) error {
 
 func parsePgvectorEndpoint(host string, port int, sslMode string) (vectorEndpoint, error) {
 	host = strings.TrimSpace(host)
-	inCluster, err := validateVectorHost(host)
+	inCluster, loopback, err := validateVectorHost(host)
 	if err != nil {
 		return vectorEndpoint{}, err
 	}
 	if port < 1 || port > 65535 {
 		return vectorEndpoint{}, fmt.Errorf("pgvector port must be between 1 and 65535")
 	}
-	if !inCluster && sslMode == "require" {
+	if !inCluster && !loopback && sslMode == "require" {
 		return vectorEndpoint{}, fmt.Errorf("pgvector external endpoints must use verify-ca or verify-full")
 	}
 	useTLS := sslMode == "require" || sslMode == "verify-ca" || sslMode == "verify-full"
-	if !inCluster && !useTLS {
+	if !inCluster && !loopback && !useTLS {
 		return vectorEndpoint{}, fmt.Errorf("pgvector external endpoints must use TLS")
 	}
-	return vectorEndpoint{host: host, port: strconv.Itoa(port), address: net.JoinHostPort(host, strconv.Itoa(port)), inCluster: inCluster, useTLS: useTLS}, nil
+	return vectorEndpoint{host: host, port: strconv.Itoa(port), address: net.JoinHostPort(host, strconv.Itoa(port)), inCluster: inCluster, loopback: loopback, useTLS: useTLS}, nil
 }
 
 var blockedVectorPrefixes = []netip.Prefix{

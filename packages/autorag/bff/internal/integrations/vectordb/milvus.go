@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"strings"
 	"time"
@@ -69,7 +70,7 @@ func newMilvusFromSecretWithTimeoutPolicy(
 ) (VectorDB, error) {
 	uri := strings.TrimSpace(string(data["MILVUS_URI"]))
 	token := strings.TrimSpace(string(data["MILVUS_TOKEN"]))
-	certPEM := data["MILVUS_SERVER_CERT"]
+	certPEM := data["MILVUS_CA_CERT"]
 
 	if uri == "" {
 		return nil, fmt.Errorf("milvus secret missing MILVUS_URI")
@@ -109,13 +110,13 @@ func newMilvusFromSecretWithTimeoutPolicy(
 		return net.DefaultResolver.LookupIP(connectCtx, "ip", host)
 	}
 	dialer := &net.Dialer{}
-	safeDial := vectorSafeDialContext(dialer.DialContext, lookupIP, endpoint.inCluster, allowLoopback)
+	safeDial := vectorSafeDialContext(dialer.DialContext, lookupIP, endpoint.inCluster, allowLoopback || endpoint.loopback)
 	cfg.DialOptions = append(cfg.DialOptions, grpc.WithContextDialer(func(connectCtx context.Context, address string) (net.Conn, error) {
 		return safeDial(connectCtx, "tcp", address)
 	}))
 
 	if len(certPEM) > 0 {
-		pool, err := certificates.SystemCertPoolWithPEM(certPEM, "MILVUS_SERVER_CERT")
+		pool, err := certificates.SystemCertPoolWithPEM(certPEM, "MILVUS_CA_CERT")
 		if err != nil {
 			return nil, fmt.Errorf("milvus: %w", err)
 		}
@@ -128,6 +129,9 @@ func newMilvusFromSecretWithTimeoutPolicy(
 	defer cancel()
 	c, err := newClient(operationCtx, cfg)
 	if err != nil {
+		if !endpoint.inCluster && !endpoint.loopback && len(certPEM) == 0 {
+			slog.Warn("Secret is missing the CA certificate for an external vector database and connection with the system trust store failed; add the CA to the connection Secret or mount it in the AutoRAG BFF pod trust store", "db_type", "milvus")
+		}
 		return nil, fmt.Errorf("milvus connect: %w", classifyMilvusError(ctx, operationCtx, err))
 	}
 	return &milvusDB{client: c}, nil

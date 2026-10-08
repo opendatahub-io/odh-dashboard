@@ -16,8 +16,9 @@ func TestIsClusterServiceHost(t *testing.T) {
 		want bool
 	}{
 		{"in-cluster service dns", "milvus-service.milvus.svc.cluster.local", true},
+		{"arbitrary cluster-local dns", "milvus.team-a.cluster.local", true},
 		{"in-cluster dns mixed case", "Milvus-Service.MILVUS.SVC.CLUSTER.LOCAL", true},
-		{"bare cluster.local has no service and namespace", "cluster.local", false},
+		{"bare cluster.local is not a host", "cluster.local", false},
 		{"external hostname", "maas.apps.example.com", false},
 		{"literal ip", "10.0.0.15", false},
 		{"empty host", "", false},
@@ -39,7 +40,11 @@ func TestParseVectorEndpoints(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "milvus service plaintext", milvus: "http://milvus.team-a.svc.cluster.local:19530"},
+		{name: "milvus arbitrary cluster local plaintext", milvus: "http://milvus.team-a.cluster.local:19530"},
+		{name: "milvus localhost plaintext", milvus: "http://localhost:19530"},
 		{name: "pg service plaintext", pgHost: "postgres.team-a.svc.cluster.local", sslMode: "disable"},
+		{name: "pg arbitrary cluster local plaintext", pgHost: "postgres.team-a.cluster.local", sslMode: "disable"},
+		{name: "pg localhost plaintext", pgHost: "localhost", sslMode: "disable"},
 		{name: "external milvus plaintext", milvus: "http://milvus.example.com:19530", wantErr: true},
 		{name: "external pg plaintext", pgHost: "db.example.com", sslMode: "disable", wantErr: true},
 		{name: "external pg require without certificate verification", pgHost: "db.example.com", sslMode: "require", wantErr: true},
@@ -69,7 +74,7 @@ func TestParsePgvectorEndpointRejectsExternalRequire(t *testing.T) {
 }
 
 func TestValidateForwardedMilvusEndpointDoesNotRelaxSecretValidation(t *testing.T) {
-	assert.Error(t, ValidateMilvusEndpoint("http://localhost:4321"))
+	assert.NoError(t, ValidateMilvusEndpoint("http://localhost:4321"))
 	assert.Error(t, ValidateMilvusEndpoint("http://10.0.0.1:4321"))
 	assert.NoError(t, ValidateMilvusEndpoint("http://milvus.team-a.svc.cluster.local:19530"))
 

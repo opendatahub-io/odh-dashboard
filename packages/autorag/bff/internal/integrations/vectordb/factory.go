@@ -25,8 +25,14 @@ func newFromSecretData(ctx context.Context, data map[string][]byte, forwardURL f
 	if _, ok := data["MILVUS_URI"]; ok {
 		if forwardURL != nil {
 			original := strings.TrimSpace(string(data["MILVUS_URI"]))
-			if err := ValidateMilvusEndpoint(original); err != nil {
+			originalEndpoint, err := parseMilvusEndpoint(original)
+			if err != nil {
 				return nil, err
+			}
+			// localhost is already an internal endpoint; it must not be replaced
+			// by a dev port-forward target.
+			if originalEndpoint.loopback {
+				return newMilvusFromSecret(ctx, data)
 			}
 			forwarded, err := forwardURL(ctx, original)
 			if err != nil {

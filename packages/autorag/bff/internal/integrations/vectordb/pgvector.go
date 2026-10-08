@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/url"
 	"strconv"
@@ -68,13 +69,20 @@ type pgvectorDB struct {
 	conn *pgx.Conn
 }
 
+func defaultPgvectorSSLMode(inCluster, loopback, hasCustomCA bool) string {
+	if hasCustomCA || (!inCluster && !loopback) {
+		return "verify-full"
+	}
+	return "disable"
+}
+
 func newPgvectorFromSecret(ctx context.Context, data map[string][]byte) (VectorDB, error) {
 	host := strings.TrimSpace(string(data["PGVECTOR_HOST"]))
 	portStr := strings.TrimSpace(string(data["PGVECTOR_PORT"]))
 	db := strings.TrimSpace(string(data["PGVECTOR_DB"]))
 	user := strings.TrimSpace(string(data["PGVECTOR_USER"]))
 	password := strings.TrimSpace(string(data["PGVECTOR_PASSWORD"]))
-	certPEM := data["PGVECTOR_SERVER_CERT"]
+	certPEM := data["PGVECTOR_CA_CERT"]
 
 	if host == "" || db == "" || user == "" {
 		return nil, fmt.Errorf("pgvector secret missing required fields (PGVECTOR_HOST, PGVECTOR_DB, PGVECTOR_USER)")
@@ -92,15 +100,13 @@ func newPgvectorFromSecret(ctx context.Context, data map[string][]byte) (VectorD
 		return nil, fmt.Errorf("pgvector invalid PGVECTOR_PORT: %d (must be 1-65535)", port)
 	}
 
+	inCluster, loopback, err := validateVectorHost(host)
+	if err != nil {
+		return nil, fmt.Errorf("pgvector: %w", err)
+	}
 	sslMode := strings.TrimSpace(string(data["PGVECTOR_SSLMODE"]))
 	if sslMode == "" {
-		if len(certPEM) > 0 {
-			// A CA was supplied — default to full verification instead of the
-			// no-TLS default, mirroring MILVUS_SERVER_CERT's implicit behavior.
-			sslMode = "verify-full"
-		} else {
-			sslMode = "disable"
-		}
+		sslMode = defaultPgvectorSSLMode(inCluster, loopback, len(certPEM) > 0)
 	}
 	switch sslMode {
 	case "disable", "allow", "prefer", "require", "verify-ca", "verify-full":
@@ -133,10 +139,10 @@ func newPgvectorFromSecret(ctx context.Context, data map[string][]byte) (VectorD
 	connConfig.LookupFunc = func(_ context.Context, lookupHost string) ([]string, error) {
 		return []string{lookupHost}, nil
 	}
-	connConfig.DialFunc = vectorSafeDialContext(dialer.DialContext, lookupIP, endpoint.inCluster, false)
+	connConfig.DialFunc = vectorSafeDialContext(dialer.DialContext, lookupIP, endpoint.inCluster, endpoint.loopback)
 
 	if len(certPEM) > 0 {
-		pool, err := certificates.SystemCertPoolWithPEM(certPEM, "PGVECTOR_SERVER_CERT")
+		pool, err := certificates.SystemCertPoolWithPEM(certPEM, "PGVECTOR_CA_CERT")
 		if err != nil {
 			return nil, fmt.Errorf("pgvector: %w", err)
 		}
@@ -149,6 +155,9 @@ func newPgvectorFromSecret(ctx context.Context, data map[string][]byte) (VectorD
 
 	conn, err := pgx.ConnectConfig(ctx, connConfig)
 	if err != nil {
+		if !endpoint.inCluster && !endpoint.loopback && len(certPEM) == 0 {
+			slog.Warn("Secret is missing the CA certificate for an external vector database and connection with the system trust store failed; add the CA to the connection Secret or mount it in the AutoRAG BFF pod trust store", "db_type", "pgvector")
+		}
 		return nil, fmt.Errorf("pgvector connect: %w", err)
 	}
 
