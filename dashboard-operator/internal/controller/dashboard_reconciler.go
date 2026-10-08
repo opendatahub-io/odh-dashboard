@@ -1095,9 +1095,15 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	return nil
 }
 
-// extractItems returns the slice of client.Object from a typed list.
+// extractItems returns the slice of client.Object from a supported list.
 func extractItems(list client.ObjectList) []client.Object {
 	switch l := list.(type) {
+	case *unstructured.UnstructuredList:
+		items := make([]client.Object, len(l.Items))
+		for i := range l.Items {
+			items[i] = &l.Items[i]
+		}
+		return items
 	case *appsv1.DeploymentList:
 		items := make([]client.Object, len(l.Items))
 		for i := range l.Items {

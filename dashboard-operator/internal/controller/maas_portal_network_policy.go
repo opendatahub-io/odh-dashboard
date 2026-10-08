@@ -60,6 +60,7 @@ func addLegacyMaaSPortalNetworkPolicyPeers(resource *unstructured.Unstructured) 
 }
 
 func appendLegacyMaaSPortalNetworkPeers(peers []networkingv1.NetworkPolicyPeer) []networkingv1.NetworkPolicyPeer {
+	// range visits only the original peers; appended legacy peers are not revisited.
 	for _, peer := range peers {
 		if legacyPeer := legacyMaaSPortalNetworkPeer(peer); legacyPeer != nil {
 			peers = append(peers, *legacyPeer)

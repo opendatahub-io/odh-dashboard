@@ -145,11 +145,6 @@ func (r *DashboardReconciler) deleteLegacyMaaSPortalResourceList(ctx context.Con
 	}
 	var errs []error
 	objects := extractItems(list)
-	if routes, ok := list.(*unstructured.UnstructuredList); ok {
-		for i := range routes.Items {
-			objects = append(objects, &routes.Items[i])
-		}
-	}
 	for _, obj := range objects {
 		if !matchesLegacy(obj) {
 			continue
@@ -208,6 +203,8 @@ func (r *DashboardReconciler) deleteLegacyMaaSPortalObject(ctx context.Context, 
 	// Use the observed UID so a concurrently replaced object is never deleted.
 	uid := obj.GetUID()
 	err := r.Delete(ctx, obj, client.Preconditions{UID: &uid})
+	// Ignore NotFound, but surface UID conflicts so reconciliation re-evaluates
+	// the replacement object instead of retrying deletion without the precondition.
 	if client.IgnoreNotFound(err) != nil {
 		return maasPortalMigrationResult{}, fmt.Errorf("deleting legacy MaaS Portal %T %s/%s: %w", obj, obj.GetNamespace(), obj.GetName(), err)
 	}

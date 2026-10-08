@@ -76,12 +76,21 @@ func TestLegacyMaaSPortalCleanupIsScopedAndIdempotent(t *testing.T) {
 		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: legacyMaaSPortalName + "-rhods-operator-subscription", Namespace: maasPortalTestNamespace, Labels: map[string]string{labels.PlatformPartOf: maasPortalPartOf}}},
 		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: legacyMaaSPortalName + "-opendatahub-operator-subscription", Namespace: "unrelated-namespace", Labels: map[string]string{"app.kubernetes.io/part-of": "unrelated-app"}}},
 	}
-	cli := fake.NewClientBuilder().WithScheme(maasPortalScheme(t)).WithObjects(append(legacy, preserved...)...).Build()
+	routeDeletes := 0
+	cli := fake.NewClientBuilder().WithScheme(maasPortalScheme(t)).WithObjects(append(legacy, preserved...)...).WithInterceptorFuncs(interceptor.Funcs{
+		Delete: func(ctx context.Context, delegate client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
+			if obj.GetObjectKind().GroupVersionKind().Kind == "HTTPRoute" {
+				routeDeletes++
+			}
+			return delegate.Delete(ctx, obj, opts...)
+		},
+	}).Build()
 	r := &DashboardReconciler{Client: cli, Namespace: "configured-operator", ApplicationsNamespace: maasPortalTestNamespace}
 	for range 2 {
 		result, err := r.deleteLegacyMaaSPortalResources(ctx)
 		require.NoError(t, err)
 		assert.False(t, result.Pending)
+		assert.Equal(t, 1, routeDeletes, "delete the legacy route once, including across repeated reconciliation")
 	}
 	for _, obj := range legacy {
 		assert.True(t, apierrors.IsNotFound(cli.Get(ctx, client.ObjectKeyFromObject(obj), obj.DeepCopyObject().(client.Object))), "%T %s/%s should be absent", obj, obj.GetNamespace(), obj.GetName())
