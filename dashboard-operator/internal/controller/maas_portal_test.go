@@ -147,9 +147,9 @@ func TestReconcileMaaSPortalAvailability(t *testing.T) {
 		wantReason string
 		wantRetry  time.Duration
 	}{
-		{name: "missing route", wantReason: "MaaSConsumerPortalRouteUnavailable", wantRetry: maasPortalRetryInterval},
-		{name: "route not ready", objects: []client.Object{&gatewayv1.HTTPRoute{ObjectMeta: readyRoute.ObjectMeta}}, wantReason: "MaaSConsumerPortalRouteNotReady", wantRetry: maasPortalRetryInterval},
-		{name: "missing deployment", objects: []client.Object{readyRoute}, wantReason: "MaaSConsumerPortalDeploymentUnavailable", wantRetry: maasPortalRetryInterval},
+		{name: "missing route", wantReason: "MaaSPortalRouteUnavailable", wantRetry: maasPortalRetryInterval},
+		{name: "route not ready", objects: []client.Object{&gatewayv1.HTTPRoute{ObjectMeta: readyRoute.ObjectMeta}}, wantReason: "MaaSPortalRouteNotReady", wantRetry: maasPortalRetryInterval},
+		{name: "missing deployment", objects: []client.Object{readyRoute}, wantReason: "MaaSPortalDeploymentUnavailable", wantRetry: maasPortalRetryInterval},
 		{name: "complete portal available", objects: []client.Object{readyRoute, availableDeployment}, wantReason: "Deployed"},
 	}
 	for _, tt := range tests {
@@ -163,6 +163,7 @@ func TestReconcileMaaSPortalAvailability(t *testing.T) {
 			require.NotNil(t, condition)
 			assert.Equal(t, tt.wantReason, condition.Reason)
 			assert.Equal(t, tt.wantRetry, retryAfter)
+			assert.Equal(t, tt.wantRetry == 0, cm.IsHappy(), "portal route and deployment health must determine aggregate readiness")
 		})
 	}
 }
@@ -203,7 +204,7 @@ func TestReconcileMaaSPortal_MissingGatewayDomainRetries(t *testing.T) {
 	assert.Equal(t, maasPortalRetryInterval, r.reconcileMaaSPortal(context.Background(), dashboard, cm, nil))
 	condition := cm.GetCondition(conditionMaaSPortalAvailable)
 	require.NotNil(t, condition)
-	assert.Equal(t, "MaaSConsumerPortalDomainRequired", condition.Reason)
+	assert.Equal(t, "MaaSPortalDomainRequired", condition.Reason)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSConsumerPortalURL)
 }
@@ -241,7 +242,8 @@ func TestReconcileMaaSPortal_DeployFailurePreservesURL(t *testing.T) {
 	condition := cm.GetCondition(conditionMaaSPortalAvailable)
 	require.NotNil(t, condition)
 	assert.Equal(t, metav1.ConditionFalse, condition.Status)
-	assert.Equal(t, "MaaSConsumerPortalDeployFailed", condition.Reason)
+	assert.Equal(t, "MaaSPortalDeployFailed", condition.Reason)
+	assert.False(t, cm.IsHappy(), "portal bundle deployment failure must block readiness")
 	assert.Equal(t, maasPortalRetryInterval, retryAfter)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSConsumerPortalURL)
@@ -258,13 +260,13 @@ func TestReconcileMaaSPortal_PreservesEarlierFailure(t *testing.T) {
 	r := &DashboardReconciler{Client: fake.NewClientBuilder().WithScheme(s).Build(), Scheme: s, ManifestsBasePath: t.TempDir(), Platform: cluster.SelfManagedRhoai}
 	cm := maasPortalTestManager(t, dashboard)
 	cm.MarkFalse(conditionMaaSPortalAvailable,
-		conditions.WithReason("RequiredModuleUnavailable"),
+		conditions.WithReason("MaaSPortalRequiredModuleUnavailable"),
 		conditions.WithMessage("Required module %q is unavailable", "maas"))
 
 	assert.Equal(t, maasPortalRetryInterval, r.reconcileMaaSPortal(context.Background(), dashboard, cm, nil))
 	condition := cm.GetCondition(conditionMaaSPortalAvailable)
 	require.NotNil(t, condition)
-	assert.Equal(t, "RequiredModuleUnavailable", condition.Reason)
+	assert.Equal(t, "MaaSPortalRequiredModuleUnavailable", condition.Reason)
 }
 
 func TestDeployMaaSPortalBundle(t *testing.T) {
@@ -346,9 +348,10 @@ func TestReconcileRemovedMaaSPortal_CleanupFailureRetries(t *testing.T) {
 	assert.Equal(t, maasPortalRetryInterval, r.reconcileRemovedMaaSPortal(context.Background(), dashboard, cm))
 	condition := cm.GetCondition(conditionMaaSPortalAvailable)
 	require.NotNil(t, condition)
-	assert.Equal(t, "MaaSConsumerPortalCleanupFailed", condition.Reason)
+	assert.Equal(t, "MaaSPortalCleanupFailed", condition.Reason)
 	assert.Equal(t, common.ConditionSeverityInfo, condition.Severity)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
+	assert.True(t, cm.IsHappy(), "removed portal cleanup failures remain informational")
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSConsumerPortalURL)
 }
 
@@ -409,7 +412,8 @@ func TestReconcileUnsupportedMaaSPortal_CleanupFailurePreservesURL(t *testing.T)
 	cm := maasPortalTestManager(t, dashboard)
 
 	assert.Equal(t, maasPortalRetryInterval, r.reconcileUnsupportedMaaSPortal(context.Background(), dashboard, cm))
-	assert.Equal(t, "MaaSConsumerPortalCleanupFailed", cm.GetCondition(conditionMaaSPortalAvailable).Reason)
+	assert.Equal(t, "MaaSPortalCleanupFailed", cm.GetCondition(conditionMaaSPortalAvailable).Reason)
+	assert.True(t, cm.IsHappy(), "unsupported portal cleanup failures remain informational")
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSConsumerPortalURL)
 }
@@ -522,7 +526,7 @@ func TestSetMaaSPortalModuleCondition(t *testing.T) {
 			condition := cm.GetCondition(conditionMaaSPortalAvailable)
 			require.NotNil(t, condition)
 			assert.Equal(t, metav1.ConditionFalse, condition.Status)
-			assert.Equal(t, "RequiredModuleUnavailable", condition.Reason)
+			assert.Equal(t, "MaaSPortalRequiredModuleUnavailable", condition.Reason)
 			assert.Equal(t, common.ConditionSeverityError, condition.Severity)
 			assert.False(t, cm.IsHappy(), "a Managed MaaS Portal dependency failure must make the aggregate readiness false")
 		})
@@ -532,7 +536,7 @@ func TestSetMaaSPortalModuleCondition(t *testing.T) {
 		dashboard := newDashboard("Managed")
 		cm := maasPortalTestManager(t, dashboard)
 		cm.MarkFalse(conditionMaaSPortalAvailable,
-			conditions.WithReason("MaaSConsumerPortalDomainRequired"),
+			conditions.WithReason("MaaSPortalDomainRequired"),
 			conditions.WithMessage("gateway domain is not set"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
 
@@ -541,7 +545,7 @@ func TestSetMaaSPortalModuleCondition(t *testing.T) {
 			"genAi": {Phase: v1alpha1.ModulePhaseDeployed},
 		})
 
-		assert.Equal(t, "MaaSConsumerPortalDomainRequired", cm.GetCondition(conditionMaaSPortalAvailable).Reason)
+		assert.Equal(t, "MaaSPortalDomainRequired", cm.GetCondition(conditionMaaSPortalAvailable).Reason)
 	})
 
 	for _, state := range []string{"Removed", ""} {
@@ -577,7 +581,7 @@ func TestMarkMaaSPortalFederationConfigMapFailed(t *testing.T) {
 	condition := cm.GetCondition(conditionMaaSPortalAvailable)
 	require.NotNil(t, condition)
 	assert.Equal(t, metav1.ConditionFalse, condition.Status)
-	assert.Equal(t, "MaaSConsumerPortalFederationConfigMapFailed", condition.Reason)
+	assert.Equal(t, "MaaSPortalFederationConfigMapFailed", condition.Reason)
 	assert.Equal(t, common.ConditionSeverityError, condition.Severity)
 	assert.False(t, cm.IsHappy(), "a Managed MaaS Portal federation failure must make the aggregate readiness false")
 
@@ -585,11 +589,11 @@ func TestMarkMaaSPortalFederationConfigMapFailed(t *testing.T) {
 		dashboard := &v1alpha1.Dashboard{}
 		cm := maasPortalTestManager(t, dashboard)
 		cm.MarkFalse(conditionMaaSPortalAvailable,
-			conditions.WithReason("MaaSConsumerPortalDomainRequired"),
+			conditions.WithReason("MaaSPortalDomainRequired"),
 			conditions.WithMessage("gateway domain is not set"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
 
 		(&DashboardReconciler{}).markMaaSPortalFederationConfigMapFailed(cm, errors.New("apply failed"))
-		assert.Equal(t, "MaaSConsumerPortalDomainRequired", cm.GetCondition(conditionMaaSPortalAvailable).Reason)
+		assert.Equal(t, "MaaSPortalDomainRequired", cm.GetCondition(conditionMaaSPortalAvailable).Reason)
 	})
 }

@@ -279,7 +279,7 @@ data:
 	condition := conditions.FindStatusCondition(dashboard, conditionMaaSPortalAvailable)
 	require.NotNil(t, condition)
 	assert.Equal(t, metav1.ConditionFalse, condition.Status)
-	assert.Equal(t, "MaaSConsumerPortalFederationConfigMapFailed", condition.Reason)
+	assert.Equal(t, "MaaSPortalFederationConfigMapFailed", condition.Reason)
 	applied := &corev1.ConfigMap{}
 	require.NoError(t, cli.Get(ctx, client.ObjectKey{Name: "portal-bundle-config", Namespace: "applications"}, applied))
 	assert.Equal(t, "updated", applied.Data["key"])

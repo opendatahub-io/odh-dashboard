@@ -306,7 +306,7 @@ func TestMaaSPortalTeardownRetriesServiceAccountDeletion(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, maasPortalRetryInterval, retry)
-				assert.Equal(t, "MaaSConsumerPortalCleanupFailed", cm.GetCondition(conditionMaaSPortalAvailable).Reason)
+				assert.Equal(t, "MaaSPortalCleanupFailed", cm.GetCondition(conditionMaaSPortalAvailable).Reason)
 				assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
 				assert.Equal(t, dashboard.Status.MaaSPortalURL, dashboard.Status.MaaSConsumerPortalURL)
 			}
