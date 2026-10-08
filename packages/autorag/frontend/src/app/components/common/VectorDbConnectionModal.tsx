@@ -47,14 +47,13 @@ const NEO4J_OPTIONAL_FIELDS: ReadonlyArray<{
     key: 'NEO4J_DATABASE',
     label: 'Database',
     type: 'text',
-    guidance:
-      'Name of the Neo4j database to connect to. Leave blank to use the default database configured for the user.',
+    guidance: 'Name of the Neo4j database to connect to. Defaults to "neo4j" if left blank',
   },
   {
     key: 'NEO4J_USERNAME',
     label: 'Username',
     type: 'text',
-    guidance: 'Neo4j username used for authentication.',
+    guidance: 'Neo4j username used for authentication. Defaults to "neo4j" if left blank',
   },
 ];
 

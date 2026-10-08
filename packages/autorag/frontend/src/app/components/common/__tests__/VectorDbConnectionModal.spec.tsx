@@ -174,7 +174,7 @@ describe('VectorDbConnectionModal', () => {
       'Neo4j connection URI, including protocol and host (for example: "neo4j+s://example.databases.neo4j.io" or "bolt://localhost:7687").',
     );
     expect(document.getElementById('neo4j_database-description')).toHaveTextContent(
-      'Name of the Neo4j database to connect to. Leave blank to use the default database configured for the user.',
+      'Name of the Neo4j database to connect to. Defaults to "neo4j" if left blank',
     );
     expect(document.getElementById('neo4j_username-description')).toHaveTextContent(
       'Neo4j username used for authentication.',
