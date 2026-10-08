@@ -315,7 +315,7 @@ const ConnectionTypeValues: React.FC<ConnectionTypeValuesProps> = ({ connectionT
     <Grid className="pf-v6-u-h-100" hasGutter>
       <GridItem span={8}>
         <Card className="pf-v6-u-p-xs" isFullHeight>
-          <div style={{ overflow: 'auto' }}>
+          <div className="dch-u-overflow-auto">
             <CardHeader>
               <Content component="h3">Details</Content>
             </CardHeader>
@@ -353,7 +353,7 @@ const ConnectionTypeValues: React.FC<ConnectionTypeValuesProps> = ({ connectionT
       {localFeatureFlags.tags && (
         <GridItem span={4}>
           <Card className="pf-v6-u-p-xs" isFullHeight>
-            <div style={{ overflow: 'auto' }}>
+            <div className="dch-u-overflow-auto">
               <CardHeader>
                 <Content component="h3">Labels</Content>
               </CardHeader>
