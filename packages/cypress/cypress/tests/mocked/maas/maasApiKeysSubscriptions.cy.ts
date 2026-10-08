@@ -12,7 +12,11 @@ import {
   mySubscriptionsPage,
   subscriptionsTab,
 } from '../../../pages/modelsAsAService';
-import { mockAPIKeys, mockSubscriptionListItems } from '../../../utils/maasUtils';
+import {
+  mockAPIKeys,
+  mockSubscriptionListItems,
+  mockSubscriptions,
+} from '../../../utils/maasUtils';
 
 describe('API keys - Subscription Tab', () => {
   beforeEach(() => {
@@ -53,6 +57,18 @@ describe('API keys - Subscription Tab', () => {
     cy.interceptOdh('GET /maas/api/v1/subscriptions', {
       data: mockSubscriptionListItems(),
     }).as('getSubscriptions');
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
+      data: mockSubscriptions(),
+    }).as('getAllSubscriptions');
+
+    cy.interceptOdh('GET /maas/api/v1/api-keys-config', {
+      data: {
+        // eslint-disable-next-line camelcase
+        max_expiration_days: 365,
+        // eslint-disable-next-line camelcase
+        ephemeral_max_expiration: '1h',
+      },
+    }).as('getApiKeyConfig');
 
     cy.intercept('GET', '/maas/api/v1/subscriptions/*', (req) => {
       const id = req.url.split('/').pop();

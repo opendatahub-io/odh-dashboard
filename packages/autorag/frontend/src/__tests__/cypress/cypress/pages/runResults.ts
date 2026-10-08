@@ -52,8 +52,8 @@ class AutoragRunResultsPage {
     });
   }
 
-  findMetricDescriptionTooltip() {
-    return cy.findByRole('tooltip');
+  findMetricDescriptionPopover() {
+    return cy.findByRole('dialog');
   }
 
   findPatternLink(rank: number) {
@@ -72,7 +72,8 @@ class AutoragRunResultsPage {
     return cy.findByTestId('ci-scores-info');
   }
 
-  findCIMetricHelp(metricKey: string) {
+  findCIMetricHelp(metricName: string, evaluator?: string) {
+    const metricKey = evaluator ? `${metricName}-${evaluator}` : metricName;
     return cy.findByTestId(`ci-metric-help-${metricKey}`);
   }
 

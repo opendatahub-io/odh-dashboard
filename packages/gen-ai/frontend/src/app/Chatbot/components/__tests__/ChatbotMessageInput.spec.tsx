@@ -197,6 +197,99 @@ describe('ChatbotMessageInput', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    window.localStorage.removeItem('playground-image-capability-alert-dismissed');
+  });
+
+  it('shows image capability guidance and remembers the opt-out', async () => {
+    const user = userEvent.setup();
+    render(
+      <ChatbotMessageInput
+        {...defaultProps}
+        imageUploadState={{ ...defaultImageUploadState, fileName: 'photo.png' }}
+        showImageCapabilityAlert
+      />,
+    );
+
+    expect(screen.getByTestId('image-capability-alert')).toHaveTextContent(
+      'Vision capability not tagged',
+    );
+    expect(screen.getByTestId('image-capability-alert')).toHaveClass('pf-v6-u-mb-sm');
+    expect(screen.getByTestId('image-capability-alert')).toHaveTextContent(
+      "This model isn't tagged for vision capabilities, which can lead to unexpected output. To identify supported models faster, tag this model's capabilities in the Model Registry or contact your admin.",
+    );
+    expect(
+      screen.getByRole('button', { name: "Don't show this again" }).closest('p'),
+    ).not.toHaveTextContent("This model isn't tagged for vision capabilities");
+    await user.click(screen.getByRole('button', { name: "Don't show this again" }));
+    expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+    expect(window.localStorage.getItem('playground-image-capability-alert-dismissed')).toBe('true');
+  });
+
+  it('shows no vision notice without an image or when the selected model is vision-tagged', () => {
+    const { rerender } = render(<ChatbotMessageInput {...defaultProps} showImageCapabilityAlert />);
+    expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+
+    rerender(
+      <ChatbotMessageInput
+        {...defaultProps}
+        imageUploadState={{ ...defaultImageUploadState, fileName: 'photo.png' }}
+        showImageCapabilityAlert={false}
+      />,
+    );
+    expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+  });
+
+  it('keeps the vision notice dismissed when the playground is reopened', () => {
+    window.localStorage.setItem('playground-image-capability-alert-dismissed', 'true');
+    const props = {
+      ...defaultProps,
+      imageUploadState: { ...defaultImageUploadState, fileName: 'photo.png' },
+      showImageCapabilityAlert: true,
+    };
+    const { unmount } = render(<ChatbotMessageInput {...props} />);
+    expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+
+    unmount();
+    render(<ChatbotMessageInput {...props} />);
+    expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+  });
+
+  it('shows the vision notice when the dismissal preference cannot be read', () => {
+    const getItem = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('Storage unavailable');
+    });
+    try {
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          imageUploadState={{ ...defaultImageUploadState, fileName: 'photo.png' }}
+          showImageCapabilityAlert
+        />,
+      );
+      expect(screen.getByTestId('image-capability-alert')).toBeInTheDocument();
+    } finally {
+      getItem.mockRestore();
+    }
+  });
+
+  it('dismisses the vision notice when the preference cannot be saved', async () => {
+    const user = userEvent.setup();
+    render(
+      <ChatbotMessageInput
+        {...defaultProps}
+        imageUploadState={{ ...defaultImageUploadState, fileName: 'photo.png' }}
+        showImageCapabilityAlert
+      />,
+    );
+    const setItem = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('Storage unavailable');
+    });
+    try {
+      await user.click(screen.getByRole('button', { name: "Don't show this again" }));
+      expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+    } finally {
+      setItem.mockRestore();
+    }
   });
 
   it('renders the message bar', () => {
@@ -522,6 +615,31 @@ describe('ChatbotMessageInput', () => {
   });
 
   describe('image preview chip', () => {
+    it('aligns image and audio attachments with the message bar edge', () => {
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          imageUploadState={{ ...defaultImageUploadState, fileName: 'test.jpg' }}
+          audioTranscriptionState={{
+            phase: 'ready',
+            fileName: 'recording.wav',
+            uploadProgress: 100,
+            error: null,
+            transcribedText: 'hello',
+          }}
+        />,
+      );
+
+      const row = screen.getByTestId('media-attachment-row');
+      expect(within(row).getByTestId('vision-file-preview')).toBeInTheDocument();
+      expect(within(row).getByTestId('audio-file-chip')).toBeInTheDocument();
+      expect(row).toHaveStyle('width: 100%');
+      expect(row.style.paddingLeft).toBe('');
+      expect(row.style.maxWidth).toBe('');
+      expect(row.style.marginLeft).toBe('');
+      expect(row.style.marginRight).toBe('');
+    });
+
     it('renders FileDetailsLabel when a file name is present', () => {
       render(
         <ChatbotMessageInput
@@ -807,6 +925,20 @@ describe('ChatbotMessageInput', () => {
       error: null,
       transcribedText: '',
     };
+
+    it('explains where to select a model when audio is waiting for one', () => {
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          audioTranscriptionState={{ ...defaultAudioState, phase: 'waiting-for-model' }}
+        />,
+      );
+
+      expect(screen.getByTestId('audio-model-needed-alert')).toHaveTextContent(
+        'Audio files require a transcription model. Select one under the Model tab in Settings.',
+      );
+      expect(screen.getByTestId('audio-model-needed-alert')).toHaveClass('pf-v6-u-mb-sm');
+    });
 
     it('clicking "Upload audio" triggers the hidden audio file input and fires tracking event', async () => {
       const user = userEvent.setup();

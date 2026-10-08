@@ -75,6 +75,7 @@ interface ChatbotSettingsPanelProps {
   mcpRegistryAvailable?: boolean;
   mcpServerTokens: Map<string, TokenInfo>;
   onMcpServerTokensChange: (tokens: Map<string, TokenInfo>) => void;
+  onMcpMissingAuthServersChange?: (serverNames: string[]) => void;
   checkMcpServerStatus: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
   // Guardrails props
   onCloseClick?: () => void;
@@ -108,6 +109,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   mcpRegistryAvailable,
   mcpServerTokens,
   onMcpServerTokensChange,
+  onMcpMissingAuthServersChange,
   checkMcpServerStatus,
   onCloseClick,
   onActiveConfigChange,
@@ -510,6 +512,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             initialServerStatuses={initialServerStatuses}
             onActiveToolsCountChange={setActiveToolsCount}
             onToolsWarningChange={setShowMcpToolsWarning}
+            onMissingAuthServersChange={onMcpMissingAuthServersChange}
           />
         </div>
         {isGuardrailsFeatureEnabled && (

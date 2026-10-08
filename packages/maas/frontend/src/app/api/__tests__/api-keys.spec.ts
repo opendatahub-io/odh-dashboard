@@ -2,22 +2,31 @@
 import * as modArchCore from 'mod-arch-core';
 import type {
   APIKey,
+  APIKeyConfig,
   APIKeyListResponse,
   BulkRevokeResponse,
   CreateAPIKeyResponse,
 } from '~/app/types/api-key';
-import { bulkRevokeApiKeys, createApiKey, revokeApiKey, searchApiKeys } from '~/app/api/api-keys';
+import {
+  bulkRevokeApiKeys,
+  createApiKey,
+  getApiKeyConfig,
+  revokeApiKey,
+  searchApiKeys,
+} from '~/app/api/api-keys';
 
 jest.mock('mod-arch-core', () => ({
   ...jest.requireActual('mod-arch-core'),
   handleRestFailures: jest.fn((p: Promise<unknown>) => p),
   restCREATE: jest.fn(),
   restDELETE: jest.fn(),
+  restGET: jest.fn(),
   assembleModArchBody: jest.fn((body: unknown) => ({ data: body })),
 }));
 
 const mockRestCREATE = jest.mocked(modArchCore.restCREATE);
 const mockRestDELETE = jest.mocked(modArchCore.restDELETE);
+const mockRestGET = jest.mocked(modArchCore.restGET);
 const mockHandleRestFailures = jest.mocked(modArchCore.handleRestFailures);
 
 const validKey: APIKey = {
@@ -228,5 +237,39 @@ describe('revokeApiKey', () => {
     mockRestDELETE.mockResolvedValue(validKey);
 
     await expect(revokeApiKey()({} as never, 'key-1')).rejects.toThrow('Invalid response format');
+  });
+});
+
+describe('getApiKeyConfig', () => {
+  const validConfig: APIKeyConfig = {
+    max_expiration_days: 90,
+    ephemeral_max_expiration: '1h',
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockHandleRestFailures.mockImplementation((p: Promise<unknown>) => p);
+  });
+
+  it('should resolve with a valid API key config', async () => {
+    mockRestGET.mockResolvedValue({ data: validConfig });
+
+    const result = await getApiKeyConfig()({} as never);
+    expect(result.max_expiration_days).toBe(90);
+    expect(result.ephemeral_max_expiration).toBe('1h');
+  });
+
+  it('should throw when max_expiration_days is missing', async () => {
+    mockRestGET.mockResolvedValue({
+      data: { ephemeral_max_expiration: '1h' },
+    });
+
+    await expect(getApiKeyConfig()({} as never)).rejects.toThrow('Invalid response format');
+  });
+
+  it('should throw when response is not mod-arch wrapped', async () => {
+    mockRestGET.mockResolvedValue(validConfig);
+
+    await expect(getApiKeyConfig()({} as never)).rejects.toThrow('Invalid response format');
   });
 });

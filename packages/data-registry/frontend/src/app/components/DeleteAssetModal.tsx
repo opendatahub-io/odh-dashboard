@@ -53,7 +53,7 @@ const DeleteAssetModal: React.FC<DeleteAssetModalProps> = ({
       <ModalBody>
         {error ? <Alert variant="danger" isInline title={error} /> : null}
         <p>
-          <strong>{assetName}</strong> and its data will be lost forever.
+          <strong>{assetName}</strong> will be deleted from the registry.
         </p>
         <FormGroup
           label={

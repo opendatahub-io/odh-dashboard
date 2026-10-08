@@ -63,12 +63,6 @@ patchesJson6902:
       version: v1
       kind: ClusterRoleBinding
       name: odh-dashboard-auth-delegator
-  - path: cluster-monitoring-role-binding.yaml
-    target:
-      group: rbac.authorization.k8s.io
-      version: v1
-      kind: ClusterRoleBinding
-      name: odh-dashboard-monitoring
   - path: service.yaml
     target:
       version: v1

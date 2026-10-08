@@ -17,7 +17,9 @@ import {
   MlflowTrackingEvents,
 } from '@odh-dashboard/internal/concepts/mlflow/const';
 // eslint-disable-next-line no-restricted-syntax
-import { PROMPT_MANAGEMENT_PAGE_TITLE } from './shared/const';
+import { AGENT_OBSERVABILITY_PAGE_TITLE, PROMPT_MANAGEMENT_PAGE_TITLE } from './shared/const';
+// eslint-disable-next-line no-restricted-syntax
+import { agentObservabilityPath, globAgentObservabilityAll } from './shared/routes';
 // eslint-disable-next-line no-restricted-syntax
 import { MCP_REGISTRY_BASENAME } from './mcp-registry/const';
 
@@ -86,6 +88,34 @@ const extensions: (
     properties: {
       path: globPromptManagementAll,
       component: () => import('./prompts/GlobalMLflowPromptManagementRoutes'),
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.MLFLOW],
+    },
+    properties: {
+      id: 'agent-observability',
+      title: AGENT_OBSERVABILITY_PAGE_TITLE,
+      href: agentObservabilityPath,
+      section: 'observe-and-monitor',
+      path: globAgentObservabilityAll,
+      group: '6_agent_observability',
+      trackingEvent: {
+        name: MlflowTrackingEvents.EMBEDDED_VIEW_OPENED,
+        section: 'agent-observability-sidebar-nav',
+      },
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.MLFLOW],
+    },
+    properties: {
+      path: globAgentObservabilityAll,
+      component: () => import('./agent-observability/GlobalMLflowAgentObservabilityRoutes'),
     },
   },
   {

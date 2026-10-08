@@ -11,11 +11,19 @@ import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingC
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
 import { GenAiContext } from '~/app/context/GenAiContext';
-import { isLlamaModelEnabled } from '~/app/utilities';
+import {
+  convertMaaSModelToAIModel,
+  isLlamaModelEnabled,
+  resolveAIModelForPlaygroundSelection,
+} from '~/app/utilities';
 import { filterUnavailableMCPServers } from '~/app/utilities/mcp';
+import { serializeToAgentProfileSpec } from '~/app/agentProfile/serialize';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import useFetchAAEVectorStores from '~/app/hooks/useFetchAAEVectorStores';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
+import { useNotification } from '~/app/hooks/useNotification';
+import { TokenInfo } from '~/app/types';
+import { getMCPServerAuth } from '~/app/agentProfile/mcpServerAuth';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import DeletePlaygroundModal from '~/app/Chatbot/components/DeletePlaygroundModal';
 import ChatModal from '~/app/Chatbot/components/ChatModal';
@@ -24,13 +32,17 @@ import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import useAgentProfileUrlParam from '~/app/agentProfile/useAgentProfileUrlParam';
 import { deserializeAgentProfile } from '~/app/agentProfile/deserialize';
 import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
+import { sortDeploymentsByMostRecent } from '~/app/agentProfile/deploymentUtils';
 import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
 import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlocker';
+import useFetchAgentDeployments from '~/app/AIAssets/hooks/useFetchAgentDeployments';
+import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
 import ChatbotHeader from './ChatbotHeader';
 import ChatbotPlayground from './ChatbotPlayground';
 import ChatbotHeaderActions from './ChatbotHeaderActions';
 import SaveAgentProfileModal from './components/SaveAgentProfileModal';
 import LoadAgentProfileModal from './components/LoadAgentProfileModal';
+import DeployAgentModal from './components/DeployAgentModal';
 import {
   useChatbotConfigStore,
   selectConfigIds,
@@ -39,6 +51,9 @@ import {
 } from './store';
 import { usePlaygroundStore } from './store/usePlaygroundStore';
 import PromptManagementModal from './components/promptManagementModal';
+import useAgentDeploymentPolling from './hooks/useAgentDeploymentPolling';
+import useSaveAgentProfile from './hooks/useSaveAgentProfile';
+import AgentDeploymentsModal from './components/AgentDeploymentsModal';
 
 const ChatbotMain: React.FunctionComponent = () => {
   const {
@@ -103,10 +118,39 @@ const ChatbotMain: React.FunctionComponent = () => {
   // Load agent profile from URL param — lives here so the ApplicationsPage spinner covers the fetch
   const { loading: profileLoading, error: profileLoadError } = useAgentProfileUrlParam({
     mcpServers,
+    availableMcpServers,
     mcpServersLoaded,
+    mcpServerStatusesResolved: areMcpServerStatusesResolved,
   });
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
   const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
+  const loadedProfileSpec = useChatbotConfigStore((s) => s.loadedProfileSpec);
+  const { enabled: agentDeploymentsEnabled } = useGenAiAgentDeploymentEnabled();
+  const { data: deployments = [], refresh: refreshDeployments } = useFetchAgentDeployments(
+    agentDeploymentsEnabled ? (loadedProfileId ?? undefined) : undefined,
+  );
+  const { data: allDeployments = [], refresh: refreshAllDeployments } = useFetchAgentDeployments(
+    undefined,
+    { includeAll: agentDeploymentsEnabled && profileApplied },
+  );
+  const sortedDeployments = React.useMemo(
+    () => sortDeploymentsByMostRecent(deployments),
+    [deployments],
+  );
+  const refreshedDeploymentProfileId = React.useRef<string | null>(null);
+
+  React.useEffect(() => {
+    if (!agentDeploymentsEnabled || !profileApplied || !loadedProfileId) {
+      refreshedDeploymentProfileId.current = null;
+      return;
+    }
+    if (refreshedDeploymentProfileId.current === loadedProfileId) {
+      return;
+    }
+
+    refreshedDeploymentProfileId.current = loadedProfileId;
+    refreshDeployments();
+  }, [agentDeploymentsEnabled, loadedProfileId, profileApplied, refreshDeployments]);
   // Ready when: no profile to load, fetch errored, or profile fully applied (async assets settled)
   const profileReady =
     !agentProfileId ||
@@ -115,10 +159,63 @@ const ChatbotMain: React.FunctionComponent = () => {
   const configIds = useChatbotConfigStore(selectConfigIds);
   const isCompareMode = configIds.length > 1;
   const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
+  const currentConfiguration = useChatbotConfigStore(
+    (state) => state.configurations[DEFAULT_CONFIG_ID],
+  );
 
   const isProfileDirty = useIsProfileDirty(primaryConfigId, availableMcpServers, mcpConfigMapName);
   useSafeBrowserUnloadBlocker(isProfileDirty);
   const selectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
+
+  const allAIModels = React.useMemo(
+    () => [...aiModels, ...maasModels.map(convertMaaSModelToAIModel)],
+    [aiModels, maasModels],
+  );
+  const deploymentSnapshotModel = React.useMemo(
+    () =>
+      currentConfiguration?.selectedModel
+        ? resolveAIModelForPlaygroundSelection(
+            currentConfiguration.selectedModel,
+            models,
+            allAIModels,
+          )
+        : undefined,
+    [allAIModels, currentConfiguration?.selectedModel, models],
+  );
+  const deploymentSnapshotAsrModel = React.useMemo(
+    () =>
+      currentConfiguration?.isAsrModelEnabled && currentConfiguration.selectedAsrModel
+        ? aiModels.find((model) => model.model_id === currentConfiguration.selectedAsrModel)
+        : undefined,
+    [aiModels, currentConfiguration?.isAsrModelEnabled, currentConfiguration?.selectedAsrModel],
+  );
+  const deploymentSnapshotProfile = React.useMemo(() => {
+    if (!loadedProfileSpec || !currentConfiguration) {
+      return undefined;
+    }
+
+    return {
+      spec: serializeToAgentProfileSpec(
+        currentConfiguration,
+        loadedProfileSpec.displayName,
+        loadedProfileSpec.description,
+        {
+          model: deploymentSnapshotModel,
+          asrModel: deploymentSnapshotAsrModel,
+          mcpServers: availableMcpServers,
+          previousMcpServers: loadedProfileSpec.mcpServers,
+          mcpConfigMapName: mcpConfigMapName ?? 'gen-ai-aa-mcp-servers',
+        },
+      ),
+    };
+  }, [
+    availableMcpServers,
+    currentConfiguration,
+    deploymentSnapshotAsrModel,
+    deploymentSnapshotModel,
+    loadedProfileSpec,
+    mcpConfigMapName,
+  ]);
 
   // Check if there are any models available (either AI assets or MaaS models)
   const hasModels = aiModels.length > 0 || maasModels.length > 0;
@@ -135,6 +232,22 @@ const ChatbotMain: React.FunctionComponent = () => {
 
   const [saveModalMode, setSaveModalMode] = React.useState<'save' | 'save-as' | null>(null);
   const [loadModalOpen, setLoadModalOpen] = React.useState(false);
+  const [deployModalOpen, setDeployModalOpen] = React.useState(false);
+  const [selectedDeploymentName, setSelectedDeploymentName] = React.useState<string | null>(null);
+  const [isSavingForDeployment, setIsSavingForDeployment] = React.useState(false);
+  const [mcpServerTokens, setMcpServerTokens] = React.useState<Map<string, TokenInfo>>(new Map());
+  const [mcpServersMissingAuth, setMcpServersMissingAuth] = React.useState<string[]>([]);
+  const handleMcpMissingAuthServersChange = React.useCallback((serverNames: string[]) => {
+    setMcpServersMissingAuth((currentServerNames) =>
+      currentServerNames.length === serverNames.length &&
+      currentServerNames.every((serverName, index) => serverName === serverNames[index])
+        ? currentServerNames
+        : serverNames,
+    );
+  }, []);
+  const { isDeploying, startAgentDeployment, resetDeploymentLoading } = useAgentDeploymentPolling();
+  const { saveAgentProfile } = useSaveAgentProfile(availableMcpServers, mcpConfigMapName);
+  const notification = useNotification();
 
   const handleOpenSave = React.useCallback(() => setSaveModalMode('save'), []);
   const handleOpenSaveAs = React.useCallback(() => setSaveModalMode('save-as'), []);
@@ -243,6 +356,67 @@ const ChatbotMain: React.FunctionComponent = () => {
     [primaryConfigId, setSearchParams],
   );
 
+  const handleCloseDeployModal = React.useCallback(() => {
+    setDeployModalOpen(false);
+    setIsSavingForDeployment(false);
+    resetDeploymentLoading();
+  }, [resetDeploymentLoading]);
+
+  const handleDeploy = React.useCallback(
+    async (name: string) => {
+      if (!loadedProfileId || !loadedProfileSpec || !namespace?.name) {
+        return;
+      }
+
+      setIsSavingForDeployment(true);
+      try {
+        // Deployments consume an immutable AgentProfile snapshot, so persist the
+        // current Playground configuration (including a changed prompt) before
+        // asking the BFF to create the Sandbox.
+        const savedProfile = await saveAgentProfile({
+          mode: 'save',
+          name: loadedProfileSpec.displayName,
+          description: loadedProfileSpec.description,
+        });
+        useChatbotConfigStore.getState().setLoadedResourceVersion(savedProfile.resourceVersion);
+        useChatbotConfigStore.getState().setLoadedProfileSpec(savedProfile.spec);
+
+        await startAgentDeployment({
+          name,
+          agentProfileId: savedProfile.profileId,
+          namespace: namespace.name,
+          mcpServerAuth: getMCPServerAuth(savedProfile.spec, availableMcpServers, mcpServerTokens),
+          onCreated: () => {
+            void refreshDeployments();
+            void refreshAllDeployments();
+          },
+          onStarted: handleCloseDeployModal,
+          onComplete: handleCloseDeployModal,
+        });
+      } catch (error) {
+        notification.error(
+          `Unable to deploy ${name}`,
+          error instanceof Error ? error.message : 'The agent profile could not be saved.',
+        );
+      } finally {
+        setIsSavingForDeployment(false);
+      }
+    },
+    [
+      loadedProfileId,
+      loadedProfileSpec,
+      availableMcpServers,
+      mcpServerTokens,
+      namespace?.name,
+      notification,
+      handleCloseDeployModal,
+      refreshDeployments,
+      refreshAllDeployments,
+      saveAgentProfile,
+      startAgentDeployment,
+    ],
+  );
+
   // Handle compare chat confirmation - clears messages and enters compare mode
   const handleCompareConfirm = React.useCallback(() => {
     // Clear all chat messages
@@ -330,6 +504,9 @@ const ChatbotMain: React.FunctionComponent = () => {
               onSaveAs={handleOpenSaveAs}
               onLoad={handleOpenLoad}
               onNew={handleNewAgentConfiguration}
+              onDeploy={() => setDeployModalOpen(true)}
+              deployments={agentDeploymentsEnabled ? sortedDeployments : []}
+              onDeploymentSelect={setSelectedDeploymentName}
               onViewCode={() => {
                 setIsViewCodeModalOpen(true);
                 fireSimpleTrackingEvent('Playground View Code Selected');
@@ -418,6 +595,12 @@ const ChatbotMain: React.FunctionComponent = () => {
               mcpServersLoadError={mcpServersLoadError}
               mcpServerStatuses={mcpServerStatuses}
               checkMcpServerStatus={checkMcpServerStatus}
+              onMcpServerTokensChange={setMcpServerTokens}
+              onMcpMissingAuthServersChange={handleMcpMissingAuthServersChange}
+              deploymentCount={agentDeploymentsEnabled ? sortedDeployments.length : 0}
+              onDeploymentClick={() => {
+                setSelectedDeploymentName(sortedDeployments[0].name);
+              }}
             />
           )
         ) : lsdStatus?.phase === 'Failed' ? (
@@ -473,6 +656,38 @@ const ChatbotMain: React.FunctionComponent = () => {
         <LoadAgentProfileModal
           onClose={() => setLoadModalOpen(false)}
           onSelect={handleProfileSelected}
+        />
+      )}
+      {agentDeploymentsEnabled &&
+        deployModalOpen &&
+        loadedProfileId &&
+        deploymentSnapshotProfile &&
+        namespace?.name && (
+          <DeployAgentModal
+            profile={deploymentSnapshotProfile}
+            namespace={namespace.name}
+            isDeploying={isDeploying || isSavingForDeployment}
+            missingMCPServerAuth={mcpServersMissingAuth}
+            existingDeploymentNames={allDeployments.map(
+              (deployment) => deployment.displayName ?? deployment.name,
+            )}
+            aiModels={aiModels}
+            onDeploy={(name) => void handleDeploy(name)}
+            onClose={handleCloseDeployModal}
+          />
+        )}
+      {agentDeploymentsEnabled && selectedDeploymentName && loadedProfileSpec && (
+        <AgentDeploymentsModal
+          agentName={loadedProfileSpec.displayName}
+          deployments={sortedDeployments}
+          initialDeploymentName={selectedDeploymentName}
+          aiModels={aiModels}
+          onClose={() => setSelectedDeploymentName(null)}
+          onDeleted={() => {
+            setSelectedDeploymentName(null);
+            void refreshDeployments();
+            void refreshAllDeployments();
+          }}
         />
       )}
       {isProfileDirty && <SafeNavigationBlocker hasUnsavedChanges={isProfileDirty} />}

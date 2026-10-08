@@ -224,6 +224,26 @@ describe('ModelFormatField', () => {
       ]);
     });
 
+    it('should not load templates until model type is predictive', () => {
+      mockUseServingRuntimeTemplates.mockReturnValue([[], true, undefined]);
+
+      renderHook(() =>
+        useModelFormatField(undefined, { type: ServingRuntimeModelType.GENERATIVE }),
+      );
+
+      expect(mockUseServingRuntimeTemplates).toHaveBeenCalledWith(undefined, false);
+    });
+
+    it('should load templates when model type is predictive', () => {
+      mockUseServingRuntimeTemplates.mockReturnValue([[], true, undefined]);
+
+      renderHook(() =>
+        useModelFormatField(undefined, { type: ServingRuntimeModelType.PREDICTIVE }),
+      );
+
+      expect(mockUseServingRuntimeTemplates).toHaveBeenCalledWith(undefined, true);
+    });
+
     it('should not duplicate templates when projectName is undefined', () => {
       const template = {
         metadata: { name: 'test-template', namespace: 'opendatahub' },
@@ -233,7 +253,9 @@ describe('ModelFormatField', () => {
       mockUseServingRuntimeTemplates.mockReturnValue([[template], true, undefined]);
       getModelTypesFromTemplate.mockReturnValue([]);
 
-      const { result } = renderHook(() => useModelFormatField(undefined, undefined, undefined));
+      const { result } = renderHook(() =>
+        useModelFormatField(undefined, { type: ServingRuntimeModelType.PREDICTIVE }, undefined),
+      );
 
       // Should only see one template — not duplicated
       expect(result.current.templatesFilteredForModelType).toHaveLength(1);
@@ -248,7 +270,9 @@ describe('ModelFormatField', () => {
       mockUseServingRuntimeTemplates.mockReturnValue([[template], true, undefined]);
       getModelTypesFromTemplate.mockReturnValue([]);
 
-      const { result } = renderHook(() => useModelFormatField(undefined, undefined, 'opendatahub'));
+      const { result } = renderHook(() =>
+        useModelFormatField(undefined, { type: ServingRuntimeModelType.PREDICTIVE }, 'opendatahub'),
+      );
 
       // Same namespace — should return only global templates (no concat)
       expect(result.current.templatesFilteredForModelType).toHaveLength(1);
@@ -270,14 +294,16 @@ describe('ModelFormatField', () => {
         objects: [{ metadata: { name: 'project-only-runtime' } }],
       } as unknown as TemplateKind;
 
-      // First call (no args) returns global templates
-      // Second call (with projectName) returns project templates
+      // First call (global, enabled) returns global templates
+      // Second call (project, enabled) returns project templates
       mockUseServingRuntimeTemplates
         .mockReturnValueOnce([[globalTemplate], true, undefined])
         .mockReturnValueOnce([[projectTemplate, projectOnlyTemplate], true, undefined]);
       getModelTypesFromTemplate.mockReturnValue([]);
 
-      const { result } = renderHook(() => useModelFormatField(undefined, undefined, 'my-project'));
+      const { result } = renderHook(() =>
+        useModelFormatField(undefined, { type: ServingRuntimeModelType.PREDICTIVE }, 'my-project'),
+      );
 
       // Should have 2 templates: project-scoped 'shared-runtime' takes precedence over global,
       // plus the project-only runtime
@@ -304,7 +330,9 @@ describe('ModelFormatField', () => {
         .mockReturnValueOnce([[projectTemplate], true, undefined]);
       getModelTypesFromTemplate.mockReturnValue([]);
 
-      const { result } = renderHook(() => useModelFormatField(undefined, undefined, 'my-project'));
+      const { result } = renderHook(() =>
+        useModelFormatField(undefined, { type: ServingRuntimeModelType.PREDICTIVE }, 'my-project'),
+      );
 
       // Both should be present since they have different runtime names
       expect(result.current.templatesFilteredForModelType).toHaveLength(2);

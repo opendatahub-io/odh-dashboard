@@ -482,6 +482,39 @@ paths:
         '500':
           description: Internal Server Error
 
+  /api/v1/api-keys-config:
+    get:
+      tags:
+        - api-keys
+      summary: Get API key configuration limits
+      operationId: getApiKeyConfig
+      description: >
+        Returns the API key limits that apply when creating keys.
+        Useful for clients that need to display valid ranges for expiration
+        without requiring admin access to the Tenant CR. Proxies maas-api
+        GET /v1/api-keys/config. Registered as /api-keys-config (not /api-keys/config)
+        to avoid conflicting with httprouter GET /api-keys/:id.
+      responses:
+        '200':
+          description: OK response.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ApiKeyConfig'
+              example:
+                data:
+                  max_expiration_days: 90
+                  ephemeral_max_expiration: '1h'
+        '401':
+          description: Unauthorized response.
+        '500':
+          description: Internal Server Error
+
   /api/v1/api-keys/search:
     post:
       tags:
@@ -2144,6 +2177,22 @@ components:
         - owned_by
         - ready
 
+    ApiKeyConfig:
+      type: object
+      description: API key configuration limits from maas-api
+      properties:
+        max_expiration_days:
+          type: integer
+          description: Maximum expiration in days for regular API keys
+          example: 90
+        ephemeral_max_expiration:
+          type: string
+          description: Maximum expiration for ephemeral API keys
+          example: '1h'
+      required:
+        - max_expiration_days
+        - ephemeral_max_expiration
+
     ApiKey:
       type: object
       properties:
@@ -2230,9 +2279,12 @@ components:
           additionalProperties:
             $ref: '#/components/schemas/SubscriptionDetail'
           description: >
-            Map of subscription name to its details (model names).
-            Populated by the BFF by fetching MaaSSubscription resources
-            for any subscription values found on the returned API keys.
+            Map of subscription name to its details (display name and model names)
+            for subscriptions referenced by the returned API keys. Used by the UI
+            to derive Inactive status (active key whose subscription is missing)
+            and to enrich the subscription column. For MaaS admins the BFF fills
+            this from a Kubernetes list of MaaSSubscription CRs; for non-admins
+            it uses the caller-scoped MaaS API /subscriptions list.
       required:
         - object
         - data

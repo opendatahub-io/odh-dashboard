@@ -84,6 +84,7 @@ describe('SaveAgentProfileModal', () => {
       loadedProfileDisplayName: null,
       loadedProfileDescription: null,
       loadedResourceVersion: null,
+      loadedProfileSpec: null,
     });
     jest.mocked(mockGenAiContextValue.apiState.api.createAgentProfile).mockResolvedValue({
       profileId: 'new-uuid',
@@ -206,6 +207,33 @@ describe('SaveAgentProfileModal', () => {
   });
 
   describe('Save mode', () => {
+    it('should preview a preserved unavailable Registry server and its allowed tools', () => {
+      useChatbotConfigStore.setState({
+        configurations: {
+          [DEFAULT_CONFIG_ID]: { ...DEFAULT_CONFIGURATION, selectedMcpServerIds: [] },
+        },
+        loadedProfileId: 'existing-uuid',
+        loadedProfileDisplayName: 'My Agent',
+        loadedProfileSpec: {
+          displayName: 'My Agent',
+          model: { id: 'llama-3b', uri: 'http://llama/v1', sourceType: 'namespace' },
+          mcpServers: [
+            {
+              name: 'com.example/jira',
+              source: 'mlflow',
+              allowedTools: ['search_issues'],
+            },
+          ],
+        },
+      });
+
+      renderModal('save');
+
+      expect(screen.getByText('com.example/jira')).toBeInTheDocument();
+      expect(screen.getByText('1 tool')).toBeInTheDocument();
+      expect(screen.queryByText('No MCP servers selected')).not.toBeInTheDocument();
+    });
+
     it('should pre-fill the name from loadedProfileDisplayName', () => {
       useChatbotConfigStore.setState({
         configurations: { [DEFAULT_CONFIG_ID]: { ...DEFAULT_CONFIGURATION } },

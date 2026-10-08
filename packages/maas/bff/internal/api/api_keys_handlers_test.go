@@ -16,9 +16,38 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/maas-library/bff/internal/helpers"
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/maas-library/bff/internal/integrations/maas"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 	"github.com/opendatahub-io/maas-library/bff/internal/repositories"
 )
+
+// newMockEnrichmentTestApp builds an App with mock repositories and a fake MaaS API
+// for unit-testing enrichAPIKeysWithSubscriptionDetails without an HTTP round-trip.
+func newMockEnrichmentTestApp(factory kubernetes.KubernetesClientFactory) (*App, *http.Request, func()) {
+	maasFakeServer := maas.CreateMaasFakeServer()
+	envConfig := config.EnvConfig{
+		AllowedOrigins:            []string{"*"},
+		AuthMethod:                config.AuthMethodInternal,
+		GatewayNamespace:          "openshift-ingress",
+		GatewayName:               "maas-default-gateway",
+		MockHTTPClient:            true,
+		MaasApiUrl:                maasFakeServer.URL,
+		MaaSSubscriptionNamespace: "maas-system",
+	}
+	testLogger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	repos, err := newTestRepositories(testLogger, factory, envConfig, true)
+	Expect(err).NotTo(HaveOccurred())
+
+	app := &App{
+		config:                  envConfig,
+		kubernetesClientFactory: factory,
+		repositories:            repos,
+		logger:                  testLogger,
+		maasApiURL:              helper.NewMaasApiURLHolder(envConfig.MaasApiUrl),
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/api-keys/search", nil)
+	return app, req, maasFakeServer.Close
+}
 
 var _ = Describe("APIKeysHandlers", Ordered, func() {
 	var _ = Describe("SearchAPIKeysHandler", Ordered, func() {
@@ -77,6 +106,86 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			Expect(actual.Data.SubscriptionDetails["basic-team-sub"].DisplayName).To(Equal("Basic Team"))
 			Expect(actual.Data.SubscriptionDetails["basic-team-sub"].Models).To(ConsistOf("Flan T5 Small"))
 		})
+		It("enriches with subscription details from K8s MaaSSubscriptions for MaaS admins", func() {
+			originalCheck := isMaasAdminCheck
+			isMaasAdminCheck = func(_ *App, _ *http.Request) (bool, error) { return true, nil }
+			DeferCleanup(func() { isMaasAdminCheck = originalCheck })
+
+			identity := &kubernetes.RequestIdentity{UserID: "admin@example.com"}
+			actual, rs, err := setupMockApiTest[Envelope[*models.APIKeyListResponse, None]](
+				http.MethodPost,
+				"/api/v1/api-keys/search",
+				Envelope[models.APIKeySearchRequest, None]{
+					Data: models.APIKeySearchRequest{},
+				},
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(actual.Data).NotTo(BeNil())
+			Expect(actual.Data.SubscriptionDetails).NotTo(BeNil())
+
+			// K8s mock display names differ from MaaS API ("Premium Team" / "Basic Team").
+			Expect(actual.Data.SubscriptionDetails).To(HaveKey("premium-team-sub"))
+			Expect(actual.Data.SubscriptionDetails["premium-team-sub"].DisplayName).To(Equal("Premium Team Subscription"))
+			Expect(actual.Data.SubscriptionDetails["premium-team-sub"].Models).To(ConsistOf(
+				"Granite 3 8B Instruct",
+				"Flan T5 Small",
+				"GPT-4o External",
+			))
+			Expect(actual.Data.SubscriptionDetails).To(HaveKey("basic-team-sub"))
+			Expect(actual.Data.SubscriptionDetails["basic-team-sub"].DisplayName).To(Equal("Basic Team Subscription"))
+			Expect(actual.Data.SubscriptionDetails["basic-team-sub"].Models).To(ConsistOf("Flan T5 Small"))
+		})
+		It("for admins includes K8s subscriptions that are absent from the MaaS API My Subscriptions list", func() {
+			originalCheck := isMaasAdminCheck
+			isMaasAdminCheck = func(_ *App, _ *http.Request) (bool, error) { return true, nil }
+			DeferCleanup(func() { isMaasAdminCheck = originalCheck })
+
+			app, req, cleanup := newMockEnrichmentTestApp(k8Factory)
+			DeferCleanup(cleanup)
+
+			response := &models.APIKeyListResponse{
+				Object: "list",
+				Data: []models.APIKey{
+					{
+						ID:               "key-inaccessible-sub",
+						Name:             "other-user-key",
+						Status:           models.APIKeyStatusActive,
+						SubscriptionName: "negative-priority-sub",
+					},
+				},
+			}
+			enrichAPIKeysWithSubscriptionDetails(app, req, response)
+
+			Expect(response.SubscriptionDetails).To(HaveKey("negative-priority-sub"))
+			Expect(response.SubscriptionDetails["negative-priority-sub"].DisplayName).To(Equal("Negative Priority Subscription"))
+			Expect(response.SubscriptionDetails["negative-priority-sub"].Models).To(ConsistOf("Flan T5 Small"))
+		})
+		It("for non-admins does not include subscriptions missing from the MaaS API My Subscriptions list", func() {
+			originalCheck := isMaasAdminCheck
+			isMaasAdminCheck = func(_ *App, _ *http.Request) (bool, error) { return false, nil }
+			DeferCleanup(func() { isMaasAdminCheck = originalCheck })
+
+			app, req, cleanup := newMockEnrichmentTestApp(k8Factory)
+			DeferCleanup(cleanup)
+
+			response := &models.APIKeyListResponse{
+				Object: "list",
+				Data: []models.APIKey{
+					{
+						ID:               "key-inaccessible-sub",
+						Name:             "other-user-key",
+						Status:           models.APIKeyStatusActive,
+						SubscriptionName: "negative-priority-sub",
+					},
+				},
+			}
+			enrichAPIKeysWithSubscriptionDetails(app, req, response)
+
+			Expect(response.SubscriptionDetails).NotTo(HaveKey("negative-priority-sub"))
+		})
 		It("returns 400 if the user ID is missing", func() {
 			identity := &kubernetes.RequestIdentity{UserID: ""}
 			searchRequest := models.APIKeySearchRequest{}
@@ -92,6 +201,23 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
 			Expect(actual.Data).To(BeNil())
+		})
+	})
+	var _ = Describe("GetAPIKeyConfigHandler", Ordered, func() {
+		It("returns 200 and the API key config", func() {
+			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+			actual, rs, err := setupApiTest[Envelope[*models.APIKeyConfig, None]](
+				http.MethodGet,
+				"/api/v1/api-keys-config",
+				nil,
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(actual.Data).NotTo(BeNil())
+			Expect(actual.Data.MaxExpirationDays).To(Equal(90))
+			Expect(actual.Data.EphemeralMaxExpiration).To(Equal("1h"))
 		})
 	})
 	var _ = Describe("GetAPIKeyHandler", Ordered, func() {

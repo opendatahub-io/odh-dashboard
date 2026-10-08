@@ -10,14 +10,18 @@ import {
   Label,
   LabelGroup,
 } from '@patternfly/react-core';
-import { AgentProfile } from '~/app/agentProfile/types';
+import { AgentProfile, AgentProfileMcpServer } from '~/app/agentProfile/types';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
+import { AIModel } from '~/app/types';
+import { getLlamaModelDisplayName } from '~/app/utilities';
 
 type AgentConfigurationCardProps = {
-  profile: AgentProfile;
+  profile: Pick<AgentProfile, 'spec'>;
   title: string;
   lastModified?: string;
+  deployedAt?: string;
   isSavedConfiguration?: boolean;
+  aiModels?: AIModel[];
 };
 
 const formatDate = (value: string): string => {
@@ -33,11 +37,16 @@ const formatDate = (value: string): string => {
       });
 };
 
+const getMcpServerName = (server: AgentProfileMcpServer): string =>
+  'serverRef' in server ? (server.serverRef.key ?? server.serverRef.name) : server.name;
+
 const AgentConfigurationCard: React.FC<AgentConfigurationCardProps> = ({
   profile,
   title,
   lastModified,
+  deployedAt,
   isSavedConfiguration = false,
+  aiModels = [],
 }) => {
   const tools = profile.spec.mcpServers ?? [];
   const vectorStoreIDs = (profile.spec.vectorStores?.stores ?? [])
@@ -45,6 +54,7 @@ const AgentConfigurationCard: React.FC<AgentConfigurationCardProps> = ({
     .filter((storeID): storeID is string => Boolean(storeID));
   const guardrailCount = profile.spec.guardrails?.length ?? 0;
   const guardrailsEnabled = useGuardrailsEnabled();
+  const modelDisplayName = getLlamaModelDisplayName(profile.spec.model.id, aiModels);
 
   return (
     <Card isFullHeight data-testid="agent-configuration-card">
@@ -54,6 +64,11 @@ const AgentConfigurationCard: React.FC<AgentConfigurationCardProps> = ({
           {lastModified && (
             <FlexItem>
               <Content component="small">Last modified {formatDate(lastModified)}</Content>
+            </FlexItem>
+          )}
+          {deployedAt && !lastModified && (
+            <FlexItem>
+              <Content component="small">Deployed {formatDate(deployedAt)}</Content>
             </FlexItem>
           )}
         </Flex>
@@ -69,7 +84,7 @@ const AgentConfigurationCard: React.FC<AgentConfigurationCardProps> = ({
               Model
             </FlexItem>
             <FlexItem component="dd" className="pf-v6-u-m-0">
-              {profile.spec.model.id}
+              {modelDisplayName || profile.spec.model.id}
             </FlexItem>
           </Flex>
           {profile.spec.prompt && (
@@ -106,11 +121,15 @@ const AgentConfigurationCard: React.FC<AgentConfigurationCardProps> = ({
             <FlexItem component="dd" className="pf-v6-u-m-0">
               {tools.length > 0 ? (
                 <Flex gap={{ default: 'gapSm' }}>
-                  {tools.map((tool) => (
-                    <FlexItem key={tool.serverRef.key ?? tool.serverRef.name}>
-                      <Label isCompact>{tool.serverRef.key ?? tool.serverRef.name}</Label>
-                    </FlexItem>
-                  ))}
+                  {tools.map((tool) => {
+                    const toolName = getMcpServerName(tool);
+
+                    return (
+                      <FlexItem key={toolName}>
+                        <Label isCompact>{toolName}</Label>
+                      </FlexItem>
+                    );
+                  })}
                 </Flex>
               ) : (
                 'No tools selected'

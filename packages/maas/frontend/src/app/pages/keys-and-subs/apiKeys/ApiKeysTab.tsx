@@ -45,6 +45,10 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
     onSetPage,
     onPerPageSelect,
     onClearFilters,
+    statusSubscriptionDetails,
+    accessibleSubscriptionDetails,
+    maxExpirationDays,
+    apiKeyConfigError,
   } = pageState;
 
   const subscriptionOptions = React.useMemo(
@@ -60,7 +64,6 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
 
   const apiKeys = response.data;
   const hasMore = response.has_more;
-  const { subscriptionDetails } = response;
 
   const activeApiKeys = apiKeys.filter((apiKey) => apiKey.status === 'active');
 
@@ -84,6 +87,8 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
         {isModalOpen && (
           <CreateApiKeyModal
             initiatedFrom={ApiKeyCreateInitiatedFrom.API_KEYS_TOOLBAR}
+            maxExpirationDays={maxExpirationDays}
+            apiKeyConfigError={apiKeyConfigError}
             onClose={() => {
               setIsModalOpen(false);
               refreshAll();
@@ -100,6 +105,8 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
       {isModalOpen && (
         <CreateApiKeyModal
           initiatedFrom={ApiKeyCreateInitiatedFrom.API_KEYS_TOOLBAR}
+          maxExpirationDays={maxExpirationDays}
+          apiKeyConfigError={apiKeyConfigError}
           onClose={() => {
             setIsModalOpen(false);
             refreshAll();
@@ -115,7 +122,8 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
         <ApiKeysTable
           onRevokeApiKey={setRevokeApiKey}
           apiKeys={apiKeys}
-          subscriptionDetails={subscriptionDetails}
+          subscriptionDetails={statusSubscriptionDetails}
+          accessibleSubscriptionDetails={accessibleSubscriptionDetails}
           isKeyInactive={isKeyInactive}
           hasMore={hasMore}
           page={page}
@@ -142,7 +150,6 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
               onSubscriptionChange={onSubscriptionChange}
               activeApiKeys={activeApiKeys}
               refresh={refreshAll}
-              onClearFilters={onClearFilters}
             />
           }
         />

@@ -190,6 +190,7 @@ const extensions: (
       id: 'model-deployment-settings',
       title: 'Model deployment settings',
       href: MODEL_DEPLOYMENT_SETTINGS_PATH,
+      breadcrumbTabId: 'general-settings',
       path: `${MODEL_DEPLOYMENT_SETTINGS_PATH}/*`,
       section: 'settings-model-resources-and-operations',
       group: '1_model-resources',

@@ -10,7 +10,7 @@ import {
 
 const BASE = '/settings/model-resources-operations/model-deployment-settings';
 
-// Enable every area that gates a tab so all five tabs render.
+// Enable every area that gates a tab so all six tabs render.
 const initAllTabs = () => {
   asProductAdminUser();
   cy.interceptOdh(
@@ -28,6 +28,7 @@ const initAllTabs = () => {
       disableCustomServingRuntimes: false,
       llmdTemplates: true,
       vLLMDeploymentOnMaaS: true,
+      runtimeCatalog: true,
     }),
   );
   // Serving-runtime templates list + llmd config list, so tab content mounts without 500s.
@@ -50,6 +51,7 @@ const TABS = [
   { name: 'LLM accelerator configurations', path: `${BASE}/llm-accelerator-configurations` },
   { name: 'llm-d topology configurations', path: `${BASE}/topology-configurations` },
   { name: 'llm-d routing configurations', path: `${BASE}/routing-configurations` },
+  { name: 'Runtime image library', path: `${BASE}/serving-runtime-catalog` },
 ];
 
 describe('Model deployment settings tab navigation', () => {
@@ -57,7 +59,7 @@ describe('Model deployment settings tab navigation', () => {
     initAllTabs();
   });
 
-  it('renders all five tabs and updates the URL when each is clicked', () => {
+  it('renders all six tabs and updates the URL when each is clicked', () => {
     cy.visitWithLogin(`${BASE}/general-settings`);
     cy.findByTestId('app-tab-page-title').should('contain.text', 'Model deployment settings');
 

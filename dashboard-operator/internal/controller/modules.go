@@ -28,9 +28,9 @@ type ModuleDefinition struct {
 	ProxyPaths              []proxyRoute
 	// InterBFFDeps injects service-discovery env vars into this module's container.
 	InterBFFDeps []interBFFDependency
-	// RequiredByMaaSConsumerPortal identifies the modules required when the
+	// RequiredByMaaSPortal identifies the modules required when the
 	// MaaS Consumer Portal operand is managed independently of the dashboard.
-	RequiredByMaaSConsumerPortal bool
+	RequiredByMaaSPortal bool
 }
 
 var moduleRegistry = map[string]ModuleDefinition{
@@ -44,13 +44,13 @@ var moduleRegistry = map[string]ModuleDefinition{
 		RequiredDSCComponents: []string{"modelregistry"},
 	},
 	"genAi": {
-		Name:                         "genAi",
-		ContainerName:                "gen-ai-ui",
-		Port:                         8143,
-		ImageEnvVar:                  "RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE",
-		ManifestSlug:                 "gen-ai",
-		TLS:                          true,
-		RequiredByMaaSConsumerPortal: true,
+		Name:                 "genAi",
+		ContainerName:        "gen-ai-ui",
+		Port:                 8143,
+		ImageEnvVar:          "RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE",
+		ManifestSlug:         "gen-ai",
+		TLS:                  true,
+		RequiredByMaaSPortal: true,
 		InterBFFDeps: []interBFFDependency{{
 			EnvServiceName: "BFF_MAAS_SERVICE_NAME",
 			EnvServicePort: "BFF_MAAS_SERVICE_PORT",
@@ -68,13 +68,13 @@ var moduleRegistry = map[string]ModuleDefinition{
 		ProxyPaths:            []proxyRoute{{Path: "/_bff/mlflow/api", PathRewrite: "/api"}},
 	},
 	"maas": {
-		Name:                         "maas",
-		ContainerName:                "maas-ui",
-		Port:                         8243,
-		ImageEnvVar:                  "RELATED_IMAGE_ODH_MOD_ARCH_MAAS_IMAGE",
-		ManifestSlug:                 "maas",
-		TLS:                          true,
-		RequiredByMaaSConsumerPortal: true,
+		Name:                 "maas",
+		ContainerName:        "maas-ui",
+		Port:                 8243,
+		ImageEnvVar:          "RELATED_IMAGE_ODH_MOD_ARCH_MAAS_IMAGE",
+		ManifestSlug:         "maas",
+		TLS:                  true,
+		RequiredByMaaSPortal: true,
 	},
 	"evalHub": {
 		Name:                  "evalHub",
@@ -161,8 +161,8 @@ func resolveModuleStatuses(spec *v1alpha1.DashboardSpec) map[string]v1alpha1.Mod
 	result := make(map[string]v1alpha1.ModuleStatus, len(moduleRegistry))
 
 	coreRequiresModules := spec.ManagementState != "Removed"
-	maasConsumerPortalRequiresModules := spec.MaaSConsumerPortal != nil &&
-		spec.MaaSConsumerPortal.ManagementState == "Managed"
+	portal := effectiveMaaSPortal(*spec)
+	maasPortalRequiresModules := portal != nil && portal.ManagementState == "Managed"
 
 	// Pass 1: aggregate demand + DSC component gate + explicit CR overrides
 	for name, mod := range moduleRegistry {
@@ -178,7 +178,7 @@ func resolveModuleStatuses(spec *v1alpha1.DashboardSpec) map[string]v1alpha1.Mod
 			continue
 		}
 
-		if !coreRequiresModules && (!maasConsumerPortalRequiresModules || !mod.RequiredByMaaSConsumerPortal) {
+		if !coreRequiresModules && (!maasPortalRequiresModules || !mod.RequiredByMaaSPortal) {
 			result[name] = v1alpha1.ModuleStatus{
 				Phase:              v1alpha1.ModulePhaseNotDeployed,
 				Reason:             "NotRequired",

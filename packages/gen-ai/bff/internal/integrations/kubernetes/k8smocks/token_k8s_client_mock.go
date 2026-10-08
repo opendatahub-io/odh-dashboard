@@ -73,6 +73,51 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 
 	// Return different mock AA models based on namespace
 	switch namespace {
+	case "mock-audio-namespace":
+		mockModels = []models.AAModel{
+			{
+				ModelName:       "whisper-large-v3",
+				ModelID:         "whisper-large-v3",
+				ServingRuntime:  "vLLM",
+				APIProtocol:     "OpenAI",
+				Description:     "Speech recognition model for audio transcription",
+				Usecase:         "Audio transcription",
+				Endpoints:       []string{fmt.Sprintf("internal: http://whisper-large-v3.%s.svc.cluster.local:8080", namespace)},
+				Status:          "Running",
+				DisplayName:     "Whisper Large V3",
+				ModelSourceType: models.ModelSourceTypeNamespace,
+				ModelType:       models.ModelTypeTranscription,
+				Capabilities:    []string{constants.CapabilityAudioTranscription},
+			},
+			{
+				ModelName:       "whisper-small",
+				ModelID:         "whisper-small",
+				ServingRuntime:  "vLLM",
+				APIProtocol:     "OpenAI",
+				Description:     "Compact speech recognition model for audio transcription",
+				Usecase:         "Audio transcription",
+				Endpoints:       []string{fmt.Sprintf("internal: http://whisper-small.%s.svc.cluster.local:8080", namespace)},
+				Status:          "Running",
+				DisplayName:     "Whisper Small",
+				ModelSourceType: models.ModelSourceTypeNamespace,
+				ModelType:       models.ModelTypeTranscription,
+				Capabilities:    []string{constants.CapabilityAudioTranscription},
+			},
+			{
+				ModelName:       "llama-3.1-8b-instruct",
+				ModelID:         "llama-3.1-8b-instruct",
+				ServingRuntime:  "vLLM",
+				APIProtocol:     "OpenAI",
+				Description:     "Chat model for testing the transcription flow",
+				Usecase:         "General chat",
+				Endpoints:       []string{fmt.Sprintf("internal: http://llama-3.1-8b-instruct.%s.svc.cluster.local:8080", namespace)},
+				Status:          "Running",
+				DisplayName:     "Llama 3.1 8B Instruct",
+				ModelSourceType: models.ModelSourceTypeNamespace,
+				ModelType:       models.ModelTypeLLM,
+				Capabilities:    []string{constants.CapabilityTextGeneration},
+			},
+		}
 	case "mock-test-namespace-1":
 		// Return only LLMInferenceService models for testing llm-d architecture
 		mockModels = []models.AAModel{
@@ -305,7 +350,7 @@ func (m *TokenKubernetesClientMock) GetOGXServers(ctx context.Context, identity 
 	}
 
 	// For namespaces that should return mock OGXServer data (for testing existing server scenarios)
-	if namespace == "mock-test-namespace-2" || namespace == "test-namespace" {
+	if namespace == "mock-test-namespace-2" || namespace == "test-namespace" || namespace == "mock-audio-namespace" {
 		return &ogxapi.OGXServerList{
 			Items: []ogxapi.OGXServer{
 				{
@@ -324,7 +369,7 @@ func (m *TokenKubernetesClientMock) GetOGXServers(ctx context.Context, identity 
 						Version: ogxapi.VersionInfo{
 							ServerVersion: "v0.2.0",
 						},
-						ServiceURL: "http://mock-lsd.test-namespace.svc.cluster.local:8321",
+						ServiceURL: fmt.Sprintf("http://mock-lsd.%s.svc.cluster.local:8321", namespace),
 						DistributionConfig: ogxapi.DistributionConfig{
 							ActiveDistribution: "mock-distribution",
 							Providers: []ogxapi.ProviderInfo{
@@ -548,7 +593,7 @@ server:
 			},
 		},
 		Spec: ogxapi.OGXServerSpec{
-			Distribution: ogxapi.DistributionSpec{Name: "rh-dev"},
+			Distribution: ogxapi.DistributionSpec{Name: "rh"},
 			OverrideConfig: &ogxapi.ConfigMapKeyRef{
 				Name: "llama-stack-config",
 				Key:  constants.LlamaStackConfigYAMLKey,

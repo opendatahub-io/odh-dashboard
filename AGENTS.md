@@ -142,9 +142,9 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | **Jira Assign Scrum Team**        | `skills/jira-assign-scrum-team/`       | Assigning a scrum team label based on area-to-scrum mapping during triage |
 | **Jira Eval Review**               | `skills/jira-eval-review/`             | Evaluating PR code changes against Jira acceptance criteria for per-criterion verdicts |
 | **Jira PR Review**                 | `skills/jira-pr-review/`               | Reviewing a PR against its Jira product ask and explicit acceptance criteria — used by `/preflight` |
-| **Product Ask Review**             | `skills/product-ask-review/`           | Evaluating whether a PR's stated work fulfills the current Jira product ask — used by Fullsend (`section:product_ask`) |
-| **Test Impact Review**             | `skills/test-impact-review/`           | Judging whether changed behavior has proportionate test coverage or a substantive rationale |
-| **PR Description Review**          | `skills/pr-description-review/`        | Checking a PR body against `.github/pull_request_template.md` — description, testing, Test Impact, Jira linkage, UI evidence |
+| **Product Ask Review**             | `skills/product-ask-review/`           | Evaluating whether a PR's stated work fulfills the current Jira product ask |
+| **Test Impact Review**             | `skills/test-impact-review/`           | Assurance-grade test impact: Automation, Efficiency, and Evidence depth |
+| **PR Description Review**          | `skills/pr-description-review/`        | Scoring a PR body for substance readiness: Problem, Solution, and Evidence |
 | **CI Status Review**               | `skills/ci-status-review/`             | Interpreting PR CI state and applicability, delegating failed-test classification to `/ci-flake-classifier` |
 | **Module Onboarding**              | `skills/module-onboarding/`            | Scaffolding a new federated module under `packages/` — handles installer, port allocation, host registration, and build verification. Standalone manifests and operator registration are deferred to `/konflux-onboarding` (pass module name as argument) |
 | **Konflux Onboarding**             | `skills/konflux-onboarding/`           | Onboarding a component to Konflux CI/CD — Dockerfiles, standalone manifests, OpenShift CI, operator registration, DevOps coordination, RHOAI downstream setup |

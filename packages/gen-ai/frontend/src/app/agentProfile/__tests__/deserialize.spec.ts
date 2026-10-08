@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 import { LlamaModel } from '~/app/types';
+import { MCPServerFromAPI } from '~/app/types/mcp';
 import { AgentProfile } from '~/app/agentProfile/types';
 import {
   AgentProfileDeserializationContext,
@@ -65,6 +66,27 @@ describe('deserializeAgentProfile', () => {
       );
 
       expect(config.selectedModel).toBe('maas-vllm/granite-3b');
+    });
+
+    it('should match a MaaS model served through genai-bff-proxy', () => {
+      const maasLlamaModel = makeLlamaModel({
+        id: 'genai-bff-proxy/openai-gpt-4o-mini',
+        modelId: 'openai-gpt-4o-mini',
+      });
+      const profile = makeProfile({
+        model: {
+          id: 'openai-gpt-4o-mini',
+          uri: 'https://maas.example.com',
+          sourceType: 'maas',
+        },
+      });
+
+      const { config } = deserializeAgentProfile(
+        profile,
+        makeContext({ playgroundModels: [maasLlamaModel] }),
+      );
+
+      expect(config.selectedModel).toBe('genai-bff-proxy/openai-gpt-4o-mini');
     });
 
     it('should not match a MaaS playground model for a non-MaaS profile model', () => {
@@ -214,6 +236,39 @@ describe('deserializeAgentProfile', () => {
   });
 
   describe('mcpServers', () => {
+    it('should restore registry MCP servers and allowed tools using their runtime URL', () => {
+      const registryServer: MCPServerFromAPI = {
+        name: 'com.example/jira',
+        url: 'https://registry.example.com/jira',
+        transport: 'streamable-http',
+        description: 'Jira MCP server',
+        logo: null,
+        status: 'healthy',
+        source: 'registry',
+        version: '3',
+        tools: [],
+        tool_count: 0,
+      };
+      const profile = makeProfile({
+        mcpServers: [
+          {
+            name: 'com.example/jira',
+            source: 'mlflow',
+            version: '3',
+            allowedTools: ['search_issues'],
+          },
+        ] as never,
+      });
+
+      const { config, mcpToolsPending } = deserializeAgentProfile(
+        profile,
+        makeContext({ mcpServers: [registryServer] }),
+      );
+
+      expect(config.selectedMcpServerIds).toEqual([registryServer.url]);
+      expect(mcpToolsPending).toEqual({ [registryServer.url]: ['search_issues'] });
+    });
+
     it('should restore selectedMcpServerIds from serverRef.key', () => {
       const profile = makeProfile({
         mcpServers: [

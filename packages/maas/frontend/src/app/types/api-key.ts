@@ -63,6 +63,13 @@ export type CreateAPIKeyRequest = {
   subscription: string;
 };
 
+export type APIKeyConfig = {
+  // eslint-disable-next-line camelcase
+  max_expiration_days: number;
+  // eslint-disable-next-line camelcase
+  ephemeral_max_expiration: string;
+};
+
 export type SubscriptionOption = {
   name: string;
   displayName: string;
