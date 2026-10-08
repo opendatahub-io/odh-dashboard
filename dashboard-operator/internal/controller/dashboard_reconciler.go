@@ -236,8 +236,8 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if dashboard.Spec.ManagementState == "Removed" {
 		logger.Info("ManagementState is Removed, tearing down resources")
 
-			// MaaS and GenAI are shared dependencies. Reconcile their aggregate
-			// demand before the core teardown so MaaS Portal-only operation retains them.
+		// MaaS and GenAI are shared dependencies. Reconcile their aggregate
+		// demand before the core teardown so MaaS Portal-only operation retains them.
 		nextStatuses, err := r.reconcileModuleDemand(ctx, dashboard)
 		if err != nil {
 			r.persistRemovedFailureStatus(ctx, dashboard, cm, "ModuleDeployFailed", err)

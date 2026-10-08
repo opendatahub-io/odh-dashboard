@@ -86,7 +86,7 @@ func (r *DashboardReconciler) deleteLabeledMaaSPortalOperatorSubscriptionRBACRes
 	// Include grants in formerly configured namespaces during portal removal.
 	for _, list := range []client.ObjectList{&rbacv1.RoleList{}, &rbacv1.RoleBindingList{}} {
 		if err := r.List(ctx, list, client.MatchingLabels{labels.PlatformPartOf: maasPortalPartOf}); err != nil {
-				errs = append(errs, fmt.Errorf("listing MaaS Portal subscription RBAC: %w", err))
+			errs = append(errs, fmt.Errorf("listing MaaS Portal subscription RBAC: %w", err))
 			continue
 		}
 		for _, resource := range extractItems(list) {

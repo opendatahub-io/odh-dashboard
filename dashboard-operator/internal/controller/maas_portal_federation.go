@@ -142,7 +142,7 @@ func (r *DashboardReconciler) deployMaaSPortalFederationConfigMap(ctx context.Co
 	}
 	resource, err := configMapToUnstructured(configMap)
 	if err != nil {
-			return fmt.Errorf("converting MaaS Portal federation ConfigMap: %w", err)
+		return fmt.Errorf("converting MaaS Portal federation ConfigMap: %w", err)
 	}
 	deployer := deploy.NewDeployer(deploy.WithFieldOwner("dashboard-operator"),
 		deploy.WithLabel(labels.PlatformPartOf, maasPortalPartOf),
@@ -150,7 +150,7 @@ func (r *DashboardReconciler) deployMaaSPortalFederationConfigMap(ctx context.Co
 		deploy.WithLabel(moduleComponentLabel, maasPortalPartOf))
 	if err := deployer.Deploy(ctx, deploy.DeployInput{Client: r.Client, Owner: dashboard,
 		Release: deploy.ReleaseInfo{Type: string(r.Platform)}, Resources: []unstructured.Unstructured{resource}}); err != nil {
-			return fmt.Errorf("deploying MaaS Portal federation ConfigMap: %w", err)
+		return fmt.Errorf("deploying MaaS Portal federation ConfigMap: %w", err)
 	}
 	return nil
 }
