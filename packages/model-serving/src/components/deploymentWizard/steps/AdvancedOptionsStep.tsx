@@ -181,8 +181,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                       To make the endpoint accessible to users, an admin must configure
                       subscriptions and authorization policies on the{' '}
                       <strong>MaaS governance</strong> page. Users can view their subscriptions,
-                      accessible models, and API keys on the
-                      <strong>API keys</strong> page.
+                      accessible models, and API keys on the <strong>API keys</strong> page.
                     </Alert>
                   )}
                 </FormGroup>
