@@ -2,15 +2,11 @@
 
 import React from 'react';
 import {
-  Checkbox,
   Content,
   EmptyState,
   EmptyStateBody,
   Gallery,
   SearchInput,
-  Sidebar,
-  SidebarContent,
-  SidebarPanel,
   Stack,
   StackItem,
   Title,
@@ -30,7 +26,7 @@ import {
   ConnectionTypeCard,
   ConnectionTypeCardIdentifier,
 } from '~/app/components/ConnectionType';
-import type { Identified, Labelled, ConnectionType } from '~/app/types';
+import type { ConnectionType } from '~/app/types';
 import { IdentifiedLabelledToValuedLabelled } from '~/app/types';
 
 import emptyStateImage from '~/images/RHOAI-Noconnections-RGB.svg';
@@ -38,12 +34,6 @@ import emptyStateImage from '~/images/RHOAI-Noconnections-RGB.svg';
 import './ConnectionTypesGallery.scss';
 
 // Types ---------------------------------------------------------------------->
-
-type FilterItem = Identified<string> & Labelled<string>;
-
-type FilterItems = Record<string, FilterItem>;
-
-type SelectedFilters = Record<string, string | null>;
 
 type FilterOption = 'capability' | 'labels';
 
@@ -55,7 +45,6 @@ const capabilityFilters = {
 };
 
 const localFeatureFlags = {
-  filters: false,
   tags: false,
 };
 
@@ -106,28 +95,7 @@ const initialFilterValues: FilterState<FilterOption> = {
   labels: [],
 };
 
-const categoriesFilter: FilterItems = {
-  data_warehouse: { id: 'data_warehouse', label: 'Data warehouse' },
-  database: { id: 'database', label: 'Database' },
-  general: { id: 'general', label: 'General' },
-  object_storage: { id: 'object_storage', label: 'Object storage' },
-};
-
-const licensesFilter: FilterItems = {
-  apache_20: { id: 'apache_20', label: 'Apache 2.0' },
-  gpl_20: { id: 'gpl_20', label: 'GPL 2.0' },
-  mit: { id: 'mit', label: 'MIT' },
-  postgresql_license: { id: 'postgresql_license', label: 'PostgreSQL License' },
-  proprietary: { id: 'proprietary', label: 'Proprietary' },
-};
-
 const defaults = {
-  filter: {
-    sections: {
-      categories: { id: 'categories', label: 'Category', items: categoriesFilter },
-      licenses: { id: 'licenses', label: 'License', items: licensesFilter },
-    },
-  },
   toolbar: {
     groups: ConnectionTypeCapabilities,
   },
@@ -149,14 +117,6 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
 }) => {
   // State -------------------------------------------------------------------->
 
-  const initialSelectedFilters = Object.keys(defaults.filter.sections).reduce<SelectedFilters>(
-    (acc, cur) => {
-      acc[cur] = null;
-      return acc;
-    },
-    {},
-  );
-  const [selectedFilters, setSelectedFilters] = React.useState(initialSelectedFilters);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [filterValues, setFilterValues] =
     React.useState<FilterState<FilterOption>>(initialFilterValues);
@@ -243,36 +203,6 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
 
   // Rendering ---------------------------------------------------------------->
 
-  const sidebarPanel = (
-    <SidebarPanel>
-      {Object.values(defaults.filter.sections).map((section, sectionIndex, sectionsList) => (
-        <React.Fragment key={`ConnectionTypesGallery-sidebar-filter-section--${section.id}`}>
-          <Title className="pf-v6-u-mb-sm" headingLevel="h4">
-            {section.label}
-          </Title>
-          {Object.values(section.items).map((sectionItem) => (
-            <Checkbox
-              key={`ConnectionTypesGallery-sidebar-filter-checkbox--${section.id}::${sectionItem.id}`}
-              id={`ConnectionTypesGallery-sidebar-filter-checkbox--${section.id}::${sectionItem.id}`}
-              name={sectionItem.id}
-              label={sectionItem.label}
-              isChecked={selectedFilters[section.id] === sectionItem.id}
-              onChange={(_event, checked) => {
-                setSelectedFilters((previousSelectedFilters) => ({
-                  ...previousSelectedFilters,
-                  [section.id]: checked ? sectionItem.id : null,
-                }));
-              }}
-            />
-          ))}
-          {sectionIndex !== sectionsList.length - 1 ? (
-            <div className="dch-connection-types-gallery__filter-separator" />
-          ) : null}
-        </React.Fragment>
-      ))}
-    </SidebarPanel>
-  );
-
   const toolbar = (
     <ToolbarFilter
       filterConfig={filterConfig}
@@ -337,18 +267,11 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
   );
 
   return (
-    <>
-      <Sidebar hasBorder hasGutter>
-        {localFeatureFlags.filters ? sidebarPanel : null}
-        <SidebarContent>
-          <Stack>
-            <StackItem>{toolbar}</StackItem>
-            <StackItem>{galleryCards}</StackItem>
-          </Stack>
-        </SidebarContent>
-      </Sidebar>
-      {shouldRenderEmptySearchState && emptyState}
-    </>
+    <Stack>
+      <StackItem>{toolbar}</StackItem>
+      <StackItem>{galleryCards}</StackItem>
+      {shouldRenderEmptySearchState && <StackItem>{emptyState}</StackItem>}
+    </Stack>
   );
 };
 
