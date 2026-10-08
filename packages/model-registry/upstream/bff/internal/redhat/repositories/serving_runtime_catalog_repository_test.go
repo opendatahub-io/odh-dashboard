@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"testing"
@@ -22,23 +23,23 @@ func servingRuntimeListQuery(values url.Values) url.Values {
 }
 
 func TestServingRuntimeCatalogMockBrowsing(t *testing.T) {
-	repo := NewServingRuntimeCatalogRepository(&mocks.ModelCatalogClientMock{})
-	first, err := repo.List(url.Values{"pageSize": {"1"}, "orderBy": {"NAME"}})
+	repo := &mocks.ModelCatalogClientMock{}
+	first, err := repo.GetAllServingRuntimes(nil, url.Values{"pageSize": {"1"}, "orderBy": {"NAME"}})
 	require.NoError(t, err)
 	require.Len(t, first.Items, 1)
 	require.Equal(t, "caikit-nlp", *first.Items[0].Name)
 	require.NotEmpty(t, first.NextPageToken)
-	next, err := repo.List(url.Values{"pageSize": {"1"}, "orderBy": {"NAME"}, "nextPageToken": {first.NextPageToken}})
+	next, err := repo.GetAllServingRuntimes(nil, url.Values{"pageSize": {"1"}, "orderBy": {"NAME"}, "nextPageToken": {first.NextPageToken}})
 	require.NoError(t, err)
 	require.Equal(t, "mlserver", *next.Items[0].Name)
-	runtime, err := repo.Get(*next.Items[0].ID)
+	runtime, err := repo.GetServingRuntime(nil, *next.Items[0].ID)
 	require.NoError(t, err)
 	require.Equal(t, *next.Items[0].Name, *runtime.Name)
-	versions, err := repo.Versions(*runtime.ID, nil)
+	versions, err := repo.GetServingRuntimeVersions(nil, *runtime.ID, nil)
 	require.NoError(t, err)
 	require.Equal(t, *runtime.VersionCount, versions.Size)
 	require.NotEmpty(t, versions.Items[0].Image)
-	filters, err := repo.FilterOptions()
+	filters, err := repo.GetServingRuntimesFilter(nil)
 	require.NoError(t, err)
 	require.Len(t, *filters.Filters, 2)
 	require.Contains(t, *filters.Filters, "hardware")
@@ -46,7 +47,7 @@ func TestServingRuntimeCatalogMockBrowsing(t *testing.T) {
 }
 
 func TestServingRuntimeCatalogMockFilters(t *testing.T) {
-	repo := NewServingRuntimeCatalogRepository(&mocks.ModelCatalogClientMock{})
+	repo := &mocks.ModelCatalogClientMock{}
 	for _, tt := range []struct {
 		name  string
 		query url.Values
@@ -72,20 +73,20 @@ func TestServingRuntimeCatalogMockFilters(t *testing.T) {
 		{"end of results", url.Values{"nextPageToken": {"9223372036854775807"}}, 0},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			list, err := repo.List(servingRuntimeListQuery(tt.query))
+			list, err := repo.GetAllServingRuntimes(nil, servingRuntimeListQuery(tt.query))
 			require.NoError(t, err)
 			require.NotNil(t, list.Items)
 			require.Len(t, list.Items, tt.count)
 		})
 	}
-	versions, err := repo.Versions("1", url.Values{"filterQuery": {"supportLevel='techPreview'"}})
+	versions, err := repo.GetServingRuntimeVersions(nil, "1", url.Values{"filterQuery": {"supportLevel='techPreview'"}})
 	require.NoError(t, err)
 	require.Len(t, versions.Items, 1)
 	require.Equal(t, "0.6.0", versions.Items[0].Version)
 }
 
 func TestServingRuntimeCatalogMockErrors(t *testing.T) {
-	repo := NewServingRuntimeCatalogRepository(&mocks.ModelCatalogClientMock{})
+	repo := &mocks.ModelCatalogClientMock{}
 	for _, query := range []url.Values{
 		{"pageSize": {"0"}}, {"pageSize": {"2147483648"}}, {"nextPageToken": {"-1"}},
 		{"filterQuery": {"modelFormat LIKE 'onn%'"}}, {"filterQuery": {"unknown='value'"}}, {"sortOrder": {"invalid"}},
@@ -93,37 +94,37 @@ func TestServingRuntimeCatalogMockErrors(t *testing.T) {
 		{"filterQuery": {"capabilities.supportedAccelerators='nvidia.com/gpu'"}},
 		{"filterQuery": {"supportedModelFormats.name='onnx'"}},
 	} {
-		_, err := repo.List(query)
+		_, err := repo.GetAllServingRuntimes(nil, query)
 		var httpErr *httpclient.HTTPError
 		require.ErrorAs(t, err, &httpErr)
 		require.Equal(t, 400, httpErr.StatusCode)
 	}
-	_, err := repo.Versions("missing", nil)
+	_, err := repo.GetServingRuntimeVersions(nil, "missing", nil)
 	var httpErr *httpclient.HTTPError
 	require.ErrorAs(t, err, &httpErr)
 	require.Equal(t, 404, httpErr.StatusCode)
 }
 
 func TestServingRuntimeCatalogOrderByValues(t *testing.T) {
-	repo := NewServingRuntimeCatalogRepository(&mocks.ModelCatalogClientMock{})
+	repo := &mocks.ModelCatalogClientMock{}
 	for _, field := range []string{"ID", "NAME", "CREATE_TIME", "LAST_UPDATE_TIME", "RECOMMENDED"} {
 		t.Run(field, func(t *testing.T) {
 			query := servingRuntimeListQuery(url.Values{"orderBy": {field}})
-			list, err := repo.List(query)
+			list, err := repo.GetAllServingRuntimes(nil, query)
 			require.NoError(t, err)
 			require.Len(t, list.Items, 12)
-			versions, err := repo.Versions("1", query)
+			versions, err := repo.GetServingRuntimeVersions(nil, "1", query)
 			require.NoError(t, err)
 			require.Len(t, versions.Items, 2)
 		})
 	}
-	_, err := repo.List(url.Values{"orderBy": {"INVALID"}})
+	_, err := repo.GetAllServingRuntimes(nil, url.Values{"orderBy": {"INVALID"}})
 	require.Error(t, err)
 }
 
 func TestServingRuntimeFilterOptionsMatchMockData(t *testing.T) {
-	repo := NewServingRuntimeCatalogRepository(&mocks.ModelCatalogClientMock{})
-	options, err := repo.FilterOptions()
+	repo := &mocks.ModelCatalogClientMock{}
+	options, err := repo.GetServingRuntimesFilter(nil)
 	require.NoError(t, err)
 	require.Len(t, *options.Filters, 2)
 	require.ElementsMatch(t, []interface{}{"amd.com/gpu", "cpu", "cpu-or-gpu", "ibm.com/spyre", "habana.ai/gaudi", "nvidia.com/gpu"}, (*options.Filters)["hardware"].Values)
@@ -131,7 +132,7 @@ func TestServingRuntimeFilterOptionsMatchMockData(t *testing.T) {
 	for field, option := range *options.Filters {
 		for _, value := range option.Values {
 			t.Run(fmt.Sprintf("%s/%v", field, value), func(t *testing.T) {
-				result, err := repo.List(url.Values{"filterQuery": {fmt.Sprintf("%s='%v'", field, value)}})
+				result, err := repo.GetAllServingRuntimes(nil, url.Values{"filterQuery": {fmt.Sprintf("%s='%v'", field, value)}})
 				require.NoError(t, err)
 				require.NotEmpty(t, result.Items)
 			})
@@ -146,8 +147,73 @@ func TestServingRuntimeFilterOptionsMatchMockData(t *testing.T) {
 				require.Contains(t, (*options.Filters)["hardware"].Values, hardware)
 			}
 		}
-		versions, err := repo.Versions(*runtime.ID, nil)
+		versions, err := repo.GetServingRuntimeVersions(nil, *runtime.ID, nil)
 		require.NoError(t, err)
 		require.Equal(t, *runtime.VersionCount, versions.Size)
+	}
+}
+
+type runtimeCatalogHTTPClient struct {
+	httpclient.HTTPClientInterface
+	get func(string) ([]byte, error)
+}
+
+func (c *runtimeCatalogHTTPClient) GET(path string) ([]byte, error) { return c.get(path) }
+
+func TestServingRuntimeCatalogEscapesRuntimeID(t *testing.T) {
+	for _, versions := range []bool{false, true} {
+		name := "detail"
+		path := "/serving_runtimes/vendor%2Fruntime%3Fname=one%23tag"
+		if versions {
+			name = "versions"
+			path += "/versions"
+		}
+		t.Run(name, func(t *testing.T) {
+			called := false
+			client := &runtimeCatalogHTTPClient{get: func(got string) ([]byte, error) {
+				called = true
+				require.Equal(t, path, got)
+				return []byte(`{}`), nil
+			}}
+			repo := &ServingRuntimeCatalogRepository{}
+			var err error
+			if versions {
+				_, err = repo.GetServingRuntimeVersions(client, "vendor/runtime?name=one#tag", nil)
+			} else {
+				_, err = repo.GetServingRuntime(client, "vendor/runtime?name=one#tag")
+			}
+			require.NoError(t, err)
+			require.True(t, called)
+		})
+	}
+}
+
+func TestServingRuntimeCatalogPreservesClientErrors(t *testing.T) {
+	for _, endpoint := range []string{"list", "filters", "detail", "versions"} {
+		t.Run(endpoint, func(t *testing.T) {
+			failure := errors.New("connection failed")
+			client := &runtimeCatalogHTTPClient{get: func(string) ([]byte, error) { return nil, failure }}
+			repo := &ServingRuntimeCatalogRepository{}
+			var err error
+			switch endpoint {
+			case "list":
+				data, getErr := repo.GetAllServingRuntimes(client, nil)
+				require.Nil(t, data)
+				err = getErr
+			case "filters":
+				data, getErr := repo.GetServingRuntimesFilter(client)
+				require.Nil(t, data)
+				err = getErr
+			case "detail":
+				data, getErr := repo.GetServingRuntime(client, "1")
+				require.Nil(t, data)
+				err = getErr
+			case "versions":
+				data, getErr := repo.GetServingRuntimeVersions(client, "1", nil)
+				require.Nil(t, data)
+				err = getErr
+			}
+			require.ErrorIs(t, err, failure)
+		})
 	}
 }
