@@ -1,6 +1,7 @@
 name: Test / EvalHub Frontend Tests
 on:
   push:
+    branches: [main, 'odh-release*', 'rhoai-release*', '*-release', 'v*-fixes', 'v*-hotfix']
     paths:
       - 'packages/eval-hub/**'
       - '.github/workflows/eval-hub-frontend-tests.yml'

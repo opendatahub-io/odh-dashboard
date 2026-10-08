@@ -4288,12 +4288,32 @@ func GetAgentCatalogLabelListMock() models.CatalogLabelList {
 	}
 }
 
+func GetServingRuntimeCatalogLabelListMock() models.CatalogLabelList {
+	labelName := "Red Hat"
+	labelDisplay := "Red Hat"
+	labelDesc := "Browse container images and templates you can install as serving runtimes on this cluster."
+
+	labels := []models.CatalogLabel{
+		{
+			Name:        &labelName,
+			DisplayName: &labelDisplay,
+			Description: &labelDesc,
+		},
+	}
+
+	return models.CatalogLabelList{
+		Items:         labels,
+		Size:          int32(len(labels)),
+		PageSize:      int32(10),
+		NextPageToken: "",
+	}
+}
+
 func GetServingRuntimeCatalogSourceListMock() models.CatalogSourceList {
 	enabled := true
 	status := "available"
 	sources := []models.CatalogSource{
-		{Id: "redhat-runtimes", Name: "Red Hat runtimes", Enabled: &enabled, Status: &status, Labels: []string{"Red Hat"}},
-		{Id: "community-runtimes", Name: "Community runtimes", Enabled: &enabled, Status: &status, Labels: []string{}},
+		{Id: "redhat-runtimes", Name: "Runtime image library", Enabled: &enabled, Status: &status, Labels: []string{"Red Hat"}},
 	}
 	return models.CatalogSourceList{
 		Items: sources, Size: int32(len(sources)), PageSize: 10, NextPageToken: "",
@@ -4339,7 +4359,7 @@ func GetServingRuntimeMocks() []models.ServingRuntime {
 		},
 		{
 			ID: stringToPointer("3"), Name: stringToPointer("mlserver"), DisplayName: stringToPointer("MLServer"),
-			SourceID: stringToPointer("community-runtimes"), Provider: stringToPointer("Seldon"),
+			SourceID: stringToPointer("redhat-runtimes"), Provider: stringToPointer("Seldon"),
 			Description: stringToPointer("Python-based inference server for machine learning models."),
 			Readme:      stringToPointer("# MLServer\n\nMock community runtime."),
 			License:     stringToPointer("apache-2.0"), Tags: []string{"predictive-ai", "cpu"},
@@ -4348,7 +4368,7 @@ func GetServingRuntimeMocks() []models.ServingRuntime {
 		},
 		{
 			ID: stringToPointer("4"), Name: stringToPointer("triton"), DisplayName: stringToPointer("Triton Inference Server"),
-			SourceID: stringToPointer("community-runtimes"), Provider: stringToPointer("NVIDIA"),
+			SourceID: stringToPointer("redhat-runtimes"), Provider: stringToPointer("NVIDIA"),
 			Description: stringToPointer("Mock inference runtime for multiple model frameworks."),
 			Readme:      stringToPointer("# Triton Inference Server\n\nMock community runtime with GPU support."),
 			License:     stringToPointer("bsd-3-clause"), Tags: []string{"predictive-ai", "gpu", "cpu-or-gpu"},
@@ -4357,7 +4377,7 @@ func GetServingRuntimeMocks() []models.ServingRuntime {
 		},
 		{
 			ID: stringToPointer("5"), Name: stringToPointer("tensorflow-serving"), DisplayName: stringToPointer("TensorFlow Serving"),
-			SourceID: stringToPointer("community-runtimes"), Provider: stringToPointer("TensorFlow"),
+			SourceID: stringToPointer("redhat-runtimes"), Provider: stringToPointer("TensorFlow"),
 			Description: stringToPointer("Mock runtime for TensorFlow SavedModel inference."),
 			Readme:      stringToPointer("# TensorFlow Serving\n\nMock community runtime for TensorFlow models."),
 			License:     stringToPointer("apache-2.0"), Tags: []string{"predictive-ai", "cpu"},
@@ -4366,7 +4386,7 @@ func GetServingRuntimeMocks() []models.ServingRuntime {
 		},
 		{
 			ID: stringToPointer("6"), Name: stringToPointer("sample-amd"), DisplayName: stringToPointer("AMD GPU sample runtime"),
-			SourceID:              stringToPointer("community-runtimes"),
+			SourceID:              stringToPointer("redhat-runtimes"),
 			Description:           stringToPointer("Illustrative mock runtime for hardware filtering; not a deployable runtime."),
 			SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}},
 			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &gpu, SupportedAccelerators: []string{"amd.com/gpu"}},
@@ -4374,7 +4394,7 @@ func GetServingRuntimeMocks() []models.ServingRuntime {
 		},
 		{
 			ID: stringToPointer("7"), Name: stringToPointer("sample-spyre"), DisplayName: stringToPointer("IBM Spyre sample runtime"),
-			SourceID:              stringToPointer("community-runtimes"),
+			SourceID:              stringToPointer("redhat-runtimes"),
 			Description:           stringToPointer("Illustrative mock runtime for hardware filtering; not a deployable runtime."),
 			SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}},
 			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &gpu, SupportedAccelerators: []string{"ibm.com/spyre"}},
@@ -4382,11 +4402,47 @@ func GetServingRuntimeMocks() []models.ServingRuntime {
 		},
 		{
 			ID: stringToPointer("8"), Name: stringToPointer("sample-gaudi"), DisplayName: stringToPointer("Intel Gaudi sample runtime"),
-			SourceID:              stringToPointer("community-runtimes"),
+			SourceID:              stringToPointer("redhat-runtimes"),
 			Description:           stringToPointer("Illustrative mock runtime for hardware filtering; not a deployable runtime."),
 			SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}},
 			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &gpu, SupportedAccelerators: []string{"habana.ai/gaudi"}},
 			VersionCount:          &one,
+		},
+		{
+			ID: stringToPointer("9"), Name: stringToPointer("torchserve"), DisplayName: stringToPointer("TorchServe"),
+			SourceID: stringToPointer("redhat-runtimes"), Provider: stringToPointer("PyTorch"),
+			Description: stringToPointer("PyTorch model serving runtime for production deployments."),
+			License:     stringToPointer("apache-2.0"), Tags: []string{"predictive-ai", "cpu-or-gpu"},
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "pytorch"}, {Name: "torchscript"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &cpu, SupportedAccelerators: []string{"nvidia.com/gpu"}},
+			VersionCount:          &one,
+		},
+		{
+			ID: stringToPointer("10"), Name: stringToPointer("text-generation-inference"), DisplayName: stringToPointer("Text Generation Inference"),
+			SourceID: stringToPointer("redhat-runtimes"), Provider: stringToPointer("Hugging Face"),
+			Description: stringToPointer("Optimized inference for text generation models."),
+			License:     stringToPointer("apache-2.0"), Tags: []string{"llm", "gpu"},
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}, {Name: "huggingface"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &gpu, SupportedAccelerators: []string{"nvidia.com/gpu"}},
+			VersionCount:          &one,
+		},
+		{
+			ID: stringToPointer("11"), Name: stringToPointer("caikit-nlp"), DisplayName: stringToPointer("Caikit NLP"),
+			SourceID: stringToPointer("redhat-runtimes"), Provider: stringToPointer("Red Hat"),
+			Description: stringToPointer("NLP serving runtime with Caikit framework."),
+			License:     stringToPointer("apache-2.0"), Tags: []string{"llm", "cpu"},
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "caikit"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &cpu},
+			VersionCount:          &one,
+		},
+		{
+			ID: stringToPointer("12"), Name: stringToPointer("nim"), DisplayName: stringToPointer("NVIDIA NIM"),
+			SourceID: stringToPointer("redhat-runtimes"), Provider: stringToPointer("NVIDIA"),
+			Description: stringToPointer("GPU-optimized inference microservices for AI models."),
+			License:     stringToPointer("proprietary"), Tags: []string{"llm", "gpu"},
+			SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}, {Name: "tensorrt"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &gpu, SupportedAccelerators: []string{"nvidia.com/gpu"}},
+			VersionCount:          &two,
 		},
 	}
 }
@@ -4424,13 +4480,20 @@ func GetServingRuntimeVersionMocks(runtimeID string) []models.ServingRuntimeVers
 			},
 			{ID: stringToPointer("102"), Name: stringToPointer("vllm-0.6.0"), ArtifactType: "serving-runtime-version", Version: "0.6.0", Image: "registry.example.com/mock/vllm:0.6.0", SupportLevel: &preview, SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}}, ProtocolVersions: []string{"v2"}},
 		},
-		"2": {{ID: stringToPointer("201"), Name: stringToPointer("ovms-2024.1"), ArtifactType: "serving-runtime-version", Version: "2024.1", Image: "registry.example.com/mock/ovms:2024.1", SupportLevel: &supported, SupportedModelFormats: []models.SupportedModelFormat{{Name: "openvino_ir"}, {Name: "onnx"}}, ProtocolVersions: []string{"v2", "grpc-v2"}}},
-		"3": {{ID: stringToPointer("301"), Name: stringToPointer("mlserver-1.6.0"), ArtifactType: "serving-runtime-version", Version: "1.6.0", Image: "registry.example.com/mock/mlserver:1.6.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "sklearn"}, {Name: "xgboost"}}, ProtocolVersions: []string{"v2"}}},
-		"4": {{ID: stringToPointer("401"), Name: stringToPointer("triton-24.02"), ArtifactType: "serving-runtime-version", Version: "24.02", Image: "registry.example.com/mock/triton:24.02", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "onnx"}, {Name: "tensorrt"}}, ProtocolVersions: []string{"v2", "grpc-v2"}}},
-		"5": {{ID: stringToPointer("501"), Name: stringToPointer("tensorflow-serving-2.15.0"), ArtifactType: "serving-runtime-version", Version: "2.15.0", Image: "registry.example.com/mock/tensorflow-serving:2.15.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "tensorflow"}}, ProtocolVersions: []string{"v1"}}},
-		"6": {{ID: stringToPointer("601"), Name: stringToPointer("sample-amd-1.0.0"), ArtifactType: "serving-runtime-version", Version: "1.0.0", Image: "registry.example.com/mock/sample-amd:1.0.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}}}},
-		"7": {{ID: stringToPointer("701"), Name: stringToPointer("sample-spyre-1.0.0"), ArtifactType: "serving-runtime-version", Version: "1.0.0", Image: "registry.example.com/mock/sample-spyre:1.0.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}}}},
-		"8": {{ID: stringToPointer("801"), Name: stringToPointer("sample-gaudi-1.0.0"), ArtifactType: "serving-runtime-version", Version: "1.0.0", Image: "registry.example.com/mock/sample-gaudi:1.0.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}}}},
+		"2":  {{ID: stringToPointer("201"), Name: stringToPointer("ovms-2024.1"), ArtifactType: "serving-runtime-version", Version: "2024.1", Image: "registry.example.com/mock/ovms:2024.1", SupportLevel: &supported, SupportedModelFormats: []models.SupportedModelFormat{{Name: "openvino_ir"}, {Name: "onnx"}}, ProtocolVersions: []string{"v2", "grpc-v2"}}},
+		"3":  {{ID: stringToPointer("301"), Name: stringToPointer("mlserver-1.6.0"), ArtifactType: "serving-runtime-version", Version: "1.6.0", Image: "registry.example.com/mock/mlserver:1.6.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "sklearn"}, {Name: "xgboost"}}, ProtocolVersions: []string{"v2"}}},
+		"4":  {{ID: stringToPointer("401"), Name: stringToPointer("triton-24.02"), ArtifactType: "serving-runtime-version", Version: "24.02", Image: "registry.example.com/mock/triton:24.02", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "onnx"}, {Name: "tensorrt"}}, ProtocolVersions: []string{"v2", "grpc-v2"}}},
+		"5":  {{ID: stringToPointer("501"), Name: stringToPointer("tensorflow-serving-2.15.0"), ArtifactType: "serving-runtime-version", Version: "2.15.0", Image: "registry.example.com/mock/tensorflow-serving:2.15.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "tensorflow"}}, ProtocolVersions: []string{"v1"}}},
+		"6":  {{ID: stringToPointer("601"), Name: stringToPointer("sample-amd-1.0.0"), ArtifactType: "serving-runtime-version", Version: "1.0.0", Image: "registry.example.com/mock/sample-amd:1.0.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}}}},
+		"7":  {{ID: stringToPointer("701"), Name: stringToPointer("sample-spyre-1.0.0"), ArtifactType: "serving-runtime-version", Version: "1.0.0", Image: "registry.example.com/mock/sample-spyre:1.0.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}}}},
+		"8":  {{ID: stringToPointer("801"), Name: stringToPointer("sample-gaudi-1.0.0"), ArtifactType: "serving-runtime-version", Version: "1.0.0", Image: "registry.example.com/mock/sample-gaudi:1.0.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}}}},
+		"9":  {{ID: stringToPointer("901"), Name: stringToPointer("torchserve-0.11.0"), ArtifactType: "serving-runtime-version", Version: "0.11.0", Image: "registry.example.com/mock/torchserve:0.11.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "pytorch"}}}},
+		"10": {{ID: stringToPointer("1001"), Name: stringToPointer("tgi-2.4.0"), ArtifactType: "serving-runtime-version", Version: "2.4.0", Image: "registry.example.com/mock/tgi:2.4.0", SupportLevel: &community, SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}}}},
+		"11": {{ID: stringToPointer("1101"), Name: stringToPointer("caikit-nlp-0.1.0"), ArtifactType: "serving-runtime-version", Version: "0.1.0", Image: "registry.example.com/mock/caikit-nlp:0.1.0", SupportLevel: &supported, SupportedModelFormats: []models.SupportedModelFormat{{Name: "caikit"}}}},
+		"12": {
+			{ID: stringToPointer("1201"), Name: stringToPointer("nim-1.0.0"), ArtifactType: "serving-runtime-version", Version: "1.0.0", Image: "registry.example.com/mock/nim:1.0.0", SupportLevel: &supported, SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}}},
+			{ID: stringToPointer("1202"), Name: stringToPointer("nim-1.1.0"), ArtifactType: "serving-runtime-version", Version: "1.1.0", Image: "registry.example.com/mock/nim:1.1.0", SupportLevel: &preview, SupportedModelFormats: []models.SupportedModelFormat{{Name: "tensorrt"}}},
+		},
 	}
 	if items, ok := versions[runtimeID]; ok {
 		return items

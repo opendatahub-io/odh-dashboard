@@ -168,7 +168,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if !dashboard.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(dashboard, dashboardFinalizer) {
 			if err := r.deleteMaaSPortalResources(ctx); err != nil {
-				return ctrl.Result{}, fmt.Errorf("failed to cleanup MaaS Consumer Portal resources: %w", err)
+				return ctrl.Result{}, fmt.Errorf("failed to cleanup MaaS Portal resources: %w", err)
 			}
 			if err := r.cleanupCrossNamespaceResources(ctx, dashboard, false); err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to cleanup cross-namespace resources: %w", err)
@@ -200,7 +200,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// ProvisioningSucceeded, Degraded, ObservabilityAvailable, and
 	// MaaSConsumerPortalAvailable. It is set explicitly only when both operands are
 	// Removed. The manager is built
-	// here, before the managementState branch, because the maas consumer portal is
+	// here, before the managementState branch, because the MaaS Portal is
 	// reconciled unconditionally below regardless of the core dashboard's state.
 	cm := conditions.NewManager(
 		dashboard,
@@ -228,7 +228,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			logger.Error(observabilityDetectionErr, "Failed to auto-detect observability, preserving its resources and Perses federation entry")
 		}
 	}
-	// MaaS Consumer Portal availability is recalculated from its managed resources on every
+	// MaaS Portal availability is recalculated from its managed resources on every
 	// reconciliation. Clear a stale failure now; failures recorded later in this
 	// cycle (for example federation ConfigMap reconciliation) remain intact.
 	cm.ClearCondition(conditionMaaSPortalAvailable)
@@ -237,11 +237,11 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		logger.Info("ManagementState is Removed, tearing down resources")
 
 		// MaaS and GenAI are shared dependencies. Reconcile their aggregate
-		// demand before the core teardown so MaaS Consumer Portal-only operation retains them.
+		// demand before the core teardown so MaaS Portal-only operation retains them.
 		nextStatuses, err := r.reconcileModuleDemand(ctx, dashboard)
 		if err != nil {
 			r.persistRemovedFailureStatus(ctx, dashboard, cm, "ModuleDeployFailed", err)
-			return ctrl.Result{}, fmt.Errorf("failed to reconcile MaaS Consumer Portal-required modules: %w", err)
+			return ctrl.Result{}, fmt.Errorf("failed to reconcile MaaS Portal-required modules: %w", err)
 		}
 		preserveModuleStatusTransitionTimes(dashboard.Status.ModuleStatuses, nextStatuses)
 		dashboard.Status.ModuleStatuses = nextStatuses
@@ -267,7 +267,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		dashboard.Status.Distribution = nil
 
 		// Core Dashboard removal is intentional. Treat its conditions as
-		// informational so a Managed MaaS Consumer Portal can determine the
+		// informational so a Managed MaaS Portal can determine the
 		// aggregate Dashboard readiness independently.
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 			conditions.WithReason("Removed"),
@@ -1216,7 +1216,7 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 }
 
 // addOptionalOwnedResourceWatches adds watches for APIs used only by the MaaS
-// Consumer Portal. The Dashboard controller also runs on clusters where those
+// Portal. The Dashboard controller also runs on clusters where those
 // APIs are not installed, so absent APIs must not prevent manager startup.
 func addOptionalOwnedResourceWatches(mapper meta.RESTMapper, controllerBuilder *builder.Builder) error {
 	resources, err := optionalOwnedResources(mapper)

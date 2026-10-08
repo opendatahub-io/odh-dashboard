@@ -43,7 +43,7 @@ const (
 	maasPortalBasePath            = "/maas-consumer-portal/"
 )
 
-var ErrMaaSPortalUnsupportedPlatform = errors.New("maas consumer portal is supported only on RHOAI")
+var ErrMaaSPortalUnsupportedPlatform = errors.New("MaaS Portal is supported only on RHOAI")
 
 func maasPortalManifestInfo(basePath string) render.ManifestInfo {
 	return render.ManifestInfo{
@@ -72,7 +72,7 @@ func (r *DashboardReconciler) reconcileMaaSPortalOperand(
 ) time.Duration {
 	if err := r.deployMaaSPortalFederationConfigMap(ctx, dashboard, statuses, observabilityKnown); err != nil {
 		r.markMaaSPortalFederationConfigMapFailed(cm, err)
-		log.FromContext(ctx).Error(err, "Failed to deploy MaaS Consumer Portal federation ConfigMap")
+		log.FromContext(ctx).Error(err, "Failed to deploy MaaS Portal federation ConfigMap")
 	}
 	return r.reconcileMaaSPortal(ctx, dashboard, cm, statuses)
 }
@@ -92,7 +92,7 @@ func (r *DashboardReconciler) reconcileMaaSPortal(ctx context.Context, dashboard
 	gatewayDomain := portalGatewayDomain(dashboard)
 	url, ok := maasPortalURL(gatewayDomain)
 	if !ok {
-		cm.MarkFalse(conditionMaaSPortalAvailable, conditions.WithReason("MaaSConsumerPortalDomainRequired"), conditions.WithMessage("MaaS Consumer Portal is enabled but gateway domain is not set"))
+		cm.MarkFalse(conditionMaaSPortalAvailable, conditions.WithReason("MaaSConsumerPortalDomainRequired"), conditions.WithMessage("MaaS Portal is enabled but gateway domain is not set"))
 		return maasPortalRetryInterval
 	}
 	if err := r.deployMaaSPortalBundle(ctx, dashboard); err != nil {
@@ -100,12 +100,12 @@ func (r *DashboardReconciler) reconcileMaaSPortal(ctx context.Context, dashboard
 		// specific failure conditions instead of replacing them with a generic
 		// bundle-apply failure, while still applying the portal's desired bundle.
 		if maasPortalUnavailable(cm) {
-			log.FromContext(ctx).Error(err, "MaaS Consumer Portal bundle deploy failed (prior condition takes precedence)")
+			log.FromContext(ctx).Error(err, "MaaS Portal bundle deploy failed (prior condition takes precedence)")
 			return maasPortalRetryInterval
 		}
 		cm.MarkFalse(conditionMaaSPortalAvailable,
 			conditions.WithReason("MaaSConsumerPortalDeployFailed"),
-			conditions.WithMessage("MaaS Consumer Portal deployment failed: %s", err))
+			conditions.WithMessage("MaaS Portal deployment failed: %s", err))
 		return maasPortalRetryInterval
 	}
 	// Do not publish a newly derived URL until all portal readiness checks pass.
@@ -122,12 +122,12 @@ func (r *DashboardReconciler) reconcileRemovedMaaSPortal(ctx context.Context, da
 	if err := r.deleteMaaSPortalResources(ctx); err != nil {
 		cm.MarkFalse(conditionMaaSPortalAvailable,
 			conditions.WithReason("MaaSConsumerPortalCleanupFailed"),
-			conditions.WithMessage("MaaS Consumer Portal cleanup failed: %s", err),
+			conditions.WithMessage("MaaS Portal cleanup failed: %s", err),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
 		return maasPortalRetryInterval
 	}
 	setMaaSPortalURL(&dashboard.Status, "")
-	cm.MarkFalse(conditionMaaSPortalAvailable, conditions.WithReason("Disabled"), conditions.WithMessage("MaaS Consumer Portal is not enabled"), conditions.WithSeverity(common.ConditionSeverityInfo))
+	cm.MarkFalse(conditionMaaSPortalAvailable, conditions.WithReason("Disabled"), conditions.WithMessage("MaaS Portal is not enabled"), conditions.WithSeverity(common.ConditionSeverityInfo))
 	return 0
 }
 
@@ -136,7 +136,7 @@ func (r *DashboardReconciler) reconcileUnsupportedMaaSPortal(ctx context.Context
 	if err := r.deleteMaaSPortalResources(ctx); err != nil {
 		cm.MarkFalse(conditionMaaSPortalAvailable,
 			conditions.WithReason("MaaSConsumerPortalCleanupFailed"),
-			conditions.WithMessage("MaaS Consumer Portal cleanup failed: %s", err),
+			conditions.WithMessage("MaaS Portal cleanup failed: %s", err),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
 		return maasPortalRetryInterval
 	}
@@ -157,13 +157,13 @@ func (r *DashboardReconciler) reconcileMaaSPortalAvailability(ctx context.Contex
 	if err := r.Get(ctx, client.ObjectKey{Name: maasPortalDeploymentName, Namespace: r.ApplicationsNamespace}, &route); err != nil {
 		cm.MarkFalse(conditionMaaSPortalAvailable,
 			conditions.WithReason("MaaSConsumerPortalRouteUnavailable"),
-			conditions.WithMessage("getting MaaS Consumer Portal HTTPRoute: %s", err))
+			conditions.WithMessage("getting MaaS Portal HTTPRoute: %s", err))
 		return maasPortalRetryInterval
 	}
 	if !portalRouteReady(&route) {
 		cm.MarkFalse(conditionMaaSPortalAvailable,
 			conditions.WithReason("MaaSConsumerPortalRouteNotReady"),
-			conditions.WithMessage("MaaS Consumer Portal HTTPRoute is not accepted and resolved by Gateway %q", maasPortalGatewayName))
+			conditions.WithMessage("MaaS Portal HTTPRoute is not accepted and resolved by Gateway %q", maasPortalGatewayName))
 		return maasPortalRetryInterval
 	}
 	var dep appsv1.Deployment
@@ -173,10 +173,10 @@ func (r *DashboardReconciler) reconcileMaaSPortalAvailability(ctx context.Contex
 		}
 		cm.MarkFalse(conditionMaaSPortalAvailable,
 			conditions.WithReason("MaaSConsumerPortalDeploymentUnavailable"),
-			conditions.WithMessage("MaaS Consumer Portal Deployment is unavailable: %s", err))
+			conditions.WithMessage("MaaS Portal Deployment is unavailable: %s", err))
 		return maasPortalRetryInterval
 	}
-	cm.MarkTrue(conditionMaaSPortalAvailable, conditions.WithReason("Deployed"), conditions.WithMessage("MaaS Consumer Portal is available"))
+	cm.MarkTrue(conditionMaaSPortalAvailable, conditions.WithReason("Deployed"), conditions.WithMessage("MaaS Portal is available"))
 	return 0
 }
 
@@ -236,11 +236,11 @@ func (r *DashboardReconciler) deployMaaSPortalBundle(ctx context.Context, dashbo
 	params["gateway-name"] = maasPortalGatewayName
 	params["maas-consumer-portal-federation-config"] = maasPortalFederationConfigMapName
 	if err := writeParamsEnv(m.String(), params); err != nil {
-		return fmt.Errorf("writing MaaS Consumer Portal params: %w", err)
+		return fmt.Errorf("writing MaaS Portal params: %w", err)
 	}
 	rendered, err := kustomize.NewEngine().Render(m.String(), kustomize.WithNamespace(r.ApplicationsNamespace))
 	if err != nil {
-		return fmt.Errorf("rendering MaaS Consumer Portal bundle: %w", err)
+		return fmt.Errorf("rendering MaaS Portal bundle: %w", err)
 	}
 	operatorNamespaces, err := r.existingMaaSPortalOperatorNamespaces(ctx)
 	if err != nil {
@@ -249,7 +249,7 @@ func (r *DashboardReconciler) deployMaaSPortalBundle(ctx context.Context, dashbo
 	rendered = setMaaSPortalOperatorSubscriptionNamespaces(rendered, r.Namespace)
 	resources := filterMaaSPortalResources(rendered, operatorNamespaces)
 	if err := deploy.NewDeployer(deploy.WithFieldOwner("dashboard-operator"), deploy.WithLabel(labels.PlatformPartOf, maasPortalPartOf), deploy.WithApplyOrder()).Deploy(ctx, deploy.DeployInput{Client: r.Client, Owner: dashboard, Release: deploy.ReleaseInfo{Type: string(r.Platform)}, Resources: resources}); err != nil {
-		return fmt.Errorf("deploying MaaS Consumer Portal bundle: %w", err)
+		return fmt.Errorf("deploying MaaS Portal bundle: %w", err)
 	}
 	cm := &corev1.ConfigMap{}
 	if err := r.Get(ctx, client.ObjectKey{Name: maasPortalFederationConfigMapName, Namespace: r.ApplicationsNamespace}, cm); err != nil {
@@ -258,7 +258,7 @@ func (r *DashboardReconciler) deployMaaSPortalBundle(ctx context.Context, dashbo
 			// applied after it becomes available on a subsequent reconciliation.
 			return nil
 		}
-		return fmt.Errorf("getting MaaS Consumer Portal federation ConfigMap: %w", err)
+		return fmt.Errorf("getting MaaS Portal federation ConfigMap: %w", err)
 	}
 	if err := r.patchMaaSPortalDeploymentFederationHash(ctx, cm.Data[federationConfigKey]); err != nil {
 		return err
@@ -398,7 +398,7 @@ func maasPortalUnavailable(cm *conditions.Manager) bool {
 	return condition != nil && condition.Status == metav1.ConditionFalse
 }
 
-// setMaaSPortalModuleCondition makes missing MaaS Consumer Portal dependencies
+// setMaaSPortalModuleCondition makes missing MaaS Portal dependencies
 // actionable without coupling shared-module logic to a URL model.
 func (r *DashboardReconciler) setMaaSPortalModuleCondition(
 	cm *conditions.Manager,
@@ -430,5 +430,5 @@ func (r *DashboardReconciler) markMaaSPortalFederationConfigMapFailed(cm *condit
 	}
 	cm.MarkFalse(conditionMaaSPortalAvailable,
 		conditions.WithReason("MaaSConsumerPortalFederationConfigMapFailed"),
-		conditions.WithMessage("MaaS Consumer Portal federation ConfigMap reconciliation failed: %s", err))
+		conditions.WithMessage("MaaS Portal federation ConfigMap reconciliation failed: %s", err))
 }

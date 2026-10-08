@@ -22,7 +22,7 @@ import (
 
 func TestE2E_MaaSPortalObservabilitySurvivesCoreRemoval(t *testing.T) {
 	if requiredPlatform(t) != "rhoai" {
-		t.Skip("MaaS Consumer Portal is supported only on RHOAI")
+		t.Skip("MaaS Portal is supported only on RHOAI")
 	}
 
 	// Use the normal auto-detection path against the cluster's real Perses.
@@ -41,7 +41,7 @@ func TestE2E_MaaSPortalObservabilitySurvivesCoreRemoval(t *testing.T) {
 	require.Equal(t, common.Managed, dashboard.Spec.ManagementState)
 	for _, name := range []string{"maas", "genAi"} {
 		require.NotEqual(t, dashboardv1alpha1.ModuleDisabled, dashboard.Spec.Modules[name].State,
-			"MaaS Consumer Portal requires module %q to be enabled", name)
+			"MaaS Portal requires module %q to be enabled", name)
 	}
 	originalSpec := dashboard.Spec.DeepCopy()
 	originalPortalSpec := originalSpec.MaaSPortal

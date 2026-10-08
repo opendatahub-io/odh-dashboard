@@ -8,11 +8,11 @@ const coreServices: HostApiCoreServices = {
     checkAccess(attributes, { failureMode: 'reject' }).catch(() => false),
   trackEvent: () => undefined,
   fetchDashboardConfig: () =>
-    Promise.reject(new Error('DashboardConfig is not available in the MaaS Consumer Portal.')),
+    Promise.reject(new Error('DashboardConfig is not available in the MaaS Portal.')),
   fetchClusterSettings: () =>
-    Promise.reject(new Error('Cluster settings are not available in the MaaS Consumer Portal.')),
+    Promise.reject(new Error('Cluster settings are not available in the MaaS Portal.')),
   updateClusterSettings: () =>
-    Promise.reject(new Error('Cluster settings are not configurable in the MaaS Consumer Portal.')),
+    Promise.reject(new Error('Cluster settings are not configurable in the MaaS Portal.')),
 };
 
 type HostApiProviderProps = {

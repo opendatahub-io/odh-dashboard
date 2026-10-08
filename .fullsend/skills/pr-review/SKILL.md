@@ -1113,10 +1113,13 @@ diff, preserving context isolation.
    challenger sub-agent file, with an instruction to read it first. Do
    not paste its body into the prompt.
 
-   **Part 2 — Invocation contract:** the absolute paths of
-   `meta-prompts/common-review.md` and `meta-prompts/findings-output.md`,
-   to be read in that order. The challenger is an upstream findings
-   producer, so it uses only the findings contract.
+   **Part 2 — Shared preface:** the absolute path of
+   `meta-prompts/common-review.md` only. Do **not** attach
+   `meta-prompts/findings-output.md` (or any other registry
+   `meta_prompt`). The challenger is not a findings producer. Output
+   serialization is already owned by Part 1 (`challenger.md` **Output
+   format**: object with `adjudicated_findings` and `removed_findings`).
+   A flat findings array is malformed.
 
    **Part 3 — Context package:** the merged finding set from steps
    6a–6c (as a JSON array), plus the path of the shared context file
@@ -1247,10 +1250,12 @@ diff, preserving context isolation.
      ```
 
 4. If the challenger sub-agent fails (timeout, error, empty
-   response), fall back to using the pre-challenger merged finding
-   set from steps 6a–6c. Set
+   response, or wrong shape — e.g. a flat findings array instead of
+   the adjudication object), fall back to using the pre-challenger
+   merged finding set from steps 6a–6c. Set
    `challenger` to `{ "status": "failed", "reason": "<short reason>" }`
-   in `producers.json`.
+   in `producers.json`. Keep `reason` short (what failed); do not
+   repeat the fallback prose — post-review appends that.
    Record an **info**-level finding:
 
    ```json
