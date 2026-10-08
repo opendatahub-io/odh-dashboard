@@ -7,7 +7,9 @@ on:
 # Concurrency control: Only run latest tests for each PR/branch
 # Cancel in-progress runs when new commits are pushed
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: >-
+    ${{ github.workflow }}-${{ github.event.pull_request.number ||
+    github.ref }}
   cancel-in-progress: true
 
 env:
@@ -29,6 +31,8 @@ jobs:
             "packages/model-registry/upstream/package-lock.json"
             "packages/model-registry/upstream/frontend/package-lock.json"
             "packages/notebooks/upstream/workspaces/frontend/package-lock.json"
+            # Locked npm bootstrap for pnpm in hermetic Konflux builds.
+            "prefetch/pnpm/package-lock.json"
           )
           unexpected=()
           while IFS= read -r file; do
@@ -45,7 +49,7 @@ jobs:
             printf '::error::Unexpected npm lockfile(s):\n'
             printf '  %s\n' "${unexpected[@]}"
             echo 'Use the root pnpm-lock.yaml.'
-            echo 'Only documented vendored upstream lockfiles are allowed.'
+            echo 'Only documented upstream and bootstrap lockfiles are allowed.'
             exit 1
           fi
       - name: Free disk space
@@ -80,7 +84,9 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .turbo
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ matrix.check }}-${{ github.sha }}
+          key: >-
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ matrix.check
+            }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ matrix.check }}-
       - name: Run ${{ matrix.check }}
@@ -108,24 +114,31 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .turbo
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-${{ github.sha }}
+          key: >-
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-${{
+            github.sha }}
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-
       - name: Abort if quality gate already failed
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        # v7.0.1
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
         with:
           script: |
             const { owner, repo } = context.repo;
             const { data } = await github.rest.actions.listJobsForWorkflowRun({
               owner, repo, run_id: context.runId,
             });
-            const gates = data.jobs.filter(j => j.name.startsWith('Quality-Gate'));
+            const gates = data.jobs.filter((j) =>
+              j.name.startsWith('Quality-Gate'),
+            );
             const failed = gates.filter(j =>
               j.conclusion === 'failure' || j.conclusion === 'cancelled'
             );
             if (failed.length > 0) {
               core.setFailed(
-                `Quality gate(s) failed: ${failed.map(j => j.name).join(', ')}. Skipping tests.`
+                `Quality gate(s) failed: ${failed
+                  .map((j) => j.name)
+                  .join(', ')}. Skipping tests.`
               );
               return;
             }
@@ -138,7 +151,8 @@ jobs:
           pnpm run test-unit-coverage
       - name: Upload unit test coverage
         if: env.IS_DRAFT != 'true'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: unit-coverage
           path: ./jest-coverage
@@ -158,7 +172,8 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           persist-credentials: false
-          # Keep GitHub's merge checkout so the diff and graph match the code under test.
+          # Keep GitHub's merge checkout so the diff and graph match
+          # the code under test.
           fetch-depth: 0
       - name: Setup pnpm and install dependencies
         uses: ./.github/actions/pnpm-setup
@@ -168,7 +183,8 @@ jobs:
         name: Select Cypress mock test groups
         shell: bash
         env:
-          IMPACT_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          IMPACT_BASE: >-
+            ${{ github.event.pull_request.base.sha || github.event.before }}
           IMPACT_HEAD: ${{ github.sha }}
         run: |
           node scripts/cypress/plan-mock-test-impact.js \
@@ -180,9 +196,13 @@ jobs:
           TEST_GROUPS=$(jq -c . "$RUNNER_TEMP/cypress-mock-matrix.json")
           SELECTED_GROUPS=$(jq 'length' "$RUNNER_TEMP/cypress-mock-matrix.json")
           HAS_TESTS=$([[ "$SELECTED_GROUPS" -gt 0 ]] && echo true || echo false)
-          FULL_MATRIX=$([[ "$(cat "$RUNNER_TEMP/cypress-mock-scope.txt")" == "full" ]] && echo true || echo false)
+          FULL_MATRIX=$(
+            [[ "$(cat "$RUNNER_TEMP/cypress-mock-scope.txt")" == "full" ]] &&
+              echo true || echo false
+          )
 
-          # GitHub rejects an empty matrix. A no-op entry keeps the aggregate jobs successful.
+          # GitHub rejects an empty matrix. A no-op entry keeps the
+          # aggregate jobs successful.
           if [[ "$HAS_TESTS" != "true" ]]; then
             TEST_GROUPS='[{"name":"no-cypress-mock-tests","specs":[]}]'
           fi
@@ -219,26 +239,33 @@ jobs:
             distributions/core-bff/bff/go.sum
       - name: Install uv
         timeout-minutes: 5
-        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        # v10.0.1
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d
         with:
-          # Contract tests only need the uv binary on PATH; disable dependency cache
-          # scanning (default **/*requirements*.txt glob traverses pnpm node_modules).
+          # Contract tests only need the uv binary on PATH; disable dependency
+          # cache scanning (default **/*requirements*.txt glob traverses pnpm
+          # node_modules).
           enable-cache: false
       - name: Abort if quality gate already failed
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        # v7.0.1
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
         with:
           script: |
             const { owner, repo } = context.repo;
             const { data } = await github.rest.actions.listJobsForWorkflowRun({
               owner, repo, run_id: context.runId,
             });
-            const gates = data.jobs.filter(j => j.name.startsWith('Quality-Gate'));
+            const gates = data.jobs.filter((j) =>
+              j.name.startsWith('Quality-Gate'),
+            );
             const failed = gates.filter(j =>
               j.conclusion === 'failure' || j.conclusion === 'cancelled'
             );
             if (failed.length > 0) {
               core.setFailed(
-                `Quality gate(s) failed: ${failed.map(j => j.name).join(', ')}. Skipping tests.`
+                `Quality gate(s) failed: ${failed
+                  .map((j) => j.name)
+                  .join(', ')}. Skipping tests.`
               );
               return;
             }
@@ -258,15 +285,20 @@ jobs:
         if: always()
         run: |
           # Find and upload the most recent contract test results
-          LATEST_DIR=$(find packages/*/contract-tests/contract-test-results distributions/*/contract-tests/contract-test-results -name "ci-*" -type d 2>/dev/null | head -1)
+          LATEST_DIR=$(find \
+            packages/*/contract-tests/contract-test-results \
+            distributions/*/contract-tests/contract-test-results \
+            -name "ci-*" -type d 2>/dev/null | head -1)
           if [ -n "$LATEST_DIR" ] && [ -d "$LATEST_DIR" ]; then
-            echo "Uploading from: $LATEST_DIR" && echo "results-dir=$LATEST_DIR" >> $GITHUB_OUTPUT
+            echo "Uploading from: $LATEST_DIR"
+            echo "results-dir=$LATEST_DIR" >> "$GITHUB_OUTPUT"
           else
             echo "No results found" && echo "results-dir=" >> $GITHUB_OUTPUT
           fi
         id: upload-results
       - name: Upload artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: steps.upload-results.outputs.results-dir != ''
         with:
           name: contract-test-results
@@ -331,7 +363,8 @@ jobs:
         needs.Setup.result == 'success' &&
         needs.Get-Test-Groups.result == 'success' &&
         needs.Get-Cypress-Packages.result == 'success' &&
-        (needs.Get-Test-Groups.outputs.has-tests != 'true' || needs.Cypress-Setup.result == 'success')
+        (needs.Get-Test-Groups.outputs.has-tests != 'true' ||
+        needs.Cypress-Setup.result == 'success')
       }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -345,7 +378,8 @@ jobs:
     steps:
       - name: No Cypress mock tests selected
         if: needs.Get-Test-Groups.outputs.has-tests != 'true'
-        run: echo "Documentation-only change; Cypress mock tests are not required."
+        run: |
+          echo "Documentation-only change; Cypress mock tests are not required."
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         if: needs.Get-Test-Groups.outputs.has-tests == 'true'
         with:
@@ -364,20 +398,25 @@ jobs:
           github-token: ${{ github.token }}
       - name: Abort if quality gate already failed
         if: needs.Get-Test-Groups.outputs.has-tests == 'true'
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        # v7.0.1
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
         with:
           script: |
             const { owner, repo } = context.repo;
             const { data } = await github.rest.actions.listJobsForWorkflowRun({
               owner, repo, run_id: context.runId,
             });
-            const gates = data.jobs.filter(j => j.name.startsWith('Quality-Gate'));
+            const gates = data.jobs.filter((j) =>
+              j.name.startsWith('Quality-Gate'),
+            );
             const failed = gates.filter(j =>
               j.conclusion === 'failure' || j.conclusion === 'cancelled'
             );
             if (failed.length > 0) {
               core.setFailed(
-                `Quality gate(s) failed: ${failed.map(j => j.name).join(', ')}. Skipping tests.`
+                `Quality gate(s) failed: ${failed
+                  .map((j) => j.name)
+                  .join(', ')}. Skipping tests.`
               );
               return;
             }
@@ -411,16 +450,22 @@ jobs:
         if: ${{ always() && needs.Get-Test-Groups.outputs.has-tests == 'true' }}
         env:
           TEST_GROUP_RAW: ${{ matrix.test-group.name }}
-        run: echo "TEST_GROUP_NAME=$(echo "${TEST_GROUP_RAW}" | tr '/-' '_')" >> $GITHUB_ENV
+        run: |
+          test_group_name=$(echo "$TEST_GROUP_RAW" | tr '/-' '_')
+          echo "TEST_GROUP_NAME=$test_group_name" >> "$GITHUB_ENV"
       - name: Upload Cypress Mock results
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: ${{ always() && needs.Get-Test-Groups.outputs.has-tests == 'true' }}
         with:
           name: cypress-results-${{ env.TEST_GROUP_NAME }}
           path: ./packages/cypress/results/mocked
       - name: Upload Cypress coverage
-        if: env.IS_DRAFT != 'true' && needs.Get-Test-Groups.outputs.has-tests == 'true'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: >-
+          ${{ env.IS_DRAFT != 'true' &&
+          needs.Get-Test-Groups.outputs.has-tests == 'true' }}
+        # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: cypress-coverage-${{ env.TEST_GROUP_NAME }}
           path: ./packages/cypress/coverage
@@ -440,7 +485,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - name: Download all artifacts
         if: env.IS_DRAFT != 'true'
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        # v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           path: all-artifacts
       # nyc is a root devDependency and is installed by the pnpm setup step.
@@ -448,10 +494,12 @@ jobs:
         if: env.IS_DRAFT != 'true'
         run: |
           mkdir -p ./unit-coverage
-          cp all-artifacts/unit-coverage/coverage-final.json ./unit-coverage/coverage-final.json || true
+          cp all-artifacts/unit-coverage/coverage-final.json \
+            ./unit-coverage/coverage-final.json || true
       - name: Upload unit coverage to Codecov
         if: env.IS_DRAFT != 'true'
-        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
+        # v4.6.0
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
@@ -462,21 +510,29 @@ jobs:
           verbose: true
 
       - name: Merge Cypress coverage reports
-        if: env.IS_DRAFT != 'true' && needs.Get-Test-Groups.outputs.has-tests == 'true'
+        if: >-
+          ${{ env.IS_DRAFT != 'true' &&
+          needs.Get-Test-Groups.outputs.has-tests == 'true' }}
         run: |
           mkdir -p ./cypress-coverage
-          find all-artifacts -name "cypress-coverage-*" -type d | while read dir; do
+          find all-artifacts -name "cypress-coverage-*" -type d | \
+            while read dir; do
             group_name=$(basename "$dir")
             if [ -f "$dir/coverage-final.json" ]; then
-              cp "$dir/coverage-final.json" "./cypress-coverage/${group_name}-coverage-final.json"
+              cp "$dir/coverage-final.json" \
+                "./cypress-coverage/${group_name}-coverage-final.json"
             fi
           done
           echo "Cypress coverage files:"
           ls -la ./cypress-coverage/
-          pnpm exec nyc merge ./cypress-coverage ./cypress-coverage/merged-cypress-coverage.json
+          pnpm exec nyc merge ./cypress-coverage \
+            ./cypress-coverage/merged-cypress-coverage.json
       - name: Upload Cypress mock coverage to Codecov
-        if: env.IS_DRAFT != 'true' && needs.Get-Test-Groups.outputs.full-matrix == 'true'
-        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
+        if: >-
+          ${{ env.IS_DRAFT != 'true' &&
+          needs.Get-Test-Groups.outputs.full-matrix == 'true' }}
+        # v4.6.0
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
@@ -490,19 +546,28 @@ jobs:
         if: env.IS_DRAFT != 'true'
         run: |
           mkdir -p ./coverage
-          cp ./unit-coverage/coverage-final.json ./coverage/unit-coverage-final.json || true
-          cp ./cypress-coverage/merged-cypress-coverage.json ./coverage/cypress-coverage-final.json || true
+          cp ./unit-coverage/coverage-final.json \
+            ./coverage/unit-coverage-final.json || true
+          cp ./cypress-coverage/merged-cypress-coverage.json \
+            ./coverage/cypress-coverage-final.json || true
           pnpm exec nyc merge ./coverage ./coverage/merged-coverage.json
-          jq 'del(.[] | select(.statementMap == {}))' ./coverage/merged-coverage.json > ./coverage/cleaned-coverage.json
+          jq 'del(.[] | select(.statementMap == {}))' \
+            ./coverage/merged-coverage.json > ./coverage/cleaned-coverage.json
           mv ./coverage/cleaned-coverage.json ./coverage/merged-coverage.json
       - name: Generate coverage report
         if: env.IS_DRAFT != 'true'
         run: |
           mkdir -p ./coverage/report
-          pnpm exec nyc report --reporter=html --reporter=text-summary --temp-directory ./coverage -t ./coverage --report-dir ./coverage/report
+          pnpm exec nyc report \
+            --reporter=html \
+            --reporter=text-summary \
+            --temp-directory ./coverage \
+            -t ./coverage \
+            --report-dir ./coverage/report
       - name: Upload combined results
         if: env.IS_DRAFT != 'true'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: combined-coverage-results
           path: ./coverage/merged-coverage.json
@@ -520,8 +585,12 @@ jobs:
     steps:
       - name: Check for failures
         run: |
-          if [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}" == "true" ]]; then
-            echo "One or more required jobs failed, were cancelled, or were skipped."
+          if [[ "${{
+            contains(needs.*.result, 'failure') ||
+            contains(needs.*.result, 'cancelled') ||
+            contains(needs.*.result, 'skipped')
+          }}" == "true" ]]; then
+            echo "Required test jobs failed, were cancelled, or were skipped."
             exit 1
           fi
-          echo "All required jobs have successfully completed for Node.js ${{ env.NODE_VERSION }}."
+          echo "Required jobs passed for Node.js ${{ env.NODE_VERSION }}."
