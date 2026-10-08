@@ -1,7 +1,13 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import DeployAgentModal from '~/app/Chatbot/components/DeployAgentModal';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
 
 jest.mock('~/app/AIAssets/components/agentprofiles/AgentConfigurationCard', () => ({
   __esModule: true,
@@ -33,6 +39,10 @@ describe('DeployAgentModal', () => {
     onDeploy: jest.fn(),
     onClose: jest.fn(),
   };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
   it('shows a deployment name and the reused configuration snapshot', () => {
     render(<DeployAgentModal profile={profile} namespace="my-project" {...defaultProps} />);
@@ -148,5 +158,34 @@ describe('DeployAgentModal', () => {
       'Connect GitHub-MCP-Server in the MCP servers tab before deploying',
     );
     expect(screen.getByTestId('deploy-agent-submit-button')).toBeDisabled();
+  });
+
+  it('tracks deployment submission and cancellation', async () => {
+    const user = userEvent.setup();
+    const onDeploy = jest.fn();
+    const onClose = jest.fn();
+    render(
+      <DeployAgentModal
+        profile={profile}
+        namespace="my-project"
+        {...defaultProps}
+        onDeploy={onDeploy}
+        onClose={onClose}
+      />,
+    );
+
+    await user.click(screen.getByTestId('deploy-agent-submit-button'));
+    expect(fireMiscTrackingEvent).toHaveBeenCalledWith(
+      PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_SUBMITTED,
+      { outcome: 'submit' },
+    );
+    expect(onDeploy).toHaveBeenCalledWith('hr-chatbot-1');
+
+    await user.click(screen.getByTestId('deploy-agent-cancel-button'));
+    expect(fireMiscTrackingEvent).toHaveBeenCalledWith(
+      PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_SUBMITTED,
+      { outcome: 'cancel' },
+    );
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

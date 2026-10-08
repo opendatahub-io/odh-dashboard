@@ -18,9 +18,11 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { CloseIcon, FilterIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { Table, DashboardEmptyTableView } from 'mod-arch-shared';
 import { AgentDeploymentSummary, AgentProfileSummary } from '~/app/agentProfile/types';
 import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 import AgentProfileTableRow from './AgentProfileTableRow';
 import AgentProfileColumns from './AgentProfileColumns';
 
@@ -73,6 +75,13 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
   const onClearFilters = React.useCallback(() => {
     setFilterData(INITIAL_FILTER);
     setSearchValue('');
+  }, []);
+
+  const handleDeploymentFilterChange = React.useCallback((filterType: DeploymentFilter) => {
+    setDeploymentFilter(filterType);
+    fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_STATUS_FILTER_SELECTED, {
+      filterType: filterType === 'not-deployed' ? 'notDeployed' : filterType,
+    });
   }, []);
 
   const deployedProfileIds = React.useMemo(
@@ -137,20 +146,20 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
                 <ToggleGroupItem
                   text={`All (${profiles.length})`}
                   isSelected={deploymentFilter === 'all'}
-                  onChange={() => setDeploymentFilter('all')}
+                  onChange={() => handleDeploymentFilterChange('all')}
                   data-testid="agent-deployment-filter-all"
                 />
                 <ToggleGroupItem
                   text={`Deployed (${deployedProfileCount})`}
                   isSelected={deploymentFilter === 'deployed'}
-                  onChange={() => setDeploymentFilter('deployed')}
+                  onChange={() => handleDeploymentFilterChange('deployed')}
                   isDisabled={!deploymentsLoaded}
                   data-testid="agent-deployment-filter-deployed"
                 />
                 <ToggleGroupItem
                   text={`Not deployed (${profiles.length - deployedProfileCount})`}
                   isSelected={deploymentFilter === 'not-deployed'}
-                  onChange={() => setDeploymentFilter('not-deployed')}
+                  onChange={() => handleDeploymentFilterChange('not-deployed')}
                   isDisabled={!deploymentsLoaded}
                   data-testid="agent-deployment-filter-not-deployed"
                 />
