@@ -33,19 +33,13 @@ const runtimeDetails = {
 
 const runtimeVersions = [
   {
-    id: '101',
-    name: 'vllm-0.5.0',
-    artifactType: 'serving-runtime-version',
-    version: '0.5.0',
-    image: 'registry.example.com/mock/vllm:0.5.0',
-    template: '{"kind":"ServingRuntime","metadata":{"name":"mock-vllm"}}',
-  },
-  {
     id: '102',
     name: 'vllm-0.6.0',
     artifactType: 'serving-runtime-version',
     version: '0.6.0',
     image: 'registry.example.com/mock/vllm:0.6.0',
+    servingRuntimeTemplate: '{"kind":"ServingRuntime"}',
+    llmInferenceServiceTemplate: '{"kind":"LLMInferenceServiceConfig"}',
   },
 ];
 
@@ -80,33 +74,53 @@ describe('RuntimeCatalogDetailsView', () => {
       'N/A',
       'N/A',
       'N/A',
-      'N/A',
     ]);
     expect(screen.queryByTestId('runtime-container-image-copy')).not.toBeInTheDocument();
     expect(screen.queryByText(runtimeDetails.description)).not.toBeInTheDocument();
   });
 
-  it('should show the selected BFF version and hide unavailable configuration after switching', () => {
+  it('should render both configuration tabs from the latest BFF version', () => {
     renderDetails({ runtimeDetails, runtimeVersions });
 
-    const versionSelect = screen.getByTestId('runtime-version-select');
-    expect(versionSelect).toHaveValue('101');
-    expect(
-      within(screen.getByTestId('runtime-container-image-copy')).getByRole('textbox'),
-    ).toHaveValue('registry.example.com/mock/vllm:0.5.0');
-    expect(screen.getByTestId('runtime-serving-runtime-panel')).toHaveTextContent(
-      'kind: ServingRuntime',
-    );
-
-    fireEvent.change(versionSelect, { target: { value: '102' } });
-
-    expect(versionSelect).toHaveValue('102');
+    expect(screen.getByText('0.6.0')).toBeInTheDocument();
     expect(
       within(screen.getByTestId('runtime-container-image-copy')).getByRole('textbox'),
     ).toHaveValue('registry.example.com/mock/vllm:0.6.0');
+    expect(screen.getByTestId('runtime-serving-runtime-panel')).toHaveTextContent(
+      'kind: ServingRuntime',
+    );
+    expect(screen.getByTestId('runtime-llm-inference-service-tab')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('runtime-llm-inference-service-tab'));
+
+    expect(screen.getByTestId('runtime-llm-inference-service-panel')).toHaveTextContent(
+      'kind: LLMInferenceServiceConfig',
+    );
+  });
+
+  it('should hide unavailable configurations when the BFF version has no templates', () => {
+    renderDetails({
+      runtimeDetails,
+      runtimeVersions: [
+        { ...runtimeVersions[0], servingRuntimeTemplate: '', llmInferenceServiceTemplate: '' },
+      ],
+    });
+
     expect(
       screen.queryByRole('heading', { name: 'Available configurations' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('should activate the LLM tab when it is the only configuration', () => {
+    renderDetails({
+      runtimeDetails,
+      runtimeVersions: [{ ...runtimeVersions[0], servingRuntimeTemplate: '' }],
+    });
+
+    expect(screen.queryByTestId('runtime-serving-runtime-tab')).not.toBeInTheDocument();
+    expect(screen.getByTestId('runtime-llm-inference-service-panel')).toHaveTextContent(
+      'kind: LLMInferenceServiceConfig',
+    );
   });
 
   it('should show a loading state before runtime details', () => {

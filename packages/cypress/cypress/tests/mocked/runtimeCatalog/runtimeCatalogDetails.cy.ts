@@ -19,44 +19,63 @@ const runtimeFamily = {
   capabilities: { supportedAccelerators: ['nvidia.com/gpu'] },
   publishedDate: '2024-02-01T00:00:00Z',
 };
+const servingRuntimeTemplate =
+  '{"apiVersion":"serving.kserve.io/v1alpha1","kind":"ServingRuntime","metadata":{"name":"mock-vllm-0-6-0"},"spec":{"supportedModelFormats":[{"name":"safetensors"}],"protocolVersions":["v2"],"containers":[{"name":"kserve-container","image":"registry.example.com/mock/vllm:0.6.0"}]}}';
+const llmInferenceServiceTemplate =
+  '{"apiVersion":"serving.kserve.io/v1alpha2","kind":"LLMInferenceServiceConfig","metadata":{"name":"mock-vllm-0-6-0","labels":{"opendatahub.io/config-type":"accelerator","opendatahub.io/dashboard":"true"}},"spec":{"model":{"uri":"hf://example/mock-model","name":"mock-model"},"template":{"containers":[{"name":"main","resources":{"limits":{"cpu":"4","memory":"16Gi"},"requests":{"cpu":"2","memory":"8Gi"}}}]}}}';
 const runtimeVersions = {
   items: [
-    {
-      id: '101',
-      name: 'vllm-0.5.0',
-      artifactType: 'serving-runtime-version',
-      version: '0.5.0',
-      image: 'registry.example.com/mock/vllm:0.5.0',
-      publishedDate: '2024-02-01T00:00:00Z',
-      template: JSON.stringify({
-        apiVersion: 'serving.kserve.io/v1alpha1',
-        kind: 'ServingRuntime',
-        metadata: { name: 'mock-vllm' },
-        spec: {
-          containers: [{ name: 'kserve-container', image: 'registry.example.com/mock/vllm:0.5.0' }],
-        },
-      }),
-    },
     {
       id: '102',
       name: 'vllm-0.6.0',
       artifactType: 'serving-runtime-version',
       version: '0.6.0',
       image: 'registry.example.com/mock/vllm:0.6.0',
+      createTimeSinceEpoch: '1711929600000',
+      supportedModelFormats: [{ name: 'safetensors' }],
+      publishedDate: '2024-04-01T00:00:00Z',
+      servingRuntimeTemplate,
+      llmInferenceServiceTemplate,
     },
   ],
-  size: 2,
-  pageSize: 10,
+  size: 1,
+  pageSize: 1,
   nextPageToken: '',
 };
 const servingRuntimeYaml = `apiVersion: serving.kserve.io/v1alpha1
 kind: ServingRuntime
 metadata:
-  name: mock-vllm
+  name: mock-vllm-0-6-0
 spec:
+  supportedModelFormats:
+    - name: safetensors
+  protocolVersions:
+    - v2
   containers:
     - name: kserve-container
-      image: registry.example.com/mock/vllm:0.5.0
+      image: registry.example.com/mock/vllm:0.6.0
+`;
+const llmInferenceServiceYaml = `apiVersion: serving.kserve.io/v1alpha2
+kind: LLMInferenceServiceConfig
+metadata:
+  name: mock-vllm-0-6-0
+  labels:
+    opendatahub.io/config-type: accelerator
+    opendatahub.io/dashboard: 'true'
+spec:
+  model:
+    uri: hf://example/mock-model
+    name: mock-model
+  template:
+    containers:
+      - name: main
+        resources:
+          limits:
+            cpu: '4'
+            memory: 16Gi
+          requests:
+            cpu: '2'
+            memory: 8Gi
 `;
 
 const setupRuntimeCatalog = (enabled = true): void => {
@@ -95,7 +114,7 @@ const setupRuntimeCatalog = (enabled = true): void => {
   cy.intercept(
     { method: 'GET', pathname: `${catalogApiPath}/${runtimeId}/versions` },
     { data: runtimeVersions },
-  );
+  ).as('runtimeVersions');
 };
 
 describe('Runtime image library details', () => {
@@ -106,18 +125,21 @@ describe('Runtime image library details', () => {
 
   it('displays the runtime details and catalog data', () => {
     runtimeCatalogDetailsPage.visit(runtimeId);
+    cy.wait('@runtimeVersions').its('request.query').should('deep.include', {
+      namespace: 'odh-model-registries',
+      orderBy: 'CREATE_TIME',
+      sortOrder: 'DESC',
+      pageSize: '1',
+    });
     runtimeCatalogDetailsPage.findHeading('vLLM').should('be.visible');
     runtimeCatalogDetailsPage.findHeading('Description').should('be.visible');
     runtimeCatalogDetailsPage.findHeading('Details').should('be.visible');
     runtimeCatalogDetailsPage.findText(runtimeFamily.description).should('be.visible');
-    runtimeCatalogDetailsPage.findVersionSelect().should('have.value', '101');
-    runtimeCatalogDetailsPage.findText('safetensors, huggingface').should('be.visible');
     runtimeCatalogDetailsPage.findText('nvidia.com/gpu').should('be.visible');
-    runtimeCatalogDetailsPage.findText('February 1, 2024').should('be.visible');
-    runtimeCatalogDetailsPage.findText('N/A').should('be.visible');
+    runtimeCatalogDetailsPage.findText('April 1, 2024').should('be.visible');
     runtimeCatalogDetailsPage
       .findContainerImageInput()
-      .should('have.value', 'registry.example.com/mock/vllm:0.5.0');
+      .should('have.value', 'registry.example.com/mock/vllm:0.6.0');
     runtimeCatalogDetailsPage.findButton('Install').should('not.exist');
     runtimeCatalogDetailsPage.findServingRuntimeTab().should('be.visible');
     runtimeCatalogDetailsPage
@@ -133,11 +155,11 @@ describe('Runtime image library details', () => {
     runtimeCatalogDetailsPage.copyContainerImage();
     getClipboardContent('copiedImage')
       .its(0)
-      .should('equal', 'registry.example.com/mock/vllm:0.5.0');
+      .should('equal', 'registry.example.com/mock/vllm:0.6.0');
     cy.testA11y();
   });
 
-  it('copies the selected serving runtime YAML', () => {
+  it('copies the two independent configuration YAML values', () => {
     runtimeCatalogDetailsPage.visit(runtimeId);
     runtimeCatalogDetailsPage.findHeading('Available configurations').should('be.visible');
     runtimeCatalogDetailsPage
@@ -147,18 +169,12 @@ describe('Runtime image library details', () => {
     stubClipboard('copiedYaml');
     runtimeCatalogDetailsPage.copyServingRuntimeYaml();
     getClipboardContent('copiedYaml').its(0).should('equal', servingRuntimeYaml);
-    cy.testA11y();
-  });
-
-  it('switches to a version without a template', () => {
-    runtimeCatalogDetailsPage.visit(runtimeId);
-    runtimeCatalogDetailsPage.selectVersion('102');
-    runtimeCatalogDetailsPage.findVersionSelect().should('have.value', '102');
+    runtimeCatalogDetailsPage.selectLlmInferenceServiceTab();
     runtimeCatalogDetailsPage
-      .findContainerImageInput()
-      .should('have.value', 'registry.example.com/mock/vllm:0.6.0');
-    runtimeCatalogDetailsPage.findServingRuntimePanel().should('not.exist');
-    runtimeCatalogDetailsPage.findHeading('Available configurations').should('not.exist');
+      .findLlmInferenceServicePanel()
+      .should('contain.text', 'kind: LLMInferenceServiceConfig');
+    runtimeCatalogDetailsPage.copyLlmInferenceServiceYaml();
+    getClipboardContent('copiedYaml').its(1).should('equal', llmInferenceServiceYaml);
     cy.testA11y();
   });
 

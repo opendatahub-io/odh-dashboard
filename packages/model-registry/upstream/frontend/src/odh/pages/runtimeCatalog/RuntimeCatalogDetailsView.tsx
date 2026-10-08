@@ -14,8 +14,6 @@ import {
   DescriptionListTerm,
   EmptyState,
   EmptyStateBody,
-  FormSelect,
-  FormSelectOption,
   PageSection,
   Sidebar,
   SidebarContent,
@@ -51,10 +49,7 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
   notFound = false,
 }) => {
   const { runtimeId = '' } = useParams<{ runtimeId: string }>();
-  const [selectedVersionId, setSelectedVersionId] = React.useState('');
-  const selectedVersion =
-    runtimeVersions.find((version) => (version.id || version.version) === selectedVersionId) ||
-    (runtimeVersions.length > 0 ? runtimeVersions[0] : undefined);
+  const selectedVersion = runtimeVersions.length > 0 ? runtimeVersions[0] : undefined;
   const runtimeNotFound = notFound || (!!runtimeDetails && runtimeId !== runtimeDetails.id);
   const modelFormats = (
     selectedVersion?.supportedModelFormats || runtimeDetails?.supportedModelFormats
@@ -98,24 +93,6 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                 {runtimeDetails.displayName || runtimeDetails.name || runtimeId}
               </Title>
             </StackItem>
-            {runtimeVersions.length > 0 ? (
-              <StackItem>
-                <FormSelect
-                  aria-label="Runtime version"
-                  data-testid="runtime-version-select"
-                  value={selectedVersion?.id || selectedVersion?.version || ''}
-                  onChange={(_event, value) => setSelectedVersionId(value)}
-                >
-                  {runtimeVersions.map((version) => (
-                    <FormSelectOption
-                      key={version.id || version.version}
-                      value={version.id || version.version}
-                      label={version.version}
-                    />
-                  ))}
-                </FormSelect>
-              </StackItem>
-            ) : null}
             <StackItem>
               <Sidebar hasGutter isPanelRight>
                 <SidebarContent>
@@ -130,7 +107,8 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                         <CardBody>{runtimeDetails.description || 'N/A'}</CardBody>
                       </Card>
                     </StackItem>
-                    {selectedVersion?.template ? (
+                    {selectedVersion?.servingRuntimeTemplate ||
+                    selectedVersion?.llmInferenceServiceTemplate ? (
                       <StackItem>
                         <Card>
                           <CardHeader>
@@ -139,33 +117,76 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                             </Title>
                           </CardHeader>
                           <CardBody>
-                            <Tabs activeKey="serving-runtime" aria-label="Runtime configurations">
-                              <Tab
-                                eventKey="serving-runtime"
-                                data-testid="runtime-serving-runtime-tab"
-                                title={<TabTitleText>Serving runtime template</TabTitleText>}
-                              >
-                                <Stack
-                                  hasGutter
-                                  className="pf-v6-u-mt-md"
-                                  data-testid="runtime-serving-runtime-panel"
+                            <Tabs
+                              key={selectedVersion.id || selectedVersion.version}
+                              defaultActiveKey={
+                                selectedVersion.servingRuntimeTemplate
+                                  ? 'serving-runtime'
+                                  : 'llm-inference-service'
+                              }
+                              aria-label="Runtime configurations"
+                            >
+                              {!!selectedVersion.servingRuntimeTemplate && (
+                                <Tab
+                                  eventKey="serving-runtime"
+                                  data-testid="runtime-serving-runtime-tab"
+                                  title={<TabTitleText>Serving runtime template</TabTitleText>}
                                 >
-                                  <StackItem>
-                                    <Title headingLevel="h3" size="md">
-                                      Serving runtime template
-                                    </Title>
-                                  </StackItem>
-                                  <StackItem>
-                                    Use this configuration for model serving. It appears under
-                                    Serving runtime templates and in the model deployment wizard.
-                                  </StackItem>
-                                  <StackItem>
-                                    <CodeBlockComponent copyTestId="runtime-serving-runtime-copy">
-                                      {formatRuntimeTemplate(selectedVersion.template)}
-                                    </CodeBlockComponent>
-                                  </StackItem>
-                                </Stack>
-                              </Tab>
+                                  <Stack
+                                    hasGutter
+                                    className="pf-v6-u-mt-md"
+                                    data-testid="runtime-serving-runtime-panel"
+                                  >
+                                    <StackItem>
+                                      <Title headingLevel="h3" size="md">
+                                        Serving runtime template
+                                      </Title>
+                                    </StackItem>
+                                    <StackItem>
+                                      Use this configuration for model serving. It appears under
+                                      Serving runtime templates and in the model deployment wizard.
+                                    </StackItem>
+                                    <StackItem>
+                                      <CodeBlockComponent copyTestId="runtime-serving-runtime-copy">
+                                        {formatRuntimeTemplate(
+                                          selectedVersion.servingRuntimeTemplate,
+                                        )}
+                                      </CodeBlockComponent>
+                                    </StackItem>
+                                  </Stack>
+                                </Tab>
+                              )}
+                              {!!selectedVersion.llmInferenceServiceTemplate && (
+                                <Tab
+                                  eventKey="llm-inference-service"
+                                  data-testid="runtime-llm-inference-service-tab"
+                                  title={
+                                    <TabTitleText>LLM inference service configuration</TabTitleText>
+                                  }
+                                >
+                                  <Stack
+                                    hasGutter
+                                    className="pf-v6-u-mt-md"
+                                    data-testid="runtime-llm-inference-service-panel"
+                                  >
+                                    <StackItem>
+                                      <Title headingLevel="h3" size="md">
+                                        LLM inference service configuration
+                                      </Title>
+                                    </StackItem>
+                                    <StackItem>
+                                      Use this configuration for LLM inference service deployments.
+                                    </StackItem>
+                                    <StackItem>
+                                      <CodeBlockComponent copyTestId="runtime-llm-inference-service-copy">
+                                        {formatRuntimeTemplate(
+                                          selectedVersion.llmInferenceServiceTemplate,
+                                        )}
+                                      </CodeBlockComponent>
+                                    </StackItem>
+                                  </Stack>
+                                </Tab>
+                              )}
                             </Tabs>
                           </CardBody>
                         </Card>
@@ -187,7 +208,6 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                           ['Hardware', hardware],
                           ['Model formats', modelFormats],
                           ['Container image', selectedVersion?.image],
-                          ['Certified platform', undefined],
                           ['Publish on', publishedDate],
                         ].map(([label, value]) => (
                           <DescriptionListGroup key={label}>

@@ -21,14 +21,6 @@ class RuntimeCatalogDetailsPage {
     return this.findPage().findByRole('button', { name });
   }
 
-  findVersionSelect() {
-    return this.findPage().findByTestId('runtime-version-select');
-  }
-
-  selectVersion(versionId: string) {
-    this.findVersionSelect().select(versionId);
-  }
-
   findContainerImageInput() {
     return this.findPage().findByTestId('runtime-container-image-copy').findByRole('textbox');
   }
@@ -41,6 +33,14 @@ class RuntimeCatalogDetailsPage {
     return this.findPage().findByTestId('runtime-serving-runtime-tab');
   }
 
+  findLlmInferenceServicePanel() {
+    return this.findPage().findByTestId('runtime-llm-inference-service-panel');
+  }
+
+  selectLlmInferenceServiceTab() {
+    this.findPage().findByTestId('runtime-llm-inference-service-tab').click();
+  }
+
   copyContainerImage() {
     this.findPage()
       .findByTestId('runtime-container-image-copy')
@@ -50,6 +50,10 @@ class RuntimeCatalogDetailsPage {
 
   copyServingRuntimeYaml() {
     this.findPage().findByTestId('runtime-serving-runtime-copy').click();
+  }
+
+  copyLlmInferenceServiceYaml() {
+    this.findPage().findByTestId('runtime-llm-inference-service-copy').click();
   }
 }
 

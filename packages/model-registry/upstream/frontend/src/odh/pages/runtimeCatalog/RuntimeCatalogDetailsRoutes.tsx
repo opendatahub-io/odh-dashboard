@@ -13,7 +13,11 @@ import RuntimeCatalogDetailsView from './RuntimeCatalogDetailsView';
 const RuntimeCatalogDetailsRoutes: React.FC = () => {
   const { runtimeId = '' } = useParams<{ runtimeId: string }>();
   const [runtimeDetails, runtimeLoaded, runtimeError] = useServingRuntime(runtimeId);
-  const [runtimeVersions, versionsLoaded, versionsError] = useServingRuntimeVersions(runtimeId);
+  const [runtimeVersions, versionsLoaded, versionsError] = useServingRuntimeVersions(runtimeId, {
+    orderBy: 'CREATE_TIME',
+    sortOrder: 'DESC',
+    pageSize: 1,
+  });
   const notFound = runtimeLoaded && !runtimeDetails;
   const tabs = useExtensions(isTabRouteTabExtension);
   const pages = useExtensions(isTabRoutePageExtension);

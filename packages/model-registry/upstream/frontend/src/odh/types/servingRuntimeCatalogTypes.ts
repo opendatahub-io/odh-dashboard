@@ -40,7 +40,8 @@ export interface ServingRuntimeVersion extends ServingRuntimeBase {
   recommendedResources?: ServingRuntimeResourceRecommendation;
   defaultArgs?: string[];
   env?: ServingRuntimeEnvVar[];
-  template?: string;
+  servingRuntimeTemplate?: string;
+  llmInferenceServiceTemplate?: string;
   deprecated?: boolean;
   publishedDate?: string;
 }
