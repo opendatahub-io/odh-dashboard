@@ -322,7 +322,6 @@ describe('AI Playground - Chatbot Interactions (Mocked)', () => {
         chatbotPage.findChatModelOption('Mock Chat Model').should('be.visible').click();
         chatbotPage.findChatModelToggle().should('contain', 'Mock Chat Model');
         chatbotPage.findAddTranscriptionModelButton().should('be.visible').click();
-        chatbotPage.findAsrModelToggle().click();
         chatbotPage.findAsrModelOption(asrModelId).click();
         chatbotPage.findAsrModelToggle().should('contain', 'Mock Whisper ASR');
         chatbotPage.closeSettingsPanel();
