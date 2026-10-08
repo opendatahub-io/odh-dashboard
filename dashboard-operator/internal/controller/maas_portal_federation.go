@@ -1,0 +1,156 @@
+package controller
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"sort"
+
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/deploy"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
+
+	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
+)
+
+const maasPortalFederationConfigMapName = "maas-consumer-portal-federation-config"
+
+const maasPortalFederationHashAnnotation = "dashboard.opendatahub.io/maas-consumer-portal-federation-config-hash"
+
+// modulePresent means a module's deployed resources remain usable for lifecycle
+// and federation purposes. A degraded module is present but not healthy.
+func modulePresent(phase v1alpha1.ModulePhase) bool {
+	return phase == v1alpha1.ModulePhaseDeployed || phase == v1alpha1.ModulePhaseDegraded
+}
+
+func moduleHealthy(phase v1alpha1.ModulePhase) bool {
+	return phase == v1alpha1.ModulePhaseDeployed
+}
+
+func maasPortalRequiredModuleNames() []string {
+	names := make([]string, 0, len(moduleRegistry))
+	for name, module := range moduleRegistry {
+		if module.RequiredByMaaSPortal {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	return names
+}
+
+func maasPortalRequiredModuleSlugs(spec *v1alpha1.DashboardSpec, statuses map[string]v1alpha1.ModuleStatus) map[string]bool {
+	requiredModules := make(map[string]bool)
+	portal := effectiveMaaSPortal(*spec)
+	if portal == nil || portal.ManagementState != "Managed" {
+		return requiredModules
+	}
+
+	for _, name := range maasPortalRequiredModuleNames() {
+		module := moduleRegistry[name]
+		status := statuses[name]
+		if modulePresent(status.Phase) {
+			requiredModules[module.ManifestSlug] = true
+		}
+	}
+	return requiredModules
+}
+
+// patchMaaSPortalDeploymentFederationHash triggers a rollout only when
+// the MaaS Consumer Portal remote configuration changes. An absent portal
+// Deployment is expected while its bundle has not yet been applied.
+func (r *DashboardReconciler) patchMaaSPortalDeploymentFederationHash(ctx context.Context, configData string) error {
+	var deployment appsv1.Deployment
+	key := client.ObjectKey{Name: maasPortalDeploymentName, Namespace: r.ApplicationsNamespace}
+	if err := r.Get(ctx, key, &deployment); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("getting MaaS Consumer Portal deployment: %w", err)
+	}
+
+	hash := computeFederationConfigHash(configData)
+	if deployment.Spec.Template.Annotations != nil &&
+		deployment.Spec.Template.Annotations[maasPortalFederationHashAnnotation] == hash {
+		return nil
+	}
+	patch := client.MergeFrom(deployment.DeepCopy())
+	if deployment.Spec.Template.Annotations == nil {
+		deployment.Spec.Template.Annotations = map[string]string{}
+	}
+	deployment.Spec.Template.Annotations[maasPortalFederationHashAnnotation] = hash
+	if err := r.Patch(ctx, &deployment, patch); err != nil {
+		return fmt.Errorf("patching MaaS Consumer Portal deployment with federation hash: %w", err)
+	}
+	return nil
+}
+
+// buildMaaSPortalFederationConfigMap contains only services required by the
+// standalone MaaS Consumer Portal. The proxy paths are registry-owned; portal-specific
+// ingress rewriting remains outside aggregate module orchestration.
+func (r *DashboardReconciler) buildMaaSPortalFederationConfigMap(
+	statuses map[string]v1alpha1.ModuleStatus,
+	observability *v1alpha1.ObservabilitySpec,
+) (*corev1.ConfigMap, error) {
+	entries := make([]federationEntry, 0, 3)
+	for _, name := range maasPortalRequiredModuleNames() {
+		mod := moduleRegistry[name]
+		status := statuses[name]
+		if !modulePresent(status.Phase) {
+			continue
+		}
+		entries = append(entries, r.moduleFederationEntry(name, mod))
+	}
+	if entry := persesFederationEntry(observability); entry != nil {
+		entries = append(entries, *entry)
+	}
+	data, err := json.MarshalIndent(entries, "    ", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshalling MaaS Consumer Portal federation config: %w", err)
+	}
+	return &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
+		ObjectMeta: metav1.ObjectMeta{Name: maasPortalFederationConfigMapName, Namespace: r.ApplicationsNamespace,
+			Labels: map[string]string{labels.PlatformPartOf: maasPortalPartOf,
+				"app.kubernetes.io/part-of": maasPortalPartOf, moduleComponentLabel: maasPortalPartOf}},
+		Data: map[string]string{federationConfigKey: string(data)},
+	}, nil
+}
+
+func (r *DashboardReconciler) deployMaaSPortalFederationConfigMap(ctx context.Context, dashboard *v1alpha1.Dashboard, statuses map[string]v1alpha1.ModuleStatus, observabilityKnown bool) error {
+	portal := effectiveMaaSPortal(dashboard.Spec)
+	if portal == nil || portal.ManagementState != "Managed" || !maasPortalSupportedPlatform(r.Platform) {
+		configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: maasPortalFederationConfigMapName, Namespace: r.ApplicationsNamespace}}
+		if err := r.Delete(ctx, configMap); client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("deleting MaaS Consumer Portal federation ConfigMap: %w", err)
+		}
+		return nil
+	}
+	configMap, err := r.buildMaaSPortalFederationConfigMap(statuses, dashboard.Spec.Observability)
+	if err != nil {
+		return err
+	}
+	if !observabilityKnown {
+		if err := r.preservePersesFederationEntry(ctx, configMap); err != nil {
+			return err
+		}
+	}
+	resource, err := configMapToUnstructured(configMap)
+	if err != nil {
+		return fmt.Errorf("converting MaaS Consumer Portal federation ConfigMap: %w", err)
+	}
+	deployer := deploy.NewDeployer(deploy.WithFieldOwner("dashboard-operator"),
+		deploy.WithLabel(labels.PlatformPartOf, maasPortalPartOf),
+		deploy.WithLabel("app.kubernetes.io/part-of", maasPortalPartOf),
+		deploy.WithLabel(moduleComponentLabel, maasPortalPartOf))
+	if err := deployer.Deploy(ctx, deploy.DeployInput{Client: r.Client, Owner: dashboard,
+		Release: deploy.ReleaseInfo{Type: string(r.Platform)}, Resources: []unstructured.Unstructured{resource}}); err != nil {
+		return fmt.Errorf("deploying MaaS Consumer Portal federation ConfigMap: %w", err)
+	}
+	return nil
+}

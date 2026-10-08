@@ -23,13 +23,17 @@ API_TOKEN_DURATION ?= 4h
 TILT_PORT ?= 10351
 
 .PHONY: tilt-up
-tilt-up: check-tilt setup-kserve ## Start the full RHAII stack, including model serving
+tilt-up: check-tilt setup-kserve setup-hardware-profiles ## Start the full RHAII stack, including model serving
 	@echo "Starting Tilt..."
 	@tilt up --port "$(TILT_PORT)"
 
 .PHONY: setup-kserve
 setup-kserve: setup-kind ## Install KServe + LLMInferenceService dependencies into Kind (idempotent)
 	@bash scripts/setup-kserve.sh
+
+.PHONY: setup-hardware-profiles
+setup-hardware-profiles: setup-kind ## Install the HardwareProfile CRD (idempotent)
+	@bash scripts/setup-hardware-profiles.sh
 
 .PHONY: tilt-down
 tilt-down: check-tilt ## Stop Tilt

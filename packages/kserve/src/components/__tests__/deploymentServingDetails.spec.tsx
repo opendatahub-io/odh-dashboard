@@ -5,8 +5,7 @@ import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
 import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { SERVING_RUNTIME_SCOPE } from '@odh-dashboard/internal/pages/modelServing/screens/const';
+import { SERVING_RUNTIME_SCOPE } from '@odh-dashboard/model-serving/shared/components';
 import type { KServeDeployment } from '../../types';
 import DeploymentServingDetails from '../deploymentServingDetails';
 import { useFetchTemplate } from '../../api/template';
@@ -25,6 +24,7 @@ jest.mock('@odh-dashboard/plugin-core/areas', () => ({
 
 // Version labels rendered from the serving runtime itself are noise for these assertions.
 jest.mock('@odh-dashboard/model-serving/shared/components', () => ({
+  ...jest.requireActual('@odh-dashboard/model-serving/shared/components'),
   renderDeploymentResourceVersionLabels: () => null,
 }));
 

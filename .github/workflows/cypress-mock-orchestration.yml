@@ -11,6 +11,8 @@ on:
       - 'pnpm-workspace.yaml'
       - 'turbo.jsonc'
       - 'scripts/cypress/**'
+      - 'scripts/generate-cypress-test-matrix.js'
+      - 'scripts/__tests__/generate-cypress-test-matrix.test.js'
       - '.github/workflows/cypress-mock-orchestration.yml'
   push:
     branches: [main]
@@ -22,6 +24,8 @@ on:
       - 'pnpm-workspace.yaml'
       - 'turbo.jsonc'
       - 'scripts/cypress/**'
+      - 'scripts/generate-cypress-test-matrix.js'
+      - 'scripts/__tests__/generate-cypress-test-matrix.test.js'
       - '.github/workflows/cypress-mock-orchestration.yml'
 
 jobs:
@@ -40,3 +44,4 @@ jobs:
         run: |
           node scripts/cypress/run-mock-federation-task.js validate
           node --test scripts/cypress/__tests__/*.test.js
+          pnpm run test:ci-matrix

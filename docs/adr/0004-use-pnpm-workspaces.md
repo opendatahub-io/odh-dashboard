@@ -36,6 +36,10 @@ These independently maintained upstream subtrees are outside the pnpm workspace 
 
 Commands that execute inside those directories must follow the upstream project. Wrapper scripts and automation owned by this repository use pnpm until they enter an upstream subtree.
 
+### Hermetic pnpm bootstrap exception
+
+`prefetch/pnpm/package-lock.json` is a separate CI-allowlisted npm lockfile, not an upstream subtree exception. It pins the pnpm CLI as an npm dependency so Hermeto can prefetch it for hermetic container builds. This bootstrap package is outside the pnpm workspace; it does not introduce npm lockfiles into first-party workspace packages. See [Workspace Dockerfiles](../workspace-dockerfiles.md) for the bootstrap and prefetch configuration.
+
 ### Temporary hoisting compatibility
 
 The workspace temporarily uses `shamefully-hoist=true` to preserve npm-era dependency resolution while the migration stabilizes. RHOAIENG-83228 tracks removing this compatibility setting after undeclared and phantom dependencies are corrected. New code must not rely on hoisting as a substitute for declaring dependencies.
@@ -83,7 +87,7 @@ Rejected because pnpm met the workspace, performance, lockfile, CI, and containe
 
 ### Mixed package managers in the first-party workspace
 
-Rejected because multiple first-party lockfiles and install paths would reduce reproducibility and make CI and local behavior diverge. The only exceptions are vendored upstream frontends that remain outside the workspace.
+Rejected because multiple first-party lockfiles and install paths would reduce reproducibility and make CI and local behavior diverge. The exceptions are vendored upstream subtrees and the hermetic pnpm bootstrap package, all outside the workspace.
 
 ## References
 
