@@ -6,7 +6,6 @@ import { useDevFlags } from '#~/app/featureFlags/useDevFeatureFlags';
 import {
   devTemporaryFeatureFlags,
   techPreviewFlags,
-  generallyAvailableFeatureFlags,
   coreDashboardFlags,
   projectManagementFlags,
   modelServingFlags,
@@ -84,8 +83,6 @@ const FeatureFlagModal: React.FC<Props> = ({
           </Content>
           <h2> Tech Preview Flags </h2>
           {renderFlags(Object.keys(techPreviewFlags), dashboardConfig)}
-          <h2>Generally Available Flags</h2>
-          {renderFlags(Object.keys(generallyAvailableFeatureFlags), dashboardConfig)}
           <h2> Temporary Developer Feature Flags</h2>
           {renderFlags(Object.keys(devTemporaryFeatureFlags), dashboardConfig)}
         </Content>

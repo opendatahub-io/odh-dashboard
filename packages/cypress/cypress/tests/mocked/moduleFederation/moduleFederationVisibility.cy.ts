@@ -64,7 +64,9 @@ describe('Module federation visibility', () => {
 
   describe('Module absent — nav hidden and route shows not-found', () => {
     it('should hide AutoML nav and show 404 on route when flag is disabled', () => {
-      cy.intercept({ pathname: '/_mf/automl/**' }, { statusCode: 404 }).as('automlRemoteRequests');
+      // The MF host loads remoteEntry.js and extensions for every remote regardless of feature
+      // flags — flag filtering happens after load — so only the module's API requests are
+      // meaningful to assert on here.
       cy.intercept({ pathname: '/automl/api/**' }, { statusCode: 404 }).as('automlApiRequests');
       initIntercepts({ automl: false });
       navSidebar.visit();
@@ -73,7 +75,6 @@ describe('Module federation visibility', () => {
         .should('not.exist');
       cy.visitWithLogin('/develop-train/automl');
       pageNotfound.findPage().should('exist');
-      cy.get('@automlRemoteRequests.all').should('have.length', 0);
       cy.get('@automlApiRequests.all').should('have.length', 0);
     });
 

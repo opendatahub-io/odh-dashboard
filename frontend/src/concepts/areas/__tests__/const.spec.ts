@@ -1,7 +1,7 @@
 import { SupportedArea, type SupportedAreaType } from '@odh-dashboard/plugin-core/areas';
 import {
-  generallyAvailableFeatureFlags,
   SupportedAreasStateMap,
+  advancedAIMLFlags,
   techPreviewFlags,
 } from '#~/concepts/areas/const';
 
@@ -29,7 +29,7 @@ describe('Verify const stability', () => {
   const hasSuccessfulReliantArea = computeTestFunc(SupportedAreasStateMap);
 
   it('classifies AutoML as generally available and enables it by default', () => {
-    expect(generallyAvailableFeatureFlags.automl).toBe(true);
+    expect(advancedAIMLFlags.automl).toBe(true);
     expect(techPreviewFlags).not.toHaveProperty('automl');
   });
 

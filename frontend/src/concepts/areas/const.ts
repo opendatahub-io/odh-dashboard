@@ -30,10 +30,6 @@ export const techPreviewFlags = {
   dataConnectHub: false,
 } satisfies Partial<DashboardCommonConfig>;
 
-export const generallyAvailableFeatureFlags = {
-  automl: true,
-} satisfies Partial<DashboardCommonConfig>;
-
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
@@ -87,6 +83,7 @@ export const modelServingFlags = {
 export const advancedAIMLFlags = {
   genAiStudio: true,
   promptManagement: true,
+  automl: true,
   disablePipelines: false,
   disableDistributedWorkloads: false,
   disableModelCatalog: false,
@@ -105,7 +102,6 @@ export const advancedAIMLFlags = {
 const allFeatureFlagsConfig = {
   ...devTemporaryFeatureFlags,
   ...techPreviewFlags,
-  ...generallyAvailableFeatureFlags,
   ...coreDashboardFlags,
   ...projectManagementFlags,
   ...modelServingFlags,
