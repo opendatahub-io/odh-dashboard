@@ -1,34 +1,76 @@
-<!--- If this is a non-code change, this template is not required; reference any issues or top-level descriptions as needed -->
-<!--- All code change PRs should relate to an issue, reference it here; see example below -->
-<!--- https://issues.redhat.com/browse/RHOAIENG-123456 -->
+<!--
+This description is the sole source of truth for review of this PR.
+Review and lander gates re-read this body — not Jira, chat, or comment threads.
 
-## Description
-<!--- Describe your changes in detail; the what, the why, any findings, etc -->
-<!--- Include any screenshots of changed UI; Include any gifs if it was a flow / UX change -->
+Source of truth:
+- Put durable claims here: goals, constraints, and proof.
+- Comments are discussion only. If a thread changes the ask or the rebuttal,
+  fold it into this body before the next review.
 
-## How Has This Been Tested?
-<!--- Please describe in detail how you tested your changes. -->
-<!--- Include details of your testing environment, and the tests you ran to -->
-<!--- see how your change affects other areas of the code, etc. -->
+Tracker (optional):
+  Fixes: https://issues.redhat.com/browse/RHOAIENG-123456
+  https://issues.redhat.com/browse/RHOAIENG-123456
+- Restate what matters for this head below — the ticket does not replace this body.
+- A linked Jira is still checked for alignment; if you depart from the ask, say so here and why.
 
-## Test Impact
-<!--- What tests have you done to cover the implemented functionality -->
-<!--- If tests are not applicable, explain why here -->
+Hygiene:
+- Keep sections present-tense and current with the branch head.
+- Drop unused optional content — no TBD or placeholder text.
+- PR title: describe the user-visible change, not the implementation.
+- Allow edits from maintainers: on.
+-->
 
-## Request review criteria:
-<!--- This PR will be merged by any repository approver when it meets all the points in the checklist -->
-<!--- Go over all the following points, and put an `x` in all the boxes that apply. -->
+## Problem
 
-Self checklist (all need to be checked):
-- [ ] The developer has manually tested the changes and verified that the changes work
-- [ ] Testing instructions have been added in the PR body (for PRs involving changes that are not immediately obvious).
-- [ ] The developer has added tests or explained why testing cannot be added (unit or cypress tests for related changes)
-- [ ] The code follows our [Best Practices](/docs/best-practices.md) (React coding standards, PatternFly usage, performance considerations)
+<!-- REQUIRED
+What is wrong or missing — the broken workflow or gap, not the code-level cause.
+Enough to check against the diff and any linked ticket acceptance criteria.
+-->
 
-If you have UI changes: 
-<!--- You can ignore these if you are doing manifest, backend, internal logic, etc changes; aka non-UI / visual changes -->
-- [ ] Included any necessary screenshots or gifs if it was a UI change.
-- [ ] Included tags to the UX team if it was a UI/UX change.
+## Solution
 
-After the PR is posted & before it merges:
-- [ ] The developer has tested their solution on a cluster by using the image produced by the PR to `main`
+<!-- REQUIRED
+What you changed and why you took this approach.
+- Skip file lists.
+- Include security/RBAC, API/contract, or migration notes when they apply.
+- Call out breaking changes, migrations, or required follow-up when they apply.
+-->
+
+## Evidence
+
+<!-- REQUIRED
+Proof the change works — enough for reviewers to see how it was validated.
+
+Include:
+- Commands run, test results, CI links, cluster checks.
+- The steps you took, not only the outcome — so others can reproduce the path and
+  reviewers can judge thoroughness and edge-case coverage.
+- Which automated coverage protects this change (added or already present), or
+  a brief note when new tests are not appropriate.
+
+Attach or link when useful:
+- Screenshots, GIFs, and/or video for UI or flow changes.
+- Log snippets for failures or non-obvious behavior (Fullsend does not read CI for you).
+- Redact tokens, passwords, and cluster credentials.
+
+When relevant (especially permission, backend, or hard-to-mock behavior):
+- Validate on a cluster using the image produced by this PR and note what you checked.
+
+Long output — keep a short summary up top; fold details:
+
+  <details>
+  <summary>build log output</summary>
+
+  ...
+
+  </details>
+-->
+
+<!-- OPTIONAL
+## Justifications
+
+If the solution goes against repository guidance or norms and review
+would otherwise keep flagging it, document the challenge here: which norm applies,
+why this PR is still correct, and what proof supports that.
+Update this description when that rationale changes; comment threads alone are not enough.
+-->
