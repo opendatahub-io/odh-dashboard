@@ -1,0 +1,21 @@
+model:
+  modelId: 'gemini-2.5-flash'
+  displayName: 'E2E Document Attachment Model'
+  endpointUrl: 'https://generativelanguage.googleapis.com/v1beta/openai'
+  configMapName: 'llama-stack-config'
+  lsdServiceName: 'lsd-genai-playground-service'
+  lsdPodPrefix: 'lsd-genai-playground'
+  lsdPodReadyTimeout: '120s'
+
+documents:
+  cedar:
+    path: 'cypress/fixtures/e2e/genAi/cedar-plan.txt'
+    fileName: 'cedar-plan.txt'
+    extractedText: 'Cedar project access code: cobalt hummingbird.'
+    expectedAnswer: 'cobalt hummingbird'
+  maple:
+    path: 'cypress/fixtures/e2e/genAi/maple-plan.txt'
+    fileName: 'maple-plan.txt'
+    extractedText: 'Maple project access code: amber otter.'
+    expectedAnswer: 'amber otter'
+  question: 'Give the access codes for Cedar and Maple, using both attached documents.'
