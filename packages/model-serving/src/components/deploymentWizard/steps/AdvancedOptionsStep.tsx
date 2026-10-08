@@ -108,6 +108,19 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
     [wizardState.fields],
   );
   const showAvailabilitySection = wizardState.state.modelAvailability.showField && isGenAiEnabled;
+  const maasConfigurationAlert = wizardState.state.modelAvailability.isMaaSSubscriptionSelected && (
+    <Alert
+      className="pf-v6-u-mt-md"
+      variant="info"
+      title="Additional configuration required"
+      data-testid="maas-additional-configuration-alert"
+      isInline
+    >
+      To make the endpoint accessible to users, an admin must configure subscriptions and
+      authorization policies on the <strong>MaaS governance</strong> page. Users can view their
+      subscriptions, accessible models, and API keys on the <strong>API keys</strong> page.
+    </Alert>
+  );
 
   if (!wizardState.loaded.advancedOptionsLoaded) {
     return <Spinner data-testid="spinner" />;
@@ -147,20 +160,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                     wizardState={wizardState}
                     externalData={externalData}
                   />
-                  {wizardState.state.modelAvailability.isMaaSSubscriptionSelected && (
-                    <Alert
-                      className="pf-v6-u-mt-md"
-                      variant="info"
-                      title="Additional configuration required"
-                      data-testid="maas-additional-configuration-alert"
-                      isInline
-                    >
-                      To make the endpoint accessible to users, an admin must configure
-                      subscriptions and authorization policies on the{' '}
-                      <strong>MaaS governance</strong> page. Users can view their subscriptions,
-                      accessible models, and API keys on the <strong>API keys</strong> page.
-                    </Alert>
-                  )}
+                  {!showAvailabilitySection && maasConfigurationAlert}
                 </FormGroup>
               </StackItem>
             )}
@@ -184,6 +184,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                     isDisabled={wizardState.state.modelAvailability.isDisabled}
                     showUseCase={!wizardState.state.modelAvailability.isMaaSSubscriptionSelected}
                   />
+                  {maasConfigurationAlert}
                 </FormGroup>
               </StackItem>
             )}

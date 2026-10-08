@@ -125,6 +125,9 @@ describe('AdvancedSettingsStepContent', () => {
 
       expect(screen.getByTestId('maas-additional-configuration-alert')).toBeInTheDocument();
       expect(screen.queryByTestId('use-case-input')).not.toBeInTheDocument();
+      expect(screen.getByTestId('model-availability')).toContainElement(
+        screen.getByTestId('maas-additional-configuration-alert'),
+      );
     });
   });
 });
