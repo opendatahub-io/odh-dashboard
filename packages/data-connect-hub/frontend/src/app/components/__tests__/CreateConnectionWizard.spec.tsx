@@ -126,6 +126,32 @@ describe('CreateConnectionWizard', () => {
     expect(screen.queryByRole('heading', { name: 'Connection details' })).toBeNull();
   });
 
+  it('should show connection details when namespace loading fails for valid initial form data', async () => {
+    mockUseNamespaces.mockReturnValue([[], false, new Error('namespace request failed')]);
+
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{
+          name: 'existing-connection',
+          data_connection_type_id: 'postgresql',
+          credentials: {
+            secret: 'existing-connection',
+            properties: { URI: 'postgres://example' },
+          },
+          properties: { region: 'east' },
+        }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Connection details' })).toBeTruthy();
+    expect(screen.getByText('Unable to load projects')).toBeTruthy();
+    expect(screen.getByText('namespace request failed')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', true);
+  });
+
   it('should start at review when all initial form data is valid', async () => {
     const user = userEvent.setup();
     const onCreate = jest.fn<(data: CreateConnectionRequest, selectedNamespace: string) => void>();

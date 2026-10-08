@@ -811,7 +811,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const canResolveStartIndex =
     isOpenSessionReady &&
     (!hasConnectionType || connectionTypesLoaded || Boolean(connectionTypesError)) &&
-    (!needsInitialValidationData || namespacesLoaded);
+    (!needsInitialValidationData || namespacesLoaded || Boolean(namespacesError));
   const calculatedStartIndex = hasValidConfiguration
     ? 4
     : hasValidDetailsWithProperties
