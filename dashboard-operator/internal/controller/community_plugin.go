@@ -8,6 +8,7 @@ import (
 	"io"
 	"regexp"
 	"strings"
+	"unicode"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -69,9 +70,15 @@ func communityProxyPath(remoteName, suffix string) (string, error) {
 	return communityPluginsProxyPrefix + "/" + remoteName + "/" + suffix, nil
 }
 
+func hasInvalidCommunityRemoteEntryPathFormat(remoteEntry string) bool {
+	return remoteEntry == "" ||
+		!strings.HasPrefix(remoteEntry, "/") ||
+		strings.ContainsAny(remoteEntry, "?#%\\") ||
+		strings.IndexFunc(remoteEntry, unicode.IsControl) >= 0
+}
+
 func validateCommunityRemoteEntryPath(remoteEntry string) error {
-	if remoteEntry == "" || !strings.HasPrefix(remoteEntry, "/") ||
-		strings.ContainsAny(remoteEntry, "?#%") {
+	if hasInvalidCommunityRemoteEntryPathFormat(remoteEntry) {
 		return fmt.Errorf("backend.remoteEntry %q must be a non-empty absolute URL path", remoteEntry)
 	}
 	for _, segment := range strings.Split(strings.TrimPrefix(remoteEntry, "/"), "/") {

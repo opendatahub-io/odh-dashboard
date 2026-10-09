@@ -84,12 +84,15 @@ Kubernetes Service names and namespaces, ports, remote-entry paths, route
 suffixes, and generated-route collisions.
 
 - `backend.remoteEntry` is a non-empty absolute path beginning with `/`. It
-  cannot contain query, fragment, percent-escape, empty, `.` or `..` segments.
+  cannot contain query, fragment, percent-escape, backslash, control
+  characters, empty, `.` or `..` segments.
 - `proxyService.pathSuffix` is non-empty and relative. It cannot begin or end
   with `/`, or contain query, fragment, percent-escape, empty, `.` or `..`
   segments.
-- A community proxy cannot overlap an existing generated proxy route or
-  another accepted community proxy route.
+- Each accepted remote receives an isolated generated route prefix. Within one
+  community entry, duplicate derived proxy paths are rejected. Distinct nested
+  suffixes are supported; for example, `api` and `api/v1` generate separate
+  routes.
 
 An invalid entry is skipped and recorded in the operator log. Built-in entries
 and valid sibling entries remain available. If the source ConfigMap is absent

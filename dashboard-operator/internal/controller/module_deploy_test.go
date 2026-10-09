@@ -489,6 +489,10 @@ func TestBuildFederationConfigMap_RejectsInvalidCommunityPlugins(t *testing.T) {
 			"modelRegistry":        `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
 			"invalidRemoteEntry":   `{"backend":{"remoteEntry":"/../remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
 			"encodedRemoteEntry":   `{"backend":{"remoteEntry":"/%2e%2e/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"backslashRemoteEntry": `{"backend":{"remoteEntry":"/..\\\\..\\\\api/config","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"tabRemoteEntry":       `{"backend":{"remoteEntry":"/remote\tEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"returnRemoteEntry":    `{"backend":{"remoteEntry":"/remote\rEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"newlineRemoteEntry":   `{"backend":{"remoteEntry":"/remote\nEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
 			"invalidSuffix":        `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"pathSuffix":"../core-bff/api","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
 			"parameterizedSuffix":  `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"pathSuffix":"api/:id","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
 			"wildcardSuffix":       `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"pathSuffix":"api/*","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
@@ -521,6 +525,10 @@ func TestBuildFederationConfigMap_RejectsInvalidCommunityPlugins(t *testing.T) {
 	assert.NotContains(t, names, "malformed")
 	assert.NotContains(t, names, "invalidRemoteEntry")
 	assert.NotContains(t, names, "encodedRemoteEntry")
+	assert.NotContains(t, names, "backslashRemoteEntry")
+	assert.NotContains(t, names, "tabRemoteEntry")
+	assert.NotContains(t, names, "returnRemoteEntry")
+	assert.NotContains(t, names, "newlineRemoteEntry")
 	assert.NotContains(t, names, "invalidSuffix")
 	assert.NotContains(t, names, "parameterizedSuffix")
 	assert.NotContains(t, names, "wildcardSuffix")
