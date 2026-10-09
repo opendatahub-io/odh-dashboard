@@ -77,8 +77,8 @@ describe('VectorDbConnectionModal', () => {
     ).toBeTruthy();
     expect(screen.getByText('URI')).toBeInTheDocument();
     expect(screen.getByText('Token')).toBeInTheDocument();
-    expect(screen.getByText('Server certificate')).toBeInTheDocument();
-    expect(screen.getByTestId('milvus-server-cert-input').tagName).toBe('TEXTAREA');
+    expect(screen.getByText('CA certificate')).toBeInTheDocument();
+    expect(screen.getByTestId('milvus-ca-cert-input').tagName).toBe('TEXTAREA');
     expect(screen.getByText('Vector database type')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Add Milvus connection' }).textContent,

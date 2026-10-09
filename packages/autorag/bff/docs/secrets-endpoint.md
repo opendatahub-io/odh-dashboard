@@ -63,12 +63,14 @@ Secrets are filtered using configurable dictionaries of secret types and their r
 
 **Currently Supported Vector Database Types:**
 
-| Vector Database | Required Keys                                                                         |
-| --------------- | ------------------------------------------------------------------------------------- |
-| **Milvus**      | `MILVUS_URI`                                                                          |
-| **PGVector**    | `PGVECTOR_HOST`, `PGVECTOR_PORT`, `PGVECTOR_DB`, `PGVECTOR_USER`, `PGVECTOR_PASSWORD` |
+| Vector Database | Required Keys                                                                         | Optional Keys                        |
+| --------------- | ------------------------------------------------------------------------------------- | ------------------------------------ |
+| **Milvus**      | `MILVUS_URI`                                                                          | `MILVUS_TOKEN`, `MILVUS_CA_CERT`     |
+| **PGVector**    | `PGVECTOR_HOST`, `PGVECTOR_PORT`, `PGVECTOR_DB`, `PGVECTOR_USER`, `PGVECTOR_PASSWORD` | `PGVECTOR_CA_CERT`                   |
 
 The `vector-db` result is the deduplicated union of these two key sets. Filtering is based on key presence only: empty values, extra keys, mixed database families, and OGX keys are not excluded.
+
+The optional `*_CA_CERT` keys hold a PEM-encoded CA certificate that the BFF adds to its trust pool to verify TLS connections to vector databases with privately-signed certificates.
 
 **Currently Supported Generic Database Types:**
 
