@@ -144,6 +144,7 @@ type Options struct {
 // DashboardReconciler reconciles a Dashboard object.
 type DashboardReconciler struct {
 	client.Client
+	APIReader             client.Reader
 	Scheme                *runtime.Scheme
 	ManifestsBasePath     string
 	Platform              cluster.Platform
@@ -167,8 +168,12 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if !dashboard.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(dashboard, dashboardFinalizer) {
-			if err := r.deleteMaaSPortalResources(ctx); err != nil {
+			cleanup, err := r.deleteMaaSPortalResources(ctx)
+			if err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to cleanup MaaS Portal resources: %w", err)
+			}
+			if cleanup.Pending {
+				return ctrl.Result{RequeueAfter: maasPortalRetryInterval}, nil
 			}
 			if err := r.cleanupCrossNamespaceResources(ctx, dashboard, false); err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to cleanup cross-namespace resources: %w", err)
@@ -1090,9 +1095,15 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	return nil
 }
 
-// extractItems returns the slice of client.Object from a typed list.
+// extractItems returns the slice of client.Object from a supported list.
 func extractItems(list client.ObjectList) []client.Object {
 	switch l := list.(type) {
+	case *unstructured.UnstructuredList:
+		items := make([]client.Object, len(l.Items))
+		for i := range l.Items {
+			items[i] = &l.Items[i]
+		}
+		return items
 	case *appsv1.DeploymentList:
 		items := make([]client.Object, len(l.Items))
 		for i := range l.Items {
@@ -1162,6 +1173,7 @@ func extractItems(list client.ObjectList) []client.Object {
 func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 	r := &DashboardReconciler{
 		Client:                mgr.GetClient(),
+		APIReader:             mgr.GetAPIReader(),
 		Scheme:                mgr.GetScheme(),
 		ManifestsBasePath:     opts.ManifestsBasePath,
 		Platform:              opts.Platform,
