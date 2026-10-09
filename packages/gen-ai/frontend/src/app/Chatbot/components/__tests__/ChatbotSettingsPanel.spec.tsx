@@ -661,6 +661,10 @@ describe('ChatbotSettingsPanel', () => {
       await user.click(screen.getByTestId(testId));
     };
 
+    afterEach(() => {
+      mockUseGuardrailsEnabled.mockReturnValue(false);
+    });
+
     it('shows icons and descriptive labels when the panel is wide', () => {
       mockUseGuardrailsEnabled.mockReturnValue(true);
       render(<ChatbotSettingsPanel {...defaultProps} />);
@@ -671,7 +675,6 @@ describe('ChatbotSettingsPanel', () => {
         expect(tab.querySelector('svg')).toBeInTheDocument();
       }
       expect(screen.getByRole('tab', { name: 'Model' })).toHaveAttribute('aria-selected', 'true');
-      mockUseGuardrailsEnabled.mockReturnValue(false);
     });
 
     it('keeps every icon visible when the panel becomes narrow', () => {
@@ -690,7 +693,6 @@ describe('ChatbotSettingsPanel', () => {
         expect(tab).not.toHaveTextContent(label);
         expect(tab.querySelector('svg')).toBeInTheDocument();
       }
-      mockUseGuardrailsEnabled.mockReturnValue(false);
     });
 
     it('starts with compact tabs when a narrow panel width was saved', () => {
@@ -704,10 +706,12 @@ describe('ChatbotSettingsPanel', () => {
       render(<ChatbotSettingsPanel {...defaultProps} />);
       expect(screen.getByRole('tab', { name: 'RAG' })).not.toHaveTextContent('Off');
 
-      useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
-      useChatbotConfigStore
-        .getState()
-        .updateSelectedMcpServerIds(DEFAULT_CONFIG_ID, ['server-one']);
+      act(() => {
+        useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedMcpServerIds(DEFAULT_CONFIG_ID, ['server-one']);
+      });
 
       expect(screen.getByRole('tab', { name: 'RAG' })).toHaveTextContent('RAG');
       expect(screen.getByRole('tab', { name: 'RAG' })).not.toHaveTextContent('On');
