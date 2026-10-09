@@ -43,7 +43,7 @@ const selectMaaSAndStorageSecrets = () => {
 };
 
 const browseToSeedFolder = () => {
-  fileExplorer.findBrowseBucketButton().click();
+  fileExplorer.findAddKnowledgeFilesButton().click();
   fileExplorer.find().should('be.visible');
   fileExplorer.navigateIntoFolder('autorag input data');
   fileExplorer.navigateIntoFolder('pdf');
@@ -60,7 +60,7 @@ const advanceToStep2 = () => {
   fileExplorer.findSelectButton().click();
 
   // Wait for the evaluation section to render
-  cy.findByTestId('evaluation-create-button').should('exist');
+  evaluationFileSelector.findActionsButton().should('exist');
 };
 
 const advanceToStep2WithFolder = () => {
@@ -71,7 +71,7 @@ const advanceToStep2WithFolder = () => {
   fileExplorer.findRow(DOCUMENTS_FOLDER_NAME).click();
   fileExplorer.findSelectButton().click();
 
-  cy.findByTestId('evaluation-create-button').should('exist');
+  evaluationFileSelector.findActionsButton().should('exist');
 };
 
 // Helper: add a Q&A pair (document auto-selected from file input)
@@ -92,7 +92,8 @@ describe('EvaluationFileCreator', () => {
     advanceToStep2();
 
     evaluationFileCreator.find().should('not.exist');
-    evaluationFileSelector.findCreateButton().click();
+    evaluationFileSelector.findActionsButton().click();
+    evaluationFileSelector.findCreateDatasetMenuItem().click();
 
     evaluationFileCreator.find().should('be.visible');
     evaluationFileCreator.findEmptyState().should('be.visible');
@@ -117,7 +118,8 @@ describe('EvaluationFileCreator', () => {
     navigateToConfigure();
     advanceToStep2();
 
-    evaluationFileSelector.findCreateButton().click();
+    evaluationFileSelector.findActionsButton().click();
+    evaluationFileSelector.findCreateDatasetMenuItem().click();
     addQAPair('Q1', 'A1');
     evaluationFileCreator.findTableRow('Q1').should('be.visible');
 
@@ -141,7 +143,8 @@ describe('EvaluationFileCreator', () => {
     navigateToConfigure();
     advanceToStep2();
 
-    evaluationFileSelector.findCreateButton().click();
+    evaluationFileSelector.findActionsButton().click();
+    evaluationFileSelector.findCreateDatasetMenuItem().click();
     addQAPair('What is AI?', 'Artificial Intelligence');
 
     evaluationFileCreator.findSubmitButton().click();
@@ -156,7 +159,8 @@ describe('EvaluationFileCreator', () => {
     navigateToConfigure();
     advanceToStep2();
 
-    evaluationFileSelector.findCreateButton().click();
+    evaluationFileSelector.findActionsButton().click();
+    evaluationFileSelector.findCreateDatasetMenuItem().click();
     addQAPair('What is AI?', 'Artificial Intelligence');
     evaluationFileCreator.findSubmitButton().click();
 
@@ -176,7 +180,7 @@ describe('EvaluationFileCreator', () => {
       evaluationFileSelector.findFileInput().should('have.value', '');
 
       // Browse S3 and search for the real uploaded file (uploaded to the bucket root)
-      evaluationFileSelector.findS3BrowseButton().click();
+      evaluationFileSelector.findFileActionButton().click();
       fileExplorer.findSearch().type(uploadedKey.replace(/\.json$/, ''));
       fileExplorer.findRow(uploadedKey).should('be.visible');
     });
@@ -186,7 +190,8 @@ describe('EvaluationFileCreator', () => {
     navigateToConfigure();
     advanceToStep2WithFolder();
 
-    evaluationFileSelector.findCreateButton().click();
+    evaluationFileSelector.findActionsButton().click();
+    evaluationFileSelector.findCreateDatasetMenuItem().click();
 
     // With folder input, Select button should be visible
     evaluationFileCreator.findSelectDocumentsButton().should('be.visible');
@@ -221,7 +226,8 @@ describe('EvaluationFileCreator', () => {
     navigateToConfigure();
     advanceToStep2();
 
-    evaluationFileSelector.findCreateButton().click();
+    evaluationFileSelector.findActionsButton().click();
+    evaluationFileSelector.findCreateDatasetMenuItem().click();
     addQAPair('Q1', 'A1');
 
     evaluationFileCreator.findSubmitButton().should('be.enabled');
@@ -235,7 +241,8 @@ describe('EvaluationFileCreator', () => {
     navigateToConfigure();
     advanceToStep2();
 
-    evaluationFileSelector.findCreateButton().click();
+    evaluationFileSelector.findActionsButton().click();
+    evaluationFileSelector.findCreateDatasetMenuItem().click();
     evaluationFileCreator.find().should('be.visible');
 
     evaluationFileCreator.findCancelButton().click();

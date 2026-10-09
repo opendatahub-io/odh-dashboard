@@ -1,16 +1,10 @@
-import type { FileRejection } from 'react-dropzone';
-import {
-  type DropzoneFileRejectedNotification,
-  AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
-  AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
-  getDropzoneFileRejectedNotification,
-} from '~/app/utilities/dropzoneFileUpload';
-
-/** MIME types and extensions for the evaluation dataset upload dropzone (react-dropzone `accept` format). */
+/** MIME types and extensions for the evaluation dataset upload policy. */
 export const EVALUATION_FILE_ACCEPT: Record<string, string[]> = {
   'application/json': ['.json'],
   'text/json': ['.json'],
 };
+
+export const EVALUATION_FILE_NATIVE_ACCEPT = '.json,application/json,text/json';
 
 /**
  * Client-side hint for UX only; file extensions and browser-reported MIME types can be spoofed.
@@ -27,20 +21,4 @@ export function isAllowedEvaluationJsonFile(file: File): boolean {
     }
   }
   return Boolean(file.type && file.type in EVALUATION_FILE_ACCEPT);
-}
-
-export type EvaluationDropRejectedNotification = DropzoneFileRejectedNotification;
-
-/**
- * Maps react-dropzone rejections to user-facing notification copy.
- * Unknown error codes fall back to joined dropzone messages or a filename-based detail.
- */
-export function getEvaluationDropRejectedNotification(
-  fileRejections: FileRejection[],
-): EvaluationDropRejectedNotification | null {
-  return getDropzoneFileRejectedNotification(fileRejections, {
-    uploadTooLargeDetail: AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
-    invalidFileTypeDescription: 'Evaluation dataset must be a JSON file (.json).',
-    tooManyFilesDetail: AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
-  });
 }

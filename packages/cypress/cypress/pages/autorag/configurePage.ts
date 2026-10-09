@@ -78,27 +78,15 @@ class AutoragConfigurePage {
     return cy.findByTestId('aws-secret-selector');
   }
 
-  findSelectFileToggle() {
-    return cy.findByTestId('input-data-source-select-toggle');
-  }
-
-  findUploadFileToggle() {
-    return cy.findByTestId('input-data-source-upload-toggle');
-  }
-
-  findUploadFileInput() {
-    return cy.findByTestId('autorag-upload-file-input');
-  }
-
-  findUploadSpinner() {
-    return cy.findByTestId('input-data-upload-spinner');
-  }
-
-  findBrowseBucketButton() {
-    return cy.findByTestId('browse-bucket-button');
+  findAddKnowledgeFilesButton() {
+    return cy.findByTestId('add-knowledge-files-button');
   }
 
   // File Explorer
+  findFileExplorerModal() {
+    return cy.findByRole('dialog', { name: 'Select file or folder' });
+  }
+
   findFileExplorerSearch() {
     return cy.findByTestId('file-explorer-search');
   }
@@ -114,6 +102,10 @@ class AutoragConfigurePage {
 
   findFileExplorerSelectBtn() {
     return cy.findByTestId('file-explorer-select-btn');
+  }
+
+  findFileExplorerUploadInput() {
+    return this.findFileExplorerModal().findByTestId('file-explorer-upload-input');
   }
 
   // Step 2 - Model selection
@@ -238,14 +230,15 @@ class AutoragConfigurePage {
     return cy.findByRole('option', { name: getExactVisibleOptionRegex(name) });
   }
 
-  // Evaluation dataset — PF FileUpload renders input with id from field.name
-  findEvaluationFileInput() {
-    return cy.findByTestId('evaluation-file-selector').find('input[type="file"]');
-  }
-
   // Evaluation file selector (text input showing the selected file key)
   findEvaluationFileValue() {
-    return cy.findByTestId('evaluation-file-selector').find('input[readonly]');
+    return cy.findByTestId('evaluation-file-input').find('input[readonly]');
+  }
+
+  findEvaluationFileActionButton() {
+    return cy
+      .findByTestId('evaluation-file-selector')
+      .findByRole('button', { name: /^(Add file|Replace file)$/ });
   }
 
   findEvaluationFileClearButton() {
@@ -279,11 +272,6 @@ class AutoragConfigurePage {
 
   findEvalSubmit() {
     return cy.findByTestId('eval-create-submit');
-  }
-
-  // Uploaded file table
-  findUploadedFileCell() {
-    return cy.findByTestId('uploaded-file-cell');
   }
 
   // Submit
