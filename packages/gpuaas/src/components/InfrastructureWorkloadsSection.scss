@@ -1,0 +1,27 @@
+.gpuaas-infrastructure-workloads {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.gpuaas-infrastructure-workloads__header-section {
+  position: sticky;
+  top: 0;
+  flex: 0 0 auto;
+  height: auto;
+  min-height: 0;
+  width: 100%;
+  z-index: var(--pf-t--global--z-index--sm);
+  background-color: var(--pf-t--global--background--color--primary--default);
+  border-bottom: var(--pf-t--global--border--width--regular) solid
+    var(--pf-t--global--border--color--default);
+  padding-block-end: var(--pf-t--global--spacer--md);
+}
+
+.gpuaas-infrastructure-workloads__content-section {
+  flex: 0 0 auto;
+  min-width: 0;
+}

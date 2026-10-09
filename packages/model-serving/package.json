@@ -38,6 +38,7 @@
     "./shared": "./src/shared/index.ts",
     "./shared/types": "./src/shared/types.ts",
     "./shared/components": "./src/shared/components/index.ts",
+    "./components/DeploymentStatusModal": "./src/components/deployments/DeploymentStatusModal.tsx",
     "./shared/wizard-fields": "./src/shared/wizard-fields.ts",
     "./shared/types/form-data": "./src/shared/types/form-data.ts",
     "./shared/modelCapabilities": "./src/shared/modelCapabilities.ts",
