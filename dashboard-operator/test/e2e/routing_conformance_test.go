@@ -216,7 +216,9 @@ func assertMaaSPortalBrowserRouting(t *testing.T) {
 		retired := requestGatewayPath(t, path)
 		require.False(t, retired.statusCode >= 300 && retired.statusCode < 400, "retired path %s must not redirect", path)
 		require.NotContains(t, string(retired.body), "<title>MaaS Portal</title>", "retired path %s must not serve the portal", path)
-		require.NotContains(t, string(retired.body), maasPortalPath+"/", "retired path %s must not load the portal bundle", path)
+		for _, script := range scripts {
+			require.NotContains(t, string(retired.body), string(script[1]), "retired path %s must not load portal entry script %s", path, script[1])
+		}
 		if path == "/maas-consumer-portal/healthcheck" {
 			var health struct {
 				Status string `json:"status"`
