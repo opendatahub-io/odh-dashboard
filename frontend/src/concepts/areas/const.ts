@@ -290,6 +290,15 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.PLUGIN_GEN_AI]: {
     featureFlags: ['genAiStudio'],
   },
+  [SupportedArea.PLUGIN_AUTOML]: {
+    featureFlags: ['automl'],
+    requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
+  },
+  [SupportedArea.PLUGIN_AUTORAG]: {
+    featureFlags: ['autorag'],
+    requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
+    reliantAreas: [SupportedArea.PLUGIN_GEN_AI],
+  },
   [SupportedArea.GPUAAS_INFRASTRUCTURE]: {
     featureFlags: ['gpuaas'],
     requiredComponents: [DataScienceStackComponent.KUEUE],

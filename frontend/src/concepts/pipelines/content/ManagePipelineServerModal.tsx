@@ -33,8 +33,8 @@ import {
 } from '#~/k8sTypes';
 import { updatePipelineSettings } from '#~/api/pipelines/k8s';
 import useNotification from '#~/utilities/useNotification';
-import { useAppContext } from '#~/app/AppContext';
 import useIsMlflowCRAvailable from '#~/concepts/mlflow/hooks/useIsMlflowCRAvailable';
+import useIsManagedPipelinesAvailable from '#~/concepts/pipelines/hooks/useIsManagedPipelinesAvailable';
 import PipelineKubernetesStoreCheckbox from './PipelineKubernetesStoreCheckbox';
 import { MANAGE_PIPELINE_SERVER_TITLE } from './const';
 import { PipelineCachingSection } from './configurePipelinesServer/PipelineCachingSection';
@@ -51,7 +51,6 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
   pipelineNamespaceCR,
 }) => {
   const { namespace, refreshState } = usePipelinesAPI();
-  const { dashboardConfig } = useAppContext();
   const notification = useNotification();
   const [pipelineResult] = useNamespaceSecret(
     namespace,
@@ -79,8 +78,7 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
     ],
   );
 
-  const isManagedPipelinesAvailable =
-    dashboardConfig.spec.dashboardConfig.automl || dashboardConfig.spec.dashboardConfig.autorag;
+  const isManagedPipelinesAvailable = useIsManagedPipelinesAvailable();
 
   const { available: isMlflowCRAvailable } = useIsMlflowCRAvailable();
   const isMlflowPipelinesAreaAvailable = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES).status;

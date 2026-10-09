@@ -2,17 +2,18 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router-dom';
-import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { NotificationWatcherContext } from '@odh-dashboard/ui-core/contexts/NotificationWatcherContext';
-import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { deleteSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import { ConfigurePipelinesServerModal } from '#~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import usePipelinesConnections from '#~/pages/projects/screens/detail/connections/usePipelinesConnections';
 import { createPipelinesCR } from '#~/api';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { configureDSPipelineResourceSpec } from '#~/concepts/pipelines/content/configurePipelinesServer/utils';
-import { useAppContext } from '#~/app/AppContext';
+import {
+  configureDSPipelineResourceSpec,
+  createDSPipelineResourceSpec,
+} from '#~/concepts/pipelines/content/configurePipelinesServer/utils';
 import useIsMlflowCRAvailable from '#~/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 
 // Mock dependencies
@@ -44,12 +45,9 @@ jest.mock('#~/concepts/analyticsTracking/segmentIOUtils', () => ({
 }));
 
 jest.mock('#~/concepts/pipelines/content/configurePipelinesServer/utils', () => ({
+  ...jest.requireActual('#~/concepts/pipelines/content/configurePipelinesServer/utils'),
   configureDSPipelineResourceSpec: jest.fn(),
   objectStorageIsValid: jest.fn(),
-}));
-
-jest.mock('#~/app/AppContext', () => ({
-  useAppContext: jest.fn(),
 }));
 
 jest.mock('#~/concepts/mlflow/hooks/useIsMlflowCRAvailable', () => ({
@@ -82,10 +80,21 @@ const mockFireFormTrackingEvent = fireFormTrackingEvent as jest.MockedFunction<
 const mockConfigureDSPipelineResourceSpec = configureDSPipelineResourceSpec as jest.MockedFunction<
   typeof configureDSPipelineResourceSpec
 >;
-const mockUseAppContext = useAppContext as jest.MockedFunction<typeof useAppContext>;
 const mockUseIsMlflowCRAvailable = useIsMlflowCRAvailable as jest.MockedFunction<
   typeof useIsMlflowCRAvailable
 >;
+const mockAreaStatuses = (availableAreas: SupportedArea[]) => {
+  const availableAreaSet = new Set<string>(availableAreas);
+  mockUseIsAreaAvailable.mockImplementation((area) => ({
+    status: availableAreaSet.has(area),
+    featureFlags: {},
+    devFlags: {},
+    reliantAreas: {},
+    requiredComponents: {},
+    requiredCapabilities: {},
+    customCondition: jest.fn(),
+  }));
+};
 
 describe('ConfigurePipelinesServerModal', () => {
   const mockOnClose = jest.fn();
@@ -105,14 +114,22 @@ describe('ConfigurePipelinesServerModal', () => {
     onClose: mockOnClose,
   };
 
-  const renderModal = (props = defaultProps) =>
-    render(
-      <BrowserRouter>
-        <NotificationWatcherContext.Provider value={mockNotificationContext}>
-          <ConfigurePipelinesServerModal {...props} />
-        </NotificationWatcherContext.Provider>
-      </BrowserRouter>,
+  const modalElement = (props = defaultProps) => (
+    <BrowserRouter>
+      <NotificationWatcherContext.Provider value={mockNotificationContext}>
+        <ConfigurePipelinesServerModal {...props} />
+      </NotificationWatcherContext.Provider>
+    </BrowserRouter>
+  );
+  const renderModal = (props = defaultProps) => render(modalElement(props));
+
+  const configureSpecFromSubmitConfig = () => {
+    mockConfigureDSPipelineResourceSpec.mockImplementation((config) =>
+      Promise.resolve(
+        createDSPipelineResourceSpec(config, [undefined, { secretName: 'test-secret' }]),
+      ),
     );
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -129,22 +146,7 @@ describe('ConfigurePipelinesServerModal', () => {
 
     mockUsePipelinesConnections.mockReturnValue([[], true, undefined, jest.fn()]);
 
-    mockUseIsAreaAvailable.mockReturnValue({
-      status: false,
-      featureFlags: {},
-      devFlags: {},
-      reliantAreas: {},
-      requiredComponents: {},
-      requiredCapabilities: {},
-      customCondition: jest.fn(),
-    } as ReturnType<typeof useIsAreaAvailable>);
-
-    mockUseAppContext.mockReturnValue({
-      buildStatuses: [],
-      dashboardConfig: mockDashboardConfig({ automl: false, autorag: false }),
-      storageClasses: [],
-      isRHOAI: false,
-    });
+    mockAreaStatuses([]);
 
     mockUseIsMlflowCRAvailable.mockReturnValue({
       available: false,
@@ -216,6 +218,106 @@ describe('ConfigurePipelinesServerModal', () => {
 
     // Alert should be visible when caching is disabled
     expect(screen.getByTestId('pipeline-caching-disabled-alert')).toBeInTheDocument();
+  });
+
+  it.each([
+    { feature: 'AutoML', area: SupportedArea.PLUGIN_AUTOML },
+    { feature: 'AutoRAG', area: SupportedArea.PLUGIN_AUTORAG },
+  ])('should enable managed pipelines by default when $feature is available', async ({ area }) => {
+    const {
+      objectStorageIsValid,
+    } = require('#~/concepts/pipelines/content/configurePipelinesServer/utils');
+    objectStorageIsValid.mockReturnValue(true);
+    configureSpecFromSubmitConfig();
+
+    mockAreaStatuses([area]);
+
+    renderModal();
+    fireEvent.click(screen.getByText('Advanced settings'));
+
+    expect(screen.getByTestId('managed-pipelines-checkbox')).toBeChecked();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Configure pipeline server' }));
+
+    await waitFor(() => {
+      expect(mockCreatePipelinesCR).toHaveBeenCalledWith(
+        'test-project',
+        expect.objectContaining({
+          apiServer: expect.objectContaining({ managedPipelines: {} }),
+        }),
+      );
+    });
+  });
+
+  it('should not show or configure managed pipelines when AutoML and AutoRAG are unavailable', async () => {
+    const {
+      objectStorageIsValid,
+    } = require('#~/concepts/pipelines/content/configurePipelinesServer/utils');
+    objectStorageIsValid.mockReturnValue(true);
+    configureSpecFromSubmitConfig();
+
+    renderModal({
+      onClose: mockOnClose,
+      defaultConfig: { enableManagedPipelines: true },
+    });
+    fireEvent.click(screen.getByText('Advanced settings'));
+
+    expect(screen.queryByTestId('managed-pipelines-checkbox')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Configure pipeline server' }));
+
+    await waitFor(() => {
+      expect(mockCreatePipelinesCR).toHaveBeenCalled();
+    });
+
+    expect(mockConfigureDSPipelineResourceSpec).toHaveBeenCalledWith(
+      expect.objectContaining({ enableManagedPipelines: false }),
+      'test-project',
+    );
+    const submittedSpec = mockCreatePipelinesCR.mock.calls[0][1];
+    expect(submittedSpec.apiServer).not.toHaveProperty('managedPipelines');
+  });
+
+  it('should omit managed pipelines if they become unavailable before submission', async () => {
+    const {
+      objectStorageIsValid,
+    } = require('#~/concepts/pipelines/content/configurePipelinesServer/utils');
+    objectStorageIsValid.mockReturnValue(true);
+    configureSpecFromSubmitConfig();
+
+    mockAreaStatuses([SupportedArea.PLUGIN_AUTOML]);
+
+    const { rerender } = renderModal();
+    fireEvent.click(screen.getByText('Advanced settings'));
+    expect(screen.getByTestId('managed-pipelines-checkbox')).toBeChecked();
+
+    mockAreaStatuses([]);
+    rerender(modalElement());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Configure pipeline server' }));
+
+    await waitFor(() => {
+      expect(mockCreatePipelinesCR).toHaveBeenCalled();
+    });
+
+    expect(mockConfigureDSPipelineResourceSpec).toHaveBeenCalledWith(
+      expect.objectContaining({ enableManagedPipelines: false }),
+      'test-project',
+    );
+    const submittedSpec = mockCreatePipelinesCR.mock.calls[0][1];
+    expect(submittedSpec.apiServer).not.toHaveProperty('managedPipelines');
+  });
+
+  it('should retain the managed pipelines default if they become available after the modal opens', () => {
+    const { rerender } = renderModal();
+    fireEvent.click(screen.getByText('Advanced settings'));
+
+    expect(screen.queryByTestId('managed-pipelines-checkbox')).not.toBeInTheDocument();
+
+    mockAreaStatuses([SupportedArea.PLUGIN_AUTOML]);
+    rerender(modalElement());
+
+    expect(screen.getByTestId('managed-pipelines-checkbox')).toBeChecked();
   });
 
   it('should enable submit button when form is valid', () => {
@@ -431,7 +533,7 @@ describe('ConfigurePipelinesServerModal', () => {
       });
     });
 
-    it('should show managed pipelines section in standalone mode', () => {
+    it('should enable managed pipelines by default in standalone mode', () => {
       renderModal({
         onClose: mockOnClose,
         standaloneNamespace: 'standalone-ns',
@@ -441,6 +543,7 @@ describe('ConfigurePipelinesServerModal', () => {
       fireEvent.click(screen.getByText('Advanced settings'));
 
       expect(screen.getByText('Managed pipelines')).toBeInTheDocument();
+      expect(screen.getByTestId('managed-pipelines-checkbox')).toBeChecked();
     });
   });
 

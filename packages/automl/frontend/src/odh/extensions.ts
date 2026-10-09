@@ -1,11 +1,11 @@
-import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type {
   AreaExtension,
   NavExtension,
   RouteExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
-const PLUGIN_AUTOML = 'plugin-automl';
+const { PLUGIN_AUTOML } = SupportedArea;
 // AutoML requires automl feature flag.
 
 const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
