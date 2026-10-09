@@ -71,8 +71,8 @@ export type Deployment<
   ModelResource extends K8sResourceCommon,
   ServerResource extends K8sResourceCommon,
 > = {
-  modelServingPlatformId: string;  # 'llmd-serving' or 'kserve' 
-  model: ModelResource; # InferenceServiceKind or LLMInferenceServiceKind
+  modelServingPlatformId: string;  // 'llmd-serving' or 'kserve' 
+  model: ModelResource;  // InferenceServiceKind or LLMInferenceServiceKind
   server?: ServerResource;
   status?: DeploymentStatus;
   endpoints?: DeploymentEndpoint[];
