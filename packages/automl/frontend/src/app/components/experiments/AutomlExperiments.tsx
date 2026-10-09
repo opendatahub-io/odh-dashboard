@@ -1,7 +1,11 @@
 import { Alert, Spinner } from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
-import { EmptyExperimentsState } from '@odh-dashboard/autox-core/ui/components/feature';
+import {
+  EmptyExperimentsState,
+  PipelineServerStarting,
+} from '@odh-dashboard/autox-core/ui/components/feature';
+import { usePipelineServerStatus } from '@odh-dashboard/autox-core/ui/hooks';
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
 import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
 import { AutomlRunsTable } from '~/app/components/AutomlRunsTable';
@@ -62,6 +66,10 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
   const hasLoadError = Boolean(loadError);
 
   const hasExperiments = totalSize > 0;
+  const pipelineServerStatus = usePipelineServerStatus(
+    effectiveNamespace || undefined,
+    !loaded || !hasExperiments,
+  );
 
   const onListStatusRef = React.useRef(onExperimentsListStatus);
   onListStatusRef.current = onExperimentsListStatus;
@@ -145,6 +153,10 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
   };
   const pipelineServerMode = getPipelineServerMode();
 
+  if (pipelineServerStatus.isStarting) {
+    return <PipelineServerStarting namespace={effectiveNamespace} />;
+  }
+
   if (pipelineServerMode) {
     return (
       <PipelineServerSetup
@@ -169,6 +181,19 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
   }
 
   if (!loaded) {
+    return (
+      <div className="pf-v6-u-text-align-center pf-v6-u-pt-2xl">
+        <Spinner size="xl" />
+      </div>
+    );
+  }
+
+  if (
+    !hasExperiments &&
+    effectiveNamespace &&
+    !pipelineServerStatus.loaded &&
+    !pipelineServerStatus.error
+  ) {
     return (
       <div className="pf-v6-u-text-align-center pf-v6-u-pt-2xl">
         <Spinner size="xl" />
