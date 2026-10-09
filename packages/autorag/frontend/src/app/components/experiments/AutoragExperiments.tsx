@@ -1,7 +1,11 @@
-import { EmptyExperimentsState } from '@odh-dashboard/autox-core/ui/components/feature';
+import {
+  EmptyExperimentsState,
+  PipelineServerStarting,
+} from '@odh-dashboard/autox-core/ui/components/feature';
+import { usePipelineServerStatus } from '@odh-dashboard/autox-core/ui/hooks';
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
 import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
-import { Alert, Spinner } from '@patternfly/react-core';
+import { Alert, Flex, FlexItem, Spinner } from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
 import { AutoragRunsTable } from '~/app/components/AutoragRunsTable';
@@ -62,6 +66,10 @@ function AutoragExperiments({
   const hasLoadError = Boolean(loadError);
 
   const hasExperiments = totalSize > 0;
+  const pipelineServerStatus = usePipelineServerStatus(
+    effectiveNamespace || undefined,
+    !loaded || !hasExperiments,
+  );
 
   const onListStatusRef = React.useRef(onExperimentsListStatus);
   onListStatusRef.current = onExperimentsListStatus;
@@ -145,6 +153,26 @@ function AutoragExperiments({
   };
   const pipelineServerMode = getPipelineServerMode();
 
+  if (loadError && errorCode === 403) {
+    return <UnauthorizedError accessDomain="AutoRAG experiments" />;
+  }
+
+  if (pipelineServerMode === 'configure' || pipelineServerMode === 'enable') {
+    return (
+      <PipelineServerSetup
+        namespace={effectiveNamespace || undefined}
+        mode={pipelineServerMode}
+        onStarted={() => setServerBusy(pipelineServerMode)}
+        onFailed={() => setServerBusy(false)}
+        onReady={handleServerReady}
+      />
+    );
+  }
+
+  if (pipelineServerStatus.isStarting && (!loadError || pipelineServerMode === 'waiting')) {
+    return <PipelineServerStarting namespace={effectiveNamespace} />;
+  }
+
   if (pipelineServerMode) {
     return (
       <PipelineServerSetup
@@ -158,9 +186,6 @@ function AutoragExperiments({
   }
 
   if (loadError) {
-    if (errorCode === 403) {
-      return <UnauthorizedError accessDomain="AutoRAG experiments" />;
-    }
     return (
       <Alert variant="danger" isInline title="Failed to load experiments">
         <p>{loadError.message}</p>
@@ -170,9 +195,26 @@ function AutoragExperiments({
 
   if (!loaded) {
     return (
-      <div className="pf-v6-u-text-align-center pf-v6-u-pt-2xl">
-        <Spinner size="xl" />
-      </div>
+      <Flex justifyContent={{ default: 'justifyContentCenter' }} className="pf-v6-u-pt-2xl">
+        <FlexItem>
+          <Spinner size="xl" />
+        </FlexItem>
+      </Flex>
+    );
+  }
+
+  if (
+    !hasExperiments &&
+    effectiveNamespace &&
+    !pipelineServerStatus.loaded &&
+    !pipelineServerStatus.error
+  ) {
+    return (
+      <Flex justifyContent={{ default: 'justifyContentCenter' }} className="pf-v6-u-pt-2xl">
+        <FlexItem>
+          <Spinner size="xl" />
+        </FlexItem>
+      </Flex>
     );
   }
 
