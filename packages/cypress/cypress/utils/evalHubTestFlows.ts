@@ -346,7 +346,6 @@ export type SingleBenchmarkEvaluationOptions = {
   evaluationRunName: string;
   inferenceServiceName: string;
   mlflowExperimentName: string;
-  hardwareProfileName?: string;
   additionalBenchmarkParams?: string;
 };
 
@@ -355,7 +354,6 @@ export type BenchmarkSuiteEvaluationOptions = {
   evaluationRunName: string;
   inferenceServiceName: string;
   mlflowExperimentName: string;
-  hardwareProfileName?: string;
 };
 
 export type BenchmarkSuiteCreationOptions = {
@@ -434,41 +432,6 @@ const selectNewMlflowExperiment = (mlflowExperimentName: string, modalId?: strin
     .type(mlflowExperimentName);
 };
 
-/** Non-Kueue tenants have no selector; Kueue tenants require an explicit profile. */
-const configureEvaluationHardwareProfile = (profileName?: string, modalId?: string): void => {
-  if (!profileName) {
-    createEvaluationPage.findStartEvaluationSubmitButton(modalId).should('be.enabled');
-    createEvaluationPage.findHardwareProfileToggle(modalId).should('not.exist');
-    return;
-  }
-
-  createEvaluationPage.findStartEvaluationSubmitButton(modalId).should('be.disabled');
-  createEvaluationPage
-    .findHardwareProfileToggle(modalId)
-    .should('be.visible')
-    .and('be.enabled')
-    .click();
-  createEvaluationPage.findHardwareProfileOption(profileName).should('be.visible').click();
-  createEvaluationPage.findHardwareProfileToggle(modalId).should('contain.text', profileName);
-  createEvaluationPage
-    .findHardwareProfileKueueInfo(modalId)
-    .should('contain.text', 'Only hardware profiles configured with a local queue are shown');
-};
-
-/** Confirms that the selected profile is actually sent to EvalHub, not only displayed. */
-const assertEvaluationHardwareConfig = (profileName?: string): void => {
-  cy.wait('@createEvalHubJob', { timeout: 120000 }).then(({ request }) => {
-    if (profileName) {
-      expect(request.body).to.have.nested.property(
-        'hardware_config.hardware_profile_name',
-        profileName,
-      );
-    } else {
-      expect(request.body).not.to.have.property('hardware_config');
-    }
-  });
-};
-
 // Navigation and test setup
 export const navigateToEvaluationsPage = (evaluationTenantProject: string): void => {
   cy.step('Log into the application and open Evaluations page');
@@ -499,7 +462,6 @@ export const submitSingleBenchmarkEvaluation = (opts: SingleBenchmarkEvaluationO
     evaluationRunName,
     inferenceServiceName,
     mlflowExperimentName,
-    hardwareProfileName,
     additionalBenchmarkParams,
   } = opts;
 
@@ -544,18 +506,9 @@ export const submitSingleBenchmarkEvaluation = (opts: SingleBenchmarkEvaluationO
       .type(additionalBenchmarkParams.trim(), { parseSpecialCharSequences: false });
   }
 
-  cy.step(
-    hardwareProfileName
-      ? 'Select Kueue hardware profile'
-      : 'Verify no hardware profile is required',
-  );
-  configureEvaluationHardwareProfile(hardwareProfileName);
-
   cy.step('Submit evaluation and confirm it appears in the list');
   const usesOfflineData = interceptEvalHubOfflineDataRequest();
-  cy.intercept('POST', '**/eval-hub/api/v1/evaluations/jobs*').as('createEvalHubJob');
   createEvaluationPage.findStartEvaluationSubmitButton().should('be.enabled').click();
-  assertEvaluationHardwareConfig(hardwareProfileName);
   if (usesOfflineData) {
     assertEvalHubOfflineDataRequest();
   }
@@ -652,7 +605,6 @@ const configureAndSubmitBenchmarkSuiteEvaluation = ({
   evaluationRunName,
   inferenceServiceName,
   mlflowExperimentName,
-  hardwareProfileName,
 }: BenchmarkSuiteRunConfigurationOptions): void => {
   createEvaluationPage
     .findStartEvaluationRunModal(modalId, { timeout: 120000 })
@@ -670,18 +622,9 @@ const configureAndSubmitBenchmarkSuiteEvaluation = ({
   createEvaluationPage.findModelOption(inferenceServiceName, modalId).should('be.visible').click();
   createEvaluationPage.findModelPickerToggle(modalId).should('contain.text', inferenceServiceName);
 
-  cy.step(
-    hardwareProfileName
-      ? 'Select Kueue hardware profile'
-      : 'Verify no hardware profile is required',
-  );
-  configureEvaluationHardwareProfile(hardwareProfileName, modalId);
-
   cy.step('Submit evaluation and confirm it appears in the list');
   const usesOfflineData = interceptEvalHubOfflineDataRequest();
-  cy.intercept('POST', '**/eval-hub/api/v1/evaluations/jobs*').as('createEvalHubJob');
   createEvaluationPage.findStartEvaluationSubmitButton(modalId).should('be.enabled').click();
-  assertEvaluationHardwareConfig(hardwareProfileName);
   if (usesOfflineData) {
     assertEvalHubOfflineDataRequest();
   }
@@ -825,10 +768,7 @@ export function stopAndReconfigureEvaluation(
   cy.url().should('include', '/reconfigure');
   createEvaluationPage.findStartEvaluationForm({ timeout: 30000 }).should('exist');
   createEvaluationPage.findEvaluationNameInput().clear().type(reconfiguredRunName);
-  configureEvaluationHardwareProfile();
-  cy.intercept('POST', '**/eval-hub/api/v1/evaluations/jobs*').as('createEvalHubJob');
   createEvaluationPage.findStartEvaluationSubmitButton().should('be.enabled').click();
-  assertEvaluationHardwareConfig();
   assertEvalHubOfflineDataRequest();
   cy.url({ timeout: 120000 }).should('not.include', '/reconfigure');
   evaluationsPage.findRunsTabContent(statusTimeout).should('be.visible');
