@@ -315,7 +315,7 @@ describe('GatewaySelectFieldComponent', () => {
 
       expect(
         screen.getByText(
-          'The selected gateway was not found. The deployment may not work as expected.',
+          'A selected gateway was not found. The deployment may not work as expected.',
         ),
       ).toBeInTheDocument();
     });
@@ -350,9 +350,12 @@ describe('GatewaySelectFieldComponent', () => {
       expect(screen.getByTestId('gateway-select')).toHaveTextContent('gw-removed | ns-old');
       expect(
         screen.getByText(
-          'The selected gateway was not found. The deployment may not work as expected.',
+          'A selected gateway was not found. The deployment may not work as expected.',
         ),
       ).toBeInTheDocument();
+      expect(screen.getByText('gw-removed | ns-old').closest('.pf-v6-c-label')).toHaveClass(
+        'pf-m-red',
+      );
 
       await openDropdown();
       expect(screen.getByTestId(optionTestId('gw-removed | ns-old'))).toBeInTheDocument();
@@ -386,7 +389,7 @@ describe('GatewaySelectFieldComponent', () => {
 
       expect(
         screen.queryByText(
-          'The selected gateway was not found. The deployment may not work as expected.',
+          'A selected gateway was not found. The deployment may not work as expected.',
         ),
       ).not.toBeInTheDocument();
     });
@@ -402,7 +405,7 @@ describe('GatewaySelectFieldComponent', () => {
 
       expect(
         screen.queryByText(
-          'The selected gateway was not found. The deployment may not work as expected.',
+          'A selected gateway was not found. The deployment may not work as expected.',
         ),
       ).not.toBeInTheDocument();
     });
@@ -419,7 +422,7 @@ describe('GatewaySelectFieldComponent', () => {
 
       expect(
         screen.queryByText(
-          'The selected gateway was not found. The deployment may not work as expected.',
+          'A selected gateway was not found. The deployment may not work as expected.',
         ),
       ).not.toBeInTheDocument();
     });
