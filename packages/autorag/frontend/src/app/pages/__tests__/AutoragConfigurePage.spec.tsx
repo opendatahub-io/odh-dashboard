@@ -807,7 +807,7 @@ describe('AutoragConfigurePage', () => {
       const user = userEvent.setup();
 
       await user.click(await screen.findByTestId('aws-secret-selector-select-secret'));
-      await user.click(await screen.findByRole('button', { name: 'Browse bucket' }));
+      await user.click(await screen.findByRole('button', { name: 'Add files' }));
       await user.click(await screen.findByTestId('file-explorer-select-file'));
 
       const runButton = await screen.findByRole('button', { name: 'Create run' });

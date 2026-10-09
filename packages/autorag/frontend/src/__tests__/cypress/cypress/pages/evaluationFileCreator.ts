@@ -63,6 +63,10 @@ class FileExplorer {
     return cy.findByTestId('file-explorer-table');
   }
 
+  findModal() {
+    return cy.findByRole('dialog', { name: 'Select file or folder' });
+  }
+
   // When multiple file explorer instances are open at once (e.g. document selector
   // layered over the main configure page), the most recently opened one is last in the DOM.
   findLast() {
@@ -96,6 +100,10 @@ class FileExplorer {
   navigateIntoFolder(folderName: string) {
     this.findFolder(folderName).click();
     return this;
+  }
+
+  findUploadInput() {
+    return this.findModal().findByTestId('file-explorer-upload-input');
   }
 }
 
@@ -134,18 +142,6 @@ class AutoragConfigurePage {
 
   findSecretOption(secretName: string) {
     return cy.findByRole('option', { name: new RegExp(`^${secretName}$`, 'i') });
-  }
-
-  findInputDataUploadToggle() {
-    return cy.findByTestId('input-data-source-upload-toggle');
-  }
-
-  findInputDataUploadFile() {
-    return cy.findByTestId('autorag-upload-file-input');
-  }
-
-  findUploadedInputDataFile() {
-    return cy.findByTestId('uploaded-file-cell');
   }
 
   selectMaaSSecret(secretName: string) {

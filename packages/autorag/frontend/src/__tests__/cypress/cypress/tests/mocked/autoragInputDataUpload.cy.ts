@@ -1,4 +1,7 @@
-import { autoragConfigurePage } from '~/__tests__/cypress/cypress/pages/evaluationFileCreator';
+import {
+  autoragConfigurePage,
+  fileExplorer,
+} from '~/__tests__/cypress/cypress/pages/evaluationFileCreator';
 
 // my-project is the only fake namespace with a DSPA and secrets
 // (packages/autorag/bff/internal/fake/k8s.go)
@@ -36,15 +39,16 @@ describe('AutoRAG knowledge document image upload', () => {
     autoragConfigurePage.findStorageSecretInput().type(STORAGE_SECRET);
     autoragConfigurePage.findSecretOption(STORAGE_SECRET).should('be.visible').click();
 
-    autoragConfigurePage.findInputDataUploadToggle().click();
-    autoragConfigurePage
-      .findInputDataUploadFile()
+    fileExplorer.findAddKnowledgeFilesButton().click();
+    fileExplorer.find().should('be.visible');
+    fileExplorer
+      .findUploadInput()
       .invoke('attr', 'accept')
       .then((accept) => {
         expect(accept?.split(',')).to.include.members(['.jpg', '.jpeg', '.png', '.tif', '.tiff']);
       });
 
-    autoragConfigurePage.findInputDataUploadFile().selectFile(
+    fileExplorer.findUploadInput().selectFile(
       {
         contents: 'mock TIFF image content',
         fileName: IMAGE_NAME,
@@ -57,6 +61,6 @@ describe('AutoRAG knowledge document image upload', () => {
       expect(response?.statusCode, 'upload status').to.be.oneOf([200, 201]);
       expect(response?.body?.key, 'uploaded key').to.include(IMAGE_NAME);
     });
-    autoragConfigurePage.findUploadedInputDataFile().should('contain.text', IMAGE_NAME);
+    fileExplorer.findRow(IMAGE_NAME).should('contain.text', IMAGE_NAME);
   });
 });
