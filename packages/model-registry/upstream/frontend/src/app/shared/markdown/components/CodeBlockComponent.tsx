@@ -17,6 +17,7 @@ type CodeBlockComponentProps = {
   maxHeight?: string;
   scrollTestId?: string;
   codeTestId?: string;
+  copyTestId?: string;
 };
 
 const CodeBlockComponent: React.FC<CodeBlockComponentProps> = ({
@@ -25,6 +26,7 @@ const CodeBlockComponent: React.FC<CodeBlockComponentProps> = ({
   maxHeight,
   scrollTestId,
   codeTestId,
+  copyTestId,
 }) => {
   const [copied, setCopied] = React.useState(false);
   const id = React.useId();
@@ -43,6 +45,7 @@ const CodeBlockComponent: React.FC<CodeBlockComponentProps> = ({
     <CodeBlockAction>
       <ClipboardCopyButton
         id={`copy-${id}`}
+        data-testid={copyTestId}
         aria-label="Copy to clipboard"
         onClick={handleCopy}
         onTooltipHidden={() => setCopied(false)}

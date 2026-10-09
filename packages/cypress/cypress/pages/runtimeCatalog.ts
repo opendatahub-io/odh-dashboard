@@ -31,6 +31,14 @@ class RuntimeCatalogPage {
     return cy.findByTestId(`runtime-catalog-card-${cardKey}`);
   }
 
+  findCardDetailLink(cardKey: string) {
+    return this.findCard(cardKey).findByTestId(`runtime-catalog-card-detail-link-${cardKey}`);
+  }
+
+  openCardDetails(cardKey: string) {
+    this.findCardDetailLink(cardKey).click();
+  }
+
   findCardName(cardKey: string) {
     return cy.findByTestId(`runtime-catalog-card-name-${cardKey}`);
   }
