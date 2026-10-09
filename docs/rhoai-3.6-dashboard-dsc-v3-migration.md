@@ -1,8 +1,9 @@
 # Dashboard Configuration Changes for RHOAI 3.6
 
 RHOAI 3.6 introduces the Dashboard portion of the DataScienceCluster (DSC) v3
-configuration. The Dashboard component now has independent management states
-for the standard Dashboard and the MaaS Portal.
+configuration. The Dashboard component now defines separate management states
+for the standard Dashboard and the MaaS Portal. The v2-to-v3 conversion
+preserves both values independently.
 
 ## DSC v3 Configuration
 
@@ -18,9 +19,10 @@ spec:
         managementState: Removed
 ```
 
-The two child components are independent. Setting `standard` to `Removed` does
-not remove a managed `maasPortal`, and setting `maasPortal` to `Removed` does
-not remove the standard Dashboard.
+With an operator revision containing the portal-only projection fix, setting
+`standard` to `Removed` does not remove a managed `maasPortal`, and setting
+`maasPortal` to `Removed` does not remove the standard Dashboard. The current
+operator limitation is described below.
 
 > **Current operator limitation:** Operator revisions that do not include
 > [RHOAIENG-99044] project `spec.managementState: Managed` to the Dashboard
@@ -80,9 +82,8 @@ After upgrading:
 - Keep using the v2 field names only for v2 clients or compatibility workflows;
   do not add the legacy name to new v3 configuration.
 
-The v2-to-v3 conversion preserves the independent Dashboard and MaaS Portal
-states. Existing v2 configurations therefore do not need to be rewritten before
-the upgrade solely because of the field rename.
+Existing v2 configurations therefore do not need to be rewritten before the
+upgrade solely because of the field rename.
 
 ## Compatibility Note
 
