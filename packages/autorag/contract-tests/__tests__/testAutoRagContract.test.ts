@@ -95,6 +95,38 @@ describe('AutoRAG API Contract Tests', () => {
       });
     });
 
+    it('should classify only Neo4j secrets containing both URI and password', async () => {
+      const result = await apiClient.get(
+        `/api/v1/secrets?namespace=${NS}&type=database&provider=neo4j`,
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/SecretsResponse/content/application~1json/schema',
+        status: 200,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const secrets = (result.response.data as { data: { name: string }[] }).data;
+        expect(secrets.map((secret) => secret.name)).toEqual(['neo4j']);
+      }
+    });
+
+    it('should classify canonical Milvus secrets and reject legacy certificate shapes', async () => {
+      const result = await apiClient.get(`/api/v1/secrets?namespace=${NS}&type=vector-db`);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/SecretsResponse/content/application~1json/schema',
+        status: 200,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const secrets = (
+          result.response.data as { data: { name: string; data: Record<string, string> }[] }
+        ).data;
+        expect(secrets.map((secret) => secret.name)).toEqual(['vector-db']);
+        expect(secrets[0].data).toHaveProperty('MILVUS_CA_CERT');
+        expect(secrets[0].data).not.toHaveProperty('MILVUS_SERVER_CERT');
+      }
+    });
+
     it('should return 400 when namespace parameter is missing', async () => {
       const result = await apiClient.get('/api/v1/secrets');
       expect(result.success).toBe(false);

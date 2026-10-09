@@ -194,15 +194,14 @@ export const getVectorStoreProviderTypeFromSecretData = (
   data?: Record<string, string>,
 ): VectorStoreProviderType | undefined => {
   const keys = new Set(Object.keys(data ?? {}));
-  const hasMilvus = keys.has('MILVUS_URI');
-  const hasPgvector = [
-    'PGVECTOR_HOST',
-    'PGVECTOR_PORT',
-    'PGVECTOR_DB',
-    'PGVECTOR_USER',
-    'PGVECTOR_PASSWORD',
-  ].every((key) => keys.has(key));
-  const hasNeo4j = keys.has('NEO4J_URI');
+  const hasLegacyMilvusKey = keys.has('MILVUS_SERVER_CERT');
+  const hasMilvus = keys.has('MILVUS_URI') && !hasLegacyMilvusKey;
+  const hasPgvector =
+    !hasLegacyMilvusKey &&
+    ['PGVECTOR_HOST', 'PGVECTOR_PORT', 'PGVECTOR_DB', 'PGVECTOR_USER', 'PGVECTOR_PASSWORD'].every(
+      (key) => keys.has(key),
+    );
+  const hasNeo4j = !hasLegacyMilvusKey && keys.has('NEO4J_URI') && keys.has('NEO4J_PASSWORD');
 
   const providers = [
     hasMilvus ? 'milvus' : undefined,

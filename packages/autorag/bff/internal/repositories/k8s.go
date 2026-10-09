@@ -45,7 +45,7 @@ var vectorDBTypeRequiredKeys = map[string][]string{
 var databaseTypeRequiredKeys = map[string][]string{
 	"milvus":   {"MILVUS_URI"},
 	"pgvector": vectorDBTypeRequiredKeys["pgvector"],
-	"neo4j":    {"NEO4J_URI"},
+	"neo4j":    {"NEO4J_URI", "NEO4J_PASSWORD"},
 }
 
 var databaseProviderOrder = []string{"milvus", "pgvector", "neo4j"}
@@ -61,6 +61,9 @@ func NewK8sRepository() *K8sRepository {
 }
 
 func matchingDatabaseProviders(secret kubernetes.SecretInfo) []string {
+	if kubernetes.SecretInfoHasAllKeys(secret, []string{"MILVUS_SERVER_CERT"}) {
+		return nil
+	}
 	providers := make([]string, 0, len(databaseProviderOrder))
 	for _, provider := range databaseProviderOrder {
 		if kubernetes.SecretInfoHasAllKeys(secret, databaseTypeRequiredKeys[provider]) {
@@ -81,6 +84,20 @@ func filterDatabaseSecretInfos(
 			continue
 		}
 		filtered = append(filtered, secret)
+	}
+	return filtered
+}
+
+func filterVectorDBSecretInfos(secretInfos []kubernetes.SecretInfo) []kubernetes.SecretInfo {
+	filtered := make([]kubernetes.SecretInfo, 0, len(secretInfos))
+	for _, secret := range secretInfos {
+		if kubernetes.SecretInfoHasAllKeys(secret, []string{"MILVUS_SERVER_CERT"}) {
+			continue
+		}
+		if kubernetes.SecretInfoHasAllKeys(secret, vectorDBTypeRequiredKeys["milvus"]) ||
+			kubernetes.SecretInfoHasAllKeys(secret, vectorDBTypeRequiredKeys["pgvector"]) {
+			filtered = append(filtered, secret)
+		}
 	}
 	return filtered
 }
@@ -125,7 +142,7 @@ func (r *K8sRepository) GetFilteredSecretsByProvider(
 	case "maas":
 		filtered = kubernetes.FilterSecretInfos(secretInfos, maasTypeRequiredKeys)
 	case "vector-db":
-		filtered = kubernetes.FilterSecretInfos(secretInfos, vectorDBTypeRequiredKeys)
+		filtered = filterVectorDBSecretInfos(secretInfos)
 	case "database":
 		filtered = filterDatabaseSecretInfos(secretInfos, provider)
 	default:

@@ -30,6 +30,9 @@ type DatabaseProvider = 'milvus' | 'pgvector' | 'neo4j';
 
 const getDatabaseProviders = (secret: SecretListItem): DatabaseProvider[] => {
   const keys = new Set(Object.keys(secret.data ?? {}));
+  if (keys.has('MILVUS_SERVER_CERT')) {
+    return [];
+  }
   return [
     keys.has('MILVUS_URI') ? 'milvus' : undefined,
     ['PGVECTOR_HOST', 'PGVECTOR_PORT', 'PGVECTOR_DB', 'PGVECTOR_USER', 'PGVECTOR_PASSWORD'].every(
@@ -37,7 +40,7 @@ const getDatabaseProviders = (secret: SecretListItem): DatabaseProvider[] => {
     )
       ? 'pgvector'
       : undefined,
-    keys.has('NEO4J_URI') ? 'neo4j' : undefined,
+    keys.has('NEO4J_URI') && keys.has('NEO4J_PASSWORD') ? 'neo4j' : undefined,
   ].filter((provider): provider is DatabaseProvider => provider !== undefined);
 };
 
@@ -106,7 +109,12 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
     });
     if (preserveSelectedValue && valueName) {
       const selectedSecret = allSecrets.find((secret) => secret.name === valueName);
-      if (selectedSecret && !filteredSecrets.some((secret) => secret.name === valueName)) {
+      const selectedProviders = selectedSecret ? getDatabaseProviders(selectedSecret) : [];
+      if (
+        selectedSecret &&
+        selectedProviders.length === 1 &&
+        !filteredSecrets.some((secret) => secret.name === valueName)
+      ) {
         return [...filteredSecrets, selectedSecret];
       }
     }

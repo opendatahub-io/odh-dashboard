@@ -310,6 +310,27 @@ describe('getVectorStoreProviderTypeFromSecretData', () => {
       getVectorStoreProviderTypeFromSecretData({
         MILVUS_URI: '[REDACTED]',
         NEO4J_URI: '[REDACTED]',
+        NEO4J_PASSWORD: '[REDACTED]',
+      }),
+    ).toBeUndefined();
+  });
+
+  it('should reject Neo4j URI-only and legacy Milvus metadata', () => {
+    expect(getVectorStoreProviderTypeFromSecretData({ NEO4J_URI: '[REDACTED]' })).toBeUndefined();
+    expect(
+      getVectorStoreProviderTypeFromSecretData({
+        MILVUS_URI: '[REDACTED]',
+        MILVUS_SERVER_CERT: '[REDACTED]',
+      }),
+    ).toBeUndefined();
+  });
+
+  it('should reject legacy Milvus metadata mixed with complete Neo4j metadata', () => {
+    expect(
+      getVectorStoreProviderTypeFromSecretData({
+        MILVUS_SERVER_CERT: '[REDACTED]',
+        NEO4J_URI: '[REDACTED]',
+        NEO4J_PASSWORD: '[REDACTED]',
       }),
     ).toBeUndefined();
   });

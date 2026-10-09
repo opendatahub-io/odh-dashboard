@@ -68,7 +68,7 @@ Secrets are filtered using configurable dictionaries of secret types and their r
 | **Milvus**      | `MILVUS_URI`                                                                          |
 | **PGVector**    | `PGVECTOR_HOST`, `PGVECTOR_PORT`, `PGVECTOR_DB`, `PGVECTOR_USER`, `PGVECTOR_PASSWORD` |
 
-The `vector-db` result is the deduplicated union of these two key sets. Filtering is based on key presence only: empty values, extra keys, mixed database families, and OGX keys are not excluded.
+The `vector-db` result is the deduplicated union of these two key sets. Filtering is based on key presence only: empty values, extra keys, mixed database families, and OGX keys are not excluded. A Secret containing the unsupported legacy `MILVUS_SERVER_CERT` key is excluded from vector-database classification, even when `MILVUS_URI` or other supported keys are also present.
 
 **Currently Supported Generic Database Types:**
 
@@ -76,9 +76,9 @@ The `vector-db` result is the deduplicated union of these two key sets. Filterin
 | ------------ | ------------------------------------------------------------------------------------- |
 | **Milvus**   | `MILVUS_URI`                                                                          |
 | **PGVector** | `PGVECTOR_HOST`, `PGVECTOR_PORT`, `PGVECTOR_DB`, `PGVECTOR_USER`, `PGVECTOR_PASSWORD` |
-| **Neo4j**    | `NEO4J_URI`                                                                           |
+| **Neo4j**    | `NEO4J_URI`, `NEO4J_PASSWORD`                                                         |
 
-The `database` result uses key-presence matching for all three providers and excludes secrets matching more than one provider. `provider=neo4j` requires `NEO4J_URI` and returns only unambiguous Neo4j connections.
+The `database` result uses key-presence matching for all three providers and excludes secrets matching more than one provider. `provider=neo4j` requires `NEO4J_URI` and `NEO4J_PASSWORD` and returns only unambiguous Neo4j connections. Optional CA keys are `MILVUS_CA_CERT`, `PGVECTOR_CA_CERT`, and `NEO4J_CA_CERT`; `MILVUS_SERVER_CERT` is not supported.
 
 ## Response Format
 
@@ -295,8 +295,8 @@ The endpoint supports filtering modes based on the `type` parameter:
    - Empty values and additional keys are allowed
 
 5. **`type=vector-db`**: Filters for vector database secrets
-   - Returns the deduplicated union of `MILVUS_URI` and the complete PGVector key set
-   - Uses key presence only; empty values and additional or mixed keys are allowed
+   - Returns the deduplicated union of `MILVUS_URI` and the complete PGVector key set; legacy `MILVUS_SERVER_CERT` shapes are excluded
+   - Uses key presence only; empty values and additional or mixed keys are allowed, except any Secret containing the unsupported legacy `MILVUS_SERVER_CERT` key
 
 Invalid type values result in a 400 Bad Request error.
 

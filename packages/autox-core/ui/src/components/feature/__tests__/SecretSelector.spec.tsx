@@ -295,7 +295,11 @@ describe('SecretSelector', () => {
       {
         uuid: 'mixed',
         name: 'mixed',
-        data: { MILVUS_URI: 'https://milvus', NEO4J_URI: 'neo4j://db' },
+        data: {
+          MILVUS_URI: 'https://milvus',
+          NEO4J_URI: 'neo4j://db',
+          NEO4J_PASSWORD: 'password',
+        },
       },
     ];
     mockUseSecretsQuery.mockReturnValue({
@@ -319,11 +323,12 @@ describe('SecretSelector', () => {
     expect(screen.queryByTestId('secret-option-mixed')).not.toBeInTheDocument();
   });
 
-  it('should preserve a mixed-provider legacy selection as an option', () => {
+  it('should reject a legacy Milvus selection instead of preserving it', async () => {
+    const onChange = jest.fn();
     const legacySecret: SecretListItem = {
       uuid: 'legacy',
       name: 'legacy',
-      data: { MILVUS_URI: 'https://milvus', NEO4J_URI: 'neo4j://db' },
+      data: { MILVUS_URI: 'https://milvus', MILVUS_SERVER_CERT: 'legacy-cert' },
     };
     mockUseSecretsQuery.mockReturnValue({
       data: [legacySecret],
@@ -339,10 +344,41 @@ describe('SecretSelector', () => {
         allowedProviders={['milvus']}
         preserveSelectedValue
         valueName="legacy"
-        onChange={jest.fn()}
+        onChange={onChange}
       />,
     );
 
-    expect(screen.getByTestId('secret-option-legacy')).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.queryByTestId('secret-option-legacy')).not.toBeInTheDocument();
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith(undefined));
+  });
+
+  it('should reject a URI-only Neo4j selection instead of preserving it', async () => {
+    const onChange = jest.fn();
+    mockUseSecretsQuery.mockReturnValue({
+      data: [
+        {
+          uuid: 'neo4j-uri-only',
+          name: 'neo4j-uri-only',
+          data: { NEO4J_URI: 'neo4j://db.example.com' },
+        },
+      ],
+      isPending: false,
+      error: null,
+      refetch: jest.fn(),
+    } as never);
+
+    render(
+      <SecretSelector
+        namespace="test"
+        type="database"
+        allowedProviders={['neo4j']}
+        preserveSelectedValue
+        valueName="neo4j-uri-only"
+        onChange={onChange}
+      />,
+    );
+
+    expect(screen.queryByTestId('secret-option-neo4j-uri-only')).not.toBeInTheDocument();
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith(undefined));
   });
 });
