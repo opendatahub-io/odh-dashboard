@@ -13,8 +13,10 @@ import {
   ModalHeader,
   TextInput,
 } from '@patternfly/react-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AgentConfigurationCard from '~/app/AIAssets/components/agentprofiles/AgentConfigurationCard';
 import type { AgentProfile } from '~/app/agentProfile/types';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 import { AIModel } from '~/app/types';
 import './DeployAgentModal.scss';
 
@@ -88,10 +90,22 @@ const DeployAgentModal: React.FC<DeployAgentModalProps> = ({
         ? 'An agent deployment with this name already exists. Choose a different name.'
         : 'The deployment endpoint will be available when creation completes.';
 
+  const handleDeploy = () => {
+    fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_SUBMITTED, { outcome: 'submit' });
+    onDeploy(name);
+  };
+
+  const handleCancel = () => {
+    if (!isDeploying) {
+      fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_SUBMITTED, { outcome: 'cancel' });
+    }
+    onClose();
+  };
+
   return (
     <Modal
       isOpen
-      onClose={onClose}
+      onClose={handleCancel}
       variant="large"
       aria-labelledby="deploy-agent-modal-title"
       data-testid="deploy-agent-modal"
@@ -141,7 +155,7 @@ const DeployAgentModal: React.FC<DeployAgentModalProps> = ({
       <ModalFooter>
         <Button
           variant="primary"
-          onClick={() => onDeploy(name)}
+          onClick={handleDeploy}
           isLoading={isDeploying}
           isDisabled={
             isDeploying || !nameIsValid || !nameIsUnique || missingMCPServerAuth.length > 0
@@ -152,7 +166,7 @@ const DeployAgentModal: React.FC<DeployAgentModalProps> = ({
         </Button>
         <Button
           variant="link"
-          onClick={onClose}
+          onClick={handleCancel}
           isDisabled={isDeploying}
           data-testid="deploy-agent-cancel-button"
         >
