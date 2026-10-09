@@ -1561,7 +1561,7 @@ describe('AutoragConfigurePage', () => {
       const user = await navigateToReconfigureConfigureStep();
 
       // Re-select via the real S3 browser flow, so knowledgeSourceTypeRef is actually set.
-      const selectFilesButton = await screen.findByRole('button', { name: 'Add files' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Replace files' });
       await user.click(selectFilesButton);
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);

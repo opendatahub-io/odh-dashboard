@@ -166,10 +166,10 @@ describe('AutoML tracking event firers', () => {
   });
 
   it('should fire AutoML Training Data Configured with the training data source type', () => {
-    fireAutomlTrainingDataConfigured('upload');
+    fireAutomlTrainingDataConfigured('select');
 
     expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.TRAINING_DATA_CONFIGURED, {
-      trainingDataSourceType: 'upload',
+      trainingDataSourceType: 'select',
     });
   });
 

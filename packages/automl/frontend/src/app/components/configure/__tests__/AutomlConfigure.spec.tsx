@@ -196,12 +196,16 @@ describe('AutomlConfigure', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add files' }));
     fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
+    fireEvent.click(screen.getByRole('button', { name: 'Replace files' }));
+    fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
     expect(screen.getByRole('button', { name: 'Replace files' })).toBeInTheDocument();
     expect(screen.getByRole('grid', { name: 'Selected training data file' })).toBeInTheDocument();
     expect(screen.getByText('data.csv')).toBeInTheDocument();
     expect(trackingMock).toHaveBeenCalledWith(AUTOML_EVENTS.TRAINING_DATA_CONFIGURED, {
       trainingDataSourceType: 'select',
     });
+    expect(trackingMock).toHaveBeenCalledTimes(1);
   });
 
   it('should preserve the current selection when the explorer is cancelled', () => {
@@ -225,5 +229,10 @@ describe('AutomlConfigure', () => {
     expect(
       screen.queryByRole('grid', { name: 'Selected training data file' }),
     ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add files' })).toBeInTheDocument();
+    expect(trackingMock).not.toHaveBeenCalledWith(
+      AUTOML_EVENTS.TRAINING_DATA_CONFIGURED,
+      expect.anything(),
+    );
   });
 });

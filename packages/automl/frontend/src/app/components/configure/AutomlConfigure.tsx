@@ -312,10 +312,10 @@ function AutomlConfigure({
   const hasFiredTrainingDataMilestoneRef = useRef(false);
   const hasFiredTargetColumnMilestoneRef = useRef(false);
 
-  const fireTrainingDataMilestoneOnce = useCallback((mode: 'select' | 'upload') => {
+  const fireTrainingDataMilestoneOnce = useCallback(() => {
     if (!hasFiredTrainingDataMilestoneRef.current) {
       hasFiredTrainingDataMilestoneRef.current = true;
-      fireAutomlTrainingDataConfigured(mode);
+      fireAutomlTrainingDataConfigured('select');
     }
   }, []);
 
@@ -417,20 +417,11 @@ function AutomlConfigure({
             bucket: trainDataBucketName,
             key: prefix ? `${prefix}/${file.name}` : file.name,
             file,
-          }).then((result) => {
-            fireTrainingDataMilestoneOnce('upload');
-            return { key: result.key };
-          }),
+          }).then((result) => ({ key: result.key })),
         ),
       );
     },
-    [
-      namespace,
-      trainDataBucketName,
-      trainDataSecretName,
-      uploadFileToS3,
-      fireTrainingDataMilestoneOnce,
-    ],
+    [namespace, trainDataBucketName, trainDataSecretName, uploadFileToS3],
   );
 
   if (!namespace) {
@@ -975,7 +966,7 @@ function AutomlConfigure({
             const filePath = file.path.replace(/^\//, '');
             setValue('train_data_file_key', filePath, { shouldValidate: true });
             setSelectedTrainingDataFile(file);
-            fireTrainingDataMilestoneOnce('select');
+            fireTrainingDataMilestoneOnce();
           }
         }}
         uploadFiles={uploadTrainingDataFiles}

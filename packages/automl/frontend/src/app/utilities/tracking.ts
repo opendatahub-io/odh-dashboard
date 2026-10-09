@@ -146,12 +146,10 @@ export const fireAutomlRunDetailsDefined = (
 
 /**
  * Fires once when the user completes the training data section of the configure flow
- * (an S3 connection plus a file are selected, whether picked from the bucket or uploaded).
+ * (an S3 connection plus a file are selected from the bucket).
  * Used to measure funnel retention through the multi-section AutoML configure page.
  */
-export const fireAutomlTrainingDataConfigured = (
-  trainingDataSourceType: 'select' | 'upload',
-): void => {
+export const fireAutomlTrainingDataConfigured = (trainingDataSourceType: 'select'): void => {
   fireMiscTrackingEvent(AUTOML_EVENTS.TRAINING_DATA_CONFIGURED, { trainingDataSourceType });
 };
 
