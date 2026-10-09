@@ -109,7 +109,8 @@
     "./utilities/axios": "./src/utilities/axios.ts"
   },
   "module-federation-shared": [
-    "./context/HardwareProfilesContext"
+    "./context/HardwareProfilesContext",
+    "./context/WorkingProjectContext"
   ],
   "scripts": {
     "lint": "eslint .",

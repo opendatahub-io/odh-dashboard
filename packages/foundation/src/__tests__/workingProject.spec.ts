@@ -166,6 +166,45 @@ describe('resolveWorkingProject', () => {
       currentName: 'ai-2',
     });
     expect(result.activeProject?.name).toBe('alpha');
+    expect(result.removedRouteFallback).toEqual({ routeName: 'ai-2', projectName: 'alpha' });
+  });
+
+  it('should keep the fallback stable across resolutions until the removed-project route changes', () => {
+    const firstResolution = resolve({
+      list: { status: 'listed', projects: [projects[0], projects[3]] },
+      route: { kind: 'project', name: 'ai-2' },
+      currentName: 'ai-2',
+    });
+    const secondResolution = resolve({
+      list: { status: 'listed', projects: [projects[0], projects[3]] },
+      route: { kind: 'project', name: 'ai-2' },
+      currentName: firstResolution.activeProject?.name,
+      removedRouteFallback: firstResolution.removedRouteFallback,
+    });
+
+    expect(firstResolution.activeProject?.name).toBe('alpha');
+    expect(secondResolution.activeProject?.name).toBe('alpha');
+    expect(secondResolution.removedRouteFallback).toEqual(firstResolution.removedRouteFallback);
+
+    const reconciledResolution = resolve({
+      list: { status: 'listed', projects: [projects[0], projects[3]] },
+      route: { kind: 'project', name: 'alpha' },
+      currentName: secondResolution.activeProject?.name,
+      removedRouteFallback: secondResolution.removedRouteFallback,
+    });
+    expect(reconciledResolution.activeProject?.name).toBe('alpha');
+    expect(reconciledResolution.removedRouteFallback).toBeNull();
+  });
+
+  it('should not retain the fallback when the route changes to a different invalid project', () => {
+    const result = resolve({
+      list: { status: 'listed', projects: [projects[0], projects[3]] },
+      route: { kind: 'project', name: 'different-missing-project' },
+      currentName: 'alpha',
+      removedRouteFallback: { routeName: 'ai-2', projectName: 'alpha' },
+    });
+    expect(result.activeProject).toBeNull();
+    expect(result.removedRouteFallback).toBeNull();
   });
 
   it('should prefer another AI project when the formerly active route project is removed', () => {

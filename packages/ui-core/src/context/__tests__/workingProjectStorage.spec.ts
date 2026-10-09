@@ -24,9 +24,12 @@ describe('working project storage', () => {
     [null, null],
     ['', null],
     ['""', null],
-    ['null', null],
-    ['123', null],
+    ['null', 'null'],
+    ['123', '123'],
+    ['true', 'true'],
+    ['false', 'false'],
     ['{"name":"project-2"}', null],
+    ['[]', null],
   ])(
     'should parse stored value %s to %s without treating objects as identities',
     (raw, expected) => {
@@ -47,6 +50,14 @@ describe('working project storage', () => {
     expect(readStoredWorkingProjectName(blocked)).toBeNull();
   });
 
+  it.each(['123', 'true', 'null'])(
+    'should restore a valid scalar-shaped legacy namespace name %s',
+    (name) => {
+      localStorage.setItem(key, name);
+      expect(readStoredWorkingProjectName(localStorage)).toBe(name);
+    },
+  );
+
   it('should only persist a known resource name in the established JSON format', () => {
     expect(
       persistWorkingProject(localStorage, { ...known, displayName: 'Untrusted' }, [known]),
@@ -61,6 +72,14 @@ describe('working project storage', () => {
     localStorage.setItem(key, known.name);
     const setItem = jest.spyOn(Storage.prototype, 'setItem');
     expect(persistWorkingProject(localStorage, known, [known])).toBe(true);
+    expect(setItem).not.toHaveBeenCalled();
+  });
+
+  it('should skip a redundant write for a legacy scalar-shaped namespace name', () => {
+    const numericProject = { name: '123' };
+    localStorage.setItem(key, numericProject.name);
+    const setItem = jest.spyOn(Storage.prototype, 'setItem');
+    expect(persistWorkingProject(localStorage, numericProject, [numericProject])).toBe(true);
     expect(setItem).not.toHaveBeenCalled();
   });
 

@@ -161,6 +161,32 @@ describe('resolvePersistedWorkingProject', () => {
     expect(storage.setItem).not.toHaveBeenCalled();
   });
 
+  it('should retain a removed-route fallback across persisted resolutions until route reconciliation', () => {
+    const storage = { getItem: jest.fn(() => null), setItem: jest.fn() };
+    const remainingProjects = { status: 'listed' as const, projects: [second] };
+    const firstResolution = resolvePersistedWorkingProject({
+      storage,
+      list: remainingProjects,
+      route: { kind: 'project', name: first.name },
+      currentName: first.name,
+    });
+    const secondResolution = resolvePersistedWorkingProject({
+      storage,
+      list: remainingProjects,
+      route: { kind: 'project', name: first.name },
+      currentName: firstResolution.activeProject?.name,
+      removedRouteFallback: firstResolution.removedRouteFallback,
+    });
+
+    expect(firstResolution.activeProject).toBe(second);
+    expect(secondResolution.activeProject).toBe(second);
+    expect(secondResolution.removedRouteFallback).toEqual({
+      routeName: first.name,
+      projectName: second.name,
+    });
+    expect(storage.getItem).not.toHaveBeenCalled();
+  });
+
   it('should refuse a result whose project has since disappeared from the provider set', () => {
     const storage = { getItem: jest.fn(() => null), setItem: jest.fn() };
     const result = resolvePersistedWorkingProject({

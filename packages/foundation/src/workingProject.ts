@@ -19,6 +19,8 @@ export interface WorkingProjectResolution<T extends WorkingProjectIdentity> {
   /** The same ordered collection should be used by the selector and default selection. */
   orderedProjects: T[];
   activeProject: T | null;
+  /** Recovery state to carry until the route adapter replaces a removed-project URL. */
+  removedRouteFallback: { routeName: string; projectName: string } | null;
 }
 
 const labelCollator = new Intl.Collator('en', { sensitivity: 'base', numeric: true });
@@ -45,6 +47,8 @@ export interface ResolveWorkingProjectInput<T extends WorkingProjectIdentity> {
   isAiProject?: (project: T) => boolean;
   /** Identifies a route project that was removed after being active in this session. */
   currentName?: string | null;
+  /** Recovery state returned by the previous resolution while the route is still stale. */
+  removedRouteFallback?: { routeName: string; projectName: string } | null;
 }
 
 export const resolveWorkingProject = <T extends WorkingProjectIdentity>({
@@ -53,6 +57,7 @@ export const resolveWorkingProject = <T extends WorkingProjectIdentity>({
   storedName,
   isAiProject,
   currentName,
+  removedRouteFallback,
 }: ResolveWorkingProjectInput<T>): WorkingProjectResolution<T> => {
   const orderedProjects = list.status === 'listed' ? orderWorkingProjects(list.projects) : [];
   const find = (name: string | null | undefined): T | null =>
@@ -63,6 +68,7 @@ export const resolveWorkingProject = <T extends WorkingProjectIdentity>({
     return {
       orderedProjects,
       activeProject: null,
+      removedRouteFallback: null,
     };
   }
 
@@ -70,16 +76,31 @@ export const resolveWorkingProject = <T extends WorkingProjectIdentity>({
     return {
       orderedProjects,
       activeProject: null,
+      removedRouteFallback: null,
     };
   }
 
   // A missing deep link is not a request for another project's data. The only
   // exception is removal of the project that was already active in this session.
-  if (route?.kind === 'project' && !find(route.name) && currentName !== route.name) {
-    return {
-      orderedProjects,
-      activeProject: null,
-    };
+  if (route?.kind === 'project' && !find(route.name)) {
+    if (removedRouteFallback?.routeName === route.name) {
+      const fallback = find(removedRouteFallback.projectName);
+      if (fallback) {
+        return {
+          orderedProjects,
+          activeProject: fallback,
+          removedRouteFallback,
+        };
+      }
+    }
+
+    if (currentName !== route.name) {
+      return {
+        orderedProjects,
+        activeProject: null,
+        removedRouteFallback: null,
+      };
+    }
   }
 
   const match = find(requestedName);
@@ -87,14 +108,21 @@ export const resolveWorkingProject = <T extends WorkingProjectIdentity>({
     return {
       orderedProjects,
       activeProject: match,
+      removedRouteFallback: null,
     };
   }
   // AI preference applies only to fallback; a valid route or stored non-AI project still wins.
   const defaultProject = orderedProjects.length
     ? orderedProjects.find((project) => isAiProject?.(project)) ?? orderedProjects[0]
     : null;
+  const shouldRetainRemovedRoute =
+    route?.kind === 'project' && !find(route.name) && currentName === route.name;
   return {
     orderedProjects,
     activeProject: defaultProject,
+    removedRouteFallback:
+      shouldRetainRemovedRoute && defaultProject
+        ? { routeName: route.name, projectName: defaultProject.name }
+        : null,
   };
 };

@@ -1,3 +1,4 @@
+import { isValidK8sName } from '@odh-dashboard/k8s-core';
 import type { ProjectIdentity } from './WorkingProjectContext';
 import { PREFERRED_NAMESPACE_STORAGE_KEY } from './getStoredPreferredProject';
 
@@ -12,7 +13,10 @@ export const parseStoredWorkingProjectName = (raw: string | null): string | null
   } catch {
     name = raw;
   }
-  return typeof name === 'string' && name.length > 0 ? name : null;
+  if (typeof name === 'string') {
+    return name.length > 0 ? name : null;
+  }
+  return isValidK8sName(raw) ? raw : null;
 };
 
 export const readStoredWorkingProjectName = (storage: Pick<Storage, 'getItem'>): string | null => {
