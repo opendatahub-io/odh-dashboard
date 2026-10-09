@@ -318,6 +318,9 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 	deployment := &appsv1.Deployment{}
 	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-portal", Namespace: integrationNamespace}, deployment))
 	deployment.Status.ObservedGeneration = deployment.Generation
+	deployment.Status.Replicas = 1
+	deployment.Status.ReadyReplicas = 1
+	deployment.Status.AvailableReplicas = 1
 	deployment.Status.Conditions = []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue}}
 	require.NoError(t, k8sClient.Status().Update(ctx, deployment))
 	for _, name := range []string{"maas-ui", "gen-ai-ui"} {
@@ -371,6 +374,20 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 		{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
 	}}}
 	require.NoError(t, k8sClient.Status().Update(ctx, route))
+	for range 2 {
+		result := reconcile(t, r)
+		assert.Equal(t, ctrlpkg.MaaSPortalRetryInterval, result.RequeueAfter)
+		assert.Equal(t, "MigrationPending", conditionReason(getDashboard(t), ctrlpkg.ConditionMaaSPortalAvailable))
+		require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-portal", Namespace: integrationNamespace}, route))
+		assert.Equal(t, previousRouteUID, route.GetUID())
+		assert.Equal(t, preFixRoute.Spec, route.Spec, "healthy old replicas must retain the old browser prefix while rollout is stalled")
+		assert.Empty(t, getDashboard(t).Status.MaaSPortalURL, "do not publish the new URL before prefix cutover")
+	}
+	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-portal", Namespace: integrationNamespace}, deployment))
+	assert.Zero(t, deployment.Status.UpdatedReplicas)
+	deployment.Status.ObservedGeneration = deployment.Generation
+	deployment.Status.UpdatedReplicas = 1
+	require.NoError(t, k8sClient.Status().Update(ctx, deployment))
 	reconcile(t, r)
 	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-portal", Namespace: integrationNamespace}, route))
 	assert.Equal(t, previousRouteUID, route.GetUID(), "removing hostnames must update the existing HTTPRoute")

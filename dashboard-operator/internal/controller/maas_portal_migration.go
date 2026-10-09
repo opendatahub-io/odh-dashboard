@@ -56,18 +56,30 @@ func (r *DashboardReconciler) deployMaaSPortalRoute(ctx context.Context, dashboa
 }
 
 // prepareMaaSPortalRouteMigration keeps the old endpoint while the new workload
-// starts. Delete the old HTTPRoute and observe its absence before applying the
-// replacement so the legacy endpoint is retired at cutover. No migration state
-// is stored, so a crash between deletion and apply resumes from the cluster's
-// actual state.
+// starts, including when resources were renamed before the browser prefix.
+// Delete a legacy-named HTTPRoute and observe its absence before applying the
+// replacement; a renamed route is updated in place after rollout. No migration
+// state is stored, so retries resume from the cluster's actual state.
 func (r *DashboardReconciler) prepareMaaSPortalRouteMigration(ctx context.Context) (bool, error) {
 	route := &gatewayv1.HTTPRoute{}
 	key := client.ObjectKey{Name: legacyMaaSPortalName, Namespace: r.ApplicationsNamespace}
 	if err := r.maasPortalAPIReader().Get(ctx, key, route); err != nil {
-		if apierrors.IsNotFound(err) || meta.IsNoMatchError(err) {
+		if meta.IsNoMatchError(err) {
 			return true, nil
 		}
-		return false, fmt.Errorf("getting legacy MaaS Portal HTTPRoute: %w", err)
+		if !apierrors.IsNotFound(err) {
+			return false, fmt.Errorf("getting legacy MaaS Portal HTTPRoute: %w", err)
+		}
+		key.Name = maasPortalDeploymentName
+		if err := r.maasPortalAPIReader().Get(ctx, key, route); err != nil {
+			if apierrors.IsNotFound(err) || meta.IsNoMatchError(err) {
+				return true, nil
+			}
+			return false, fmt.Errorf("getting MaaS Portal HTTPRoute: %w", err)
+		}
+		if !maasPortalRouteUsesLegacyPrefix(route) {
+			return true, nil
+		}
 	}
 	deployment := &appsv1.Deployment{}
 	if err := r.maasPortalAPIReader().Get(ctx, client.ObjectKey{Name: maasPortalDeploymentName, Namespace: r.ApplicationsNamespace}, deployment); err != nil {
@@ -83,8 +95,24 @@ func (r *DashboardReconciler) prepareMaaSPortalRouteMigration(ctx context.Contex
 	if deployment.Spec.Template.Annotations[maasPortalFederationHashAnnotation] != computeFederationConfigHash(config.Data[federationConfigKey]) {
 		return false, nil
 	}
+	if route.Name == maasPortalDeploymentName {
+		return true, nil
+	}
 	result, err := r.deleteLegacyMaaSPortalObject(ctx, route)
 	return !result.Pending && err == nil, err
+}
+
+func maasPortalRouteUsesLegacyPrefix(route *gatewayv1.HTTPRoute) bool {
+	prefix := "/" + legacyMaaSPortalName
+	for _, rule := range route.Spec.Rules {
+		for _, match := range rule.Matches {
+			if match.Path != nil && match.Path.Value != nil &&
+				(*match.Path.Value == prefix || strings.HasPrefix(*match.Path.Value, prefix+"/")) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func maasPortalRolloutComplete(deployment *appsv1.Deployment) bool {
