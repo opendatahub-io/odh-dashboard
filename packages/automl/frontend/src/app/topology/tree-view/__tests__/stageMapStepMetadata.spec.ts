@@ -512,6 +512,61 @@ describe('getStageMapDetails', () => {
     ]);
   });
 
+  it('uses the latest task attempt when failed stage timestamps predate its retry', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockComponentStageMap,
+      components: [
+        {
+          id: 'automl_data_loader',
+          description: 'Load tabular data',
+          stages: [
+            {
+              id: 'prepare_data',
+              description: 'Prepare data',
+              status: 'failed',
+              timestamp: '2024-09-15T18:36:00Z',
+            },
+            {
+              id: 'split',
+              description: 'Split data',
+              status: 'completed',
+              timestamp: '2024-09-15T18:37:00Z',
+            },
+          ],
+        },
+      ],
+    };
+    const pipelineRun = {
+      run_id: 'run-123',
+      display_name: 'Test Run',
+      state: 'FAILED',
+      created_at: '2024-09-15T18:35:00Z',
+      run_details: {
+        task_details: [
+          {
+            task_id: 'automl-data-loader',
+            display_name: 'automl-data-loader',
+            create_time: '2024-09-15T18:35:00Z',
+            start_time: '2024-09-15T18:35:10Z',
+            end_time: '2024-10-05T18:37:51Z',
+            state: 'FAILED',
+            state_history: [
+              { state: 'RUNNING', update_time: '2024-09-15T18:35:10Z' },
+              { state: 'FAILED', update_time: '2024-09-15T18:40:00Z' },
+              { state: 'PENDING', update_time: '2024-10-05T18:35:55Z' },
+              { state: 'RUNNING', update_time: '2024-10-05T18:36:01Z' },
+              { state: 'FAILED', update_time: '2024-10-05T18:37:51Z' },
+            ],
+          },
+        ],
+      },
+    } as never;
+    const parsed = parseStageMapNodeId('automl_data_loader__prepare_data');
+    const details = getStageMapDetails(parsed!, stageMap, pipelineRun, undefined, 'failed');
+
+    expect(details?.[0]).toEqual({ label: 'Duration', value: '1 m 56 s' });
+  });
+
   it('prefers component started_at over task create_time when task start_time is missing', () => {
     const stageMap: ComponentStageMap = {
       ...mockComponentStageMap,
