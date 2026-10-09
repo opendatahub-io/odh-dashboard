@@ -12,6 +12,7 @@ export enum ServingRuntimeTemplateTrackingEvent {
 export type ServingRuntimeTemplateCreatedProperties = FormTrackingEventProperties & {
   /** Whether the template was created from scratch or duplicated from an existing one. */
   mode: 'create' | 'duplicate';
+  source?: 'install';
   apiProtocol?: ServingRuntimeAPIProtocol;
   /** Comma-separated list of selected model type enum values (no free text). */
   modelTypes?: string;

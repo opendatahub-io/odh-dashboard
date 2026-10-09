@@ -1,4 +1,11 @@
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
+import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
+import {
+  ServingRuntimeAPIProtocol,
+  ServingRuntimeModelType,
+} from '@odh-dashboard/model-serving/shared';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
@@ -72,5 +79,57 @@ describe('Runtime image Install extension navigation', () => {
     cy.url().should('include', '/general-settings');
   });
 
-  // TODO tests for step 2 of the wizard (covering the install target extensions) will be added in https://redhat.atlassian.net/browse/RHOAIENG-96639 and https://redhat.atlassian.net/browse/RHOAIENG-96640
+  it('should install a prefilled Serving runtime template and redirect to its list', () => {
+    asProductAdminUser();
+    initialize(true);
+    const template = mockServingRuntimeTemplateK8sResource({
+      name: 'vllm-0-6-0',
+      modelTypes: [ServingRuntimeModelType.GENERATIVE],
+    });
+    cy.interceptOdh(
+      'GET /api/templates/:namespace',
+      {
+        path: { namespace: 'opendatahub' },
+        query: { labelSelector: 'opendatahub.io/dashboard=true' },
+      },
+      mockK8sResourceList([]),
+    ).as('existingTemplates');
+    cy.interceptOdh(
+      'POST /api/servingRuntimes/',
+      { query: { dryRun: 'All' } },
+      mockServingRuntimeK8sResource({ name: 'vllm-0-6-0' }),
+    ).as('dryRunServingRuntime');
+    cy.interceptOdh('POST /api/templates/', template).as('createTemplate');
+
+    cy.visitWithLogin(
+      '/settings/model-resources-operations/model-deployment-settings/general-settings',
+    );
+    runtimeImageInstallPage.findInstallButton().click();
+    runtimeImageInstallPage.findServingRuntimeRadio().check();
+    runtimeImageInstallPage.findNext().click();
+    runtimeImageInstallPage.findServingRuntimeEditor().waitForReady();
+    cy.testA11y();
+    runtimeImageInstallPage.findServingRuntimeEditor().containsText('vllm-0-6-0');
+    runtimeImageInstallPage
+      .findServingRuntimeProtocol()
+      .should('contain.text', ServingRuntimeAPIProtocol.REST);
+    runtimeImageInstallPage
+      .findServingRuntimeModelTypes()
+      .should('contain.text', 'Select model types');
+    runtimeImageInstallPage.findCreate().should('be.enabled').click();
+    cy.wait('@existingTemplates');
+    cy.wait('@dryRunServingRuntime');
+    cy.wait('@createTemplate').then(({ request }) => {
+      expect(request.body.kind).to.equal('Template');
+      expect(request.body.objects[0].kind).to.equal('ServingRuntime');
+      expect(request.body.metadata.annotations).to.include({
+        'opendatahub.io/modelServingSupport': '["single"]',
+        'opendatahub.io/model-type': JSON.stringify([ServingRuntimeModelType.GENERATIVE]),
+        'opendatahub.io/apiProtocol': ServingRuntimeAPIProtocol.REST,
+      });
+    });
+    cy.url().should('include', '/serving-runtime-templates');
+  });
+
+  // TODO LLM accelerator Step 2 browser coverage belongs to RHOAIENG-96640.
 });

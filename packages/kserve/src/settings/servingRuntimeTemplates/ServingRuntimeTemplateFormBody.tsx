@@ -39,20 +39,26 @@ import {
   fireServingRuntimeTemplateUpdated,
 } from './tracking/servingRuntimeTemplateTracking';
 
-type ServingRuntimeTemplateFormProps = {
-  mode: 'add' | 'edit' | 'duplicate';
-  sourceTemplate?: TemplateKind;
-};
+type ServingRuntimeTemplateFormProps =
+  | {
+      mode: 'add' | 'edit' | 'duplicate';
+      sourceTemplate?: TemplateKind;
+    }
+  | {
+      mode: 'install';
+      sourceTemplate: TemplateKind;
+      onBack: () => void;
+      cancelReturnRoute: string;
+    };
 
-const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> = ({
-  mode,
-  sourceTemplate,
-}) => {
+const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> = (props) => {
+  const { mode, sourceTemplate } = props;
   const listPath = SERVING_RUNTIME_TEMPLATES_TAB_PATH;
   const { dashboardNamespace } = useDashboardNamespace();
   const { refreshData } = React.useContext(CustomServingRuntimeContext);
   const isEdit = mode === 'edit';
   const isDuplicate = mode === 'duplicate';
+  const isInstall = mode === 'install';
 
   const duplicatedServingRuntimeString = React.useMemo(
     () =>
@@ -78,10 +84,10 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
 
   const stringifiedTemplate = React.useMemo(
     () =>
-      isEdit && sourceTemplate
+      (isEdit || isInstall) && sourceTemplate
         ? YAML.stringify(sourceTemplate.objects[0])
         : duplicatedServingRuntimeString,
-    [isEdit, sourceTemplate, duplicatedServingRuntimeString],
+    [isEdit, isInstall, sourceTemplate, duplicatedServingRuntimeString],
   );
 
   const enabledPlatforms: ServingRuntimePlatform[] = React.useMemo(
@@ -121,6 +127,7 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
 
   const isDisabled =
     (!isDuplicate &&
+      !isInstall &&
       code === stringifiedTemplate &&
       enabledPlatforms.includes(ServingRuntimePlatform.SINGLE) === isSinglePlatformEnabled &&
       apiProtocol === selectedAPIProtocol &&
@@ -176,6 +183,11 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
         )}
         <StackItem>
           <ActionGroup>
+            {isInstall && (
+              <Button isDisabled={loading} variant="secondary" onClick={props.onBack}>
+                Back
+              </Button>
+            )}
             <Button
               isDisabled={isDisabled}
               variant="primary"
@@ -201,6 +213,7 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                       outcome: TrackingOutcome.submit,
                       success: false,
                       mode: isDuplicate ? 'duplicate' : 'create',
+                      ...(isInstall && { source: 'install' }),
                       apiProtocol: selectedAPIProtocol,
                       modelTypes: selectedModelTypes.join(','),
                     });
@@ -239,11 +252,14 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                         outcome: TrackingOutcome.submit,
                         success: true,
                         mode: isDuplicate ? 'duplicate' : 'create',
+                        ...(isInstall && { source: 'install' }),
                         apiProtocol: selectedAPIProtocol,
                         modelTypes: selectedModelTypesStr,
                       });
                     }
-                    refreshData();
+                    if (!isInstall) {
+                      refreshData();
+                    }
                     navigate(listPath);
                   })
                   .catch((err) => {
@@ -259,6 +275,7 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                         outcome: TrackingOutcome.submit,
                         success: false,
                         mode: isDuplicate ? 'duplicate' : 'create',
+                        ...(isInstall && { source: 'install' }),
                         apiProtocol: selectedAPIProtocol,
                         modelTypes: selectedModelTypesStr,
                       });
@@ -283,9 +300,10 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                   fireServingRuntimeTemplateCreated({
                     outcome: TrackingOutcome.cancel,
                     mode: isDuplicate ? 'duplicate' : 'create',
+                    ...(isInstall && { source: 'install' }),
                   });
                 }
-                navigate(listPath);
+                navigate(props.mode === 'install' ? props.cancelReturnRoute : listPath);
               }}
             >
               Cancel

@@ -41,6 +41,39 @@ describe('fireServingRuntimeTemplateCreated', () => {
     );
   });
 
+  it('should attribute install submit and cancel to the install source without user content', () => {
+    fireServingRuntimeTemplateCreated({
+      outcome: TrackingOutcome.submit,
+      success: true,
+      mode: 'create',
+      source: 'install',
+      apiProtocol: ServingRuntimeAPIProtocol.REST,
+      modelTypes: 'generative',
+    });
+    fireServingRuntimeTemplateCreated({
+      outcome: TrackingOutcome.cancel,
+      mode: 'create',
+      source: 'install',
+    });
+    expect(mockFireFormTrackingEvent).toHaveBeenNthCalledWith(
+      1,
+      ServingRuntimeTemplateTrackingEvent.CREATED,
+      {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        mode: 'create',
+        source: 'install',
+        apiProtocol: ServingRuntimeAPIProtocol.REST,
+        modelTypes: 'generative',
+      },
+    );
+    expect(mockFireFormTrackingEvent).toHaveBeenNthCalledWith(
+      2,
+      ServingRuntimeTemplateTrackingEvent.CREATED,
+      { outcome: TrackingOutcome.cancel, mode: 'create', source: 'install' },
+    );
+  });
+
   it('should fire the Created event with mode duplicate', () => {
     fireServingRuntimeTemplateCreated({
       outcome: TrackingOutcome.submit,
