@@ -2724,6 +2724,9 @@ importers:
       '@cypress/grep':
         specifier: ^4.1.0
         version: 4.1.1(@babel/core@7.29.7(supports-color@8.1.1))(cypress@15.20.1)(supports-color@8.1.1)
+      '@jest/globals':
+        specifier: ^29.7.0
+        version: 29.7.0(supports-color@8.1.1)
       '@odh-dashboard/app-config':
         specifier: workspace:*
         version: link:../app-config
@@ -2739,6 +2742,9 @@ importers:
       '@odh-dashboard/internal':
         specifier: workspace:*
         version: link:../../frontend/src
+      '@odh-dashboard/jest-config':
+        specifier: workspace:*
+        version: link:../jest-config
       '@odh-dashboard/k8s-core':
         specifier: workspace:*
         version: link:../k8s-core
