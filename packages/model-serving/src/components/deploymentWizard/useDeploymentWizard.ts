@@ -234,9 +234,21 @@ export const useModelDeploymentWizard = (
     [computedOverrides.tokenAuthentication],
   );
   const tokenAuthDisabled = tokenAuthOverrides.isDisabled ?? false;
+  const modelAvailabilityOverrides = React.useMemo(
+    () => computedOverrides.modelAvailability ?? {},
+    [computedOverrides.modelAvailability],
+  );
   const stateWithOverrides: WizardFormData['state'] = React.useMemo(
     () => ({
       ...state,
+      modelAvailability: {
+        ...state.modelAvailability,
+        isDisabled: modelAvailabilityOverrides.isDisabled,
+        isMaaSSubscriptionSelected: modelAvailabilityOverrides.isMaaSSubscriptionSelected,
+        data: modelAvailabilityOverrides.forceSaveAsAiAsset
+          ? { ...state.modelAvailability.data, saveAsAiAsset: true }
+          : state.modelAvailability.data,
+      },
       tokenAuthentication: {
         ...state.tokenAuthentication,
         ...tokenAuthOverrides,
@@ -248,7 +260,7 @@ export const useModelDeploymentWizard = (
         ...computedOverrides['llmd-serving/gateway'],
       },
     }),
-    [state, tokenAuthDisabled, tokenAuthOverrides, computedOverrides],
+    [state, tokenAuthDisabled, tokenAuthOverrides, modelAvailabilityOverrides, computedOverrides],
   );
 
   return {

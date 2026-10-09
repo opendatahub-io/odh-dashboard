@@ -33,7 +33,8 @@ export const applyModelAvailabilityData = (
 ): LLMInferenceServiceKind => {
   const result = structuredClone(deployment);
 
-  // Clear existing AI Asset labels and annotations (MaaS is handled separately by transformer)
+  // A platform-specific transformer can remove this generic metadata after this apply step.
+  // MaaS does so when MaaSModelRef provides subscribed-user discovery instead.
   delete result.metadata.labels?.['opendatahub.io/genai-asset'];
   delete result.metadata.annotations?.['opendatahub.io/genai-use-case'];
 

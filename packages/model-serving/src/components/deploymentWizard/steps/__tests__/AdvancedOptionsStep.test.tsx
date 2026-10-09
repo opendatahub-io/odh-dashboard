@@ -7,10 +7,10 @@ import type { WizardField } from '../../../../shared/types/form-data';
 
 const externalData: ExternalDataMap = {};
 
-const playgroundExtensionField = (): WizardField => ({
-  id: 'unit-test-playground-extension',
+const userExtensionField = (): WizardField => ({
+  id: 'unit-test-user-extension',
   type: 'addition',
-  parentId: 'model-playground-availability',
+  parentId: 'model-users',
   isActive: () => true,
   reducerFunctions: {
     setFieldData: (v) => v,
@@ -20,14 +20,14 @@ const playgroundExtensionField = (): WizardField => ({
 });
 
 describe('AdvancedSettingsStepContent', () => {
-  describe('model playground availability section visibility', () => {
+  describe('users and availability section visibility', () => {
     const modelAvailabilityBase = {
       showField: true,
       data: { saveAsAiAsset: false, useCase: '' },
       setData: jest.fn(),
     };
 
-    it('should hide the Model availability section when Gen AI is disabled and there are no extension fields', () => {
+    it('should hide Users and Availability when MaaS and Gen AI Studio are unavailable', () => {
       const wizardState = mockDeploymentWizardState({
         fields: [],
         advancedOptions: { isExternalRouteVisible: false },
@@ -47,10 +47,11 @@ describe('AdvancedSettingsStepContent', () => {
         />,
       );
 
-      expect(screen.queryByTestId('model-playground-availability')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('model-users')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('model-availability')).not.toBeInTheDocument();
     });
 
-    it('should show the Model availability section when Gen AI is enabled', () => {
+    it('should show Availability when Gen AI Studio is enabled', () => {
       const wizardState = mockDeploymentWizardState({
         fields: [],
         advancedOptions: { isExternalRouteVisible: false },
@@ -70,17 +71,19 @@ describe('AdvancedSettingsStepContent', () => {
         />,
       );
 
-      expect(screen.getByTestId('model-playground-availability')).toBeInTheDocument();
+      expect(screen.queryByTestId('model-users')).not.toBeInTheDocument();
+      expect(screen.getByTestId('model-availability')).toBeInTheDocument();
     });
 
-    it('should show the Model availability section when extension fields target model-playground-availability even if Gen AI is disabled', () => {
+    it('should show Users and MaaS guidance even if Gen AI Studio is disabled', () => {
       const wizardState = mockDeploymentWizardState({
-        fields: [playgroundExtensionField()],
+        fields: [userExtensionField()],
         advancedOptions: { isExternalRouteVisible: false },
         state: {
           modelAvailability: {
             ...modelAvailabilityBase,
             isGenAiEnabled: false,
+            isMaaSSubscriptionSelected: true,
           },
         },
       });
@@ -93,7 +96,38 @@ describe('AdvancedSettingsStepContent', () => {
         />,
       );
 
-      expect(screen.getByTestId('model-playground-availability')).toBeInTheDocument();
+      expect(screen.getByTestId('model-users')).toBeInTheDocument();
+      expect(screen.getByTestId('maas-additional-configuration-alert')).toBeInTheDocument();
+      expect(screen.queryByTestId('model-availability')).not.toBeInTheDocument();
+    });
+
+    it('should show the MaaS configuration alert and hide Use case for subscribed users', () => {
+      const wizardState = mockDeploymentWizardState({
+        fields: [userExtensionField()],
+        advancedOptions: { isExternalRouteVisible: false },
+        state: {
+          modelAvailability: {
+            ...modelAvailabilityBase,
+            data: { saveAsAiAsset: true, useCase: 'chat' },
+            isGenAiEnabled: true,
+            isMaaSSubscriptionSelected: true,
+          },
+        },
+      });
+
+      render(
+        <AdvancedSettingsStepContent
+          wizardState={wizardState}
+          externalData={externalData}
+          allowCreate
+        />,
+      );
+
+      expect(screen.getByTestId('maas-additional-configuration-alert')).toBeInTheDocument();
+      expect(screen.queryByTestId('use-case-input')).not.toBeInTheDocument();
+      expect(screen.getByTestId('model-availability')).toContainElement(
+        screen.getByTestId('maas-additional-configuration-alert'),
+      );
     });
   });
 });

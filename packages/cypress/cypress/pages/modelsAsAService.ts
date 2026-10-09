@@ -7,7 +7,11 @@ import type { UserAuthConfig } from '../types';
 
 // MaaS Wizard Field helpers for the model deployment wizard
 class MaaSWizardField {
-  findSaveAsMaaSCheckbox() {
+  findProjectMembersRadio() {
+    return cy.findByTestId('project-members-radio');
+  }
+
+  findSubscribedUsersRadio() {
     return cy.findByTestId('maas/save-as-maas-checkbox');
   }
 }

@@ -253,13 +253,18 @@ export type GenericFieldProps = {
 
 export type WizardFieldHelpPopover = {
   title?: string;
-  content: string;
+  content: React.ReactNode;
 };
 
 export type WizardStateOverrides = {
   tokenAuthentication?: {
     isDisabled?: boolean;
     disabledHelperText?: string;
+  };
+  modelAvailability?: {
+    isDisabled?: boolean;
+    forceSaveAsAiAsset?: boolean;
+    isMaaSSubscriptionSelected?: boolean;
   };
   'llmd-serving/gateway'?: {
     isDisabled?: boolean;

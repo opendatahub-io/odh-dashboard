@@ -423,11 +423,9 @@ describe('Model Serving Deploy Wizard', () => {
     // Step 3: Advanced Options
     // Model access & Token authentication
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
-    // AI Asset
+    // Gen AI Studio is enabled by default
     modelServingWizard.findSaveAiAssetCheckbox().should('exist');
-    modelServingWizard.findSaveAiAssetCheckbox().should('not.be.checked');
-    modelServingWizard.findUseCaseInput().should('not.exist');
-    modelServingWizard.findSaveAiAssetCheckbox().click();
+    modelServingWizard.findSaveAiAssetCheckbox().should('be.checked');
     modelServingWizard.findUseCaseInput().should('exist');
     modelServingWizard.findUseCaseInput().should('be.enabled');
     modelServingWizard.findUseCaseInput().type('test');
