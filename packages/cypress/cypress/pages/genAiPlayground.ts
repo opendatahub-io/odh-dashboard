@@ -1,6 +1,8 @@
 const GEN_AI_DEV_FLAG = 'devFeatureFlags=genAiStudio=true,modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,modelAsService=false';
+const GEN_AI_EXTERNAL_VECTOR_STORES_FLAG =
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,externalVectorStores=true,modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_RAG_FLAG =
@@ -32,6 +34,11 @@ class GenAiPlayground {
 
   navigateToAssetsWithCustomEndpoints(projectName: string) {
     cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_FLAG}`);
+    cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
+  }
+
+  navigateToAssetsWithExternalVectorStores(projectName: string) {
+    cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_EXTERNAL_VECTOR_STORES_FLAG}`);
     cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
   }
 
@@ -95,6 +102,15 @@ class GenAiPlayground {
 
   findConfigurationTable() {
     return cy.findByTestId('chatbot-configuration-table');
+  }
+
+  findConfigurationCollectionsTable() {
+    return cy.findByTestId('chatbot-configuration-collections-table');
+  }
+
+  findConfigurationVectorStoreCheckbox(vectorStoreId: string) {
+    const sanitizedId = vectorStoreId.replace(/[^a-zA-Z0-9-]/g, '');
+    return cy.findByTestId(`${sanitizedId}-checkbox`).find('input[type="checkbox"]');
   }
 
   findCreateButtonInDialog() {
@@ -307,6 +323,46 @@ class GenAiPlayground {
     return cy.findByTestId('try-playground-button');
   }
 
+  findVectorStoresTab() {
+    return cy.findByTestId('ai-assets-tab-vectorstores');
+  }
+
+  findVectorStoresTable(options?: { timeout?: number }) {
+    return cy.findByTestId('vector-stores-table', options);
+  }
+
+  findVectorStoreRow(vectorStoreId: string, options?: { timeout?: number }) {
+    return cy.findByTestId(`vector-store-row-${vectorStoreId}`, options);
+  }
+
+  findVectorStoreInfoButton(vectorStoreId: string) {
+    return cy.findByTestId(`vector-store-info-${vectorStoreId}`);
+  }
+
+  findVectorStoreDetails(vectorStoreId: string) {
+    return cy.findByTestId(`vector-store-details-${vectorStoreId}`);
+  }
+
+  findVectorStoreProviderId(vectorStoreId: string) {
+    return cy.findByTestId(`vector-store-provider-id-${vectorStoreId}`).find('input');
+  }
+
+  findVectorStoreProviderType(vectorStoreId: string) {
+    return cy.findByTestId(`vector-store-provider-type-${vectorStoreId}`).find('input');
+  }
+
+  findVectorStoreId(vectorStoreId: string) {
+    return cy.findByTestId(`vector-store-id-${vectorStoreId}`).find('input');
+  }
+
+  findVectorStoreAddToPlaygroundButton(vectorStoreId: string) {
+    return cy.findByTestId(`vector-store-add-to-playground-${vectorStoreId}`);
+  }
+
+  findVectorStoreTryInPlaygroundButton(vectorStoreId: string, options?: { timeout?: number }) {
+    return cy.findByTestId(`vector-store-try-in-playground-${vectorStoreId}`, options);
+  }
+
   // Settings panel methods
   findSettingsButton() {
     return cy.findByTestId('settings-button');
@@ -418,6 +474,14 @@ class GenAiPlayground {
     return cy.findByTestId('knowledge-mode-upload-radio');
   }
 
+  findKnowledgeTabButton() {
+    return this.findKnowledgeTab().find('button');
+  }
+
+  findDocumentFileInput() {
+    return cy.findByTestId('document-file-input');
+  }
+
   findKnowledgeSourceFileInput() {
     return cy.findByTestId('source-file-input');
   }
@@ -442,6 +506,14 @@ class GenAiPlayground {
 
   findRagToggle() {
     return cy.findByTestId('rag-toggle-switch');
+  }
+
+  findExternalKnowledgeModeRadio() {
+    return cy.findByTestId('knowledge-mode-external-radio');
+  }
+
+  findExternalVectorStoreToggle(options?: { timeout?: number }) {
+    return cy.findByTestId('external-vector-store-toggle', options);
   }
 
   findUploadedFilesCard(options?: { timeout?: number }) {
