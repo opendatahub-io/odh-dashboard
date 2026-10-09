@@ -388,6 +388,19 @@ func extractHistoryAndQuestion(
 	return systemPrompt, history, question
 }
 
+// mergeInstructions combines the request-level instructions with the system
+// message extracted from input. Request instructions come first so callers can
+// shape the input system message without overriding the deployment's prompt.
+func mergeInstructions(instructions, systemPrompt string) string {
+	if instructions == "" {
+		return systemPrompt
+	}
+	if systemPrompt == "" {
+		return instructions
+	}
+	return instructions + responsesInstructionsSeparator + systemPrompt
+}
+
 // capHistory keeps only the most recent maxUserMessages user turns (and any
 // assistant replies interleaved with them), dropping older turns from the front.
 // A "turn" spans from one user message up to (but not including) the next.
@@ -475,6 +488,9 @@ func ValidateResponsesRequest(req *models.ResponsesRequest) error {
 	if strings.TrimSpace(req.Metadata["embedding_model"]) == "" {
 		return fmt.Errorf("%w: metadata.embedding_model is required", ErrInvalidResponsesRequest)
 	}
+	if _, _, question := extractHistoryAndQuestion(req.Input); strings.TrimSpace(question) == "" {
+		return fmt.Errorf("%w: no user message found in input", ErrInvalidResponsesRequest)
+	}
 	if _, _, _, _, err := parseFileSearchTool(req); err != nil {
 		return fmt.Errorf("%w: %s", ErrInvalidResponsesRequest, err)
 	}
@@ -499,16 +515,7 @@ func (r *ResponsesRepository) prepareRAGContext(ctx context.Context, params Resp
 	}
 
 	systemPrompt, history, question := extractHistoryAndQuestion(req.Input)
-	if req.Instructions != "" {
-		if systemPrompt != "" {
-			systemPrompt = req.Instructions + responsesInstructionsSeparator + systemPrompt
-		} else {
-			systemPrompt = req.Instructions
-		}
-	}
-	if question == "" {
-		return nil, fmt.Errorf("no user message found in input")
-	}
+	systemPrompt = mergeInstructions(req.Instructions, systemPrompt)
 
 	maasClient, err := r.resolveMaasClient(ctx, params.Namespace, params.MaasSecretName)
 	if err != nil {

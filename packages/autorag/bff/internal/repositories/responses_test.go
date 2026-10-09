@@ -920,10 +920,28 @@ func TestBuildMessagesPrependsRequestInstructionsToInputSystemMessage(t *testing
 		]
 	}`), &req))
 	system, _, _ := extractHistoryAndQuestion(req.Input)
-	if req.Instructions != "" {
-		system = req.Instructions + responsesInstructionsSeparator + system
+	assert.Equal(t, "request instructions\n\ninput system", mergeInstructions(req.Instructions, system))
+}
+
+func TestMergeInstructions(t *testing.T) {
+	assert.Equal(t, "input system", mergeInstructions("", "input system"))
+	assert.Equal(t, "request instructions", mergeInstructions("request instructions", ""))
+	assert.Equal(t, "request instructions\n\ninput system", mergeInstructions("request instructions", "input system"))
+}
+
+func TestValidateResponsesRequest_RejectsMissingUserQuestion(t *testing.T) {
+	req := fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"vs_abc_123"},
+	})
+	req.Metadata = map[string]string{"embedding_model": "text-embedding"}
+	req.Input = []models.InputMessage{
+		{Role: "system", Content: []models.InputContent{{Type: "input_text", Text: "system only"}}},
 	}
-	assert.Equal(t, "request instructions\n\ninput system", system)
+	err := ValidateResponsesRequest(req)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrInvalidResponsesRequest)
+	assert.Contains(t, err.Error(), "no user message found in input")
 }
 
 func TestParseFileSearchTool_RejectsExcessiveMaxNumResults(t *testing.T) {
