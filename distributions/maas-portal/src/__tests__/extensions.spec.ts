@@ -162,7 +162,7 @@ const buildCatalog = (): Record<string, Extension[]> => ({
   'maas-portal': localExtensions,
 });
 
-describe('MaaS Consumer Portal extensions', () => {
+describe('MaaS Portal extensions', () => {
   let warnSpy: jest.SpyInstance;
 
   beforeEach(() => {

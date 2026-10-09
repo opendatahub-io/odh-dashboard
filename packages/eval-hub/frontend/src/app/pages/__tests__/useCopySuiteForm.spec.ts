@@ -3,7 +3,7 @@ import { act, waitFor } from '@testing-library/react';
 import { useNavigate } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
-import { cloneCollection, createCollection } from '~/app/api/k8s';
+import { cloneCollection, createCollection, patchCollection } from '~/app/api/k8s';
 import { useCollectionsContext } from '~/app/context/CollectionsContext';
 import { useNotification } from '~/app/hooks/useNotification';
 import {
@@ -26,6 +26,7 @@ jest.mock('react-router-dom', () => ({
 jest.mock('~/app/api/k8s', () => ({
   cloneCollection: jest.fn(),
   createCollection: jest.fn(),
+  patchCollection: jest.fn(),
 }));
 
 jest.mock('~/app/hooks/useNotification', () => ({
@@ -47,6 +48,7 @@ const mockNotification = {
 
 const mockCloneCollection = jest.mocked(cloneCollection);
 const mockCreateCollection = jest.mocked(createCollection);
+const mockPatchCollection = jest.mocked(patchCollection);
 const mockUseNotification = jest.mocked(useNotification);
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseCollectionsContext = jest.mocked(useCollectionsContext);
@@ -282,6 +284,115 @@ describe('useCopySuiteForm', () => {
     await waitFor(() => expect(result.result.current.isValid).toBe(true));
   });
 
+  it('should reuse the suite editor to update an unrun source collection', async () => {
+    const patchFetcher = jest.fn().mockResolvedValue({
+      ...sourceCollection,
+      name: 'Updated suite',
+    });
+    mockPatchCollection.mockReturnValue(patchFetcher);
+    const result = renderForm({ mode: 'edit' });
+
+    await waitFor(() => expect(result.result.current.suiteName).toBe(sourceCollection.name));
+    await waitFor(() => expect(result.result.current.isValid).toBe(true));
+
+    act(() => {
+      result.result.current.setSuiteName('Updated suite');
+    });
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    expect(mockPatchCollection).toHaveBeenCalledWith(
+      '',
+      'test-namespace',
+      sourceCollection.resource.id,
+      expect.any(Array),
+    );
+    expect(mockPatchCollection.mock.calls[0]?.[3]).toEqual(
+      expect.arrayContaining([{ op: 'replace', path: '/name', value: 'Updated suite' }]),
+    );
+    expect(mockPatchCollection.mock.calls[0]?.[3]).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ path: '/benchmarks' })]),
+    );
+    expect(mockCloneCollection).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/collections');
+  });
+
+  it('should preserve untouched source benchmark settings when another benchmark is edited', async () => {
+    const editSourceCollection: Collection = {
+      ...sourceCollection,
+      benchmarks: [
+        {
+          ...sourceCollection.benchmarks![0],
+          weight: 0.8,
+          pass_criteria: { threshold: 0.755 },
+        },
+        {
+          id: 'benchmark-two',
+          provider_id: 'provider-two',
+          weight: 0.2,
+          primary_score: { metric: 'accuracy', lower_is_better: false },
+          pass_criteria: { threshold: 0.645 },
+          parameters: { num_examples: 42 },
+        },
+      ],
+    };
+    const patchFetcher = jest.fn().mockResolvedValue({
+      ...editSourceCollection,
+      name: 'Updated suite',
+    });
+    mockPatchCollection.mockReturnValue(patchFetcher);
+    const result = renderForm({ mode: 'edit', sourceCollection: editSourceCollection });
+
+    await waitFor(() => expect(result.result.current.suiteName).toBe(editSourceCollection.name));
+    await waitFor(() => expect(result.result.current.isValid).toBe(true));
+
+    act(() => {
+      result.result.current.updateBenchmark(0, 'threshold', 80);
+    });
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    const benchmarkOperation = mockPatchCollection.mock.calls[0]?.[3].find(
+      (operation) => operation.path === '/benchmarks',
+    );
+    expect(benchmarkOperation).toEqual({
+      op: 'add',
+      path: '/benchmarks',
+      value: [
+        expect.objectContaining({
+          id: 'benchmark-one',
+          pass_criteria: { threshold: 0.8 },
+        }),
+        editSourceCollection.benchmarks![1],
+      ],
+    });
+  });
+
+  it('should reject save-only edits after the source collection has been run', async () => {
+    const result = renderForm({
+      mode: 'edit',
+      sourceCollection: { ...sourceCollection, state: { run_count: 1 } },
+    });
+
+    await waitFor(() => expect(result.result.current.suiteName).toBe(sourceCollection.name));
+    await waitFor(() => expect(result.result.current.isValid).toBe(true));
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    expect(mockPatchCollection).not.toHaveBeenCalled();
+    expect(mockNotification.error).toHaveBeenCalledWith(
+      'Failed to update suite',
+      'Benchmark suites cannot be edited after they have been run.',
+    );
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
   it('should fall back to another provider when the matching provider lacks the benchmark', async () => {
     const cloneFetcher = jest.fn().mockResolvedValue({
       resource: { id: 'saved-collection' },
@@ -332,7 +443,9 @@ describe('useCopySuiteForm', () => {
     );
   });
 
-  it('should preserve multiple valid evaluates values while removing duplicates and invalid values', async () => {
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // it('should preserve multiple valid evaluates values while removing duplicates and invalid values', async () => {
+  it('should initialize copied suites with the model evaluation target', async () => {
     const result = renderForm({
       sourceCollection: {
         ...sourceCollection,
@@ -342,10 +455,14 @@ describe('useCopySuiteForm', () => {
 
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
-    expect(result.result.current.suiteEvaluates).toEqual(['model', 'agent']);
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    // expect(result.result.current.suiteEvaluates).toEqual(['model', 'agent']);
+    expect(result.result.current.suiteEvaluates).toEqual(['model']);
   });
 
-  it('should fall back to legacy evaluates metadata when evaluation targets are empty', async () => {
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // it('should preserve an explicitly empty evaluation targets array', async () => {
+  it('should initialize copied suites with the model target when source targets are empty', async () => {
     const result = renderForm({
       sourceCollection: {
         ...sourceCollection,
@@ -356,7 +473,9 @@ describe('useCopySuiteForm', () => {
 
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
-    expect(result.result.current.suiteEvaluates).toEqual(['traces']);
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    // expect(result.result.current.suiteEvaluates).toEqual([]);
+    expect(result.result.current.suiteEvaluates).toEqual(['model']);
   });
 
   it('should remove duplicate collection metadata values on initialization', async () => {
@@ -408,7 +527,9 @@ describe('useCopySuiteForm', () => {
     const result = renderForm({ mode: 'create', sourceCollection: undefined });
 
     await waitFor(() => expect(result.result.current.suiteName).toBe(''));
-    expect(result.result.current.suiteEvaluates).toEqual([]);
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    // expect(result.result.current.suiteEvaluates).toEqual([]);
+    expect(result.result.current.suiteEvaluates).toEqual(['model']);
 
     act(() => {
       result.result.current.form.setValue('suiteName', 'New suite', { shouldValidate: true });
@@ -468,7 +589,9 @@ describe('useCopySuiteForm', () => {
     expect(mockCloneCollection).not.toHaveBeenCalled();
   });
 
-  it('should submit an empty evaluation_targets array for a create suite with no evaluates selected', async () => {
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // it('should submit an empty evaluation_targets array for a create suite with no evaluates selected', async () => {
+  it('should submit the model evaluation target for a create suite', async () => {
     const createFetcher = jest.fn().mockResolvedValue({
       resource: { id: 'created-collection' },
       name: 'New suite',
@@ -501,7 +624,9 @@ describe('useCopySuiteForm', () => {
       '',
       'test-namespace',
       expect.objectContaining({
-        evaluation_targets: [],
+        // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+        // evaluation_targets: [],
+        evaluation_targets: ['model'],
       }),
     );
     expect(mockCreateCollection.mock.calls[0]?.[2]).not.toHaveProperty('category');
@@ -616,7 +741,9 @@ describe('useCopySuiteForm', () => {
     }
   });
 
-  it('should fall back to legacy custom evaluates metadata when evaluation_targets is absent', async () => {
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // it('should fall back to legacy custom evaluates metadata when evaluation_targets is absent', async () => {
+  it('should use the model target when legacy custom evaluates metadata is present', async () => {
     const legacySourceCollection: Collection = {
       ...sourceCollection,
       evaluation_targets: undefined,
@@ -626,10 +753,14 @@ describe('useCopySuiteForm', () => {
 
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
-    expect(result.result.current.suiteEvaluates).toEqual(['traces']);
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    // expect(result.result.current.suiteEvaluates).toEqual(['traces']);
+    expect(result.result.current.suiteEvaluates).toEqual(['model']);
   });
 
-  it('should leave evaluates blank when the source has no evaluates metadata', async () => {
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // it('should leave evaluates blank when the source has no evaluates metadata', async () => {
+  it('should use the model target when the source has no evaluates metadata', async () => {
     const sourceWithoutEvaluates: Collection = {
       ...sourceCollection,
       evaluation_targets: undefined,
@@ -639,10 +770,14 @@ describe('useCopySuiteForm', () => {
 
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
-    expect(result.result.current.suiteEvaluates).toEqual([]);
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    // expect(result.result.current.suiteEvaluates).toEqual([]);
+    expect(result.result.current.suiteEvaluates).toEqual(['model']);
   });
 
-  it('should fall back to provider evaluates metadata when collection metadata is absent', async () => {
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // it('should fall back to provider evaluates metadata when collection metadata is absent', async () => {
+  it('should use the model target when provider evaluates metadata is present', async () => {
     const sourceWithoutEvaluates: Collection = {
       ...sourceCollection,
       evaluation_targets: undefined,
@@ -659,7 +794,9 @@ describe('useCopySuiteForm', () => {
 
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
-    expect(result.result.current.suiteEvaluates).toEqual(['guardrails']);
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    // expect(result.result.current.suiteEvaluates).toEqual(['guardrails']);
+    expect(result.result.current.suiteEvaluates).toEqual(['model']);
   });
 
   it('should map returned primitive parameters to fields and keep other parameters in JSON', async () => {
@@ -883,7 +1020,9 @@ describe('useCopySuiteForm', () => {
 
     expect(result.result.current.suiteName).toBe('Updated suite');
     expect(result.result.current.suiteDescription).toBe('Updated description');
-    expect(result.result.current.suiteEvaluates).toEqual(['traces']);
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    // expect(result.result.current.suiteEvaluates).toEqual(['traces']);
+    expect(result.result.current.suiteEvaluates).toEqual(['model']);
     expect(result.result.current.suiteThreshold).toBe(65);
     expect(result.result.current.benchmarks[0]).toEqual(
       expect.objectContaining({
@@ -1215,6 +1354,29 @@ describe('useCopySuiteForm', () => {
     expect(result.result.current.isValid).toBe(false);
   });
 
+  it('should not show validation errors when a blank create form is initialized', async () => {
+    const result = renderForm({ mode: 'create', sourceCollection: undefined });
+
+    await waitFor(() => expect(result.result.current.suiteName).toBe(''));
+
+    expect(result.result.current.form.formState.errors).toEqual({});
+  });
+
+  it('should reject a copy that keeps the source collection name', async () => {
+    const result = renderForm();
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
+
+    act(() => result.result.current.setSuiteName(sourceCollection.name));
+
+    await waitFor(() =>
+      expect(result.result.current.form.formState.errors.suiteName?.message).toBe(
+        'Suite name must be different from the source collection name.',
+      ),
+    );
+    expect(result.result.current.isSettingsValid).toBe(false);
+    expect(result.result.current.isValid).toBe(false);
+  });
+
   it('should invoke onSaveAndRunRequest instead of cloning when provided', async () => {
     const onSaveAndRunRequest = jest.fn();
     const result = renderForm({ onSaveAndRunRequest });
@@ -1314,7 +1476,9 @@ describe('useCopySuiteForm', () => {
         tasks: ['text-generation'],
         modalities: ['text'],
         industries: ['technology'],
-        evaluation_targets: ['traces'],
+        // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+        // evaluation_targets: ['traces'],
+        evaluation_targets: ['model'],
         custom: { source: 'curated' },
         pass_criteria: { threshold: 0.8 },
         benchmarks: [
@@ -1333,6 +1497,28 @@ describe('useCopySuiteForm', () => {
     expect(cloned).toEqual(clonedCollection);
     expect(mockFireMiscTrackingEvent).toHaveBeenCalled();
     expect(mockRefreshCollections).toHaveBeenCalledTimes(1);
+  });
+
+  it('should reject edit-mode save and run after the source collection has been run', async () => {
+    const result = renderForm({
+      mode: 'edit',
+      sourceCollection: { ...sourceCollection, state: { run_count: 1 } },
+    });
+
+    await waitFor(() => expect(result.result.current.suiteName).toBe(sourceCollection.name));
+    await waitFor(() => expect(result.result.current.isValid).toBe(true));
+
+    let savedCollection: Collection | undefined;
+    await act(async () => {
+      savedCollection = await result.result.current.cloneCollectionForRun();
+    });
+
+    expect(savedCollection).toBeUndefined();
+    expect(mockPatchCollection).not.toHaveBeenCalled();
+    expect(mockNotification.error).toHaveBeenCalledWith(
+      'Failed to update suite',
+      'Benchmark suites cannot be edited after they have been run.',
+    );
   });
 
   it('should send explicit empty metadata arrays when all values are removed', async () => {
@@ -1365,7 +1551,9 @@ describe('useCopySuiteForm', () => {
         tasks: [],
         modalities: [],
         industries: [],
-        evaluation_targets: [],
+        // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+        // evaluation_targets: [],
+        evaluation_targets: ['model'],
       }),
     );
   });
@@ -1468,7 +1656,9 @@ describe('useCopySuiteForm', () => {
         tasks: ['text-generation'],
         modalities: ['text'],
         industries: ['technology'],
-        evaluation_targets: ['guardrails'],
+        // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+        // evaluation_targets: ['guardrails'],
+        evaluation_targets: ['model'],
         custom: { source: 'curated' },
         pass_criteria: { threshold: 0.8 },
         benchmarks: [
@@ -1643,12 +1833,16 @@ describe('useCopySuiteForm', () => {
     expect(mockCloneCollection).not.toHaveBeenCalled();
   });
 
-  it('should navigate back to evaluations when a create suite is cancelled', () => {
-    const result = renderForm({ mode: 'create', sourceCollection: undefined });
+  it('should navigate back to the benchmark suites tab when a create suite is cancelled', () => {
+    const result = renderForm({
+      mode: 'create',
+      sourceCollection: undefined,
+      cancelRoute: '/evaluation/test-namespace?tab=evaluate',
+    });
 
     act(() => result.result.current.handleCancel());
 
-    expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace');
+    expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace?tab=evaluate');
   });
 
   it('should navigate back to the originating suite page when a cancel route is provided', () => {

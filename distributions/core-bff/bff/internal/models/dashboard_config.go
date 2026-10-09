@@ -68,6 +68,7 @@ type DashboardFeatureFlags struct {
 	DisableAdminConnectionTypes  bool `json:"disableAdminConnectionTypes"`
 	DisableFeatureStore          bool `json:"disableFeatureStore"`
 	FeatureStoreAdmin            bool `json:"featureStoreAdmin"`
+	DataRegistry                 bool `json:"dataRegistry"`
 	DisableFineTuning            bool `json:"disableFineTuning"`
 	DisableKueue                 bool `json:"disableKueue"`
 	DisableLMEval                bool `json:"disableLMEval"`
@@ -166,6 +167,7 @@ var BlankDashboardCR = DashboardConfig{
 			DisableAdminConnectionTypes:  false,
 			DisableFeatureStore:          false,
 			FeatureStoreAdmin:            false,
+			DataRegistry:                 false,
 			DisableFineTuning:            true,
 			DisableKueue:                 true,
 			DisableLMEval:                true,

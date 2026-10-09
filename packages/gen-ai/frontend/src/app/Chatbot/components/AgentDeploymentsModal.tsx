@@ -19,9 +19,11 @@ import {
   Tabs,
   TabTitleText,
 } from '@patternfly/react-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AgentConfigurationCard from '~/app/AIAssets/components/agentprofiles/AgentConfigurationCard';
 import { AgentDeploymentSummary } from '~/app/agentProfile/types';
 import { AIModel } from '~/app/types';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 import {
   buildResponseAPICurl,
   responseAPIURL,
@@ -234,11 +236,19 @@ const AgentDeploymentsModal: React.FC<AgentDeploymentsModalProps> = ({
           title="Delete deployment?"
           testId="delete-agent-deployment-modal"
           onClose={() => {
+            fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_DELETE_CONFIRMED, {
+              outcome: 'cancel',
+            });
             setIsDeleteModalOpen(false);
             setDeleteError(undefined);
           }}
           deleting={isDeleting}
-          onDelete={() => void handleDelete()}
+          onDelete={() => {
+            fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_DELETE_CONFIRMED, {
+              outcome: 'submit',
+            });
+            void handleDelete();
+          }}
           deleteName={activeDeployment.displayName || activeDeployment.name}
           submitButtonLabel="Delete deployment"
           error={deleteError}

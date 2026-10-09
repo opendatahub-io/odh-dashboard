@@ -66,9 +66,10 @@ Visible sections, in order:
 3. Status
 4. Signals (risk / confidence table)
 5. Checks (readiness table; omit when empty)
-6. Findings (omit when empty)
+6. Findings (omit when empty; includes severity groups then `### Justified` when present)
 7. Product ask (omit when `status` is `none`)
-8. TODO (omit when empty)
+8. TODO (omit when empty; plain-text category labels Findings / Checks /
+   Judgement / Nits)
 9. Collapsed **Review details**: Producers, Challenger (counts + removed
    audit), Evidence inspected, Labels
 
@@ -102,10 +103,33 @@ Check and signal Result cells intentionally overlap Status → Checks / Signals
 for provenance. Status remains the primary outcome surface.
 
 **Challenger audit:** when `producers.challenger.removed_findings` is
-non-empty, a collapsed section under Challenger renders those items like
-findings, with an audit-only / must-ignore disclaimer and each
+non-empty, a collapsed section under Challenger renders non-justified items
+like findings, with an audit-only / must-ignore disclaimer and each
 `removal_reason`. Disposition and `## Findings` use survivor `findings[]`
 only. Host warns if `challenger.removed` ≠ audit list length.
+
+**Justified findings:** items in `removed_findings` with
+`challenger_action: justified` are rendered under `## Findings` →
+`### Justified (N)` (after the severity groups), not in the Challenger
+removed audit. Each shows the original severity, description, and
+`removal_reason` labeled as a justification. A fixed disclaimer notes
+these do not block disposition. The section is wrapped in HTML markers
+(`<!-- fullsend:justified-findings -->`) for downstream tooling.
+
+### PR Justifications
+
+Authors may challenge review findings or testing expectations via a
+`## Justifications` section in the PR body. Justifications participate
+in two places only:
+
+| Channel | How Justifications are used |
+| --- | --- |
+| **Challenger** (findings) | If a justification adequately rebuts a finding against the diff, the challenger marks it `challenger_action: justified` and it follows the removed path — visible under `### Justified` with the challenger's reason, but not disposition-blocking. Insufficient justifications leave the finding at its original severity. Host policy categories (`protected-path`, `approach-rejected`) cannot be justified; the host restores them into `findings[]` if mistagged. |
+| **test-impact** (check) | A sufficient constraint justification in the Evidence section (why tests could not be added, what alternative verification exists) adjusts Automation/Efficiency scoring to ⚠️ instead of ❌. When Automation is ⚠️ solely because there are no tests, Efficiency stays ➖. Evidence depth still requires verification proof in the description. |
+
+Justifications are **not** a shared ruleset applied to every producer.
+Rating, pr-description-review, and other producers are not affected.
+Product-ask already has its own `mismatch-justified` path.
 
 Producer **Ran** icons (`result.producers`):
 
@@ -182,14 +206,16 @@ mismatch or incomplete checks; it does not invent risk.
 ### TODO synthesis (orchestrator)
 
 Closed recipe after the report is assembled (kind/status-driven, not producer-id
-branches):
+branches). Prefer `{category,text}` objects:
 
-1. Blocking findings → remediation / location pointers
-2. Check `fail` → that check’s summary
-3. Check `could-not-verify`, refuse-approve levels from `rating-policy.json`, section `needs_human` → concrete follow-ups
-4. Actionable low/info nits when the path would otherwise approve
+1. `findings` — blocking findings → remediation / location pointers
+2. `checks` — check `fail` → that check’s summary
+3. `judgement` — check `could-not-verify`, refuse-approve levels from `rating-policy.json`, section `needs_human` → concrete follow-ups
+4. `nits` — one bullet per `low`/`info` finding with `actionable: true` (whenever
+   such findings exist, not only on otherwise-approve paths)
 
-Omit `todo` when empty. Sticky bullets only — no `[ ]` task-list syntax.
+Omit `todo` when empty. Sticky bullets only — no `[ ]` task-list syntax. Host
+renders category labels as plain text (not markdown headers).
 
 ## Dimensions
 
@@ -284,7 +310,7 @@ Canonical schema: [`.fullsend/schemas/review-result.schema.json`](../../schemas/
 | `product_ask` | `section:product_ask` | Omit sticky section when `none` |
 | `checks[]` | `check:*` rows | Readiness; disposition-affecting |
 | `risk`, `confidence` | `signal:*` via `result_fields` | Sticky Signals table |
-| `todo[]` | Orchestrator final pass | Sticky TODO; omit when empty |
+| `todo[]` | Orchestrator final pass | Sticky TODO by category; omit when empty |
 | `inspected` | Orchestrator (+ host limits) | `summary` / `could_not_verify` only — no `producers` |
 | `label_actions` | Optional enrichment | Control labels stripped by host |
 | `action`, `body` | Host | Disposition + sticky markdown |
@@ -301,6 +327,7 @@ Compose after `common-review.md` for every LLM row:
 | [`check-output.md`](../../meta-prompts/check-output.md) | `check:*` |
 | [`signal-output.md`](../../meta-prompts/signal-output.md) | `signal:*` (producer contract) |
 | [`context-output.md`](../../meta-prompts/context-output.md) | `context` with `stage: pre-dispatch` (investigator brief) |
+| [`challenger-justifications.md`](../../meta-prompts/challenger-justifications.md) | Challenger spawn-only: PR Justifications → `justified` action |
 
 ## Related files
 

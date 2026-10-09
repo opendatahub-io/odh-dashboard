@@ -412,6 +412,7 @@ type ProviderBenchmarkPassCriteria struct {
 type Collection struct {
 	Resource          CollectionResource      `json:"resource"`
 	Name              string                  `json:"name"`
+	DerivedFrom       string                  `json:"derived_from,omitempty"`
 	Category          string                  `json:"category,omitempty"`
 	Description       string                  `json:"description,omitempty"`
 	Tags              []string                `json:"tags,omitempty"`

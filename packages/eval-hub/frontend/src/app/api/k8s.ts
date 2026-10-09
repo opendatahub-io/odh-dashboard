@@ -304,7 +304,15 @@ export const getEvaluationJobs =
     }
 
     return handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs`, queryParams, opts),
+      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs`, queryParams, {
+        ...opts,
+        headers: {
+          ...opts.headers,
+          // The list changes immediately after a run is created. Do not let the browser reuse
+          // a pre-create response.
+          'Cache-Control': 'no-cache',
+        },
+      }),
     ).then((response) => {
       if (isModArchResponse<EvaluationJobsResponse | EvaluationJob[]>(response)) {
         const { data } = response;
@@ -396,7 +404,15 @@ export const deleteCollection =
         { namespace },
         { ...opts, parseJSON: false },
       ),
-    ).then(() => undefined);
+    ).then((response) => {
+      // A successful delete returns 204 with an empty body. The shared REST
+      // helper does not reject based on HTTP status, so a non-empty response
+      // indicates that the BFF returned an error payload instead.
+      if (typeof response === 'string' && response.trim() !== '') {
+        throw new Error(response);
+      }
+      return undefined;
+    });
   };
 
 export const patchCollection =
