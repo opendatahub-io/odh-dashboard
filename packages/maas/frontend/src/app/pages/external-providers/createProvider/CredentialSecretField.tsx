@@ -128,12 +128,12 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
 
   const newSecretHelperText = credentialSecretRef.trim() ? (
     <>
-      A Kubernetes Secret named <strong>{credentialSecretRef.trim()}</strong> will be created as
-      type Opaque with data key <strong>{SECRET_API_KEY_DATA_KEY}</strong> and the required label{' '}
+      The <strong>{credentialSecretRef.trim()}</strong> opaque Kubernetes secret will be created
+      with the <strong>{SECRET_API_KEY_DATA_KEY}</strong> data key and required{' '}
       <strong>
         {IPP_MANAGED_SECRET_LABEL_KEY}: &quot;{IPP_MANAGED_SECRET_LABEL_VALUE}&quot;
-      </strong>
-      . Without that label, the gateway cannot use the key.
+      </strong>{' '}
+      label.
     </>
   ) : null;
 
@@ -203,6 +203,13 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
         {isNewSecret && (
           <Stack hasGutter className="pf-v6-u-pl-lg pf-v6-u-pt-md">
             <FormGroup label="Secret name" isRequired fieldId="credential-secret-name">
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem>
+                    This will be the name of the Kubernetes Secret resource.
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
               <TextInput
                 isRequired
                 id="credential-secret-name"
@@ -216,8 +223,7 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
               <FormHelperText>
                 <HelperText>
                   <HelperTextItem>
-                    The Kubernetes Secret resource name. Must be lowercase, alphanumeric, and may
-                    contain hyphens.
+                    Valid characters include lowercase letters, numbers, and hyphens ( - ).
                   </HelperTextItem>
                 </HelperText>
               </FormHelperText>
