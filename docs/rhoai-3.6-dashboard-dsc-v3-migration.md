@@ -22,6 +22,14 @@ The two child components are independent. Setting `standard` to `Removed` does
 not remove a managed `maasPortal`, and setting `maasPortal` to `Removed` does
 not remove the standard Dashboard.
 
+> **Current operator limitation:** Operator revisions that do not include
+> [RHOAIENG-99044] project `spec.managementState: Managed` to the Dashboard
+> custom resource when `standard` is `Removed` and `maasPortal` is `Managed`.
+> This keeps the standard Dashboard operand managed. Portal-only operation
+> requires an operator revision containing that fix, which keeps the Dashboard
+> operator deployment running for either managed child while projecting the
+> `standard` state independently to the Dashboard custom resource.
+
 `managementState` accepts `Managed` or `Removed` for each child. The MaaS Portal
 also requires the Dashboard gateway domain when it is managed. The ODH Operator
 derives this domain from the singleton `GatewayConfig` named `default-gateway`.
@@ -56,6 +64,9 @@ Before upgrading to RHOAI 3.6:
 - Review the current values of both Dashboard management states.
 - Decide independently whether the standard Dashboard and MaaS Portal should be
   managed after the upgrade.
+- Before selecting portal-only operation (`standard: Removed` and
+  `maasPortal: Managed`), verify that the installed ODH Operator includes
+  [RHOAIENG-99044].
 - If the MaaS Portal is managed, verify that the Dashboard gateway domain is
   configured.
 
@@ -86,3 +97,5 @@ specific projected field name in an environment.
 
 Internal Dashboard module and metadata names are not part of this 3.6 migration
 guidance.
+
+[RHOAIENG-99044]: https://redhat.atlassian.net/browse/RHOAIENG-99044
