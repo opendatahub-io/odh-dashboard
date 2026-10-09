@@ -45,28 +45,28 @@ spec:
 
 ## Local dev setup
 For most cases, run the following in the `frontend/` directory:
-```
+```bash
 pnpm run start:dev:ext
 ```
 
 If you have non-UI changes or need to run with other local package servers, run the following from the repository root:
-```
+```bash
 pnpm run dev
 ```
 
 If you use `pnpm run dev` with the Gateway field in `packages/llmd-serving`, run one of the following commands in a separate terminal:
-```
+```bash
 kubectl port-forward -n opendatahub svc/model-serving-api 8443:443
 ```
 or:
 
-```
+```bash
 kubectl port-forward -n redhat-ods-applications svc/model-serving-api 8443:443
 ```
 
 ## High-level design
 The `model-serving` package works with generic `Deployment` types with a main `Deployment.model` object and an optional template config `Deployment.server` object.
-```
+```typescript
 export type Deployment<
   ModelResource extends K8sResourceCommon,
   ServerResource extends K8sResourceCommon,
