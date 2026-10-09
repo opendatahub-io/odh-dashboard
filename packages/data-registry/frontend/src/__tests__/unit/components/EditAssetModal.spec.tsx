@@ -23,7 +23,7 @@ const rhaiConnection = mockRhaiConnection({ secret_name: 'minio-connection' });
 const asset = mockAssetResponse({
   name: 'claims-data',
   labels: ['production'],
-  connection_ref: { type: 'rhai', secret_name: 'minio-connection' },
+  connection_ref: { type: 'secret', secret_name: 'minio-connection' },
 });
 
 describe('EditAssetModal', () => {

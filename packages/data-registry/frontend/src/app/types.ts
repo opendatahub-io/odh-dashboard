@@ -50,7 +50,7 @@ export type DchConnectionRef = ConnectionDisplay & {
 };
 
 export type RhaiConnectionRef = ConnectionDisplay & {
-  type: 'rhai';
+  type: 'secret';
   secret_name: string;
 };
 
