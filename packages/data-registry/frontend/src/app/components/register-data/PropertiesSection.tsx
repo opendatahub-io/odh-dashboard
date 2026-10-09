@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   FormGroup,
+  FormGroupLabelHelp,
   FormSection,
   TextInput,
   Select,
@@ -8,10 +9,10 @@ import {
   SelectList,
   MenuToggle,
   MenuToggleElement,
-  Content,
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Popover,
 } from '@patternfly/react-core';
 import { Controller, useFormContext } from 'react-hook-form';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
@@ -24,6 +25,7 @@ import {
   MaturityType,
   PiiStatus,
 } from '~/app/types';
+import CustomPropertiesSection from './CustomPropertiesSection';
 
 const LICENSE_LABELS: Record<LicenseType, string> = {
   'internal-use': 'Internal use',
@@ -60,6 +62,7 @@ type SelectFieldProps = {
   testId: string;
   options: { key: string; label: string }[];
   placeholder: string;
+  labelHelp?: React.ReactElement;
 };
 
 const SelectField: React.FC<SelectFieldProps> = ({
@@ -69,6 +72,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
   testId,
   options,
   placeholder,
+  labelHelp,
 }) => {
   const { control } = useFormContext<RegisterDataFormData | EditAssetFormData>();
   const [isOpen, setIsOpen] = React.useState(false);
@@ -78,7 +82,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
       name={name}
       control={control}
       render={({ field }) => (
-        <FormGroup label={label} fieldId={fieldId}>
+        <FormGroup label={label} fieldId={fieldId} labelHelp={labelHelp}>
           <Select
             isOpen={isOpen}
             selected={field.value}
@@ -95,7 +99,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
                 isFullWidth
                 data-testid={testId}
               >
-                {options.find((o) => o.key === field.value)?.label || placeholder}
+                {options.find((option) => option.key === field.value)?.label || placeholder}
               </MenuToggle>
             )}
           >
@@ -103,9 +107,9 @@ const SelectField: React.FC<SelectFieldProps> = ({
               <SelectOption value="" data-testid={`${testId}-clear`}>
                 Not set
               </SelectOption>
-              {options.map((o) => (
-                <SelectOption key={o.key} value={o.key}>
-                  {o.label}
+              {options.map((option) => (
+                <SelectOption key={option.key} value={option.key}>
+                  {option.label}
                 </SelectOption>
               ))}
             </SelectList>
@@ -124,10 +128,6 @@ const PropertiesSection: React.FC = () => {
 
   return (
     <FormSection title="Properties" titleElement="h2">
-      <Content component="p">
-        Define operational metadata, compliance levels, and discoverability tags.
-      </Content>
-
       <Controller
         name="purpose"
         control={control}
@@ -191,7 +191,14 @@ const PropertiesSection: React.FC = () => {
         testId="data-pii-toggle"
         options={PII_OPTIONS}
         placeholder="Select PII status"
+        labelHelp={
+          <Popover bodyContent="The type of personally identifiable information (PII) present in the data.">
+            <FormGroupLabelHelp aria-label="PII information" />
+          </Popover>
+        }
       />
+
+      <CustomPropertiesSection />
     </FormSection>
   );
 };

@@ -12,7 +12,14 @@ export const assetDetailUrl = (
   name: string,
   assetType: 'table' | 'volume' = 'table',
 ): string =>
-  `/ai-hub/data/browse/assets/${assetType}/${encodeURIComponent(project)}/${encodeURIComponent(collection)}/${encodeURIComponent(name)}`;
+  `/ai-hub/data/browse/assets/${assetType}/${encodeURIComponent(project)}/${encodeURIComponent(
+    collection,
+  )}/${encodeURIComponent(name)}`;
 
 export const collectionDetailUrl = (project: string, collection: string): string =>
-  `/ai-hub/data/browse/collections/${encodeURIComponent(project)}/${encodeURIComponent(collection)}`;
+  `/ai-hub/data/browse/collections/${encodeURIComponent(project)}/${encodeURIComponent(
+    collection,
+  )}`;
+
+export const projectConnectionsUrl = (project: string): string =>
+  `/projects/${encodeURIComponent(project)}?section=connections`;

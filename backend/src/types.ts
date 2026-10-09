@@ -50,6 +50,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableLMEval: boolean;
       disableFeatureStore: boolean;
       featureStoreAdmin: boolean;
+      dataRegistry: boolean;
       trainingJobs: boolean;
       genAiStudio: boolean;
       genAiTracing: boolean;
@@ -78,7 +79,6 @@ export type DashboardConfig = K8sResourceCommon & {
       promptManagement: boolean;
       globalProjectPrompts: boolean;
       gpuaas: boolean;
-      connectionTest: boolean;
       modelCapabilities: boolean;
       runtimeCatalog: boolean;
       observabilityDashboard: boolean;

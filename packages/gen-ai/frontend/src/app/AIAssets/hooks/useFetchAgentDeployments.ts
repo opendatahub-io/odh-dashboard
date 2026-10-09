@@ -10,17 +10,21 @@ import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 
 type UseFetchAgentDeploymentsOptions = {
   includeAll?: boolean;
+  enabled?: boolean;
 };
 
 const useFetchAgentDeployments = (
   agentProfileId: string | undefined,
-  { includeAll = false }: UseFetchAgentDeploymentsOptions = {},
+  { includeAll = false, enabled = true }: UseFetchAgentDeploymentsOptions = {},
 ): FetchStateObject<AgentDeploymentSummary[]> => {
   const { api, apiAvailable } = useGenAiAPI();
 
   const fetchDeployments = React.useCallback<
     FetchStateCallbackPromise<AgentDeploymentSummary[]>
   >(async () => {
+    if (!enabled) {
+      return [];
+    }
     if (!apiAvailable) {
       return Promise.reject(new NotReadyError('API not yet available'));
     }
@@ -32,7 +36,7 @@ const useFetchAgentDeployments = (
       throw new Error('Unexpected response from listAgentDeployments');
     }
     return response.deployments;
-  }, [agentProfileId, api, apiAvailable, includeAll]);
+  }, [agentProfileId, api, apiAvailable, enabled, includeAll]);
 
   const [data, loaded, error, refresh] = useFetchState(fetchDeployments, [], {
     initialPromisePurity: true,

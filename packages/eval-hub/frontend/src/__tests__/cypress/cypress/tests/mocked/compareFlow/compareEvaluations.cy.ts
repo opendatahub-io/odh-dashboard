@@ -29,8 +29,12 @@ const initIntercepts = ({
     mockUserSettings({ userId: 'test-user' }),
   );
   cy.interceptApi('GET /api/:apiVersion/namespaces', { path: API_VERSION }, namespaces);
-  cy.interceptApi('GET /api/:apiVersion/evalhub/health', { path: API_VERSION }, health);
-  cy.interceptApi('GET /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, jobs);
+  cy.interceptApi('GET /api/:apiVersion/evalhub/health', { path: API_VERSION }, health).as(
+    'evalHubHealth',
+  );
+  cy.interceptApi('GET /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, jobs).as(
+    'evalHubJobs',
+  );
   cy.interceptApi(
     'GET /api/:apiVersion/evaluations/collections',
     { path: API_VERSION },

@@ -39,6 +39,7 @@ export type MockDashboardConfigType = {
   disableKueue?: boolean;
   disableFeatureStore?: boolean;
   featureStoreAdmin?: boolean;
+  dataRegistry?: boolean;
   genAiStudio?: boolean;
   genAiTracing?: boolean;
   automl?: boolean;
@@ -72,7 +73,6 @@ export type MockDashboardConfigType = {
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
-  connectionTest?: boolean;
   modelCapabilities?: boolean;
   runtimeCatalog?: boolean;
   globalMLflowNamespaces?: string[];
@@ -93,7 +93,7 @@ export const mockDashboardConfig = ({
   disableTracking = false,
   disableBYONImageStream = false,
   disableISVBadges = false,
-  genAiStudio = false,
+  genAiStudio = true,
   genAiTracing = false,
   automl = false,
   autorag = false,
@@ -129,6 +129,7 @@ export const mockDashboardConfig = ({
   disableKueue = true,
   disableFeatureStore = true,
   featureStoreAdmin = false,
+  dataRegistry = false,
   trainingJobs = true,
   observabilityDashboard = true,
   disableLLMd = false,
@@ -139,7 +140,7 @@ export const mockDashboardConfig = ({
   genAiAgentDeployment = false,
   vLLMDeploymentOnMaaS = false,
   llmGatewayField = false,
-  promptManagement = false,
+  promptManagement = true,
   globalProjectPrompts = false,
   nimWizard = true,
   nimServiceOperator = false,
@@ -148,7 +149,6 @@ export const mockDashboardConfig = ({
   agentsCatalog = false,
   roleManagement = true,
   gpuaas = true,
-  connectionTest = false,
   modelCapabilities = false,
   runtimeCatalog = false,
   hardwareProfileOrder = ['test-hardware-profile'],
@@ -328,6 +328,7 @@ export const mockDashboardConfig = ({
       disableKueue,
       disableFeatureStore,
       featureStoreAdmin,
+      dataRegistry,
       trainingJobs,
       observabilityDashboard,
       disableLLMd,
@@ -347,7 +348,6 @@ export const mockDashboardConfig = ({
       agentsCatalog,
       roleManagement,
       gpuaas,
-      connectionTest,
       modelCapabilities,
       runtimeCatalog,
     },

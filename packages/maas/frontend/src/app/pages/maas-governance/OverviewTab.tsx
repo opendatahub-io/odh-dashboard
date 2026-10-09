@@ -1,16 +1,23 @@
 import * as React from 'react';
 import { Alert, Bullseye, PageSection, Spinner } from '@patternfly/react-core';
+import { useLocation } from 'react-router-dom';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import { URL_PREFIX } from '~/app/utilities/const';
 import OverviewTable from './overview/OverviewTable';
 import OverviewToolbar from './overview/OverviewToolbar';
-import { initialOverviewFilterData, OverviewFilterDataType } from './overview/const';
+import {
+  initialOverviewFilterData,
+  OverviewFilterDataType,
+  OverviewFilterOptions,
+} from './overview/const';
 import { filterOverviewModels } from './overview/utils';
 import EmptyStatePage from './EmptyStatePage';
 
 const OVERVIEW_RETURN_TO = `${URL_PREFIX}/maas-governance/overview`;
 
 const OverviewTab: React.FC = () => {
+  const location = useLocation();
+
   const {
     overviewRows: rows,
     overviewLoaded: loaded,
@@ -19,8 +26,17 @@ const OverviewTab: React.FC = () => {
     subscriptions,
     policies,
   } = useMaaSGovernanceContext();
-  const [filterData, setFilterData] =
-    React.useState<OverviewFilterDataType>(initialOverviewFilterData);
+
+  const [filterData, setFilterData] = React.useState<OverviewFilterDataType>(() => {
+    const fromState = location.state?.overviewFilter?.modelName;
+    if (typeof fromState !== 'string' || !fromState.trim()) {
+      return initialOverviewFilterData;
+    }
+    return {
+      ...initialOverviewFilterData,
+      [OverviewFilterOptions.modelName]: fromState,
+    };
+  });
 
   const onFilterUpdate = React.useCallback(
     (key: string, value?: string | { label: string; value: string }) => {

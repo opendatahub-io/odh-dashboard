@@ -473,27 +473,17 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, identity *in
 		return nil, fmt.Errorf("failed to list projects: %w", err)
 	}
 
-	// Convert projects to namespaces
+	// Projects are namespace-backed and contain the metadata used by namespace callers.
+	// Returning them directly avoids one Namespace GET per visible Project.
 	namespaces := make([]corev1.Namespace, 0, len(projectList.Items))
 	for _, project := range projectList.Items {
-		projectName := project.GetName()
-
-		// Fetch full namespace object
-		ns := &corev1.Namespace{}
-		err := userClient.Get(ctx, types.NamespacedName{Name: projectName}, ns)
-		if err != nil {
-			kc.Logger.Warn("failed to get namespace details", "namespace", projectName, "error", err)
-			// Create minimal namespace if we can't fetch full details
-			namespaces = append(namespaces, corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        projectName,
-					Annotations: project.GetAnnotations(),
-					Labels:      project.GetLabels(),
-				},
-			})
-		} else {
-			namespaces = append(namespaces, *ns)
-		}
+		namespaces = append(namespaces, corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        project.GetName(),
+				Annotations: project.GetAnnotations(),
+				Labels:      project.GetLabels(),
+			},
+		})
 	}
 
 	kc.Logger.Debug("listed namespaces via OpenShift Projects API",

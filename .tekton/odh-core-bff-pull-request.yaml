@@ -5,8 +5,8 @@ metadata:
     build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/odh-dashboard?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
-    pipelinesascode.tekton.dev/cancel-in-progress: "false"
-    pipelinesascode.tekton.dev/max-keep-runs: "3"
+    pipelinesascode.tekton.dev/cancel-in-progress: 'false'
+    pipelinesascode.tekton.dev/max-keep-runs: '3'
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
       == "main"
   creationTimestamp: null
@@ -18,35 +18,42 @@ metadata:
   namespace: open-data-hub-tenant
 spec:
   params:
-  - name: git-url
-    value: '{{source_url}}'
-  - name: revision
-    value: '{{revision}}'
-  - name: output-image
-    value: quay.io/opendatahub/odh-core-bff:odh-pr
-  - name: dockerfile
-    value: distributions/core-bff/Dockerfile.workspace
-  - name: path-context
-    value: .
-  #add these additional params
-  - name: additional-tags
-    value:
-    - 'odh-pr-{{revision}}'
-  - name: pipeline-type
-    value: pull-request
+    - name: git-url
+      value: '{{source_url}}'
+    - name: revision
+      value: '{{revision}}'
+    - name: output-image
+      value: quay.io/opendatahub/odh-core-bff:odh-pr
+    - name: dockerfile
+      value: distributions/core-bff/Dockerfile.workspace
+    - name: path-context
+      value: .
+    - name: hermetic
+      value: true
+    - name: prefetch-input
+      value: >-
+        [{"path":".","type":"pnpm"},
+        {"path":"prefetch/pnpm","type":"npm"},
+        {"path":"distributions/core-bff/bff","type":"gomod"}]
+    #add these additional params
+    - name: additional-tags
+      value:
+        - 'odh-pr-{{revision}}'
+    - name: pipeline-type
+      value: pull-request
   pipelineRef:
     resolver: git
     params:
-    - name: url
-      value: https://github.com/opendatahub-io/odh-konflux-central.git
-    - name: revision
-      value: main
-    - name: pathInRepo
-      value: pipeline/multi-arch-container-build.yaml
+      - name: url
+        value: https://github.com/opendatahub-io/odh-konflux-central.git
+      - name: revision
+        value: main
+      - name: pathInRepo
+        value: pipeline/multi-arch-container-build.yaml
   taskRunTemplate:
     serviceAccountName: build-pipeline-odh-core-bff-ci
   workspaces:
-  - name: git-auth
-    secret:
-      secretName: '{{ git_auth_secret }}'
+    - name: git-auth
+      secret:
+        secretName: '{{ git_auth_secret }}'
 status: {}

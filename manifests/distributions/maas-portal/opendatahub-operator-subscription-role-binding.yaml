@@ -1,0 +1,12 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: maas-portal-opendatahub-operator-subscription
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: maas-portal-opendatahub-operator-subscription
+subjects:
+  - kind: ServiceAccount
+    name: maas-portal
+    namespace: dashboard-namespace

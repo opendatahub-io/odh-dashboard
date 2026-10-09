@@ -138,6 +138,9 @@ spec:
                     featureStoreAdmin:
                       type: boolean
                       description: 'When true, enables the Feature Store admin UI (create wizard, manage page).'
+                    dataRegistry:
+                      type: boolean
+                      description: 'When true, enables the Data Registry UI and features.'
                     genAiStudio:
                       type: boolean
                       description: 'When true, enables the Gen AI Studio plugin for generative AI features.'
@@ -237,12 +240,12 @@ spec:
                     gpuaas:
                       type: boolean
                       description: 'When true, enables the GPUaaS Infrastructure page for cluster capacity and accelerator utilization monitoring.'
-                    connectionTest:
-                      type: boolean
-                      description: 'When true, enables connection test functionality to verify credentials and connectivity for S3, URI, and OCI connections.'
                     nimWizard:
                       type: boolean
                       description: 'When true, replaces global NIM accounts with project NIM accounts and replaces the NIM deployment modal with the model deployment wizard.'
+                    dataConnectHub:
+                      type: boolean
+                      description: 'When true, enables the Data Connect Hub features.'
                   x-kubernetes-validations:
                     - rule: '!has(self.disableAcceleratorProfiles) || self.disableAcceleratorProfiles == oldSelf.disableAcceleratorProfiles'
                       message: 'DEPRECATED: spec.dashboardConfig.disableAcceleratorProfiles must be removed or left unchanged.'

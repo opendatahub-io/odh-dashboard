@@ -61,9 +61,11 @@
     "./utilities/useGenericObjectState": "./src/utilities/useGenericObjectState.ts",
     "./utilities/useValidation": "./src/utilities/useValidation.ts",
     "./context/CurrentProjectContext": "./src/context/CurrentProjectContext.tsx",
+    "./context/HardwareProfilesContext": "./src/context/HardwareProfilesContext.tsx",
     "./context/LocalQueuesContext": "./src/context/LocalQueuesContext.tsx",
     "./context/ProjectHardwareProfilesContext": "./src/context/ProjectHardwareProfilesContext.tsx",
     "./context/ProjectsContext": "./src/context/ProjectsContext.tsx",
+    "./context/WorkingProjectContext": "./src/context/WorkingProjectContext.tsx",
     "./context/getStoredPreferredProject": "./src/context/getStoredPreferredProject.ts",
     "./contexts/MetricsCommonContext": "./src/contexts/MetricsCommonContext.tsx",
     "./contexts/ThemeContext": "./src/contexts/ThemeContext.tsx",
@@ -104,6 +106,9 @@
     "./hooks/useClusterQueue": "./src/hooks/useClusterQueue.ts",
     "./utilities/axios": "./src/utilities/axios.ts"
   },
+  "module-federation-shared": [
+    "./context/HardwareProfilesContext"
+  ],
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+import { mockModArchResponse } from 'mod-arch-core';
 import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import { mockEvalHubHealth } from '~/__mocks__/mockEvalHubHealth';
@@ -98,5 +99,40 @@ describe('Suite editor benchmark selection', () => {
 
     copySuitePage.findBenchmarkCheckbox('bench-alpha').should('be.checked');
     copySuitePage.findBenchmarkCheckbox('bench-beta').should('not.be.checked');
+  });
+
+  it('should update an existing suite through the edit flow', () => {
+    cy.interceptApi(
+      'GET /api/:apiVersion/evaluations/collections/:collectionId',
+      { path: { ...API_VERSION, collectionId: sourceCollection.resource.id } },
+      sourceCollection,
+    );
+    cy.intercept(
+      {
+        method: 'PATCH',
+        pathname: `/eval-hub/api/v1/evaluations/collections/${sourceCollection.resource.id}`,
+      },
+      {
+        statusCode: 200,
+        body: mockModArchResponse({ ...sourceCollection, name: 'Updated suite' }),
+      },
+    ).as('updateSuite');
+
+    copySuitePage.visitEdit(NAMESPACE, sourceCollection.resource.id);
+    copySuitePage.findSuiteNameInput().clear().type('Updated suite');
+    copySuitePage.findSettingsNextButton().click();
+    copySuitePage.findBenchmarkCheckbox('bench-alpha').should('be.checked');
+    copySuitePage.findSelectBenchmarksNextButton().click();
+    copySuitePage.findConfigurationStep().should('be.visible');
+    copySuitePage.findSaveOnlyButton().click();
+
+    cy.wait('@updateSuite').then((interception) => {
+      expect(interception.request.body).to.deep.include({
+        op: 'replace',
+        path: '/name',
+        value: 'Updated suite',
+      });
+    });
+    cy.url().should('include', `/evaluation/${NAMESPACE}/collections`);
   });
 });

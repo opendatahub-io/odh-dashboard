@@ -101,6 +101,7 @@ const App: React.FC = () => {
         <Page
           mainContainerId="primary-app-container"
           isManagedSidebar={isStandalone}
+          isContentFilled
           masthead={
             isStandalone ? (
               <NavBar

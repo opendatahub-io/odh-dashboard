@@ -213,8 +213,28 @@ describe('createTestMatrix', () => {
     ];
 
     assert.deepEqual(createTestMatrix(matrixGroups, ['observability']), [
-      { name: 'observability', spec: 'observability/dashboard.cy.ts' },
+      { name: 'shard-01', specs: ['../packages/observability/dashboard.cy.ts'] },
     ]);
+  });
+
+  it('caps selected groups while retaining every original selector', () => {
+    const matrixGroups = Array.from({ length: 15 }, (_, index) => ({
+      name: `group-${index}`,
+      spec: `cypress/group-${index}.cy.ts`,
+      files: [`packages/cypress/group-${index}.cy.ts`],
+      size: index + 1,
+    }));
+
+    const matrix = createTestMatrix(
+      matrixGroups,
+      matrixGroups.map((group) => group.name),
+    );
+
+    assert.equal(matrix.length, 12);
+    assert.deepEqual(
+      matrix.flatMap((shard) => shard.specs).toSorted(),
+      matrixGroups.map((group) => `../packages/${group.spec}`).toSorted(),
+    );
   });
 
   it('exports an empty matrix when no tests are selected', () => {

@@ -1,0 +1,17 @@
+.odh-data-registry-registry-table {
+  --odh-data-registry--filter-category-min-width: 9.375rem;
+  --odh-data-registry--filter-value-min-width: 11.25rem;
+  --odh-data-registry--search-min-width: 21.25rem;
+
+  &__filter-category {
+    min-width: var(--odh-data-registry--filter-category-min-width);
+  }
+
+  &__filter-value {
+    min-width: var(--odh-data-registry--filter-value-min-width);
+  }
+
+  &__search {
+    min-width: var(--odh-data-registry--search-min-width);
+  }
+}
