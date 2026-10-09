@@ -25,8 +25,24 @@
     },
     "todo": {
       "type": "array",
-      "description": "Review-derived action list. Plain strings rendered as sticky ## TODO bullets. Empty or omitted when nothing remains.",
-      "items": { "type": "string", "minLength": 1 }
+      "description": "Review-derived action list rendered under sticky ## TODO. Prefer {category,text} objects (findings|checks|judgement|nits). Plain strings remain valid and are categorized by the host. Empty or omitted when nothing remains.",
+      "items": {
+        "oneOf": [
+          { "type": "string", "minLength": 1 },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["category", "text"],
+            "properties": {
+              "category": {
+                "type": "string",
+                "enum": ["findings", "checks", "judgement", "nits"]
+              },
+              "text": { "type": "string", "minLength": 1 }
+            }
+          }
+        ]
+      }
     },
     "producers": { "$ref": "#/$defs/producers" },
     "inspected": { "$ref": "#/$defs/inspected" },
@@ -109,7 +125,7 @@
     },
     "removed_finding": {
       "type": "object",
-      "description": "Audit-only copy of a finding the challenger removed or merged away. Not used for disposition.",
+      "description": "Audit-only copy of a finding the challenger removed, merged, or justified away. Items with challenger_action justified are rendered under Findings ### Justified; all others appear in the Challenger removed-audit UI.",
       "required": ["severity", "category", "file", "description", "removal_reason"],
       "properties": {
         "severity": { "type": "string", "enum": ["critical", "high", "medium", "low", "info"] },
@@ -121,7 +137,8 @@
         "remediation": { "type": "string", "minLength": 1 },
         "why": { "type": "string", "minLength": 1 },
         "actionable": { "type": "boolean" },
-        "removal_reason": { "type": "string", "minLength": 1 }
+        "removal_reason": { "type": "string", "minLength": 1 },
+        "challenger_action": { "type": "string", "enum": ["removed", "merged", "justified"] }
       },
       "additionalProperties": false
     },

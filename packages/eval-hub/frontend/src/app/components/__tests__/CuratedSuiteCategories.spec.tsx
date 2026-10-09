@@ -22,8 +22,20 @@ describe('CuratedSuiteCategories', () => {
         'Explore benchmark suites validated by Red Hat for evaluating models and agents.',
       ),
     ).toBeInTheDocument();
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    /*
     expect(screen.getByTestId('curated-suite-category-card-agents')).toBeInTheDocument();
+    */
     expect(screen.getByTestId('curated-suite-category-card-models')).toBeInTheDocument();
+    expect(screen.queryByTestId('curated-suite-category-card-agents')).not.toBeInTheDocument();
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    /*
+    expect(screen.getByTestId('curated-suite-category-card-agents')).toHaveAttribute(
+      'href',
+      '/evaluation/test-project/collections/agent',
+    );
+    */
+    expect(screen.queryByTestId('curated-suite-category-card-agents')).not.toBeInTheDocument();
     expect(screen.queryByTestId('curated-suite-category-card-traces')).not.toBeInTheDocument();
     expect(screen.queryByTestId('curated-suite-category-card-guardrails')).not.toBeInTheDocument();
     expect(screen.queryByTestId('curated-suite-category-card-agent-tools')).not.toBeInTheDocument();
@@ -39,9 +51,13 @@ describe('CuratedSuiteCategories', () => {
       'href',
       '/evaluation/test-project/collections/model',
     );
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    /*
     expect(screen.getByTestId('curated-suite-category-card-agents')).toHaveAttribute(
       'href',
       '/evaluation/test-project/collections/agent',
     );
+    */
+    expect(screen.queryByTestId('curated-suite-category-card-agents')).not.toBeInTheDocument();
   });
 });

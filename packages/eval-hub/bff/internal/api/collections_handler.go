@@ -64,6 +64,20 @@ func (app *App) PatchCollectionHandler(w http.ResponseWriter, r *http.Request, p
 	}
 
 	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	currentCollection, err := client.GetCollection(ctx, id, namespace)
+	if err != nil {
+		app.evalHubErrorResponse(w, r, err, "failed to check collection before patch")
+		return
+	}
+	if currentCollection == nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	if currentCollection.State != nil && currentCollection.State.RunCount > 0 {
+		app.conflictResponse(w, r, fmt.Errorf("collection cannot be edited after it has been run"))
+		return
+	}
+
 	collection, err := client.PatchCollection(ctx, id, namespace, operations)
 	if err != nil {
 		app.evalHubErrorResponse(w, r, err, "failed to patch collection")

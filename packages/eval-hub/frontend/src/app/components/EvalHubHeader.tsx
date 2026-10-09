@@ -4,25 +4,39 @@ import EvalHubIcon from './EvalHubIcon';
 
 const ICON_SIZE = 40;
 
-const EvalHubHeader: React.FC<{ title: string }> = ({ title }) => (
-  <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+type EvalHubHeaderProps = {
+  title: string;
+  projectContent?: React.ReactNode;
+};
+
+const EvalHubHeader: React.FC<EvalHubHeaderProps> = ({ title, projectContent }) => (
+  <Flex
+    alignItems={{ default: 'alignItemsCenter' }}
+    gap={{ default: projectContent ? 'gapXl' : 'gapNone' }}
+    flexWrap={{ default: 'wrap' }}
+  >
     <FlexItem>
-      <div
-        style={{
-          background: '#D0C5F4',
-          borderRadius: ICON_SIZE / 2,
-          width: ICON_SIZE,
-          height: ICON_SIZE,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#1a1a1a',
-        }}
-      >
-        <EvalHubIcon />
-      </div>
+      <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+        <FlexItem>
+          <div
+            style={{
+              background: '#D0C5F4',
+              borderRadius: ICON_SIZE / 2,
+              width: ICON_SIZE,
+              height: ICON_SIZE,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#1a1a1a',
+            }}
+          >
+            <EvalHubIcon />
+          </div>
+        </FlexItem>
+        <FlexItem>{title}</FlexItem>
+      </Flex>
     </FlexItem>
-    <FlexItem>{title}</FlexItem>
+    {projectContent && <FlexItem>{projectContent}</FlexItem>}
   </Flex>
 );
 

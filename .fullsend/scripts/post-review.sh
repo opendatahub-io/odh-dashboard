@@ -6,7 +6,8 @@
 #   1. Set the GitHub review action from findings (any medium+ →
 #      request-changes; risk/confidence/needs-human → comment) and rewrite
 #      the sticky comment. Floors/caps live in rating-policy.json.
-#   2. Do not append the /fs-fix "Next steps" footer.
+#   2. Categorize sticky ## TODO (Findings / Checks / Judgement / Nits).
+#      Do not append the stock /fs-fix "Next steps" footer.
 #   3. Link file/line references in the sticky summary and suppress inline
 #      review comments by omitting line numbers only from the CLI payload.
 #   4. Render the durable structured review: change summary, host status,
@@ -215,6 +216,10 @@ def is_blocking(finding):
     severity = (finding.get("severity") or "info").lower()
     return severity in POLICY["_blocking_severities"]
 
+def is_actionable_nit(finding):
+    severity = (finding.get("severity") or "info").lower()
+    return severity in ("low", "info") and bool(finding.get("actionable"))
+
 def blocking_count(result):
     return sum(1 for finding in (result.get("findings") or []) if is_blocking(finding))
 
@@ -396,13 +401,84 @@ def cap_confidence(result):
 def protected_path_todo(listed):
     return f"A human must approve this protected-path change: {listed}"
 
-def todo_items(result):
-    return [t for t in (result.get("todo") or []) if isinstance(t, str) and t.strip()]
+# Sticky ## TODO category ids → plain-text labels (not markdown headers).
+TODO_CATEGORIES = (
+    ("findings", "Findings"),
+    ("checks", "Checks"),
+    ("judgement", "Judgement"),
+    ("nits", "Nits"),
+)
+TODO_CATEGORY_IDS = {cid for cid, _ in TODO_CATEGORIES}
 
-def append_todo(result, item):
+def infer_todo_category(text, result):
+    """Best-effort category for legacy plain-string todo bullets."""
+    if "protected-path" in text.lower():
+        return "judgement"
+    for check in failed_checks(result):
+        summary = (check.get("summary") or "").strip()
+        if summary and (text == summary or summary in text):
+            return "checks"
+    # Blocking matches win over nits so finding order cannot misfile a
+    # blocker-related string under Nits.
+    nit_match = False
+    for finding in (result.get("findings") or []):
+        desc = (finding.get("description") or "").strip()
+        if is_blocking(finding):
+            rem = (finding.get("remediation") or "").strip()
+            if (rem and rem in text) or (desc and desc in text):
+                return "findings"
+        if is_actionable_nit(finding) and desc and (desc in text or text in desc):
+            nit_match = True
+    if nit_match:
+        return "nits"
+    if needs_human(result) or approve_refuse_reason(result):
+        return "judgement"
+    return "findings"
+
+def normalize_todo_item(item, result):
+    if isinstance(item, str):
+        text = item.strip()
+    elif isinstance(item, dict):
+        text = (item.get("text") or "").strip()
+    else:
+        return None
+    if not text:
+        return None
+    if isinstance(item, dict):
+        category = (item.get("category") or "").lower()
+        if category in TODO_CATEGORY_IDS:
+            return {"category": category, "text": text}
+    return {"category": infer_todo_category(text, result), "text": text}
+
+def todo_items(result):
+    items = []
+    for raw in (result.get("todo") or []):
+        item = normalize_todo_item(raw, result)
+        if item:
+            items.append(item)
+    return items
+
+def append_todo(result, item, category="judgement"):
+    if isinstance(item, str):
+        candidate = {"category": category, "text": item.strip()}
+    elif isinstance(item, dict):
+        candidate = item
+    else:
+        return
+    normalized = normalize_todo_item(candidate, result)
+    if not normalized:
+        return
     todos = todo_items(result)
-    if item not in todos:
-        todos.append(item)
+    for t in todos:
+        if t["text"] != normalized["text"]:
+            continue
+        # Host-owned Judgement (protected-path) wins over an agent Findings
+        # classification of the same text — do not leave it under Findings.
+        if normalized["category"] == "judgement" and t["category"] != "judgement":
+            t["category"] = "judgement"
+        break
+    else:
+        todos.append(normalized)
     result["todo"] = todos
 
 def apply_host_todos(result):
@@ -680,22 +756,129 @@ def challenger_prose(result):
         if input_n is None or kept is None:
             return "Challenger ran, but adjudication counts were not recorded."
         removed, merged, downgraded = num("removed") or 0, num("merged") or 0, num("downgraded") or 0
+        justified_n = len(justified_findings(result))
+        removed_noise = max(0, removed - justified_n)
         noun = "finding" if input_n == 1 else "findings"
         parts = [f"{label} {n}" for label, n in (
-            ("removed", removed), ("merged", merged), ("downgraded", downgraded)) if n]
+            ("removed", removed_noise), ("justified", justified_n),
+            ("merged", merged), ("downgraded", downgraded)) if n]
         if not parts:
             return f"Adjudicated {input_n} {noun}; all kept."
         return f"Adjudicated {input_n} {noun}; kept {kept} ({', '.join(parts)})."
     return clean(status)
 
+def justification_allowed(finding):
+    """Host policy categories cannot be cleared via Justifications."""
+    category = (finding.get("category") or "").lower()
+    # protected-path needs human; approach-rejected maps to reject.
+    return category not in ("protected-path", "approach-rejected")
+
+# Fields allowed on result.findings[] (schema $defs.finding). Audit-only
+# keys on removed_finding (removal_reason, challenger_action) must not land here.
+_FINDING_KEYS = (
+    "severity", "category", "dimension", "file", "line",
+    "description", "remediation", "why", "actionable",
+)
+
+def as_finding(item):
+    """Project a removed_finding (or finding) onto schema-valid finding fields."""
+    return {k: item[k] for k in _FINDING_KEYS if k in item}
+
+def restore_policy_findings(result):
+    """Put mistagged justified policy findings back into findings[].
+
+    needs_human / compute_action only inspect result.findings. A challenger
+    that incorrectly marks protected-path or approach-rejected as justified
+    would otherwise drop them from disposition. Restore before
+    normalize_protected_findings so host gates still fire.
+
+    Restored items are projected onto standard finding fields; audit metadata
+    stays only in producers.challenger.removed_findings.
+    """
+    producers = producers_block(result)
+    if producers is None:
+        return result
+    removed = challenger_record(producers).get("removed_findings")
+    if not isinstance(removed, list):
+        return result
+    protected = [
+        as_finding(f) for f in removed
+        if isinstance(f, dict)
+        and f.get("challenger_action") == "justified"
+        and not justification_allowed(f)
+    ]
+    if protected:
+        result["findings"] = list(result.get("findings") or []) + protected
+    return result
+
+def justified_findings(result):
+    """Extract justified findings allowed to render under ### Justified."""
+    producers = producers_block(result)
+    if producers is None:
+        return []
+    ch = challenger_record(producers)
+    removed = ch.get("removed_findings")
+    if not isinstance(removed, list):
+        return []
+    return [
+        f for f in removed
+        if isinstance(f, dict)
+        and f.get("challenger_action") == "justified"
+        and justification_allowed(f)
+    ]
+
+def render_justified_section(result):
+    """Render ### Justified under ## Findings with omit markers."""
+    items = justified_findings(result)
+    if not items:
+        return []
+    run_url = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
+    lines = [
+        "",
+        "<!-- fullsend:justified-findings -->",
+        f"### Justified ({len(items)})",
+        "",
+        "_These findings were raised by review producers but the PR's "
+        "Justifications were accepted as sufficient for this run. They do "
+        "not block disposition. A human reviewer may still disagree._",
+    ]
+    for finding in items:
+        loc = render_location(result, finding, run_url)
+        origin = ""
+        if finding.get("dimension"):
+            origin_ids = producer_ids(finding)
+            origin_shown = ", ".join(
+                code_span_text(dimension_label(i)) for i in origin_ids
+            ) or code_span_text(finding.get("dimension"))
+            origin = f"`{origin_shown}` · "
+        sev = (finding.get("severity") or "info").capitalize()
+        lines += ["", f"- {origin}**{inline_text(finding.get('category'))}** ({loc}) · _{sev}_: {inline_text(finding.get('description'))}"]
+        reason = inline_text(finding.get("removal_reason") or "")
+        if reason:
+            lines.append(f"  - Justification: {reason}")
+    lines += ["", "<!-- /fullsend:justified-findings -->"]
+    return lines
+
 def render_removed_audit(result):
-    """Collapsed audit list of challenger-removed findings (ignore for disposition)."""
+    """Collapsed audit list of challenger-removed findings (ignore for disposition).
+
+    Allowed justified items are rendered under Findings ### Justified instead;
+    they are excluded here to avoid duplication. Policy-rejected justified
+    items (protected-path / approach-rejected) stay in this audit.
+    """
     producers = producers_block(result)
     if producers is None:
         return []
     ch = challenger_record(producers)
     removed = ch.get("removed_findings")
     if not isinstance(removed, list) or not removed:
+        return []
+    non_justified = [
+        f for f in removed
+        if isinstance(f, dict)
+        and not (f.get("challenger_action") == "justified" and justification_allowed(f))
+    ]
+    if not non_justified:
         return []
     run_url = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
     lines = [
@@ -708,9 +891,7 @@ def render_removed_audit(result):
         "actionable review findings; use `findings[]` / ## Findings instead.",
         "",
     ]
-    for finding in removed:
-        if not isinstance(finding, dict):
-            continue
+    for finding in non_justified:
         loc = render_location(result, finding, run_url)
         origin = ""
         if finding.get("dimension"):
@@ -956,8 +1137,15 @@ def render_todo_section(result):
     todos = todo_items(result)
     if not todos:
         return []
-    lines = ["", "## TODO", ""]
-    lines += [f"- {clean(item)}" for item in todos]
+    by_category = {cid: [] for cid, _ in TODO_CATEGORIES}
+    for item in todos:
+        by_category[item["category"]].append(item["text"])
+    lines = ["", "## TODO"]
+    for cid, label in TODO_CATEGORIES:
+        items = by_category[cid]
+        if not items:
+            continue
+        lines += ["", label] + [f"- {clean(text)}" for text in items]
     return lines
 
 def render_product_ask_section(pa):
@@ -989,7 +1177,8 @@ def render_body(result, previous_md, action):
     lines += render_checks_table(result)
 
     findings = result.get("findings") or []
-    if findings:
+    justified = justified_findings(result)
+    if findings or justified:
         lines += ["", "## Findings"]
         for severity, items in group_findings(findings):
             lines += ["", f"### {severity.capitalize()} ({len(items)})"]
@@ -1000,12 +1189,13 @@ def render_body(result, previous_md, action):
                     origin_ids = producer_ids(finding)
                     origin_shown = ", ".join(dimension_label(i) for i in origin_ids) or clean(finding.get("dimension"))
                     origin = f"`{origin_shown}` · "
-                tail = " · actionable follow-up" if finding.get("actionable") and severity in ("low", "info") else ""
+                tail = " · actionable follow-up" if is_actionable_nit(finding) else ""
                 lines += ["", f"- {origin}**{clean(finding.get('category'))}** ({loc}){tail}: {clean(finding.get('description'))}"]
                 if finding.get("why"):
                     lines.append(f"  - Why: {clean(finding.get('why'))}")
                 if finding.get("remediation"):
                     lines += render_remediation(finding.get("remediation"))
+        lines += render_justified_section(result)
     elif action == "approve":
         lines += ["", "Looks good to me."]
 
@@ -1079,6 +1269,7 @@ def render_body(result, previous_md, action):
 with open(sys.argv[1], encoding="utf-8") as fh:
     result = json.load(fh)
 previous_md = os.environ.get("REVIEW_PREVIOUS_MARKDOWN", "")
+result = restore_policy_findings(result)
 result = normalize_protected_findings(result)
 result = reconcile_producers(result)
 result = apply_host_todos(result)
@@ -1158,7 +1349,8 @@ run_self_test() {
        grep -q '### Verification' <<<"${body}" ||
        grep -q '### Jira acceptance criteria' <<<"${body}" ||
        grep -q '## Decision needed' <<<"${body}" ||
-       grep -q '### Readiness checks' <<<"${body}"; then
+       grep -q '### Readiness checks' <<<"${body}" ||
+       grep -q '## Next steps' <<<"${body}"; then
       echo "FAIL ${name}: required rendered sections missing or retired sections present" >&2
       fail=1
       return
@@ -1173,7 +1365,7 @@ run_self_test() {
 
   render_fixture request-changes request-changes "{${common},\"findings\":[{\"severity\":\"high\",\"category\":\"correctness\",\"file\":\"a.ts\",\"line\":12,\"description\":\"Empty state throws.\",\"why\":\"The supported empty route reaches an unguarded map.\",\"remediation\":\"Guard the list and add an empty-state test.\"}],\"product_ask\":{\"status\":\"aligned\"}}"
 
-  render_fixture needs-human comment "{${common},\"findings\":[],\"todo\":[\"Decide which product scope this PR implements.\"],\"product_ask\":{\"status\":\"mismatch-justified\",\"needs_human\":true}}"
+  render_fixture needs-human comment "{${common},\"findings\":[],\"todo\":[{\"category\":\"judgement\",\"text\":\"Decide which product scope this PR implements.\"}],\"product_ask\":{\"status\":\"mismatch-justified\",\"needs_human\":true}}"
 
   local pa body
   printf '%s' "{${common},\"product_ask\":{\"status\":\"mismatch-unjustified\",\"mismatched\":[\"Jira asks for export\"]}}" > "${tmp}/product-ask.json"
@@ -1219,11 +1411,14 @@ run_self_test() {
     echo "PASS request-changes status and linked location"
   fi
   body=$(jq -r .body "${tmp}/needs-human-out.json")
-  if ! grep -Fq '**Needs human judgment.**' <<<"${body}" || ! grep -q '## TODO' <<<"${body}" || grep -q '## Decision needed' <<<"${body}"; then
-    echo "FAIL needs-human: status or TODO section missing" >&2
+  if ! grep -Fq '**Needs human judgment.**' <<<"${body}" ||
+     ! grep -q '## TODO' <<<"${body}" ||
+     ! grep -Fxq 'Judgement' <<<"${body}" ||
+     grep -q '## Decision needed' <<<"${body}"; then
+    echo "FAIL needs-human: status or categorized TODO missing" >&2
     fail=1
   else
-    echo "PASS needs-human status and TODO section"
+    echo "PASS needs-human status and Judgement TODO"
   fi
   body=$(jq -r .body "${tmp}/approve-out.json")
   if grep -q '## Findings' <<<"${body}" || grep -q '## TODO' <<<"${body}" || ! grep -q 'Looks good to me' <<<"${body}"; then
@@ -1233,7 +1428,7 @@ run_self_test() {
     echo "PASS approve omits findings section"
   fi
 
-  printf '%s' "{${common},\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"warning\",\"summary\":\"No targeted tests were changed.\",\"details\":[\"PR body explains manual verification only.\",\"Second detail line.\"]}],\"todo\":[\"Confirm the manual verification note is enough.\"],\"producers\":{\"dispatched\":[\"test-impact-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"test-impact-review\"],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/structured.json"
+  printf '%s' "{${common},\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"warning\",\"summary\":\"No targeted tests were changed.\",\"details\":[\"PR body explains manual verification only.\",\"Second detail line.\"]}],\"todo\":[{\"category\":\"findings\",\"text\":\"Confirm the manual verification note is enough.\"}],\"producers\":{\"dispatched\":[\"test-impact-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"test-impact-review\"],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/structured.json"
   transform_review_result "${tmp}/structured.json" > "${tmp}/structured-out.json"
   body=$(jq -r .body "${tmp}/structured-out.json")
   if [[ "$(jq -r .action "${tmp}/structured-out.json")" != "approve" ]] ||
@@ -1242,6 +1437,7 @@ run_self_test() {
      ! grep -q 'Test impact' <<<"${body}" ||
      ! grep -Fq 'No targeted tests were changed.<br><br>PR body explains manual verification only.<br><br>Second detail line.' <<<"${body}" ||
      ! grep -q '## TODO' <<<"${body}" ||
+     ! grep -Fxq 'Findings' <<<"${body}" ||
      grep -q '### Verification' <<<"${body}" ||
      grep -q '### Jira acceptance criteria' <<<"${body}" ||
      grep -q '### Readiness checks' <<<"${body}"; then
@@ -1261,6 +1457,37 @@ run_self_test() {
     fi
   fi
 
+  printf '%s' "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"correctness\",\"file\":\"a.ts\",\"line\":1,\"description\":\"Service name mismatch.\",\"why\":\"Config disagrees with the Service manifest.\",\"remediation\":\"Align the service name with the manifest.\"},{\"severity\":\"low\",\"category\":\"style-conventions\",\"file\":\"b.ts\",\"description\":\"Minor naming nit.\",\"actionable\":true}],\"checks\":[{\"id\":\"pr-description-review\",\"status\":\"fail\",\"summary\":\"Problem section is empty.\"}],\"todo\":[{\"category\":\"findings\",\"text\":\"Align the service name with the manifest.\"},{\"category\":\"checks\",\"text\":\"Problem section is empty.\"},{\"category\":\"judgement\",\"text\":\"Obtain human approval for the protected-path change.\"},{\"category\":\"nits\",\"text\":\"Minor naming nit.\"}],\"product_ask\":{\"status\":\"none\"}}" > "${tmp}/todo-cats.json"
+  transform_review_result "${tmp}/todo-cats.json" > "${tmp}/todo-cats-out.json"
+  body=$(jq -r .body "${tmp}/todo-cats-out.json")
+  # Category labels live under ## TODO as plain text (not ## / ### headings).
+  todo_block=$(awk '/^## TODO$/{p=1;next} /^## /{p=0} p' <<<"${body}")
+  findings_label=$(grep -n '^Findings$' <<<"${todo_block}" | head -1 | cut -d: -f1)
+  checks_label=$(grep -n '^Checks$' <<<"${todo_block}" | head -1 | cut -d: -f1)
+  human_label=$(grep -n '^Judgement$' <<<"${todo_block}" | head -1 | cut -d: -f1)
+  nits_label=$(grep -n '^Nits$' <<<"${todo_block}" | head -1 | cut -d: -f1)
+  if [[ -z "${findings_label}" || -z "${checks_label}" || -z "${human_label}" || -z "${nits_label}" ||
+        "${findings_label}" -ge "${checks_label}" || "${checks_label}" -ge "${human_label}" ||
+        "${human_label}" -ge "${nits_label}" ]] ||
+     grep -Eq '^#{1,6}[[:space:]]+(Findings|Checks|Judgement|Nits)$' <<<"${todo_block}"; then
+    echo "FAIL todo-cats: categorized TODO labels missing, misordered, or markdown-headed" >&2
+    fail=1
+  else
+    echo "PASS categorized TODO labels render as plain text in recipe order"
+  fi
+
+  # Legacy string TODO matching both a nit (listed first) and a blocker
+  # remediation must categorize as Findings, not Nits.
+  printf '%s' "{${common},\"findings\":[{\"severity\":\"low\",\"category\":\"style-conventions\",\"file\":\"b.ts\",\"description\":\"Align the service name with the manifest.\",\"actionable\":true},{\"severity\":\"medium\",\"category\":\"correctness\",\"file\":\"a.ts\",\"line\":1,\"description\":\"Service name mismatch.\",\"why\":\"Config disagrees with the Service manifest.\",\"remediation\":\"Align the service name with the manifest.\"}],\"todo\":[\"Align the service name with the manifest.\"],\"product_ask\":{\"status\":\"none\"}}" > "${tmp}/todo-infer-order.json"
+  transform_review_result "${tmp}/todo-infer-order.json" > "${tmp}/todo-infer-order-out.json"
+  todo_block=$(awk '/^## TODO$/{p=1;next} /^## /{p=0} p' <<<"$(jq -r .body "${tmp}/todo-infer-order-out.json")")
+  if ! grep -Fxq 'Findings' <<<"${todo_block}" || grep -Fxq 'Nits' <<<"${todo_block}"; then
+    echo "FAIL todo-infer-order: sticky must show Findings, not Nits, when blocker matches first" >&2
+    fail=1
+  else
+    echo "PASS legacy string TODO prefers blocking match over earlier nit"
+  fi
+
   printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"pr-description-review\",\"status\":\"fail\",\"summary\":\"Problem section is empty.\"}],\"producers\":{\"dispatched\":[\"pr-description-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"pr-description-review\"],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/check-fail.json"
   transform_review_result "${tmp}/check-fail.json" > "${tmp}/check-fail-out.json"
   if [[ "$(jq -r .action "${tmp}/check-fail-out.json")" != "request-changes" ]] ||
@@ -1271,7 +1498,7 @@ run_self_test() {
     echo "PASS failed readiness check requests changes"
   fi
 
-  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"could-not-verify\",\"summary\":\"CI host context was unavailable.\"}],\"todo\":[\"Re-run when CI context is available.\"]}" > "${tmp}/check-cnv.json"
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"could-not-verify\",\"summary\":\"CI host context was unavailable.\"}],\"todo\":[{\"category\":\"judgement\",\"text\":\"Re-run when CI context is available.\"}]}" > "${tmp}/check-cnv.json"
   transform_review_result "${tmp}/check-cnv.json" > "${tmp}/check-cnv-out.json"
   if [[ "$(jq -r .action "${tmp}/check-cnv-out.json")" != "comment" ]] ||
      ! grep -Fq '**Needs human judgment.**' <<<"$(jq -r .body "${tmp}/check-cnv-out.json")"; then
@@ -1320,14 +1547,57 @@ run_self_test() {
     export REVIEW_CHANGED_FILES=$'.github/workflows/ci.yaml\nsrc/app.ts'
     transform_review_result "${tmp}/pp-real.json"
   ) > "${tmp}/pp-real-out.json"
-  if ! jq -e '.action == "comment" and ((.findings // []) | length) == 1 and ((.todo // []) | any(.[]; contains(".github/workflows/ci.yaml"))) and (.decision_needed | not)' "${tmp}/pp-real-out.json" >/dev/null; then
-    echo "FAIL protected-path-real: want comment + retained finding + TODO, no decision_needed" >&2
+  if ! jq -e '
+      .action == "comment"
+      and ((.findings // []) | length) == 1
+      and ((.todo // [])
+           | map(if type == "string" then . else .text end)
+           | any(contains(".github/workflows/ci.yaml")))
+      and ((.todo // []) | any(type == "object" and .category == "judgement"))
+      and (.decision_needed | not)
+    ' "${tmp}/pp-real-out.json" >/dev/null; then
+    echo "FAIL protected-path-real: want comment + retained finding + judgement TODO, no decision_needed" >&2
     fail=1
-  elif ! grep -q 'Needs human judgment' <<<"$(jq -r .body "${tmp}/pp-real-out.json")"; then
-    echo "FAIL protected-path-real: status should route to human judgment, not the author" >&2
+  elif ! grep -q 'Needs human judgment' <<<"$(jq -r .body "${tmp}/pp-real-out.json")" ||
+       ! grep -Fxq 'Judgement' <<<"$(jq -r .body "${tmp}/pp-real-out.json")"; then
+    echo "FAIL protected-path-real: status should route to human judgment with Judgement TODO" >&2
     fail=1
   else
     echo "PASS supported protected-path routes to human judgment, not request-changes"
+  fi
+
+  # Host-owned protected-path TODO keeps Judgement even when an agent already
+  # listed the same text under Findings.
+  local pp_todo_text
+  pp_todo_text='A human must approve this protected-path change: .github/workflows/ci.yaml'
+  printf '%s' "{${common},\"findings\":[${pp_finding}],\"todo\":[{\"category\":\"findings\",\"text\":$(jq -n --arg t "${pp_todo_text}" '$t')}]}" > "${tmp}/pp-todo-dup.json"
+  (
+    export REVIEW_PROTECTED_PATHS=".github/,scripts/"
+    export REVIEW_CHANGED_FILES=$'.github/workflows/ci.yaml\nsrc/app.ts'
+    transform_review_result "${tmp}/pp-todo-dup.json"
+  ) > "${tmp}/pp-todo-dup-out.json"
+  if ! jq -e '
+      .action == "comment"
+      and ((.todo // [])
+           | map(select((.text // .) | contains(".github/workflows/ci.yaml")))
+           | length) == 1
+      and ((.todo // []) | any(
+            type == "object"
+            and .category == "judgement"
+            and (.text | contains(".github/workflows/ci.yaml"))))
+      and ((.todo // []) | any(
+            type == "object"
+            and .category == "findings"
+            and (.text | contains(".github/workflows/ci.yaml"))) | not)
+    ' "${tmp}/pp-todo-dup-out.json" >/dev/null; then
+    echo "FAIL protected-path-todo-dup: host Judgement must replace matching agent Findings TODO" >&2
+    fail=1
+  elif ! grep -Fxq 'Judgement' <<<"$(jq -r .body "${tmp}/pp-todo-dup-out.json")" ||
+       grep -Fxq 'Findings' <<<"$(awk '/^## TODO$/{p=1;next} /^## /{p=0} p' <<<"$(jq -r .body "${tmp}/pp-todo-dup-out.json")")"; then
+    echo "FAIL protected-path-todo-dup: sticky must show Judgement, not Findings, for the TODO" >&2
+    fail=1
+  else
+    echo "PASS host-owned protected-path TODO retains Judgement over matching Findings"
   fi
 
   # result.producers is authoritative; legacy inspected.producers is dropped.
@@ -1744,6 +2014,204 @@ run_self_test() {
     fail=1
   else
     echo "PASS challenger section reports removals and merges"
+  fi
+
+  # Justified findings: challenger_action == justified items appear under
+  # ## Findings → ### Justified, not in severity groups or removed audit.
+  printf '%s' "{${common},\"findings\":[],\"producers\":{\"dispatched\":[\"correctness\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"correctness\"],\"raised\":{\"correctness\":[{\"severity\":\"high\",\"category\":\"architecture\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Norm departure.\",\"why\":\"New pattern.\",\"remediation\":\"Follow existing.\"}]},\"challenger\":{\"status\":\"ran\",\"input\":1,\"kept\":0,\"removed\":1,\"merged\":0,\"downgraded\":0,\"removed_findings\":[{\"severity\":\"high\",\"category\":\"architecture\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Norm departure.\",\"why\":\"New pattern.\",\"removal_reason\":\"PR Justifications explain the architectural choice; diff confirms the new pattern is consistent.\",\"challenger_action\":\"justified\"}]}}}" > "${tmp}/justified.json"
+  transform_review_result "${tmp}/justified.json" > "${tmp}/justified-out.json"
+  body=$(jq -r .body "${tmp}/justified-out.json")
+  if [[ "$(jq -r .action "${tmp}/justified-out.json")" != "approve" ]]; then
+    echo "FAIL justified: justified-only findings must not block disposition" >&2
+    fail=1
+  elif ! grep -q '## Findings' <<<"${body}"; then
+    echo "FAIL justified: justified items without survivors must still open ## Findings" >&2
+    fail=1
+  elif ! grep -q '### Justified (1)' <<<"${body}"; then
+    echo "FAIL justified: ### Justified subheading missing or wrong count" >&2
+    fail=1
+  elif ! grep -q 'fullsend:justified-findings' <<<"${body}"; then
+    echo "FAIL justified: HTML omit markers missing" >&2
+    fail=1
+  elif ! grep -q 'Justification:' <<<"${body}"; then
+    echo "FAIL justified: challenger reason not rendered under Justified" >&2
+    fail=1
+  elif grep -q '### High' <<<"${body}"; then
+    echo "FAIL justified: justified finding must not appear in severity groups" >&2
+    fail=1
+  elif grep -q 'Removed findings (audit only)' <<<"${body}"; then
+    echo "FAIL justified: justified items must not appear in removed audit" >&2
+    fail=1
+  elif grep -q 'Looks good to me' <<<"${body}"; then
+    echo "FAIL justified: justified-only must not render LGTM" >&2
+    fail=1
+  elif ! grep -q 'kept 0 (justified 1)' <<<"${body}"; then
+    echo "FAIL justified: challenger prose must report justified, not removed" >&2
+    fail=1
+  else
+    echo "PASS justified findings render under ### Justified, not severity groups or audit"
+  fi
+
+  # Mixed: survivors + justified should show both severity groups and ### Justified.
+  printf '%s' "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"bounds\",\"dimension\":\"correctness\",\"file\":\"b.ts\",\"description\":\"Off by one.\",\"why\":\"Index.\"}],\"producers\":{\"dispatched\":[\"correctness\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"correctness\"],\"raised\":{\"correctness\":[{\"severity\":\"high\",\"category\":\"architecture\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Norm departure.\",\"why\":\"New pattern.\",\"remediation\":\"Follow existing.\"},{\"severity\":\"medium\",\"category\":\"bounds\",\"dimension\":\"correctness\",\"file\":\"b.ts\",\"description\":\"Off by one.\",\"why\":\"Index.\"}]},\"challenger\":{\"status\":\"ran\",\"input\":2,\"kept\":1,\"removed\":1,\"merged\":0,\"downgraded\":0,\"removed_findings\":[{\"severity\":\"high\",\"category\":\"architecture\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Norm departure.\",\"why\":\"New pattern.\",\"removal_reason\":\"Architecture justified per PR body.\",\"challenger_action\":\"justified\"}]}}}" > "${tmp}/justified-mixed.json"
+  transform_review_result "${tmp}/justified-mixed.json" > "${tmp}/justified-mixed-out.json"
+  body=$(jq -r .body "${tmp}/justified-mixed-out.json")
+  if [[ "$(jq -r .action "${tmp}/justified-mixed-out.json")" != "request-changes" ]]; then
+    echo "FAIL justified-mixed: surviving medium finding must still block" >&2
+    fail=1
+  elif ! grep -q '### Medium (1)' <<<"${body}"; then
+    echo "FAIL justified-mixed: severity group missing for surviving finding" >&2
+    fail=1
+  elif ! grep -q '### Justified (1)' <<<"${body}"; then
+    echo "FAIL justified-mixed: ### Justified subheading missing alongside severity groups" >&2
+    fail=1
+  else
+    echo "PASS mixed survivors + justified both render under ## Findings"
+  fi
+
+  # Challenger prose must separate justified from noise-removal counts.
+  printf '%s' "{${common},\"findings\":[],\"producers\":{\"dispatched\":[\"correctness\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"correctness\"],\"raised\":{\"correctness\":[]},\"challenger\":{\"status\":\"ran\",\"input\":2,\"kept\":0,\"removed\":2,\"merged\":0,\"downgraded\":0,\"removed_findings\":[{\"severity\":\"high\",\"category\":\"architecture\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Norm departure.\",\"removal_reason\":\"Justified per PR body.\",\"challenger_action\":\"justified\"},{\"severity\":\"low\",\"category\":\"noise\",\"dimension\":\"correctness\",\"file\":\"b.ts\",\"description\":\"False positive.\",\"removal_reason\":\"Not reproducible.\"}]}}}" > "${tmp}/justified-prose.json"
+  transform_review_result "${tmp}/justified-prose.json" > "${tmp}/justified-prose-out.json"
+  if ! grep -q 'kept 0 (removed 1, justified 1)' <<<"$(jq -r .body "${tmp}/justified-prose-out.json")"; then
+    echo "FAIL justified-prose: challenger summary must split removed vs justified" >&2
+    fail=1
+  else
+    echo "PASS challenger prose separates justified from removed counts"
+  fi
+
+  # Hostile dimension / file labels in ### Justified must use code_span_text.
+  jq -n \
+    --argjson common "$(printf '{%s}' "${common}")" \
+    '$common * {
+      findings: [],
+      producers: {
+        dispatched: ["correctness"],
+        adapters: [],
+        skipped: [],
+        returned: ["correctness"],
+        raised: {correctness: []},
+        challenger: {
+          status: "ran",
+          input: 1,
+          kept: 0,
+          removed: 1,
+          merged: 0,
+          downgraded: 0,
+          removed_findings: [{
+            severity: "medium",
+            category: "architecture",
+            dimension: "evil`</details>`",
+            file: "path</details>`evil.ts",
+            description: "Norm departure.",
+            removal_reason: "Justified per PR body.",
+            challenger_action: "justified"
+          }]
+        }
+      }
+    }' > "${tmp}/justified-label-escape.json"
+  transform_review_result "${tmp}/justified-label-escape.json" > "${tmp}/justified-label-escape-out.json"
+  body=$(jq -r .body "${tmp}/justified-label-escape-out.json")
+  if grep -qF 'evil`</details>`' <<<"${body}" || grep -qF 'path</details>`evil.ts' <<<"${body}"; then
+    echo "FAIL justified-label-escape: raw hostile dimension/file label reached the comment" >&2
+    fail=1
+  elif ! grep -q '### Justified (1)' <<<"${body}"; then
+    echo "FAIL justified-label-escape: ### Justified section missing" >&2
+    fail=1
+  elif ! grep -qF "evil'&lt;/details>'" <<<"${body}"; then
+    echo "FAIL justified-label-escape: hostile dimension was not escaped into the code span" >&2
+    fail=1
+  elif ! grep -qF "path&lt;/details>'evil.ts" <<<"${body}"; then
+    echo "FAIL justified-label-escape: hostile file label was not escaped" >&2
+    fail=1
+  else
+    echo "PASS justified finding dimension/file labels are escaped"
+  fi
+
+  # Mistagged justified protected-path must be restored into findings[] (host gate).
+  jq -n \
+    --argjson common "$(printf '{%s}' "${common}")" \
+    '$common * {
+      findings: [],
+      producers: {
+        dispatched: ["orchestrator"],
+        adapters: [],
+        skipped: [],
+        returned: ["orchestrator"],
+        raised: {orchestrator: []},
+        challenger: {
+          status: "ran",
+          input: 1,
+          kept: 0,
+          removed: 1,
+          merged: 0,
+          downgraded: 0,
+          removed_findings: [{
+            severity: "medium",
+            category: "protected-path",
+            dimension: "orchestrator",
+            file: ".github/workflows/ci.yaml",
+            description: "Touches protected path.",
+            why: "Human approval required.",
+            removal_reason: "Author justified in PR body.",
+            challenger_action: "justified"
+          }]
+        }
+      }
+    }' > "${tmp}/justified-pp.json"
+  (
+    export REVIEW_PROTECTED_PATHS=".github/,scripts/"
+    export REVIEW_CHANGED_FILES=$'.github/workflows/ci.yaml\nsrc/app.ts'
+    transform_review_result "${tmp}/justified-pp.json"
+  ) > "${tmp}/justified-pp-out.json"
+  body=$(jq -r .body "${tmp}/justified-pp-out.json")
+  if [[ "$(jq -r .action "${tmp}/justified-pp-out.json")" != "comment" ]]; then
+    echo "FAIL justified-pp: mistagged protected-path must not clear to approve" >&2
+    fail=1
+  elif ! jq -e '((.findings // []) | map(select(.category == "protected-path")) | length) == 1' "${tmp}/justified-pp-out.json" >/dev/null; then
+    echo "FAIL justified-pp: protected-path must be restored into findings[]" >&2
+    fail=1
+  elif jq -e '((.findings // []) | map(select(has("challenger_action") or has("removal_reason"))) | length) > 0' "${tmp}/justified-pp-out.json" >/dev/null; then
+    echo "FAIL justified-pp: restored findings must not carry audit-only keys" >&2
+    fail=1
+  elif ! python3 -c "
+import json, sys
+from jsonschema import Draft202012Validator
+schema = json.load(open(sys.argv[1], encoding='utf-8'))
+instance = json.load(open(sys.argv[2], encoding='utf-8'))
+Draft202012Validator(schema).validate(instance)
+" "${FULLSEND_CONFIG_DIR}/schemas/review-result.schema.json" "${tmp}/justified-pp-out.json"; then
+    echo "FAIL justified-pp: transformed recovery result must be schema-valid" >&2
+    fail=1
+  elif grep -q '### Justified' <<<"${body}"; then
+    echo "FAIL justified-pp: policy-protected justified must not render under ### Justified" >&2
+    fail=1
+  else
+    echo "PASS mistagged justified protected-path is restored for host gate"
+  fi
+
+  # Mistagged justified approach-rejected must still reject.
+  printf '%s' "{${common},\"findings\":[],\"producers\":{\"dispatched\":[\"intent-coherence\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"intent-coherence\"],\"raised\":{\"intent-coherence\":[]},\"challenger\":{\"status\":\"ran\",\"input\":1,\"kept\":0,\"removed\":1,\"merged\":0,\"downgraded\":0,\"removed_findings\":[{\"severity\":\"high\",\"category\":\"approach-rejected\",\"dimension\":\"intent-coherence\",\"file\":\"a.ts\",\"description\":\"Wrong approach.\",\"why\":\"Product ask mismatch.\",\"remediation\":\"Align with the product ask.\",\"removal_reason\":\"Author justified.\",\"challenger_action\":\"justified\"}]}}}" > "${tmp}/justified-reject.json"
+  transform_review_result "${tmp}/justified-reject.json" > "${tmp}/justified-reject-out.json"
+  if [[ "$(jq -r .action "${tmp}/justified-reject-out.json")" != "reject" ]]; then
+    echo "FAIL justified-reject: mistagged approach-rejected must still reject" >&2
+    fail=1
+  elif jq -e '((.findings // []) | map(select(has("challenger_action") or has("removal_reason"))) | length) > 0' "${tmp}/justified-reject-out.json" >/dev/null; then
+    echo "FAIL justified-reject: restored findings must not carry audit-only keys" >&2
+    fail=1
+  elif ! python3 -c "
+import json, sys
+from jsonschema import Draft202012Validator
+schema = json.load(open(sys.argv[1], encoding='utf-8'))
+instance = json.load(open(sys.argv[2], encoding='utf-8'))
+Draft202012Validator(schema).validate(instance)
+" "${FULLSEND_CONFIG_DIR}/schemas/review-result.schema.json" "${tmp}/justified-reject-out.json"; then
+    echo "FAIL justified-reject: transformed recovery result must be schema-valid" >&2
+    fail=1
+  elif grep -q '### Justified' <<<"$(jq -r .body "${tmp}/justified-reject-out.json")"; then
+    echo "FAIL justified-reject: approach-rejected must not render under ### Justified" >&2
+    fail=1
+  else
+    echo "PASS mistagged justified approach-rejected still rejects"
   fi
 
   # Every U+FE0F variation selector is stripped from the comment before it is
