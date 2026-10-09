@@ -25,6 +25,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/stretchr/testify/assert"
@@ -315,12 +316,15 @@ func TestAudioTranscription_EmptyBody(t *testing.T) {
 func TestAudioTranscription_MockAudioNamespace(t *testing.T) {
 	for _, modelID := range []string{"whisper-large-v3", "whisper-small"} {
 		t.Run(modelID, func(t *testing.T) {
-			model := asrModel("mock-audio-namespace")
+			// Mirror the k8smocks models for the mock playground audio
+			// namespace: internal endpoints point at the in-process mock ASR
+			// server, so the real transcription path runs end to end.
+			model := asrModel("test-ns")
 			model.ModelID = modelID
 			model.ModelName = modelID
+			model.Endpoints = []string{"internal: " + k8smocks.MockASRServerURL()}
 			app := newTestAppForASR(t, []models.AAModel{model})
 			req := buildAudioRequest(t, AudioTranscriptionRequest{FileID: "file-abc123", ASRModelID: modelID}, mockLSWithAudio(wavBytes(), "audio/wav"))
-			req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "mock-audio-namespace"))
 
 			rr := httptest.NewRecorder()
 			app.LlamaStackAudioTranscriptionHandler(rr, req, nil)
@@ -328,7 +332,7 @@ func TestAudioTranscription_MockAudioNamespace(t *testing.T) {
 			require.Equal(t, http.StatusOK, rr.Code)
 			var response AudioTranscriptionResponse
 			require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-			assert.Equal(t, "This is a mock audio transcription.", response.Text)
+			assert.Equal(t, k8smocks.MockASRTranscriptionText, response.Text)
 		})
 	}
 }
