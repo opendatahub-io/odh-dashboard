@@ -40,6 +40,7 @@ import React from 'react';
 import { z } from 'zod';
 import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
+import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import {
   fireFormTrackingEvent,
@@ -550,12 +551,6 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                     id="api-key-base-url"
                     label="Base URL"
                     value={gatewayUrl}
-                    helperText={
-                      <>
-                        Universal MaaS gateway base URL (shared across models). Do not use a
-                        model-specific path in the URL.
-                      </>
-                    }
                   />
                 )}
                 <CopyableDisabledField
@@ -563,7 +558,17 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                   label="Subscription ID"
                   value={selectedSubscription?.subscription_id_header ?? ''}
                 />
-                <FormGroup label="Available models" fieldId="api-key-available-models">
+                <FormGroup
+                  label="Models"
+                  fieldId="api-key-available-models"
+                  labelHelp={
+                    <FieldGroupHelpLabelIcon
+                      buttonTestId="api-key-available-models-help-icon"
+                      popoverBodyTestId="api-key-available-models-help-popover"
+                      content="Select a model to view its ID and documentation."
+                    />
+                  }
+                >
                   <Select
                     id="api-key-available-models"
                     isOpen={isModelSelectOpen}
@@ -600,14 +605,6 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                       ))}
                     </SelectList>
                   </Select>
-                  <FormHelperText>
-                    <HelperText>
-                      <HelperTextItem>
-                        These models are available with your subscription. Select a model to update
-                        the model ID and usage.
-                      </HelperTextItem>
-                    </HelperText>
-                  </FormHelperText>
                 </FormGroup>
                 {availableModelOptions.length > 0 && (
                   <CopyableDisabledField
@@ -621,7 +618,6 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                     id="api-key-model-documentation"
                     label="Model documentation"
                     value={modelDocumentationUrl}
-                    helperText="OpenAPI documentation for this model. Opens the FastAPI / Swagger UI."
                   />
                 )}
               </Form>
