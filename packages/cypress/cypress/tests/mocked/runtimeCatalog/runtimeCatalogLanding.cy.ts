@@ -166,6 +166,8 @@ describe('Runtime image library landing', () => {
     );
 
     runtimeCatalogPage.visit();
+    runtimeCatalogPage.findCardDetailLink('vllm').should('be.visible');
+    cy.testA11y();
     runtimeCatalogPage.openCardDetails('vllm');
 
     cy.location('pathname').should(
@@ -174,6 +176,7 @@ describe('Runtime image library landing', () => {
     );
     cy.wait('@runtimeDetails');
     runtimeCatalogDetailsPage.findHeading('vLLM').should('be.visible');
+    cy.testA11y();
   });
 
   it('does not offer navigation for a runtime without a BFF ID', () => {
@@ -196,5 +199,6 @@ describe('Runtime image library landing', () => {
 
     runtimeCatalogPage.visit();
     runtimeCatalogPage.findCardDetailLink('idless').should('be.disabled');
+    cy.testA11y();
   });
 });
