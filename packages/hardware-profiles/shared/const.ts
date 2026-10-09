@@ -41,10 +41,15 @@ export const HARDWARE_PROFILE_BINDING_CONFIG: Record<
     alertVariant: 'info',
     testId: 'hardware-profile-status-updated',
     title: 'Hardware profile updated',
-    getBodyText: ({ name, resourceType, isRunning }) => {
+    getBodyText: ({ name, resourceType, isRunning, isDRA }) => {
       const continuity = isRunning
         ? `Your ${resourceType} will continue to run with its current settings. `
         : '';
+      if (isDRA) {
+        return `The hardware profile ${
+          name || ''
+        } has been updated. ${continuity}This hardware profile is managed outside the dashboard, so the updated settings are not applied automatically. To apply them, update the ${resourceType} resource directly.`;
+      }
       return `The hardware profile ${
         name || ''
       } has been updated. ${continuity}If you restart or redeploy, your new ${resourceType} will use the updated ${
@@ -72,3 +77,6 @@ export const HARDWARE_PROFILE_BINDING_CONFIG: Record<
 
 export const LOCAL_QUEUE_MISSING_BODY =
   'The selected hardware profile references a local queue that does not exist in this project and may prevent the workbench from starting. Select a different hardware profile.';
+
+export const DRA_HARDWARE_PROFILE_WORKLOAD_LOCKED_MESSAGE =
+  'This hardware profile uses dynamic resource allocation (DRA) and is managed outside the dashboard.';

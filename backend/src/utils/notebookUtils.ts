@@ -302,8 +302,10 @@ export const assembleNotebook = async (
             },
           ],
           volumes,
-          tolerations: !selectedHardwareProfile ? tolerations : null,
-          nodeSelector: !selectedHardwareProfile ? nodeSelector : null,
+          tolerations:
+            !selectedHardwareProfile || selectedHardwareProfile.spec.dra ? tolerations : null,
+          nodeSelector:
+            !selectedHardwareProfile || selectedHardwareProfile.spec.dra ? nodeSelector : null,
         },
       },
     },

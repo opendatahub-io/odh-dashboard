@@ -19,8 +19,9 @@ import {
 } from '@odh-dashboard/ui-core/utilities/valueUnits';
 import { DEFAULT_PROFILE_NAME } from './const';
 import { DEFAULT_CPU_IDENTIFIER, DEFAULT_MEMORY_IDENTIFIER } from './nodeResource/const';
-import { hasCPUandMemory } from './manage/ManageNodeResourceSection';
+import { hasCPUandMemory } from './manage/utils';
 import { createHardwareProfileWarningSchema } from './manage/validationUtils';
+import { isDRAHardwareProfile } from '../../shared/utils';
 
 export enum HardwareProfileBannerWarningTitles {
   ALL_INVALID = 'All hardware profiles are invalid',
@@ -91,27 +92,34 @@ const generateWarningMessage = (
 export const generateWarningForHardwareProfiles = (
   hardwareProfiles: HardwareProfileKind[],
 ): WarningNotification | undefined => {
-  const hasInvalid = hardwareProfiles.some((profile) => {
+  const selectableProfiles = hardwareProfiles.filter((profile) => !isDRAHardwareProfile(profile));
+  const hasInvalid = selectableProfiles.some((profile) => {
     const warnings = validateProfileWarning(profile);
     return warnings.some(
       (warning) => warning.type !== HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
     );
   });
-  const hasEnabled = hardwareProfiles.some((profile) => isHardwareProfileEnabled(profile));
-  const allInvalid = hardwareProfiles.every((profile) => {
-    const warnings = validateProfileWarning(profile);
-    return warnings.some(
-      (warning) => warning.type !== HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
-    );
-  });
-  const allIncompleteCPUorMemory = hardwareProfiles.every((profile) => {
-    const warnings = validateProfileWarning(profile);
-    return warnings.some(
-      (warning) => warning.type === HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
-    );
-  });
+  const hasEnabled = selectableProfiles.some((profile) => isHardwareProfileEnabled(profile));
+  const allInvalid =
+    selectableProfiles.length > 0 &&
+    selectableProfiles.every((profile) => {
+      const warnings = validateProfileWarning(profile);
+      return warnings.some(
+        (warning) =>
+          warning.type !== HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
+      );
+    });
+  const allIncompleteCPUorMemory =
+    selectableProfiles.length > 0 &&
+    selectableProfiles.every((profile) => {
+      const warnings = validateProfileWarning(profile);
+      return warnings.some(
+        (warning) =>
+          warning.type === HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
+      );
+    });
 
-  const someIncompleteCPUorMemory = hardwareProfiles.some((profile) => {
+  const someIncompleteCPUorMemory = selectableProfiles.some((profile) => {
     const warnings = validateProfileWarning(profile);
     return warnings.some(
       (warning) => warning.type === HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
