@@ -1,0 +1,123 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - service-account.yaml
+  - cluster-role.yaml
+  - cluster-role-binding.yaml
+  - rhods-operator-subscription-role.yaml
+  - rhods-operator-subscription-role-binding.yaml
+  - opendatahub-operator-subscription-role.yaml
+  - opendatahub-operator-subscription-role-binding.yaml
+  - deployment.yaml
+  - service.yaml
+  - networkpolicy.yaml
+  - perses-networkpolicy.yaml
+  - httproute.yaml
+configMapGenerator:
+  - name: maas-portal-params
+    env: params.env
+generatorOptions:
+  disableNameSuffixHash: true
+labels:
+  - pairs:
+      app.kubernetes.io/component: maas-portal
+      app.kubernetes.io/name: maas-portal
+      app.kubernetes.io/part-of: maas-portal
+      platform.opendatahub.io/part-of: maas-portal
+    includeSelectors: false
+replacements:
+  - source:
+      kind: ConfigMap
+      name: maas-portal-params
+      fieldPath: data.core-bff-image
+    targets:
+      - select:
+          kind: Deployment
+          name: maas-portal
+        fieldPaths:
+          - spec.template.spec.containers.[name=maas-portal].image
+  - source:
+      kind: ConfigMap
+      name: maas-portal-params
+      fieldPath: data.gateway-name
+    targets:
+      - select:
+          group: gateway.networking.k8s.io
+          version: v1
+          kind: HTTPRoute
+          name: maas-portal
+        fieldPaths:
+          - spec.parentRefs.0.name
+  - source:
+      kind: ConfigMap
+      name: maas-portal-params
+      fieldPath: data.dashboard-namespace
+    targets:
+      - select:
+          group: rbac.authorization.k8s.io
+          version: v1
+          kind: ClusterRoleBinding
+          name: maas-portal
+        fieldPaths:
+          - subjects.0.namespace
+      - select:
+          group: rbac.authorization.k8s.io
+          version: v1
+          kind: RoleBinding
+          name: maas-portal-rhods-operator-subscription
+        fieldPaths:
+          - subjects.0.namespace
+      - select:
+          group: rbac.authorization.k8s.io
+          version: v1
+          kind: RoleBinding
+          name: maas-portal-opendatahub-operator-subscription
+        fieldPaths:
+          - subjects.0.namespace
+      - select:
+          kind: Deployment
+          name: maas-portal
+        # Kustomize cannot select a scalar argument by flag name. Keep
+        # --namespace=dashboard-namespace at args.5; the manifest rendering
+        # test verifies the resulting argument.
+        fieldPaths:
+          - spec.template.spec.containers.[name=maas-portal].args.5
+        options:
+          delimiter: "="
+          index: 1
+      - select:
+          kind: NetworkPolicy
+          name: maas-portal
+        fieldPaths:
+          - spec.egress.2.to.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
+          - spec.egress.3.to.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
+  - source:
+      kind: ConfigMap
+      name: maas-portal-params
+      fieldPath: data.perses-namespace
+    targets:
+      - select:
+          kind: NetworkPolicy
+          name: maas-portal-perses
+        fieldPaths:
+          - spec.egress.0.to.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
+  - source:
+      kind: ConfigMap
+      name: maas-portal-params
+      fieldPath: data.maas-portal-federation-config
+    targets:
+      - select:
+          kind: Deployment
+          name: maas-portal
+        fieldPaths:
+          - spec.template.spec.volumes.[name=maas-portal-federation-config].configMap.name
+  - source:
+      kind: ConfigMap
+      name: maas-portal-params
+      fieldPath: data.operator-namespace
+    targets:
+      - select:
+          kind: Deployment
+          name: maas-portal
+        fieldPaths:
+          - spec.template.spec.containers.[name=maas-portal].env.[name=OPERATOR_NAMESPACE].value

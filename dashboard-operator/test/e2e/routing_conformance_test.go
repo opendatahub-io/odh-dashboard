@@ -5,6 +5,7 @@ package e2e
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"mime"
 	"net/http"
@@ -21,13 +22,13 @@ import (
 )
 
 const (
-	modelCatalogRouteName        = "model-catalog"
-	modelCatalogPath             = "/catalog/api/model_catalog/v1alpha1/sources"
-	maasConsumerPortalRouteName  = "maas-consumer-portal"
-	maasConsumerPortalPath       = "/maas-consumer-portal"
-	maasConsumerPortalHealthPath = "/maas-consumer-portal/healthcheck"
-	sharedGatewayName            = "data-science-gateway"
-	maxRouteResponseBody         = 1 << 20
+	modelCatalogRouteName = "model-catalog"
+	modelCatalogPath      = "/catalog/api/model_catalog/v1alpha1/sources"
+	maasPortalRouteName   = "maas-portal"
+	maasPortalPath        = "/maas-consumer-portal"
+	maasPortalHealthPath  = "/maas-consumer-portal/healthcheck"
+	sharedGatewayName     = "data-science-gateway"
+	maxRouteResponseBody  = 1 << 20
 )
 
 type gatewayResponse struct {
@@ -69,46 +70,46 @@ func TestE2E_GatewaySubPathRoutingConformance(t *testing.T) {
 		modelCatalogPath, response.status, response.contentType, len(response.body))
 }
 
-func TestE2E_MaaSConsumerPortalRoutingConformance(t *testing.T) {
+func TestE2E_MaaSPortalRoutingConformance(t *testing.T) {
 	requireManagedFixture(t)
 	if requiredPlatform(t) != platformRHOAI {
-		t.Skip("MaaS Consumer Portal is supported only on RHOAI")
+		t.Skip("MaaS Portal is supported only on RHOAI")
 	}
 
 	dashboard := &dashboardv1alpha1.Dashboard{}
 	require.NoError(t, k8sClient.Get(context.Background(), client.ObjectKey{Name: dashboardv1alpha1.DashboardInstanceName}, dashboard))
 	for _, name := range []string{"maas", "genAi"} {
 		require.NotEqual(t, dashboardv1alpha1.ModuleDisabled, dashboard.Spec.Modules[name].State,
-			"MaaS Consumer Portal routing test requires module %q to be enabled in Dashboard spec.modules", name)
+			"MaaS Portal routing test requires module %q to be enabled in Dashboard spec.modules", name)
 	}
-	var originalPortalSpec *dashboardv1alpha1.MaaSConsumerPortalSpec
-	if dashboard.Spec.MaaSConsumerPortal != nil {
-		originalPortalSpec = dashboard.Spec.MaaSConsumerPortal.DeepCopy()
+	var originalPortalSpec *dashboardv1alpha1.MaaSPortalSpec
+	if dashboard.Spec.MaaSPortal != nil {
+		originalPortalSpec = dashboard.Spec.MaaSPortal.DeepCopy()
 	}
 	t.Cleanup(func() {
 		patchDashboardSpec(t, func(spec *dashboardv1alpha1.DashboardSpec) {
-			spec.MaaSConsumerPortal = originalPortalSpec
+			spec.MaaSPortal = originalPortalSpec
 		})
 		if originalPortalSpec == nil || originalPortalSpec.ManagementState != "Managed" {
-			waitForObjectAbsent(t, &gatewayv1.HTTPRoute{}, maasConsumerPortalRouteName)
-			waitForObjectAbsent(t, &appsv1.Deployment{}, maasConsumerPortalRouteName)
+			waitForObjectAbsent(t, &gatewayv1.HTTPRoute{}, maasPortalRouteName)
+			waitForObjectAbsent(t, &appsv1.Deployment{}, maasPortalRouteName)
 		}
 	})
 
 	patchDashboardSpec(t, func(spec *dashboardv1alpha1.DashboardSpec) {
-		spec.MaaSConsumerPortal = &dashboardv1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"}
+		spec.MaaSPortal = &dashboardv1alpha1.MaaSPortalSpec{ManagementState: "Managed"}
 	})
 	require.NoError(t, waitForCondition(
 		k8sClient,
 		dashboardv1alpha1.DashboardInstanceName,
-		"MaaSConsumerPortalAvailable",
+		"MaaSPortalAvailable",
 		metav1.ConditionTrue,
 		fixtureReadyTimeout,
 	))
 	require.NoError(t, waitForDeploymentReady(
 		k8sClient,
 		testNamespace,
-		maasConsumerPortalRouteName,
+		maasPortalRouteName,
 		operandReadyTimeout,
 	))
 
@@ -122,7 +123,7 @@ func TestE2E_MaaSConsumerPortalRoutingConformance(t *testing.T) {
 	portalRoute, err := waitForAdmittedHTTPRouteByName(
 		k8sClient,
 		testNamespace,
-		maasConsumerPortalRouteName,
+		maasPortalRouteName,
 		operandReadyTimeout,
 	)
 	require.NoError(t, err)
@@ -142,11 +143,11 @@ func TestE2E_MaaSConsumerPortalRoutingConformance(t *testing.T) {
 		require.Equal(t, gatewayv1.ObjectName(sharedGatewayName), route.Spec.ParentRefs[0].Name)
 	}
 	require.True(t, httpRouteMatchesPathPrefix(dashboardRoute, "/"))
-	require.True(t, httpRouteMatchesPathPrefix(portalRoute, maasConsumerPortalPath))
+	require.True(t, httpRouteMatchesPathPrefix(portalRoute, maasPortalPath))
 	require.True(t, httpRouteMatchesPathPrefix(catalogRoute, "/catalog/"))
 
 	require.NoError(t, k8sClient.Get(context.Background(), client.ObjectKey{Name: dashboardv1alpha1.DashboardInstanceName}, dashboard))
-	require.Equal(t, "https://"+testGatewayDomain+maasConsumerPortalPath+"/", dashboard.Status.MaaSConsumerPortalURL)
+	require.Equal(t, "https://"+testGatewayDomain+maasPortalPath+"/", dashboard.Status.MaaSPortalURL)
 
 	dashboardResponse := requestGatewayPath(t, "/")
 	require.Equal(t, http.StatusOK, dashboardResponse.statusCode,
@@ -156,7 +157,7 @@ func TestE2E_MaaSConsumerPortalRoutingConformance(t *testing.T) {
 		"dashboard root returned non-HTML content type %q and body length %d",
 		dashboardResponse.contentType, len(dashboardResponse.body))
 
-	portalResponse := requestGatewayPath(t, maasConsumerPortalHealthPath)
+	portalResponse := requestGatewayPath(t, maasPortalHealthPath)
 	require.Equal(t, http.StatusOK, portalResponse.statusCode,
 		"portal health check returned status %s, content type %q, and body length %d",
 		portalResponse.status, portalResponse.contentType, len(portalResponse.body))
@@ -180,30 +181,49 @@ func TestE2E_MaaSConsumerPortalRoutingConformance(t *testing.T) {
 
 func requestGatewayPath(t *testing.T, path string) gatewayResponse {
 	t.Helper()
+	response, err := fetchGatewayPath(context.Background(), path)
+	require.NoError(t, err)
+	return response
+}
+
+// fetchGatewayPath lets convergence checks retry transport and proxy failures
+// while preserving the same authentication, TLS, and response limits.
+func fetchGatewayPath(ctx context.Context, path string) (gatewayResponse, error) {
+	if restConfig.BearerToken == "" {
+		return gatewayResponse{}, fmt.Errorf("kubeconfig must provide a bearer token for the authenticated Gateway request")
+	}
 	requestURL := url.URL{Scheme: "https", Host: testGatewayDomain, Path: path}
-	ctx, cancel := context.WithTimeout(context.Background(), httpRequestTimeout)
+	ctx, cancel := context.WithTimeout(ctx, httpRequestTimeout)
 	defer cancel()
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL.String(), nil)
-	require.NoError(t, err)
-	require.NotEmpty(t, restConfig.BearerToken,
-		"kubeconfig must provide a bearer token for the authenticated Gateway request")
+	if err != nil {
+		return gatewayResponse{}, err
+	}
 	request.Header.Set("Authorization", "Bearer "+restConfig.BearerToken)
 
-	response, err := routeHTTPClient().Do(request)
-	require.NoError(t, err)
-	defer func() {
-		require.NoError(t, response.Body.Close())
-	}()
+	httpClient := routeHTTPClient()
+	defer httpClient.CloseIdleConnections()
+	response, err := httpClient.Do(request)
+	if err != nil {
+		return gatewayResponse{}, err
+	}
 
-	body, err := io.ReadAll(io.LimitReader(response.Body, maxRouteResponseBody+1))
-	require.NoError(t, err)
-	require.LessOrEqual(t, len(body), maxRouteResponseBody,
-		"Gateway response for path %s exceeded the %d-byte diagnostic limit", path, maxRouteResponseBody)
+	body, readErr := io.ReadAll(io.LimitReader(response.Body, maxRouteResponseBody+1))
+	closeErr := response.Body.Close()
+	if readErr != nil {
+		return gatewayResponse{}, readErr
+	}
+	if closeErr != nil {
+		return gatewayResponse{}, closeErr
+	}
+	if len(body) > maxRouteResponseBody {
+		return gatewayResponse{}, fmt.Errorf("Gateway response for path %s exceeded the %d-byte diagnostic limit", path, maxRouteResponseBody)
+	}
 
 	return gatewayResponse{
 		statusCode:  response.StatusCode,
 		status:      response.Status,
 		contentType: response.Header.Get("Content-Type"),
 		body:        body,
-	}
+	}, nil
 }

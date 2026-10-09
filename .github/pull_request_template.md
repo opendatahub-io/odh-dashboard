@@ -1,34 +1,62 @@
-<!--- If this is a non-code change, this template is not required; reference any issues or top-level descriptions as needed -->
-<!--- All code change PRs should relate to an issue, reference it here; see example below -->
-<!--- https://issues.redhat.com/browse/RHOAIENG-123456 -->
+<!-- OPTIONAL — uncomment when there is a tracker: -->
+<!-- Fixes: https://issues.redhat.com/browse/RHOAIENG-123456 -->
 
-## Description
-<!--- Describe your changes in detail; the what, the why, any findings, etc -->
-<!--- Include any screenshots of changed UI; Include any gifs if it was a flow / UX change -->
+## Problem
 
-## How Has This Been Tested?
-<!--- Please describe in detail how you tested your changes. -->
-<!--- Include details of your testing environment, and the tests you ran to -->
-<!--- see how your change affects other areas of the code, etc. -->
 
-## Test Impact
-<!--- What tests have you done to cover the implemented functionality -->
-<!--- If tests are not applicable, explain why here -->
+## Solution
 
-## Request review criteria:
-<!--- This PR will be merged by any repository approver when it meets all the points in the checklist -->
-<!--- Go over all the following points, and put an `x` in all the boxes that apply. -->
 
-Self checklist (all need to be checked):
-- [ ] The developer has manually tested the changes and verified that the changes work
-- [ ] Testing instructions have been added in the PR body (for PRs involving changes that are not immediately obvious).
-- [ ] The developer has added tests or explained why testing cannot be added (unit or cypress tests for related changes)
-- [ ] The code follows our [Best Practices](/docs/best-practices.md) (React coding standards, PatternFly usage, performance considerations)
+## Evidence
 
-If you have UI changes: 
-<!--- You can ignore these if you are doing manifest, backend, internal logic, etc changes; aka non-UI / visual changes -->
-- [ ] Included any necessary screenshots or gifs if it was a UI change.
-- [ ] Included tags to the UX team if it was a UI/UX change.
 
-After the PR is posted & before it merges:
-- [ ] The developer has tested their solution on a cluster by using the image produced by the PR to `main`
+<!-- OPTIONAL — uncomment when needed: -->
+<!-- ## Justifications -->
+
+<!-- Instructions
+
+This description is the sole source of truth for review of this PR.
+Review and lander gates read only this description — not chat or comment threads.
+A linked Jira ticket may still be checked for product-ask alignment.
+
+Source of truth — this PR description
+- Restate what matters for this head here. If you depart from the ticket ask, say
+  so in this description and why.
+- If a thread changes the ask or a rebuttal, fold that change into this description
+  (do not leave the durable claim only in a comment).
+- Tracker (optional): uncomment the `Fixes:` line at the top; do not bury the ticket
+  only in Problem/Solution.
+
+Hygiene
+- Present-tense, current with the head. No TBD/placeholders.
+- PR title = user-visible change (unless a workflow requires a specific title format — that format wins).
+- Allow maintainer edits: on.
+
+## Problem (required)
+- Broken workflow or gap — not the code-level cause.
+- Enough to check against the diff and any linked ticket ACs.
+
+## Solution (required)
+- What changed and why. Skip file lists.
+- Note security/RBAC, API/contract, migrations, breaking changes when relevant.
+
+## Evidence (required)
+- How you validated: commands, tests, CI links, cluster checks; steps, not only outcome.
+- What automation covers this (new or existing), or why new tests aren't appropriate.
+- Screenshots, GIFs, and/or video for UI or flow changes; logs when useful. Fullsend does not read CI for you.
+- Redact tokens, passwords, and cluster credentials.
+- Cluster check with the PR image when permission/backend/hard-to-mock matters.
+- Long output: short summary up top; fold details:
+
+  <details>
+  <summary>build log output</summary>
+
+  ...
+
+  </details>
+
+## Justifications (optional)
+- Only if the approach fights repo guidance/norms and review would keep flagging it.
+- Which norm, why this PR is still correct, what proof. Update this description when
+  that rationale changes; comment threads alone are not enough.
+-->

@@ -141,6 +141,18 @@ class GenAiPlayground {
     return cy.findByTestId('audio-file-input');
   }
 
+  findDocumentUploadMenuItem() {
+    return cy.findByTestId('upload-document-menu-item');
+  }
+
+  findDocumentFileInput() {
+    return cy.findByTestId('document-file-input');
+  }
+
+  findDocumentAttachmentByName(fileName: string) {
+    return cy.contains('[data-testid^="document-attachment-"]', fileName);
+  }
+
   findAudioFileChip() {
     return cy.get('[data-testid="audio-file-chip"]');
   }
@@ -328,12 +340,12 @@ class GenAiPlayground {
     return cy.findByTestId('add-transcription-model-btn');
   }
 
-  findAsrModelToggle() {
-    return cy.findByTestId('asr-model-selector-toggle');
+  findTranscriptionModelSelector() {
+    return cy.findByTestId('transcription-model-selector');
   }
 
-  findAsrModelOption(modelId: string) {
-    return cy.findByTestId(`asr-model-option-${modelId}`);
+  findTranscriptionModelOption(modelId: string) {
+    return cy.findByTestId(`all-model-option-${modelId}`);
   }
 
   // Prompt management methods (within the playground settings panel)

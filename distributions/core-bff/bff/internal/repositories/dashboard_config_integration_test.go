@@ -32,6 +32,7 @@ func newFakeDynClientWithDashboardConfig(disableProjects bool) *dynamicfake.Fake
 				"dashboardConfig": map[string]any{
 					"disableProjects": disableProjects,
 					"disableKServe":   true,
+					"dataRegistry":    true,
 				},
 			},
 		},
@@ -63,6 +64,9 @@ func TestGetDashboardConfig_PrivilegedRead_ReturnsRealConfig(t *testing.T) {
 
 	// Defaults are merged in for fields not in the CR
 	assert.True(t, config.Spec.DashboardConfig.Enablement)
+
+	// New feature flags are preserved through the typed core-bff model.
+	assert.True(t, config.Spec.DashboardConfig.DataRegistry)
 }
 
 func TestGetDashboardConfig_CRDAbsent_FallsBackToDefaults(t *testing.T) {

@@ -33,9 +33,6 @@ components:
       - apiVersion: rbac.authorization.k8s.io/v1
         kind: ClusterRoleBinding
         name: odh-dashboard-auth-delegator
-      - apiVersion: rbac.authorization.k8s.io/v1
-        kind: ClusterRoleBinding
-        name: odh-dashboard-monitoring
       - apiVersion: v1
         kind: Service
         name: odh-dashboard

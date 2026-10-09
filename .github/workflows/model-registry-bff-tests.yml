@@ -1,6 +1,7 @@
 name: Test / Model Registry BFF Tests
 on:
   push:
+    branches: [main, 'odh-release*', 'rhoai-release*', '*-release', 'v*-fixes', 'v*-hotfix']
     paths:
       - 'packages/model-registry/**'
       - '!LICENSE*'

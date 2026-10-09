@@ -277,7 +277,7 @@ describe('EvaluationFileCreator', () => {
         'm4a',
       ]);
       expect(mockS3FileExplorerProps?.unselectableReason).toBe(
-        'You can only select PDF, DOCX, PPTX, Markdown, HTML, Plain text, OpenDocument Text, OpenDocument Presentation, AsciiDoc, LaTeX, EPUB, EML, MSG, Markdown (Quarto), R Markdown, XHTML, MP3, WAV, or M4A files',
+        'You can only select PDF, DOCX, PPTX, Markdown, HTML, Plain text, OpenDocument Text, OpenDocument Presentation, AsciiDoc, LaTeX, EPUB, EML, MSG, Markdown (Quarto), R Markdown, XHTML, JPEG, PNG, TIFF, MP3, WAV, or M4A files',
       );
     });
 

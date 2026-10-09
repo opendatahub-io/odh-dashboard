@@ -1,4 +1,6 @@
 import {
+  Alert,
+  AlertActionCloseButton,
   BreadcrumbItem,
   Button,
   Drawer,
@@ -8,10 +10,18 @@ import {
   Split,
   SplitItem,
   Truncate,
+  Tooltip,
 } from '@patternfly/react-core';
-import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
+import {
+  CogIcon,
+  DownloadIcon,
+  OpenDrawerRightIcon,
+  RedoIcon,
+  StopCircleIcon,
+} from '@patternfly/react-icons';
 import { InvalidPipelineRun, StopRunModal } from '@odh-dashboard/autox-core/ui/components/feature';
 import { ContextBreadcrumb } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { useFetchS3File, useS3ListFilesQuery } from '@odh-dashboard/autox-core/ui/hooks';
 import { parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ApplicationsPage } from 'mod-arch-shared';
@@ -29,17 +39,25 @@ import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
 import { useNotification } from '~/app/hooks/useNotification';
 import { usePipelineRunQuery } from '~/app/hooks/usePipelineRunQuery';
 import { useSecretCredentialsQuery } from '~/app/hooks/useSecretCredentialsQuery';
-import { useAutoragResults } from '~/app/hooks/useAutoragResults';
+import { useAutoragOutputDir } from '~/app/hooks/useAutoragOutputDir';
+import { resolveArtifactDirectory, useAutoragResults } from '~/app/hooks/useAutoragResults';
 import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import { useComponentStatuses } from '~/app/hooks/useComponentStatuses';
+import { isRunInTerminalState } from '~/app/types/pipeline';
 import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/utilities/routes';
-import { isRunTerminatable, isRunRetryable } from '~/app/utilities/utils';
+import {
+  downloadBlob,
+  isRunCompleted,
+  isRunRetryable,
+  isRunTerminatable,
+} from '~/app/utilities/utils';
 import { getObjectiveMetric, metricLabel } from '~/app/utilities/metricUtils';
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 import {
   AUTORAG_EVENTS,
   fireAutoragCodeSnippetsExported,
+  fireAutoragStarterKitDownloaded,
   fireAutoragPlaygroundOpened,
   fireAutoragResultsViewed,
   isAutoragResultsNavigationState,
@@ -54,6 +72,15 @@ type DrawerContentType =
       responsesTemplate: ResponsesTemplate;
       patternInfo: PlaygroundPatternInfo;
     };
+
+const STARTER_KIT_FILENAME = 'starter_kit.zip';
+const ARTIFACT_AVAILABLE_TOOLTIP = 'Available after the run completes successfully';
+const ARTIFACT_CHECKING_TOOLTIP = 'Checking artifact availability...';
+const ARTIFACT_UNSUCCESSFUL_TOOLTIP = 'Unavailable because the run did not complete successfully';
+const ARTIFACT_UNAVAILABLE_TOOLTIP = 'Artifact unavailable';
+
+const isAbortError = (error: unknown): boolean =>
+  error instanceof Error && error.name === 'AbortError';
 
 function AutoragResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
@@ -70,6 +97,22 @@ function AutoragResultsPage(): React.JSX.Element {
     setDrawerContent(null);
   }, [locationKey]);
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
+  const [starterKitDownloadError, setStarterKitDownloadError] = React.useState<string>();
+  const starterKitDownloadGeneration = React.useRef(0);
+  const starterKitDownloadController = React.useRef<AbortController | null>(null);
+
+  React.useLayoutEffect(() => {
+    starterKitDownloadGeneration.current += 1;
+    starterKitDownloadController.current?.abort();
+    starterKitDownloadController.current = null;
+    setStarterKitDownloadError(undefined);
+
+    return () => {
+      starterKitDownloadGeneration.current += 1;
+      starterKitDownloadController.current?.abort();
+      starterKitDownloadController.current = null;
+    };
+  }, [namespace, runId]);
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =
@@ -82,6 +125,7 @@ function AutoragResultsPage(): React.JSX.Element {
   );
 
   const notification = useNotification();
+  const fetchS3File = useFetchS3File();
 
   const {
     data: pipelineRun,
@@ -91,6 +135,99 @@ function AutoragResultsPage(): React.JSX.Element {
     error: pipelineRunLoadError,
     dataUpdatedAt: pipelineRunUpdatedAt,
   } = usePipelineRunQuery(runId, namespace);
+
+  const { rootDir, patternGenerationDir } = useAutoragOutputDir(pipelineRun);
+  const templatesOptimizationPath =
+    isRunCompleted(pipelineRun?.state) && runId ? `${rootDir}/${runId}` : undefined;
+  const artifactDiscoveryPath = templatesOptimizationPath
+    ? `${templatesOptimizationPath}/${patternGenerationDir}`
+    : undefined;
+  const {
+    data: artifactDiscoveryFiles,
+    isLoading: artifactDiscoveryLoading,
+    isError: artifactDiscoveryError,
+  } = useS3ListFilesQuery(namespace, artifactDiscoveryPath);
+  const artifactUuid = React.useMemo(() => {
+    if (!artifactDiscoveryFiles || !artifactDiscoveryPath) {
+      return undefined;
+    }
+    return resolveArtifactDirectory(artifactDiscoveryFiles.common_prefixes, artifactDiscoveryPath)
+      .id;
+  }, [artifactDiscoveryFiles, artifactDiscoveryPath]);
+  const artifactDirectory = artifactUuid ? `${artifactDiscoveryPath}/${artifactUuid}` : undefined;
+  const {
+    data: starterKitFiles,
+    isLoading: starterKitLoading,
+    isError: starterKitError,
+  } = useS3ListFilesQuery(
+    namespace,
+    artifactDirectory ? `${artifactDirectory}/starter_kit` : undefined,
+  );
+  const starterKitKey = artifactDirectory
+    ? `${artifactDirectory}/starter_kit/${STARTER_KIT_FILENAME}`
+    : undefined;
+  const hasStarterKit = Boolean(
+    starterKitKey && starterKitFiles?.contents.some((object) => object.key === starterKitKey),
+  );
+  const runArtifactLoading = artifactDiscoveryLoading || starterKitLoading;
+  const runArtifactListError = artifactDiscoveryError || starterKitError;
+
+  const starterKitTooltip = React.useMemo(() => {
+    if (!isRunCompleted(pipelineRun?.state)) {
+      return isRunInTerminalState(pipelineRun?.state)
+        ? ARTIFACT_UNSUCCESSFUL_TOOLTIP
+        : ARTIFACT_AVAILABLE_TOOLTIP;
+    }
+    if (runArtifactLoading) {
+      return ARTIFACT_CHECKING_TOOLTIP;
+    }
+    return hasStarterKit && !runArtifactListError ? undefined : ARTIFACT_UNAVAILABLE_TOOLTIP;
+  }, [hasStarterKit, pipelineRun?.state, runArtifactListError, runArtifactLoading]);
+  const starterKitDisabled = Boolean(starterKitTooltip);
+
+  const handleDownloadStarterKit = React.useCallback(async () => {
+    if (starterKitDisabled || !namespace || !starterKitKey) {
+      return;
+    }
+
+    const downloadGeneration = ++starterKitDownloadGeneration.current;
+    const controller = new AbortController();
+    starterKitDownloadController.current = controller;
+    setStarterKitDownloadError(undefined);
+    try {
+      const starterKit = await fetchS3File(namespace, starterKitKey, {
+        signal: controller.signal,
+      });
+      if (
+        downloadGeneration !== starterKitDownloadGeneration.current ||
+        starterKitDownloadController.current !== controller ||
+        controller.signal.aborted
+      ) {
+        return;
+      }
+      downloadBlob(starterKit, STARTER_KIT_FILENAME);
+      fireAutoragStarterKitDownloaded();
+    } catch (error) {
+      if (
+        isAbortError(error) ||
+        downloadGeneration !== starterKitDownloadGeneration.current ||
+        starterKitDownloadController.current !== controller ||
+        controller.signal.aborted
+      ) {
+        return;
+      }
+      setStarterKitDownloadError(
+        error instanceof Error ? error.message : 'An unknown error occurred',
+      );
+    } finally {
+      if (
+        downloadGeneration === starterKitDownloadGeneration.current &&
+        starterKitDownloadController.current === controller
+      ) {
+        starterKitDownloadController.current = null;
+      }
+    }
+  }, [fetchS3File, namespace, starterKitDisabled, starterKitKey]);
 
   const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutoragRunActions(
     namespace ?? '',
@@ -362,7 +499,7 @@ function AutoragResultsPage(): React.JSX.Element {
                   <SplitItem>
                     {runTerminatable && (
                       <Button
-                        variant="secondary"
+                        variant="link"
                         icon={<StopCircleIcon />}
                         onClick={() => setIsStopModalOpen(true)}
                         isDisabled={isTerminating || isStopModalOpen}
@@ -375,7 +512,7 @@ function AutoragResultsPage(): React.JSX.Element {
                     )}
                     {runRetryable && (
                       <Button
-                        variant="secondary"
+                        variant="link"
                         icon={<RedoIcon />}
                         onClick={() => void handleRetry().catch(() => undefined)}
                         isDisabled={isRetrying}
@@ -389,13 +526,29 @@ function AutoragResultsPage(): React.JSX.Element {
                   </SplitItem>
                   <SplitItem>
                     <Button
-                      variant="secondary"
+                      variant="link"
                       icon={<CogIcon />}
                       component={ReconfigureLink}
                       data-testid="reconfigure-run-button"
                     >
                       Reconfigure
                     </Button>
+                  </SplitItem>
+                  <SplitItem>
+                    <Tooltip
+                      content={starterKitTooltip}
+                      trigger={starterKitDisabled ? 'mouseenter focus' : ''}
+                    >
+                      <Button
+                        variant="link"
+                        icon={<DownloadIcon />}
+                        onClick={() => void handleDownloadStarterKit()}
+                        isAriaDisabled={starterKitDisabled}
+                        data-testid="starter-kit-download-button"
+                      >
+                        Download starter kit
+                      </Button>
+                    </Tooltip>
                   </SplitItem>
                   <SplitItem>
                     <Button
@@ -449,6 +602,17 @@ function AutoragResultsPage(): React.JSX.Element {
               }
               loaded={namespacesLoaded && !pipelineRunPending}
             >
+              {starterKitDownloadError && (
+                <Alert
+                  variant="danger"
+                  title="Starter kit download failed"
+                  actionClose={
+                    <AlertActionCloseButton onClose={() => setStarterKitDownloadError(undefined)} />
+                  }
+                >
+                  {starterKitDownloadError}
+                </Alert>
+              )}
               <AutoragResults onTryPattern={handleTryPattern} onViewCode={handleViewCode} />
             </ApplicationsPage>
           </DrawerContentBody>

@@ -28,7 +28,16 @@ cluster.
 - An admitted `model-catalog` HTTPRoute in the applications namespace, backed
   by an enabled Model Catalog operand, for gateway sub-path conformance checks.
 - RHOAI runs need the MaaS and GenAI modules and enough cluster capacity to
-  deploy the MaaS Consumer Portal for shared-Gateway routing conformance checks.
+  deploy the MaaS Portal for shared-Gateway routing conformance checks.
+- The MaaS Portal observability scenario on RHOAI requires a ready
+  `redhat-ods-monitoring/data-science-perses` Service on port `8080`, the Perses
+  operator and CRDs, and a Gateway bearer token authorized to read Perses
+  dashboards. Its backing pods must satisfy the operator's
+  [Perses service requirements](../../../docs/dashboard-operator.md#perses-service-requirements).
+  The RHOAI ingress policy expects the applications namespace
+  `redhat-ods-applications`. The cluster CNI must enforce NetworkPolicy.
+  The test identity also needs to get the Perses Service and Endpoints in
+  `redhat-ods-monitoring`.
 - RBAC to get the test Namespace and Dashboard CRD; get, create, patch, and
   delete Dashboards; list, get, patch, and delete Deployments and Pods; get and
   list Services, PodDisruptionBudgets, HTTPRoutes, and Endpoints; get
@@ -101,7 +110,8 @@ test run:
 
 ```bash
 make test-e2e E2E_TEST_ARGS='-run TestE2E_BFFHealthchecks'
-make test-e2e E2E_TEST_ARGS='-run ^TestE2E_MaaSConsumerPortalRoutingConformance$'
+make test-e2e E2E_TEST_ARGS='-run ^TestE2E_MaaSPortalRoutingConformance$'
+TEST_PLATFORM=rhoai make test-e2e E2E_TEST_ARGS='-run ^TestE2E_MaaSPortalObservabilitySurvivesCoreRemoval$'
 ```
 
 Run the RHOAIENG-83658 cases, or one ticket story, with:
@@ -335,9 +345,18 @@ externally reachable, each standalone BFF returns HTTP 200 from `/healthcheck`,
 the `/catalog/` sibling HTTPRoute wins over the Dashboard catch-all and returns
 a successful Model Catalog JSON response or a validated Model Catalog JSON
 `401` response rather than Dashboard SPA HTML, redirects, or unrelated statuses,
-the RHOAI MaaS Consumer Portal shares the hostname-less Gateway routing scope
+the RHOAI MaaS Portal shares the hostname-less Gateway routing scope
 without breaking the Dashboard root or Model Catalog path, and the core
 PodDisruptionBudget selects ready Dashboard pods.
+
+The MaaS Portal observability scenario on RHOAI verifies authenticated
+portal health and Perses dashboard-list requests before and after setting the
+core dashboard to `Removed`. It waits for the core Deployment and HTTPRoute to disappear, then
+requires HTTP 200 JSON containing the operator-provided `dashboard-1-model`
+dashboard through `/maas-consumer-portal/perses/api/api/v1/dashboards`.
+Auto-detection must leave `spec.observability` unset. Missing Perses prerequisites
+fail this scenario; it skips only on ODH. Cleanup restores the original core,
+portal, and observability settings and waits for core recovery.
 
 The BFF checks use the HTTPS Service ports declared by the current module
 registry (`8043`, `8143`, `8243`, `8343`, `8543`, `8643`, `8743`, and `8843`).

@@ -29,6 +29,11 @@ type SupportedFormat =
   | 'qmd'
   | 'Rmd'
   | 'xhtml'
+  | 'jpg'
+  | 'jpeg'
+  | 'png'
+  | 'tif'
+  | 'tiff'
   | 'mp3'
   | 'wav'
   | 'm4a';
@@ -150,6 +155,36 @@ export const SUPPORTED_FORMAT: Record<string, Format> = {
     extension: 'xhtml',
     mimeType: 'application/xhtml+xml',
     name: 'XHTML',
+  },
+  jpg: {
+    id: 'jpg',
+    extension: 'jpg',
+    mimeType: 'image/jpeg',
+    name: 'JPEG',
+  },
+  jpeg: {
+    id: 'jpeg',
+    extension: 'jpeg',
+    mimeType: 'image/jpeg',
+    name: 'JPEG',
+  },
+  png: {
+    id: 'png',
+    extension: 'png',
+    mimeType: 'image/png',
+    name: 'PNG',
+  },
+  tif: {
+    id: 'tif',
+    extension: 'tif',
+    mimeType: 'image/tiff',
+    name: 'TIFF',
+  },
+  tiff: {
+    id: 'tiff',
+    extension: 'tiff',
+    mimeType: 'image/tiff',
+    name: 'TIFF',
   },
   mp3: {
     id: 'mp3',

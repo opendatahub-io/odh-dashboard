@@ -68,6 +68,7 @@ type DashboardFeatureFlags struct {
 	DisableAdminConnectionTypes  bool `json:"disableAdminConnectionTypes"`
 	DisableFeatureStore          bool `json:"disableFeatureStore"`
 	FeatureStoreAdmin            bool `json:"featureStoreAdmin"`
+	DataRegistry                 bool `json:"dataRegistry"`
 	DisableFineTuning            bool `json:"disableFineTuning"`
 	DisableKueue                 bool `json:"disableKueue"`
 	DisableLMEval                bool `json:"disableLMEval"`
@@ -96,7 +97,6 @@ type DashboardFeatureFlags struct {
 	LlmGatewayField              bool `json:"llmGatewayField"`
 	PromptManagement             bool `json:"promptManagement"`
 	MySubscriptions              bool `json:"mySubscriptions"`
-	ConnectionTest               bool `json:"connectionTest"`
 	ModelCapabilities            bool `json:"modelCapabilities"`
 	RuntimeCatalog               bool `json:"runtimeCatalog"`
 }
@@ -167,6 +167,7 @@ var BlankDashboardCR = DashboardConfig{
 			DisableAdminConnectionTypes:  false,
 			DisableFeatureStore:          false,
 			FeatureStoreAdmin:            false,
+			DataRegistry:                 false,
 			DisableFineTuning:            true,
 			DisableKueue:                 true,
 			DisableLMEval:                true,
@@ -194,7 +195,6 @@ var BlankDashboardCR = DashboardConfig{
 			LlmGatewayField:              false,
 			PromptManagement:             false,
 			MySubscriptions:              false,
-			ConnectionTest:               false,
 			ModelCapabilities:            false,
 			RuntimeCatalog:               false,
 		},

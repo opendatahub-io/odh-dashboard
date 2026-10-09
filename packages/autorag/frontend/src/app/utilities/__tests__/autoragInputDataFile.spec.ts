@@ -44,6 +44,11 @@ describe('autoragInputDataFile', () => {
         'qmd',
         'Rmd',
         'xhtml',
+        'jpg',
+        'jpeg',
+        'png',
+        'tif',
+        'tiff',
         'mp3',
         'wav',
         'm4a',
@@ -92,6 +97,9 @@ describe('autoragInputDataFile', () => {
       expect(SUPPORTED_FORMAT_NAMES).toContain('HTML');
       expect(SUPPORTED_FORMAT_NAMES.filter((n) => n === 'Markdown')).toHaveLength(1);
       expect(SUPPORTED_FORMAT_NAMES.filter((n) => n === 'HTML')).toHaveLength(1);
+      expect(SUPPORTED_FORMAT_NAMES.filter((n) => n === 'JPEG')).toHaveLength(1);
+      expect(SUPPORTED_FORMAT_NAMES).toContain('PNG');
+      expect(SUPPORTED_FORMAT_NAMES.filter((n) => n === 'TIFF')).toHaveLength(1);
     });
 
     it('SUPPORTED_FORMAT_NAMES_STRING_SIMPLE joins all names with commas', () => {
@@ -177,6 +185,12 @@ describe('autoragInputDataFile', () => {
       ]);
     });
 
+    it('SUPPORTED_FORMATS_MIME_TYPE_TO_EXTENSION includes OCR image MIME types and extensions', () => {
+      expect(SUPPORTED_FORMATS_MIME_TYPE_TO_EXTENSION['image/jpeg']).toEqual(['.jpg', '.jpeg']);
+      expect(SUPPORTED_FORMATS_MIME_TYPE_TO_EXTENSION['image/png']).toEqual(['.png']);
+      expect(SUPPORTED_FORMATS_MIME_TYPE_TO_EXTENSION['image/tiff']).toEqual(['.tif', '.tiff']);
+    });
+
     it('INPUT_DATA_FILE_ACCEPT is the same object as SUPPORTED_FORMATS_MIME_TYPE_TO_EXTENSION', () => {
       expect(INPUT_DATA_FILE_ACCEPT).toBe(SUPPORTED_FORMATS_MIME_TYPE_TO_EXTENSION);
     });
@@ -242,16 +256,41 @@ describe('autoragInputDataFile', () => {
       );
     });
 
-    it.each(['odt', 'odp', 'adoc', 'tex', 'epub', 'eml', 'msg', 'qmd', 'Rmd', 'xhtml'])(
-      'allows .%s by extension even with octet-stream MIME',
-      (ext) => {
-        expect(
-          isAllowedInputDataUploadFile(
-            new File(['x'], `file.${ext}`, { type: 'application/octet-stream' }),
-          ),
-        ).toBe(true);
-      },
-    );
+    it.each([
+      ['photo.jpg', 'image/jpeg'],
+      ['photo.jpeg', 'image/jpeg'],
+      ['screenshot.png', 'image/png'],
+      ['scan.tif', 'image/tiff'],
+      ['scan.tiff', 'image/tiff'],
+    ])('allows image format %s with its MIME type', (filename, mimeType) => {
+      expect(isAllowedInputDataUploadFile(new File(['x'], filename, { type: mimeType }))).toBe(
+        true,
+      );
+    });
+
+    it.each([
+      'odt',
+      'odp',
+      'adoc',
+      'tex',
+      'epub',
+      'eml',
+      'msg',
+      'qmd',
+      'Rmd',
+      'xhtml',
+      'jpg',
+      'jpeg',
+      'png',
+      'tif',
+      'tiff',
+    ])('allows .%s by extension even with octet-stream MIME', (ext) => {
+      expect(
+        isAllowedInputDataUploadFile(
+          new File(['x'], `file.${ext}`, { type: 'application/octet-stream' }),
+        ),
+      ).toBe(true);
+    });
 
     it.each([
       ['recording.MP3', 'application/octet-stream'],
