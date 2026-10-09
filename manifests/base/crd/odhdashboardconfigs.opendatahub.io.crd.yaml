@@ -138,6 +138,9 @@ spec:
                     featureStoreAdmin:
                       type: boolean
                       description: 'When true, enables the Feature Store admin UI (create wizard, manage page).'
+                    dataRegistry:
+                      type: boolean
+                      description: 'When true, enables the Data Registry UI and features.'
                     genAiStudio:
                       type: boolean
                       description: 'When true, enables the Gen AI Studio plugin for generative AI features.'
