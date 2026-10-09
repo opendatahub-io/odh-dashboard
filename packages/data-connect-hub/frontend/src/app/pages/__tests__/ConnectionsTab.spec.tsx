@@ -53,7 +53,7 @@ const mockDeleteConnection = jest.mocked(deleteConnection);
 
 const connections = [
   {
-    metadata: { id: 'connection-1', tenant_id: 'test-project' },
+    metadata: { id: 'connection-1' },
     resource: {
       name: 'warehouse',
       data_connection_type_id: 'postgresql',
@@ -62,7 +62,7 @@ const connections = [
     status: { state: 'ready' as const, updated_at: '2026-09-08T16:00:00Z' },
   },
   {
-    metadata: { id: 'connection-2', tenant_id: 'test-project' },
+    metadata: { id: 'connection-2' },
     resource: { name: 'object-store', data_connection_type_id: 's3', format: 'binary' as const },
     status: { state: 'not_ready' as const },
   },
@@ -97,7 +97,7 @@ const connectionTypes = [
 ];
 
 const newConnection = {
-  metadata: { id: 'connection-3', tenant_id: 'test-project' },
+  metadata: { id: 'connection-3' },
   resource: { name: 'analytics', data_connection_type_id: 'snowflake', format: 'tabular' as const },
   status: { state: 'ready' as const },
 };

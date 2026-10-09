@@ -13,7 +13,7 @@ import (
 type Connection struct {
 	Metadata struct {
 		ID       string `json:"id"`
-		TenantID string `json:"tenant_id"`
+		TenantID string `json:"tenant_id,omitempty"`
 	} `json:"metadata"`
 	Resource struct {
 		Name                 string `json:"name"`
