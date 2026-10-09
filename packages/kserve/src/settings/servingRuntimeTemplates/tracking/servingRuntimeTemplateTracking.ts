@@ -10,8 +10,8 @@ export enum ServingRuntimeTemplateTrackingEvent {
 }
 
 export type ServingRuntimeTemplateCreatedProperties = FormTrackingEventProperties & {
-  /** Whether the template was created from scratch or duplicated from an existing one. */
-  mode: 'create' | 'duplicate';
+  /** Form mode; 'create' is also accepted for callers without an Add form. */
+  mode: 'add' | 'create' | 'duplicate' | 'install';
   apiProtocol?: ServingRuntimeAPIProtocol;
   /** Comma-separated list of selected model type enum values (no free text). */
   modelTypes?: string;
@@ -33,7 +33,12 @@ export type ServingRuntimeTemplateEnablementChangedProperties = FormTrackingEven
 export const fireServingRuntimeTemplateCreated = (
   properties: ServingRuntimeTemplateCreatedProperties,
 ): void => {
-  fireFormTrackingEvent(ServingRuntimeTemplateTrackingEvent.CREATED, properties);
+  const { mode, ...outcomeProperties } = properties;
+  fireFormTrackingEvent(ServingRuntimeTemplateTrackingEvent.CREATED, {
+    ...outcomeProperties,
+    mode: mode === 'duplicate' ? 'duplicate' : 'create',
+    ...(mode === 'install' && { source: 'install' }),
+  });
 };
 
 export const fireServingRuntimeTemplateUpdated = (
