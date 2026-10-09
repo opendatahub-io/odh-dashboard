@@ -474,47 +474,40 @@ jobs:
           fi
 
           if [[ "$SYNC_MODE" == 'conflict' ]]; then
-            TESTED_SECTION="## How Has This Been Tested?
+            EVIDENCE_SECTION="## Evidence
 
           **Not run automatically** — subtree sync stopped with conflicts. After resolving markers, run in \`packages/model-registry/upstream/frontend\`:
           * \`npm run test:lint\`
           * \`npm run test:type-check\`
           * \`npm run test:unit\`
 
-          Continue the subtree sync with \`pnpm --filter @odh-dashboard/model-registry run update-subtree --continue\` as needed."
+          Continue the subtree sync with \`pnpm --filter @odh-dashboard/model-registry run update-subtree --continue\` as needed.
+
+          Automated coverage: upstream changes include their own tests."
           else
-            TESTED_SECTION="## How Has This Been Tested?
+            EVIDENCE_SECTION="## Evidence
 
           CI ran the following in \`packages/model-registry/upstream/frontend\` before opening this PR:
           * \`npm run test:lint\`
           * \`npm run test:type-check\`
-          * \`npm run test:unit\`"
+          * \`npm run test:unit\`
+
+          Automated coverage: upstream changes include their own tests."
           fi
 
           BODY=$(cat <<EOF
-          ## Description
+          ## Problem
+
+          odh-dashboard's copy of model-registry is behind upstream and needs the listed upstream changes.
+
+          ## Solution
 
           Automated sync to pull in changes from:
           ${PR_LINKS}
 
           Tracked upstream commit: \`${NEW_COMMIT}\`
 
-          ${TESTED_SECTION}
-
-          ## Test Impact
-
-          Upstream changes include their own tests.
-
-          ## Request review criteria:
-
-          Self checklist (all need to be checked):
-          - [ ] The developer has manually tested the changes and verified that the changes work
-          - [ ] Testing instructions have been added in the PR body (for PRs involving changes that are not immediately obvious).
-          - [ ] The developer has added tests or explained why testing cannot be added (unit or cypress tests for related changes)
-          - [ ] The code follows our [Best Practices](/docs/best-practices.md) (React coding standards, PatternFly usage, performance considerations)
-
-          After the PR is posted & before it merges:
-          - [ ] The developer has tested their solution on a cluster by using the image produced by the PR to \`main\`
+          ${EVIDENCE_SECTION}
 
           ---
           *Opened by [\`model-registry-upstream-sync\`](${{ github.server_url }}/${{ github.repository }}/actions/workflows/model-registry-upstream-sync.yml) (run [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})).*

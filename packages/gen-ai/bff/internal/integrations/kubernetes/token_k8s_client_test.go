@@ -2,7 +2,11 @@ package kubernetes
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
@@ -39,6 +43,86 @@ import (
 
 type noMatchListClient struct {
 	client.Client
+}
+
+func TestGetNamespacesUsesProjectsWithoutNamespaceGets(t *testing.T) {
+	const projectCount = 298
+
+	projects := &unstructured.UnstructuredList{}
+	projects.SetAPIVersion("project.openshift.io/v1")
+	projects.SetKind("ProjectList")
+	for i := range projectCount {
+		project := unstructured.Unstructured{Object: map[string]any{
+			"apiVersion": "project.openshift.io/v1",
+			"kind":       "Project",
+			"metadata": map[string]any{
+				"name": "project-" + strconv.Itoa(i),
+				"annotations": map[string]any{
+					"openshift.io/display-name": "Project " + strconv.Itoa(i),
+				},
+			},
+		}}
+		projects.Items = append(projects.Items, project)
+	}
+
+	var namespaceListRequests, namespaceGetRequests, projectListRequests int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api":
+			_ = json.NewEncoder(w).Encode(metav1.APIVersions{Versions: []string{"v1"}})
+		case "/api/v1":
+			_ = json.NewEncoder(w).Encode(metav1.APIResourceList{
+				GroupVersion: "v1",
+				APIResources: []metav1.APIResource{{Name: "namespaces", Kind: "Namespace"}},
+			})
+		case "/apis":
+			projectVersion := metav1.GroupVersionForDiscovery{
+				GroupVersion: "project.openshift.io/v1",
+				Version:      "v1",
+			}
+			_ = json.NewEncoder(w).Encode(metav1.APIGroupList{Groups: []metav1.APIGroup{{
+				Name:             "project.openshift.io",
+				Versions:         []metav1.GroupVersionForDiscovery{projectVersion},
+				PreferredVersion: projectVersion,
+			}}})
+		case "/apis/project.openshift.io/v1":
+			_ = json.NewEncoder(w).Encode(metav1.APIResourceList{
+				GroupVersion: "project.openshift.io/v1",
+				APIResources: []metav1.APIResource{{Name: "projects", Kind: "Project"}},
+			})
+		case "/api/v1/namespaces":
+			namespaceListRequests++
+			http.Error(w, "forbidden", http.StatusForbidden)
+		case "/apis/project.openshift.io/v1/projects":
+			projectListRequests++
+			if err := json.NewEncoder(w).Encode(projects); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+		default:
+			if len(r.URL.Path) > len("/api/v1/namespaces/") && r.URL.Path[:len("/api/v1/namespaces/")] == "/api/v1/namespaces/" {
+				namespaceGetRequests++
+			}
+			http.Error(w, "unexpected request", http.StatusInternalServerError)
+		}
+	}))
+	defer server.Close()
+
+	kc := &TokenKubernetesClient{
+		Client: fake.NewClientBuilder().Build(),
+		Config: &rest.Config{Host: server.URL},
+		Logger: slog.Default(),
+	}
+
+	namespaces, err := kc.GetNamespaces(context.Background(), &integrations.RequestIdentity{Token: "user-token"})
+
+	require.NoError(t, err)
+	require.Len(t, namespaces, projectCount)
+	assert.Equal(t, "project-0", namespaces[0].Name)
+	assert.Equal(t, "Project 0", namespaces[0].Annotations["openshift.io/display-name"])
+	assert.Equal(t, 1, namespaceListRequests)
+	assert.Equal(t, 1, projectListRequests)
+	assert.Zero(t, namespaceGetRequests)
 }
 
 func TestGetExternalModelsConfigUsesRequestClient(t *testing.T) {

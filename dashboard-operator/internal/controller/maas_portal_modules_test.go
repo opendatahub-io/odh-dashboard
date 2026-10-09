@@ -24,12 +24,12 @@ func TestResolveModuleStatuses_MaaSPortalDemand(t *testing.T) {
 			wantPhases: map[string]v1alpha1.ModulePhase{"maas": v1alpha1.ModulePhaseDeployed, "genAi": v1alpha1.ModulePhaseDeployed, "mlflow": v1alpha1.ModulePhaseNotDeployed},
 		},
 		{
-			name:       "Core Dashboard and MaaS Consumer Portal share MaaS and GenAI demand",
+			name:       "Core Dashboard and MaaS Portal share MaaS and GenAI demand",
 			spec:       v1alpha1.DashboardSpec{ManagementSpec: common.ManagementSpec{ManagementState: "Managed"}, MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"}},
 			wantPhases: map[string]v1alpha1.ModulePhase{"maas": v1alpha1.ModulePhaseDeployed, "genAi": v1alpha1.ModulePhaseDeployed, "mlflow": v1alpha1.ModulePhaseDeployed},
 		},
 		{
-			name:       "explicit disable overrides MaaS Consumer Portal demand",
+			name:       "explicit disable overrides MaaS Portal demand",
 			spec:       v1alpha1.DashboardSpec{ManagementSpec: common.ManagementSpec{ManagementState: "Removed"}, MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"}, Modules: map[string]v1alpha1.ModuleOverride{"maas": {State: v1alpha1.ModuleDisabled}}},
 			wantPhases: map[string]v1alpha1.ModulePhase{"maas": v1alpha1.ModulePhaseDisabled, "genAi": v1alpha1.ModulePhaseDeployed},
 			wantReason: map[string]string{"maas": "ExplicitOverride"},

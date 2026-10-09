@@ -149,6 +149,39 @@ func TestPatchCollectionHandler(t *testing.T) {
 	assert.Equal(t, "Updated suite", getResult.Data.Name)
 }
 
+func TestPatchCollectionHandlerRejectsCollectionsThatHaveBeenRun(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	mockClient := ehmocks.NewMockEvalHubClient()
+	mockClient.SetCollection("collection-001", &evalhub.Collection{
+		Resource: evalhub.CollectionResource{ID: "collection-001"},
+		Name:     "Already run suite",
+		State:    &evalhub.CollectionState{RunCount: 1},
+	})
+	operations := []evalhub.CollectionPatchOperation{{
+		Op: "replace", Path: "/name", Value: json.RawMessage(`"Updated suite"`),
+	}}
+
+	result, response, err := setupApiTestWithEvalHub[HTTPError](
+		http.MethodPatch,
+		ApiPathPrefix+"/evaluations/collections/collection-001?namespace=test-ns",
+		operations, nil, identity, mockClient,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusConflict, response.StatusCode)
+	assert.Equal(t, "collection cannot be edited after it has been run", result.Error.Message)
+
+	getResult, getResponse, err := setupApiTestWithEvalHub[CollectionEnvelope](
+		http.MethodGet,
+		ApiPathPrefix+"/evaluations/collections/collection-001?namespace=test-ns",
+		nil, nil, identity, mockClient,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, getResponse.StatusCode)
+	assert.Equal(t, "Already run suite", getResult.Data.Name)
+}
+
 func TestPatchCollectionHandlerBadRequest(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 	mockClient := ehmocks.NewMockEvalHubClient()

@@ -50,6 +50,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableLMEval: boolean;
       disableFeatureStore: boolean;
       featureStoreAdmin: boolean;
+      dataRegistry: boolean;
       trainingJobs: boolean;
       genAiStudio: boolean;
       genAiTracing: boolean;

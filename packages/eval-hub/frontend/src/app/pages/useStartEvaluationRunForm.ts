@@ -72,6 +72,11 @@ type UseStartEvaluationRunFormParams = {
   trackingSource?: string;
   onSuccess?: () => void;
   onCancel?: () => void;
+  onRunFailure?: (
+    error: unknown,
+    collection?: Collection,
+    collectionWasCreated?: boolean,
+  ) => unknown | void | Promise<unknown | void>;
 };
 
 const buildDefaultEvaluationName = (
@@ -145,6 +150,7 @@ export function useStartEvaluationRunForm({
   trackingSource = 'evaluations_page',
   onSuccess,
   onCancel,
+  onRunFailure,
 }: UseStartEvaluationRunFormParams) {
   const navigate = useNavigate();
   const notification = useNotification();
@@ -677,12 +683,16 @@ export function useStartEvaluationRunForm({
     trackingSource,
   ]);
 
-  const handleSubmit = async (submitOverrides?: { collection?: Collection }) => {
+  const handleSubmit = async (submitOverrides?: {
+    collection?: Collection;
+    collectionWasCreated?: boolean;
+  }) => {
     if (!isValid || isSubmitting) {
       return;
     }
 
     const activeCollection = submitOverrides?.collection ?? collection;
+    const activeCollectionWasCreated = submitOverrides?.collectionWasCreated;
     const values = form.getValues();
 
     setIsSubmitting(true);
@@ -894,7 +904,27 @@ export function useStartEvaluationRunForm({
         success: false,
         errorName: e instanceof Error ? e.name : 'UnknownError',
       });
-      notification.error(getErrorTitle(e, 'Failed to start evaluation'), message);
+      let cleanupError: unknown;
+      try {
+        cleanupError =
+          activeCollectionWasCreated === undefined
+            ? await onRunFailure?.(e, activeCollection)
+            : await onRunFailure?.(e, activeCollection, activeCollectionWasCreated);
+      } catch (failureCleanupError) {
+        cleanupError = failureCleanupError;
+      }
+      if (cleanupError) {
+        const cleanupMessage =
+          cleanupError instanceof Error
+            ? cleanupError.message
+            : 'Unable to remove the copied suite.';
+        notification.error(
+          'Failed to start evaluation and remove copied suite',
+          `${message} Cleanup error: ${cleanupMessage}`,
+        );
+      } else {
+        notification.error(getErrorTitle(e, 'Failed to start evaluation'), message);
+      }
     } finally {
       setIsSubmitting(false);
     }

@@ -73,14 +73,14 @@ func TestE2E_GatewaySubPathRoutingConformance(t *testing.T) {
 func TestE2E_MaaSPortalRoutingConformance(t *testing.T) {
 	requireManagedFixture(t)
 	if requiredPlatform(t) != platformRHOAI {
-		t.Skip("MaaS Consumer Portal is supported only on RHOAI")
+		t.Skip("MaaS Portal is supported only on RHOAI")
 	}
 
 	dashboard := &dashboardv1alpha1.Dashboard{}
 	require.NoError(t, k8sClient.Get(context.Background(), client.ObjectKey{Name: dashboardv1alpha1.DashboardInstanceName}, dashboard))
 	for _, name := range []string{"maas", "genAi"} {
 		require.NotEqual(t, dashboardv1alpha1.ModuleDisabled, dashboard.Spec.Modules[name].State,
-			"MaaS Consumer Portal routing test requires module %q to be enabled in Dashboard spec.modules", name)
+			"MaaS Portal routing test requires module %q to be enabled in Dashboard spec.modules", name)
 	}
 	var originalPortalSpec *dashboardv1alpha1.MaaSPortalSpec
 	if dashboard.Spec.MaaSPortal != nil {
