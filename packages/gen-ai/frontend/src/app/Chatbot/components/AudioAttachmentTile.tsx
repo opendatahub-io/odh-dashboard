@@ -46,19 +46,7 @@ const AudioAttachmentTile: React.FunctionComponent<AudioAttachmentTileProps> = (
     >
       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
         <FlexItem>
-          <span
-            data-testid="audio-file-icon"
-            style={{
-              alignItems: 'center',
-              backgroundColor: 'var(--pf-t--global--icon--color--status--custom--default)',
-              borderRadius: 'var(--pf-t--global--border--radius--small)',
-              color: 'var(--pf-t--global--icon--color--on-brand--default)',
-              display: 'inline-flex',
-              height: '1.5rem',
-              justifyContent: 'center',
-              width: '1.5rem',
-            }}
-          >
+          <span data-testid="audio-file-icon" className="gen-ai-chatbot-icon">
             <VolumeUpIcon aria-hidden />
           </span>
         </FlexItem>
