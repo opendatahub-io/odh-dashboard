@@ -30,3 +30,4 @@ func BuildMaaSPortalFederationConfigMap(
 }
 
 const ConditionMaaSPortalAvailable = conditionMaaSPortalAvailable
+const LegacyConditionMaaSConsumerPortalAvailable = legacyConditionMaaSConsumerPortalAvailable

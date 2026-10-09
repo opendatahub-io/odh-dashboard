@@ -30,7 +30,7 @@ As part of the modular architecture initiative (RHAISTRAT-1064), each component 
 | Field | Type | Purpose |
 |-------|------|---------|
 | `phase` | `Ready\|NotReady` | Overall controller health |
-| `conditions` | `[]Condition` | `Ready`, `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, `MaaSConsumerPortalAvailable` |
+| `conditions` | `[]Condition` | `Ready`, `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, `MaaSPortalAvailable` |
 | `observedGeneration` | `int64` | Last processed spec generation |
 | `url` | `string` | Externally-reachable dashboard URL |
 | `maasPortalUrl` | `string` | Last known good MaaS Portal URL; cleared when the operand is removed |
@@ -345,9 +345,11 @@ The Dashboard type provides five methods:
 | `ProvisioningSucceeded` | Manifests rendered and applied | Render or deploy failed |
 | `Degraded` | One or more modules degraded | No degradation / route not ready |
 | `ObservabilityAvailable` | Perses proxy deployed | Perses proxy not configured/failed (set with `severity: Info` when simply disabled, which does not block `Ready`) |
-| [`MaaSConsumerPortalAvailable`](maas-portal.md#configuration-and-availability) | MaaS Portal Deployment is available and its HTTPRoute is accepted/resolved | Portal dependency, federation, Deployment, route, apply, or cleanup failure; `Disabled` and `UnsupportedPlatform` use `severity: Info` |
+| [`MaaSPortalAvailable`](maas-portal.md#configuration-and-availability) | MaaS Portal Deployment is available and its HTTPRoute is accepted/resolved | Portal dependency, federation, Deployment, route, apply, or cleanup failure; `Disabled` and `UnsupportedPlatform` use `severity: Info` |
 
-The `Ready` condition is a rollup derived by the conditions manager from `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, and `MaaSConsumerPortalAvailable`. Core dashboard removal is informational when MaaS Portal remains managed, allowing the portal to determine the aggregate result. If both operands are removed, `Ready` is explicitly `False` with reason `Removed`. Informational conditions, such as a disabled portal or unsupported platform, do not block the rollup.
+Portal-specific failure reasons use the `MaaSPortal` prefix. Reconciliation removes the legacy portal availability condition before calculating readiness.
+
+The `Ready` condition is a rollup derived by the conditions manager from `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, and `MaaSPortalAvailable`. Core dashboard removal is informational when MaaS Portal remains managed, allowing the portal to determine the aggregate result. If both operands are removed, `Ready` is explicitly `False` with reason `Removed`. Informational conditions, such as a disabled portal or unsupported platform, do not block the rollup.
 
 ### Phase Derivation
 
