@@ -31,11 +31,13 @@ func TestNewFromSecretData_DispatchesToPgvector(t *testing.T) {
 	assert.Contains(t, err.Error(), "literal IP")
 }
 
-func TestNewFromSecretData_AllowsDirectLocalhost(t *testing.T) {
+func TestValidateMilvusEndpoint_RejectsDirectLocalhost(t *testing.T) {
 	assert.Error(t, ValidateMilvusEndpoint("http://localhost:4321"))
 }
 
-func TestNewFromSecretDataWithForwarderValidatesBeforeCallingForwarder(t *testing.T) {
+func TestNewFromSecretDataWithForwarderLoopbackOriginalBypassesForwarder(t *testing.T) {
+	// Loopback originals are already internal endpoints, so they connect
+	// directly and never reach the forwarder; the CA cert is still validated.
 	called := false
 	_, err := NewFromSecretDataWithForwarder(context.Background(), map[string][]byte{
 		"MILVUS_URI":     []byte("http://localhost:19530"),
@@ -46,6 +48,19 @@ func TestNewFromSecretDataWithForwarderValidatesBeforeCallingForwarder(t *testin
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to parse MILVUS_CA_CERT")
+	assert.False(t, called)
+}
+
+func TestNewFromSecretDataWithForwarderValidatesOriginalBeforeCallingForwarder(t *testing.T) {
+	called := false
+	_, err := NewFromSecretDataWithForwarder(context.Background(), map[string][]byte{
+		"MILVUS_URI": []byte("http://milvus.milvus.svc.cluster.local:19530?token=secret"),
+	}, func(context.Context, string) (string, error) {
+		called = true
+		return "http://localhost:4321", nil
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported credentials, query, fragment, or path")
 	assert.False(t, called)
 }
 

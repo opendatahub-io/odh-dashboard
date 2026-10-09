@@ -147,7 +147,6 @@ func TestNewMilvusFromSecret_MalformedServerCert(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to parse MILVUS_CA_CERT")
 }
 
-// TestNewMilvusFromSecret_PlaintextAllowedForLocalhost proves the localhost
 // Literal addresses are rejected before any connection attempt.
 func TestNewMilvusFromSecret_RejectsLiteralIP(t *testing.T) {
 	_, err := newMilvusFromSecret(context.Background(), map[string][]byte{

@@ -108,12 +108,7 @@ func TestNewPgvectorFromSecret_MalformedServerCert(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to parse PGVECTOR_CA_CERT")
 }
 
-// TestNewPgvectorFromSecret_DisableAllowedForLocalhost proves the localhost
-// exception actually lets execution reach the connection attempt, rather than
-// being rejected by the sslmode validation gate. It dials a bare loopback TCP
-// listener that speaks no Postgres wire protocol, so pgx is guaranteed to fail
-// the handshake — the assertion is only that the failure is not the
-// "sslmode=disable ... only allowed" validation error.
+// Literal IP hosts are rejected before any connection attempt.
 func TestNewPgvectorFromSecret_RejectsLiteralIP(t *testing.T) {
 	_, err := newPgvectorFromSecret(context.Background(), map[string][]byte{
 		"PGVECTOR_HOST": []byte("127.0.0.1"),

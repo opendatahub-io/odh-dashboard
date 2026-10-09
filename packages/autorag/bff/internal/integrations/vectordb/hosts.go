@@ -161,6 +161,8 @@ var blockedVectorPrefixes = []netip.Prefix{
 	netip.MustParsePrefix("240.0.0.0/4"),
 	netip.MustParsePrefix("::/128"),
 	netip.MustParsePrefix("::1/128"),
+	netip.MustParsePrefix("64:ff9b::/96"),
+	netip.MustParsePrefix("64:ff9b:1::/48"),
 	netip.MustParsePrefix("fc00::/7"),
 	netip.MustParsePrefix("fe80::/10"),
 	netip.MustParsePrefix("100::/64"),
@@ -196,6 +198,29 @@ func isBlockedVectorIP(ip net.IP) bool {
 	return false
 }
 
+// isNAT64Address reports whether the address is in a NAT64 well-known
+// translation range. A NAT64 gateway translates these addresses to IPv4
+// destinations the BFF would otherwise refuse to dial, such as the cloud
+// metadata endpoint, so they are rejected even for cluster-local hosts.
+func isNAT64Address(ip net.IP) bool {
+	if ip.To4() != nil {
+		return false
+	}
+	address, ok := netip.AddrFromSlice(ip)
+	if !ok {
+		return false
+	}
+	for _, prefix := range []netip.Prefix{
+		netip.MustParsePrefix("64:ff9b::/96"),
+		netip.MustParsePrefix("64:ff9b:1::/48"),
+	} {
+		if prefix.Contains(address) {
+			return true
+		}
+	}
+	return false
+}
+
 // vectorSafeDialContext resolves once and dials only the validated addresses,
 // preventing DNS rebinding between validation and connection establishment.
 func vectorSafeDialContext(baseDialContext func(context.Context, string, string) (net.Conn, error), lookupIP func(context.Context, string) ([]net.IP, error), allowClusterService, allowLoopback bool) func(context.Context, string, string) (net.Conn, error) {
@@ -218,7 +243,8 @@ func vectorSafeDialContext(baseDialContext func(context.Context, string, string)
 		var lastErr error
 		for _, ip := range ips {
 			loopbackAllowed := allowLoopback && ip.IsLoopback()
-			alwaysBlocked := ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsMulticast() || ip.IsUnspecified()
+			alwaysBlocked := ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() ||
+				ip.IsMulticast() || ip.IsUnspecified() || isNAT64Address(ip)
 			if alwaysBlocked && !loopbackAllowed {
 				return nil, fmt.Errorf("vector database host resolved to a blocked address")
 			}

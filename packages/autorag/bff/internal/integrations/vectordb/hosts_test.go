@@ -118,6 +118,7 @@ func TestIsBlockedVectorIPRejectsSpecialUseDestinations(t *testing.T) {
 	for _, raw := range []string{
 		"100.64.0.1", "192.0.0.1", "192.0.2.1", "198.18.0.1", "203.0.113.1",
 		"2001:2::1", "2001:db8::1", "fc00::1", "ff02::1",
+		"64:ff9b::a9fe:a9fe", "64:ff9b:1::a9fe:a9fe",
 	} {
 		assert.True(t, isBlockedVectorIP(net.ParseIP(raw)), raw)
 	}
@@ -126,6 +127,7 @@ func TestIsBlockedVectorIPRejectsSpecialUseDestinations(t *testing.T) {
 func TestVectorSafeDialContextRejectsNewIPv6SpecialUseAddressesBeforeDial(t *testing.T) {
 	for _, raw := range []string{
 		"100::1", "2001::1", "2001:3::1", "2001:4:112::1", "2001:20::1", "3fff::1",
+		"64:ff9b::a9fe:a9fe", "64:ff9b:1::a9fe:a9fe",
 	} {
 		t.Run(raw, func(t *testing.T) {
 			dialed := false
@@ -176,7 +178,9 @@ func TestVectorSafeDialContextAllowsOnlyLoopbackForForwardedEndpoint(t *testing.
 }
 
 func TestVectorSafeDialContextRejectsLoopbackAndMetadataForClusterHosts(t *testing.T) {
-	for _, ip := range []string{"127.0.0.1", "169.254.169.254"} {
+	// 64:ff9b::a9fe:a9fe is the NAT64 form of 169.254.169.254; a cluster-local
+	// name must not reach the dialer through NAT64 translation either.
+	for _, ip := range []string{"127.0.0.1", "169.254.169.254", "64:ff9b::a9fe:a9fe", "64:ff9b:1::a9fe:a9fe"} {
 		t.Run(ip, func(t *testing.T) {
 			dial := vectorSafeDialContext(
 				func(context.Context, string, string) (net.Conn, error) { return nil, fmt.Errorf("unexpected dial") },
