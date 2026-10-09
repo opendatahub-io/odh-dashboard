@@ -27,6 +27,7 @@ describe('Agent deployment - Playground and AI Assets (Mocked)', () => {
         agentProfileId: PROFILE_ID,
       });
       let deploymentCreated = false;
+      let deploymentDetailRequestCount = 0;
 
       setupPlaygroundBase(TEST_NAMESPACE);
       interceptExistingAgentProfile(PROFILE_ID, PROFILE_NAME, TEST_NAMESPACE);
@@ -46,9 +47,15 @@ describe('Agent deployment - Playground and AI Assets (Mocked)', () => {
           }),
         );
       }).as('createAgentDeployment');
-      cy.interceptGenAi('GET /api/v1/agent-deployments/*', { data: deployment }).as(
-        'getAgentDeployment',
-      );
+      cy.interceptGenAi('GET /api/v1/agent-deployments/*', (request) => {
+        deploymentDetailRequestCount += 1;
+        request.reply({
+          data: {
+            ...deployment,
+            state: deploymentDetailRequestCount === 1 ? 'creating' : 'ready',
+          },
+        });
+      }).as('getAgentDeployment');
       cy.interceptGenAi('GET /api/v1/agent-profiles', mockAgentProfiles()).as('listAgentProfiles');
 
       cy.step('Open the saved agent in Playground');
@@ -70,7 +77,8 @@ describe('Agent deployment - Playground and AI Assets (Mocked)', () => {
           agentProfileId: PROFILE_ID,
         });
       });
-      cy.wait('@getAgentDeployment');
+      cy.wait('@getAgentDeployment').its('response.body.data.state').should('equal', 'creating');
+      cy.wait('@getAgentDeployment').its('response.body.data.state').should('equal', 'ready');
 
       cy.step('Verify the deployment can be viewed in Playground');
       cy.findByTestId('agent-deployed-label').should('be.visible').and('contain.text', 'Deployed');
@@ -90,7 +98,11 @@ describe('Agent deployment - Playground and AI Assets (Mocked)', () => {
         cy.findByTestId(`view-agent-endpoints-${PROFILE_ID}`).should('be.visible');
       });
       cy.findByTestId('agent-deployment-filter-deployed').click();
-      cy.findByTestId('agent-profiles-table').should('contain.text', PROFILE_NAME);
+      cy.findByTestId('agent-deployment-filter-deployed')
+        .find('button')
+        .should('have.attr', 'aria-pressed', 'true');
+      cy.findByTestId(`agent-profile-row-${PROFILE_ID}`).should('be.visible');
+      cy.findByTestId('agent-profile-row-test-uuid-2').should('not.exist');
     },
   );
 });
