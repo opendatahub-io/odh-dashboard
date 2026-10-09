@@ -352,41 +352,46 @@ func TestReconcileRemovedMaaSPortal_CleanupFailureRetries(t *testing.T) {
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSConsumerPortalURL)
 }
 
-func TestReconcileMaaSPortal_LegacyCleanupPendingPreservesURL(t *testing.T) {
-	ctx := context.Background()
-	dashboard := &v1alpha1.Dashboard{
-		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName},
-		Spec: v1alpha1.DashboardSpec{
-			Gateway: &v1alpha1.GatewaySpec{Domain: "apps.example.com"}, MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
-		},
-		Status: v1alpha1.DashboardStatus{MaaSPortalURL: "https://previous.example.com/", MaaSConsumerPortalURL: "https://previous.example.com/"},
+func TestReconcileMaaSPortal_LegacyCleanupPendingKeepsAvailable(t *testing.T) {
+	for _, previousURL := range []string{"", "https://previous.example.com/"} {
+		t.Run("previous URL="+previousURL, func(t *testing.T) {
+			ctx := context.Background()
+			dashboard := &v1alpha1.Dashboard{
+				ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName},
+				Spec: v1alpha1.DashboardSpec{
+					Gateway: &v1alpha1.GatewaySpec{Domain: "apps.example.com"}, MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
+				},
+				Status: v1alpha1.DashboardStatus{MaaSPortalURL: previousURL, MaaSConsumerPortalURL: previousURL},
+			}
+			route := &gatewayv1.HTTPRoute{ObjectMeta: metav1.ObjectMeta{Name: maasPortalDeploymentName, Namespace: maasPortalTestNamespace, Generation: 1}}
+			route.Status.Parents = []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
+				{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: 1},
+				{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: 1},
+			}}}
+			secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: legacyMaaSPortalName + "-tls", Namespace: maasPortalTestNamespace, Finalizers: []string{"test/hold-secret"}}}
+			cli := fake.NewClientBuilder().WithScheme(maasPortalScheme(t)).WithObjects(migrationReadyDeployment(), migrationFederationConfig(), route, secret).Build()
+			r := &DashboardReconciler{Client: cli, ApplicationsNamespace: maasPortalTestNamespace, Platform: cluster.SelfManagedRhoai, ManifestsBasePath: writeMaaSPortalSubscriptionTestManifest(t)}
+			statuses := map[string]v1alpha1.ModuleStatus{"maas": {Phase: v1alpha1.ModulePhaseDeployed}, "genAi": {Phase: v1alpha1.ModulePhaseDeployed}}
+			cm := maasPortalTestManager(t, dashboard)
+			assert.Equal(t, maasPortalRetryInterval, r.reconcileMaaSPortal(ctx, dashboard, cm, statuses))
+			condition := cm.GetCondition(conditionMaaSPortalAvailable)
+			require.NotNil(t, condition)
+			assert.Equal(t, metav1.ConditionTrue, condition.Status)
+			assert.Equal(t, "Deployed", condition.Reason)
+			assert.Equal(t, "https://apps.example.com/maas-consumer-portal/", dashboard.Status.MaaSPortalURL)
+			assert.Equal(t, dashboard.Status.MaaSPortalURL, dashboard.Status.MaaSConsumerPortalURL)
+			require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(secret), secret))
+			require.NotNil(t, secret.DeletionTimestamp)
+			secret.Finalizers = nil
+			require.NoError(t, cli.Update(ctx, secret))
+			cm = maasPortalTestManager(t, dashboard)
+			cm.ClearCondition(conditionMaaSPortalAvailable) // Reconcile resets availability at the start of each cycle.
+			assert.Zero(t, r.reconcileMaaSPortal(ctx, dashboard, cm, statuses))
+			assert.Equal(t, metav1.ConditionTrue, cm.GetCondition(conditionMaaSPortalAvailable).Status)
+			assert.Equal(t, "https://apps.example.com/maas-consumer-portal/", dashboard.Status.MaaSPortalURL)
+			assert.Equal(t, dashboard.Status.MaaSPortalURL, dashboard.Status.MaaSConsumerPortalURL)
+		})
 	}
-	route := &gatewayv1.HTTPRoute{ObjectMeta: metav1.ObjectMeta{Name: maasPortalDeploymentName, Namespace: maasPortalTestNamespace, Generation: 1}}
-	route.Status.Parents = []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
-		{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: 1},
-		{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: 1},
-	}}}
-	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: legacyMaaSPortalName + "-tls", Namespace: maasPortalTestNamespace, Finalizers: []string{"test/hold-secret"}}}
-	cli := fake.NewClientBuilder().WithScheme(maasPortalScheme(t)).WithObjects(migrationReadyDeployment(), migrationFederationConfig(), route, secret).Build()
-	r := &DashboardReconciler{Client: cli, ApplicationsNamespace: maasPortalTestNamespace, Platform: cluster.SelfManagedRhoai, ManifestsBasePath: writeMaaSPortalSubscriptionTestManifest(t)}
-	statuses := map[string]v1alpha1.ModuleStatus{"maas": {Phase: v1alpha1.ModulePhaseDeployed}, "genAi": {Phase: v1alpha1.ModulePhaseDeployed}}
-	cm := maasPortalTestManager(t, dashboard)
-	assert.Equal(t, maasPortalRetryInterval, r.reconcileMaaSPortal(ctx, dashboard, cm, statuses))
-	condition := cm.GetCondition(conditionMaaSPortalAvailable)
-	require.NotNil(t, condition)
-	assert.Equal(t, "MigrationPending", condition.Reason)
-	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
-	assert.Equal(t, dashboard.Status.MaaSPortalURL, dashboard.Status.MaaSConsumerPortalURL)
-	require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(secret), secret))
-	require.NotNil(t, secret.DeletionTimestamp)
-	secret.Finalizers = nil
-	require.NoError(t, cli.Update(ctx, secret))
-	cm = maasPortalTestManager(t, dashboard)
-	cm.ClearCondition(conditionMaaSPortalAvailable) // Reconcile resets availability at the start of each cycle.
-	assert.Zero(t, r.reconcileMaaSPortal(ctx, dashboard, cm, statuses))
-	assert.Equal(t, metav1.ConditionTrue, cm.GetCondition(conditionMaaSPortalAvailable).Status)
-	assert.Equal(t, "https://apps.example.com/maas-consumer-portal/", dashboard.Status.MaaSPortalURL)
-	assert.Equal(t, dashboard.Status.MaaSPortalURL, dashboard.Status.MaaSConsumerPortalURL)
 }
 
 func TestReconcileUnsupportedMaaSPortal_CleanupFailurePreservesURL(t *testing.T) {

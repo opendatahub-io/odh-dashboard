@@ -565,7 +565,15 @@ func TestIntegration_MaaSPortalLegacyResourceMigration(t *testing.T) {
 		legacy = append(legacy, resource)
 	}
 	require.NoError(t, k8sClient.Create(ctx, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: legacyName + "-federation-config", Namespace: integrationNamespace}}))
-	require.NoError(t, k8sClient.Create(ctx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: legacyName + "-tls", Namespace: integrationNamespace}}))
+	legacySecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: legacyName + "-tls", Namespace: integrationNamespace, Finalizers: []string{"test/hold-legacy-secret"}}}
+	require.NoError(t, k8sClient.Create(ctx, legacySecret))
+	t.Cleanup(func() {
+		secret := &corev1.Secret{}
+		if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(legacySecret), secret); err == nil {
+			secret.Finalizers = nil
+			_ = k8sClient.Update(ctx, secret)
+		}
+	})
 
 	reconcile(t, r)
 	reconcile(t, r)
@@ -643,6 +651,17 @@ func TestIntegration_MaaSPortalLegacyResourceMigration(t *testing.T) {
 	require.NoError(t, k8sClient.Status().Update(ctx, newRoute))
 	result := reconcile(t, r)
 	assert.Equal(t, time.Minute, result.RequeueAfter, "schedule policy cleanup even for an unowned legacy Deployment")
+	for range 2 {
+		current := getDashboard(t)
+		assert.Equal(t, metav1.ConditionTrue, conditionStatus(current, ctrlpkg.ConditionMaaSPortalAvailable), "post-cutover deletion must not hide the serving portal")
+		assert.Equal(t, "https://test.example.com/maas-consumer-portal/", current.Status.MaaSPortalURL)
+		assert.Equal(t, current.Status.MaaSPortalURL, current.Status.MaaSConsumerPortalURL)
+		require.NoError(t, k8sClient.Get(ctx, client.ObjectKeyFromObject(legacySecret), legacySecret))
+		require.NotNil(t, legacySecret.DeletionTimestamp)
+		assert.Equal(t, time.Minute, reconcile(t, r).RequeueAfter, "continue retrying legacy cleanup")
+	}
+	legacySecret.Finalizers = nil
+	require.NoError(t, k8sClient.Update(ctx, legacySecret))
 	reconcile(t, r)
 	assertNetworkAccess(false)
 	for _, resource := range legacy {

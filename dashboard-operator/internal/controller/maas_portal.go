@@ -132,13 +132,10 @@ func (r *DashboardReconciler) reconcileMaaSPortal(ctx context.Context, dashboard
 				conditions.WithMessage("Legacy MaaS Portal cleanup failed: %s", err))
 			return maasPortalRetryInterval
 		}
-		if migration.Pending {
-			cm.MarkFalse(conditionMaaSPortalAvailable, conditions.WithReason("MigrationPending"),
-				conditions.WithMessage("Waiting for deletion of legacy MaaS Portal resources"))
-			return maasPortalRetryInterval
-		}
+		// Serving readiness has passed. Asynchronous legacy deletion must not
+		// hide the available portal or delay publishing its current URL.
 		setMaaSPortalURL(&dashboard.Status, url)
-		if legacyDeployment {
+		if migration.Pending || legacyDeployment {
 			// Re-render shared policies without temporary legacy peers even if
 			// the old Deployment had no owner reference to trigger a watch.
 			return maasPortalRetryInterval
