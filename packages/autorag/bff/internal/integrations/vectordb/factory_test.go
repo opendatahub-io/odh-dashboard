@@ -32,7 +32,7 @@ func TestNewFromSecretData_DispatchesToPgvector(t *testing.T) {
 }
 
 func TestNewFromSecretData_AllowsDirectLocalhost(t *testing.T) {
-	assert.NoError(t, ValidateMilvusEndpoint("http://localhost:4321"))
+	assert.Error(t, ValidateMilvusEndpoint("http://localhost:4321"))
 }
 
 func TestNewFromSecretDataWithForwarderValidatesBeforeCallingForwarder(t *testing.T) {

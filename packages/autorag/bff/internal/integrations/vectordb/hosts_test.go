@@ -41,10 +41,10 @@ func TestParseVectorEndpoints(t *testing.T) {
 	}{
 		{name: "milvus service plaintext", milvus: "http://milvus.team-a.svc.cluster.local:19530"},
 		{name: "milvus arbitrary cluster local plaintext", milvus: "http://milvus.team-a.cluster.local:19530"},
-		{name: "milvus localhost plaintext", milvus: "http://localhost:19530"},
+		{name: "milvus localhost plaintext outside development", milvus: "http://localhost:19530", wantErr: true},
 		{name: "pg service plaintext", pgHost: "postgres.team-a.svc.cluster.local", sslMode: "disable"},
 		{name: "pg arbitrary cluster local plaintext", pgHost: "postgres.team-a.cluster.local", sslMode: "disable"},
-		{name: "pg localhost plaintext", pgHost: "localhost", sslMode: "disable"},
+		{name: "pg localhost plaintext outside development", pgHost: "localhost", sslMode: "disable", wantErr: true},
 		{name: "external milvus plaintext", milvus: "http://milvus.example.com:19530", wantErr: true},
 		{name: "external pg plaintext", pgHost: "db.example.com", sslMode: "disable", wantErr: true},
 		{name: "external pg require without certificate verification", pgHost: "db.example.com", sslMode: "require", wantErr: true},
@@ -74,7 +74,7 @@ func TestParsePgvectorEndpointRejectsExternalRequire(t *testing.T) {
 }
 
 func TestValidateForwardedMilvusEndpointDoesNotRelaxSecretValidation(t *testing.T) {
-	assert.NoError(t, ValidateMilvusEndpoint("http://localhost:4321"))
+	assert.Error(t, ValidateMilvusEndpoint("http://localhost:4321"))
 	assert.Error(t, ValidateMilvusEndpoint("http://10.0.0.1:4321"))
 	assert.NoError(t, ValidateMilvusEndpoint("http://milvus.team-a.svc.cluster.local:19530"))
 
@@ -86,6 +86,13 @@ func TestValidateForwardedMilvusEndpointDoesNotRelaxSecretValidation(t *testing.
 	assert.Error(t, err)
 	err = ValidateForwardedMilvusEndpoint("http://milvus.team-a.svc.cluster.local:19530", "https://localhost:4321")
 	assert.Error(t, err)
+}
+
+func TestParseVectorEndpointsAllowsLocalhostInDevelopment(t *testing.T) {
+	_, err := parseMilvusEndpointWithLoopback("http://localhost:4321", true)
+	assert.NoError(t, err)
+	_, err = parsePgvectorEndpointWithLoopback("localhost", 5432, "disable", true)
+	assert.NoError(t, err)
 }
 
 func TestVectorSafeDialContextRejectsDNSRebindingToPrivateAddress(t *testing.T) {
@@ -166,4 +173,20 @@ func TestVectorSafeDialContextAllowsOnlyLoopbackForForwardedEndpoint(t *testing.
 	_, err = dial(context.Background(), "tcp", "localhost:4321")
 	assert.Error(t, err)
 	assert.False(t, dialed)
+}
+
+func TestVectorSafeDialContextRejectsLoopbackAndMetadataForClusterHosts(t *testing.T) {
+	for _, ip := range []string{"127.0.0.1", "169.254.169.254"} {
+		t.Run(ip, func(t *testing.T) {
+			dial := vectorSafeDialContext(
+				func(context.Context, string, string) (net.Conn, error) { return nil, fmt.Errorf("unexpected dial") },
+				func(context.Context, string) ([]net.IP, error) { return []net.IP{net.ParseIP(ip)}, nil },
+				true,
+				false,
+			)
+			_, err := dial(context.Background(), "tcp", "database.team-a.cluster.local:5432")
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "blocked address")
+		})
+	}
 }

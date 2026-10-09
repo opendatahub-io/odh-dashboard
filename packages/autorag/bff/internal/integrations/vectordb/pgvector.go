@@ -77,6 +77,10 @@ func defaultPgvectorSSLMode(inCluster, loopback, hasCustomCA bool) string {
 }
 
 func newPgvectorFromSecret(ctx context.Context, data map[string][]byte) (VectorDB, error) {
+	return newPgvectorFromSecretWithLoopback(ctx, data, false)
+}
+
+func newPgvectorFromSecretWithLoopback(ctx context.Context, data map[string][]byte, allowLoopback bool) (VectorDB, error) {
 	host := strings.TrimSpace(string(data["PGVECTOR_HOST"]))
 	portStr := strings.TrimSpace(string(data["PGVECTOR_PORT"]))
 	db := strings.TrimSpace(string(data["PGVECTOR_DB"]))
@@ -100,7 +104,7 @@ func newPgvectorFromSecret(ctx context.Context, data map[string][]byte) (VectorD
 		return nil, fmt.Errorf("pgvector invalid PGVECTOR_PORT: %d (must be 1-65535)", port)
 	}
 
-	inCluster, loopback, err := validateVectorHost(host)
+	inCluster, loopback, err := validateVectorHost(host, allowLoopback)
 	if err != nil {
 		return nil, fmt.Errorf("pgvector: %w", err)
 	}
@@ -113,7 +117,7 @@ func newPgvectorFromSecret(ctx context.Context, data map[string][]byte) (VectorD
 	default:
 		return nil, fmt.Errorf("pgvector invalid PGVECTOR_SSLMODE: %q", sslMode)
 	}
-	endpoint, err := parsePgvectorEndpoint(host, port, sslMode)
+	endpoint, err := parsePgvectorEndpointWithLoopback(host, port, sslMode, allowLoopback)
 	if err != nil {
 		return nil, fmt.Errorf("pgvector: %w", err)
 	}

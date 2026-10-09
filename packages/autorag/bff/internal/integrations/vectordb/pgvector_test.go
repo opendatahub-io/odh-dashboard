@@ -70,7 +70,7 @@ func TestNewPgvectorFromSecret_PortOutOfRange(t *testing.T) {
 
 func TestNewPgvectorFromSecret_InvalidSSLMode(t *testing.T) {
 	_, err := newPgvectorFromSecret(context.Background(), map[string][]byte{
-		"PGVECTOR_HOST":    []byte("localhost"),
+		"PGVECTOR_HOST":    []byte("postgres.team-a.cluster.local"),
 		"PGVECTOR_DB":      []byte("db"),
 		"PGVECTOR_USER":    []byte("user"),
 		"PGVECTOR_SSLMODE": []byte("not-a-real-mode"),

@@ -22,17 +22,20 @@ func NewFromSecretDataWithForwarder(ctx context.Context, data map[string][]byte,
 }
 
 func newFromSecretData(ctx context.Context, data map[string][]byte, forwardURL func(context.Context, string) (string, error)) (VectorDB, error) {
+	allowLoopback := forwardURL != nil
 	if _, ok := data["MILVUS_URI"]; ok {
 		if forwardURL != nil {
 			original := strings.TrimSpace(string(data["MILVUS_URI"]))
-			originalEndpoint, err := parseMilvusEndpoint(original)
+			originalEndpoint, err := parseMilvusEndpointWithLoopback(original, allowLoopback)
 			if err != nil {
 				return nil, err
 			}
 			// localhost is already an internal endpoint; it must not be replaced
 			// by a dev port-forward target.
 			if originalEndpoint.loopback {
-				return newMilvusFromSecret(ctx, data)
+				return newMilvusFromSecretWithTimeoutPolicy(ctx, data, allowLoopback, MilvusOperationTimeout, func(connectCtx context.Context, cfg milvusclient.Config) (milvusClient, error) {
+					return milvusclient.NewClient(connectCtx, cfg)
+				})
 			}
 			forwarded, err := forwardURL(ctx, original)
 			if err != nil {
@@ -52,10 +55,12 @@ func newFromSecretData(ctx context.Context, data map[string][]byte, forwardURL f
 				})
 			}
 		}
-		return newMilvusFromSecret(ctx, data)
+		return newMilvusFromSecretWithTimeoutPolicy(ctx, data, allowLoopback, MilvusOperationTimeout, func(connectCtx context.Context, cfg milvusclient.Config) (milvusClient, error) {
+			return milvusclient.NewClient(connectCtx, cfg)
+		})
 	}
 	if _, ok := data["PGVECTOR_HOST"]; ok {
-		return newPgvectorFromSecret(ctx, data)
+		return newPgvectorFromSecretWithLoopback(ctx, data, allowLoopback)
 	}
 	return nil, fmt.Errorf("%w", ErrUnsupportedVectorDB)
 }

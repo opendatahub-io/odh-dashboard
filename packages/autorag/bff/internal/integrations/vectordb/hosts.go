@@ -29,12 +29,15 @@ func isClusterServiceHost(host string) bool {
 	return host != "cluster.local"
 }
 
-func validateVectorHost(host string) (inCluster, loopback bool, err error) {
+func validateVectorHost(host string, allowLoopback bool) (inCluster, loopback bool, err error) {
 	host = strings.TrimSuffix(strings.TrimSpace(host), ".")
 	if host == "" || net.ParseIP(host) != nil {
 		return false, false, fmt.Errorf("vector database host must be a DNS name, not a literal IP address")
 	}
 	if strings.EqualFold(host, "localhost") {
+		if !allowLoopback {
+			return false, false, fmt.Errorf("vector database localhost endpoints are only allowed in development mode")
+		}
 		return false, true, nil
 	}
 	inCluster = isClusterServiceHost(host)
@@ -68,7 +71,7 @@ func parseMilvusEndpointWithLoopback(raw string, allowLoopback bool) (vectorEndp
 			return vectorEndpoint{}, fmt.Errorf("forwarded Milvus endpoint must use a valid ephemeral port")
 		}
 	} else {
-		inCluster, loopback, err := validateVectorHost(host)
+		inCluster, loopback, err := validateVectorHost(host, allowLoopback)
 		if err != nil {
 			return vectorEndpoint{}, err
 		}
@@ -118,8 +121,12 @@ func ValidateForwardedMilvusEndpoint(original, forwarded string) error {
 }
 
 func parsePgvectorEndpoint(host string, port int, sslMode string) (vectorEndpoint, error) {
+	return parsePgvectorEndpointWithLoopback(host, port, sslMode, false)
+}
+
+func parsePgvectorEndpointWithLoopback(host string, port int, sslMode string, allowLoopback bool) (vectorEndpoint, error) {
 	host = strings.TrimSpace(host)
-	inCluster, loopback, err := validateVectorHost(host)
+	inCluster, loopback, err := validateVectorHost(host, allowLoopback)
 	if err != nil {
 		return vectorEndpoint{}, err
 	}
@@ -210,7 +217,12 @@ func vectorSafeDialContext(baseDialContext func(context.Context, string, string)
 		}
 		var lastErr error
 		for _, ip := range ips {
-			if !clusterHost && isBlockedVectorIP(ip) && (!allowLoopback || !ip.IsLoopback()) {
+			loopbackAllowed := allowLoopback && ip.IsLoopback()
+			alwaysBlocked := ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsMulticast() || ip.IsUnspecified()
+			if alwaysBlocked && !loopbackAllowed {
+				return nil, fmt.Errorf("vector database host resolved to a blocked address")
+			}
+			if !clusterHost && isBlockedVectorIP(ip) && !loopbackAllowed {
 				return nil, fmt.Errorf("vector database host resolved to a blocked address")
 			}
 			conn, dialErr := baseDialContext(ctx, network, net.JoinHostPort(ip.String(), port))
