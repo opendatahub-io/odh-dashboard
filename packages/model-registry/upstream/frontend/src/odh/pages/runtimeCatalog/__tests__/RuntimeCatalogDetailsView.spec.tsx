@@ -74,7 +74,6 @@ describe('RuntimeCatalogDetailsView', () => {
       'N/A',
       'N/A',
       'N/A',
-      'N/A',
     ]);
     expect(screen.queryByTestId('runtime-container-image-copy')).not.toBeInTheDocument();
     expect(screen.queryByText(runtimeDetails.description)).not.toBeInTheDocument();

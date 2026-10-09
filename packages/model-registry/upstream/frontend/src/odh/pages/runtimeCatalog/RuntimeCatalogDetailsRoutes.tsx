@@ -34,7 +34,7 @@ const RuntimeCatalogDetailsRoutes: React.FC = () => {
       runtimeDetails={runtimeDetails}
       runtimeVersions={runtimeVersions.items}
       loading={!runtimeLoaded || (!notFound && !versionsLoaded)}
-      error={runtimeError || (notFound ? undefined : versionsError)}
+      error={runtimeError || (runtimeLoaded && !notFound ? versionsError : undefined)}
       notFound={notFound}
       breadcrumbs={[
         {

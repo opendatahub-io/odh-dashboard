@@ -155,18 +155,26 @@ describe('Runtime image library landing', () => {
     cy.intercept(
       { method: 'GET', pathname: runtimeDetailsPath },
       {
-        body: { data: { id: '1', name: 'vllm', displayName: 'vLLM' } },
+        body: { data: { id: '1', name: 'vllm', displayName: 'vLLM', versionCount: 1 } },
       },
     ).as('runtimeDetails');
     cy.intercept(
       { method: 'GET', pathname: `${runtimeDetailsPath}/versions` },
       {
-        body: { data: { items: [], size: 0, pageSize: 1, nextPageToken: '' } },
+        body: {
+          data: {
+            items: [{ id: '102', name: 'vllm-0.6.0', version: '0.6.0' }],
+            size: 1,
+            pageSize: 1,
+            nextPageToken: '',
+          },
+        },
       },
     );
 
     runtimeCatalogPage.visit();
     runtimeCatalogPage.findCardDetailLink('vllm').should('be.visible');
+    runtimeCatalogPage.findCardLatestBadge('vllm').should('have.text', 'Latest');
     cy.testA11y();
     runtimeCatalogPage.openCardDetails('vllm');
 
@@ -176,6 +184,41 @@ describe('Runtime image library landing', () => {
     );
     cy.wait('@runtimeDetails');
     runtimeCatalogDetailsPage.findHeading('vLLM').should('be.visible');
+    runtimeCatalogDetailsPage.findLatestBadge().should('have.text', 'Latest');
+    cy.testA11y();
+  });
+
+  it('does not show Latest in details when the card has no versions', () => {
+    const tritonDetailsPath = `/model-registry/api/${API_VERSION}/serving_runtime_catalog/serving_runtimes/3`;
+    cy.intercept(
+      { method: 'GET', pathname: tritonDetailsPath },
+      {
+        body: {
+          data: {
+            id: '3',
+            name: 'triton',
+            displayName: 'NVIDIA Triton Inference Server',
+            versionCount: 0,
+          },
+        },
+      },
+    ).as('tritonDetails');
+    cy.intercept(
+      { method: 'GET', pathname: `${tritonDetailsPath}/versions` },
+      { body: { data: { items: [], size: 0, pageSize: 1, nextPageToken: '' } } },
+    );
+
+    runtimeCatalogPage.visit();
+    runtimeCatalogPage.findCardLatestBadge('triton').should('not.exist');
+    runtimeCatalogPage.openCardDetails('triton');
+
+    cy.location('pathname').should(
+      'eq',
+      '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog/3',
+    );
+    cy.wait('@tritonDetails');
+    runtimeCatalogDetailsPage.findHeading('NVIDIA Triton Inference Server').should('be.visible');
+    runtimeCatalogDetailsPage.findLatestBadge().should('not.exist');
     cy.testA11y();
   });
 

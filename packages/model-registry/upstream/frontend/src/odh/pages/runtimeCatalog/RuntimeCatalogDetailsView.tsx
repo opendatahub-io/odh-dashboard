@@ -4,6 +4,7 @@ import {
   Alert,
   Breadcrumb,
   BreadcrumbItem,
+  Button,
   Card,
   CardBody,
   CardHeader,
@@ -14,8 +15,9 @@ import {
   DescriptionListTerm,
   EmptyState,
   EmptyStateBody,
+  Flex,
+  FlexItem,
   Label,
-  LabelGroup,
   PageSection,
   Sidebar,
   SidebarContent,
@@ -35,7 +37,7 @@ import { formatRuntimePublishedDate, formatRuntimeTemplate } from './runtimeCata
 
 export type RuntimeCatalogDetailsViewProps = {
   breadcrumbs: { title: string; href: string }[];
-  runtimeDetails?: (ServingRuntime & { certifiedPlatform?: string[] }) | null;
+  runtimeDetails?: ServingRuntime | null;
   runtimeVersions?: ServingRuntimeVersion[];
   loading?: boolean;
   error?: Error;
@@ -62,8 +64,6 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
     selectedVersion ? selectedVersion.publishedDate : runtimeDetails?.publishedDate,
   );
   const hardware = runtimeDetails?.capabilities?.supportedAccelerators?.join(', ');
-  const certifiedPlatforms =
-    runtimeDetails?.certifiedPlatform?.map((platform) => platform.trim()).filter(Boolean) ?? [];
 
   return (
     <>
@@ -93,9 +93,29 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
         ) : (
           <Stack hasGutter>
             <StackItem>
-              <Title headingLevel="h1" size="2xl">
-                {runtimeDetails.displayName || runtimeDetails.name || runtimeId}
-              </Title>
+              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
+                <FlexItem>
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                    <FlexItem>
+                      <Title headingLevel="h1" size="2xl">
+                        {runtimeDetails.displayName || runtimeDetails.name || runtimeId}
+                      </Title>
+                    </FlexItem>
+                    {(runtimeDetails.versionCount ?? 0) > 0 && (
+                      <FlexItem>
+                        <Label color="purple" data-testid="runtime-catalog-details-latest">
+                          Latest
+                        </Label>
+                      </FlexItem>
+                    )}
+                  </Flex>
+                </FlexItem>
+                <FlexItem>
+                  <Button variant="primary" isDisabled>
+                    Create
+                  </Button>
+                </FlexItem>
+              </Flex>
             </StackItem>
             <StackItem>
               <Sidebar hasGutter isPanelRight>
@@ -164,9 +184,7 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                                 <Tab
                                   eventKey="llm-inference-service"
                                   data-testid="runtime-llm-inference-service-tab"
-                                  title={
-                                    <TabTitleText>LLM inference service configuration</TabTitleText>
-                                  }
+                                  title={<TabTitleText>LLM accelerator configuration</TabTitleText>}
                                 >
                                   <Stack
                                     hasGutter
@@ -175,11 +193,13 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                                   >
                                     <StackItem>
                                       <Title headingLevel="h3" size="md">
-                                        LLM inference service configuration
+                                        LLM accelerator configuration
                                       </Title>
                                     </StackItem>
                                     <StackItem>
-                                      Use this configuration for LLM inference service deployments.
+                                      Use this configuration for LLM inference services. It appears
+                                      under LLM accelerator configurations and in the LLM inference
+                                      service deployment wizard.
                                     </StackItem>
                                     <StackItem>
                                       <CodeBlockComponent copyTestId="runtime-llm-inference-service-copy">
@@ -212,18 +232,11 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                           ['Hardware', hardware],
                           ['Model formats', modelFormats],
                           ['Container image', selectedVersion?.image],
-                          ['Certified platform', undefined],
                           ['Publish on', publishedDate],
                         ].map(([label, value]) => (
                           <DescriptionListGroup key={label}>
                             <DescriptionListTerm>{label}</DescriptionListTerm>
-                            <DescriptionListDescription
-                              data-testid={
-                                label === 'Certified platform'
-                                  ? 'runtime-certified-platform'
-                                  : undefined
-                              }
-                            >
+                            <DescriptionListDescription>
                               {label === 'Container image' && value ? (
                                 <ClipboardCopy
                                   isReadOnly
@@ -232,22 +245,6 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                                 >
                                   {value}
                                 </ClipboardCopy>
-                              ) : label === 'Certified platform' ? (
-                                certifiedPlatforms.length > 0 ? (
-                                  <LabelGroup numLabels={certifiedPlatforms.length}>
-                                    {certifiedPlatforms.map((platform, index) => (
-                                      <Label
-                                        key={`${platform}-${index}`}
-                                        variant="outline"
-                                        data-testid="runtime-certified-platform-label"
-                                      >
-                                        {platform}
-                                      </Label>
-                                    ))}
-                                  </LabelGroup>
-                                ) : (
-                                  'N/A'
-                                )
                               ) : (
                                 value || 'N/A'
                               )}

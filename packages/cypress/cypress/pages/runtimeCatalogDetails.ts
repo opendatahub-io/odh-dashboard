@@ -13,6 +13,10 @@ class RuntimeCatalogDetailsPage {
     return this.findPage().findByRole('heading', { name });
   }
 
+  findLatestBadge() {
+    return this.findPage().findByTestId('runtime-catalog-details-latest');
+  }
+
   findText(text: string | RegExp) {
     return this.findPage().findByText(text);
   }
@@ -23,14 +27,6 @@ class RuntimeCatalogDetailsPage {
 
   findContainerImageInput() {
     return this.findPage().findByTestId('runtime-container-image-copy').findByRole('textbox');
-  }
-
-  findCertifiedPlatforms() {
-    return this.findPage().findByTestId('runtime-certified-platform');
-  }
-
-  findCertifiedPlatformLabels() {
-    return this.findCertifiedPlatforms().findAllByTestId('runtime-certified-platform-label');
   }
 
   findServingRuntimePanel() {
