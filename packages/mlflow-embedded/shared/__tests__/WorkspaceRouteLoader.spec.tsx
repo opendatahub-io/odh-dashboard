@@ -1,7 +1,8 @@
 import * as React from 'react';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import useIsMlflowCRAvailable from '@odh-dashboard/internal/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 import WorkspaceRouteLoader from '../WorkspaceRouteLoader';
 
 type CapturedNoProjectsProps = { getRedirectPath: (namespace: string) => string };
@@ -14,10 +15,19 @@ jest.mock('../NoProjectsEmptyState', () => ({
   },
 }));
 
+jest.mock('@odh-dashboard/internal/concepts/mlflow/hooks/useIsMlflowCRAvailable', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
 jest.mock('@odh-dashboard/ui-core', () => ({
-  ApplicationsPage: ({ emptyStatePage }: { emptyStatePage?: React.ReactNode }) => (
-    <>{emptyStatePage}</>
-  ),
+  ApplicationsPage: ({
+    emptyStatePage,
+    loaded,
+  }: {
+    emptyStatePage?: React.ReactNode;
+    loaded: boolean;
+  }) => <>{loaded ? emptyStatePage : <div data-testid="workspace-loading" />}</>,
 }));
 
 jest.mock('@odh-dashboard/internal/pages/pipelines/global/PipelineCoreProjectSelector', () => ({
@@ -25,11 +35,14 @@ jest.mock('@odh-dashboard/internal/pages/pipelines/global/PipelineCoreProjectSel
   default: () => null,
 }));
 
+const mockUseIsMlflowCRAvailable = jest.mocked(useIsMlflowCRAvailable);
+
 const renderWithoutProjects = (
   props: Pick<
     React.ComponentProps<typeof WorkspaceRouteLoader>,
     'getRedirectPath' | 'getNoProjectsRedirectPath'
   >,
+  PageComponent: React.ComponentType = () => null,
 ) =>
   render(
     <MemoryRouter initialEntries={['/ai-hub/skills/@acme/code-review?version=2']}>
@@ -49,7 +62,7 @@ const renderWithoutProjects = (
           title="Skills"
           noProjectsMessage="To use skills, first create a project."
           noProjectsTestId="no-projects"
-          PageComponent={() => null}
+          PageComponent={PageComponent}
           {...props}
         />
       </ProjectsContext.Provider>
@@ -58,7 +71,30 @@ const renderWithoutProjects = (
 
 describe('WorkspaceRouteLoader', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     capturedNoProjectsProps = undefined;
+    mockUseIsMlflowCRAvailable.mockReturnValue({ available: true, loaded: true, error: false });
+  });
+
+  it('should render MLflow setup before project creation when MLflow is unavailable', () => {
+    mockUseIsMlflowCRAvailable.mockReturnValue({ available: false, loaded: true, error: false });
+
+    renderWithoutProjects(
+      { getRedirectPath: (namespace) => `/page?workspace=${namespace}` },
+      () => <div data-testid="mlflow-page" />,
+    );
+
+    expect(screen.getByTestId('mlflow-page')).toBeInTheDocument();
+    expect(capturedNoProjectsProps).toBeUndefined();
+  });
+
+  it('should wait for MLflow availability before showing the no-projects state', () => {
+    mockUseIsMlflowCRAvailable.mockReturnValue({ available: false, loaded: false, error: false });
+
+    renderWithoutProjects({ getRedirectPath: (namespace) => `/page?workspace=${namespace}` });
+
+    expect(screen.getByTestId('workspace-loading')).toBeInTheDocument();
+    expect(capturedNoProjectsProps).toBeUndefined();
   });
 
   it('should send a project created from the no-projects state to getNoProjectsRedirectPath', () => {

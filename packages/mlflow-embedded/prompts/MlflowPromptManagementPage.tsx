@@ -81,7 +81,11 @@ const MlflowPromptManagementPage: React.FC = () => {
       empty={mlflowLoaded && !mlflowAvailable}
       emptyStatePage={
         <PageSection hasBodyWrapper={false} isFilled>
-          {mlflowStatusError ? <MLflowUnavailable /> : <MLflowNotConfigured />}
+          {mlflowStatusError ? (
+            <MLflowUnavailable />
+          ) : (
+            <MLflowNotConfigured featureName={PROMPT_MANAGEMENT_PAGE_TITLE.toLowerCase()} />
+          )}
         </PageSection>
       }
       noHeader={!isTopLevel}
@@ -145,7 +149,7 @@ const MlflowPromptManagementPage: React.FC = () => {
         ) : undefined
       }
       headerAction={
-        isTopLevel ? (
+        isTopLevel && mlflowAvailable ? (
           <LaunchMlflowButton
             testId="mlflow-prompts-jump-link"
             section="prompt-management-page"
