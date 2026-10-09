@@ -144,3 +144,15 @@ export const formatExpirationLabel = (days: number, mode: ExpirationMode): strin
   }
   return `${days} days`;
 };
+
+export const getModelDocumentationUrl = (
+  modelId: string,
+  gatewayUrl: string,
+): string | undefined => {
+  try {
+    const url = new URL(gatewayUrl);
+    return `${url.origin}/v1/models/${modelId}/docs`;
+  } catch {
+    return undefined;
+  }
+};

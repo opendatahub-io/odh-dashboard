@@ -14,6 +14,7 @@ import {
   startOfLocalDay,
   validateAfterDays,
   validateExpirationDate,
+  getModelDocumentationUrl,
 } from '~/app/pages/keys-and-subs/utils';
 import { deriveModelGroups } from '~/app/pages/keys-and-subs/mySubscriptions/SubscriptionsTab';
 
@@ -183,5 +184,16 @@ describe('deriveModelGroups', () => {
 
   it('should return an empty array when given no subscriptions', () => {
     expect(deriveModelGroups([])).toEqual([]);
+  });
+});
+
+describe('getModelDocumentationUrl', () => {
+  it('should return the correct URL', () => {
+    expect(getModelDocumentationUrl('granite-3-8b', 'https://api.example.com/maas-api')).toBe(
+      'https://api.example.com/v1/models/granite-3-8b/docs',
+    );
+  });
+  it('should return undefined if the gateway URL is not valid', () => {
+    expect(getModelDocumentationUrl('granite-3-8b', 'invalid-url')).toBeUndefined();
   });
 });
