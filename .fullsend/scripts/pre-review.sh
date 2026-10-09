@@ -27,6 +27,9 @@
 #      marker and no sticky-history delimiter.
 #   7. Export REVIEW_PR_TITLE / REVIEW_PR_BODY for trusted Jira-key parsing and
 #      require a 40-hex PR head SHA.
+#   8. Prior findings reach the sandbox only for `app-verified` provenance.
+#      Upstream also accepts GitLab's weaker `bot-verified`, which nothing on
+#      GitHub produces.
 # The local main-flow steps call `gh` directly, so this copy only completes a
 # review on GitHub; the GitLab library is carried as bundled.
 #
@@ -1119,7 +1122,7 @@ echo "  PR_URL=${PR_URL}"
 # sticky comment is discarded here, before host_files copies the file in.
 if [[ -n "${PRIOR_REVIEW_FILE:-}" && -f "${PRIOR_REVIEW_FILE}" ]]; then
   case "${PRIOR_REVIEW_PROVENANCE:-none}" in
-    app-verified|bot-verified) validate_prior_review_projection "${PRIOR_REVIEW_FILE}" ;;
+    app-verified) validate_prior_review_projection "${PRIOR_REVIEW_FILE}" ;;
     *) : > "${PRIOR_REVIEW_FILE}" ;;
   esac
 fi

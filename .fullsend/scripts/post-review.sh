@@ -2789,21 +2789,17 @@ if [ "${ACTION}" = "approve" ]; then
   # non-empty REVIEW_ACTIVE_PROTECTED_PATHS.
   # Reuse the list the renderer adjudicated against (fetch_pr_files above),
   # so the gate and the rendered comment are decided on the same files.
+  # A failed first fetch left the list empty, so one check covers both a
+  # failure and an empty result.
   PR_FILES="${REVIEW_CHANGED_FILES}"
-  PR_FILES_FETCH_FAILED=false
-  if [ "${PR_FILES_FETCH_FAILED}" = true ] || [ -z "${PR_FILES}" ]; then
+  if [ -z "${PR_FILES}" ]; then
     # An empty file list may be a transient forge data race. Retry once
     # before refusing to approve, so a genuinely non-empty PR is not failed.
     echo "::notice::PR files came back empty; retrying once in case of a transient forge data race" >&2
     sleep 10
-    if PR_FILES=$(fetch_pr_files); then
-      PR_FILES_FETCH_FAILED=false
-    else
-      PR_FILES_FETCH_FAILED=true
-      PR_FILES=""
-    fi
+    PR_FILES=$(fetch_pr_files) || PR_FILES=""
   fi
-  if [ "${PR_FILES_FETCH_FAILED}" = true ] || [ -z "${PR_FILES}" ]; then
+  if [ -z "${PR_FILES}" ]; then
     echo "::error::Failed to fetch PR files or PR has no changed files — refusing to approve (pulls/${PR_NUMBER}/files)" >&2
     exit 1
   fi
