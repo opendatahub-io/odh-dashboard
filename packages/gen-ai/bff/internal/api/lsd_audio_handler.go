@@ -101,6 +101,7 @@ func (app *App) LlamaStackAudioTranscriptionHandler(w http.ResponseWriter, r *ht
 		app.writeASRError(w, r, http.StatusBadRequest, constants.ASRCodeInvalidFormat, err.Error(), false)
 		return
 	}
+
 	text, err := app.transcribeAudio(transcriptionCtx, endpoint, modelName, authToken, validatedReader, contentType)
 	if err != nil {
 		app.handleTranscriptionError(w, r, err)
