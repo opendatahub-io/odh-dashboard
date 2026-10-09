@@ -85,7 +85,7 @@ func TestIntegration_MaaSPortalSubscriptionRBACWatches(t *testing.T) {
 	// RBAC mutations so these events cannot conceal a missing RBAC watch.
 	dashboard := &v1alpha1.Dashboard{}
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		for _, name := range []string{"maas-consumer-portal", "maas-ui", "gen-ai-ui"} {
+		for _, name := range []string{"maas-portal", "maas-ui", "gen-ai-ui"} {
 			deployment := &appsv1.Deployment{}
 			if !assert.NoError(c, directClient.Get(ctx, client.ObjectKey{Name: name, Namespace: integrationNamespace}, deployment)) {
 				return
@@ -101,7 +101,7 @@ func TestIntegration_MaaSPortalSubscriptionRBACWatches(t *testing.T) {
 			}
 		}
 		route := &gatewayv1.HTTPRoute{}
-		if !assert.NoError(c, directClient.Get(ctx, client.ObjectKey{Name: "maas-consumer-portal", Namespace: integrationNamespace}, route)) {
+		if !assert.NoError(c, directClient.Get(ctx, client.ObjectKey{Name: "maas-portal", Namespace: integrationNamespace}, route)) {
 			return
 		}
 		if len(route.Status.Parents) == 0 || len(route.Status.Parents[0].Conditions) == 0 ||
@@ -120,7 +120,7 @@ func TestIntegration_MaaSPortalSubscriptionRBACWatches(t *testing.T) {
 		}
 	}, 10*time.Second, 100*time.Millisecond, "portal did not settle before RBAC watch checks")
 
-	key := client.ObjectKey{Name: "maas-consumer-portal-rhods-operator-subscription", Namespace: "redhat-ods-operator"}
+	key := client.ObjectKey{Name: "maas-portal-rhods-operator-subscription", Namespace: "redhat-ods-operator"}
 	role := &rbacv1.Role{}
 	binding := &rbacv1.RoleBinding{}
 	require.NoError(t, directClient.Get(ctx, key, role))
@@ -189,7 +189,7 @@ func TestIntegration_MaaSPortalSubscriptionRBACWatches(t *testing.T) {
 	t.Run("late openshift-operators namespace", func(t *testing.T) {
 		waitForIdle(t)
 		require.NoError(t, directClient.Create(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "openshift-operators"}}))
-		legacyKey := client.ObjectKey{Name: "maas-consumer-portal-opendatahub-operator-subscription", Namespace: "openshift-operators"}
+		legacyKey := client.ObjectKey{Name: "maas-portal-opendatahub-operator-subscription", Namespace: "openshift-operators"}
 		legacyRole := &rbacv1.Role{}
 		legacyBinding := &rbacv1.RoleBinding{}
 		require.Eventually(t, func() bool {
