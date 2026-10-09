@@ -534,8 +534,8 @@ export const enableMlflowFeatures = (): Cypress.Chainable<boolean> => {
     });
 };
 
-export const disableMlflowFeatures = (): void => {
-  if (Cypress.env('MLFLOW_CR_CREATED_BY_TEST')) {
+export const disableMlflowFeatures = (force = false): void => {
+  if (force || Cypress.env('MLFLOW_CR_CREATED_BY_TEST')) {
     Cypress.env('MLFLOW_CR_CREATED_BY_TEST', false);
     deleteMlflowCr();
   } else {
@@ -580,7 +580,8 @@ export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => 
     });
 };
 
-export const disablePromptManagementFeatures = (): void => disableMlflowFeatures();
+export const disablePromptManagementFeatures = (force = false): void =>
+  disableMlflowFeatures(force);
 
 export const getMlflowTrackingUrl = (): Cypress.Chainable<string> =>
   cy
