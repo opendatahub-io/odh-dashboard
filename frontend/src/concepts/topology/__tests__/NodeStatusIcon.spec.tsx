@@ -60,11 +60,13 @@ describe('NodeStatusIcon', () => {
     expect(content).not.toHaveClass('pf-m-danger');
   });
 
-  it('should render with no status modifier for unknown status', () => {
+  it('should not render an empty icon or tooltip for an unknown status', () => {
     const { container } = render(<NodeStatusIcon runStatus="unknown-status" />);
-    const content = container.querySelector('.pf-v6-c-icon__content');
-    expect(content).not.toHaveClass('pf-m-info');
-    expect(content).not.toHaveClass('pf-m-success');
-    expect(content).not.toHaveClass('pf-m-danger');
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('should not render an empty icon or tooltip without a status', () => {
+    const { container } = render(<NodeStatusIcon />);
+    expect(container).toBeEmptyDOMElement();
   });
 });

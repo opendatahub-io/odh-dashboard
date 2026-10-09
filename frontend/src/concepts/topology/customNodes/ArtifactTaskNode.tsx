@@ -22,6 +22,8 @@ import { TaskNodeProps } from '@patternfly/react-topology/dist/esm/pipelines/com
 import { css } from '@patternfly/react-styles';
 import { StandardTaskNodeData } from '#~/concepts/topology/types';
 import { isMetricsArtifactType } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
+import { getRunStatusLabel } from '#~/concepts/topology/utils';
+import PipelineNodeButton from '#~/concepts/topology/PipelineNodeButton';
 
 const ICON_PADDING = 8;
 
@@ -50,6 +52,10 @@ const IconTaskNode: React.FC<IconTaskNodeProps> = observer(({ element, selected,
     ),
     AnchorEnd.target,
   );
+
+  const statusLabel = getRunStatusLabel(data?.runStatus);
+  const taskName = element.getLabel();
+  const ariaLabel = statusLabel ? `${taskName}, ${statusLabel}` : taskName;
 
   return (
     <g
@@ -81,7 +87,6 @@ const IconTaskNode: React.FC<IconTaskNodeProps> = observer(({ element, selected,
         }
         transform={`translate(${(bounds.width - iconSize) / 2}, ${ICON_PADDING})`}
         color={
-          // Need insight from product dev as to how to view this component to test the colors
           selected
             ? 'var(--pf-t--global--icon--color--inverse)'
             : 'var(--pf-t--global--icon--color--subtle)'
@@ -93,6 +98,7 @@ const IconTaskNode: React.FC<IconTaskNodeProps> = observer(({ element, selected,
           <ListIcon width={iconSize} height={iconSize} />
         )}
       </g>
+      <PipelineNodeButton element={element} ariaLabel={ariaLabel} onSelect={onSelect} />
     </g>
   );
 });
@@ -122,6 +128,11 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
 
     const translateX = bounds.width / 2 - (iconSize / 2) * upScale;
     const translateY = iconPadding * upScale;
+
+    const statusLabel = getRunStatusLabel(data?.runStatus);
+    const taskName = element.getLabel();
+    const ariaLabel = statusLabel ? `${taskName}, ${statusLabel}` : taskName;
+
     return (
       <g className={css('pf-topology__pipelines__task-node')} ref={hoverRef}>
         {isHover || detailsLevel !== ScaleDetailsLevel.high ? (
@@ -148,7 +159,6 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
               <g transform={`translate(${translateX}, ${translateY}) scale(${upScale})`}>
                 <g
                   color={
-                    // Need insight from product dev as to how to view this component to test the colors
                     selected
                       ? 'var(--pf-t--global--icon--color--inverse)'
                       : 'var(--pf-t--global--icon--color--subtle)'
@@ -158,6 +168,7 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
                 </g>
               </g>
             ) : null}
+            <PipelineNodeButton element={element} ariaLabel={ariaLabel} onSelect={onSelect} />
           </g>
         ) : (
           <IconTaskNode selected={selected} onSelect={onSelect} element={element} />
