@@ -2050,6 +2050,122 @@ paths:
         Forwards a pre-built OGX API request body to the upstream OGX service and
         streams the response back as SSE events. Always forces streaming mode.
 
+  /gen-ai/api/v1/lsd/responses/relay:
+    summary: Relay a request to a same-origin responses endpoint via the gateway
+    description: >-
+      Forwards the request body verbatim to the same-origin path given by the required
+      target query parameter, resolved against the externally accessed gateway route
+      (https://{GATEWAY_DOMAIN}{target}). Serves embedder-controlled targets for the
+      embedded playground (e.g. AutoRAG's responsesEndpointUrl): the user's bearer
+      token is attached and the target's response — including SSE streams and non-200
+      error envelopes — is piped back transparently with no synthetic events.
+
+      There is deliberately no namespace parameter and no SSAR check: the relay performs
+      no Kubernetes operations, and authorization is delegated to the target, which
+      re-authenticates the forwarded bearer token (kube-rbac-proxy, module proxy, and
+      the target BFF's own RBAC). The target must be a same-origin path — absolute and
+      protocol-relative URLs are rejected — so the relay grants nothing the user could
+      not do directly through the gateway.
+    post:
+      tags:
+        - Responses
+      security:
+        - Bearer: []
+      parameters:
+        - name: target
+          in: query
+          required: true
+          description: >-
+            Same-origin path (with its own query string) of the responses endpoint,
+            URL-encoded once. Must start with a single '/'; absolute and
+            protocol-relative URLs are rejected. The host is always taken from the
+            configured gateway domain, never from this parameter.
+          schema:
+            type: string
+          example: '%2Fautorag%2Fapi%2Fv1%2Fresponses%3Fnamespace%3Dmy-project%26dbSecretName%3Ddb-secret%26maasSecretName%3Dmaas-secret'
+      requestBody:
+        required: true
+        description: >-
+          Opaque request body forwarded verbatim to the target endpoint. The relay does
+          not validate or transform this payload; the target endpoint enforces its own
+          request contract. Maximum body size is 1 MB.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              description: >-
+                Arbitrary JSON object in the target endpoint's request format.
+                The exact shape is defined by the target service.
+            example:
+              model: 'granite-3-3-8b-instruct'
+              input: 'What is RAG?'
+              stream: true
+      responses:
+        '200':
+          $ref: '#/components/responses/RelayStreamingResponse'
+        '400':
+          description: Bad request — missing or invalid target parameter, or unreadable request body.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                missing_target:
+                  summary: Target parameter missing
+                  value:
+                    error:
+                      code: '400'
+                      message: 'missing required query parameter: target'
+                invalid_target:
+                  summary: Target is not a same-origin path
+                  value:
+                    error:
+                      code: '400'
+                      message: 'target must be a same-origin path, not an absolute URL'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: Request body exceeds the 1 MB limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '501':
+          description: Streaming not supported by the HTTP client
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'Streaming not supported by client'
+        '502':
+          description: The relay target is unreachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: The relay target gateway is not configured (GATEWAY_DOMAIN is empty)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                gateway_not_configured:
+                  summary: Gateway domain not configured
+                  value:
+                    error:
+                      code: 'service_unavailable'
+                      message: 'relay target gateway is not configured (GATEWAY_DOMAIN)'
+      operationId: relayResponse
+      summary: Relay AI Response (Streaming)
+      description: >-
+        Forwards the request body to the same-origin target endpoint via the externally
+        accessed gateway route, attaching the user's bearer token, and pipes the target's
+        response stream back transparently.
+
   # =============================================================================
   # MODEL CONTEXT PROTOCOL (MCP) ENDPOINTS
   # =============================================================================
@@ -7018,6 +7134,29 @@ components:
             data: {"delta":"","sequence_number":0,"type":"response.completed","item_id":"","output_index":0,"response":{"id":"resp-abc123","model":"llama-3-2-3b-instruct","status":"completed","created_at":1758128692,"output":[{"id":"msg_def456","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"Machine learning is a subset of artificial intelligence."}]}]}}
 
             data: {"type":"response.metrics","metrics":{"latency_ms":1200,"time_to_first_token_ms":450,"usage":{"input_tokens":25,"output_tokens":40,"total_tokens":65}}}
+
+    RelayStreamingResponse:
+      description: >-
+        Server-Sent Events (SSE) stream relayed verbatim from the target endpoint.
+        The relay performs no transformation and adds no synthetic events (no
+        response.metrics): event types and shapes are defined by the target service.
+        Non-200 target responses (JSON error envelopes) are piped through unchanged.
+      content:
+        text/event-stream:
+          schema:
+            type: string
+            format: binary
+            description: >-
+              Raw SSE byte stream from the target endpoint, forwarded unmodified.
+              Event types and payloads are defined by the target service's contract.
+          example: |
+            data: {"type":"response.created","sequence_number":0,"response":{...}}
+
+            data: {"type":"response.output_text.delta","sequence_number":1,"delta":"token"}
+
+            data: {"type":"response.completed","sequence_number":2,"response":{...}}
+
+            data: [DONE]
 
     BadRequest:
       description: Bad Request - Invalid parameters, missing required fields, or malformed MCP Bearer token
