@@ -46,8 +46,12 @@ jest.mock('child_process', () => ({
         dependencies: {},
         exports: {
           './context/HardwareProfilesContext': './src/context/HardwareProfilesContext.tsx',
+          './context/WorkingProjectContext': './src/context/WorkingProjectContext.tsx',
         },
-        'module-federation-shared': ['./context/HardwareProfilesContext'],
+        'module-federation-shared': [
+          './context/HardwareProfilesContext',
+          './context/WorkingProjectContext',
+        ],
       },
       {
         name: '@odh-dashboard/k8s-core',
@@ -173,7 +177,7 @@ describe('getRuntimeOdhPackages', () => {
     expect(all.has('@odh-dashboard/plugin-core/routing')).toBe(false);
   });
 
-  it('should share the hardware profiles context declared by the real ui-core manifest', () => {
+  it('should share federated contexts declared by the real ui-core manifest', () => {
     const uiCorePackage = JSON.parse(
       fs.readFileSync(path.resolve(__dirname, '../../../../ui-core/package.json'), 'utf8'),
     ) as WorkspacePackageInfo;
@@ -184,6 +188,8 @@ describe('getRuntimeOdhPackages', () => {
 
     expect(all.has('@odh-dashboard/ui-core/context/HardwareProfilesContext')).toBe(true);
     expect(hostProvided.has('@odh-dashboard/ui-core/context/HardwareProfilesContext')).toBe(true);
+    expect(all.has('@odh-dashboard/ui-core/context/WorkingProjectContext')).toBe(true);
+    expect(hostProvided.has('@odh-dashboard/ui-core/context/WorkingProjectContext')).toBe(true);
   });
 
   it.each(['./*', 'context', './missing'])(
@@ -369,6 +375,10 @@ describe('OdhFederationPlugin share policy', () => {
       singleton: true,
       requiredVersion: '*',
     });
+    expect(lastConfig?.shared['@odh-dashboard/ui-core/context/WorkingProjectContext']).toEqual({
+      singleton: true,
+      requiredVersion: '*',
+    });
     expect(lastConfig?.shared['@patternfly/react-table'].eager).toBeUndefined();
   });
 
@@ -400,6 +410,11 @@ describe('OdhFederationPlugin share policy', () => {
     });
     expect(lastConfig?.shared['@odh-dashboard/context-library/routing']).toBeUndefined();
     expect(lastConfig?.shared['@odh-dashboard/ui-core/context/HardwareProfilesContext']).toEqual({
+      singleton: true,
+      requiredVersion: '*',
+      import: false,
+    });
+    expect(lastConfig?.shared['@odh-dashboard/ui-core/context/WorkingProjectContext']).toEqual({
       singleton: true,
       requiredVersion: '*',
       import: false,
