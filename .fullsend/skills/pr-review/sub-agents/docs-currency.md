@@ -2,8 +2,8 @@
 name: docs-currency
 description: >-
   Evaluates documentation staleness against code changes.
-model: claude-sonnet-4-6@default
-tools: Read, Grep, Glob
+model: sonnet
+tools: Read, Grep, Glob, LS
 permissionMode: dontAsk
 background: true
 ---

@@ -1,15 +1,18 @@
-base: https://raw.githubusercontent.com/fullsend-ai/agents/91f61f3441baedf3f912c9afd4bd574c98793b96/harness/review.yaml#sha256=c805713f74d2d5c21eeefefaee42962136a6c83954a8d468463f8e13861e8d08
+base: https://raw.githubusercontent.com/fullsend-ai/agents/ce2eedd097dcccf17e29f4a7cd337ec4d95d7194/harness/review.yaml#sha256=3e9302d8143fcfd93df8e4542162776e98893c8ef367450679e2ffa89e5b0c53
 
 agent: agents/review.md
+
+# Not inherited: `base:` composition does not merge readonly_repo, so the
+# base's `true` is lost unless it is repeated here. The runbook loads
+# sub-agent definitions and meta-prompts from this checkout by path; nothing
+# in the review writes inside it.
+readonly_repo: true
 
 # Pin the multi-architecture Fullsend sandbox image (v0.45.0) that carries
 # Pi 0.99.2, the first Pi release whose model catalog has GPT-6.1 Sol.
 image: ghcr.io/fullsend-ai/fullsend-sandbox@sha256:dec698251c58eabcb0c0d6d08ab9ca4415929991cc1deec5d3f3a94de5db6cca
 
-# Enables the runner's run-scoped OpenAI provider used by the orchestrator and
-# every configured review persona.
-providers:
-  - openai
+# The `openai` provider comes from the base, which now declares it.
 
 skills:
   # This local skill replaces Fullsend's inherited pr-review with the
@@ -17,6 +20,11 @@ skills:
   # packaged as nested sub-agent definitions inside this skill, rather than
   # imported as peer skills into the agent's global skill namespace.
   - skills/pr-review
+  # The base lists skills/issue-labels/github and skills/pr-review/github under
+  # forge.github.skills. Fullsend keys skills on the directory basename, so the
+  # second `github` replaces the first and the base's issue-labels skill never
+  # loads. This copy of it has a basename of its own.
+  - skills/issue-labels
 
 host_files:
   - src: dimensions.json
@@ -31,22 +39,29 @@ host_files:
 
 model: sonnet
 
-# The base harness allows 20 minutes. The multi-dimension smoke run (PR #71,
-# 4 files, 11 producers) used 16m6s of it — 80% of budget on a deliberately
-# small fixture, and the run that opened this investigation was killed at
-# exactly this cap mid-write. Ordinary PRs qualify more dimensions over more
-# files, so 20 leaves no room. Step 7 of the orchestrator skill now writes and
-# validates the result before any optional work, so a timeout costs enrichment
-# rather than the whole review; this raise is the second half of that belt.
-timeout_minutes: 40
+# timeout_minutes is inherited from the base (45), which mirrors it into the
+# sandbox as TIMEOUT_SECONDS for the orchestrator's time-budget checkpoints.
+# Overriding one here means overriding both.
 
 env:
+  # REVIEW_PROTECTED_PATHS is inherited from the base, so it follows the
+  # Fullsend default list. Set it under both `runner` and `sandbox` to change
+  # it; the host and the orchestrator must see the same value.
+  #
+  # REVIEW_RISK_ASSESSMENT_ENABLED is off: the base turns on Fullsend's
+  # risk-assessment sub-agent, but here `risk` and `confidence` come from the
+  # registry's `signal:*` producer and .fullsend/rating-policy.json.
+  #
+  # That flag is also what makes pre-review.sh unshallow target-repo, so the
+  # depth is requested explicitly: the stock correctness reviewer runs
+  # `git log` on modified test files and needs the base branch history.
   runner:
     REVIEW_FINDING_SEVERITY_THRESHOLD: "low"
-    REVIEW_PROTECTED_PATHS: ".claude/,.cursor/,.gitattributes,.github/,.pre-commit-config.yaml,AGENTS.md,agents/,api-servers/,CLAUDE.md,CODEOWNERS,Containerfile,Dockerfile,harness/,images/,plugins/,policies/,scripts/,skills/"
+    REVIEW_RISK_ASSESSMENT_ENABLED: "false"
+    REVIEW_GIT_FETCH_DEPTH: "0"
   sandbox:
     REVIEW_FINDING_SEVERITY_THRESHOLD: "low"
-    REVIEW_PROTECTED_PATHS: ".claude/,.cursor/,.gitattributes,.github/,.pre-commit-config.yaml,AGENTS.md,agents/,api-servers/,CLAUDE.md,CODEOWNERS,Containerfile,Dockerfile,harness/,images/,plugins/,policies/,scripts/,skills/"
+    REVIEW_RISK_ASSESSMENT_ENABLED: "false"
 
 validation_loop:
   script: scripts/validate-output-schema.sh
