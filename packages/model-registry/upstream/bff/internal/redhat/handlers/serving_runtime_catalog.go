@@ -7,8 +7,8 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/kubeflow/hub/ui/bff/internal/api"
+	"github.com/kubeflow/hub/ui/bff/internal/constants"
 	"github.com/kubeflow/hub/ui/bff/internal/integrations/httpclient"
-	"github.com/kubeflow/hub/ui/bff/internal/mocks"
 	"github.com/kubeflow/hub/ui/bff/internal/models"
 	redhatrepos "github.com/kubeflow/hub/ui/bff/internal/redhat/repositories"
 )
@@ -33,28 +33,9 @@ func init() {
 	api.RegisterHandlerOverride(servingRuntimeVersionsHandlerID, overrideServingRuntimeVersions)
 }
 
-// servingRuntimeCatalogClient resolves the client for serving-runtime catalog APIs.
-// The live model catalog client does not implement ServingRuntimeCatalogClient yet; use
-// mock data when --mock-mr-catalog-client is set until a live backend is wired.
-func servingRuntimeCatalogClient(app *api.App) (redhatrepos.ServingRuntimeCatalogClient, bool) {
-	if client, ok := app.Repositories().ModelCatalogClient.(redhatrepos.ServingRuntimeCatalogClient); ok {
-		return client, true
-	}
-	if app.Config().MockMRCatalogClient {
-		return &mocks.ModelCatalogClientMock{}, true
-	}
-	return nil, false
-}
-
-func overrideServingRuntimeList(app *api.App, buildDefault func() httprouter.Handle) httprouter.Handle {
-	return app.AttachNamespace(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		client, ok := servingRuntimeCatalogClient(app)
-		if !ok {
-			buildDefault()(w, r, ps)
-			return
-		}
-		repo := redhatrepos.NewServingRuntimeCatalogRepository(client)
-		data, err := repo.List(r.URL.Query())
+func overrideServingRuntimeList(app *api.App, _ func() httprouter.Handle) httprouter.Handle {
+	return withServingRuntimeRepo(app, func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, client httpclient.HTTPClientInterface, repo redhatrepos.ServingRuntimeCatalogClient) {
+		data, err := repo.GetAllServingRuntimes(client, r.URL.Query())
 		if err != nil {
 			servingRuntimeCatalogError(app, w, r, err)
 			return
@@ -65,15 +46,9 @@ func overrideServingRuntimeList(app *api.App, buildDefault func() httprouter.Han
 	})
 }
 
-func overrideServingRuntimeFilterOptions(app *api.App, buildDefault func() httprouter.Handle) httprouter.Handle {
-	return app.AttachNamespace(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		client, ok := servingRuntimeCatalogClient(app)
-		if !ok {
-			buildDefault()(w, r, ps)
-			return
-		}
-		repo := redhatrepos.NewServingRuntimeCatalogRepository(client)
-		data, err := repo.FilterOptions()
+func overrideServingRuntimeFilterOptions(app *api.App, _ func() httprouter.Handle) httprouter.Handle {
+	return withServingRuntimeRepo(app, func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, client httpclient.HTTPClientInterface, repo redhatrepos.ServingRuntimeCatalogClient) {
+		data, err := repo.GetServingRuntimesFilter(client)
 		if err != nil {
 			servingRuntimeCatalogError(app, w, r, err)
 			return
@@ -84,20 +59,14 @@ func overrideServingRuntimeFilterOptions(app *api.App, buildDefault func() httpr
 	})
 }
 
-func overrideServingRuntimeGet(app *api.App, buildDefault func() httprouter.Handle) httprouter.Handle {
-	return app.AttachNamespace(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		client, ok := servingRuntimeCatalogClient(app)
-		if !ok {
-			buildDefault()(w, r, ps)
-			return
-		}
-		repo := redhatrepos.NewServingRuntimeCatalogRepository(client)
+func overrideServingRuntimeGet(app *api.App, _ func() httprouter.Handle) httprouter.Handle {
+	return withServingRuntimeRepo(app, func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, client httpclient.HTTPClientInterface, repo redhatrepos.ServingRuntimeCatalogClient) {
 		id := ps.ByName(api.ServingRuntimeID)
 		if id == "" {
 			app.BadRequest(w, r, fmt.Errorf("runtime id is required"))
 			return
 		}
-		data, err := repo.Get(id)
+		data, err := repo.GetServingRuntime(client, id)
 		if err != nil {
 			servingRuntimeCatalogError(app, w, r, err)
 			return
@@ -108,20 +77,14 @@ func overrideServingRuntimeGet(app *api.App, buildDefault func() httprouter.Hand
 	})
 }
 
-func overrideServingRuntimeVersions(app *api.App, buildDefault func() httprouter.Handle) httprouter.Handle {
-	return app.AttachNamespace(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		client, ok := servingRuntimeCatalogClient(app)
-		if !ok {
-			buildDefault()(w, r, ps)
-			return
-		}
-		repo := redhatrepos.NewServingRuntimeCatalogRepository(client)
+func overrideServingRuntimeVersions(app *api.App, _ func() httprouter.Handle) httprouter.Handle {
+	return withServingRuntimeRepo(app, func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, client httpclient.HTTPClientInterface, repo redhatrepos.ServingRuntimeCatalogClient) {
 		id := ps.ByName(api.ServingRuntimeID)
 		if id == "" {
 			app.BadRequest(w, r, fmt.Errorf("runtime id is required"))
 			return
 		}
-		data, err := repo.Versions(id, r.URL.Query())
+		data, err := repo.GetServingRuntimeVersions(client, id, r.URL.Query())
 		if err != nil {
 			servingRuntimeCatalogError(app, w, r, err)
 			return
@@ -130,6 +93,26 @@ func overrideServingRuntimeVersions(app *api.App, buildDefault func() httprouter
 			app.ServerError(w, r, err)
 		}
 	})
+}
+
+func withServingRuntimeRepo(app *api.App, next func(http.ResponseWriter, *http.Request, httprouter.Params, httpclient.HTTPClientInterface, redhatrepos.ServingRuntimeCatalogClient)) httprouter.Handle {
+	var repo redhatrepos.ServingRuntimeCatalogClient = &redhatrepos.ServingRuntimeCatalogRepository{}
+	if app.Config().MockMRCatalogClient {
+		repo, _ = app.Repositories().ModelCatalogClient.(redhatrepos.ServingRuntimeCatalogClient)
+	}
+	handler := func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		if repo == nil {
+			app.ServerError(w, r, fmt.Errorf("serving runtime catalog client not found"))
+			return
+		}
+		client, ok := r.Context().Value(constants.ModelCatalogHttpClientKey).(httpclient.HTTPClientInterface)
+		if !ok || client == nil {
+			app.ServerError(w, r, fmt.Errorf("catalog REST client not found"))
+			return
+		}
+		next(w, r, ps, client, repo)
+	}
+	return app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(handler)))
 }
 
 func servingRuntimeCatalogError(app *api.App, w http.ResponseWriter, r *http.Request, err error) {
