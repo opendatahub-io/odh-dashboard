@@ -31,3 +31,16 @@
     }
   }
 }
+
+.gpuaas-infrastructure-tab--page {
+  flex: 0 0 auto;
+}
+
+.gpuaas-infrastructure-tab--workloads {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  height: calc(100dvh - var(--gpuaas-infrastructure-viewport-chrome-offset, 18rem));
+  max-height: calc(100dvh - var(--gpuaas-infrastructure-viewport-chrome-offset, 18rem));
+  overflow: hidden;
+}
