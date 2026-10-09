@@ -152,12 +152,15 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
 
     // Preserve missing initial and currently selected gateways so chips/options
     // remain available even when discovery no longer returns them.
-    for (const key of new Set([...initialMissingKeys, ...missingSelectedKeys])) {
+    const missingKeys = new Set([...initialMissingKeys, ...missingSelectedKeys]);
+    for (const key of missingKeys) {
       if (!uniqueGateways.has(key)) {
         uniqueGateways.set(key, {
           id: key,
           name: labelOverrides?.[key] ?? key,
           selected: selectedGatewayKeys.has(key),
+          // Red chip so missing selections are identifiable among multiple chips
+          chipColor: 'red',
         });
       }
     }
@@ -253,7 +256,7 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
               <HelperText>
                 <HelperTextItem variant="warning">
                   {missingSelectedKeys.length === 1
-                    ? 'The selected gateway was not found. The deployment may not work as expected.'
+                    ? 'A selected gateway was not found. The deployment may not work as expected.'
                     : 'One or more selected gateways were not found. The deployment may not work as expected.'}
                 </HelperTextItem>
               </HelperText>
