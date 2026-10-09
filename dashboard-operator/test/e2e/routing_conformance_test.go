@@ -10,6 +10,7 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -25,8 +26,8 @@ const (
 	modelCatalogRouteName = "model-catalog"
 	modelCatalogPath      = "/catalog/api/model_catalog/v1alpha1/sources"
 	maasPortalRouteName   = "maas-portal"
-	maasPortalPath        = "/maas-consumer-portal"
-	maasPortalHealthPath  = "/maas-consumer-portal/healthcheck"
+	maasPortalPath        = "/maas-portal"
+	maasPortalHealthPath  = "/maas-portal/healthcheck"
 	sharedGatewayName     = "data-science-gateway"
 	maxRouteResponseBody  = 1 << 20
 )
@@ -35,6 +36,7 @@ type gatewayResponse struct {
 	statusCode  int
 	status      string
 	contentType string
+	location    string
 	body        []byte
 }
 
@@ -148,6 +150,8 @@ func TestE2E_MaaSPortalRoutingConformance(t *testing.T) {
 
 	require.NoError(t, k8sClient.Get(context.Background(), client.ObjectKey{Name: dashboardv1alpha1.DashboardInstanceName}, dashboard))
 	require.Equal(t, "https://"+testGatewayDomain+maasPortalPath+"/", dashboard.Status.MaaSPortalURL)
+	require.Equal(t, dashboard.Status.MaaSPortalURL, dashboard.Status.MaaSConsumerPortalURL)
+	assertMaaSPortalBrowserRouting(t)
 
 	dashboardResponse := requestGatewayPath(t, "/")
 	require.Equal(t, http.StatusOK, dashboardResponse.statusCode,
@@ -177,6 +181,51 @@ func TestE2E_MaaSPortalRoutingConformance(t *testing.T) {
 		catalogResponse.body,
 	), "gateway request path %s returned status %s, content type %q, and body length %d",
 		modelCatalogPath, catalogResponse.status, catalogResponse.contentType, len(catalogResponse.body))
+}
+
+// Verify the route and built frontend together: a health check alone cannot
+// detect a bundle that still requests assets from the previous mount point.
+func assertMaaSPortalBrowserRouting(t *testing.T) {
+	t.Helper()
+	redirect := requestGatewayPath(t, maasPortalPath)
+	require.Equal(t, http.StatusFound, redirect.statusCode)
+	location, err := url.Parse(redirect.location)
+	require.NoError(t, err)
+	require.Equal(t, maasPortalPath+"/", location.Path)
+
+	root := requestGatewayPath(t, maasPortalPath+"/")
+	require.Equal(t, http.StatusOK, root.statusCode)
+	require.True(t, bodyStartsWithHTML(root.body))
+	require.Contains(t, string(root.body), "<title>MaaS Portal</title>")
+	require.NotContains(t, string(root.body), "/maas-consumer-portal/")
+	scripts := regexp.MustCompile(`<script\b[^>]*\bsrc="([^"]+)"`).FindAllSubmatch(root.body, -1)
+	require.NotEmpty(t, scripts, "the portal index must include its built entry script")
+	for _, script := range scripts {
+		assetPath := string(script[1])
+		require.True(t, strings.HasPrefix(assetPath, maasPortalPath+"/"), "entry script %q must use the portal mount", assetPath)
+		asset := requestGatewayPath(t, assetPath)
+		require.Equal(t, http.StatusOK, asset.statusCode, "entry script %s", assetPath)
+		require.NotEmpty(t, asset.body)
+		require.False(t, bodyStartsWithHTML(asset.body), "entry script %s must not fall back to index.html", assetPath)
+	}
+	deepLink := requestGatewayPath(t, maasPortalPath+"/gen-ai-studio/assets")
+	require.Equal(t, http.StatusOK, deepLink.statusCode)
+	require.Equal(t, string(root.body), string(deepLink.body), "deep links must serve the same portal bundle")
+
+	for _, path := range []string{"/maas-consumer-portal", "/maas-consumer-portal/", "/maas-consumer-portal/gen-ai-studio/assets", "/maas-consumer-portal/healthcheck"} {
+		retired := requestGatewayPath(t, path)
+		require.False(t, retired.statusCode >= 300 && retired.statusCode < 400, "retired path %s must not redirect", path)
+		require.NotContains(t, string(retired.body), "<title>MaaS Portal</title>", "retired path %s must not serve the portal", path)
+		require.NotContains(t, string(retired.body), maasPortalPath+"/", "retired path %s must not load the portal bundle", path)
+		if path == "/maas-consumer-portal/healthcheck" {
+			var health struct {
+				Status string `json:"status"`
+			}
+			if json.Unmarshal(retired.body, &health) == nil {
+				require.NotEqual(t, "available", health.Status, "retired prefix must not expose the portal health endpoint")
+			}
+		}
+	}
 }
 
 func requestGatewayPath(t *testing.T, path string) gatewayResponse {
@@ -224,6 +273,7 @@ func fetchGatewayPath(ctx context.Context, path string) (gatewayResponse, error)
 		statusCode:  response.StatusCode,
 		status:      response.Status,
 		contentType: response.Header.Get("Content-Type"),
+		location:    response.Header.Get("Location"),
 		body:        body,
 	}, nil
 }

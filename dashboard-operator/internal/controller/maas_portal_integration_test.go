@@ -249,7 +249,7 @@ func TestIntegration_CoreDashboardAndMaaSPortalRoutesShareGateway(t *testing.T) 
 		path string
 	}{
 		{name: "rhods-dashboard", path: "/"},
-		{name: "maas-portal", path: "/maas-consumer-portal"},
+		{name: "maas-portal", path: "/maas-portal"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			route := &gatewayv1.HTTPRoute{}
@@ -337,17 +337,22 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 	require.Len(t, route.Spec.Rules[0].Matches, 1)
 	require.NotNil(t, route.Spec.Rules[0].Matches[0].Path)
 	assert.Equal(t, gatewayv1.PathMatchExact, *route.Spec.Rules[0].Matches[0].Path.Type)
-	assert.Equal(t, "/maas-consumer-portal", *route.Spec.Rules[0].Matches[0].Path.Value)
+	assert.Equal(t, "/maas-portal", *route.Spec.Rules[0].Matches[0].Path.Value)
 	require.Len(t, route.Spec.Rules[1].Matches, 1)
 	require.NotNil(t, route.Spec.Rules[1].Matches[0].Path)
 	assert.Equal(t, gatewayv1.PathMatchPathPrefix, *route.Spec.Rules[1].Matches[0].Path.Type)
-	assert.Equal(t, "/maas-consumer-portal", *route.Spec.Rules[1].Matches[0].Path.Value)
+	assert.Equal(t, "/maas-portal", *route.Spec.Rules[1].Matches[0].Path.Value)
 
 	// Model an upgrade from the previous bundle. Applying this object with the
 	// operator's field owner means the next reconciliation must remove the
-	// formerly-owned hostname field without replacing the route.
+	// formerly-owned hostname and retire the browser prefix without replacing
+	// the route's resource identity.
 	preFixRoute := route.DeepCopy()
 	preFixRoute.Spec.Hostnames = []gatewayv1.Hostname{"test.example.com"}
+	for i := range preFixRoute.Spec.Rules {
+		preFixRoute.Spec.Rules[i].Matches[0].Path.Value = new("/maas-consumer-portal")
+	}
+	preFixRoute.Spec.Rules[0].Filters[0].RequestRedirect.Path.ReplaceFullPath = new("/maas-consumer-portal/")
 	preFixObject, err := runtime.DefaultUnstructuredConverter.ToUnstructured(preFixRoute)
 	require.NoError(t, err)
 	preFix := &unstructured.Unstructured{Object: preFixObject}
@@ -370,6 +375,10 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-portal", Namespace: integrationNamespace}, route))
 	assert.Equal(t, previousRouteUID, route.GetUID(), "removing hostnames must update the existing HTTPRoute")
 	assert.Empty(t, route.Spec.Hostnames)
+	for _, rule := range route.Spec.Rules {
+		assert.Equal(t, "/maas-portal", *rule.Matches[0].Path.Value, "reconciliation must retire the previous browser prefix")
+	}
+	assert.Equal(t, "/maas-portal/", *route.Spec.Rules[0].Filters[0].RequestRedirect.Path.ReplaceFullPath)
 	for i := range route.Status.Parents[0].Conditions {
 		route.Status.Parents[0].Conditions[i].ObservedGeneration = route.Generation
 	}
@@ -382,7 +391,8 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 	assert.Equal(t, common.PhaseReady, updated.Status.Phase)
 	assert.Equal(t, metav1.ConditionTrue, conditionStatus(updated, string(common.ConditionTypeReady)))
 	assert.Equal(t, metav1.ConditionTrue, conditionStatus(updated, "MaaSPortalAvailable"))
-	assert.Equal(t, "https://test.example.com/maas-consumer-portal/", updated.Status.MaaSPortalURL)
+	assert.Equal(t, "https://test.example.com/maas-portal/", updated.Status.MaaSPortalURL)
+	assert.Equal(t, updated.Status.MaaSPortalURL, updated.Status.MaaSConsumerPortalURL)
 
 	// Updating a portal input reapplies the complete bundle, but retains the
 	// previous URL until the Deployment and HTTPRoute have observed the update.
@@ -398,7 +408,7 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-portal", Namespace: integrationNamespace}, route))
 	assert.Equal(t, previousRouteUID, route.GetUID(), "gateway-domain changes must update the existing HTTPRoute")
 	assert.Empty(t, route.Spec.Hostnames, "gateway-domain changes must not restore route hostnames")
-	assert.Equal(t, "https://test.example.com/maas-consumer-portal/", getDashboard(t).Status.MaaSPortalURL)
+	assert.Equal(t, "https://test.example.com/maas-portal/", getDashboard(t).Status.MaaSPortalURL)
 
 	deployment.Status.ObservedGeneration = deployment.Generation
 	require.NoError(t, k8sClient.Status().Update(ctx, deployment))
@@ -407,7 +417,7 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 	}
 	require.NoError(t, k8sClient.Status().Update(ctx, route))
 	reconcile(t, r)
-	assert.Equal(t, "https://updated.example.com/maas-consumer-portal/", getDashboard(t).Status.MaaSPortalURL)
+	assert.Equal(t, "https://updated.example.com/maas-portal/", getDashboard(t).Status.MaaSPortalURL)
 
 	// A transient bundle apply error reports an actionable condition, requests a
 	// retry, and retains the previously verified endpoint.
@@ -433,7 +443,7 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 	assert.Equal(t, ctrlpkg.MaaSPortalRetryInterval, result.RequeueAfter)
 	updated = getDashboard(t)
 	assert.Equal(t, "MaaSPortalDeployFailed", conditionReason(updated, "MaaSPortalAvailable"))
-	assert.Equal(t, "https://updated.example.com/maas-consumer-portal/", updated.Status.MaaSPortalURL)
+	assert.Equal(t, "https://updated.example.com/maas-portal/", updated.Status.MaaSPortalURL)
 
 	// service-ca normally creates this unlabelled Secret; model it explicitly to
 	// verify portal removal does not rely on owner-reference garbage collection.
@@ -752,7 +762,7 @@ func TestIntegration_MaaSPortalLegacyResourceMigration(t *testing.T) {
 	for range 2 {
 		current := getDashboard(t)
 		assert.Equal(t, metav1.ConditionTrue, conditionStatus(current, ctrlpkg.ConditionMaaSPortalAvailable), "post-cutover deletion must not hide the serving portal")
-		assert.Equal(t, "https://test.example.com/maas-consumer-portal/", current.Status.MaaSPortalURL)
+		assert.Equal(t, "https://test.example.com/maas-portal/", current.Status.MaaSPortalURL)
 		assert.Equal(t, current.Status.MaaSPortalURL, current.Status.MaaSConsumerPortalURL)
 		require.NoError(t, k8sClient.Get(ctx, client.ObjectKeyFromObject(legacySecret), legacySecret))
 		require.NotNil(t, legacySecret.DeletionTimestamp)

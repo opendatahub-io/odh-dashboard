@@ -40,8 +40,8 @@ func (r *DashboardReconciler) maasPortalAPIReader() client.Reader {
 }
 
 func (r *DashboardReconciler) deployMaaSPortalRoute(ctx context.Context, dashboard *v1alpha1.Dashboard, routes []unstructured.Unstructured) (maasPortalMigrationResult, error) {
-	// Both resource names still match the same browser prefix. Never apply the
-	// new route until deletion of the old route has been observed.
+	// Retire the legacy endpoint before publishing the replacement. Never apply
+	// the new route until deletion of the old route has been observed.
 	routeAllowed, err := r.prepareMaaSPortalRouteMigration(ctx)
 	if err != nil {
 		return maasPortalMigrationResult{}, err
@@ -57,9 +57,9 @@ func (r *DashboardReconciler) deployMaaSPortalRoute(ctx context.Context, dashboa
 
 // prepareMaaSPortalRouteMigration keeps the old endpoint while the new workload
 // starts. Delete the old HTTPRoute and observe its absence before applying the
-// replacement: Gateway API precedence can otherwise keep selecting the older
-// route for the unchanged browser prefix. No migration state is stored, so a
-// crash between deletion and apply resumes from the cluster's actual state.
+// replacement so the legacy endpoint is retired at cutover. No migration state
+// is stored, so a crash between deletion and apply resumes from the cluster's
+// actual state.
 func (r *DashboardReconciler) prepareMaaSPortalRouteMigration(ctx context.Context) (bool, error) {
 	route := &gatewayv1.HTTPRoute{}
 	key := client.ObjectKey{Name: legacyMaaSPortalName, Namespace: r.ApplicationsNamespace}

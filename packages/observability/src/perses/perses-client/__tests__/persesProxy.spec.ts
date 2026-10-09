@@ -23,10 +23,10 @@ describe('Perses proxy path', () => {
       headers: new Headers(),
     } as Response);
 
-    await fetchPersesDashboardsMetadata(undefined, '/maas-consumer-portal/perses/api');
+    await fetchPersesDashboardsMetadata(undefined, '/custom-base/perses/api');
 
     expect(global.fetch).toHaveBeenCalledWith(
-      '/maas-consumer-portal/perses/api/api/v1/dashboards',
+      '/custom-base/perses/api/api/v1/dashboards',
       expect.objectContaining({ headers: { 'Content-Type': 'application/json' } }),
     );
   });
@@ -37,24 +37,24 @@ describe('Perses proxy path', () => {
       json: () => Promise.resolve([]),
       headers: new Headers(),
     } as Response);
-    const api = new OdhDatasourceApi('/maas-consumer-portal/perses/api');
+    const api = new OdhDatasourceApi('/custom-base/perses/api');
 
     await api.getDatasource('team-a', { kind: 'PrometheusDatasource' });
     await api.getGlobalDatasource({ kind: 'PrometheusDatasource' });
 
     expect(global.fetch).toHaveBeenNthCalledWith(
       1,
-      '/maas-consumer-portal/perses/api/api/v1/projects/team-a/datasources?kind=PrometheusDatasource&default=true',
+      '/custom-base/perses/api/api/v1/projects/team-a/datasources?kind=PrometheusDatasource&default=true',
       expect.any(Object),
     );
     expect(global.fetch).toHaveBeenNthCalledWith(
       2,
-      '/maas-consumer-portal/perses/api/api/v1/globaldatasources?kind=PrometheusDatasource&default=true',
+      '/custom-base/perses/api/api/v1/globaldatasources?kind=PrometheusDatasource&default=true',
       expect.any(Object),
     );
   });
 
-  it.each([undefined, '/maas-consumer-portal/perses/api'])(
+  it.each([undefined, '/custom-base/perses/api'])(
     'fetches individual dashboards and projects using proxy path %s',
     async (basePath) => {
       global.fetch = jest.fn().mockResolvedValue({
@@ -82,12 +82,12 @@ describe('Perses proxy path', () => {
   );
 
   it('builds metric proxy URLs under the supplied base path', () => {
-    const api = new OdhDatasourceApi('/maas-consumer-portal/perses/api');
+    const api = new OdhDatasourceApi('/custom-base/perses/api');
 
     expect(
       api.buildProxyUrl({ project: 'team-a', dashboard: 'model-dashboard', name: 'thanos' }),
     ).toBe(
-      '/maas-consumer-portal/perses/api/proxy/projects/team-a/dashboards/model-dashboard/datasources/thanos',
+      '/custom-base/perses/api/proxy/projects/team-a/dashboards/model-dashboard/datasources/thanos',
     );
   });
 });

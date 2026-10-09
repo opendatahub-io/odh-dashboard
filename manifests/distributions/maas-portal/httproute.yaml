@@ -11,18 +11,18 @@ spec:
     - matches:
         - path:
             type: Exact
-            value: /maas-consumer-portal
+            value: /maas-portal
       filters:
         - type: RequestRedirect
           requestRedirect:
             path:
               type: ReplaceFullPath
-              replaceFullPath: /maas-consumer-portal/
+              replaceFullPath: /maas-portal/
             statusCode: 302
     - matches:
         - path:
             type: PathPrefix
-            value: /maas-consumer-portal
+            value: /maas-portal
       filters:
         - type: URLRewrite
           urlRewrite:

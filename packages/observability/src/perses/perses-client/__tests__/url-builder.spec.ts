@@ -164,10 +164,10 @@ describe('buildURL', () => {
     it('should build URL with a host-provided Perses base path', () => {
       const result = buildURL({
         resource: 'dashboards',
-        basePath: '/maas-consumer-portal/perses/api',
+        basePath: '/custom-base/perses/api',
       });
 
-      expect(result).toBe('/maas-consumer-portal/perses/api/api/v1/dashboards');
+      expect(result).toBe('/custom-base/perses/api/api/v1/dashboards');
     });
   });
 });
