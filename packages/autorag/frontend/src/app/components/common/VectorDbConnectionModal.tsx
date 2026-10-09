@@ -204,7 +204,7 @@ const VectorDbConnectionModal: React.FC<Props> = ({
       <ModalBody>
         <Form>
           {allowedProviders.length > 1 && (
-            <FormGroup fieldId="vector-db-provider" label="Vector database type" isRequired>
+            <FormGroup fieldId="vector-db-provider" label="Database type" isRequired>
               {allowedProviders.includes('milvus') && (
                 <Radio
                   id="vector-db-provider-milvus"
@@ -215,16 +215,6 @@ const VectorDbConnectionModal: React.FC<Props> = ({
                   onChange={() => handleProviderChange('milvus')}
                 />
               )}
-              {allowedProviders.includes('neo4j') && (
-                <Radio
-                  id="vector-db-provider-neo4j"
-                  data-testid="vector-db-provider-neo4j"
-                  name="vector-db-provider"
-                  label="Neo4j"
-                  isChecked={provider === 'neo4j'}
-                  onChange={() => handleProviderChange('neo4j')}
-                />
-              )}
               {allowedProviders.includes('pgvector') && (
                 <Radio
                   id="vector-db-provider-pgvector"
@@ -233,6 +223,16 @@ const VectorDbConnectionModal: React.FC<Props> = ({
                   label="PGVector"
                   isChecked={provider === 'pgvector'}
                   onChange={() => handleProviderChange('pgvector')}
+                />
+              )}
+              {allowedProviders.includes('neo4j') && (
+                <Radio
+                  id="vector-db-provider-neo4j"
+                  data-testid="vector-db-provider-neo4j"
+                  name="vector-db-provider"
+                  label="Neo4j"
+                  isChecked={provider === 'neo4j'}
+                  onChange={() => handleProviderChange('neo4j')}
                 />
               )}
             </FormGroup>
