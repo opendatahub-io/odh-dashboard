@@ -1,10 +1,12 @@
 package helper
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/kubeflow/hub/ui/bff/internal/models"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func ptr[T any](v T) *T { return &v }
@@ -187,7 +189,7 @@ func TestConvertToMCPServer_SecretMountedAsFile(t *testing.T) {
 	s := result.MCPServer.Spec.Config.Storage[0]
 	assert.Equal(t, "/etc/tls", s.Path)
 	assert.Equal(t, "Secret", s.Source.Type)
-	assert.Equal(t, "tls-cert", s.Source.Secret.SecretName)
+	assert.Equal(t, "tls-cert", (*s.Source.Secret)["secretName"])
 }
 
 func TestConvertToMCPServer_ConfigMapAsEnvVar(t *testing.T) {
@@ -238,7 +240,132 @@ func TestConvertToMCPServer_ConfigMapMountedAsFile(t *testing.T) {
 	s := result.MCPServer.Spec.Config.Storage[0]
 	assert.Equal(t, "/etc/rules", s.Path)
 	assert.Equal(t, "ConfigMap", s.Source.Type)
-	assert.Equal(t, "rules", s.Source.ConfigMap.Name)
+	assert.Equal(t, "rules", (*s.Source.ConfigMap)["name"])
+}
+
+func TestConvertToMCPServer_ExplicitStorageOverridesPrerequisiteMount(t *testing.T) {
+	configMap := &map[string]interface{}{
+		"name":        "rules",
+		"items":       []interface{}{map[string]interface{}{"key": "rules.yaml", "path": "active.yaml"}},
+		"defaultMode": float64(0440),
+	}
+	metadata := &models.McpRuntimeMetadata{
+		Prerequisites: &models.McpPrerequisites{
+			ConfigMaps: []models.McpConfigMapRequirement{
+				{Name: "rules", MountAsFile: ptr(true), MountPath: ptr("/etc/rules")},
+				{Name: "settings", MountAsFile: ptr(true), MountPath: ptr("/etc/settings")},
+			},
+		},
+		Storage: []models.McpStorageMount{
+			{
+				Path:        "/etc/rules",
+				Permissions: ptr(models.McpStoragePermissionsReadOnly),
+				Source:      models.McpStorageSource{Type: "ConfigMap", ConfigMap: configMap},
+			},
+			{
+				Path:        "/app/logs",
+				Permissions: ptr(models.McpStoragePermissionsReadWrite),
+				Source:      models.McpStorageSource{Type: "EmptyDir", EmptyDir: &map[string]interface{}{}},
+			},
+		},
+	}
+
+	result := ConvertToMCPServer(metadata, ConversionOptions{Name: "storage-override", ContainerImage: "img:v1"})
+
+	assert.Equal(t, []models.MCPStorageMount{
+		{
+			Path:        "/etc/rules",
+			Permissions: "ReadOnly",
+			Source:      models.MCPStorageSource{Type: "ConfigMap", ConfigMap: configMap},
+		},
+		{
+			Path: "/etc/settings",
+			Source: models.MCPStorageSource{
+				Type:      "ConfigMap",
+				ConfigMap: &map[string]interface{}{"name": "settings"},
+			},
+		},
+		{
+			Path:        "/app/logs",
+			Permissions: "ReadWrite",
+			Source:      models.MCPStorageSource{Type: "EmptyDir", EmptyDir: &map[string]interface{}{}},
+		},
+	}, result.MCPServer.Spec.Config.Storage)
+}
+
+func TestConvertToMCPServer_StorageEmptyDir(t *testing.T) {
+	metadata := &models.McpRuntimeMetadata{
+		Storage: []models.McpStorageMount{
+			{
+				Path:        "/app/logs",
+				Permissions: ptr(models.McpStoragePermissionsReadWrite),
+				Source: models.McpStorageSource{
+					Type:     "EmptyDir",
+					EmptyDir: &map[string]interface{}{},
+				},
+			},
+		},
+	}
+
+	result := ConvertToMCPServer(metadata, ConversionOptions{Name: "storage-test", ContainerImage: "img:v1"})
+
+	assert.Len(t, result.MCPServer.Spec.Config.Storage, 1)
+	s := result.MCPServer.Spec.Config.Storage[0]
+	assert.Equal(t, "/app/logs", s.Path)
+	assert.Equal(t, "ReadWrite", s.Permissions)
+	assert.Equal(t, "EmptyDir", s.Source.Type)
+	assert.NotNil(t, s.Source.EmptyDir)
+}
+
+func TestConvertToMCPServer_RequiresFileSystemAddsTmpEmptyDir(t *testing.T) {
+	metadata := &models.McpRuntimeMetadata{
+		Capabilities: &models.McpRuntimeMetadataCapabilities{
+			RequiresFileSystem: ptr(true),
+		},
+	}
+
+	result := ConvertToMCPServer(metadata, ConversionOptions{Name: "fs-test", ContainerImage: "img:v1"})
+
+	assert.Len(t, result.MCPServer.Spec.Config.Storage, 1)
+	s := result.MCPServer.Spec.Config.Storage[0]
+	assert.Equal(t, "/tmp", s.Path)
+	assert.Equal(t, "ReadWrite", s.Permissions)
+	assert.Equal(t, "EmptyDir", s.Source.Type)
+	assert.NotNil(t, s.Source.EmptyDir)
+}
+
+func TestConvertToMCPServer_RequiresFileSystemDoesNotDuplicateExplicitTmp(t *testing.T) {
+	metadata := &models.McpRuntimeMetadata{
+		Capabilities: &models.McpRuntimeMetadataCapabilities{
+			RequiresFileSystem: ptr(true),
+		},
+		Storage: []models.McpStorageMount{
+			{
+				Path:        "/tmp",
+				Permissions: ptr(models.McpStoragePermissionsReadWrite),
+				Source: models.McpStorageSource{
+					Type:     "EmptyDir",
+					EmptyDir: &map[string]interface{}{},
+				},
+			},
+		},
+	}
+
+	result := ConvertToMCPServer(metadata, ConversionOptions{Name: "fs-dup-test", ContainerImage: "img:v1"})
+
+	assert.Len(t, result.MCPServer.Spec.Config.Storage, 1, "explicit /tmp mount should not be duplicated")
+}
+
+func TestConvertToMCPServer_RequiresFileSystemFalseAddsNoStorage(t *testing.T) {
+	metadata := &models.McpRuntimeMetadata{
+		Capabilities: &models.McpRuntimeMetadataCapabilities{
+			RequiresFileSystem: ptr(false),
+		},
+	}
+
+	result := ConvertToMCPServer(metadata, ConversionOptions{Name: "fs-off-test", ContainerImage: "img:v1"})
+
+	assert.Empty(t, result.MCPServer.Spec.Config.Storage)
 }
 
 func TestConvertToMCPServer_NilMetadata(t *testing.T) {
@@ -248,4 +375,23 @@ func TestConvertToMCPServer_NilMetadata(t *testing.T) {
 	assert.Nil(t, result.EnvComments)
 	assert.Nil(t, result.OptionalEnvVars)
 	assert.Nil(t, result.PrereqComments)
+}
+
+func TestConvertToMCPServer_StorageJSONRoundTrip(t *testing.T) {
+	const catalogJSON = `{"storage":[
+		{"path":"/tmp","source":{"type":"EmptyDir","emptyDir":{}}},
+		{"path":"/cache","permissions":"ReadWrite","source":{"type":"EmptyDir","emptyDir":{"medium":"Memory","sizeLimit":"64Mi"}}},
+		{"path":"/config","permissions":"ReadOnly","source":{"type":"ConfigMap","configMap":{"name":"settings","items":[{"key":"settings.yaml","path":"active.yaml"}],"defaultMode":288,"optional":false}}},
+		{"path":"/secrets","source":{"type":"Secret","secret":{"secretName":"credentials","optional":true}}}
+	]}`
+	var metadata models.McpRuntimeMetadata
+	require.NoError(t, json.Unmarshal([]byte(catalogJSON), &metadata))
+	result := ConvertToMCPServer(&metadata, ConversionOptions{Name: "storage-json", ContainerImage: "img:v1"})
+	require.Len(t, result.MCPServer.Spec.Config.Storage, 4)
+	assert.Empty(t, result.MCPServer.Spec.Config.Storage[0].Permissions)
+	data, err := json.Marshal(result.MCPServer.Spec.Config.Storage)
+	require.NoError(t, err)
+	var original map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal([]byte(catalogJSON), &original))
+	assert.JSONEq(t, string(original["storage"]), string(data))
 }
