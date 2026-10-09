@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rhaii-dashboard
+spec:
+  podSelector:
+    matchLabels:
+      deployment: rhaii-dashboard
+  policyTypes:
+    - Egress
+  egress:
+    # Allow only the standard Kubernetes DNS ports in kube-system. Do not
+    # depend on a provider-specific CoreDNS pod label.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # The Kubernetes API address is platform-managed and has no stable pod
+    # selector. Kubernetes exposes it through kubernetes.default.svc on HTTPS.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443

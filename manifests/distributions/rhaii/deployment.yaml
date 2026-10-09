@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rhaii-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      deployment: rhaii-dashboard
+  template:
+    metadata:
+      labels:
+        deployment: rhaii-dashboard
+        app.kubernetes.io/component: rhaii-dashboard
+        app.kubernetes.io/part-of: rhaii-dashboard
+        platform.opendatahub.io/part-of: rhaii-dashboard
+    spec:
+      automountServiceAccountToken: false
+      serviceAccountName: rhaii-dashboard
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 100Mi
+        # The BFF needs an in-cluster client for its narrowly scoped
+        # service-account operations. A projected, short-lived token avoids
+        # the legacy automatically mounted credential volume.
+        - name: dashboard-sa-token
+          projected:
+            defaultMode: 420
+            sources:
+              - serviceAccountToken:
+                  expirationSeconds: 3607
+                  path: token
+              - configMap:
+                  name: kube-root-ca.crt
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
+              - downwardAPI:
+                  items:
+                    - path: namespace
+                      fieldRef:
+                        fieldPath: metadata.namespace
+      containers:
+        - name: rhaii-dashboard
+          image: rhaii-dashboard-image
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8443
+              name: dashboard
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /healthcheck
+              port: dashboard
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: dashboard
+            timeoutSeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: dashboard
+            timeoutSeconds: 10
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+              ephemeral-storage: 100Mi
+            limits:
+              cpu: 100m
+              memory: 256Mi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: dashboard-sa-token
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+              readOnly: true
+          args:
+            - --port=8443
+            - --deployment-mode=standalone
+            - --auth-method=user_token
+            - --auth-token-header=x-forwarded-access-token
+            - --auth-token-prefix=
+            - --platform-type=XKS
+            - --static-assets-dir=/static
+          env:
+            # The BFF uses this namespace for its own namespaced Kubernetes
+            # resources. The Downward API keeps it aligned with the namespace
+            # selected by the eventual installer/operator.
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
