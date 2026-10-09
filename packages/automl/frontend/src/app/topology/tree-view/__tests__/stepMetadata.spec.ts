@@ -37,6 +37,32 @@ describe('getStepMetadata', () => {
     expect(metadata.description).toContain('Leaderboard evaluation');
   });
 
+  it('uses the latest attempt duration when retry history is available', () => {
+    const pipelineRun = buildPipelineRun([
+      {
+        task_id: 'leaderboard-evaluation',
+        display_name: 'leaderboard-evaluation',
+        create_time: '2024-09-15T18:35:00Z',
+        start_time: '2024-09-15T18:35:10Z',
+        end_time: '2024-10-05T18:37:51Z',
+        state: 'FAILED',
+        state_history: [
+          { state: 'RUNNING', update_time: '2024-09-15T18:35:10Z' },
+          { state: 'FAILED', update_time: '2024-09-15T18:40:00Z' },
+          { state: 'PENDING', update_time: '2024-10-05T18:35:55Z' },
+          { state: 'RUNNING', update_time: '2024-10-05T18:36:01Z' },
+          { state: 'FAILED', update_time: '2024-10-05T18:37:51Z' },
+        ],
+      },
+    ]);
+
+    const metadata = getStepMetadata('leaderboard-evaluation', 'Leaderboard evaluation', 'failed', {
+      pipelineRun,
+    });
+
+    expect(metadata.details).toEqual([{ label: 'Duration', value: '1 m 56 s' }]);
+  });
+
   it('includes the run error message when present', () => {
     const pipelineRun = buildPipelineRun([
       {
