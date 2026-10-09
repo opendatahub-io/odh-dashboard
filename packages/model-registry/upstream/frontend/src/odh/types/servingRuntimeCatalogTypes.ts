@@ -40,7 +40,8 @@ export interface ServingRuntimeVersion extends ServingRuntimeBase {
   recommendedResources?: ServingRuntimeResourceRecommendation;
   defaultArgs?: string[];
   env?: ServingRuntimeEnvVar[];
-  template?: string;
+  servingRuntimeTemplate?: string;
+  llmInferenceServiceTemplate?: string;
   deprecated?: boolean;
   publishedDate?: string;
 }
@@ -113,7 +114,7 @@ export interface ServingRuntimeCatalogAPIs {
     opts: APIOptions,
     params?: ServingRuntimeListParams,
   ) => Promise<ServingRuntimeList>;
-  getServingRuntime: (opts: APIOptions, runtimeId: string) => Promise<ServingRuntime>;
+  getServingRuntime: (opts: APIOptions, runtimeId: string) => Promise<ServingRuntime | null>;
   getServingRuntimeVersions: (
     opts: APIOptions,
     runtimeId: string,

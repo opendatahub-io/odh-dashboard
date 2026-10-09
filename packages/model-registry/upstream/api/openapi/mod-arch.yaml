@@ -2948,13 +2948,18 @@ components:
               description: Environment variables the runtime accepts (discovery hints; no secret values).
               items:
                 $ref: "#/components/schemas/ServingRuntimeEnvVar"
-            template:
+            servingRuntimeTemplate:
               type: string
               description: >-
                 Optional full ServingRuntime (KServe v1alpha1) manifest for this
                 version, as a JSON-encoded string, ready for review/edit before
                 creation. If omitted, the consumer generates the manifest from the
                 fields above.
+            llmInferenceServiceTemplate:
+              type: string
+              description: >-
+                Optional full LLMInferenceServiceConfig manifest for this version,
+                as a JSON-encoded string, ready for review/edit before creation.
             deprecated:
               type: boolean
               description: Whether this version is deprecated and should be de-emphasized in the UI.

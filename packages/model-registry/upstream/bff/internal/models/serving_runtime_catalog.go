@@ -28,25 +28,26 @@ type ServingRuntime struct {
 }
 
 type ServingRuntimeVersion struct {
-	CustomProperties         *map[string]openapi.MetadataValue     `json:"customProperties,omitempty"`
-	Description              *string                               `json:"description,omitempty"`
-	ExternalID               *string                               `json:"externalId,omitempty"`
-	Name                     *string                               `json:"name,omitempty"`
-	ID                       *string                               `json:"id,omitempty"`
-	CreateTimeSinceEpoch     *string                               `json:"createTimeSinceEpoch,omitempty"`
-	LastUpdateTimeSinceEpoch *string                               `json:"lastUpdateTimeSinceEpoch,omitempty"`
-	ArtifactType             string                                `json:"artifactType"`
-	Version                  string                                `json:"version"`
-	Image                    string                                `json:"image"`
-	SupportLevel             *ServingRuntimeSupportLevel           `json:"supportLevel,omitempty"`
-	SupportedModelFormats    []SupportedModelFormat                `json:"supportedModelFormats,omitempty"`
-	ProtocolVersions         []string                              `json:"protocolVersions,omitempty"`
-	RecommendedResources     *ServingRuntimeResourceRecommendation `json:"recommendedResources,omitempty"`
-	DefaultArgs              []string                              `json:"defaultArgs,omitempty"`
-	Env                      []ServingRuntimeEnvVar                `json:"env,omitempty"`
-	Template                 *string                               `json:"template,omitempty"`
-	Deprecated               *bool                                 `json:"deprecated,omitempty"`
-	PublishedDate            *string                               `json:"publishedDate,omitempty"`
+	CustomProperties            *map[string]openapi.MetadataValue     `json:"customProperties,omitempty"`
+	Description                 *string                               `json:"description,omitempty"`
+	ExternalID                  *string                               `json:"externalId,omitempty"`
+	Name                        *string                               `json:"name,omitempty"`
+	ID                          *string                               `json:"id,omitempty"`
+	CreateTimeSinceEpoch        *string                               `json:"createTimeSinceEpoch,omitempty"`
+	LastUpdateTimeSinceEpoch    *string                               `json:"lastUpdateTimeSinceEpoch,omitempty"`
+	ArtifactType                string                                `json:"artifactType"`
+	Version                     string                                `json:"version"`
+	Image                       string                                `json:"image"`
+	SupportLevel                *ServingRuntimeSupportLevel           `json:"supportLevel,omitempty"`
+	SupportedModelFormats       []SupportedModelFormat                `json:"supportedModelFormats,omitempty"`
+	ProtocolVersions            []string                              `json:"protocolVersions,omitempty"`
+	RecommendedResources        *ServingRuntimeResourceRecommendation `json:"recommendedResources,omitempty"`
+	DefaultArgs                 []string                              `json:"defaultArgs,omitempty"`
+	Env                         []ServingRuntimeEnvVar                `json:"env,omitempty"`
+	ServingRuntimeTemplate      *string                               `json:"servingRuntimeTemplate,omitempty"`
+	LLMInferenceServiceTemplate *string                               `json:"llmInferenceServiceTemplate,omitempty"`
+	Deprecated                  *bool                                 `json:"deprecated,omitempty"`
+	PublishedDate               *string                               `json:"publishedDate,omitempty"`
 }
 
 type SupportedModelFormat struct {
