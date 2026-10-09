@@ -25,7 +25,7 @@ describe('RootRedirect', () => {
 
     expect(screen.getByTestId('current-path').textContent).toBe('/gen-ai-studio/assets');
     expect(screen.getByTestId('redirected-href').textContent).toBe(
-      '/maas-consumer-portal/gen-ai-studio/assets',
+      '/maas-portal/gen-ai-studio/assets',
     );
   });
 });

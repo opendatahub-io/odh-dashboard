@@ -36,9 +36,7 @@ jest.mock('../../perses/embeddable/PersesProvider', () => ({
 jest.mock('../../perses/embeddable/PersesDashboard', () => ({
   __esModule: true,
   default: () => (
-    <a href="/maas-consumer-portal/observe-and-monitor/dashboard?dashboard=dashboard-1-model">
-      Panel link
-    </a>
+    <a href="/custom-base/observe-and-monitor/dashboard?dashboard=dashboard-1-model">Panel link</a>
   ),
 }));
 
@@ -90,35 +88,35 @@ describe('DashboardContent', () => {
   it('keeps direct dashboard links under the host browser base path', () => {
     render(
       <MemoryRouter
-        basename="/maas-consumer-portal"
-        initialEntries={['/maas-consumer-portal/observe-and-monitor/dashboard?start=30m&end=now']}
+        basename="/custom-base"
+        initialEntries={['/custom-base/observe-and-monitor/dashboard?start=30m&end=now']}
       >
         <DashboardContent
           dashboards={[dashboard]}
           projects={[]}
-          persesProxyBasePath="/maas-consumer-portal/perses/api"
-          browserBasePath="/maas-consumer-portal"
+          persesProxyBasePath="/custom-base/perses/api"
+          browserBasePath="/custom-base"
           ClusterDetailsAdapter={() => null}
         />
       </MemoryRouter>,
     );
 
     expect(screen.getByRole('link', { name: 'Models' }).getAttribute('href')).toBe(
-      '/maas-consumer-portal/observe-and-monitor/dashboard?start=30m&end=now&dashboard=dashboard-1-model',
+      '/custom-base/observe-and-monitor/dashboard?start=30m&end=now&dashboard=dashboard-1-model',
     );
   });
 
   it('navigates panel links without duplicating the router basename', () => {
     render(
       <MemoryRouter
-        basename="/maas-consumer-portal"
-        initialEntries={['/maas-consumer-portal/observe-and-monitor/dashboard']}
+        basename="/custom-base"
+        initialEntries={['/custom-base/observe-and-monitor/dashboard']}
       >
         <CurrentLocation />
         <DashboardContent
           dashboards={[dashboard]}
           projects={[]}
-          browserBasePath="/maas-consumer-portal"
+          browserBasePath="/custom-base"
           ClusterDetailsAdapter={() => null}
         />
       </MemoryRouter>,

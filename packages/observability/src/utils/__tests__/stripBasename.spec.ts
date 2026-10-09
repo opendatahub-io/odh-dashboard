@@ -3,13 +3,13 @@ import { stripBasename } from '../stripBasename';
 describe('stripBasename', () => {
   it.each([
     {
-      basename: '/maas-consumer-portal',
-      href: '/maas-consumer-portal/observe-and-monitor/dashboard?dashboard=models',
+      basename: '/custom-base',
+      href: '/custom-base/observe-and-monitor/dashboard?dashboard=models',
       expected: '/observe-and-monitor/dashboard?dashboard=models',
     },
     {
-      basename: '/maas-consumer-portal',
-      href: '/MAAS-Consumer-Portal/Dashboard?name=MyModel#PanelA',
+      basename: '/custom-base',
+      href: '/CUSTOM-Base/Dashboard?name=MyModel#PanelA',
       expected: '/Dashboard?name=MyModel#PanelA',
     },
     { basename: '/PORTAL', href: '/portal/Dashboard', expected: '/Dashboard' },

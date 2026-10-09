@@ -76,7 +76,7 @@ describe('PortalClusterDetailsVariablesProvider', () => {
     expect(setVariableValue).toHaveBeenCalledWith('CLUSTER_DETAILS_OPENSHIFT_VERSION', '4.19.0');
     expect(setVariableValue).toHaveBeenCalledWith('CLUSTER_DETAILS_INFRASTRUCTURE_PROVIDER', 'AWS');
     expect(global.fetch).toHaveBeenCalledWith(
-      '/maas-consumer-portal/api/operator-subscription-status',
+      '/maas-portal/api/operator-subscription-status',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });

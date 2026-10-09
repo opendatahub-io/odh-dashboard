@@ -24,17 +24,16 @@ describe('fetchOperatorSubscriptionStatus', () => {
     } as Response);
 
     await expect(
-      fetchOperatorSubscriptionStatus('/maas-consumer-portal', { signal: undefined }),
+      fetchOperatorSubscriptionStatus('/maas-portal', { signal: undefined }),
     ).resolves.toEqual({
       channel: 'stable',
       installedCSV: 'rhods-operator.v3.0.0',
       installPlanRefNamespace: 'redhat-ods-operator',
       lastUpdated: '2025-01-01T00:00:00Z',
     });
-    expect(global.fetch).toHaveBeenCalledWith(
-      '/maas-consumer-portal/api/operator-subscription-status',
-      { signal: undefined },
-    );
+    expect(global.fetch).toHaveBeenCalledWith('/maas-portal/api/operator-subscription-status', {
+      signal: undefined,
+    });
   });
 
   it('accepts a response without a channel', async () => {

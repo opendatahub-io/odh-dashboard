@@ -158,7 +158,7 @@ describe('createPluginLoader', () => {
   it('should use a portal proxy path for remote plugin manifests and assets', async () => {
     const originalAssetsPath = window.PERSES_PLUGIN_ASSETS_PATH;
     const originalAppConfig = window.PERSES_APP_CONFIG;
-    const basePaths = ['/maas-consumer-portal/perses/api', '/second/perses/api'];
+    const basePaths = ['/custom-base/perses/api', '/second/perses/api'];
     window.PERSES_PLUGIN_ASSETS_PATH = '/existing/plugins';
     window.PERSES_APP_CONFIG = { api_prefix: '/existing/api' };
 

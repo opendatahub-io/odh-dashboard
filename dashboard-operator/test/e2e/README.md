@@ -349,11 +349,18 @@ the RHOAI MaaS Portal shares the hostname-less Gateway routing scope
 without breaking the Dashboard root or Model Catalog path, and the core
 PodDisruptionBudget selects ready Dashboard pods.
 
+Portal routing checks pair the HTTPRoute with the built frontend: `/maas-portal`
+normalizes to `/maas-portal/`, the root and deep links serve the portal bundle,
+and its entry script loads from the new mount.
+Use the [paired route and bundle rollout](../../../distributions/maas-portal/README.md#browser-path-rollout)
+before running these checks.
+
 The MaaS Portal observability scenario on RHOAI verifies authenticated
 portal health and Perses dashboard-list requests before and after setting the
 core dashboard to `Removed`. It waits for the core Deployment and HTTPRoute to disappear, then
 requires HTTP 200 JSON containing the operator-provided `dashboard-1-model`
-dashboard through `/maas-consumer-portal/perses/api/api/v1/dashboards`.
+dashboard through `/maas-portal/perses/api/api/v1/dashboards`.
+It also repeats the portal browser checks in both core states.
 Auto-detection must leave `spec.observability` unset. Missing Perses prerequisites
 fail this scenario; it skips only on ODH. Cleanup restores the original core,
 portal, and observability settings and waits for core recovery.

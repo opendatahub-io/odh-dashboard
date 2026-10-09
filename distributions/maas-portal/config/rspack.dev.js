@@ -9,7 +9,7 @@ const rspackCommon = require('./rspack.common.js');
 const RELATIVE_DIRNAME = path.resolve(__dirname, '..');
 const DIST_DIR = path.resolve(RELATIVE_DIRNAME, 'public');
 const PORT = process.env.SHELL_PORT || 4020;
-const BASE_PATH = '/maas-consumer-portal';
+const BASE_PATH = '/maas-portal';
 const PORTAL_RESOURCE_NAME = 'maas-portal';
 const portalApiPaths = {
   maas: `${BASE_PATH}/maas/api`,
@@ -245,7 +245,14 @@ module.exports = merge(rspackCommon(), {
     host: 'localhost',
     port: PORT,
     compress: true,
-    historyApiFallback: { index: `${BASE_PATH}/` },
+    historyApiFallback: {
+      index: `${BASE_PATH}/`,
+      rewrites: [
+        { from: /^\/maas-portal(?:\/|$)/, to: `${BASE_PATH}/` },
+        // Leave paths outside the portal mount untouched so they return 404.
+        { from: /./, to: ({ parsedUrl }) => parsedUrl.pathname },
+      ],
+    },
     hot: true,
     proxy: buildProxyConfig(),
     client: {
@@ -253,6 +260,7 @@ module.exports = merge(rspackCommon(), {
     },
     static: {
       directory: DIST_DIR,
+      publicPath: `${BASE_PATH}/`,
     },
     onListening: (devServer) => {
       const addr = devServer?.server?.address();
