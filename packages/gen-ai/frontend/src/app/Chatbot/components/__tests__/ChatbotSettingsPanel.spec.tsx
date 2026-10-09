@@ -762,9 +762,10 @@ describe('ChatbotSettingsPanel', () => {
     });
 
     it('links every tab to its content panel', () => {
+      mockUseGuardrailsEnabled.mockReturnValue(true);
       render(<ChatbotSettingsPanel {...defaultProps} />);
 
-      for (const name of ['model', 'prompt', 'knowledge', 'mcp']) {
+      for (const name of ['model', 'prompt', 'knowledge', 'mcp', 'guardrails']) {
         expect(screen.getByTestId(`chatbot-settings-page-tab-${name}`)).toHaveAttribute(
           'aria-controls',
           `chatbot-settings-page-tab-content-${name}`,
