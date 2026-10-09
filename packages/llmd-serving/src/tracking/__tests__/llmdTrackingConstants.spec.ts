@@ -47,6 +47,19 @@ describe('LLM accelerator config tracking', () => {
     expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
   });
 
+  it.each([
+    { outcome: TrackingOutcome.submit, success: true },
+    { outcome: TrackingOutcome.submit, success: false },
+    { outcome: TrackingOutcome.cancel },
+  ])('should retain install attribution for $outcome/$success', (properties) => {
+    fireLlmAcceleratorConfigCreated({ ...properties, mode: 'create', source: 'install' });
+    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+      LlmAcceleratorConfigTrackingEvent.CREATED,
+      { ...properties, mode: 'create', source: 'install' },
+    );
+    expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
+  });
+
   it('should fire the Created event with cancel outcome', () => {
     fireLlmAcceleratorConfigCreated({ outcome: TrackingOutcome.cancel, mode: 'duplicate' });
 
