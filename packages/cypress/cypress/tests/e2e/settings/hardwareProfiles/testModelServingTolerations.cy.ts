@@ -1,7 +1,15 @@
 import type { ModelTolerationsTestData } from '../../../../types';
 import { ModelLocationSelectOption, ModelTypeLabel } from '../../../../utils/modelServingConstants';
-import { addUserToProject, deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
-import { ensureAdminOcSession } from '../../../../utils/oc_commands/baseCommands';
+import {
+  addUserToProject,
+  addClusterRoleToUser,
+  removeClusterRoleFromUser,
+  deleteOpenShiftProject,
+} from '../../../../utils/oc_commands/project';
+import {
+  ensureAdminOcSession,
+  patchOpenShiftResource,
+} from '../../../../utils/oc_commands/baseCommands';
 import { loadModelTolerationsFixture } from '../../../../utils/dataLoader';
 import { LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
 import { projectListPage, projectDetails } from '../../../../pages/projects';
@@ -22,7 +30,8 @@ import {
   cleanupHardwareProfiles,
   createCleanHardwareProfile,
 } from '../../../../utils/oc_commands/hardwareProfiles';
-import { createCleanProject } from '../../../../utils/projectChecker';
+import { cleanupTemplates } from '../../../../utils/oc_commands/templates';
+import { createCustomResource } from '../../../../utils/oc_commands/customResources';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 
 let testData: ModelTolerationsTestData;
@@ -31,51 +40,61 @@ let resourceName: string;
 let contributor: string;
 let modelName: string;
 let modelFilePath: string;
-let hardwareProfileResourceName: string;
 let tolerationValue: string;
 let modelFormat: string;
 let servingRuntime: string;
+let isS390x: boolean;
 const awsBucket = 'BUCKET_3' as const;
 const projectUuid = generateTestUUID();
-const hardwareProfileUuid = generateTestUUID();
+const applicationNamespace: string = Cypress.env('APPLICATIONS_NAMESPACE');
 
 describe('ModelServing - tolerations tests', () => {
   retryableBefore(() => {
     // Setup: Load test data and ensure clean state
-    return loadModelTolerationsFixture('e2e/hardwareProfiles/testModelServingTolerations.yaml')
-      .then((fixtureData: ModelTolerationsTestData) => {
-        testData = fixtureData;
-        projectName = `${testData.modelServingTolerationsTestNamespace}-${projectUuid}`;
-        contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
-        modelName = testData.modelName;
-        modelFilePath = testData.modelFilePath;
-        hardwareProfileResourceName = `${testData.hardwareProfileName}-${hardwareProfileUuid}`;
-        tolerationValue = testData.tolerationValue;
-        modelFormat = testData.modelFormat;
-        servingRuntime = testData.servingRuntime;
+    return loadModelTolerationsFixture(
+      'e2e/hardwareProfiles/testModelServingTolerations.yaml',
+    ).then((fixtureData: ModelTolerationsTestData) => {
+      testData = fixtureData;
+      projectName = `${testData.modelServingTolerationsTestNamespace}-${projectUuid}`;
+      contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
+      modelName = testData.modelName;
+      modelFilePath = testData.modelFilePath;
+      tolerationValue = testData.tolerationValue;
+      modelFormat = testData.modelFormat;
+      servingRuntime = testData.servingRuntime;
+      isS390x = !!testData.isS390x;
 
-        if (!projectName) {
-          throw new Error('Project name is undefined or empty in the loaded fixture');
-        }
-        cy.log(`Loaded project name: ${projectName}`);
-        return createCleanProject(projectName);
-      })
-      .then(() => {
-        cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
+      if (!projectName) {
+        throw new Error('Project name is undefined or empty in the loaded fixture');
+      }
+      cy.log(`Loaded project name: ${projectName}`);
+      createCleanHardwareProfile(testData.resourceYamlPath);
 
-        // Load Hardware Profile
-        cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
-        // Cleanup Hardware Profile if it already exists
-        createCleanHardwareProfile(testData.resourceYamlPath);
+      if (isS390x && testData.servingRuntimeName && testData.servingRuntimeYamlPath) {
+        cy.log(`Creating ServingRuntime for s390x: ${testData.servingRuntimeName}`);
+        // Clean up any existing Template/ServingRuntime then apply fresh via Template resource.
+        cleanupTemplates(testData.servingRuntimeName).then(() => {
+          createCustomResource(applicationNamespace, testData.servingRuntimeYamlPath).then(
+            (result) => {
+              if (result.exitCode !== 0) {
+                throw new Error(`Failed to create ServingRuntime template: ${result.stderr}`);
+              }
+            },
+          );
+        });
+      }
 
-        // Create a Project for pipelines
-        provisionProjectForModelServing(
-          projectName,
-          awsBucket,
-          'resources/yaml/data_connection_model_serving.yaml',
-        );
-        addUserToProject(projectName, contributor, 'edit');
-      });
+      // Provision project with data connection (also handles project create/clean)
+      provisionProjectForModelServing(
+        projectName,
+        awsBucket,
+        'resources/yaml/data_connection_model_serving.yaml',
+      );
+      addUserToProject(projectName, contributor, 'edit');
+      if (testData.clusterRole) {
+        addClusterRoleToUser(testData.clusterRole, contributor, projectName);
+      }
+    });
   });
 
   //Cleanup: Delete Hardware Profile and the associated Project
@@ -83,15 +102,19 @@ describe('ModelServing - tolerations tests', () => {
     ensureAdminOcSession();
     // Use the actual hardware profile name from the YAML, not the variable with UUID
     cy.log(`Cleaning up Hardware Profile: ${testData.hardwareProfileName}`);
-
-    // Call cleanupHardwareProfiles with the actual name from the YAML file
-    return cleanupHardwareProfiles(testData.hardwareProfileName).then(() => {
+    cleanupHardwareProfiles(testData.hardwareProfileName).then(() => {
+      if (testData.clusterRole) {
+        removeClusterRoleFromUser(testData.clusterRole, contributor, projectName);
+      }
+      if (isS390x && testData.servingRuntimeName) {
+        cy.log(`Cleaning up ServingRuntime: ${testData.servingRuntimeName}`);
+        cleanupTemplates(testData.servingRuntimeName);
+      }
       // Delete provisioned Project
       if (projectName) {
         cy.log(`Deleting Project ${projectName} after the test has finished.`);
-        return deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+        deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
       }
-      return cy.wrap(null);
     });
   });
 
@@ -136,6 +159,7 @@ describe('ModelServing - tolerations tests', () => {
       modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.EXISTING).click();
       modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
+      modelServingWizard.findLocationPathInput().should('have.value', modelFilePath);
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 2: Model deployment');
@@ -150,10 +174,15 @@ describe('ModelServing - tolerations tests', () => {
         });
       inferenceServiceModal.selectPotentiallyDisabledProfile(
         testData.hardwareProfileDeploymentSize,
-        hardwareProfileResourceName,
+        testData.hardwareProfileName,
       );
-      modelServingWizard.findModelFormatSelectOption(modelFormat).click();
-      modelServingWizard.selectServingRuntimeOption(servingRuntime);
+      if (isS390x) {
+        modelServingWizard.selectServingRuntimeOption(servingRuntime);
+        modelServingWizard.findModelFormatSelectOption(modelFormat).click({ force: true });
+      } else {
+        modelServingWizard.findModelFormatSelectOption(modelFormat).click();
+        modelServingWizard.selectServingRuntimeOption(servingRuntime);
+      }
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 3: Advanced settings');
@@ -162,6 +191,15 @@ describe('ModelServing - tolerations tests', () => {
       cy.step('Step 4: Review');
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(modelName);
+
+      if (isS390x && testData.inferenceServicePatch) {
+        patchOpenShiftResource(
+          'inferenceservice',
+          modelName,
+          testData.inferenceServicePatch,
+          projectName,
+        );
+      }
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');

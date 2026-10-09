@@ -28,10 +28,25 @@ import type {
   MlflowAgentObservabilityTestData,
   MlflowExperimentsTestData,
   ModelAsAServiceTestData,
+  FileMapping,
   ExternalModelTestData,
   MlflowPipelineIntegrationTestData,
   NIMProjectScopedTestData,
 } from '../types';
+
+export const resolveFixture = (fixturePath: string): Cypress.Chainable<string> => {
+  const fileMapping = Cypress.env('FILEMAPPING') as FileMapping | undefined;
+  const resolvedPath = fileMapping?.[fixturePath] ?? fixturePath;
+
+  if (resolvedPath !== fixturePath) {
+    cy.log(`Resolved fixture: ${fixturePath} → ${resolvedPath}`);
+  }
+
+  return cy.wrap(resolvedPath);
+};
+
+export const loadYamlFixture = (fixturePath: string): Cypress.Chainable<string> =>
+  resolveFixture(fixturePath).then((resolvedPath) => cy.fixture(resolvedPath, 'utf8'));
 
 // Load fixture function that returns DataScienceProjectData
 export const loadDSPFixture = (fixturePath: string): Cypress.Chainable<DataScienceProjectData> =>
@@ -94,7 +109,7 @@ export const loadWBStatusFixture = (fixturePath: string): Cypress.Chainable<WBSt
 export const loadWBStorageClassesFixture = (
   fixturePath: string,
 ): Cypress.Chainable<WBStorageClassesTestData> =>
-  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+  loadYamlFixture(fixturePath).then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as WBStorageClassesTestData;
 
     return data;
@@ -164,7 +179,7 @@ export const loadDeployOCIModelFixture = (
 export const loadModelTolerationsFixture = (
   fixturePath: string,
 ): Cypress.Chainable<ModelTolerationsTestData> =>
-  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+  loadYamlFixture(fixturePath).then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as ModelTolerationsTestData;
 
     return data;

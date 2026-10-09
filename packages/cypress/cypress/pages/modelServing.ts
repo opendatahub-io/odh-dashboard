@@ -364,9 +364,12 @@ class InferenceServiceModal extends ServingModal {
         cy.wrap($el).contains(nameToCheck).should('exist');
         cy.log(`Dropdown is disabled with value: ${nameToCheck}`);
       } else {
-        // If enabled, proceed with selection as before using the full display name
         dropdown.click();
-        cy.findByRole('option', { name: profileDisplayName }).click();
+        if (profileName) {
+          cy.findByTestId(profileName).click();
+        } else {
+          cy.findByRole('option', { name: profileDisplayName }).click();
+        }
       }
     });
   }
@@ -1076,7 +1079,12 @@ class ModelServingWizard extends Wizard {
   }
 
   findModelTypeSelectOption(name: string) {
-    return this.findModelTypeSelect().findSelectOption(name);
+    return this.findModelTypeSelect().then(($el) => {
+      if ($el.attr('aria-expanded') === 'false') {
+        cy.wrap($el).click();
+      }
+      return cy.findByRole('option', { name }).scrollIntoView();
+    });
   }
 
   findModelDeploymentProjectSelector() {
@@ -1117,7 +1125,15 @@ class ModelServingWizard extends Wizard {
   }
 
   findModelFormatSelect() {
-    return cy.findByTestId('model-framework-select');
+    return cy.findByTestId('model-framework-select').should('exist');
+  }
+
+  openModelFormatSelect() {
+    this.findModelFormatSelect().then(($el) => {
+      if ($el.attr('aria-expanded') === 'false') {
+        cy.wrap($el).click();
+      }
+    });
   }
 
   findModelFormatSelectOption(name: string) {
