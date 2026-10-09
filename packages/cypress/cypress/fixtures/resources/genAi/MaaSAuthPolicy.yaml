@@ -1,0 +1,13 @@
+# Grant access directly to the configured test user.
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSAuthPolicy
+metadata:
+  name: "{{POLICY_NAME}}"
+  namespace: "{{MAAS_NAMESPACE}}"
+spec:
+  modelRefs:
+    - name: "{{MODEL_NAME}}"
+      namespace: "{{PROJECT_NAME}}"
+  subjects:
+    users:
+      - {{USERNAME}}

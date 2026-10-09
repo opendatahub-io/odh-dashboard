@@ -365,6 +365,7 @@ export const createMaaSSubscription = (
   projectName: string,
   modelName: string,
   fixturePath = 'resources/maas/MaaSSubscription.yaml',
+  fixtureReplacements: Record<string, string> = {},
 ): Cypress.Chainable<CommandLineResult> => {
   const name = assertValidK8sLabel(subscriptionName, 'subscription name');
   const project = assertValidK8sNamespace(projectName);
@@ -376,6 +377,7 @@ export const createMaaSSubscription = (
       SUBSCRIPTION_DESCRIPTION: subscriptionDescription,
       MODEL_NAME: model,
       PROJECT_NAME: project,
+      ...fixtureReplacements,
     };
     const processedYaml = replacePlaceholdersInYaml(yamlContent, replacements);
     const ocCommand = `cat <<'EOF' | oc apply -f -
@@ -391,6 +393,7 @@ export const createMaaSAuthPolicy = (
   projectName: string,
   modelName: string,
   fixturePath = 'resources/maas/MaaSAuthPolicy.yaml',
+  fixtureReplacements: Record<string, string> = {},
 ): Cypress.Chainable<CommandLineResult> => {
   const name = assertValidK8sLabel(policyName, 'auth policy name');
   const project = assertValidK8sNamespace(projectName);
@@ -401,6 +404,7 @@ export const createMaaSAuthPolicy = (
       POLICY_NAME: name,
       MODEL_NAME: model,
       PROJECT_NAME: project,
+      ...fixtureReplacements,
     };
     const processedYaml = replacePlaceholdersInYaml(yamlContent, replacements);
     const ocCommand = `cat <<'EOF' | oc apply -f -
@@ -1323,6 +1327,60 @@ export const checkMaaSAuthPolicyState = (
     shouldPollMaaSState(options),
   );
 };
+
+/** Wait for governance and runtime readiness, then read the ID exposed by the MaaS catalog. */
+export const waitForMaaSModelReady = (
+  modelNamespace: string,
+  modelName: string,
+): Cypress.Chainable<string> => {
+  cy.exec(
+    `oc wait --for=condition=Ready maasmodelref/${modelName} -n ${modelNamespace} --timeout=300s`,
+    { timeout: 330000 },
+  );
+  return cy.exec(`oc get maasmodelref ${modelName} -n ${modelNamespace} -o json`).then((result) => {
+    const modelRef = JSON.parse(result.stdout) as {
+      status?: { resolvedModelAlias?: string };
+    };
+    const alias = modelRef.status?.resolvedModelAlias;
+    if (!alias?.trim()) {
+      throw new Error(`Ready MaaSModelRef ${modelName} has no status.resolvedModelAlias`);
+    }
+    // Explicitly wrap the ID so terminal-logging tasks cannot replace the yielded value.
+    return cy.wrap(alias);
+  });
+};
+
+/** Verify direct-user grants were persisted without logging the configured username. */
+export const verifyMaaSUserAccess = (
+  maasNamespace: string,
+  subscriptionName: string,
+  policyName: string,
+  username: string,
+): Cypress.Chainable<Cypress.Exec> =>
+  cy
+    .exec(
+      `oc get maassubscription/${subscriptionName} maasauthpolicy/${policyName} -n ${maasNamespace} -o json`,
+      { log: false },
+    )
+    .then((result) => {
+      const resources = JSON.parse(result.stdout) as {
+        items: {
+          kind: string;
+          spec: { owner?: { users?: string[] }; subjects?: { users?: string[] } };
+        }[];
+      };
+      const subscription = resources.items.find((resource) => resource.kind === 'MaaSSubscription');
+      const policy = resources.items.find((resource) => resource.kind === 'MaaSAuthPolicy');
+      expect(
+        subscription?.spec.owner?.users?.includes(username),
+        'subscription directly grants ownership to the configured test user',
+      ).to.eq(true);
+      expect(
+        policy?.spec.subjects?.users?.includes(username),
+        'auth policy directly grants access to the configured test user',
+      ).to.eq(true);
+      return cy.wrap(result, { log: false });
+    });
 
 export const MAAS_COMPLETIONS_DEFAULT_MAX_ATTEMPTS = 24;
 
