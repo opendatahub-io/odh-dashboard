@@ -505,6 +505,10 @@ class ModelCatalog {
     return cy.findByTestId('model-catalog-category-sort-dropdown');
   }
 
+  findSingleCategoryHeader() {
+    return cy.findByTestId('single-category-header');
+  }
+
   selectSortOption(testId: string) {
     this.findSortDropdown().click();
     cy.findByTestId(testId).click();

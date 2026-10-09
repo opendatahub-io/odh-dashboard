@@ -308,6 +308,8 @@ describe('Model Catalog All Models View', () => {
       );
 
       modelCatalog.visit();
+      // Wait for both categories to resolve and the populated gallery to mount.
+      modelCatalog.findSingleCategoryHeader().should('be.visible');
       modelCatalog.findLoadingState().should('not.exist');
       modelCatalog.togglePerformanceView();
       modelCatalog.findLoadingState().should('not.exist');
