@@ -23,11 +23,16 @@ not remove a managed `maasPortal`, and setting `maasPortal` to `Removed` does
 not remove the standard Dashboard.
 
 `managementState` accepts `Managed` or `Removed` for each child. The MaaS Portal
-also requires the Dashboard gateway domain when it is managed.
+also requires the Dashboard gateway domain when it is managed. The ODH Operator
+derives this domain from the singleton `GatewayConfig` named `default-gateway`.
+Set `spec.domain` on that resource when the cluster ingress domain cannot be
+discovered or when you need to override it; `spec.subdomain` optionally changes
+the default `rh-ai` subdomain.
 
 **Platform support:** The MaaS Portal is supported only on RHOAI Self-Managed
 and RHOAI Managed. On other platforms, `managementState: Managed` reports an
-`UnsupportedPlatform` condition and does not deploy MaaS Portal resources.
+`MaaSConsumerPortalAvailable=False` condition with reason
+`UnsupportedPlatform` and does not deploy MaaS Portal resources.
 
 ## Migration From DSC v2
 
@@ -38,8 +43,11 @@ When migrating an existing DSC v2 configuration, use these field mappings:
 | `spec.components.dashboard.managementState` | `spec.components.dashboard.standard.managementState` |
 | `spec.components.dashboard.maasConsumerPortal.managementState` | `spec.components.dashboard.maasPortal.managementState` |
 
-The v2 `maasConsumerPortal` name is retained for conversion and compatibility.
-New DSC v3 configuration should use `maasPortal`.
+The `maasConsumerPortal` field is part of the DSC v2 schema and is converted to
+`maasPortal` when a v2 resource is served as v3. It is not a DSC v3 field and
+may be pruned if added directly to a v3 resource. New DSC v3 configuration must
+use `maasPortal`. The Dashboard custom resource separately retains the legacy
+spelling for compatibility, as described below.
 
 ## Upgrade Guidance
 
