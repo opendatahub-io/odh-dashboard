@@ -428,11 +428,12 @@ describe('Pipeline topology', () => {
       initIntercepts();
       pipelineRunDetails.visit(projectId, mockRun.run_id);
 
-      cy.clock();
       pipelineRunDetails.findTaskNode('create-dataset').click();
       pipelineRunDetails.findDrawerTaskTitle().should('exist');
-      // The drawer focus effect runs 550 ms after selection.
-      cy.tick(600);
+      // The drawer focus effect runs 550 ms after selection. A fake clock breaks
+      // Monaco's background tokenizer, so let the browser timer finish.
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(600);
       pipelineRunDetails.findDrawerTaskTitle().should('not.be.focused');
     });
 
