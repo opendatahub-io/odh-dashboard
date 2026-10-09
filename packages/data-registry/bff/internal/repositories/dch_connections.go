@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -17,8 +18,8 @@ import (
 // Decode only fields needed for display. Credentials and arbitrary properties are never relayed.
 type dchConnection struct {
 	Metadata struct {
-		ID       string `json:"id"`
-		TenantID string `json:"tenant_id"`
+		ID       string          `json:"id"`
+		TenantID json.RawMessage `json:"tenant_id"`
 	} `json:"metadata"`
 	Resource struct {
 		Name   string `json:"name"`
@@ -78,6 +79,19 @@ func validDCHTypeID(id string) bool {
 	return strings.TrimSpace(id) != ""
 }
 
+// tenant_id is optional on DCH connections. The namespace-scoped list endpoint
+// supplies the ownership scope; when DCH includes tenant_id, verify it agrees.
+func validDCHTenantID(tenantID json.RawMessage, namespace string) bool {
+	if len(tenantID) == 0 {
+		return true
+	}
+	var value string
+	if err := json.Unmarshal(tenantID, &value); err != nil {
+		return false
+	}
+	return value == namespace
+}
+
 func (r *ConnectionRepository) GetDCHConnections(ctx context.Context, client bffclient.BFFClientInterface, namespace string, logger *slog.Logger) ([]models.ConnectionModel, *models.ConnectionsMetadata, error) {
 	var connections struct {
 		Data []dchConnection `json:"data"`
@@ -103,7 +117,7 @@ func (r *ConnectionRepository) GetDCHConnections(ctx context.Context, client bff
 		for _, connection := range connections.Data {
 			if !validDCHConnectionID(connection.Metadata.ID) || seen[connection.Metadata.ID] ||
 				!validDCHTypeID(connection.Resource.TypeID) || strings.TrimSpace(connection.Resource.Name) == "" ||
-				connection.Metadata.TenantID != namespace {
+				!validDCHTenantID(connection.Metadata.TenantID, namespace) {
 				connectionErr = invalidDCHResponse()
 				return
 			}
@@ -143,13 +157,20 @@ func (r *ConnectionRepository) GetDCHConnections(ctx context.Context, client bff
 	}
 	result := make([]models.ConnectionModel, 0, len(connections.Data))
 	var metadata *models.ConnectionsMetadata
+	unresolvedTypeWarningAdded := false
 	for _, connection := range connections.Data {
 		provider, ok := providers[connection.Resource.TypeID]
 		if !ok {
 			logger.Warn("DCH connection type could not be resolved", "namespace", namespace, "connection_id", connection.Metadata.ID, "type_id", connection.Resource.TypeID)
-			metadata = &models.ConnectionsMetadata{Warnings: []models.ConnectionWarning{{
-				Code: "UNRESOLVED_CONNECTION_TYPE", Message: "Some connections could not be loaded because their connector types are unavailable.",
-			}}}
+			if !unresolvedTypeWarningAdded {
+				if metadata == nil {
+					metadata = &models.ConnectionsMetadata{}
+				}
+				metadata.Warnings = append(metadata.Warnings, models.ConnectionWarning{
+					Code: "UNRESOLVED_CONNECTION_TYPE", Message: "Some connections could not be loaded because their connector types are unavailable.",
+				})
+				unresolvedTypeWarningAdded = true
+			}
 			continue
 		}
 		result = append(result, models.ConnectionModel{Type: "dch", ID: connection.Metadata.ID, Name: connection.Resource.Name, ConnectionType: &provider})

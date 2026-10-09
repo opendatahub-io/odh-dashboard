@@ -14,6 +14,7 @@ import (
 )
 
 const dchConnectionsFixture = `{"data":[{"metadata":{"id":"550e8400-e29b-41d4-a716-446655440000","tenant_id":"project-a"},"resource":{"name":"Production data","data_connection_type_id":"s3","credentials_ref":{"secret":"must-not-be-relayed"},"properties":{"password":"must-not-be-relayed"}}}]}`
+const dchConnectionsWithTwoUnresolvedTypesFixture = `{"data":[{"metadata":{"id":"550e8400-e29b-41d4-a716-446655440000","tenant_id":"project-a"},"resource":{"name":"Production data","data_connection_type_id":"missing-one"}},{"metadata":{"id":"550e8400-e29b-41d4-a716-446655440002","tenant_id":"project-a"},"resource":{"name":"Archive data","data_connection_type_id":"missing-two"}}]}`
 const dchTypesFixture = `{"data":[{"metadata":{"id":"s3"},"resource":{"name":"Friendly type name","provider":"s3"}}]}`
 
 func TestGetDCHConnections(t *testing.T) {
@@ -26,12 +27,14 @@ func TestGetDCHConnections(t *testing.T) {
 		{name: "resolves opaque type ID to provider and excludes credentials", connections: dchConnectionsFixture, types: dchTypesFixture, wantCount: 1},
 		{name: "empty is successful", connections: `{"data":[]}`, types: dchTypesFixture},
 		{name: "unresolved type warns", connections: dchConnectionsFixture, types: `{"data":[]}`, wantWarning: true},
+		{name: "multiple unresolved types produce one warning", connections: dchConnectionsWithTwoUnresolvedTypesFixture, types: `{"data":[]}`, wantWarning: true},
 		{name: "partial result", connections: strings.Replace(dchConnectionsFixture, `}]}`, `},{"metadata":{"id":"550e8400-e29b-41d4-a716-446655440002","tenant_id":"project-a"},"resource":{"name":"Production data","data_connection_type_id":"550e8400-e29b-41d4-a716-446655440003"}}]}`, 1), types: dchTypesFixture, wantCount: 1, wantWarning: true},
 		{name: "absent envelope", connections: `{}`, types: dchTypesFixture, wantError: true},
 		{name: "null list", connections: `{"data":null}`, types: dchTypesFixture, wantError: true},
 		{name: "malformed JSON", connections: `{`, types: dchTypesFixture, wantError: true},
 		{name: "rejects connection IDs that cannot be persisted by Data Registry", connections: strings.ReplaceAll(dchConnectionsFixture, "550e8400-e29b-41d4-a716-446655440000", "connection-1"), types: dchTypesFixture, wantError: true},
-		{name: "rejects connection without tenant ID", connections: strings.Replace(dchConnectionsFixture, `,"tenant_id":"project-a"`, "", 1), types: dchTypesFixture, wantError: true},
+		{name: "accepts connection without tenant ID", connections: strings.Replace(dchConnectionsFixture, `,"tenant_id":"project-a"`, "", 1), types: dchTypesFixture, wantCount: 1},
+		{name: "rejects empty tenant ID", connections: strings.Replace(dchConnectionsFixture, `"tenant_id":"project-a"`, `"tenant_id":""`, 1), types: dchTypesFixture, wantError: true},
 		{name: "wrong project", connections: strings.ReplaceAll(dchConnectionsFixture, "project-a", "project-b"), types: dchTypesFixture, wantError: true},
 		{name: "missing provider", connections: dchConnectionsFixture, types: strings.ReplaceAll(dchTypesFixture, `"provider":"s3"`, `"provider":""`), wantError: true},
 		{name: "missing type envelope", connections: dchConnectionsFixture, types: `{}`, wantError: true},
@@ -69,6 +72,10 @@ func TestGetDCHConnections(t *testing.T) {
 			require.NotNil(t, result)
 			require.Len(t, result, tt.wantCount)
 			require.Equal(t, tt.wantWarning, metadata != nil)
+			if tt.wantWarning {
+				require.Len(t, metadata.Warnings, 1)
+				require.Equal(t, "UNRESOLVED_CONNECTION_TYPE", metadata.Warnings[0].Code)
+			}
 			if len(result) > 0 {
 				require.Equal(t, "dch", result[0].Type)
 				require.Equal(t, "s3", *result[0].ConnectionType)
