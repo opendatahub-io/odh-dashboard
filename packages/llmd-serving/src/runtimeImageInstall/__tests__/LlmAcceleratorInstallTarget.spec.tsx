@@ -4,6 +4,7 @@ import '@testing-library/jest-dom';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import YAML from 'yaml';
 import { TrackingOutcome } from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
+import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
 import {
   createLLMInferenceServiceConfig,
   updateLLMInferenceServiceConfig,
@@ -13,6 +14,9 @@ import { fireLlmAcceleratorConfigCreated } from '../../tracking/llmdTrackingCons
 import { LLM_ACCELERATOR_CONFIGS_TAB_PATH } from '../../settings/llmAcceleratorConfigs/paths';
 import LlmAcceleratorInstallTarget from '../LlmAcceleratorInstallTarget';
 
+jest.mock('@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed', () => ({
+  useAccessAllowed: jest.fn(),
+}));
 jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
   useDashboardNamespace: () => ({ dashboardNamespace: 'opendatahub' }),
 }));
@@ -74,6 +78,7 @@ const renderTarget = (data = JSON.stringify(source())) =>
 describe('LlmAcceleratorInstallTarget', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.mocked(useAccessAllowed).mockReturnValue([true, true]);
   });
 
   it('should prefill the whole resource and create without changing the inputs', async () => {
@@ -249,6 +254,27 @@ describe('LlmAcceleratorInstallTarget', () => {
     });
     fireEvent.click(screen.getByTestId('submit-button'));
     expect(await screen.findByText('Accelerator configs list')).toBeInTheDocument();
+  });
+
+  it('should not render install configuration without create permission', () => {
+    jest
+      .mocked(useAccessAllowed)
+      .mockReturnValueOnce([false, true])
+      .mockReturnValueOnce([true, true]);
+    renderTarget();
+    expect(screen.getByRole('heading', { name: "We can't find that page" })).toBeInTheDocument();
+    expect(screen.queryByTestId('llm-accelerator-config-name')).not.toBeInTheDocument();
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it('should show a loading state until create and patch permissions resolve', () => {
+    jest
+      .mocked(useAccessAllowed)
+      .mockReturnValueOnce([false, false])
+      .mockReturnValueOnce([false, false]);
+    renderTarget();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    expect(screen.queryByTestId('llm-accelerator-config-name')).not.toBeInTheDocument();
   });
 
   it('should disable target actions while creation is pending', async () => {
