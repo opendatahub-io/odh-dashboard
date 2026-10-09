@@ -3,13 +3,12 @@ import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { Button, Checkbox, Tooltip } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { EvaluationJob, EvaluationJobState, KueueWorkloadStatus } from '~/app/types';
+import { EvaluationJob, EvaluationJobState } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import {
   formatDate,
   getAllBenchmarkNames,
   getBenchmarkName,
-  getEvaluationQueue,
   getEvaluationName,
   getFailedBenchmarkCount,
   getResultScore,
@@ -34,8 +33,6 @@ type EvaluationsTableRowProps = {
   onShowStatus: (job: EvaluationJob) => void;
   isSelected: boolean;
   onSelectionChange: (checked: boolean) => void;
-  kueueWorkloadStatus?: KueueWorkloadStatus;
-  isKueueWorkloadStatusLoading?: boolean;
 };
 
 const IN_PROGRESS_STATES = new Set(['running', 'pending', 'stopping']);
@@ -50,8 +47,6 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   onShowStatus,
   isSelected,
   onSelectionChange,
-  kueueWorkloadStatus,
-  isKueueWorkloadStatusLoading = false,
 }) => {
   const navigate = useNavigate();
   const [showStopModal, setShowStopModal] = React.useState(false);
@@ -73,13 +68,6 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const isPreStart = isPreStartFailure(polledJobData ?? job);
   const effectiveBenchmarks = polledJobData?.status.benchmarks ?? job.status.benchmarks ?? [];
   const effectiveJob = polledJobData ?? job;
-  // Detail polling can omit hardware_config.queue even when the list response included it.
-  // Keep the list assignment available so a queued run does not briefly fall back to Pending.
-  const queue =
-    getEvaluationQueue(effectiveJob) ?? getEvaluationQueue(job) ?? kueueWorkloadStatus?.queue_name;
-  const isQueued = currentState === 'pending' && Boolean(queue);
-  const isKueueStatusLoading =
-    currentState === 'pending' && isKueueWorkloadStatusLoading && !kueueWorkloadStatus && !queue;
 
   React.useEffect(() => {
     if (!isInProgress) {
@@ -231,10 +219,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
         <Td dataLabel="Status" data-testid="evaluation-status">
           <EvaluationStatusLabel
             state={displayState}
-            isQueued={isQueued}
-            isLoading={isKueueStatusLoading}
             isPreStartFailure={isPreStart}
-            kueueWorkloadStatus={kueueWorkloadStatus}
             onClick={() => onShowStatus(effectiveJob)}
           />
           {(displayState === 'failed' || displayState === 'partially_failed') &&
