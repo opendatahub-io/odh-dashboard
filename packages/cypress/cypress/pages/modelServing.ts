@@ -1596,8 +1596,43 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('gateway-select');
   }
 
+  getGatewaySelectOptionTestId(name: string) {
+    return `select-multi-typeahead-${name.replace(/[^a-zA-Z0-9]+/g, '-')}`;
+  }
+
+  openGatewaySelect() {
+    this.findGatewaySelect().within(() => {
+      cy.get('[role="combobox"]').then(($input) => {
+        if ($input.attr('aria-expanded') !== 'true') {
+          cy.wrap($input).click();
+        }
+      });
+    });
+    return this.findGatewaySelect();
+  }
+
+  /**
+   * Opens the MultiSelection gateway menu if needed, then returns the option.
+   * Uses MultiSelection option test ids because:
+   * - aria-expanded lives on the inner combobox (not the toggle testid)
+   * - with hasCheckbox, items use role=menuitem rather than option
+   */
   findGatewaySelectOption(name: string) {
-    return this.findGatewaySelect().findSelectOption(name);
+    this.openGatewaySelect();
+    return cy.findByTestId(this.getGatewaySelectOptionTestId(name));
+  }
+
+  findGatewaySelectRemoveChip(name: string) {
+    return cy.findByLabelText(`Remove ${name}`);
+  }
+
+  /** MenuToggle is a div with pf-m-disabled, not a native disabled control. */
+  assertGatewaySelectDisabled() {
+    return this.findGatewaySelect().should('have.class', 'pf-m-disabled');
+  }
+
+  assertGatewaySelectEnabled() {
+    return this.findGatewaySelect().should('not.have.class', 'pf-m-disabled');
   }
 
   findGatewaySelectTooltip() {

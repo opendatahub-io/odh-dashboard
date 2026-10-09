@@ -140,7 +140,7 @@ export const MaaSEndpointFieldWizardField: MaaSFieldType = {
         };
         overrides['llmd-serving/gateway'] = {
           isDisabled: true,
-          selection: MAAS_DEFAULT_GATEWAY,
+          selections: [MAAS_DEFAULT_GATEWAY],
           disabledTooltip:
             'The MaaS gateway handles routing, API keys, and subscription access. You cannot select a different gateway while Publish as MaaS is on.',
           labelHelpPopover: {

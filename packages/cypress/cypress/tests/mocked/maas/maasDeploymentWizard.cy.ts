@@ -175,12 +175,16 @@ describe('MaaS Deployment Wizard', () => {
     modelServingWizard.findTokenAuthenticationCheckbox().click();
 
     // Verify gateway select exists and that maas-default-gateway is hidden when MaaS is unchecked
-    modelServingWizard.findGatewaySelect().should('exist').click();
-    cy.findByRole('option', { name: 'maas-default-gateway | openshift-ingress' }).should(
-      'not.exist',
-    );
+    modelServingWizard.findGatewaySelect().should('exist');
+    modelServingWizard.openGatewaySelect();
+    cy.get(
+      `[data-testid="${modelServingWizard.getGatewaySelectOptionTestId(
+        'maas-default-gateway | openshift-ingress',
+      )}"]`,
+    ).should('not.exist');
     // Select a non-MaaS gateway
-    cy.findByRole('option', { name: 'test-gateway | test-ns' }).click();
+    modelServingWizard.findGatewaySelectOption('test-gateway | test-ns').click();
+    modelServingWizard.findGatewaySelect().closeSelectMenu();
 
     // Verify MaaS checkbox is unchecked by default
     maasWizardField.findSaveAsMaaSCheckbox().should('exist').should('not.be.checked');
@@ -189,9 +193,9 @@ describe('MaaS Deployment Wizard', () => {
     maasWizardField.findSaveAsMaaSCheckbox().click();
     maasWizardField.findSaveAsMaaSCheckbox().should('be.checked');
 
+    modelServingWizard.assertGatewaySelectDisabled();
     modelServingWizard
       .findGatewaySelect()
-      .should('be.disabled')
       .should('contain.text', 'maas-default-gateway | openshift-ingress');
     modelServingWizard.findGatewaySelectTooltip().should('exist');
     // Token authentication section is visible.
@@ -279,9 +283,9 @@ describe('MaaS Deployment Wizard', () => {
 
     // MaaS checkbox is checked (from existing deployment), gateway should be disabled showing MaaS gateway
     maasWizardField.findSaveAsMaaSCheckbox().should('exist').should('be.checked');
+    modelServingWizardEdit.assertGatewaySelectDisabled();
     modelServingWizardEdit
       .findGatewaySelect()
-      .should('be.disabled')
       .should('contain.text', 'maas-default-gateway | openshift-ingress');
 
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
@@ -356,9 +360,9 @@ describe('MaaS Deployment Wizard', () => {
 
     // MaaS is checked, gateway should be disabled showing MaaS gateway
     maasWizardField.findSaveAsMaaSCheckbox().should('exist').should('be.checked');
+    modelServingWizardEdit.assertGatewaySelectDisabled();
     modelServingWizardEdit
       .findGatewaySelect()
-      .should('be.disabled')
       .should('contain.text', 'maas-default-gateway | openshift-ingress');
 
     // Uncheck MaaS — gateway should become enabled and no longer show the MaaS gateway
@@ -366,13 +370,16 @@ describe('MaaS Deployment Wizard', () => {
     maasWizardField.findSaveAsMaaSCheckbox().should('not.be.checked');
 
     // Gateway should now be enabled; open it to verify maas-default-gateway is hidden
-    modelServingWizardEdit.findGatewaySelect().should('not.be.disabled').click();
-    cy.findByRole('option', { name: 'maas-default-gateway | openshift-ingress' }).should(
-      'not.exist',
-    );
-    cy.findByRole('option', { name: 'other-gateway | other-ns' }).should('exist');
+    modelServingWizardEdit.assertGatewaySelectEnabled();
+    modelServingWizardEdit.openGatewaySelect();
+    cy.get(
+      `[data-testid="${modelServingWizardEdit.getGatewaySelectOptionTestId(
+        'maas-default-gateway | openshift-ingress',
+      )}"]`,
+    ).should('not.exist');
+    modelServingWizardEdit.findGatewaySelectOption('other-gateway | other-ns').should('exist');
     // Close dropdown without selecting — no gateway selected
-    modelServingWizardEdit.findGatewaySelect().click();
+    modelServingWizardEdit.findGatewaySelect().closeSelectMenu();
 
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
     modelServingWizardEdit.findSubmitButton().click();

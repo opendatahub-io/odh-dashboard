@@ -14,7 +14,7 @@ import {
   WizardFieldHelpPopover,
   WizardReviewSection,
 } from '@odh-dashboard/model-serving/shared/types/form-data';
-import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
+import { MultiSelection, SelectionOptions } from '@odh-dashboard/ui-core/components/MultiSelection';
 import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import { ProjectSectionType } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { isLLMInferenceServiceActive } from '../../formUtils';
@@ -33,7 +33,7 @@ export const useGatewayOptions = (
 };
 
 export type GatewaySelectFieldData = {
-  selection: GatewayOption | undefined;
+  selections: GatewayOption[];
   hiddenOptions?: GatewayOption[];
   disabledTooltip?: string;
   labelHelpPopover?: WizardFieldHelpPopover;
@@ -46,7 +46,24 @@ export type GatewaySelectFieldType = WizardField<
   GatewaySelectDependencies
 >;
 
-const getGatewayKey = (gateway: GatewayOption) => `${gateway.name} | ${gateway.namespace}`;
+const GATEWAY_KEY_SEPARATOR = ' | ';
+const getGatewayKey = (gateway: GatewayOption) =>
+  `${gateway.name}${GATEWAY_KEY_SEPARATOR}${gateway.namespace}`;
+
+const parseGatewayKey = (key: string): GatewayOption | undefined => {
+  const separatorIndex = key.indexOf(GATEWAY_KEY_SEPARATOR);
+  if (separatorIndex <= 0) {
+    return undefined;
+  }
+  const name = key.slice(0, separatorIndex);
+  const namespace = key.slice(separatorIndex + GATEWAY_KEY_SEPARATOR.length);
+  if (!name || !namespace) {
+    return undefined;
+  }
+  return { name, namespace };
+};
+
+const EMPTY_SELECTIONS: GatewayOption[] = [];
 
 const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
   value,
@@ -56,89 +73,126 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
   isDisabled,
 }) => {
   const hiddenOptions = value?.hiddenOptions;
-  const selection = value?.selection;
+  const selections = value?.selections ?? EMPTY_SELECTIONS;
   const disabledTooltip = value?.disabledTooltip;
   const labelHelpPopover = value?.labelHelpPopover;
   const labelOverrides = value?.labelOverrides;
 
-  const selectedGatewayKey = React.useMemo(
-    () => selection && getGatewayKey(selection),
-    [selection],
+  const hiddenOptionKeys = React.useMemo(
+    () => new Set((hiddenOptions ?? []).map(getGatewayKey)),
+    [hiddenOptions],
   );
 
-  // If the initial value (from an existing deployment) isn't in the discovered
-  // gateways, keep it as an option so the user can switch away and back.
-  const initialMissingKey = React.useMemo(() => {
-    if (!initialValue || !externalData?.loaded) {
-      return undefined;
-    }
-    const key = initialValue.selection && getGatewayKey(initialValue.selection);
-    if (hiddenOptions?.some((h) => getGatewayKey(h) === key)) {
-      return undefined;
-    }
-    return key && externalData.data?.some((g) => getGatewayKey(g) === key) ? undefined : key;
-  }, [initialValue, externalData, hiddenOptions]);
+  const selectedGatewayKeys = React.useMemo(
+    () => new Set(selections.map(getGatewayKey)),
+    [selections],
+  );
 
-  const isCurrentSelectionMissing =
-    !!externalData?.loaded &&
-    !!selectedGatewayKey &&
-    !externalData.data?.some((g) => getGatewayKey(g) === selectedGatewayKey);
+  const gatewayByKey = React.useMemo(() => {
+    const map = new Map<string, GatewayOption>();
+    for (const g of externalData?.data ?? []) {
+      map.set(getGatewayKey(g), g);
+    }
+    for (const g of initialValue?.selections ?? []) {
+      const key = getGatewayKey(g);
+      if (!map.has(key)) {
+        map.set(key, g);
+      }
+    }
+    for (const g of selections) {
+      const key = getGatewayKey(g);
+      if (!map.has(key)) {
+        map.set(key, g);
+      }
+    }
+    return map;
+  }, [externalData?.data, initialValue?.selections, selections]);
 
-  const options: SimpleSelectOption[] = React.useMemo(() => {
-    const uniqueGateways = new Map<string, SimpleSelectOption>();
+  // Keep initial selections that aren't in the discovered list so the user can
+  // switch away and back (edit flow with deleted/missing gateways).
+  const initialMissingKeys = React.useMemo(() => {
+    if (!initialValue?.selections.length || !externalData?.loaded) {
+      return [];
+    }
+    return initialValue.selections.map(getGatewayKey).filter((key) => {
+      if (hiddenOptionKeys.has(key)) {
+        return false;
+      }
+      return !externalData.data?.some((g) => getGatewayKey(g) === key);
+    });
+  }, [initialValue, externalData, hiddenOptionKeys]);
+
+  const missingSelectedKeys = React.useMemo(() => {
+    if (!externalData?.loaded) {
+      return [];
+    }
+    return [...selectedGatewayKeys].filter((key) => {
+      if (hiddenOptionKeys.has(key)) {
+        return false;
+      }
+      return !externalData.data?.some((g) => getGatewayKey(g) === key);
+    });
+  }, [externalData, selectedGatewayKeys, hiddenOptionKeys]);
+
+  const options: SelectionOptions[] = React.useMemo(() => {
+    const uniqueGateways = new Map<string, SelectionOptions>();
+
     for (const g of externalData?.data ?? []) {
       const key = getGatewayKey(g);
-      if (hiddenOptions?.some((h) => getGatewayKey(h) === key)) {
+      if (hiddenOptionKeys.has(key)) {
         continue;
       }
 
-      uniqueGateways.set(key, { key, label: labelOverrides?.[key] ?? key });
+      uniqueGateways.set(key, {
+        id: key,
+        name: labelOverrides?.[key] ?? key,
+        selected: selectedGatewayKeys.has(key),
+      });
     }
 
-    if (initialMissingKey) {
-      uniqueGateways.set(initialMissingKey, {
-        key: initialMissingKey,
-        label: labelOverrides?.[initialMissingKey] ?? initialMissingKey,
-      });
+    // Preserve missing initial and currently selected gateways so chips/options
+    // remain available even when discovery no longer returns them.
+    const missingKeys = new Set([...initialMissingKeys, ...missingSelectedKeys]);
+    for (const key of missingKeys) {
+      if (!uniqueGateways.has(key)) {
+        uniqueGateways.set(key, {
+          id: key,
+          name: labelOverrides?.[key] ?? key,
+          selected: selectedGatewayKeys.has(key),
+          // Red chip so missing selections are identifiable among multiple chips
+          chipColor: 'red',
+        });
+      }
     }
-    if (isDisabled && selectedGatewayKey && !uniqueGateways.has(selectedGatewayKey)) {
-      uniqueGateways.set(selectedGatewayKey, {
-        key: selectedGatewayKey,
-        label: labelOverrides?.[selectedGatewayKey] ?? selectedGatewayKey,
-      });
-    }
+
     return Array.from(uniqueGateways.values());
   }, [
     externalData,
-    initialMissingKey,
-    hiddenOptions,
+    initialMissingKeys,
+    missingSelectedKeys,
+    hiddenOptionKeys,
     labelOverrides,
-    isDisabled,
-    selectedGatewayKey,
+    selectedGatewayKeys,
   ]);
 
-  const toggleProps = !isDisabled && externalData?.loadError ? { status: 'warning' as const } : {};
-
   const selectEl = (
-    <SimpleSelect
-      isFullWidth
-      options={options}
-      onChange={(key) => {
-        if (!key || key === selectedGatewayKey) {
-          onChange({ selection: undefined });
-          return;
-        }
-        const gateway =
-          externalData?.data?.find((g) => key === getGatewayKey(g)) ??
-          (key === initialMissingKey ? initialValue?.selection : undefined);
-        onChange({ selection: gateway });
+    <MultiSelection
+      ariaLabel="Gateway selection"
+      value={options}
+      setValue={(newOptions) => {
+        const nextSelections = newOptions
+          .filter((option) => option.selected)
+          .map((option) => {
+            const key = String(option.id);
+            return gatewayByKey.get(key) ?? parseGatewayKey(key);
+          })
+          .filter((gateway): gateway is GatewayOption => gateway !== undefined);
+        onChange({ selections: nextSelections });
       }}
-      placeholder="Select a gateway"
-      value={selectedGatewayKey ?? undefined}
-      toggleProps={toggleProps}
-      dataTestId="gateway-select"
+      placeholder="Select gateways"
+      toggleTestId="gateway-select"
       isDisabled={isDisabled}
-      autoSelectOnlyOption={false}
+      hasCheckbox
     />
   );
 
@@ -160,7 +214,7 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
       <Stack hasGutter>
         <StackItem>
           <Content component="p">
-            Select the gateway through which users can access the model deployment
+            Select one or more gateways through which users can access the model deployment
           </Content>
         </StackItem>
         <StackItem>
@@ -197,11 +251,13 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
               </HelperText>
             </FormHelperText>
           )}
-          {!isDisabled && !externalData?.loadError && isCurrentSelectionMissing && (
+          {!isDisabled && !externalData?.loadError && missingSelectedKeys.length > 0 && (
             <FormHelperText>
               <HelperText>
                 <HelperTextItem variant="warning">
-                  The selected gateway was not found. The deployment may not work as expected.
+                  {missingSelectedKeys.length === 1
+                    ? 'A selected gateway was not found. The deployment may not work as expected.'
+                    : 'One or more selected gateways were not found. The deployment may not work as expected.'}
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
@@ -213,16 +269,16 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
 };
 
 const getGatewayReviewSection = (value: GatewaySelectFieldData): WizardReviewSection[] => {
-  const { selection } = value;
+  const { selections } = value;
   return [
     {
       title: 'Advanced settings',
-      items: selection
+      items: selections.length
         ? [
             {
               key: 'gateway',
-              label: 'Gateway',
-              value: () => getGatewayKey(selection),
+              label: selections.length === 1 ? 'Gateway' : 'Gateways',
+              value: () => selections.map(getGatewayKey).join(', '),
             },
           ]
         : [],
@@ -241,7 +297,7 @@ export const GatewaySelectField: GatewaySelectFieldType = {
     }),
     setFieldData: (value: GatewaySelectFieldData) => value,
     getInitialFieldData: (existingFieldData?: GatewaySelectFieldData): GatewaySelectFieldData =>
-      existingFieldData ?? { selection: undefined },
+      existingFieldData ?? { selections: [] },
   },
   shouldResetOnDependencyChange: () => true,
   externalDataHook: useGatewayOptions,

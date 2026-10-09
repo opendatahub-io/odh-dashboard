@@ -263,8 +263,8 @@ export type WizardStateOverrides = {
   };
   'llmd-serving/gateway'?: {
     isDisabled?: boolean;
-    selection?: { name: string; namespace?: string };
-    hiddenOptions?: { name: string; namespace?: string }[];
+    selections?: { name: string; namespace: string }[];
+    hiddenOptions?: { name: string; namespace: string }[];
     disabledTooltip?: string;
     labelHelpPopover?: WizardFieldHelpPopover;
     /**

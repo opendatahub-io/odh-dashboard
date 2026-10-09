@@ -707,9 +707,10 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
       modelServingWizard.findNextButton().should('be.enabled').click();
 
-      // Step 3: Advanced Options — gateway select should be visible
+      // Step 3: Advanced Options — gateway multi-select should be visible
       modelServingWizard.findGatewaySelect().should('exist');
       modelServingWizard.findGatewaySelectOption('test-gateway | gateway-ns').click();
+      modelServingWizard.findGatewaySelect().closeSelectMenu();
 
       // Disable token auth to simplify (avoid needing auth resource intercepts)
       modelServingWizard.findTokenAuthenticationCheckbox().click();
@@ -735,6 +736,71 @@ describe('Model Serving LLMD', () => {
 
       cy.get('@createLLMInferenceService.all').then((interceptions) => {
         expect(interceptions).to.have.length(2);
+      });
+    });
+
+    it('should create an LLMD deployment with multiple gateway refs', () => {
+      initIntercepts({});
+
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableNIMModelServing: true,
+          disableKServe: false,
+          genAiStudio: true,
+          modelAsService: true,
+          disableLLMd: false,
+          llmGatewayField: true,
+        }),
+      );
+
+      initMockGatewayIntercepts({
+        gateways: [
+          { name: 'test-gateway', namespace: 'gateway-ns', listener: 'http', status: 'Ready' },
+          { name: 'second-gateway', namespace: 'gw-ns-2', listener: 'http', status: 'Ready' },
+        ],
+      });
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+
+      modelServingWizard
+        .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
+        .should('exist')
+        .click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      modelServingWizard.findLocationPathInput().should('exist').type('test-model/');
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      modelServingWizard.findModelDeploymentNameInput().type('test-multi-gateway-model');
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      modelServingWizard.findGatewaySelect().should('exist');
+      modelServingWizard.findGatewaySelectOption('test-gateway | gateway-ns').click();
+      modelServingWizard.findGatewaySelectOption('second-gateway | gw-ns-2').click();
+      modelServingWizard.findGatewaySelect().closeSelectMenu();
+      modelServingWizard.findGatewaySelect().should('contain.text', 'test-gateway | gateway-ns');
+      modelServingWizard.findGatewaySelect().should('contain.text', 'second-gateway | gw-ns-2');
+
+      modelServingWizard.findTokenAuthenticationCheckbox().click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+      modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+      cy.wait('@createLLMInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.spec.router.gateway.refs).to.deep.equal([
+          { name: 'test-gateway', namespace: 'gateway-ns' },
+          { name: 'second-gateway', namespace: 'gw-ns-2' },
+        ]);
+      });
+
+      cy.wait('@createLLMInferenceService').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+        expect(interception.request.body.spec.router.gateway.refs).to.deep.equal([
+          { name: 'test-gateway', namespace: 'gateway-ns' },
+          { name: 'second-gateway', namespace: 'gw-ns-2' },
+        ]);
       });
     });
 
@@ -804,8 +870,10 @@ describe('Model Serving LLMD', () => {
       // Step 3: Advanced Options — verify gateway is pre-populated with existing value
       modelServingWizardEdit.findGatewaySelect().should('contain.text', 'existing-gw | gw-ns');
 
-      // Change to a different gateway
+      // Replace the existing gateway with a different one (remove chip, then select)
+      modelServingWizardEdit.findGatewaySelectRemoveChip('existing-gw | gw-ns').click();
       modelServingWizardEdit.findGatewaySelectOption('new-gateway | gw-ns-2').click();
+      modelServingWizardEdit.findGatewaySelect().closeSelectMenu();
 
       modelServingWizardEdit.findNextButton().should('be.enabled').click();
 

@@ -3,38 +3,35 @@ import { LLMdDeployment } from '../../types';
 import { isGatewayOption } from '../../api/services/gatewayDiscovery';
 
 /**
- * Applies gateway selection to an LLMInferenceService deployment.
- * Sets the gateway refs to exactly the provided gateway.
- * Will remove any existing gateways
+ * Applies gateway selections to an LLMInferenceService deployment.
+ * Sets the gateway refs to exactly the provided gateways.
+ * Will remove any existing gateways when selections are empty.
  *
- * @param deployment - The deployment to apply the gateway selection to
- * @param gateway - The gateway to apply to the deployment
- * @returns The deployment with the gateway applied
+ * @param deployment - The deployment to apply the gateway selections to
+ * @param fieldData - Field data containing the selected gateways
+ * @returns The deployment with the gateways applied
  */
 export const applyGatewaySelectData = (
   deployment: LLMdDeployment,
   fieldData?: GatewaySelectFieldData,
 ): LLMdDeployment => {
-  const gateway = fieldData?.selection;
+  const selections = fieldData?.selections ?? [];
   const result = structuredClone(deployment);
 
-  // Remove any existing gateways
   result.model.spec.router = {
     ...result.model.spec.router,
-    gateway: {},
+    gateway:
+      selections.length > 0
+        ? {
+            refs: selections.map((gateway) => ({
+              // Strip listener and status from the gateway option
+              name: gateway.name,
+              namespace: gateway.namespace,
+            })),
+          }
+        : {},
   };
 
-  if (gateway) {
-    result.model.spec.router = {
-      ...result.model.spec.router,
-      gateway: {
-        refs: [
-          // Strip listener and status from the gateway option
-          { name: gateway.name, namespace: gateway.namespace },
-        ],
-      },
-    };
-  }
   return result;
 };
 
@@ -42,16 +39,18 @@ export const extractGatewaySelectData = (
   deployment: LLMdDeployment,
 ): GatewaySelectFieldData | undefined => {
   const refs = deployment.model.spec.router?.gateway?.refs;
-  const ref = refs && refs.length > 0 ? refs[0] : undefined;
-
-  if (!isGatewayOption(ref)) {
+  if (!refs?.length) {
     return undefined;
   }
 
-  return {
-    selection: {
-      name: ref.name,
-      namespace: ref.namespace,
-    },
-  };
+  const selections = refs.filter(isGatewayOption).map((ref) => ({
+    name: ref.name,
+    namespace: ref.namespace,
+  }));
+
+  if (selections.length === 0) {
+    return undefined;
+  }
+
+  return { selections };
 };
