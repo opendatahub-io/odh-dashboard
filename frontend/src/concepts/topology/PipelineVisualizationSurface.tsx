@@ -8,6 +8,7 @@ import {
   defaultControlButtonsOptions,
   getEdgesFromNodes,
   isEdge,
+  isNode,
   PipelineNodeModel,
   TopologyControlBar,
   TopologySideBar,
@@ -72,15 +73,13 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
     const findGraphButton = (id: string) =>
       graphButtons.find((button) => button.dataset.pipelineNodeId === id);
     const findVisibleAncestorButton = (id: string): HTMLButtonElement | undefined => {
-      let childId = id;
-      let parentGroup = nodes.find((node) => node.group && node.children?.includes(childId));
-      while (parentGroup) {
-        const button = findGraphButton(parentGroup.id);
+      let parent = controller.getNodeById(id)?.getParent();
+      while (parent && isNode(parent)) {
+        const button = findGraphButton(parent.getId());
         if (button) {
           return button;
         }
-        childId = parentGroup.id;
-        parentGroup = nodes.find((node) => node.group && node.children?.includes(childId));
+        parent = parent.getParent();
       }
       return undefined;
     };

@@ -77,7 +77,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
           label.setAttribute('tabindex', '-1');
           label.setAttribute('aria-hidden', 'true');
         });
-    }, [groupActionClassName, hover, isCollapsed, toggleFocused]);
+    }, [groupActionClassName, hover, isCollapsed, runStatus, state, toggleFocused]);
 
     const activateCollapseAction = React.useCallback(
       (event: React.MouseEvent<HTMLButtonElement>) => {

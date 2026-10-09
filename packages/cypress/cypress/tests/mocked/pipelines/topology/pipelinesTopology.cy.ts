@@ -392,7 +392,8 @@ describe('Pipeline topology', () => {
 
       pipelineDetails.findGroupButton('for-loop-2').focus();
       cy.press(Cypress.Keyboard.Keys.ENTER);
-      pipelineDetails.findGroupTask('simple-task').click();
+      pipelineDetails.findGroupTask('simple-task').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
       pipelineDetails.findDrawerTaskTitle().should('be.focused');
       pipelineDetails.findDrawerCloseButton().click();
       pipelineDetails.findGroupButton('for-loop-2').should('be.focused');
