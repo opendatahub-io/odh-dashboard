@@ -348,6 +348,9 @@ describe('GPUaaS Infrastructure Workloads', () => {
       .and('contain.text', 'Ray jobs');
     infrastructurePage.findWorkloadsPartialFailureCloseButton().click();
     infrastructurePage.findWorkloadsPartialFailure().should('not.exist');
+    infrastructurePage.findWorkloadsRefreshButton().click();
+    cy.wait('@rayJobsRequest');
+    infrastructurePage.findWorkloadsPartialFailure().should('not.exist');
     infrastructurePage.findWorkloadRow('gpu-training-job').should('exist');
     infrastructurePage.findWorkloadRow('gpu-ray-job').should('not.exist');
     infrastructurePage.findWorkloadsEmptyState().should('not.exist');

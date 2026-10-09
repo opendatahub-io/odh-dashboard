@@ -77,7 +77,7 @@ const InfrastructureWorkloadsHeader: React.FC<InfrastructureWorkloadsHeaderProps
               </Tooltip>
             </FlexItem>
             <FlexItem>
-              <Content component="small" className="pf-v6-u-color-200">
+              <Content component="small" className="pf-v6-u-color-subtle">
                 Updated {refreshTime === 'Just now' ? 'just now' : refreshTime}
               </Content>
             </FlexItem>
@@ -129,10 +129,11 @@ const InfrastructureWorkloadsContent: React.FC<InfrastructureWorkloadsContentPro
   failedSources,
 }) => {
   const [isPartialFailureDismissed, setIsPartialFailureDismissed] = React.useState(false);
+  const failedSourcesKey = failedSources.join(',');
 
   React.useEffect(() => {
     setIsPartialFailureDismissed(false);
-  }, [failedSources]);
+  }, [failedSourcesKey]);
 
   if (!loaded) {
     return (
@@ -206,6 +207,7 @@ const InfrastructureWorkloadsSection: React.FC = () => {
     loaded: projectsLoaded,
   } = React.useContext(ProjectsContext);
   const notebooks = useProjectNotebookStates(preferredProject?.metadata.name);
+  const { refresh: refreshNotebooks } = notebooks;
   const { workloads, kueueEnabled, loaded, error, refresh, failedSources } =
     useInfrastructureWorkloads(preferredProject?.metadata.name, preferredProject);
   const [lastRefreshed, setLastRefreshed] = React.useState(() => new Date());
@@ -232,7 +234,8 @@ const InfrastructureWorkloadsSection: React.FC = () => {
   const handleRefresh = React.useCallback(() => {
     setLastRefreshed(new Date());
     setRefreshTrigger((current) => current + 1);
-  }, []);
+    void refreshNotebooks();
+  }, [refreshNotebooks]);
 
   const handleProjectSelection = React.useCallback(
     (projectName: string) => {
