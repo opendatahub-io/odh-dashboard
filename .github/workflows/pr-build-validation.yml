@@ -439,7 +439,7 @@ jobs:
             manifests/rhoai
             manifests/observability/odh
             manifests/observability/rhoai
-            manifests/distributions/maas-consumer-portal
+            manifests/distributions/maas-portal
           )
 
           # Dynamically append every module overlay (manifests/modules/<slug>) so newly

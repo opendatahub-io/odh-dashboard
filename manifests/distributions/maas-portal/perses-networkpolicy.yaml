@@ -1,11 +1,11 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: maas-consumer-portal-perses
+  name: maas-portal-perses
 spec:
   podSelector:
     matchLabels:
-      deployment: maas-consumer-portal
+      deployment: maas-portal
   policyTypes:
     - Egress
   egress:

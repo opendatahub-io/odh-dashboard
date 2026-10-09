@@ -24,7 +24,7 @@ import (
 const (
 	modelCatalogRouteName = "model-catalog"
 	modelCatalogPath      = "/catalog/api/model_catalog/v1alpha1/sources"
-	maasPortalRouteName   = "maas-consumer-portal"
+	maasPortalRouteName   = "maas-portal"
 	maasPortalPath        = "/maas-consumer-portal"
 	maasPortalHealthPath  = "/maas-consumer-portal/healthcheck"
 	sharedGatewayName     = "data-science-gateway"

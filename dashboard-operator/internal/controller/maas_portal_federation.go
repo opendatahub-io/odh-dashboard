@@ -19,9 +19,9 @@ import (
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
-const maasPortalFederationConfigMapName = "maas-consumer-portal-federation-config"
+const maasPortalFederationConfigMapName = "maas-portal-federation-config"
 
-const maasPortalFederationHashAnnotation = "dashboard.opendatahub.io/maas-consumer-portal-federation-config-hash"
+const maasPortalFederationHashAnnotation = "dashboard.opendatahub.io/maas-portal-federation-config-hash"
 
 // modulePresent means a module's deployed resources remain usable for lifecycle
 // and federation purposes. A degraded module is present but not healthy.
@@ -61,13 +61,26 @@ func maasPortalRequiredModuleSlugs(spec *v1alpha1.DashboardSpec, statuses map[st
 	return requiredModules
 }
 
+func (r *DashboardReconciler) syncMaaSPortalDeploymentFederationHash(ctx context.Context) error {
+	cm := &corev1.ConfigMap{}
+	if err := r.maasPortalAPIReader().Get(ctx, client.ObjectKey{Name: maasPortalFederationConfigMapName, Namespace: r.ApplicationsNamespace}, cm); err != nil {
+		if apierrors.IsNotFound(err) {
+			// The federation ConfigMap is reconciled separately. Its hash will be
+			// applied after it becomes available on a subsequent reconciliation.
+			return nil
+		}
+		return fmt.Errorf("getting MaaS Portal federation ConfigMap: %w", err)
+	}
+	return r.patchMaaSPortalDeploymentFederationHash(ctx, cm.Data[federationConfigKey])
+}
+
 // patchMaaSPortalDeploymentFederationHash triggers a rollout only when
 // the MaaS Portal remote configuration changes. An absent portal
 // Deployment is expected while its bundle has not yet been applied.
 func (r *DashboardReconciler) patchMaaSPortalDeploymentFederationHash(ctx context.Context, configData string) error {
 	var deployment appsv1.Deployment
 	key := client.ObjectKey{Name: maasPortalDeploymentName, Namespace: r.ApplicationsNamespace}
-	if err := r.Get(ctx, key, &deployment); err != nil {
+	if err := r.maasPortalAPIReader().Get(ctx, key, &deployment); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil
 		}
