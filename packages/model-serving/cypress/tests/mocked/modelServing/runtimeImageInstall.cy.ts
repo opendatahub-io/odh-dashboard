@@ -2,6 +2,7 @@ import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashb
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
 import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import {
   ServingRuntimeAPIProtocol,
   ServingRuntimeModelType,
@@ -13,9 +14,17 @@ import {
   asProjectEditUser,
 } from '@odh-dashboard/cypress/cypress/utils/mockUsers';
 import { runtimeImageInstallPage } from '@odh-dashboard/cypress/cypress/pages/modelDeploymentSettings/runtimeImageInstall';
+import { llmAcceleratorConfigurations } from '@odh-dashboard/cypress/cypress/pages/modelDeploymentSettings/llmAcceleratorConfigurations';
 import { pageNotfound } from '@odh-dashboard/cypress/cypress/pages/pageNotFound';
 
-const initialize = (runtimeCatalogFlagEnabled: boolean) => {
+const acceleratorConfigModel = {
+  apiGroup: 'serving.kserve.io',
+  apiVersion: 'v1alpha2',
+  kind: 'LLMInferenceServiceConfig',
+  plural: 'llminferenceserviceconfigs',
+};
+
+const initialize = (runtimeCatalogFlagEnabled: boolean, acceleratorEnabled = true) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
@@ -27,6 +36,8 @@ const initialize = (runtimeCatalogFlagEnabled: boolean) => {
     mockDashboardConfig({
       disableModelServing: false,
       disableKServe: false,
+      disableLLMd: false,
+      vLLMDeploymentOnMaaS: acceleratorEnabled,
       runtimeCatalog: runtimeCatalogFlagEnabled,
     }),
   );
@@ -79,6 +90,71 @@ describe('Runtime image Install extension navigation', () => {
     cy.url().should('include', '/general-settings');
   });
 
+  it('should hide the LLM install target when its feature gate is inactive', () => {
+    asProductAdminUser();
+    initialize(true, false);
+    cy.visitWithLogin(
+      '/settings/model-resources-operations/model-deployment-settings/general-settings',
+    );
+    runtimeImageInstallPage.findInstallButton().click();
+    runtimeImageInstallPage.findAcceleratorRadio().should('not.exist');
+    runtimeImageInstallPage.findServingRuntimeRadio().should('exist');
+  });
+
+  it('should create a prefilled LLM accelerator config and redirect to its list', () => {
+    asProductAdminUser();
+    initialize(true);
+    const createdConfig = mockLLMInferenceServiceConfigK8sResource({
+      name: 'vllm-0-6-0',
+      displayName: 'vLLM 0.6.0',
+      runtimeVersion: '0.6.0',
+    });
+    cy.interceptK8s('POST', { model: acceleratorConfigModel }, createdConfig).as(
+      'createAcceleratorConfig',
+    );
+    cy.interceptK8sList(
+      { model: acceleratorConfigModel, ns: 'opendatahub' },
+      mockK8sResourceList([createdConfig]),
+    );
+    cy.visitWithLogin(
+      '/settings/model-resources-operations/model-deployment-settings/general-settings',
+    );
+    runtimeImageInstallPage.findInstallButton().click();
+    runtimeImageInstallPage.findAcceleratorRadio().check();
+    runtimeImageInstallPage.findNext().click();
+    llmAcceleratorConfigurations.findNameInput().should('have.value', 'vLLM 0.6.0');
+    llmAcceleratorConfigurations.findVersionInput().should('have.value', '0.6.0');
+    llmAcceleratorConfigurations.findYAMLCodeEditor().waitForReady();
+    llmAcceleratorConfigurations.findYAMLCodeEditor().containsText('LLMInferenceServiceConfig');
+    cy.testA11y();
+    llmAcceleratorConfigurations.findSubmitButton().should('be.enabled').click();
+    cy.wait('@createAcceleratorConfig').then(({ request }) => {
+      expect(request.body).to.containSubset({
+        apiVersion: 'serving.kserve.io/v1alpha2',
+        kind: 'LLMInferenceServiceConfig',
+        metadata: {
+          name: 'vllm-0-6-0',
+          namespace: 'opendatahub',
+          annotations: {
+            'openshift.io/display-name': 'vLLM 0.6.0',
+            'opendatahub.io/runtime-version': '0.6.0',
+          },
+          labels: {
+            'opendatahub.io/dashboard': 'true',
+            'opendatahub.io/config-type': 'accelerator',
+          },
+        },
+        spec: {
+          template: {
+            containers: [{ name: 'main', image: 'quay.io/example/vllm:0.6.0' }],
+          },
+        },
+      });
+    });
+    cy.url().should('include', '/llm-accelerator-configurations');
+    llmAcceleratorConfigurations.getRowByName('vllm-0-6-0').find().should('exist');
+  });
+
   it('should install a prefilled Serving runtime template and redirect to its list', () => {
     asProductAdminUser();
     initialize(true);
@@ -108,7 +184,6 @@ describe('Runtime image Install extension navigation', () => {
     runtimeImageInstallPage.findServingRuntimeRadio().check();
     runtimeImageInstallPage.findNext().click();
     runtimeImageInstallPage.findServingRuntimeEditor().waitForReady();
-    cy.testA11y();
     runtimeImageInstallPage.findServingRuntimeEditor().containsText('vllm-0-6-0');
     runtimeImageInstallPage
       .findServingRuntimeProtocol()
@@ -130,6 +205,4 @@ describe('Runtime image Install extension navigation', () => {
     });
     cy.url().should('include', '/serving-runtime-templates');
   });
-
-  // TODO LLM accelerator Step 2 browser coverage belongs to RHOAIENG-96640.
 });

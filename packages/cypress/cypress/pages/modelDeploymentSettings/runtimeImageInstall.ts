@@ -48,7 +48,7 @@ class RuntimeImageInstallPage {
   }
 
   findAcceleratorRadio() {
-    return cy.findByRole('radio', { name: /LLM accelerator configuration/ });
+    return cy.findByTestId('install-target-llmInferenceServiceConfig');
   }
 
   findUnavailableMessage() {

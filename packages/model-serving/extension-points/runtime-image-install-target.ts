@@ -3,7 +3,7 @@ import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
 import type { PlaceholderRuntimeImageActionData } from '../src/components/runtimeImageInstall/placeholder-types';
 
 export type {
-  PlaceholderLlmAcceleratorConfigurationData,
+  PlaceholderLlmInferenceServiceConfigData,
   PlaceholderServingRuntimeTemplateData,
 } from '../src/components/runtimeImageInstall/placeholder-types';
 

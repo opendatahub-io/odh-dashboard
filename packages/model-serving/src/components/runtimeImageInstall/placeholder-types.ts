@@ -3,12 +3,7 @@
 
 export type PlaceholderServingRuntimeTemplateData = string;
 
-export type PlaceholderLlmAcceleratorConfigurationData = {
-  configYaml: string;
-  displayName: string;
-  k8sName?: string;
-  version?: string;
-};
+export type PlaceholderLlmInferenceServiceConfigData = string;
 
 export type PlaceholderRuntimeImageActionProps = {
   actionData: PlaceholderRuntimeImageActionData;
@@ -20,6 +15,6 @@ export type PlaceholderRuntimeImageActionData = {
   cancelReturnRoute: string;
   deploymentResources: {
     servingRuntimeTemplate?: PlaceholderServingRuntimeTemplateData;
-    llmAcceleratorConfiguration?: PlaceholderLlmAcceleratorConfigurationData;
+    llmInferenceServiceConfig?: PlaceholderLlmInferenceServiceConfigData;
   };
 };

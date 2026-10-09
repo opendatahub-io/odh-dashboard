@@ -21,7 +21,7 @@ const servingRuntimeTarget: RuntimeImageInstallTargetExtension = {
 const acceleratorTarget: RuntimeImageInstallTargetExtension = {
   type: 'model-serving.runtime-image/install-target',
   properties: {
-    id: 'llmAcceleratorConfiguration',
+    id: 'llmInferenceServiceConfig',
     label: 'LLM accelerator configuration',
     description: 'Accelerator description',
     selectedState: {
@@ -53,7 +53,7 @@ describe('install target discovery', () => {
       servingRuntimeTarget,
     );
     expect(
-      getMatchingInstallTarget([servingRuntimeTarget], 'llmAcceleratorConfiguration'),
+      getMatchingInstallTarget([servingRuntimeTarget], 'llmInferenceServiceConfig'),
     ).toBeUndefined();
     expect(
       getMatchingInstallTarget(
