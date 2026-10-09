@@ -1,5 +1,59 @@
 import type { SortableData } from '@odh-dashboard/ui-core';
 import type { QuotaUsageAcceleratorRow } from './types';
+import type { InfrastructureWorkloadRow } from './types/infrastructureWorkloads';
+
+export const INFRASTRUCTURE_WORKLOADS_EMPTY_TITLE = 'No workloads yet';
+export const INFRASTRUCTURE_WORKLOADS_EMPTY_BODY =
+  'When workloads are admitted or waiting in this project, the workload overview shows status and admission metrics, and the workloads table lists workload details.';
+export const INFRASTRUCTURE_WORKLOADS_PARTIAL_FAILURE_TITLE = 'Some workload data unavailable';
+export const INFRASTRUCTURE_WORKLOAD_NON_KUEUE_LABEL = 'Non-Kueue';
+
+const compareQueuePosition = (a?: string, b?: string): number => {
+  if (a === undefined) return b === undefined ? 0 : 1;
+  if (b === undefined) return -1;
+  return Number(a) - Number(b);
+};
+
+export const getInfrastructureWorkloadsTableColumns = (
+  kueueEnabled: boolean,
+): SortableData<InfrastructureWorkloadRow>[] => [
+  {
+    field: 'name',
+    label: 'Name',
+    sortable: (a, b) => a.name.localeCompare(b.name),
+  },
+  {
+    field: 'type',
+    label: 'Type',
+    sortable: (a, b) => a.type.localeCompare(b.type),
+  },
+  {
+    field: 'status',
+    label: 'Status',
+    sortable: (a, b) => a.status.label.localeCompare(b.status.label),
+  },
+  ...(kueueEnabled
+    ? [
+        {
+          field: 'queuePosition',
+          label: 'Queue position',
+          sortable: (a: InfrastructureWorkloadRow, b: InfrastructureWorkloadRow) =>
+            compareQueuePosition(a.queuePosition, b.queuePosition),
+        },
+        {
+          field: 'priority',
+          label: 'Priority class',
+          sortable: (a: InfrastructureWorkloadRow, b: InfrastructureWorkloadRow) =>
+            (a.priority ?? '').localeCompare(b.priority ?? ''),
+        },
+      ]
+    : []),
+  {
+    field: 'hardwareProfile',
+    label: 'Hardware profile',
+    sortable: (a, b) => (a.hardwareProfile ?? '').localeCompare(b.hardwareProfile ?? ''),
+  },
+];
 
 export const INFRASTRUCTURE_PAGE_DESCRIPTION =
   'View accelerator utilization, cluster queue cohort configuration, and workload details.';
@@ -52,6 +106,7 @@ export const QUOTA_USAGE_SEARCH_TELEMETRY_DEBOUNCE = 300;
 
 /** Pass to useFetch refreshRate to disable polling; initial load + manual refresh only. */
 export const INFRASTRUCTURE_MANUAL_REFRESH_ONLY = -1;
+export const INFRASTRUCTURE_WORKLOADS_REFRESH_INTERVAL = 10 * 60 * 1000;
 
 /** 5m polling for trend charts and quota-usage workload tables (see useBorrowingLendingMetrics). */
 export const TREND_REFRESH_INTERVAL = 5 * 60 * 1000;
