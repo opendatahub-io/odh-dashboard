@@ -28,6 +28,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import { Link } from 'react-router-dom';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import {
   isTabRoutePageExtension,
@@ -261,9 +262,9 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
                   <>
                     To enable audio transcription, tag a model with the audio capability in{' '}
                     {modelsPage && registryTab ? (
-                      <a href={`${modelsPage.properties.href}/${registryTab.properties.id}`}>
+                      <Link to={`${modelsPage.properties.href}/${registryTab.properties.id}`}>
                         Model registry
-                      </a>
+                      </Link>
                     ) : (
                       'Model registry'
                     )}
