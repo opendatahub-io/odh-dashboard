@@ -71,4 +71,4 @@ export const HARDWARE_PROFILE_BINDING_CONFIG: Record<
 };
 
 export const LOCAL_QUEUE_MISSING_BODY =
-  'The selected hardware profile references a local queue that does not exist in this project and may prevent the workbench from starting. Select a different hardware profile.';
+  "This hardware profile requires a local queue that isn't available in this project. Select a different hardware profile.";

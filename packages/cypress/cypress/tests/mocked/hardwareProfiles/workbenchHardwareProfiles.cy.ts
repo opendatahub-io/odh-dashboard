@@ -1324,7 +1324,7 @@ describe('Workbench Hardware Profiles', () => {
         .should('be.visible')
         .and(
           'contain.text',
-          'Only hardware profiles configured with a local queue are shown because this project uses Kueue for workload scheduling.',
+          'This project uses the local queue workload allocation strategy. Only hardware profiles with a local queue are available in the dropdown.',
         );
     });
 
@@ -1366,7 +1366,7 @@ describe('Workbench Hardware Profiles', () => {
 
       cy.findByTestId('local-queue-missing-icon').should('be.visible').click();
       cy.contains(
-        'The selected hardware profile references a local queue that does not exist in this project and may prevent the workbench from starting.',
+        "This hardware profile requires a local queue that isn't available in this project. Select a different hardware profile.",
       ).should('be.visible');
     });
 

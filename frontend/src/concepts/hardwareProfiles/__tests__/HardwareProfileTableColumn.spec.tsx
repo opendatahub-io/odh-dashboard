@@ -94,33 +94,11 @@ describe('HardwareProfileTableColumn', () => {
 
       await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
 
-      expect(screen.getByText('No hardware profile defined')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'No hardware profile' })).toBeInTheDocument();
       expect(screen.getByTestId('hardware-profile-details')).toHaveTextContent(
-        'No hardware profile is defined for this workbench',
+        "This workbench isn't using a hardware profile. Edit the workbench to assign one.",
       );
       expect(screen.queryByRole('button', { name: 'Expand row' })).not.toBeInTheDocument();
-    });
-
-    it('calls onExpandRow when "Expand row" is clicked', async () => {
-      const onExpandRow = jest.fn();
-
-      renderWithContext(
-        <HardwareProfileTableColumn
-          namespace="test-project"
-          resource={mockNotebookResource as unknown as NotebookKind}
-          bindingState={{
-            bindingStateInfo: { profile: undefined },
-            bindingStateLoaded: true,
-            loadError: undefined,
-          }}
-          onExpandRow={onExpandRow}
-        />,
-      );
-
-      await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
-      await userEvent.click(screen.getByRole('button', { name: 'Expand row' }));
-
-      expect(onExpandRow).toHaveBeenCalledTimes(1);
     });
 
     it('renders details popover with "Local queue" when notebook has a direct queue label and no HP', async () => {

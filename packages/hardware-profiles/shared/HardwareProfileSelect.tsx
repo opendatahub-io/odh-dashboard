@@ -371,8 +371,8 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
             }
             data-testid="kueue-filtering-info"
           >
-            Only hardware profiles configured with a local queue are shown because this project uses
-            Kueue for workload scheduling.
+            This project uses the local queue workload allocation strategy. Only hardware profiles
+            with a local queue are available in the dropdown.
           </HelperTextItem>
         </HelperText>
       </FormHelperText>
