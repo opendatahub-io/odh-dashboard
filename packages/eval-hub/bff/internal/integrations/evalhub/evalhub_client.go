@@ -93,20 +93,19 @@ type EvaluationJobsResponse struct {
 
 // EvaluationJob represents an evaluation job from eval-hub.
 type EvaluationJob struct {
-	Resource       JobResource      `json:"resource"`
-	Status         JobStatus        `json:"status"`
-	Results        JobResults       `json:"results"`
-	Name           string           `json:"name,omitempty"`
-	Description    string           `json:"description,omitempty"`
-	Tags           []string         `json:"tags,omitempty"`
-	Model          JobModel         `json:"model"`
-	PassCriteria   *JobPassCriteria `json:"pass_criteria,omitempty"`
-	Benchmarks     []JobBenchmark   `json:"benchmarks,omitempty"`
-	Collection     *JobCollectionID `json:"collection,omitempty"`
-	Experiment     *JobExperiment   `json:"experiment,omitempty"`
-	HardwareConfig *HardwareConfig  `json:"hardware_config,omitempty"`
-	Custom         map[string]any   `json:"custom,omitempty"`
-	Exports        *JobExports      `json:"exports,omitempty"`
+	Resource     JobResource      `json:"resource"`
+	Status       JobStatus        `json:"status"`
+	Results      JobResults       `json:"results"`
+	Name         string           `json:"name,omitempty"`
+	Description  string           `json:"description,omitempty"`
+	Tags         []string         `json:"tags,omitempty"`
+	Model        JobModel         `json:"model"`
+	PassCriteria *JobPassCriteria `json:"pass_criteria,omitempty"`
+	Benchmarks   []JobBenchmark   `json:"benchmarks,omitempty"`
+	Collection   *JobCollectionID `json:"collection,omitempty"`
+	Experiment   *JobExperiment   `json:"experiment,omitempty"`
+	Custom       map[string]any   `json:"custom,omitempty"`
+	Exports      *JobExports      `json:"exports,omitempty"`
 }
 
 type JobResource struct {
@@ -118,7 +117,6 @@ type JobResource struct {
 	Owner              string     `json:"owner,omitempty"`
 	MlflowExperimentID string     `json:"mlflow_experiment_id,omitempty"`
 	Message            JobMessage `json:"message,omitempty"`
-	Queue              string     `json:"queue,omitempty"`
 }
 
 type JobMessage struct {
@@ -131,7 +129,6 @@ type JobStatus struct {
 	State      string           `json:"state"`
 	Message    JobMessage       `json:"message,omitempty"`
 	Benchmarks []BenchmarkState `json:"benchmarks,omitempty"`
-	Queue      string           `json:"queue,omitempty"`
 }
 
 type BenchmarkState struct {
@@ -211,40 +208,14 @@ type TestDataRef struct {
 	S3 *S3DataRef `json:"s3,omitempty"`
 }
 
-// HardwareConfig describes the resource and scheduling configuration for an evaluation job.
-// HardwareProfileName is mutually exclusive with the direct resource and queue fields.
-type HardwareConfig struct {
-	HardwareProfileName string                  `json:"hardware_profile_name,omitempty"`
-	CPU                 *HardwareResourceConfig `json:"cpu,omitempty"`
-	Memory              *HardwareResourceConfig `json:"memory,omitempty"`
-	GPU                 *HardwareGPUConfig      `json:"gpu,omitempty"`
-	Queue               *HardwareQueueConfig    `json:"queue,omitempty"`
-}
-
-type HardwareResourceConfig struct {
-	Request string `json:"request,omitempty"`
-	Limit   string `json:"limit,omitempty"`
-}
-
-type HardwareGPUConfig struct {
-	Name  string `json:"name,omitempty"`
-	Count int64  `json:"count,omitempty"`
-}
-
-type HardwareQueueConfig struct {
-	Kind string `json:"kind,omitempty"`
-	Name string `json:"name"`
-}
-
 type JobBenchmark struct {
-	ID             string           `json:"id"`
-	ProviderID     string           `json:"provider_id,omitempty"`
-	Weight         float64          `json:"weight,omitempty"`
-	PrimaryScore   *JobPrimaryScore `json:"primary_score,omitempty"`
-	PassCriteria   *JobPassCriteria `json:"pass_criteria,omitempty"`
-	Parameters     map[string]any   `json:"parameters,omitempty"`
-	TestDataRef    *TestDataRef     `json:"test_data_ref,omitempty"`
-	HardwareConfig *HardwareConfig  `json:"hardware_config,omitempty"`
+	ID           string           `json:"id"`
+	ProviderID   string           `json:"provider_id,omitempty"`
+	Weight       float64          `json:"weight,omitempty"`
+	PrimaryScore *JobPrimaryScore `json:"primary_score,omitempty"`
+	PassCriteria *JobPassCriteria `json:"pass_criteria,omitempty"`
+	Parameters   map[string]any   `json:"parameters,omitempty"`
+	TestDataRef  *TestDataRef     `json:"test_data_ref,omitempty"`
 }
 
 // CollectionsResponse is the paginated response from the EvalHub API.
@@ -274,7 +245,6 @@ type ProviderK8sRuntime struct {
 	MemoryRequest string           `json:"memory_request,omitempty"`
 	CPULimit      string           `json:"cpu_limit,omitempty"`
 	MemoryLimit   string           `json:"memory_limit,omitempty"`
-	GPU           *ProviderGPU     `json:"gpu,omitempty"`
 	Env           []ProviderEnvVar `json:"env,omitempty"`
 }
 
@@ -314,11 +284,6 @@ func (r *ProviderK8sRuntime) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
-}
-
-type ProviderGPU struct {
-	Resource string `json:"resource,omitempty"`
-	Count    int64  `json:"count,omitempty"`
 }
 
 // ProviderLocalRuntime holds local-execution runtime configuration for a provider.
@@ -503,19 +468,16 @@ type CreateCollectionRequest struct {
 
 // CreateEvaluationJobRequest is the payload sent to the EvalHub API to start a new evaluation run.
 type CreateEvaluationJobRequest struct {
-	Name           string           `json:"name"`
-	Description    string           `json:"description,omitempty"`
-	Tags           []string         `json:"tags,omitempty"`
-	Model          JobModel         `json:"model"`
-	PassCriteria   *JobPassCriteria `json:"pass_criteria,omitempty"`
-	Benchmarks     []JobBenchmark   `json:"benchmarks,omitempty"`
-	Collection     *JobCollectionID `json:"collection,omitempty"`
-	Experiment     *JobExperiment   `json:"experiment,omitempty"`
-	Custom         map[string]any   `json:"custom,omitempty"`
-	Exports        *JobExports      `json:"exports,omitempty"`
-	HardwareConfig *HardwareConfig  `json:"hardware_config,omitempty"`
-	// Queue is retained as a lowest-priority compatibility fallback. New callers should use HardwareConfig.Queue.
-	Queue *HardwareQueueConfig `json:"queue,omitempty"`
+	Name         string           `json:"name"`
+	Description  string           `json:"description,omitempty"`
+	Tags         []string         `json:"tags,omitempty"`
+	Model        JobModel         `json:"model"`
+	PassCriteria *JobPassCriteria `json:"pass_criteria,omitempty"`
+	Benchmarks   []JobBenchmark   `json:"benchmarks,omitempty"`
+	Collection   *JobCollectionID `json:"collection,omitempty"`
+	Experiment   *JobExperiment   `json:"experiment,omitempty"`
+	Custom       map[string]any   `json:"custom,omitempty"`
+	Exports      *JobExports      `json:"exports,omitempty"`
 }
 
 type JobCollectionID struct {
