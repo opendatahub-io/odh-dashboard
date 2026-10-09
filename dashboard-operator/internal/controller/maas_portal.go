@@ -12,7 +12,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -36,8 +35,9 @@ const conditionMaaSPortalAvailable = "MaaSConsumerPortalAvailable"
 const maasPortalRetryInterval = time.Minute
 
 const (
-	maasPortalDeploymentName      = "maas-consumer-portal"
-	maasPortalParamsConfigMapName = "maas-consumer-portal-params"
+	maasPortalDeploymentName      = "maas-portal"
+	maasPortalSourceDirectory     = "maas-portal"
+	maasPortalParamsConfigMapName = "maas-portal-params"
 	maasPortalPartOf              = maasPortalDeploymentName
 	maasPortalGatewayName         = "data-science-gateway"
 	maasPortalBasePath            = "/maas-consumer-portal/"
@@ -49,7 +49,7 @@ func maasPortalManifestInfo(basePath string) render.ManifestInfo {
 	return render.ManifestInfo{
 		Path:       basePath,
 		ContextDir: "distributions",
-		SourcePath: maasPortalDeploymentName,
+		SourcePath: maasPortalSourceDirectory,
 	}
 }
 
@@ -95,7 +95,8 @@ func (r *DashboardReconciler) reconcileMaaSPortal(ctx context.Context, dashboard
 		cm.MarkFalse(conditionMaaSPortalAvailable, conditions.WithReason("MaaSConsumerPortalDomainRequired"), conditions.WithMessage("MaaS Portal is enabled but gateway domain is not set"))
 		return maasPortalRetryInterval
 	}
-	if err := r.deployMaaSPortalBundle(ctx, dashboard); err != nil {
+	migration, err := r.deployMaaSPortalBundle(ctx, dashboard)
+	if err != nil {
 		// The module and federation steps run before the bundle. Preserve their
 		// specific failure conditions instead of replacing them with a generic
 		// bundle-apply failure, while still applying the portal's desired bundle.
@@ -108,21 +109,54 @@ func (r *DashboardReconciler) reconcileMaaSPortal(ctx context.Context, dashboard
 			conditions.WithMessage("MaaS Portal deployment failed: %s", err))
 		return maasPortalRetryInterval
 	}
+	if migration.Pending {
+		if !maasPortalUnavailable(cm) {
+			cm.MarkFalse(conditionMaaSPortalAvailable, conditions.WithReason("MigrationPending"),
+				conditions.WithMessage("Waiting for the updated MaaS Portal rollout or legacy HTTPRoute deletion"))
+		}
+		return maasPortalRetryInterval
+	}
 	// Do not publish a newly derived URL until all portal readiness checks pass.
 	// This preserves the previous endpoint while an update is still unavailable.
 	retryAfter := r.reconcileMaaSPortalAvailability(ctx, dashboard, cm, statuses)
 	if retryAfter == 0 {
+		// Capture pre-cleanup existence so deleting the legacy Deployment still
+		// triggers another reconciliation to remove temporary network-policy peers.
+		legacyDeployment, err := legacyMaaSPortalDeploymentExists(ctx, r.Client, r.ApplicationsNamespace)
+		if err == nil {
+			migration, err = r.deleteLegacyMaaSPortalResources(ctx)
+		}
+		if err != nil {
+			cm.MarkFalse(conditionMaaSPortalAvailable,
+				conditions.WithReason("MaaSPortalMigrationCleanupFailed"),
+				conditions.WithMessage("Legacy MaaS Portal cleanup failed: %s", err))
+			return maasPortalRetryInterval
+		}
+		// Serving readiness has passed. Asynchronous legacy deletion must not
+		// hide the available portal or delay publishing its current URL.
 		setMaaSPortalURL(&dashboard.Status, url)
+		if migration.Pending || legacyDeployment {
+			// Re-render shared policies without temporary legacy peers even if
+			// the old Deployment had no owner reference to trigger a watch.
+			return maasPortalRetryInterval
+		}
 	}
 	return retryAfter
 }
 
 func (r *DashboardReconciler) reconcileRemovedMaaSPortal(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager) time.Duration {
 	backfillMaaSPortalURL(&dashboard.Status)
-	if err := r.deleteMaaSPortalResources(ctx); err != nil {
+	cleanup, err := r.deleteMaaSPortalResources(ctx)
+	if err != nil {
 		cm.MarkFalse(conditionMaaSPortalAvailable,
 			conditions.WithReason("MaaSConsumerPortalCleanupFailed"),
 			conditions.WithMessage("MaaS Portal cleanup failed: %s", err),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
+		return maasPortalRetryInterval
+	}
+	if cleanup.Pending {
+		cm.MarkFalse(conditionMaaSPortalAvailable, conditions.WithReason("CleanupPending"),
+			conditions.WithMessage("Waiting for deletion of legacy MaaS Portal resources"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
 		return maasPortalRetryInterval
 	}
@@ -133,10 +167,17 @@ func (r *DashboardReconciler) reconcileRemovedMaaSPortal(ctx context.Context, da
 
 func (r *DashboardReconciler) reconcileUnsupportedMaaSPortal(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager) time.Duration {
 	backfillMaaSPortalURL(&dashboard.Status)
-	if err := r.deleteMaaSPortalResources(ctx); err != nil {
+	cleanup, err := r.deleteMaaSPortalResources(ctx)
+	if err != nil {
 		cm.MarkFalse(conditionMaaSPortalAvailable,
 			conditions.WithReason("MaaSConsumerPortalCleanupFailed"),
 			conditions.WithMessage("MaaS Portal cleanup failed: %s", err),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
+		return maasPortalRetryInterval
+	}
+	if cleanup.Pending {
+		cm.MarkFalse(conditionMaaSPortalAvailable, conditions.WithReason("CleanupPending"),
+			conditions.WithMessage("Waiting for deletion of legacy MaaS Portal resources"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
 		return maasPortalRetryInterval
 	}
@@ -226,7 +267,25 @@ func portalRouteReady(route *gatewayv1.HTTPRoute) bool {
 	return false
 }
 
-func (r *DashboardReconciler) deployMaaSPortalBundle(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
+func (r *DashboardReconciler) deployMaaSPortalBundle(ctx context.Context, dashboard *v1alpha1.Dashboard) (maasPortalMigrationResult, error) {
+	resources, err := r.renderMaaSPortalBundle(ctx, dashboard)
+	if err != nil {
+		return maasPortalMigrationResult{}, err
+	}
+	workloads, routes := splitMaaSPortalRoutes(resources)
+	// Apply the desired image and federation hash before checking the rollout
+	// through the API reader. Cutover must wait for this revision's replicas,
+	// rather than availability supplied by pods from an earlier revision.
+	if err := r.deployMaaSPortalResources(ctx, dashboard, workloads); err != nil {
+		return maasPortalMigrationResult{}, fmt.Errorf("deploying MaaS Portal bundle: %w", err)
+	}
+	if err := r.syncMaaSPortalDeploymentFederationHash(ctx); err != nil {
+		return maasPortalMigrationResult{}, err
+	}
+	return r.deployMaaSPortalRoute(ctx, dashboard, routes)
+}
+
+func (r *DashboardReconciler) renderMaaSPortalBundle(ctx context.Context, dashboard *v1alpha1.Dashboard) ([]unstructured.Unstructured, error) {
 	m := maasPortalManifestInfo(r.ManifestsBasePath)
 	params := readExistingParams(filepath.Join(m.String(), "params.env"))
 	maps.Copy(params, resolveImageParams())
@@ -234,36 +293,37 @@ func (r *DashboardReconciler) deployMaaSPortalBundle(ctx context.Context, dashbo
 	params["operator-namespace"] = r.Namespace
 	params["perses-namespace"] = r.maasPortalPersesNamespace(dashboard)
 	params["gateway-name"] = maasPortalGatewayName
-	params["maas-consumer-portal-federation-config"] = maasPortalFederationConfigMapName
+	params["maas-portal-federation-config"] = maasPortalFederationConfigMapName
 	if err := writeParamsEnv(m.String(), params); err != nil {
-		return fmt.Errorf("writing MaaS Portal params: %w", err)
+		return nil, fmt.Errorf("writing MaaS Portal params: %w", err)
 	}
 	rendered, err := kustomize.NewEngine().Render(m.String(), kustomize.WithNamespace(r.ApplicationsNamespace))
 	if err != nil {
-		return fmt.Errorf("rendering MaaS Portal bundle: %w", err)
+		return nil, fmt.Errorf("rendering MaaS Portal bundle: %w", err)
 	}
 	operatorNamespaces, err := r.existingMaaSPortalOperatorNamespaces(ctx)
 	if err != nil {
-		return fmt.Errorf("getting operator namespaces: %w", err)
+		return nil, fmt.Errorf("getting operator namespaces: %w", err)
 	}
 	rendered = setMaaSPortalOperatorSubscriptionNamespaces(rendered, r.Namespace)
-	resources := filterMaaSPortalResources(rendered, operatorNamespaces)
-	if err := deploy.NewDeployer(deploy.WithFieldOwner("dashboard-operator"), deploy.WithLabel(labels.PlatformPartOf, maasPortalPartOf), deploy.WithApplyOrder()).Deploy(ctx, deploy.DeployInput{Client: r.Client, Owner: dashboard, Release: deploy.ReleaseInfo{Type: string(r.Platform)}, Resources: resources}); err != nil {
-		return fmt.Errorf("deploying MaaS Portal bundle: %w", err)
-	}
-	cm := &corev1.ConfigMap{}
-	if err := r.Get(ctx, client.ObjectKey{Name: maasPortalFederationConfigMapName, Namespace: r.ApplicationsNamespace}, cm); err != nil {
-		if apierrors.IsNotFound(err) {
-			// The federation ConfigMap is reconciled separately. Its hash will be
-			// applied after it becomes available on a subsequent reconciliation.
-			return nil
+	return filterMaaSPortalResources(rendered, operatorNamespaces), nil
+}
+
+func splitMaaSPortalRoutes(resources []unstructured.Unstructured) (workloads, routes []unstructured.Unstructured) {
+	for i := range resources {
+		if resources[i].GetKind() == "HTTPRoute" {
+			routes = append(routes, resources[i])
+		} else {
+			workloads = append(workloads, resources[i])
 		}
-		return fmt.Errorf("getting MaaS Portal federation ConfigMap: %w", err)
 	}
-	if err := r.patchMaaSPortalDeploymentFederationHash(ctx, cm.Data[federationConfigKey]); err != nil {
-		return err
-	}
-	return nil
+	return workloads, routes
+}
+
+func (r *DashboardReconciler) deployMaaSPortalResources(ctx context.Context, dashboard *v1alpha1.Dashboard, resources []unstructured.Unstructured) error {
+	deployer := deploy.NewDeployer(deploy.WithFieldOwner("dashboard-operator"), deploy.WithLabel(labels.PlatformPartOf, maasPortalPartOf), deploy.WithApplyOrder())
+	return deployer.Deploy(ctx, deploy.DeployInput{Client: r.Client, Owner: dashboard,
+		Release: deploy.ReleaseInfo{Type: string(r.Platform)}, Resources: resources})
 }
 
 func (r *DashboardReconciler) maasPortalPersesNamespace(dashboard *v1alpha1.Dashboard) string {
@@ -310,8 +370,10 @@ func setMaaSPortalPersesIngressNamespace(resources []unstructured.Unstructured, 
 	return nil
 }
 
-func (r *DashboardReconciler) deleteMaaSPortalResources(ctx context.Context) error {
-	return errors.Join(
+func (r *DashboardReconciler) deleteMaaSPortalResources(ctx context.Context) (maasPortalMigrationResult, error) {
+	result, err := r.deleteLegacyMaaSPortalResources(ctx)
+	return result, errors.Join(
+		err,
 		r.deleteLabeledMaaSPortalNamespacedResources(ctx),
 		r.deleteLabeledMaaSPortalRBACResources(ctx),
 		r.deleteMaaSPortalServingCertificate(ctx),
@@ -324,6 +386,7 @@ func (r *DashboardReconciler) deleteLabeledMaaSPortalNamespacedResources(ctx con
 	for _, list := range []client.ObjectList{
 		&appsv1.DeploymentList{},
 		&corev1.ServiceList{},
+		&corev1.ServiceAccountList{},
 		&networkingv1.NetworkPolicyList{},
 		&corev1.ConfigMapList{},
 	} {

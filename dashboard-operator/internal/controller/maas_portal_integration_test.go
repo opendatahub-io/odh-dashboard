@@ -10,11 +10,14 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,8 +40,8 @@ import (
 func writeMaaSPortalManifest(t *testing.T, base string) {
 	t.Helper()
 
-	source := filepath.Join("..", "..", "..", "manifests", "distributions", "maas-consumer-portal")
-	destination := filepath.Join(base, "distributions", "maas-consumer-portal")
+	source := filepath.Join("..", "..", "..", "manifests", "distributions", "maas-portal")
+	destination := filepath.Join(base, "distributions", "maas-portal")
 	require.NoError(t, os.CopyFS(destination, os.DirFS(source)))
 }
 
@@ -73,8 +76,9 @@ resources:
 
 func cleanupMaaSPortalResources(t *testing.T, r *ctrlpkg.DashboardReconciler) {
 	t.Helper()
-	require.NoError(t, r.DeleteMaaSPortalResources(context.Background()))
-	require.NoError(t, client.IgnoreNotFound(k8sClient.Delete(context.Background(), &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: "maas-consumer-portal", Namespace: integrationNamespace}})))
+	pending, err := r.DeleteMaaSPortalResources(context.Background())
+	require.NoError(t, err)
+	require.False(t, pending)
 }
 
 func getPortalResource(t *testing.T, apiVersion, kind, name string) *unstructured.Unstructured {
@@ -147,7 +151,7 @@ func TestIntegration_CoreDashboardAndMaaSPortalRoutesShareGateway(t *testing.T) 
 		path string
 	}{
 		{name: "rhods-dashboard", path: "/"},
-		{name: "maas-consumer-portal", path: "/maas-consumer-portal"},
+		{name: "maas-portal", path: "/maas-consumer-portal"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			route := &gatewayv1.HTTPRoute{}
@@ -196,15 +200,15 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 	reconcile(t, r)
 
 	for _, resource := range []struct{ apiVersion, kind, name string }{
-		{"apps/v1", "Deployment", "maas-consumer-portal"},
-		{"v1", "Service", "maas-consumer-portal"},
-		{"v1", "ServiceAccount", "maas-consumer-portal"},
-		{"networking.k8s.io/v1", "NetworkPolicy", "maas-consumer-portal"},
-		{"networking.k8s.io/v1", "NetworkPolicy", "maas-consumer-portal-perses"},
-		{"v1", "ConfigMap", "maas-consumer-portal-federation-config"},
-		{"gateway.networking.k8s.io/v1", "HTTPRoute", "maas-consumer-portal"},
-		{"rbac.authorization.k8s.io/v1", "ClusterRole", "maas-consumer-portal"},
-		{"rbac.authorization.k8s.io/v1", "ClusterRoleBinding", "maas-consumer-portal"},
+		{"apps/v1", "Deployment", "maas-portal"},
+		{"v1", "Service", "maas-portal"},
+		{"v1", "ServiceAccount", "maas-portal"},
+		{"networking.k8s.io/v1", "NetworkPolicy", "maas-portal"},
+		{"networking.k8s.io/v1", "NetworkPolicy", "maas-portal-perses"},
+		{"v1", "ConfigMap", "maas-portal-federation-config"},
+		{"gateway.networking.k8s.io/v1", "HTTPRoute", "maas-portal"},
+		{"rbac.authorization.k8s.io/v1", "ClusterRole", "maas-portal"},
+		{"rbac.authorization.k8s.io/v1", "ClusterRoleBinding", "maas-portal"},
 	} {
 		assert.NotNil(t, getPortalResource(t, resource.apiVersion, resource.kind, resource.name), "%s/%s should be deployed", resource.kind, resource.name)
 	}
@@ -214,7 +218,7 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 	// Report the normally controller-managed Deployment and HTTPRoute status so
 	// this envtest can verify the aggregate Ready condition for portal-only use.
 	deployment := &appsv1.Deployment{}
-	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-consumer-portal", Namespace: integrationNamespace}, deployment))
+	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-portal", Namespace: integrationNamespace}, deployment))
 	deployment.Status.ObservedGeneration = deployment.Generation
 	deployment.Status.Conditions = []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue}}
 	require.NoError(t, k8sClient.Status().Update(ctx, deployment))
@@ -227,7 +231,7 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 		require.NoError(t, k8sClient.Status().Update(ctx, moduleDeployment))
 	}
 	route := &gatewayv1.HTTPRoute{}
-	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-consumer-portal", Namespace: integrationNamespace}, route))
+	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-portal", Namespace: integrationNamespace}, route))
 	assert.Empty(t, route.Spec.Hostnames, "the portal route must use the shared Gateway hostname contract")
 	require.Len(t, route.Spec.ParentRefs, 1)
 	assert.Equal(t, gatewayv1.ObjectName("data-science-gateway"), route.Spec.ParentRefs[0].Name)
@@ -256,7 +260,7 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 	unstructured.RemoveNestedField(preFix.Object, "metadata", "uid")
 	unstructured.RemoveNestedField(preFix.Object, "status")
 	require.NoError(t, k8sClient.Apply(ctx, client.ApplyConfigurationFromUnstructured(preFix), client.FieldOwner("dashboard-operator")))
-	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-consumer-portal", Namespace: integrationNamespace}, route))
+	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-portal", Namespace: integrationNamespace}, route))
 	previousRouteUID := route.GetUID()
 	assert.Equal(t, []gatewayv1.Hostname{"test.example.com"}, route.Spec.Hostnames)
 	route.Status.Parents = []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
@@ -265,7 +269,7 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 	}}}
 	require.NoError(t, k8sClient.Status().Update(ctx, route))
 	reconcile(t, r)
-	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-consumer-portal", Namespace: integrationNamespace}, route))
+	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-portal", Namespace: integrationNamespace}, route))
 	assert.Equal(t, previousRouteUID, route.GetUID(), "removing hostnames must update the existing HTTPRoute")
 	assert.Empty(t, route.Spec.Hostnames)
 	for i := range route.Status.Parents[0].Conditions {
@@ -289,11 +293,11 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 	require.NoError(t, k8sClient.Update(ctx, updated))
 	reconcile(t, r)
 	deployment = &appsv1.Deployment{}
-	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-consumer-portal", Namespace: integrationNamespace}, deployment))
+	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-portal", Namespace: integrationNamespace}, deployment))
 	require.Len(t, deployment.Spec.Template.Spec.Containers, 1)
 	assert.Equal(t, "registry.example.com/odh-core-bff:updated", deployment.Spec.Template.Spec.Containers[0].Image)
 	route = &gatewayv1.HTTPRoute{}
-	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-consumer-portal", Namespace: integrationNamespace}, route))
+	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-portal", Namespace: integrationNamespace}, route))
 	assert.Equal(t, previousRouteUID, route.GetUID(), "gateway-domain changes must update the existing HTTPRoute")
 	assert.Empty(t, route.Spec.Hostnames, "gateway-domain changes must not restore route hostnames")
 	assert.Equal(t, "https://test.example.com/maas-consumer-portal/", getDashboard(t).Status.MaaSPortalURL)
@@ -321,7 +325,7 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			if strings.Contains(string(data), `"kind":"Deployment"`) && strings.Contains(string(data), `"name":"maas-consumer-portal"`) {
+			if strings.Contains(string(data), `"kind":"Deployment"`) && strings.Contains(string(data), `"name":"maas-portal"`) {
 				return errors.New("simulated MaaS Portal apply failure")
 			}
 			return delegate.Apply(ctx, configuration, options...)
@@ -335,7 +339,7 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 
 	// service-ca normally creates this unlabelled Secret; model it explicitly to
 	// verify portal removal does not rely on owner-reference garbage collection.
-	require.NoError(t, k8sClient.Create(ctx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "maas-consumer-portal-tls", Namespace: integrationNamespace}}))
+	require.NoError(t, k8sClient.Create(ctx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "maas-portal-tls", Namespace: integrationNamespace}}))
 
 	// Disable the portal and remove its resources.
 	dashboard = getDashboard(t)
@@ -345,19 +349,19 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 	reconcile(t, r)
 
 	for _, resource := range []struct{ apiVersion, kind, name string }{
-		{"apps/v1", "Deployment", "maas-consumer-portal"},
-		{"v1", "Service", "maas-consumer-portal"},
-		{"networking.k8s.io/v1", "NetworkPolicy", "maas-consumer-portal"},
-		{"networking.k8s.io/v1", "NetworkPolicy", "maas-consumer-portal-perses"},
-		{"v1", "ConfigMap", "maas-consumer-portal-federation-config"},
-		{"gateway.networking.k8s.io/v1", "HTTPRoute", "maas-consumer-portal"},
-		{"rbac.authorization.k8s.io/v1", "ClusterRole", "maas-consumer-portal"},
-		{"rbac.authorization.k8s.io/v1", "ClusterRoleBinding", "maas-consumer-portal"},
-		{"v1", "Secret", "maas-consumer-portal-tls"},
+		{"apps/v1", "Deployment", "maas-portal"},
+		{"v1", "Service", "maas-portal"},
+		{"v1", "ServiceAccount", "maas-portal"},
+		{"networking.k8s.io/v1", "NetworkPolicy", "maas-portal"},
+		{"networking.k8s.io/v1", "NetworkPolicy", "maas-portal-perses"},
+		{"v1", "ConfigMap", "maas-portal-federation-config"},
+		{"gateway.networking.k8s.io/v1", "HTTPRoute", "maas-portal"},
+		{"rbac.authorization.k8s.io/v1", "ClusterRole", "maas-portal"},
+		{"rbac.authorization.k8s.io/v1", "ClusterRoleBinding", "maas-portal"},
+		{"v1", "Secret", "maas-portal-tls"},
 	} {
 		assert.Nil(t, getPortalResource(t, resource.apiVersion, resource.kind, resource.name), "%s/%s should be removed", resource.kind, resource.name)
 	}
-	assert.NotNil(t, getPortalResource(t, "v1", "ServiceAccount", "maas-consumer-portal"), "ServiceAccount is retained for platforms that protect ServiceAccounts")
 	assert.Empty(t, getDashboard(t).Status.MaaSPortalURL)
 }
 
@@ -403,8 +407,8 @@ func TestIntegration_MaaSPortalResourcesPreservedWhenCoreRemoved(t *testing.T) {
 
 	reconcile(t, r)
 
-	assert.NotNil(t, getPortalResource(t, "apps/v1", "Deployment", "maas-consumer-portal"))
-	assert.NotNil(t, getPortalResource(t, "gateway.networking.k8s.io/v1", "HTTPRoute", "maas-consumer-portal"))
+	assert.NotNil(t, getPortalResource(t, "apps/v1", "Deployment", "maas-portal"))
+	assert.NotNil(t, getPortalResource(t, "gateway.networking.k8s.io/v1", "HTTPRoute", "maas-portal"))
 
 	updated := getDashboard(t)
 	assert.Equal(t, metav1.ConditionFalse, conditionStatus(updated, "MaaSConsumerPortalAvailable"),
@@ -453,17 +457,221 @@ func TestIntegration_MaaSPortalModuleDemandMatrix(t *testing.T) {
 				assert.Empty(t, listServices(t, "gen-ai"))
 			}
 
-			maasPortalConfig := getConfigMap(t, "maas-consumer-portal-federation-config")
+			maasPortalConfig := getConfigMap(t, "maas-portal-federation-config")
 			if !tt.wantMaaSPortalConfig {
 				assert.Nil(t, maasPortalConfig)
 				return
 			}
 			require.NotNil(t, maasPortalConfig)
-			assert.Equal(t, "maas-consumer-portal", maasPortalConfig.Labels[labels.PlatformPartOf])
+			assert.Equal(t, "maas-portal", maasPortalConfig.Labels[labels.PlatformPartOf])
 			entries := parseFederationEntries(t, maasPortalConfig)
 			require.Len(t, entries, 2)
 			assert.NotNil(t, findFederationEntry(entries, "maas"))
 			assert.NotNil(t, findFederationEntry(entries, "genAi"))
 		})
 	}
+}
+
+func TestIntegration_MaaSPortalLegacyResourceMigration(t *testing.T) {
+	ctx := context.Background()
+	const legacyName = "maas-consumer-portal"
+	installPersesCRD(t)
+	base := createIntegrationManifests(t, []string{"maas", "gen-ai"})
+	writeMaaSPortalManifest(t, base)
+	writePortalObservabilityOverlay(t, base)
+	for _, slug := range []string{"maas", "gen-ai"} {
+		moduleDir := filepath.Join(base, "modules", slug)
+		policy, err := os.ReadFile(filepath.Join("..", "..", "..", "manifests", "modules", slug, "networkpolicy.yaml"))
+		require.NoError(t, err)
+		require.NoError(t, os.WriteFile(filepath.Join(moduleDir, "networkpolicy.yaml"), policy, 0644))
+		file := filepath.Join(moduleDir, "kustomization.yaml")
+		kustomization, err := os.ReadFile(file)
+		require.NoError(t, err)
+		require.NoError(t, os.WriteFile(file, []byte(strings.Replace(string(kustomization), "resources:\n", "resources:\n  - networkpolicy.yaml\n", 1)), 0644))
+	}
+	r := &ctrlpkg.DashboardReconciler{Client: newIsolatedClient(t), Scheme: k8sClient.Scheme(), ManifestsBasePath: base,
+		Platform: cluster.SelfManagedRhoai, Namespace: integrationNamespace, ApplicationsNamespace: integrationNamespace}
+	dashboard := newDashboard(v1alpha1.DashboardSpec{
+		ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
+		Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+		Modules:        disableAllModulesExcept("maas", "genAi"),
+		MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
+		Observability: &v1alpha1.ObservabilitySpec{Enabled: true,
+			PersesService: &v1alpha1.ServiceTarget{Name: "test-perses", Namespace: integrationNamespace, Port: 8080}},
+	})
+	require.NoError(t, k8sClient.Create(ctx, dashboard))
+	t.Cleanup(func() {
+		oldRoute := &gatewayv1.HTTPRoute{}
+		if err := k8sClient.Get(ctx, client.ObjectKey{Name: legacyName, Namespace: integrationNamespace}, oldRoute); err == nil {
+			oldRoute.Finalizers = nil
+			require.NoError(t, k8sClient.Update(ctx, oldRoute))
+		}
+		deleteDashboard(t)
+		cleanupMaaSPortalResources(t, r)
+		cleanupModuleResources(t)
+		for _, name := range []string{"maas-allow-ports", "gen-ai-allow-ports", "dashboard-perses-access"} {
+			require.NoError(t, client.IgnoreNotFound(k8sClient.Delete(ctx, &networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: integrationNamespace}})))
+		}
+	})
+	assertNetworkAccess := func(legacyAllowed bool) {
+		t.Helper()
+		for _, name := range []string{"maas-allow-ports", "gen-ai-allow-ports", "dashboard-perses-access"} {
+			var policy networkingv1.NetworkPolicy
+			require.NoError(t, k8sClient.Get(ctx, client.ObjectKey{Name: name, Namespace: integrationNamespace}, &policy))
+			var newPeer, legacyPeer bool
+			for _, ingress := range policy.Spec.Ingress {
+				for _, peer := range ingress.From {
+					if peer.PodSelector == nil {
+						continue
+					}
+					for _, key := range []string{"deployment", "app.kubernetes.io/part-of"} {
+						newPeer = newPeer || peer.PodSelector.MatchLabels[key] == "maas-portal"
+						legacyPeer = legacyPeer || peer.PodSelector.MatchLabels[key] == legacyName
+					}
+				}
+			}
+			assert.True(t, newPeer, "%s must allow the replacement portal", name)
+			assert.Equal(t, legacyAllowed, legacyPeer, "%s legacy access must follow migration progress", name)
+		}
+	}
+
+	// Seed a complete previous installation, including unlabeled service-ca
+	// output. Render a fixture copy to keep reconciliation's params isolated.
+	paramsPath := filepath.Join(base, "distributions", "maas-portal", "params.env")
+	params, err := os.ReadFile(paramsPath)
+	require.NoError(t, err)
+	for key, value := range map[string]string{
+		"maas-portal-federation-config": "maas-portal-federation-config",
+		"dashboard-namespace":           integrationNamespace,
+		"operator-namespace":            integrationNamespace,
+		"perses-namespace":              integrationNamespace,
+		"gateway-name":                  "data-science-gateway",
+	} {
+		params = []byte(strings.ReplaceAll(string(params), key+"=\n", key+"="+value+"\n"))
+	}
+	require.NoError(t, os.WriteFile(paramsPath, params, 0644))
+	bundle, err := kustomize.NewEngine().Render(filepath.Join(base, "distributions", "maas-portal"), kustomize.WithNamespace(integrationNamespace))
+	require.NoError(t, err)
+	legacy := make([]*unstructured.Unstructured, 0, len(bundle))
+	for i := range bundle {
+		data, err := json.Marshal(bundle[i].Object)
+		require.NoError(t, err)
+		resource := &unstructured.Unstructured{}
+		require.NoError(t, json.Unmarshal([]byte(strings.ReplaceAll(string(data), "maas-portal", legacyName)), &resource.Object))
+		if resource.GetKind() == "HTTPRoute" {
+			resource.SetFinalizers([]string{"test/hold-legacy-route"})
+		}
+		require.NoError(t, k8sClient.Create(ctx, resource))
+		legacy = append(legacy, resource)
+	}
+	require.NoError(t, k8sClient.Create(ctx, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: legacyName + "-federation-config", Namespace: integrationNamespace}}))
+	legacySecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: legacyName + "-tls", Namespace: integrationNamespace, Finalizers: []string{"test/hold-legacy-secret"}}}
+	require.NoError(t, k8sClient.Create(ctx, legacySecret))
+	t.Cleanup(func() {
+		secret := &corev1.Secret{}
+		if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(legacySecret), secret); err == nil {
+			secret.Finalizers = nil
+			_ = k8sClient.Update(ctx, secret)
+		}
+	})
+
+	reconcile(t, r)
+	reconcile(t, r)
+	assert.NotNil(t, getPortalResource(t, "apps/v1", "Deployment", "maas-portal"))
+	assert.NotNil(t, getPortalResource(t, "gateway.networking.k8s.io/v1", "HTTPRoute", legacyName))
+	assert.Nil(t, getPortalResource(t, "gateway.networking.k8s.io/v1", "HTTPRoute", "maas-portal"), "do not apply competing routes while the new workload starts")
+	assertNetworkAccess(true)
+
+	for _, name := range []string{"maas-portal", "maas-ui", "gen-ai-ui"} {
+		dep := &appsv1.Deployment{}
+		require.NoError(t, k8sClient.Get(ctx, client.ObjectKey{Name: name, Namespace: integrationNamespace}, dep))
+		dep.Status.ObservedGeneration = dep.Generation
+		dep.Status.Replicas = 1
+		dep.Status.ReadyReplicas = 1
+		dep.Status.UpdatedReplicas = 1
+		dep.Status.AvailableReplicas = 1
+		if name == "maas-portal" {
+			dep.Status.Replicas = 2 // Old pod available while the updated pod is unready.
+		}
+		dep.Status.Conditions = []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue}}
+		require.NoError(t, k8sClient.Status().Update(ctx, dep))
+	}
+	// A partially migrated installation may already have an accepted new route.
+	// Its readiness must not bypass the rollout gate through legacy cleanup.
+	partialRoute := &gatewayv1.HTTPRoute{}
+	require.NoError(t, k8sClient.Get(ctx, client.ObjectKey{Name: legacyName, Namespace: integrationNamespace}, partialRoute))
+	partialRoute.ObjectMeta = metav1.ObjectMeta{Name: "maas-portal", Namespace: integrationNamespace}
+	partialRoute.Spec.Rules[1].BackendRefs[0].Name = "maas-portal"
+	partialRoute.Status = gatewayv1.HTTPRouteStatus{}
+	require.NoError(t, k8sClient.Create(ctx, partialRoute))
+	t.Cleanup(func() {
+		require.NoError(t, client.IgnoreNotFound(k8sClient.Delete(ctx, partialRoute)))
+	})
+	partialRoute.Status.Parents = []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
+		{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: partialRoute.Generation},
+		{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: partialRoute.Generation},
+	}}}
+	require.NoError(t, k8sClient.Status().Update(ctx, partialRoute))
+	reconcile(t, r)
+	rollingRoute := &gatewayv1.HTTPRoute{}
+	require.NoError(t, k8sClient.Get(ctx, client.ObjectKey{Name: legacyName, Namespace: integrationNamespace}, rollingRoute))
+	assert.Nil(t, rollingRoute.DeletionTimestamp, "availability from an old pod must not start legacy route deletion")
+	assert.NotNil(t, getPortalResource(t, "v1", "Service", legacyName), "an accepted new route must not bypass migration through cleanup")
+	require.NoError(t, k8sClient.Delete(ctx, partialRoute))
+	assertNetworkAccess(true)
+	rolledOut := &appsv1.Deployment{}
+	require.NoError(t, k8sClient.Get(ctx, client.ObjectKey{Name: "maas-portal", Namespace: integrationNamespace}, rolledOut))
+	rolledOut.Status.Replicas = 1
+	require.NoError(t, k8sClient.Status().Update(ctx, rolledOut))
+	for range 2 {
+		reconcile(t, r)
+		assert.Nil(t, getPortalResource(t, "gateway.networking.k8s.io/v1", "HTTPRoute", "maas-portal"), "wait for legacy route deletion to finish")
+		assert.Equal(t, "MigrationPending", conditionReason(getDashboard(t), ctrlpkg.ConditionMaaSPortalAvailable), "a finalizer must report migration progress instead of deployment failure")
+		assertNetworkAccess(true)
+	}
+	oldRoute := &gatewayv1.HTTPRoute{}
+	require.NoError(t, k8sClient.Get(ctx, client.ObjectKey{Name: legacyName, Namespace: integrationNamespace}, oldRoute))
+	require.NotNil(t, oldRoute.DeletionTimestamp)
+	oldRoute.Finalizers = nil
+	require.NoError(t, k8sClient.Update(ctx, oldRoute))
+	// Model a restart in the gap between deleting the old route and applying
+	// its replacement: the next reconciliation must resume without a marker.
+	require.Eventually(t, func() bool {
+		return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKey{Name: legacyName, Namespace: integrationNamespace}, &gatewayv1.HTTPRoute{}))
+	}, 5*time.Second, 100*time.Millisecond)
+	reconcile(t, r)
+	newRoute := &gatewayv1.HTTPRoute{}
+	require.NoError(t, k8sClient.Get(ctx, client.ObjectKey{Name: "maas-portal", Namespace: integrationNamespace}, newRoute))
+	assert.NotNil(t, getPortalResource(t, "v1", "Service", legacyName), "retain legacy backend until replacement admission")
+	assertNetworkAccess(true)
+	newRoute.Status.Parents = []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
+		{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: newRoute.Generation},
+		{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: newRoute.Generation},
+	}}}
+	require.NoError(t, k8sClient.Status().Update(ctx, newRoute))
+	result := reconcile(t, r)
+	assert.Equal(t, time.Minute, result.RequeueAfter, "schedule policy cleanup even for an unowned legacy Deployment")
+	for range 2 {
+		current := getDashboard(t)
+		assert.Equal(t, metav1.ConditionTrue, conditionStatus(current, ctrlpkg.ConditionMaaSPortalAvailable), "post-cutover deletion must not hide the serving portal")
+		assert.Equal(t, "https://test.example.com/maas-consumer-portal/", current.Status.MaaSPortalURL)
+		assert.Equal(t, current.Status.MaaSPortalURL, current.Status.MaaSConsumerPortalURL)
+		require.NoError(t, k8sClient.Get(ctx, client.ObjectKeyFromObject(legacySecret), legacySecret))
+		require.NotNil(t, legacySecret.DeletionTimestamp)
+		assert.Equal(t, time.Minute, reconcile(t, r).RequeueAfter, "continue retrying legacy cleanup")
+	}
+	legacySecret.Finalizers = nil
+	require.NoError(t, k8sClient.Update(ctx, legacySecret))
+	reconcile(t, r)
+	assertNetworkAccess(false)
+	for _, resource := range legacy {
+		assert.True(t, apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(resource), resource.DeepCopy())), "%s/%s should be absent after migration", resource.GetKind(), resource.GetName())
+	}
+	for _, resource := range []struct{ kind, name string }{{"Secret", legacyName + "-tls"}, {"ConfigMap", legacyName + "-federation-config"}} {
+		assert.Nil(t, getPortalResource(t, "v1", resource.kind, resource.name))
+	}
+	assert.NotNil(t, getPortalResource(t, "v1", "ServiceAccount", "maas-portal"))
+	assert.NotNil(t, getPortalResource(t, "v1", "Service", "maas-ui"))
+	assert.NotNil(t, getPortalResource(t, "v1", "Service", "gen-ai-ui"))
+	assert.Equal(t, metav1.ConditionTrue, conditionStatus(getDashboard(t), ctrlpkg.ConditionMaaSPortalAvailable))
 }

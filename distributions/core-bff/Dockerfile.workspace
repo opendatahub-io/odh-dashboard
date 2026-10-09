@@ -112,10 +112,10 @@ WORKDIR /
 COPY --from=bff-builder /tmp/bff ./bff
 COPY --from=bff-builder /usr/src/app/openapi/ ./openapi/
 COPY --from=ui-builder /usr/src/workspace/${UI_SOURCE_CODE}/dist ./static/
-COPY --from=ui-builder /usr/src/workspace/distributions/maas-portal/public ./static/maas-consumer-portal/
+COPY --from=ui-builder /usr/src/workspace/distributions/maas-portal/public ./static/maas-portal/
 
 # Fail the image build if the MaaS Portal production bundle was not packaged.
-RUN test -s /static/maas-consumer-portal/index.html
+RUN test -s /static/maas-portal/index.html
 
 USER 65532:65532
 
