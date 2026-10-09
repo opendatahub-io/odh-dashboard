@@ -143,6 +143,9 @@ func (r *ResponsesRepository) resolveMaasClient(ctx context.Context, namespace, 
 	if baseURL == "" {
 		return nil, fmt.Errorf("MaaS secret %q missing MAAS_BASE_URL", secretName)
 	}
+	if apiKey == "" {
+		return nil, fmt.Errorf("MaaS secret %q missing MAAS_API_KEY", secretName)
+	}
 	validatedURL, err := maas.ValidateBaseURL(baseURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid MaaS base URL: %w", err)

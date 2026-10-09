@@ -46,6 +46,7 @@ func TestResponsesRepositoryResolveMaasClientRequiresInjectedFactory(t *testing.
 		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
 			return &v1.Secret{Data: map[string][]byte{
 				"MAAS_BASE_URL": []byte("https://maas.example"),
+				"MAAS_API_KEY":  []byte("test-key"),
 			}}, nil
 		},
 	})
