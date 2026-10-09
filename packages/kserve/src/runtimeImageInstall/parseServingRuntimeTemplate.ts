@@ -1,15 +1,8 @@
-import type { K8sResourceCommon, TemplateKind } from '@odh-dashboard/k8s-core';
+import { hasK8sIdentity, type TemplateKind } from '@odh-dashboard/k8s-core';
 import { isServingRuntimeKind, isTemplateKind } from '@odh-dashboard/model-serving/shared';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const hasK8sIdentity = (value: unknown): value is K8sResourceCommon =>
-  isRecord(value) &&
-  typeof value.apiVersion === 'string' &&
-  typeof value.kind === 'string' &&
-  isRecord(value.metadata) &&
-  typeof value.metadata.name === 'string';
 
 /** A library Template is source data, not a live Kubernetes resource to recreate. */
 export const parseServingRuntimeTemplate = (json: string): TemplateKind => {

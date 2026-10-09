@@ -57,8 +57,7 @@ const ServingRuntimeInstallTarget: React.FC<RuntimeImageInstallTargetProps> = ({
                 onClick={() => {
                   fireServingRuntimeTemplateCreated({
                     outcome: TrackingOutcome.cancel,
-                    mode: 'create',
-                    source: 'install',
+                    mode: 'install',
                   });
                   navigate(cancelReturnRoute);
                 }}

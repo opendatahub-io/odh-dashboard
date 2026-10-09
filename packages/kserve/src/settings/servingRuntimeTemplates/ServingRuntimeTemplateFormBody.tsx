@@ -214,8 +214,7 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                     fireServingRuntimeTemplateCreated({
                       outcome: TrackingOutcome.submit,
                       success: false,
-                      mode: isDuplicate ? 'duplicate' : 'create',
-                      ...(isInstall && { source: 'install' }),
+                      mode,
                       apiProtocol: selectedAPIProtocol,
                       modelTypes: selectedModelTypes.join(','),
                     });
@@ -253,8 +252,7 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                       fireServingRuntimeTemplateCreated({
                         outcome: TrackingOutcome.submit,
                         success: true,
-                        mode: isDuplicate ? 'duplicate' : 'create',
-                        ...(isInstall && { source: 'install' }),
+                        mode,
                         apiProtocol: selectedAPIProtocol,
                         modelTypes: selectedModelTypesStr,
                       });
@@ -276,8 +274,7 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                       fireServingRuntimeTemplateCreated({
                         outcome: TrackingOutcome.submit,
                         success: false,
-                        mode: isDuplicate ? 'duplicate' : 'create',
-                        ...(isInstall && { source: 'install' }),
+                        mode,
                         apiProtocol: selectedAPIProtocol,
                         modelTypes: selectedModelTypesStr,
                       });
@@ -301,8 +298,7 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                 } else {
                   fireServingRuntimeTemplateCreated({
                     outcome: TrackingOutcome.cancel,
-                    mode: isDuplicate ? 'duplicate' : 'create',
-                    ...(isInstall && { source: 'install' }),
+                    mode,
                   });
                 }
                 navigate(props.mode === 'install' ? props.cancelReturnRoute : listPath);

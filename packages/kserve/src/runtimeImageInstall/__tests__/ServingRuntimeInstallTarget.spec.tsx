@@ -113,8 +113,7 @@ describe('ServingRuntimeInstallTarget', () => {
     expect(await screen.findByText('Serving runtime templates list')).toBeInTheDocument();
     expect(trackingMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        mode: 'create',
-        source: 'install',
+        mode: 'install',
         outcome: TrackingOutcome.submit,
         success: true,
       }),
@@ -131,8 +130,7 @@ describe('ServingRuntimeInstallTarget', () => {
     expect(screen.getByText('Runtime image detail')).toBeInTheDocument();
     expect(trackingMock).toHaveBeenCalledWith({
       outcome: TrackingOutcome.cancel,
-      mode: 'create',
-      source: 'install',
+      mode: 'install',
     });
   });
 
@@ -170,8 +168,7 @@ describe('ServingRuntimeInstallTarget', () => {
     expect(screen.getByText('Runtime image detail')).toBeInTheDocument();
     expect(trackingMock).toHaveBeenCalledWith({
       outcome: TrackingOutcome.cancel,
-      mode: 'create',
-      source: 'install',
+      mode: 'install',
     });
   });
 
@@ -186,7 +183,7 @@ describe('ServingRuntimeInstallTarget', () => {
       expect.objectContaining({
         outcome: TrackingOutcome.submit,
         success: false,
-        source: 'install',
+        mode: 'install',
       }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
@@ -205,7 +202,7 @@ describe('ServingRuntimeInstallTarget', () => {
       expect.objectContaining({
         outcome: TrackingOutcome.submit,
         success: false,
-        source: 'install',
+        mode: 'install',
       }),
     );
   });

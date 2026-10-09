@@ -45,15 +45,13 @@ describe('fireServingRuntimeTemplateCreated', () => {
     fireServingRuntimeTemplateCreated({
       outcome: TrackingOutcome.submit,
       success: true,
-      mode: 'create',
-      source: 'install',
+      mode: 'install',
       apiProtocol: ServingRuntimeAPIProtocol.REST,
       modelTypes: 'generative',
     });
     fireServingRuntimeTemplateCreated({
       outcome: TrackingOutcome.cancel,
-      mode: 'create',
-      source: 'install',
+      mode: 'install',
     });
     expect(mockFireFormTrackingEvent).toHaveBeenNthCalledWith(
       1,
@@ -71,6 +69,30 @@ describe('fireServingRuntimeTemplateCreated', () => {
       2,
       ServingRuntimeTemplateTrackingEvent.CREATED,
       { outcome: TrackingOutcome.cancel, mode: 'create', source: 'install' },
+    );
+  });
+
+  it('should normalize Add form mode to the existing create analytics value', () => {
+    fireServingRuntimeTemplateCreated({
+      outcome: TrackingOutcome.submit,
+      success: true,
+      mode: 'add',
+    });
+    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+      ServingRuntimeTemplateTrackingEvent.CREATED,
+      { outcome: TrackingOutcome.submit, success: true, mode: 'create' },
+    );
+  });
+
+  it('should retain install attribution when submission fails', () => {
+    fireServingRuntimeTemplateCreated({
+      outcome: TrackingOutcome.submit,
+      success: false,
+      mode: 'install',
+    });
+    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+      ServingRuntimeTemplateTrackingEvent.CREATED,
+      { outcome: TrackingOutcome.submit, success: false, mode: 'create', source: 'install' },
     );
   });
 

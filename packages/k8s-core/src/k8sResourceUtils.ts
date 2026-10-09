@@ -8,6 +8,22 @@ import type {
 } from './k8sTypes';
 import { AccessMode } from './types';
 
+/** Checks a named resource's identity fields, not its resource-specific spec. */
+export const hasK8sIdentity = (value: unknown): value is K8sResourceCommon =>
+  typeof value === 'object' &&
+  value !== null &&
+  !Array.isArray(value) &&
+  'apiVersion' in value &&
+  typeof value.apiVersion === 'string' &&
+  'kind' in value &&
+  typeof value.kind === 'string' &&
+  'metadata' in value &&
+  typeof value.metadata === 'object' &&
+  value.metadata !== null &&
+  !Array.isArray(value.metadata) &&
+  'name' in value.metadata &&
+  typeof value.metadata.name === 'string';
+
 export const isK8sDSGResource = (x?: K8sResourceCommon): x is K8sDSGResource =>
   x?.metadata?.name != null;
 export const getDisplayNameFromK8sResource = (resource: K8sDSGResource): string =>
