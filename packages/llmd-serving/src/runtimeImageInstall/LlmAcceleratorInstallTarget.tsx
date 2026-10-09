@@ -19,8 +19,9 @@ import type { RuntimeImageInstallTargetProps } from '@odh-dashboard/model-servin
 import { parseLlmInferenceServiceConfig } from './parseLlmInferenceServiceConfig';
 import LlmAcceleratorConfigFormBody from '../settings/llmAcceleratorConfigs/LlmAcceleratorConfigFormBody';
 import { fireLlmAcceleratorConfigCreated } from '../tracking/llmdTrackingConstants';
+import LlmInferenceServiceConfigAccessGate from '../settings/LlmInferenceServiceConfigAccessGate';
 
-const LlmAcceleratorInstallTarget: React.FC<RuntimeImageInstallTargetProps> = ({
+const LlmAcceleratorInstallTargetBody: React.FC<RuntimeImageInstallTargetProps> = ({
   targetData,
   onBack,
   cancelReturnRoute,
@@ -99,5 +100,11 @@ const LlmAcceleratorInstallTarget: React.FC<RuntimeImageInstallTargetProps> = ({
     </Stack>
   );
 };
+
+const LlmAcceleratorInstallTarget: React.FC<RuntimeImageInstallTargetProps> = (props) => (
+  <LlmInferenceServiceConfigAccessGate>
+    <LlmAcceleratorInstallTargetBody {...props} />
+  </LlmInferenceServiceConfigAccessGate>
+);
 
 export default LlmAcceleratorInstallTarget;
