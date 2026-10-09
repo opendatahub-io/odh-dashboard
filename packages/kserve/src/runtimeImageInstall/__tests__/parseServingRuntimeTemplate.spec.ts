@@ -21,6 +21,10 @@ describe('parseServingRuntimeTemplate', () => {
             uid: 'server-uid',
             resourceVersion: '42',
             managedFields: [],
+            ownerReferences: [],
+            namespace: 'source-project',
+            creationTimestamp: '2026-10-09T00:00:00Z',
+            generation: 3,
           },
         },
       ],
@@ -29,7 +33,17 @@ describe('parseServingRuntimeTemplate', () => {
     expect(result.objects[0].metadata).not.toHaveProperty('uid');
     expect(result.objects[0].metadata).not.toHaveProperty('resourceVersion');
     expect(result.objects[0].metadata).not.toHaveProperty('managedFields');
+    expect(result.objects[0].metadata).not.toHaveProperty('ownerReferences');
+    expect(result.objects[0].metadata).not.toHaveProperty('namespace');
+    expect(result.objects[0].metadata).not.toHaveProperty('creationTimestamp');
+    expect(result.objects[0].metadata).not.toHaveProperty('generation');
+    expect(result.objects[0].metadata.name).toBe('runtime-from-library');
+    expect(result.objects[0].metadata.annotations).toEqual(
+      template.objects[0].metadata.annotations,
+    );
+    expect(result.objects[0].spec).toEqual(template.objects[0].spec);
     expect(original.objects[0].metadata.uid).toBe('server-uid');
+    expect(original.objects[0].metadata.namespace).toBe('source-project');
   });
 
   it.each(['{bad', 'null', '[]', '{}', '{"kind":"ConfigMap"}'])(
@@ -50,6 +64,20 @@ describe('parseServingRuntimeTemplate', () => {
     inputs.forEach((input) => {
       expect(() => parseServingRuntimeTemplate(JSON.stringify(input))).toThrow();
     });
+  });
+
+  it.each([
+    { spec: { supportedModelFormats: [] }, message: 'spec.containers: is required.' },
+    { spec: { containers: [] }, message: 'spec.supportedModelFormats: is required.' },
+  ])('should include the validation error name for $message', ({ spec, message }) => {
+    const template = source();
+    const input = {
+      ...template,
+      objects: [{ ...template.objects[0], spec }],
+    };
+    expect(() => parseServingRuntimeTemplate(JSON.stringify(input))).toThrow(
+      `The Template's ServingRuntime is invalid: Missing parameter: ${message}`,
+    );
   });
 
   it('should leave missing and malformed protocol/model-type annotations unselected by existing helpers', () => {

@@ -36,7 +36,9 @@ export const parseServingRuntimeTemplate = (json: string): TemplateKind => {
   } catch (error) {
     throw new Error(
       `The Template's ServingRuntime is invalid: ${
-        error instanceof Error ? error.message : 'check the resource definition.'
+        error instanceof Error
+          ? `${error.name}: ${error.message}`
+          : 'check the resource definition.'
       }`,
     );
   }
@@ -63,6 +65,9 @@ export const parseServingRuntimeTemplate = (json: string): TemplateKind => {
   delete runtimeMetadata.uid;
   delete runtimeMetadata.managedFields;
   delete runtimeMetadata.ownerReferences;
+  delete runtimeMetadata.namespace;
+  delete runtimeMetadata.creationTimestamp;
+  delete runtimeMetadata.generation;
 
   return {
     ...resource,

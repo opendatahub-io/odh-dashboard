@@ -148,6 +148,10 @@ describe('ServingRuntimeInstallTarget', () => {
     ['{broken', 'not valid JSON'],
     ['{}', 'must contain a Kubernetes Template'],
     [JSON.stringify({ ...template(), objects: [] }), 'must have a named ServingRuntime'],
+    [
+      JSON.stringify({ ...template(), objects: [{ ...template().objects[0], spec: {} }] }),
+      'Missing parameter: spec.containers: is required.',
+    ],
   ])('should show an error empty state for invalid prefill %s', (input, message) => {
     renderTarget(input);
     expect(

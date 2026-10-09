@@ -55,6 +55,8 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
   const { mode, sourceTemplate } = props;
   const listPath = SERVING_RUNTIME_TEMPLATES_TAB_PATH;
   const { dashboardNamespace } = useDashboardNamespace();
+  // Settings routes provide this context; Install has no provider and skips refreshData.
+  // Its success redirect mounts the list's provider, which watches Templates and loads settings.
   const { refreshData } = React.useContext(CustomServingRuntimeContext);
   const isEdit = mode === 'edit';
   const isDuplicate = mode === 'duplicate';
