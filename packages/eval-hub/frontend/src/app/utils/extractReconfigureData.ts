@@ -26,8 +26,6 @@ export type ReconfigureFormData = {
   primaryMetric: string | undefined;
   additionalArgs: string;
   experimentName: string | undefined;
-  hardwareProfile: string | undefined;
-  queue: string | undefined;
 };
 
 const hasTestDataRef = (
@@ -154,8 +152,6 @@ const extractReconfigureData = (
     primaryMetric,
     additionalArgs,
     experimentName: job.experiment?.name,
-    hardwareProfile: job.hardware_config?.hardware_profile_name,
-    queue: job.hardware_config?.queue?.name ?? job.status.queue ?? job.resource.queue,
   };
 };
 

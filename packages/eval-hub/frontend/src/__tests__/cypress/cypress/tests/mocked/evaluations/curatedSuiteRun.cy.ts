@@ -4,7 +4,6 @@ import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import { mockEvalHubHealth } from '~/__mocks__/mockEvalHubHealth';
 import { mockEvaluationJob } from '~/__mocks__/mockEvaluationJob';
-import { mockKueueAvailability } from '~/__mocks__/mockKueueAvailability';
 import {
   mockCollectionsListResponse,
   mockCuratedBenchmarkSuiteCollections,
@@ -41,12 +40,6 @@ const setupIntercepts = () => {
     mockCollectionsListResponse(mockCuratedBenchmarkSuiteCollections()),
   );
   cy.interceptApi('GET /api/:apiVersion/evaluations/providers', { path: API_VERSION }, []);
-  cy.interceptApi(
-    'GET /api/:apiVersion/kueue/availability',
-    { path: API_VERSION },
-    mockKueueAvailability(),
-  );
-  cy.interceptApi('GET /api/:apiVersion/hardwareprofiles', { path: API_VERSION }, { items: [] });
   cy.interceptApi('GET /api/:apiVersion/inferenceservices', { path: API_VERSION }, { items: [] });
   cy.intercept('GET', '/_bff/mlflow/api/v1/experiments*', {
     body: { data: { experiments: [] } },

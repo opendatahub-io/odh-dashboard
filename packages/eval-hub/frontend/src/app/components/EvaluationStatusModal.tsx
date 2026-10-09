@@ -44,17 +44,10 @@ import {
   formatDate,
   formatDurationCompact,
   getBenchmarkName,
-  getEvaluationDisplayState,
-  getEvaluationQueue,
   getEvaluationName,
-  formatOrdinal,
-  isTerminalState,
 } from '~/app/utilities/evaluationUtils';
 import { getMessageCodeLabel } from '~/app/utilities/messageCodeLabels';
 import { isPreStartFailure } from '~/app/utilities/evaluationJobPolling';
-import { useKueueAvailability } from '~/app/hooks/useKueueAvailability';
-import { useKueueWorkloadStatuses } from '~/app/hooks/useKueueWorkloadStatuses';
-import usePageVisibility from '~/app/hooks/usePageVisibility';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
 import EvaluationEventLog from './EvaluationEventLog';
 import './EvaluationStatusModal.scss';
@@ -334,21 +327,6 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   // 30s list refresh.
   const state = polledJobData?.status.state ?? job?.status.state ?? 'pending';
   const jobId = job?.resource.id;
-  const isPageVisible = usePageVisibility();
-  const { availability: kueueAvailability, loaded: kueueAvailabilityLoaded } =
-    useKueueAvailability(namespace);
-  const isKueueEnabled = kueueAvailability?.enabled === true;
-  const {
-    statusesByEvaluationId: kueueWorkloadStatusesByEvaluationID,
-    isLoading: isKueueWorkloadStatusesLoading,
-  } = useKueueWorkloadStatuses(
-    namespace,
-    jobId ? [jobId] : [],
-    isKueueEnabled,
-    isPageVisible,
-    !isTerminalState(state),
-  );
-  const kueueWorkloadStatus = jobId ? kueueWorkloadStatusesByEvaluationID.get(jobId) : undefined;
 
   const progressBenchmarks = React.useMemo(
     () =>
@@ -418,20 +396,6 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     }
   }, [evaluationName]);
 
-  const effectiveJob = polledJobData ?? job;
-  // Detail polling can omit hardware_config.queue even when the list response included it.
-  // Keep the list assignment available so a queued run does not briefly fall back to Pending.
-  const queue = effectiveJob
-    ? (getEvaluationQueue(effectiveJob) ??
-      (job ? getEvaluationQueue(job) : undefined) ??
-      kueueWorkloadStatus?.queue_name)
-    : undefined;
-  const isQueued = state === 'pending' && Boolean(queue);
-  const isKueueStatusLoading =
-    state === 'pending' &&
-    !kueueWorkloadStatus &&
-    !queue &&
-    (!kueueAvailabilityLoaded || (isKueueEnabled && isKueueWorkloadStatusesLoading));
   const isInProgress = state === 'running' || state === 'pending' || state === 'stopping';
 
   const [now, setNow] = React.useState(() => new Date().toISOString());
@@ -459,27 +423,6 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   const isReconfigurable = !isInProgress;
   // Use the most-current benchmark data (polled > list) to detect pre-start failures.
   const isPreStart = isPreStartFailure(polledJobData ?? job);
-  const displayState = getEvaluationDisplayState(state, {
-    isQueued,
-    isPreStartFailure: isPreStart,
-    kueueWorkloadStatus,
-  });
-  const isWaitingForKueueResources =
-    displayState === 'queued' &&
-    (!kueueWorkloadStatus ||
-      kueueWorkloadStatus.state === 'queued' ||
-      kueueWorkloadStatus.state === 'preempted');
-  const isInadmissible = displayState === 'inadmissible';
-  const isAdmittedByKueue = kueueWorkloadStatus?.state === 'admitted';
-  const queueName = kueueWorkloadStatus?.queue_name || queue;
-  const queuePosition = kueueWorkloadStatus?.queue_position;
-  const queueWaitTitle = isWaitingForKueueResources
-    ? `Waiting for quota${queueName ? ` in ${queueName}` : ''}`
-    : undefined;
-  const queuePositionText =
-    isWaitingForKueueResources && queuePosition != null && queuePosition > 0
-      ? `${formatOrdinal(queuePosition)} in queue`
-      : undefined;
 
   const handleViewBenchmarkLogs = (bmIndex: number) => {
     setLogBenchmarkIndex(bmIndex);
@@ -490,41 +433,21 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     switch (state) {
       case 'stopping':
         return 'being canceled';
-      case 'pending':
-        if (isAdmittedByKueue) {
-          return `admitted by Kueue through LocalQueue ${kueueWorkloadStatus.queue_name} and is pending`;
-        }
-        return isQueued ? 'queued and waiting for resource admission' : 'pending';
-      case 'running':
-        if (isAdmittedByKueue) {
-          return `admitted by Kueue through LocalQueue ${kueueWorkloadStatus.queue_name} and is running`;
-        }
-        return isQueued ? 'queued and waiting for resource admission' : 'running';
       default:
         return state;
     }
   };
 
-  let descriptionText: string | undefined;
-  if (isKueueStatusLoading) {
-    descriptionText = 'Checking resource scheduling status';
-  } else if (state === 'completed') {
-    descriptionText = `Evaluation completed successfully.${elapsed ? ` Total time: ${elapsed}` : ''}`;
-  } else if (isInProgress) {
-    if (isInadmissible) {
-      descriptionText = `Kueue could not admit this evaluation${
-        kueueWorkloadStatus?.message ? `: ${kueueWorkloadStatus.message}` : '.'
-      }`;
-    } else if (isWaitingForKueueResources) {
-      descriptionText = queuePositionText ?? 'Waiting for resources to become available';
-    } else {
-      descriptionText = `Evaluation job is ${getInProgressDescription()}.${
-        elapsed ? ` Elapsed time: ${elapsed}` : ''
-      }`;
-    }
-  } else if (elapsed) {
-    descriptionText = `Elapsed time: ${elapsed}`;
-  }
+  const descriptionText =
+    state === 'completed'
+      ? `Evaluation completed successfully.${elapsed ? ` Total time: ${elapsed}` : ''}`
+      : isInProgress
+        ? `Evaluation job is ${getInProgressDescription()}.${
+            elapsed ? ` Elapsed time: ${elapsed}` : ''
+          }`
+        : elapsed
+          ? `Elapsed time: ${elapsed}`
+          : undefined;
 
   return (
     <Modal
@@ -551,13 +474,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
               {evaluationName}
             </span>
           </Tooltip>
-          <EvaluationStatusLabel
-            state={state}
-            isQueued={isQueued}
-            isLoading={isKueueStatusLoading}
-            isPreStartFailure={isPreStart}
-            kueueWorkloadStatus={kueueWorkloadStatus}
-          />
+          <EvaluationStatusLabel state={state} isPreStartFailure={isPreStart} />
         </div>
       </ModalHeader>
       <ModalBody>
@@ -594,16 +511,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                     className="pf-v6-u-text-truncate"
                     data-testid="benchmark-name-header"
                   >
-                    {isKueueStatusLoading ? (
-                      <Skeleton
-                        width="180px"
-                        height="1em"
-                        screenreaderText="Loading evaluation status"
-                        data-testid="queue-status-loading"
-                      />
-                    ) : (
-                      <strong>{queueWaitTitle ?? benchmarkName}</strong>
-                    )}
+                    <strong>{benchmarkName}</strong>
                   </Content>
                 </FlexItem>
               </Flex>
