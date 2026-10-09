@@ -3,6 +3,7 @@ import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import {
   setupModelCatalogIntercepts,
   interceptPerformanceArtifactsWithFilterCheck,
+  interceptArtifactsList,
   setupHfAccessCardIntercepts,
   createHfAccessCardModel,
   type ModelCatalogInterceptOptions,
@@ -19,6 +20,9 @@ const initIntercepts = (options: Partial<ModelCatalogInterceptOptions> = {}) => 
     includePerformanceArtifacts: options.useValidatedModel ?? false,
     ...options,
   });
+  if (options.useValidatedModel) {
+    interceptArtifactsList();
+  }
 };
 
 describe('ModelCatalogCard Component', () => {

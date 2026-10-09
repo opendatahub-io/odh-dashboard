@@ -55,6 +55,14 @@ jest.mock('@odh-dashboard/internal/components/table/TableRowTitleDescription', (
   };
 });
 
+jest.mock('~/app/pages/modelCatalog/SecurityInsightsEmptyState', () => {
+  const { createElement } = require('react');
+  return {
+    __esModule: true,
+    default: () => createElement('div', { 'data-testid': 'security-insights-empty-state' }),
+  };
+});
+
 const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
 
 const renderView = (props?: Partial<{ sourceId: string; modelName: string; namespace: string }>) =>
