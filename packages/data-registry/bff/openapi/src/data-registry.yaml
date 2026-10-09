@@ -1216,12 +1216,12 @@ components:
               connectionType: s3
           metadata:
             rhaiConnections:
-              - type: rhai
+              - type: secret
                 secret_name: legacy-data
                 name: Legacy RHOAI data
                 connectionType: s3
         - data:
-            - type: rhai
+            - type: secret
               secret_name: production-data
               name: Production data
               connectionType: s3
@@ -1231,7 +1231,7 @@ components:
               - code: UNRESOLVED_CONNECTION_TYPE
                 message: Some connections could not be loaded because their connector types are unavailable.
         - data:
-            - type: rhai
+            - type: secret
               secret_name: production-data
               name: Production data
               connectionType: s3
@@ -1268,7 +1268,7 @@ components:
       properties:
         type:
           type: string
-          enum: [rhai]
+          enum: [secret]
         secret_name:
           type: string
         name:

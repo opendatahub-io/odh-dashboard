@@ -87,15 +87,15 @@ func TestConnectionsSourcePolicy(t *testing.T) {
 		disabled, empty     bool
 		secretErr           error
 		status, secretCalls int
-		source              string
+		connectionType      string
 	}{
-		{name: "unconfigured uses secrets", disabled: true, status: 200, secretCalls: 1, source: "rhai"},
-		{name: "DCH success loads RHOAI display details", status: 200, secretCalls: 1, source: "dch"},
+		{name: "unconfigured uses secrets", disabled: true, status: 200, secretCalls: 1, connectionType: "secret"},
+		{name: "DCH success loads RHOAI display details", status: 200, secretCalls: 1, connectionType: "dch"},
 		{name: "empty DCH loads RHOAI display details", empty: true, status: 200, secretCalls: 1},
-		{name: "RHOAI display lookup failure preserves DCH results", secretErr: errors.New("RHOAI lookup failed"), status: 200, secretCalls: 1, source: "dch"},
-		{name: "network fallback", upstreamErr: bffclient.NewConnectionError(bffclient.BFFTargetDCH, "private upstream detail"), status: 200, secretCalls: 1, source: "rhai"},
-		{name: "timeout fallback", upstreamErr: bffclient.NewTimeoutError(bffclient.BFFTargetDCH), status: 200, secretCalls: 1, source: "rhai"},
-		{name: "5xx fallback", upstreamErr: bffclient.NewServerUnavailableError(bffclient.BFFTargetDCH), status: 200, secretCalls: 1, source: "rhai"},
+		{name: "RHOAI display lookup failure preserves DCH results", secretErr: errors.New("RHOAI lookup failed"), status: 200, secretCalls: 1, connectionType: "dch"},
+		{name: "network fallback", upstreamErr: bffclient.NewConnectionError(bffclient.BFFTargetDCH, "private upstream detail"), status: 200, secretCalls: 1, connectionType: "secret"},
+		{name: "timeout fallback", upstreamErr: bffclient.NewTimeoutError(bffclient.BFFTargetDCH), status: 200, secretCalls: 1, connectionType: "secret"},
+		{name: "5xx fallback", upstreamErr: bffclient.NewServerUnavailableError(bffclient.BFFTargetDCH), status: 200, secretCalls: 1, connectionType: "secret"},
 		{name: "unauthorized", upstreamErr: bffclient.NewUnauthorizedError(bffclient.BFFTargetDCH, "private upstream detail"), status: 401},
 		{name: "forbidden", upstreamErr: bffclient.NewForbiddenError(bffclient.BFFTargetDCH, "private upstream detail"), status: 403},
 		{name: "other 4xx", upstreamErr: bffclient.NewNotFoundError(bffclient.BFFTargetDCH, "private upstream detail"), status: 502},
@@ -137,10 +137,10 @@ func TestConnectionsSourcePolicy(t *testing.T) {
 			if tt.status == 200 {
 				var envelope ConnectionsEnvelope
 				require.NoError(t, json.Unmarshal(w.Body.Bytes(), &envelope))
-				if tt.source != "" {
-					require.Equal(t, tt.source, envelope.Data[0].Type)
+				if tt.connectionType != "" {
+					require.Equal(t, tt.connectionType, envelope.Data[0].Type)
 				}
-				if tt.source == "rhai" {
+				if tt.connectionType == "secret" {
 					require.Equal(t, "original-secret", envelope.Data[0].SecretName)
 					require.Equal(t, "Display name", envelope.Data[0].Name)
 					require.Equal(t, "project-a", kube.client.namespace)
@@ -154,7 +154,7 @@ func TestConnectionsSourcePolicy(t *testing.T) {
 					require.NotNil(t, envelope.Metadata)
 					if tt.secretErr == nil {
 						require.Len(t, envelope.Metadata.RhaiConnections, 1)
-						require.Equal(t, "rhai", envelope.Metadata.RhaiConnections[0].Type)
+						require.Equal(t, "secret", envelope.Metadata.RhaiConnections[0].Type)
 						require.Equal(t, "original-secret", envelope.Metadata.RhaiConnections[0].SecretName)
 						require.Equal(t, "Display name", envelope.Metadata.RhaiConnections[0].Name)
 					} else {

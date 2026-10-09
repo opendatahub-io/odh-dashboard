@@ -20,7 +20,7 @@ export type RegistryAsset = {
 const mapTableAsset = (asset: AssetResponse, collection: string): RegistryAsset => {
   // Extract connection name from ConnectionRef object
   const connectionRef = asset.connection_ref
-    ? asset.connection_ref.type === 'rhai'
+    ? asset.connection_ref.type === 'secret'
       ? asset.connection_ref.secret_name
       : asset.connection_ref.id
     : '';
@@ -42,7 +42,7 @@ const mapTableAsset = (asset: AssetResponse, collection: string): RegistryAsset 
 const mapVolumeAsset = (volume: AssetResponse, collection: string): RegistryAsset => {
   // Extract connection name from ConnectionRef object
   const connectionRef = volume.connection_ref
-    ? volume.connection_ref.type === 'rhai'
+    ? volume.connection_ref.type === 'secret'
       ? volume.connection_ref.secret_name
       : volume.connection_ref.id
     : '';

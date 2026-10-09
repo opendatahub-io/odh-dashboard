@@ -23,7 +23,7 @@ func (r *ConnectionRepository) GetConnections(client k8s.KubernetesClientInterfa
 	connectionModels := make([]models.ConnectionModel, 0, len(secrets))
 	for _, secret := range secrets {
 		model := models.ConnectionModel{
-			Type:       "rhai",
+			Type:       "secret",
 			SecretName: secret.Name,
 			Name:       secret.Name,
 		}

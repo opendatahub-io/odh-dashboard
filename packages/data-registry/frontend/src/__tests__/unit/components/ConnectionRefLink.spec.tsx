@@ -9,7 +9,7 @@ describe('ConnectionRefLink', () => {
   it('should show an unavailable label instead of an unresolved RHOAI identifier', () => {
     render(
       <ConnectionRefLink
-        connectionRef={{ type: 'rhai', secret_name: 'my-secret' }}
+        connectionRef={{ type: 'secret', secret_name: 'my-secret' }}
         connectionsLoaded
       />,
     );
@@ -23,7 +23,7 @@ describe('ConnectionRefLink', () => {
     render(
       <MemoryRouter>
         <ConnectionRefLink
-          connectionRef={{ type: 'rhai', secret_name: 'my-secret' }}
+          connectionRef={{ type: 'secret', secret_name: 'my-secret' }}
           connections={[connection]}
           connectionsLoaded
           linkTo="/connections/my-secret"

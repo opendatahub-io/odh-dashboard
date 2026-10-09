@@ -32,8 +32,8 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 
-	source, outcome, reason, count := "rhai", "error", "unconfigured", 0
-	rhaiLookupOutcome, rhaiCount := "not_attempted", 0
+	source, outcome, reason, count := "secret", "error", "unconfigured", 0
+	secretLookupOutcome, secretCount := "not_attempted", 0
 	dchFallback := false
 	start := time.Now()
 	defer func() {
@@ -41,7 +41,7 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, ps
 		// Never log upstream bodies, credentials, tokens or arbitrary error messages.
 		app.logger.Info("Connection lookup", "namespace", namespace, "source", source,
 			"outcome", outcome, "reason", reason, "count", count,
-			"rhai_lookup_outcome", rhaiLookupOutcome, "rhai_count", rhaiCount,
+			"secret_lookup_outcome", secretLookupOutcome, "secret_count", secretCount,
 			"elapsed_ms", time.Since(start).Milliseconds())
 	}()
 
@@ -81,7 +81,7 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, ps
 					}
 				}
 				if lookupErr != nil {
-					rhaiLookupOutcome = "error"
+					secretLookupOutcome = "error"
 					app.logger.Warn("RHOAI connection display lookup failed", "namespace", namespace)
 					if envelope.Metadata == nil {
 						envelope.Metadata = &models.ConnectionsMetadata{}
@@ -91,9 +91,9 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, ps
 						Message: "Some saved RHOAI connection details could not be loaded.",
 					})
 				} else {
-					rhaiLookupOutcome = "success"
-					rhaiCount = len(rhaiConnections)
-					if rhaiCount > 0 {
+					secretLookupOutcome = "success"
+					secretCount = len(rhaiConnections)
+					if secretCount > 0 {
 						if envelope.Metadata == nil {
 							envelope.Metadata = &models.ConnectionsMetadata{}
 						}
@@ -125,9 +125,9 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, ps
 	}
 
 	if envelope.Data == nil {
-		source = "rhai"
+		source = "secret"
 		if app.kubernetesClientFactory == nil {
-			rhaiLookupOutcome = "error"
+			secretLookupOutcome = "error"
 			app.serverErrorResponse(w, r, fmt.Errorf("unable to load project connections"))
 			return
 		}
@@ -136,7 +136,7 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, ps
 			envelope.Data, err = app.repositories.Connection.GetConnections(client, ctx, namespace)
 		}
 		if err != nil {
-			rhaiLookupOutcome = "error"
+			secretLookupOutcome = "error"
 			switch {
 			case k8serrors.IsUnauthorized(err):
 				app.unauthorizedResponse(w, r, fmt.Errorf("secret lookup authentication failed"))
@@ -147,8 +147,8 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, ps
 			}
 			return
 		}
-		rhaiLookupOutcome = "success"
-		rhaiCount = len(envelope.Data)
+		secretLookupOutcome = "success"
+		secretCount = len(envelope.Data)
 	}
 	if dchFallback {
 		if envelope.Metadata == nil {
@@ -161,7 +161,7 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, ps
 	}
 	count = len(envelope.Data)
 	outcome = "success"
-	if source == "rhai" && reason != "unconfigured" {
+	if source == "secret" && reason != "unconfigured" {
 		outcome = "fallback"
 	}
 	if envelope.Metadata != nil && len(envelope.Metadata.Warnings) > 0 && !dchFallback {

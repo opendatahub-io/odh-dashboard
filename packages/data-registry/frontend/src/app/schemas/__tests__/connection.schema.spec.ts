@@ -16,7 +16,7 @@ describe('connectionsResponseSchema', () => {
       metadata: {
         rhaiConnections: [
           {
-            type: 'rhai',
+            type: 'secret',
             secret_name: 'legacy-rhai-connection',
             name: 'Existing RHOAI connection',
             connectionType: 's3',

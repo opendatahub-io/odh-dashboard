@@ -330,7 +330,7 @@ describe('RegisterDataModal', () => {
       expect(mockCreateVolume).toHaveBeenCalledWith('test-project', 'collection-1', {
         name: 'test-volume',
         format: 'other',
-        connection_ref: { type: 'rhai', secret_name: 'my-s3-connection' },
+        connection_ref: { type: 'secret', secret_name: 'my-s3-connection' },
       });
     });
   });
@@ -358,7 +358,7 @@ describe('RegisterDataModal', () => {
       expect(mockCreateGenericTable).toHaveBeenCalledWith('test-project', 'collection-1', {
         name: 'test-table',
         format: 'iceberg',
-        connection_ref: { type: 'rhai', secret_name: 'my-s3-connection' },
+        connection_ref: { type: 'secret', secret_name: 'my-s3-connection' },
       });
     });
   });

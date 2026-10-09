@@ -281,7 +281,7 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
               showDchFallbackWarning={
                 hasExistingDchConnectionReferences || asset.connection_ref?.type === 'dch'
               }
-              showRhaiLookupWarning={asset.connection_ref?.type === 'rhai'}
+              showRhaiLookupWarning={asset.connection_ref?.type === 'secret'}
               currentConnection={asset.connection_ref}
               isConnectionDisabled={isSubmitting}
             />

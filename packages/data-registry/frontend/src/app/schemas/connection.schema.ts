@@ -6,7 +6,7 @@ const displayFields = {
 };
 
 const rhaiConnectionSchema = z.object({
-  type: z.literal('rhai'),
+  type: z.literal('secret'),
   // eslint-disable-next-line camelcase
   secret_name: z.string().min(1),
   ...displayFields,
@@ -16,7 +16,7 @@ const rhaiConnectionSchema = z.object({
 export const connectionRefSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('dch'), id: z.string().min(1), ...displayFields }),
   // eslint-disable-next-line camelcase
-  z.object({ type: z.literal('rhai'), secret_name: z.string().min(1), ...displayFields }),
+  z.object({ type: z.literal('secret'), secret_name: z.string().min(1), ...displayFields }),
 ]);
 
 export const connectionsResponseSchema = z.object({
@@ -24,7 +24,7 @@ export const connectionsResponseSchema = z.object({
     z.discriminatedUnion('type', [
       z.object({ type: z.literal('dch'), id: z.string().uuid(), ...displayFields }),
       // eslint-disable-next-line camelcase
-      z.object({ type: z.literal('rhai'), secret_name: z.string().min(1), ...displayFields }),
+      z.object({ type: z.literal('secret'), secret_name: z.string().min(1), ...displayFields }),
     ]),
   ),
   metadata: z

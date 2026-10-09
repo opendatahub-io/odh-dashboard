@@ -938,7 +938,7 @@ describe('Connection Selector', () => {
         name: 'connected-volume',
         format: 'other',
         connection_ref: {
-          type: 'rhai',
+          type: 'secret',
           secret_name: 'my-s3-connection',
         },
       });
@@ -955,7 +955,7 @@ describe('Connection Selector', () => {
         format: 'iceberg',
         storage_location: null,
         collection: 'analytics',
-        connection_ref: { type: 'rhai', secret_name: 'my-uri-connection' },
+        connection_ref: { type: 'secret', secret_name: 'my-uri-connection' },
         owner: 'user1',
         created_at: '2026-01-01',
         updated_at: '2026-01-02',
@@ -984,7 +984,7 @@ describe('Connection Selector', () => {
         name: 'connected-table',
         format: 'iceberg',
         connection_ref: {
-          type: 'rhai',
+          type: 'secret',
           secret_name: 'my-uri-connection',
         },
       });

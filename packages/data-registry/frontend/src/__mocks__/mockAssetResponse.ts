@@ -15,7 +15,7 @@ export const mockAssetResponse = (
     { name: 'created_at', type: 'timestamp', nullable: false },
   ],
   collection: 'default',
-  connection_ref: { type: 'rhai', secret_name: 'my-s3-connection' },
+  connection_ref: { type: 'secret', secret_name: 'my-s3-connection' },
   owner: 'data-team',
   description: 'A test table for unit testing',
   labels: ['production', 'analytics'],

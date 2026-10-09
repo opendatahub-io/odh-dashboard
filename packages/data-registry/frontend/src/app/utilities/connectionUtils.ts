@@ -82,7 +82,7 @@ export const getAssetDetailConnectionWarnings = (
       shouldDisplayConnectionWarning(
         warning,
         connectionRef?.type === 'dch',
-        connectionRef?.type === 'rhai',
+        connectionRef?.type === 'secret',
       ),
     )
     .map((warning) =>
@@ -96,7 +96,7 @@ export const toConnectionRef = (ref: ConnectionRef): ConnectionRef =>
   ref.type === 'dch'
     ? { type: 'dch', id: ref.id }
     : // eslint-disable-next-line camelcase
-      { type: 'rhai', secret_name: ref.secret_name };
+      { type: 'secret', secret_name: ref.secret_name };
 
 export const confirmConnection = async (
   key: string,

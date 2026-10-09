@@ -12,7 +12,7 @@ export const mockDchConnection = (overrides: Partial<DchConnectionRef> = {}): Dc
 export const mockRhaiConnection = (
   overrides: Partial<RhaiConnectionRef> = {},
 ): RhaiConnectionRef => ({
-  type: 'rhai',
+  type: 'secret',
   secret_name: 'my-s3-connection',
   name: 'My S3 Connection',
   connectionType: 's3',
