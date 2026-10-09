@@ -157,6 +157,9 @@ export const assembleNotebook = async (
 ): Promise<Notebook> => {
   const { imageName, imageTagName, envVars, podSpecOptions } = data;
 
+  const probeTimeoutSeconds =
+    getDashboardConfig().spec.notebookController?.probeTimeoutSeconds ?? 5;
+
   let imageUrl = ``;
   let imageSelection = ``;
 
@@ -278,7 +281,7 @@ export const assembleNotebook = async (
               livenessProbe: {
                 initialDelaySeconds: 10,
                 periodSeconds: 5,
-                timeoutSeconds: 1,
+                timeoutSeconds: probeTimeoutSeconds,
                 successThreshold: 1,
                 failureThreshold: 3,
                 httpGet: {
@@ -290,7 +293,7 @@ export const assembleNotebook = async (
               readinessProbe: {
                 initialDelaySeconds: 10,
                 periodSeconds: 5,
-                timeoutSeconds: 1,
+                timeoutSeconds: probeTimeoutSeconds,
                 successThreshold: 1,
                 failureThreshold: 3,
                 httpGet: {
