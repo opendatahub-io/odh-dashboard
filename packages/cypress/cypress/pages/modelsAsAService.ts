@@ -2227,13 +2227,25 @@ class AddProviderReferenceWizard extends ProviderReferenceModalBase {
     return this.find().findByTestId('provider-ref-provider-select');
   }
 
+  findSelectExistingProviderRadio(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-source-existing');
+  }
+
+  findCreateNewProviderRadio(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-source-create-new');
+  }
+
+  findNoExternalProvidersHelper(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('no-external-providers-helper');
+  }
+
   selectProvider(displayName: string): void {
     this.findProviderSelect().click();
     cy.findByRole('option', { name: displayName }).click();
   }
 
   selectCreateNewProvider(): void {
-    this.find().findByTestId('provider-source-create-new').click();
+    this.findCreateNewProviderRadio().click();
   }
 
   selectProviderType(value: string): void {

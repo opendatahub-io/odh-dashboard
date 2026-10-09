@@ -294,6 +294,23 @@ describe('External Models Page', () => {
       createExternalModelPage.findCreateButton().should('be.disabled');
     });
 
+    it('should disable select existing provider when no providers exist', () => {
+      cy.interceptOdh(
+        'GET /maas/api/v1/externalprovider',
+        { query: { namespace: TEST_PROJECT } },
+        { data: [] },
+      );
+
+      createExternalModelPage.visit();
+      createExternalModelPage.findAddProviderReferenceButton().click();
+      addProviderReferenceWizard.shouldBeOpen();
+
+      addProviderReferenceWizard.findSelectExistingProviderRadio().should('be.disabled');
+      addProviderReferenceWizard.findCreateNewProviderRadio().should('be.checked');
+      addProviderReferenceWizard.findNoExternalProvidersHelper().should('be.visible');
+      addProviderReferenceWizard.findProviderSelect().should('not.exist');
+    });
+
     it('should add a provider reference through the wizard', () => {
       createExternalModelPage.visit();
 
