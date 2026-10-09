@@ -771,6 +771,12 @@ export const createPassthroughResponse = (
 ): Promise<SimplifiedResponseData> => {
   let url: string;
   if (responsesEndpointUrl) {
+    // The request body carries prompts and conversation content, so the
+    // endpoint must stay same-origin: reject absolute URLs and
+    // protocol-relative URLs such as `//evil.example`.
+    if (!responsesEndpointUrl.startsWith('/') || responsesEndpointUrl.startsWith('//')) {
+      return Promise.reject(new Error('Invalid responses endpoint URL'));
+    }
     url = responsesEndpointUrl;
   } else {
     const trimmed = bffBasePath.replace(/\/+$/, '');
@@ -803,16 +809,11 @@ export const createPassthroughResponse = (
               typeof errorData.error.message === 'string' &&
               errorData.error.message.trim().length > 0
             ) {
+              // Structured errors from the responses endpoint keep their code
+              // and trace id.
               throw new ApiErrorClass(errorData.error, errorData.trace_id);
             }
-            if (responsesEndpointUrl) {
-              if (
-                typeof errorData?.error?.message === 'string' &&
-                errorData.error.message.trim().length > 0
-              ) {
-                errorMessage = errorData.error.message;
-              }
-            } else {
+            if (!responsesEndpointUrl) {
               errorMessage = errorData?.error?.message || errorMessage;
             }
           } catch (error) {
@@ -822,18 +823,19 @@ export const createPassthroughResponse = (
             // ignore
           }
 
-          // Differentiated error messages for embedded mode
-          if (response.status === 502 || response.status === 503) {
+          // Differentiated error messages for the default GenAI passthrough;
+          // the responses endpoint returns its own error envelope.
+          if (!responsesEndpointUrl && (response.status === 502 || response.status === 503)) {
             throw new Error(
               'The OGX instance is not responding. Check that the instance is running and reachable.',
             );
           }
-          if (response.status === 404) {
+          if (!responsesEndpointUrl && response.status === 404) {
             throw new Error(
               `The connection secret '${secretName}' was not found in namespace '${namespace}'.`,
             );
           }
-          if (response.status === 403) {
+          if (!responsesEndpointUrl && response.status === 403) {
             throw new Error(
               'You do not have permission to access this resource. Contact your administrator.',
             );
@@ -855,7 +857,11 @@ export const createPassthroughResponse = (
         const cancelReader = async () => {
           if (!readerCancelled) {
             readerCancelled = true;
-            await reader.cancel('Streaming error');
+            try {
+              await reader.cancel('Streaming error');
+            } catch {
+              // Preserve the parsed SSE error when cancellation fails.
+            }
           }
         };
 
@@ -881,9 +887,13 @@ export const createPassthroughResponse = (
                       reject(new ApiErrorClass(data.error, data.trace_id));
                       return;
                     }
-                    if (data.type === 'error' && typeof data.message === 'string') {
+                    if (data.type === 'error') {
+                      const message =
+                        typeof data.message === 'string' && data.message.trim().length > 0
+                          ? data.message
+                          : 'The response stream returned an error.';
                       await cancelReader();
-                      reject(new Error(data.message));
+                      reject(new Error(message));
                       return;
                     }
 
@@ -934,9 +944,13 @@ export const createPassthroughResponse = (
                     reject(new ApiErrorClass(data.error, data.trace_id));
                     return;
                   }
-                  if (data.type === 'error' && typeof data.message === 'string') {
+                  if (data.type === 'error') {
+                    const message =
+                      typeof data.message === 'string' && data.message.trim().length > 0
+                        ? data.message
+                        : 'The response stream returned an error.';
                     await cancelReader();
-                    reject(new Error(data.message));
+                    reject(new Error(message));
                     return;
                   }
 

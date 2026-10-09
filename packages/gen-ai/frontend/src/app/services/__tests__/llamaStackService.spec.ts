@@ -1828,6 +1828,76 @@ describe('llamaStackService', () => {
       expect(mockReader.releaseLock).toHaveBeenCalled();
     });
 
+    it.each([
+      ['missing message', 'data: {"type": "error"}\n'],
+      ['empty message', 'data: {"type": "error", "message": ""}\n'],
+      ['whitespace-only message', 'data: {"type": "error", "message": "   "}\n'],
+      ['non-string message', 'data: {"type": "error", "message": 42}\n'],
+    ])('should reject an error event with a %s', async (_, sse) => {
+      const mockReader = {
+        read: jest.fn().mockResolvedValueOnce({
+          done: false,
+          value: new TextEncoder().encode(sse),
+        }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn().mockResolvedValue(undefined),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      await expect(
+        createPassthroughResponse('/gen-ai/api/v1', 'ns', 'secret', mockBody, jest.fn()),
+      ).rejects.toThrow('The response stream returned an error.');
+      expect(mockReader.cancel).toHaveBeenCalledWith('Streaming error');
+      expect(mockReader.releaseLock).toHaveBeenCalled();
+    });
+
+    it('should preserve the parsed SSE error when cancellation fails', async () => {
+      const mockReader = {
+        read: jest.fn().mockResolvedValueOnce({
+          done: false,
+          value: new TextEncoder().encode(
+            'data: {"type": "error", "message": "embedding failed: path_not_found"}\n',
+          ),
+        }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn().mockRejectedValue(new TypeError('network error')),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      await expect(
+        createPassthroughResponse('/gen-ai/api/v1', 'ns', 'secret', mockBody, jest.fn()),
+      ).rejects.toThrow('embedding failed: path_not_found');
+      expect(mockReader.cancel).toHaveBeenCalledWith('Streaming error');
+      expect(mockReader.releaseLock).toHaveBeenCalled();
+    });
+
+    it('should reject an AutoRAG endpoint URL that is not a same-origin relative path', async () => {
+      for (const endpointUrl of [
+        'https://evil.example/api',
+        '//evil.example/api',
+        'autorag/api/v1/responses',
+      ]) {
+        await expect(
+          createPassthroughResponse(
+            '/gen-ai/api/v1',
+            'ns',
+            'secret',
+            mockBody,
+            jest.fn(),
+            undefined,
+            endpointUrl,
+          ),
+        ).rejects.toThrow('Invalid responses endpoint URL');
+      }
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
     it('should preserve structured errors from an overridden AutoRAG endpoint', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
@@ -1879,7 +1949,7 @@ describe('llamaStackService', () => {
       await expect(request).rejects.toMatchObject({ message: 'HTTP error! status: 400' });
     });
 
-    it('should use status-specific fallback for a malformed AutoRAG error body', async () => {
+    it('should use the generic HTTP fallback for a malformed AutoRAG error body', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 502,
@@ -1897,9 +1967,31 @@ describe('llamaStackService', () => {
       );
 
       await expect(request).rejects.not.toBeInstanceOf(ApiErrorClass);
+      await expect(request).rejects.toMatchObject({ message: 'HTTP error! status: 502' });
+    });
+
+    it('should preserve a structured AutoRAG 404 error message', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        text: () =>
+          Promise.resolve('{"error":{"code":"404","message":"vector database secret not found"}}'),
+      });
+
+      const request = createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+        undefined,
+        '/autorag/api/v1/responses?dbSecretName=db&maasSecretName=maas',
+      );
+
+      await expect(request).rejects.toBeInstanceOf(ApiErrorClass);
       await expect(request).rejects.toMatchObject({
-        message:
-          'The OGX instance is not responding. Check that the instance is running and reachable.',
+        error: { code: '404', message: 'vector database secret not found' },
+        message: 'vector database secret not found',
       });
     });
 
