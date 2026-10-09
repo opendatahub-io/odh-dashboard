@@ -118,6 +118,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
                   hidePopover();
                   selectChild(item.getId());
                 }}
+                onKeyDown={activateNodeButtonOnKeyDown}
                 aria-label={
                   childStatus ? `${childLabel}, ${childStatus}` : `${childLabel}, View task details`
                 }
