@@ -3,6 +3,7 @@ import * as z from 'zod';
 import {
   PRESETS,
   PRESET_FASTER,
+  PRESET_QUALITY,
   ALL_EVAL_METRICS,
   DEFAULT_EVAL_METRIC_BY_TASK,
   EVAL_METRICS_BY_TASK_TYPE,
@@ -80,6 +81,20 @@ function createConfigureSchema() {
           }
         }
         return issues;
+      },
+      // Quality is currently supported only by the tabular training pipeline.
+      (data) => {
+        if (data.task_type === TASK_TYPE_TIMESERIES && data.preset === PRESET_QUALITY) {
+          return [
+            {
+              code: 'custom',
+              path: ['preset'],
+              message: 'The quality preset is only available for tabular training',
+              input: data.preset,
+            },
+          ];
+        }
+        return [];
       },
       // Reject non-ASCII column names (KFP MySQL charset limitation)
       (data) => {

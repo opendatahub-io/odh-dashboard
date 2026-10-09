@@ -163,6 +163,16 @@ describe('AutomlInputParametersPanel', () => {
     expect(screen.getByText('Better quality')).toBeInTheDocument();
   });
 
+  it('should format quality preset with human-readable label', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        preset: 'quality',
+      },
+    });
+    expect(screen.getByText('Best quality')).toBeInTheDocument();
+  });
+
   it('should fall back to raw value for unknown preset', () => {
     renderPanel({
       parameters: {

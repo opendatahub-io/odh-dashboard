@@ -1315,11 +1315,6 @@ components:
           minLength: 1
           description: S3 object key for the training data file
           example: "data/train.csv"
-        preset:
-          type: string
-          enum: [speed, balanced]
-          description: Training quality tier controlling the trade-off between training speed and model quality. "speed" (default) uses fewer resources; "balanced" prioritizes accuracy with longer training time. When omitted, the pipeline defaults to "speed".
-          example: "speed"
         eval_metric:
           type: string
           enum:
@@ -1385,6 +1380,11 @@ components:
             - label_column
             - task_type
           properties:
+            preset:
+              type: string
+              enum: [speed, balanced, quality]
+              description: Training quality tier for tabular pipelines. When omitted, the pipeline defaults to "speed".
+              example: "speed"
             label_column:
               type: string
               minLength: 1
@@ -1417,6 +1417,11 @@ components:
             - timestamp_column
             - task_type
           properties:
+            preset:
+              type: string
+              enum: [speed, balanced]
+              description: Training quality tier for time-series pipelines. When omitted, the pipeline defaults to "speed".
+              example: "speed"
             task_type:
               type: string
               enum:
