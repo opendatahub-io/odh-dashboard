@@ -132,8 +132,7 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
         fireLlmAcceleratorConfigCreated({
           outcome: TrackingOutcome.submit,
           success: false,
-          mode: isDuplicate ? 'duplicate' : 'create',
-          ...(isInstall && { source: 'install' }),
+          mode,
         });
       }
       return;
@@ -146,8 +145,7 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
         fireLlmAcceleratorConfigCreated({
           outcome: TrackingOutcome.submit,
           success: false,
-          mode: isDuplicate ? 'duplicate' : 'create',
-          ...(isInstall && { source: 'install' }),
+          mode,
         });
       }
       return;
@@ -171,8 +169,7 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
           fireLlmAcceleratorConfigCreated({
             outcome: TrackingOutcome.submit,
             success: true,
-            mode: isDuplicate ? 'duplicate' : 'create',
-            ...(isInstall && { source: 'install' }),
+            mode,
           });
         }
         navigate(listPath);
@@ -188,8 +185,7 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
           fireLlmAcceleratorConfigCreated({
             outcome: TrackingOutcome.submit,
             success: false,
-            mode: isDuplicate ? 'duplicate' : 'create',
-            ...(isInstall && { source: 'install' }),
+            mode,
           });
         }
       })
@@ -199,8 +195,7 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
   }, [
     yamlCode,
     isEdit,
-    isDuplicate,
-    isInstall,
+    mode,
     sourceConfig?.metadata.name,
     nameDescData,
     version,
@@ -268,8 +263,7 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
             } else {
               fireLlmAcceleratorConfigCreated({
                 outcome: TrackingOutcome.cancel,
-                mode: isDuplicate ? 'duplicate' : 'create',
-                ...(isInstall && { source: 'install' }),
+                mode,
               });
             }
             navigate(props.mode === 'install' ? props.cancelReturnRoute : listPath);

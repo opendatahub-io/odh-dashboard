@@ -60,8 +60,7 @@ const LlmAcceleratorInstallTargetBody: React.FC<RuntimeImageInstallTargetProps> 
                 onClick={() => {
                   fireLlmAcceleratorConfigCreated({
                     outcome: TrackingOutcome.cancel,
-                    mode: 'create',
-                    source: 'install',
+                    mode: 'install',
                   });
                   navigate(cancelReturnRoute);
                 }}

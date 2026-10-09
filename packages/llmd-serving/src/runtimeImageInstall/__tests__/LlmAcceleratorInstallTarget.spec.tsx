@@ -102,8 +102,7 @@ describe('LlmAcceleratorInstallTarget', () => {
     expect(trackingMock).toHaveBeenCalledWith({
       outcome: TrackingOutcome.submit,
       success: true,
-      mode: 'create',
-      source: 'install',
+      mode: 'install',
     });
   });
 
@@ -187,8 +186,7 @@ describe('LlmAcceleratorInstallTarget', () => {
     expect(screen.getByText('Runtime image detail')).toBeInTheDocument();
     expect(trackingMock).toHaveBeenCalledWith({
       outcome: TrackingOutcome.cancel,
-      mode: 'create',
-      source: 'install',
+      mode: 'install',
     });
   });
 
@@ -207,8 +205,7 @@ describe('LlmAcceleratorInstallTarget', () => {
       expect(createMock).not.toHaveBeenCalled();
       expect(trackingMock).toHaveBeenCalledWith({
         outcome: TrackingOutcome.cancel,
-        mode: 'create',
-        source: 'install',
+        mode: 'install',
       });
     },
   );
@@ -229,8 +226,7 @@ describe('LlmAcceleratorInstallTarget', () => {
     expect(trackingMock).toHaveBeenCalledWith({
       outcome: TrackingOutcome.submit,
       success: false,
-      mode: 'create',
-      source: 'install',
+      mode: 'install',
     });
     fireEvent.change(screen.getByTestId('yaml-editor-mock'), { target: { value: 'metadata: [' } });
     fireEvent.click(screen.getByTestId('submit-button'));
@@ -249,8 +245,7 @@ describe('LlmAcceleratorInstallTarget', () => {
     expect(trackingMock).toHaveBeenCalledWith({
       outcome: TrackingOutcome.submit,
       success: false,
-      mode: 'create',
-      source: 'install',
+      mode: 'install',
     });
     fireEvent.click(screen.getByTestId('submit-button'));
     expect(await screen.findByText('Accelerator configs list')).toBeInTheDocument();
