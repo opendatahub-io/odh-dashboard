@@ -79,6 +79,10 @@ After upgrading:
   values.
 - Confirm that the Dashboard and MaaS Portal resources match their respective
   management states.
+- If the MaaS Portal is managed, confirm that the projected Dashboard custom
+  resource contains `spec.gateway.domain`, and verify that the installed
+  Gateway API implementation supports same-hostname `HTTPRoute` path
+  precedence, `RequestRedirect`, and `URLRewrite`.
 - Keep using the v2 field names only for v2 clients or compatibility workflows;
   do not add the legacy name to new v3 configuration.
 
