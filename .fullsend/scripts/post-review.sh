@@ -1708,6 +1708,28 @@ run_self_test() {
     echo "PASS supported protected-path routes to human judgment, not request-changes"
   fi
 
+  # Production hands the changed files over as a file, never in the
+  # environment. The same case must hold on that path.
+  printf '%s\n' '.github/workflows/ci.yaml' 'src/app.ts' > "${tmp}/pp-files.txt"
+  (
+    unset REVIEW_CHANGED_FILES
+    export REVIEW_PROTECTED_PATHS=".github/,scripts/"
+    export REVIEW_CHANGED_FILES_FILE="${tmp}/pp-files.txt"
+    transform_review_result "${tmp}/pp-real.json"
+  ) > "${tmp}/pp-file-out.json"
+  if ! jq -e '
+      .action == "comment"
+      and ((.findings // []) | length) == 1
+      and ((.todo // [])
+           | map(if type == "string" then . else .text end)
+           | any(contains(".github/workflows/ci.yaml")))
+    ' "${tmp}/pp-file-out.json" >/dev/null; then
+    echo "FAIL protected-path-file: changed files passed by file were not used" >&2
+    fail=1
+  else
+    echo "PASS protected-path gate reads the changed files passed by file"
+  fi
+
   # Host-owned protected-path TODO keeps Judgement even when an agent already
   # listed the same text under Findings.
   local pp_todo_text
