@@ -4,6 +4,7 @@ import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { useParams } from 'react-router';
+import { usePipelineServerStatus } from '@odh-dashboard/autox-core/ui/hooks';
 import AutomlExperiments from '~/app/components/experiments/AutomlExperiments';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
 import type { PipelineRun } from '~/app/types';
@@ -23,7 +24,7 @@ jest.mock('~/app/hooks/usePipelineRuns', () => ({
 }));
 
 jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
-  usePipelineServerStatus: () => ({ loaded: true, isStarting: false, error: undefined }),
+  usePipelineServerStatus: jest.fn(),
 }));
 
 jest.mock('@odh-dashboard/ui-core/components/UnauthorizedError', () => ({
@@ -69,6 +70,7 @@ jest.mock('~/app/components/AutomlRunsTable', () => {
 
 const mockUseParams = jest.mocked(useParams);
 const mockUsePipelineRuns = jest.mocked(usePipelineRuns);
+const mockUsePipelineServerStatus = jest.mocked(usePipelineServerStatus);
 
 const mockRuns: PipelineRun[] = [
   {
@@ -104,6 +106,11 @@ describe('AutomlExperiments', () => {
     mockGetGenericErrorCode.mockReturnValue(undefined);
     mockUseParams.mockReturnValue({ namespace: 'my-namespace' });
     mockUsePipelineRuns.mockReturnValue(defaultRunsState);
+    mockUsePipelineServerStatus.mockReturnValue({
+      loaded: true,
+      isStarting: false,
+      error: undefined,
+    });
   });
 
   it('should show spinner when loading', () => {
@@ -132,6 +139,42 @@ describe('AutomlExperiments', () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId('create-run-button')).toHaveTextContent('Create run');
     expect(screen.queryByTestId('automl-runs-table')).not.toBeInTheDocument();
+  });
+
+  it('should show a spinner while pipeline server status is loading with no experiments', () => {
+    mockUsePipelineRuns.mockReturnValue({
+      ...defaultRunsState,
+      runs: [],
+      totalSize: 0,
+    });
+    mockUsePipelineServerStatus.mockReturnValue({
+      loaded: false,
+      isStarting: false,
+      error: undefined,
+    });
+
+    renderAutoml(<AutomlExperiments />);
+
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    expect(screen.queryByTestId('empty-experiments-state')).not.toBeInTheDocument();
+  });
+
+  it('should show PipelineServerStarting when the pipeline server is starting with no experiments', () => {
+    mockUsePipelineRuns.mockReturnValue({
+      ...defaultRunsState,
+      runs: [],
+      totalSize: 0,
+    });
+    mockUsePipelineServerStatus.mockReturnValue({
+      loaded: false,
+      isStarting: true,
+      error: undefined,
+    });
+
+    renderAutoml(<AutomlExperiments />);
+
+    expect(screen.getByTestId('pipeline-server-starting')).toBeInTheDocument();
+    expect(screen.queryByTestId('empty-experiments-state')).not.toBeInTheDocument();
   });
 
   it('should show AutomlRunsTable when there are experiments', () => {
@@ -274,5 +317,64 @@ describe('AutomlExperiments', () => {
 
     expect(screen.getByTestId('no-pipeline-server')).toBeInTheDocument();
     expect(mockPipelineServerSetupMode).toBe('waiting');
+  });
+
+  it('should preserve PipelineServerStarting for a transient waiting error', () => {
+    mockGetGenericErrorCode.mockReturnValue(503);
+    mockUsePipelineRuns.mockReturnValue({
+      ...defaultRunsState,
+      error: new Error('Service Unavailable'),
+    });
+    mockUsePipelineServerStatus.mockReturnValue({
+      loaded: false,
+      isStarting: true,
+      error: undefined,
+    });
+
+    renderAutoml(<AutomlExperiments />);
+
+    expect(screen.getByTestId('pipeline-server-starting')).toBeInTheDocument();
+    expect(screen.queryByTestId('no-pipeline-server')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    {
+      name: 'unauthorized',
+      code: 403,
+      error: new Error('Forbidden'),
+      expected: 'unauthorized-error',
+    },
+    {
+      name: 'configure',
+      code: 404,
+      error: new Error('no Pipeline Server (DSPipelineApplication) found in namespace'),
+      expected: 'no-pipeline-server',
+      mode: 'configure',
+    },
+    {
+      name: 'enable',
+      code: undefined,
+      error: new Error(
+        'required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server',
+      ),
+      expected: 'no-pipeline-server',
+      mode: 'enable',
+    },
+  ])('should show the $name error before the starting state', ({ code, error, expected, mode }) => {
+    mockGetGenericErrorCode.mockReturnValue(code);
+    mockUsePipelineRuns.mockReturnValue({ ...defaultRunsState, error });
+    mockUsePipelineServerStatus.mockReturnValue({
+      loaded: false,
+      isStarting: true,
+      error: undefined,
+    });
+
+    renderAutoml(<AutomlExperiments />);
+
+    expect(screen.getByTestId(expected)).toBeInTheDocument();
+    expect(screen.queryByTestId('pipeline-server-starting')).not.toBeInTheDocument();
+    if (mode) {
+      expect(mockPipelineServerSetupMode).toBe(mode);
+    }
   });
 });

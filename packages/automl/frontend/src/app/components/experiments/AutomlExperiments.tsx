@@ -1,4 +1,4 @@
-import { Alert, Spinner } from '@patternfly/react-core';
+import { Alert, Flex, FlexItem, Spinner } from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
 import {
@@ -153,7 +153,23 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
   };
   const pipelineServerMode = getPipelineServerMode();
 
-  if (pipelineServerStatus.isStarting) {
+  if (loadError && errorCode === 403) {
+    return <UnauthorizedError accessDomain="AutoML experiments" />;
+  }
+
+  if (pipelineServerMode === 'configure' || pipelineServerMode === 'enable') {
+    return (
+      <PipelineServerSetup
+        namespace={effectiveNamespace || undefined}
+        mode={pipelineServerMode}
+        onStarted={() => setServerBusy(pipelineServerMode)}
+        onFailed={() => setServerBusy(false)}
+        onReady={handleServerReady}
+      />
+    );
+  }
+
+  if (pipelineServerStatus.isStarting && (!loadError || pipelineServerMode === 'waiting')) {
     return <PipelineServerStarting namespace={effectiveNamespace} />;
   }
 
@@ -170,9 +186,6 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
   }
 
   if (loadError) {
-    if (errorCode === 403) {
-      return <UnauthorizedError accessDomain="AutoML experiments" />;
-    }
     return (
       <Alert variant="danger" isInline title="Failed to load experiments">
         <p>{loadError.message}</p>
@@ -182,9 +195,11 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
 
   if (!loaded) {
     return (
-      <div className="pf-v6-u-text-align-center pf-v6-u-pt-2xl">
-        <Spinner size="xl" />
-      </div>
+      <Flex justifyContent={{ default: 'justifyContentCenter' }} className="pf-v6-u-pt-2xl">
+        <FlexItem>
+          <Spinner size="xl" />
+        </FlexItem>
+      </Flex>
     );
   }
 
@@ -195,9 +210,11 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
     !pipelineServerStatus.error
   ) {
     return (
-      <div className="pf-v6-u-text-align-center pf-v6-u-pt-2xl">
-        <Spinner size="xl" />
-      </div>
+      <Flex justifyContent={{ default: 'justifyContentCenter' }} className="pf-v6-u-pt-2xl">
+        <FlexItem>
+          <Spinner size="xl" />
+        </FlexItem>
+      </Flex>
     );
   }
 
