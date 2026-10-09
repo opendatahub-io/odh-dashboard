@@ -137,6 +137,11 @@ const ModelAvailabilityItem = ({
   modelAvailability: ModelAvailabilityFieldsData;
   isMaaSEnabled?: boolean;
 }) => {
+  const availability = [
+    ...(isMaaSEnabled ? ['Model-as-a-Service (MaaS)'] : []),
+    ...(isMaaSEnabled || modelAvailability.saveAsAiAsset ? ['Gen AI Studio'] : []),
+  ];
+
   return (
     <DescriptionList
       isHorizontal
@@ -150,7 +155,15 @@ const ModelAvailabilityItem = ({
         </DescriptionListDescription>
         <DescriptionListTerm>Availability</DescriptionListTerm>
         <DescriptionListDescription data-testid="model-availability-description-item">
-          {modelAvailability.saveAsAiAsset ? 'Gen AI Studio' : 'Not available in Gen AI Studio'}
+          {availability.length > 0 ? (
+            <List isPlain>
+              {availability.map((location) => (
+                <ListItem key={location}>{location}</ListItem>
+              ))}
+            </List>
+          ) : (
+            'Not available in Gen AI Studio'
+          )}
         </DescriptionListDescription>
         {modelAvailability.saveAsAiAsset ? (
           <>
