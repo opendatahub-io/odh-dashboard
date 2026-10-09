@@ -41,7 +41,7 @@ the default `rh-ai` subdomain.
 
 **Platform support:** The MaaS Portal is supported only on RHOAI Self-Managed
 and RHOAI Managed. On other platforms, `managementState: Managed` reports an
-`MaaSConsumerPortalAvailable=False` condition with reason
+  `MaaSPortalAvailable=False` condition with reason
 `UnsupportedPlatform` and does not deploy MaaS Portal resources.
 
 ## Migration From DSC v2
