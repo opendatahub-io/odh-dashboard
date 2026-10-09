@@ -221,18 +221,19 @@ data: {"type":"error","sequence_number":N,"code":"vector_database_timeout","mess
 data: [DONE]
 ```
 
-Vector database destinations are restricted to either an exact Kubernetes Service FQDN
-(`service.namespace.svc.cluster.local`, where plaintext is allowed for the in-cluster adapter
-contract) or a public DNS name using TLS. Userinfo, queries, fragments, unsafe paths, and literal
+Vector database destinations are restricted to either a cluster-local DNS name ending in
+`.cluster.local` (plaintext is allowed for the in-cluster adapter contract; resolved loopback,
+link-local, multicast, unspecified, and NAT64-translated addresses are still rejected) or a
+public DNS name using TLS. Userinfo, queries, fragments, unsafe paths, and literal
 IP addresses are rejected. External DNS results are checked again at connection time and private,
 loopback, link-local, multicast, unspecified, and metadata-style addresses are not dialed.
 
 **Sample call (streaming):**
 
 ```shell
-curl -N -X POST \
+oc whoami -t | sed 's/^/Authorization: Bearer /' | \
+curl -N -H @- -X POST \
   "http://localhost:4000/api/v1/responses?namespace=my-namespace&dbSecretName=milvus-secret&maasSecretName=maas-secret" \
-  -H "Authorization: Bearer $(oc whoami -t)" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "granite-3-3-8b-instruct",
