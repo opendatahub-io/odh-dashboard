@@ -1898,6 +1898,90 @@ describe('llamaStackService', () => {
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
+    it('should route an AutoRAG responses endpoint through the BFF relay', async () => {
+      const mockReader = {
+        read: jest.fn().mockResolvedValueOnce({ done: true, value: undefined }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn(),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      await createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+        undefined,
+        '/autorag/api/v1/responses?dbSecretName=db&maasSecretName=maas',
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/gen-ai/api/v1/lsd/responses/relay?target=%2Fautorag%2Fapi%2Fv1%2Fresponses%3FdbSecretName%3Ddb%26maasSecretName%3Dmaas',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    it('should normalize bffBasePath for the relay URL', async () => {
+      const mockReader = {
+        read: jest.fn().mockResolvedValueOnce({ done: true, value: undefined }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn(),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      await createPassthroughResponse(
+        '/gen-ai',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+        undefined,
+        '/autorag/api/v1/responses?dbSecretName=db',
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/gen-ai/api/v1/lsd/responses/relay?target=%2Fautorag%2Fapi%2Fv1%2Fresponses%3FdbSecretName%3Ddb',
+        expect.anything(),
+      );
+    });
+
+    it('should surface a relay 503 as a structured error', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        text: () =>
+          Promise.resolve(
+            '{"error":{"code":"service_unavailable","message":"relay target gateway is not configured (GATEWAY_DOMAIN)"}}',
+          ),
+      });
+
+      const request = createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+        undefined,
+        '/autorag/api/v1/responses?dbSecretName=db',
+      );
+
+      await expect(request).rejects.toBeInstanceOf(ApiErrorClass);
+      await expect(request).rejects.toMatchObject({
+        error: {
+          code: 'service_unavailable',
+          message: 'relay target gateway is not configured (GATEWAY_DOMAIN)',
+        },
+        message: 'relay target gateway is not configured (GATEWAY_DOMAIN)',
+      });
+    });
+
     it('should preserve structured errors from an overridden AutoRAG endpoint', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,

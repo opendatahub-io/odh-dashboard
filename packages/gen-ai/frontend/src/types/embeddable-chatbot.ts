@@ -33,9 +33,15 @@ type EmbeddableChatbotPlaygroundProps = {
   secretName: string;
   responsesTemplate: ResponsesTemplate;
   patternName?: string;
-  /** Base path for the BFF API, e.g. '/gen-ai/api/v1'. No trailing slash. If '/api/v1' is omitted it is appended automatically. */
+  /** Base path for the BFF API, e.g. '/gen-ai/api/v1'. No trailing slash. If '/api/v1' is omitted it is appended automatically. Used for both the passthrough and relay routes. */
   bffBasePath: string;
-  /** Full URL override for the responses endpoint. When set, bffBasePath/secretName are ignored for request routing. */
+  /**
+   * Same-origin path (with its own query string) of the responses endpoint to use
+   * instead of the OGX connection-secret flow, e.g. '/autorag/api/v1/responses?namespace=my-project'.
+   * Must start with a single '/' (absolute and protocol-relative URLs are rejected).
+   * Routed through the BFF responses relay, which forwards the user's bearer token
+   * to this path via the externally accessed gateway route.
+   */
   responsesEndpointUrl?: string;
   /** Additional key-value pairs merged into the request body's metadata field. */
   additionalMetadata?: Record<string, string>;

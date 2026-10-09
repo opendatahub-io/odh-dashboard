@@ -755,8 +755,14 @@ export const createResponse =
 /**
  * Passthrough request for embedded chatbot mode.
  * Sends a raw Responses API body directly to the BFF, bypassing the
- * normal OGX (Open GenAI Stack) flow. The BFF proxies to the OGX instance using
- * the specified connection secret.
+ * normal OGX (Open Gen AI Stack) flow.
+ *
+ * - Without `responsesEndpointUrl`: the BFF proxies to the OGX instance using
+ *   the specified connection secret (`/lsd/responses/passthrough`).
+ * - With `responsesEndpointUrl`: the request is routed through the BFF relay
+ *   (`/lsd/responses/relay?target=...`), which forwards it — with the user's
+ *   bearer token — to the embedder-controlled same-origin target (e.g.
+ *   AutoRAG's responses endpoint) via the externally accessed gateway route.
  *
  * Always uses streaming (BFF forces stream: true).
  */
@@ -769,18 +775,18 @@ export const createPassthroughResponse = (
   abortSignal?: AbortSignal,
   responsesEndpointUrl?: string,
 ): Promise<SimplifiedResponseData> => {
+  const trimmed = bffBasePath.replace(/\/+$/, '');
+  const base = trimmed.endsWith('/api/v1') ? trimmed : `${trimmed}/api/v1`;
   let url: string;
   if (responsesEndpointUrl) {
     // The request body carries prompts and conversation content, so the
-    // endpoint must stay same-origin: reject absolute URLs and
+    // target must stay same-origin: reject absolute URLs and
     // protocol-relative URLs such as `//evil.example`.
     if (!responsesEndpointUrl.startsWith('/') || responsesEndpointUrl.startsWith('//')) {
       return Promise.reject(new Error('Invalid responses endpoint URL'));
     }
-    url = responsesEndpointUrl;
+    url = `${base}/lsd/responses/relay?target=${encodeURIComponent(responsesEndpointUrl)}`;
   } else {
-    const trimmed = bffBasePath.replace(/\/+$/, '');
-    const base = trimmed.endsWith('/api/v1') ? trimmed : `${trimmed}/api/v1`;
     url = `${base}/lsd/responses/passthrough?namespace=${encodeURIComponent(
       namespace,
     )}&secretName=${encodeURIComponent(secretName)}`;
