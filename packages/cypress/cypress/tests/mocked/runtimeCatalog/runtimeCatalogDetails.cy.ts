@@ -217,5 +217,6 @@ describe('Runtime image library details', () => {
     runtimeCatalogDetailsPage
       .findHeading('Danger alert: Unable to load runtime image')
       .should('be.visible');
+    cy.testA11y();
   });
 });
