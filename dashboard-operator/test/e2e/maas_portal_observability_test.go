@@ -68,7 +68,7 @@ func TestE2E_MaaSPortalObservabilitySurvivesCoreRemoval(t *testing.T) {
 			waitForObjectAbsent(t, &appsv1.Deployment{}, maasPortalRouteName)
 		} else {
 			require.NoError(t, waitForCondition(k8sClient, key.Name,
-				"MaaSConsumerPortalAvailable", metav1.ConditionTrue, fixtureReadyTimeout))
+				"MaaSPortalAvailable", metav1.ConditionTrue, fixtureReadyTimeout))
 		}
 	})
 
@@ -84,7 +84,7 @@ func TestE2E_MaaSPortalObservabilitySurvivesCoreRemoval(t *testing.T) {
 			waitForObjectAbsent(t, &gatewayv1.HTTPRoute{}, coreRoute.Name)
 			waitForObjectAbsent(t, &appsv1.Deployment{}, coreRoute.Name)
 		}
-		for _, condition := range []string{"MaaSConsumerPortalAvailable", "ObservabilityAvailable"} {
+		for _, condition := range []string{"MaaSPortalAvailable", "ObservabilityAvailable"} {
 			require.NoError(t, waitForCondition(k8sClient, key.Name, condition, metav1.ConditionTrue, fixtureReadyTimeout))
 		}
 		require.NoError(t, waitForDeploymentReady(k8sClient, testNamespace, maasPortalRouteName, operandReadyTimeout))

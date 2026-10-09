@@ -289,7 +289,9 @@ func TestDeployMaaSPortalBundle_OperatorSubscriptionRBACUsesExistingNamespace(t 
 		Spec:       v1alpha1.DashboardSpec{Gateway: &v1alpha1.GatewaySpec{Domain: "apps.example.com"}},
 	}
 
-	require.NoError(t, r.deployMaaSPortalBundle(context.Background(), dashboard))
+	result, err := r.deployMaaSPortalBundle(context.Background(), dashboard)
+	require.NoError(t, err)
+	assert.False(t, result.Pending)
 
 	role := &rbacv1.Role{}
 	require.NoError(t, cli.Get(context.Background(), client.ObjectKey{Name: maasPortalRhodsOperatorSubscriptionResourceName, Namespace: maasPortalRhodsOperatorNamespace}, role))
@@ -316,7 +318,7 @@ func TestDeployMaaSPortalBundle_PropagatesOperatorNamespaceLookupError(t *testin
 		Spec:       v1alpha1.DashboardSpec{Gateway: &v1alpha1.GatewaySpec{Domain: "apps.example.com"}},
 	}
 
-	err := r.deployMaaSPortalBundle(context.Background(), dashboard)
+	_, err := r.deployMaaSPortalBundle(context.Background(), dashboard)
 
 	assert.ErrorIs(t, err, injectedErr)
 	assert.ErrorContains(t, err, "getting operator namespaces")
@@ -356,7 +358,9 @@ func TestMaaSPortalSubscriptionRBAC_AdditionalNamespaces(t *testing.T) {
 			cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}).Build()
 			r := &DashboardReconciler{Client: cli, Scheme: scheme, Namespace: namespace, ApplicationsNamespace: maasPortalTestNamespace, ManifestsBasePath: writeMaaSPortalSubscriptionTestManifest(t)}
 			dashboard := &v1alpha1.Dashboard{ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName}, Spec: v1alpha1.DashboardSpec{Gateway: &v1alpha1.GatewaySpec{Domain: "apps.example.com"}}}
-			require.NoError(t, r.deployMaaSPortalBundle(context.Background(), dashboard))
+			result, err := r.deployMaaSPortalBundle(context.Background(), dashboard)
+			require.NoError(t, err)
+			assert.False(t, result.Pending)
 			for _, name := range []string{maasPortalRhodsOperatorSubscriptionResourceName, maasPortalOpenDataHubOperatorSubscriptionResourceName} {
 				require.NoError(t, cli.Get(context.Background(), client.ObjectKey{Name: name, Namespace: namespace}, &rbacv1.Role{}))
 				require.NoError(t, cli.Get(context.Background(), client.ObjectKey{Name: name, Namespace: namespace}, &rbacv1.RoleBinding{}))

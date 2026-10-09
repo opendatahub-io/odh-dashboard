@@ -21,7 +21,7 @@ spec:
               kubernetes.io/metadata.name: redhat-ods-applications
           podSelector:
             matchLabels:
-              app.kubernetes.io/part-of: maas-consumer-portal
+              app.kubernetes.io/part-of: maas-portal
       ports:
         - protocol: TCP
           port: 8080

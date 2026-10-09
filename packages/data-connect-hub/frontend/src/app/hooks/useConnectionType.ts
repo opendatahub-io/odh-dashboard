@@ -1,22 +1,26 @@
 import { APIOptions, FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
 import React from 'react';
 import { getConnectionType } from '~/app/api/dch';
-import { ConnectionType } from '~/app/types';
+import { ConnectionTypeInstance } from '~/app/components/ConnectionType';
 
 export const useConnectionType = (
   namespace: string,
   connectionTypeId: string,
   fetchEnabled = true,
-): [ConnectionType | undefined, boolean, Error | undefined] => {
-  const callback = React.useCallback<FetchStateCallbackPromise<ConnectionType | undefined>>(
-    (opts: APIOptions) =>
-      namespace && fetchEnabled
-        ? getConnectionType('')(opts, namespace, connectionTypeId)
-        : Promise.resolve(undefined),
+): [ConnectionTypeInstance | undefined, boolean, Error | undefined] => {
+  const callback = React.useCallback<FetchStateCallbackPromise<ConnectionTypeInstance | undefined>>(
+    async (opts: APIOptions) => {
+      if (!namespace || !fetchEnabled) {
+        return undefined;
+      }
+
+      const connectionType = await getConnectionType('')(opts, namespace, connectionTypeId);
+      return new ConnectionTypeInstance(connectionType);
+    },
     [connectionTypeId, fetchEnabled, namespace],
   );
 
-  const [connectionType, loaded, error] = useFetchState<ConnectionType | undefined>(
+  const [connectionType, loaded, error] = useFetchState<ConnectionTypeInstance | undefined>(
     callback,
     undefined,
     {

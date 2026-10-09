@@ -1,10 +1,15 @@
 import * as React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AgentDeploymentsModal from '~/app/Chatbot/components/AgentDeploymentsModal';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 
 jest.mock('~/app/hooks/useGenAiAPI');
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
 jest.mock('~/app/AIAssets/components/agentprofiles/AgentConfigurationCard', () => ({
   __esModule: true,
   default: ({ title, deployedAt }: { title: string; deployedAt?: string }) => (
@@ -16,10 +21,23 @@ jest.mock('~/app/AIAssets/components/agentprofiles/AgentConfigurationCard', () =
 }));
 jest.mock('~/app/shared/DeleteModal', () => ({
   __esModule: true,
-  default: ({ onDelete, deleteName }: { onDelete: () => void; deleteName: string }) => (
+  default: ({
+    onClose,
+    onDelete,
+    deleteName,
+  }: {
+    onClose: () => void;
+    onDelete: () => void;
+    deleteName: string;
+  }) => (
     <div data-testid="delete-modal">
       <span>{deleteName}</span>
-      <button onClick={onDelete}>Confirm delete</button>
+      <button data-testid="cancel-delete" onClick={onClose}>
+        Cancel delete
+      </button>
+      <button data-testid="confirm-delete" onClick={onDelete}>
+        Confirm delete
+      </button>
     </div>
   ),
 }));
@@ -119,11 +137,34 @@ describe('AgentDeploymentsModal', () => {
 
     await user.click(screen.getByTestId('delete-agent-deployment-button'));
     expect(screen.getByTestId('delete-modal')).toHaveTextContent('HR Chatbot');
-    await user.click(
-      screen.getByTestId('delete-modal').querySelector('button') as HTMLButtonElement,
-    );
+    await user.click(screen.getByTestId('confirm-delete'));
 
     await waitFor(() => expect(deleteAgentDeployment).toHaveBeenCalledWith({ id: 'hr-chatbot' }));
     expect(onDeleted).toHaveBeenCalledTimes(1);
+    expect(fireMiscTrackingEvent).toHaveBeenCalledWith(
+      PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_DELETE_CONFIRMED,
+      { outcome: 'submit' },
+    );
+  });
+
+  it('tracks cancellation of deployment deletion', async () => {
+    const user = userEvent.setup();
+    render(
+      <AgentDeploymentsModal
+        agentName="HR Chatbot"
+        deployments={deployments}
+        initialDeploymentName="hr-chatbot"
+        onClose={onClose}
+        onDeleted={onDeleted}
+      />,
+    );
+
+    await user.click(screen.getByTestId('delete-agent-deployment-button'));
+    await user.click(screen.getByTestId('cancel-delete'));
+
+    expect(fireMiscTrackingEvent).toHaveBeenCalledWith(
+      PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_DELETE_CONFIRMED,
+      { outcome: 'cancel' },
+    );
   });
 });

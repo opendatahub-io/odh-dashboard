@@ -143,10 +143,8 @@ export {
 } from './context/WorkingProjectContext';
 export type {
   ProjectIdentity,
-  ProvidedWorkingProjectState,
   WorkingProjectContextType,
   WorkingProjectProviderProps,
-  WorkingProjectSelectionState,
 } from './context/WorkingProjectContext';
 
 export { ConnectionDetailsHelperText } from './components/connectionTypes/ConnectionDetailsHelperText';
