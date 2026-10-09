@@ -140,7 +140,7 @@ describe('configure pipeline server utils', () => {
         apiServer: {
           enableSamplePipeline: false,
           cacheEnabled: true,
-          managedPipelines: {},
+          managedPipelines: { pipelines: [] },
           pipelineStore: DSPipelineAPIServerStore.DATABASE,
         },
         mlflow: {
