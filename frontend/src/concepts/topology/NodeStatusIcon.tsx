@@ -11,7 +11,7 @@ import { RunStatus } from '@patternfly/react-topology';
 import { Icon, Tooltip } from '@patternfly/react-core';
 import { runtimeStateLabels, RuntimeStateKF } from '#~/concepts/pipelines/kfTypes';
 
-const NodeStatusIcon: React.FC<{ runStatus: RunStatus | string }> = ({ runStatus }) => {
+const NodeStatusIcon: React.FC<{ runStatus?: RunStatus | string }> = ({ runStatus }) => {
   let icon: React.ReactNode;
   let status: React.ComponentProps<typeof Icon>['status'];
   let label: string;
@@ -54,9 +54,13 @@ const NodeStatusIcon: React.FC<{ runStatus: RunStatus | string }> = ({ runStatus
       label = '';
   }
 
+  if (!icon || !label) {
+    return null;
+  }
+
   return (
     <Tooltip content={label}>
-      <Icon status={status} isInline>
+      <Icon status={status} isInline aria-label={label}>
         {icon}
       </Icon>
     </Tooltip>

@@ -6,3 +6,35 @@
     }
   }
 }
+
+// Transparent HTML buttons provide keyboard and screen reader controls for graph nodes.
+// Only the collapsed group popover trigger handles pointer events; collapse clicks reach PatternFly.
+.odh-pipeline-node-overlay {
+  pointer-events: none;
+}
+
+.odh-pipeline-node-button {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  pointer-events: none;
+
+  &:focus-visible {
+    outline: var(--pf-t--global--border--width--strong) solid
+      var(--pf-t--global--color--brand--default);
+    outline-offset: var(--pf-t--global--border--width--strong);
+    border-radius: var(--pf-t--global--border--radius--tiny);
+  }
+}
+
+.odh-pipeline-node-button.m-group {
+  pointer-events: auto;
+}
+
+.odh-pipeline-node-button.m-group-toggle {
+  pointer-events: none;
+}
