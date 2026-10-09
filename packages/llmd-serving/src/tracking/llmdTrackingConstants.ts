@@ -43,6 +43,7 @@ export enum LlmAcceleratorConfigTrackingEvent {
 export type LlmAcceleratorConfigCreatedProperties = FormTrackingEventProperties & {
   /** Whether the config was created from scratch or duplicated from an existing one. */
   mode: 'create' | 'duplicate';
+  source?: 'install';
 };
 
 export type LlmAcceleratorConfigEnablementChangedProperties = FormTrackingEventProperties & {

@@ -18,6 +18,22 @@ const acceleratorFormPaths = [
 ];
 
 describe('LLM accelerator configuration extensions', () => {
+  it('should register one renamed install target with the settings gates and presentation metadata', () => {
+    const targets = extensions.filter(
+      (extension) => extension.type === 'model-serving.runtime-image/install-target',
+    );
+    expect(targets).toHaveLength(1);
+    expect(targets[0].flags).toEqual(acceleratorTab?.flags);
+    expect(targets[0].properties).toEqual(
+      expect.objectContaining({
+        id: 'llmInferenceServiceConfig',
+        label: 'LLM accelerator configuration',
+        description: expect.any(String),
+        selectedState: expect.objectContaining({ listName: 'LLM accelerator configurations' }),
+        configureStepLabel: 'Configure accelerator',
+      }),
+    );
+  });
   it('should register the accelerator tab on the model deployment settings page', () => {
     expect(acceleratorTab).toBeDefined();
     expect(acceleratorTab?.properties).toEqual(

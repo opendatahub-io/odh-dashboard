@@ -36,20 +36,26 @@ import {
   fireLlmAcceleratorConfigUpdated,
 } from '../../tracking/llmdTrackingConstants';
 
-type LlmAcceleratorConfigFormBodyProps = {
-  mode: 'add' | 'edit' | 'duplicate';
-  sourceConfig?: LLMInferenceServiceConfigKind;
-};
+type LlmAcceleratorConfigFormBodyProps =
+  | {
+      mode: 'add' | 'edit' | 'duplicate';
+      sourceConfig?: LLMInferenceServiceConfigKind;
+    }
+  | {
+      mode: 'install';
+      sourceConfig: LLMInferenceServiceConfigKind;
+      onBack: () => void;
+      cancelReturnRoute: string;
+    };
 
-const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> = ({
-  mode,
-  sourceConfig,
-}) => {
+const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> = (props) => {
+  const { mode, sourceConfig } = props;
   const listPath = LLM_ACCELERATOR_CONFIGS_TAB_PATH;
   const navigate = useNavigate();
   const { dashboardNamespace } = useDashboardNamespace();
   const isEdit = mode === 'edit';
   const isDuplicate = mode === 'duplicate';
+  const isInstall = mode === 'install';
 
   const initialData = React.useMemo(() => {
     if (!sourceConfig) {
@@ -75,7 +81,7 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
   const { data: nameDescData, onDataChange: onNameDescDataChange } = useK8sNameDescriptionFieldData(
     {
       initialData,
-      editableK8sName: isDuplicate,
+      editableK8sName: isDuplicate || isInstall,
     },
   );
 
@@ -127,6 +133,7 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
           outcome: TrackingOutcome.submit,
           success: false,
           mode: isDuplicate ? 'duplicate' : 'create',
+          ...(isInstall && { source: 'install' }),
         });
       }
       return;
@@ -140,6 +147,7 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
           outcome: TrackingOutcome.submit,
           success: false,
           mode: isDuplicate ? 'duplicate' : 'create',
+          ...(isInstall && { source: 'install' }),
         });
       }
       return;
@@ -164,6 +172,7 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
             outcome: TrackingOutcome.submit,
             success: true,
             mode: isDuplicate ? 'duplicate' : 'create',
+            ...(isInstall && { source: 'install' }),
           });
         }
         navigate(listPath);
@@ -180,6 +189,7 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
             outcome: TrackingOutcome.submit,
             success: false,
             mode: isDuplicate ? 'duplicate' : 'create',
+            ...(isInstall && { source: 'install' }),
           });
         }
       })
@@ -190,6 +200,7 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
     yamlCode,
     isEdit,
     isDuplicate,
+    isInstall,
     sourceConfig?.metadata.name,
     nameDescData,
     version,
@@ -233,6 +244,11 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
         </Alert>
       ) : null}
       <ActionGroup>
+        {isInstall && (
+          <Button isDisabled={loading} variant="secondary" onClick={props.onBack}>
+            Back
+          </Button>
+        )}
         <Button
           isDisabled={isDisabled}
           variant="primary"
@@ -253,9 +269,10 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
               fireLlmAcceleratorConfigCreated({
                 outcome: TrackingOutcome.cancel,
                 mode: isDuplicate ? 'duplicate' : 'create',
+                ...(isInstall && { source: 'install' }),
               });
             }
-            navigate(listPath);
+            navigate(props.mode === 'install' ? props.cancelReturnRoute : listPath);
           }}
         >
           Cancel
