@@ -544,6 +544,7 @@ function AutoragResultsPage(): React.JSX.Element {
       let responsesTemplate: AutoRAGResponsesTemplate;
       try {
         const persistedTemplate = pattern.inference?.responses_template;
+        const fallback = buildResponsesTemplate(pattern, pipelineRun?.run_id);
         const candidate = persistedTemplate
           ? {
               ...persistedTemplate,
@@ -557,10 +558,16 @@ function AutoragResultsPage(): React.JSX.Element {
                   : {}),
               },
             }
-          : buildResponsesTemplate(pattern, pipelineRun?.run_id);
+          : fallback;
+        // The generated fallback is validated too — buildResponsesTemplate can
+        // emit an empty model or vector_store_ids, and the drawer state should
+        // carry the explicit unavailable marker rather than a half-valid
+        // template.
         responsesTemplate = isUsableResponsesTemplate(candidate)
           ? normalizeResponsesTemplate(candidate)
-          : buildResponsesTemplate(pattern, pipelineRun?.run_id);
+          : isUsableResponsesTemplate(fallback)
+            ? normalizeResponsesTemplate(fallback)
+            : unavailableResponsesTemplate(patternName);
       } catch {
         responsesTemplate = unavailableResponsesTemplate(patternName);
       }
