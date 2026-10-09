@@ -591,7 +591,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
             : {})}
           buttonProps={{
             attach: {
-              tooltipContent: 'Attach',
+              tooltipContent: 'Attach files to this message',
               inputTestId: 'chatbot-attach-input',
               // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
               props: {

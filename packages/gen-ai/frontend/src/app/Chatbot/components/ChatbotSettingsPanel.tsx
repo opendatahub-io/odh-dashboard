@@ -6,7 +6,6 @@ import {
   DrawerHead,
   DrawerPanelContent,
   DrawerPanelBody,
-  Badge,
   Flex,
   FlexItem,
   Icon,
@@ -15,12 +14,22 @@ import {
   ModalFooter,
   ModalHeader,
   Popover,
+  Tab,
+  Tabs,
   Title,
   ToggleGroup,
   ToggleGroupItem,
   Tooltip,
 } from '@patternfly/react-core';
-import { ExclamationTriangleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import {
+  ClipboardIcon,
+  BookIcon,
+  ExclamationTriangleIcon,
+  OutlinedQuestionCircleIcon,
+  RobotIcon,
+  ShieldAltIcon,
+  RhUiAiModelIcon,
+} from '@patternfly/react-icons';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
@@ -31,10 +40,8 @@ import {
   selectSystemInstruction,
   selectTemperature,
   selectStreamingEnabled,
-  selectSelectedMcpServerIds,
   selectSelectedModel,
   selectSelectedSubscription,
-  selectRagEnabled,
   selectConfigIds,
   DEFAULT_CONFIG_ID,
 } from '~/app/Chatbot/store';
@@ -88,6 +95,7 @@ interface ChatbotSettingsPanelProps {
 const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
 const DEFAULT_WIDTH = '550px';
 const AUTO_CLOSE_WIDTH_THRESHOLD = 150;
+const COMPACT_TABS_WIDTH_THRESHOLD = 440;
 
 const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> = ({
   configId = DEFAULT_CONFIG_ID,
@@ -132,11 +140,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   // Consume store directly using configId (controlled by parent)
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
   const temperature = useChatbotConfigStore(selectTemperature(configId));
-  const selectedMcpServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
   const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
   const selectedSubscription = useChatbotConfigStore(selectSelectedSubscription(configId));
-  const isRagEnabled = useChatbotConfigStore(selectRagEnabled(configId));
 
   // Get updater functions from store
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
@@ -188,9 +194,25 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     const storedWidth = sessionStorage.getItem(SETTINGS_PANEL_WIDTH);
     return storedWidth || DEFAULT_WIDTH;
   });
-
+  const tabsContainerRef = React.useRef<HTMLDivElement>(null);
+  const [areTabsCompact, setAreTabsCompact] = React.useState(
+    Number.parseInt(panelWidth, 10) < COMPACT_TABS_WIDTH_THRESHOLD,
+  );
   // Key to force DrawerPanelContent remount when auto-closing, so it resets to defaultSize
   const [panelSizeKey, setPanelSizeKey] = React.useState(0);
+
+  React.useEffect(() => {
+    const tabsContainer = tabsContainerRef.current;
+    if (!tabsContainer) {
+      return undefined;
+    }
+    const observer = new ResizeObserver(([entry]) => {
+      setAreTabsCompact(entry.contentRect.width < COMPACT_TABS_WIDTH_THRESHOLD);
+    });
+    observer.observe(tabsContainer);
+    return () => observer.disconnect();
+  }, [panelSizeKey]);
+
   // Tracks the last resize width so the auto-close logic only fires once per
   // threshold crossing, instead of on every resize callback while below it.
   const lastWidthRef = React.useRef<number>(AUTO_CLOSE_WIDTH_THRESHOLD);
@@ -241,6 +263,26 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         overflow: 'hidden',
       }
     : undefined;
+
+  const renderTabTitle = (label: string, icon: React.ReactNode, status?: React.ReactNode) => (
+    <Flex
+      direction={{ default: areTabsCompact ? 'row' : 'column' }}
+      alignItems={{ default: 'alignItemsCenter' }}
+      justifyContent={{ default: 'justifyContentCenter' }}
+      gap={{ default: areTabsCompact ? 'gapXs' : 'gapNone' }}
+    >
+      <FlexItem>{icon}</FlexItem>
+      {!areTabsCompact && (
+        <FlexItem>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+            <FlexItem>{label}</FlexItem>
+            {status && <FlexItem>{status}</FlexItem>}
+          </Flex>
+        </FlexItem>
+      )}
+      {areTabsCompact && status && <FlexItem>{status}</FlexItem>}
+    </Flex>
+  );
 
   return (
     <DrawerPanelContent
@@ -311,79 +353,68 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       <DrawerPanelBody
         style={{ flexGrow: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
       >
-        <ToggleGroup
-          isFill
-          aria-label="Chatbot settings page tabs"
-          data-testid="chatbot-settings-page-tabs"
-        >
-          <ToggleGroupItem
-            text="Model"
-            isSelected={activeTabKey === 0}
-            onChange={() => handleTabSelect(0)}
-            data-testid="chatbot-settings-page-tab-model"
-          />
-          <ToggleGroupItem
-            text="Prompt"
-            isSelected={activeTabKey === 1}
-            onChange={() => handleTabSelect(1)}
-            data-testid="chatbot-settings-page-tab-prompt"
-          />
-          <ToggleGroupItem
-            text={
-              <Flex
-                alignItems={{ default: 'alignItemsCenter' }}
-                gap={{ default: 'gapSm' }}
-                flexWrap={{ default: 'nowrap' }}
-              >
-                <FlexItem>Knowledge</FlexItem>
-                <FlexItem>
-                  <Badge isRead={!isRagEnabled} data-testid="knowledge-status-badge">
-                    {isRagEnabled ? 'On' : 'Off'}
-                  </Badge>
-                </FlexItem>
-              </Flex>
-            }
-            isSelected={activeTabKey === 2}
-            onChange={() => handleTabSelect(2)}
-            data-testid="chatbot-settings-page-tab-knowledge"
-          />
-          <ToggleGroupItem
-            text={
-              <Flex
-                alignItems={{ default: 'alignItemsCenter' }}
-                gap={{ default: 'gapSm' }}
-                flexWrap={{ default: 'nowrap' }}
-              >
-                <FlexItem>MCP</FlexItem>
-                {selectedMcpServerIds.length > 0 && (
-                  <FlexItem>
-                    <Badge>{selectedMcpServerIds.length}</Badge>
-                  </FlexItem>
-                )}
-                {showMcpToolsWarning && (
-                  <FlexItem>
-                    <Tooltip content="Performance may be degraded with more than 40 active tools">
-                      <Icon status="warning" data-testid="mcp-tools-warning-icon">
-                        <ExclamationTriangleIcon />
-                      </Icon>
-                    </Tooltip>
-                  </FlexItem>
-                )}
-              </Flex>
-            }
-            isSelected={activeTabKey === 3}
-            onChange={() => handleTabSelect(3)}
-            data-testid="chatbot-settings-page-tab-mcp"
-          />
-          {isGuardrailsFeatureEnabled && (
-            <ToggleGroupItem
-              text="Guardrails"
-              isSelected={activeTabKey === 4}
-              onChange={() => handleTabSelect(4)}
-              data-testid="chatbot-settings-page-tab-guardrails"
+        <div ref={tabsContainerRef}>
+          <Tabs
+            isFilled
+            activeKey={activeTabKey}
+            onSelect={(_, key) => handleTabSelect(key)}
+            aria-label="Chatbot settings page tabs"
+            data-testid="chatbot-settings-page-tabs"
+          >
+            <Tab
+              eventKey={0}
+              tabContentId="chatbot-settings-page-tab-content-model"
+              title={renderTabTitle('Model', <RhUiAiModelIcon />)}
+              aria-label="Model"
+              tooltip={areTabsCompact ? <Tooltip content="Model" /> : undefined}
+              data-testid="chatbot-settings-page-tab-model"
             />
-          )}
-        </ToggleGroup>
+            <Tab
+              eventKey={1}
+              tabContentId="chatbot-settings-page-tab-content-prompt"
+              title={renderTabTitle('Prompt', <ClipboardIcon />)}
+              aria-label="Prompt"
+              tooltip={areTabsCompact ? <Tooltip content="Prompt" /> : undefined}
+              data-testid="chatbot-settings-page-tab-prompt"
+            />
+            <Tab
+              eventKey={2}
+              tabContentId="chatbot-settings-page-tab-content-knowledge"
+              title={renderTabTitle('RAG', <BookIcon />)}
+              aria-label="RAG"
+              tooltip={areTabsCompact ? <Tooltip content="RAG" /> : undefined}
+              data-testid="chatbot-settings-page-tab-knowledge"
+            />
+            <Tab
+              eventKey={3}
+              tabContentId="chatbot-settings-page-tab-content-mcp"
+              title={renderTabTitle(
+                'MCP',
+                <RobotIcon />,
+                showMcpToolsWarning ? (
+                  <Tooltip content="Performance may be degraded with more than 40 active tools">
+                    <Icon status="warning" data-testid="mcp-tools-warning-icon">
+                      <ExclamationTriangleIcon />
+                    </Icon>
+                  </Tooltip>
+                ) : undefined,
+              )}
+              aria-label="MCP"
+              tooltip={areTabsCompact ? <Tooltip content="MCP" /> : undefined}
+              data-testid="chatbot-settings-page-tab-mcp"
+            />
+            {isGuardrailsFeatureEnabled && (
+              <Tab
+                eventKey={4}
+                tabContentId="chatbot-settings-page-tab-content-guardrails"
+                title={renderTabTitle('Guardrails', <ShieldAltIcon />)}
+                aria-label="Guardrails"
+                tooltip={areTabsCompact ? <Tooltip content="Guardrails" /> : undefined}
+                data-testid="chatbot-settings-page-tab-guardrails"
+              />
+            )}
+          </Tabs>
+        </div>
 
         {/* Keep all tab content mounted to preserve lifecycle state (data fetches, etc.)
            and toggle visibility via an inline `display: none` (NOT the `pf-v6-u-display-none`
@@ -397,6 +428,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
            its overflow:hidden (minHeight: 0 is required so the flex item can actually shrink
            below its content's natural size and hand scrolling to the inner overflow: auto). */}
         <div
+          id="chatbot-settings-page-tab-content-model"
+          role="tabpanel"
+          aria-label="Model settings"
           style={{
             display: activeTabKey !== 0 ? 'none' : 'block',
             flex: '1 1 auto',
@@ -418,6 +452,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           />
         </div>
         <div
+          id="chatbot-settings-page-tab-content-prompt"
+          role="tabpanel"
+          aria-label="Prompt settings"
           style={{
             display: activeTabKey !== 1 ? 'none' : 'block',
             flex: '1 1 auto',
@@ -433,6 +470,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           />
         </div>
         <div
+          id="chatbot-settings-page-tab-content-knowledge"
+          role="tabpanel"
+          aria-label="RAG settings"
           style={{
             display: activeTabKey !== 2 ? 'none' : 'block',
             flex: '1 1 auto',
@@ -449,6 +489,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           />
         </div>
         <div
+          id="chatbot-settings-page-tab-content-mcp"
+          role="tabpanel"
+          aria-label="MCP settings"
           style={{
             display: activeTabKey !== 3 ? 'none' : 'block',
             flex: '1 1 auto',
@@ -474,6 +517,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         </div>
         {isGuardrailsFeatureEnabled && (
           <div
+            id="chatbot-settings-page-tab-content-guardrails"
+            role="tabpanel"
+            aria-label="Guardrails settings"
             style={{
               display: activeTabKey !== 4 ? 'none' : 'block',
               flex: '1 1 auto',

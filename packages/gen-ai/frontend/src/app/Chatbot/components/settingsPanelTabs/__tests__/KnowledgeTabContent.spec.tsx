@@ -280,6 +280,13 @@ describe('KnowledgeTabContent', () => {
       ]);
     });
 
+    it('labels the vector store settings as RAG', () => {
+      render(<KnowledgeTabContent {...defaultProps} />);
+
+      expect(screen.getByTestId('knowledge-section-title')).toHaveTextContent('RAG');
+      expect(screen.getByRole('radiogroup', { name: 'RAG source' })).toBeInTheDocument();
+    });
+
     it('fires tracking event with knowledgeSource upload when knowledgeMode is inline', async () => {
       const user = userEvent.setup();
       render(<KnowledgeTabContent {...defaultProps} />);

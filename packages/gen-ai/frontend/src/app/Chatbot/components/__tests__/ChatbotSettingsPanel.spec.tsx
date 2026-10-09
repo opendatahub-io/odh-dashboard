@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ChatbotSettingsPanel } from '~/app/Chatbot/components/ChatbotSettingsPanel';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
@@ -11,6 +11,15 @@ const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
 const DEFAULT_WIDTH = '550px';
 
 const mockResizeEvent = new Event('click');
+let mockResizeObserverCallback: ResizeObserverCallback = jest.fn();
+const mockObserveTabs = jest.fn();
+
+Object.defineProperty(window, 'ResizeObserver', {
+  value: jest.fn().mockImplementation((callback: ResizeObserverCallback) => {
+    mockResizeObserverCallback = callback;
+    return { observe: mockObserveTabs, unobserve: jest.fn(), disconnect: jest.fn() };
+  }),
+});
 
 // Track DrawerPanelContent defaultSize (must be prefixed with 'mock' for Jest)
 let mockDrawerPanelDefaultSize: string | undefined;
@@ -124,6 +133,19 @@ jest.mock('@patternfly/react-core', () => {
 jest.mock('~/app/Chatbot/hooks/useGuardrailsEnabled', () => ({
   __esModule: true,
   default: jest.fn(() => false),
+}));
+
+jest.mock('~/app/Chatbot/components/settingsPanelTabs/MCPTabContent', () => ({
+  __esModule: true,
+  default: ({ onToolsWarningChange }: { onToolsWarningChange: (show: boolean) => void }) => (
+    <button
+      type="button"
+      data-testid="trigger-tools-warning"
+      onClick={() => onToolsWarningChange(true)}
+    >
+      Show tools warning
+    </button>
+  ),
 }));
 
 const mockUseGuardrailsEnabled = jest.mocked(useGuardrailsEnabled);
@@ -264,6 +286,15 @@ describe('ChatbotSettingsPanel', () => {
     const resize50Button = screen.getByTestId('trigger-resize-50');
     await user.click(resize50Button);
     expect(mockOnCloseClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('observes the replacement tab bar after the drawer resets on close', async () => {
+    const user = userEvent.setup();
+    render(<ChatbotSettingsPanel {...defaultProps} onCloseClick={jest.fn()} />);
+
+    expect(mockObserveTabs).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByTestId('trigger-resize-50'));
+    expect(mockObserveTabs).toHaveBeenCalledTimes(2);
   });
 
   it('should call onCloseClick again after crossing back above the threshold and below it again', async () => {
@@ -622,15 +653,125 @@ describe('ChatbotSettingsPanel', () => {
     });
   });
 
-  describe('Tab content visibility (display-none hiding approach)', () => {
-    // ToggleGroupItem's data-testid lives on a non-interactive wrapper <div>; the actual
-    // clickable element is the nested <button>, so we scope into it before clicking.
+  describe('Settings tabs', () => {
     const clickTabToggle = async (
       user: ReturnType<typeof userEvent.setup>,
       testId: string,
     ): Promise<void> => {
-      await user.click(within(screen.getByTestId(testId)).getByRole('button'));
+      await user.click(screen.getByTestId(testId));
     };
+
+    afterEach(() => {
+      mockUseGuardrailsEnabled.mockReturnValue(false);
+    });
+
+    it('shows icons and descriptive labels when the panel is wide', () => {
+      mockUseGuardrailsEnabled.mockReturnValue(true);
+      render(<ChatbotSettingsPanel {...defaultProps} />);
+
+      for (const label of ['Model', 'Prompt', 'RAG', 'MCP', 'Guardrails']) {
+        const tab = screen.getByRole('tab', { name: label });
+        expect(tab).toHaveTextContent(label);
+        expect(tab.querySelector('svg')).toBeInTheDocument();
+      }
+      expect(screen.getByRole('tab', { name: 'Model' })).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('keeps every icon visible when the panel becomes narrow', () => {
+      mockUseGuardrailsEnabled.mockReturnValue(true);
+      render(<ChatbotSettingsPanel {...defaultProps} />);
+
+      act(() => {
+        mockResizeObserverCallback(
+          [{ contentRect: { width: 300 } } as ResizeObserverEntry],
+          {} as ResizeObserver,
+        );
+      });
+
+      for (const label of ['Model', 'Prompt', 'RAG', 'MCP', 'Guardrails']) {
+        const tab = screen.getByRole('tab', { name: label });
+        expect(tab).not.toHaveTextContent(label);
+        expect(tab.querySelector('svg')).toBeInTheDocument();
+      }
+    });
+
+    it('starts with compact tabs when a narrow panel width was saved', () => {
+      sessionStorage.setItem(SETTINGS_PANEL_WIDTH, '300px');
+      render(<ChatbotSettingsPanel {...defaultProps} />);
+
+      expect(screen.getByRole('tab', { name: 'Model' })).not.toHaveTextContent('Model');
+    });
+
+    it('omits RAG status and MCP server count from wide and compact tabs', () => {
+      render(<ChatbotSettingsPanel {...defaultProps} />);
+      expect(screen.getByRole('tab', { name: 'RAG' })).not.toHaveTextContent('Off');
+
+      act(() => {
+        useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedMcpServerIds(DEFAULT_CONFIG_ID, ['server-one']);
+      });
+
+      expect(screen.getByRole('tab', { name: 'RAG' })).toHaveTextContent('RAG');
+      expect(screen.getByRole('tab', { name: 'RAG' })).not.toHaveTextContent('On');
+      expect(screen.getByRole('tab', { name: 'MCP' })).not.toHaveTextContent('1');
+
+      act(() => {
+        mockResizeObserverCallback(
+          [{ contentRect: { width: 300 } } as ResizeObserverEntry],
+          {} as ResizeObserver,
+        );
+      });
+
+      expect(screen.getByRole('tab', { name: 'RAG' })).not.toHaveTextContent('On');
+      expect(screen.getByRole('tab', { name: 'MCP' })).not.toHaveTextContent('1');
+    });
+
+    it('keeps the MCP tools warning visible in the compact tab', async () => {
+      const user = userEvent.setup();
+      sessionStorage.setItem(SETTINGS_PANEL_WIDTH, '300px');
+      render(<ChatbotSettingsPanel {...defaultProps} />);
+
+      await user.click(screen.getByRole('tab', { name: 'MCP' }));
+      await user.click(screen.getByTestId('trigger-tools-warning'));
+
+      expect(screen.getByTestId('mcp-tools-warning-icon')).toBeInTheDocument();
+    });
+
+    it('shows a compact tab label on keyboard focus and restores visible labels when widened', async () => {
+      render(<ChatbotSettingsPanel {...defaultProps} />);
+
+      act(() => {
+        mockResizeObserverCallback(
+          [{ contentRect: { width: 300 } } as ResizeObserverEntry],
+          {} as ResizeObserver,
+        );
+      });
+
+      screen.getByRole('tab', { name: 'RAG' }).focus();
+      expect(await screen.findByRole('tooltip')).toHaveTextContent('RAG');
+
+      act(() => {
+        mockResizeObserverCallback(
+          [{ contentRect: { width: 550 } } as ResizeObserverEntry],
+          {} as ResizeObserver,
+        );
+      });
+      expect(screen.getByRole('tab', { name: 'RAG' })).toHaveTextContent('RAG');
+    });
+
+    it('links every tab to its content panel', () => {
+      mockUseGuardrailsEnabled.mockReturnValue(true);
+      render(<ChatbotSettingsPanel {...defaultProps} />);
+
+      for (const name of ['model', 'prompt', 'knowledge', 'mcp', 'guardrails']) {
+        expect(screen.getByTestId(`chatbot-settings-page-tab-${name}`)).toHaveAttribute(
+          'aria-controls',
+          `chatbot-settings-page-tab-content-${name}`,
+        );
+      }
+    });
 
     it('should show the Model tab content and hide all other tab contents by default', () => {
       render(<ChatbotSettingsPanel {...defaultProps} />);
