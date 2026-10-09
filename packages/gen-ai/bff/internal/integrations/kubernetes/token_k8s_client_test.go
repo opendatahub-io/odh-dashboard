@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -2406,6 +2407,37 @@ func TestOgxCommand_TracingEnabled(t *testing.T) {
 	assert.Contains(t, cmd[2], "--traces_exporter=otlp_proto_http")
 	assert.Contains(t, cmd[2], "--disabled_instrumentations=sqlite3,sqlalchemy,asyncpg,requests,urllib,urllib3,httpx,httpx2")
 	assert.Contains(t, cmd[2], "ogx run /etc/ogx/config.yaml")
+	// The office MIME types must also be registered through a .pth file in
+	// site-packages: opentelemetry-instrument prepends its own directory (which
+	// contains a sitecustomize.py) to PYTHONPATH for the main process and for
+	// multiprocessing workers, shadowing the office MIME-types sitecustomize.
+	assert.Contains(t, cmd[2], fmt.Sprintf("printf '%%s\\n' '%s' > \"$d/%s\"", officeMIMETypesPTHRegistration, officeMIMETypesPTHName))
+	assert.Contains(t, cmd[2], "for d in /opt/app-root/lib*/python*/site-packages")
+	// The MIME registration must not import the OTel auto-instrumentation hook,
+	// which would initialize instrumentation twice in worker processes.
+	assert.NotContains(t, officeMIMETypesPTHRegistration, "opentelemetry")
+}
+
+// officeMIMETypesRegistrations is the authoritative list of Office MIME types
+// that must be registered for the OGX file processor to route .docx/.pptx
+// uploads to MarkItDown. Both registration mechanisms — the ConfigMap's
+// sitecustomize module and the .pth file — must cover every entry.
+var officeMIMETypesRegistrations = []struct {
+	mimeType  string
+	extension string
+}{
+	{"application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx"},
+	{"application/vnd.openxmlformats-officedocument.presentationml.presentation", ".pptx"},
+}
+
+func TestOfficeMIMETypesRegistrationsInSync(t *testing.T) {
+	for _, r := range officeMIMETypesRegistrations {
+		call := fmt.Sprintf("mimetypes.add_type(%q, %q)", r.mimeType, r.extension)
+		assert.Contains(t, officeMIMETypesConfigMapContents, call,
+			"officeMIMETypesConfigMapContents must register %s", r.extension)
+		assert.Contains(t, officeMIMETypesPTHRegistration, call,
+			"officeMIMETypesPTHRegistration must register %s", r.extension)
+	}
 }
 
 func TestEnsureOGXGatewayCABundle(t *testing.T) {
