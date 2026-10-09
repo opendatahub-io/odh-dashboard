@@ -380,7 +380,7 @@ def unverified_producers(result):
         names.append(dimension_label(check.get("id") or "readiness check"))
     producers = producers_block(result)
     if producers is not None and challenger_problem(challenger_record(producers), result.get("findings") or []):
-        names.append("challenger (its producers record contradicts the reported findings)")
+        names.append("challenger (its skip state contradicts the reported findings)")
     return names
 
 def cap_confidence(result):
@@ -710,26 +710,28 @@ def claims_empty_skip(reason):
     return not reason or "no finding" in reason.lower()
 
 def challenger_problem(ch, findings):
-    """Confidence/limit note when the challenger record contradicts itself."""
+    """Confidence/limit note when the challenger record contradicts itself.
+
+    Wording is PR-facing: no schema or field-name jargon."""
     status = str(ch.get("status") or "").strip().lower()
     reason = clean(ch.get("reason") or "")
     if status == "pending":
-        return ('result.producers still records the challenger as "pending", so whether it ran is unknown.')
+        return 'Challenger status is still pending, so whether it ran is unknown.'
     if status == "skipped" and claims_empty_skip(reason) and findings:
         count = len(findings)
-        return (f"result.producers records the challenger as skipped for an empty finding set, but {count} "
-                f"finding(s) were reported. Its real reason for skipping was not recorded.")
+        return (f"Challenger was marked skipped with no findings to adjudicate, but {count} "
+                f"finding(s) were reported. The real reason it skipped was not recorded.")
     return None
 
 def challenger_prose(result):
     producers = producers_block(result)
     findings = result.get("findings") or []
     if producers is None:
-        return "Challenger state is unverified — no producers object on the review result."
+        return "Challenger state is unverified — producer run details are missing from the review result."
     ch = challenger_record(producers)
     status = str(ch.get("status") or "").strip().lower()
     if not status:
-        return "Challenger state was not recorded in result.producers."
+        return "Challenger state was not recorded."
     problem = challenger_problem(ch, findings)
     if problem:
         return problem
@@ -1969,19 +1971,25 @@ run_self_test() {
     echo "PASS Jira acceptance criteria are not rendered"
   fi
 
-  # result.producers claiming an empty-set skip while findings exist is the exact
-  # shape run 243 produced. The host must contradict it, not repeat it.
+  # Claiming an empty-set skip while findings exist is the exact shape run 243
+  # produced. The host must contradict it in plain language, not schema jargon.
   printf '%s' "{${common},\"findings\":[{\"severity\":\"high\",\"category\":\"off-by-one\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Out of bounds.\",\"why\":\"undefined.\",\"remediation\":\"length - 1.\"}],\"producers\":{\"dispatched\":[\"correctness\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"correctness\"],\"raised\":{\"correctness\":[{\"severity\":\"high\",\"category\":\"off-by-one\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Out of bounds.\",\"why\":\"undefined.\",\"remediation\":\"length - 1.\"}]},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/ch.json"
   transform_review_result "${tmp}/ch.json" > "${tmp}/ch-out.json"
   body=$(jq -r .body "${tmp}/ch-out.json")
-  if ! grep -q 'result.producers records the challenger as skipped for an empty finding set' <<<"${body}"; then
-    echo "FAIL challenger-contradiction: host repeated a producers claim the findings disprove" >&2
+  if grep -qE 'result\.producers|producers\.(challenger|raised|dispatched)' <<<"${body}"; then
+    echo "FAIL challenger-contradiction: sticky exposed schema/field jargon" >&2
     fail=1
-  elif ! jq -e '.confidence.level == "medium"' "${tmp}/ch-out.json" >/dev/null; then
-    echo "FAIL challenger-contradiction: a self-contradicting producers record left confidence untouched" >&2
+  elif ! grep -q 'Challenger was marked skipped with no findings to adjudicate, but 1 finding(s) were reported' <<<"${body}"; then
+    echo "FAIL challenger-contradiction: host did not report the skip/findings mismatch" >&2
+    fail=1
+  elif ! jq -e '
+    .confidence.level == "medium"
+    and (.inspected.could_not_verify | any(.[]; contains("marked skipped with no findings to adjudicate")))
+  ' "${tmp}/ch-out.json" >/dev/null; then
+    echo "FAIL challenger-contradiction: confidence/limits did not use matching user-facing wording" >&2
     fail=1
   else
-    echo "PASS contradictory challenger record is reported and caps confidence"
+    echo "PASS contradictory challenger record is reported in plain language and caps confidence"
   fi
 
   # An honest skip with a stated reason renders in the Challenger section.
