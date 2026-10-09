@@ -75,7 +75,7 @@ func TestBuildMaaSPortalFederationConfigMap_IncludesPersesWhenConfigured(t *test
 	assert.Equal(t, "perses", entries[2]["name"])
 	proxy := entries[2]["proxyService"].([]any)[0].(map[string]any)
 	assert.Equal(t, "/perses/api", proxy["path"])
-	assert.Equal(t, "", proxy["pathRewrite"])
+	assert.NotContains(t, proxy, "pathRewrite")
 	assert.Equal(t, "perses", proxy["service"].(map[string]any)["name"])
 }
 

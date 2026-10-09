@@ -390,28 +390,6 @@ func (r *DashboardReconciler) buildFederationConfigMap(
 	return cm, nil
 }
 
-func persesFederationEntry(observability *v1alpha1.ObservabilitySpec) *federationEntry {
-	if observability == nil || !observability.Enabled || observability.PersesService == nil {
-		return nil
-	}
-
-	persesService := observability.PersesService
-	return &federationEntry{
-		Name: "perses",
-		ProxyService: []proxyServiceEntry{{
-			Authorize:   true,
-			Path:        "/perses/api",
-			PathRewrite: "",
-			TLS:         false,
-			Service: serviceRef{
-				Name:      persesService.Name,
-				Namespace: persesService.Namespace,
-				Port:      persesService.Port,
-			},
-		}},
-	}
-}
-
 // --- Standalone readiness overlay ---
 
 func (r *DashboardReconciler) overlayStandaloneReadiness(
