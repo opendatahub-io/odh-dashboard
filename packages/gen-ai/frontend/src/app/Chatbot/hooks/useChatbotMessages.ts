@@ -37,6 +37,7 @@ import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
 import { StreamingThinkingSection } from '~/app/Chatbot/components/StreamingThinkingSection';
+import AudioAttachmentTile from '~/app/Chatbot/components/AudioAttachmentTile';
 import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 
 export type GuardrailsConfig = {
@@ -87,6 +88,8 @@ export interface UseChatbotMessagesReturn {
     compareID?: string,
     fileId?: string,
     imagePreview?: { previewUrl: string; fileName: string },
+    audioFile?: File,
+    displayMessage?: string,
   ) => Promise<void>;
   handleStopStreaming: () => void;
   clearConversation: () => void;
@@ -188,13 +191,17 @@ const useChatbotMessages = ({
         compareID?: string,
         fileId?: string,
         imagePreview?: { previewUrl: string; fileName: string },
+        audioFile?: File,
+        displayMessage?: string,
+        retryMessageId?: string,
       ) => Promise<void>)
     | null
   >(null);
-  const multimodalContentRef = React.useRef<Map<string, InputContentPart[]>>(new Map());
+  const multimodalContentRef = React.useRef<Map<string, string | InputContentPart[]>>(new Map());
   const imagePreviewRef = React.useRef<Map<string, { previewUrl: string; fileName: string }>>(
     new Map(),
   );
+  const audioFileUrlRef = React.useRef<Map<File, string>>(new Map());
   const sessionIdRef = React.useRef<string>(getId());
   const { api, apiAvailable } = useGenAiAPI();
   const { aiModels } = React.useContext(ChatbotContext);
@@ -407,8 +414,12 @@ const useChatbotMessages = ({
     setLastResponseMetrics(null);
     isStoppingStreamRef.current = false;
     multimodalContentRef.current.clear();
-    imagePreviewRef.current.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+    if (typeof URL.revokeObjectURL === 'function') {
+      imagePreviewRef.current.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+      audioFileUrlRef.current.forEach((previewUrl) => URL.revokeObjectURL(previewUrl));
+    }
     imagePreviewRef.current.clear();
+    audioFileUrlRef.current.clear();
 
     // Reset clearing flag after state updates complete
     // Use setTimeout to ensure this runs after React finishes all state updates
@@ -422,6 +433,9 @@ const useChatbotMessages = ({
     compareID?: string,
     fileId?: string,
     imagePreview?: { previewUrl: string; fileName: string },
+    audioFile?: File,
+    displayMessage?: string,
+    retryMessageId?: string,
   ) => {
     // Reset streaming content tracker for new message
     streamingReceivedRef.current = false;
@@ -444,19 +458,35 @@ const useChatbotMessages = ({
         },
       });
     }
+    let audioPreviewUrl = audioFile ? audioFileUrlRef.current.get(audioFile) : undefined;
+    if (audioFile && !audioPreviewUrl) {
+      audioPreviewUrl = URL.createObjectURL(audioFile);
+      audioFileUrlRef.current.set(audioFile, audioPreviewUrl);
+    }
+    if (audioFile && audioPreviewUrl) {
+      const audioTile = React.createElement(AudioAttachmentTile, {
+        fileName: audioFile.name,
+        src: audioPreviewUrl,
+        testId: 'sent-audio-tile',
+        playerTestId: 'sent-audio-player',
+      });
+      extraContent.beforeMainContent = extraContent.beforeMainContent
+        ? React.createElement(React.Fragment, null, extraContent.beforeMainContent, audioTile)
+        : audioTile;
+    }
     const userMessage: ChatbotMessageProps = {
       id: getId(),
       role: 'user',
-      content: message,
+      content: displayMessage ?? message,
       name: username || 'User',
       avatar: userAvatar,
       timestamp: new Date().toLocaleString(),
+      ...(documentAttachments.length > 0 && { documentAttachments }),
       ...(documentAttachments.length > 0 && {
         attachments: documentAttachments.map(({ file_id, filename }) => ({
           id: file_id,
           name: filename,
         })),
-        documentAttachments,
       }),
       ...(Object.keys(extraContent).length > 0 && { extraContent }),
     };
@@ -476,6 +506,9 @@ const useChatbotMessages = ({
       parts.push({ type: 'input_image', file_id: fileId });
       input = parts;
       multimodalContentRef.current.set(userMessage.id!, parts);
+    }
+    if (audioFile && !fileId) {
+      multimodalContentRef.current.set(userMessage.id!, input);
     }
 
     setMessages((prev) => [...prev, userMessage]);
@@ -528,7 +561,12 @@ const useChatbotMessages = ({
             vector_store_ids: [currentVectorStoreId],
           }),
         chat_context: messages
-          .filter((msg) => msg.content && !msg.errorClassification)
+          .filter(
+            (msg) =>
+              (msg.content || multimodalContentRef.current.has(msg.id!)) &&
+              !msg.errorClassification &&
+              msg.id !== retryMessageId,
+          )
           .map((msg) => {
             const content = multimodalContentRef.current.get(msg.id!) || msg.content || '';
             const attachmentText = msg.documentAttachments
@@ -1017,7 +1055,15 @@ const useChatbotMessages = ({
 
         setTimeout(() => {
           if (!isClearingRef.current && handleMessageSendRef.current) {
-            handleMessageSendRef.current(message, compareID, fileId, imagePreview);
+            handleMessageSendRef.current(
+              message,
+              compareID,
+              fileId,
+              imagePreview,
+              audioFile,
+              displayMessage,
+              userMessage.id,
+            );
           }
         }, 0);
       };
@@ -1092,6 +1138,10 @@ const useChatbotMessages = ({
           // URL.revokeObjectURL may be unavailable in test environments
         }
       });
+      if (typeof URL.revokeObjectURL === 'function') {
+        audioFileUrlRef.current.forEach((previewUrl) => URL.revokeObjectURL(previewUrl));
+      }
+      audioFileUrlRef.current.clear();
     },
     [],
   );

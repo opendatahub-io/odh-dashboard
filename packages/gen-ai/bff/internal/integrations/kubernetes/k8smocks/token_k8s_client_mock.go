@@ -74,6 +74,8 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 	// Return different mock AA models based on namespace
 	switch namespace {
 	case "mock-audio-namespace":
+		// Whisper models route to the in-process mock ASR server so the local
+		// mock playground exercises the real transcription code path.
 		mockModels = []models.AAModel{
 			{
 				ModelName:       "whisper-large-v3",
@@ -82,7 +84,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				APIProtocol:     "OpenAI",
 				Description:     "Speech recognition model for audio transcription",
 				Usecase:         "Audio transcription",
-				Endpoints:       []string{fmt.Sprintf("internal: http://whisper-large-v3.%s.svc.cluster.local:8080", namespace)},
+				Endpoints:       []string{"internal: " + MockASRServerURL()},
 				Status:          "Running",
 				DisplayName:     "Whisper Large V3",
 				ModelSourceType: models.ModelSourceTypeNamespace,
@@ -96,7 +98,7 @@ func (m *TokenKubernetesClientMock) GetAAModels(ctx context.Context, identity *i
 				APIProtocol:     "OpenAI",
 				Description:     "Compact speech recognition model for audio transcription",
 				Usecase:         "Audio transcription",
-				Endpoints:       []string{fmt.Sprintf("internal: http://whisper-small.%s.svc.cluster.local:8080", namespace)},
+				Endpoints:       []string{"internal: " + MockASRServerURL()},
 				Status:          "Running",
 				DisplayName:     "Whisper Small",
 				ModelSourceType: models.ModelSourceTypeNamespace,

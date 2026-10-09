@@ -188,7 +188,7 @@ func (m *MockLlamaStackClient) UploadFile(ctx context.Context, params llamastack
 	if m.UploadFileError != nil {
 		return nil, m.UploadFileError
 	}
-	mockFileID := "file-mock123abc456def"
+	mockFileID := "file-abc123abc456def0"
 	result := &llamastack.FileUploadResult{
 		FileID: mockFileID,
 	}
@@ -574,7 +574,7 @@ func (m *MockLlamaStackClient) DeleteVectorStore(ctx context.Context, vectorStor
 func (m *MockLlamaStackClient) ListFiles(ctx context.Context, params llamastack.ListFilesParams) ([]openai.FileObject, error) {
 	return []openai.FileObject{
 		{
-			ID:        "file-mock123abc456def",
+			ID:        "file-abc123abc456def0",
 			Object:    "file",
 			Bytes:     1024,
 			CreatedAt: 1755721386,
@@ -582,7 +582,7 @@ func (m *MockLlamaStackClient) ListFiles(ctx context.Context, params llamastack.
 			Purpose:   "assistants",
 		},
 		{
-			ID:        "file-mock789ghi012jkl",
+			ID:        "file-def456def012abc9",
 			Object:    "file",
 			Bytes:     2048,
 			CreatedAt: 1755721400,
@@ -600,16 +600,16 @@ func (m *MockLlamaStackClient) GetFile(ctx context.Context, fileID string) (*ope
 
 	// Return mock file details based on ID
 	mockFiles := map[string]openai.FileObject{
-		"file-mock123abc456def": {
-			ID:        "file-mock123abc456def",
+		"file-abc123abc456def0": {
+			ID:        "file-abc123abc456def0",
 			Object:    "file",
 			Bytes:     1024,
 			CreatedAt: 1755721386,
 			Filename:  "mock_document.txt",
 			Purpose:   "assistants",
 		},
-		"file-mock789ghi012jkl": {
-			ID:        "file-mock789ghi012jkl",
+		"file-def456def012abc9": {
+			ID:        "file-def456def012abc9",
 			Object:    "file",
 			Bytes:     2048,
 			CreatedAt: 1755721400,
@@ -707,7 +707,7 @@ func (m *MockLlamaStackClient) ListVectorStoreFiles(ctx context.Context, vectorS
 
 	return []openai.VectorStoreFile{
 		{
-			ID:            "file-mock123abc456def",
+			ID:            "file-abc123abc456def0",
 			Object:        "vector_store.file",
 			UsageBytes:    0,
 			CreatedAt:     1755721386,
@@ -727,7 +727,7 @@ func (m *MockLlamaStackClient) ListVectorStoreFiles(ctx context.Context, vectorS
 			},
 		},
 		{
-			ID:            "file-mock789ghi012jkl",
+			ID:            "file-def456def012abc9",
 			Object:        "vector_store.file",
 			UsageBytes:    0,
 			CreatedAt:     1755721400,

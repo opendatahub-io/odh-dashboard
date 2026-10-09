@@ -419,6 +419,7 @@ jest.mock('@patternfly/react-icons', () => {
   return {
     OutlinedFileImageIcon: () => React.createElement('span'),
     VolumeUpIcon: () => React.createElement('span'),
+    TimesIcon: () => React.createElement('span'),
     OutlinedFileAltIcon: () => React.createElement('span'),
   };
 });
@@ -990,7 +991,7 @@ describe('ChatbotPlayground — audio transcription', () => {
     expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
 
     await act(async () => {
-      fireEvent.click(screen.getByTestId('chip-close'));
+      fireEvent.click(screen.getByRole('button', { name: 'Remove test.wav' }));
     });
     expect(screen.queryByTestId('audio-file-chip')).not.toBeInTheDocument();
     expect(screen.queryByTestId('audio-model-needed-alert')).not.toBeInTheDocument();
@@ -1077,9 +1078,34 @@ describe('ChatbotPlayground — audio transcription', () => {
     });
 
     // Send the message
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('send-button'));
+    await waitFor(() => {
+      expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
     });
+    const configInstanceProps = mockChatbotConfigInstanceProps.mock.calls.at(-1)?.[0] as {
+      onMessagesHookReady: (hook: {
+        handleMessageSend: typeof mockHandleMessageSend;
+        isLoading: boolean;
+        isMessageSendButtonDisabled: boolean;
+      }) => void;
+    };
+    act(() => {
+      configInstanceProps.onMessagesHookReady({
+        handleMessageSend: mockHandleMessageSend,
+        isLoading: false,
+        isMessageSendButtonDisabled: false,
+      });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('send-empty-button'));
+    });
+    expect(mockHandleMessageSend).toHaveBeenCalledWith(
+      'Analyze the following transcription.\n\nHello world',
+      '',
+      undefined,
+      undefined,
+      file,
+      '',
+    );
 
     // Now a new audio upload should work (no per-message modal)
     const file2 = new File(['audio-data'], 'second.wav', { type: 'audio/wav' });
@@ -1088,6 +1114,18 @@ describe('ChatbotPlayground — audio transcription', () => {
     });
 
     expect(screen.queryByTestId('audio-per-message-modal')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('send-button')).not.toBeDisabled());
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('send-button'));
+    });
+    expect(mockHandleMessageSend).toHaveBeenLastCalledWith(
+      'Hello world\n\ntest msg',
+      '',
+      undefined,
+      undefined,
+      file2,
+      'test msg',
+    );
   });
 
   it('audio chip is visible in ready state after transcription completes', async () => {

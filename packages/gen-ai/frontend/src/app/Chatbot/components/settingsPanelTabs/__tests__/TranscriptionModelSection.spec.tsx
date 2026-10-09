@@ -11,6 +11,20 @@ import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 import { type AAModelResponse, AIModel } from '~/app/types';
 
+jest.mock('@odh-dashboard/plugin-core', () => ({
+  useExtensions: (predicate: (extension: { type: string }) => boolean) =>
+    [
+      {
+        type: 'app.tab-route/page',
+        properties: { id: 'models-tab-page', href: '/ai-hub/models' },
+      },
+      {
+        type: 'app.tab-route/tab',
+        properties: { pageId: 'models-tab-page', id: 'registry' },
+      },
+    ].filter(predicate),
+}));
+
 let mockDropdownWidth: string | undefined;
 jest.mock('@patternfly/react-core', () => {
   const actual = jest.requireActual('@patternfly/react-core');

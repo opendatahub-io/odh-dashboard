@@ -518,7 +518,16 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           : undefined;
 
       messageHooksRef.current.forEach((hook) =>
-        hook.handleMessageSend(effectiveMessage, compareID, fileId, imagePreview),
+        hook.handleMessageSend(
+          effectiveMessage,
+          compareID,
+          fileId,
+          imagePreview,
+          audioTranscription.state.phase === 'ready'
+            ? (audioTranscription.state.file ?? undefined)
+            : undefined,
+          pendingTranscription ? message : undefined,
+        ),
       );
       setLastInput(
         message.trim() ||

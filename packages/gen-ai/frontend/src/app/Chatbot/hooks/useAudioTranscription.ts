@@ -22,6 +22,8 @@ export type AudioTranscriptionPhase =
 
 export interface AudioTranscriptionState {
   phase: AudioTranscriptionPhase;
+  file: File | null;
+  previewFile?: File | null;
   fileName: string;
   uploadProgress: number;
   error: ClassifiedError | null;
@@ -30,6 +32,8 @@ export interface AudioTranscriptionState {
 
 const INITIAL_STATE: AudioTranscriptionState = {
   phase: 'idle',
+  file: null,
+  previewFile: null,
   fileName: '',
   uploadProgress: 0,
   error: null,
@@ -115,6 +119,8 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
         pendingFileRef.current = file;
         setState({
           phase: 'waiting-for-model',
+          file: null,
+          previewFile: file,
           fileName: file.name,
           uploadProgress: 0,
           error: null,
@@ -129,6 +135,8 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
 
       setState({
         phase: 'uploading',
+        file: null,
+        previewFile: file,
         fileName: file.name,
         uploadProgress: 0,
         error: null,
@@ -238,6 +246,7 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
           setState((prev) => ({
             ...prev,
             phase: 'ready',
+            file,
             transcribedText: result.text,
           }));
           fireFormTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_COMPLETED, {

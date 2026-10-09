@@ -25,6 +25,7 @@ import {
 import { DocumentAttachment } from '~/app/types';
 import { AudioTranscriptionState } from '~/app/Chatbot/hooks/useAudioTranscription';
 import { getDocumentAttachmentTypeLabel } from '~/app/Chatbot/documentAttachmentUtils';
+import AudioAttachmentTile from '~/app/Chatbot/components/AudioAttachmentTile';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 import RhUiResourceIcon from '~/app/bgimages/rh-ui-resource-icon.svg';
 import './ChatbotMessageInput.scss';
@@ -127,7 +128,24 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
   const audioPhase = audioTranscriptionState?.phase || 'idle';
   const isAudioActive = audioPhase === 'uploading' || audioPhase === 'transcribing';
   const showAudioChip =
-    isAudioActive || audioPhase === 'ready' || audioPhase === 'waiting-for-model';
+    isAudioActive ||
+    audioPhase === 'ready' ||
+    audioPhase === 'waiting-for-model' ||
+    (audioPhase === 'error' && !!audioTranscriptionState?.previewFile);
+  const previewAudioFile =
+    audioPhase !== 'idle'
+      ? (audioTranscriptionState?.previewFile ?? audioTranscriptionState?.file)
+      : null;
+  const [audioPreview, setAudioPreview] = React.useState<{ file: File; url: string } | null>(null);
+
+  React.useEffect(() => {
+    if (!previewAudioFile) {
+      return undefined;
+    }
+    const url = URL.createObjectURL(previewAudioFile);
+    setAudioPreview({ file: previewAudioFile, url });
+    return () => URL.revokeObjectURL(url);
+  }, [previewAudioFile]);
 
   // PatternFly MessageBar only reads the `value` prop at mount time (internal useState).
   // When messageBarValue changes programmatically (e.g. from transcription), we must
@@ -436,13 +454,17 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
             />
           )}
           {showAudioChip && audioTranscriptionState && (
-            <FileDetailsLabel
+            <AudioAttachmentTile
               fileName={audioTranscriptionState.fileName}
+              src={
+                previewAudioFile && audioPreview?.file === previewAudioFile
+                  ? audioPreview.url
+                  : undefined
+              }
               isLoading={isAudioActive}
-              onClose={audioPhase === 'ready' ? onAudioDiscard : onAudioCancel}
-              hasTruncation
-              variant="outline"
-              data-testid="audio-file-chip"
+              onRemove={audioPhase === 'ready' ? onAudioDiscard : onAudioCancel}
+              testId="audio-file-chip"
+              playerTestId="pending-audio-player"
             />
           )}
         </div>
