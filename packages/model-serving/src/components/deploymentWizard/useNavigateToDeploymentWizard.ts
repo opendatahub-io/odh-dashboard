@@ -67,6 +67,8 @@ export const useNavigateToDeploymentWizard = (
   const isYAMLViewerEnabled = useIsAreaAvailable(SupportedArea.YAML_VIEWER).status;
   const fromCatalog = navSource?.fromCatalog;
   const catalogModelId = navSource?.catalogModelId;
+  const hfAccessType = navSource?.hfAccessType;
+  const isAccessGranted = navSource?.isAccessGranted;
   const fromProject = navSource?.fromProject;
   const fromProjectNavigator = navSource?.fromProjectNavigator;
 
@@ -104,6 +106,8 @@ export const useNavigateToDeploymentWizard = (
           navSource: {
             fromCatalog,
             catalogModelId,
+            hfAccessType,
+            isAccessGranted,
             fromProject,
             fromProjectNavigator,
           },
@@ -122,6 +126,8 @@ export const useNavigateToDeploymentWizard = (
           projectName,
           fromCatalog,
           catalogModelId,
+          hfAccessType,
+          isAccessGranted,
           fromProject,
           fromProjectNavigator,
           editMode: Boolean(deployment),
@@ -140,6 +146,8 @@ export const useNavigateToDeploymentWizard = (
       isYAMLViewerEnabled,
       fromCatalog,
       catalogModelId,
+      hfAccessType,
+      isAccessGranted,
       fromProject,
       fromProjectNavigator,
     ],

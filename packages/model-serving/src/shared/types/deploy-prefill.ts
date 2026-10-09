@@ -1,7 +1,11 @@
+import type { DeployWizardNavSource } from '../tracking/deployWizardTracking';
+
 export type DeployPrefillData = {
   modelName: string;
   modelUri?: string;
   catalogModelId?: string;
+  hfAccessType?: DeployWizardNavSource['hfAccessType'];
+  isAccessGranted?: boolean;
   returnRouteValue?: string;
   cancelReturnRouteValue?: string;
   wizardStartIndex?: number;
