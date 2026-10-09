@@ -74,6 +74,12 @@ class InfrastructurePage {
     return cy.findByTestId('infrastructure-workloads-partial-error-close');
   }
 
+  findWorkloadsRefreshButton() {
+    return cy.findByTestId('infrastructure-workloads-refresh').findByRole('button', {
+      name: 'Refresh',
+    });
+  }
+
   findWorkbenchStatusModal() {
     return cy.findByTestId('notebook-status-modal');
   }

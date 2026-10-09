@@ -134,7 +134,7 @@ const WorkbenchStatusModalAdapter: React.FC<{
             const action = isStopped
               ? startNotebook(notebook)
               : stopNotebook(notebook.metadata.name, notebook.metadata.namespace);
-            void action.then(() => notebookState.refresh());
+            void action.then(() => notebookState.refresh()).catch(() => undefined);
           }}
         >
           {isStopped ? 'Start workbench' : 'Stop workbench'}

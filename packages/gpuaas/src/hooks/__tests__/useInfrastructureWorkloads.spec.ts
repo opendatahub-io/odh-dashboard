@@ -54,7 +54,7 @@ describe('useInfrastructureWorkloads', () => {
     );
   });
 
-  it('should return an immediately loaded empty result when namespace is undefined', () => {
+  it('should return an immediately loaded empty result when namespace is undefined', async () => {
     useFetchMock.mockReturnValue({
       data: { workloads: [], kueueEnabled: false, failedSources: [] },
       loaded: false,
@@ -70,7 +70,7 @@ describe('useInfrastructureWorkloads', () => {
       failedSources: [],
       loaded: true,
     });
-    expect(fetchCallback({ signal: new AbortController().signal })).resolves.toEqual({
+    await expect(fetchCallback({ signal: new AbortController().signal })).resolves.toEqual({
       workloads: [],
       kueueEnabled: false,
       failedSources: [],
