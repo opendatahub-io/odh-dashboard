@@ -1129,7 +1129,9 @@ diff, preserving context isolation.
    removed path (dual-write: adjudicated row + stub) and are
    excluded from `findings[]` survivors. The orchestrator preserves
    `challenger_action: justified` on expanded removed items so the
-   host can render them separately.
+   host can render them separately. In the spawn prompt, state that
+   Part 2b overrides Part 1 wherever they conflict on topics Part 2b
+   owns (do not imply Part 1 outranks later instruction files).
 
    **Part 3 — Context package:** the merged finding set from steps
    6a–6c (as a JSON array), plus the path of the shared context file
