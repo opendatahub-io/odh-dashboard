@@ -80,7 +80,7 @@ TLS: If both `cert-file` and `key-file` are provided the server starts with HTTP
 The BFF directory uses golangci-lint to combine multiple linters for a more comprehensive linting process. To install and run simply use:
 
 ```shell
-cd clients/ui/bff
+cd packages/autorag/bff
 make lint
 ```
 

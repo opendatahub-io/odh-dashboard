@@ -25,7 +25,7 @@ import {
   metricLabel,
 } from '~/app/utilities/metricUtils';
 import { patternHasIndexingPipelineSpec } from '~/app/utilities/indexingPipeline';
-import { getPatternStoreProvider, isResponsesProvider } from '~/app/utilities/responses';
+import { canUseResponsesForPattern } from '~/app/utilities/responses';
 
 type PatternDetailsModalHeaderProps = {
   patterns: AutoragPattern[];
@@ -66,10 +66,20 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
   const [isActionsDropdownOpen, setIsActionsDropdownOpen] = React.useState(false);
 
   const data = patterns[selectedIndex];
+  // Historical results can outlive the pattern lookup used to render them.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (!data) {
+    return null;
+  }
   const canViewCode = Boolean(
+    /* eslint-disable camelcase */
     databaseSecretName?.trim() &&
     maasSecretName?.trim() &&
-    isResponsesProvider(getPatternStoreProvider(data)),
+    canUseResponsesForPattern(
+      { db_secret_name: databaseSecretName, maas_secret_name: maasSecretName },
+      data,
+    ),
+    /* eslint-enable camelcase */
   );
 
   return (
