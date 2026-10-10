@@ -21,6 +21,8 @@ describe('app static and view wiring', () => {
   let app: FastifyInstance;
 
   const HASHED_ASSET = 'app.db5954bb8ab62ecf.js';
+  const SCRIPT_BREAKOUT = '</script><script>window.__xss = true</script>';
+  const originalModuleFederationConfig = process.env.MODULE_FEDERATION_CONFIG;
 
   beforeAll(() => {
     publicDir = fs.mkdtempSync(path.join(os.tmpdir(), 'odh-app-spec-'));
@@ -43,6 +45,15 @@ describe('app static and view wiring', () => {
     jest.resetModules();
     // publicDir is resolved when app.ts is first evaluated, so set it before requiring.
     process.env.ODH_STATIC_DIR = publicDir;
+    process.env.MODULE_FEDERATION_CONFIG = JSON.stringify([
+      {
+        name: 'testRemote',
+        backend: {
+          remoteEntry: SCRIPT_BREAKOUT,
+          service: { name: 'test-service', namespace: 'test-namespace', port: 8080 },
+        },
+      },
+    ]);
     // registerRoutes must register the root route *inside* initializeApp's context, as it
     // does in production — `reply.view` is only decorated within that encapsulation.
     jest.doMock('../register-routes', () => ({
@@ -64,6 +75,11 @@ describe('app static and view wiring', () => {
   afterEach(async () => {
     await app.close();
     delete process.env.ODH_STATIC_DIR;
+    if (originalModuleFederationConfig === undefined) {
+      delete process.env.MODULE_FEDERATION_CONFIG;
+    } else {
+      process.env.MODULE_FEDERATION_CONFIG = originalModuleFederationConfig;
+    }
   });
 
   describe('@fastify/static cache headers', () => {
@@ -141,6 +157,21 @@ describe('app static and view wiring', () => {
       expect(response.statusCode).toBe(200);
       expect(response.body).not.toContain('<?');
       expect(response.body).not.toContain('mfRemotesJson');
+    });
+
+    it('should render federation configuration without allowing a script breakout', async () => {
+      const response = await app.inject({ method: 'GET', url: '/projects' });
+      const jsonMatch = response.body.match(
+        /<script id="mf-remotes-json" type="application\/json">(.*?)<\/script>/,
+      );
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body.match(/<script/g)).toHaveLength(1);
+      expect(response.body).not.toContain(SCRIPT_BREAKOUT);
+      expect(jsonMatch).not.toBeNull();
+      expect(JSON.parse(jsonMatch?.[1] ?? '')).toEqual([
+        { name: 'testRemote', remoteEntry: SCRIPT_BREAKOUT },
+      ]);
     });
   });
 });

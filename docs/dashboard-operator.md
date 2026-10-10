@@ -174,22 +174,11 @@ Module health is checked by inspecting each module's Deployment readiness (repli
 
 ## Dynamic Federation ConfigMap
 
-The operator dynamically builds a `federation-config` ConfigMap based on which modules are enabled. For each enabled module, it generates a service entry pointing to the module's Service:
-
-```json
-{
-  "name": "<moduleName>",
-  "remoteEntry": "/remoteEntry.js",
-  "authorize": true,
-  "tls": true,
-  "proxy": [{"path": "/<module>/api", "pathRewrite": "/api"}],
-  "service": {
-    "name": "odh-dashboard-<slug>-ui",
-    "namespace": "<apps-namespace>",
-    "port": <module-port>
-  }
-}
-```
+The operator dynamically builds a `federation-config` ConfigMap based on which
+modules are enabled. Each module's normalized entry has an optional `backend`
+for its remote bundle and one or more `proxyService` targets for its APIs. See
+[Module Federation](module-federation.md#configmap-structure) for the runtime
+entry schema.
 
 The ConfigMap also includes:
 - A `coreBff` entry for core-bff proxy routing (routes `/core-bff/api` to port 8943 on the main dashboard Service)
@@ -203,6 +192,19 @@ After deploying the ConfigMap, the operator patches the main Deployment with a c
 When `spec.observability` is unset, the controller looks for `data-science-perses:8080` in the platform monitoring namespace (`redhat-ods-monitoring` on RHOAI). Auto-detection runs when either the core dashboard or the MaaS Portal is managed. It configures observability in memory and reports its state through `ObservabilityAvailable`; it does not write `spec.observability` back to the CR or install the Perses server. Set `spec.observability.enabled: false` to disable it explicitly.
 
 `spec.observability.persesService` can override the HTTP service name, namespace, and service port. The managed network policies require the backing pods to have `app.kubernetes.io/managed-by: perses-operator` and listen on TCP port `8080`. A different **service port** must still forward to pod port `8080`. Other pod labels or listening ports require deployment-specific network policies; configuring the service target alone does not support those topologies.
+
+### Community Plugin Entries
+
+During an existing reconciliation, the operator also samples the optional,
+installer-owned `community-plugins-config` ConfigMap from
+`redhat-ods-community-plugins`. A missing source Namespace or ConfigMap is
+ignored. Accepted entries are merged into the generated
+`federation-config`; Dashboard derives their public proxy paths under
+`/community-plugins/<remote-name>/` and uses the same hash-based rollout.
+
+See [Community Plugin Registration](community-plugin-registration.md) for the
+source schema, validation rules, ownership boundary, and reconciliation trigger
+contract.
 
 ## Operator ConfigMap
 

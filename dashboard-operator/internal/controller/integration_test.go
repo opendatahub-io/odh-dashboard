@@ -435,8 +435,12 @@ func getConfigMap(t *testing.T, name string) *corev1.ConfigMap {
 }
 
 type federationEntry struct {
-	Name    string      `json:"name"`
-	Enabled bool        `json:"enabled"`
+	Name    string             `json:"name"`
+	Enabled bool               `json:"enabled"`
+	Backend *federationBackend `json:"backend,omitempty"`
+}
+
+type federationBackend struct {
 	Service *serviceRef `json:"service,omitempty"`
 }
 
@@ -596,11 +600,12 @@ func TestIntegration_StandaloneEnableModule(t *testing.T) {
 	require.NotNil(t, entry, "modelRegistry should be in federation config")
 	// envtest has no kubelet so pods never become ready — module phase is
 	// Degraded not Deployed, meaning entry.Enabled is false. The important
-	// check is that the service reference is correct.
-	require.NotNil(t, entry.Service, "federation entry should include a service reference")
-	assert.Equal(t, "odh-dashboard-model-registry-ui", entry.Service.Name)
-	assert.Equal(t, integrationNamespace, entry.Service.Namespace)
-	assert.Equal(t, int32(8043), entry.Service.Port)
+	// check is that the backend service reference is correct.
+	require.NotNil(t, entry.Backend, "federation entry should include a backend")
+	require.NotNil(t, entry.Backend.Service, "federation backend should include a service reference")
+	assert.Equal(t, "odh-dashboard-model-registry-ui", entry.Backend.Service.Name)
+	assert.Equal(t, integrationNamespace, entry.Backend.Service.Namespace)
+	assert.Equal(t, int32(8043), entry.Backend.Service.Port)
 
 	// Verify Dashboard status has modelRegistry deployed or degraded.
 	dashboard = getDashboard(t)

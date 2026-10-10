@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"sort"
 	"strings"
 	"testing"
 
@@ -242,9 +243,11 @@ func TestBuildFederationConfigMap_TLS(t *testing.T) {
 	found := make(map[string]bool)
 	for _, entry := range entries {
 		name, _ := entry["name"].(string)
-		tls, _ := entry["tls"].(bool)
 		if wantTLS, ok := expected[name]; ok {
 			found[name] = true
+			backend, ok := entry["backend"].(map[string]interface{})
+			require.Truef(t, ok, "%s must have a backend entry", name)
+			tls, _ := backend["tls"].(bool)
 			if wantTLS {
 				assert.True(t, tls, "%s must have tls=true", name)
 			} else {
@@ -347,14 +350,248 @@ func TestBuildFederationConfigMap_NamespaceValues(t *testing.T) {
 				"coreBff proxyService.service.namespace must match ApplicationsNamespace")
 
 		default:
-			svc, ok := entry["service"].(map[string]interface{})
-			require.Truef(t, ok, "%s must have a service entry", name)
+			backend, ok := entry["backend"].(map[string]interface{})
+			require.Truef(t, ok, "%s must have a backend entry", name)
+			svc, ok := backend["service"].(map[string]interface{})
+			require.Truef(t, ok, "%s backend must have a service entry", name)
 			assert.Equalf(t, appNS, svc["namespace"],
 				"%s service.namespace must match ApplicationsNamespace", name)
 		}
 	}
 	require.True(t, seen["perses"], "perses entry must be present")
 	require.True(t, seen["coreBff"], "coreBff entry must be present")
+}
+
+func TestBuildFederationConfigMap_CommunityPluginsNamespaceOrConfigMapAbsentPreservesExistingOutput(t *testing.T) {
+	s := testScheme(t)
+	statuses := allDeployedStatuses()
+	dashboard := &v1alpha1.Dashboard{}
+
+	withoutSource := &ctrlpkg.DashboardReconciler{
+		Client:                fake.NewClientBuilder().WithScheme(s).Build(),
+		Scheme:                s,
+		Platform:              cluster.OpenDataHub,
+		ApplicationsNamespace: testNamespace,
+	}
+	baseline, err := ctrlpkg.BuildFederationConfigMap(withoutSource, statuses, dashboard)
+	require.NoError(t, err)
+
+	communityNamespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ctrlpkg.CommunityPluginsNamespace}}
+	withNamespaceWithoutSource := &ctrlpkg.DashboardReconciler{
+		Client:                fake.NewClientBuilder().WithScheme(s).WithObjects(communityNamespace).Build(),
+		Scheme:                s,
+		Platform:              cluster.OpenDataHub,
+		ApplicationsNamespace: testNamespace,
+	}
+	withoutConfigMap, err := ctrlpkg.BuildFederationConfigMap(withNamespaceWithoutSource, statuses, dashboard)
+	require.NoError(t, err)
+
+	assert.Equal(t, baseline.Data["module-federation-config.json"], withoutConfigMap.Data["module-federation-config.json"])
+}
+
+func TestBuildFederationConfigMap_MergesCommunityPluginWithDashboardEntries(t *testing.T) {
+	s := testScheme(t)
+	statuses := allDeployedStatuses()
+	communitySource := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: "community-plugins-config", Namespace: ctrlpkg.CommunityPluginsNamespace},
+		Data: map[string]string{
+			"analyticsPlugin": `{
+  "backend": {
+    "remoteEntry": "/remoteEntry.js",
+    "service": {"name": "analytics-ui", "namespace": "cai-plugin-system", "port": 8080}
+  }
+}`,
+			"communityPluginsAdmin": `{
+  "backend": {
+    "remoteEntry": "/remoteEntry.js",
+    "authorize": false,
+    "tls": false,
+    "service": {"name": "community-plugins-admin-ui", "namespace": "cai-plugin-system", "port": 8080}
+  },
+  "proxyService": [{
+    "pathSuffix": "api",
+    "pathRewrite": "/api",
+    "authorize": true,
+    "tls": false,
+    "service": {"name": "community-plugins-admin-bff", "namespace": "cai-plugin-system", "port": 3000}
+  }]
+}`,
+		},
+	}
+	communityNamespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ctrlpkg.CommunityPluginsNamespace}}
+	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(communityNamespace, communitySource).Build()
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		Platform:              cluster.OpenDataHub,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	cm, err := ctrlpkg.BuildFederationConfigMap(r, statuses, &v1alpha1.Dashboard{})
+	require.NoError(t, err)
+
+	var entries []map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(cm.Data["module-federation-config.json"]), &entries))
+	var community map[string]interface{}
+	var dashboardModule map[string]interface{}
+	entryNames := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		entryNames = append(entryNames, entry["name"].(string))
+		switch entry["name"] {
+		case "communityPluginsAdmin":
+			community = entry
+		case "modelRegistry":
+			dashboardModule = entry
+		}
+	}
+	assert.True(t, sort.StringsAreSorted(entryNames))
+	require.NotNil(t, community)
+	require.NotNil(t, dashboardModule)
+	assert.NotContains(t, community, "remoteEntry")
+	assert.NotContains(t, community, "service")
+	assert.NotContains(t, community, "proxy")
+	assert.Contains(t, community, "backend")
+	assert.Contains(t, community, "proxyService")
+	assert.Equal(t, "/remoteEntry.js", community["backend"].(map[string]interface{})["remoteEntry"])
+	proxy := community["proxyService"].([]interface{})[0].(map[string]interface{})
+	assert.Equal(t, "/community-plugins/communityPluginsAdmin/api", proxy["path"])
+	assert.Equal(t, "community-plugins-admin-bff", proxy["service"].(map[string]interface{})["name"])
+	assert.Equal(t, "cai-plugin-system", proxy["service"].(map[string]interface{})["namespace"])
+
+	assert.Contains(t, dashboardModule, "backend")
+	assert.Contains(t, dashboardModule, "proxyService")
+	assert.NotContains(t, dashboardModule, "remoteEntry")
+	assert.NotContains(t, dashboardModule, "service")
+
+	require.NoError(t, cli.Delete(context.Background(), communitySource))
+	withoutCommunity, err := ctrlpkg.BuildFederationConfigMap(r, statuses, &v1alpha1.Dashboard{})
+	require.NoError(t, err)
+
+	baselineReconciler := &ctrlpkg.DashboardReconciler{
+		Client:                fake.NewClientBuilder().WithScheme(s).Build(),
+		Scheme:                s,
+		Platform:              cluster.OpenDataHub,
+		ApplicationsNamespace: testNamespace,
+	}
+	baseline, err := ctrlpkg.BuildFederationConfigMap(baselineReconciler, statuses, &v1alpha1.Dashboard{})
+	require.NoError(t, err)
+	assert.Equal(t, baseline.Data["module-federation-config.json"], withoutCommunity.Data["module-federation-config.json"])
+}
+
+func TestBuildFederationConfigMap_RejectsInvalidCommunityPlugins(t *testing.T) {
+	s := testScheme(t)
+	communitySource := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: "community-plugins-config", Namespace: ctrlpkg.CommunityPluginsNamespace},
+		Data: map[string]string{
+			"invalid-name":         `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"malformed":            `{`,
+			"modelRegistry":        `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"invalidRemoteEntry":   `{"backend":{"remoteEntry":"/../remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"encodedRemoteEntry":   `{"backend":{"remoteEntry":"/%2e%2e/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"backslashRemoteEntry": `{"backend":{"remoteEntry":"/..\\\\..\\\\api/config","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"tabRemoteEntry":       `{"backend":{"remoteEntry":"/remote\tEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"returnRemoteEntry":    `{"backend":{"remoteEntry":"/remote\rEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"newlineRemoteEntry":   `{"backend":{"remoteEntry":"/remote\nEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"invalidSuffix":        `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"pathSuffix":"../core-bff/api","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
+			"parameterizedSuffix":  `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"pathSuffix":"api/:id","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
+			"wildcardSuffix":       `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"pathSuffix":"api/*","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
+			"duplicateSuffix":      `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"pathSuffix":"api","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}},{"pathSuffix":"api","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
+			"unsupportedPathField": `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"path":"/","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
+			"unexpected":           `{"name":"anotherRemote","backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"validNestedPaths":     `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"pathSuffix":"api","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}},{"pathSuffix":"api/v1","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
+			"validRemote":          `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+		},
+	}
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                fake.NewClientBuilder().WithScheme(s).WithObjects(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ctrlpkg.CommunityPluginsNamespace}}, communitySource).Build(),
+		Scheme:                s,
+		Platform:              cluster.OpenDataHub,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	cm, err := ctrlpkg.BuildFederationConfigMap(r, allDeployedStatuses(), &v1alpha1.Dashboard{})
+	require.NoError(t, err)
+
+	var entries []map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(cm.Data["module-federation-config.json"]), &entries))
+	names := make(map[string]struct{}, len(entries))
+	for _, entry := range entries {
+		names[entry["name"].(string)] = struct{}{}
+	}
+	assert.Contains(t, names, "validRemote")
+	assert.Contains(t, names, "modelRegistry", "built-in entries must remain")
+	assert.NotContains(t, names, "invalid-name")
+	assert.NotContains(t, names, "malformed")
+	assert.NotContains(t, names, "invalidRemoteEntry")
+	assert.NotContains(t, names, "encodedRemoteEntry")
+	assert.NotContains(t, names, "backslashRemoteEntry")
+	assert.NotContains(t, names, "tabRemoteEntry")
+	assert.NotContains(t, names, "returnRemoteEntry")
+	assert.NotContains(t, names, "newlineRemoteEntry")
+	assert.NotContains(t, names, "invalidSuffix")
+	assert.NotContains(t, names, "parameterizedSuffix")
+	assert.NotContains(t, names, "wildcardSuffix")
+	assert.NotContains(t, names, "duplicateSuffix")
+	assert.NotContains(t, names, "unsupportedPathField")
+	assert.NotContains(t, names, "unexpected")
+	assert.Contains(t, names, "validNestedPaths")
+}
+
+func TestBuildFederationConfigMap_ReservesInactiveDashboardFederationNames(t *testing.T) {
+	s := testScheme(t)
+	communitySource := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: "community-plugins-config", Namespace: ctrlpkg.CommunityPluginsNamespace},
+		Data: map[string]string{
+			"modelRegistry":  `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"community-source","namespace":"cai-plugin-system","port":8080}}}`,
+			"perses":         `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"community-source","namespace":"cai-plugin-system","port":8080}}}`,
+			"mlflowEmbedded": `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"community-source","namespace":"cai-plugin-system","port":8080}}}`,
+			"validRemote":    `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"community-source","namespace":"cai-plugin-system","port":8080}}}`,
+		},
+	}
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                fake.NewClientBuilder().WithScheme(s).WithObjects(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ctrlpkg.CommunityPluginsNamespace}}, communitySource).Build(),
+		Scheme:                s,
+		Platform:              cluster.OpenDataHub,
+		ApplicationsNamespace: testNamespace,
+	}
+	statuses := allDeployedStatuses()
+	for name, status := range statuses {
+		status.Phase = v1alpha1.ModulePhaseNotDeployed
+		statuses[name] = status
+	}
+
+	inactiveConfig, err := ctrlpkg.BuildFederationConfigMap(r, statuses, &v1alpha1.Dashboard{})
+	require.NoError(t, err)
+	var inactiveEntries []map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(inactiveConfig.Data["module-federation-config.json"]), &inactiveEntries))
+	inactiveNames := make(map[string]struct{}, len(inactiveEntries))
+	for _, entry := range inactiveEntries {
+		inactiveNames[entry["name"].(string)] = struct{}{}
+	}
+	assert.NotContains(t, inactiveNames, "modelRegistry")
+	assert.NotContains(t, inactiveNames, "perses")
+	assert.NotContains(t, inactiveNames, "mlflowEmbedded")
+	assert.Contains(t, inactiveNames, "validRemote")
+
+	statuses["modelRegistry"] = v1alpha1.ModuleStatus{Phase: v1alpha1.ModulePhaseDeployed}
+	statuses["mlflow"] = v1alpha1.ModuleStatus{Phase: v1alpha1.ModulePhaseDeployed}
+	activeDashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{Observability: &v1alpha1.ObservabilitySpec{
+		Enabled:       true,
+		PersesService: &v1alpha1.ServiceTarget{Name: "dashboard-perses", Namespace: "monitoring", Port: 8080},
+	}}}
+	activeConfig, err := ctrlpkg.BuildFederationConfigMap(r, statuses, activeDashboard)
+	require.NoError(t, err)
+	var activeEntries []map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(activeConfig.Data["module-federation-config.json"]), &activeEntries))
+
+	entriesByName := make(map[string]map[string]interface{}, len(activeEntries))
+	for _, entry := range activeEntries {
+		entriesByName[entry["name"].(string)] = entry
+	}
+	assert.Equal(t, "odh-dashboard-model-registry-ui", entriesByName["modelRegistry"]["backend"].(map[string]interface{})["service"].(map[string]interface{})["name"])
+	assert.Equal(t, "mlflow", entriesByName["mlflowEmbedded"]["backend"].(map[string]interface{})["service"].(map[string]interface{})["name"])
+	persesProxy := entriesByName["perses"]["proxyService"].([]interface{})[0].(map[string]interface{})
+	assert.Equal(t, "dashboard-perses", persesProxy["service"].(map[string]interface{})["name"])
 }
 
 func TestPatchDeploymentFederationHash_CreatesAnnotation(t *testing.T) {
