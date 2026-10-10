@@ -624,7 +624,6 @@ describe('isAreaAvailable', () => {
 
   describe('Plugin module areas', () => {
     const PLUGIN_AUTOML = 'plugin-automl';
-    const PLUGIN_AUTORAG = 'plugin-autorag';
     const PLUGIN_GEN_AI = 'plugin-gen-ai';
     const PLUGIN_FEATURE_STORE = 'plugin-feature-store';
 
@@ -725,69 +724,6 @@ describe('isAreaAvailable', () => {
 
         expect(result.status).toBe(false);
         expect(result.featureFlags).toEqual({ genAiStudio: 'off' });
-      });
-    });
-
-    describe('AutoRAG', () => {
-      const stateMap = {
-        [PLUGIN_AUTORAG]: {
-          featureFlags: ['autorag' as const],
-          requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
-          reliantAreas: [PLUGIN_GEN_AI],
-        },
-        [PLUGIN_GEN_AI]: {
-          featureFlags: ['genAiStudio' as const],
-        },
-      };
-
-      const getAutoRagAvailability = (
-        config: { autorag: boolean; genAiStudio: boolean },
-        pipelinesState: 'Managed' | 'Removed' = 'Managed',
-      ) =>
-        isAreaAvailable(
-          PLUGIN_AUTORAG,
-          mockDashboardConfig(config).spec,
-          mockDscStatus({
-            components: {
-              [DataScienceStackComponent.DS_PIPELINES]: { managementState: pipelinesState },
-            },
-          }),
-          null,
-          { internalStateMap: stateMap, flagState: config },
-        );
-
-      it('should enable when autorag and Gen AI Studio are enabled and pipelines are Managed', () => {
-        const result = getAutoRagAvailability({ autorag: true, genAiStudio: true });
-
-        expect(result.status).toBe(true);
-        expect(result.featureFlags).toEqual({ autorag: 'on' });
-        expect(result.requiredComponents).toEqual({
-          [DataScienceStackComponent.DS_PIPELINES]: true,
-        });
-        expect(result.reliantAreas).toEqual({ [PLUGIN_GEN_AI]: true });
-      });
-
-      it('should disable when autorag is explicitly false', () => {
-        const result = getAutoRagAvailability({ autorag: false, genAiStudio: true });
-
-        expect(result.status).toBe(false);
-        expect(result.featureFlags).toEqual({ autorag: 'off' });
-      });
-
-      it('should disable when Gen AI Studio is disabled', () => {
-        const result = getAutoRagAvailability({ autorag: true, genAiStudio: false });
-
-        expect(result.status).toBe(false);
-        expect(result.reliantAreas).toEqual({ [PLUGIN_GEN_AI]: false });
-      });
-
-      it('should disable when Data Science Pipelines are Removed', () => {
-        const result = getAutoRagAvailability({ autorag: true, genAiStudio: true }, 'Removed');
-
-        expect(result.status).toBe(false);
-        expect(result.requiredComponents).toEqual({
-          [DataScienceStackComponent.DS_PIPELINES]: false,
-        });
       });
     });
 

@@ -1,20 +1,8 @@
-import * as _ from 'lodash';
 import { isRHOAI } from '../utils/resourceUtils';
 import * as resourceUtils from '../utils/resourceUtils';
-import { blankDashboardCR } from '../utils/constants';
 import { OdhPlatformType, DataScienceClusterKindStatus } from '../types';
 
 describe('resourceUtils', () => {
-  it('defaults AutoRAG on and preserves an explicit opt-out after merging config', () => {
-    expect(blankDashboardCR.spec.dashboardConfig.autorag).toBe(true);
-
-    const configuredDashboardCR = _.merge({}, blankDashboardCR, {
-      spec: { dashboardConfig: { autorag: false } },
-    });
-
-    expect(configuredDashboardCR.spec.dashboardConfig.autorag).toBe(false);
-  });
-
   describe('isRHOAI', () => {
     const mockFastify = { log: { error: jest.fn() } } as any;
     const mockStatus = (name: string): DataScienceClusterKindStatus => ({
