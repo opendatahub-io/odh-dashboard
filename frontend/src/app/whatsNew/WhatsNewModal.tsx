@@ -50,7 +50,6 @@ type TourStep = {
   docUrl?: string;
   sectionAvailable: boolean;
   sectionFlagName?: string;
-  newFeaturesLabel?: string;
   newFeatures: NewIn35Feature[];
 };
 
@@ -222,7 +221,6 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         navSelector: 'button[id="develop-and-train"]',
         docUrl: 'https://docs.redhat.com/en/documentation/red_hat_ai/3#Develop',
         sectionAvailable: true,
-        newFeaturesLabel: 'Generally available in 3.6',
         newFeatures: [
           {
             title: 'AutoML',
@@ -720,7 +718,7 @@ const WhatsNewModalContent: React.FC = () => {
           <Divider />
           <FlexItem>
             <Content component={ContentVariants.p}>
-              <strong>{currentStep.newFeaturesLabel ?? 'New in 3.5'}</strong>
+              <strong>New in 3.5</strong>
             </Content>
             {currentStep.newFeatures.map((feature) => (
               <div key={feature.title} className="pf-v6-u-mb-md">

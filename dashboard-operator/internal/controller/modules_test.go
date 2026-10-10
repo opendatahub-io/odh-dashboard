@@ -217,38 +217,6 @@ func TestResolveModuleStatuses(t *testing.T) {
 			},
 		},
 		{
-			name:    "aipipelines Managed enables automl and autorag",
-			wantLen: 11,
-			spec: v1alpha1.DashboardSpec{
-				Components: map[string]v1alpha1.ComponentAvailability{
-					"aipipelines": {ManagementState: "Managed"},
-				},
-			},
-			wantPhases: map[string]v1alpha1.ModulePhase{
-				"automl":  v1alpha1.ModulePhaseDeployed,
-				"autorag": v1alpha1.ModulePhaseDeployed,
-				"genAi":   v1alpha1.ModulePhaseDeployed,
-			},
-		},
-		{
-			name:    "explicit automl disable overrides managed aipipelines",
-			wantLen: 11,
-			spec: v1alpha1.DashboardSpec{
-				Components: map[string]v1alpha1.ComponentAvailability{
-					"aipipelines": {ManagementState: "Managed"},
-				},
-				Modules: map[string]v1alpha1.ModuleOverride{
-					"automl": {State: v1alpha1.ModuleDisabled},
-				},
-			},
-			wantPhases: map[string]v1alpha1.ModulePhase{
-				"automl": v1alpha1.ModulePhaseDisabled,
-			},
-			wantReason: map[string]string{
-				"automl": "ExplicitOverride",
-			},
-		},
-		{
 			name:    "aipipelines removed disables automl and autorag",
 			wantLen: 11,
 			spec: v1alpha1.DashboardSpec{
