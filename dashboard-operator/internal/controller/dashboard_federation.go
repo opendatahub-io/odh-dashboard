@@ -11,6 +11,21 @@ type proxyRoute struct {
 	PathRewrite string
 }
 
+var dashboardFederationSyntheticNames = []string{"coreBff", "perses", "mlflowEmbedded"}
+
+// reservedDashboardFederationNames returns all names owned by Dashboard,
+// including entries that are not emitted in the current reconciliation.
+func reservedDashboardFederationNames() map[string]struct{} {
+	reservedNames := make(map[string]struct{}, len(moduleRegistry)+len(dashboardFederationSyntheticNames))
+	for name := range moduleRegistry {
+		reservedNames[name] = struct{}{}
+	}
+	for _, name := range dashboardFederationSyntheticNames {
+		reservedNames[name] = struct{}{}
+	}
+	return reservedNames
+}
+
 // proxyPathsFor returns the proxy routes for a module. If the module has
 // explicit ProxyPaths set, those are returned. Otherwise the standard
 // convention /<slug>/api → /api is used.

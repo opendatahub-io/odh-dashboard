@@ -27,6 +27,10 @@ name. The value is a strict JSON object. The operator derives the generated
 entry `name` from that key, so the key must be a valid JavaScript identifier and
 must not collide with a built-in or another accepted remote.
 
+All Dashboard module names, plus `coreBff`, `perses`, and `mlflowEmbedded`, are
+permanently reserved. A community entry using one of these names is rejected
+even when the corresponding Dashboard entry is not currently emitted.
+
 ```yaml
 apiVersion: v1
 kind: ConfigMap
@@ -87,8 +91,8 @@ suffixes, and generated-route collisions.
   cannot contain query, fragment, percent-escape, backslash, control
   characters, empty, `.` or `..` segments.
 - `proxyService.pathSuffix` is non-empty and relative. It cannot begin or end
-  with `/`, or contain query, fragment, percent-escape, empty, `.` or `..`
-  segments.
+  with `/`. Each `/`-separated segment must match `[A-Za-z0-9_-]+`; route
+  parameters (`:id`) and wildcards (`*`) are rejected.
 - Each accepted remote receives an isolated generated route prefix. Within one
   community entry, duplicate derived proxy paths are rejected. Distinct nested
   suffixes are supported; for example, `api` and `api/v1` generate separate

@@ -172,7 +172,7 @@ func communityFederationEntries(
 		return nil, fmt.Errorf("getting community plugins ConfigMap: %w", err)
 	}
 
-	existingNames := make(map[string]struct{}, len(existingEntries))
+	existingNames := reservedDashboardFederationNames()
 	for _, entry := range existingEntries {
 		existingNames[entry.Name] = struct{}{}
 	}

@@ -538,6 +538,63 @@ func TestBuildFederationConfigMap_RejectsInvalidCommunityPlugins(t *testing.T) {
 	assert.Contains(t, names, "validNestedPaths")
 }
 
+func TestBuildFederationConfigMap_ReservesInactiveDashboardFederationNames(t *testing.T) {
+	s := testScheme(t)
+	communitySource := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: "community-plugins-config", Namespace: testNamespace},
+		Data: map[string]string{
+			"modelRegistry":  `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"community-source","namespace":"cai-plugin-system","port":8080}}}`,
+			"perses":         `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"community-source","namespace":"cai-plugin-system","port":8080}}}`,
+			"mlflowEmbedded": `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"community-source","namespace":"cai-plugin-system","port":8080}}}`,
+			"validRemote":    `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"community-source","namespace":"cai-plugin-system","port":8080}}}`,
+		},
+	}
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                fake.NewClientBuilder().WithScheme(s).WithObjects(communitySource).Build(),
+		Scheme:                s,
+		Platform:              cluster.OpenDataHub,
+		ApplicationsNamespace: testNamespace,
+	}
+	statuses := allDeployedStatuses()
+	for name, status := range statuses {
+		status.Phase = v1alpha1.ModulePhaseNotDeployed
+		statuses[name] = status
+	}
+
+	inactiveConfig, err := ctrlpkg.BuildFederationConfigMap(r, statuses, &v1alpha1.Dashboard{})
+	require.NoError(t, err)
+	var inactiveEntries []map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(inactiveConfig.Data["module-federation-config.json"]), &inactiveEntries))
+	inactiveNames := make(map[string]struct{}, len(inactiveEntries))
+	for _, entry := range inactiveEntries {
+		inactiveNames[entry["name"].(string)] = struct{}{}
+	}
+	assert.NotContains(t, inactiveNames, "modelRegistry")
+	assert.NotContains(t, inactiveNames, "perses")
+	assert.NotContains(t, inactiveNames, "mlflowEmbedded")
+	assert.Contains(t, inactiveNames, "validRemote")
+
+	statuses["modelRegistry"] = v1alpha1.ModuleStatus{Phase: v1alpha1.ModulePhaseDeployed}
+	statuses["mlflow"] = v1alpha1.ModuleStatus{Phase: v1alpha1.ModulePhaseDeployed}
+	activeDashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{Observability: &v1alpha1.ObservabilitySpec{
+		Enabled:       true,
+		PersesService: &v1alpha1.ServiceTarget{Name: "dashboard-perses", Namespace: "monitoring", Port: 8080},
+	}}}
+	activeConfig, err := ctrlpkg.BuildFederationConfigMap(r, statuses, activeDashboard)
+	require.NoError(t, err)
+	var activeEntries []map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(activeConfig.Data["module-federation-config.json"]), &activeEntries))
+
+	entriesByName := make(map[string]map[string]interface{}, len(activeEntries))
+	for _, entry := range activeEntries {
+		entriesByName[entry["name"].(string)] = entry
+	}
+	assert.Equal(t, "odh-dashboard-model-registry-ui", entriesByName["modelRegistry"]["backend"].(map[string]interface{})["service"].(map[string]interface{})["name"])
+	assert.Equal(t, "mlflow", entriesByName["mlflowEmbedded"]["backend"].(map[string]interface{})["service"].(map[string]interface{})["name"])
+	persesProxy := entriesByName["perses"]["proxyService"].([]interface{})[0].(map[string]interface{})
+	assert.Equal(t, "dashboard-perses", persesProxy["service"].(map[string]interface{})["name"])
+}
+
 func TestPatchDeploymentFederationHash_CreatesAnnotation(t *testing.T) {
 	s := testScheme(t)
 
