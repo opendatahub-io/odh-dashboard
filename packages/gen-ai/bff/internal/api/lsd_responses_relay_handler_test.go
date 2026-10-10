@@ -79,6 +79,11 @@ var _ = Describe("ResponsesRelayHandler", func() {
 		Entry("absolute URL target", "target="+url.QueryEscape("https://evil.example/api")),
 		Entry("protocol-relative URL target", "target="+url.QueryEscape("//evil.example/api")),
 		Entry("target without leading slash", "target="+url.QueryEscape("autorag/api/v1/responses")),
+		Entry("dot segment traversal", "target="+url.QueryEscape("/../x")),
+		Entry("embedded dot segment traversal", "target="+url.QueryEscape("/autorag/../maas/api")),
+		Entry("backslash in target path", "target="+url.QueryEscape(`/\evil.example`)),
+		Entry("percent-encoded control character", "target="+url.QueryEscape("/autorag/api/v1/responses%00")),
+		Entry("path outside allowed relay prefixes", "target="+url.QueryEscape("/gen-ai/api/v1/lsd/responses")),
 	)
 
 	It("should return 503 when the gateway domain is not configured", func() {
@@ -203,5 +208,8 @@ var _ = Describe("ResponsesRelayHandler", func() {
 
 		assert.Equal(t, http.StatusBadGateway, rr.Code)
 		assert.Contains(t, rr.Body.String(), "unreachable")
+		// The transport error (with the gateway's address) must stay in server
+		// logs, not in the client-facing response.
+		assert.NotContains(t, rr.Body.String(), "dial tcp")
 	})
 })

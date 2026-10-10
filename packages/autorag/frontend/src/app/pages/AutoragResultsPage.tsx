@@ -615,6 +615,7 @@ function AutoragResultsPage(): React.JSX.Element {
       const persistedTemplate = pattern.inference?.responses_template;
       let responsesTemplate: AutoRAGResponsesTemplate;
       try {
+        const fallback = buildResponsesTemplate(pattern, pipelineRun?.run_id);
         const candidate = persistedTemplate
           ? {
               ...persistedTemplate,
@@ -628,10 +629,20 @@ function AutoragResultsPage(): React.JSX.Element {
                   : {}),
               },
             }
-          : buildResponsesTemplate(pattern, pipelineRun?.run_id);
-        responsesTemplate = isUsableResponsesTemplate(candidate)
-          ? normalizeResponsesTemplate(candidate)
-          : normalizeResponsesTemplate(buildResponsesTemplate(pattern, pipelineRun?.run_id));
+          : fallback;
+        // The generated fallback is validated too — buildResponsesTemplate can
+        // emit an empty model, and the code snippets must not be built from a
+        // half-valid template. When neither template is usable, View code
+        // stays closed.
+        const usable = isUsableResponsesTemplate(candidate)
+          ? candidate
+          : isUsableResponsesTemplate(fallback)
+            ? fallback
+            : undefined;
+        if (!usable) {
+          return;
+        }
+        responsesTemplate = normalizeResponsesTemplate(usable);
       } catch {
         return;
       }

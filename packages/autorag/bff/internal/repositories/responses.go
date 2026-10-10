@@ -388,6 +388,21 @@ func extractHistoryAndQuestion(
 	return systemPrompt, history, question
 }
 
+// lastNonSystemMessageIsUser reports whether the last non-system input
+// message is a user message. Trailing system messages are allowed, but input
+// that ends on an assistant turn has no pending question — without this
+// check, extractHistoryAndQuestion would silently re-ask the previous user
+// message as the new question.
+func lastNonSystemMessageIsUser(input []models.InputMessage) bool {
+	for i := len(input) - 1; i >= 0; i-- {
+		if input[i].Role == "system" {
+			continue
+		}
+		return input[i].Role == "user"
+	}
+	return false
+}
+
 // mergeInstructions combines the request-level instructions with the system
 // message extracted from input. Request instructions come first so callers can
 // shape the input system message without overriding the deployment's prompt.
@@ -490,6 +505,9 @@ func ValidateResponsesRequest(req *models.ResponsesRequest) error {
 	}
 	if _, _, question := extractHistoryAndQuestion(req.Input); strings.TrimSpace(question) == "" {
 		return fmt.Errorf("%w: no user message found in input", ErrInvalidResponsesRequest)
+	}
+	if !lastNonSystemMessageIsUser(req.Input) {
+		return fmt.Errorf("%w: last non-system input message must be a user message", ErrInvalidResponsesRequest)
 	}
 	if _, _, _, _, err := parseFileSearchTool(req); err != nil {
 		return fmt.Errorf("%w: %s", ErrInvalidResponsesRequest, err)

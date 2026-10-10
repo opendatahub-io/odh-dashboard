@@ -617,6 +617,46 @@ describe('AutoragResultsPage', () => {
       });
     });
 
+    it('should not open View Code when neither the persisted template nor the fallback is usable', () => {
+      // canUseResponsesForPattern checks secrets, provider, collection, and
+      // embedding model — but not the generation model — so this pattern
+      // passes the eligibility gate while every buildable template carries an
+      // empty model.
+      const pattern = {
+        ...mockPatterns['pattern-1'],
+        settings: {
+          ...mockPatterns['pattern-1'].settings,
+          generation: { ...mockPatterns['pattern-1'].settings.generation, model_id: '' },
+        },
+        inference: { responses_template: {} },
+      } as unknown as AutoragPattern;
+      const mockPipelineRun = createMockPipelineRun(undefined, {
+        maas_secret_name: 'maas-secret',
+        db_secret_name: 'database-secret',
+      });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+      mockUseAutoragResults.mockReturnValue({
+        patterns: { 'pattern-1': pattern },
+        failedPatterns: [],
+        isLoading: false,
+        isError: false,
+        ragPatternsBasePath: undefined,
+      });
+
+      renderPage();
+      fireEvent.click(screen.getByTestId('view-code-trigger'));
+
+      expect(screen.queryByTestId('view-code-modal')).not.toBeInTheDocument();
+      expect(capturedViewCodeTemplate).toBeNull();
+    });
+
     it('should provide context with pipelineRun and patterns', () => {
       const mockPipelineRun = createMockPipelineRun(undefined, {
         display_name: 'My RAG Run',

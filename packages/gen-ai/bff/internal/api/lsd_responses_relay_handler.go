@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path"
+	"slices"
 	"strings"
 	"time"
 
@@ -25,6 +27,12 @@ const maxRelayBodyBytes int64 = 1_048_576
 // caps requests at 2 minutes and emits its own SSE error event first), so this
 // only fires when the connection itself hangs.
 const relayTimeout = 3 * time.Minute
+
+// relayTargetPrefixes lists the gateway path prefixes the relay may forward
+// to. The relay serves embedder responses endpoints (the embedded gen-ai
+// playground in AutoRAG), not arbitrary same-origin paths; adding a
+// destination is a deliberate, reviewed change to this list.
+var relayTargetPrefixes = []string{"/autorag/"}
 
 // ResponsesRelayHandler handles POST /api/v1/lsd/responses/relay.
 //
@@ -46,8 +54,9 @@ const relayTimeout = 3 * time.Minute
 // not do directly through the gateway — same origin, same token.
 //
 // The target is untrusted input (any external URL could be set in the embedded
-// playground props), so only same-origin paths are accepted and the host
-// always comes from GATEWAY_DOMAIN, never from the request.
+// playground props), so only same-origin paths under the allowed module
+// prefixes (relayTargetPrefixes) are accepted and the host always comes from
+// GATEWAY_DOMAIN, never from the request.
 //
 // Auth is required. Like the genai-proxy endpoints, this returns 401 when no
 // bearer identity is present, including under --auth-method=disabled.
@@ -75,6 +84,28 @@ func (app *App) ResponsesRelayHandler(w http.ResponseWriter, r *http.Request, _ 
 	parsedTarget, err := url.Parse(target)
 	if err != nil || parsedTarget.Scheme != "" || parsedTarget.Host != "" {
 		app.badRequestResponse(w, r, errors.New("target must be a same-origin path, not an absolute URL"))
+		return
+	}
+	// Dot segments and backslashes normalize differently across gateway and
+	// router layers, so the effective destination could differ from the
+	// literal path. Require a canonical path; url.Parse decodes the path, so
+	// percent-encoded traversal (e.g. %2e%2e) is caught here as well.
+	if path.Clean(parsedTarget.Path) != parsedTarget.Path || strings.Contains(parsedTarget.Path, "\\") {
+		app.badRequestResponse(w, r, errors.New("target must be a canonical path without dot segments or backslashes"))
+		return
+	}
+	// Control characters cannot appear raw (url.Parse rejects them), but they
+	// can arrive percent-encoded and decode into Path.
+	if strings.ContainsFunc(parsedTarget.Path, func(r rune) bool { return r < 0x20 || r == 0x7f }) {
+		app.badRequestResponse(w, r, errors.New("target must not contain control characters"))
+		return
+	}
+	// Restrict the relay to the module prefixes that actually serve responses
+	// endpoints; it is not a general same-origin proxy.
+	if !slices.ContainsFunc(relayTargetPrefixes, func(prefix string) bool {
+		return strings.HasPrefix(parsedTarget.Path, prefix)
+	}) {
+		app.badRequestResponse(w, r, errors.New("target path is not an allowed relay destination"))
 		return
 	}
 
@@ -114,7 +145,13 @@ func (app *App) ResponsesRelayHandler(w http.ResponseWriter, r *http.Request, _ 
 	requestCtx, cancel := context.WithTimeout(ctx, relayTimeout)
 	defer cancel()
 
-	upstreamURL := "https://" + app.config.GatewayDomain + target
+	// Build from the validated parsed components rather than the raw target,
+	// so the wire request carries exactly the validated path (EscapedPath
+	// re-encodes anything url.Parse decoded); fragments never reach the wire.
+	upstreamURL := "https://" + app.config.GatewayDomain + parsedTarget.EscapedPath()
+	if parsedTarget.RawQuery != "" {
+		upstreamURL += "?" + parsedTarget.RawQuery
+	}
 	proxyReq, err := http.NewRequestWithContext(requestCtx, http.MethodPost, upstreamURL, bytes.NewReader(body))
 	if err != nil {
 		app.badRequestResponse(w, r, fmt.Errorf("invalid relay target: %w", err))
@@ -131,11 +168,14 @@ func (app *App) ResponsesRelayHandler(w http.ResponseWriter, r *http.Request, _ 
 
 	resp, err := proxyClient.Do(proxyReq)
 	if err != nil {
+		// Log the transport error server-side only; the response must not leak
+		// internal details (gateway address, dial/TLS specifics).
+		app.logger.Error("Relay upstream request failed", "target", parsedTarget.Path, "error", err)
 		app.errorResponse(w, r, &integrations.HTTPError{
 			StatusCode: http.StatusBadGateway,
 			ErrorResponse: integrations.ErrorResponse{
 				Code:    "502",
-				Message: fmt.Sprintf("relay target unreachable: %v", err),
+				Message: "relay target unreachable",
 			},
 		})
 		return
@@ -167,7 +207,7 @@ func (app *App) ResponsesRelayHandler(w http.ResponseWriter, r *http.Request, _ 
 		}
 		if readErr != nil {
 			if !errors.Is(readErr, io.EOF) {
-				app.logger.Warn("Relay upstream stream read failed", "target", target, "error", readErr)
+				app.logger.Warn("Relay upstream stream read failed", "target", parsedTarget.Path, "error", readErr)
 			}
 			break
 		}

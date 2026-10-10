@@ -44,7 +44,49 @@ func validateVectorHost(host string, allowLoopback bool) (inCluster, loopback bo
 	if strings.Contains(host, "..") {
 		return false, false, fmt.Errorf("vector database host is not allowed")
 	}
+	if err := validateDNSHostname(host); err != nil {
+		return false, false, err
+	}
 	return inCluster, false, nil
+}
+
+// validateDNSHostname enforces RFC 1123 hostname syntax: at most 253 bytes
+// total, dot-separated labels of 1-63 alphanumeric-or-hyphen characters, and
+// no leading or trailing hyphens. The vector database host is interpolated
+// into connection strings and dial addresses downstream, so only syntactically
+// valid DNS names may reach URL construction.
+func validateDNSHostname(host string) error {
+	if len(host) > 253 {
+		return fmt.Errorf("vector database host must be at most 253 characters")
+	}
+	for _, label := range strings.Split(host, ".") {
+		if len(label) < 1 || len(label) > 63 {
+			return fmt.Errorf("vector database host labels must be 1-63 characters")
+		}
+		if !validDNSLabel(label) {
+			return fmt.Errorf("vector database host labels may only contain letters, digits, and hyphens, and must not start or end with a hyphen")
+		}
+	}
+	return nil
+}
+
+// validDNSLabel reports whether label consists solely of ASCII letters,
+// digits, and hyphens, with no leading or trailing hyphen. Non-ASCII bytes
+// are rejected; hostnames must be punycode-encoded (xn--) before they get here.
+func validDNSLabel(label string) bool {
+	for i := 0; i < len(label); i++ {
+		c := label[i]
+		switch {
+		case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9':
+		case c == '-':
+			if i == 0 || i == len(label)-1 {
+				return false
+			}
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 func parseMilvusEndpoint(raw string) (vectorEndpoint, error) {

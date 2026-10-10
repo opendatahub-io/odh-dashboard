@@ -243,24 +243,57 @@ func TestResponsesRepositoryResolveVectorDBWithoutForwarderPreservesURI(t *testi
 }
 
 func TestResponsesRepositoryRejectsUnvalidatedURIBeforeForwarding(t *testing.T) {
-	forwarderCalled := false
+	// Loopback URIs are a devmode affordance (the factory bypasses the
+	// forwarder for them), so validation is exercised with URIs the endpoint
+	// parser rejects in every mode: embedded credentials and literal IPs.
+	tests := []struct {
+		name    string
+		uri     string
+		wantErr string
+	}{
+		{name: "credentials in URI", uri: "https://user:secret@milvus.example", wantErr: "milvus URI contains unsupported credentials"},
+		{name: "literal IP host", uri: "http://10.0.0.1:19530", wantErr: "must be a DNS name"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			forwarderCalled := false
+			repo := NewResponsesRepository(nil, &mockK8sService{
+				getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+					return &v1.Secret{Data: map[string][]byte{
+						"MILVUS_URI": []byte(tt.uri),
+					}}, nil
+				},
+			}, &mockURLForwarder{
+				forwardURL: func(context.Context, string) (string, error) {
+					forwarderCalled = true
+					return "http://localhost:4321", nil
+				},
+			})
+
+			_, err := repo.resolveVectorDB(context.Background(), "run-ns", "database")
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.wantErr)
+			assert.False(t, forwarderCalled)
+		})
+	}
+}
+
+func TestResponsesRepositoryRejectsLoopbackMilvusURIWithoutForwarder(t *testing.T) {
+	// Production runs without a URL forwarder, so loopback URIs must be
+	// rejected at validation time, before any connection attempt.
 	repo := NewResponsesRepository(nil, &mockK8sService{
 		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
 			return &v1.Secret{Data: map[string][]byte{
 				"MILVUS_URI": []byte("http://localhost:19530"),
 			}}, nil
 		},
-	}, &mockURLForwarder{
-		forwardURL: func(context.Context, string) (string, error) {
-			forwarderCalled = true
-			return "http://localhost:4321", nil
-		},
 	})
 
 	_, err := repo.resolveVectorDB(context.Background(), "run-ns", "database")
 
 	require.Error(t, err)
-	assert.False(t, forwarderCalled)
+	assert.Contains(t, err.Error(), "only allowed in development mode")
 }
 
 func TestResponsesRepositoryResolveVectorDBPassesRequestContextToMilvusFactory(t *testing.T) {
@@ -942,6 +975,51 @@ func TestValidateResponsesRequest_RejectsMissingUserQuestion(t *testing.T) {
 	require.Error(t, err)
 	assert.ErrorIs(t, err, ErrInvalidResponsesRequest)
 	assert.Contains(t, err.Error(), "no user message found in input")
+}
+
+func TestValidateResponsesRequest_RejectsTrailingAssistantMessage(t *testing.T) {
+	req := fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"vs_abc_123"},
+	})
+	req.Metadata = map[string]string{"embedding_model": "text-embedding"}
+	req.Input = []models.InputMessage{
+		{Role: "user", Content: []models.InputContent{{Type: "input_text", Text: "question"}}},
+		{Role: "assistant", Content: []models.InputContent{{Type: "output_text", Text: "answer"}}},
+	}
+	err := ValidateResponsesRequest(req)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrInvalidResponsesRequest)
+	assert.Contains(t, err.Error(), "last non-system input message must be a user message")
+}
+
+func TestValidateResponsesRequest_AllowsTrailingSystemMessage(t *testing.T) {
+	req := fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"vs_abc_123"},
+	})
+	req.Metadata = map[string]string{"embedding_model": "text-embedding"}
+	req.Input = []models.InputMessage{
+		{Role: "user", Content: []models.InputContent{{Type: "input_text", Text: "question"}}},
+		{Role: "system", Content: []models.InputContent{{Type: "input_text", Text: "trailing system"}}},
+	}
+	err := ValidateResponsesRequest(req)
+	require.NoError(t, err)
+}
+
+func TestValidateResponsesRequest_AllowsMultiTurnConversation(t *testing.T) {
+	req := fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"vs_abc_123"},
+	})
+	req.Metadata = map[string]string{"embedding_model": "text-embedding"}
+	req.Input = []models.InputMessage{
+		{Role: "user", Content: []models.InputContent{{Type: "input_text", Text: "first question"}}},
+		{Role: "assistant", Content: []models.InputContent{{Type: "output_text", Text: "first answer"}}},
+		{Role: "user", Content: []models.InputContent{{Type: "input_text", Text: "follow-up"}}},
+	}
+	err := ValidateResponsesRequest(req)
+	require.NoError(t, err)
 }
 
 func TestParseFileSearchTool_RejectsExcessiveMaxNumResults(t *testing.T) {

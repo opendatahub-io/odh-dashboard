@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -51,6 +52,11 @@ func TestParseVectorEndpoints(t *testing.T) {
 		{name: "literal milvus IP", milvus: "https://10.0.0.1:19530", wantErr: true},
 		{name: "userinfo", milvus: "https://user:pass@milvus.example.com:19530", wantErr: true},
 		{name: "query", milvus: "https://milvus.example.com:19530?token=secret", wantErr: true},
+		{name: "milvus underscore host", milvus: "http://milvus_team.example.com:19530", wantErr: true},
+		{name: "milvus punycode host", milvus: "https://xn--sse-1na.example.com:19530"},
+		{name: "pg host with query injection", pgHost: "db.example.com?sslmode=disable", sslMode: "verify-full", wantErr: true},
+		{name: "pg host with path injection", pgHost: "db.example.com/auth", sslMode: "verify-full", wantErr: true},
+		{name: "pg punycode host", pgHost: "xn--sse-1na.example.com", sslMode: "verify-full"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -62,6 +68,42 @@ func TestParseVectorEndpoints(t *testing.T) {
 			}
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("parse endpoint error = %v, wantErr %t", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateVectorHostRejectsInvalidDNSHostnames(t *testing.T) {
+	// 253 bytes of valid labels: 63 + 63 + 63 + 61 plus three dots.
+	validMaxHost := strings.Repeat("a", 63) + "." + strings.Repeat("b", 63) + "." + strings.Repeat("c", 63) + "." + strings.Repeat("d", 61)
+	tests := []struct {
+		name    string
+		host    string
+		wantErr bool
+	}{
+		{name: "label longer than 63 characters", host: strings.Repeat("a", 64) + ".example.com", wantErr: true},
+		{name: "host longer than 253 characters", host: validMaxHost + "e", wantErr: true},
+		{name: "host of exactly 253 characters", host: validMaxHost},
+		{name: "label of exactly 63 characters", host: strings.Repeat("a", 63) + ".example.com"},
+		{name: "underscore in label", host: "milvus_team.example.com", wantErr: true},
+		{name: "unicode label", host: "münchen.example.com", wantErr: true},
+		{name: "leading hyphen", host: "-milvus.example.com", wantErr: true},
+		{name: "trailing hyphen", host: "milvus-.example.com", wantErr: true},
+		{name: "leading dot produces empty label", host: ".milvus.example.com", wantErr: true},
+		{name: "at sign in host", host: "user@db.example.com", wantErr: true},
+		{name: "slash in host", host: "db.example.com/auth", wantErr: true},
+		{name: "question mark in host", host: "db.example.com?sslmode=disable", wantErr: true},
+		{name: "port separator in host", host: "db.example.com:5432", wantErr: true},
+		{name: "ipv6 zone identifier", host: "fe80::1%eth0", wantErr: true},
+		{name: "punycode label", host: "xn--sse-1na.example.com"},
+		{name: "single label host", host: "milvus"},
+		{name: "uppercase host", host: "MILVUS.EXAMPLE.COM"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, _, err := validateVectorHost(tt.host, false)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("validateVectorHost(%q) error = %v, wantErr %t", tt.host, err, tt.wantErr)
 			}
 		})
 	}
