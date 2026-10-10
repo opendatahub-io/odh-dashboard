@@ -139,8 +139,8 @@ const VectorDbConnectionModal: React.FC<Props> = ({
       if (getField('MILVUS_TOKEN').trim()) {
         stringData.MILVUS_TOKEN = getField('MILVUS_TOKEN').trim();
       }
-      if (getField('MILVUS_SERVER_CERT').trim()) {
-        stringData.MILVUS_SERVER_CERT = getField('MILVUS_SERVER_CERT').trim();
+      if (getField('MILVUS_CA_CERT').trim()) {
+        stringData.MILVUS_CA_CERT = getField('MILVUS_CA_CERT').trim();
       }
     }
     if (provider === 'neo4j') {
@@ -278,12 +278,12 @@ const VectorDbConnectionModal: React.FC<Props> = ({
                   ariaLabelHide="Hide token"
                 />
               </FormGroup>
-              <FormGroup fieldId="milvus-server-cert" label="Server certificate">
+              <FormGroup fieldId="milvus-ca-cert" label="CA certificate">
                 <TextArea
-                  id="milvus-server-cert"
-                  data-testid="milvus-server-cert-input"
-                  value={getField('MILVUS_SERVER_CERT')}
-                  onChange={(_event, value) => setField('MILVUS_SERVER_CERT', value)}
+                  id="milvus-ca-cert"
+                  data-testid="milvus-ca-cert-input"
+                  value={getField('MILVUS_CA_CERT')}
+                  onChange={(_event, value) => setField('MILVUS_CA_CERT', value)}
                 />
               </FormGroup>
             </>
@@ -323,7 +323,8 @@ const VectorDbConnectionModal: React.FC<Props> = ({
                     <FormHelperText>
                       <HelperText>
                         <HelperTextItem>
-                          Hostname or IP address of the PostgreSQL server.
+                          DNS hostname of the PostgreSQL server. Literal IP addresses are not
+                          supported.
                         </HelperTextItem>
                       </HelperText>
                     </FormHelperText>

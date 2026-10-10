@@ -1041,7 +1041,11 @@ describe('AutoragResults', () => {
               content: [{ type: 'input_text', text: '<user_query_placeholder>' }],
             },
           ],
-          metadata: { autorag_run_id: 'run-123', rag_pattern_name: 'Pattern1' },
+          metadata: {
+            autorag_run_id: 'run-123',
+            rag_pattern_name: 'Pattern1',
+            embedding_model: 'embedding-model',
+          },
           instructions: 'Answer from file_search results.',
           tools: [
             {
@@ -1049,10 +1053,8 @@ describe('AutoragResults', () => {
               vector_store_ids: ['vs-1'],
               max_num_results: 5,
               ranking_options: {
-                search_mode: 'hybrid',
-                ranker_strategy: 'rrf',
-                ranker_k: 60,
-                ranker_alpha: 0.5,
+                ranker: 'rrf',
+                alpha: 0.5,
               },
             },
           ],
@@ -1063,22 +1065,41 @@ describe('AutoragResults', () => {
     };
     const patterns = { Pattern1: patternWithTemplate };
 
-    it('should not expose Try this pattern from the leaderboard action', () => {
+    it('should expose Try this pattern from the leaderboard action', () => {
       const onTryPattern = jest.fn();
       renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onTryPattern });
 
       const row = screen.getByTestId('leaderboard-row-1');
       fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
 
-      expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByText('Try this pattern'));
+      expect(onTryPattern).toHaveBeenCalledWith('Pattern1', 'resultsTable');
     });
 
-    it('should not expose Try this pattern from the pattern details modal action', async () => {
-      const user = userEvent.setup();
+    it('should expose Try this pattern when a pattern has no responses template', () => {
       const onTryPattern = jest.fn();
-      renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, {
+      const patternsWithoutTemplate = { Pattern1: createMockPattern('Pattern1') };
+      renderWithContext(mockPipelineRun, patternsWithoutTemplate, 'test-namespace', undefined, {
         onTryPattern,
       });
+
+      const row = screen.getByTestId('leaderboard-row-1');
+      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+
+      fireEvent.click(screen.getByText('Try this pattern'));
+      expect(onTryPattern).toHaveBeenCalledWith('Pattern1', 'resultsTable');
+    });
+
+    it('should expose Try this pattern from the pattern details modal action', async () => {
+      const user = userEvent.setup();
+      const onTryPattern = jest.fn();
+      renderWithContext(
+        mockPipelineRun,
+        patterns,
+        'test-namespace',
+        { parameters: { db_secret_name: 'milvus', maas_secret_name: 'maas' } },
+        { onTryPattern },
+      );
 
       const row = screen.getByTestId('leaderboard-row-1');
       await user.click(within(row).getByRole('button', { name: /kebab toggle/i }));
@@ -1089,8 +1110,9 @@ describe('AutoragResults', () => {
       const actionsToggle = await screen.findByTestId('pattern-details-actions-toggle');
       await user.click(actionsToggle);
 
-      expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
-    }, 45_000);
+      await user.click(screen.getByText('Try this pattern'));
+      expect(onTryPattern).toHaveBeenCalledWith('Pattern1', 'patternDetails');
+    }, 15_000);
   });
 
   describe('onViewCode source', () => {
@@ -1108,7 +1130,11 @@ describe('AutoragResults', () => {
               content: [{ type: 'input_text', text: '<user_query_placeholder>' }],
             },
           ],
-          metadata: { autorag_run_id: 'run-123', rag_pattern_name: 'Pattern1' },
+          metadata: {
+            autorag_run_id: 'run-123',
+            rag_pattern_name: 'Pattern1',
+            embedding_model: 'embedding-model',
+          },
           instructions: 'Answer from file_search results.',
           tools: [
             {
@@ -1116,10 +1142,8 @@ describe('AutoragResults', () => {
               vector_store_ids: ['vs-1'],
               max_num_results: 5,
               ranking_options: {
-                search_mode: 'hybrid',
-                ranker_strategy: 'rrf',
-                ranker_k: 60,
-                ranker_alpha: 0.5,
+                ranker: 'rrf',
+                alpha: 0.5,
               },
             },
           ],

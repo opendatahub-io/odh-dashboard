@@ -2,7 +2,11 @@
 /**
  * @jest-environment node
  */
-import { ContractApiClient, loadOpenAPISchema } from '@odh-dashboard/contract-tests';
+import {
+  ContractApiClient,
+  ContractSchemaValidator,
+  loadOpenAPISchema,
+} from '@odh-dashboard/contract-tests';
 
 describe('AutoRAG API Contract Tests', () => {
   const baseUrl = process.env.CONTRACT_MOCK_BFF_URL || 'http://localhost:8080';
@@ -24,6 +28,49 @@ describe('AutoRAG API Contract Tests', () => {
 
   const SUCCEEDED_RUN = 'e78c5f2a-5726-4e1c-bcb6-60434e77e453';
 
+  describe('OpenAPI schema', () => {
+    it('documents string and message-array input values, but not null', () => {
+      const components = apiSchema.components as Record<string, unknown>;
+      const schemas = components.schemas as Record<string, unknown>;
+      const responsesRequest = schemas.ResponsesRequest as Record<string, unknown>;
+      const properties = responsesRequest.properties as Record<string, unknown>;
+      const input = properties.input as Record<string, unknown>;
+      const inputVariants = input.anyOf as Array<Record<string, unknown>>;
+
+      expect(inputVariants).toHaveLength(2);
+      expect(inputVariants).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: 'string' }),
+          expect.objectContaining({ type: 'array' }),
+        ]),
+      );
+      expect(properties.model).toEqual(
+        expect.objectContaining({ type: 'string', minLength: 1, pattern: '\\S' }),
+      );
+      expect(properties.max_output_tokens).toEqual(
+        expect.objectContaining({ type: 'integer', minimum: 0, maximum: 4096, default: 2048 }),
+      );
+      expect(responsesRequest.required).toEqual(
+        expect.arrayContaining(['model', 'input', 'tools', 'metadata']),
+      );
+      expect((properties.metadata as { required: string[] }).required).toContain('embedding_model');
+      expect((properties.tools as { minItems: number }).minItems).toBe(1);
+
+      const modelSchemaValidator = new ContractSchemaValidator();
+      modelSchemaValidator.loadSchema(
+        'ResponsesRequestModel',
+        properties.model as Record<string, unknown>,
+      );
+
+      expect(modelSchemaValidator.validateResponse('   ', 'ResponsesRequestModel').valid).toBe(
+        false,
+      );
+      expect(
+        modelSchemaValidator.validateResponse('test-model', 'ResponsesRequestModel').valid,
+      ).toBe(true);
+    });
+  });
+
   describe('Health Check Endpoint', () => {
     it('should return health status', async () => {
       const result = await apiClient.get('/healthcheck');
@@ -31,6 +78,93 @@ describe('AutoRAG API Contract Tests', () => {
       if (result.success) {
         expect(result.response.status).toBe(200);
       }
+    });
+  });
+
+  describe('Responses Endpoint', () => {
+    const request = {
+      model: 'test-model',
+      input: [
+        {
+          type: 'message',
+          role: 'user',
+          content: [{ type: 'input_text', text: 'What is RAG?' }],
+        },
+      ],
+      tools: [{ type: 'file_search', vector_store_ids: ['vs-test'] }],
+      metadata: { embedding_model: 'embedding-model' },
+    };
+
+    it('should reject a request without the canonical database secret query parameter', async () => {
+      const result = await apiClient.post(
+        `/api/v1/responses?namespace=${NS}&vectorDbSecretName=legacy&maasSecretName=${MAAS_SECRET}`,
+        request,
+      );
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+      expect(result.error?.data).toEqual(
+        expect.objectContaining({
+          error: expect.objectContaining({ code: '400', message: expect.any(String) }),
+        }),
+      );
+    });
+
+    it('should reject a request missing the database secret query parameter', async () => {
+      const result = await apiClient.post(
+        `/api/v1/responses?namespace=${NS}&maasSecretName=${MAAS_SECRET}`,
+        request,
+      );
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+      expect(result.error?.data).toEqual(
+        expect.objectContaining({
+          error: expect.objectContaining({ code: '400', message: expect.any(String) }),
+        }),
+      );
+    });
+
+    it('should reject a request missing the model', async () => {
+      const requestWithoutModel = { ...request };
+      delete (requestWithoutModel as { model?: string }).model;
+      const result = await apiClient.post(
+        `/api/v1/responses?namespace=${NS}&dbSecretName=${SECRET}&maasSecretName=${MAAS_SECRET}`,
+        requestWithoutModel,
+      );
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+      expect(result.error?.data).toEqual(
+        expect.objectContaining({
+          error: expect.objectContaining({ code: '400', message: expect.any(String) }),
+        }),
+      );
+    });
+
+    it('should reject an explicit null input', async () => {
+      const result = await apiClient.post(
+        `/api/v1/responses?namespace=${NS}&dbSecretName=${SECRET}&maasSecretName=${MAAS_SECRET}`,
+        { ...request, input: null },
+      );
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+      expect(result.error?.data).toEqual(
+        expect.objectContaining({
+          error: expect.objectContaining({ code: '400', message: expect.any(String) }),
+        }),
+      );
+    });
+
+    it('should reject max_output_tokens above the documented cap', async () => {
+      const result = await apiClient.post(
+        `/api/v1/responses?namespace=${NS}&dbSecretName=${SECRET}&maasSecretName=${MAAS_SECRET}`,
+        { ...request, max_output_tokens: 4097 },
+      );
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+      expect(result.error?.data).toEqual(
+        expect.objectContaining({
+          error: expect.objectContaining({ code: '400', message: expect.any(String) }),
+        }),
+      );
     });
   });
 

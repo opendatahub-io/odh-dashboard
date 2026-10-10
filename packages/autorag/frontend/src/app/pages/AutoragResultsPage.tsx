@@ -53,7 +53,7 @@ import {
 } from '~/app/utilities/utils';
 import { getObjectiveMetric, metricLabel } from '~/app/utilities/metricUtils';
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
-import type { ResponsesTemplate } from '~/app/types/autoragPattern';
+import type { AutoRAGResponsesTemplate, AutoragPattern } from '~/app/types/autoragPattern';
 import {
   AUTORAG_EVENTS,
   fireAutoragCodeSnippetsExported,
@@ -64,12 +64,17 @@ import {
   TrackingOutcome,
 } from '~/app/utilities/tracking';
 import type { PlaygroundOpenedSource, ViewCodeEntrySource } from '~/app/utilities/tracking';
+import {
+  canUseResponsesForPattern,
+  getPatternCollectionName,
+  getPatternEmbeddingModel,
+} from '~/app/utilities/responses';
 
 type DrawerContentType =
   | { type: 'run-details' }
   | {
       type: 'playground';
-      responsesTemplate: ResponsesTemplate;
+      responsesTemplate: AutoRAGResponsesTemplate;
       patternInfo: PlaygroundPatternInfo;
     };
 
@@ -82,6 +87,137 @@ const ARTIFACT_UNAVAILABLE_TOOLTIP = 'Artifact unavailable';
 const isAbortError = (error: unknown): boolean =>
   error instanceof Error && error.name === 'AbortError';
 
+// Prefer the backend-agnostic binding name while keeping historical artifacts readable.
+export const buildResponsesTemplate = (
+  pattern: AutoragPattern,
+  runId: string | undefined,
+): AutoRAGResponsesTemplate => {
+  const { generation, retrieval } = pattern.settings;
+  const collectionName = getPatternCollectionName(pattern);
+  const embeddingModel = getPatternEmbeddingModel(pattern);
+  const isHybrid = retrieval.search_mode === 'hybrid';
+
+  return {
+    /* eslint-disable camelcase */
+    model: generation.model_id,
+    stream: true,
+    store: false,
+    input: [
+      {
+        type: 'message',
+        role: 'user',
+        content: [{ type: 'input_text', text: '<user_query_placeholder>' }],
+      },
+    ],
+    metadata: {
+      ...(runId?.trim() ? { autorag_run_id: runId.trim() } : {}),
+      rag_pattern_name: pattern.name,
+      embedding_model: embeddingModel ?? '',
+    },
+    instructions: '',
+    tools: [
+      {
+        type: 'file_search',
+        vector_store_ids: collectionName ? [collectionName] : [],
+        max_num_results: retrieval.number_of_chunks,
+        ...(isHybrid
+          ? {
+              ranking_options: {
+                ranker: 'rrf',
+                alpha: retrieval.ranker_alpha ?? 0.5,
+              },
+            }
+          : {}),
+      },
+    ],
+    tool_choice: { type: 'file_search' },
+    include: ['file_search_call.results'],
+    /* eslint-enable camelcase */
+  };
+};
+
+/* eslint-disable camelcase */
+export const normalizeResponsesTemplate = (
+  template: AutoRAGResponsesTemplate,
+): AutoRAGResponsesTemplate => {
+  const { autorag_run_id: runId, ...metadata } = template.metadata;
+  return {
+    ...template,
+    metadata: {
+      ...metadata,
+      ...(runId?.trim() ? { autorag_run_id: runId.trim() } : {}),
+    },
+    tools: template.tools.map((tool) => {
+      if (!tool.ranking_options) {
+        return tool;
+      }
+      return {
+        ...tool,
+        ranking_options: {
+          ranker: 'rrf',
+          alpha: Number.isFinite(tool.ranking_options.alpha) ? tool.ranking_options.alpha : 0.5,
+        },
+      };
+    }),
+  };
+};
+/* eslint-enable camelcase */
+
+const isUsableResponsesTemplate = (value: unknown): value is AutoRAGResponsesTemplate => {
+  const isRecord = (entry: unknown): entry is Record<string, unknown> =>
+    typeof entry === 'object' && entry !== null;
+  if (!isRecord(value)) {
+    return false;
+  }
+  if (typeof value.model !== 'string' || value.model.trim() === '') {
+    return false;
+  }
+  if (!isRecord(value.metadata)) {
+    return false;
+  }
+  if (
+    typeof value.metadata.embedding_model !== 'string' ||
+    value.metadata.embedding_model.trim() === ''
+  ) {
+    return false;
+  }
+  if (!(
+    (typeof value.input === 'string' && value.input.trim() !== '') ||
+    (Array.isArray(value.input) && value.input.length > 0)
+  )) {
+    return false;
+  }
+  if (!Array.isArray(value.tools) || value.tools.length === 0) {
+    return false;
+  }
+  if (
+    !value.tools.every((tool) => {
+      if (!isRecord(tool) || tool.type !== 'file_search' || !Array.isArray(tool.vector_store_ids)) {
+        return false;
+      }
+      return tool.vector_store_ids.every(
+        (id) => typeof id === 'string' && /^[A-Za-z0-9_.-]+$/.test(id),
+      );
+    })
+  ) {
+    return false;
+  }
+  return isRecord(value.tool_choice) && value.tool_choice.type === 'file_search';
+};
+
+/* eslint-disable camelcase */
+const unavailableResponsesTemplate = (patternName: string): AutoRAGResponsesTemplate => ({
+  model: '',
+  stream: true,
+  store: false,
+  input: [],
+  metadata: { rag_pattern_name: patternName, embedding_model: '' },
+  instructions: '',
+  tools: [{ type: 'file_search', vector_store_ids: [], max_num_results: 0 }],
+  tool_choice: { type: 'file_search' },
+  include: ['file_search_call.results'],
+});
+/* eslint-enable camelcase */
 function AutoragResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
   const location = useLocation();
@@ -401,13 +537,39 @@ function AutoragResultsPage(): React.JSX.Element {
   // (see `onSelectPattern` below), which is not a new "open".
   const openPlaygroundForPattern = React.useCallback(
     (patternName: string): boolean => {
-      const pattern = patterns?.[patternName];
+      const pattern = patterns[patternName];
       if (!pattern) {
         return false;
       }
-      const responsesTemplate = pattern.inference?.responses_template;
-      if (!responsesTemplate) {
-        return false;
+      let responsesTemplate: AutoRAGResponsesTemplate;
+      try {
+        const persistedTemplate = pattern.inference?.responses_template;
+        const fallback = buildResponsesTemplate(pattern, pipelineRun?.run_id);
+        const candidate = persistedTemplate
+          ? {
+              ...persistedTemplate,
+              metadata: {
+                ...(persistedTemplate.metadata || {}),
+                ...(getPatternEmbeddingModel(pattern)
+                  ? {
+                      // eslint-disable-next-line camelcase
+                      embedding_model: getPatternEmbeddingModel(pattern),
+                    }
+                  : {}),
+              },
+            }
+          : fallback;
+        // The generated fallback is validated too — buildResponsesTemplate can
+        // emit an empty model or vector_store_ids, and the drawer state should
+        // carry the explicit unavailable marker rather than a half-valid
+        // template.
+        responsesTemplate = isUsableResponsesTemplate(candidate)
+          ? normalizeResponsesTemplate(candidate)
+          : isUsableResponsesTemplate(fallback)
+            ? normalizeResponsesTemplate(fallback)
+            : unavailableResponsesTemplate(patternName);
+      } catch {
+        responsesTemplate = unavailableResponsesTemplate(patternName);
       }
 
       const metricMean = getObjectiveMetric(pattern, contextValue.optimizationMetric)?.scores.mean;
@@ -425,7 +587,7 @@ function AutoragResultsPage(): React.JSX.Element {
       });
       return true;
     },
-    [contextValue.optimizationMetric, patterns],
+    [contextValue.optimizationMetric, patterns, pipelineRun?.run_id],
   );
   /* eslint-enable @typescript-eslint/no-unnecessary-condition */
 
@@ -440,19 +602,54 @@ function AutoragResultsPage(): React.JSX.Element {
 
   const [viewCodePattern, setViewCodePattern] = React.useState<{
     patternName: string;
-    responsesTemplate: ResponsesTemplate;
+    responsesTemplate: AutoRAGResponsesTemplate;
   } | null>(null);
 
   const handleViewCode = React.useCallback(
     (patternName: string, source: ViewCodeEntrySource) => {
+      const pattern = patterns[patternName];
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      const responsesTemplate = patterns?.[patternName]?.inference?.responses_template;
-      if (responsesTemplate) {
-        setViewCodePattern({ patternName, responsesTemplate });
-        fireAutoragCodeSnippetsExported('viewed', source);
+      if (!pattern || !canUseResponsesForPattern(contextValue.parameters, pattern)) {
+        return;
       }
+      const persistedTemplate = pattern.inference?.responses_template;
+      let responsesTemplate: AutoRAGResponsesTemplate;
+      try {
+        const fallback = buildResponsesTemplate(pattern, pipelineRun?.run_id);
+        const candidate = persistedTemplate
+          ? {
+              ...persistedTemplate,
+              metadata: {
+                ...persistedTemplate.metadata,
+                ...(getPatternEmbeddingModel(pattern)
+                  ? {
+                      // eslint-disable-next-line camelcase
+                      embedding_model: getPatternEmbeddingModel(pattern),
+                    }
+                  : {}),
+              },
+            }
+          : fallback;
+        // The generated fallback is validated too — buildResponsesTemplate can
+        // emit an empty model, and the code snippets must not be built from a
+        // half-valid template. When neither template is usable, View code
+        // stays closed.
+        const usable = isUsableResponsesTemplate(candidate)
+          ? candidate
+          : isUsableResponsesTemplate(fallback)
+            ? fallback
+            : undefined;
+        if (!usable) {
+          return;
+        }
+        responsesTemplate = normalizeResponsesTemplate(usable);
+      } catch {
+        return;
+      }
+      setViewCodePattern({ patternName, responsesTemplate });
+      fireAutoragCodeSnippetsExported('viewed', source);
     },
-    [patterns],
+    [contextValue.parameters, patterns, pipelineRun?.run_id],
   );
 
   return (
@@ -637,7 +834,6 @@ function AutoragResultsPage(): React.JSX.Element {
           onClose={() => setViewCodePattern(null)}
           patternName={viewCodePattern.patternName}
           responsesTemplate={viewCodePattern.responsesTemplate}
-          ogxCredentials={ogxCredentials}
         />
       )}
     </AutoragResultsContext.Provider>

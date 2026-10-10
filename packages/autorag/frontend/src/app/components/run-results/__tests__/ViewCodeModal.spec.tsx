@@ -1,10 +1,10 @@
 /* eslint-disable camelcase */
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
-import type { ResponsesTemplate } from '~/app/types/autoragPattern';
+import type { AutoRAGResponsesTemplate } from '~/app/types/autoragPattern';
 import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
@@ -14,29 +14,20 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 
 const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
-const mockNotification = {
-  success: jest.fn(),
-  error: jest.fn(),
-  warning: jest.fn(),
-  info: jest.fn(),
-  remove: jest.fn(),
-};
-jest.mock('~/app/hooks/useNotification', () => ({
-  useNotification: () => mockNotification,
-}));
-
 jest.mock('react-router', () => ({
   useParams: () => ({ namespace: 'test-ns' }),
 }));
 
+let mockViewCodeParameters: Record<string, string> = {
+  vector_db_secret_name: 'vector-db-secret',
+  maas_secret_name: 'maas-secret',
+};
+
 jest.mock('~/app/context/AutoragResultsContext', () => ({
-  useAutoragResultsContext: () => ({
-    parameters: { ogx_secret_name: 'test-secret' },
-    patterns: {},
-  }),
+  useAutoragResultsContext: () => ({ parameters: mockViewCodeParameters, patterns: {} }),
 }));
 
-const mockTemplate: ResponsesTemplate = {
+const mockTemplate: AutoRAGResponsesTemplate = {
   model: 'vllm/llama-3',
   stream: false,
   store: true,
@@ -47,28 +38,22 @@ const mockTemplate: ResponsesTemplate = {
       content: [{ type: 'input_text', text: '<user_query_placeholder>' }],
     },
   ],
-  metadata: { autorag_run_id: '123', rag_pattern_name: 'test_pattern' },
+  metadata: {
+    autorag_run_id: '123',
+    rag_pattern_name: 'test_pattern',
+    embedding_model: 'embedding-model',
+  },
   instructions: 'Answer from file_search results.',
   tools: [
     {
       type: 'file_search',
       vector_store_ids: ['vs-1'],
       max_num_results: 5,
-      ranking_options: {
-        search_mode: 'hybrid',
-        ranker_strategy: 'rrf',
-        ranker_k: 60,
-        ranker_alpha: 0.5,
-      },
+      ranking_options: { ranker: 'rrf', alpha: 0.5 },
     },
   ],
   tool_choice: { type: 'file_search' },
   include: ['file_search_call.results'],
-};
-
-const mockLegacyRunCredentials = {
-  baseUrl: btoa('https://ogx.example.com'),
-  apiKey: btoa('sk-test-key-123'),
 };
 
 const defaultProps = {
@@ -81,223 +66,78 @@ const defaultProps = {
 describe('ViewCodeModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockViewCodeParameters = {
+      vector_db_secret_name: 'vector-db-secret',
+      maas_secret_name: 'maas-secret',
+    };
   });
 
-  it('should render the modal when open', () => {
+  it('should render the modal and all four language tabs', () => {
     render(<ViewCodeModal {...defaultProps} />);
+
     expect(screen.getByTestId('playground-view-code-modal')).toBeInTheDocument();
-  });
-
-  it('should not render modal content when closed', () => {
-    render(<ViewCodeModal {...defaultProps} isOpen={false} />);
-    expect(screen.queryByTestId('playground-view-code-modal')).not.toBeInTheDocument();
-  });
-
-  it('should display the formatted pattern name in the title', () => {
-    render(<ViewCodeModal {...defaultProps} />);
-    const modal = screen.getByTestId('playground-view-code-modal');
-    expect(modal).toHaveTextContent(/test_pattern.*Response payload/);
-  });
-
-  it('should display the description text', () => {
-    render(<ViewCodeModal {...defaultProps} />);
-    expect(
-      screen.getByText(/Use these code snippets to query this pattern programmatically/),
-    ).toBeInTheDocument();
-  });
-
-  it('should render all four language tabs', () => {
-    render(<ViewCodeModal {...defaultProps} />);
-    expect(screen.getByTestId('view-code-tabs')).toBeInTheDocument();
     expect(screen.getByText('curl')).toBeInTheDocument();
     expect(screen.getByText('Node.js')).toBeInTheDocument();
     expect(screen.getByText('Go')).toBeInTheDocument();
     expect(screen.getByText('Python')).toBeInTheDocument();
   });
 
-  it('should show curl tab content by default', () => {
-    render(<ViewCodeModal {...defaultProps} />);
-    expect(screen.getByText(/curl -X POST/)).toBeInTheDocument();
+  it('should not render modal content when closed', () => {
+    render(<ViewCodeModal {...defaultProps} isOpen={false} />);
+
+    expect(screen.queryByTestId('playground-view-code-modal')).not.toBeInTheDocument();
   });
 
-  it('should switch to Node.js tab when clicked', () => {
+  it('should generate snippets for the AutoRAG BFF with the configured secret parameters', () => {
     render(<ViewCodeModal {...defaultProps} />);
-    fireEvent.click(screen.getByText('Node.js'));
-    expect(screen.getByLabelText('Copy Node.js snippet')).toBeInTheDocument();
+
+    expect(
+      screen.getAllByText(/\/autorag\/api\/v1\/responses\?namespace=test-ns/),
+    ).not.toHaveLength(0);
+    expect(screen.getAllByText(/dbSecretName=vector-db-secret/)).not.toHaveLength(0);
+    expect(screen.getAllByText(/maasSecretName=maas-secret/)).not.toHaveLength(0);
+    expect(screen.getAllByText(/DASHBOARD_TOKEN/)).not.toHaveLength(0);
   });
 
-  it('should switch to Go tab when clicked', () => {
+  it('should show an unavailable state when the MaaS secret is missing', () => {
+    mockViewCodeParameters = { vector_db_secret_name: 'vector-db-secret' };
     render(<ViewCodeModal {...defaultProps} />);
-    fireEvent.click(screen.getByText('Go'));
-    expect(screen.getByLabelText('Copy Go snippet')).toBeInTheDocument();
+
+    expect(
+      screen.getByText(/A MaaS connection is required to generate code snippets/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Copy curl snippet')).not.toBeInTheDocument();
   });
 
-  it('should switch to Python tab when clicked', () => {
+  it('should show an unavailable state when the database secret is missing', () => {
+    mockViewCodeParameters = { maas_secret_name: 'maas-secret' };
     render(<ViewCodeModal {...defaultProps} />);
-    fireEvent.click(screen.getByText('Python'));
-    expect(screen.getByLabelText('Copy Python snippet')).toBeInTheDocument();
+
+    expect(
+      screen.getByText(/The database connection is unavailable for this historical run/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Copy curl snippet')).not.toBeInTheDocument();
   });
 
-  it('should render copy buttons for each tab', () => {
+  it('should call onClose when the modal is closed', () => {
     render(<ViewCodeModal {...defaultProps} />);
-    expect(screen.getByLabelText('Copy curl snippet')).toBeInTheDocument();
-  });
+    fireEvent.click(screen.getByLabelText('Close'));
 
-  it('should call onClose when modal is closed', () => {
-    render(<ViewCodeModal {...defaultProps} />);
-    const closeButton = screen.getByLabelText('Close');
-    fireEvent.click(closeButton);
     expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
   });
 
-  describe('with credentials', () => {
-    const propsWithCredentials = {
-      ...defaultProps,
-      ogxCredentials: mockLegacyRunCredentials,
-    };
+  it('should fire tracking when a snippet is copied', async () => {
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    render(<ViewCodeModal {...defaultProps} />);
 
-    it('should render the inject credentials toggle', () => {
-      render(<ViewCodeModal {...propsWithCredentials} />);
-      expect(screen.getByTestId('toggle-credentials-button')).toBeInTheDocument();
-      expect(screen.getByText('Inject credentials')).toBeInTheDocument();
-    });
+    fireEvent.click(screen.getByLabelText('Copy curl snippet'));
 
-    it('should not render the toggle button when credentials are not provided', () => {
-      render(<ViewCodeModal {...defaultProps} />);
-      expect(screen.queryByTestId('toggle-credentials-button')).not.toBeInTheDocument();
-    });
-
-    it('should show k8s credential setup by default when credentials are available but toggle is off', () => {
-      render(<ViewCodeModal {...propsWithCredentials} />);
-      const [codeBlock] = screen.getAllByText(/OGX_CLIENT_BASE_URL/);
-      expect(codeBlock.textContent).toContain('oc get secret');
-      expect(codeBlock.textContent).not.toContain('ogx.example.com');
-    });
-
-    it('should inject credentials when the toggle is switched on', () => {
-      render(<ViewCodeModal {...propsWithCredentials} />);
-      fireEvent.click(screen.getByTestId('toggle-credentials-button'));
-      const codeBlock = screen.getByText(/curl -X POST/);
-      expect(codeBlock.textContent).toContain('ogx.example.com');
-      expect(codeBlock.textContent).not.toContain('<HOSTNAME>');
-    });
-
-    it('should show "Copy" copy button when credentials are available but toggle is off', () => {
-      render(<ViewCodeModal {...propsWithCredentials} />);
-      expect(screen.getByLabelText('Copy curl snippet')).toBeInTheDocument();
-    });
-
-    it('should update copy button aria-label to include "with credentials" when toggle is on', () => {
-      render(<ViewCodeModal {...propsWithCredentials} />);
-      fireEvent.click(screen.getByTestId('toggle-credentials-button'));
-      expect(screen.getByLabelText('Copy curl snippet with credentials')).toBeInTheDocument();
-    });
-
-    it('should display copy button when no credentials', () => {
-      render(<ViewCodeModal {...defaultProps} />);
-      expect(screen.getByLabelText('Copy curl snippet')).toBeInTheDocument();
-    });
-
-    it('should explain credentials are fetched from cluster when no credentials', () => {
-      render(<ViewCodeModal {...defaultProps} />);
-      expect(
-        screen.getByText(/fetches your Open GenAI Stack credentials from the cluster/),
-      ).toBeInTheDocument();
-    });
-
-    it('should not show the cluster fetch description when credentials are available', () => {
-      render(<ViewCodeModal {...propsWithCredentials} />);
-      expect(
-        screen.queryByText(/fetches your Open GenAI Stack credentials from the cluster/),
-      ).not.toBeInTheDocument();
-    });
-
-    it('should copy snippet with placeholders when toggle is off', async () => {
-      const writeText = jest.fn().mockResolvedValue(undefined);
-      Object.assign(navigator, { clipboard: { writeText } });
-
-      render(<ViewCodeModal {...propsWithCredentials} />);
-      fireEvent.click(screen.getByLabelText('Copy curl snippet'));
-
-      expect(writeText).toHaveBeenCalledTimes(1);
-      const copiedText = writeText.mock.calls[0][0] as string;
-      expect(copiedText).toContain('oc get secret');
-      expect(copiedText).not.toContain('ogx.example.com');
-    });
-
-    it('should copy snippet with real credentials when toggle is on', async () => {
-      const writeText = jest.fn().mockResolvedValue(undefined);
-      Object.assign(navigator, { clipboard: { writeText } });
-
-      render(<ViewCodeModal {...propsWithCredentials} />);
-      fireEvent.click(screen.getByTestId('toggle-credentials-button'));
-      fireEvent.click(screen.getByLabelText('Copy curl snippet with credentials'));
-
-      expect(writeText).toHaveBeenCalledTimes(1);
-      const copiedText = writeText.mock.calls[0][0] as string;
-      expect(copiedText).toContain('ogx.example.com');
-      expect(copiedText).toContain('sk-test-key-123');
-      expect(copiedText).not.toContain('<HOSTNAME>');
-      expect(copiedText).not.toContain('<API_KEY>');
-    });
-
-    it('should fire AutoRAG Code Snippets Exported with action: copied when the clipboard write succeeds', async () => {
-      const writeText = jest.fn().mockResolvedValue(undefined);
-      Object.assign(navigator, { clipboard: { writeText } });
-
-      render(<ViewCodeModal {...propsWithCredentials} />);
-      fireEvent.click(screen.getByLabelText('Copy curl snippet'));
-
-      await waitFor(() => {
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-          AUTORAG_EVENTS.CODE_SNIPPETS_EXPORTED,
-          { action: 'copied' },
-        );
-      });
-    });
-
-    it('should not fire AutoRAG Code Snippets Exported when the clipboard write is rejected', async () => {
-      const writeText = jest.fn().mockRejectedValue(new Error('denied'));
-      Object.assign(navigator, { clipboard: { writeText } });
-
-      render(<ViewCodeModal {...propsWithCredentials} />);
-      fireEvent.click(screen.getByLabelText('Copy curl snippet'));
-
-      await waitFor(() => {
-        expect(writeText).toHaveBeenCalledTimes(1);
-      });
-      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+    await waitFor(() => {
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
         AUTORAG_EVENTS.CODE_SNIPPETS_EXPORTED,
-        expect.anything(),
+        { action: 'copied' },
       );
-    });
-
-    it('should not show the credentials warning alert when toggle is off', () => {
-      render(<ViewCodeModal {...propsWithCredentials} />);
-      const alert = screen.getByTestId('credentials-warning-alert');
-      expect(alert.closest('[aria-hidden="true"]')).toBeInTheDocument();
-    });
-
-    it('should show the credentials warning alert when toggle is on', () => {
-      render(<ViewCodeModal {...propsWithCredentials} />);
-      fireEvent.click(screen.getByTestId('toggle-credentials-button'));
-      expect(screen.getByTestId('credentials-warning-alert')).toBeInTheDocument();
-    });
-
-    it('should show error notification and fall back to placeholders when credentials have invalid base64', () => {
-      const invalidCredentials = {
-        baseUrl: '%%%invalid-base64%%%',
-        apiKey: btoa('sk-test-key-123'),
-      };
-      render(<ViewCodeModal {...defaultProps} ogxCredentials={invalidCredentials} />);
-
-      expect(mockNotification.error).toHaveBeenCalledWith(
-        'Failed to decode credentials',
-        expect.any(String),
-      );
-      expect(screen.queryByTestId('toggle-credentials-button')).not.toBeInTheDocument();
-      const [codeBlock] = screen.getAllByText(/OGX_CLIENT_BASE_URL/);
-      expect(codeBlock.textContent).toContain('oc get secret');
     });
   });
 });
