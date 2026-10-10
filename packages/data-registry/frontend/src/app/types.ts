@@ -39,13 +39,18 @@ export type SchemaField = {
   nullable?: boolean;
 };
 
-export type DchConnectionRef = {
+type ConnectionDisplay = {
+  name?: string;
+  connectionType?: string;
+};
+
+export type DchConnectionRef = ConnectionDisplay & {
   type: 'dch';
   id: string;
 };
 
-export type RhaiConnectionRef = {
-  type: 'rhai';
+export type RhaiConnectionRef = ConnectionDisplay & {
+  type: 'secret';
   secret_name: string;
 };
 
@@ -181,8 +186,17 @@ export type ErrorResponse = {
   };
 };
 
-export type ConnectionModel = {
-  name: string;
-  displayName?: string;
-  connectionType?: string;
+export type ConnectionModel = ConnectionRef;
+
+export type ConnectionWarning = {
+  code: 'UNRESOLVED_CONNECTION_TYPE' | 'DCH_FALLBACK' | 'RHAI_LOOKUP_FAILED';
+  message: string;
+};
+
+export type ConnectionsResponse = {
+  data: ConnectionRef[];
+  metadata?: {
+    warnings?: ConnectionWarning[];
+    rhaiConnections?: RhaiConnectionRef[];
+  };
 };

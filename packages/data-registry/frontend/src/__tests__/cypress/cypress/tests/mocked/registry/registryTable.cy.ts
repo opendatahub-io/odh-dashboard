@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { mockModArchResponse } from 'mod-arch-core';
+import { mockRhaiConnection } from '~/__mocks__/mockConnection';
 import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 
@@ -7,9 +8,17 @@ const REGISTRY_API = '/data-registry/api/v1';
 const MAIN_API = '/data-registry/api/v1';
 
 const mockConnectionsResponse = [
-  { name: 'my-s3-connection', displayName: 'My S3 Connection', connectionType: 's3' },
-  { name: 'my-uri-connection', displayName: 'My URI Connection', connectionType: 'uri' },
-  { name: 'db-connection', displayName: 'Database Connection', connectionType: 'postgresql' },
+  mockRhaiConnection(),
+  mockRhaiConnection({
+    secret_name: 'my-uri-connection',
+    name: 'My URI Connection',
+    connectionType: 'uri',
+  }),
+  mockRhaiConnection({
+    secret_name: 'db-connection',
+    name: 'Database Connection',
+    connectionType: 'postgresql',
+  }),
 ];
 
 const mockCollectionsResponse = {
@@ -929,7 +938,7 @@ describe('Connection Selector', () => {
         name: 'connected-volume',
         format: 'other',
         connection_ref: {
-          type: 'rhai',
+          type: 'secret',
           secret_name: 'my-s3-connection',
         },
       });
@@ -946,7 +955,7 @@ describe('Connection Selector', () => {
         format: 'iceberg',
         storage_location: null,
         collection: 'analytics',
-        connection_ref: { type: 'rhai', secret_name: 'my-uri-connection' },
+        connection_ref: { type: 'secret', secret_name: 'my-uri-connection' },
         owner: 'user1',
         created_at: '2026-01-01',
         updated_at: '2026-01-02',
@@ -975,7 +984,7 @@ describe('Connection Selector', () => {
         name: 'connected-table',
         format: 'iceberg',
         connection_ref: {
-          type: 'rhai',
+          type: 'secret',
           secret_name: 'my-uri-connection',
         },
       });

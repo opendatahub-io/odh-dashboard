@@ -1,7 +1,11 @@
+# Vendored from the Data Registry backend's API contract.
+# Source: https://gitlab.cee.redhat.com/data-strategy/data-registry-production/-/blob/main/api-contract/data-registry-api.yaml
+# This file is manually synced — re-fetch from the source above when the backend contract changes.
+# Do not hand-edit paths/schemas here without updating the upstream source of truth first (RHAI-415).
 openapi: 3.1.0
 info:
   title: RHOAI Data Registry API
-  version: 0.8.2
+  version: 0.9.0
   description: |
     The RHOAI Data Registry exposes an **Iceberg REST-compatible API** for
     registering, discovering, and managing data assets across OpenShift AI projects.
@@ -1104,6 +1108,11 @@ components:
 
     ConnectionRef:
       type: object
+      description: |
+        Stable connection reference. Asset writes persist only type and id (DCH), or
+        type and secret_name (RHOAI). Servers must discard response-only name and
+        connectionType fields supplied by clients. Display fields are resolved by
+        the Dashboard connection-list endpoint and are not stored with assets.
       discriminator:
         propertyName: type
       oneOf:
@@ -1121,6 +1130,14 @@ components:
           type: string
           format: uuid
           description: The UUID of the DCH DataConnection
+        name:
+          type: string
+          readOnly: true
+          description: Current display name, resolved at lookup time; never persisted with assets.
+        connectionType:
+          type: string
+          readOnly: true
+          description: Connector provider label, such as s3 or postgres; never persisted with assets.
 
     RhaiConnectionRef:
       type: object
@@ -1128,10 +1145,18 @@ components:
       properties:
         type:
           type: string
-          enum: [rhai]
+          enum: [secret]
         secret_name:
           type: string
           description: The name of the RHAI Connection Secret
+        name:
+          type: string
+          readOnly: true
+          description: Current display name, resolved at lookup time; never persisted with assets.
+        connectionType:
+          type: string
+          readOnly: true
+          description: Connector provider label, such as s3 or postgres; never persisted with assets.
 
     # ----- Error Schemas -----
 
@@ -1503,7 +1528,8 @@ components:
         Request model for registering an asset. Storage references are optional: metadata-only
         assets are valid, and an asset may use `connection_ref` instead of `storage_location`.
         The owner is assigned by the server from the authenticated creator identity and must
-        not be included in the request.
+        not be included in the request. The collection is supplied by the required path
+        parameter and is not part of the request body.
       type: object
       required: [name, format]
       properties:
@@ -1521,9 +1547,10 @@ components:
             - type: 'null'
           description: Optional connection reference. Metadata-only assets may omit both storage references.
         description:
-          type: string
+          type: ['string', 'null']
+          description: Optional description. A null value leaves the asset without a description.
         purpose:
-          type: string
+          type: ['string', 'null']
           description: Intended use of the data. Round-trips as `properties.purpose`.
         license:
           anyOf:
@@ -1536,7 +1563,7 @@ components:
             - type: 'null'
           description: "Lifecycle stage (e.g. experimental, staging, production, deprecated). Round-trips as `properties.maturity`."
         domain:
-          type: string
+          type: ['string', 'null']
           description: Business domain. Round-trips as `properties.domain`.
         pii:
           anyOf:
@@ -1571,6 +1598,11 @@ components:
       description: |
         Partial update for an asset. Only provided fields are updated. The owner is immutable,
         assigned at creation from the authenticated creator identity, and cannot be updated.
+        The collection is part of the resource path and cannot be changed by these operations.
+        The asset name, format, and server-managed identity fields cannot be cleared. Send null
+        to clear a nullable field. Use `remove_labels` to remove labels and `remove_properties`
+        to remove custom property keys. If a property key is present in both `properties` and
+        `remove_properties`, removal takes precedence.
       properties:
         format:
           type: string
@@ -1582,9 +1614,13 @@ components:
           anyOf:
             - $ref: '#/components/schemas/ConnectionRef'
             - type: 'null'
-          description: Optional connection reference. A null value clears it; metadata-only assets may omit it.
+          description: |
+            Optional connection reference. A valid reference replaces the association; omission
+            preserves the existing association. A null value clears it. Only the stable reference
+            fields are persisted; response-only display fields are discarded.
         description:
-          type: string
+          type: ['string', 'null']
+          description: Asset description. A null value clears it.
         purpose:
           type: ['string', 'null']
           description: Intended use of the data. Updates `properties.purpose` when supplied. Null clears.
@@ -1702,7 +1738,7 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/SchemaField'
-              description: Replaces the entire schema. Omit to leave schema unchanged.
+              description: Replaces the entire schema. Omit to leave schema unchanged; provide an empty array to remove all schema fields.
 
     AssetResponseBase:
       type: object

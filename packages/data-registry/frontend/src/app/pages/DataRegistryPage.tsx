@@ -11,6 +11,7 @@ import {
   Flex,
   FlexItem,
   Content,
+  Alert,
 } from '@patternfly/react-core';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useNamespaceSelector, type UseNamespaceSelectorArgs } from 'mod-arch-core';
@@ -20,8 +21,8 @@ import NewProjectButton from '~/app/components/NewProjectButton';
 import './DataRegistryPage.scss';
 import { useCollections } from '~/app/hooks/useCollections';
 import { useAssets } from '~/app/hooks/useAssets';
-import { useLabels } from '~/app/hooks/useLabels';
 import { useConnections } from '~/app/hooks/useConnections';
+import { useLabels } from '~/app/hooks/useLabels';
 import { is503Error, is403Error, isConnectionError } from '~/app/api/dataRegistry';
 import { hasDataRegistryWriteAccess } from '~/app/utilities/access';
 import RegistryTable from '~/app/components/RegistryTable';
@@ -31,6 +32,7 @@ import RegisterDataModal from '~/app/components/RegisterDataModal';
 import ServiceUnavailableError from '~/app/components/errors/ServiceUnavailableError';
 import AccessDeniedError from '~/app/components/errors/AccessDeniedError';
 import ConnectionError from '~/app/components/errors/ConnectionError';
+import { shouldDisplayConnectionWarning } from '~/app/utilities/connectionUtils';
 import noProjectsImage from '~/images/RHOAI-Registerdata-Noprojects-RGB.png';
 
 // TODO: Replace with isAvailableProject from @odh-dashboard/k8s-core when BFF returns filtered projects
@@ -176,13 +178,32 @@ const DataRegistryPage: React.FC = () => {
 
   const [assets, assetsLoaded, assetsError, assetsRefresh, collectionNames] =
     useAssets(selectedProject);
+  const [
+    connections,
+    connectionsLoaded,
+    connectionsError,
+    ,
+    connectionWarnings,
+    fetchedConnectionDisplayData,
+  ] = useConnections(selectedProject);
+  const connectionDisplayData = fetchedConnectionDisplayData ?? connections;
+  const hasExistingDchConnectionReferences =
+    assetsLoaded && assets.some((asset) => asset.rawAsset?.connection_ref?.type === 'dch');
+  const hasExistingRhaiConnectionReferences =
+    assetsLoaded && assets.some((asset) => asset.rawAsset?.connection_ref?.type === 'secret');
+  const visibleConnectionWarnings = connectionWarnings.filter((warning) =>
+    shouldDisplayConnectionWarning(
+      warning,
+      hasExistingDchConnectionReferences,
+      hasExistingRhaiConnectionReferences,
+    ),
+  );
   const [, collectionsLoaded, collectionsError, collectionsRefresh] = useCollections(
     selectedProject,
     assets,
     collectionNames,
   );
   const [labels, , , labelsRefresh] = useLabels(selectedProject);
-  const [connections] = useConnections(selectedProject);
 
   const hasWriteAccess = hasDataRegistryWriteAccess(assetsError, collectionsError);
 
@@ -341,13 +362,35 @@ const DataRegistryPage: React.FC = () => {
         </PageSection>
       ) : (
         <>
+          {connectionsError ? (
+            <PageSection hasBodyWrapper={false}>
+              <Alert
+                variant="warning"
+                isInline
+                title="Unable to load connections"
+                data-testid="connections-error"
+              >
+                {connectionsError.message}
+              </Alert>
+            </PageSection>
+          ) : null}
+          {visibleConnectionWarnings.length > 0 ? (
+            <PageSection hasBodyWrapper={false}>
+              {visibleConnectionWarnings.map((warning) => (
+                <Alert key={warning.code} variant="warning" isInline title={warning.message} />
+              ))}
+            </PageSection>
+          ) : null}
           <RegistryTable
             assets={assets}
             loaded={assetsLoaded && collectionsLoaded}
             error={assetsError ?? collectionsError}
             labels={labels}
-            project={selectedProject}
             connections={connections}
+            connectionDisplayData={connectionDisplayData}
+            connectionsLoaded={connectionsLoaded}
+            connectionsError={connectionsError}
+            project={selectedProject}
             onManageCollections={(onReturnToEdit) => {
               setReturnToRegisterData(false);
               if (!collectionsError) {
@@ -384,10 +427,13 @@ const DataRegistryPage: React.FC = () => {
             onRefresh={handleRefresh}
           />
           <RegisterDataModal
+            key={selectedProject}
             isOpen={isRegisterModalOpen}
             onClose={() => setIsRegisterModalOpen(false)}
             project={selectedProject}
             collections={collectionNames}
+            hasExistingDchConnectionReferences={hasExistingDchConnectionReferences}
+            hasExistingRhaiConnectionReferences={hasExistingRhaiConnectionReferences}
             onCreated={handleRefresh}
             onManageCollections={() => {
               setIsRegisterModalOpen(false);

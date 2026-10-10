@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { mockModArchResponse } from 'mod-arch-core';
+import { mockRhaiConnection } from '~/__mocks__/mockConnection';
 import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
@@ -18,9 +19,7 @@ const initIntercepts = () => {
     body: mockModArchResponse([mockNamespace({ name: 'test-project' })]),
   });
   cy.intercept('GET', `${MAIN_API}/connections/test-project`, {
-    body: mockModArchResponse([
-      { name: 'my-s3-connection', displayName: 'My S3 Connection', connectionType: 's3' },
-    ]),
+    body: mockModArchResponse([mockRhaiConnection()]),
   });
 };
 
@@ -31,7 +30,7 @@ describe('Edit Table Asset', () => {
     format: 'parquet',
     storage_location: 's3://bucket/claims',
     collection: 'analytics',
-    connection_ref: { type: 'rhai', secret_name: 'my-s3-connection' },
+    connection_ref: { type: 'secret', secret_name: 'my-s3-connection' },
     labels: ['production', 'claims'],
     properties: {
       purpose: 'fraud detection',

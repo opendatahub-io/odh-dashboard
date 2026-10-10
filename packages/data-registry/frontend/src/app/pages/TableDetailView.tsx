@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import React from 'react';
 import {
+  Alert,
   Card,
   CardBody,
   CardTitle,
@@ -20,10 +21,11 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
-import { AssetResponse, ConnectionModel } from '~/app/types';
+import { AssetResponse, ConnectionModel, ConnectionWarning } from '~/app/types';
 import SchemaColumnsTable from '~/app/components/SchemaColumnsTable';
 import ConnectionRefLink from '~/app/components/ConnectionRefLink';
-import { collectionDetailUrl, projectConnectionsUrl } from '~/app/utilities/routes';
+import { collectionDetailUrl, projectConnectionUrl } from '~/app/utilities/routes';
+import { getConnectionKey } from '~/app/utilities/connectionUtils';
 import {
   getFormatBadge,
   getUnstructuredFormatLabel,
@@ -34,6 +36,9 @@ type TableDetailViewProps = {
   asset: AssetResponse;
   project?: string;
   connections?: ConnectionModel[];
+  connectionsLoaded?: boolean;
+  connectionsError?: Error;
+  connectionWarnings?: ConnectionWarning[];
 };
 
 const WELL_KNOWN_PROPERTY_LABELS: Record<string, string> = {
@@ -64,7 +69,14 @@ const getOrderedProperties = (properties: Record<string, string>) => {
   return [...wellKnownProperties, ...customProperties];
 };
 
-const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project, connections = [] }) => {
+const TableDetailView: React.FC<TableDetailViewProps> = ({
+  asset,
+  project,
+  connections = [],
+  connectionsLoaded = false,
+  connectionsError,
+  connectionWarnings = [],
+}) => {
   const isUnstructured = asset.asset_type === 'volume';
   const formatBadge = getFormatBadge(asset.format);
   const assetTypeLabel = isUnstructured ? 'Unstructured' : 'Structured';
@@ -74,13 +86,10 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project, conne
         (option) => option.value === asset.format && option.assetType === asset.asset_type,
       )?.label || asset.format;
   const orderedProperties = asset.properties ? getOrderedProperties(asset.properties) : [];
-  const connectionName = asset.connection_ref
-    ? asset.connection_ref.type === 'rhai'
-      ? asset.connection_ref.secret_name
-      : asset.connection_ref.id
-    : undefined;
   const connectionType = connections.find(
-    (connection) => connection.name === connectionName,
+    (connection) =>
+      !!asset.connection_ref &&
+      getConnectionKey(connection) === getConnectionKey(asset.connection_ref),
   )?.connectionType;
 
   const renderTimestamp = (timestamp: string | null | undefined) => {
@@ -197,13 +206,32 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project, conne
                       <ConnectionRefLink
                         connectionRef={asset.connection_ref}
                         connections={connections}
-                        linkTo={project ? projectConnectionsUrl(project) : undefined}
+                        connectionsLoaded={connectionsLoaded}
+                        connectionsError={connectionsError}
+                        linkTo={
+                          project
+                            ? (connectionRef) => projectConnectionUrl(project, connectionRef)
+                            : undefined
+                        }
                       />
                       {connectionType ? (
                         <Content component="small" data-testid="connection-type">
                           {connectionType}
                         </Content>
                       ) : null}
+                      {connectionsError ? (
+                        <Alert isInline variant="warning" title="Unable to load connection details">
+                          {connectionsError.message}
+                        </Alert>
+                      ) : null}
+                      {connectionWarnings.map((warning) => (
+                        <Alert
+                          key={warning.code}
+                          isInline
+                          variant="warning"
+                          title={warning.message}
+                        />
+                      ))}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
