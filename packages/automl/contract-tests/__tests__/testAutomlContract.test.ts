@@ -84,16 +84,13 @@ describe('AutoML API Contract Tests', () => {
   });
 
   describe('Health Check Endpoint', () => {
-    it.each(['/healthcheck', '/api/v1/healthcheck', '/automl/api/v1/healthcheck'])(
-      'should return health status for %s',
-      async (path) => {
-        const result = await apiClient.get(path);
-        expect(result.success).toBe(true);
-        if (result.success) {
-          expect(result.response.status).toBe(200);
-        }
-      },
-    );
+    it('should return health status', async () => {
+      const result = await apiClient.get('/healthcheck');
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.response.status).toBe(200);
+      }
+    });
   });
 
   describe('User Endpoint', () => {

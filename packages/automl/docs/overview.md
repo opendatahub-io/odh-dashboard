@@ -53,7 +53,7 @@ AutoML GA does not migrate or rewrite existing AutoML configurations or AutoGluo
 - Kubeflow mode uses Material UI, not PatternFly v6 — guard PF imports if you share code across modes.
 - Without a live Kubeflow Pipelines endpoint, enable the HTTP client mock or the BFF may fail at startup when mocks are off.
 - Docker deployment is not documented here; use the package `Makefile` targets for local workflows.
-- The BFF exposes `/healthcheck` for probes and API-prefixed health check aliases for dashboard and federated clients.
+- The BFF exposes `/healthcheck` for probes; contract tests expect it on that path.
 
 ## Time Series Dataset Guidance
 

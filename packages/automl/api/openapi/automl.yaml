@@ -25,32 +25,6 @@ paths:
       operationId: healthcheck
       summary: HealthCheck
       description: HealthCheck endpoint.
-  /api/v1/healthcheck:
-    summary: API-prefixed health check used behind the dashboard module proxy.
-    get:
-      tags:
-        - K8SOperation
-      responses:
-        "200":
-          description: "Ok"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-      operationId: apiHealthcheck
-      summary: HealthCheck through the module API proxy
-      description: Health check path after the dashboard proxy rewrites /automl/api to /api.
-  /automl/api/v1/healthcheck:
-    summary: API-prefixed health check for direct federated clients.
-    get:
-      tags:
-        - K8SOperation
-      responses:
-        "200":
-          description: "Ok"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-      operationId: federatedApiHealthcheck
-      summary: HealthCheck through the AutoML API prefix
-      description: Health check path used by direct federated clients.
   /api/v1/user:
     summary: Path used to retrieve a user associated with the token.
     description: >-
