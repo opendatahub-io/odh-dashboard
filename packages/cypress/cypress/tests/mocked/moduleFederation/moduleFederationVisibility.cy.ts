@@ -5,6 +5,8 @@ import {
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { pageNotfound } from '../../../pages/pageNotFound';
+import { homePage } from '../../../pages/home/home';
+import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
 import { navSidebar } from '../navSidebar/navSidebar';
 
 const initIntercepts = (
@@ -39,6 +41,31 @@ describe('Module federation visibility', () => {
         .should('exist');
       cy.visitWithLogin('/gen-ai-studio');
       pageNotfound.findPage().should('not.exist');
+    });
+
+    it('should show AutoRAG navigation and task shortcuts without preview labels', () => {
+      initIntercepts(
+        { autorag: true, genAiStudio: true },
+        { [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' } },
+      );
+
+      navSidebar.visit();
+      navSidebar
+        .findNavItem({ name: 'AutoRAG', rootSection: 'Gen AI studio' })
+        .should('exist')
+        .and('not.contain.text', /Tech Preview|Technology Preview|Dev Preview/i);
+
+      homePage.visit();
+      homePage
+        .findTaskShortcut('genai-autorag')
+        .should('be.visible')
+        .and('not.contain.text', /Tech Preview|Technology Preview|Dev Preview/i);
+
+      autoragConfigurePage.visit('test-project');
+      autoragConfigurePage.findPageTitle().should('exist');
+      autoragConfigurePage
+        .findPageBody()
+        .should('not.contain.text', /Tech Preview|Technology Preview|Dev Preview/i);
     });
 
     it('should show Feature store section and render route when flag and DSC are enabled', () => {
@@ -76,6 +103,27 @@ describe('Module federation visibility', () => {
       navSidebar.findNavSection('Gen AI studio').should('not.exist');
       cy.visitWithLogin('/gen-ai-studio');
       pageNotfound.findPage().should('exist');
+    });
+
+    it('should hide AutoRAG nav and show 404 on route when flag is disabled', () => {
+      // The MF host loads remoteEntry.js and extensions for every remote regardless of feature
+      // flags — flag filtering happens after load — so only the module's API requests are
+      // meaningful to assert on here.
+      cy.intercept({ pathname: '/autorag/api/**' }, { statusCode: 404 }).as('autoragApiRequests');
+      initIntercepts(
+        { autorag: false, genAiStudio: true },
+        { [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' } },
+      );
+
+      navSidebar.visit();
+      navSidebar.findNavItem({ name: 'AutoRAG', rootSection: 'Gen AI studio' }).should('not.exist');
+      // AutoRAG's route sits under the Gen AI studio catch-all (/gen-ai-studio/*) owned by the
+      // gen-ai remote — with the AutoRAG route filtered out, the URL falls through to gen-ai's
+      // own not-found page rather than the host's, so assert on the AutoRAG page not rendering.
+      cy.visitWithLogin('/gen-ai-studio/autorag/configure/test-project');
+      autoragConfigurePage.findPageTitle().should('not.exist');
+      autoragConfigurePage.findPageBody().should('contain.text', '404 Page not found');
+      cy.get('@autoragApiRequests.all').should('have.length', 0);
     });
 
     it('should hide Feature store section and show 404 on route when flag is disabled', () => {

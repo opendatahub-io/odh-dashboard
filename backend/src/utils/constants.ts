@@ -88,7 +88,7 @@ export const blankDashboardCR: DashboardConfig = {
       genAiTracing: false,
       guardrails: false,
       automl: false,
-      autorag: false,
+      autorag: true,
       modelAsService: true,
       aiAssetCustomEndpoints: false,
       disableFineTuning: true,

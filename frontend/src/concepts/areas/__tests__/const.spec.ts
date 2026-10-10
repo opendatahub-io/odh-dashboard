@@ -1,5 +1,10 @@
 import { SupportedArea, type SupportedAreaType } from '@odh-dashboard/plugin-core/areas';
-import { SupportedAreasStateMap } from '#~/concepts/areas/const';
+import {
+  advancedAIMLFlags,
+  techPreviewFlags,
+  definedFeatureFlags,
+  SupportedAreasStateMap,
+} from '#~/concepts/areas/const';
 
 describe('Verify const stability', () => {
   const computeTestFunc = (map: Partial<typeof SupportedAreasStateMap>) => {
@@ -50,5 +55,11 @@ describe('Verify const stability', () => {
         ),
     );
     expect(list.length > 0).toBe(true);
+  });
+
+  it('classifies AutoRAG as generally available and enables it by default', () => {
+    expect(advancedAIMLFlags.autorag).toBe(true);
+    expect(techPreviewFlags).not.toHaveProperty('autorag');
+    expect(definedFeatureFlags).toContain('autorag');
   });
 });
