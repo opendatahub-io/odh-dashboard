@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import RegistryTable from '~/app/components/RegistryTable';
 import { RegistryAsset } from '~/app/hooks/useAssets';
 import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
+import { mockRhaiConnection } from '~/__mocks__/mockConnection';
 
 const mockAssets: RegistryAsset[] = [
   {
@@ -47,12 +48,13 @@ const renderTable = (props?: Partial<React.ComponentProps<typeof RegistryTable>>
         labels={mockLabels}
         project="test-project"
         connections={[
-          {
-            name: 'minio-connection',
-            displayName: 'Minio connection',
+          mockRhaiConnection({
+            secret_name: 'minio-connection',
+            name: 'Minio connection',
             connectionType: 's3',
-          },
+          }),
         ]}
+        connectionsLoaded
         onManageCollections={jest.fn()}
         onManageLabels={jest.fn()}
         onRegisterData={jest.fn()}
@@ -90,12 +92,13 @@ describe('RegistryTable', () => {
     expect(screen.getByTestId('connection-type')).toHaveTextContent('s3');
   });
 
-  it('should fall back to the connection name when display name is unavailable', () => {
+  it('should show unavailable when the connection has no display name', () => {
     renderTable({
-      connections: [{ name: 'minio-connection', connectionType: 's3' }],
+      connections: [mockRhaiConnection({ secret_name: 'minio-connection', name: undefined })],
     });
 
-    expect(screen.getByRole('link', { name: 'minio-connection' })).toBeInTheDocument();
+    expect(screen.getByTestId('connection-ref-label')).toHaveTextContent('Connection unavailable');
+    expect(screen.queryByRole('link', { name: 'Connection unavailable' })).not.toBeInTheDocument();
   });
 
   it('should keep a location-only asset location as plain text', () => {

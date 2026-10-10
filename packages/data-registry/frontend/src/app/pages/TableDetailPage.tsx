@@ -33,6 +33,7 @@ import { useLabels } from '~/app/hooks/useLabels';
 import { deleteGenericTable, deleteVolume } from '~/app/api/dataRegistry';
 import { hasDataRegistryWriteAccess } from '~/app/utilities/access';
 import { browseUrl } from '~/app/utilities/routes';
+import { getAssetDetailConnectionWarnings } from '~/app/utilities/connectionUtils';
 import { useNotification } from '~/app/hooks/useNotification';
 import DeleteAssetModal from '~/app/components/DeleteAssetModal';
 import EditAssetModal from '~/app/components/EditAssetModal';
@@ -63,8 +64,11 @@ const TableDetailPage: React.FC = () => {
     isVolume ? collection : undefined,
     isVolume ? name : undefined,
   );
-  const [connections] = useConnections(project || '');
-  const [assets, , assetsError, assetsRefresh, collectionNames] = useAssets(project || '');
+  const [assets, assetsLoaded, assetsError, assetsRefresh, collectionNames] = useAssets(
+    project || '',
+  );
+  const hasExistingDchConnectionReferences =
+    assetsLoaded && assets.some((assetItem) => assetItem.rawAsset?.connection_ref?.type === 'dch');
   const [, , collectionsError] = useCollections(project || '', assets, collectionNames);
   const [labels, , , labelsRefresh] = useLabels(project || '');
   const hasWriteAccess = hasDataRegistryWriteAccess(assetsError, collectionsError);
@@ -72,6 +76,20 @@ const TableDetailPage: React.FC = () => {
   const asset = React.useMemo(
     () => (isVolume ? volume : genericTable),
     [isVolume, volume, genericTable],
+  );
+
+  const [
+    connections,
+    connectionsLoaded,
+    connectionsError,
+    ,
+    connectionWarnings,
+    fetchedConnectionDisplayData,
+  ] = useConnections(project ?? '', !!asset?.connection_ref);
+  const connectionDisplayData = fetchedConnectionDisplayData ?? connections;
+  const visibleConnectionWarnings = getAssetDetailConnectionWarnings(
+    connectionWarnings,
+    asset?.connection_ref,
   );
 
   const loaded = isVolume ? volumeLoaded : genericLoaded;
@@ -179,6 +197,7 @@ const TableDetailPage: React.FC = () => {
           project={project}
           collection={collection}
           name={name}
+          hasExistingDchConnectionReferences={hasExistingDchConnectionReferences}
           onClose={closeEditModal}
           onSaved={handleSaved}
           onManageCollections={openCollectionsFromEdit}
@@ -194,6 +213,7 @@ const TableDetailPage: React.FC = () => {
           project={project}
           collection={collection}
           name={name}
+          hasExistingDchConnectionReferences={hasExistingDchConnectionReferences}
           onClose={closeEditModal}
           onSaved={handleSaved}
           onManageCollections={openCollectionsFromEdit}
@@ -329,7 +349,14 @@ const TableDetailPage: React.FC = () => {
         <Tab eventKey={0} title={<TabTitleText>Overview</TabTitleText>}>
           <TabContent id="overview-tab">
             {asset ? (
-              <TableDetailView asset={asset} project={project} connections={connections} />
+              <TableDetailView
+                asset={asset}
+                project={project}
+                connections={connectionDisplayData}
+                connectionsLoaded={connectionsLoaded}
+                connectionsError={connectionsError}
+                connectionWarnings={visibleConnectionWarnings}
+              />
             ) : null}
           </TabContent>
         </Tab>
