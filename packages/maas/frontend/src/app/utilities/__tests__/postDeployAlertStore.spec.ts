@@ -8,7 +8,7 @@ import {
   syncPostDeployAlertPath,
   useHasPostDeployAlert,
   usePostDeployAlert,
-} from '../postDeployAlertStore';
+} from '~/app/utilities/postDeployAlertStore';
 
 describe('postDeployAlertStore', () => {
   beforeEach(() => {
