@@ -29,7 +29,6 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       href: '/develop-train/automl',
       section: 'develop-and-train',
       path: '/develop-train/automl/*',
-      label: 'Tech Preview',
     },
   },
   {

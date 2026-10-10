@@ -28,6 +28,9 @@ describe('Module federation visibility', () => {
       navSidebar.findNavItem({ name: 'AutoML', rootSection: 'Develop & train' }).should('exist');
       cy.visitWithLogin('/develop-train/automl');
       pageNotfound.findPage().should('not.exist');
+      cy.get('body')
+        .invoke('text')
+        .should('not.match', /Tech Preview|Technology Preview|Dev Preview/i);
     });
 
     it('should show Gen AI studio section and render route when flag is enabled', () => {
@@ -61,6 +64,10 @@ describe('Module federation visibility', () => {
 
   describe('Module absent — nav hidden and route shows not-found', () => {
     it('should hide AutoML nav and show 404 on route when flag is disabled', () => {
+      // The MF host loads remoteEntry.js and extensions for every remote regardless of feature
+      // flags — flag filtering happens after load — so only the module's API requests are
+      // meaningful to assert on here.
+      cy.intercept({ pathname: '/automl/api/**' }, { statusCode: 404 }).as('automlApiRequests');
       initIntercepts({ automl: false });
       navSidebar.visit();
       navSidebar
@@ -68,6 +75,7 @@ describe('Module federation visibility', () => {
         .should('not.exist');
       cy.visitWithLogin('/develop-train/automl');
       pageNotfound.findPage().should('exist');
+      cy.get('@automlApiRequests.all').should('have.length', 0);
     });
 
     it('should hide Gen AI studio section and show 404 on route when flag is disabled', () => {
