@@ -2078,7 +2078,9 @@ paths:
           description: >-
             Same-origin path (with its own query string) of the responses endpoint,
             URL-encoded once. Must start with a single '/'; absolute and
-            protocol-relative URLs are rejected. The host is always taken from the
+            protocol-relative URLs are rejected, as are dot segments, backslashes,
+            and control characters. Only paths under the allowed relay prefixes
+            (currently /autorag/) are accepted. The host is always taken from the
             configured gateway domain, never from this parameter.
           schema:
             type: string
@@ -2123,6 +2125,12 @@ paths:
                     error:
                       code: '400'
                       message: 'target must be a same-origin path, not an absolute URL'
+                disallowed_destination:
+                  summary: Target path is outside the allowed relay prefixes
+                  value:
+                    error:
+                      code: '400'
+                      message: 'target path is not an allowed relay destination'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '413':

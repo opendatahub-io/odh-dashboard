@@ -124,7 +124,9 @@ describe('VectorDbConnectionModal', () => {
     expect(screen.getByText('Username')).toBeInTheDocument();
     expect(screen.getByText('Password')).toBeInTheDocument();
     expect(
-      screen.getByText('Hostname or IP address of the PostgreSQL server.'),
+      screen.getByText(
+        'DNS hostname of the PostgreSQL server. Literal IP addresses are not supported.',
+      ),
     ).toBeInTheDocument();
   });
 

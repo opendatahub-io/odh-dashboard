@@ -323,7 +323,8 @@ const VectorDbConnectionModal: React.FC<Props> = ({
                     <FormHelperText>
                       <HelperText>
                         <HelperTextItem>
-                          Hostname or IP address of the PostgreSQL server.
+                          DNS hostname of the PostgreSQL server. Literal IP addresses
+                          are not supported.
                         </HelperTextItem>
                       </HelperText>
                     </FormHelperText>
