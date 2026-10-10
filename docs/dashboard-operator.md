@@ -211,7 +211,8 @@ When `spec.observability` is unset, the controller looks for `data-science-perse
 
 During an existing reconciliation, the operator also samples the optional,
 installer-owned `community-plugins-config` ConfigMap from
-`ApplicationsNamespace`. Accepted entries are merged into the generated
+`redhat-ods-community-plugins`. A missing source Namespace or ConfigMap is
+ignored. Accepted entries are merged into the generated
 `federation-config`; Dashboard derives their public proxy paths under
 `/community-plugins/<remote-name>/` and uses the same hash-based rollout.
 

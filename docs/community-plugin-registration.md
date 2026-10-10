@@ -9,7 +9,7 @@ not a general plugin platform or a Dashboard-managed plugin lifecycle.
 The operator reads one fixed, installer-owned ConfigMap:
 
 ```text
-community-plugins-config in ApplicationsNamespace
+community-plugins-config in redhat-ods-community-plugins
 ```
 
 Dashboard does not discover other ConfigMaps or sources, select a source at
@@ -36,7 +36,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: community-plugins-config
-  namespace: <applications-namespace>
+  namespace: redhat-ods-community-plugins
 data:
   communityPluginsAdmin: |
     {
@@ -108,9 +108,11 @@ releases.
 ## Reconciliation and Rollout
 
 The operator samples the source ConfigMap during an otherwise-triggered
-Dashboard reconciliation. It does not watch the ConfigMap. CAI must cause an
-existing reconciliation trigger after creating, changing, or deleting the
-source; the normal integration mechanism is a main Dashboard Deployment event.
+Dashboard reconciliation. It does not watch the ConfigMap. A missing
+`redhat-ods-community-plugins` Namespace or source ConfigMap produces no
+community entries and does not fail reconciliation. CAI must cause an existing
+reconciliation trigger after creating, changing, or deleting the source; the
+normal integration mechanism is a main Dashboard Deployment event.
 
 Accepted entries are sorted with built-in entries before the generated
 `federation-config` is written. This makes the effective configuration and its

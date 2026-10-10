@@ -362,7 +362,7 @@ func (r *DashboardReconciler) buildFederationConfigMap(
 ) (*corev1.ConfigMap, error) {
 	entries := r.dashboardFederationEntries(statuses, dashboard)
 
-	communityEntries, err := communityFederationEntries(ctx, r.Client, r.ApplicationsNamespace, entries)
+	communityEntries, err := communityFederationEntries(ctx, r.Client, entries)
 	if err != nil {
 		return nil, fmt.Errorf("reading community plugin federation entries: %w", err)
 	}

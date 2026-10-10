@@ -362,7 +362,7 @@ func TestBuildFederationConfigMap_NamespaceValues(t *testing.T) {
 	require.True(t, seen["coreBff"], "coreBff entry must be present")
 }
 
-func TestBuildFederationConfigMap_CommunityPluginsAbsentOrEmptyPreservesExistingOutput(t *testing.T) {
+func TestBuildFederationConfigMap_CommunityPluginsNamespaceOrConfigMapAbsentPreservesExistingOutput(t *testing.T) {
 	s := testScheme(t)
 	statuses := allDeployedStatuses()
 	dashboard := &v1alpha1.Dashboard{}
@@ -376,26 +376,24 @@ func TestBuildFederationConfigMap_CommunityPluginsAbsentOrEmptyPreservesExisting
 	baseline, err := ctrlpkg.BuildFederationConfigMap(withoutSource, statuses, dashboard)
 	require.NoError(t, err)
 
-	emptySource := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{Name: "community-plugins-config", Namespace: testNamespace},
-	}
-	withEmptySource := &ctrlpkg.DashboardReconciler{
-		Client:                fake.NewClientBuilder().WithScheme(s).WithObjects(emptySource).Build(),
+	communityNamespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ctrlpkg.CommunityPluginsNamespace}}
+	withNamespaceWithoutSource := &ctrlpkg.DashboardReconciler{
+		Client:                fake.NewClientBuilder().WithScheme(s).WithObjects(communityNamespace).Build(),
 		Scheme:                s,
 		Platform:              cluster.OpenDataHub,
 		ApplicationsNamespace: testNamespace,
 	}
-	empty, err := ctrlpkg.BuildFederationConfigMap(withEmptySource, statuses, dashboard)
+	withoutConfigMap, err := ctrlpkg.BuildFederationConfigMap(withNamespaceWithoutSource, statuses, dashboard)
 	require.NoError(t, err)
 
-	assert.Equal(t, baseline.Data["module-federation-config.json"], empty.Data["module-federation-config.json"])
+	assert.Equal(t, baseline.Data["module-federation-config.json"], withoutConfigMap.Data["module-federation-config.json"])
 }
 
 func TestBuildFederationConfigMap_MergesCommunityPluginWithDashboardEntries(t *testing.T) {
 	s := testScheme(t)
 	statuses := allDeployedStatuses()
 	communitySource := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{Name: "community-plugins-config", Namespace: testNamespace},
+		ObjectMeta: metav1.ObjectMeta{Name: "community-plugins-config", Namespace: ctrlpkg.CommunityPluginsNamespace},
 		Data: map[string]string{
 			"analyticsPlugin": `{
   "backend": {
@@ -420,7 +418,8 @@ func TestBuildFederationConfigMap_MergesCommunityPluginWithDashboardEntries(t *t
 }`,
 		},
 	}
-	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(communitySource).Build()
+	communityNamespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ctrlpkg.CommunityPluginsNamespace}}
+	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(communityNamespace, communitySource).Build()
 	r := &ctrlpkg.DashboardReconciler{
 		Client:                cli,
 		Scheme:                s,
@@ -482,7 +481,7 @@ func TestBuildFederationConfigMap_MergesCommunityPluginWithDashboardEntries(t *t
 func TestBuildFederationConfigMap_RejectsInvalidCommunityPlugins(t *testing.T) {
 	s := testScheme(t)
 	communitySource := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{Name: "community-plugins-config", Namespace: testNamespace},
+		ObjectMeta: metav1.ObjectMeta{Name: "community-plugins-config", Namespace: ctrlpkg.CommunityPluginsNamespace},
 		Data: map[string]string{
 			"invalid-name":         `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
 			"malformed":            `{`,
@@ -504,7 +503,7 @@ func TestBuildFederationConfigMap_RejectsInvalidCommunityPlugins(t *testing.T) {
 		},
 	}
 	r := &ctrlpkg.DashboardReconciler{
-		Client:                fake.NewClientBuilder().WithScheme(s).WithObjects(communitySource).Build(),
+		Client:                fake.NewClientBuilder().WithScheme(s).WithObjects(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ctrlpkg.CommunityPluginsNamespace}}, communitySource).Build(),
 		Scheme:                s,
 		Platform:              cluster.OpenDataHub,
 		ApplicationsNamespace: testNamespace,
@@ -541,7 +540,7 @@ func TestBuildFederationConfigMap_RejectsInvalidCommunityPlugins(t *testing.T) {
 func TestBuildFederationConfigMap_ReservesInactiveDashboardFederationNames(t *testing.T) {
 	s := testScheme(t)
 	communitySource := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{Name: "community-plugins-config", Namespace: testNamespace},
+		ObjectMeta: metav1.ObjectMeta{Name: "community-plugins-config", Namespace: ctrlpkg.CommunityPluginsNamespace},
 		Data: map[string]string{
 			"modelRegistry":  `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"community-source","namespace":"cai-plugin-system","port":8080}}}`,
 			"perses":         `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"community-source","namespace":"cai-plugin-system","port":8080}}}`,
@@ -550,7 +549,7 @@ func TestBuildFederationConfigMap_ReservesInactiveDashboardFederationNames(t *te
 		},
 	}
 	r := &ctrlpkg.DashboardReconciler{
-		Client:                fake.NewClientBuilder().WithScheme(s).WithObjects(communitySource).Build(),
+		Client:                fake.NewClientBuilder().WithScheme(s).WithObjects(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ctrlpkg.CommunityPluginsNamespace}}, communitySource).Build(),
 		Scheme:                s,
 		Platform:              cluster.OpenDataHub,
 		ApplicationsNamespace: testNamespace,

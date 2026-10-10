@@ -19,6 +19,7 @@ import (
 
 const (
 	communityPluginsConfigMapName = "community-plugins-config"
+	communityPluginsNamespace     = "redhat-ods-community-plugins"
 	communityPluginsProxyPrefix   = "/community-plugins"
 )
 
@@ -157,19 +158,37 @@ func communityFederationEntryFromSource(name string, source communityFederationS
 	return entry, nil
 }
 
-func communityFederationEntries(
-	ctx context.Context,
-	reader client.Reader,
-	namespace string,
-	existingEntries []federationEntry,
-) ([]federationEntry, error) {
+func communityPluginsConfigMap(ctx context.Context, reader client.Reader) (*corev1.ConfigMap, error) {
+	namespace := &corev1.Namespace{}
+	if err := reader.Get(ctx, client.ObjectKey{Name: communityPluginsNamespace}, namespace); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("getting community plugins namespace: %w", err)
+	}
+
 	source := &corev1.ConfigMap{}
-	key := client.ObjectKey{Name: communityPluginsConfigMapName, Namespace: namespace}
+	key := client.ObjectKey{Name: communityPluginsConfigMapName, Namespace: communityPluginsNamespace}
 	if err := reader.Get(ctx, key, source); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("getting community plugins ConfigMap: %w", err)
+	}
+	return source, nil
+}
+
+func communityFederationEntries(
+	ctx context.Context,
+	reader client.Reader,
+	existingEntries []federationEntry,
+) ([]federationEntry, error) {
+	source, err := communityPluginsConfigMap(ctx, reader)
+	if err != nil {
+		return nil, err
+	}
+	if source == nil {
+		return nil, nil
 	}
 
 	existingNames := reservedDashboardFederationNames()
@@ -181,17 +200,17 @@ func communityFederationEntries(
 	for name, rawEntry := range source.Data {
 		sourceEntry, err := decodeCommunityFederationSource(rawEntry)
 		if err != nil {
-			log.FromContext(ctx).Error(err, "Ignoring invalid community plugin federation entry", "configMap", key.Name, "entry", name)
+			log.FromContext(ctx).Error(err, "Ignoring invalid community plugin federation entry", "configMap", communityPluginsConfigMapName, "namespace", communityPluginsNamespace, "entry", name)
 			continue
 		}
 
 		entry, err := communityFederationEntryFromSource(name, sourceEntry)
 		if err != nil {
-			log.FromContext(ctx).Error(err, "Ignoring invalid community plugin federation entry", "configMap", key.Name, "entry", name)
+			log.FromContext(ctx).Error(err, "Ignoring invalid community plugin federation entry", "configMap", communityPluginsConfigMapName, "namespace", communityPluginsNamespace, "entry", name)
 			continue
 		}
 		if err := validateCommunityFederationEntry(entry, existingNames); err != nil {
-			log.FromContext(ctx).Error(err, "Ignoring invalid community plugin federation entry", "configMap", key.Name, "entry", name)
+			log.FromContext(ctx).Error(err, "Ignoring invalid community plugin federation entry", "configMap", communityPluginsConfigMapName, "namespace", communityPluginsNamespace, "entry", name)
 			continue
 		}
 
