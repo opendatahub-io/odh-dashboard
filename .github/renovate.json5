@@ -1,0 +1,193 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // TRIAL: Renovate runs full-scope ALONGSIDE Dependabot.
+  //
+  // Division of labor during the trial (see .github/security-audit-triage.md):
+  //   - Dependabot keeps auto-merge (dependabot-auto-merge.yml is untouched)
+  //     and remains the CVE-PR path (repo Dependabot alerts stay on).
+  //   - Renovate PRs are NOT auto-merged — manual review is the evaluation.
+  //   - Expect duplicate PRs: both bots may propose the same update. Both touch
+  //     pnpm-lock.yaml, so first merge wins and the other auto-closes. This is
+  //     accepted noise for a bounded trial window, not a correctness risk (the
+  //     PR gates in dependency-validation.yml / go-vulnerability-validation.yml
+  //     are path-triggered and bot-agnostic).
+  //
+  // Cutover (once validated):
+  //   1. Remove the npm/gomod/github-actions ecosystems from
+  //      .github/dependabot.yml (Dockerfiles were never on Dependabot).
+  //   2. Uncomment the automerge rule at the bottom of packageRules and extend
+  //      dependabot-auto-merge.yml to act on the automerge-eligible label.
+  //   3. Revisit osvVulnerabilityAlerts (Renovate's stronger CVE path).
+  //
+  // Runner: .github/workflows/renovate.yml (self-hosted — the Mend GitHub App
+  // is not enabled on this repo). If the app is enabled later, delete that
+  // workflow to avoid duplicate Renovate instances.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  "description": "Trial alongside Dependabot — grouping, auto-discovery, Dockerfile versions. See file comments for the division of labor and cutover plan.",
+
+  "extends": ["config:recommended"],
+
+  // Tide owns merges — never let Renovate or GitHub merge directly.
+  "platformAutomerge": false,
+  "automerge": false,
+
+  // Scope: the ecosystems Dependabot manages (duplicate PRs accepted for the
+  // trial) plus Dockerfiles, which nothing manages today. Excluded:
+  //   - tekton: pipeline task refs need /ok-to-test re-runs; revisit after
+  //     cutover.
+  // Bonus over Dependabot: the github-actions manager also covers the composite
+  // actions in .github/actions/*/action.yml (Dependabot's directory: / only
+  // scans .github/workflows/).
+  // Upstream manages base-image VERSIONS only — digests are pinned downstream
+  // by MintMaker on the downstream-only Dockerfile.konflux* files, so pinDigests
+  // stays off to avoid fighting the downstream digest flow.
+  "enabledManagers": ["npm", "gomod", "github-actions", "dockerfile"],
+  "pinDigests": false,
+
+  // Upstream-synced trees are managed by upstream-sync, not dependency bots.
+  // .claude/** holds agent-skill docs whose *example* files get caught by the
+  // dockerfile manager's broad default file match (any filename starting with
+  // "dockerfile" — e.g. references/dockerfile-templates.md). Verified by local
+  // dry-run: nothing under .claude/ is a build input for any manager, so a
+  // path-level exclusion is safe. (A dockerfile managerFilePatterns override
+  // does NOT work here: managerFilePatterns is a mergeable option — custom
+  // patterns are appended to the manager defaults, not replacing them.)
+  "ignorePaths": ["**/upstream/**", ".claude/**"],
+
+  // "dependencies" matches the Dependabot label convention — and keeps Renovate
+  // PRs exempt from the stale bot's 21-day auto-close (stale.yml exempts this
+  // label). The Dependency Dashboard issue is safe too: stale.yml never stales
+  // issues (days-before-issue-stale: -1).
+  "labels": ["dependencies"],
+  "dependencyDashboard": true,
+  "configMigration": true,
+  "semanticCommits": "enabled", // produces chore(deps): … like Dependabot
+
+  // New PRs only in the Monday-morning window (parity with Dependabot's weekly
+  // cadence). The runner executes daily; on other days it only rebases existing
+  // PRs, closes superseded ones, and refreshes the Dependency Dashboard.
+  "timezone": "UTC",
+  "schedule": ["before 4am on Monday"],
+
+  // Flood control for the first scans: at most 10 Renovate PRs open at a time.
+  // No hourly limit — the Monday-only PR window already throttles creation, and
+  // an hourly cap would starve the trial to ~5 PRs/week.
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 0,
+
+  // CVE PRs stay on Dependabot during the trial (its alerts are repo-wide and
+  // independent of dependabot.yml) — prevents duplicate security PRs.
+  "vulnerabilityAlerts": { "enabled": false },
+  "osvVulnerabilityAlerts": false,
+
+  // Parity with dependabot.yml versioning-strategy: increase-if-necessary —
+  // only touch package.json ranges when the new version falls outside them;
+  // otherwise the PR is lockfile-only.
+  "npm": {
+    "rangeStrategy": "bump"
+  },
+
+  "packageRules": [
+    // ── Grouping: collapse per-dependency / per-module PRs ─────────────────
+    {
+      "description": "All non-major JS updates across the pnpm workspace in one PR",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "js-non-major",
+      // Parity with dependabot.yml cooldown (minor/patch: 14d).
+      "minimumReleaseAge": "14 days"
+    },
+    {
+      "description": "npm majors: individual PRs, delayed like dependabot.yml cooldown (30d)",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["major"],
+      "minimumReleaseAge": "30 days"
+    },
+    {
+      "description": "Go patch updates across ALL go.mod modules in one PR (Dependabot opens one PR per module)",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["patch"],
+      "groupName": "go-non-major",
+      // Parity with dependabot.yml cooldown (patch: 3d).
+      "minimumReleaseAge": "3 days"
+    },
+    {
+      "description": "Go minor updates across ALL go.mod modules in one PR",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["minor"],
+      "groupName": "go-non-major",
+      // Parity with dependabot.yml cooldown (minor: 7d).
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "Go majors: individual PRs, delayed like dependabot.yml cooldown (14d)",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["major"],
+      "minimumReleaseAge": "14 days"
+    },
+    {
+      "description": "GitHub Actions non-major updates, grouped weekly (Dependabot: monthly, 2-PR limit)",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "github-actions",
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "Dockerfile base-image version bumps, grouped — digests stay downstream (MintMaker)",
+      "matchManagers": ["dockerfile"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "docker-base-image-versions",
+      "minimumReleaseAge": "7 days"
+    },
+
+    // ── Policy parity with dependabot.yml ignores / exclusions ────────────
+    {
+      "description": "PatternFly major/minor: manual coordination (pnpm-workspace.yaml overrides pin the version)",
+      "matchPackagePatterns": ["^@patternfly/"],
+      "matchUpdateTypes": ["major", "minor"],
+      "enabled": false
+    },
+    {
+      "description": "React majors: manual coordination (parity with dependabot.yml)",
+      "matchPackageNames": ["react", "react-dom"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "autox-core is managed via upstream sync (RHOAIENG-59135) — same exclusion as dependabot.yml",
+      "matchManagers": ["gomod"],
+      "matchFileNames": ["packages/autox-core/**"],
+      "enabled": false
+    }
+
+    // NOTE (verified via local dry-run against this branch): Renovate's gomod
+    // manager skips `// indirect` requires BY DESIGN (they're owned by the Go
+    // toolchain — refreshed in go.sum when direct deps update). Dependabot
+    // bumps them; recent Dependabot history here shows only direct bumps, and
+    // CVE PRs (incl. indirect deps) stay on Dependabot during the trial.
+    // At cutover, CVE-driven indirect updates come back via
+    // `security:gomodIndirectSecurityUpdates` or osvVulnerabilityAlerts.
+
+    // ── Cutover-only: uncomment after removing the matching Dependabot
+    //    ecosystems from .github/dependabot.yml ─────────────────────────────
+    // {
+    //   "description": "Auto-merge eligible updates via Tide labels (patch + stable minor)",
+    //   "matchUpdateTypes": ["patch", "minor"],
+    //   "matchCurrentVersion": ">=1.0.0",
+    //   "addLabels": ["automerge-eligible"]
+    // },
+    //
+    // Also consider at cutover:
+    //   - "lockFileMaintenance": { "enabled": true } — weekly transitive refresh
+    //     of pnpm-lock.yaml (currently done by hand via pnpm overrides for CVEs)
+    //   - enable the tekton manager (pipeline task refs need /ok-to-test)
+    //   - a customManager to auto-bump the pinned RENOVATE_IMAGE in
+    //     .github/workflows/renovate.yml (kept manual during the trial so the
+    //     runner cannot change itself mid-evaluation)
+    //   - "security:gomodIndirectSecurityUpdates" — CVE-driven updates for
+    //     `// indirect` go.mod requires (Renovate skips them by default)
+  ]
+}
