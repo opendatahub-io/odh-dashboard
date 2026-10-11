@@ -3,8 +3,8 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useMLflowStatus } from '@odh-dashboard/internal/concepts/mlflow/hooks/useMLflowStatus';
-import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDscStatus';
-import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import useFetchAIHub from '@odh-dashboard/internal/concepts/areas/useFetchAIHub';
+import type { AIHubKind } from '@odh-dashboard/k8s-core';
 import { mockMcpServer } from '~/__mocks__/mockMcpCatalog';
 import type { McpServer } from '~/app/types/mcpCatalogTypes';
 import { useMcpServerConverter } from '~/app/hooks/useMcpServerCatalog';
@@ -14,7 +14,7 @@ import McpServerRegisterAction from '~/odh/components/McpServerRegisterAction';
 jest.mock('@odh-dashboard/internal/concepts/mlflow/hooks/useMLflowStatus', () => ({
   useMLflowStatus: jest.fn(),
 }));
-jest.mock('@odh-dashboard/internal/concepts/areas/useFetchDscStatus', () => ({
+jest.mock('@odh-dashboard/internal/concepts/areas/useFetchAIHub', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
@@ -36,8 +36,13 @@ jest.mock(
 );
 
 const mockUseMLflowStatus = jest.mocked(useMLflowStatus);
-const mockUseFetchDscStatus = jest.mocked(useFetchDscStatus);
+const mockUseFetchAIHub = jest.mocked(useFetchAIHub);
 const mockUseMcpServerConverter = jest.mocked(useMcpServerConverter);
+
+const mockAIHub = {
+  metadata: { name: 'default-aihub' },
+  spec: { instancesNamespace: 'rhoai-model-registries' },
+} as AIHubKind;
 
 const renderAction = (
   server: { data: McpServer | null; loaded: boolean; error?: Error } = {
@@ -50,7 +55,7 @@ describe('McpServerRegisterAction', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseMLflowStatus.mockReturnValue({ configured: true, loaded: true, error: false });
-    mockUseFetchDscStatus.mockReturnValue([mockDscStatus({}), true, undefined, jest.fn()]);
+    mockUseFetchAIHub.mockReturnValue([mockAIHub, true, undefined, jest.fn()]);
     mockUseMcpServerConverter.mockReturnValue([null, true, undefined, jest.fn()]);
   });
 
@@ -95,6 +100,21 @@ describe('McpServerRegisterAction', () => {
     expect(await screen.findByRole('tooltip')).toHaveTextContent(
       REGISTER_BUTTON_TOOLTIP.MLFLOW_UNAVAILABLE,
     );
+  });
+
+  it('should show the AIHub access error instead of treating it as a missing namespace', async () => {
+    const user = userEvent.setup();
+    const error = new Error(
+      'Dashboard is not permitted to read the AIHub configuration. Contact your cluster administrator.',
+    );
+    mockUseFetchAIHub.mockReturnValue([null, false, error, jest.fn()]);
+
+    renderAction();
+
+    const button = screen.getByTestId('mcp-register-button');
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+    await user.hover(button);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(error.message);
   });
 
   it('should keep the button loading until the converter request settles', () => {

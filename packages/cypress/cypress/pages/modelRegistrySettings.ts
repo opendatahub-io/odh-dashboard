@@ -86,6 +86,10 @@ class ModelRegistrySettings {
     return cy.findByTestId('mr-settings-empty-state');
   }
 
+  findErrorState() {
+    return cy.findByTestId('redirect-error');
+  }
+
   findCreateButton() {
     return cy.findByText('Create model registry');
   }
