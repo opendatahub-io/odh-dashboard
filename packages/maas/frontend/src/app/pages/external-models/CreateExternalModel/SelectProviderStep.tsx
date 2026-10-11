@@ -67,7 +67,7 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
                   <Radio
                     id="provider-source-existing"
                     name="provider-source"
-                    label="Select existing provider"
+                    label="Use existing provider"
                     isChecked={providerSource === ProviderSource.EXISTING}
                     isDisabled={!hasExistingProviders}
                     onChange={() => onProviderSourceChange(ProviderSource.EXISTING)}
