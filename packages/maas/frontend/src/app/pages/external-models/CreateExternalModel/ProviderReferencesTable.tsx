@@ -6,9 +6,11 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Icon,
   NumberInput,
+  Popover,
 } from '@patternfly/react-core';
-import { MinusCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon, MinusCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import { ExternalProvider, ProviderRef } from '~/app/types/external-models';
@@ -70,95 +72,118 @@ const ProviderReferencesTable: React.FC<ProviderReferencesTableProps> = ({
       </Tr>
     </Thead>
     <Tbody>
-      {providerRefs.map((providerRef, index) => (
-        <Tr key={`${providerRef.providerName}-${index}`} data-testid={`provider-ref-row-${index}`}>
-          <Td dataLabel="Provider" className={tableCellClassName}>
-            {getProviderDisplayName(
-              providerRef.providerName,
-              externalProviders.find((item) => item.name === providerRef.providerName),
-            )}
-          </Td>
-          <Td dataLabel="Target model ID" modifier="nowrap" className={tableCellClassName}>
-            {providerRef.targetModel}
-          </Td>
-          <Td dataLabel="API format" modifier="nowrap" className={tableCellClassName}>
-            {getApiFormatLabel(providerRef.apiFormat)}
-          </Td>
-          <Td dataLabel="Weight" modifier="nowrap" className={tableCellClassName}>
-            <Flex
-              direction={{ default: 'column' }}
-              gap={{ default: 'gapSm' }}
-              alignItems={{ default: 'alignItemsFlexStart' }}
-            >
-              <FlexItem>
-                <Flex
-                  alignItems={{ default: 'alignItemsCenter' }}
-                  gap={{ default: 'gapSm' }}
-                  flexWrap={{ default: 'nowrap' }}
-                >
-                  <NumberInput
-                    id={`provider-ref-weight-${index}`}
-                    data-testid={`provider-ref-weight-${index}`}
-                    value={providerRef.weight}
-                    widthChars={3}
-                    min={0}
-                    max={100}
-                    onMinus={() => onWeightChange(index, Math.max(0, providerRef.weight - 1))}
-                    onPlus={() => onWeightChange(index, Math.min(100, providerRef.weight + 1))}
-                    onChange={(event: React.FormEvent<HTMLInputElement>) => {
-                      const parsedValue = parseInt(event.currentTarget.value, 10);
-                      if (!Number.isNaN(parsedValue)) {
-                        onWeightChange(index, Math.min(100, Math.max(0, parsedValue)));
-                      }
-                    }}
-                  />
-                  <Button
-                    variant="plain"
-                    isInline
-                    aria-label="Edit provider reference"
-                    icon={<PencilAltIcon />}
-                    onClick={() => onEdit(index)}
-                    data-testid={`provider-ref-edit-${index}`}
-                  />
-                  <Button
-                    variant="plain"
-                    isInline
-                    aria-label="Remove provider reference"
-                    icon={<MinusCircleIcon />}
-                    onClick={() => onRemove(index)}
-                    data-testid={`provider-ref-remove-${index}`}
-                  />
+      {providerRefs.map((providerRef, index) => {
+        const provider = externalProviders.find((item) => item.name === providerRef.providerName);
+        const isDeletedProvider = !provider;
+
+        return (
+          <Tr
+            key={`${providerRef.providerName}-${index}`}
+            data-testid={`provider-ref-row-${index}`}
+          >
+            <Td dataLabel="Provider" className={tableCellClassName}>
+              <Flex
+                direction={{ default: 'column' }}
+                gap={{ default: 'gapSm' }}
+                alignItems={{ default: 'alignItemsFlexStart' }}
+              >
+                <Flex>
+                  <FlexItem>{getProviderDisplayName(providerRef.providerName, provider)}</FlexItem>
+                  {isDeletedProvider ? (
+                    <Popover
+                      bodyContent="Remove this reference because the provider has been deleted. Create a new one if none remain for this model."
+                      data-testid={`provider-ref-missing-popover-${index}`}
+                    >
+                      <Icon status="danger">
+                        <ExclamationCircleIcon />
+                      </Icon>
+                    </Popover>
+                  ) : null}
                 </Flex>
-              </FlexItem>
-              <FlexItem>
-                <FormHelperText>
-                  <HelperText>
-                    {isProviderRefExcludedFromRouting(providerRefs, index) ? (
-                      <Flex
-                        spaceItems={{ default: 'spaceItemsXs' }}
-                        alignItems={{ default: 'alignItemsCenter' }}
-                        className="pf-v6-u-display-inline-flex"
-                      >
+              </Flex>
+            </Td>
+            <Td dataLabel="Target model ID" modifier="nowrap" className={tableCellClassName}>
+              {providerRef.targetModel}
+            </Td>
+            <Td dataLabel="API format" modifier="nowrap" className={tableCellClassName}>
+              {getApiFormatLabel(providerRef.apiFormat)}
+            </Td>
+            <Td dataLabel="Weight" modifier="nowrap" className={tableCellClassName}>
+              <Flex
+                direction={{ default: 'column' }}
+                gap={{ default: 'gapSm' }}
+                alignItems={{ default: 'alignItemsFlexStart' }}
+              >
+                <FlexItem>
+                  <Flex
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    gap={{ default: 'gapSm' }}
+                    flexWrap={{ default: 'nowrap' }}
+                  >
+                    <NumberInput
+                      id={`provider-ref-weight-${index}`}
+                      data-testid={`provider-ref-weight-${index}`}
+                      value={providerRef.weight}
+                      widthChars={3}
+                      min={0}
+                      max={100}
+                      onMinus={() => onWeightChange(index, Math.max(0, providerRef.weight - 1))}
+                      onPlus={() => onWeightChange(index, Math.min(100, providerRef.weight + 1))}
+                      onChange={(event: React.FormEvent<HTMLInputElement>) => {
+                        const parsedValue = parseInt(event.currentTarget.value, 10);
+                        if (!Number.isNaN(parsedValue)) {
+                          onWeightChange(index, Math.min(100, Math.max(0, parsedValue)));
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="plain"
+                      isInline
+                      aria-label="Edit provider reference"
+                      icon={<PencilAltIcon />}
+                      onClick={() => onEdit(index)}
+                      data-testid={`provider-ref-edit-${index}`}
+                    />
+                    <Button
+                      variant="plain"
+                      isInline
+                      aria-label="Remove provider reference"
+                      icon={<MinusCircleIcon />}
+                      onClick={() => onRemove(index)}
+                      data-testid={`provider-ref-remove-${index}`}
+                    />
+                  </Flex>
+                </FlexItem>
+                <FlexItem>
+                  <FormHelperText>
+                    <HelperText>
+                      {isProviderRefExcludedFromRouting(providerRefs, index) ? (
+                        <Flex
+                          spaceItems={{ default: 'spaceItemsXs' }}
+                          alignItems={{ default: 'alignItemsCenter' }}
+                          className="pf-v6-u-display-inline-flex"
+                        >
+                          <HelperTextItem data-testid={`provider-ref-weight-percent-${index}`}>
+                            {formatProviderRefWeightPercentage(providerRefs, index)}
+                          </HelperTextItem>
+                          <FieldGroupHelpLabelIcon
+                            content={EXCLUDED_FROM_ROUTING_POPOVER_CONTENT}
+                            buttonTestId={`provider-ref-excluded-routing-help-${index}`}
+                          />
+                        </Flex>
+                      ) : (
                         <HelperTextItem data-testid={`provider-ref-weight-percent-${index}`}>
                           {formatProviderRefWeightPercentage(providerRefs, index)}
                         </HelperTextItem>
-                        <FieldGroupHelpLabelIcon
-                          content={EXCLUDED_FROM_ROUTING_POPOVER_CONTENT}
-                          buttonTestId={`provider-ref-excluded-routing-help-${index}`}
-                        />
-                      </Flex>
-                    ) : (
-                      <HelperTextItem data-testid={`provider-ref-weight-percent-${index}`}>
-                        {formatProviderRefWeightPercentage(providerRefs, index)}
-                      </HelperTextItem>
-                    )}
-                  </HelperText>
-                </FormHelperText>
-              </FlexItem>
-            </Flex>
-          </Td>
-        </Tr>
-      ))}
+                      )}
+                    </HelperText>
+                  </FormHelperText>
+                </FlexItem>
+              </Flex>
+            </Td>
+          </Tr>
+        );
+      })}
     </Tbody>
   </Table>
 );
