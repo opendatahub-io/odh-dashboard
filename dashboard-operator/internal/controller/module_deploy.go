@@ -523,7 +523,7 @@ func (r *DashboardReconciler) preservePersesFederationEntry(ctx context.Context,
 		if err := json.Unmarshal(entry, &identity); err != nil {
 			return fmt.Errorf("reading federation entry from %s: %w", desired.Name, err)
 		}
-		if identity.Name != "perses" {
+		if identity.Name != persesFederationName {
 			continue
 		}
 		var desiredEntries []json.RawMessage

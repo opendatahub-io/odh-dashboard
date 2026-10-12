@@ -11,7 +11,17 @@ type proxyRoute struct {
 	PathRewrite string
 }
 
-var dashboardFederationSyntheticNames = []string{"coreBff", "perses", "mlflowEmbedded"}
+const (
+	coreBffFederationName        = "coreBff"
+	persesFederationName         = "perses"
+	mlflowEmbeddedFederationName = "mlflowEmbedded"
+)
+
+var dashboardFederationSyntheticNames = []string{
+	coreBffFederationName,
+	persesFederationName,
+	mlflowEmbeddedFederationName,
+}
 
 // reservedDashboardFederationNames returns all names owned by Dashboard,
 // including entries that are not emitted in the current reconciliation.
@@ -96,7 +106,7 @@ const coreBffPort = 8943
 
 func (r *DashboardReconciler) coreBffFederationEntry() federationEntry {
 	return federationEntry{
-		Name: "coreBff",
+		Name: coreBffFederationName,
 		ProxyService: []proxyServiceEntry{{
 			Path:        "/core-bff/api",
 			PathRewrite: "/api",
@@ -115,7 +125,7 @@ func (r *DashboardReconciler) persesFederationEntry(observability *v1alpha1.Obse
 	}
 	service := observability.PersesService
 	return federationEntry{
-		Name: "perses",
+		Name: persesFederationName,
 		ProxyService: []proxyServiceEntry{{
 			Path:        "/perses/api",
 			PathRewrite: "",
@@ -133,7 +143,7 @@ func (r *DashboardReconciler) mlflowEmbeddedFederationEntry(statuses map[string]
 		return federationEntry{}, false
 	}
 	return federationEntry{
-		Name: "mlflowEmbedded",
+		Name: mlflowEmbeddedFederationName,
 		Backend: &federationBackend{
 			RemoteEntry: "/mlflow/static-files/federated/remoteEntry.js",
 			federationTarget: explicitFederationTarget(true, true, serviceRef{
