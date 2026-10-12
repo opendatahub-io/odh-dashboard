@@ -199,7 +199,9 @@ export const getExistingHardwareProfileData = <T extends K8sResourceCommon>(
   namespace?: string;
 } => {
   const name = resource?.metadata?.annotations?.['opendatahub.io/hardware-profile-name'];
-  const namespace = resource?.metadata?.annotations?.['opendatahub.io/hardware-profile-namespace'];
+  const namespace =
+    resource?.metadata?.annotations?.['opendatahub.io/hardware-profile-namespace'] ||
+    (name ? resource.metadata?.namespace : undefined);
   return {
     name,
     namespace,

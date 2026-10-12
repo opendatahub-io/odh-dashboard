@@ -387,6 +387,19 @@ describe('getExistingHardwareProfileData', () => {
     });
   });
 
+  it('should fall back to the workload namespace when the namespace annotation is empty', () => {
+    const notebook = mockNotebookK8sResource({});
+    notebook.metadata.annotations = {
+      'opendatahub.io/hardware-profile-name': 'test-profile',
+      'opendatahub.io/hardware-profile-namespace': '',
+    };
+
+    expect(getExistingHardwareProfileData(notebook)).toEqual({
+      name: 'test-profile',
+      namespace: notebook.metadata.namespace,
+    });
+  });
+
   it('should return undefined values for resource without hardware profile annotations', () => {
     const notebook = mockNotebookK8sResource({});
 
@@ -406,7 +419,7 @@ describe('getExistingHardwareProfileData', () => {
     });
   });
 
-  it('should extract only name when namespace annotation is missing', () => {
+  it('should fall back to the workload namespace when the namespace annotation is missing', () => {
     const notebook = mockNotebookK8sResource({
       opts: {
         metadata: {
@@ -420,8 +433,7 @@ describe('getExistingHardwareProfileData', () => {
     const result = getExistingHardwareProfileData(notebook);
 
     expect(result.name).toBe('test-profile');
-    // mockNotebookK8sResource may return null or empty string instead of undefined
-    expect(result.namespace).toBeFalsy();
+    expect(result.namespace).toBe(notebook.metadata.namespace);
   });
 });
 

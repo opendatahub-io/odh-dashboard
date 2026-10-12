@@ -1,12 +1,11 @@
 import React from 'react';
 import { HardwareProfileFeatureVisibility } from '@odh-dashboard/k8s-core';
 import type { NotebookKind } from '@odh-dashboard/k8s-core';
-import { useDashboardNamespace } from '@odh-dashboard/plugin-core';
-import { isHardwareProfileEnabled } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
-import { useHardwareProfilesByFeatureVisibility } from '@odh-dashboard/internal/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
+import { getExistingHardwareProfileData, isHardwareProfileEnabled } from './utils';
 import { HardwareProfileBindingStateInfo } from './types';
 import type { HardwareProfileResource } from './types';
 import { HardwareProfileBindingState } from './const';
+import { useHardwareProfilesByFeatureVisibility } from '../src/pages/useHardwareProfilesByFeatureVisibility';
 
 /**
  * Hook to get hardware profile binding state for a resource.
@@ -18,12 +17,8 @@ export const useHardwareProfileBindingState = (
   resource?: NotebookKind | HardwareProfileResource,
   visibility?: HardwareProfileFeatureVisibility[],
 ): [HardwareProfileBindingStateInfo | null, boolean, Error | undefined] => {
-  const { dashboardNamespace } = useDashboardNamespace();
-  const hardwareProfileName =
-    resource?.metadata.annotations?.['opendatahub.io/hardware-profile-name'];
-  const hardwareProfileNamespace =
-    resource?.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'] ||
-    dashboardNamespace;
+  const { name: hardwareProfileName, namespace: hardwareProfileNamespace } =
+    getExistingHardwareProfileData(resource);
   const resourceVersion =
     resource?.metadata.annotations?.['opendatahub.io/hardware-profile-resource-version'];
 
@@ -83,7 +78,7 @@ export const useHardwareProfileBindingState = (
 
   const isDisabled = !isHardwareProfileEnabled(profile);
   const storedResourceVersion =
-    resource.metadata.annotations?.['opendatahub.io/hardware-profile-resource-version'];
+    resource?.metadata.annotations?.['opendatahub.io/hardware-profile-resource-version'];
   const isUpdated =
     storedResourceVersion && profile.metadata.resourceVersion
       ? storedResourceVersion !== profile.metadata.resourceVersion

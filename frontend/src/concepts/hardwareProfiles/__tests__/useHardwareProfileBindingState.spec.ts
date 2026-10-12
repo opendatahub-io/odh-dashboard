@@ -1,21 +1,16 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import * as pluginCore from '@odh-dashboard/plugin-core';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
+import * as useHardwareProfilesModule from '@odh-dashboard/hardware-profiles/pages/useHardwareProfilesByFeatureVisibility';
 import { mockNotebookK8sResource } from '#~/__mocks__';
 import { useHardwareProfileBindingState } from '#~/concepts/hardwareProfiles/useHardwareProfileBindingState';
-import * as useHardwareProfilesModule from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 
-jest.mock('@odh-dashboard/plugin-core', () => ({
-  ...jest.requireActual('@odh-dashboard/plugin-core'),
-  useDashboardNamespace: jest.fn(),
-}));
-
-jest.mock('#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility', () => ({
-  ...jest.requireActual('#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility'),
+jest.mock('@odh-dashboard/hardware-profiles/pages/useHardwareProfilesByFeatureVisibility', () => ({
+  ...jest.requireActual(
+    '@odh-dashboard/hardware-profiles/pages/useHardwareProfilesByFeatureVisibility',
+  ),
   useHardwareProfilesByFeatureVisibility: jest.fn(),
 }));
 
-const mockUseDashboardNamespace = jest.mocked(pluginCore.useDashboardNamespace);
 const mockUseHardwareProfiles = jest.mocked(
   useHardwareProfilesModule.useHardwareProfilesByFeatureVisibility,
 );
@@ -28,7 +23,6 @@ describe('useHardwareProfileBindingState', () => {
       identifiers: [],
       dra: { resourceClaimTemplateName: 'single-gpu' },
     });
-    mockUseDashboardNamespace.mockReturnValue({ dashboardNamespace: 'opendatahub' });
     mockUseHardwareProfiles.mockImplementation((visibility, namespace, options) => ({
       globalProfiles: [
         useHardwareProfilesModule.filterHardwareProfileByFeatureVisibility(
@@ -53,5 +47,55 @@ describe('useHardwareProfileBindingState', () => {
       true,
       undefined,
     ]);
+  });
+
+  describe('when only the hardware profile name annotation is set', () => {
+    const globalProfile = mockHardwareProfile({ name: 'small', namespace: 'opendatahub' });
+    const projectProfile = mockHardwareProfile({
+      name: 'small',
+      namespace: 'test-project',
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+    const nameOnlyNotebook = () => mockNotebookK8sResource({ hardwareProfileName: 'small' });
+
+    it('should resolve the profile in the workload namespace when the name exists in both', () => {
+      mockUseHardwareProfiles.mockReturnValue({
+        globalProfiles: [[globalProfile], true, undefined],
+        projectProfiles: [[projectProfile], true, undefined],
+      });
+
+      const renderResult = testHook(useHardwareProfileBindingState)(nameOnlyNotebook());
+
+      expect(mockUseHardwareProfiles).toHaveBeenLastCalledWith(undefined, 'test-project', {
+        includeDRA: true,
+      });
+      expect(renderResult.result.current[0]?.profile).toBe(projectProfile);
+    });
+
+    it('should not fall back to a global profile with the same name', () => {
+      mockUseHardwareProfiles.mockReturnValue({
+        globalProfiles: [[globalProfile], true, undefined],
+        projectProfiles: [[], true, undefined],
+      });
+
+      const renderResult = testHook(useHardwareProfileBindingState)(nameOnlyNotebook());
+
+      expect(renderResult.result.current[0]?.profile).toBeUndefined();
+    });
+  });
+
+  it('should not look up project profiles for a workload without hardware profile annotations', () => {
+    mockUseHardwareProfiles.mockReturnValue({
+      globalProfiles: [[], true, undefined],
+      projectProfiles: [[], true, undefined],
+    });
+    const notebook = mockNotebookK8sResource({ namespace: 'other-project' });
+
+    const renderResult = testHook(useHardwareProfileBindingState)(notebook);
+
+    expect(mockUseHardwareProfiles).toHaveBeenLastCalledWith(undefined, undefined, {
+      includeDRA: true,
+    });
+    expect(renderResult.result.current).toEqual([null, true, undefined]);
   });
 });
