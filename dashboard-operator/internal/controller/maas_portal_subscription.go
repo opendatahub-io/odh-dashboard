@@ -22,8 +22,8 @@ import (
 const (
 	maasPortalRhodsOperatorNamespace                      = "redhat-ods-operator"
 	maasPortalOpenDataHubOperatorNamespace                = "opendatahub-operator"
-	maasPortalRhodsOperatorSubscriptionResourceName       = "maas-consumer-portal-rhods-operator-subscription"
-	maasPortalOpenDataHubOperatorSubscriptionResourceName = "maas-consumer-portal-opendatahub-operator-subscription"
+	maasPortalRhodsOperatorSubscriptionResourceName       = "maas-portal-rhods-operator-subscription"
+	maasPortalOpenDataHubOperatorSubscriptionResourceName = "maas-portal-opendatahub-operator-subscription"
 )
 
 var maasPortalOperatorSubscriptionNamespaces = map[string]string{

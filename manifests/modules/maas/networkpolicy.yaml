@@ -22,7 +22,7 @@ spec:
               deployment: gen-ai-ui
         - podSelector:
             matchLabels:
-              deployment: maas-consumer-portal
+              deployment: maas-portal
   egress:
     - to:
         - namespaceSelector:

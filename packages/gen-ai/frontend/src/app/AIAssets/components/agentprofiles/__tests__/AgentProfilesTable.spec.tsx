@@ -1,8 +1,14 @@
 import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { AgentDeploymentSummary, AgentProfileSummary } from '~/app/agentProfile/types';
 import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
 import AgentProfilesTable from '~/app/AIAssets/components/agentprofiles/AgentProfilesTable';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
 
 jest.mock('mod-arch-shared', () => ({
   Table: ({
@@ -107,10 +113,24 @@ describe('AgentProfilesTable', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Deployed (1)' }));
     expect(screen.getByTestId('row-deployed-agent-id')).toBeInTheDocument();
     expect(screen.queryByTestId('row-not-deployed-agent-id')).not.toBeInTheDocument();
+    expect(fireMiscTrackingEvent).toHaveBeenLastCalledWith(
+      PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_STATUS_FILTER_SELECTED,
+      { filterType: 'deployed' },
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Not deployed (1)' }));
     expect(screen.queryByTestId('row-deployed-agent-id')).not.toBeInTheDocument();
     expect(screen.getByTestId('row-not-deployed-agent-id')).toBeInTheDocument();
+    expect(fireMiscTrackingEvent).toHaveBeenLastCalledWith(
+      PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_STATUS_FILTER_SELECTED,
+      { filterType: 'notDeployed' },
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'All (2)' }));
+    expect(fireMiscTrackingEvent).toHaveBeenLastCalledWith(
+      PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_STATUS_FILTER_SELECTED,
+      { filterType: 'all' },
+    );
   });
 
   it('should not render deployment UI when deployments are disabled', () => {

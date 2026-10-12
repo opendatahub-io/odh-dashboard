@@ -14,6 +14,9 @@ import {
   DrawerHead,
   DrawerPanelBody,
   DrawerPanelContent,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
   Flex,
   FlexItem,
   MenuToggle,
@@ -22,12 +25,20 @@ import {
   SelectOption,
   Spinner,
 } from '@patternfly/react-core';
-import { CodeIcon } from '@patternfly/react-icons';
+import { CodeIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
-import type { ResponsesTemplate } from '~/app/types/autoragPattern';
+import type { AutoRAGResponsesTemplate } from '~/app/types/autoragPattern';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { formatPatternName } from '~/app/utilities/utils';
 import { formatMetricValue } from '~/app/utilities/metricUtils';
+import {
+  getPatternStoreProvider,
+  isResponsesProvider,
+  resolveDatabaseSecretName,
+  resolveMaaSSecretName,
+  canUseResponsesForPattern,
+  getResponsesUnavailableReason,
+} from '~/app/utilities/responses';
 import './PlaygroundDrawerPanel.scss';
 
 const EmbeddedPlayground = React.lazy(() => import('~/app/components/EmbeddedPlayground'));
@@ -42,7 +53,7 @@ type PlaygroundPatternInfo = {
 
 type PlaygroundDrawerPanelProps = {
   namespace: string;
-  responsesTemplate: ResponsesTemplate;
+  responsesTemplate: AutoRAGResponsesTemplate;
   patternInfo: PlaygroundPatternInfo;
   onClose: () => void;
   onSelectPattern: (patternName: string) => void;
@@ -58,9 +69,46 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
   onViewCode,
 }) => {
   const { parameters, patterns } = useAutoragResultsContext();
-  const secretName =
-    typeof parameters?.ogx_secret_name === 'string' ? parameters.ogx_secret_name : '';
+  const secretName = resolveMaaSSecretName(parameters) ?? '';
   const [isPatternSelectOpen, setIsPatternSelectOpen] = React.useState(false);
+
+  const databaseSecretName = resolveDatabaseSecretName(parameters);
+  const pattern = patterns[patternInfo.patternName];
+  const provider = getPatternStoreProvider(pattern);
+  const responsesProviderSupported = isResponsesProvider(provider);
+  const responsesReady =
+    canUseResponsesForPattern(parameters, pattern) &&
+    responsesTemplate.model.trim() !== '' &&
+    responsesTemplate.tools.some((tool) => tool.vector_store_ids.length > 0);
+  const unavailableReason = getResponsesUnavailableReason(parameters, pattern);
+  const responsesEndpointUrl = React.useMemo(() => {
+    if (!databaseSecretName || !secretName || !responsesProviderSupported) {
+      return undefined;
+    }
+
+    const query = new URLSearchParams({ namespace });
+    query.set('dbSecretName', databaseSecretName);
+    if (secretName) {
+      query.set('maasSecretName', secretName);
+    }
+    return `/autorag/api/v1/responses?${query.toString()}`;
+  }, [databaseSecretName, namespace, responsesProviderSupported, secretName]);
+
+  const additionalMetadata = React.useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (!pattern) {
+      return undefined;
+    }
+    const { settings } = pattern;
+    return {
+      /* eslint-disable camelcase */
+      embedding_model: settings.embedding.model_id,
+      system_message_text: settings.generation.system_message_text ?? '',
+      context_template_text: settings.generation.context_template_text ?? '',
+      user_message_text: settings.generation.user_message_text ?? '',
+      /* eslint-enable camelcase */
+    };
+  }, [pattern]);
 
   return (
     <DrawerPanelContent defaultSize="50%" minSize="400px" data-testid="playground-drawer-panel">
@@ -94,13 +142,11 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
               )}
             >
               <SelectList>
-                {Object.entries(patterns)
-                  .filter(([, p]) => p.inference?.responses_template)
-                  .map(([name]) => (
-                    <SelectOption key={name} value={name}>
-                      {formatPatternName(name)}
-                    </SelectOption>
-                  ))}
+                {Object.entries(patterns).map(([name]) => (
+                  <SelectOption key={name} value={name}>
+                    {formatPatternName(name)}
+                  </SelectOption>
+                ))}
               </SelectList>
             </Select>
           </FlexItem>
@@ -109,14 +155,16 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
               alignItems={{ default: 'alignItemsCenter' }}
               spaceItems={{ default: 'spaceItemsSm' }}
             >
-              <Button
-                variant="secondary"
-                icon={<CodeIcon />}
-                onClick={() => onViewCode(patternInfo.patternName)}
-                data-testid="playground-view-code-button"
-              >
-                View Code
-              </Button>
+              {responsesReady ? (
+                <Button
+                  variant="secondary"
+                  icon={<CodeIcon />}
+                  onClick={() => onViewCode(patternInfo.patternName)}
+                  data-testid="playground-view-code-button"
+                >
+                  View Code
+                </Button>
+              ) : null}
             </Flex>
           </FlexItem>
         </Flex>
@@ -159,32 +207,83 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
           </Card>
         </div>
         <div className="autorag-playground-drawer__chatbot-container">
-          <React.Suspense
-            fallback={
-              <Bullseye>
-                <Spinner />
-              </Bullseye>
-            }
-          >
-            <EmbeddedPlayground
-              key={patternInfo.patternName}
-              namespace={namespace}
-              secretName={secretName}
-              responsesTemplate={responsesTemplate}
-              patternName={patternInfo.patternName}
-              bffBasePath="/gen-ai/api/v1"
-              placeholderBotContent=""
-              welcomeContent={
-                <Content
-                  component={ContentVariants.p}
-                  className="pf-v6-u-color-200 pf-v6-u-text-align-center"
-                >
-                  Ask a question about your documents to see how{' '}
-                  {formatPatternName(patternInfo.patternName)} responds.
-                </Content>
+          {responsesReady ? (
+            <React.Suspense
+              fallback={
+                <Bullseye>
+                  <Spinner />
+                </Bullseye>
               }
-            />
-          </React.Suspense>
+            >
+              <EmbeddedPlayground
+                key={patternInfo.patternName}
+                namespace={namespace}
+                secretName={secretName}
+                responsesTemplate={responsesTemplate}
+                patternName={patternInfo.patternName}
+                bffBasePath="/gen-ai/api/v1"
+                responsesEndpointUrl={responsesEndpointUrl}
+                additionalMetadata={additionalMetadata}
+                placeholderBotContent=""
+                welcomeContent={
+                  <Content
+                    component={ContentVariants.p}
+                    className="pf-v6-u-color-200 pf-v6-u-text-align-center"
+                  >
+                    Ask a question about your documents to see how{' '}
+                    {formatPatternName(patternInfo.patternName)} responds.
+                  </Content>
+                }
+              />
+            </React.Suspense>
+          ) : (
+            <Bullseye>
+              <EmptyState
+                data-testid={
+                  unavailableReason === 'unsupported-provider'
+                    ? 'playground-neo4j-unavailable'
+                    : unavailableReason === 'database-secret' || unavailableReason === 'collection'
+                      ? 'playground-vector-db-unavailable'
+                      : unavailableReason === 'maas-secret'
+                        ? 'playground-maas-unavailable'
+                        : `playground-${unavailableReason ?? 'template'}-unavailable`
+                }
+                headingLevel="h2"
+                icon={ExclamationCircleIcon}
+                titleText={
+                  unavailableReason === 'unsupported-provider'
+                    ? 'GraphRAG playground unavailable'
+                    : unavailableReason === 'database-secret'
+                      ? 'Playground unavailable'
+                      : unavailableReason === 'maas-secret'
+                        ? 'MaaS connection unavailable'
+                        : unavailableReason === 'collection'
+                          ? 'Collection unavailable'
+                          : unavailableReason === 'embedding-model'
+                            ? 'Embedding model unavailable'
+                            : 'Playground unavailable'
+                }
+                variant={EmptyStateVariant.sm}
+                status="warning"
+              >
+                <EmptyStateBody>
+                  {unavailableReason === 'unsupported-provider'
+                    ? provider === 'neo4j'
+                      ? 'GraphRAG runs using Neo4j are not supported by the Responses playground. Use the run results and pattern details instead.'
+                      : 'This vector store provider is not supported by the Responses playground. Use the run results and pattern details instead.'
+                    : unavailableReason === 'database-secret'
+                      ? 'The database connection is unavailable for this historical run. Rerun or configure the run with its database connection to use the playground.'
+                      : unavailableReason === 'maas-secret'
+                        ? 'A MaaS connection is required to use the playground. Configure the run with a MaaS secret and try again.'
+                        : unavailableReason === 'collection'
+                          ? 'The pattern has no vector store collection configured for the playground.'
+                          : unavailableReason === 'embedding-model'
+                            ? 'The pattern has no embedding model configured for the playground.'
+                            : 'The saved Responses configuration is unavailable for this pattern.'}
+                </EmptyStateBody>
+              </EmptyState>
+            </Bullseye>
+          )}
         </div>
       </DrawerPanelBody>
     </DrawerPanelContent>
