@@ -117,7 +117,7 @@
       "minimumReleaseAge": "30 days"
     },
     {
-      "description": "Go patch updates across ALL go.mod modules in one PR (Dependabot opens one PR per module)",
+      "description": "Go patch updates across ALL go.mod modules in one PR (Dependabot: one PR per dependency, via group-by: dependency-name)",
       "matchManagers": ["gomod"],
       "matchUpdateTypes": ["patch"],
       "groupName": "go-non-major",

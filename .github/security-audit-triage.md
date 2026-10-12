@@ -37,7 +37,7 @@ Renovate (`.github/renovate.json5`, self-hosted via `.github/workflows/renovate.
 
 - **Dependabot keeps auto-merge and the CVE-PR path** (`dependabot-auto-merge.yml` untouched; repo Dependabot alerts stay on). Renovate's `vulnerabilityAlerts`/`osvVulnerabilityAlerts` are off to avoid duplicate security PRs.
 - **Renovate PRs are not auto-merged** — manual review is the evaluation. Expect some duplicate PRs; both bots touch `pnpm-lock.yaml`, first merge wins, the loser auto-closes.
-- **Renovate groups** non-major JS/Go updates across the whole workspace into single PRs (Dependabot opens one PR per dependency per Go module).
+- **Renovate groups** non-major JS/Go updates across the whole workspace into single PRs (Dependabot is finer-grained: JS per named family or per dependency, Go one PR per dependency across modules — `group-by: dependency-name`).
 - **Renovate covers Go modules missing from `dependabot.yml`** (`packages/data-registry/bff`, `packages/data-connect-hub/bff`, `pkg/tls`) — the weekly audit still discovers its scan directories from `dependabot.yml`, so those modules get updates but stay out of the weekly inventory until the discovery script is rewritten at cutover. `autox-core` stays excluded (RHOAIENG-59135).
 - **Dockerfile base images**: Renovate manages *versions* upstream. Digests are pinned *downstream* by MintMaker on the downstream-only `Dockerfile.konflux*` files — the two sides never touch the same files, so upstream keeps `pinDigests` off.
 
