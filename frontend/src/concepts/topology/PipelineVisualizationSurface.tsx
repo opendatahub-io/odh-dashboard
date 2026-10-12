@@ -19,7 +19,7 @@ import {
 import { EmptyState, EmptyStateBody } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { css } from '@patternfly/react-styles';
-import { isHiddenByCollapsedAncestor } from './a11yUtils';
+import { isHiddenByCollapsedAncestor, panNodeIntoView } from './a11yUtils';
 import { NODE_HEIGHT, NODE_WIDTH } from './const';
 import './PipelineVisualizationSurface.scss';
 
@@ -124,7 +124,7 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
     if (selectedNode) {
       // Use a timeout in order to allow the side panel to be shown and window size recomputed
       resizeTimeout = setTimeout(() => {
-        controller.getGraph().panIntoView(selectedNode, { offset: 20, minimumVisible: 100 });
+        panNodeIntoView(selectedNode);
         resizeTimeout = null;
       }, 500);
     }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Node, observer, WithSelectionProps } from '@patternfly/react-topology';
-import { isHiddenByCollapsedAncestor } from './a11yUtils';
+import { isHiddenByCollapsedAncestor, panNodeIntoView } from './a11yUtils';
 
 type PipelineNodeButtonProps = {
   element: Node;
@@ -40,6 +40,7 @@ const PipelineNodeButton: React.FC<PipelineNodeButtonProps> = observer(
           type="button"
           className="odh-pipeline-node-button"
           aria-label={ariaLabel}
+          onFocus={() => panNodeIntoView(element)}
           onClick={(event) => {
             event.stopPropagation();
             onSelect?.(event);

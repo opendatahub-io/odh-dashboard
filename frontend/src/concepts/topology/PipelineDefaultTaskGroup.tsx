@@ -24,7 +24,7 @@ import { PipelineNodeModelExpanded, StandardTaskNodeData } from '#~/concepts/top
 import NodeStatusIcon from '#~/concepts/topology/NodeStatusIcon';
 import { ExecutionStateKF } from '#~/concepts/pipelines/kfTypes';
 import { getRunStatusLabel } from '#~/concepts/topology/utils';
-import { isHiddenByCollapsedAncestor } from '#~/concepts/topology/a11yUtils';
+import { isHiddenByCollapsedAncestor, panNodeIntoView } from '#~/concepts/topology/a11yUtils';
 import { activateNodeButtonOnKeyDown } from '#~/concepts/topology/PipelineNodeButton';
 import { NODE_HEIGHT, NODE_WIDTH } from './const';
 
@@ -233,6 +233,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
                 className="odh-pipeline-node-button m-group"
                 aria-label={`Show tasks in ${groupAriaLabel}`}
                 aria-expanded={popoverOpen}
+                onFocus={() => panNodeIntoView(element)}
                 onClick={(event) => event.stopPropagation()}
                 onKeyDown={activateNodeButtonOnKeyDown}
                 data-pipeline-node-id={element.getId()}
@@ -255,7 +256,10 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
               className="odh-pipeline-node-button m-group m-group-toggle"
               aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${groupLabel} task group`}
               aria-expanded={!isCollapsed}
-              onFocus={() => setToggleFocused(true)}
+              onFocus={() => {
+                setToggleFocused(true);
+                panNodeIntoView(element);
+              }}
               onBlur={() => setToggleFocused(false)}
               onClick={activateCollapseAction}
               onKeyDown={activateNodeButtonOnKeyDown}

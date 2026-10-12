@@ -1,5 +1,10 @@
 import { action, Graph, isNode, Node } from '@patternfly/react-topology';
 
+/** Keep a focused or selected pipeline node visible inside the graph viewport. */
+export const panNodeIntoView = (element: Node): void => {
+  element.getGraph().panIntoView(element, { offset: 20, minimumVisible: 100 });
+};
+
 /** Returns true when a collapsed ancestor hides the node from keyboard navigation. */
 export const isHiddenByCollapsedAncestor = (element: Node): boolean => {
   const graph = element.getGraph();
