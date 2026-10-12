@@ -1,9 +1,8 @@
-import { EmptyExperimentsState } from '@odh-dashboard/autox-core/ui/components/feature';
-import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
+import { EmptyDetailsView, ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
 import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
-import { Alert, Spinner } from '@patternfly/react-core';
+import { Alert, Button, Spinner, Tooltip } from '@patternfly/react-core';
 import React from 'react';
-import { useParams } from 'react-router';
+import { Link, useParams } from 'react-router';
 import { AutoragRunsTable } from '~/app/components/AutoragRunsTable';
 import PipelineServerSetup from '~/app/components/empty-states/PipelineServerSetup';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
@@ -28,6 +27,8 @@ type AutoragExperimentsProps = {
    * header "Create AutoRAG optimization run" action while the centered empty state is shown).
    */
   onExperimentsListStatus?: (status: AutoragExperimentsListStatus) => void;
+  canCreateRun?: boolean;
+  createRunDisabledReason?: string;
 };
 
 /**
@@ -38,6 +39,8 @@ type AutoragExperimentsProps = {
  */
 function AutoragExperiments({
   onExperimentsListStatus,
+  canCreateRun = true,
+  createRunDisabledReason = 'Configure the AutoRAG prerequisites in this project before creating a run.',
 }: AutoragExperimentsProps): React.JSX.Element {
   const { namespace } = useParams();
 
@@ -178,13 +181,35 @@ function AutoragExperiments({
 
   if (!hasExperiments) {
     return (
-      <EmptyExperimentsState
-        createExperimentRoute={`${autoragConfigurePathname}/${effectiveNamespace}`}
-        title="Create an AutoRAG optimization run"
-        description="Test different retrieval and model configurations to find the best-performing setup."
-        iconImage={typedEmptyImage(ProjectObjectType.pipeline)}
-        dataTestId="empty-experiments-state"
-      />
+      <div data-testid="empty-experiments-state">
+        <EmptyDetailsView
+          title="Create an AutoRAG optimization run"
+          description="Test different retrieval and model configurations to find the best-performing setup."
+          iconImage={typedEmptyImage(ProjectObjectType.pipeline)}
+          imageAlt=""
+          createButton={
+            canCreateRun ? (
+              <Button
+                data-testid="create-run-button"
+                variant="primary"
+                component={(props) => (
+                  <Link {...props} to={`${autoragConfigurePathname}/${effectiveNamespace}`} />
+                )}
+              >
+                Create run
+              </Button>
+            ) : (
+              <Tooltip content={createRunDisabledReason}>
+                <span>
+                  <Button data-testid="create-run-button" variant="primary" isDisabled>
+                    Create run
+                  </Button>
+                </span>
+              </Tooltip>
+            )
+          }
+        />
+      </div>
     );
   }
 

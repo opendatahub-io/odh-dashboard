@@ -12,6 +12,12 @@ let mockListStatusReport: { loaded: boolean; hasExperiments: boolean } = {
 /** Captures payloads passed to onExperimentsListStatus from the mock child (passive useEffect; matches prod). */
 const autoragMockChildNotifyLog: { loaded: boolean; hasExperiments: boolean }[] = [];
 
+const mockUseSecretsQuery = jest.fn();
+
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  useSecretsQuery: (...args: unknown[]) => mockUseSecretsQuery(...args),
+}));
+
 jest.mock('~/app/components/experiments/AutoragExperiments', () => {
   const R = jest.requireActual<typeof import('react')>('react');
   const router = jest.requireActual<typeof import('react-router')>('react-router');
@@ -98,6 +104,11 @@ describe('AutoragExperimentsPage', () => {
     mockListStatusReport = { loaded: false, hasExperiments: false };
     autoragMockChildNotifyLog.length = 0;
     mockUseNamespaceSelector.mockReturnValue(defaultNamespaceSelector);
+    mockUseSecretsQuery.mockReturnValue({
+      data: [{ uuid: 'configured-secret', name: 'configured-secret' }],
+      isPending: false,
+      isError: false,
+    });
   });
 
   it('does not show header create run button while list status is loading', () => {
