@@ -197,13 +197,11 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	// Migrate the legacy last-known-good portal URL before any reconciliation
-	// step can fail and persist status without reaching portal reconciliation.
-	backfillMaaSPortalURL(&dashboard.Status)
+	migrateMaaSPortalStatus(dashboard)
 
 	// Ready is the rollup condition — auto-derived by the Manager from
 	// ProvisioningSucceeded, Degraded, ObservabilityAvailable, and
-	// MaaSConsumerPortalAvailable. It is set explicitly only when both operands are
+	// MaaSPortalAvailable. It is set explicitly only when both operands are
 	// Removed. The manager is built
 	// here, before the managementState branch, because the MaaS Portal is
 	// reconciled unconditionally below regardless of the core dashboard's state.

@@ -77,7 +77,7 @@ func TestGetMaaSModelsPropagatesURLValidation(t *testing.T) {
 	k8s := &mockK8sService{
 		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
 			return &v1.Secret{Data: map[string][]byte{
-				"MAAS_BASE_URL": []byte("http://maas-api.namespace.svc.cluster.local"),
+				"MAAS_BASE_URL": []byte("https://maas-api.namespace.svc.cluster.local"),
 				"MAAS_API_KEY":  []byte("key"),
 			}}, nil
 		},

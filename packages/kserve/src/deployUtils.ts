@@ -68,6 +68,9 @@ export const applyAiAvailableAssetAnnotations = (
   aiAvailableAsset: ModelAvailabilityFieldsData,
 ): InferenceServiceKind => {
   const result = structuredClone(inferenceService);
+
+  // A platform-specific transformer can remove this generic metadata after this apply step.
+  // MaaS does so when MaaSModelRef provides subscribed-user discovery instead.
   result.metadata.labels = {
     ...result.metadata.labels,
     'opendatahub.io/genai-asset': aiAvailableAsset.saveAsAiAsset ? 'true' : 'false',
