@@ -1,4 +1,4 @@
-import type { TemplateKind } from '@odh-dashboard/k8s-core';
+import type { K8sDSGResource, TemplateKind } from '@odh-dashboard/k8s-core';
 import { GENERAL_SETTINGS_PATH } from './const';
 import type { PlaceholderRuntimeImageActionData } from './placeholder-types';
 import { ServingRuntimeAPIProtocol, ServingRuntimeModelType } from '../../shared';
@@ -39,10 +39,22 @@ export const mockRuntimeImageActionData = (): PlaceholderRuntimeImageActionData 
         ],
         parameters: [],
       } satisfies TemplateKind),
-      llmAcceleratorConfiguration: {
-        displayName: 'vLLM 0.6.0',
-        configYaml: 'apiVersion: serving.kserve.io/v1alpha1\nkind: LLMInferenceServiceConfig\n',
-      },
+      llmInferenceServiceConfig: JSON.stringify({
+        apiVersion: 'serving.kserve.io/v1alpha2',
+        kind: 'LLMInferenceServiceConfig',
+        metadata: {
+          name: 'vllm-0-6-0',
+          annotations: {
+            'openshift.io/display-name': 'vLLM 0.6.0',
+            'opendatahub.io/runtime-version': '0.6.0',
+          },
+        },
+        spec: {
+          template: {
+            containers: [{ name: 'main', image: 'quay.io/example/vllm:0.6.0' }],
+          },
+        },
+      } satisfies K8sDSGResource),
     },
   };
 };

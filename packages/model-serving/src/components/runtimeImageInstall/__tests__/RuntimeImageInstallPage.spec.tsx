@@ -49,7 +49,7 @@ const servingTarget: RuntimeImageInstallTargetExtension = {
 const acceleratorTarget: RuntimeImageInstallTargetExtension = {
   type: 'model-serving.runtime-image/install-target',
   properties: {
-    id: 'llmAcceleratorConfiguration',
+    id: 'llmInferenceServiceConfig',
     label: 'LLM accelerator configuration',
     description: 'Install as an LLMInferenceServiceConfig for LLM inference service deployments.',
     selectedState: {
@@ -111,8 +111,8 @@ describe('RuntimeImageInstallPage', () => {
     renderPage({
       ...mockRuntimeImageActionData(),
       deploymentResources: {
-        llmAcceleratorConfiguration:
-          mockRuntimeImageActionData().deploymentResources.llmAcceleratorConfiguration,
+        llmInferenceServiceConfig:
+          mockRuntimeImageActionData().deploymentResources.llmInferenceServiceConfig,
       },
     });
     expect(
@@ -158,6 +158,17 @@ describe('RuntimeImageInstallPage', () => {
     await screen.findByTestId('target-payload');
     fireEvent.click(screen.getByRole('link', { name: 'Cancel configuration' }));
     expect(screen.getByText('Returned to General settings')).toBeInTheDocument();
+  });
+
+  it('should hand off the full LLM resource JSON string using the renamed target key', async () => {
+    mockExtensions = [acceleratorTarget];
+    const data = mockRuntimeImageActionData();
+    renderPage(data);
+    fireEvent.click(screen.getByRole('radio', { name: /LLM accelerator configuration/ }));
+    fireEvent.click(screen.getByTestId('runtime-image-install-next'));
+    expect((await screen.findByTestId('target-payload')).textContent).toBe(
+      data.deploymentResources.llmInferenceServiceConfig,
+    );
   });
 
   it('should use the first duplicate target extension', () => {

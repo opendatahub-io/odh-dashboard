@@ -668,7 +668,7 @@ const extensions: (
       required: [LLMD_SERVING_ID, ADMIN_USER, SupportedArea.VLLM_ON_MAAS],
     },
     properties: {
-      id: 'llmAcceleratorConfiguration',
+      id: 'llmInferenceServiceConfig',
       label: 'LLM accelerator configuration',
       description: 'Install as an LLMInferenceServiceConfig for LLM inference service deployments.',
       selectedState: {
