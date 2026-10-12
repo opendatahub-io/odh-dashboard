@@ -62,6 +62,11 @@ func main() {
 
 	flag.Parse()
 
+	if err := cfg.Validate(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: cfg.LogLevel,
 	}))
@@ -93,11 +98,6 @@ func main() {
 
 	// Prevent disabling TLS verification in production — all authenticated outbound
 	// clients (pipelines and S3) send bearer or SA tokens over TLS.
-	if cfg.InsecureSkipVerify && !cfg.DevMode {
-		logger.Error("insecure-skip-verify can only be enabled in development mode (set -dev-mode flag)")
-		os.Exit(1)
-	}
-
 	// In dev mode, auto-disable auth when any mock client is active for testing convenience.
 	if cfg.DevMode &&
 		(cfg.MockK8sClient || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockMaaSClient) &&
@@ -133,14 +133,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.Port),
-		Handler:      app.Routes(),
-		IdleTimeout:  time.Minute,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
-		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
-	}
+	srv := newHTTPServer(cfg.Port, app.Routes(), logger)
 
 	if certFile != "" && keyFile != "" {
 		tlsCfg, err := tlsprofile.ServerTLSConfig(context.Background(), logger)
@@ -189,4 +182,30 @@ func main() {
 
 	logger.Info("server stopped")
 	os.Exit(0)
+}
+
+func newHTTPServer(port int, handler http.Handler, logger *slog.Logger) *http.Server {
+	return newHTTPServerWithWriteTimeout(port, handler, logger, nonStreamingWriteTimeout)
+}
+
+const nonStreamingWriteTimeout = 130 * time.Second
+
+func newHTTPServerWithWriteTimeout(port int, handler http.Handler, logger *slog.Logger, writeTimeout time.Duration) *http.Server {
+	return &http.Server{
+		Addr:    fmt.Sprintf(":%d", port),
+		Handler: withWriteDeadline(handler, writeTimeout),
+		// A finite per-request deadline protects both ordinary and streaming responses.
+		IdleTimeout: time.Minute,
+		ReadTimeout: 30 * time.Second,
+		ErrorLog:    slog.NewLogLogger(logger.Handler(), slog.LevelError),
+	}
+}
+
+func withWriteDeadline(handler http.Handler, timeout time.Duration) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if timeout > 0 {
+			_ = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(timeout))
+		}
+		handler.ServeHTTP(w, r)
+	})
 }

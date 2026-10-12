@@ -28,6 +28,7 @@ import (
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/controller/conditions"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
 
@@ -113,6 +114,103 @@ func conditionReason(dashboard *v1alpha1.Dashboard, conditionType string) string
 	}
 
 	return ""
+}
+
+func TestIntegration_MaaSPortalConditionMigration(t *testing.T) {
+	tests := []struct {
+		name         string
+		coreState    common.ManagementState
+		portalState  string
+		platform     cluster.Platform
+		portalReady  bool
+		wantReason   string
+		wantSeverity common.ConditionSeverity
+		wantReady    metav1.ConditionStatus
+		wantPhase    common.Phase
+	}{
+		{name: "core only", coreState: "Managed", portalState: "Removed", platform: cluster.SelfManagedRhoai, wantReason: "Disabled", wantSeverity: common.ConditionSeverityInfo, wantReady: metav1.ConditionTrue, wantPhase: common.PhaseReady},
+		{name: "portal only", coreState: "Removed", portalState: "Managed", platform: cluster.SelfManagedRhoai, portalReady: true, wantReason: "Deployed", wantReady: metav1.ConditionTrue, wantPhase: common.PhaseReady},
+		{name: "combined", coreState: "Managed", portalState: "Managed", platform: cluster.SelfManagedRhoai, portalReady: true, wantReason: "Deployed", wantReady: metav1.ConditionTrue, wantPhase: common.PhaseReady},
+		{name: "both removed", coreState: "Removed", portalState: "Removed", platform: cluster.SelfManagedRhoai, wantReason: "Disabled", wantSeverity: common.ConditionSeverityInfo, wantReady: metav1.ConditionFalse, wantPhase: common.PhaseNotReady},
+		{name: "unsupported with core", coreState: "Managed", portalState: "Managed", platform: cluster.OpenDataHub, wantReason: "UnsupportedPlatform", wantSeverity: common.ConditionSeverityInfo, wantReady: metav1.ConditionTrue, wantPhase: common.PhaseReady},
+		{name: "unsupported without core", coreState: "Removed", portalState: "Managed", platform: cluster.OpenDataHub, wantReason: "UnsupportedPlatform", wantSeverity: common.ConditionSeverityInfo, wantReady: metav1.ConditionTrue, wantPhase: common.PhaseReady},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			base := createIntegrationManifests(t, []string{"maas", "gen-ai"})
+			writeMaaSPortalManifest(t, base)
+			r := &ctrlpkg.DashboardReconciler{
+				Client: k8sClient, Scheme: k8sClient.Scheme(), ManifestsBasePath: base,
+				Platform: tt.platform, Namespace: integrationNamespace, ApplicationsNamespace: integrationNamespace,
+			}
+			dashboard := newDashboard(v1alpha1.DashboardSpec{
+				ManagementSpec: common.ManagementSpec{ManagementState: tt.coreState},
+				Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+				Modules:        disableAllModulesExcept("maas", "genAi"),
+				MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: tt.portalState},
+				Observability:  &v1alpha1.ObservabilitySpec{Enabled: false},
+			})
+			require.NoError(t, k8sClient.Create(ctx, dashboard))
+			t.Cleanup(func() {
+				deleteDashboard(t)
+				cleanupMaaSPortalResources(t, r)
+				cleanupModuleResources(t)
+			})
+			reconcile(t, r)
+			reconcile(t, r)
+			for _, component := range []string{"maas", "gen-ai"} {
+				for _, deployment := range listDeployments(t, component) {
+					deployment.Status.Replicas = 1
+					deployment.Status.ReadyReplicas = 1
+					require.NoError(t, k8sClient.Status().Update(ctx, &deployment))
+				}
+			}
+			if tt.portalReady {
+				deployment := &appsv1.Deployment{}
+				require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-portal", Namespace: integrationNamespace}, deployment))
+				deployment.Status.ObservedGeneration = deployment.Generation
+				deployment.Status.Conditions = []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue}}
+				require.NoError(t, k8sClient.Status().Update(ctx, deployment))
+				route := &gatewayv1.HTTPRoute{}
+				require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-portal", Namespace: integrationNamespace}, route))
+				route.Status.Parents = []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
+					{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
+					{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
+				}}}
+				require.NoError(t, k8sClient.Status().Update(ctx, route))
+			}
+
+			// Model persisted pre-upgrade status with no canonical portal condition.
+			// A stale failure must not block healthy operands after migration.
+			dashboard = getDashboard(t)
+			conditions.RemoveStatusCondition(dashboard, ctrlpkg.ConditionMaaSPortalAvailable)
+			dashboard.Status.Conditions = append(dashboard.Status.Conditions, common.Condition{
+				Type: ctrlpkg.LegacyConditionMaaSConsumerPortalAvailable, Status: metav1.ConditionFalse,
+				Reason: "MaaSConsumerPortalDeployFailed", Severity: common.ConditionSeverityError,
+				LastTransitionTime: metav1.Now(),
+			})
+			require.NoError(t, k8sClient.Status().Update(ctx, dashboard))
+			require.NotNil(t, conditions.FindStatusCondition(getDashboard(t), ctrlpkg.LegacyConditionMaaSConsumerPortalAvailable))
+			reconcile(t, r)
+
+			updated := getDashboard(t)
+			assert.Nil(t, conditions.FindStatusCondition(updated, ctrlpkg.LegacyConditionMaaSConsumerPortalAvailable))
+			portal := conditions.FindStatusCondition(updated, "MaaSPortalAvailable")
+			require.NotNil(t, portal)
+			assert.Equal(t, tt.wantReason, portal.Reason)
+			if tt.wantSeverity != "" {
+				assert.Equal(t, tt.wantSeverity, portal.Severity)
+			}
+			if tt.portalReady {
+				assert.Equal(t, metav1.ConditionTrue, portal.Status)
+			} else {
+				assert.Equal(t, metav1.ConditionFalse, portal.Status)
+			}
+			assert.Equal(t, tt.wantReady, conditionStatus(updated, string(common.ConditionTypeReady)))
+			assert.Equal(t, tt.wantPhase, updated.Status.Phase)
+		})
+	}
 }
 
 func TestIntegration_CoreDashboardAndMaaSPortalRoutesShareGateway(t *testing.T) {
@@ -283,7 +381,7 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 	updated := getDashboard(t)
 	assert.Equal(t, common.PhaseReady, updated.Status.Phase)
 	assert.Equal(t, metav1.ConditionTrue, conditionStatus(updated, string(common.ConditionTypeReady)))
-	assert.Equal(t, metav1.ConditionTrue, conditionStatus(updated, "MaaSConsumerPortalAvailable"))
+	assert.Equal(t, metav1.ConditionTrue, conditionStatus(updated, "MaaSPortalAvailable"))
 	assert.Equal(t, "https://test.example.com/maas-consumer-portal/", updated.Status.MaaSPortalURL)
 
 	// Updating a portal input reapplies the complete bundle, but retains the
@@ -334,7 +432,7 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 	result := reconcile(t, &failingReconciler)
 	assert.Equal(t, ctrlpkg.MaaSPortalRetryInterval, result.RequeueAfter)
 	updated = getDashboard(t)
-	assert.Equal(t, "MaaSConsumerPortalDeployFailed", conditionReason(updated, "MaaSConsumerPortalAvailable"))
+	assert.Equal(t, "MaaSPortalDeployFailed", conditionReason(updated, "MaaSPortalAvailable"))
 	assert.Equal(t, "https://updated.example.com/maas-consumer-portal/", updated.Status.MaaSPortalURL)
 
 	// service-ca normally creates this unlabelled Secret; model it explicitly to
@@ -411,9 +509,9 @@ func TestIntegration_MaaSPortalResourcesPreservedWhenCoreRemoved(t *testing.T) {
 	assert.NotNil(t, getPortalResource(t, "gateway.networking.k8s.io/v1", "HTTPRoute", "maas-portal"))
 
 	updated := getDashboard(t)
-	assert.Equal(t, metav1.ConditionFalse, conditionStatus(updated, "MaaSConsumerPortalAvailable"),
+	assert.Equal(t, metav1.ConditionFalse, conditionStatus(updated, "MaaSPortalAvailable"),
 		"MaaS Portal must report unavailable when its explicitly disabled MaaS/GenAI dependencies are missing")
-	assert.Equal(t, "RequiredModuleUnavailable", conditionReason(updated, "MaaSConsumerPortalAvailable"))
+	assert.Equal(t, "MaaSPortalRequiredModuleUnavailable", conditionReason(updated, "MaaSPortalAvailable"))
 }
 
 func TestIntegration_MaaSPortalModuleDemandMatrix(t *testing.T) {
