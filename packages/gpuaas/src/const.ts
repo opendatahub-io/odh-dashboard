@@ -16,44 +16,54 @@ const compareQueuePosition = (a?: string, b?: string): number => {
 
 export const getInfrastructureWorkloadsTableColumns = (
   kueueEnabled: boolean,
-): SortableData<InfrastructureWorkloadRow>[] => [
-  {
-    field: 'name',
-    label: 'Name',
-    sortable: (a, b) => a.name.localeCompare(b.name),
-  },
-  {
-    field: 'type',
-    label: 'Type',
-    sortable: (a, b) => a.type.localeCompare(b.type),
-  },
-  {
-    field: 'status',
-    label: 'Status',
-    sortable: (a, b) => a.status.label.localeCompare(b.status.label),
-  },
-  ...(kueueEnabled
-    ? [
-        {
-          field: 'queuePosition',
-          label: 'Queue position',
-          sortable: (a: InfrastructureWorkloadRow, b: InfrastructureWorkloadRow) =>
-            compareQueuePosition(a.queuePosition, b.queuePosition),
-        },
-        {
-          field: 'priority',
-          label: 'Priority class',
-          sortable: (a: InfrastructureWorkloadRow, b: InfrastructureWorkloadRow) =>
-            (a.priority ?? '').localeCompare(b.priority ?? ''),
-        },
-      ]
-    : []),
-  {
+): SortableData<InfrastructureWorkloadRow>[] => {
+  const columns: SortableData<InfrastructureWorkloadRow>[] = [
+    {
+      field: 'name',
+      label: 'Name',
+      sortable: (a, b) => a.name.localeCompare(b.name),
+      width: kueueEnabled ? 30 : 40,
+    },
+    {
+      field: 'type',
+      label: 'Type',
+      sortable: (a, b) => a.type.localeCompare(b.type),
+      width: kueueEnabled ? 15 : 20,
+    },
+    {
+      field: 'status',
+      label: 'Status',
+      sortable: (a, b) => a.status.label.localeCompare(b.status.label),
+      width: kueueEnabled ? 15 : 20,
+    },
+  ];
+
+  if (kueueEnabled) {
+    columns.push(
+      {
+        field: 'queuePosition',
+        label: 'Queue position',
+        sortable: (a, b) => compareQueuePosition(a.queuePosition, b.queuePosition),
+        width: 15,
+      },
+      {
+        field: 'priority',
+        label: 'Priority class',
+        sortable: (a, b) => (a.priority ?? '').localeCompare(b.priority ?? ''),
+        width: 10,
+      },
+    );
+  }
+
+  columns.push({
     field: 'hardwareProfile',
     label: 'Hardware profile',
     sortable: (a, b) => (a.hardwareProfile ?? '').localeCompare(b.hardwareProfile ?? ''),
-  },
-];
+    width: kueueEnabled ? 15 : 20,
+  });
+
+  return columns;
+};
 
 export const INFRASTRUCTURE_PAGE_DESCRIPTION =
   'View accelerator utilization, cluster queue cohort configuration, and workload details.';
