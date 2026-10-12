@@ -6,12 +6,7 @@ import TabContentWrapper from '~/app/Chatbot/components/settingsPanelTabs/TabCon
 import SystemPromptFormGroup from '~/app/Chatbot/components/SystemInstructionFormGroup';
 import PromptAssistantFormGroup from '~/app/Chatbot/components/PromptAssistantFormGroup';
 import RhUiUploadIcon from '~/app/images/icons/RhUiUploadIcon';
-import {
-  useChatbotConfigStore,
-  selectActivePrompt,
-  selectDirtyPrompt,
-  DEFAULT_CONFIG_ID,
-} from '~/app/Chatbot/store';
+import { useChatbotConfigStore, selectDirtyPrompt, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { useConfirmation } from '~/app/Chatbot/hooks/useConfirmation';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
@@ -30,7 +25,6 @@ function PromptTabContent({
   onSystemInstructionChange,
 }: PromptTabContentProps): React.ReactNode {
   const { openModal } = usePlaygroundStore();
-  const activePrompt = useChatbotConfigStore(selectActivePrompt(configId));
   const dirtyPrompt = useChatbotConfigStore(selectDirtyPrompt(configId));
   const clearPromptState = useChatbotConfigStore((state) => state.clearPromptState);
   const isEdited = usePromptEdited(configId);
@@ -91,18 +85,16 @@ function PromptTabContent({
       <TabContentWrapper
         title={dirtyPrompt?.name || 'New Prompt'}
         titleActions={
-          (activePrompt || dirtyPrompt) && (
-            <Tooltip content="Clear loaded prompt" position="top">
-              <span>
-                <DrawerCloseButton
-                  data-testid="clear-loaded-prompt-button"
-                  aria-label="Clear loaded prompt"
-                  onClick={handleClearPromptClick}
-                  title="Clear loaded prompt"
-                />
-              </span>
-            </Tooltip>
-          )
+          <Tooltip content="Clear loaded prompt" position="top">
+            <span>
+              <DrawerCloseButton
+                data-testid="clear-loaded-prompt-button"
+                aria-label="Clear loaded prompt"
+                onClick={handleClearPromptClick}
+                title="Clear loaded prompt"
+              />
+            </span>
+          </Tooltip>
         }
         headerActions={buildHeaderActions()}
       >

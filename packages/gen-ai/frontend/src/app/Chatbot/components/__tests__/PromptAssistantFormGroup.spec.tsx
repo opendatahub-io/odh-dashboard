@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import PromptAssistantFormGroup from '~/app/Chatbot/components/PromptAssistantFormGroup';
 import { MLflowPromptVersion } from '~/app/types';
 import * as chatbotStore from '~/app/Chatbot/store';
@@ -82,17 +82,6 @@ const mockGlobalPrompt: MLflowPromptVersion = {
   created_at: '2024-01-20T12:00:00Z',
   updated_at: '2024-01-20T12:00:00Z',
   scope: { type: 'global', namespace: 'rhoai-templates', read_only: true },
-};
-
-const mockGlobalEditablePrompt: MLflowPromptVersion = {
-  name: 'global-editable-prompt',
-  version: 1,
-  template: 'You are an editable global template.',
-  commit_message: 'Editable template',
-  tags: {},
-  created_at: '2024-01-20T12:00:00Z',
-  updated_at: '2024-01-20T12:00:00Z',
-  scope: { type: 'global', namespace: 'shared-team-prompts', read_only: false },
 };
 
 const mockPromptWithoutScope: MLflowPromptVersion = {
@@ -291,11 +280,6 @@ describe('PromptAssistantFormGroup', () => {
       selectDirtyPrompt.mockReturnValue(() => activePrompt);
 
       render(<PromptAssistantFormGroup {...defaultProps} />);
-
-      // Activate edit mode by clicking the Edit button
-      act(() => {
-        screen.getByTestId('prompt-edit-button').click();
-      });
     }
 
     it('should show disabled Save and enabled Save As for global prompts', () => {
@@ -340,32 +324,14 @@ describe('PromptAssistantFormGroup', () => {
     });
   });
 
-  describe('Read-only prompt controls', () => {
-    it('should keep Edit button enabled for read-only prompts so Save As is accessible', () => {
-      const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
-      selectActivePrompt.mockReturnValue(() => mockGlobalPrompt);
-
-      render(<PromptAssistantFormGroup {...defaultProps} />);
-
-      expect(screen.getByTestId('prompt-edit-button')).not.toBeDisabled();
-    });
-
-    it('should enable Edit button when prompt is not read-only', () => {
-      const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
-      selectActivePrompt.mockReturnValue(() => mockGlobalEditablePrompt);
-
-      render(<PromptAssistantFormGroup {...defaultProps} />);
-
-      expect(screen.getByTestId('prompt-edit-button')).not.toBeDisabled();
-    });
-
-    it('should enable Edit button for project prompts', () => {
+  describe('Prompt editing controls', () => {
+    it('should make loaded prompt instructions directly editable', () => {
       const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
       selectActivePrompt.mockReturnValue(() => mockProjectPrompt);
 
       render(<PromptAssistantFormGroup {...defaultProps} />);
 
-      expect(screen.getByTestId('prompt-edit-button')).not.toBeDisabled();
+      expect(screen.getByTestId('system-instructions-input')).not.toHaveAttribute('readonly');
     });
   });
 });

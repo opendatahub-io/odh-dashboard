@@ -1,5 +1,16 @@
 import * as React from 'react';
-import { Button, Flex, Label, Panel, TextArea, Stack, Tooltip } from '@patternfly/react-core';
+import {
+  Button,
+  Flex,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  Label,
+  Panel,
+  TextArea,
+  Stack,
+  Tooltip,
+} from '@patternfly/react-core';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
@@ -52,7 +63,6 @@ export default function PromptAssistantFormGroup({
   const resetDirtyPrompt = useChatbotConfigStore((state) => state.resetDirtyPrompt);
   const variableValues = useChatbotConfigStore(selectVariableValues(configId));
   const updateVariableValues = useChatbotConfigStore((state) => state.updateVariableValues);
-  const [editMode, setEditMode] = React.useState(true);
   const [isTextAreaFocused, setIsTextAreaFocused] = React.useState(false);
   const activeTemplate =
     activePrompt?.template ??
@@ -62,10 +72,6 @@ export default function PromptAssistantFormGroup({
 
   useSafeBrowserUnloadBlocker(isEdited);
   const { confirm, modal: confirmationModal } = useConfirmation(isEdited);
-
-  React.useEffect(() => {
-    setEditMode(!activePrompt);
-  }, [activePrompt]);
 
   function handleTextChange(value: string) {
     onSystemInstructionChange(value);
@@ -77,7 +83,6 @@ export default function PromptAssistantFormGroup({
   function handleRevert() {
     resetDirtyPrompt(configId);
     onSystemInstructionChange(activeTemplate || DEFAULT_SYSTEM_INSTRUCTIONS);
-    setEditMode(false);
   }
 
   function handleVersionSwitch(version: MLflowPromptVersion) {
@@ -86,7 +91,6 @@ export default function PromptAssistantFormGroup({
       const instruction =
         version.template ?? version.messages?.find((m) => m.role === 'system')?.content ?? '';
       onSystemInstructionChange(instruction);
-      setEditMode(false);
       fireMiscTrackingEvent('Playground Prompt Version Switched', {
         fromVersion: activePrompt?.version,
         toVersion: version.version,
@@ -109,7 +113,6 @@ export default function PromptAssistantFormGroup({
   const isGlobalPrompt = activePrompt?.scope?.type === 'global';
 
   function handleSaveClicked() {
-    setEditMode(false);
     const newPrompt: MLflowPromptVersion = dirtyPrompt
       ? { ...dirtyPrompt, template: systemInstruction }
       : { ...buildPromptStub(), template: systemInstruction };
@@ -121,7 +124,6 @@ export default function PromptAssistantFormGroup({
   }
 
   function handleSaveAsClicked() {
-    setEditMode(false);
     const newPrompt: MLflowPromptVersion = dirtyPrompt
       ? { ...dirtyPrompt, template: systemInstruction }
       : { ...buildPromptStub(), template: systemInstruction };
@@ -153,7 +155,7 @@ export default function PromptAssistantFormGroup({
       {confirmationModal}
       <Panel>
         <Stack hasGutter>
-          <Flex>
+          <Flex gap={{ default: 'gapSm' }}>
             {activePrompt?.scope && (
               <Label
                 data-testid="prompt-scope-label"
@@ -177,17 +179,39 @@ export default function PromptAssistantFormGroup({
                 data-testid="prompt-unsaved-indicator"
                 className={`${text.textColorPlaceholder} pf-v6-u-font-size-sm`}
               >
-                Unsaved
+                <i>Unsaved</i>
               </div>
+            )}
+            {activePrompt && (
+              <Button
+                data-testid="prompt-revert-button"
+                variant="plain"
+                isDanger
+                className={isEdited ? 'pf-v6-u-text-color-status-danger' : undefined}
+                isDisabled={!isEdited}
+                onClick={() =>
+                  confirm(handleRevert, {
+                    ...CONFIRMATION_CONFIG,
+                    onConfirmTracking: () =>
+                      fireMiscTrackingEvent('Playground Prompt Reverted', {
+                        outcome: 'submit',
+                      }),
+                    onCancelTracking: () =>
+                      fireMiscTrackingEvent('Playground Prompt Reverted', {
+                        outcome: 'cancel',
+                      }),
+                  })
+                }
+              >
+                Revert
+              </Button>
             )}
           </Flex>
           <TextArea
-            className={!editMode ? 'pf-m-readonly' : undefined}
             id="system-instructions-input"
             type="text"
             value={systemInstruction}
-            readOnly={!editMode}
-            autoResize={!!activePrompt || isTextAreaFocused}
+            autoResize={isTextAreaFocused || !!activePrompt}
             resizeOrientation="vertical"
             onFocus={() => setIsTextAreaFocused(true)}
             onChange={(_event, value) => handleTextChange(value)}
@@ -195,80 +219,44 @@ export default function PromptAssistantFormGroup({
             rows={2}
             data-testid="system-instructions-input"
           />
-          {!editMode && (
-            <Flex>
+          <FormHelperText className="pf-v6-u-mt-xs">
+            <HelperText>
+              <HelperTextItem>
+                Wrap variables with double curly braces, e.g. {'{{ name }}'}. Variable slots appear
+                below the instructions when placeholders are detected.
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+          <Flex>
+            {isGlobalPrompt ? (
+              <Flex style={{ gap: 'var(--pf-t--global--spacer--sm)' }}>
+                <Tooltip content="This prompt is read-only. Use Save As to create your own copy.">
+                  <span>
+                    <Button data-testid="prompt-save-to-registry-button" variant="link" isDisabled>
+                      Save
+                    </Button>
+                  </span>
+                </Tooltip>
+                <Button
+                  data-testid="prompt-save-as-button"
+                  variant={isEdited ? 'primary' : 'link'}
+                  isDisabled={!isEdited}
+                  onClick={handleSaveAsClicked}
+                >
+                  Save As
+                </Button>
+              </Flex>
+            ) : (
               <Button
-                data-testid="prompt-edit-button"
-                variant="primary"
-                onClick={() => {
-                  setEditMode(true);
-                  fireMiscTrackingEvent('Playground Prompt Edit Selected', {
-                    source: 'button',
-                  });
-                }}
+                data-testid="prompt-save-to-registry-button"
+                variant={isEdited ? 'primary' : 'link'}
+                isDisabled={!isEdited}
+                onClick={handleSaveClicked}
               >
-                Edit
+                Save
               </Button>
-            </Flex>
-          )}
-          {editMode && (
-            <Flex>
-              {isGlobalPrompt ? (
-                <Flex style={{ gap: 'var(--pf-t--global--spacer--sm)' }}>
-                  <Tooltip content="This prompt is read-only. Use Save As to create your own copy.">
-                    <span>
-                      <Button
-                        data-testid="prompt-save-to-registry-button"
-                        variant="primary"
-                        isDisabled
-                      >
-                        Save
-                      </Button>
-                    </span>
-                  </Tooltip>
-                  <Button
-                    data-testid="prompt-save-as-button"
-                    variant="primary"
-                    isDisabled={!isEdited}
-                    onClick={handleSaveAsClicked}
-                  >
-                    Save As
-                  </Button>
-                </Flex>
-              ) : (
-                <Button
-                  data-testid="prompt-save-to-registry-button"
-                  variant="primary"
-                  isDisabled={!isEdited}
-                  onClick={handleSaveClicked}
-                >
-                  Save
-                </Button>
-              )}
-              {activePrompt ? (
-                <Button
-                  data-testid="prompt-revert-button"
-                  variant="link"
-                  isDisabled={!isEdited}
-                  onClick={() =>
-                    confirm(handleRevert, {
-                      ...CONFIRMATION_CONFIG,
-                      onConfirmTracking: () =>
-                        fireMiscTrackingEvent('Playground Prompt Reverted', {
-                          outcome: 'submit',
-                        }),
-                      onCancelTracking: () =>
-                        fireMiscTrackingEvent('Playground Prompt Reverted', {
-                          outcome: 'cancel',
-                        }),
-                    })
-                  }
-                >
-                  Revert
-                </Button>
-              ) : null}
-            </Flex>
-          )}
+            )}
+          </Flex>
           <PromptVariableInputPanel
             systemInstruction={systemInstruction}
             variableValues={variableValues}
