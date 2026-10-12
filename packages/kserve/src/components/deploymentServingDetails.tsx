@@ -7,19 +7,15 @@ import {
   findTemplateByName,
 } from '@odh-dashboard/model-serving/shared';
 import { LabelGroup, Stack, StackItem } from '@patternfly/react-core';
-import { renderDeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
-import ScopedLabel from '@odh-dashboard/ui-core/components/ScopedLabel';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import {
+  getServingRuntimeVersionStatus,
+  renderDeploymentResourceVersionLabels,
   SERVING_RUNTIME_SCOPE,
+  ServingRuntimeTemplateStatus,
+  ServingRuntimeVersionStatus,
   ServingRuntimeVersionStatusLabel,
-} from '@odh-dashboard/internal/pages/modelServing/screens/const';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import ServingRuntimeTemplateStatus from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeTemplateStatus';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import ServingRuntimeVersionStatus from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionStatus';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { getServingRuntimeVersionStatus } from '@odh-dashboard/internal/pages/modelServing/utils';
+} from '@odh-dashboard/model-serving/shared/components';
+import ScopedLabel from '@odh-dashboard/ui-core/components/ScopedLabel';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { K8sResourceCommon, TemplateKind } from '@odh-dashboard/k8s-core';
 import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';

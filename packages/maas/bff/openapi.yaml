@@ -2279,9 +2279,12 @@ components:
           additionalProperties:
             $ref: '#/components/schemas/SubscriptionDetail'
           description: >
-            Map of subscription name to its details (model names).
-            Populated by the BFF by fetching MaaSSubscription resources
-            for any subscription values found on the returned API keys.
+            Map of subscription name to its details (display name and model names)
+            for subscriptions referenced by the returned API keys. Used by the UI
+            to derive Inactive status (active key whose subscription is missing)
+            and to enrich the subscription column. For MaaS admins the BFF fills
+            this from a Kubernetes list of MaaSSubscription CRs; for non-admins
+            it uses the caller-scoped MaaS API /subscriptions list.
       required:
         - object
         - data

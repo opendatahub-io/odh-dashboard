@@ -49,6 +49,53 @@ describe('AI Playground - Chatbot Interactions (Mocked)', () => {
     });
 
     it(
+      'shows the vision capability message in the audio mock namespace',
+      { tags: ['@GenAI', '@Chatbot', '@UI'] },
+      () => {
+        chatbotPage.visit('mock-audio-namespace');
+        cy.findByTestId('settings-model-selector-toggle').should(
+          'contain.text',
+          'Llama 3.1 8B Instruct',
+        );
+
+        cy.intercept('POST', '**/api/v1/lsd/files/media?namespace=mock-audio-namespace').as(
+          'uploadImage',
+        );
+        cy.findByTestId('vision-file-input').selectFile('../../favicon.png', { force: true });
+        cy.wait('@uploadImage').its('response.statusCode').should('eq', 200);
+
+        cy.findByTestId('vision-file-preview').should('exist');
+        cy.findByTestId('image-capability-alert')
+          .should('contain.text', 'Vision capability not tagged')
+          .and('contain.text', "This model isn't tagged for vision capabilities");
+      },
+    );
+
+    it(
+      'aligns a pending audio attachment with the message bar frame',
+      { tags: ['@GenAI', '@Chatbot', '@UI'] },
+      () => {
+        chatbotPage.visit('mock-audio-namespace');
+        cy.findByTestId('audio-file-input').selectFile(
+          {
+            contents: Cypress.Buffer.from('audio-data'),
+            fileName: 'recording.wav',
+            mimeType: 'audio/wav',
+          },
+          { force: true },
+        );
+        cy.findByTestId('audio-model-needed-alert').should('be.visible');
+        cy.findByTestId('chatbot-message-bar-frame').then(($bar) => {
+          cy.findByTestId('audio-file-chip').should(($chip) => {
+            expect($chip[0].getBoundingClientRect().left).to.eq(
+              $bar[0].getBoundingClientRect().left,
+            );
+          });
+        });
+      },
+    );
+
+    it(
       'should send message and receive bot response',
       { tags: ['@GenAI', '@Chatbot', '@Interaction'] },
       () => {
@@ -275,7 +322,6 @@ describe('AI Playground - Chatbot Interactions (Mocked)', () => {
         chatbotPage.findChatModelOption('Mock Chat Model').should('be.visible').click();
         chatbotPage.findChatModelToggle().should('contain', 'Mock Chat Model');
         chatbotPage.findAddTranscriptionModelButton().should('be.visible').click();
-        chatbotPage.findAsrModelToggle().click();
         chatbotPage.findAsrModelOption(asrModelId).click();
         chatbotPage.findAsrModelToggle().should('contain', 'Mock Whisper ASR');
         chatbotPage.closeSettingsPanel();

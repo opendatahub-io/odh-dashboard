@@ -67,6 +67,10 @@ describe('API Keys Page', () => {
         ephemeral_max_expiration: '1h',
       },
     }).as('getApiKeyConfig');
+    cy.interceptOdh('GET /maas/api/v1/gateway-url', {
+      data: { url: 'https://api.example.com/maas-api' },
+    }).as('getGatewayUrl');
+
     apiKeysPage.visit();
     cy.wait('@initialSearch');
   });
@@ -270,6 +274,7 @@ describe('API Keys Page', () => {
 
     deletedSubscriptionRow.findSubscription().should('contain.text', 'deleted-sub');
     deletedSubscriptionRow.findSubscriptionDetailLink().should('not.exist');
+    deletedSubscriptionRow.findSubscriptionGovernanceLink().should('not.exist');
   });
 
   it('should display all API keys when the status filter is cleared', () => {
@@ -310,6 +315,81 @@ describe('API Keys Page', () => {
       .findSubscriptionDetailLink()
       .should('have.attr', 'href')
       .and('include', '/maas/keys-and-subs/subscriptions/premium-team-sub');
+  });
+
+  it('should show View in MaaS governance under the subscription for admins when the CR exists', () => {
+    const prodRow = apiKeysPage.getRow('production-backend');
+    prodRow
+      .findSubscriptionGovernanceLink()
+      .should('contain.text', 'View in MaaS governance')
+      .and('have.attr', 'href')
+      .and('include', '/maas/maas-governance/subscriptions/view/premium-team-sub');
+  });
+
+  it('should not link My Subscriptions for a sub the admin cannot access, but still show governance link', () => {
+    const inaccessibleSubKey: APIKey = {
+      id: 'key-inaccessible-sub-001',
+      name: 'other-user-inaccessible-sub-key',
+      description: 'Key on a subscription the admin does not have in My Subscriptions',
+      creationDate: '2026-01-10T10:00:00Z',
+      status: 'active',
+      username: 'other-user',
+      subscription: 'negative-priority-sub',
+    };
+
+    // BFF admin enrichment includes the CR in search subscriptionDetails even when
+    // it is absent from My Subscriptions (GET /subscriptions).
+    cy.interceptOdh(
+      'POST /maas/api/v1/api-keys/search',
+      mockSearchResponse([inaccessibleSubKey], {
+        ...mockSubscriptionDetails,
+        'negative-priority-sub': {
+          displayName: 'Negative Priority Subscription',
+          models: ['flan-t5-small'],
+        },
+      }),
+    ).as('searchInaccessibleSub');
+    // My Subscriptions: only premium/basic — not negative-priority-sub (no detail link)
+    cy.interceptOdh('GET /maas/api/v1/subscriptions', {
+      data: mockSubscriptionListItems(),
+    });
+
+    apiKeysPage.visit();
+    cy.wait('@searchInaccessibleSub');
+
+    const row = apiKeysPage.getRow('other-user-inaccessible-sub-key');
+    row.findStatus().should('contain.text', 'Active');
+    row.findSubscription().should('contain.text', 'Negative Priority Subscription');
+    row.findSubscriptionDetailLink().should('not.exist');
+    row
+      .findSubscriptionGovernanceLink()
+      .should('have.attr', 'href')
+      .and('include', '/maas/maas-governance/subscriptions/view/negative-priority-sub');
+  });
+
+  it('should not show View in MaaS governance for non-admin users', () => {
+    asProjectAdminUser();
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
+    cy.interceptOdh(
+      'POST /maas/api/v1/api-keys/search',
+      mockSearchResponse(
+        mockAPIKeys().filter((k) => k.status === 'active' || k.status === 'expired'),
+        mockSubscriptionDetails,
+      ),
+    ).as('userSearch');
+    cy.interceptOdh('GET /maas/api/v1/subscriptions', {
+      data: mockSubscriptionListItems(),
+    });
+
+    apiKeysPage.visit();
+    cy.wait('@userSearch');
+
+    const prodRow = apiKeysPage.getRow('production-backend');
+    prodRow
+      .findSubscriptionDetailLink()
+      .should('have.attr', 'href')
+      .and('include', '/maas/keys-and-subs/subscriptions/premium-team-sub');
+    prodRow.findSubscriptionGovernanceLink().should('not.exist');
   });
 
   it('should filter api keys by subscription and clear the filter', () => {
@@ -750,6 +830,51 @@ describe('API Keys Page', () => {
     copyApiKeyModal.shouldBeOpen();
     copyApiKeyModal.findApiKeyName().should('contain.text', 'max-expiration-key');
     copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '365 days (maximum)');
+  });
+
+  it('should display the correct information in the copy API key modal', () => {
+    cy.interceptOdh('POST /maas/api/v1/api-keys', {
+      data: mockCreateAPIKeyResponse(),
+    }).as('createApiKey');
+
+    apiKeysPage.findCreateApiKeyButton().click();
+    createApiKeyModal.shouldBeOpen();
+    cy.wait('@getSubscriptions');
+    createApiKeyModal.findExpirationModeToggle().should('contain.text', 'On date');
+    createApiKeyModal.findExpirationDateInput().should('exist');
+    createApiKeyModal.findSubmitButton().should('be.disabled');
+    createApiKeyModal.findSubscriptionToggle().click();
+    createApiKeyModal.findSubscriptionOption('premium-team-sub').click();
+    createApiKeyModal.findNameInput().type('production-backend');
+    createApiKeyModal.findDescriptionInput().type('Production API key for backend service');
+    createApiKeyModal.findSubmitButton().should('be.enabled');
+    createApiKeyModal.findSubmitButton().click();
+    cy.wait('@createApiKey').then((interception) => {
+      expect(interception.request.body?.data).to.include({ expiresIn: '1d' });
+      expect(interception.response?.body?.data).to.include({
+        name: 'production-backend',
+        expiresAt: '2026-01-20T11:54:34.521671447-05:00',
+      });
+    });
+
+    copyApiKeyModal.shouldBeOpen();
+    copyApiKeyModal.findApiKeyName().should('contain.text', 'production-backend');
+    copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '1 days');
+
+    copyApiKeyModal.findSubscriptionID().should('have.value', 'premium-team-sub');
+    copyApiKeyModal.findModelID().should('have.value', 'granite-3-8b-instruct');
+    copyApiKeyModal.findAvailableModelsToggle().should('exist');
+    copyApiKeyModal.findBaseURL().should('have.value', 'https://api.example.com/maas-api');
+    copyApiKeyModal
+      .findModelDocumentation()
+      .should('have.value', 'https://api.example.com/v1/models/granite-3-8b-instruct/docs');
+
+    //ensure documentation link is not displayed for external models
+    copyApiKeyModal.findAvailableModelsToggle().should('contain.text', 'Granite 3 8B Instruct');
+    copyApiKeyModal.selectAvailableModel('flan-t5-small');
+    copyApiKeyModal.findAvailableModelsToggle().should('contain.text', 'Flan T5 Small');
+    copyApiKeyModal.findModelID().should('have.value', 'flan-t5-small');
+    copyApiKeyModal.findModelDocumentation().should('not.exist'); // external
   });
 
   it('should show a validation error for an out-of-range after-days value', () => {

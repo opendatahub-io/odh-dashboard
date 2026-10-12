@@ -12,7 +12,12 @@
       "summary": "Automation, efficiency, and evidence depth cover the change."
     }
   ],
-  "todo": ["Address the readiness note if the author agrees it still applies."],
+  "todo": [
+    {
+      "category": "judgement",
+      "text": "Address the readiness note if the author agrees it still applies."
+    }
+  ],
   "risk": { "level": "low", "why": "The change is narrowly scoped." },
   "confidence": { "level": "high", "why": "All configured producers returned evidence." },
   "producers": {

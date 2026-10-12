@@ -8,6 +8,7 @@ import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { createEvaluationJob, getHardwareProfiles } from '~/app/api/k8s';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
 import type {
   FlatBenchmark,
@@ -157,6 +158,7 @@ const renderForm = (overrides = {}) =>
 describe('useStartEvaluationRunForm - Tracking Events', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockCreateEvaluationJob.mockReturnValue(() => Promise.resolve(mockEvaluationJob()));
     mockGetHardwareProfiles.mockReturnValue(() => Promise.resolve([mockCompatibleHardwareProfile]));
     mockHardwareProfilesLoaded = true;
     mockKueueAvailabilityLoaded = true;
@@ -666,6 +668,27 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         'Failed to start evaluation',
         expect.stringContaining('no longer available'),
       );
+    });
+
+    it('should notify the parent with the active collection after a non-aborted run failure', async () => {
+      const runError = new Error('Evaluation service unavailable');
+      const onRunFailure = jest.fn();
+      mockCreateEvaluationJob.mockReturnValue(() => Promise.reject(runError));
+      const renderResult = renderForm({
+        collection: mockCollection,
+        isCollectionFlow: true,
+        onRunFailure,
+      });
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', mockInferenceServices);
+      });
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(onRunFailure).toHaveBeenCalledWith(runError, mockCollection);
     });
   });
 

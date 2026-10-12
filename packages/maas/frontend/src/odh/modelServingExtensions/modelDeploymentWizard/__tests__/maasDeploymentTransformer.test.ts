@@ -51,6 +51,28 @@ describe('maasDeploymentTransformer', () => {
       expect(result.model.spec.router?.gateway?.refs).toEqual([MAAS_DEFAULT_GATEWAY]);
     });
 
+    it('should remove Gen AI asset metadata when MaaS is enabled', () => {
+      const deployment = createMockDeployment({
+        metadata: {
+          name: 'test-deployment',
+          namespace: 'test-namespace',
+          labels: { 'opendatahub.io/genai-asset': 'true' },
+          annotations: {
+            'opendatahub.io/genai-use-case': 'chat',
+            'security.opendatahub.io/enable-auth': 'true',
+          },
+        },
+      });
+
+      const result = applyMaaSEndpointData(deployment, { isChecked: true });
+
+      expect(result.model.metadata.labels?.['opendatahub.io/genai-asset']).toBeUndefined();
+      expect(result.model.metadata.annotations?.['opendatahub.io/genai-use-case']).toBeUndefined();
+      expect(
+        result.model.metadata.annotations?.['security.opendatahub.io/enable-auth'],
+      ).toBeUndefined();
+    });
+
     it('should preserve existing non-MaaS gateways when MaaS is enabled', () => {
       const existingGateway = { name: 'custom-gateway', namespace: 'custom-ns' };
       const deployment = createMockDeployment();

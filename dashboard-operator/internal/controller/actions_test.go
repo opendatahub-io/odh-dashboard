@@ -642,9 +642,9 @@ func TestCleanupCrossNamespaceResources_PreserveObservabilityStillCleansDCH(t *t
 }
 
 func TestReconcile_ObservabilityDetectionFailurePreservesResources(t *testing.T) {
-	scheme := maasConsumerPortalScheme(t)
+	scheme := maasPortalScheme(t)
 	base := t.TempDir()
-	bundle := filepath.Join(base, "distributions", maasConsumerPortalDeploymentName)
+	bundle := filepath.Join(base, "distributions", maasPortalDeploymentName)
 	require.NoError(t, os.MkdirAll(bundle, 0755))
 	require.NoError(t, os.WriteFile(filepath.Join(bundle, "kustomization.yaml"), []byte(`apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -661,20 +661,20 @@ data:
 	dashboard := &v1alpha1.Dashboard{
 		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName, Finalizers: []string{dashboardFinalizer}},
 		Spec: v1alpha1.DashboardSpec{
-			ManagementSpec:     common.ManagementSpec{ManagementState: "Removed"},
-			Gateway:            &v1alpha1.GatewaySpec{Domain: "apps.example.com"},
-			MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
+			ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
+			Gateway:        &v1alpha1.GatewaySpec{Domain: "apps.example.com"},
+			MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
 		},
 	}
-	cm := maasConsumerPortalTestManager(t, dashboard)
-	cm.MarkTrue(conditionMaaSConsumerPortalAvailable, conditions.WithReason("Deployed"))
+	cm := maasPortalTestManager(t, dashboard)
+	cm.MarkTrue(conditionMaaSPortalAvailable, conditions.WithReason("Deployed"))
 	service := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: persesServiceName, Namespace: rhoaiMonitoringNamespace}}
 	observability := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
 		Name: "perses-dashboard-config", Namespace: rhoaiMonitoringNamespace, UID: "existing-observability",
 		Labels: map[string]string{labels.PlatformPartOf: "dashboard", moduleComponentLabel: observabilityComponent},
 	}}
 	federation := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalFederationConfigMapName, Namespace: "applications"},
+		ObjectMeta: metav1.ObjectMeta{Name: maasPortalFederationConfigMapName, Namespace: "applications"},
 		Data:       map[string]string{federationConfigKey: `[{"name":"perses","proxyService":[{"path":"/perses/api","service":{"name":"data-science-perses","namespace":"redhat-ods-monitoring","port":8080}}]}]`},
 	}
 	localObservability := observability.DeepCopy()
@@ -708,7 +708,7 @@ data:
 	assert.Equal(t, "DetectionFailed", condition.Reason)
 	assert.Equal(t, common.ConditionSeverityError, condition.Severity, "portal-only observability failures must still block readiness")
 	assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
-	assert.False(t, conditions.IsStatusConditionTrue(updated, conditionMaaSConsumerPortalAvailable), "portal availability must be recalculated")
+	assert.False(t, conditions.IsStatusConditionTrue(updated, conditionMaaSPortalAvailable), "portal availability must be recalculated")
 	assert.Equal(t, "Removed", conditions.FindStatusCondition(updated, string(common.ConditionTypeProvisioningSucceeded)).Reason)
 	assert.True(t, apierrors.IsNotFound(cli.Get(ctx, client.ObjectKeyFromObject(coreConfig), &corev1.ConfigMap{})), "core teardown must proceed")
 	portalConfig := &corev1.ConfigMap{}
@@ -743,7 +743,7 @@ func TestReconcileObservability_APIFailuresRetry(t *testing.T) {
 			{reason: "PersesCRDNotFound", err: &meta.NoKindMatchError{GroupKind: persesdashboardGVK.GroupKind()}},
 		} {
 			t.Run(config+"/"+failure.reason, func(t *testing.T) {
-				scheme := maasConsumerPortalScheme(t)
+				scheme := maasPortalScheme(t)
 				service := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: persesServiceName, Namespace: rhoaiMonitoringNamespace}}
 				cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(service).
 					WithInterceptorFuncs(interceptor.Funcs{
@@ -763,7 +763,7 @@ func TestReconcileObservability_APIFailuresRetry(t *testing.T) {
 				} else {
 					require.NoError(t, r.autoDetectObservability(context.Background(), dashboard))
 				}
-				cm := maasConsumerPortalTestManager(t, dashboard)
+				cm := maasPortalTestManager(t, dashboard)
 				assert.Equal(t, observabilityRetryInterval, r.reconcileObservability(context.Background(), dashboard, cm))
 				condition := cm.GetCondition(conditionObservabilityAvailable)
 				require.NotNil(t, condition)
@@ -777,7 +777,7 @@ func TestReconcileObservability_APIFailuresRetry(t *testing.T) {
 func TestReconcileObservability_CleanupFailuresRetry(t *testing.T) {
 	for _, operation := range []string{"list", "delete"} {
 		t.Run(operation, func(t *testing.T) {
-			scheme := maasConsumerPortalScheme(t)
+			scheme := maasPortalScheme(t)
 			service := &corev1.Service{ObjectMeta: metav1.ObjectMeta{
 				Name: "managed-observability", Namespace: "monitoring",
 				Labels: map[string]string{labels.PlatformPartOf: "dashboard", moduleComponentLabel: observabilityComponent},
@@ -803,7 +803,7 @@ func TestReconcileObservability_CleanupFailuresRetry(t *testing.T) {
 				ManagementSpec: common.ManagementSpec{ManagementState: "Managed"},
 				Observability:  &v1alpha1.ObservabilitySpec{Enabled: false},
 			}}
-			cm := maasConsumerPortalTestManager(t, dashboard)
+			cm := maasPortalTestManager(t, dashboard)
 			ctx := context.Background()
 			assert.Equal(t, observabilityRetryInterval, r.reconcileObservability(ctx, dashboard, cm))
 			condition := cm.GetCondition(conditionObservabilityAvailable)

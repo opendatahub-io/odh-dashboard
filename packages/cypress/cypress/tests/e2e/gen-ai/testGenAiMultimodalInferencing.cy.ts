@@ -352,9 +352,13 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
         .should('be.visible')
         .and('not.have.attr', 'aria-disabled', 'true')
         .click();
-      genAiPlayground.findAsrModelToggle().should('be.visible').click();
-      genAiPlayground.findAsrModelOption(testData.audio.asrModelId).should('be.visible').click();
-      genAiPlayground.findAsrModelToggle().should('contain', testData.audio.asrDisplayName);
+      genAiPlayground
+        .findTranscriptionModelOption(testData.audio.asrModelId)
+        .should('be.visible')
+        .click();
+      genAiPlayground
+        .findTranscriptionModelSelector()
+        .should('contain', testData.audio.asrDisplayName);
 
       let transcriptionStarted = false;
       const recordAudioTrace = (event: string): void => {

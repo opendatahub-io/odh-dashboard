@@ -1111,6 +1111,11 @@ export type MlflowExperimentsTestData = {
   nonExistentExperiment: string;
 };
 
+export type MlflowAgentObservabilityTestData = {
+  projectName: string;
+  experimentName: string;
+};
+
 export type AutoragTestData = {
   projectNamePrefix: string;
   dspaSecretName: string;

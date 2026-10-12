@@ -322,8 +322,11 @@ func deployObservabilityManifests(
 		return fmt.Errorf("failed to render observability manifests from %s: %w", m, err)
 	}
 
-	if maasConsumerPortalSupportedPlatform(platform) {
-		if err := setMaaSConsumerPortalPersesIngressNamespace(rendered, applicationsNamespace); err != nil {
+	if maasPortalSupportedPlatform(platform) {
+		if err := setMaaSPortalPersesIngressNamespace(rendered, applicationsNamespace); err != nil {
+			return err
+		}
+		if err := preserveLegacyMaaSPortalNetworkAccess(ctx, cli, rendered, applicationsNamespace); err != nil {
 			return err
 		}
 	}

@@ -55,7 +55,7 @@ func (r *DashboardReconciler) MonitoringNamespace() string {
 
 const ObservabilityRetryInterval = observabilityRetryInterval
 
-const MaaSConsumerPortalRetryInterval = maasConsumerPortalRetryInterval
+const MaaSPortalRetryInterval = maasPortalRetryInterval
 
 var DashboardSAName = dashboardSAName
 

@@ -144,6 +144,7 @@ type Options struct {
 // DashboardReconciler reconciles a Dashboard object.
 type DashboardReconciler struct {
 	client.Client
+	APIReader             client.Reader
 	Scheme                *runtime.Scheme
 	ManifestsBasePath     string
 	Platform              cluster.Platform
@@ -167,8 +168,12 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if !dashboard.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(dashboard, dashboardFinalizer) {
-			if err := r.deleteMaaSConsumerPortalResources(ctx); err != nil {
-				return ctrl.Result{}, fmt.Errorf("failed to cleanup MaaS Consumer Portal resources: %w", err)
+			cleanup, err := r.deleteMaaSPortalResources(ctx)
+			if err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to cleanup MaaS Portal resources: %w", err)
+			}
+			if cleanup.Pending {
+				return ctrl.Result{RequeueAfter: maasPortalRetryInterval}, nil
 			}
 			if err := r.cleanupCrossNamespaceResources(ctx, dashboard, false); err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to cleanup cross-namespace resources: %w", err)
@@ -192,15 +197,13 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	// Migrate the legacy last-known-good portal URL before any reconciliation
-	// step can fail and persist status without reaching portal reconciliation.
-	backfillMaaSPortalURL(&dashboard.Status)
+	migrateMaaSPortalStatus(dashboard)
 
 	// Ready is the rollup condition — auto-derived by the Manager from
 	// ProvisioningSucceeded, Degraded, ObservabilityAvailable, and
-	// MaaSConsumerPortalAvailable. It is set explicitly only when both operands are
+	// MaaSPortalAvailable. It is set explicitly only when both operands are
 	// Removed. The manager is built
-	// here, before the managementState branch, because the maas consumer portal is
+	// here, before the managementState branch, because the MaaS Portal is
 	// reconciled unconditionally below regardless of the core dashboard's state.
 	cm := conditions.NewManager(
 		dashboard,
@@ -208,7 +211,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		string(common.ConditionTypeProvisioningSucceeded),
 		string(common.ConditionTypeDegraded),
 		conditionObservabilityAvailable,
-		conditionMaaSConsumerPortalAvailable,
+		conditionMaaSPortalAvailable,
 	)
 	maasPortalManaged := r.maasPortalManaged(dashboard)
 	var observabilityDetectionErr error
@@ -228,31 +231,31 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			logger.Error(observabilityDetectionErr, "Failed to auto-detect observability, preserving its resources and Perses federation entry")
 		}
 	}
-	// MaaS Consumer Portal availability is recalculated from its managed resources on every
+	// MaaS Portal availability is recalculated from its managed resources on every
 	// reconciliation. Clear a stale failure now; failures recorded later in this
 	// cycle (for example federation ConfigMap reconciliation) remain intact.
-	cm.ClearCondition(conditionMaaSConsumerPortalAvailable)
+	cm.ClearCondition(conditionMaaSPortalAvailable)
 
 	if dashboard.Spec.ManagementState == "Removed" {
 		logger.Info("ManagementState is Removed, tearing down resources")
 
 		// MaaS and GenAI are shared dependencies. Reconcile their aggregate
-		// demand before the core teardown so MaaS Consumer Portal-only operation retains them.
+		// demand before the core teardown so MaaS Portal-only operation retains them.
 		nextStatuses, err := r.reconcileModuleDemand(ctx, dashboard)
 		if err != nil {
 			r.persistRemovedFailureStatus(ctx, dashboard, cm, "ModuleDeployFailed", err)
-			return ctrl.Result{}, fmt.Errorf("failed to reconcile MaaS Consumer Portal-required modules: %w", err)
+			return ctrl.Result{}, fmt.Errorf("failed to reconcile MaaS Portal-required modules: %w", err)
 		}
 		preserveModuleStatusTransitionTimes(dashboard.Status.ModuleStatuses, nextStatuses)
 		dashboard.Status.ModuleStatuses = nextStatuses
-		r.setMaaSConsumerPortalModuleCondition(cm, dashboard, nextStatuses)
+		r.setMaaSPortalModuleCondition(cm, dashboard, nextStatuses)
 		var observabilityRetryAfter time.Duration
 		if observabilityDetectionErr != nil {
 			observabilityRetryAfter = observabilityRetryInterval
 		} else if maasPortalManaged {
 			observabilityRetryAfter = r.reconcileObservability(ctx, dashboard, cm)
 		}
-		portalRetryAfter := r.reconcileMaaSConsumerPortalOperand(ctx, dashboard, cm, nextStatuses, observabilityDetectionErr == nil)
+		portalRetryAfter := r.reconcileMaaSPortalOperand(ctx, dashboard, cm, nextStatuses, observabilityDetectionErr == nil)
 		portalRetryAfter = minNonZeroDuration(portalRetryAfter, observabilityRetryAfter)
 
 		preserveObservability := maasPortalManaged && (observabilityDetectionErr != nil ||
@@ -267,7 +270,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		dashboard.Status.Distribution = nil
 
 		// Core Dashboard removal is intentional. Treat its conditions as
-		// informational so a Managed MaaS Consumer Portal can determine the
+		// informational so a Managed MaaS Portal can determine the
 		// aggregate Dashboard readiness independently.
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 			conditions.WithReason("Removed"),
@@ -539,7 +542,7 @@ func (r *DashboardReconciler) reconcileDeployment(
 	// stale status on the CR (the outer Reconcile always calls Status().Update).
 	preserveModuleStatusTransitionTimes(dashboard.Status.ModuleStatuses, nextStatuses)
 	dashboard.Status.ModuleStatuses = nextStatuses
-	r.setMaaSConsumerPortalModuleCondition(cm, dashboard, nextStatuses)
+	r.setMaaSPortalModuleCondition(cm, dashboard, nextStatuses)
 
 	// Reconcile cross-namespace RBAC (notebooks, model-registry)
 	rbacErr := r.reconcileNamespacedRBAC(ctx, dashboard)
@@ -564,7 +567,7 @@ func (r *DashboardReconciler) reconcileDeployment(
 		logger.Error(err, "Failed to deploy federation ConfigMap")
 		return ctrl.Result{}, fmt.Errorf("federation ConfigMap: %w", err)
 	}
-	portalRetryAfter := r.reconcileMaaSConsumerPortalOperand(ctx, dashboard, cm, nextStatuses, observabilityKnown)
+	portalRetryAfter := r.reconcileMaaSPortalOperand(ctx, dashboard, cm, nextStatuses, observabilityKnown)
 
 	if err := r.patchDeploymentFederationHash(ctx, fedData); err != nil {
 		logger.Error(err, "Failed to patch federation hash on deployment")
@@ -935,10 +938,10 @@ func (r *DashboardReconciler) cleanupObservabilityResources(ctx context.Context,
 // and cleans up cross-namespace resources.
 func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dashboard *v1alpha1.Dashboard, statuses map[string]v1alpha1.ModuleStatus, preserveObservability bool) error {
 	logger := log.FromContext(ctx)
-	maasConsumerPortalRequiredModules := maasConsumerPortalRequiredModuleSlugs(&dashboard.Spec, statuses)
+	maasPortalRequiredModules := maasPortalRequiredModuleSlugs(&dashboard.Spec, statuses)
 	shouldPreserve := func(resource client.Object) bool {
 		component := resource.GetLabels()[moduleComponentLabel]
-		return maasConsumerPortalRequiredModules[component] || (preserveObservability &&
+		return maasPortalRequiredModules[component] || (preserveObservability &&
 			(component == observabilityComponent || isLegacyObservabilityResource(resource)))
 	}
 
@@ -1090,9 +1093,15 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	return nil
 }
 
-// extractItems returns the slice of client.Object from a typed list.
+// extractItems returns the slice of client.Object from a supported list.
 func extractItems(list client.ObjectList) []client.Object {
 	switch l := list.(type) {
+	case *unstructured.UnstructuredList:
+		items := make([]client.Object, len(l.Items))
+		for i := range l.Items {
+			items[i] = &l.Items[i]
+		}
+		return items
 	case *appsv1.DeploymentList:
 		items := make([]client.Object, len(l.Items))
 		for i := range l.Items {
@@ -1162,6 +1171,7 @@ func extractItems(list client.ObjectList) []client.Object {
 func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 	r := &DashboardReconciler{
 		Client:                mgr.GetClient(),
+		APIReader:             mgr.GetAPIReader(),
 		Scheme:                mgr.GetScheme(),
 		ManifestsBasePath:     opts.ManifestsBasePath,
 		Platform:              opts.Platform,
@@ -1200,8 +1210,8 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		).
 		Watches(
 			&corev1.Namespace{},
-			handler.EnqueueRequestsFromMapFunc(r.mapMaaSConsumerPortalOperatorNamespaceToDashboard),
-			builder.WithPredicates(r.maasConsumerPortalOperatorNamespacePredicate()),
+			handler.EnqueueRequestsFromMapFunc(r.mapMaaSPortalOperatorNamespaceToDashboard),
+			builder.WithPredicates(r.maasPortalOperatorNamespacePredicate()),
 		)
 
 	if err := addOptionalOwnedResourceWatches(mgr.GetRESTMapper(), controllerBuilder); err != nil {
@@ -1216,7 +1226,7 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 }
 
 // addOptionalOwnedResourceWatches adds watches for APIs used only by the MaaS
-// Consumer Portal. The Dashboard controller also runs on clusters where those
+// Portal. The Dashboard controller also runs on clusters where those
 // APIs are not installed, so absent APIs must not prevent manager startup.
 func addOptionalOwnedResourceWatches(mapper meta.RESTMapper, controllerBuilder *builder.Builder) error {
 	resources, err := optionalOwnedResources(mapper)

@@ -1,3 +1,4 @@
+import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import { GENERAL_SETTINGS_PATH } from './const';
 import type { PlaceholderRuntimeImageActionData } from './placeholder-types';
 import { ServingRuntimeAPIProtocol, ServingRuntimeModelType } from '../../shared';
@@ -14,11 +15,30 @@ export const mockRuntimeImageActionData = (): PlaceholderRuntimeImageActionData 
     runtimeImageName: 'vLLM 0.6.0',
     cancelReturnRoute: GENERAL_SETTINGS_PATH,
     deploymentResources: {
-      servingRuntimeTemplate: {
-        servingRuntimeYaml: 'apiVersion: serving.kserve.io/v1alpha1\nkind: ServingRuntime\n',
-        apiProtocol: ServingRuntimeAPIProtocol.REST,
-        modelTypes: [ServingRuntimeModelType.GENERATIVE],
-      },
+      servingRuntimeTemplate: JSON.stringify({
+        apiVersion: 'template.openshift.io/v1',
+        kind: 'Template',
+        metadata: {
+          name: 'template-vllm-0-6-0',
+          namespace: 'opendatahub',
+          annotations: {
+            'opendatahub.io/apiProtocol': ServingRuntimeAPIProtocol.REST,
+            'opendatahub.io/model-type': JSON.stringify([ServingRuntimeModelType.GENERATIVE]),
+          },
+        },
+        objects: [
+          {
+            apiVersion: 'serving.kserve.io/v1alpha1',
+            kind: 'ServingRuntime',
+            metadata: { name: 'vllm-0-6-0' },
+            spec: {
+              containers: [{ name: 'vllm', image: 'quay.io/example/vllm:0.6.0' }],
+              supportedModelFormats: [{ name: 'vllm' }],
+            },
+          },
+        ],
+        parameters: [],
+      } satisfies TemplateKind),
       llmAcceleratorConfiguration: {
         displayName: 'vLLM 0.6.0',
         configYaml: 'apiVersion: serving.kserve.io/v1alpha1\nkind: LLMInferenceServiceConfig\n',

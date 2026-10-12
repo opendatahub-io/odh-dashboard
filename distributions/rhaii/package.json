@@ -23,6 +23,7 @@
     "@odh-dashboard/base-distribution": "workspace:*",
     "@odh-dashboard/kserve": "workspace:*",
     "@odh-dashboard/k8s-core": "workspace:*",
+    "@odh-dashboard/llmd-serving": "workspace:*",
     "@odh-dashboard/model-serving": "workspace:*",
     "@odh-dashboard/plugin-core": "workspace:*",
     "@odh-dashboard/ui-core": "workspace:*",

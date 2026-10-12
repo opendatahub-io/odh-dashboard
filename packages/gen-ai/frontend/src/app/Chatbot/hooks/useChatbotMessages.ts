@@ -247,7 +247,7 @@ const useChatbotMessages = ({
       ...(modelOutputEnabled && { output_prompt: GUARDRAIL_OUTPUT_PROMPT }),
     };
 
-    if (isMaaS && guardrailsConfig.guardrailSubscription) {
+    if (guardrailSourceType === 'maas' && guardrailsConfig.guardrailSubscription) {
       config.guardrail_subscription = guardrailsConfig.guardrailSubscription;
     }
 

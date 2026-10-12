@@ -38,7 +38,9 @@ type CollectionDrawerPanelProps = {
   collection: Collection | undefined;
   benchmarkDetailsMap: Map<string, BenchmarkWithProvider>;
   onClose: () => void;
-  onRunCollection: (c: Collection) => void;
+  onRunCollection: (c: Collection, isSystemCollection: boolean) => void;
+  onCustomizeCollection?: (c: Collection) => void;
+  isSystemCollection?: boolean;
   primaryActionLabel?: string;
 };
 
@@ -47,6 +49,8 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
   benchmarkDetailsMap,
   onClose,
   onRunCollection,
+  onCustomizeCollection,
+  isSystemCollection = false,
   primaryActionLabel = 'Select benchmark suite',
 }) => {
   const [benchmarkSearch, setBenchmarkSearch] = React.useState('');
@@ -223,11 +227,22 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
             <Button
               variant="primary"
               data-testid="use-benchmark-suite-button"
-              onClick={() => onRunCollection(collection)}
+              onClick={() => onRunCollection(collection, isSystemCollection)}
             >
               {primaryActionLabel}
             </Button>
           </FlexItem>
+          {isSystemCollection && onCustomizeCollection ? (
+            <FlexItem>
+              <Button
+                variant="secondary"
+                onClick={() => onCustomizeCollection(collection)}
+                data-testid="customize-benchmark-suite-button"
+              >
+                Customize
+              </Button>
+            </FlexItem>
+          ) : null}
           <FlexItem>
             <Button variant="link" onClick={onClose} data-testid="collection-drawer-close-footer">
               Close

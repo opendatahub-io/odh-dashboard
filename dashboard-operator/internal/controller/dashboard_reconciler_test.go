@@ -481,7 +481,16 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 			ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
 			MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
 		},
-		Status: v1alpha1.DashboardStatus{MaaSConsumerPortalURL: "https://previous.example.com/"},
+		Status: v1alpha1.DashboardStatus{
+			// Seed legacy status to verify the old condition is removed even when
+			// module-demand reconciliation fails before reaching the portal step.
+			Status: common.Status{Conditions: []common.Condition{{
+				Type: ctrlpkg.LegacyConditionMaaSConsumerPortalAvailable, Status: metav1.ConditionTrue,
+				Reason: "Deployed", LastTransitionTime: metav1.Now(),
+			}}},
+			MaaSPortalURL:         "https://previous.example.com/",
+			MaaSConsumerPortalURL: "https://previous.example.com/",
+		},
 	}
 	cli := fake.NewClientBuilder().
 		WithScheme(scheme).
@@ -508,7 +517,11 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 	require.NotNil(t, condition)
 	assert.Equal(t, metav1.ConditionFalse, condition.Status)
 	assert.Equal(t, "ModuleDeployFailed", condition.Reason)
+	assert.Nil(t, conditions.FindStatusCondition(updated, ctrlpkg.LegacyConditionMaaSConsumerPortalAvailable), "early failure status must discard legacy portal availability")
+	assert.True(t, conditions.IsStatusConditionFalse(updated, string(common.ConditionTypeReady)))
+	assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
 	assert.Equal(t, "https://previous.example.com/", updated.Status.MaaSPortalURL)
+	assert.Equal(t, "https://previous.example.com/", updated.Status.MaaSConsumerPortalURL)
 }
 
 func TestReconcile_Deletion(t *testing.T) {

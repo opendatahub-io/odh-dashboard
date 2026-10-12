@@ -1,114 +1,50 @@
 import * as React from 'react';
+import type { WorkingProjectIdentity } from '@odh-dashboard/foundation';
 
-export type ProjectIdentity = {
-  name: string;
-  displayName?: string;
-};
-
-export type WorkingProjectSelectionState =
-  | { status: 'provider-absent' }
-  | { status: 'loading' }
-  | {
-      status: 'ready';
-      projects: [ProjectIdentity, ...ProjectIdentity[]];
-      activeProject: ProjectIdentity;
-    }
-  | { status: 'no-accessible-projects'; projects: []; activeProject: null }
-  | {
-      status: 'list-unavailable';
-      /** Identities individually validated by the provider; not a complete project list. */
-      providerValidatedProjects: ProjectIdentity[];
-      activeProject: ProjectIdentity | null;
-    }
-  | { status: 'provider-error'; error: Error };
-
-export type ProvidedWorkingProjectState = Exclude<
-  WorkingProjectSelectionState,
-  { status: 'provider-absent' }
->;
+/** The existing ui-core contract shares the platform-neutral identity with the resolution policy. */
+export type ProjectIdentity = WorkingProjectIdentity;
 
 export type WorkingProjectContextType = {
-  state: WorkingProjectSelectionState;
+  projects: readonly ProjectIdentity[];
+  activeProject: ProjectIdentity | null;
   selectProject: (project: ProjectIdentity) => void;
 };
 
 export type WorkingProjectProviderProps = {
   children: React.ReactNode;
-  state: ProvidedWorkingProjectState;
+  projects: readonly ProjectIdentity[];
+  activeProject: ProjectIdentity | null;
   onProjectChange: (project: ProjectIdentity) => void;
 };
 
-const providerAbsentState: WorkingProjectSelectionState = { status: 'provider-absent' };
-
 export const WorkingProjectContext = React.createContext<WorkingProjectContextType>({
-  state: providerAbsentState,
+  projects: [],
+  activeProject: null,
   selectProject: () => undefined,
 });
 
-const getSelectableProjects = (state: WorkingProjectSelectionState): ProjectIdentity[] => {
-  switch (state.status) {
-    case 'ready':
-      return state.projects;
-    case 'list-unavailable':
-      return state.providerValidatedProjects;
-    case 'provider-absent':
-    case 'loading':
-    case 'no-accessible-projects':
-    case 'provider-error':
-      return [];
-  }
-};
-
 export const WorkingProjectProvider: React.FC<WorkingProjectProviderProps> = ({
   children,
-  state,
+  projects,
+  activeProject,
   onProjectChange,
 }) => {
-  const providerState = React.useMemo<WorkingProjectSelectionState>(() => {
-    if (state.status === 'ready') {
-      const activeProject = state.projects.find(({ name }) => name === state.activeProject.name);
-
-      if (!activeProject) {
-        return {
-          status: 'provider-error',
-          error: new Error('The active project must belong to the provider-known project set.'),
-        };
-      }
-
-      return activeProject === state.activeProject ? state : { ...state, activeProject };
-    }
-
-    if (state.status === 'list-unavailable' && state.activeProject) {
-      const activeProject = state.providerValidatedProjects.find(
-        ({ name }) => name === state.activeProject?.name,
-      );
-
-      if (!activeProject) {
-        return { ...state, activeProject: null };
-      }
-
-      return activeProject === state.activeProject ? state : { ...state, activeProject };
-    }
-
-    return state;
-  }, [state]);
+  const knownActiveProject = projects.find(({ name }) => name === activeProject?.name) ?? null;
 
   const selectProject = React.useCallback(
     (project: ProjectIdentity): void => {
-      const selectableProject = getSelectableProjects(providerState).find(
-        ({ name }) => name === project.name,
-      );
+      const selectableProject = projects.find(({ name }) => name === project.name);
 
       if (selectableProject) {
         onProjectChange(selectableProject);
       }
     },
-    [onProjectChange, providerState],
+    [onProjectChange, projects],
   );
 
   const value = React.useMemo(
-    () => ({ state: providerState, selectProject }),
-    [providerState, selectProject],
+    () => ({ projects, activeProject: knownActiveProject, selectProject }),
+    [projects, knownActiveProject, selectProject],
   );
 
   return <WorkingProjectContext.Provider value={value}>{children}</WorkingProjectContext.Provider>;

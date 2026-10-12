@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   Alert,
   AlertActionCloseButton,
+  Button,
   DropEvent,
   Flex,
   Icon,
@@ -28,6 +29,8 @@ import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimoda
 import RhUiResourceIcon from '~/app/bgimages/rh-ui-resource-icon.svg';
 import './ChatbotMessageInput.scss';
 
+const IMAGE_CAPABILITY_ALERT_DISMISSED_KEY = 'playground-image-capability-alert-dismissed';
+
 export interface ImageUploadState {
   uploading: boolean;
   progress: number;
@@ -53,6 +56,7 @@ interface ChatbotMessageInputProps {
   onRemoveImage: () => void;
   isImageUploadDisabled: boolean;
   imageDisabledTooltip?: string;
+  showImageCapabilityAlert?: boolean;
   isAudioUploadDisabled: boolean;
   audioDisabledTooltip?: string;
   onAudioUpload?: (file: File) => void;
@@ -86,6 +90,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
   onRemoveImage,
   isImageUploadDisabled,
   imageDisabledTooltip,
+  showImageCapabilityAlert,
   isAudioUploadDisabled,
   audioDisabledTooltip,
   onAudioUpload,
@@ -107,6 +112,13 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
 }) => {
   const [isAttachMenuOpen, setIsAttachMenuOpen] = React.useState(false);
   const [validationError, setValidationError] = React.useState<string | null>(null);
+  const [hideImageCapabilityAlert, setHideImageCapabilityAlert] = React.useState(() => {
+    try {
+      return window.localStorage.getItem(IMAGE_CAPABILITY_ALERT_DISMISSED_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
   const imageInputRef = React.useRef<HTMLInputElement>(null);
   const audioInputRef = React.useRef<HTMLInputElement>(null);
   const documentInputRef = React.useRef<HTMLInputElement>(null);
@@ -114,7 +126,8 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
 
   const audioPhase = audioTranscriptionState?.phase || 'idle';
   const isAudioActive = audioPhase === 'uploading' || audioPhase === 'transcribing';
-  const showAudioChip = isAudioActive || audioPhase === 'ready';
+  const showAudioChip =
+    isAudioActive || audioPhase === 'ready' || audioPhase === 'waiting-for-model';
 
   // PatternFly MessageBar only reads the `value` prop at mount time (internal useState).
   // When messageBarValue changes programmatically (e.g. from transcription), we must
@@ -281,6 +294,8 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
     switch (audioTranscriptionState.phase) {
       case 'uploading':
         return `Uploading ${audioTranscriptionState.fileName}`;
+      case 'waiting-for-model':
+        return 'Select a transcription model to transcribe the attached audio file';
       case 'transcribing':
         return `Transcribing audio with speech recognition model`;
       case 'ready':
@@ -405,12 +420,10 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
             flexWrap: 'wrap',
             gap: 'var(--pf-t--global--spacer--sm)',
             paddingBottom: 'var(--pf-t--global--spacer--sm)',
-            maxWidth: '60rem',
-            margin: '0 auto',
             width: '100%',
-            paddingLeft: 'var(--pf-t--global--spacer--lg)',
           }}
           aria-busy={isAudioActive}
+          data-testid="media-attachment-row"
         >
           {imageUploadState.fileName && (
             <FileDetailsLabel
@@ -433,6 +446,44 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
             />
           )}
         </div>
+      )}
+      {imageUploadState.fileName && showImageCapabilityAlert && !hideImageCapabilityAlert && (
+        <Alert
+          variant="info"
+          isInline
+          title="Vision capability not tagged"
+          className="pf-v6-u-mb-sm"
+          data-testid="image-capability-alert"
+        >
+          This model isn&apos;t tagged for vision capabilities, which can lead to unexpected output.
+          To identify supported models faster, tag this model&apos;s capabilities in the Model
+          Registry or contact your admin.
+          <p className="pf-v6-u-mt-sm">
+            <Button
+              variant="link"
+              isInline
+              onClick={() => {
+                setHideImageCapabilityAlert(true);
+                try {
+                  window.localStorage.setItem(IMAGE_CAPABILITY_ALERT_DISMISSED_KEY, 'true');
+                } catch {
+                  // Keep the notice dismissed in this session when storage is unavailable.
+                }
+              }}
+            >
+              Don&apos;t show this again
+            </Button>
+          </p>
+        </Alert>
+      )}
+      {audioPhase === 'waiting-for-model' && (
+        <Alert
+          variant="info"
+          isInline
+          title="Audio files require a transcription model. Select one under the Model tab in Settings."
+          className="pf-v6-u-mb-sm"
+          data-testid="audio-model-needed-alert"
+        />
       )}
       {isDocumentUploading && (
         <Flex
@@ -502,6 +553,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
           border: isDarkMode ? 'none' : '1px solid var(--pf-t--global--border--color--default)',
           borderRadius: '2.25rem',
         }}
+        data-testid="chatbot-message-bar-frame"
       >
         <MessageBar
           onSendMessage={(message) => {

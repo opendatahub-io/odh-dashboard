@@ -20,7 +20,7 @@ packages:
   - distributions/core-bff
   - distributions/core-bff/frontend
   - distributions/rhaii
-  - distributions/maas-consumer-portal
+  - distributions/maas-portal
 
 # Transitional: publicly hoist dependencies for build/test tooling. Remove in RHOAIENG-83228.
 shamefullyHoist: true

@@ -83,14 +83,14 @@ func TestComputeKustomizeVariables(t *testing.T) {
 	}
 }
 
-func TestMaaSConsumerPortalManifestInfo(t *testing.T) {
-	info := maasConsumerPortalManifestInfo("/base")
+func TestMaaSPortalManifestInfo(t *testing.T) {
+	info := maasPortalManifestInfo("/base")
 	assert.Equal(t, "/base", info.Path)
 	assert.Equal(t, "distributions", info.ContextDir)
-	assert.Equal(t, "maas-consumer-portal", info.SourcePath)
+	assert.Equal(t, "maas-portal", info.SourcePath)
 }
 
-func TestMaaSConsumerPortalURL(t *testing.T) {
+func TestMaaSPortalURL(t *testing.T) {
 	tests := []struct {
 		name    string
 		domain  string
@@ -113,7 +113,7 @@ func TestMaaSConsumerPortalURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			url, ok := maasConsumerPortalURL(tt.domain)
+			url, ok := maasPortalURL(tt.domain)
 			assert.Equal(t, tt.wantOK, ok)
 			assert.Equal(t, tt.wantURL, url)
 		})

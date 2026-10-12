@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Form, FormGroup, Stack, StackItem, Spinner, Alert } from '@patternfly/react-core';
-import { ContentModal } from '@odh-dashboard/ui-core';
+import { ContentModal, useNotification } from '@odh-dashboard/ui-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type { K8sNameDescriptionFieldUpdateFunction } from '@odh-dashboard/k8s-core';
 import K8sNameDescriptionField, {
@@ -63,6 +63,7 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
   const isArgoWorkflow = extractKindFromPipelineYAML(fileContents) === 'Workflow';
   const isV1PipelineFile = isYAMLPipelineV1(fileContents);
   const [pipelineNamespaceCR, crLoaded, crLoadError] = usePipelineNamespaceCR(namespace);
+  const notification = useNotification();
 
   const isKubernetesStorage =
     crLoaded &&
@@ -155,6 +156,11 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
       submitAction()
         .then((result) => {
           onBeforeClose(result);
+          notification.success(
+            'pipeline_version_id' in result
+              ? `Pipeline version ${result.display_name} successfully imported`
+              : `Pipeline ${result.display_name} successfully imported`,
+          );
         })
         .catch((e) => {
           setImporting(false);

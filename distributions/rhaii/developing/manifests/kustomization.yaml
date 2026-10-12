@@ -8,6 +8,7 @@ resources:
 - ../../../core-bff/manifests/base
 - api-tester.yaml
 - dev-rbac.yaml
+- hardware-profile.yaml
 
 patches:
 - target:
