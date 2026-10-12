@@ -679,6 +679,7 @@ describe('Model Serving Global', () => {
         displayName: 'Test Model',
         namespace: 'test-project',
         hardwareProfileName: 'disabled-profile',
+        hardwareProfileNamespace: 'opendatahub',
       });
 
       // Set up proper intercepts with hardware profiles enabled
@@ -739,6 +740,7 @@ describe('Model Serving Global', () => {
         displayName: 'Test Model',
         namespace: 'test-project',
         hardwareProfileName: 'updated-profile',
+        hardwareProfileNamespace: 'opendatahub',
         hardwareProfileResourceVersion: '104110942',
       });
 

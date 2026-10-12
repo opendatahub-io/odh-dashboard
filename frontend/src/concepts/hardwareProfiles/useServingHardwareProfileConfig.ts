@@ -5,17 +5,17 @@ import {
   UseHardwareProfileConfigResult,
 } from './useHardwareProfileConfig';
 import { MODEL_SERVING_VISIBILITY } from './const';
+import { getExistingHardwareProfileData } from './utils';
 
 export const extractHardwareProfileConfigFromInferenceService = (
   inferenceService?: InferenceServiceKind | null,
 ): Parameters<typeof useHardwareProfileConfig> => {
-  const name = inferenceService?.metadata.annotations?.['opendatahub.io/hardware-profile-name'];
+  const { name, namespace: hardwareProfileNamespace } =
+    getExistingHardwareProfileData(inferenceService);
   const resources = inferenceService?.spec.predictor.model?.resources;
   const tolerations = inferenceService?.spec.predictor.tolerations;
   const nodeSelector = inferenceService?.spec.predictor.nodeSelector;
   const namespace = inferenceService?.metadata.namespace;
-  const hardwareProfileNamespace =
-    inferenceService?.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'];
 
   return [
     name,
