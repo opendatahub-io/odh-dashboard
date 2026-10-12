@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -749,8 +750,7 @@ func updateSubscriptionSpec(obj *unstructured.Unstructured, displayName, descrip
 	if existingSpec == nil {
 		existingSpec = map[string]interface{}{}
 	}
-	// Drop legacy keys that earlier renames may have written.
-	delete(existingSpec, "priority")
+
 	delete(existingSpec, "inference_priority")
 	if inferencePriority != nil {
 		existingSpec["inferencePriority"] = int64(*inferencePriority)
@@ -776,12 +776,21 @@ func int32FromUnstructured(content map[string]interface{}, fields ...string) (in
 	}
 	switch v := raw.(type) {
 	case int64:
+		if v < math.MinInt32 || v > math.MaxInt32 {
+			return 0, false
+		}
 		return int32(v), true
 	case float64:
+		if v < math.MinInt32 || v > math.MaxInt32 || v != math.Trunc(v) {
+			return 0, false
+		}
 		return int32(v), true
 	case int32:
 		return v, true
 	case int:
+		if v < math.MinInt32 || v > math.MaxInt32 {
+			return 0, false
+		}
 		return int32(v), true
 	default:
 		return 0, false

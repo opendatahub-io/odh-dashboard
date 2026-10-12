@@ -35,7 +35,7 @@ type SubscriptionListItem struct {
 	CostCenter              string            `json:"cost_center,omitempty"`
 	Labels                  map[string]string `json:"labels,omitempty"`
 	// InferencePriority uses snake_case to match the maas-api passthrough payload.
-	InferencePriority int32 `json:"inference_priority,omitempty"`
+	InferencePriority *int32 `json:"inference_priority,omitempty"`
 }
 
 // GroupReference references a Kubernetes group by name.

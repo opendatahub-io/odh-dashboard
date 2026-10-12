@@ -1,10 +1,16 @@
 package api
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/julienschmidt/httprouter"
 	. "github.com/onsi/ginkgo/v2"
@@ -12,13 +18,33 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
+	"github.com/opendatahub-io/maas-library/bff/internal/config"
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
+	helper "github.com/opendatahub-io/maas-library/bff/internal/helpers"
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
+	"github.com/opendatahub-io/maas-library/bff/internal/repositories"
 )
 
 func int32Ptr(v int32) *int32 {
 	return &v
+}
+
+// conflictOnUpdateSubscriptionsRepo wraps the mock and forces UpdateSubscription to return a K8s conflict.
+type conflictOnUpdateSubscriptionsRepo struct {
+	*repositories.MockSubscriptionsRepository
+}
+
+func (r *conflictOnUpdateSubscriptionsRepo) UpdateSubscription(
+	_ context.Context,
+	name string,
+	_ models.UpdateSubscriptionRequest,
+) (*models.CreateSubscriptionResponse, error) {
+	return nil, k8sErrors.NewConflict(
+		constants.MaaSSubscriptionGvr.GroupResource(),
+		name,
+		fmt.Errorf("the object has been modified; please apply your changes to the latest version and try again"),
+	)
 }
 
 var _ = Describe("SubscriptionHandlers", Ordered, func() {
@@ -567,6 +593,74 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			trlMap, ok := trls[0].(map[string]interface{})
 			Expect(ok).To(BeTrue(), "tokenRateLimits entry should be a map")
 			Expect(trlMap["limit"]).To(BeEquivalentTo(2000), "tokenRateLimits limit should have been updated by the UI")
+		})
+
+		It("returns 409 when update hits a resource version conflict", func() {
+			logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+			mockSubs := repositories.NewMockSubscriptionsRepository(logger)
+			subsRepo := &conflictOnUpdateSubscriptionsRepo{MockSubscriptionsRepository: mockSubs}
+
+			modelRefsRepo := repositories.NewMockMaaSModelRefsRepository(logger)
+			repos, err := repositories.NewRepositories(
+				logger,
+				k8Factory,
+				config.EnvConfig{MaaSSubscriptionNamespace: "maas-system"},
+				subsRepo,
+				repositories.NewMockPoliciesRepository(logger),
+				modelRefsRepo,
+				repositories.NewMockExternalModelsRepository(logger, modelRefsRepo),
+				repositories.NewMockExternalProvidersRepository(logger),
+				repositories.NewMockSecretsRepository(logger),
+				repositories.NewMockYamlRepository(logger),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			app := &App{
+				config: config.EnvConfig{
+					AllowedOrigins: []string{"*"},
+					AuthMethod:     config.AuthMethodInternal,
+					MockHTTPClient: true,
+				},
+				kubernetesClientFactory: k8Factory,
+				repositories:            repos,
+				logger:                  logger,
+				maasApiURL:              helper.NewMaasApiURLHolder(""),
+			}
+
+			body, err := json.Marshal(Envelope[models.UpdateSubscriptionRequest, None]{
+				Data: models.UpdateSubscriptionRequest{
+					Owner: models.OwnerSpec{
+						Groups: []models.GroupReference{{Name: "users"}},
+					},
+					ModelRefs: []models.ModelSubscriptionRef{
+						{
+							Name:            "granite-3-8b-instruct",
+							Namespace:       "maas-models",
+							TokenRateLimits: []models.TokenRateLimit{{Limit: 1000, Window: "1h"}},
+						},
+					},
+					InferencePriority: int32Ptr(20),
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			req := httptest.NewRequest(
+				http.MethodPut,
+				"/api/v1/update-subscription/premium-team-sub",
+				bytes.NewReader(body),
+			)
+			req.Header.Set(constants.KubeflowUserIDHeader, identity.UserID)
+			req = req.WithContext(context.WithValue(req.Context(), constants.RequestIdentityKey, identity))
+
+			rr := httptest.NewRecorder()
+			app.Routes().ServeHTTP(rr, req)
+
+			Expect(rr.Code).To(Equal(http.StatusConflict))
+
+			var resp HTTPError
+			Expect(json.Unmarshal(rr.Body.Bytes(), &resp)).To(Succeed())
+			Expect(resp.Error.Code).To(Equal("409"))
+			Expect(resp.Error.Message).To(ContainSubstring("Operation cannot be fulfilled"))
 		})
 	})
 

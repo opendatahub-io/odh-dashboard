@@ -14,6 +14,10 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
+func int32Ptr(v int32) *int32 {
+	return &v
+}
+
 // newTestClient spins up an httptest.Server with the given handler and wires it to a MaasClient.
 func newTestClient(t *testing.T, handler http.Handler) *MaasClient {
 	t.Helper()
@@ -181,7 +185,7 @@ func TestListSubscriptionsForApiKeys_ValidDataPassedThrough(t *testing.T) {
 	body := []models.SubscriptionListItem{
 		{
 			SubscriptionIDHeader: "premium-sub",
-			InferencePriority:    10,
+			InferencePriority:    int32Ptr(10),
 			ModelRefs: []models.ModelRefInfo{
 				{
 					Name: "granite-3-8b",
