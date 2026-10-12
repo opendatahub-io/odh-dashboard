@@ -3,7 +3,9 @@ kind: Deployment
 metadata:
   name: rhaii-dashboard
 spec:
-  replicas: 1
+  # Two replicas provide baseline availability behind the Gateway. The raw XKS
+  # bundle deliberately does not require provider-specific topology labels.
+  replicas: 2
   selector:
     matchLabels:
       deployment: rhaii-dashboard

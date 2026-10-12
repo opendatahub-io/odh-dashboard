@@ -51,8 +51,6 @@ RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
 
 # Build the RHAII frontend
 WORKDIR /usr/src/workspace/distributions/rhaii
-ARG ENABLE_MODEL_SERVING=false
-ENV ENABLE_MODEL_SERVING=${ENABLE_MODEL_SERVING}
 # Production images serve the federated Model Serving remote from the same
 # origin. This matches the main dashboard's module-federation URL convention.
 # Tilt overrides it with its local development server on port 9109.

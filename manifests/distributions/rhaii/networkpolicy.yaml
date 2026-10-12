@@ -7,7 +7,22 @@ spec:
     matchLabels:
       deployment: rhaii-dashboard
   policyTypes:
+    - Ingress
     - Egress
+  ingress:
+    # Only the configured Gateway's data-plane Pods can reach the dashboard.
+    # Match the standard Gateway API label as well as its namespace so that
+    # other workloads in the Gateway namespace cannot access the Service.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: gateway-namespace
+          podSelector:
+            matchLabels:
+              gateway.networking.k8s.io/gateway-name: gateway-name
+      ports:
+        - protocol: TCP
+          port: 8443
   egress:
     # Allow only the standard Kubernetes DNS ports in kube-system. Do not
     # depend on a provider-specific CoreDNS pod label.
@@ -21,10 +36,14 @@ spec:
         - protocol: TCP
           port: 53
     # The Kubernetes API address is platform-managed and has no stable pod
-    # selector. Kubernetes exposes it through kubernetes.default.svc on HTTPS.
+    # selector. Kubernetes exposes it through kubernetes.default.svc on 443;
+    # CNIs that evaluate policy after Service DNAT see the API endpoint's
+    # standard 6443 port instead.
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0
       ports:
         - protocol: TCP
           port: 443
+        - protocol: TCP
+          port: 6443

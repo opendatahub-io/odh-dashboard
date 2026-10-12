@@ -9,3 +9,6 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: rhaii-dashboard
+    # Kustomize replaces this placeholder with the namespace that contains the
+    # ServiceAccount when the bundle is rendered for installation.
+    namespace: rhaii-dashboard-namespace

@@ -3,9 +3,9 @@ kind: Role
 metadata:
   name: rhaii-dashboard
 rules:
-  # The BFF reads its dashboard configuration and the settings ConfigMaps in
-  # its own namespace. Mutations are limited to the configuration paths owned
-  # by the dashboard service account.
+  # Connection types and dashboard settings are stored as ConfigMaps in the
+  # dashboard namespace. The XKS Core BFF reads and administers them with its
+  # ServiceAccount client.
   - apiGroups:
       - ''
     resources:
@@ -15,18 +15,12 @@ rules:
       - list
       - create
       - update
-      - delete
-  - apiGroups:
-      - opendatahub.io
-    resources:
-      - odhdashboardconfigs
-    verbs:
-      - get
-      - create
       - patch
+      - delete
+  # Admins can create custom KServe ServingRuntime resources through the BFF.
   - apiGroups:
-      - dashboard.opendatahub.io
+      - serving.kserve.io
     resources:
-      - odhapplications
+      - servingruntimes
     verbs:
-      - list
+      - create
