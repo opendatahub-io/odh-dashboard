@@ -221,12 +221,6 @@ func filterAndRemapDataConnectHubGatewayRBAC(resources []unstructured.Unstructur
 	return result
 }
 
-func manifestSets(basePath string, platform cluster.Platform) []render.ManifestInfo {
-	return []render.ManifestInfo{
-		defaultManifestInfo(basePath, platform),
-	}
-}
-
 func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.ManifestInfo, platform cluster.Platform) error {
 	computed := computeKustomizeVariables(dashboard, platform)
 	maps.Copy(computed, resolveImageParams())
@@ -234,7 +228,13 @@ func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.Mani
 	for _, m := range manifests {
 		manifestPath := m.String()
 		params := readExistingParams(filepath.Join(manifestPath, "params.env"))
-		maps.Copy(params, computed)
+		// A bundle's params.env defines the parameters it consumes. Do not add
+		// every resolved operator image to every generated params ConfigMap.
+		for key := range params {
+			if value, found := computed[key]; found {
+				params[key] = value
+			}
+		}
 		if err := writeParamsEnv(manifestPath, params); err != nil {
 			return fmt.Errorf("failed to write params.env to %s: %w", manifestPath, err)
 		}
@@ -247,7 +247,6 @@ func extractDashboardURL(ctx context.Context, reader client.Reader, dashboard *v
 	if platform == cluster.XKS {
 		return "", nil
 	}
-
 	if dashboard.Spec.Gateway != nil && dashboard.Spec.Gateway.Domain != "" {
 		return "https://" + dashboard.Spec.Gateway.Domain + "/", nil
 	}
@@ -287,7 +286,7 @@ func deployObservabilityManifests(
 	cli client.Client,
 	reader client.Reader,
 	dashboard *v1alpha1.Dashboard,
-	basePath string,
+	manifest render.ManifestInfo,
 	platform cluster.Platform,
 	applicationsNamespace string,
 ) error {
@@ -317,10 +316,9 @@ func deployObservabilityManifests(
 		return fmt.Errorf("observability PersesService namespace must not be empty")
 	}
 
-	m := observabilityManifestInfo(basePath, platform)
-	rendered, err := kustomize.NewEngine().Render(m.String(), kustomize.WithNamespace(obsNamespace))
+	rendered, err := kustomize.NewEngine().Render(manifest.String(), kustomize.WithNamespace(obsNamespace))
 	if err != nil {
-		return fmt.Errorf("failed to render observability manifests from %s: %w", m, err)
+		return fmt.Errorf("failed to render observability manifests from %s: %w", manifest, err)
 	}
 
 	if maasPortalSupportedPlatform(platform) {
@@ -335,7 +333,7 @@ func deployObservabilityManifests(
 	logger.Info("Deploying observability manifests", "namespace", obsNamespace, "resources", len(rendered))
 
 	deployer := deploy.NewDeployer(
-		deploy.WithFieldOwner("dashboard-operator"),
+		deploy.WithFieldOwner(dashboardFieldOwner),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
 		deploy.WithLabel(moduleComponentLabel, observabilityComponent),
 		deploy.WithApplyOrder(),

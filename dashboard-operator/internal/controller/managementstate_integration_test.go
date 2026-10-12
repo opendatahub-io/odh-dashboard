@@ -95,6 +95,11 @@ func TestIntegration_ManagementStateRemoved_TeardownResources(t *testing.T) {
 	require.NotNil(t, cond, "ProvisioningSucceeded condition should be present")
 	assert.Equal(t, metav1.ConditionFalse, cond.Status)
 	assert.Equal(t, "Removed", cond.Reason)
+
+	observability := conditions.FindStatusCondition(dashboard, "ObservabilityAvailable")
+	require.NotNil(t, observability, "ObservabilityAvailable condition should be present")
+	assert.Equal(t, metav1.ConditionFalse, observability.Status)
+	assert.Equal(t, "Removed", observability.Reason)
 }
 
 // TestIntegration_ManagementStateRemoved_IdempotentRereconcile verifies that repeated

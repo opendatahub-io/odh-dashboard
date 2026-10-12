@@ -28,14 +28,17 @@ import (
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/controller/conditions"
-	"github.com/opendatahub-io/odh-platform-utilities/pkg/deploy"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
-	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/render"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
-const dashboardFinalizer = "components.platform.opendatahub.io/cleanup"
+const (
+	dashboardFinalizer  = "components.platform.opendatahub.io/cleanup"
+	dashboardFieldOwner = "dashboard-operator"
+)
+
 const conditionObservabilityAvailable = "ObservabilityAvailable"
 
 var operatorDeploymentName = getOperatorDeploymentName()
@@ -168,18 +171,16 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	logger.Info("Reconciling Dashboard", "name", dashboard.Name)
+	lifecycle := r.dashboardLifecycle()
 
 	if !dashboard.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(dashboard, dashboardFinalizer) {
-			cleanup, err := r.deleteMaaSPortalResources(ctx)
+			result, err := lifecycle.Finalize(ctx, dashboard)
 			if err != nil {
-				return ctrl.Result{}, fmt.Errorf("failed to cleanup MaaS Portal resources: %w", err)
+				return result, err
 			}
-			if cleanup.Pending {
-				return ctrl.Result{RequeueAfter: maasPortalRetryInterval}, nil
-			}
-			if err := r.cleanupCrossNamespaceResources(ctx, dashboard, false); err != nil {
-				return ctrl.Result{}, fmt.Errorf("failed to cleanup cross-namespace resources: %w", err)
+			if result.RequeueAfter > 0 {
+				return result, nil
 			}
 
 			controllerutil.RemoveFinalizer(dashboard, dashboardFinalizer)
@@ -217,105 +218,9 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		conditionObservabilityAvailable,
 		conditionMaaSPortalAvailable,
 	)
-	maasPortalManaged := r.maasPortalManaged(dashboard)
-	var observabilityDetectionErr error
-	if dashboard.Spec.ManagementState != "Removed" || maasPortalManaged {
-		observabilityDetectionErr = r.autoDetectObservability(ctx, dashboard)
-		if observabilityDetectionErr != nil {
-			severity := common.ConditionSeverityError
-			if dashboard.Spec.ManagementState != "Removed" {
-				// Optional Perses detection must not change core dashboard readiness.
-				// Portal-only operation still reports observability failures as errors.
-				severity = common.ConditionSeverityInfo
-			}
-			cm.MarkFalse(conditionObservabilityAvailable,
-				conditions.WithError(observabilityDetectionErr),
-				conditions.WithReason("DetectionFailed"),
-				conditions.WithSeverity(severity))
-			logger.Error(observabilityDetectionErr, "Failed to auto-detect observability, preserving its resources and Perses federation entry")
-		}
-	}
-	// MaaS Portal availability is recalculated from its managed resources on every
-	// reconciliation. Clear a stale failure now; failures recorded later in this
-	// cycle (for example federation ConfigMap reconciliation) remain intact.
-	cm.ClearCondition(conditionMaaSPortalAvailable)
 
-	if dashboard.Spec.ManagementState == "Removed" {
-		logger.Info("ManagementState is Removed, tearing down resources")
-
-		// MaaS and GenAI are shared dependencies. Reconcile their aggregate
-		// demand before the core teardown so MaaS Portal-only operation retains them.
-		nextStatuses, err := r.reconcileModuleDemand(ctx, dashboard)
-		if err != nil {
-			r.persistRemovedFailureStatus(ctx, dashboard, previousStatus, cm, "ModuleDeployFailed", err)
-			return ctrl.Result{}, fmt.Errorf("failed to reconcile MaaS Portal-required modules: %w", err)
-		}
-		preserveModuleStatusTransitionTimes(dashboard.Status.ModuleStatuses, nextStatuses)
-		dashboard.Status.ModuleStatuses = nextStatuses
-		r.setMaaSPortalModuleCondition(cm, dashboard, nextStatuses)
-		var observabilityRetryAfter time.Duration
-		if observabilityDetectionErr != nil {
-			observabilityRetryAfter = observabilityRetryInterval
-		} else if maasPortalManaged {
-			observabilityRetryAfter = r.reconcileObservability(ctx, dashboard, cm)
-		}
-		portalRetryAfter := r.reconcileMaaSPortalOperand(ctx, dashboard, cm, nextStatuses, observabilityDetectionErr == nil)
-		portalRetryAfter = minNonZeroDuration(portalRetryAfter, observabilityRetryAfter)
-
-		preserveObservability := maasPortalManaged && (observabilityDetectionErr != nil ||
-			(dashboard.Spec.Observability != nil && dashboard.Spec.Observability.Enabled))
-		if err := r.teardownManagedResources(ctx, dashboard, nextStatuses, preserveObservability); err != nil {
-			r.persistRemovedFailureStatus(ctx, dashboard, previousStatus, cm, "TeardownFailed", err)
-			return ctrl.Result{}, fmt.Errorf("failed to tear down resources: %w", err)
-		}
-
-		dashboard.Status.ObservedGeneration = dashboard.Generation
-		dashboard.Status.URL = ""
-		dashboard.Status.Distribution = nil
-
-		// Core Dashboard removal is intentional. Treat its conditions as
-		// informational so a Managed MaaS Portal can determine the
-		// aggregate Dashboard readiness independently.
-		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
-			conditions.WithReason("Removed"),
-			conditions.WithMessage("Dashboard has been removed via managementState"),
-			conditions.WithSeverity(common.ConditionSeverityInfo))
-		cm.MarkFalse(string(common.ConditionTypeDegraded),
-			conditions.WithReason("Removed"),
-			conditions.WithMessage("Dashboard has been removed"),
-			conditions.WithSeverity(common.ConditionSeverityInfo))
-		if !maasPortalManaged {
-			cm.MarkFalse(conditionObservabilityAvailable,
-				conditions.WithReason("Removed"),
-				conditions.WithMessage("Dashboard has been removed"),
-				conditions.WithSeverity(common.ConditionSeverityInfo))
-		}
-		portal := effectiveMaaSPortal(dashboard.Spec)
-		if portal == nil || portal.ManagementState != "Managed" {
-			// With neither operand managed, retain the established Removed state.
-			cm.MarkFalse(string(common.ConditionTypeReady),
-				conditions.WithReason("Removed"),
-				conditions.WithMessage("Dashboard has been removed via managementState"))
-		}
-		if cm.IsHappy() {
-			dashboard.Status.Phase = common.PhaseReady
-		} else {
-			dashboard.Status.Phase = common.PhaseNotReady
-		}
-		cm.Sort()
-
-		// Decide before the status write refreshes the spec from the API server
-		// and clears any in-memory auto-detected observability configuration.
-		if maasPortalManaged && dashboard.Spec.Observability == nil && portalRetryAfter == 0 {
-			portalRetryAfter = observabilityRetryInterval
-		}
-		if statusErr := r.updateStatusIfChanged(ctx, dashboard, previousStatus); statusErr != nil {
-			logger.Error(statusErr, "Failed to update status after removal")
-
-			return ctrl.Result{}, fmt.Errorf("failed to update status after removal: %w", statusErr)
-		}
-
-		return ctrl.Result{RequeueAfter: portalRetryAfter}, nil
+	if dashboard.Spec.ManagementState == common.Removed {
+		return lifecycle.Remove(ctx, dashboard, previousStatus, cm)
 	}
 
 	dashboard.Status.ObservedGeneration = dashboard.Generation
@@ -330,7 +235,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 	platformVersion := distributionConfig.PlatformVersion
 
-	result, err := r.reconcile(ctx, dashboard, cm, cfg, observabilityDetectionErr == nil)
+	result, err := lifecycle.Reconcile(ctx, dashboard, cm, cfg)
 
 	releases := []common.ComponentRelease{{
 		Name:    v1alpha1.DashboardComponentName,
@@ -417,230 +322,6 @@ func (r *DashboardReconciler) persistRemovedFailureStatus(
 	}
 }
 
-const observabilityRetryInterval = 5 * time.Minute
-
-func (r *DashboardReconciler) reconcile(
-	ctx context.Context,
-	dashboard *v1alpha1.Dashboard,
-	cm *conditions.Manager,
-	cfg OperatorConfig,
-	observabilityKnown bool,
-) (ctrl.Result, error) {
-	result, err := r.reconcileDeployment(ctx, dashboard, cm, cfg, observabilityKnown)
-
-	if dashboard.Spec.Observability == nil && err == nil && result.RequeueAfter == 0 {
-		result.RequeueAfter = observabilityRetryInterval
-	}
-
-	return result, err
-}
-
-// cleanupLegacyResources removes resources that are no longer rendered by the
-// current manifests. It is kept for upgrade safety and is idempotent.
-func (r *DashboardReconciler) cleanupLegacyResources(ctx context.Context) error {
-	logger := log.FromContext(ctx)
-	ns := r.ApplicationsNamespace
-	var errs []error
-
-	type namedResource struct {
-		obj  client.Object
-		name string
-	}
-	namespacedResources := []namedResource{
-		{&corev1.ServiceAccount{}, "odh-dashboard-modules"},
-		{&corev1.Secret{}, "odh-dashboard-modules-token"},
-		{&networkingv1.NetworkPolicy{}, "odh-dashboard-allow-ports"},
-		{&corev1.ConfigMap{}, "sidecar-params"},
-	}
-
-	for _, nr := range namespacedResources {
-		nr.obj.SetName(nr.name)
-		nr.obj.SetNamespace(ns)
-		if err := r.Delete(ctx, nr.obj); client.IgnoreNotFound(err) != nil {
-			errs = append(errs, fmt.Errorf("deleting %T %s: %w", nr.obj, nr.name, err))
-		}
-	}
-
-	clusterResources := []namedResource{
-		{&rbacv1.ClusterRole{}, "odh-dashboard-modules"},
-		{&rbacv1.ClusterRoleBinding{}, "odh-dashboard-modules"},
-		{&rbacv1.ClusterRoleBinding{}, "odh-dashboard-monitoring"},
-		{&rbacv1.ClusterRoleBinding{}, "rhods-dashboard-monitoring"},
-	}
-	for _, nr := range clusterResources {
-		nr.obj.SetName(nr.name)
-		if err := r.Delete(ctx, nr.obj); client.IgnoreNotFound(err) != nil {
-			errs = append(errs, fmt.Errorf("deleting %T %s: %w", nr.obj, nr.name, err))
-		}
-	}
-
-	if len(errs) == 0 {
-		logger.Info("Cleaned up legacy resources")
-	}
-
-	return errors.Join(errs...)
-}
-
-func (r *DashboardReconciler) reconcileDeployment(
-	ctx context.Context,
-	dashboard *v1alpha1.Dashboard,
-	cm *conditions.Manager,
-	cfg OperatorConfig,
-	observabilityKnown bool,
-) (ctrl.Result, error) {
-	logger := log.FromContext(ctx)
-
-	if err := r.cleanupLegacyResources(ctx); err != nil {
-		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
-			conditions.WithReason("LegacyCleanupFailed"),
-			conditions.WithError(err))
-		return ctrl.Result{}, fmt.Errorf("failed to clean up legacy resources: %w", err)
-	}
-
-	manifests := manifestSets(r.ManifestsBasePath, r.Platform)
-
-	if err := applyKustomizeParams(dashboard, manifests, r.Platform); err != nil {
-		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
-			conditions.WithReason("KustomizeParamsFailed"),
-			conditions.WithError(err))
-		return ctrl.Result{}, fmt.Errorf("failed to apply kustomize params: %w", err)
-	}
-
-	engine := kustomize.NewEngine()
-	var allResources []unstructured.Unstructured
-	for _, m := range manifests {
-		rendered, err := engine.Render(m.String(), kustomize.WithNamespace(r.ApplicationsNamespace))
-		if err != nil {
-			cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
-				conditions.WithReason("RenderFailed"),
-				conditions.WithError(err))
-			return ctrl.Result{}, fmt.Errorf("failed to render manifests from %s: %w", m, err)
-		}
-		allResources = append(allResources, rendered...)
-	}
-
-	remapRayDashboardGatewayRBAC(allResources)
-	remapDataConnectHubGatewayRBAC(allResources, r.ApplicationsNamespace)
-
-	if err := sanitizeDeploymentProbes(ctx, r.Client, allResources); err != nil {
-		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
-			conditions.WithReason("ProbeSanitizeFailed"),
-			conditions.WithError(err))
-		return ctrl.Result{}, fmt.Errorf("failed to sanitize deployment probes: %w", err)
-	}
-
-	if err := removeStaleContainers(ctx, r.Client, allResources); err != nil {
-		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
-			conditions.WithReason("StaleContainerRemovalFailed"),
-			conditions.WithError(err))
-		return ctrl.Result{}, fmt.Errorf("failed to remove stale containers: %w", err)
-	}
-
-	deployer := deploy.NewDeployer(
-		deploy.WithFieldOwner("dashboard-operator"),
-		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
-		deploy.WithApplyOrder(),
-		deploy.WithMergeStrategy(deploymentGVK, deploy.MergeDeployments),
-	)
-
-	if err := deployer.Deploy(ctx, deploy.DeployInput{
-		Client:    r.Client,
-		Owner:     dashboard,
-		Release:   deploy.ReleaseInfo{Type: string(r.Platform)},
-		Resources: allResources,
-	}); err != nil {
-		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
-			conditions.WithReason("DeployFailed"),
-			conditions.WithError(err))
-		return ctrl.Result{}, fmt.Errorf("failed to deploy resources: %w", err)
-	}
-
-	if err := r.reconcileRHOAIDashboardConfigDefaults(ctx); err != nil {
-		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
-			conditions.WithReason("DashboardConfigDefaultFailed"),
-			conditions.WithError(err))
-		return ctrl.Result{}, fmt.Errorf("failed to reconcile dashboard config defaults: %w", err)
-	}
-
-	nextStatuses, err := r.reconcileModuleDemand(ctx, dashboard)
-	if err != nil {
-		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
-			conditions.WithReason("ModuleDeployFailed"),
-			conditions.WithError(err))
-		return ctrl.Result{}, fmt.Errorf("failed to deploy module manifests: %w", err)
-	}
-
-	cm.MarkTrue(string(common.ConditionTypeProvisioningSucceeded),
-		conditions.WithReason("ResourcesApplied"),
-		conditions.WithMessage("Dashboard and module manifests applied successfully"))
-
-	// Persist module statuses now so early returns from steps 6-9 don't leave
-	// stale status on the CR (the outer Reconcile persists any status changes).
-	preserveModuleStatusTransitionTimes(dashboard.Status.ModuleStatuses, nextStatuses)
-	dashboard.Status.ModuleStatuses = nextStatuses
-	r.setMaaSPortalModuleCondition(cm, dashboard, nextStatuses)
-
-	// Reconcile cross-namespace RBAC (notebooks, model-registry)
-	rbacErr := r.reconcileNamespacedRBAC(ctx, dashboard)
-	if rbacErr != nil {
-		logger.Error(rbacErr, "Failed to reconcile namespaced RBAC")
-		cm.MarkTrue(string(common.ConditionTypeDegraded),
-			conditions.WithReason("NamespacedRBACFailed"),
-			conditions.WithError(rbacErr))
-	}
-
-	// A failed lookup leaves observability unknown, not disabled. Preserve its
-	// resources and Perses entry while reconciling the remaining federation entries.
-	observabilityRetryAfter := observabilityRetryInterval
-	if observabilityKnown {
-		observabilityRetryAfter = r.reconcileObservability(ctx, dashboard, cm)
-	}
-	fedData, err := r.deployFederationConfigMap(ctx, nextStatuses, dashboard, observabilityKnown)
-	if err != nil {
-		cm.MarkTrue(string(common.ConditionTypeDegraded),
-			conditions.WithReason("FederationConfigMapFailed"),
-			conditions.WithError(err))
-		logger.Error(err, "Failed to deploy federation ConfigMap")
-		return ctrl.Result{}, fmt.Errorf("federation ConfigMap: %w", err)
-	}
-	portalRetryAfter := r.reconcileMaaSPortalOperand(ctx, dashboard, cm, nextStatuses, observabilityKnown)
-
-	if err := r.patchDeploymentFederationHash(ctx, fedData); err != nil {
-		logger.Error(err, "Failed to patch federation hash on deployment")
-		return ctrl.Result{}, fmt.Errorf("patching federation hash: %w", err)
-	}
-
-	// URL extraction + degraded condition
-	url, requeueAfter, urlErr := r.reconcileURL(ctx, dashboard, cm)
-	if urlErr != nil {
-		return ctrl.Result{}, urlErr
-	}
-	if requeueAfter == 0 {
-		r.reconcileDegradedCondition(cm, nextStatuses)
-	}
-	// reconcileURL and reconcileDegradedCondition overwrite Degraded on success;
-	// restore the RBAC failure so it is not silently cleared while cross-namespace
-	// grants are still broken.
-	if rbacErr != nil {
-		cm.MarkTrue(string(common.ConditionTypeDegraded),
-			conditions.WithReason("NamespacedRBACFailed"),
-			conditions.WithError(rbacErr))
-	}
-
-	if requeueAfter > 0 {
-		logger.Info("Dashboard reconcile cycle complete, requeuing", "requeueAfter", requeueAfter)
-	} else {
-		logger.Info("Dashboard reconciled successfully", "url", url, "modules", len(dashboard.Status.ModuleStatuses))
-	}
-
-	if requeueAfter == 0 && cfg.ReconcileInterval > 0 {
-		requeueAfter = cfg.ReconcileInterval
-	}
-
-	requeueAfter = minNonZeroDuration(requeueAfter, portalRetryAfter, observabilityRetryAfter)
-	return ctrl.Result{RequeueAfter: requeueAfter}, nil
-}
-
 // minNonZeroDuration returns the smallest positive duration, or zero if none exist.
 func minNonZeroDuration(durations ...time.Duration) time.Duration {
 	var minimum time.Duration
@@ -656,10 +337,11 @@ func (r *DashboardReconciler) reconcileObservability(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
 	cm *conditions.Manager,
+	manifest render.ManifestInfo,
 ) time.Duration {
 	logger := log.FromContext(ctx)
 
-	switch obsErr := deployObservabilityManifests(ctx, r.Client, r.apiReader(), dashboard, r.ManifestsBasePath, r.Platform, r.ApplicationsNamespace); {
+	switch obsErr := deployObservabilityManifests(ctx, r.Client, r.apiReader(), dashboard, manifest, r.Platform, r.ApplicationsNamespace); {
 	case obsErr == nil:
 		cm.MarkTrue(conditionObservabilityAvailable,
 			conditions.WithReason("Deployed"),
@@ -667,7 +349,7 @@ func (r *DashboardReconciler) reconcileObservability(
 	case errors.Is(obsErr, ErrObservabilityDisabled):
 		if err := r.cleanupManagedObservability(ctx, dashboard); err != nil {
 			severity := common.ConditionSeverityError
-			if dashboard.Spec.ManagementState != "Removed" {
+			if dashboard.Spec.ManagementState != common.Removed {
 				// Disabled observability must not affect core dashboard readiness,
 				// even while its stale resources await cleanup.
 				severity = common.ConditionSeverityInfo
