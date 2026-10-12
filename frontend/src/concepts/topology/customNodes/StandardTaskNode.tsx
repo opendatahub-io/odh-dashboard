@@ -10,6 +10,7 @@ import {
   RunStatus,
   ScaleDetailsLevel,
   TaskNode,
+  useCombineRefs,
   useHover,
   WhenDecorator,
   WithContextMenuProps,
@@ -26,6 +27,7 @@ import { PipelineNodeModelExpanded, StandardTaskNodeData } from '#~/concepts/top
 import { ExecutionStateKF } from '#~/concepts/pipelines/kfTypes';
 import { getExecutionStateLabel, getRunStatusLabel } from '#~/concepts/topology/utils';
 import PipelineNodeButton from '#~/concepts/topology/PipelineNodeButton';
+import { hideSvgTaskLabelsFromKeyboard } from '#~/concepts/topology/a11yUtils';
 
 type StandardTaskNodeInnerProps = {
   element: Node<NodeModel, StandardTaskNodeData>;
@@ -36,6 +38,9 @@ const StandardTaskNodeInner: React.FunctionComponent<StandardTaskNodeInnerProps>
   ({ element, onSelect, selected, ...rest }) => {
     const data = element.getData();
     const [hover, hoverRef] = useHover<SVGGElement>();
+    const nodeRef = React.useRef<SVGGElement>(null);
+    const combinedRef = useCombineRefs(hoverRef, nodeRef);
+    React.useLayoutEffect(() => hideSvgTaskLabelsFromKeyboard(nodeRef.current));
     const detailsLevel = element.getGraph().getDetailsLevel();
     const state = data?.pipelineTask.status?.state;
 
@@ -72,7 +77,7 @@ const StandardTaskNodeInner: React.FunctionComponent<StandardTaskNodeInnerProps>
     const ariaLabel = statusLabel ? `${taskName}, ${statusLabel}` : taskName;
 
     return (
-      <g ref={hoverRef}>
+      <g ref={combinedRef}>
         <TaskNode
           element={element}
           onSelect={onSelect}

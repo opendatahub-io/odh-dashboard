@@ -422,9 +422,35 @@ describe('Pipeline topology', () => {
         .and('be.focused');
       pipelineDetails.findTaskButton('simple-task').should('not.exist');
     });
+
+    it('keeps the expanded group label out of keyboard navigation', () => {
+      initIntercepts(mockGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockGroupedVersion.pipeline_version_id,
+      );
+
+      pipelineDetails.findGroupToggle('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      cy.get('[data-id="for-loop-2"] .pf-topology__node__label .pf-topology-pipelines__pill-text')
+        .should('have.attr', 'tabindex', '-1')
+        .and('have.attr', 'aria-hidden', 'true');
+    });
   });
 
   describe('Pipeline run details', () => {
+    it('tabs directly between accessible task buttons without stopping on SVG labels', () => {
+      initIntercepts();
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
+
+      pipelineRunDetails.findGraphButtons().then(($buttons) => {
+        cy.wrap($buttons[0]).focus();
+        cy.press(Cypress.Keyboard.Keys.TAB);
+        cy.wrap($buttons[1]).should('be.focused');
+      });
+    });
+
     it('does not move focus to the drawer after a pointer selection', () => {
       initIntercepts();
       pipelineRunDetails.visit(projectId, mockRun.run_id);

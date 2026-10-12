@@ -15,16 +15,21 @@ import {
   TaskGroupPillLabel,
   LabelPosition,
   SELECTION_EVENT,
+  useCombineRefs,
   useVisualizationController,
 } from '@patternfly/react-topology';
 import { Button, Flex, FlexItem, Popover, Stack, StackItem } from '@patternfly/react-core';
 import { BanIcon } from '@patternfly/react-icons';
-import { t_global_spacer_lg as globalSpacerLg } from '@patternfly/react-tokens';
 import { PipelineNodeModelExpanded, StandardTaskNodeData } from '#~/concepts/topology/types';
 import NodeStatusIcon from '#~/concepts/topology/NodeStatusIcon';
 import { ExecutionStateKF } from '#~/concepts/pipelines/kfTypes';
 import { getRunStatusLabel } from '#~/concepts/topology/utils';
-import { isHiddenByCollapsedAncestor, panNodeIntoView } from '#~/concepts/topology/a11yUtils';
+import {
+  hideSvgTaskLabelsFromKeyboard,
+  isHiddenByCollapsedAncestor,
+  panGroupControlIntoView,
+  panNodeIntoView,
+} from '#~/concepts/topology/a11yUtils';
 import { activateNodeButtonOnKeyDown } from '#~/concepts/topology/PipelineNodeButton';
 import { NODE_HEIGHT, NODE_WIDTH } from './const';
 
@@ -38,15 +43,59 @@ type PipelinesDefaultGroupInnerProps = Omit<PipelinesDefaultGroupProps, 'element
   element: Node<PipelineNodeModel, StandardTaskNodeData>;
 };
 
+type AccessibleTaskGroupPillLabelProps = React.ComponentProps<typeof TaskGroupPillLabel> & {
+  onActionChange: (handler: ((event: React.MouseEvent) => void) | undefined) => void;
+};
+
+const AccessibleTaskGroupPillLabel: React.FC<AccessibleTaskGroupPillLabelProps> = ({
+  onActionChange,
+  ...props
+}) => {
+  const labelRef = React.useRef<SVGGElement>(null);
+
+  React.useLayoutEffect(() => {
+    onActionChange(props.onActionIconClick);
+    return () => {
+      onActionChange(undefined);
+    };
+  }, [onActionChange, props.onActionIconClick]);
+
+  React.useLayoutEffect(() => {
+    const label = labelRef.current;
+    if (!label) {
+      return undefined;
+    }
+
+    hideSvgTaskLabelsFromKeyboard(label);
+    const labelObserver = new MutationObserver(() => hideSvgTaskLabelsFromKeyboard(label));
+    labelObserver.observe(label, { childList: true, subtree: true });
+    return () => labelObserver.disconnect();
+  }, []);
+
+  return (
+    <g ref={labelRef}>
+      <TaskGroupPillLabel {...props} />
+    </g>
+  );
+};
+
 const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerProps> = observer(
   ({ element, selected, onSelect }) => {
     const controller = useVisualizationController();
     const [hover, hoverRef] = useHover<SVGGElement>();
+    const groupRef = React.useRef<SVGGElement>(null);
+    const combinedRef = useCombineRefs(hoverRef, groupRef);
     const [popoverOpen, setPopoverOpen] = React.useState(false);
     const [toggleFocused, setToggleFocused] = React.useState(false);
-    const groupActionClassName = `odh-pipeline-task-group-${React.useId().replace(/:/g, '')}`;
     const popoverRef = React.useRef<HTMLButtonElement>(null);
     const toggleRef = React.useRef<HTMLButtonElement>(null);
+    const expandedActionRef = React.useRef<((event: React.MouseEvent) => void) | undefined>();
+    const setExpandedAction = React.useCallback(
+      (handler: ((event: React.MouseEvent) => void) | undefined) => {
+        expandedActionRef.current = handler;
+      },
+      [],
+    );
     const focusToggleAfterCollapse = React.useRef(false);
     const detailsLevel = element.getGraph().getDetailsLevel();
     const isCollapsed = element.isCollapsed();
@@ -68,32 +117,38 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
     }, [isCollapsed]);
 
     React.useLayoutEffect(() => {
-      // Hide PatternFly's SVG label before paint so it never becomes a transient Tab stop.
-      document
-        .querySelectorAll<SVGTextElement>(
-          `.${groupActionClassName} .pf-topology-pipelines__pill-text`,
-        )
-        .forEach((label) => {
-          label.setAttribute('tabindex', '-1');
-          label.setAttribute('aria-hidden', 'true');
-        });
-    }, [groupActionClassName, hover, isCollapsed, runStatus, state, toggleFocused]);
+      const group = groupRef.current;
+      if (!group) {
+        return undefined;
+      }
+
+      hideSvgTaskLabelsFromKeyboard(group);
+      const groupObserver = new MutationObserver(() => hideSvgTaskLabelsFromKeyboard(group));
+      groupObserver.observe(group, { childList: true, subtree: true });
+      return () => groupObserver.disconnect();
+    }, []);
 
     const activateCollapseAction = React.useCallback(
       (event: React.MouseEvent<HTMLButtonElement>) => {
         event.stopPropagation();
+        if (!isCollapsed && expandedActionRef.current) {
+          focusToggleAfterCollapse.current = true;
+          expandedActionRef.current(event);
+          return;
+        }
+
         // DefaultTaskGroup owns collapse state, layout, and viewport updates. It exposes no
-        // imperative collapse action, so route this button through its SVG action icon. Keep
-        // the group-toggle Cypress test when updating PatternFly's action icon markup.
-        const actionIcon = document.querySelector<SVGGElement>(
-          `.${groupActionClassName} .pf-topology__node__action-icon`,
+        // imperative expand action, so route this button through its collapsed SVG action icon.
+        // Keep the group-toggle Cypress test when updating PatternFly's action icon markup.
+        const actionIcon = groupRef.current?.querySelector<SVGGElement>(
+          '.pf-topology__node__action-icon',
         );
         if (actionIcon) {
           focusToggleAfterCollapse.current = true;
           actionIcon.dispatchEvent(new MouseEvent('click', { bubbles: true }));
         }
       },
-      [groupActionClassName],
+      [isCollapsed],
     );
 
     const selectChild = React.useCallback(
@@ -125,12 +180,12 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
                 data-testid={`pipeline-group-task-${item.getId()}`}
               >
                 <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-                  <FlexItem style={{ flex: '0', width: globalSpacerLg.var }} aria-hidden="true">
+                  <FlexItem className="odh-pipeline-group-task-status" aria-hidden="true">
                     {childRunStatus != null && childStatus ? (
                       <NodeStatusIcon runStatus={childRunStatus} />
                     ) : null}
                   </FlexItem>
-                  <FlexItem style={{ flex: '1' }}>
+                  <FlexItem className="odh-pipeline-group-task-label">
                     {childLabel}
                     {childStatus ? ` (${childStatus})` : ''}
                   </FlexItem>
@@ -173,12 +228,12 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
     const groupNode = (
       <DefaultTaskGroup
         element={element}
-        className={groupActionClassName}
         collapsible
         recreateLayoutOnCollapseChange
         GroupLabelComponent={(props) => (
-          <TaskGroupPillLabel
+          <AccessibleTaskGroupPillLabel
             {...props}
+            onActionChange={setExpandedAction}
             badge={badgeText}
             customStatusIcon={status === RunStatus.Cancelled ? <BanIcon /> : undefined}
           />
@@ -206,7 +261,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
     );
 
     return (
-      <g ref={hoverRef}>
+      <g ref={combinedRef}>
         {groupNode}
         {isCollapsed && !isHidden ? (
           <foreignObject
@@ -258,7 +313,9 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
               aria-expanded={!isCollapsed}
               onFocus={() => {
                 setToggleFocused(true);
-                panNodeIntoView(element);
+                if (toggleRef.current) {
+                  panGroupControlIntoView(element, toggleRef.current);
+                }
               }}
               onBlur={() => setToggleFocused(false)}
               onClick={activateCollapseAction}

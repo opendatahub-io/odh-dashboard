@@ -3,7 +3,11 @@ import {
   pipelineElementFactory,
   Visualization,
 } from '@patternfly/react-topology';
-import { isHiddenByCollapsedAncestor, orderNodesForKeyboard } from '#~/concepts/topology/a11yUtils';
+import {
+  isHiddenByCollapsedAncestor,
+  orderNodesForKeyboard,
+  panGroupControlIntoView,
+} from '#~/concepts/topology/a11yUtils';
 
 describe('orderNodesForKeyboard', () => {
   it('places graph nodes and group children in visual reading order', () => {
@@ -78,5 +82,49 @@ describe('isHiddenByCollapsedAncestor', () => {
     expect(isHiddenByCollapsedAncestor(child)).toBe(true);
     group.setCollapsed(false);
     expect(isHiddenByCollapsedAncestor(child)).toBe(false);
+  });
+});
+
+describe('panGroupControlIntoView', () => {
+  it('pans an offscreen group control into the topology viewport', () => {
+    const controller = new Visualization();
+    controller.registerElementFactory(pipelineElementFactory);
+    controller.fromModel(
+      {
+        graph: { id: 'graph', type: 'graph' },
+        nodes: [{ id: 'group', type: DEFAULT_TASK_NODE_TYPE, group: true }],
+      },
+      false,
+    );
+    const group = controller.getNodeById('group');
+    expect(group).toBeDefined();
+    if (!group) {
+      return;
+    }
+
+    const viewport = document.createElement('div');
+    viewport.dataset.testId = 'topology';
+    const button = document.createElement('button');
+    viewport.append(button);
+    document.body.append(viewport);
+    jest.spyOn(viewport, 'getBoundingClientRect').mockReturnValue({
+      left: 100,
+      right: 500,
+      top: 100,
+      bottom: 400,
+    } as DOMRect);
+    jest.spyOn(button, 'getBoundingClientRect').mockReturnValue({
+      left: 80,
+      right: 110,
+      top: 40,
+      bottom: 70,
+    } as DOMRect);
+
+    const positionBefore = controller.getGraph().getPosition().clone();
+    panGroupControlIntoView(group, button);
+
+    expect(controller.getGraph().getPosition().x).toBe(positionBefore.x + 40);
+    expect(controller.getGraph().getPosition().y).toBe(positionBefore.y + 80);
+    viewport.remove();
   });
 });

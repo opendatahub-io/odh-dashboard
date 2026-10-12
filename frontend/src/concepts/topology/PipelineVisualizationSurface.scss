@@ -38,3 +38,11 @@
 .odh-pipeline-node-button.m-group-toggle {
   pointer-events: none;
 }
+
+.odh-pipeline-group-task-status {
+  flex: 0 0 var(--pf-t--global--spacer--lg);
+}
+
+.odh-pipeline-group-task-label {
+  flex: 1;
+}

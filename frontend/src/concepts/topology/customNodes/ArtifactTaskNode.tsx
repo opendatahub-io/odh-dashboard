@@ -8,6 +8,7 @@ import {
   WithSelectionProps,
   observer,
   useAnchor,
+  useCombineRefs,
   AnchorEnd,
   getRunStatusModifier,
   ScaleDetailsLevel,
@@ -24,6 +25,7 @@ import { StandardTaskNodeData } from '#~/concepts/topology/types';
 import { isMetricsArtifactType } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
 import { getRunStatusLabel } from '#~/concepts/topology/utils';
 import PipelineNodeButton from '#~/concepts/topology/PipelineNodeButton';
+import { hideSvgTaskLabelsFromKeyboard } from '#~/concepts/topology/a11yUtils';
 
 const ICON_PADDING = 8;
 
@@ -111,6 +113,9 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
   ({ element, selected, onSelect, ...rest }) => {
     const bounds = element.getBounds();
     const [isHover, hoverRef] = useHover<SVGGElement>();
+    const nodeRef = React.useRef<SVGGElement>(null);
+    const combinedRef = useCombineRefs(hoverRef, nodeRef);
+    React.useLayoutEffect(() => hideSvgTaskLabelsFromKeyboard(nodeRef.current));
     const detailsLevel = element.getGraph().getDetailsLevel();
     const data = element.getData();
     const scale = element.getGraph().getScale();
@@ -134,7 +139,7 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
     const ariaLabel = statusLabel ? `${taskName}, ${statusLabel}` : taskName;
 
     return (
-      <g className={css('pf-topology__pipelines__task-node')} ref={hoverRef}>
+      <g className={css('pf-topology__pipelines__task-node')} ref={combinedRef}>
         {isHover || detailsLevel !== ScaleDetailsLevel.high ? (
           <g>
             <TaskNode
