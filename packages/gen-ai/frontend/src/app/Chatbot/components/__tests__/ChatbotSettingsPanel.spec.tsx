@@ -772,6 +772,31 @@ describe('ChatbotSettingsPanel', () => {
       }
     });
 
+    it('should keep only the active tab panel in the tab order', async () => {
+      const user = userEvent.setup();
+      render(<ChatbotSettingsPanel {...defaultProps} />);
+
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveAttribute(
+        'tabindex',
+        '0',
+      );
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-prompt')).toHaveAttribute(
+        'tabindex',
+        '-1',
+      );
+
+      await clickTabToggle(user, 'chatbot-settings-page-tab-prompt');
+
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveAttribute(
+        'tabindex',
+        '-1',
+      );
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-prompt')).toHaveAttribute(
+        'tabindex',
+        '0',
+      );
+    });
+
     it('should show the Model tab content and hide all other tab contents by default', () => {
       render(<ChatbotSettingsPanel {...defaultProps} />);
 
@@ -897,6 +922,18 @@ describe('ChatbotSettingsPanel', () => {
       render(<ChatbotSettingsPanel {...defaultProps} activeTabKey="2" />);
 
       expect(screen.getByTestId('chatbot-settings-page-tab-content-knowledge')).not.toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveStyle({
+        display: 'none',
+      });
+    });
+
+    it('should clamp a controlled activeTabKey beyond the last tab when guardrails is disabled', () => {
+      render(<ChatbotSettingsPanel {...defaultProps} activeTabKey={4} />);
+
+      expect(screen.getByRole('tab', { name: 'MCP' })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-mcp')).not.toHaveStyle({
         display: 'none',
       });
       expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveStyle({

@@ -97,6 +97,31 @@ const DEFAULT_WIDTH = '550px';
 const AUTO_CLOSE_WIDTH_THRESHOLD = 150;
 const COMPACT_TABS_WIDTH_THRESHOLD = 440;
 
+const renderTabTitle = (
+  areTabsCompact: boolean,
+  label: string,
+  icon: React.ReactNode,
+  status?: React.ReactNode,
+) => (
+  <Flex
+    direction={{ default: areTabsCompact ? 'row' : 'column' }}
+    alignItems={{ default: 'alignItemsCenter' }}
+    justifyContent={{ default: 'justifyContentCenter' }}
+    gap={{ default: areTabsCompact ? 'gapXs' : 'gapNone' }}
+  >
+    <FlexItem>{icon}</FlexItem>
+    {!areTabsCompact && (
+      <FlexItem>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+          <FlexItem>{label}</FlexItem>
+          {status && <FlexItem>{status}</FlexItem>}
+        </Flex>
+      </FlexItem>
+    )}
+    {areTabsCompact && status && <FlexItem>{status}</FlexItem>}
+  </Flex>
+);
+
 const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> = ({
   configId = DEFAULT_CONFIG_ID,
   alerts,
@@ -196,7 +221,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   });
   const tabsContainerRef = React.useRef<HTMLDivElement>(null);
   const [areTabsCompact, setAreTabsCompact] = React.useState(
-    Number.parseInt(panelWidth, 10) < COMPACT_TABS_WIDTH_THRESHOLD,
+    Number.parseFloat(panelWidth) < COMPACT_TABS_WIDTH_THRESHOLD,
   );
   // Key to force DrawerPanelContent remount when auto-closing, so it resets to defaultSize
   const [panelSizeKey, setPanelSizeKey] = React.useState(0);
@@ -247,7 +272,13 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   // (e.g. "1") must be normalized here or they'd silently deselect every tab.
   const parsedActiveTabKey =
     typeof rawActiveTabKey === 'string' ? Number(rawActiveTabKey) : rawActiveTabKey;
-  const activeTabKey = Number.isInteger(parsedActiveTabKey) ? parsedActiveTabKey : 0;
+  // The Guardrails tab (eventKey 4) is unmounted when its feature is disabled — clamp
+  // out-of-range keys so every panel is not left hidden at once.
+  const maxTabKey = isGuardrailsFeatureEnabled ? 4 : 3;
+  const activeTabKey = Math.min(
+    Number.isInteger(parsedActiveTabKey) ? parsedActiveTabKey : 0,
+    maxTabKey,
+  );
   const handleTabSelect = (tabIndex: string | number) => {
     // Only update internal state when uncontrolled so it doesn't diverge from the prop
     if (activeTabKeyProp === undefined) {
@@ -263,26 +294,6 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         overflow: 'hidden',
       }
     : undefined;
-
-  const renderTabTitle = (label: string, icon: React.ReactNode, status?: React.ReactNode) => (
-    <Flex
-      direction={{ default: areTabsCompact ? 'row' : 'column' }}
-      alignItems={{ default: 'alignItemsCenter' }}
-      justifyContent={{ default: 'justifyContentCenter' }}
-      gap={{ default: areTabsCompact ? 'gapXs' : 'gapNone' }}
-    >
-      <FlexItem>{icon}</FlexItem>
-      {!areTabsCompact && (
-        <FlexItem>
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-            <FlexItem>{label}</FlexItem>
-            {status && <FlexItem>{status}</FlexItem>}
-          </Flex>
-        </FlexItem>
-      )}
-      {areTabsCompact && status && <FlexItem>{status}</FlexItem>}
-    </Flex>
-  );
 
   return (
     <DrawerPanelContent
@@ -364,7 +375,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             <Tab
               eventKey={0}
               tabContentId="chatbot-settings-page-tab-content-model"
-              title={renderTabTitle('Model', <RhUiAiModelIcon />)}
+              title={renderTabTitle(areTabsCompact, 'Model', <RhUiAiModelIcon />)}
               aria-label="Model"
               tooltip={areTabsCompact ? <Tooltip content="Model" /> : undefined}
               data-testid="chatbot-settings-page-tab-model"
@@ -372,7 +383,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             <Tab
               eventKey={1}
               tabContentId="chatbot-settings-page-tab-content-prompt"
-              title={renderTabTitle('Prompt', <ClipboardIcon />)}
+              title={renderTabTitle(areTabsCompact, 'Prompt', <ClipboardIcon />)}
               aria-label="Prompt"
               tooltip={areTabsCompact ? <Tooltip content="Prompt" /> : undefined}
               data-testid="chatbot-settings-page-tab-prompt"
@@ -380,7 +391,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             <Tab
               eventKey={2}
               tabContentId="chatbot-settings-page-tab-content-knowledge"
-              title={renderTabTitle('RAG', <BookIcon />)}
+              title={renderTabTitle(areTabsCompact, 'RAG', <BookIcon />)}
               aria-label="RAG"
               tooltip={areTabsCompact ? <Tooltip content="RAG" /> : undefined}
               data-testid="chatbot-settings-page-tab-knowledge"
@@ -389,6 +400,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               eventKey={3}
               tabContentId="chatbot-settings-page-tab-content-mcp"
               title={renderTabTitle(
+                areTabsCompact,
                 'MCP',
                 <RobotIcon />,
                 showMcpToolsWarning ? (
@@ -400,14 +412,16 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 ) : undefined,
               )}
               aria-label="MCP"
-              tooltip={areTabsCompact ? <Tooltip content="MCP" /> : undefined}
+              tooltip={
+                areTabsCompact && !showMcpToolsWarning ? <Tooltip content="MCP" /> : undefined
+              }
               data-testid="chatbot-settings-page-tab-mcp"
             />
             {isGuardrailsFeatureEnabled && (
               <Tab
                 eventKey={4}
                 tabContentId="chatbot-settings-page-tab-content-guardrails"
-                title={renderTabTitle('Guardrails', <ShieldAltIcon />)}
+                title={renderTabTitle(areTabsCompact, 'Guardrails', <ShieldAltIcon />)}
                 aria-label="Guardrails"
                 tooltip={areTabsCompact ? <Tooltip content="Guardrails" /> : undefined}
                 data-testid="chatbot-settings-page-tab-guardrails"
@@ -430,6 +444,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         <div
           id="chatbot-settings-page-tab-content-model"
           role="tabpanel"
+          tabIndex={activeTabKey === 0 ? 0 : -1}
           aria-label="Model settings"
           style={{
             display: activeTabKey !== 0 ? 'none' : 'block',
@@ -454,6 +469,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         <div
           id="chatbot-settings-page-tab-content-prompt"
           role="tabpanel"
+          tabIndex={activeTabKey === 1 ? 0 : -1}
           aria-label="Prompt settings"
           style={{
             display: activeTabKey !== 1 ? 'none' : 'block',
@@ -472,6 +488,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         <div
           id="chatbot-settings-page-tab-content-knowledge"
           role="tabpanel"
+          tabIndex={activeTabKey === 2 ? 0 : -1}
           aria-label="RAG settings"
           style={{
             display: activeTabKey !== 2 ? 'none' : 'block',
@@ -491,6 +508,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         <div
           id="chatbot-settings-page-tab-content-mcp"
           role="tabpanel"
+          tabIndex={activeTabKey === 3 ? 0 : -1}
           aria-label="MCP settings"
           style={{
             display: activeTabKey !== 3 ? 'none' : 'block',
@@ -519,6 +537,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           <div
             id="chatbot-settings-page-tab-content-guardrails"
             role="tabpanel"
+            tabIndex={activeTabKey === 4 ? 0 : -1}
             aria-label="Guardrails settings"
             style={{
               display: activeTabKey !== 4 ? 'none' : 'block',
