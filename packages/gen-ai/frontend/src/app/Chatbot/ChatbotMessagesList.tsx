@@ -28,7 +28,7 @@ type ChatbotMessagesListProps = {
   /** Called when the user clicks "View trace" on a bot message with a traceId */
   onViewTrace?: (traceId: string) => void;
   /** Called when the user opens a sent document attachment */
-  onViewDocument?: (attachment: DocumentAttachment) => void;
+  onViewDocument?: (attachment: DocumentAttachment, documentCount: number) => void;
   /** Whether compare mode is active */
   compareMode?: boolean;
   /** Config ID string for tracking: 'default', '1', or '2' */
@@ -115,7 +115,7 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
                         <img src={RhUiResourceIcon} alt="" />
                       </span>
                     }
-                    onClick={() => onViewDocument?.(attachment)}
+                    onClick={() => onViewDocument?.(attachment, documentAttachments.length)}
                     variant="outline"
                     data-testid={`sent-document-attachment-${attachment.file_id}`}
                   >
