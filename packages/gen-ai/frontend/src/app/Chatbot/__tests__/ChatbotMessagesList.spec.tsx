@@ -345,7 +345,7 @@ describe('ChatbotMessages', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: /policy\.pdf/i }));
 
-    expect(onViewDocument).toHaveBeenCalledWith(attachment);
+    expect(onViewDocument).toHaveBeenCalledWith(attachment, 1);
   });
 
   describe('Full Failure Error Pattern', () => {

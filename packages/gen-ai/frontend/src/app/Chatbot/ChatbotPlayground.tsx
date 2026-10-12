@@ -26,6 +26,15 @@ import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardMod
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 import { PLAYGROUND_TRACING_EVENTS } from '~/app/tracking/playgroundTracingTrackingConstants';
+import {
+  classifyDocumentProcessingError,
+  getDocumentTrackingFileType,
+  PLAYGROUND_DOCUMENT_EVENTS,
+} from '~/app/tracking/playgroundDocumentTrackingConstants';
+import {
+  fireDocumentAttachedEvent,
+  fireDocumentContentViewedEvent,
+} from '~/app/tracking/playgroundDocumentTrackingEvents';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -130,6 +139,20 @@ const persistDocumentCache = (storageKey: string, attachments: CachedDocumentAtt
     // Storage can be disabled or full. Attachments remain available in memory
     // for the current Playground session in that case.
   }
+};
+
+const getNewDocumentAttachments = (
+  current: DocumentAttachment[],
+  uploaded: DocumentAttachment[],
+): DocumentAttachment[] => {
+  const attachmentIDs = new Set(current.map((attachment) => attachment.file_id));
+  return uploaded.filter((attachment) => {
+    if (attachmentIDs.has(attachment.file_id)) {
+      return false;
+    }
+    attachmentIDs.add(attachment.file_id);
+    return true;
+  });
 };
 
 /**
@@ -423,6 +446,15 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     [namespace?.name],
   );
   const [documentAttachments, setDocumentAttachments] = React.useState<DocumentAttachment[]>([]);
+  const documentAttachmentsRef = React.useRef(documentAttachments);
+  const updateDocumentAttachments = React.useCallback(
+    (update: (current: DocumentAttachment[]) => DocumentAttachment[]) => {
+      const next = update(documentAttachmentsRef.current);
+      documentAttachmentsRef.current = next;
+      setDocumentAttachments(next);
+    },
+    [],
+  );
   const [isDocumentUploading, setIsDocumentUploading] = React.useState(false);
   const [documentUploadCount, setDocumentUploadCount] = React.useState(0);
   const [viewedDocument, setViewedDocument] = React.useState<DocumentAttachment | null>(null);
@@ -551,7 +583,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       if (pendingTranscription) {
         audioTranscription.discard();
       }
-      setDocumentAttachments([]);
+      updateDocumentAttachments(() => []);
       audioUploadLatchRef.current = false;
       setHasAudioInCurrentMessage(false);
       setMessageBarValue('');
@@ -565,6 +597,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       hasReadyImage,
       audioTranscription,
       hasAudioInCurrentMessage,
+      updateDocumentAttachments,
     ],
   );
 
@@ -575,12 +608,28 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const handleDocumentAttach = React.useCallback(
     async <T extends File>(acceptedFiles: T[]) => {
       if (!apiAvailable) {
+        fireDocumentAttachedEvent({
+          success: false,
+          outcome: TrackingOutcome.submit,
+          documentCountAdded: 0,
+          documentFileTypes: acceptedFiles.map((file) => getDocumentTrackingFileType(file.name)),
+          source: 'filePicker',
+          error: 'uploadFailed',
+        });
+        fireMiscTrackingEvent(PLAYGROUND_DOCUMENT_EVENTS.PROCESSING_FAILED, {
+          error: 'serviceUnavailable',
+          documentFileType: getDocumentTrackingFileType(acceptedFiles[0]?.name ?? ''),
+          documentCount: acceptedFiles.length,
+          stage: 'upload',
+        });
         alertManagement.onShowErrorAlert('API is not available', 'Document upload error');
         return;
       }
       setDocumentUploadCount(acceptedFiles.length);
       setIsDocumentUploading(true);
       const uploaded: DocumentAttachment[] = [];
+      let failedFile: File | undefined;
+      let uploadFailure: ReturnType<typeof classifyDocumentProcessingError> | null = null;
       const cachedDocuments = new Map(
         loadDocumentCache(documentStorageKey).map((attachment) => [
           attachment.fingerprint,
@@ -589,6 +638,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       );
       try {
         for (const file of acceptedFiles) {
+          failedFile = file;
           const cached = cachedDocuments.get(documentFingerprint(file));
           if (cached) {
             uploaded.push(cached);
@@ -606,37 +656,68 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           });
         }
       } catch (error) {
+        uploadFailure = classifyDocumentProcessingError(error);
+        fireMiscTrackingEvent(PLAYGROUND_DOCUMENT_EVENTS.PROCESSING_FAILED, {
+          ...uploadFailure,
+          documentFileType: getDocumentTrackingFileType(failedFile?.name ?? ''),
+          documentCount: acceptedFiles.length,
+        });
         const message = error instanceof Error ? error.message : 'Document extraction failed.';
         alertManagement.onShowErrorAlert(message, 'Document upload error');
       } finally {
         persistDocumentCache(documentStorageKey, Array.from(cachedDocuments.values()));
-        if (uploaded.length > 0) {
-          setDocumentAttachments((current) => {
-            const attachmentIDs = new Set(current.map((attachment) => attachment.file_id));
-            return [
-              ...current,
-              ...uploaded.filter((attachment) => {
-                if (attachmentIDs.has(attachment.file_id)) {
-                  return false;
-                }
-                attachmentIDs.add(attachment.file_id);
-                return true;
-              }),
-            ];
+        const added = getNewDocumentAttachments(documentAttachmentsRef.current, uploaded);
+        if (added.length > 0) {
+          updateDocumentAttachments((current) => [...current, ...added]);
+        }
+        let attachmentError: 'unsupportedType' | 'fileTooLarge' | 'uploadFailed' | null = null;
+        if (uploadFailure) {
+          attachmentError =
+            uploadFailure.error === 'unsupportedType' || uploadFailure.error === 'fileTooLarge'
+              ? uploadFailure.error
+              : 'uploadFailed';
+        }
+        if (uploadFailure || added.length > 0) {
+          fireDocumentAttachedEvent({
+            success: !uploadFailure,
+            outcome: TrackingOutcome.submit,
+            documentCountAdded: added.length,
+            documentFileTypes: added.map((attachment) =>
+              getDocumentTrackingFileType(attachment.filename),
+            ),
+            source: 'filePicker',
+            error: attachmentError,
           });
         }
         setIsDocumentUploading(false);
         setDocumentUploadCount(0);
       }
     },
-    [api, apiAvailable, alertManagement, documentStorageKey],
+    [api, apiAvailable, alertManagement, documentStorageKey, updateDocumentAttachments],
   );
 
-  const handleRemoveDocument = React.useCallback((fileID: string) => {
-    setDocumentAttachments((current) =>
-      current.filter((attachment) => attachment.file_id !== fileID),
-    );
-  }, []);
+  const handleRemoveDocument = React.useCallback(
+    (fileID: string) => {
+      updateDocumentAttachments((current) =>
+        current.filter((attachment) => attachment.file_id !== fileID),
+      );
+    },
+    [updateDocumentAttachments],
+  );
+
+  const handleViewDocument = React.useCallback(
+    (attachment: DocumentAttachment, documentCount: number) => {
+      fireDocumentContentViewedEvent({
+        documentCount,
+        documentFileType: getDocumentTrackingFileType(attachment.filename),
+        viewSource: 'attachmentCard',
+        success: true,
+        error: null,
+      });
+      setViewedDocument(attachment);
+    },
+    [],
+  );
 
   const performImageUpload = React.useCallback(
     (file: File) => {
@@ -982,7 +1063,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         audioUploadLatchRef.current = false;
         setHasAudioInCurrentMessage(false);
         setMessageBarValue('');
-        setDocumentAttachments([]);
+        updateDocumentAttachments(() => []);
         setViewedDocument(null);
       };
     }
@@ -991,7 +1072,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         ref.current = null;
       }
     };
-  }, [clearAllMessagesRef, handleRemoveImage, audioTranscription]);
+  }, [clearAllMessagesRef, handleRemoveImage, audioTranscription, updateDocumentAttachments]);
 
   // Expose hasConversationMessages to parent (beyond the initial welcome message)
   React.useEffect(() => {
@@ -1064,7 +1145,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           mcpServerTokens={mcpServerTokens}
           namespace={namespace?.name}
           documentAttachments={documentAttachments}
-          onViewDocument={setViewedDocument}
+          onViewDocument={handleViewDocument}
           showWelcomePrompt
           welcomeContent={
             !isCompareMode &&
@@ -1174,7 +1255,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               }
             });
             setMessageBarValue('');
-            setDocumentAttachments([]);
+            updateDocumentAttachments(() => []);
             setViewedDocument(null);
             if (isCompareMode) {
               fireMiscTrackingEvent('Playground Compare Chat Cleared', {
@@ -1303,7 +1384,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   onDocumentAttach={handleDocumentAttach}
                   documentAttachments={documentAttachments}
                   onRemoveDocument={handleRemoveDocument}
-                  onViewDocument={setViewedDocument}
+                  onViewDocument={(attachment) =>
+                    handleViewDocument(attachment, documentAttachments.length)
+                  }
                   isDocumentUploading={isDocumentUploading}
                   documentUploadCount={documentUploadCount}
                   isDocumentUploadDisabled={isDocumentUploading}

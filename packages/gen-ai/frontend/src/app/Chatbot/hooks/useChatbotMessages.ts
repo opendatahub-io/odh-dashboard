@@ -39,6 +39,7 @@ import { useChatbotConfigStore } from '~/app/Chatbot/store';
 import { StreamingThinkingSection } from '~/app/Chatbot/components/StreamingThinkingSection';
 import AudioAttachmentTile from '~/app/Chatbot/components/AudioAttachmentTile';
 import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
+import { getDocumentTrackingFileType } from '~/app/tracking/playgroundDocumentTrackingConstants';
 
 export type GuardrailsConfig = {
   enabled: boolean;
@@ -641,6 +642,15 @@ const useChatbotMessages = ({
         hasImage,
         hasAudio,
         modality,
+        hasDocumentAttachments: documentAttachments.length > 0,
+        documentAttachmentCount: documentAttachments.length,
+        documentFileTypes: documentAttachments.map((attachment) =>
+          getDocumentTrackingFileType(attachment.filename),
+        ),
+        externalProviderRouted: selectedModel?.model_source_type === 'custom_endpoint',
+        // The current Playground does not warn or truncate document text before submission.
+        contextWindowWarningShown: false,
+        contentTruncated: false,
         hasLoadedAgent: profileApplied,
         agentSavedState: profileApplied
           ? isProfileDirty
