@@ -102,7 +102,7 @@ func TestE2E_MaaSPortalRoutingConformance(t *testing.T) {
 	require.NoError(t, waitForCondition(
 		k8sClient,
 		dashboardv1alpha1.DashboardInstanceName,
-		"MaaSConsumerPortalAvailable",
+		"MaaSPortalAvailable",
 		metav1.ConditionTrue,
 		fixtureReadyTimeout,
 	))

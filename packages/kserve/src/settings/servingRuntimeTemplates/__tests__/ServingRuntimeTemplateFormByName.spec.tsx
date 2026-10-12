@@ -1,16 +1,27 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import type { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
+import {
+  createServingRuntimeTemplateBackend,
+  updateServingRuntimeTemplateBackend,
+} from '@odh-dashboard/internal/services/templateService';
 import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { ServingRuntimeTemplateFormByName } from '../CustomServingRuntimeAddTemplate';
 import { CustomServingRuntimeContext } from '../CustomServingRuntimeContext';
 
 jest.mock('@odh-dashboard/internal/concepts/dashboard/codeEditor/DashboardCodeEditor', () => ({
   __esModule: true,
-  default: () => <div data-testid="dashboard-code-editor" />,
+  default: ({ code, onCodeChange }: { code: string; onCodeChange: (value: string) => void }) => (
+    <textarea
+      data-testid="dashboard-code-editor"
+      aria-label="ServingRuntime YAML"
+      value={code}
+      onChange={(event) => onCodeChange(event.target.value)}
+    />
+  ),
 }));
 
 jest.mock('@odh-dashboard/internal/services/templateService', () => ({
@@ -53,6 +64,9 @@ const renderByName = (mode: 'edit' | 'duplicate', name: string, templates: Templ
   );
 
 describe('ServingRuntimeTemplateFormByName', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
   it('should render the edit form for a template resolved by name from context', () => {
     const template = mockServingRuntimeTemplateK8sResource({
       name: 'my-runtime',
@@ -75,6 +89,33 @@ describe('ServingRuntimeTemplateFormByName', () => {
     // breadcrumb; assert on the page heading specifically.
     expect(screen.getByRole('heading', { name: 'Duplicate serving runtime' })).toBeInTheDocument();
     expect(screen.getByTestId('dashboard-code-editor')).toBeInTheDocument();
+  });
+
+  it('should keep edit disabled until changed and submit through the update path', async () => {
+    const source = mockServingRuntimeTemplateK8sResource({ name: 'edit-runtime' });
+    jest.mocked(updateServingRuntimeTemplateBackend).mockResolvedValue(source);
+    renderByName('edit', 'edit-runtime', [source]);
+    expect(screen.getByTestId('create-button')).toBeDisabled();
+    const editor = screen.getByTestId('dashboard-code-editor');
+    if (!(editor instanceof HTMLTextAreaElement)) {
+      throw new Error('Expected YAML editor to be a textarea');
+    }
+    fireEvent.change(editor, { target: { value: `${editor.value}\n# edited` } });
+    expect(screen.getByTestId('create-button')).toBeEnabled();
+    fireEvent.click(screen.getByTestId('create-button'));
+    await waitFor(() => expect(updateServingRuntimeTemplateBackend).toHaveBeenCalledTimes(1));
+    expect(createServingRuntimeTemplateBackend).not.toHaveBeenCalled();
+  });
+
+  it('should keep duplicate prefilled and use the existing create path', async () => {
+    const source = mockServingRuntimeTemplateK8sResource({ name: 'copy-runtime' });
+    jest.mocked(createServingRuntimeTemplateBackend).mockResolvedValue(source);
+    renderByName('duplicate', 'copy-runtime', [source]);
+    expect(screen.getByTestId('dashboard-code-editor')).toHaveDisplayValue(/copy-runtime-copy/);
+    expect(screen.getByTestId('create-button')).toBeEnabled();
+    fireEvent.click(screen.getByTestId('create-button'));
+    await waitFor(() => expect(createServingRuntimeTemplateBackend).toHaveBeenCalledTimes(1));
+    expect(updateServingRuntimeTemplateBackend).not.toHaveBeenCalled();
   });
 
   it('should render the not-found empty state when the named template is absent (edit)', () => {

@@ -20,6 +20,7 @@ import {
   transcribeAudio,
 } from '~/app/services/llamaStackService';
 import { URL_PREFIX } from '~/app/utilities';
+import { ApiErrorClass } from '~/app/types';
 import { mockLlamaModels } from '~/__mocks__/mockLlamaStackModels';
 import { mockVectorStores } from '~/__mocks__/mockVectorStores';
 import { mockLlamaStackDistribution } from '~/__mocks__/mockLlamaStackDistribution';
@@ -1800,6 +1801,301 @@ describe('llamaStackService', () => {
       await expect(
         createPassthroughResponse('/gen-ai/api/v1', 'ns', 'secret', mockBody, jest.fn()),
       ).rejects.toThrow('tool_choice requires --tool-call-parser');
+      expect(mockReader.cancel).toHaveBeenCalledWith('Streaming error');
+      expect(mockReader.releaseLock).toHaveBeenCalled();
+    });
+
+    it('should reject on an OpenAI-style error event', async () => {
+      const mockReader = {
+        read: jest.fn().mockResolvedValueOnce({
+          done: false,
+          value: new TextEncoder().encode(
+            'data: {"type": "error", "message": "embedding failed: path_not_found"}\n',
+          ),
+        }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn().mockResolvedValue(undefined),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      await expect(
+        createPassthroughResponse('/gen-ai/api/v1', 'ns', 'secret', mockBody, jest.fn()),
+      ).rejects.toThrow('embedding failed: path_not_found');
+      expect(mockReader.cancel).toHaveBeenCalledWith('Streaming error');
+      expect(mockReader.releaseLock).toHaveBeenCalled();
+    });
+
+    it.each([
+      ['missing message', 'data: {"type": "error"}\n'],
+      ['empty message', 'data: {"type": "error", "message": ""}\n'],
+      ['whitespace-only message', 'data: {"type": "error", "message": "   "}\n'],
+      ['non-string message', 'data: {"type": "error", "message": 42}\n'],
+    ])('should reject an error event with a %s', async (_, sse) => {
+      const mockReader = {
+        read: jest.fn().mockResolvedValueOnce({
+          done: false,
+          value: new TextEncoder().encode(sse),
+        }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn().mockResolvedValue(undefined),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      await expect(
+        createPassthroughResponse('/gen-ai/api/v1', 'ns', 'secret', mockBody, jest.fn()),
+      ).rejects.toThrow('The response stream returned an error.');
+      expect(mockReader.cancel).toHaveBeenCalledWith('Streaming error');
+      expect(mockReader.releaseLock).toHaveBeenCalled();
+    });
+
+    it('should preserve the parsed SSE error when cancellation fails', async () => {
+      const mockReader = {
+        read: jest.fn().mockResolvedValueOnce({
+          done: false,
+          value: new TextEncoder().encode(
+            'data: {"type": "error", "message": "embedding failed: path_not_found"}\n',
+          ),
+        }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn().mockRejectedValue(new TypeError('network error')),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      await expect(
+        createPassthroughResponse('/gen-ai/api/v1', 'ns', 'secret', mockBody, jest.fn()),
+      ).rejects.toThrow('embedding failed: path_not_found');
+      expect(mockReader.cancel).toHaveBeenCalledWith('Streaming error');
+      expect(mockReader.releaseLock).toHaveBeenCalled();
+    });
+
+    it('should reject an AutoRAG endpoint URL that is not a same-origin relative path', async () => {
+      for (const endpointUrl of [
+        'https://evil.example/api',
+        '//evil.example/api',
+        'autorag/api/v1/responses',
+      ]) {
+        await expect(
+          createPassthroughResponse(
+            '/gen-ai/api/v1',
+            'ns',
+            'secret',
+            mockBody,
+            jest.fn(),
+            undefined,
+            endpointUrl,
+          ),
+        ).rejects.toThrow('Invalid responses endpoint URL');
+      }
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('should route an AutoRAG responses endpoint through the BFF relay', async () => {
+      const mockReader = {
+        read: jest.fn().mockResolvedValueOnce({ done: true, value: undefined }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn(),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      await createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+        undefined,
+        '/autorag/api/v1/responses?dbSecretName=db&maasSecretName=maas',
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/gen-ai/api/v1/lsd/responses/relay?target=%2Fautorag%2Fapi%2Fv1%2Fresponses%3FdbSecretName%3Ddb%26maasSecretName%3Dmaas',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    it('should normalize bffBasePath for the relay URL', async () => {
+      const mockReader = {
+        read: jest.fn().mockResolvedValueOnce({ done: true, value: undefined }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn(),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      await createPassthroughResponse(
+        '/gen-ai',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+        undefined,
+        '/autorag/api/v1/responses?dbSecretName=db',
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/gen-ai/api/v1/lsd/responses/relay?target=%2Fautorag%2Fapi%2Fv1%2Fresponses%3FdbSecretName%3Ddb',
+        expect.anything(),
+      );
+    });
+
+    it('should surface a relay 503 as a structured error', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        text: () =>
+          Promise.resolve(
+            '{"error":{"code":"service_unavailable","message":"relay target gateway is not configured (GATEWAY_DOMAIN)"}}',
+          ),
+      });
+
+      const request = createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+        undefined,
+        '/autorag/api/v1/responses?dbSecretName=db',
+      );
+
+      await expect(request).rejects.toBeInstanceOf(ApiErrorClass);
+      await expect(request).rejects.toMatchObject({
+        error: {
+          code: 'service_unavailable',
+          message: 'relay target gateway is not configured (GATEWAY_DOMAIN)',
+        },
+        message: 'relay target gateway is not configured (GATEWAY_DOMAIN)',
+      });
+    });
+
+    it('should preserve structured errors from an overridden AutoRAG endpoint', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: () => Promise.resolve('{"error":{"code":"400","message":"invalid RAG input"}}'),
+      });
+
+      const request = createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+        undefined,
+        '/autorag/api/v1/responses?dbSecretName=db&maasSecretName=maas',
+      );
+
+      await expect(request).rejects.toBeInstanceOf(ApiErrorClass);
+      await expect(request).rejects.toMatchObject({
+        error: { code: '400', message: 'invalid RAG input' },
+        message: 'invalid RAG input',
+      });
+    });
+
+    it.each([
+      ['missing message', '{"error":{"code":"400"}}'],
+      ['empty message', '{"error":{"code":"400","message":""}}'],
+      ['whitespace-only message', '{"error":{"code":"400","message":"   "}}'],
+      ['non-string message', '{"error":{"code":"400","message":123}}'],
+      ['non-object error', '{"error":"invalid error"}'],
+    ])('should use generic fallback for an AutoRAG error with %s', async (_, body) => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: () => Promise.resolve(body),
+      });
+
+      const request = createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+        undefined,
+        '/autorag/api/v1/responses?dbSecretName=db&maasSecretName=maas',
+      );
+
+      await expect(request).rejects.not.toBeInstanceOf(ApiErrorClass);
+      await expect(request).rejects.toMatchObject({ message: 'HTTP error! status: 400' });
+    });
+
+    it('should use the generic HTTP fallback for a malformed AutoRAG error body', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 502,
+        text: () => Promise.resolve('{malformed-json'),
+      });
+
+      const request = createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+        undefined,
+        '/autorag/api/v1/responses?dbSecretName=db&maasSecretName=maas',
+      );
+
+      await expect(request).rejects.not.toBeInstanceOf(ApiErrorClass);
+      await expect(request).rejects.toMatchObject({ message: 'HTTP error! status: 502' });
+    });
+
+    it('should preserve a structured AutoRAG 404 error message', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        text: () =>
+          Promise.resolve('{"error":{"code":"404","message":"vector database secret not found"}}'),
+      });
+
+      const request = createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+        undefined,
+        '/autorag/api/v1/responses?dbSecretName=db&maasSecretName=maas',
+      );
+
+      await expect(request).rejects.toBeInstanceOf(ApiErrorClass);
+      await expect(request).rejects.toMatchObject({
+        error: { code: '404', message: 'vector database secret not found' },
+        message: 'vector database secret not found',
+      });
+    });
+
+    it('should preserve default passthrough fallback behavior without an AutoRAG endpoint', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: () => Promise.resolve('{"error":{"code":"400","message":"invalid input"}}'),
+      });
+
+      const request = createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+      );
+
+      await expect(request).rejects.not.toBeInstanceOf(ApiErrorClass);
+      await expect(request).rejects.toMatchObject({ message: 'invalid input' });
     });
 
     it('should reject with "Response stopped by user" on AbortError', async () => {

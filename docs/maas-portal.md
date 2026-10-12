@@ -25,7 +25,7 @@ Configure `spec.maasPortal.managementState` independently of the core `spec.mana
 
 The pre-DSC-v3 `maasConsumerPortal` spec and status URL fields remain accepted for compatibility with existing Dashboard resources. When both spellings are present, the DSC-v3 `maasPortal` field takes precedence.
 
-`MaaSConsumerPortalAvailable` requires the MaaS and GenAI dependencies, federation ConfigMap reconciliation, an available Deployment, and an accepted/resolved HTTPRoute.
+`MaaSPortalAvailable` requires the MaaS and GenAI dependencies, federation ConfigMap reconciliation, an available Deployment, and an accepted/resolved HTTPRoute.
 
 The URL is published only after the Deployment is Available and the HTTPRoute is accepted with resolved references. The last known good URL is retained across transient failures and cleared after successful removal. Portal health contributes to the operator's [aggregate status](dashboard-operator.md#status-aggregation).
 

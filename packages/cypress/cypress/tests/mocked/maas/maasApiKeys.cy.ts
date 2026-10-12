@@ -67,6 +67,10 @@ describe('API Keys Page', () => {
         ephemeral_max_expiration: '1h',
       },
     }).as('getApiKeyConfig');
+    cy.interceptOdh('GET /maas/api/v1/gateway-url', {
+      data: { url: 'https://api.example.com/maas-api' },
+    }).as('getGatewayUrl');
+
     apiKeysPage.visit();
     cy.wait('@initialSearch');
   });
@@ -826,6 +830,51 @@ describe('API Keys Page', () => {
     copyApiKeyModal.shouldBeOpen();
     copyApiKeyModal.findApiKeyName().should('contain.text', 'max-expiration-key');
     copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '365 days (maximum)');
+  });
+
+  it('should display the correct information in the copy API key modal', () => {
+    cy.interceptOdh('POST /maas/api/v1/api-keys', {
+      data: mockCreateAPIKeyResponse(),
+    }).as('createApiKey');
+
+    apiKeysPage.findCreateApiKeyButton().click();
+    createApiKeyModal.shouldBeOpen();
+    cy.wait('@getSubscriptions');
+    createApiKeyModal.findExpirationModeToggle().should('contain.text', 'On date');
+    createApiKeyModal.findExpirationDateInput().should('exist');
+    createApiKeyModal.findSubmitButton().should('be.disabled');
+    createApiKeyModal.findSubscriptionToggle().click();
+    createApiKeyModal.findSubscriptionOption('premium-team-sub').click();
+    createApiKeyModal.findNameInput().type('production-backend');
+    createApiKeyModal.findDescriptionInput().type('Production API key for backend service');
+    createApiKeyModal.findSubmitButton().should('be.enabled');
+    createApiKeyModal.findSubmitButton().click();
+    cy.wait('@createApiKey').then((interception) => {
+      expect(interception.request.body?.data).to.include({ expiresIn: '1d' });
+      expect(interception.response?.body?.data).to.include({
+        name: 'production-backend',
+        expiresAt: '2026-01-20T11:54:34.521671447-05:00',
+      });
+    });
+
+    copyApiKeyModal.shouldBeOpen();
+    copyApiKeyModal.findApiKeyName().should('contain.text', 'production-backend');
+    copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '1 days');
+
+    copyApiKeyModal.findSubscriptionID().should('have.value', 'premium-team-sub');
+    copyApiKeyModal.findModelID().should('have.value', 'granite-3-8b-instruct');
+    copyApiKeyModal.findAvailableModelsToggle().should('exist');
+    copyApiKeyModal.findBaseURL().should('have.value', 'https://api.example.com/maas-api');
+    copyApiKeyModal
+      .findModelDocumentation()
+      .should('have.value', 'https://api.example.com/v1/models/granite-3-8b-instruct/docs');
+
+    //ensure documentation link is not displayed for external models
+    copyApiKeyModal.findAvailableModelsToggle().should('contain.text', 'Granite 3 8B Instruct');
+    copyApiKeyModal.selectAvailableModel('flan-t5-small');
+    copyApiKeyModal.findAvailableModelsToggle().should('contain.text', 'Flan T5 Small');
+    copyApiKeyModal.findModelID().should('have.value', 'flan-t5-small');
+    copyApiKeyModal.findModelDocumentation().should('not.exist'); // external
   });
 
   it('should show a validation error for an out-of-range after-days value', () => {
