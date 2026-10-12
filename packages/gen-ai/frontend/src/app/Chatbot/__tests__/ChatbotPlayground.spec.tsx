@@ -730,6 +730,113 @@ describe('ChatbotPlayground — document upload and messaging', () => {
       );
     });
 
+    it('tracks a document added after its previous attachment is removed during upload', async () => {
+      renderPlayground();
+      await triggerDocumentUpload([createFile('notes.txt')]);
+      window.localStorage.removeItem(documentStorageKey);
+      mockFireFormTrackingEvent.mockClear();
+
+      let finishUpload: (() => void) | undefined;
+      const uploadPending = new Promise<void>((resolve) => {
+        finishUpload = resolve;
+      });
+      mockUploadDocument.mockImplementationOnce(async () => {
+        await uploadPending;
+        return {
+          id: 'document-notes.txt',
+          filename: 'notes.txt',
+          // eslint-disable-next-line camelcase
+          content_type: 'text/plain',
+          text: 'Extracted document content',
+        };
+      });
+
+      const input = screen.getByTestId('document-file-input') as HTMLInputElement;
+      Object.defineProperty(input, 'files', {
+        value: createFileList([createFile('notes.txt')]),
+        configurable: true,
+      });
+      act(() => {
+        fireEvent.change(input);
+      });
+      await waitFor(() => expect(mockUploadDocument).toHaveBeenCalledTimes(2));
+
+      const staged = screen.getByTestId('document-attachment-document-notes.txt');
+      fireEvent.click(within(staged).getAllByRole('button')[1]);
+      expect(
+        screen.queryByTestId('document-attachment-document-notes.txt'),
+      ).not.toBeInTheDocument();
+
+      await act(async () => {
+        finishUpload?.();
+        await uploadPending;
+      });
+
+      expect(screen.getByTestId('document-attachment-document-notes.txt')).toBeInTheDocument();
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+        PLAYGROUND_DOCUMENT_EVENTS.ATTACHED,
+        expect.objectContaining({
+          success: true,
+          documentCountAdded: 1,
+          documentFileTypes: ['txt'],
+        }),
+      );
+    });
+
+    it('counts an added document in a partially failed upload after removal', async () => {
+      renderPlayground();
+      await triggerDocumentUpload([createFile('notes.txt')]);
+      window.localStorage.removeItem(documentStorageKey);
+      mockFireFormTrackingEvent.mockClear();
+
+      let finishUpload: (() => void) | undefined;
+      const uploadPending = new Promise<void>((resolve) => {
+        finishUpload = resolve;
+      });
+      mockUploadDocument.mockImplementationOnce(async () => {
+        await uploadPending;
+        return {
+          id: 'document-notes.txt',
+          filename: 'notes.txt',
+          // eslint-disable-next-line camelcase
+          content_type: 'text/plain',
+          text: 'Extracted document content',
+        };
+      });
+      mockUploadDocument.mockRejectedValueOnce(new Error('Document extraction failed'));
+
+      const input = screen.getByTestId('document-file-input') as HTMLInputElement;
+      Object.defineProperty(input, 'files', {
+        value: createFileList([createFile('notes.txt'), createFile('fail.txt')]),
+        configurable: true,
+      });
+      act(() => {
+        fireEvent.change(input);
+      });
+      await waitFor(() => expect(mockUploadDocument).toHaveBeenCalledTimes(2));
+
+      const staged = screen.getByTestId('document-attachment-document-notes.txt');
+      fireEvent.click(within(staged).getAllByRole('button')[1]);
+
+      await act(async () => {
+        finishUpload?.();
+        await uploadPending;
+      });
+
+      await waitFor(() => {
+        expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+          PLAYGROUND_DOCUMENT_EVENTS.ATTACHED,
+          expect.objectContaining({
+            success: false,
+            documentCountAdded: 1,
+            documentFileTypes: ['txt'],
+            error: 'uploadFailed',
+          }),
+        );
+      });
+      expect(screen.getByTestId('document-attachment-document-notes.txt')).toBeInTheDocument();
+    });
+
     it('tracks viewing a staged document and allows removing it', async () => {
       renderPlayground();
       await triggerDocumentUpload([createFile('notes.txt')]);

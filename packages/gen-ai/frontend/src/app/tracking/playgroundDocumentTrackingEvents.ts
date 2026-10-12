@@ -26,17 +26,24 @@ type DocumentContentViewedEventProperties = {
   error: null;
 };
 
-// The shared helper types do not include array or null values, but Segment accepts both.
+type SegmentSerializableProperty = string | number | boolean | readonly string[] | null;
+type SegmentSerializable<T> = { [Key in keyof T]: SegmentSerializableProperty };
+
+// Shared helper types omit array and null values. Keep this bridge in Gen AI and ensure
+// every event property stays Segment-serializable before passing it to the shared helper.
 export const fireDocumentAttachedEvent = (properties: DocumentAttachedEventProperties): void => {
+  const serializableProperties: SegmentSerializable<DocumentAttachedEventProperties> = properties;
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const trackingProperties = properties as unknown as FormTrackingEventProperties;
+  const trackingProperties = serializableProperties as unknown as FormTrackingEventProperties;
   fireFormTrackingEvent(PLAYGROUND_DOCUMENT_EVENTS.ATTACHED, trackingProperties);
 };
 
 export const fireDocumentContentViewedEvent = (
   properties: DocumentContentViewedEventProperties,
 ): void => {
+  const serializableProperties: SegmentSerializable<DocumentContentViewedEventProperties> =
+    properties;
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const trackingProperties = properties as unknown as MiscTrackingEventProperties;
+  const trackingProperties = serializableProperties as unknown as MiscTrackingEventProperties;
   fireMiscTrackingEvent(PLAYGROUND_DOCUMENT_EVENTS.CONTENT_VIEWED, trackingProperties);
 };
