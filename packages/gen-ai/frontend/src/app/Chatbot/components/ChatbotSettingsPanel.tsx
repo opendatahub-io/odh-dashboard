@@ -96,6 +96,12 @@ const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
 const DEFAULT_WIDTH = '550px';
 const AUTO_CLOSE_WIDTH_THRESHOLD = 150;
 const COMPACT_TABS_WIDTH_THRESHOLD = 440;
+const MCP_TOOLS_WARNING_TEXT = 'Performance may be degraded with more than 40 active tools';
+const MCP_TOOLS_WARNING_ICON = (
+  <Icon status="warning" data-testid="mcp-tools-warning-icon">
+    <ExclamationTriangleIcon />
+  </Icon>
+);
 
 const renderTabTitle = (
   areTabsCompact: boolean,
@@ -295,6 +301,16 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       }
     : undefined;
 
+  // In compact mode the tab tooltip carries both the MCP label and the warning text; the
+  // warning icon keeps its own tooltip only in wide mode so the two triggers never nest.
+  const mcpToolsWarningStatus = showMcpToolsWarning ? (
+    areTabsCompact ? (
+      MCP_TOOLS_WARNING_ICON
+    ) : (
+      <Tooltip content={MCP_TOOLS_WARNING_TEXT}>{MCP_TOOLS_WARNING_ICON}</Tooltip>
+    )
+  ) : undefined;
+
   return (
     <DrawerPanelContent
       key={panelSizeKey}
@@ -399,21 +415,14 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             <Tab
               eventKey={3}
               tabContentId="chatbot-settings-page-tab-content-mcp"
-              title={renderTabTitle(
-                areTabsCompact,
-                'MCP',
-                <RobotIcon />,
-                showMcpToolsWarning ? (
-                  <Tooltip content="Performance may be degraded with more than 40 active tools">
-                    <Icon status="warning" data-testid="mcp-tools-warning-icon">
-                      <ExclamationTriangleIcon />
-                    </Icon>
-                  </Tooltip>
-                ) : undefined,
-              )}
+              title={renderTabTitle(areTabsCompact, 'MCP', <RobotIcon />, mcpToolsWarningStatus)}
               aria-label="MCP"
               tooltip={
-                areTabsCompact && !showMcpToolsWarning ? <Tooltip content="MCP" /> : undefined
+                areTabsCompact ? (
+                  <Tooltip
+                    content={showMcpToolsWarning ? `MCP: ${MCP_TOOLS_WARNING_TEXT}` : 'MCP'}
+                  />
+                ) : undefined
               }
               data-testid="chatbot-settings-page-tab-mcp"
             />

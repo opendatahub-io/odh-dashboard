@@ -739,6 +739,22 @@ describe('ChatbotSettingsPanel', () => {
       expect(screen.getByTestId('mcp-tools-warning-icon')).toBeInTheDocument();
     });
 
+    it('shows the MCP label and tools warning in a single compact tab tooltip', async () => {
+      const user = userEvent.setup();
+      sessionStorage.setItem(SETTINGS_PANEL_WIDTH, '300px');
+      render(<ChatbotSettingsPanel {...defaultProps} />);
+
+      await user.click(screen.getByRole('tab', { name: 'MCP' }));
+      await user.click(screen.getByTestId('trigger-tools-warning'));
+
+      screen.getByRole('tab', { name: 'MCP' }).focus();
+      const tooltip = await screen.findByRole('tooltip');
+      expect(tooltip).toHaveTextContent('MCP');
+      expect(tooltip).toHaveTextContent(
+        'Performance may be degraded with more than 40 active tools',
+      );
+    });
+
     it('shows a compact tab label on keyboard focus and restores visible labels when widened', async () => {
       render(<ChatbotSettingsPanel {...defaultProps} />);
 
