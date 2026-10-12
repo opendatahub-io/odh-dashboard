@@ -39,6 +39,14 @@ type SecretQueryStatus = {
   isError: boolean;
 };
 
+const isSecretQueryConfigured = (query: SecretQueryStatus): boolean =>
+  !query.isError && (query.data?.length ?? 0) > 0;
+
+const missingPrerequisitesMessage = (missingPrerequisites: string[]): string =>
+  missingPrerequisites.length > 0
+    ? ` Configure ${missingPrerequisites.join(' and ')} in this project before creating an AutoRAG run.`
+    : '';
+
 const getDependencyStatus = (
   queries: SecretQueryStatus[],
   isConfigured: boolean,
@@ -93,8 +101,7 @@ const AutoRAGPrerequisiteStatus: React.FC<PrerequisiteStatusProps> = ({
   let title = 'AutoRAG prerequisites need attention';
   let alertVariant: 'danger' | 'info' | 'warning' = 'warning';
   if (hasUnknown) {
-    message =
-      'One or more connection statuses could not be checked. Refresh the page to try again.';
+    message = `One or more connection statuses could not be checked. Refresh the page to try again.${missingPrerequisitesMessage(missing)}`;
     title = 'Could not verify AutoRAG prerequisites';
     alertVariant = 'danger';
   } else if (isChecking) {
@@ -148,11 +155,11 @@ function AutoragExperimentsPage(): React.JSX.Element {
 
   const vectorStoreStatus = getDependencyStatus(
     [vectorStoreSecrets, databaseSecrets],
-    (vectorStoreSecrets.data?.length ?? 0) > 0 || (databaseSecrets.data?.length ?? 0) > 0,
+    isSecretQueryConfigured(vectorStoreSecrets) || isSecretQueryConfigured(databaseSecrets),
   );
   const maasEndpointStatus = getDependencyStatus(
     [maasSecrets],
-    (maasSecrets.data?.length ?? 0) > 0,
+    isSecretQueryConfigured(maasSecrets),
   );
   const canCreateRun = vectorStoreStatus === 'configured' && maasEndpointStatus === 'configured';
   const missingPrerequisites: string[] = [];
@@ -162,14 +169,15 @@ function AutoragExperimentsPage(): React.JSX.Element {
   if (maasEndpointStatus === 'missing') {
     missingPrerequisites.push('a MaaS endpoint');
   }
-  let createRunDisabledReason: string;
-  if (vectorStoreStatus === 'checking' || maasEndpointStatus === 'checking') {
-    createRunDisabledReason = 'AutoRAG prerequisites are still being checked.';
-  } else if (vectorStoreStatus === 'unknown' || maasEndpointStatus === 'unknown') {
-    createRunDisabledReason =
-      'AutoRAG prerequisites could not be verified. Refresh the page and try again.';
-  } else {
-    createRunDisabledReason = `Configure ${missingPrerequisites.join(' and ')} in this project before creating an AutoRAG run.`;
+  let createRunDisabledReason: string | undefined;
+  if (!canCreateRun) {
+    if (vectorStoreStatus === 'checking' || maasEndpointStatus === 'checking') {
+      createRunDisabledReason = 'AutoRAG prerequisites are still being checked.';
+    } else if (vectorStoreStatus === 'unknown' || maasEndpointStatus === 'unknown') {
+      createRunDisabledReason = `AutoRAG prerequisites could not be verified. Refresh the page and try again.${missingPrerequisitesMessage(missingPrerequisites)}`;
+    } else {
+      createRunDisabledReason = `Configure ${missingPrerequisites.join(' and ')} in this project before creating an AutoRAG run.`;
+    }
   }
 
   const getRedirectPath = (ns: string) => `${autoragExperimentsPathname}/${ns}`;

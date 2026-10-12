@@ -132,6 +132,23 @@ describe('AutoragExperiments', () => {
     expect(screen.queryByTestId('autorag-runs-table')).not.toBeInTheDocument();
   });
 
+  it('should disable the empty-state Create run button when prerequisites are missing', () => {
+    mockUsePipelineRuns.mockReturnValue({
+      ...defaultRunsState,
+      runs: [],
+      totalSize: 0,
+    });
+
+    renderAutorag(
+      <AutoragExperiments
+        canCreateRun={false}
+        createRunDisabledReason="Configure a vector store backend before creating an AutoRAG run."
+      />,
+    );
+
+    expect(screen.getByTestId('create-run-button')).toBeDisabled();
+  });
+
   it('should not show NoProjects when no experiments', () => {
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
