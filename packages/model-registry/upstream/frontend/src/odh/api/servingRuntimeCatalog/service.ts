@@ -1,3 +1,4 @@
+import { handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
 import { getCatalogResource } from '~/app/shared/api/getCatalogResource';
 import {
   ServingRuntime,
@@ -39,13 +40,30 @@ export const getServingRuntime =
     hostPath: string,
     queryParams: Record<string, unknown> = {},
   ): ServingRuntimeCatalogAPIs['getServingRuntime'] =>
-  (opts, runtimeId) =>
-    getCatalogResource<ServingRuntime>(
+  async (opts, runtimeId) => {
+    const response: unknown = await restGET(
       hostPath,
       `/serving_runtimes/${encodeURIComponent(runtimeId)}`,
       queryParams,
       opts,
     );
+    if (
+      typeof response === 'object' &&
+      response !== null &&
+      'error' in response &&
+      typeof response.error === 'object' &&
+      response.error !== null &&
+      'code' in response.error &&
+      response.error.code === '404'
+    ) {
+      return null;
+    }
+    const result = await handleRestFailures(Promise.resolve(response));
+    if (isModArchResponse<ServingRuntime>(result)) {
+      return result.data;
+    }
+    throw new Error('Invalid response format');
+  };
 
 export const getServingRuntimeVersions =
   (

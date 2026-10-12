@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: maas-portal-opendatahub-operator-subscription
+rules:
+  - apiGroups:
+      - operators.coreos.com
+    resources:
+      - subscriptions
+    resourceNames:
+      - opendatahub-operator
+    verbs:
+      - get

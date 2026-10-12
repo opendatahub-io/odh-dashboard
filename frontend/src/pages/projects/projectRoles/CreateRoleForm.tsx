@@ -5,6 +5,7 @@ import K8sNameDescriptionField from '@odh-dashboard/ui-core/components/K8sNameDe
 import RoleLabelsSection from './RoleLabelsSection';
 import PermissionRulesSection from './PermissionRulesSection';
 import type { LabelEntry, RuleEntry } from './types';
+import './CreateRoleForm.scss';
 
 type CreateRoleFormProps = {
   nameDescriptionData: UseK8sNameDescriptionFieldData;
@@ -38,30 +39,32 @@ const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
 
   return (
     <Form onSubmit={(e) => e.preventDefault()} data-testid="create-role-form">
-      <K8sNameDescriptionField
-        dataTestId="role"
-        data={nameDescriptionData.data}
-        onDataChange={nameDescriptionData.onDataChange}
-        nameLabel="Name"
-        autoFocusName
-        hideDescription
-      />
-
-      <FormGroup label="Description" fieldId="role-description">
-        <TextArea
-          id="role-description"
-          data-testid="role-description"
-          value={description}
-          onChange={handleDescriptionChange}
-          resizeOrientation="vertical"
+      <div className="odh-create-role-form__field-group">
+        <K8sNameDescriptionField
+          dataTestId="role"
+          data={nameDescriptionData.data}
+          onDataChange={nameDescriptionData.onDataChange}
+          nameLabel="Name"
+          autoFocusName
+          hideDescription
         />
-      </FormGroup>
 
-      <RoleLabelsSection
-        labels={labels}
-        onLabelsChange={onLabelsChange}
-        onHasInvalidLabelsChange={onHasInvalidLabelsChange}
-      />
+        <FormGroup label="Description" fieldId="role-description">
+          <TextArea
+            id="role-description"
+            data-testid="role-description"
+            value={description}
+            onChange={handleDescriptionChange}
+            resizeOrientation="vertical"
+          />
+        </FormGroup>
+
+        <RoleLabelsSection
+          labels={labels}
+          onLabelsChange={onLabelsChange}
+          onHasInvalidLabelsChange={onHasInvalidLabelsChange}
+        />
+      </div>
 
       <PermissionRulesSection
         rules={rules}

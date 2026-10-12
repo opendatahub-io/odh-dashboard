@@ -1,7 +1,12 @@
 /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-shadow, react/no-unused-prop-types */
 import * as React from 'react';
-import { render, screen, act, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, act, waitFor, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { PLAYGROUND_DOCUMENT_EVENTS } from '~/app/tracking/playgroundDocumentTrackingConstants';
 
 // ───────────────────── Mock functions ─────────────────────
 
@@ -518,6 +523,9 @@ import { DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import type { DocumentAttachment, MCPServerFromAPI } from '~/app/types';
 
+const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
+const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockSetLastInput = (ChatbotContext as any)._currentValue.setLastInput as jest.Mock;
 
@@ -656,7 +664,7 @@ describe('ChatbotPlayground — document upload and messaging', () => {
       renderPlayground();
 
       const configInstanceProps = mockChatbotConfigInstanceProps.mock.calls.at(-1)?.[0] as {
-        onViewDocument: (attachment: DocumentAttachment) => void;
+        onViewDocument: (attachment: DocumentAttachment, documentCount: number) => void;
       };
       const attachment: DocumentAttachment = {
         // eslint-disable-next-line camelcase -- matches the document-attachment API contract
@@ -668,9 +676,19 @@ describe('ChatbotPlayground — document upload and messaging', () => {
         text: 'Extracted document content',
       };
 
-      act(() => configInstanceProps.onViewDocument(attachment));
+      act(() => configInstanceProps.onViewDocument(attachment, 1));
 
       expect(screen.getByTestId('document-extracted-text-modal')).toBeInTheDocument();
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        PLAYGROUND_DOCUMENT_EVENTS.CONTENT_VIEWED,
+        {
+          documentCount: 1,
+          documentFileType: 'txt',
+          viewSource: 'attachmentCard',
+          success: true,
+          error: null,
+        },
+      );
 
       fireEvent.mouseDown(screen.getByTestId('modal-backdrop'));
 
@@ -689,6 +707,151 @@ describe('ChatbotPlayground — document upload and messaging', () => {
       expect((mockUploadDocument.mock.calls[1][0] as FormData).get('file')).toMatchObject({
         name: 'y.txt',
       });
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(PLAYGROUND_DOCUMENT_EVENTS.ATTACHED, {
+        success: true,
+        outcome: 'submit',
+        documentCountAdded: 2,
+        documentFileTypes: ['txt', 'txt'],
+        source: 'filePicker',
+        error: null,
+      });
+    });
+
+    it('counts a duplicate document only once', async () => {
+      renderPlayground();
+      const file = createFile('notes.txt');
+
+      await triggerDocumentUpload([file, file]);
+
+      expect(mockUploadDocument).toHaveBeenCalledTimes(1);
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+        PLAYGROUND_DOCUMENT_EVENTS.ATTACHED,
+        expect.objectContaining({ documentCountAdded: 1, documentFileTypes: ['txt'] }),
+      );
+    });
+
+    it('tracks a document added after its previous attachment is removed during upload', async () => {
+      renderPlayground();
+      await triggerDocumentUpload([createFile('notes.txt')]);
+      window.localStorage.removeItem(documentStorageKey);
+      mockFireFormTrackingEvent.mockClear();
+
+      let finishUpload: (() => void) | undefined;
+      const uploadPending = new Promise<void>((resolve) => {
+        finishUpload = resolve;
+      });
+      mockUploadDocument.mockImplementationOnce(async () => {
+        await uploadPending;
+        return {
+          id: 'document-notes.txt',
+          filename: 'notes.txt',
+          // eslint-disable-next-line camelcase
+          content_type: 'text/plain',
+          text: 'Extracted document content',
+        };
+      });
+
+      const input = screen.getByTestId('document-file-input') as HTMLInputElement;
+      Object.defineProperty(input, 'files', {
+        value: createFileList([createFile('notes.txt')]),
+        configurable: true,
+      });
+      act(() => {
+        fireEvent.change(input);
+      });
+      await waitFor(() => expect(mockUploadDocument).toHaveBeenCalledTimes(2));
+
+      const staged = screen.getByTestId('document-attachment-document-notes.txt');
+      fireEvent.click(within(staged).getAllByRole('button')[1]);
+      expect(
+        screen.queryByTestId('document-attachment-document-notes.txt'),
+      ).not.toBeInTheDocument();
+
+      await act(async () => {
+        finishUpload?.();
+        await uploadPending;
+      });
+
+      expect(screen.getByTestId('document-attachment-document-notes.txt')).toBeInTheDocument();
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+        PLAYGROUND_DOCUMENT_EVENTS.ATTACHED,
+        expect.objectContaining({
+          success: true,
+          documentCountAdded: 1,
+          documentFileTypes: ['txt'],
+        }),
+      );
+    });
+
+    it('counts an added document in a partially failed upload after removal', async () => {
+      renderPlayground();
+      await triggerDocumentUpload([createFile('notes.txt')]);
+      window.localStorage.removeItem(documentStorageKey);
+      mockFireFormTrackingEvent.mockClear();
+
+      let finishUpload: (() => void) | undefined;
+      const uploadPending = new Promise<void>((resolve) => {
+        finishUpload = resolve;
+      });
+      mockUploadDocument.mockImplementationOnce(async () => {
+        await uploadPending;
+        return {
+          id: 'document-notes.txt',
+          filename: 'notes.txt',
+          // eslint-disable-next-line camelcase
+          content_type: 'text/plain',
+          text: 'Extracted document content',
+        };
+      });
+      mockUploadDocument.mockRejectedValueOnce(new Error('Document extraction failed'));
+
+      const input = screen.getByTestId('document-file-input') as HTMLInputElement;
+      Object.defineProperty(input, 'files', {
+        value: createFileList([createFile('notes.txt'), createFile('fail.txt')]),
+        configurable: true,
+      });
+      act(() => {
+        fireEvent.change(input);
+      });
+      await waitFor(() => expect(mockUploadDocument).toHaveBeenCalledTimes(2));
+
+      const staged = screen.getByTestId('document-attachment-document-notes.txt');
+      fireEvent.click(within(staged).getAllByRole('button')[1]);
+
+      await act(async () => {
+        finishUpload?.();
+        await uploadPending;
+      });
+
+      await waitFor(() => {
+        expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+          PLAYGROUND_DOCUMENT_EVENTS.ATTACHED,
+          expect.objectContaining({
+            success: false,
+            documentCountAdded: 1,
+            documentFileTypes: ['txt'],
+            error: 'uploadFailed',
+          }),
+        );
+      });
+      expect(screen.getByTestId('document-attachment-document-notes.txt')).toBeInTheDocument();
+    });
+
+    it('tracks viewing a staged document and allows removing it', async () => {
+      renderPlayground();
+      await triggerDocumentUpload([createFile('notes.txt')]);
+
+      const staged = await screen.findByTestId('document-attachment-document-notes.txt');
+      fireEvent.click(within(staged).getByText('notes.txt'));
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        PLAYGROUND_DOCUMENT_EVENTS.CONTENT_VIEWED,
+        expect.objectContaining({ documentFileType: 'txt', viewSource: 'attachmentCard' }),
+      );
+
+      fireEvent.click(within(staged).getAllByRole('button')[1]);
+      expect(
+        screen.queryByTestId('document-attachment-document-notes.txt'),
+      ).not.toBeInTheDocument();
     });
 
     it('shows an error alert when document extraction fails', async () => {
@@ -703,6 +866,19 @@ describe('ChatbotPlayground — document upload and messaging', () => {
           'Document upload error',
         );
       });
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        PLAYGROUND_DOCUMENT_EVENTS.PROCESSING_FAILED,
+        {
+          error: 'extractionFailed',
+          stage: 'extraction',
+          documentFileType: 'txt',
+          documentCount: 1,
+        },
+      );
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+        PLAYGROUND_DOCUMENT_EVENTS.ATTACHED,
+        expect.objectContaining({ success: false, error: 'uploadFailed' }),
+      );
     });
 
     it('caches extracted attachments without restoring them into the composer after a reload', async () => {

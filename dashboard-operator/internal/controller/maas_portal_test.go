@@ -32,7 +32,7 @@ import (
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
-const maasPortalTestNamespace = "maas-consumer-portal-test"
+const maasPortalTestNamespace = "maas-portal-test"
 
 func TestMaaSPortalAvailabilityHelpers(t *testing.T) {
 	readyRoute := portalTestRoute(2,
@@ -147,9 +147,9 @@ func TestReconcileMaaSPortalAvailability(t *testing.T) {
 		wantReason string
 		wantRetry  time.Duration
 	}{
-		{name: "missing route", wantReason: "MaaSConsumerPortalRouteUnavailable", wantRetry: maasPortalRetryInterval},
-		{name: "route not ready", objects: []client.Object{&gatewayv1.HTTPRoute{ObjectMeta: readyRoute.ObjectMeta}}, wantReason: "MaaSConsumerPortalRouteNotReady", wantRetry: maasPortalRetryInterval},
-		{name: "missing deployment", objects: []client.Object{readyRoute}, wantReason: "MaaSConsumerPortalDeploymentUnavailable", wantRetry: maasPortalRetryInterval},
+		{name: "missing route", wantReason: "MaaSPortalRouteUnavailable", wantRetry: maasPortalRetryInterval},
+		{name: "route not ready", objects: []client.Object{&gatewayv1.HTTPRoute{ObjectMeta: readyRoute.ObjectMeta}}, wantReason: "MaaSPortalRouteNotReady", wantRetry: maasPortalRetryInterval},
+		{name: "missing deployment", objects: []client.Object{readyRoute}, wantReason: "MaaSPortalDeploymentUnavailable", wantRetry: maasPortalRetryInterval},
 		{name: "complete portal available", objects: []client.Object{readyRoute, availableDeployment}, wantReason: "Deployed"},
 	}
 	for _, tt := range tests {
@@ -163,6 +163,7 @@ func TestReconcileMaaSPortalAvailability(t *testing.T) {
 			require.NotNil(t, condition)
 			assert.Equal(t, tt.wantReason, condition.Reason)
 			assert.Equal(t, tt.wantRetry, retryAfter)
+			assert.Equal(t, tt.wantRetry == 0, cm.IsHappy(), "portal route and deployment health must determine aggregate readiness")
 		})
 	}
 }
@@ -203,7 +204,7 @@ func TestReconcileMaaSPortal_MissingGatewayDomainRetries(t *testing.T) {
 	assert.Equal(t, maasPortalRetryInterval, r.reconcileMaaSPortal(context.Background(), dashboard, cm, nil))
 	condition := cm.GetCondition(conditionMaaSPortalAvailable)
 	require.NotNil(t, condition)
-	assert.Equal(t, "MaaSConsumerPortalDomainRequired", condition.Reason)
+	assert.Equal(t, "MaaSPortalDomainRequired", condition.Reason)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSConsumerPortalURL)
 }
@@ -241,7 +242,8 @@ func TestReconcileMaaSPortal_DeployFailurePreservesURL(t *testing.T) {
 	condition := cm.GetCondition(conditionMaaSPortalAvailable)
 	require.NotNil(t, condition)
 	assert.Equal(t, metav1.ConditionFalse, condition.Status)
-	assert.Equal(t, "MaaSConsumerPortalDeployFailed", condition.Reason)
+	assert.Equal(t, "MaaSPortalDeployFailed", condition.Reason)
+	assert.False(t, cm.IsHappy(), "portal bundle deployment failure must block readiness")
 	assert.Equal(t, maasPortalRetryInterval, retryAfter)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSConsumerPortalURL)
@@ -258,13 +260,13 @@ func TestReconcileMaaSPortal_PreservesEarlierFailure(t *testing.T) {
 	r := &DashboardReconciler{Client: fake.NewClientBuilder().WithScheme(s).Build(), Scheme: s, ManifestsBasePath: t.TempDir(), Platform: cluster.SelfManagedRhoai}
 	cm := maasPortalTestManager(t, dashboard)
 	cm.MarkFalse(conditionMaaSPortalAvailable,
-		conditions.WithReason("RequiredModuleUnavailable"),
+		conditions.WithReason("MaaSPortalRequiredModuleUnavailable"),
 		conditions.WithMessage("Required module %q is unavailable", "maas"))
 
 	assert.Equal(t, maasPortalRetryInterval, r.reconcileMaaSPortal(context.Background(), dashboard, cm, nil))
 	condition := cm.GetCondition(conditionMaaSPortalAvailable)
 	require.NotNil(t, condition)
-	assert.Equal(t, "RequiredModuleUnavailable", condition.Reason)
+	assert.Equal(t, "MaaSPortalRequiredModuleUnavailable", condition.Reason)
 }
 
 func TestDeployMaaSPortalBundle(t *testing.T) {
@@ -281,15 +283,15 @@ resources:
 	require.NoError(t, os.WriteFile(filepath.Join(bundle, "deployment.yaml"), []byte(`apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: maas-consumer-portal
+  name: maas-portal
 spec:
   selector:
     matchLabels:
-      app: maas-consumer-portal
+      app: maas-portal
   template:
     metadata:
       labels:
-        app: maas-consumer-portal
+        app: maas-portal
     spec:
       containers:
         - name: portal
@@ -302,7 +304,9 @@ spec:
 	federationConfig := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: maasPortalFederationConfigMapName, Namespace: maasPortalTestNamespace}, Data: map[string]string{federationConfigKey: "[]"}}
 	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(federationConfig).Build()
 	r := &DashboardReconciler{Client: cli, Scheme: s, ManifestsBasePath: base, ApplicationsNamespace: maasPortalTestNamespace, Platform: cluster.SelfManagedRhoai}
-	require.NoError(t, r.deployMaaSPortalBundle(context.Background(), dashboard))
+	result, err := r.deployMaaSPortalBundle(context.Background(), dashboard)
+	require.NoError(t, err)
+	assert.False(t, result.Pending)
 	deployment := &appsv1.Deployment{}
 	require.NoError(t, cli.Get(context.Background(), client.ObjectKey{Name: maasPortalDeploymentName, Namespace: maasPortalTestNamespace}, deployment))
 	assert.NotEmpty(t, deployment.Spec.Template.Annotations[maasPortalFederationHashAnnotation])
@@ -311,7 +315,9 @@ spec:
 		cli := fake.NewClientBuilder().WithScheme(s).Build()
 		r := &DashboardReconciler{Client: cli, Scheme: s, ManifestsBasePath: base, ApplicationsNamespace: maasPortalTestNamespace, Platform: cluster.SelfManagedRhoai}
 
-		require.NoError(t, r.deployMaaSPortalBundle(context.Background(), dashboard))
+		result, err := r.deployMaaSPortalBundle(context.Background(), dashboard)
+		require.NoError(t, err)
+		assert.False(t, result.Pending)
 		deployment := &appsv1.Deployment{}
 		require.NoError(t, cli.Get(context.Background(), client.ObjectKey{Name: maasPortalDeploymentName, Namespace: maasPortalTestNamespace}, deployment))
 		assert.Empty(t, deployment.Spec.Template.Annotations[maasPortalFederationHashAnnotation])
@@ -342,10 +348,53 @@ func TestReconcileRemovedMaaSPortal_CleanupFailureRetries(t *testing.T) {
 	assert.Equal(t, maasPortalRetryInterval, r.reconcileRemovedMaaSPortal(context.Background(), dashboard, cm))
 	condition := cm.GetCondition(conditionMaaSPortalAvailable)
 	require.NotNil(t, condition)
-	assert.Equal(t, "MaaSConsumerPortalCleanupFailed", condition.Reason)
+	assert.Equal(t, "MaaSPortalCleanupFailed", condition.Reason)
 	assert.Equal(t, common.ConditionSeverityInfo, condition.Severity)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
+	assert.True(t, cm.IsHappy(), "removed portal cleanup failures remain informational")
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSConsumerPortalURL)
+}
+
+func TestReconcileMaaSPortal_LegacyCleanupPendingKeepsAvailable(t *testing.T) {
+	for _, previousURL := range []string{"", "https://previous.example.com/"} {
+		t.Run("previous URL="+previousURL, func(t *testing.T) {
+			ctx := context.Background()
+			dashboard := &v1alpha1.Dashboard{
+				ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName},
+				Spec: v1alpha1.DashboardSpec{
+					Gateway: &v1alpha1.GatewaySpec{Domain: "apps.example.com"}, MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
+				},
+				Status: v1alpha1.DashboardStatus{MaaSPortalURL: previousURL, MaaSConsumerPortalURL: previousURL},
+			}
+			route := &gatewayv1.HTTPRoute{ObjectMeta: metav1.ObjectMeta{Name: maasPortalDeploymentName, Namespace: maasPortalTestNamespace, Generation: 1}}
+			route.Status.Parents = []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
+				{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: 1},
+				{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: 1},
+			}}}
+			secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: legacyMaaSPortalName + "-tls", Namespace: maasPortalTestNamespace, Finalizers: []string{"test/hold-secret"}}}
+			cli := fake.NewClientBuilder().WithScheme(maasPortalScheme(t)).WithObjects(migrationReadyDeployment(), migrationFederationConfig(), route, secret).Build()
+			r := &DashboardReconciler{Client: cli, ApplicationsNamespace: maasPortalTestNamespace, Platform: cluster.SelfManagedRhoai, ManifestsBasePath: writeMaaSPortalSubscriptionTestManifest(t)}
+			statuses := map[string]v1alpha1.ModuleStatus{"maas": {Phase: v1alpha1.ModulePhaseDeployed}, "genAi": {Phase: v1alpha1.ModulePhaseDeployed}}
+			cm := maasPortalTestManager(t, dashboard)
+			assert.Equal(t, maasPortalRetryInterval, r.reconcileMaaSPortal(ctx, dashboard, cm, statuses))
+			condition := cm.GetCondition(conditionMaaSPortalAvailable)
+			require.NotNil(t, condition)
+			assert.Equal(t, metav1.ConditionTrue, condition.Status)
+			assert.Equal(t, "Deployed", condition.Reason)
+			assert.Equal(t, "https://apps.example.com/maas-consumer-portal/", dashboard.Status.MaaSPortalURL)
+			assert.Equal(t, dashboard.Status.MaaSPortalURL, dashboard.Status.MaaSConsumerPortalURL)
+			require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(secret), secret))
+			require.NotNil(t, secret.DeletionTimestamp)
+			secret.Finalizers = nil
+			require.NoError(t, cli.Update(ctx, secret))
+			cm = maasPortalTestManager(t, dashboard)
+			cm.ClearCondition(conditionMaaSPortalAvailable) // Reconcile resets availability at the start of each cycle.
+			assert.Zero(t, r.reconcileMaaSPortal(ctx, dashboard, cm, statuses))
+			assert.Equal(t, metav1.ConditionTrue, cm.GetCondition(conditionMaaSPortalAvailable).Status)
+			assert.Equal(t, "https://apps.example.com/maas-consumer-portal/", dashboard.Status.MaaSPortalURL)
+			assert.Equal(t, dashboard.Status.MaaSPortalURL, dashboard.Status.MaaSConsumerPortalURL)
+		})
+	}
 }
 
 func TestReconcileUnsupportedMaaSPortal_CleanupFailurePreservesURL(t *testing.T) {
@@ -363,7 +412,8 @@ func TestReconcileUnsupportedMaaSPortal_CleanupFailurePreservesURL(t *testing.T)
 	cm := maasPortalTestManager(t, dashboard)
 
 	assert.Equal(t, maasPortalRetryInterval, r.reconcileUnsupportedMaaSPortal(context.Background(), dashboard, cm))
-	assert.Equal(t, "MaaSConsumerPortalCleanupFailed", cm.GetCondition(conditionMaaSPortalAvailable).Reason)
+	assert.Equal(t, "MaaSPortalCleanupFailed", cm.GetCondition(conditionMaaSPortalAvailable).Reason)
+	assert.True(t, cm.IsHappy(), "unsupported portal cleanup failures remain informational")
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSPortalURL)
 	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSConsumerPortalURL)
 }
@@ -391,34 +441,20 @@ func TestReconcileDeletion_CleansMaaSPortalResources(t *testing.T) {
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: maasPortalDeploymentName + "-tls", Namespace: maasPortalTestNamespace}},
 		&rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: maasPortalDeploymentName, Labels: portalLabels}},
 		&rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: maasPortalDeploymentName, Labels: portalLabels}},
-		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: "maas-consumer-portal-rhods-operator-subscription", Namespace: "redhat-ods-operator", Labels: portalLabels}},
-		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "maas-consumer-portal-rhods-operator-subscription", Namespace: "redhat-ods-operator", Labels: portalLabels}},
-		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: "maas-consumer-portal-opendatahub-operator-subscription", Namespace: "opendatahub-operator", Labels: portalLabels}},
-		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "maas-consumer-portal-opendatahub-operator-subscription", Namespace: "opendatahub-operator", Labels: portalLabels}},
+		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: "maas-portal-rhods-operator-subscription", Namespace: "redhat-ods-operator", Labels: portalLabels}},
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "maas-portal-rhods-operator-subscription", Namespace: "redhat-ods-operator", Labels: portalLabels}},
+		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: "maas-portal-opendatahub-operator-subscription", Namespace: "opendatahub-operator", Labels: portalLabels}},
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "maas-portal-opendatahub-operator-subscription", Namespace: "opendatahub-operator", Labels: portalLabels}},
 		&gatewayv1.HTTPRoute{ObjectMeta: metav1.ObjectMeta{Name: maasPortalDeploymentName, Namespace: maasPortalTestNamespace, Labels: portalLabels}},
 	}
-	serviceAccountDeleteAttempted := false
-	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(append(objects, operatorNamespaces...)...).WithInterceptorFuncs(interceptor.Funcs{
-		Delete: func(ctx context.Context, delegate client.WithWatch, obj client.Object, options ...client.DeleteOption) error {
-			if _, isServiceAccount := obj.(*corev1.ServiceAccount); isServiceAccount {
-				serviceAccountDeleteAttempted = true
-				return errors.New("protected ServiceAccount must not be deleted")
-			}
-			return delegate.Delete(ctx, obj, options...)
-		},
-	}).Build()
+	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(append(objects, operatorNamespaces...)...).Build()
 	r := &DashboardReconciler{Client: cli, Scheme: s, ApplicationsNamespace: maasPortalTestNamespace}
 	_, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName}})
 	require.NoError(t, err)
 	for _, object := range objects[1:] {
-		if object == portalServiceAccount {
-			continue
-		}
 		err := cli.Get(context.Background(), client.ObjectKeyFromObject(object), object.DeepCopyObject().(client.Object))
 		assert.Error(t, err, "%T should be removed by the Dashboard finalizer", object)
 	}
-	assert.False(t, serviceAccountDeleteAttempted, "portal ServiceAccount must be retained for platforms that protect ServiceAccounts")
-	assert.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(portalServiceAccount), &corev1.ServiceAccount{}))
 }
 
 func TestDeleteLabeledMaaSPortalRBACResources_IgnoresAbsentOperatorNamespaces(t *testing.T) {
@@ -490,7 +526,7 @@ func TestSetMaaSPortalModuleCondition(t *testing.T) {
 			condition := cm.GetCondition(conditionMaaSPortalAvailable)
 			require.NotNil(t, condition)
 			assert.Equal(t, metav1.ConditionFalse, condition.Status)
-			assert.Equal(t, "RequiredModuleUnavailable", condition.Reason)
+			assert.Equal(t, "MaaSPortalRequiredModuleUnavailable", condition.Reason)
 			assert.Equal(t, common.ConditionSeverityError, condition.Severity)
 			assert.False(t, cm.IsHappy(), "a Managed MaaS Portal dependency failure must make the aggregate readiness false")
 		})
@@ -500,7 +536,7 @@ func TestSetMaaSPortalModuleCondition(t *testing.T) {
 		dashboard := newDashboard("Managed")
 		cm := maasPortalTestManager(t, dashboard)
 		cm.MarkFalse(conditionMaaSPortalAvailable,
-			conditions.WithReason("MaaSConsumerPortalDomainRequired"),
+			conditions.WithReason("MaaSPortalDomainRequired"),
 			conditions.WithMessage("gateway domain is not set"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
 
@@ -509,7 +545,7 @@ func TestSetMaaSPortalModuleCondition(t *testing.T) {
 			"genAi": {Phase: v1alpha1.ModulePhaseDeployed},
 		})
 
-		assert.Equal(t, "MaaSConsumerPortalDomainRequired", cm.GetCondition(conditionMaaSPortalAvailable).Reason)
+		assert.Equal(t, "MaaSPortalDomainRequired", cm.GetCondition(conditionMaaSPortalAvailable).Reason)
 	})
 
 	for _, state := range []string{"Removed", ""} {
@@ -545,7 +581,7 @@ func TestMarkMaaSPortalFederationConfigMapFailed(t *testing.T) {
 	condition := cm.GetCondition(conditionMaaSPortalAvailable)
 	require.NotNil(t, condition)
 	assert.Equal(t, metav1.ConditionFalse, condition.Status)
-	assert.Equal(t, "MaaSConsumerPortalFederationConfigMapFailed", condition.Reason)
+	assert.Equal(t, "MaaSPortalFederationConfigMapFailed", condition.Reason)
 	assert.Equal(t, common.ConditionSeverityError, condition.Severity)
 	assert.False(t, cm.IsHappy(), "a Managed MaaS Portal federation failure must make the aggregate readiness false")
 
@@ -553,11 +589,11 @@ func TestMarkMaaSPortalFederationConfigMapFailed(t *testing.T) {
 		dashboard := &v1alpha1.Dashboard{}
 		cm := maasPortalTestManager(t, dashboard)
 		cm.MarkFalse(conditionMaaSPortalAvailable,
-			conditions.WithReason("MaaSConsumerPortalDomainRequired"),
+			conditions.WithReason("MaaSPortalDomainRequired"),
 			conditions.WithMessage("gateway domain is not set"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
 
 		(&DashboardReconciler{}).markMaaSPortalFederationConfigMapFailed(cm, errors.New("apply failed"))
-		assert.Equal(t, "MaaSConsumerPortalDomainRequired", cm.GetCondition(conditionMaaSPortalAvailable).Reason)
+		assert.Equal(t, "MaaSPortalDomainRequired", cm.GetCondition(conditionMaaSPortalAvailable).Reason)
 	})
 }

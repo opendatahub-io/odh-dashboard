@@ -218,4 +218,68 @@ describe('Gen AI API Contract Tests', () => {
       }
     });
   });
+
+  describe('Responses Relay Endpoint', () => {
+    it('should reject a request without a target parameter', async () => {
+      const result = await apiClient.post('/gen-ai/api/v1/lsd/responses/relay', {
+        model: 'granite-3-3-8b-instruct',
+        input: 'What is RAG?',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect({
+          status: result.error.status,
+          headers: result.error.headers,
+          data: result.error.data,
+        }).toMatchContract(apiSchema, {
+          ref: '#/paths/~1gen-ai~1api~1v1~1lsd~1responses~1relay/post/responses/400/content/application~1json/schema',
+          status: 400,
+        });
+      }
+    });
+
+    it('should reject an absolute URL target', async () => {
+      const target = encodeURIComponent('https://evil.example/api');
+      const result = await apiClient.post(
+        `/gen-ai/api/v1/lsd/responses/relay?target=${target}`,
+        {
+          model: 'granite-3-3-8b-instruct',
+          input: 'What is RAG?',
+        },
+      );
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect({
+          status: result.error.status,
+          headers: result.error.headers,
+          data: result.error.data,
+        }).toMatchContract(apiSchema, {
+          ref: '#/paths/~1gen-ai~1api~1v1~1lsd~1responses~1relay/post/responses/400/content/application~1json/schema',
+          status: 400,
+        });
+      }
+    });
+
+    it('should return 503 when the gateway domain is not configured', async () => {
+      const target = encodeURIComponent('/autorag/api/v1/responses?namespace=my-project');
+      const result = await apiClient.post(
+        `/gen-ai/api/v1/lsd/responses/relay?target=${target}`,
+        {
+          model: 'granite-3-3-8b-instruct',
+          input: 'What is RAG?',
+        },
+      );
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect({
+          status: result.error.status,
+          headers: result.error.headers,
+          data: result.error.data,
+        }).toMatchContract(apiSchema, {
+          ref: '#/paths/~1gen-ai~1api~1v1~1lsd~1responses~1relay/post/responses/503/content/application~1json/schema',
+          status: 503,
+        });
+      }
+    });
+  });
 });

@@ -2,9 +2,9 @@
 
 Portal for MaaS API key management and AI asset endpoints. Bundles the `maas` and `gen-ai` packages.
 
-In production the portal is served at `https://<gateway-domain>/maas-consumer-portal/`. Its router, static assets, and MaaS/GenAI browser API calls use that base path; the Gateway strips the prefix before forwarding to the existing Core-BFF and shared module BFF contracts. The portal can remain available when the core dashboard operand is removed. The shared gateway retains the OAuth callback and sign-out endpoints.
-
-Production observability remains available in portal-only deployments. Custom Perses services must meet the operator's [Perses service requirements](../../docs/dashboard-operator.md#perses-service-requirements).
+For production lifecycle, routing, federation, RBAC, migration, and rollout, see
+[MaaS Portal](../../docs/maas-portal.md). Custom Perses services must meet the
+operator's [Perses service requirements](../../docs/dashboard-operator.md#perses-service-requirements).
 
 ## Running locally
 
@@ -92,7 +92,7 @@ pnpm run dev
 
 All three BFF targets use `https://` because on-cluster BFFs serve over TLS. The Core BFF target is used for the operator subscription status request.
 
-For a portal-only deployment, forward `svc/maas-consumer-portal 8943:8443` instead of `svc/"$APP" 8943:8943`. Keep `CORE_BFF_TARGET=https://localhost:8943`; Kubernetes API requests and watches will use the portal's Core BFF.
+For a portal-only deployment, forward `svc/maas-portal 8943:8443` instead of `svc/"$APP" 8943:8943`. Keep `CORE_BFF_TARGET=https://localhost:8943`; Kubernetes API requests and watches will use the portal's Core BFF.
 
 #### Optional: Run the Core BFF locally
 
