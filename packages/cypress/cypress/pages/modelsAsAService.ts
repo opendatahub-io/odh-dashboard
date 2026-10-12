@@ -1908,6 +1908,10 @@ class ExternalModelsPage {
     return cy.findByTestId('add-external-model-button');
   }
 
+  findDeletedProviderRefsAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('deleted-provider-refs-alert');
+  }
+
   findMaaSPublishedPostDeployAlert() {
     return cy.findByTestId('maas-published-post-deploy-alert');
   }
@@ -1920,6 +1924,14 @@ class ExternalModelsPage {
 class ProviderRefTableRow extends Contextual<HTMLElement> {
   findName(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Provider"]');
+  }
+
+  findMissingProviderIcon(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-testid^="provider-ref-missing-"]');
+  }
+
+  findMissingProviderPopover(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(/^provider-ref-missing-popover-/);
   }
 
   findTargetModelId(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -2382,6 +2394,10 @@ class ExternalModelTableRow extends TableRow {
 
   findMissingMaaSModelRefWarningPopover(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('external-model-missing-maas-model-ref-popover');
+  }
+
+  findDeletedProviderIcon(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-model-deleted-provider-icon');
   }
 
   findExpandedProviderRow(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {

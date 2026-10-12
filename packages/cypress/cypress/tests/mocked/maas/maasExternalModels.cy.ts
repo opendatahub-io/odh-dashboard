@@ -220,6 +220,89 @@ describe('External Models Page', () => {
         .should('contain.text', 'Missing MaaS governance setup');
     });
 
+    it('should show deleted provider indicators when a provider ref is missing', () => {
+      const deletedProviderName = 'deleted-provider';
+      const deletedProviderModel = mockExternalModel({
+        name: 'deleted-provider-model',
+        displayName: 'Deleted Provider Model',
+        description: 'Model whose provider was deleted.',
+        modelName: 'deleted-provider-model',
+        providerRefs: [
+          {
+            providerName: deletedProviderName,
+            weight: 1,
+            apiFormat: 'openai-chat',
+            path: '/v1/chat/completions',
+            targetModel: 'gpt-4o',
+          },
+          {
+            providerName: 'openai-prod',
+            weight: 1,
+            apiFormat: 'openai-chat',
+            path: '/v1/chat/completions',
+            targetModel: 'gpt-4o',
+            provider: {
+              displayName: 'OpenAI Production',
+              endpointUrl: 'api.openai.com',
+              authMechanism: 'apikey',
+              credentialSecretRef: 'openai-api-key',
+              provider: 'openai',
+              phase: 'Ready',
+              statusMessage: 'External provider is ready',
+            },
+          },
+        ],
+      });
+
+      cy.interceptOdh(
+        'GET /maas/api/v1/externalmodel',
+        { query: { namespace: TEST_PROJECT } },
+        { data: [deletedProviderModel] },
+      );
+      cy.interceptOdh(
+        'GET /maas/api/v1/externalprovider',
+        { query: { namespace: TEST_PROJECT } },
+        { data: mockExternalProvidersForCreateFlow() },
+      );
+
+      externalModelsPage.visit();
+      externalModelsPage.findTable().should('exist');
+      externalModelsPage.findDeletedProviderRefsAlert().should('exist');
+
+      const deletedProviderRow = externalModelsPage.getRow('Deleted Provider Model');
+      deletedProviderRow.findDeletedProviderIcon().should('exist');
+      deletedProviderRow
+        .findProviderLabel(deletedProviderName)
+        .should('contain.text', deletedProviderName);
+
+      deletedProviderRow.findExpandButton().click();
+      deletedProviderRow
+        .findExpandedProviderName(deletedProviderName)
+        .should('contain.text', deletedProviderName);
+      deletedProviderRow
+        .findExpandedProviderStatus(deletedProviderName)
+        .should('contain.text', 'No provider resource');
+      deletedProviderRow.findExpandedAuthMechanism(deletedProviderName).should('contain.text', '-');
+      deletedProviderRow
+        .findExpandedCredentialSecret(deletedProviderName)
+        .should('contain.text', '-');
+      deletedProviderRow.findExpandedProviderStatus('openai-prod').should('contain.text', 'Ready');
+
+      deletedProviderRow.findEditButton().click();
+      editExternalModelPage.findProviderReferencesTable().should('exist');
+      editExternalModelPage
+        .findProviderRefRow(0)
+        .find()
+        .should('contain.text', deletedProviderName);
+      editExternalModelPage.findProviderRefRow(0).findMissingProviderIcon().should('exist').click();
+      editExternalModelPage
+        .findProviderRefRow(0)
+        .findMissingProviderPopover()
+        .should('exist')
+        .should('contain.text', 'Remove this reference because the provider has been deleted');
+      editExternalModelPage.findProviderRefRow(1).findMissingProviderIcon().should('not.exist');
+    });
+
     it('should filter external models by keyword across name, display name, and description', () => {
       externalModelsPage.findRows().should('have.length', 4);
 

@@ -94,9 +94,16 @@ const ProviderReferencesTable: React.FC<ProviderReferencesTableProps> = ({
                       bodyContent="Remove this reference because the provider has been deleted. Create a new one if none remain for this model."
                       data-testid={`provider-ref-missing-popover-${index}`}
                     >
-                      <Icon status="danger">
-                        <ExclamationCircleIcon />
-                      </Icon>
+                      <Button
+                        variant="plain"
+                        isInline
+                        aria-label="No provider resource"
+                        data-testid={`provider-ref-missing-${index}`}
+                      >
+                        <Icon status="danger">
+                          <ExclamationCircleIcon />
+                        </Icon>
+                      </Button>
                     </Popover>
                   ) : null}
                 </Flex>
