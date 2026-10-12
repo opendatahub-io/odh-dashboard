@@ -49,7 +49,7 @@ const PipelineServerActions: React.FC<PipelineServerActionsProps> = ({ variant, 
           </MenuToggle>
         ) : (
           <MenuToggle
-            aria-label="Actions"
+            aria-label="Pipeline server actions"
             data-testid="pipeline-server-action"
             variant="secondary"
             ref={toggleRef}

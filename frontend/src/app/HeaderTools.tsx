@@ -261,7 +261,7 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
             toggle={(toggleRef) => (
               <Tooltip content="User Menu" triggerRef={toggleRef}>
                 <MenuToggle
-                  aria-label="User menu"
+                  aria-label={`${userName} user menu`}
                   id="user-menu-toggle"
                   ref={toggleRef}
                   onClick={() => setUserMenuOpen(!userMenuOpen)}

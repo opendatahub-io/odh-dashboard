@@ -61,7 +61,7 @@ function FilterToolbar<T extends string>({
                   data-testid={`${testId}-dropdown`}
                   id={`${testId}-toggle-button`}
                   ref={toggleRef}
-                  aria-label="Filter toggle"
+                  aria-label={`Filter by ${filterOptions[currentFilterType] ?? currentFilterType}`}
                   onClick={() => setOpen(!open)}
                   isExpanded={open}
                   icon={<FilterIcon />}
