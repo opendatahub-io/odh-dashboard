@@ -65,7 +65,7 @@ const buildProperties = (
 
 /**
  * Fires the Model as Maas Published event once per wizard session when the
- * Publish as MaaS checkbox field is active.
+ * Subscribed users field is active.
  */
 export const fireMaaSPublishTrackingEvent = (
   outcome: TrackingOutcome,

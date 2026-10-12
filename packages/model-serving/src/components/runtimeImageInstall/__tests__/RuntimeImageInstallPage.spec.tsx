@@ -22,7 +22,9 @@ const MockTarget: React.FC<RuntimeImageInstallTargetProps> = ({
   targetData,
 }) => (
   <div>
-    <span data-testid="target-payload">{JSON.stringify(targetData)}</span>
+    <span data-testid="target-payload">
+      {typeof targetData === 'string' ? targetData : JSON.stringify(targetData)}
+    </span>
     <button type="button" onClick={onBack}>
       Back to selection
     </button>
@@ -144,7 +146,12 @@ describe('RuntimeImageInstallPage', () => {
     expect(screen.getByText('Serving runtime templates')).toBeInTheDocument();
     expect(screen.queryByText('LLM accelerator configurations')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId('runtime-image-install-next'));
-    expect(await screen.findByTestId('target-payload')).toHaveTextContent('ServingRuntime');
+    expect(JSON.parse((await screen.findByTestId('target-payload')).textContent)).toEqual(
+      expect.objectContaining({
+        kind: 'Template',
+        objects: [expect.objectContaining({ kind: 'ServingRuntime' })],
+      }),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Back to selection' }));
     expect(screen.getByRole('radio', { name: /Serving runtime template/ })).toBeChecked();
     fireEvent.click(screen.getByTestId('runtime-image-install-next'));
