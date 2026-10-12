@@ -766,10 +766,9 @@ describe('ChatbotSettingsPanel', () => {
       render(<ChatbotSettingsPanel {...defaultProps} />);
 
       for (const name of ['model', 'prompt', 'knowledge', 'mcp', 'guardrails']) {
-        expect(screen.getByTestId(`chatbot-settings-page-tab-${name}`)).toHaveAttribute(
-          'aria-controls',
-          `chatbot-settings-page-tab-content-${name}`,
-        );
+        const tab = screen.getByTestId(`chatbot-settings-page-tab-${name}`);
+        const panel = screen.getByTestId(`chatbot-settings-page-tab-content-${name}`);
+        expect(tab).toHaveAttribute('aria-controls', panel.id);
       }
     });
 
