@@ -1,6 +1,7 @@
 /* eslint-disable camelcase, @typescript-eslint/no-require-imports */
 import * as React from 'react';
 import { renderHook, act } from '@testing-library/react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
 import { CreateResponseRequest, DocumentAttachment, SimplifiedResponseData } from '~/app/types';
 import {
@@ -15,6 +16,9 @@ import {
 jest.mock('@patternfly/chatbot', () => ({}));
 jest.mock('~/app/services/llamaStackService');
 jest.mock('~/app/hooks/useGenAiAPI');
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
 jest.mock('~/app/utilities/utils', () => {
   let idCounter = 0;
   return {
@@ -42,6 +46,7 @@ const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useC
 // Import after mocking
 const { useGenAiAPI } = jest.requireMock('~/app/hooks/useGenAiAPI');
 const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
+const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 // Create a properly typed mock for createResponse
 const mockCreateResponse = jest.fn<
@@ -121,6 +126,49 @@ describe('useChatbotMessages', () => {
   });
 
   describe('handleMessageSend', () => {
+    it('tracks zero document attachments on a plain query', async () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('Hello');
+      });
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        'Playground Query Submitted',
+        expect.objectContaining({
+          hasDocumentAttachments: false,
+          documentAttachmentCount: 0,
+          documentFileTypes: [],
+        }),
+      );
+    });
+
+    it('tracks a query routed to a custom external endpoint', async () => {
+      mockUseContext.mockReturnValue({
+        namespace: mockNamespace,
+        aiModels: [
+          {
+            // eslint-disable-next-line camelcase
+            model_id: mockModelId,
+            // eslint-disable-next-line camelcase
+            model_source_type: 'custom_endpoint',
+          },
+        ],
+      });
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('Hello');
+      });
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        'Playground Query Submitted',
+        expect.objectContaining({ externalProviderRouted: true }),
+      );
+    });
+
     it('should use file search queries as tool call arguments', async () => {
       mockCreateResponse.mockImplementation((_request, opts) => {
         opts?.onToolCall?.({
@@ -343,6 +391,17 @@ describe('useChatbotMessages', () => {
           ],
         }),
         expect.objectContaining({ abortSignal: expect.any(Object) }),
+      );
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        'Playground Query Submitted',
+        expect.objectContaining({
+          hasDocumentAttachments: true,
+          documentAttachmentCount: 1,
+          documentFileTypes: ['txt'],
+          externalProviderRouted: false,
+          contextWindowWarningShown: false,
+          contentTruncated: false,
+        }),
       );
     });
 

@@ -1,7 +1,10 @@
 import * as React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import ChatbotMessageInput, {
   ImageUploadState,
 } from '~/app/Chatbot/components/ChatbotMessageInput';
@@ -13,6 +16,7 @@ import {
 } from '~/app/Chatbot/const';
 import { AudioTranscriptionState } from '~/app/Chatbot/hooks/useAudioTranscription';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
+import { PLAYGROUND_DOCUMENT_EVENTS } from '~/app/tracking/playgroundDocumentTrackingConstants';
 
 jest.mock('@patternfly/chatbot', () => ({
   MessageBar: ({
@@ -167,9 +171,11 @@ jest.mock('@patternfly/react-icons', () => ({
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireMiscTrackingEvent: jest.fn(),
+  fireFormTrackingEvent: jest.fn(),
 }));
 
 const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
+const mockFireForm = jest.mocked(fireFormTrackingEvent);
 
 describe('ChatbotMessageInput', () => {
   const defaultImageUploadState: ImageUploadState = {
@@ -730,7 +736,7 @@ describe('ChatbotMessageInput', () => {
       onDocumentAttach.mockClear();
     });
 
-    it('rejects unsupported file types and shows validation error', async () => {
+    it('rejects an unsupported file if it bypasses the file picker filter', async () => {
       const user = userEvent.setup();
       render(<ChatbotMessageInput {...defaultProps} onDocumentAttach={onDocumentAttach} />);
 
@@ -738,7 +744,7 @@ describe('ChatbotMessageInput', () => {
       await user.click(screen.getByTestId('mock-attach-toggle'));
       await user.click(screen.getByTestId('menu-item-upload-documents'));
 
-      // Set an .exe file on the document input
+      // Simulate a browser supplying a file outside the input's accept filter.
       const input = screen.getByTestId('document-file-input') as HTMLInputElement;
       const badFile = new File(['data'], 'malware.exe', { type: 'application/x-msdownload' });
       Object.defineProperty(input, 'files', {
@@ -752,6 +758,20 @@ describe('ChatbotMessageInput', () => {
         expect(screen.getByTestId('vision-validation-error')).toBeInTheDocument();
       });
       expect(onDocumentAttach).not.toHaveBeenCalled();
+      expect(mockFireForm).toHaveBeenCalledWith(PLAYGROUND_DOCUMENT_EVENTS.ATTACHED, {
+        success: false,
+        outcome: 'submit',
+        documentCountAdded: 0,
+        documentFileTypes: ['unknown'],
+        source: 'filePicker',
+        error: 'unsupportedType',
+      });
+      expect(mockFireMisc).toHaveBeenCalledWith(PLAYGROUND_DOCUMENT_EVENTS.PROCESSING_FAILED, {
+        error: 'unsupportedType',
+        documentFileType: 'unknown',
+        documentCount: 1,
+        stage: 'clientValidation',
+      });
     });
 
     it('rejects files exceeding the 50MB limit and shows validation error', async () => {
@@ -773,6 +793,10 @@ describe('ChatbotMessageInput', () => {
         expect(screen.getByTestId('vision-validation-error')).toBeInTheDocument();
       });
       expect(onDocumentAttach).not.toHaveBeenCalled();
+      expect(mockFireForm).toHaveBeenCalledWith(
+        PLAYGROUND_DOCUMENT_EVENTS.ATTACHED,
+        expect.objectContaining({ error: 'fileTooLarge', documentFileTypes: ['txt'] }),
+      );
     });
 
     it('passes only valid files from a mixed batch', async () => {
