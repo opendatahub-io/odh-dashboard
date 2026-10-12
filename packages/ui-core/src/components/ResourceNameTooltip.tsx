@@ -14,12 +14,14 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import DashboardPopupIconButton from './DashboardPopupIconButton';
+import TruncatedText from './TruncatedText';
 
 type ResourceNameTooltipProps = {
   resource: K8sResourceCommon;
   children: React.ReactNode;
   wrap?: boolean;
   onShowPopover?: () => void;
+  description?: string;
 };
 
 const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
@@ -27,6 +29,7 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
   resource,
   wrap = true,
   onShowPopover,
+  description,
 }) => (
   <div style={{ display: wrap ? 'block' : 'inline-flex' }}>
     <Flex
@@ -69,6 +72,14 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
                       {resource.kind}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
+                  {description && (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Resource description</DescriptionListTerm>
+                      <DescriptionListDescription data-testid="resource-description-text">
+                        <TruncatedText maxLines={3} tabIndex={0} content={description} />
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  )}
                 </DescriptionList>
               </StackItem>
             </Stack>

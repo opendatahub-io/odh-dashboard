@@ -52,6 +52,13 @@ export const HardwareProfileModel: K8sModelCommon = {
   plural: 'hardwareprofiles',
 };
 
+export const ResourceClaimTemplateModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'resource.k8s.io',
+  kind: 'ResourceClaimTemplate',
+  plural: 'resourceclaimtemplates',
+};
+
 export const ClusterQueueModel: K8sModelCommon = {
   apiVersion: 'v1beta2',
   apiGroup: 'kueue.x-k8s.io',
