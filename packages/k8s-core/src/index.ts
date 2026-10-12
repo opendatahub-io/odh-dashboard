@@ -100,6 +100,7 @@ export type {
 export { OdhApplicationCategory } from './k8sTypes';
 
 export {
+  hasK8sIdentity,
   isK8sDSGResource,
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,

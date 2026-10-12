@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	maasPortalName         = "maas-consumer-portal"
+	maasPortalName         = "maas-portal"
 	maasPortalCoreBFFImage = "registry.example.com/odh-core-bff@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 )
 
@@ -56,7 +56,7 @@ func TestRenderMaaSPortalManifestBundle(t *testing.T) {
 	params["perses-namespace"] = "custom-perses"
 	params["operator-namespace"] = "custom-operators"
 	params["gateway-name"] = "portal-gateway"
-	params["maas-consumer-portal-federation-config"] = "maas-consumer-portal-federation-test"
+	params["maas-portal-federation-config"] = "maas-portal-federation-test"
 	require.NoError(t, writeParamsEnv(dir, params))
 
 	engine := kustomize.NewEngine()
@@ -109,8 +109,8 @@ func TestRenderMaaSPortalManifestBundle(t *testing.T) {
 	assert.Contains(t, container["args"], "--deployment-mode=standalone")
 	assert.Contains(t, container["args"], "--platform-type=OpenShift")
 	assert.Contains(t, container["args"], "--namespace=portal-test")
-	assert.Contains(t, container["args"], "--static-assets-dir=/static/maas-consumer-portal")
-	assert.Contains(t, container["args"], "--mf-remotes-config=/etc/odh-dashboard/maas-consumer-portal-federation-config.json")
+	assert.Contains(t, container["args"], "--static-assets-dir=/static/maas-portal")
+	assert.Contains(t, container["args"], "--mf-remotes-config=/etc/odh-dashboard/maas-portal-federation-config.json")
 	containerSecurityContext := container["securityContext"].(map[string]interface{})
 	assert.Equal(t, true, containerSecurityContext["runAsNonRoot"])
 	assert.Equal(t, true, containerSecurityContext["readOnlyRootFilesystem"])
@@ -145,15 +145,15 @@ func TestRenderMaaSPortalManifestBundle(t *testing.T) {
 
 	volumeMounts := container["volumeMounts"].([]interface{})
 	assert.Equal(t, "/etc/tls/private", namedManifestObject(t, volumeMounts, "portal-tls")["mountPath"])
-	assert.Equal(t, "/etc/odh-dashboard", namedManifestObject(t, volumeMounts, "maas-consumer-portal-federation-config")["mountPath"])
+	assert.Equal(t, "/etc/odh-dashboard", namedManifestObject(t, volumeMounts, "maas-portal-federation-config")["mountPath"])
 	assert.Equal(t, "/var/run/secrets/kubernetes.io/serviceaccount", namedManifestObject(t, volumeMounts, "portal-sa-token")["mountPath"])
 
 	volumes, found, err := unstructured.NestedSlice(deployment.Object, "spec", "template", "spec", "volumes")
 	require.NoError(t, err)
 	require.True(t, found)
-	federationVolume := namedManifestObject(t, volumes, "maas-consumer-portal-federation-config")
+	federationVolume := namedManifestObject(t, volumes, "maas-portal-federation-config")
 	federationConfigMap := federationVolume["configMap"].(map[string]interface{})
-	assert.Equal(t, "maas-consumer-portal-federation-test", federationConfigMap["name"])
+	assert.Equal(t, "maas-portal-federation-test", federationConfigMap["name"])
 	require.NotNil(t, namedManifestObject(t, volumes, "portal-tls")["secret"])
 	require.NotNil(t, namedManifestObject(t, volumes, "portal-sa-token")["projected"])
 
@@ -269,24 +269,24 @@ func TestRenderMaaSPortalManifestBundle(t *testing.T) {
 
 func TestFilterMaaSPortalResources(t *testing.T) {
 	resources := []unstructured.Unstructured{
-		{Object: map[string]interface{}{"kind": "Role", "metadata": map[string]interface{}{"name": "maas-consumer-portal-rhods-operator-subscription"}}},
-		{Object: map[string]interface{}{"kind": "RoleBinding", "metadata": map[string]interface{}{"name": "maas-consumer-portal-rhods-operator-subscription"}}},
-		{Object: map[string]interface{}{"kind": "Role", "metadata": map[string]interface{}{"name": "maas-consumer-portal-opendatahub-operator-subscription"}}},
-		{Object: map[string]interface{}{"kind": "RoleBinding", "metadata": map[string]interface{}{"name": "maas-consumer-portal-opendatahub-operator-subscription"}}},
+		{Object: map[string]interface{}{"kind": "Role", "metadata": map[string]interface{}{"name": "maas-portal-rhods-operator-subscription"}}},
+		{Object: map[string]interface{}{"kind": "RoleBinding", "metadata": map[string]interface{}{"name": "maas-portal-rhods-operator-subscription"}}},
+		{Object: map[string]interface{}{"kind": "Role", "metadata": map[string]interface{}{"name": "maas-portal-opendatahub-operator-subscription"}}},
+		{Object: map[string]interface{}{"kind": "RoleBinding", "metadata": map[string]interface{}{"name": "maas-portal-opendatahub-operator-subscription"}}},
 		{Object: map[string]interface{}{"kind": "Deployment", "metadata": map[string]interface{}{"name": maasPortalName}}},
 	}
 
 	filtered := filterMaaSPortalResources(resources, map[string]struct{}{"redhat-ods-operator": {}})
 
 	require.Len(t, filtered, 3)
-	assert.Equal(t, "maas-consumer-portal-rhods-operator-subscription", filtered[0].GetName())
-	assert.Equal(t, "maas-consumer-portal-rhods-operator-subscription", filtered[1].GetName())
+	assert.Equal(t, "maas-portal-rhods-operator-subscription", filtered[0].GetName())
+	assert.Equal(t, "maas-portal-rhods-operator-subscription", filtered[1].GetName())
 	assert.Equal(t, maasPortalName, filtered[2].GetName())
 }
 
 func assertOperatorSubscriptionRole(t *testing.T, resources map[string]*unstructured.Unstructured, namespace, subscriptionName string) {
 	t.Helper()
-	name := "maas-consumer-portal-" + subscriptionName + "-subscription"
+	name := "maas-portal-" + subscriptionName + "-subscription"
 	role := resources["Role/"+name+"/"+namespace]
 	require.NotNil(t, role)
 	assert.Equal(t, namespace, role.GetNamespace())

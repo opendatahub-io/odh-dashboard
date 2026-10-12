@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+
+	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 )
 
 // PortForwardWrapTransport returns a WrapTransport function that rewrites
@@ -24,20 +26,25 @@ type portForwardRoundTripper struct {
 func (t *portForwardRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	ctx := req.Context()
 	originalURL := req.URL.String()
-	forwarded, err := t.manager.ForwardURL(ctx, originalURL)
+	requestNamespace, _ := ctx.Value(RequestNamespaceKey).(string)
+	forwarded, err := t.manager.ForwardURL(ctx, requestNamespace, originalURL)
 	if err != nil {
-		return nil, fmt.Errorf("port-forward failed for %s: %w", originalURL, err)
+		return nil, fmt.Errorf("port-forward failed for %s: %w", safeURLForLog(originalURL), err)
 	}
 
 	if forwarded != originalURL {
-		t.logger.Debug("port-forwarded pipeline request", "from", originalURL, "to", forwarded)
+		t.logger.Debug("port-forwarded pipeline request", "from", safeURLForLog(originalURL), "to", safeURLForLog(forwarded))
 		parsed, err := req.URL.Parse(forwarded)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse forwarded URL %s: %w", forwarded, err)
+			return nil, fmt.Errorf("failed to parse forwarded URL %s: %w", safeURLForLog(forwarded), err)
 		}
 		req = req.Clone(ctx)
 		req.URL = parsed
 	}
 
 	return t.base.RoundTrip(req)
+}
+
+func safeURLForLog(rawURL string) string {
+	return helper.SafeURLForLog(rawURL)
 }

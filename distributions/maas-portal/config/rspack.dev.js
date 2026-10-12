@@ -10,6 +10,7 @@ const RELATIVE_DIRNAME = path.resolve(__dirname, '..');
 const DIST_DIR = path.resolve(RELATIVE_DIRNAME, 'public');
 const PORT = process.env.SHELL_PORT || 4020;
 const BASE_PATH = '/maas-consumer-portal';
+const PORTAL_RESOURCE_NAME = 'maas-portal';
 const portalApiPaths = {
   maas: `${BASE_PATH}/maas/api`,
   genAi: `${BASE_PATH}/gen-ai/api`,
@@ -145,7 +146,7 @@ const buildProxyConfig = () => {
   const odhProject = process.env.OC_PROJECT || (process.env.EXT_CLUSTER ? 'opendatahub' : '');
   if (odhProject) {
     const legacy = process.env.DEV_LEGACY === 'true';
-    const app = legacy ? process.env.ODH_APP || 'odh-dashboard' : 'maas-consumer-portal';
+    const app = legacy ? process.env.ODH_APP || 'odh-dashboard' : PORTAL_RESOURCE_NAME;
     if (!token) {
       throw new Error(
         'Login with `oc login` prior to starting dev server in external-cluster mode.',

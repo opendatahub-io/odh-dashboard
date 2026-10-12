@@ -1,3 +1,5 @@
+import { DashboardCodeEditor } from '../components/DashboardCodeEditor';
+
 // TODO this path is a placeholder while we await the real runtime library details page.
 // Changing this route and potentially changing how it mounts/integrates with that page will happen in https://redhat.atlassian.net/browse/RHOAIENG-96641
 const placeholderInstallPath =
@@ -22,7 +24,27 @@ class RuntimeImageInstallPage {
   }
 
   findServingRuntimeRadio() {
-    return cy.findByRole('radio', { name: /Serving runtime template/ });
+    return cy.findByTestId('install-target-servingRuntimeTemplate');
+  }
+
+  findServingRuntimeEditor() {
+    return new DashboardCodeEditor(() => cy.findByTestId('dashboard-code-editor'));
+  }
+
+  findServingRuntimeProtocol() {
+    return cy.findByTestId('custom-serving-api-protocol-selection');
+  }
+
+  findServingRuntimeModelTypes() {
+    return cy.findByTestId('custom-serving-model-type-selection');
+  }
+
+  findCreate() {
+    return cy.findByTestId('create-button');
+  }
+
+  findBack() {
+    return cy.findByRole('button', { name: 'Back' });
   }
 
   findAcceleratorRadio() {
