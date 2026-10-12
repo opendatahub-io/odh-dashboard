@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/deploy"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
@@ -239,7 +240,7 @@ func (r *DashboardReconciler) deployModuleManifests(
 		}
 
 		deployer := deploy.NewDeployer(
-			deploy.WithFieldOwner("dashboard-operator"),
+			deploy.WithFieldOwner(dashboardFieldOwner),
 			deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
 			deploy.WithLabel(moduleComponentLabel, mod.ManifestSlug),
 			deploy.WithApplyOrder(),
@@ -612,13 +613,13 @@ func (r *DashboardReconciler) deployFederationConfigMap(
 	ctx context.Context,
 	statuses map[string]v1alpha1.ModuleStatus,
 	dashboard *v1alpha1.Dashboard,
-	observabilityKnown bool,
+	observabilityConfigResolved bool,
 ) (string, error) {
 	fedCM, err := r.buildFederationConfigMap(statuses, dashboard)
 	if err != nil {
 		return "", fmt.Errorf("building federation ConfigMap: %w", err)
 	}
-	if !observabilityKnown {
+	if !observabilityConfigResolved {
 		if err := r.preservePersesFederationEntry(ctx, fedCM); err != nil {
 			return "", err
 		}
@@ -630,7 +631,7 @@ func (r *DashboardReconciler) deployFederationConfigMap(
 	}
 
 	fedDeployer := deploy.NewDeployer(
-		deploy.WithFieldOwner("dashboard-operator"),
+		deploy.WithFieldOwner(dashboardFieldOwner),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
 	)
 
@@ -685,15 +686,16 @@ func (r *DashboardReconciler) preservePersesFederationEntry(ctx context.Context,
 	return nil
 }
 
-// reconcileModuleDemand deploys and removes shared BFFs based on both operand
-// lifecycles. Shared modules retain the dashboard ownership label because they
-// are common dependencies rather than resources owned by a single operand.
-func (r *DashboardReconciler) reconcileModuleDemand(ctx context.Context, dashboard *v1alpha1.Dashboard) (map[string]v1alpha1.ModuleStatus, error) {
+// reconcileModuleResources resolves module status, deploys required module
+// manifests, removes unneeded resources, and overlays standalone readiness.
+// Modules retain the dashboard ownership label because they can be shared by
+// the dashboard and MaaS Portal operands.
+func (r *DashboardReconciler) reconcileModuleResources(ctx context.Context, dashboard *v1alpha1.Dashboard) (map[string]v1alpha1.ModuleStatus, error) {
 	statuses := resolveModuleStatuses(&dashboard.Spec)
 	// The MaaS Portal is a RHOAI-only operand. Do not let an unsupported
 	// MaaS Portal request create MaaS/GenAI demand when the core dashboard is removed.
 	portal := effectiveMaaSPortal(dashboard.Spec)
-	if !maasPortalSupportedPlatform(r.Platform) && dashboard.Spec.ManagementState == "Removed" && portal != nil && portal.ManagementState == "Managed" {
+	if !maasPortalSupportedPlatform(r.Platform) && dashboard.Spec.ManagementState == common.Removed && portal != nil && portal.ManagementState == "Managed" {
 		for _, name := range maasPortalRequiredModuleNames() {
 			if statuses[name].Reason != "ExplicitOverride" {
 				statuses[name] = v1alpha1.ModuleStatus{Phase: v1alpha1.ModulePhaseNotDeployed, Reason: "UnsupportedPlatform", Message: "MaaS Portal is supported only on RHOAI", LastTransitionTime: metav1.Now()}

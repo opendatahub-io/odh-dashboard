@@ -135,7 +135,7 @@ func (r *DashboardReconciler) buildMaaSPortalFederationConfigMap(
 	}, nil
 }
 
-func (r *DashboardReconciler) deployMaaSPortalFederationConfigMap(ctx context.Context, dashboard *v1alpha1.Dashboard, statuses map[string]v1alpha1.ModuleStatus, observabilityKnown bool) error {
+func (r *DashboardReconciler) deployMaaSPortalFederationConfigMap(ctx context.Context, dashboard *v1alpha1.Dashboard, statuses map[string]v1alpha1.ModuleStatus, observabilityConfigResolved bool) error {
 	portal := effectiveMaaSPortal(dashboard.Spec)
 	if portal == nil || portal.ManagementState != "Managed" || !maasPortalSupportedPlatform(r.Platform) {
 		configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: maasPortalFederationConfigMapName, Namespace: r.ApplicationsNamespace}}
@@ -148,7 +148,7 @@ func (r *DashboardReconciler) deployMaaSPortalFederationConfigMap(ctx context.Co
 	if err != nil {
 		return err
 	}
-	if !observabilityKnown {
+	if !observabilityConfigResolved {
 		if err := r.preservePersesFederationEntry(ctx, configMap); err != nil {
 			return err
 		}
@@ -157,7 +157,7 @@ func (r *DashboardReconciler) deployMaaSPortalFederationConfigMap(ctx context.Co
 	if err != nil {
 		return fmt.Errorf("converting MaaS Portal federation ConfigMap: %w", err)
 	}
-	deployer := deploy.NewDeployer(deploy.WithFieldOwner("dashboard-operator"),
+	deployer := deploy.NewDeployer(deploy.WithFieldOwner(dashboardFieldOwner),
 		deploy.WithLabel(labels.PlatformPartOf, maasPortalPartOf),
 		deploy.WithLabel("app.kubernetes.io/part-of", maasPortalPartOf),
 		deploy.WithLabel(moduleComponentLabel, maasPortalPartOf))

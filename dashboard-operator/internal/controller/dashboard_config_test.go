@@ -86,26 +86,6 @@ func TestReconcileRHOAIDashboardConfigDefaultsPreservesExplicitValues(t *testing
 	}
 }
 
-func TestReconcileRHOAIDashboardConfigDefaultsSkipsOpenDataHub(t *testing.T) {
-	config := dashboardConfigWithSpec(dashboardConfigTestNamespace, map[string]interface{}{})
-	cli := fake.NewClientBuilder().WithRuntimeObjects(config).Build()
-	r := &DashboardReconciler{
-		Client:                cli,
-		Platform:              cluster.OpenDataHub,
-		ApplicationsNamespace: dashboardConfigTestNamespace,
-	}
-
-	require.NoError(t, r.reconcileRHOAIDashboardConfigDefaults(context.Background()))
-
-	updated := newOdhDashboardConfig()
-	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{
-		Name: odhDashboardConfigName, Namespace: dashboardConfigTestNamespace,
-	}, updated))
-	_, found, err := unstructured.NestedBool(updated.Object, "spec", "dashboardConfig", "disableTracking")
-	require.NoError(t, err)
-	assert.False(t, found)
-}
-
 func TestReconcileRHOAIDashboardConfigDefaultsRejectsMalformedValue(t *testing.T) {
 	config := dashboardConfigWithSpec(dashboardConfigTestNamespace, map[string]interface{}{
 		"dashboardConfig": map[string]interface{}{"disableTracking": "false"},

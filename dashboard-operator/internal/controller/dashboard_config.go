@@ -45,10 +45,6 @@ func newOdhDashboardConfig() *unstructured.Unstructured {
 // OdhDashboardConfig remains user-managed: explicit values and every unrelated
 // field are preserved.
 func (r *DashboardReconciler) reconcileRHOAIDashboardConfigDefaults(ctx context.Context) error {
-	if r.Platform != cluster.SelfManagedRhoai {
-		return nil
-	}
-
 	config := newOdhDashboardConfig()
 	key := types.NamespacedName{Name: odhDashboardConfigName, Namespace: r.ApplicationsNamespace}
 	if err := r.Get(ctx, key, config); err != nil {
