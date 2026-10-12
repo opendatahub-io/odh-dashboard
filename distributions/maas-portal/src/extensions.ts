@@ -55,7 +55,7 @@ const extensions: Extension[] = [
     },
   } satisfies SuppressExtension,
 
-  // Hide the MCP servers tab in the consumer portal.
+  // Hide the MCP servers tab in the MaaS Portal.
   {
     type: 'app.suppress',
     properties: {

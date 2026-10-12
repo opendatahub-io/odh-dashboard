@@ -63,7 +63,7 @@ describe('portal development proxy', () => {
     process.env.ODH_DASHBOARD_HOST = '';
     jest.mocked(execSync).mockImplementation((command) => {
       if (command.includes('get httproutes')) {
-        expect(command).toContain('maas-consumer-portal');
+        expect(command).toContain('maas-portal');
         return Buffer.from(
           JSON.stringify({
             status: {
@@ -79,9 +79,21 @@ describe('portal development proxy', () => {
           }),
         );
       }
+      if (command.includes('get deployment')) {
+        expect(command).toBe('oc get deployment -n redhat-ods-applications maas-portal -o json');
+        return Buffer.from(JSON.stringify({ spec: { template: { spec: { containers: [] } } } }));
+      }
       throw new Error('deployment unavailable');
     });
-    expect(loadProxy()[0].target).toBe('https://portal.example.test');
+    const [proxy] = loadProxy();
+    expect(proxy.target).toBe('https://portal.example.test');
+    expect(rewrite(proxy, '/maas-consumer-portal/api/k8s/api/v1/pods')).toBe(
+      '/maas-consumer-portal/api/k8s/api/v1/pods',
+    );
+    expect(execSync).toHaveBeenCalledWith(
+      'oc get deployment -n redhat-ods-applications maas-portal -o json',
+      expect.any(Object),
+    );
   });
 
   it('should retain the root dashboard proxy as an explicit legacy option', () => {

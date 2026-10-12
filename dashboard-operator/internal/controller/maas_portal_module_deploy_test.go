@@ -33,10 +33,10 @@ func TestBuildMaaSPortalFederationConfigMap(t *testing.T) {
 
 	configMap, err := ctrlpkg.BuildMaaSPortalFederationConfigMap(reconciler, statuses, nil)
 	require.NoError(t, err)
-	assert.Equal(t, "maas-consumer-portal-federation-config", configMap.Name)
-	assert.Equal(t, "maas-consumer-portal", configMap.Labels["platform.opendatahub.io/part-of"])
-	assert.Equal(t, "maas-consumer-portal", configMap.Labels["app.kubernetes.io/part-of"])
-	assert.Equal(t, "maas-consumer-portal", configMap.Labels["app.kubernetes.io/component"])
+	assert.Equal(t, "maas-portal-federation-config", configMap.Name)
+	assert.Equal(t, "maas-portal", configMap.Labels["platform.opendatahub.io/part-of"])
+	assert.Equal(t, "maas-portal", configMap.Labels["app.kubernetes.io/part-of"])
+	assert.Equal(t, "maas-portal", configMap.Labels["app.kubernetes.io/component"])
 
 	var entries []map[string]interface{}
 	require.NoError(t, json.Unmarshal([]byte(configMap.Data["module-federation-config.json"]), &entries))
@@ -101,7 +101,7 @@ func TestBuildMaaSPortalFederationConfigMap_OmitsPersesWhenObservabilityIsDisabl
 
 func TestDeployMaaSPortalFederationConfigMap_RemovedDeletesConfigMap(t *testing.T) {
 	scheme := testScheme(t)
-	configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "maas-consumer-portal-federation-config", Namespace: testNamespace}}
+	configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "maas-portal-federation-config", Namespace: testNamespace}}
 	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(configMap).Build()
 	reconciler := &ctrlpkg.DashboardReconciler{Client: client, Scheme: scheme, ApplicationsNamespace: testNamespace}
 	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Removed"}}}
@@ -116,15 +116,15 @@ func TestDeployMaaSPortalFederationConfigMap_ManagedCreatesConfigMap(t *testing.
 	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"}}}
 	require.NoError(t, reconciler.DeployMaaSPortalFederationConfigMap(context.Background(), dashboard, allDeployedStatuses()))
 	configMap := &corev1.ConfigMap{}
-	require.NoError(t, client.Get(context.Background(), types.NamespacedName{Name: "maas-consumer-portal-federation-config", Namespace: testNamespace}, configMap))
-	assert.Equal(t, "maas-consumer-portal", configMap.Labels["platform.opendatahub.io/part-of"])
+	require.NoError(t, client.Get(context.Background(), types.NamespacedName{Name: "maas-portal-federation-config", Namespace: testNamespace}, configMap))
+	assert.Equal(t, "maas-portal", configMap.Labels["platform.opendatahub.io/part-of"])
 	assert.NotEmpty(t, configMap.Data["module-federation-config.json"])
 }
 
 func TestDeployMaaSPortalFederationConfigMap_DoesNotPatchDeployment(t *testing.T) {
 	scheme := testScheme(t)
 	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{Name: "maas-consumer-portal", Namespace: testNamespace},
+		ObjectMeta: metav1.ObjectMeta{Name: "maas-portal", Namespace: testNamespace},
 		Spec:       appsv1.DeploymentSpec{Template: corev1.PodTemplateSpec{}},
 	}
 	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(deployment).Build()
@@ -138,9 +138,9 @@ func TestDeployMaaSPortalFederationConfigMap_DoesNotPatchDeployment(t *testing.T
 }
 
 func TestPatchMaaSPortalDeploymentFederationHash(t *testing.T) {
-	const annotation = "dashboard.opendatahub.io/maas-consumer-portal-federation-config-hash"
+	const annotation = "dashboard.opendatahub.io/maas-portal-federation-config-hash"
 	newDeployment := func(annotations map[string]string) *appsv1.Deployment {
-		return &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "maas-consumer-portal", Namespace: testNamespace}, Spec: appsv1.DeploymentSpec{Template: corev1.PodTemplateSpec{ObjectMeta: metav1.ObjectMeta{Annotations: annotations}}}}
+		return &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "maas-portal", Namespace: testNamespace}, Spec: appsv1.DeploymentSpec{Template: corev1.PodTemplateSpec{ObjectMeta: metav1.ObjectMeta{Annotations: annotations}}}}
 	}
 	tests := []struct{ name, oldHash, data string }{
 		{name: "creates annotation", data: `[{"name":"maas"}]`},
@@ -161,7 +161,7 @@ func TestPatchMaaSPortalDeploymentFederationHash(t *testing.T) {
 				return
 			}
 			updated := &appsv1.Deployment{}
-			require.NoError(t, client.Get(context.Background(), types.NamespacedName{Name: "maas-consumer-portal", Namespace: testNamespace}, updated))
+			require.NoError(t, client.Get(context.Background(), types.NamespacedName{Name: "maas-portal", Namespace: testNamespace}, updated))
 			assert.Equal(t, ctrlpkg.ComputeFederationConfigHash(tt.data), updated.Spec.Template.Annotations[annotation])
 		})
 	}

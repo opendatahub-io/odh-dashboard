@@ -103,6 +103,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | Doc | Description |
 |-----|-------------|
 | [Operator Architecture](docs/dashboard-operator.md) | CRD design, reconciliation pipeline, module registry, dependency resolution, manifest management, local development, cluster deployment, troubleshooting |
+| [MaaS Portal](docs/maas-portal.md) | Independent portal lifecycle, routing, federation, subscription RBAC, resource migration, and rollout |
 | [Controller AGENTS.md](dashboard-operator/AGENTS.md) | Go operator conventions, controller-runtime patterns, CRD types, Makefile targets, reconciliation pipeline |
 
 ---

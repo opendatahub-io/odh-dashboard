@@ -5,7 +5,10 @@ class ChooseBenchmarkPage {
   }
 
   private waitForLoad() {
-    cy.findByTestId('app-page-title').should('exist');
+    cy.findByTestId('app-page-title').should('be.visible');
+    cy.get('[data-testid="benchmarks-gallery"], [data-testid="benchmarks-empty-state"]')
+      .filter(':visible')
+      .should('have.length.at.least', 1);
     cy.testA11y();
   }
 
@@ -67,7 +70,9 @@ class ChooseBenchmarkPage {
   }
 
   findCategoryOption(category: string) {
-    return cy.findByTestId(`benchmarks-category-option-${category}`);
+    return cy
+      .findByTestId('benchmarks-category-filter-select')
+      .findByTestId(`benchmarks-category-filter-option-${category}`);
   }
 
   selectCategoryOption(category: string) {
@@ -77,7 +82,9 @@ class ChooseBenchmarkPage {
   }
 
   findMetricsOption(metric: string) {
-    return cy.findByTestId(`benchmarks-metrics-option-${metric}`);
+    return cy
+      .findByTestId('benchmarks-metrics-filter-select')
+      .findByTestId(`benchmarks-metrics-filter-option-${metric}`);
   }
 
   selectMetricsOption(metric: string) {

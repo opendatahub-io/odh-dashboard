@@ -9,7 +9,7 @@ const { dependencies: portalDependencies } = require('../package.json');
 
 const SRC_DIR = path.resolve(__dirname, '../src');
 const REPO_ROOT = path.resolve(__dirname, '../../..');
-const TITLE = 'MaaS Consumer Portal';
+const TITLE = 'MaaS Portal';
 const BASE_PATH = '/maas-consumer-portal';
 
 const DIST_DIR = path.resolve(__dirname, '..');

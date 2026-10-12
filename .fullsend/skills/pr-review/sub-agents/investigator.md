@@ -28,9 +28,9 @@ dimension decides whether a fact is a defect.
 ## Procedure
 
 1. **Read the change.** Read the shared context file named in your prompt:
-   the diff, the PR-head contents of changed files, PR metadata, and the
-   linked issue. For changed files it is the only source. The checkout on
-   disk holds the base branch.
+   it names the diff and the PR-head tree, and carries PR metadata and the
+   linked issue. For changed files the PR-head tree is the only source. The
+   checkout on disk holds the base branch.
 2. **Say what it does.** Group the diff into logical changes, not files.
    For each, state what behaved one way before and behaves another way
    now. A rename, a moved file, or a regenerated artifact is one change
@@ -39,7 +39,7 @@ dimension decides whether a fact is a defect.
    renames, or changes the meaning of (an exported function, component,
    hook, type, enum value, route, API field, config key, feature flag, CSS
    class, test id), grep the repository for where it is used and read the
-   uses that matter. Unchanged files are read from disk. Record the ones a
+   uses that matter. Unchanged files are read from the checkout. Record the ones a
    reviewer could not guess from the diff; skip the obvious and the
    exhaustive.
 4. **Find the tests.** Record existing tests outside the diff that

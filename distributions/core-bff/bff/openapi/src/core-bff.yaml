@@ -393,7 +393,7 @@ paths:
       summary: Get the installed data science operator subscription status
       description: >-
         Returns only the channel and last-updated timestamp of the installed OpenShift AI or Open Data Hub operator subscription.
-        All authenticated users, including non-admin MaaS Consumer Portal users, may access this read-only metadata to populate observability dashboard variables.
+        All authenticated users, including non-admin MaaS Portal users, may access this read-only metadata to populate observability dashboard variables.
         Administrator privileges and direct Kubernetes Subscription read permission are not required.
         Checks the configured operator namespace before the platform defaults, including openshift-operators for Open Data Hub.
         Returns 404 when no candidate subscription is installed or accessible to the BFF service account.

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockUseAssignHardwareProfileResult } from '@odh-dashboard/hardware-profiles/__mocks__/mockUseAssignHardwareProfileResult';
 import { mockExtensions } from '../../../__tests__/mockUtils';
@@ -8,6 +8,7 @@ import { DeploymentRowExpandedSection } from '../row/DeploymentsTableRowExpanded
 
 jest.mock('@odh-dashboard/plugin-core');
 
+const mockExtractModelAvailabilityData = jest.fn();
 jest.mock('../../../../src/concepts/extensionUtils', () => ({
   useResolvedDeploymentExtension: () => [
     {
@@ -19,10 +20,7 @@ jest.mock('../../../../src/concepts/extensionUtils', () => ({
           tolerationsPath: 'spec.predictor.tolerations',
           nodeSelectorPath: 'spec.predictor.nodeSelector',
         },
-        extractModelAvailabilityData: () => ({
-          saveAsAiAsset: true,
-          useCase: 'test-use-case',
-        }),
+        extractModelAvailabilityData: () => mockExtractModelAvailabilityData(),
       },
     },
   ],
@@ -69,13 +67,18 @@ describe('DeploymentsTableRowExpandedSection', () => {
       extractorsLoaded: true,
       extractorErrors: [],
     });
+    mockExtractModelAvailabilityData.mockReturnValue({
+      saveAsAiAsset: true,
+      useCase: 'test-use-case',
+    });
   });
 
   afterEach(() => {
     mockUseAssignHardwareProfile.mockReset();
     mockUseWizardFieldExtractors.mockReset();
+    mockExtractModelAvailabilityData.mockReset();
   });
-  it('should render the expanded row with correct data', () => {
+  it('should render the MaaS and Gen AI Studio availability for subscribed users', () => {
     render(
       <DeploymentRowExpandedSection
         deployment={mockDeployment()}
@@ -95,9 +98,35 @@ describe('DeploymentsTableRowExpandedSection', () => {
     expect(screen.getByText('1')).toBeInTheDocument();
     // hardware profile
     expect(screen.getByText('test-profile')).toBeInTheDocument();
-    // model availability
-    expect(screen.getByText('AI asset endpoint, Model-as-a-Service (MaaS)')).toBeInTheDocument();
+    // users and availability
+    expect(screen.getByText('Subscribed users')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('model-availability-description-item'))
+        .getAllByRole('listitem')
+        .map((item) => item.textContent),
+    ).toEqual(['Model-as-a-Service (MaaS)', 'Gen AI Studio']);
     // use case
     expect(screen.getByText('test-use-case')).toBeInTheDocument();
+  });
+
+  it('should show Gen AI Studio for MaaS deployments without the Gen AI annotation', () => {
+    mockExtractModelAvailabilityData.mockReturnValue({ saveAsAiAsset: false });
+
+    render(
+      <DeploymentRowExpandedSection
+        deployment={mockDeployment()}
+        isVisible
+        hardwareProfilePaths={{
+          containerResourcesPath: 'spec.predictor.model.resources',
+          tolerationsPath: 'spec.predictor.tolerations',
+          nodeSelectorPath: 'spec.predictor.nodeSelector',
+        }}
+      />,
+    );
+
+    const availability = screen.getByTestId('model-availability-description-item');
+    expect(availability).toHaveTextContent('Model-as-a-Service (MaaS)');
+    expect(availability).toHaveTextContent('Gen AI Studio');
+    expect(screen.queryByTestId('use-case-description-item')).not.toBeInTheDocument();
   });
 });
