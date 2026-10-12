@@ -449,6 +449,7 @@ describe('Model Training', () => {
       trainingJobStatusModal.shouldBeOpen();
       trainingJobStatusModal.findTitle('image-classification-job').should('be.visible');
       trainingJobStatusModal.findStatusLabel().should('be.visible');
+      trainingJobStatusModal.findDescription().should('be.visible').and('have.text', 'Job status');
     });
 
     it('should display Progress tab with tree view sections', () => {
