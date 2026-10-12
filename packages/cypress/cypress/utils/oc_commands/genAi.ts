@@ -62,7 +62,10 @@ export const deployGenAiModel = (projectName: string, testData: GenAiTestData): 
   );
 
   cy.step('Wait for InferenceService to be Ready');
-  checkInferenceServiceState(inferenceServiceName, projectName, { checkReady: true });
+  checkInferenceServiceState(inferenceServiceName, projectName, {
+    checkReady: true,
+    isLargeModel: true,
+  });
 };
 
 /**

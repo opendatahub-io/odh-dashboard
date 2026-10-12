@@ -104,6 +104,7 @@ type ConditionCheckOptions = {
   checkReady?: boolean;
   checkStopped?: boolean;
   requireLoadedState?: boolean;
+  isLargeModel?: boolean;
 };
 
 /**
@@ -159,8 +160,10 @@ export const checkInferenceServiceState = (
   options: ConditionCheckOptions = {},
 ): Cypress.Chainable<Cypress.Exec> => {
   const ocCommand = `oc get InferenceService ${serviceName} -n ${namespace} -o json`;
-  const maxAttempts = 96; // 96 attempts × 30 s wait = ~48 minutes maximum
+  const maxAttempts = 24; // 24 attempts × 10 s wait = ~4 minutes maximum OR ~8 minutes if LLM
   let attempts = 0;
+
+  let waitTime = options.isLargeModel ? 20_000 : 10_000; // 20 seconds or 10 seconds
 
   const checkState = (): Cypress.Chainable<Cypress.Exec> =>
     cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
@@ -382,12 +385,14 @@ export const checkInferenceServiceState = (
 
       // UI deployment status badge — only shows "Failed" when KServe has conclusively
       // marked the service as failed in the dashboard. Check before sleeping so a
-      // genuine UI-level failure is caught without waiting the full 30 s interval.
+      // genuine UI-level failure is caught without waiting the full interval.
       failOnDeploymentStatus(serviceName);
 
       if (attempts >= maxAttempts) {
         const errorMessage =
-          `❌ InferenceService ${serviceName} did not meet all conditions within ~48 minutes\n` +
+          `❌ InferenceService ${serviceName} did not meet all conditions within ~${
+            (maxAttempts * waitTime) / 60_000
+          } minutes\n` +
           `  Active Model State: ${activeModelState}\n` +
           `  Target Model State: ${targetModelState}\n` +
           `  Transition Status: ${transitionStatus}\n` +
@@ -406,15 +411,21 @@ export const checkInferenceServiceState = (
         cy.log(errorMessage);
         throw new Error(errorMessage);
       } else {
-        return getClusterArchitecture().then((arch) => {
-          const waitTime = arch === 's390x' ? 50000 : 8000;
-          cy.log(`Arch "${arch}" detected — waiting ${waitTime / 1000}s before next poll`);
-          return cy.wait(waitTime).then(() => checkState());
-        });
+        return cy.wait(waitTime).then(() => checkState());
       }
     });
 
-  return checkState();
+  return getClusterArchitecture().then((clusterArchitectureResult) => {
+    if (clusterArchitectureResult === 's390x') {
+      waitTime = 40_000; // 40 seconds = 16 minutes total
+      cy.log(
+        `Arch "${clusterArchitectureResult}" detected — waiting ${
+          waitTime / 1_000
+        }s before next poll`,
+      );
+    }
+    return checkState();
+  });
 };
 
 /**

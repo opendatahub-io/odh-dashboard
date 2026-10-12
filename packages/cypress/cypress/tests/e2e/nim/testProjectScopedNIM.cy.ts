@@ -187,7 +187,12 @@ describe('A user can deploy a project-scoped NIM', () => {
 
       if (isThereGpus) {
         cy.step('Wait for the GPU-backed NIM model to become healthy');
-        cy.then(() => checkInferenceServiceState(resourceName, projectName, { checkReady: true }));
+        cy.then(() =>
+          checkInferenceServiceState(resourceName, projectName, {
+            checkReady: true,
+            isLargeModel: true,
+          }),
+        );
 
         cy.step(
           'Verify an unauthenticated chat-completions request through the external route is rejected',
