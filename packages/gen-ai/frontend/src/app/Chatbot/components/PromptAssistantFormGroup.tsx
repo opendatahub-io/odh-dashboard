@@ -155,55 +155,78 @@ export default function PromptAssistantFormGroup({
       {confirmationModal}
       <Panel>
         <Stack hasGutter>
-          <Flex gap={{ default: 'gapSm' }}>
-            {activePrompt?.scope && (
-              <Label
-                data-testid="prompt-scope-label"
-                isCompact
-                color={activePrompt.scope.type === 'project' ? 'blue' : 'orange'}
-              >
-                {activePrompt.scope.type === 'project' ? 'Project' : 'Global'}
-              </Label>
-            )}
-            {!!activePrompt?.version && (
-              <PromptVersionSelector
-                promptName={activePrompt.name}
-                promptScope={activePrompt.scope}
-                currentVersion={activePrompt.version}
-                onVersionSelect={handleVersionSwitch}
-                namespace={namespace?.name}
-              />
-            )}
-            {isEdited && (
-              <div
-                data-testid="prompt-unsaved-indicator"
-                className={`${text.textColorPlaceholder} pf-v6-u-font-size-sm`}
-              >
-                <i>Unsaved</i>
-              </div>
-            )}
-            {activePrompt && (
+          <Flex
+            justifyContent={{ default: 'justifyContentSpaceBetween' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <Flex gap={{ default: 'gapSm' }}>
+              {activePrompt?.scope && (
+                <Label
+                  data-testid="prompt-scope-label"
+                  isCompact
+                  color={activePrompt.scope.type === 'project' ? 'blue' : 'orange'}
+                >
+                  {activePrompt.scope.type === 'project' ? 'Project' : 'Global'}
+                </Label>
+              )}
+              {!!activePrompt?.version && (
+                <PromptVersionSelector
+                  promptName={activePrompt.name}
+                  promptScope={activePrompt.scope}
+                  currentVersion={activePrompt.version}
+                  onVersionSelect={handleVersionSwitch}
+                  namespace={namespace?.name}
+                />
+              )}
+              {isEdited && (
+                <div
+                  data-testid="prompt-unsaved-indicator"
+                  className={`${text.textColorPlaceholder} pf-v6-u-font-size-sm`}
+                >
+                  <i>Unsaved</i>
+                </div>
+              )}
+              {activePrompt && (
+                <Button
+                  data-testid="prompt-revert-button"
+                  variant="plain"
+                  isDanger
+                  className={isEdited ? 'pf-v6-u-text-color-status-danger' : undefined}
+                  isDisabled={!isEdited}
+                  onClick={() =>
+                    confirm(handleRevert, {
+                      ...CONFIRMATION_CONFIG,
+                      onConfirmTracking: () =>
+                        fireMiscTrackingEvent('Playground Prompt Reverted', {
+                          outcome: 'submit',
+                        }),
+                      onCancelTracking: () =>
+                        fireMiscTrackingEvent('Playground Prompt Reverted', {
+                          outcome: 'cancel',
+                        }),
+                    })
+                  }
+                >
+                  Revert
+                </Button>
+              )}
+            </Flex>
+            {isGlobalPrompt ? (
+              <Tooltip content="This prompt is read-only. Use Save As to create your own copy.">
+                <span>
+                  <Button data-testid="prompt-save-to-registry-button" variant="plain" isDisabled>
+                    Add to prompt registry
+                  </Button>
+                </span>
+              </Tooltip>
+            ) : (
               <Button
-                data-testid="prompt-revert-button"
-                variant="plain"
-                isDanger
-                className={isEdited ? 'pf-v6-u-text-color-status-danger' : undefined}
+                data-testid="prompt-save-to-registry-button"
+                variant={isEdited ? 'link' : 'plain'}
                 isDisabled={!isEdited}
-                onClick={() =>
-                  confirm(handleRevert, {
-                    ...CONFIRMATION_CONFIG,
-                    onConfirmTracking: () =>
-                      fireMiscTrackingEvent('Playground Prompt Reverted', {
-                        outcome: 'submit',
-                      }),
-                    onCancelTracking: () =>
-                      fireMiscTrackingEvent('Playground Prompt Reverted', {
-                        outcome: 'cancel',
-                      }),
-                  })
-                }
+                onClick={handleSaveClicked}
               >
-                Revert
+                Add to prompt registry
               </Button>
             )}
           </Flex>
@@ -227,36 +250,18 @@ export default function PromptAssistantFormGroup({
               </HelperTextItem>
             </HelperText>
           </FormHelperText>
-          <Flex>
-            {isGlobalPrompt ? (
-              <Flex style={{ gap: 'var(--pf-t--global--spacer--sm)' }}>
-                <Tooltip content="This prompt is read-only. Use Save As to create your own copy.">
-                  <span>
-                    <Button data-testid="prompt-save-to-registry-button" variant="link" isDisabled>
-                      Save
-                    </Button>
-                  </span>
-                </Tooltip>
-                <Button
-                  data-testid="prompt-save-as-button"
-                  variant={isEdited ? 'primary' : 'link'}
-                  isDisabled={!isEdited}
-                  onClick={handleSaveAsClicked}
-                >
-                  Save As
-                </Button>
-              </Flex>
-            ) : (
+          {isGlobalPrompt && (
+            <Flex>
               <Button
-                data-testid="prompt-save-to-registry-button"
+                data-testid="prompt-save-as-button"
                 variant={isEdited ? 'primary' : 'link'}
                 isDisabled={!isEdited}
-                onClick={handleSaveClicked}
+                onClick={handleSaveAsClicked}
               >
-                Save
+                Save As
               </Button>
-            )}
-          </Flex>
+            </Flex>
+          )}
           <PromptVariableInputPanel
             systemInstruction={systemInstruction}
             variableValues={variableValues}
