@@ -42,7 +42,7 @@ spec:
   listeners:
     - allowedRoutes:
         namespaces:
-          from: All  # NOTE: This allows all users in any namespace to use the Gateway - use for dev only
+          from: All # NOTE: This allows all users in any namespace to use the Gateway - use for dev only
       name: http
       port: 80
       protocol: HTTP
