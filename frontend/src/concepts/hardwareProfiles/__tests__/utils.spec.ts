@@ -19,6 +19,7 @@ import {
   formatResource,
   getLocalQueueLabel,
   isDRAHardwareProfile,
+  getDRAHardwareProfileDetails,
 } from '#~/concepts/hardwareProfiles/utils';
 import { UseHardwareProfileConfigResult } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { NOTEBOOK_HARDWARE_PROFILE_PATHS } from '#~/concepts/notebooks/const.ts';
@@ -830,5 +831,59 @@ describe('isDRAHardwareProfile', () => {
 
   it('should return false when the profile has no dra field', () => {
     expect(isDRAHardwareProfile(mockHardwareProfile({}))).toBe(false);
+  });
+});
+
+describe('getDRAHardwareProfileDetails', () => {
+  const dra = { resourceClaimTemplateName: 'single-mig-partition' };
+
+  it('should return undefined for a non-DRA hardware profile', () => {
+    expect(getDRAHardwareProfileDetails(mockHardwareProfile({}))).toBeUndefined();
+  });
+
+  it('should return the template name and description', () => {
+    const profile = mockHardwareProfile({
+      dra,
+      annotations: {
+        'opendatahub.io/resource-claim-description':
+          'Requests one partitioned GPU device for the workload.',
+      },
+    });
+
+    expect(getDRAHardwareProfileDetails(profile)).toStrictEqual({
+      resourceClaimTemplateName: 'single-mig-partition',
+      description: 'Requests one partitioned GPU device for the workload.',
+    });
+  });
+
+  it('should omit the description when the annotation is missing', () => {
+    expect(getDRAHardwareProfileDetails(mockHardwareProfile({ dra }))).toStrictEqual({
+      resourceClaimTemplateName: 'single-mig-partition',
+    });
+  });
+
+  it.each(['', '   ', ' \n\t '])(
+    'should omit the description when the annotation is %j',
+    (value) => {
+      const profile = mockHardwareProfile({
+        dra,
+        annotations: { 'opendatahub.io/resource-claim-description': value },
+      });
+
+      expect(getDRAHardwareProfileDetails(profile)).toStrictEqual({
+        resourceClaimTemplateName: 'single-mig-partition',
+      });
+    },
+  );
+
+  it('should collapse line breaks and repeated whitespace into single spaces', () => {
+    const profile = mockHardwareProfile({
+      dra,
+      annotations: {
+        'opendatahub.io/resource-claim-description': '\n  Line one\n\nLine\ttwo  \n',
+      },
+    });
+
+    expect(getDRAHardwareProfileDetails(profile)?.description).toBe('Line one Line two');
   });
 });

@@ -19,6 +19,7 @@ import type {
   HardwarePodSpecOptions,
   CrPathConfig,
   ResourceType,
+  DRAHardwareProfileDetails,
 } from './types';
 import type {
   HardwareProfileConfig,
@@ -307,3 +308,21 @@ export const getLocalQueueLabel = (): string => 'Local queue';
 
 export const isDRAHardwareProfile = (hardwareProfile: HardwareProfileKind): boolean =>
   !!hardwareProfile.spec.dra;
+
+export const getDRAHardwareProfileDetails = (
+  hardwareProfile: HardwareProfileKind,
+): DRAHardwareProfileDetails | undefined => {
+  const { dra } = hardwareProfile.spec;
+  if (!dra) {
+    return undefined;
+  }
+  const description = hardwareProfile.metadata.annotations?.[
+    'opendatahub.io/resource-claim-description'
+  ]
+    ?.replace(/\s+/g, ' ')
+    .trim();
+  return {
+    resourceClaimTemplateName: dra.resourceClaimTemplateName,
+    ...(description && { description }),
+  };
+};

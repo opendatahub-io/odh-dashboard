@@ -5,6 +5,7 @@
   "version": "0.0.0",
   "exports": {
     "./shared": "./shared/index.ts",
+    "./shared/DRAHardwareProfileDetailsSection": "./shared/DRAHardwareProfileDetailsSection.tsx",
     "./shared/kueueUtils": "./shared/kueueUtils.ts",
     "./shared/useHardwareProfileConfig": "./shared/useHardwareProfileConfig.ts",
     "./shared/useAssignHardwareProfile": "./shared/useAssignHardwareProfile.ts",

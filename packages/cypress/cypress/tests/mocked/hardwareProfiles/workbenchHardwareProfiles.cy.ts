@@ -724,6 +724,9 @@ describe('Workbench Hardware Profiles', () => {
             name: 'dra-profile',
             displayName: 'DRA Profile',
             dra: { resourceClaimTemplateName: 'single-gpu' },
+            annotations: {
+              'opendatahub.io/resource-claim-description': 'Requests one GPU for the workload.',
+            },
           }),
         ]),
       );
@@ -747,6 +750,22 @@ describe('Workbench Hardware Profiles', () => {
       hardwareProfileSection.findSelect().should('be.enabled');
       hardwareProfileSection.findDRALockedMessage().should('exist');
       hardwareProfileSection.findCustomizeSection().should('not.exist');
+
+      hardwareProfileSection.findDetailsPopover().click();
+      hardwareProfileSection
+        .findDRADetails()
+        .should('contain.text', 'Claim template')
+        .and('contain.text', 'Tech Preview');
+      hardwareProfileSection.findDRATemplate().should('have.text', 'single-gpu');
+      hardwareProfileSection
+        .findDRADetails()
+        .should('not.contain.text', 'Requests one GPU for the workload.');
+      cy.testA11y();
+
+      hardwareProfileSection.findDRAResourceNameButton().click();
+      hardwareProfileSection
+        .findDRAResourceDescription()
+        .should('contain.text', 'Requests one GPU for the workload.');
     });
   });
 
