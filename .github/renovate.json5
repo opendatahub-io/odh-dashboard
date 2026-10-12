@@ -83,11 +83,21 @@
   "vulnerabilityAlerts": { "enabled": false },
   "osvVulnerabilityAlerts": false,
 
-  // Parity with dependabot.yml versioning-strategy: increase-if-necessary —
-  // only touch package.json ranges when the new version falls outside them;
-  // otherwise the PR is lockfile-only.
+  // Parity with dependabot.yml versioning-strategy: increase-if-necessary.
+  // "update-lockfile" = lockfile-only while the new version satisfies the
+  // package.json range, "replace" once it falls outside — the same
+  // in-range/out-of-range split Dependabot uses. Deliberately NOT "bump",
+  // which rewrites the range even for in-range updates and adds package.json
+  // churn Dependabot doesn't produce.
   "npm": {
-    "rangeStrategy": "bump"
+    "rangeStrategy": "update-lockfile"
+  },
+
+  // Renovate updates go.mod/go.sum but does not run `go mod tidy` by
+  // default; without this, stale entries accumulate across the repo's many
+  // Go modules.
+  "gomod": {
+    "postUpdateOptions": ["gomodTidy"]
   },
 
   "packageRules": [
@@ -146,7 +156,7 @@
     // ── Policy parity with dependabot.yml ignores / exclusions ────────────
     {
       "description": "PatternFly major/minor: manual coordination (pnpm-workspace.yaml overrides pin the version)",
-      "matchPackagePatterns": ["^@patternfly/"],
+      "matchPackageNames": ["/^@patternfly\\//"],
       "matchUpdateTypes": ["major", "minor"],
       "enabled": false
     },

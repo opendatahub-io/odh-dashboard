@@ -6,11 +6,12 @@
 # downstream-only Dockerfile.konflux* files). If the Mend app is enabled for
 # this repo later, DELETE this workflow to avoid duplicate Renovate PRs.
 #
-# Required repository secret (Settings → Secrets and variables → Actions):
-#   RENOVATE_TOKEN — PAT with `repo` + `workflow` scopes (or fine-grained:
-#   contents:write, pull-requests:write, workflows:write) so Renovate can push
-#   branches, open PRs, and have its PRs trigger CI. PRs are created with the
-#   token identity.
+# Required secret — RENOVATE_TOKEN, a PAT scoped to this repo (fine-grained
+# with contents:write, pull-requests:write, workflows:write is preferred over
+# a classic repo+workflow PAT) so Renovate can push branches, open PRs, and
+# have its PRs trigger CI. PRs are created with the token identity.
+# Store it in the `renovate` GitHub environment — see the `environment:` note
+# on the job below — not as a plain repository secret.
 #
 # Config: .github/renovate.json5
 #   - New PRs: Monday-morning window only (schedule in the config)
@@ -51,6 +52,17 @@ jobs:
     if: >-
       github.event_name != 'schedule'
       || github.repository == 'opendatahub-io/odh-dashboard'
+    # The token is gated behind the `renovate` environment (Settings →
+    # Environments): move RENOVATE_TOKEN there and restrict its deployment
+    # branch policy to `main`. An `if: github.ref == refs/heads/main` guard
+    # would not stop the real attack — a dispatch executes the workflow file
+    # from the dispatched ref, so a modified feature branch can simply remove
+    # the guard — whereas the environment's branch policy is enforced
+    # server-side and holds even for edited workflow files. Do NOT add
+    # required reviewers to the environment: the daily schedule would stall.
+    # Fork dry-run testing is unaffected — forks never see this environment's
+    # secret and use their own fork-level RENOVATE_TOKEN.
+    environment: renovate
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -61,13 +73,17 @@ jobs:
           LOG_LEVEL: ${{ inputs.log_level || 'info' }}
           # Pinned image — bump the version AND digest together when upgrading.
           RENOVATE_IMAGE: ghcr.io/renovatebot/renovate:44.148.4@sha256:2c7b118cb2d1b7137e63322efc0e1d3d96d5f6937ec1c35c3cd9b7de73a8ed29
+          # Referenced in the script below via env instead of a ${{ }}
+          # interpolation in the run block (template-injection hygiene).
+          REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
 
           if [ -z "$RENOVATE_TOKEN" ]; then
             echo "::notice::RENOVATE_TOKEN is not configured — skipping run."
-            echo "Add the repository secret, or enable the Mend Renovate GitHub"
-            echo "App for this repo instead and delete this workflow."
+            echo "Add RENOVATE_TOKEN to the 'renovate' environment (see the"
+            echo "workflow header), or enable the Mend Renovate GitHub App for"
+            echo "this repo instead and delete this workflow."
             exit 0
           fi
 
@@ -83,7 +99,7 @@ jobs:
           docker run --rm \
             -e RENOVATE_TOKEN \
             -e RENOVATE_PLATFORM=github \
-            -e RENOVATE_REPOSITORIES='["${{ github.repository }}"]' \
+            -e RENOVATE_REPOSITORIES="[\"${REPO}\"]" \
             -e LOG_LEVEL \
             "${EXTRA_ENV[@]}" \
             "$RENOVATE_IMAGE"
