@@ -255,18 +255,15 @@ describe('PromptAssistantFormGroup', () => {
 
         render(<PromptAssistantFormGroup {...defaultProps} />);
 
-        const promptName = screen.getByTestId('prompt-name-title');
         const scopeLabel = screen.getByTestId('prompt-scope-label');
         const versionToggle = screen.getByTestId('prompt-version-toggle');
 
-        const flexContainer = promptName.parentElement;
+        const flexContainer = versionToggle.parentElement;
         const children = Array.from(flexContainer?.children || []);
 
-        const nameIndex = children.indexOf(promptName);
         const scopeIndex = children.indexOf(scopeLabel);
         const versionIndex = children.indexOf(versionToggle);
 
-        expect(scopeIndex).toBeGreaterThan(nameIndex);
         expect(scopeIndex).toBeLessThan(versionIndex);
       });
 
