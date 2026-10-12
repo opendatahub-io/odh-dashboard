@@ -27,7 +27,6 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: GatewayClass
 metadata:
   name: openshift-default
-  namespace: openshift-ingress
 spec:
   controllerName: openshift.io/gateway-controller/v1
 ---
