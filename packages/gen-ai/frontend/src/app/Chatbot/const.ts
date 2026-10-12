@@ -82,7 +82,13 @@ export const VISION_UPLOAD_CONFIG = {
 } as const;
 
 // Audio upload constants (ASR transcription)
-export const AUDIO_UPLOAD_ALLOWED_MIME_TYPES: readonly string[] = ['audio/wav', 'audio/mpeg'];
+export const AUDIO_UPLOAD_ALLOWED_MIME_TYPES: readonly string[] = [
+  'audio/wav',
+  'audio/wave',
+  'audio/x-wav',
+  'audio/x-pn-wav',
+  'audio/mpeg',
+];
 const AUDIO_EXTENSION_TO_MIME: Record<string, string> = {
   '.wav': 'audio/wav',
   '.mp3': 'audio/mpeg',
