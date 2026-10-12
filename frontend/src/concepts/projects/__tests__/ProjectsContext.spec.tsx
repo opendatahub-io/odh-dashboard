@@ -72,6 +72,7 @@ describe('RHOAI ProjectsContextProvider working-project flag', () => {
     expect(context.projects).toEqual([a, z]);
     expect(context.preferredProject).toBe(z);
     expect(working.activeProject).toBeNull();
+    expect(working.status).toBe('absent');
     act(() => context.updatePreferredProject(null));
     expect(context.preferredProject).toBeNull();
     expect(localStorage.getItem(PREFERRED_NAMESPACE_STORAGE_KEY)).toBeNull();
@@ -129,6 +130,7 @@ describe('RHOAI ProjectsContextProvider working-project flag', () => {
     );
     expect(context.preferredProject).toBe(b);
     expect(working.activeProject?.name).toBe('b');
+    expect(working.status).toBe('listed');
     act(() => context.updatePreferredProject(null));
     expect(context.preferredProject).toBe(b);
     expect(working.activeProject?.name).toBe('b');

@@ -4,6 +4,7 @@ import { renderHook } from '@odh-dashboard/jest-config/hooks';
 import {
   type ProjectIdentity,
   type WorkingProjectContextType,
+  type WorkingProjectStatus,
   WorkingProjectProvider,
   useWorkingProject,
 } from '../WorkingProjectContext';
@@ -42,6 +43,7 @@ describe('WorkingProjectProvider', () => {
     const renderResult = renderHook(() => useWorkingProject());
 
     expect(renderResult.result.current.projects).toEqual([]);
+    expect(renderResult.result.current.status).toBe('absent');
     expect(renderResult.result.current.activeProject).toBeNull();
     act(() => {
       renderResult.result.current.selectProject(firstProject);
@@ -56,6 +58,7 @@ describe('WorkingProjectProvider', () => {
     });
 
     expect(renderResult.result.current.projects).toBe(projects);
+    expect(renderResult.result.current.status).toBe('listed');
     expect(renderResult.result.current.activeProject).toBe(firstProject);
     expect(renderResult).hookToHaveUpdateCount(1);
   });
@@ -67,6 +70,7 @@ describe('WorkingProjectProvider', () => {
     });
 
     expect(renderResult.result.current.projects).toEqual([]);
+    expect(renderResult.result.current.status).toBe('empty');
     expect(renderResult.result.current.activeProject).toBeNull();
     act(() => {
       renderResult.result.current.selectProject(firstProject);
@@ -74,14 +78,14 @@ describe('WorkingProjectProvider', () => {
     expect(onProjectChange).not.toHaveBeenCalled();
   });
 
-  it('should allow a null selection while preserving selectable projects', () => {
+  it('should resolve a missing active selection to a provider-known project', () => {
     const projects = [firstProject, secondProject];
     const renderResult = renderHook(() => useWorkingProject(), {
       wrapper: createWrapper(projects, null, jest.fn()),
     });
 
     expect(renderResult.result.current.projects).toBe(projects);
-    expect(renderResult.result.current.activeProject).toBeNull();
+    expect(renderResult.result.current.activeProject).toBe(firstProject);
   });
 
   it('should select a known project using the canonical provider identity', () => {
@@ -123,7 +127,7 @@ describe('WorkingProjectProvider', () => {
     });
 
     expect(renderResult.result.current.projects).toBe(projects);
-    expect(renderResult.result.current.activeProject).toBeNull();
+    expect(renderResult.result.current.activeProject).toBe(firstProject);
   });
 
   it('should use the latest project-change callback after a provider rerender', () => {
@@ -195,5 +199,92 @@ describe('WorkingProjectProvider', () => {
       latestWorkingProject.selectProject(secondProject);
     });
     expect(onProjectChange).toHaveBeenCalledWith(refreshedProjects[1]);
+  });
+
+  it.each<WorkingProjectStatus>(['loading', 'error', 'listing-unavailable'])(
+    'should expose %s without mistaking it for a successful empty list',
+    (status) => {
+      const onProjectChange = jest.fn();
+      let working: WorkingProjectContextType | undefined;
+      render(
+        <WorkingProjectProvider
+          status={status as 'loading' | 'error' | 'listing-unavailable'}
+          projects={[firstProject]}
+          activeProject={firstProject}
+          onProjectChange={onProjectChange}
+        >
+          <WorkingProjectConsumer
+            onContextChange={(value) => {
+              working = value;
+            }}
+          />
+        </WorkingProjectProvider>,
+      );
+      expect(working?.status).toBe(status);
+      if (status !== 'listing-unavailable') {
+        expect(working?.projects).toEqual([]);
+        expect(working?.activeProject).toBeNull();
+        act(() => working?.selectProject(firstProject));
+        expect(onProjectChange).not.toHaveBeenCalled();
+      } else {
+        // The host has explicitly supplied a validated identity despite listing being unavailable.
+        expect(working?.projects).toEqual([firstProject]);
+        expect(working?.activeProject).toBe(firstProject);
+        act(() => working?.selectProject({ name: 'unvalidated' }));
+        expect(onProjectChange).not.toHaveBeenCalled();
+        act(() => working?.selectProject(firstProject));
+        expect(onProjectChange).toHaveBeenCalledWith(firstProject);
+      }
+    },
+  );
+
+  it('should keep listing-unavailable without validated identities distinct from empty', () => {
+    let working: WorkingProjectContextType | undefined;
+    render(
+      <WorkingProjectProvider
+        status="listing-unavailable"
+        projects={[]}
+        activeProject={firstProject}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectConsumer
+          onContextChange={(value) => {
+            working = value;
+          }}
+        />
+      </WorkingProjectProvider>,
+    );
+    expect(working?.status).toBe('listing-unavailable');
+    expect(working?.activeProject).toBeNull();
+  });
+
+  it('should transition from loading to listed, empty and error without exposing stale projects', () => {
+    let working: WorkingProjectContextType | undefined;
+    const view = (status: 'loading' | 'listed' | 'error', projects: ProjectIdentity[]) => (
+      <WorkingProjectProvider
+        status={status}
+        projects={projects}
+        activeProject={firstProject}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectConsumer
+          onContextChange={(value) => {
+            working = value;
+          }}
+        />
+      </WorkingProjectProvider>
+    );
+    const { rerender } = render(view('loading', [firstProject]));
+    expect(working?.status).toBe('loading');
+    expect(working?.activeProject).toBeNull();
+    rerender(view('listed', [firstProject]));
+    expect(working?.status).toBe('listed');
+    expect(working?.activeProject).toBe(firstProject);
+    rerender(view('listed', []));
+    expect(working?.status).toBe('empty');
+    expect(working?.activeProject).toBeNull();
+    rerender(view('error', [firstProject]));
+    expect(working?.status).toBe('error');
+    expect(working?.projects).toEqual([]);
   });
 });

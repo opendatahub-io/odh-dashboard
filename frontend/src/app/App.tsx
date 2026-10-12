@@ -154,50 +154,52 @@ const App: React.FC = () => {
           <PluginStoreAreaFlagsProvider />
           <HostApiProvider>
             <AccessReviewProvider>
-              <Page
-                className="odh-dashboard"
-                isManagedSidebar
-                isContentFilled
-                masthead={
-                  <Header
-                    dashboardConfig={dashboardConfig.spec.dashboardConfig}
-                    {...devFeatureFlagsProps}
-                    onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)}
-                  />
-                }
-                sidebar={isAllowed ? <NavSidebar /> : undefined}
-                notificationDrawer={
-                  <AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />
-                }
-                isNotificationDrawerExpanded={notificationsOpen}
-                mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
-                data-testid={DASHBOARD_MAIN_CONTAINER_ID}
-                banner={
-                  <DevFeatureFlagsBanner
-                    dashboardConfig={dashboardConfig.spec.dashboardConfig}
-                    {...devFeatureFlagsProps}
-                  />
-                }
-              >
-                <ErrorBoundary>
-                  <IntegrationsStatusProvider>
-                    <ProjectsContextProvider>
-                      <HardwareProfilesContextProvider>
-                        <ModelRegistriesContextProvider>
-                          <QuickStarts>
-                            <NotificationWatcherContextProvider pollInterval={POLL_INTERVAL}>
-                              <AppRoutes />
-                            </NotificationWatcherContextProvider>
-                          </QuickStarts>
-                        </ModelRegistriesContextProvider>
-                      </HardwareProfilesContextProvider>
-                    </ProjectsContextProvider>
-                  </IntegrationsStatusProvider>
-                  <ToastNotifications />
-                  <TelemetrySetup />
-                  <WhatsNewModal />
-                </ErrorBoundary>
-              </Page>
+              <ErrorBoundary>
+                <ProjectsContextProvider>
+                  <Page
+                    className="odh-dashboard"
+                    isManagedSidebar
+                    isContentFilled
+                    masthead={
+                      <Header
+                        dashboardConfig={dashboardConfig.spec.dashboardConfig}
+                        {...devFeatureFlagsProps}
+                        onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)}
+                      />
+                    }
+                    sidebar={isAllowed ? <NavSidebar /> : undefined}
+                    notificationDrawer={
+                      <AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />
+                    }
+                    isNotificationDrawerExpanded={notificationsOpen}
+                    mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
+                    data-testid={DASHBOARD_MAIN_CONTAINER_ID}
+                    banner={
+                      <DevFeatureFlagsBanner
+                        dashboardConfig={dashboardConfig.spec.dashboardConfig}
+                        {...devFeatureFlagsProps}
+                      />
+                    }
+                  >
+                    <ErrorBoundary>
+                      <IntegrationsStatusProvider>
+                        <HardwareProfilesContextProvider>
+                          <ModelRegistriesContextProvider>
+                            <QuickStarts>
+                              <NotificationWatcherContextProvider pollInterval={POLL_INTERVAL}>
+                                <AppRoutes />
+                              </NotificationWatcherContextProvider>
+                            </QuickStarts>
+                          </ModelRegistriesContextProvider>
+                        </HardwareProfilesContextProvider>
+                      </IntegrationsStatusProvider>
+                      <ToastNotifications />
+                      <TelemetrySetup />
+                      <WhatsNewModal />
+                    </ErrorBoundary>
+                  </Page>
+                </ProjectsContextProvider>
+              </ErrorBoundary>
             </AccessReviewProvider>
           </HostApiProvider>
         </AreaContextProvider>
