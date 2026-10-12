@@ -17,6 +17,10 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
+func int32Ptr(v int32) *int32 {
+	return &v
+}
+
 var _ = Describe("SubscriptionHandlers", Ordered, func() {
 	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 
@@ -48,8 +52,8 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 							OrganizationID: "org-123",
 							CostCenter:     "engineering",
 						},
-						Priority:         10,
-						CreateAuthPolicy: true,
+						InferencePriority: int32Ptr(10),
+						CreateAuthPolicy:  true,
 					},
 				},
 				k8Factory,
@@ -60,7 +64,8 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			Expect(rs.StatusCode).To(Equal(http.StatusCreated))
 			Expect(actual.Data.Subscription.Name).To(Equal(subName))
 			Expect(actual.Data.Subscription.Namespace).To(Equal("maas-system"))
-			Expect(actual.Data.Subscription.Priority).To(Equal(int32(10)))
+			Expect(actual.Data.Subscription.InferencePriority).NotTo(BeNil())
+			Expect(*actual.Data.Subscription.InferencePriority).To(Equal(int32(10)))
 			Expect(actual.Data.Subscription.Owner.Groups).To(HaveLen(1))
 			Expect(actual.Data.Subscription.Owner.Groups[0].Name).To(Equal("premium-users"))
 			Expect(actual.Data.Subscription.ModelRefs).To(HaveLen(1))
@@ -230,7 +235,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 						TokenMetadata: &models.TokenMetadata{
 							OrganizationID: "org-456",
 						},
-						Priority: 5,
+						InferencePriority: int32Ptr(5),
 					},
 				},
 				k8Factory,
@@ -252,7 +257,8 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			Expect(rs.StatusCode).To(Equal(http.StatusOK))
 			Expect(actual.Data.Subscription.Name).To(Equal("info-test-sub"))
 			Expect(actual.Data.Subscription.Namespace).To(Equal("maas-system"))
-			Expect(actual.Data.Subscription.Priority).To(Equal(int32(5)))
+			Expect(actual.Data.Subscription.InferencePriority).NotTo(BeNil())
+			Expect(*actual.Data.Subscription.InferencePriority).To(Equal(int32(5)))
 			Expect(actual.Data.Subscription.TokenMetadata).NotTo(BeNil())
 			Expect(actual.Data.Subscription.TokenMetadata.OrganizationID).To(Equal("org-456"))
 			Expect(actual.Data.Subscription.DisplayName).To(BeAssignableToTypeOf(""))
@@ -319,7 +325,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 						ModelRefs: []models.ModelSubscriptionRef{
 							{Name: "granite-3-8b-instruct", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 1000, Window: "1h"}}},
 						},
-						Priority: 1,
+						InferencePriority: int32Ptr(1),
 					},
 				},
 				k8Factory,
@@ -345,7 +351,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 						TokenMetadata: &models.TokenMetadata{
 							OrganizationID: "updated-org",
 						},
-						Priority: 20,
+						InferencePriority: int32Ptr(20),
 					},
 				},
 				k8Factory,
@@ -355,7 +361,8 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rs.StatusCode).To(Equal(http.StatusOK))
 			Expect(actual.Data.Subscription.Name).To(Equal("update-test-sub"))
-			Expect(actual.Data.Subscription.Priority).To(Equal(int32(20)))
+			Expect(actual.Data.Subscription.InferencePriority).NotTo(BeNil())
+			Expect(*actual.Data.Subscription.InferencePriority).To(Equal(int32(20)))
 			Expect(actual.Data.Subscription.Owner.Groups).To(HaveLen(1))
 			Expect(actual.Data.Subscription.Owner.Groups[0].Name).To(Equal("premium-users"))
 			Expect(actual.Data.Subscription.ModelRefs).To(HaveLen(2))

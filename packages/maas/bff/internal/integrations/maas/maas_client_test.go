@@ -122,7 +122,7 @@ func TestListSubscriptionsForApiKeys_NilModelRefsNormalized(t *testing.T) {
 		{
 			"subscription_id_header":   "test-sub",
 			"subscription_description": "Test",
-			"priority":                 1,
+			"inference_priority":       1,
 			"model_refs":               nil,
 		},
 	}
@@ -149,7 +149,7 @@ func TestListSubscriptionsForApiKeys_NilTokenRateLimitsNormalized(t *testing.T) 
 		{
 			"subscription_id_header":   "test-sub",
 			"subscription_description": "Test",
-			"priority":                 1,
+			"inference_priority":       1,
 			"model_refs": []map[string]any{
 				{
 					"name":              "my-model",
@@ -181,7 +181,7 @@ func TestListSubscriptionsForApiKeys_ValidDataPassedThrough(t *testing.T) {
 	body := []models.SubscriptionListItem{
 		{
 			SubscriptionIDHeader: "premium-sub",
-			Priority:             10,
+			InferencePriority:    10,
 			ModelRefs: []models.ModelRefInfo{
 				{
 					Name: "granite-3-8b",
