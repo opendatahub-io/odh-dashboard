@@ -19,9 +19,9 @@ import (
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
-const maasPortalFederationConfigMapName = "maas-consumer-portal-federation-config"
+const maasPortalFederationConfigMapName = "maas-portal-federation-config"
 
-const maasPortalFederationHashAnnotation = "dashboard.opendatahub.io/maas-consumer-portal-federation-config-hash"
+const maasPortalFederationHashAnnotation = "dashboard.opendatahub.io/maas-portal-federation-config-hash"
 
 // modulePresent means a module's deployed resources remain usable for lifecycle
 // and federation purposes. A degraded module is present but not healthy.
@@ -61,17 +61,30 @@ func maasPortalRequiredModuleSlugs(spec *v1alpha1.DashboardSpec, statuses map[st
 	return requiredModules
 }
 
+func (r *DashboardReconciler) syncMaaSPortalDeploymentFederationHash(ctx context.Context) error {
+	cm := &corev1.ConfigMap{}
+	if err := r.maasPortalAPIReader().Get(ctx, client.ObjectKey{Name: maasPortalFederationConfigMapName, Namespace: r.ApplicationsNamespace}, cm); err != nil {
+		if apierrors.IsNotFound(err) {
+			// The federation ConfigMap is reconciled separately. Its hash will be
+			// applied after it becomes available on a subsequent reconciliation.
+			return nil
+		}
+		return fmt.Errorf("getting MaaS Portal federation ConfigMap: %w", err)
+	}
+	return r.patchMaaSPortalDeploymentFederationHash(ctx, cm.Data[federationConfigKey])
+}
+
 // patchMaaSPortalDeploymentFederationHash triggers a rollout only when
-// the MaaS Consumer Portal remote configuration changes. An absent portal
+// the MaaS Portal remote configuration changes. An absent portal
 // Deployment is expected while its bundle has not yet been applied.
 func (r *DashboardReconciler) patchMaaSPortalDeploymentFederationHash(ctx context.Context, configData string) error {
 	var deployment appsv1.Deployment
 	key := client.ObjectKey{Name: maasPortalDeploymentName, Namespace: r.ApplicationsNamespace}
-	if err := r.Get(ctx, key, &deployment); err != nil {
+	if err := r.maasPortalAPIReader().Get(ctx, key, &deployment); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil
 		}
-		return fmt.Errorf("getting MaaS Consumer Portal deployment: %w", err)
+		return fmt.Errorf("getting MaaS Portal deployment: %w", err)
 	}
 
 	hash := computeFederationConfigHash(configData)
@@ -85,13 +98,13 @@ func (r *DashboardReconciler) patchMaaSPortalDeploymentFederationHash(ctx contex
 	}
 	deployment.Spec.Template.Annotations[maasPortalFederationHashAnnotation] = hash
 	if err := r.Patch(ctx, &deployment, patch); err != nil {
-		return fmt.Errorf("patching MaaS Consumer Portal deployment with federation hash: %w", err)
+		return fmt.Errorf("patching MaaS Portal deployment with federation hash: %w", err)
 	}
 	return nil
 }
 
 // buildMaaSPortalFederationConfigMap contains only services required by the
-// standalone MaaS Consumer Portal. The proxy paths are registry-owned; portal-specific
+// standalone MaaS Portal. The proxy paths are registry-owned; portal-specific
 // ingress rewriting remains outside aggregate module orchestration.
 func (r *DashboardReconciler) buildMaaSPortalFederationConfigMap(
 	statuses map[string]v1alpha1.ModuleStatus,
@@ -111,7 +124,7 @@ func (r *DashboardReconciler) buildMaaSPortalFederationConfigMap(
 	}
 	data, err := json.MarshalIndent(entries, "    ", "  ")
 	if err != nil {
-		return nil, fmt.Errorf("marshalling MaaS Consumer Portal federation config: %w", err)
+		return nil, fmt.Errorf("marshalling MaaS Portal federation config: %w", err)
 	}
 	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
@@ -127,7 +140,7 @@ func (r *DashboardReconciler) deployMaaSPortalFederationConfigMap(ctx context.Co
 	if portal == nil || portal.ManagementState != "Managed" || !maasPortalSupportedPlatform(r.Platform) {
 		configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: maasPortalFederationConfigMapName, Namespace: r.ApplicationsNamespace}}
 		if err := r.Delete(ctx, configMap); client.IgnoreNotFound(err) != nil {
-			return fmt.Errorf("deleting MaaS Consumer Portal federation ConfigMap: %w", err)
+			return fmt.Errorf("deleting MaaS Portal federation ConfigMap: %w", err)
 		}
 		return nil
 	}
@@ -142,7 +155,7 @@ func (r *DashboardReconciler) deployMaaSPortalFederationConfigMap(ctx context.Co
 	}
 	resource, err := configMapToUnstructured(configMap)
 	if err != nil {
-		return fmt.Errorf("converting MaaS Consumer Portal federation ConfigMap: %w", err)
+		return fmt.Errorf("converting MaaS Portal federation ConfigMap: %w", err)
 	}
 	deployer := deploy.NewDeployer(deploy.WithFieldOwner("dashboard-operator"),
 		deploy.WithLabel(labels.PlatformPartOf, maasPortalPartOf),
@@ -150,7 +163,7 @@ func (r *DashboardReconciler) deployMaaSPortalFederationConfigMap(ctx context.Co
 		deploy.WithLabel(moduleComponentLabel, maasPortalPartOf))
 	if err := deployer.Deploy(ctx, deploy.DeployInput{Client: r.Client, Owner: dashboard,
 		Release: deploy.ReleaseInfo{Type: string(r.Platform)}, Resources: []unstructured.Unstructured{resource}}); err != nil {
-		return fmt.Errorf("deploying MaaS Consumer Portal federation ConfigMap: %w", err)
+		return fmt.Errorf("deploying MaaS Portal federation ConfigMap: %w", err)
 	}
 	return nil
 }

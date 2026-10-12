@@ -474,6 +474,14 @@ func (app *App) Routes() http.Handler {
 	// Uses secret-based OGX client (falls back to CR-based discovery when no secretName provided).
 	apiRouter.POST(constants.ResponsesPassthroughPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClientFromSecret(app.LlamaStackPassthroughResponseHandler))))
 
+	// Responses relay — forwards embedded-playground requests to a same-origin
+	// target endpoint via the externally accessed gateway route. Deliberately
+	// registered without namespace/SSAR middleware: the relay performs no k8s
+	// operations, the embedded namespace belongs to the target service, and the
+	// user's own bearer token is forwarded so every hop after this one
+	// (kube-rbac-proxy, module proxy, target BFF) re-authenticates it.
+	apiRouter.POST(constants.ResponsesRelayPath, app.ResponsesRelayHandler)
+
 	// Vector Stores (LlamaStack)
 	apiRouter.GET(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackListVectorStoresHandler))))
 	apiRouter.POST(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackCreateVectorStoreHandler))))

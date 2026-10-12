@@ -34,6 +34,11 @@ func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err e
 	app.errorResponse(w, r, httpError)
 }
 
+func (app *App) conflictResponse(w http.ResponseWriter, r *http.Request, err error) {
+	httpError := &HTTPError{StatusCode: http.StatusConflict, Error: ErrorPayload{Code: strconv.Itoa(http.StatusConflict), Message: err.Error()}}
+	app.errorResponse(w, r, httpError)
+}
+
 func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, message string) {
 	// Log the detailed error message as a warning
 	app.logger.Warn("Access forbidden", "message", message, "method", r.Method, "uri", r.URL.RequestURI())

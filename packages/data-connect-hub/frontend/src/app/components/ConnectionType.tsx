@@ -6,24 +6,30 @@ import {
   CardBody,
   CardHeader,
   CardTitle,
+  Content,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
+  Grid,
+  GridItem,
   Icon,
-  Timestamp,
-  TimestampTooltipVariant,
+  Label,
+  Level,
+  LevelItem,
+  LabelColor,
 } from '@patternfly/react-core';
 import type { IconComponentProps } from '@patternfly/react-core';
 import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
-import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
-import type {
+import RelativeTimestamp from '~/app/components/RelativeTimestamp';
+import {
+  Described,
   Identified,
   Iconed,
-  ConnectionType,
-  ConnectionTypeGroup,
   Labelled,
   Valued,
+  ConnectionType,
+  Colored,
 } from '~/app/types';
 
 import DataSourceIcon from '@patternfly/react-icons/dist/esm/icons/data-source-icon';
@@ -33,14 +39,13 @@ import RhUiContainerIcon from '@patternfly/react-icons/dist/esm/icons/rh-ui-cont
 import RhUiSearchIcon from '@patternfly/react-icons/dist/esm/icons/rh-ui-search-icon';
 import RhUiStorageIcon from '@patternfly/react-icons/dist/esm/icons/rh-ui-storage-icon';
 
+import './ConnectionType.scss';
+
 // Types ---------------------------------------------------------------------->
 
-type KnownConnectionType = Identified<string> &
-  Iconed<React.ReactNode> & {
-    group: ConnectionTypeGroup;
-  };
+type KnownConnectionType = Identified<string> & Iconed<React.ReactNode>;
 
-type ValueRenderer = (c: ConnectionType) => React.ReactNode;
+type ValueRenderer = (c: ConnectionTypeInstance) => React.ReactNode;
 
 type RenderedConnectionTypeValue = Identified<string> &
   Labelled<string> &
@@ -48,62 +53,87 @@ type RenderedConnectionTypeValue = Identified<string> &
     shouldRender?: boolean;
   };
 
+type ConnectionTypeCapability = 'full_integration' | 'credentials';
+
+type ConnectionTypeCapabilityDetails = Identified<ConnectionTypeCapability> &
+  Labelled<string> &
+  Described<string> &
+  Colored<LabelColor>;
+
+type BaseConnectionTypeProps = {
+  connectionType: ConnectionTypeInstance;
+};
+
 // Globals -------------------------------------------------------------------->
 
 const KnownConnectionTypes: Record<string, KnownConnectionType> = {
   elasticsearch: {
     id: 'elasticsearch',
     icon: <RhUiSearchIcon />,
-    group: 'other',
   },
   huggingface: {
     id: 'huggingface',
     icon: <RhUiAiExperienceIcon />,
-    group: 'other',
   },
   milvus: {
     id: 'milvus',
     icon: <RhUiStorageIcon />,
-    group: 'other',
   },
   neo4j: {
     id: 'neo4j',
     icon: <RhUiStorageIcon />,
-    group: 'other',
   },
   'oci-v1': {
     id: 'oci-v1',
     icon: <RhUiContainerIcon />,
-    group: 'other',
   },
   postgres: {
     id: 'postgres',
     icon: <RhUiStorageIcon />,
-    group: 'other',
   },
   s3: {
     id: 's3',
     icon: <RhUiStorageIcon />,
-    group: 'red_hat',
   },
   sqlite: {
     id: 'sqlite',
     icon: <RhUiStorageIcon />,
-    group: 'other',
   },
   'uri-v1': {
     id: 'uri-v1',
     icon: <LinkIcon />,
-    group: 'red_hat',
   },
   uri: {
     id: 'uri',
     icon: <LinkIcon />,
-    group: 'red_hat',
+  },
+};
+
+const ConnectionTypeCapabilities: Record<
+  ConnectionTypeCapability,
+  ConnectionTypeCapabilityDetails
+> = {
+  full_integration: {
+    id: 'full_integration',
+    label: 'Full integration',
+    description: 'Connection types with credential management and data ingestion support.',
+    color: LabelColor.teal,
+  },
+  credentials: {
+    id: 'credentials',
+    label: 'Credentials only',
+    description:
+      'Connection types that store credentials for authentication without built-in ingestion.',
+    color: LabelColor.yellow,
   },
 };
 
 const renderedConnectionTypeValues: Record<string, RenderedConnectionTypeValue> = {
+  description: {
+    id: 'description',
+    label: 'Description',
+    value: (connectionType) => connectionType.resource.description,
+  },
   category: {
     id: 'category',
     label: 'Category',
@@ -122,16 +152,18 @@ const renderedConnectionTypeValues: Record<string, RenderedConnectionTypeValue> 
     value: () => null,
     shouldRender: false,
   },
-  tags: {
-    id: 'tags',
-    label: 'Tags',
-    value: () => null,
-    shouldRender: false,
-  },
   provider: {
     id: 'provider',
     label: 'Provider',
     value: (connectionType) => connectionType.resource.provider,
+  },
+  capability: {
+    id: 'capability',
+    label: 'Capability',
+    value: (connectionType) =>
+      connectionType.isCredentialsOnly()
+        ? ConnectionTypeCapabilities.credentials.label
+        : ConnectionTypeCapabilities.full_integration.label,
   },
   created: {
     id: 'created',
@@ -145,29 +177,59 @@ const renderedConnectionTypeValues: Record<string, RenderedConnectionTypeValue> 
   },
 };
 
+const localFeatureFlags = {
+  tags: false,
+};
+
 // Private -------------------------------------------------------------------->
+
+// Classes -------------------------------------------------------------------->
+
+class ConnectionTypeInstance implements ConnectionType {
+  metadata: ConnectionType['metadata'];
+  resource: ConnectionType['resource'];
+  status: ConnectionType['status'];
+
+  readonly id: string;
+  readonly original: ConnectionType;
+
+  constructor(connectionType: ConnectionType) {
+    this.metadata = connectionType.metadata;
+    this.resource = connectionType.resource;
+    this.status = connectionType.status;
+
+    this.id = connectionType.metadata.id;
+    this.original = connectionType;
+  }
+
+  isFullIntegration() {
+    return Boolean(this.status?.flight_ready);
+  }
+
+  isCredentialsOnly() {
+    return !this.isFullIntegration();
+  }
+
+  matchesSearch(searchTerm: string) {
+    const name = this.resource.name;
+    const description = this.resource.description ?? '';
+    const searchableText = `${name} ${description}`.trim().toLowerCase();
+    return searchableText.includes(searchTerm.trim().toLowerCase());
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Depends on labels being added by API: Return true for now
+  matchesLabels(labels: string | string[]) {
+    return true;
+  }
+
+  toJSON() {
+    return this.original;
+  }
+}
 
 // Components ----------------------------------------------------------------->
 
-type RelativeTimestampProps = {
-  datetime: string;
-};
-const RelativeTimestamp: React.FC<RelativeTimestampProps> = ({ datetime }) => {
-  const datetimeObject = new Date(datetime);
-
-  if (Number.isNaN(datetimeObject.getTime())) {
-    return <>-</>;
-  }
-
-  return (
-    <Timestamp date={datetimeObject} tooltip={{ variant: TimestampTooltipVariant.default }}>
-      {relativeTime(Date.now(), datetimeObject.getTime())}
-    </Timestamp>
-  );
-};
-
-type ConnectionTypeIconProps = {
-  connectionType: ConnectionType;
+type ConnectionTypeIconProps = BaseConnectionTypeProps & {
   iconProps?: IconComponentProps;
 };
 const ConnectionTypeIcon: React.FC<ConnectionTypeIconProps> = ({ connectionType, iconProps }) => {
@@ -186,9 +248,17 @@ const ConnectionTypeIcon: React.FC<ConnectionTypeIconProps> = ({ connectionType,
   );
 };
 
+type ConnectionTypeLabelProps = BaseConnectionTypeProps;
+const ConnectionTypeLabel: React.FC<ConnectionTypeLabelProps> = ({ connectionType }) => {
+  let capability = ConnectionTypeCapabilities.full_integration;
+  if (connectionType.isCredentialsOnly()) {
+    capability = ConnectionTypeCapabilities.credentials;
+  }
+  return <Label color={capability.color}>{capability.label}</Label>;
+};
+
 const ConnectionTypeCardIdentifier = (id: string) => `${id}--ConnectionTypeCard`;
-type ConnectionTypeCardProps = {
-  connectionType: ConnectionType;
+type ConnectionTypeCardProps = BaseConnectionTypeProps & {
   onClick: () => void;
   isSelectable?: boolean;
   isSelected?: boolean;
@@ -207,7 +277,7 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
       isClickable={!isSelectable}
       isSelectable={isSelectable}
       isSelected={isSelectable ? isSelected : undefined}
-      style={{ aspectRatio: '4 / 3' }}
+      className="dch-connection-type-card"
     >
       <CardHeader
         selectableActions={{
@@ -219,7 +289,14 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
           isHidden: isSelectable,
         }}
       >
-        <ConnectionTypeIcon connectionType={connectionType} iconProps={{ size: 'xl' }} />
+        <Level>
+          <LevelItem>
+            <ConnectionTypeIcon connectionType={connectionType} iconProps={{ size: 'xl' }} />
+          </LevelItem>
+          <LevelItem>
+            <ConnectionTypeLabel key="ConnectionTypeLabel" connectionType={connectionType} />
+          </LevelItem>
+        </Level>
       </CardHeader>
       <CardTitle id={`${rootId}-card-title`}>{connectionType.resource.name}</CardTitle>
       <CardBody>
@@ -229,27 +306,84 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
   );
 };
 
-type ConnectionTypeValuesProps = { connectionType: ConnectionType };
-const ConnectionTypeValues: React.FC<ConnectionTypeValuesProps> = ({ connectionType }) => (
-  <DescriptionList>
-    {Object.values(renderedConnectionTypeValues)
-      .filter((v) => v.shouldRender !== false)
-      .map((renderedValue) => (
-        <DescriptionListGroup key={renderedValue.id}>
-          <DescriptionListTerm>{renderedValue.label}</DescriptionListTerm>
-          <DescriptionListDescription>
-            {renderedValue.value(connectionType)}
-          </DescriptionListDescription>
-        </DescriptionListGroup>
-      ))}
-  </DescriptionList>
-);
+type ConnectionTypeValuesProps = BaseConnectionTypeProps;
+const ConnectionTypeValues: React.FC<ConnectionTypeValuesProps> = ({ connectionType }) => {
+  const valuesToRender = Object.values(renderedConnectionTypeValues).filter(
+    (v) => v.shouldRender !== false,
+  );
+  return (
+    <Grid className="pf-v6-u-h-100" hasGutter>
+      <GridItem span={8}>
+        <Card className="pf-v6-u-p-xs" isFullHeight>
+          <div className="dch-u-overflow-auto">
+            <CardHeader>
+              <Content component="h3">Details</Content>
+            </CardHeader>
+            <CardBody>
+              <Grid hasGutter>
+                <GridItem span={6}>
+                  <DescriptionList>
+                    {valuesToRender.slice(0, 2).map((renderedValue) => (
+                      <DescriptionListGroup key={renderedValue.id}>
+                        <DescriptionListTerm>{renderedValue.label}</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          {renderedValue.value(connectionType)}
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ))}
+                  </DescriptionList>
+                </GridItem>
+                <GridItem span={6}>
+                  <DescriptionList>
+                    {valuesToRender.slice(2).map((renderedValue) => (
+                      <DescriptionListGroup key={renderedValue.id}>
+                        <DescriptionListTerm>{renderedValue.label}</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          {renderedValue.value(connectionType)}
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ))}
+                  </DescriptionList>
+                </GridItem>
+              </Grid>
+            </CardBody>
+          </div>
+        </Card>
+      </GridItem>
+      {localFeatureFlags.tags && (
+        <GridItem span={4}>
+          <Card className="pf-v6-u-p-xs" isFullHeight>
+            <div className="dch-u-overflow-auto">
+              <CardHeader>
+                <Content component="h3">Labels</Content>
+              </CardHeader>
+              <CardBody>
+                <Label>Example</Label>
+              </CardBody>
+            </div>
+          </Card>
+        </GridItem>
+      )}
+    </Grid>
+  );
+};
 
 // Public --------------------------------------------------------------------->
 
+export type {
+  KnownConnectionType,
+  ValueRenderer,
+  RenderedConnectionTypeValue,
+  ConnectionTypeCapability,
+  ConnectionTypeCapabilityDetails,
+};
+
 export {
   KnownConnectionTypes,
+  ConnectionTypeCapabilities,
+  ConnectionTypeInstance,
   ConnectionTypeIcon,
+  ConnectionTypeLabel,
   ConnectionTypeCardIdentifier,
   ConnectionTypeCard,
   ConnectionTypeValues,

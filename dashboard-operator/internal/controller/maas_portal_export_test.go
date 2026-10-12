@@ -16,8 +16,9 @@ func (r *DashboardReconciler) DeployMaaSPortalFederationConfigMap(ctx context.Co
 	return r.deployMaaSPortalFederationConfigMap(ctx, dashboard, statuses, true)
 }
 
-func (r *DashboardReconciler) DeleteMaaSPortalResources(ctx context.Context) error {
-	return r.deleteMaaSPortalResources(ctx)
+func (r *DashboardReconciler) DeleteMaaSPortalResources(ctx context.Context) (bool, error) {
+	result, err := r.deleteMaaSPortalResources(ctx)
+	return result.Pending, err
 }
 
 func BuildMaaSPortalFederationConfigMap(
@@ -29,3 +30,4 @@ func BuildMaaSPortalFederationConfigMap(
 }
 
 const ConditionMaaSPortalAvailable = conditionMaaSPortalAvailable
+const LegacyConditionMaaSConsumerPortalAvailable = legacyConditionMaaSConsumerPortalAvailable

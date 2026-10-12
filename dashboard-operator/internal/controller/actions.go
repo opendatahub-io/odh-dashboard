@@ -326,6 +326,9 @@ func deployObservabilityManifests(
 		if err := setMaaSPortalPersesIngressNamespace(rendered, applicationsNamespace); err != nil {
 			return err
 		}
+		if err := preserveLegacyMaaSPortalNetworkAccess(ctx, cli, rendered, applicationsNamespace); err != nil {
+			return err
+		}
 	}
 
 	logger.Info("Deploying observability manifests", "namespace", obsNamespace, "resources", len(rendered))

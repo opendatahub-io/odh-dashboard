@@ -28,8 +28,8 @@ cluster.
 - An admitted `model-catalog` HTTPRoute in the applications namespace, backed
   by an enabled Model Catalog operand, for gateway sub-path conformance checks.
 - RHOAI runs need the MaaS and GenAI modules and enough cluster capacity to
-  deploy the MaaS Consumer Portal for shared-Gateway routing conformance checks.
-- The MaaS Consumer Portal observability scenario on RHOAI requires a ready
+  deploy the MaaS Portal for shared-Gateway routing conformance checks.
+- The MaaS Portal observability scenario on RHOAI requires a ready
   `redhat-ods-monitoring/data-science-perses` Service on port `8080`, the Perses
   operator and CRDs, and a Gateway bearer token authorized to read Perses
   dashboards. Its backing pods must satisfy the operator's
@@ -345,11 +345,11 @@ externally reachable, each standalone BFF returns HTTP 200 from `/healthcheck`,
 the `/catalog/` sibling HTTPRoute wins over the Dashboard catch-all and returns
 a successful Model Catalog JSON response or a validated Model Catalog JSON
 `401` response rather than Dashboard SPA HTML, redirects, or unrelated statuses,
-the RHOAI MaaS Consumer Portal shares the hostname-less Gateway routing scope
+the RHOAI MaaS Portal shares the hostname-less Gateway routing scope
 without breaking the Dashboard root or Model Catalog path, and the core
 PodDisruptionBudget selects ready Dashboard pods.
 
-The MaaS Consumer Portal observability scenario on RHOAI verifies authenticated
+The MaaS Portal observability scenario on RHOAI verifies authenticated
 portal health and Perses dashboard-list requests before and after setting the
 core dashboard to `Removed`. It waits for the core Deployment and HTTPRoute to disappear, then
 requires HTTP 200 JSON containing the operator-provided `dashboard-1-model`

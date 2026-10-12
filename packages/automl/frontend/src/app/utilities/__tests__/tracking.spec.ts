@@ -20,6 +20,7 @@ import {
   fireAutomlRunDetailsDefined,
   fireAutomlRunReconfigured,
   fireAutomlRunRetried,
+  fireAutomlRunNotebookDownloaded,
   fireAutomlResultsViewed,
   fireAutomlRunStopped,
   fireAutomlS3ConnectionCreated,
@@ -301,6 +302,14 @@ describe('AutoML tracking event firers', () => {
     expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.NOTEBOOK_DOWNLOADED, {
       downloadType: 'notebook',
       source: 'leaderboard',
+    });
+  });
+
+  it('should fire AutoML Run Notebook Downloaded with the run notebook type', () => {
+    fireAutomlRunNotebookDownloaded();
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RUN_NOTEBOOK_DOWNLOADED, {
+      downloadType: 'runNotebook',
     });
   });
 
