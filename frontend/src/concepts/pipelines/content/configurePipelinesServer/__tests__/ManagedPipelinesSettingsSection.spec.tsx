@@ -151,13 +151,13 @@ describe('ManagedPipelinesSettingsSection', () => {
           enableManagedPipelines={false}
           setEnableManagedPipelines={jest.fn()}
           isDisabled
-          disabledReason="Managed pipelines are disabled by a project annotation."
+          disabledReason="Managed pipelines are disabled by an annotation on this pipeline server."
         />,
       );
 
       expect(screen.getByTestId('managed-pipelines-checkbox')).toBeDisabled();
       expect(
-        screen.getByText(/Managed pipelines are disabled by a project annotation/),
+        screen.getByText(/Managed pipelines are disabled by an annotation on this pipeline server/),
       ).toBeInTheDocument();
     });
   });

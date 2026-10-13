@@ -462,7 +462,7 @@ describe('ManagePipelineServerModal', () => {
     expect(screen.getByTestId('managed-pipelines-checkbox')).not.toBeChecked();
   });
 
-  it('should prevent changing managed pipelines disabled by a project annotation', () => {
+  it('should prevent changing managed pipelines disabled by a pipeline server annotation', () => {
     const pipelineWithManagedPipelinesDisabledByAnnotation =
       mockDataSciencePipelineApplicationK8sResource({
         name: 'dspa',
@@ -482,7 +482,7 @@ describe('ManagePipelineServerModal', () => {
     expect(managedPipelinesCheckbox).not.toBeChecked();
     expect(managedPipelinesCheckbox).toBeDisabled();
     expect(
-      screen.getByText(/Managed pipelines are disabled by a project annotation/),
+      screen.getByText(/Managed pipelines are disabled by an annotation on this pipeline server/),
     ).toBeInTheDocument();
   });
 

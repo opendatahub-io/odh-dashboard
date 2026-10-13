@@ -292,7 +292,7 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
                     isDisabled={managedPipelinesDisabledByAnnotation}
                     disabledReason={
                       managedPipelinesDisabledByAnnotation
-                        ? 'Managed pipelines are disabled by a project annotation and cannot be changed here.'
+                        ? 'Managed pipelines are disabled by an annotation on this pipeline server and cannot be changed here.'
                         : undefined
                     }
                     variant="description"
