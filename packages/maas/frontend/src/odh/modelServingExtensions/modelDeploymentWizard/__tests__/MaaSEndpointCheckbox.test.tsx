@@ -65,7 +65,7 @@ describe('MaaSEndpointCheckbox', () => {
 
     expect(gateway).toMatchObject({
       isDisabled: true,
-      selection: { name: 'maas-default-gateway', namespace: 'openshift-ingress' },
+      selections: [{ name: 'maas-default-gateway', namespace: 'openshift-ingress' }],
     });
     expect(gateway?.labelHelpPopover?.title).toBeUndefined();
 
