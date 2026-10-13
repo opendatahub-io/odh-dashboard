@@ -45,6 +45,16 @@ rules:
     resources:
       - clusterserviceversions
       - subscriptions
+  # OLM v1 install lifecycle (ClusterExtension) — read path for operator status detection on
+  # clusters where OLM Classic Subscriptions/CSVs are replaced by ClusterExtensions.
+  - verbs:
+      - get
+      - list
+      - watch
+    apiGroups:
+      - olm.operatorframework.io
+    resources:
+      - clusterextensions
   - apiGroups:
       - image.openshift.io
     resources:

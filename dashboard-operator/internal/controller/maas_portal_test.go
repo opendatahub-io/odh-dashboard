@@ -381,7 +381,7 @@ func TestReconcileMaaSPortal_LegacyCleanupPendingKeepsAvailable(t *testing.T) {
 			require.NotNil(t, condition)
 			assert.Equal(t, metav1.ConditionTrue, condition.Status)
 			assert.Equal(t, "Deployed", condition.Reason)
-			assert.Equal(t, "https://apps.example.com/maas-consumer-portal/", dashboard.Status.MaaSPortalURL)
+			assert.Equal(t, "https://apps.example.com/maas-portal/", dashboard.Status.MaaSPortalURL)
 			assert.Equal(t, dashboard.Status.MaaSPortalURL, dashboard.Status.MaaSConsumerPortalURL)
 			require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(secret), secret))
 			require.NotNil(t, secret.DeletionTimestamp)
@@ -391,7 +391,7 @@ func TestReconcileMaaSPortal_LegacyCleanupPendingKeepsAvailable(t *testing.T) {
 			cm.ClearCondition(conditionMaaSPortalAvailable) // Reconcile resets availability at the start of each cycle.
 			assert.Zero(t, r.reconcileMaaSPortal(ctx, dashboard, cm, statuses))
 			assert.Equal(t, metav1.ConditionTrue, cm.GetCondition(conditionMaaSPortalAvailable).Status)
-			assert.Equal(t, "https://apps.example.com/maas-consumer-portal/", dashboard.Status.MaaSPortalURL)
+			assert.Equal(t, "https://apps.example.com/maas-portal/", dashboard.Status.MaaSPortalURL)
 			assert.Equal(t, dashboard.Status.MaaSPortalURL, dashboard.Status.MaaSConsumerPortalURL)
 		})
 	}
