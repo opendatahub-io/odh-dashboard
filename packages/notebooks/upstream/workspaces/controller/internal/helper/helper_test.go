@@ -231,8 +231,8 @@ var _ = Describe("CopyStatefulSetFields", func() {
 		Expect(target.Annotations).To(HaveKeyWithValue("my-annotation", "my-value"))
 	})
 
-	It("should preserve labels which are only on the target", func() {
-		// Other actors may add StatefulSet metadata after the controller creates it.
+	It("should remove labels which are only on the target", func() {
+		// The controller owns the StatefulSet metadata and removes stale labels.
 		desired := newStatefulSet(
 			map[string]string{"notebooks.kubeflow.org/workspace-name": "my-workspace"},
 			nil,
@@ -245,7 +245,7 @@ var _ = Describe("CopyStatefulSetFields", func() {
 			nil,
 		)
 
-		Expect(CopyStatefulSetFields(desired, target)).To(BeFalse())
-		Expect(target.Labels).To(HaveKeyWithValue("stale-label", "stale-value"))
+		Expect(CopyStatefulSetFields(desired, target)).To(BeTrue())
+		Expect(target.Labels).NotTo(HaveKey("stale-label"))
 	})
 })
