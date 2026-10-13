@@ -153,10 +153,19 @@ summarize_stream() {
 }
 
 # Every changed file can match a .coderabbit.yaml path filter (for example
-# **/upstream/**). The CLI reports that as an error event and exits non-zero,
-# but nothing was reviewable by configuration: a skip, not a failed review.
+# **/upstream/**). The CLI reports that as an error and exits non-zero, but
+# nothing was reviewable by configuration: a skip, not a failed review.
+#
+# It only counts when it is the sole failure: a well-formed stream (an empty one
+# included) with no findings and at most one error event. A second error event
+# is an unrelated failure, and a skip must not hide it.
 all_files_ignored() {
   local raw="$1" err="$2"
+  jq -s -e '
+    all(.[]; type == "object")
+    and ([.[] | select(.type == "error")] | length) <= 1
+    and (any(.[]; .type == "finding") | not)
+  ' "${raw}" >/dev/null 2>&1 || return 1
   jq -s -e '
     any(.[]; .type == "error" and ((.message // "") | tostring | test("all files are ignored"; "i")))
   ' "${raw}" >/dev/null 2>&1 || grep -qiE '^(Error: )?All files are ignored$' "${err}"
@@ -215,10 +224,10 @@ run_producer() {
     tail -n 20 "${err}" >&2 || true
   fi
 
-  if ! jq -s -e 'length > 0 and all(.[]; type == "object" and has("type"))' "${raw}" >/dev/null 2>&1; then
-    write_envelope "error" "invalid-cli-output"
-  elif all_files_ignored "${raw}" "${err}"; then
+  if all_files_ignored "${raw}" "${err}"; then
     write_envelope "skipped" "all-files-ignored"
+  elif ! jq -s -e 'length > 0 and all(.[]; type == "object" and has("type"))' "${raw}" >/dev/null 2>&1; then
+    write_envelope "error" "invalid-cli-output"
   elif [[ "${exit_code}" -ne 0 ]] || jq -s -e 'any(.[]; .type == "error")' "${raw}" >/dev/null; then
     write_envelope "error" "review-failed"
   elif jq -s -e 'any(.[]; .type == "complete" and .status == "review_skipped")' "${raw}" >/dev/null; then
@@ -350,18 +359,19 @@ run_self_test() {
   tr '\0' '\n' < "${temp_dir}/recording-coderabbit.argv" | grep -qx -- '--deep'
   tr '\0' '\n' < "${temp_dir}/recording-coderabbit.argv" | grep -qx -- '--remote'
 
-  # A PR whose files are all path-filtered is a skip; any other CLI error is
-  # still a failed review. CLI 0.9 prints "Error: All files are ignored" on
-  # stderr; the error event's message is matched too in case it carries it.
+  # A PR whose files are all path-filtered is a skip, whether the CLI names the
+  # cause in its error event, on stderr only, or on stderr with no stream at
+  # all. CLI 0.9 prints "Error: All files are ignored" on stderr. Anything else
+  # stays an error: a second error event, another failure, or unreadable output.
+  # Columns: stream (events separated by \n) | stderr | status | reason.
   printf '%s\n' '#!/usr/bin/env bash' \
-    'echo "{\"type\":\"review_context\"}"' \
-    'echo "{\"type\":\"error\",\"errorType\":\"review\",\"message\":\"${FAKE_MESSAGE}\"}"' \
+    '[[ -z "${FAKE_STREAM}" ]] || printf "%b\n" "${FAKE_STREAM}"' \
     'echo "Error: ${FAKE_STDERR}" >&2' \
     'exit 1' > "${temp_dir}/failing-coderabbit"
   chmod +x "${temp_dir}/failing-coderabbit"
-  local case_message case_stderr case_status case_reason
-  while IFS='|' read -r case_message case_stderr case_status case_reason; do
-    FAKE_MESSAGE="${case_message}" FAKE_STDERR="${case_stderr}" \
+  local case_stream case_stderr case_status case_reason
+  while IFS='|' read -r case_stream case_stderr case_status case_reason; do
+    FAKE_STREAM="${case_stream}" FAKE_STDERR="${case_stderr}" \
     FULLSEND_ADAPTER_TOKEN='test-token' \
     FULLSEND_ADAPTER_BIN="${temp_dir}/failing-coderabbit" \
     FULLSEND_ADAPTER_REPO='opendatahub-io/odh-dashboard' \
@@ -372,9 +382,12 @@ run_self_test() {
       .status == $status and .reason == $reason and (.findings | length == 0)
     ' "${_OUT}" >/dev/null
   done <<'CASES'
-Review failed: All files are ignored|review failed|skipped|all-files-ignored
-Review failed|All files are ignored|skipped|all-files-ignored
-Rate limit exceeded|Rate limit exceeded|error|review-failed
+{"type":"review_context"}\n{"type":"error","message":"Review failed: All files are ignored"}|review failed|skipped|all-files-ignored
+{"type":"review_context"}\n{"type":"error","message":"Review failed"}|All files are ignored|skipped|all-files-ignored
+|All files are ignored|skipped|all-files-ignored
+{"type":"error","message":"All files are ignored"}\n{"type":"error","message":"Rate limit exceeded"}|Rate limit exceeded|error|review-failed
+{"type":"error","message":"Rate limit exceeded"}|Rate limit exceeded|error|review-failed
+not json|All files are ignored|error|invalid-cli-output
 CASES
   echo "PASS CodeRabbit context normalization"
 }
