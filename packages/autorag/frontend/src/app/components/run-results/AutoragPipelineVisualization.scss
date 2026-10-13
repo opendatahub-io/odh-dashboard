@@ -10,8 +10,30 @@
   border-bottom: 1px solid var(--pf-t--global--border--color--default);
 }
 
+// Scaled-down variant of the module icon badge from autox-core's ModuleHeader
+.autorag-pipeline-visualization__header-icon {
+  --autorag-pipeline-visualization-header-icon-bg: var(--pf-t--color--teal--10);
+
+  :where(.pf-v6-theme-dark) & {
+    --autorag-pipeline-visualization-header-icon-bg: var(--pf-t--color--teal--50);
+  }
+
+  background: var(--autorag-pipeline-visualization-header-icon-bg);
+  border-radius: 50%;
+  padding: var(--pf-t--global--spacer--xs);
+  width: calc(var(--pf-t--global--spacer--md) + 2 * var(--pf-t--global--spacer--xs));
+  height: calc(var(--pf-t--global--spacer--md) + 2 * var(--pf-t--global--spacer--xs));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  > svg {
+    width: var(--pf-t--global--spacer--md);
+    height: var(--pf-t--global--spacer--md);
+  }
+}
+
 .autorag-pipeline-visualization__body {
-  position: relative;
   height: 30vh;
   min-height: 220px;
   overflow: hidden;
@@ -22,17 +44,6 @@
     height: 100%;
     min-height: 0;
   }
-}
-
-// Floating re-open control shown only while the step details drawer is collapsed;
-// pinned to the space the panel vacates (top-right of the visualization body).
-// Sits above the drawer content/panel layers (z-index xs/sm) so it is clickable
-// over the inline topology while the panel is hidden.
-.autorag-pipeline-visualization__pipeline-details {
-  position: absolute;
-  top: var(--pf-t--global--spacer--sm);
-  right: var(--pf-t--global--spacer--md);
-  z-index: var(--pf-t--global--z-index--lg);
 }
 
 .autorag-pipeline-visualization__drawer-panel {

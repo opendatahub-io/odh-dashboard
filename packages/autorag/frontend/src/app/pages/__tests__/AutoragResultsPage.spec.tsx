@@ -114,18 +114,12 @@ jest.mock('~/app/hooks/useComponentStatuses', () => ({
   }),
 }));
 
-// Mock AutoragResults to capture context and surface the threaded header actions
+// Mock AutoragResults to capture context
 let capturedContext: unknown = null;
 let capturedViewCodeTemplate: unknown = null;
 jest.mock('~/app/components/run-results/AutoragResults', () => ({
   __esModule: true,
-  default: ({
-    headerActions,
-    onViewCode,
-  }: {
-    headerActions?: React.ReactNode;
-    onViewCode?: (patternName: string) => void;
-  }) => {
+  default: ({ onViewCode }: { onViewCode?: (patternName: string) => void }) => {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const { useAutoragResultsContext } = jest.requireActual('~/app/context/AutoragResultsContext');
     // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -133,7 +127,6 @@ jest.mock('~/app/components/run-results/AutoragResults', () => ({
     capturedContext = context;
     return (
       <div data-testid="autorag-results">
-        {headerActions}
         <button data-testid="view-code-trigger" onClick={() => onViewCode?.('pattern-1')}>
           View code
         </button>
@@ -429,7 +422,11 @@ const expectHeaderActions = (conditionalAction?: 'stop' | 'retry') => {
   ].filter((id): id is string => id !== undefined);
 
   const actions = actionIds.map((id) => screen.getByTestId(id));
-  actions.forEach((action) => expect(action).toHaveClass('pf-m-link'));
+  actions.forEach((action) =>
+    expect(action).toHaveClass(
+      action.dataset.testid === 'run-details-button' ? 'pf-m-link' : 'pf-m-secondary',
+    ),
+  );
   actions.slice(0, -1).forEach((action, index) => {
     expect(action.compareDocumentPosition(actions[index + 1])).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,

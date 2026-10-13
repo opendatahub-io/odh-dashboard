@@ -6,6 +6,8 @@ import {
   Drawer,
   DrawerContent,
   DrawerContentBody,
+  Flex,
+  FlexItem,
   Skeleton,
   Split,
   SplitItem,
@@ -452,31 +454,40 @@ function AutomlResultsPage(): React.JSX.Element {
               noHeader
               breadcrumb={
                 namespace ? (
-                  <ContextBreadcrumb
-                    pageName="AutoML"
-                    projectDisplayName={projectDisplayName}
-                    homePath={getRedirectPath(namespace)}
-                    projectHomePath={`/projects/${namespace}`}
-                    homeTestId="experiment-breadcrumb-home"
-                    projectLinkTestId="project-navigator-link-in-breadcrumb"
+                  <Flex
+                    justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    flexWrap={{ default: 'wrap' }}
                   >
-                    <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
-                      <Link
-                        to={`${automlReconfigurePathname}/${namespace}/${runId}`}
-                        state={{ from: 'results' }}
+                    <FlexItem>
+                      <ContextBreadcrumb
+                        pageName="AutoML"
+                        projectDisplayName={projectDisplayName}
+                        homePath={getRedirectPath(namespace)}
+                        projectHomePath={`/projects/${namespace}`}
+                        homeTestId="experiment-breadcrumb-home"
+                        projectLinkTestId="project-navigator-link-in-breadcrumb"
                       >
-                        Run configurations
-                      </Link>
-                    </BreadcrumbItem>
-                    <BreadcrumbItem isActive data-testid="results-breadcrumb-run-name">
-                      {pipelineRun ? (
-                        <Truncate content={pipelineRun.display_name || ''} />
-                      ) : (
-                        <Skeleton width="300px" />
-                      )}
-                      &nbsp;results
-                    </BreadcrumbItem>
-                  </ContextBreadcrumb>
+                        <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
+                          <Link
+                            to={`${automlReconfigurePathname}/${namespace}/${runId}`}
+                            state={{ from: 'results' }}
+                          >
+                            Run configurations
+                          </Link>
+                        </BreadcrumbItem>
+                        <BreadcrumbItem isActive data-testid="results-breadcrumb-run-name">
+                          {pipelineRun ? (
+                            <Truncate content={pipelineRun.display_name || ''} />
+                          ) : (
+                            <Skeleton width="300px" />
+                          )}
+                          &nbsp;results
+                        </BreadcrumbItem>
+                      </ContextBreadcrumb>
+                    </FlexItem>
+                    <FlexItem>{headerActions}</FlexItem>
+                  </Flex>
                 ) : undefined
               }
               empty={noNamespaces || invalidNamespace || invalidPipelineRunId}
@@ -505,7 +516,7 @@ function AutomlResultsPage(): React.JSX.Element {
                   {runNotebookDownloadError}
                 </Alert>
               )}
-              <AutomlResults headerActions={headerActions} />
+              <AutomlResults />
             </ApplicationsPage>
           </DrawerContentBody>
         </DrawerContent>

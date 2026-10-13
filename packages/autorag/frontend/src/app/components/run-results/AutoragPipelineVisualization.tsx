@@ -10,7 +10,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import React from 'react';
-import { OpenDrawerRightIcon } from '@patternfly/react-icons';
+import AutoragIcon from '~/app/images/icons/AutoragIcon';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
 import {
@@ -44,7 +44,6 @@ type AutoragPipelineVisualizationProps = {
   treeLoadingMode?: PipelineTreeLoadingMode;
   componentStageMap?: ComponentStageMap;
   pipelineRun?: PipelineRun;
-  headerActions?: React.ReactNode;
   showStageMapUnavailableNotice?: boolean;
 };
 
@@ -55,7 +54,6 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
   treeLoadingMode,
   componentStageMap,
   pipelineRun,
-  headerActions,
   showStageMapUnavailableNotice,
 }) => {
   const statusFilter = React.useMemo((): PipelineStatusFilter => {
@@ -148,7 +146,15 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
         justifyContent={{ default: 'justifyContentSpaceBetween' }}
       >
         <FlexItem>
-          <Flex>
+          <Flex alignItems={{ default: 'alignItemsCenter' }}>
+            <FlexItem>
+              <div
+                className="autorag-pipeline-visualization__header-icon"
+                data-testid="run-title-icon"
+              >
+                <AutoragIcon />
+              </div>
+            </FlexItem>
             <FlexItem>
               <Title headingLevel="h3" size="lg">
                 {runTitle}
@@ -166,7 +172,21 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
           </Flex>
         </FlexItem>
 
-        {headerActions && <FlexItem>{headerActions}</FlexItem>}
+        <FlexItem>
+          <Flex>
+            <FlexItem>
+              <Button
+                variant="tertiary"
+                isInline
+                aria-expanded={showDetails}
+                onClick={() => setShowDetails((prev) => !prev)}
+                data-testid={showDetails ? 'hide-details' : 'show-details'}
+              >
+                {showDetails ? 'Hide details' : 'Show details'}
+              </Button>
+            </FlexItem>
+          </Flex>
+        </FlexItem>
       </Flex>
 
       <div className="autorag-pipeline-visualization__body">
@@ -178,7 +198,6 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
                 defaultSize="320px"
                 className="autorag-pipeline-visualization__drawer-panel"
                 data-testid="step-details-drawer-panel"
-                id="step-details-drawer-panel"
               >
                 <StepDetailsPanel
                   selectedNodeId={selectedNodeId}
@@ -208,18 +227,6 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
             </DrawerContentBody>
           </DrawerContent>
         </Drawer>
-        {!showDetails && (
-          <Button
-            variant="link"
-            icon={<OpenDrawerRightIcon />}
-            onClick={() => setShowDetails(true)}
-            aria-controls="step-details-drawer-panel"
-            className="autorag-pipeline-visualization__pipeline-details"
-            data-testid="pipeline-details-button"
-          >
-            Pipeline details
-          </Button>
-        )}
       </div>
     </div>
   );

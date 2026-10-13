@@ -38,16 +38,11 @@ const isAbortError = (error: unknown): boolean =>
   error instanceof Error && error.name === 'AbortError';
 
 type AutoragResultsProps = {
-  headerActions?: React.ReactNode;
   onTryPattern?: (patternName: string, source: PlaygroundOpenedSource) => void;
   onViewCode?: (patternName: string, source: ViewCodeEntrySource) => void;
 };
 
-function AutoragResults({
-  headerActions,
-  onTryPattern,
-  onViewCode,
-}: AutoragResultsProps): React.JSX.Element {
+function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): React.JSX.Element {
   const { namespace, runId: routeRunId } = useParams<{ namespace: string; runId: string }>();
   const fetchS3File = useFetchS3File();
   const navigate = useNavigate();
@@ -394,7 +389,6 @@ function AutoragResults({
             treeLoadingMode={treeLoadingMode}
             componentStageMap={componentStageMap}
             pipelineRun={pipelineRun}
-            headerActions={headerActions}
             showStageMapUnavailableNotice={shouldShowStageMapUnavailableNotice({
               hasStageMapTask,
               hasComponentStageMap: Boolean(componentStageMap),

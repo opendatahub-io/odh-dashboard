@@ -8,10 +8,6 @@ class AutoragRunResultsPage {
     return cy.findByTestId('results-breadcrumb-run-name');
   }
 
-  findPipelineDetailsButton() {
-    return cy.findByTestId('pipeline-details-button');
-  }
-
   findRunDetailsButton() {
     return cy.findByTestId('run-details-button');
   }

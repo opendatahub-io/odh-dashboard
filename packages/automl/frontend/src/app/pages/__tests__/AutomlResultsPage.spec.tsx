@@ -92,22 +92,17 @@ jest.mock('~/app/hooks/useComponentStatuses', () => ({
   useComponentStatuses: (...args: unknown[]) => mockUseComponentStatuses(...args),
 }));
 
-// Mock AutomlResults to capture context and surface the threaded header actions
+// Mock AutomlResults to capture context
 let capturedContext: unknown = null;
 jest.mock('~/app/components/run-results/AutomlResults', () => ({
   __esModule: true,
-  default: ({ headerActions }: { headerActions?: React.ReactNode }) => {
+  default: () => {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const { useAutomlResultsContext } = jest.requireActual('~/app/context/AutomlResultsContext');
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const context = useAutomlResultsContext();
     capturedContext = context;
-    return (
-      <div data-testid="automl-results">
-        {headerActions}
-        AutoML Results Component
-      </div>
-    );
+    return <div data-testid="automl-results">AutoML Results Component</div>;
   },
 }));
 
@@ -240,7 +235,11 @@ const expectHeaderActions = (conditionalAction?: 'stop' | 'retry') => {
   ].filter((id): id is string => id !== undefined);
 
   const actions = actionIds.map((id) => screen.getByTestId(id));
-  actions.forEach((action) => expect(action).toHaveClass('pf-m-link'));
+  actions.forEach((action) =>
+    expect(action).toHaveClass(
+      action.dataset.testid === 'run-details-button' ? 'pf-m-link' : 'pf-m-secondary',
+    ),
+  );
   actions.slice(0, -1).forEach((action, index) => {
     expect(action.compareDocumentPosition(actions[index + 1])).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,

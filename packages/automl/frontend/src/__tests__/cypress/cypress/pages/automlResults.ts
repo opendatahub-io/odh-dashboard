@@ -14,10 +14,6 @@ class AutomlResultsPage {
     return cy.findByTestId('results-breadcrumb-run-name');
   }
 
-  findPipelineDetailsButton() {
-    return cy.findByTestId('pipeline-details-button');
-  }
-
   // Leaderboard
   findLeaderboardTable() {
     return cy.findByTestId('leaderboard-table');

@@ -72,20 +72,7 @@ const treeViewData: PipelineVisualizationData = {
 };
 
 describe('AutoragPipelineVisualization', () => {
-  it('should render the details drawer expanded without a pipeline details link by default', () => {
-    render(
-      <AutoragPipelineVisualization
-        runTitle="AutoRAG pipeline run"
-        runState="RUNNING"
-        treeViewData={treeViewData}
-      />,
-    );
-
-    expect(screen.getByTestId('step-details-drawer-panel')).toBeVisible();
-    expect(screen.queryByTestId('pipeline-details-button')).not.toBeInTheDocument();
-  });
-
-  it('should show a Pipeline details link when the drawer is hidden and re-expand it on click', async () => {
+  it('should toggle details with a single show/hide button', async () => {
     const user = userEvent.setup();
     render(
       <AutoragPipelineVisualization
@@ -95,49 +82,15 @@ describe('AutoragPipelineVisualization', () => {
       />,
     );
 
-    await user.click(screen.getByTestId('close-details'));
-    const pipelineDetails = screen.getByTestId('pipeline-details-button');
-    expect(pipelineDetails).toHaveTextContent('Pipeline details');
-    expect(pipelineDetails).toHaveAttribute('aria-controls', 'step-details-drawer-panel');
-    expect(screen.getByTestId('step-details-drawer-panel')).not.toBeVisible();
+    expect(screen.getByTestId('hide-details')).toHaveTextContent('Hide details');
+    expect(screen.getByTestId('hide-details')).toHaveAttribute('aria-expanded', 'true');
 
-    await user.click(pipelineDetails);
-    expect(screen.getByTestId('step-details-drawer-panel')).toBeVisible();
-    expect(screen.queryByTestId('pipeline-details-button')).not.toBeInTheDocument();
-  });
+    await user.click(screen.getByTestId('hide-details'));
+    expect(screen.getByTestId('show-details')).toHaveTextContent('Show details');
+    expect(screen.getByTestId('show-details')).toHaveAttribute('aria-expanded', 'false');
 
-  it('should style the pipeline details link as a link button with an icon', async () => {
-    const user = userEvent.setup();
-    render(
-      <AutoragPipelineVisualization
-        runTitle="AutoRAG pipeline run"
-        runState="RUNNING"
-        treeViewData={treeViewData}
-      />,
-    );
-
-    await user.click(screen.getByTestId('close-details'));
-
-    const pipelineDetails = screen.getByTestId('pipeline-details-button');
-    expect(pipelineDetails).toHaveClass('pf-m-link');
-    expect(pipelineDetails.querySelector('svg')).toBeInTheDocument();
-  });
-
-  it('should render header actions in the visualization header', () => {
-    render(
-      <AutoragPipelineVisualization
-        runTitle="AutoRAG pipeline run"
-        runState="RUNNING"
-        treeViewData={treeViewData}
-        headerActions={
-          <button type="button" data-testid="reconfigure-run-button">
-            Reconfigure
-          </button>
-        }
-      />,
-    );
-
-    expect(screen.getByTestId('reconfigure-run-button')).toBeInTheDocument();
+    await user.click(screen.getByTestId('show-details'));
+    expect(screen.getByTestId('hide-details')).toHaveTextContent('Hide details');
   });
 
   it('should close details via the panel onClose callback', async () => {
@@ -151,7 +104,7 @@ describe('AutoragPipelineVisualization', () => {
     );
 
     await user.click(screen.getByTestId('close-details'));
-    expect(screen.getByTestId('pipeline-details-button')).toBeInTheDocument();
+    expect(screen.getByTestId('show-details')).toBeInTheDocument();
   });
 
   it('should open the details drawer when selecting a different node while closed', async () => {
@@ -164,13 +117,12 @@ describe('AutoragPipelineVisualization', () => {
       />,
     );
 
-    await user.click(screen.getByTestId('close-details'));
-    expect(screen.getByTestId('pipeline-details-button')).toBeInTheDocument();
+    await user.click(screen.getByTestId('hide-details'));
+    expect(screen.getByTestId('show-details')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Select node A' }));
 
-    expect(screen.getByTestId('step-details-drawer-panel')).toBeVisible();
-    expect(screen.queryByTestId('pipeline-details-button')).not.toBeInTheDocument();
+    expect(screen.getByTestId('hide-details')).toBeInTheDocument();
     expect(screen.getByTestId('selected-ids')).toHaveTextContent('node-a');
     expect(screen.getByTestId('step-details-panel')).toHaveTextContent('node-a');
   });
@@ -186,12 +138,27 @@ describe('AutoragPipelineVisualization', () => {
     );
 
     await user.click(screen.getByRole('button', { name: 'Select node A' }));
-    await user.click(screen.getByTestId('close-details'));
-    expect(screen.getByTestId('pipeline-details-button')).toBeInTheDocument();
+    await user.click(screen.getByTestId('hide-details'));
+    expect(screen.getByTestId('show-details')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Select node A' }));
 
-    expect(screen.getByTestId('pipeline-details-button')).toBeInTheDocument();
+    expect(screen.getByTestId('show-details')).toBeInTheDocument();
     expect(screen.getByTestId('selected-ids')).toHaveTextContent('node-a');
+  });
+
+  it('should render the module icon beside the run title', () => {
+    render(
+      <AutoragPipelineVisualization
+        runTitle="AutoRAG pipeline run"
+        runState="RUNNING"
+        treeViewData={treeViewData}
+      />,
+    );
+
+    expect(screen.getByTestId('run-title-icon')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 3, name: 'AutoRAG pipeline run' }),
+    ).toBeInTheDocument();
   });
 });

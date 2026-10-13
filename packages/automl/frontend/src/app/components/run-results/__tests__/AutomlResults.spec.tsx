@@ -55,13 +55,11 @@ jest.mock('~/app/components/run-results/AutomlPipelineVisualization', () => ({
     runTitle,
     runState,
     treeLoadingMode,
-    headerActions,
     showStageMapUnavailableNotice,
   }: {
     runTitle: string;
     runState?: string;
     treeLoadingMode?: string;
-    headerActions?: React.ReactNode;
     showStageMapUnavailableNotice?: boolean;
   }) => (
     <div
@@ -70,9 +68,7 @@ jest.mock('~/app/components/run-results/AutomlPipelineVisualization', () => ({
       data-run-state={runState}
       data-tree-loading-mode={treeLoadingMode ?? 'none'}
       data-stage-map-unavailable={showStageMapUnavailableNotice ? 'true' : 'false'}
-    >
-      {headerActions}
-    </div>
+    />
   ),
 }));
 
@@ -139,7 +135,6 @@ describe('AutomlResults', () => {
     models: Record<string, AutomlModel> = {},
     namespace = 'test-namespace',
     contextOverrides?: Partial<AutomlResultsContextProps>,
-    props?: React.ComponentProps<typeof AutomlResults>,
   ) =>
     render(
       <MemoryRouter initialEntries={[`/automl/${namespace}/results`]}>
@@ -155,7 +150,7 @@ describe('AutomlResults', () => {
                   ...contextOverrides,
                 }}
               >
-                <AutomlResults {...props} />
+                <AutomlResults />
               </AutomlResultsContext.Provider>
             }
           />
@@ -173,15 +168,6 @@ describe('AutomlResults', () => {
     const visualization = getPipelineVisualization();
     expect(visualization).toHaveAttribute('data-run-title', 'AutoML pipeline run');
     expect(visualization).toHaveAttribute('data-run-state', 'SUCCEEDED');
-  });
-
-  it('should pass header actions through to the pipeline visualization', () => {
-    renderWithContext(mockPipelineRun, {}, 'test-namespace', undefined, {
-      headerActions: <button type="button" data-testid="reconfigure-run-button" />,
-    });
-    expect(
-      within(getPipelineVisualization()).getByTestId('reconfigure-run-button'),
-    ).toBeInTheDocument();
   });
 
   it('should pass fallback topology nodes to useTreeViewData when stage map is unavailable', () => {

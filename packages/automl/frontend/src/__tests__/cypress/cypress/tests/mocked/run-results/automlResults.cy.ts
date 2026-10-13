@@ -36,28 +36,24 @@ describe('AutoML Results Page', () => {
       cy.findByTestId('app-page-title').should('not.exist');
     });
 
-    it('should place run actions in the visualization header', () => {
+    it('should place run actions beside the breadcrumb', () => {
       automlResultsPage.visit(NAMESPACE, RUN_ID);
 
       automlResultsPage.findRunDetailsButton().should('be.visible');
-      cy.findByTestId('hide-details').should('not.exist');
     });
 
-    it('should show a Pipeline details link when the step details panel is hidden', () => {
+    it('should toggle the step details panel with the Show/Hide details control', () => {
       automlResultsPage.visit(NAMESPACE, RUN_ID);
 
-      // Drawer is expanded by default — no floating link yet
-      cy.findByTestId('pipeline-details-button').should('not.exist');
-
+      cy.findByTestId('hide-details').should('contain.text', 'Hide details');
       cy.findByTestId('close-step-details').click();
-      automlResultsPage.findPipelineDetailsButton().should('contain.text', 'Pipeline details');
       // PF keeps the panel wrapper mounted when collapsed (hidden via transform) — assert the hidden attribute
       cy.findByTestId('step-details-drawer-panel').should('have.attr', 'hidden');
+      cy.findByTestId('show-details').should('contain.text', 'Show details');
 
-      // Clicking the link re-shows the panel
-      automlResultsPage.findPipelineDetailsButton().click();
+      cy.findByTestId('show-details').click();
       cy.findByTestId('step-details-drawer-panel').should('be.visible');
-      cy.findByTestId('pipeline-details-button').should('not.exist');
+      cy.findByTestId('hide-details').should('contain.text', 'Hide details');
     });
   });
 

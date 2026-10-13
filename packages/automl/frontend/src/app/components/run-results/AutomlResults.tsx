@@ -42,7 +42,7 @@ type NotebookDownloadError = {
   message: string;
 };
 
-function AutomlResults({ headerActions }: { headerActions?: React.ReactNode }): React.JSX.Element {
+function AutomlResults(): React.JSX.Element {
   const fetchS3File = useFetchS3File();
   const {
     pipelineRun,
@@ -264,7 +264,6 @@ function AutomlResults({ headerActions }: { headerActions?: React.ReactNode }): 
             treeLoadingMode={treeLoadingMode}
             componentStageMap={componentStageMap}
             pipelineRun={pipelineRun}
-            headerActions={headerActions}
             showStageMapUnavailableNotice={shouldShowStageMapUnavailableNotice({
               hasStageMapTask,
               hasComponentStageMap: Boolean(componentStageMap),
