@@ -158,6 +158,8 @@ export const verifyAgentDeploymentResponsesAPI = (
             outputText?.trim().length,
             'Responses API assistant output length',
           ).to.be.greaterThan(0);
+
+          return cy.wrap(undefined as void, { log: false });
         });
 
     cy.step(

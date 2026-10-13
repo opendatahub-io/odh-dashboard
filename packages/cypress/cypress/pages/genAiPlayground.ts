@@ -683,10 +683,6 @@ class GenAiPlayground {
   }
 
   // Agent deployment methods
-  findHeaderKebabMenuToggle() {
-    return cy.findByTestId('header-kebab-menu-toggle');
-  }
-
   findDeployAgentMenuItem() {
     return cy.findByTestId('deploy-agent-menu-item');
   }
