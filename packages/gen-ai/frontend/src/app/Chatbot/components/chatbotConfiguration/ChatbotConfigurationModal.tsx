@@ -333,12 +333,11 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const isStepsLoading = vectorStoresEnabled && !collectionsLoaded;
   const existingTracingEnabled = lsdStatus?.tracingEnabled ?? false;
 
-  // When updating a playground that has the BFF passthrough provider, only
-  // vector store changes require an OGX restart (embedding models are implicitly
-  // managed by vector store selection). All other models are resolved per-request.
-  const hasChangesRequiringOgxRestart = React.useMemo(() => {
-    if (!isUpdate || !hasBffPassthroughProvider) {
-      return true;
+  // True when updating a playground and the pending changes (tracing enablement
+  // or vector store selection) require the playground service to restart.
+  const isRestartRequired = React.useMemo(() => {
+    if (!isUpdate) {
+      return false;
     }
     const existingCollectionIds = new Set(existingCollections.map((vs) => vs.id));
     const selectedCollectionIds = new Set(selectedCollections.map((c) => c.vector_store_id));
@@ -349,13 +348,21 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     );
   }, [
     isUpdate,
-    hasBffPassthroughProvider,
     existingCollections,
     selectedCollections,
     tracingEnabled,
     enableTracing,
     existingTracingEnabled,
   ]);
+
+  // When updating a playground that has the BFF passthrough provider, only
+  // vector store changes require an OGX restart (embedding models are implicitly
+  // managed by vector store selection). All other models are resolved per-request.
+  const hasChangesRequiringOgxRestart =
+    !isUpdate || !hasBffPassthroughProvider || isRestartRequired;
+
+  // The restart notice is shown alongside the submit button on the final step
+  const showRestartAlert = isRestartRequired && !isStepsLoading && isLastStep;
 
   const goNext = () => setCurrentStepIndex((i) => Math.min(i + 1, activeSteps.length - 1));
   const goBack = () => setCurrentStepIndex((i) => Math.max(i - 1, 0));
@@ -556,7 +563,11 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
         )}
       </ModalBody>
       {!configuringPlayground && (
-        <ModalFooter className={tracingEnabled && isFirstStep ? 'pf-v6-u-flex-wrap' : undefined}>
+        <ModalFooter
+          className={
+            (tracingEnabled && isFirstStep) || showRestartAlert ? 'pf-v6-u-flex-wrap' : undefined
+          }
+        >
           {tracingEnabled && isFirstStep && (
             <FormGroup fieldId="enable-tracing" className="pf-v6-u-w-100 pf-v6-u-mb-md">
               <Switch
@@ -586,6 +597,17 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
               </FormHelperText>
             </FormGroup>
           )}
+          {showRestartAlert && (
+            <Alert
+              variant="info"
+              isInline
+              title="Playground restart required"
+              data-testid="playground-restart-required-alert"
+              className="pf-v6-u-w-100 pf-v6-u-mb-md"
+            >
+              To make this change the playground service will need to restart.
+            </Alert>
+          )}
           {!isStepsLoading && isLastStep ? (
             <Button
               variant="primary"
@@ -593,7 +615,11 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
               isDisabled={submitting || !hasChangesRequiringOgxRestart}
               data-testid="modal-submit-button"
             >
-              {isUpdate ? 'Configure' : 'Create'}
+              {!isUpdate
+                ? 'Create'
+                : isRestartRequired
+                  ? 'Update and restart playground'
+                  : 'Configure'}
             </Button>
           ) : (
             <Button variant="primary" onClick={goNext} isDisabled={isStepsLoading || submitting}>

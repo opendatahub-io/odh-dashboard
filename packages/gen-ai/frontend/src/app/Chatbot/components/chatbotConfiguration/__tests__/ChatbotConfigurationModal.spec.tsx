@@ -990,3 +990,94 @@ describe('ChatbotConfigurationModal tracing configuration', () => {
     });
   });
 });
+
+// ─── Playground restart warning ──────────────────────────────────────────────
+
+describe('ChatbotConfigurationModal playground restart warning', () => {
+  const allModels = [createAIModel({ model_name: 'test-model' })];
+  const passthroughLsdStatus: LlamaStackDistributionModel = {
+    name: 'lsd-playground',
+    phase: 'Ready',
+    version: '0.1.0',
+    distributionConfig: {
+      activeDistribution: 'rh',
+      providers: [
+        {
+          provider_id: 'genai-bff-proxy',
+          api: 'inference',
+          health: { status: 'Ready', message: '' },
+        },
+      ],
+      availableDistributions: {},
+    },
+  };
+
+  it('shows "Update and restart playground" and the restart alert when tracing changes', async () => {
+    const user = userEvent.setup();
+    (useTracingEnabled as jest.Mock).mockReturnValue(true);
+    renderModalWithContext({ allModels, lsdStatus: passthroughLsdStatus });
+
+    // No changes yet — plain Configure, no alert
+    expect(screen.getByTestId('modal-submit-button')).toHaveTextContent('Configure');
+    expect(screen.queryByTestId('playground-restart-required-alert')).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('enable-tracing-switch'));
+
+    expect(screen.getByTestId('modal-submit-button')).toHaveTextContent(
+      'Update and restart playground',
+    );
+    const alert = screen.getByTestId('playground-restart-required-alert');
+    expect(alert).toHaveTextContent('Playground restart required');
+    expect(alert).toHaveTextContent(
+      'To make this change the playground service will need to restart.',
+    );
+  });
+
+  it('shows "Update and restart playground" and the restart alert when vector stores change', () => {
+    (useAiAssetVectorStoresEnabled as jest.Mock).mockReturnValue(true);
+    const embedModel = createAIModel({ model_name: 'embed-model', model_id: 'embed-model' });
+    const vs1 = createCollection({ vector_store_id: 'vs-1', embedding_model: 'embed-model' });
+    const vs2 = createCollection({ vector_store_id: 'vs-2', embedding_model: 'embed-model' });
+
+    renderModalWithContext({
+      allModels: [embedModel],
+      allCollections: [vs1, vs2],
+      collectionsLoaded: true,
+      existingCollections: [createLSDVectorStore('vs-1')],
+      // A new store is selected in addition to the existing one
+      extraSelectedCollections: [vs2],
+      lsdStatus: passthroughLsdStatus,
+      initialStepId: 'collections',
+    });
+
+    expect(screen.getByTestId('modal-submit-button')).toHaveTextContent(
+      'Update and restart playground',
+    );
+    expect(screen.getByTestId('playground-restart-required-alert')).toBeInTheDocument();
+  });
+
+  it('shows plain "Configure" without the restart alert when nothing requires a restart', () => {
+    (useAiAssetVectorStoresEnabled as jest.Mock).mockReturnValue(true);
+    const embedModel = createAIModel({ model_name: 'embed-model', model_id: 'embed-model' });
+    const vs1 = createCollection({ vector_store_id: 'vs-1', embedding_model: 'embed-model' });
+
+    renderModalWithContext({
+      allModels: [embedModel],
+      allCollections: [vs1],
+      collectionsLoaded: true,
+      existingCollections: [createLSDVectorStore('vs-1')],
+      lsdStatus: passthroughLsdStatus,
+      initialStepId: 'collections',
+    });
+
+    expect(screen.getByTestId('modal-submit-button')).toHaveTextContent('Configure');
+    expect(screen.queryByTestId('playground-restart-required-alert')).not.toBeInTheDocument();
+  });
+
+  it('does not show the restart alert in create mode', () => {
+    renderModalWithContext({ allModels });
+
+    expect(screen.getByTestId('modal-submit-button')).toHaveTextContent('Create');
+    expect(screen.queryByTestId('playground-restart-required-alert')).not.toBeInTheDocument();
+  });
+});
