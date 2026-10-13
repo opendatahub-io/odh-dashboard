@@ -38,7 +38,7 @@ var _ = Describe("YamlHandlers", Ordered, func() {
 								},
 							},
 						},
-						Priority: 10,
+						InferencePriority: int32Ptr(10),
 					},
 				},
 				k8Factory,

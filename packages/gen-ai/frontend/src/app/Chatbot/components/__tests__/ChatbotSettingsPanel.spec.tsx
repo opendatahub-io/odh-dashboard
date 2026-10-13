@@ -154,6 +154,10 @@ jest.mock('@openshift/dynamic-plugin-sdk', () => ({
   useFeatureFlag: jest.fn(() => [false]),
 }));
 
+jest.mock('@odh-dashboard/plugin-core', () => ({
+  useExtensions: () => [],
+}));
+
 jest.mock('~/app/Chatbot/store/usePlaygroundStore', () => ({
   usePlaygroundStore: jest.fn(() => ({
     openModal: jest.fn(),

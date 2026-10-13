@@ -288,7 +288,7 @@ paths:
                   - subscription_id_header: premium-team-sub
                     subscription_description: Premium Team Subscription
                     display_name: Premium Team
-                    priority: 10
+                    inference_priority: 10
                     cost_center: engineering
                     organization_id: org-123
                     key_count: 10
@@ -312,7 +312,7 @@ paths:
                   - subscription_id_header: basic-team-sub
                     subscription_description: Basic Team Subscription
                     display_name: Basic Team
-                    priority: 1
+                    inference_priority: 1
                     key_count: 5
                     model_refs:
                       - name: flan-t5-small
@@ -361,7 +361,7 @@ paths:
                   subscription_id_header: premium-team-sub
                   subscription_description: Premium Team Subscription
                   display_name: Premium Team
-                  priority: 10
+                  inference_priority: 10
                   cost_center: engineering
                   organization_id: org-123
                   key_count: 10
@@ -778,7 +778,7 @@ paths:
                   - name: premium-team-sub
                     namespace: maas-system
                     phase: Active
-                    priority: 10
+                    inferencePriority: 10
                     owner:
                       groups:
                         - name: premium-users
@@ -831,7 +831,7 @@ paths:
                   name: premium-team-sub
                   namespace: maas-system
                   phase: Active
-                  priority: 10
+                  inferencePriority: 10
                   owner:
                     groups:
                       - name: premium-users
@@ -913,7 +913,7 @@ paths:
                       tokenRateLimits:
                         - limit: 50000
                           window: 24h
-                  priority: 0
+                  inferencePriority: 0
               premium_subscription:
                 summary: Premium subscription with metadata
                 value:
@@ -936,7 +936,7 @@ paths:
                   tokenMetadata:
                     organizationId: org-123
                     costCenter: engineering
-                  priority: 10
+                  inferencePriority: 10
       responses:
         '201':
           description: Subscription and auth policy created successfully
@@ -949,7 +949,7 @@ paths:
                   name: premium-team-sub
                   namespace: maas-system
                   phase: Pending
-                  priority: 10
+                  inferencePriority: 10
                   owner:
                     groups:
                       - name: premium-users
@@ -1046,7 +1046,7 @@ paths:
               tokenMetadata:
                 organizationId: org-123
                 costCenter: engineering-v2
-              priority: 20
+              inferencePriority: 20
       responses:
         '200':
           description: Subscription and auth policy updated successfully
@@ -1059,7 +1059,7 @@ paths:
                   name: premium-team-sub
                   namespace: maas-system
                   phase: Active
-                  priority: 20
+                  inferencePriority: 20
                   owner:
                     groups:
                       - name: premium-users
@@ -1254,7 +1254,7 @@ paths:
                     name: premium-team-sub
                     namespace: maas-system
                   spec:
-                    priority: 10
+                    inferencePriority: 10
                     owner:
                       groups:
                         - name: premium-users
@@ -2345,9 +2345,41 @@ components:
       required:
         - perToken
 
+    ConditionSummary:
+      type: object
+      description: Kubernetes-style condition summary exposed to the UI
+      properties:
+        type:
+          type: string
+          description: Condition type
+          example: InferenceObjectivesReady
+        status:
+          type: string
+          description: Condition status (True, False, Unknown)
+          example: 'True'
+        reason:
+          type: string
+          description: Machine-readable reason
+          example: Reconciled
+        message:
+          type: string
+          description: Human-readable message
+          example: Inference objectives are ready
+        lastTransitionTime:
+          type: string
+          format: date-time
+          description: When the condition last transitioned
+          example: '2026-01-01T00:00:00Z'
+      required:
+        - type
+        - status
+
     ModelSubscriptionRef:
       type: object
-      description: Reference to a model with rate limits within a subscription
+      description: >
+        Reference to a model with rate limits within a subscription.
+        Per-model inference status fields are read-only and populated from
+        status.flowControlStatuses on the MaaSSubscription CR.
       properties:
         name:
           type: string
@@ -2364,6 +2396,26 @@ components:
           description: Token-based rate limits for this model
         billingRate:
           $ref: '#/components/schemas/BillingRate'
+        objectiveName:
+          type: string
+          description: Inference objective name from status.flowControlStatuses (read-only)
+          example: maas-models-as-a-service-gold-maas-model-user-inference-pool-a1b2c3d4e5
+        targetPool:
+          type: string
+          description: Inference pool name from status.flowControlStatuses[].inferencePool.name (read-only)
+          example: maas-model-user-inference-pool
+        ready:
+          type: boolean
+          description: Per-model readiness from status.flowControlStatuses[].ready (read-only)
+          example: true
+        reason:
+          type: string
+          description: Per-model status reason from status.flowControlStatuses (read-only)
+          example: ObjectiveReconciled
+        message:
+          type: string
+          description: Per-model status message from status.flowControlStatuses (read-only)
+          example: InferenceObjective sets priority 10
       required:
         - name
         - namespace
@@ -2402,10 +2454,12 @@ components:
           type: string
           description: Display name from the openshift.io/display-name annotation
           example: Premium Team
-        priority:
+        inference_priority:
           type: integer
           format: int32
-          description: Subscription priority (higher = higher priority)
+          description: >
+            Subscription inference priority (higher = higher priority).
+            Omitted when unset; the scheduler applies default 0.
           example: 10
         model_refs:
           type: array
@@ -2435,7 +2489,6 @@ components:
       required:
         - subscription_id_header
         - subscription_description
-        - priority
         - model_refs
 
     ModelRefInfo:
@@ -2535,19 +2588,26 @@ components:
           format: date-time
           description: lastTransitionTime from the Ready condition in status.conditions
           example: '2026-01-01T00:00:00Z'
-        priority:
+        inferencePriority:
           type: integer
           format: int32
-          description: Subscription priority (higher = higher priority)
-          default: 0
+          description: >
+            Subscription inference priority (higher = higher priority).
+            Omitted when unset; the scheduler applies default 0.
           example: 10
+        inferenceObjectivesReady:
+          allOf:
+            - $ref: '#/components/schemas/ConditionSummary'
+          description: >
+            InferenceObjectivesReady condition from status.conditions when present
+            (only written by the controller when inferencePriority is set).
         owner:
           $ref: '#/components/schemas/OwnerSpec'
         modelRefs:
           type: array
           items:
             $ref: '#/components/schemas/ModelSubscriptionRef'
-          description: Models included in this subscription with per-model rate limits
+          description: Models included in this subscription with per-model rate limits and optional read-only inference status from flowControlStatuses
           minItems: 1
         tokenMetadata:
           $ref: '#/components/schemas/TokenMetadata'
@@ -2770,11 +2830,13 @@ components:
           minItems: 1
         tokenMetadata:
           $ref: '#/components/schemas/TokenMetadata'
-        priority:
+        inferencePriority:
           type: integer
           format: int32
-          description: Subscription priority (higher = higher priority)
-          default: 0
+          description: >
+            Optional subscription inference priority (signed int32).
+            Omitted when unset; the scheduler applies default 0.
+          example: 10
         createAuthPolicy:
           type: boolean
           description: Whether to also create a MaaSAuthPolicy for this subscription
@@ -2806,10 +2868,13 @@ components:
           minItems: 1
         tokenMetadata:
           $ref: '#/components/schemas/TokenMetadata'
-        priority:
+        inferencePriority:
           type: integer
           format: int32
-          description: Updated subscription priority
+          description: >
+            Optional updated subscription inference priority (signed int32).
+            Omitted when unset; the scheduler applies default 0.
+          example: 20
       required:
         - owner
         - modelRefs
