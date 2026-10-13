@@ -9,7 +9,6 @@ import {
   Panel,
   TextArea,
   Stack,
-  Tooltip,
 } from '@patternfly/react-core';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -211,24 +210,14 @@ export default function PromptAssistantFormGroup({
                 </Button>
               )}
             </Flex>
-            {isGlobalPrompt ? (
-              <Tooltip content="This prompt is read-only. Use Save As to create your own copy.">
-                <span>
-                  <Button data-testid="prompt-save-to-registry-button" variant="plain" isDisabled>
-                    Add to prompt registry
-                  </Button>
-                </span>
-              </Tooltip>
-            ) : (
-              <Button
-                data-testid="prompt-save-to-registry-button"
-                variant={isEdited ? 'link' : 'plain'}
-                isDisabled={!isEdited}
-                onClick={handleSaveClicked}
-              >
-                Add to prompt registry
-              </Button>
-            )}
+            <Button
+              data-testid="prompt-save-to-registry-button"
+              variant={isEdited ? 'link' : 'plain'}
+              isDisabled={!isEdited}
+              onClick={isGlobalPrompt ? handleSaveAsClicked : handleSaveClicked}
+            >
+              Add to prompt registry
+            </Button>
           </Flex>
           <TextArea
             id="system-instructions-input"
@@ -250,18 +239,6 @@ export default function PromptAssistantFormGroup({
               </HelperTextItem>
             </HelperText>
           </FormHelperText>
-          {isGlobalPrompt && (
-            <Flex>
-              <Button
-                data-testid="prompt-save-as-button"
-                variant={isEdited ? 'primary' : 'link'}
-                isDisabled={!isEdited}
-                onClick={handleSaveAsClicked}
-              >
-                Save As
-              </Button>
-            </Flex>
-          )}
           <PromptVariableInputPanel
             systemInstruction={systemInstruction}
             variableValues={variableValues}

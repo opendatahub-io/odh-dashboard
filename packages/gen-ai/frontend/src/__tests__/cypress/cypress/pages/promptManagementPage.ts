@@ -121,10 +121,6 @@ class PromptAssistant {
     return cy.findByTestId('prompt-save-to-registry-button');
   }
 
-  findSaveAsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-save-as-button');
-  }
-
   findRevertButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('prompt-revert-button');
   }

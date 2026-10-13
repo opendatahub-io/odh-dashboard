@@ -282,15 +282,12 @@ describe('PromptAssistantFormGroup', () => {
       render(<PromptAssistantFormGroup {...defaultProps} />);
     }
 
-    it('should show disabled Save and enabled Save As for global prompts', () => {
+    it('should show enabled Add to prompt registry for global prompts', () => {
       renderInEditMode(mockGlobalPrompt);
 
       const saveButton = screen.getByTestId('prompt-save-to-registry-button');
-      expect(saveButton).toBeDisabled();
-
-      const saveAsButton = screen.getByTestId('prompt-save-as-button');
-      expect(saveAsButton).toBeInTheDocument();
-      expect(saveAsButton).not.toBeDisabled();
+      expect(saveButton).not.toBeDisabled();
+      expect(screen.queryByTestId('prompt-save-as-button')).not.toBeInTheDocument();
     });
 
     it('should show enabled Save and no Save As for project prompts', () => {
@@ -302,7 +299,7 @@ describe('PromptAssistantFormGroup', () => {
       expect(screen.queryByTestId('prompt-save-as-button')).not.toBeInTheDocument();
     });
 
-    it('should open modal in save-as mode with "Copy of" name when Save As is clicked', () => {
+    it('should open modal in save-as mode with "Copy of" name when registry button is clicked', () => {
       const mockOpenModal = jest.fn();
       const usePlaygroundStoreMock = jest.mocked(usePlaygroundStore.usePlaygroundStore);
       usePlaygroundStoreMock.mockReturnValue({
@@ -311,8 +308,7 @@ describe('PromptAssistantFormGroup', () => {
 
       renderInEditMode(mockGlobalPrompt);
 
-      const saveAsButton = screen.getByTestId('prompt-save-as-button');
-      saveAsButton.click();
+      screen.getByTestId('prompt-save-to-registry-button').click();
 
       expect(mockOpenModal).toHaveBeenCalledWith(
         'save-as',

@@ -704,7 +704,7 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
     });
 
     it(
-      'should show Save As button when global prompt is loaded and edited',
+      'should show Add to prompt registry when global prompt is loaded and edited',
       { tags: ['@GenAI', '@PromptManagement', '@SaveAs'] },
       () => {
         cy.step('Load global prompt (starter-template-prompt)');
@@ -722,9 +722,9 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         promptAssistant.findEditButton().should('be.visible').click();
         promptAssistant.findTextarea().clear().type('Modified global template.');
 
-        cy.step('Verify Save is disabled and Save As is enabled');
-        promptAssistant.findSaveButton().should('be.disabled');
-        promptAssistant.findSaveAsButton().should('be.enabled');
+        cy.step('Verify Add to prompt registry is enabled and Save As is removed');
+        promptAssistant.findSaveButton().should('be.enabled');
+        cy.findByTestId('prompt-save-as-button').should('not.exist');
       },
     );
 
@@ -742,8 +742,8 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         promptAssistant.findEditButton().should('be.visible').click();
         promptAssistant.findTextarea().clear().type('My custom translation instructions.');
 
-        cy.step('Click Save As');
-        promptAssistant.findSaveAsButton().click();
+        cy.step('Click Add to prompt registry');
+        promptAssistant.findSaveButton().click();
 
         cy.step('Verify Save As modal opens with editable name prefilled');
         createPromptModal.find().should('be.visible');
