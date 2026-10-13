@@ -103,8 +103,10 @@ export const generateWarningForHardwareProfiles = (
       (warning) => warning.type !== HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
     );
   });
-  // DRA profiles count here: they can be enabled outside the dashboard.
-  const hasEnabled = hardwareProfiles.some((profile) => isHardwareProfileEnabled(profile));
+  // DRA profiles cannot be enabled from the dashboard, so only regular profiles count here.
+  const hasEnabled =
+    selectableProfiles.length === 0 ||
+    selectableProfiles.some((profile) => isHardwareProfileEnabled(profile));
   const allInvalid =
     selectableProfiles.length > 0 &&
     selectableProfiles.every((profile) => {

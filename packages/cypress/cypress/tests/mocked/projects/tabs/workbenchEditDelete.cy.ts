@@ -639,26 +639,34 @@ describe('Workbench page', () => {
     const draResources = {
       requests: { cpu: '8', memory: '16Gi' },
       limits: { cpu: '8', memory: '16Gi' },
+      claims: [{ name: 'gpu' }],
     };
 
-    const initDRAIntercepts = () => {
+    const draProfile = (namespace: string) =>
+      mockHardwareProfile({
+        name: 'dra-profile',
+        displayName: 'DRA Profile',
+        namespace,
+        identifiers: [],
+        dra: { resourceClaimTemplateName: 'single-gpu' },
+      });
+
+    const regularProfile = mockHardwareProfile({
+      name: 'regular-profile',
+      displayName: 'Regular Profile',
+      namespace: 'opendatahub',
+    });
+
+    const initDRAIntercepts = ({
+      profileNamespace = 'opendatahub',
+      nodeSelector,
+    }: { profileNamespace?: string; nodeSelector?: Record<string, string> } = {}) => {
+      const isProjectScoped = profileNamespace === 'test-project';
       initIntercepts({
+        disableProjectScoped: !isProjectScoped,
         hardwareProfiles: {
-          global: [
-            mockHardwareProfile({
-              name: 'dra-profile',
-              displayName: 'DRA Profile',
-              namespace: 'opendatahub',
-              identifiers: [],
-              dra: { resourceClaimTemplateName: 'single-gpu' },
-            }),
-            mockHardwareProfile({
-              name: 'regular-profile',
-              displayName: 'Regular Profile',
-              namespace: 'opendatahub',
-            }),
-          ],
-          project: [],
+          global: isProjectScoped ? [regularProfile] : [draProfile('opendatahub'), regularProfile],
+          project: isProjectScoped ? [draProfile('test-project')] : [],
         },
         notebooks: [
           mockNotebookK8sResource({
@@ -673,10 +681,11 @@ describe('Workbench page', () => {
                 annotations: {
                   'opendatahub.io/image-display-name': 'Test image',
                   'opendatahub.io/hardware-profile-name': 'dra-profile',
-                  'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+                  'opendatahub.io/hardware-profile-namespace': profileNamespace,
                   'opendatahub.io/hardware-profile-resource-version': '1',
                 },
               },
+              ...(nodeSelector && { spec: { template: { spec: { nodeSelector } } } }),
             },
           }),
         ],
@@ -687,7 +696,7 @@ describe('Workbench page', () => {
       );
     };
 
-    const submitAndVerifyDRABindingKept = () => {
+    const submitAndVerifyDRABindingKept = (profileNamespace = 'opendatahub') => {
       cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbenchDryRun');
       cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');
 
@@ -699,7 +708,7 @@ describe('Workbench page', () => {
           metadata: {
             annotations: {
               'opendatahub.io/hardware-profile-name': 'dra-profile',
-              'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+              'opendatahub.io/hardware-profile-namespace': profileNamespace,
             },
           },
           spec: {
@@ -734,6 +743,60 @@ describe('Workbench page', () => {
       hardwareProfileSection.findDRALockedMessage().should('exist');
 
       submitAndVerifyDRABindingKept();
+    });
+
+    it('Re-selecting the assigned project-scoped DRA hardware profile keeps its binding and resources', () => {
+      initDRAIntercepts({ profileNamespace: 'test-project' });
+      editSpawnerPage.visit('test-notebook');
+      hardwareProfileSection.findHardwareProfileSearchSelector().click();
+      hardwareProfileSection.selectProjectScopedProfile(/DRA Profile/);
+      hardwareProfileSection.findProjectScopedLabel().should('exist');
+      hardwareProfileSection.findDRALockedMessage().should('exist');
+
+      submitAndVerifyDRABindingKept('test-project');
+    });
+
+    it('Switching from a DRA hardware profile to a regular one applies the regular profile', () => {
+      initDRAIntercepts({ nodeSelector: { 'dra-node': 'true' } });
+      editSpawnerPage.visit('test-notebook');
+      hardwareProfileSection.findSelect().click();
+      hardwareProfileSection.selectProfileContaining('Regular Profile');
+      hardwareProfileSection.findDRALockedMessage().should('not.exist');
+
+      cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbenchDryRun');
+      cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');
+
+      editSpawnerPage.findSubmitButton().click();
+
+      cy.wait('@editWorkbenchDryRun');
+      cy.wait('@editWorkbench').then((interception) => {
+        expect(interception.request.body).to.containSubset({
+          metadata: {
+            annotations: {
+              'opendatahub.io/hardware-profile-name': 'regular-profile',
+              'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+              'opendatahub.io/hardware-profile-resource-version': '1309350',
+            },
+          },
+          spec: {
+            template: {
+              spec: {
+                containers: [
+                  {
+                    name: 'test-notebook',
+                    resources: {
+                      requests: { cpu: '1', memory: '2Gi' },
+                      limits: { cpu: '1', memory: '2Gi' },
+                    },
+                  },
+                ],
+                // The old node selector is removed in the merge patch.
+                nodeSelector: { 'dra-node': null },
+              },
+            },
+          },
+        });
+      });
     });
   });
 });

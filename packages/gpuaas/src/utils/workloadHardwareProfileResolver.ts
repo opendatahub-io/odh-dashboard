@@ -5,6 +5,7 @@ import {
 } from '@odh-dashboard/k8s-core';
 import {
   getHardwareProfileDisplayName,
+  isDRAHardwareProfile,
   isHardwareProfileEnabled,
 } from '@odh-dashboard/hardware-profiles/shared/utils';
 import { matchToHardwareProfile } from './matchToHardwareProfile';
@@ -95,7 +96,7 @@ const matchProfileFromPodSpec = (
     return undefined;
   }
   const candidates = filterHardwareProfilesByVisibility(hardwareProfiles, visibility).filter(
-    (profile) => !profile.spec.dra,
+    (profile) => !isDRAHardwareProfile(profile),
   );
   return matchToHardwareProfile(
     candidates,
@@ -128,7 +129,10 @@ export const resolveWorkloadHardwareProfileForRow = (
   }
 
   const workloadPodSpec = extractWorkloadPodSpecOptions(workload);
-  if (workloadPodSpec.resources?.claims?.length) {
+  if (
+    workloadPodSpec.resources?.claims?.length ||
+    inferenceService?.spec?.predictor?.model?.resources?.claims?.length
+  ) {
     return undefined;
   }
 

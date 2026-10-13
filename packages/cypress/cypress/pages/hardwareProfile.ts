@@ -52,6 +52,10 @@ class HardwareProfileRow extends TableRow {
     return this.find().pfSwitch('enable-switch');
   }
 
+  findDRAHelpButton() {
+    return this.find().findByTestId('dra-enable-switch-help');
+  }
+
   findAllFeaturesText() {
     return this.find().findByTestId('feature-visibility-all');
   }

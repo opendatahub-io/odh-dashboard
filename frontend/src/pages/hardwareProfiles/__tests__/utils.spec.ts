@@ -39,7 +39,17 @@ describe('generateWarningForHardwareProfiles', () => {
     expect(generateWarningForHardwareProfiles([draProfile])).toBeUndefined();
   });
 
-  it('should count an enabled DRA profile as enabled', () => {
+  it('should not show a warning when the only profiles are disabled DRA profiles', () => {
+    const draProfile = mockHardwareProfile({
+      name: 'dra-profile',
+      annotations: { 'opendatahub.io/disabled': 'true' },
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+
+    expect(generateWarningForHardwareProfiles([draProfile])).toBeUndefined();
+  });
+
+  it('should show the all disabled warning when an enabled DRA profile is the only enabled profile', () => {
     const draProfile = mockHardwareProfile({
       name: 'dra-profile',
       dra: { resourceClaimTemplateName: 'single-gpu' },
@@ -49,7 +59,9 @@ describe('generateWarningForHardwareProfiles', () => {
       annotations: { 'opendatahub.io/disabled': 'true' },
     });
 
-    expect(generateWarningForHardwareProfiles([draProfile, disabledProfile])).toBeUndefined();
+    expect(generateWarningForHardwareProfiles([draProfile, disabledProfile])?.title).toBe(
+      HardwareProfileBannerWarningTitles.ALL_DISABLED,
+    );
   });
 
   it('should show the all disabled warning when DRA profiles are disabled too', () => {

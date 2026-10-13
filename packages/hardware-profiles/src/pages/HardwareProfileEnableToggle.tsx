@@ -1,14 +1,15 @@
 import React from 'react';
-import { Flex, FlexItem, Switch } from '@patternfly/react-core';
+import { Flex, FlexItem, Popover, Switch } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
-import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import { HardwareProfileModel, toggleHardwareProfileEnablement } from '@odh-dashboard/internal/api';
 import { HardwareProfileWarningType } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import { useAccessAllowed, verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR';
 import { isHardwareProfileEnabled, validateProfileWarning } from './utils';
 import { DRA_HARDWARE_PROFILE_TOGGLE_DISABLED_MESSAGE } from './const';
-import { isDRAHardwareProfile } from '../../shared/utils';
+import { getHardwareProfileDisplayName, isDRAHardwareProfile } from '../../shared/utils';
 
 type HardwareProfileEnableToggleProps = {
   hardwareProfile: HardwareProfileKind;
@@ -73,7 +74,13 @@ const HardwareProfileEnableToggle: React.FC<HardwareProfileEnableToggleProps> = 
     >
       <FlexItem>{switchInput}</FlexItem>
       <FlexItem>
-        <DashboardHelpTooltip content={DRA_HARDWARE_PROFILE_TOGGLE_DISABLED_MESSAGE} />
+        <Popover bodyContent={DRA_HARDWARE_PROFILE_TOGGLE_DISABLED_MESSAGE}>
+          <DashboardPopupIconButton
+            icon={<OutlinedQuestionCircleIcon />}
+            aria-label={`More info about ${getHardwareProfileDisplayName(hardwareProfile)}`}
+            data-testid="dra-enable-switch-help"
+          />
+        </Popover>
       </FlexItem>
     </Flex>
   ) : (

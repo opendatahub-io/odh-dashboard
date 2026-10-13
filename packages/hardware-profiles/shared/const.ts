@@ -79,4 +79,4 @@ export const LOCAL_QUEUE_MISSING_BODY =
   'The selected hardware profile references a local queue that does not exist in this project and may prevent the workbench from starting. Select a different hardware profile.';
 
 export const DRA_HARDWARE_PROFILE_WORKLOAD_LOCKED_MESSAGE =
-  'This hardware profile uses dynamic resource allocation (DRA) and is managed outside the dashboard.';
+  'This hardware profile uses dynamic resource allocation (DRA) and is managed outside the dashboard. If you select a different profile and save, you cannot select this one again.';

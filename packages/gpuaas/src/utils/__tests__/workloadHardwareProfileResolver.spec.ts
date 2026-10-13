@@ -288,6 +288,33 @@ describe('workloadHardwareProfileResolver', () => {
     expect(result).toBeUndefined();
   });
 
+  it('does not match when the InferenceService has claims but the Workload does not', () => {
+    const inferenceService: WorkloadInferenceService = {
+      ...servingInferenceService(),
+      spec: {
+        predictor: {
+          model: {
+            resources: {
+              requests: { cpu: '2', memory: '4Gi', 'nvidia.com/gpu': '1' },
+              limits: { cpu: '2', memory: '4Gi', 'nvidia.com/gpu': '1' },
+              claims: [{ name: 'gpu' }],
+            },
+          },
+        },
+      },
+    };
+
+    const result = resolveWorkloadHardwareProfileForRow(trainWorkload(), {
+      annotationSources: [],
+      inferenceService,
+      hardwareProfileByKey: new Map(),
+      hardwareProfilesForMatching: [servingProfile],
+      workloadType: QuotaUsageWorkloadTypes.Serve,
+    });
+
+    expect(result).toBeUndefined();
+  });
+
   it('does not match workload resources to a DRA HardwareProfile when no annotation exists', () => {
     const draServingProfile: HardwareProfileKind = {
       ...servingProfile,

@@ -188,6 +188,10 @@ describe('Hardware Profile', () => {
         .findKebabAction('Duplicate')
         .should('have.attr', 'aria-disabled', 'true');
       hardwareProfile.getRow('DRA Profile').findEnabled().should('be.disabled');
+      hardwareProfile
+        .getRow('DRA Profile')
+        .findDRAHelpButton()
+        .should('have.attr', 'aria-label', 'More info about DRA Profile');
 
       hardwareProfile
         .getRow('Custom Profile')
@@ -198,6 +202,7 @@ describe('Hardware Profile', () => {
         .findKebabAction('Duplicate')
         .should('not.have.attr', 'aria-disabled', 'true');
       hardwareProfile.getRow('Custom Profile').findEnabled().should('be.enabled');
+      hardwareProfile.getRow('Custom Profile').findDRAHelpButton().should('not.exist');
     });
   });
 
