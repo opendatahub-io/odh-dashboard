@@ -58,7 +58,14 @@ const RunInProgressIcon = () => <img src={emptyStateImage} alt="Run in progress"
 
 const DEFAULT_VISIBLE_METRIC_KEYS_BY_TASK_TYPE: Record<string, readonly string[]> = {
   [TASK_TYPE_BINARY]: ['accuracy', 'precision', 'recall', 'f1'],
-  [TASK_TYPE_MULTICLASS]: ['accuracy', 'precision', 'recall', 'f1'],
+  [TASK_TYPE_MULTICLASS]: [
+    'accuracy',
+    'balanced_accuracy',
+    'mcc',
+    'f1_macro',
+    'precision_macro',
+    'recall_macro',
+  ],
   [TASK_TYPE_REGRESSION]: [
     'r2',
     'root_mean_squared_error',
