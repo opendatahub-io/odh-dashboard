@@ -59,7 +59,7 @@ const (
 	maasPortalParamsConfigMapName = "maas-portal-params"
 	maasPortalPartOf              = maasPortalDeploymentName
 	maasPortalGatewayName         = "data-science-gateway"
-	maasPortalBasePath            = "/maas-consumer-portal/"
+	maasPortalBasePath            = "/maas-portal/"
 )
 
 var ErrMaaSPortalUnsupportedPlatform = errors.New("MaaS Portal is supported only on RHOAI")

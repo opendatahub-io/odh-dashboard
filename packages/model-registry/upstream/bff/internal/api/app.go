@@ -492,7 +492,7 @@ func (app *App) Routes() http.Handler {
 		apiRouter.DELETE(ModelCatalogSettingsSourceConfigCredentialsPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.ClearCatalogSourceCredentialsHandler)))
 		apiRouter.POST(CatalogSourcePreviewPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(app.CreateCatalogSourcePreviewHandler))))
 
-		// Serving runtime catalog endpoints - downstream extensions, mock-only for now.
+		// Serving runtime catalog endpoints - downstream implementations.
 		apiRouter.GET(ServingRuntimeListPath, app.handlerWithOverride(handlerServingRuntimeListID, func() httprouter.Handle {
 			return app.AttachNamespace(app.EndpointNotImplementedHandler("Serving runtime catalog list"))
 		}))

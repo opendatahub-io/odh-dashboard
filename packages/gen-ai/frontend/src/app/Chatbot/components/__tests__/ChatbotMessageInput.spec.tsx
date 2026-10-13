@@ -1,7 +1,10 @@
 import * as React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import ChatbotMessageInput, {
   ImageUploadState,
 } from '~/app/Chatbot/components/ChatbotMessageInput';
@@ -13,6 +16,7 @@ import {
 } from '~/app/Chatbot/const';
 import { AudioTranscriptionState } from '~/app/Chatbot/hooks/useAudioTranscription';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
+import { PLAYGROUND_DOCUMENT_EVENTS } from '~/app/tracking/playgroundDocumentTrackingConstants';
 
 jest.mock('@patternfly/chatbot', () => ({
   MessageBar: ({
@@ -163,15 +167,31 @@ jest.mock('@patternfly/react-icons', () => ({
   OutlinedFileImageIcon: () => <span data-testid="icon-image" />,
   VolumeUpIcon: () => <span data-testid="icon-audio" />,
   OutlinedFileAltIcon: () => <span data-testid="icon-document" />,
+  TimesIcon: () => <span data-testid="icon-remove" />,
 }));
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireMiscTrackingEvent: jest.fn(),
+  fireFormTrackingEvent: jest.fn(),
 }));
 
 const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
+const mockFireForm = jest.mocked(fireFormTrackingEvent);
 
 describe('ChatbotMessageInput', () => {
+  const originalCreateObjectURL = URL.createObjectURL;
+  const originalRevokeObjectURL = URL.revokeObjectURL;
+
+  beforeAll(() => {
+    URL.createObjectURL = jest.fn(() => 'blob:pending-audio');
+    URL.revokeObjectURL = jest.fn();
+  });
+
+  afterAll(() => {
+    URL.createObjectURL = originalCreateObjectURL;
+    URL.revokeObjectURL = originalRevokeObjectURL;
+  });
+
   const defaultImageUploadState: ImageUploadState = {
     uploading: false,
     progress: 0,
@@ -616,6 +636,7 @@ describe('ChatbotMessageInput', () => {
           imageUploadState={{ ...defaultImageUploadState, fileName: 'test.jpg' }}
           audioTranscriptionState={{
             phase: 'ready',
+            file: new File(['audio-data'], 'recording.wav', { type: 'audio/wav' }),
             fileName: 'recording.wav',
             uploadProgress: 100,
             error: null,
@@ -730,7 +751,7 @@ describe('ChatbotMessageInput', () => {
       onDocumentAttach.mockClear();
     });
 
-    it('rejects unsupported file types and shows validation error', async () => {
+    it('rejects an unsupported file if it bypasses the file picker filter', async () => {
       const user = userEvent.setup();
       render(<ChatbotMessageInput {...defaultProps} onDocumentAttach={onDocumentAttach} />);
 
@@ -738,7 +759,7 @@ describe('ChatbotMessageInput', () => {
       await user.click(screen.getByTestId('mock-attach-toggle'));
       await user.click(screen.getByTestId('menu-item-upload-documents'));
 
-      // Set an .exe file on the document input
+      // Simulate a browser supplying a file outside the input's accept filter.
       const input = screen.getByTestId('document-file-input') as HTMLInputElement;
       const badFile = new File(['data'], 'malware.exe', { type: 'application/x-msdownload' });
       Object.defineProperty(input, 'files', {
@@ -752,6 +773,20 @@ describe('ChatbotMessageInput', () => {
         expect(screen.getByTestId('vision-validation-error')).toBeInTheDocument();
       });
       expect(onDocumentAttach).not.toHaveBeenCalled();
+      expect(mockFireForm).toHaveBeenCalledWith(PLAYGROUND_DOCUMENT_EVENTS.ATTACHED, {
+        success: false,
+        outcome: 'submit',
+        documentCountAdded: 0,
+        documentFileTypes: ['unknown'],
+        source: 'filePicker',
+        error: 'unsupportedType',
+      });
+      expect(mockFireMisc).toHaveBeenCalledWith(PLAYGROUND_DOCUMENT_EVENTS.PROCESSING_FAILED, {
+        error: 'unsupportedType',
+        documentFileType: 'unknown',
+        documentCount: 1,
+        stage: 'clientValidation',
+      });
     });
 
     it('rejects files exceeding the 50MB limit and shows validation error', async () => {
@@ -773,6 +808,10 @@ describe('ChatbotMessageInput', () => {
         expect(screen.getByTestId('vision-validation-error')).toBeInTheDocument();
       });
       expect(onDocumentAttach).not.toHaveBeenCalled();
+      expect(mockFireForm).toHaveBeenCalledWith(
+        PLAYGROUND_DOCUMENT_EVENTS.ATTACHED,
+        expect.objectContaining({ error: 'fileTooLarge', documentFileTypes: ['txt'] }),
+      );
     });
 
     it('passes only valid files from a mixed batch', async () => {
@@ -914,11 +953,73 @@ describe('ChatbotMessageInput', () => {
   describe('audio upload', () => {
     const defaultAudioState: AudioTranscriptionState = {
       phase: 'idle',
+      file: null,
       fileName: '',
       uploadProgress: 0,
       error: null,
       transcribedText: '',
     };
+
+    it.each([
+      ['recording.wav', 'audio/wav', 'WAV'],
+      ['recording.mp3', 'audio/mpeg', 'MP3'],
+    ])(
+      'keeps the %s title, type, and player in one pending tile',
+      (fileName, mimeType, typeLabel) => {
+        const file = new File(['audio-data'], fileName, { type: mimeType });
+        const { rerender } = render(
+          <ChatbotMessageInput
+            {...defaultProps}
+            audioTranscriptionState={{
+              ...defaultAudioState,
+              phase: 'waiting-for-model',
+              previewFile: file,
+              fileName: file.name,
+            }}
+          />,
+        );
+
+        expect(URL.createObjectURL).toHaveBeenCalledWith(file);
+        const tile = screen.getByTestId('audio-file-chip');
+        expect(tile).toHaveStyle({ width: '18.75rem', maxWidth: '100%' });
+        expect(tile).not.toHaveClass('pf-v6-u-display-inline-block');
+        expect(within(tile).getByTestId('audio-file-icon')).toHaveClass('gen-ai-chatbot-icon');
+        expect(within(tile).getByText(fileName)).toBeInTheDocument();
+        expect(within(tile).getByText(typeLabel)).toBeInTheDocument();
+        expect(within(tile).getByTestId('pending-audio-player')).toHaveAttribute(
+          'src',
+          'blob:pending-audio',
+        );
+        expect(within(tile).getByLabelText(`Play ${fileName}`)).toHaveAttribute('controls');
+        expect(within(tile).getByTestId('pending-audio-player')).toHaveStyle({
+          minHeight: 'var(--pf-t--global--spacer--2xl)',
+          width: '100%',
+        });
+
+        rerender(
+          <ChatbotMessageInput
+            {...defaultProps}
+            audioTranscriptionState={{
+              ...defaultAudioState,
+              phase: 'ready',
+              file,
+              previewFile: file,
+              fileName: file.name,
+            }}
+          />,
+        );
+
+        expect(screen.getByTestId('pending-audio-player')).toBeInTheDocument();
+        expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+
+        rerender(
+          <ChatbotMessageInput {...defaultProps} audioTranscriptionState={defaultAudioState} />,
+        );
+
+        expect(screen.queryByTestId('pending-audio-player')).not.toBeInTheDocument();
+        expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:pending-audio');
+      },
+    );
 
     it('explains where to select a model when audio is waiting for one', () => {
       render(
@@ -962,23 +1063,26 @@ describe('ChatbotMessageInput', () => {
       clickSpy.mockRestore();
     });
 
-    it('calls onAudioUpload with valid WAV file', () => {
-      const mockOnAudioUpload = jest.fn();
-      render(
-        <ChatbotMessageInput
-          {...defaultProps}
-          isAudioUploadDisabled={false}
-          onAudioUpload={mockOnAudioUpload}
-          audioTranscriptionState={defaultAudioState}
-        />,
-      );
+    it.each(['audio/wav', 'audio/wave', 'audio/x-wav', 'audio/x-pn-wav'])(
+      'calls onAudioUpload with a WAV file reported as %s',
+      (mimeType) => {
+        const mockOnAudioUpload = jest.fn();
+        render(
+          <ChatbotMessageInput
+            {...defaultProps}
+            isAudioUploadDisabled={false}
+            onAudioUpload={mockOnAudioUpload}
+            audioTranscriptionState={defaultAudioState}
+          />,
+        );
 
-      const fileInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
-      const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
-      fireEvent.change(fileInput, { target: { files: [file] } });
+        const fileInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
+        const file = new File(['audio-data'], 'recording.wav', { type: mimeType });
+        fireEvent.change(fileInput, { target: { files: [file] } });
 
-      expect(mockOnAudioUpload).toHaveBeenCalledWith(file);
-    });
+        expect(mockOnAudioUpload).toHaveBeenCalledWith(file);
+      },
+    );
 
     it('calls onAudioUpload with valid MP3 file', () => {
       const mockOnAudioUpload = jest.fn();
@@ -1109,7 +1213,8 @@ describe('ChatbotMessageInput', () => {
       expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
     });
 
-    it('shows error Alert when audio transcription fails', () => {
+    it('keeps the audio preview visible when transcription fails', () => {
+      const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
       render(
         <ChatbotMessageInput
           {...defaultProps}
@@ -1117,6 +1222,8 @@ describe('ChatbotMessageInput', () => {
           audioTranscriptionState={{
             ...defaultAudioState,
             phase: 'error',
+            previewFile: file,
+            fileName: file.name,
             error: {
               pattern: 'full-failure',
               variant: 'danger',
@@ -1139,6 +1246,8 @@ describe('ChatbotMessageInput', () => {
       expect(alert).toBeInTheDocument();
       expect(screen.getByText('Transcription timed out')).toBeInTheDocument();
       expect(screen.getByText(/The transcription took too long/)).toBeInTheDocument();
+      expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
+      expect(screen.getByLabelText('Play recording.wav')).toHaveAttribute('controls');
     });
 
     it('shows aria-live announcement during transcription', () => {

@@ -108,6 +108,21 @@ if os.environ.get("ODH_ENABLE_TRACING", "").lower() == "true":
 mimetypes.add_type("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx")
 mimetypes.add_type("application/vnd.openxmlformats-officedocument.presentationml.presentation", ".pptx")
 `
+
+	// officeMIMETypesPTHName is the .pth file written into the image's Python
+	// site-packages directory by the OGXServer container command when tracing
+	// is enabled. See ogxCommand for why a .pth file is needed in addition to
+	// the sitecustomize module above.
+	officeMIMETypesPTHName = "odh-office-mime-types.pth"
+
+	// officeMIMETypesPTHRegistration is the single import line executed by the
+	// .pth file named above. It must register the same MIME types as
+	// officeMIMETypesConfigMapContents above — keep both in sync. Unlike the
+	// sitecustomize module, it must not import the OTel auto-instrumentation
+	// hook: in OGX worker processes that hook already runs as the top-level
+	// sitecustomize, and importing it again here would initialize
+	// instrumentation twice.
+	officeMIMETypesPTHRegistration = `import mimetypes; mimetypes.add_type("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx"); mimetypes.add_type("application/vnd.openxmlformats-officedocument.presentationml.presentation", ".pptx")`
 )
 
 func newOfficeMIMETypesConfigMap(namespace string) *corev1.ConfigMap {
@@ -1598,10 +1613,26 @@ func (kc *TokenKubernetesClient) existingServerHasPassthroughFromConfigMap(ctx c
 // sitecustomize.py loading issue and the entrypoint supports OTLP/HTTP export:
 //
 //	return []string{"/opt/app-root/entrypoint.sh"}
+//
+// The command also writes a .pth file registering the Office MIME types into
+// the image's Python site-packages directory. The glob typically resolves to a
+// single directory (reachable via both the lib and lib64 paths) plus one
+// entry per additional Python version, should the image ever ship more.
+// opentelemetry-instrument prepends its
+// own auto_instrumentation directory to PYTHONPATH, and OTel's multiprocessing
+// integration does the same for spawned worker processes (where OGX runs file
+// processing jobs). Those directories contain OTel's own sitecustomize.py, and
+// Python only imports the first sitecustomize module found on sys.path, so the
+// office MIME-types sitecustomize mounted at constants.OfficeMIMETypesMountPath
+// is shadowed and .docx/.pptx uploads fail with "File type 'unknown'". Unlike
+// sitecustomize, .pth files in site-packages are executed for every interpreter
+// regardless of PYTHONPATH ordering, so the MIME registration runs in the main
+// process and the workers alike while leaving the OTel hooks untouched.
 func ogxCommand(enableTracing bool) []string {
 	if enableTracing {
 		return []string{"/bin/sh", "-c", strings.Join([]string{
 			"cp /opt/app-root/lib/python*/site-packages/opentelemetry/instrumentation/auto_instrumentation/sitecustomize.py /opt/app-root/lib/python*/site-packages/ 2>/dev/null || true",
+			fmt.Sprintf("for d in /opt/app-root/lib*/python*/site-packages; do printf '%%s\\n' '%s' > \"$d/%s\" 2>/dev/null || true; done", officeMIMETypesPTHRegistration, officeMIMETypesPTHName),
 			fmt.Sprintf("opentelemetry-instrument --traces_exporter=otlp_proto_http --metrics_exporter=none --logs_exporter=none --disabled_instrumentations=%s ogx run /etc/ogx/config.yaml --insecure", ogxDisabledInstrumentations),
 		}, " && ")}
 	}

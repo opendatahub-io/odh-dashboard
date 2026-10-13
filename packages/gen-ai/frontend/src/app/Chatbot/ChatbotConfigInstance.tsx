@@ -50,7 +50,7 @@ interface ChatbotConfigInstanceProps {
   hasAudioInCurrentMessage?: boolean;
   hasAudioInConversation?: boolean;
   onViewTrace?: (traceId: string) => void;
-  onViewDocument?: (attachment: DocumentAttachment) => void;
+  onViewDocument?: (attachment: DocumentAttachment, documentCount: number) => void;
   documentAttachments?: DocumentAttachment[];
 }
 
