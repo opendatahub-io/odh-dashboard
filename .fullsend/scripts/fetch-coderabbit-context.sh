@@ -152,6 +152,16 @@ summarize_stream() {
   ' "${raw}" 2>/dev/null || echo "CodeRabbit stream: (unparseable)"
 }
 
+# Every changed file can match a .coderabbit.yaml path filter (for example
+# **/upstream/**). The CLI reports that as an error event and exits non-zero,
+# but nothing was reviewable by configuration: a skip, not a failed review.
+all_files_ignored() {
+  local raw="$1" err="$2"
+  jq -s -e '
+    any(.[]; .type == "error" and ((.message // "") | tostring | test("all files are ignored"; "i")))
+  ' "${raw}" >/dev/null 2>&1 || grep -qiE '^(Error: )?All files are ignored$' "${err}"
+}
+
 run_producer() {
   local raw err exit_code api_key coderabbit_bin repo_slug base_ref head_sha
   raw="$(mktemp)"
@@ -207,6 +217,8 @@ run_producer() {
 
   if ! jq -s -e 'length > 0 and all(.[]; type == "object" and has("type"))' "${raw}" >/dev/null 2>&1; then
     write_envelope "error" "invalid-cli-output"
+  elif all_files_ignored "${raw}" "${err}"; then
+    write_envelope "skipped" "all-files-ignored"
   elif [[ "${exit_code}" -ne 0 ]] || jq -s -e 'any(.[]; .type == "error")' "${raw}" >/dev/null; then
     write_envelope "error" "review-failed"
   elif jq -s -e 'any(.[]; .type == "complete" and .status == "review_skipped")' "${raw}" >/dev/null; then
@@ -337,6 +349,33 @@ run_self_test() {
   tr '\0' '\n' < "${temp_dir}/recording-coderabbit.argv" | grep -qx -- '--agent'
   tr '\0' '\n' < "${temp_dir}/recording-coderabbit.argv" | grep -qx -- '--deep'
   tr '\0' '\n' < "${temp_dir}/recording-coderabbit.argv" | grep -qx -- '--remote'
+
+  # A PR whose files are all path-filtered is a skip; any other CLI error is
+  # still a failed review. CLI 0.9 prints "Error: All files are ignored" on
+  # stderr; the error event's message is matched too in case it carries it.
+  printf '%s\n' '#!/usr/bin/env bash' \
+    'echo "{\"type\":\"review_context\"}"' \
+    'echo "{\"type\":\"error\",\"errorType\":\"review\",\"message\":\"${FAKE_MESSAGE}\"}"' \
+    'echo "Error: ${FAKE_STDERR}" >&2' \
+    'exit 1' > "${temp_dir}/failing-coderabbit"
+  chmod +x "${temp_dir}/failing-coderabbit"
+  local case_message case_stderr case_status case_reason
+  while IFS='|' read -r case_message case_stderr case_status case_reason; do
+    FAKE_MESSAGE="${case_message}" FAKE_STDERR="${case_stderr}" \
+    FULLSEND_ADAPTER_TOKEN='test-token' \
+    FULLSEND_ADAPTER_BIN="${temp_dir}/failing-coderabbit" \
+    FULLSEND_ADAPTER_REPO='opendatahub-io/odh-dashboard' \
+    FULLSEND_ADAPTER_BASE_REF='main' \
+    FULLSEND_ADAPTER_HEAD_SHA="$(printf '0%.0s' {1..40})" \
+      run_producer >/dev/null 2>&1
+    jq -e --arg status "${case_status}" --arg reason "${case_reason}" '
+      .status == $status and .reason == $reason and (.findings | length == 0)
+    ' "${_OUT}" >/dev/null
+  done <<'CASES'
+Review failed: All files are ignored|review failed|skipped|all-files-ignored
+Review failed|All files are ignored|skipped|all-files-ignored
+Rate limit exceeded|Rate limit exceeded|error|review-failed
+CASES
   echo "PASS CodeRabbit context normalization"
 }
 
