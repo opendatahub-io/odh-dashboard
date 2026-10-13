@@ -1,6 +1,10 @@
 import { KubeFastifyInstance } from '../../../types';
 import { secureRoute } from '../../../utils/route-security';
-import { getSubscriptions, isRHOAI } from '../../../utils/resourceUtils';
+import {
+  getSubscriptions,
+  isRHOAI,
+  selectOperatorSubscriptionStatus,
+} from '../../../utils/resourceUtils';
 import { createCustomError } from '../../../utils/requestUtils';
 
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
@@ -9,8 +13,9 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
     secureRoute(fastify)(async () => {
       const subscriptions = getSubscriptions();
       const subNamePrefix = isRHOAI(fastify) ? 'rhods-operator' : 'opendatahub-operator';
-      const operatorSubscriptionStatus = subscriptions.find((sub) =>
-        sub.installedCSV?.includes(subNamePrefix),
+      const operatorSubscriptionStatus = selectOperatorSubscriptionStatus(
+        subscriptions,
+        subNamePrefix,
       );
       if (operatorSubscriptionStatus) {
         return operatorSubscriptionStatus;
