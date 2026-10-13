@@ -34,6 +34,7 @@ import { OdhPlatformType } from '#~/types';
 import { HardwareProfilesContextProvider } from '#~/concepts/hardwareProfiles/HardwareProfilesContext';
 import { useFederatedNotificationListener } from '#~/utilities/useFederatedNotificationListener';
 import HostApiProvider from './HostApiProvider';
+import GlobalErrorBoundary from './GlobalErrorBoundary';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
@@ -154,7 +155,7 @@ const App: React.FC = () => {
           <PluginStoreAreaFlagsProvider />
           <HostApiProvider>
             <AccessReviewProvider>
-              <ErrorBoundary>
+              <GlobalErrorBoundary>
                 <ProjectsContextProvider>
                   <Page
                     className="odh-dashboard"
@@ -199,7 +200,7 @@ const App: React.FC = () => {
                     </ErrorBoundary>
                   </Page>
                 </ProjectsContextProvider>
-              </ErrorBoundary>
+              </GlobalErrorBoundary>
             </AccessReviewProvider>
           </HostApiProvider>
         </AreaContextProvider>

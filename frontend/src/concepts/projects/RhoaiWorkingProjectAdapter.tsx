@@ -65,7 +65,7 @@ const RhoaiWorkingProjectAdapter: React.FC<Props> = ({ children }) => {
 
   return (
     <WorkingProjectProvider
-      status={loadError ? 'error' : loaded ? 'listed' : 'loading'}
+      status={loadError ? 'project-source-error' : loaded ? 'listed' : 'loading'}
       projects={resolution.orderedProjects}
       activeProject={resolution.activeProject}
       onProjectChange={selectProject}

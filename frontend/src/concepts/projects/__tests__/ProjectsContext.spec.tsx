@@ -72,7 +72,7 @@ describe('RHOAI ProjectsContextProvider working-project flag', () => {
     expect(context.projects).toEqual([a, z]);
     expect(context.preferredProject).toBe(z);
     expect(working.activeProject).toBeNull();
-    expect(working.status).toBe('absent');
+    expect(working.status).toBe('provider-absent');
     act(() => context.updatePreferredProject(null));
     expect(context.preferredProject).toBeNull();
     expect(localStorage.getItem(PREFERRED_NAMESPACE_STORAGE_KEY)).toBeNull();

@@ -121,12 +121,12 @@ describe('RHOAI working project adapter', () => {
     expect(update).toHaveBeenCalledTimes(1);
     rerender(view([a, b], true, new Error('unavailable')));
     expect(screen.getByTestId('route')).toHaveTextContent('none');
-    expect(selection.status).toBe('error');
+    expect(selection.status).toBe('project-source-error');
     rerender(view([b]));
     expect(screen.getByTestId('route')).toHaveTextContent('b');
     rerender(view([]));
     expect(screen.getByTestId('route')).toHaveTextContent('none');
-    expect(selection.status).toBe('empty');
+    expect(selection.status).toBe('empty-list');
     act(() => selection.selectProject({ name: 'b' }));
     expect(update).toHaveBeenCalledTimes(2);
   });
