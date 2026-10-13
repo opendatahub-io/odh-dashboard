@@ -9,6 +9,10 @@ import { homePage } from '../../../pages/home/home';
 import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
 import { navSidebar } from '../navSidebar/navSidebar';
 
+// Applied via .invoke('text').should('not.match', ...) — chai's contain.text does substring
+// matching only and silently passes any regex through, so it cannot be used here.
+const PREVIEW_LABEL_REGEX = /Tech\s+Preview|Technology\s+Preview|Dev\s+Preview/i;
+
 const initIntercepts = (
   config: Partial<MockDashboardConfigType>,
   components?: Record<string, { managementState: string }>,
@@ -53,19 +57,19 @@ describe('Module federation visibility', () => {
       navSidebar
         .findNavItem({ name: 'AutoRAG', rootSection: 'Gen AI studio' })
         .should('exist')
-        .and('not.contain.text', /Tech Preview|Technology Preview|Dev Preview/i);
+        .invoke('text')
+        .should('not.match', PREVIEW_LABEL_REGEX);
 
       homePage.visit();
       homePage
         .findTaskShortcut('genai-autorag')
         .should('be.visible')
-        .and('not.contain.text', /Tech Preview|Technology Preview|Dev Preview/i);
+        .invoke('text')
+        .should('not.match', PREVIEW_LABEL_REGEX);
 
       autoragConfigurePage.visit('test-project');
       autoragConfigurePage.findPageTitle().should('exist');
-      autoragConfigurePage
-        .findPageBody()
-        .should('not.contain.text', /Tech Preview|Technology Preview|Dev Preview/i);
+      autoragConfigurePage.findPageBody().invoke('text').should('not.match', PREVIEW_LABEL_REGEX);
     });
 
     it('should show Feature store section and render route when flag and DSC are enabled', () => {
