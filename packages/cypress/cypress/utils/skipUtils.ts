@@ -2,6 +2,25 @@
  * Utility functions for conditionally skipping tests based on cluster configuration.
  */
 
+import { getClusterArchitecture } from './oc_commands/baseCommands';
+
+/** Skips a suite before its setup runs when ARM is the detected cluster architecture. */
+export const skipOnArm = (): void => {
+  let isArm = false;
+
+  before(() => {
+    getClusterArchitecture().then((architecture) => {
+      isArm = architecture === 'arm64';
+    });
+  });
+
+  beforeEach(function skipTestOnArm() {
+    if (isArm) {
+      this.skip();
+    }
+  });
+};
+
 /**
  * Checks if the current cluster is a BYOIDC (Bring Your Own Identity Provider) cluster.
  * BYOIDC clusters use external identity providers (like Keycloak) instead of LDAP/htpasswd.

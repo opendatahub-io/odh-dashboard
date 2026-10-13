@@ -18,17 +18,18 @@ import {
 import type { DeployOCIModelData } from '../../../../types';
 import { loadDeployOCIModelFixture } from '../../../../utils/dataLoader';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
+import { skipOnArm } from '../../../../utils/skipUtils';
 
 let projectName: string;
 let resourceName: string;
 let connectionName: string;
-let secretDetailsFile: string;
 let ociRegistryHost: string;
 let modelDeploymentURI: string;
 let modelDeploymentName: string;
 let modelFormat: string;
 let servingRuntime: string;
 const uuid = generateTestUUID();
+const secretDetailsFile = `/tmp/oci-data-connection-secret-${uuid}.json`;
 
 const updateSecretDetailsFile = (
   secretValue: string,
@@ -44,7 +45,7 @@ const updateSecretDetailsFile = (
         },
       },
     };
-    return cy.writeFile(fixtureFullPath, updatedContent);
+    return cy.writeFile(fixtureFullPath, updatedContent, { log: false });
   });
 };
 
@@ -53,6 +54,8 @@ describe(
   { testIsolation: false },
   () => {
     let testData: DeployOCIModelData;
+
+    skipOnArm();
 
     retryableBefore(() => {
       cy.log('Loading test data');
@@ -64,7 +67,6 @@ describe(
           // Load fixture file and update with actual secret value
           const secretValue = Cypress.env('OCI_SECRET_VALUE');
           const secretDetailsFixture = 'resources/json/oci-data-connection-secret.json';
-          secretDetailsFile = `cypress/fixtures/${secretDetailsFixture}`;
           updateSecretDetailsFile(secretValue, secretDetailsFixture, secretDetailsFile);
           ociRegistryHost = testData.ociRegistryHost;
           modelDeploymentURI = Cypress.env('OCI_MODEL_URI');
@@ -78,6 +80,10 @@ describe(
     });
 
     after(() => {
+      cy.task('deleteFile', secretDetailsFile);
+      if (!projectName) {
+        return;
+      }
       // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
       // TODO: Review this timeout once RHOAIENG-19969 is resolved
       deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });

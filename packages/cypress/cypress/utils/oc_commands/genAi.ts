@@ -20,7 +20,12 @@ import type { GenAiTestData } from '../../types';
  * @param projectName - Namespace to deploy into.
  * @param testData - Fixture data with model URI, names, and hardware profile paths.
  */
-export const deployGenAiModel = (projectName: string, testData: GenAiTestData): void => {
+export const deployGenAiModel = (
+  projectName: string,
+  testData: GenAiTestData,
+  servingRuntimeYamlPath = testData.servingRuntimeYamlPath,
+  servingRuntimeName = 'vllm-cpu-runtime-amd64',
+): void => {
   const {
     inferenceServiceName,
     connectionURI,
@@ -32,17 +37,15 @@ export const deployGenAiModel = (projectName: string, testData: GenAiTestData): 
   createCleanHardwareProfile(hardwareProfileResourceYamlPath);
 
   cy.step('Apply ServingRuntime to project namespace');
-  cy.fixture('resources/modelServing/singleModel/vllm_cpu_amd64_runtime.yaml', 'utf8').then(
-    (srYaml: string) => {
-      const tmpFile = `/tmp/genai-sr-${Date.now()}.yaml`;
-      cy.writeFile(tmpFile, srYaml);
-      cy.exec(`oc apply -n ${projectName} -f ${tmpFile}`).then((result) => {
-        if (result.exitCode !== 0) {
-          throw new Error(`ServingRuntime apply failed: ${result.stderr}`);
-        }
-      });
-    },
-  );
+  cy.fixture(servingRuntimeYamlPath, 'utf8').then((srYaml: string) => {
+    const tmpFile = `/tmp/genai-sr-${Date.now()}.yaml`;
+    cy.writeFile(tmpFile, srYaml);
+    cy.exec(`oc apply -n ${projectName} -f ${tmpFile}`).then((result) => {
+      if (result.exitCode !== 0) {
+        throw new Error(`ServingRuntime apply failed: ${result.stderr}`);
+      }
+    });
+  });
 
   cy.step('Apply InferenceService with genai-asset label');
   cy.fixture('resources/genAi/gen-ai-inference-service.yaml', 'utf8').then(
@@ -50,6 +53,7 @@ export const deployGenAiModel = (projectName: string, testData: GenAiTestData): 
       const isvcYaml = isvcTemplate
         .replace('__ISVC_NAME__', inferenceServiceName)
         .replace('__HW_PROFILE__', hardwareProfileName)
+        .replace('__RUNTIME_NAME__', servingRuntimeName)
         .replace('__MODEL_URI__', connectionURI);
       const isvcTmpFile = `/tmp/genai-isvc-${Date.now()}.yaml`;
       cy.writeFile(isvcTmpFile, isvcYaml);
