@@ -146,8 +146,8 @@ describe('FileExplorer', () => {
         />,
       );
 
-      const uploadButton = screen.getByRole('button', { name: 'Upload files' });
-      expect(uploadButton).toHaveTextContent('Upload files');
+      const uploadButton = screen.getByRole('button', { name: 'Add files to this folder' });
+      expect(uploadButton).toHaveTextContent('Add files to this folder');
       expect(screen.getByTestId('file-explorer-upload-input')).toHaveAttribute('accept', '.csv');
       expect(screen.queryByTestId('file-explorer-upload-panel')).not.toBeInTheDocument();
 
@@ -157,7 +157,12 @@ describe('FileExplorer', () => {
 
       expect(input.value).toBe('');
       expect(screen.getByTestId('file-explorer-upload-panel')).toBeInTheDocument();
-      await waitFor(() => expect(screen.getByText('/uploaded.csv')).toBeInTheDocument());
+      const progress = await screen.findByRole('progressbar');
+      await waitFor(() => expect(progress).toHaveAttribute('aria-valuenow', '100'));
+      const helperTextId = progress.getAttribute('aria-describedby');
+      expect(document.getElementById(helperTextId as string)).toHaveTextContent(
+        'S3 key: /uploaded.csv',
+      );
       expect(uploadFiles).toHaveBeenCalledWith([file], '');
       expect(screen.queryByText('Drag and drop files here')).not.toBeInTheDocument();
     });
@@ -183,10 +188,9 @@ describe('FileExplorer', () => {
       expect(progress).toHaveAttribute('aria-valuenow', '0');
       expect(progress).not.toHaveAttribute('aria-describedby');
       expect(progress.closest('.pf-v6-c-progress')).toHaveClass('pf-v6-c-progress');
-      expect(progress.closest('.pf-v6-c-progress')).toContainElement(
-        document.querySelector('.pf-v6-c-progress__description'),
-      );
-      expect(document.querySelector('.pf-v6-c-progress__description')).toHaveClass('pf-m-truncate');
+      const progressContainer = progress.closest('.pf-v6-c-progress');
+      expect(progressContainer).toContainElement(screen.getByText('pending.csv'));
+      expect(screen.getByText('pending.csv').parentElement).toHaveClass('pf-v6-c-truncate');
     });
 
     it('should prevent closing while an upload is active', () => {
@@ -217,11 +221,12 @@ describe('FileExplorer', () => {
       const progress = await screen.findByRole('progressbar');
       await waitFor(() => expect(progress).toHaveAttribute('aria-valuenow', '100'));
       expect(screen.getByText('uploaded.csv')).toBeInTheDocument();
-      expect(screen.getByText('/uploaded-1.csv')).toBeInTheDocument();
       expect(progress.closest('.pf-v6-c-progress')).toHaveClass('pf-m-success');
       const helperTextId = progress.getAttribute('aria-describedby');
       expect(helperTextId).toBeTruthy();
-      expect(document.getElementById(helperTextId as string)).toHaveTextContent('/uploaded-1.csv');
+      expect(document.getElementById(helperTextId as string)).toHaveTextContent(
+        'S3 key: /uploaded-1.csv',
+      );
     });
 
     it('should show validation errors as associated helper text', () => {
@@ -268,7 +273,12 @@ describe('FileExplorer', () => {
       fireEvent.change(input, {
         target: { files: [new File(['data'], 'first.csv', { type: 'text/csv' })] },
       });
-      await waitFor(() => expect(screen.getByText('/uploaded.csv')).toBeInTheDocument());
+      await waitFor(() =>
+        expect(screen.getByTestId('file-explorer-upload-panel')).toBeInTheDocument(),
+      );
+      await waitFor(() =>
+        expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100'),
+      );
       fireEvent.click(screen.getByTestId('file-explorer-close-upload-progress-btn'));
 
       expect(screen.queryByTestId('file-explorer-upload-panel')).not.toBeInTheDocument();
@@ -1091,7 +1101,12 @@ describe('FileExplorer', () => {
       fireEvent.change(screen.getByTestId('file-explorer-upload-input'), {
         target: { files: [new File(['data'], 'uploaded.csv', { type: 'text/csv' })] },
       });
-      await waitFor(() => expect(screen.getByText('/uploaded.csv')).toBeInTheDocument());
+      await waitFor(() =>
+        expect(screen.getByTestId('file-explorer-upload-panel')).toBeInTheDocument(),
+      );
+      await waitFor(() =>
+        expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100'),
+      );
 
       fireEvent.click(screen.getByRole('button', { name: 'Close' }));
       expect(screen.queryByTestId('file-explorer-upload-panel')).not.toBeInTheDocument();
