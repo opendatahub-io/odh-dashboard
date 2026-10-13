@@ -729,7 +729,7 @@ export const buildMockWorkspaceKindUpdate = (
         protocol: V1Beta1ImagePortProtocol.ImagePortProtocolHTTP,
       },
     ],
-    serviceAccount: { name: 'default-editor' },
+    serviceAccount: { clusterRoles: [{ name: 'default-editor' }] },
     volumeMounts: listItem.podTemplate.volumeMounts,
   },
 });
