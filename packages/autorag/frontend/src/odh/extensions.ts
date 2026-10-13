@@ -29,7 +29,6 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | TaskItemExten
       href: '/gen-ai-studio/autorag',
       section: 'gen-ai-studio',
       path: '/gen-ai-studio/autorag/*',
-      label: 'Tech Preview',
     },
   },
   {
