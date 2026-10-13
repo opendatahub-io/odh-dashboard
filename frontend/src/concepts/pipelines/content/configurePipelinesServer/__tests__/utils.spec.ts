@@ -72,6 +72,7 @@ describe('configure pipeline server utils', () => {
         apiServer: {
           enableSamplePipeline: false,
           cacheEnabled: true,
+          managedPipelines: { enabled: false },
           pipelineStore: DSPipelineAPIServerStore.DATABASE,
         },
         mlflow: {
@@ -79,7 +80,7 @@ describe('configure pipeline server utils', () => {
           injectUserEnvVars: false,
         },
       });
-      expect(spec.apiServer).not.toHaveProperty('managedPipelines');
+      expect(spec.apiServer).toHaveProperty('managedPipelines', { enabled: false });
     });
 
     it('should create resource spec without caching', () => {
@@ -106,6 +107,7 @@ describe('configure pipeline server utils', () => {
         apiServer: {
           enableSamplePipeline: false,
           cacheEnabled: false,
+          managedPipelines: { enabled: false },
           pipelineStore: DSPipelineAPIServerStore.DATABASE,
         },
         mlflow: {
@@ -139,7 +141,7 @@ describe('configure pipeline server utils', () => {
         apiServer: {
           enableSamplePipeline: false,
           cacheEnabled: true,
-          managedPipelines: {},
+          managedPipelines: { enabled: true },
           pipelineStore: DSPipelineAPIServerStore.DATABASE,
         },
         mlflow: {
@@ -147,7 +149,7 @@ describe('configure pipeline server utils', () => {
           injectUserEnvVars: false,
         },
       });
-      expect(spec.apiServer).toHaveProperty('managedPipelines', {});
+      expect(spec.apiServer).toHaveProperty('managedPipelines', { enabled: true });
     });
 
     it('should parse S3 endpoint with scheme', () => {
@@ -248,6 +250,7 @@ describe('configure pipeline server utils', () => {
         apiServer: {
           enableSamplePipeline: false,
           cacheEnabled: true,
+          managedPipelines: { enabled: false },
           pipelineStore: DSPipelineAPIServerStore.DATABASE,
         },
         mlflow: {

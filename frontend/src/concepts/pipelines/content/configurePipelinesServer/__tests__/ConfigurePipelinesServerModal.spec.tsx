@@ -243,7 +243,7 @@ describe('ConfigurePipelinesServerModal', () => {
       expect(mockCreatePipelinesCR).toHaveBeenCalledWith(
         'test-project',
         expect.objectContaining({
-          apiServer: expect.objectContaining({ managedPipelines: {} }),
+          apiServer: expect.objectContaining({ managedPipelines: { enabled: true } }),
         }),
       );
     });
@@ -275,10 +275,10 @@ describe('ConfigurePipelinesServerModal', () => {
       'test-project',
     );
     const submittedSpec = mockCreatePipelinesCR.mock.calls[0][1];
-    expect(submittedSpec.apiServer).not.toHaveProperty('managedPipelines');
+    expect(submittedSpec.apiServer).toHaveProperty('managedPipelines', { enabled: false });
   });
 
-  it('should omit managed pipelines if they become unavailable before submission', async () => {
+  it('should explicitly disable managed pipelines if they become unavailable before submission', async () => {
     const {
       objectStorageIsValid,
     } = require('#~/concepts/pipelines/content/configurePipelinesServer/utils');
@@ -305,7 +305,7 @@ describe('ConfigurePipelinesServerModal', () => {
       'test-project',
     );
     const submittedSpec = mockCreatePipelinesCR.mock.calls[0][1];
-    expect(submittedSpec.apiServer).not.toHaveProperty('managedPipelines');
+    expect(submittedSpec.apiServer).toHaveProperty('managedPipelines', { enabled: false });
   });
 
   it('should retain the managed pipelines default if they become available after the modal opens', () => {

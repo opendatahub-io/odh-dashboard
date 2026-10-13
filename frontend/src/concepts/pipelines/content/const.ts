@@ -20,3 +20,4 @@ export const MAX_SIZE = MAX_SIZE_AS_MB * 1024 * 1024;
 // Pipeline server modal titles
 export const MANAGE_PIPELINE_SERVER_TITLE = 'Manage pipeline server';
 export const MANAGE_PIPELINE_SERVER_CONFIGURATION_TITLE = 'Manage pipeline server configuration';
+export const DISABLE_MANAGED_PIPELINES_ANNOTATION = 'opendatahub.io/disable-managed-pipelines';

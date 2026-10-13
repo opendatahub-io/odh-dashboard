@@ -13,6 +13,7 @@ import { SecretCategory, EnvironmentVariableType } from '#~/pages/projects/types
 import useNotification from '#~/utilities/useNotification';
 import useIsMlflowCRAvailable from '#~/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 import { DSPAMlflowIntegrationMode } from '#~/k8sTypes';
+import { DISABLE_MANAGED_PIPELINES_ANNOTATION } from '#~/concepts/pipelines/content/const';
 
 // Mock dependencies
 jest.mock('#~/concepts/pipelines/context', () => ({
@@ -94,6 +95,7 @@ describe('ManagePipelineServerModal', () => {
     pipelineNamespaceCR: mockDataSciencePipelineApplicationK8sResource({
       name: 'dspa',
       namespace: 'test-project',
+      managedPipelines: { enabled: false },
     }),
   };
 
@@ -154,6 +156,7 @@ describe('ManagePipelineServerModal', () => {
       mockDataSciencePipelineApplicationK8sResource({
         name: 'dspa',
         namespace: 'test-project',
+        managedPipelines: { enabled: false },
       }),
     );
 
@@ -430,6 +433,60 @@ describe('ManagePipelineServerModal', () => {
     expect(managedPipelinesCheckbox).toBeChecked();
   });
 
+  it('should default managed pipelines to enabled when the field is omitted', () => {
+    const pipelineWithoutManagedPipelines = mockDataSciencePipelineApplicationK8sResource({
+      name: 'dspa',
+      namespace: 'test-project',
+    });
+    delete pipelineWithoutManagedPipelines.spec.apiServer?.managedPipelines;
+
+    renderModal({
+      ...defaultProps,
+      pipelineNamespaceCR: pipelineWithoutManagedPipelines,
+    });
+
+    expect(screen.getByTestId('managed-pipelines-checkbox')).toBeChecked();
+  });
+
+  it('should disable managed pipelines when enabled is false', () => {
+    const pipelineWithManagedPipelinesDisabled = mockDataSciencePipelineApplicationK8sResource({
+      name: 'dspa',
+      namespace: 'test-project',
+      managedPipelines: { enabled: false },
+    });
+
+    renderModal({
+      ...defaultProps,
+      pipelineNamespaceCR: pipelineWithManagedPipelinesDisabled,
+    });
+
+    expect(screen.getByTestId('managed-pipelines-checkbox')).not.toBeChecked();
+  });
+
+  it('should prevent changing managed pipelines disabled by a project annotation', () => {
+    const pipelineWithManagedPipelinesDisabledByAnnotation =
+      mockDataSciencePipelineApplicationK8sResource({
+        name: 'dspa',
+        namespace: 'test-project',
+        managedPipelines: { enabled: true },
+      });
+    pipelineWithManagedPipelinesDisabledByAnnotation.metadata.annotations = {
+      [DISABLE_MANAGED_PIPELINES_ANNOTATION]: 'true',
+    };
+
+    renderModal({
+      ...defaultProps,
+      pipelineNamespaceCR: pipelineWithManagedPipelinesDisabledByAnnotation,
+    });
+
+    const managedPipelinesCheckbox = screen.getByTestId('managed-pipelines-checkbox');
+    expect(managedPipelinesCheckbox).not.toBeChecked();
+    expect(managedPipelinesCheckbox).toBeDisabled();
+    expect(
+      screen.getByText(/Managed pipelines are disabled by a project annotation/),
+    ).toBeInTheDocument();
+  });
+
   it('should toggle managed pipelines checkbox', () => {
     renderModal();
 
@@ -475,7 +532,7 @@ describe('ManagePipelineServerModal', () => {
       expect(mockUpdatePipelineSettings).toHaveBeenCalledWith(
         'test-project',
         {
-          managedPipelines: {},
+          managedPipelines: { enabled: true },
         },
         'dspa',
       );
@@ -500,14 +557,14 @@ describe('ManagePipelineServerModal', () => {
         'test-project',
         {
           cacheEnabled: false,
-          managedPipelines: {},
+          managedPipelines: { enabled: true },
         },
         'dspa',
       );
     });
   });
 
-  it('should call updatePipelineSettings with undefined managedPipelines when disabled', async () => {
+  it('should call updatePipelineSettings with enabled false when managed pipelines are disabled', async () => {
     const pipelineWithManagedPipelines = mockDataSciencePipelineApplicationK8sResource({
       name: 'dspa',
       namespace: 'test-project',
@@ -532,7 +589,7 @@ describe('ManagePipelineServerModal', () => {
       expect(mockUpdatePipelineSettings).toHaveBeenCalledWith(
         'test-project',
         {
-          managedPipelines: undefined,
+          managedPipelines: { enabled: false },
         },
         'dspa',
       );

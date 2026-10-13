@@ -143,5 +143,22 @@ describe('ManagedPipelinesSettingsSection', () => {
       fireEvent.click(screen.getByTestId('managed-pipelines-checkbox'));
       expect(setEnableManagedPipelines).toHaveBeenCalledWith(true);
     });
+
+    it('should disable the checkbox and show the disabled reason when provided', () => {
+      render(
+        <ManagedPipelinesSettingsSection
+          variant="description"
+          enableManagedPipelines={false}
+          setEnableManagedPipelines={jest.fn()}
+          isDisabled
+          disabledReason="Managed pipelines are disabled by a project annotation."
+        />,
+      );
+
+      expect(screen.getByTestId('managed-pipelines-checkbox')).toBeDisabled();
+      expect(
+        screen.getByText(/Managed pipelines are disabled by a project annotation/),
+      ).toBeInTheDocument();
+    });
   });
 });
