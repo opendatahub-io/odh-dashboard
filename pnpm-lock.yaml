@@ -14899,6 +14899,7 @@ packages:
 
   openshell-dashboard@1.1.0:
     resolution: {integrity: sha512-i4fNvaOkMAPhOb6EqlAxgZPDmRFrH69pclh0vjHuoReKVSQgEkizMUiwT7JFlPWulLx7padmtC8lfLCKoNSCqw==}
+    deprecated: 'No longer published. The OpenShell dashboard ships as a container image: quay.io/gkrumbach07/openshell-dashboard'
     peerDependencies:
       '@patternfly/react-code-editor': 6.6.1
       '@patternfly/react-core': 6.6.1
@@ -29320,7 +29321,7 @@ snapshots:
 
   monaco-editor@0.54.0:
     dependencies:
-      dompurify: 3.4.15
+      dompurify: 3.4.16
       marked: 14.0.0
 
   mrmime@2.0.1: {}
