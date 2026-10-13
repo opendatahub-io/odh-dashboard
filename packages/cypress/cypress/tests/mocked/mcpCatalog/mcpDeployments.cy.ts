@@ -416,12 +416,23 @@ describe('MCP Deployments server and registered version columns', () => {
 const TEST_SERVER_ID = 'kubernetes-server-1';
 const TEST_SERVER_IMAGE = 'ghcr.io/kubernetes/mcp-server:latest';
 
+type DeployReadinessResponse = {
+  gatewayRequired: boolean;
+  deployable: boolean;
+  reason?: string;
+  message?: string;
+};
+
+const NOT_GATED_READINESS: DeployReadinessResponse = { gatewayRequired: false, deployable: true };
+
 const initDeployIntercepts = ({
   mcpLifecycleManagementState = 'Managed',
   artifacts = [{ uri: TEST_SERVER_IMAGE }],
+  readiness = NOT_GATED_READINESS,
 }: {
   mcpLifecycleManagementState?: 'Managed' | 'Unmanaged' | 'Removed';
   artifacts?: { uri: string }[];
+  readiness?: DeployReadinessResponse;
 } = {}) => {
   const defaultDscStatus = mockDscStatus({});
   initBaseIntercepts(
@@ -527,6 +538,10 @@ const initDeployIntercepts = ({
       }),
     },
   }).as('getConverter');
+
+  cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}/deploy_readiness*`, {
+    body: { data: readiness },
+  }).as('getDeployReadiness');
 };
 
 describe('MCP Deploy from Catalog', () => {
@@ -601,6 +616,108 @@ describe('MCP Deploy from Catalog', () => {
 
       mcpServerDetailsPage.findBreadcrumbServerName().should('contain.text', 'Kubernetes MCP');
       mcpServerDetailsPage.findDeployButton().should('not.exist');
+    });
+  });
+
+  describe('MCP gateway prerequisite', () => {
+    const NO_GATEWAY_TOOLTIP =
+      'This MCP server requires an MCP gateway, and none is available. Ask your cluster administrator to set up an MCP gateway.';
+    const BLOCKED_READINESS: DeployReadinessResponse = {
+      gatewayRequired: true,
+      deployable: false,
+      reason: 'NO_GATEWAY_AVAILABLE',
+      message: 'No MCP gateway is available on this cluster.',
+    };
+
+    it('should not show gateway messaging for a server that does not require a gateway', () => {
+      initDeployIntercepts();
+
+      cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
+
+      cy.wait('@getDeployReadiness');
+      mcpServerDetailsPage
+        .findDeployButton()
+        .should('be.visible')
+        .and('not.have.attr', 'aria-disabled', 'true');
+      mcpServerDetailsPage.findGatewayDocsLink().should('not.exist');
+    });
+
+    it('should enable deploy when a required gateway is available', () => {
+      initDeployIntercepts({ readiness: { gatewayRequired: true, deployable: true } });
+
+      cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
+
+      cy.wait('@getDeployReadiness');
+      mcpServerDetailsPage.clickDeployButton();
+      mcpDeployModal.shouldBeOpen();
+      mcpServerDetailsPage.findGatewayDocsLink().should('not.exist');
+    });
+
+    it('should block deploy with an explanation and a docs link when no gateway is available', () => {
+      initDeployIntercepts({ readiness: BLOCKED_READINESS });
+
+      cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
+
+      cy.wait('@getDeployReadiness');
+      mcpServerDetailsPage
+        .findDeployButton()
+        .should('be.visible')
+        .and('have.attr', 'aria-disabled', 'true')
+        .trigger('mouseenter');
+      cy.findByRole('tooltip').should('contain.text', NO_GATEWAY_TOOLTIP);
+
+      mcpServerDetailsPage
+        .findGatewayDocsLink()
+        .should('be.visible')
+        .and('contain.text', 'How to set up an MCP gateway');
+
+      mcpServerDetailsPage.findDeployButton().click({ force: true });
+      mcpDeployModal.shouldNotExist();
+    });
+
+    it('should enable deploy without a page reload once a gateway becomes available', () => {
+      initDeployIntercepts({ readiness: BLOCKED_READINESS });
+      // Only fake intervals so the readiness poll can be advanced without slowing the app.
+      cy.clock(Date.now(), ['setInterval', 'clearInterval']);
+
+      cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
+
+      cy.wait('@getDeployReadiness');
+      mcpServerDetailsPage.findDeployButton().should('have.attr', 'aria-disabled', 'true');
+      mcpServerDetailsPage.findGatewayDocsLink().should('be.visible');
+
+      cy.intercept(
+        'GET',
+        `${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}/deploy_readiness*`,
+        { body: { data: { gatewayRequired: true, deployable: true } } },
+      ).as('getDeployReadinessReady');
+      cy.tick(30000);
+
+      cy.wait('@getDeployReadinessReady');
+      mcpServerDetailsPage.findDeployButton().should('not.have.attr', 'aria-disabled', 'true');
+      mcpServerDetailsPage.findGatewayDocsLink().should('not.exist');
+    });
+
+    it('should block deploy when the readiness check fails', () => {
+      initDeployIntercepts();
+      cy.intercept(
+        'GET',
+        `${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}/deploy_readiness*`,
+        { statusCode: 500, body: { error: { code: '500', message: 'internal server error' } } },
+      ).as('getDeployReadinessError');
+
+      cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
+
+      cy.wait('@getDeployReadinessError');
+      mcpServerDetailsPage
+        .findDeployButton()
+        .should('have.attr', 'aria-disabled', 'true')
+        .trigger('mouseenter');
+      cy.findByRole('tooltip').should(
+        'contain.text',
+        'Unable to check the deployment prerequisites for this MCP server. Try again later.',
+      );
+      mcpServerDetailsPage.findGatewayDocsLink().should('not.exist');
     });
   });
 
