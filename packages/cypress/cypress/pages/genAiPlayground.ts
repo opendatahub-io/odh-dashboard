@@ -98,8 +98,8 @@ class GenAiPlayground {
     return cy.findByTestId('empty-state');
   }
 
-  findAddToPlaygroundButton() {
-    return cy.findByTestId('ai-models-table').contains('button', 'Add to playground');
+  findCreatePlaygroundButton(options?: { timeout?: number }) {
+    return cy.findByTestId('create-playground-button', options);
   }
 
   findGoToPlaygroundLink(options?: { timeout?: number }) {

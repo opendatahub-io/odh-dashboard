@@ -150,12 +150,12 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
         .findAiModelsTable({ timeout: 30000 })
         .should('contain', testData.model.displayName);
 
-      cy.step('Navigate to AI assets and add model to playground');
+      cy.step('Navigate to AI assets and create the playground');
       genAiPlayground.navigateToAssetsWithCustomEndpoints(projectName);
       genAiPlayground
         .findAiModelsTable({ timeout: 30000 })
         .should('contain', testData.model.displayName);
-      genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
+      genAiPlayground.findCreatePlaygroundButton({ timeout: 30000 }).should('be.visible').click();
       genAiPlayground.findConfigurationTable().should('be.visible');
       genAiPlayground.ensureModelCheckboxIsChecked(testData.model.modelId);
       genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();

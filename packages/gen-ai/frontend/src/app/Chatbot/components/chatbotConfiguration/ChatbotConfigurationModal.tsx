@@ -75,6 +75,11 @@ type ChatbotConfigurationModalProps = {
   extraSelectedCollections?: ExternalVectorStoreSummary[];
   /** Step id to open the modal on. Defaults to the first active step. */
   initialStepId?: string;
+  /**
+   * Called after an update to an existing playground has been submitted and the
+   * service restart begins. Lets the host page reflect the restart in progress.
+   */
+  onUpdateInitiated?: () => void;
 };
 
 const SETUP_PLAYGROUND_EVENT_NAME = 'Playground Setup';
@@ -91,6 +96,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   existingCollections = [],
   extraSelectedCollections,
   initialStepId,
+  onUpdateInitiated,
 }) => {
   const { namespace } = React.useContext(GenAiContext);
   const { api, apiAvailable } = useGenAiAPI();
@@ -497,6 +503,9 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
               ...(isExistingPlayground && { countPreviousModelsSelected: existingModels.length }),
             },
           );
+          if (isExistingPlayground) {
+            onUpdateInitiated?.();
+          }
         })
         .catch((e) => {
           setError(e);

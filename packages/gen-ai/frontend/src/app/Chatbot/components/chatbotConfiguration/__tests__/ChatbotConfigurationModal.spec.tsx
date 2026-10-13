@@ -158,6 +158,7 @@ type RenderModalProps = {
   extraSelectedCollections?: ExternalVectorStoreSummary[];
   lsdStatus?: LlamaStackDistributionModel | null;
   initialStepId?: string;
+  onUpdateInitiated?: () => void;
 };
 
 const renderModal = (props: RenderModalProps) =>
@@ -173,6 +174,7 @@ const renderModal = (props: RenderModalProps) =>
         existingCollections={props.existingCollections}
         extraSelectedCollections={props.extraSelectedCollections}
         initialStepId={props.initialStepId}
+        onUpdateInitiated={props.onUpdateInitiated}
       />
     </MemoryRouter>,
   );
@@ -191,6 +193,7 @@ const renderModalWithContext = (props: RenderModalProps) =>
           existingCollections={props.existingCollections}
           extraSelectedCollections={props.extraSelectedCollections}
           initialStepId={props.initialStepId}
+          onUpdateInitiated={props.onUpdateInitiated}
         />
       </MemoryRouter>
     </GenAiContext.Provider>,
@@ -908,6 +911,41 @@ describe('ChatbotConfigurationModal form tracking', () => {
         outcome: 'cancel',
         namespace: 'test-namespace',
       });
+    });
+
+    it('calls onUpdateInitiated when an existing playground update is submitted', async () => {
+      const user = userEvent.setup();
+      const onUpdateInitiated = jest.fn();
+      const mockDeleteLSD = jest.fn().mockResolvedValue({ data: null });
+      mockUseGenAiAPI.mockReturnValue({
+        apiAvailable: true,
+        api: { installLSD: mockInstallLSD, deleteLSD: mockDeleteLSD },
+      });
+      (useTracingEnabled as jest.Mock).mockReturnValue(true);
+
+      renderModalWithContext({ allModels, lsdStatus, onUpdateInitiated });
+
+      // Introduce an actual change — the submit button is disabled without one
+      await user.click(screen.getByTestId('enable-tracing-switch'));
+      await user.click(screen.getByTestId('modal-submit-button'));
+
+      await waitFor(() => {
+        expect(onUpdateInitiated).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it('does not call onUpdateInitiated when creating a new playground', async () => {
+      const user = userEvent.setup();
+      const onUpdateInitiated = jest.fn();
+
+      renderModalWithContext({ allModels, onUpdateInitiated });
+
+      await user.click(screen.getByTestId('modal-submit-button'));
+
+      await waitFor(() => {
+        expect(mockInstallLSD).toHaveBeenCalledTimes(1);
+      });
+      expect(onUpdateInitiated).not.toHaveBeenCalled();
     });
   });
 });

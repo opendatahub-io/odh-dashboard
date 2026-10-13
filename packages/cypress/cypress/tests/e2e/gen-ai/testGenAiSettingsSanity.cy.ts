@@ -180,8 +180,8 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
       genAiPlayground.navigateToAssetsWithGuardrailsAndPromptManagement(projectName);
       genAiPlayground.findAiModelsTable({ timeout: 30000 }).should('be.visible');
 
-      cy.step('Add endpoint to playground');
-      genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
+      cy.step('Create playground with the endpoint');
+      genAiPlayground.findCreatePlaygroundButton({ timeout: 30000 }).should('be.visible').click();
       genAiPlayground.findConfigurationTable().should('be.visible');
       genAiPlayground.ensureModelCheckboxIsChecked(testData.modelId);
       genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
