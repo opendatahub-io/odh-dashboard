@@ -191,6 +191,7 @@ UPSTREAM_REPO=$(jq -r '.subtree.repo' "$PACKAGE_JSON")
 UPSTREAM_SUBDIR=$(jq -r '.subtree.src // ""' "$PACKAGE_JSON")
 TARGET_RELATIVE=$(jq -r '.subtree.target' "$PACKAGE_JSON")
 CURRENT_COMMIT=$(jq -r '.subtree.commit // ""' "$PACKAGE_JSON")
+SYNC_BASE_COMMIT=$(jq -r '.subtree.syncBase // .subtree.commit // ""' "$PACKAGE_JSON")
 UPSTREAM_BRANCH=$(jq -r '.subtree.branch // "main"' "$PACKAGE_JSON")
 DO_NOT_MERGE_FLAG=$(jq -r '.subtree.DO_NOT_MERGE_OVERRIDDEN_FOR_PR // ""' "$PACKAGE_JSON")
 
@@ -268,7 +269,7 @@ if [ "$CONTINUE_MODE" = true ]; then
     clean_exit 1 "" true
   fi
 
-  commits=$(git rev-list --reverse "$CURRENT_COMMIT..$TARGET_COMMIT")
+  commits=$(remaining_upstream_commits "$SYNC_BASE_COMMIT" "$CURRENT_COMMIT" "$TARGET_COMMIT") || clean_exit 1 "Failed to find the remaining upstream commits"
   if [ -n "$commits" ]; then
     continue_commit=$(echo "$commits" | head -n 1)
     continue_commit_msg=$(git log -1 --format="%s" "$continue_commit")
@@ -363,7 +364,7 @@ if [ ! -d "$TARGET_DIR" ] && ([ -z "$CURRENT_COMMIT" ] || [ "$CURRENT_COMMIT" = 
 fi
 
 # Early exit if no changes
-if [ "$CURRENT_COMMIT" = "$TARGET_COMMIT" ] && [ -d "$TARGET_DIR" ]; then
+if [ "$CURRENT_COMMIT" = "$TARGET_COMMIT" ] && [ -d "$TARGET_DIR" ] && [ "$SYNC_BASE_COMMIT" = "$CURRENT_COMMIT" ]; then
   info_msg "Already up-to-date at $TARGET_COMMIT"
   exit 0
 fi
@@ -375,7 +376,7 @@ _git_upstream_cmd() {
 _filter_rev_list() {
   local from_commit="$1"
   local to_commit="$2"
-  git rev-list --no-merges --reverse "$from_commit..$to_commit"
+  remaining_upstream_commits "$SYNC_BASE_COMMIT" "$from_commit" "$to_commit"
 }
 
 _get_commit_url() {
@@ -407,6 +408,18 @@ fi
 apply_patch_based_update "$CURRENT_COMMIT" "$TARGET_COMMIT" "$UPSTREAM_SUBDIR" "$TARGET_DIR"
 
 cd "$MONOREPO_ROOT"
+
+# The per-commit checkpoint is only valid while this sync is in progress.
+# Once all patches are applied, record the target (which may be a merge commit)
+# and remove the temporary baseline so the next sync starts from its true tip.
+if ! jq --arg commit "$TARGET_COMMIT" '.subtree.commit = $commit | del(.subtree.syncBase)' "$PACKAGE_JSON" > "$PACKAGE_JSON.tmp"; then
+  clean_exit 1 "Failed to finalize subtree tracking"
+fi
+mv "$PACKAGE_JSON.tmp" "$PACKAGE_JSON"
+git add "$PACKAGE_JSON"
+if ! git diff --cached --quiet; then
+  git commit -q -m "${COMMIT_PREFIX}Update $PACKAGE_NAME tracking to $TARGET_COMMIT (sync complete)"
+fi
 
 success_msg "Successfully updated $PACKAGE_NAME to $TARGET_COMMIT"
 
