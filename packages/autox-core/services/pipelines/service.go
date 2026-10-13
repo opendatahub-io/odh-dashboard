@@ -839,10 +839,12 @@ func (s *service) GetPipelineRunWithSpec(ctx context.Context, namespace, runID s
 
 // --- Managed Pipelines ---
 
+const disableManagedPipelinesAnnotation = "datasciencepipelinesapplications.opendatahub.io/disable-managed-pipelines"
+
 // EnableManagedPipelines enables managed pipeline definitions on the first ready DSPA in the namespace.
-// If managedPipelines is already configured and enabled (including the operator default when
-// enabled is omitted), it restarts the pipeline server so the init container re-registers any
-// missing definitions. Otherwise it explicitly enables managed pipelines on the DSPA.
+// If managed pipelines are enabled by default or explicitly configured, it restarts the pipeline
+// server so the init container re-registers any missing definitions. Otherwise it explicitly
+// enables managed pipelines on the DSPA.
 func (s *service) EnableManagedPipelines(ctx context.Context, namespace string) (*EnableManagedPipelinesResult, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("enabling managed pipelines", "namespace", namespace)
@@ -868,12 +870,20 @@ func (s *service) EnableManagedPipelines(ctx context.Context, namespace string) 
 		return nil, fmt.Errorf("failed to get DSPA %q: %w", dspa.Name, err)
 	}
 
-	_, managedPipelinesConfigured, err := unstructured.NestedFieldNoCopy(
-		live.Object, "spec", "apiServer", "managedPipelines",
+	managedPipelinesDisabledByAnnotation, annotationFound, err := unstructured.NestedString(
+		live.Object, "metadata", "annotations", disableManagedPipelinesAnnotation,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check managed pipelines configuration: %w", err)
+		return nil, fmt.Errorf("failed to read managed pipelines opt-out annotation: %w", err)
 	}
+	if annotationFound && managedPipelinesDisabledByAnnotation == "true" {
+		return nil, fmt.Errorf(
+			"%w: managed pipelines are disabled by annotation %q; remove it from the DSPA to enable them",
+			ErrInvalidInput,
+			disableManagedPipelinesAnnotation,
+		)
+	}
+
 	managedPipelinesEnabled, enabledFieldFound, err := unstructured.NestedBool(
 		live.Object, "spec", "apiServer", "managedPipelines", "enabled",
 	)
@@ -881,7 +891,7 @@ func (s *service) EnableManagedPipelines(ctx context.Context, namespace string) 
 		return nil, fmt.Errorf("failed to read managed pipelines enabled state: %w", err)
 	}
 
-	if managedPipelinesConfigured && (!enabledFieldFound || managedPipelinesEnabled) {
+	if !enabledFieldFound || managedPipelinesEnabled {
 		deploymentName := fmt.Sprintf("ds-pipeline-%s", dspa.Name)
 		restartPatch := fmt.Sprintf(
 			`{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}}}`,

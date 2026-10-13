@@ -84,58 +84,146 @@ func testCtx() context.Context {
 	return k8s.ContextWithIdentity(context.Background(), &k8s.RequestIdentity{Token: "tok"})
 }
 
-func TestEnableManagedPipelinesExplicitlyEnablesDisabledDSPA(t *testing.T) {
+func TestEnableManagedPipelines(t *testing.T) {
+	const disableManagedPipelinesAnnotation = "datasciencepipelinesapplications.opendatahub.io/disable-managed-pipelines"
+
 	dspaGVR := schema.GroupVersionResource{
 		Group:    "datasciencepipelinesapplications.opendatahub.io",
 		Version:  "v1",
 		Resource: "datasciencepipelinesapplications",
 	}
-	var patchType types.PatchType
-	var patchData []byte
-	deploymentRestarted := false
-
-	k8sClient := &mockK8sClient{
-		discoverResourceGVRFn: func(_ context.Context, _, _, _ string, _ []string) (schema.GroupVersionResource, error) {
-			return dspaGVR, nil
-		},
-		getResourceFn: func(_ context.Context, _ schema.GroupVersionResource, _, _ string) (*unstructured.Unstructured, error) {
-			return &unstructured.Unstructured{Object: map[string]any{
+	tests := []struct {
+		name        string
+		resource    map[string]any
+		wantAction  string
+		wantPatch   string
+		wantRestart bool
+		wantError   string
+	}{
+		{
+			name: "explicitly enables managed pipelines when disabled",
+			resource: map[string]any{
 				"spec": map[string]any{
 					"apiServer": map[string]any{
 						"managedPipelines": map[string]any{"enabled": false},
 					},
 				},
-			}}, nil
+			},
+			wantAction: "enabled",
+			wantPatch:  `{"spec":{"apiServer":{"managedPipelines":{"enabled":true}}}}`,
 		},
-		patchResourceFn: func(_ context.Context, _ schema.GroupVersionResource, _, _ string, gotPatchType types.PatchType, gotPatchData []byte) (*unstructured.Unstructured, error) {
-			patchType = gotPatchType
-			patchData = gotPatchData
-			return nil, nil
+		{
+			name: "restarts when managed pipelines are omitted and default enabled",
+			resource: map[string]any{
+				"spec": map[string]any{"apiServer": map[string]any{}},
+			},
+			wantAction:  "restarted",
+			wantRestart: true,
 		},
-		patchDeploymentFn: func(context.Context, string, string, types.PatchType, []byte) error {
-			deploymentRestarted = true
-			return nil
+		{
+			name: "restarts when enabled is omitted",
+			resource: map[string]any{
+				"spec": map[string]any{
+					"apiServer": map[string]any{"managedPipelines": map[string]any{}},
+				},
+			},
+			wantAction:  "restarted",
+			wantRestart: true,
+		},
+		{
+			name: "rejects opt-out annotation before restart",
+			resource: map[string]any{
+				"metadata": map[string]any{
+					"annotations": map[string]any{disableManagedPipelinesAnnotation: "true"},
+				},
+				"spec": map[string]any{
+					"apiServer": map[string]any{
+						"managedPipelines": map[string]any{"enabled": true},
+					},
+				},
+			},
+			wantError: "remove it from the DSPA to enable them",
+		},
+		{
+			name: "rejects opt-out annotation before enabling",
+			resource: map[string]any{
+				"metadata": map[string]any{
+					"annotations": map[string]any{disableManagedPipelinesAnnotation: "true"},
+				},
+				"spec": map[string]any{
+					"apiServer": map[string]any{
+						"managedPipelines": map[string]any{"enabled": false},
+					},
+				},
+			},
+			wantError: "remove it from the DSPA to enable them",
 		},
 	}
 
-	svc := newTestPipelineServiceForDiscovery(k8sClient)
-	svc.dspaCache.set("test-ns", &DiscoveredDSPA{Name: "dspa1", Namespace: "test-ns"})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var patchType types.PatchType
+			var patchData []byte
+			patchResourceCalled := false
+			deploymentRestarted := false
 
-	result, err := svc.EnableManagedPipelines(testCtx(), "test-ns")
-	if err != nil {
-		t.Fatalf("EnableManagedPipelines() error = %v", err)
-	}
-	if result.Action != "enabled" {
-		t.Errorf("EnableManagedPipelines() action = %q, want %q", result.Action, "enabled")
-	}
-	if patchType != types.MergePatchType {
-		t.Errorf("PatchResource() patch type = %q, want %q", patchType, types.MergePatchType)
-	}
-	if got, want := string(patchData), `{"spec":{"apiServer":{"managedPipelines":{"enabled":true}}}}`; got != want {
-		t.Errorf("PatchResource() patch = %s, want %s", got, want)
-	}
-	if deploymentRestarted {
-		t.Error("PatchDeployment() called for an explicitly disabled DSPA; want managed pipelines enabled first")
+			k8sClient := &mockK8sClient{
+				discoverResourceGVRFn: func(_ context.Context, _, _, _ string, _ []string) (schema.GroupVersionResource, error) {
+					return dspaGVR, nil
+				},
+				getResourceFn: func(_ context.Context, _ schema.GroupVersionResource, _, _ string) (*unstructured.Unstructured, error) {
+					return &unstructured.Unstructured{Object: tt.resource}, nil
+				},
+				patchResourceFn: func(_ context.Context, _ schema.GroupVersionResource, _, _ string, gotPatchType types.PatchType, gotPatchData []byte) (*unstructured.Unstructured, error) {
+					patchType = gotPatchType
+					patchData = gotPatchData
+					patchResourceCalled = true
+					return nil, nil
+				},
+				patchDeploymentFn: func(context.Context, string, string, types.PatchType, []byte) error {
+					deploymentRestarted = true
+					return nil
+				},
+			}
+
+			svc := newTestPipelineServiceForDiscovery(k8sClient)
+			svc.dspaCache.set("test-ns", &DiscoveredDSPA{Name: "dspa1", Namespace: "test-ns"})
+
+			result, err := svc.EnableManagedPipelines(testCtx(), "test-ns")
+			if tt.wantError != "" {
+				if err == nil || !errors.Is(err, ErrInvalidInput) || !strings.Contains(err.Error(), tt.wantError) {
+					t.Fatalf("EnableManagedPipelines() error = %v, want invalid-input error containing %q", err, tt.wantError)
+				}
+				if result != nil {
+					t.Errorf("EnableManagedPipelines() result = %#v, want nil", result)
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("EnableManagedPipelines() error = %v", err)
+				}
+				if result.Action != tt.wantAction {
+					t.Errorf("EnableManagedPipelines() action = %q, want %q", result.Action, tt.wantAction)
+				}
+			}
+
+			if tt.wantPatch != "" {
+				if !patchResourceCalled {
+					t.Fatal("PatchResource() was not called")
+				}
+				if patchType != types.MergePatchType {
+					t.Errorf("PatchResource() patch type = %q, want %q", patchType, types.MergePatchType)
+				}
+				if got := string(patchData); got != tt.wantPatch {
+					t.Errorf("PatchResource() patch = %s, want %s", got, tt.wantPatch)
+				}
+			} else if patchResourceCalled {
+				t.Error("PatchResource() called unexpectedly")
+			}
+
+			if deploymentRestarted != tt.wantRestart {
+				t.Errorf("PatchDeployment() called = %t, want %t", deploymentRestarted, tt.wantRestart)
+			}
+		})
 	}
 }
 

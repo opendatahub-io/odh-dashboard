@@ -13,7 +13,6 @@ import { SecretCategory, EnvironmentVariableType } from '#~/pages/projects/types
 import useNotification from '#~/utilities/useNotification';
 import useIsMlflowCRAvailable from '#~/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 import { DSPAMlflowIntegrationMode } from '#~/k8sTypes';
-import { DISABLE_MANAGED_PIPELINES_ANNOTATION } from '#~/concepts/pipelines/content/const';
 
 // Mock dependencies
 jest.mock('#~/concepts/pipelines/context', () => ({
@@ -471,7 +470,7 @@ describe('ManagePipelineServerModal', () => {
         managedPipelines: { enabled: true },
       });
     pipelineWithManagedPipelinesDisabledByAnnotation.metadata.annotations = {
-      [DISABLE_MANAGED_PIPELINES_ANNOTATION]: 'true',
+      'datasciencepipelinesapplications.opendatahub.io/disable-managed-pipelines': 'true',
     };
 
     renderModal({
