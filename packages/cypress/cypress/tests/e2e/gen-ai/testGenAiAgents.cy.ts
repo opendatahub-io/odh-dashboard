@@ -164,7 +164,7 @@ describe('Verify agent deployments using a custom endpoint', { testIsolation: fa
   it(
     'saves and loads an agent with a Gemini endpoint, prompt, and MCP server',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@AgentConfig', '@NonConcurrent'],
+      tags: ['@GenAI', '@FeatureFlagged', '@GenAiAgent', '@NonConcurrent'],
     },
     () => {
       cy.step('Open the playground with agent deployment features enabled');
@@ -211,7 +211,7 @@ describe('Verify agent deployments using a custom endpoint', { testIsolation: fa
   it(
     'deploys the saved agent and preserves its configuration snapshot',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@AgentDeployment', '@NonConcurrent'],
+      tags: ['@GenAI', '@FeatureFlagged', '@GenAiAgent', '@NonConcurrent'],
     },
     () => {
       cy.step('Load the saved agent for deployment');
