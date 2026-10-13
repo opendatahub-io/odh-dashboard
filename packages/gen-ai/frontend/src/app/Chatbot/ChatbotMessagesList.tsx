@@ -203,13 +203,12 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
                     />
                   </FlexItem>
                 )}
-                {!errorClassification && metrics && (
+                {!errorClassification && metrics && isResponseComplete && (
                   <FlexItem>
                     <ChatbotMessagesMetrics
                       metrics={metrics}
                       isExpanded={isDetailExpanded('metrics')}
                       onExpandedChange={updateExpandedDetail('metrics')}
-                      isDisabled={!isResponseComplete}
                       showContent={false}
                       {...metricsDetailIds}
                     />
