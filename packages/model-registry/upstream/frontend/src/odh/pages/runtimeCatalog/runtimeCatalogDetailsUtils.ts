@@ -2,7 +2,7 @@ import yaml from 'js-yaml';
 import type { RuntimeImageInstallActionData } from '~/odh/extension-points/runtime-image-install-action';
 import type { ServingRuntime, ServingRuntimeVersion } from '~/odh/types/servingRuntimeCatalogTypes';
 
-const templateOrUndefined = (value?: string): string | undefined =>
+const nonBlankOrUndefined = (value?: string): string | undefined =>
   value?.trim() ? value : undefined;
 
 export const formatRuntimeTemplate = (template: string | undefined): string => {
@@ -29,8 +29,8 @@ export const buildRuntimeImageInstallActionData = ({
   cancelReturnRoute,
   libraryReturnRoute,
 }: BuildRuntimeImageInstallActionDataArgs): RuntimeImageInstallActionData => {
-  const servingRuntimeTemplate = templateOrUndefined(version?.servingRuntimeTemplate);
-  const llmInferenceServiceConfig = templateOrUndefined(version?.llmInferenceServiceTemplate);
+  const servingRuntimeTemplate = nonBlankOrUndefined(version?.servingRuntimeTemplate);
+  const llmInferenceServiceConfig = nonBlankOrUndefined(version?.llmInferenceServiceConfig);
 
   return {
     runtimeImageId: runtime.id ?? '',

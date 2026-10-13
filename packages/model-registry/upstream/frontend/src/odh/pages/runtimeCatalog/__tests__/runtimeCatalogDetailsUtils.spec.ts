@@ -59,7 +59,7 @@ describe('buildRuntimeImageInstallActionData', () => {
           version: '0.6.0',
           image: 'registry.example.com/mock/vllm:0.6.0',
           servingRuntimeTemplate: '{"kind":"ServingRuntime"}',
-          llmInferenceServiceTemplate: '{"kind":"LLMInferenceServiceConfig"}',
+          llmInferenceServiceConfig: '{"kind":"LLMInferenceServiceConfig"}',
         },
         ...routes,
       }),
@@ -83,7 +83,7 @@ describe('buildRuntimeImageInstallActionData', () => {
         version: '0.6.0',
         image: 'registry.example.com/mock/vllm:0.6.0',
         servingRuntimeTemplate: '   ',
-        llmInferenceServiceTemplate: '',
+        llmInferenceServiceConfig: '',
       },
       ...routes,
     });
@@ -100,7 +100,7 @@ describe('buildRuntimeImageInstallActionData', () => {
         version: '0.6.0',
         image: 'registry.example.com/mock/vllm:0.6.0',
         servingRuntimeTemplate: '',
-        llmInferenceServiceTemplate: '{"kind":"LLMInferenceServiceConfig"}',
+        llmInferenceServiceConfig: '{"kind":"LLMInferenceServiceConfig"}',
       },
       ...routes,
     });
