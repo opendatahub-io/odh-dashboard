@@ -20,6 +20,7 @@ import {
   type RuntimeCatalogFiltersState,
 } from '~/odh/pages/runtimeCatalog/const';
 import { hasRuntimeCatalogFiltersApplied } from '~/odh/pages/runtimeCatalog/utils/runtimeCatalogUtils';
+import { RUNTIME_CATALOG_TAB_TITLE } from '~/odh/routes/runtimeCatalog/runtimeCatalog';
 
 const MODEL_CATALOG_PATH = `${URL_PREFIX}/api/${BFF_API_VERSION}/model_catalog`;
 
@@ -43,13 +44,13 @@ const RuntimeCatalogView: React.FC = () => {
 
   const pageTitle = React.useMemo(() => {
     const { items } = catalogSources;
-    return items && items.length > 0 ? items[0].name : 'Runtime image library';
+    return items && items.length > 0 ? items[0].name : RUNTIME_CATALOG_TAB_TITLE;
   }, [catalogSources]);
 
   const pageDescription = React.useMemo(
     () =>
       catalogLabels.items[0]?.description ??
-      'Browse container images and templates you can install as serving runtimes on this cluster.',
+      'Browse runtimes you can add to this cluster for model serving or LLM inference.',
     [catalogLabels],
   );
 

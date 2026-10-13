@@ -129,7 +129,7 @@ const setupRuntimeCatalog = (enabled = true): void => {
   ).as('runtimeVersions');
 };
 
-describe('Runtime image library details', () => {
+describe('Runtime library details', () => {
   beforeEach(() => {
     asProductAdminUser();
     setupRuntimeCatalog();
@@ -243,7 +243,9 @@ describe('Runtime image library details', () => {
 
   it('copies the two independent configuration YAML values', () => {
     runtimeCatalogDetailsPage.visit(runtimeId);
-    runtimeCatalogDetailsPage.findHeading('Available configurations').should('be.visible');
+    runtimeCatalogDetailsPage.findHeading('Runtimes').should('be.visible');
+    runtimeCatalogDetailsPage.findServingRuntimeTab().should('have.text', 'Serving runtime');
+    runtimeCatalogDetailsPage.findLlmInferenceServiceTab().should('have.text', 'LLM runtime');
     runtimeCatalogDetailsPage
       .findServingRuntimePanel()
       .should('contain.text', 'kind: ServingRuntime');

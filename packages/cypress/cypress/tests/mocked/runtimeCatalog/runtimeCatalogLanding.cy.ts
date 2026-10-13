@@ -113,7 +113,7 @@ const initIntercepts = (): void => {
   setupRuntimeCatalogIntercepts();
 };
 
-describe('Runtime image library landing', () => {
+describe('Runtime library landing', () => {
   beforeEach(() => {
     initIntercepts();
   });
@@ -185,6 +185,13 @@ describe('Runtime image library landing', () => {
     cy.wait('@runtimeDetails');
     runtimeCatalogDetailsPage.findHeading('vLLM').should('be.visible');
     runtimeCatalogDetailsPage.findLatestBadge().should('have.text', 'Latest');
+    runtimeCatalogDetailsPage.openLatestPopover();
+    runtimeCatalogDetailsPage
+      .findLatestPopover()
+      .should(
+        'contain.text',
+        'This is the newest version of this runtime image available in the library.',
+      );
     cy.testA11y();
   });
 
