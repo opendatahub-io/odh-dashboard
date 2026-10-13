@@ -85,6 +85,10 @@ const (
 	workspaceKubeRbacProxyTLSCertsMountPath  = "/etc/tls/private"
 	workspaceKubeRbacProxyTLSCertFilePath    = "/etc/tls/private/tls.crt"
 	workspaceKubeRbacProxyTLSKeyFilePath     = "/etc/tls/private/tls.key"
+	// requeue delay when the local cache is known to be stale (fixed delay,
+	// since a stale cache is not write contention, so no exponential backoff
+	// is needed)
+	requeueAfterStaleCache = 250 * time.Millisecond
 
 	// lengths for resource names
 	generateNameSuffixLength    = 6
@@ -229,7 +233,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			if err := r.Update(ctx, workspace); err != nil {
 				if apierrors.IsConflict(err) {
 					log.V(2).Info("update conflict while removing finalizer, will requeue")
-					return ctrl.Result{Requeue: true}, nil
+					return ctrl.Result{}, err
 				}
 				log.Error(err, "unable to remove finalizer from Workspace")
 				return ctrl.Result{}, err
@@ -273,7 +277,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			if err := r.Update(ctx, workspaceKind); err != nil {
 				if apierrors.IsConflict(err) {
 					log.V(2).Info("update conflict while adding finalizer to WorkspaceKind, will requeue")
-					return ctrl.Result{Requeue: true}, nil
+					return ctrl.Result{}, err
 				}
 				log.Error(err, "unable to add finalizer to WorkspaceKind")
 				return ctrl.Result{}, err
@@ -370,9 +374,10 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				existingServiceAccount := &corev1.ServiceAccount{}
 				if getErr := r.Get(ctx, client.ObjectKeyFromObject(serviceAccount), existingServiceAccount); getErr != nil {
 					if apierrors.IsNotFound(getErr) {
-						// the cache is stale, the watch on owned ServiceAccounts will requeue us
+						// the cache is stale; requeue after a short delay instead of relying on the
+						// owned-object watch, which will not fire if the ServiceAccount is owned by another controller
 						log.V(2).Info("ServiceAccount already exists but is not in the cache yet, will requeue")
-						return ctrl.Result{Requeue: true}, nil
+						return ctrl.Result{RequeueAfter: requeueAfterStaleCache}, nil
 					}
 					log.Error(getErr, "unable to get existing ServiceAccount")
 					return ctrl.Result{}, getErr
@@ -384,7 +389,9 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 						fmt.Sprintf(stateMsgErrorServiceAccountNotOwned, existingServiceAccount.Name),
 					)
 				}
-				return ctrl.Result{Requeue: true}, nil
+				// the cache is stale (the owner index did not return the ServiceAccount), requeue after
+				// a short delay so we pick it up once the cache catches up
+				return ctrl.Result{RequeueAfter: requeueAfterStaleCache}, nil
 			}
 			log.Error(err, "unable to create ServiceAccount")
 			return ctrl.Result{}, err
@@ -398,7 +405,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			if err := r.Update(ctx, foundServiceAccount); err != nil {
 				if apierrors.IsConflict(err) {
 					log.V(2).Info("update conflict while updating ServiceAccount, will requeue")
-					return ctrl.Result{Requeue: true}, nil
+					return ctrl.Result{}, err
 				}
 				log.Error(err, "unable to update ServiceAccount")
 				return ctrl.Result{}, err
@@ -489,7 +496,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			if err := r.Update(ctx, foundService); err != nil {
 				if apierrors.IsConflict(err) {
 					log.V(2).Info("update conflict while updating Service, will requeue")
-					return ctrl.Result{Requeue: true}, nil
+					return ctrl.Result{}, err
 				}
 				log.Error(err, "unable to update Service")
 				return ctrl.Result{}, err
@@ -584,7 +591,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				if err := r.Update(ctx, foundVirtualService); err != nil {
 					if apierrors.IsConflict(err) {
 						log.V(2).Info("update conflict while updating VirtualService, will requeue")
-						return ctrl.Result{Requeue: true}, nil
+						return ctrl.Result{}, err
 					}
 					log.Error(err, "unable to update VirtualService")
 					return ctrl.Result{}, err
@@ -610,7 +617,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			if err := r.Update(ctx, workspace); err != nil {
 				if apierrors.IsConflict(err) {
 					log.V(2).Info("update conflict while adding finalizer to Workspace, will requeue")
-					return ctrl.Result{Requeue: true}, nil
+					return ctrl.Result{}, err
 				}
 				log.Error(err, "unable to add finalizer to Workspace")
 				return ctrl.Result{}, err
@@ -756,7 +763,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				if err := r.Update(ctx, foundRefGrant); err != nil {
 					if apierrors.IsConflict(err) {
 						log.V(2).Info("update conflict while updating ReferenceGrant, will requeue")
-						return ctrl.Result{Requeue: true}, nil
+						return ctrl.Result{}, err
 					}
 					log.Error(err, "unable to update ReferenceGrant")
 					return ctrl.Result{}, err
@@ -799,7 +806,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				if err := r.Update(ctx, foundHTTPRoute); err != nil {
 					if apierrors.IsConflict(err) {
 						log.V(2).Info("update conflict while updating HTTPRoute, will requeue")
-						return ctrl.Result{Requeue: true}, nil
+						return ctrl.Result{}, err
 					}
 					log.Error(err, "unable to update HTTPRoute")
 					return ctrl.Result{}, err
@@ -812,9 +819,6 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// reconcile RoleBindings
 	if err := r.reconcileRoleBindings(ctx, log, workspace, workspaceKind, serviceAccountName); err != nil {
 		// NOTE: `reconcileRoleBindings()` has already logged the cause, including the conflict case
-		if apierrors.IsConflict(err) {
-			return ctrl.Result{Requeue: true}, nil
-		}
 		return ctrl.Result{}, err
 	}
 
@@ -853,7 +857,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if err := r.Status().Update(ctx, workspace); err != nil {
 			if apierrors.IsConflict(err) {
 				log.V(2).Info("update conflict while updating Workspace status, will requeue")
-				return ctrl.Result{Requeue: true}, nil
+				return ctrl.Result{}, err
 			}
 			log.Error(err, "unable to update Workspace status")
 			return ctrl.Result{}, err
@@ -872,7 +876,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if err := r.Patch(ctx, workspace, client.MergeFrom(originalWorkspace)); err != nil {
 			if apierrors.IsConflict(err) {
 				log.V(2).Info("update conflict while pausing Workspace, will requeue")
-				return ctrl.Result{Requeue: true}, nil
+				return ctrl.Result{}, err
 			}
 			log.Error(err, "unable to pause Workspace")
 			return ctrl.Result{}, err
@@ -975,7 +979,7 @@ func (r *WorkspaceReconciler) updateWorkspaceState(ctx context.Context, log logr
 		if err := r.Status().Update(ctx, workspace); err != nil {
 			if apierrors.IsConflict(err) {
 				log.V(2).Info("update conflict while updating Workspace status, will requeue")
-				return ctrl.Result{Requeue: true}, nil
+				return ctrl.Result{}, err
 			}
 			log.Error(err, "unable to update Workspace status")
 			return ctrl.Result{}, err
@@ -1040,8 +1044,7 @@ func (r *WorkspaceReconciler) reconcileOwnedStatefulSet(
 			if err := r.Update(ctx, foundStatefulSet); err != nil {
 				if apierrors.IsConflict(err) {
 					log.V(2).Info("update conflict while updating StatefulSet, will requeue")
-					res := ctrl.Result{Requeue: true}
-					return nil, "", &res, nil
+					return nil, "", nil, err
 				}
 				log.Error(err, "unable to update StatefulSet")
 				return nil, "", nil, err
