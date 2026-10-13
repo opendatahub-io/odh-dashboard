@@ -1,6 +1,17 @@
-import { isRHOAI } from '../utils/resourceUtils';
+import {
+  isRHOAI,
+  clusterExtensionToSubscriptionStatus,
+  getCSVForApp,
+  selectOperatorSubscriptionStatus,
+} from '../utils/resourceUtils';
 import * as resourceUtils from '../utils/resourceUtils';
-import { OdhPlatformType, DataScienceClusterKindStatus } from '../types';
+import {
+  OdhPlatformType,
+  DataScienceClusterKindStatus,
+  ClusterExtensionKind,
+  OdhApplication,
+  SubscriptionStatusData,
+} from '../types';
 
 describe('resourceUtils', () => {
   describe('isRHOAI', () => {
@@ -48,6 +59,230 @@ describe('resourceUtils', () => {
       });
       expect(isRHOAI(mockFastify)).toBe(false);
       expect(mockFastify.log.error).toHaveBeenCalledWith(errorMessage);
+    });
+  });
+
+  describe('clusterExtensionToSubscriptionStatus', () => {
+    const makeClusterExtension = (
+      overrides: Partial<ClusterExtensionKind> = {},
+    ): ClusterExtensionKind =>
+      ({
+        apiVersion: 'olm.operatorframework.io/v1',
+        kind: 'ClusterExtension',
+        metadata: { name: 'rhods' },
+        spec: {
+          namespace: 'redhat-ods-operator',
+          source: {
+            sourceType: 'Catalog',
+            catalog: { packageName: 'rhods-operator', channels: ['stable', 'alpha'] },
+          },
+        },
+        status: {
+          install: { bundle: { name: 'rhods-operator.v2.19.0', version: '2.19.0' } },
+          conditions: [
+            {
+              type: 'Installed',
+              status: 'True',
+              reason: 'Succeeded',
+              lastTransitionTime: '2026-10-06T00:00:00Z',
+            },
+          ],
+        },
+        ...overrides,
+      } as ClusterExtensionKind);
+
+    it('should map a successfully installed ClusterExtension to subscription status data', () => {
+      expect(clusterExtensionToSubscriptionStatus(makeClusterExtension())).toEqual({
+        channel: 'stable',
+        installedCSV: 'rhods-operator.v2.19.0',
+        packageName: 'rhods-operator',
+        installPlanRefNamespace: 'redhat-ods-operator',
+        lastUpdated: '2026-10-06T00:00:00Z',
+        source: 'OLMv1',
+        installed: true,
+      });
+    });
+
+    it('should mark installed false when the Installed condition is not Succeeded', () => {
+      const ce = makeClusterExtension({
+        status: {
+          conditions: [{ type: 'Installed', status: 'False', reason: 'Failed' }],
+        },
+      });
+      expect(clusterExtensionToSubscriptionStatus(ce)).toEqual(
+        expect.objectContaining({ source: 'OLMv1', installed: false, installedCSV: undefined }),
+      );
+    });
+
+    it('should handle a ClusterExtension with no status yet', () => {
+      const ce = makeClusterExtension({ status: undefined });
+      expect(clusterExtensionToSubscriptionStatus(ce)).toEqual({
+        channel: 'stable',
+        installedCSV: undefined,
+        packageName: 'rhods-operator',
+        installPlanRefNamespace: 'redhat-ods-operator',
+        lastUpdated: undefined,
+        source: 'OLMv1',
+        installed: false,
+      });
+    });
+  });
+
+  describe('selectOperatorSubscriptionStatus', () => {
+    it('should match an installed OLM v1 operator by package name when the bundle name differs', () => {
+      const v1: SubscriptionStatusData = {
+        installedCSV: 'some-renamed-bundle.v3.6.0',
+        packageName: 'rhods-operator',
+        installPlanRefNamespace: 'redhat-ods-operator',
+        source: 'OLMv1',
+        installed: true,
+      };
+      expect(selectOperatorSubscriptionStatus([v1], 'rhods-operator')).toBe(v1);
+    });
+
+    it('should fall back to the OLM v0 bundle-name match', () => {
+      const v0: SubscriptionStatusData = {
+        installedCSV: 'rhods-operator.3.6.0',
+        installPlanRefNamespace: 'redhat-ods-operator',
+        source: 'OLMv0',
+      };
+      expect(selectOperatorSubscriptionStatus([v0], 'rhods-operator')).toBe(v0);
+    });
+
+    it('should prefer an installed OLM v1 operator over a stale OLM v0 entry', () => {
+      const v0: SubscriptionStatusData = {
+        installedCSV: 'rhods-operator.3.5.0',
+        installPlanRefNamespace: 'redhat-ods-operator',
+        source: 'OLMv0',
+      };
+      const v1: SubscriptionStatusData = {
+        installedCSV: 'some-renamed-bundle.v3.6.0',
+        packageName: 'rhods-operator',
+        installPlanRefNamespace: 'redhat-ods-operator',
+        source: 'OLMv1',
+        installed: true,
+      };
+      expect(selectOperatorSubscriptionStatus([v0, v1], 'rhods-operator')).toBe(v1);
+    });
+
+    it('should return undefined when no entry matches', () => {
+      const other: SubscriptionStatusData = {
+        installedCSV: 'some-other-operator.v1',
+        source: 'OLMv0',
+      };
+      expect(selectOperatorSubscriptionStatus([other], 'rhods-operator')).toBeUndefined();
+    });
+  });
+
+  describe('getCSVForApp', () => {
+    const appDef = { spec: { csvName: 'rhods-operator' } } as OdhApplication;
+    const getNamespacedCustomObject = jest.fn();
+    const mockFastify = {
+      kube: { customObjectsApi: { getNamespacedCustomObject } },
+    } as any;
+
+    const mockSubscriptions = (subs: SubscriptionStatusData[]) =>
+      jest.spyOn(resourceUtils, 'getSubscriptions').mockReturnValue(subs);
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should resolve undefined when the app has no csvName', async () => {
+      mockSubscriptions([]);
+      await expect(
+        getCSVForApp(mockFastify, { spec: {} } as OdhApplication),
+      ).resolves.toBeUndefined();
+      expect(getNamespacedCustomObject).not.toHaveBeenCalled();
+    });
+
+    it('should return a synthesized CSV for an installed OLM v1 ClusterExtension without reading a CSV', async () => {
+      mockSubscriptions([
+        {
+          installedCSV: 'rhods-operator.v2.19.0',
+          installPlanRefNamespace: 'redhat-ods-operator',
+          source: 'OLMv1',
+          installed: true,
+        },
+      ]);
+      await expect(getCSVForApp(mockFastify, appDef)).resolves.toEqual({
+        metadata: { name: 'rhods-operator.v2.19.0', namespace: 'redhat-ods-operator' },
+      });
+      expect(getNamespacedCustomObject).not.toHaveBeenCalled();
+    });
+
+    it('should match an installed OLM v1 extension by package name when the bundle name differs', async () => {
+      mockSubscriptions([
+        {
+          installedCSV: 'some-unrelated-bundle.v1.0.0',
+          packageName: 'rhods-operator',
+          installPlanRefNamespace: 'redhat-ods-operator',
+          source: 'OLMv1',
+          installed: true,
+        },
+      ]);
+      await expect(getCSVForApp(mockFastify, appDef)).resolves.toEqual({
+        metadata: { name: 'some-unrelated-bundle.v1.0.0', namespace: 'redhat-ods-operator' },
+      });
+      expect(getNamespacedCustomObject).not.toHaveBeenCalled();
+    });
+
+    it('should prefer an installed OLM v1 extension over a stale OLM v0 entry', async () => {
+      mockSubscriptions([
+        // Stale OLM v0 entry first in the merged list (no backing CSV).
+        {
+          installedCSV: 'rhods-operator.v2.18.0',
+          installPlanRefNamespace: 'redhat-ods-operator',
+          source: 'OLMv0',
+        },
+        {
+          installedCSV: 'rhods-operator.v2.19.0',
+          packageName: 'rhods-operator',
+          installPlanRefNamespace: 'redhat-ods-operator',
+          source: 'OLMv1',
+          installed: true,
+        },
+      ]);
+      await expect(getCSVForApp(mockFastify, appDef)).resolves.toEqual({
+        metadata: { name: 'rhods-operator.v2.19.0', namespace: 'redhat-ods-operator' },
+      });
+      expect(getNamespacedCustomObject).not.toHaveBeenCalled();
+    });
+
+    it('should resolve undefined for an OLM v1 ClusterExtension that is not installed', async () => {
+      mockSubscriptions([
+        {
+          installedCSV: 'rhods-operator.v2.19.0',
+          installPlanRefNamespace: 'redhat-ods-operator',
+          source: 'OLMv1',
+          installed: false,
+        },
+      ]);
+      await expect(getCSVForApp(mockFastify, appDef)).resolves.toBeUndefined();
+      expect(getNamespacedCustomObject).not.toHaveBeenCalled();
+    });
+
+    it('should read the ClusterServiceVersion for an OLM v0 subscription', async () => {
+      mockSubscriptions([
+        {
+          installedCSV: 'rhods-operator.v2.19.0',
+          installPlanRefNamespace: 'redhat-ods-operator',
+          source: 'OLMv0',
+        },
+      ]);
+      getNamespacedCustomObject.mockResolvedValue({
+        body: { metadata: { name: 'rhods-operator.v2.19.0' }, status: { phase: 'Succeeded' } },
+      });
+      await expect(getCSVForApp(mockFastify, appDef)).resolves.toEqual(
+        expect.objectContaining({ status: { phase: 'Succeeded' } }),
+      );
+      expect(getNamespacedCustomObject).toHaveBeenCalledWith(
+        'operators.coreos.com',
+        'v1alpha1',
+        'redhat-ods-operator',
+        'clusterserviceversions',
+        'rhods-operator.v2.19.0',
+      );
     });
   });
 });
