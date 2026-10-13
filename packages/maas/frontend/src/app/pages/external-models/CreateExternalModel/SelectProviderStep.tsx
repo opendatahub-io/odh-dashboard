@@ -62,65 +62,55 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
               </FormHelperText>
             </StackItem>
             <StackItem>
-              <Stack hasGutter>
-                <StackItem>
-                  <Radio
-                    id="provider-source-existing"
-                    name="provider-source"
-                    label="Use existing provider"
-                    isChecked={providerSource === ProviderSource.EXISTING}
-                    isDisabled={!hasExistingProviders}
-                    onChange={() => onProviderSourceChange(ProviderSource.EXISTING)}
-                    data-testid="provider-source-existing"
-                    body={
-                      providerSource === ProviderSource.EXISTING && hasExistingProviders ? (
-                        <FormGroup
-                          label={<strong>Provider</strong>}
-                          fieldId="provider-ref-provider"
-                          isRequired
-                          hasNoPaddingTop
-                          isStack
-                        >
-                          <FormHelperText>
-                            <HelperText>
-                              <HelperTextItem>
-                                Select the provider that supplies the model endpoint and
-                                credentials.
-                              </HelperTextItem>
-                            </HelperText>
-                          </FormHelperText>
-                          <TypeaheadSelect
-                            dataTestId="provider-ref-provider-select"
-                            selectOptions={providerOptions}
-                            selected={providerName}
-                            onSelect={(_event, selection) =>
-                              onProviderNameChange(String(selection))
-                            }
-                            onClearSelection={() => onProviderNameChange('')}
-                            allowClear
-                            placeholder="Select a provider"
-                            previewDescription={false}
-                            isRequired={false}
-                            isScrollable
-                            toggleWidth="100%"
-                            popperProps={{ maxWidth: 'trigger' }}
-                            toggleProps={{ id: 'provider-ref-provider' }}
-                          />
-                        </FormGroup>
-                      ) : null
-                    }
-                  />
-                </StackItem>
-                {!hasExistingProviders && (
-                  <StackItem>
+              <Radio
+                id="provider-source-existing"
+                name="provider-source"
+                label="Use existing provider"
+                isChecked={providerSource === ProviderSource.EXISTING}
+                isDisabled={!hasExistingProviders}
+                onChange={() => onProviderSourceChange(ProviderSource.EXISTING)}
+                data-testid="provider-source-existing"
+                body={
+                  providerSource === ProviderSource.EXISTING && hasExistingProviders ? (
+                    <FormGroup
+                      label={<strong>Provider</strong>}
+                      fieldId="provider-ref-provider"
+                      isRequired
+                      hasNoPaddingTop
+                      isStack
+                    >
+                      <FormHelperText>
+                        <HelperText>
+                          <HelperTextItem>
+                            Select the provider that supplies the model endpoint and credentials.
+                          </HelperTextItem>
+                        </HelperText>
+                      </FormHelperText>
+                      <TypeaheadSelect
+                        dataTestId="provider-ref-provider-select"
+                        selectOptions={providerOptions}
+                        selected={providerName}
+                        onSelect={(_event, selection) => onProviderNameChange(String(selection))}
+                        onClearSelection={() => onProviderNameChange('')}
+                        allowClear
+                        placeholder="Select a provider"
+                        previewDescription={false}
+                        isRequired={false}
+                        isScrollable
+                        toggleWidth="100%"
+                        popperProps={{ maxWidth: 'trigger' }}
+                        toggleProps={{ id: 'provider-ref-provider' }}
+                      />
+                    </FormGroup>
+                  ) : !hasExistingProviders ? (
                     <HelperText data-testid="no-external-providers-helper">
                       <HelperTextItem>
                         No external providers exist. Create a new provider.
                       </HelperTextItem>
                     </HelperText>
-                  </StackItem>
-                )}
-              </Stack>
+                  ) : null
+                }
+              />
             </StackItem>
             <StackItem>
               <Radio
