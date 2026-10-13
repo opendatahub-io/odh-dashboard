@@ -168,7 +168,7 @@ describe('AutoragExperiments', () => {
       totalSize: 0,
     });
     mockUsePipelineServerStatus.mockReturnValue({
-      loaded: false,
+      loaded: true,
       isStarting: true,
       error: undefined,
     });
@@ -341,7 +341,7 @@ describe('AutoragExperiments', () => {
       error: new Error('Service Unavailable'),
     });
     mockUsePipelineServerStatus.mockReturnValue({
-      loaded: false,
+      loaded: true,
       isStarting: true,
       error: undefined,
     });
@@ -379,7 +379,7 @@ describe('AutoragExperiments', () => {
     mockGetGenericErrorCode.mockReturnValue(code);
     mockUsePipelineRuns.mockReturnValue({ ...defaultRunsState, error });
     mockUsePipelineServerStatus.mockReturnValue({
-      loaded: false,
+      loaded: true,
       isStarting: true,
       error: undefined,
     });
