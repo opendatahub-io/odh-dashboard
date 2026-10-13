@@ -112,6 +112,8 @@ const (
 	McpServersToolListPath        = McpServerPath + "/tools"
 	McpServerLogoPath             = McpServerPath + "/logo"
 	MCPServerConverterPath        = McpServerPath + "/mcpserver"
+	// Downstream-only: deploy prerequisites for a catalog MCP server.
+	McpServerDeployReadinessPath = McpServerPath + "/deploy_readiness"
 
 	// Swagger UI (interactive API docs)
 	SwaggerPath    = ApiPathPrefix + "/swagger"
@@ -155,6 +157,9 @@ const (
 	handlerMcpDeploymentUpdateID   HandlerID = "mcpDeployment:update"
 	handlerMcpDeploymentDeleteID   HandlerID = "mcpDeployment:delete"
 	handlerMCPServerConverterGetID HandlerID = "mcpServer:converter:get"
+
+	// MCP server deploy readiness handler - downstream-only
+	handlerMcpServerDeployReadinessGetID HandlerID = "mcpServer:deployReadiness:get"
 )
 
 type App struct {
@@ -464,6 +469,13 @@ func (app *App) Routes() http.Handler {
 			app.handlerWithOverride(handlerMCPServerConverterGetID, func() httprouter.Handle {
 				return app.AttachNamespace(app.AttachModelCatalogRESTClient(
 					app.EndpointNotImplementedHandler("MCPServer converter")))
+			}),
+		)
+		apiRouter.GET(
+			McpServerDeployReadinessPath,
+			app.handlerWithOverride(handlerMcpServerDeployReadinessGetID, func() httprouter.Handle {
+				return app.AttachNamespace(app.AttachModelCatalogRESTClient(
+					app.EndpointNotImplementedHandler("MCP server deploy readiness")))
 			}),
 		)
 
