@@ -10,10 +10,13 @@ import {
   ModalHeader,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, InProgressIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import { AgentDeploymentSummary } from '~/app/agentProfile/types';
 import { responseAPIURL, sortDeploymentsByMostRecent } from '~/app/agentProfile/deploymentUtils';
+import type { DeploymentDetailsViewedProperties } from '~/app/tracking/playgroundAgentTrackingConstants';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 import { genAiAgentProfileDetailRoute } from '~/app/utilities/routes';
 
 type AgentProfileEndpointsModalProps = {
@@ -23,6 +26,8 @@ type AgentProfileEndpointsModalProps = {
   deployments: AgentDeploymentSummary[];
   onClose: () => void;
 };
+
+const DEPLOYMENT_DETAILS_VIEWED_PROPERTIES: DeploymentDetailsViewedProperties = {};
 
 const formatDeploymentDate = (value: string): string => {
   const date = new Date(value);
@@ -127,6 +132,12 @@ const AgentProfileEndpointsModal: React.FC<AgentProfileEndpointsModalProps> = ({
                     <Button
                       variant="link"
                       component={(props) => <Link {...props} to={detailsPath} />}
+                      onClick={() =>
+                        fireMiscTrackingEvent(
+                          PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_DETAILS_VIEWED,
+                          DEPLOYMENT_DETAILS_VIEWED_PROPERTIES,
+                        )
+                      }
                       data-testid={`view-deployment-details-${deployment.name}`}
                     >
                       View details

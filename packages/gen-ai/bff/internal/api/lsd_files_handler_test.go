@@ -751,7 +751,7 @@ var _ = Describe("LlamaStackMediaFileUploadHandler", func() {
 		require.NoError(t, err)
 
 		data := resp["data"].(map[string]interface{})
-		assert.Equal(t, "file-mock123abc456def", data["id"])
+		assert.Equal(t, "file-abc123abc456def0", data["id"])
 		assert.Equal(t, "file", data["object"])
 		assert.Equal(t, "vision", data["type"])
 		assert.Equal(t, "processed", data["status"])
@@ -807,9 +807,10 @@ var _ = Describe("LlamaStackMediaFileUploadHandler", func() {
 		require.NoError(t, err)
 
 		data := resp["data"].(map[string]interface{})
-		assert.Equal(t, "file-mock123abc456def", data["id"])
+		assert.Equal(t, "file-abc123abc456def0", data["id"])
 		assert.Equal(t, "audio", data["type"])
 		assert.Equal(t, "processed", data["status"])
+		require.NoError(t, llamastack.ValidateFileID(data["id"].(string)))
 	})
 
 	It("should upload an MP3 audio file successfully with type=audio", func() {
@@ -835,7 +836,7 @@ var _ = Describe("LlamaStackMediaFileUploadHandler", func() {
 		require.NoError(t, err)
 
 		data := resp["data"].(map[string]interface{})
-		assert.Equal(t, "file-mock123abc456def", data["id"])
+		assert.Equal(t, "file-abc123abc456def0", data["id"])
 		assert.Equal(t, "audio", data["type"])
 	})
 
@@ -1114,6 +1115,36 @@ func TestMediaFileUploadHandler_PerTypeSizeExceeded(t *testing.T) {
 	assert.Equal(t, http.StatusRequestEntityTooLarge, rr.Code)
 }
 
+func TestMediaFileUploadHandler_WAVMimeVariants(t *testing.T) {
+	app := &App{
+		config: config.EnvConfig{APIPathPrefix: "/api/v1", AuthMethod: config.AuthMethodDisabled},
+		logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+	}
+
+	for _, mimeType := range []string{"audio/wave", "audio/x-wav", "audio/x-pn-wav"} {
+		t.Run(mimeType, func(t *testing.T) {
+			var body bytes.Buffer
+			writer := multipart.NewWriter(&body)
+			require.NoError(t, writer.WriteField("type", "audio"))
+			header := make(textproto.MIMEHeader)
+			header.Set("Content-Disposition", `form-data; name="file"; filename="recording.wav"`)
+			header.Set("Content-Type", mimeType)
+			part, err := writer.CreatePart(header)
+			require.NoError(t, err)
+			_, err = part.Write([]byte("RIFF\x00\x00\x00\x00WAVEfmt "))
+			require.NoError(t, err)
+			require.NoError(t, writer.Close())
+
+			req := httptest.NewRequest(http.MethodPost, constants.MediaFilesUploadPath+"?namespace=default", &body)
+			req.Header.Set("Content-Type", writer.FormDataContentType())
+			req = req.WithContext(context.WithValue(req.Context(), constants.LlamaStackClientKey, lsmocks.NewMockLlamaStackClient()))
+			rr := httptest.NewRecorder()
+			app.LlamaStackMediaFileUploadHandler(rr, req, nil)
+			assert.Equal(t, http.StatusOK, rr.Code)
+		})
+	}
+}
+
 func TestLlamaStackDocumentUploadHandler(t *testing.T) {
 	newRequest := func(t *testing.T, filename, contentType, contents string) (*http.Request, *lsmocks.MockLlamaStackClient) {
 		t.Helper()
@@ -1151,7 +1182,7 @@ func TestLlamaStackDocumentUploadHandler(t *testing.T) {
 			Data DocumentUploadResponse `json:"data"`
 		}
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &body))
-		assert.Equal(t, "file-mock123abc456def", body.Data.ID)
+		assert.Equal(t, "file-abc123abc456def0", body.Data.ID)
 		assert.Equal(t, "notes.txt", body.Data.Filename)
 		assert.Equal(t, "text/plain", body.Data.ContentType)
 		assert.Equal(t, "extracted document text", body.Data.Text)
@@ -1228,7 +1259,7 @@ func TestLlamaStackDocumentUploadHandler(t *testing.T) {
 		newApp().LlamaStackDocumentUploadHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
-		assert.Equal(t, []string{"file-mock123abc456def"}, client.DeletedFileIDs)
+		assert.Equal(t, []string{"file-abc123abc456def0"}, client.DeletedFileIDs)
 	})
 
 	t.Run("deletes an uploaded document when it contains no readable text", func(t *testing.T) {
@@ -1240,6 +1271,6 @@ func TestLlamaStackDocumentUploadHandler(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		assert.Contains(t, rr.Body.String(), "no readable text")
-		assert.Equal(t, []string{"file-mock123abc456def"}, client.DeletedFileIDs)
+		assert.Equal(t, []string{"file-abc123abc456def0"}, client.DeletedFileIDs)
 	})
 }

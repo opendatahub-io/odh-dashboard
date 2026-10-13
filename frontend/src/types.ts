@@ -125,13 +125,6 @@ export type BuildStatus = {
   timestamp: string;
 };
 
-export type SubscriptionStatusData = {
-  channel?: string;
-  installedCSV?: string;
-  installPlanRefNamespace?: string;
-  lastUpdated?: string;
-};
-
 type K8sMetadata = {
   name: string;
   namespace?: string;

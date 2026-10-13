@@ -50,6 +50,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableLMEval: boolean;
       disableFeatureStore: boolean;
       featureStoreAdmin: boolean;
+      dataRegistry: boolean;
       trainingJobs: boolean;
       genAiStudio: boolean;
       genAiTracing: boolean;
@@ -78,7 +79,6 @@ export type DashboardConfig = K8sResourceCommon & {
       promptManagement: boolean;
       globalProjectPrompts: boolean;
       gpuaas: boolean;
-      connectionTest: boolean;
       modelCapabilities: boolean;
       runtimeCatalog: boolean;
       observabilityDashboard: boolean;
@@ -275,6 +275,32 @@ export type CSVKind = {
   status: {
     phase?: string;
     reason?: string;
+  };
+} & K8sResourceCommon;
+
+// Minimal type for OLM v1 ClusterExtensions (olm.operatorframework.io/v1, cluster-scoped).
+// On OLM v1 clusters the install lifecycle is represented by a ClusterExtension instead of
+// an OLM Classic Subscription/CSV pair.
+export type ClusterExtensionKind = {
+  spec: {
+    namespace?: string;
+    source?: {
+      sourceType?: string;
+      catalog?: {
+        packageName?: string;
+        channels?: string[];
+        version?: string;
+      };
+    };
+  };
+  status?: {
+    install?: {
+      bundle?: {
+        name?: string;
+        version?: string;
+      };
+    };
+    conditions?: K8sCondition[];
   };
 } & K8sResourceCommon;
 
@@ -1051,8 +1077,17 @@ export type DataScienceClusterInitializationList = {
 export type SubscriptionStatusData = {
   channel?: string;
   installedCSV?: string;
+  // OLM package name (OLM v1 only). The installed bundle name is not guaranteed to be derived
+  // from the package name, so this is the stable identity used to match OLM v1 installs.
+  packageName?: string;
   installPlanRefNamespace?: string;
   lastUpdated?: string;
+  // Which OLM generation this entry was resolved from. Absent is treated as OLM v0 for
+  // backwards compatibility. OLM v1 entries are derived from a ClusterExtension and have
+  // no backing ClusterServiceVersion to read.
+  source?: 'OLMv0' | 'OLMv1';
+  // For OLM v1 entries only: whether the ClusterExtension reports a successful install.
+  installed?: boolean;
 };
 
 export type CronJobKind = {

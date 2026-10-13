@@ -472,7 +472,9 @@ const InfrastructurePage: React.FC = () => {
             className={
               tabInfo.layout === 'viewport'
                 ? 'pf-v6-u-px-lg gpuaas-infrastructure-tab--viewport'
-                : 'pf-v6-u-px-lg'
+                : tabInfo.id === 'workloads'
+                ? 'pf-v6-u-px-lg gpuaas-infrastructure-tab--workloads'
+                : 'pf-v6-u-px-lg gpuaas-infrastructure-tab--page'
             }
             key={tabInfo.id}
             id={getTabPanelId(tabInfo.id)}

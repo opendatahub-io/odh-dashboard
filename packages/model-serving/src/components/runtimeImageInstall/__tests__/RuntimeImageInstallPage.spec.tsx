@@ -22,7 +22,9 @@ const MockTarget: React.FC<RuntimeImageInstallTargetProps> = ({
   targetData,
 }) => (
   <div>
-    <span data-testid="target-payload">{JSON.stringify(targetData)}</span>
+    <span data-testid="target-payload">
+      {typeof targetData === 'string' ? targetData : JSON.stringify(targetData)}
+    </span>
     <button type="button" onClick={onBack}>
       Back to selection
     </button>
@@ -47,7 +49,7 @@ const servingTarget: RuntimeImageInstallTargetExtension = {
 const acceleratorTarget: RuntimeImageInstallTargetExtension = {
   type: 'model-serving.runtime-image/install-target',
   properties: {
-    id: 'llmAcceleratorConfiguration',
+    id: 'llmInferenceServiceConfig',
     label: 'LLM accelerator configuration',
     description: 'Install as an LLMInferenceServiceConfig for LLM inference service deployments.',
     selectedState: {
@@ -109,8 +111,8 @@ describe('RuntimeImageInstallPage', () => {
     renderPage({
       ...mockRuntimeImageActionData(),
       deploymentResources: {
-        llmAcceleratorConfiguration:
-          mockRuntimeImageActionData().deploymentResources.llmAcceleratorConfiguration,
+        llmInferenceServiceConfig:
+          mockRuntimeImageActionData().deploymentResources.llmInferenceServiceConfig,
       },
     });
     expect(
@@ -144,13 +146,29 @@ describe('RuntimeImageInstallPage', () => {
     expect(screen.getByText('Serving runtime templates')).toBeInTheDocument();
     expect(screen.queryByText('LLM accelerator configurations')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId('runtime-image-install-next'));
-    expect(await screen.findByTestId('target-payload')).toHaveTextContent('ServingRuntime');
+    expect(JSON.parse((await screen.findByTestId('target-payload')).textContent)).toEqual(
+      expect.objectContaining({
+        kind: 'Template',
+        objects: [expect.objectContaining({ kind: 'ServingRuntime' })],
+      }),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Back to selection' }));
     expect(screen.getByRole('radio', { name: /Serving runtime template/ })).toBeChecked();
     fireEvent.click(screen.getByTestId('runtime-image-install-next'));
     await screen.findByTestId('target-payload');
     fireEvent.click(screen.getByRole('link', { name: 'Cancel configuration' }));
     expect(screen.getByText('Returned to General settings')).toBeInTheDocument();
+  });
+
+  it('should hand off the full LLM resource JSON string using the renamed target key', async () => {
+    mockExtensions = [acceleratorTarget];
+    const data = mockRuntimeImageActionData();
+    renderPage(data);
+    fireEvent.click(screen.getByRole('radio', { name: /LLM accelerator configuration/ }));
+    fireEvent.click(screen.getByTestId('runtime-image-install-next'));
+    expect((await screen.findByTestId('target-payload')).textContent).toBe(
+      data.deploymentResources.llmInferenceServiceConfig,
+    );
   });
 
   it('should use the first duplicate target extension', () => {

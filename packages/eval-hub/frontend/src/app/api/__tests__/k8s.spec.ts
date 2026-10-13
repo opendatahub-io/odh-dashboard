@@ -17,6 +17,7 @@ import {
   getEvalHubCRStatus,
   validateHardwareProfiles,
   getKueueWorkloadStatuses,
+  getEvaluationJobs,
   getEvaluationJob,
   getProviders,
   createEvaluationJob,
@@ -455,6 +456,14 @@ describe('deleteCollection', () => {
     await expect(deleteCollection('', 'my-ns', 'col-1')({})).resolves.toBeUndefined();
   });
 
+  it('should reject when the BFF returns an error body', async () => {
+    mockRestDELETE.mockResolvedValue('{"message":"Delete failed"}');
+
+    await expect(deleteCollection('', 'my-ns', 'col-1')({})).rejects.toThrow(
+      '{"message":"Delete failed"}',
+    );
+  });
+
   it('should encode the collection ID in the URL', async () => {
     mockRestDELETE.mockResolvedValue({});
 
@@ -548,6 +557,24 @@ describe('cloneCollection', () => {
     await expect(
       cloneCollection('', 'test-ns', 'col-1', { name: 'Cloned suite' })({}),
     ).rejects.toThrow('Invalid collection: benchmarks contains an invalid entry');
+  });
+
+  it('should send an empty override object when cloning a collection as-is', async () => {
+    const collection = {
+      name: 'Cloned suite',
+      resource: { id: 'cloned-col-1' },
+    };
+    mockRestCREATE.mockResolvedValue({ data: collection });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(cloneCollection('', 'test-ns', 'col-1', {})({})).resolves.toEqual(collection);
+    expect(mockRestCREATE).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections/col-1/clones',
+      {},
+      { namespace: 'test-ns' },
+      {},
+    );
   });
 });
 
@@ -1073,6 +1100,33 @@ describe('getProviders', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].benchmarks).toBeUndefined();
+  });
+});
+
+describe('getEvaluationJobs', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should bypass cached responses while preserving request options', async () => {
+    mockRestGET.mockResolvedValue({ data: { items: [] } });
+    mockIsModArchResponse.mockReturnValue(true);
+    const opts = { headers: { 'X-Test': 'value' } };
+
+    await getEvaluationJobs('', { namespace: 'my-ns' })(opts);
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/jobs',
+      { namespace: 'my-ns' },
+      {
+        headers: {
+          'X-Test': 'value',
+          'Cache-Control': 'no-cache',
+        },
+      },
+    );
   });
 });
 

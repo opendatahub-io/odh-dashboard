@@ -120,11 +120,11 @@ class ChatbotPage {
   }
 
   findAsrModelToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('asr-model-selector-toggle');
+    return cy.findByTestId('transcription-model-selector');
   }
 
   findAsrModelOption(modelId: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId(`asr-model-option-${modelId}`);
+    return cy.findByTestId(`all-model-option-${modelId}`);
   }
 
   findStopButton(): Cypress.Chainable<JQuery<HTMLElement>> {

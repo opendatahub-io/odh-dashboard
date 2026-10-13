@@ -21,6 +21,9 @@ export const initialBenchmarkFilterData: BenchmarkFilterDataType = {
 
 export const SUITE_EVALUATES_OPTIONS = ['agent', 'guardrails', 'model', 'traces'] as const;
 
+// TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+export const MODEL_EVALUATION_TARGETS = ['model'] as const;
+
 // TODO: Enable Guardrails and Traces when the backend supports creating suites for those targets.
 export const SUITE_EVALUATES_MENU_OPTIONS = [
   'agent',

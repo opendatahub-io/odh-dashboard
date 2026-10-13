@@ -2,10 +2,13 @@ import * as React from 'react';
 import type { Collection } from '~/app/types';
 import { useProviders } from '~/app/hooks/useProviders';
 import type { BenchmarkWithProvider } from '~/app/components/CollectionDrawerPanel';
+import { getBenchmarkNameMap } from '~/app/components/benchmarkUtils';
+import type { BenchmarkNameMap } from '~/app/components/benchmarkUtils';
 
 type UseCollectionDrawerResult = {
   selectedCollection: Collection | undefined;
   benchmarkDetailsMap: Map<string, BenchmarkWithProvider>;
+  benchmarkNameMap: BenchmarkNameMap;
   selectCollection: (collection: Collection) => void;
   closeDrawer: () => void;
 };
@@ -27,6 +30,7 @@ export const useCollectionDrawer = (namespace: string): UseCollectionDrawerResul
     });
     return map;
   }, [providers]);
+  const benchmarkNameMap = React.useMemo(() => getBenchmarkNameMap(providers), [providers]);
 
   const selectCollection = React.useCallback((collection: Collection) => {
     setSelectedCollection((current) =>
@@ -38,5 +42,11 @@ export const useCollectionDrawer = (namespace: string): UseCollectionDrawerResul
     setSelectedCollection(undefined);
   }, []);
 
-  return { selectedCollection, benchmarkDetailsMap, selectCollection, closeDrawer };
+  return {
+    selectedCollection,
+    benchmarkDetailsMap,
+    benchmarkNameMap,
+    selectCollection,
+    closeDrawer,
+  };
 };

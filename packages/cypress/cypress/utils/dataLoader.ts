@@ -25,6 +25,7 @@ import type {
   KueueWorkbenchLifecycleTestData,
   KueueQuotaUsageNavigationTestData,
   PromptManagementTestData,
+  MlflowAgentObservabilityTestData,
   MlflowExperimentsTestData,
   ModelAsAServiceTestData,
   ExternalModelTestData,
@@ -252,6 +253,15 @@ export const loadMlflowExperimentsFixture = (
 ): Cypress.Chainable<MlflowExperimentsTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as MlflowExperimentsTestData;
+
+    return data;
+  });
+
+export const loadMlflowAgentObservabilityFixture = (
+  fixturePath: string,
+): Cypress.Chainable<MlflowAgentObservabilityTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as MlflowAgentObservabilityTestData;
 
     return data;
   });

@@ -83,8 +83,8 @@ func TestReconcileModuleDemand_WhenNeitherOperandRequiresModules(t *testing.T) {
 		ApplicationsNamespace: testNamespace,
 	}
 	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{
-		ManagementSpec:     common.ManagementSpec{ManagementState: "Removed"},
-		MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Removed"},
+		ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
+		MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Removed"},
 	}}
 
 	statuses, err := reconciler.ReconcileModuleDemand(context.Background(), dashboard)

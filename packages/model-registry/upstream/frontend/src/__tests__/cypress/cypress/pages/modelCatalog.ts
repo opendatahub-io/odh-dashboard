@@ -505,8 +505,24 @@ class ModelCatalog {
     return cy.findByTestId('model-catalog-category-sort-dropdown');
   }
 
+  findSingleCategoryHeader() {
+    return cy.findByTestId('single-category-header');
+  }
+
   selectSortOption(testId: string) {
     this.findSortDropdown().click();
+    cy.findByTestId(testId).click();
+    return this;
+  }
+
+  selectAnySortOption(testId: string) {
+    cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="model-catalog-sort-dropdown"]').length) {
+        this.findSortDropdown().click();
+      } else {
+        this.findCategorySortDropdown().click();
+      }
+    });
     cy.findByTestId(testId).click();
     return this;
   }

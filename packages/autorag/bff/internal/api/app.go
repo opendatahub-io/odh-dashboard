@@ -2,6 +2,7 @@ package api
 
 import (
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
 	k8sclient "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 
@@ -47,6 +49,31 @@ const (
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
 var staticAssetPattern = regexp.MustCompile(`(?i)\.(woff2?|ttf|eot|png|jpe?g|gif|svg|ico|webp|avif|bmp)$`)
+
+var getKubeconfig = helper.GetKubeconfig
+var newK8sClientset = func(restCfg *rest.Config) (k8sclient.Interface, error) {
+	return k8sclient.NewForConfig(restCfg)
+}
+var newPortForwardManager = k8s.NewPortForwardManager
+
+func initPortForwardManager(cfg config.EnvConfig, logger *slog.Logger) *k8s.PortForwardManager {
+	if !cfg.DevMode || cfg.MockK8sClient {
+		return nil
+	}
+
+	restCfg, err := getKubeconfig()
+	if err != nil {
+		logger.Warn("could not initialize dynamic port-forwarding", "error", err)
+		return nil
+	}
+	clientset, err := newK8sClientset(restCfg)
+	if err != nil {
+		logger.Warn("could not initialize dynamic port-forwarding", "error", err)
+		return nil
+	}
+	logger.Info("dynamic port-forwarding enabled — in-cluster URLs will be forwarded to localhost")
+	return newPortForwardManager(restCfg, clientset, logger)
+}
 
 func isHashedAsset(filePath string) bool {
 	match := hashPattern.FindString(path.Base(filePath))
@@ -86,9 +113,13 @@ type App struct {
 	s3          *S3Handler
 	pipelines   *PipelinesHandler
 	maas        *MaaSHandler
+	responses   *ResponsesHandler
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
 	logger.Debug("Initializing app with config", slog.Any("config", cfg))
 	var err error
 	var rootCAs *x509.CertPool
@@ -135,21 +166,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	// ForwardURL call sites in the middleware are no-ops.
 	// Uses the BFF's own kubeconfig credentials (not per-request user tokens)
 	// since port-forwards are long-lived and shared across requests.
-	var pfManager *k8s.PortForwardManager
-	if cfg.DevMode && !cfg.MockK8sClient {
-		restCfg, pfErr := helper.GetKubeconfig()
-		if pfErr != nil {
-			logger.Warn("could not initialize dynamic port-forwarding", "error", pfErr)
-		} else {
-			clientset, csErr := k8sclient.NewForConfig(restCfg)
-			if csErr != nil {
-				logger.Warn("could not initialize dynamic port-forwarding", "error", csErr)
-			} else {
-				pfManager = k8s.NewPortForwardManager(restCfg, clientset, logger)
-				logger.Info("dynamic port-forwarding enabled — in-cluster URLs will be forwarded to localhost")
-			}
-		}
-	}
+	pfManager := initPortForwardManager(cfg, logger)
 
 	// Create autox-core Kubernetes client and service.
 	var k8sClient kubernetes.Client
@@ -208,17 +225,32 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	s3Service := s3.NewService(s3.ServiceConfig{Logger: logger}, s3Client)
 
 	var maasClient maas.MaaSClientInterface
+	maasCfg := maas.MaaSClientConfig{
+		InsecureSkipVerify: cfg.InsecureSkipVerify,
+		RootCAs:            rootCAs,
+	}
+	if pfManager != nil {
+		maasCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
+	}
+	maasHTTPClient := maas.NewDefaultHTTPClient(maasCfg)
 	if cfg.MockMaaSClient {
 		maasClient = &fake.MaaSClient{}
 	} else {
-		maasCfg := maas.MaaSClientConfig{
-			InsecureSkipVerify: cfg.InsecureSkipVerify,
-			RootCAs:            rootCAs,
+		maasClient = maas.NewMaaSClient(maasHTTPClient)
+	}
+
+	// The Responses repository uses the same configured MaaS transport as discovery.
+	responsesFactory := maas.NewClientFactoryWithHTTPClient(maasHTTPClient)
+	if cfg.MockMaaSClient {
+		responsesFactory = func(string, string) (*maas.Client, error) {
+			return nil, errors.New("MaaS Responses are unavailable with the mock MaaS client")
 		}
-		if pfManager != nil {
-			maasCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
-		}
-		maasClient = maas.NewDefaultMaaSClient(maasCfg)
+	}
+	var responsesRepo *repositories.ResponsesRepository
+	if pfManager != nil {
+		responsesRepo = repositories.NewResponsesRepositoryWithMaaSClientFactory(logger, k8sService, responsesFactory, pfManager)
+	} else {
+		responsesRepo = repositories.NewResponsesRepositoryWithMaaSClientFactory(logger, k8sService, responsesFactory)
 	}
 
 	app := &App{
@@ -256,6 +288,10 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		maas: &MaaSHandler{
 			logger: logger,
 			repo:   repositories.NewMaaSRepository(logger, maasClient, k8sService),
+		},
+		responses: &ResponsesHandler{
+			logger: logger,
+			repo:   responsesRepo,
 		},
 	}
 	return app, nil
@@ -310,6 +346,9 @@ func (app *App) Routes() http.Handler {
 	// Managed pipelines — list discovered pipelines / enable AutoRAG pipeline definitions on an existing DSPA
 	apiRouter.GET(ManagedPipelinesListPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.ListManagedPipelinesHandler)))
 	apiRouter.POST(ManagedPipelinesPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.EnableManagedPipelinesHandler)))
+
+	// RAG responses — vector search + MaaS generation
+	apiRouter.POST(ApiPathPrefix+"/responses", app.mw.AttachNamespace(app.mw.RequireAccessToService(app.responses.HandleResponsesEndpoint)))
 
 	// App Router
 	appMux := http.NewServeMux()

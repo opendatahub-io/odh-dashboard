@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: maas-portal-perses
+spec:
+  podSelector:
+    matchLabels:
+      deployment: maas-portal
+  policyTypes:
+    - Egress
+  egress:
+    # Custom service names, namespaces, and service ports are supported, but
+    # backing pods must retain this label and listen on TCP 8080 (targetPort).
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: perses-namespace
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/managed-by: perses-operator
+      ports:
+        - protocol: TCP
+          port: 8080
