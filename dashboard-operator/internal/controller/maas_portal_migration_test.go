@@ -434,6 +434,85 @@ func migrationReadyDeployment() *appsv1.Deployment {
 	}
 }
 
+func TestMaaSPortalRenamedRouteWaitsForBrowserPrefixRollout(t *testing.T) {
+	tests := []struct {
+		name              string
+		mutate            func(*appsv1.Deployment)
+		missingDeployment bool
+		missingConfig     bool
+		allowed           bool
+	}{
+		{name: "rollout complete", allowed: true},
+		{name: "healthy old replica but no updated replica", mutate: func(deployment *appsv1.Deployment) {
+			deployment.Status.UpdatedReplicas = 0
+		}},
+		{name: "old replica remains", mutate: func(deployment *appsv1.Deployment) {
+			deployment.Status.Replicas = 2
+		}},
+		{name: "stale observed generation", mutate: func(deployment *appsv1.Deployment) {
+			deployment.Status.ObservedGeneration--
+		}},
+		{name: "missing federation hash", mutate: func(deployment *appsv1.Deployment) {
+			deployment.Spec.Template.Annotations = nil
+		}},
+		{name: "outdated federation hash", mutate: func(deployment *appsv1.Deployment) {
+			deployment.Spec.Template.Annotations[maasPortalFederationHashAnnotation] = computeFederationConfigHash(`{"modules":["maas"]}`)
+		}},
+		{name: "missing deployment", missingDeployment: true},
+		{name: "missing federation config", missingConfig: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			path := "/maas-consumer-portal"
+			route := &gatewayv1.HTTPRoute{ObjectMeta: metav1.ObjectMeta{Name: maasPortalDeploymentName, Namespace: maasPortalTestNamespace},
+				Spec: gatewayv1.HTTPRouteSpec{Rules: []gatewayv1.HTTPRouteRule{{Matches: []gatewayv1.HTTPRouteMatch{{Path: &gatewayv1.HTTPPathMatch{Value: &path}}}}}}}
+			objects := []client.Object{route}
+			if !tt.missingDeployment {
+				deployment := migrationReadyDeployment()
+				if tt.mutate != nil {
+					tt.mutate(deployment)
+				}
+				objects = append(objects, deployment)
+			}
+			if !tt.missingConfig {
+				objects = append(objects, migrationFederationConfig())
+			}
+			cli := fake.NewClientBuilder().WithScheme(maasPortalScheme(t)).WithObjects(objects...).Build()
+			r := &DashboardReconciler{Client: cli, APIReader: cli, ApplicationsNamespace: maasPortalTestNamespace}
+			allowed, err := r.prepareMaaSPortalRouteMigration(ctx)
+			require.NoError(t, err)
+			assert.Equal(t, tt.allowed, allowed)
+			current := &gatewayv1.HTTPRoute{}
+			require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(route), current), "update the renamed route in place rather than deleting it")
+			assert.Equal(t, route.Spec, current.Spec, "retain the old browser prefix until cutover")
+			assert.Nil(t, current.DeletionTimestamp)
+			if !tt.allowed {
+				result, err := r.deployMaaSPortalRoute(ctx, &v1alpha1.Dashboard{}, nil)
+				require.NoError(t, err)
+				assert.True(t, result.Pending, "route deployment must report pending while the prefix migration is blocked")
+			}
+		})
+	}
+}
+
+func TestMaaSPortalRouteWithoutPrefixMigrationDoesNotWaitForRollout(t *testing.T) {
+	for _, path := range []string{"", "/maas-portal", "/maas-consumer-portal-other"} {
+		t.Run(path, func(t *testing.T) {
+			var objects []client.Object
+			if path != "" {
+				objects = append(objects, &gatewayv1.HTTPRoute{ObjectMeta: metav1.ObjectMeta{Name: maasPortalDeploymentName, Namespace: maasPortalTestNamespace},
+					Spec: gatewayv1.HTTPRouteSpec{Rules: []gatewayv1.HTTPRouteRule{{Matches: []gatewayv1.HTTPRouteMatch{{Path: &gatewayv1.HTTPPathMatch{Value: &path}}}}}}})
+			}
+			cli := fake.NewClientBuilder().WithScheme(maasPortalScheme(t)).WithObjects(objects...).Build()
+			r := &DashboardReconciler{Client: cli, APIReader: cli, ApplicationsNamespace: maasPortalTestNamespace}
+			allowed, err := r.prepareMaaSPortalRouteMigration(context.Background())
+			require.NoError(t, err)
+			assert.True(t, allowed, "fresh installations and routes without the retired prefix must not require a completed rollout")
+		})
+	}
+}
+
 func TestMaaSPortalRouteMigrationRolloutBoundaries(t *testing.T) {
 	tests := []struct {
 		name    string

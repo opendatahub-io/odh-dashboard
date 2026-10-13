@@ -15,6 +15,7 @@ import { ChatbotFootnote, FileDetailsLabel, MessageBar } from '@patternfly/chatb
 import { FileRejection } from 'react-dropzone';
 import { OutlinedFileImageIcon, VolumeUpIcon, OutlinedFileAltIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import {
   VISION_UPLOAD_CONFIG,
   DOCUMENT_ATTACHMENT_CONFIG,
@@ -25,7 +26,13 @@ import {
 import { DocumentAttachment } from '~/app/types';
 import { AudioTranscriptionState } from '~/app/Chatbot/hooks/useAudioTranscription';
 import { getDocumentAttachmentTypeLabel } from '~/app/Chatbot/documentAttachmentUtils';
+import AudioAttachmentTile from '~/app/Chatbot/components/AudioAttachmentTile';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
+import {
+  getDocumentTrackingFileType,
+  PLAYGROUND_DOCUMENT_EVENTS,
+} from '~/app/tracking/playgroundDocumentTrackingConstants';
+import { fireDocumentAttachedEvent } from '~/app/tracking/playgroundDocumentTrackingEvents';
 import RhUiResourceIcon from '~/app/bgimages/rh-ui-resource-icon.svg';
 import './ChatbotMessageInput.scss';
 
@@ -127,7 +134,24 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
   const audioPhase = audioTranscriptionState?.phase || 'idle';
   const isAudioActive = audioPhase === 'uploading' || audioPhase === 'transcribing';
   const showAudioChip =
-    isAudioActive || audioPhase === 'ready' || audioPhase === 'waiting-for-model';
+    isAudioActive ||
+    audioPhase === 'ready' ||
+    audioPhase === 'waiting-for-model' ||
+    (audioPhase === 'error' && !!audioTranscriptionState?.previewFile);
+  const previewAudioFile =
+    audioPhase !== 'idle'
+      ? (audioTranscriptionState?.previewFile ?? audioTranscriptionState?.file)
+      : null;
+  const [audioPreview, setAudioPreview] = React.useState<{ file: File; url: string } | null>(null);
+
+  React.useEffect(() => {
+    if (!previewAudioFile) {
+      return undefined;
+    }
+    const url = URL.createObjectURL(previewAudioFile);
+    setAudioPreview({ file: previewAudioFile, url });
+    return () => URL.revokeObjectURL(url);
+  }, [previewAudioFile]);
 
   // PatternFly MessageBar only reads the `value` prop at mount time (internal useState).
   // When messageBarValue changes programmatically (e.g. from transcription), we must
@@ -255,6 +279,24 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
       const errors: string[] = [];
       const accepted: File[] = [];
 
+      const trackValidationFailure = (file: File, error: 'unsupportedType' | 'fileTooLarge') => {
+        const documentFileType = getDocumentTrackingFileType(file.name);
+        fireDocumentAttachedEvent({
+          success: false,
+          outcome: TrackingOutcome.submit,
+          documentCountAdded: 0,
+          documentFileTypes: [documentFileType],
+          source: 'filePicker',
+          error,
+        });
+        fireMiscTrackingEvent(PLAYGROUND_DOCUMENT_EVENTS.PROCESSING_FAILED, {
+          error,
+          documentFileType,
+          documentCount: files.length,
+          stage: 'clientValidation',
+        });
+      };
+
       for (const file of files) {
         const extension = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
         const extensionMime = Object.entries(DOCUMENT_ATTACHMENT_CONFIG.EXTENSION_TO_MIME).find(
@@ -263,12 +305,14 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
         const resolvedMime =
           file.type && allowedMimes.includes(file.type) ? file.type : extensionMime || '';
         if (file.size > DOCUMENT_ATTACHMENT_CONFIG.MAX_FILE_SIZE) {
+          trackValidationFailure(file, 'fileTooLarge');
           errors.push(
             `${file.name}: File size exceeds ${
               DOCUMENT_ATTACHMENT_CONFIG.MAX_FILE_SIZE / (1024 * 1024)
             }MB`,
           );
         } else if (!allowedExtensions.includes(extension) || !allowedMimes.includes(resolvedMime)) {
+          trackValidationFailure(file, 'unsupportedType');
           errors.push(
             `${file.name}: File type not supported. Accepted types: ${DOCUMENT_ATTACHMENT_CONFIG.ACCEPTED_EXTENSIONS}`,
           );
@@ -436,13 +480,17 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
             />
           )}
           {showAudioChip && audioTranscriptionState && (
-            <FileDetailsLabel
+            <AudioAttachmentTile
               fileName={audioTranscriptionState.fileName}
+              src={
+                previewAudioFile && audioPreview?.file === previewAudioFile
+                  ? audioPreview.url
+                  : undefined
+              }
               isLoading={isAudioActive}
-              onClose={audioPhase === 'ready' ? onAudioDiscard : onAudioCancel}
-              hasTruncation
-              variant="outline"
-              data-testid="audio-file-chip"
+              onRemove={audioPhase === 'ready' ? onAudioDiscard : onAudioCancel}
+              testId="audio-file-chip"
+              playerTestId="pending-audio-player"
             />
           )}
         </div>

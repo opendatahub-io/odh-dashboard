@@ -47,12 +47,12 @@ describe('K8sSdkProvider', () => {
   });
 
   it('should keep WebSocket requests under the portal mount point', async () => {
-    renderProvider(<div>content</div>, '/maas-consumer-portal');
+    renderProvider(<div>content</div>, '/maas-portal');
     const settings = await getConfigurations(0).wsAppSettings({ path: '/api/v1/pods' });
     expect(settings.host).toBe(
       `${window.location.protocol.replace(/^http/i, 'ws')}//${
         window.location.host
-      }/maas-consumer-portal/wss/k8s`,
+      }/maas-portal/wss/k8s`,
     );
   });
 
