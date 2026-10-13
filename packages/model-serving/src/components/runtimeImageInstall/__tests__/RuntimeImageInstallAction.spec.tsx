@@ -3,12 +3,12 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import RuntimeImageInstallAction from '../RuntimeImageInstallAction';
-import { mockRuntimeImageActionData } from '../mockRuntimeImageActionData';
-import { PLACEHOLDER_INSTALL_PATH } from '../const';
+import { mockRuntimeImageActionData } from '../../../__mocks__/mockRuntimeImageActionData';
+import { RUNTIME_IMAGE_INSTALL_ROUTE } from '../const';
 
 const StateView: React.FC = () => {
-  const { state } = useLocation();
-  return <span data-testid="route-data">{JSON.stringify(state)}</span>;
+  const { state, pathname } = useLocation();
+  return <span data-testid="route-data">{JSON.stringify({ pathname, state })}</span>;
 };
 
 describe('RuntimeImageInstallAction', () => {
@@ -20,7 +20,7 @@ describe('RuntimeImageInstallAction', () => {
             path="/dummy-origin-route"
             element={<RuntimeImageInstallAction actionData={mockRuntimeImageActionData()} />}
           />
-          <Route path={PLACEHOLDER_INSTALL_PATH} element={<StateView />} />
+          <Route path={RUNTIME_IMAGE_INSTALL_ROUTE} element={<StateView />} />
         </Routes>
       </MemoryRouter>,
     );
@@ -31,7 +31,11 @@ describe('RuntimeImageInstallAction', () => {
     ).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('runtime-image-install'));
     expect(screen.getByTestId('route-data')).toHaveTextContent(
-      JSON.stringify({ actionData: mockRuntimeImageActionData() }),
+      JSON.stringify({
+        pathname:
+          '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog/preview-vllm-0-6-0/install',
+        state: { actionData: mockRuntimeImageActionData() },
+      }),
     );
   });
 });
