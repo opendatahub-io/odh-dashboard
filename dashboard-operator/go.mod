@@ -3,6 +3,7 @@ module github.com/opendatahub-io/odh-dashboard/dashboard-operator
 go 1.26.5
 
 require (
+	github.com/distribution/reference v0.6.0
 	github.com/opendatahub-io/odh-platform-utilities v0.4.0
 	github.com/opendatahub-io/odh-platform-utilities/framework v0.1.0
 	github.com/opendatahub-io/operator-chaos v0.0.0-20260521100204-4dab974d613c
@@ -29,7 +30,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/distribution/reference v0.6.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
