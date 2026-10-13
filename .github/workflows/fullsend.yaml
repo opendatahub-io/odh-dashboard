@@ -42,14 +42,16 @@ jobs:
     name: Plan host adapters
     # These jobs run a paid CodeRabbit review and a credentialed Jira fetch, and
     # `dispatch` needs them, so they finish before Route picks a stage. Anything
-    # admitted here that the review stage does not consume is wasted spend. Route
-    # only accepts `labeled` for `ready-for-review`, so match that: applying
-    # `fullsend` itself used to burn a full review that nothing consumed. A
+    # admitted here that the review stage does not consume is wasted spend. A
     # `changes_requested` review routes to the fix stage, which never reads
     # adapter context, so it is not admitted here.
+    # Fullsend reviews all non-draft PRs (no opt-in `fullsend` label). Drafts
+    # are skipped on open/sync; draft→ready (`ready_for_review` event) or the
+    # `ready-for-review` label starts review. `/fs-review` is the explicit
+    # opt-in for drafts (and a manual re-run).
     if: >-
       (github.event_name == 'pull_request_target'
-       && contains(github.event.pull_request.labels.*.name, 'fullsend')
+       && github.event.pull_request.draft == false
        && (github.event.action == 'opened'
         || github.event.action == 'synchronize'
         || github.event.action == 'ready_for_review'
@@ -211,10 +213,10 @@ jobs:
 
   dispatch:
     needs: [adapter-plan, adapter-context]
-    # Same event filter as adapter-plan so unrelated labels (e.g. approved) or
-    # bot reviews do not burn a Route/dispatch when nothing will act on them.
-    # always()+!cancelled() still lets Route run when adapters were skipped
-    # or failed (or when this run was cancelled).
+    # Review-path filter matches adapter-plan (non-draft open/sync/ready/label,
+    # or `/fs-review`). Fix-path events do not need adapters.
+    # always()+!cancelled() still lets Route run when adapters were skipped or
+    # failed (or when this run was cancelled).
     if: >-
       always()
       && !cancelled()
@@ -222,14 +224,13 @@ jobs:
        || github.event.pull_request.head.ref != 'fullsend/scaffold-install')
       && (
         (github.event_name == 'pull_request_target'
-         && contains(github.event.pull_request.labels.*.name, 'fullsend')
+         && github.event.pull_request.draft == false
          && (github.event.action == 'opened'
           || github.event.action == 'synchronize'
           || github.event.action == 'ready_for_review'
           || (github.event.action == 'labeled'
            && github.event.label.name == 'ready-for-review')))
         || (github.event_name == 'pull_request_review'
-         && contains(github.event.pull_request.labels.*.name, 'fullsend')
          && github.event.review.state == 'changes_requested')
         || (github.event_name == 'issue_comment'
          && github.event.issue.pull_request
