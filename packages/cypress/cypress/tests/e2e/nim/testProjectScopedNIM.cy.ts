@@ -108,7 +108,7 @@ describe('A user can deploy a project-scoped NIM', () => {
   it(
     'Enable NIM from Settings, then deploy a NIM model from the Models tab',
     {
-      tags: ['@Dashboard', '@ModelServing', '@NIM', '@NIMServingCI', '@Featureflagged'],
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NIM', '@NIMServingCI'],
     },
     () => {
       cy.step('Log in as odh-admin and open the project Settings tab');
