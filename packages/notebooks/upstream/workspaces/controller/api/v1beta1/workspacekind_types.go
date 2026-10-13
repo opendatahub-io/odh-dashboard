@@ -576,7 +576,7 @@ type ImageConfigValue struct {
 type ImageConfigSpec struct {
 	// the container image to use
 	// +kubebuilder:validation:MinLength:=2
-	// +kubeflow:example="ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.7.0@sha256:6bf26b8dd45fc0f54aa3d85a141f80967e73d64d8a980f367c1e67a10b0e31a1"
+	// +kubeflow:example="ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy@sha256:6bf26b8dd45fc0f54aa3d85a141f80967e73d64d8a980f367c1e67a10b0e31a1"
 	Image string `json:"image"`
 
 	// the pull policy for the container image
