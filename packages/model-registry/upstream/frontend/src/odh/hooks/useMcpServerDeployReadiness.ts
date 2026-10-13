@@ -12,7 +12,7 @@ import { getMcpServerDeployReadiness } from '~/odh/api/mcpCatalogDeployment/serv
 import { McpServerDeployReadiness } from '~/odh/types/mcpDeploymentTypes';
 
 /**
- * Fetches the deploy prerequisites for a catalog MCP server. While a server is blocked (or
+ * Fetches the deploy prerequisites for a catalog MCP server. While a server is not deployable (or
  * the check fails) it re-checks on an interval, so Deploy becomes available without a page
  * reload once an administrator sets up the missing prerequisite. Servers that don't require
  * a gateway are never polled.
@@ -33,13 +33,18 @@ const useMcpServerDeployReadiness = (
       if (!serverId) {
         return Promise.reject(new NotReadyError('No server id'));
       }
+      // A superseded (aborted) request must not change polling for the current server.
       return getMcpServerDeployReadiness('', queryParams)(opts, serverId).then(
         (readiness) => {
-          setShouldPoll(readiness.gatewayRequired && !readiness.deployable);
+          if (!opts.signal?.aborted) {
+            setShouldPoll(!readiness.deployable);
+          }
           return readiness;
         },
         (error) => {
-          setShouldPoll(true);
+          if (!opts.signal?.aborted) {
+            setShouldPoll(true);
+          }
           throw error;
         },
       );

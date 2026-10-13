@@ -20,6 +20,15 @@ const READINESS_TOOLTIPS: Record<McpDeployReadinessReason, string> = {
   [McpDeployReadinessReason.GATEWAY_STATUS_UNAVAILABLE]:
     'This MCP server requires an MCP gateway, but MCP gateway availability could not be determined. Try again later or contact your cluster administrator.',
 };
+// The reason comes from the BFF as JSON; fall back for values this UI doesn't know yet.
+const isReadinessReason = (reason?: string): reason is McpDeployReadinessReason =>
+  !!reason && Object.values<string>(McpDeployReadinessReason).includes(reason);
+
+const getReadinessTooltip = (reason?: string): string =>
+  isReadinessReason(reason)
+    ? READINESS_TOOLTIPS[reason]
+    : READINESS_TOOLTIPS[McpDeployReadinessReason.GATEWAY_STATUS_UNAVAILABLE];
+
 type DeployButtonState = {
   enabled: boolean;
   loading: boolean;
@@ -71,14 +80,12 @@ const McpServerDeployAction: React.FC<{
     if (!readinessLoaded || !readiness) {
       return { enabled: false, loading: true, tooltip: 'Checking MCP server availability...' };
     }
-    if (readiness.gatewayRequired && !readiness.deployable) {
+    if (!readiness.deployable) {
       return {
         enabled: false,
         loading: false,
-        tooltip: readiness.reason
-          ? READINESS_TOOLTIPS[readiness.reason]
-          : READINESS_TOOLTIPS[McpDeployReadinessReason.GATEWAY_STATUS_UNAVAILABLE],
-        showGatewayDocs: true,
+        tooltip: getReadinessTooltip(readiness.reason),
+        showGatewayDocs: readiness.gatewayRequired,
       };
     }
     return { enabled: true, loading: false };

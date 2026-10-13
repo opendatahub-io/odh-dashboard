@@ -153,6 +153,31 @@ describe('McpServerDeployAction', () => {
     openSpy.mockRestore();
   });
 
+  it('should fall back to a generic explanation for an unknown reason', async () => {
+    setReadiness(
+      {
+        gatewayRequired: true,
+        deployable: false,
+        reason: 'SOMETHING_NEW' as McpDeployReadinessReason,
+      },
+      true,
+    );
+    renderAction();
+
+    expect(getButton()).toHaveAttribute('aria-disabled', 'true');
+    await expectTooltip(
+      'This MCP server requires an MCP gateway, but MCP gateway availability could not be determined. Try again later or contact your cluster administrator.',
+    );
+  });
+
+  it('should block Deploy without a gateway docs link when not deployable for another reason', () => {
+    setReadiness({ gatewayRequired: false, deployable: false }, true);
+    renderAction();
+
+    expect(getButton()).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.queryByTestId('mcp-deploy-gateway-docs-link')).not.toBeInTheDocument();
+  });
+
   it('should block Deploy without a docs link when the readiness check fails', async () => {
     setReadiness(null, false, new Error('Service Unavailable'));
     renderAction();

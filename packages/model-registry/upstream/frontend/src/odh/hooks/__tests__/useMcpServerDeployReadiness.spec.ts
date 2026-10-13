@@ -133,4 +133,31 @@ describe('useMcpServerDeployReadiness', () => {
     expect(renderResult.result.current[0]).toEqual(deployable);
     expect(fetchFn.mock.calls.length).toBeGreaterThanOrEqual(3);
   });
+
+  it('should not let an aborted request change polling for the next server', async () => {
+    let resolveStale: (value: McpServerDeployReadiness) => void = () => undefined;
+    const fetchFn = jest.fn(
+      (_opts: unknown, id: string): Promise<McpServerDeployReadiness> =>
+        id === '4'
+          ? new Promise<McpServerDeployReadiness>((resolve) => {
+              resolveStale = resolve;
+            })
+          : Promise.resolve(notGated),
+    );
+    mockGetMcpServerDeployReadiness.mockReturnValue(fetchFn);
+
+    const renderResult = testHook(useMcpServerDeployReadiness)('4');
+    renderResult.rerender('1');
+    await flushPromises();
+    expect(renderResult.result.current[0]).toEqual(notGated);
+
+    // The superseded request for the gated server settles as "blocked" after the switch.
+    resolveStale(blocked);
+    await flushPromises();
+    const callsForOtherServer = fetchFn.mock.calls.filter(([, id]) => id === '1').length;
+
+    await advance(POLL_INTERVAL * 3);
+    expect(fetchFn.mock.calls.filter(([, id]) => id === '1')).toHaveLength(callsForOtherServer);
+    expect(renderResult.result.current[0]).toEqual(notGated);
+  });
 });

@@ -665,11 +665,17 @@ describe('MCP Deploy from Catalog', () => {
         .and('have.attr', 'aria-disabled', 'true')
         .trigger('mouseenter');
       cy.findByRole('tooltip').should('contain.text', NO_GATEWAY_TOOLTIP);
+      mcpServerDetailsPage.findDeployButton().trigger('mouseleave');
+
+      // The explanation is also reachable by keyboard.
+      mcpServerDetailsPage.findDeployButton().focus();
+      cy.findByRole('tooltip').should('contain.text', NO_GATEWAY_TOOLTIP);
 
       mcpServerDetailsPage
         .findGatewayDocsLink()
         .should('be.visible')
         .and('contain.text', 'How to set up an MCP gateway');
+      cy.testA11y();
 
       mcpServerDetailsPage.findDeployButton().click({ force: true });
       mcpDeployModal.shouldNotExist();
@@ -682,7 +688,8 @@ describe('MCP Deploy from Catalog', () => {
 
       cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
 
-      cy.wait('@getDeployReadiness');
+      // The first load, then the immediate re-check when polling switches on.
+      cy.wait(['@getDeployReadiness', '@getDeployReadiness']);
       mcpServerDetailsPage.findDeployButton().should('have.attr', 'aria-disabled', 'true');
       mcpServerDetailsPage.findGatewayDocsLink().should('be.visible');
 
@@ -691,6 +698,8 @@ describe('MCP Deploy from Catalog', () => {
         `${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}/deploy_readiness*`,
         { body: { data: { gatewayRequired: true, deployable: true } } },
       ).as('getDeployReadinessReady');
+      // Nothing re-checks until the poll interval elapses.
+      cy.get('@getDeployReadinessReady.all').should('have.length', 0);
       cy.tick(30000);
 
       cy.wait('@getDeployReadinessReady');
