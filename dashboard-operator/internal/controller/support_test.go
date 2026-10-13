@@ -1,16 +1,24 @@
 package controller
 
 import (
+	"context"
 	"maps"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/controller/conditions"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
@@ -68,6 +76,16 @@ func TestComputeKustomizeVariables(t *testing.T) {
 			},
 		},
 		{
+			name: "configured OCI base image",
+			dashboard: &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{
+				ModelRegistryOCIBaseImage: "mirror.example.com/library/busybox:1.0",
+			}},
+			platform: cluster.OpenDataHub,
+			want: map[string]string{
+				"section-title": "OpenShift Open Data Hub",
+			},
+		},
+		{
 			name:      "unknown platform",
 			dashboard: &v1alpha1.Dashboard{},
 			platform:  cluster.Platform("Unknown"),
@@ -79,6 +97,92 @@ func TestComputeKustomizeVariables(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := computeKustomizeVariables(tt.dashboard, tt.platform)
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestValidateOCIBaseImage(t *testing.T) {
+	for _, tt := range []struct {
+		name    string
+		image   string
+		wantErr bool
+	}{
+		{name: "omitted"},
+		{name: "tagged", image: "mirror.example.com/library/busybox:1.0"},
+		{name: "Docker Hub shorthand", image: "docker.io/busybox:latest"},
+		{name: "Docker Hub canonical", image: "docker.io/library/busybox:latest"},
+		{name: "localhost", image: "localhost:5000/library/busybox:1.0"},
+		{name: "digest", image: "registry.example.com/library/busybox@sha256:" + strings.Repeat("a", 64)},
+		{name: "unqualified", image: "busybox:latest", wantErr: true},
+		{name: "missing registry", image: "library/busybox:latest", wantErr: true},
+		{name: "blank", image: " ", wantErr: true},
+		{name: "newline", image: "mirror.example.com/base:1\nimages-jobs-async-upload=bad", wantErr: true},
+		{name: "invalid reference", image: "mirror.example.com/base:bad tag", wantErr: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateOCIBaseImage(tt.image)
+			if tt.wantErr {
+				require.ErrorContains(t, err, "spec.modelRegistryOCIBaseImage")
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestComputeKustomizeVariables_InvalidOCIImageDoesNotBlockCommonParams(t *testing.T) {
+	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{
+		ModelRegistryOCIBaseImage: "invalid-image",
+		Gateway:                   &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+	}}
+	params := computeKustomizeVariables(dashboard, cluster.OpenDataHub)
+	assert.Equal(t, "test.example.com", params["gateway-domain"])
+	assert.NotContains(t, params, "images-oci-base-image")
+}
+
+func TestOCIBaseImageAppliedSeparatelyFromPlatformRender(t *testing.T) {
+	for _, tt := range []struct {
+		name     string
+		platform cluster.Platform
+	}{
+		{name: "ODH", platform: cluster.OpenDataHub},
+		{name: "RHOAI", platform: cluster.SelfManagedRhoai},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			manifestRoot := t.TempDir()
+			require.NoError(t, os.CopyFS(manifestRoot, os.DirFS(filepath.Join("..", "..", "..", "manifests"))))
+			dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{
+				ModelRegistryOCIBaseImage: "mirror.example.com/library/busybox:1.0",
+			}}
+			cm := conditions.NewManager(dashboard, "Ready")
+			scheme := runtime.NewScheme()
+			require.NoError(t, corev1.AddToScheme(scheme))
+			require.NoError(t, v1alpha1.AddToScheme(scheme))
+			r := &DashboardReconciler{Client: fake.NewClientBuilder().WithScheme(scheme).Build(), Platform: tt.platform}
+			manifests := manifestSets(manifestRoot, tt.platform)
+			for _, want := range []string{"mirror.example.com/library/busybox:1.0", ""} {
+				dashboard.Spec.ModelRegistryOCIBaseImage = want
+				require.NoError(t, applyKustomizeParams(dashboard, manifests, tt.platform))
+				resources, err := kustomize.NewEngine().Render(manifests[0].String(), kustomize.WithNamespace("test-applications"))
+				require.NoError(t, err)
+				found := false
+				for _, resource := range resources {
+					if resource.GetKind() != "ConfigMap" || resource.GetName() != "model-registry-ui-config" {
+						continue
+					}
+					value, ok, err := unstructured.NestedString(resource.Object, "data", "images-oci-base-image")
+					require.NoError(t, err)
+					require.True(t, ok)
+					assert.Empty(t, value, "rendering must not inject the CR value into the shared params file")
+					require.NoError(t, r.reconcileModelRegistryUploadConfig(context.Background(), dashboard, []unstructured.Unstructured{resource}, cm))
+					config := &corev1.ConfigMap{}
+					require.NoError(t, r.Get(context.Background(), client.ObjectKey{Name: modelRegistryConfigMapName, Namespace: "test-applications"}, config))
+					assert.Equal(t, want, config.Data[ociBaseImageParam])
+					assert.NotEmpty(t, config.Data["images-jobs-async-upload"])
+					found = true
+				}
+				require.True(t, found, "model-registry-ui-config must be rendered")
+			}
 		})
 	}
 }
@@ -172,6 +276,7 @@ func TestResolveImageParams(t *testing.T) {
 	t.Run("returns mapped params for set env vars", func(t *testing.T) {
 		t.Setenv("RELATED_IMAGE_ODH_DASHBOARD_IMAGE", "quay.io/dashboard:latest")
 		t.Setenv("RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE", "quay.io/mr:v1")
+		t.Setenv("RELATED_IMAGE_ODH_MODEL_REGISTRY_OCI_BASE_IMAGE", "registry.internal.test:5000/openshift-ai/busybox:test")
 		t.Setenv("RELATED_IMAGE_ODH_AUTOML_IMAGE", "quay.io/automl-runtime:v2")
 		t.Setenv("RELATED_IMAGE_ODH_AUTORAG_IMAGE", "quay.io/autorag-runtime:v3")
 		t.Setenv("RELATED_IMAGE_ODH_OGX_CORE_IMAGE", "registry.redhat.io/rhoai/odh-ogx-core-rhel9@sha256:abc123")
@@ -180,6 +285,7 @@ func TestResolveImageParams(t *testing.T) {
 		got := resolveImageParams()
 		assert.Equal(t, "quay.io/dashboard:latest", got["odh-dashboard-image"])
 		assert.Equal(t, "quay.io/mr:v1", got["model-registry-ui-image"])
+		assert.NotContains(t, got, "images-oci-base-image", "the legacy env var must not override the CR")
 		assert.Equal(t, "quay.io/automl-runtime:v2", got["automl-pipeline-runtime-image"])
 		assert.Equal(t, "quay.io/autorag-runtime:v3", got["autorag-pipeline-runtime-image"])
 		assert.Equal(t, "registry.redhat.io/rhoai/odh-ogx-core-rhel9@sha256:abc123", got["ogx-core-image"])

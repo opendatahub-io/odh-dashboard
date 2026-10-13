@@ -545,10 +545,11 @@ func TestIntegration_MaaSPortalResourcesPreservedWhenCoreRemoved(t *testing.T) {
 	}
 
 	dashboard := newDashboard(v1alpha1.DashboardSpec{
-		ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
-		Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
-		Modules:        disableAllModulesExcept("maas", "genAi"),
-		MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
+		ManagementSpec:            common.ManagementSpec{ManagementState: "Removed"},
+		ModelRegistryOCIBaseImage: "mirror.example.com/Busybox:1",
+		Gateway:                   &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+		Modules:                   disableAllModulesExcept("maas", "genAi"),
+		MaaSPortal:                &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
 	})
 
 	ctx := context.Background()
@@ -574,9 +575,11 @@ func TestIntegration_MaaSPortalResourcesPreservedWhenCoreRemoved(t *testing.T) {
 	assert.NotNil(t, getPortalResource(t, "apps/v1", "Deployment", "maas-portal"))
 	assert.NotNil(t, getPortalResource(t, "gateway.networking.k8s.io/v1", "HTTPRoute", "maas-portal"))
 
+	assert.Len(t, listDeployments(t, "maas"), 1)
+	assert.Len(t, listDeployments(t, "gen-ai"), 1)
 	updated := getDashboard(t)
 	assert.Equal(t, metav1.ConditionFalse, conditionStatus(updated, "MaaSPortalAvailable"),
-		"MaaS Portal must report unavailable when its explicitly disabled MaaS/GenAI dependencies are missing")
+		"MaaS Portal must report unavailable while its shared MaaS/GenAI deployments are not ready")
 	assert.Equal(t, "MaaSPortalRequiredModuleUnavailable", conditionReason(updated, "MaaSPortalAvailable"))
 }
 

@@ -4,3 +4,4 @@ metadata:
   name: model-registry-ui-config
 data:
   images-jobs-async-upload: images-jobs-async-upload
+  images-oci-base-image: images-oci-base-image

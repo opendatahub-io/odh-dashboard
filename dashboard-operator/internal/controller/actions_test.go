@@ -100,6 +100,32 @@ func TestApplyKustomizeParamsPreservesDigestDefaults(t *testing.T) {
 		"digest-pinned default from params.env must survive when no env var override is provided")
 }
 
+func TestApplyKustomizeParamsKeepsOCIBaseImageOutOfSharedParams(t *testing.T) {
+	dir := t.TempDir()
+	overlay := filepath.Join(dir, "rhoai")
+	require.NoError(t, os.MkdirAll(overlay, 0755))
+	paramsPath := filepath.Join(overlay, "params.env")
+	require.NoError(t, os.WriteFile(paramsPath, []byte("images-oci-base-image=stale.example.com/base:1\n"), 0644))
+	t.Setenv("RELATED_IMAGE_ODH_MODEL_REGISTRY_OCI_BASE_IMAGE", "legacy.example.com/base:1")
+
+	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{
+		ModelRegistryOCIBaseImage: "mirror.example.com/base:1",
+	}}
+	manifests := manifestSets(dir, cluster.SelfManagedRhoai)
+	require.NoError(t, applyKustomizeParams(dashboard, manifests, cluster.SelfManagedRhoai))
+	assert.Equal(t, "", readExistingParams(paramsPath)["images-oci-base-image"])
+
+	dashboard.Spec.ModelRegistryOCIBaseImage = ""
+	require.NoError(t, applyKustomizeParams(dashboard, manifests, cluster.SelfManagedRhoai))
+	assert.Equal(t, "", readExistingParams(paramsPath)["images-oci-base-image"])
+
+	dashboard.Spec.ModelRegistryOCIBaseImage = "invalid\nkey=value"
+	require.NoError(t, applyKustomizeParams(dashboard, manifests, cluster.SelfManagedRhoai))
+	assert.Equal(t, "", readExistingParams(paramsPath)["images-oci-base-image"],
+		"unvalidated input must never enter shared rendering parameters")
+	assert.NotContains(t, readExistingParams(paramsPath), "key")
+}
+
 func TestExtractDashboardURL(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, routev1.AddToScheme(scheme))

@@ -24,6 +24,7 @@ As part of the modular architecture initiative (RHAISTRAT-1064), each component 
 | `modules` | `map[string]ModuleOverride` | Per-module enable/disable overrides (tri-state) |
 | `observability` | `ObservabilitySpec` | Perses proxy service configuration |
 | `maasPortal` | `MaaSPortalSpec` | [MaaS Portal](maas-portal.md) (`managementState: Managed`/`Removed`; served below the gateway path) |
+| `modelRegistryOCIBaseImage` | `string` | Optional [OCI upload base image](model-registry-oci-base-image.md) for Model Registry Jobs |
 
 ### Status Fields
 
@@ -60,10 +61,12 @@ The controller follows a sequential pipeline on each reconcile:
    -> Clean up legacy sidecar resources (upgrade path)
    -> Render overlay (odh or rhoai)
    -> Deploy core pod (3 containers: dashboard, kube-rbac-proxy, core-bff)
+   -> Validate and apply Model Registry upload ConfigMap independently
+   -> GC disabled module resources
    -> For each enabled module:
    |   -> Render manifests/modules/<slug>/
    |   -> Deploy as independent Deployment via SSA
-   -> GC disabled module resources
+   |   -> Record failure and continue with other modules
    -> Build dynamic federation-config ConfigMap
    -> Patch main Deployment with config hash annotation (rolling restart)
 5. Extract URL         -> Route admission check
@@ -83,6 +86,10 @@ The controller supports `managementState: Removed` on the Dashboard CR. When set
 The portal lifecycle is independent of the core dashboard's `managementState`.
 A managed portal retains its shared module and observability dependencies during
 core removal. See [portal lifecycle and shared dependencies](maas-portal.md#lifecycle-and-shared-dependencies).
+Core teardown runs before updates to retained modules, using their desired demand
+to determine which resources to preserve. Invalid Model Registry OCI configuration
+does not block removal or unrelated resource updates; see
+[Model Registry OCI Upload Base Image](model-registry-oci-base-image.md).
 
 The finalizer handles a separate concern: cleanup on CR **deletion** (when `DeletionTimestamp` is set). `Removed` is a "soft stop" that preserves the CR while removing the operand.
 
@@ -107,9 +114,12 @@ The overlay extends `manifests/base/` and produces a core pod with 3 containers 
 
 ### Rendering Pipeline
 
-1. **Kustomize params** computed from Dashboard spec (gateway domain, section title) and `RELATED_IMAGE_*` env vars
-2. **Kustomize engine** renders manifests with namespace injection
-3. **SSA deployer** applies all resources with `dashboard-operator` as field owner
+1. **Kustomize params** combine Dashboard spec values (such as the gateway domain), the platform-specific section title, and container-image `RELATED_IMAGE_*` env vars. The Operator always writes an empty `images-oci-base-image` placeholder, keeping the CR's OCI value out of rendering.
+2. **Kustomize engine** renders manifests with namespace injection. The controller separates `model-registry-ui-config` from the other rendered resources.
+3. **SSA deployer** applies the other resources with `dashboard-operator` as field owner.
+4. **Upload configuration** independently validates `Dashboard.spec.modelRegistryOCIBaseImage` and applies `model-registry-ui-config`. Invalid input preserves only the live OCI value (or an empty value if absent), while other ConfigMap data can still update. Validation is informational; ConfigMap read or apply failures return errors for retry.
+
+For Operator-managed deployments, administrators configure the Dashboard CR; the upload ConfigMap is controller-managed output. Independent Kustomize deployments can set the actual `images-oci-base-image` value in their overlay's `params.env` before rendering. See the [administrator guide](model-registry-oci-base-image.md) for commands, defaults, and status behavior.
 
 ### Module Manifests
 
@@ -621,6 +631,8 @@ Toggle with `networkPolicy.enabled` in `charts/dashboard/values.yaml` (default `
 ### Image Override Pattern
 
 All container images use `RELATED_IMAGE_*` env vars (required by Konflux/operator-framework). The mapping from kustomize param keys to env vars is in `internal/controller/support.go:imagesMap`. The full list of related images is defined in `charts/dashboard/values.yaml` under `relatedImages`.
+
+The administrator-owned [Model Registry OCI upload base image](model-registry-oci-base-image.md) is configured through the Dashboard CR and has no related-image mapping. The async-upload Job container image follows the normal related-image pattern.
 
 ### ODH vs RHOAI Platform Differences
 

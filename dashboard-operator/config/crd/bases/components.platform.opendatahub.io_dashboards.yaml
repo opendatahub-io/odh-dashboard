@@ -148,6 +148,15 @@ spec:
                 maxLength: 63
                 pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$
                 type: string
+              modelRegistryOCIBaseImage:
+                description: |-
+                  ModelRegistryOCIBaseImage is the base image pulled by the Model Registry
+                  async-upload Job while uploading to an OCI destination. It is separate
+                  from the Job container image and the destination registry. When unset,
+                  the BFF selects its own default. The value must include a registry host.
+                maxLength: 2048
+                pattern: ^(|(localhost|[^/\s]*[.:][^/\s]*)/\S+)$
+                type: string
               modules:
                 additionalProperties:
                   description: |-

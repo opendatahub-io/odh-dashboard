@@ -267,6 +267,8 @@ make lint-fix   # Auto-fix
 
 Container images use the `RELATED_IMAGE_*` env var pattern (required by Konflux/operator-framework). Map param keys to env vars in `support.go:imagesMap`. Never hardcode image references.
 
+The Model Registry OCI upload base image is administrator-owned through `Dashboard.spec.modelRegistryOCIBaseImage`. Keep `images-oci-base-image` out of `imagesMap` and `RELATED_IMAGE_*` mappings; it is validated and applied to the controller-managed upload ConfigMap independently of general manifest deployment. The async-upload Job container image still uses `RELATED_IMAGE_ODH_MODEL_REGISTRY_JOB_ASYNC_UPLOAD_IMAGE`. See the [administrator guide](../../docs/model-registry-oci-base-image.md) for the supported configuration contract.
+
 ## RBAC
 
 RBAC manifests are in `config/rbac/`. When adding new resource types to the reconciler, update the RBAC rules. Use kubebuilder RBAC markers on the `Reconcile` method if adopting marker-based RBAC generation:
