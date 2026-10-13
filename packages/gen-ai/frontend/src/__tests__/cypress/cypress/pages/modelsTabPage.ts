@@ -128,7 +128,9 @@ class EndpointModalPage {
   }
 
   findSubscriptionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('endpoint-modal-subscriptions-toggle');
+    return cy
+      .findByTestId('endpoint-modal-subscriptions-toggle')
+      .findByRole('button', { name: 'View subscriptions' });
   }
 
   findSubscriptionsTable(): Cypress.Chainable<JQuery<HTMLElement>> {
