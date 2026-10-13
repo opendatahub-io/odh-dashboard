@@ -52,15 +52,15 @@ func (r *MockSubscriptionsRepository) CreateSubscription(_ context.Context, requ
 
 	response := &models.CreateSubscriptionResponse{
 		Subscription: models.MaaSSubscription{
-			Name:          request.Name,
-			DisplayName:   request.DisplayName,
-			Description:   request.Description,
-			Namespace:     "mock-namespace",
-			Phase:         "Pending",
-			Priority:      request.Priority,
-			Owner:         request.Owner,
-			ModelRefs:     request.ModelRefs,
-			TokenMetadata: request.TokenMetadata,
+			Name:              request.Name,
+			DisplayName:       request.DisplayName,
+			Description:       request.Description,
+			Namespace:         "mock-namespace",
+			Phase:             "Pending",
+			InferencePriority: request.InferencePriority,
+			Owner:             request.Owner,
+			ModelRefs:         request.ModelRefs,
+			TokenMetadata:     request.TokenMetadata,
 		},
 	}
 
@@ -101,7 +101,7 @@ func (r *MockSubscriptionsRepository) UpdateSubscription(_ context.Context, name
 			Description:       request.Description,
 			Namespace:         existing.Namespace,
 			Phase:             existing.Phase,
-			Priority:          request.Priority,
+			InferencePriority: request.InferencePriority,
 			Owner:             request.Owner,
 			ModelRefs:         request.ModelRefs,
 			TokenMetadata:     request.TokenMetadata,

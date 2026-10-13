@@ -305,7 +305,7 @@ describe('ChatbotMessages', () => {
     });
   });
 
-  it('should render sent documents before the prompt and open the extracted text viewer', () => {
+  it('should render sent documents and audio before the prompt and open the extracted text viewer', () => {
     const attachment = {
       // eslint-disable-next-line camelcase -- matches the document-attachment API contract
       file_id: 'file-1',
@@ -324,6 +324,7 @@ describe('ChatbotMessages', () => {
             id: 'message-1',
             role: 'user',
             content: 'Summarize this policy',
+            extraContent: { beforeMainContent: <div data-testid="sent-audio-tile" /> },
             attachments: [{ id: attachment.file_id, name: attachment.filename }],
             documentAttachments: [attachment],
           },
@@ -338,6 +339,7 @@ describe('ChatbotMessages', () => {
     expect(sentAttachment).toHaveTextContent('PDF');
     const attachmentContainer = screen.getByTestId('before-main-content');
     expect(attachmentContainer).toContainElement(sentAttachment);
+    expect(attachmentContainer).toContainElement(screen.getByTestId('sent-audio-tile'));
     expect(attachmentContainer.compareDocumentPosition(screen.getByTestId('message-content'))).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );

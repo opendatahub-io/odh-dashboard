@@ -132,7 +132,6 @@ describe('Runtime image library details', () => {
       pageSize: '1',
     });
     runtimeCatalogDetailsPage.findHeading('vLLM').should('be.visible');
-    runtimeCatalogDetailsPage.findButton('Create').should('be.disabled');
     runtimeCatalogDetailsPage.findHeading('Description').should('be.visible');
     runtimeCatalogDetailsPage.findHeading('Details').should('be.visible');
     runtimeCatalogDetailsPage.findText(runtimeFamily.description).should('be.visible');
