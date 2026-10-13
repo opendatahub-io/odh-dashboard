@@ -33,6 +33,13 @@ export {
 
 export const COLLECTION_FETCH_LIMIT = 200;
 
+// RHOAIENG-99645: Kueue/HardwareProfile scheduling is disabled in Eval Hub. This constant
+// short-circuits the Kueue hooks so the UI never fetches kueue endpoints; the BFF handlers
+// return canned disabled responses. Full removal is tracked separately. The `boolean`
+// annotation widens the literal so the "disable" conditions are not statically dead code.
+// eslint-disable-next-line @typescript-eslint/no-inferrable-types
+export const KUEUE_INTEGRATION_ENABLED: boolean = false;
+
 export const FindAdministratorOptions = [
   'The person who gave you your username, or who helped you to log in for the first time',
   'Someone in your IT department or help desk',
