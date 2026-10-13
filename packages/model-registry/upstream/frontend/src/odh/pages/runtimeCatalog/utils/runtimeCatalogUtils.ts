@@ -48,8 +48,8 @@ export function getRuntimePrimaryHardwareLabel(runtime: ServingRuntime): string 
   return cpuTag ? getRuntimeHardwareDisplayLabel(cpuTag) : undefined;
 }
 
-export function getRuntimeCatalogDetailsRoute(runtimeName: string): string {
-  return `${RUNTIME_CATALOG_TAB_PATH}/${encodeURIComponent(runtimeName)}`;
+export function getRuntimeCatalogDetailsRoute(runtimeId: string): string {
+  return `${RUNTIME_CATALOG_TAB_PATH}/${encodeURIComponent(runtimeId)}`;
 }
 
 export function getRuntimeCatalogCardKey(runtime: ServingRuntime): string {
