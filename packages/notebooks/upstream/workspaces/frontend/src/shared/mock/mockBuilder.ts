@@ -448,6 +448,10 @@ export const buildMockWorkspaceKind = (
         myWorkspaceKindAnnotation: 'my-value',
       },
     },
+    statefulSetMetadata: {
+      labels: {},
+      annotations: {},
+    },
     volumeMounts: {
       home: '/home/jovyan',
     },
