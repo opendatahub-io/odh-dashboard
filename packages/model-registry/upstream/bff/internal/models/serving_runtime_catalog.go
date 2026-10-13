@@ -45,7 +45,7 @@ type ServingRuntimeVersion struct {
 	DefaultArgs                 []string                              `json:"defaultArgs,omitempty"`
 	Env                         []ServingRuntimeEnvVar                `json:"env,omitempty"`
 	ServingRuntimeTemplate      *string                               `json:"servingRuntimeTemplate,omitempty"`
-	LLMInferenceServiceTemplate *string                               `json:"llmInferenceServiceTemplate,omitempty"`
+	LLMInferenceServiceConfig *string                               `json:"llmInferenceServiceConfig,omitempty"`
 	Deprecated                  *bool                                 `json:"deprecated,omitempty"`
 	PublishedDate               *string                               `json:"publishedDate,omitempty"`
 }

@@ -4476,7 +4476,7 @@ func GetServingRuntimeVersionMocks(runtimeID string) []models.ServingRuntimeVers
 					{Name: "HF_TOKEN", Description: stringToPointer("Token for gated models"), Required: boolToPointer(false), Secret: boolToPointer(true)},
 				},
 				ServingRuntimeTemplate:      stringToPointer(`{"apiVersion":"serving.kserve.io/v1alpha1","kind":"ServingRuntime","metadata":{"name":"mock-vllm-0-5-0"},"spec":{"supportedModelFormats":[{"name":"safetensors","version":"1","autoSelect":true,"priority":1}],"protocolVersions":["v2"],"multiModel":false,"containers":[{"name":"kserve-container","image":"registry.example.com/mock/vllm:0.5.0","args":["--max-model-len","4096"],"env":[{"name":"LOG_LEVEL","value":"info"}],"resources":{"requests":{"cpu":"4","memory":"16Gi","nvidia.com/gpu":"1"},"limits":{"nvidia.com/gpu":"1"}}}]}}`),
-				LLMInferenceServiceTemplate: stringToPointer(`{"apiVersion":"serving.kserve.io/v1alpha2","kind":"LLMInferenceServiceConfig","metadata":{"name":"mock-vllm-0-5-0","labels":{"opendatahub.io/config-type":"accelerator","opendatahub.io/dashboard":"true"}},"spec":{"model":{"uri":"hf://example/mock-model","name":"mock-model"},"template":{"containers":[{"name":"main","resources":{"limits":{"cpu":"4","memory":"16Gi"},"requests":{"cpu":"2","memory":"8Gi"}}}]}}}`),
+				LLMInferenceServiceConfig: stringToPointer(`{"apiVersion":"serving.kserve.io/v1alpha2","kind":"LLMInferenceServiceConfig","metadata":{"name":"mock-vllm-0-5-0","labels":{"opendatahub.io/config-type":"accelerator","opendatahub.io/dashboard":"true"}},"spec":{"model":{"uri":"hf://example/mock-model","name":"mock-model"},"template":{"containers":[{"name":"main","resources":{"limits":{"cpu":"4","memory":"16Gi"},"requests":{"cpu":"2","memory":"8Gi"}}}]}}}`),
 				Deprecated:                  boolToPointer(false), PublishedDate: stringToPointer("2024-02-01T00:00:00Z"),
 			},
 			{
@@ -4485,7 +4485,7 @@ func GetServingRuntimeVersionMocks(runtimeID string) []models.ServingRuntimeVers
 				ArtifactType:         "serving-runtime-version", Version: "0.6.0", Image: "registry.example.com/mock/vllm:0.6.0", SupportLevel: &preview,
 				SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}}, ProtocolVersions: []string{"v2"},
 				ServingRuntimeTemplate:      stringToPointer(`{"apiVersion":"serving.kserve.io/v1alpha1","kind":"ServingRuntime","metadata":{"name":"mock-vllm-0-6-0"},"spec":{"supportedModelFormats":[{"name":"safetensors"}],"protocolVersions":["v2"],"containers":[{"name":"kserve-container","image":"registry.example.com/mock/vllm:0.6.0"}]}}`),
-				LLMInferenceServiceTemplate: stringToPointer(`{"apiVersion":"serving.kserve.io/v1alpha2","kind":"LLMInferenceServiceConfig","metadata":{"name":"mock-vllm-0-6-0","labels":{"opendatahub.io/config-type":"accelerator","opendatahub.io/dashboard":"true"}},"spec":{"model":{"uri":"hf://example/mock-model","name":"mock-model"},"template":{"containers":[{"name":"main","resources":{"limits":{"cpu":"4","memory":"16Gi"},"requests":{"cpu":"2","memory":"8Gi"}}}]}}}`),
+				LLMInferenceServiceConfig: stringToPointer(`{"apiVersion":"serving.kserve.io/v1alpha2","kind":"LLMInferenceServiceConfig","metadata":{"name":"mock-vllm-0-6-0","labels":{"opendatahub.io/config-type":"accelerator","opendatahub.io/dashboard":"true"}},"spec":{"model":{"uri":"hf://example/mock-model","name":"mock-model"},"template":{"containers":[{"name":"main","resources":{"limits":{"cpu":"4","memory":"16Gi"},"requests":{"cpu":"2","memory":"8Gi"}}}]}}}`),
 				PublishedDate:               stringToPointer("2024-04-01T00:00:00Z"),
 			},
 		},
