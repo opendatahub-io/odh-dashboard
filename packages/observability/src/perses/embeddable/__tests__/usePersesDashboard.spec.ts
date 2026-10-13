@@ -70,7 +70,7 @@ describe('usePersesDashboard', () => {
 
   it('should fetch from the host proxy and refetch when its path changes', async () => {
     fetchPersesDashboardMock.mockResolvedValue(mockDashboard);
-    const options = { persesProxyBasePath: '/maas-consumer-portal/perses/api' };
+    const options = { persesProxyBasePath: '/custom-base/perses/api' };
     const renderResult = testHook(usePersesDashboard)('test-project', 'test-dashboard', options);
     await renderResult.waitForNextUpdate();
     expect(fetchPersesDashboardMock).toHaveBeenCalledWith(

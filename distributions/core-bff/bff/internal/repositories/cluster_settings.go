@@ -135,6 +135,8 @@ func (r *ClusterSettingsRepository) UpdateConfigMaps(
 	}
 
 	if needsRollout {
+		// TODO: Gate this notebook-controller restart on a platform capability; XKS
+		// must not expose the notebook (workbench) feature or its settings.
 		if err := r.rolloutDeployment(ctx, namespace, notebookControllerDeploy); err != nil {
 			return fmt.Errorf("failed to rollout %s: %w", notebookControllerDeploy, err)
 		}

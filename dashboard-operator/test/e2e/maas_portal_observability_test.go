@@ -118,5 +118,6 @@ func TestE2E_MaaSPortalObservabilitySurvivesCoreRemoval(t *testing.T) {
 			}
 		}, operandReadyTimeout, e2ePollInterval, "portal health and Perses must work with core dashboard %s", state)
 		cancel()
+		assertMaaSPortalBrowserRouting(t)
 	}
 }
