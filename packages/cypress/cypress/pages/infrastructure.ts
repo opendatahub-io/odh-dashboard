@@ -28,6 +28,19 @@ class InfrastructurePage {
     return cy.findByTestId('infrastructure-workloads');
   }
 
+  findWorkloadsCard() {
+    return cy.findByTestId('infrastructure-workloads-card');
+  }
+
+  scrollToWorkloadsCard() {
+    this.findWorkloadsCard().scrollIntoView();
+    return this;
+  }
+
+  findWorkloadOverview() {
+    return cy.findByTestId('workload-overview');
+  }
+
   findWorkloadRow(name: string, options?: Cypress.Timeoutable) {
     return cy.findByTestId(`infrastructure-workload-row-${name}`, options);
   }

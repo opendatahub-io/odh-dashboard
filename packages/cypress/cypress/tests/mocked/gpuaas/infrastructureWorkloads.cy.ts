@@ -10,8 +10,14 @@ import { mockRayJobK8sResource } from '@odh-dashboard/model-training/__mocks__/m
 import { TrainingJobState } from '@odh-dashboard/model-training/types';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceK8sResource';
+import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import type { WorkloadKind, WorkloadPodSet } from '@odh-dashboard/k8s-core';
-import { LocalQueueModel, PodModel, WorkloadModel } from '@odh-dashboard/k8s-core/api/models';
+import {
+  HardwareProfileModel,
+  LocalQueueModel,
+  PodModel,
+  WorkloadModel,
+} from '@odh-dashboard/k8s-core/api/models';
 import {
   InferenceServiceModel,
   NotebookModel,
@@ -42,6 +48,7 @@ const initWorkloadsIntercepts = (
   workloads = true,
   enableKueue = false,
   includeKueueWorkbenches = false,
+  includeHardwareProfile = false,
 ) => {
   asProjectAdminUser();
   initIntercepts();
@@ -58,7 +65,16 @@ const initWorkloadsIntercepts = (
               name: 'gpu-workbench',
               displayName: 'GPU Workbench',
               namespace: PROJECT_A,
-              hardwareProfileName: 'NVIDIA A100',
+              ...(includeHardwareProfile && {
+                opts: {
+                  metadata: {
+                    annotations: {
+                      'opendatahub.io/hardware-profile-name': 'nvidia-a100',
+                      'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+                    },
+                  },
+                },
+              }),
             }),
             ...(includeKueueWorkbenches
               ? [
@@ -79,7 +95,7 @@ const initWorkloadsIntercepts = (
           ]
         : [],
     ),
-  );
+  ).as('infrastructureNotebooksRequest');
   cy.interceptK8sList(
     { model: TrainJobModel, ns: PROJECT_A },
     mockK8sResourceList(
@@ -354,6 +370,37 @@ describe('GPUaaS Infrastructure Workloads', () => {
     infrastructurePage.findWorkloadRow('gpu-training-job').should('exist');
     infrastructurePage.findWorkloadRow('gpu-ray-job').should('not.exist');
     infrastructurePage.findWorkloadsEmptyState().should('not.exist');
+  });
+
+  it('should show Hardware Profile loading after the workloads table is available', () => {
+    initWorkloadsIntercepts(true, false, false, true);
+    cy.interceptK8s(
+      {
+        model: HardwareProfileModel,
+        ns: 'opendatahub',
+        name: 'nvidia-a100',
+      },
+      {
+        statusCode: 200,
+        body: mockHardwareProfile({ name: 'nvidia-a100', displayName: 'NVIDIA A100' }),
+        delay: 5000,
+      },
+    ).as('hardwareProfileRequest');
+
+    infrastructurePage.visit(false);
+    infrastructurePage.findWorkloadsTab().click();
+    infrastructurePage.selectProjectByName('Project-A');
+
+    cy.wait('@infrastructureNotebooksRequest');
+    infrastructurePage.scrollToWorkloadsCard();
+    infrastructurePage.findWorkloadRow('gpu-workbench').should('be.visible');
+    infrastructurePage
+      .findWorkloadRow('gpu-workbench')
+      .findByTestId('hardware-profile-loading')
+      .should('be.visible');
+
+    cy.wait('@hardwareProfileRequest', { timeout: 40000 });
+    infrastructurePage.findWorkloadRow('gpu-workbench').should('contain.text', 'NVIDIA A100');
   });
 
   it('should filter Kueue and non-Kueue workloads in a hybrid project', () => {
