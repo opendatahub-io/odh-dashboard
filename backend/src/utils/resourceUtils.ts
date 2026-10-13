@@ -161,6 +161,12 @@ const fetchOLMv0Subscriptions = async (
       }
     }
   } catch (e) {
+    // On OLM v1-only clusters the OLM Classic Subscription CRD is absent (404/NotFound). That is
+    // an expected, non-fatal condition — degrade to "no OLM v0 subscriptions" silently rather
+    // than logging it as an error on every watcher refresh.
+    if (isHttpError(e) && e.statusCode === 404) {
+      return [];
+    }
     // Discard any partially-accumulated pages: a mid-pagination failure (e.g. 403 from missing
     // RBAC, or a 410 expired continue token) must not be cached as a complete list, which would
     // silently mark operators on later pages as absent until the next successful refresh.
