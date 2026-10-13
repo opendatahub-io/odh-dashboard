@@ -16,8 +16,11 @@ import { retryableBefore, wasSetupPerformed } from '../../../../utils/retryableH
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { isTrainerManaged } from '../../../../utils/oc_commands/dsc';
 import type { RayJobTestData } from '../../../../types';
+import { skipOnArm } from '../../../../utils/skipUtils';
 
 describe('Verify project access for user types in Ray Jobs', () => {
+  skipOnArm();
+
   let testData: RayJobTestData;
   let skipTest = false;
   let projectName: string;
@@ -96,7 +99,7 @@ describe('Verify project access for user types in Ray Jobs', () => {
   });
 
   after(() => {
-    if (!wasSetupPerformed() || shouldSkip()) {
+    if (!projectName || !wasSetupPerformed() || shouldSkip()) {
       cy.log('Skipping cleanup: Setup was not performed or tests were skipped');
       return;
     }

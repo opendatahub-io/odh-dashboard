@@ -84,21 +84,29 @@ export const getClusterAppsDomain = (): Cypress.Chainable<string> => {
 };
 
 /**
- * Gets the CPU architecture of cluster nodes by querying node labels.
- * Returns 's390x' when at least one node carries the s390x architecture label,
- * otherwise returns 'x86_64'.
+ * Gets the CPU architecture of cluster nodes from node status.
+ * Returns 'arm64' if any node reports 'arm64' or 'aarch64', then 's390x' if present,
+ * and otherwise returns 'x86_64'.
  *
  * @returns A Cypress chainable resolving to the architecture string.
  */
-export const getClusterArchitecture = (): Cypress.Chainable<string> => {
+export const getClusterArchitecture = (): Cypress.Chainable<'x86_64' | 's390x' | 'arm64'> => {
   return cy
     .exec(`oc get nodes -o jsonpath='{.items[*].status.nodeInfo.architecture}'`, {
       failOnNonZeroExit: false,
     })
     .then((result: CommandLineResult) => {
       const archOutput = result.stdout.trim().replace(/^'|'$/g, '');
-      const isS390x = archOutput.split(/\s+/).some((a) => a === 's390x');
-      const arch = isS390x ? 's390x' : 'x86_64';
+      if (result.exitCode !== 0 || !archOutput) {
+        throw new Error('Unable to determine cluster architecture from oc get nodes.');
+      }
+      const architectures = archOutput.split(/\s+/);
+      let arch: 'x86_64' | 's390x' | 'arm64' = 'x86_64';
+      if (architectures.some((a) => a === 'arm64' || a === 'aarch64')) {
+        arch = 'arm64';
+      } else if (architectures.includes('s390x')) {
+        arch = 's390x';
+      }
       cy.log(`Detected cluster architecture: ${arch} (raw: ${archOutput})`);
       return cy.wrap(arch);
     });

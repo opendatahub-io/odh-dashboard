@@ -1188,7 +1188,7 @@ class ModelServingWizard extends Wizard {
     });
   }
 
-  selectServingRuntimeOption(name: string) {
+  selectServingRuntimeOption(name: string, scope: 'global' | 'project' = 'global') {
     this.findModelServerAutoSelectRadio().then(($radio) => {
       if ($radio.is(':checked')) {
         // Auto-select the best runtime for my model based on model type, model format, and hardware profile
@@ -1198,7 +1198,7 @@ class ModelServingWizard extends Wizard {
         this.findServingRuntimeTemplateSearchSelector().click();
         // Duplicate display names can match multiple menu items; pick the first for E2E stability
         this.findServingRuntimeTemplateSelectionSearchInputBox().type(name);
-        cy.findByTestId('global-scoped-serving-runtimes')
+        cy.findByTestId(`${scope}-scoped-serving-runtimes`)
           .find('[data-testid^="servingRuntime"]')
           .first()
           .click();
