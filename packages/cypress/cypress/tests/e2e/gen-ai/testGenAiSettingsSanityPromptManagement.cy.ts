@@ -39,6 +39,7 @@ import {
 } from '../../../pages/chatbotPromptManagement';
 import { getVllmCpuAmd64RuntimeInfo } from '../../../utils/fileParserUtil';
 import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProfiles';
+import { skipOnArm } from '../../../utils/skipUtils';
 
 type PromptManagementTestData = {
   globalPrompt: {
@@ -58,6 +59,8 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
   const globalMLflowNamespacesBaselines: GlobalMLflowNamespacesBaseline[] = [];
   const uuid = generateTestUUID();
   const globalPromptName = `global-prompt-${uuid}`;
+
+  skipOnArm();
 
   retryableBefore(() => {
     cy.fixture('e2e/genAi/testGenAiModelDeployment.yaml', 'utf8')
@@ -118,6 +121,9 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
   });
 
   after(() => {
+    if (!projectName) {
+      return;
+    }
     stopPortForward(portForwardHandle);
 
     if (globalNamespace) {

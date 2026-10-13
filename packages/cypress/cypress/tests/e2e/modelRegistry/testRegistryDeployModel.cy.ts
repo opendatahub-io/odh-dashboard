@@ -1,3 +1,4 @@
+import * as yaml from 'js-yaml';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import {
   ModelLocationSelectOption,
@@ -39,7 +40,10 @@ import {
   cleanupHardwareProfiles,
   createCleanHardwareProfile,
 } from '../../../utils/oc_commands/hardwareProfiles';
-import { getClusterArchitecture } from '../../../utils/oc_commands/baseCommands';
+import {
+  applyOpenShiftYaml,
+  getClusterArchitecture,
+} from '../../../utils/oc_commands/baseCommands';
 
 describe('Verify models can be deployed from model registry', () => {
   // Skip entire suite on BYOIDC clusters
@@ -52,6 +56,7 @@ describe('Verify models can be deployed from model registry', () => {
   let resourceName: string;
   let deploymentName: string;
   let servingRuntime: string;
+  let clusterArchitecture: string;
   let hardwareProfileName: string;
   let hardwareProfileYamlPath: string;
   let servingRuntimeArgs: string;
@@ -77,8 +82,14 @@ describe('Verify models can be deployed from model registry', () => {
 
       cy.step('Detect cluster architecture to select the correct serving runtime');
       getClusterArchitecture().then((arch) => {
-        servingRuntime =
-          arch === 's390x' ? testData.servingRuntimeS390x : testData.servingRuntimeX86;
+        clusterArchitecture = arch;
+        if (arch === 'arm64') {
+          servingRuntime = testData.servingRuntimeArm64;
+        } else if (arch === 's390x') {
+          servingRuntime = testData.servingRuntimeS390x;
+        } else {
+          servingRuntime = testData.servingRuntimeX86;
+        }
         cy.log(`Using serving runtime for arch "${arch}": ${servingRuntime}`);
       });
 
@@ -95,6 +106,38 @@ describe('Verify models can be deployed from model registry', () => {
 
       cy.step('Create a project for model deployment');
       createCleanProject(projectName);
+
+      cy.then(() => {
+        if (clusterArchitecture === 'arm64') {
+          return cy
+            .fixture(testData.servingRuntimeArm64YamlPath, 'utf8')
+            .then((runtimeYaml: string) => {
+              const runtime = yaml.load(runtimeYaml) as { metadata: { name: string } };
+              const template = yaml.dump({
+                apiVersion: 'template.openshift.io/v1',
+                kind: 'Template',
+                metadata: {
+                  name: `${runtime.metadata.name}-template`,
+                  labels: {
+                    'opendatahub.io/dashboard': 'true',
+                    'opendatahub.io/ootb': 'true',
+                  },
+                  annotations: {
+                    'opendatahub.io/modelServingSupport': '["single"]',
+                    'opendatahub.io/model-type': '["generative"]',
+                    'opendatahub.io/apiProtocol': 'REST',
+                  },
+                },
+                objects: [runtime],
+                parameters: [],
+              });
+              return applyOpenShiftYaml(template, projectName).then((result) => {
+                expect(result.exitCode, 'ARM serving runtime creation').to.equal(0);
+              });
+            });
+        }
+        return undefined;
+      });
 
       cy.step('Create hardware profile for model deployment');
       createCleanHardwareProfile(hardwareProfileYamlPath);
@@ -277,7 +320,13 @@ describe('Verify models can be deployed from model registry', () => {
         });
       modelServingWizard.selectDeploymentType(deploymentType);
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileName);
-      modelServingWizard.selectServingRuntimeOption(servingRuntime);
+      if (clusterArchitecture === 'arm64') {
+        modelServingWizard.findModelServerManualSelectRadio().click();
+      }
+      modelServingWizard.selectServingRuntimeOption(
+        servingRuntime,
+        clusterArchitecture === 'arm64' ? 'project' : 'global',
+      );
       modelServingWizard.findNextButton().click();
 
       cy.step('Advanced settings');

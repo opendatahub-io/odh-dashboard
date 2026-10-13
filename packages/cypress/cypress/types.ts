@@ -356,6 +356,7 @@ export type DataScienceProjectData = {
   resourceApiVersion: string;
   existingImage: string;
   replaceImage: string;
+  replaceImageArm64?: string;
   serviceAccountName1: string;
   serviceAccountName2: string;
   connectionNameSuffix: string;
@@ -366,6 +367,7 @@ export type DataScienceProjectData = {
   userSubjectKind: string;
   groupSubjectKind: string;
   yamlEditorModelName: string;
+  yamlEditorModelPathArm64?: string;
   legacyServingRuntime?: string;
   legacyModelLocationURI?: string;
   legacyHardwareProfileName?: string;
@@ -600,6 +602,8 @@ export type ModelRegistryTestData = {
   servingRuntime: string;
   servingRuntimeS390x: string;
   servingRuntimeX86: string;
+  servingRuntimeArm64: string;
+  servingRuntimeArm64YamlPath: string;
   // New version registration (Versions view)
   version2Name: string;
   version2Description: string;
@@ -784,6 +788,9 @@ export type GenAiTestData = {
   inferenceServiceName: string;
   modelType: string;
   servingRuntime: string;
+  servingRuntimeArm64: string;
+  servingRuntimeYamlPath: string;
+  servingRuntimeArm64YamlPath: string;
   testMessage: string;
   cpuRequested: number;
   cpuLimit: number;
