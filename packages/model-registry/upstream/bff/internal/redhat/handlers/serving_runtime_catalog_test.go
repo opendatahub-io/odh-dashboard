@@ -200,3 +200,45 @@ func TestServingRuntimeCatalogLiveFailures(t *testing.T) {
 		})
 	}
 }
+
+func TestServingRuntimeCatalogSourcesAPIVersion(t *testing.T) {
+	const body = `{"items":[{"id":"rh_serving_runtimes","name":"Red Hat Serving Runtimes","enabled":true,"labels":["Red Hat Serving Runtimes"],"status":"available"}],"size":1,"pageSize":10,"nextPageToken":""}`
+	for _, tt := range []struct {
+		name, assetType, upstreamAPIPath string
+	}{
+		{"serving runtime sources use v1", "serving_runtimes", repositories.ModelCatalogV1APIPath},
+		{"model sources keep the default version", "models", repositories.ModelCatalogAPIPath},
+		{"unfiltered sources keep the default version", "", repositories.ModelCatalogAPIPath},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			var called atomic.Bool
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				called.Store(true)
+				assert.Equal(t, tt.upstreamAPIPath+"/sources", r.URL.Path)
+				assert.Equal(t, tt.assetType, r.URL.Query().Get("assetType"))
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(body))
+			}))
+			defer server.Close()
+			endpoint, err := url.Parse(server.URL)
+			require.NoError(t, err)
+			catalogClient, err := repositories.NewModelCatalogClient(noopLogger())
+			require.NoError(t, err)
+			factory := &runtimeCatalogKubeFactory{client: &runtimeCatalogKubeClient{address: endpoint.Host, allow: true}}
+			app := api.NewTestApp(config.EnvConfig{DeploymentMode: config.DeploymentModeFederated, AuthMethod: config.AuthMethodUser}, noopLogger(), factory, repositories.NewRepositories(nil, catalogClient))
+			query := url.Values{"namespace": {"catalog-ns"}}
+			if tt.assetType != "" {
+				query.Set("assetType", tt.assetType)
+			}
+			response := httptest.NewRecorder()
+			app.Routes().ServeHTTP(response, httptest.NewRequest(http.MethodGet, api.CatalogSourceListPath+"?"+query.Encode(), nil))
+			require.Equal(t, 200, response.Code, response.Body.String())
+			require.True(t, called.Load())
+			var envelope struct {
+				Data json.RawMessage `json:"data"`
+			}
+			require.NoError(t, json.Unmarshal(response.Body.Bytes(), &envelope))
+			require.JSONEq(t, body, string(envelope.Data))
+		})
+	}
+}
