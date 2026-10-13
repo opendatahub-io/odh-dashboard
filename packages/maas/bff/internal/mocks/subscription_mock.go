@@ -425,6 +425,62 @@ func GetMockMaaSModelRefSummaries() []models.MaaSModelRefSummary {
 			Reason:             "Reconciled",
 			GovernanceAttached: true,
 		},
+		{
+			Name:        "failed-reconcile-model",
+			Namespace:   "maas-models",
+			DisplayName: "Failed Reconcile Model",
+			Description: "Failed to reconcile model.",
+			ModelRef: models.ModelReference{
+				Kind: "LLMInferenceService",
+				Name: "failed-reconcile-model",
+			},
+			Phase:         "Failed",
+			StatusMessage: "failed to reconcile model",
+			Reason:        "ObjectiveFailure",
+			Endpoint:      "https://failed-reconcile-model.example.com",
+		},
+		{
+			Name:        "not-applicable-model",
+			Namespace:   "maas-models",
+			DisplayName: "Not Applicable Model",
+			Description: "Not applicable model.",
+			ModelRef: models.ModelReference{
+				Kind: "LLMInferenceService",
+				Name: "not-applicable-model",
+			},
+			Phase:         "Pending",
+			StatusMessage: "Awaiting governance pairing and backend readiness",
+			Reason:        "BackendNotReady",
+			Endpoint:      "https://not-applicable-model.example.com",
+		},
+		{
+			Name:        "unsupported-model",
+			Namespace:   "maas-models",
+			DisplayName: "Unsupported Model",
+			Description: "Unsupported model.",
+			ModelRef: models.ModelReference{
+				Kind: "LLMInferenceService",
+				Name: "unsupported-model",
+			},
+			Phase:         "Pending",
+			StatusMessage: "Waiting for HTTPRoute to be created",
+			Reason:        "BackendNotReady",
+			Endpoint:      "https://unsupported-model.example.com",
+		},
+		{
+			Name:        "no-objective-required-model",
+			Namespace:   "maas-models",
+			DisplayName: "No Objective Required Model",
+			Description: "No objective required model.",
+			ModelRef: models.ModelReference{
+				Kind: "LLMInferenceService",
+				Name: "no-objective-required-model",
+			},
+			Phase:         "Ready",
+			StatusMessage: "no objective required model",
+			Reason:        "NoObjectiveRequired",
+			Endpoint:      "https://no-objective-required-model.example.com",
+		},
 	}
 }
 

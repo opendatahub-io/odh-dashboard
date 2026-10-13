@@ -169,7 +169,7 @@ export type UserSubscription = {
   subscription_id_header: string;
   subscription_description: string;
   display_name?: string;
-  priority: number;
+  inference_priority?: number;
   key_count?: number;
   model_refs: ModelRefInfo[];
   organization_id?: string;

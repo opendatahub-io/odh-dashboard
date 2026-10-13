@@ -427,7 +427,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
               namespace: m.modelRefSummary.namespace,
               tokenRateLimits: m.tokenRateLimits,
             }))}
-            hideColumns={['status']}
+            hideColumns={['status', 'flowControlStatus']}
             editable
             onAddModels={canAddModels ? () => setIsAddModelsModalOpen(true) : undefined}
             onEditLimits={(index) => setEditLimitsTarget(index)}

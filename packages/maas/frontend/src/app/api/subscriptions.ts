@@ -74,7 +74,7 @@ const isMaaSSubscription = (v: unknown): v is MaaSSubscription =>
   (v.displayName === undefined || typeof v.displayName === 'string') &&
   (v.description === undefined || typeof v.description === 'string') &&
   typeof v.namespace === 'string' &&
-  (v.priority === undefined || typeof v.priority === 'number') &&
+  (v.inferencePriority === undefined || typeof v.inferencePriority === 'number') &&
   (v.resourceVersion === undefined || typeof v.resourceVersion === 'string') &&
   isOwnerSpec(v.owner) &&
   Array.isArray(v.modelRefs) &&
@@ -144,7 +144,7 @@ const isUserSubscription = (v: unknown): v is UserSubscription =>
   isRecord(v) &&
   typeof v.subscription_id_header === 'string' &&
   typeof v.subscription_description === 'string' &&
-  typeof v.priority === 'number' &&
+  (v.inferencePriority === undefined || typeof v.inferencePriority === 'number') &&
   Array.isArray(v.model_refs) &&
   v.model_refs.every(isModelRefInfo);
 

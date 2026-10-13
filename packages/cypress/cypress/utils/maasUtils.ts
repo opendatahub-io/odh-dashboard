@@ -196,6 +196,9 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
         description:
           'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
         tokenRateLimits: [{ limit: 100000, window: '24h' }],
+        ready: false,
+        reason: 'BackendNotReady',
+        message: 'Waiting for HTTPRoute to be created',
       },
       {
         name: 'flan-t5-small',
@@ -203,6 +206,9 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
         displayName: 'Flan T5 Small',
         description: 'Flan T5 Small is a small language model that is used for basic tasks.',
         tokenRateLimits: [{ limit: 200000, window: '24h' }],
+        ready: true,
+        reason: 'model running',
+        message: 'successfully reconciled',
       },
     ],
     tokenMetadata: {
@@ -307,7 +313,8 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
     subscription_description: 'Premium Team Subscription',
     // eslint-disable-next-line camelcase
     display_name: 'Premium Team',
-    priority: 10,
+    // eslint-disable-next-line camelcase
+    inference_priority: 10,
     // eslint-disable-next-line camelcase
     key_count: 10,
     // eslint-disable-next-line camelcase
@@ -346,7 +353,8 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
     subscription_description: 'Basic Team Subscription',
     // eslint-disable-next-line camelcase
     display_name: 'Basic Team',
-    priority: 1,
+    // eslint-disable-next-line camelcase
+    inference_priority: 1,
     // eslint-disable-next-line camelcase
     key_count: 5,
     // eslint-disable-next-line camelcase
@@ -439,7 +447,9 @@ export const mockModelRefSummaries = (): MaaSModelRefSummary[] => [
     displayName: 'Granite 3 8B Instruct',
     description: 'Granite 3 8B Instruct is a large language model for instruction following.',
     modelRef: { kind: 'InferenceService', name: 'granite-3-8b-instruct' },
-    phase: 'Ready',
+    phase: 'Failed',
+    reason: 'BackendNotReady',
+    statusMessage: 'Failed to create HTTPRoute',
     endpoint: 'https://granite-3-8b-instruct.maas-models.svc.cluster.local',
   },
   {

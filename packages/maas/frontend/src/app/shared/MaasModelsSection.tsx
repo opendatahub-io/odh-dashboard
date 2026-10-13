@@ -30,13 +30,14 @@ import {
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 
-type ModelColumnKey = 'name' | 'project' | 'status' | 'tokenLimits';
+type ModelColumnKey = 'name' | 'project' | 'status' | 'tokenLimits' | 'flowControlStatus';
 
 const COLUMNS: { key: ModelColumnKey; label: string; width?: ThProps['width'] }[] = [
   { key: 'name', label: 'Name', width: 30 },
   { key: 'project', label: 'Project', width: 20 },
-  { key: 'tokenLimits', label: 'Token limits', width: 25 },
-  { key: 'status', label: 'Status', width: 25 },
+  { key: 'tokenLimits', label: 'Token limits', width: 20 },
+  { key: 'status', label: 'Status', width: 15 }, //model status
+  { key: 'flowControlStatus', label: 'Flow control status', width: 15 }, //flow control status
 ];
 
 export type MaasModelsSectionProps = {
@@ -132,27 +133,18 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
               </Td>
             ),
             status: (
-              <Td
-                key="status"
-                dataLabel="Status"
-                data-testid={`model-flow-control-status-${index}`}
-              >
-                {flowControlPhase && subscriptionRef ? (
-                  <Stack>
-                    <StackItem>
-                      <PhaseLabel
-                        phase={flowControlPhase}
-                        resourceType={PhaseResourceType.MODEL}
-                        statusMessage={subscriptionRef.message}
-                        reason={subscriptionRef.reason}
-                        resourceName={modelRef.displayName ?? modelRef.name}
-                        hideSubtext
-                      />
-                    </StackItem>
-                  </Stack>
-                ) : (
-                  '—'
-                )}
+              <Td key="status" dataLabel="Status">
+                <PhaseLabel
+                  phase={modelRef.phase}
+                  resourceType={PhaseResourceType.MODEL}
+                  resourceName={modelRef.displayName ?? modelRef.name}
+                  reason={modelRef.reason}
+                  statusMessage={modelRef.statusMessage}
+                  status={modelRef.status}
+                  conditionType={modelRef.conditionType}
+                  lastTransitionTime={modelRef.lastTransitionTime}
+                  testId={`model-status-${modelRef.name}`}
+                />
               </Td>
             ),
             tokenLimits: (
@@ -191,6 +183,23 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
                   )
                 ) : (
                   tokenLimitsDisplay
+                )}
+              </Td>
+            ),
+            flowControlStatus: (
+              <Td key="flowControlStatus" dataLabel="Flow control status">
+                {flowControlPhase && subscriptionRef ? (
+                  <PhaseLabel
+                    phase={flowControlPhase}
+                    resourceType={PhaseResourceType.FLOW_CONTROL_STATUS}
+                    statusMessage={subscriptionRef.message}
+                    reason={subscriptionRef.reason}
+                    resourceName={modelRef.displayName ?? modelRef.name}
+                    hideSubtext
+                    testId={`model-flow-control-status-${modelRef.name}`}
+                  />
+                ) : (
+                  '—'
                 )}
               </Td>
             ),

@@ -284,7 +284,8 @@ describe('View Subscription Page', () => {
       .and('contain.text', 'Ready')
       .should('contain.text', 'Premium Team Subscription')
       .and('contain.text', 'Name')
-      .and('contain.text', 'Created');
+      .and('contain.text', 'Created')
+      .and('contain.text', 'Inference priority');
 
     viewSubscriptionPage.findGroupsSection().should('exist');
     viewSubscriptionPage.findGroupsTable().should('contain.text', 'premium-users');
@@ -367,6 +368,35 @@ describe('View Subscription Page', () => {
       expect(downloads[0].content).to.include('kind: MaaSSubscription');
     });
   });
+
+  it('should display model status and flow control status in the models table', () => {
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: mockSubscriptions() });
+    viewSubscriptionPage.visit(subscriptionName);
+    viewSubscriptionPage.findModelsTable().should('contain.text', 'granite-3-8b-instruct');
+    viewSubscriptionPage.findModelsTable().should('contain.text', 'maas-models');
+    viewSubscriptionPage.findModelsTable().should('contain.text', '100,000');
+    viewSubscriptionPage.findModelStatus('granite-3-8b-instruct').should('contain.text', 'Failed');
+    viewSubscriptionPage
+      .findFlowControlStatus('granite-3-8b-instruct')
+      .should('contain.text', 'Pending');
+    viewSubscriptionPage.findFlowControlStatus('granite-3-8b-instruct').click();
+    phaseModal.find().should('exist');
+    phaseModal.findAlert().should('exist');
+    phaseModal.findAlertBody().should('exist');
+    phaseModal.findApiDetailsButton().should('exist').click();
+    phaseModal.findAlertDetailsCodeBlock().should('exist');
+    phaseModal.findCloseButton().click();
+    phaseModal.shouldBeOpen(false);
+    viewSubscriptionPage.findModelStatus('granite-3-8b-instruct').should('contain.text', 'Failed');
+    viewSubscriptionPage.findModelStatus('granite-3-8b-instruct').click();
+    phaseModal.find().should('exist');
+    phaseModal.findAlert().should('exist');
+    phaseModal.findAlertBody().should('exist');
+    phaseModal.findApiDetailsButton().should('exist').click();
+    phaseModal.findAlertDetailsCodeBlock().should('exist');
+    phaseModal.findCloseButton().click();
+    phaseModal.shouldBeOpen(false);
+  });
 });
 
 describe('Subscription Create Page', () => {
@@ -393,20 +423,20 @@ describe('Subscription Create Page', () => {
 
     // Testing out max and min priority values
     createSubscriptionPage.findPriorityInput().clear();
-    createSubscriptionPage.findPriorityInput().type('-1000000');
+    createSubscriptionPage.findPriorityInput().type('-2147483648');
     createSubscriptionPage.findPriorityMinusButton().should('be.disabled');
 
     createSubscriptionPage.findPriorityInput().clear();
-    createSubscriptionPage.findPriorityInput().type('-99999999999'); // Out of range the input will snap to -1000000
-    createSubscriptionPage.findPriorityInput().should('have.value', '-1000000');
+    createSubscriptionPage.findPriorityInput().type('-2147483648123123'); // Out of range the input will snap to -1000000
+    createSubscriptionPage.findPriorityInput().should('have.value', '-2147483648');
 
     createSubscriptionPage.findPriorityInput().clear();
-    createSubscriptionPage.findPriorityInput().type('1000000');
+    createSubscriptionPage.findPriorityInput().type('2147483647');
     createSubscriptionPage.findPriorityPlusButton().should('be.disabled');
 
     createSubscriptionPage.findPriorityInput().clear();
-    createSubscriptionPage.findPriorityInput().type('99999999999'); // Out of range the input will snap to 1000000
-    createSubscriptionPage.findPriorityInput().should('have.value', '1000000');
+    createSubscriptionPage.findPriorityInput().type('2147483647123'); // Out of range the input will snap to 1000000
+    createSubscriptionPage.findPriorityInput().should('have.value', '2147483647');
 
     // Set a priority
     createSubscriptionPage.findPriorityInput().clear();
@@ -465,7 +495,7 @@ describe('Subscription Create Page', () => {
           name: 'test-subscription',
           displayName: 'Test Subscription',
           description: 'A test subscription',
-          priority: 5,
+          inferencePriority: 5,
           owner: {
             groups: [{ name: 'premium-users' }, { name: 'my-custom-group' }],
           },
