@@ -22,13 +22,13 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import {
-  ClipboardIcon,
-  BookIcon,
   ExclamationTriangleIcon,
   OutlinedQuestionCircleIcon,
-  RobotIcon,
-  ShieldAltIcon,
   RhUiAiModelIcon,
+  RhUiMcpServerIcon,
+  RhUiSecurityIcon,
+  RhUiStorageDomainIcon,
+  RhUiTaskIcon,
 } from '@patternfly/react-icons';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -399,7 +399,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             <Tab
               eventKey={1}
               tabContentId="chatbot-settings-page-tab-content-prompt"
-              title={renderTabTitle(areTabsCompact, 'Prompt', <ClipboardIcon />)}
+              title={renderTabTitle(areTabsCompact, 'Prompt', <RhUiTaskIcon />)}
               aria-label="Prompt"
               tooltip={areTabsCompact ? <Tooltip content="Prompt" /> : undefined}
               data-testid="chatbot-settings-page-tab-prompt"
@@ -407,7 +407,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             <Tab
               eventKey={2}
               tabContentId="chatbot-settings-page-tab-content-knowledge"
-              title={renderTabTitle(areTabsCompact, 'RAG', <BookIcon />)}
+              title={renderTabTitle(areTabsCompact, 'RAG', <RhUiStorageDomainIcon />)}
               aria-label="RAG"
               tooltip={areTabsCompact ? <Tooltip content="RAG" /> : undefined}
               data-testid="chatbot-settings-page-tab-knowledge"
@@ -415,7 +415,12 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             <Tab
               eventKey={3}
               tabContentId="chatbot-settings-page-tab-content-mcp"
-              title={renderTabTitle(areTabsCompact, 'MCP', <RobotIcon />, mcpToolsWarningStatus)}
+              title={renderTabTitle(
+                areTabsCompact,
+                'MCP',
+                <RhUiMcpServerIcon />,
+                mcpToolsWarningStatus,
+              )}
               aria-label="MCP"
               tooltip={
                 areTabsCompact ? (
@@ -430,7 +435,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               <Tab
                 eventKey={4}
                 tabContentId="chatbot-settings-page-tab-content-guardrails"
-                title={renderTabTitle(areTabsCompact, 'Guardrails', <ShieldAltIcon />)}
+                title={renderTabTitle(areTabsCompact, 'Guardrails', <RhUiSecurityIcon />)}
                 aria-label="Guardrails"
                 tooltip={areTabsCompact ? <Tooltip content="Guardrails" /> : undefined}
                 data-testid="chatbot-settings-page-tab-guardrails"
