@@ -118,9 +118,29 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     [allCollections, allModels, existingModels],
   );
 
+  const existingCollectionIds = React.useMemo(
+    () => new Set(existingCollections.map((vs) => vs.id)),
+    [existingCollections],
+  );
+
+  // Registered vector stores that are selectable in this modal. The LSD vector
+  // store list can contain stores managed outside this modal (e.g., the
+  // auto-provisioned document-upload store), which are never part of the
+  // selection and must not count as pending changes.
+  const registeredSelectableCollectionIds = React.useMemo(
+    () =>
+      new Set(
+        availableCollections
+          .filter((c) => existingCollectionIds.has(c.vector_store_id))
+          .map((c) => c.vector_store_id),
+      ),
+    [availableCollections, existingCollectionIds],
+  );
+
   const preSelectedCollections = React.useMemo(() => {
-    const existingIds = new Set(existingCollections.map((vs) => vs.id));
-    const fromExisting = availableCollections.filter((c) => existingIds.has(c.vector_store_id));
+    const fromExisting = availableCollections.filter((c) =>
+      registeredSelectableCollectionIds.has(c.vector_store_id),
+    );
 
     if (!extraSelectedCollections || extraSelectedCollections.length === 0) {
       return fromExisting;
@@ -131,7 +151,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
       availableCollections.some((ac) => ac.vector_store_id === c.vector_store_id),
     );
     return [...filteredExtras, ...fromExisting.filter((c) => !extraIds.has(c.vector_store_id))];
-  }, [existingCollections, availableCollections, extraSelectedCollections]);
+  }, [availableCollections, registeredSelectableCollectionIds, extraSelectedCollections]);
 
   const [selectedModels, setSelectedModels] = React.useState<AIModel[]>(() => {
     // All non-embedding models are auto-selected (they're locked and auto-available
@@ -171,11 +191,9 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const [selectedCollections, setSelectedCollections] =
     React.useState<ExternalVectorStoreSummary[]>(preSelectedCollections);
 
-  const isUpdate = !!lsdStatus;
-  const hasBffPassthroughProvider =
-    lsdStatus?.distributionConfig.providers.some((p) =>
-      p.provider_id?.startsWith('genai-bff-proxy'),
-    ) ?? false;
+  // An existing playground is being reconfigured rather than created — the LSD
+  // must be deleted (preserving vector stores) and reinstalled on submit
+  const isExistingPlayground = !!lsdStatus;
 
   const lockedModelNames = React.useMemo(() => {
     // All models are locked — inference models are auto-available via passthrough
@@ -335,31 +353,35 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
 
   // True when updating a playground and the pending changes (tracing enablement
   // or vector store selection) require the playground service to restart.
+  // The selection is compared against the registered stores that are selectable
+  // in this modal — stores managed outside the modal (e.g., the auto-provisioned
+  // document-upload store) are excluded so they don't count as pending changes.
   const isRestartRequired = React.useMemo(() => {
-    if (!isUpdate) {
+    if (!isExistingPlayground) {
       return false;
     }
-    const existingCollectionIds = new Set(existingCollections.map((vs) => vs.id));
     const selectedCollectionIds = new Set(selectedCollections.map((c) => c.vector_store_id));
     return (
       (tracingEnabled && enableTracing !== existingTracingEnabled) ||
-      existingCollectionIds.size !== selectedCollectionIds.size ||
-      [...existingCollectionIds].some((id) => !selectedCollectionIds.has(id))
+      registeredSelectableCollectionIds.size !== selectedCollectionIds.size ||
+      [...registeredSelectableCollectionIds].some((id) => !selectedCollectionIds.has(id))
     );
   }, [
-    isUpdate,
-    existingCollections,
+    isExistingPlayground,
+    registeredSelectableCollectionIds,
     selectedCollections,
     tracingEnabled,
     enableTracing,
     existingTracingEnabled,
   ]);
 
-  // When updating a playground that has the BFF passthrough provider, only
-  // vector store changes require an OGX restart (embedding models are implicitly
-  // managed by vector store selection). All other models are resolved per-request.
-  const hasChangesRequiringOgxRestart =
-    !isUpdate || !hasBffPassthroughProvider || isRestartRequired;
+  // The submit button is only enabled when there are actual changes to apply:
+  // a tracing enablement change or a vector store selection change when updating
+  // a playground (models are locked and auto-selected, so they are not
+  // user-changeable). All models are resolved per-request, so only vector store
+  // and tracing changes require an OGX restart (embedding models are implicitly
+  // managed by vector store selection).
+  const hasChangesRequiringOgxRestart = !isExistingPlayground || isRestartRequired;
 
   // The restart notice is shown alongside the submit button on the final step
   const showRestartAlert = isRestartRequired && !isStepsLoading && isLastStep;
@@ -368,12 +390,15 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const goBack = () => setCurrentStepIndex((i) => Math.max(i - 1, 0));
 
   const fireErrorEvents = (e: Error) => {
-    fireFormTrackingEvent(isUpdate ? UPDATE_PLAYGROUND_EVENT_NAME : SETUP_PLAYGROUND_EVENT_NAME, {
-      outcome: TrackingOutcome.submit,
-      success: false,
-      error: e.message,
-      namespace: namespace?.name,
-    });
+    fireFormTrackingEvent(
+      isExistingPlayground ? UPDATE_PLAYGROUND_EVENT_NAME : SETUP_PLAYGROUND_EVENT_NAME,
+      {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: e.message,
+        namespace: namespace?.name,
+      },
+    );
   };
 
   const isNemoGuardrailsConflict = (e: unknown): boolean =>
@@ -452,7 +477,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
       Promise.all([installLSDPromise, nemoPromise])
         .then(() => {
           fireFormTrackingEvent(
-            isUpdate ? UPDATE_PLAYGROUND_EVENT_NAME : SETUP_PLAYGROUND_EVENT_NAME,
+            isExistingPlayground ? UPDATE_PLAYGROUND_EVENT_NAME : SETUP_PLAYGROUND_EVENT_NAME,
             {
               outcome: TrackingOutcome.submit,
               success: true,
@@ -469,7 +494,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
                       : 'Inference');
                 return resolvedType === 'Embedding';
               }).length,
-              ...(isUpdate && { countPreviousModelsSelected: existingModels.length }),
+              ...(isExistingPlayground && { countPreviousModelsSelected: existingModels.length }),
             },
           );
         })
@@ -483,7 +508,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
 
     // If LSD status is provided, delete the existing LSD and install the new models.
     // Preserve the vector store so uploaded document embeddings survive the model switch.
-    if (isUpdate) {
+    if (isExistingPlayground) {
       api
         .deleteLSD({
           name: lsdStatus.name,
@@ -509,10 +534,13 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     setAlertTitle(undefined);
     setModelTypeMap(new Map());
     setEmbeddingDimensionMap(new Map());
-    fireFormTrackingEvent(isUpdate ? UPDATE_PLAYGROUND_EVENT_NAME : SETUP_PLAYGROUND_EVENT_NAME, {
-      outcome: TrackingOutcome.cancel,
-      namespace: namespace?.name,
-    });
+    fireFormTrackingEvent(
+      isExistingPlayground ? UPDATE_PLAYGROUND_EVENT_NAME : SETUP_PLAYGROUND_EVENT_NAME,
+      {
+        outcome: TrackingOutcome.cancel,
+        namespace: namespace?.name,
+      },
+    );
     onClose();
   };
 
@@ -555,6 +583,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
       <ModalBody>
         {configuringPlayground ? (
           <ChatbotConfigurationState
+            isExistingPlayground={isExistingPlayground}
             redirectToPlayground={redirectToPlayground}
             onClose={onSuccessClose}
           />
@@ -615,7 +644,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
               isDisabled={submitting || !hasChangesRequiringOgxRestart}
               data-testid="modal-submit-button"
             >
-              {!isUpdate
+              {!isExistingPlayground
                 ? 'Create'
                 : isRestartRequired
                   ? 'Update and restart playground'
