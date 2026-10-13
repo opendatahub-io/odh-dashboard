@@ -1,11 +1,6 @@
 name: Renovate config
 
 on:
-  push:
-    branches: [main, stable]
-    paths:
-      - renovate.json
-      - .github/workflows/renovate-config.yml
   pull_request:
     branches: [main, stable]
     paths:

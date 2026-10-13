@@ -34,4 +34,4 @@ This directory contains Tekton `PipelineRun` definitions used by Konflux for the
 
 [MintMaker](https://konflux-ci.dev/docs/mintmaker/user/) (Konflux Renovate) is configured in [`renovate.json`](../renovate.json) for weekly GitHub Actions version bumps and Go module security-only updates (`workspaces/backend` and `workspaces/controller`). Pull requests come from `red-hat-konflux[bot]`. This overlay restricts `enabledManagers` to `gomod` and `github-actions` so the global MintMaker defaults (Dockerfiles, Tekton, routine Go version bumps, and so on) do not apply. MintMaker only runs when it is enabled on the Konflux component (`odh-workbenches-controller-ci`). Do not also enable Dependabot for the same ecosystems.
 
-CI validates the overlay with [`renovate-config.yml`](../.github/workflows/renovate-config.yml) (`renovate-config-validator --strict`) on PRs/pushes that touch `renovate.json` or that workflow.
+CI validates the overlay with [`renovate-config.yml`](../.github/workflows/renovate-config.yml) (`renovate-config-validator --strict`) on PRs that touch `renovate.json` or that workflow.
