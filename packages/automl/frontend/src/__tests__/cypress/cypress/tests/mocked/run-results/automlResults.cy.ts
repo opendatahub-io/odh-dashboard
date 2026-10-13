@@ -39,7 +39,27 @@ describe('AutoML Results Page', () => {
     it('should place run actions beside the breadcrumb', () => {
       automlResultsPage.visit(NAMESPACE, RUN_ID);
 
+      // The actions share the breadcrumb row — aligned with the run-name
+      // breadcrumb and to its right — rather than stacking in a page header.
+      automlResultsPage.findResultsBreadcrumbRunName().then(($crumb) => {
+        automlResultsPage.findRunDetailsButton().then(($actions) => {
+          const crumb = $crumb[0].getBoundingClientRect();
+          const actions = $actions[0].getBoundingClientRect();
+          expect(actions.top, 'actions row top').to.be.lessThan(crumb.bottom);
+          expect(actions.bottom, 'actions row bottom').to.be.greaterThan(crumb.top);
+          expect(actions.left, 'actions right of breadcrumb').to.be.greaterThan(crumb.left);
+        });
+      });
+
+      // At a narrower viewport the actions stay reachable without page-level
+      // horizontal overflow.
+      cy.viewport(900, 660);
       automlResultsPage.findRunDetailsButton().should('be.visible');
+      cy.document().then((doc) => {
+        expect(doc.documentElement.scrollWidth, 'no horizontal overflow').to.be.at.most(
+          doc.documentElement.clientWidth,
+        );
+      });
     });
 
     it('should toggle the step details panel with the Show/Hide details control', () => {
