@@ -169,7 +169,7 @@ export const enableExternalProviders = (): void => {
 
   // Allow the backend ResourceWatcher cycle to propagate the change to the UI.
   // eslint-disable-next-line cypress/no-unnecessary-waiting
-  cy.wait(30000);
+  cy.wait(20000);
 };
 
 /**
@@ -185,6 +185,72 @@ export const forceDashboardConfigRefresh = (): void => {
   })
     .its('status')
     .should('eq', 200);
+};
+
+const waitForExternalProvidersViaAPI = (
+  expectedValue: boolean,
+  maxAttempts = 10,
+  pollIntervalMs = 2000,
+): void => {
+  const check = (attempt: number): void => {
+    cy.request({
+      url: '/api/config',
+      headers: { 'Cache-Control': 'no-cache' },
+    }).then((response) => {
+      expect(response.status).to.eq(200);
+
+      const externalProviders =
+        response.body?.spec?.genAiStudioConfig?.aiAssetCustomEndpoints?.externalProviders;
+      if (externalProviders === expectedValue) {
+        return;
+      }
+
+      if (attempt >= maxAttempts) {
+        throw new Error(
+          `Dashboard config externalProviders was not ${String(
+            expectedValue,
+          )} after ${maxAttempts} attempts; last value: ${String(externalProviders)}`,
+        );
+      }
+
+      // Poll the backend cache after forcing a no-cache config refresh.
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(pollIntervalMs).then(() => check(attempt + 1));
+    });
+  };
+
+  check(1);
+};
+
+/**
+ * Set externalProviders through the dashboard API and wait for the backend-served
+ * config to reflect it. This targets the same OdhDashboardConfig instance the
+ * backend reads and refreshes the ResourceWatcher immediately.
+ */
+export const setExternalProvidersViaAPI = (enabled: boolean): void => {
+  cy.request({
+    method: 'PATCH',
+    url: '/api/config',
+    body: {
+      spec: { genAiStudioConfig: { aiAssetCustomEndpoints: { externalProviders: enabled } } },
+    },
+  })
+    .its('status')
+    .should('eq', 200);
+
+  waitForExternalProvidersViaAPI(enabled);
+};
+
+/**
+ * Force-refresh the dashboard config and wait until the backend serves
+ * genAiStudioConfig.aiAssetCustomEndpoints.externalProviders=true.
+ *
+ * Use this before loading Gen AI pages that validate custom endpoint URLs, because
+ * refreshing the backend cache after the page is already loaded does not update the
+ * frontend DashboardConfigContext for that page instance.
+ */
+export const waitForExternalProvidersEnabledViaAPI = (): void => {
+  waitForExternalProvidersViaAPI(true);
 };
 
 /**
@@ -249,9 +315,11 @@ export const verifyEndpointResourcesCleanedUp = (
 };
 
 /**
- * Poll the LSD service's /v1/models endpoint until the specified model
- * appears in the response. This ensures the model is fully registered
- * and available for inference, not just that the pod is running.
+ * Poll the Gen AI BFF's LSD models endpoint until the specified model appears.
+ *
+ * Non-embedding inference models are resolved through the genai-bff-proxy passthrough
+ * provider and are not present in the raw in-cluster `/v1/models` response without
+ * request provider data. Querying the BFF mirrors the UI model selector path.
  */
 export const waitForModelInLSD = (
   serviceName: string,
@@ -348,6 +416,49 @@ export const deleteGenAiPromptViaAPI = (namespace: string, name: string): void =
     )}`,
     failOnStatusCode: false,
   });
+};
+
+export const waitForDsciCondition = (
+  conditionType: string,
+  expectedStatus = 'True',
+  maxAttempts = 30,
+  pollIntervalMs = 5000,
+): Cypress.Chainable<Cypress.Exec> =>
+  pollUntilSuccess(
+    `oc get dscinitializations.dscinitialization.opendatahub.io -o json | jq -e '.items[]?.status.conditions[]? | select(.type=="${conditionType}" and .status=="${expectedStatus}")'`,
+    `DSCI condition ${conditionType}=${expectedStatus}`,
+    { maxAttempts, pollIntervalMs },
+  );
+
+export const verifyPlaygroundTracingEnabledViaAPI = (
+  namespace: string,
+  maxAttempts = 10,
+  pollIntervalMs = 3000,
+): void => {
+  const check = (attempt: number): void => {
+    cy.request({
+      url: `/gen-ai/api/v1/lsd/status?namespace=${encodeURIComponent(namespace)}`,
+      failOnStatusCode: false,
+    }).then((response) => {
+      const tracingEnabled = response.body?.data?.tracingEnabled ?? response.body?.tracingEnabled;
+      if (response.status === 200 && tracingEnabled === true) {
+        return;
+      }
+
+      if (attempt >= maxAttempts) {
+        throw new Error(
+          `Playground tracing was not enabled after ${maxAttempts} attempts. ` +
+            `Last status: ${response.status}. Last value: ${String(tracingEnabled)}`,
+        );
+      }
+
+      // Poll until the BFF status endpoint reflects the installed OGXServer state.
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(pollIntervalMs).then(() => check(attempt + 1));
+    });
+  };
+
+  check(1);
 };
 
 type ConfigInstance = { namespace: string; name: string };

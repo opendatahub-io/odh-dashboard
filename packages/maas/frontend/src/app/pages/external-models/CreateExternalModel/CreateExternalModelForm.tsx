@@ -30,7 +30,7 @@ import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { enqueuePostDeployAlert } from '@odh-dashboard/model-serving/concepts/postDeployAlertStore';
+import { enqueuePostDeployAlert } from '~/app/utilities/postDeployAlertStore';
 import { createExternalModel, updateExternalModel } from '~/app/api/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import {

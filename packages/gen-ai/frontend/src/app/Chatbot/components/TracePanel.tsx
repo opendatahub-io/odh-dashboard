@@ -81,18 +81,22 @@ const TracePanel: React.FC<TracePanelProps> = ({
   const panelContent = (
     <DrawerPanelContent isResizable defaultSize="75%" minSize="30%" data-testid="trace-panel">
       <DrawerHead>
-        <Title headingLevel="h3" size="lg">
+        <Title headingLevel="h3" size="lg" data-testid="trace-panel-title">
           Trace Details
         </Title>
         <DrawerActions>
-          <DrawerCloseButton onClick={onClose} />
+          <DrawerCloseButton onClick={onClose} data-testid="trace-panel-close-button" />
         </DrawerActions>
       </DrawerHead>
-      <div className="pf-v6-u-h-100 pf-v6-u-overflow-auto">
+      <div
+        className="pf-v6-u-h-100 pf-v6-u-overflow-auto"
+        data-testid="mlflow-trace-detail"
+        data-trace-id={traceId}
+      >
         <MlflowErrorBoundary key={traceId}>
           <React.Suspense
             fallback={
-              <Bullseye>
+              <Bullseye data-testid="mlflow-trace-detail-loading">
                 <Spinner />
               </Bullseye>
             }

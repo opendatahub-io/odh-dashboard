@@ -8,7 +8,7 @@ import {
   syncPostDeployAlertPath,
   useHasPostDeployAlert,
   usePostDeployAlert,
-} from '@odh-dashboard/model-serving/concepts/postDeployAlertStore';
+} from '~/app/utilities/postDeployAlertStore';
 import { useIsMaasAdmin } from '~/app/hooks/useIsMaasAdmin';
 
 export const MAAS_PUBLISHED_INTERNAL_ALERT_ID = 'maas-model-published-internal';
