@@ -81,6 +81,54 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 					Reason:  "PendingPoolDiscovery",
 					Message: "Waiting for InferencePool discovery",
 				},
+				{
+					Name:        "failed-reconcile-model",
+					Namespace:   "maas-models",
+					DisplayName: "Failed Reconcile Model",
+					Description: "Failed to reconcile model.",
+					TokenRateLimits: []models.TokenRateLimit{
+						{Limit: 100000, Window: "24h"},
+					},
+					Ready:   boolPtr(false),
+					Reason:  "ObjectiveFailure",
+					Message: "Failed to reconcile InferenceObjective",
+				},
+				{
+					Name:        "not-applicable-model",
+					Namespace:   "maas-models",
+					DisplayName: "Not Applicable Model",
+					Description: "Not applicable model.",
+					TokenRateLimits: []models.TokenRateLimit{
+						{Limit: 100000, Window: "24h"},
+					},
+					Ready:   boolPtr(true),
+					Reason:  "NotApplicable",
+					Message: "Not applicable model",
+				},
+				{
+					Name:        "unsupported-model",
+					Namespace:   "maas-models",
+					DisplayName: "Unsupported Model",
+					Description: "Unsupported model.",
+					TokenRateLimits: []models.TokenRateLimit{
+						{Limit: 100000, Window: "24h"},
+					},
+					Ready:   boolPtr(false),
+					Reason:  "Unsupported",
+					Message: "Unsupported model",
+				},
+				{
+					Name:        "no-objective-required-model",
+					Namespace:   "maas-models",
+					DisplayName: "No Objective Required Model",
+					Description: "No objective required model.",
+					TokenRateLimits: []models.TokenRateLimit{
+						{Limit: 100000, Window: "24h"},
+					},
+					Ready:   boolPtr(true),
+					Reason:  "NoObjectiveRequired",
+					Message: "No objective required model",
+				},
 			},
 			TokenMetadata: &models.TokenMetadata{
 				OrganizationID: "org-123",
@@ -95,7 +143,12 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 			Description:   "Standard subscription for general team access.",
 			Phase:         "Active",
 			StatusMessage: "successfully reconciled",
-			Reason:        "Reconciled",
+			InferenceObjectivesReady: &models.ConditionSummary{
+				Type:   "InferenceObjectivesReady",
+				Status: "True",
+				Reason: "Reconciled",
+			},
+			Reason: "Reconciled",
 			Owner: models.OwnerSpec{
 				Groups: []models.GroupReference{
 					{Name: "system:authenticated"},
@@ -110,6 +163,9 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 					TokenRateLimits: []models.TokenRateLimit{
 						{Limit: 10000, Window: "24h"},
 					},
+					Ready:   boolPtr(true),
+					Reason:  "Reconciled",
+					Message: "InferenceObjective sets priority 0",
 				},
 			},
 			CreationTimestamp: timePtr(time.Date(2025, 2, 15, 8, 0, 0, 0, time.UTC)),

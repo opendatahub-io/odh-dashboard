@@ -302,7 +302,7 @@ describe('updateSubscription', () => {
           tokenRateLimits: [{ limit: 200000, window: '24h' }],
         },
       ],
-      priority: 5,
+      inferencePriority: 5,
     },
   };
 
@@ -323,14 +323,17 @@ describe('updateSubscription', () => {
           tokenRateLimits: [{ limit: 200000, window: '24h' }],
         },
       ],
-      priority: 5,
+      inferencePriority: 5,
+      resourceVersion: '12345',
     });
     expect(result.subscription.name).toBe('test-sub');
     expect(result.subscription.owner.groups[0].name).toBe('updated-group');
     expect(mockRestUPDATE).toHaveBeenCalledWith(
       '',
       expect.stringContaining('/update-subscription/test-sub'),
-      expect.any(Object),
+      expect.objectContaining({
+        data: expect.objectContaining({ resourceVersion: '12345' }),
+      }),
       {},
       {},
     );
@@ -342,7 +345,7 @@ describe('updateSubscription', () => {
     await updateSubscription()({} as never, 'sub with spaces', {
       owner: { groups: [] },
       modelRefs: [],
-      priority: 0,
+      inferencePriority: 0,
     });
 
     expect(mockRestUPDATE).toHaveBeenCalledWith(
@@ -361,7 +364,7 @@ describe('updateSubscription', () => {
       updateSubscription()({} as never, 'test-sub', {
         owner: { groups: [] },
         modelRefs: [],
-        priority: 0,
+        inferencePriority: 0,
       }),
     ).rejects.toThrow('Invalid response format');
   });
@@ -384,7 +387,7 @@ describe('updateSubscription', () => {
     const result = await updateSubscription()({} as never, 'test-sub', {
       owner: { groups: [] },
       modelRefs: [],
-      priority: 0,
+      inferencePriority: 0,
     });
 
     expect(result.subscription.modelRefs[0].tokenRateLimits).toEqual([]);

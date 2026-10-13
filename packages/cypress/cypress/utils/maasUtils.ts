@@ -99,7 +99,7 @@ export const mockFailedSubscription = (): MaaSSubscription => ({
   reason: 'ReconcileFailed',
   statusMessage:
     'failed to reconcile TokenRateLimitPolicies: token rate limit exceeds maximum allowed value',
-  priority: 99,
+  inferencePriority: 99,
   owner: {
     groups: [{ name: 'system:authenticated' }],
   },
@@ -122,7 +122,7 @@ export const mockDegradedSubscription = (): MaaSSubscription => ({
   conditionType: 'Ready',
   statusMessage: 'some model references are invalid or missing',
   lastTransitionTime: '2025-04-01T12:30:00Z',
-  priority: 99,
+  inferencePriority: 99,
   owner: {
     groups: [{ name: 'system:authenticated' }],
   },
@@ -141,7 +141,7 @@ export const mockPendingSubscription = (): MaaSSubscription => ({
   namespace: 'maas-system',
   phase: 'Pending',
   statusMessage: '',
-  priority: 99,
+  inferencePriority: 99,
   owner: {
     groups: [{ name: 'beta-testers' }],
   },
@@ -160,7 +160,7 @@ export const mockDeletingSubscription = (): MaaSSubscription => ({
   namespace: 'maas-system',
   phase: 'Active',
   statusMessage: 'successfully reconciled',
-  priority: 55,
+  inferencePriority: 55,
   owner: {
     groups: [{ name: 'premium-users' }],
   },
@@ -184,7 +184,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
     phase: 'Active',
     statusMessage: 'successfully reconciled',
     reason: 'model running',
-    priority: 10,
+    inferencePriority: 10,
     owner: {
       groups: [{ name: 'premium-users' }],
     },
@@ -231,7 +231,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
         tokenRateLimits: [{ limit: 10000, window: '24h' }],
       },
     ],
-    priority: 0,
+    inferencePriority: 0,
     creationTimestamp: '2025-02-15T08:00:00Z',
   },
   {
@@ -240,7 +240,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
     phase: 'Active',
     statusMessage: 'successfully reconciled',
     reason: 'model running',
-    priority: -10000,
+    inferencePriority: -10000,
     owner: {
       groups: [{ name: 'system:authenticated' }],
     },
@@ -263,7 +263,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
     phase: 'Active',
     statusMessage: 'successfully reconciled',
     reason: 'model running',
-    priority: 5,
+    inferencePriority: 5,
     owner: {
       groups: [
         { name: 'platform-admins' },
@@ -372,7 +372,7 @@ export const mockSubscriptionInfoMissingModelSummaries = (): SubscriptionInfoRes
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
-    priority: 7,
+    inferencePriority: 7,
     owner: {
       groups: [{ name: 'premium-users' }],
     },
@@ -498,7 +498,7 @@ export const mockSandboxGraniteSubscription = (): MaaSSubscription => ({
   namespace: 'maas-system',
   phase: 'Active',
   statusMessage: 'successfully reconciled',
-  priority: 1,
+  inferencePriority: 1,
   owner: {
     groups: [{ name: 'sandbox-users' }],
   },
@@ -767,7 +767,7 @@ export const mockCreateSubscriptionResponse = (): CreateSubscriptionResponse => 
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
-    priority: 5,
+    inferencePriority: 5,
     owner: {
       groups: [{ name: 'premium-users' }, { name: 'my-custom-group' }],
     },
