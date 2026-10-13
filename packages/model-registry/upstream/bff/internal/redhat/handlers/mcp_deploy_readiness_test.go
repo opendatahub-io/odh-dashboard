@@ -25,9 +25,13 @@ import (
 // readinessCatalogMock serves a fixed set of catalog MCP servers for readiness tests.
 type readinessCatalogMock struct {
 	*mocks.ModelCatalogClientMock
+	lookups *atomic.Int32
 }
 
 func (m readinessCatalogMock) GetMcpServer(_ httpclient.HTTPClientInterface, serverId string, _ url.Values) (*models.McpServer, error) {
+	if m.lookups != nil {
+		m.lookups.Add(1)
+	}
 	switch serverId {
 	case "4":
 		return &models.McpServer{ID: "4", Name: openShiftMcpServerCatalogName}, nil
@@ -60,6 +64,11 @@ func (r *countingOperatorReader) Get(context.Context) (*unstructured.Unstructure
 
 func newReadinessTestApp(t *testing.T, reader redhatrepos.MCPLifecycleOperatorReader) http.Handler {
 	t.Helper()
+	return newReadinessTestAppWithAccess(t, reader, true, nil)
+}
+
+func newReadinessTestAppWithAccess(t *testing.T, reader redhatrepos.MCPLifecycleOperatorReader, allow bool, lookups *atomic.Int32) http.Handler {
+	t.Helper()
 	original := newMcpLifecycleOperatorReader
 	newMcpLifecycleOperatorReader = func(*api.App) redhatrepos.MCPLifecycleOperatorReader { return reader }
 	t.Cleanup(func() { newMcpLifecycleOperatorReader = original })
@@ -67,8 +76,8 @@ func newReadinessTestApp(t *testing.T, reader redhatrepos.MCPLifecycleOperatorRe
 	app := api.NewTestApp(
 		config.EnvConfig{MockMRCatalogClient: true, DeploymentMode: config.DeploymentModeFederated},
 		noopLogger(),
-		&runtimeCatalogKubeFactory{client: &runtimeCatalogKubeClient{address: "catalog.invalid:8080", allow: true}},
-		repositories.NewRepositories(nil, readinessCatalogMock{&mocks.ModelCatalogClientMock{}}),
+		&runtimeCatalogKubeFactory{client: &runtimeCatalogKubeClient{address: "catalog.invalid:8080", allow: allow}},
+		repositories.NewRepositories(nil, readinessCatalogMock{ModelCatalogClientMock: &mocks.ModelCatalogClientMock{}, lookups: lookups}),
 	)
 	return app.Routes()
 }
@@ -141,6 +150,19 @@ func TestMcpServerDeployReadinessErrors(t *testing.T) {
 			assert.Zero(t, reader.calls.Load())
 		})
 	}
+}
+
+func TestMcpServerDeployReadinessRequiresServiceAccess(t *testing.T) {
+	reader := &countingOperatorReader{obj: redhatrepos.NewMockMCPLifecycleOperator()}
+	var lookups atomic.Int32
+	handler := newReadinessTestAppWithAccess(t, reader, false, &lookups)
+
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, readinessPath("4"), nil))
+
+	require.Equal(t, http.StatusForbidden, rr.Code, rr.Body.String())
+	assert.Zero(t, lookups.Load(), "catalog must not be queried for a caller without access")
+	assert.Zero(t, reader.calls.Load(), "MCPLifecycleOperator must not be read for a caller without access")
 }
 
 func TestMcpServerRequiresGateway(t *testing.T) {

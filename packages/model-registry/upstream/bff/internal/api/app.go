@@ -474,8 +474,8 @@ func (app *App) Routes() http.Handler {
 		apiRouter.GET(
 			McpServerDeployReadinessPath,
 			app.handlerWithOverride(handlerMcpServerDeployReadinessGetID, func() httprouter.Handle {
-				return app.AttachNamespace(app.AttachModelCatalogRESTClient(
-					app.EndpointNotImplementedHandler("MCP server deploy readiness")))
+				return app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(
+					app.EndpointNotImplementedHandler("MCP server deploy readiness"))))
 			}),
 		)
 

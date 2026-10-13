@@ -47,7 +47,8 @@ func mcpServerRequiresGateway(server *models.McpServer) bool {
 func overrideMcpServerDeployReadiness(app *api.App, _ func() httprouter.Handle) httprouter.Handle {
 	reader := newMcpLifecycleOperatorReader(app)
 
-	return app.AttachNamespace(app.AttachModelCatalogRESTClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// Same access gate as the upstream MCP catalog routes (list, get, tools, logo).
+	return app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		client, ok := r.Context().Value(constants.ModelCatalogHttpClientKey).(httpclient.HTTPClientInterface)
 		if !ok {
 			app.ServerError(w, r, errors.New("catalog REST client not found"))
@@ -85,7 +86,7 @@ func overrideMcpServerDeployReadiness(app *api.App, _ func() httprouter.Handle) 
 		if err := app.WriteJSON(w, http.StatusOK, McpServerDeployReadinessEnvelope{Data: readiness}, nil); err != nil {
 			app.ServerError(w, r, err)
 		}
-	}))
+	})))
 }
 
 // mcpCatalogLookupError forwards the catalog's HTTP status (for example 404 for an unknown
