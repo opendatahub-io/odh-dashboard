@@ -735,8 +735,9 @@ describe('MCP Deploy from Catalog', () => {
 
     cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
 
-    mcpServerDetailsPage.findDeployButton().should('be.visible').and('not.be.disabled');
-    mcpServerDetailsPage.findDeployButton().click();
+    // Wait until the button is actually enabled (it is aria-disabled while availability and
+    // deploy readiness load), otherwise the click is ignored on slow runners.
+    mcpServerDetailsPage.clickDeployButton();
 
     cy.wait('@getConverter');
     mcpDeployModal.shouldBeOpen();
