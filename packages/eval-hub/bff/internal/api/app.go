@@ -51,10 +51,11 @@ const (
 	EvalHubCRStatusPath            = ApiPathPrefix + "/evalhub/status"
 	EvalHubServiceHealthPath       = ApiPathPrefix + "/evalhub/health"
 
-	// Inter-BFF: model-catalog security artifacts
+	// Inter-BFF: model-catalog artifacts
 	CatalogSourceID                   = "source_id"
 	CatalogModelName                  = "model_name"
 	CatalogModelSecurityArtifactsPath = ApiPathPrefix + "/catalog/sources/:" + CatalogSourceID + "/security_artifacts/*" + CatalogModelName
+	CatalogModelQualityArtifactsPath  = ApiPathPrefix + "/catalog/sources/:" + CatalogSourceID + "/quality_artifacts/*" + CatalogModelName
 	InferenceServicesPath             = ApiPathPrefix + "/inferenceservices"
 	VerifyConnectionPath              = ApiPathPrefix + "/evaluations/verify-connection"
 )
@@ -306,10 +307,13 @@ func (app *App) Routes() http.Handler {
 	// Connection verification (probes external endpoints, no EvalHub REST client needed)
 	apiRouter.POST(VerifyConnectionPath, app.AttachNamespace(app.RequireAccessToService(app.VerifyConnectionHandler)))
 
-	// Inter-BFF: model-catalog security artifacts (only security_artifacts endpoint is allowed by the bffclient allowlist)
+	// Inter-BFF: model-catalog insight artifacts (paths are restricted by the bffclient allowlist)
 	apiRouter.GET(CatalogModelSecurityArtifactsPath, app.AttachNamespace(app.RequireAccessToService(
 		bffclient.AttachBFFClient(app.bffClientFactory, bffclient.BFFTargetModelCatalog)(
 			app.GetCatalogModelSecurityArtifactsHandler))))
+	apiRouter.GET(CatalogModelQualityArtifactsPath, app.AttachNamespace(app.RequireAccessToService(
+		bffclient.AttachBFFClient(app.bffClientFactory, bffclient.BFFTargetModelCatalog)(
+			app.GetCatalogModelQualityArtifactsHandler))))
 
 	// EvalHub CR status endpoint (reads CR directly, does not need the EvalHub REST client)
 	apiRouter.GET(EvalHubCRStatusPath, app.AttachNamespace(app.EvalHubCRStatusHandler))

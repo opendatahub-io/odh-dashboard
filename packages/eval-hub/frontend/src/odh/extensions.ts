@@ -6,6 +6,36 @@ import type {
   TaskItemExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
+const hasCatalogArtifacts = async (
+  props: Record<string, unknown>,
+  path: string,
+  additionalParams: Record<string, string> = {},
+  apiPath = '/model-registry/api/v1/model_catalog/sources',
+): Promise<boolean> => {
+  const { sourceId, modelName, namespace } = props;
+  if (typeof sourceId !== 'string' || typeof modelName !== 'string') {
+    return false;
+  }
+
+  try {
+    const params = new URLSearchParams({ pageSize: '1', ...additionalParams });
+    if (typeof namespace === 'string') {
+      params.set('namespace', namespace);
+    }
+    const url = `${apiPath}/${encodeURIComponent(sourceId)}/${path}/${encodeURIComponent(
+      modelName,
+    )}?${params.toString()}`;
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      return false;
+    }
+    const json: { data?: { items?: unknown[] } } = await resp.json();
+    return Array.isArray(json.data?.items) && json.data.items.length > 0;
+  } catch {
+    return false;
+  }
+};
+
 const extensions: (NavExtension | RouteExtension | TaskItemExtension | DetailTabExtension)[] = [
   {
     type: 'app.navigation/href',
@@ -47,15 +77,30 @@ const extensions: (NavExtension | RouteExtension | TaskItemExtension | DetailTab
   {
     type: 'core.detail/tab',
     flags: {
-      required: [SupportedArea.MODEL_CATALOG],
+      required: [SupportedArea.LM_EVAL],
     },
     properties: {
       id: 'security-insights',
       title: 'Safety and security insights',
       group: 'model-catalog.details',
       component: () => import('../app/pages/modelCatalog/SecurityInsightsTab'),
+      shouldShow: (props) => hasCatalogArtifacts(props, 'security_artifacts'),
     },
-  },
+  } satisfies DetailTabExtension,
+  {
+    type: 'core.detail/tab',
+    flags: {
+      required: [SupportedArea.LM_EVAL],
+    },
+    properties: {
+      id: 'quality-insights',
+      title: 'Quality insights',
+      group: 'model-catalog.details',
+      component: () => import('../app/pages/modelCatalog/QualityInsightsTab'),
+      shouldShow: (props) =>
+        hasCatalogArtifacts(props, 'quality_artifacts', {}, '/eval-hub/api/v1/catalog/sources'),
+    },
+  } satisfies DetailTabExtension,
 ];
 
 export default extensions;

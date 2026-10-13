@@ -121,6 +121,18 @@ class ModelDetailsPage {
     return cy.findByTestId('security-insights-empty-state');
   }
 
+  findQualityInsightsTab() {
+    return cy.findByTestId('quality-insights-tab');
+  }
+
+  findQualityInsightsTable() {
+    return cy.findByTestId('quality-insights-table');
+  }
+
+  findQualityInsightsEmptyState() {
+    return cy.findByTestId('quality-insights-empty-state');
+  }
+
   clickPerformanceInsightsTab() {
     this.findPerformanceInsightsTab().click();
     return this;
@@ -128,6 +140,11 @@ class ModelDetailsPage {
 
   visitSecurityInsights(sourceId = 'sample-source', modelName = 'repo1%2Fmodel1') {
     cy.visitWithLogin(`/ai-hub/models/catalog/${sourceId}/${modelName}/security-insights`);
+    this.wait();
+  }
+
+  visitQualityInsights(sourceId = 'sample-source', modelName = 'repo1%2Fmodel1') {
+    cy.visitWithLogin(`/ai-hub/models/catalog/${sourceId}/${modelName}/quality-insights`);
     this.wait();
   }
 

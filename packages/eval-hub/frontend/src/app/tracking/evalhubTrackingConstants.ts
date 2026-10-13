@@ -23,6 +23,11 @@ export const EVAL_HUB_EVENTS = {
   SECURITY_INSIGHTS_FILTER_APPLIED: 'Security Insights Filter Applied',
   SECURITY_INSIGHTS_SORT_CHANGED: 'Security Insights Sort Changed',
   SECURITY_INSIGHTS_PAGINATION_CHANGED: 'Security Insights Pagination Changed',
+  QUALITY_INSIGHTS_VIEWED: 'Quality Insights Viewed',
+  QUALITY_INSIGHTS_FILTER_TYPE_CHANGED: 'Quality Insights Filter Type Changed',
+  QUALITY_INSIGHTS_FILTER_APPLIED: 'Quality Insights Filter Applied',
+  QUALITY_INSIGHTS_SORT_CHANGED: 'Quality Insights Sort Changed',
+  QUALITY_INSIGHTS_PAGINATION_CHANGED: 'Quality Insights Pagination Changed',
 } as const;
 
 /**

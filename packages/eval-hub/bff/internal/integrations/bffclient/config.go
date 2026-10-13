@@ -56,6 +56,7 @@ func NewDefaultBFFClientConfig() *BFFClientConfig {
 				AuthTokenPrefix: "",
 				AllowedPaths: []string{
 					"/security_artifacts/",
+					"/artifacts/",
 				},
 			},
 		},
