@@ -1210,7 +1210,7 @@ describe('AutomlLeaderboard component', () => {
       expect(within(rows[0]).getByTestId('rank-1')).toBeInTheDocument();
     });
 
-    it('should default to only rank, model, and optimized metric visible', () => {
+    it('should default to the requested classification metrics visible', () => {
       renderWithContext({
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
@@ -1219,7 +1219,9 @@ describe('AutomlLeaderboard component', () => {
       expect(screen.getByTestId('rank-header')).toBeInTheDocument();
       expect(screen.getByTestId('model-name-header')).toBeInTheDocument();
       expect(screen.getByTestId('metric-header-accuracy')).toBeInTheDocument();
-      expect(screen.queryByTestId('metric-header-f1')).not.toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-f1')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-precision')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-recall')).toBeInTheDocument();
       expect(screen.queryByTestId('metric-header-roc_auc')).not.toBeInTheDocument();
     });
 
@@ -1230,7 +1232,7 @@ describe('AutomlLeaderboard component', () => {
       });
 
       expect(screen.getByTestId('columns-selected-count')).toHaveTextContent(
-        /3\/\d+ columns selected/,
+        /6\/\d+ columns selected/,
       );
     });
 
@@ -1249,7 +1251,10 @@ describe('AutomlLeaderboard component', () => {
 
       expect(screen.getByTestId('rank-header')).toBeInTheDocument();
       expect(screen.getByTestId('metric-header-accuracy')).toBeInTheDocument();
-      expect(screen.queryByTestId('metric-header-f1')).not.toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-f1')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-precision')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-recall')).toBeInTheDocument();
+      expect(screen.queryByTestId('metric-header-roc_auc')).not.toBeInTheDocument();
     });
 
     it('should persist column order after save', () => {
@@ -1285,7 +1290,7 @@ describe('AutomlLeaderboard component', () => {
       );
       const originalOrder = originalHeaders.map((h) => h.getAttribute('data-testid'));
 
-      // Reset to default — should restore default visibility (only 3 columns) and default order
+      // Reset to default — should restore the six classification columns and default order
       fireEvent.click(screen.getByTestId('manage-columns-button'));
       fireEvent.click(screen.getByTestId('manage-columns-reset'));
       fireEvent.click(screen.getByText('Save'));
@@ -1300,6 +1305,9 @@ describe('AutomlLeaderboard component', () => {
         'rank-header',
         'model-name-header',
         'metric-header-accuracy',
+        'metric-header-f1',
+        'metric-header-precision',
+        'metric-header-recall',
       ]);
 
       // Re-show all and verify original order is restored
