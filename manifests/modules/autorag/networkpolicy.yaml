@@ -1,3 +1,5 @@
+# Operand NetworkPolicy for the AutoRAG BFF/UI. Least-privilege ingress/egress per
+# HPSTRAT-104 / operand contract RHOAIENG-90747 (R3-R5).
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -14,11 +16,22 @@ spec:
         - port: 8743
           protocol: TCP
       from:
+        # Core-bff front-door proxy runs in the main dashboard pod (ODH: odh-dashboard,
+        # RHOAI: rhods-dashboard) and proxies /<module>/api/* to this BFF pod-to-pod.
+        # See docs/inter-bff-communication.md. matchExpressions covers both variants in
+        # one rule (module netpols don't receive the base rename patch).
+        - podSelector:
+            matchExpressions:
+              - key: deployment
+                operator: In
+                values:
+                  - odh-dashboard
+                  - rhods-dashboard
         - namespaceSelector:
             matchLabels:
               network.openshift.io/policy-group: ingress
-  # autorag needs DNS, K8s API, namespace-scoped DSPA (8443) + MinIO (9000),
-  # and external HTTP(S) for S3-compatible storage endpoints.
+  # autorag needs DNS, K8s API, broad in-cluster egress (user-provided Milvus/pgvector
+  # URIs on arbitrary ports — see below), and external HTTP(S) for S3-compatible storage.
   egress:
     - to:
         - namespaceSelector:
@@ -29,19 +42,28 @@ spec:
           protocol: UDP
         - port: 5353
           protocol: TCP
+    # Kubernetes API server. NetworkPolicy cannot select the API server endpoints
+    # (host-networked, dynamic IP/port); documented R5 limitation.
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0
       ports:
         - port: 6443
           protocol: TCP
+    # KNOWN LIMITATION (RHOAIENG-93715): AutoRAG egress can no longer be scoped to a
+    # fixed set of peers/ports. As of PR #9695 the AutoRAG BFF connects to USER-PROVIDED
+    # Milvus and pgvector URIs (plus DSPA / MinIO / MaaS), and those services expose
+    # arbitrary ports depending on how they were deployed (19530 for Milvus and 5432 for
+    # pgvector are common but not guaranteed). Restricting egress to a fixed port set would
+    # break valid in-cluster endpoints. Allow broad in-cluster egress as a documented
+    # reduced-posture exception per operand contract R5 (RHOAIENG-90747). A platform-team
+    # exception has been requested for this case (see PR #9766 discussion).
+    # TODO(autorag): tighten once user-endpoint destinations are constrained
+    # (tracked in RHOAIENG-93715).
     - to:
         - namespaceSelector: {}
-      ports:
-        - port: 8443
-          protocol: TCP
-        - port: 9000
-          protocol: TCP
+    # External / off-cluster HTTP(S) to user-configurable, hostname-based endpoints
+    # (S3-compatible storage) that cannot be expressed as NetworkPolicy peers; documented R5 limitation.
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0

@@ -6,6 +6,12 @@ For production lifecycle, routing, federation, RBAC, migration, and rollout, see
 [MaaS Portal](../../docs/maas-portal.md). Custom Perses services must meet the
 operator's [Perses service requirements](../../docs/dashboard-operator.md#perses-service-requirements).
 
+## Browser Path Rollout
+
+Deploy the `/maas-portal` HTTPRoute together with a Core-BFF image containing a portal frontend built for `/maas-portal/`. Build the image from this revision using `distributions/core-bff/Dockerfile.workspace`; the bundle is served from `/static/maas-portal` through the `maas-portal` Service. See the [production rollout requirements](../../docs/maas-portal.md#upgrade-migration-and-rollout).
+
+The no-slash URL `/maas-portal` redirects to `/maas-portal/`. Check the portal root, deep links, static assets, API requests, Kubernetes watches, Perses, and logout with the core dashboard both Managed and Removed.
+
 ## Running locally
 
 ### Mode A: Mock data (no cluster needed)
@@ -39,7 +45,7 @@ For certificate-verified cluster proxying, set `ODH_DASHBOARD_CA_FILE` to the PE
 
 ### Mode B: External-cluster development (no port-forwards)
 
-Serve the portal locally and proxy its API requests through the deployed portal's HTTPRoute. The proxy preserves `/maas-consumer-portal`, so this works when the core dashboard operand is removed. Log in with `oc` first, then run:
+Serve the portal locally and proxy its API requests through the deployed portal's HTTPRoute. The proxy preserves `/maas-portal`, so this works when the core dashboard operand is removed. Log in with `oc` first, then run:
 
 ```bash
 cd distributions/maas-portal
