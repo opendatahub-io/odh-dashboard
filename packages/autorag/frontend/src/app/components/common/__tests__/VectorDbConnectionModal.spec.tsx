@@ -128,7 +128,7 @@ describe('VectorDbConnectionModal', () => {
       expect(input.getAttribute('placeholder') ?? '').not.toMatch(/(?:for )?example:/i);
     }
     expect(document.getElementById('pgvector_host-description')).toHaveTextContent(
-      'PostgreSQL server hostname or IP address (for example: "db.example.com" or "10.0.0.5").',
+      'DNS hostname of the PostgreSQL server. Literal IP addresses are unsupported (for example: "postgres.namespace.svc.cluster.local").',
     );
     expect(document.getElementById('pgvector_port-description')).toHaveTextContent(
       'PostgreSQL port number. Usually "5432" unless your provider specifies a different port.',
@@ -330,6 +330,11 @@ describe('VectorDbConnectionModal', () => {
     expect(screen.getByText('Username')).toBeInTheDocument();
     expect(screen.getByText('Password')).toBeInTheDocument();
     expect(screen.getByTestId('pgvector-host-input')).not.toHaveAttribute('placeholder');
+    expect(
+      screen.getByText(
+        'DNS hostname of the PostgreSQL server. Literal IP addresses are unsupported (for example: "postgres.namespace.svc.cluster.local").',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('should create a PGVector Secret with only PGVector fields', async () => {
@@ -363,6 +368,42 @@ describe('VectorDbConnectionModal', () => {
       }),
     );
     expect(createSecretMock.mock.calls[0][0].stringData).not.toHaveProperty('MILVUS_URI');
+  });
+
+  it.each([
+    ['postgres.example.com', true],
+    ['postgres', true],
+    ['postgres.namespace.svc.cluster.local', true],
+    ['127.0.0.1', false],
+    ['2001:db8::1', false],
+    ['localhost', false],
+    ['postgres.example.com:5432', false],
+    ['postgres..example.com', false],
+  ] as const)('should validate PGVector Host %s', (host, isValid) => {
+    render(
+      <VectorDbConnectionModal
+        namespace="test-namespace"
+        initialProvider="pgvector"
+        onClose={onClose}
+        onSubmit={onSubmit}
+      />,
+    );
+    fillName();
+    for (const [field, value] of [
+      ['host', host],
+      ['port', '5432'],
+      ['db', 'rag'],
+      ['user', 'rag-user'],
+      ['password', 'secret'],
+    ]) {
+      fireEvent.change(screen.getByTestId(`pgvector-${field}-input`), { target: { value } });
+    }
+
+    if (isValid) {
+      expect(screen.getByRole('button', { name: 'Add connection' })).toBeEnabled();
+    } else {
+      expect(screen.getByRole('button', { name: 'Add connection' })).toBeDisabled();
+    }
   });
 
   it('should trim and create the PGVector CA key', async () => {

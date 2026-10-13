@@ -5,7 +5,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { DASHBOARD_PAGE_TITLE, DASHBOARD_PAGE_DESCRIPTION } from './const';
 import HeaderTimeRangeControls from './HeaderTimeRangeControls';
-import ClusterDetailsVariablesProvider from './ClusterDetailsVariablesProvider';
 import NamespaceUrlSync from './NamespaceUrlSync';
 import PersesProvider from '../perses/embeddable/PersesProvider';
 import PersesDashboard from '../perses/embeddable/PersesDashboard';
@@ -13,27 +12,38 @@ import PersesVariables from '../perses/embeddable/PersesVariables';
 import useRelativeLinkHandler from '../hooks/useRelativeLinkHandler';
 import {
   buildDashboardUrl,
+  BASE_PATH,
   getDashboardDisplayName,
   hasClusterDetailsVariables,
   DASHBOARD_URL_PARAM,
   NAMESPACE_URL_PARAM,
 } from '../utils/dashboardUtils';
 import { transformNamespaceVariable } from '../utils/transformDashboardVariables';
+import type { NamespaceOption } from '../utils/transformDashboardVariables';
 
 export type DashboardContentProps = {
   dashboards: DashboardResource[];
-  projectNames: string[];
+  projects: NamespaceOption[];
+  persesProxyBasePath?: string;
+  browserBasePath?: string;
+  ClusterDetailsAdapter: React.ComponentType;
 };
 
 /**
  * Dashboard content with tabs for multiple dashboards
  */
-const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards, projectNames }) => {
+const DashboardContent: React.FC<DashboardContentProps> = ({
+  dashboards,
+  projects,
+  persesProxyBasePath,
+  browserBasePath = '',
+  ClusterDetailsAdapter,
+}) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   // Intercept relative link clicks in the Perses dashboard and use React Router navigation
-  const setRelativeLinkHandlerRef = useRelativeLinkHandler();
+  const setRelativeLinkHandlerRef = useRelativeLinkHandler(browserBasePath);
 
   // Get dashboard name from query param
   const dashboardNameFromUrl = searchParams.get(DASHBOARD_URL_PARAM) || '';
@@ -54,9 +64,9 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards, project
   const transformedDashboards = React.useMemo(
     () =>
       dashboards.map((dashboard) =>
-        transformNamespaceVariable(dashboard, projectNames, initialNamespaceValue),
+        transformNamespaceVariable(dashboard, projects, initialNamespaceValue),
       ),
-    [dashboards, projectNames, initialNamespaceValue],
+    [dashboards, projects, initialNamespaceValue],
   );
 
   // Find the active dashboard by name, defaulting to first dashboard
@@ -77,7 +87,9 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards, project
       }
       event.preventDefault();
       // Use replace to avoid creating extra history entries when switching tabs
-      navigate(buildDashboardUrl(String(eventKey), searchParams.toString()), { replace: true });
+      navigate(buildDashboardUrl(String(eventKey), searchParams.toString()), {
+        replace: true,
+      });
     },
     [navigate, searchParams],
   );
@@ -91,9 +103,14 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards, project
   const needsClusterDetails = hasClusterDetailsVariables(activeDashboard);
 
   return (
-    <div ref={setRelativeLinkHandlerRef}>
-      <PersesProvider key={activeDashboardName} dashboardResource={activeDashboard} syncToUrl>
-        {needsClusterDetails && <ClusterDetailsVariablesProvider />}
+    <div>
+      <PersesProvider
+        key={activeDashboardName}
+        dashboardResource={activeDashboard}
+        syncToUrl
+        persesProxyBasePath={persesProxyBasePath}
+      >
+        {needsClusterDetails && <ClusterDetailsAdapter />}
         <NamespaceUrlSync />
         <ApplicationsPage
           title={DASHBOARD_PAGE_TITLE}
@@ -115,11 +132,17 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards, project
                 key={dashboard.metadata.name}
                 eventKey={dashboard.metadata.name}
                 title={<TabTitleText>{getDashboardDisplayName(dashboard)}</TabTitleText>}
-                href={buildDashboardUrl(dashboard.metadata.name, searchParams.toString())}
+                href={buildDashboardUrl(
+                  dashboard.metadata.name,
+                  searchParams.toString(),
+                  `${browserBasePath}${BASE_PATH}`,
+                )}
               >
                 <PageSection hasBodyWrapper={false} isFilled>
-                  <PersesVariables />
-                  <PersesDashboard />
+                  <div ref={setRelativeLinkHandlerRef}>
+                    <PersesVariables />
+                    <PersesDashboard />
+                  </div>
                 </PageSection>
               </Tab>
             ))}

@@ -38,8 +38,12 @@ func (r *MaaSRepository) GetMaaSModels(ctx context.Context, namespace, secretNam
 	if baseURL == "" || apiKey == "" {
 		return nil, fmt.Errorf("secret %q must contain non-empty MAAS_BASE_URL and MAAS_API_KEY: %w", secretName, ErrMaaSCredentialValidation)
 	}
+	validatedURL, err := maas.ValidateBaseURL(baseURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid MaaS base URL: %w", err)
+	}
 
-	nativeModels, err := r.maasClient.ListModels(ctx, baseURL, apiKey)
+	nativeModels, err := r.maasClient.ListModels(ctx, validatedURL.String(), apiKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list MaaS models: %w", err)
 	}

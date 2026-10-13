@@ -1,7 +1,13 @@
 import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MemoryRouter } from 'react-router-dom';
 import AgentProfileEndpointsModal from '~/app/AIAssets/components/agentprofiles/AgentProfileEndpointsModal';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
 
 describe('AgentProfileEndpointsModal', () => {
   it('should show the most recent deployments and link to the selected deployment details', () => {
@@ -52,6 +58,12 @@ describe('AgentProfileEndpointsModal', () => {
       '/gen-ai-studio/assets/my-project/agentprofile/profile-id?deployment=hr-chatbot-v2',
     );
     expect(screen.queryByText('Serving name')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('view-deployment-details-hr-chatbot-v2'));
+    expect(fireMiscTrackingEvent).toHaveBeenCalledWith(
+      PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_DETAILS_VIEWED,
+      {},
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(onClose).toHaveBeenCalledTimes(1);

@@ -3,17 +3,9 @@
   "default_team": "Unassigned",
   "teams": [
     {
-      "name": "Green",
-      "ci_tags": ["ModelRegistryCI", "ModelCatalogCI"],
-      "path_patterns": ["modelRegistry/", "modelCatalog/", "mcpCatalog/", "agentsCatalog/", "data-registry/"],
-      "slack_handle": "@openshift-ai-dashboard-green-scrum",
-      "slack_group_id": "S07BJDHQR2R",
-      "emoji": ":large_green_circle:"
-    },
-    {
       "name": "Razzmatazz",
-      "ci_tags": ["AgentOpsCI", "ConnectionTypes", "HardwareProfiles", "MlflowEmbedded", "MLflowCI"],
-      "path_patterns": ["pipelines/", "agentOps/", "connectionTypes/", "hardwareProfiles/", "mlflow/", "mlflowExperiments/", "dashboardNavigation/", "learningResources/", "storageClasses/", "settings/"],
+      "ci_tags": ["AgentOpsCI", "ConnectionTypes", "HardwareProfiles", "MlflowEmbedded", "MLflowCI", "ModelRegistryCI", "ModelCatalogCI"],
+      "path_patterns": ["pipelines/", "agentOps/", "connectionTypes/", "hardwareProfiles/", "mlflow/", "mlflowExperiments/", "dashboardNavigation/", "learningResources/", "storageClasses/", "settings/", "modelRegistry/", "modelCatalog/", "mcpCatalog/", "agentsCatalog/", "data-registry/"],
       "slack_handle": "@openshift-ai-dashboard-razzmatazz-scrum",
       "slack_group_id": "S06FFRUSFH8",
       "emoji": ":razzmatazz:"

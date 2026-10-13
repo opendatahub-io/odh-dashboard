@@ -7,7 +7,11 @@ import type { UserAuthConfig } from '../types';
 
 // MaaS Wizard Field helpers for the model deployment wizard
 class MaaSWizardField {
-  findSaveAsMaaSCheckbox() {
+  findProjectMembersRadio() {
+    return cy.findByTestId('project-members-radio');
+  }
+
+  findSubscribedUsersRadio() {
     return cy.findByTestId('maas/save-as-maas-checkbox');
   }
 }
@@ -210,6 +214,10 @@ class APIKeyTableRow extends TableRow {
 
   findSubscriptionDetailLink(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('subscription-detail-link');
+  }
+
+  findSubscriptionGovernanceLink(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('subscription-governance-link');
   }
 
   findOwner(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -491,6 +499,35 @@ class CopyApiKeyModal extends Modal {
 
   findCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('close-api-key-button');
+  }
+
+  findModelDocumentation(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('#api-key-model-documentation');
+  }
+
+  findAvailableModelsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-available-models-toggle');
+  }
+
+  findAvailableModelsOption(value: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`api-key-available-models-option-${value}`);
+  }
+
+  selectAvailableModel(value: string): void {
+    this.findAvailableModelsToggle().click();
+    this.findAvailableModelsOption(value).click();
+  }
+
+  findSubscriptionID(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('#api-key-subscription-id');
+  }
+
+  findModelID(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('#api-key-model-id');
+  }
+
+  findBaseURL(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('#api-key-base-url');
   }
 }
 
@@ -1975,6 +2012,14 @@ class CreateExternalModelPage {
 
   findDisplayNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('external-model-name-desc-name');
+  }
+
+  findEditResourceNameButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-name-desc-editResourceLink');
+  }
+
+  findResourceNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-name-desc-resourceName');
   }
 
   findDescriptionInput(): Cypress.Chainable<JQuery<HTMLElement>> {

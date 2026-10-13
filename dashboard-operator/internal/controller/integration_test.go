@@ -287,7 +287,7 @@ func TestIntegration_MaaSPortalURLMigrationOnEarlyFailure(t *testing.T) {
 	_, err := r.Reconcile(ctx, ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
 	})
-	require.ErrorContains(t, err, "failed to reconcile MaaS Consumer Portal-required modules")
+	require.ErrorContains(t, err, "failed to reconcile MaaS Portal-required modules")
 
 	fetched := getDashboard(t)
 	assert.Equal(t, "ModuleDeployFailed", conditionReason(fetched, string(common.ConditionTypeProvisioningSucceeded)))

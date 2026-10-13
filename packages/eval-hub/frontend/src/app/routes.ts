@@ -8,6 +8,23 @@ export const evaluationRootSegment = 'evaluation';
 export const evaluationsBaseRoute = (namespace?: string): string =>
   namespace ? `/${evaluationRootSegment}/${namespace}` : `/${evaluationRootSegment}`;
 
+export const evaluationEvaluateRoute = (namespace?: string): string =>
+  `${evaluationsBaseRoute(namespace)}?tab=evaluate`;
+
+export const evaluationGalleryRoute = (namespace?: string): string =>
+  `${evaluationsBaseRoute(namespace)}?tab=gallery`;
+
+export const evaluationGalleryNavigationState = { source: 'gallery' } as const;
+
+export const evaluationEvaluateNavigationState = { source: 'evaluate' } as const;
+
+export const evaluationBenchmarkSuitesNavigationState = {
+  source: 'benchmark-suites',
+} as const;
+
+export const evaluationCuratedBenchmarkSuitesNavigationState = (evaluationTarget: string) =>
+  ({ sourceEvaluationTarget: evaluationTarget }) as const;
+
 export const evaluationCreateRoute = (namespace?: string): string =>
   `${evaluationsBaseRoute(namespace)}/create`;
 
@@ -31,6 +48,9 @@ export const evaluationStartRoute = (namespace?: string): string =>
 
 export const evaluationCopySuiteRoute = (namespace?: string, collectionId?: string): string =>
   `${evaluationCollectionsRoute(namespace)}/${collectionId ?? ':collectionId'}/copy`;
+
+export const evaluationEditSuiteRoute = (namespace?: string, collectionId?: string): string =>
+  `${evaluationCollectionsRoute(namespace)}/${collectionId ?? ':collectionId'}/edit`;
 
 export const evaluationCreateSuiteRoute = (namespace?: string): string =>
   `${evaluationCollectionsRoute(namespace)}/new`;

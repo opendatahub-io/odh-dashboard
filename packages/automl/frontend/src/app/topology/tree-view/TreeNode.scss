@@ -26,7 +26,7 @@
 @keyframes automl-tree-node-active-core {
   0%,
   100% {
-    fill: var(--pf-t--global--color--status--info--default);
+    fill: var(--pf-t--global--color--brand--default);
     opacity: 1;
   }
 
@@ -38,12 +38,11 @@
 
 .automl-tree-node__active-corridor-ring {
   fill: none;
-  stroke: var(--pf-t--global--color--status--info--default);
-  filter: drop-shadow(0 0 2px var(--pf-t--global--color--status--info--default));
+  stroke: var(--pf-t--global--color--brand--default);
 }
 
 .automl-tree-node__active-corridor-core {
-  fill: var(--pf-t--global--color--status--info--default);
+  fill: var(--pf-t--global--color--brand--default);
   animation: automl-tree-node-active-core 1.6s ease-in-out infinite;
   pointer-events: none;
 }
@@ -244,7 +243,7 @@
 }
 
 .automl-tree-node__active-badge-disc {
-  fill: var(--pf-t--global--color--status--info--default);
+  fill: var(--pf-t--global--color--brand--default);
   stroke: var(--pf-t--global--background--color--primary--default);
   stroke-width: 2px;
 }
@@ -298,10 +297,8 @@
   }
 
   &.pf-m-info {
-    --pf-topology__node--Color: var(--pf-t--global--icon--color--status--info--default);
-    --pf-topology__node--m-info--Background--Stroke: var(
-      --pf-t--global--color--status--info--default
-    );
+    --pf-topology__node--Color: var(--pf-t--global--icon--color--brand--default);
+    --pf-topology__node--m-info--Background--Stroke: var(--pf-t--global--color--brand--default);
   }
 
   &--pending {
@@ -328,20 +325,17 @@
 
   &--active.pf-m-info,
   &--active {
-    --pf-topology__node--Color: var(--pf-t--global--icon--color--status--info--default);
+    --pf-topology__node--Color: var(--pf-t--global--icon--color--brand--default);
     --pf-topology__node--m-info--Background--Fill: var(
       --pf-t--global--background--color--primary--default
     );
-    --pf-topology__node--m-info--Background--Stroke: var(
-      --pf-t--global--color--status--info--default
-    );
+    --pf-topology__node--m-info--Background--Stroke: var(--pf-t--global--color--brand--default);
   }
 
   &--active .pf-topology__node__background {
     fill: var(--pf-t--global--background--color--primary--default);
-    stroke: var(--pf-t--global--color--status--info--default);
+    stroke: var(--pf-t--global--color--brand--default);
     stroke-width: 2;
-    filter: drop-shadow(0 0 8px var(--pf-t--global--color--status--info--default));
   }
 
   &--failed .pf-topology__node__background,
@@ -503,15 +497,11 @@
 
   .automl-tree-node__active-corridor-core {
     animation: none;
-    fill: var(--pf-t--global--color--status--info--default);
+    fill: var(--pf-t--global--color--brand--default);
   }
 
   .automl-tree-node__status-pulse-ring {
     transform: scale(1);
     opacity: 0.75;
-  }
-
-  .automl-tree-node--active .pf-topology__node__background {
-    filter: drop-shadow(0 0 8px var(--pf-t--global--color--status--info--default));
   }
 }

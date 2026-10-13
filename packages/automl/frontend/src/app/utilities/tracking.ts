@@ -26,6 +26,7 @@ export const AUTOML_EVENTS = {
   MODEL_DETAILS_TAB_VIEWED: 'AutoML Model Details Tab Viewed',
   BACKTEST_WINDOW_METRIC_VIEWED: 'AutoML Backtest Window Metric Viewed',
   NOTEBOOK_DOWNLOADED: 'AutoML Notebook Downloaded',
+  RUN_NOTEBOOK_DOWNLOADED: 'AutoML Run Notebook Downloaded',
   MODEL_DETAILS_DOWNLOAD_INITIATED: 'AutoML Model Details Download Initiated',
   MODEL_REGISTERED: 'AutoML Model Registered',
   S3_CONNECTION_CREATED: 'AutoML S3 Connection Created',
@@ -219,6 +220,10 @@ export const fireAutomlBacktestWindowMetricViewed = (metricName: string): void =
 
 export const fireAutomlNotebookDownloaded = (source: ModelActionSource): void => {
   fireMiscTrackingEvent(AUTOML_EVENTS.NOTEBOOK_DOWNLOADED, { downloadType: 'notebook', source });
+};
+
+export const fireAutomlRunNotebookDownloaded = (): void => {
+  fireMiscTrackingEvent(AUTOML_EVENTS.RUN_NOTEBOOK_DOWNLOADED, { downloadType: 'runNotebook' });
 };
 
 /**

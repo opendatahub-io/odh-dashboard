@@ -291,6 +291,28 @@ func TestEvalHubClient_ListCollections(t *testing.T) {
 	assert.Equal(t, 1, result.Items[0].State.PinnedOrder)
 }
 
+func TestEvalHubClient_ListCollections_ParsesTopLevelDerivedFrom(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v1/evaluations/collections", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"items": [{
+				"resource": {"id": "tenant-copy"},
+				"name": "Knowledge & Reasoning v1",
+				"derived_from": "knowledge-reasoning-v1"
+			}]
+		}`))
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	result, err := client.ListCollections(context.Background(), ListCollectionsParams{Namespace: "evalhub"})
+
+	require.NoError(t, err)
+	require.Len(t, result.Items, 1)
+	assert.Equal(t, "knowledge-reasoning-v1", result.Items[0].DerivedFrom)
+}
+
 func TestEvalHubClient_DeleteCollection(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)

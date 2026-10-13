@@ -7,6 +7,8 @@ import {
   formatCollectionMetadataValue,
   getMetricDisplayName,
   toSafeExternalUrl,
+  getBenchmarkDisplayName,
+  getBenchmarkNameMap,
 } from '~/app/components/benchmarkUtils';
 
 describe('toTitleCase', () => {
@@ -182,3 +184,53 @@ describe('toSafeExternalUrl', () => {
     expect(toSafeExternalUrl('not-a-url')).toBeUndefined();
   });
 });
+
+/* eslint-disable camelcase */
+describe('benchmark name lookups', () => {
+  it('should resolve provider-qualified and unique benchmark names', () => {
+    const benchmarkNameMap = getBenchmarkNameMap([
+      {
+        resource: { id: 'provider-one' },
+        name: 'Provider One',
+        benchmarks: [{ id: 'benchmark-one', name: 'Benchmark One' }],
+      },
+      {
+        resource: { id: 'provider-two' },
+        name: 'Provider Two',
+        benchmarks: [{ id: 'benchmark-two', name: 'Benchmark Two' }],
+      },
+    ]);
+
+    expect(
+      getBenchmarkDisplayName(
+        { id: 'benchmark-one', provider_id: 'provider-one' },
+        benchmarkNameMap,
+      ),
+    ).toBe('Benchmark One');
+    expect(getBenchmarkDisplayName({ id: 'benchmark-two' }, benchmarkNameMap)).toBe(
+      'Benchmark Two',
+    );
+    expect(getBenchmarkDisplayName({ id: 'unknown' }, benchmarkNameMap)).toBe('unknown');
+  });
+
+  it('should use the ID when a provider-agnostic benchmark name is ambiguous', () => {
+    const benchmarkNameMap = getBenchmarkNameMap([
+      {
+        resource: { id: 'provider-one' },
+        name: 'Provider One',
+        benchmarks: [{ id: 'shared', name: 'Shared One' }],
+      },
+      {
+        resource: { id: 'provider-two' },
+        name: 'Provider Two',
+        benchmarks: [{ id: 'shared', name: 'Shared Two' }],
+      },
+    ]);
+
+    expect(getBenchmarkDisplayName({ id: 'shared' }, benchmarkNameMap)).toBe('shared');
+    expect(
+      getBenchmarkDisplayName({ id: 'shared', provider_id: 'provider-two' }, benchmarkNameMap),
+    ).toBe('Shared Two');
+  });
+});
+/* eslint-enable camelcase */

@@ -15,10 +15,8 @@ export {
   type ModelServerSelectField,
 } from '../components/deploymentWizard/fields/ModelServerTemplateSelectField';
 
-export { useWizardFieldOverrides } from '../components/deploymentWizard/dynamicFormUtils';
-
 export {
-  AvailableAiAssetsFieldsComponent,
+  GenAiStudioAvailabilityFields,
   isValidModelAvailabilityFieldsData,
   modelAvailabilityFieldsSchema,
   useModelAvailabilityFields,

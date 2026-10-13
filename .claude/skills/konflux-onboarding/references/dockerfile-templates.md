@@ -1,19 +1,20 @@
 # Dockerfile Templates
 
 Templates for container images in `odh-dashboard`. Each component needs up to 2 Dockerfiles:
+
 1. **Upstream (ODH)**: Used by Konflux CI in `opendatahub-io/odh-dashboard`
 2. **Downstream (RHOAI)**: Used by Konflux in `red-hat-data-services/odh-dashboard`
 
 ## Upstream vs Downstream Differences
 
-| Aspect | Upstream (ODH) | Downstream (RHOAI) |
-|--------|----------------|---------------------|
-| Image tags | Tag-based (e.g., `ubi9/nodejs-22:latest`) | **SHA-pinned** (e.g., `ubi9/nodejs-22@sha256:...`) |
-| Go build flags (Type A) | `CGO_ENABLED=1 -tags strictfipsruntime` (FIPS) | Same as upstream |
-| Go build flags (Type B) | `CGO_ENABLED=0` (static, no FIPS) | `CGO_ENABLED=1 -tags strictfipsruntime` (FIPS) |
-| Labels | Minimal | Full Red Hat labels required |
-| Location | Component directory or `packages/<name>/` | Repo root as `Dockerfile.konflux.<component>` |
-| Registry | `registry.access.redhat.com` | `registry.access.redhat.com` or `registry.redhat.io` |
+| Aspect                  | Upstream (ODH)                                 | Downstream (RHOAI)                                   |
+| ----------------------- | ---------------------------------------------- | ---------------------------------------------------- |
+| Image tags              | Tag-based (e.g., `ubi9/nodejs-22:latest`)      | **SHA-pinned** (e.g., `ubi9/nodejs-22@sha256:...`)   |
+| Go build flags (Type A) | `CGO_ENABLED=1 -tags strictfipsruntime` (FIPS) | Same as upstream                                     |
+| Go build flags (Type B) | `CGO_ENABLED=0` (static, no FIPS)              | `CGO_ENABLED=1 -tags strictfipsruntime` (FIPS)       |
+| Labels                  | Minimal                                        | Full Red Hat labels required                         |
+| Location                | Component directory or `packages/<name>/`      | Repo root as `Dockerfile.konflux.<component>`        |
+| Registry                | `registry.access.redhat.com`                   | `registry.access.redhat.com` or `registry.redhat.io` |
 
 ## Type A: Modular-Arch Package
 
@@ -38,8 +39,10 @@ ARG UI_SOURCE_CODE
 ARG MODULE_NAME
 WORKDIR /usr/src/workspace
 
-# Workspace setup — copy root manifests + shared packages
+# Workspace setup — copy npm bootstrap, root manifests + shared packages
+COPY --chown=default:root prefetch/pnpm/package.json prefetch/pnpm/package-lock.json ./prefetch/pnpm/
 COPY --chown=default:root package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY --chown=default:root .npmrc ./
 COPY --chown=default:root frontend/package.json ./frontend/
 COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
 COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
@@ -48,12 +51,13 @@ COPY --chown=default:root frontend/src/ ./frontend/src/
 COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
 
 USER default
-# npm only bootstraps the repository-pinned pnpm binary.
-RUN npm install -g pnpm@11.22.0
-RUN pnpm install --frozen-lockfile --ignore-scripts
+# Install the pinned pnpm CLI from the npm-prefetched bootstrap package.
+ENV PATH="/usr/src/workspace/prefetch/pnpm/node_modules/.bin:${PATH}"
+RUN npm ci --prefix ./prefetch/pnpm --prefer-offline --ignore-scripts --no-audit --no-fund --no-progress \
+    && test "$(pnpm --version)" = "11.22.0"
+RUN pnpm install --frozen-lockfile --prefer-offline --ignore-scripts
 
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
-RUN pnpm install --frozen-lockfile --ignore-scripts
 RUN pnpm run build:prod
 
 # BFF build stage
@@ -85,6 +89,7 @@ ENTRYPOINT ["/bff"]
 Same structure as upstream but with SHA-pinned images and Red Hat labels. Placed at repo root in `red-hat-data-services/odh-dashboard`.
 
 Key differences from upstream:
+
 - All base images pinned by SHA digest
 - Red Hat labels added to final stage
 - `CACHITO_ENV_FILE` support is optional — Konflux Cachi2 injects this file automatically during hermetic builds when prefetch is enabled; no Dockerfile changes are needed unless you opt into sourcing it explicitly
@@ -106,7 +111,9 @@ ARG UI_SOURCE_CODE
 ARG MODULE_NAME
 WORKDIR /usr/src/workspace
 
+COPY --chown=default:root prefetch/pnpm/package.json prefetch/pnpm/package-lock.json ./prefetch/pnpm/
 COPY --chown=default:root package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY --chown=default:root .npmrc ./
 COPY --chown=default:root frontend/package.json ./frontend/
 COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
 COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
@@ -115,12 +122,13 @@ COPY --chown=default:root frontend/src/ ./frontend/src/
 COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
 
 USER default
-# npm only bootstraps the repository-pinned pnpm binary.
-RUN npm install -g pnpm@11.22.0
-RUN pnpm install --frozen-lockfile --ignore-scripts
+# Install the pinned pnpm CLI from the npm-prefetched bootstrap package.
+ENV PATH="/usr/src/workspace/prefetch/pnpm/node_modules/.bin:${PATH}"
+RUN npm ci --prefix ./prefetch/pnpm --prefer-offline --ignore-scripts --no-audit --no-fund --no-progress \
+    && test "$(pnpm --version)" = "11.22.0"
+RUN pnpm install --frozen-lockfile --prefer-offline --ignore-scripts
 
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
-RUN pnpm install --frozen-lockfile --ignore-scripts
 RUN pnpm run build:prod
 
 # BFF build stage (same as upstream, using SHA-pinned GOLANG_BASE_IMAGE)
@@ -155,6 +163,24 @@ USER 65532:65532
 EXPOSE 8080
 ENTRYPOINT ["/bff"]
 ```
+
+### Hermetic prefetch configuration
+
+Both Type A templates require `hermetic: true` and typed prefetch inputs on the Konflux PipelineRun:
+
+```yaml
+- name: hermetic
+  value: true
+- name: prefetch-input
+  value: >-
+    [{"path":".","type":"pnpm"},
+    {"path":"prefetch/pnpm","type":"npm"},
+    {"path":"packages/<name>/bff","type":"gomod"}]
+```
+
+Use the component's actual Go module path, and omit the `gomod` input for UI-only modules. Include `prefetch/pnpm/**` in path-change filters so bootstrap updates trigger builds. Copy Hermeto's injected root `.npmrc` with the workspace manifests to retain the prefetched registry configuration. Do not use a global pnpm install or a generic tarball input.
+
+For upstream subtree frontends (Model Registry and Notebooks), also declare the frontend path as an `npm` prefetch input and install its npm lockfile with `--userconfig /usr/src/workspace/.npmrc`. See [Workspace Dockerfiles](../../../../docs/workspace-dockerfiles.md) for the hybrid pnpm/npm pattern.
 
 ## Type B: Standalone Go Component
 

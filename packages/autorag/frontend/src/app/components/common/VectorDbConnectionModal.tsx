@@ -320,7 +320,7 @@ const VectorDbConnectionModal: React.FC<Props> = ({
                   <FieldHelperText id={`${key.toLowerCase()}-description`}>
                     {
                       {
-                        HOST: 'PostgreSQL server hostname or IP address (for example: "db.example.com" or "10.0.0.5").',
+                        HOST: 'DNS hostname of the PostgreSQL server. Literal IP addresses are unsupported (for example: "postgres.namespace.svc.cluster.local").',
                         PORT: 'PostgreSQL port number. Usually "5432" unless your provider specifies a different port.',
                         DB: 'Name of the PostgreSQL database that contains your pgvector tables and embeddings.',
                         USER: 'PostgreSQL user account used to connect to the database.',

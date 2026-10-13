@@ -785,5 +785,31 @@ describe('isAreaAvailable', () => {
         expect(result.reliantAreas).toEqual({ [SupportedArea.FEATURE_STORE]: false });
       });
     });
+
+    describe('Data Registry', () => {
+      it('should enable when dataRegistry is true', () => {
+        const result = isAreaAvailable(
+          SupportedArea.PLUGIN_DATA_REGISTRY,
+          mockDashboardConfig({ dataRegistry: true }).spec,
+          null,
+          null,
+        );
+
+        expect(result.status).toBe(true);
+        expect(result.featureFlags).toEqual({ dataRegistry: 'on' });
+      });
+
+      it('should disable when dataRegistry is false', () => {
+        const result = isAreaAvailable(
+          SupportedArea.PLUGIN_DATA_REGISTRY,
+          mockDashboardConfig({ dataRegistry: false }).spec,
+          null,
+          null,
+        );
+
+        expect(result.status).toBe(false);
+        expect(result.featureFlags).toEqual({ dataRegistry: 'off' });
+      });
+    });
   });
 });

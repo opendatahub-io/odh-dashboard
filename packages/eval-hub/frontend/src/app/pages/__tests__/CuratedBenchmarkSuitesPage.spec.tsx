@@ -1,10 +1,14 @@
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { mockCuratedBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
 import CuratedBenchmarkSuitesPage from '~/app/pages/CuratedBenchmarkSuitesPage';
 
 const mockUseCollectionsQuery = jest.fn();
+
+const clickFilterOption = (testId: string) => {
+  fireEvent.click(within(screen.getByTestId(testId)).getByRole('checkbox'));
+};
 
 jest.mock('~/app/hooks/collections', () => ({
   useCollectionsQuery: (...args: unknown[]) => mockUseCollectionsQuery(...args),
@@ -16,9 +20,21 @@ jest.mock('~/app/hooks/collections', () => ({
   }),
 }));
 
+jest.mock('~/app/hooks/useProviders', () => ({
+  useProviders: () => ({ providers: [], loaded: true, loadError: undefined }),
+}));
+
 jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),
   ...require('~/__tests__/unit/testUtils/mocks').mockApplicationsPageModule(),
+}));
+
+jest.mock('~/app/components/CuratedSuiteRunModal', () => ({
+  __esModule: true,
+  default: ({ collection, isOpen }: { collection: { name: string }; isOpen: boolean }) =>
+    isOpen ? (
+      <div data-testid="curated-suite-start-evaluation-run-modal">{collection.name}</div>
+    ) : null,
 }));
 
 const renderPage = (evaluationTarget = 'agent') =>
@@ -70,14 +86,14 @@ describe('CuratedBenchmarkSuitesPage', () => {
       screen.getByText('Select a benchmark suite to evaluate your agent.'),
     ).toBeInTheDocument();
     expect(screen.getByTestId('create-benchmark-suite-button')).toBeInTheDocument();
-    expect(screen.getByTestId('benchmark-suites-category-filter')).toHaveTextContent(
-      'All categories',
-    );
+    expect(screen.getByTestId('benchmark-suites-category-filter')).toHaveTextContent('Category');
+    expect(screen.getByTestId('benchmark-suites-category-filter-icon')).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suites-evaluates-filter')).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-pagination-top')).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suites-pagination-bottom')).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suite-card-clawbench')).toBeInTheDocument();
-    expect(screen.getAllByText('Customize')).toHaveLength(5);
+    expect(screen.getAllByText('Run')).toHaveLength(5);
+    expect(screen.queryByText('Customize')).not.toBeInTheDocument();
     expect(mockUseCollectionsQuery).toHaveBeenCalledWith(
       'test-project',
       'system',
@@ -110,7 +126,7 @@ describe('CuratedBenchmarkSuitesPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('should link Customize to the collection copy route', () => {
+  it('should link Customize in the action menu to the collection copy route', () => {
     mockUseCollectionsQuery.mockReturnValue({
       data: {
         items: mockCuratedBenchmarkSuiteCollections('model'),
@@ -123,11 +139,26 @@ describe('CuratedBenchmarkSuitesPage', () => {
 
     renderPage('model');
 
-    expect(
-      screen.getByTestId('benchmark-suite-card-primary-action-safety-and-fairness-v1'),
-    ).toHaveAttribute(
+    fireEvent.click(
+      screen.getByTestId('benchmark-suite-card-dropdown-toggle-safety-and-fairness-v1'),
+    );
+
+    const customizeAction = screen.getByTestId(
+      'benchmark-suite-card-dropdown-action-safety-and-fairness-v1',
+    );
+    expect(within(customizeAction).getByRole('menuitem')).toHaveAttribute(
       'href',
       '/evaluation/test-project/create/collections/safety-and-fairness-v1/copy',
+    );
+  });
+
+  it('should open the run modal from a curated suite card', () => {
+    renderPage('model');
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-primary-action-clawbench'));
+
+    expect(screen.getByTestId('curated-suite-start-evaluation-run-modal')).toHaveTextContent(
+      'ClawBench',
     );
   });
 
@@ -210,9 +241,9 @@ describe('CuratedBenchmarkSuitesPage', () => {
     renderPage();
 
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
-    fireEvent.click(screen.getByRole('option', { name: 'Code' }));
+    clickFilterOption('benchmark-suites-category-filter-option-code');
     fireEvent.click(screen.getByTestId('benchmark-suites-industry-filter'));
-    fireEvent.click(screen.getByRole('option', { name: 'Government' }));
+    clickFilterOption('benchmark-suites-industry-filter-option-government');
 
     expect(screen.getByTestId('benchmark-suites-empty-state')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-industry-filter')).toBeInTheDocument();
@@ -261,7 +292,7 @@ describe('CuratedBenchmarkSuitesPage', () => {
     );
 
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
-    fireEvent.click(screen.getByRole('option', { name: 'Code' }));
+    clickFilterOption('benchmark-suites-category-filter-option-code');
     expect(
       screen.getByTestId('benchmark-suite-card-software-engineering-agent-suite'),
     ).toBeInTheDocument();

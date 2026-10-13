@@ -22,7 +22,27 @@ export type NormalizedMetricReference = Readonly<{
 
 import type { ResponsesTemplate } from '@odh-dashboard/gen-ai/types';
 
-export type { ResponsesTemplate } from '@odh-dashboard/gen-ai/types';
+export type AutoRAGResponsesTemplate = Omit<
+  ResponsesTemplate,
+  'metadata' | 'tools' | 'tool_choice' | 'include'
+> & {
+  metadata: ResponsesTemplate['metadata'] & {
+    rag_pattern_name: string;
+    embedding_model: string;
+    autorag_run_id?: string;
+  };
+  tools: Array<{
+    type: 'file_search';
+    vector_store_ids: string[];
+    max_num_results: number;
+    ranking_options?: {
+      ranker: 'rrf';
+      alpha: number;
+    };
+  }>;
+  tool_choice: { type: 'file_search' };
+  include: Array<'file_search_call.results' | 'file_search_call.output'>;
+};
 
 export type DetectedLanguageMetadata = {
   code: string;
@@ -70,7 +90,7 @@ export type AutoragPatternSettingsV1 = {
     /** Populated by the AutoRAG pipeline after language detection (pipelines-components PR #116). */
     detected_language?: DetectedLanguageMetadata;
   };
-  responses_template?: ResponsesTemplate;
+  responses_template?: AutoRAGResponsesTemplate;
 };
 
 export type AutoragPatternV1 = {
@@ -172,7 +192,7 @@ export type AutoragPattern = {
   settings: AutoragPatternSettings;
   evaluation: AutoragEvaluation;
   inference?: {
-    responses_template?: ResponsesTemplate;
+    responses_template?: AutoRAGResponsesTemplate;
   };
   indexing?: {
     pipeline_spec?: AutoragIndexingPipelineSpec;

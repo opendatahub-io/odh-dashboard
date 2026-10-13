@@ -504,7 +504,12 @@ const ChatbotMain: React.FunctionComponent = () => {
               onSaveAs={handleOpenSaveAs}
               onLoad={handleOpenLoad}
               onNew={handleNewAgentConfiguration}
-              onDeploy={() => setDeployModalOpen(true)}
+              onDeploy={() => {
+                fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_INITIATED, {
+                  source: 'playground',
+                });
+                setDeployModalOpen(true);
+              }}
               deployments={agentDeploymentsEnabled ? sortedDeployments : []}
               onDeploymentSelect={setSelectedDeploymentName}
               onViewCode={() => {
