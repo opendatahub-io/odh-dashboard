@@ -14,7 +14,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       id: PLUGIN_AUTOML,
       requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
-      featureFlags: ['automl'],
+      featureFlags: ['automl', 'disablePipelines'],
       reliantAreas: [],
     },
   },

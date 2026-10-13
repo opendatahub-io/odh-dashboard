@@ -291,11 +291,11 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['genAiStudio'],
   },
   [SupportedArea.PLUGIN_AUTOML]: {
-    featureFlags: ['automl'],
+    featureFlags: ['automl', 'disablePipelines'],
     requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
   },
   [SupportedArea.PLUGIN_AUTORAG]: {
-    featureFlags: ['autorag'],
+    featureFlags: ['autorag', 'disablePipelines'],
     requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
     reliantAreas: [SupportedArea.PLUGIN_GEN_AI],
   },

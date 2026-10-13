@@ -58,11 +58,11 @@ describe('Verify const stability', () => {
 
   it('should define AutoML and AutoRAG area availability requirements', () => {
     expect(SupportedAreasStateMap[SupportedArea.PLUGIN_AUTOML]).toEqual({
-      featureFlags: ['automl'],
+      featureFlags: ['automl', 'disablePipelines'],
       requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
     });
     expect(SupportedAreasStateMap[SupportedArea.PLUGIN_AUTORAG]).toEqual({
-      featureFlags: ['autorag'],
+      featureFlags: ['autorag', 'disablePipelines'],
       requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
       reliantAreas: [SupportedArea.PLUGIN_GEN_AI],
     });

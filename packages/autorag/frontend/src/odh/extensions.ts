@@ -15,7 +15,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | TaskItemExten
       id: PLUGIN_AUTORAG,
       requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
       reliantAreas: [PLUGIN_GEN_AI], // Requires Gen AI Studio to be enabled
-      featureFlags: ['autorag'],
+      featureFlags: ['autorag', 'disablePipelines'],
     },
   },
   {

@@ -840,8 +840,9 @@ func (s *service) GetPipelineRunWithSpec(ctx context.Context, namespace, runID s
 // --- Managed Pipelines ---
 
 // EnableManagedPipelines enables managed pipeline definitions on the first ready DSPA in the namespace.
-// If managedPipelines is already configured, it triggers a rollout restart of the pipeline server
-// deployment so the init container re-registers any missing pipeline definitions.
+// If managedPipelines is already configured and enabled (including the operator default when
+// enabled is omitted), it restarts the pipeline server so the init container re-registers any
+// missing definitions. Otherwise it explicitly enables managed pipelines on the DSPA.
 func (s *service) EnableManagedPipelines(ctx context.Context, namespace string) (*EnableManagedPipelinesResult, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("enabling managed pipelines", "namespace", namespace)
@@ -867,9 +868,20 @@ func (s *service) EnableManagedPipelines(ctx context.Context, namespace string) 
 		return nil, fmt.Errorf("failed to get DSPA %q: %w", dspa.Name, err)
 	}
 
-	_, alreadyEnabled, _ := unstructured.NestedFieldNoCopy(live.Object, "spec", "apiServer", "managedPipelines")
+	_, managedPipelinesConfigured, err := unstructured.NestedFieldNoCopy(
+		live.Object, "spec", "apiServer", "managedPipelines",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check managed pipelines configuration: %w", err)
+	}
+	managedPipelinesEnabled, enabledFieldFound, err := unstructured.NestedBool(
+		live.Object, "spec", "apiServer", "managedPipelines", "enabled",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read managed pipelines enabled state: %w", err)
+	}
 
-	if alreadyEnabled {
+	if managedPipelinesConfigured && (!enabledFieldFound || managedPipelinesEnabled) {
 		deploymentName := fmt.Sprintf("ds-pipeline-%s", dspa.Name)
 		restartPatch := fmt.Sprintf(
 			`{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}}}`,
@@ -886,7 +898,7 @@ func (s *service) EnableManagedPipelines(ctx context.Context, namespace string) 
 		return &EnableManagedPipelinesResult{DSPAName: dspa.Name, Action: "restarted"}, nil
 	}
 
-	patchBytes := []byte(`{"spec":{"apiServer":{"managedPipelines":{}}}}`)
+	patchBytes := []byte(`{"spec":{"apiServer":{"managedPipelines":{"enabled":true}}}}`)
 	if _, err := s.K8sService.PatchResource(ctx, dspaGVR, namespace, dspa.Name, k8sTypes.MergePatchType, patchBytes); err != nil {
 		return nil, fmt.Errorf("failed to patch DSPA %q to enable managed pipelines: %w", dspa.Name, err)
 	}
