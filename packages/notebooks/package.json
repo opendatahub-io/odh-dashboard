@@ -33,7 +33,7 @@
     "branch": "main",
     "src": "",
     "target": "upstream",
-    "commit": "b554a89d267018053457623eed94e29a0467997b",
+    "commit": "9236414af6776eb225b73e63f67dcb444f1e6bac",
     "syncBase": "a7d85c1d52305197751594015269331b61a1143b"
   },
   "module-federation": {

@@ -1,0 +1,38 @@
+name: Renovate config
+
+on:
+  push:
+    branches: [main, stable]
+    paths:
+      - renovate.json
+      - .github/workflows/renovate-config.yml
+  pull_request:
+    branches: [main, stable]
+    paths:
+      - renovate.json
+      - .github/workflows/renovate-config.yml
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  validate:
+    name: renovate-config-validator
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Same image MintMaker runs. Schema/syntax only; does not merge the
+      # global Konflux config. Do not pass the file as a CLI arg: that
+      # switches the validator into global/self-hosted mode.
+      - name: Validate renovate.json
+        run: |
+          docker run --rm \
+            --volume "${PWD}/renovate.json:/workspace/renovate.json:ro" \
+            --workdir /workspace \
+            quay.io/konflux-ci/mintmaker-renovate-image:latest \
+            renovate-config-validator --strict

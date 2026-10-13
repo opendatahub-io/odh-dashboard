@@ -29,3 +29,9 @@ This directory contains Tekton `PipelineRun` definitions used by Konflux for the
 ## Early-gate pipelines
 
 `early-gate-ci-build.yaml` and `early-gate-ci-test.yaml` are triggered by `/early-gate` (or `/early-gate-build`) and `/early-gate-test` issue comments.
+
+## Dependency updates (MintMaker)
+
+[MintMaker](https://konflux-ci.dev/docs/mintmaker/user/) (Konflux Renovate) is configured in [`renovate.json`](../renovate.json) for weekly GitHub Actions version bumps and Go module security-only updates (`workspaces/backend` and `workspaces/controller`). Pull requests come from `red-hat-konflux[bot]`. This overlay restricts `enabledManagers` to `gomod` and `github-actions` so the global MintMaker defaults (Dockerfiles, Tekton, routine Go version bumps, and so on) do not apply. MintMaker only runs when it is enabled on the Konflux component (`odh-workbenches-controller-ci`). Do not also enable Dependabot for the same ecosystems.
+
+CI validates the overlay with [`renovate-config.yml`](../.github/workflows/renovate-config.yml) (`renovate-config-validator --strict`) on PRs/pushes that touch `renovate.json` or that workflow.
