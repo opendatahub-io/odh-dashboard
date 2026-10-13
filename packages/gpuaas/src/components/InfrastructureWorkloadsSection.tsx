@@ -174,16 +174,18 @@ const InfrastructureWorkloadsContent: React.FC<InfrastructureWorkloadsContentPro
           />
         </StackItem>
         {workloads.length > 0 && (
-          <StackItem ref={workloadsTableRef} data-testid="infrastructure-workloads-table-section">
-            <InfrastructureWorkloadsTable
-              workloads={workloadStatusFilters.workloads}
-              kueueEnabled={kueueEnabled}
-              hardwareProfilesLoading={hardwareProfilesLoading}
-              notebookStates={notebookStates}
-              failedSources={failedSources}
-              overviewStatusFilters={workloadStatusFilters.overviewStatusFilters}
-              onOverviewStatusFiltersChange={workloadStatusFilters.setOverviewStatusFilters}
-            />
+          <StackItem>
+            <div ref={workloadsTableRef} data-testid="infrastructure-workloads-table-section">
+              <InfrastructureWorkloadsTable
+                workloads={workloadStatusFilters.workloads}
+                kueueEnabled={kueueEnabled}
+                hardwareProfilesLoading={hardwareProfilesLoading}
+                notebookStates={notebookStates}
+                failedSources={failedSources}
+                overviewStatusFilters={workloadStatusFilters.overviewStatusFilters}
+                onOverviewStatusFiltersChange={workloadStatusFilters.setOverviewStatusFilters}
+              />
+            </div>
           </StackItem>
         )}
       </Stack>
@@ -203,16 +205,18 @@ const InfrastructureWorkloadsContent: React.FC<InfrastructureWorkloadsContentPro
           onViewInTable={workloadStatusFilters.viewBucketInTable}
         />
       </StackItem>
-      <StackItem ref={workloadsTableRef} data-testid="infrastructure-workloads-table-section">
-        <InfrastructureWorkloadsTable
-          workloads={workloadStatusFilters.workloads}
-          kueueEnabled={kueueEnabled}
-          hardwareProfilesLoading={hardwareProfilesLoading}
-          notebookStates={notebookStates}
-          failedSources={failedSources}
-          overviewStatusFilters={workloadStatusFilters.overviewStatusFilters}
-          onOverviewStatusFiltersChange={workloadStatusFilters.setOverviewStatusFilters}
-        />
+      <StackItem>
+        <div ref={workloadsTableRef} data-testid="infrastructure-workloads-table-section">
+          <InfrastructureWorkloadsTable
+            workloads={workloadStatusFilters.workloads}
+            kueueEnabled={kueueEnabled}
+            hardwareProfilesLoading={hardwareProfilesLoading}
+            notebookStates={notebookStates}
+            failedSources={failedSources}
+            overviewStatusFilters={workloadStatusFilters.overviewStatusFilters}
+            onOverviewStatusFiltersChange={workloadStatusFilters.setOverviewStatusFilters}
+          />
+        </div>
       </StackItem>
     </Stack>
   );
