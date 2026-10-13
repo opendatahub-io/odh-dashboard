@@ -5,12 +5,14 @@ import (
 	"errors"
 	"testing"
 
+	helper "github.com/kubeflow/hub/ui/bff/internal/helpers"
 	"github.com/kubeflow/hub/ui/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/rest"
 )
 
 func mcpLifecycleOperator(readyStatus string, gateways []interface{}) *unstructured.Unstructured {
@@ -108,4 +110,44 @@ func TestStaticMCPLifecycleOperatorReader(t *testing.T) {
 
 	_, err = StaticMCPLifecycleOperatorReader{Err: errors.New("boom")}.Get(context.Background())
 	require.Error(t, err)
+}
+
+func TestServiceAccountRESTConfig(t *testing.T) {
+	restore := func() {
+		inClusterConfig = rest.InClusterConfig
+		localKubeconfig = helper.GetKubeconfig
+	}
+	t.Cleanup(restore)
+
+	t.Run("prefers in-cluster config and keeps the rotating token file", func(t *testing.T) {
+		inClusterConfig = func() (*rest.Config, error) {
+			return &rest.Config{Host: "https://in-cluster", BearerTokenFile: "/var/run/secrets/kubernetes.io/serviceaccount/token"}, nil
+		}
+		localKubeconfig = func() (*rest.Config, error) {
+			t.Fatal("kubeconfig must not be used in cluster")
+			return nil, nil
+		}
+		cfg, err := serviceAccountRESTConfig()
+		require.NoError(t, err)
+		assert.Equal(t, "https://in-cluster", cfg.Host)
+		assert.Equal(t, "/var/run/secrets/kubernetes.io/serviceaccount/token", cfg.BearerTokenFile)
+	})
+
+	t.Run("falls back to kubeconfig outside a cluster", func(t *testing.T) {
+		inClusterConfig = func() (*rest.Config, error) { return nil, rest.ErrNotInCluster }
+		localKubeconfig = func() (*rest.Config, error) { return &rest.Config{Host: "https://local"}, nil }
+		cfg, err := serviceAccountRESTConfig()
+		require.NoError(t, err)
+		assert.Equal(t, "https://local", cfg.Host)
+	})
+
+	t.Run("does not fall back when the in-cluster config is broken", func(t *testing.T) {
+		inClusterConfig = func() (*rest.Config, error) { return nil, errors.New("token file unreadable") }
+		localKubeconfig = func() (*rest.Config, error) {
+			t.Fatal("kubeconfig must not be used when in-cluster config fails")
+			return nil, nil
+		}
+		_, err := serviceAccountRESTConfig()
+		require.Error(t, err)
+	})
 }

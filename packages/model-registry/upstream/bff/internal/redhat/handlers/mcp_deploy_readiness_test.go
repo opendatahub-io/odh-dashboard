@@ -33,6 +33,10 @@ func (m readinessCatalogMock) GetMcpServer(_ httpclient.HTTPClientInterface, ser
 		return &models.McpServer{ID: "4", Name: openShiftMcpServerCatalogName}, nil
 	case "1":
 		return &models.McpServer{ID: "1", Name: "io.github.example/other-mcp-server"}, nil
+	case "noname":
+		return &models.McpServer{ID: "noname"}, nil
+	case "null":
+		return nil, nil
 	case "missing":
 		return nil, &httpclient.HTTPError{StatusCode: http.StatusNotFound, ErrorResponse: httpclient.ErrorResponse{Code: "404", Message: "not found"}}
 	default:
@@ -118,6 +122,8 @@ func TestMcpServerDeployReadinessErrors(t *testing.T) {
 	}{
 		{name: "unknown server forwards catalog 404", path: readinessPath("missing"), status: http.StatusNotFound},
 		{name: "catalog failure", path: readinessPath("boom"), status: http.StatusInternalServerError},
+		{name: "catalog returns a server without a name", path: readinessPath("noname"), status: http.StatusInternalServerError},
+		{name: "catalog returns null", path: readinessPath("null"), status: http.StatusInternalServerError},
 		{name: "missing namespace", path: api.McpServerListPath + "/4/deploy_readiness", status: http.StatusBadRequest},
 	}
 

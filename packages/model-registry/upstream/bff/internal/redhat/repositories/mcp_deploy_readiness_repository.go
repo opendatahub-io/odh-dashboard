@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -53,15 +54,41 @@ func NewServiceAccountMCPLifecycleOperatorReader() MCPLifecycleOperatorReader {
 	return &serviceAccountMCPLifecycleOperatorReader{}
 }
 
+// Overridable in tests.
+var (
+	inClusterConfig = rest.InClusterConfig
+	localKubeconfig = helper.GetKubeconfig
+)
+
+// serviceAccountRESTConfig returns the pod's service account config when running in a
+// cluster. It is checked first on purpose: the default kubeconfig loading rules would
+// prefer a mounted kubeconfig, which could carry a different identity. The in-cluster
+// config reads the token from a file, so rotated projected tokens are picked up. Outside
+// a cluster (local development) it falls back to kubeconfig.
+func serviceAccountRESTConfig() (*rest.Config, error) {
+	cfg, err := inClusterConfig()
+	if err == nil {
+		return cfg, nil
+	}
+	if !errors.Is(err, rest.ErrNotInCluster) {
+		return nil, fmt.Errorf("failed to load in-cluster service account config: %w", err)
+	}
+	cfg, err = localKubeconfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load kubeconfig: %w", err)
+	}
+	return cfg, nil
+}
+
 func (r *serviceAccountMCPLifecycleOperatorReader) dynamicClient() (dynamic.Interface, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.client != nil {
 		return r.client, nil
 	}
-	cfg, err := helper.GetKubeconfig()
+	cfg, err := serviceAccountRESTConfig()
 	if err != nil {
-		return nil, fmt.Errorf("failed to load service account config: %w", err)
+		return nil, err
 	}
 	client, err := dynamic.NewForConfig(rest.CopyConfig(cfg))
 	if err != nil {

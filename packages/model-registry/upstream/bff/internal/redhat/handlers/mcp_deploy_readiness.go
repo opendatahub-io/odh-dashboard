@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 
@@ -62,6 +63,12 @@ func overrideMcpServerDeployReadiness(app *api.App, _ func() httprouter.Handle) 
 		server, err := app.Repositories().ModelCatalogClient.GetMcpServer(client, serverId, r.URL.Query())
 		if err != nil {
 			mcpCatalogLookupError(app, w, r, err)
+			return
+		}
+		// The catalog decoder accepts an empty or null body. Without a name the server
+		// cannot be classified, so fail instead of treating it as not requiring a gateway.
+		if server == nil || strings.TrimSpace(server.Name) == "" {
+			app.ServerError(w, r, fmt.Errorf("catalog returned MCP server %q without a name", serverId))
 			return
 		}
 
