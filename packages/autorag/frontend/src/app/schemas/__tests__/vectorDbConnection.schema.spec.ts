@@ -18,6 +18,10 @@ const validFields: Record<'milvus' | 'pgvector' | 'neo4j', VectorDbConnectionFie
   },
 };
 
+const maxLengthPgVectorHost = ['a'.repeat(63), 'b'.repeat(63), 'c'.repeat(63), 'd'.repeat(61)].join(
+  '.',
+);
+
 describe('vector database connection schemas', () => {
   it('should accept and trim non-credential provider fields', () => {
     expect(parseVectorDbConnection('milvus', validFields.milvus)).toMatchObject({
@@ -136,6 +140,47 @@ describe('vector database connection schemas', () => {
   it.each(['0', '65536', '5432.5', ''])('should reject PGVector port %s', (port) => {
     expect(
       parseVectorDbConnection('pgvector', { ...validFields.pgvector, PGVECTOR_PORT: port }).success,
+    ).toBe(false);
+  });
+
+  it.each(['postgres.example.com', 'postgres', 'postgres.namespace.svc.cluster.local'])(
+    'should accept PGVector DNS hostname %s',
+    (host) => {
+      expect(
+        parseVectorDbConnection('pgvector', { ...validFields.pgvector, PGVECTOR_HOST: host })
+          .success,
+      ).toBe(true);
+    },
+  );
+
+  it('should accept the maximum-length PGVector DNS hostname', () => {
+    expect(
+      parseVectorDbConnection('pgvector', {
+        ...validFields.pgvector,
+        PGVECTOR_HOST: maxLengthPgVectorHost,
+      }).success,
+    ).toBe(true);
+  });
+
+  it.each([
+    '127.0.0.1',
+    '2001:db8::1',
+    '2130706433',
+    '0x7f000001',
+    '127.1',
+    '0x7f.0.0.1',
+    'localhost',
+    'postgres.example.com:5432',
+    'postgres.example.com/path',
+    'postgres.example.com?query=value',
+    '-postgres.example.com',
+    'postgres-.example.com',
+    'postgres..example.com',
+    'postgres_example.com',
+    `${maxLengthPgVectorHost}e`,
+  ])('should reject invalid PGVector host %s', (host) => {
+    expect(
+      parseVectorDbConnection('pgvector', { ...validFields.pgvector, PGVECTOR_HOST: host }).success,
     ).toBe(false);
   });
 

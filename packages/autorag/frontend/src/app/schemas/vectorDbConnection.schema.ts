@@ -35,6 +35,24 @@ const optionalCa = z.preprocess(
   z.string().trim().min(1, 'CA certificate cannot be blank').optional(),
 );
 
+const isIpv4Address = (value: string): boolean => {
+  const parts = value.split('.');
+  return (
+    parts.length <= 4 && parts.every((part) => /^\d+$/.test(part) || /^0x[0-9a-f]+$/i.test(part))
+  );
+};
+
+const pgVectorHost = requiredText.refine(
+  (value) =>
+    value.length <= 253 &&
+    value.toLowerCase() !== 'localhost' &&
+    !isIpv4Address(value) &&
+    value
+      .split('.')
+      .every((label) => /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/.test(label)),
+  'Enter a valid DNS hostname. Literal IP addresses are not supported.',
+);
+
 const uriWithProtocols = (protocols: string[], message: string) =>
   requiredText.refine((value) => {
     try {
@@ -60,7 +78,7 @@ export const vectorDbConnectionSchemas = {
     MILVUS_CA_CERT: optionalCa,
   }),
   pgvector: z.object({
-    PGVECTOR_HOST: requiredText,
+    PGVECTOR_HOST: pgVectorHost,
     PGVECTOR_PORT: requiredPort,
     PGVECTOR_DB: requiredText,
     PGVECTOR_USER: requiredText,

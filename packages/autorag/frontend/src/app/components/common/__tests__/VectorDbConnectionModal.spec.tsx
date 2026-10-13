@@ -376,9 +376,13 @@ describe('VectorDbConnectionModal', () => {
     ['postgres.namespace.svc.cluster.local', true],
     ['127.0.0.1', false],
     ['2001:db8::1', false],
+    ['2130706433', false],
+    ['0x7f000001', false],
+    ['127.1', false],
     ['localhost', false],
     ['postgres.example.com:5432', false],
     ['postgres..example.com', false],
+    [`${'a'.repeat(63)}.${'b'.repeat(63)}.${'c'.repeat(63)}.${'d'.repeat(61)}e`, false],
   ] as const)('should validate PGVector Host %s', (host, isValid) => {
     render(
       <VectorDbConnectionModal
