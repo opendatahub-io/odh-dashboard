@@ -43,6 +43,22 @@ describe('usePipelineServerStatus', () => {
     expect(result.current).toStrictEqual({ loaded: true, isStarting: false, error });
   });
 
+  it('should return a readiness error when DSPA conditions are not an array', () => {
+    const invalidDspa = {
+      ...unreadyDspa,
+      status: { conditions: 'invalid' },
+    } as unknown as typeof unreadyDspa;
+    mockUseK8sWatchResourceList.mockReturnValue([[invalidDspa], true, undefined]);
+
+    const { result } = renderHook(() => usePipelineServerStatus('test-project'));
+
+    expect(result.current.loaded).toBe(true);
+    expect(result.current.isStarting).toBe(false);
+    expect(result.current.error).toEqual(
+      new Error('Pipeline server returned invalid readiness conditions.'),
+    );
+  });
+
   it('should expose a Ready transition after observing the DSPA', () => {
     mockUseK8sWatchResourceList.mockReturnValue([[unreadyDspa], true, undefined]);
 

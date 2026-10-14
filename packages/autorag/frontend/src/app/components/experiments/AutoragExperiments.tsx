@@ -166,6 +166,20 @@ function AutoragExperiments({
     );
   }
 
+  if (!hasExperiments && effectiveNamespace && pipelineServerStatus.error) {
+    return (
+      <Alert
+        variant="danger"
+        isInline
+        title="Unable to verify pipeline server readiness"
+        data-testid="pipeline-server-status-error"
+      >
+        <p>{pipelineServerStatus.error.message}</p>
+        <p>Refresh the page to check again before creating a run.</p>
+      </Alert>
+    );
+  }
+
   if (
     pipelineServerStatus.isStarting &&
     !pipelineServerStatus.error &&
@@ -209,20 +223,6 @@ function AutoragExperiments({
           <Spinner size="xl" />
         </FlexItem>
       </Flex>
-    );
-  }
-
-  if (!hasExperiments && effectiveNamespace && pipelineServerStatus.error) {
-    return (
-      <Alert
-        variant="danger"
-        isInline
-        title="Unable to verify pipeline server readiness"
-        data-testid="pipeline-server-status-error"
-      >
-        <p>{pipelineServerStatus.error.message}</p>
-        <p>Refresh the page to check again before creating a run.</p>
-      </Alert>
     );
   }
 

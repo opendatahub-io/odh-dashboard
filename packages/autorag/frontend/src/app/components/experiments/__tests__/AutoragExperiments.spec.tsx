@@ -209,6 +209,31 @@ describe('AutoragExperiments', () => {
     expect(screen.queryByTestId('empty-experiments-state')).not.toBeInTheDocument();
   });
 
+  it('should show a readiness error instead of waiting when the watch fails during a 503', () => {
+    mockGetGenericErrorCode.mockReturnValue(503);
+    mockUsePipelineRuns.mockReturnValue({
+      ...defaultRunsState,
+      runs: [],
+      totalSize: 0,
+      error: new Error('Service Unavailable'),
+    });
+    mockUsePipelineServerStatus.mockReturnValue({
+      loaded: true,
+      isStarting: true,
+      error: new Error('watch interrupted'),
+    });
+
+    renderAutorag(<AutoragExperiments />);
+
+    expect(screen.getByTestId('pipeline-server-status-error')).toHaveTextContent(
+      'Unable to verify pipeline server readiness',
+    );
+    expect(screen.getByTestId('pipeline-server-status-error')).toHaveTextContent(
+      'watch interrupted',
+    );
+    expect(screen.queryByTestId('no-pipeline-server')).not.toBeInTheDocument();
+  });
+
   it('should not show NoProjects when no experiments', () => {
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
