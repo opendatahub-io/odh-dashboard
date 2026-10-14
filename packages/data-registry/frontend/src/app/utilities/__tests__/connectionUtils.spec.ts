@@ -9,7 +9,7 @@ import { mockRhaiConnection } from '~/__mocks__/mockConnection';
 
 describe('getConnectionName', () => {
   it('should return the Secret name for an RHAI connection reference', () => {
-    expect(getConnectionName({ type: 'rhai', secret_name: 'my-secret' })).toBe('my-secret');
+    expect(getConnectionName({ type: 'secret', secret_name: 'my-secret' })).toBe('my-secret');
   });
 
   it('should return the connection ID for a DCH connection reference', () => {
@@ -28,7 +28,7 @@ describe('getConnectionName', () => {
 describe('getConnectionDisplayName', () => {
   it('should return the display name for a matching connection', () => {
     expect(
-      getConnectionDisplayName({ type: 'rhai', secret_name: 'my-secret' }, [
+      getConnectionDisplayName({ type: 'secret', secret_name: 'my-secret' }, [
         mockRhaiConnection({ secret_name: 'my-secret', name: 'My connection' }),
       ]),
     ).toBe('My connection');
@@ -36,20 +36,20 @@ describe('getConnectionDisplayName', () => {
 
   it('should show unavailable when the connection has no current display name', () => {
     expect(
-      getConnectionDisplayName({ type: 'rhai', secret_name: 'my-secret' }, [
+      getConnectionDisplayName({ type: 'secret', secret_name: 'my-secret' }, [
         mockRhaiConnection({ secret_name: 'my-secret', name: undefined }),
       ]),
     ).toBe('Connection unavailable');
   });
 
   it('should show unavailable when the connection is absent from a loaded list', () => {
-    expect(getConnectionDisplayName({ type: 'rhai', secret_name: 'my-secret' })).toBe(
+    expect(getConnectionDisplayName({ type: 'secret', secret_name: 'my-secret' })).toBe(
       'Connection unavailable',
     );
   });
 
   it('should show loading while the connection list is being loaded', () => {
-    expect(getConnectionDisplayName({ type: 'rhai', secret_name: 'my-secret' }, [], false)).toBe(
+    expect(getConnectionDisplayName({ type: 'secret', secret_name: 'my-secret' }, [], false)).toBe(
       'Loading connection...',
     );
   });
@@ -80,7 +80,7 @@ describe('getAssetDetailConnectionWarnings', () => {
     ]);
     expect(
       getAssetDetailConnectionWarnings([dchFallbackWarning], {
-        type: 'rhai',
+        type: 'secret',
         secret_name: 'rhai-secret',
       }),
     ).toEqual([]);
@@ -90,7 +90,7 @@ describe('getAssetDetailConnectionWarnings', () => {
   it('should show a RHOAI lookup warning only for an asset with a RHOAI reference', () => {
     expect(
       getAssetDetailConnectionWarnings([rhaiLookupWarning], {
-        type: 'rhai',
+        type: 'secret',
         secret_name: 'rhai-secret',
       }),
     ).toEqual([rhaiLookupWarning]);
@@ -107,7 +107,7 @@ describe('getAssetDetailConnectionWarnings', () => {
 
     expect(
       getAssetDetailConnectionWarnings([unresolvedTypeWarning], {
-        type: 'rhai',
+        type: 'secret',
         secret_name: 'rhai-secret',
       }),
     ).toEqual([unresolvedTypeWarning]);

@@ -53,7 +53,7 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
   const [isConnectionOpen, setIsConnectionOpen] = React.useState(false);
   const displayConnections = connectionDisplayData ?? connections;
   const showFallbackWarning = showDchFallbackWarning ?? currentConnection?.type === 'dch';
-  const showRhaiWarning = showRhaiLookupWarning ?? currentConnection?.type === 'rhai';
+  const showRhaiWarning = showRhaiLookupWarning ?? currentConnection?.type === 'secret';
   const connectionsResolved = connectionsLoaded && !connectionsError;
   const currentConnectionUnavailable =
     !!currentConnection &&

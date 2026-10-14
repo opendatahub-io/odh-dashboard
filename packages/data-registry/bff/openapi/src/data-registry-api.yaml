@@ -1145,7 +1145,7 @@ components:
       properties:
         type:
           type: string
-          enum: [rhai]
+          enum: [secret]
         secret_name:
           type: string
           description: The name of the RHAI Connection Secret

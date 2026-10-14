@@ -19,7 +19,7 @@ const mockTableResponse = {
     { name: 'status', type: 'string', nullable: false },
   ],
   collection: 'analytics',
-  connection_ref: { type: 'rhai', secret_name: 'my-s3-connection' },
+  connection_ref: { type: 'secret', secret_name: 'my-s3-connection' },
   owner: 'data-team',
   description: 'Claims processing data',
   labels: ['production', 'claims', 'analytics'],

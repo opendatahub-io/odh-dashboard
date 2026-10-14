@@ -190,7 +190,7 @@ const DataRegistryPage: React.FC = () => {
   const hasExistingDchConnectionReferences =
     assetsLoaded && assets.some((asset) => asset.rawAsset?.connection_ref?.type === 'dch');
   const hasExistingRhaiConnectionReferences =
-    assetsLoaded && assets.some((asset) => asset.rawAsset?.connection_ref?.type === 'rhai');
+    assetsLoaded && assets.some((asset) => asset.rawAsset?.connection_ref?.type === 'secret');
   const visibleConnectionWarnings = connectionWarnings.filter((warning) =>
     shouldDisplayConnectionWarning(
       warning,

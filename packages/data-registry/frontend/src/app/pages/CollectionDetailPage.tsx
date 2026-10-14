@@ -206,7 +206,8 @@ const CollectionDetailPage: React.FC = () => {
             assetsLoaded && assets.some((asset) => asset.rawAsset?.connection_ref?.type === 'dch')
           }
           hasExistingRhaiConnectionReferences={
-            assetsLoaded && assets.some((asset) => asset.rawAsset?.connection_ref?.type === 'rhai')
+            assetsLoaded &&
+            assets.some((asset) => asset.rawAsset?.connection_ref?.type === 'secret')
           }
           onCreated={handleRefresh}
           onManageCollections={() => {
