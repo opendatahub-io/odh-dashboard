@@ -284,6 +284,14 @@ func TestGetFilteredSecrets(t *testing.T) {
 				"MILVUS_SERVER_CERT": "legacy-cert",
 			}),
 			mixed,
+			vectorDBSecret("pgvector-legacy-key", map[string]string{
+				"PGVECTOR_HOST":      "host",
+				"PGVECTOR_PORT":      "5432",
+				"PGVECTOR_DB":        "db",
+				"PGVECTOR_USER":      "user",
+				"PGVECTOR_PASSWORD":  "password",
+				"MILVUS_SERVER_CERT": "legacy-cert",
+			}),
 			maasSecret("maas"),
 		}
 		k8s := &mockK8sService{
@@ -295,7 +303,7 @@ func TestGetFilteredSecrets(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(result) != 2 || result[0].Name != "vector-db" || result[1].Name != "mixed-vector-db" {
+		if len(result) != 3 || result[0].Name != "vector-db" || result[1].Name != "mixed-vector-db" || result[2].Name != "pgvector-legacy-key" {
 			t.Fatalf("unexpected vector-db secrets: %+v", result)
 		}
 		if result[0].Data["MILVUS_URI"] != "[REDACTED]" {
@@ -328,6 +336,11 @@ func TestGetFilteredSecrets(t *testing.T) {
 				"NEO4J_USERNAME": "neo4j",
 				"NEO4J_PASSWORD": "password",
 			}),
+			vectorDBSecret("neo4j-legacy-key", map[string]string{
+				"NEO4J_URI":          "neo4j://neo4j.example.com:7687",
+				"NEO4J_PASSWORD":     "password",
+				"MILVUS_SERVER_CERT": "legacy-cert",
+			}),
 		}
 		k8s := &mockK8sService{
 			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
@@ -338,7 +351,7 @@ func TestGetFilteredSecrets(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(result) != 1 || result[0].Name != "neo4j" || result[0].Type != "neo4j" {
+		if len(result) != 2 || result[0].Name != "neo4j" || result[0].Type != "neo4j" || result[1].Name != "neo4j-legacy-key" || result[1].Type != "neo4j" {
 			t.Fatalf("unexpected Neo4j secrets: %+v", result)
 		}
 	})

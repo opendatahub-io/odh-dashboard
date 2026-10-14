@@ -68,7 +68,7 @@ Secrets are filtered using configurable dictionaries of secret types and their r
 | **Milvus**      | `MILVUS_URI`                                                                          | `MILVUS_TOKEN`, `MILVUS_CA_CERT`     |
 | **PGVector**    | `PGVECTOR_HOST`, `PGVECTOR_PORT`, `PGVECTOR_DB`, `PGVECTOR_USER`, `PGVECTOR_PASSWORD` | `PGVECTOR_CA_CERT`                   |
 
-The `vector-db` result is the deduplicated union of these two key sets. Filtering is based on key presence only: empty values, extra keys, mixed database families, and OGX keys are not excluded. A Secret containing the unsupported legacy `MILVUS_SERVER_CERT` key is excluded from vector-database classification, even when `MILVUS_URI` or other supported keys are also present.
+The `vector-db` result is the deduplicated union of these two key sets. Filtering is based on key presence only: empty values, extra keys, mixed database families, and OGX keys are not excluded. The legacy `MILVUS_SERVER_CERT` key excludes a Secret from Milvus classification only; a complete PGVector Secret remains classified as PGVector.
 
 The optional `*_CA_CERT` keys hold a PEM-encoded CA certificate that the BFF adds to its trust pool to verify TLS connections to vector databases with privately-signed certificates.
 
@@ -80,7 +80,7 @@ The optional `*_CA_CERT` keys hold a PEM-encoded CA certificate that the BFF add
 | **PGVector** | `PGVECTOR_HOST`, `PGVECTOR_PORT`, `PGVECTOR_DB`, `PGVECTOR_USER`, `PGVECTOR_PASSWORD` |
 | **Neo4j**    | `NEO4J_URI`, `NEO4J_PASSWORD`                                                         |
 
-The `database` result uses key-presence matching for all three providers and excludes secrets matching more than one provider. `provider=neo4j` requires `NEO4J_URI` and `NEO4J_PASSWORD` and returns only unambiguous Neo4j connections. Optional CA keys are `MILVUS_CA_CERT`, `PGVECTOR_CA_CERT`, and `NEO4J_CA_CERT`; `MILVUS_SERVER_CERT` is not supported.
+The `database` result uses key-presence matching for all three providers and excludes secrets matching more than one provider. `provider=neo4j` requires `NEO4J_URI` and `NEO4J_PASSWORD` and returns only unambiguous Neo4j connections. Optional CA keys are `MILVUS_CA_CERT`, `PGVECTOR_CA_CERT`, and `NEO4J_CA_CERT`; `MILVUS_SERVER_CERT` excludes Milvus classification only.
 
 ## Response Format
 
@@ -297,8 +297,8 @@ The endpoint supports filtering modes based on the `type` parameter:
    - Empty values and additional keys are allowed
 
 5. **`type=vector-db`**: Filters for vector database secrets
-   - Returns the deduplicated union of `MILVUS_URI` and the complete PGVector key set; legacy `MILVUS_SERVER_CERT` shapes are excluded
-   - Uses key presence only; empty values and additional or mixed keys are allowed, except any Secret containing the unsupported legacy `MILVUS_SERVER_CERT` key
+   - Returns the deduplicated union of `MILVUS_URI` and the complete PGVector key set; `MILVUS_SERVER_CERT` excludes Milvus classification only
+   - Uses key presence only; empty values and additional or mixed keys are allowed; a complete PGVector Secret with `MILVUS_SERVER_CERT` remains selectable
 
 Invalid type values result in a 400 Bad Request error.
 

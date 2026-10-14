@@ -61,11 +61,12 @@ func NewK8sRepository() *K8sRepository {
 }
 
 func matchingDatabaseProviders(secret kubernetes.SecretInfo) []string {
-	if kubernetes.SecretInfoHasAllKeys(secret, []string{"MILVUS_SERVER_CERT"}) {
-		return nil
-	}
+	hasLegacyMilvusKey := kubernetes.SecretInfoHasAllKeys(secret, []string{"MILVUS_SERVER_CERT"})
 	providers := make([]string, 0, len(databaseProviderOrder))
 	for _, provider := range databaseProviderOrder {
+		if provider == "milvus" && hasLegacyMilvusKey {
+			continue
+		}
 		if kubernetes.SecretInfoHasAllKeys(secret, databaseTypeRequiredKeys[provider]) {
 			providers = append(providers, provider)
 		}
@@ -91,11 +92,11 @@ func filterDatabaseSecretInfos(
 func filterVectorDBSecretInfos(secretInfos []kubernetes.SecretInfo) []kubernetes.SecretInfo {
 	filtered := make([]kubernetes.SecretInfo, 0, len(secretInfos))
 	for _, secret := range secretInfos {
-		if kubernetes.SecretInfoHasAllKeys(secret, []string{"MILVUS_SERVER_CERT"}) {
-			continue
-		}
-		if kubernetes.SecretInfoHasAllKeys(secret, vectorDBTypeRequiredKeys["milvus"]) ||
-			kubernetes.SecretInfoHasAllKeys(secret, vectorDBTypeRequiredKeys["pgvector"]) {
+		hasMilvus := !kubernetes.SecretInfoHasAllKeys(secret, []string{"MILVUS_SERVER_CERT"}) &&
+			kubernetes.SecretInfoHasAllKeys(secret, vectorDBTypeRequiredKeys["milvus"])
+		hasPGVector := kubernetes.SecretInfoHasAllKeys(secret, vectorDBTypeRequiredKeys["pgvector"])
+		if hasMilvus ||
+			hasPGVector {
 			filtered = append(filtered, secret)
 		}
 	}

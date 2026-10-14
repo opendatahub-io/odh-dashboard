@@ -30,11 +30,8 @@ type DatabaseProvider = 'milvus' | 'pgvector' | 'neo4j';
 
 const getDatabaseProviders = (secret: SecretListItem): DatabaseProvider[] => {
   const keys = new Set(Object.keys(secret.data ?? {}));
-  if (keys.has('MILVUS_SERVER_CERT')) {
-    return [];
-  }
   return [
-    keys.has('MILVUS_URI') ? 'milvus' : undefined,
+    keys.has('MILVUS_URI') && !keys.has('MILVUS_SERVER_CERT') ? 'milvus' : undefined,
     ['PGVECTOR_HOST', 'PGVECTOR_PORT', 'PGVECTOR_DB', 'PGVECTOR_USER', 'PGVECTOR_PASSWORD'].every(
       (key) => keys.has(key),
     )

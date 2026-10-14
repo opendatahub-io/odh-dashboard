@@ -240,7 +240,7 @@ describe('AutoRAG API Contract Tests', () => {
       expect(result.success).toBe(true);
       if (result.success) {
         const secrets = (result.response.data as { data: { name: string }[] }).data;
-        expect(secrets.map((secret) => secret.name)).toEqual(['neo4j']);
+        expect(secrets.map((secret) => secret.name)).toEqual(['neo4j', 'neo4j-legacy-key']);
       }
     });
 
@@ -255,7 +255,7 @@ describe('AutoRAG API Contract Tests', () => {
         const secrets = (
           result.response.data as { data: { name: string; data: Record<string, string> }[] }
         ).data;
-        expect(secrets.map((secret) => secret.name)).toEqual(['vector-db']);
+        expect(secrets.map((secret) => secret.name)).toEqual(['vector-db', 'pgvector-legacy-key']);
         expect(secrets[0].data).toHaveProperty('MILVUS_CA_CERT');
         expect(secrets[0].data).not.toHaveProperty('MILVUS_SERVER_CERT');
       }

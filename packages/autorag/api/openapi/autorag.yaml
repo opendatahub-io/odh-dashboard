@@ -195,7 +195,7 @@ paths:
             - 'storage': Filters for storage secrets (e.g., S3 secrets with classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT)
             - 'ogx': Filters for Open GenAI Stack secrets (classification keys: OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL)
             - 'maas': Filters for hosted MaaS secrets (classification keys: MAAS_BASE_URL, MAAS_API_KEY)
-            - 'vector-db': Filters for Milvus (MILVUS_URI) or complete PGVector credentials; MILVUS_SERVER_CERT is not supported
+            - 'vector-db': Filters for Milvus (MILVUS_URI) or complete PGVector credentials; MILVUS_SERVER_CERT excludes Milvus classification only
             - 'database': Filters for complete Milvus, PGVector, or Neo4j credentials; Neo4j requires NEO4J_URI and NEO4J_PASSWORD
             - Omit for all secrets
 
@@ -258,7 +258,7 @@ paths:
          - 'storage': Returns secrets containing a configured storage key set
          - 'ogx': Returns secrets containing both OGX keys
          - 'maas': Returns secrets containing both MaaS keys; empty values and extra keys are allowed
-          - 'vector-db': Returns the deduplicated union of the Milvus and PGVector key sets; legacy MILVUS_SERVER_CERT shapes are excluded
+          - 'vector-db': Returns the deduplicated union of the Milvus and PGVector key sets; MILVUS_SERVER_CERT excludes Milvus classification only
           - 'database': Returns complete database secrets; provider can narrow the result to milvus, pgvector, or neo4j
         - No type: Returns all secrets with their detected type classification
   /api/v1/secret/{name}:
@@ -1142,8 +1142,8 @@ components:
                   description: >-
                     One of the supported provider key sets: Milvus requires MILVUS_URI;
                     PGVector requires PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER,
-                    and PGVECTOR_PASSWORD. Secrets containing the unsupported legacy
-                    MILVUS_SERVER_CERT key are excluded.
+                    and PGVECTOR_PASSWORD. MILVUS_SERVER_CERT excludes a Secret from Milvus
+                     classification but does not exclude a complete PGVector Secret.
                   example: ['MILVUS_URI']
                 commonOptionalKeys:
                   description: >-

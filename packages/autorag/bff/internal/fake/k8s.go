@@ -142,6 +142,33 @@ var fakeSecrets = map[string][]v1.Secret{
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
+				Name:      "neo4j-legacy-key",
+				Namespace: "my-project",
+				UID:       "0f6j0h7c-8i6j-9f6g-eh2i-2i3j4g5f6e7i",
+			},
+			Data: map[string][]byte{
+				"NEO4J_URI":          []byte("neo4j://neo4j.example.com:7687"),
+				"NEO4J_PASSWORD":     []byte("fake-neo4j-password"),
+				"MILVUS_SERVER_CERT": []byte("legacy-certificate"),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "pgvector-legacy-key",
+				Namespace: "my-project",
+				UID:       "1g7k1i8d-9j7k-0g7h-fi3j-3j4k5h6g7f8j",
+			},
+			Data: map[string][]byte{
+				"PGVECTOR_HOST":      []byte("pgvector.example.com"),
+				"PGVECTOR_PORT":      []byte("5432"),
+				"PGVECTOR_DB":        []byte("vector"),
+				"PGVECTOR_USER":      []byte("vector"),
+				"PGVECTOR_PASSWORD":  []byte("fake-pgvector-password"),
+				"MILVUS_SERVER_CERT": []byte("legacy-certificate"),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      "neo4j-uri-only",
 				Namespace: "my-project",
 				UID:       "9e5i9g6b-7h5i-8e5f-dg1h-1h0i2f3e4d5h",

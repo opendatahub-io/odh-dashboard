@@ -293,6 +293,27 @@ describe('SecretSelector', () => {
         },
       },
       {
+        uuid: 'pgvector-legacy-key',
+        name: 'pgvector-legacy-key',
+        data: {
+          PGVECTOR_HOST: 'host',
+          PGVECTOR_PORT: '5432',
+          PGVECTOR_DB: 'db',
+          PGVECTOR_USER: 'user',
+          PGVECTOR_PASSWORD: 'password',
+          MILVUS_SERVER_CERT: 'legacy-cert',
+        },
+      },
+      {
+        uuid: 'neo4j-legacy-key',
+        name: 'neo4j-legacy-key',
+        data: {
+          NEO4J_URI: 'neo4j://db',
+          NEO4J_PASSWORD: 'password',
+          MILVUS_SERVER_CERT: 'legacy-cert',
+        },
+      },
+      {
         uuid: 'mixed',
         name: 'mixed',
         data: {
@@ -313,13 +334,15 @@ describe('SecretSelector', () => {
       <SecretSelector
         namespace="test"
         type="database"
-        allowedProviders={['milvus', 'pgvector']}
+        allowedProviders={['milvus', 'pgvector', 'neo4j']}
         onChange={jest.fn()}
       />,
     );
 
     expect(screen.getByTestId('secret-option-milvus')).toBeInTheDocument();
     expect(screen.getByTestId('secret-option-pgvector')).toBeInTheDocument();
+    expect(screen.getByTestId('secret-option-pgvector-legacy-key')).toBeInTheDocument();
+    expect(screen.getByTestId('secret-option-neo4j-legacy-key')).toBeInTheDocument();
     expect(screen.queryByTestId('secret-option-mixed')).not.toBeInTheDocument();
   });
 

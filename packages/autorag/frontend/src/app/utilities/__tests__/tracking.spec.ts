@@ -325,14 +325,27 @@ describe('getVectorStoreProviderTypeFromSecretData', () => {
     ).toBeUndefined();
   });
 
-  it('should reject legacy Milvus metadata mixed with complete Neo4j metadata', () => {
+  it('should infer Neo4j from complete metadata mixed with the legacy Milvus key', () => {
     expect(
       getVectorStoreProviderTypeFromSecretData({
         MILVUS_SERVER_CERT: '[REDACTED]',
         NEO4J_URI: '[REDACTED]',
         NEO4J_PASSWORD: '[REDACTED]',
       }),
-    ).toBeUndefined();
+    ).toBe('neo4j');
+  });
+
+  it('should infer PGVector from complete metadata mixed with the legacy Milvus key', () => {
+    expect(
+      getVectorStoreProviderTypeFromSecretData({
+        MILVUS_SERVER_CERT: '[REDACTED]',
+        PGVECTOR_HOST: '[REDACTED]',
+        PGVECTOR_PORT: '[REDACTED]',
+        PGVECTOR_DB: '[REDACTED]',
+        PGVECTOR_USER: '[REDACTED]',
+        PGVECTOR_PASSWORD: '[REDACTED]',
+      }),
+    ).toBe('pgvector');
   });
 });
 
