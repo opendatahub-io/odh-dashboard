@@ -47,7 +47,7 @@ describe('AutoML Results Page', () => {
           const actions = $actions[0].getBoundingClientRect();
           expect(actions.top, 'actions row top').to.be.lessThan(crumb.bottom);
           expect(actions.bottom, 'actions row bottom').to.be.greaterThan(crumb.top);
-          expect(actions.left, 'actions right of breadcrumb').to.be.greaterThan(crumb.left);
+          expect(actions.left, 'actions right of breadcrumb').to.be.greaterThan(crumb.right);
         });
       });
 

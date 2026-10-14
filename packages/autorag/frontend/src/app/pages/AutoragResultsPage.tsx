@@ -471,34 +471,36 @@ function AutoragResultsPage(): React.JSX.Element {
   const headerActions = React.useMemo(
     () => (
       <Split hasGutter isWrappable>
-        <SplitItem>
-          {runTerminatable && (
-            <Button
-              variant="secondary"
-              icon={<StopCircleIcon />}
-              onClick={() => setIsStopModalOpen(true)}
-              isDisabled={isTerminating || isStopModalOpen}
-              isLoading={isTerminating || isStopModalOpen}
-              spinnerAriaValueText="Stopping run"
-              data-testid="stop-run-button"
-            >
-              Stop
-            </Button>
-          )}
-          {runRetryable && (
-            <Button
-              variant="secondary"
-              icon={<RedoIcon />}
-              onClick={() => void handleRetry().catch(() => undefined)}
-              isDisabled={isRetrying}
-              isLoading={isRetrying}
-              spinnerAriaValueText="Retrying run"
-              data-testid="retry-run-button"
-            >
-              Retry
-            </Button>
-          )}
-        </SplitItem>
+        {runTerminatable || runRetryable ? (
+          <SplitItem>
+            {runTerminatable && (
+              <Button
+                variant="secondary"
+                icon={<StopCircleIcon />}
+                onClick={() => setIsStopModalOpen(true)}
+                isDisabled={isTerminating || isStopModalOpen}
+                isLoading={isTerminating || isStopModalOpen}
+                spinnerAriaValueText="Stopping run"
+                data-testid="stop-run-button"
+              >
+                Stop
+              </Button>
+            )}
+            {runRetryable && (
+              <Button
+                variant="secondary"
+                icon={<RedoIcon />}
+                onClick={() => void handleRetry().catch(() => undefined)}
+                isDisabled={isRetrying}
+                isLoading={isRetrying}
+                spinnerAriaValueText="Retrying run"
+                data-testid="retry-run-button"
+              >
+                Retry
+              </Button>
+            )}
+          </SplitItem>
+        ) : null}
         <SplitItem>
           <Button
             variant="secondary"
