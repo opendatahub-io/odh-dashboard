@@ -40,7 +40,12 @@ const BenchmarkSuiteCardSkeleton: React.FC = () => (
         <Skeleton width="88%" />
         <Skeleton width="72%" />
       </div>
-      <Flex className="evalhub-benchmark-suite-card__loading-metrics" aria-hidden="true">
+    </CardBody>
+    <CardFooter className="evalhub-benchmark-suite-card__footer">
+      <Flex
+        className="evalhub-benchmark-suite-card__footer-metrics evalhub-benchmark-suite-card__loading-metrics"
+        aria-hidden="true"
+      >
         <FlexItem>
           <Skeleton width="4.5rem" height="1.5rem" />
         </FlexItem>
@@ -48,8 +53,6 @@ const BenchmarkSuiteCardSkeleton: React.FC = () => (
           <Skeleton width="5.5rem" height="1.5rem" />
         </FlexItem>
       </Flex>
-    </CardBody>
-    <CardFooter className="evalhub-benchmark-suite-card__footer">
       <Flex
         alignItems={{ default: 'alignItemsCenter' }}
         justifyContent={{ default: 'justifyContentSpaceBetween' }}

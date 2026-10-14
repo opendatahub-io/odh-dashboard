@@ -393,7 +393,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
             onClick={() => onSelect(collection)}
             data-testid={`benchmark-suite-card-name-${collection.resource.id}`}
           >
-            {collection.name}
+            <span className="evalhub-benchmark-suite-card__title-name">{collection.name}</span>
           </Button>
         ) : (
           <span className="evalhub-benchmark-suite-card__title-name">{collection.name}</span>
@@ -436,14 +436,17 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
         >
           {collection.description || <em>No description provided</em>}
         </Content>
-        {metricNames.length > 0 &&
-          (metricNames.length > VISIBLE_METRICS_COUNT ? (
-            <Tooltip content={metricsTooltip}>{metricsLabelGroup}</Tooltip>
-          ) : (
-            metricsLabelGroup
-          ))}
       </CardBody>
       <CardFooter className="evalhub-benchmark-suite-card__footer">
+        {metricNames.length > 0 && (
+          <div className="evalhub-benchmark-suite-card__footer-metrics">
+            {metricNames.length > VISIBLE_METRICS_COUNT ? (
+              <Tooltip content={metricsTooltip}>{metricsLabelGroup}</Tooltip>
+            ) : (
+              metricsLabelGroup
+            )}
+          </div>
+        )}
         <Flex
           alignItems={{ default: 'alignItemsCenter' }}
           justifyContent={{

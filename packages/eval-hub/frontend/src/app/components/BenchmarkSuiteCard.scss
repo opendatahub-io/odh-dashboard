@@ -245,9 +245,18 @@
 }
 
 .evalhub-benchmark-suite-card__title-name {
-  display: block;
+  display: -webkit-box;
   font-size: var(--pf-t--global--font--size--xl);
   font-weight: var(--pf-t--global--font--weight--heading--default);
+  line-height: var(--pf-t--global--font--line-height--heading);
+  max-height: calc(
+    var(--pf-t--global--font--size--xl) * var(--pf-t--global--font--line-height--heading) * 2
+  );
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: normal;
 }
 
 .evalhub-benchmark-suite-card__body {
@@ -303,6 +312,13 @@
 }
 
 .evalhub-benchmark-suite-card__footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--md);
+  width: 100%;
+}
+
+.evalhub-benchmark-suite-card__footer-metrics {
   width: 100%;
 }
 
