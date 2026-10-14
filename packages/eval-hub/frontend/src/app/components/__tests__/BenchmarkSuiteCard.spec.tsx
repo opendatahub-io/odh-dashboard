@@ -306,6 +306,19 @@ describe('BenchmarkSuiteCard', () => {
     fireEvent.click(screen.getByTestId('benchmark-suite-card-primary-action-model-suite'));
 
     expect(onClick).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+      {
+        runType: 'collection',
+        collectionName: 'Safety Suite',
+        benchmarkTypes: JSON.stringify(['harmful_request_refusal', 'toxigen']),
+        countOfBenchmarks: 2,
+      },
+      {
+        collectionType: 'custom',
+        providerType: 'safety_eval_suite',
+      },
+    );
   });
 
   it('should render Run as the split button action and Customize in its menu', () => {
@@ -332,6 +345,15 @@ describe('BenchmarkSuiteCard', () => {
     ).not.toBeInTheDocument();
 
     fireEvent.click(runButton);
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+      expect.objectContaining({
+        runType: 'collection',
+        collectionName: 'Safety Suite',
+        countOfBenchmarks: 2,
+      }),
+      expect.objectContaining({ collectionType: 'custom' }),
+    );
     fireEvent.click(dropdownToggle);
     const customizeAction = screen.getByTestId(
       'benchmark-suite-card-dropdown-action-curated-suite',

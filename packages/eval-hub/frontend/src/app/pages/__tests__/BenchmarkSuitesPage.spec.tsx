@@ -159,6 +159,17 @@ describe('BenchmarkSuitesPage', () => {
       '/evaluation/test-project/create/collections/model-suite-2/copy',
     );
     expect(screen.getByTestId('location-state')).toHaveTextContent('{"source":"benchmark-suites"}');
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED,
+      expect.objectContaining({
+        collectionName: 'Model suite 2',
+        surface: 'my_benchmark_suites',
+      }),
+      expect.objectContaining({
+        collectionType: 'custom',
+        providerType: expect.any(String),
+      }),
+    );
   });
 
   it('should navigate to the edit suite page from Edit', async () => {

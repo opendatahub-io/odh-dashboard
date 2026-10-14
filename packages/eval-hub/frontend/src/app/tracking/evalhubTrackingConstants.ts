@@ -1,8 +1,6 @@
 import type { TrackingOutcome } from '@odh-dashboard/ui-core';
 
 export const EVAL_HUB_EVENTS = {
-  PAGE_VIEWED: 'Evaluations Page Viewed',
-  START_EVALUATION_SELECTED: 'Evaluations Start Evaluation Selected',
   EVALUATION_RUN_STARTED: 'Evaluations Evaluation Run Started',
   EVALUATION_COMPLETED: 'Evaluations Evaluation Completed',
   EVALUATION_DELETED: 'Evaluations Evaluation Deleted',
@@ -25,6 +23,8 @@ export const EVAL_HUB_EVENTS = {
   SECURITY_INSIGHTS_FILTER_APPLIED: 'Security Insights Filter Applied',
   SECURITY_INSIGHTS_SORT_CHANGED: 'Security Insights Sort Changed',
   SECURITY_INSIGHTS_PAGINATION_CHANGED: 'Security Insights Pagination Changed',
+  BENCHMARK_CATALOG_OPENED: 'evalhub.benchmark.catalog.opened',
+  COLLECTION_CATEGORY_SELECTED: 'evalhub.collection.category.selected',
   COLLECTION_GALLERY_VIEWED: 'evalhub.collection.gallery.viewed',
   COLLECTION_TILE_CLICKED: 'evalhub.collection.gallery.tile_clicked',
   COLLECTION_DETAIL_VIEWED: 'evalhub.collection.detail.viewed',
@@ -39,6 +39,11 @@ export const EVAL_HUB_EVENTS = {
   COLLECTION_SAVED: 'evalhub.collection.saved',
   REPORT_GENERATION_TRIGGERED: 'evalhub.report.generation.triggered',
   COLLECTION_DELETED: 'evalhub.collection.deleted',
+  EVALUATION_STATUS_TAB_SELECTED: 'evalhub.monitoring.status_tab_selected',
+  EVALUATION_LOGS_VIEWED: 'evalhub.monitoring.logs_viewed',
+  EVALUATION_RESULTS_VIEWED: 'evalhub.monitoring.results_viewed',
+  EVALUATION_RECONFIGURE_SELECTED: 'evalhub.monitoring.reconfigure_selected',
+  COLLECTION_ALL_SUITES_OPENED: 'evalhub.collection.all_suites.opened',
 } as const;
 
 export type EvalHubCollectionSurface =
@@ -187,11 +192,15 @@ export type SecurityInsightsPaginationChangedProperties = {
   totalItems: number;
 };
 
-export type PageViewedProperties = {
-  surface: string;
+export type BenchmarkCatalogOpenedProperties = {
+  surface: EvalHubCollectionSurface;
 };
 
-export type StartEvaluationSelectedProperties = Record<string, never>;
+export type CollectionCategorySelectedProperties = {
+  categoryId: string;
+  evaluationTarget?: string;
+  surface: EvalHubCollectionSurface;
+};
 
 export type CollectionGalleryViewedProperties = {
   surface: EvalHubCollectionSurface;
@@ -226,6 +235,26 @@ export type FailureDetailOpenedProperties = {
   benchmarkIndex?: number;
 };
 
+export type EvaluationStatusTabSelectedProperties = {
+  evaluationName: string;
+  tab: 'progress' | 'events_log';
+};
+
+export type EvaluationLogsViewedProperties = {
+  evaluationName: string;
+  benchmarkIndex?: number;
+  source: 'status_tab' | 'progress_benchmark';
+};
+
+export type EvaluationResultsViewedProperties = {
+  evaluationName: string;
+};
+
+export type EvaluationReconfigureSelectedProperties = {
+  evaluationName: string;
+  previousState: string;
+};
+
 export type CollectionCustomizeProperties = CollectionTileProperties;
 
 export type CollectionCreateOpenedProperties = {
@@ -237,6 +266,18 @@ export type CollectionSavedProperties = {
   success: boolean;
   collectionName?: string;
   saveMode: 'create' | 'edit' | 'copy';
+  suiteName?: string;
+  suiteDescription?: string;
+  /** JSON-serialised values for each collection metadata form field. */
+  suiteDomains?: string;
+  suiteTasks?: string;
+  suiteModalities?: string;
+  suiteIndustries?: string;
+  suiteEvaluates?: string;
+  suiteThreshold?: number;
+  benchmarkCount?: number;
+  /** JSON-serialised final benchmark form state, including user-entered parameters. */
+  benchmarks?: string;
   error_category?: string;
 };
 
@@ -251,8 +292,6 @@ export type CollectionDeletedProperties = {
 export type EvalHubEventName = (typeof EVAL_HUB_EVENTS)[keyof typeof EVAL_HUB_EVENTS];
 
 export type EvalHubEventProperties = {
-  [EVAL_HUB_EVENTS.PAGE_VIEWED]: PageViewedProperties;
-  [EVAL_HUB_EVENTS.START_EVALUATION_SELECTED]: StartEvaluationSelectedProperties;
   [EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED]: EvaluationRunStartedProperties;
   [EVAL_HUB_EVENTS.EVALUATION_COMPLETED]: EvaluationCompletedProperties;
   [EVAL_HUB_EVENTS.EVALUATION_DELETED]: EvaluationDeletedProperties;
@@ -275,6 +314,8 @@ export type EvalHubEventProperties = {
   [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_APPLIED]: SecurityInsightsFilterAppliedProperties;
   [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_SORT_CHANGED]: SecurityInsightsSortChangedProperties;
   [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_PAGINATION_CHANGED]: SecurityInsightsPaginationChangedProperties;
+  [EVAL_HUB_EVENTS.BENCHMARK_CATALOG_OPENED]: BenchmarkCatalogOpenedProperties;
+  [EVAL_HUB_EVENTS.COLLECTION_CATEGORY_SELECTED]: CollectionCategorySelectedProperties;
   [EVAL_HUB_EVENTS.COLLECTION_GALLERY_VIEWED]: CollectionGalleryViewedProperties;
   [EVAL_HUB_EVENTS.COLLECTION_TILE_CLICKED]: CollectionTileProperties;
   [EVAL_HUB_EVENTS.COLLECTION_DETAIL_VIEWED]: CollectionTileProperties;
@@ -283,6 +324,11 @@ export type EvalHubEventProperties = {
   [EVAL_HUB_EVENTS.COMPARISON_VIEW_RENDERED]: ComparisonViewRenderedProperties;
   [EVAL_HUB_EVENTS.JOB_DETAIL_OPENED]: JobDetailOpenedProperties;
   [EVAL_HUB_EVENTS.FAILURE_DETAIL_OPENED]: FailureDetailOpenedProperties;
+  [EVAL_HUB_EVENTS.EVALUATION_STATUS_TAB_SELECTED]: EvaluationStatusTabSelectedProperties;
+  [EVAL_HUB_EVENTS.EVALUATION_LOGS_VIEWED]: EvaluationLogsViewedProperties;
+  [EVAL_HUB_EVENTS.EVALUATION_RESULTS_VIEWED]: EvaluationResultsViewedProperties;
+  [EVAL_HUB_EVENTS.EVALUATION_RECONFIGURE_SELECTED]: EvaluationReconfigureSelectedProperties;
+  [EVAL_HUB_EVENTS.COLLECTION_ALL_SUITES_OPENED]: CollectionGalleryViewedProperties;
   [EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED]: CollectionCustomizeProperties;
   [EVAL_HUB_EVENTS.COLLECTION_EDIT_OPENED]: CollectionTileProperties;
   [EVAL_HUB_EVENTS.COLLECTION_CREATE_OPENED]: CollectionCreateOpenedProperties;

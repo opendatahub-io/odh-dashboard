@@ -25,6 +25,8 @@ import {
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 import { Collection, ProviderAgentMetadata, ProviderBenchmark } from '~/app/types';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import BenchmarkDrawerTileContent from './BenchmarkDrawerTileContent';
 import SearchableMultiSelectFilter from './SearchableMultiSelectFilter';
 import { getMetricDisplayName } from './benchmarkUtils';
@@ -71,6 +73,29 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
     });
     return Array.from(metricSet).toSorted();
   }, [collection?.benchmarks, benchmarkDetailsMap]);
+
+  const handleRunCollection = React.useCallback(() => {
+    if (!collection) {
+      return;
+    }
+
+    trackEvalHubEvent(
+      EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+      {
+        runType: 'collection',
+        collectionName: collection.name,
+        benchmarkTypes: JSON.stringify(
+          (collection.benchmarks ?? []).map((benchmark) => benchmark.id),
+        ),
+        countOfBenchmarks: collection.benchmarks?.length ?? 0,
+      },
+      {
+        collectionType: collection.resource.read_only ? 'system' : 'custom',
+        providerType: collection.benchmarks?.[0]?.provider_id,
+      },
+    );
+    onRunCollection(collection, isSystemCollection);
+  }, [collection, isSystemCollection, onRunCollection]);
 
   if (!collection) {
     // DrawerPanelContent must remain in the DOM for PF's slide-in/out CSS transition to work
@@ -227,7 +252,7 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
             <Button
               variant="primary"
               data-testid="use-benchmark-suite-button"
-              onClick={() => onRunCollection(collection, isSystemCollection)}
+              onClick={handleRunCollection}
             >
               {primaryActionLabel}
             </Button>

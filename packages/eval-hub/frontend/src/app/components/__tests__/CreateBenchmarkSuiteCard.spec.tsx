@@ -2,8 +2,20 @@ import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import CreateBenchmarkSuiteCard from '~/app/components/CreateBenchmarkSuiteCard';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+
+jest.mock('~/app/tracking/evalhubTracking', () => ({
+  trackEvalHubEvent: jest.fn(),
+}));
+
+const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
 
 describe('CreateBenchmarkSuiteCard', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should render the suite creation CTA content', () => {
     render(<CreateBenchmarkSuiteCard />);
 
@@ -33,5 +45,22 @@ describe('CreateBenchmarkSuiteCard', () => {
       'href',
       '/evaluation/evalhub/create/collections/new',
     );
+  });
+
+  it('should track opening the create suite form', () => {
+    render(
+      <MemoryRouter>
+        <CreateBenchmarkSuiteCard
+          createSuiteRoute="/evaluation/evalhub/create/collections/new"
+          trackingSurface="my_benchmark_suites"
+        />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByTestId('create-suite-button'));
+
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(EVAL_HUB_EVENTS.COLLECTION_CREATE_OPENED, {
+      surface: 'my_benchmark_suites',
+    });
   });
 });

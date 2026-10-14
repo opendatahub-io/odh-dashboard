@@ -13,6 +13,7 @@ import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const mockRefresh = jest.fn();
+const mockTrackEventOnce = jest.fn();
 const mockUseCollectionsQuery = jest.fn();
 const mockUseDeleteCollectionMutation = jest.fn();
 const mockDeleteCollection = jest.fn();
@@ -29,7 +30,7 @@ const mockUseEvalHubHealth = jest.fn<
 >();
 
 jest.mock('~/app/tracking/evalhubTracking', () => ({
-  createEvalHubTrackingScope: () => ({ trackEventOnce: jest.fn(), clear: jest.fn() }),
+  createEvalHubTrackingScope: () => ({ trackEventOnce: mockTrackEventOnce, clear: jest.fn() }),
   trackEvalHubEvent: jest.fn(),
 }));
 
@@ -264,6 +265,20 @@ describe('EvaluationsPage', () => {
     );
   });
 
+  it('should rely on the Benchmark suites view event after navigating from the Runs empty state', () => {
+    renderPage('test-project', '?tab=runs');
+
+    fireEvent.click(screen.getByTestId('create-evaluation-button'));
+
+    expect(mockTrackEventOnce).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_GALLERY_VIEWED,
+      'test-project:tenant:all',
+      { surface: 'my_benchmark_suites' },
+      { collectionType: 'custom' },
+    );
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+  });
+
   it('should open the suite details drawer when selecting a Gallery suite name', () => {
     renderPage('test-project');
 
@@ -460,6 +475,11 @@ describe('EvaluationsPage', () => {
     fireEvent.click(screen.getByTestId('benchmark-suite-delete-cancel'));
 
     expect(screen.queryByTestId('benchmark-suite-delete-modal')).not.toBeInTheDocument();
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_DELETED,
+      expect.anything(),
+      expect.anything(),
+    );
   });
 
   it('should navigate to the copy suite page from Duplicate', () => {
@@ -472,6 +492,17 @@ describe('EvaluationsPage', () => {
       '/evaluation/test-project/create/collections/model-suite-2/copy',
     );
     expect(screen.getByTestId('location-state')).toHaveTextContent('{"source":"evaluate"}');
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED,
+      expect.objectContaining({
+        collectionName: 'Model suite 2',
+        surface: 'my_benchmark_suites',
+      }),
+      expect.objectContaining({
+        collectionType: 'custom',
+        providerType: expect.any(String),
+      }),
+    );
   });
 
   it('should navigate to the edit suite page with the Evaluate tab as its source', () => {
@@ -509,6 +540,17 @@ describe('EvaluationsPage', () => {
     expect(mockNotificationSuccess).toHaveBeenCalledWith(
       'Benchmark suite deleted',
       '"Model suite 2" has been deleted.',
+    );
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_DELETED,
+      {
+        collectionName: 'Model suite 2',
+        outcome: 'success',
+      },
+      expect.objectContaining({
+        collectionType: 'custom',
+        providerType: expect.any(String),
+      }),
     );
   });
 
@@ -561,6 +603,16 @@ describe('EvaluationsPage', () => {
       'href',
       '/evaluation/test-project/create/benchmarks',
     );
+  });
+
+  it('should track opening the benchmark catalog from the browse benchmarks section', () => {
+    renderPage('test-project', '?tab=evaluate');
+
+    fireEvent.click(screen.getByTestId('browse-all-benchmarks-explore'));
+
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(EVAL_HUB_EVENTS.BENCHMARK_CATALOG_OPENED, {
+      surface: 'my_benchmark_suites',
+    });
   });
 
   it('should open the start evaluation run modal for a suite', () => {

@@ -6,6 +6,14 @@ import CollectionDrawerPanel, {
   BenchmarkWithProvider,
 } from '~/app/components/CollectionDrawerPanel';
 import { Collection } from '~/app/types';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+
+jest.mock('~/app/tracking/evalhubTracking', () => ({
+  trackEvalHubEvent: jest.fn(),
+}));
+
+const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
 
 jest.mock('~/app/components/benchmarkUtils', () => ({
   getCategoryColor: () => 'blue',
@@ -103,6 +111,19 @@ describe('CollectionDrawerPanel', () => {
 
     expect(onRunCollection).toHaveBeenCalledWith(collection, true);
     expect(onCustomizeCollection).toHaveBeenCalledWith(collection);
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+      {
+        runType: 'collection',
+        collectionName: 'Test Collection',
+        benchmarkTypes: '[]',
+        countOfBenchmarks: 0,
+      },
+      {
+        collectionType: 'custom',
+        providerType: undefined,
+      },
+    );
   });
 
   it('should reset search and metric filter when collection changes', () => {

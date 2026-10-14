@@ -517,8 +517,29 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
         benchmarkIndex: bmIndex,
       });
     }
+    trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_LOGS_VIEWED, {
+      evaluationName,
+      benchmarkIndex: bmIndex,
+      source: 'progress_benchmark',
+    });
     setLogBenchmarkIndex(bmIndex);
     setActiveTab('events-log');
+  };
+
+  const handleStatusTabSelect = (_event: React.SyntheticEvent, key: string | number) => {
+    const tab = String(key) === 'events-log' ? 'events_log' : 'progress';
+    trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_STATUS_TAB_SELECTED, {
+      evaluationName,
+      tab,
+    });
+    if (tab === 'events_log') {
+      trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_LOGS_VIEWED, {
+        evaluationName,
+        source: 'status_tab',
+      });
+    }
+    setActiveTab(String(key));
+    setLogBenchmarkIndex(undefined);
   };
 
   const getInProgressDescription = (): string => {
@@ -544,7 +565,9 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   if (isKueueStatusLoading) {
     descriptionText = 'Checking resource scheduling status';
   } else if (state === 'completed') {
-    descriptionText = `Evaluation completed successfully.${elapsed ? ` Total time: ${elapsed}` : ''}`;
+    descriptionText = `Evaluation completed successfully.${
+      elapsed ? ` Total time: ${elapsed}` : ''
+    }`;
   } else if (isInProgress) {
     if (isInadmissible) {
       descriptionText = `Kueue could not admit this evaluation${
@@ -707,10 +730,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
           </Stack>
           <Tabs
             activeKey={activeTab}
-            onSelect={(_e, key) => {
-              setActiveTab(String(key));
-              setLogBenchmarkIndex(undefined);
-            }}
+            onSelect={handleStatusTabSelect}
             data-testid="status-modal-tabs"
             className="evalhub-status-modal__tabs"
           >
@@ -796,7 +816,12 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
             component={(props) => (
               <Link {...props} to={evaluationResultsRoute(namespace, job.resource.id)} />
             )}
-            onClick={onClose}
+            onClick={() => {
+              trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_RESULTS_VIEWED, {
+                evaluationName,
+              });
+              onClose();
+            }}
             data-testid="status-modal-view-results-button"
           >
             View results
@@ -805,7 +830,13 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
         {onRequestReconfigure && isReconfigurable && state !== 'completed' && (
           <Button
             variant="primary"
-            onClick={() => onRequestReconfigure(job)}
+            onClick={() => {
+              trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_RECONFIGURE_SELECTED, {
+                evaluationName,
+                previousState: state,
+              });
+              onRequestReconfigure(job);
+            }}
             data-testid="status-modal-reconfigure-button"
           >
             Reconfigure evaluation

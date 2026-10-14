@@ -1151,7 +1151,16 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
       )}
       {showSummary && !isLoading && !shouldShowLoadError && totalCount > 0 && (
         <StackItem className="evalhub-evaluate-tab__summary" data-testid="benchmark-suites-summary">
-          <Link to={evaluationBenchmarkSuitesRoute(namespace)}>Go to All my benchmark suites</Link>
+          <Link
+            to={evaluationBenchmarkSuitesRoute(namespace)}
+            onClick={() =>
+              trackEvalHubEvent(EVAL_HUB_EVENTS.COLLECTION_ALL_SUITES_OPENED, {
+                surface: trackingSurface,
+              })
+            }
+          >
+            Go to All my benchmark suites
+          </Link>
         </StackItem>
       )}
       {collectionToDelete && (

@@ -1,7 +1,10 @@
 /* eslint-disable camelcase */
 import { act, waitFor } from '@testing-library/react';
 import { useNavigate } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import { cloneCollection, createCollection, patchCollection } from '~/app/api/k8s';
 import { useCollectionsContext } from '~/app/context/CollectionsContext';
@@ -53,6 +56,7 @@ const mockPatchCollection = jest.mocked(patchCollection);
 const mockUseNotification = jest.mocked(useNotification);
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseCollectionsContext = jest.mocked(useCollectionsContext);
+const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
 const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 const mockRefreshCollections = jest.fn();
 const defaultSuiteNamePattern =
@@ -540,18 +544,32 @@ describe('useCopySuiteForm', () => {
       result.result.current.form.setValue('suiteDomains', ['safety', 'reasoning'], {
         shouldValidate: true,
       });
+      result.result.current.form.setValue('suiteTasks', ['classification'], {
+        shouldValidate: true,
+      });
+      result.result.current.form.setValue('suiteModalities', ['text'], {
+        shouldValidate: true,
+      });
+      result.result.current.form.setValue('suiteIndustries', ['technology'], {
+        shouldValidate: true,
+      });
       result.result.current.form.setValue('suiteEvaluates', ['model'], {
         shouldValidate: true,
       });
+      result.result.current.form.setValue('suiteThreshold', 85, { shouldValidate: true });
       result.result.current.form.setValue('benchmarks', [
         {
           id: 'benchmark-one',
           providerId: 'provider-one',
           name: 'Benchmark One',
           weight: 1,
-          parameters: [],
+          primaryMetric: 'accuracy',
+          lowerIsBetter: false,
+          metricDirections: { accuracy: false },
+          parameters: [{ key: 'num_examples', type: 'number', value: 250 }],
+          additionalParameters: '{"seed":42,"labels":["nightly"]}',
           threshold: 70,
-          availableMetrics: [],
+          availableMetrics: ['accuracy'],
         },
       ]);
     });
@@ -588,6 +606,35 @@ describe('useCopySuiteForm', () => {
     );
     expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/collections');
     expect(mockCloneCollection).not.toHaveBeenCalled();
+
+    const savedCall = mockFireFormTrackingEvent.mock.calls.find(
+      ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
+    );
+    expect(savedCall?.[1]).toEqual(
+      expect.objectContaining({
+        outcome: 'submit',
+        success: true,
+        saveMode: 'create',
+        suiteName: 'New suite',
+        suiteDescription: 'A new suite',
+        suiteDomains: JSON.stringify(['safety', 'reasoning']),
+        suiteTasks: JSON.stringify(['classification']),
+        suiteModalities: JSON.stringify(['text']),
+        suiteIndustries: JSON.stringify(['technology']),
+        suiteEvaluates: JSON.stringify(['model']),
+        suiteThreshold: 85,
+        benchmarkCount: 1,
+      }),
+    );
+    expect(JSON.parse(String(savedCall?.[1].benchmarks))).toEqual([
+      expect.objectContaining({
+        id: 'benchmark-one',
+        primaryMetric: 'accuracy',
+        parameters: [{ key: 'num_examples', type: 'number', value: 250 }],
+        additionalParameters: '{"seed":42,"labels":["nightly"]}',
+        threshold: 70,
+      }),
+    ]);
   });
 
   // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.

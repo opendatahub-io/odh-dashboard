@@ -332,12 +332,34 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
   */
   const runCount = collection.state?.run_count ?? 0;
   const runCountTooltip = 'Run Count: Number of successful executions of this suite';
+  const trackRunSelected = React.useCallback(() => {
+    trackEvalHubEvent(
+      EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+      {
+        runType: 'collection',
+        collectionName: collection.name,
+        benchmarkTypes: JSON.stringify(
+          (collection.benchmarks ?? []).map((benchmark) => benchmark.id),
+        ),
+        countOfBenchmarks: collection.benchmarks?.length ?? 0,
+      },
+      {
+        collectionType: collection.resource.read_only ? 'system' : 'custom',
+        providerType: collection.benchmarks?.[0]?.provider_id,
+      },
+    );
+  }, [collection]);
+  const handlePrimaryAction = React.useCallback(() => {
+    trackRunSelected();
+    primaryAction.onClick();
+  }, [primaryAction, trackRunSelected]);
   const renderActionButton = (action: BenchmarkSuiteCardButton, actionName: 'primary') =>
     action.href ? (
       <Button
         variant={action.variant ?? 'secondary'}
         isInline
         component={(props) => <Link {...props} to={action.href!} state={action.state} />}
+        onClick={handlePrimaryAction}
         data-testid={`benchmark-suite-card-${actionName}-action-${collection.resource.id}`}
       >
         {action.label}
@@ -346,7 +368,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
       <Button
         variant={action.variant ?? 'secondary'}
         isInline
-        onClick={action.onClick}
+        onClick={handlePrimaryAction}
         data-testid={`benchmark-suite-card-${actionName}-action-${collection.resource.id}`}
       >
         {action.label}
@@ -357,7 +379,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
     <MenuToggleAction
       key="primary-action"
       aria-label={primaryAction.label}
-      onClick={primaryAction.onClick}
+      onClick={handlePrimaryAction}
       data-testid={`benchmark-suite-card-primary-action-${collection.resource.id}`}
     >
       {primaryAction.label}

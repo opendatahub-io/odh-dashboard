@@ -50,7 +50,7 @@ import CuratedSuiteRunModal from '~/app/components/CuratedSuiteRunModal';
 import type { Collection, EvaluationJob } from '~/app/types';
 import { useCollectionDrawer } from '~/app/hooks/useCollectionDrawer';
 import StopEvaluationModal from '~/app/components/StopEvaluationModal';
-import { createEvalHubTrackingScope, trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import EvaluateTab from './EvaluateTab';
 import GalleryTab from './GalleryTab';
@@ -105,16 +105,6 @@ const EvaluationsPage: React.FC = () => {
     Collection | undefined
   >();
   const [selectedCollectionIsSystem, setSelectedCollectionIsSystem] = React.useState(false);
-  const trackingScope = React.useRef(createEvalHubTrackingScope()).current;
-
-  React.useEffect(() => () => trackingScope.clear(), [trackingScope]);
-
-  React.useEffect(() => {
-    trackingScope.trackEventOnce(EVAL_HUB_EVENTS.PAGE_VIEWED, namespace ?? 'unknown', {
-      surface: 'evaluations_page',
-    });
-  }, [namespace, trackingScope]);
-
   const handleCloseDrawer = React.useCallback(() => {
     setSelectedCollectionIsSystem(false);
     closeDrawer();

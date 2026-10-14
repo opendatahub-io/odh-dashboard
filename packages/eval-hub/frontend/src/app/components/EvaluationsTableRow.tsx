@@ -190,7 +190,13 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
       ? [
           {
             title: 'Reconfigure',
-            onClick: () => navigate(evaluationReconfigureRoute(namespace, job.resource.id)),
+            onClick: () => {
+              trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_RECONFIGURE_SELECTED, {
+                evaluationName,
+                previousState: currentState,
+              });
+              navigate(evaluationReconfigureRoute(namespace, job.resource.id));
+            },
           },
         ]
       : []),
@@ -225,6 +231,11 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
               isInline
               data-testid={`evaluation-link-${rowIndex}`}
               component={(props) => <Link {...props} to={`results/${job.resource.id}`} />}
+              onClick={() =>
+                trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_RESULTS_VIEWED, {
+                  evaluationName,
+                })
+              }
             >
               {evaluationName}
             </Button>
