@@ -4251,12 +4251,27 @@ importers:
 
   packages/gpuaas:
     dependencies:
+      '@odh-dashboard/hardware-profiles':
+        specifier: workspace:*
+        version: link:../hardware-profiles
       '@odh-dashboard/internal':
         specifier: workspace:*
         version: link:../../frontend/src
       '@odh-dashboard/k8s-core':
         specifier: workspace:*
         version: link:../k8s-core
+      '@odh-dashboard/kserve':
+        specifier: workspace:*
+        version: link:../kserve
+      '@odh-dashboard/llmd-serving':
+        specifier: workspace:*
+        version: link:../llmd-serving
+      '@odh-dashboard/model-serving':
+        specifier: workspace:*
+        version: link:../model-serving
+      '@odh-dashboard/model-training':
+        specifier: workspace:*
+        version: link:../model-training
       '@odh-dashboard/plugin-core':
         specifier: workspace:*
         version: link:../plugin-core

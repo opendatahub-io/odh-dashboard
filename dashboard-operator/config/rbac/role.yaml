@@ -218,6 +218,19 @@ rules:
       - get
       - list
       - watch
+  # OLM v1 resources for platform detection (ClusterExtension/ClusterCatalog).
+  # Read by odh-platform-utilities DetectPlatform() (v0.4.0+): clustercatalogs for the
+  # managed-RHOAI ClusterCatalog lookup and clusterextensions for the rhods-operator install
+  # check. No first-party operator code reads these directly.
+  - apiGroups:
+      - olm.operatorframework.io
+    resources:
+      - clustercatalogs
+      - clusterextensions
+    verbs:
+      - get
+      - list
+      - watch
   # Console links
   - apiGroups:
       - console.openshift.io

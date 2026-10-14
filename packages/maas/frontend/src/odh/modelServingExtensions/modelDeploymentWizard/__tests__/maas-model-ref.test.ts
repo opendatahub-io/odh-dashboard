@@ -1,5 +1,5 @@
 import type { LLMdDeployment } from '@odh-dashboard/llmd-serving/types';
-import { enqueuePostDeployAlert } from '@odh-dashboard/model-serving/concepts/postDeployAlertStore';
+import { enqueuePostDeployAlert } from '~/app/utilities/postDeployAlertStore';
 import { createMaaSModelRef, deleteMaaSModelRef, updateMaaSModelRef } from '~/app/api/maas-models';
 import type { DeleteMaaSModelRefResponse, MaaSModelRef } from '~/app/types/maas-model';
 import { MAAS_PUBLISHED_INTERNAL_ALERT_ID } from '~/odh/modelServingExtensions/MaaSPublishedPostDeployAlert';
@@ -7,7 +7,7 @@ import type { MaaSFieldValue } from '~/odh/modelServingExtensions/modelDeploymen
 import { postDeployMaaSModelRef } from '~/odh/modelServingExtensions/modelDeploymentWizard/maas-model-ref';
 import { fireMaaSPublishTrackingEvent } from '~/odh/modelServingExtensions/modelDeploymentWizard/maasPublishTracking';
 
-jest.mock('@odh-dashboard/model-serving/concepts/postDeployAlertStore', () => ({
+jest.mock('~/app/utilities/postDeployAlertStore', () => ({
   enqueuePostDeployAlert: jest.fn(),
 }));
 
