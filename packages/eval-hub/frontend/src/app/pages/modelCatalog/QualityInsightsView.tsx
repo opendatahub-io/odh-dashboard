@@ -9,22 +9,18 @@ import {
   Label,
   MenuToggle,
   MenuToggleElement,
-  Pagination,
-  PaginationVariant,
   SearchInput,
   Select,
   SelectList,
   SelectOption,
   Spinner,
   Title,
-  Toolbar,
-  ToolbarContent,
   ToolbarGroup,
   ToolbarItem,
-  ToolbarToggleGroup,
 } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
-import { Table, Tbody, Td, Th, ThProps, Thead, Tr } from '@patternfly/react-table';
+import { Td, ThProps, Tr } from '@patternfly/react-table';
+import { TableBase, type SortableData } from '@odh-dashboard/ui-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import useQualityArtifacts from '~/app/hooks/useQualityArtifacts';
@@ -35,7 +31,7 @@ import {
 import { capitalizeFirst, getCategoryColor } from '~/app/components/benchmarkUtils';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import QualityInsightsEmptyState from './QualityInsightsEmptyState';
-import { type QualityInsightsViewProps } from './qualityInsightsTypes';
+import { type QualityInsight, type QualityInsightsViewProps } from './qualityInsightsTypes';
 import {
   type QualityFilterOption,
   type QualitySortConfig,
@@ -47,6 +43,13 @@ import {
 } from './qualityInsightsConst';
 
 const QUALITY_ARTIFACTS_PAGE_SIZE = 100;
+
+const QUALITY_COLUMNS: SortableData<QualityInsight>[] = [
+  { field: 'evaluation', label: 'Evaluation', sortable: true, modifier: 'nowrap' },
+  { field: 'category', label: 'Category', sortable: true, modifier: 'nowrap' },
+  { field: 'benchmarkName', label: 'Benchmark', sortable: true },
+  { field: 'score', label: 'Evaluation score', sortable: true, modifier: 'nowrap' },
+];
 
 const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
   sourceId,
@@ -218,122 +221,53 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
       </FlexItem>
 
       <FlexItem>
-        <Toolbar clearAllFilters={handleClearFilters} data-testid="quality-insights-toolbar">
-          <ToolbarContent>
-            <ToolbarToggleGroup breakpoint="md" toggleIcon={<FilterIcon />}>
-              <ToolbarGroup variant="filter-group">
-                <ToolbarItem>
-                  <Select
-                    isOpen={isFilterSelectOpen}
-                    onSelect={handleFilterSelect}
-                    onOpenChange={setIsFilterSelectOpen}
-                    toggle={filterToggle}
-                    data-testid="quality-filter-type-select"
-                  >
-                    <SelectList>
-                      <SelectOption
-                        value="evaluation"
-                        data-testid="quality-filter-option-evaluation"
-                      >
-                        Evaluation name
-                      </SelectOption>
-                      <SelectOption value="category" data-testid="quality-filter-option-category">
-                        Category
-                      </SelectOption>
-                      <SelectOption value="benchmark" data-testid="quality-filter-option-benchmark">
-                        Benchmark
-                      </SelectOption>
-                    </SelectList>
-                  </Select>
-                </ToolbarItem>
-                <ToolbarItem>
-                  <SearchInput
-                    aria-label={QUALITY_FILTER_PLACEHOLDERS[activeFilter]}
-                    placeholder={QUALITY_FILTER_PLACEHOLDERS[activeFilter]}
-                    value={filterValue}
-                    onChange={(_event, value) => setFilterValue(value)}
-                    onClear={() => setFilterValue('')}
-                    data-testid="quality-filter-text-field"
-                  />
-                </ToolbarItem>
-              </ToolbarGroup>
-            </ToolbarToggleGroup>
-            <ToolbarItem variant="pagination" align={{ default: 'alignEnd' }}>
-              <Pagination
-                itemCount={filtered.length}
-                perPage={perPage}
-                page={page}
-                onSetPage={(_event, newPage) => {
-                  setPage(newPage);
-                  fireMiscTrackingEvent(EVAL_HUB_EVENTS.QUALITY_INSIGHTS_PAGINATION_CHANGED, {
-                    page: newPage,
-                    perPage,
-                    totalItems: filtered.length,
-                  });
-                }}
-                onPerPageSelect={(_event, newPerPage, newPage) => {
-                  setPerPage(newPerPage);
-                  setPage(newPage);
-                  fireMiscTrackingEvent(EVAL_HUB_EVENTS.QUALITY_INSIGHTS_PAGINATION_CHANGED, {
-                    page: newPage,
-                    perPage: newPerPage,
-                    totalItems: filtered.length,
-                  });
-                }}
-                perPageOptions={TABLE_PER_PAGE_OPTIONS}
-                data-testid="quality-insights-pagination-top"
-              />
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
-
-        <Table aria-label="Quality insights" data-testid="quality-insights-table">
-          <Thead>
-            <Tr>
-              <Th sort={getSortParams(0)} modifier="nowrap">
-                Evaluation
-              </Th>
-              <Th sort={getSortParams(1)} modifier="nowrap">
-                Category
-              </Th>
-              <Th sort={getSortParams(2)}>Benchmark</Th>
-              <Th sort={getSortParams(3)} modifier="nowrap">
-                Evaluation score
-              </Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {paginated.map((insight, index) => (
-              <Tr
-                key={`${insight.benchmarkName}-${insight.evaluation}-${index}`}
-                data-testid="quality-insight-row"
-              >
-                <Td dataLabel="Evaluation">{insight.evaluation}</Td>
-                <Td dataLabel="Category">
-                  {insight.category && (
-                    <Label color={getCategoryColor(insight.category)}>
-                      {capitalizeFirst(insight.category)}
-                    </Label>
-                  )}
-                </Td>
-                <Td dataLabel="Benchmark">
-                  <TableRowTitleDescription
-                    title={insight.benchmarkName}
-                    description={insight.benchmarkDescription}
-                    truncateDescriptionLines={2}
-                  />
-                </Td>
-                <Td dataLabel="Evaluation score">{insight.result}</Td>
-              </Tr>
-            ))}
-          </Tbody>
-        </Table>
-
-        <Pagination
+        <TableBase
+          aria-label="Quality insights"
+          data-testid="quality-insights-table"
+          data={paginated}
+          columns={QUALITY_COLUMNS}
+          getColumnSort={getSortParams}
+          enablePagination
           itemCount={filtered.length}
-          perPage={perPage}
           page={page}
-          variant={PaginationVariant.bottom}
+          perPage={perPage}
+          perPageOptions={TABLE_PER_PAGE_OPTIONS}
+          onClearFilters={handleClearFilters}
+          toolbarContent={
+            <ToolbarGroup variant="filter-group">
+              <ToolbarItem>
+                <Select
+                  isOpen={isFilterSelectOpen}
+                  onSelect={handleFilterSelect}
+                  onOpenChange={setIsFilterSelectOpen}
+                  toggle={filterToggle}
+                  data-testid="quality-filter-type-select"
+                >
+                  <SelectList>
+                    <SelectOption value="evaluation" data-testid="quality-filter-option-evaluation">
+                      Evaluation name
+                    </SelectOption>
+                    <SelectOption value="category" data-testid="quality-filter-option-category">
+                      Category
+                    </SelectOption>
+                    <SelectOption value="benchmark" data-testid="quality-filter-option-benchmark">
+                      Benchmark
+                    </SelectOption>
+                  </SelectList>
+                </Select>
+              </ToolbarItem>
+              <ToolbarItem>
+                <SearchInput
+                  aria-label={QUALITY_FILTER_PLACEHOLDERS[activeFilter]}
+                  placeholder={QUALITY_FILTER_PLACEHOLDERS[activeFilter]}
+                  value={filterValue}
+                  onChange={(_event, value) => setFilterValue(value)}
+                  onClear={() => setFilterValue('')}
+                  data-testid="quality-filter-text-field"
+                />
+              </ToolbarItem>
+            </ToolbarGroup>
+          }
           onSetPage={(_event, newPage) => {
             setPage(newPage);
             fireMiscTrackingEvent(EVAL_HUB_EVENTS.QUALITY_INSIGHTS_PAGINATION_CHANGED, {
@@ -351,8 +285,29 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
               totalItems: filtered.length,
             });
           }}
-          perPageOptions={TABLE_PER_PAGE_OPTIONS}
-          data-testid="quality-insights-pagination-bottom"
+          rowRenderer={(insight, index) => (
+            <Tr
+              key={`${insight.benchmarkName}-${insight.evaluation}-${index}`}
+              data-testid="quality-insight-row"
+            >
+              <Td dataLabel="Evaluation">{insight.evaluation}</Td>
+              <Td dataLabel="Category">
+                {insight.category && (
+                  <Label color={getCategoryColor(insight.category)}>
+                    {capitalizeFirst(insight.category)}
+                  </Label>
+                )}
+              </Td>
+              <Td dataLabel="Benchmark">
+                <TableRowTitleDescription
+                  title={insight.benchmarkName}
+                  description={insight.benchmarkDescription}
+                  truncateDescriptionLines={2}
+                />
+              </Td>
+              <Td dataLabel="Evaluation score">{insight.result}</Td>
+            </Tr>
+          )}
         />
       </FlexItem>
     </Flex>

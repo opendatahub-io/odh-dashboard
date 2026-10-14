@@ -54,7 +54,11 @@ export const getQualitySortableValue = (
     case 2:
       return insight.benchmarkName.toLowerCase();
     case 3:
-      return insight.score;
+      return insight.score === undefined
+        ? undefined
+        : insight.score > 1
+          ? insight.score
+          : insight.score * 100;
     default:
       return '';
   }

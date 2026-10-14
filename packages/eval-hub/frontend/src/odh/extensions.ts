@@ -76,9 +76,6 @@ const extensions: (NavExtension | RouteExtension | TaskItemExtension | DetailTab
   },
   {
     type: 'core.detail/tab',
-    flags: {
-      required: [SupportedArea.LM_EVAL],
-    },
     properties: {
       id: 'security-insights',
       title: 'Safety and security insights',
@@ -90,9 +87,6 @@ const extensions: (NavExtension | RouteExtension | TaskItemExtension | DetailTab
   } satisfies DetailTabExtension,
   {
     type: 'core.detail/tab',
-    flags: {
-      required: [SupportedArea.LM_EVAL],
-    },
     properties: {
       id: 'quality-insights',
       title: 'Quality insights',

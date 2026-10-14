@@ -123,6 +123,8 @@ const interceptShouldShowSecurityArtifacts = (hasData = true) => {
     {
       method: 'GET',
       url: new RegExp(`/eval-hub/api/${API_VERSION}/catalog/sources/.*/security_artifacts/.*`),
+      query: { pageSize: '1' },
+      times: 1,
     },
     {
       body: {
@@ -180,8 +182,8 @@ describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
   });
 
   it('should show the security insights tab when LM eval and model catalog are enabled', () => {
-    interceptShouldShowSecurityArtifacts(true);
     interceptSecurityArtifacts([]);
+    interceptShouldShowSecurityArtifacts(true);
     modelDetailsPage.visitSecurityInsights(SOURCE_ID, ENCODED_MODEL_NAME);
 
     modelDetailsPage.findSecurityInsightsTab().should('exist');
@@ -198,14 +200,15 @@ describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
     modelDetailsPage.findSecurityInsightsTab().should('not.exist');
   });
 
-  it('should hide the security insights tab when LM eval is disabled', () => {
+  it('should show the security insights tab when LM eval is disabled', () => {
     setupCommonIntercepts({ disableLMEval: true });
     interceptShouldShowSecurityArtifacts(true);
     interceptSecurityArtifacts([]);
 
-    cy.visitWithLogin(`/ai-hub/models/catalog/${SOURCE_ID}/${ENCODED_MODEL_NAME}/overview`);
-    modelDetailsPage.findPageTitle().should('exist');
-    modelDetailsPage.findSecurityInsightsTab().should('not.exist');
+    modelDetailsPage.visitSecurityInsights(SOURCE_ID, ENCODED_MODEL_NAME);
+    modelDetailsPage.findSecurityInsightsTab().should('exist');
+    modelDetailsPage.findSecurityInsightsEmptyState().should('exist');
+    cy.wait('@getSecurityArtifacts');
   });
 
   it('should render security insights table content from the eval-hub API', () => {
@@ -244,13 +247,16 @@ describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
     modelDetailsPage.findQualityInsightsTab().should('not.exist');
   });
 
-  it('should hide quality insights when LM eval is disabled', () => {
+  it('should show quality insights when LM eval is disabled', () => {
     setupCommonIntercepts({ disableLMEval: true });
+    interceptQualityArtifacts([]);
     interceptShouldShowQualityArtifacts(true);
 
-    cy.visitWithLogin(`/ai-hub/models/catalog/${SOURCE_ID}/${ENCODED_MODEL_NAME}/overview`);
-    modelDetailsPage.findPageTitle().should('exist');
-    modelDetailsPage.findQualityInsightsTab().should('not.exist');
+    modelDetailsPage.visitQualityInsights(SOURCE_ID, ENCODED_MODEL_NAME);
+    modelDetailsPage.findQualityInsightsTab().should('exist');
+    modelDetailsPage.findQualityInsightsEmptyState().should('exist');
+    cy.wait('@shouldShowQualityArtifacts');
+    cy.wait('@getQualityArtifacts');
   });
 
   it('should redirect a hidden quality deep link to the overview tab', () => {

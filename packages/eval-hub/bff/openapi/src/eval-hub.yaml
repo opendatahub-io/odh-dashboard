@@ -1599,8 +1599,9 @@ components:
             source_run_ids:
               $ref: '#/components/schemas/CatalogMetadataStringValue'
             execution_context:
+              allOf:
+                - $ref: '#/components/schemas/CatalogMetadataStringValue'
               description: JSON-encoded evaluation execution context; preserved for consumers that need run details.
-              $ref: '#/components/schemas/CatalogMetadataStringValue'
             benchmark_index:
               $ref: '#/components/schemas/CatalogMetadataDoubleValue'
             created_at:

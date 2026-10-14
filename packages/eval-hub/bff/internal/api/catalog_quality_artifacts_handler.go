@@ -50,6 +50,9 @@ func (app *App) GetCatalogModelQualityArtifactsHandler(w http.ResponseWriter, r 
 	catalogPath := fmt.Sprintf(qualityArtifactsPath, encodedSourceID, encodedModelName)
 
 	query := repositories.FilterPageValues(r.URL.Query())
+	if namespace := r.URL.Query().Get("namespace"); namespace != "" {
+		query.Set("namespace", namespace)
+	}
 	query.Set("artifactType", qualityArtifactType)
 	query.Set("filterQuery", qualityFilterQuery)
 	catalogPath = repositories.UrlWithParams(catalogPath, query)

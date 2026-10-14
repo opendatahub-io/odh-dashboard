@@ -67,6 +67,7 @@ func TestGetCatalogModelQualityArtifactsHandlerAddsEvaluationFilter(t *testing.T
 		assert.Equal(t, url.Values{
 			"artifactType":  {qualityArtifactType},
 			"filterQuery":   {qualityFilterQuery},
+			"namespace":     {"kubeflow"},
 			"pageSize":      {"1"},
 			"nextPageToken": {"token-2"},
 			"orderBy":       {"created_at"},

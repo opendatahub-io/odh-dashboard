@@ -45,21 +45,21 @@ make run LOG_LEVEL=DEBUG
 
 ## Flags / Environment Variables
 
-| Flag | Env Var | Description |
-|------|---------|-------------|
-| `-port` | `PORT` | Listen port (default 4000) |
-| `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `integrated` (default `standalone`) |
-| `-dev-mode` | `DEV_MODE` | Enables relaxed behaviors (namespaces listing, etc.) |
-| `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution |
-| `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets |
-| `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO) |
-| `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins |
-| `-auth-method` | `AUTH_METHOD` | `internal` (mock) or `user_token` |
-| `-auth-header` | `AUTH_HEADER` | Header to read bearer token from (default Authorization) |
-| `-auth-prefix` | `AUTH_PREFIX` | Expected value prefix (default Bearer) |
-| `-cert-file` | `CERT_FILE` | TLS certificate path (enables TLS when paired with key) |
-| `-key-file` | `KEY_FILE` | TLS key path |
-| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only) |
+| Flag                    | Env Var                | Description                                              |
+| ----------------------- | ---------------------- | -------------------------------------------------------- |
+| `-port`                 | `PORT`                 | Listen port (default 4000)                               |
+| `-deployment-mode`      | `DEPLOYMENT_MODE`      | `standalone` or `integrated` (default `standalone`)      |
+| `-dev-mode`             | `DEV_MODE`             | Enables relaxed behaviors (namespaces listing, etc.)     |
+| `-mock-k8s-client`      | `MOCK_K8S_CLIENT`      | Use in‑memory stub for namespace/user resolution         |
+| `-static-assets-dir`    | `STATIC_ASSETS_DIR`    | Directory to serve single‑page frontend assets           |
+| `-log-level`            | `LOG_LEVEL`            | ERROR, WARN, INFO, DEBUG (default INFO)                  |
+| `-allowed-origins`      | `ALLOWED_ORIGINS`      | Comma separated CORS origins                             |
+| `-auth-method`          | `AUTH_METHOD`          | `internal` (mock) or `user_token`                        |
+| `-auth-header`          | `AUTH_HEADER`          | Header to read bearer token from (default Authorization) |
+| `-auth-prefix`          | `AUTH_PREFIX`          | Expected value prefix (default Bearer)                   |
+| `-cert-file`            | `CERT_FILE`            | TLS certificate path (enables TLS when paired with key)  |
+| `-key-file`             | `KEY_FILE`             | TLS key path                                             |
+| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only)                      |
 
 TLS: If both `cert-file` and `key-file` are provided the server starts with HTTPS.
 
@@ -183,7 +183,7 @@ Examples:
 
 > **General Documentation**: For architecture overview, implementation patterns, and how to add inter-BFF to other modules, see [Inter-BFF Communication Guide](../../../docs/inter-bff-communication.md).
 
-The Eval-Hub BFF calls the Model-Catalog BFF (in the model-registry package) to fetch security artifacts for models.
+The Eval-Hub BFF calls the Model-Catalog BFF (in the model-registry package) to fetch security and quality artifacts for models.
 
 ### Quick Start
 
@@ -205,16 +205,16 @@ cd packages/eval-hub && MOCK_BFF_CLIENTS=true make dev-start
 
 ### Eval-Hub Inter-BFF Environment Variables
 
-| Variable | Description | Default |
-| -------- | ----------- | ------- |
-| `MOCK_BFF_CLIENTS` | Enable mock BFF clients | `false` |
-| `BFF_MODEL_CATALOG_DEV_URL` | Dev override URL (e.g., `http://localhost:4000/api/v1`) | - |
-| `BFF_MODEL_CATALOG_SERVICE_NAME` | K8s service name | `odh-dashboard` |
-| `BFF_MODEL_CATALOG_SERVICE_PORT` | Model-Catalog BFF port | `8043` |
-| `BFF_MODEL_CATALOG_TLS_ENABLED` | Enable HTTPS | `false` (local) / `true` (prod) |
-| `BFF_MODEL_CATALOG_AUTH_METHOD` | Auth method | `user_token` |
-| `BFF_MODEL_CATALOG_AUTH_TOKEN_HEADER` | Token header | `x-forwarded-access-token` |
-| `BFF_MODEL_CATALOG_AUTH_TOKEN_PREFIX` | Token prefix | `` (empty) |
+| Variable                              | Description                                             | Default                         |
+| ------------------------------------- | ------------------------------------------------------- | ------------------------------- |
+| `MOCK_BFF_CLIENTS`                    | Enable mock BFF clients                                 | `false`                         |
+| `BFF_MODEL_CATALOG_DEV_URL`           | Dev override URL (e.g., `http://localhost:4000/api/v1`) | -                               |
+| `BFF_MODEL_CATALOG_SERVICE_NAME`      | K8s service name                                        | `odh-dashboard`                 |
+| `BFF_MODEL_CATALOG_SERVICE_PORT`      | Model-Catalog BFF port                                  | `8043`                          |
+| `BFF_MODEL_CATALOG_TLS_ENABLED`       | Enable HTTPS                                            | `false` (local) / `true` (prod) |
+| `BFF_MODEL_CATALOG_AUTH_METHOD`       | Auth method                                             | `user_token`                    |
+| `BFF_MODEL_CATALOG_AUTH_TOKEN_HEADER` | Token header                                            | `x-forwarded-access-token`      |
+| `BFF_MODEL_CATALOG_AUTH_TOKEN_PREFIX` | Token prefix                                            | `` (empty)                      |
 
 ### Inter-BFF Endpoints
 
@@ -229,14 +229,24 @@ curl -s -H "kubeflow-userid: test@example.com" \
 
 > **Note:** The `namespace` parameter tells the model-catalog BFF which namespace to use for AI Hub service discovery. In mock mode this is `kubeflow`; in production it is typically `rhoai-model-registries` (wherever the ModelRegistry CR is deployed).
 
+**Fetch quality artifacts for a model:**
+
+```bash
+# Mock mode (namespace=kubeflow — used by mock K8s client)
+curl -s -H "kubeflow-userid: test@example.com" \
+  "http://localhost:4002/api/v1/catalog/sources/sample-source/quality_artifacts/granite-8b?namespace=kubeflow" \
+  | python3 -m json.tool
+```
+
 ### Implementation Files
 
-| File | Purpose |
-| ---- | ------- |
-| `internal/integrations/bffclient/` | Reusable BFF client package (client, factory, config, errors, middleware) |
-| `internal/integrations/bffclient/bffmocks/` | Mock BFF client for local development |
-| `internal/api/catalog_security_artifacts_handler.go` | Security artifacts endpoint handler |
-| `internal/models/catalog_security_artifacts.go` | DTOs for security artifact responses |
+| File                                                 | Purpose                                                                   |
+| ---------------------------------------------------- | ------------------------------------------------------------------------- |
+| `internal/integrations/bffclient/`                   | Reusable BFF client package (client, factory, config, errors, middleware) |
+| `internal/integrations/bffclient/bffmocks/`          | Mock BFF client for local development                                     |
+| `internal/api/catalog_security_artifacts_handler.go` | Security artifacts endpoint handler                                       |
+| `internal/api/catalog_quality_artifacts_handler.go`  | Quality artifacts endpoint handler                                        |
+| `internal/models/catalog_security_artifacts.go`      | DTOs for security artifact responses                                      |
 
 ### Disabling TLS verification (development only)
 
@@ -247,7 +257,7 @@ For local Kubeflow installations with self-signed certificates, you may need to 
 ```yaml
 env:
   - name: INSECURE_SKIP_VERIFY
-    value: "true"
+    value: 'true'
 ```
 
 **Local development:**

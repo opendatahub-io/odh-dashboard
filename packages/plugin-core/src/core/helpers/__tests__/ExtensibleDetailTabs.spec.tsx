@@ -430,5 +430,47 @@ describe('ExtensibleDetailTabs', () => {
       );
       await waitFor(() => expect(shouldShow).toHaveBeenCalledTimes(2));
     });
+
+    it('should not use a stale visibility result after component props change', async () => {
+      let resolveNext: ((value: boolean) => void) | undefined;
+      const shouldShow = jest.fn((props: Record<string, unknown>) => {
+        if (props.version === 'v1') {
+          return Promise.resolve(false);
+        }
+        return new Promise<boolean>((resolve) => {
+          resolveNext = resolve;
+        });
+      });
+      const onSelect = jest.fn();
+      const extensionTabs = [createMockTabExtension('insights', 'Insights', { shouldShow })];
+
+      const { rerender } = render(
+        <ExtensibleDetailTabs
+          activeKey="overview"
+          onSelect={onSelect}
+          staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+          extensionTabs={extensionTabs}
+          componentProps={{ version: 'v1' }}
+        />,
+      );
+
+      await waitFor(() => expect(screen.queryByTestId('insights-tab')).not.toBeInTheDocument());
+
+      rerender(
+        <ExtensibleDetailTabs
+          activeKey="insights"
+          onSelect={onSelect}
+          staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+          extensionTabs={extensionTabs}
+          componentProps={{ version: 'v2' }}
+        />,
+      );
+
+      expect(screen.getByTestId('insights-tab')).toBeInTheDocument();
+      expect(onSelect).not.toHaveBeenCalledWith('overview');
+
+      await act(async () => resolveNext?.(true));
+      expect(screen.getByTestId('insights-tab')).toBeInTheDocument();
+    });
   });
 });

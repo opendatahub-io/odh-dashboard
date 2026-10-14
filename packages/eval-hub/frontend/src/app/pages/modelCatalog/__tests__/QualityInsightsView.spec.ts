@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import type { QualityInsight } from '~/app/pages/modelCatalog/qualityInsightsTypes';
@@ -124,11 +124,7 @@ describe('QualityInsightsView', () => {
 
     expect(rows()[0].textContent).not.toBe(firstRowBeforeSort);
 
-    fireEvent.click(
-      within(screen.getByTestId('quality-insights-pagination-top')).getByRole('button', {
-        name: 'Go to next page',
-      }),
-    );
+    fireEvent.click(screen.getAllByRole('button', { name: 'Go to next page' })[0]);
     expect(rows()).toHaveLength(1);
     expect(rows()[0]).toHaveTextContent('Evaluation');
   });
@@ -159,5 +155,35 @@ describe('QualityInsightsView', () => {
     );
 
     expect(screen.getAllByTestId('quality-insight-row')[0]).toHaveTextContent('Lower score');
+  });
+
+  it('sorts fractional and percentage scores on the same scale', async () => {
+    mockInsightsData = [
+      {
+        evaluation: 'Fractional higher score',
+        category: 'reasoning',
+        benchmarkName: 'Benchmark A',
+        benchmarkDescription: 'Benchmark description',
+        score: 0.9,
+        result: '90.0%',
+      },
+      {
+        evaluation: 'Percentage lower score',
+        category: 'reasoning',
+        benchmarkName: 'Benchmark B',
+        benchmarkDescription: 'Benchmark description',
+        score: 62.8,
+        result: '62.8%',
+      },
+    ];
+
+    await renderView();
+    fireEvent.click(
+      screen.getByRole('columnheader', { name: 'Evaluation score' }).querySelector('button')!,
+    );
+
+    expect(screen.getAllByTestId('quality-insight-row')[0]).toHaveTextContent(
+      'Percentage lower score',
+    );
   });
 });

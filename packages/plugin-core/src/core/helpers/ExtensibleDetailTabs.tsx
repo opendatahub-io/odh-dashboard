@@ -15,6 +15,10 @@ import { isValidExtensionId, sortExtensionsByGroup } from '../../extension-point
 
 const DEFAULT_GROUP = '5_default';
 const EMPTY_COMPONENT_PROPS: Record<string, unknown> = {};
+type ShouldShowResult = {
+  visible: boolean;
+  props: Record<string, unknown>;
+};
 
 /**
  * Evaluates tab visibility predicates in an effect so async predicates never
@@ -24,15 +28,15 @@ const EMPTY_COMPONENT_PROPS: Record<string, unknown> = {};
 const useShouldShowResults = <TExtension extends Extension<string, DetailTabProperties>>(
   extensions: LoadedExtension<TExtension>[],
   componentProps: Record<string, unknown>,
-): Record<string, boolean> => {
-  const [results, setResults] = React.useState<Record<string, boolean>>({});
+): Partial<Record<string, ShouldShowResult>> => {
+  const [results, setResults] = React.useState<Partial<Record<string, ShouldShowResult>>>({});
   const cacheRef = React.useRef(
     new Map<string, { promise: Promise<boolean>; props: Record<string, unknown> }>(),
   );
 
   React.useEffect(() => {
     const controller = new AbortController();
-    const syncBatch: Record<string, boolean> = {};
+    const syncBatch: Record<string, ShouldShowResult> = {};
     const pendingUids = new Set<string>();
     const activeUids = new Set<string>();
 
@@ -57,7 +61,7 @@ const useShouldShowResults = <TExtension extends Extension<string, DetailTabProp
         }
 
         if (typeof result === 'boolean') {
-          syncBatch[ext.uid] = result;
+          syncBatch[ext.uid] = { visible: result, props: componentProps };
           cacheRef.current.delete(ext.uid);
           return;
         }
@@ -70,14 +74,22 @@ const useShouldShowResults = <TExtension extends Extension<string, DetailTabProp
       promise.then(
         (visible) => {
           if (!controller.signal.aborted) {
-            setResults((prev) =>
-              prev[ext.uid] === visible ? prev : { ...prev, [ext.uid]: visible },
-            );
+            setResults((prev) => {
+              const previous = prev[ext.uid];
+              return previous?.visible === visible && previous.props === componentProps
+                ? prev
+                : { ...prev, [ext.uid]: { visible, props: componentProps } };
+            });
           }
         },
         () => {
           if (!controller.signal.aborted) {
-            setResults((prev) => (prev[ext.uid] === false ? prev : { ...prev, [ext.uid]: false }));
+            setResults((prev) => {
+              const previous = prev[ext.uid];
+              return previous?.visible === false && previous.props === componentProps
+                ? prev
+                : { ...prev, [ext.uid]: { visible: false, props: componentProps } };
+            });
           }
         },
       );
@@ -90,19 +102,25 @@ const useShouldShowResults = <TExtension extends Extension<string, DetailTabProp
     }
 
     setResults((prev) => {
-      let next: Record<string, boolean> | undefined;
+      let next: Partial<Record<string, ShouldShowResult>> | undefined;
 
       for (const uid of Object.keys(prev)) {
-        if (!activeUids.has(uid) || pendingUids.has(uid)) {
-          next ??= { ...prev };
+        if (!activeUids.has(uid) || pendingUids.has(uid) || prev[uid]?.props !== componentProps) {
+          if (!next) {
+            next = { ...prev };
+          }
           delete next[uid];
         }
       }
 
       for (const uid of Object.keys(syncBatch)) {
-        if ((next ?? prev)[uid] !== syncBatch[uid]) {
-          next ??= { ...prev };
-          next[uid] = syncBatch[uid];
+        const previous = (next ?? prev)[uid];
+        const current = syncBatch[uid];
+        if (previous?.visible !== current.visible || previous.props !== current.props) {
+          if (!next) {
+            next = { ...prev };
+          }
+          next[uid] = current;
         }
       }
 
@@ -136,7 +154,10 @@ type ExtensibleDetailTabsProps<TExtension extends Extension<string, DetailTabPro
    * the tabs targeting the current page.
    */
   group?: string;
-  /** Extra props passed to each lazy-loaded extension component. */
+  /**
+   * Extra props passed to each lazy-loaded extension component. Memoize this object when using
+   * `shouldShow` predicates so their results can be reused across renders.
+   */
   componentProps?: Record<string, unknown>;
   /** Accessible label for the Tabs component. */
   ariaLabel?: string;
@@ -211,6 +232,7 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
     eligibleExtensions,
     componentProps ?? EMPTY_COMPONENT_PROPS,
   );
+  const effectiveComponentProps = componentProps ?? EMPTY_COMPONENT_PROPS;
 
   const filteredExtensions = React.useMemo(
     () =>
@@ -219,14 +241,15 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
           if (!ext.properties.shouldShow) {
             return true;
           }
-          if (!(ext.uid in shouldShowResults)) {
+          const result = shouldShowResults[ext.uid];
+          if (!result || result.props !== effectiveComponentProps) {
             return ext.properties.id === activeKey;
           }
-          return shouldShowResults[ext.uid];
+          return result.visible;
         }),
         DEFAULT_GROUP,
       ),
-    [eligibleExtensions, shouldShowResults, activeKey],
+    [eligibleExtensions, shouldShowResults, activeKey, effectiveComponentProps],
   );
 
   const allTabs = React.useMemo(
