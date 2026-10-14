@@ -16,6 +16,8 @@ import {
 } from '../../../../utils/oc_commands/modelServing';
 import { addUserToProject } from '../../../../utils/oc_commands/project';
 import { cleanupTestProject } from '../../../../utils/projectChecker';
+import { cleanupTemplates } from '../../../../utils/oc_commands/templates';
+import { createCustomResource } from '../../../../utils/oc_commands/customResources';
 import { loadDSPFixture } from '../../../../utils/dataLoader';
 import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
 import { retryableBefore } from '../../../../utils/retryableHooks';
@@ -39,12 +41,13 @@ let modelFormat: string;
 let servingRuntime: string;
 let servingRuntimeVersionStatus: string;
 let contributor: string;
-const awsBucket = 'BUCKET_1' as const;
-const awsAccessKeyId = AWS_BUCKETS.AWS_ACCESS_KEY_ID;
-const awsSecretAccessKey = AWS_BUCKETS.AWS_SECRET_ACCESS_KEY;
-const awsBucketName = AWS_BUCKETS.BUCKET_1.NAME;
-const awsBucketEndpoint = AWS_BUCKETS.BUCKET_1.ENDPOINT;
-const awsBucketRegion = AWS_BUCKETS.BUCKET_1.REGION;
+let isS390x: boolean;
+let awsBucket: 'BUCKET_1' | 'BUCKET_3';
+let awsAccessKeyId: string;
+let awsSecretAccessKey: string;
+let awsBucketName: string;
+let awsBucketEndpoint: string;
+let awsBucketRegion: string;
 const podName = 'pvc-loader-pod';
 const uuid = generateTestUUID();
 
@@ -64,10 +67,32 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
         servingRuntime = testData.servingRuntime;
         servingRuntimeVersionStatus = testData.servingRuntimeVersionStatus;
         contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
+        isS390x = !!testData.isS390x;
+        awsBucket = testData.awsBucket ?? 'BUCKET_1';
+        awsAccessKeyId = AWS_BUCKETS.AWS_ACCESS_KEY_ID;
+        awsSecretAccessKey = AWS_BUCKETS.AWS_SECRET_ACCESS_KEY;
+        awsBucketName = AWS_BUCKETS[awsBucket].NAME;
+        awsBucketEndpoint = AWS_BUCKETS[awsBucket].ENDPOINT;
+        awsBucketRegion = AWS_BUCKETS[awsBucket].REGION;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
         }
+
+        if (isS390x && testData.servingRuntimeName && testData.servingRuntimeYamlPath) {
+          const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE') as string;
+          const runtimeYamlPath = testData.servingRuntimeYamlPath;
+          cy.log(`Creating ServingRuntime for s390x: ${testData.servingRuntimeName}`);
+          cleanupTemplates(servingRuntime).then(() => {
+            if (!applicationNamespace) {
+              throw new Error('APPLICATIONS_NAMESPACE is not configured.');
+            }
+            createCustomResource(applicationNamespace, runtimeYamlPath).then((result) => {
+              expect(result.exitCode).to.equal(0);
+            });
+          });
+        }
+
         // Create a Project for model serving and add contributor
         provisionProjectForModelServing(projectName, awsBucket);
         addUserToProject(projectName, contributor, 'edit');
@@ -78,6 +103,10 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
     if (isBYOIDCCluster()) {
       cy.log('Skipping cleanup - tests were skipped on BYOIDC cluster');
       return;
+    }
+    if (isS390x && testData.servingRuntimeName) {
+      cy.log(`Cleaning up ServingRuntime: ${testData.servingRuntimeName}`);
+      cleanupTemplates(servingRuntime);
     }
     cleanupTestProject(projectName);
   });
@@ -138,11 +167,14 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
 
       // Create pod to mount the PVC
       cy.step('Create pod to mount the PVC');
-      createS3LoaderPod(pvcReplacements);
+      createS3LoaderPod(
+        pvcReplacements,
+        isS390x ? 'resources/yaml/pvc-loader-pod.s390x.yaml' : 'resources/yaml/pvc-loader-pod.yaml',
+      );
 
       // Verify the pod completes successfully
       cy.step('Verify the pod completes successfully');
-      waitForPodCompletion(podName, '300s', projectName, 30000);
+      waitForPodCompletion(podName, isS390x ? '420s' : '300s', projectName, 30000);
 
       // Verify the S3 copy completed successfully
       cy.step('Verify S3 copy completed');
@@ -183,8 +215,13 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
         .then((val) => {
           resourceName = val as string;
         });
-      modelServingWizard.findModelFormatSelectOption(modelFormat).click();
-      modelServingWizard.selectServingRuntimeOption(servingRuntime);
+      if (isS390x) {
+        modelServingWizard.selectServingRuntimeOption(servingRuntime);
+        modelServingWizard.findModelFormatSelectOption(modelFormat).click({ force: true });
+      } else {
+        modelServingWizard.findModelFormatSelectOption(modelFormat).click();
+        modelServingWizard.selectServingRuntimeOption(servingRuntime);
+      }
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 3: Advanced settings');

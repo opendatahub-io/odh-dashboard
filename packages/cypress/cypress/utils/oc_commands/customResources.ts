@@ -1,4 +1,5 @@
 import type { CommandLineResult } from '../../types';
+import { loadYamlFixture } from '../dataLoader';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 /**
@@ -13,7 +14,7 @@ export const createCustomResource = (
   resourceNamespace: string,
   customYamlPath: string,
 ): Cypress.Chainable<CommandLineResult> =>
-  cy.fixture(customYamlPath).then((yamlContent) => {
+  loadYamlFixture(customYamlPath).then((yamlContent) => {
     // Write the YAML content to a temporary file
     const tempFilePath = `/tmp/temp_${Date.now()}.yaml`;
     cy.writeFile(tempFilePath, yamlContent);
