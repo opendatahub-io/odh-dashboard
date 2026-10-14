@@ -116,14 +116,14 @@ func TestGetConnectionsHandlerNormalizesMissingProperties(t *testing.T) {
 
 func TestGetConnectionHandlerReturnsMockConnection(t *testing.T) {
 	app := &App{config: config.EnvConfig{MockHTTPClient: true, MockK8Client: true}, logger: slog.Default()}
-	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connections/connection-1?namespace=test-project")
+	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connections/550e8400-e29b-41d4-a716-446655440001?namespace=test-project")
 
-	app.GetConnectionHandler(response, request, httprouter.Params{{Key: "id", Value: "connection-1"}})
+	app.GetConnectionHandler(response, request, httprouter.Params{{Key: "id", Value: "550e8400-e29b-41d4-a716-446655440001"}})
 
 	require.Equal(t, http.StatusOK, response.Code)
 	var envelope ConnectionResponse
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&envelope))
-	require.Equal(t, "connection-1", envelope.Data.Metadata.ID)
+	require.Equal(t, "550e8400-e29b-41d4-a716-446655440001", envelope.Data.Metadata.ID)
 	require.Equal(t, "warehouse", envelope.Data.Resource.Name)
 	require.Equal(t, "2026-09-07T16:00:00Z", envelope.Data.Metadata.CreatedAt)
 	require.Equal(t, "2026-09-08T16:00:00Z", envelope.Data.Metadata.UpdatedAt)
@@ -242,6 +242,16 @@ func TestGetConnectionHandlerHandlesUpstreamFailures(t *testing.T) {
 			name:           "invalid response",
 			upstreamStatus: http.StatusOK,
 			upstreamBody:   `{}`,
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name:           "mismatched response ID",
+			upstreamStatus: http.StatusOK,
+			upstreamBody: `{
+				"metadata":{"id":"550e8400-e29b-41d4-a716-446655440002"},
+				"resource":{"name":"warehouse","data_connection_type_id":"550e8400-e29b-41d4-a716-446655440003","format":"tabular"},
+				"status":{"state":"ready"}
+			}`,
 			expectedStatus: http.StatusInternalServerError,
 		},
 		{
@@ -514,8 +524,8 @@ func TestConnectionEndpointAuthorization(t *testing.T) {
 		{
 			name:             "connection type",
 			method:           http.MethodGet,
-			path:             "/api/v1/connection-types/postgresql?namespace=test-project",
-			params:           httprouter.Params{{Key: "connection_type_id", Value: "postgresql"}},
+			path:             "/api/v1/connection-types/550e8400-e29b-41d4-a716-446655440003?namespace=test-project",
+			params:           httprouter.Params{{Key: "connection_type_id", Value: "550e8400-e29b-41d4-a716-446655440003"}},
 			expectedVerb:     "get",
 			expectedResource: "data-connection-types",
 			expectedStatus:   http.StatusOK,

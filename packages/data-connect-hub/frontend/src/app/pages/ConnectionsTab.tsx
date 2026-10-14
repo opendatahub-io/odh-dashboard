@@ -395,7 +395,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                   <Td dataLabel="Name">
                     <Link
                       className="pf-v6-u-font-weight-bold"
-                      to={{ pathname: connection.metadata.id, search }}
+                      to={{ pathname: encodeURIComponent(connection.metadata.id), search }}
                     >
                       {connection.resource.name}
                     </Link>

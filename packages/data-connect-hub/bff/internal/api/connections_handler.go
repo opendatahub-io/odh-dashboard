@@ -177,6 +177,10 @@ func (app *App) GetConnectionHandler(w http.ResponseWriter, r *http.Request, par
 			app.serverErrorResponse(w, r, err)
 			return
 		}
+		if connection.Metadata.ID != connectionID {
+			app.serverErrorResponse(w, r, fmt.Errorf("data connection response ID does not match the requested ID"))
+			return
+		}
 		normalizeConnectionProperties(&connection)
 	}
 
@@ -202,22 +206,22 @@ func normalizeConnectionProperties(connection *Connection) {
 
 func mockConnections(namespace string) []Connection {
 	connections := make([]Connection, 2)
-	connections[0].Metadata.ID = "connection-1"
+	connections[0].Metadata.ID = "550e8400-e29b-41d4-a716-446655440001"
 	connections[0].Metadata.TenantID = namespace
 	connections[0].Metadata.CreatedAt = "2026-09-07T16:00:00Z"
 	connections[0].Metadata.UpdatedAt = "2026-09-08T16:00:00Z"
 	connections[0].Resource.Name = "warehouse"
-	connections[0].Resource.DataConnectionTypeID = "postgresql"
+	connections[0].Resource.DataConnectionTypeID = "550e8400-e29b-41d4-a716-446655440003"
 	connections[0].Resource.Format = "tabular"
 	connections[0].Resource.Properties = map[string]string{}
 	connections[0].Status.State = "ready"
 	connections[0].Status.UpdatedAt = "2026-09-08T16:00:00Z"
-	connections[1].Metadata.ID = "connection-2"
+	connections[1].Metadata.ID = "550e8400-e29b-41d4-a716-446655440002"
 	connections[1].Metadata.TenantID = namespace
 	connections[1].Metadata.CreatedAt = "2026-09-07T16:00:00Z"
 	connections[1].Metadata.UpdatedAt = "2026-09-08T16:00:00Z"
 	connections[1].Resource.Name = "object-store"
-	connections[1].Resource.DataConnectionTypeID = "s3"
+	connections[1].Resource.DataConnectionTypeID = "550e8400-e29b-41d4-a716-446655440004"
 	connections[1].Resource.Format = "binary"
 	connections[1].Resource.Properties = map[string]string{}
 	connections[1].Status.State = "not_ready"

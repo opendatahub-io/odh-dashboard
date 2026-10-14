@@ -2,7 +2,7 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import ConnectionsTab, { synchronizeTypeSelection } from '~/app/pages/ConnectionsTab';
 import { useConnections } from '~/app/hooks/useConnections';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
@@ -147,6 +147,27 @@ describe('ConnectionsTab', () => {
     expect(screen.getByText('warehouse')).toBeTruthy();
     expect(screen.getByText('PostgreSQL')).toBeTruthy();
     expect(screen.getByText('Unverified')).toBeTruthy();
+  });
+
+  it('encodes reserved characters in connection detail links', () => {
+    mockUseConnections.mockReturnValue([
+      [{ ...connections[0], metadata: { ...connections[0].metadata, id: 'connection?1#2' } }],
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/connections?project=test-project']}>
+        <Routes>
+          <Route path="/connections" element={<ConnectionsTab namespace="test-project" />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('link', { name: 'warehouse' }).getAttribute('href')).toBe(
+      '/connections/connection%3F1%232?project=test-project',
+    );
   });
 
   it('opens the create connection wizard from the toolbar', async () => {

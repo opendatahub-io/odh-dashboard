@@ -154,7 +154,7 @@ describe('ConnectionDetails', () => {
     expect(screen.getByRole('button', { name: 'Verify connection' })).toBeTruthy();
   });
 
-  it('renders the status when the last-tested timestamp is absent', () => {
+  it('renders unverified when the last-tested timestamp is absent', () => {
     mockUseConnection.mockReturnValue([
       { ...connection, status: { state: 'ready' } },
       true,
@@ -164,7 +164,7 @@ describe('ConnectionDetails', () => {
 
     renderDetails();
 
-    expect(screen.getByTestId('connection-status-label').textContent).toBe('Verified');
+    expect(screen.getByTestId('connection-status-label').textContent).toBe('Unverified');
     expect(screen.getByTestId('connection-last-tested').textContent).toBe('-');
   });
 

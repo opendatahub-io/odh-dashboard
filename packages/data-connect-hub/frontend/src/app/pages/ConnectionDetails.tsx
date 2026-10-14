@@ -239,7 +239,7 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
                         >
                           Verifying
                         </Label>
-                      ) : connection ? (
+                      ) : connection && hasValidTimestamp ? (
                         <Label variant="outline" status={statusVariant[connection.status.state]}>
                           {connection.status.state === 'ready' ? 'Verified' : 'Verification failed'}
                         </Label>

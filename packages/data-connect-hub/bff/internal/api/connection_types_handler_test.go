@@ -39,14 +39,14 @@ func TestGetConnectionTypesHandlerReturnsMockTypes(t *testing.T) {
 
 func TestGetConnectionTypeHandlerReturnsMockType(t *testing.T) {
 	app := connectionTypeTestApp(config.EnvConfig{MockHTTPClient: true, MockK8Client: true})
-	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connection-types/postgresql?namespace=test-project")
+	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connection-types/550e8400-e29b-41d4-a716-446655440003?namespace=test-project")
 
-	app.GetConnectionTypeHandler(response, request, httprouter.Params{{Key: "connection_type_id", Value: "postgresql"}})
+	app.GetConnectionTypeHandler(response, request, httprouter.Params{{Key: "connection_type_id", Value: "550e8400-e29b-41d4-a716-446655440003"}})
 
 	require.Equal(t, http.StatusOK, response.Code)
 	var envelope ConnectionTypeEnvelope
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&envelope))
-	require.Equal(t, "postgresql", envelope.Data.Metadata.ID)
+	require.Equal(t, "550e8400-e29b-41d4-a716-446655440003", envelope.Data.Metadata.ID)
 	require.Equal(t, "test-project", envelope.Data.Metadata.TenantID)
 	require.Equal(t, "PostgreSQL", envelope.Data.Resource.Name)
 }

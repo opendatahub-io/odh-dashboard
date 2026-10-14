@@ -290,6 +290,7 @@ components:
           type: string
         data_connection_type_id:
           type: string
+          pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
         format:
           type: string
           enum: [tabular, binary]
@@ -317,6 +318,7 @@ components:
       properties:
         data_connection_type_id:
           type: string
+          pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
         credentials:
           type: object
           additionalProperties:
@@ -348,7 +350,7 @@ components:
             id:
               type: string
               minLength: 1
-              pattern: '^[^/]+$'
+              pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
             tenant_id:
               type: string
             created_at:
@@ -367,7 +369,8 @@ components:
               example: warehouse
             data_connection_type_id:
               type: string
-              example: postgresql
+              example: 550e8400-e29b-41d4-a716-446655440003
+              pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
             format:
               type: string
               enum: [tabular, binary]
@@ -437,6 +440,7 @@ components:
           properties:
             id:
               type: string
+              pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
             tenant_id:
               type: string
             created_at:
@@ -832,8 +836,7 @@ components:
       description: The ID of resource.
       schema:
         type: string
-        minLength: 1
-        pattern: '^[^/]+$'
+        pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
       in: path
       required: true
     name:
