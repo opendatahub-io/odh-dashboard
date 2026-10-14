@@ -69,11 +69,14 @@ func newMilvusFromSecretWithTimeoutPolicy(
 	newClient func(context.Context, milvusclient.Config) (milvusClient, error),
 ) (VectorDB, error) {
 	uri := strings.TrimSpace(string(data["MILVUS_URI"]))
-	token := strings.TrimSpace(string(data["MILVUS_TOKEN"]))
+	token := string(data["MILVUS_TOKEN"])
 	certPEM := data["MILVUS_CA_CERT"]
 
 	if uri == "" {
 		return nil, fmt.Errorf("milvus secret missing MILVUS_URI")
+	}
+	if token != "" && strings.TrimSpace(token) == "" {
+		return nil, fmt.Errorf("milvus secret MILVUS_TOKEN cannot be blank")
 	}
 
 	var username, password string

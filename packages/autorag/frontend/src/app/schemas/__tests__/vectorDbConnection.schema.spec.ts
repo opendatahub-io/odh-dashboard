@@ -87,12 +87,19 @@ describe('vector database connection schemas', () => {
       }),
     ).toMatchObject({ success: true, data: { NEO4J_PASSWORD: ' password ' } });
 
-    expect(
-      parseVectorDbConnection('milvus', {
-        MILVUS_URI: 'https://milvus.example.com',
-        MILVUS_TOKEN: '   ',
-      }).success,
-    ).toBe(false);
+    const blankMilvusToken = parseVectorDbConnection('milvus', {
+      MILVUS_URI: 'https://milvus.example.com',
+      MILVUS_TOKEN: '   ',
+    });
+    expect(blankMilvusToken.success).toBe(false);
+    if (!blankMilvusToken.success) {
+      expect(blankMilvusToken.error.issues).toContainEqual(
+        expect.objectContaining({
+          path: ['MILVUS_TOKEN'],
+          message: 'Token cannot be blank when provided',
+        }),
+      );
+    }
     expect(
       parseVectorDbConnection('pgvector', { ...validFields.pgvector, PGVECTOR_PASSWORD: '   ' })
         .success,
@@ -143,15 +150,17 @@ describe('vector database connection schemas', () => {
     ).toBe(false);
   });
 
-  it.each(['postgres.example.com', 'postgres', 'postgres.namespace.svc.cluster.local'])(
-    'should accept PGVector DNS hostname %s',
-    (host) => {
-      expect(
-        parseVectorDbConnection('pgvector', { ...validFields.pgvector, PGVECTOR_HOST: host })
-          .success,
-      ).toBe(true);
-    },
-  );
+  it.each([
+    'postgres.example.com',
+    'postgres.example.com.',
+    'postgres',
+    'postgres.namespace.svc.cluster.local',
+    'postgres.namespace.svc.cluster.local.',
+  ])('should accept PGVector DNS hostname %s', (host) => {
+    expect(
+      parseVectorDbConnection('pgvector', { ...validFields.pgvector, PGVECTOR_HOST: host }).success,
+    ).toBe(true);
+  });
 
   it('should accept the maximum-length PGVector DNS hostname', () => {
     expect(
@@ -168,6 +177,7 @@ describe('vector database connection schemas', () => {
     '2130706433',
     '0x7f000001',
     '127.1',
+    '127.0.0.1.',
     '0x7f.0.0.1',
     'localhost',
     'postgres.example.com:5432',

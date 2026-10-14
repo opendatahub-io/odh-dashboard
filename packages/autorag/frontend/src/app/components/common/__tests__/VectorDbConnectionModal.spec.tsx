@@ -372,9 +372,12 @@ describe('VectorDbConnectionModal', () => {
 
   it.each([
     ['postgres.example.com', true],
+    ['postgres.example.com.', true],
     ['postgres', true],
     ['postgres.namespace.svc.cluster.local', true],
+    ['postgres.namespace.svc.cluster.local.', true],
     ['127.0.0.1', false],
+    ['127.0.0.1.', false],
     ['2001:db8::1', false],
     ['2130706433', false],
     ['0x7f000001', false],

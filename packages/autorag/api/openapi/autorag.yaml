@@ -1143,7 +1143,7 @@ components:
                     One of the supported provider key sets with every required value non-empty after trimming whitespace: Milvus requires MILVUS_URI;
                     PGVector requires PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER,
                     and PGVECTOR_PASSWORD. MILVUS_SERVER_CERT excludes a Secret from Milvus
-                     classification but does not exclude a complete PGVector Secret.
+                    classification but does not exclude a complete PGVector Secret.
                   example: ['MILVUS_URI']
                 commonOptionalKeys:
                   description: >-

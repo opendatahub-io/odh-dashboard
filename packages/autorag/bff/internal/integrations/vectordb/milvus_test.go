@@ -179,6 +179,7 @@ func TestNewMilvusFromSecret_ParsesTokenForms(t *testing.T) {
 	}{
 		{name: "colon credentials", token: "user:password", username: "user", password: "password"},
 		{name: "API key", token: "api-key", apiKey: "api-key"},
+		{name: "API key preserves whitespace", token: " api-key ", apiKey: " api-key "},
 		{name: "empty token"},
 	}
 	for _, tt := range tests {
@@ -198,6 +199,16 @@ func TestNewMilvusFromSecret_ParsesTokenForms(t *testing.T) {
 			assert.Equal(t, tt.apiKey, got.APIKey)
 		})
 	}
+}
+
+func TestNewMilvusFromSecret_RejectsWhitespaceOnlyToken(t *testing.T) {
+	_, err := newMilvusFromSecret(context.Background(), map[string][]byte{
+		"MILVUS_URI":   []byte("http://localhost:4321"),
+		"MILVUS_TOKEN": []byte(" \t "),
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "MILVUS_TOKEN cannot be blank")
+	assert.NotContains(t, err.Error(), "\\t")
 }
 
 func TestMilvusTLSConfigUsesCustomCAPoolAndTLS12Minimum(t *testing.T) {

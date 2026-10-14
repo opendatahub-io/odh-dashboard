@@ -23,9 +23,10 @@ func TestNewFromSecretData_DispatchesToMilvus(t *testing.T) {
 
 func TestNewFromSecretData_DispatchesToPgvector(t *testing.T) {
 	_, err := NewFromSecretData(context.Background(), map[string][]byte{
-		"PGVECTOR_HOST": []byte("127.0.0.1"),
-		"PGVECTOR_DB":   []byte("db"),
-		"PGVECTOR_USER": []byte("user"),
+		"PGVECTOR_HOST":     []byte("127.0.0.1"),
+		"PGVECTOR_DB":       []byte("db"),
+		"PGVECTOR_USER":     []byte("user"),
+		"PGVECTOR_PASSWORD": []byte("password"),
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "literal IP")

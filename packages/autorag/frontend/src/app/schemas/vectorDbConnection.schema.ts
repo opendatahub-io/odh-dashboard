@@ -12,7 +12,7 @@ const optionalCredential = z.preprocess(
   (value: unknown) => (value === undefined || value === '' ? undefined : value),
   z
     .string()
-    .refine((value) => value.trim() !== '', 'This field is required')
+    .refine((value) => value.trim() !== '', 'Token cannot be blank when provided')
     .optional(),
 );
 const requiredPort = z.preprocess(
@@ -42,16 +42,17 @@ const isIpv4Address = (value: string): boolean => {
   );
 };
 
-const pgVectorHost = requiredText.refine(
-  (value) =>
-    value.length <= 253 &&
-    value.toLowerCase() !== 'localhost' &&
-    !isIpv4Address(value) &&
-    value
+const pgVectorHost = requiredText.refine((value) => {
+  const normalizedHost = value.endsWith('.') ? value.slice(0, -1) : value;
+  return (
+    normalizedHost.length <= 253 &&
+    normalizedHost.toLowerCase() !== 'localhost' &&
+    !isIpv4Address(normalizedHost) &&
+    normalizedHost
       .split('.')
-      .every((label) => /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/.test(label)),
-  'Enter a valid DNS hostname. Literal IP addresses are not supported.',
-);
+      .every((label) => /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/.test(label))
+  );
+}, 'Enter a valid DNS hostname. Literal IP addresses are not supported.');
 
 const uriWithProtocols = (protocols: string[], message: string) =>
   requiredText.refine((value) => {
