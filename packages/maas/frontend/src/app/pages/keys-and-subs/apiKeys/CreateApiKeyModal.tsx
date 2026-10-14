@@ -46,6 +46,7 @@ import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import {
   EXPIRATION_MODE_VALUES,
   formatApiKeyError,
@@ -423,7 +424,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
       const formatted = formatApiKeyError(msg);
       fireFormTrackingEvent(
         MaaSEvents.API_KEY_CREATED,
-        getCreateTrackingProps(TrackingOutcome.submit, false, formatted),
+        getCreateTrackingProps(TrackingOutcome.submit, false, errorCategory(err)),
       );
       setError(new Error(formatted));
     } finally {
