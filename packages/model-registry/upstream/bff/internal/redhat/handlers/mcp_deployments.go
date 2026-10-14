@@ -153,6 +153,7 @@ func overrideMcpDeploymentCreate(app *api.App, buildDefault func() httprouter.Ha
 	}
 
 	repo := newMcpDeploymentRepository(app)
+	gatewayReader := newMcpLifecycleOperatorReader(app)
 
 	return app.AttachNamespace(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		namespace, ok := namespaceFromContext(app, w, r)
@@ -173,6 +174,21 @@ func overrideMcpDeploymentCreate(app *api.App, buildDefault func() httprouter.Ha
 		if err := app.ReadJSON(w, r, &envelope); err != nil {
 			app.BadRequest(w, r, err)
 			return
+		}
+
+		// Enforce the MCP gateway prerequisite here as well as on the Deploy buttons, so no
+		// deploy entry point (catalog, MCP registry, or a direct API call) can skip it.
+		if mcpImageRequiresGateway(envelope.Data.Image) { //nolint:staticcheck // Deprecated helper is used until catalog metadata exists.
+			// The gateway status is read with the BFF service account, so confirm the caller
+			// may create here before revealing it, for every auth method.
+			if !requireMcpServersAccess(app, w, r, namespace, "create") {
+				return
+			}
+			readiness := evaluateMcpGatewayReadiness(r.Context(), app, gatewayReader, "namespace", namespace, "image", envelope.Data.Image)
+			if !readiness.Deployable {
+				app.Conflict(w, r, "This MCP server requires an MCP gateway. "+readiness.Message)
+				return
+			}
 		}
 
 		result, err := repo.Create(r.Context(), client, namespace, envelope.Data)

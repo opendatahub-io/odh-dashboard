@@ -1127,6 +1127,47 @@ paths:
         deployed now. Gateway checks fail closed: when availability cannot be determined,
         the response is `deployable: false` with a reason.
 
+  /api/v1/mcp_deploy_readiness:
+    description: >-
+      The REST endpoint/path used to check whether an MCP server image can be deployed to a
+      namespace, for deploy entry points without a catalog server ID such as an MCP registry
+      (downstream-only).
+    get:
+      summary: Check deploy prerequisites for an MCP server image
+      tags:
+        - MCPCatalogService
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/namespace"
+        - name: image
+          in: query
+          required: true
+          description: Container image to deploy.
+          schema:
+            type: string
+      responses:
+        "200":
+          $ref: "#/components/responses/McpServerDeployReadinessResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: The caller cannot create MCP servers in the namespace.
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getMcpDeployReadiness
+      description: >-
+        Reports whether deploying the image requires an MCP gateway and whether it can be
+        deployed now. Only the image decides; MCP registry names are not used. The caller must
+        be allowed to create `mcpservers` in the namespace.
+        Gateway checks fail closed: when availability cannot be determined, the response is
+        `deployable: false` with a reason.
+
   # Agent catalog endpoints
   /api/v1/agent_catalog/agents:
     summary: Path used to get the list of agents.
