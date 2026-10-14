@@ -324,7 +324,7 @@ describe('buildResponsesTemplate', () => {
 
     expect(buildResponsesTemplate(pattern, 'run-123').tools[0].ranking_options).toEqual({
       ranker: 'rrf',
-      alpha: 0.5,
+      ranker_k: 60,
     });
   });
 
@@ -336,14 +336,35 @@ describe('buildResponsesTemplate', () => {
         retrieval: {
           ...mockPatterns['pattern-1'].settings.retrieval,
           search_mode: 'hybrid',
+          ranker_strategy: 'weighted',
           ranker_alpha: 0,
         },
       },
     } as AutoragPattern;
 
     expect(buildResponsesTemplate(pattern, 'run-123').tools[0].ranking_options).toEqual({
-      ranker: 'rrf',
+      ranker: 'weighted',
       alpha: 0,
+    });
+  });
+
+  it('should keep pgvector RRF alpha when building a hybrid template', () => {
+    const pattern = {
+      ...mockPatterns['pattern-1'],
+      settings: {
+        ...mockPatterns['pattern-1'].settings,
+        store_binding: { provider_type: 'pgvector' as const, collection_name: 'chunks' },
+        retrieval: {
+          ...mockPatterns['pattern-1'].settings.retrieval,
+          search_mode: 'hybrid',
+          ranker_alpha: 0.3,
+        },
+      },
+    } as AutoragPattern;
+
+    expect(buildResponsesTemplate(pattern, 'run-123').tools[0].ranking_options).toEqual({
+      ranker: 'rrf',
+      alpha: 0.3,
     });
   });
 });
@@ -359,7 +380,7 @@ describe('normalizeResponsesTemplate', () => {
           ranking_options: {
             ranker: 'legacy-ranker',
             alpha: 0.25,
-            impact_factor: 0.75,
+            impact_factor: 42,
           },
         },
       ],
@@ -370,9 +391,22 @@ describe('normalizeResponsesTemplate', () => {
       tools: [
         {
           ...template.tools[0],
-          ranking_options: { ranker: 'rrf', alpha: 0.25 },
+          ranking_options: { ranker: 'rrf', ranker_k: 42 },
         },
       ],
+    });
+  });
+
+  it('should retain pgvector RRF alpha when normalizing a persisted template', () => {
+    const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+    const withRanking = {
+      ...template,
+      tools: [{ ...template.tools[0], ranking_options: { ranker: 'rrf' as const, alpha: 0.2 } }],
+    };
+
+    expect(normalizeResponsesTemplate(withRanking, 'pgvector').tools[0].ranking_options).toEqual({
+      ranker: 'rrf',
+      alpha: 0.2,
     });
   });
 });
@@ -611,7 +645,7 @@ describe('AutoragResultsPage', () => {
         tools: [
           {
             ...legacyTemplate.tools[0],
-            ranking_options: { ranker: 'rrf', alpha: 0.5 },
+            ranking_options: { ranker: 'weighted', alpha: 0.5 },
           },
         ],
       });

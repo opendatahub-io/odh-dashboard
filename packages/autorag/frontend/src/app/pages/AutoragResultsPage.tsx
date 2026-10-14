@@ -68,6 +68,7 @@ import {
   canUseResponsesForPattern,
   getPatternCollectionName,
   getPatternEmbeddingModel,
+  getPatternStoreProvider,
 } from '~/app/utilities/responses';
 
 type DrawerContentType =
@@ -96,9 +97,17 @@ export const buildResponsesTemplate = (
   const collectionName = getPatternCollectionName(pattern);
   const embeddingModel = getPatternEmbeddingModel(pattern);
   const isHybrid = retrieval.search_mode === 'hybrid';
+  const provider = getPatternStoreProvider(pattern);
+  /* eslint-disable camelcase */
+  const rankingOptions = isHybrid
+    ? provider === 'pgvector'
+      ? { ranker: 'rrf' as const, alpha: retrieval.ranker_alpha ?? 0.5 }
+      : retrieval.ranker_strategy === 'weighted'
+        ? { ranker: 'weighted' as const, alpha: retrieval.ranker_alpha ?? 0.5 }
+        : { ranker: 'rrf' as const, ranker_k: retrieval.ranker_k ?? 60 }
+    : undefined;
 
   return {
-    /* eslint-disable camelcase */
     model: generation.model_id,
     stream: true,
     store: false,
@@ -120,14 +129,7 @@ export const buildResponsesTemplate = (
         type: 'file_search',
         vector_store_ids: collectionName ? [collectionName] : [],
         max_num_results: retrieval.number_of_chunks,
-        ...(isHybrid
-          ? {
-              ranking_options: {
-                ranker: 'rrf',
-                alpha: retrieval.ranker_alpha ?? 0.5,
-              },
-            }
-          : {}),
+        ...(rankingOptions ? { ranking_options: rankingOptions } : {}),
       },
     ],
     tool_choice: { type: 'file_search' },
@@ -139,6 +141,7 @@ export const buildResponsesTemplate = (
 /* eslint-disable camelcase */
 export const normalizeResponsesTemplate = (
   template: AutoRAGResponsesTemplate,
+  provider?: 'milvus' | 'pgvector' | 'neo4j',
 ): AutoRAGResponsesTemplate => {
   const { autorag_run_id: runId, ...metadata } = template.metadata;
   return {
@@ -151,12 +154,39 @@ export const normalizeResponsesTemplate = (
       if (!tool.ranking_options) {
         return tool;
       }
+      const ranking = tool.ranking_options;
+      const weighted =
+        provider !== 'pgvector' &&
+        (ranking.ranker === 'weighted' || ranking.ranker_strategy === 'weighted');
+      const rankerK =
+        typeof ranking.ranker_k === 'number' &&
+        Number.isFinite(ranking.ranker_k) &&
+        ranking.ranker_k > 0
+          ? ranking.ranker_k
+          : typeof ranking.impact_factor === 'number' &&
+              Number.isFinite(ranking.impact_factor) &&
+              ranking.impact_factor > 0
+            ? ranking.impact_factor
+            : 60;
       return {
         ...tool,
-        ranking_options: {
-          ranker: 'rrf',
-          alpha: Number.isFinite(tool.ranking_options.alpha) ? tool.ranking_options.alpha : 0.5,
-        },
+        ranking_options: weighted
+          ? {
+              ranker: 'weighted',
+              alpha:
+                typeof ranking.alpha === 'number' && Number.isFinite(ranking.alpha)
+                  ? ranking.alpha
+                  : 0.5,
+            }
+          : provider === 'pgvector'
+            ? {
+                ranker: 'rrf',
+                alpha:
+                  typeof ranking.alpha === 'number' && Number.isFinite(ranking.alpha)
+                    ? ranking.alpha
+                    : 0.5,
+              }
+            : { ranker: 'rrf', ranker_k: rankerK },
       };
     }),
   };
@@ -564,9 +594,9 @@ function AutoragResultsPage(): React.JSX.Element {
         // carry the explicit unavailable marker rather than a half-valid
         // template.
         responsesTemplate = isUsableResponsesTemplate(candidate)
-          ? normalizeResponsesTemplate(candidate)
+          ? normalizeResponsesTemplate(candidate, getPatternStoreProvider(pattern))
           : isUsableResponsesTemplate(fallback)
-            ? normalizeResponsesTemplate(fallback)
+            ? normalizeResponsesTemplate(fallback, getPatternStoreProvider(pattern))
             : unavailableResponsesTemplate(patternName);
       } catch {
         responsesTemplate = unavailableResponsesTemplate(patternName);
@@ -642,7 +672,7 @@ function AutoragResultsPage(): React.JSX.Element {
         if (!usable) {
           return;
         }
-        responsesTemplate = normalizeResponsesTemplate(usable);
+        responsesTemplate = normalizeResponsesTemplate(usable, getPatternStoreProvider(pattern));
       } catch {
         return;
       }

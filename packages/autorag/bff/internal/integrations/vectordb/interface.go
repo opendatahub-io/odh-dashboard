@@ -28,16 +28,31 @@ func validateResultTextSize(totalBytes int, text string) (int, error) {
 	return totalBytes + len(text), nil
 }
 
+// SearchOptions describes the retrieval strategy requested by file_search.
+type SearchOptions struct {
+	TopK           int
+	Ranker         string // empty means dense search
+	Alpha          float32
+	AlphaSpecified bool
+	RankerK        float64
+}
+
 // ValidateSearchOptions rejects combinations that the selected backend cannot support.
-func ValidateSearchOptions(data map[string][]byte, hybrid bool) error {
-	if _, milvus := data["MILVUS_URI"]; !milvus {
-		if _, pgvector := data["PGVECTOR_HOST"]; !pgvector {
-			return fmt.Errorf("%w", ErrUnsupportedVectorDB)
-		}
+func ValidateSearchOptions(data map[string][]byte, options SearchOptions) error {
+	_, milvus := data["MILVUS_URI"]
+	_, pgvector := data["PGVECTOR_HOST"]
+	if !milvus && !pgvector {
+		return fmt.Errorf("%w", ErrUnsupportedVectorDB)
 	}
-	if hybrid {
-		if _, ok := data["MILVUS_URI"]; ok {
-			return fmt.Errorf("%w: Milvus hybrid search is not supported", ErrUnsupportedSearch)
+	if !milvus && options.Ranker == "weighted" {
+		return fmt.Errorf("%w: pgvector weighted hybrid search is not supported", ErrUnsupportedSearch)
+	}
+	if options.Ranker == "rrf" {
+		if milvus && options.AlphaSpecified {
+			return fmt.Errorf("%w: Milvus RRF does not use alpha; omit alpha or select weighted ranking", ErrUnsupportedSearch)
+		}
+		if !milvus && options.RankerK != 60 {
+			return fmt.Errorf("%w: pgvector RRF uses a fixed ranker_k of 60", ErrUnsupportedSearch)
 		}
 	}
 	return nil
@@ -53,9 +68,7 @@ type SearchResult struct {
 // VectorDB is an abstraction over Milvus and pgvector backends.
 type VectorDB interface {
 	// Search performs vector search against collection.
-	// When hybrid is true, pgvector combines vector + full-text results with RRF.
-	// Milvus rejects hybrid requests because sparse hybrid retrieval is not implemented.
-	// alpha weights the dense component (0 = sparse only, 1 = dense only); ignored when hybrid is false.
-	Search(ctx context.Context, collection string, queryVec []float32, query string, topK int, alpha float32, hybrid bool) ([]SearchResult, error)
+	// A nonempty ranker combines dense and sparse results.
+	Search(ctx context.Context, collection string, queryVec []float32, query string, options SearchOptions) ([]SearchResult, error)
 	Close() error
 }

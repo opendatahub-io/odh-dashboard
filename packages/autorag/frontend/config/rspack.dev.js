@@ -104,6 +104,12 @@ module.exports = merge(
       open: false,
       proxy: [
         {
+          context: ['/_mf/genAi'],
+          target: `http://localhost:${process.env.GEN_AI_REMOTE_PORT || 9102}`,
+          pathRewrite: { '^/_mf/genAi': '' },
+          changeOrigin: true,
+        },
+        {
           context: ['/api', '/autorag/api', '/gen-ai/api'],
           target: {
             host: PROXY_HOST,

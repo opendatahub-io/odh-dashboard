@@ -177,7 +177,7 @@ func (m *mockURLForwarder) ForwardURL(ctx context.Context, _ string, rawURL stri
 
 type mockVectorDB struct{}
 
-func (m *mockVectorDB) Search(context.Context, string, []float32, string, int, float32, bool) ([]vectordb.SearchResult, error) {
+func (m *mockVectorDB) Search(context.Context, string, []float32, string, vectordb.SearchOptions) ([]vectordb.SearchResult, error) {
 	return nil, nil
 }
 
@@ -1083,6 +1083,27 @@ func TestParseFileSearchTool_PreservesZeroAlpha(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, hybrid)
 	assert.Zero(t, alpha)
+}
+
+func TestParseVectorSearchPreservesMilvusRanking(t *testing.T) {
+	collection, options, err := parseVectorSearch(fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"vs_abc_123"},
+		RankingOptions: models.RankingOptions{Ranker: "rrf", RankerK: floatPtr(42)},
+	}))
+	require.NoError(t, err)
+	assert.Equal(t, "vs_abc_123", collection)
+	assert.Equal(t, vectordb.SearchOptions{TopK: 5, Alpha: 0.5, Ranker: "rrf", RankerK: 42}, options)
+
+	_, options, err = parseVectorSearch(fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"vs_abc_123"},
+		RankingOptions: models.RankingOptions{Ranker: "weighted", Alpha: floatPtr(0)},
+	}))
+	require.NoError(t, err)
+	assert.Equal(t, "weighted", options.Ranker)
+	assert.True(t, options.AlphaSpecified)
+	assert.Zero(t, options.Alpha)
 }
 
 func TestParseFileSearchTool_RejectsUnsupportedRanker(t *testing.T) {

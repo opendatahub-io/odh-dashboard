@@ -219,7 +219,7 @@ func TestHandleResponsesEndpoint_NonStreaming(t *testing.T) {
 		},
 		{
 			name:           "unsupported ranking field returns 400",
-			body:           strings.Replace(validResponsesBody, `"vector_store_ids":["col1"]}]`, `"vector_store_ids":["col1"],"ranking_options":{"ranker":"rrf","ranker_k":60}}]`, 1),
+			body:           strings.Replace(validResponsesBody, `"vector_store_ids":["col1"]}]`, `"vector_store_ids":["col1"],"ranking_options":{"ranker":"rrf","ranker_strategy":"rrf"}}]`, 1),
 			wantStatusCode: http.StatusBadRequest,
 			wantBodySubstr: "invalid request body",
 		},

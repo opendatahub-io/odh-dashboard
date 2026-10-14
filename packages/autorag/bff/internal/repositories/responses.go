@@ -222,16 +222,14 @@ func (r *ResponsesRepository) ragSearch(
 	maasClient *maas.Client,
 	db vectordb.VectorDB,
 	embeddingModel, query, collection string,
-	topK int,
-	alpha float32,
-	hybrid bool,
+	options vectordb.SearchOptions,
 ) ([]models.SourceChunk, error) {
 	vec, err := maasClient.Embed(ctx, embeddingModel, query)
 	if err != nil {
 		return nil, fmt.Errorf("embedding failed: %w", err)
 	}
 
-	results, err := db.Search(ctx, sanitizeCollection(collection), vec, query, topK, alpha, hybrid)
+	results, err := db.Search(ctx, sanitizeCollection(collection), vec, query, options)
 	if err != nil {
 		return nil, fmt.Errorf("vector search failed: %w", err)
 	}
@@ -477,8 +475,8 @@ func parseFileSearchTool(req *models.ResponsesRequest) (collection string, topK 
 			topK = tool.MaxNumResults
 		}
 		if tool.RankingOptions.Ranker != "" {
-			if tool.RankingOptions.Ranker != "rrf" {
-				return "", 0, 0, false, fmt.Errorf("ranking_options.ranker %q is unsupported; only rrf is supported for hybrid search", tool.RankingOptions.Ranker)
+			if tool.RankingOptions.Ranker != "rrf" && tool.RankingOptions.Ranker != "weighted" {
+				return "", 0, 0, false, fmt.Errorf("ranking_options.ranker %q is unsupported; only rrf and weighted are supported for hybrid search", tool.RankingOptions.Ranker)
 			}
 			hybrid = true
 			if tool.RankingOptions.Alpha != nil {
@@ -490,11 +488,40 @@ func parseFileSearchTool(req *models.ResponsesRequest) (collection string, topK 
 		} else if tool.RankingOptions.Alpha != nil {
 			return "", 0, 0, false, fmt.Errorf("ranking_options.alpha requires ranking_options.ranker")
 		}
+		if tool.RankingOptions.RankerK != nil {
+			if tool.RankingOptions.Ranker != "rrf" {
+				return "", 0, 0, false, fmt.Errorf("ranking_options.ranker_k requires rrf ranking")
+			}
+			if math.IsNaN(*tool.RankingOptions.RankerK) || math.IsInf(*tool.RankingOptions.RankerK, 0) || *tool.RankingOptions.RankerK <= 0 {
+				return "", 0, 0, false, fmt.Errorf("ranking_options.ranker_k must be positive")
+			}
+		}
 	}
 	if collection == "" {
 		return "", 0, 0, false, fmt.Errorf("no file_search tool with vector_store_ids found in request")
 	}
 	return sanitizeCollection(collection), topK, alpha, hybrid, nil
+}
+
+func parseVectorSearch(req *models.ResponsesRequest) (string, vectordb.SearchOptions, error) {
+	collection, topK, alpha, hybrid, err := parseFileSearchTool(req)
+	if err != nil {
+		return "", vectordb.SearchOptions{}, err
+	}
+	options := vectordb.SearchOptions{TopK: topK, Alpha: alpha, RankerK: 60}
+	if hybrid {
+		for _, tool := range req.Tools {
+			if tool.Type == "file_search" {
+				options.Ranker = tool.RankingOptions.Ranker
+				options.AlphaSpecified = tool.RankingOptions.Alpha != nil
+				if tool.RankingOptions.RankerK != nil {
+					options.RankerK = *tool.RankingOptions.RankerK
+				}
+				break
+			}
+		}
+	}
+	return collection, options, nil
 }
 
 // ValidateResponsesRequest contains only caller-controlled validation. It is
@@ -527,7 +554,7 @@ func (r *ResponsesRepository) prepareRAGContext(ctx context.Context, params Resp
 		return nil, fmt.Errorf("metadata.embedding_model is required")
 	}
 
-	collection, topK, alpha, hybrid, err := parseFileSearchTool(req)
+	collection, searchOptions, err := parseVectorSearch(req)
 	if err != nil {
 		return nil, err
 	}
@@ -546,7 +573,7 @@ func (r *ResponsesRepository) prepareRAGContext(ctx context.Context, params Resp
 	}
 	defer db.Close()
 
-	sources, err := r.ragSearch(ctx, maasClient, db, embeddingModel, question, collection, topK, alpha, hybrid)
+	sources, err := r.ragSearch(ctx, maasClient, db, embeddingModel, question, collection, searchOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -591,7 +618,7 @@ func (r *ResponsesRepository) prepareRAGContext(ctx context.Context, params Resp
 // It validates MaaS configuration and database search capabilities without executing a search.
 // In local development it may establish a cached port-forward for Milvus.
 func (r *ResponsesRepository) ValidateResponses(ctx context.Context, params ResponsesParams, req *models.ResponsesRequest) error {
-	_, _, _, hybrid, err := parseFileSearchTool(req)
+	_, searchOptions, err := parseVectorSearch(req)
 	if err != nil {
 		return err
 	}
@@ -614,7 +641,7 @@ func (r *ResponsesRepository) ValidateResponses(ctx context.Context, params Resp
 	if err != nil {
 		return err
 	}
-	return vectordb.ValidateSearchOptions(forwarded.data, hybrid)
+	return vectordb.ValidateSearchOptions(forwarded.data, searchOptions)
 }
 
 // HandleResponses processes a non-streaming RAG request.
